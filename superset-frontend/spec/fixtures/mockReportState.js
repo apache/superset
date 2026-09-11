@@ -25,7 +25,6 @@ export default {
   crontab: '0 12 * * 1',
   dashboard: dashboardInfo.id,
   name: 'Weekly Report',
-  owners: [user.userId],
   recipients: [
     {
       recipient_config_json: {

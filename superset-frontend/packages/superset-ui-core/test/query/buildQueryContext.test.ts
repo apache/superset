@@ -20,7 +20,7 @@ import { buildQueryContext, VizType } from '@superset-ui/core';
 import * as queryModule from '../../src/query/normalizeTimeColumn';
 
 describe('buildQueryContext', () => {
-  it('should build datasource for table sources and apply defaults', () => {
+  test('should build datasource for table sources and apply defaults', () => {
     const queryContext = buildQueryContext({
       datasource: '5__table',
       granularity_sqla: 'ds',
@@ -29,10 +29,23 @@ describe('buildQueryContext', () => {
     expect(queryContext.datasource.id).toBe(5);
     expect(queryContext.datasource.type).toBe('table');
     expect(queryContext.force).toBe(false);
+    // A non-forced request carries no idempotency nonce.
+    expect(queryContext.force_nonce).toBeUndefined();
     expect(queryContext.result_format).toBe('json');
     expect(queryContext.result_type).toBe('full');
   });
-  it('should build datasource for table sources with columns', () => {
+  test('should carry force_nonce when set on the form data', () => {
+    const queryContext = buildQueryContext({
+      datasource: '5__table',
+      granularity_sqla: 'ds',
+      viz_type: VizType.Table,
+      force: true,
+      force_nonce: 'nonce-123',
+    });
+    expect(queryContext.force).toBe(true);
+    expect(queryContext.force_nonce).toBe('nonce-123');
+  });
+  test('should build datasource for table sources with columns', () => {
     const queryContext = buildQueryContext(
       {
         datasource: '5__table',
@@ -70,7 +83,7 @@ describe('buildQueryContext', () => {
       ]),
     );
   });
-  it('should build datasource for table sources and process with custom function', () => {
+  test('should build datasource for table sources and process with custom function', () => {
     const queryContext = buildQueryContext(
       {
         datasource: '5__table',
@@ -99,7 +112,7 @@ describe('buildQueryContext', () => {
     );
   });
   // todo(Yongjie): move these test case into buildQueryObject.test.ts
-  it('should remove undefined value in post_processing', () => {
+  test('should remove undefined value in post_processing', () => {
     const queryContext = buildQueryContext(
       {
         datasource: '5__table',
@@ -124,7 +137,7 @@ describe('buildQueryContext', () => {
       },
     ]);
   });
-  it('should call normalizeTimeColumn if has x_axis', () => {
+  test('should call normalizeTimeColumn if has x_axis', () => {
     const spyNormalizeTimeColumn = jest.spyOn(
       queryModule,
       'normalizeTimeColumn',

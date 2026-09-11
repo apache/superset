@@ -19,14 +19,20 @@
 import { isValidElement } from 'react';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
+import userEvent from '@testing-library/user-event';
 import QueryTable from 'src/SqlLab/components/QueryTable';
 import { runningQuery, successfulQuery, user } from 'src/SqlLab/fixtures';
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen, waitFor } from 'spec/helpers/testing-library';
 
 const mockedProps = {
   queries: [runningQuery, successfulQuery],
   displayLimit: 100,
   latestQueryId: 'ryhMUZCGb',
+};
+
+const queryWithResults = {
+  ...successfulQuery,
+  resultsKey: 'test-results-key-123',
 };
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
@@ -91,5 +97,94 @@ describe('QueryTable', () => {
         'table > tbody > tr:not(.ant-table-measure-row)',
       ),
     ).toHaveLength(1);
+  });
+
+  test('renders View button when query has resultsKey', () => {
+    const mockStore = configureStore([thunk]);
+    const propsWithResults = {
+      ...mockedProps,
+      columns: ['started', 'duration', 'rows', 'results'],
+      queries: [queryWithResults],
+    };
+    render(<QueryTable {...propsWithResults} />, {
+      store: mockStore({ user, sqlLab: { queries: {} } }),
+    });
+
+    expect(screen.getByRole('button', { name: /view/i })).toBeInTheDocument();
+  });
+
+  test('does not render View button when query has no resultsKey', () => {
+    const mockStore = configureStore([thunk]);
+    const queryWithoutResults = {
+      ...successfulQuery,
+      resultsKey: null,
+    };
+    const propsWithoutResults = {
+      ...mockedProps,
+      columns: ['started', 'duration', 'rows', 'results'],
+      queries: [queryWithoutResults],
+    };
+    render(<QueryTable {...propsWithoutResults} />, {
+      store: mockStore({ user, sqlLab: { queries: {} } }),
+    });
+
+    expect(
+      screen.queryByRole('button', { name: /view/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  test('clicking View button opens data preview modal', async () => {
+    const mockStore = configureStore([thunk]);
+    const propsWithResults = {
+      ...mockedProps,
+      columns: ['started', 'duration', 'rows', 'results'],
+      queries: [queryWithResults],
+    };
+    render(<QueryTable {...propsWithResults} />, {
+      store: mockStore({
+        user,
+        sqlLab: {
+          queries: {
+            [queryWithResults.id]: queryWithResults,
+          },
+        },
+      }),
+    });
+
+    const viewButton = screen.getByRole('button', { name: /view/i });
+    await userEvent.click(viewButton);
+
+    expect(await screen.findByText('Data preview')).toBeInTheDocument();
+  });
+
+  test('modal closes when exiting', async () => {
+    const mockStore = configureStore([thunk]);
+    const propsWithResults = {
+      ...mockedProps,
+      columns: ['started', 'duration', 'rows', 'results'],
+      queries: [queryWithResults],
+    };
+    render(<QueryTable {...propsWithResults} />, {
+      store: mockStore({
+        user,
+        sqlLab: {
+          queries: {
+            [queryWithResults.id]: queryWithResults,
+          },
+        },
+      }),
+    });
+
+    const viewButton = screen.getByRole('button', { name: /view/i });
+    await userEvent.click(viewButton);
+
+    expect(await screen.findByText('Data preview')).toBeInTheDocument();
+
+    const closeButton = screen.getByRole('button', { name: /close/i });
+    await userEvent.click(closeButton);
+
+    await waitFor(() => {
+      expect(screen.queryByText('Data preview')).not.toBeInTheDocument();
+    });
   });
 });

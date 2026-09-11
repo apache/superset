@@ -17,13 +17,13 @@
  * under the License.
  */
 
-import { t } from '../translation';
+import { t } from '@apache-superset/core/translation';
 
 /**
  * formerly called numeric()
  * @param v
  */
-export default function numeric(v: unknown) {
+export default function numeric(v: unknown): string | false {
   if (v && Number.isNaN(Number(v))) {
     return t('is expected to be a number');
   }

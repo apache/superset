@@ -25,21 +25,21 @@ describe('Gauge buildQuery', () => {
     viz_type: 'my_chart',
   };
 
-  it('should build query fields with no group by column', () => {
+  test('should build query fields with no group by column', () => {
     const formData = { ...baseFormData, groupby: undefined };
     const queryContext = buildQuery(formData);
     const [query] = queryContext.queries;
     expect(query.columns).toEqual([]);
   });
 
-  it('should build query fields with single group by column', () => {
+  test('should build query fields with single group by column', () => {
     const formData = { ...baseFormData, groupby: ['foo'] };
     const queryContext = buildQuery(formData);
     const [query] = queryContext.queries;
     expect(query.columns).toEqual(['foo']);
   });
 
-  it('should build query fields with multiple group by columns', () => {
+  test('should build query fields with multiple group by columns', () => {
     const formData = { ...baseFormData, groupby: ['foo', 'bar'] };
     const queryContext = buildQuery(formData);
     const [query] = queryContext.queries;

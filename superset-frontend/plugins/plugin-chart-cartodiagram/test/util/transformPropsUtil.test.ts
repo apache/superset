@@ -44,14 +44,14 @@ describe('transformPropsUtil', () => {
   };
 
   describe('getGeojsonColumns', () => {
-    it('gets the GeoJSON columns', () => {
+    test('gets the GeoJSON columns', () => {
       const columns = ['foo', 'bar', geom1];
       const result = getGeojsonColumns(columns);
       expect(result).toHaveLength(1);
       expect(result[0]).toEqual(2);
     });
 
-    it('gets multiple GeoJSON columns', () => {
+    test('gets multiple GeoJSON columns', () => {
       const columns = ['foo', geom2, 'bar', geom1];
       const result = getGeojsonColumns(columns);
       expect(result).toHaveLength(2);
@@ -59,7 +59,7 @@ describe('transformPropsUtil', () => {
       expect(result[1]).toEqual(3);
     });
 
-    it('returns empty array when no GeoJSON is included', () => {
+    test('returns empty array when no GeoJSON is included', () => {
       const columns = ['foo', 'bar'];
       const result = getGeojsonColumns(columns);
       expect(result).toHaveLength(0);
@@ -67,13 +67,13 @@ describe('transformPropsUtil', () => {
   });
 
   describe('createColumnName', () => {
-    it('creates a columns name', () => {
+    test('creates a columns name', () => {
       const columns = ['foo', 'bar'];
       const result = createColumnName(columns, []);
       expect(result).toEqual('foo, bar');
     });
 
-    it('ignores items provided by ignoreIdx', () => {
+    test('ignores items provided by ignoreIdx', () => {
       const columns = ['foo', 'bar', 'baz'];
       const ignoreIdx = [1];
       const result = createColumnName(columns, ignoreIdx);
@@ -82,7 +82,7 @@ describe('transformPropsUtil', () => {
   });
 
   describe('groupByLocationGenericX', () => {
-    it('groups in the correct count of geometries', () => {
+    test('groups in the correct count of geometries', () => {
       const result = groupByLocationGenericX(
         groupedTimeseriesChartData,
         groupedTimeseriesParams,
@@ -92,7 +92,7 @@ describe('transformPropsUtil', () => {
       expect(countOfGeometries).toEqual(2);
     });
 
-    it('groups items by same geometry', () => {
+    test('groups items by same geometry', () => {
       const result = groupByLocationGenericX(
         groupedTimeseriesChartData,
         groupedTimeseriesParams,
@@ -105,14 +105,14 @@ describe('transformPropsUtil', () => {
   });
 
   describe('groupByLocation', () => {
-    it('groups in the correct count of geometries', () => {
+    test('groups in the correct count of geometries', () => {
       const geometryColumn = 'geom';
       const result = groupByLocation(nonTimeSeriesChartData, geometryColumn);
       const countOfGeometries = Object.keys(result).length;
       expect(countOfGeometries).toEqual(2);
     });
 
-    it('groups items by same geometry', () => {
+    test('groups items by same geometry', () => {
       const geometryColumn = 'geom';
       const result = groupByLocation(nonTimeSeriesChartData, geometryColumn);
       const allGeom1 = result[geom1].length === 6;
@@ -122,7 +122,7 @@ describe('transformPropsUtil', () => {
   });
 
   describe('stripGeomFromColnamesAndTypes', () => {
-    it('strips the geom from colnames with geom column', () => {
+    test('strips the geom from colnames with geom column', () => {
       const queryData = {
         colnames: ['foo', 'geom'],
         coltypes: [0, 0],
@@ -134,7 +134,7 @@ describe('transformPropsUtil', () => {
       });
     });
 
-    it('strips the geom from colnames with grouped columns', () => {
+    test('strips the geom from colnames with grouped columns', () => {
       const queryData = {
         colnames: ['foo', `bar, ${geom1}`],
         coltypes: [0, 0],
@@ -146,7 +146,7 @@ describe('transformPropsUtil', () => {
       });
     });
 
-    it('strips the geom from colnames with grouped columns without geom', () => {
+    test('strips the geom from colnames with grouped columns without geom', () => {
       const queryData = {
         colnames: ['foo', `bar, baz`],
         coltypes: [0, 0],
@@ -160,7 +160,7 @@ describe('transformPropsUtil', () => {
   });
 
   describe('stripGeomColumnFromLabelMap', () => {
-    it('strips the geom column from label_map', () => {
+    test('strips the geom column from label_map', () => {
       const labelMap = {
         [`apple, ${geom1}`]: ['apple', geom1],
         [`${geom2}, lemon`]: [geom2, 'lemon'],
@@ -192,12 +192,12 @@ describe('transformPropsUtil', () => {
       chartTransformer = jest.fn();
     });
 
-    it('calls the transformProps function for every location', () => {
+    test('calls the transformProps function for every location', () => {
       getChartConfigs(pieChartConfig, geomColumn, chartProps, chartTransformer);
 
       expect(chartTransformer).toHaveBeenCalledTimes(2);
     });
-    it('returns a geojson', () => {
+    test('returns a geojson', () => {
       const result = getChartConfigs(
         pieChartConfig,
         geomColumn,
@@ -216,7 +216,7 @@ describe('transformPropsUtil', () => {
         }),
       );
     });
-    it('returns a feature for each location', () => {
+    test('returns a feature for each location', () => {
       const result = getChartConfigs(
         pieChartConfig,
         geomColumn,
@@ -230,7 +230,7 @@ describe('transformPropsUtil', () => {
   });
 
   describe('parseSelectedChart', () => {
-    it('parses the inline stringified JSON', () => {
+    test('parses the inline stringified JSON', () => {
       const selectedChartObject = {
         id: 278,
         params:

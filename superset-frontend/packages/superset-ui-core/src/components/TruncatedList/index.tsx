@@ -19,7 +19,9 @@
 
 import { ReactNode, Key, useMemo } from 'react';
 
-import { styled, t, useTruncation } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { useTruncation } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/theme';
 import { Tooltip } from '@superset-ui/core/components';
 
 export type TruncatedListProps<ListItemType> = {
@@ -95,8 +97,8 @@ const StyledPlus = styled.span`
 
 export default function TruncatedList<ListItemType>({
   items,
-  renderVisibleItem = item => item,
-  renderTooltipItem = item => item,
+  renderVisibleItem = item => item as ReactNode,
+  renderTooltipItem = item => item as ReactNode,
   getKey = item => item as unknown as Key,
   maxLinks = 20,
 }: TruncatedListProps<ListItemType>) {

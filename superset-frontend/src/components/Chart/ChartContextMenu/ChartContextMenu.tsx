@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+// Test comment for pre-commit
 import {
   forwardRef,
   ReactNode,
@@ -23,10 +24,12 @@ import {
   useCallback,
   useImperativeHandle,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import ReactDOM from 'react-dom';
 import { useDispatch, useSelector } from 'react-redux';
+import { t } from '@apache-superset/core/translation';
 import {
   Behavior,
   BinaryQueryObjectFilterClause,
@@ -35,12 +38,10 @@ import {
   ensureIsArray,
   FeatureFlag,
   getChartMetadataRegistry,
-  getExtensionsRegistry,
   isFeatureEnabled,
   QueryFormData,
-  t,
-  useTheme,
 } from '@superset-ui/core';
+import { useTheme } from '@apache-superset/core/theme';
 import { RootState } from 'src/dashboard/types';
 import { MenuItem } from '@superset-ui/core/components/Menu';
 import { usePermissions } from 'src/hooks/usePermissions';
@@ -54,6 +55,7 @@ import { getMenuAdjustedY } from '../utils';
 import { DrillBySubmenu } from '../DrillBy/DrillBySubmenu';
 import DrillDetailModal from '../DrillDetail/DrillDetailModal';
 import { MenuItemTooltip } from '../DisabledMenuItemTooltip';
+import { Dataset } from '../types';
 
 export enum ContextMenuItem {
   CrossFilter,
@@ -109,6 +111,11 @@ const ChartContextMenu = (
   );
 
   const [visible, setVisible] = useState(false);
+  // `visible` state updates aren't synchronous, so a second open() call that
+  // runs before React re-renders would still see the stale `false` closure.
+  // This ref is updated synchronously (both here and in onOpenChange) so the
+  // guard below always reflects the latest known open state.
+  const visibleRef = useRef(false);
 
   const isDisplayed = (item: ContextMenuItem) =>
     displayedItems === ContextMenuItem.All ||
@@ -154,25 +161,36 @@ const ChartContextMenu = (
 
   const [drillModalIsOpen, setDrillModalIsOpen] = useState(false);
   const [drillByColumn, setDrillByColumn] = useState<Column>();
+  // Drill by config as selected in the submenu (e.g. with the chosen
+  // x-axis/series filter scope applied), used over the raw context filters
+  const [selectedDrillByConfig, setSelectedDrillByConfig] =
+    useState<ContextMenuFilters['drillBy']>();
   const [showDrillByModal, setShowDrillByModal] = useState(false);
 
   const closeContextMenu = useCallback(() => {
+    visibleRef.current = false;
     setVisible(false);
     onClose();
   }, [onClose]);
 
-  const handleDrillBy = useCallback((column: Column) => {
-    setDrillByColumn(column);
-    setShowDrillByModal(true);
-  }, []);
-
-  const loadDrillByOptionsExtension = getExtensionsRegistry().get(
-    'load.drillby.options',
+  const handleDrillBy = useCallback(
+    (
+      column: Column,
+      _dataset: Dataset,
+      drillByConfig?: ContextMenuFilters['drillBy'],
+    ) => {
+      setDrillByColumn(column);
+      setSelectedDrillByConfig(drillByConfig);
+      setShowDrillByModal(true);
+    },
+    [],
   );
 
   const handleCloseDrillByModal = useCallback(() => {
     setShowDrillByModal(false);
   }, []);
+
+  const drillByModalConfig = selectedDrillByConfig ?? enhancedFilters?.drillBy;
 
   const menuItems: MenuItem[] = [];
 
@@ -186,8 +204,11 @@ const ChartContextMenu = (
     canDrillBy &&
     isDisplayed(ContextMenuItem.DrillBy) &&
     !(
-      formData.matrixify_enable_vertical_layout === true ||
-      formData.matrixify_enable_horizontal_layout === true
+      formData.matrixify_enable === true &&
+      ((formData.matrixify_mode_rows !== undefined &&
+        formData.matrixify_mode_rows !== 'disabled') ||
+        (formData.matrixify_mode_columns !== undefined &&
+          formData.matrixify_mode_columns !== 'disabled'))
     ); // Disable drill by when matrixify is enabled
 
   const datasetResource = useDatasetDrillInfo(
@@ -215,8 +236,9 @@ const ChartContextMenu = (
 
     const filteredColumns = ensureIsArray(dataset.columns).filter(
       column =>
-        // If using an extension, also filter by column.groupby since the extension might not do this
-        (!loadDrillByOptionsExtension || column.groupby) &&
+        // Both the API and the extension return every column, since the same
+        // payload resolves display labels elsewhere. Only dimensions are drillable.
+        column.groupby &&
         !ensureIsArray(
           formData[filters?.drillBy?.groupbyFieldName ?? ''],
         ).includes(column.column_name) &&
@@ -238,7 +260,6 @@ const ChartContextMenu = (
     formData.x_axis,
     formData[enhancedFilters?.drillBy?.groupbyFieldName ?? ''],
     additionalConfig?.drillBy?.excludedColumns,
-    loadDrillByOptionsExtension,
   ]);
 
   const showCrossFilters = isDisplayed(ContextMenuItem.CrossFilter);
@@ -272,7 +293,7 @@ const ChartContextMenu = (
     setShowModal: setDrillModalIsOpen,
     dataset: filteredDataset,
     isLoadingDataset,
-    ...(additionalConfig?.drillToDetail || {}),
+    ...additionalConfig?.drillToDetail,
   });
 
   if (showCrossFilters) {
@@ -386,11 +407,26 @@ const ChartContextMenu = (
         filters,
       });
 
-      // Since Ant Design's Dropdown does not offer an imperative API
-      // and we can't attach event triggers to charts SVG elements, we
-      // use a hidden span that gets clicked on when receiving click events
-      // from the charts.
-      document.getElementById(`hidden-span-${id}`)?.click();
+      // Some chart libraries (e.g. AG Grid) can dispatch a single logical
+      // right-click as two contextmenu events in quick succession, calling
+      // `open()` twice. Since Ant Design's Dropdown treats a click on an
+      // already-open trigger as a toggle-to-close, re-clicking the hidden
+      // span here on the second call would immediately close the menu we
+      // just opened. Only click it when the menu isn't already visible; the
+      // position/filters update above still applies on every call.
+      //
+      // visibleRef (not the `visible` state) drives this guard: the state
+      // update from the first call's click hasn't been committed by the time
+      // the second call runs, so a state-based check would still read the
+      // stale `false` from this render's closure and click twice anyway.
+      if (!visibleRef.current) {
+        visibleRef.current = true;
+        // Ant Design's Dropdown does not offer an imperative API and we
+        // can't attach event triggers to charts' SVG elements, so we use a
+        // hidden span that gets clicked on when receiving click events from
+        // the charts.
+        document.getElementById(`hidden-span-${id}`)?.click();
+      }
     },
     [id, itemsCount],
   );
@@ -412,6 +448,7 @@ const ChartContextMenu = (
               ? menuItems
               : [{ key: 'no-actions', label: t('No actions'), disabled: true }],
           onClick: () => {
+            visibleRef.current = false;
             setVisible(false);
             onClose();
           },
@@ -421,7 +458,11 @@ const ChartContextMenu = (
         )}
         trigger={['click']}
         onOpenChange={value => {
+          visibleRef.current = value;
           setVisible(value);
+          if (!value) {
+            onClose();
+          }
         }}
         open={visible}
       >
@@ -452,10 +493,10 @@ const ChartContextMenu = (
       {showDrillByModal &&
         drillByColumn &&
         filteredDataset &&
-        enhancedFilters?.drillBy && (
+        drillByModalConfig && (
           <DrillByModal
             column={drillByColumn}
-            drillByConfig={enhancedFilters?.drillBy}
+            drillByConfig={drillByModalConfig}
             formData={formData}
             onHideModal={handleCloseDrillByModal}
             dataset={filteredDataset}

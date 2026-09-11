@@ -1,0 +1,53 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+cache_timeout: null
+certification_details: null
+certified_by: null
+dataset_uuid: e8623bb9-5e00-f531-506a-19607f5f8005
+description: null
+params:
+  adhoc_filters:
+  - clause: WHERE
+    comparator: No filter
+    expressionType: SIMPLE
+    operator: TEMPORAL_RANGE
+    subject: order_date
+  annotation_layers: []
+  color_scheme: supersetColors
+  dashboards:
+  - 13
+  datasource: 22__table
+  extra_form_data: {}
+  groupby:
+  - status
+  legendMargin: 50
+  legendOrientation: top
+  metric: count
+  number_format: SMART_NUMBER
+  percent_calculation_type: first_step
+  row_limit: 10
+  show_labels: true
+  show_legend: true
+  show_tooltip_labels: true
+  sort_by_metric: true
+  tooltip_label_type: 5
+  viz_type: funnel
+query_context: null
+slice_name: Funnel
+uuid: 7b90545c-1aac-447d-9175-a49f508f699d
+version: 1.0.0
+viz_type: funnel

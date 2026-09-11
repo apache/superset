@@ -16,23 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetClient, logging } from '@superset-ui/core';
-import contentDisposition from 'content-disposition';
-import handleResourceExport from './export';
+import { SupersetClient } from '@superset-ui/core';
+import { logging } from '@apache-superset/core/utils';
+import { parse as parseContentDisposition } from 'content-disposition';
+import handleResourceExport, { getFilenameFromResponse } from './export';
 
 // Mock dependencies
 jest.mock('@superset-ui/core', () => ({
   SupersetClient: {
     get: jest.fn(),
   },
+}));
+
+jest.mock('@apache-superset/core/utils', () => ({
   logging: {
     warn: jest.fn(),
     error: jest.fn(),
   },
 }));
 
-jest.mock('content-disposition');
+jest.mock('content-disposition', () => ({
+  parse: jest.fn(),
+  __esModule: true,
+}));
 
+// Default no-op mock for pathUtils; specific tests customize ensureAppRoot to simulate app root prefixing
 jest.mock('./pathUtils', () => ({
   ensureAppRoot: jest.fn((path: string) => path),
 }));
@@ -151,7 +159,7 @@ test('uses default filename when Content-Disposition is missing', async () => {
 });
 
 test('handles Content-Disposition parsing errors gracefully', async () => {
-  (contentDisposition.parse as jest.Mock).mockImplementationOnce(() => {
+  (parseContentDisposition as jest.Mock).mockImplementationOnce(() => {
     throw new Error('Invalid header');
   });
 
@@ -203,7 +211,7 @@ test('exports multiple resources with correct IDs', async () => {
 });
 
 test('parses filename from Content-Disposition with quotes', async () => {
-  (contentDisposition.parse as jest.Mock).mockReturnValueOnce({
+  (parseContentDisposition as jest.Mock).mockReturnValueOnce({
     type: 'attachment',
     parameters: { filename: 'my_custom_export.zip' },
   });
@@ -275,4 +283,229 @@ test('handles various resource types', async () => {
   );
 
   expect(doneMock).toHaveBeenCalledTimes(5);
+});
+
+test('handles network errors and logs them', async () => {
+  const networkError = new Error('Network request failed');
+  (SupersetClient.get as jest.Mock).mockRejectedValue(networkError);
+
+  const doneMock = jest.fn();
+
+  await expect(
+    handleResourceExport('dashboard', [1], doneMock),
+  ).rejects.toThrow('Network request failed');
+
+  expect(logging.error).toHaveBeenCalledWith(
+    'Resource export failed:',
+    networkError,
+  );
+  expect(doneMock).toHaveBeenCalled();
+});
+
+test('handles 404 errors when resource not found', async () => {
+  const notFoundError = new Error('Not found');
+  (SupersetClient.get as jest.Mock).mockRejectedValue(notFoundError);
+
+  const doneMock = jest.fn();
+
+  await expect(
+    handleResourceExport('dashboard', [999], doneMock),
+  ).rejects.toThrow('Not found');
+
+  expect(doneMock).toHaveBeenCalled();
+});
+
+test('handles empty response from server', async () => {
+  const emptyBlob = new Blob([], { type: 'application/zip' });
+  mockResponse = {
+    headers: new Headers({
+      'Content-Disposition': 'attachment; filename="empty.zip"',
+    }),
+    blob: jest.fn().mockResolvedValue(emptyBlob),
+  } as unknown as Response;
+  (SupersetClient.get as jest.Mock).mockResolvedValue(mockResponse);
+
+  const doneMock = jest.fn();
+  await handleResourceExport('dashboard', [1], doneMock);
+
+  expect(window.URL.createObjectURL).toHaveBeenCalledWith(emptyBlob);
+  expect(doneMock).toHaveBeenCalled();
+});
+
+test('cleans up blob URL even when download fails', async () => {
+  const mockAnchor = document.createElement('a');
+  mockAnchor.click = jest.fn().mockImplementation(() => {
+    throw new Error('Click failed');
+  });
+
+  createElementSpy.mockRestore();
+  createElementSpy = jest
+    .spyOn(document, 'createElement')
+    .mockReturnValue(mockAnchor);
+
+  const doneMock = jest.fn();
+
+  await expect(
+    handleResourceExport('dashboard', [1], doneMock),
+  ).rejects.toThrow('Click failed');
+
+  // Verify cleanup still happens
+  expect(window.URL.revokeObjectURL).toHaveBeenCalledWith('blob:mock-url');
+  expect(doneMock).toHaveBeenCalled();
+});
+
+test('handles malformed Content-Disposition header', async () => {
+  mockResponse = {
+    headers: new Headers({
+      'Content-Disposition': 'not-a-valid-header',
+    }),
+    blob: jest.fn().mockResolvedValue(mockBlob),
+  } as unknown as Response;
+  (SupersetClient.get as jest.Mock).mockResolvedValue(mockResponse);
+
+  (parseContentDisposition as jest.Mock).mockImplementationOnce(() => {
+    throw new Error('Parse error');
+  });
+
+  const doneMock = jest.fn();
+  await handleResourceExport('dataset', [5], doneMock);
+
+  // Should fall back to default filename
+  const anchor = document.createElement('a');
+  expect(anchor.download).toBe('dataset_export.zip');
+  expect(logging.warn).toHaveBeenCalledWith(
+    'Failed to parse Content-Disposition header:',
+    expect.any(Error),
+  );
+});
+
+test('handles missing headers object', async () => {
+  mockResponse = {
+    headers: new Headers(),
+    blob: jest.fn().mockResolvedValue(mockBlob),
+  } as unknown as Response;
+  (SupersetClient.get as jest.Mock).mockResolvedValue(mockResponse);
+
+  const doneMock = jest.fn();
+  await handleResourceExport('chart', [7], doneMock);
+
+  const anchor = document.createElement('a');
+  expect(anchor.download).toBe('chart_export.zip');
+  expect(doneMock).toHaveBeenCalled();
+});
+
+test('handles export with empty IDs array', async () => {
+  const doneMock = jest.fn();
+  await handleResourceExport('dashboard', [], doneMock);
+
+  expect(SupersetClient.get).toHaveBeenCalledWith(
+    expect.objectContaining({
+      endpoint: '/api/v1/dashboard/export/?q=!()',
+    }),
+  );
+});
+
+const { ensureAppRoot } = jest.requireMock('./pathUtils');
+
+const doublePrefixTestCases = [
+  {
+    name: 'subdirectory prefix',
+    appRoot: '/superset',
+    resource: 'dashboard',
+    ids: [1],
+  },
+  {
+    name: 'subdirectory prefix (dataset)',
+    appRoot: '/superset',
+    resource: 'dataset',
+    ids: [1],
+  },
+  {
+    name: 'nested prefix',
+    appRoot: '/my-app/superset',
+    resource: 'dataset',
+    ids: [1, 2],
+  },
+];
+
+test.each(doublePrefixTestCases)(
+  'handleResourceExport endpoint should not include app prefix: $name',
+  async ({ appRoot, resource, ids }) => {
+    // Simulate real ensureAppRoot behavior: prepend the appRoot
+    (ensureAppRoot as jest.Mock).mockImplementation(
+      (path: string) => `${appRoot}${path}`,
+    );
+
+    const doneMock = jest.fn();
+    await handleResourceExport(resource, ids, doneMock);
+
+    // The endpoint passed to SupersetClient.get should NOT have the appRoot prefix
+    // because SupersetClient.getUrl() adds it when building the full URL.
+    const expectedEndpoint = `/api/v1/${resource}/export/?q=!(${ids.join(',')})`;
+
+    // Explicitly verify no prefix in endpoint - this will fail if ensureAppRoot is used
+    const [lastCall] = (SupersetClient.get as jest.Mock).mock.calls.slice(-1);
+    const [callArgs] = lastCall;
+    expect(callArgs.endpoint).not.toContain(appRoot);
+    expect(callArgs.endpoint).toBe(expectedEndpoint);
+
+    // Reset mock for next test
+    (ensureAppRoot as jest.Mock).mockImplementation((path: string) => path);
+  },
+);
+
+test('getFilenameFromResponse returns filename from Content-Disposition', () => {
+  (parseContentDisposition as jest.Mock).mockReturnValueOnce({
+    parameters: { filename: 'server_export.csv' },
+  });
+  const response = {
+    headers: new Headers({
+      'Content-Disposition': 'attachment; filename="server_export.csv"',
+    }),
+  } as Response;
+
+  expect(getFilenameFromResponse(response, 'fallback.csv')).toBe(
+    'server_export.csv',
+  );
+});
+
+test('getFilenameFromResponse uses zip extension when Content-Type is zip', () => {
+  const response = {
+    headers: new Headers({
+      'Content-Type': 'application/zip',
+    }),
+  } as Response;
+
+  expect(getFilenameFromResponse(response, 'chart_export_2025.csv')).toBe(
+    'chart_export_2025.zip',
+  );
+});
+
+test('getFilenameFromResponse returns fallback when no headers match', () => {
+  const response = {
+    headers: new Headers(),
+  } as Response;
+
+  expect(getFilenameFromResponse(response, 'chart_export_2025.csv')).toBe(
+    'chart_export_2025.csv',
+  );
+});
+
+test('getFilenameFromResponse falls back when Content-Disposition parsing fails', () => {
+  (parseContentDisposition as jest.Mock).mockImplementationOnce(() => {
+    throw new Error('Parse error');
+  });
+  const response = {
+    headers: new Headers({
+      'Content-Disposition': 'invalid',
+    }),
+  } as Response;
+
+  expect(getFilenameFromResponse(response, 'fallback.csv')).toBe(
+    'fallback.csv',
+  );
+  expect(logging.warn).toHaveBeenCalledWith(
+    'Failed to parse Content-Disposition header:',
+    expect.any(Error),
+  );
 });

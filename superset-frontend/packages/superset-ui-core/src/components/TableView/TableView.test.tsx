@@ -19,6 +19,14 @@
 import { render, screen, userEvent, waitFor } from '@superset-ui/core/spec';
 import { TableView, TableViewProps } from '.';
 
+// Mock window.scrollTo to prevent jsdom "Not implemented" errors
+beforeAll(() => {
+  window.scrollTo = jest.fn();
+});
+afterAll(() => {
+  jest.restoreAllMocks();
+});
+
 const mockedProps: TableViewProps = {
   columns: [
     {
@@ -59,9 +67,9 @@ test('should render a table', () => {
 test('should render the headers', () => {
   render(<TableView {...mockedProps} />);
   expect(screen.getAllByRole('columnheader')).toHaveLength(3);
-  expect(screen.getByText('ID')).toBeInTheDocument();
-  expect(screen.getByText('Age')).toBeInTheDocument();
-  expect(screen.getByText('Name')).toBeInTheDocument();
+  expect(screen.getByTitle('ID')).toBeInTheDocument();
+  expect(screen.getByTitle('Age')).toBeInTheDocument();
+  expect(screen.getByTitle('Name')).toBeInTheDocument();
 });
 
 test('should render the rows', () => {
@@ -125,27 +133,25 @@ test('should change page when pagination is clicked', async () => {
   expect(screen.getByText('Emily')).toBeInTheDocument();
   expect(screen.queryByText('Kate')).not.toBeInTheDocument();
 
-  const page2 = screen.getByRole('listitem', { name: '2' });
-  await userEvent.click(page2);
+  await userEvent.click(screen.getByTitle('Next Page'));
 
   await waitFor(() => {
-    expect(screen.getAllByRole('cell')).toHaveLength(3);
-    expect(screen.getByText('321')).toBeInTheDocument();
-    expect(screen.getByText('10')).toBeInTheDocument();
     expect(screen.getByText('Kate')).toBeInTheDocument();
-    expect(screen.queryByText('Emily')).not.toBeInTheDocument();
   });
+  expect(screen.getAllByRole('cell')).toHaveLength(3);
+  expect(screen.getByText('321')).toBeInTheDocument();
+  expect(screen.getByText('10')).toBeInTheDocument();
+  expect(screen.queryByText('Emily')).not.toBeInTheDocument();
 
-  const page1 = screen.getByRole('listitem', { name: '1' });
-  await userEvent.click(page1);
+  await userEvent.click(screen.getByTitle('Previous Page'));
 
   await waitFor(() => {
-    expect(screen.getAllByRole('cell')).toHaveLength(3);
-    expect(screen.getByText('123')).toBeInTheDocument();
-    expect(screen.getByText('27')).toBeInTheDocument();
     expect(screen.getByText('Emily')).toBeInTheDocument();
-    expect(screen.queryByText('Kate')).not.toBeInTheDocument();
   });
+  expect(screen.getAllByRole('cell')).toHaveLength(3);
+  expect(screen.getByText('123')).toBeInTheDocument();
+  expect(screen.getByText('27')).toBeInTheDocument();
+  expect(screen.queryByText('Kate')).not.toBeInTheDocument();
 });
 
 test('should sort by age', async () => {
@@ -240,8 +246,7 @@ test('should handle server-side pagination', async () => {
   render(<TableView {...serverPaginationProps} />);
 
   // Click next page
-  const page2 = screen.getByRole('listitem', { name: '2' });
-  await userEvent.click(page2);
+  await userEvent.click(screen.getByTitle('Next Page'));
 
   await waitFor(() => {
     expect(onServerPagination).toHaveBeenCalledWith({
@@ -301,9 +306,7 @@ test('should scroll to top when scrollTopOnPagination is true', async () => {
   };
   render(<TableView {...scrollProps} />);
 
-  // Click next page
-  const page2 = screen.getByRole('listitem', { name: '2' });
-  await userEvent.click(page2);
+  await userEvent.click(screen.getByTitle('Next Page'));
 
   await waitFor(() => {
     expect(scrollToSpy).toHaveBeenCalledWith({ top: 0, behavior: 'smooth' });
@@ -324,9 +327,7 @@ test('should NOT scroll to top when scrollTopOnPagination is false', async () =>
   };
   render(<TableView {...scrollProps} />);
 
-  // Click next page
-  const page2 = screen.getByRole('listitem', { name: '2' });
-  await userEvent.click(page2);
+  await userEvent.click(screen.getByTitle('Next Page'));
 
   await waitFor(() => {
     expect(screen.getByText('321')).toBeInTheDocument();
@@ -369,4 +370,38 @@ test('should handle large datasets with pagination', () => {
   // Should show pagination with correct page count
   expect(screen.getByRole('list')).toBeInTheDocument();
   expect(screen.getByText('1-10 of 100')).toBeInTheDocument();
+});
+
+test('should reset to first page when data reduces below current page', async () => {
+  // Start with 30 items, 10 per page = 3 pages
+  const initialData = Array.from({ length: 30 }, (_, i) => ({
+    id: i,
+    age: 20 + i,
+    name: `Person ${i}`,
+  }));
+
+  const props = {
+    ...mockedProps,
+    data: initialData,
+    pageSize: 10,
+  };
+
+  const { rerender } = render(<TableView {...props} />);
+
+  // Navigate to page 3 (last page)
+  const page3 = screen.getByRole('listitem', { name: '3' });
+  await userEvent.click(page3);
+
+  await waitFor(() => {
+    expect(screen.getByText('21-30 of 30')).toBeInTheDocument();
+  });
+
+  // Reduce data to only 5 items (fewer than current page would show)
+  const reducedData = initialData.slice(0, 5);
+  rerender(<TableView {...props} data={reducedData} />);
+
+  // Should reset to page 1 since page 3 no longer exists
+  await waitFor(() => {
+    expect(screen.getByText('1-5 of 5')).toBeInTheDocument();
+  });
 });

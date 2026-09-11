@@ -17,9 +17,14 @@
  * under the License.
  */
 import rison from 'rison';
+import { waitFor } from '@testing-library/react';
+import { SupersetClient } from '@superset-ui/core';
+import Chart from 'src/types/Chart';
 import {
   checkUploadExtensions,
+  handleChartDelete,
   getAlreadyExists,
+  getEncryptedExtraFieldsNeeded,
   getFilterValues,
   getPasswordsNeeded,
   getSSHPasswordsNeeded,
@@ -27,6 +32,8 @@ import {
   getSSHPrivateKeyPasswordsNeeded,
   hasTerminalValidation,
   isAlreadyExists,
+  isNavigationHandledByLink,
+  isNeedsEncryptedExtraField,
   isNeedsPassword,
   isNeedsSSHPassword,
   isNeedsSSHPrivateKey,
@@ -183,6 +190,110 @@ const sshTunnelPrivateKeyPasswordNeededErrors = {
     },
   ],
 };
+
+const encryptedExtraFieldNeededErrors = {
+  errors: [
+    {
+      message: 'Error importing database',
+      error_type: 'GENERIC_COMMAND_ERROR',
+      level: 'warning',
+      extra: {
+        'databases/imported_database.yaml': {
+          _schema: [
+            'Must provide value for masked_encrypted_extra field: $.credentials_info.private_key (Service Account Private Key)',
+          ],
+        },
+        issue_codes: [
+          {
+            code: 1010,
+            message:
+              'Issue 1010 - Superset encountered an error while running a command.',
+          },
+        ],
+      },
+    },
+  ],
+};
+
+const multipleEncryptedExtraFieldsNeededErrors = {
+  errors: [
+    {
+      message: 'Error importing database',
+      error_type: 'GENERIC_COMMAND_ERROR',
+      level: 'warning',
+      extra: {
+        'databases/snowflake_db.yaml': {
+          _schema: [
+            'Must provide value for masked_encrypted_extra field: $.auth_params.privatekey_body (Private Key Body)',
+            'Must provide value for masked_encrypted_extra field: $.auth_params.privatekey_pass (Private Key Password)',
+          ],
+        },
+        issue_codes: [
+          {
+            code: 1010,
+            message:
+              'Issue 1010 - Superset encountered an error while running a command.',
+          },
+        ],
+      },
+    },
+  ],
+};
+
+const encryptedExtraFieldNoLabelErrors = {
+  errors: [
+    {
+      message: 'Error importing database',
+      error_type: 'GENERIC_COMMAND_ERROR',
+      level: 'warning',
+      extra: {
+        'databases/imported_database.yaml': {
+          _schema: [
+            'Must provide value for masked_encrypted_extra field: $.some.field',
+          ],
+        },
+        issue_codes: [
+          {
+            code: 1010,
+            message:
+              'Issue 1010 - Superset encountered an error while running a command.',
+          },
+        ],
+      },
+    },
+  ],
+};
+
+test('identifies clicks a link has already navigated', () => {
+  document.body.innerHTML = `
+    <div id="card">
+      <a id="cover" href="/explore/?slice_id=1"><img id="thumbnail" alt="" /></a>
+      <span id="title">Chart</span>
+      <a id="anchorWithoutHref"><span id="inertLabel">Label</span></a>
+    </div>
+  `;
+  const target = (id: string) => ({ target: document.getElementById(id) });
+
+  // the link itself and anything nested inside it
+  expect(isNavigationHandledByLink(target('cover'))).toBe(true);
+  expect(isNavigationHandledByLink(target('thumbnail'))).toBe(true);
+
+  // the rest of the card still navigates through its own click handler
+  expect(isNavigationHandledByLink(target('title'))).toBe(false);
+  expect(isNavigationHandledByLink(target('card'))).toBe(false);
+
+  // an anchor with no href does not navigate, so it must not suppress the card
+  expect(isNavigationHandledByLink(target('anchorWithoutHref'))).toBe(false);
+  expect(isNavigationHandledByLink(target('inertLabel'))).toBe(false);
+
+  // targets that are not elements
+  expect(isNavigationHandledByLink({ target: null })).toBe(false);
+  expect(
+    isNavigationHandledByLink({ target: document.createTextNode('text') }),
+  ).toBe(false);
+
+  document.body.innerHTML = '';
+});
 
 test('identifies error payloads indicating that password is needed', () => {
   let needsPassword;
@@ -366,6 +477,85 @@ test('does not ask for password when the import type is wrong', () => {
   expect(hasTerminalValidation(error.errors)).toBe(true);
 });
 
+test('identifies error payloads indicating that encrypted extra fields are needed', () => {
+  expect(
+    isNeedsEncryptedExtraField({
+      _schema: [
+        'Must provide value for masked_encrypted_extra field: $.credentials_info.private_key (Service Account Private Key)',
+      ],
+    }),
+  ).toBe(true);
+
+  expect(
+    isNeedsEncryptedExtraField(
+      'Database already exists and `overwrite=true` was not passed',
+    ),
+  ).toBe(false);
+
+  expect(
+    isNeedsEncryptedExtraField({ type: ['Must be equal to Database.'] }),
+  ).toBe(false);
+
+  expect(
+    isNeedsEncryptedExtraField({
+      _schema: ['Must provide a password for the database'],
+    }),
+  ).toBe(false);
+});
+
+test('extracts encrypted extra fields needed with path and label', () => {
+  const result = getEncryptedExtraFieldsNeeded(
+    encryptedExtraFieldNeededErrors.errors,
+  );
+  expect(result).toEqual([
+    {
+      fileName: 'databases/imported_database.yaml',
+      fields: [
+        {
+          path: '$.credentials_info.private_key',
+          label: 'Service Account Private Key',
+        },
+      ],
+    },
+  ]);
+});
+
+test('extracts multiple encrypted extra fields from a single file', () => {
+  const result = getEncryptedExtraFieldsNeeded(
+    multipleEncryptedExtraFieldsNeededErrors.errors,
+  );
+  expect(result).toEqual([
+    {
+      fileName: 'databases/snowflake_db.yaml',
+      fields: [
+        { path: '$.auth_params.privatekey_body', label: 'Private Key Body' },
+        {
+          path: '$.auth_params.privatekey_pass',
+          label: 'Private Key Password',
+        },
+      ],
+    },
+  ]);
+});
+
+test('falls back to path as label when no parenthetical label is present', () => {
+  const result = getEncryptedExtraFieldsNeeded(
+    encryptedExtraFieldNoLabelErrors.errors,
+  );
+  expect(result).toEqual([
+    {
+      fileName: 'databases/imported_database.yaml',
+      fields: [{ path: '$.some.field', label: '$.some.field' }],
+    },
+  ]);
+});
+
+test('encrypted extra field errors are non-terminal', () => {
+  expect(hasTerminalValidation(encryptedExtraFieldNeededErrors.errors)).toBe(
+    false,
+  );
+});
+
 test('successfully modified rison to encode correctly', () => {
   const problemCharacters = '& # ? ^ { } [ ] | " = + `';
 
@@ -485,9 +675,9 @@ test('getFilterValues', () => {
       undefined,
       [
         {
-          id: 'owners',
-          operator: 'rel_m_m',
-          value: `${userId}`,
+          id: 'id',
+          operator: 'is_editable',
+          value: true,
         },
       ],
     ],
@@ -498,9 +688,9 @@ test('getFilterValues', () => {
       undefined,
       [
         {
-          id: 'owners',
-          operator: 'rel_m_m',
-          value: `${userId}`,
+          id: 'id',
+          operator: 'is_editable',
+          value: true,
         },
       ],
     ],
@@ -556,4 +746,28 @@ test('getFilterValues', () => {
       expectedValue,
     );
   });
+});
+
+test('handleChartDelete surfaces the blocking alert/report names from a 422', async () => {
+  const guardMessage =
+    'There are associated alerts or reports: TC-081 rerun report';
+  const deleteSpy = jest
+    .spyOn(SupersetClient, 'delete')
+    .mockRejectedValue(
+      new Response(JSON.stringify({ message: guardMessage }), { status: 422 }),
+    );
+  const addDangerToast = jest.fn();
+  try {
+    handleChartDelete(
+      { id: 1, slice_name: 'blocked chart' } as Chart,
+      jest.fn(),
+      addDangerToast,
+      jest.fn(),
+    );
+    await waitFor(() => expect(addDangerToast).toHaveBeenCalledTimes(1));
+    expect(addDangerToast.mock.calls[0][0]).toContain('TC-081 rerun report');
+    expect(addDangerToast.mock.calls[0][0]).toContain('blocked chart');
+  } finally {
+    deleteSpy.mockRestore();
+  }
 });

@@ -46,3 +46,50 @@ test('Sort starts with first', async () => {
 test('Sort same case first', async () => {
   expect(['%f %B', '%F %b'].sort(searchSort('%F'))).toEqual(['%F %b', '%f %B']);
 });
+
+test('returns localeCompare result when no search term provided', () => {
+  expect(rankedSearchCompare('banana', 'apple', '')).toBeGreaterThan(0);
+  expect(rankedSearchCompare('apple', 'banana', '')).toBeLessThan(0);
+});
+
+test('handles empty string a', () => {
+  const result = rankedSearchCompare('', 'hello', 'hello');
+  expect(typeof result).toBe('number');
+});
+
+test('handles empty string b', () => {
+  const result = rankedSearchCompare('hello', '', 'hello');
+  expect(typeof result).toBe('number');
+});
+
+test('falls back to localeCompare when strings have no match relationship to search', () => {
+  expect(rankedSearchCompare('abc', 'def', 'xyz')).toBeLessThan(0);
+  expect(rankedSearchCompare('def', 'abc', 'xyz')).toBeGreaterThan(0);
+});
+
+test('ranks a case-insensitive substring match above a non-match', () => {
+  // `zzABCzz` contains the search term ignoring case, `aaaa` does not match at
+  // all, so the match must win even though localeCompare would order it last.
+  expect(rankedSearchCompare('zzABCzz', 'aaaa', 'abc')).toBeLessThan(0);
+  expect(rankedSearchCompare('aaaa', 'zzABCzz', 'abc')).toBeGreaterThan(0);
+  expect(['aaaa', 'zzABCzz'].sort(searchSort('abc'))).toEqual([
+    'zzABCzz',
+    'aaaa',
+  ]);
+});
+
+test('is antisymmetric so Array.prototype.sort stays well defined', () => {
+  const pairs: [string, string, string][] = [
+    ['zzABCzz', 'aaaa', 'abc'],
+    ['Total Revenue', 'ARR', 'revenue'],
+    ['My Country', 'zzz', 'country'],
+    ['%f %B', '%F %b', '%F'],
+    ['her', 'Cher', 'Her'],
+  ];
+  pairs.forEach(([a, b, search]) => {
+    expect(
+      Math.sign(rankedSearchCompare(a, b, search)) +
+        Math.sign(rankedSearchCompare(b, a, search)),
+    ).toBe(0);
+  });
+});

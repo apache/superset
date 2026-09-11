@@ -34,6 +34,7 @@ import {
 } from '@superset-ui/core';
 import type { EChartsCoreOption, EChartsType } from 'echarts/core';
 import type { TooltipMarker } from 'echarts/types/src/util/format';
+import type { ECElementEvent } from 'echarts/types/src/util/types';
 import { StackControlsValue } from './constants';
 
 export type EchartsStylesProps = {
@@ -51,6 +52,7 @@ export interface EchartsProps {
   width: number;
   echartOptions: EChartsCoreOption;
   eventHandlers?: EventHandlers;
+  queryEventHandlers?: QueryEventHandlers;
   zrEventHandlers?: EventHandlers;
   selectedValues?: Record<number, string>;
   forceClear?: boolean;
@@ -92,6 +94,7 @@ export type ForecastValue = {
   forecastTrend?: number;
   forecastLower?: number;
   forecastUpper?: number;
+  color?: string;
 };
 
 export type LegendFormData = {
@@ -103,6 +106,12 @@ export type LegendFormData = {
 };
 
 export type EventHandlers = Record<string, { (props: any): void }>;
+
+export type QueryEventHandlers = {
+  name: string;
+  query: string;
+  handler: (props: ECElementEvent) => void;
+}[];
 
 export enum LabelPositionEnum {
   Top = 'top',
@@ -128,6 +137,7 @@ export interface BaseTransformedProps<F> {
   echartOptions: EChartsCoreOption;
   formData: F;
   height: number;
+  isRefreshing?: boolean;
   onContextMenu?: (
     clientX: number,
     clientY: number,

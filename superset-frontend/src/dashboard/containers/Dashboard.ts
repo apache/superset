@@ -23,6 +23,7 @@ import Dashboard from 'src/dashboard/components/Dashboard';
 import {
   addSliceToDashboard,
   removeSliceFromDashboard,
+  clearAllChartStates,
 } from 'src/dashboard/actions/dashboardState';
 import { setDatasources } from 'src/dashboard/actions/datasources';
 
@@ -61,6 +62,7 @@ function mapDispatchToProps(dispatch: Dispatch) {
       {
         setDatasources,
         clearDataMaskState,
+        clearAllChartStates,
         addSliceToDashboard,
         removeSliceFromDashboard,
         triggerQuery,

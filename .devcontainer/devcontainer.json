@@ -13,7 +13,7 @@
 
   "features": {
     "ghcr.io/devcontainers/features/docker-in-docker:2": {
-      "moby": true,
+      "moby": false,
       "dockerDashComposeVersion": "v2"
     },
     "ghcr.io/devcontainers/features/node:1": {
@@ -59,7 +59,6 @@
         "ms-python.vscode-pylance",
         "charliermarsh.ruff",
         "dbaeumer.vscode-eslint",
-        "esbenp.prettier-vscode"
       ]
     }
   }

@@ -1,0 +1,64 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+cache_timeout: null
+certification_details: null
+certified_by: null
+dataset_uuid: b474edce-88e2-4ac4-be63-272a9f1dabe7
+description: null
+params:
+  color_picker:
+    a: 1
+    b: 135
+    g: 122
+    r: 0
+  datasource: 10__table
+  end_spatial:
+    latCol: LATITUDE_DEST
+    lonCol: LONGITUDE_DEST
+    type: latlong
+  granularity_sqla: null
+  mapbox_style: https://tile.openstreetmap.org/{z}/{x}/{y}.png
+  row_limit: 5000
+  slice_id: 42
+  start_spatial:
+    latCol: LATITUDE
+    lonCol: LONGITUDE
+    type: latlong
+  stroke_width: 1
+  time_grain_sqla: null
+  time_range: ' : '
+  viewport:
+    altitude: 1.5
+    bearing: 8.546256357301871
+    height: 642
+    latitude: 44.596651438714254
+    longitude: -91.84340711201104
+    maxLatitude: 85.05113
+    maxPitch: 60
+    maxZoom: 20
+    minLatitude: -85.05113
+    minPitch: 0
+    minZoom: 0
+    pitch: 60
+    width: 997
+    zoom: 2.929837070560775
+  viz_type: deck_arc
+query_context: null
+slice_name: Deck.gl Arcs
+uuid: 8663e6d2-5589-49f6-889a-335e8dc15119
+version: 1.0.0
+viz_type: deck_arc

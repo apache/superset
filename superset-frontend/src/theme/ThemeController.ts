@@ -25,8 +25,9 @@ import {
   Theme,
   ThemeMode,
   themeObject as supersetThemeObject,
-} from '@superset-ui/core';
-import { normalizeThemeConfig } from '@superset-ui/core/theme/utils';
+  normalizeThemeConfig,
+} from '@apache-superset/core/theme';
+import { makeApi, SupersetClient } from '@superset-ui/core';
 import type {
   BootstrapThemeData,
   BootstrapThemeDataConfig,
@@ -37,6 +38,7 @@ const STORAGE_KEYS = {
   THEME_MODE: 'superset-theme-mode',
   CRUD_THEME_ID: 'superset-crud-theme-id',
   DEV_THEME_OVERRIDE: 'superset-dev-theme-override',
+  APPLIED_THEME_ID: 'superset-applied-theme-id',
 } as const;
 
 const MEDIA_QUERY_DARK_SCHEME = '(prefers-color-scheme: dark)';
@@ -80,22 +82,46 @@ export class ThemeController {
 
   private darkTheme: AnyThemeConfig | null;
 
+  // The built-in/config fallback default theme captured at construction. Used
+  // when no system default theme is set, so a live refresh reproduces the
+  // constructor's default-theme fallback without a page reload.
+  private builtInDefaultTheme: AnyThemeConfig | null;
+
   private systemMode: ThemeMode.DARK | ThemeMode.DEFAULT;
 
   private currentMode: ThemeMode;
 
   private onChangeCallbacks: Set<(theme: Theme) => void> = new Set();
 
-  private mediaQuery: MediaQueryList;
+  private mediaQuery: MediaQueryList | undefined;
 
   private crudThemeId: string | null = null;
 
   private devThemeOverride: AnyThemeConfig | null = null;
 
+  private bootstrapDefaultMode: ThemeMode = ThemeMode.DEFAULT;
+
   // Dashboard themes managed by controller
   private dashboardThemes: Map<string, Theme> = new Map();
 
   private dashboardCrudTheme: AnyThemeConfig | null = null;
+
+  // Tracks whether an explicit theme config override has been applied via
+  // setThemeConfig (e.g. from the Embedded SDK). When set, it must take
+  // precedence over a dashboard-level theme.
+  private themeConfigOverride = false;
+
+  // Track loaded font URLs to avoid duplicate injections
+  private loadedFontUrls: Set<string> = new Set();
+
+  private initialMode: ThemeMode | undefined;
+
+  // Assigns a monotonically increasing id to each refreshSystemThemes call, and
+  // tracks the highest id that has actually applied a slice, so out-of-order or
+  // superseded /system responses can be dropped ("newest applied wins").
+  private refreshSeq = 0;
+
+  private appliedRefreshSeq = 0;
 
   constructor({
     storage = new LocalStorageAdapter(),
@@ -103,21 +129,32 @@ export class ThemeController {
     themeObject = supersetThemeObject,
     defaultTheme = (supersetThemeObject.theme as AnyThemeConfig) ?? {},
     onChange = undefined,
-  }: ThemeControllerOptions = {}) {
+    initialMode = undefined,
+  }: ThemeControllerOptions & { initialMode?: ThemeMode } = {}) {
     this.storage = storage;
     this.modeStorageKey = modeStorageKey;
+    this.initialMode = initialMode;
 
     // Controller creates and owns the global theme
     this.globalTheme = themeObject;
 
     // Initialize bootstrap data and themes
-    const { bootstrapDefaultTheme, bootstrapDarkTheme }: BootstrapThemeData =
-      this.loadBootstrapData();
+    const {
+      bootstrapDefaultTheme,
+      bootstrapDarkTheme,
+      bootstrapDefaultMode,
+    }: BootstrapThemeData = this.loadBootstrapData();
+
+    // Capture the built-in/config fallback default theme so a live refresh can
+    // reproduce this same fallback (see refreshSystemThemes).
+    this.builtInDefaultTheme = defaultTheme;
 
     // Set themes from bootstrap data
     // These will be the THEME_DEFAULT and THEME_DARK from config
-    this.defaultTheme = bootstrapDefaultTheme || defaultTheme || null;
+    this.defaultTheme =
+      bootstrapDefaultTheme || this.builtInDefaultTheme || null;
     this.darkTheme = bootstrapDarkTheme;
+    this.bootstrapDefaultMode = bootstrapDefaultMode;
 
     // Initialize system theme detection
     this.systemMode = ThemeController.getSystemPreferredMode();
@@ -138,8 +175,26 @@ export class ThemeController {
     // Setup change callback
     if (onChange) this.onChangeCallbacks.add(onChange);
 
-    // Apply initial theme and persist mode
-    this.applyTheme(initialTheme);
+    // Apply initial theme with recovery for corrupted stored themes
+    try {
+      this.applyTheme(initialTheme);
+    } catch (error) {
+      // Corrupted dev override or CRUD theme in storage - clear and retry with defaults
+      console.warn(
+        'Failed to apply stored theme, clearing invalid overrides:',
+        error,
+      );
+      this.devThemeOverride = null;
+      this.crudThemeId = null;
+      this.storage.removeItem(STORAGE_KEYS.DEV_THEME_OVERRIDE);
+      this.storage.removeItem(STORAGE_KEYS.CRUD_THEME_ID);
+      this.storage.removeItem(STORAGE_KEYS.APPLIED_THEME_ID);
+
+      // Retry with clean default theme
+      this.currentMode = ThemeMode.DEFAULT;
+      const safeTheme = this.defaultTheme || {};
+      this.applyTheme(safeTheme);
+    }
     this.persistMode();
   }
 
@@ -156,6 +211,12 @@ export class ThemeController {
       );
 
     this.onChangeCallbacks.clear();
+
+    // Clean up injected font styles
+    document
+      .querySelectorAll('style[data-superset-fonts]')
+      .forEach(el => el.remove());
+    this.loadedFontUrls.clear();
   }
 
   /**
@@ -224,18 +285,12 @@ export class ThemeController {
         return this.dashboardThemes.get(themeId)!;
       }
 
-      // Fetch theme config from API
-      const response = await fetch(`/api/v1/theme/${themeId}`);
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      const themeConfig = JSON.parse(data.result.json_data);
+      // Use the enhanced fetchCrudTheme method which includes validation if feature flag is enabled
+      const themeConfig = await this.fetchCrudTheme(themeId);
 
       if (themeConfig) {
         // Controller creates and owns the dashboard theme
-        const { Theme } = await import('@superset-ui/core');
+        const { Theme } = await import('@apache-superset/core/theme');
         const normalizedConfig = this.normalizeTheme(themeConfig);
 
         // Determine if this is a dark theme and get appropriate base
@@ -246,6 +301,11 @@ export class ThemeController {
           normalizedConfig,
           baseTheme || undefined,
         );
+
+        // Load custom fonts if specified in dashboard theme config
+        const fontUrls = (normalizedConfig?.token as Record<string, unknown>)
+          ?.fontUrls as string[] | undefined;
+        this.loadFonts(fontUrls);
 
         // Cache the theme for reuse
         this.dashboardThemes.set(themeId, dashboardTheme);
@@ -282,6 +342,20 @@ export class ThemeController {
   }
 
   /**
+   * Returns the resolved theme mode as 'dark' or 'light'.
+   * Takes into account SYSTEM mode and returns the actual resolved preference.
+   */
+  public getCurrentModeResolved(): 'dark' | 'light' {
+    const activeTheme = this.getThemeForMode(this.currentMode);
+    if (activeTheme) {
+      const normalizedTheme = this.normalizeTheme(activeTheme);
+      return isThemeConfigDark(normalizedTheme) ? 'dark' : 'light';
+    }
+
+    return this.currentMode === ThemeMode.DARK ? 'dark' : 'light';
+  }
+
+  /**
    * Sets new theme.
    * @param theme - The new theme to apply
    * @throws {Error} If the user does not have permission to update the theme
@@ -301,9 +375,14 @@ export class ThemeController {
    * @throws {Error} If the user does not have permission to update the theme mode
    */
   public setThemeMode(mode: ThemeMode): void {
-    this.validateModeUpdatePermission(mode);
+    this.validateModeUpdatePermission();
 
-    if (this.currentMode === mode) return;
+    if (
+      this.currentMode === mode &&
+      !this.devThemeOverride &&
+      !this.crudThemeId
+    )
+      return;
 
     // Clear any local overrides when explicitly selecting a theme mode
     // This ensures the selected mode takes effect and provides clear UX
@@ -314,7 +393,6 @@ export class ThemeController {
 
     const theme: AnyThemeConfig | null = this.getThemeForMode(mode);
     if (!theme) {
-      console.warn(`Theme for mode ${mode} not found, falling back to default`);
       this.fallbackToDefaultMode();
       return;
     }
@@ -367,8 +445,12 @@ export class ThemeController {
    * Sets a temporary theme override for development purposes.
    * This does not persist the theme but allows live preview.
    * @param theme - The theme configuration to apply temporarily
+   * @param themeId - Optional theme ID to track which theme was applied (for UI display)
    */
-  public setTemporaryTheme(theme: AnyThemeConfig): void {
+  public setTemporaryTheme(
+    theme: AnyThemeConfig,
+    themeId?: number | null,
+  ): void {
     this.validateThemeUpdatePermission();
 
     this.devThemeOverride = theme;
@@ -376,6 +458,11 @@ export class ThemeController {
       STORAGE_KEYS.DEV_THEME_OVERRIDE,
       JSON.stringify(theme),
     );
+
+    // Store the theme ID if provided
+    if (themeId !== undefined) {
+      this.setAppliedThemeId(themeId);
+    }
 
     const mergedTheme = this.getThemeForMode(this.currentMode);
     if (mergedTheme) this.updateTheme(mergedTheme);
@@ -389,9 +476,11 @@ export class ThemeController {
     this.devThemeOverride = null;
     this.crudThemeId = null;
     this.dashboardCrudTheme = null;
+    this.themeConfigOverride = false;
 
     this.storage.removeItem(STORAGE_KEYS.DEV_THEME_OVERRIDE);
     this.storage.removeItem(STORAGE_KEYS.CRUD_THEME_ID);
+    this.storage.removeItem(STORAGE_KEYS.APPLIED_THEME_ID);
 
     // Clear dashboard themes cache
     this.dashboardThemes.clear();
@@ -414,6 +503,43 @@ export class ThemeController {
   }
 
   /**
+   * Checks if an explicit theme config override has been applied via
+   * setThemeConfig (e.g. from the Embedded SDK). When true, this override
+   * takes precedence over any dashboard-level theme.
+   */
+  public hasThemeConfigOverride(): boolean {
+    return this.themeConfigOverride;
+  }
+
+  /**
+   * Gets the applied theme ID (for UI display purposes).
+   */
+  public getAppliedThemeId(): number | null {
+    try {
+      const storedId = this.storage.getItem(STORAGE_KEYS.APPLIED_THEME_ID);
+      return storedId ? parseInt(storedId, 10) : null;
+    } catch (error) {
+      console.warn('Failed to get applied theme ID:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Sets the applied theme ID (for UI display purposes).
+   */
+  public setAppliedThemeId(themeId: number | null): void {
+    try {
+      if (themeId !== null) {
+        this.storage.setItem(STORAGE_KEYS.APPLIED_THEME_ID, themeId.toString());
+      } else {
+        this.storage.removeItem(STORAGE_KEYS.APPLIED_THEME_ID);
+      }
+    } catch (error) {
+      console.warn('Failed to set applied theme ID:', error);
+    }
+  }
+
+  /**
    * Checks if OS preference detection is allowed.
    * Allowed when dark theme is available (including base dark theme)
    */
@@ -430,10 +556,11 @@ export class ThemeController {
   public setThemeConfig(config: SupersetThemeConfig): void {
     this.defaultTheme = config.theme_default;
     this.darkTheme = config.theme_dark || null;
+    this.themeConfigOverride = true;
 
     let newMode: ThemeMode;
     try {
-      this.validateModeUpdatePermission(this.currentMode);
+      this.validateModeUpdatePermission();
       const hasRequiredTheme = this.isValidThemeMode(this.currentMode);
       newMode = hasRequiredTheme
         ? this.currentMode
@@ -448,6 +575,78 @@ export class ThemeController {
       this.getThemeForMode(this.currentMode) || this.defaultTheme;
 
     this.updateTheme(themeToApply);
+  }
+
+  /**
+   * Re-reads the persisted system default/dark themes from the server and
+   * re-applies them live, so changes made on the Themes admin page take effect
+   * without a full page reload. The endpoint returns the same resolved theme
+   * slice used to bootstrap the page, so the live result matches a reload.
+   *
+   * Bails before applying whenever an explicit theme-config override is active
+   * (e.g. from the Embedded SDK) — checked both at entry and again after the
+   * fetch resolves — so it does not overwrite an externally-provided theme.
+   *
+   * Non-throwing: the server mutation has already succeeded by the time this
+   * runs, so a failed refresh must not surface a failure to the caller. A
+   * failed fetch or parse logs and leaves the current theme unchanged; if a
+   * fetched slice is valid-shaped but throws while applying, updateTheme's own
+   * recovery path handles the fallback.
+   */
+  public async refreshSystemThemes(): Promise<void> {
+    // An explicit theme-config override takes precedence over system themes.
+    if (this.themeConfigOverride) return;
+
+    // Assign this refresh a monotonically increasing id so out-of-order
+    // responses can be resolved by "newest successfully-applied wins".
+    this.refreshSeq += 1;
+    const seq = this.refreshSeq;
+
+    try {
+      const response = await SupersetClient.get({
+        endpoint: '/api/v1/theme/system',
+      });
+      // Drop this response if a newer refresh has already applied a slice (so a
+      // slow older request can't clobber it, and a newer request that fails to
+      // fetch can't discard this valid one), or if an embedded theme-config
+      // override took over while this request was in flight.
+      if (seq <= this.appliedRefreshSeq || this.themeConfigOverride) return;
+
+      const themeConfig = response.json?.result as
+        | BootstrapThemeDataConfig
+        | undefined;
+      if (!themeConfig) return;
+
+      // This response wins; record it before mutating so an older in-flight
+      // response can't overwrite it.
+      this.appliedRefreshSeq = seq;
+
+      const {
+        bootstrapDefaultTheme,
+        bootstrapDarkTheme,
+        bootstrapDefaultMode,
+      } = this.parseThemeConfig(themeConfig);
+
+      // Reproduce the constructor's slot assignments so live == reload.
+      this.defaultTheme =
+        bootstrapDefaultTheme || this.builtInDefaultTheme || null;
+      this.darkTheme = bootstrapDarkTheme;
+      this.bootstrapDefaultMode = bootstrapDefaultMode;
+
+      // Dark-theme availability may have changed (set or unset); re-sync the
+      // prefers-color-scheme listener so SYSTEM-mode OS switching stays correct.
+      this.reconcileMediaQueryListener();
+
+      // Recompute the mode exactly as the constructor would on a reload.
+      this.currentMode = this.determineInitialMode();
+
+      // No-arg updateTheme re-resolves via getThemeForMode(currentMode) and
+      // notifies subscribers, repainting the app without a reload. It honors an
+      // active devThemeOverride and never sets themeConfigOverride.
+      await this.updateTheme();
+    } catch (error) {
+      console.warn('Failed to refresh system themes:', error);
+    }
   }
 
   /**
@@ -482,7 +681,7 @@ export class ThemeController {
    * Updates the theme.
    * @param theme - The new theme to apply
    */
-  private updateTheme(theme?: AnyThemeConfig): void {
+  private async updateTheme(theme?: AnyThemeConfig): Promise<void> {
     try {
       // If no config provided, use current mode to get theme
       if (!theme) {
@@ -498,18 +697,41 @@ export class ThemeController {
       this.persistMode();
       this.notifyListeners();
     } catch (error) {
-      console.error('Failed to update theme:', error);
-      this.fallbackToDefaultMode();
+      // Clear potentially corrupted overrides before fallback
+      // This mirrors the constructor's recovery logic to prevent
+      // repeated failures from a malformed devThemeOverride or crudThemeId
+      this.devThemeOverride = null;
+      this.crudThemeId = null;
+      this.storage.removeItem(STORAGE_KEYS.DEV_THEME_OVERRIDE);
+      this.storage.removeItem(STORAGE_KEYS.CRUD_THEME_ID);
+      this.storage.removeItem(STORAGE_KEYS.APPLIED_THEME_ID);
+
+      await this.fallbackToDefaultMode();
     }
   }
 
   /**
-   * Fallback to default mode with error recovery.
+   * Fallback to default mode with runtime error recovery.
+   * Tries to fetch a fresh system default theme from the API.
    */
-  private fallbackToDefaultMode(): void {
+  private async fallbackToDefaultMode(): Promise<void> {
     this.currentMode = ThemeMode.DEFAULT;
 
-    // Get the default theme which will have the correct algorithm
+    // Try to fetch fresh system default theme from server
+    const freshSystemTheme = await this.fetchSystemDefaultTheme();
+
+    if (freshSystemTheme) {
+      try {
+        await this.applyThemeWithRecovery(freshSystemTheme);
+        this.persistMode();
+        this.notifyListeners();
+        return;
+      } catch (error) {
+        // Fresh theme also failed, continue to final fallback
+      }
+    }
+
+    // Final fallback: use cached default theme or built-in theme
     const defaultTheme: AnyThemeConfig =
       this.getThemeForMode(ThemeMode.DEFAULT) || this.defaultTheme || {};
 
@@ -552,6 +774,23 @@ export class ThemeController {
   }
 
   /**
+   * Re-syncs the prefers-color-scheme listener with the current dark-theme
+   * availability. Idempotent: always removes any existing listener before
+   * conditionally re-adding one, so repeated refreshes never double-register.
+   */
+  private reconcileMediaQueryListener(): void {
+    if (this.mediaQuery) {
+      this.mediaQuery.removeEventListener(
+        'change',
+        this.handleSystemThemeChange,
+      );
+      this.mediaQuery = undefined;
+    }
+    if (this.shouldInitializeMediaQueryListener())
+      this.initializeMediaQueryListener();
+  }
+
+  /**
    * Loads and validates bootstrap theme data.
    */
   private loadBootstrapData(): BootstrapThemeData {
@@ -559,7 +798,18 @@ export class ThemeController {
       common: { theme = {} as BootstrapThemeDataConfig },
     } = getBootstrapData();
 
-    const { default: defaultTheme, dark: darkTheme } = theme;
+    return this.parseThemeConfig(theme);
+  }
+
+  /**
+   * Parses and validates a resolved theme config slice (the shape shared by the
+   * page bootstrap and the /api/v1/theme/system endpoint) into the controller's
+   * internal theme representation.
+   */
+  private parseThemeConfig(
+    theme: BootstrapThemeDataConfig,
+  ): BootstrapThemeData {
+    const { default: defaultTheme, dark: darkTheme, defaultMode } = theme;
 
     const hasValidDefault: boolean = this.isNonEmptyObject(defaultTheme);
     const hasValidDark: boolean = this.isNonEmptyObject(darkTheme);
@@ -569,9 +819,21 @@ export class ThemeController {
       hasValidDefault && !this.isEmptyTheme(defaultTheme);
     const hasCustomDark = hasValidDark && !this.isEmptyTheme(darkTheme);
 
+    const modeMap: Record<string, ThemeMode> = {
+      default: ThemeMode.DEFAULT,
+      dark: ThemeMode.DARK,
+      system: ThemeMode.SYSTEM,
+    };
+    const bootstrapDefaultMode: ThemeMode =
+      (defaultMode &&
+        Object.hasOwn(modeMap, defaultMode) &&
+        modeMap[defaultMode]) ||
+      ThemeMode.SYSTEM;
+
     return {
       bootstrapDefaultTheme: hasCustomDefault ? defaultTheme : null,
       bootstrapDarkTheme: hasCustomDark ? darkTheme : null,
+      bootstrapDefaultMode,
       hasCustomThemes: hasCustomDefault || hasCustomDark,
     };
   }
@@ -656,8 +918,15 @@ export class ThemeController {
       return ThemeMode.DEFAULT;
     }
 
-    // Default to system preference when both themes are available
-    return ThemeMode.SYSTEM;
+    // Use explicit initial mode if provided (e.g. embedded dashboards default to light)
+    if (
+      this.initialMode !== undefined &&
+      this.isValidThemeMode(this.initialMode)
+    )
+      return this.initialMode;
+
+    // Fall back to the deployment-configured default mode
+    return this.bootstrapDefaultMode;
   }
 
   /**
@@ -711,10 +980,9 @@ export class ThemeController {
 
   /**
    * Validates permission to update mode.
-   * @param newMode - The new mode to validate
    * @throws {Error} If the user does not have permission to update the theme mode
    */
-  private validateModeUpdatePermission(newMode: ThemeMode): void {
+  private validateModeUpdatePermission(): void {
     // Check if user can set a new theme mode (dark theme must exist)
     if (!this.canSetMode())
       throw new Error(
@@ -736,10 +1004,57 @@ export class ThemeController {
       // The merging with base theme happens in getThemeForMode() and other methods
       // that prepare themes before passing them to applyTheme()
       this.globalTheme.setConfig(normalizedConfig);
+
+      // Load custom fonts if specified in theme config
+      const fontUrls = (normalizedConfig?.token as Record<string, unknown>)
+        ?.fontUrls as string[] | undefined;
+      this.loadFonts(fontUrls);
     } catch (error) {
       console.error('Failed to apply theme:', error);
-      this.fallbackToDefaultMode();
+      // Re-throw the error so updateTheme can handle fallback logic
+      throw error;
     }
+  }
+
+  private async applyThemeWithRecovery(theme: AnyThemeConfig): Promise<void> {
+    // Note: This method re-throws errors to the caller instead of calling
+    // fallbackToDefaultMode directly, to avoid infinite recursion since
+    // fallbackToDefaultMode calls this method. The caller's try/catch
+    // handles the fallback flow.
+    const normalizedConfig = normalizeThemeConfig(theme);
+    this.globalTheme.setConfig(normalizedConfig);
+
+    // Load custom fonts if specified, mirroring applyTheme() behavior
+    const fontUrls = (normalizedConfig?.token as Record<string, unknown>)
+      ?.fontUrls as string[] | undefined;
+    this.loadFonts(fontUrls);
+  }
+
+  /**
+   * Loads custom fonts from theme configuration.
+   * Injects CSS @import statements for font URLs that haven't been loaded yet.
+   * @param fontUrls - Array of font URLs to load (e.g., Google Fonts, Adobe Fonts)
+   */
+  private loadFonts(fontUrls?: string[]): void {
+    if (!fontUrls?.length) return;
+
+    // Filter out already loaded fonts
+    const newUrls = fontUrls.filter(url => !this.loadedFontUrls.has(url));
+    if (newUrls.length === 0) return;
+
+    // Use CSS @import for font loading
+    // JSON.stringify provides safe escaping to prevent CSS injection attacks
+    const css = newUrls
+      .map(url => `@import url(${JSON.stringify(url)});`)
+      .join('\n');
+
+    const style = document.createElement('style');
+    style.setAttribute('data-superset-fonts', 'true');
+    style.textContent = css;
+    document.head.appendChild(style);
+
+    // Track loaded fonts to avoid duplicates
+    newUrls.forEach(url => this.loadedFontUrls.add(url));
   }
 
   /**
@@ -811,24 +1126,144 @@ export class ThemeController {
   /**
    * Fetches a theme configuration from the CRUD API.
    * @param themeId - The ID of the theme to fetch
-   * @returns The theme configuration or null if not found
+   * @returns The theme configuration or null if fetch fails
    */
   private async fetchCrudTheme(
     themeId: string,
   ): Promise<AnyThemeConfig | null> {
     try {
-      const response = await fetch(`/api/v1/theme/${themeId}`);
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      // Use SupersetClient for proper authentication handling
+      const getTheme = makeApi<
+        void,
+        { result: { json_data: string; theme_name?: string } }
+      >({
+        method: 'GET',
+        endpoint: `/api/v1/theme/${themeId}`,
+      });
+
+      const { result } = await getTheme();
+      const themeConfig = JSON.parse(result.json_data);
+
+      if (!themeConfig || typeof themeConfig !== 'object') {
+        console.error(`Invalid theme configuration for theme ${themeId}`);
+        return null;
       }
 
-      const data = await response.json();
-      const themeConfig = JSON.parse(data.result.json_data);
-
+      // Return theme as-is
+      // Invalid tokens will be handled by Ant Design at runtime
+      // Runtime errors will be caught by applyThemeWithRecovery()
       return themeConfig;
     } catch (error) {
       console.error('Failed to fetch CRUD theme:', error);
       return null;
     }
+  }
+
+  /**
+   * Constructs the guest token authorization header using the configured
+   * header name from SupersetClient or bootstrap config, falling back to 'X-GuestToken'.
+   */
+  private getGuestTokenHeader(): Record<string, string> {
+    const headers: Record<string, string> = {};
+    try {
+      const guestToken = SupersetClient.getGuestToken();
+      if (guestToken) {
+        let headerName = 'X-GuestToken';
+        try {
+          if (SupersetClient.guestTokenHeaderName) {
+            headerName = SupersetClient.guestTokenHeaderName;
+          }
+        } catch {
+          const bootstrapData = getBootstrapData();
+          headerName =
+            bootstrapData.config?.GUEST_TOKEN_HEADER_NAME || 'X-GuestToken';
+        }
+        headers[headerName] = guestToken;
+      }
+    } catch (tokenError) {
+      // Ignore token retrieval error
+    }
+    return headers;
+  }
+
+  /**
+   * Fetches a fresh system default theme from the API for runtime recovery.
+   * Tries multiple fallback strategies to find a valid theme.
+   *
+   * Note: First tries to use SupersetClient. If SupersetClient is not yet
+   * fully configured/initialized or if the request fails (e.g. in embedded
+   * guest-token environments where SupersetClient bootstrap is still in progress),
+   * it falls back to using raw fetch() with custom guest token headers.
+   *
+   * @returns The system default theme configuration or null if not found
+   */
+  private async fetchSystemDefaultTheme(): Promise<AnyThemeConfig | null> {
+    try {
+      // Try to use SupersetClient first if it has been configured
+      try {
+        const response = await SupersetClient.get({
+          endpoint:
+            '/api/v1/theme/?q=(filters:!((col:is_system_default,opr:eq,value:!t)))',
+        });
+        if (response.json?.result?.length > 0) {
+          const themeConfig = JSON.parse(response.json.result[0].json_data);
+          if (themeConfig && typeof themeConfig === 'object') {
+            return themeConfig;
+          }
+        }
+      } catch (clientError) {
+        // If SupersetClient is not configured yet or request fails, fall back to native fetch
+        const headers = this.getGuestTokenHeader();
+
+        const defaultResponse = await fetch(
+          '/api/v1/theme/?q=(filters:!((col:is_system_default,opr:eq,value:!t)))',
+          { headers },
+        );
+        if (defaultResponse.ok) {
+          const data = await defaultResponse.json();
+          if (data.result?.length > 0) {
+            const themeConfig = JSON.parse(data.result[0].json_data);
+            if (themeConfig && typeof themeConfig === 'object') {
+              return themeConfig;
+            }
+          }
+        }
+      }
+
+      // Fallback: Try to fetch system theme named 'THEME_DEFAULT'
+      try {
+        const response = await SupersetClient.get({
+          endpoint:
+            '/api/v1/theme/?q=(filters:!((col:theme_name,opr:eq,value:THEME_DEFAULT),(col:is_system,opr:eq,value:!t)))',
+        });
+        if (response.json?.result?.length > 0) {
+          const themeConfig = JSON.parse(response.json.result[0].json_data);
+          if (themeConfig && typeof themeConfig === 'object') {
+            return themeConfig;
+          }
+        }
+      } catch (clientError) {
+        const headers = this.getGuestTokenHeader();
+
+        const fallbackResponse = await fetch(
+          '/api/v1/theme/?q=(filters:!((col:theme_name,opr:eq,value:THEME_DEFAULT),(col:is_system,opr:eq,value:!t)))',
+          { headers },
+        );
+        if (fallbackResponse.ok) {
+          const fallbackData = await fallbackResponse.json();
+          if (fallbackData.result?.length > 0) {
+            const themeConfig = JSON.parse(fallbackData.result[0].json_data);
+            if (themeConfig && typeof themeConfig === 'object') {
+              return themeConfig;
+            }
+          }
+        }
+      }
+    } catch (error) {
+      // Log for debugging but don't fail - fallback to cached theme will be used
+      console.warn('Failed to fetch system default theme:', error);
+    }
+
+    return null;
   }
 }

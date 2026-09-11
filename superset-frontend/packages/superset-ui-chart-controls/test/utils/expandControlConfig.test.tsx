@@ -24,14 +24,14 @@ import {
 } from '../../src';
 
 describe('expandControlConfig()', () => {
-  it('expands shared control alias', () => {
+  test('expands shared control alias', () => {
     expect(expandControlConfig('metrics')).toEqual({
       name: 'metrics',
       config: sharedControls.metrics,
     });
   });
 
-  it('expands control with overrides', () => {
+  test('expands control with overrides', () => {
     expect(
       expandControlConfig({
         name: 'metrics',
@@ -48,7 +48,7 @@ describe('expandControlConfig()', () => {
     });
   });
 
-  it('leave full control untouched', () => {
+  test('leave full control untouched', () => {
     const input = {
       name: 'metrics',
       config: {
@@ -59,7 +59,7 @@ describe('expandControlConfig()', () => {
     expect(expandControlConfig(input)).toEqual(input);
   });
 
-  it('load shared components in chart-controls', () => {
+  test('load shared components in chart-controls', () => {
     const input = {
       name: 'metrics',
       config: {
@@ -72,18 +72,18 @@ describe('expandControlConfig()', () => {
     ).toEqual(sharedControlComponents.RadioButtonControl);
   });
 
-  it('leave NULL and ReactElement untouched', () => {
+  test('leave NULL and ReactElement untouched', () => {
     expect(expandControlConfig(null)).toBeNull();
     const input = <h1>Test</h1>;
     expect(expandControlConfig(input)).toBe(input);
   });
 
-  it('leave unknown text untouched', () => {
+  test('leave unknown text untouched', () => {
     const input = 'superset-ui';
     expect(expandControlConfig(input as never)).toBe(input);
   });
 
-  it('return null for invalid configs', () => {
+  test('return null for invalid configs', () => {
     expect(
       expandControlConfig({ type: 'SelectControl', label: 'Hello' } as never),
     ).toBeNull();

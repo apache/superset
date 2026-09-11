@@ -8,24 +8,43 @@ on:
     # Possible values: https://help.github.com/en/actions/reference/events-that-trigger-workflows#pull-request-event-pull_request
     types: [opened, edited, reopened, synchronize]
 
+# Serialize runs per PR without cancelling: the `edited` trigger means a PR
+# opened and then edited has two queued runs for the same head SHA. On
+# first-time-contributor PRs those runs start together when a maintainer
+# approves workflows, and cancel-in-progress lets the older run cancel the
+# newer one — leaving a permanently-cancelled required check on the head SHA
+# that blocks merging until manually re-run. This job takes seconds, so let
+# queued runs complete instead.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
 jobs:
   lint-check:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-slim
     permissions:
       contents: read
       pull-requests: write
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v5
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           submodules: recursive
-      - uses: ./.github/actions/pr-lint-action
+      # pr-lint-action is a submodule (not a plain directory), and the $/
+      # self-repository syntax resolves action files directly from the
+      # repository without performing a real (submodule-aware) checkout, so
+      # it can't see into a submodule's link. Keep this one on the
+      # workspace-relative ./ form, consistent with every other workflow in
+      # the repo that references a submodule action.
+      - uses: ./.github/actions/pr-lint-action # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here
         with:
           title-regex: "^(build|chore|ci|docs|feat|fix|perf|refactor|style|test|other)(\\(.+\\))?(\\!)?:\\s.+"
           on-failed-regex-fail-action: true
           on-failed-regex-request-changes: false
           on-failed-regex-create-review: false
-          on-failed-regex-comment:
-            "Please format your PR title to match: `%regex%`!"
+          on-failed-regex-comment: "Please format your PR title to match: `%regex%`!"
           repo-token: "${{ github.token }}"

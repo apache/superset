@@ -175,3 +175,26 @@ test('closes modal when onHide is called', () => {
   // Modal should be hidden (not visible)
   expect(modal).not.toBeVisible();
 });
+
+test('keeps the confirm button disabled while disablePrimaryButton is set', () => {
+  const { getByTestId, getByRole, rerender } = render(
+    <ConfirmStatusChange {...mockedProps} disablePrimaryButton>
+      {confirm => <Button data-test="trigger" onClick={confirm} />}
+    </ConfirmStatusChange>,
+  );
+
+  fireEvent.click(getByTestId('trigger'));
+  fireEvent.change(getByTestId('delete-modal-input'), {
+    target: { value: 'DELETE' },
+  });
+
+  expect(getByRole('button', { name: 'Delete' })).toBeDisabled();
+
+  rerender(
+    <ConfirmStatusChange {...mockedProps} disablePrimaryButton={false}>
+      {confirm => <Button data-test="trigger" onClick={confirm} />}
+    </ConfirmStatusChange>,
+  );
+
+  expect(getByRole('button', { name: 'Delete' })).toBeEnabled();
+});

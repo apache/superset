@@ -423,7 +423,7 @@ git push origin ${SUPERSET_VERSION}
 
 ### Publishing a Convenience Release to PyPI
 
-Extract the release to the `/tmp` folder to build the PiPY release. Files in the `/tmp` folder will be automatically deleted by the OS.
+Extract the release to the `/tmp` folder to build the PyPI release. Files in the `/tmp` folder will be automatically deleted by the OS.
 
 ```bash
 mkdir -p /tmp/superset && cd /tmp/superset
@@ -458,7 +458,7 @@ cd ../
 sed -i '' "s/version_string = .*/version_string = \"$SUPERSET_VERSION\"/" setup.py
 
 # build the python distribution
-python setup.py sdist
+python -m build
 ```
 
 Publish to PyPI

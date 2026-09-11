@@ -26,7 +26,7 @@ import { ChartConfig } from '../../src/types';
 
 describe('geometryUtil', () => {
   describe('getProjectedCoordinateFromPointGeoJson', () => {
-    it('returns a plausible result', () => {
+    test('returns a plausible result', () => {
       const pointGeoJson: Point = {
         type: 'Point',
         coordinates: [6.6555, 49.74283],
@@ -42,7 +42,7 @@ describe('geometryUtil', () => {
   });
 
   describe('getExtentFromFeatures', () => {
-    it('computes correct extent with valid input', () => {
+    test('computes correct extent with valid input', () => {
       const expectedExtent = [1, 2, 3, 4];
 
       const chartConfig: ChartConfig = {
@@ -94,7 +94,7 @@ describe('geometryUtil', () => {
       expect(extent).toEqual(expectedExtent);
     });
 
-    it('returns undefined on invalid input', () => {
+    test('returns undefined on invalid input', () => {
       const emptyExtent = getExtentFromFeatures([]);
       expect(emptyExtent).toBeUndefined();
     });

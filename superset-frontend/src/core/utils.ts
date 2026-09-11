@@ -16,30 +16,55 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import type { core } from '@apache-superset/core';
-import { AnyAction } from 'redux';
-import { listenerMiddleware, RootState, store } from 'src/views/store';
-import { AnyListenerPredicate } from '@reduxjs/toolkit';
+import type { common as core } from '@apache-superset/core';
 
-export function createActionListener<V, S>(
-  predicate: AnyListenerPredicate<S>,
-  listener: (v: V) => void,
-  valueParser: (action: AnyAction, state: RootState) => V,
-  thisArgs?: any,
-): core.Disposable {
-  const boundListener = thisArgs ? listener.bind(thisArgs) : listener;
+type Listener<T> = (e: T) => unknown;
 
-  const unsubscribe = listenerMiddleware.startListening({
-    predicate,
-    effect: (action: AnyAction) => {
-      const state = store.getState();
-      boundListener(valueParser(action, state));
-    },
-  });
+/** A stateless event emitter exposing a VS Code-style `event` subscriber. */
+export interface EventEmitter<T> {
+  /** Notifies every current subscriber with `value`. */
+  fire(value: T): void;
+  /** Registers a listener; returns a Disposable that removes it. */
+  subscribe: core.Event<T>;
+}
 
+/** An event emitter that also retains the last fired value. */
+export interface ValueEventEmitter<T> extends EventEmitter<T> {
+  /** Returns the value last passed to {@link fire} (or the initial value). */
+  getCurrent(): T;
+}
+
+/**
+ * Creates a stateless event emitter. Listeners registered via `event` receive
+ * every subsequent `fire`; a returned Disposable removes the listener.
+ */
+export function createEventEmitter<T>(): EventEmitter<T> {
+  const listeners = new Set<Listener<T>>();
+  const subscribe: core.Event<T> = (listener, thisArgs) => {
+    const bound = thisArgs ? listener.bind(thisArgs) : listener;
+    listeners.add(bound);
+    return { dispose: () => listeners.delete(bound) };
+  };
   return {
-    dispose: () => {
-      unsubscribe();
+    fire: value => listeners.forEach(fn => fn(value)),
+    subscribe,
+  };
+}
+
+/**
+ * Creates a value event emitter seeded with `initial`. Behaves like
+ * {@link createEventEmitter} but also tracks the last fired value, readable
+ * via `getCurrent` — useful for state that is both observed and queried.
+ */
+export function createValueEventEmitter<T>(initial: T): ValueEventEmitter<T> {
+  const { fire, subscribe } = createEventEmitter<T>();
+  let current = initial;
+  return {
+    fire: value => {
+      current = value;
+      fire(value);
     },
+    subscribe,
+    getCurrent: () => current,
   };
 }

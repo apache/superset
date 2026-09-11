@@ -17,6 +17,51 @@
  * under the License.
  */
 import { FilterXSS, getDefaultWhiteList } from 'xss';
+import { DataRecordValue } from '../types';
+
+// Restrict inline `style` attributes to a small set of presentational CSS
+// properties. Overlay/positioning properties (e.g. position, z-index, top,
+// left, transform) and sizing properties that could cover the page (e.g.
+// width, height) are intentionally excluded so that sanitized markup cannot
+// escape its container to overlay or obscure the surrounding page. The
+// allowlisted spacing/border properties (margin, padding, border) can still
+// affect layout within the container, which is acceptable. The `xss` library
+// also validates property values against this allowlist, stripping unsupported
+// constructs such as url()/expression().
+const allowedCssProperties = {
+  color: true,
+  'background-color': true,
+  'text-align': true,
+  'text-decoration': true,
+  'font-family': true,
+  'font-size': true,
+  'font-style': true,
+  'font-weight': true,
+  'line-height': true,
+  'letter-spacing': true,
+  'white-space': true,
+  padding: true,
+  'padding-top': true,
+  'padding-right': true,
+  'padding-bottom': true,
+  'padding-left': true,
+  margin: true,
+  'margin-top': true,
+  'margin-right': true,
+  'margin-bottom': true,
+  'margin-left': true,
+  border: true,
+  'border-color': true,
+  'border-style': true,
+  'border-width': true,
+  'border-radius': true,
+  'vertical-align': true,
+  // Needed by ECharts tooltips for row transparency and text truncation.
+  opacity: true,
+  'max-width': true,
+  overflow: true,
+  'text-overflow': true,
+};
 
 const xssFilter = new FilterXSS({
   whiteList: {
@@ -44,18 +89,94 @@ const xssFilter = new FilterXSS({
     tfoot: ['align', 'valign', 'style'],
   },
   stripIgnoreTag: true,
-  css: false,
+  css: { whiteList: allowedCssProperties },
 });
 
 export function sanitizeHtml(htmlString: string) {
   return xssFilter.process(htmlString);
 }
 
-export function hasHtmlTagPattern(str: string): boolean {
-  const htmlTagPattern =
-    /<(html|head|body|div|span|a|p|h[1-6]|title|meta|link|script|style)/i;
+const KNOWN_HTML_TAGS = new Set([
+  'div',
+  'span',
+  'p',
+  'a',
+  'b',
+  'i',
+  'u',
+  'em',
+  'strong',
+  'h1',
+  'h2',
+  'h3',
+  'h4',
+  'h5',
+  'h6',
+  'table',
+  'tr',
+  'td',
+  'th',
+  'tbody',
+  'thead',
+  'tfoot',
+  'ul',
+  'ol',
+  'li',
+  'img',
+  'br',
+  'hr',
+  'pre',
+  'code',
+  'blockquote',
+  'section',
+  'article',
+  'nav',
+  'header',
+  'footer',
+  'form',
+  'input',
+  'button',
+  'select',
+  'option',
+  'textarea',
+  'label',
+  'fieldset',
+  'legend',
+  'video',
+  'audio',
+  'canvas',
+  'iframe',
+  'script',
+  'style',
+  'link',
+  'meta',
+  'title',
+  'html',
+  'head',
+  'body',
+  // Script-capable elements and foreign-content roots (SVG/MathML). These
+  // must be classified as HTML so that downstream sanitization is applied;
+  // omitting them makes the heuristic fail open — payloads such as
+  // `<svg onload=...>` or `<details open ontoggle=...>` would be classified
+  // "not HTML" and returned verbatim by sanitizeHtmlIfNeeded.
+  'svg',
+  'math',
+  'details',
+  'summary',
+  'object',
+  'embed',
+  'marquee',
+  'template',
+  'dialog',
+]);
 
-  return htmlTagPattern.test(str);
+const HTML_TAG_PATTERN = new RegExp(
+  `<(${Array.from(KNOWN_HTML_TAGS).join('|')})\\b`,
+  'i',
+);
+
+export function hasHtmlTagPattern(str: string): boolean {
+  return HTML_TAG_PATTERN.test(str);
 }
 
 export function isProbablyHTML(text: string) {
@@ -76,10 +197,15 @@ export function isProbablyHTML(text: string) {
   const parser = new DOMParser();
   const doc = parser.parseFromString(cleanedStr, 'text/html');
 
-  // Check if parsing created actual HTML elements (not just text nodes)
-  const elements = Array.from(doc.body.childNodes).filter(
-    node => node.nodeType === 1,
-  ) as Element[];
+  // Check if parsing created actual HTML elements (not just text nodes).
+  // Some elements (e.g. <style>, <title>, <meta>, <link>) parse into
+  // document.head rather than document.body, so both must be inspected —
+  // otherwise a bare <style> payload is classified "not HTML" and skips
+  // sanitization.
+  const elements = [
+    ...Array.from(doc.head.childNodes),
+    ...Array.from(doc.body.childNodes),
+  ].filter(node => node.nodeType === 1) as Element[];
 
   // If no elements were created, it's not HTML
   if (elements.length === 0) {
@@ -90,64 +216,7 @@ export function isProbablyHTML(text: string) {
   // This prevents strings like "<abcdef:12345>" from being treated as HTML
   return elements.some(element => {
     const tagName = element.tagName.toLowerCase();
-    // List of common HTML tags we want to recognize
-    const knownHtmlTags = [
-      'div',
-      'span',
-      'p',
-      'a',
-      'b',
-      'i',
-      'u',
-      'em',
-      'strong',
-      'h1',
-      'h2',
-      'h3',
-      'h4',
-      'h5',
-      'h6',
-      'table',
-      'tr',
-      'td',
-      'th',
-      'tbody',
-      'thead',
-      'tfoot',
-      'ul',
-      'ol',
-      'li',
-      'img',
-      'br',
-      'hr',
-      'pre',
-      'code',
-      'blockquote',
-      'section',
-      'article',
-      'nav',
-      'header',
-      'footer',
-      'form',
-      'input',
-      'button',
-      'select',
-      'option',
-      'textarea',
-      'label',
-      'fieldset',
-      'legend',
-      'video',
-      'audio',
-      'canvas',
-      'iframe',
-      'script',
-      'style',
-      'link',
-      'meta',
-      'title',
-    ];
-    return knownHtmlTags.includes(tagName);
+    return KNOWN_HTML_TAGS.has(tagName);
   });
 }
 
@@ -161,6 +230,8 @@ export function safeHtmlSpan(possiblyHtmlString: string) {
     return (
       <span
         className="safe-html-wrapper"
+        // Safe: HTML is sanitized before rendering
+        // eslint-disable-next-line react/no-danger
         dangerouslySetInnerHTML={{ __html: sanitizeHtml(possiblyHtmlString) }}
       />
     );
@@ -169,7 +240,10 @@ export function safeHtmlSpan(possiblyHtmlString: string) {
 }
 
 export function removeHTMLTags(str: string): string {
-  return str.replace(/<[^>]*>/g, '');
+  const doc = new DOMParser().parseFromString(str, 'text/html');
+  const bodyText = doc.body?.textContent || '';
+  const headText = doc.head?.textContent || '';
+  return headText + bodyText;
 }
 
 export function isJsonString(str: string): boolean {
@@ -203,4 +277,11 @@ export function getParagraphContents(
   });
 
   return paragraphContents;
+}
+
+export function extractTextFromHTML(value: DataRecordValue): DataRecordValue {
+  if (typeof value === 'string' && isProbablyHTML(value)) {
+    return removeHTMLTags(value);
+  }
+  return value;
 }

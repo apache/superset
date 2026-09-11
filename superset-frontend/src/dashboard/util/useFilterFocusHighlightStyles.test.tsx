@@ -68,6 +68,7 @@ describe('useFilterFocusHighlightStyles', () => {
         focusedFilterId: 'test-filter',
         filters: {
           otherId: {
+            id: 'NATIVE_FILTER-otherId',
             chartsInScope: [],
           },
         },
@@ -88,6 +89,7 @@ describe('useFilterFocusHighlightStyles', () => {
         hoveredFilterId: 'test-filter',
         filters: {
           otherId: {
+            id: 'NATIVE_FILTER-otherId',
             chartsInScope: [],
           },
         },
@@ -109,6 +111,7 @@ describe('useFilterFocusHighlightStyles', () => {
         focusedFilterId: 'testFilter',
         filters: {
           testFilter: {
+            id: 'NATIVE_FILTER-testFilter',
             chartsInScope: [chartId],
           },
         },
@@ -130,6 +133,7 @@ describe('useFilterFocusHighlightStyles', () => {
         hoveredFilterId: 'testFilter',
         filters: {
           testFilter: {
+            id: 'NATIVE_FILTER-testFilter',
             chartsInScope: [chartId],
           },
         },

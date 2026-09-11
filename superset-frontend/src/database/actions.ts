@@ -67,19 +67,20 @@ export function executeQuery(payload: QueryExecutePayload) {
       const result = await executeQueryApi(payload);
       dispatch(setQueryResult(result as QueryExecuteResponse));
     } catch (error) {
-      dispatch(setQueryError(error.message));
+      dispatch(setQueryError((error as Error).message));
     } finally {
       dispatch(setQueryIsLoading(false));
     }
   };
 }
 
-export function formatQuery(sql: string) {
+export function formatQuery(sql: string, options?: { signal?: AbortSignal }) {
   return function (dispatch: ThunkDispatch<any, undefined, AnyAction>) {
     return SupersetClient.post({
       endpoint: `/api/v1/sqllab/format_sql/`,
       body: JSON.stringify({ sql }),
       headers: { 'Content-Type': 'application/json' },
+      signal: options?.signal,
     }).then(response => {
       dispatch(setQuery(response.json.result));
       return response;

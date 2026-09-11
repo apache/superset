@@ -1,0 +1,585 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+import fetchMock from 'fetch-mock';
+import { act, renderHook, waitFor } from '@testing-library/react';
+import { getExtensionsRegistry } from '@superset-ui/core';
+import type { Editor } from '@superset-ui/core/components';
+import { toAceKeyword } from 'src/core/editors/AceEditorProvider';
+import {
+  createWrapper,
+  defaultStore as store,
+  createStore,
+} from 'spec/helpers/testing-library';
+import { api } from 'src/hooks/apiResources/queryApi';
+import { schemaApiUtil } from 'src/hooks/apiResources/schemas';
+import { tableApiUtil } from 'src/hooks/apiResources/tables';
+import { addTable } from 'src/SqlLab/actions/sqlLab';
+import { initialState } from 'src/SqlLab/fixtures';
+import type { SqlLabRootState } from 'src/SqlLab/types';
+import reducers from 'spec/helpers/reducerIndex';
+import {
+  SCHEMA_AUTOCOMPLETE_SCORE,
+  TABLE_AUTOCOMPLETE_SCORE,
+  COLUMN_AUTOCOMPLETE_SCORE,
+  SQL_FUNCTIONS_AUTOCOMPLETE_SCORE,
+} from 'src/SqlLab/constants';
+import { useKeywords } from './useKeywords';
+
+const fakeSchemaApiResult = ['schema1', 'schema2'];
+const fakeTableApiResult = {
+  count: 2,
+  result: [
+    {
+      id: 1,
+      value: 'fake_api_result1',
+      label: 'fake api label1',
+      type: 'table',
+    },
+    {
+      id: 2,
+      value: 'fake_api_result2',
+      label: 'fake api label2',
+      type: 'table',
+    },
+  ],
+};
+const fakeFunctionNamesApiResult = {
+  function_names: ['abs', 'avg', 'sum'],
+};
+
+const expectDbId = 1;
+const expectCatalog = null;
+const expectSchema = 'schema1';
+
+beforeEach(() => {
+  act(() => {
+    store.dispatch(
+      schemaApiUtil.upsertQueryData(
+        'schemas',
+        {
+          dbId: expectDbId,
+          forceRefresh: false,
+        },
+        fakeSchemaApiResult.map(value => ({
+          value,
+          label: value,
+          title: value,
+        })),
+      ),
+    );
+    store.dispatch(
+      tableApiUtil.upsertQueryData(
+        'tables',
+        { dbId: expectDbId, schema: expectSchema },
+        {
+          options: fakeTableApiResult.result,
+          hasMore: false,
+        },
+      ),
+    );
+  });
+});
+
+afterEach(() => {
+  fetchMock.clearHistory().removeRoutes();
+  act(() => {
+    store.dispatch(api.util.resetApiState());
+  });
+});
+
+test('returns keywords including fetched function_names data', async () => {
+  const dbFunctionNamesApiRoute = `glob:*/api/v1/database/${expectDbId}/function_names/`;
+  fetchMock.get(dbFunctionNamesApiRoute, fakeFunctionNamesApiResult);
+
+  const { result } = renderHook(
+    () =>
+      useKeywords({
+        queryEditorId: 'testqueryid',
+        dbId: expectDbId,
+        schema: expectSchema,
+      }),
+    {
+      wrapper: createWrapper({
+        useRedux: true,
+        store,
+      }),
+    },
+  );
+
+  await waitFor(() =>
+    expect(fetchMock.callHistory.calls(dbFunctionNamesApiRoute).length).toBe(1),
+  );
+  fakeSchemaApiResult.forEach(schema => {
+    expect(result.current).toContainEqual(
+      expect.objectContaining({
+        name: schema,
+        score: SCHEMA_AUTOCOMPLETE_SCORE,
+        meta: 'schema',
+      }),
+    );
+  });
+  fakeTableApiResult.result.forEach(({ value }) => {
+    expect(result.current).toContainEqual(
+      expect.objectContaining({
+        value,
+        score: TABLE_AUTOCOMPLETE_SCORE,
+        meta: 'table',
+      }),
+    );
+  });
+  fakeFunctionNamesApiResult.function_names.forEach(func => {
+    expect(result.current).toContainEqual(
+      expect.objectContaining({
+        name: func,
+        value: func,
+        meta: 'function',
+        score: SQL_FUNCTIONS_AUTOCOMPLETE_SCORE,
+      }),
+    );
+  });
+});
+
+test('quotes table identifiers that require quoting in the inserted value', async () => {
+  const dbFunctionNamesApiRoute = `glob:*/api/v1/database/${expectDbId}/function_names/`;
+  fetchMock.get(dbFunctionNamesApiRoute, fakeFunctionNamesApiResult);
+
+  act(() => {
+    store.dispatch(
+      tableApiUtil.upsertQueryData(
+        'tables',
+        { dbId: expectDbId, schema: expectSchema },
+        {
+          options: [
+            { value: 'COVID Vaccines', label: 'COVID Vaccines', type: 'table' },
+            { value: 'simple_table', label: 'simple_table', type: 'table' },
+          ],
+          hasMore: false,
+        },
+      ),
+    );
+  });
+
+  const { result } = renderHook(
+    () =>
+      useKeywords({
+        queryEditorId: 'testqueryid',
+        dbId: expectDbId,
+        schema: expectSchema,
+      }),
+    {
+      wrapper: createWrapper({
+        useRedux: true,
+        store,
+      }),
+    },
+  );
+
+  await waitFor(() =>
+    expect(fetchMock.callHistory.calls(dbFunctionNamesApiRoute).length).toBe(1),
+  );
+
+  // A name that needs quoting is inserted as a double-quoted identifier,
+  // while its display name stays human-readable.
+  expect(result.current).toContainEqual(
+    expect.objectContaining({
+      name: 'COVID Vaccines',
+      value: '"COVID Vaccines"',
+      meta: 'table',
+    }),
+  );
+  // A simple identifier is inserted as-is, without quotes.
+  expect(result.current).toContainEqual(
+    expect.objectContaining({
+      name: 'simple_table',
+      value: 'simple_table',
+      meta: 'table',
+    }),
+  );
+});
+
+type IdentifierQuoteFixture = {
+  start: string;
+  end: string;
+  escape_by_doubling?: boolean;
+};
+
+// Shared setup for the dialect-specific quoting tests below: seeds a single
+// table into the store with the given engine-provided quote chars, then
+// renders the hook so keyword autocomplete for that table can be asserted.
+function renderKeywordsForTable(
+  identifierQuote: IdentifierQuoteFixture,
+  tableName: string,
+) {
+  const dbFunctionNamesApiRoute = `glob:*/api/v1/database/${expectDbId}/function_names/`;
+  fetchMock.get(dbFunctionNamesApiRoute, fakeFunctionNamesApiResult);
+
+  const storeWithBackend = createStore(
+    {
+      ...initialState,
+      sqlLab: {
+        ...initialState.sqlLab,
+        databases: {
+          [expectDbId]: {
+            engine_information: { identifier_quote: identifierQuote },
+          },
+        },
+      },
+    },
+    reducers,
+  );
+
+  act(() => {
+    storeWithBackend.dispatch(
+      tableApiUtil.upsertQueryData(
+        'tables',
+        { dbId: expectDbId, schema: expectSchema },
+        {
+          options: [{ value: tableName, label: tableName, type: 'table' }],
+          hasMore: false,
+        },
+      ),
+    );
+  });
+
+  return {
+    store: storeWithBackend,
+    ...renderHook(
+      () =>
+        useKeywords({
+          queryEditorId: 'testqueryid',
+          dbId: expectDbId,
+          schema: expectSchema,
+        }),
+      {
+        wrapper: createWrapper({
+          useRedux: true,
+          store: storeWithBackend,
+        }),
+      },
+    ),
+  };
+}
+
+test.each([
+  ['mysql', { start: '`', end: '`' }, '`COVID Vaccines`'],
+  ['mariadb', { start: '`', end: '`' }, '`COVID Vaccines`'],
+  ['mssql', { start: '[', end: ']' }, '[COVID Vaccines]'],
+  ['postgresql', { start: '"', end: '"' }, '"COVID Vaccines"'],
+  [
+    'bigquery',
+    { start: '`', end: '`', escape_by_doubling: false },
+    '`COVID Vaccines`',
+  ],
+])(
+  'quotes table identifiers using the engine-provided quote characters for %s',
+  async (_dialect, identifierQuote, expectedValue) => {
+    const { result, store: storeWithBackend } = renderKeywordsForTable(
+      identifierQuote,
+      'COVID Vaccines',
+    );
+
+    await waitFor(() =>
+      expect(result.current).toContainEqual(
+        expect.objectContaining({
+          name: 'COVID Vaccines',
+          value: expectedValue,
+          meta: 'table',
+        }),
+      ),
+    );
+
+    // The caption inserted into the editor on selection is quoted with the
+    // same dialect-specific characters as `value`, not a hardcoded ANSI quote.
+    // Goes through the real AceEditorProvider `toAceKeyword` conversion
+    // (the shipped Ace path) rather than invoking the hook's completer
+    // directly, since that conversion is what production code actually
+    // hands to Ace, and it's what's historically dropped the `completer`
+    // callback that dispatches `addTable` on table selection.
+    const tableKeyword = result.current.find(
+      keyword => keyword.meta === 'table' && keyword.name === 'COVID Vaccines',
+    );
+    const aceKeyword = toAceKeyword(tableKeyword!);
+    const insertMatch = aceKeyword.completer?.insertMatch;
+    const editor = {
+      completer: { insertMatch: jest.fn() },
+    } as unknown as Editor;
+    act(() => {
+      insertMatch?.(editor, aceKeyword);
+    });
+    expect(editor.completer.insertMatch).toHaveBeenCalledWith(
+      `${expectedValue} `,
+    );
+
+    // Selecting a table also dispatches `addTable`; this side effect lives
+    // on the same `completer` that `toAceKeyword` must carry through.
+    const { sqlLab } =
+      storeWithBackend.getState() as unknown as SqlLabRootState;
+    expect(
+      sqlLab.tables.some(
+        (queryEditorTable: { name: string }) =>
+          queryEditorTable.name === expectedValue,
+      ),
+    ).toBe(true);
+  },
+);
+
+test.each([
+  [
+    'mysql',
+    { start: '`', end: '`', escape_by_doubling: true },
+    '`COVID``Vaccines`',
+  ],
+  [
+    'bigquery',
+    { start: '`', end: '`', escape_by_doubling: false },
+    '`COVID\\`Vaccines`',
+  ],
+])(
+  'escapes an embedded closing-quote character per the %s engine-provided escape strategy',
+  async (_dialect, identifierQuote, expectedValue) => {
+    const { result } = renderKeywordsForTable(
+      identifierQuote,
+      'COVID`Vaccines',
+    );
+
+    await waitFor(() =>
+      expect(result.current).toContainEqual(
+        expect.objectContaining({
+          name: 'COVID`Vaccines',
+          value: expectedValue,
+          meta: 'table',
+        }),
+      ),
+    );
+  },
+);
+
+test('skip fetching if autocomplete skipped', () => {
+  const { result } = renderHook(
+    () =>
+      useKeywords(
+        {
+          queryEditorId: 'testqueryid',
+          dbId: expectDbId,
+          schema: expectSchema,
+        },
+        true,
+      ),
+    {
+      wrapper: createWrapper({
+        useRedux: true,
+        store,
+      }),
+    },
+  );
+  expect(result.current).toEqual([]);
+  expect(fetchMock.callHistory.calls()).toEqual([]);
+});
+
+test('returns column keywords among selected tables', async () => {
+  const expectTable = 'table1';
+  const expectColumn = 'column1';
+  const expectQueryEditorId = 'testqueryid';
+
+  const unexpectedColumn = 'column2';
+  const unexpectedTable = 'table2';
+
+  const dbFunctionNamesApiRoute = `glob:*/api/v1/database/${expectDbId}/function_names/`;
+  const storeWithSqlLab = createStore(initialState, reducers);
+  fetchMock.get(dbFunctionNamesApiRoute, fakeFunctionNamesApiResult);
+
+  act(() => {
+    storeWithSqlLab.dispatch(
+      tableApiUtil.upsertQueryData(
+        'tableMetadata',
+        {
+          dbId: expectDbId,
+          catalog: null,
+          schema: expectSchema,
+          table: expectTable,
+        },
+        {
+          name: expectTable,
+          columns: [
+            {
+              name: expectColumn,
+              type: 'VARCHAR',
+              longType: 'VARCHAR',
+            },
+          ],
+        },
+      ),
+    );
+
+    storeWithSqlLab.dispatch(
+      tableApiUtil.upsertQueryData(
+        'tableMetadata',
+        {
+          dbId: expectDbId,
+          catalog: null,
+          schema: expectSchema,
+          table: unexpectedTable,
+        },
+        {
+          name: unexpectedTable,
+          columns: [
+            {
+              name: unexpectedColumn,
+              type: 'VARCHAR',
+              longType: 'VARCHAR',
+            },
+          ],
+        },
+      ),
+    );
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    storeWithSqlLab.dispatch(
+      addTable(
+        { id: expectQueryEditorId } as any,
+        expectTable,
+        expectCatalog,
+        expectSchema,
+      ) as any,
+    );
+  });
+
+  const { result } = renderHook(
+    () =>
+      useKeywords({
+        queryEditorId: expectQueryEditorId,
+        dbId: expectDbId,
+        catalog: null,
+        schema: expectSchema,
+      }),
+    {
+      wrapper: createWrapper({
+        useRedux: true,
+        store: storeWithSqlLab,
+      }),
+    },
+  );
+
+  // Both columns should be present since all cached table metadata
+  // for this database is included in autocomplete
+  await waitFor(() =>
+    expect(result.current).toContainEqual(
+      expect.objectContaining({
+        name: expectColumn,
+        value: expectColumn,
+        score: COLUMN_AUTOCOMPLETE_SCORE,
+        meta: 'column',
+      }),
+    ),
+  );
+
+  expect(result.current).toContainEqual(
+    expect.objectContaining({
+      name: unexpectedColumn,
+      value: unexpectedColumn,
+      score: COLUMN_AUTOCOMPLETE_SCORE,
+      meta: 'column',
+    }),
+  );
+});
+
+test('returns long keywords with detail', async () => {
+  const expectLongKeywordDbId = 2;
+  const longKeyword = 'veryveryveryveryverylongtablename';
+  const dbFunctionNamesApiRoute = `glob:*/api/v1/database/${expectLongKeywordDbId}/function_names/`;
+  fetchMock.get(dbFunctionNamesApiRoute, { function_names: [] });
+
+  act(() => {
+    store.dispatch(
+      schemaApiUtil.upsertQueryData(
+        'schemas',
+        {
+          dbId: expectLongKeywordDbId,
+          forceRefresh: false,
+        },
+        ['short', longKeyword].map(value => ({
+          value,
+          label: value,
+          title: value,
+        })),
+      ),
+    );
+  });
+  const { result } = renderHook(
+    () =>
+      useKeywords({
+        queryEditorId: 'testqueryid',
+        dbId: expectLongKeywordDbId,
+      }),
+    {
+      wrapper: createWrapper({
+        useRedux: true,
+        store,
+      }),
+    },
+  );
+  await waitFor(() =>
+    expect(result.current).toContainEqual(
+      expect.objectContaining({
+        name: longKeyword,
+        value: longKeyword,
+        detail: longKeyword,
+      }),
+    ),
+  );
+});
+
+test('Add custom keywords for autocomplete', () => {
+  const expected = [
+    {
+      name: 'Custom keyword 1',
+      label: 'Custom keyword 1',
+      meta: 'Custom',
+      value: 'custom1',
+      score: 100,
+    },
+    {
+      name: 'Custom keyword 2',
+      label: 'Custom keyword 2',
+      meta: 'Custom',
+      value: 'custom2',
+      score: 50,
+    },
+  ];
+  const extensionsRegistry = getExtensionsRegistry();
+  extensionsRegistry.set(
+    'sqleditor.extension.customAutocomplete',
+    () => expected,
+  );
+  const { result } = renderHook(
+    () =>
+      useKeywords({
+        queryEditorId: 'testqueryid',
+        dbId: expectDbId,
+        schema: expectSchema,
+      }),
+    {
+      wrapper: createWrapper({
+        useRedux: true,
+        store,
+      }),
+    },
+  );
+  expect(result.current).toContainEqual(expect.objectContaining(expected[0]));
+  expect(result.current).toContainEqual(expect.objectContaining(expected[1]));
+});

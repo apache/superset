@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, ComparisonType } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { ComparisonType } from '@superset-ui/core';
 
 import {
   ControlPanelSectionConfig,
@@ -121,6 +122,12 @@ export const timeComparisonControls: ({
             }
             return newState;
           },
+          // Re-run this control's validation whenever `time_compare` changes so
+          // the "date required" error clears once a non-custom shift is picked.
+          // Without it the stale error survives in Redux (see the
+          // dependantControls path in exploreReducer's SET_FIELD_VALUE handler)
+          // and blocks further chart updates until a page refresh.
+          validationDependencies: ['time_compare'],
         },
       },
     ],

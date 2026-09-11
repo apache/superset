@@ -18,30 +18,33 @@
  * under the License.
  */
 import {
+  AnnotationLayer,
   AxisType,
   ChartDataResponseResult,
   DataRecord,
   DataRecordValue,
   DTTM_ALIAS,
   ensureIsArray,
+  isTimeseriesAnnotationLayer,
   LegendState,
   normalizeTimestamp,
   NumberFormats,
   NumberFormatter,
-  SupersetTheme,
   TimeFormatter,
   ValueFormatter,
 } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { SupersetTheme } from '@apache-superset/core/theme';
+import { GenericDataType } from '@apache-superset/core/common';
 import { SortSeriesType, LegendPaddingType } from '@superset-ui/chart-controls';
 import { format } from 'echarts/core';
 import type { LegendComponentOption } from 'echarts/components';
 import type { SeriesOption } from 'echarts';
-import { isEmpty, maxBy, meanBy, minBy, orderBy, sumBy } from 'lodash';
+import { isEmpty, maxBy, meanBy, minBy, orderBy, sumBy } from 'lodash-es';
 import {
   NULL_STRING,
   StackControlsValue,
   TIMESERIES_CONSTANTS,
+  WEEKLY_TIME_GRAINS,
 } from '../constants';
 import {
   EchartsTimeseriesSeriesType,
@@ -55,6 +58,331 @@ function isDefined<T>(value: T | undefined | null): boolean {
   return value !== undefined && value !== null;
 }
 
+const DEFAULT_LEGEND_ITEM_GAP = 10;
+const DEFAULT_LEGEND_ICON_WIDTH = 25;
+const LEGEND_ICON_LABEL_GAP = 5;
+const LEGEND_HORIZONTAL_SIDE_GUTTER = 16;
+const LEGEND_HORIZONTAL_ROW_HEIGHT = 24;
+// Cap the reserved horizontal legend margin so an overflowing legend can't eat the plot.
+const MAX_LEGEND_MARGIN_RATIO = 0.4;
+const LEGEND_VERTICAL_SIDE_GUTTER = 16;
+const LEGEND_SELECTOR_GAP = 10;
+const LEGEND_MARGIN_GUTTER = 45;
+// ECharts does not expose pre-render measurements for plain legends, so these
+// values intentionally overestimate selector space to avoid clipping.
+const ESTIMATED_LEGEND_SELECTOR_WIDTH = 112;
+const LEGEND_TEXT_WIDTH_CACHE = new Map<string, number>();
+
+type LegendDataItem =
+  | string
+  | number
+  | null
+  | undefined
+  | { name?: string | number | null };
+
+export type LegendLayoutResult = {
+  effectiveMargin?: number;
+  effectiveType: LegendType;
+};
+
+function getLegendLabel(item: LegendDataItem): string {
+  if (typeof item === 'string' || typeof item === 'number') {
+    return String(item);
+  }
+
+  if (item?.name === undefined || item.name === null) {
+    return '';
+  }
+
+  return String(item.name);
+}
+
+function measureLegendTextWidth(text: string, theme: SupersetTheme): number {
+  const cacheKey = `${theme.fontFamily}:${theme.fontSizeSM}:${text}`;
+  const cachedWidth = LEGEND_TEXT_WIDTH_CACHE.get(cacheKey);
+  if (cachedWidth !== undefined) {
+    return cachedWidth;
+  }
+
+  let width = text.length * theme.fontSizeSM * 0.62;
+
+  if (typeof document !== 'undefined') {
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    if (context) {
+      context.font = `${theme.fontSizeSM}px ${theme.fontFamily}`;
+      ({ width } = context.measureText(text));
+    }
+  }
+
+  LEGEND_TEXT_WIDTH_CACHE.set(cacheKey, width);
+  return width;
+}
+
+function hasLegendLabel(item: LegendDataItem): boolean {
+  if (item === null || item === undefined) {
+    return false;
+  }
+
+  if (typeof item === 'object') {
+    return item.name !== null && item.name !== undefined;
+  }
+
+  return true;
+}
+
+function getLegendLabels(items: LegendDataItem[]): string[] {
+  return items.filter(hasLegendLabel).map(getLegendLabel);
+}
+
+function getLegendItemWidths(labels: string[], theme: SupersetTheme): number[] {
+  return labels.map(
+    label =>
+      DEFAULT_LEGEND_ICON_WIDTH +
+      LEGEND_ICON_LABEL_GAP +
+      measureLegendTextWidth(label, theme),
+  );
+}
+
+function estimateHorizontalLegendRows(
+  labels: string[],
+  chartWidth: number,
+  showSelectors: boolean,
+  theme: SupersetTheme,
+): number {
+  const availableWidth = Math.max(
+    chartWidth - LEGEND_HORIZONTAL_SIDE_GUTTER,
+    0,
+  );
+  if (availableWidth === 0) {
+    return Infinity;
+  }
+
+  const legendItemWidths = getLegendItemWidths(labels, theme);
+
+  if (legendItemWidths.length === 0) {
+    if (showSelectors && ESTIMATED_LEGEND_SELECTOR_WIDTH > availableWidth) {
+      return Infinity;
+    }
+    return 1;
+  }
+
+  let rows = 1;
+  let rowWidth = 0;
+
+  for (const itemWidth of legendItemWidths) {
+    if (itemWidth > availableWidth) {
+      return Infinity;
+    }
+
+    const nextWidth =
+      rowWidth === 0
+        ? itemWidth
+        : rowWidth + DEFAULT_LEGEND_ITEM_GAP + itemWidth;
+    if (rowWidth > 0 && nextWidth > availableWidth) {
+      rows += 1;
+      rowWidth = itemWidth;
+    } else {
+      rowWidth = nextWidth;
+    }
+  }
+
+  if (showSelectors) {
+    if (ESTIMATED_LEGEND_SELECTOR_WIDTH > availableWidth) {
+      return Infinity;
+    }
+    const selectorWidth =
+      rowWidth === 0
+        ? ESTIMATED_LEGEND_SELECTOR_WIDTH
+        : rowWidth + LEGEND_SELECTOR_GAP + ESTIMATED_LEGEND_SELECTOR_WIDTH;
+    if (selectorWidth > availableWidth) {
+      rows += 1;
+    }
+  }
+
+  return rows;
+}
+
+export function getHorizontalLegendAvailableWidth({
+  chartWidth,
+  orientation,
+  padding,
+  zoomable = false,
+}: {
+  chartWidth: number;
+  orientation: LegendOrientation.Top | LegendOrientation.Bottom;
+  padding?: LegendPaddingType;
+  zoomable?: boolean;
+}): number {
+  let availableWidth = chartWidth - (padding?.left ?? 0);
+
+  if (orientation === LegendOrientation.Top && zoomable) {
+    availableWidth -= TIMESERIES_CONSTANTS.legendTopRightOffset;
+  }
+
+  return Math.max(availableWidth, 0);
+}
+
+function getLongestLegendLabelWidth(
+  labels: string[],
+  theme: SupersetTheme,
+): number {
+  return labels.reduce(
+    (maxWidth, label) =>
+      Math.max(maxWidth, measureLegendTextWidth(label, theme)),
+    0,
+  );
+}
+
+function isHorizontalLegendOrientation(
+  orientation: LegendOrientation,
+): orientation is LegendOrientation.Top | LegendOrientation.Bottom {
+  return (
+    orientation === LegendOrientation.Top ||
+    orientation === LegendOrientation.Bottom
+  );
+}
+
+function getHorizontalPlainLegendLayout({
+  availableHeight,
+  availableWidth,
+  currentMargin,
+  legendLabels,
+  orientation,
+  showSelectors,
+  theme,
+}: {
+  availableHeight: number;
+  availableWidth: number;
+  currentMargin: number;
+  legendLabels: string[];
+  orientation: LegendOrientation.Top | LegendOrientation.Bottom;
+  showSelectors: boolean;
+  theme: SupersetTheme;
+}): LegendLayoutResult {
+  const rowCount = estimateHorizontalLegendRows(
+    legendLabels,
+    availableWidth,
+    showSelectors,
+    theme,
+  );
+  const rowsForMargin = Number.isFinite(rowCount)
+    ? rowCount
+    : legendLabels.length;
+  const requiredMargin =
+    defaultLegendPadding[orientation] +
+    Math.max(0, rowsForMargin - 1) * LEGEND_HORIZONTAL_ROW_HEIGHT;
+  const boundedMargin =
+    availableHeight > 0
+      ? Math.min(requiredMargin, availableHeight * MAX_LEGEND_MARGIN_RATIO)
+      : requiredMargin;
+
+  return {
+    effectiveMargin: Math.max(currentMargin, boundedMargin),
+    effectiveType: LegendType.Plain,
+  };
+}
+
+function getVerticalPlainLegendLayout({
+  availableWidth,
+  currentMargin,
+  legendLabels,
+  showSelectors,
+  theme,
+}: {
+  availableWidth: number;
+  currentMargin: number;
+  legendLabels: string[];
+  showSelectors: boolean;
+  theme: SupersetTheme;
+}): LegendLayoutResult {
+  if (legendLabels.length === 0) {
+    return {
+      effectiveMargin: currentMargin,
+      effectiveType: LegendType.Plain,
+    };
+  }
+
+  const requiredSelectorMargin = showSelectors
+    ? ESTIMATED_LEGEND_SELECTOR_WIDTH + LEGEND_VERTICAL_SIDE_GUTTER
+    : 0;
+  const requiredMargin = Math.ceil(
+    Math.max(
+      getLongestLegendLabelWidth(legendLabels, theme) + LEGEND_MARGIN_GUTTER,
+      requiredSelectorMargin,
+    ),
+  );
+  const boundedMargin =
+    availableWidth > 0
+      ? Math.min(requiredMargin, availableWidth * MAX_LEGEND_MARGIN_RATIO)
+      : requiredMargin;
+
+  return {
+    effectiveMargin: Math.max(currentMargin, boundedMargin),
+    effectiveType: LegendType.Plain,
+  };
+}
+
+export function getLegendLayoutResult({
+  availableHeight,
+  availableWidth,
+  chartHeight,
+  chartWidth,
+  legendItems = [],
+  legendMargin,
+  orientation,
+  show,
+  showSelectors = true,
+  theme,
+  type,
+}: {
+  // Raw chart dimensions. Use availableWidth/availableHeight when other chart
+  // UI elements reserve legend space before ECharts lays out the legend.
+  availableHeight?: number;
+  availableWidth?: number;
+  chartHeight: number;
+  chartWidth: number;
+  legendItems?: LegendDataItem[];
+  legendMargin?: string | number | null;
+  orientation: LegendOrientation;
+  show: boolean;
+  showSelectors?: boolean;
+  theme: SupersetTheme;
+  type: LegendType;
+}): LegendLayoutResult {
+  if (!show || type !== LegendType.Plain) {
+    return { effectiveType: type };
+  }
+
+  const resolvedLegendMargin =
+    typeof legendMargin === 'number'
+      ? legendMargin
+      : defaultLegendPadding[orientation];
+  const legendLabels = getLegendLabels(legendItems);
+  const resolvedAvailableWidth = availableWidth ?? chartWidth;
+  const resolvedAvailableHeight = availableHeight ?? chartHeight;
+
+  if (isHorizontalLegendOrientation(orientation)) {
+    return getHorizontalPlainLegendLayout({
+      availableHeight: resolvedAvailableHeight,
+      availableWidth: resolvedAvailableWidth,
+      currentMargin: resolvedLegendMargin,
+      legendLabels,
+      orientation,
+      showSelectors,
+      theme,
+    });
+  }
+
+  return getVerticalPlainLegendLayout({
+    availableWidth: resolvedAvailableWidth,
+    currentMargin: resolvedLegendMargin,
+    legendLabels,
+    showSelectors,
+    theme,
+  });
+}
+
 export function extractDataTotalValues(
   data: DataRecord[],
   opts: {
@@ -62,6 +390,7 @@ export function extractDataTotalValues(
     percentageThreshold: number;
     xAxisCol: string;
     legendState?: LegendState;
+    extraMetricLabels?: string[];
   },
 ): {
   totalStackedValues: number[];
@@ -69,18 +398,32 @@ export function extractDataTotalValues(
 } {
   const totalStackedValues: number[] = [];
   const thresholdValues: number[] = [];
-  const { stack, percentageThreshold, xAxisCol, legendState } = opts;
+  const {
+    stack,
+    percentageThreshold,
+    xAxisCol,
+    legendState,
+    extraMetricLabels,
+  } = opts;
+  const excludedKeys = new Set([xAxisCol, ...(extraMetricLabels ?? [])]);
   if (stack) {
     data.forEach(datum => {
       const values = Object.keys(datum).reduce((prev, curr) => {
-        if (curr === xAxisCol) {
+        if (excludedKeys.has(curr)) {
           return prev;
         }
         if (legendState && !legendState[curr]) {
           return prev;
         }
         const value = datum[curr] || 0;
-        return prev + (value as number);
+        // Query results with integers beyond Number.MAX_SAFE_INTEGER are
+        // parsed as native BigInt (see
+        // packages/superset-ui-core/src/connection/callApi/parseResponse.ts).
+        // Normalize to Number before summing so BigInt and Number values
+        // can be combined without throwing (see #36401).
+        const numericValue =
+          typeof value === 'bigint' ? Number(value) : (value as number);
+        return prev + numericValue;
       }, 0);
       totalStackedValues.push(values);
       thresholdValues.push(((percentageThreshold || 0) / 100) * values);
@@ -171,8 +514,8 @@ export function sortAndFilterSeries(
 
   return orderBy(
     sortedValues,
-    ['value'],
-    [sortSeriesAscending ? 'asc' : 'desc'],
+    ['value', 'name'],
+    [sortSeriesAscending ? 'asc' : 'desc', 'asc'],
   ).map(({ name }) => name);
 }
 
@@ -290,13 +633,25 @@ export function extractSeries(
     xAxisType,
   } = opts;
   if (data.length === 0) return [[], [], undefined];
-  const rows: DataRecord[] = data.map(datum => ({
-    ...datum,
-    [xAxis]:
+  const rows: DataRecord[] = data.map(datum => {
+    // Query results with integers beyond Number.MAX_SAFE_INTEGER are
+    // parsed as native BigInt (see
+    // packages/superset-ui-core/src/connection/callApi/parseResponse.ts).
+    // Normalize every metric value to Number here, before sorting/
+    // aggregation (sortAndFilterSeries, sortRows) and stream-mode baseline
+    // calculations (getBaselineSeriesForStream) run, so BigInt and Number
+    // values can be combined without throwing (see #36401).
+    const normalized: DataRecord = {};
+    Object.keys(datum).forEach(key => {
+      const value = datum[key];
+      normalized[key] = typeof value === 'bigint' ? Number(value) : value;
+    });
+    normalized[xAxis] =
       datum[xAxis] === null && xAxisType === AxisType.Category
         ? NULL_STRING
-        : datum[xAxis],
-  }));
+        : normalized[xAxis];
+    return normalized;
+  });
   const sortedSeries = sortAndFilterSeries(
     rows,
     xAxis,
@@ -345,7 +700,17 @@ export function extractSeries(
           stack === StackControlsValue.Expand &&
           totalStackedValue !== undefined
         ) {
-          value = ((value || 0) as number) / totalStackedValue;
+          // Query results with integers beyond Number.MAX_SAFE_INTEGER are
+          // parsed as native BigInt (see
+          // packages/superset-ui-core/src/connection/callApi/parseResponse.ts).
+          // totalStackedValue is always a Number (extractDataTotalValues
+          // normalizes it), so dividing a raw BigInt datum value by it
+          // throws; normalize to Number first (see #36401).
+          const numericValue =
+            typeof value === 'bigint'
+              ? Number(value)
+              : ((value || 0) as number);
+          value = numericValue / totalStackedValue;
         }
         return [row[xAxis], value];
       })
@@ -437,8 +802,8 @@ export function getLegendProps(
   zoomable = false,
   legendState?: LegendState,
   padding?: LegendPaddingType,
-): LegendComponentOption | LegendComponentOption[] {
-  const legend: LegendComponentOption | LegendComponentOption[] = {
+): LegendComponentOption {
+  const legend: LegendComponentOption = {
     orient: [LegendOrientation.Top, LegendOrientation.Bottom].includes(
       orientation,
     )
@@ -446,7 +811,7 @@ export function getLegendProps(
       : 'vertical',
     show,
     type,
-    selected: legendState,
+    selected: legendState ?? {},
     selector: ['all', 'inverse'],
     selectorLabel: {
       fontFamily: theme.fontFamily,
@@ -482,8 +847,20 @@ export function getLegendProps(
       break;
     case LegendOrientation.Bottom:
       legend.bottom = 0;
+      if (padding?.left) {
+        legend.left = padding.left;
+      }
+      if (type === LegendType.Plain) {
+        legend.right = 0;
+      }
       break;
     case LegendOrientation.Top:
+      legend.top = 0;
+      legend.right = zoomable ? TIMESERIES_CONSTANTS.legendTopRightOffset : 0;
+      if (type === LegendType.Plain && padding?.left) {
+        legend.left = padding.left;
+      }
+      break;
     default:
       legend.top = 0;
       legend.right = zoomable ? TIMESERIES_CONSTANTS.legendTopRightOffset : 0;
@@ -560,10 +937,41 @@ export function sanitizeHtml(text: string): string {
   return format.encodeHTML(text);
 }
 
+/**
+ * Map a metric value to a marker diameter such that the marker's *area*
+ * (not its diameter) scales linearly with the value between the smallest
+ * and largest observed values. Area-based scaling avoids the perceptual
+ * exaggeration that diameter-linear scaling causes, where a 2x value
+ * renders as a 4x area.
+ *
+ * @param value - the metric value for this data point
+ * @param valueExtent - [min, max] of the metric across all data points
+ * @param sizeRange - [min, max] marker diameter in pixels
+ */
+export function getAreaScaledSymbolSize(
+  value: number,
+  valueExtent: [number, number],
+  sizeRange: [number, number],
+): number {
+  const [minValue, maxValue] = valueExtent;
+  const [minSize, maxSize] = sizeRange;
+  if (!Number.isFinite(value) || maxValue === minValue) {
+    // single-valued or invalid data: use the diameter whose area is the
+    // midpoint of the configured area range
+    return Math.sqrt((minSize ** 2 + maxSize ** 2) / 2);
+  }
+  const ratio = Math.min(
+    Math.max((value - minValue) / (maxValue - minValue), 0),
+    1,
+  );
+  return Math.sqrt(minSize ** 2 + ratio * (maxSize ** 2 - minSize ** 2));
+}
+
 export function getAxisType(
   stack: StackType,
   forceCategorical?: boolean,
   dataType?: GenericDataType,
+  seriesType?: EchartsTimeseriesSeriesType,
 ): AxisType {
   if (forceCategorical) {
     return AxisType.Category;
@@ -571,10 +979,175 @@ export function getAxisType(
   if (dataType === GenericDataType.Temporal) {
     return AxisType.Time;
   }
-  if (dataType === GenericDataType.Numeric && !stack) {
+  if (
+    dataType === GenericDataType.Numeric &&
+    !stack &&
+    seriesType !== EchartsTimeseriesSeriesType.Bar
+  ) {
     return AxisType.Value;
   }
   return AxisType.Category;
+}
+
+// `new Date('2024-04-06')` parses as UTC, but ECharts' own date parser treats
+// zone-less strings as local time — mismatch would offset the pinned tick.
+const DATE_ONLY_RE = /^(\d{4})(?:-(\d{1,2})(?:-(\d{1,2}))?)?$/;
+
+function parseTemporalString(value: string): number {
+  const dateOnly = DATE_ONLY_RE.exec(value);
+  if (dateOnly) {
+    const [, year, month, day] = dateOnly;
+    return new Date(
+      Number(year),
+      Number(month || 1) - 1,
+      Number(day || 1),
+    ).getTime();
+  }
+  return new Date(value).getTime();
+}
+
+/**
+ * Bucket timestamps a temporal axis should tick on, or undefined to let ECharts
+ * choose.
+ *
+ * ECharts generates time ticks from a calendar ladder with no week unit, so for
+ * weekly data it steps days from the 1st of each month instead: labels drift
+ * across weekdays and snap to month starts (#17226). Coarser grains already land
+ * on their data and keep ECharts' calendar-nice labels.
+ */
+export function getTemporalTickValues(
+  data: DataRecord[],
+  xAxisLabel: string,
+  xAxisType: AxisType,
+  timeGrain?: string,
+): number[] | undefined {
+  if (
+    xAxisType !== AxisType.Time ||
+    !timeGrain ||
+    !WEEKLY_TIME_GRAINS.has(timeGrain)
+  ) {
+    return undefined;
+  }
+  const values = new Set<number>();
+  data.forEach(row => {
+    const value = row[xAxisLabel];
+    const timestamp =
+      // eslint-disable-next-line no-nested-ternary
+      value instanceof Date
+        ? value.getTime()
+        : typeof value === 'string'
+          ? parseTemporalString(value)
+          : Number(value ?? NaN);
+    if (Number.isFinite(timestamp)) {
+      values.add(timestamp);
+    }
+  });
+  return values.size ? [...values].sort((a, b) => a - b) : undefined;
+}
+
+/**
+ * Weekly grains: pin the ticks to the buckets ECharts would otherwise miss.
+ * A timeseries annotation contributes its own timestamps and widens the axis
+ * past the buckets, and ECharts clips pinned ticks to the extent, so that
+ * span would render bare — leave those charts on ECharts' own ticks.
+ */
+export function resolveTemporalTickValues(
+  data: DataRecord[],
+  xAxisLabel: string,
+  xAxisType: AxisType,
+  timeGrain: string | undefined,
+  annotationLayers: AnnotationLayer[],
+): number[] | undefined {
+  const hasTimeseriesAnnotation = annotationLayers.some(
+    layer => layer.show && isTimeseriesAnnotationLayer(layer),
+  );
+  return hasTimeseriesAnnotation
+    ? undefined
+    : getTemporalTickValues(data, xAxisLabel, xAxisType, timeGrain);
+}
+
+// Unlike axisLabel, axisTick has no overlap-based thinning, so pinning it to
+// every bucket combs a long weekly range. Downsample evenly, keeping ends.
+const MAX_PINNED_AXIS_TICKS = 60;
+
+export function capTickMarks(
+  values: number[],
+  maxTicks: number = MAX_PINNED_AXIS_TICKS,
+): number[] {
+  if (values.length <= maxTicks) {
+    return values;
+  }
+  const step = Math.ceil(values.length / maxTicks);
+  const capped = values.filter((_, index) => index % step === 0);
+  const last = values[values.length - 1];
+  if (capped[capped.length - 1] !== last) {
+    capped.push(last);
+  }
+  return capped;
+}
+
+/**
+ * axisLabel/axisTick fragment for a temporal x-axis, shared by Timeseries and
+ * MixedTimeseries. When temporalTickValues pins the axis to weekly buckets,
+ * axisTick.customValues (what splitLine/gridlines follow) is downsampled to
+ * avoid combing a long weekly range. axisLabel.customValues (what hideOverlap
+ * thins from) uses the same capped set on a non-zoomable axis, so a label
+ * surviving hideOverlap thinning always lands on a real tick and gridline
+ * rather than a capped-away bucket. On a zoomable axis the full set is used
+ * instead — zooming lets the user reach any bucket, but customValues never
+ * recomputes on dataZoom, so a capped set there would freeze the visible
+ * labels to the pre-zoom subset.
+ */
+export function getTemporalAxisTickConfig(
+  temporalTickValues: number[] | undefined,
+  showMaxLabel: boolean,
+  xAxisType: AxisType,
+  xAxisLabelRotation: number,
+  xAxisLabelInterval: number | string | undefined,
+  formatter: unknown,
+  isHorizontal: boolean = false,
+  zoomable: boolean = false,
+): {
+  axisLabel: Record<string, unknown>;
+  axisTick?: { customValues: number[] };
+} {
+  const cappedTickValues = temporalTickValues
+    ? capTickMarks(temporalTickValues)
+    : undefined;
+  const labelCustomValues = zoomable ? temporalTickValues : cappedTickValues;
+  return {
+    axisLabel: {
+      // Pinned ticks label every bucket, which does crowd, so thinning
+      // always wins there.
+      hideOverlap:
+        !!temporalTickValues ||
+        (showMaxLabel
+          ? false
+          : !(xAxisType === AxisType.Time && xAxisLabelRotation !== 0)),
+      formatter,
+      rotate: xAxisLabelRotation,
+      interval: xAxisLabelInterval,
+      // Force the boundary labels so the first and last dates stay visible:
+      // hideOverlap can hide the last label, and a min date that falls
+      // between "nice" ticks otherwise renders no beginning label. Applied
+      // for pinned axes too — showMaxLabel only shields its immediate
+      // neighbour, so a farther label on a crowded weekly axis can still be
+      // dropped, but that's strictly better than no shielding at all.
+      ...(showMaxLabel && {
+        showMaxLabel: true,
+        showMinLabel: true,
+      }),
+      // The alignments assume the axis runs along the bottom; a horizontal
+      // chart puts this axis on the side, where they misplace the labels.
+      ...(showMaxLabel &&
+        !isHorizontal && {
+          alignMaxLabel: 'right',
+          alignMinLabel: 'left',
+        }),
+      ...(labelCustomValues && { customValues: labelCustomValues }),
+    },
+    ...(cappedTickValues && { axisTick: { customValues: cappedTickValues } }),
+  };
 }
 
 export function getOverMaxHiddenFormatter(

@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactNode } from 'react';
+import { type JsonObject } from '@superset-ui/core';
+import { type ReactNode } from 'react';
 
 export interface SortColumn {
   id: string;
@@ -24,8 +25,13 @@ export interface SortColumn {
 }
 
 export interface SelectOption {
-  label: string;
+  label: ReactNode;
   value: any;
+  // Plain-text representation of the option. Callers should set this when
+  // `label` is a ReactNode so that the option can be serialized (e.g. into
+  // URL filter state) without losing the human-readable name.
+  title?: string;
+  [key: string]: unknown;
 }
 
 export interface CardSortSelectOption {
@@ -59,12 +65,15 @@ export interface ListViewFilter {
     page: number,
     pageSize: number,
   ) => Promise<{ data: SelectOption[]; totalCount: number }>;
+  optionFilterProps?: string[];
   paginate?: boolean;
   loading?: boolean;
   dateFilterValueType?: 'unix' | 'iso';
   min?: number;
   max?: number;
-  dropdownStyle?: React.CSSProperties;
+  popupStyle?: React.CSSProperties;
+  autoComplete?: string;
+  inputName?: string;
 }
 
 export type ListViewFilters = ListViewFilter[];
@@ -79,7 +88,7 @@ export type InnerFilterValue =
   | undefined
   | string[]
   | number[]
-  | { label: string; value: string | number }
+  | { label: ReactNode; value: string | number }
   | [number | null, number | null];
 
 export interface ListViewFilterValue {
@@ -94,6 +103,7 @@ export interface ListViewFetchDataConfig {
   pageSize: number;
   sortBy: SortColumn[];
   filters: ListViewFilterValue[];
+  extraQueryParams?: JsonObject;
 }
 
 export interface InternalFilter extends ListViewFilterValue {
@@ -121,6 +131,7 @@ export enum ListViewFilterOperator {
   Between = 'between',
   DashboardIsFav = 'dashboard_is_favorite',
   ChartIsFav = 'chart_is_favorite',
+  TagIsFav = 'tag_is_favorite',
   ChartIsCertified = 'chart_is_certified',
   DashboardIsCertified = 'dashboard_is_certified',
   DatasetIsCertified = 'dataset_is_certified',
@@ -132,4 +143,10 @@ export enum ListViewFilterOperator {
   ChartTagById = 'chart_tag_id',
   SavedQueryTagByName = 'saved_query_tags',
   SavedQueryTagById = 'saved_query_tag_id',
+  ChartDeletedState = 'chart_deleted_state',
+  ChartDeletedRecency = 'chart_deleted_recency',
+  DashboardDeletedState = 'dashboard_deleted_state',
+  DashboardDeletedRecency = 'dashboard_deleted_recency',
+  DatasetDeletedState = 'dataset_deleted_state',
+  DatasetDeletedRecency = 'dataset_deleted_recency',
 }

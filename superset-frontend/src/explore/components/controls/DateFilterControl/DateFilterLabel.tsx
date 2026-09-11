@@ -17,16 +17,18 @@
  * under the License.
  */
 import { ReactNode, useState, useEffect, useMemo } from 'react';
+import { t } from '@apache-superset/core/translation';
 import {
-  css,
-  styled,
-  t,
-  useTheme,
   NO_TIME_RANGE,
-  SupersetTheme,
   useCSSTextTruncation,
   fetchTimeRange,
 } from '@superset-ui/core';
+import {
+  css,
+  styled,
+  useTheme,
+  SupersetTheme,
+} from '@apache-superset/core/theme';
 import {
   Button,
   Constants,
@@ -123,7 +125,7 @@ const getTooltipTitle = (
 ) =>
   isLabelTruncated ? (
     <div>
-      {label && <strong>{label}</strong>}
+      {label && <strong>{t(label)}</strong>}
       {range && (
         <div
           css={(theme: SupersetTheme) => css`
@@ -145,6 +147,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
     onOpenPopover = noOp,
     onClosePopover = noOp,
     isOverflowingFilterBar = false,
+    hovered: isControlHovered = false,
   } = props;
   const defaultTimeFilter = useDefaultTimeFilter();
 
@@ -158,9 +161,16 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
   const [timeRangeValue, setTimeRangeValue] = useState(value);
   const [validTimeRange, setValidTimeRange] = useState<boolean>(false);
   const [evalResponse, setEvalResponse] = useState<string>(value);
-  const [tooltipTitle, setTooltipTitle] = useState<ReactNode | null>(value);
+  const [tooltipTitle, setTooltipTitle] = useState<ReactNode | null>(t(value));
+  const [isDescriptionHovered, setIsDescriptionHovered] = useState(false);
   const theme = useTheme();
   const [labelRef, labelIsTruncated] = useCSSTextTruncation<HTMLSpanElement>();
+
+  useEffect(() => {
+    if (!isControlHovered) {
+      setIsDescriptionHovered(false);
+    }
+  }, [isControlHovered]);
 
   useEffect(() => {
     if (value === NO_TIME_RANGE) {
@@ -173,7 +183,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
       if (error) {
         setEvalResponse(error || '');
         setValidTimeRange(false);
-        setTooltipTitle(value || null);
+        setTooltipTitle(t(value) || null);
       } else {
         /*
           HRT == human readable text
@@ -326,7 +336,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
           onClick={onHide}
           data-test={DateFilterTestKey.CancelButton}
         >
-          {t('CANCEL')}
+          {t('Cancel')}
         </Button>
         <Button
           buttonStyle="primary"
@@ -336,7 +346,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
           onClick={onSave}
           data-test={DateFilterTestKey.ApplyButton}
         >
-          {t('APPLY')}
+          {t('Apply')}
         </Button>
       </div>
     </ContentStyleWrapper>
@@ -344,7 +354,6 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
 
   const popoverContent = (
     <ControlPopover
-      autoAdjustOverflow={false}
       trigger="click"
       placement="right"
       content={overlayContent}
@@ -357,33 +366,42 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
       defaultOpen={show}
       open={show}
       onOpenChange={toggleOverlay}
-      overlayStyle={{ width: '600px' }}
-      destroyTooltipOnHide
-      getPopupContainer={nodeTrigger =>
-        isOverflowingFilterBar
-          ? (nodeTrigger.parentNode as HTMLElement)
-          : document.body
-      }
+      overlayStyle={{ width: 'min(600px, calc(100vw - 32px))' }}
+      destroyOnHidden
+      getPopupContainer={() => document.body}
       overlayClassName="time-range-popover"
     >
-      <Tooltip placement="top" title={tooltipTitle}>
-        <DateLabel
-          name={name}
-          aria-labelledby={`filter-name-${props.name}`}
-          aria-describedby={`date-label-${props.name}`}
-          label={actualTimeRange}
-          isActive={show}
-          isPlaceholder={actualTimeRange === NO_TIME_RANGE}
-          data-test={DateFilterTestKey.PopoverOverlay}
-          ref={labelRef}
-        />
+      <Tooltip
+        placement="top"
+        title={isDescriptionHovered ? null : tooltipTitle}
+        mouseLeaveDelay={0}
+        overlayStyle={{ pointerEvents: 'none' }}
+      >
+        {/* Wrap in a span so the Popover gets a stable DOM ref target;
+            DateLabel forwards its ref to an inner span used for measuring
+            text truncation, which would otherwise become the popover's
+            positioning anchor in React 18. */}
+        <span data-test={DateFilterTestKey.PopoverOverlay}>
+          <DateLabel
+            name={name}
+            aria-labelledby={`filter-name-${props.name}`}
+            aria-describedby={`date-label-${props.name}`}
+            label={actualTimeRange}
+            isActive={show}
+            isPlaceholder={actualTimeRange === NO_TIME_RANGE}
+            ref={labelRef}
+          />
+        </span>
       </Tooltip>
     </ControlPopover>
   );
 
   return (
     <>
-      <ControlHeader {...props} />
+      <ControlHeader
+        {...props}
+        onDescriptionHoverChange={setIsDescriptionHovered}
+      />
       {popoverContent}
     </>
   );

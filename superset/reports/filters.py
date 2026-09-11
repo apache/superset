@@ -21,7 +21,9 @@ from sqlalchemy import or_
 from sqlalchemy.orm.query import Query
 
 from superset import db, security_manager
-from superset.reports.models import ReportSchedule
+from superset.daos.base import _escape_like
+from superset.reports.models import ReportExecutionLog, ReportSchedule
+from superset.subjects.filters import subject_relation_exists_for_current_user
 from superset.views.base import BaseFilter
 
 
@@ -29,15 +31,44 @@ class ReportScheduleFilter(BaseFilter):  # pylint: disable=too-few-public-method
     def apply(self, query: Query, value: Any) -> Query:
         if security_manager.can_access_all_datasources():
             return query
-        owner_ids_query = (
-            db.session.query(ReportSchedule.id)
-            .join(ReportSchedule.owners)
-            .filter(
-                security_manager.user_model.id
-                == security_manager.user_model.get_user_id()
-            )
-        )
-        return query.filter(ReportSchedule.id.in_(owner_ids_query))
+
+        return self._apply_editors(query)
+
+    def _apply_editors(self, query: Query) -> Query:
+        from superset.subjects.models import report_schedule_editors
+
+        editor_ids_query = db.session.query(
+            report_schedule_editors.c.report_schedule_id
+        ).filter(subject_relation_exists_for_current_user(report_schedule_editors))
+        return query.filter(ReportSchedule.id.in_(editor_ids_query))
+
+
+class ReportExecutionLogFilter(BaseFilter):  # pylint: disable=too-few-public-methods
+    """
+    Scope execution logs to report schedules the user can edit, mirroring
+    ``ReportScheduleFilter`` on the schedule API. Logs carry evaluated alert
+    values and database error messages, so they must not be readable across
+    ownership boundaries via an attacker-chosen schedule id.
+
+    The unrestricted bypass is gated by ``can_access_all_queries`` rather
+    than ``can_access_all_datasources``: the latter is also granted to
+    stock Alpha, which would let a non-editor Alpha user read every other
+    schedule's evaluated values and database errors. ``can_access_all_queries``
+    is the admin-only permission this codebase already uses to gate the
+    equivalent per-execution data on SQL Lab query history
+    (see ``superset.queries.filters.QueryFilter``).
+    """
+
+    def apply(self, query: Query, value: Any) -> Query:
+        if security_manager.can_access_all_queries():
+            return query
+
+        from superset.subjects.models import report_schedule_editors
+
+        editor_ids_query = db.session.query(
+            report_schedule_editors.c.report_schedule_id
+        ).filter(subject_relation_exists_for_current_user(report_schedule_editors))
+        return query.filter(ReportExecutionLog.report_schedule_id.in_(editor_ids_query))
 
 
 class ReportScheduleAllTextFilter(BaseFilter):  # pylint: disable=too-few-public-methods
@@ -47,11 +78,13 @@ class ReportScheduleAllTextFilter(BaseFilter):  # pylint: disable=too-few-public
     def apply(self, query: Query, value: Any) -> Query:
         if not value:
             return query
-        ilike_value = f"%{value}%"
+        # ``value`` may arrive as a non-string (e.g. an int in the API ``filters``
+        # array); coerce it so escaping never raises on ``.replace``.
+        ilike_value = f"%{_escape_like(str(value))}%"
         return query.filter(
             or_(
-                ReportSchedule.name.ilike(ilike_value),
-                ReportSchedule.description.ilike(ilike_value),
-                ReportSchedule.sql.ilike(ilike_value),
+                ReportSchedule.name.ilike(ilike_value, escape="\\"),
+                ReportSchedule.description.ilike(ilike_value, escape="\\"),
+                ReportSchedule.sql.ilike(ilike_value, escape="\\"),
             )
         )

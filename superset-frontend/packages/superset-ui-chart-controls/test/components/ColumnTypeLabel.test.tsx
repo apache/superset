@@ -19,7 +19,7 @@
 import { isValidElement } from 'react';
 import { render, screen } from '@superset-ui/core/spec';
 import '@testing-library/jest-dom';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { ColumnTypeLabel, ColumnTypeLabelProps } from '../../src';
 
 describe('ColumnOption', () => {
@@ -33,31 +33,52 @@ describe('ColumnOption', () => {
     render(<ColumnTypeLabel {...props} {...overrides} />);
   }
 
-  it('is a valid element', () => {
+  test('is a valid element', () => {
     expect(isValidElement(<ColumnTypeLabel {...defaultProps} />)).toBe(true);
   });
-  it('string type shows ABC icon', () => {
+  test('string type shows ABC icon', () => {
     renderColumnTypeLabel({ type: GenericDataType.String });
     expect(screen.getByLabelText('string type icon')).toBeVisible();
   });
-  it('int type shows # icon', () => {
+  test('int type shows # icon', () => {
     renderColumnTypeLabel({ type: GenericDataType.Numeric });
     expect(screen.getByLabelText('numeric type icon')).toBeVisible();
   });
-  it('bool type shows 1|0 icon', () => {
+  test('bool type shows 1|0 icon', () => {
     renderColumnTypeLabel({ type: GenericDataType.Boolean });
     expect(screen.getByLabelText('boolean type icon')).toBeVisible();
   });
-  it('expression type shows function icon', () => {
+  test('expression type shows function icon', () => {
     renderColumnTypeLabel({ type: 'expression' });
     expect(screen.getByLabelText('function type icon')).toBeVisible();
   });
-  it('unknown type shows question mark', () => {
+  test('metric type shows sigma icon', () => {
+    renderColumnTypeLabel({ type: 'metric' });
+    expect(screen.getByLabelText('metric type icon')).toBeVisible();
+  });
+  test('unknown type shows question mark', () => {
     renderColumnTypeLabel({ type: undefined });
     expect(screen.getByLabelText('unknown type icon')).toBeVisible();
   });
-  it('datetime type displays', () => {
+  test('datetime type displays', () => {
     renderColumnTypeLabel({ type: GenericDataType.Temporal });
     expect(screen.getByLabelText('temporal type icon')).toBeVisible();
+  });
+  test('multi-value (array) type shows list icon', () => {
+    renderColumnTypeLabel({ type: GenericDataType.MultiValue });
+    expect(screen.getByLabelText('multi-value type icon')).toBeVisible();
+  });
+});
+
+describe('GenericDataType enum parity', () => {
+  // These numeric values are shared with the backend enum in
+  // superset/utils/core.py (GenericDataType). They must stay in sync because
+  // the backend serializes columns using these integers.
+  test('values match the backend contract', () => {
+    expect(GenericDataType.Numeric).toBe(0);
+    expect(GenericDataType.String).toBe(1);
+    expect(GenericDataType.Temporal).toBe(2);
+    expect(GenericDataType.Boolean).toBe(3);
+    expect(GenericDataType.MultiValue).toBe(4);
   });
 });

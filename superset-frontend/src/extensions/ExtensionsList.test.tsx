@@ -18,6 +18,9 @@
  */
 import { render, waitFor } from 'spec/helpers/testing-library';
 import ExtensionsList from './ExtensionsList';
+import fetchMock from 'fetch-mock';
+
+beforeAll(() => fetchMock.unmockGlobal());
 
 // Mock initial state for the store
 const mockInitialState = {
@@ -29,15 +32,11 @@ const mockInitialState = {
         id: 1,
         name: 'Test Extension 1',
         enabled: true,
-        contributions:
-          '{"menus": {"testMenu": {"primary": [{"key": "item1", "title": "Menu Item 1"}]}}, "views": {}}',
       },
       {
         id: 2,
         name: 'Test Extension 2',
         enabled: false,
-        contributions:
-          '{"commands": [{"command": "test.command", "title": "Test Command"}]}',
       },
     ],
     bulkSelectEnabled: false,
@@ -71,16 +70,6 @@ test('displays extension names in the list', async () => {
   await waitFor(() => {
     // These texts should appear somewhere in the rendered component
     expect(document.body).toHaveTextContent(/Extensions/);
-  });
-});
-
-test('displays contributions information', async () => {
-  renderWithStore();
-
-  await waitFor(() => {
-    // Should show contributions-related content
-    const bodyText = document.body.textContent || '';
-    expect(bodyText).toMatch(/contribution/i);
   });
 });
 

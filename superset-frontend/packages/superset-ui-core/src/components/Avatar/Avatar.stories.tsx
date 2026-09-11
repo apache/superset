@@ -27,6 +27,7 @@ export default {
 export const InteractiveAvatar = (args: AvatarProps) => <Avatar {...args} />;
 
 InteractiveAvatar.args = {
+  children: 'AB',
   alt: '',
   gap: 4,
   shape: 'circle',
@@ -36,8 +37,26 @@ InteractiveAvatar.args = {
 };
 
 InteractiveAvatar.argTypes = {
+  children: {
+    description: 'Text or initials to display inside the avatar.',
+    control: { type: 'text' },
+  },
   shape: {
+    description: 'The shape of the avatar.',
     options: ['circle', 'square'],
     control: { type: 'select' },
+  },
+  size: {
+    description: 'The size of the avatar.',
+    options: ['small', 'default', 'large'],
+    control: { type: 'select' },
+  },
+  src: {
+    description: 'Image URL for the avatar. If provided, overrides children.',
+    control: { type: 'text' },
+  },
+  gap: {
+    description: 'Letter spacing inside the avatar.',
+    control: { type: 'number', min: 0, max: 10 },
   },
 };

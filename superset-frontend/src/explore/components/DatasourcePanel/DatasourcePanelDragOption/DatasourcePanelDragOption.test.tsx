@@ -26,7 +26,7 @@ test('should render', async () => {
       value={{ metric_name: 'test', uuid: '1' }}
       type={DndItemType.Metric}
     />,
-    { useDnd: true },
+    { useDndKit: true, useRedux: true, initialState: { explore: {} } },
   );
 
   expect(
@@ -35,16 +35,19 @@ test('should render', async () => {
   expect(screen.getByText('test')).toBeInTheDocument();
 });
 
-test('should have attribute draggable:true', async () => {
+test('is faded and not draggable when excluded by compatibleMetrics', async () => {
   render(
     <DatasourcePanelDragOption
       value={{ metric_name: 'test', uuid: '1' }}
       type={DndItemType.Metric}
     />,
-    { useDnd: true },
+    {
+      useDndKit: true,
+      useRedux: true,
+      initialState: { explore: { compatibleMetrics: ['other_metric'] } },
+    },
   );
 
-  expect(
-    await screen.findByTestId('DatasourcePanelDragOption'),
-  ).toHaveAttribute('draggable', 'true');
+  const option = await screen.findByTestId('DatasourcePanelDragOption');
+  expect(option).toHaveStyle({ cursor: 'not-allowed' });
 });

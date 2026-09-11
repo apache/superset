@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ReactNode } from 'react';
-import { css, styled } from '@superset-ui/core';
+import { css, styled } from '@apache-superset/core/theme';
 import { InfoTooltip } from '@superset-ui/core/components';
 
 interface ModalFormFieldProps {
@@ -29,8 +29,6 @@ interface ModalFormFieldProps {
   bottomSpacing?: boolean;
   children: ReactNode;
   testId?: string;
-  validateStatus?: 'success' | 'warning' | 'error' | 'validating';
-  hasFeedback?: boolean;
 }
 
 const StyledFieldContainer = styled.div<{ bottomSpacing: boolean }>`
@@ -125,8 +123,6 @@ export function ModalFormField({
   bottomSpacing = true,
   children,
   testId,
-  validateStatus,
-  hasFeedback = false,
 }: ModalFormFieldProps) {
   return (
     <StyledFieldContainer bottomSpacing={bottomSpacing} data-test={testId}>

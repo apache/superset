@@ -29,7 +29,7 @@ describe('Waterfall buildQuery', () => {
     viz_type: VizType.Waterfall,
   };
 
-  it('should build query fields from form data', () => {
+  test('should build query fields from form data', () => {
     const queryContext = buildQuery(formData as unknown as SqlaFormData);
     const [query] = queryContext.queries;
     expect(query.metrics).toEqual(['foo']);

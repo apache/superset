@@ -28,8 +28,12 @@ export {
   ConfirmStatusChange,
   type ConfirmStatusChangeProps,
 } from './ConfirmStatusChange';
-export { Alert, type AlertProps } from './Alert';
 export { CertifiedBadge } from './CertifiedBadge';
+export {
+  RlsBadge,
+  type RlsFilterSummary,
+  type RlsBadgeProps,
+} from './RlsBadge';
 export * from './Icons';
 export * from './Timer';
 export {
@@ -40,6 +44,7 @@ export {
   AsyncAceEditor,
   CssEditor,
   JsonEditor,
+  JSEditor,
   SQLEditor,
   FullSQLEditor,
   MarkdownEditor,
@@ -47,6 +52,7 @@ export {
   ConfigEditor,
   type AsyncAceEditorProps,
   type Editor,
+  type AceCompleterKeyword,
 } from './AsyncAceEditor';
 export { AutoComplete, type AutoCompleteProps } from './AutoComplete';
 export {
@@ -66,6 +72,7 @@ export {
   type CheckboxProps,
   type CheckboxChangeEvent,
 } from './Checkbox';
+export { ConfirmModal, type ConfirmModalProps } from './ConfirmModal';
 export {
   ColorPicker,
   type ColorPickerProps,
@@ -144,10 +151,30 @@ export {
   type ListViewCardProps,
 } from './ListViewCard';
 export { Loading, type LoadingProps } from './Loading';
+export { default as MetadataBar, type MetadataBarProps } from './MetadataBar';
+
+export { Progress, type ProgressProps } from './Progress';
+export { default as ProgressBar, type ProgressBarProps } from './ProgressBar';
+
+export { Pagination, type PaginationProps } from './Pagination';
 
 export { Skeleton, type SkeletonProps } from './Skeleton';
+export {
+  default as Slider,
+  type SliderSingleProps,
+  type SliderRangeProps,
+} from './Slider';
 
 export { Switch, type SwitchProps } from './Switch';
+
+export {
+  default as Tabs,
+  EditableTabs,
+  LineEditableTabs,
+  type TabsProps,
+} from './Tabs';
+
+export { default as Tree, type TreeProps, type TreeDataNode } from './Tree';
 
 export { TreeSelect, type TreeSelectProps } from './TreeSelect';
 
@@ -179,7 +206,9 @@ export * from './Result';
 export {
   ThemedAgGridReact,
   type ThemedAgGridReactProps,
+  type AgGridContainerElement,
   setupAGGridModules,
+  defaultModules,
 } from './ThemedAgGridReact';
 export {
   CodeEditor,
@@ -187,3 +216,4 @@ export {
   type CodeEditorMode,
   type CodeEditorTheme,
 } from './CodeEditor';
+export { ActionButton, type ActionProps } from './ActionButton';

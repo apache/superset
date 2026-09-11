@@ -18,13 +18,20 @@ import logging
 from typing import Any, Optional
 
 from flask import Response
-from flask_appbuilder.api import expose, permission_name, protect, rison, safe
+from flask_appbuilder.api import (
+    expose,
+    permission_name,
+    protect,
+    rison as parse_rison,
+    safe,
+)
 from flask_appbuilder.api.schemas import get_item_schema, get_list_schema
 from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 
 from superset import is_feature_enabled
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
+from superset.reports.filters import ReportExecutionLogFilter
 from superset.reports.logs.schemas import openapi_spec_methods_override
 from superset.reports.models import ReportExecutionLog
 from superset.views.base_api import BaseSupersetModelRestApi
@@ -47,6 +54,13 @@ class ReportExecutionLogRestApi(BaseSupersetModelRestApi):
     class_permission_name = "ReportSchedule"
     resource_name = "report"
     allow_browser_login = True
+    # Ownership scoping. Without a base filter the only scoping on these
+    # routes is the caller-controlled ``pk`` path parameter (folded into the
+    # rison filters below), so any role with ReportSchedule read could
+    # iterate every schedule's logs deployment-wide. Mirrors the
+    # ReportScheduleFilter applied by the schedule API
+    # (superset/reports/api.py).
+    base_filters = [["id", ReportExecutionLogFilter, lambda: []]]
 
     show_columns = [
         "id",
@@ -95,7 +109,7 @@ class ReportExecutionLogRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @permission_name("get")
-    @rison(get_list_schema)
+    @parse_rison(get_list_schema)
     def get_list(  # pylint: disable=arguments-differ
         self, pk: int, **kwargs: Any
     ) -> Response:
@@ -155,7 +169,7 @@ class ReportExecutionLogRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @permission_name("get")
-    @rison(get_item_schema)
+    @parse_rison(get_item_schema)
     def get(  # pylint: disable=arguments-differ
         self, pk: int, log_id: int, **kwargs: Any
     ) -> Response:

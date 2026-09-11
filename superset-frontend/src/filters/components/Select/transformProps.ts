@@ -16,9 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { noOp } from 'src/utils/common';
-import { DEFAULT_FORM_DATA, PluginFilterSelectChartProps } from './types';
+import {
+  DEFAULT_FORM_DATA,
+  PluginFilterSelectChartProps,
+  PluginFilterSelectQueryFormData,
+} from './types';
 
 export default function transformProps(
   chartProps: PluginFilterSelectChartProps,
@@ -36,7 +40,10 @@ export default function transformProps(
     isRefreshing,
     inputRef,
   } = chartProps;
-  const newFormData = { ...DEFAULT_FORM_DATA, ...formData };
+  const newFormData = {
+    ...DEFAULT_FORM_DATA,
+    ...(formData as PluginFilterSelectQueryFormData),
+  };
   const {
     setDataMask = noOp,
     setHoveredFilter = noOp,

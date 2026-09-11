@@ -131,7 +131,10 @@ export type ExtraFormDataOverrideRegular = Partial<
 > &
   Partial<Pick<SqlaFormData, 'granularity'>> &
   Partial<Pick<BaseFormData, 'time_range'>> &
-  Partial<Pick<QueryObject, 'time_column' | 'time_grain' | 'time_compare'>>;
+  Partial<Pick<QueryObject, 'time_column' | 'time_grain' | 'time_compare'>> & {
+    /** deck.gl layer visibility filter - controls which layers are visible in deck.gl multi-layer charts */
+    visible_deckgl_layers?: number[];
+  };
 
 /** These parameters override those already present in the form data/query object */
 export type ExtraFormDataOverride = ExtraFormDataOverrideRegular &
@@ -178,6 +181,8 @@ export interface BaseFormData extends TimeRange, FormDataResidual {
   timeseries_limit_metric?: QueryFormMetric;
   /** Force refresh */
   force?: boolean;
+  /** Idempotency token for a forced refresh (see requestChartDataResolved) */
+  force_nonce?: string;
   result_format?: string;
   result_type?: string;
   annotation_layers?: AnnotationLayer[];
@@ -209,5 +214,3 @@ export type LatestQueryFormData = Partial<QueryFormData>;
 //---------------------------------------------------
 // Type guards
 //---------------------------------------------------
-
-export default {};

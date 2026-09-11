@@ -45,6 +45,13 @@ class DefaultLoggingConfigurator(  # pylint: disable=too-few-public-methods
         logging.basicConfig(format=app_config["LOG_FORMAT"])
         logging.getLogger().setLevel(app_config["LOG_LEVEL"])
 
+        # Route Python warnings through the logging framework so they get
+        # proper log-level formatting instead of raw stderr output. Without
+        # this, the warnings module writes multi-line text to stderr where
+        # the source-code context line has no level prefix, causing log
+        # aggregators to misclassify it as an error.
+        logging.captureWarnings(True)
+
         if app_config["ENABLE_TIME_ROTATE"]:
             logging.getLogger().setLevel(app_config["TIME_ROTATE_LOG_LEVEL"])
             handler = TimedRotatingFileHandler(

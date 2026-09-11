@@ -16,8 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { handleKeyboardActivation } from '@superset-ui/core';
 import { FC, ReactNode } from 'react';
-import { t, css, useTheme, SupersetTheme } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { css, useTheme, SupersetTheme } from '@apache-superset/core/theme';
 import { FormLabel, InfoTooltip, Tooltip } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 
@@ -36,14 +38,23 @@ export type ControlHeaderProps = {
   tooltipOnClick?: () => void;
   warning?: string;
   danger?: string;
+  onDescriptionHoverChange?: (hovered: boolean) => void;
+  // Allow extra props from control spread patterns (e.g. {...this.props})
+  [key: string]: unknown;
 };
 
 const iconStyles = css`
   &.anticon {
     font-size: unset;
+    overflow: visible;
+    display: inline-block;
+    vertical-align: middle;
+    line-height: 1;
+    padding-bottom: 0.1em;
     .anticon {
       line-height: unset;
       vertical-align: unset;
+      overflow: visible;
     }
   }
 `;
@@ -61,6 +72,7 @@ const ControlHeader: FC<ControlHeaderProps> = ({
   tooltipOnClick = () => {},
   warning,
   danger,
+  onDescriptionHoverChange,
 }) => {
   const theme = useTheme();
 
@@ -79,24 +91,44 @@ const ControlHeader: FC<ControlHeaderProps> = ({
           position: absolute;
           top: 50%;
           right: 0;
+          z-index: 1;
           padding-left: ${theme.sizeUnit}px;
           transform: translate(100%, -50%);
           white-space: nowrap;
+          pointer-events: auto;
         `}
       >
         {description && (
-          <span>
+          <>
             <Tooltip
               id="description-tooltip"
               title={description}
               placement="top"
+              mouseLeaveDelay={0}
+              trigger={['hover', 'focus']}
             >
-              <Icons.InfoCircleOutlined
-                css={iconStyles}
+              {/* Same role="button" pattern as the label text: a real <button>
+                  is not valid inside FormLabel's <label>. */}
+              <span
+                // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
+                role="button"
+                tabIndex={0}
+                data-test={`${name}-description-icon`}
+                aria-label={t('Show info tooltip')}
+                onMouseEnter={() => onDescriptionHoverChange?.(true)}
+                onMouseLeave={() => onDescriptionHoverChange?.(false)}
+                onFocus={() => onDescriptionHoverChange?.(true)}
+                onBlur={() => onDescriptionHoverChange?.(false)}
                 onClick={tooltipOnClick}
-              />
+                onKeyDown={handleKeyboardActivation(tooltipOnClick)}
+                css={css`
+                  cursor: pointer;
+                `}
+              >
+                <Icons.InfoCircleOutlined css={iconStyles} />
+              </span>
             </Tooltip>{' '}
-          </span>
+          </>
         )}
         {renderTrigger && (
           <span>
@@ -120,14 +152,22 @@ const ControlHeader: FC<ControlHeaderProps> = ({
             margin-bottom: ${theme.sizeUnit * 0.5}px;
             position: relative;
             font-size: ${theme.fontSizeSM}px;
+            overflow: visible;
+            padding-bottom: 0.1em;
           `}
           htmlFor={name}
         >
           {leftNode && <span>{leftNode} </span>}
+          {/* This label text sits inside FormLabel's <label>, and HTML5
+              prohibits interactive content (including <button>) as a
+              descendant of <label>, so a real button tag isn't an option
+              here. */}
           <span
+            // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
             role="button"
             tabIndex={0}
             onClick={onClick}
+            onKeyDown={onClick ? handleKeyboardActivation(onClick) : undefined}
             style={{ cursor: onClick ? 'pointer' : '' }}
           >
             {label}
@@ -167,7 +207,7 @@ const ControlHeader: FC<ControlHeaderProps> = ({
                 placement="top"
                 title={validationErrors?.join(' ')}
               >
-                <Icons.InfoCircleOutlined iconColor={theme.colorErrorText} />
+                <Icons.ExclamationCircleOutlined iconColor={theme.colorError} />
               </Tooltip>{' '}
             </span>
           )}

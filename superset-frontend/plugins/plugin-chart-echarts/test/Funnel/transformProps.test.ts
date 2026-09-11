@@ -16,11 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  ChartProps,
-  getNumberFormatter,
-  supersetTheme,
-} from '@superset-ui/core';
+import { ChartProps, getNumberFormatter } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/theme';
+import type { FunnelSeriesOption } from 'echarts/charts';
 import transformProps, { parseParams } from '../../src/Funnel/transformProps';
 import {
   EchartsFunnelChartProps,
@@ -51,7 +49,7 @@ const chartProps = new ChartProps({
 });
 
 describe('Funnel transformProps', () => {
-  it('should transform chart props for viz', () => {
+  test('should transform chart props for viz', () => {
     expect(transformProps(chartProps as EchartsFunnelChartProps)).toEqual(
       expect.objectContaining({
         width: 800,
@@ -75,10 +73,53 @@ describe('Funnel transformProps', () => {
       }),
     );
   });
+
+  test('should reserve extra space for a top horizontal legend by default (40 instead of 20)', () => {
+    const { echartOptions } = transformProps(
+      chartProps as EchartsFunnelChartProps,
+    );
+    const series = echartOptions.series as FunnelSeriesOption[];
+    expect(series[0].top).toBe(40);
+  });
+
+  test('should reserve extra space for a bottom horizontal legend by default (40 instead of 20)', () => {
+    const props = new ChartProps({
+      formData: { ...formData, legendOrientation: 'bottom' },
+      width: 800,
+      height: 600,
+      queriesData,
+      theme: supersetTheme,
+    });
+    const { echartOptions } = transformProps(props as EchartsFunnelChartProps);
+    const series = echartOptions.series as FunnelSeriesOption[];
+    expect(series[0].bottom).toBe(40);
+  });
+
+  test('should respect an explicit legend margin', () => {
+    const props = new ChartProps({
+      formData: { ...formData, legendMargin: 80 },
+      width: 800,
+      height: 600,
+      queriesData,
+      theme: supersetTheme,
+    });
+    const { echartOptions } = transformProps(props as EchartsFunnelChartProps);
+    const series = echartOptions.series as FunnelSeriesOption[];
+    expect(series[0].top).toBe(80);
+  });
+
+  test('does not apply a text border to segment labels', () => {
+    // A white textBorder washes out the dark text on light-colored segments.
+    const result = transformProps(chartProps as EchartsFunnelChartProps);
+    const { label } = (result.echartOptions.series as any)[0];
+    expect(label.color).toBe(supersetTheme.colorText);
+    expect(label.textBorderColor).toBeUndefined();
+    expect(label.textBorderWidth).toBeUndefined();
+  });
 });
 
 describe('formatFunnelLabel', () => {
-  it('should generate a valid funnel chart label', () => {
+  test('should generate a valid funnel chart label', () => {
     const numberFormatter = getNumberFormatter();
     const params = {
       name: 'My Label',
@@ -146,7 +187,7 @@ describe('legend sorting', () => {
       queriesData: legendQueriesData,
     });
 
-  it('preserves original data order when no sort specified', () => {
+  test('preserves original data order when no sort specified', () => {
     const props = createChartProps({ legendSort: null });
     const result = transformProps(props as EchartsFunnelChartProps);
 
@@ -154,7 +195,7 @@ describe('legend sorting', () => {
     expect(legendData).toEqual(['Sylvester', 'Arnold', 'Mark']);
   });
 
-  it('sorts alphabetically ascending when legendSort is "asc"', () => {
+  test('sorts alphabetically ascending when legendSort is "asc"', () => {
     const props = createChartProps({ legendSort: 'asc' });
     const result = transformProps(props as EchartsFunnelChartProps);
 
@@ -162,7 +203,7 @@ describe('legend sorting', () => {
     expect(legendData).toEqual(['Arnold', 'Mark', 'Sylvester']);
   });
 
-  it('sorts alphabetically descending when legendSort is "desc"', () => {
+  test('sorts alphabetically descending when legendSort is "desc"', () => {
     const props = createChartProps({ legendSort: 'desc' });
     const result = transformProps(props as EchartsFunnelChartProps);
 

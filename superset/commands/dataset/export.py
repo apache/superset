@@ -24,7 +24,6 @@ import yaml
 
 from superset.commands.export.models import ExportModelsCommand
 from superset.connectors.sqla.models import SqlaTable
-from superset.daos.database import DatabaseDAO
 from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.daos.dataset import DatasetDAO
 from superset.utils.dict_import_export import EXPORT_VERSION
@@ -78,13 +77,24 @@ class ExportDatasetsCommand(ExportModelsCommand):
         payload["version"] = EXPORT_VERSION
         payload["database_uuid"] = str(model.database.uuid)
 
-        file_content = yaml.safe_dump(payload, sort_keys=False)
+        # Always set cache_timeout from the property to ensure correct value
+        payload["cache_timeout"] = model.cache_timeout
+
+        # SQLAlchemy returns column names as quoted_name objects which PyYAML cannot
+        # serialize. Convert all keys to regular strings to fix YAML serialization.
+        payload = {str(key): value for key, value in payload.items()}
+
+        file_content = yaml.safe_dump(payload, sort_keys=False, allow_unicode=True)
         return file_content
 
     @staticmethod
     def _export(
-        model: SqlaTable, export_related: bool = True
+        model: SqlaTable, export_related: bool = True, seen: set[str] | None = None
     ) -> Iterator[tuple[str, Callable[[], str]]]:
+        # Initialize seen set if not provided
+        if seen is None:
+            seen = set()
+
         yield (
             ExportDatasetsCommand._file_name(model),
             lambda: ExportDatasetsCommand._file_content(model),
@@ -97,29 +107,41 @@ class ExportDatasetsCommand(ExportModelsCommand):
             )
             file_path = f"databases/{db_file_name}.yaml"
 
-            payload = model.database.export_to_dict(
-                recursive=False,
-                include_parent_ref=False,
-                include_defaults=True,
-                export_uuids=True,
-            )
-            # TODO (betodealmeida): move this logic to export_to_dict once this
-            # becomes the default export endpoint
-            if payload.get("extra"):
-                try:
-                    payload["extra"] = json.loads(payload["extra"])
-                except json.JSONDecodeError:
-                    logger.info("Unable to decode `extra` field: %s", payload["extra"])
-
-            if ssh_tunnel := DatabaseDAO.get_ssh_tunnel(model.database.id):
-                ssh_tunnel_payload = ssh_tunnel.export_to_dict(
+            # Only yield the database file if not already seen. This is
+            # critical to fix the issue where databases were being
+            # duplicated and potentially overwritten when charts from
+            # different databases were exported.
+            if file_path not in seen:
+                payload = model.database.export_to_dict(
                     recursive=False,
                     include_parent_ref=False,
                     include_defaults=True,
-                    export_uuids=False,
+                    export_uuids=True,
                 )
-                payload["ssh_tunnel"] = mask_password_info(ssh_tunnel_payload)
+                # TODO (betodealmeida): move this logic to export_to_dict once this
+                # becomes the default export endpoint
+                if payload.get("extra"):
+                    try:
+                        payload["extra"] = json.loads(payload["extra"])
+                    except json.JSONDecodeError:
+                        logger.info(
+                            "Unable to decode `extra` field: %s", payload["extra"]
+                        )
 
-            payload["version"] = EXPORT_VERSION
+                if ssh_tunnel := model.database.ssh_tunnel:
+                    ssh_tunnel_payload = ssh_tunnel.export_to_dict(
+                        recursive=False,
+                        include_parent_ref=False,
+                        include_defaults=True,
+                        export_uuids=False,
+                    )
+                    payload["ssh_tunnel"] = mask_password_info(ssh_tunnel_payload)
 
-            yield file_path, lambda: yaml.safe_dump(payload, sort_keys=False)
+                payload["version"] = EXPORT_VERSION
+
+                yield (
+                    file_path,
+                    lambda: yaml.safe_dump(
+                        payload, sort_keys=False, allow_unicode=True
+                    ),
+                )

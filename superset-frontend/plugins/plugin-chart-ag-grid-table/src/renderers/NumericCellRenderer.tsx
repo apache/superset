@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/theme';
 import { CustomCellRendererProps } from '@superset-ui/core/components/ThemedAgGridReact';
-import { BasicColorFormatterType, InputColumn } from '../types';
-import { useIsDark } from '../utils/useTableTheme';
+import { BasicColorFormatterType, InputColumn, ValueRange } from '../types';
+import getRowBasicColorFormatter from '../utils/getRowBasicColorFormatter';
 
 const StyledTotalCell = styled.div`
   ${() => `
@@ -27,11 +27,21 @@ const StyledTotalCell = styled.div`
   `}
 `;
 
+// `align` originates from the chart's stored column_config
+// (col.config.horizontalAlign), which can be set to an arbitrary string via
+// a direct chart-params API write. Emotion compiles interpolated strings as
+// CSS source, so the value must be clamped to a closed set of keywords
+// before it reaches the stylesheet — never interpolated raw.
+const ALLOWED_ALIGN_VALUES = new Set(['left', 'right', 'center']);
+
+const safeAlign = (align?: string) =>
+  align && ALLOWED_ALIGN_VALUES.has(align) ? align : 'left';
+
 const CellContainer = styled.div<{ backgroundColor?: string; align?: string }>`
   display: flex;
   background-color: ${({ backgroundColor }) =>
     backgroundColor || 'transparent'};
-  justify-content: ${({ align }) => align || 'left'};
+  justify-content: ${({ align }) => safeAlign(align)};
 `;
 
 const ArrowContainer = styled.div<{ arrowColor?: string }>`
@@ -53,8 +63,6 @@ const Bar = styled.div<{
   z-index: 1;
 `;
 
-type ValueRange = [number, number];
-
 /**
  * Cell background width calculation for horizontal bar chart
  */
@@ -64,7 +72,7 @@ function cellWidth({
   alignPositiveNegative,
 }: {
   value: number;
-  valueRange: ValueRange;
+  valueRange: [number, number];
   alignPositiveNegative: boolean;
 }) {
   const [minValue, maxValue] = valueRange;
@@ -89,7 +97,7 @@ function cellOffset({
   alignPositiveNegative,
 }: {
   value: number;
-  valueRange: ValueRange;
+  valueRange: [number, number];
   alignPositiveNegative: boolean;
 }) {
   if (alignPositiveNegative) {
@@ -108,14 +116,12 @@ function cellOffset({
 function cellBackground({
   value,
   colorPositiveNegative = false,
-  isDarkTheme = false,
 }: {
   value: number;
   colorPositiveNegative: boolean;
-  isDarkTheme: boolean;
 }) {
   if (!colorPositiveNegative) {
-    return isDarkTheme ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'; // transparent or neutral
+    return 'transparent'; // Use transparent background when colorPositiveNegative is false
   }
 
   const r = value < 0 ? 150 : 0;
@@ -132,7 +138,7 @@ export const NumericCellRenderer = (
     basicColorFormatters: {
       [Key: string]: BasicColorFormatterType;
     }[];
-    valueRange: any;
+    valueRange: ValueRange;
     alignPositiveNegative: boolean;
     colorPositiveNegative: boolean;
   },
@@ -149,8 +155,6 @@ export const NumericCellRenderer = (
     colorPositiveNegative,
   } = params;
 
-  const isDarkTheme = useIsDark();
-
   if (node?.rowPinned === 'bottom') {
     return <StyledTotalCell>{valueFormatted ?? value}</StyledTotalCell>;
   }
@@ -158,13 +162,13 @@ export const NumericCellRenderer = (
   let arrow = '';
   let arrowColor = '';
   if (hasBasicColorFormatters && col?.metricName) {
-    arrow =
-      basicColorFormatters?.[node?.rowIndex as number]?.[col.metricName]
-        ?.mainArrow;
-    arrowColor =
-      basicColorFormatters?.[node?.rowIndex as number]?.[
-        col.metricName
-      ]?.arrowColor?.toLowerCase();
+    const rowFormatter = getRowBasicColorFormatter(
+      node,
+      node?.rowIndex,
+      basicColorFormatters,
+    )?.[col.metricName];
+    arrow = rowFormatter?.mainArrow ?? '';
+    arrowColor = rowFormatter?.arrowColor?.toLowerCase() ?? '';
   }
 
   const alignment =
@@ -194,7 +198,6 @@ export const NumericCellRenderer = (
   const background = cellBackground({
     value: value as number,
     colorPositiveNegative,
-    isDarkTheme,
   });
 
   return (

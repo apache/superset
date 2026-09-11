@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetClient, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { SupersetClient } from '@superset-ui/core';
 import { FormModal, FormItem, Input } from '@superset-ui/core/components';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { User } from 'src/types/bootstrapTypes';
@@ -47,7 +48,7 @@ function UserInfoModal({
     : {};
   const handleFormSubmit = async (values: FormValues) => {
     try {
-      const { confirm_password, ...payload } = values;
+      const { confirm_password: _confirm_password, ...payload } = values;
       await SupersetClient.put({
         endpoint: `/api/v1/me/`,
         jsonPayload: { ...payload },
@@ -94,7 +95,7 @@ function UserInfoModal({
       >
         <Input.Password
           name="password"
-          placeholder="Enter the user's password"
+          placeholder={t("Enter the user's password")}
         />
       </FormItem>
       <FormItem

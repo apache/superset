@@ -17,12 +17,22 @@
  * under the License.
  */
 import { ReactNode } from 'react';
-import { ErrorSource, t, SupersetError } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
+import { ErrorSource, SupersetError } from '@superset-ui/core';
 import { Typography } from '@superset-ui/core/components';
 import { getErrorMessageComponentRegistry } from './getErrorMessageComponentRegistry';
 import { ErrorAlert } from './ErrorAlert';
 
 const DEFAULT_TITLE = t('Unexpected error');
+
+// Render the stack trace in the monospace font in both light and dark mode.
+// Set font-family explicitly from the theme token (as SQL Lab does) rather
+// than relying on the browser/antd default styling for `pre`, which is
+// cascade-order dependent and can fall back to the UI font in dark mode.
+const StackTrace = styled.pre`
+  font-family: ${({ theme }) => theme.fontFamilyCode};
+`;
 
 type Props = {
   title?: string;
@@ -37,6 +47,7 @@ type Props = {
   errorMitigationFunction?: () => void;
   fallback?: ReactNode;
   compact?: boolean;
+  closable?: boolean;
 };
 
 export function ErrorMessageWithStackTrace({
@@ -50,20 +61,24 @@ export function ErrorMessageWithStackTrace({
   descriptionDetails,
   fallback,
   compact,
+  closable = true,
+  errorMitigationFunction,
 }: Props) {
   // Check if a custom error message component was registered for this message
   if (error) {
     const ErrorMessageComponent = getErrorMessageComponentRegistry().get(
-      // @ts-ignore: plan to modify this part so that all errors in Superset 6.0 are standardized as Superset API error types
+      // @ts-expect-error: plan to modify this part so that all errors in Superset 6.0 are standardized as Superset API error types
       error.errorType ?? error.error_type,
     );
     if (ErrorMessageComponent) {
       return (
         <ErrorMessageComponent
           compact={compact}
+          closable={closable}
           error={error}
           source={source}
           subtitle={subtitle}
+          errorMitigationFunction={errorMitigationFunction}
         />
       );
     }
@@ -86,7 +101,7 @@ export function ErrorMessageWithStackTrace({
           </Typography.Link>
         )}
         <br />
-        {stackTrace && <pre>{stackTrace}</pre>}
+        {stackTrace && <StackTrace>{stackTrace}</StackTrace>}
       </>
     ) : undefined);
 
@@ -98,6 +113,7 @@ export function ErrorMessageWithStackTrace({
       description={description}
       descriptionDetails={computedDescriptionDetails}
       compact={compact}
+      closable={closable}
     />
   );
 }

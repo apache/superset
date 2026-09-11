@@ -151,6 +151,15 @@ class ExecuteSqlCommand(BaseCommand):
             self._validate_access(query, self._execution_context.template_params)
             self._execution_context.set_query(query)
             rendered_query = self._sql_query_render.render(self._execution_context)
+            # The check above authorizes a render of query.sql + template_params
+            # performed before rendering, so that macros with side effects are
+            # gated before they run. self._sql_query_render.render() above is an
+            # independent second render of the same source; for a
+            # nondeterministic template (e.g. one using Jinja's `random` filter
+            # to pick a table) the two renders can diverge, letting a query
+            # read a table the first check never saw. Re-validate the literal
+            # rendered text that is about to execute.
+            self._validate_rendered_access(query, rendered_query)
             self._set_query_limit_if_required(rendered_query)
             self._query_dao.update(
                 query, {"limit": self._execution_context.query.limit}
@@ -211,6 +220,23 @@ class ExecuteSqlCommand(BaseCommand):
             self._access_validator.validate(query, template_params)
         except Exception as ex:
             raise QueryIsForbiddenToAccessException(self._execution_context, ex) from ex
+
+    def _validate_rendered_access(self, query: Query, rendered_query: str) -> None:
+        """
+        Re-authorize the exact SQL that is about to execute.
+
+        Pins ``query.executed_sql`` to the literal, already-rendered text so
+        ``security_manager.raise_for_access``'s "prefer executed_sql" path
+        authorizes that exact SQL directly, with no further Jinja
+        re-render (see its docstring). ``executed_sql`` is reset
+        afterwards so the execution path can assign its own final
+        (limited / per-block mutated) SQL.
+        """
+        query.executed_sql = rendered_query
+        try:
+            self._validate_access(query, self._execution_context.template_params)
+        finally:
+            query.executed_sql = None
 
     def _set_query_limit_if_required(
         self,

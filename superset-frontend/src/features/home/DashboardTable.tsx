@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useEffect, useMemo, useState } from 'react';
-import { SupersetClient, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { SupersetClient } from '@superset-ui/core';
 import { useFavoriteStatus, useListViewResource } from 'src/views/CRUD/hooks';
 import { Dashboard, DashboardTableProps, TableTab } from 'src/views/CRUD/types';
 import handleResourceExport from 'src/utils/export';
@@ -61,7 +62,9 @@ function DashboardTable({
     TableTab.Other,
   );
 
-  const filteredOtherTabData = otherTabData.filter(obj => !('viz_type' in obj));
+  const filteredOtherTabData = otherTabData?.filter(
+    obj => !('viz_type' in obj),
+  );
 
   const {
     state: { loading, resourceCollection: dashboards },
@@ -89,6 +92,11 @@ function DashboardTable({
   const [activeTab, setActiveTab] = useState(defaultTab);
   const [preparingExport, setPreparingExport] = useState<boolean>(false);
   const [loaded, setLoaded] = useState<boolean>(false);
+  // Pending "+ Dashboard" navigation feedback — see the matching comment in
+  // pages/DashboardList/index.tsx: /dashboard/new/ is a hard navigation whose
+  // GET creates the dashboard server-side, so the button must show a loading
+  // state until the page unloads instead of looking dead.
+  const [creatingDashboard, setCreatingDashboard] = useState<boolean>(false);
   const [dashboardToDelete, setDashboardToDelete] = useState<Dashboard | null>(
     null,
   );
@@ -199,8 +207,10 @@ function DashboardTable({
             ),
             name: t('Dashboard'),
             buttonStyle: 'secondary',
+            loading: creatingDashboard,
             onClick: () => {
-              navigateTo('/dashboard/new', { assign: true });
+              setCreatingDashboard(true);
+              navigateTo('/dashboard/new/', { assign: true });
             },
           },
           {
@@ -242,6 +252,7 @@ function DashboardTable({
               addDangerToast,
               activeTab,
               user?.userId,
+              getData,
             );
             setDashboardToDelete(null);
           }}
@@ -259,7 +270,7 @@ function DashboardTable({
               hasPerm={hasPerm}
               bulkSelectEnabled={false}
               showThumbnails={showThumbnails}
-              userId={user?.userId}
+              user={user}
               loading={loading}
               openDashboardEditModal={(dashboard: Dashboard) =>
                 setEditModal(dashboard)

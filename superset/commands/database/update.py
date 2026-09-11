@@ -23,24 +23,25 @@ from typing import Any
 
 from flask_appbuilder.models.sqla import Model
 
-from superset import db, is_feature_enabled
+from superset import db
 from superset.commands.base import BaseCommand
 from superset.commands.database.exceptions import (
     DatabaseExistsValidationError,
     DatabaseInvalidError,
     DatabaseNotFoundError,
     DatabaseUpdateFailedError,
+    DatabaseUpdateUnsafeRebindError,
     MissingOAuth2TokenError,
 )
-from superset.commands.database.ssh_tunnel.create import CreateSSHTunnelCommand
-from superset.commands.database.ssh_tunnel.delete import DeleteSSHTunnelCommand
-from superset.commands.database.ssh_tunnel.exceptions import (
-    SSHTunnelingNotEnabledError,
-)
-from superset.commands.database.ssh_tunnel.update import UpdateSSHTunnelCommand
 from superset.commands.database.sync_permissions import SyncPermissionsCommand
+from superset.commands.database.utils import (
+    engine_params_changed,
+    ssh_tunnel_rebind_unsafe,
+    uri_identity_changed,
+)
+from superset.constants import PASSWORD_MASK
 from superset.daos.database import DatabaseDAO
-from superset.databases.ssh_tunnel.models import SSHTunnel
+from superset.databases.utils import make_url_safe
 from superset.exceptions import OAuth2RedirectError
 from superset.models.core import Database
 from superset.utils import json
@@ -95,7 +96,7 @@ class UpdateDatabaseCommand(BaseCommand):
         # build new DB
         database = DatabaseDAO.update(self._model, self._properties)
         database.set_sqlalchemy_uri(database.sqlalchemy_uri)
-        ssh_tunnel = self._handle_ssh_tunnel(database)
+
         new_catalog = database.get_default_catalog()
 
         # update assets when the database catalog changes, if the database was not
@@ -118,7 +119,6 @@ class UpdateDatabaseCommand(BaseCommand):
                 current_username,
                 old_db_connection_name=original_database_name,
                 db_connection=database,
-                ssh_tunnel=ssh_tunnel,
             ).run()
         except (OAuth2RedirectError, MissingOAuth2TokenError):
             pass
@@ -158,32 +158,6 @@ class UpdateDatabaseCommand(BaseCommand):
                 self._model.purge_oauth2_tokens()
                 break
 
-    def _handle_ssh_tunnel(self, database: Database) -> SSHTunnel | None:
-        """
-        Delete, create, or update an SSH tunnel.
-        """
-        if "ssh_tunnel" not in self._properties:
-            return None
-
-        if not is_feature_enabled("SSH_TUNNELING"):
-            raise SSHTunnelingNotEnabledError()
-
-        current_ssh_tunnel = DatabaseDAO.get_ssh_tunnel(database.id)
-        ssh_tunnel_properties = self._properties["ssh_tunnel"]
-
-        if ssh_tunnel_properties is None:
-            if current_ssh_tunnel:
-                DeleteSSHTunnelCommand(current_ssh_tunnel.id).run()
-            return None
-
-        if current_ssh_tunnel is None:
-            return CreateSSHTunnelCommand(database, ssh_tunnel_properties).run()
-
-        return UpdateSSHTunnelCommand(
-            current_ssh_tunnel.id,
-            ssh_tunnel_properties,
-        ).run()
-
     def _update_catalog_attribute(
         self,
         database_id: int,
@@ -214,3 +188,82 @@ class UpdateDatabaseCommand(BaseCommand):
                 database_name,
             ):
                 raise DatabaseInvalidError(exceptions=[DatabaseExistsValidationError()])
+
+        if self._model:
+            self._check_no_unsafe_secret_rebind()
+
+    def _check_no_unsafe_secret_rebind(self) -> None:
+        """
+        Refuse an update that changes the connection's effective destination
+        (URI host/port, `extra.engine_params`, or the SSH tunnel endpoint)
+        while leaving the corresponding stored secret masked.
+
+        Without this, an editor could silently redirect the real stored
+        password/encrypted_extra/SSH tunnel credential to a different
+        destination -- and since an update persists, every subsequent use of
+        the database (by any user) would send the real secret there, not
+        just the editor's own request.
+        """
+        model = self._model
+        assert model is not None
+
+        connection_identity_changed = False
+        submitted_password: str | None = None
+
+        if "sqlalchemy_uri" in self._properties:
+            submitted_uri = self._properties["sqlalchemy_uri"] or ""
+            connection_identity_changed = uri_identity_changed(
+                model.sqlalchemy_uri, submitted_uri
+            )
+            try:
+                submitted_password = make_url_safe(submitted_uri).password
+            except DatabaseInvalidError:
+                submitted_password = None
+
+        if "extra" in self._properties and engine_params_changed(
+            model.extra, self._properties["extra"]
+        ):
+            connection_identity_changed = True
+
+        if connection_identity_changed:
+            # The URI password is only one of the secrets that can silently
+            # carry over onto a changed destination. `encrypted_extra` (e.g.
+            # a service-account key or OAuth2 client secret) is reattached
+            # unconditionally in `run()` via `unmask_encrypted_extra` unless
+            # we catch it here -- gating on the URI password alone would
+            # both miss that reuse when a fresh URI password is supplied,
+            # and wrongly block engines that keep credentials entirely in
+            # `encrypted_extra` and carry no URI password at all (BigQuery,
+            # GSheets), since those never have a "fresh" URI password to
+            # give.
+            uri_password_reused = model.password is not None and submitted_password in (
+                None,
+                PASSWORD_MASK,
+            )
+            # encrypted_extra is a blob with per-field masks, so "reused"
+            # means unmasking the submission against the stored value
+            # changes nothing -- including not submitting it at all, which
+            # leaves the old (real) value attached unchanged.
+            encrypted_extra_reused = model.encrypted_extra not in (
+                None,
+                "",
+                "{}",
+            ) and (
+                "masked_encrypted_extra" not in self._properties
+                or model.db_engine_spec.unmask_encrypted_extra(
+                    model.encrypted_extra,
+                    self._properties["masked_encrypted_extra"],
+                )
+                == model.encrypted_extra
+            )
+            if uri_password_reused or encrypted_extra_reused:
+                raise DatabaseInvalidError(
+                    exceptions=[DatabaseUpdateUnsafeRebindError()]
+                )
+
+        if "ssh_tunnel" in self._properties and ssh_tunnel_rebind_unsafe(
+            model.ssh_tunnel, self._properties["ssh_tunnel"]
+        ):
+            raise DatabaseInvalidError(
+                exceptions=[DatabaseUpdateUnsafeRebindError(field_name="ssh_tunnel")]
+            )

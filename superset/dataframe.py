@@ -37,9 +37,28 @@ def _convert_big_integers(val: Any) -> Any:
     return str(val) if isinstance(val, int) and abs(val) > JS_MAX_INTEGER else val
 
 
+def _is_na(val: Any) -> bool:
+    """
+    Check if a value is NA/NaN for scalar values only.
+
+    pd.isna() raises ValueError for arrays/lists, so we catch that case.
+
+    :param val: the value to check
+    :returns: True if the value is NA/NaN, False otherwise
+    """
+    try:
+        return bool(pd.isna(val))
+    except ValueError:
+        # pd.isna raises ValueError for arrays (e.g., lists, dicts from JSON)
+        return False
+
+
 def df_to_records(dframe: pd.DataFrame) -> list[dict[str, Any]]:
     """
     Convert a DataFrame to a set of records.
+
+    NaN values are converted to None for JSON compatibility.
+    This handles division by zero and other operations that produce NaN.
 
     :param dframe: the DataFrame to convert
     :returns: a list of dictionaries reflecting each single row of the DataFrame
@@ -52,6 +71,8 @@ def df_to_records(dframe: pd.DataFrame) -> list[dict[str, Any]]:
 
     for record in records:
         for key in record:
-            record[key] = _convert_big_integers(record[key])
+            record[key] = (
+                None if _is_na(record[key]) else _convert_big_integers(record[key])
+            )
 
     return records

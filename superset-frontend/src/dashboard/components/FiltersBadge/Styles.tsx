@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { css, styled } from '@superset-ui/core';
+import { css, styled } from '@apache-superset/core/theme';
 
 export const Pill = styled.div`
   ${({ theme }) => css`
@@ -24,7 +24,6 @@ export const Pill = styled.div`
     color: ${theme.colorBgBase};
     background: ${theme.colorText};
     border-radius: 1em;
-    vertical-align: text-top;
     padding: ${theme.sizeUnit}px ${theme.sizeUnit * 2}px;
     font-size: ${theme.fontSize}px;
     font-weight: ${theme.fontWeightStrong};
@@ -118,6 +117,18 @@ export const FiltersDetailsContainer = styled.div`
     overflow-x: hidden;
 
     color: ${theme.colorText};
+
+    /*
+     * The container is a non-interactive wrapper that receives focus
+     * programmatically only to capture keyboard navigation events. Suppress the
+     * default browser focus outline so the popover does not show a blue ring.
+     * Focusable items inside (FilterItem) provide their own :focus-visible
+     * styles for keyboard accessibility.
+     */
+    &:focus,
+    &:focus-visible {
+      outline: none;
+    }
   `}
 `;
 

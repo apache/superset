@@ -19,7 +19,8 @@
 import { RefObject, useEffect, useRef, KeyboardEvent } from 'react';
 
 import { useSelector } from 'react-redux';
-import { t, useTheme } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { useTheme } from '@apache-superset/core/theme';
 import { List, Popover } from '@superset-ui/core/components';
 import {
   FiltersContainer,
@@ -38,7 +39,7 @@ export interface DetailsPanelProps {
   children: JSX.Element;
   popoverVisible: boolean;
   popoverContentRef: RefObject<HTMLDivElement>;
-  popoverTriggerRef: RefObject<HTMLDivElement>;
+  popoverTriggerRef: RefObject<HTMLButtonElement>;
   setPopoverVisible: (visible: boolean) => void;
 }
 
@@ -180,7 +181,7 @@ const DetailsPanelPopover = ({
 
   return (
     <Popover
-      color={`${theme.colorBgElevated}cc`}
+      color={theme.colorBgElevated}
       content={content}
       open={popoverVisible}
       onOpenChange={handleVisibility}

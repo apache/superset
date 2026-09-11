@@ -18,7 +18,7 @@
  */
 import { FeatureFlag, VizType } from '@superset-ui/core';
 import { render, screen } from 'spec/helpers/testing-library';
-import { renderHook } from '@testing-library/react-hooks';
+import { renderHook, act } from '@testing-library/react';
 import mockState from 'spec/fixtures/mockState';
 import { sliceId } from 'spec/fixtures/mockChartQueries';
 import { noOp } from 'src/utils/common';
@@ -33,7 +33,7 @@ const mockCachedSupersetGet = cachedSupersetGet as jest.MockedFunction<
 >;
 const CONTEXT_MENU_TEST_ID = 'chart-context-menu';
 
-// @ts-ignore
+// @ts-expect-error
 global.featureFlags = {
   [FeatureFlag.DrillToDetail]: true,
   [FeatureFlag.DrillBy]: true,
@@ -44,16 +44,18 @@ const setup = ({
   displayedItems = ContextMenuItem.All,
   additionalConfig = {},
   roles = undefined,
+  formData = { datasource: '1__table', viz_type: VizType.Pie },
 }: {
   onSelection?: () => void;
   displayedItems?: ContextMenuItem | ContextMenuItem[];
   additionalConfig?: Record<string, any>;
   roles?: Record<string, string[][]>;
+  formData?: Record<string, any>;
 } = {}) => {
   const { result } = renderHook(() =>
     useContextMenu(
       sliceId,
-      { datasource: '1__table', viz_type: VizType.Pie },
+      formData as { datasource: string; viz_type: string },
       onSelection,
       displayedItems,
       additionalConfig,
@@ -95,7 +97,9 @@ beforeEach(() => {
 test('Context menu renders', () => {
   const result = setup();
   expect(screen.queryByTestId(CONTEXT_MENU_TEST_ID)).not.toBeInTheDocument();
-  result.current.onContextMenu(0, 0, {});
+  act(() => {
+    result.current.onContextMenu(0, 0, {});
+  });
   expect(screen.getByTestId(CONTEXT_MENU_TEST_ID)).toBeInTheDocument();
   expect(screen.getByText('Add cross-filter')).toBeInTheDocument();
   expect(screen.getByText('Drill to detail')).toBeInTheDocument();
@@ -106,7 +110,9 @@ test('Context menu contains all displayed items only', () => {
   const result = setup({
     displayedItems: [ContextMenuItem.DrillToDetail, ContextMenuItem.DrillBy],
   });
-  result.current.onContextMenu(0, 0, {});
+  act(() => {
+    result.current.onContextMenu(0, 0, {});
+  });
   expect(screen.queryByText('Add cross-filter')).not.toBeInTheDocument();
   expect(screen.getByText('Drill to detail')).toBeInTheDocument();
   expect(screen.getByText('Drill by')).toBeInTheDocument();
@@ -122,7 +128,9 @@ test('Context menu shows "Drill by" with `can_drill`, `can_write` & `can_get_dri
       ],
     },
   });
-  result.current.onContextMenu(0, 0, {});
+  act(() => {
+    result.current.onContextMenu(0, 0, {});
+  });
   expect(screen.getByText('Drill by')).toBeInTheDocument();
 });
 
@@ -137,7 +145,9 @@ test('Context menu shows "Drill by" with `can_drill`, `can_get_drill_info` & `ca
       ],
     },
   });
-  result.current.onContextMenu(0, 0, {});
+  act(() => {
+    result.current.onContextMenu(0, 0, {});
+  });
   expect(screen.getByText('Drill by')).toBeInTheDocument();
 });
 
@@ -147,7 +157,9 @@ test('Context menu does not show "Drill by" with neither of required perms', () 
       Admin: [['invalid_permission', 'Dashboard']],
     },
   });
-  result.current.onContextMenu(0, 0, {});
+  act(() => {
+    result.current.onContextMenu(0, 0, {});
+  });
   expect(screen.queryByText('Drill by')).not.toBeInTheDocument();
 });
 
@@ -157,7 +169,9 @@ test('Context menu does not show "Drill by" with just `can_dril` perm', () => {
       Admin: [['can_drill', 'Dashboard']],
     },
   });
-  result.current.onContextMenu(0, 0, {});
+  act(() => {
+    result.current.onContextMenu(0, 0, {});
+  });
   expect(screen.queryByText('Drill by')).not.toBeInTheDocument();
 });
 
@@ -170,7 +184,9 @@ test('Context menu does not show "Drill by" with just `can_dril` & `can_write` p
       ],
     },
   });
-  result.current.onContextMenu(0, 0, {});
+  act(() => {
+    result.current.onContextMenu(0, 0, {});
+  });
   expect(screen.queryByText('Drill by')).not.toBeInTheDocument();
 });
 
@@ -184,7 +200,9 @@ test('Context menu does not show "Drill by" with just `can_drill`, `can_explore`
       ],
     },
   });
-  result.current.onContextMenu(0, 0, {});
+  act(() => {
+    result.current.onContextMenu(0, 0, {});
+  });
   expect(screen.queryByText('Drill by')).not.toBeInTheDocument();
 });
 
@@ -198,7 +216,9 @@ test('Context menu shows "Drill to detail" with `can_samples`, `can_explore` & `
       ],
     },
   });
-  result.current.onContextMenu(0, 0, {});
+  act(() => {
+    result.current.onContextMenu(0, 0, {});
+  });
   expect(screen.getByText('Drill to detail')).toBeInTheDocument();
 });
 
@@ -212,7 +232,9 @@ test('Context menu shows "Drill to detail" with `can_drill`, `can_samples` & `ca
       ],
     },
   });
-  result.current.onContextMenu(0, 0, {});
+  act(() => {
+    result.current.onContextMenu(0, 0, {});
+  });
   expect(screen.getByText('Drill to detail')).toBeInTheDocument();
 });
 
@@ -227,7 +249,9 @@ test('Context menu shows "Drill to detail" with `can_drill`, `can_get_drill_info
       ],
     },
   });
-  result.current.onContextMenu(0, 0, {});
+  act(() => {
+    result.current.onContextMenu(0, 0, {});
+  });
   expect(screen.getByText('Drill to detail')).toBeInTheDocument();
 });
 
@@ -237,7 +261,9 @@ test('Context menu does not show "Drill to detail" with neither of required perm
       Admin: [['invalid_permission', 'Dashboard']],
     },
   });
-  result.current.onContextMenu(0, 0, {});
+  act(() => {
+    result.current.onContextMenu(0, 0, {});
+  });
   expect(screen.queryByText('Drill to detail')).not.toBeInTheDocument();
 });
 
@@ -247,7 +273,9 @@ test('Context menu does not show "Drill to detail" with just `can_drill` perm', 
       Admin: [['can_drill', 'Dashboard']],
     },
   });
-  result.current.onContextMenu(0, 0, {});
+  act(() => {
+    result.current.onContextMenu(0, 0, {});
+  });
   expect(screen.queryByText('Drill to detail')).not.toBeInTheDocument();
 });
 
@@ -260,7 +288,9 @@ test('Context menu does not show "Drill to detail" with just `can_drill` & `can_
       ],
     },
   });
-  result.current.onContextMenu(0, 0, {});
+  act(() => {
+    result.current.onContextMenu(0, 0, {});
+  });
   expect(screen.queryByText('Drill to detail')).not.toBeInTheDocument();
 });
 
@@ -273,7 +303,9 @@ test('Context menu does not show "Drill to detail" with `can_samples` & `can_exp
       ],
     },
   });
-  result.current.onContextMenu(0, 0, {});
+  act(() => {
+    result.current.onContextMenu(0, 0, {});
+  });
   expect(screen.queryByText('Drill to detail')).not.toBeInTheDocument();
 });
 
@@ -287,7 +319,9 @@ test('Context menu does not show "Drill to detail" with `can_drill`, `can_explor
       ],
     },
   });
-  result.current.onContextMenu(0, 0, {});
+  act(() => {
+    result.current.onContextMenu(0, 0, {});
+  });
   expect(screen.queryByText('Drill to detail')).not.toBeInTheDocument();
 });
 
@@ -303,7 +337,9 @@ test('Dataset drill info API call is made when user has drill permissions', asyn
     },
   });
 
-  result.current.onContextMenu(0, 0, {});
+  act(() => {
+    result.current.onContextMenu(0, 0, {});
+  });
 
   await new Promise(resolve => setTimeout(resolve, 0));
 
@@ -321,11 +357,34 @@ test('Dataset drill info API call is not made when user lacks drill permissions'
     },
   });
 
-  result.current.onContextMenu(0, 0, {});
+  act(() => {
+    result.current.onContextMenu(0, 0, {});
+  });
 
   await new Promise(resolve => setTimeout(resolve, 0));
 
   expect(mockCachedSupersetGet).not.toHaveBeenCalled();
   expect(screen.queryByText('Drill by')).not.toBeInTheDocument();
   expect(screen.queryByText('Drill to detail')).not.toBeInTheDocument();
+});
+
+test('Dataset drill info API call is not made when formData.datasource is not yet hydrated', async () => {
+  // Regression test: right after a client-side navigation back to a
+  // dashboard from Explore, the chart's formData can transiently be missing
+  // `datasource` before the dashboard rehydrates. Firing a request for
+  // dataset "NaN" (Number(undefined)) must not happen - see
+  // useDatasetDrillInfo's Number.isNaN guard.
+  const result = setup({ formData: { viz_type: VizType.Pie } });
+
+  act(() => {
+    result.current.onContextMenu(0, 0, {});
+  });
+
+  await new Promise(resolve => setTimeout(resolve, 0));
+
+  expect(mockCachedSupersetGet).not.toHaveBeenCalledWith(
+    expect.objectContaining({
+      endpoint: expect.stringContaining('/api/v1/dataset/NaN/drill_info/'),
+    }),
+  );
 });

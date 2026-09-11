@@ -23,18 +23,18 @@ import typing
 from importlib.resources import files
 from typing import Any, Callable, cast
 
+import sshtunnel
 from flask import (
     Flask,
-    redirect,
     request,
     Response,
     send_file,
 )
+from flask_babel import gettext as _
 from flask_wtf.csrf import CSRFError
 from sqlalchemy import exc
 from werkzeug.exceptions import HTTPException
 
-from superset import appbuilder
 from superset.commands.exceptions import CommandException, CommandInvalidError
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
@@ -45,7 +45,12 @@ from superset.exceptions import (
 )
 from superset.superset_typing import FlaskResponse
 from superset.utils import core as utils, json
+from superset.utils.error_sanitization import (
+    sanitize_error_message,
+    sanitize_superset_errors,
+)
 from superset.utils.log import get_logger_from_status
+from superset.views.utils import redirect_to_login
 
 if typing.TYPE_CHECKING:
     from superset.views.base import BaseSupersetView
@@ -73,12 +78,16 @@ def json_error_response(
 ) -> FlaskResponse:
     payload = payload or {}
 
+    if isinstance(error_details, SupersetError):
+        error_details = [error_details]
+
     if isinstance(error_details, list):
-        payload["errors"] = [dataclasses.asdict(error) for error in error_details]
-    elif isinstance(error_details, SupersetError):
-        payload["errors"] = [dataclasses.asdict(error_details)]
+        payload["errors"] = [
+            dataclasses.asdict(error)
+            for error in sanitize_superset_errors(error_details)
+        ]
     elif isinstance(error_details, str):
-        payload["error"] = error_details
+        payload["error"] = sanitize_error_message(error_details, status)
 
     return Response(
         json.dumps(payload, default=json.json_iso_dttm_ser, ignore_nan=True),
@@ -87,7 +96,30 @@ def json_error_response(
     )
 
 
-def handle_api_exception(
+def handle_ssh_tunnel_error(ex: sshtunnel.BaseSSHTunnelForwarderError) -> FlaskResponse:
+    """
+    Build the structured response for an unreachable/misconfigured SSH tunnel
+    gateway. This is an expected environmental failure (analogous to a
+    database connection failure), so it is logged at WARNING rather than
+    ERROR to avoid alarm fatigue on otherwise-actionable alerting.
+    """
+    logger.warning("BaseSSHTunnelForwarderError", exc_info=True)
+    return json_error_response(
+        [
+            SupersetError(
+                message=_(
+                    "Failed to establish an SSH tunnel to the database: %(reason)s",
+                    reason=str(ex),
+                ),
+                error_type=SupersetErrorType.CONNECTION_HOST_DOWN_ERROR,
+                level=ErrorLevel.WARNING,
+            ),
+        ],
+        status=400,
+    )
+
+
+def handle_api_exception(  # noqa: C901
     f: Callable[..., FlaskResponse],
 ) -> Callable[..., FlaskResponse]:
     """
@@ -119,9 +151,20 @@ def handle_api_exception(
             return json_error_response(
                 utils.error_msg_from_exception(ex), status=cast(int, ex.code)
             )
+        except exc.OperationalError as ex:
+            # A connection-level failure (the server dropping the connection
+            # mid-query, or a connection that could never be established) is a
+            # server-side fault, not something the caller can correct by
+            # changing the request. It must not fall through to the 422 handler
+            # below, which OperationalError would otherwise match as a
+            # DatabaseError subclass.
+            logger.exception(ex)
+            return json_error_response(utils.error_msg_from_exception(ex), status=500)
         except (exc.IntegrityError, exc.DatabaseError, exc.DataError) as ex:
             logger.exception(ex)
             return json_error_response(utils.error_msg_from_exception(ex), status=422)
+        except sshtunnel.BaseSSHTunnelForwarderError as ex:
+            return handle_ssh_tunnel_error(ex)
         except Exception as ex:  # pylint: disable=broad-except
             logger.exception(ex)
             return json_error_response(utils.error_msg_from_exception(ex))
@@ -145,6 +188,30 @@ def set_app_error_handlers(app: Flask) -> None:  # noqa: C901
         logger.warning("SupersetErrorsException", exc_info=True)
         return json_error_response(ex.errors, status=ex.status)
 
+    @app.errorhandler(SupersetException)
+    def show_superset_exception(ex: SupersetException) -> FlaskResponse:
+        logger_func, _ = get_logger_from_status(ex.status)
+        logger_func(ex.message, exc_info=True)
+
+        if "text/html" in request.accept_mimetypes and not app.config["DEBUG"]:
+            path = files("superset") / "static/assets/500.html"
+            # Try to serve HTML file; fall back to JSON if not built
+            try:
+                return send_file(path, max_age=0), ex.status
+            except FileNotFoundError:
+                pass
+
+        return json_error_response(
+            [
+                SupersetError(
+                    message=ex.message,
+                    error_type=SupersetErrorType.GENERIC_BACKEND_ERROR,
+                    level=get_error_level_from_status(ex.status),
+                ),
+            ],
+            status=ex.status,
+        )
+
     @app.errorhandler(CSRFError)
     def refresh_csrf_token(ex: CSRFError) -> FlaskResponse:
         """Redirect to login if the CSRF token is expired"""
@@ -153,7 +220,7 @@ def set_app_error_handlers(app: Flask) -> None:  # noqa: C901
         if request.is_json:
             return show_http_exception(ex)
 
-        return redirect(appbuilder.get_url_for_login)
+        return redirect_to_login()
 
     @app.errorhandler(HTTPException)
     def show_http_exception(ex: HTTPException) -> FlaskResponse:
@@ -165,7 +232,11 @@ def set_app_error_handlers(app: Flask) -> None:  # noqa: C901
             and ex.code in {404, 500}
         ):
             path = files("superset") / f"static/assets/{ex.code}.html"
-            return send_file(path, max_age=0), ex.code
+            # Try to serve HTML file; fall back to JSON if not built
+            try:
+                return send_file(path, max_age=0), ex.code
+            except FileNotFoundError:
+                pass
 
         return json_error_response(
             [
@@ -189,7 +260,11 @@ def set_app_error_handlers(app: Flask) -> None:  # noqa: C901
 
         if "text/html" in request.accept_mimetypes and not app.config["DEBUG"]:
             path = files("superset") / "static/assets/500.html"
-            return send_file(path, max_age=0), 500
+            # Try to serve HTML file; fall back to JSON if not built
+            try:
+                return send_file(path, max_age=0), 500
+            except FileNotFoundError:
+                pass
 
         extra = ex.normalized_messages() if isinstance(ex, CommandInvalidError) else {}
         return json_error_response(
@@ -203,6 +278,12 @@ def set_app_error_handlers(app: Flask) -> None:  # noqa: C901
             ],
             status=ex.status,
         )
+
+    @app.errorhandler(sshtunnel.BaseSSHTunnelForwarderError)
+    def show_ssh_tunnel_error(
+        ex: sshtunnel.BaseSSHTunnelForwarderError,
+    ) -> FlaskResponse:
+        return handle_ssh_tunnel_error(ex)
 
     @app.errorhandler(Exception)
     @app.errorhandler(500)

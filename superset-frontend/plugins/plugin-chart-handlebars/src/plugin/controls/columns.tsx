@@ -20,10 +20,9 @@ import {
   ControlSetItem,
   ExtraControlProps,
   sharedControls,
-  Dataset,
-  ColumnMeta,
 } from '@superset-ui/chart-controls';
-import { ensureIsArray, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { ensureIsArray } from '@superset-ui/core';
 import { getQueryMode, isRawMode } from './shared';
 
 const dndAllColumns: typeof sharedControls.groupby = {
@@ -34,11 +33,7 @@ const dndAllColumns: typeof sharedControls.groupby = {
   mapStateToProps({ datasource, controls }, controlState) {
     const newState: ExtraControlProps = {};
     if (datasource) {
-      if (datasource?.columns[0]?.hasOwnProperty('filterable')) {
-        newState.options = (datasource as Dataset)?.columns?.filter(
-          (c: ColumnMeta) => c.filterable,
-        );
-      } else newState.options = datasource.columns;
+      newState.options = datasource.columns || [];
     }
     newState.queryMode = getQueryMode(controls);
     newState.externalValidationErrors =

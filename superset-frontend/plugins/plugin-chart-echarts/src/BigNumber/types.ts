@@ -31,7 +31,7 @@ import { ColorFormatters } from '@superset-ui/chart-controls';
 import { BaseChartProps, Refs } from '../types';
 
 export interface BigNumberDatum {
-  [key: string]: number | null;
+  [key: string]: number | string | null;
 }
 
 export type BigNumberTotalFormData = QueryFormData & {
@@ -47,10 +47,14 @@ export type BigNumberWithTrendlineFormData = BigNumberTotalFormData & {
     b: number;
   };
   compareLag?: string | number;
+  xAxis: string;
+  showXAxis?: boolean;
+  showXAxisMinMaxLabels?: boolean;
+  showYAxis?: boolean;
+  showYAxisMinMaxLabels?: boolean;
 };
 
-export interface BigNumberTotalChartDataResponseResult
-  extends ChartDataResponseResult {
+export interface BigNumberTotalChartDataResponseResult extends ChartDataResponseResult {
   data: BigNumberDatum[];
 }
 
@@ -93,6 +97,7 @@ export type BigNumberVizProps = {
   trendLineData?: TimeSeriesDatum[];
   mainColor?: string;
   echartOptions?: EChartsCoreOption;
+  isRefreshing?: boolean;
   onContextMenu?: (
     clientX: number,
     clientY: number,

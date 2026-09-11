@@ -16,31 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, styled } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
 import Tabs from '@superset-ui/core/components/Tabs';
 import { ResultTypes, ResultsPaneProps } from '../types';
+import { useStaleResultsTabFallback } from '../utils';
 import { useResultsPane } from './useResultsPane';
+import { useState } from 'react';
 
 const Wrapper = styled.div`
   display: flex;
   flex-direction: column;
   height: 100%;
 
-  .ant-tabs {
-    height: 100%;
-  }
-
   .ant-tabs-content {
-    height: 100%;
-  }
-
-  .ant-tabs-tabpane {
     display: flex;
     flex-direction: column;
-  }
-
-  .table-condensed {
-    overflow: auto;
   }
 `;
 
@@ -54,6 +45,8 @@ export const ResultsPaneOnDashboard = ({
   isVisible,
   dataSize = 50,
   canDownload,
+  columnDisplayNames,
+  queriesResponse,
 }: ResultsPaneProps) => {
   const resultsPanes = useResultsPane({
     errorMessage,
@@ -65,21 +58,37 @@ export const ResultsPaneOnDashboard = ({
     dataSize,
     isVisible,
     canDownload,
+    columnDisplayNames,
+    queriesResponse,
   });
 
-  if (resultsPanes.length === 1) {
-    return <Wrapper>{resultsPanes[0]}</Wrapper>;
-  }
+  const [activeTabKey, setActiveTabKey] = useState<string>(ResultTypes.Results);
 
-  const items = resultsPanes.map((pane, idx) => ({
-    key: idx === 0 ? ResultTypes.Results : `${ResultTypes.Results} ${idx + 1}`,
-    label: idx === 0 ? t('Results') : t('Results %s', idx + 1),
-    children: pane,
-  }));
+  const items = resultsPanes.map((pane, idx) => {
+    const tabKey =
+      idx === 0 ? ResultTypes.Results : `${ResultTypes.Results} ${idx + 1}`;
+
+    return {
+      key: tabKey,
+      label: idx === 0 ? t('Results') : t('Results %s', idx + 1),
+      children: activeTabKey === tabKey ? pane : null,
+    };
+  });
+
+  useStaleResultsTabFallback(
+    activeTabKey,
+    items.map(({ key }) => key),
+    setActiveTabKey,
+  );
 
   return (
     <Wrapper>
-      <Tabs items={items} />
+      <Tabs
+        fullHeight
+        activeKey={activeTabKey}
+        onChange={setActiveTabKey}
+        items={items}
+      />
     </Wrapper>
   );
 };

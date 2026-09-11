@@ -15,6 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+import time
+from typing import Any, Callable
 
 import click
 from flask.cli import with_appcontext
@@ -25,12 +27,59 @@ from superset.utils.decorators import transaction
 logger = logging.getLogger(__name__)
 
 
+def _should_skip_loader(
+    loader_name: str, load_big_data: bool, only_metadata: bool
+) -> bool:
+    """Check if a loader should be skipped."""
+    # Skip special loaders that aren't datasets
+    if loader_name in ["load_css_templates", "load_examples_from_configs"]:
+        return True
+
+    # Skip big data if not requested or when only metadata is requested
+    if loader_name == "load_big_data" and (not load_big_data or only_metadata):
+        return True
+
+    return False
+
+
+def _load_dataset(
+    loader: Callable[..., Any], loader_name: str, only_metadata: bool, force: bool
+) -> None:
+    """Load a single dataset with error handling."""
+    import inspect
+
+    dataset_name = loader_name[5:].replace("_", " ").title()
+    logger.info("Loading [%s]", dataset_name)
+
+    # Call loader with appropriate parameters
+    sig = inspect.signature(loader)
+    params = {}
+    if "only_metadata" in sig.parameters:
+        params["only_metadata"] = only_metadata
+    if "force" in sig.parameters:
+        params["force"] = force
+
+    start = time.perf_counter()
+    try:
+        loader(**params)
+    except Exception as e:
+        logger.warning(
+            "Failed to load %s after %.2fs: %s",
+            dataset_name,
+            time.perf_counter() - start,
+            e,
+        )
+    else:
+        logger.info("Finished [%s] in %.2fs", dataset_name, time.perf_counter() - start)
+
+
 def load_examples_run(
     load_test_data: bool = False,
     load_big_data: bool = False,
     only_metadata: bool = False,
     force: bool = False,
 ) -> None:
+    run_start = time.perf_counter()
     if only_metadata:
         logger.info("Loading examples metadata")
     else:
@@ -40,52 +89,29 @@ def load_examples_run(
     # pylint: disable=import-outside-toplevel
     import superset.examples.data_loading as examples
 
+    # Always load CSS templates
     examples.load_css_templates()
 
-    if load_test_data:
-        logger.info("Loading energy related dataset")
-        examples.load_energy(only_metadata, force)
+    # Auto-discover and load all datasets
+    for loader_name in dir(examples):
+        if not loader_name.startswith("load_"):
+            continue
 
-    logger.info("Loading [World Bank's Health Nutrition and Population Stats]")
-    examples.load_world_bank_health_n_pop(only_metadata, force)
+        if _should_skip_loader(loader_name, load_big_data, only_metadata):
+            continue
 
-    logger.info("Loading [Birth names]")
-    examples.load_birth_names(only_metadata, force)
+        loader = getattr(examples, loader_name)
+        _load_dataset(loader, loader_name, only_metadata, force)
 
-    if load_test_data:
-        logger.info("Loading [Tabbed dashboard]")
-        examples.load_tabbed_dashboard(only_metadata)
-
-        logger.info("Loading [Supported Charts Dashboard]")
-        examples.load_supported_charts_dashboard()
-    else:
-        logger.info("Loading [Random long/lat data]")
-        examples.load_long_lat_data(only_metadata, force)
-
-        logger.info("Loading [Country Map data]")
-        examples.load_country_map_data(only_metadata, force)
-
-        logger.info("Loading [San Francisco population polygons]")
-        examples.load_sf_population_polygons(only_metadata, force)
-
-        logger.info("Loading [Flights data]")
-        examples.load_flights(only_metadata, force)
-
-        logger.info("Loading [BART lines]")
-        examples.load_bart_lines(only_metadata, force)
-
-        logger.info("Loading [Misc Charts] dashboard")
-        examples.load_misc_dashboard()
-
-        logger.info("Loading DECK.gl demo")
-        examples.load_deck_dash()
-
-    if load_big_data:
-        logger.info("Loading big synthetic data for tests")
-        examples.load_big_data()
-
-    # load examples that are stored as YAML config files
+    # Load examples that are stored as YAML config files
+    configs_start = time.perf_counter()
     examples.load_examples_from_configs(force, load_test_data)
+    logger.info(
+        "Finished [Examples From Configs] in %.2fs",
+        time.perf_counter() - configs_start,
+    )
+
+    logger.info("load_examples finished in %.2fs", time.perf_counter() - run_start)
 
 
 @click.command()

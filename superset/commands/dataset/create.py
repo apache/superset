@@ -16,7 +16,7 @@
 # under the License.
 import logging
 from functools import partial
-from typing import Any, Optional
+from typing import Any
 
 from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
@@ -28,10 +28,23 @@ from superset.commands.dataset.exceptions import (
     DatasetDataAccessIsNotAllowed,
     DatasetExistsValidationError,
     DatasetInvalidError,
+    DatasetSoftDeletedTwinExistsError,
     TableNotFoundValidationError,
 )
+from superset.commands.utils import populate_subjects
 from superset.daos.dataset import DatasetDAO
-from superset.exceptions import SupersetParseError, SupersetSecurityException
+from superset.db_engine_specs.exceptions import (
+    SupersetDBAPIConnectionError,
+    SupersetDBAPIDatabaseError,
+    SupersetDBAPIOperationalError,
+)
+from superset.exceptions import (
+    OAuth2RedirectError,
+    SupersetException,
+    SupersetParseError,
+    SupersetSecurityException,
+    SupersetTimeoutException,
+)
 from superset.extensions import security_manager
 from superset.sql.parse import Table
 from superset.utils.decorators import on_error, transaction
@@ -48,7 +61,38 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
         self.validate()
 
         dataset = DatasetDAO.create(attributes=self._properties)
-        dataset.fetch_metadata()
+        try:
+            dataset.fetch_metadata()
+        except OAuth2RedirectError:
+            # Must reach the caller unchanged to start the OAuth2 dance.
+            raise
+        except (
+            SupersetTimeoutException,
+            SupersetDBAPIConnectionError,
+            SupersetDBAPIOperationalError,
+            SupersetDBAPIDatabaseError,
+        ):
+            # Infra-level failures (unreachable database, query timeout), not
+            # bad user input: let them propagate with their own status
+            # instead of being coerced into a 422 "invalid table" error.
+            raise
+        except SupersetException as ex:
+            # Not a SQLAlchemyError, so ``on_error`` re-raises it untouched and
+            # it escapes to FAB's ``@safe`` as an opaque 500 "Fatal error".
+            # Deliberately covers the 403 ``SupersetSecurityException`` raised
+            # for mutation/multi-statement SQL too: ``validate()`` already
+            # reports that class of rejection as a 422 on ``sql`` via
+            # ``DatasetDataAccessIsNotAllowed``.
+            raise DatasetInvalidError(
+                exceptions=[
+                    ValidationError(
+                        # ``lazy_gettext`` messages aren't ``str``, so
+                        # marshmallow won't wrap them into a list on its own.
+                        [str(ex.message)],
+                        field_name="sql" if self._properties.get("sql") else "table",
+                    )
+                ]
+            ) from ex
         return dataset
 
     def validate(self) -> None:  # noqa: C901
@@ -58,7 +102,6 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
         schema = self._properties.get("schema")
         table_name = self._properties["table_name"]
         sql = self._properties.get("sql")
-        owner_ids: Optional[list[int]] = self._properties.get("owners")
 
         # Validate/Populate database
         database = DatasetDAO.get_database_by_id(database_id)
@@ -74,6 +117,14 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
             table = Table(table_name, schema, catalog)
 
             if not DatasetDAO.validate_uniqueness(database, table):
+                # Distinguish the hidden-twin case: uniqueness fails while
+                # the caller's dataset list looks empty. Raise the targeted
+                # 422 (naming the twin's uuid and the restore endpoint)
+                # instead of the opaque "already exists".
+                if soft_twin := DatasetDAO.find_soft_deleted_logical_duplicate(
+                    database, table
+                ):
+                    raise DatasetSoftDeletedTwinExistsError(str(soft_twin.uuid))
                 exceptions.append(DatasetExistsValidationError(table))
 
         # Validate table exists on dataset if sql is not provided
@@ -102,10 +153,18 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
                         field_name="sql",
                     )
                 )
-        try:
-            owners = self.populate_owners(owner_ids)
-            self._properties["owners"] = owners
-        except ValidationError as ex:
-            exceptions.append(ex)
+        elif database:
+            try:
+                security_manager.raise_for_access(
+                    database=database,
+                    table=table,
+                )
+            except SupersetSecurityException as ex:
+                exceptions.append(DatasetDataAccessIsNotAllowed(ex.error.message))
+
+        # Datasets have editors only — there is no ``sqlatable_viewers`` table,
+        # so a ``viewers`` key would be dropped by the DAO's ``setattr`` loop.
+        populate_subjects(self._properties, exceptions, include_viewers=False)
+
         if exceptions:
             raise DatasetInvalidError(exceptions=exceptions)

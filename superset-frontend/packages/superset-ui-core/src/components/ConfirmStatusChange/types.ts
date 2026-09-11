@@ -25,4 +25,15 @@ export interface ConfirmStatusChangeProps {
   description: ReactNode;
   onConfirm: Callback;
   children: (showConfirm: Callback) => ReactNode;
+  /**
+   * Forwarded to the underlying DeleteModal: recoverable (soft-delete) mode
+   * drops the "type DELETE to confirm" step and uses a primary confirm button.
+   */
+  recoverable?: boolean;
+  /**
+   * Forwarded to the underlying DeleteModal: keeps the confirm button disabled
+   * regardless of the typed-text gate, e.g. while the caller is still loading
+   * information the user needs before confirming.
+   */
+  disablePrimaryButton?: boolean;
 }

@@ -21,7 +21,7 @@ import { ChartLayer } from '../../src/components/ChartLayer';
 import { ChartLayerOptions } from '../../src/types';
 
 describe('ChartLayer', () => {
-  it('creates div and loading mask', () => {
+  test('creates div and loading mask', () => {
     const options: ChartLayerOptions = {
       chartVizType: 'pie',
       locale: 'en',
@@ -32,7 +32,7 @@ describe('ChartLayer', () => {
     expect(chartLayer.div).toBeDefined();
   });
 
-  it('can remove chart elements', () => {
+  test('can remove chart elements', () => {
     const options: ChartLayerOptions = {
       chartVizType: 'pie',
       locale: 'en',
@@ -41,6 +41,11 @@ describe('ChartLayer', () => {
     chartLayer.charts = [
       {
         htmlElement: document.createElement('div'),
+        root: { render: jest.fn(), unmount: jest.fn() } as any,
+        coordinate: [0, 0],
+        width: 100,
+        height: 100,
+        feature: {},
       },
     ];
 

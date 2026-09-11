@@ -1,0 +1,527 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+import { ChartProps } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/theme';
+import { HeatmapChartProps, HeatmapFormData } from '../../src/Heatmap/types';
+import transformProps from '../../src/Heatmap/transformProps';
+
+describe('Heatmap transformProps', () => {
+  const baseFormData: HeatmapFormData = {
+    datasource: '5__table',
+    viz_type: 'heatmap',
+    xAxis: 'day_of_week',
+    groupby: ['hour'],
+    metric: 'count',
+    linearColorScheme: 'blue_white_yellow',
+    normalized: false,
+    normalizeAcross: 'heatmap',
+    borderColor: { r: 255, g: 255, b: 255, a: 1 },
+    borderWidth: 1,
+    showLegend: true,
+    showValues: false,
+    showPercentage: false,
+    legendType: 'continuous',
+    bottomMargin: 'auto',
+    leftMargin: 'auto',
+    xscaleInterval: 1,
+    yscaleInterval: 1,
+    xAxisLabelRotation: 0,
+    valueBounds: [null, null],
+  };
+
+  const sparseData = [
+    { day_of_week: 'Monday', hour: 9, count: 10 },
+    { day_of_week: 'Monday', hour: 14, count: 15 },
+    { day_of_week: 'Wednesday', hour: 11, count: 8 },
+    { day_of_week: 'Friday', hour: 16, count: 20 },
+    { day_of_week: 'Tuesday', hour: 10, count: 12 },
+    { day_of_week: 'Thursday', hour: 15, count: 18 },
+  ];
+
+  const createChartProps = (
+    formDataOverrides: Partial<HeatmapFormData> = {},
+    data: Record<string, any>[] = sparseData,
+  ) =>
+    new ChartProps({
+      formData: { ...baseFormData, ...formDataOverrides },
+      width: 800,
+      height: 600,
+      queriesData: [
+        {
+          data,
+          colnames: ['day_of_week', 'hour', 'count'],
+          coltypes: [0, 0, 0],
+        },
+      ],
+      theme: supersetTheme,
+    });
+
+  test('should sort axes alphabetically in both directions', () => {
+    // X-axis ascending
+    const xAscProps = createChartProps({ sortXAxis: 'alpha_asc' });
+    const xAscResult = transformProps(xAscProps as HeatmapChartProps);
+    expect(xAscResult.echartOptions.xAxis).toHaveProperty('data');
+    expect((xAscResult.echartOptions.xAxis as any).data).toEqual([
+      'Friday',
+      'Monday',
+      'Thursday',
+      'Tuesday',
+      'Wednesday',
+    ]);
+
+    // X-axis descending
+    const xDescProps = createChartProps({ sortXAxis: 'alpha_desc' });
+    const xDescResult = transformProps(xDescProps as HeatmapChartProps);
+    expect((xDescResult.echartOptions.xAxis as any).data).toEqual([
+      'Wednesday',
+      'Tuesday',
+      'Thursday',
+      'Monday',
+      'Friday',
+    ]);
+
+    // Y-axis ascending (numeric)
+    const yAscProps = createChartProps({ sortYAxis: 'alpha_asc' });
+    const yAscResult = transformProps(yAscProps as HeatmapChartProps);
+    // Hours are numbers, so they should be sorted numerically
+    expect((yAscResult.echartOptions.yAxis as any).data).toEqual([
+      9, 10, 11, 14, 15, 16,
+    ]);
+
+    // Y-axis descending (numeric)
+    const yDescProps = createChartProps({ sortYAxis: 'alpha_desc' });
+    const yDescResult = transformProps(yDescProps as HeatmapChartProps);
+    // Numeric descending order
+    expect((yDescResult.echartOptions.yAxis as any).data).toEqual([
+      16, 15, 14, 11, 10, 9,
+    ]);
+  });
+
+  test('should sort axes by metric value', () => {
+    const chartPropsXAsc = createChartProps({ sortXAxis: 'value_asc' });
+    const resultXAsc = transformProps(chartPropsXAsc as HeatmapChartProps);
+    // Wednesday(8) < Tuesday(12) < Thursday(18) < Friday(20) < Monday(25=10+15)
+    expect((resultXAsc.echartOptions.xAxis as any).data).toEqual([
+      'Wednesday',
+      'Tuesday',
+      'Thursday',
+      'Friday',
+      'Monday',
+    ]);
+
+    const chartPropsXDesc = createChartProps({ sortXAxis: 'value_desc' });
+    const resultXDesc = transformProps(chartPropsXDesc as HeatmapChartProps);
+    // Monday(25) > Friday(20) > Thursday(18) > Tuesday(12) > Wednesday(8)
+    expect((resultXDesc.echartOptions.xAxis as any).data).toEqual([
+      'Monday',
+      'Friday',
+      'Thursday',
+      'Tuesday',
+      'Wednesday',
+    ]);
+
+    const chartPropsYAsc = createChartProps({ sortYAxis: 'value_asc' });
+    const resultYAsc = transformProps(chartPropsYAsc as HeatmapChartProps);
+    // 11(8) < 9(10) < 10(12) < 14(15) < 15(18) < 16(20)
+    expect((resultYAsc.echartOptions.yAxis as any).data).toEqual([
+      11, 9, 10, 14, 15, 16,
+    ]);
+
+    const chartPropsYDesc = createChartProps({ sortYAxis: 'value_desc' });
+    const resultYDesc = transformProps(chartPropsYDesc as HeatmapChartProps);
+    // 16(20) > 15(18) > 14(15) > 10(12) > 9(10) > 11(8)
+    expect((resultYDesc.echartOptions.yAxis as any).data).toEqual([
+      16, 15, 14, 10, 9, 11,
+    ]);
+  });
+
+  test('should handle no sort option specified', () => {
+    const chartProps = createChartProps({});
+    const result = transformProps(chartProps as HeatmapChartProps);
+
+    const xAxisData = (result.echartOptions.xAxis as any).data;
+    const yAxisData = (result.echartOptions.yAxis as any).data;
+
+    // Should maintain order of first appearance
+    expect(xAxisData).toEqual([
+      'Monday',
+      'Wednesday',
+      'Friday',
+      'Tuesday',
+      'Thursday',
+    ]);
+    expect(yAxisData).toEqual([9, 14, 11, 16, 10, 15]);
+  });
+
+  test('should aggregate metric values for value-based sorting', () => {
+    const dataWithDuplicates = [
+      { day_of_week: 'Monday', hour: 9, count: 10 },
+      { day_of_week: 'Monday', hour: 10, count: 15 },
+      { day_of_week: 'Tuesday', hour: 9, count: 5 },
+      { day_of_week: 'Tuesday', hour: 10, count: 3 },
+      { day_of_week: 'Wednesday', hour: 9, count: 20 },
+    ];
+
+    const chartProps = createChartProps(
+      { sortXAxis: 'value_asc' },
+      dataWithDuplicates,
+    );
+    const result = transformProps(chartProps as HeatmapChartProps);
+
+    const xAxisData = (result.echartOptions.xAxis as any).data;
+    // Tuesday(8) < Wednesday(20) < Monday(25)
+    expect(xAxisData).toEqual(['Tuesday', 'Wednesday', 'Monday']);
+  });
+
+  test('should handle data with null values', () => {
+    const dataWithNulls: Record<string, any>[] = [
+      { day_of_week: 'Monday', hour: 9, count: 10 },
+      { day_of_week: null, hour: 10, count: 15 },
+      { day_of_week: 'Tuesday', hour: null, count: 8 },
+    ];
+
+    const chartProps = createChartProps(
+      { sortXAxis: 'alpha_asc' },
+      dataWithNulls,
+    );
+    const result = transformProps(chartProps as HeatmapChartProps);
+
+    const xAxisData = (result.echartOptions.xAxis as any).data;
+    // Only non-null values should appear
+    expect(xAxisData).toEqual(['Monday', 'Tuesday']);
+  });
+
+  test('should sort numeric values numerically not alphabetically', () => {
+    const numericData = [
+      { hour: 1, day: 'Mon', count: 10 },
+      { hour: 10, day: 'Mon', count: 15 },
+      { hour: 2, day: 'Tue', count: 8 },
+      { hour: 20, day: 'Wed', count: 12 },
+      { hour: 3, day: 'Thu', count: 18 },
+    ];
+
+    const chartProps = createChartProps(
+      { sortXAxis: 'alpha_asc', xAxis: 'hour', groupby: ['day'] },
+      numericData,
+    );
+
+    // Override colnames to match the new data structure
+    (chartProps as any).queriesData[0].colnames = ['hour', 'day', 'count'];
+
+    const result = transformProps(chartProps as HeatmapChartProps);
+
+    const xAxisData = (result.echartOptions.xAxis as any).data;
+    // Should be numeric order: 1, 2, 3, 10, 20
+    // NOT alphabetical order: 1, 10, 2, 20, 3
+    expect(xAxisData).toEqual([1, 2, 3, 10, 20]);
+  });
+
+  test('should convert series data to axis indices', () => {
+    const chartProps = createChartProps({
+      sortXAxis: 'alpha_asc',
+      sortYAxis: 'alpha_asc',
+    });
+    const result = transformProps(chartProps as HeatmapChartProps);
+
+    const seriesData = (result.echartOptions.series as any)[0].data;
+
+    // Each data point should be [xIndex, yIndex, value]
+    expect(Array.isArray(seriesData)).toBe(true);
+    expect(seriesData.length).toBeGreaterThan(0);
+
+    // Check that data points use indices (numbers starting from 0)
+    seriesData.forEach((point: any) => {
+      expect(Array.isArray(point)).toBe(true);
+      expect(point.length).toBe(3);
+      // Indices should be numbers
+      expect(typeof point[0]).toBe('number');
+      expect(typeof point[1]).toBe('number');
+      // Indices should be >= 0
+      expect(point[0]).toBeGreaterThanOrEqual(0);
+      expect(point[1]).toBeGreaterThanOrEqual(0);
+    });
+  });
+
+  test('should handle mixed numeric and string values in axes', () => {
+    const mixedData = [
+      { category: 'A', value: 1, count: 10 },
+      { category: 'B', value: 10, count: 15 },
+      { category: 'C', value: 2, count: 8 },
+    ];
+
+    const chartProps = createChartProps(
+      {
+        sortXAxis: 'alpha_asc',
+        sortYAxis: 'alpha_asc',
+        xAxis: 'category',
+        groupby: ['value'],
+      },
+      mixedData,
+    );
+
+    (chartProps as any).queriesData[0].colnames = [
+      'category',
+      'value',
+      'count',
+    ];
+
+    const result = transformProps(chartProps as HeatmapChartProps);
+
+    const xAxisData = (result.echartOptions.xAxis as any).data;
+    const yAxisData = (result.echartOptions.yAxis as any).data;
+
+    // X-axis: strings sorted alphabetically
+    expect(xAxisData).toEqual(['A', 'B', 'C']);
+    // Y-axis: numbers sorted numerically (1, 2, 10 NOT 1, 10, 2)
+    expect(yAxisData).toEqual([1, 2, 10]);
+  });
+
+  test('should include rank as 4th dimension when normalized is true', () => {
+    const dataWithRank = [
+      { day_of_week: 'Monday', hour: 9, count: 10, rank: 0.33 },
+      { day_of_week: 'Monday', hour: 14, count: 15, rank: 0.67 },
+      { day_of_week: 'Wednesday', hour: 11, count: 8, rank: 0.17 },
+      { day_of_week: 'Friday', hour: 16, count: 20, rank: 1.0 },
+    ];
+
+    const chartProps = createChartProps({ normalized: true }, dataWithRank);
+
+    const result = transformProps(chartProps as HeatmapChartProps);
+
+    const seriesData = (result.echartOptions.series as any)[0].data;
+
+    // Each data point should be [xIndex, yIndex, metricValue, rankValue]
+    expect(Array.isArray(seriesData)).toBe(true);
+    expect(seriesData.length).toBe(4);
+
+    // Check that data points have 4 dimensions when normalized
+    seriesData.forEach((point: any) => {
+      expect(Array.isArray(point)).toBe(true);
+      expect(point.length).toBe(4);
+      // First two should be indices (numbers)
+      expect(typeof point[0]).toBe('number');
+      expect(typeof point[1]).toBe('number');
+      // Third should be the metric value
+      expect(typeof point[2]).toBe('number');
+      // Fourth should be the rank value
+      expect(typeof point[3]).toBe('number');
+      expect(point[3]).toBeGreaterThanOrEqual(0);
+      expect(point[3]).toBeLessThanOrEqual(1);
+    });
+
+    // visualMap should use dimension 3 (4th element) for coloring
+    expect((result.echartOptions.visualMap as any).dimension).toBe(3);
+  });
+
+  test('should use 3 dimensions when normalized is false', () => {
+    const chartProps = createChartProps({ normalized: false });
+    const result = transformProps(chartProps as HeatmapChartProps);
+
+    const seriesData = (result.echartOptions.series as any)[0].data;
+
+    // Each data point should be [xIndex, yIndex, metricValue]
+    seriesData.forEach((point: any) => {
+      expect(point.length).toBe(3);
+    });
+
+    // visualMap should use dimension 2 (3rd element) for coloring
+    expect((result.echartOptions.visualMap as any).dimension).toBe(2);
+  });
+
+  test('should always hide legend regardless of showLegend setting', () => {
+    // Test with showLegend: true
+    const chartPropsWithLegend = createChartProps({ showLegend: true });
+    const resultWithLegend = transformProps(
+      chartPropsWithLegend as HeatmapChartProps,
+    );
+    expect((resultWithLegend.echartOptions.legend as any).show).toBe(false);
+
+    // Test with showLegend: false
+    const chartPropsWithoutLegend = createChartProps({ showLegend: false });
+    const resultWithoutLegend = transformProps(
+      chartPropsWithoutLegend as HeatmapChartProps,
+    );
+    expect((resultWithoutLegend.echartOptions.legend as any).show).toBe(false);
+  });
+
+  test('tooltip formatter should display actual axis values, not indices', () => {
+    const chartProps = createChartProps({
+      sortXAxis: 'alpha_asc',
+      sortYAxis: 'alpha_asc',
+    });
+    const result = transformProps(chartProps as HeatmapChartProps);
+
+    const tooltipFormatter = (result.echartOptions.tooltip as any).formatter;
+    expect(typeof tooltipFormatter).toBe('function');
+
+    // Simulate tooltip data: [xIndex, yIndex, value]
+    // With alpha_asc sorting: xAxis = ['Friday', 'Monday', 'Thursday', 'Tuesday', 'Wednesday']
+    // yAxis = [9, 10, 11, 14, 15, 16]
+    // So index [1, 2, 15] should map to 'Monday' and hour 11
+    const mockParams = {
+      value: [1, 2, 15],
+    };
+
+    const tooltipHtml = tooltipFormatter(mockParams);
+
+    // Tooltip should contain the actual day name 'Monday', not the index '1'
+    expect(tooltipHtml).toContain('Monday');
+    // Tooltip should contain the actual hour '11', not the index '2'
+    expect(tooltipHtml).toContain('11');
+    // Should not contain raw indices
+    expect(tooltipHtml).not.toMatch(/\b1\s*\(/);
+    expect(tooltipHtml).not.toMatch(/\(\s*2\b/);
+  });
+
+  test('tooltip formatter should work with different sort orders', () => {
+    // Test with descending sort
+    const chartProps = createChartProps({
+      sortXAxis: 'alpha_desc',
+      sortYAxis: 'alpha_desc',
+    });
+    const result = transformProps(chartProps as HeatmapChartProps);
+
+    const tooltipFormatter = (result.echartOptions.tooltip as any).formatter;
+
+    // With alpha_desc sorting: xAxis = ['Wednesday', 'Tuesday', 'Thursday', 'Monday', 'Friday']
+    // yAxis = [16, 15, 14, 11, 10, 9]
+    // So index [4, 5, 20] should map to 'Friday' and hour 9
+    const mockParams = {
+      value: [4, 5, 20],
+    };
+
+    const tooltipHtml = tooltipFormatter(mockParams);
+
+    expect(tooltipHtml).toContain('Friday');
+    expect(tooltipHtml).toContain('9');
+  });
+
+  test('tooltip formatter should work with value-based sorting', () => {
+    const chartProps = createChartProps({
+      sortXAxis: 'value_asc',
+      sortYAxis: 'value_asc',
+    });
+    const result = transformProps(chartProps as HeatmapChartProps);
+
+    const tooltipFormatter = (result.echartOptions.tooltip as any).formatter;
+
+    // With value_asc sorting on X: ['Wednesday', 'Tuesday', 'Thursday', 'Friday', 'Monday']
+    // With value_asc sorting on Y: [11, 9, 10, 14, 15, 16]
+    // So index [0, 0, 8] should map to 'Wednesday' and hour 11
+    const mockParams = {
+      value: [0, 0, 8],
+    };
+
+    const tooltipHtml = tooltipFormatter(mockParams);
+
+    expect(tooltipHtml).toContain('Wednesday');
+    expect(tooltipHtml).toContain('11');
+  });
+
+  test('tooltip percentage calculation should use actual values, not indices', () => {
+    const testData = [
+      { day_of_week: 'Monday', hour: 9, count: 10 },
+      { day_of_week: 'Monday', hour: 10, count: 20 },
+      { day_of_week: 'Tuesday', hour: 9, count: 30 },
+    ];
+
+    // Test normalizeAcross: 'x'
+    const chartPropsX = createChartProps(
+      {
+        sortXAxis: 'alpha_asc',
+        showPercentage: true,
+        normalizeAcross: 'x',
+      },
+      testData,
+    );
+    const resultX = transformProps(chartPropsX as HeatmapChartProps);
+    const tooltipFormatterX = (resultX.echartOptions.tooltip as any).formatter;
+
+    // With alpha_asc: xAxis = ['Monday', 'Tuesday'], yAxis = [9, 10]
+    // Monday total = 30, Tuesday total = 30
+    // Point [0, 0, 10] = Monday/9 with value 10
+    // Percentage should be 10/30 = 33.33%, not based on index
+    const mockParamsX = {
+      value: [0, 0, 10],
+    };
+
+    const tooltipHtmlX = tooltipFormatterX(mockParamsX);
+    expect(tooltipHtmlX).toContain('33.33%');
+
+    // Test normalizeAcross: 'y'
+    const chartPropsY = createChartProps(
+      {
+        sortXAxis: 'alpha_asc',
+        showPercentage: true,
+        normalizeAcross: 'y',
+      },
+      testData,
+    );
+    const resultY = transformProps(chartPropsY as HeatmapChartProps);
+    const tooltipFormatterY = (resultY.echartOptions.tooltip as any).formatter;
+
+    // Hour 9 total = 40 (10 + 30)
+    // Point [0, 0, 10] = Monday/9 with value 10
+    // Percentage should be 10/40 = 25%
+    const mockParamsY = {
+      value: [0, 0, 10],
+    };
+
+    const tooltipHtmlY = tooltipFormatterY(mockParamsY);
+    expect(tooltipHtmlY).toContain('25.00%');
+  });
+
+  test('tooltip formatter should handle numeric axes correctly', () => {
+    const numericData = [
+      { year: 2020, quarter: 1, revenue: 100 },
+      { year: 2021, quarter: 2, revenue: 150 },
+      { year: 2022, quarter: 3, revenue: 200 },
+    ];
+
+    const chartProps = createChartProps(
+      {
+        sortXAxis: 'alpha_asc',
+        sortYAxis: 'alpha_asc',
+        xAxis: 'year',
+        groupby: ['quarter'],
+        metric: 'revenue',
+      },
+      numericData,
+    );
+
+    (chartProps as any).queriesData[0].colnames = [
+      'year',
+      'quarter',
+      'revenue',
+    ];
+
+    const result = transformProps(chartProps as HeatmapChartProps);
+    const tooltipFormatter = (result.echartOptions.tooltip as any).formatter;
+
+    // With alpha_asc: xAxis = [2020, 2021, 2022], yAxis = [1, 2, 3]
+    // Index [1, 1, 150] should map to year 2021 and quarter 2
+    const mockParams = {
+      value: [1, 1, 150],
+    };
+
+    const tooltipHtml = tooltipFormatter(mockParams);
+
+    expect(tooltipHtml).toContain('2021 (2)');
+  });
+});

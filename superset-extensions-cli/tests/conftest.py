@@ -17,10 +17,12 @@
 
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
 
 import pytest
+import tomli_w
 from click.testing import CliRunner
 
 
@@ -46,8 +48,9 @@ def isolated_filesystem(tmp_path):
 def extension_params():
     """Default parameters for extension creation."""
     return {
-        "id": "test_extension",
-        "name": "Test Extension",
+        "publisher": "test-org",
+        "name": "test-extension",
+        "displayName": "Test Extension",
         "version": "0.1.0",
         "license": "Apache-2.0",
         "include_frontend": True,
@@ -58,25 +61,25 @@ def extension_params():
 @pytest.fixture
 def cli_input_both():
     """CLI input for creating extension with both frontend and backend."""
-    return "test_extension\nTest Extension\n0.1.0\nApache-2.0\ny\ny\n"
+    return "Test Extension\n\ntest-org\n0.1.0\nApache-2.0\ny\ny\n"
 
 
 @pytest.fixture
 def cli_input_frontend_only():
     """CLI input for creating extension with frontend only."""
-    return "test_extension\nTest Extension\n0.1.0\nApache-2.0\ny\nn\n"
+    return "Test Extension\n\ntest-org\n0.1.0\nApache-2.0\ny\nn\n"
 
 
 @pytest.fixture
 def cli_input_backend_only():
     """CLI input for creating extension with backend only."""
-    return "test_extension\nTest Extension\n0.1.0\nApache-2.0\nn\ny\n"
+    return "Test Extension\n\ntest-org\n0.1.0\nApache-2.0\nn\ny\n"
 
 
 @pytest.fixture
 def cli_input_neither():
     """CLI input for creating extension with neither frontend nor backend."""
-    return "test_extension\nTest Extension\n0.1.0\nApache-2.0\nn\nn\n"
+    return "Test Extension\n\ntest-org\n0.1.0\nApache-2.0\nn\nn\n"
 
 
 @pytest.fixture
@@ -86,10 +89,11 @@ def extension_setup_for_dev():
     def _setup(base_path: Path) -> None:
         import json
 
-        # Create extension.json
+        # Create extension.json with new structure
         extension_json = {
-            "id": "test_extension",
-            "name": "Test Extension",
+            "publisher": "test-org",
+            "name": "test-extension",
+            "displayName": "Test Extension",
             "version": "1.0.0",
             "permissions": [],
         }
@@ -113,10 +117,12 @@ def extension_setup_for_bundling():
         dist_dir = base_path / "dist"
         dist_dir.mkdir(parents=True)
 
-        # Create manifest.json
+        # Create manifest.json with composite ID
         manifest = {
-            "id": "test_extension",
-            "name": "Test Extension",
+            "id": "test-org.test-extension",
+            "publisher": "test-org",
+            "name": "test-extension",
+            "displayName": "Test Extension",
             "version": "1.0.0",
             "permissions": [],
         }
@@ -128,9 +134,75 @@ def extension_setup_for_bundling():
         (frontend_dir / "remoteEntry.abc123.js").write_text("// remote entry")
         (frontend_dir / "main.js").write_text("// main js")
 
-        # Create some backend files
-        backend_dir = dist_dir / "backend" / "src" / "test_extension"
+        # Create some backend files - updated path structure
+        backend_dir = dist_dir / "backend" / "src" / "test_org" / "test_extension"
         backend_dir.mkdir(parents=True)
         (backend_dir / "__init__.py").write_text("# init")
 
     return _setup
+
+
+@pytest.fixture
+def extension_with_versions():
+    """Create an extension directory structure with configurable versions and licenses."""
+
+    def _create(
+        base_path: Path,
+        ext_version: str = "1.0.0",
+        frontend_version: str | None = None,
+        backend_version: str | None = None,
+        ext_license: str | None = "Apache-2.0",
+        frontend_license: str | None = None,
+        backend_license: str | None = None,
+    ) -> None:
+        extension_json = {
+            "publisher": "test-org",
+            "name": "test-extension",
+            "displayName": "Test Extension",
+            "version": ext_version,
+            "permissions": [],
+        }
+        if ext_license is not None:
+            extension_json["license"] = ext_license
+        (base_path / "extension.json").write_text(json.dumps(extension_json))
+
+        if frontend_version is not None:
+            frontend_dir = base_path / "frontend"
+            frontend_dir.mkdir(exist_ok=True)
+            (frontend_dir / "src").mkdir(exist_ok=True)
+            (frontend_dir / "src" / "index.tsx").write_text("// entry")
+            pkg = {
+                "name": "@test-org/test-extension",
+                "version": frontend_version,
+            }
+            if frontend_license is not None:
+                pkg["license"] = frontend_license
+            elif ext_license is not None:
+                pkg["license"] = ext_license
+            (frontend_dir / "package.json").write_text(json.dumps(pkg, indent=2))
+
+        if backend_version is not None:
+            backend_dir = base_path / "backend"
+            backend_dir.mkdir(exist_ok=True)
+            src_dir = backend_dir / "src" / "test_org" / "test_extension"
+            src_dir.mkdir(parents=True, exist_ok=True)
+            (src_dir / "entrypoint.py").write_text("# entry")
+            project = {
+                "name": "test-org-test-extension",
+                "version": backend_version,
+            }
+            if backend_license is not None:
+                project["license"] = backend_license
+            elif ext_license is not None:
+                project["license"] = ext_license
+            pyproject = {
+                "project": project,
+                "tool": {
+                    "apache_superset_extensions": {
+                        "build": {"include": ["src/**/*.py"]}
+                    }
+                },
+            }
+            (backend_dir / "pyproject.toml").write_text(tomli_w.dumps(pyproject))
+
+    return _create

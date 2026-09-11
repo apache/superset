@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Preset, VizType } from '@superset-ui/core';
+import {
+  ChartLabel,
+  ChartMetadata,
+  ChartPlugin,
+  Preset,
+  VizType,
+} from '@superset-ui/core';
 import {
   render,
   cleanup,
@@ -39,12 +45,29 @@ import {
   EchartsTimeseriesLineChartPlugin,
 } from '../../../../../plugins/plugin-chart-echarts/src';
 import TableChartPlugin from '../../../../../plugins/plugin-chart-table/src';
+import { MultiChartPlugin } from '../../../../../plugins/preset-chart-deckgl/src';
 import VizTypeControl, { VIZ_TYPE_CONTROL_TEST_ID } from './index';
 
 // Mock scrollIntoView to avoid errors in test environment
 jest.mock('scroll-into-view-if-needed', () => jest.fn());
 
-jest.useFakeTimers();
+jest.useFakeTimers({ advanceTimers: true });
+
+// A minimal plugin carrying a "Featured" label, so tests can assert on the
+// badge that VizTypeGallery overlays on its thumbnail.
+class FeaturedTestChartPlugin extends ChartPlugin {
+  constructor() {
+    super({
+      metadata: new ChartMetadata({
+        name: 'Featured Test Chart',
+        thumbnail: '',
+        label: ChartLabel.Featured,
+        tags: ['Featured'],
+      }),
+      Chart: () => null,
+    });
+  }
+}
 
 class MainPreset extends Preset {
   constructor() {
@@ -52,6 +75,9 @@ class MainPreset extends Preset {
       name: 'Legacy charts',
       plugins: [
         new TableChartPlugin().configure({ key: VizType.Table }),
+        new FeaturedTestChartPlugin().configure({
+          key: 'featured_test_chart',
+        }),
         new BigNumberTotalChartPlugin().configure({
           key: VizType.BigNumberTotal,
         }),
@@ -72,6 +98,7 @@ class MainPreset extends Preset {
         new EchartsMixedTimeseriesChartPlugin().configure({
           key: VizType.MixedTimeseries,
         }),
+        new MultiChartPlugin().configure({ key: 'deck_multi' }),
       ],
     });
   }
@@ -129,8 +156,10 @@ describe('VizTypeControl', () => {
     expect(screen.getByLabelText('pie-chart')).toBeVisible();
     expect(screen.getByLabelText('bar-chart')).toBeVisible();
     expect(screen.getByLabelText('area-chart')).toBeVisible();
-    expect(screen.queryByLabelText('monitor')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Chart')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('check-square')).not.toBeInTheDocument();
+    // Multi Chart should NOT appear when other charts are selected
+    expect(screen.queryByLabelText('multiple')).not.toBeInTheDocument();
 
     expect(
       within(screen.getByTestId('fast-viz-switcher')).getByText('Line Chart'),
@@ -150,6 +179,31 @@ describe('VizTypeControl', () => {
     expect(
       within(screen.getByTestId('fast-viz-switcher')).getByText('Area Chart'),
     ).toBeInTheDocument();
+    // Multi Chart text should NOT appear when Line Chart is selected
+    expect(
+      within(screen.getByTestId('fast-viz-switcher')).queryByText(
+        'deck.gl Multiple Layers',
+      ),
+    ).not.toBeInTheDocument();
+  });
+
+  test('Multi Chart appears with custom icon when selected', async () => {
+    const props = {
+      ...defaultProps,
+      value: 'deck_multi',
+      isModalOpenInit: false,
+    };
+    await waitForRenderWrapper(props);
+
+    // Multi Chart icon should be visible when deck_multi is selected
+    expect(screen.getByLabelText('multiple')).toBeVisible();
+    expect(
+      within(screen.getByTestId('fast-viz-switcher')).getByText(
+        'deck.gl Multiple Layers',
+      ),
+    ).toBeInTheDocument();
+    // Should not show the generic check-square icon
+    expect(screen.queryByLabelText('check-square')).not.toBeInTheDocument();
   });
 
   test('Render viz tiles when non-featured chart is selected', async () => {
@@ -160,7 +214,7 @@ describe('VizTypeControl', () => {
     };
     await waitForRenderWrapper(props);
 
-    expect(screen.getByLabelText('monitor')).toBeVisible();
+    expect(screen.getByLabelText('Chart')).toBeVisible();
     expect(
       within(screen.getByTestId('fast-viz-switcher')).getByText('Line Chart'),
     ).toBeVisible();
@@ -247,6 +301,43 @@ describe('VizTypeControl', () => {
     expect(
       within(visualizations).queryByText('Pie Chart'),
     ).not.toBeInTheDocument();
+  });
+
+  test('anchors the Featured badge to the bottom-right of the thumbnail image', async () => {
+    // The badge is positioned relative to the thumbnail image only (not the
+    // whole tile), so it must hang off the image's bottom-right corner
+    // rather than its top edge.
+    await waitForRenderWrapper();
+    userEvent.click(screen.getByRole('tab', { name: 'All charts' }));
+
+    const visualizations = screen.getByTestId(getTestId('viz-row'));
+    const image = await within(visualizations).findByAltText(
+      'Featured Test Chart',
+    );
+    const badgeWrapper = image.nextElementSibling as HTMLElement;
+
+    expect(badgeWrapper).toHaveStyleRule('bottom', '4px');
+    expect(badgeWrapper).toHaveStyleRule('right', '4px');
+    expect(badgeWrapper).not.toHaveStyleRule('top', expect.anything());
+    expect(within(badgeWrapper).getByText('FEATURED')).toBeInTheDocument();
+  });
+
+  test('Thumbnail labels expose the full chart name via a title tooltip', async () => {
+    // Labels are clamped to a fixed two-line block so every tile is the same
+    // height; the full (possibly truncated) name must stay discoverable through
+    // the title attribute.
+    await waitForRenderWrapper();
+    userEvent.click(screen.getByRole('tab', { name: 'All charts' }));
+
+    const visualizations = screen.getByTestId(getTestId('viz-row'));
+    const labels = await within(visualizations).findAllByTestId(
+      getTestId('viztype-label'),
+    );
+
+    expect(labels.length).toBeGreaterThan(0);
+    labels.forEach(label => {
+      expect(label).toHaveAttribute('title', label.textContent ?? '');
+    });
   });
 
   test('Submit on viz type double-click', async () => {

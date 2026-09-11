@@ -19,11 +19,14 @@
 import fetchMock from 'fetch-mock';
 import { Link } from 'react-router-dom';
 import {
+  act,
+  createStore,
   render,
   waitFor,
   screen,
   fireEvent,
 } from 'spec/helpers/testing-library';
+import reducerIndex from 'spec/helpers/reducerIndex';
 import { getExploreFormData } from 'spec/fixtures/mockExploreFormData';
 import { getDashboardFormData } from 'spec/fixtures/mockDashboardFormData';
 import { LocalStorageKeys } from 'src/utils/localStorageHelpers';
@@ -32,6 +35,9 @@ import { URL_PARAMS } from 'src/constants';
 import { JsonObject, VizType } from '@superset-ui/core';
 import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
 import { getParsedExploreURLParams } from 'src/explore/exploreUtils/getParsedExploreURLParams';
+import { toChartStateHistoryState } from 'src/explore/exploreUtils/exploreHistory';
+import * as exploreActions from 'src/explore/actions/exploreActions';
+import * as messageToastActions from 'src/components/MessageToasts/actions';
 import ChartPage from '.';
 
 jest.mock('src/hooks/useUnsavedChangesPrompt', () => ({
@@ -68,7 +74,7 @@ describe('ChartPage', () => {
   });
 
   afterEach(() => {
-    fetchMock.reset();
+    fetchMock.clearHistory().removeRoutes();
   });
 
   test('fetches metadata on mount', async () => {
@@ -86,7 +92,7 @@ describe('ChartPage', () => {
       useDnd: true,
     });
     await waitFor(() =>
-      expect(fetchMock.calls(exploreApiRoute).length).toBe(1),
+      expect(fetchMock.callHistory.calls(exploreApiRoute).length).toBe(1),
     );
     expect(getByTestId('mock-explore-chart-panel')).toBeInTheDocument();
     expect(getByTestId('mock-explore-chart-panel')).toHaveTextContent(
@@ -132,8 +138,10 @@ describe('ChartPage', () => {
         timeout: 5000,
       },
     );
-    expect(fetchMock.calls(chartApiRoute).length).toEqual(0);
-    expect(fetchMock.calls(exploreApiRoute).length).toBeGreaterThanOrEqual(1);
+    expect(fetchMock.callHistory.calls(chartApiRoute).length).toEqual(0);
+    expect(
+      fetchMock.callHistory.calls(exploreApiRoute).length,
+    ).toBeGreaterThanOrEqual(1);
   });
 
   test('fetches the chart api when explore metadata is prohibited and access from the chart link', async () => {
@@ -168,10 +176,15 @@ describe('ChartPage', () => {
       useRedux: true,
       useDnd: true,
     });
-    await waitFor(() => expect(fetchMock.calls(chartApiRoute).length).toBe(1), {
-      timeout: 5000,
-    });
-    expect(fetchMock.calls(exploreApiRoute).length).toBeGreaterThanOrEqual(1);
+    await waitFor(
+      () => expect(fetchMock.callHistory.calls(chartApiRoute).length).toBe(1),
+      {
+        timeout: 5000,
+      },
+    );
+    expect(
+      fetchMock.callHistory.calls(exploreApiRoute).length,
+    ).toBeGreaterThanOrEqual(1);
     expect(getByTestId('mock-explore-chart-panel')).toBeInTheDocument();
     expect(getByTestId('mock-explore-chart-panel')).toHaveTextContent(
       JSON.stringify({ datasource: 123 }).slice(1, -1),
@@ -210,7 +223,7 @@ describe('ChartPage', () => {
       window.history.pushState(
         {},
         '',
-        `/?${URL_PARAMS.dashboardPageId.name}=${dashboardPageId}`,
+        `/explore/?${URL_PARAMS.dashboardPageId.name}=${dashboardPageId}`,
       );
       const { getByTestId } = render(<ChartPage />, {
         useRouter: true,
@@ -218,7 +231,7 @@ describe('ChartPage', () => {
         useDnd: true,
       });
       await waitFor(() =>
-        expect(fetchMock.calls(exploreApiRoute).length).toBe(1),
+        expect(fetchMock.callHistory.calls(exploreApiRoute).length).toBe(1),
       );
       expect(getByTestId('mock-explore-chart-panel')).toHaveTextContent(
         JSON.stringify({ color_scheme: dashboardFormData.color_scheme }).slice(
@@ -248,12 +261,16 @@ describe('ChartPage', () => {
       window.history.pushState(
         {},
         '',
-        `/?${URL_PARAMS.dashboardPageId.name}=${dashboardPageId}`,
+        `/explore/?${URL_PARAMS.dashboardPageId.name}=${dashboardPageId}`,
       );
       const { getByTestId } = render(
         <>
           <Link
-            to={`/?${URL_PARAMS.dashboardPageId.name}=${dashboardPageId}&${URL_PARAMS.saveAction.name}=overwrite`}
+            to={{
+              pathname: '/explore/',
+              search: `?${URL_PARAMS.dashboardPageId.name}=${dashboardPageId}`,
+              state: { saveAction: 'overwrite' },
+            }}
           >
             Change route
           </Link>
@@ -266,7 +283,7 @@ describe('ChartPage', () => {
         },
       );
       await waitFor(() =>
-        expect(fetchMock.calls(exploreApiRoute).length).toBe(1),
+        expect(fetchMock.callHistory.calls(exploreApiRoute).length).toBe(1),
       );
       expect(getByTestId('mock-explore-chart-panel')).toHaveTextContent(
         JSON.stringify({
@@ -277,13 +294,13 @@ describe('ChartPage', () => {
         ...exploreFormData,
         show_cell_bars: false,
       };
-      fetchMock.reset();
+      fetchMock.clearHistory().removeRoutes();
       fetchMock.get(exploreApiRoute, {
         result: { dataset: { id: 1 }, form_data: updatedExploreFormData },
       });
       fireEvent.click(screen.getByText('Change route'));
       await waitFor(() =>
-        expect(fetchMock.calls(exploreApiRoute).length).toBe(1),
+        expect(fetchMock.callHistory.calls(exploreApiRoute).length).toBe(1),
       );
       expect(getByTestId('mock-explore-chart-panel')).toHaveTextContent(
         JSON.stringify({
@@ -291,5 +308,321 @@ describe('ChartPage', () => {
         }).slice(1, -1),
       );
     });
+
+    test('re-fetches explore data on back-button navigation (POP)', async () => {
+      const exploreApiRoute = 'glob:*/api/v1/explore/*';
+      const initialFormData = getExploreFormData({
+        viz_type: VizType.Table,
+        show_cell_bars: true,
+      });
+      const updatedFormData = getExploreFormData({
+        viz_type: VizType.Table,
+        show_cell_bars: false,
+      });
+      fetchMock.get(exploreApiRoute, {
+        result: { dataset: { id: 1 }, form_data: initialFormData },
+      });
+      render(
+        <>
+          <Link to="/explore/?slice_id=99">Navigate away</Link>
+          <ChartPage />
+        </>,
+        {
+          useRouter: true,
+          useRedux: true,
+          useDnd: true,
+        },
+      );
+      await waitFor(() =>
+        expect(fetchMock.callHistory.calls(exploreApiRoute).length).toBe(1),
+      );
+      expect(screen.getByTestId('mock-explore-chart-panel')).toHaveTextContent(
+        JSON.stringify({ show_cell_bars: true }).slice(1, -1),
+      );
+
+      // Navigate forward (PUSH) then simulate back-button (POP)
+      fetchMock.clearHistory().removeRoutes();
+      fetchMock.get(exploreApiRoute, {
+        result: { dataset: { id: 1 }, form_data: updatedFormData },
+      });
+      fireEvent.click(screen.getByText('Navigate away'));
+      await waitFor(() =>
+        expect(fetchMock.callHistory.calls(exploreApiRoute).length).toBe(1),
+      );
+
+      fetchMock.clearHistory().removeRoutes();
+      fetchMock.get(exploreApiRoute, {
+        result: { dataset: { id: 1 }, form_data: initialFormData },
+      });
+      // Simulate back button
+      window.history.back();
+      await waitFor(() =>
+        expect(fetchMock.callHistory.calls(exploreApiRoute).length).toBe(1),
+      );
+      expect(screen.getByTestId('mock-explore-chart-panel')).toHaveTextContent(
+        JSON.stringify({ show_cell_bars: true }).slice(1, -1),
+      );
+    });
+
+    test('restores the chart state held by the entry on back-button navigation (POP)', async () => {
+      const exploreApiRoute = 'glob:*/api/v1/explore/*';
+      const formData = getExploreFormData({
+        viz_type: VizType.Table,
+        show_cell_bars: true,
+      });
+      fetchMock.get(exploreApiRoute, {
+        result: { dataset: { id: 1 }, form_data: formData },
+      });
+      fetchMock.post('glob:*/api/v1/chart/data*', { result: [] });
+      const setExploreControlsSpy = jest.spyOn(
+        exploreActions,
+        'setExploreControls',
+      );
+      render(
+        <>
+          <Link
+            to={{
+              pathname: '/explore/',
+              search: `?${URL_PARAMS.sliceId.name}=${formData.slice_id}`,
+              state: toChartStateHistoryState({
+                ...formData,
+                show_cell_bars: false,
+              }),
+            }}
+          >
+            Change the chart
+          </Link>
+          <Link to="/explore/?slice_id=99">Navigate away</Link>
+          <ChartPage />
+        </>,
+        { useRouter: true, useRedux: true, useDnd: true },
+      );
+      await waitFor(() =>
+        expect(fetchMock.callHistory.calls(exploreApiRoute).length).toBe(1),
+      );
+
+      // an entry Explore pushed for a chart change, then navigation off it
+      fireEvent.click(screen.getByText('Change the chart'));
+      fireEvent.click(screen.getByText('Navigate away'));
+      await waitFor(() =>
+        expect(fetchMock.callHistory.calls(exploreApiRoute).length).toBe(2),
+      );
+      fetchMock.clearHistory();
+      setExploreControlsSpy.mockClear();
+
+      window.history.back();
+      await waitFor(() =>
+        expect(setExploreControlsSpy).toHaveBeenCalledWith(
+          expect.objectContaining({ show_cell_bars: false }),
+        ),
+      );
+      expect(fetchMock.callHistory.calls(exploreApiRoute).length).toBe(0);
+    });
+
+    test('re-fetches when the entry holds the state of another chart', async () => {
+      const exploreApiRoute = 'glob:*/api/v1/explore/*';
+      const formData = getExploreFormData({ viz_type: VizType.Table });
+      fetchMock.get(exploreApiRoute, {
+        result: { dataset: { id: 1 }, form_data: formData },
+      });
+      const setExploreControlsSpy = jest.spyOn(
+        exploreActions,
+        'setExploreControls',
+      );
+      render(
+        <>
+          <Link
+            to={{
+              pathname: '/explore/',
+              search: `?${URL_PARAMS.sliceId.name}=99`,
+              state: toChartStateHistoryState({ ...formData, slice_id: 99 }),
+            }}
+          >
+            Another chart
+          </Link>
+          <Link to="/explore/?slice_id=100">Navigate away</Link>
+          <ChartPage />
+        </>,
+        { useRouter: true, useRedux: true, useDnd: true },
+      );
+      await waitFor(() =>
+        expect(fetchMock.callHistory.calls(exploreApiRoute).length).toBe(1),
+      );
+
+      fireEvent.click(screen.getByText('Another chart'));
+      fireEvent.click(screen.getByText('Navigate away'));
+      await waitFor(() =>
+        expect(fetchMock.callHistory.calls(exploreApiRoute).length).toBe(2),
+      );
+      fetchMock.clearHistory();
+      setExploreControlsSpy.mockClear();
+
+      window.history.back();
+      await waitFor(() =>
+        expect(fetchMock.callHistory.calls(exploreApiRoute).length).toBe(1),
+      );
+      expect(setExploreControlsSpy).not.toHaveBeenCalled();
+    });
+
+    test('re-fetches when the dataset changed after the entry was pushed', async () => {
+      const exploreApiRoute = 'glob:*/api/v1/explore/*';
+      const loads = () =>
+        fetchMock.callHistory.calls(exploreApiRoute, { method: 'GET' }).length;
+      const formData = getExploreFormData({ viz_type: VizType.Table });
+      fetchMock.get(exploreApiRoute, {
+        result: { dataset: { id: 1 }, form_data: formData },
+      });
+      const store = createStore({}, reducerIndex);
+      render(
+        <>
+          <Link
+            to={{
+              pathname: '/explore/',
+              search: `?${URL_PARAMS.sliceId.name}=${formData.slice_id}`,
+              state: toChartStateHistoryState(formData),
+            }}
+          >
+            Change the chart
+          </Link>
+          <Link to="/explore/?slice_id=99">Navigate away</Link>
+          <ChartPage />
+        </>,
+        { useRouter: true, useRedux: true, useDnd: true, store },
+      );
+      await waitFor(() => expect(loads()).toBe(1));
+      fireEvent.click(screen.getByText('Change the chart'));
+      fireEvent.click(screen.getByText('Navigate away'));
+      await waitFor(() => expect(loads()).toBe(2));
+      fetchMock.clearHistory();
+
+      // the entry predates the swap, so it can't be applied to the chart on screen
+      act(() => {
+        store.dispatch(
+          exploreActions.setExploreControls({
+            ...formData,
+            datasource: '3__table',
+          }),
+        );
+      });
+      window.history.back();
+      await waitFor(() => expect(loads()).toBe(1));
+    });
+
+    test('does not re-fetch explore data when navigating to a dashboard', async () => {
+      const exploreApiRoute = 'glob:*/api/v1/explore/*';
+      const exploreFormData = getExploreFormData({
+        viz_type: VizType.Table,
+        show_cell_bars: true,
+      });
+      fetchMock.get(exploreApiRoute, {
+        result: { dataset: { id: 1 }, form_data: exploreFormData },
+      });
+      render(
+        <>
+          <Link to="/dashboard/5/">Go to dashboard</Link>
+          <ChartPage />
+        </>,
+        { useRouter: true, useRedux: true, useDnd: true },
+      );
+      await waitFor(() =>
+        expect(fetchMock.callHistory.calls(exploreApiRoute).length).toBe(1),
+      );
+
+      fireEvent.click(screen.getByText('Go to dashboard'));
+
+      await new Promise(resolve => setTimeout(resolve, 0));
+      expect(fetchMock.callHistory.calls(exploreApiRoute).length).toBe(1);
+    });
+  });
+
+  test('does not show error toast when request is aborted on unmount', async () => {
+    const addDangerToastSpy = jest.spyOn(messageToastActions, 'addDangerToast');
+    const exploreApiRoute = 'glob:*/api/v1/explore/*';
+    let rejectRequest: (error: Error) => void;
+    const pendingPromise = new Promise((_, reject) => {
+      rejectRequest = reject;
+    });
+
+    fetchMock.get(exploreApiRoute, () => pendingPromise);
+
+    const { unmount } = render(<ChartPage />, {
+      useRouter: true,
+      useRedux: true,
+      useDnd: true,
+    });
+
+    // Unmount before the request completes
+    unmount();
+
+    // Simulate the aborted request rejection
+    const abortError = new Error('The operation was aborted.');
+    abortError.name = 'AbortError';
+    rejectRequest!(abortError);
+
+    // Wait for the rejected request to settle before asserting no toast was shown
+    await pendingPromise.catch(() => undefined);
+    expect(addDangerToastSpy).not.toHaveBeenCalled();
+
+    addDangerToastSpy.mockRestore();
+  });
+
+  test('aborts in-flight request when a new request is made', async () => {
+    const addDangerToastSpy = jest.spyOn(messageToastActions, 'addDangerToast');
+    const exploreApiRoute = 'glob:*/api/v1/explore/*';
+    const exploreFormData = getExploreFormData({
+      viz_type: VizType.Table,
+      show_cell_bars: true,
+    });
+
+    // First request will reject with AbortError when aborted
+    let rejectFirstRequest: (error: Error) => void;
+    const firstRequestPromise = new Promise((_, reject) => {
+      rejectFirstRequest = reject;
+    });
+
+    const firstRequestHandler = jest.fn(() => firstRequestPromise);
+    fetchMock.get(exploreApiRoute, firstRequestHandler);
+
+    render(
+      <>
+        <Link to="/explore/?slice_id=99">Navigate</Link>
+        <ChartPage />
+      </>,
+      {
+        useRouter: true,
+        useRedux: true,
+        useDnd: true,
+      },
+    );
+
+    // Wait for the initial request cycle to begin. Under CI, mount/navigation
+    // setup can trigger more than one explore fetch before history is cleared.
+    await waitFor(() => expect(firstRequestHandler).toHaveBeenCalled());
+
+    // Set up second request to return immediately
+    fetchMock.clearHistory().removeRoutes();
+    const secondRequestHandler = jest.fn(() => ({
+      result: { dataset: { id: 1 }, form_data: exploreFormData },
+    }));
+    fetchMock.get(exploreApiRoute, secondRequestHandler);
+
+    // Navigate to trigger a new request (which should abort the first)
+    fireEvent.click(screen.getByText('Navigate'));
+
+    // Simulate the first request being aborted
+    const abortError = new Error('The operation was aborted.');
+    abortError.name = 'AbortError';
+    rejectFirstRequest!(abortError);
+
+    // Wait for the first request to settle before asserting
+    await firstRequestPromise.catch(() => undefined);
+
+    // Wait for the replacement request to run after navigation.
+    await waitFor(() => expect(secondRequestHandler).toHaveBeenCalled());
+
+    // No error toast should be shown from the aborted first request
+    expect(addDangerToastSpy).not.toHaveBeenCalled();
+
+    addDangerToastSpy.mockRestore();
   });
 });

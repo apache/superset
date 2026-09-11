@@ -17,7 +17,12 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import { screen, waitFor, fireEvent } from 'spec/helpers/testing-library';
+import {
+  screen,
+  waitFor,
+  fireEvent,
+  within,
+} from 'spec/helpers/testing-library';
 import { isFeatureEnabled } from '@superset-ui/core';
 import {
   API_ENDPOINTS,
@@ -25,12 +30,6 @@ import {
   renderChartList,
   setupMocks,
 } from './ChartList.testHelpers';
-
-const mockPush = jest.fn();
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
-  useHistory: () => ({ push: mockPush }),
-}));
 
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
@@ -58,9 +57,12 @@ const mockUser = {
 const findFilterByLabel = (labelText: string) => {
   const containers = screen.getAllByTestId('select-filter-container');
   for (const container of containers) {
-    const label = container.querySelector('label');
-    if (label?.textContent === labelText) {
-      return container.querySelector('[role="combobox"], .ant-select');
+    // Compact pill filters show the label as button text
+    const pill = container.querySelector(
+      '[data-test="compact-filter-pill"]',
+    ) as HTMLElement | null;
+    if (pill && pill.textContent?.includes(labelText)) {
+      return pill;
     }
   }
   return null;
@@ -69,13 +71,12 @@ const findFilterByLabel = (labelText: string) => {
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ChartList', () => {
   beforeEach(() => {
+    fetchMock.removeRoutes();
     setupMocks();
-    mockPush.mockClear();
   });
 
   afterEach(() => {
-    fetchMock.resetHistory();
-    fetchMock.restore();
+    fetchMock.clearHistory();
     // Reset feature flag mock
     (
       isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
@@ -89,12 +90,12 @@ describe('ChartList', () => {
     expect(screen.getByText('Charts')).toBeInTheDocument();
   });
 
-  test('verify New Chart button existence and functionality', async () => {
+  test('navigates to /chart/add on New Chart button click', async () => {
     renderChartList(mockUser);
     await screen.findByTestId('chart-list-view');
 
     // Verify New Chart button exists
-    const newChartButton = screen.getByRole('button', { name: /chart/i });
+    const newChartButton = screen.getByRole('button', { name: /chart$/i });
     expect(newChartButton).toBeInTheDocument();
     expect(screen.getByTestId('plus')).toBeInTheDocument();
 
@@ -102,12 +103,15 @@ describe('ChartList', () => {
     fireEvent.click(newChartButton);
 
     // Verify it triggers navigation to chart creation
-    await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith('/chart/add');
-    });
+    await waitFor(
+      () => {
+        expect(window.location.pathname).toEqual('/chart/add');
+      },
+      { timeout: 5000 },
+    );
   });
 
-  test('verify Import button existence and functionality', async () => {
+  test('opens import modal on Import button click', async () => {
     renderChartList(mockUser);
     await screen.findByTestId('chart-list-view');
 
@@ -128,12 +132,14 @@ describe('ChartList', () => {
 
   test('shows loading state during initial data fetch', async () => {
     // Delay the chart data response to test loading state
+    // fetchMock.removeRoute(API_ENDPOINTS.CHARTS)
+    fetchMock.removeRoutes();
     fetchMock.get(
       API_ENDPOINTS.CHARTS,
       new Promise(resolve =>
         setTimeout(() => resolve({ result: mockCharts, chart_count: 3 }), 200),
       ),
-      { overwriteRoutes: true },
+      { name: API_ENDPOINTS.CHARTS },
     );
 
     renderChartList(mockUser);
@@ -154,103 +160,52 @@ describe('ChartList', () => {
     renderChartList(mockUser);
 
     await waitFor(() => {
-      const infoCalls = fetchMock.calls(/chart\/_info/);
-      const dataCalls = fetchMock.calls(/chart\/\?q/);
+      const infoCalls = fetchMock.callHistory.calls(/chart\/_info/);
+      const dataCalls = fetchMock.callHistory.calls(/chart\/\?q/);
 
       expect(infoCalls).toHaveLength(1);
       expect(dataCalls).toHaveLength(1);
-      expect(dataCalls[0][0]).toContain(
+      expect(dataCalls[0].url).toContain(
         'order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:25',
       );
     });
   });
 
-  test('shows loading state while API calls are in progress', async () => {
-    // Mock delayed API responses
-    fetchMock.get(
-      API_ENDPOINTS.CHARTS_INFO,
-      new Promise(resolve =>
-        setTimeout(
-          () => resolve({ permissions: ['can_read', 'can_write'] }),
-          100,
-        ),
-      ),
-      { overwriteRoutes: true },
-    );
-
-    fetchMock.get(
-      API_ENDPOINTS.CHARTS,
-      new Promise(resolve =>
-        setTimeout(() => resolve({ result: mockCharts, chart_count: 3 }), 150),
-      ),
-      { overwriteRoutes: true },
-    );
-
+  test('displays Matrixify tag for charts with matrixify enabled', async () => {
     renderChartList(mockUser);
 
-    // Main container should render immediately
-    expect(screen.getByTestId('chart-list-view')).toBeInTheDocument();
+    // Wait for the chart list to load
+    await waitFor(() => {
+      expect(screen.getByText('Test Chart 0')).toBeInTheDocument();
+    });
 
-    // Eventually data should load
-    await waitFor(
-      () => {
-        const infoCalls = fetchMock.calls(/chart\/_info/);
-        const dataCalls = fetchMock.calls(/chart\/\?q/);
+    // Find the row containing Test Chart 0 (which has matrixify enabled)
+    const chart0Row = screen.getByText('Test Chart 0').closest('tr');
+    expect(chart0Row).toBeInTheDocument();
 
-        expect(infoCalls).toHaveLength(1);
-        expect(dataCalls).toHaveLength(1);
-      },
-      { timeout: 1000 },
+    // Check that the Matrixify tag is present in this row
+    const matrixifyTag = within(chart0Row as HTMLElement).getByText(
+      'Matrixified',
     );
-  });
+    expect(matrixifyTag).toBeInTheDocument();
 
-  test('maintains component structure during loading', async () => {
-    // Only delay data loading, not permissions
-    fetchMock.get(
-      API_ENDPOINTS.CHARTS,
-      new Promise(resolve =>
-        setTimeout(() => resolve({ result: mockCharts, chart_count: 3 }), 200),
-      ),
-      { overwriteRoutes: true },
-    );
+    // Find the row containing Test Chart 1 (which doesn't have matrixify)
+    const chart1Row = screen.getByText('Test Chart 1').closest('tr');
+    expect(chart1Row).toBeInTheDocument();
 
-    renderChartList(mockUser);
-
-    // Core structure should be available immediately
-    expect(screen.getByTestId('chart-list-view')).toBeInTheDocument();
-    expect(screen.getByText('Charts')).toBeInTheDocument();
-
-    // View toggles should be available during loading
-    expect(screen.getByRole('img', { name: 'appstore' })).toBeInTheDocument();
+    // Check that the Matrixify tag is NOT present in this row
     expect(
-      screen.getByRole('img', { name: 'unordered-list' }),
-    ).toBeInTheDocument();
-
-    // Wait for permissions to load, then action buttons should appear
-    await waitFor(
-      () => {
-        expect(
-          screen.getByRole('button', { name: 'Bulk select' }),
-        ).toBeInTheDocument();
-      },
-      { timeout: 500 },
-    );
-
-    // Wait for data to eventually load
-    await waitFor(
-      () => {
-        expect(screen.getByText(mockCharts[0].slice_name)).toBeInTheDocument();
-      },
-      { timeout: 1000 },
-    );
+      within(chart1Row as HTMLElement).queryByText('Matrixified'),
+    ).not.toBeInTheDocument();
   });
 
   test('handles API errors gracefully', async () => {
     // Mock API failure
+    fetchMock.removeRoutes();
     fetchMock.get(
       API_ENDPOINTS.CHARTS_INFO,
       { throws: new Error('API Error') },
-      { overwriteRoutes: true },
+      { name: API_ENDPOINTS.CHARTS_INFO },
     );
 
     renderChartList(mockUser);
@@ -260,12 +215,13 @@ describe('ChartList', () => {
     expect(screen.getByTestId('chart-list-view')).toBeInTheDocument();
   });
 
-  test('handles empty results', async () => {
+  test('renders controls when chart list is empty', async () => {
     // Mock empty chart data (not permissions)
+    fetchMock.removeRoute(API_ENDPOINTS.CHARTS);
     fetchMock.get(
       API_ENDPOINTS.CHARTS,
       { result: [], chart_count: 0 },
-      { overwriteRoutes: true },
+      { name: API_ENDPOINTS.CHARTS },
     );
 
     renderChartList(mockUser);
@@ -283,135 +239,90 @@ describe('ChartList', () => {
       screen.getByRole('button', { name: 'Bulk select' }),
     ).toBeInTheDocument();
   });
+
+  test('archive (soft-delete) confirmation reflects recoverable semantics, not delete', async () => {
+    // With SOFT_DELETE on, the same delete affordance becomes reversible: the
+    // dialog reads "Archive", not "Delete", and drops the "type DELETE to
+    // confirm" gate -- that friction is reserved for the permanent purge in
+    // the Recently Archived view, not this one.
+    (
+      isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
+    ).mockImplementation((feature: string) => feature === 'SOFT_DELETE');
+
+    // isUserEditorOrAdmin requires `username` + `permissions` to recognize an
+    // Admin role (see src/types/bootstrapTypes.ts's isUserWithPermissionsAndRoles);
+    // mockUser lacks both, so row actions would otherwise render disabled.
+    const adminUser = { ...mockUser, username: 'admin', permissions: {} };
+    renderChartList(adminUser);
+    await screen.findByTestId('chart-list-view');
+
+    const deleteButtons = await screen.findAllByTestId('chart-row-delete');
+    fireEvent.click(deleteButtons[0]);
+
+    const dialog = await screen.findByRole('dialog');
+    expect(
+      within(dialog).getByText(`Archive ${mockCharts[0].slice_name}?`),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).getByRole('button', { name: 'Archive' }),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).getByText(/moved to Recently Archived/i),
+    ).toBeInTheDocument();
+    expect(within(dialog).getByText(/recover it there/i)).toBeInTheDocument();
+
+    expect(screen.queryByTestId('delete-modal-input')).not.toBeInTheDocument();
+  });
 });
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ChartList - Global Filter Interactions', () => {
   beforeEach(() => {
+    fetchMock.removeRoutes();
     setupMocks();
   });
 
   afterEach(() => {
-    fetchMock.resetHistory();
-    fetchMock.restore();
+    fetchMock.clearHistory();
     // Reset feature flag mock
     (
       isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
     ).mockReset();
   });
 
-  test('renders search filter correctly', async () => {
+  test('renders all standard filters', async () => {
     renderChartList(mockUser);
     await screen.findByTestId('chart-list-view');
-
     await waitFor(() => {
       expect(screen.getByTestId('listview-table')).toBeInTheDocument();
     });
 
-    // Verify search filter renders correctly
+    // Search filter
     expect(screen.getByTestId('filters-search')).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/type a value/i)).toBeInTheDocument();
-  });
 
-  test('renders Type filter correctly', async () => {
-    renderChartList(mockUser);
-    await screen.findByTestId('chart-list-view');
-
-    await waitFor(() => {
-      expect(screen.getByTestId('listview-table')).toBeInTheDocument();
+    // All standard select filters
+    const standardFilters = [
+      'Type',
+      'Dataset',
+      'Editor',
+      'Certified',
+      'Favorite',
+      'Dashboard',
+      'Modified by',
+    ];
+    standardFilters.forEach(filterLabel => {
+      const filter = findFilterByLabel(filterLabel);
+      expect(filter).toBeVisible();
+      expect(filter).toBeEnabled();
     });
-
-    const typeFilter = findFilterByLabel('Type');
-    expect(typeFilter).toBeVisible();
-    expect(typeFilter).toBeEnabled();
-  });
-
-  test('renders Dataset filter correctly', async () => {
-    renderChartList(mockUser);
-    await screen.findByTestId('chart-list-view');
-
-    await waitFor(() => {
-      expect(screen.getByTestId('listview-table')).toBeInTheDocument();
-    });
-
-    const datasetFilter = findFilterByLabel('Dataset');
-    expect(datasetFilter).toBeVisible();
-    expect(datasetFilter).toBeEnabled();
-  });
-
-  test('renders Owner filter correctly', async () => {
-    renderChartList(mockUser);
-    await screen.findByTestId('chart-list-view');
-
-    await waitFor(() => {
-      expect(screen.getByTestId('listview-table')).toBeInTheDocument();
-    });
-
-    const ownerFilter = findFilterByLabel('Owner');
-    expect(ownerFilter).toBeVisible();
-    expect(ownerFilter).toBeEnabled();
-  });
-
-  test('renders Certified filter correctly', async () => {
-    renderChartList(mockUser);
-    await screen.findByTestId('chart-list-view');
-
-    await waitFor(() => {
-      expect(screen.getByTestId('listview-table')).toBeInTheDocument();
-    });
-    const certifiedFilter = findFilterByLabel('Certified');
-    expect(certifiedFilter).toBeVisible();
-    expect(certifiedFilter).toBeEnabled();
-  });
-
-  test('renders Favorite filter correctly', async () => {
-    renderChartList(mockUser);
-    await screen.findByTestId('chart-list-view');
-
-    await waitFor(() => {
-      expect(screen.getByTestId('listview-table')).toBeInTheDocument();
-    });
-
-    const favoriteFilter = findFilterByLabel('Favorite');
-    expect(favoriteFilter).toBeVisible();
-    expect(favoriteFilter).toBeEnabled();
-  });
-
-  test('renders Dashboard filter correctly', async () => {
-    renderChartList(mockUser);
-    await screen.findByTestId('chart-list-view');
-
-    await waitFor(() => {
-      expect(screen.getByTestId('listview-table')).toBeInTheDocument();
-    });
-
-    const dashboardFilter = findFilterByLabel('Dashboard');
-    expect(dashboardFilter).toBeVisible();
-    expect(dashboardFilter).toBeEnabled();
-  });
-
-  test('renders Modified by filter correctly', async () => {
-    renderChartList(mockUser);
-    await screen.findByTestId('chart-list-view');
-
-    await waitFor(() => {
-      expect(screen.getByTestId('listview-table')).toBeInTheDocument();
-    });
-
-    const modifiedByFilter = findFilterByLabel('Modified by');
-    expect(modifiedByFilter).toBeVisible();
-    expect(modifiedByFilter).toBeEnabled();
   });
 
   test('renders Tags filter when TAGGING_SYSTEM is enabled', async () => {
     // Mock feature flag to enable tags
     (
       isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
-    ).mockImplementation(
-      (feature: string) =>
-        feature === 'TAGGING_SYSTEM' ||
-        feature !== 'LISTVIEWS_DEFAULT_CARD_VIEW',
-    );
+    ).mockImplementation((feature: string) => feature === 'TAGGING_SYSTEM');
 
     // Render with tag permissions
     const userWithTagPerms = {
@@ -436,11 +347,7 @@ describe('ChartList - Global Filter Interactions', () => {
   test('does not render Tags filter when TAGGING_SYSTEM is disabled', async () => {
     (
       isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
-    ).mockImplementation(
-      (feature: string) =>
-        feature !== 'LISTVIEWS_DEFAULT_CARD_VIEW' &&
-        feature !== 'TAGGING_SYSTEM',
-    );
+    ).mockImplementation(() => false);
 
     renderChartList(mockUser);
     await screen.findByTestId('chart-list-view');
@@ -457,7 +364,7 @@ describe('ChartList - Global Filter Interactions', () => {
     expect(filterLabels).not.toContain('Tag');
   });
 
-  test('allows filters to be reset correctly', async () => {
+  test('resets search filter value on clear', async () => {
     renderChartList(mockUser);
     await screen.findByTestId('chart-list-view');
 
@@ -475,4 +382,224 @@ describe('ChartList - Global Filter Interactions', () => {
     // Verify filter UI is reset
     expect((searchInput as HTMLInputElement).value).toBe('');
   });
+});
+
+// The blocking-alerts/reports pre-flight in the Archive modal (sc-117151).
+// Each test registers its report-API route BEFORE setupMocks so it takes
+// precedence over the catch-all route.
+const adminChartUser = { ...mockUser, username: 'admin', permissions: {} };
+
+const openFirstDeleteModal = async () => {
+  // ALERT_REPORTS must be on for the pre-flight to fire at all — with it off
+  // the modal opens synchronously with no dependency fetch (see the flag-off
+  // test below).
+  (
+    isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
+  ).mockImplementation(
+    (feature: string) =>
+      feature === 'SOFT_DELETE' || feature === 'ALERT_REPORTS',
+  );
+  renderChartList(adminChartUser);
+  await screen.findByTestId('chart-list-view');
+  const deleteButtons = await screen.findAllByTestId('chart-row-delete');
+  fireEvent.click(deleteButtons[0]);
+  return screen.findByRole('dialog');
+};
+
+test('archive modal lists the blocking alerts and reports with their types', async () => {
+  fetchMock.removeRoutes();
+  fetchMock.get('glob:*/api/v1/report/*', {
+    count: 2,
+    result: [
+      { id: 1, name: 'TC-081 rerun report', type: 'Report' },
+      { id: 2, name: 'Threshold alert', type: 'Alert' },
+    ],
+  });
+  setupMocks();
+  try {
+    const dialog = await openFirstDeleteModal();
+    expect(
+      within(dialog).getByText('Associated alerts and reports'),
+    ).toBeInTheDocument();
+    expect(within(dialog).getByText('TC-081 rerun report')).toBeInTheDocument();
+    expect(within(dialog).getByText('Threshold alert')).toBeInTheDocument();
+    expect(within(dialog).getByText('Report')).toBeInTheDocument();
+    expect(within(dialog).getByText('Alert')).toBeInTheDocument();
+    // Advisory only: the Archive button stays enabled.
+    expect(
+      within(dialog).getByRole('button', { name: 'Archive' }),
+    ).toBeEnabled();
+  } finally {
+    fetchMock.clearHistory();
+    (
+      isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
+    ).mockReset();
+  }
+});
+
+test('archive modal is unchanged when the chart has no alerts or reports', async () => {
+  fetchMock.removeRoutes();
+  fetchMock.get('glob:*/api/v1/report/*', { count: 0, result: [] });
+  setupMocks();
+  try {
+    const dialog = await openFirstDeleteModal();
+    expect(
+      within(dialog).getByText(/moved to Recently Archived/i),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).queryByText('Associated alerts and reports'),
+    ).not.toBeInTheDocument();
+  } finally {
+    fetchMock.clearHistory();
+    (
+      isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
+    ).mockReset();
+  }
+});
+
+test('archive modal opens unchanged and confirm still deletes when the report API 404s', async () => {
+  fetchMock.removeRoutes();
+  fetchMock.get('glob:*/api/v1/report/*', 404);
+  fetchMock.delete(`glob:*/api/v1/chart/${mockCharts[0].id}`, {});
+  setupMocks();
+  try {
+    const dialog = await openFirstDeleteModal();
+    expect(
+      within(dialog).queryByText('Associated alerts and reports'),
+    ).not.toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Archive' }));
+    await waitFor(() =>
+      expect(
+        fetchMock.callHistory.calls(`glob:*/api/v1/chart/${mockCharts[0].id}`),
+      ).toHaveLength(1),
+    );
+  } finally {
+    fetchMock.clearHistory();
+    (
+      isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
+    ).mockReset();
+  }
+});
+
+test('archive modal caps the list at ten and reports the overflow count', async () => {
+  fetchMock.removeRoutes();
+  fetchMock.get('glob:*/api/v1/report/*', {
+    count: 12,
+    result: Array.from({ length: 10 }, (_, i) => ({
+      id: i + 1,
+      name: `Blocking report ${i + 1}`,
+      type: 'Report',
+    })),
+  });
+  setupMocks();
+  try {
+    const dialog = await openFirstDeleteModal();
+    expect(within(dialog).getByText('Blocking report 10')).toBeInTheDocument();
+    expect(within(dialog).getByText('... and 2 more')).toBeInTheDocument();
+  } finally {
+    fetchMock.clearHistory();
+    (
+      isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
+    ).mockReset();
+  }
+});
+
+test('archive modal refetches on every open so the list stays fresh', async () => {
+  fetchMock.removeRoutes();
+  fetchMock.get(
+    'glob:*/api/v1/report/*',
+    {
+      count: 1,
+      result: [{ id: 1, name: 'Detach me first', type: 'Report' }],
+    },
+    { name: 'blocking-reports' },
+  );
+  setupMocks();
+  try {
+    const dialog = await openFirstDeleteModal();
+    expect(within(dialog).getByText('Detach me first')).toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
+    );
+
+    // The user detaches the report; the next open must show the new truth.
+    fetchMock.removeRoute('blocking-reports');
+    fetchMock.get(
+      'glob:*/api/v1/report/*',
+      { count: 0, result: [] },
+      { name: 'blocking-reports-empty' },
+    );
+    const deleteButtons = await screen.findAllByTestId('chart-row-delete');
+    fireEvent.click(deleteButtons[0]);
+    const reopened = await screen.findByRole('dialog');
+    expect(
+      within(reopened).queryByText('Detach me first'),
+    ).not.toBeInTheDocument();
+    expect(
+      within(reopened).queryByText('Associated alerts and reports'),
+    ).not.toBeInTheDocument();
+  } finally {
+    fetchMock.clearHistory();
+    (
+      isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
+    ).mockReset();
+  }
+});
+
+test('archive modal opens without any report fetch when ALERT_REPORTS is off', async () => {
+  fetchMock.removeRoutes();
+  fetchMock.get(
+    'glob:*/api/v1/report/*',
+    {
+      count: 1,
+      result: [{ id: 1, name: 'Should not appear', type: 'Report' }],
+    },
+    { name: 'reports-should-not-be-called' },
+  );
+  setupMocks();
+  (
+    isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
+  ).mockImplementation((feature: string) => feature === 'SOFT_DELETE');
+  try {
+    renderChartList(adminChartUser);
+    await screen.findByTestId('chart-list-view');
+    const deleteButtons = await screen.findAllByTestId('chart-row-delete');
+    fireEvent.click(deleteButtons[0]);
+    const dialog = await screen.findByRole('dialog');
+    expect(
+      within(dialog).queryByText('Associated alerts and reports'),
+    ).not.toBeInTheDocument();
+    expect(
+      fetchMock.callHistory.calls('reports-should-not-be-called'),
+    ).toHaveLength(0);
+  } finally {
+    fetchMock.clearHistory();
+    (
+      isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
+    ).mockReset();
+  }
+});
+
+test('delete confirmation keeps the type-DELETE gate when SOFT_DELETE is off', async () => {
+  fetchMock.removeRoutes();
+  fetchMock.get('glob:*/api/v1/report/*', { count: 0, result: [] });
+  setupMocks();
+  (
+    isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
+  ).mockImplementation((feature: string) => feature === 'ALERT_REPORTS');
+  try {
+    renderChartList(adminChartUser);
+    await screen.findByTestId('chart-list-view');
+    const deleteButtons = await screen.findAllByTestId('chart-row-delete');
+    fireEvent.click(deleteButtons[0]);
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText('Please confirm')).toBeInTheDocument();
+    expect(screen.getByTestId('delete-modal-input')).toBeInTheDocument();
+  } finally {
+    fetchMock.clearHistory();
+    (
+      isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
+    ).mockReset();
+  }
 });

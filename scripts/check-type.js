@@ -27,6 +27,11 @@ const { existsSync } = require("node:fs");
 const { chdir, cwd } = require("node:process");
 const { createRequire } = require("node:module");
 
+// Increase memory limit for TypeScript compiler
+if (!process.env.NODE_OPTIONS?.includes("--max-old-space-size")) {
+  process.env.NODE_OPTIONS = `${process.env.NODE_OPTIONS || ""} --max-old-space-size=8192`.trim();
+}
+
 const SUPERSET_ROOT = dirname(__dirname);
 const PACKAGE_ARG_REGEX = /^package=/;
 const EXCLUDE_DECLARATION_DIR_REGEX = /^excludeDeclarationDir=/;
@@ -284,11 +289,11 @@ function extractArgs(args, regexes) {
  * For example: `superset-frontend/foo/bar.ts` -> `foo/bar.ts`
  *
  * @param {string[]} args
- * @param {string} package
+ * @param {string} packageName
  * @returns {string[]}
  */
-function removePackageSegment(args, package) {
-  const packageSegment = package.concat(sep);
+function removePackageSegment(args, packageName) {
+  const packageSegment = packageName.concat(sep);
   return args.map((arg) => {
     const normalizedPath = normalize(arg);
 

@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Behavior, ChartMetadata, ChartPlugin, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { Behavior, ChartMetadata, ChartPlugin } from '@superset-ui/core';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
 import thumbnailDark from './images/thumbnail-dark.png';
@@ -27,11 +28,9 @@ import example2Dark from './images/Table2-dark.jpg';
 import example3 from './images/Table3.jpg';
 import example3Dark from './images/Table3-dark.jpg';
 import controlPanel from './controlPanel';
-import buildQuery from './buildQuery';
+import cachedBuildQueryInstance from './buildQuery';
 import { TableChartFormData, TableChartProps } from './types';
 
-// must export something for the module to be exist in dev mode
-export { default as __hack__ } from './types';
 export * from './types';
 
 const metadata = new ChartMetadata({
@@ -39,6 +38,7 @@ const metadata = new ChartMetadata({
     Behavior.InteractiveChart,
     Behavior.DrillToDetail,
     Behavior.DrillBy,
+    'EXPORT_CURRENT_VIEW' as any,
   ],
   category: t('Table'),
   canBeAnnotationTypes: ['EVENT', 'INTERVAL'],
@@ -74,7 +74,7 @@ export default class TableChartPlugin extends ChartPlugin<
       metadata,
       transformProps,
       controlPanel,
-      buildQuery,
+      buildQuery: cachedBuildQueryInstance,
     });
   }
 }

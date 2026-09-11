@@ -17,8 +17,9 @@
  * under the License.
  */
 
-import Owner from 'src/types/Owner';
+import type { ReactNode } from 'react';
 import { NotificationFormats } from 'src/features/reports/types';
+import type Subject from 'src/types/Subject';
 
 type user = {
   id: number;
@@ -45,6 +46,7 @@ export enum NotificationMethodOption {
   Email = 'Email',
   Slack = 'Slack',
   SlackV2 = 'SlackV2',
+  Webhook = 'Webhook',
 }
 
 export type SelectValue = {
@@ -84,13 +86,14 @@ export type Recipient = {
 
 export type MetaObject = {
   id?: number;
-  label?: string;
+  label?: ReactNode;
   value?: number | string;
+  [key: string]: unknown;
 };
 
 export type DashboardState = {
   activeTabs?: Array<string>;
-  dataMask?: Object;
+  dataMask?: object;
   anchor?: string;
   nativeFilters?: Array<ExtraNativeFilter>;
 };
@@ -132,11 +135,18 @@ export type AlertObject = {
   force_screenshot: boolean;
   grace_period?: number;
   id: number;
+  include_cta?: boolean;
   last_eval_dttm?: number;
-  last_state?: 'Success' | 'Working' | 'Error' | 'Not triggered' | 'On Grace';
+  last_state?:
+    | 'Success'
+    | 'Working'
+    | 'Error'
+    | 'Not triggered'
+    | 'On Grace'
+    | 'Retrying';
   log_retention?: number;
   name?: string;
-  owners?: Array<Owner | MetaObject>;
+  editors?: Subject[];
   sql?: string;
   timezone?: string;
   recipients?: Array<Recipient>;
@@ -148,6 +158,11 @@ export type AlertObject = {
   };
   validator_type?: string;
   working_timeout?: number;
+  retry_on_failure?: boolean;
+  retry_max_attempts?: number;
+  send_failed_reports?: boolean;
+  retry_notify_owners?: boolean;
+  retry_notify_recipients?: boolean;
 };
 
 export type LogObject = {
@@ -167,12 +182,14 @@ export enum AlertState {
   Error = 'Error',
   Noop = 'Not triggered',
   Grace = 'On Grace',
+  Retrying = 'Retrying',
 }
 
 export enum RecipientIconName {
   Email = 'Email',
   Slack = 'Slack',
   SlackV2 = 'SlackV2',
+  Webhook = 'Webhook',
 }
 export interface AlertsReportsConfig {
   ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT: number;
@@ -227,6 +244,7 @@ export type NativeFilterObject = {
     rootPath: string[];
   };
   tabsInScope: string[];
+  adhoc_filters: any[];
   targets: Array<{
     column: {
       name: string;
@@ -234,4 +252,10 @@ export type NativeFilterObject = {
     datasetId: number;
   }>;
   type: string;
+};
+
+export type DashboardTabsResponse = {
+  tab_tree: TabNode[];
+  all_tabs: Record<string, string>;
+  native_filters: Partial<Record<string, NativeFilterObject[]>>;
 };

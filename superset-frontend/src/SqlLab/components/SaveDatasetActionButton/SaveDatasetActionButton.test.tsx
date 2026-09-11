@@ -17,49 +17,69 @@
  * under the License.
  */
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
-import { Menu } from '@superset-ui/core/components/Menu';
 import SaveDatasetActionButton from 'src/SqlLab/components/SaveDatasetActionButton';
-
-const overlayMenu = (
-  <Menu items={[{ label: 'Save dataset', key: 'save-dataset' }]} />
-);
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('SaveDatasetActionButton', () => {
   test('renders a split save button', async () => {
+    const onSaveAsExplore = jest.fn();
     render(
       <SaveDatasetActionButton
         setShowSave={() => true}
-        overlayMenu={overlayMenu}
+        onSaveAsExplore={onSaveAsExplore}
+        canSaveDataset
       />,
     );
 
-    const saveBtn = screen.getByRole('button', { name: /save/i });
-    const caretBtn = screen.getByRole('button', { name: /down/i });
+    const saveBtn = screen.getByRole('button', { name: 'Save' });
+    const saveDatasetBtn = screen.getByRole('button', {
+      name: /save dataset/i,
+    });
 
     expect(
-      await screen.findByRole('button', { name: /save/i }),
+      await screen.findByRole('button', { name: 'Save' }),
     ).toBeInTheDocument();
     expect(saveBtn).toBeVisible();
-    expect(caretBtn).toBeVisible();
+    expect(saveDatasetBtn).toBeVisible();
   });
 
-  test('renders a "save dataset" dropdown menu item when user clicks caret button', async () => {
+  test('disables only the dataset button when canSaveDataset is false', () => {
+    const onSaveAsExplore = jest.fn();
     render(
       <SaveDatasetActionButton
         setShowSave={() => true}
-        overlayMenu={overlayMenu}
+        onSaveAsExplore={onSaveAsExplore}
+        canSaveDataset={false}
       />,
     );
 
-    const caretBtn = screen.getByRole('button', { name: /down/i });
+    // Saving the query needs no results.
+    expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
     expect(
-      await screen.findByRole('button', { name: /down/i }),
+      screen.getByRole('button', { name: /save dataset/i }),
+    ).toBeDisabled();
+  });
+
+  test('disables the save dataset button when the query did not run successfully', async () => {
+    render(
+      <SaveDatasetActionButton
+        setShowSave={() => true}
+        onSaveAsExplore={jest.fn()}
+        canSaveDataset={false}
+      />,
+    );
+
+    const saveDatasetBtn = screen.getByRole('button', {
+      name: /save dataset/i,
+    });
+    expect(saveDatasetBtn).toBeDisabled();
+
+    // the disabled button is wrapped in a span so the tooltip still triggers
+    userEvent.hover(saveDatasetBtn.parentElement as HTMLElement);
+    expect(
+      await screen.findByRole('tooltip', {
+        name: 'You must run the query successfully first',
+      }),
     ).toBeInTheDocument();
-    userEvent.click(caretBtn);
-
-    const saveDatasetMenuItem = screen.getByText(/save dataset/i);
-
-    expect(saveDatasetMenuItem).toBeInTheDocument();
   });
 });

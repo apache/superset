@@ -16,7 +16,10 @@
 # under the License.
 from __future__ import annotations
 
+from sqlalchemy.dialects import registry
+
 from superset.constants import TimeGrain
+from superset.db_engine_specs.base import DatabaseCategory
 from superset.db_engine_specs.hive import HiveEngineSpec
 
 time_grain_expressions: dict[str | None, str] = {
@@ -39,5 +42,21 @@ time_grain_expressions: dict[str | None, str] = {
 
 
 class SparkEngineSpec(HiveEngineSpec):
+    engine = "spark"
+    registry.register("spark", "pyhive.sqlalchemy_hive", "HiveDialect")
     _time_grain_expressions = time_grain_expressions
     engine_name = "Apache Spark SQL"
+
+    metadata = {
+        "description": "Apache Spark SQL is a module for structured data processing.",
+        "logo": "apache-spark.png",
+        "homepage_url": "https://spark.apache.org/sql/",
+        "categories": [
+            DatabaseCategory.APACHE_PROJECTS,
+            DatabaseCategory.QUERY_ENGINES,
+            DatabaseCategory.OPEN_SOURCE,
+        ],
+        "pypi_packages": ["pyhive"],
+        "connection_string": "spark://hive@{hostname}:{port}/{database}",
+        "default_port": 10000,
+    }

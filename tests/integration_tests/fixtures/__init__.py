@@ -24,6 +24,7 @@ from .energy_dashboard import (  # noqa: F401
     load_energy_table_with_slice,
 )
 from .public_role import (  # noqa: F401
+    public_role_builtin,
     public_role_like_gamma,
     public_role_like_test_role,
 )

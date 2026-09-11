@@ -47,6 +47,7 @@ const createProps = () =>
     onHide: jest.fn(),
     onSave: jest.fn(),
     addSuccessToast: jest.fn(),
+    addDangerToast: jest.fn(),
   }) as PropertiesModalProps;
 
 fetchMock.get('glob:*/api/v1/chart/318*', {
@@ -54,21 +55,22 @@ fetchMock.get('glob:*/api/v1/chart/318*', {
     description_columns: {},
     id: 318,
     label_columns: {
-      'owners.first_name': 'Owners First Name',
-      'owners.id': 'Owners Id',
-      'owners.last_name': 'Owners Last Name',
       'tags.id': 'Tags Id',
       'tags.name': 'Tags Name',
       'tags.type': 'Tags Type',
+      'editors.id': 'Editors Id',
+      'editors.label': 'Editors Label',
+      'editors.type': 'Editors Type',
     },
     result: {
-      owners: [
+      editors: [
         {
-          first_name: 'Superset',
           id: 1,
-          last_name: 'Admin',
+          label: 'Superset Admin',
+          type: 1,
         },
       ],
+      viewers: [],
       tags: [
         {
           id: 1,
@@ -77,7 +79,7 @@ fetchMock.get('glob:*/api/v1/chart/318*', {
         },
         {
           id: 2,
-          name: 'owner:1',
+          name: 'editor:1',
           type: 3,
         },
         {
@@ -86,30 +88,23 @@ fetchMock.get('glob:*/api/v1/chart/318*', {
           type: 1,
         },
       ],
+      show_title: 'Show Slice',
+      certification_details: 'Test certification details',
+      certified_by: 'Test certified by',
+      description: 'Test description',
+      cache_timeout: 1000,
+      slice_name: 'Test chart new name',
     },
     show_columns: [
-      'owners.id',
-      'owners.first_name',
-      'owners.last_name',
       'tags.id',
       'tags.name',
       'tags.type',
+      'editors.id',
+      'editors.label',
+      'editors.type',
     ],
     show_title: 'Show Slice',
   },
-});
-
-fetchMock.get('glob:*/api/v1/chart/related/owners?q=(filter:%27%27)', {
-  body: {
-    count: 1,
-    result: [
-      {
-        text: 'Superset Admin',
-        value: 1,
-      },
-    ],
-  },
-  sendAsJson: true,
 });
 
 fetchMock.put('glob:*/api/v1/chart/318', {
@@ -120,7 +115,6 @@ fetchMock.put('glob:*/api/v1/chart/318', {
       certified_by: 'John Doe',
       certification_details: 'Sample certification',
       description: null,
-      owners: [],
       slice_name: 'Age distribution of respondents',
     },
   },
@@ -128,7 +122,7 @@ fetchMock.put('glob:*/api/v1/chart/318', {
 });
 
 afterAll(() => {
-  fetchMock.resetBehavior();
+  fetchMock.clearHistory().removeRoutes();
 });
 
 const renderModal = (props: PropertiesModalProps) =>
@@ -144,12 +138,6 @@ test('Should render null when show:false', async () => {
       screen.queryByRole('dialog', { name: 'Chart properties' }),
     ).not.toBeInTheDocument();
   });
-});
-
-// Add cleanup after each test
-afterEach(async () => {
-  // Wait for any pending effects to complete
-  await new Promise(resolve => setTimeout(resolve, 0));
 });
 
 test('Should render when show:true', async () => {
@@ -186,7 +174,7 @@ test('"Close" button should call "onHide"', async () => {
     expect(props.onHide).toHaveBeenCalledTimes(0);
   });
 
-  userEvent.click(screen.getByRole('button', { name: 'Close' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Close' }));
 
   await waitFor(() => {
     expect(props.onHide).toHaveBeenCalledTimes(1);
@@ -212,14 +200,14 @@ test('Should render all elements inside modal', async () => {
       // Check for visible labels and fields in the expanded section
       expect(screen.getByText('Name')).toBeInTheDocument();
       expect(screen.getByText('Description')).toBeInTheDocument();
-      expect(screen.getByText('Owners')).toBeInTheDocument();
+      expect(screen.getByText('Editors')).toBeInTheDocument();
 
       // Check that we have the expected number of textboxes visible
       const textboxes = screen.getAllByRole('textbox');
       expect(textboxes.length).toBeGreaterThanOrEqual(2); // At least Name and Description
 
-      // Owners combobox should be visible
-      expect(screen.getByRole('combobox')).toBeInTheDocument();
+      // Editors combobox should be visible
+      expect(screen.getAllByRole('combobox').length).toBeGreaterThanOrEqual(1);
     },
     { timeout: 10000 },
   );
@@ -247,7 +235,7 @@ test('"Cancel" button should call "onHide"', async () => {
     expect(props.onHide).toHaveBeenCalledTimes(0);
   });
 
-  userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
 
   await waitFor(() => {
     expect(props.onHide).toHaveBeenCalledTimes(1);
@@ -255,7 +243,7 @@ test('"Cancel" button should call "onHide"', async () => {
   });
 });
 
-test('"Save" button should call only "onSave"', async () => {
+test('"Save" button should call "onSave" and "onHide"', async () => {
   const props = createProps();
   renderModal(props);
   await waitFor(() => {
@@ -264,7 +252,7 @@ test('"Save" button should call only "onSave"', async () => {
 
     expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
   });
-  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Save' }));
 
   await waitFor(() => {
     expect(props.onSave).toHaveBeenCalledTimes(1);
@@ -286,7 +274,7 @@ test('Empty "Certified by" should clear "Certification details"', async () => {
   // Expand the Advanced section first to access certification details
   const advancedPanel = screen.getByText('Advanced').closest('[role="tab"]');
   if (advancedPanel) {
-    userEvent.click(advancedPanel);
+    await userEvent.click(advancedPanel);
   }
 
   await waitFor(() => {
@@ -305,11 +293,11 @@ test('"Name" should not be empty', async () => {
 
   const name = screen.getByRole('textbox', { name: 'Name' });
 
-  userEvent.clear(name);
+  await userEvent.clear(name);
 
   expect(name).toHaveValue('');
 
-  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Save' }));
 
   await waitFor(() => {
     expect(props.onSave).toHaveBeenCalledTimes(0);
@@ -322,12 +310,12 @@ test('"Name" should not be empty when saved', async () => {
 
   const name = screen.getByRole('textbox', { name: 'Name' });
 
-  userEvent.clear(name);
-  userEvent.type(name, 'Test chart new name');
+  await userEvent.clear(name);
+  await userEvent.type(name, 'Test chart new name');
 
   expect(name).toHaveValue('Test chart new name');
 
-  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Save' }));
 
   await waitFor(() => {
     expect(props.onSave).toHaveBeenCalledTimes(1);
@@ -344,19 +332,17 @@ test('"Cache timeout" should not be empty when saved', async () => {
   // Expand the Configuration section first to access cache timeout
   const configPanel = screen.getByText('Configuration').closest('[role="tab"]');
   if (configPanel) {
-    userEvent.click(configPanel);
+    await userEvent.click(configPanel);
   }
 
-  await waitFor(() => {
-    const cacheTimeout = screen.getByRole('textbox', { name: 'Cache timeout' });
-
-    userEvent.clear(cacheTimeout);
-    userEvent.type(cacheTimeout, '1000');
-
-    expect(cacheTimeout).toHaveValue('1000');
+  const cacheTimeout = await screen.findByRole('textbox', {
+    name: 'Cache timeout',
   });
+  await userEvent.clear(cacheTimeout);
+  await userEvent.type(cacheTimeout, '1000');
+  expect(cacheTimeout).toHaveValue('1000');
 
-  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Save' }));
 
   await waitFor(() => {
     expect(props.onSave).toHaveBeenCalledTimes(1);
@@ -379,12 +365,12 @@ test('"Description" should not be empty when saved', async () => {
   const textboxes = screen.getAllByRole('textbox');
   const description = textboxes[1]; // Description is the textarea
 
-  userEvent.clear(description);
-  userEvent.type(description, 'Test description');
+  await userEvent.clear(description);
+  await userEvent.type(description, 'Test description');
 
   expect(description).toHaveValue('Test description');
 
-  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Save' }));
 
   await waitFor(() => {
     expect(props.onSave).toHaveBeenCalledTimes(1);
@@ -401,19 +387,17 @@ test('"Certified by" should not be empty when saved', async () => {
   // Expand the Advanced section first to access certified by
   const advancedPanel = screen.getByText('Advanced').closest('[role="tab"]');
   if (advancedPanel) {
-    userEvent.click(advancedPanel);
+    await userEvent.click(advancedPanel);
   }
 
-  await waitFor(() => {
-    const certifiedBy = screen.getByRole('textbox', { name: 'Certified by' });
-
-    userEvent.clear(certifiedBy);
-    userEvent.type(certifiedBy, 'Test certified by');
-
-    expect(certifiedBy).toHaveValue('Test certified by');
+  const certifiedBy = await screen.findByRole('textbox', {
+    name: 'Certified by',
   });
+  await userEvent.clear(certifiedBy);
+  await userEvent.type(certifiedBy, 'Test certified by');
+  expect(certifiedBy).toHaveValue('Test certified by');
 
-  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Save' }));
 
   await waitFor(() => {
     expect(props.onSave).toHaveBeenCalledTimes(1);
@@ -430,21 +414,17 @@ test('"Certification details" should not be empty when saved', async () => {
   // Expand the Advanced section first to access certification details
   const advancedPanel = screen.getByText('Advanced').closest('[role="tab"]');
   if (advancedPanel) {
-    userEvent.click(advancedPanel);
+    await userEvent.click(advancedPanel);
   }
 
-  await waitFor(() => {
-    const certificationDetails = screen.getByRole('textbox', {
-      name: 'Certification details',
-    });
-
-    userEvent.clear(certificationDetails);
-    userEvent.type(certificationDetails, 'Test certification details');
-
-    expect(certificationDetails).toHaveValue('Test certification details');
+  const certificationDetails = await screen.findByRole('textbox', {
+    name: 'Certification details',
   });
+  await userEvent.clear(certificationDetails);
+  await userEvent.type(certificationDetails, 'Test certification details');
+  expect(certificationDetails).toHaveValue('Test certification details');
 
-  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Save' }));
 
   await waitFor(() => {
     expect(props.onSave).toHaveBeenCalledTimes(1);
@@ -467,17 +447,34 @@ test('Should display only custom tags when tagging system is enabled', async () 
   const props = createProps();
   renderModal(props);
 
-  await waitFor(async () => {
-    expect(await screen.findByText('Tags')).toBeInTheDocument();
-    expect(
-      await screen.findByRole('combobox', { name: 'Tags' }),
-    ).toBeInTheDocument();
-  });
+  expect(await screen.findByText('Tags')).toBeInTheDocument();
+  expect(
+    await screen.findByRole('combobox', { name: 'Tags' }),
+  ).toBeInTheDocument();
 
-  await waitFor(async () => {
-    expect(await screen.findByText('my test tag')).toBeInTheDocument();
-    expect(screen.queryByText('type:chart')).not.toBeInTheDocument();
-    expect(screen.queryByText('owner:1')).not.toBeInTheDocument();
+  expect(await screen.findByText('my test tag')).toBeInTheDocument();
+  expect(screen.queryByText('type:chart')).not.toBeInTheDocument();
+  expect(screen.queryByText('editor:1')).not.toBeInTheDocument();
+
+  mockIsFeatureEnabled.mockRestore();
+});
+
+test('Should show Viewers picker when ENABLE_VIEWERS is on', async () => {
+  const mockIsFeatureEnabled = isFeatureEnabled as jest.MockedFunction<
+    typeof isFeatureEnabled
+  >;
+  mockIsFeatureEnabled.mockImplementation(
+    flag => flag === FeatureFlag.EnableViewers,
+  );
+
+  const props = createProps();
+  renderModal(props);
+
+  await waitFor(() => {
+    expect(screen.getByText('Viewers')).toBeInTheDocument();
+    expect(
+      screen.getByRole('combobox', { name: 'Viewers' }),
+    ).toBeInTheDocument();
   });
 
   mockIsFeatureEnabled.mockRestore();

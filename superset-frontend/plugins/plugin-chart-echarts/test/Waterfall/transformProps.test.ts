@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, supersetTheme } from '@superset-ui/core';
+import { ChartProps } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/theme';
 import {
   EchartsWaterfallChartProps,
   WaterfallChartTransformedProps,
@@ -39,107 +40,182 @@ const extractSeriesName = (props: WaterfallChartTransformedProps) => {
   return series.map(item => item.name);
 };
 
-describe('Waterfall tranformProps', () => {
-  const data = [
-    { year: '2019', name: 'Sylvester', sum: 10 },
-    { year: '2019', name: 'Arnold', sum: 3 },
-    { year: '2020', name: 'Sylvester', sum: -10 },
-    { year: '2020', name: 'Arnold', sum: 5 },
-  ];
+const data = [
+  { year: '2019', name: 'Sylvester', sum: 10 },
+  { year: '2019', name: 'Arnold', sum: 3 },
+  { year: '2020', name: 'Sylvester', sum: -10 },
+  { year: '2020', name: 'Arnold', sum: 5 },
+];
 
-  const formData = {
-    colorScheme: 'bnbColors',
-    datasource: '3__table',
-    x_axis: 'year',
-    metric: 'sum',
-    increaseColor: { r: 0, b: 0, g: 0 },
-    decreaseColor: { r: 0, b: 0, g: 0 },
-    totalColor: { r: 0, b: 0, g: 0 },
-  };
+const formData = {
+  colorScheme: 'bnbColors',
+  datasource: '3__table',
+  x_axis: 'year',
+  metric: 'sum',
+  increaseColor: { r: 0, b: 0, g: 0 },
+  decreaseColor: { r: 0, b: 0, g: 0 },
+  totalColor: { r: 0, b: 0, g: 0 },
+  showTotal: true,
+};
 
-  it('should tranform chart props for viz when breakdown not exist', () => {
-    const chartProps = new ChartProps({
-      formData: { ...formData, series: 'bar' },
-      width: 800,
-      height: 600,
-      queriesData: [
-        {
-          data,
-        },
-      ],
-      theme: supersetTheme,
-    });
-    const transformedProps = transformProps(
-      chartProps as unknown as EchartsWaterfallChartProps,
-    );
-    expect(extractSeries(transformedProps)).toEqual([
-      [0, 8, '-'],
-      [13, '-', '-'],
-      ['-', 5, '-'],
-      ['-', '-', 8],
-    ]);
-  });
-
-  it('should tranform chart props for viz when breakdown exist', () => {
-    const chartProps = new ChartProps({
-      formData: { ...formData, groupby: 'name' },
-      width: 800,
-      height: 600,
-      queriesData: [
-        {
-          data,
-        },
-      ],
-      theme: supersetTheme,
-    });
-    const transformedProps = transformProps(
-      chartProps as unknown as EchartsWaterfallChartProps,
-    );
-    expect(extractSeries(transformedProps)).toEqual([
-      [0, 10, '-', 3, 3, '-'],
-      [10, 3, '-', '-', 5, '-'],
-      ['-', '-', '-', 10, '-', '-'],
-      ['-', '-', 13, '-', '-', 8],
-    ]);
-  });
-
-  it('renaming series names, checking legend and X axis labels', () => {
-    const chartProps = new ChartProps({
-      formData: {
-        ...formData,
-        increaseLabel: 'sale increase',
-        decreaseLabel: 'sale decrease',
-        totalLabel: 'sale total',
+test('should tranform chart props for viz when breakdown not exist', () => {
+  const chartProps = new ChartProps({
+    formData: { ...formData, series: 'bar' },
+    width: 800,
+    height: 600,
+    queriesData: [
+      {
+        data,
       },
-      width: 800,
-      height: 600,
-      queriesData: [
-        {
-          data,
-        },
-      ],
-      theme: supersetTheme,
-    });
-    const transformedProps = transformProps(
-      chartProps as unknown as EchartsWaterfallChartProps,
-    );
-    expect((transformedProps.echartOptions.legend as any).data).toEqual([
-      'sale increase',
-      'sale decrease',
-      'sale total',
-    ]);
-
-    expect((transformedProps.echartOptions.xAxis as any).data).toEqual([
-      '2019',
-      '2020',
-      'sale total',
-    ]);
-
-    expect(extractSeriesName(transformedProps)).toEqual([
-      'Assist',
-      'sale increase',
-      'sale decrease',
-      'sale total',
-    ]);
+    ],
+    theme: supersetTheme,
   });
+  const transformedProps = transformProps(
+    chartProps as unknown as EchartsWaterfallChartProps,
+  );
+  expect(extractSeries(transformedProps)).toEqual([
+    [0, 8, '-'],
+    [13, '-', '-'],
+    ['-', 5, '-'],
+    ['-', '-', 8],
+  ]);
+});
+
+test('should tranform chart props for viz when breakdown exist', () => {
+  const chartProps = new ChartProps({
+    formData: { ...formData, groupby: 'name' },
+    width: 800,
+    height: 600,
+    queriesData: [
+      {
+        data,
+      },
+    ],
+    theme: supersetTheme,
+  });
+  const transformedProps = transformProps(
+    chartProps as unknown as EchartsWaterfallChartProps,
+  );
+  expect(extractSeries(transformedProps)).toEqual([
+    [0, 10, '-', 3, 3, '-'],
+    [10, 3, '-', '-', 5, '-'],
+    ['-', '-', '-', 10, '-', '-'],
+    ['-', '-', 13, '-', '-', 8],
+  ]);
+});
+
+test('renaming series names, checking legend and X axis labels', () => {
+  const chartProps = new ChartProps({
+    formData: {
+      ...formData,
+      increaseLabel: 'sale increase',
+      decreaseLabel: 'sale decrease',
+      totalLabel: 'sale total',
+    },
+    width: 800,
+    height: 600,
+    queriesData: [
+      {
+        data,
+      },
+    ],
+    theme: supersetTheme,
+  });
+  const transformedProps = transformProps(
+    chartProps as unknown as EchartsWaterfallChartProps,
+  );
+  expect((transformedProps.echartOptions.legend as any).data).toEqual([
+    'sale increase',
+    'sale decrease',
+    'sale total',
+  ]);
+
+  expect((transformedProps.echartOptions.xAxis as any).data).toEqual([
+    '2019',
+    '2020',
+    'sale total',
+  ]);
+
+  expect(extractSeriesName(transformedProps)).toEqual([
+    'Assist',
+    'sale increase',
+    'sale decrease',
+    'sale total',
+  ]);
+});
+
+test('hide totals', () => {
+  const chartProps = new ChartProps({
+    formData: { ...formData, series: 'bar', showTotal: false },
+    width: 800,
+    height: 600,
+    queriesData: [
+      {
+        data,
+      },
+    ],
+    theme: supersetTheme,
+  });
+  const transformedProps = transformProps(
+    chartProps as unknown as EchartsWaterfallChartProps,
+  );
+  expect(extractSeries(transformedProps)).toEqual([
+    [0, 8],
+    [13, '-'],
+    ['-', 5],
+    ['-', '-'],
+  ]);
+});
+
+const buildAxes = (extraFormData: Record<string, unknown>) => {
+  const chartProps = new ChartProps({
+    formData: { ...formData, ...extraFormData },
+    width: 800,
+    height: 600,
+    queriesData: [{ data }],
+    theme: supersetTheme,
+  });
+  const transformedProps = transformProps(
+    chartProps as unknown as EchartsWaterfallChartProps,
+  );
+  return {
+    xAxis: transformedProps.echartOptions.xAxis as any,
+    yAxis: transformedProps.echartOptions.yAxis as any,
+    grid: transformedProps.echartOptions.grid as any,
+  };
+};
+
+test('shows both axes by default', () => {
+  const { xAxis, yAxis } = buildAxes({});
+  expect(xAxis.show).not.toBe(false);
+  expect(yAxis.show).not.toBe(false);
+});
+
+test('hides the whole X axis when showXAxis is false', () => {
+  const { xAxis } = buildAxes({ showXAxis: false });
+  // echarts hides the axis line, ticks, labels, name, and gridlines when
+  // `show` is false — a single flag rather than a set of sub-flags.
+  expect(xAxis.show).toBe(false);
+});
+
+test('hides the whole Y axis when showYAxis is false', () => {
+  const { yAxis } = buildAxes({ showYAxis: false });
+  expect(yAxis.show).toBe(false);
+});
+
+test('reclaims the bottom grid margin when the X axis is hidden', () => {
+  const { grid: shown } = buildAxes({ showXAxis: true });
+  const { grid: hidden } = buildAxes({ showXAxis: false });
+  // The bottom margin reserves room for the X-axis labels and name; with the
+  // axis hidden that space should be reclaimed for a clean, axis-free layout.
+  expect(hidden.bottom).toBeLessThan(shown.bottom);
+  // Hiding the X axis must not shrink the Y-axis (left) margin.
+  expect(hidden.left).toBe(shown.left);
+});
+
+test('reclaims the left grid margin when the Y axis is hidden', () => {
+  const { grid: shown } = buildAxes({ showYAxis: true });
+  const { grid: hidden } = buildAxes({ showYAxis: false });
+  expect(hidden.left).toBeLessThan(shown.left);
+  expect(hidden.bottom).toBe(shown.bottom);
 });

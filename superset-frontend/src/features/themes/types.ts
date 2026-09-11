@@ -1,4 +1,4 @@
-import Owner from 'src/types/Owner';
+import User from 'src/types/User';
 
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -26,8 +26,8 @@ export type ThemeObject = {
   is_system_dark?: boolean;
   changed_on_delta_humanized?: string;
   created_on?: string;
-  changed_by?: Owner;
-  created_by?: Owner;
+  changed_by?: User;
+  created_by?: User;
   json_data?: string;
   theme_name: string;
 };

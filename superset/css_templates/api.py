@@ -18,7 +18,7 @@ import logging
 from typing import Any
 
 from flask import Response
-from flask_appbuilder.api import expose, protect, rison, safe
+from flask_appbuilder.api import expose, protect, rison as parse_rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
 
@@ -40,7 +40,7 @@ from superset.views.base_api import (
     RelatedFieldFilter,
     statsd_metrics,
 )
-from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
+from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedUsers
 
 logger = logging.getLogger(__name__)
 
@@ -97,7 +97,7 @@ class CssTemplateRestApi(BaseSupersetModelRestApi):
     openapi_spec_methods = openapi_spec_methods_override
 
     related_field_filters = {
-        "changed_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
+        "changed_by": RelatedFieldFilter("first_name", FilterRelatedUsers),
     }
     base_related_field_filters = {
         "changed_by": [["id", BaseFilterRelatedUsers, lambda: []]],
@@ -111,7 +111,7 @@ class CssTemplateRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.bulk_delete",
         log_to_statsd=False,
     )
-    @rison(get_delete_ids_schema)
+    @parse_rison(get_delete_ids_schema)
     def bulk_delete(self, **kwargs: Any) -> Response:
         """Bulk delete CSS templates.
         ---

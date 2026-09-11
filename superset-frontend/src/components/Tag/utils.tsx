@@ -17,24 +17,15 @@
  * under the License.
  */
 
+import { t } from '@apache-superset/core/translation';
 import {
   ClientErrorObject,
   getClientErrorObject,
   SupersetClient,
-  t,
 } from '@superset-ui/core';
 import type { TagType } from 'src/types/TagType';
 
 import rison from 'rison';
-import { cacheWrapper } from 'src/utils/cacheWrapper';
-
-const localCache = new Map<string, any>();
-
-const cachedSupersetGet = cacheWrapper(
-  SupersetClient.get,
-  localCache,
-  ({ endpoint }) => endpoint || '',
-);
 
 type SelectTagsValue = {
   value: number | undefined;
@@ -75,7 +66,7 @@ export const loadTags = async (
     return errorText;
   };
 
-  return cachedSupersetGet({
+  return SupersetClient.get({
     endpoint: `/api/v1/tag/?q=${query}`,
   })
     .then(response => {

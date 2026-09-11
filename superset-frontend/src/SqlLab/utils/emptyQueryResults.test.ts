@@ -64,11 +64,9 @@ describe('reduxStateToLocalStorageHelper', () => {
       results: {
         data: [
           {
-            jsonValue: `{"str":"${new Array(
+            jsonValue: `{"str":"${'0'.repeat(
               (LOCALSTORAGE_MAX_QUERY_RESULTS_KB / BYTES_PER_CHAR) * KB_STORAGE,
-            )
-              .fill(0)
-              .join('')}"}`,
+            )}"}`,
           },
         ],
       },

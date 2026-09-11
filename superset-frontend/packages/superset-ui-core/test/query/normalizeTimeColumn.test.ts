@@ -86,6 +86,7 @@ test('should support different columns for x-axis and granularity', () => {
       {
         timeGrain: 'P1Y',
         columnType: 'BASE_AXIS',
+        isColumnReference: true,
         sqlExpression: 'time_column_in_x_axis',
         label: 'time_column_in_x_axis',
         expressionType: 'SQL',

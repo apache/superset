@@ -23,7 +23,7 @@ describe('extractTimegrain', () => {
     datasource: 'table__1',
     viz_type: 'my_viz',
   };
-  it('should extract regular from form data', () => {
+  test('should extract regular from form data', () => {
     expect(
       extractTimegrain({
         ...baseFormData,
@@ -32,7 +32,7 @@ describe('extractTimegrain', () => {
     ).toEqual('P1D');
   });
 
-  it('should extract filter time grain from form data', () => {
+  test('should extract filter time grain from form data', () => {
     expect(
       extractTimegrain({
         ...baseFormData,
@@ -48,7 +48,7 @@ describe('extractTimegrain', () => {
     ).toEqual('P1M');
   });
 
-  it('should extract native filter time grain from form data', () => {
+  test('should extract native filter time grain from form data', () => {
     expect(
       extractTimegrain({
         ...baseFormData,
@@ -60,7 +60,7 @@ describe('extractTimegrain', () => {
     ).toEqual('P1W');
   });
 
-  it('should give priority to native filters', () => {
+  test('should give priority to native filters', () => {
     expect(
       extractTimegrain({
         ...baseFormData,
@@ -79,7 +79,7 @@ describe('extractTimegrain', () => {
     ).toEqual('P1W');
   });
 
-  it('returns undefined if timegrain not defined', () => {
+  test('returns undefined if timegrain not defined', () => {
     expect(extractTimegrain({ ...baseFormData })).toEqual(undefined);
   });
 });

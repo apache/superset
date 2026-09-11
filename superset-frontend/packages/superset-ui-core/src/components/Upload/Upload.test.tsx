@@ -20,7 +20,7 @@ import { render, screen, fireEvent, waitFor } from '@superset-ui/core/spec';
 import { Button, Upload } from '..';
 
 describe('Upload Component', () => {
-  it('renders upload button and triggers file upload', async () => {
+  test('renders upload button and triggers file upload', async () => {
     const handleChange = jest.fn();
 
     render(

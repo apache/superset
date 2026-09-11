@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '../translation';
+import { t } from '@apache-superset/core/translation';
 import { removeDuplicates } from '../utils';
 import getColumnLabel from './getColumnLabel';
 import getMetricLabel from './getMetricLabel';
@@ -47,6 +47,8 @@ export default function extractQueryFields(
     metric: 'metrics',
     metric_2: 'metrics',
     secondary_metric: 'metrics',
+    left_metric: 'metrics',
+    right_metric: 'metrics',
     x: 'metrics',
     y: 'metrics',
     size: 'metrics',

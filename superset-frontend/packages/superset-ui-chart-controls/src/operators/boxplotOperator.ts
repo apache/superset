@@ -25,7 +25,7 @@ import {
 } from '@superset-ui/core';
 import { PostProcessingFactory } from './types';
 
-const PERCENTILE_REGEX = /(\d+)\/(\d+) percentiles/;
+const PERCENTILE_REGEX = /(\d{1,3})\/(\d{1,3}) percentiles/;
 
 export const boxplotOperator: PostProcessingFactory<PostProcessingBoxplot> = (
   formData,

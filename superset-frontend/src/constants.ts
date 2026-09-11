@@ -47,6 +47,10 @@ export const URL_PARAMS = {
     name: 'show_filters',
     type: 'boolean',
   },
+  showDownload: {
+    name: 'show_download',
+    type: 'boolean',
+  },
   expandFilters: {
     name: 'expand_filters',
     type: 'boolean',
@@ -103,6 +107,14 @@ export const URL_PARAMS = {
     name: 'focused_chart',
     type: 'number',
   },
+  editMode: {
+    name: 'edit',
+    type: 'boolean',
+  },
+  versionHistory: {
+    name: 'version_history',
+    type: 'boolean',
+  },
 } as const;
 
 export const RESERVED_CHART_URL_PARAMS: string[] = [
@@ -111,12 +123,16 @@ export const RESERVED_CHART_URL_PARAMS: string[] = [
   URL_PARAMS.datasourceId.name,
   URL_PARAMS.datasourceType.name,
   URL_PARAMS.datasetId.name,
+  URL_PARAMS.permalinkKey.name,
+  URL_PARAMS.versionHistory.name,
 ];
 export const RESERVED_DASHBOARD_URL_PARAMS: string[] = [
   URL_PARAMS.nativeFilters.name,
   URL_PARAMS.nativeFiltersKey.name,
   URL_PARAMS.permalinkKey.name,
   URL_PARAMS.preselectFilters.name,
+  URL_PARAMS.editMode.name,
+  URL_PARAMS.versionHistory.name,
 ];
 
 export const DEFAULT_COMMON_BOOTSTRAP_DATA: CommonBootstrapData = {
@@ -139,6 +155,7 @@ export const DEFAULT_COMMON_BOOTSTRAP_DATA: CommonBootstrapData = {
   },
   extra_categorical_color_schemes: [],
   extra_sequential_color_schemes: [],
+  extra_theme_tokens: [],
   theme: {
     default: {},
     dark: {},
@@ -185,7 +202,21 @@ export enum FilterPlugins {
   TimeGrain = 'filter_timegrain',
 }
 
+export enum ChartCustomizationPlugins {
+  DynamicGroupBy = 'chart_customization_dynamic_groupby',
+  TimeGrain = 'chart_customization_timegrain',
+  TimeColumn = 'chart_customization_timecolumn',
+  DeckglLayerVisibility = 'chart_customization_deckgl_layer_visibility',
+}
+
 export enum Actions {
   CREATE = 'create',
   UPDATE = 'update',
 }
+
+/**
+ * Default threshold for CSV streaming export.
+ * Exports with row counts >= this value will use streaming with progress tracking.
+ * Exports with row counts < this value will use traditional download.
+ */
+export const DEFAULT_CSV_STREAMING_ROW_THRESHOLD = 100000;

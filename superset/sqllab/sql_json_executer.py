@@ -107,9 +107,13 @@ class SynchronousSqlJsonExecutor(SqlJsonExecutorBase):
         if data.get("status") == QueryStatus.FAILED:  # type: ignore
             # new error payload with rich context
             if data["errors"]:  # type: ignore
-                raise SupersetErrorsException(
-                    [SupersetError(**params) for params in data["errors"]]  # type: ignore
+                errors = [SupersetError(**params) for params in data["errors"]]  # type: ignore
+                status = (
+                    500
+                    if any(error.level == ErrorLevel.ERROR for error in errors)
+                    else 400
                 )
+                raise SupersetErrorsException(errors, status=status)
             # old string-only error message
             raise SupersetGenericDBErrorException(data["error"])  # type: ignore
 

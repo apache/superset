@@ -17,7 +17,7 @@
 import builtins
 from typing import Callable, Union
 
-from flask import g, redirect, Response, url_for
+from flask import current_app, g, redirect, Response, url_for
 from flask_appbuilder import expose
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -78,11 +78,25 @@ class Dashboard(BaseSupersetView):
     @expose("/new/")
     def new(self) -> FlaskResponse:
         """Creates a new, blank dashboard and redirects to it in edit mode"""
+        from superset.subjects.utils import (
+            get_default_viewers_for_new_asset,
+            get_user_subject,
+        )
+
+        editors = []
+        if g.user:
+            subj = get_user_subject(g.user.id)
+            if subj:
+                editors.append(subj)
         new_dashboard = DashboardModel(
             dashboard_title="[ untitled dashboard ]",
-            owners=[g.user],
+            editors=editors,
+            viewers=get_default_viewers_for_new_asset(g.user.id if g.user else None),
         )
         db.session.add(new_dashboard)
+        if after_create := current_app.config.get("AFTER_ASSET_CREATE"):
+            db.session.flush()
+            after_create(new_dashboard, "dashboard")
         db.session.commit()  # pylint: disable=consider-using-transaction
         return redirect(
             url_for(

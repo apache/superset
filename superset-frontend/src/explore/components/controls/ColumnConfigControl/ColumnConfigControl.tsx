@@ -17,8 +17,9 @@
  * under the License.
  */
 import { useMemo, useState } from 'react';
-import { useTheme, t } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { t } from '@apache-superset/core/translation';
+import { useTheme } from '@apache-superset/core/theme';
+import { GenericDataType } from '@apache-superset/core/common';
 import {
   COLUMN_NAME_ALIASES,
   ControlComponentProps,
@@ -81,6 +82,7 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
     });
   }
   const theme = useTheme();
+
   const columnConfigs = useMemo(() => {
     const configs: Record<string, ColumnConfigInfo> = {};
     colnames?.forEach((col, idx) => {
@@ -99,6 +101,7 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
   const [showAllColumns, setShowAllColumns] = useState(false);
 
   const getColumnInfo = (col: string) => columnConfigs[col] || {};
+
   const setColumnConfig = (col: string, config: T) => {
     if (onChange) {
       // Only keep configs for known columns
@@ -163,10 +166,14 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
           />
         ))}
         {needShowMoreButton && (
-          <div
-            role="button"
-            tabIndex={-1}
+          <button
+            type="button"
             css={{
+              appearance: 'none',
+              border: 'none',
+              background: 'none',
+              font: 'inherit',
+              width: '100%',
               padding: theme.sizeUnit * 2,
               textAlign: 'center',
               cursor: 'pointer',
@@ -187,7 +194,7 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
                 <Icons.DownOutlined /> &nbsp; {t('Show all columns')}
               </>
             )}
-          </div>
+          </button>
         )}
       </div>
     </>

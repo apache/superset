@@ -21,10 +21,24 @@ import { VizType } from '@superset-ui/core';
 import { getParsedExploreURLParams } from './getParsedExploreURLParams';
 
 const EXPLORE_BASE_URL = 'http://localhost:9000/explore/';
+
+afterEach(() => {
+  jest.restoreAllMocks();
+});
+
 const setupLocation = (newUrl: string) => {
-  delete (window as any).location;
-  // @ts-ignore
-  window.location = new URL(newUrl);
+  const u = new URL(newUrl);
+  jest.spyOn(window, 'location', 'get').mockReturnValue({
+    href: u.href,
+    pathname: u.pathname,
+    search: u.search,
+    hash: u.hash,
+    origin: u.origin,
+    host: u.host,
+    hostname: u.hostname,
+    port: u.port,
+    protocol: u.protocol,
+  } as Location);
 };
 
 test('get form_data_key and slice_id from search params - url when moving from dashboard to explore', () => {

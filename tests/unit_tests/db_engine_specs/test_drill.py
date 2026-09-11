@@ -162,8 +162,9 @@ def test_get_schema_from_engine_params() -> None:
 @pytest.mark.parametrize(
     "column_name,expected_result",
     [
-        ("time", "time_07cc69"),
-        ("count", "count_e2942a"),
+        # SHA-256 hash suffix (first 6 chars) with default HASH_ALGORITHM
+        ("time", "time_336074"),
+        ("count", "count_6c3549"),
     ],
 )
 def test_connect_make_label_compatible(column_name: str, expected_result: str) -> None:

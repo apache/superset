@@ -16,18 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactNode, useCallback, useState, useEffect } from 'react';
-import { isEqual } from 'lodash';
+import { ReactNode, useCallback, useState, useEffect, FocusEvent } from 'react';
+import { isEqual } from 'lodash-es';
 import {
   ControlType,
   ControlComponentProps as BaseControlComponentProps,
 } from '@superset-ui/chart-controls';
-import {
-  styled,
-  JsonValue,
-  QueryFormData,
-  usePrevious,
-} from '@superset-ui/core';
+import { JsonValue, QueryFormData, usePrevious } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/theme';
 import { ErrorBoundary } from 'src/components';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
 import controlMap from './controls';
@@ -74,7 +70,18 @@ export default function Control(props: ControlProps) {
   } = props;
 
   const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
   const wasVisible = usePrevious(isVisible);
+
+  const handleBlur = (event: FocusEvent<HTMLDivElement>) => {
+    if (
+      !(event.relatedTarget instanceof Node) ||
+      !event.currentTarget.contains(event.relatedTarget)
+    ) {
+      setFocused(false);
+    }
+  };
+
   const onChange = useCallback(
     (value: any, errors: any[]) => setControlValue(name, value, errors),
     [name, setControlValue],
@@ -88,8 +95,12 @@ export default function Control(props: ControlProps) {
       !isEqual(props.value, props.default) &&
       resetOnHide
     ) {
-      // reset control value if setting to invisible
-      setControlValue?.(name, props.default);
+      // reset control value if setting to invisible. Programmatic: the
+      // user's gesture was whatever hid this control, not an edit of it —
+      // the version-history session log must not attribute it to them.
+      setControlValue?.(name, props.default, undefined, {
+        programmatic: true,
+      });
     }
   }, [
     name,
@@ -119,9 +130,15 @@ export default function Control(props: ControlProps) {
       style={hidden ? { display: 'none' } : undefined}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      onFocus={() => setFocused(true)}
+      onBlur={handleBlur}
     >
       <ErrorBoundary>
-        <ControlComponent onChange={onChange} hovered={hovered} {...props} />
+        <ControlComponent
+          onChange={onChange}
+          hovered={hovered || focused}
+          {...props}
+        />
       </ErrorBoundary>
     </StyledControl>
   );

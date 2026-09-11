@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { sanitizeUrl } from '@braintree/sanitize-url';
 import callApiAndParseWithTimeout from './callApi/callApiAndParseWithTimeout';
 import {
   ClientConfig,
@@ -81,7 +82,11 @@ export default class SupersetClientClass {
     unauthorizedHandler = undefined,
   }: ClientConfig = {}) {
     const url = new URL(`${protocol || 'https:'}//${host || 'localhost'}`);
-    this.appRoot = appRoot;
+    // Strip a trailing slash so the getUrl dedupe comparisons and the final
+    // `${this.appRoot}/${...}` build stay correct regardless of how the root
+    // was supplied. Mirrors normalizeBackendUrlString / AppRootMiddleware /
+    // LegacyPrefixRedirectMiddleware, which all rstrip the root.
+    this.appRoot = appRoot.replace(/\/$/, '');
     this.host = url.host;
     this.protocol = url.protocol as Protocol;
     this.headers = { Accept: 'application/json', ...headers }; // defaulting accept to json
@@ -123,7 +128,7 @@ export default class SupersetClientClass {
     if (endpoint) {
       await this.ensureAuth();
       const hiddenForm = document.createElement('form');
-      hiddenForm.action = this.getUrl({ endpoint });
+      hiddenForm.action = sanitizeUrl(this.getUrl({ endpoint }));
       hiddenForm.method = 'POST';
       hiddenForm.target = target;
       const payloadWithToken: Record<string, any> = {
@@ -147,6 +152,26 @@ export default class SupersetClientClass {
       hiddenForm.submit();
       document.body.removeChild(hiddenForm);
     }
+  }
+
+  /**
+   * POST request that returns a blob for file downloads.
+   * Unlike postForm, this uses AJAX so errors can be caught and handled.
+   * @param endpoint - API endpoint
+   * @param payload - Request payload
+   * @returns Promise resolving to Response with blob
+   */
+  async postBlob(
+    endpoint: string,
+    payload: Record<string, any>,
+  ): Promise<Response> {
+    await this.ensureAuth();
+    return this.post({
+      endpoint,
+      postPayload: payload,
+      parseMethod: 'raw',
+      stringify: false,
+    });
   }
 
   async reAuthenticate() {
@@ -275,8 +300,26 @@ export default class SupersetClientClass {
     const host = inputHost ?? this.host;
     const cleanHost = host.slice(-1) === '/' ? host.slice(0, -1) : host; // no backslash
 
+    // Strip a single leading appRoot segment so callers that accidentally
+    // pre-prefix their endpoint (e.g. by wrapping with ensureAppRoot before
+    // passing to the client) do not produce a doubled `/superset/superset/...`
+    // URL. Single-pass strip mirrors
+    // `stripAppRoot` in `src/utils/pathUtils` and `normalizeBackendUrlString`
+    // exactly: a genuine `/superset/superset/<slug>` is a legitimate route, not
+    // a double-prefix bug. The L2 static invariant still flags pre-prefixing as
+    // a migration issue; this is the runtime safety net.
+    let cleanEndpoint = endpoint;
+    const root = this.appRoot;
+    if (root) {
+      if (cleanEndpoint === root) {
+        cleanEndpoint = '';
+      } else if (cleanEndpoint.startsWith(`${root}/`)) {
+        cleanEndpoint = cleanEndpoint.slice(root.length);
+      }
+    }
+
     return `${this.protocol}//${cleanHost}${this.appRoot}/${
-      endpoint[0] === '/' ? endpoint.slice(1) : endpoint
+      cleanEndpoint[0] === '/' ? cleanEndpoint.slice(1) : cleanEndpoint
     }`;
   }
 }

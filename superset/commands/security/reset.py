@@ -25,6 +25,7 @@ from superset.key_value.models import KeyValueEntry
 from superset.models.core import Database, FavStar, Log
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
+from superset.subjects.models import Subject
 
 logger = logging.getLogger(__name__)
 
@@ -71,8 +72,10 @@ class ResetSupersetCommand(BaseCommand):
             .filter(security_manager.user_model.username.not_in(self._users_to_exclude))
             .all()
         )
+        user_ids_to_delete = []
         for user in users_to_delete:
             if not any(role.name == "Admin" for role in user.roles):
+                user_ids_to_delete.append(user.id)
                 db.session.delete(user)
 
         logger.debug("Ignoring Roles: %s", self._roles_to_exclude)
@@ -81,8 +84,19 @@ class ResetSupersetCommand(BaseCommand):
             .filter(security_manager.role_model.name.not_in(self._roles_to_exclude))
             .all()
         )
+        role_ids_to_delete = [role.id for role in roles_to_delete]
         for role in roles_to_delete:
             db.session.delete(role)
+
+        # Clean up Subject rows for deleted users and roles
+        if user_ids_to_delete:
+            db.session.query(Subject).filter(
+                Subject.user_id.in_(user_ids_to_delete)
+            ).delete(synchronize_session=False)
+        if role_ids_to_delete:
+            db.session.query(Subject).filter(
+                Subject.role_id.in_(role_ids_to_delete)
+            ).delete(synchronize_session=False)
 
         # Insert new record into Log table
         log = Log(

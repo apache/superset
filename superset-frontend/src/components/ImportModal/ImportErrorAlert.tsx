@@ -18,7 +18,7 @@
  */
 
 import { FunctionComponent } from 'react';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 
 import { getDatabaseDocumentationLinks } from 'src/views/CRUD/hooks';
 import { ErrorAlert } from 'src/components';
@@ -26,7 +26,7 @@ import { ErrorAlert } from 'src/components';
 const supersetTextDocs = getDatabaseDocumentationLinks();
 export const DOCUMENTATION_LINK = supersetTextDocs
   ? supersetTextDocs.support
-  : 'https://superset.apache.org/docs/databases/installing-database-drivers';
+  : 'https://superset.apache.org/user-docs/databases/#installing-database-drivers';
 
 export interface IProps {
   errorMessage: string;

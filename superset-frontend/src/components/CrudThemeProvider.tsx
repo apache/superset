@@ -16,67 +16,121 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactNode, useEffect, useState } from 'react';
-import { useThemeContext } from 'src/theme/ThemeProvider';
-import { Theme } from '@superset-ui/core';
-import { Loading } from '@superset-ui/core/components';
+import {
+  ReactNode,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+} from 'react';
+import { logging } from '@apache-superset/core/utils';
+import {
+  Theme,
+  normalizeThemeConfig,
+  isThemeConfigDark,
+} from '@apache-superset/core/theme';
+import getBootstrapData from 'src/utils/getBootstrapData';
+import { ThemeContext } from 'src/theme/ThemeProvider';
+import type { Dashboard } from 'src/types/Dashboard';
 
 interface CrudThemeProviderProps {
   children: ReactNode;
-  themeId?: number | null;
+  theme?: Dashboard['theme'];
 }
 
 /**
- * CrudThemeProvider asks the ThemeController for a dashboard theme provider.
- * Flow: Dashboard loads → asks controller → controller fetches theme →
- * returns provider → dashboard uses it.
+ * Applies a dashboard-specific theme from the dashboard API response, merged
+ * over the system's base theme (light or dark), and loads custom fonts. Falls
+ * back to the global theme when the theme data is missing or invalid.
  *
- * CRITICAL: This does NOT modify the global controller - it creates an isolated dashboard theme.
+ * A single, stable Theme instance is updated in place instead of recreated, so
+ * the SupersetThemeProvider identity stays constant and the dashboard subtree
+ * is not remounted when the applied theme changes.
  */
 export default function CrudThemeProvider({
   children,
-  themeId,
+  theme,
 }: CrudThemeProviderProps) {
-  const globalThemeContext = useThemeContext();
-  const [dashboardTheme, setDashboardTheme] = useState<Theme | null>(null);
+  const themeContext = useContext(ThemeContext);
+  const hasThemeConfigOverride = themeContext?.hasThemeConfigOverride ?? false;
+
+  const parsedTheme = useMemo(() => {
+    if (hasThemeConfigOverride || !theme?.json_data) {
+      return null;
+    }
+    try {
+      const themeConfig = JSON.parse(theme.json_data);
+      const normalizedConfig = normalizeThemeConfig(themeConfig);
+      const isDark = isThemeConfigDark(normalizedConfig);
+      const {
+        common: { theme: bootstrapTheme },
+      } = getBootstrapData();
+      const baseTheme = isDark ? bootstrapTheme.dark : bootstrapTheme.default;
+      const rawUrls = themeConfig?.token?.fontUrls;
+      const fontUrls = Array.isArray(rawUrls)
+        ? (rawUrls as string[])
+        : undefined;
+      return { normalizedConfig, baseTheme: baseTheme || undefined, fontUrls };
+    } catch (error) {
+      logging.warn('Failed to load dashboard theme:', error);
+      return null;
+    }
+  }, [theme?.json_data, hasThemeConfigOverride]);
+
+  // Create the stable instance once; update it in place on later changes.
+  const dashboardThemeRef = useRef<Theme | null>(null);
+  if (parsedTheme && !dashboardThemeRef.current) {
+    try {
+      dashboardThemeRef.current = Theme.fromConfig(
+        parsedTheme.normalizedConfig,
+        parsedTheme.baseTheme,
+      );
+    } catch (error) {
+      logging.warn('Failed to load dashboard theme:', error);
+    }
+  }
+
+  useLayoutEffect(() => {
+    if (parsedTheme && dashboardThemeRef.current) {
+      try {
+        dashboardThemeRef.current.setConfig(
+          parsedTheme.normalizedConfig,
+          parsedTheme.baseTheme,
+        );
+      } catch (error) {
+        logging.warn('Failed to load dashboard theme:', error);
+      }
+    }
+  }, [parsedTheme]);
 
   useEffect(() => {
-    if (themeId) {
-      // Ask the controller to create a SEPARATE dashboard theme provider
-      // This should NOT affect the global controller or navbar
-      const loadDashboardTheme = async () => {
-        try {
-          const dashboardThemeProvider =
-            await globalThemeContext.createDashboardThemeProvider(
-              String(themeId),
-            );
-          setDashboardTheme(dashboardThemeProvider);
-        } catch (error) {
-          console.error('Failed to load dashboard theme:', error);
-          setDashboardTheme(null);
-        }
-      };
-
-      loadDashboardTheme();
-    } else {
-      setDashboardTheme(null);
+    if (
+      !parsedTheme ||
+      !dashboardThemeRef.current ||
+      !parsedTheme.fontUrls?.length
+    ) {
+      return undefined;
     }
-  }, [themeId, globalThemeContext]);
+    // JSON.stringify escapes the URL to prevent CSS injection.
+    const css = parsedTheme.fontUrls
+      .map((url: string) => `@import url(${JSON.stringify(url)});`)
+      .join('\n');
+    const style = document.createElement('style');
+    style.setAttribute('data-superset-fonts', 'true');
+    style.textContent = css;
+    document.head.appendChild(style);
 
-  // If no themeId, just render children (they use global theme)
-  if (!themeId) {
+    return () => {
+      style.remove();
+    };
+  }, [parsedTheme]);
+
+  if (!parsedTheme || !dashboardThemeRef.current) {
     return <>{children}</>;
   }
 
-  // If themeId exists, but theme is not loaded yet, return null to prevent re-mounting children
-  if (!dashboardTheme) {
-    return <Loading />;
-  }
-
-  // Render children with the dashboard theme provider from controller
-  return (
-    <dashboardTheme.SupersetThemeProvider>
-      {children}
-    </dashboardTheme.SupersetThemeProvider>
-  );
+  const DashboardThemeProvider =
+    dashboardThemeRef.current.SupersetThemeProvider;
+  return <DashboardThemeProvider>{children}</DashboardThemeProvider>;
 }

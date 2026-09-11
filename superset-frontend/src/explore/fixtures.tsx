@@ -17,7 +17,8 @@
  * under the License.
  */
 
-import { DatasourceType, t, VizType } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { DatasourceType, VizType } from '@superset-ui/core';
 import {
   ColumnMeta,
   ColumnOption,
@@ -158,10 +159,10 @@ export const fallbackExploreInitialData: ExplorePageInitialData = {
     column_formats: {},
     verbose_map: {},
     main_dttm_col: '',
-    owners: [],
     datasource_name: '',
     name: '',
     description: null,
+    editors: [],
   },
   slice: null,
 };

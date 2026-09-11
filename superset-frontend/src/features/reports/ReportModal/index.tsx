@@ -25,23 +25,28 @@ import {
   ChangeEvent,
 } from 'react';
 
+import { t } from '@apache-superset/core/translation';
 import {
-  t,
-  SupersetTheme,
   getClientErrorObject,
+  isFeatureEnabled,
+  FeatureFlag,
   VizType,
 } from '@superset-ui/core';
+import { Alert } from '@apache-superset/core/components';
+import { SupersetTheme } from '@apache-superset/core/theme';
 import { useDispatch, useSelector } from 'react-redux';
 import {
-  addReport,
   editReport,
+  subscribeReport,
 } from 'src/features/reports/ReportModal/actions';
 import {
-  Alert,
+  Checkbox,
   Input,
   LabeledErrorBoundInput,
+  type CheckboxChangeEvent,
   type CronError,
 } from '@superset-ui/core/components';
+import { InputNumber } from '@superset-ui/core/components/Input';
 import TimezoneSelector from '@superset-ui/core/components/TimezoneSelector';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Typography } from '@superset-ui/core/components/Typography';
@@ -54,12 +59,15 @@ import {
   NotificationFormats,
 } from 'src/features/reports/types';
 import { reportSelector } from 'src/views/CRUD/hooks';
+import getBootstrapData from 'src/utils/getBootstrapData';
 import { StyledInputContainer } from 'src/features/alerts/AlertReportModal';
 import { CreationMethod } from './HeaderReportDropdown';
 import {
   antDErrorAlertStyles,
   CustomWidthHeaderStyle,
+  StyledErrorHandlingSection,
   StyledModal,
+  StyledRetryFieldGroup,
   StyledTopSection,
   StyledBottomSection,
   StyledIconWrapper,
@@ -77,7 +85,6 @@ interface ReportProps {
   onHide: () => {};
   addDangerToast: (msg: string) => void;
   show: boolean;
-  userId: number;
   userEmail: string;
   ccEmail: string;
   bccEmail: string;
@@ -115,7 +122,6 @@ function ReportModal({
   show = false,
   dashboardId,
   chart,
-  userId,
   userEmail,
   ccEmail,
   bccEmail,
@@ -130,6 +136,7 @@ function ReportModal({
   const defaultNotificationFormat = isTextBasedChart
     ? NotificationFormats.Text
     : NotificationFormats.PNG;
+  const currentUserSubjectId = getBootstrapData()?.common?.user_subject_id;
   const entityName = dashboardName || chartName;
   const initialState: ReportObjectState = useMemo(
     () => ({
@@ -163,12 +170,13 @@ function ReportModal({
   const dispatch = useDispatch();
   // Report fetch logic
   const report = useSelector<any, ReportObject>(state => {
-    const resourceType = dashboardId
-      ? CreationMethod.Dashboards
-      : CreationMethod.Charts;
+    const isChartReport = creationMethod === CreationMethod.Charts;
     return (
-      reportSelector(state, resourceType, dashboardId || chart?.id) ||
-      EMPTY_OBJECT
+      reportSelector(
+        state,
+        isChartReport ? CreationMethod.Charts : CreationMethod.Dashboards,
+        isChartReport ? chart?.id : dashboardId,
+      ) || EMPTY_OBJECT
     );
   });
   const isEditMode = report && Object.keys(report).length;
@@ -182,41 +190,58 @@ function ReportModal({
   }, [isEditMode, report]);
 
   const onSave = async () => {
-    // Create new Report
-    const newReportValues: Partial<ReportObject> = {
+    const commonFields: Partial<ReportObject> = {
       type: 'Report',
       active: true,
       force_screenshot: false,
       custom_width: currentReport.custom_width,
-      creation_method: creationMethod,
-      dashboard: dashboardId,
-      chart: chart?.id,
-      owners: [userId],
-      recipients: [
-        {
-          recipient_config_json: {
-            target: userEmail,
-            ccTarget: ccEmail,
-            bccTarget: bccEmail,
-          },
-          type: 'Email',
-        },
-      ],
+      // A report belongs to either a chart or a dashboard, never both. Explore can
+      // carry dashboard context even for a chart-scoped report, so send only the
+      // entity that matches the creation method; a payload with both `chart` and
+      // `dashboard` is rejected by the backend with a 422 error.
+      ...(creationMethod === CreationMethod.Charts
+        ? { chart: chart?.id }
+        : { dashboard: dashboardId }),
       name: currentReport.name,
       description: currentReport.description,
       crontab: currentReport.crontab,
       report_format: currentReport.report_format || defaultNotificationFormat,
       timezone: currentReport.timezone,
+      ...(isFeatureEnabled(FeatureFlag.AlertReportsRetry) && {
+        retry_on_failure: currentReport.retry_on_failure ?? false,
+        retry_max_attempts: currentReport.retry_max_attempts ?? 3,
+        send_failed_reports: currentReport.send_failed_reports ?? false,
+        retry_notify_owners: currentReport.retry_notify_owners ?? true,
+        retry_notify_recipients: currentReport.retry_notify_recipients ?? false,
+      }),
     };
 
     setCurrentReport({ isSubmitting: true, error: undefined });
     try {
-      if (isEditMode) {
+      if (isEditMode && currentReport.id) {
+        // Edit path: include all fields, PUT endpoint accepts recipients/editors directly
         await dispatch(
-          editReport(currentReport.id, newReportValues as ReportObject),
+          editReport(currentReport.id, {
+            ...commonFields,
+            creation_method: creationMethod,
+            ...(currentUserSubjectId === undefined
+              ? {}
+              : { editors: [currentUserSubjectId] }),
+            recipients: [
+              {
+                recipient_config_json: {
+                  target: userEmail,
+                  ccTarget: ccEmail,
+                  bccTarget: bccEmail,
+                },
+                type: 'Email',
+              },
+            ],
+          } as ReportObject),
         );
       } else {
-        await dispatch(addReport(newReportValues as ReportObject));
+        // Subscribe path: creation_method, editors, and recipients are set server-side.
+        await dispatch(subscribeReport(commonFields as ReportObject));
       }
       onHide();
     } catch (e) {
@@ -282,6 +307,10 @@ function ReportModal({
               label: t('Formatted CSV attached in email'),
               value: NotificationFormats.CSV,
             },
+            {
+              label: t('Formatted Excel attached in email'),
+              value: NotificationFormats.XLSX,
+            },
           ]}
         />
       </div>
@@ -296,16 +325,95 @@ function ReportModal({
         <Input
           type="number"
           name="custom_width"
-          value={currentReport?.custom_width || ''}
+          value={currentReport?.custom_width ?? ''}
           placeholder={t('Input custom width in pixels')}
           onChange={(event: ChangeEvent<HTMLInputElement>) => {
+            const parsedWidth = parseInt(event.target.value, 10);
             setCurrentReport({
-              custom_width: parseInt(event.target.value, 10) || null,
+              custom_width: Number.isNaN(parsedWidth) ? null : parsedWidth,
             });
           }}
         />
       </div>
     </StyledInputContainer>
+  );
+
+  const retryEnabled = !!currentReport.retry_on_failure;
+
+  const renderErrorHandlingSection = (
+    <StyledErrorHandlingSection>
+      <Typography.Title
+        level={4}
+        css={(theme: SupersetTheme) => SectionHeaderStyle(theme)}
+      >
+        {t('Error Handling')}
+      </Typography.Title>
+      <Checkbox
+        checked={retryEnabled}
+        onChange={(e: CheckboxChangeEvent) => {
+          const { checked } = e.target;
+          setCurrentReport({
+            retry_on_failure: checked,
+            ...(!checked && {
+              send_failed_reports: false,
+              retry_notify_owners: true,
+              retry_notify_recipients: false,
+              retry_max_attempts: 3,
+            }),
+          });
+        }}
+      >
+        {t('Enable Retries')}
+      </Checkbox>
+      {retryEnabled && (
+        <StyledRetryFieldGroup>
+          <div>
+            <div className="control-label">{t('Maximum Retry Attempts')}</div>
+            <InputNumber
+              min={1}
+              max={10}
+              value={currentReport.retry_max_attempts ?? 3}
+              onChange={(value: number | null) =>
+                setCurrentReport({ retry_max_attempts: value ?? 3 })
+              }
+            />
+          </div>
+          <Checkbox
+            checked={!!currentReport.send_failed_reports}
+            onChange={(e: CheckboxChangeEvent) =>
+              setCurrentReport({ send_failed_reports: e.target.checked })
+            }
+          >
+            {t('Send Failed Reports')}
+          </Checkbox>
+          <div>
+            <div className="control-label">{t('Failure Notifications')}</div>
+            <div>
+              <Checkbox
+                checked={currentReport.retry_notify_owners ?? true}
+                onChange={(e: CheckboxChangeEvent) =>
+                  setCurrentReport({ retry_notify_owners: e.target.checked })
+                }
+              >
+                {t('Owners')}
+              </Checkbox>
+            </div>
+            <div>
+              <Checkbox
+                checked={!!currentReport.retry_notify_recipients}
+                onChange={(e: CheckboxChangeEvent) =>
+                  setCurrentReport({
+                    retry_notify_recipients: e.target.checked,
+                  })
+                }
+              >
+                {t('Report Recipients')}
+              </Checkbox>
+            </div>
+          </div>
+        </StyledRetryFieldGroup>
+      )}
+    </StyledErrorHandlingSection>
   );
 
   return (
@@ -368,7 +476,7 @@ function ReportModal({
           }}
           onError={setCronError}
         />
-        <StyledCronError>{cronError}</StyledCronError>
+        <StyledCronError>{cronError?.description}</StyledCronError>
         <div
           className="control-label"
           css={(theme: SupersetTheme) => TimezoneHeaderStyle(theme)}
@@ -383,6 +491,8 @@ function ReportModal({
         />
         {isChart && renderMessageContentSection}
         {(!isChart || !isTextBasedChart) && renderCustomWidthSection}
+        {isFeatureEnabled(FeatureFlag.AlertReportsRetry) &&
+          renderErrorHandlingSection}
       </StyledBottomSection>
       {currentReport.error && (
         <Alert

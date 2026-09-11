@@ -17,14 +17,15 @@
  * under the License.
  */
 
-import { css, styled, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { css, styled } from '@apache-superset/core/theme';
 import {
   extendedDayjs as dayjs,
   fDuration,
 } from '@superset-ui/core/utils/dates';
 import { useEffect, useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { Tooltip } from '@superset-ui/core/components';
+import { Label, Tooltip } from '@superset-ui/core/components';
 import { ListView } from 'src/components';
 import SubMenu from 'src/features/home/SubMenu';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -148,8 +149,14 @@ function ExecutionLog({
           },
         }: {
           row: { original: AnnotationObject };
-        }) =>
-          fDuration(new Date(startDttm).getTime(), new Date(endDttm).getTime()),
+        }) => (
+          <Label monospace>
+            {fDuration(
+              new Date(startDttm).getTime(),
+              new Date(endDttm).getTime(),
+            )}
+          </Label>
+        ),
         Header: t('Duration'),
         disableSortBy: true,
         id: 'duration',

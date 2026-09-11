@@ -17,13 +17,13 @@
  * under the License.
  */
 
+import { t } from '@apache-superset/core/translation';
 import {
   FeatureFlag,
   isFeatureEnabled,
-  styled,
   SupersetClient,
-  t,
 } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/theme';
 import { useCallback, useMemo, useState, MouseEvent } from 'react';
 import { Link, useHistory } from 'react-router-dom';
 import rison from 'rison';
@@ -61,10 +61,11 @@ import { QueryObjectColumns, SavedQueryObject } from 'src/views/CRUD/types';
 import { TagTypeEnum } from 'src/components/Tag/TagType';
 import { loadTags } from 'src/components/Tag/utils';
 import { Icons } from '@superset-ui/core/components/Icons';
-import copyTextToClipboard from 'src/utils/copy';
+import type User from 'src/types/User';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import SavedQueryPreviewModal from 'src/features/queries/SavedQueryPreviewModal';
 import { findPermission } from 'src/utils/findPermission';
+import { openInNewTab } from 'src/utils/navigationUtils';
 
 const PAGE_SIZE = 25;
 const PASSWORDS_NEEDED_MESSAGE = t(
@@ -89,6 +90,15 @@ interface SavedQueryListProps {
     lastName: string;
   };
 }
+
+type SavedQueryCellProps = {
+  row: {
+    original: SavedQueryObject & {
+      changed_by?: User | null;
+      created_by?: User | null;
+    };
+  };
+};
 
 const StyledTableLabel = styled.div`
   .count {
@@ -221,7 +231,10 @@ function SavedQueryList({
     icon: <Icons.PlusOutlined iconSize="m" />,
     name: t('Query'),
     buttonStyle: 'primary',
+    'data-test': 'add-saved-query-button',
     onClick: () => {
+      // React Router's basename already includes the application root; passing
+      // a relative path ensures correct navigation under subdirectory deployments.
       history.push('/sqllab?new=true');
     },
   });
@@ -230,24 +243,19 @@ function SavedQueryList({
 
   // Action methods
   const openInSqlLab = (id: number, openInNewWindow: boolean) => {
-    copyTextToClipboard(() =>
-      Promise.resolve(`${window.location.origin}/sqllab?savedQueryId=${id}`),
-    )
-      .then(() => {
-        addSuccessToast(t('Link Copied!'));
-      })
-      .catch(() => {
-        addDangerToast(t('Sorry, your browser does not support copying.'));
-      });
+    const path = `/sqllab?savedQueryId=${id}`;
     if (openInNewWindow) {
-      window.open(`/sqllab?savedQueryId=${id}`);
+      openInNewTab(path);
     } else {
-      history.push(`/sqllab?savedQueryId=${id}`);
+      // React Router's basename already includes the application root; passing
+      // a relative path ensures correct navigation under subdirectory deployments.
+      history.push(path);
     }
   };
 
   const copyQueryLink = useCallback(
     async (savedQuery: SavedQueryObject) => {
+      let permalink: string;
       try {
         const payload = {
           dbId: savedQuery.db_id,
@@ -265,12 +273,19 @@ function SavedQueryList({
           body: JSON.stringify(payload),
         });
 
-        const { url: permalink } = response.json;
+        ({ url: permalink } = response.json);
+      } catch (error) {
+        addDangerToast(t('There was an error generating the permalink.'));
+        return;
+      }
 
+      try {
         await navigator.clipboard.writeText(permalink);
         addSuccessToast(t('Link Copied!'));
       } catch (error) {
-        addDangerToast(t('There was an error generating the permalink.'));
+        addDangerToast(
+          t('The link was generated but could not be copied: %s', permalink),
+        );
       }
     },
     [addDangerToast, addSuccessToast],
@@ -428,11 +443,29 @@ function SavedQueryList({
               changed_on_delta_humanized: changedOn,
             },
           },
-        }: any) => <ModifiedInfo user={changedBy} date={changedOn} />,
+        }: SavedQueryCellProps) => (
+          <ModifiedInfo user={changedBy ?? undefined} date={changedOn} />
+        ),
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
         size: 'xl',
         id: 'changed_on_delta_humanized',
+      },
+      {
+        accessor: 'created_by.first_name',
+        Header: t('Created by'),
+        disableSortBy: true,
+        size: 'xl',
+        Cell: ({
+          row: {
+            original: { created_by: createdBy },
+          },
+        }: SavedQueryCellProps) =>
+          createdBy ? `${createdBy.first_name} ${createdBy.last_name}` : '',
+      },
+      {
+        accessor: 'created_by',
+        hidden: true,
       },
       {
         Cell: ({ row: { original } }: any) => {
@@ -446,19 +479,19 @@ function SavedQueryList({
           const handleDelete = () => setQueryCurrentlyDeleting(original);
 
           const actions = [
-            {
-              label: 'preview-action',
-              tooltip: t('Query preview'),
-              placement: 'bottom',
-              icon: 'Binoculars',
-              onClick: handlePreview,
-            },
             canEdit && {
               label: 'edit-action',
               tooltip: t('Edit query'),
               placement: 'bottom',
               icon: 'EditOutlined',
               onClick: handleEdit,
+            },
+            {
+              label: 'preview-action',
+              tooltip: t('Query preview'),
+              placement: 'bottom',
+              icon: 'Binoculars',
+              onClick: handlePreview,
             },
             {
               label: 'copy-action',
@@ -508,8 +541,9 @@ function SavedQueryList({
         key: 'search',
         input: 'search',
         operator: FilterOperator.AllText,
-        toolTipDescription:
+        toolTipDescription: t(
           'Searches all text fields: Name, Description, Database & Schema',
+        ),
       },
       {
         Header: t('Database'),
@@ -576,6 +610,28 @@ function SavedQueryList({
             t(
               'An error occurred while fetching dataset datasource values: %s',
               errMsg,
+            ),
+          ),
+          user,
+        ),
+        paginate: true,
+      },
+      {
+        Header: t('Created by'),
+        key: 'created_by',
+        id: 'created_by',
+        input: 'select',
+        operator: FilterOperator.RelationOneMany,
+        unfilteredLabel: t('All'),
+        fetchSelects: createFetchRelated(
+          'saved_query',
+          'created_by',
+          createErrorHandler(errMsg =>
+            addDangerToast(
+              t(
+                'An error occurred while fetching created by values: %s',
+                errMsg,
+              ),
             ),
           ),
           user,

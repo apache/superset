@@ -18,7 +18,8 @@
  */
 
 import { memo, useMemo } from 'react';
-import { styled, useTheme } from '../../../theme';
+import { t } from '@apache-superset/core/translation';
+import { styled, useTheme } from '@apache-superset/core/theme';
 import { MatrixifyGridCell as GridCellData } from '../../types/matrixify';
 import StatefulChart from '../StatefulChart';
 
@@ -84,14 +85,14 @@ interface MatrixifyGridCellProps {
 // Simple No Data component for matrix cells
 const MatrixNoDataComponent = () => {
   const theme = useTheme();
-  return <NoDataMessage theme={theme}>No data</NoDataMessage>;
+  return <NoDataMessage theme={theme}>{t('No data')}</NoDataMessage>;
 };
 
 /**
  * Individual grid cell component - memoized to prevent unnecessary re-renders
  */
 const MatrixifyGridCell = memo(
-  ({ cell, rowHeight, datasource, hooks }: MatrixifyGridCellProps) => {
+  ({ cell, hooks }: MatrixifyGridCellProps) => {
     // Use computed title from template (will be empty string if no template)
     const cellLabel = cell.title || '';
 

@@ -23,14 +23,14 @@ import { TooltipTable } from '@superset-ui/core';
 import { CSSProperties } from 'react';
 
 describe('TooltipTable', () => {
-  it('sets className', () => {
+  test('sets className', () => {
     const { container } = render(
       <TooltipTable className="test-class" data={[]} />,
     );
     expect(container.querySelector('.test-class')).toBeInTheDocument();
   });
 
-  it('renders empty table', () => {
+  test('renders empty table', () => {
     render(<TooltipTable data={[]} />);
     const table = screen.getByRole('table');
     expect(table).toBeInTheDocument();
@@ -39,7 +39,7 @@ describe('TooltipTable', () => {
     expect(rows[0]).toHaveTextContent(/No Data|empty/i);
   });
 
-  it('renders table with content', async () => {
+  test('renders table with content', async () => {
     const data = [
       {
         key: 'Cersei',

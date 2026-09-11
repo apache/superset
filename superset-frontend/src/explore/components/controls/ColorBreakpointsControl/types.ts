@@ -40,8 +40,9 @@ export interface ErrorMapType {
   maxValue: string[];
 }
 
-export interface ColorBreakpointsControlProps
-  extends ControlComponentProps<OptionValueType[]> {
+export interface ColorBreakpointsControlProps extends ControlComponentProps<
+  OptionValueType[]
+> {
   breakpoints: ColorBreakpointType[];
 }
 

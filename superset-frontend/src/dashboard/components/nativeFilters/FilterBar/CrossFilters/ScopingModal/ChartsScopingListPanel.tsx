@@ -18,7 +18,8 @@
  */
 
 import { ReactNode, useMemo } from 'react';
-import { css, styled, t, useTheme } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
 import {
   ChartConfiguration,
   DashboardLayout,
@@ -140,7 +141,16 @@ export const ChartsScopingListPanel = ({
         </Button>
       </AddButtonContainer>
       <FilterTitle
-        role="button"
+        as="button"
+        {...{ type: 'button' }}
+        css={css`
+          appearance: none;
+          border: none;
+          background: none;
+          font: inherit;
+          text-align: left;
+          width: 100%;
+        `}
         onClick={() => setCurrentChartId(undefined)}
         className={activeChartId === undefined ? 'active' : ''}
       >

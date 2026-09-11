@@ -16,10 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SMART_DATE_ID, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { SMART_DATE_ID } from '@superset-ui/core';
 import {
   aggregationControl,
   ControlPanelConfig,
+  ControlPanelsContainerProps,
   ControlSubSectionHeader,
   D3_FORMAT_DOCS,
   D3_TIME_FORMAT_OPTIONS,
@@ -145,6 +147,64 @@ const config: ControlPanelConfig = {
         [subtitleFontSize],
         [showMetricNameControl],
         [metricNameFontSizeWithVisibility],
+        [<ControlSubSectionHeader>{t('X Axis')}</ControlSubSectionHeader>],
+        [
+          {
+            name: 'show_x_axis',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show X-axis'),
+              renderTrigger: true,
+              default: false,
+              description: t('Whether to display the X Axis'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'show_x_axis_min_max_labels',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show min/max axis labels'),
+              renderTrigger: true,
+              default: false,
+              description: t(
+                'When enabled, the axis will display labels for the minimum and maximum values of your data',
+              ),
+              visibility: ({ controls }: ControlPanelsContainerProps) =>
+                Boolean(controls?.show_x_axis?.value),
+            },
+          },
+        ],
+        [<ControlSubSectionHeader>{t('Y Axis')}</ControlSubSectionHeader>],
+        [
+          {
+            name: 'show_y_axis',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show Y-axis'),
+              renderTrigger: true,
+              default: false,
+              description: t('Whether to display the Y Axis'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'show_y_axis_min_max_labels',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show min/max axis labels'),
+              renderTrigger: true,
+              default: false,
+              description: t(
+                'When enabled, the axis will display labels for the minimum and maximum values of your data',
+              ),
+              visibility: ({ controls }: ControlPanelsContainerProps) =>
+                Boolean(controls?.show_y_axis?.value),
+            },
+          },
+        ],
         ['y_axis_format'],
         ['currency_format'],
         [
@@ -281,6 +341,27 @@ const config: ControlPanelConfig = {
                 ['sum', t('Sum values')],
               ],
               description: t('Pandas resample method'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'resample_fill_time_range',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Fill the entire time range'),
+              default: false,
+              description: t(
+                'Fill missing periods across the whole time range of the chart ' +
+                  'instead of only between the first and the last data point. ' +
+                  'Useful to keep a series anchored to the selected time range ' +
+                  'when the data starts late or ends early.',
+              ),
+              visibility: ({ controls }) =>
+                Boolean(
+                  controls?.resample_rule?.value &&
+                  controls?.resample_method?.value,
+                ),
             },
           },
         ],

@@ -1,0 +1,489 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+import transformProps from '../src/transformProps';
+import { TableChartProps } from '../src/types';
+import { GenericDataType } from '@apache-superset/core/common';
+import { QueryMode } from '@superset-ui/core';
+import { BoundUnit } from '@superset-ui/chart-controls';
+
+function createMockChartProps(
+  overrides: Partial<TableChartProps> = {},
+): TableChartProps {
+  const defaultProps = {
+    height: 400,
+    width: 800,
+    rawFormData: {
+      viz_type: 'table',
+      datasource: '1__table',
+      query_mode: QueryMode.Aggregate,
+      metrics: [],
+      percent_metrics: [],
+      column_config: {},
+      table_timestamp_format: '',
+      granularity_sqla: 'day',
+      time_range: 'No filter',
+    },
+    queriesData: [
+      {
+        data: [],
+        colnames: [],
+        coltypes: [],
+        rowcount: 0,
+        applied_filters: [],
+        rejected_filters: [],
+      },
+    ],
+    datasource: {
+      columns: [],
+      metrics: [],
+      columnFormats: {},
+      currencyFormats: {},
+      verboseMap: {},
+    },
+    rawDatasource: {
+      columns: [],
+      metrics: [],
+    },
+    filterState: {},
+    hooks: { setDataMask: jest.fn(), onChartStateChange: jest.fn() },
+    ownState: {},
+    emitCrossFilters: false,
+    theme: {},
+    ...overrides,
+  };
+  return defaultProps as unknown as TableChartProps;
+}
+
+test('extracts description from datasource.columns for a regular column', () => {
+  const props = createMockChartProps({
+    queriesData: [
+      {
+        data: [{ col1: 'value' }],
+        colnames: ['col1'],
+        coltypes: [GenericDataType.String],
+        rowcount: 1,
+        applied_filters: [],
+        rejected_filters: [],
+      } as unknown as TableChartProps['queriesData'][number],
+    ],
+    rawDatasource: {
+      columns: [
+        { column_name: 'col1', description: 'This is a column description' },
+      ],
+      metrics: [],
+    },
+  });
+
+  const result = transformProps(props);
+  const { columns } = result;
+  const columnMeta = columns.find(c => c.key === 'col1');
+  expect(columnMeta).toBeDefined();
+  expect(columnMeta!.description).toBe('This is a column description');
+});
+
+test('extracts description from datasource.metrics for a metric column', () => {
+  const props = createMockChartProps({
+    rawFormData: {
+      viz_type: 'table',
+      datasource: '1__table',
+      query_mode: QueryMode.Aggregate,
+      metrics: ['sum_sales'],
+      percent_metrics: [],
+      column_config: {},
+      table_timestamp_format: '',
+      granularity_sqla: 'day',
+      time_range: 'No filter',
+    },
+    queriesData: [
+      {
+        data: [{ sum_sales: 100 }],
+        colnames: ['sum_sales'],
+        coltypes: [GenericDataType.Numeric],
+        rowcount: 1,
+        applied_filters: [],
+        rejected_filters: [],
+      },
+    ] as unknown as TableChartProps['queriesData'],
+    rawDatasource: {
+      columns: [],
+      metrics: [
+        { metric_name: 'sum_sales', description: 'Total sales amount' },
+      ],
+    },
+  });
+
+  const result = transformProps(props);
+  const { columns } = result;
+  const columnMeta = columns.find(c => c.key === 'sum_sales');
+  expect(columnMeta).toBeDefined();
+  expect(columnMeta!.description).toBe('Total sales amount');
+});
+
+test('prefers column description over metric description when both exist with same key', () => {
+  const props = createMockChartProps({
+    rawFormData: {
+      viz_type: 'table',
+      datasource: '1__table',
+      query_mode: QueryMode.Aggregate,
+      metrics: ['revenue'],
+      percent_metrics: [],
+      column_config: {},
+      table_timestamp_format: '',
+      granularity_sqla: 'day',
+      time_range: 'No filter',
+    },
+    queriesData: [
+      {
+        data: [{ revenue: 500 }],
+        colnames: ['revenue'],
+        coltypes: [GenericDataType.Numeric],
+        rowcount: 1,
+        applied_filters: [],
+        rejected_filters: [],
+      },
+    ] as unknown as TableChartProps['queriesData'],
+    rawDatasource: {
+      columns: [{ column_name: 'revenue', description: 'Column desc' }],
+      metrics: [{ metric_name: 'revenue', description: 'Metric desc' }],
+    },
+  });
+
+  const result = transformProps(props);
+  const { columns } = result;
+  const columnMeta = columns.find(c => c.key === 'revenue');
+  expect(columnMeta!.description).toBe('Column desc');
+});
+
+test('handles percent metrics correctly – uses base metric name for lookup', () => {
+  const props = createMockChartProps({
+    rawFormData: {
+      viz_type: 'table',
+      datasource: '1__table',
+      query_mode: QueryMode.Aggregate,
+      metrics: ['profit'],
+      percent_metrics: ['profit'],
+      column_config: {},
+      table_timestamp_format: '',
+      granularity_sqla: 'day',
+      time_range: 'No filter',
+    },
+    queriesData: [
+      {
+        data: [{ '%profit': 0.15 }],
+        colnames: ['%profit'],
+        coltypes: [GenericDataType.Numeric],
+        rowcount: 1,
+        applied_filters: [],
+        rejected_filters: [],
+      },
+    ] as unknown as TableChartProps['queriesData'],
+    rawDatasource: {
+      columns: [],
+      metrics: [
+        { metric_name: 'profit', description: 'Profit margin percent' },
+      ],
+    },
+  });
+
+  const result = transformProps(props);
+  const { columns } = result;
+  const columnMeta = columns.find(c => c.key === '%profit');
+  expect(columnMeta).toBeDefined();
+  expect(columnMeta!.description).toBe('Profit margin percent');
+});
+
+test('sets description to undefined when no matching column or metric is found', () => {
+  const props = createMockChartProps({
+    queriesData: [
+      {
+        data: [{ unknown_col: 'x' }],
+        colnames: ['unknown_col'],
+        coltypes: [GenericDataType.String],
+        rowcount: 1,
+        applied_filters: [],
+        rejected_filters: [],
+      },
+    ] as unknown as TableChartProps['queriesData'],
+    rawDatasource: {
+      columns: [],
+      metrics: [],
+    },
+  });
+
+  const result = transformProps(props);
+  const { columns } = result;
+  const columnMeta = columns.find(c => c.key === 'unknown_col');
+  expect(columnMeta!.description).toBeUndefined();
+});
+
+test('uses description from column even when verboseMap renames the column', () => {
+  const props = createMockChartProps({
+    queriesData: [
+      {
+        data: [{ col_x: 10 }],
+        colnames: ['col_x'],
+        coltypes: [GenericDataType.Numeric],
+        rowcount: 1,
+        applied_filters: [],
+        rejected_filters: [],
+      },
+    ] as unknown as TableChartProps['queriesData'],
+    datasource: {
+      columns: [],
+      metrics: [],
+      columnFormats: {},
+      currencyFormats: {},
+      verboseMap: { col_x: 'Custom Label' },
+    } as unknown as TableChartProps['datasource'],
+    rawDatasource: {
+      columns: [
+        { column_name: 'col_x', description: 'Original column description' },
+      ],
+      metrics: [],
+    },
+  });
+
+  const result = transformProps(props);
+  const { columns } = result;
+  const columnMeta = columns.find(c => c.key === 'col_x');
+  expect(columnMeta!.label).toBe('Custom Label');
+  expect(columnMeta!.description).toBe('Original column description');
+});
+
+test('does not crash when datasource omits metrics/columns (drill-to-detail datasource)', () => {
+  const props = createMockChartProps({
+    queriesData: [
+      {
+        data: [{ col_x: 10 }],
+        colnames: ['col_x'],
+        coltypes: [GenericDataType.Numeric],
+        rowcount: 1,
+        applied_filters: [],
+        rejected_filters: [],
+      },
+    ] as unknown as TableChartProps['queriesData'],
+    datasource: {} as unknown as TableChartProps['datasource'],
+  });
+
+  expect(() => transformProps(props)).not.toThrow();
+});
+
+test('does not mistake the all_records percent-metric query for the totals query', () => {
+  // buildQuery.ts appends both an "all records" percent-metric denominator
+  // query and a totals query as independent extraQueries when percent
+  // metrics with percent_metric_calculation "all_records" and show_totals
+  // are both enabled — queriesData has 3 entries, not 2.
+  const props = createMockChartProps({
+    rawFormData: {
+      viz_type: 'table',
+      datasource: '1__table',
+      query_mode: QueryMode.Aggregate,
+      metrics: ['sum__num'],
+      percent_metrics: ['sum__num'],
+      percent_metric_calculation: 'all_records',
+      show_totals: true,
+      column_config: {},
+      table_timestamp_format: '',
+    },
+    queriesData: [
+      {
+        data: [{ name: 'a', sum__num: 1 }],
+        colnames: ['name', 'sum__num'],
+        coltypes: [GenericDataType.String, GenericDataType.Numeric],
+        rowcount: 1,
+        applied_filters: [],
+        rejected_filters: [],
+      },
+      // all_records extra query: raw percent-metric denominator, not totals.
+      {
+        data: [{ sum__num: 100 }],
+        colnames: ['sum__num'],
+        coltypes: [GenericDataType.Numeric],
+      },
+      // totals extra query: the real one.
+      {
+        data: [{ sum__num: 42 }],
+        colnames: ['sum__num'],
+        coltypes: [GenericDataType.Numeric],
+      },
+    ] as unknown as TableChartProps['queriesData'],
+  });
+
+  const result = transformProps(props);
+  expect(result.totals).toEqual({ sum__num: 42 });
+});
+
+test('excludes Green/Red color-scheme rules from columnColorFormatters', () => {
+  // Green/Red rules are rendered via the increase/decrease path, so they must
+  // not reach getColorFormatters, which would treat the scheme name as a hex
+  // color and emit an invalid `'GreenFF'` background.
+  const props = createMockChartProps({
+    rawFormData: {
+      viz_type: 'table',
+      datasource: '1__table',
+      query_mode: QueryMode.Aggregate,
+      metrics: ['metric_a', 'metric_b'],
+      percent_metrics: [],
+      column_config: {},
+      table_timestamp_format: '',
+      granularity_sqla: 'day',
+      time_range: 'No filter',
+      conditional_formatting: [
+        {
+          column: 'metric_a',
+          operator: '>',
+          targetValue: 0,
+          colorScheme: 'Green',
+        },
+        {
+          column: 'metric_b',
+          operator: '>',
+          targetValue: 0,
+          colorScheme: '#FF0000',
+        },
+      ],
+    } as unknown as TableChartProps['rawFormData'],
+    queriesData: [
+      {
+        data: [{ metric_a: 10, metric_b: 20 }],
+        colnames: ['metric_a', 'metric_b'],
+        coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
+        rowcount: 1,
+        applied_filters: [],
+        rejected_filters: [],
+      },
+    ] as unknown as TableChartProps['queriesData'],
+  });
+
+  const result = transformProps(props);
+  const formattedColumns = result.columnColorFormatters.map(f => f.column);
+  // The standard (#FF0000) rule is kept...
+  expect(formattedColumns).toContain('metric_b');
+  // ...but the Green rule is excluded.
+  expect(formattedColumns).not.toContain('metric_a');
+});
+
+test('allowRearrangeColumns defaults to true when allow_rearrange_columns is unset', () => {
+  // Pre-existing v2 charts saved before this control existed have no
+  // allow_rearrange_columns key at all -- they must keep the always-on
+  // behavior v2 originally shipped with, not v1's false default.
+  const props = createMockChartProps();
+  const result = transformProps(props);
+  expect(result.allowRearrangeColumns).toBe(true);
+});
+
+test('allowRearrangeColumns is false when allow_rearrange_columns is explicitly false', () => {
+  const props = createMockChartProps({
+    rawFormData: {
+      viz_type: 'table',
+      datasource: '1__table',
+      query_mode: QueryMode.Aggregate,
+      metrics: [],
+      percent_metrics: [],
+      column_config: {},
+      table_timestamp_format: '',
+      granularity_sqla: 'day',
+      time_range: 'No filter',
+      allow_rearrange_columns: false,
+    } as unknown as TableChartProps['rawFormData'],
+  });
+  const result = transformProps(props);
+  expect(result.allowRearrangeColumns).toBe(false);
+});
+
+test('allowRenderHtml defaults to true when allow_render_html is unset', () => {
+  const props = createMockChartProps();
+  const result = transformProps(props);
+  expect(result.allowRenderHtml).toBe(true);
+});
+
+test('allowRenderHtml is false when allow_render_html is explicitly false', () => {
+  const props = createMockChartProps({
+    rawFormData: {
+      viz_type: 'table',
+      datasource: '1__table',
+      query_mode: QueryMode.Aggregate,
+      metrics: [],
+      percent_metrics: [],
+      column_config: {},
+      table_timestamp_format: '',
+      granularity_sqla: 'day',
+      time_range: 'No filter',
+      allow_render_html: false,
+    } as unknown as TableChartProps['rawFormData'],
+  });
+  const result = transformProps(props);
+  expect(result.allowRenderHtml).toBe(false);
+});
+
+test('retains saved percentage rules with automatic bounds when server pagination is enabled', () => {
+  const props = createMockChartProps({
+    rawFormData: {
+      viz_type: 'table',
+      datasource: '1__table',
+      query_mode: QueryMode.Aggregate,
+      metrics: ['metric_a', 'metric_b'],
+      percent_metrics: [],
+      column_config: {},
+      table_timestamp_format: '',
+      granularity_sqla: 'day',
+      time_range: 'No filter',
+      server_pagination: true,
+      conditional_formatting: [
+        {
+          column: 'metric_a',
+          operator: 'None',
+          colorScheme: '#FF0000',
+          boundUnit: BoundUnit.Percent,
+          minBound: 0,
+          maxBound: 100,
+        },
+        {
+          column: 'metric_b',
+          operator: 'None',
+          colorScheme: '#00FF00',
+          boundUnit: BoundUnit.Value,
+        },
+      ],
+    } as unknown as TableChartProps['rawFormData'],
+    queriesData: [
+      {
+        data: [{ metric_a: 10, metric_b: 20 }],
+        colnames: ['metric_a', 'metric_b'],
+        coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
+        rowcount: 1,
+        applied_filters: [],
+        rejected_filters: [],
+      },
+      {
+        data: [{ rowcount: 1 }],
+        colnames: ['rowcount'],
+        coltypes: [GenericDataType.Numeric],
+        rowcount: 1,
+        applied_filters: [],
+        rejected_filters: [],
+      },
+    ] as unknown as TableChartProps['queriesData'],
+  });
+
+  const result = transformProps(props);
+  expect(
+    result.columnColorFormatters.map(formatter => formatter.column),
+  ).toEqual(['metric_a', 'metric_b']);
+});

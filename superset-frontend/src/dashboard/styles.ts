@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { css, SupersetTheme } from '@superset-ui/core';
+import { css, SupersetTheme } from '@apache-superset/core/theme';
 
 export const headerStyles = (theme: SupersetTheme) => css`
   body {
@@ -88,7 +88,7 @@ export const chartContextMenuStyles = (theme: SupersetTheme) => css`
 
 export const focusStyle = (theme: SupersetTheme) => css`
   a,
-  .ant-tabs-tabpane,
+  .ant-tabs-content,
   .ant-tabs-tab-btn,
   .superset-button,
   .superset-button.ant-dropdown-trigger,
@@ -104,7 +104,7 @@ export const focusStyle = (theme: SupersetTheme) => css`
       .ant-menu-item,
       a,
       .fave-unfave-icon,
-      .ant-tabs-tabpane,
+      .ant-tabs-content,
       .header-controls span
     ) {
       &:focus-visible {

@@ -17,7 +17,8 @@
  * under the License.
  */
 import { ReactNode } from 'react';
-import { styled, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
 import { Modal, Loading, Flex } from '@superset-ui/core/components';
 import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 
@@ -31,13 +32,10 @@ interface StandardModalProps {
   saveDisabled?: boolean;
   saveLoading?: boolean;
   saveText?: string;
-  cancelText?: string;
   errorTooltip?: ReactNode;
   children: ReactNode;
   isEditMode?: boolean;
   centered?: boolean;
-  destroyOnClose?: boolean;
-  maskClosable?: boolean;
   wrapProps?: object;
   contentLoading?: boolean;
 }
@@ -49,7 +47,7 @@ export const MODAL_LARGE_WIDTH = 900;
 
 const StyledModal = styled(Modal)`
   .ant-modal-body {
-    max-height: 60vh;
+    max-height: 80vh;
     height: auto;
     overflow-y: auto;
     padding: 0;
@@ -75,7 +73,7 @@ const StyledModal = styled(Modal)`
   .ant-collapse {
     border: none;
 
-    > .ant-collapse-item:first-child {
+    > .ant-collapse-item:first-of-type {
       border-top: none;
     }
 
@@ -91,7 +89,7 @@ const StyledModal = styled(Modal)`
   }
 
   /* Ensure collapse sections have proper padding */
-  .ant-collapse-content-box {
+  .ant-collapse-body {
     padding: ${({ theme }) => theme.sizeUnit * 4}px;
   }
 `;
@@ -106,13 +104,10 @@ export function StandardModal({
   saveDisabled = false,
   saveLoading = false,
   saveText,
-  cancelText,
   errorTooltip,
   children,
   isEditMode = false,
   centered = true,
-  destroyOnClose = true,
-  maskClosable = false,
   wrapProps,
   contentLoading = false,
 }: StandardModalProps) {
@@ -129,6 +124,7 @@ export function StandardModal({
       show={show}
       width={`${width}px`}
       wrapProps={wrapProps}
+      centered={centered}
       title={
         icon ? (
           <ModalTitleWithIcon

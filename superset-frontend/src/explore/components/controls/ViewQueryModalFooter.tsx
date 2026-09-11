@@ -17,8 +17,9 @@
  * under the License.
  */
 import { FC } from 'react';
-import { isObject } from 'lodash';
-import { t, SupersetClient } from '@superset-ui/core';
+import { isObject } from 'lodash-es';
+import { t } from '@apache-superset/core/translation';
+import { SupersetClient } from '@superset-ui/core';
 import { Button } from '@superset-ui/core/components';
 import { useHistory } from 'react-router-dom';
 

@@ -1,0 +1,2257 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+"""
+Unit tests for MCP service middleware.
+"""
+
+from typing import Any
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+from fastmcp.exceptions import ToolError, ValidationError as FastMCPValidationError
+from pydantic import ValidationError
+from sqlalchemy.exc import OperationalError
+
+from superset.commands.exceptions import (
+    CommandInvalidError,
+    ForbiddenError,
+    ObjectNotFoundError,
+)
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import SupersetException, SupersetSecurityException
+from superset.mcp_service.auth import MCPNoAuthSourceError, MCPPermissionDeniedError
+from superset.mcp_service.constants import DEFAULT_MAX_LIST_ITEMS
+from superset.mcp_service.mcp_config import MCP_RESPONSE_SIZE_CONFIG
+from superset.mcp_service.middleware import (
+    _is_user_error,
+    _sanitize_params,
+    create_response_size_guard_middleware,
+    GlobalErrorHandlerMiddleware,
+    RBACToolVisibilityMiddleware,
+    ResponseSizeGuardMiddleware,
+    StructuredContentStripperMiddleware,
+)
+from superset.mcp_service.utils.token_utils import estimate_token_count
+from superset.utils import json as utils_json
+from superset.utils.log import DBEventLogger
+
+
+class TestResponseSizeGuardMiddleware:
+    """Test ResponseSizeGuardMiddleware class."""
+
+    def test_init_default_values(self) -> None:
+        """Should initialize with default values."""
+        middleware = ResponseSizeGuardMiddleware()
+        assert middleware.token_limit == 25_000
+        assert middleware.warn_threshold_pct == 80
+        assert middleware.warn_threshold == 20000
+        assert middleware.excluded_tools == set()
+        assert middleware.max_list_items == 100
+
+    def test_init_custom_values(self) -> None:
+        """Should initialize with custom values."""
+        middleware = ResponseSizeGuardMiddleware(
+            token_limit=10000,
+            warn_threshold_pct=70,
+            excluded_tools=["health_check", "get_chart_preview"],
+            max_list_items=50,
+        )
+        assert middleware.token_limit == 10000
+        assert middleware.warn_threshold_pct == 70
+        assert middleware.warn_threshold == 7000
+        assert middleware.excluded_tools == {"health_check", "get_chart_preview"}
+        assert middleware.max_list_items == 50
+
+    def test_init_excluded_tools_as_string(self) -> None:
+        """Should handle excluded_tools as a single string."""
+        middleware = ResponseSizeGuardMiddleware(
+            excluded_tools="health_check",
+        )
+        assert middleware.excluded_tools == {"health_check"}
+
+    @pytest.mark.parametrize("configured_value", [0, -1, -100])
+    def test_init_clamps_non_positive_max_list_items(
+        self, configured_value: int
+    ) -> None:
+        """A misconfigured max_list_items of 0 or negative should clamp to 1."""
+        middleware = ResponseSizeGuardMiddleware(max_list_items=configured_value)
+        assert middleware.max_list_items == 1
+
+    @pytest.mark.asyncio
+    async def test_allows_small_response(self) -> None:
+        """Should allow responses under token limit."""
+        middleware = ResponseSizeGuardMiddleware(token_limit=25000)
+
+        # Create mock context
+        context = MagicMock()
+        context.message.name = "list_charts"
+        context.message.arguments = {}
+
+        # Create mock call_next that returns small response
+        small_response = {"charts": [{"id": 1, "name": "test"}]}
+        call_next = AsyncMock(return_value=small_response)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        assert result == small_response
+        call_next.assert_called_once_with(context)
+
+    @pytest.mark.asyncio
+    async def test_blocks_large_response(self) -> None:
+        """Should block responses over token limit."""
+        middleware = ResponseSizeGuardMiddleware(token_limit=100)  # Very low limit
+
+        # Create mock context
+        context = MagicMock()
+        context.message.name = "list_charts"
+        context.message.arguments = {"page_size": 100}
+
+        # Create large response
+        large_response = {
+            "charts": [{"id": i, "name": f"chart_{i}"} for i in range(1000)]
+        }
+        call_next = AsyncMock(return_value=large_response)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+            pytest.raises(ToolError) as exc_info,
+        ):
+            await middleware.on_call_tool(context, call_next)
+
+        # Verify error contains helpful information
+        error_message = str(exc_info.value)
+        assert "Response too large" in error_message
+        assert "limit" in error_message.lower()
+
+    @pytest.mark.asyncio
+    async def test_skips_excluded_tools(self) -> None:
+        """Should skip checking for excluded tools."""
+        middleware = ResponseSizeGuardMiddleware(
+            token_limit=100, excluded_tools=["health_check"]
+        )
+
+        # Create mock context for excluded tool
+        context = MagicMock()
+        context.message.name = "health_check"
+        context.message.arguments = {}
+
+        # Create response that would exceed limit
+        large_response = {"data": "x" * 10000}
+        call_next = AsyncMock(return_value=large_response)
+
+        # Should not raise even though response exceeds limit
+        result = await middleware.on_call_tool(context, call_next)
+        assert result == large_response
+
+    @pytest.mark.asyncio
+    async def test_logs_warning_at_threshold(self) -> None:
+        """Should log warning when approaching limit.
+
+        Mocks the token estimator to return a specific value above the
+        warn threshold but below the hard limit, decoupling the test
+        from whichever tokenizer (tiktoken or char heuristic) happens
+        to be loaded.
+        """
+        middleware = ResponseSizeGuardMiddleware(
+            token_limit=1000, warn_threshold_pct=80
+        )
+
+        context = MagicMock()
+        context.message.name = "list_charts"
+        context.message.arguments = {}
+
+        response = {"data": "approaching the limit"}
+        call_next = AsyncMock(return_value=response)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+            patch(
+                "superset.mcp_service.middleware.estimate_response_tokens",
+                return_value=850,
+            ),
+            patch("superset.mcp_service.middleware.logger") as mock_logger,
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        # Should return response (not blocked at 85% of limit)
+        assert result == response
+        # Should log warning
+        mock_logger.warning.assert_called()
+
+    @pytest.mark.asyncio
+    async def test_error_includes_suggestions(self) -> None:
+        """Should include suggestions in error message."""
+        middleware = ResponseSizeGuardMiddleware(token_limit=100)
+
+        context = MagicMock()
+        context.message.name = "list_charts"
+        context.message.arguments = {"page_size": 100}
+
+        large_response = {"charts": [{"id": i} for i in range(1000)]}
+        call_next = AsyncMock(return_value=large_response)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+            pytest.raises(ToolError) as exc_info,
+        ):
+            await middleware.on_call_tool(context, call_next)
+
+        error_message = str(exc_info.value)
+        # Should have numbered suggestions
+        assert "1." in error_message
+        # Should suggest reducing page_size
+        assert "page_size" in error_message.lower() or "limit" in error_message.lower()
+
+    @pytest.mark.asyncio
+    async def test_logs_size_exceeded_event(self) -> None:
+        """Should log to event logger when size exceeded."""
+        middleware = ResponseSizeGuardMiddleware(token_limit=100)
+
+        context = MagicMock()
+        context.message.name = "list_charts"
+        context.message.arguments = {}
+
+        large_response = {"data": "x" * 10000}
+        call_next = AsyncMock(return_value=large_response)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger") as mock_event_logger,
+            pytest.raises(ToolError),
+        ):
+            await middleware.on_call_tool(context, call_next)
+
+        # Should log to event logger
+        mock_event_logger.log.assert_called()
+        call_args = mock_event_logger.log.call_args
+        assert call_args.kwargs["action"] == "mcp_response_size_exceeded"
+
+    @pytest.mark.asyncio
+    async def test_truncates_info_tool_instead_of_blocking(self) -> None:
+        """Should truncate info tool responses instead of blocking them."""
+        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+
+        context = MagicMock()
+        context.message.name = "get_dataset_info"
+        context.message.arguments = {}
+
+        # Large info tool response with a big description
+        large_response = {
+            "id": 1,
+            "table_name": "test",
+            "description": "x" * 50000,
+        }
+        call_next = AsyncMock(return_value=large_response)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        # Should return truncated response, not raise ToolError
+        assert isinstance(result, dict)
+        assert result["id"] == 1
+        assert result["_response_truncated"] is True
+        assert "[truncated" in result["description"]
+
+    @pytest.mark.asyncio
+    async def test_truncates_chart_info_with_large_form_data(self) -> None:
+        """Should truncate get_chart_info with large form_data."""
+        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+
+        context = MagicMock()
+        context.message.name = "get_chart_info"
+        context.message.arguments = {}
+
+        large_response = {
+            "id": 1,
+            "slice_name": "My Chart",
+            "form_data": {f"key_{i}": f"value_{i}" for i in range(100)},
+        }
+        call_next = AsyncMock(return_value=large_response)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        assert isinstance(result, dict)
+        assert result["id"] == 1
+        assert result["_response_truncated"] is True
+
+    @pytest.mark.asyncio
+    async def test_still_blocks_non_info_tools(self) -> None:
+        """Should still block non-info tools that exceed limit."""
+        middleware = ResponseSizeGuardMiddleware(token_limit=100)
+
+        context = MagicMock()
+        context.message.name = "list_charts"  # Not an info tool
+        context.message.arguments = {}
+
+        large_response = {"data": "x" * 10000}
+        call_next = AsyncMock(return_value=large_response)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+            pytest.raises(ToolError),
+        ):
+            await middleware.on_call_tool(context, call_next)
+
+    @pytest.mark.asyncio
+    async def test_logs_truncation_event(self) -> None:
+        """Should log mcp_response_truncated event on successful truncation."""
+        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+
+        context = MagicMock()
+        context.message.name = "get_dashboard_info"
+        context.message.arguments = {}
+
+        large_response = {
+            "id": 1,
+            "description": "x" * 50000,
+        }
+        call_next = AsyncMock(return_value=large_response)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger") as mock_event_logger,
+        ):
+            await middleware.on_call_tool(context, call_next)
+
+        # Should log truncation event (not size_exceeded)
+        mock_event_logger.log.assert_called()
+        call_args = mock_event_logger.log.call_args
+        assert call_args.kwargs["action"] == "mcp_response_truncated"
+
+    @pytest.mark.asyncio
+    async def test_truncates_dashboard_info_with_custom_max_list_items(self) -> None:
+        """Should respect a custom max_list_items cap for get_dashboard_info.
+
+        Regression test for the Medialab large-dashboard report: with the
+        default hardcoded cap of 30, a dashboard's charts/native_filters
+        lists were always truncated to 30 regardless of configuration. This
+        verifies the cap is now threaded through from the middleware
+        constructor rather than hardcoded.
+        """
+        middleware = ResponseSizeGuardMiddleware(token_limit=3000, max_list_items=50)
+
+        context = MagicMock()
+        context.message.name = "get_dashboard_info"
+        context.message.arguments = {}
+
+        large_response = {
+            "id": 1,
+            "dashboard_title": "x" * 2000,
+            "charts": [{"id": i, "slice_name": f"chart_{i}"} for i in range(463)],
+            "native_filters": [{"id": i, "name": f"filter_{i}"} for i in range(48)],
+        }
+        call_next = AsyncMock(return_value=large_response)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        assert isinstance(result, dict)
+        assert result["_response_truncated"] is True
+        # Truncated to the custom cap (50), not the old hardcoded 30
+        assert len(result["charts"]) == 50
+        # native_filters (48 items) fits under the custom cap, untouched
+        assert len(result["native_filters"]) == 48
+
+    @pytest.mark.asyncio
+    async def test_truncates_execute_sql_rows_instead_of_blocking(self) -> None:
+        """execute_sql should truncate rows, not raise ToolError."""
+        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+
+        context = MagicMock()
+        context.message.name = "execute_sql"
+        context.message.arguments = {}
+
+        row = {f"col_{i}": f"value_{i}" for i in range(10)}
+        large_response = {
+            "status": "success",
+            "rows": [row] * 200,
+            "columns": [{"name": f"col_{i}", "type": "STRING"} for i in range(10)],
+            "row_count": 200,
+        }
+        call_next = AsyncMock(return_value=large_response)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        assert isinstance(result, dict)
+        assert result["_response_truncated"] is True
+        assert len(result["rows"]) < 200
+        assert isinstance(result.get("_truncation_notes"), list)
+        assert result["_truncation_notes"]
+
+    @pytest.mark.asyncio
+    async def test_truncates_query_dataset_data_field(self) -> None:
+        """query_dataset should truncate the 'data' list, not raise ToolError."""
+        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+
+        context = MagicMock()
+        context.message.name = "query_dataset"
+        context.message.arguments = {}
+
+        row = {f"col_{i}": f"value_{i}" for i in range(10)}
+        large_response = {
+            "dataset_id": 1,
+            "dataset_name": "test",
+            "data": [row] * 200,
+            "row_count": 200,
+            "summary": "",
+        }
+        call_next = AsyncMock(return_value=large_response)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        assert isinstance(result, dict)
+        assert result["_response_truncated"] is True
+        assert len(result["data"]) < 200
+
+    @pytest.mark.asyncio
+    async def test_truncates_get_chart_data_rows(self) -> None:
+        """get_chart_data should truncate rows, not raise ToolError."""
+        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+
+        context = MagicMock()
+        context.message.name = "get_chart_data"
+        context.message.arguments = {}
+
+        row = {f"col_{i}": f"value_{i}" for i in range(10)}
+        large_response = {
+            "chart_id": 1,
+            "chart_name": "test chart",
+            "chart_type": "table",
+            "data": [row] * 200,
+            "row_count": 200,
+            "summary": "",
+        }
+        call_next = AsyncMock(return_value=large_response)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        assert isinstance(result, dict)
+        assert result["_response_truncated"] is True
+        assert len(result["data"]) < 200
+
+    @pytest.mark.asyncio
+    async def test_truncates_multi_query_chart_rows_across_whole_response(self) -> None:
+        """All query results share the response's token budget."""
+        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+        context = MagicMock()
+        context.message.name = "get_chart_data"
+        context.message.arguments = {}
+        row = {f"col_{i}": f"value_{i}" for i in range(10)}
+        large_response = {
+            "chart_id": 1,
+            "data": [row] * 200,
+            "row_count": 200,
+            "query_results": [
+                {"query_index": 0, "data": [row] * 200, "row_count": 200},
+                {"query_index": 1, "data": [row] * 200, "row_count": 200},
+            ],
+        }
+        call_next = AsyncMock(return_value=large_response)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        assert isinstance(result, dict)
+        assert result["_response_truncated"] is True
+        assert all(query["data"] for query in result["query_results"])
+        returned_counts = [len(query["data"]) for query in result["query_results"]]
+        assert len(set(returned_counts)) == 1
+        assert returned_counts[0] < 200
+        assert [
+            query["row_count"] for query in result["query_results"]
+        ] == returned_counts
+
+    @pytest.mark.asyncio
+    async def test_multi_query_truncation_result_fits_budget(self) -> None:
+        """The final multi-query truncation note stays within the token budget."""
+        middleware = ResponseSizeGuardMiddleware(token_limit=700)
+        context = MagicMock()
+        context.message.name = "get_chart_data"
+        context.message.arguments = {}
+        row = {f"col_{i}": f"value_{i}" for i in range(10)}
+        response = {
+            "chart_id": 1,
+            "data": [row] * 200,
+            "row_count": 200,
+            "query_results": [
+                {"query_index": 0, "data": [row] * 200, "row_count": 200},
+                {"query_index": 1, "data": [row] * 200, "row_count": 200},
+            ],
+        }
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+        ):
+            result = await middleware.on_call_tool(
+                context, AsyncMock(return_value=response)
+            )
+
+        assert isinstance(result, dict)
+        assert estimate_token_count(utils_json.dumps(result)) <= 700
+        assert " of 400 rows returned" in result["_truncation_notes"][0]
+
+    @pytest.mark.asyncio
+    async def test_data_query_truncation_updates_row_count(self) -> None:
+        """row_count should reflect the truncated count, not the original."""
+        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+
+        context = MagicMock()
+        context.message.name = "execute_sql"
+        context.message.arguments = {}
+
+        row = {f"col_{i}": f"value_{i}" for i in range(10)}
+        large_response = {
+            "status": "success",
+            "rows": [row] * 200,
+            "row_count": 200,
+        }
+        call_next = AsyncMock(return_value=large_response)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        assert result["_response_truncated"] is True
+        assert result["row_count"] == len(result["rows"])
+
+    @pytest.mark.asyncio
+    async def test_data_query_truncation_note_mentions_limit_clause(self) -> None:
+        """Truncation note must tell the caller to add a LIMIT clause."""
+        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+
+        context = MagicMock()
+        context.message.name = "execute_sql"
+        context.message.arguments = {}
+
+        row = {f"col_{i}": f"value_{i}" for i in range(10)}
+        large_response = {
+            "status": "success",
+            "rows": [row] * 200,
+            "row_count": 200,
+        }
+        call_next = AsyncMock(return_value=large_response)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        notes = result.get("_truncation_notes", [])
+        assert notes, "Should have at least one truncation note"
+        assert any("LIMIT" in note for note in notes)
+
+    @pytest.mark.asyncio
+    async def test_data_query_truncation_logs_truncation_event(self) -> None:
+        """Should log mcp_response_truncated (not size_exceeded) for query tools."""
+        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+
+        context = MagicMock()
+        context.message.name = "execute_sql"
+        context.message.arguments = {}
+
+        row = {f"col_{i}": f"value_{i}" for i in range(10)}
+        large_response = {
+            "status": "success",
+            "rows": [row] * 200,
+            "row_count": 200,
+        }
+        call_next = AsyncMock(return_value=large_response)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger") as mock_event_logger,
+        ):
+            await middleware.on_call_tool(context, call_next)
+
+        mock_event_logger.log.assert_called()
+        assert (
+            mock_event_logger.log.call_args.kwargs["action"] == "mcp_response_truncated"
+        )
+
+    @pytest.mark.asyncio
+    async def test_truncates_get_chart_data_csv_export(self) -> None:
+        """CSV exports (data=[], payload in csv_data) should be truncated too."""
+        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+
+        context = MagicMock()
+        context.message.name = "get_chart_data"
+        context.message.arguments = {}
+
+        large_response: dict[str, Any] = {
+            "chart_id": 1,
+            "chart_name": "test chart",
+            "chart_type": "table",
+            "columns": [],
+            "data": [],
+            "row_count": 200,
+            "summary": "",
+            "csv_data": "col_0,col_1\n" + ("value,value\n" * 2000),
+            "format": "csv",
+        }
+        call_next = AsyncMock(return_value=large_response)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        assert isinstance(result, dict)
+        assert result["_response_truncated"] is True
+        assert len(result["csv_data"]) < len(large_response["csv_data"])
+
+    @pytest.mark.asyncio
+    async def test_data_query_blocks_when_single_row_still_exceeds_limit(self) -> None:
+        """Should raise ToolError, not ship an over-budget response.
+
+        ``_bisect_row_limit`` always keeps at least one row when the
+        original list is non-empty, even if that one row alone exceeds the
+        token limit. The middleware must re-check the truncated size and
+        fall back to the hard error rather than treating this as success.
+        """
+        middleware = ResponseSizeGuardMiddleware(token_limit=50)
+
+        context = MagicMock()
+        context.message.name = "execute_sql"
+        context.message.arguments = {}
+
+        huge_row = {"col": "x" * 5000}
+        large_response = {
+            "status": "success",
+            "rows": [huge_row] * 3,
+            "row_count": 3,
+        }
+        call_next = AsyncMock(return_value=large_response)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+            pytest.raises(ToolError),
+        ):
+            await middleware.on_call_tool(context, call_next)
+
+    @pytest.mark.asyncio
+    async def test_data_query_under_limit_passes_through(self) -> None:
+        """Small query results should pass through unchanged."""
+        middleware = ResponseSizeGuardMiddleware(token_limit=25000)
+
+        context = MagicMock()
+        context.message.name = "execute_sql"
+        context.message.arguments = {}
+
+        small_response = {
+            "status": "success",
+            "rows": [{"a": 1, "b": 2}] * 3,
+            "row_count": 3,
+        }
+        call_next = AsyncMock(return_value=small_response)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        assert result == small_response
+        assert "_response_truncated" not in result
+
+
+class TestCreateResponseSizeGuardMiddleware:
+    """Test create_response_size_guard_middleware factory function."""
+
+    def test_default_config_checks_chart_preview(self) -> None:
+        """Should size-check chart preview responses by default."""
+        mock_flask_app = MagicMock()
+        mock_flask_app.config.get.return_value = MCP_RESPONSE_SIZE_CONFIG
+
+        with patch(
+            "superset.mcp_service.flask_singleton.get_flask_app",
+            return_value=mock_flask_app,
+        ):
+            middleware = create_response_size_guard_middleware()
+
+        assert middleware is not None
+        assert "get_chart_preview" not in middleware.excluded_tools
+        assert "health_check" in middleware.excluded_tools
+
+    def test_creates_middleware_when_enabled(self) -> None:
+        """Should create middleware when enabled in config."""
+        mock_config = {
+            "enabled": True,
+            "token_limit": 30000,
+            "warn_threshold_pct": 75,
+            "excluded_tools": ["health_check"],
+        }
+
+        mock_flask_app = MagicMock()
+        mock_flask_app.config.get.return_value = mock_config
+
+        with patch(
+            "superset.mcp_service.flask_singleton.get_flask_app",
+            return_value=mock_flask_app,
+        ):
+            middleware = create_response_size_guard_middleware()
+
+        assert middleware is not None
+        assert isinstance(middleware, ResponseSizeGuardMiddleware)
+        assert middleware.token_limit == 30000
+        assert middleware.warn_threshold_pct == 75
+        assert "health_check" in middleware.excluded_tools
+
+    def test_returns_none_when_disabled(self) -> None:
+        """Should return None when disabled in config."""
+        mock_config = {"enabled": False}
+
+        mock_flask_app = MagicMock()
+        mock_flask_app.config.get.return_value = mock_config
+
+        with patch(
+            "superset.mcp_service.flask_singleton.get_flask_app",
+            return_value=mock_flask_app,
+        ):
+            middleware = create_response_size_guard_middleware()
+
+        assert middleware is None
+
+    def test_uses_defaults_when_config_missing(self) -> None:
+        """Should use defaults when config values are missing."""
+        mock_config = {"enabled": True}  # Only enabled, no other values
+
+        mock_flask_app = MagicMock()
+        mock_flask_app.config.get.return_value = mock_config
+
+        with patch(
+            "superset.mcp_service.flask_singleton.get_flask_app",
+            return_value=mock_flask_app,
+        ):
+            middleware = create_response_size_guard_middleware()
+
+        assert middleware is not None
+        assert middleware.token_limit == 25_000  # Default
+        assert middleware.warn_threshold_pct == 80  # Default
+
+    def test_falls_back_to_default_when_max_list_items_is_none(self) -> None:
+        """A config explicitly set to None (not just missing) shouldn't crash.
+
+        `dict.get(key, default)` only falls back when the key is absent, so
+        an operator setting MCP_RESPONSE_SIZE_CONFIG["max_list_items"] = None
+        would otherwise reach `int(None)` and raise TypeError.
+        """
+        mock_config = {"enabled": True, "max_list_items": None}
+
+        mock_flask_app = MagicMock()
+        mock_flask_app.config.get.return_value = mock_config
+
+        with patch(
+            "superset.mcp_service.flask_singleton.get_flask_app",
+            return_value=mock_flask_app,
+        ):
+            middleware = create_response_size_guard_middleware()
+
+        assert middleware is not None
+        assert middleware.max_list_items == DEFAULT_MAX_LIST_ITEMS
+
+    def test_falls_back_to_default_when_max_list_items_is_non_numeric(self) -> None:
+        """A non-numeric config value (e.g. a typo in superset_config.py)
+        should fall back to the default instead of raising ValueError and
+        aborting middleware initialization.
+        """
+        mock_config = {"enabled": True, "max_list_items": "many"}
+
+        mock_flask_app = MagicMock()
+        mock_flask_app.config.get.return_value = mock_config
+
+        with patch(
+            "superset.mcp_service.flask_singleton.get_flask_app",
+            return_value=mock_flask_app,
+        ):
+            middleware = create_response_size_guard_middleware()
+
+        assert middleware is not None
+        assert middleware.max_list_items == DEFAULT_MAX_LIST_ITEMS
+
+    def test_handles_exception_gracefully(self) -> None:
+        """Should return None on expected configuration exceptions."""
+        with patch(
+            "superset.mcp_service.flask_singleton.get_flask_app",
+            side_effect=ImportError("Config error"),
+        ):
+            middleware = create_response_size_guard_middleware()
+
+        assert middleware is None
+
+
+class TestExtractPayloadFromToolResult:
+    """Tests for _extract_payload_from_tool_result static method."""
+
+    def _make_tool_result(self, text: str, meta: dict[str, Any] | None = None) -> Any:
+        from fastmcp.tools.tool import ToolResult
+        from mcp.types import TextContent
+
+        return ToolResult(
+            content=[TextContent(type="text", text=text)],
+            meta=meta,
+        )
+
+    def test_extracts_dict_payload(self) -> None:
+        """Should parse the JSON text inside content[0] and return the dict."""
+        from superset.utils import json
+
+        payload = {"id": 1, "name": "test", "charts": [1, 2, 3]}
+        tool_result = self._make_tool_result(json.dumps(payload))
+
+        result = ResponseSizeGuardMiddleware._extract_payload_from_tool_result(
+            tool_result
+        )
+
+        assert result is not None
+        assert result == payload
+
+    def test_returns_none_for_plain_dict(self) -> None:
+        """Should return None when given a plain dict (not a ToolResult)."""
+        assert (
+            ResponseSizeGuardMiddleware._extract_payload_from_tool_result(
+                {"key": "val"}
+            )
+            is None
+        )
+
+    def test_returns_none_for_string(self) -> None:
+        """Should return None when given a plain string."""
+        assert (
+            ResponseSizeGuardMiddleware._extract_payload_from_tool_result("string")
+            is None
+        )
+
+    def test_returns_none_for_list(self) -> None:
+        """Should return None when given a plain list."""
+        assert (
+            ResponseSizeGuardMiddleware._extract_payload_from_tool_result([1, 2, 3])
+            is None
+        )
+
+    def test_returns_none_for_none(self) -> None:
+        """Should return None when given None."""
+        assert (
+            ResponseSizeGuardMiddleware._extract_payload_from_tool_result(None) is None
+        )
+
+    def test_returns_none_when_payload_is_list(self) -> None:
+        """Should return None when JSON payload is a list, not a dict."""
+        from superset.utils import json
+
+        tool_result = self._make_tool_result(json.dumps([{"id": 1}, {"id": 2}]))
+
+        result = ResponseSizeGuardMiddleware._extract_payload_from_tool_result(
+            tool_result
+        )
+
+        assert result is None
+
+    def test_returns_none_for_invalid_json(self) -> None:
+        """Should return None when content text is not valid JSON."""
+        tool_result = self._make_tool_result("not valid {{{json")
+
+        result = ResponseSizeGuardMiddleware._extract_payload_from_tool_result(
+            tool_result
+        )
+
+        assert result is None
+
+    def test_returns_none_for_empty_text(self) -> None:
+        """Should return None when content[0].text is empty."""
+        tool_result = self._make_tool_result("")
+
+        result = ResponseSizeGuardMiddleware._extract_payload_from_tool_result(
+            tool_result
+        )
+
+        assert result is None
+
+    def test_returns_none_for_empty_content(self) -> None:
+        """Should return None when ToolResult has no content items."""
+        from fastmcp.tools.tool import ToolResult
+
+        tool_result = ToolResult(content=[], meta=None)
+
+        result = ResponseSizeGuardMiddleware._extract_payload_from_tool_result(
+            tool_result
+        )
+
+        assert result is None
+
+
+class TestRewrapAsToolResult:
+    """Tests for _rewrap_as_tool_result static method."""
+
+    def _make_tool_result(
+        self, payload: dict[str, Any], meta: dict[str, Any] | None = None
+    ) -> Any:
+        from fastmcp.tools.tool import ToolResult
+        from mcp.types import TextContent
+
+        from superset.utils import json
+
+        return ToolResult(
+            content=[TextContent(type="text", text=json.dumps(payload))],
+            meta=meta,
+        )
+
+    def test_returns_tool_result_with_serialized_payload(self) -> None:
+        """Should return a ToolResult whose content[0].text is the JSON payload."""
+        from fastmcp.tools.tool import ToolResult
+
+        from superset.utils import json
+
+        original = self._make_tool_result({"old": "data"})
+        new_payload = {"id": 1, "name": "truncated", "_response_truncated": True}
+
+        result = ResponseSizeGuardMiddleware._rewrap_as_tool_result(
+            new_payload, original
+        )
+
+        assert isinstance(result, ToolResult)
+        assert result.content[0].type == "text"
+        reparsed = json.loads(result.content[0].text)
+        assert reparsed == new_payload
+
+    def test_preserves_meta_from_original_tool_result(self) -> None:
+        """Should copy meta from the original ToolResult."""
+        from fastmcp.tools.tool import ToolResult
+
+        meta = {"request_id": "abc-123", "trace": "xyz"}
+        original = self._make_tool_result({"key": "val"}, meta=meta)
+
+        result = ResponseSizeGuardMiddleware._rewrap_as_tool_result(
+            {"key": "val"}, original
+        )
+
+        assert isinstance(result, ToolResult)
+        assert result.meta == meta
+
+    def test_sets_meta_none_for_non_tool_result_original(self) -> None:
+        """Should set meta=None when original is not a ToolResult."""
+        from fastmcp.tools.tool import ToolResult
+
+        result = ResponseSizeGuardMiddleware._rewrap_as_tool_result(
+            {"key": "val"}, {"not": "a ToolResult"}
+        )
+
+        assert isinstance(result, ToolResult)
+        assert result.meta is None
+
+
+class TestToolResultWrapping:
+    """Integration tests for ToolResult unwrap/truncate/rewrap in on_call_tool."""
+
+    def _make_tool_result(
+        self, payload: dict[str, Any], meta: dict[str, Any] | None = None
+    ) -> Any:
+        from fastmcp.tools.tool import ToolResult
+        from mcp.types import TextContent
+
+        from superset.utils import json
+
+        return ToolResult(
+            content=[TextContent(type="text", text=json.dumps(payload))],
+            meta=meta,
+        )
+
+    @pytest.mark.asyncio
+    async def test_info_tool_result_is_truncated_and_rewrapped(self) -> None:
+        """Truncate a ToolResult-wrapped info response and return a ToolResult."""
+        from fastmcp.tools.tool import ToolResult
+
+        from superset.utils import json
+
+        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+        context = MagicMock()
+        context.message.name = "get_dataset_info"
+        context.message.arguments = {}
+
+        large_payload = {"id": 1, "table_name": "test", "description": "x" * 50000}
+        tool_result = self._make_tool_result(large_payload)
+        call_next = AsyncMock(return_value=tool_result)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        # Must return a ToolResult, not a raw dict
+        assert isinstance(result, ToolResult)
+        reparsed = json.loads(result.content[0].text)
+        assert reparsed["id"] == 1
+        assert reparsed["_response_truncated"] is True
+        assert "[truncated" in reparsed["description"]
+
+    @pytest.mark.asyncio
+    async def test_small_tool_result_passes_through_unchanged(self) -> None:
+        """Should return the original ToolResult when within the token limit."""
+
+        middleware = ResponseSizeGuardMiddleware(token_limit=25000)
+        context = MagicMock()
+        context.message.name = "get_chart_info"
+        context.message.arguments = {}
+
+        small_payload = {"id": 1, "name": "My Chart"}
+        tool_result = self._make_tool_result(small_payload)
+        call_next = AsyncMock(return_value=tool_result)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        assert result is tool_result
+
+    @pytest.mark.asyncio
+    async def test_large_non_info_tool_result_is_blocked(self) -> None:
+        """Should raise ToolError for a non-info ToolResult that exceeds the limit."""
+        middleware = ResponseSizeGuardMiddleware(token_limit=100)
+        context = MagicMock()
+        context.message.name = "list_charts"
+        context.message.arguments = {}
+
+        large_payload = {
+            "charts": [{"id": i, "name": f"chart_{i}"} for i in range(500)]
+        }
+        tool_result = self._make_tool_result(large_payload)
+        call_next = AsyncMock(return_value=tool_result)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+            pytest.raises(ToolError),
+        ):
+            await middleware.on_call_tool(context, call_next)
+
+    @pytest.mark.asyncio
+    async def test_data_query_tool_result_is_truncated_and_rewrapped(self) -> None:
+        """Truncate a ToolResult-wrapped execute_sql response and re-wrap it.
+
+        Regression test for the production path: FastMCP always wraps tool
+        return values in ToolResult before middleware sees them, so
+        data-query truncation must be exercised through that wrapper, not
+        just against a plain dict.
+        """
+        from fastmcp.tools.tool import ToolResult
+
+        from superset.utils import json
+
+        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+        context = MagicMock()
+        context.message.name = "execute_sql"
+        context.message.arguments = {}
+
+        row = {f"col_{i}": f"value_{i}" for i in range(10)}
+        large_payload = {
+            "status": "success",
+            "rows": [row] * 200,
+            "row_count": 200,
+        }
+        tool_result = self._make_tool_result(large_payload)
+        call_next = AsyncMock(return_value=tool_result)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        assert isinstance(result, ToolResult)
+        reparsed = json.loads(result.content[0].text)
+        assert reparsed["_response_truncated"] is True
+        assert len(reparsed["rows"]) < 200
+
+    @pytest.mark.asyncio
+    async def test_meta_preserved_after_truncation(self) -> None:
+        """Should preserve the original ToolResult meta through truncation."""
+        from fastmcp.tools.tool import ToolResult
+
+        from superset.utils import json
+
+        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+        context = MagicMock()
+        context.message.name = "get_dashboard_info"
+        context.message.arguments = {}
+
+        meta = {"request_id": "abc-123"}
+        large_payload = {"id": 1, "title": "My Dashboard", "description": "x" * 50000}
+        tool_result = self._make_tool_result(large_payload, meta=meta)
+        call_next = AsyncMock(return_value=tool_result)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        assert isinstance(result, ToolResult)
+        assert result.meta == meta
+        reparsed = json.loads(result.content[0].text)
+        assert reparsed["_response_truncated"] is True
+
+
+class TestMiddlewareIntegration:
+    """Integration tests for middleware behavior."""
+
+    @pytest.mark.asyncio
+    async def test_pydantic_model_response(self) -> None:
+        """Should handle Pydantic model responses."""
+        from pydantic import BaseModel
+
+        class ChartInfo(BaseModel):
+            id: int
+            name: str
+
+        middleware = ResponseSizeGuardMiddleware(token_limit=25000)
+
+        context = MagicMock()
+        context.message.name = "get_chart_info"
+        context.message.arguments = {}
+
+        response = ChartInfo(id=1, name="Test Chart")
+        call_next = AsyncMock(return_value=response)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        assert result == response
+
+    @pytest.mark.asyncio
+    async def test_list_response(self) -> None:
+        """Should handle list responses."""
+        middleware = ResponseSizeGuardMiddleware(token_limit=25000)
+
+        context = MagicMock()
+        context.message.name = "list_charts"
+        context.message.arguments = {}
+
+        response = [{"id": 1}, {"id": 2}, {"id": 3}]
+        call_next = AsyncMock(return_value=response)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        assert result == response
+
+    @pytest.mark.asyncio
+    async def test_string_response(self) -> None:
+        """Should handle string responses."""
+        middleware = ResponseSizeGuardMiddleware(token_limit=25000)
+
+        context = MagicMock()
+        context.message.name = "health_check"
+        context.message.arguments = {}
+
+        response = "OK"
+        call_next = AsyncMock(return_value=response)
+
+        result = await middleware.on_call_tool(context, call_next)
+        assert result == response
+
+
+def _make_security_exception(msg: str = "access denied") -> SupersetSecurityException:
+    """Helper to construct SupersetSecurityException with a proper SupersetError."""
+    return SupersetSecurityException(
+        SupersetError(
+            message=msg,
+            error_type=SupersetErrorType.GENERIC_BACKEND_ERROR,
+            level=ErrorLevel.ERROR,
+        )
+    )
+
+
+class TestIsUserError:
+    """Test _is_user_error classification helper."""
+
+    @pytest.mark.parametrize(
+        ("error", "expected"),
+        [
+            # User errors (WARNING) — expected in normal MCP operation
+            (ToolError("bad request"), True),
+            (PermissionError("access denied"), True),
+            (ObjectNotFoundError("Chart", "123"), True),
+            (ForbiddenError(), True),
+            (_make_security_exception(), True),
+            (ValueError("invalid param"), True),
+            (FileNotFoundError("not found"), True),
+            # System errors (ERROR) — unexpected failures
+            (RuntimeError("unexpected"), False),
+            (ConnectionError("connection refused"), False),
+            (TypeError("type mismatch"), False),
+            (KeyError("missing key"), False),
+            (Exception("generic"), False),
+        ],
+        ids=[
+            "ToolError",
+            "PermissionError",
+            "ObjectNotFoundError",
+            "ForbiddenError",
+            "SupersetSecurityException",
+            "ValueError",  # user error — bad param from LLM
+            "FileNotFoundError",
+            "RuntimeError",
+            "ConnectionError",
+            "TypeError",
+            "KeyError",
+            "Exception",
+        ],
+    )
+    def test_error_classification(self, error: Exception, expected: bool) -> None:
+        """Test that _is_user_error correctly classifies error types."""
+        assert _is_user_error(error) == expected
+
+    def test_validation_error(self) -> None:
+        """Test ValidationError is classified as user error."""
+        from pydantic import BaseModel
+
+        class TestModel(BaseModel):
+            """Test model for validation error testing."""
+
+            name: str
+
+        with pytest.raises(ValidationError) as exc_info:
+            TestModel.model_validate({})
+        assert _is_user_error(exc_info.value) is True
+
+    def test_command_invalid_error(self) -> None:
+        """Test CommandInvalidError is classified as user error."""
+        error = CommandInvalidError()
+        assert _is_user_error(error) is True
+        assert error.status == 422
+
+    def test_operational_error(self) -> None:
+        """Test OperationalError is classified as system error."""
+        error = OperationalError("db error", {}, Exception())
+        assert _is_user_error(error) is False
+
+    def test_superset_exception_status_based(self) -> None:
+        """Test SupersetException classification is based on .status attribute."""
+        # 4xx status → user error
+        error_400 = SupersetException("bad request")
+        error_400.status = 400
+        assert _is_user_error(error_400) is True
+
+        error_408 = SupersetException("timeout")
+        error_408.status = 408
+        assert _is_user_error(error_408) is True
+
+        error_422 = SupersetException("unprocessable")
+        error_422.status = 422
+        assert _is_user_error(error_422) is True
+
+        # 5xx status → system error
+        error_500 = SupersetException("internal error")
+        error_500.status = 500
+        assert _is_user_error(error_500) is False
+
+        error_503 = SupersetException("unavailable")
+        error_503.status = 503
+        assert _is_user_error(error_503) is False
+
+
+class TestGlobalErrorHandlerLogLevels:
+    """Test that GlobalErrorHandlerMiddleware logs at correct levels."""
+
+    @pytest.mark.asyncio
+    async def test_user_error_logs_warning(self) -> None:
+        """User errors (e.g. ValueError) should log at WARNING."""
+        middleware = GlobalErrorHandlerMiddleware()
+
+        context = MagicMock()
+        context.message.name = "list_charts"
+        context.method = "tools/call"
+
+        call_next = AsyncMock(side_effect=ValueError("invalid page"))
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+            patch("superset.mcp_service.middleware.logger") as mock_logger,
+            pytest.raises(ToolError),
+        ):
+            await middleware.on_message(context, call_next)
+
+        # Should log at WARNING, not ERROR
+        mock_logger.warning.assert_called()
+        mock_logger.error.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_system_error_logs_error(self) -> None:
+        """System errors (OperationalError, generic Exception) should log at ERROR."""
+        middleware = GlobalErrorHandlerMiddleware()
+
+        context = MagicMock()
+        context.message.name = "execute_sql"
+        context.method = "tools/call"
+
+        call_next = AsyncMock(side_effect=OperationalError("db error", {}, Exception()))
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+            patch("superset.mcp_service.middleware.logger") as mock_logger,
+            pytest.raises(ToolError),
+        ):
+            await middleware.on_message(context, call_next)
+
+        # Should log at ERROR
+        mock_logger.error.assert_called()
+
+    @pytest.mark.asyncio
+    async def test_unexpected_error_logs_error(self) -> None:
+        """Truly unexpected errors should log at ERROR with error_id."""
+        middleware = GlobalErrorHandlerMiddleware()
+
+        context = MagicMock()
+        context.message.name = "list_charts"
+        context.method = "tools/call"
+
+        call_next = AsyncMock(side_effect=RuntimeError("something broke"))
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+            patch("superset.mcp_service.middleware.logger") as mock_logger,
+            pytest.raises(ToolError, match="Internal error"),
+        ):
+            await middleware.on_message(context, call_next)
+
+        # Should log at ERROR (both the classification log and the error_id log)
+        assert mock_logger.error.call_count >= 1
+
+    @pytest.mark.asyncio
+    async def test_value_error_message_is_sanitized(self) -> None:
+        """A ValueError's text reaches the client through _sanitize_error_for_logging.
+
+        ValueError is deliberately not in that sanitizer's generic-message
+        list (so LLM callers still get parameter feedback), but a connection
+        string embedded in the message must still be redacted, not returned
+        verbatim.
+        """
+        middleware = GlobalErrorHandlerMiddleware()
+
+        context = MagicMock()
+        context.message.name = "execute_sql"
+        context.method = "tools/call"
+
+        call_next = AsyncMock(
+            side_effect=ValueError(
+                "Invalid config: postgresql://admin:hunter2@db.internal/prod"
+            )
+        )
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+            patch("superset.mcp_service.middleware.logger"),
+        ):
+            with pytest.raises(ToolError) as exc_info:
+                await middleware.on_message(context, call_next)
+
+        message = str(exc_info.value)
+        assert "hunter2" not in message
+        assert "db.internal" not in message
+        assert "Invalid config" in message
+
+    @pytest.mark.asyncio
+    async def test_http_exception_detail_is_sanitized(self) -> None:
+        """HTTPException.detail reaches the client through
+        _sanitize_error_for_logging instead of being interpolated raw."""
+        from starlette.exceptions import HTTPException
+
+        middleware = GlobalErrorHandlerMiddleware()
+
+        context = MagicMock()
+        context.message.name = "get_chart_preview"
+        context.method = "tools/call"
+
+        call_next = AsyncMock(
+            side_effect=HTTPException(
+                status_code=502,
+                detail="Upstream failed: postgresql://admin:hunter2@db.internal/prod",
+            )
+        )
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+            patch("superset.mcp_service.middleware.logger"),
+        ):
+            with pytest.raises(ToolError) as exc_info:
+                await middleware.on_message(context, call_next)
+
+        message = str(exc_info.value)
+        assert "hunter2" not in message
+        assert "db.internal" not in message
+        assert "Upstream failed" in message
+
+
+class TestSanitizeParams:
+    """Tests for _sanitize_params's recursion into nested containers."""
+
+    def test_redacts_top_level_sensitive_key(self) -> None:
+        result = _sanitize_params({"password": "hunter2", "name": "alice"})
+        assert result["password"] == "[REDACTED]"  # noqa: S105
+        assert result["name"] == "alice"
+
+    def test_redacts_sensitive_key_nested_under_arguments(self) -> None:
+        result = _sanitize_params({"arguments": {"password": "hunter2"}})
+        assert result["arguments"]["password"] == "[REDACTED]"  # noqa: S105
+
+    def test_redacts_sensitive_key_nested_under_request(self) -> None:
+        """Any nested dict wrapper is redacted, not just the literal
+        'arguments' key -- Pydantic-request tools wrap params under 'request'."""
+        result = _sanitize_params({"request": {"password": "hunter2"}})
+        assert result["request"]["password"] == "[REDACTED]"  # noqa: S105
+
+    def test_redacts_sensitive_key_inside_list_of_dicts(self) -> None:
+        result = _sanitize_params({"items": [{"token": "abc123"}, {"name": "x"}]})
+        assert result["items"][0]["token"] == "[REDACTED]"  # noqa: S105
+        assert result["items"][1]["name"] == "x"
+
+    def test_redacts_sensitive_key_inside_nested_list_of_lists(self) -> None:
+        """A list nested inside another list must still be recursed into,
+        not copied unchanged -- otherwise a sensitive key inside it would
+        reach the audit log unredacted."""
+        result = _sanitize_params({"items": [[{"password": "hunter2"}]]})
+        assert result["items"][0][0]["password"] == "[REDACTED]"  # noqa: S105
+
+    def test_non_dict_passthrough(self) -> None:
+        assert _sanitize_params("not-a-dict") == "not-a-dict"  # type: ignore[arg-type]
+
+    @pytest.mark.asyncio
+    async def test_event_logger_includes_severity(self) -> None:
+        """Event logger payload should include severity field."""
+        middleware = GlobalErrorHandlerMiddleware()
+
+        context = MagicMock()
+        context.message.name = "list_charts"
+        context.method = "tools/call"
+
+        call_next = AsyncMock(side_effect=ValueError("bad param"))
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger") as mock_event_logger,
+            patch("superset.mcp_service.middleware.logger"),
+            pytest.raises(ToolError),
+        ):
+            await middleware.on_message(context, call_next)
+
+        mock_event_logger.log.assert_called_once()
+        payload = mock_event_logger.log.call_args.kwargs["curated_payload"]
+        assert payload["severity"] == "warning"
+
+    @pytest.mark.asyncio
+    async def test_permission_error_logs_warning(self) -> None:
+        """PermissionError should log at WARNING — agents are expected to
+        try tools they lack access to."""
+        middleware = GlobalErrorHandlerMiddleware()
+
+        context = MagicMock()
+        context.message.name = "generate_chart"
+        context.method = "tools/call"
+
+        call_next = AsyncMock(side_effect=PermissionError("not allowed"))
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+            patch("superset.mcp_service.middleware.logger") as mock_logger,
+            pytest.raises(ToolError, match="Permission denied"),
+        ):
+            await middleware.on_message(context, call_next)
+
+        mock_logger.warning.assert_called()
+        mock_logger.error.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_connection_error_logs_error(self) -> None:
+        """ConnectionError should log at ERROR — infrastructure issue."""
+        middleware = GlobalErrorHandlerMiddleware()
+
+        context = MagicMock()
+        context.message.name = "list_charts"
+        context.method = "tools/call"
+
+        call_next = AsyncMock(side_effect=ConnectionError("connection refused"))
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+            patch("superset.mcp_service.middleware.logger") as mock_logger,
+            pytest.raises(ToolError, match="Connection error"),
+        ):
+            await middleware.on_message(context, call_next)
+
+        mock_logger.error.assert_called()
+
+    @pytest.mark.asyncio
+    async def test_superset_exception_4xx_logs_warning(self) -> None:
+        """SupersetException with 4xx status should log at WARNING."""
+        middleware = GlobalErrorHandlerMiddleware()
+
+        context = MagicMock()
+        context.message.name = "list_charts"
+        context.method = "tools/call"
+
+        error = SupersetException("bad request")
+        error.status = 400
+        call_next = AsyncMock(side_effect=error)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+            patch("superset.mcp_service.middleware.logger") as mock_logger,
+            pytest.raises(ToolError, match="Invalid request"),
+        ):
+            await middleware.on_message(context, call_next)
+
+        mock_logger.warning.assert_called()
+        mock_logger.error.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_superset_exception_5xx_logs_error(self) -> None:
+        """SupersetException with 5xx status should log at ERROR."""
+        middleware = GlobalErrorHandlerMiddleware()
+
+        context = MagicMock()
+        context.message.name = "list_charts"
+        context.method = "tools/call"
+
+        error = SupersetException("internal failure")
+        error.status = 500
+        call_next = AsyncMock(side_effect=error)
+
+        mock_logger = MagicMock()
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+            patch("superset.mcp_service.middleware.logger", mock_logger),
+            pytest.raises(ToolError, match="Internal error"),
+        ):
+            await middleware.on_message(context, call_next)
+
+        mock_logger.error.assert_called()
+
+    @pytest.mark.asyncio
+    async def test_mcp_permission_denied_error_becomes_tool_error(self) -> None:
+        """MCPPermissionDeniedError must convert to ToolError, not a generic error."""
+        middleware = GlobalErrorHandlerMiddleware()
+
+        context = MagicMock()
+        context.message.name = "generate_dashboard"
+        context.method = "tools/call"
+
+        error = MCPPermissionDeniedError(
+            permission_name="can_write",
+            view_name="Dashboard",
+            user="viewer",
+            tool_name="generate_dashboard",
+        )
+        call_next = AsyncMock(side_effect=error)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=42),
+            patch("superset.mcp_service.middleware.event_logger"),
+            pytest.raises(ToolError) as exc_info,
+        ):
+            await middleware.on_message(context, call_next)
+
+        assert "can_write" in str(exc_info.value)
+        assert "Dashboard" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_mcp_permission_denied_error_is_user_error(self) -> None:
+        """MCPPermissionDeniedError must be classified as a user error (WARNING)."""
+        error = MCPPermissionDeniedError(
+            permission_name="can_write",
+            view_name="Chart",
+        )
+        assert _is_user_error(error) is True
+
+    @pytest.mark.asyncio
+    async def test_mcp_permission_denied_error_logs_at_warning(self) -> None:
+        """MCPPermissionDeniedError should log at WARNING, not ERROR."""
+        middleware = GlobalErrorHandlerMiddleware()
+
+        context = MagicMock()
+        context.message.name = "generate_chart"
+        context.method = "tools/call"
+
+        error = MCPPermissionDeniedError(
+            permission_name="can_write",
+            view_name="Chart",
+            user="reader",
+        )
+        call_next = AsyncMock(side_effect=error)
+
+        mock_logger = MagicMock()
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=5),
+            patch("superset.mcp_service.middleware.event_logger"),
+            patch("superset.mcp_service.middleware.logger", mock_logger),
+            pytest.raises(ToolError),
+        ):
+            await middleware.on_message(context, call_next)
+
+        mock_logger.warning.assert_called()
+        mock_logger.error.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_fastmcp_validation_error_routes_to_validation_branch(self) -> None:
+        """
+        Regression for #42578: FastMCP raises its own
+        ``fastmcp.exceptions.ValidationError`` for malformed tool arguments,
+        which is not a subclass of pydantic's ``ValidationError`` (the only
+        one ``_handle_error`` checks for). It must not fall through to the
+        generic "Internal error... contact support" branch, since that
+        misreports a client-recoverable 400-class error as an opaque 500.
+        """
+        middleware = GlobalErrorHandlerMiddleware()
+
+        context = MagicMock()
+        context.message.name = "execute_sql"
+        context.method = "tools/call"
+
+        call_next = AsyncMock(
+            side_effect=FastMCPValidationError(
+                "1 validation error for call[execute_sql]\n"
+                "request\n  Missing required argument"
+            )
+        )
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+            patch("superset.mcp_service.middleware.logger"),
+            pytest.raises(ToolError, match="Validation error in execute_sql") as exc,
+        ):
+            await middleware.on_message(context, call_next)
+
+        assert "Internal error" not in str(exc.value)
+
+    @pytest.mark.asyncio
+    async def test_error_event_reaches_the_real_event_logger(self) -> None:
+        """
+        Regression for #42579: ``_handle_error`` calls
+        ``event_logger.log(user_id=..., action=..., duration_ms=...,
+        curated_payload=...)`` without the ``dashboard_id``/``slice_id``/
+        ``referrer`` arguments ``DBEventLogger.log`` requires (they have no
+        defaults), so the call raises ``TypeError`` on every single MCP
+        error, silently swallowed by the surrounding ``except Exception``.
+
+        Every other test in this class patches ``event_logger`` with a bare
+        ``MagicMock``, which accepts any kwargs and would never catch this --
+        this test uses the real ``DBEventLogger`` instead (with the DB
+        session calls stubbed out, so it doesn't need a live database) to
+        actually exercise the argument binding that's broken today.
+        """
+        middleware = GlobalErrorHandlerMiddleware()
+
+        context = MagicMock()
+        context.message.name = "execute_sql"
+        context.method = "tools/call"
+
+        call_next = AsyncMock(side_effect=ValueError("bad param"))
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger", DBEventLogger()),
+            patch("superset.db") as mock_db,
+            pytest.raises(ToolError),
+        ):
+            await middleware.on_message(context, call_next)
+
+        # If event_logger.log() actually bound its arguments successfully,
+        # it would go on to persist a Log row. Today the TypeError is raised
+        # (and swallowed) before it ever gets that far.
+        mock_db.session.bulk_save_objects.assert_called_once()
+
+
+class TestRBACToolVisibilityMiddleware:
+    """Tests for RBACToolVisibilityMiddleware.on_list_tools."""
+
+    def _make_tool(self, name: str = "test_tool") -> Any:
+        """Create a minimal mock tool object."""
+        tool = MagicMock()
+        tool.name = name
+        return tool
+
+    @pytest.mark.asyncio
+    async def test_fails_open_on_exception(self) -> None:
+        """Returns all tools when unexpected setup exception occurs (fail open)."""
+        tools = [self._make_tool("list_charts"), self._make_tool("generate_chart")]
+        call_next = AsyncMock(return_value=tools)
+        middleware = RBACToolVisibilityMiddleware()
+
+        with patch(
+            "superset.mcp_service.middleware._get_app_context_manager",
+            side_effect=RuntimeError("no app"),
+        ):
+            result = await middleware.on_list_tools(MagicMock(), call_next)
+
+        assert result == tools
+
+    @pytest.mark.asyncio
+    async def test_fails_open_when_user_is_none(self, app) -> None:
+        """Returns all tools when get_user_from_request returns None."""
+        tools = [self._make_tool("list_charts"), self._make_tool("generate_chart")]
+        call_next = AsyncMock(return_value=tools)
+        middleware = RBACToolVisibilityMiddleware()
+
+        with (
+            patch(
+                "superset.mcp_service.flask_singleton.get_flask_app", return_value=app
+            ),
+            patch(
+                "superset.mcp_service.middleware.get_user_from_request",
+                return_value=None,
+            ),
+        ):
+            result = await middleware.on_list_tools(MagicMock(), call_next)
+
+        assert result == tools
+
+    @pytest.mark.asyncio
+    async def test_filters_tools_by_rbac(self, app) -> None:
+        """Tools denied by is_tool_visible_to_current_user are removed."""
+        read_tool = self._make_tool("list_charts")
+        write_tool = self._make_tool("generate_chart")
+        tools = [read_tool, write_tool]
+        call_next = AsyncMock(return_value=tools)
+        middleware = RBACToolVisibilityMiddleware()
+
+        mock_user = MagicMock()
+
+        def _visible(tool: Any) -> bool:
+            return tool.name == "list_charts"
+
+        with (
+            patch(
+                "superset.mcp_service.flask_singleton.get_flask_app", return_value=app
+            ),
+            patch(
+                "superset.mcp_service.middleware.get_user_from_request",
+                return_value=mock_user,
+            ),
+            patch(
+                "superset.mcp_service.middleware.is_tool_visible_to_current_user",
+                side_effect=_visible,
+            ),
+        ):
+            result = await middleware.on_list_tools(MagicMock(), call_next)
+
+        assert read_tool in result
+        assert write_tool not in result
+
+    @pytest.mark.asyncio
+    async def test_fails_closed_on_permission_error(self, app) -> None:
+        """Returns empty list when credentials are invalid (PermissionError)."""
+        tools = [self._make_tool("list_charts"), self._make_tool("generate_chart")]
+        call_next = AsyncMock(return_value=tools)
+        middleware = RBACToolVisibilityMiddleware()
+
+        with (
+            patch(
+                "superset.mcp_service.flask_singleton.get_flask_app", return_value=app
+            ),
+            patch(
+                "superset.mcp_service.middleware.get_user_from_request",
+                side_effect=PermissionError("Invalid API key"),
+            ),
+        ):
+            result = await middleware.on_list_tools(MagicMock(), call_next)
+
+        assert result == []
+
+    @pytest.mark.asyncio
+    async def test_fails_closed_on_bad_credentials_value_error(self, app) -> None:
+        """Returns empty list when auth was attempted but user not found."""
+        tools = [self._make_tool("list_charts"), self._make_tool("generate_chart")]
+        call_next = AsyncMock(return_value=tools)
+        middleware = RBACToolVisibilityMiddleware()
+
+        with (
+            patch(
+                "superset.mcp_service.flask_singleton.get_flask_app", return_value=app
+            ),
+            patch(
+                "superset.mcp_service.middleware.get_user_from_request",
+                side_effect=ValueError("User 'ghost' not found in database"),
+            ),
+        ):
+            result = await middleware.on_list_tools(MagicMock(), call_next)
+
+        assert result == []
+
+    @pytest.mark.asyncio
+    async def test_fails_open_when_no_auth_configured(self, app) -> None:
+        """Returns all tools when no auth source is configured at all."""
+        tools = [self._make_tool("list_charts"), self._make_tool("generate_chart")]
+        call_next = AsyncMock(return_value=tools)
+        middleware = RBACToolVisibilityMiddleware()
+
+        with (
+            patch(
+                "superset.mcp_service.flask_singleton.get_flask_app", return_value=app
+            ),
+            patch(
+                "superset.mcp_service.middleware.get_user_from_request",
+                side_effect=MCPNoAuthSourceError(
+                    "Authentication required. No valid credentials provided."
+                ),
+            ),
+        ):
+            result = await middleware.on_list_tools(MagicMock(), call_next)
+
+        assert result == tools
+
+
+class TestGlobalErrorHandlerStatsMetrics:
+    """GlobalErrorHandlerMiddleware must NOT emit per-tool outcome
+    counters: it re-raises every failure as ToolError, which the outer
+    LoggingMiddleware catches and counts (classified via __cause__).
+    Emitting here as well would double-count raised errors."""
+
+    @pytest.mark.asyncio
+    async def test_no_stats_emitted_for_system_error(self) -> None:
+        middleware = GlobalErrorHandlerMiddleware()
+        context = MagicMock()
+        context.message.name = "execute_sql"
+        context.method = "tools/call"
+        call_next = AsyncMock(side_effect=OperationalError("db error", {}, Exception()))
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+            patch("superset.mcp_service.middleware.stats_logger_manager") as mock_stats,
+            pytest.raises(ToolError),
+        ):
+            await middleware.on_message(context, call_next)
+
+        mock_stats.instance.incr.assert_not_called()
+        mock_stats.instance.timing.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_no_stats_emitted_for_user_error(self) -> None:
+        middleware = GlobalErrorHandlerMiddleware()
+        context = MagicMock()
+        context.message.name = "list_charts"
+        context.method = "tools/call"
+        call_next = AsyncMock(side_effect=ValueError("bad param"))
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+            patch("superset.mcp_service.middleware.stats_logger_manager") as mock_stats,
+            pytest.raises(ToolError),
+        ):
+            await middleware.on_message(context, call_next)
+
+        mock_stats.instance.incr.assert_not_called()
+        mock_stats.instance.timing.assert_not_called()
+
+
+class TestGlobalErrorHandlerErrorHook:
+    """Test that _handle_error invokes MCP_ERROR_HOOK for system-class
+    errors only, and never lets a raising hook affect the MCP response."""
+
+    @pytest.mark.asyncio
+    async def test_invokes_hook_for_system_error(self) -> None:
+        middleware = GlobalErrorHandlerMiddleware()
+        context = MagicMock()
+        context.message.name = "execute_sql"
+        context.method = "tools/call"
+        error = OperationalError("db error", {}, Exception())
+        call_next = AsyncMock(side_effect=error)
+        mock_hook = MagicMock()
+        mock_flask_app = MagicMock()
+        mock_flask_app.config.get.return_value = mock_hook
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+            patch(
+                "superset.mcp_service.flask_singleton.get_flask_app",
+                return_value=mock_flask_app,
+            ),
+            pytest.raises(ToolError),
+        ):
+            await middleware.on_message(context, call_next)
+
+        mock_hook.assert_called_once()
+        hook_error, hook_context = mock_hook.call_args[0]
+        assert hook_error is error
+        assert hook_context["tool_name"] == "execute_sql"
+        assert hook_context["error_type"] == "OperationalError"
+
+    @pytest.mark.asyncio
+    async def test_does_not_invoke_hook_for_user_error(self) -> None:
+        middleware = GlobalErrorHandlerMiddleware()
+        context = MagicMock()
+        context.message.name = "list_charts"
+        context.method = "tools/call"
+        call_next = AsyncMock(side_effect=ValueError("bad param"))
+        mock_hook = MagicMock()
+        mock_flask_app = MagicMock()
+        mock_flask_app.config.get.return_value = mock_hook
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+            patch(
+                "superset.mcp_service.flask_singleton.get_flask_app",
+                return_value=mock_flask_app,
+            ),
+            pytest.raises(ToolError),
+        ):
+            await middleware.on_message(context, call_next)
+
+        mock_hook.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_no_hook_configured_is_a_noop(self) -> None:
+        """Default config (MCP_ERROR_HOOK=None) must not raise."""
+        middleware = GlobalErrorHandlerMiddleware()
+        context = MagicMock()
+        context.message.name = "execute_sql"
+        context.method = "tools/call"
+        call_next = AsyncMock(side_effect=OperationalError("db error", {}, Exception()))
+        mock_flask_app = MagicMock()
+        mock_flask_app.config.get.return_value = None
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+            patch(
+                "superset.mcp_service.flask_singleton.get_flask_app",
+                return_value=mock_flask_app,
+            ),
+            pytest.raises(ToolError),
+        ):
+            await middleware.on_message(context, call_next)
+
+    @pytest.mark.asyncio
+    async def test_hook_exception_is_swallowed(self) -> None:
+        """A raising MCP_ERROR_HOOK must not affect the MCP response."""
+        middleware = GlobalErrorHandlerMiddleware()
+        context = MagicMock()
+        context.message.name = "execute_sql"
+        context.method = "tools/call"
+        call_next = AsyncMock(side_effect=OperationalError("db error", {}, Exception()))
+        mock_hook = MagicMock(side_effect=RuntimeError("sentry unreachable"))
+        mock_flask_app = MagicMock()
+        mock_flask_app.config.get.return_value = mock_hook
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+            patch(
+                "superset.mcp_service.flask_singleton.get_flask_app",
+                return_value=mock_flask_app,
+            ),
+            pytest.raises(ToolError, match="Database error"),
+        ):
+            await middleware.on_message(context, call_next)
+
+        mock_hook.assert_called_once()
+
+
+class TestGlobalErrorHandlerErrorIdUsesCallId:
+    """Test that the generic 'Internal error' branch uses mcp_call_id
+    instead of a collision-prone f'err_{int(time.time())}' timestamp."""
+
+    @pytest.mark.asyncio
+    async def test_unexpected_error_uses_mcp_call_id(self) -> None:
+        from superset.mcp_service.middleware import _mcp_call_id_var
+
+        middleware = GlobalErrorHandlerMiddleware()
+        context = MagicMock()
+        context.message.name = "list_charts"
+        context.method = "tools/call"
+        call_next = AsyncMock(side_effect=RuntimeError("boom"))
+
+        token = _mcp_call_id_var.set("abc123deadbeef")
+        try:
+            with (
+                patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+                patch("superset.mcp_service.middleware.event_logger"),
+                pytest.raises(ToolError) as exc_info,
+            ):
+                await middleware.on_message(context, call_next)
+        finally:
+            _mcp_call_id_var.reset(token)
+
+        assert "abc123deadbeef" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_falls_back_to_generated_id_when_no_call_id_set(self) -> None:
+        """When no mcp_call_id is in context (e.g. a non-tool-call message
+        path), fall back to a generated ID rather than raising."""
+        from superset.mcp_service.middleware import _mcp_call_id_var
+
+        middleware = GlobalErrorHandlerMiddleware()
+        context = MagicMock()
+        context.message.name = "list_charts"
+        context.method = "tools/call"
+        call_next = AsyncMock(side_effect=RuntimeError("boom"))
+
+        token = _mcp_call_id_var.set(None)
+        try:
+            with (
+                patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+                patch("superset.mcp_service.middleware.event_logger"),
+                pytest.raises(ToolError, match="Error ID: err_"),
+            ):
+                await middleware.on_message(context, call_next)
+        finally:
+            _mcp_call_id_var.reset(token)
+
+
+class TestStructuredContentStripperErrorHook:
+    """Test the last-resort MCP_ERROR_HOOK capture point in
+    StructuredContentStripperMiddleware.on_call_tool's except block."""
+
+    @pytest.mark.asyncio
+    async def test_invokes_hook_for_exception_bypassing_error_handler(self) -> None:
+        """A non-ToolError exception reaching this final catch means it
+        slipped past GlobalErrorHandlerMiddleware entirely — invoke the
+        hook here as the true last-resort capture point."""
+        middleware = StructuredContentStripperMiddleware()
+        context = MagicMock()
+        context.message.name = "list_charts"
+        call_next = AsyncMock(side_effect=RuntimeError("boom"))
+        mock_hook = MagicMock()
+        mock_flask_app = MagicMock()
+        mock_flask_app.config.get.return_value = mock_hook
+
+        with patch(
+            "superset.mcp_service.flask_singleton.get_flask_app",
+            return_value=mock_flask_app,
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        assert result.content[0].text.startswith("Error:")
+        mock_hook.assert_called_once()
+        hook_error, hook_context = mock_hook.call_args[0]
+        assert isinstance(hook_error, RuntimeError)
+        assert hook_context["tool_name"] == "list_charts"
+        # The context contract: all keys always present, even on the
+        # last-resort path where user_id/duration_ms are unknown.
+        assert set(hook_context) == {
+            "tool_name",
+            "mcp_call_id",
+            "user_id",
+            "error_type",
+            "sanitized_message",
+            "duration_ms",
+        }
+        assert hook_context["user_id"] is None
+        assert hook_context["duration_ms"] is None
+        assert hook_context["error_type"] == "RuntimeError"
+
+    @pytest.mark.asyncio
+    async def test_does_not_double_invoke_hook_for_tool_error(self) -> None:
+        """ToolError has already been classified and hooked by
+        GlobalErrorHandlerMiddleware — avoid double-reporting the same
+        failure to the error tracker."""
+        middleware = StructuredContentStripperMiddleware()
+        context = MagicMock()
+        context.message.name = "list_charts"
+        call_next = AsyncMock(side_effect=ToolError("already handled"))
+        mock_hook = MagicMock()
+        mock_flask_app = MagicMock()
+        mock_flask_app.config.get.return_value = mock_hook
+
+        with patch(
+            "superset.mcp_service.flask_singleton.get_flask_app",
+            return_value=mock_flask_app,
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        assert result.content[0].text.startswith("Error:")
+        mock_hook.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_hostile_str_does_not_escape_last_resort_handler(self) -> None:
+        """The last-resort handler must never propagate — even when the
+        exception's own __str__ raises, it must fall back to the class
+        name rather than letting a formatting error escape to the MCP SDK
+        (the exact encoding failure this handler exists to prevent)."""
+
+        class HostileStrError(Exception):
+            def __str__(self) -> str:
+                raise RuntimeError("hostile __str__")
+
+        middleware = StructuredContentStripperMiddleware()
+        context = MagicMock()
+        context.message.name = "list_charts"
+        call_next = AsyncMock(side_effect=HostileStrError())
+        mock_flask_app = MagicMock()
+        mock_flask_app.config.get.return_value = None
+
+        with patch(
+            "superset.mcp_service.flask_singleton.get_flask_app",
+            return_value=mock_flask_app,
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        assert result.content[0].text == "Error: HostileStrError"
+
+    @pytest.mark.asyncio
+    async def test_client_facing_text_is_sanitized(self) -> None:
+        """An exception bypassing GlobalErrorHandlerMiddleware must not
+        leak raw internals to the client — the last-resort response text
+        goes through the same sanitizer as every other error path."""
+        middleware = StructuredContentStripperMiddleware()
+        context = MagicMock()
+        context.message.name = "execute_sql"
+        # Connection string with embedded credentials — must be redacted.
+        call_next = AsyncMock(
+            side_effect=ValueError(
+                "connect failed: postgresql://user:s3cret@db.internal:5432/prod"
+            )
+        )
+        mock_flask_app = MagicMock()
+        mock_flask_app.config.get.return_value = None
+
+        with patch(
+            "superset.mcp_service.flask_singleton.get_flask_app",
+            return_value=mock_flask_app,
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        text = result.content[0].text
+        assert text.startswith("Error:")
+        assert "s3cret" not in text
+        assert "db.internal" not in text
+        assert "[REDACTED]" in text
+
+
+class TestStructuredContentStripperIsErrorFlag:
+    """Failures caught by StructuredContentStripperMiddleware must still be
+    reported as errors on the wire — a client that only inspects isError
+    would otherwise read a denial or a crash as a successful call."""
+
+    @pytest.mark.asyncio
+    async def test_tool_error_is_flagged_as_error(self) -> None:
+        """A permission denial surfaces as ToolError; it must not come back
+        looking like a successful tool call."""
+        middleware = StructuredContentStripperMiddleware()
+        context = MagicMock()
+        context.message.name = "save_sql_query"
+        call_next = AsyncMock(
+            side_effect=ToolError("Permission denied: can_write on SavedQuery")
+        )
+        mock_flask_app = MagicMock()
+        mock_flask_app.config.get.return_value = None
+
+        with patch(
+            "superset.mcp_service.flask_singleton.get_flask_app",
+            return_value=mock_flask_app,
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        assert result.is_error is True
+        assert result.content[0].text.startswith("Error:")
+
+    @pytest.mark.asyncio
+    async def test_unexpected_exception_is_flagged_as_error(self) -> None:
+        """The same holds for exceptions that bypass
+        GlobalErrorHandlerMiddleware and reach the last-resort catch."""
+        middleware = StructuredContentStripperMiddleware()
+        context = MagicMock()
+        context.message.name = "list_charts"
+        call_next = AsyncMock(side_effect=RuntimeError("boom"))
+        mock_flask_app = MagicMock()
+        mock_flask_app.config.get.return_value = None
+
+        with patch(
+            "superset.mcp_service.flask_singleton.get_flask_app",
+            return_value=mock_flask_app,
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        assert result.is_error is True
+
+    @pytest.mark.asyncio
+    async def test_successful_result_is_not_flagged(self) -> None:
+        """The success path must stay untouched."""
+        from fastmcp.tools.tool import ToolResult
+        from mcp.types import TextContent
+
+        middleware = StructuredContentStripperMiddleware()
+        context = MagicMock()
+        context.message.name = "list_charts"
+        call_next = AsyncMock(
+            return_value=ToolResult(content=[TextContent(type="text", text="ok")])
+        )
+
+        result = await middleware.on_call_tool(context, call_next)
+
+        assert result.is_error is False
+        assert result.content[0].text == "ok"

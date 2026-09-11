@@ -28,8 +28,7 @@ down_revision = "d8bc074f7aad"
 
 from alembic import op  # noqa: E402
 from sqlalchemy import Column, ForeignKey, Integer, Table  # noqa: E402
-from sqlalchemy.ext.declarative import declarative_base, declared_attr  # noqa: E402
-from sqlalchemy.orm import relationship  # noqa: E402
+from sqlalchemy.orm import declarative_base, declared_attr, relationship  # noqa: E402
 
 from superset import db  # noqa: E402
 from superset.utils.core import get_user_id  # noqa: E402

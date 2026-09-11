@@ -16,6 +16,7 @@
 # under the License.
 from datetime import datetime
 from typing import Any
+from uuid import UUID
 
 from dateutil.parser import isoparse
 from flask_babel import lazy_gettext as _
@@ -27,15 +28,24 @@ from marshmallow import (
     validates_schema,
     ValidationError,
 )
-from marshmallow.validate import Length, OneOf
+from marshmallow.validate import Length, OneOf, Range
 
 from superset import security_manager
-from superset.connectors.sqla.models import SqlaTable
 from superset.exceptions import SupersetMarshmallowValidationError
+from superset.models.sql_types import parse_currency_string
 from superset.utils import json
 
-get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
-get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}
+get_delete_ids_schema = {
+    "type": "array",
+    "items": {"type": "integer"},
+    "example": [1, 2, 3],
+}
+get_export_ids_schema = {
+    "type": "array",
+    "items": {"type": "integer"},
+    "example": [1, 2, 3],
+}
+get_related_objects_ids_schema = get_delete_ids_schema
 get_drill_info_schema = {
     "type": "object",
     "properties": {
@@ -86,12 +96,29 @@ class DatasetColumnsPutSchema(Schema):
     python_date_format = fields.String(
         allow_none=True, validate=[Length(1, 255), validate_python_date_format]
     )
+    datetime_format = fields.String(
+        allow_none=True, validate=[Length(1, 100), validate_python_date_format]
+    )
     uuid = fields.UUID(allow_none=True)
 
 
 class DatasetMetricCurrencyPutSchema(Schema):
     symbol = fields.String(validate=Length(1, 128))
     symbolPosition = fields.String(validate=Length(1, 128))  # noqa: N815
+
+
+class CurrencyField(fields.Nested):
+    """
+    Nested field that tolerates legacy string payloads for currency.
+    """
+
+    def _deserialize(
+        self, value: Any, attr: str | None, data: dict[str, Any], **kwargs: Any
+    ) -> Any:
+        if isinstance(value, str):
+            value = parse_currency_string(value)
+
+        return super()._deserialize(value, attr, data, **kwargs)
 
 
 class DatasetMetricsPutSchema(Schema):
@@ -102,7 +129,7 @@ class DatasetMetricsPutSchema(Schema):
     metric_name = fields.String(required=True, validate=Length(1, 255))
     metric_type = fields.String(allow_none=True, validate=Length(1, 32))
     d3format = fields.String(allow_none=True, validate=Length(1, 128))
-    currency = fields.Nested(DatasetMetricCurrencyPutSchema, allow_none=True)
+    currency = CurrencyField(DatasetMetricCurrencyPutSchema, allow_none=True)
     verbose_name = fields.String(allow_none=True, metadata={Length: (1, 1024)})
     warning_text = fields.String(allow_none=True)
     uuid = fields.UUID(allow_none=True)
@@ -144,11 +171,12 @@ class DatasetPostSchema(Schema):
     schema = fields.String(allow_none=True, validate=Length(0, 250))
     table_name = fields.String(required=True, allow_none=False, validate=Length(1, 250))
     sql = fields.String(allow_none=True)
-    owners = fields.List(fields.Integer())
+    editors = fields.List(fields.Integer())
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True)
     normalize_columns = fields.Boolean(load_default=False)
     always_filter_main_dttm = fields.Boolean(load_default=False)
+    currency_code_column = fields.String(allow_none=True, validate=Length(0, 250))
     template_params = fields.String(allow_none=True)
     uuid = fields.UUID(allow_none=True)
 
@@ -163,6 +191,7 @@ class DatasetPutSchema(Schema):
     schema = fields.String(allow_none=True, validate=Length(0, 255))
     description = fields.String(allow_none=True)
     main_dttm_col = fields.String(allow_none=True)
+    currency_code_column = fields.String(allow_none=True, validate=Length(0, 250))
     normalize_columns = fields.Boolean(allow_none=True, dump_default=False)
     always_filter_main_dttm = fields.Boolean(load_default=False)
     offset = fields.Integer(allow_none=True)
@@ -170,7 +199,7 @@ class DatasetPutSchema(Schema):
     cache_timeout = fields.Integer(allow_none=True)
     is_sqllab_view = fields.Boolean(allow_none=True)
     template_params = fields.String(allow_none=True)
-    owners = fields.List(fields.Integer())
+    editors = fields.List(fields.Integer())
     columns = fields.List(fields.Nested(DatasetColumnsPutSchema))
     metrics = fields.List(fields.Nested(DatasetMetricsPutSchema))
     folders = fields.List(fields.Nested(FolderSchema), required=False)
@@ -211,6 +240,9 @@ class DatasetRelatedDashboard(Schema):
 
 class DatasetRelatedCharts(Schema):
     count = fields.Integer(metadata={"description": "Chart count"})
+    restricted_count = fields.Integer(
+        metadata={"description": "Charts the current user cannot access"}
+    )
     result = fields.List(
         fields.Nested(DatasetRelatedChart),
         metadata={"description": "A list of dashboards"},
@@ -219,6 +251,9 @@ class DatasetRelatedCharts(Schema):
 
 class DatasetRelatedDashboards(Schema):
     count = fields.Integer(metadata={"description": "Dashboard count"})
+    restricted_count = fields.Integer(
+        metadata={"description": "Dashboards the current user cannot access"}
+    )
     result = fields.List(
         fields.Nested(DatasetRelatedDashboard),
         metadata={"description": "A list of dashboards"},
@@ -228,6 +263,58 @@ class DatasetRelatedDashboards(Schema):
 class DatasetRelatedObjectsResponse(Schema):
     charts = fields.Nested(DatasetRelatedCharts)
     dashboards = fields.Nested(DatasetRelatedDashboards)
+
+
+class DatasetPurgeRequestSchema(Schema):
+    """Validate a dataset purge confirmation payload."""
+
+    confirmed_impact_token: fields.String = fields.String(
+        required=True,
+        allow_none=False,
+        validate=Length(min=1),
+    )
+
+
+class DatasetPurgeImpactObjectSchema(Schema):
+    """Describe one dependent object visible to the caller."""
+
+    uuid: fields.UUID = fields.UUID(required=True)
+    name: fields.String = fields.String(required=True)
+    archived: fields.Boolean = fields.Boolean(required=True)
+    url: fields.String = fields.String(required=True, allow_none=True)
+
+
+class DatasetPurgeImpactCollectionSchema(Schema):
+    """Validate totals and visible results for one dependent object type."""
+
+    count: fields.Integer = fields.Integer(required=True, validate=Range(min=0))
+    restricted_count: fields.Integer = fields.Integer(
+        required=True, validate=Range(min=0)
+    )
+    result: fields.List = fields.List(
+        fields.Nested(DatasetPurgeImpactObjectSchema), required=True
+    )
+
+    @validates_schema
+    def validate_totals(self, data: dict[str, Any], **kwargs: Any) -> None:
+        """Require visible and restricted records to equal the total."""
+        count: int = data["count"]
+        restricted_count: int = data["restricted_count"]
+        result: list[dict[str, Any]] = data["result"]
+        if restricted_count > count or len(result) + restricted_count != count:
+            raise ValidationError("Impact totals do not match the result")
+
+
+class DatasetPurgeImpactSchema(Schema):
+    """Describe the authoritative, access-filtered dataset purge impact."""
+
+    impact_token: fields.String = fields.String(required=True)
+    charts: fields.Nested = fields.Nested(
+        DatasetPurgeImpactCollectionSchema, required=True
+    )
+    dashboards: fields.Nested = fields.Nested(
+        DatasetPurgeImpactCollectionSchema, required=True
+    )
 
 
 class ImportV1ColumnSchema(Schema):
@@ -253,7 +340,13 @@ class ImportV1ColumnSchema(Schema):
     filterable = fields.Boolean()
     expression = fields.String(allow_none=True)
     description = fields.String(allow_none=True)
-    python_date_format = fields.String(allow_none=True)
+    python_date_format = fields.String(
+        allow_none=True, validate=[Length(1, 255), validate_python_date_format]
+    )
+    datetime_format = fields.String(
+        allow_none=True, validate=[Length(1, 100), validate_python_date_format]
+    )
+    uuid = fields.UUID(allow_none=True)
 
 
 class ImportMetricCurrencySchema(Schema):
@@ -271,9 +364,20 @@ class ImportV1MetricSchema(Schema):
         if isinstance(data.get("extra"), str):
             data["extra"] = json.loads(data["extra"])
 
-        if isinstance(data.get("currency"), str):
-            data["currency"] = json.loads(data["currency"])
+        return data
 
+    @pre_load
+    def fix_template_params(
+        self, data: dict[str, Any], **kwargs: Any
+    ) -> dict[str, Any]:
+        """
+        Fix for template_params initially being exported as an empty string.
+        """
+        if (
+            isinstance(data.get("template_params"), str)
+            and data["template_params"].strip() == ""
+        ):
+            data["template_params"] = None
         return data
 
     metric_name = fields.String(required=True)
@@ -282,9 +386,10 @@ class ImportV1MetricSchema(Schema):
     expression = fields.String(required=True)
     description = fields.String(allow_none=True)
     d3format = fields.String(allow_none=True)
-    currency = fields.Nested(ImportMetricCurrencySchema, allow_none=True)
+    currency = CurrencyField(ImportMetricCurrencySchema, allow_none=True)
     extra = fields.Dict(allow_none=True)
     warning_text = fields.String(allow_none=True)
+    uuid = fields.UUID(allow_none=True)
 
 
 class ImportV1DatasetSchema(Schema):
@@ -307,8 +412,38 @@ class ImportV1DatasetSchema(Schema):
 
         return data
 
+    @validates_schema
+    def validate_unique_child_uuids(self, data: dict[str, Any], **kwargs: Any) -> None:
+        """
+        Reject a payload where two metrics (or two columns) share a UUID.
+
+        UUIDs are globally unique in the database, so such a payload cannot be
+        imported faithfully: the importer matches children within their parent
+        by name *or* UUID, so the second entry would match the first one and
+        overwrite it in place, silently collapsing two metrics/columns into one.
+        Only a hand-edited bundle can produce this — an export never does.
+        """
+        for key, singular in (("metrics", "metric"), ("columns", "column")):
+            seen: set[UUID] = set()
+            duplicates: set[UUID] = set()
+            for child in data.get(key) or []:
+                child_uuid = child.get("uuid")
+                if child_uuid is None:
+                    continue
+                if child_uuid in seen:
+                    duplicates.add(child_uuid)
+                seen.add(child_uuid)
+            if duplicates:
+                raise ValidationError(
+                    f"Duplicate UUIDs found in {key}: "
+                    f"{', '.join(sorted(str(dup) for dup in duplicates))}. "
+                    f"Each {singular} must have a unique `uuid`.",
+                    field_name=key,
+                )
+
     table_name = fields.String(required=True)
     main_dttm_col = fields.String(allow_none=True)
+    currency_code_column = fields.String(allow_none=True)
     description = fields.String(allow_none=True)
     default_endpoint = fields.String(allow_none=True)
     offset = fields.Integer()
@@ -316,6 +451,8 @@ class ImportV1DatasetSchema(Schema):
     schema = fields.String(allow_none=True)
     catalog = fields.String(allow_none=True)
     sql = fields.String(allow_none=True)
+    # Source database engine for SQL transpilation (virtual datasets only)
+    source_db_engine = fields.String(allow_none=True, load_default=None)
     params = fields.Dict(allow_none=True)
     template_params = fields.Dict(allow_none=True)
     filter_select_enabled = fields.Boolean()
@@ -332,6 +469,8 @@ class ImportV1DatasetSchema(Schema):
     normalize_columns = fields.Boolean(load_default=False)
     always_filter_main_dttm = fields.Boolean(load_default=False)
     folders = fields.List(fields.Nested(FolderSchema), required=False, allow_none=True)
+    # data_file is used by the example loading system to reference Parquet files
+    data_file = fields.String(allow_none=True, load_default=None)
 
 
 class GetOrCreateDatasetSchema(Schema):
@@ -399,43 +538,73 @@ class DatasetCacheWarmUpResponseSchema(Schema):
 class DatasetColumnDrillInfoSchema(Schema):
     column_name = fields.String(required=True)
     verbose_name = fields.String(required=False)
+    # Consumers need every column to resolve display labels, but only dimensions
+    # belong in the drill-by picker, so ship the flag and let them narrow.
+    groupby = fields.Boolean(required=False)
+
+
+class DatasetMetricDrillInfoSchema(Schema):
+    metric_name = fields.String(required=True)
+    verbose_name = fields.String(required=False)
 
 
 class UserSchema(Schema):
+    # Deliberately excludes ``email``: drill_info is reachable by any user
+    # with read access to the dataset (and, via the dashboard fallback, by
+    # embedded guests), so exposing maintainer emails here would leak user
+    # PII across an access boundary. Mirrors the dashboard/RLS user schemas,
+    # which expose names only.
     first_name = fields.String()
     last_name = fields.String()
+
+
+class DrillInfoEditorSchema(Schema):
+    # Deliberately excludes ``secondary_label``: for a user-backed Subject,
+    # user-subject synchronization (superset.subjects.sync.sync_user_subject)
+    # stores that user's email in this field, so including it here would
+    # leak the same maintainer PII that ``UserSchema`` above excludes
+    # ``email`` to avoid, just through a different field name.
+    id = fields.Int()
+    label = fields.String()
+    img = fields.String()
+    type = fields.Integer()
 
 
 class DatasetDrillInfoSchema(Schema):
     id = fields.Integer()
     columns = fields.List(fields.Nested(DatasetColumnDrillInfoSchema))
+    metrics = fields.List(fields.Nested(DatasetMetricDrillInfoSchema))
     table_name = fields.String()
-    owners = fields.List(fields.Nested(UserSchema))
+    editors = fields.List(fields.Nested(DrillInfoEditorSchema))
     created_by = fields.Nested(UserSchema)
     created_on_humanized = fields.String()
     changed_by = fields.Nested(UserSchema)
     changed_on_humanized = fields.String()
 
     # pylint: disable=unused-argument
-    @post_dump(pass_original=True)
-    def post_dump(
-        self, serialized: dict[str, Any], obj: SqlaTable, **kwargs: Any
-    ) -> dict[str, Any]:
+    @post_dump
+    def post_dump(self, serialized: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         """
-        Clear API response to avoid exposing sensitive information for embedded users,
-        and filter columns to only include those with groupby=True for drill operations.
-        """
-        dimensions = {
-            col.column_name
-            for col in getattr(obj, "columns", [])
-            if getattr(col, "groupby", False)
-        }
-        serialized["columns"] = [
-            col
-            for col in serialized.get("columns", [])
-            if col["column_name"] in dimensions
-        ]
+        Clear API response to avoid exposing sensitive information for embedded users.
 
+        Both ``columns`` and ``metrics`` are returned whole. Besides feeding the
+        drill-by dimension picker, this response is the source of the verbose map
+        that labels the dashboard "View as table" results grid, and a chart can
+        select any column or metric -- a raw-records table routinely selects
+        non-dimension columns. Narrowing to ``groupby=True`` here left those
+        columns, and every metric, showing their raw technical names. Each column
+        carries its ``groupby`` flag instead, so the drill-by picker can narrow to
+        dimensions client-side, which is the only consumer that needs it.
+
+        Guests get the same lists. They reach this endpoint only through the
+        dashboard fallback, which first verifies dashboard access to a dashboard
+        built on this dataset, and they already see these labels rendered in that
+        dashboard's charts. The branch stays minimal in every other respect.
+        """
         if security_manager.is_guest_user():
-            return {"id": serialized["id"], "columns": serialized["columns"]}
+            return {
+                "id": serialized["id"],
+                "columns": serialized["columns"],
+                "metrics": serialized.get("metrics", []),
+            }
         return serialized

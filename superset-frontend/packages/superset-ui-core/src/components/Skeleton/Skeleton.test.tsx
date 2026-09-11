@@ -21,20 +21,20 @@ import '@testing-library/jest-dom';
 import { Skeleton } from '.';
 
 describe('Skeleton Component', () => {
-  it('renders skeleton', () => {
+  test('renders skeleton', () => {
     render(<Skeleton loading paragraph={{ rows: 3 }} active />);
 
     expect(screen.getByRole('list')).toHaveClass('ant-skeleton-paragraph');
   });
 
-  it('renders skeleton with correct number of paragraph rows', () => {
+  test('renders skeleton with correct number of paragraph rows', () => {
     render(<Skeleton loading paragraph={{ rows: 3 }} active />);
 
     const paragraph = screen.getByRole('list');
     expect(paragraph.children.length).toBe(3);
   });
 
-  it('does not render skeleton when loading is false', () => {
+  test('does not render skeleton when loading is false', () => {
     render(
       <Skeleton loading={false} active>
         <p>Loaded Content</p>

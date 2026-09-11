@@ -28,7 +28,7 @@ import {
   rgbToHex,
   tooltipHtml,
 } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import type { ComposeOption } from 'echarts/core';
 import type { BarSeriesOption } from 'echarts/charts';
 import {
@@ -94,12 +94,14 @@ function transformer({
   metric,
   breakdown,
   totalMark,
+  showTotal,
 }: {
   data: DataRecord[];
   xAxis: string;
   metric: string;
   breakdown?: string;
   totalMark: string;
+  showTotal: boolean;
 }) {
   // Group by series (temporary map)
   const groupedData = data.reduce((acc, cur) => {
@@ -121,11 +123,13 @@ function transformer({
         0,
       );
       // Push total per period to the end of period values array
-      tempValue.push({
-        [xAxis]: key,
-        [breakdown]: totalMark,
-        [metric]: sum,
-      });
+      if (showTotal) {
+        tempValue.push({
+          [xAxis]: key,
+          [breakdown]: totalMark,
+          [metric]: sum,
+        });
+      }
       transformedData.push(...tempValue);
     });
   } else {
@@ -141,10 +145,12 @@ function transformer({
       });
       total += sum;
     });
-    transformedData.push({
-      [xAxis]: totalMark,
-      [metric]: total,
-    });
+    if (showTotal) {
+      transformedData.push({
+        [xAxis]: totalMark,
+        [metric]: total,
+      });
+    }
   }
 
   return transformedData;
@@ -179,10 +185,13 @@ export default function transformProps(
     xTicksLayout,
     xAxisTimeFormat,
     showLegend,
+    showXAxis = true,
+    showYAxis = true,
     yAxisLabel,
     xAxisLabel,
     yAxisFormat,
     showValue,
+    showTotal,
     totalLabel,
     increaseLabel,
     decreaseLabel,
@@ -220,6 +229,7 @@ export default function transformProps(
     xAxis: xAxisName,
     metric: metricLabel,
     totalMark,
+    showTotal,
   });
 
   const assistData: ISeriesData[] = [];
@@ -425,8 +435,10 @@ export default function transformProps(
     grid: {
       ...defaultGrid,
       top: theme.sizeUnit * 7,
-      bottom: theme.sizeUnit * 7,
-      left: theme.sizeUnit * 5,
+      // Reclaim the axis-oriented padding when an axis is hidden so an
+      // axis-free chart gets a clean, tight layout instead of empty margins.
+      bottom: theme.sizeUnit * (showXAxis ? 7 : 3),
+      left: theme.sizeUnit * (showYAxis ? 5 : 2),
       right: theme.sizeUnit * 7,
     },
     legend: {
@@ -435,6 +447,7 @@ export default function transformProps(
       data: [legendNames.INCREASE, legendNames.DECREASE, legendNames.TOTAL],
     },
     xAxis: {
+      show: showXAxis,
       data: xAxisData,
       type: 'category',
       name: xAxisLabel,
@@ -446,6 +459,7 @@ export default function transformProps(
     },
     yAxis: {
       ...defaultYAxis,
+      show: showYAxis,
       type: 'value',
       nameTextStyle: {
         padding: [0, 0, theme.sizeUnit * 5, 0],

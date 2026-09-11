@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen } from '@superset-ui/core/spec';
+import { act, fireEvent, render, screen, within } from '@superset-ui/core/spec';
 import TimeTable from './TimeTable';
 
 const mockData = {
@@ -80,10 +80,25 @@ test('should render TimeTable component', () => {
 
 test('should render table headers', () => {
   render(<TimeTable {...defaultProps} />);
-  expect(screen.getByText('Metric')).toBeInTheDocument();
-  expect(screen.getByText('Time series columns')).toBeInTheDocument();
-});
 
+  const table = screen.getByRole('table');
+
+  const metricHeader = within(table).getByTitle('Metric');
+  expect(metricHeader).toBeInTheDocument();
+
+  const allTimeSeriesHeaders = within(table).getAllByText(
+    'Time series columns',
+  );
+
+  const visibleTimeSeriesHeaders = allTimeSeriesHeaders.filter(
+    el => !el.closest('.ant-table-measure-row'),
+  );
+
+  expect(visibleTimeSeriesHeaders.length).toBe(1);
+  visibleTimeSeriesHeaders.forEach(header => {
+    expect(header).toBeInTheDocument();
+  });
+});
 test('should render table with data rows', () => {
   render(<TimeTable {...defaultProps} />);
 
@@ -151,11 +166,72 @@ test('should render with multiple metrics', () => {
 test('should handle column type sparkline correctly', () => {
   render(<TimeTable {...defaultProps} />);
 
-  const columnHeaders = screen.getAllByRole('columnheader');
+  const table = screen.getByRole('table');
+  expect(table).toBeInTheDocument();
 
-  expect(screen.getByRole('table')).toBeInTheDocument();
+  const columnHeaders = screen.getAllByRole('columnheader');
   expect(columnHeaders).toHaveLength(2);
-  expect(screen.getByText('Time series columns')).toBeInTheDocument();
+
+  const allTimeSeriesElements = within(table).getAllByText(
+    'Time series columns',
+  );
+  const visibleTimeSeriesColumns = allTimeSeriesElements.filter(
+    el => !el.closest('.ant-table-measure-row'),
+  );
+
+  expect(visibleTimeSeriesColumns.length).toBeGreaterThan(0);
+  visibleTimeSeriesColumns.forEach(el => {
+    expect(el).toBeInTheDocument();
+  });
+});
+
+test('should hide the table while the window is resizing and reveal it again after the debounce delay', () => {
+  jest.useFakeTimers();
+
+  const { container } = render(<TimeTable {...defaultProps} />);
+  const timeTable = container.querySelector('[data-test="time-table"]');
+
+  expect(timeTable).not.toHaveStyle('display: none');
+
+  act(() => {
+    fireEvent(window, new Event('resize'));
+  });
+  expect(timeTable).toHaveStyle('display: none');
+
+  act(() => {
+    jest.advanceTimersByTime(499);
+  });
+  expect(timeTable).toHaveStyle('display: none');
+
+  act(() => {
+    jest.advanceTimersByTime(1);
+  });
+  expect(timeTable).not.toHaveStyle('display: none');
+
+  jest.clearAllTimers();
+  jest.useRealTimers();
+});
+
+test('should clear the resize listener and pending timer on unmount', () => {
+  jest.useFakeTimers();
+  const removeEventListenerSpy = jest.spyOn(window, 'removeEventListener');
+
+  const { unmount } = render(<TimeTable {...defaultProps} />);
+
+  act(() => {
+    fireEvent(window, new Event('resize'));
+  });
+
+  unmount();
+
+  expect(removeEventListenerSpy).toHaveBeenCalledWith(
+    'resize',
+    expect.any(Function),
+  );
+
+  removeEventListenerSpy.mockRestore();
+  jest.clearAllTimers();
+  jest.useRealTimers();
 });
 
 test('should not render empty table due to missing column id property', () => {

@@ -18,8 +18,8 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useResizeDetector } from 'react-resize-detector';
-import { uniqWith } from 'lodash';
-import { styled } from '@superset-ui/core';
+import { uniqWith } from 'lodash-es';
+import { styled } from '@apache-superset/core/theme';
 import { Tooltip } from '../Tooltip';
 import { TooltipPlacement } from '../Tooltip/types';
 import { ContentType } from './ContentType';
@@ -89,6 +89,7 @@ const StyledItem = styled.div<{
     & .metadata-text {
       color: ${theme.colorTextSecondary};
       min-width: ${TEXT_MIN_WIDTH}px;
+      max-width: ${TEXT_MAX_WIDTH}px;
       overflow: hidden;
       text-overflow: ${collapsed ? 'unset' : 'ellipsis'};
       white-space: nowrap;
@@ -187,14 +188,14 @@ const MetadataBar = ({ items, tooltipPlacement = 'top' }: MetadataBarProps) => {
   const sortedItems = uniqueItems.sort((a, b) => ORDER[a.type] - ORDER[b.type]);
   const count = sortedItems.length;
   if (count < MIN_NUMBER_ITEMS) {
-    throw Error('The minimum number of items for the metadata bar is 2.');
+    throw new Error('The minimum number of items for the metadata bar is 2.');
   }
   if (count > MAX_NUMBER_ITEMS) {
-    throw Error('The maximum number of items for the metadata bar is 6.');
+    throw new Error('The maximum number of items for the metadata bar is 6.');
   }
 
   const onResize = useCallback(
-    width => {
+    (width: number | undefined) => {
       // Calculates the breakpoint width to collapse the bar.
       // The last item does not have a space, so we subtract SPACE_BETWEEN_ITEMS from the total.
       const breakpoint =

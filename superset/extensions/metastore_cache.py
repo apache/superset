@@ -44,8 +44,9 @@ class SupersetMetastoreCache(BaseCache):
         namespace: UUID,
         codec: KeyValueCodec,
         default_timeout: int = 300,
+        ignore_delete_many_errors: bool = False,
     ) -> None:
-        super().__init__(default_timeout)
+        super().__init__(default_timeout, ignore_delete_many_errors)
         self.namespace = namespace
         self.codec = codec
 
@@ -54,7 +55,7 @@ class SupersetMetastoreCache(BaseCache):
         cls, app: Flask, config: dict[str, Any], args: list[Any], kwargs: dict[str, Any]
     ) -> BaseCache:
         seed = config.get("CACHE_KEY_PREFIX", "")
-        kwargs["namespace"] = get_uuid_namespace(seed)
+        kwargs["namespace"] = get_uuid_namespace(seed, app)
         codec = config.get("CODEC") or PickleKeyValueCodec()
         if (
             has_app_context()

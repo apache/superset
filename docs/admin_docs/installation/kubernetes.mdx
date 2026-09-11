@@ -1,0 +1,47 @@
+---
+title: Kubernetes
+hide_title: true
+sidebar_position: 3
+version: 1
+---
+
+import useBaseUrl from '@docusaurus/useBaseUrl';
+
+# Installing on Kubernetes
+
+<img src={useBaseUrl('/img/k8s.png')} width="150" />
+<br />
+<br />
+
+Running Superset on Kubernetes is supported through the official
+[Apache Superset Kubernetes Operator](https://apache.github.io/superset-kubernetes-operator/).
+
+:::warning
+The Superset Helm chart under
+[`helm/superset`](https://github.com/apache/superset/tree/master/helm/superset)
+is deprecated and is not recommended for new Kubernetes deployments.
+:::
+
+Use the operator documentation as the source of truth for Kubernetes installation and operations.
+It covers installing the operator, defining Superset deployments with Kubernetes custom resources,
+configuring dependencies, upgrades, and operational workflows.
+
+## New Deployments
+
+Start with the
+[Apache Superset Kubernetes Operator documentation](https://apache.github.io/superset-kubernetes-operator/).
+
+## Existing Helm Deployments
+
+Existing Helm chart users should plan a migration to the operator. Follow the
+[Helm chart migration guide](https://apache.github.io/superset-kubernetes-operator/user-guide/migration/)
+for the recommended migration path.
+
+Until migration is complete, legacy chart reference material remains available in the deprecated
+[Helm chart README](https://github.com/apache/superset/tree/master/helm/superset).
+
+## Resources
+
+- [Apache Superset Kubernetes Operator documentation](https://apache.github.io/superset-kubernetes-operator/)
+- [Apache Superset Kubernetes Operator repository](https://github.com/apache/superset-kubernetes-operator)
+- [Helm chart migration guide](https://apache.github.io/superset-kubernetes-operator/user-guide/migration/)

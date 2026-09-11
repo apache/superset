@@ -72,11 +72,50 @@ from superset.security.analytics_db_safety import check_sqlalchemy_uri
             True,
             "shillelagh cannot be used as a data source for security reasons.",
         ),
-        ("shillelagh+:///home/superset/bad.db", False, None),
+        (
+            "shillelagh+:///home/superset/bad.db",
+            True,
+            "shillelagh cannot be used as a data source for security reasons.",
+        ),
         (
             "shillelagh+something:///home/superset/bad.db",
-            False,
-            None,
+            True,
+            "shillelagh cannot be used as a data source for security reasons.",
+        ),
+        (
+            "shillelagh+csv:///etc/passwd",
+            True,
+            "shillelagh cannot be used as a data source for security reasons.",
+        ),
+        (
+            "shillelagh+json:///etc/passwd",
+            True,
+            "shillelagh cannot be used as a data source for security reasons.",
+        ),
+        (
+            "shillelagh+gsheets:///",
+            True,
+            "shillelagh cannot be used as a data source for security reasons.",
+        ),
+        (
+            "duckdb:///:memory:",
+            True,
+            "duckdb cannot be used as a data source for security reasons.",
+        ),
+        (
+            "duckdb:////tmp/local.db",
+            True,
+            "duckdb cannot be used as a data source for security reasons.",
+        ),
+        (
+            "duckdb+duckdb_engine:////tmp/local.db",
+            True,
+            "duckdb cannot be used as a data source for security reasons.",
+        ),
+        (
+            "duckdb:///md:my_db?motherduck_token=tok",
+            True,
+            "duckdb cannot be used as a data source for security reasons.",
         ),
     ],
 )

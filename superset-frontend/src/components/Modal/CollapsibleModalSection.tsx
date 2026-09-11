@@ -18,13 +18,12 @@
  */
 import { ReactNode } from 'react';
 import { Collapse, CollapseLabelInModal } from '@superset-ui/core/components';
-import { styled } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/theme';
 
 interface CollapsibleModalSectionProps {
   sectionKey: string;
   title: string;
   subtitle?: string;
-  defaultExpanded?: boolean;
   hasErrors?: boolean;
   testId?: string;
   children: ReactNode;
@@ -41,7 +40,6 @@ export function CollapsibleModalSection({
   sectionKey,
   title,
   subtitle,
-  defaultExpanded = false,
   hasErrors = false,
   testId,
   children,

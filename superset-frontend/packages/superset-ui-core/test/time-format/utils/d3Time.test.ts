@@ -24,43 +24,43 @@ import {
 
 describe('utils', () => {
   describe('utcUtils', () => {
-    it('has isNotFirstDayOfWeekStartOnSunday', () => {
+    test('has isNotFirstDayOfWeekStartOnSunday', () => {
       const date = new Date(Date.UTC(2018, 10, 19));
       expect(utcUtils.isNotFirstDayOfWeekStartOnSunday(date)).toBeTruthy();
       const date2 = new Date(Date.UTC(2018, 10, 18));
       expect(utcUtils.isNotFirstDayOfWeekStartOnSunday(date2)).toBeFalsy();
     });
-    it('has isNotFirstDayOfWeekStartOnMonday', () => {
+    test('has isNotFirstDayOfWeekStartOnMonday', () => {
       const date = new Date(Date.UTC(2018, 10, 20));
       expect(utcUtils.isNotFirstDayOfWeekStartOnMonday(date)).toBeTruthy();
       const date2 = new Date(Date.UTC(2018, 10, 19));
       expect(utcUtils.isNotFirstDayOfWeekStartOnMonday(date2)).toBeFalsy();
     });
-    it('has isNotFirstDayOfWeekStartOnTuesday', () => {
+    test('has isNotFirstDayOfWeekStartOnTuesday', () => {
       const date = new Date(Date.UTC(2018, 10, 21));
       expect(utcUtils.isNotFirstDayOfWeekStartOnTuesday(date)).toBeTruthy();
       const date2 = new Date(Date.UTC(2018, 10, 20));
       expect(utcUtils.isNotFirstDayOfWeekStartOnTuesday(date2)).toBeFalsy();
     });
-    it('has isNotFirstDayOfWeekStartOnWednesday', () => {
+    test('has isNotFirstDayOfWeekStartOnWednesday', () => {
       const date = new Date(Date.UTC(2018, 10, 22));
       expect(utcUtils.isNotFirstDayOfWeekStartOnWednesday(date)).toBeTruthy();
       const date2 = new Date(Date.UTC(2018, 10, 21));
       expect(utcUtils.isNotFirstDayOfWeekStartOnWednesday(date2)).toBeFalsy();
     });
-    it('has isNotFirstDayOfWeekStartOnThursday', () => {
+    test('has isNotFirstDayOfWeekStartOnThursday', () => {
       const date = new Date(Date.UTC(2018, 10, 23));
       expect(utcUtils.isNotFirstDayOfWeekStartOnThursday(date)).toBeTruthy();
       const date2 = new Date(Date.UTC(2018, 10, 22));
       expect(utcUtils.isNotFirstDayOfWeekStartOnThursday(date2)).toBeFalsy();
     });
-    it('has isNotFirstDayOfWeekStartOnFriday', () => {
+    test('has isNotFirstDayOfWeekStartOnFriday', () => {
       const date = new Date(Date.UTC(2018, 10, 24));
       expect(utcUtils.isNotFirstDayOfWeekStartOnFriday(date)).toBeTruthy();
       const date2 = new Date(Date.UTC(2018, 10, 23));
       expect(utcUtils.isNotFirstDayOfWeekStartOnFriday(date2)).toBeFalsy();
     });
-    it('has isNotFirstDayOfWeekStartOnSaturday', () => {
+    test('has isNotFirstDayOfWeekStartOnSaturday', () => {
       const date = new Date(Date.UTC(2018, 10, 25));
       expect(utcUtils.isNotFirstDayOfWeekStartOnSaturday(date)).toBeTruthy();
       const date2 = new Date(Date.UTC(2018, 10, 24));
@@ -68,7 +68,7 @@ describe('utils', () => {
     });
   });
   describe('localTimeUtils', () => {
-    it('has isNotFirstDayOfWeekStartOnSunday', () => {
+    test('has isNotFirstDayOfWeekStartOnSunday', () => {
       const date = new Date(2018, 10, 19);
       expect(
         localTimeUtils.isNotFirstDayOfWeekStartOnSunday(date),
@@ -78,7 +78,7 @@ describe('utils', () => {
         localTimeUtils.isNotFirstDayOfWeekStartOnSunday(date2),
       ).toBeFalsy();
     });
-    it('has isNotFirstDayOfWeekStartOnMonday', () => {
+    test('has isNotFirstDayOfWeekStartOnMonday', () => {
       const date = new Date(2018, 10, 20);
       expect(
         localTimeUtils.isNotFirstDayOfWeekStartOnMonday(date),
@@ -88,7 +88,7 @@ describe('utils', () => {
         localTimeUtils.isNotFirstDayOfWeekStartOnMonday(date2),
       ).toBeFalsy();
     });
-    it('has isNotFirstDayOfWeekStartOnTuesday', () => {
+    test('has isNotFirstDayOfWeekStartOnTuesday', () => {
       const date = new Date(2018, 10, 21);
       expect(
         localTimeUtils.isNotFirstDayOfWeekStartOnTuesday(date),
@@ -98,7 +98,7 @@ describe('utils', () => {
         localTimeUtils.isNotFirstDayOfWeekStartOnTuesday(date2),
       ).toBeFalsy();
     });
-    it('has isNotFirstDayOfWeekStartOnWednesday', () => {
+    test('has isNotFirstDayOfWeekStartOnWednesday', () => {
       const date = new Date(2018, 10, 22);
       expect(
         localTimeUtils.isNotFirstDayOfWeekStartOnWednesday(date),
@@ -108,7 +108,7 @@ describe('utils', () => {
         localTimeUtils.isNotFirstDayOfWeekStartOnWednesday(date2),
       ).toBeFalsy();
     });
-    it('has isNotFirstDayOfWeekStartOnThursday', () => {
+    test('has isNotFirstDayOfWeekStartOnThursday', () => {
       const date = new Date(2018, 10, 23);
       expect(
         localTimeUtils.isNotFirstDayOfWeekStartOnThursday(date),
@@ -118,7 +118,7 @@ describe('utils', () => {
         localTimeUtils.isNotFirstDayOfWeekStartOnThursday(date2),
       ).toBeFalsy();
     });
-    it('has isNotFirstDayOfWeekStartOnFriday', () => {
+    test('has isNotFirstDayOfWeekStartOnFriday', () => {
       const date = new Date(2018, 10, 24);
       expect(
         localTimeUtils.isNotFirstDayOfWeekStartOnFriday(date),
@@ -128,7 +128,7 @@ describe('utils', () => {
         localTimeUtils.isNotFirstDayOfWeekStartOnFriday(date2),
       ).toBeFalsy();
     });
-    it('has isNotFirstDayOfWeekStartOnSaturday', () => {
+    test('has isNotFirstDayOfWeekStartOnSaturday', () => {
       const date = new Date(2018, 10, 25);
       expect(
         localTimeUtils.isNotFirstDayOfWeekStartOnSaturday(date),

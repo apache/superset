@@ -24,7 +24,7 @@ import {
   QueryObjectFilterClause,
   BuildQuery,
 } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { DEFAULT_FORM_DATA, PluginFilterSelectQueryFormData } from './types';
 
 const buildQuery: BuildQuery<PluginFilterSelectQueryFormData> = (
@@ -54,6 +54,13 @@ const buildQuery: BuildQuery<PluginFilterSelectQueryFormData> = (
     }
 
     const sortColumns = sortMetric ? [sortMetric] : columns;
+    // Sorting by the searched column makes the engine scan and sort every
+    // match before applying the row limit, which is the dominant cost of
+    // search-as-you-type on a high-cardinality column. The dropdown re-sorts
+    // the returned page client-side, so the server sort buys nothing here. A
+    // sort metric is different: it selects *which* rows come back, so it has
+    // to stay.
+    const skipOrderBy = !!search && !sortMetric;
     const query: QueryObject[] = [
       {
         ...baseQueryObject,
@@ -61,7 +68,7 @@ const buildQuery: BuildQuery<PluginFilterSelectQueryFormData> = (
         metrics: sortMetric ? [sortMetric] : [],
         filters: filters.concat(extraFilters),
         orderby:
-          sortMetric || sortAscending !== undefined
+          !skipOrderBy && (sortMetric || sortAscending !== undefined)
             ? sortColumns.map(column => [column, !!sortAscending])
             : [],
       },

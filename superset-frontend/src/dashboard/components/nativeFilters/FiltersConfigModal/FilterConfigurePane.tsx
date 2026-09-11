@@ -17,7 +17,8 @@
  * under the License.
  */
 import { FC, ReactNode } from 'react';
-import { NativeFilterType, styled } from '@superset-ui/core';
+import { NativeFilterType } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/theme';
 import FilterTitlePane from './FilterTitlePane';
 import { FilterRemoval } from './types';
 

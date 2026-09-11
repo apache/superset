@@ -29,7 +29,7 @@ import {
 } from 'react';
 import { useSelector } from 'react-redux';
 
-import { styled, useTheme, mergeReplaceArrays } from '@superset-ui/core';
+import { styled, useTheme } from '@apache-superset/core/theme';
 import { use, init, EChartsType, registerLocale } from 'echarts/core';
 import {
   SankeyChart,
@@ -56,21 +56,32 @@ import {
   VisualMapComponent,
   LegendComponent,
   DataZoomComponent,
+  type DataZoomComponentOption,
   ToolboxComponent,
   GraphicComponent,
   AriaComponent,
   MarkAreaComponent,
   MarkLineComponent,
 } from 'echarts/components';
-import { LabelLayout } from 'echarts/features';
-import { EchartsHandler, EchartsProps, EchartsStylesProps } from '../types';
+import { LabelLayout, LegacyGridContainLabel } from 'echarts/features';
+import {
+  EchartsHandler,
+  EchartsProps,
+  EchartsStylesProps,
+  QueryEventHandlers,
+} from '../types';
 import { DEFAULT_LOCALE } from '../constants';
+import { mergeEchartsThemeOverrides } from '../utils/themeOverrides';
+import { loadLocale } from './echartsLocale';
 
 // Define this interface here to avoid creating a dependency back to superset-frontend,
 // TODO: to move the type to @superset-ui/core
 interface ExplorePageState {
-  common: {
-    locale: string;
+  common?: {
+    locale?: string;
+  };
+  dashboardState?: {
+    isRefreshing?: boolean;
   };
 }
 
@@ -79,6 +90,7 @@ const Styles = styled.div<EchartsStylesProps>`
   width: ${({ width }) => width};
 `;
 
+// eslint-disable-next-line react-hooks/rules-of-hooks -- This is ECharts' use function, not a React hook
 use([
   CanvasRenderer,
   BarChart,
@@ -108,17 +120,32 @@ use([
   TitleComponent,
   VisualMapComponent,
   LabelLayout,
+  // Superset chart options rely on `grid.containLabel`, which echarts 6
+  // ignores (clipping axis labels) unless this legacy feature is registered.
+  LegacyGridContainLabel,
 ]);
 
-const loadLocale = async (locale: string) => {
-  let lang;
+// Report/thumbnail screenshots use standalone="true" (charts) or 3 (reports);
+// live embeds use 1/2 and keep animation. See superset/utils/screenshots.py.
+export function isReportScreenshotMode(): boolean {
   try {
-    lang = await import(`echarts/lib/i18n/lang${locale}`);
-  } catch (e) {
-    console.error(`Locale ${locale} not supported in ECharts`, e);
+    const standalone = new URLSearchParams(window.location.search).get(
+      'standalone',
+    );
+    return standalone === 'true' || standalone === '3';
+  } catch {
+    return false;
   }
-  return lang?.default;
-};
+}
+
+// Report-screenshot readiness contract (see superset/utils/screenshot_utils.py).
+// `echarts-host` marks the canvas host element; `echarts-render-finished` is
+// toggled OFF before each setOption and ON in the ECharts `finished` event --
+// the only signal that the canvas is fully painted (chartStatus/onRenderSuccess
+// both fire pre-paint). The readiness gate treats a host that lacks
+// `echarts-render-finished` as not-yet-painted so it never captures a blank chart.
+export const ECHARTS_HOST_CLASS = 'echarts-host';
+export const ECHARTS_RENDER_FINISHED_CLASS = 'echarts-render-finished';
 
 function Echart(
   {
@@ -126,6 +153,7 @@ function Echart(
     height,
     echartOptions,
     eventHandlers,
+    queryEventHandlers,
     zrEventHandlers,
     selectedValues = {},
     refs,
@@ -141,6 +169,7 @@ function Echart(
   }
   const [didMount, setDidMount] = useState(false);
   const chartRef = useRef<EChartsType>();
+  const previousQueryEventHandlers = useRef<QueryEventHandlers>([]);
   const currentSelection = useMemo(
     () => Object.keys(selectedValues) || [],
     [selectedValues],
@@ -154,6 +183,9 @@ function Echart(
   const locale = useSelector(
     (state: ExplorePageState) => state?.common?.locale ?? DEFAULT_LOCALE,
   ).toUpperCase();
+  const isDashboardRefreshing = useSelector((state: ExplorePageState) =>
+    Boolean(state?.dashboardState?.isRefreshing),
+  );
 
   const handleSizeChange = useCallback(
     ({ width, height }: { width: number; height: number }) => {
@@ -171,20 +203,39 @@ function Echart(
       }
       if (!divRef.current) return;
       if (!chartRef.current) {
-        chartRef.current = init(divRef.current, null, { locale });
+        // Pass width and height to init to avoid "Can't get DOM width or height" warning
+        // since the DOM element may not have its dimensions yet when init is called
+        chartRef.current = init(divRef.current, null, {
+          locale,
+          width,
+          height,
+        });
+        // Paint marker for the report-screenshot readiness gate. `finished`
+        // is the only event that guarantees the canvas is fully drawn.
+        chartRef.current.on('finished', () => {
+          divRef.current?.classList.add(ECHARTS_RENDER_FINISHED_CLASS);
+        });
       }
       // did mount
       handleSizeChange({ width, height });
       setDidMount(true);
     });
-  }, [locale]);
+  }, [locale, width, height, handleSizeChange]);
 
   useEffect(() => {
     if (didMount) {
+      previousQueryEventHandlers.current.forEach(({ name, handler }) => {
+        chartRef.current?.off(name, handler);
+      });
       Object.entries(eventHandlers || {}).forEach(([name, handler]) => {
         chartRef.current?.off(name);
         chartRef.current?.on(name, handler);
       });
+
+      (queryEventHandlers || []).forEach(({ name, query, handler }) => {
+        chartRef.current?.on(name, query, handler);
+      });
+      previousQueryEventHandlers.current = queryEventHandlers || [];
 
       Object.entries(zrEventHandlers || {}).forEach(([name, handler]) => {
         chartRef.current?.getZr().off(name);
@@ -224,6 +275,9 @@ function Echart(
             axisLine: { lineStyle: { color: antdTheme.colorSplit } },
             axisLabel: { color: antdTheme.colorTextSecondary },
             splitLine: { lineStyle: { color: antdTheme.colorSplit } },
+            minorSplitLine: {
+              lineStyle: { color: antdTheme.colorBorderSecondary },
+            },
           };
         }
         if (options?.yAxis) {
@@ -231,6 +285,9 @@ function Echart(
             axisLine: { lineStyle: { color: antdTheme.colorSplit } },
             axisLabel: { color: antdTheme.colorTextSecondary },
             splitLine: { lineStyle: { color: antdTheme.colorSplit } },
+            minorSplitLine: {
+              lineStyle: { color: antdTheme.colorBorderSecondary },
+            },
           };
         }
         return echartsTheme;
@@ -242,16 +299,111 @@ function Echart(
         ? theme.echartsOptionsOverridesByChartType?.[vizType] || {}
         : {};
 
-      const themedEchartOptions = mergeReplaceArrays(
+      // Disable animation on auto-refresh and screenshots. Screenshots have no
+      // "render finished" signal, so a running draw can be captured mid-frame,
+      // producing partial/blank charts.
+      const animationOverride =
+        isDashboardRefreshing || isReportScreenshotMode()
+          ? {
+              animation: false,
+              animationDuration: 0,
+            }
+          : {};
+
+      // ECharts' built-in ARIA descriptions are off by default so behavior
+      // doesn't change for existing deployments; a theme or chart's options
+      // can opt in (or further customize aria handling) by overriding this.
+      const ariaDefault = { aria: { enabled: false } };
+
+      const themedEchartOptions = mergeEchartsThemeOverrides(
+        ariaDefault,
         baseTheme,
         echartOptions,
         globalOverrides,
         chartOverrides,
+        animationOverride,
       );
 
-      chartRef.current?.setOption(themedEchartOptions, true);
+      const notMerge = !isDashboardRefreshing;
+      chartRef.current?.dispatchAction({ type: 'hideTip' });
+      // setOption(notMerge:true) replaces the dataZoom config, dropping any
+      // range the user has engaged. Preserve it across the call.
+      const previousZoom = notMerge
+        ? (
+            chartRef.current?.getOption() as {
+              dataZoom?: DataZoomComponentOption[];
+            }
+          )?.dataZoom
+        : undefined;
+      // Clear the paint marker before (re)drawing; the `finished` handler
+      // re-adds it once the new frame is fully rendered.
+      divRef.current?.classList.remove(ECHARTS_RENDER_FINISHED_CLASS);
+      chartRef.current?.setOption(themedEchartOptions, {
+        notMerge,
+        replaceMerge: notMerge ? undefined : ['series'],
+        // lazyUpdate defers render, causing tooltip crashes on stale shapes (#39247)
+        lazyUpdate: false,
+      });
+      if (previousZoom?.length) {
+        // Skip restore when the new option reshapes dataZoom (different count
+        // means index-based restore could land on the wrong component).
+        const newZoom = (
+          chartRef.current?.getOption() as {
+            dataZoom?: DataZoomComponentOption[];
+          }
+        )?.dataZoom;
+        if (newZoom?.length === previousZoom.length) {
+          const batch = previousZoom
+            .map((dz, dataZoomIndex) => ({
+              dataZoomIndex,
+              start: dz.start,
+              end: dz.end,
+              startValue: dz.startValue,
+              endValue: dz.endValue,
+            }))
+            .filter(b => {
+              const hasAny =
+                b.start !== undefined ||
+                b.end !== undefined ||
+                b.startValue !== undefined ||
+                b.endValue !== undefined;
+              if (!hasAny) return false;
+              // Default full-range zoom is functionally identical to the
+              // fresh state setOption already produces — skip the dispatch.
+              const isDefaultRange =
+                b.start === 0 &&
+                b.end === 100 &&
+                b.startValue === undefined &&
+                b.endValue === undefined;
+              return !isDefaultRange;
+            });
+          if (batch.length) {
+            chartRef.current?.dispatchAction({ type: 'dataZoom', batch });
+          }
+        }
+      }
     }
-  }, [didMount, echartOptions, eventHandlers, zrEventHandlers, theme]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- isDashboardRefreshing intentionally excluded to prevent extra setOption calls
+  }, [
+    didMount,
+    echartOptions,
+    eventHandlers,
+    queryEventHandlers,
+    zrEventHandlers,
+    theme,
+    vizType,
+  ]);
+
+  // Clear tooltip on refresh start to avoid stale content (#39247)
+  useEffect(() => {
+    if (didMount && isDashboardRefreshing && chartRef.current) {
+      chartRef.current.dispatchAction({ type: 'hideTip' });
+      chartRef.current.dispatchAction({
+        type: 'updateAxisPointer',
+        currTrigger: 'leave',
+      });
+    }
+  }, [didMount, isDashboardRefreshing]);
 
   useEffect(() => () => chartRef.current?.dispose(), []);
 
@@ -271,13 +423,20 @@ function Echart(
       });
     }
     previousSelection.current = currentSelection;
-  }, [currentSelection, chartRef.current]);
+  }, [currentSelection]);
 
   useLayoutEffect(() => {
     handleSizeChange({ width, height });
   }, [width, height, handleSizeChange]);
 
-  return <Styles ref={divRef} height={height} width={width} />;
+  return (
+    <Styles
+      ref={divRef}
+      className={ECHARTS_HOST_CLASS}
+      height={height}
+      width={width}
+    />
+  );
 }
 
 export default forwardRef(Echart);

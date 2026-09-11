@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { css, t, useTheme } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { css, useTheme } from '@apache-superset/core/theme';
 import { Tooltip } from '@superset-ui/core/components';
 import { usePluginContext } from 'src/components';
 import { VizTileProps } from './types';
@@ -55,10 +56,10 @@ export const VizTile = ({
     setShowTooltip(
       Boolean(
         !isTransitioning &&
-          (!isActive ||
-            (chartNameRef.current &&
-              chartNameRef.current.scrollWidth >
-                chartNameRef.current.clientWidth)),
+        (!isActive ||
+          (chartNameRef.current &&
+            chartNameRef.current.scrollWidth >
+              chartNameRef.current.clientWidth)),
       ),
     );
   }, [isActive, isTransitioning]);
@@ -96,30 +97,34 @@ export const VizTile = ({
           white-space: nowrap;
           overflow: hidden;
           max-width: fit-content;
-          ${!isActive &&
-          css`
-            flex-shrink: 0;
-            width: ${theme.sizeUnit * 6}px;
-            background-color: transparent;
-            transition: none;
-            &:hover svg path {
-              fill: ${theme.colorPrimary};
-              transition: fill ${theme.motionDurationMid} ease-out;
-            }
-          `}
+          ${
+            !isActive &&
+            css`
+              flex-shrink: 0;
+              width: ${theme.sizeUnit * 6}px;
+              background-color: transparent;
+              transition: none;
+              &:hover svg path {
+                fill: ${theme.colorPrimary};
+                transition: fill ${theme.motionDurationMid} ease-out;
+              }
+            `
+          }
 
-          ${isActive &&
-          css`
-            width: 100%;
-            background-color: ${theme.colorBgLayout};
-            transition:
-              width ${TILE_TRANSITION_TIME} ease-out,
-              background-color ${TILE_TRANSITION_TIME} ease-out;
-            cursor: default;
-            svg path {
-              fill: ${theme.colorPrimary};
-            }
-          `}
+          ${
+            isActive &&
+            css`
+              width: 100%;
+              background-color: ${theme.colorBgLayout};
+              transition:
+                width ${TILE_TRANSITION_TIME} ease-out,
+                background-color ${TILE_TRANSITION_TIME} ease-out;
+              cursor: default;
+              svg path {
+                fill: ${theme.colorPrimary};
+              }
+            `
+          }
         `}
       >
         <span
@@ -136,7 +141,7 @@ export const VizTile = ({
             font-size: ${theme.fontSizeSM}px;
             min-width: 0;
             padding-right: ${theme.sizeUnit}px;
-            line-height: 1;
+            line-height: 1.5;
           `}
           ref={chartNameRef}
         >

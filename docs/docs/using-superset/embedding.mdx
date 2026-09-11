@@ -1,0 +1,195 @@
+---
+title: Embedding Superset
+sidebar_position: 6
+---
+
+{/*
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements. See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership. The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License. You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied. See the License for the
+specific language governing permissions and limitations
+under the License.
+*/}
+
+# Embedding Superset
+
+Superset dashboards can be embedded directly in host applications using the `@superset-ui/embedded-sdk` package.
+
+:::info Prerequisites
+
+- The `EMBEDDED_SUPERSET` feature flag must be enabled.
+- The embedding domain and allowed origins must be configured by an admin.
+  :::
+
+## Quick Start
+
+Install the SDK:
+
+```bash
+npm install @superset-ui/embedded-sdk
+```
+
+Embed a dashboard:
+
+```javascript
+import { embedDashboard } from '@superset-ui/embedded-sdk';
+
+embedDashboard({
+  id: 'dashboard-uuid-here', // from Dashboard → Embed
+  supersetDomain: 'https://superset.example.com',
+  mountPoint: document.getElementById('superset-container'),
+  fetchGuestToken: () => fetchTokenFromYourBackend(),
+  dashboardUiConfig: {
+    hideTitle: true,
+    filters: { expanded: false },
+  },
+});
+```
+
+`fetchGuestToken` must return a **guest token** obtained from your server by calling Superset's `/api/v1/security/guest_token/` endpoint with a service account. Do not call this endpoint from client-side code.
+
+---
+
+## Callbacks
+
+### `resolvePermalinkUrl`
+
+When a user copies a permalink from an embedded dashboard, Superset generates a URL on its own domain. In an embedded context this URL is usually not meaningful to the host application's users — the dashboard is rendered inside the host app, not at the Superset URL.
+
+The `resolvePermalinkUrl` callback lets the host app intercept permalink generation and return a URL on the host domain instead:
+
+```javascript
+embedDashboard({
+  id: 'my-dashboard-uuid',
+  supersetDomain: 'https://superset.example.com',
+  mountPoint: document.getElementById('superset-container'),
+  fetchGuestToken: () => fetchGuestToken(),
+  /**
+   * Called when Superset generates a permalink.
+   * @param {Object} args - { key: string } — the permalink key
+   * @returns {string | null} - your host URL, or null to use Superset's default
+   */
+  resolvePermalinkUrl: ({ key }) => {
+    return `https://myapp.example.com/dashboard?permalink=${key}`;
+  },
+});
+```
+
+If the callback returns `null` or is not provided, Superset uses its own permalink URL as a fallback.
+
+### Permalink origin rewriting
+
+This rewrite only applies to the non-embedded permalink path — it has no effect on embedded dashboards. When Superset is not embedded, it rewrites the origin of any permalink URL it generates to `window.location.origin` before showing it to the user, which keeps a proxied or subdirectory-deployed Superset from handing out a permalink that points at an internal hostname the user's browser can't reach.
+
+When Superset **is** embedded, this rewrite is skipped entirely regardless of the flag below: a `resolvePermalinkUrl` callback's return value is used as-is, and if no callback is provided (or it fails), the backend-supplied URL is also returned as-is.
+
+If your reverse proxy correctly forwards `X-Forwarded-Host` and you'd rather non-embedded permalinks carry the backend's literal origin, opt out of the rewrite with `EMBEDDED_DISABLE_PERMALINK_ORIGIN_REWRITE`:
+
+```python
+# superset_config.py
+EMBEDDED_DISABLE_PERMALINK_ORIGIN_REWRITE = True
+```
+
+This defaults to `False` (rewrite enabled) and only affects non-embedded permalinks. Flipping the default would regress the common proxied/subdirectory deployment by exposing an unreachable internal host in copied permalinks.
+
+---
+
+## Feature Flags for Embedded Mode
+
+### `DISABLE_EMBEDDED_SUPERSET_LOGOUT`
+
+Hides the logout button when Superset is embedded in a host application. This is useful when the host application manages the session lifecycle and you do not want users to accidentally log out of the embedded Superset session:
+
+```python
+# superset_config.py
+FEATURE_FLAGS = {
+    "EMBEDDED_SUPERSET": True,
+    "DISABLE_EMBEDDED_SUPERSET_LOGOUT": True,
+}
+```
+
+When enabled, the **Logout** menu item is removed from the user avatar dropdown in the embedded view. The session can still be invalidated server-side by revoking the guest token.
+
+### `EMBEDDED_SUPERSET`
+
+Must be `True` to enable the embedded SDK and the guest token endpoint. Without this flag, `embedDashboard` will fail to load.
+
+---
+
+## URL Parameters
+
+The following URL parameters can be passed through the `urlParams` option in `dashboardUiConfig` or appended to the embedded iframe URL:
+
+| Parameter        | Values             | Effect                                                                          |
+| ---------------- | ------------------ | ------------------------------------------------------------------------------- |
+| `standalone`     | `0`, `1`, `2`, `3` | `0`: normal; `1`: hide nav; `2`: hide nav + title; `3`: hide nav + title + tabs |
+| `show_filters`   | `0`, `1`           | Show or hide the native filter bar                                              |
+| `expand_filters` | `0`, `1`           | Start with filter bar expanded or collapsed                                     |
+
+---
+
+## Security Notes
+
+- **Guest tokens expire** — their lifetime is controlled by the `GUEST_TOKEN_JWT_EXP_SECONDS` config (default: 5 minutes). Refresh tokens before they expire using a token refresh mechanism in your host app.
+- **Row-level security** — pass `rls` rules in the guest token request to restrict which rows are visible to the embedded user.
+- **Allowed domains** — restrict which host origins can embed a dashboard by setting **Allowed Domains** per-dashboard in the _Embed_ settings modal. Superset checks the request's `Referer` header against this list before serving the embedded view; an empty list allows any origin, so configure this explicitly for production.
+- **Redacted errors** — API responses to a guest token report a generic `An error occurred while fetching the data.` instead of the underlying error, since engine errors quote catalog, schema, table and column names. Errors Superset raises itself — access denials, timeouts, payload validation — keep their message, and the full error is always available in the server logs.
+
+
+## Guest-token request-header size diagnostics
+
+A successful guest-token mint does not guarantee the token can pass through your
+deployment's proxies. Limits apply to the **encoded JWT bytes plus header
+overhead**, not the number of RLS rules or identifiers. A proxy can reject the
+subsequent authentication request before it reaches Superset, including an HTTP
+400 HTML response instead of JSON. A 400 alone does not establish a size problem.
+
+Operators can set a deployment-specific diagnostic budget in `superset_config.py`:
+
+```python
+# Example only: choose a budget for your complete proxy path.
+GUEST_TOKEN_HEADER_MAX_BYTES = 16 * 1024
+```
+
+The default is `None` (no budget warnings). Positive integer budgets count UTF-8
+bytes of `GUEST_TOKEN_HEADER_NAME`, `: `, the encoded token, and `\r\n`
+(four framing bytes). Only sizes **strictly greater** than the budget warn;
+equality does not. This is consistent diagnostic accounting, not a prediction of
+every proxy's wire-level accounting, HTTP/2 compression, or total-header limits.
+Leave a safety margin and validate your actual deployment, including custom
+header names. Zero, negative, non-integral, or non-numeric values (including strings and
+booleans) disable budget warnings, as do values above JavaScript's maximum safe
+integer (2^53 − 1). Whole-number floats are accepted. Convert environment-variable
+strings to integers in deployment configuration to enable the budget.
+
+Issuance audit metadata includes `token_bytes`, `header_bytes`,
+`header_budget_bytes`, and `header_budget_exceeded`. Issuance remains HTTP 200
+with the same token and response shape. The embedded bootstrap exposes the budget
+and configured header name; reload the iframe after changing deployment config.
+The embedded client measures initial and refreshed tokens and warns in the
+developer console with sizes only. Initial authentication failures get a targeted
+suggestion only when the request's token exceeds the budget and the failure has
+no status or HTTP 400/431/494; other statuses and ambiguous in-flight
+refreshes use the generic error. Refresh warnings do not restart authentication.
+These diagnostics do not record JWTs, decoded claims, RLS SQL, or request headers.
+
+[AWS Application Load Balancer quotas](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-limits.html)
+list a non-adjustable 16 K single-header limit. Increasing a Superset diagnostic
+budget does not increase that limit or add large-token support.
+
+To reduce payload size, replace large inline RLS ID lists with a compact
+entitlements-table subquery where supported by your database. Keep the same
+tenant/user restrictions, derive identity from your trusted token-issuing
+backend, and verify equivalent row access and query performance before rollout.
+Do not remove RLS or broaden entitlements to make a token smaller.

@@ -19,8 +19,15 @@
 
 import { ReactNode } from 'react';
 import { PopoverProps } from '@superset-ui/core/components/Popover';
-import { Comparator, ControlComponentProps } from '@superset-ui/chart-controls';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import {
+  Comparator,
+  ControlComponentProps,
+  ObjectFormattingEnum,
+  BoundUnit,
+  PercentDenominator,
+} from '@superset-ui/chart-controls';
+import { GenericDataType } from '@apache-superset/core/common';
+import { type RGBColor } from '@superset-ui/core/components';
 
 export type ConditionalFormattingConfig = {
   operator?: Comparator;
@@ -28,25 +35,58 @@ export type ConditionalFormattingConfig = {
   targetValueLeft?: number;
   targetValueRight?: number;
   column?: string;
-  colorScheme?: string;
+  colorScheme?: RGBColor | string;
+  toAllRow?: boolean;
+  toTextColor?: boolean;
+  useGradient?: boolean;
+  columnFormatting?: string;
+  objectFormatting?: ObjectFormattingEnum;
+  minBound?: number;
+  maxBound?: number;
+  centerValue?: number;
+  lowColor?: RGBColor | string;
+  midColor?: RGBColor | string;
+  highColor?: RGBColor | string;
+  boundUnit?: BoundUnit;
+  percentDenominator?: PercentDenominator;
 };
 
 export type ConditionalFormattingControlProps = ControlComponentProps<
   ConditionalFormattingConfig[]
 > & {
-  columnOptions: { label: string; value: string; dataType: GenericDataType }[];
+  columnOptions: ColumnOption[];
   removeIrrelevantConditions: boolean;
   verboseMap: Record<string, string>;
   label: string;
   description: string;
-  extraColorChoices?: { label: string; value: string }[];
+  extraColorChoices?: { label: string; colors: string[] }[];
+  allColumns?: ColumnOption[];
+  /**
+   * Hide formatting-target fields (columnFormatting / objectFormatting)
+   * so the control applies only to the selected metric.
+   */
+  metricOnly?: boolean;
+  serverPagination?: boolean;
 };
 
 export type FormattingPopoverProps = PopoverProps & {
-  columns: { label: string; value: string; dataType: GenericDataType }[];
+  columns: ColumnOption[];
   onChange: (value: ConditionalFormattingConfig) => void;
   config?: ConditionalFormattingConfig;
   title: string;
   children: ReactNode;
-  extraColorChoices?: { label: string; value: string }[];
+  extraColorChoices?: { label: string; colors: string[] }[];
+  allColumns?: ColumnOption[];
+  /**
+   * Hide formatting-target fields (columnFormatting / objectFormatting)
+   * so the control applies only to the selected metric.
+   */
+  metricOnly?: boolean;
+  serverPagination?: boolean;
 };
+
+export interface ColumnOption {
+  label: string;
+  value: string;
+  dataType: GenericDataType;
+}

@@ -19,12 +19,12 @@
  */
 import {
   Column,
-  logging,
   Metric,
   ensureIsArray,
   getExtensionsRegistry,
   QueryFormData,
 } from '@superset-ui/core';
+import { logging } from '@apache-superset/core/utils';
 import { useEffect, useState } from 'react';
 import { Dataset } from 'src/components/Chart/types';
 import {
@@ -46,11 +46,16 @@ export const getDatasetId = (datasetId: string | number): number =>
  */
 export const createVerboseMap = (dataset?: Dataset): Record<string, string> => {
   const verbose_map: Record<string, string> = {};
-  ensureIsArray(dataset?.columns).forEach((column: Column) => {
-    verbose_map[column.column_name] = column.verbose_name || column.column_name;
-  });
+  // A name can appear in both lists -- uniqueness is only enforced within each
+  // one -- so metrics are written first and columns overwrite them. That matches
+  // `SqlaTable.data_for_slices`, which builds the verbose map the dashboard's own
+  // charts already render with, and keeps an unused metric from relabelling a
+  // column the chart actually selected.
   ensureIsArray(dataset?.metrics).forEach((metric: Metric) => {
     verbose_map[metric.metric_name] = metric.verbose_name || metric.metric_name;
+  });
+  ensureIsArray(dataset?.columns).forEach((column: Column) => {
+    verbose_map[column.column_name] = column.verbose_name || column.column_name;
   });
   return verbose_map;
 };
@@ -81,13 +86,47 @@ export const useDatasetDrillInfo = (
       });
       return;
     }
+    const numericDatasetId = getDatasetId(datasetId);
+    if (Number.isNaN(numericDatasetId)) {
+      // datasetId isn't resolved yet (e.g. the dashboard's slice entity hasn't
+      // hydrated after a client-side navigation back from Explore). Reset to
+      // Loading rather than firing a request for dataset "NaN" -- and rather
+      // than leaving a previous id's Complete/Error result in place, which
+      // would let the context menu expose drill metadata for the wrong
+      // dataset until this one resolves. The effect reruns once datasetId
+      // settles to a real value.
+      setResource({
+        status: ResourceStatus.Loading,
+        result: null,
+        error: null,
+      });
+      return;
+    }
+
+    // `bestEffort` callers recover from a failure themselves, so it is not worth
+    // logging: a deployment that registers the drill-by extension because this
+    // endpoint is unreachable would otherwise log on every dashboard load.
+    const fetchDrillInfo = async ({ bestEffort = false } = {}) => {
+      const endpoint = `/api/v1/dataset/${numericDatasetId}/drill_info/?q=(dashboard_id:${dashboardId})`;
+      try {
+        const { json } = await cachedSupersetGet({ endpoint });
+        return json.result;
+      } catch (error) {
+        if (!bestEffort) {
+          logging.error('Failed to load dataset: ', error);
+        }
+        supersetGetCache.delete(endpoint);
+        throw error;
+      }
+    };
+
     const fetchDataset = async () => {
       try {
-        const numericDatasetId = getDatasetId(datasetId);
         const loadDrillByOptionsExtension = getExtensionsRegistry().get(
           'load.drillby.options',
         );
         let result;
+        let labelSource;
 
         if (loadDrillByOptionsExtension && formData) {
           const response = await loadDrillByOptionsExtension(
@@ -95,20 +134,23 @@ export const useDatasetDrillInfo = (
             formData,
           );
           result = response?.json?.result;
-        } else {
-          const endpoint = `/api/v1/dataset/${numericDatasetId}/drill_info/?q=(dashboard_id:${dashboardId})`;
+          // The extension contract only covers drill-by options, so a conforming
+          // implementation may omit metrics and non-dimension columns. Labels
+          // come from the API, which is the only source that promises the whole
+          // dataset. If it is unreachable -- a deployment may register the
+          // extension precisely because it is -- fall back to what the extension
+          // returned rather than breaking drill-by, which works there today.
           try {
-            const { json } = await cachedSupersetGet({ endpoint });
-            const { result: datasetResult } = json;
-            result = datasetResult;
-          } catch (error) {
-            logging.error('Failed to load dataset: ', error);
-            supersetGetCache.delete(endpoint);
-            throw error;
+            labelSource = await fetchDrillInfo({ bestEffort: true });
+          } catch {
+            labelSource = result;
           }
+        } else {
+          result = await fetchDrillInfo();
+          labelSource = result;
         }
 
-        const verbose_map = createVerboseMap(result);
+        const verbose_map = createVerboseMap(labelSource);
 
         setResource({
           status: ResourceStatus.Complete,
