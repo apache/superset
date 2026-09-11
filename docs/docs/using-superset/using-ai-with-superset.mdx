@@ -346,8 +346,10 @@ Ask your admin for the MCP server URL and any authentication tokens you need.
 ### Sunburst chart data
 
 MCP chart tools support ordered Sunburst hierarchies with a primary metric and
-an optional secondary color metric. Use `chart_type: "sunburst"` in typed requests;
-the native chart uses `viz_type: "sunburst_v2"`.
+an optional secondary metric. When supplied, the secondary-to-primary ratio
+drives a sequential color scale (for example, profit divided by revenue shows
+margin); when omitted, arc colors are categorical. Use `chart_type: "sunburst"`
+in typed requests; the native chart uses `viz_type: "sunburst_v2"`.
 
 SQL NULL aggregate values are rendered as zero, matching the Sunburst frontend,
 including during compile checks, previews, and data exports. Missing result

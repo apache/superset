@@ -2068,8 +2068,8 @@ class SunburstChartConfig(BaseChartConfig):
 
     ``hierarchy`` follows the frontend ``columns`` control: the first entry is
     the innermost ring and each later entry adds a child level.  The primary
-    metric sizes arcs; an optional secondary metric colors arcs by the
-    secondary/primary ratio.
+    metric sizes arcs; when supplied, the secondary-to-primary ratio drives a
+    sequential color scale. Without a secondary metric, colors are categorical.
     """
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
@@ -2099,8 +2099,9 @@ class SunburstChartConfig(BaseChartConfig):
     secondary_metric: ColumnRef | None = Field(
         None,
         description=(
-            "Optional metric used to color arcs by secondary/primary ratio. "
-            "When omitted, colors are categorical."
+            "Optional metric whose ratio to the primary metric drives the "
+            "sequential color scale (for example, profit/revenue represents "
+            "margin). When omitted, arc colors are categorical."
         ),
         validation_alias=AliasChoices("secondary_metric", "secondaryMetric"),
     )

@@ -354,7 +354,8 @@ def get_chart_configs_resource() -> str:
         "sunburst_charts": [
             "Order hierarchy from broad/root categories to narrow/leaf categories",
             "Use unique physical columns for every hierarchy level",
-            "Use secondary_metric only when ratio-based sequential coloring is useful",
+            "Use secondary_metric when its ratio to the primary metric should drive "
+            "a sequential color scale; omit it for categorical colors",
             "Keep row_limit and hierarchy cardinality bounded for readable rings",
             "Use show_labels_threshold to suppress labels on very small arcs",
         ],

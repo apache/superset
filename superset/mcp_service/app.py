@@ -397,7 +397,8 @@ Chart Types You Can CREATE with generate_chart/generate_explore_link:
 - chart_type="pie": Pie chart for proportional data (set donut=True for donut)
 - chart_type="gauge": Dial display for a metric (optional grouping creates multiple dials)
 - chart_type="sunburst": Hierarchical part-to-whole chart (hierarchy + metric
-  required; optional secondary_metric colors arcs by its ratio to the primary)
+  required; optional secondary_metric makes its ratio to the primary drive a
+  sequential color scale; omitting it uses categorical colors)
 - chart_type="pivot_table": OSS Pivot Table for cross-tabulation
 - chart_type="interactive_pivot": Extension-provided AG Grid Interactive Pivot Table.
   This type is distinct from pivot_table/pivot_table_v2 and is available only

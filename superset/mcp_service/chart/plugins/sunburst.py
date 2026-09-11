@@ -58,7 +58,9 @@ class SunburstChartPlugin(BaseChartPlugin):
             message=f"Sunburst missing required fields: {', '.join(missing_fields)}",
             details=(
                 "Sunburst charts require an ordered hierarchy and one primary "
-                "metric; secondary_metric is optional and controls ratio coloring"
+                "metric; when supplied, secondary_metric divided by the primary "
+                "metric drives a sequential color scale; omitting it uses "
+                "categorical colors"
             ),
             suggestions=[
                 "Add 'hierarchy': [{'name': 'region'}, {'name': 'country'}]",
