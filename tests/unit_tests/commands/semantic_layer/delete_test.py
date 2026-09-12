@@ -59,6 +59,20 @@ def test_delete_semantic_layer_not_found(mocker: MockerFixture) -> None:
         DeleteSemanticLayerCommand("missing-uuid").run()
 
 
+def test_delete_semantic_layer_requires_access(mocker: MockerFixture) -> None:
+    """A user without access to the layer cannot delete it."""
+    mock_model = MagicMock()
+    mock_model.raise_for_access.side_effect = SupersetSecurityException(MagicMock())
+
+    dao = mocker.patch("superset.commands.semantic_layer.delete.SemanticLayerDAO")
+    dao.find_by_uuid.return_value = mock_model
+
+    with pytest.raises(SemanticLayerForbiddenError):
+        DeleteSemanticLayerCommand("not-mine-uuid").run()
+
+    dao.delete.assert_not_called()
+
+
 def test_delete_semantic_layer_forbidden(mocker: MockerFixture) -> None:
     """Test that SemanticLayerForbiddenError is raised for non-editors."""
     mock_model = MagicMock()

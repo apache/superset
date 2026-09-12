@@ -37,6 +37,39 @@ import { Icons } from '@superset-ui/core/components/Icons';
 import { DndItemType } from '../../DndItemType';
 import { DraggingContext, DropzoneContext } from '../../ExploreContainer';
 
+export type ActiveDragData = {
+  type: string;
+  value?: unknown;
+  items?: DatasourcePanelDndItem[];
+};
+
+/**
+ * Pure, folder-aware `canDrop` logic for the currently dragged item, extracted
+ * so it can be unit-tested directly: @dnd-kit's PointerSensor only reacts to
+ * real pointer events, which jsdom cannot meaningfully dispatch (see
+ * ExploreDndContext's `resolveDragEnd` for the same pattern).
+ */
+export function resolveCanDrop(
+  activeData: ActiveDragData | undefined,
+  acceptTypes: DndItemType[],
+  dropValidator: (item: DatasourcePanelDndItem) => boolean,
+): boolean {
+  if (!activeData) return false;
+  if (!acceptTypes.includes(activeData.type as DndItemType)) return false;
+  // A folder can drop here when at least one of its items is acceptable.
+  if (activeData.type === DndItemType.Folder) {
+    const items = Array.isArray(activeData.items) ? activeData.items : [];
+    return items.some(
+      item =>
+        acceptTypes.includes(item.type as DndItemType) && dropValidator(item),
+    );
+  }
+  return dropValidator({
+    type: activeData.type as DndItemType,
+    value: activeData.value as DndItemValue,
+  });
+}
+
 export type DndSelectLabelProps = {
   name: string;
   accept: DndItemType | DndItemType[];
@@ -45,6 +78,7 @@ export type DndSelectLabelProps = {
   canDrop: (item: DatasourcePanelDndItem) => boolean;
   canDropValue?: (value: DndItemValue) => boolean;
   onDropValue?: (value: DndItemValue) => void;
+  onDropFolder?: (items: DatasourcePanelDndItem[]) => void;
   valuesRenderer: () => ReactNode;
   displayGhostButton?: boolean;
   onClickGhostButton: () => void;
@@ -87,19 +121,20 @@ export default function DndSelectLabel({
       canDrop: dropValidator,
       onDrop: props.onDrop,
       onDropValue: props.onDropValue,
+      onDropFolder: props.onDropFolder,
     },
   });
 
   // Check if the active dragged item can be dropped here
-  const canDrop = useMemo(() => {
-    if (!active?.data.current) return false;
-    const activeData = active.data.current as { type: string; value: unknown };
-    if (!acceptTypes.includes(activeData.type as DndItemType)) return false;
-    return dropValidator({
-      type: activeData.type as DndItemType,
-      value: activeData.value as DndItemValue,
-    });
-  }, [active, acceptTypes, dropValidator]);
+  const canDrop = useMemo(
+    () =>
+      resolveCanDrop(
+        active?.data.current as ActiveDragData | undefined,
+        acceptTypes,
+        dropValidator,
+      ),
+    [active, acceptTypes, dropValidator],
+  );
 
   const [, dispatch] = useContext(DropzoneContext);
 

@@ -162,7 +162,23 @@ const plugins = [
   }),
 
   new CopyPlugin({
-    patterns: ['package.json', { from: 'src/assets/images', to: 'images' }],
+    patterns: [
+      'package.json',
+      { from: 'src/assets/images', to: 'images' },
+      // maplibre-gl 6's ESM-only build loads its worker from a real URL
+      // instead of an inlined blob (see MapLibre.tsx for the matching
+      // maplibregl.setWorkerUrl() call). The worker's own bundle does a
+      // relative ESM import of its "shared" chunk, so both files must be
+      // copied verbatim, unhashed, into the same output directory.
+      {
+        from: 'node_modules/maplibre-gl/dist/maplibre-gl-worker.mjs',
+        to: 'maplibre-gl-worker.mjs',
+      },
+      {
+        from: 'node_modules/maplibre-gl/dist/maplibre-gl-shared.mjs',
+        to: 'maplibre-gl-shared.mjs',
+      },
+    ],
   }),
 
   // static pages

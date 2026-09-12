@@ -31,7 +31,10 @@ x-superset-volumes:
 
 x-common-build: &common-build
   context: .
-  target: dev
+  # Build the batteries-included production image (the default `apache/superset`
+  # tags), not the `dev` image: this compose runs a prod-like stack from source,
+  # and `superset` bundles the metadata/analytics drivers it needs.
+  target: superset
   cache_from:
     - apache/superset-cache:3.11-slim-trixie
 
