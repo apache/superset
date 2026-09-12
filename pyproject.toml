@@ -197,7 +197,7 @@ excel = ["xlrd>=2.0.2, <2.1"]
 # installing this extra is only required to actually run exports.
 excel-export = ["boto3"]
 fastmcp = [
-    "fastmcp>=3.4.7,<4.0",
+    "fastmcp>=4.0.3,<5.0",
     # fastmcp 3.x itself requires mcp<2.0; the upper bound here was looser
     # than that until Dependabot proposed mcp 2.1.1 and the resolver caught
     # the conflict (#43876). Capped to match what fastmcp 3.x actually
