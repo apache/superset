@@ -52,9 +52,14 @@ function buildUnevenTree(): PartitionDataNode {
 
 function buildInitializedNodes(data: PartitionDataNode): PartitionNode[] {
   const root = hierarchy<PartitionDataNode>(data) as unknown as PartitionNode;
-  // Populate the weight/sum fields init() relies on, the same way
-  // Icicle's drawVis does before calling init().
+  // Populate the name/weight/sum fields init() relies on, the same way
+  // Icicle's drawVis does before calling init(). Without this, every
+  // node's `name` stays undefined and byName lookups below collapse to a
+  // single key.
   root.eachAfter(n => {
+    n.name = Array.isArray(n.data.name)
+      ? n.data.name[n.data.name.length - 1]
+      : n.data.name;
     n.weight = n.data.val;
   });
   root.eachAfter(n => {
