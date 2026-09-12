@@ -43,6 +43,7 @@ produce zero change records by design.
 from __future__ import annotations
 
 import logging
+from time import perf_counter
 from typing import Any
 
 import sqlalchemy as sa
@@ -66,7 +67,7 @@ from superset.versioning.diff import (
     ChangeRecord,
     fold_dashboard_layout_with_chart_changes,
 )
-from superset.versioning.metrics import incr_capture_error
+from superset.versioning.metrics import emit_capture_timing, incr_capture_error
 
 logger = logging.getLogger(__name__)
 
@@ -395,7 +396,51 @@ def _persist_buffered_records(
         incr_capture_error("bulk_insert")
 
 
-def register_change_record_listener() -> None:  # noqa: C901
+def finalize_change_records(session: Session) -> None:
+    """Build and persist the transaction's change records at commit time.
+
+    Module-level (rather than a closure inside the registration function)
+    so the capture write path can be exercised directly by unit tests
+    against an isolated session; it depends only on the session and the
+    module helpers, never on the registered entity classes.
+    """
+    if session.in_nested_transaction() or session.info.get(_FINALIZING_KEY):
+        return
+
+    session.info[_FINALIZING_KEY] = True
+    # Measures the FINALIZE stage only: the timer starts after the flush,
+    # which excludes the transaction's own write cost but also excludes
+    # capture_initial_states' per-entity pre-state SELECTs — and runs
+    # through every capture step and early return. Every commit on the
+    # session emits a sample, including commits touching no versioned
+    # entity, because the whole-listener overhead is exactly what the
+    # kill-switch removes; a flush that raises emits nothing.
+    start: float | None = None
+    try:
+        session.flush()
+        start = perf_counter()
+        initial_states: dict[tuple[str, int], tuple[Any, dict[str, Any]]] = (
+            session.info.get(_INITIAL_STATES_KEY, {})
+        )
+        buffer = _build_scalar_buffer(initial_states)
+
+        tx_id = _current_transaction_id(session)
+        if tx_id is None:
+            return
+
+        _stamp_action_kind_on_transaction(session, tx_id)
+        _append_child_records_to_buffer(session, tx_id, buffer)
+        _inject_action_meta_record(session, buffer)
+
+        if buffer:
+            _persist_buffered_records(session, tx_id, buffer)
+    finally:
+        session.info.pop(_FINALIZING_KEY, None)
+        if start is not None:
+            emit_capture_timing("finalize", (perf_counter() - start) * 1000.0)
+
+
+def register_change_record_listener() -> None:
     """Attach transaction-scoped version-change listeners.
 
     Registered from :class:`superset.initialization.SupersetAppInitializer`
@@ -424,31 +469,6 @@ def register_change_record_listener() -> None:  # noqa: C901
         for obj in list(session.dirty):
             if isinstance(obj, versioned_classes):
                 _capture_dirty_entity_initial_state(session, obj, initial_states)
-
-    def finalize_change_records(session: Session) -> None:
-        if session.in_nested_transaction() or session.info.get(_FINALIZING_KEY):
-            return
-
-        session.info[_FINALIZING_KEY] = True
-        try:
-            session.flush()
-            initial_states: dict[tuple[str, int], tuple[Any, dict[str, Any]]] = (
-                session.info.get(_INITIAL_STATES_KEY, {})
-            )
-            buffer = _build_scalar_buffer(initial_states)
-
-            tx_id = _current_transaction_id(session)
-            if tx_id is None:
-                return
-
-            _stamp_action_kind_on_transaction(session, tx_id)
-            _append_child_records_to_buffer(session, tx_id, buffer)
-            _inject_action_meta_record(session, buffer)
-
-            if buffer:
-                _persist_buffered_records(session, tx_id, buffer)
-        finally:
-            session.info.pop(_FINALIZING_KEY, None)
 
     event.listen(db.session, "before_flush", capture_initial_states)
     event.listen(db.session, "before_commit", finalize_change_records)
