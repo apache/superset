@@ -4235,3 +4235,45 @@ def test_gamma_receives_no_semantic_write_pvm() -> None:
     assert not sm._is_gamma_pvm(_pvm("can_write", "SemanticView"))
     assert sm._is_gamma_pvm(_pvm("can_read", "SemanticLayer"))
     assert sm._is_gamma_pvm(_pvm("can_read", "SemanticView"))
+
+
+def test_sync_role_definitions_excludes_stale_reset_password_view(
+    mocker: MockerFixture, app_context: None
+) -> None:
+    """Upgraded installs must not have Admin retain a disabled legacy view.
+
+    If a ``ResetPasswordView`` permission/view-menu row was persisted before
+    ``ENABLE_LEGACY_FAB_PASSWORD_VIEWS`` existed, ``sync_role_definitions``
+    must exclude it from every role's assignment once the flag is off, even
+    though the view itself is no longer registered and
+    ``_get_all_pvms`` still returns the stale row from the metadata db.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    stale_pvm = _pvm("can_this_form_get", "ResetPasswordView")
+    other_pvm = _pvm("can_read", "Dashboard")
+
+    mocker.patch.object(sm, "create_custom_permissions")
+    mocker.patch.object(sm, "_get_all_pvms", return_value=[stale_pvm, other_pvm])
+    mock_set_role = mocker.patch.object(sm, "set_role")
+    mocker.patch.object(sm, "create_missing_perms")
+    mocker.patch.object(sm, "clean_perms")
+
+    previous_config = {
+        "ENABLE_LEGACY_FAB_PASSWORD_VIEWS": current_app.config[
+            "ENABLE_LEGACY_FAB_PASSWORD_VIEWS"
+        ],
+        "PUBLIC_ROLE_LIKE": current_app.config["PUBLIC_ROLE_LIKE"],
+    }
+    current_app.config["ENABLE_LEGACY_FAB_PASSWORD_VIEWS"] = False
+    current_app.config["PUBLIC_ROLE_LIKE"] = None
+    try:
+        sm.sync_role_definitions()
+    finally:
+        current_app.config.update(previous_config)
+
+    for call in mock_set_role.call_args_list:
+        role_name, _classifier_fn, synced_pvms = call.args
+        assert stale_pvm not in synced_pvms, (
+            f"{role_name} role sync should exclude the stale ResetPasswordView pvm"
+        )
+        assert other_pvm in synced_pvms

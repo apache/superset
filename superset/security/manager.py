@@ -3038,6 +3038,29 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         if deleted_count := pvms.delete():
             logger.info("Deleted %i faulty permissions", deleted_count)
 
+    def _legacy_password_view_menus_to_exclude(self) -> set[str]:
+        """
+        Return FAB view-menu names for legacy password reset views whose
+        permissions should be excluded from role synchronization because their
+        registration is currently disabled.
+
+        Mirrors the skip logic in ``_skip_legacy_fab_password_view_registration``
+        so that an upgraded installation with a persisted ``ResetPasswordView``
+        (or ``ResetMyPasswordView``) permission/view-menu row -- created before
+        ``ENABLE_LEGACY_FAB_PASSWORD_VIEWS`` existed -- doesn't have Admin (or
+        any other role) retain that permission once the flag is off, even
+        though the view itself is no longer registered.
+
+        :returns: view-menu names to exclude from role assignment
+        """
+        if current_app.config.get("ENABLE_LEGACY_FAB_PASSWORD_VIEWS", False):
+            return set()
+
+        view_menus = {"ResetPasswordView"}
+        if not current_app.config.get("ENABLE_FORCE_PASSWORD_CHANGE", False):
+            view_menus.add("ResetMyPasswordView")
+        return view_menus
+
     def sync_role_definitions(self) -> None:
         """
         Initialize the Superset application with security roles and such.
@@ -3048,6 +3071,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         self.create_custom_permissions()
 
         pvms = self._get_all_pvms()
+
+        if excluded_view_menus := self._legacy_password_view_menus_to_exclude():
+            pvms = [
+                pvm for pvm in pvms if pvm.view_menu.name not in excluded_view_menus
+            ]
 
         # Creating default roles
         self.set_role("Admin", self._is_admin_pvm, pvms)
