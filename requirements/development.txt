@@ -112,7 +112,7 @@ cachelib==0.17.0
     #   -c requirements/base-constraint.txt
     #   flask-caching
     #   flask-session
-cachetools==7.1.7
+cachetools==7.1.8
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
