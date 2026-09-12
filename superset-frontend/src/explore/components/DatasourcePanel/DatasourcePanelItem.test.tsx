@@ -136,13 +136,13 @@ test('renders each item accordingly', () => {
   expect(screen.getAllByTestId('DatasourcePanelDragOption').length).toEqual(5);
 });
 
-test('can collapse metrics and columns', () => {
+test('can collapse metrics and columns', async () => {
   setup();
-  userEvent.click(screen.getAllByRole('button')[0]);
+  await userEvent.click(screen.getAllByRole('button')[0]);
   expect(mockData.onToggleCollapse).toHaveBeenCalled();
 });
 
-test('folder drag handle is a separate element from the collapse toggle', () => {
+test('folder drag handle is a separate element from the collapse toggle', async () => {
   setup();
 
   const toggleButtons = screen
@@ -157,7 +157,7 @@ test('folder drag handle is a separate element from the collapse toggle', () => 
   expect(toggleButton).not.toBe(dragHandle);
   expect(toggleButton.tagName).toBe('BUTTON');
 
-  userEvent.click(toggleButton);
+  await userEvent.click(toggleButton);
   expect(mockData.onToggleCollapse).toHaveBeenCalledWith('1');
 });
 

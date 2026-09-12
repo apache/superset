@@ -243,7 +243,7 @@ test('warn selected custom metric when metric gets removed from dataset', async 
     screen.getByText('metric_b').parentElement ?? container,
   ).getByRole('button');
   expect(warningIcon).toBeInTheDocument();
-  userEvent.hover(warningIcon);
+  await userEvent.hover(warningIcon);
   const warningTooltip = await screen.findByText(
     'This metric might be incompatible with current dataset',
   );
@@ -305,7 +305,7 @@ test('warn selected custom metric when metric gets removed from dataset for sing
     screen.getByText('metric_b').parentElement ?? container,
   ).getByRole('button');
   expect(warningIcon).toBeInTheDocument();
-  userEvent.hover(warningIcon);
+  await userEvent.hover(warningIcon);
   const warningTooltip = await screen.findByText(
     'This metric might be incompatible with current dataset',
   );
@@ -571,7 +571,8 @@ test('title changes on custom SQL text change', async () => {
   // Changing the ACE editor via pasting, since the component
   // handles the textarea value internally, and changing it doesn't
   // trigger the onChange
-  await userEvent.paste(textArea, 'New metric');
+  await userEvent.click(textArea);
+  await userEvent.paste('New metric');
 
   await waitFor(() => {
     expect(

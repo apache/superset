@@ -114,7 +114,7 @@ describe('ColorBreakpointsControl', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
     const addButton = screen.getByText('Click to add new breakpoint');
-    userEvent.click(addButton);
+    await userEvent.click(addButton);
 
     expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
@@ -124,13 +124,13 @@ describe('ColorBreakpointsControl', () => {
     renderComponent({ onChange });
 
     const addButton = screen.getByText('Click to add new breakpoint');
-    userEvent.click(addButton);
+    await userEvent.click(addButton);
 
     const minInput = screen.getByTestId('min-value-input');
     const maxInput = screen.getByTestId('max-value-input');
 
-    userEvent.type(minInput, '10');
-    userEvent.type(maxInput, '90');
+    await userEvent.type(minInput, '10');
+    await userEvent.type(maxInput, '90');
 
     await waitFor(() => {
       const saveButton = screen.getByTestId('save-button');
@@ -138,7 +138,7 @@ describe('ColorBreakpointsControl', () => {
     });
 
     const saveButton = screen.getByTestId('save-button');
-    userEvent.click(saveButton);
+    await userEvent.click(saveButton);
 
     expect(onChange).toHaveBeenCalledWith(
       expect.arrayContaining([
@@ -167,7 +167,7 @@ describe('ColorBreakpointsControl', () => {
     renderComponent({ value: [existingBreakpoint], onChange });
 
     const removeButton = screen.getByTestId('remove-control-button');
-    userEvent.click(removeButton);
+    await userEvent.click(removeButton);
 
     expect(onChange).toHaveBeenCalledWith([]);
   });
@@ -184,7 +184,7 @@ describe('ColorBreakpointsControl', () => {
     renderComponent({ value: [existingBreakpoint], onChange });
 
     const breakpointOption = screen.getByText('0 - 100');
-    userEvent.click(breakpointOption);
+    await userEvent.click(breakpointOption);
 
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     expect(screen.getByDisplayValue('0')).toBeInTheDocument();
@@ -205,13 +205,13 @@ describe('ColorBreakpointsControl', () => {
     renderComponent({ onChange });
 
     const addButton = screen.getByText('Click to add new breakpoint');
-    userEvent.click(addButton);
+    await userEvent.click(addButton);
 
     const minInput = screen.getByTestId('min-value-input');
     const maxInput = screen.getByTestId('max-value-input');
 
-    userEvent.type(minInput, '0');
-    userEvent.type(maxInput, '50');
+    await userEvent.type(minInput, '0');
+    await userEvent.type(maxInput, '50');
 
     await waitFor(() => {
       const saveButton = screen.getByTestId('save-button');
@@ -219,7 +219,7 @@ describe('ColorBreakpointsControl', () => {
     });
 
     const saveButton = screen.getByTestId('save-button');
-    userEvent.click(saveButton);
+    await userEvent.click(saveButton);
 
     expect(onChange).toHaveBeenCalledWith([expect.objectContaining({ id: 0 })]);
   });
