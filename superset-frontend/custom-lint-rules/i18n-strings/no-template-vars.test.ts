@@ -23,7 +23,11 @@
  */
 
 import { RuleTester } from 'oxlint/plugins-dev';
+import { describe, it } from 'node:test';
 import plugin from '.';
+
+RuleTester.describe = describe;
+RuleTester.it = it;
 
 //------------------------------------------------------------------------------
 // Tests

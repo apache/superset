@@ -23,12 +23,24 @@
  */
 
 import { RuleTester } from 'oxlint/plugins-dev';
+import { describe, it } from 'node:test';
 import plugin from '.';
+
+RuleTester.describe = describe;
+RuleTester.it = it;
 
 //------------------------------------------------------------------------------
 // Tests
 //------------------------------------------------------------------------------
-const ruleTester = new RuleTester();
+const ruleTester = new RuleTester({
+  languageOptions: {
+    parserOptions: {
+      ecmaFeatures: {
+        jsx: true,
+      },
+    },
+  },
+});
 const rule = plugin.rules['no-fa-icons-usage'];
 
 const errors: Array<{ message: string }> = [

@@ -43,7 +43,7 @@ const plugin = eslintCompatPlugin({
         schema: [],
       },
       /** @param {import('eslint').Rule.RuleContext} context */
-      createOnce(context) {
+      create(context) {
         /** @param {import('estree').Node} node */
         function handler(node) {
           /**
@@ -99,7 +99,7 @@ const plugin = eslintCompatPlugin({
         },
       },
       /** @param {import('oxlint').Rule.RuleContext} context */
-      createOnce(context) {
+      create(context) {
         /** @type {string[]} */
         const watchedProps = context?.options?.[0]?.properties ?? [
           'label',
@@ -168,7 +168,7 @@ const plugin = eslintCompatPlugin({
         schema: [],
       },
       /** @param {import('oxlint').Rule.RuleContext} context */
-      createOnce(context) {
+      create(context) {
         /** @param {string} str */
         function isTitleCase(str) {
           // Match "Delete Dataset", "Create Chart", etc. (2+ title-cased words)

@@ -18,7 +18,11 @@
  */
 
 import { RuleTester } from 'oxlint/plugins-dev';
+import { describe, it } from 'node:test';
 import plugin from '.';
+
+RuleTester.describe = describe;
+RuleTester.it = it;
 
 const ruleTester = new RuleTester();
 const rule = plugin.rules['no-eager-t-in-config'];
