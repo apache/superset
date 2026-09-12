@@ -58,7 +58,7 @@ class SingleStoreSpec(BasicParametersMixin, BaseEngineSpec):
             DatabaseCategory.ANALYTICAL_DATABASES,
             DatabaseCategory.PROPRIETARY,
         ],
-        "pypi_packages": ["singlestoredb"],
+        "pypi_packages": ["singlestoredb[sqlalchemy]"],
         "connection_string": (
             "singlestoredb://{username}:{password}@{host}:{port}/{database}"
         ),
@@ -73,7 +73,7 @@ class SingleStoreSpec(BasicParametersMixin, BaseEngineSpec):
         "drivers": [
             {
                 "name": "singlestoredb",
-                "pypi_package": "singlestoredb",
+                "pypi_package": "singlestoredb[sqlalchemy]",
                 "connection_string": (
                     "singlestoredb://{username}:{password}@{host}:{port}/{database}"
                 ),
