@@ -2028,6 +2028,14 @@ def test_is_mutating(sql: str, engine: str, expected: bool) -> None:
         ("EXPLAIN ANALYZE VERBOSE UPDATE t SET x = 1", "postgresql"),
         ("EXPLAIN (ANALYZE)", "postgresql"),
         ("EXPLAIN ANALYZE )))", "postgresql"),
+        # SQLite ATTACH/DETACH and MySQL REPLACE INTO / RENAME TABLE /
+        # SET PASSWORD FOR fall past node-type matching (opaque command or
+        # dialect-specific structured nodes) and must be gated as mutating.
+        ("ATTACH DATABASE 'x.db' AS y", "sqlite"),
+        ("DETACH DATABASE y", "sqlite"),
+        ("REPLACE INTO t VALUES (1)", "mysql"),
+        ("RENAME TABLE a TO b", "mysql"),
+        ("SET PASSWORD FOR 'u'@'h' = 'p'", "mysql"),
     ],
 )
 def test_is_mutating_fails_closed_on_gate_blind_spots(sql: str, engine: str) -> None:
@@ -2037,6 +2045,15 @@ def test_is_mutating_fails_closed_on_gate_blind_spots(sql: str, engine: str) -> 
     variants, and structured `COMMIT`.
     """
     assert SQLStatement(sql, engine).is_mutating()
+
+
+@pytest.mark.parametrize("engine", ["mysql", "sqlite"])
+def test_is_mutating_replace_function_is_read(engine: str) -> None:
+    """The REPLACE() string function inside a SELECT is a read; only the
+    REPLACE INTO statement form is mutating."""
+    assert not SQLStatement(
+        "SELECT REPLACE(name, 'a', 'b') FROM t", engine
+    ).is_mutating()
 
 
 @pytest.mark.parametrize(
