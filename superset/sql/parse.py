@@ -36,7 +36,7 @@ from sqlglot.dialects.dialect import (
     DialectType,
 )
 from sqlglot.dialects.singlestore import SingleStore
-from sqlglot.errors import ParseError
+from sqlglot.errors import OptimizeError, ParseError
 from sqlglot.generator import Generator
 from sqlglot.optimizer.pushdown_predicates import (
     pushdown_predicates,
@@ -2590,9 +2590,21 @@ def _find_table_sources(
             return []
         return list(pseudo_query.find_all(exp.Table))
 
+    try:
+        scopes = traverse_scope(statement)
+    except OptimizeError:
+        # A set operation (UNION/INTERSECT/EXCEPT) whose operand isn't a
+        # query sqlglot can build a scope for (e.g. a bare predicate such as
+        # the `1 = 1` in `1 = 1 UNION ALL SELECT password FROM users`, which
+        # can show up in a malformed/injected custom SQL fragment) makes
+        # scope traversal raise rather than just skip that operand. Fall
+        # back to a flat scan so table extraction stays best-effort instead
+        # of blowing up the whole statement.
+        return list(statement.find_all(exp.Table))
+
     return [
         source
-        for scope in traverse_scope(statement)
+        for scope in scopes
         for source in scope.sources.values()
         if isinstance(source, exp.Table) and not is_cte(source, scope)
     ]
