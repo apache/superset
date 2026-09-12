@@ -277,7 +277,11 @@ class GetDashboardInfoRequest(MetadataCacheControl):
         description=(
             "Active filters supplied directly rather than via a permalink, so the "
             "tool can describe the dashboard as the user currently views it, "
-            'filtered. Shape: {"applied_filters": [{"col", "op", "val"}]}. Ignored '
+            'filtered. Accepts dashboard dataMask state, e.g. {"dataMask": '
+            '{"<configured filter ID>": {"filterState": {"value": ["EMEA"]}}}}, '
+            'or {"applied_filters": [{"col": "region", "op": "IN", '
+            '"val": ["EMEA"]}]}. Native mask values '
+            "are projected without column metadata for restricted users. Ignored "
             "when permalink_key is provided."
         ),
     )
@@ -501,10 +505,14 @@ class DashboardInfo(BaseModel):
     filter_state: Dict[str, Any] | None = Field(
         default=None,
         description=(
-            "Filter state from permalink. Contains dataMask (native filter values), "
-            "activeTabs, anchor, and urlParams. When present, represents the actual "
-            "filters the user has applied to the dashboard. For users without "
-            "data-model metadata access, dataMask and chartStates are omitted."
+            "Filter state from a permalink snapshot or caller-supplied context. "
+            "Contains dataMask (native filter values), activeTabs, anchor, and "
+            "urlParams. A shared snapshot does not prove the requesting user "
+            "selected these values. For users without "
+            "data-model metadata access, dataMask and chartStates are omitted. "
+            "native_filter_values provides configured filter names, types and selected "
+            "values without targets. native_filter_values_incomplete signals omitted "
+            "context; never interpret missing context as an unfiltered dashboard."
         ),
     )
     is_permalink_state: bool = Field(
@@ -1770,15 +1778,128 @@ def serialize_chart_summary(
     )
 
 
+def _native_filter_value_is_valid(filter_type: str, value: Any) -> bool:
+    """Validate display-value shapes without interpreting them as predicates."""
+    if value is None:
+        return True
+    if filter_type == "filter_time":
+        return isinstance(value, str)
+    if filter_type == "filter_range":
+        return (
+            isinstance(value, list)
+            and len(value) == 2
+            and all(
+                item is None
+                or (isinstance(item, (int, float)) and not isinstance(item, bool))
+                for item in value
+            )
+        )
+    if filter_type == "filter_timegrain":
+        return (
+            isinstance(value, list)
+            and len(value) <= 1
+            and all(isinstance(item, str) for item in value)
+        )
+    # Select values may be JSON scalars or flat scalar lists, never nested metadata.
+    values = value if isinstance(value, list) else [value]
+    return all(
+        item is None or isinstance(item, (str, int, float, bool)) for item in values
+    )
+
+
 def redact_filter_state_data_model_metadata(
     filter_state: Dict[str, Any],
+    native_filters: list[NativeFilterSummary] | None = None,
 ) -> Dict[str, Any]:
-    """Remove permalink filter state fields that expose data-model metadata."""
-    return {
+    """Hide raw metadata, retaining known native filters' display values.
+
+    Match IDs and types against dashboard configuration, not caller-supplied
+    mask metadata. Time-column and custom filters can carry column names even
+    in their value or label, and therefore are not projected.
+    """
+    result = {
         key: value
         for key, value in filter_state.items()
-        if key not in {"dataMask", "chartStates"}
+        if key
+        not in {
+            "dataMask",
+            "chartStates",
+            "native_filter_values",
+            "native_filter_values_incomplete",
+        }
     }
+    if native_filters is None or not (
+        {"dataMask", "chartStates"} & filter_state.keys()
+    ):
+        return result
+
+    summaries: list[dict[str, Any]] = []
+    mask = filter_state.get("dataMask", {})
+    incomplete = bool(filter_state.get("chartStates")) or not isinstance(mask, dict)
+    known_filters = {item.id: item for item in native_filters}
+    for filter_id, entry in mask.items() if isinstance(mask, dict) else []:
+        native_filter = known_filters.get(filter_id)
+        if (
+            native_filter is None
+            or native_filter.filter_type
+            not in {
+                "filter_select",
+                "filter_range",
+                "filter_time",
+                "filter_timegrain",
+            }
+            or not isinstance(entry, dict)
+            or not isinstance(entry.get("filterState"), dict)
+            or "value" not in entry["filterState"]
+        ):
+            incomplete = True
+            continue
+        extra = entry.get("extraFormData", {})
+        # Filter IDs survive type changes. A saved time-column mask can contain
+        # column names even when the dashboard config describes a supported type.
+        if not isinstance(extra, dict) or "granularity_sqla" in extra:
+            incomplete = True
+            continue
+        # A display value does not describe SQL predicates or wildcard
+        # matching. Signal that the summary cannot express these semantics.
+        predicates = extra.get("filters", [])
+        supported_ops = {
+            "filter_select": ("IN", "NOT IN"),
+            "filter_range": (">=", "<=", "=="),
+        }.get(native_filter.filter_type, ())
+        if (
+            extra.get("adhoc_filters")
+            or not isinstance(predicates, list)
+            or any(
+                not isinstance(predicate, dict)
+                or predicate.get("op") not in supported_ops
+                for predicate in predicates
+            )
+        ):
+            incomplete = True
+        state = entry["filterState"]
+        value = state.get("value")
+        # Cleared or not-yet-applied masks can retain display values without
+        # predicates. Keep that context, but do not claim it is complete.
+        if not extra and value is not None and value != []:
+            incomplete = True
+        if not _native_filter_value_is_valid(native_filter.filter_type, value):
+            incomplete = True
+            continue
+        summary = {
+            "id": filter_id,
+            "name": native_filter.name,
+            "filter_type": native_filter.filter_type,
+            "value": value,
+        }
+        if isinstance(state.get("label"), str):
+            summary["label"] = state["label"]
+        if isinstance(state.get("excludeFilterValues"), bool):
+            summary["excludeFilterValues"] = state["excludeFilterValues"]
+        summaries.append(summary)
+    result["native_filter_values"] = summaries
+    result["native_filter_values_incomplete"] = incomplete
+    return result
 
 
 def _safe_user_label(value: Any) -> str | None:

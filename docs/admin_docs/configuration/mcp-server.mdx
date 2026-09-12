@@ -1039,6 +1039,39 @@ can adjust the SQL comparisons. Use the applied filters and datasource settings
 as well when explaining such queries. `query_dataset.applied_filters` retains the
 original expressions so callers can compare the requested and resolved ranges.
 
+### Reading applied dashboard filters
+
+When answering about a filtered dashboard, call `get_dashboard_info` with the
+dashboard's `permalink_key` (a saved snapshot) or caller-supplied `filter_state`.
+This value projection is provided by `get_dashboard_info`;
+`get_dashboard_layout` retains its existing metadata-redacted layout state and
+does not return native filter values.
+The tool cannot observe browser state without one of these inputs. Its response
+includes `filter_state` by default; an explicit `select_columns` must include it.
+
+For users without Dataset drill/write metadata permissions, including embedded
+guests, raw `dataMask` and `chartStates` remain hidden. Instead,
+`filter_state.native_filter_values` contains configured native filter IDs, display
+names, types, and scalar or flat-list selections for select, numeric range, time
+range, and time-grain filters, plus display labels and exclusion flags when present.
+It does not expose filter targets, dataset IDs, columns from query metadata, or
+arbitrary nested filter state. Time-column filters, custom filters, unknown IDs,
+and chart cross-filter state are not projected. Historical masks containing
+time-column metadata are also omitted, even if the configured filter type has
+changed; malformed type-specific value shapes are omitted rather than interpreted.
+`native_filter_values_incomplete` flags omitted or malformed context, including SQL or wildcard predicates that
+cannot be represented by selected values alone. It also flags retained selections
+without query predicates (for example, a cleared or not-yet-applied mask). These
+display values are not proof that a predicate is active.
+
+These values describe a snapshot, not automatically enforced query predicates or
+a complete account of filter scope. An empty or missing summary must not be
+treated as permission to query unfiltered or workspace-wide data. Respect chart
+scope and ask for clarification when the context cannot safely constrain an
+answer. Dashboard access checks and row-level security remain independent of this
+display-context projection. Integrations must ensure the lookup actually happens
+and the assistant uses the result; tool guidance alone cannot guarantee this.
+
 ## Dataset query dimensions and nested fields
 
 The `query_dataset` tool accepts exact column names registered on the selected
