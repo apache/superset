@@ -23,9 +23,10 @@ from __future__ import annotations
 
 import difflib
 import logging
+import math
 import re
 from datetime import datetime
-from typing import Annotated, Any, Dict, List, Literal, Protocol
+from typing import Annotated, Any, Dict, get_args, List, Literal, Protocol
 
 from pydantic import (
     AliasChoices,
@@ -41,7 +42,7 @@ from pydantic import (
 )
 from typing_extensions import Self
 
-from superset.constants import TimeGrain
+from superset.constants import NO_TIME_RANGE, TimeGrain
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
 from superset.mcp_service.common.cache_schemas import (
     CacheStatus,
@@ -56,6 +57,7 @@ from superset.mcp_service.common.pagination_schemas import (
     PaginatedListRequest,
     PaginatedResponse,
 )
+from superset.mcp_service.common.time_range_validation import validate_time_range
 from superset.mcp_service.privacy import (
     filter_user_directory_fields,
     strip_user_directory_fields_from_schema,
@@ -338,6 +340,16 @@ class GetChartInfoRequest(BaseModel):
             "scope for this chart on the given dashboard and returns them under "
             "filters.dashboard_filters. Requires the chart to be on the dashboard "
             "and the caller to have dashboard access."
+        ),
+    )
+    extra_form_data: dict[str, Any] | None = Field(
+        default=None,
+        description=(
+            "Active dashboard filters the user currently has applied to this chart, "
+            "forwarded so the response reports the chart as the user actually views "
+            "it. Surfaced under filters.active_filters; this is not a query "
+            "(get_chart_info returns metadata only). Format: "
+            '{"filters": [{"col": "country", "op": "IN", "val": ["US"]}]}'
         ),
     )
     select_columns: Annotated[
@@ -1042,6 +1054,373 @@ class PieChartConfig(BaseChartConfig):
                 "dimension cannot use saved_metric=True; "
                 "saved metrics belong in the 'metric' field"
             )
+        return self
+
+
+class GaugeChartConfig(BaseChartConfig):
+    """Config for gauge charts (viz_type ``gauge_chart``).
+
+    Matches the frontend Gauge buildQuery contract: a single ``metric`` whose
+    value the dial displays, plus an optional multi ``groupby`` — with no
+    groupby the chart is one dial; with a groupby it renders one dial per row
+    (capped at the frontend's 10). ``min_val``/``max_val`` fix the dial scale
+    (both default to auto).
+    """
+
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, allow_inf_nan=False
+    )
+
+    chart_type: Literal["gauge"] = "gauge"
+    metric: ColumnRef = Field(
+        ...,
+        description="Value metric the dial displays (use aggregate e.g. AVG, "
+        "SUM for ad-hoc, or set saved_metric=True for a saved dataset metric)",
+    )
+    groupby: List[ColumnRef] | None = Field(
+        None,
+        description="Optional category columns; each row becomes one dial. "
+        "Omit for a single-value gauge.",
+    )
+    sort_by_metric: bool = Field(
+        True,
+        description="Order the dials by the metric descending, so a row_limit "
+        "keeps the top-N dials deterministically rather than an arbitrary set",
+    )
+    row_limit: int = Field(10, description="Max dials", ge=1, le=10)
+    min_val: float | None = Field(
+        None, description="Minimum value of the dial scale (default: auto)"
+    )
+    max_val: float | None = Field(
+        None, description="Maximum value of the dial scale (default: auto)"
+    )
+    filters: List[FilterConfig] | None = Field(
+        None,
+        description="Structured filters (column/op/value). "
+        "Do NOT use adhoc_filters or raw SQL expressions.",
+    )
+    color_scheme: str | None = Field(
+        None,
+        description=(
+            "Superset color scheme ID (e.g. 'supersetColors', 'lyftColors', "
+            "'googleCategory10c', 'd3Category10'). Defaults to 'supersetColors'."
+        ),
+        max_length=100,
+    )
+    font_size: int = Field(15, description="Gauge text size", ge=10, le=20)
+    number_format: str = Field(
+        "SMART_NUMBER", description="D3 number format", max_length=50
+    )
+    currency_format: CurrencyFormat | None = Field(
+        None, description="Currency symbol applied to the gauge value"
+    )
+    value_formatter: str = Field(
+        "{value}",
+        description="Value template; {value} is replaced with the formatted metric",
+        max_length=200,
+    )
+    start_angle: float = Field(225, description="Gauge start angle in degrees")
+    end_angle: float = Field(-45, description="Gauge end angle in degrees")
+    show_pointer: bool = Field(True, description="Show the gauge pointer")
+    animation: bool = Field(True, description="Animate gauge value changes")
+    show_axis_tick: bool = Field(False, description="Show minor axis ticks")
+    show_split_line: bool = Field(False, description="Show axis split lines")
+    split_number: int = Field(10, description="Number of axis segments", ge=3, le=30)
+    show_progress: bool = Field(True, description="Show the progress arc")
+    overlap: bool = Field(
+        True, description="Overlap progress arcs when multiple groups are present"
+    )
+    round_cap: bool = Field(False, description="Use rounded progress-arc caps")
+    intervals: str = Field(
+        "",
+        description="Comma-separated interval upper bounds",
+        max_length=1000,
+    )
+    interval_color_indices: str = Field(
+        "",
+        description="Comma-separated 1-based color indices for intervals",
+        max_length=1000,
+    )
+    time_range: str | None = Field(
+        None,
+        description="Optional Superset time range applied to the gauge query",
+        max_length=1000,
+    )
+    granularity_sqla: str | None = Field(
+        None,
+        description="Temporal column associated with time_range in native form_data",
+        min_length=1,
+        max_length=255,
+    )
+
+    @model_validator(mode="before")
+    @classmethod
+    def adapt_native_form_data(cls, data: Any) -> Any:  # noqa: C901
+        """Accept the Gauge plugin's native form_data without weakening typing."""
+        if not isinstance(data, dict):
+            return data
+        data = dict(data)
+
+        # ``gauge`` is the public MCP discriminator; ``gauge_chart`` remains
+        # the native frontend viz_type and is accepted only as an input alias.
+        if data.get("chart_type") == "gauge_chart" or (
+            "chart_type" not in data and data.get("viz_type") == "gauge_chart"
+        ):
+            data["chart_type"] = "gauge"
+        data.pop("viz_type", None)
+
+        # These identify the Explore/chart envelope, not Gauge controls.
+        for key in (
+            "datasource",
+            "datasource_id",
+            "datasource_name",
+            "datasource_type",
+            "form_data_key",
+            "slice_id",
+            "slice_name",
+            "url",
+        ):
+            data.pop(key, None)
+        data.pop("_mcp_dashboard_time_filter_subject", None)
+
+        metric = data.get("metric")
+        if isinstance(metric, str):
+            data["metric"] = {"name": metric, "saved_metric": True}
+        elif isinstance(metric, dict) and metric.get("expressionType") in {
+            "SIMPLE",
+            "SQL",
+        }:
+            expression_type = metric.get("expressionType")
+            if expression_type == "SQL":
+                data["metric"] = {
+                    "sql_expression": metric.get("sqlExpression"),
+                    "label": metric.get("label"),
+                }
+            else:
+                column = metric.get("column")
+                column_name = (
+                    column.get("column_name") or column.get("columnName")
+                    if isinstance(column, dict)
+                    else None
+                )
+                data["metric"] = {
+                    "name": column_name,
+                    "aggregate": metric.get("aggregate"),
+                    "label": metric.get("label"),
+                }
+
+        groupby = data.get("groupby")
+        if isinstance(groupby, str):
+            groupby = [groupby]
+        if isinstance(groupby, list):
+            data["groupby"] = [
+                {"name": value} if isinstance(value, str) else value
+                for value in groupby
+            ]
+
+        if isinstance(data.get("time_range"), str):
+            data["time_range"] = validate_time_range(data["time_range"]) or None
+
+        # Supported native SIMPLE filters are represented by FilterConfig.
+        # SQL adhoc filters remain intentionally unsupported on the typed MCP
+        # surface. TEMPORAL_RANGE is represented by time_range/granularity.
+        if "adhoc_filters" in data:
+            if "filters" in data:
+                raise ValueError("Use either filters or adhoc_filters, not both")
+            native_filters = data.pop("adhoc_filters")
+            if not isinstance(native_filters, list):
+                raise ValueError("adhoc_filters must be a list")
+            filters: list[dict[str, Any]] = []
+            for index, filter_ in enumerate(native_filters):
+                if not isinstance(filter_, dict):
+                    raise ValueError(f"adhoc_filters[{index}] must be an object")
+                if filter_.get("expressionType") not in (None, "SIMPLE"):
+                    raise ValueError(
+                        f"adhoc_filters[{index}] must use expressionType='SIMPLE'"
+                    )
+                if str(filter_.get("clause", "WHERE")).upper() != "WHERE":
+                    raise ValueError(f"adhoc_filters[{index}] must use clause='WHERE'")
+                operator = filter_.get("operator") or filter_.get("op")
+                subject = filter_.get("subject") or filter_.get("col")
+                comparator = filter_.get("comparator", filter_.get("val"))
+                if operator == "TEMPORAL_RANGE":
+                    if not isinstance(subject, str) or not subject:
+                        raise ValueError(
+                            f"adhoc_filters[{index}] has no temporal subject"
+                        )
+                    if not isinstance(comparator, str):
+                        raise ValueError(
+                            f"adhoc_filters[{index}] requires a temporal comparator"
+                        )
+                    comparator = validate_time_range(comparator) or NO_TIME_RANGE
+                    if comparator == NO_TIME_RANGE:
+                        if data.get("temporal_column") not in (None, subject):
+                            raise ValueError(
+                                f"adhoc_filters[{index}] conflicts with another "
+                                "dashboard temporal binding"
+                            )
+                        data["temporal_column"] = subject
+                        continue
+                    if (
+                        data.get("granularity_sqla") not in (None, subject)
+                        and data.get("time_range") != NO_TIME_RANGE
+                    ) or data.get("time_range") not in (
+                        None,
+                        NO_TIME_RANGE,
+                        comparator,
+                    ):
+                        raise ValueError(
+                            f"adhoc_filters[{index}] conflicts with another temporal "
+                            "range; multiple distinct temporal ranges are not supported"
+                        )
+                    data["granularity_sqla"] = subject
+                    data["time_range"] = comparator
+                    continue
+                if operator == "==":
+                    operator = "="
+                if operator not in get_args(FilterConfig.model_fields["op"].annotation):
+                    raise ValueError(
+                        f"adhoc_filters[{index}] uses unsupported operator {operator!r}"
+                    )
+                filters.append({"column": subject, "op": operator, "value": comparator})
+            data["filters"] = filters
+        return data
+
+    @field_validator("time_range")
+    @classmethod
+    def validate_gauge_time_range(cls, value: str | None) -> str | None:
+        """Validate time ranges with the shared MCP parser contract."""
+        return validate_time_range(value)
+
+    @model_validator(mode="after")
+    def reject_metric_style_groupby(self) -> "GaugeChartConfig":
+        """Require one numeric metric role and unique dimension roles."""
+        if not self.metric.is_metric:
+            raise ValueError(
+                "metric must define an aggregate, saved_metric=True, or a "
+                "sql_expression"
+            )
+        seen: set[str] = set()
+        for i, col in enumerate(self.groupby or []):
+            _reject_sql_expression_on_dimension(col, f"groupby[{i}]")
+            if col.is_metric:
+                raise ValueError(
+                    f"groupby[{i}] must be a plain column, not a metric; drop "
+                    "'aggregate'/'saved_metric' (metrics belong in the 'metric' "
+                    "field)"
+                )
+            if col.name is None:
+                raise ValueError(f"groupby[{i}] requires a column name")
+            normalized_name = col.name.casefold()
+            if normalized_name in seen:
+                raise ValueError(
+                    f"groupby[{i}] duplicates the dimension role '{col.name}'"
+                )
+            seen.add(normalized_name)
+        return self
+
+    @model_validator(mode="after")
+    def reject_inverted_bounds(self) -> "GaugeChartConfig":
+        """A min at or above max produces an inverted/degenerate dial scale."""
+        if (
+            self.min_val is not None
+            and self.max_val is not None
+            and self.min_val >= self.max_val
+        ):
+            raise ValueError(
+                f"min_val ({self.min_val}) must be less than max_val ({self.max_val})"
+            )
+        return self
+
+    @model_validator(mode="after")
+    def validate_intervals(self) -> "GaugeChartConfig":
+        """Keep interval bounds finite, ordered, and aligned with color picks."""
+
+        def parse_numbers(value: str, field_name: str) -> list[float]:
+            if not value.strip():
+                return []
+            try:
+                parsed = [float(part.strip()) for part in value.split(",")]
+            except ValueError as ex:
+                raise ValueError(
+                    f"{field_name} must be a comma-separated list of numbers"
+                ) from ex
+            if not all(math.isfinite(number) for number in parsed):
+                raise ValueError(f"{field_name} values must be finite")
+            return parsed
+
+        bounds = parse_numbers(self.intervals, "intervals")
+        color_indices = parse_numbers(
+            self.interval_color_indices, "interval_color_indices"
+        )
+        if any(not number.is_integer() or number < 1 for number in color_indices):
+            raise ValueError("interval_color_indices must contain positive integers")
+        if color_indices and len(color_indices) != len(bounds):
+            raise ValueError(
+                "interval_color_indices must have the same length as intervals"
+            )
+        if any(left >= right for left, right in zip(bounds, bounds[1:], strict=False)):
+            raise ValueError("intervals must be strictly increasing")
+        if self.min_val is not None and any(bound <= self.min_val for bound in bounds):
+            raise ValueError("intervals must be greater than min_val")
+        if self.max_val is not None and any(bound > self.max_val for bound in bounds):
+            raise ValueError("intervals must not exceed max_val")
+        return self
+
+
+class TreemapChartConfig(BaseChartConfig):
+    """Config for treemap charts (viz_type ``treemap_v2``).
+
+    Matches the frontend Treemap buildQuery contract: one ``metric`` sizing
+    the tiles plus an ordered ``groupby`` hierarchy — the first column is the
+    outermost level and each subsequent column nests inside it. When
+    ``sort_by_metric`` is set, tiles are ordered by the metric descending.
+    """
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    chart_type: Literal["treemap_v2"] = "treemap_v2"
+    groupby: List[ColumnRef] = Field(
+        ...,
+        min_length=1,
+        description="Ordered category columns forming the treemap hierarchy "
+        "(first = outermost level; order defines nesting)",
+    )
+    metric: ColumnRef = Field(
+        ...,
+        description="Value metric sizing the tiles (use aggregate e.g. SUM, "
+        "COUNT for ad-hoc, or set saved_metric=True for a saved dataset metric)",
+    )
+    sort_by_metric: bool = Field(
+        True,
+        description="Order tiles by the metric descending (frontend default)",
+    )
+    row_limit: int = Field(100, description="Max rows queried", ge=1, le=10000)
+    filters: List[FilterConfig] | None = Field(
+        None,
+        description="Structured filters (column/op/value). "
+        "Do NOT use adhoc_filters or raw SQL expressions.",
+    )
+    color_scheme: str | None = Field(
+        None,
+        description=(
+            "Superset color scheme ID (e.g. 'supersetColors', 'lyftColors', "
+            "'googleCategory10c', 'd3Category10'). Defaults to 'supersetColors'."
+        ),
+        max_length=100,
+    )
+
+    @model_validator(mode="after")
+    def reject_metric_style_groupby(self) -> "TreemapChartConfig":
+        """groupby entries are hierarchy dimensions, not metrics."""
+        for i, col in enumerate(self.groupby or []):
+            _reject_sql_expression_on_dimension(col, f"groupby[{i}]")
+            if col.is_metric:
+                raise ValueError(
+                    f"groupby[{i}] must be a plain column, not a metric; drop "
+                    "'aggregate'/'saved_metric' (metrics belong in the 'metric' "
+                    "field)"
+                )
         return self
 
 
@@ -2287,6 +2666,8 @@ ChartConfig = Annotated[
     XYChartConfig
     | TableChartConfig
     | PieChartConfig
+    | GaugeChartConfig
+    | TreemapChartConfig
     | PivotTableChartConfig
     | InteractivePivotChartConfig
     | MixedTimeseriesChartConfig
@@ -2299,8 +2680,8 @@ ChartConfig = Annotated[
         discriminator="chart_type",
         description=(
             "Chart configuration - specify chart_type as 'xy', 'table', "
-            "'pie', 'pivot_table', 'interactive_pivot', 'mixed_timeseries', "
-            "'handlebars', "
+            "'pie', 'gauge', 'treemap_v2', 'pivot_table', 'interactive_pivot', "
+            "'mixed_timeseries', 'handlebars', "
             "'big_number', 'histogram', 'box_plot', or 'waterfall'"
         ),
     ),
@@ -2331,6 +2712,7 @@ _VIZ_TYPE_TO_CHART_TYPE: dict[str, tuple[str, str | None]] = {
     "pivot_table_v2": ("pivot_table", None),
     "ag-grid-pivot-table": ("interactive_pivot", None),
     "histogram_v2": ("histogram", None),
+    "gauge_chart": ("gauge", None),
 }
 
 
@@ -2850,6 +3232,14 @@ class GetChartPreviewRequest(QueryCacheControl):
     ascii_height: int | None = Field(
         default=20, description="ASCII chart height in lines (for ascii format)"
     )
+    extra_form_data: dict[str, Any] | None = Field(
+        default=None,
+        description=(
+            "Extra form data to merge into the preview query, typically from "
+            "dashboard native filters, so the preview reflects the filtered view. "
+            'Format: {"filters": [{"col": "country", "op": "IN", "val": ["US"]}]}'
+        ),
+    )
 
 
 # Discriminated union preview formats for type safety
@@ -3189,6 +3579,28 @@ class ChartFiltersInfo(BaseModel):
             "dashboard passed via get_chart_info's dashboard_id argument. Empty "
             "when no dashboard_id was provided or no native filter targets this "
             "chart."
+        ),
+    )
+    active_filters: List[Dict[str, Any]] = Field(
+        default_factory=list,
+        description=(
+            "Dashboard native filters the user currently has ACTIVE on this chart "
+            "(live selections forwarded from the dashboard via extra_form_data), "
+            "distinct from the chart's own saved filters and from dashboard_filters "
+            "(the dashboard's default/configured state). A non-empty list means the "
+            "chart is being viewed filtered; report these as the active filters. "
+            "Column-based and adhoc filters exactly as forwarded, in their "
+            "original shapes; an active time-range filter is reported "
+            "separately under active_time_range."
+        ),
+    )
+    active_time_range: str | None = Field(
+        None,
+        description=(
+            "Dashboard time-range filter the user currently has ACTIVE on this "
+            "chart (forwarded via extra_form_data.time_range), distinct from the "
+            "chart's own saved time_range. Set when the active view includes a "
+            "time filter."
         ),
     )
 

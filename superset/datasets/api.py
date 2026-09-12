@@ -94,6 +94,7 @@ from superset.datasets.schemas import (
     get_delete_ids_schema,
     get_drill_info_schema,
     get_export_ids_schema,
+    get_related_objects_ids_schema,
     GetOrCreateDatasetSchema,
     openapi_spec_methods_override,
 )
@@ -176,6 +177,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         RouteMethod.RELATED,
         RouteMethod.DISTINCT,
         "bulk_delete",
+        "bulk_related_objects",
         "restore",
         "purge",
         "purge_impact",
@@ -411,6 +413,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
 
     apispec_parameter_schemas = {
         "get_export_ids_schema": get_export_ids_schema,
+        "get_related_objects_ids_schema": get_related_objects_ids_schema,
     }
     openapi_spec_component_schemas = (
         DatasetCacheWarmUpRequestSchema,
@@ -1163,6 +1166,70 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         if not dataset:
             return self.response_404()
         data = DatasetDAO.get_related_objects(dataset.id)
+        return self.response(200, **self._related_objects_payload(data))
+
+    @expose("/related_objects/", methods=("GET",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @parse_rison(get_related_objects_ids_schema)
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.bulk_related_objects"
+        ),
+        log_to_statsd=False,
+    )
+    def bulk_related_objects(self, **kwargs: Any) -> Response:
+        """Get charts and dashboards associated to multiple datasets.
+        ---
+        get:
+          summary: Get charts and dashboards associated to multiple datasets
+          description: >-
+            Aggregates the charts built on any of the requested datasets and the
+            dashboards those charts appear on. Each chart and dashboard is listed
+            once even if it depends on several of the datasets. Requested datasets
+            the user cannot see are ignored; the response is 404 only when none
+            of them are visible.
+          parameters:
+          - in: query
+            name: q
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/get_related_objects_ids_schema'
+          responses:
+            200:
+              description: Query result
+              content:
+                application/json:
+                  schema:
+                    $ref: "#/components/schemas/DatasetRelatedObjectsResponse"
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        datasets = DatasetDAO.find_by_ids(kwargs["rison"])
+        if not datasets:
+            return self.response_404()
+        data = DatasetDAO.get_related_objects_for_datasets(
+            [dataset.id for dataset in datasets]
+        )
+        return self.response(200, **self._related_objects_payload(data))
+
+    @staticmethod
+    def _related_objects_payload(data: dict[str, Any]) -> dict[str, Any]:
+        """
+        Serialize related charts and dashboards.
+
+        ``count`` is the full number of dependents so the caller can warn about
+        the real blast radius; ``result`` only lists the ones the current user
+        can access and ``restricted_count`` says how many were withheld.
+        """
         charts = [
             {
                 "id": chart.id,
@@ -1182,11 +1249,18 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             for dashboard in data["dashboards"]
             if security_manager.can_access_dashboard(dashboard)
         ]
-        return self.response(
-            200,
-            charts={"count": len(charts), "result": charts},
-            dashboards={"count": len(dashboards), "result": dashboards},
-        )
+        return {
+            "charts": {
+                "count": len(data["charts"]),
+                "restricted_count": len(data["charts"]) - len(charts),
+                "result": charts,
+            },
+            "dashboards": {
+                "count": len(data["dashboards"]),
+                "restricted_count": len(data["dashboards"]) - len(dashboards),
+                "result": dashboards,
+            },
+        }
 
     @expose("/", methods=("DELETE",))
     @protect()
@@ -1947,6 +2021,8 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             "columns.column_name",
             "columns.verbose_name",
             "columns.groupby",
+            "metrics.metric_name",
+            "metrics.verbose_name",
         ]
         dataset_schema = DatasetDrillInfoSchema()
 
@@ -2153,11 +2229,12 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         """Return the activity stream for a dataset.
         ---
         get:
-          summary: Activity stream — dataset's own edits only.
-            Datasets have no transitive layer in V2 — chart and
-            dashboard edits that touch this dataset do NOT appear here.
-            ``?include=self`` and ``?include=all`` return the dataset's
-            own edits; ``?include=related`` returns an empty stream
+          summary: Get a dataset's activity stream
+          description: >-
+            A dataset's own edits only. Datasets have no transitive layer in
+            V2 — chart and dashboard edits that touch this dataset do NOT
+            appear here. ``?include=self`` and ``?include=all`` return the
+            dataset's own edits; ``?include=related`` returns an empty stream
             (a dataset has no related entities to fan out to).
           parameters:
           - in: path

@@ -209,13 +209,39 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
   const categoryLines: { yAxis: number; name?: string }[] = [];
   let sum = 0;
   let prevSum = 0;
+  let maxCategoryLabelWidth = 0;
+
+  let measureContext: CanvasRenderingContext2D | null = null;
+  if (typeof document !== 'undefined') {
+    const canvas = document.createElement('canvas');
+    measureContext = canvas.getContext('2d');
+    if (measureContext) {
+      measureContext.font = `${theme.fontSizeSM}px ${theme.fontFamily}`;
+    }
+  }
+
   Array.from(seriesInCategoriesMap.entries()).forEach(([key, map]) => {
     sum += map.size;
+
+    const name = key === null || key === undefined ? undefined : String(key);
+
     categoryLines.push({
       yAxis: seriesCount - (sum + prevSum) / 2,
-      name: key ? String(key) : undefined,
+      name,
     });
+
+    if (name) {
+      // Prefer exact canvas measurement; fall back to an approximate width
+      // (~0.62 of the font size per character) when canvas is unavailable (e.g. SSR).
+      const labelWidth = measureContext
+        ? measureContext.measureText(name).width
+        : name.length * theme.fontSizeSM * 0.62;
+
+      maxCategoryLabelWidth = Math.max(maxCategoryLabelWidth, labelWidth);
+    }
+
     borderLines.push({ yAxis: seriesCount - sum });
+
     prevSum = sum;
   });
 
@@ -427,6 +453,7 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
     grid: {
       ...defaultGrid,
       ...padding,
+      left: (padding.left || 0) + maxCategoryLabelWidth + 10,
     },
     dataZoom: zoomable && [
       {

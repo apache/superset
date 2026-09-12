@@ -601,6 +601,13 @@ class SemanticLayerRestApi(BaseSupersetApi):
         "types": "read",
         "configuration_schema": "read",
         "runtime_schema": "read",
+        # ``read`` (not the default ``can_views`` / ``can_connections``) so
+        # these stay broadly accessible: ``SemanticLayer`` is in
+        # ``READ_ONLY_MODEL_VIEWS``, where every permission outside
+        # ``READ_ONLY_PERMISSION`` is admin-only. Both are read operations
+        # (view discovery and the combined connection picker).
+        "views": "read",
+        "connections": "read",
     }
     openapi_spec_tag = "Semantic Layers"
     add_model_schema = SemanticLayerPostSchema()
@@ -1247,7 +1254,6 @@ class SemanticLayerRestApi(BaseSupersetApi):
         layer = SemanticLayerDAO.find_by_uuid(uuid)
         if not layer:
             return self.response_404()
-
         try:
             layer.raise_for_access()
         except SupersetSecurityException as ex:

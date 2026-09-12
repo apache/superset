@@ -44,7 +44,10 @@ class CockroachDbEngineSpec(PostgresEngineSpec):
             DatabaseCategory.TRADITIONAL_RDBMS,
             DatabaseCategory.OPEN_SOURCE,
         ],
-        "pypi_packages": ["sqlalchemy-cockroachdb", "psycopg2"],
+        # sqlalchemy-cockroachdb declares no DBAPI dependency of its own (see
+        # the comment on the `cockroachdb` extra in pyproject.toml), so a
+        # plain `cockroachdb://` URL also needs psycopg2 installed to connect.
+        "pypi_packages": ["sqlalchemy-cockroachdb", "psycopg2-binary"],
         "connection_string": "cockroachdb://root@{hostname}:{port}/{database}?sslmode=disable",
         "default_port": 26257,
         "docs_url": "https://github.com/cockroachdb/sqlalchemy-cockroachdb",
