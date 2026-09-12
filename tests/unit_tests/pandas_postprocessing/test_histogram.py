@@ -14,8 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import warnings
+
 import pytest
 from pandas import DataFrame
+from pandas.errors import SettingWithCopyWarning
 
 from superset.exceptions import InvalidPostProcessingError
 from superset.utils.pandas_postprocessing import histogram
@@ -235,9 +238,6 @@ def test_histogram_rejects_bool_bins():
 
 
 def test_histogram_no_setting_with_copy_warning():
-    import warnings
-    from pandas.errors import SettingWithCopyWarning
-
     source = DataFrame({"a": [1, 2, None, 4, 5], "b": list(range(5))})
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
