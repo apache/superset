@@ -173,7 +173,9 @@ class BaseReportScheduleCommand(BaseCommand):
         elif not update:
             exceptions.append(ReportScheduleEitherChartOrDashboardError())
 
-    def _validate_report_extra(self, exceptions: list[ValidationError]) -> None:
+    def _validate_report_extra(  # noqa: C901
+        self, exceptions: list[ValidationError]
+    ) -> None:
         extra: Optional[ReportScheduleExtra] = self._properties.get("extra")
         dashboard = self._properties.get("dashboard")
 
@@ -198,7 +200,16 @@ class BaseReportScheduleCommand(BaseCommand):
             )
             return
 
-        position_data = json.loads(dashboard.position_json or "{}")
+        try:
+            position_data = json.loads(dashboard.position_json or "{}")
+        except json.JSONDecodeError:
+            exceptions.append(
+                ValidationError(
+                    _("extra.dashboard.position_json is not valid JSON"),
+                    "extra",
+                )
+            )
+            return
         active_tabs = dashboard_state.get("activeTabs") or []
         invalid_tab_ids = set(active_tabs) - set(position_data.keys())
 
@@ -221,7 +232,7 @@ class BaseReportScheduleCommand(BaseCommand):
 
         self._validate_native_filters(dashboard, dashboard_state, exceptions)
 
-    def _validate_native_filters(
+    def _validate_native_filters(  # noqa: C901
         self,
         dashboard: Any,
         dashboard_state: Any,
@@ -293,7 +304,19 @@ class BaseReportScheduleCommand(BaseCommand):
                 )
                 continue
             if valid_filter_ids is None:
-                json_metadata = json.loads(dashboard.json_metadata or "{}")
+                try:
+                    json_metadata = json.loads(dashboard.json_metadata or "{}")
+                except json.JSONDecodeError:
+                    exceptions.append(
+                        ValidationError(
+                            _(
+                                "extra.nativeFilters could not be validated: "
+                                "dashboard metadata is not valid JSON"
+                            ),
+                            "extra",
+                        )
+                    )
+                    break
                 valid_filter_ids = {
                     f["id"]
                     for f in json_metadata.get("native_filter_configuration", [])
