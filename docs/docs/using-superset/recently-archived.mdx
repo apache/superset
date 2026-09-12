@@ -5,11 +5,18 @@ sidebar_position: 7
 version: 1
 ---
 
+import useBaseUrl from '@docusaurus/useBaseUrl';
+
 # Recently Archived
 
 When soft-delete is enabled, deleting a chart, dashboard, or dataset archives it
 instead of removing it permanently. The **Recently Archived** view lets owners
 and admins find archived objects and restore them.
+
+<img
+  src={useBaseUrl('/img/version-history/recently-archived.jpg')}
+  alt="The Recently Archived view listing an archived dashboard with its type, archive time, and the user who archived it"
+/>
 
 A chart used by an alert or report cannot be archived while that dependency
 exists. In the chart list view, the archive confirmation lists the alerts and
@@ -90,4 +97,38 @@ was open, the refreshed impact replaces the previous result and you must type
 DELETE again before proceeding.
 
 Objects are also deleted permanently on their own once they have been in the
-archive longer than the retention window, without anyone acting.
+archive longer than the retention window, without anyone acting. The next
+section describes how operators control that window.
+
+## Configuring retention (operators)
+
+A daily background task (`deletion_retention.purge_soft_deleted`, scheduled
+through Celery beat) permanently deletes objects that have been archived
+longer than the retention window. The window resolves in this order:
+
+1. A per-deployment value set with the CLI, which takes precedence when
+   present:
+
+   ```bash
+   superset deletion-retention set-window --days 60
+   superset deletion-retention show-window   # print the effective window
+   ```
+
+2. Otherwise the `SOFT_DELETE_RETENTION_DAYS` configuration value, which
+   defaults to 30.
+
+A window of zero — from either source — disables scheduled purging, so
+archived objects are kept until someone deletes them permanently by hand.
+Setting `SOFT_DELETE_PURGE_DRY_RUN = True` makes the task log what it *would*
+purge without deleting anything, which is useful when validating a new window.
+
+For compliance cases that cannot wait for the window, an operator can purge a
+single entity immediately and irreversibly by UUID:
+
+```bash
+superset deletion-retention force-purge --uuid <uuid> --type dashboard
+```
+
+The purge removes the entity together with its
+[version history](./version-history). The retention window for version history
+itself is configured separately and is described on that page.
