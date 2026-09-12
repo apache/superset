@@ -2662,6 +2662,150 @@ class WaterfallChartConfig(BaseChartConfig):
 
 
 # Discriminated union for runtime validation (not exposed in JSON Schema)
+class GeographicColumnRef(ColumnRef):
+    """Closed geographic role reference using the shared column/metric contract."""
+
+    model_config = ConfigDict(extra="forbid", populate_by_name=True, strict=True)
+    dtype: str | None = Field(None, max_length=128)
+
+
+GeographicFilterValue = Annotated[str, Field(max_length=1000)] | int | float | bool
+
+
+class GeographicFilterConfig(FilterConfig):
+    """Shared filter semantics with bounded values and no unknown fields."""
+
+    model_config = ConfigDict(
+        extra="forbid", populate_by_name=True, strict=True, allow_inf_nan=False
+    )
+    value: (
+        GeographicFilterValue
+        | Annotated[list[GeographicFilterValue], Field(max_length=1000)]
+        | None
+    ) = Field(None, validation_alias=AliasChoices("value", "val"))
+
+
+class GeographicChartConfig(BaseChartConfig):
+    """Bounded controls shared by geographic visualizations."""
+
+    model_config = ConfigDict(extra="forbid", strict=True)
+    filters: list[GeographicFilterConfig] | None = Field(None, max_length=100)
+    row_limit: int = Field(10000, ge=1, le=10000)
+    time_range: str | None = Field(None, max_length=1000)
+
+    @field_validator("time_range")
+    @classmethod
+    def validate_geographic_time_range(cls, value: str | None) -> str | None:
+        """Reject time expressions the query parser would silently ignore."""
+        return validate_time_range(value)
+
+    @model_validator(mode="after")
+    def validate_geographic_roles(self) -> "GeographicChartConfig":
+        """Reject metric dimensions and unaggregated metric roles."""
+        for field in ("entity", "latitude", "longitude", "dimension"):
+            ref = getattr(self, field, None)
+            if ref is not None and (not ref.name or ref.is_metric):
+                raise ValueError(
+                    f"{field} requires a named dataset column, not a metric"
+                )
+        for field in ("metric", "secondary_metric", "radius_metric"):
+            ref = getattr(self, field, None)
+            if ref is not None and not ref.is_metric:
+                raise ValueError(
+                    f"{field} requires aggregate, saved_metric, or sql_expression"
+                )
+        # These helpers import chart schemas, so defer to avoid a cycle.
+        from superset.mcp_service.chart.chart_utils import create_metric_object
+        from superset.mcp_service.chart.query_result import metric_result_label
+
+        dimensions = {
+            ref.name
+            for field in ("entity", "latitude", "longitude", "dimension")
+            if (ref := getattr(self, field, None)) is not None
+        }
+        seen_metrics: dict[str | None, ColumnRef] = {}
+        for field in ("metric", "secondary_metric", "radius_metric"):
+            ref = getattr(self, field, None)
+            if ref is None:
+                continue
+            label = metric_result_label(create_metric_object(ref))
+            if label in dimensions:
+                raise ValueError(
+                    f"Metric alias {label!r} conflicts with a geographic column"
+                )
+            if label in seen_metrics and seen_metrics[label] != ref:
+                raise ValueError(f"Distinct geographic metrics share alias {label!r}")
+            seen_metrics[label] = ref
+        return self
+
+
+class CountryMapChartConfig(GeographicChartConfig):
+    """Regional choropleth joined against the bundled country boundaries."""
+
+    chart_type: Literal["country_map"]
+    country: Literal["usa", "canada", "australia", "japan", "uk"] = Field(
+        ..., description="Bundled boundary set. Only these countries are supported."
+    )
+    region_format: Literal["name", "abbreviation", "iso_3166_2"] = Field(
+        ...,
+        description="Explicit source format; abbreviation means the ISO suffix. "
+        "Names match bundled boundary names, not geocoding or fuzzy matching.",
+    )
+    entity: GeographicColumnRef
+    metric: GeographicColumnRef
+    linear_color_scheme: str = Field("schemeBlues", min_length=1, max_length=100)
+    number_format: str = Field("SMART_NUMBER", min_length=1, max_length=100)
+
+
+class WorldMapChartConfig(GeographicChartConfig):
+    """Country choropleth with optional metric-sized bubbles."""
+
+    chart_type: Literal["world_map"]
+    entity: GeographicColumnRef
+    country_format: Literal["name", "cca2", "cca3", "cioc"]
+    metric: GeographicColumnRef
+    secondary_metric: GeographicColumnRef | None = None
+    show_bubbles: bool = False
+    max_bubble_size: int = Field(25, ge=1, le=100)
+    sort_by_metric: bool = True
+    linear_color_scheme: str = Field("schemeBlues", min_length=1, max_length=100)
+
+    @model_validator(mode="after")
+    def validate_bubble_metric(self) -> "WorldMapChartConfig":
+        """Require an explicit size metric when bubbles are requested."""
+        if self.show_bubbles and self.secondary_metric is None:
+            raise ValueError(
+                "show_bubbles requires secondary_metric (may equal metric)"
+            )
+        return self
+
+
+class DeckScatterChartConfig(GeographicChartConfig):
+    """Geographic points from numeric longitude and latitude columns."""
+
+    chart_type: Literal["deck_scatter"]
+    latitude: GeographicColumnRef
+    longitude: GeographicColumnRef
+    dimension: GeographicColumnRef | None = None
+    radius_metric: GeographicColumnRef | None = None
+    radius: int = Field(1000, ge=1, le=1000000)
+    point_unit: Literal[
+        "square_m",
+        "square_km",
+        "square_miles",
+        "radius_m",
+        "radius_km",
+        "radius_miles",
+    ] = "radius_m"
+
+    @model_validator(mode="after")
+    def validate_coordinates(self) -> "DeckScatterChartConfig":
+        """Latitude and longitude must be distinct source columns."""
+        if self.latitude.name == self.longitude.name:
+            raise ValueError("latitude and longitude must reference different columns")
+        return self
+
+
 ChartConfig = Annotated[
     XYChartConfig
     | TableChartConfig
@@ -2675,7 +2819,10 @@ ChartConfig = Annotated[
     | BigNumberChartConfig
     | HistogramChartConfig
     | BoxPlotChartConfig
-    | WaterfallChartConfig,
+    | WaterfallChartConfig
+    | CountryMapChartConfig
+    | WorldMapChartConfig
+    | DeckScatterChartConfig,
     Field(
         discriminator="chart_type",
         description=(

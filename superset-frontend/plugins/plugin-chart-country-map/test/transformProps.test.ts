@@ -129,6 +129,31 @@ test('renames v1 API records using adhoc metric labels', () => {
   expect(transformed.data).toEqual([{ country_id: 'FRA', metric: 3.14 }]);
 });
 
+test('normalizes typed region display while preserving source values for cross-filters', () => {
+  const data = [{ state: 'CA', count: 10 }];
+  const transformed = transformProps(
+    createProps(
+      { entity: 'state', selectCountry: 'usa', regionFormat: 'abbreviation' },
+      { queriesData: [{ data }] },
+    ),
+  );
+  expect(transformed.data).toEqual([
+    { country_id: 'US-CA', source_value: 'CA', metric: 10 },
+  ]);
+  expect(data).toEqual([{ state: 'CA', count: 10 }]);
+});
+
+test('typed country maps reject unrecognized values', () => {
+  expect(() =>
+    transformProps(
+      createProps(
+        { entity: 'state', selectCountry: 'usa', regionFormat: 'abbreviation' },
+        { queriesData: [{ data: [{ state: 'BC', count: 10 }] }] },
+      ),
+    ),
+  ).toThrow('Unrecognized');
+});
+
 test('builds color formatters from conditional formatting config', () => {
   const transformed = transformProps(
     createProps({
@@ -153,4 +178,30 @@ test('builds color formatters from conditional formatting config', () => {
 test('returns an empty formatters array when conditional formatting is unset', () => {
   const transformed = transformProps(createProps());
   expect(transformed.formatters).toEqual([]);
+});
+
+test('conditional formatting uses the normalized region metric and preserves the source identifier', () => {
+  const transformed = transformProps(
+    createProps(
+      {
+        entity: 'state',
+        selectCountry: 'usa',
+        regionFormat: 'abbreviation',
+        conditionalFormatting: [
+          {
+            column: 'metric',
+            colorScheme: '#FF0000',
+            operator: Comparator.GreaterThan,
+            targetValue: 5,
+            useGradient: false,
+          },
+        ],
+      },
+      { queriesData: [{ data: [{ state: 'CA', count: 10 }] }] },
+    ),
+  );
+  expect(transformed.data).toEqual([
+    { country_id: 'US-CA', source_value: 'CA', metric: 10 },
+  ]);
+  expect(transformed.formatters[0].getColorFromValue(10)).toBe('#FF0000');
 });

@@ -31,6 +31,8 @@ from superset.extensions import event_logger
 from superset.mcp_service.chart.schemas import (
     BigNumberChartConfig,
     BoxPlotChartConfig,
+    CountryMapChartConfig,
+    DeckScatterChartConfig,
     GaugeChartConfig,
     HandlebarsChartConfig,
     HistogramChartConfig,
@@ -41,6 +43,7 @@ from superset.mcp_service.chart.schemas import (
     TableChartConfig,
     TreemapChartConfig,
     WaterfallChartConfig,
+    WorldMapChartConfig,
     XYChartConfig,
 )
 
@@ -48,6 +51,9 @@ logger = logging.getLogger(__name__)
 
 # Module-level TypeAdapters — one per chart type, compiled once.
 _CHART_TYPE_ADAPTERS: Dict[str, TypeAdapter[Any]] = {
+    "country_map": TypeAdapter(CountryMapChartConfig),
+    "world_map": TypeAdapter(WorldMapChartConfig),
+    "deck_scatter": TypeAdapter(DeckScatterChartConfig),
     "xy": TypeAdapter(XYChartConfig),
     "table": TypeAdapter(TableChartConfig),
     "pie": TypeAdapter(PieChartConfig),
@@ -67,6 +73,30 @@ VALID_CHART_TYPES = sorted(_CHART_TYPE_ADAPTERS.keys())
 
 # Per-type examples — lightweight inline examples for each chart type.
 _CHART_EXAMPLES: Dict[str, list[Dict[str, Any]]] = {
+    "country_map": [
+        {
+            "chart_type": "country_map",
+            "country": "usa",
+            "region_format": "abbreviation",
+            "entity": {"name": "state"},
+            "metric": {"name": "sales", "aggregate": "SUM"},
+        }
+    ],
+    "world_map": [
+        {
+            "chart_type": "world_map",
+            "country_format": "cca2",
+            "entity": {"name": "country"},
+            "metric": {"name": "sales", "aggregate": "SUM"},
+        }
+    ],
+    "deck_scatter": [
+        {
+            "chart_type": "deck_scatter",
+            "latitude": {"name": "latitude"},
+            "longitude": {"name": "longitude"},
+        }
+    ],
     "xy": [
         {
             "chart_type": "xy",
@@ -310,9 +340,9 @@ def get_chart_type_schema(
     for a chart configuration before calling generate_chart or update_chart.
 
     Valid chart_type values depend on the host deployment. Core types are xy,
-    table, pie, gauge, treemap_v2, pivot_table, mixed_timeseries, handlebars,
-    big_number, histogram, box_plot, and waterfall. Deployments that enable an
-    AG Grid
+    country_map, world_map, deck_scatter, table, pie, gauge, treemap_v2,
+    pivot_table, mixed_timeseries, handlebars, big_number, histogram, box_plot,
+    and waterfall. Deployments that enable an AG Grid
     pivot extension also expose interactive_pivot.
 
     Returns the JSON Schema for the requested chart type, optionally

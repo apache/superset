@@ -125,6 +125,13 @@ async def generate_chart(  # noqa: C901
     - chart_type='big_number' for single KPI metric displays.
       Required fields: metric
 
+    - chart_type='country_map' for regional choropleths: explicit country,
+      region_format (name/abbreviation/iso_3166_2), entity column-ref and metric.
+    - chart_type='world_map' for country choropleths, with optional bubbles:
+      explicit country_format, entity column-ref, metric and secondary_metric.
+    - chart_type='deck_scatter' for geographic points: latitude and longitude
+      column-refs, optionally radius_metric. Not XY scatter coordinates.
+    - Probe get_chart_type_schema for supported countries and complete examples.
     - chart_type='gauge' for a dial/gauge display of a metric.
       Required fields: metric; optional: groupby (one dial per value),
       min_val, max_val
