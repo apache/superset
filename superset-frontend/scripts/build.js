@@ -26,7 +26,7 @@
 process.env.PATH = `./node_modules/.bin:${process.env.PATH}`;
 
 const { spawnSync } = require('child_process');
-const fastGlob = require('fast-glob');
+const { globSync } = require('fs');
 const yargs = require('yargs');
 const { hideBin } = require('yargs/helpers');
 
@@ -60,26 +60,29 @@ function getPackages(packagePattern, tsOnly = false) {
   // Find packages in both @superset-ui and @apache-superset scopes
   const supersetUiPackages = [
     ...new Set(
-      fastGlob
-        .sync([
+      globSync(
+        [
           `./node_modules/@superset-ui/${pattern}/src/**/*.${
             tsOnly ? '{ts,tsx}' : '{ts,tsx,js,jsx}'
           }`,
-        ])
-        .map(x => x.split('/')[3])
+        ],
+        { followSymlinks: true },
+      )
+        .map(x => x.split('/')[2])
         .filter(x => !META_PACKAGES.has(x)),
     ),
   ];
 
   const apachePackages = [
     ...new Set(
-      fastGlob
-        .sync([
+      globSync(
+        [
           `./node_modules/@apache-superset/${pattern}/src/**/*.${
             tsOnly ? '{ts,tsx}' : '{ts,tsx,js,jsx}'
           }`,
-        ])
-        .map(x => x.split('/')[3]),
+        ],
+        { followSymlinks: true },
+      ).map(x => x.split('/')[2]),
     ),
   ];
 
