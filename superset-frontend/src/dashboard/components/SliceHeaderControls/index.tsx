@@ -142,6 +142,7 @@ export interface SliceHeaderControlsProps {
 
   addDangerToast: (message: string) => void;
   addSuccessToast: (message: string) => void;
+  addWarningToast?: (message: string) => void;
 
   supersetCanExplore?: boolean;
   supersetCanShare?: boolean;
@@ -333,6 +334,8 @@ const SliceHeaderControls = (
             props.slice.slice_name,
             true,
             theme,
+            undefined,
+            props.addWarningToast,
           )(domEvent),
         ).finally(() => {
           if (menu) {
@@ -364,6 +367,7 @@ const SliceHeaderControls = (
             true,
             theme,
             { format: 'png', backgroundType },
+            props.addWarningToast,
           )(domEvent),
         ).finally(() => {
           if (menu) {
@@ -391,6 +395,7 @@ const SliceHeaderControls = (
             getScreenshotNodeSelector(props.slice.slice_id),
             props.slice.slice_name,
             true,
+            props.addWarningToast,
           )(domEvent),
         ).finally(() => {
           if (menu) {
