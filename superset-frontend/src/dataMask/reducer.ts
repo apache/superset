@@ -20,6 +20,7 @@
 /* eslint-disable no-param-reassign */
 // <- When we work with Immer, we need reassign, so disabling lint
 import { produce } from 'immer';
+import { EMPTY_FILTER_SQL_EXPRESSION } from 'src/utils/common';
 import {
   DataMask,
   DataMaskStateWithId,
@@ -138,8 +139,22 @@ function fillNativeFilters(
     //  (2) loaded has a value but no extraFormData and the default does — the
     //      "value present in UI but not applied to charts" gap-window case where
     //      a permalink was captured before FilterValue produced extraFormData.
+    // A select filter's explicit match-nothing predicate is a complete clear,
+    // not an incomplete permalink captured while the filter was initializing.
+    const adhocFilters = loaded?.extraFormData?.adhoc_filters;
+    const isExplicitSelectClear =
+      filter.filterType === 'filter_select' &&
+      !loadedHasValue &&
+      Array.isArray(adhocFilters) &&
+      adhocFilters.some(
+        predicate =>
+          predicate?.expressionType === 'SQL' &&
+          predicate.clause === 'WHERE' &&
+          predicate.sqlExpression === EMPTY_FILTER_SQL_EXPRESSION,
+      );
     const shouldRestoreDefault =
       isRequired &&
+      !isExplicitSelectClear &&
       !!filter.defaultDataMask &&
       (!loadedHasValue || (!loadedHasExtraFormData && defaultHasExtraFormData));
 

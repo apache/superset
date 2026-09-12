@@ -2199,6 +2199,164 @@ class ManageNativeFiltersResponse(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# apply_dashboard_filters schemas
+# ---------------------------------------------------------------------------
+
+# The JSON scalars a filter_select selection can hold. Mirrors the value array
+# the frontend stores in a native filter's ``filterState.value``.
+FilterSelectValue = bool | int | float | str | None
+
+
+class ApplyFilterValueSpec(BaseModel):
+    """A value to apply to one existing native filter.
+
+    Exactly one of ``values`` (filter_select) or ``time_range``
+    (filter_time) must be supplied, and it must match the target filter's
+    type. An empty ``values`` list clears the filter's selection.
+    """
+
+    filter_name_or_id: str = Field(
+        ...,
+        min_length=1,
+        description=(
+            "The filter to apply a value to, given as either its display "
+            "name (matched case-insensitively) or its filter ID. Use "
+            "get_dashboard_info to list a dashboard's native filters."
+        ),
+    )
+    values: List[FilterSelectValue] | None = Field(
+        None,
+        description=(
+            "Values to select, for a filter_select filter. Pass an empty "
+            "list to clear the filter's current selection."
+        ),
+    )
+    time_range: str | None = Field(
+        None,
+        description=(
+            "Time range to apply, for a filter_time filter, e.g. "
+            "'Last week', 'Last month', '2024-01-01 : 2024-12-31'. Pass "
+            "'No filter' to clear the filter."
+        ),
+    )
+
+    @field_validator("time_range")
+    @classmethod
+    def _validate_time_range(cls, v: str | None) -> str | None:
+        """Validate the time range with the shared dashboard parser."""
+        return validate_time_range(v)
+
+    @model_validator(mode="after")
+    def _require_exactly_one_value(self) -> "ApplyFilterValueSpec":
+        """Require exactly one value field.
+
+        Presence is tested with ``is None`` rather than truthiness so an
+        empty ``values`` list still counts as a supplied value: that is the
+        way a caller clears a filter_select selection.
+        """
+        supplied = [
+            name
+            for name, value in (
+                ("values", self.values),
+                ("time_range", self.time_range),
+            )
+            if value is not None
+        ]
+        if len(supplied) != 1:
+            raise ValueError(
+                "Provide exactly one of values (filter_select) or time_range "
+                f"(filter_time) for filter '{self.filter_name_or_id}'; "
+                f"got {supplied or 'neither'}."
+            )
+        return self
+
+
+class ApplyDashboardFiltersRequest(BaseModel):
+    """Request schema for the apply_dashboard_filters tool."""
+
+    dashboard_id: int = Field(..., description="ID of the dashboard to filter")
+    base_permalink_key: str | None = Field(
+        None,
+        min_length=1,
+        description=(
+            "For follow-up turns, pass the previous response's permalink_key "
+            "to keep prior filter selections. New values replace the same "
+            "filter's prior entry; unmentioned filters persist. Omit to start "
+            "from dashboard defaults. Invalid, expired, inaccessible, or "
+            "wrong-dashboard keys fail rather than resetting filters."
+        ),
+    )
+    filters: List[ApplyFilterValueSpec] = Field(
+        ...,
+        min_length=1,
+        description=(
+            "Values to apply, one entry per native filter. Filters that are "
+            "not listed keep their base permalink value when base_permalink_key "
+            "is supplied, otherwise the dashboard's default value."
+        ),
+    )
+
+
+class AppliedFilterSummary(BaseModel):
+    """One filter's resolved value in an apply_dashboard_filters result."""
+
+    id: str = Field(description="ID of the filter the value was applied to")
+    name: str | None = Field(None, description="Filter display name")
+    filter_type: str | None = Field(
+        None, description="Filter type (filter_select or filter_time)"
+    )
+    values: List[FilterSelectValue] | None = Field(
+        None, description="Selected values, for a filter_select filter"
+    )
+    time_range: str | None = Field(
+        None, description="Applied time range, for a filter_time filter"
+    )
+
+
+class ApplyDashboardFiltersResponse(BaseModel):
+    """Response schema for the apply_dashboard_filters tool."""
+
+    dashboard_id: int | None = Field(None, description="ID of the dashboard")
+    dashboard_url: str | None = Field(
+        None,
+        description=(
+            "Shareable '/dashboard/p/<key>/' permalink URL that opens the "
+            "dashboard with the requested filter values applied."
+        ),
+    )
+    permalink_key: str | None = Field(
+        None,
+        description=(
+            "Key of the created permalink. On the next turn, pass this as "
+            "base_permalink_key to apply_dashboard_filters to preserve these "
+            "selections while adding or replacing filters. Also pass it to "
+            "get_dashboard_info or get_dashboard_layout as permalink_key to "
+            "read the applied filter state."
+        ),
+    )
+    applied_filters: List[AppliedFilterSummary] = Field(
+        default_factory=list,
+        description="The filters that received a value, in request order",
+    )
+    live_update_pushed: bool = Field(
+        default=False,
+        description=(
+            "True when a realtime notification was published to the caller. "
+            "This does not confirm browser delivery or application. "
+            "Open dashboard_url as the fallback."
+        ),
+    )
+    error: str | None = Field(None, description="Error message, if the call failed")
+    permission_denied: bool = Field(
+        default=False,
+        description=(
+            "True when the caller lacks read access to the dashboard (do not "
+            "retry; ask the user)."
+        ),
+    )
+
+
+# ---------------------------------------------------------------------------
 # get_dashboard_datasets schemas
 # ---------------------------------------------------------------------------
 
