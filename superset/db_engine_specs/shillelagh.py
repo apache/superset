@@ -72,7 +72,13 @@ class ShillelaghEngineSpec(SqliteEngineSpec):
     @classmethod
     def register_engine_events(cls, engine: Engine) -> None:
         super().register_engine_events(engine)
-        event.listen(engine, "connect", cls._scope_connection_to_adapters)
+        # Only the APSW backends run on SQLite and expose ``ATTACH``. Shillelagh
+        # also ships non-APSW backends (``shillelagh+sqlglot``,
+        # ``shillelagh+multicorn2``) which reach this spec through the
+        # backend-only fallback in ``get_engine_spec``; they have no APSW handle
+        # to limit, so scoping the listener here keeps them working.
+        if engine.dialect.driver == "apsw":
+            event.listen(engine, "connect", cls._scope_connection_to_adapters)
 
     @staticmethod
     def _scope_connection_to_adapters(

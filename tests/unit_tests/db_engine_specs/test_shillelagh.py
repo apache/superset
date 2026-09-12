@@ -84,3 +84,16 @@ def test_unreachable_apsw_connection_is_refused() -> None:
         TypeError, match="Expected an APSW connection on object, got NoneType"
     ):
         ShillelaghEngineSpec._scope_connection_to_adapters(object(), None)
+
+
+def test_non_apsw_backend_is_left_alone() -> None:
+    """
+    Shillelagh also ships non-APSW backends, which reach this spec through the
+    backend-only fallback in ``get_engine_spec``. They have no APSW handle, so
+    the listener must not be registered for them.
+    """
+    engine = create_engine("shillelagh+sqlglot://")
+    ShillelaghEngineSpec.register_engine_events(engine)
+
+    with engine.connect() as connection:
+        assert connection.execute(text("SELECT 1")).scalar() == 1
