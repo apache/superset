@@ -25,6 +25,7 @@ from superset.commands.database.exceptions import (
 )
 from superset.commands.database.validate import ValidateDatabaseParametersCommand
 from superset.constants import PASSWORD_MASK
+from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.utils import json
 
@@ -37,6 +38,7 @@ def test_command(mocker: MockerFixture) -> None:
     user.email = "alice@example.org"
     mocker.patch("superset.db_engine_specs.gsheets.g", user=user)
     mocker.patch("superset.db_engine_specs.gsheets.create_engine")
+    mocker.patch.object(GSheetsEngineSpec, "register_engine_events")
 
     database = mocker.MagicMock()
     with database.get_sqla_engine() as engine:
@@ -62,6 +64,7 @@ def test_command_invalid(mocker: MockerFixture) -> None:
     user.email = "alice@example.org"
     mocker.patch("superset.db_engine_specs.gsheets.g", user=user)
     mocker.patch("superset.db_engine_specs.gsheets.create_engine")
+    mocker.patch.object(GSheetsEngineSpec, "register_engine_events")
 
     database = mocker.MagicMock()
     with database.get_sqla_engine() as engine:
@@ -107,6 +110,7 @@ def test_command_no_ping(mocker: MockerFixture) -> None:
     user.email = "alice@example.org"
     mocker.patch("superset.db_engine_specs.gsheets.g", user=user)
     mocker.patch("superset.db_engine_specs.gsheets.create_engine")
+    mocker.patch.object(GSheetsEngineSpec, "register_engine_events")
 
     database = mocker.MagicMock()
     with database.get_sqla_engine() as engine:
@@ -146,6 +150,7 @@ def test_command_with_oauth2(mocker: MockerFixture) -> None:
     user.email = "alice@example.org"
     mocker.patch("superset.db_engine_specs.gsheets.g", user=user)
     mocker.patch("superset.db_engine_specs.gsheets.create_engine")
+    mocker.patch.object(GSheetsEngineSpec, "register_engine_events")
 
     database = mocker.MagicMock()
     database.is_oauth2_enabled.return_value = True
@@ -173,6 +178,7 @@ def test_command_with_oauth2_not_configured(mocker: MockerFixture) -> None:
     user.email = "alice@example.org"
     mocker.patch("superset.db_engine_specs.gsheets.g", user=user)
     mocker.patch("superset.db_engine_specs.gsheets.create_engine")
+    mocker.patch.object(GSheetsEngineSpec, "register_engine_events")
 
     database = mocker.MagicMock()
     database.is_oauth2_enabled.return_value = False
