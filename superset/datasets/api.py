@@ -32,9 +32,10 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import gettext as _, ngettext
 from jinja2.exceptions import TemplateError
 from marshmallow import ValidationError
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm.exc import MultipleResultsFound
 
-from superset import event_logger, is_feature_enabled, security_manager
+from superset import db, event_logger, is_feature_enabled, security_manager
 from superset.commands.dataset.create import CreateDatasetCommand
 from superset.commands.dataset.delete import DeleteDatasetCommand
 from superset.commands.dataset.duplicate import DuplicateDatasetCommand
@@ -117,6 +118,7 @@ from superset.versioning.api_helpers import (
     lock_entity_for_update,
     restore_version_endpoint,
 )
+from superset.versioning.db_errors import is_lock_contention_error
 from superset.versioning.etag import (
     is_conditional_write,
     raise_for_stale_write,
@@ -579,7 +581,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     @requires_json
-    def put(self, pk: int) -> Response:
+    def put(self, pk: int) -> Response:  # noqa: C901
         """Update a dataset.
         ---
         put:
@@ -706,14 +708,40 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
 
         # Serialise conditional saves on this dataset: the guard below reads
         # the live version, the command writes, and the two must not interleave
-        # with another request's. Only a conditional save pays for the lock; an
+        # with another request's. Only a conditional save pays for the locks; an
         # unconditional PUT behaves exactly as it did before the guard existed.
-        if is_conditional_write():
+        conditional = is_conditional_write()
+        if conditional:
             lock_entity_for_update(SqlaTable, pk)
 
         # Live version identifiers before the update (empty + query-free when
-        # ``ENABLE_VERSIONING_CAPTURE`` is off).
-        old_info = current_entity_version_info(SqlaTable, pk)
+        # ``ENABLE_VERSIONING_CAPTURE`` is off). On the conditional path the
+        # live transaction id is read under an exclusive row lock: a plain
+        # read is served from the request's REPEATABLE READ snapshot on MySQL
+        # and can miss a concurrent commit, letting a stale If-Match token
+        # pass the guard. A lock race lost at that read (deadlock / lock
+        # wait) proves concurrent CONTENTION, not that this request's token
+        # is stale — so it maps to a retryable 409, and the client should
+        # retry the SAME request. (A deadlock at Continuum's version-row
+        # insert inside the command surfaces as the pre-existing 422 via the
+        # command's error mapping.)
+        try:
+            old_info = current_entity_version_info(
+                SqlaTable, pk, lock_for_stale_check=conditional
+            )
+        except OperationalError as ex:
+            if not (conditional and is_lock_contention_error(ex)):
+                raise
+            # Not a unit of work: the transaction is already dead (deadlock
+            # rollback); this clears the aborted session before responding.
+            db.session.rollback()  # pylint: disable=consider-using-transaction
+            return self.response(
+                409,
+                message=_(
+                    "Another save is in progress for this dataset. "
+                    "Retry the same request."
+                ),
+            )
 
         try:
             raise_for_stale_write(concurrency_token_from(old_info))
@@ -788,6 +816,23 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             )
             response = self.response_422(message=str(ex))
         except DatasetUpdateFailedError as ex:
+            # The gap lock the conditional path's locking read takes on a
+            # zero-live-row range can deadlock against another conditional
+            # writer at Continuum's version-row INSERT inside the command;
+            # on_error chains the driver error as __cause__, and the update
+            # transaction has rolled back. (The post-commit override_columns
+            # refresh raises its own exception type and cannot reach this
+            # branch.) Same retryable classification as the read-point
+            # handler above: the token is not proven stale.
+            if conditional and is_lock_contention_error(ex.__cause__):
+                db.session.rollback()  # pylint: disable=consider-using-transaction
+                return self.response(
+                    409,
+                    message=_(
+                        "Another save is in progress for this dataset. "
+                        "Retry the same request."
+                    ),
+                )
             logger.error(
                 "Error updating model %s: %s",
                 self.__class__.__name__,

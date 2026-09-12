@@ -34,6 +34,38 @@ from __future__ import annotations
 
 from sqlalchemy.exc import DBAPIError
 
+#: MySQL/MariaDB deadlock and lock-wait-timeout error codes.
+_MYSQL_LOCK_CONTENTION = (1213, 1205)
+
+#: PostgreSQL SQLSTATEs: serialization_failure, deadlock_detected,
+#: lock_not_available.
+_PG_LOCK_CONTENTION = ("40001", "40P01", "55P03")
+
+
+def is_lock_contention_error(exc: BaseException | None) -> bool:
+    """Whether *exc* is a database deadlock / lock-wait failure.
+
+    A write that loses a lock race has, by definition, interleaved with a
+    concurrent writer. It does NOT prove the caller's ``If-Match`` token
+    stale, so response-mapping callers classify it as a retryable
+    conflict (409, retry the same request) rather than a 500 -- or a 412,
+    whose refetch-the-token guidance would be wrong here. Accepts ``None``
+    (e.g. an exception with no ``__cause__``) and errors with empty
+    driver args without raising.
+    """
+    if exc is None:
+        return False
+    orig = getattr(exc, "orig", None)
+    args = getattr(orig, "args", None)
+    if args and args[0] in _MYSQL_LOCK_CONTENTION:
+        return True
+    sqlstate = getattr(orig, "pgcode", None) or getattr(orig, "sqlstate", None)
+    if sqlstate in _PG_LOCK_CONTENTION:
+        return True
+    text = str(exc).lower()
+    return "deadlock" in text or "lock wait timeout" in text
+
+
 #: PostgreSQL SQLSTATE for "relation does not exist" (undefined_table).
 _PG_UNDEFINED_TABLE = "42P01"
 

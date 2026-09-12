@@ -468,7 +468,7 @@ def test_put_dataset_rejects_stale_if_match(
             version_uuid="new",
             entity_uuid=dataset.uuid,
         ),
-    ):
+    ) as version_info:
         response = client.put(
             f"/api/v1/dataset/{dataset.id}",
             json={"description": "from a stale tab"},
@@ -476,9 +476,85 @@ def test_put_dataset_rejects_stale_if_match(
         )
 
     assert response.status_code == 412
+    # Pins the endpoint wiring: a conditional write must ask for the
+    # locking validator read (sc-120050) -- without this, dropping the
+    # lock_for_stale_check kwarg at the call site survives every test.
+    assert version_info.call_args.kwargs["lock_for_stale_check"] is True
     assert response.headers["ETag"] == '"new"'
     db.session.expire(dataset)
     assert dataset.description is None
+
+
+def test_put_dataset_maps_lock_contention_to_retryable_409(
+    session: Session,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """sc-120050: a deadlock at the locked validator read is a 409, not 412.
+
+    A lock race lost at the locking read proves concurrent contention, not
+    that this request's If-Match token is stale -- 412's refetch-the-token
+    guidance would be wrong, so the mapping must not drift back to it. The
+    message tells the client to retry the same request.
+    """
+    from sqlalchemy.exc import OperationalError
+
+    dataset = _create_dataset("test_put_lock_contention")
+    deadlock = OperationalError("stmt", None, Exception())
+    deadlock.orig = type("Orig", (), {"args": (1213, "Deadlock found")})()
+
+    with patch(
+        "superset.datasets.api.current_entity_version_info",
+        side_effect=deadlock,
+    ):
+        response = client.put(
+            f"/api/v1/dataset/{dataset.id}",
+            json={"description": "from a racing tab"},
+            headers={"If-Match": '"anything"'},
+        )
+
+    assert response.status_code == 409
+    body = response.get_data(as_text=True)
+    assert "Retry the same request" in body
+    # No write-check re-read here: the handler's rollback detaches the
+    # fixture object, and nothing could have written anyway — the patched
+    # read raised before the update command ever ran.
+
+
+def test_put_dataset_without_if_match_never_locks(
+    session: Session,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """An unconditional PUT takes no locks and no locking validator read.
+
+    Pins the perf contract both ways: hard-coding lock_for_stale_check=True
+    at the call site (or unconditionally locking the entity) fails here.
+    """
+    from superset.versioning.api_helpers import EntityVersionInfo
+
+    dataset = _create_dataset("test_put_unconditional_no_locks")
+
+    with (
+        patch("superset.datasets.api.lock_entity_for_update") as lock,
+        patch(
+            "superset.datasets.api.current_entity_version_info",
+            return_value=EntityVersionInfo(entity_uuid=dataset.uuid),
+        ) as version_info,
+        patch("superset.datasets.api.UpdateDatasetCommand") as cmd,
+    ):
+        cmd.return_value.run.return_value = dataset
+        response = client.put(
+            f"/api/v1/dataset/{dataset.id}",
+            json={"description": "plain save"},
+        )
+
+    assert response.status_code == 200
+    lock.assert_not_called()
+    # First call is the pre-command old_info read (the one carrying the
+    # flag); the endpoint calls the helper again after the command for
+    # new_info, without the kwarg.
+    assert version_info.call_args_list[0].kwargs["lock_for_stale_check"] is False
 
 
 def test_put_dataset_guards_a_dataset_with_no_version_rows(
