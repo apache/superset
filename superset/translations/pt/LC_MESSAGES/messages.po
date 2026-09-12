@@ -9552,7 +9552,6 @@ msgstr "Nenhum filtro foi adicionado a esse painel no momento."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
-#, fuzzy
 msgid "No filters or customizations created yet"
 msgstr "Nenhum filtro ou personalização criado ainda"
 
@@ -9606,9 +9605,8 @@ msgstr ""
 "corretamente configurados e que a fonte de dados contém dados para o "
 "intervalo de tempo selecionado."
 
-#, fuzzy
 msgid "No roles"
-msgstr "Ainda não há registros"
+msgstr "Sem funções"
 
 msgid "No roles yet"
 msgstr "Ainda não há funções"
