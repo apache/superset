@@ -5888,6 +5888,18 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         ]
 
     def _skip_legacy_fab_password_view_registration(self) -> Callable[..., Any]:
+        """
+        Temporarily patch ``add_view_no_menu`` so legacy FAB password reset
+        views are skipped during ``register_views()``.
+
+        When ``ENABLE_LEGACY_FAB_PASSWORD_VIEWS`` is disabled, ``ResetPasswordView``
+        is always skipped, and ``ResetMyPasswordView`` is skipped unless
+        ``ENABLE_FORCE_PASSWORD_CHANGE`` is enabled (that flow still needs a
+        reachable reset form). When the flag is enabled, no patching occurs.
+
+        :returns: the original, unpatched ``add_view_no_menu`` bound method, so
+            the caller can restore it once ``register_views()`` completes.
+        """
         original_add_view_no_menu: Callable[..., Any] = self.appbuilder.add_view_no_menu
 
         if current_app.config.get("ENABLE_LEGACY_FAB_PASSWORD_VIEWS", False):
