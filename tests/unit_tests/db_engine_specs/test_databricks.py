@@ -17,7 +17,7 @@
 # pylint: disable=unused-argument, import-outside-toplevel, protected-access
 
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any, cast, Optional
 from urllib.parse import parse_qs, urlparse
 
 import pytest
@@ -36,6 +36,11 @@ from superset.utils import json
 from superset.utils.oauth2 import decode_oauth2_state
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
 from tests.unit_tests.fixtures.common import dttm  # noqa: F401
+
+
+def _validate_native_parameters(properties: dict[str, Any]) -> list[SupersetError]:
+    """Avoid TypedDict ambiguity when tests omit unused connection fields."""
+    return DatabricksNativeEngineSpec.validate_parameters(cast(Any, properties))
 
 
 def test_get_parameters_from_uri() -> None:
@@ -891,7 +896,7 @@ def test_parse_json_object_branches() -> None:
 def test_parse_extra_for_validation_branches() -> None:
     from superset.db_engine_specs.databricks import _parse_extra_for_validation
 
-    extra = {"engine_params": {}}
+    extra: dict[str, Any] = {"engine_params": {}}
     assert _parse_extra_for_validation(extra) == (extra, None)
     assert _parse_extra_for_validation(None) == ({}, None)
     assert _parse_extra_for_validation("") == ({}, None)
@@ -901,6 +906,7 @@ def test_parse_extra_for_validation_branches() -> None:
     parsed, error = _parse_extra_for_validation("{not json")
     assert parsed == {}
     assert error is not None
+    assert error.extra is not None
     assert error.extra["invalid"] == ["extra"]
 
 
@@ -1203,8 +1209,8 @@ def test_validate_parameters_access_token_required_without_m2m(
     )
     mocker.patch("superset.db_engine_specs.databricks.is_port_open", return_value=True)
 
-    errors = DatabricksNativeEngineSpec.validate_parameters(
-        {  # type: ignore[arg-type]
+    errors = _validate_native_parameters(
+        {
             "parameters": {
                 "host": "dbc-abc.cloud.databricks.com",
                 "port": 443,
@@ -1226,7 +1232,9 @@ def test_validate_parameters_access_token_required_without_m2m(
         if error.error_type == SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR
     ]
     assert missing
-    assert "access_token" in missing[0].extra["missing"]
+    extra = missing[0].extra
+    assert extra is not None
+    assert "access_token" in extra["missing"]
 
 
 def test_validate_parameters_access_token_optional_with_m2m(
@@ -1240,8 +1248,8 @@ def test_validate_parameters_access_token_optional_with_m2m(
     )
     mocker.patch("superset.db_engine_specs.databricks.is_port_open", return_value=True)
 
-    errors = DatabricksNativeEngineSpec.validate_parameters(
-        {  # type: ignore[arg-type]
+    errors = _validate_native_parameters(
+        {
             "parameters": {
                 "host": "dbc-abc.cloud.databricks.com",
                 "port": 443,
@@ -1283,8 +1291,8 @@ def test_validate_parameters_access_token_optional_with_azure_aliases(
     )
     mocker.patch("superset.db_engine_specs.databricks.is_port_open", return_value=True)
 
-    errors = DatabricksNativeEngineSpec.validate_parameters(
-        {  # type: ignore[arg-type]
+    errors = _validate_native_parameters(
+        {
             "parameters": {
                 "host": "adb-123.azuredatabricks.net",
                 "port": 443,
@@ -1327,8 +1335,8 @@ def test_validate_parameters_access_token_optional_with_masked_m2m(
     )
     mocker.patch("superset.db_engine_specs.databricks.is_port_open", return_value=True)
 
-    errors = DatabricksNativeEngineSpec.validate_parameters(
-        {  # type: ignore[arg-type]
+    errors = _validate_native_parameters(
+        {
             "parameters": {
                 "host": "dbc-abc.cloud.databricks.com",
                 "port": 443,
@@ -1370,8 +1378,8 @@ def test_validate_parameters_access_token_required_for_incomplete_azure(
     )
     mocker.patch("superset.db_engine_specs.databricks.is_port_open", return_value=True)
 
-    errors = DatabricksNativeEngineSpec.validate_parameters(
-        {  # type: ignore[arg-type]
+    errors = _validate_native_parameters(
+        {
             "parameters": {
                 "host": "adb-123.azuredatabricks.net",
                 "port": 443,
@@ -1400,7 +1408,9 @@ def test_validate_parameters_access_token_required_for_incomplete_azure(
         if error.error_type == SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR
     ]
     assert missing
-    assert "access_token" in missing[0].extra["missing"]
+    extra = missing[0].extra
+    assert extra is not None
+    assert "access_token" in extra["missing"]
 
 
 def test_validate_parameters_accepts_dict_extra(mocker: MockerFixture) -> None:
@@ -1409,8 +1419,8 @@ def test_validate_parameters_accepts_dict_extra(mocker: MockerFixture) -> None:
     )
     mocker.patch("superset.db_engine_specs.databricks.is_port_open", return_value=True)
 
-    errors = DatabricksNativeEngineSpec.validate_parameters(
-        {  # type: ignore[arg-type]
+    errors = _validate_native_parameters(
+        {
             "parameters": {
                 "access_token": "abc12345",
                 "host": "dbc-abc.cloud.databricks.com",
@@ -1439,8 +1449,8 @@ def test_validate_parameters_malformed_extra_json(mocker: MockerFixture) -> None
     )
     mocker.patch("superset.db_engine_specs.databricks.is_port_open", return_value=True)
 
-    errors = DatabricksNativeEngineSpec.validate_parameters(
-        {  # type: ignore[arg-type]
+    errors = _validate_native_parameters(
+        {
             "parameters": {
                 "access_token": "abc12345",
                 "host": "dbc-abc.cloud.databricks.com",
@@ -1453,6 +1463,7 @@ def test_validate_parameters_malformed_extra_json(mocker: MockerFixture) -> None
 
     assert any(
         error.message == "The extra connection parameters are not valid JSON."
+        and error.extra is not None
         and error.extra.get("invalid") == ["extra"]
         for error in errors
     )
