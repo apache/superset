@@ -285,7 +285,7 @@ describe('SelectFilterPlugin', () => {
     const filterSelect = screen.getAllByRole('combobox')[0];
     userEvent.click(filterSelect);
     expect(await screen.findByRole('combobox')).toBeInTheDocument();
-    userEvent.click(screen.getByTitle(NULL_STRING));
+    userEvent.click(screen.getByTitle(NULL_STRING()));
     expect(setDataMask).toHaveBeenLastCalledWith({
       extraFormData: {
         filters: [
@@ -297,7 +297,7 @@ describe('SelectFilterPlugin', () => {
         ],
       },
       filterState: {
-        label: `boy, ${NULL_STRING}`,
+        label: `boy, ${NULL_STRING()}`,
         value: ['boy', null],
         excludeFilterValues: true,
       },
@@ -1303,7 +1303,7 @@ test('Select boolean filter with null values', async () => {
   const filterSelect = screen.getByRole('combobox');
   userEvent.click(filterSelect);
 
-  const nullOption = await screen.findByRole('option', { name: NULL_STRING });
+  const nullOption = await screen.findByRole('option', { name: NULL_STRING() });
   userEvent.click(nullOption);
 
   await waitFor(() => {
