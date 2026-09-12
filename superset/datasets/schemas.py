@@ -182,6 +182,25 @@ class DatasetPostSchema(Schema):
 
 
 class DatasetPutSchema(Schema):
+    # pylint: disable=unused-argument
+    @pre_load
+    def _discard_is_managed_externally(
+        self, data: dict[str, Any], **kwargs: Any
+    ) -> dict[str, Any]:
+        """Accept and discard ``is_managed_externally`` for wire compatibility.
+
+        The flag is not client-writable: the managed-externally update gate
+        refuses edits of flagged entities, so a client-set ``True`` would be
+        irreversible via the API. Older clients echo GET payloads back on
+        PUT, and this schema raises on unknown fields, so the key is dropped
+        here rather than removed from the accepted payload.
+        """
+        if isinstance(data, dict):
+            data.pop("is_managed_externally", None)
+        return data
+
+    is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
+
     table_name = fields.String(allow_none=True, validate=Length(1, 250))
     database_id = fields.Integer()
     sql = fields.String(allow_none=True)
@@ -204,7 +223,6 @@ class DatasetPutSchema(Schema):
     metrics = fields.List(fields.Nested(DatasetMetricsPutSchema))
     folders = fields.List(fields.Nested(FolderSchema), required=False)
     extra = fields.String(allow_none=True)
-    is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True)
     uuid = fields.UUID(allow_none=True)
 

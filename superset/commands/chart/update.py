@@ -39,6 +39,7 @@ from superset.commands.exceptions import DatasourceTypeInvalidError
 from superset.commands.utils import (
     compute_subjects,
     get_datasource_by_id,
+    raise_if_managed_externally,
     update_tags,
     validate_tags,
 )
@@ -171,11 +172,21 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
                 raise ChartForbiddenError() from ex
             except ValidationError as ex:
                 exceptions.append(ex)
+            raise_if_managed_externally(self._model, ChartForbiddenError)
         else:
             try:
                 security_manager.raise_for_access(chart=self._model)
             except SupersetSecurityException as ex:
                 raise ChartForbiddenError() from ex
+            # The relaxed-editorship branch refuses externally managed
+            # charts too: the stored query context is executable state
+            # (report execution loads and runs it), so accepting a
+            # client-supplied context here would let an editor change a
+            # managed chart's behavior -- the bypass this gate closes.
+            # Explore fires this save in the background when the chart is
+            # opened; for a managed chart that background call gets a 403
+            # it ignores.
+            raise_if_managed_externally(self._model, ChartForbiddenError)
             # Keep the refreshed payload bound to the chart's own datasource so it
             # cannot be repointed at an unrelated one.
             self._validate_query_context_datasource(exceptions)

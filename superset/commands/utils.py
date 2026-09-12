@@ -77,6 +77,26 @@ def current_user_can_modify_object(model: Any) -> bool:
         )
 
 
+def raise_if_managed_externally(model: Any, forbidden_exc: type[Exception]) -> None:
+    """Refuse a mutation of an externally managed entity.
+
+    An entity with ``is_managed_externally`` set has its source of truth
+    outside Superset: an in-app write would be overwritten on the next
+    external sync, which is why the browser hides the edit affordances for
+    such entities. The refusal must also be enforced server-side -- an
+    otherwise-authorized editor could call the API directly. (Version
+    restore is the same class of mutation; apache/superset#44013 adds the
+    matching gate there.) Raised as the caller's
+    editorship-denial exception (HTTP 403) so the response body is
+    identical to a permission denial and discloses nothing new.
+
+    Call this *after* the editorship check: a caller with no edit rights
+    at all should keep receiving the plain editorship denial.
+    """
+    if model.is_managed_externally:
+        raise forbidden_exc()
+
+
 def populate_subject_list(
     subject_ids: list[int] | None,
     default_to_user: bool,

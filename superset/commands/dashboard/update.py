@@ -38,6 +38,7 @@ from superset.commands.dashboard.exceptions import (
 )
 from superset.commands.utils import (
     compute_subjects,
+    raise_if_managed_externally,
     update_tags,
     validate_tags,
 )
@@ -56,6 +57,14 @@ logger = logging.getLogger(__name__)
 
 
 class UpdateDashboardCommand(UpdateMixin, BaseCommand):
+    #: Ordinary edits of an externally managed dashboard are refused
+    #: server-side (see ``raise_if_managed_externally``).
+    #: ``UpdateDashboardColorsConfigCommand`` flips this off so background
+    #: colors sync keeps working while a dashboard is merely viewed -- but
+    #: only for derived color values; its validate() override refuses
+    #: changes to the authoritative inputs.
+    _refuses_externally_managed: bool = True
+
     def __init__(self, model_id: int, data: dict[str, Any]):
         self._model_id = model_id
         self._properties = data.copy()
@@ -118,6 +127,9 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
             security_manager.raise_for_editorship(self._model)
         except SupersetSecurityException as ex:
             raise DashboardForbiddenError() from ex
+
+        if self._refuses_externally_managed:
+            raise_if_managed_externally(self._model, DashboardForbiddenError)
 
         # Validate slug uniqueness
         if not DashboardDAO.validate_update_slug_uniqueness(self._model_id, slug):
@@ -283,17 +295,53 @@ class UpdateDashboardChartCustomizationsCommand(UpdateDashboardCommand):
 
 
 class UpdateDashboardColorsConfigCommand(UpdateDashboardCommand):
+    # The blanket gate is skipped so background colors sync (fired while a
+    # dashboard is merely viewed) keeps working for externally managed
+    # dashboards -- but only for the DERIVED color values. The authoritative
+    # inputs are the dashboard's real content, owned by the external source
+    # of truth; validate() refuses a payload that would change them.
+    _refuses_externally_managed = False
+
+    #: json_metadata keys a colors-config save may NOT change on an
+    #: externally managed dashboard. The other accepted keys
+    #: (color_scheme_domain, shared_label_colors, map_label_colors) are
+    #: derived from these plus chart state (see
+    #: DashboardDAO.update_colors_config).
+    _AUTHORITATIVE_COLOR_KEYS: tuple[str, ...] = ("color_scheme", "label_colors")
+
     def __init__(
         self, model_id: int, data: dict[str, Any], mark_updated: bool = True
     ) -> None:
         super().__init__(model_id, data)
         self._mark_updated = mark_updated
 
+    def validate(self) -> None:
+        super().validate()
+        assert self._model
+        if self._model.is_managed_externally and self._changes_authoritative_colors():
+            raise DashboardForbiddenError()
+
+    #: Sentinel distinguishing "key absent from stored metadata" from an
+    #: explicit null: an incoming ``color_scheme: null`` on a dashboard
+    #: whose metadata lacks the key would otherwise compare equal to the
+    #: ``.get()`` default and slip the gate — yet the DAO would then write
+    #: a literal null key into the exported json_metadata, a real change.
+    _METADATA_MISSING: object = object()
+
+    def _changes_authoritative_colors(self) -> bool:
+        assert self._model
+        metadata = json.loads(self._model.json_metadata or "{}")
+        return any(
+            key in self._properties
+            and self._properties[key] != metadata.get(key, self._METADATA_MISSING)
+            for key in self._AUTHORITATIVE_COLOR_KEYS
+        )
+
     @transaction(
         on_error=partial(on_error, reraise=DashboardColorsConfigUpdateFailedError)
     )
     def run(self) -> Model:
-        super().validate()
+        self.validate()
         assert self._model
 
         original_changed_on = self._model.changed_on
