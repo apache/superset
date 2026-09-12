@@ -152,7 +152,12 @@ class StarRocksParser(_StarRocksParser):
         if is_index_def:
             return self._parse_index_constraint()
 
-        return exp.var("KEY")
+        # A bare, unnamed `KEY` column attribute (no name, no column list) no
+        # longer reaches this override at all: sqlglot's own column-
+        # constraint parsing now maps it straight to `PRIMARY KEY` before
+        # ever consulting CONSTRAINT_PARSERS. Kept as a defensive fallback in
+        # case that upstream routing changes again.
+        return exp.var("KEY")  # pragma: no cover
 
     def _parse_kill(self) -> exp.Kill:
         # StarRocks additionally supports `KILL ANALYZE <task_id>` to cancel a
