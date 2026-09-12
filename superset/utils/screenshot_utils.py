@@ -56,6 +56,18 @@ SCREENSHOT_BLANK_MIN_EDGE_DIFFERENCE = 8
 SCREENSHOT_BLANK_MIN_STRUCTURAL_EDGE_RATIO = 0.02
 SCREENSHOT_BLANK_SAMPLE_SIZES = (256, 1024)
 REPORT_CAPTURE_READINESS_STABILITY_MS = 500
+CAPTURE_READINESS_POLL_MARGIN_MS = 1000
+
+
+def capture_readiness_stability_timeout_seconds(load_wait_seconds: float) -> float:
+    """Allow one full readiness retry window before the final stable dwell."""
+
+    return (
+        max(0.0, float(load_wait_seconds))
+        + (REPORT_CAPTURE_READINESS_STABILITY_MS + CAPTURE_READINESS_POLL_MARGIN_MS)
+        / 1000
+    )
+
 
 # Runtime task-budget policy shared with the approach introduced in #42118.
 # Celery exposes the effective per-task hard/soft limits only on the running
@@ -139,6 +151,10 @@ class TiledScreenshotBudgetExceededError(ScreenshotTaskBudgetExceededError):
 
 class ScreenshotCaptureTimeoutError(RuntimeError):
     """Raised when Chromium repeatedly times out while capturing a tile."""
+
+
+class ScreenshotCaptureReadinessChangedError(RuntimeError):
+    """Raised when render readiness repeatedly changes during capture."""
 
 
 class ScreenshotBlankCaptureError(RuntimeError):
@@ -278,6 +294,7 @@ LOADING_SELECTOR = r".loading"
 ALERT_SELECTOR = r'[role="alert"]'
 EMPTY_SELECTOR = r".ant-empty, .ag-overlay-no-rows-wrapper:not(.ag-hidden)"
 MISSING_CHART_SELECTOR = r".missing-chart-container"
+CHART_RENDERED_SELECTOR = r'[data-chart-status="rendered"]'
 CONTENTFUL_CHART_HOLDERS_IN_CLIP_JS = f"""clip => {{
     const holders = Array.from(
         document.querySelectorAll('{CHART_HOLDER_SELECTOR}')
@@ -303,6 +320,10 @@ TERMINAL_MARKER_SELECTOR = (
 )
 CHART_ID_CLASS_PATTERN = r"\bdashboard-chart-id-(\d+)\b"
 
+# API complete-capture renderer markers. The shared ``data-chart-status``
+# attribute distinguishes an initially mounted slice container from a loaded
+# plugin. Existing thumbnail and scheduled-report readiness remains unchanged;
+# only callers that opt into ``require_complete_capture`` use these extra gates.
 # ECharts paint marker. The frontend
 # (plugins/plugin-chart-echarts/src/components/Echart.tsx) tags the canvas host
 # ``.echarts-host`` and adds ``.echarts-render-finished`` only in the ECharts
@@ -310,11 +331,15 @@ CHART_ID_CLASS_PATTERN = r"\bdashboard-chart-id-(\d+)\b"
 # ``.slice_container`` alone is a pre-paint signal (it mounts when data arrives,
 # before the canvas is drawn; chartStatus/onRenderSuccess fire pre-paint too), so
 # a holder that still contains an unpainted host is treated as not-yet-rendered and
-# the report screenshot waits for it instead of capturing a blank chart. Only
-# ECharts hosts are gated; DOM/SVG vizzes paint on commit and non-ECharts canvas
-# vizzes (deck.gl/mapbox/etc.) have no ``.echarts-host`` so they are unaffected.
+# the screenshot waits for it instead of capturing a blank chart.
 ECHARTS_UNPAINTED_HOST_SELECTOR = r".echarts-host:not(.echarts-render-finished)"
 AG_GRID_HOST_SELECTOR = r'[data-themed-ag-grid="true"]'
+MAP_UNPAINTED_HOST_SELECTOR = r'[data-superset-map-status="loading"]'
+MAP_ERROR_HOST_SELECTOR = r'[data-superset-map-status="error"]'
+ASYNC_CHART_UNPAINTED_HOST_SELECTOR = (
+    r"[data-superset-render-status]:"
+    r'not([data-superset-render-status="rendered"])'
+)
 CHART_ERROR_OR_EMPTY_SELECTOR = (
     f"{ALERT_SELECTOR}, {EMPTY_SELECTOR}, {MISSING_CHART_SELECTOR}"
 )
@@ -336,7 +361,11 @@ FORCE_ALL_CHART_HOLDERS_IN_VIEW_JS = (
 )
 
 
-def _unready_chart_holders_js_body(*, viewport_only: bool) -> str:
+def _unready_chart_holders_js_body(
+    *,
+    viewport_only: bool,
+    require_complete_render: bool = False,
+) -> str:
     """Return the shared holder-readiness scan body.
 
     A holder is ready only after a terminal marker appears and its loading
@@ -358,7 +387,9 @@ def _unready_chart_holders_js_body(*, viewport_only: bool) -> str:
         if viewport_only
         else ""
     )
+    require_complete_render_js = str(require_complete_render).lower()
     return f"""
+    const requireCompleteRender = {require_complete_render_js};
     const holders = document.querySelectorAll('{CHART_HOLDER_SELECTOR}');
     const unready = [];
     for (const holder of holders) {{{viewport_skip}
@@ -369,8 +400,20 @@ def _unready_chart_holders_js_body(*, viewport_only: bool) -> str:
         const hasErrorOrEmpty = holder.querySelector(
             '{CHART_ERROR_OR_EMPTY_SELECTOR}'
         ) !== null;
+        const hasRenderedChart = holder.querySelector(
+            '{CHART_RENDERED_SELECTOR}'
+        ) !== null;
         const hasUnpaintedEchart = holder.querySelector(
             '{ECHARTS_UNPAINTED_HOST_SELECTOR}'
+        ) !== null;
+        const hasUnpaintedMap = holder.querySelector(
+            '{MAP_UNPAINTED_HOST_SELECTOR}'
+        ) !== null;
+        const hasMapError = holder.querySelector(
+            '{MAP_ERROR_HOST_SELECTOR}'
+        ) !== null;
+        const hasUnpaintedAsyncChart = holder.querySelector(
+            '{ASYNC_CHART_UNPAINTED_HOST_SELECTOR}'
         ) !== null;
         const agGrids = Array.from(holder.querySelectorAll(
             '{AG_GRID_HOST_SELECTOR}'
@@ -382,26 +425,47 @@ def _unready_chart_holders_js_body(*, viewport_only: bool) -> str:
             grid._supersetAgGridWaitObserved = true;
         }});
         const hasUnpaintedAgGrid = unpaintedAgGrids.length > 0;
-        // Ready = a settled error/empty/missing state, or a slice container
-        // whose renderer has painted. ECharts and AG Grid expose explicit
-        // completion signals; keep either host unready until its signal fires.
-        const isReady = !stillLoading && (
+        // All callers retain the established ECharts and AG Grid paint gates.
+        // API complete captures additionally require the generic plugin marker
+        // and explicit first-party map paint markers without changing reports
+        // or thumbnails. A map marker cannot be bypassed by an in-chart warning.
+        const isReady = !stillLoading
+            && (!requireCompleteRender || (
+                !hasMapError && !hasUnpaintedMap && !hasUnpaintedAsyncChart
+            )) && (
             hasErrorOrEmpty || (
-                hasSliceContainer && !hasUnpaintedEchart && !hasUnpaintedAgGrid
+                hasSliceContainer
+                && !hasUnpaintedEchart && !hasUnpaintedAgGrid
+                && (!requireCompleteRender || hasRenderedChart)
             )
         );
         if (!isReady) {{
             const chartIdMatch = holder.className.match(/{CHART_ID_CLASS_PATTERN}/);
             const chartId = chartIdMatch ? chartIdMatch[1] : null;
             let state;
-            if (stillLoading && hasSliceContainer) {{
+            if (requireCompleteRender && hasSliceContainer && hasMapError) {{
+                state = 'map_error';
+            }} else if (stillLoading && hasSliceContainer) {{
                 state = 'spinner_mounted';
             }} else if (stillLoading) {{
                 state = 'waiting_on_database';
+            }} else if (
+                requireCompleteRender && hasSliceContainer && !hasRenderedChart
+            ) {{
+                state = 'plugin_loading';
             }} else if (hasSliceContainer && hasUnpaintedEchart) {{
                 state = 'mounted_unpainted';
             }} else if (hasSliceContainer && hasUnpaintedAgGrid) {{
                 state = 'ag_grid_unpainted';
+            }} else if (
+                requireCompleteRender && hasSliceContainer && hasUnpaintedMap
+            ) {{
+                state = 'map_unpainted';
+            }} else if (
+                requireCompleteRender
+                && hasSliceContainer && hasUnpaintedAsyncChart
+            ) {{
+                state = 'async_chart_unpainted';
             }} else {{
                 state = 'nothing_mounted';
             }}
@@ -419,11 +483,23 @@ UNREADY_CHART_HOLDERS_JS_BODY = _unready_chart_holders_js_body(viewport_only=Tru
 # Full-dashboard scan (non-tiled report capture, which screenshots the whole
 # element in one shot and therefore cannot ignore below-the-fold holders).
 UNREADY_ALL_CHART_HOLDERS_JS_BODY = _unready_chart_holders_js_body(viewport_only=False)
+UNREADY_COMPLETE_CHART_HOLDERS_JS_BODY = _unready_chart_holders_js_body(
+    viewport_only=True,
+    require_complete_render=True,
+)
+UNREADY_COMPLETE_ALL_CHART_HOLDERS_JS_BODY = _unready_chart_holders_js_body(
+    viewport_only=False,
+    require_complete_render=True,
+)
+
 
 # Diagnostic query for every chart holder, including terminal and virtualized
 # states. It interpolates the same selector constants as the predicates.
-FIND_CHART_HOLDER_STATES_JS = f"""
+def _find_chart_holder_states_js(*, require_complete_render: bool = False) -> str:
+    require_complete_render_js = str(require_complete_render).lower()
+    return f"""
 () => {{
+    const requireCompleteRender = {require_complete_render_js};
     const holders = document.querySelectorAll('{CHART_HOLDER_SELECTOR}');
     return Array.from(holders).map(holder => {{
         const chartIdMatch = holder.className.match(/{CHART_ID_CLASS_PATTERN}/);
@@ -438,23 +514,33 @@ FIND_CHART_HOLDER_STATES_JS = f"""
         const hasSliceContainer = holder.querySelector(
             '{SLICE_CONTAINER_SELECTOR}'
         ) !== null;
+        const hasRenderedChart = holder.querySelector(
+            '{CHART_RENDERED_SELECTOR}'
+        ) !== null;
         const stillLoading = holder.querySelector('{LOADING_SELECTOR}') !== null;
         const hasUnpaintedAgGrid = Array.from(holder.querySelectorAll(
             '{AG_GRID_HOST_SELECTOR}'
         )).some(grid => grid._agGridFirstDataRendered !== true);
+        const hasUnpaintedMap = holder.querySelector(
+            '{MAP_UNPAINTED_HOST_SELECTOR}'
+        ) !== null;
+        const hasMapError = holder.querySelector(
+            '{MAP_ERROR_HOST_SELECTOR}'
+        ) !== null;
+        const hasUnpaintedAsyncChart = holder.querySelector(
+            '{ASYNC_CHART_UNPAINTED_HOST_SELECTOR}'
+        ) !== null;
+        if (requireCompleteRender && hasSliceContainer && hasMapError) {{
+            return {{ chartId, state: 'map_error', agGridWaitObserved }};
+        }}
         if (stillLoading && hasSliceContainer) {{
             return {{ chartId, state: 'spinner_mounted', agGridWaitObserved }};
         }}
         if (stillLoading) {{
             return {{ chartId, state: 'waiting_on_database', agGridWaitObserved }};
         }}
-        if (holder.querySelector('{ALERT_SELECTOR}') !== null) {{
-            return {{ chartId, state: 'error', agGridWaitObserved }};
-        }}
-        if (holder.querySelector(
-            '{EMPTY_SELECTOR}, {MISSING_CHART_SELECTOR}'
-        ) !== null) {{
-            return {{ chartId, state: 'empty', agGridWaitObserved }};
+        if (requireCompleteRender && hasSliceContainer && !hasRenderedChart) {{
+            return {{ chartId, state: 'plugin_loading', agGridWaitObserved }};
         }}
         if (hasSliceContainer && holder.querySelector(
             '{ECHARTS_UNPAINTED_HOST_SELECTOR}'
@@ -464,13 +550,40 @@ FIND_CHART_HOLDER_STATES_JS = f"""
         if (hasSliceContainer && hasUnpaintedAgGrid) {{
             return {{ chartId, state: 'ag_grid_unpainted', agGridWaitObserved }};
         }}
-        if (hasSliceContainer) {{
+        if (requireCompleteRender && hasSliceContainer && hasUnpaintedMap) {{
+            return {{ chartId, state: 'map_unpainted', agGridWaitObserved }};
+        }}
+        if (
+            requireCompleteRender
+            && hasSliceContainer && hasUnpaintedAsyncChart
+        ) {{
+            return {{
+                chartId,
+                state: 'async_chart_unpainted',
+                agGridWaitObserved,
+            }};
+        }}
+        if (holder.querySelector('{ALERT_SELECTOR}') !== null) {{
+            return {{ chartId, state: 'error', agGridWaitObserved }};
+        }}
+        if (holder.querySelector(
+            '{EMPTY_SELECTOR}, {MISSING_CHART_SELECTOR}'
+        ) !== null) {{
+            return {{ chartId, state: 'empty', agGridWaitObserved }};
+        }}
+        if (hasSliceContainer && (!requireCompleteRender || hasRenderedChart)) {{
             return {{ chartId, state: 'rendered', agGridWaitObserved }};
         }}
         return {{ chartId, state: 'nothing_mounted', agGridWaitObserved }};
     }});
 }}
 """
+
+
+FIND_CHART_HOLDER_STATES_JS = _find_chart_holder_states_js()
+FIND_COMPLETE_CHART_HOLDER_STATES_JS = _find_chart_holder_states_js(
+    require_complete_render=True
+)
 
 CHART_HOLDERS_READY_JS = (
     f"() => {{ {UNREADY_CHART_HOLDERS_JS_BODY} return unready.length === 0; }}"
@@ -487,6 +600,19 @@ REPORT_CHART_HOLDERS_READY_JS = (
 REPORT_ALL_CHART_HOLDERS_READY_JS = (
     f"() => {{ {UNREADY_ALL_CHART_HOLDERS_JS_BODY} "
     "return holders.length > 0 && unready.length === 0; }"
+)
+DASHBOARD_CHART_HOLDERS_READY_JS = (
+    f"() => {{ {UNREADY_COMPLETE_CHART_HOLDERS_JS_BODY} "
+    "if (unready.some(holder => holder.state === 'map_error')) "
+    "throw new Error('Superset map renderer reported a terminal error'); "
+    "return unready.length === 0; }"
+)
+DASHBOARD_ALL_CHART_HOLDERS_READY_JS = (
+    "() => { if (document.querySelector('.dashboard-grid') === null) "
+    f"return false; {UNREADY_COMPLETE_ALL_CHART_HOLDERS_JS_BODY} "
+    "if (unready.some(holder => holder.state === 'map_error')) "
+    "throw new Error('Superset map renderer reported a terminal error'); "
+    "return unready.length === 0; }"
 )
 
 
@@ -517,14 +643,27 @@ STABLE_REPORT_CHART_HOLDERS_READY_JS = _stable_readiness_js(
 STABLE_REPORT_ALL_CHART_HOLDERS_READY_JS = _stable_readiness_js(
     REPORT_ALL_CHART_HOLDERS_READY_JS
 )
+STABLE_DASHBOARD_CHART_HOLDERS_READY_JS = _stable_readiness_js(
+    DASHBOARD_CHART_HOLDERS_READY_JS
+)
+STABLE_DASHBOARD_ALL_CHART_HOLDERS_READY_JS = _stable_readiness_js(
+    DASHBOARD_ALL_CHART_HOLDERS_READY_JS
+)
 CHART_HOLDERS_MOUNTED_JS = (
     f"() => document.querySelectorAll('{CHART_HOLDER_SELECTOR}').length > 0"
 )
+DASHBOARD_LAYOUT_READY_JS = "() => document.querySelector('.dashboard-grid') !== null"
 FIND_UNREADY_CHART_HOLDERS_JS = (
     f"() => {{ {UNREADY_CHART_HOLDERS_JS_BODY} return unready; }}"
 )
 FIND_ALL_UNREADY_CHART_HOLDERS_JS = (
     f"() => {{ {UNREADY_ALL_CHART_HOLDERS_JS_BODY} return unready; }}"
+)
+FIND_COMPLETE_UNREADY_CHART_HOLDERS_JS = (
+    f"() => {{ {UNREADY_COMPLETE_CHART_HOLDERS_JS_BODY} return unready; }}"
+)
+FIND_COMPLETE_ALL_UNREADY_CHART_HOLDERS_JS = (
+    f"() => {{ {UNREADY_COMPLETE_ALL_CHART_HOLDERS_JS_BODY} return unready; }}"
 )
 
 # A chart capture has one target rather than dashboard holders, but needs the
@@ -781,6 +920,7 @@ def take_tiled_screenshot(  # noqa: C901
     report_execution_context: ReportExecutionContext | None = None,
     url: str | None = None,
     screenshot_started_at: float | None = None,
+    require_complete_capture: bool = False,
 ) -> bytes | None:
     """
     Take a tiled screenshot of a large dashboard by scrolling and capturing sections.
@@ -803,6 +943,10 @@ def take_tiled_screenshot(  # noqa: C901
             task budget -- the same clock _wait_for_charts_ready uses.
             Ignored when a report_execution_context provides its own
             deadline; falls back to "now" when omitted.
+        require_complete_capture: Whether an API screenshot request should use
+            fail-closed readiness and blank-capture behavior. The rendered DOM,
+            rather than the model's total slice count, defines the active tab's
+            capture contents.
 
     Returns:
         Combined screenshot bytes or None if failed
@@ -815,6 +959,12 @@ def take_tiled_screenshot(  # noqa: C901
     """
     if report_execution_context:
         log_context = report_execution_context.log_context
+    expected_chart_count = (
+        report_execution_context.expected_chart_count
+        if report_execution_context
+        else None
+    )
+    strict_capture = report_execution_context is not None or require_complete_capture
     context_suffix = f" [{log_context}]" if log_context else ""
     # Set right before re-raising the per-tile readiness timeout below, and
     # checked in the except block at the bottom of this function.
@@ -862,9 +1012,15 @@ def take_tiled_screenshot(  # noqa: C901
             )
         if remaining is None:
             return float(requested_seconds or load_wait)
+        available = remaining - reserve_seconds
+        if available <= 0:
+            raise TiledScreenshotBudgetExceededError(
+                f"Tiled screenshot budget of {task_budget:.2f}s exhausted "
+                f"before {phase} after {elapsed:.2f}s"
+            )
         if requested_seconds is None or requested_seconds <= 0:
-            return remaining
-        return min(float(requested_seconds), remaining)
+            return available
+        return min(float(requested_seconds), available)
 
     try:
         # Get the target element
@@ -882,14 +1038,25 @@ def take_tiled_screenshot(  # noqa: C901
             * 1000
         )
 
-        if report_execution_context:
+        if strict_capture:
             mount_wait = _timeout_seconds(
                 "chart_holder_mount",
-                reserve_seconds=report_execution_context.readiness_reserve_seconds,
+                requested_seconds=(
+                    None if report_execution_context else float(load_wait)
+                ),
+                reserve_seconds=(
+                    report_execution_context.readiness_reserve_seconds
+                    if report_execution_context
+                    else 0.0
+                ),
             )
             try:
                 page.wait_for_function(
-                    CHART_HOLDERS_MOUNTED_JS,
+                    (
+                        CHART_HOLDERS_MOUNTED_JS
+                        if report_execution_context
+                        else DASHBOARD_LAYOUT_READY_JS
+                    ),
                     timeout=mount_wait * 1000,
                 )
             except PlaywrightTimeout:
@@ -902,7 +1069,7 @@ def take_tiled_screenshot(  # noqa: C901
                     "terminal_reason=zero_holders_timeout states=%s; "
                     "aborting before dimensions, capture, or delivery",
                     url,
-                    report_execution_context.expected_chart_count,
+                    expected_chart_count,
                     len(holder_states),
                     elapsed,
                     f"{remaining:.2f}" if remaining is not None else None,
@@ -1018,19 +1185,32 @@ def take_tiled_screenshot(  # noqa: C901
                     else 0.0
                 ),
             )
+            tile_readiness_predicate = (
+                REPORT_CHART_HOLDERS_READY_JS
+                if report_execution_context
+                else (
+                    DASHBOARD_CHART_HOLDERS_READY_JS
+                    if require_complete_capture
+                    else CHART_HOLDERS_READY_JS
+                )
+            )
             try:
                 page.wait_for_function(
-                    (
-                        REPORT_CHART_HOLDERS_READY_JS
-                        if report_execution_context
-                        else CHART_HOLDERS_READY_JS
-                    ),
+                    tile_readiness_predicate,
                     timeout=tile_load_wait * 1000,
                 )
             except PlaywrightTimeout:
                 tile_elapsed = time.monotonic() - tile_wait_start
-                unready_chart_holders = page.evaluate(FIND_UNREADY_CHART_HOLDERS_JS)
-                holder_states = page.evaluate(FIND_CHART_HOLDER_STATES_JS)
+                unready_chart_holders = page.evaluate(
+                    FIND_COMPLETE_UNREADY_CHART_HOLDERS_JS
+                    if require_complete_capture
+                    else FIND_UNREADY_CHART_HOLDERS_JS
+                )
+                holder_states = page.evaluate(
+                    FIND_COMPLETE_CHART_HOLDER_STATES_JS
+                    if require_complete_capture
+                    else FIND_CHART_HOLDER_STATES_JS
+                )
                 ready_states = {"rendered", "empty", "error", "virtualized"}
                 ready_holders = sum(
                     holder.get("state") in ready_states for holder in holder_states
@@ -1050,11 +1230,7 @@ def take_tiled_screenshot(  # noqa: C901
                     "terminal_reason=readiness_timeout unready_holders=%s "
                     "states=%s; aborting before capture or delivery",
                     url,
-                    (
-                        report_execution_context.expected_chart_count
-                        if report_execution_context
-                        else None
-                    ),
+                    expected_chart_count,
                     len(holder_states),
                     ready_holders,
                     i + 1,
@@ -1196,17 +1372,13 @@ def take_tiled_screenshot(  # noqa: C901
                 total_chart_holders = 0
                 contentful_chart_holders = 0
 
-            if (
-                total_chart_holders == 0
-                and report_execution_context
-                and report_execution_context.expected_chart_count
-            ):
+            if total_chart_holders == 0 and strict_capture and expected_chart_count:
                 logger.warning(
                     "report_capture_no_chart_holders tile=%s/%s "
                     "expected_holders=%s holder_count_failed=%s%s",
                     i + 1,
                     num_tiles,
-                    report_execution_context.expected_chart_count,
+                    expected_chart_count,
                     holder_count_failed,
                     context_suffix,
                 )
@@ -1214,19 +1386,35 @@ def take_tiled_screenshot(  # noqa: C901
             # Take screenshot with clipping to capture only this tile's content
             tile_screenshot: bytes | None = None
             for capture_attempt in range(1, TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS + 1):
-                if report_execution_context:
+                if strict_capture:
                     stable_wait = _timeout_seconds(
                         "capture_readiness_stability",
+                        requested_seconds=(
+                            None
+                            if report_execution_context
+                            else capture_readiness_stability_timeout_seconds(load_wait)
+                        ),
                         reserve_seconds=(
                             report_execution_context.readiness_reserve_seconds
+                            if report_execution_context
+                            else 1.0
                         ),
                     )
                     try:
                         waited_for_stability = wait_for_stable_readiness(
                             page,
-                            STABLE_REPORT_CHART_HOLDERS_READY_JS,
+                            (
+                                STABLE_REPORT_CHART_HOLDERS_READY_JS
+                                if report_execution_context
+                                else STABLE_DASHBOARD_CHART_HOLDERS_READY_JS
+                            ),
                             stable_wait,
                         )
+                        if require_complete_capture and not waited_for_stability:
+                            raise TiledScreenshotBudgetExceededError(
+                                "Screenshot task budget cannot satisfy capture "
+                                "readiness stability"
+                            )
                         logger.info(
                             "report_capture_readiness_stable tile=%s/%s "
                             "attempt=%s/%s stability_ms=%s skipped=%s%s",
@@ -1294,6 +1482,26 @@ def take_tiled_screenshot(  # noqa: C901
                         ) from ex
                 else:
                     capture_elapsed = time.monotonic() - capture_started_at
+                    if require_complete_capture and not bool(
+                        page.evaluate(tile_readiness_predicate)
+                    ):
+                        logger.warning(
+                            "report_capture_readiness_changed capture=tile "
+                            "tile=%s/%s attempt=%s/%s%s; discarding candidate "
+                            "captured during a render transition",
+                            i + 1,
+                            num_tiles,
+                            capture_attempt,
+                            TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS,
+                            context_suffix,
+                        )
+                        if capture_attempt == TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS:
+                            raise ScreenshotCaptureReadinessChangedError(
+                                "Dashboard readiness changed during tile "
+                                f"{i + 1}/{num_tiles} capture after "
+                                f"{capture_attempt} attempts"
+                            )
+                        continue
                     blankness = get_screenshot_blankness_metrics(candidate)
                     is_blank = blankness.is_blank and (
                         contentful_chart_holders > 0 or holder_count_failed
@@ -1345,7 +1553,7 @@ def take_tiled_screenshot(  # noqa: C901
                         context_suffix,
                     )
                     if capture_attempt == TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS:
-                        if report_execution_context:
+                        if strict_capture:
                             # Exhausted retries must never turn a rejected report
                             # tile into accepted content. Only thumbnails may
                             # retain a blank capture below.
@@ -1450,11 +1658,7 @@ def take_tiled_screenshot(  # noqa: C901
             "elapsed_seconds=%.2f "
             "remaining_seconds=%s%s",
             url,
-            (
-                report_execution_context.expected_chart_count
-                if report_execution_context
-                else None
-            ),
+            expected_chart_count,
             len(holder_states),
             sum(holder.get("state") in ready_states for holder in holder_states),
             sum(holder.get("agGridWaitObserved") is True for holder in holder_states),
@@ -1466,11 +1670,11 @@ def take_tiled_screenshot(  # noqa: C901
         logger.info("Combining screenshot tiles...%s", context_suffix)
         combined_screenshot = combine_screenshot_tiles(
             screenshot_tiles,
-            allow_partial_fallback=report_execution_context is None,
+            allow_partial_fallback=not strict_capture,
             log_context=log_context,
         )
 
-        if report_execution_context and contentful_tiles_captured:
+        if strict_capture and contentful_tiles_captured:
             combined_blankness = get_screenshot_blankness_metrics(combined_screenshot)
             logger.info(
                 "report_capture_validation capture=combined "
@@ -1513,11 +1717,15 @@ def take_tiled_screenshot(  # noqa: C901
             context_suffix,
         )
         raise
-    except (ScreenshotBlankCaptureError, ScreenshotCaptureTimeoutError):
+    except (
+        ScreenshotBlankCaptureError,
+        ScreenshotCaptureReadinessChangedError,
+        ScreenshotCaptureTimeoutError,
+    ):
         # Preserve the explicit blank-capture or timeout reason for report execution
         # history instead of degrading it to an anonymous None screenshot.
         logger.exception("Tiled screenshot capture rejected%s", context_suffix)
-        if report_execution_context:
+        if strict_capture:
             raise
         return None
     except SoftTimeLimitExceeded:

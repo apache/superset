@@ -244,6 +244,10 @@ function ChartRendererComponent({
     legendState: undefined,
     legendIndex: 0,
   });
+  const [renderedVizType, setRenderedVizType] = useState<string | null>(null);
+  const currentFormData =
+    chartIsStale && latestQueryFormData ? latestQueryFormData : formData;
+  const vizType = currentFormData.viz_type || propVizType;
 
   const hasQueryResponseChangeRef = useRef(false);
   const renderStartTimeRef = useRef(0);
@@ -291,6 +295,7 @@ function ChartRendererComponent({
   );
 
   const handleRenderSuccess = useCallback((): void => {
+    setRenderedVizType(vizType);
     if (['loading', 'rendered'].indexOf(chartStatus as string) < 0) {
       actions.chartRenderingSucceeded(chartId);
     }
@@ -299,13 +304,13 @@ function ChartRendererComponent({
     if (hasQueryResponseChangeRef.current) {
       actions.logEvent(LOG_ACTIONS_RENDER_CHART, {
         slice_id: chartId,
-        viz_type: propVizType,
+        viz_type: vizType,
         start_offset: renderStartTimeRef.current,
         ts: new Date().getTime(),
         duration: Logger.getTimestamp() - renderStartTimeRef.current,
       });
     }
-  }, [actions, chartId, chartStatus, propVizType]);
+  }, [actions, chartId, chartStatus, vizType]);
 
   const handleRenderFailure = useCallback(
     (error: Error, info: { componentStack: string } | null): void => {
@@ -445,10 +450,6 @@ function ChartRendererComponent({
 
   renderStartTimeRef.current = Logger.getTimestamp();
 
-  const currentFormData =
-    chartIsStale && latestQueryFormData ? latestQueryFormData : formData;
-  const vizType = currentFormData.viz_type || propVizType;
-
   // It's bad practice to use unprefixed `vizType` as classnames for chart
   // container. It may cause css conflicts as in the case of legacy table chart.
   // When migrating charts, we should gradually add a `superset-chart-` prefix
@@ -526,6 +527,18 @@ function ChartRendererComponent({
       currentFormDataExtended?.server_pagination &&
       (hasSearchText || hasAgGridFilters)
     );
+  // The loadable renderer emits its success callback when its module mounts,
+  // but not when an already-loaded plugin receives refreshed query data.
+  // Remember which renderer mounted so a spinner-suppressed refresh can become
+  // capture-ready again after the new props commit. A visualization-type change
+  // remains gated until the replacement renderer reports success.
+  const captureChartStatus =
+    ['success', 'rendered'].includes(chartStatus as string) &&
+    renderedVizType === vizType
+      ? 'rendered'
+      : chartStatus === 'rendered'
+        ? 'success'
+        : chartStatus;
 
   return (
     <>
@@ -538,7 +551,10 @@ function ChartRendererComponent({
           onClose={handleContextMenuClosed}
         />
       )}
-      <div onContextMenu={showContextMenu ? onContextMenuFallback : undefined}>
+      <div
+        data-chart-status={captureChartStatus}
+        onContextMenu={showContextMenu ? onContextMenuFallback : undefined}
+      >
         <SuperChart
           disableErrorBoundary
           key={`${chartId}${webpackHash}`}

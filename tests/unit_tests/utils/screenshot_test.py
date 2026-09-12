@@ -26,8 +26,12 @@ from superset.utils.hashing import hash_from_dict
 from superset.utils.screenshots import (
     BaseScreenshot,
     ChartScreenshot,
+    DASHBOARD_SCREENSHOT_CAPTURE_CONTRACT,
+    DashboardScreenshot,
     ScreenshotCachePayload,
     ScreenshotCachePayloadType,
+    ScreenshotCacheReadError,
+    StatusValues,
 )
 
 BASE_SCREENSHOT_PATH = "superset.utils.screenshots.BaseScreenshot"
@@ -42,6 +46,7 @@ class MockCache:
 
     def __init__(self):
         self._cache = None  # Store the cached value
+        self.cache = self
 
     def set(self, _key, value):
         """Set the cache with a new value."""
@@ -77,6 +82,25 @@ def test_get_screenshot(mocker: MockerFixture, screenshot_obj):
     assert screenshot_data == fake_bytes
 
 
+def test_dashboard_screenshot_threads_complete_capture_requirement(
+    mocker: MockerFixture, mock_user
+):
+    screenshot_obj = DashboardScreenshot(
+        "http://example.com",
+        "sample_digest",
+        require_complete_capture=True,
+    )
+    driver = mocker.patch(BASE_SCREENSHOT_PATH + ".driver")
+    driver.return_value.get_screenshot.return_value = FAKE_PNG_BYTES
+
+    screenshot_obj.get_screenshot(mock_user)
+
+    assert (
+        driver.return_value.get_screenshot.call_args.kwargs["require_complete_capture"]
+        is True
+    )
+
+
 def test_get_cache_key(app_context, screenshot_obj):
     """Test get_cache_key method"""
     expected_cache_key = hash_from_dict(
@@ -101,6 +125,17 @@ def test_get_from_cache_key(mocker: MockerFixture, screenshot_obj):
     cache_payload = screenshot_obj.get_from_cache_key("key")
     assert isinstance(cache_payload, ScreenshotCachePayload)
     assert cache_payload._image == fake_bytes  # pylint: disable=protected-access
+
+
+def test_get_from_cache_key_preserves_backend_failure(
+    mocker: MockerFixture, screenshot_obj
+):
+    failing_cache = MagicMock()
+    failing_cache.get.side_effect = RuntimeError("cache unavailable")
+    mocker.patch.object(BaseScreenshot, "cache", failing_cache)
+
+    with pytest.raises(ScreenshotCacheReadError, match="Could not read"):
+        screenshot_obj.get_from_cache_key("key")
 
 
 class TestComputeAndCache:
@@ -128,6 +163,24 @@ class TestComputeAndCache:
         screenshot_obj.compute_and_cache(force=False)
         cache_payload: ScreenshotCachePayloadType = screenshot_obj.cache.get("key")
         assert cache_payload["status"] == "Updated"
+        assert cache_payload["capture_contract"] is None
+
+    def test_strict_dashboard_stamps_capture_contract(
+        self, mocker: MockerFixture
+    ) -> None:
+        screenshot_obj = DashboardScreenshot(
+            "http://example.com",
+            "digest",
+            require_complete_capture=True,
+        )
+        self._setup_compute_and_cache(mocker, screenshot_obj)
+
+        screenshot_obj.compute_and_cache(force=False)
+
+        cache_payload: ScreenshotCachePayloadType = screenshot_obj.cache.get("key")
+        assert (
+            cache_payload["capture_contract"] == DASHBOARD_SCREENSHOT_CAPTURE_CONTRACT
+        )
 
     def test_stamps_cache_scope_when_set(self, mocker: MockerFixture, screenshot_obj):
         """A caller (the thumbnail Celery tasks) sets `cache_scope` before
@@ -308,6 +361,54 @@ class TestScreenshotCachePayloadGetImage:
         assert result1 is not result2
 
 
+@pytest.mark.parametrize("status", [StatusValues.COMPUTING, StatusValues.ERROR])
+def test_explicit_status_round_trips_with_an_existing_image(
+    status: StatusValues,
+) -> None:
+    payload = ScreenshotCachePayload(
+        image=FAKE_PNG_BYTES,
+        status=status,
+        scope="dashboard:5",
+    )
+
+    restored = ScreenshotCachePayload.from_dict(payload.to_dict())
+
+    assert restored.status == status
+    assert restored.get_status() == status.value
+
+
+def test_image_without_explicit_status_defaults_to_updated() -> None:
+    payload = ScreenshotCachePayload(image=FAKE_PNG_BYTES)
+
+    assert payload.status == StatusValues.UPDATED
+
+
+def test_capture_contract_round_trips_and_legacy_payload_defaults_to_none() -> None:
+    payload = ScreenshotCachePayload(
+        image=FAKE_PNG_BYTES,
+        capture_contract=DASHBOARD_SCREENSHOT_CAPTURE_CONTRACT,
+    )
+    serialized = payload.to_dict()
+
+    assert (
+        ScreenshotCachePayload.from_dict(serialized).get_capture_contract()
+        == DASHBOARD_SCREENSHOT_CAPTURE_CONTRACT
+    )
+    serialized.pop("capture_contract")
+    assert ScreenshotCachePayload.from_dict(serialized).get_capture_contract() is None
+
+
+def test_pending_invalidates_a_prior_capture_contract() -> None:
+    payload = ScreenshotCachePayload(
+        image=FAKE_PNG_BYTES,
+        capture_contract=DASHBOARD_SCREENSHOT_CAPTURE_CONTRACT,
+    )
+
+    payload.pending()
+
+    assert payload.get_capture_contract() is None
+
+
 class TestScreenshotCachePayloadScope:
     """
     Cache entries are shared across every dashboard and chart in the same
@@ -339,7 +440,7 @@ class TestScreenshotCachePayloadScope:
             "image": None,
             "timestamp": "2024-01-01T00:00:00",
             "status": "Updated",
-        }  # type: ignore[typeddict-item]
+        }
         restored = ScreenshotCachePayload.from_dict(legacy_dict)
         assert restored.get_scope() is None
 

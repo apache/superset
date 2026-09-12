@@ -19,7 +19,14 @@
 import { configureStore } from '@reduxjs/toolkit';
 import { getChartComponentRegistry } from '@superset-ui/core';
 import { ThemeProvider } from '@apache-superset/core/theme';
-import { FC, useEffect, useState } from 'react';
+import {
+  ComponentType,
+  FC,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import { Provider as ReduxProvider } from 'react-redux';
 import { ChartWrapperProps } from '../types';
 
@@ -30,18 +37,41 @@ export const ChartWrapper: FC<ChartWrapperProps> = ({
   width,
   chartConfig,
   locale,
+  onRenderComplete,
+  onRenderError,
 }) => {
-  const [Chart, setChart] = useState<any>();
-
-  const getChartFromRegistry = async (vizType: string) => {
-    const registry = getChartComponentRegistry();
-    const c = await registry.getAsPromise(vizType);
-    setChart(() => c);
-  };
+  const [Chart, setChart] = useState<ComponentType<Record<string, unknown>>>();
+  const onRenderCompleteRef = useRef(onRenderComplete);
+  const onRenderErrorRef = useRef(onRenderError);
+  onRenderCompleteRef.current = onRenderComplete;
+  onRenderErrorRef.current = onRenderError;
 
   useEffect(() => {
-    getChartFromRegistry(vizType);
+    let active = true;
+    setChart(undefined);
+    getChartComponentRegistry()
+      .getAsPromise(vizType)
+      .then(chart => {
+        if (active) {
+          setChart(() => chart);
+        }
+      })
+      .catch(error => {
+        if (active) {
+          console.warn(`Could not load cartodiagram chart: ${error}`);
+          onRenderErrorRef.current?.(error);
+        }
+      });
+    return () => {
+      active = false;
+    };
   }, [vizType]);
+
+  useLayoutEffect(() => {
+    if (Chart !== undefined) {
+      onRenderCompleteRef.current?.();
+    }
+  }, [Chart, chartConfig, height, locale, theme, width]);
 
   // Create a mock store that is needed by
   // eCharts components to access the locale.

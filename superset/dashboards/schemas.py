@@ -577,6 +577,9 @@ class DashboardScreenshotPostSchema(Schema):
         ),
         metadata={"description": "A list of tuples, each containing two strings."},
     )
+    permalinkKey = fields.String(  # noqa: N815
+        metadata={"description": "An existing dashboard permalink key."}
+    )
 
 
 class ChartFavStarResponseResult(Schema):
@@ -628,6 +631,9 @@ class EmbeddedDashboardResponseSchema(Schema):
 
 class DashboardCacheScreenshotResponseSchema(Schema):
     cache_key = fields.String(metadata={"description": "The cache key"})
+    permalink_key = fields.String(
+        metadata={"description": "The permalink key used by this screenshot task"}
+    )
     dashboard_url = fields.String(
         metadata={"description": "The url to render the dashboard"}
     )
@@ -636,6 +642,13 @@ class DashboardCacheScreenshotResponseSchema(Schema):
     )
     task_status = fields.String(
         metadata={"description": "The status of the async screenshot"}
+    )
+    task_timeout_seconds = fields.Integer(
+        metadata={
+            "description": (
+                "The client wait budget for the Pending and Computing task states"
+            )
+        }
     )
     task_updated_at = fields.String(
         metadata={"description": "The timestamp of the last change in status"}

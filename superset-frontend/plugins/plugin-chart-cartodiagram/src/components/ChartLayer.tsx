@@ -182,6 +182,7 @@ export class ChartLayer extends Layer {
   createCharts(zoom: number) {
     const charts = this.chartConfigs.features.map(feature => {
       const container = document.createElement('div');
+      container.dataset.supersetMapStatus = 'loading';
 
       let chartWidth = 0;
       let chartHeight = 0;
@@ -197,6 +198,12 @@ export class ChartLayer extends Layer {
         chartHeight,
         this.theme,
         this.locale,
+        () => {
+          container.dataset.supersetMapStatus = 'rendered';
+        },
+        () => {
+          container.dataset.supersetMapStatus = 'error';
+        },
       );
       const root = createRoot(container);
       root.render(chartComponent);
@@ -228,6 +235,8 @@ export class ChartLayer extends Layer {
         return chart;
       }
 
+      chart.htmlElement.dataset.supersetMapStatus = 'loading';
+
       const chartComponent = createChartComponent(
         this.chartVizType,
         chart.feature,
@@ -235,6 +244,12 @@ export class ChartLayer extends Layer {
         chartHeight,
         this.theme,
         this.locale,
+        () => {
+          chart.htmlElement.dataset.supersetMapStatus = 'rendered';
+        },
+        () => {
+          chart.htmlElement.dataset.supersetMapStatus = 'error';
+        },
       );
       chart.root.render(chartComponent);
 

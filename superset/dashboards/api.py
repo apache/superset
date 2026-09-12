@@ -166,8 +166,10 @@ from superset.utils.core import parse_boolean_string, send_export_zip
 from superset.utils.file import get_filename
 from superset.utils.pdf import build_pdf_from_screenshots
 from superset.utils.screenshots import (
+    DASHBOARD_SCREENSHOT_CAPTURE_CONTRACT,
     DashboardScreenshot,
     DEFAULT_DASHBOARD_WINDOW_SIZE,
+    ScreenshotCacheError,
     ScreenshotCachePayload,
 )
 from superset.utils.urls import get_url_path
@@ -1895,9 +1897,17 @@ class DashboardRestApi(
     )
     def cache_dashboard_screenshot(self, pk: int, **kwargs: Any) -> WerkzeugResponse:
         """Compute and cache a screenshot.
+
+        Reusing ``permalinkKey`` polls the same task. A non-force request
+        returns a cached ``Error`` until ``THUMBNAIL_ERROR_CACHE_TTL`` expires;
+        clients must send ``force=true`` to retry before then.
         ---
         post:
           summary: Compute and cache a screenshot
+          description: >-
+            Reuse permalinkKey to poll the same task. A non-force request
+            returns a cached Error until THUMBNAIL_ERROR_CACHE_TTL expires;
+            send force=true to retry before then.
           parameters:
           - in: path
             schema:
@@ -1909,6 +1919,12 @@ class DashboardRestApi(
                   schema:
                     $ref: '#/components/schemas/DashboardScreenshotPostSchema'
           responses:
+            200:
+              description: Existing dashboard screenshot task status
+              content:
+                application/json:
+                  schema:
+                    $ref: "#/components/schemas/DashboardCacheScreenshotResponseSchema"
             202:
               description: Dashboard async result
               content:
@@ -1923,6 +1939,8 @@ class DashboardRestApi(
               $ref: '#/components/responses/404'
             500:
               $ref: '#/components/responses/500'
+            503:
+              description: Screenshot cache unavailable
         """
         if is_feature_enabled(
             "GRANULAR_EXPORT_CONTROLS"
@@ -1951,17 +1969,20 @@ class DashboardRestApi(
 
         # if the permalink key is provided, dashboard_state will be ignored
         # else, create a permalink key from the dashboard_state
-        permalink_key = payload.get("permalinkKey", None)
-        if permalink_key:
-            if error_response := self._validate_permalink_for_dashboard(
+        permalink_key = payload.get("permalinkKey")
+        if permalink_key and (
+            error_response := self._validate_permalink_for_dashboard(
                 permalink_key, dashboard
-            ):
-                return error_response
-        else:
-            permalink_key = CreateDashboardPermalinkCommand(
+            )
+        ):
+            return error_response
+        permalink_key = (
+            permalink_key
+            or CreateDashboardPermalinkCommand(
                 dashboard_id=str(dashboard.id),
                 state=dashboard_state,
             ).run()
+        )
 
         dashboard_url = get_url_path("Superset.dashboard_permalink", key=permalink_key)
         screenshot_obj = DashboardScreenshot(dashboard_url, dashboard.digest)
@@ -1969,40 +1990,75 @@ class DashboardRestApi(
         image_url = get_url_path(
             "DashboardRestApi.screenshot", pk=dashboard.id, digest=cache_key
         )
-        cache_payload = (
-            screenshot_obj.get_from_cache_key(cache_key) or ScreenshotCachePayload()
-        )
+        cache_scope = f"dashboard:{dashboard.id}"
+        try:
+            cached_payload = screenshot_obj.get_from_cache_key(cache_key)
+        except ScreenshotCacheError:
+            logger.exception("Screenshot cache read failed: %s", cache_key)
+            return self.response(
+                503,
+                message=gettext("Screenshot cache is unavailable"),
+            )
+        cache_payload = cached_payload or ScreenshotCachePayload()
 
         def build_response(status_code: int) -> WerkzeugResponse:
             return self.response(
                 status_code,
                 cache_key=cache_key,
+                permalink_key=permalink_key,
                 dashboard_url=dashboard_url,
                 image_url=image_url,
+                # Pending and Computing each receive a fresh cache timestamp and
+                # may legitimately consume one full lease. Advertise their
+                # combined wall-clock budget so the UI does not abandon a task
+                # just after a queued worker starts computing it.
+                task_timeout_seconds=(
+                    2 * current_app.config["THUMBNAIL_COMPUTING_CACHE_TTL"]
+                ),
                 task_updated_at=cache_payload.get_timestamp(),
                 task_status=cache_payload.get_status(),
             )
 
-        if cache_payload.should_trigger_task(
-            force, expected_scope=f"dashboard:{dashboard.id}"
+        if cached_payload is None or cache_payload.should_enqueue_task(
+            force,
+            expected_scope=cache_scope,
+            expected_capture_contract=DASHBOARD_SCREENSHOT_CAPTURE_CONTRACT,
         ):
             logger.info("Triggering screenshot ASYNC")
-            cache_dashboard_screenshot.delay(
-                username=get_current_user(),
-                guest_token=(
-                    g.user.guest_token
-                    if get_current_user() and isinstance(g.user, GuestUser)
-                    else None
-                ),
-                dashboard_id=dashboard.id,
-                dashboard_url=dashboard_url,
-                thumb_size=thumb_size,
-                window_size=window_size,
-                cache_key=cache_key,
-                force=force,
-            )
+            try:
+                cache_payload, should_enqueue = screenshot_obj.prepare_and_enqueue_task(
+                    cache_key,
+                    force=force,
+                    scope=cache_scope,
+                    expected_capture_contract=(DASHBOARD_SCREENSHOT_CAPTURE_CONTRACT),
+                    enqueue=functools.partial(
+                        cache_dashboard_screenshot.delay,
+                        username=get_current_user(),
+                        guest_token=(
+                            g.user.guest_token
+                            if get_current_user() and isinstance(g.user, GuestUser)
+                            else None
+                        ),
+                        dashboard_id=dashboard.id,
+                        dashboard_url=dashboard_url,
+                        thumb_size=thumb_size,
+                        window_size=window_size,
+                        cache_key=cache_key,
+                        # Pending invalidates the prior artifact. Accepted
+                        # duplicate tasks should skip a completed result.
+                        force=False,
+                    ),
+                )
+            except ScreenshotCacheError:
+                logger.exception("Screenshot task preparation failed: %s", cache_key)
+                return self.response(
+                    503,
+                    message=gettext("Screenshot cache is unavailable"),
+                )
+            if not should_enqueue:
+                return build_response(202 if cache_payload.is_in_progress() else 200)
             return build_response(202)
-        return build_response(200)
+        return build_response(202 if cache_payload.is_in_progress() else 200)
 
     @expose("/<pk>/screenshot/<digest>/", methods=("GET",))
     @validate_feature_flags(["THUMBNAILS", "ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS"])
@@ -2069,6 +2125,12 @@ class DashboardRestApi(
             # this check any cache_key learned for one dashboard would serve
             # its image under a different, merely-accessible `pk`.
             if cache_payload.get_scope() != f"dashboard:{dashboard.id}":
+                return self.response_404()
+            if not cache_payload.is_updated():
+                return self.response_404()
+            if not cache_payload.has_capture_contract(
+                DASHBOARD_SCREENSHOT_CAPTURE_CONTRACT
+            ):
                 return self.response_404()
             try:
                 image = cache_payload.get_image()

@@ -3680,9 +3680,17 @@
             "description": "The url to fetch the screenshot",
             "type": "string"
           },
+          "permalink_key": {
+            "description": "The permalink key used by this screenshot task",
+            "type": "string"
+          },
           "task_status": {
             "description": "The status of the async screenshot",
             "type": "string"
+          },
+          "task_timeout_seconds": {
+            "description": "The client wait budget for the Pending and Computing task states",
+            "type": "integer"
           },
           "task_updated_at": {
             "description": "The timestamp of the last change in status",
@@ -4549,6 +4557,10 @@
             "additionalProperties": {},
             "description": "An object representing the data mask.",
             "type": "object"
+          },
+          "permalinkKey": {
+            "description": "An existing dashboard permalink key.",
+            "type": "string"
           },
           "urlParams": {
             "description": "A list of tuples, each containing two strings.",
@@ -19259,6 +19271,7 @@
     },
     "/api/v1/dashboard/{pk}/cache_dashboard_screenshot/": {
       "post": {
+        "description": "Reuse permalinkKey to poll the same task. A non-force request returns a cached Error until THUMBNAIL_ERROR_CACHE_TTL expires; send force=true to retry before then.",
         "parameters": [
           {
             "in": "path",
@@ -19279,6 +19292,16 @@
           }
         },
         "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardCacheScreenshotResponseSchema"
+                }
+              }
+            },
+            "description": "Existing dashboard screenshot task status"
+          },
           "202": {
             "content": {
               "application/json": {
@@ -19300,6 +19323,9 @@
           },
           "500": {
             "$ref": "#/components/responses/500"
+          },
+          "503": {
+            "description": "Screenshot cache unavailable"
           }
         },
         "security": [

@@ -25,7 +25,9 @@ import pytest
 @pytest.fixture
 def mock_thumbnail_cache() -> Iterator[None]:
     """Enable thumbnail cache mocking so tasks don't exit early."""
-    with patch("superset.tasks.thumbnails.thumbnail_cache", True):
+    cache = MagicMock()
+    cache.cache = MagicMock()
+    with patch("superset.tasks.thumbnails.thumbnail_cache", cache):
         yield
 
 
@@ -61,7 +63,7 @@ _COMMON_PATCHES = [
 def _apply_patches(fn: Callable[..., Any]) -> Callable[..., Any]:
     """Stack the five common patches onto a test function."""
     for p in reversed(_COMMON_PATCHES):
-        fn = patch(p)(fn)
+        fn = patch(p, new_callable=MagicMock)(fn)
     return fn
 
 
@@ -143,3 +145,101 @@ def test_cache_dashboard_thumbnail_resolves_cache_key_when_not_provided(
         force=False,
         cache_key="resolved_cache_key",
     )
+
+
+@_apply_patches
+def test_cache_dashboard_screenshot_requires_complete_capture(
+    mock_screenshot_cls: MagicMock,
+    mock_get_url_path: MagicMock,
+    mock_override_user: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_get_executor: MagicMock,
+    mock_dashboard: MagicMock,
+    mock_thumbnail_cache: None,
+) -> None:
+    """Direct API captures opt into fail-closed rendering."""
+    from superset.tasks.thumbnails import cache_dashboard_screenshot
+
+    mock_screenshot = _make_screenshot_mock()
+    mock_screenshot_cls.return_value = mock_screenshot
+    mock_get_executor.return_value = (None, "admin")
+    mock_security_manager.find_user.return_value = MagicMock()
+
+    with patch("superset.models.dashboard.Dashboard.get", return_value=mock_dashboard):
+        cache_dashboard_screenshot(
+            username="admin",
+            dashboard_id=1,
+            dashboard_url="/dashboard/p/test/",
+            force=False,
+            cache_key="test_cache_key",
+        )
+
+    mock_screenshot_cls.assert_called_once_with(
+        "/dashboard/p/test/",
+        "test_digest",
+        require_complete_capture=True,
+    )
+    mock_screenshot.compute_and_cache.assert_called_once_with(
+        user=ANY,
+        window_size=None,
+        thumb_size=None,
+        cache_key="test_cache_key",
+        force=False,
+        retry_fresh_error=True,
+    )
+
+
+@_apply_patches
+def test_cache_dashboard_screenshot_setup_failure_persists_error(
+    mock_screenshot_cls: MagicMock,
+    mock_get_url_path: MagicMock,
+    mock_override_user: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_get_executor: MagicMock,
+    mock_dashboard: MagicMock,
+    mock_thumbnail_cache: None,
+) -> None:
+    """Failures before browser capture still produce a terminal API status."""
+    from superset.tasks.thumbnails import cache_dashboard_screenshot
+
+    mock_get_executor.side_effect = RuntimeError("executor unavailable")
+
+    with (
+        patch("superset.models.dashboard.Dashboard.get", return_value=mock_dashboard),
+        pytest.raises(RuntimeError, match="executor unavailable"),
+    ):
+        cache_dashboard_screenshot(
+            username="admin",
+            dashboard_id=1,
+            dashboard_url="/dashboard/p/test/",
+            force=False,
+            cache_key="test_cache_key",
+        )
+
+    mock_screenshot_cls.store_error_if_no_active_task.assert_called_once_with(
+        "test_cache_key",
+        scope="dashboard:1",
+    )
+
+
+def test_cache_dashboard_screenshot_skips_real_null_cache() -> None:
+    """The truthy default NullCache must not accept invisible screenshot work."""
+    from flask_caching.backends import NullCache
+
+    from superset.tasks.thumbnails import cache_dashboard_screenshot
+
+    cache = MagicMock()
+    cache.cache = NullCache()
+    with (
+        patch("superset.tasks.thumbnails.thumbnail_cache", cache),
+        patch("superset.models.dashboard.Dashboard.get") as mock_get_dashboard,
+    ):
+        cache_dashboard_screenshot(
+            username="admin",
+            dashboard_id=1,
+            dashboard_url="/dashboard/p/test/",
+            force=False,
+            cache_key="test_cache_key",
+        )
+
+    mock_get_dashboard.assert_not_called()

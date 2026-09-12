@@ -34,7 +34,15 @@ import { getDashboardUrlParams } from 'src/utils/urlUtils';
 import { DownloadScreenshotFormat } from '../components/menu/DownloadMenuItems/types';
 
 const RETRY_INTERVAL = 3000;
-const MAX_RETRIES = 30;
+// Used only until the API advertises the deployment's configured task lease.
+const DEFAULT_SCREENSHOT_TASK_TIMEOUT = 6 * 60 * 1000;
+
+type ScreenshotTaskResponse = {
+  cache_key?: string;
+  permalink_key?: string;
+  task_status?: 'Pending' | 'Computing' | 'Updated' | 'Error';
+  task_timeout_seconds?: number;
+};
 
 export const useDownloadScreenshot = (
   dashboardId: number,
@@ -53,29 +61,46 @@ export const useDownloadScreenshot = (
 
   const { addDangerToast, addSuccessToast, addInfoToast } = useToasts();
 
-  const currentIntervalIds = useRef<NodeJS.Timeout[]>([]);
-
-  const stopIntervals = useCallback(
-    (message?: 'success' | 'failure') => {
-      currentIntervalIds.current.forEach(clearInterval);
-
-      if (message === 'failure') {
-        addDangerToast(
-          t('The screenshot could not be downloaded. Please, try again later.'),
-        );
-      }
-      if (message === 'success') {
-        addSuccessToast(t('The screenshot has been downloaded.'));
-      }
-    },
-    [addDangerToast, addSuccessToast],
-  );
+  const activeOperationCleanups = useRef(new Set<() => void>());
 
   const downloadScreenshot = useCallback(
     (format: DownloadScreenshotFormat) => {
-      let retries = 0;
       let isFetching = false;
-      let isDownloaded = false;
+      let isFinished = false;
+      let permalinkKey: string | undefined;
+      let timeoutId: NodeJS.Timeout | undefined;
+      const operationStartedAt = Date.now();
+      const timerIds: NodeJS.Timeout[] = [];
+
+      const stopOperation = () => {
+        isFinished = true;
+        timerIds.forEach(clearInterval);
+        timerIds.length = 0;
+        if (timeoutId !== undefined) {
+          clearTimeout(timeoutId);
+          timeoutId = undefined;
+        }
+        activeOperationCleanups.current.delete(stopOperation);
+      };
+
+      const finish = (message: 'success' | 'failure') => {
+        if (isFinished) {
+          return false;
+        }
+        stopOperation();
+        if (message === 'failure') {
+          addDangerToast(
+            t(
+              'The screenshot could not be downloaded. Please, try again later.',
+            ),
+          );
+        } else {
+          addSuccessToast(t('The screenshot has been downloaded.'));
+        }
+        return true;
+      };
+
+      activeOperationCleanups.current.add(stopOperation);
 
       const toastIntervalId = setInterval(
         () =>
@@ -87,13 +112,37 @@ export const useDownloadScreenshot = (
           ),
         RETRY_INTERVAL,
       );
+      timerIds.push(toastIntervalId);
 
-      currentIntervalIds.current = [
-        ...(currentIntervalIds.current || []),
-        toastIntervalId,
-      ];
+      const fail = (logMessage: string, details: Record<string, unknown>) => {
+        if (!finish('failure')) {
+          return;
+        }
+        logging.error(logMessage, details);
+      };
 
-      const checkImageReady = (cacheKey: string) =>
+      // Keep one wall-clock deadline as a backstop for a hung trigger, status
+      // poll, or artifact download. Once the first response arrives, align it
+      // with the server's configured task lease without extending elapsed time.
+      const scheduleTimeout = (timeoutMs: number) => {
+        if (timeoutId !== undefined) {
+          clearTimeout(timeoutId);
+        }
+        const elapsed = Date.now() - operationStartedAt;
+        timeoutId = setTimeout(
+          () => {
+            fail('Screenshot generation timed out', {
+              permalinkKey,
+              dashboardId,
+              format,
+            });
+          },
+          Math.max(0, timeoutMs - elapsed),
+        );
+      };
+      scheduleTimeout(DEFAULT_SCREENSHOT_TASK_TIMEOUT);
+
+      const downloadImage = (cacheKey: string) =>
         SupersetClient.get({
           endpoint: `/api/v1/dashboard/${dashboardId}/screenshot/${cacheKey}/?download_format=${format}`,
           headers: { Accept: 'application/pdf, image/png' },
@@ -120,43 +169,101 @@ export const useDownloadScreenshot = (
             return response.blob().then(blob => ({ blob, fileName }));
           })
           .then(({ blob, fileName }) => {
-            if (isDownloaded) {
+            if (isFinished) {
               return;
             }
-            isDownloaded = true;
-            stopIntervals('success');
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = fileName;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(url);
-          })
-          .catch(err => {
-            if ((err as SupersetApiError).status === 404) {
-              throw new Error('Image not ready');
+            let url: string | undefined;
+            let anchorElement: HTMLAnchorElement | undefined;
+            try {
+              url = window.URL.createObjectURL(blob);
+              anchorElement = document.createElement('a');
+              anchorElement.href = url;
+              anchorElement.download = fileName;
+              document.body.appendChild(anchorElement);
+              anchorElement.click();
+              document.body.removeChild(anchorElement);
+              anchorElement = undefined;
+              window.URL.revokeObjectURL(url);
+              url = undefined;
+              finish('success');
+            } catch (error) {
+              anchorElement?.remove();
+              if (url !== undefined) {
+                try {
+                  window.URL.revokeObjectURL(url);
+                } catch (cleanupError) {
+                  logging.error('Screenshot download cleanup failed', {
+                    cacheKey,
+                    dashboardId,
+                    format,
+                    error: cleanupError,
+                  });
+                }
+              }
+              fail('Failed to download screenshot artifact', {
+                cacheKey,
+                dashboardId,
+                format,
+                error,
+              });
             }
           });
 
-      const fetchImageWithRetry = (cacheKey: string) => {
-        if (isDownloaded || isFetching) {
+      const handleTaskResponse = async (json: unknown) => {
+        // A request may settle after the operation timed out or its component
+        // unmounted. It must not restart a timer or initiate a late download.
+        if (isFinished) {
           return;
         }
-        if (retries >= MAX_RETRIES) {
-          stopIntervals('failure');
-          logging.error('Max retries reached', {
+        const task = json as ScreenshotTaskResponse | undefined;
+        const cacheKey = task?.cache_key;
+        if (!cacheKey || !task?.permalink_key || !task.task_status) {
+          throw new Error('Invalid screenshot task response');
+        }
+        permalinkKey = task.permalink_key;
+        if (
+          typeof task.task_timeout_seconds === 'number' &&
+          Number.isFinite(task.task_timeout_seconds) &&
+          task.task_timeout_seconds > 0
+        ) {
+          scheduleTimeout(task.task_timeout_seconds * 1000);
+        }
+
+        if (task.task_status === 'Error') {
+          fail('Screenshot generation failed', {
             cacheKey,
             dashboardId,
             format,
           });
           return;
         }
+        if (task.task_status === 'Updated') {
+          await downloadImage(cacheKey);
+        }
+      };
+
+      const pollTask = () => {
+        if (isFinished || isFetching || !permalinkKey) {
+          return;
+        }
         isFetching = true;
-        checkImageReady(cacheKey)
-          .catch(() => {
-            retries += 1;
+        SupersetClient.post({
+          endpoint: `/api/v1/dashboard/${dashboardId}/cache_dashboard_screenshot/`,
+          jsonPayload: { permalinkKey },
+        })
+          .then(({ json }) => handleTaskResponse(json))
+          .catch(error => {
+            // A transient status/GET failure is retried. In particular, a 404
+            // after `Updated` can mean the cache entry was evicted between the
+            // status response and image fetch; the next POST safely recreates it.
+            if ((error as SupersetApiError).status !== 404) {
+              logging.error('Screenshot polling attempt failed', {
+                permalinkKey,
+                dashboardId,
+                format,
+                error,
+              });
+            }
           })
           .finally(() => {
             isFetching = false;
@@ -172,24 +279,23 @@ export const useDownloadScreenshot = (
           urlParams: getDashboardUrlParams(),
         },
       })
-        .then(({ json }) => {
-          const cacheKey = json?.cache_key;
-          if (!cacheKey) {
-            throw new Error('No image URL in response');
+        .then(async ({ json }) => {
+          await handleTaskResponse(json);
+          if (isFinished) {
+            return;
           }
           const retryIntervalId = setInterval(() => {
-            fetchImageWithRetry(cacheKey);
+            pollTask();
           }, RETRY_INTERVAL);
-          currentIntervalIds.current.push(retryIntervalId);
-          fetchImageWithRetry(cacheKey);
+          timerIds.push(retryIntervalId);
+          pollTask();
         })
         .catch(error => {
-          logging.error('Failed to trigger dashboard screenshot', {
+          fail('Failed to trigger dashboard screenshot', {
             dashboardId,
             format,
             error,
           });
-          stopIntervals('failure');
         })
         .finally(() => {
           logEvent?.(
@@ -204,21 +310,20 @@ export const useDownloadScreenshot = (
       anchor,
       activeTabs,
       dataMask,
+      addDangerToast,
       addInfoToast,
-      stopIntervals,
+      addSuccessToast,
       logEvent,
     ],
   );
 
-  useEffect(
-    () => () => {
-      if (currentIntervalIds.current.length > 0) {
-        stopIntervals();
-      }
-      currentIntervalIds.current = [];
-    },
-    [stopIntervals],
-  );
+  useEffect(() => {
+    const operationCleanups = activeOperationCleanups.current;
+    return () => {
+      operationCleanups.forEach(cleanup => cleanup());
+      operationCleanups.clear();
+    };
+  }, []);
 
   return downloadScreenshot;
 };

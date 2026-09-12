@@ -26,6 +26,7 @@ from superset import security_manager, thumbnail_cache
 from superset.extensions import celery_app
 from superset.security.guest_token import GuestToken
 from superset.tasks.utils import get_executor
+from superset.utils.cache import is_cache_configured
 from superset.utils.core import override_user
 from superset.utils.screenshots import (
     ChartScreenshot,
@@ -48,7 +49,7 @@ def cache_chart_thumbnail(
     # pylint: disable=import-outside-toplevel
     from superset.models.slice import Slice
 
-    if not thumbnail_cache:
+    if not is_cache_configured(thumbnail_cache):
         logger.warning("No cache set, refusing to compute")
         return None
     chart = cast(Slice, Slice.get(chart_id))
@@ -87,7 +88,7 @@ def cache_dashboard_thumbnail(
     # pylint: disable=import-outside-toplevel
     from superset.models.dashboard import Dashboard
 
-    if not thumbnail_cache:
+    if not is_cache_configured(thumbnail_cache):
         logging.warning("No cache set, refusing to compute")
         return
 
@@ -130,32 +131,57 @@ def cache_dashboard_screenshot(  # pylint: disable=too-many-arguments
     # pylint: disable=import-outside-toplevel
     from superset.models.dashboard import Dashboard
 
-    if not thumbnail_cache:
+    if not is_cache_configured(thumbnail_cache):
         logging.warning("No cache set, refusing to compute")
         return
 
-    dashboard = Dashboard.get(dashboard_id)
+    try:
+        dashboard = Dashboard.get(dashboard_id)
 
-    logger.info("Caching dashboard: %s", dashboard_url)
+        logger.info("Caching dashboard: %s", dashboard_url)
 
-    # Requests from Embedded should always use the Guest user
-    if guest_token:
-        current_user = security_manager.get_guest_user_from_token(guest_token)
-    else:
-        _, exec_username = get_executor(
-            executors=current_app.config["THUMBNAIL_EXECUTORS"],
-            model=dashboard,
-            current_user=username,
+        # Requests from Embedded should always use the Guest user
+        if guest_token:
+            current_user = security_manager.get_guest_user_from_token(guest_token)
+        else:
+            _, exec_username = get_executor(
+                executors=current_app.config["THUMBNAIL_EXECUTORS"],
+                model=dashboard,
+                current_user=username,
+            )
+            current_user = security_manager.find_user(exec_username)
+
+        with override_user(current_user):
+            screenshot = DashboardScreenshot(
+                dashboard_url,
+                dashboard.digest,
+                require_complete_capture=True,
+            )
+            screenshot.cache_scope = f"dashboard:{dashboard.id}"
+            screenshot.compute_and_cache(
+                user=current_user,
+                window_size=window_size,
+                thumb_size=thumb_size,
+                cache_key=cache_key,
+                force=force,
+                # This task was already accepted by the API. If a duplicate
+                # delivery failed during setup and briefly recorded Error,
+                # finish the accepted generation without recomputing a valid
+                # Updated artifact.
+                retry_fresh_error=True,
+            )
+    except Exception:  # pylint: disable=broad-except
+        logger.exception(
+            "Dashboard screenshot task failed before reaching a terminal state: %s",
+            cache_key,
         )
-        current_user = security_manager.find_user(exec_username)
-
-    with override_user(current_user):
-        screenshot = DashboardScreenshot(dashboard_url, dashboard.digest)
-        screenshot.cache_scope = f"dashboard:{dashboard.id}"
-        screenshot.compute_and_cache(
-            user=current_user,
-            window_size=window_size,
-            thumb_size=thumb_size,
-            cache_key=cache_key,
-            force=force,
-        )
+        if cache_key:
+            if not DashboardScreenshot.store_error_if_no_active_task(
+                cache_key,
+                scope=f"dashboard:{dashboard_id}",
+            ):
+                logger.error(
+                    "Could not persist dashboard screenshot Error state: %s",
+                    cache_key,
+                )
+        raise

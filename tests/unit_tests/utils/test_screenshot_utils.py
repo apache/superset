@@ -33,12 +33,14 @@ from superset.utils.screenshot_utils import (
     _stable_readiness_js,
     combine_screenshot_tiles,
     CONTENTFUL_CHART_HOLDERS_IN_CLIP_JS,
+    DASHBOARD_CHART_HOLDERS_READY_JS,
     get_screenshot_blankness_metrics,
     is_screenshot_nearly_uniform,
     REPORT_CAPTURE_READINESS_STABILITY_MS,
     resolve_screenshot_task_budget_seconds,
     SCREENSHOT_TASK_BUDGET_MAX_MARGIN_SECONDS,
     ScreenshotBlankCaptureError,
+    ScreenshotCaptureReadinessChangedError,
     ScreenshotCaptureTimeoutError,
     ScreenshotTaskBudgetExceededError,
     SCROLL_SETTLE_TIMEOUT_MS,
@@ -559,6 +561,148 @@ class TestTakeTiledScreenshot:
 
         assert mock_page.screenshot.call_count == 3
         mock_combine.assert_not_called()
+
+    def test_repeated_blank_tiles_fail_closed_for_api_screenshots(self, mock_page):
+        element_info = {"height": 1000, "top": 0, "left": 0, "width": 800}
+
+        def evaluate(script, _arg=None):
+            if "scrollWidth" in script:
+                return element_info
+            if script == CONTENTFUL_CHART_HOLDERS_IN_CLIP_JS:
+                return {"total": 1, "contentful": 1}
+            if "requestAnimationFrame" in script or "window.scrollTo" in script:
+                return None
+            return [{"chartId": "7", "state": "rendered"}]
+
+        mock_page.evaluate.side_effect = evaluate
+        mock_page.screenshot.return_value = _png(800, 1000, "white")
+
+        with (
+            patch("superset.utils.screenshot_utils.logger"),
+            patch(
+                "superset.utils.screenshot_utils.combine_screenshot_tiles"
+            ) as mock_combine,
+            pytest.raises(
+                ScreenshotBlankCaptureError,
+                match="blank tile 1/1 after 3 attempts",
+            ),
+        ):
+            take_tiled_screenshot(
+                mock_page,
+                "dashboard",
+                tile_height=1000,
+                require_complete_capture=True,
+            )
+
+        assert mock_page.screenshot.call_count == 3
+        mock_combine.assert_not_called()
+
+    def test_api_tiled_capture_requires_budget_for_stability_dwell(self, mock_page):
+        """API captures fail rather than skip the final stable-ready window."""
+
+        with (
+            patch(
+                "superset.utils.screenshot_utils.resolve_screenshot_task_budget_seconds",
+                return_value=1.6,
+            ),
+            patch("superset.utils.screenshot_utils.time.monotonic", return_value=0.0),
+            pytest.raises(
+                TiledScreenshotBudgetExceededError,
+                match="cannot satisfy capture readiness stability",
+            ),
+        ):
+            take_tiled_screenshot(
+                mock_page,
+                "dashboard",
+                tile_height=2000,
+                screenshot_started_at=0.0,
+                require_complete_capture=True,
+            )
+
+        mock_page.screenshot.assert_not_called()
+
+    def test_api_tiled_stability_allows_a_full_readiness_recovery_window(
+        self, mock_page
+    ):
+        with patch(
+            "superset.utils.screenshot_utils.combine_screenshot_tiles",
+            return_value=b"combined",
+        ):
+            take_tiled_screenshot(
+                mock_page,
+                "dashboard",
+                tile_height=6000,
+                load_wait=10,
+                require_complete_capture=True,
+            )
+
+        stable_call = next(
+            call
+            for call in mock_page.wait_for_function.call_args_list
+            if call.args and "__supersetCaptureReadiness" in call.args[0]
+        )
+        assert stable_call.kwargs["timeout"] == 11_500
+
+    def test_api_tiled_capture_discards_candidate_if_readiness_changes(self, mock_page):
+        element_info = {"height": 1000, "top": 0, "left": 0, "width": 800}
+        readiness_after_capture = iter([False, True])
+
+        def evaluate(script, _arg=None):
+            if "scrollWidth" in script:
+                return element_info
+            if script == CONTENTFUL_CHART_HOLDERS_IN_CLIP_JS:
+                return {"total": 1, "contentful": 1}
+            if script == DASHBOARD_CHART_HOLDERS_READY_JS:
+                return next(readiness_after_capture)
+            if "requestAnimationFrame" in script or "window.scrollTo" in script:
+                return None
+            return [{"chartId": "7", "state": "rendered"}]
+
+        mock_page.evaluate.side_effect = evaluate
+        mock_page.screenshot.return_value = self._create_chart_like_tile()
+        with patch(
+            "superset.utils.screenshot_utils.combine_screenshot_tiles",
+            return_value=b"combined",
+        ):
+            result = take_tiled_screenshot(
+                mock_page,
+                "dashboard",
+                tile_height=2000,
+                require_complete_capture=True,
+            )
+
+        assert result == b"combined"
+        assert mock_page.screenshot.call_count == 2
+
+    def test_api_tiled_capture_fails_if_readiness_always_changes(self, mock_page):
+        element_info = {"height": 1000, "top": 0, "left": 0, "width": 800}
+
+        def evaluate(script, _arg=None):
+            if "scrollWidth" in script:
+                return element_info
+            if script == CONTENTFUL_CHART_HOLDERS_IN_CLIP_JS:
+                return {"total": 1, "contentful": 1}
+            if script == DASHBOARD_CHART_HOLDERS_READY_JS:
+                return False
+            if "requestAnimationFrame" in script or "window.scrollTo" in script:
+                return None
+            return [{"chartId": "7", "state": "rendered"}]
+
+        mock_page.evaluate.side_effect = evaluate
+        mock_page.screenshot.return_value = self._create_chart_like_tile()
+
+        with pytest.raises(
+            ScreenshotCaptureReadinessChangedError,
+            match="readiness changed during tile 1/1",
+        ):
+            take_tiled_screenshot(
+                mock_page,
+                "dashboard",
+                tile_height=2000,
+                require_complete_capture=True,
+            )
+
+        assert mock_page.screenshot.call_count == 3
 
     def test_blank_combined_image_is_advisory_after_contentful_tiles_pass(
         self, mock_page
@@ -1216,6 +1360,7 @@ class TestTakeTiledScreenshot:
         # Each call uses viewport-scoped JS and the load_wait timeout
         mount_call, *tile_calls = mock_page.wait_for_function.call_args_list
         assert "length > 0" in mount_call.args[0]
+        assert "arg" not in mount_call.kwargs
         assert mount_call.kwargs["timeout"] == 30 * 1000
         for call in tile_calls:
             js = call[0][0]
@@ -1375,6 +1520,7 @@ class TestTakeTiledScreenshot:
         """
         from superset.utils.screenshot_utils import (
             CHART_HOLDERS_READY_JS,
+            DASHBOARD_ALL_CHART_HOLDERS_READY_JS,
             FIND_CHART_HOLDER_STATES_JS,
             FIND_UNREADY_CHART_HOLDERS_JS,
             REPORT_CHART_HOLDERS_READY_JS,
@@ -1391,6 +1537,8 @@ class TestTakeTiledScreenshot:
             assert "holder.className.match(/\\bdashboard-chart-id-(\\d+)\\b/)" in js
         assert "holders.length > 0" not in CHART_HOLDERS_READY_JS
         assert "holders.length > 0" in REPORT_CHART_HOLDERS_READY_JS
+        assert ".dashboard-grid" in DASHBOARD_ALL_CHART_HOLDERS_READY_JS
+        assert "holders.length > 0" not in DASHBOARD_ALL_CHART_HOLDERS_READY_JS
 
         assert "rendered" in FIND_CHART_HOLDER_STATES_JS
         assert "empty" in FIND_CHART_HOLDER_STATES_JS
@@ -1405,6 +1553,7 @@ class TestTakeTiledScreenshot:
         from superset.utils.screenshot_utils import (
             CHART_CONTAINER_READY_JS,
             CHART_HOLDERS_READY_JS,
+            DASHBOARD_ALL_CHART_HOLDERS_READY_JS,
             FIND_CHART_HOLDER_STATES_JS,
             FIND_UNREADY_CHART_HOLDERS_JS,
             REPORT_CHART_HOLDERS_READY_JS,
@@ -1413,6 +1562,7 @@ class TestTakeTiledScreenshot:
         for js in (
             CHART_CONTAINER_READY_JS,
             CHART_HOLDERS_READY_JS,
+            DASHBOARD_ALL_CHART_HOLDERS_READY_JS,
             FIND_CHART_HOLDER_STATES_JS,
             FIND_UNREADY_CHART_HOLDERS_JS,
             REPORT_CHART_HOLDERS_READY_JS,
@@ -1885,6 +2035,7 @@ def test_readiness_predicates_gate_on_unpainted_echarts_hosts() -> None:
     key on the ECharts paint marker so a pre-paint canvas is never captured."""
     from superset.utils.screenshot_utils import (
         CHART_CONTAINER_READY_JS,
+        DASHBOARD_ALL_CHART_HOLDERS_READY_JS,
         ECHARTS_UNPAINTED_HOST_SELECTOR,
         FIND_CHART_HOLDER_STATES_JS,
         REPORT_CHART_HOLDERS_READY_JS,
@@ -1894,8 +2045,118 @@ def test_readiness_predicates_gate_on_unpainted_echarts_hosts() -> None:
         ECHARTS_UNPAINTED_HOST_SELECTOR == ".echarts-host:not(.echarts-render-finished)"
     )
     assert ECHARTS_UNPAINTED_HOST_SELECTOR in REPORT_CHART_HOLDERS_READY_JS
+    assert ECHARTS_UNPAINTED_HOST_SELECTOR in DASHBOARD_ALL_CHART_HOLDERS_READY_JS
     assert ECHARTS_UNPAINTED_HOST_SELECTOR in CHART_CONTAINER_READY_JS
     assert "mounted_unpainted" in FIND_CHART_HOLDER_STATES_JS
+
+
+def test_readiness_predicates_require_generic_plugin_render_completion() -> None:
+    """Only API complete captures gate on the lazy-plugin marker."""
+    from superset.utils.screenshot_utils import (
+        CHART_CONTAINER_READY_JS,
+        CHART_HOLDERS_READY_JS,
+        CHART_RENDERED_SELECTOR,
+        DASHBOARD_ALL_CHART_HOLDERS_READY_JS,
+        DASHBOARD_CHART_HOLDERS_READY_JS,
+        FIND_CHART_HOLDER_STATES_JS,
+        FIND_COMPLETE_CHART_HOLDER_STATES_JS,
+        REPORT_ALL_CHART_HOLDERS_READY_JS,
+        REPORT_CHART_HOLDERS_READY_JS,
+    )
+
+    assert CHART_RENDERED_SELECTOR == '[data-chart-status="rendered"]'
+    for predicate in (
+        DASHBOARD_CHART_HOLDERS_READY_JS,
+        DASHBOARD_ALL_CHART_HOLDERS_READY_JS,
+    ):
+        assert "const requireCompleteRender = true" in predicate
+        assert CHART_RENDERED_SELECTOR in predicate
+    for predicate in (
+        CHART_HOLDERS_READY_JS,
+        REPORT_CHART_HOLDERS_READY_JS,
+        REPORT_ALL_CHART_HOLDERS_READY_JS,
+    ):
+        assert "const requireCompleteRender = false" in predicate
+    assert "data-chart-status" not in CHART_CONTAINER_READY_JS
+    assert "const requireCompleteRender = false" in FIND_CHART_HOLDER_STATES_JS
+    assert "const requireCompleteRender = true" in FIND_COMPLETE_CHART_HOLDER_STATES_JS
+    assert "plugin_loading" in FIND_CHART_HOLDER_STATES_JS
+
+
+def test_readiness_predicates_gate_on_explicit_map_paint_status() -> None:
+    """Only API complete captures wait for map pixels to settle."""
+    from superset.utils.screenshot_utils import (
+        CHART_CONTAINER_READY_JS,
+        CHART_HOLDERS_READY_JS,
+        DASHBOARD_ALL_CHART_HOLDERS_READY_JS,
+        DASHBOARD_CHART_HOLDERS_READY_JS,
+        FIND_CHART_HOLDER_STATES_JS,
+        FIND_COMPLETE_CHART_HOLDER_STATES_JS,
+        MAP_ERROR_HOST_SELECTOR,
+        MAP_UNPAINTED_HOST_SELECTOR,
+        REPORT_ALL_CHART_HOLDERS_READY_JS,
+        REPORT_CHART_HOLDERS_READY_JS,
+    )
+
+    assert MAP_UNPAINTED_HOST_SELECTOR == '[data-superset-map-status="loading"]'
+    assert MAP_ERROR_HOST_SELECTOR == '[data-superset-map-status="error"]'
+    for predicate in (
+        DASHBOARD_CHART_HOLDERS_READY_JS,
+        DASHBOARD_ALL_CHART_HOLDERS_READY_JS,
+    ):
+        assert "const requireCompleteRender = true" in predicate
+        assert MAP_UNPAINTED_HOST_SELECTOR in predicate
+        assert MAP_ERROR_HOST_SELECTOR in predicate
+        assert "Superset map renderer reported a terminal error" in predicate
+    for predicate in (
+        CHART_HOLDERS_READY_JS,
+        REPORT_CHART_HOLDERS_READY_JS,
+        REPORT_ALL_CHART_HOLDERS_READY_JS,
+    ):
+        assert "const requireCompleteRender = false" in predicate
+    assert MAP_UNPAINTED_HOST_SELECTOR not in CHART_CONTAINER_READY_JS
+    assert "!hasMapError && !hasUnpaintedMap && !hasUnpaintedAsyncChart" in (
+        DASHBOARD_CHART_HOLDERS_READY_JS
+    )
+    assert FIND_COMPLETE_CHART_HOLDER_STATES_JS.index("map_error") < (
+        FIND_COMPLETE_CHART_HOLDER_STATES_JS.index("map_unpainted")
+    )
+    assert FIND_COMPLETE_CHART_HOLDER_STATES_JS.index("map_unpainted") < (
+        FIND_COMPLETE_CHART_HOLDER_STATES_JS.index("state: 'error'")
+    )
+    assert "const requireCompleteRender = false" in FIND_CHART_HOLDER_STATES_JS
+    assert "const requireCompleteRender = true" in FIND_COMPLETE_CHART_HOLDER_STATES_JS
+    assert "map_unpainted" in FIND_COMPLETE_CHART_HOLDER_STATES_JS
+
+
+def test_readiness_predicates_gate_on_async_chart_paint_status() -> None:
+    """API complete captures wait for first-party async SVG layouts."""
+    from superset.utils.screenshot_utils import (
+        ASYNC_CHART_UNPAINTED_HOST_SELECTOR,
+        CHART_HOLDERS_READY_JS,
+        DASHBOARD_ALL_CHART_HOLDERS_READY_JS,
+        DASHBOARD_CHART_HOLDERS_READY_JS,
+        FIND_COMPLETE_CHART_HOLDER_STATES_JS,
+        REPORT_ALL_CHART_HOLDERS_READY_JS,
+        REPORT_CHART_HOLDERS_READY_JS,
+    )
+
+    assert ASYNC_CHART_UNPAINTED_HOST_SELECTOR == (
+        '[data-superset-render-status]:not([data-superset-render-status="rendered"])'
+    )
+    for predicate in (
+        DASHBOARD_CHART_HOLDERS_READY_JS,
+        DASHBOARD_ALL_CHART_HOLDERS_READY_JS,
+    ):
+        assert ASYNC_CHART_UNPAINTED_HOST_SELECTOR in predicate
+        assert "const requireCompleteRender = true" in predicate
+    for predicate in (
+        CHART_HOLDERS_READY_JS,
+        REPORT_CHART_HOLDERS_READY_JS,
+        REPORT_ALL_CHART_HOLDERS_READY_JS,
+    ):
+        assert "const requireCompleteRender = false" in predicate
+    assert "async_chart_unpainted" in FIND_COMPLETE_CHART_HOLDER_STATES_JS
 
 
 def test_readiness_predicates_gate_on_unpainted_ag_grid_hosts() -> None:
@@ -1906,6 +2167,7 @@ def test_readiness_predicates_gate_on_unpainted_ag_grid_hosts() -> None:
         CHART_CONTAINER_READY_JS,
         CHART_CONTAINER_STATE_JS,
         CHART_HOLDERS_READY_JS,
+        DASHBOARD_ALL_CHART_HOLDERS_READY_JS,
         FIND_CHART_HOLDER_STATES_JS,
         REPORT_ALL_CHART_HOLDERS_READY_JS,
         REPORT_CHART_HOLDERS_READY_JS,
@@ -1914,6 +2176,7 @@ def test_readiness_predicates_gate_on_unpainted_ag_grid_hosts() -> None:
     assert AG_GRID_HOST_SELECTOR == '[data-themed-ag-grid="true"]'
     for predicate in (
         CHART_HOLDERS_READY_JS,
+        DASHBOARD_ALL_CHART_HOLDERS_READY_JS,
         REPORT_CHART_HOLDERS_READY_JS,
         REPORT_ALL_CHART_HOLDERS_READY_JS,
         CHART_CONTAINER_READY_JS,
@@ -1922,6 +2185,7 @@ def test_readiness_predicates_gate_on_unpainted_ag_grid_hosts() -> None:
         assert "_agGridFirstDataRendered !== true" in predicate
     for predicate in (
         CHART_HOLDERS_READY_JS,
+        DASHBOARD_ALL_CHART_HOLDERS_READY_JS,
         REPORT_CHART_HOLDERS_READY_JS,
         REPORT_ALL_CHART_HOLDERS_READY_JS,
     ):
@@ -1937,6 +2201,7 @@ def test_ag_grid_no_rows_overlay_is_a_terminal_empty_state() -> None:
     from superset.utils.screenshot_utils import (
         CHART_CONTAINER_READY_JS,
         CHART_HOLDERS_READY_JS,
+        DASHBOARD_ALL_CHART_HOLDERS_READY_JS,
         EMPTY_SELECTOR,
         REPORT_ALL_CHART_HOLDERS_READY_JS,
         REPORT_CHART_HOLDERS_READY_JS,
@@ -1945,6 +2210,7 @@ def test_ag_grid_no_rows_overlay_is_a_terminal_empty_state() -> None:
     assert ".ag-overlay-no-rows-wrapper:not(.ag-hidden)" in EMPTY_SELECTOR
     for predicate in (
         CHART_HOLDERS_READY_JS,
+        DASHBOARD_ALL_CHART_HOLDERS_READY_JS,
         REPORT_CHART_HOLDERS_READY_JS,
         REPORT_ALL_CHART_HOLDERS_READY_JS,
         CHART_CONTAINER_READY_JS,

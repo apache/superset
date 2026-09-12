@@ -37,6 +37,8 @@ export const createChartComponent = (
   chartHeight: number,
   chartTheme: SupersetTheme,
   chartLocale: string,
+  onRenderComplete?: () => void,
+  onRenderError?: (error: unknown) => void,
 ) => (
   <ChartWrapper
     vizType={chartVizType}
@@ -45,6 +47,8 @@ export const createChartComponent = (
     height={chartHeight}
     theme={chartTheme}
     locale={chartLocale}
+    onRenderComplete={onRenderComplete}
+    onRenderError={onRenderError}
   />
 );
 

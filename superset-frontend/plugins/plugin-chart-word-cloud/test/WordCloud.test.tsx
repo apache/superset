@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen } from 'spec/helpers/testing-library';
+import { act, render, screen } from 'spec/helpers/testing-library';
 import WordCloud from '../src/chart/WordCloud';
 import type { PlainObject, Word } from '../src/chart/WordCloud';
 
@@ -27,6 +27,8 @@ const mockCloudState = {
   // When true, the first layout run returns an incomplete word set,
   // forcing the component to retry at a larger scale factor
   dropFirstLayout: false,
+  deferLayouts: false,
+  pendingLayouts: [] as Array<() => void>,
 };
 
 jest.mock('d3-cloud', () =>
@@ -82,9 +84,17 @@ jest.mock('d3-cloud', () =>
           weight: 'bold',
         }));
         const isFirstRun = mockCloudState.sizes.length === 1;
-        config.end?.(
-          mockCloudState.dropFirstLayout && isFirstRun ? out.slice(0, 1) : out,
-        );
+        const complete = () =>
+          config.end?.(
+            mockCloudState.dropFirstLayout && isFirstRun
+              ? out.slice(0, 1)
+              : out,
+          );
+        if (mockCloudState.deferLayouts) {
+          mockCloudState.pendingLayouts.push(complete);
+        } else {
+          complete();
+        }
         return layout;
       },
     };
@@ -95,6 +105,8 @@ jest.mock('d3-cloud', () =>
 beforeEach(() => {
   mockCloudState.sizes = [];
   mockCloudState.dropFirstLayout = false;
+  mockCloudState.deferLayouts = false;
+  mockCloudState.pendingLayouts = [];
 });
 
 const defaultProps = {
@@ -112,6 +124,24 @@ test('renders a text element for each word', () => {
   expect(screen.getByText('alpha')).toBeInTheDocument();
   expect(screen.getByText('beta')).toBeInTheDocument();
   expect(screen.getByText('gamma')).toBeInTheDocument();
+});
+
+test('signals readiness only for the latest completed layout', () => {
+  mockCloudState.deferLayouts = true;
+  const { container, rerender } = render(<WordCloud {...defaultProps} />);
+  const svg = container.querySelector('svg');
+
+  expect(svg).toHaveAttribute('data-superset-render-status', 'loading');
+  rerender(<WordCloud {...defaultProps} data={[{ text: 'delta' }]} />);
+  expect(mockCloudState.pendingLayouts).toHaveLength(2);
+
+  act(() => mockCloudState.pendingLayouts[0]());
+  expect(svg).toHaveAttribute('data-superset-render-status', 'loading');
+  expect(screen.queryByText('alpha')).not.toBeInTheDocument();
+
+  act(() => mockCloudState.pendingLayouts[1]());
+  expect(svg).toHaveAttribute('data-superset-render-status', 'rendered');
+  expect(screen.getByText('delta')).toBeInTheDocument();
 });
 
 test('uses a 1x viewBox when the first layout fits all top words', () => {

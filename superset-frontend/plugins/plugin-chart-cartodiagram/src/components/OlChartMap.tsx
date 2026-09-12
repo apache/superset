@@ -16,14 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
+import { MapTileLifecycleTracker } from '@superset-ui/core/utils/mapRenderStatus';
 
 import Point from 'ol/geom/Point';
 import { View } from 'ol';
 import BaseEvent from 'ol/events/Event';
 import { unByKey } from 'ol/Observable';
 import { toLonLat } from 'ol/proj';
+import Source from 'ol/source/Source';
 import { debounce } from 'lodash-es';
 import { fitMapToCharts } from '../util/mapUtil';
 import { ChartLayer } from './ChartLayer';
@@ -38,6 +40,50 @@ import { isChartConfigEqual } from '../util/chartUtil';
 
 /** The name to reference the chart layer */
 const CHART_LAYER_NAME = 'openlayers-chart-layer';
+
+type LayerSourceState = {
+  failedFeatureSources: ReadonlySet<Source>;
+  failedTileSources: ReadonlySet<Source>;
+  featureRecoverySources: ReadonlySet<Source>;
+  pendingFeatureLoads: ReadonlyMap<Source, number>;
+  pendingTileSources: ReadonlyMap<unknown, Source>;
+  successfulTileSources: ReadonlySet<Source>;
+};
+
+const emptyLayerSourceState = (): LayerSourceState => ({
+  failedFeatureSources: new Set(),
+  failedTileSources: new Set(),
+  featureRecoverySources: new Set(),
+  pendingFeatureLoads: new Map(),
+  pendingTileSources: new Map(),
+  successfulTileSources: new Set(),
+});
+
+const advanceLayerSourceState = (
+  state: LayerSourceState,
+): LayerSourceState => ({
+  failedFeatureSources: new Set(state.failedFeatureSources),
+  failedTileSources: new Set(state.failedTileSources),
+  featureRecoverySources: new Set(),
+  pendingFeatureLoads: new Map(state.pendingFeatureLoads),
+  pendingTileSources: new Map(state.pendingTileSources),
+  successfulTileSources: new Set(),
+});
+
+const settleLayerSourceState = (state: LayerSourceState): LayerSourceState => ({
+  ...state,
+  failedFeatureSources: new Set([
+    ...state.failedFeatureSources,
+    ...state.pendingFeatureLoads.keys(),
+  ]),
+  failedTileSources: new Set([
+    ...state.failedTileSources,
+    ...state.pendingTileSources.values(),
+  ]),
+  featureRecoverySources: new Set(),
+  pendingFeatureLoads: new Map(),
+  pendingTileSources: new Map(),
+});
 
 export const OlChartMap = (props: OlChartMapProps) => {
   const {
@@ -61,20 +107,54 @@ export const OlChartMap = (props: OlChartMapProps) => {
   const [currentChartConfigs, setCurrentChartConfigs] =
     useState<ChartConfig>(chartConfigs);
   const [currentMapView, setCurrentMapView] = useState<MapViewConfigs>(mapView);
+  const [layersReady, setLayersReady] = useState(false);
+  const [layerCreationFailed, setLayerCreationFailed] = useState(false);
+  const [layerSourceState, setLayerSourceState] = useState<LayerSourceState>(
+    emptyLayerSourceState,
+  );
+  const [mapRenderComplete, setMapRenderComplete] = useState(false);
+  const mapRenderGenerationRef = useRef<object>({});
+  const tileLifecycleRef = useRef(new MapTileLifecycleTracker());
+  const advanceMapRender = useCallback(() => {
+    const generation = {};
+    mapRenderGenerationRef.current = generation;
+    tileLifecycleRef.current.rebase(generation);
+    setMapRenderComplete(false);
+    setLayerSourceState(advanceLayerSourceState);
+  }, []);
+
+  useEffect(() => {
+    const renderCompleteKey = olMap.on('rendercomplete', () => {
+      tileLifecycleRef.current.reset(mapRenderGenerationRef.current);
+      setLayerSourceState(settleLayerSourceState);
+      setMapRenderComplete(true);
+    });
+    const moveStartKey = olMap.on('movestart', () => {
+      setMapRenderComplete(false);
+    });
+    const moveEndKey = olMap.on('moveend', advanceMapRender);
+    return () => {
+      unByKey([renderCompleteKey, moveStartKey, moveEndKey]);
+    };
+  }, [advanceMapRender, olMap]);
 
   /**
    * Add map to correct DOM element.
    */
   useEffect(() => {
+    setMapRenderComplete(false);
     olMap.setTarget(mapId);
+    olMap.render();
   }, [olMap, mapId]);
 
   /**
    * Update map size if size of parent container changes.
    */
   useEffect(() => {
+    advanceMapRender();
     olMap.updateSize();
-  }, [olMap, width, height]);
+    olMap.render();
+  }, [advanceMapRender, olMap, width, height]);
 
   /**
    * The prop chartConfigs will always be created on the fly,
@@ -165,6 +245,16 @@ export const OlChartMap = (props: OlChartMapProps) => {
    * Update non-chart layers
    */
   useEffect(() => {
+    let cancelled = false;
+    const cleanupSourceListeners: (() => void)[] = [];
+    setLayersReady(false);
+    setLayerCreationFailed(false);
+    setLayerSourceState(emptyLayerSourceState());
+    const generation = {};
+    mapRenderGenerationRef.current = generation;
+    tileLifecycleRef.current.reset(generation);
+    setMapRenderComplete(false);
+
     // clear existing layers
     // We first filter the layers we want to remove,
     // because removing items from an array during a loop can be erroneous.
@@ -184,16 +274,201 @@ export const OlChartMap = (props: OlChartMapProps) => {
       // stay on top, though.
       const createdLayersPromises = configs.map(createLayer);
       const createdLayers = await Promise.allSettled(createdLayersPromises);
+      if (cancelled) {
+        return;
+      }
+      let everyLayerCreated = true;
       createdLayers.forEach((createdLayer, idx) => {
         if (createdLayer.status === 'fulfilled' && createdLayer.value) {
+          const source = createdLayer.value.getSource();
+          if (source) {
+            const invalidateMapRender = () => {
+              if (!cancelled) setMapRenderComplete(false);
+            };
+            const getTile = (event: BaseEvent) =>
+              (event as BaseEvent & { tile?: unknown }).tile;
+            const onTileStart = (event: BaseEvent) => {
+              if (cancelled) return;
+              const tile = getTile(event);
+              if (
+                tile !== undefined &&
+                tileLifecycleRef.current.startTile(
+                  mapRenderGenerationRef.current,
+                  tile,
+                )
+              ) {
+                setLayerSourceState(current => ({
+                  ...current,
+                  pendingTileSources: new Map(current.pendingTileSources).set(
+                    tile,
+                    source,
+                  ),
+                }));
+              }
+              invalidateMapRender();
+            };
+            const recordTileOutcome = (
+              event: BaseEvent,
+              successful: boolean,
+            ) => {
+              if (cancelled) return;
+              const tile = getTile(event);
+              const provenance = tileLifecycleRef.current.completeTile(
+                mapRenderGenerationRef.current,
+                tile,
+              );
+              if (tile === undefined || provenance === null) {
+                return;
+              }
+              setMapRenderComplete(false);
+              setLayerSourceState(current => {
+                const pendingTileSources = new Map(current.pendingTileSources);
+                pendingTileSources.delete(tile);
+                if (!successful) {
+                  return {
+                    ...current,
+                    failedTileSources: new Set(current.failedTileSources).add(
+                      source,
+                    ),
+                    pendingTileSources,
+                  };
+                }
+                if (provenance === 'rebased') {
+                  return { ...current, pendingTileSources };
+                }
+                return {
+                  ...current,
+                  pendingTileSources,
+                  successfulTileSources: new Set(
+                    current.successfulTileSources,
+                  ).add(source),
+                };
+              });
+            };
+            const onTileError = (event: BaseEvent) =>
+              recordTileOutcome(event, false);
+            const onTileSuccess = (event: BaseEvent) =>
+              recordTileOutcome(event, true);
+            const onFeaturesStart = () => {
+              if (cancelled) return;
+              invalidateMapRender();
+              setLayerSourceState(current => {
+                const pendingFeatureLoads = new Map(
+                  current.pendingFeatureLoads,
+                );
+                pendingFeatureLoads.set(
+                  source,
+                  (pendingFeatureLoads.get(source) ?? 0) + 1,
+                );
+                if (!current.failedFeatureSources.has(source)) {
+                  return { ...current, pendingFeatureLoads };
+                }
+                return {
+                  ...current,
+                  featureRecoverySources: new Set(
+                    current.featureRecoverySources,
+                  ).add(source),
+                  pendingFeatureLoads,
+                };
+              });
+            };
+            const onFeaturesError = () => {
+              if (cancelled) return;
+              invalidateMapRender();
+              setLayerSourceState(current => {
+                const pendingFeatureLoads = new Map(
+                  current.pendingFeatureLoads,
+                );
+                const pendingCount = pendingFeatureLoads.get(source) ?? 0;
+                if (pendingCount <= 1) {
+                  pendingFeatureLoads.delete(source);
+                } else {
+                  pendingFeatureLoads.set(source, pendingCount - 1);
+                }
+                const featureRecoverySources = new Set(
+                  current.featureRecoverySources,
+                );
+                featureRecoverySources.delete(source);
+                return {
+                  ...current,
+                  failedFeatureSources: new Set(
+                    current.failedFeatureSources,
+                  ).add(source),
+                  featureRecoverySources,
+                  pendingFeatureLoads,
+                };
+              });
+            };
+            const onFeaturesSuccess = () => {
+              if (cancelled) return;
+              invalidateMapRender();
+              setLayerSourceState(current => {
+                const pendingFeatureLoads = new Map(
+                  current.pendingFeatureLoads,
+                );
+                const pendingCount = pendingFeatureLoads.get(source) ?? 0;
+                if (pendingCount === 0) {
+                  return current;
+                }
+                if (pendingCount === 1) {
+                  pendingFeatureLoads.delete(source);
+                } else {
+                  pendingFeatureLoads.set(source, pendingCount - 1);
+                }
+                if (
+                  !current.featureRecoverySources.has(source) ||
+                  pendingFeatureLoads.has(source)
+                ) {
+                  return { ...current, pendingFeatureLoads };
+                }
+                const failedFeatureSources = new Set(
+                  current.failedFeatureSources,
+                );
+                failedFeatureSources.delete(source);
+                const featureRecoverySources = new Set(
+                  current.featureRecoverySources,
+                );
+                featureRecoverySources.delete(source);
+                return {
+                  ...current,
+                  failedFeatureSources,
+                  featureRecoverySources,
+                  pendingFeatureLoads,
+                };
+              });
+            };
+            source.addEventListener('tileloadstart', onTileStart);
+            source.addEventListener('featuresloadstart', onFeaturesStart);
+            source.addEventListener('tileloaderror', onTileError);
+            source.addEventListener('featuresloaderror', onFeaturesError);
+            source.addEventListener('tileloadend', onTileSuccess);
+            source.addEventListener('featuresloadend', onFeaturesSuccess);
+            cleanupSourceListeners.push(() => {
+              source.removeEventListener('tileloadstart', onTileStart);
+              source.removeEventListener('featuresloadstart', onFeaturesStart);
+              source.removeEventListener('tileloaderror', onTileError);
+              source.removeEventListener('featuresloaderror', onFeaturesError);
+              source.removeEventListener('tileloadend', onTileSuccess);
+              source.removeEventListener('featuresloadend', onFeaturesSuccess);
+            });
+          }
           olMap.getLayers().insertAt(0, createdLayer.value);
         } else {
+          everyLayerCreated = false;
           console.warn(`Layer could not be created: ${configs[idx]}`);
         }
       });
+      setLayersReady(everyLayerCreated);
+      setLayerCreationFailed(!everyLayerCreated);
+      setMapRenderComplete(false);
+      olMap.render();
     };
 
     addLayers(layerConfigs);
+    return () => {
+      cancelled = true;
+      cleanupSourceListeners.forEach(cleanup => cleanup());
+    };
   }, [olMap, layerConfigs]);
 
   /**
@@ -320,6 +595,7 @@ export const OlChartMap = (props: OlChartMapProps) => {
    * the chart layer, if it does not exist yet.
    */
   useEffect(() => {
+    setMapRenderComplete(false);
     const layers = olMap.getLayers();
     const chartLayer = layers
       .getArray()
@@ -389,6 +665,7 @@ export const OlChartMap = (props: OlChartMapProps) => {
       }
       chartLayer.changed();
     }
+    olMap.render();
   }, [
     olMap,
     theme,
@@ -400,9 +677,30 @@ export const OlChartMap = (props: OlChartMapProps) => {
     locale,
   ]);
 
+  const unrecoveredTileSources = new Set([
+    ...layerSourceState.failedTileSources,
+    ...layerSourceState.pendingTileSources.values(),
+  ]);
+  layerSourceState.successfulTileSources.forEach(source =>
+    unrecoveredTileSources.delete(source),
+  );
+  const hasUnrecoveredLayerFailure =
+    unrecoveredTileSources.size > 0 ||
+    layerSourceState.failedFeatureSources.size > 0 ||
+    layerSourceState.pendingFeatureLoads.size > 0;
+  const mapRenderFailed =
+    layerCreationFailed || (mapRenderComplete && hasUnrecoveredLayerFailure);
+
   return (
     <div
       id={mapId}
+      data-superset-map-status={
+        mapRenderFailed
+          ? 'error'
+          : layersReady && mapRenderComplete
+            ? 'rendered'
+            : 'loading'
+      }
       style={{
         height: `${height}px`,
         width: `${width}px`,

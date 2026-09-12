@@ -18,20 +18,24 @@ from __future__ import annotations
 
 import base64
 import logging
+from collections.abc import Callable
 from datetime import datetime
 from enum import Enum
 from io import BytesIO
-from typing import cast, TYPE_CHECKING, TypedDict
+from typing import cast, NotRequired, TYPE_CHECKING, TypedDict
 
 from flask import current_app as app
 
 from superset import thumbnail_cache
 from superset.distributed_lock import DistributedLock
 from superset.exceptions import (
+    AcquireDistributedLockFailedException,
     LockAlreadyHeldException,
+    ReleaseDistributedLockFailedException,
     ScreenshotImageNotAvailableException,
 )
 from superset.extensions import event_logger
+from superset.utils.cache import set_cache_value
 from superset.utils.hashing import hash_from_dict
 from superset.utils.report_execution import ReportExecutionContext
 from superset.utils.urls import modify_url_query
@@ -51,6 +55,7 @@ DEFAULT_SCREENSHOT_THUMBNAIL_SIZE = 400, 300
 DEFAULT_CHART_WINDOW_SIZE = DEFAULT_CHART_THUMBNAIL_SIZE = 800, 600
 DEFAULT_DASHBOARD_WINDOW_SIZE = 1600, 1200
 DEFAULT_DASHBOARD_THUMBNAIL_SIZE = 800, 600
+DASHBOARD_SCREENSHOT_CAPTURE_CONTRACT = "dashboard-complete-v1"
 
 try:
     from PIL import Image
@@ -69,6 +74,18 @@ class StatusValues(Enum):
     ERROR = "Error"
 
 
+class ScreenshotCacheError(RuntimeError):
+    """Base exception for screenshot-cache access failures."""
+
+
+class ScreenshotCacheReadError(ScreenshotCacheError):
+    """Raised when a screenshot state cannot be read."""
+
+
+class ScreenshotCacheWriteError(ScreenshotCacheError):
+    """Raised when a screenshot state cannot be persisted."""
+
+
 class ScreenshotCachePayloadType(TypedDict):
     image: str | None
     timestamp: str
@@ -79,12 +96,16 @@ class ScreenshotCachePayloadType(TypedDict):
     # and are treated as belonging to no object -- read access is fail-closed
     # until the entry is recomputed. Optional at the type level via `.get()`
     # in `from_dict` for that reason.
-    scope: str | None
+    scope: NotRequired[str | None]
+    # Identifies the validation contract enforced by the worker that produced
+    # an artifact. Legacy workers omit unknown fields when serializing, so a
+    # rolling deployment cannot accidentally bless their unvalidated result.
+    capture_contract: NotRequired[str | None]
 
 
 # Magic bytes for a cheap image sanity check. This is intentionally not a full
-# decode: it's meant to catch 0-byte/corrupt/blank payloads before they're
-# cached or served, not to validate the image is renderable.
+# decode: it catches empty and obviously corrupt payloads before they're cached
+# or served, but does not prove that the image is renderable or non-blank.
 PNG_MAGIC_BYTES = b"\x89PNG\r\n\x1a\n"
 JPEG_MAGIC_BYTES = b"\xff\xd8\xff"
 
@@ -106,24 +127,44 @@ class ScreenshotCachePayload:
     def __init__(
         self,
         image: bytes | None = None,
-        status: StatusValues = StatusValues.PENDING,
+        status: StatusValues | None = None,
         timestamp: str = "",
         scope: str | None = None,
+        capture_contract: str | None = None,
     ):
         self._image = image
         self._timestamp = timestamp or datetime.now().isoformat()
-        self.status = StatusValues.UPDATED if image else status
+        self.status = status or (
+            StatusValues.UPDATED if image else StatusValues.PENDING
+        )
         self._scope = scope
+        self._capture_contract = capture_contract
 
     @classmethod
     def from_dict(cls, payload: ScreenshotCachePayloadType) -> ScreenshotCachePayload:
+        image = payload["image"]
+        timestamp = payload["timestamp"]
+        scope = payload.get("scope")
+        capture_contract = payload.get("capture_contract")
+        if image is not None and not isinstance(image, (str, bytes)):
+            raise TypeError("Screenshot cache image must be base64 text")
+        if not isinstance(timestamp, str):
+            raise TypeError("Screenshot cache timestamp must be text")
+        parsed_timestamp = datetime.fromisoformat(timestamp)
+        if parsed_timestamp.tzinfo is not None:
+            raise ValueError("Screenshot cache timestamp must be timezone-naive")
+        if scope is not None and not isinstance(scope, str):
+            raise TypeError("Screenshot cache scope must be text")
+        if capture_contract is not None and not isinstance(capture_contract, str):
+            raise TypeError("Screenshot cache capture contract must be text")
         return cls(
-            image=base64.b64decode(payload["image"]) if payload["image"] else None,
+            image=base64.b64decode(image, validate=True) if image else None,
             status=StatusValues(payload["status"]),
-            timestamp=payload["timestamp"],
+            timestamp=timestamp,
             # `.get` rather than `payload["scope"]`: entries cached before this
             # field existed won't have the key.
-            scope=payload.get("scope"),
+            scope=scope,
+            capture_contract=capture_contract,
         )
 
     def to_dict(self) -> ScreenshotCachePayloadType:
@@ -134,6 +175,7 @@ class ScreenshotCachePayload:
             "timestamp": self._timestamp,
             "status": self.status.value,
             "scope": self._scope,
+            "capture_contract": self._capture_contract,
         }
 
     def get_scope(self) -> str | None:
@@ -142,12 +184,22 @@ class ScreenshotCachePayload:
     def set_scope(self, scope: str | None) -> None:
         self._scope = scope
 
+    def get_capture_contract(self) -> str | None:
+        return self._capture_contract
+
+    def set_capture_contract(self, capture_contract: str | None) -> None:
+        self._capture_contract = capture_contract
+
+    def has_capture_contract(self, expected_capture_contract: str) -> bool:
+        return self._capture_contract == expected_capture_contract
+
     def update_timestamp(self) -> None:
         self._timestamp = datetime.now().isoformat()
 
     def pending(self) -> None:
         self.update_timestamp()
         self._image = None
+        self._capture_contract = None
         self.status = StatusValues.PENDING
 
     def computing(self) -> None:
@@ -159,10 +211,10 @@ class ScreenshotCachePayload:
         self.status = StatusValues.UPDATED
         self._image = image
 
-    def error(
-        self,
-    ) -> None:
+    def error(self, *, discard_image: bool = False) -> None:
         self.update_timestamp()
+        if discard_image:
+            self._image = None
         self.status = StatusValues.ERROR
 
     def get_image(self) -> BytesIO:
@@ -191,13 +243,51 @@ class ScreenshotCachePayload:
 
     def is_computing_stale(self) -> bool:
         """Check if a COMPUTING status is stale (task likely failed or stuck)."""
+        return self.is_in_progress_stale()
+
+    def is_in_progress_stale(self) -> bool:
+        """Check if a pending or computing request has exceeded its TTL."""
         computing_ttl = app.config["THUMBNAIL_COMPUTING_CACHE_TTL"]
         return (
             datetime.now() - datetime.fromisoformat(self.get_timestamp())
         ).total_seconds() >= computing_ttl
 
+    def is_in_progress(self) -> bool:
+        """Return whether screenshot computation has not reached a terminal state."""
+        return self.status in (StatusValues.PENDING, StatusValues.COMPUTING)
+
+    def is_updated(self) -> bool:
+        """Return whether the cached screenshot completed successfully."""
+        return self.status == StatusValues.UPDATED
+
+    def should_enqueue_task(
+        self,
+        force: bool = False,
+        expected_scope: str | None = None,
+        expected_capture_contract: str | None = None,
+    ) -> bool:
+        """Check whether an API caller should enqueue screenshot computation.
+
+        A fresh pending or computing payload represents an accepted in-flight
+        request, so additional polling and force requests are coalesced. Stale
+        in-flight payloads remain retryable through the computing cache TTL.
+        """
+        if expected_scope is not None and self._scope != expected_scope:
+            return True
+        if self.is_in_progress():
+            return self.is_in_progress_stale()
+        return self.should_trigger_task(
+            force,
+            expected_scope,
+            expected_capture_contract=expected_capture_contract,
+        )
+
     def should_trigger_task(
-        self, force: bool = False, expected_scope: str | None = None
+        self,
+        force: bool = False,
+        expected_scope: str | None = None,
+        retry_fresh_error: bool = False,
+        expected_capture_contract: str | None = None,
     ) -> bool:
         """
         :param expected_scope: The scope (e.g. "dashboard:<id>") the caller
@@ -213,13 +303,21 @@ class ScreenshotCachePayload:
         return (
             force
             or self.status == StatusValues.PENDING
-            or (self.status == StatusValues.ERROR and self.is_error_cache_ttl_expired())
+            or (
+                self.status == StatusValues.ERROR
+                and (retry_fresh_error or self.is_error_cache_ttl_expired())
+            )
             or (self.status == StatusValues.COMPUTING and self.is_computing_stale())
             or (self.status == StatusValues.UPDATED and self._image is None)
             or (
                 self.status == StatusValues.UPDATED
                 and expected_scope is not None
                 and self._scope != expected_scope
+            )
+            or (
+                self.status == StatusValues.UPDATED
+                and expected_capture_contract is not None
+                and not self.has_capture_contract(expected_capture_contract)
             )
         )
 
@@ -240,11 +338,18 @@ class BaseScreenshot:
     # they're authorizing, since the same cache backend is shared across
     # every dashboard and chart.
     cache_scope: str | None = None
+    capture_contract: str | None = None
 
-    def __init__(self, url: str, digest: str | None):
+    def __init__(
+        self,
+        url: str,
+        digest: str | None,
+        require_complete_capture: bool = False,
+    ):
         self.digest = digest
         self.url = url
         self.screenshot = None
+        self.require_complete_capture = require_complete_capture
 
     def driver(
         self,
@@ -268,6 +373,7 @@ class BaseScreenshot:
             user,
             log_context=log_context,
             report_execution_context=report_execution_context,
+            require_complete_capture=self.require_complete_capture,
         )
         return self.screenshot
 
@@ -298,28 +404,247 @@ class BaseScreenshot:
     @classmethod
     def get_from_cache_key(cls, cache_key: str) -> ScreenshotCachePayload | None:
         logger.info("Attempting to get from cache: %s", cache_key)
-        if payload := cls.cache.get(cache_key):
+        try:
+            payload = cls.cache.get(cache_key)
+        except Exception as ex:  # pylint: disable=broad-except
+            logger.exception("Could not read screenshot cache key %s", cache_key)
+            raise ScreenshotCacheReadError(
+                f"Could not read screenshot cache key {cache_key}"
+            ) from ex
+        if payload:
             # Initially, only bytes were stored. This was changed to store an instance
             # of ScreenshotCachePayload, but since it can't be serialized in all
             # backends it was further changed to a dict of attributes.
-            if isinstance(payload, bytes):
-                payload = ScreenshotCachePayload(payload)
-            elif isinstance(payload, ScreenshotCachePayload):
-                pass
-            elif isinstance(payload, dict):
-                payload = cast(ScreenshotCachePayloadType, payload)
-                payload = ScreenshotCachePayload.from_dict(payload)
-            if invalid_reason := payload.get_invalid_image_reason():
+            try:
+                if isinstance(payload, bytes):
+                    payload = ScreenshotCachePayload(payload)
+                elif isinstance(payload, ScreenshotCachePayload):
+                    pass
+                elif isinstance(payload, dict):
+                    payload = cast(ScreenshotCachePayloadType, payload)
+                    payload = ScreenshotCachePayload.from_dict(payload)
+                else:
+                    raise TypeError(
+                        f"Unexpected screenshot cache payload: {type(payload)!r}"
+                    )
+                parsed_timestamp = datetime.fromisoformat(payload.get_timestamp())
+                if parsed_timestamp.tzinfo is not None:
+                    raise ValueError(
+                        "Screenshot cache timestamp must be timezone-naive"
+                    )
+                payload.get_status()
+                if invalid_reason := payload.get_invalid_image_reason():
+                    logger.warning(
+                        "Rejecting cached screenshot for %s: %s image payload; "
+                        "treating as a cache miss",
+                        cache_key,
+                        invalid_reason,
+                    )
+                    return None
+                return payload
+            except Exception:  # pylint: disable=broad-except
                 logger.warning(
-                    "Rejecting cached screenshot for %s: %s image payload; "
+                    "Rejecting malformed screenshot cache payload for %s; "
                     "treating as a cache miss",
                     cache_key,
-                    invalid_reason,
+                    exc_info=True,
                 )
                 return None
-            return payload
         logger.info("Failed at getting from cache: %s", cache_key)
         return None
+
+    @classmethod
+    def store_cache_payload(
+        cls,
+        cache_key: str,
+        cache_payload: ScreenshotCachePayload,
+    ) -> bool:
+        """Persist screenshot state and report backend write failures."""
+
+        return set_cache_value(cls.cache, cache_key, cache_payload.to_dict())
+
+    @classmethod
+    def _prepare_and_enqueue_task_under_lock(
+        cls,
+        cache_key: str,
+        *,
+        force: bool,
+        scope: str,
+        expected_capture_contract: str | None,
+        enqueue: Callable[[], None],
+    ) -> tuple[ScreenshotCachePayload, bool]:
+        """Claim and publish a screenshot task while the producer lock is held."""
+
+        cache_payload = cls.get_from_cache_key(cache_key)
+        cache_payload = cache_payload or ScreenshotCachePayload()
+        if not cache_payload.should_enqueue_task(
+            force,
+            expected_scope=scope,
+            expected_capture_contract=expected_capture_contract,
+        ):
+            return cache_payload, False
+        cache_payload.pending()
+        cache_payload.set_scope(scope)
+        cls._store_cache_payload_or_raise(cache_key, cache_payload)
+        try:
+            enqueue()
+        except Exception:  # pylint: disable=broad-except
+            try:
+                if not cls.store_error_if_no_active_task(cache_key, scope=scope):
+                    logger.error(
+                        "Could not persist screenshot Error state after enqueue "
+                        "failure: %s",
+                        cache_key,
+                    )
+            except ScreenshotCacheError:
+                logger.exception(
+                    "Could not inspect screenshot state after enqueue failure: %s",
+                    cache_key,
+                )
+            raise
+        return cache_payload, True
+
+    @classmethod
+    def prepare_and_enqueue_task(
+        cls,
+        cache_key: str,
+        *,
+        force: bool,
+        scope: str,
+        enqueue: Callable[[], None],
+        expected_capture_contract: str | None = None,
+    ) -> tuple[ScreenshotCachePayload, bool]:
+        """Atomically claim a cache key and publish its API task.
+
+        Producers use a short, separate lock from workers. Holding it through
+        broker publication prevents a second producer from colliding with a
+        fast worker or racing enqueue-failure cleanup. A leaked producer lock
+        cannot block an already accepted worker.
+
+        :return: The latest payload and whether the caller owns the enqueue.
+        """
+
+        result: tuple[ScreenshotCachePayload, bool] | None = None
+        operation_error: Exception | None = None
+        release_error: ReleaseDistributedLockFailedException | None = None
+        try:
+            with DistributedLock(
+                namespace="thumbnail_enqueue",
+                key=cache_key,
+            ):
+                try:
+                    result = cls._prepare_and_enqueue_task_under_lock(
+                        cache_key,
+                        force=force,
+                        scope=scope,
+                        expected_capture_contract=expected_capture_contract,
+                        enqueue=enqueue,
+                    )
+                except Exception as ex:  # pylint: disable=broad-except
+                    # Let __exit__ release the producer lock, then preserve the
+                    # operation's original exception even if release also fails.
+                    operation_error = ex
+        except LockAlreadyHeldException:
+            # Another API producer owns publication for this key. Polling will
+            # observe its Pending transition or terminal result.
+            cache_payload = ScreenshotCachePayload(scope=scope)
+            cache_payload.pending()
+            return cache_payload, False
+        except AcquireDistributedLockFailedException as ex:
+            raise ScreenshotCacheWriteError(
+                f"Could not coordinate screenshot task for {cache_key}"
+            ) from ex
+        except ReleaseDistributedLockFailedException as ex:
+            release_error = ex
+
+        if operation_error is not None:
+            raise operation_error
+        if release_error is not None:
+            if result is None:
+                raise ScreenshotCacheWriteError(
+                    f"Could not coordinate screenshot task for {cache_key}"
+                ) from release_error
+            logger.warning(
+                "Screenshot task producer lock release failed after the operation "
+                "completed for %s; preserving its accepted result: %s",
+                cache_key,
+                release_error,
+            )
+        if result is None:
+            raise ScreenshotCacheWriteError(
+                f"Screenshot task preparation did not complete for {cache_key}"
+            )
+        return result
+
+    @classmethod
+    def store_error_if_no_active_task(cls, cache_key: str, scope: str) -> bool:
+        """Persist a setup failure without overwriting another worker's state.
+
+        Worker setup happens before ``compute_and_cache`` acquires its lock. A
+        duplicate delivery can therefore fail during setup while the original
+        worker owns the screenshot lock. Acquiring that same lock before the
+        fallback write keeps the state monotonic: an active worker remains in
+        control, and an already completed artifact remains ``Updated``.
+        """
+
+        try:
+            with DistributedLock(
+                namespace="thumbnail",
+                key=cache_key,
+                ttl_seconds=app.config["THUMBNAIL_COMPUTING_CACHE_TTL"],
+            ):
+                cache_payload = cls.get_from_cache_key(cache_key)
+                if cache_payload and cache_payload.is_updated():
+                    logger.info(
+                        "Skipping screenshot Error state for completed task: %s",
+                        cache_key,
+                    )
+                    return True
+                error_payload = ScreenshotCachePayload(scope=scope)
+                error_payload.error()
+                return cls.store_cache_payload(cache_key, error_payload)
+        except LockAlreadyHeldException:
+            logger.info(
+                "Skipping screenshot Error state while another task owns %s",
+                cache_key,
+            )
+            return True
+        except (
+            AcquireDistributedLockFailedException,
+            ReleaseDistributedLockFailedException,
+        ):
+            logger.exception(
+                "Could not coordinate screenshot Error state for %s",
+                cache_key,
+            )
+            return False
+
+    @classmethod
+    def _store_cache_payload_or_raise(
+        cls,
+        cache_key: str,
+        cache_payload: ScreenshotCachePayload,
+        *,
+        replace_rejected_image_with_error: bool = False,
+    ) -> None:
+        """Persist screenshot state, optionally replacing a rejected image."""
+
+        if cls.store_cache_payload(cache_key, cache_payload):
+            return
+        failed_status = cache_payload.get_status()
+        if (
+            replace_rejected_image_with_error
+            and cache_payload.status == StatusValues.UPDATED
+        ):
+            # A backend may reject only the image-bearing payload (for example
+            # Memcached's item-size limit). Replace it with a small terminal
+            # state so API polling observes a truthful Error instead of stale
+            # Computing forever.
+            cache_payload.error(discard_image=True)
+            cls.store_cache_payload(cache_key, cache_payload)
+        raise ScreenshotCacheWriteError(
+            f"Could not persist {failed_status} state for {cache_key}"
+        )
 
     def compute_and_cache(  # pylint: disable=too-many-arguments
         self,
@@ -328,6 +653,7 @@ class BaseScreenshot:
         window_size: WindowSize | None = None,
         thumb_size: WindowSize | None = None,
         cache_key: str | None = None,
+        retry_fresh_error: bool = False,
     ) -> None:
         """
         Computes the thumbnail and caches the result
@@ -350,7 +676,10 @@ class BaseScreenshot:
                     self.get_from_cache_key(cache_key) or ScreenshotCachePayload()
                 )
                 if not cache_payload.should_trigger_task(
-                    force=force, expected_scope=self.cache_scope
+                    force=force,
+                    expected_scope=self.cache_scope,
+                    retry_fresh_error=retry_fresh_error,
+                    expected_capture_contract=self.capture_contract,
                 ):
                     logger.info(
                         "Skipping compute - already processed for thumbnail: %s",
@@ -363,7 +692,8 @@ class BaseScreenshot:
                 logger.info("Processing url for thumbnail: %s", cache_key)
                 cache_payload.set_scope(self.cache_scope)
                 cache_payload.computing()
-                self.cache.set(cache_key, cache_payload.to_dict())
+                cache_payload.set_capture_contract(self.capture_contract)
+                self._store_cache_payload_or_raise(cache_key, cache_payload)
                 image = None
                 # Assuming all sorts of things can go wrong with Selenium
                 try:
@@ -428,7 +758,11 @@ class BaseScreenshot:
                         cache_payload.error()
 
                 logger.info("Caching thumbnail: %s", cache_key)
-                self.cache.set(cache_key, cache_payload.to_dict())
+                self._store_cache_payload_or_raise(
+                    cache_key,
+                    cache_payload,
+                    replace_rejected_image_with_error=True,
+                )
                 logger.info(
                     "Updated thumbnail cache for %s; Status: %s",
                     cache_key,
@@ -504,6 +838,7 @@ class DashboardScreenshot(BaseScreenshot):
         digest: str | None,
         window_size: WindowSize | None = None,
         thumb_size: WindowSize | None = None,
+        require_complete_capture: bool = False,
     ):
         # per the element above, dashboard screenshots
         # should always capture in standalone
@@ -511,7 +846,13 @@ class DashboardScreenshot(BaseScreenshot):
             url,
             standalone=DashboardStandaloneMode.REPORT.value,
         )
-        super().__init__(url, digest)
+        super().__init__(
+            url,
+            digest,
+            require_complete_capture=require_complete_capture,
+        )
+        if require_complete_capture:
+            self.capture_contract = DASHBOARD_SCREENSHOT_CAPTURE_CONTRACT
         self.window_size = window_size or DEFAULT_DASHBOARD_WINDOW_SIZE
         self.thumb_size = thumb_size or DEFAULT_DASHBOARD_THUMBNAIL_SIZE
 
