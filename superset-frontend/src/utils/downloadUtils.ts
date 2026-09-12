@@ -34,11 +34,12 @@ import {
  * `common.conf`, so a top-level import here would break any suite that
  * transitively imports this util without bootstrapping the app. Warning
  * toasts sit on failure paths only, so resolving the store lazily costs
- * nothing on the happy path.
+ * nothing on the happy path. The message arrives pre-translated — call
+ * sites wrap their literals in `t()` so the extraction keeps them.
  */
 export async function dispatchWarningToast(message: string): Promise<void> {
   const { store } = await import('src/views/store');
-  store.dispatch(addWarningToast(t(message)));
+  store.dispatch(addWarningToast(message));
 }
 
 // Rows carry a `data-row-id` attribute (see Row.tsx) so the export path can

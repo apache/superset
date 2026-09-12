@@ -19,6 +19,7 @@
 import { SyntheticEvent } from 'react';
 import domToImage from 'dom-to-image-more';
 import { kebabCase } from 'lodash-es';
+import { t } from '@apache-superset/core/translation';
 import { SupersetTheme } from '@apache-superset/core/theme';
 import type { AgGridContainerElement } from '@superset-ui/core/components';
 import {
@@ -391,7 +392,7 @@ export default function downloadAsImageOptimized(
 
     if (!elementToPrint) {
       await dispatchWarningToast(
-        'Image download failed, please refresh and try again.',
+        t('Image download failed, please refresh and try again.'),
       );
       return;
     }
@@ -436,7 +437,7 @@ export default function downloadAsImageOptimized(
 
       if (!isFirstDataRendered) {
         await dispatchWarningToast(
-          'The chart is still loading. Please wait a moment and try again.',
+          t('The chart is still loading. Please wait a moment and try again.'),
         );
         // This early return skips the capture, so restore virtualization here;
         // otherwise it would stay forced-on for the rest of the session.
@@ -536,7 +537,7 @@ export default function downloadAsImageOptimized(
       } catch (error) {
         console.error('Creating image failed', error);
         await dispatchWarningToast(
-          'Image download failed, please refresh and try again.',
+          t('Image download failed, please refresh and try again.'),
         );
       } finally {
         cellFixups.forEach(({ el, minHeight, overflow }) => {
@@ -617,7 +618,7 @@ export default function downloadAsImageOptimized(
     } catch (error) {
       console.error('Creating image failed', error);
       await dispatchWarningToast(
-        'Image download failed, please refresh and try again.',
+        t('Image download failed, please refresh and try again.'),
       );
     } finally {
       if (cleanup) cleanup();
