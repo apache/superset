@@ -4940,17 +4940,30 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 if dashboard.published and self.is_viewer(dashboard):
                     return
             else:
-                # Datasource-based fallback. Member chart datasources are
-                # resolved across datasource types via
-                # ``Slice.resolved_datasource`` — ``Dashboard.datasources``
-                # only ever contains SqlaTable-backed datasources, so an
-                # unqualified emptiness check would grant every authenticated
-                # user access to a dashboard composed solely of, e.g.,
-                # semantic-view charts. A dashboard with no charts remains
-                # accessible; a chart whose datasource cannot be resolved
-                # counts as inaccessible, never as absent. Resolution is
-                # lazy and deduplicated per (type, id) so the first
-                # accessible datasource short-circuits the remaining lookups.
+                # Datasource-based fallback, published dashboards only —
+                # matching the list filter's fallback branch
+                # (superset/dashboards/filters.py), so an unpublished
+                # dashboard excluded by the fallback is not readable by
+                # direct URL (published chart-less dashboards stay directly
+                # readable while absent from lists — that asymmetry is
+                # intentional), and emptying
+                # the viewers list can no longer WIDEN access (the viewer
+                # branch above is published-gated; a fallback with no
+                # published gate would otherwise take over). Editors —
+                # owners are folded into editors by the subjects model —
+                # and resolver-granted editors are admitted above
+                # regardless of published, so no authoring flow changes.
+                #
+                # Member chart datasources are resolved across datasource
+                # types via ``Slice.resolved_datasource`` —
+                # ``Dashboard.datasources`` only ever contains
+                # SqlaTable-backed datasources, so an unqualified emptiness
+                # check would grant every authenticated user access to a
+                # dashboard composed solely of, e.g., semantic-view charts.
+                # A PUBLISHED dashboard with no charts remains accessible
+                # (chart-less dashboards can still carry markdown content);
+                # a chart whose datasource cannot be resolved counts as
+                # inaccessible, never as absent.
                 member_slices = dashboard.slices
 
                 def member_datasource_accessible() -> bool:
@@ -4967,7 +4980,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                             return True
                     return False
 
-                if not member_slices or member_datasource_accessible():
+                if dashboard.published and (
+                    not member_slices or member_datasource_accessible()
+                ):
                     return
 
             raise SupersetSecurityException(

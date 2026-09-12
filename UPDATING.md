@@ -65,6 +65,10 @@ Resample projections remain capped by `MAX_RESAMPLE_ROWS` (default
 year, …) that previously skipped the check because they have no fixed
 `Timedelta`.
 
+### Dashboard read fallback requires a published dashboard
+
+The object-read gate's datasource-based fallback — including the admit for dashboards with no charts — now applies to **published** dashboards only, matching the list filter's fallback, which was already published-only. Previously an *unpublished* dashboard with an empty viewers list was readable by any authenticated user who could access one member datasource (or by every authenticated user, when it had no charts — including markdown-only dashboards), even though it appeared in no default list; and removing the last viewer subject from a dashboard silently widened access, because the viewer branch is published-gated while the fallback was not. Owners (folded into editors by the subjects model), editors — including resolver-granted editors — and admins are unaffected: they are admitted before the fallback regardless of published state. Everything consuming the gate inherits the tightening; most visibly, a datasource-entitled non-editor can no longer create or validate a report schedule against an unpublished no-viewers dashboard.
+
 ### Tagging is on by default
 
 `TAGGING_SYSTEM` now ships **on**. The Tags menu entry, the tag columns and
