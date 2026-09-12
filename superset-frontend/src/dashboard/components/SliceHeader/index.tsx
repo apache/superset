@@ -41,6 +41,8 @@ import {
 } from '@apache-superset/core/theme';
 import { useUiConfig } from 'src/components/UiConfigContext';
 import { isEmbedded } from 'src/dashboard/util/isEmbedded';
+import { URL_PARAMS } from 'src/constants';
+import { getUrlParam } from 'src/utils/urlUtils';
 import {
   Tooltip,
   EditableTitle,
@@ -239,9 +241,12 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
               0,
           );
 
+    const isPrintMode = getUrlParam(URL_PARAMS.print) === 1;
     // Consumption-only mobile mode: no explore link, no chart controls
     const isMobile = useIsMobile();
-    const canExplore = !editMode && supersetCanExplore && !isMobile;
+    // In print mode chart titles must be plain text, not links —
+    // PDF viewers treat <a href> as clickable, which is confusing.
+    const canExplore = !editMode && supersetCanExplore && !isMobile && !isPrintMode;
     const showRowLimitWarning =
       shouldShowRowLimitWarning && sqlRowCount >= rowLimit && rowLimit > 0;
 
@@ -279,11 +284,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
     );
 
     return (
-      <ChartHeaderStyles
-        className="slice-header"
-        data-test="slice-header"
-        ref={ref}
-      >
+      <ChartHeaderStyles className="slice-header" data-test="slice-header" ref={ref}>
         <div className="header-title" ref={headerRef}>
           <Tooltip title={headerTooltip}>
             {/* this div ensures the hover event triggers correctly and prevents flickering */}
