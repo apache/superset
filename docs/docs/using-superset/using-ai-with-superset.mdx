@@ -281,6 +281,7 @@ Ask your admin for the MCP server URL and any authentication tokens you need.
 | `update_chart_preview`  | Update a cached chart preview without saving                                                                                                      |
 | `generate_explore_link` | Generate an Explore URL for interactive visualization                                                                                             |
 | `delete_chart`          | Delete a chart by ID or UUID (soft-deletes to trash when `SOFT_DELETE` is enabled; fails if alerts/reports are still attached, checked before editorship; otherwise returns `permission_denied` if the caller isn't an editor of the chart — owners, Admins, and explicitly granted editors qualify)   |
+| `restore_chart`         | Restore a soft-deleted chart from trash by ID or UUID; not gated on `SOFT_DELETE`, so rows trashed while it was enabled stay recoverable, but only soft-deleted charts can be restored — permanently deleted charts are unrecoverable; returns `permission_denied` if the caller isn't an editor of the chart |
 
 ### Dashboards
 
@@ -291,6 +292,7 @@ Ask your admin for the MCP server URL and any authentication tokens you need.
 | `generate_dashboard`              | Create a new dashboard with specified charts                                                                                                                                         |
 | `add_chart_to_existing_dashboard` | Add a chart to an existing dashboard                                                                                                                                                 |
 | `delete_dashboard`                | Delete a dashboard by ID, UUID, or slug; leaves its charts intact (soft-deletes to trash when `SOFT_DELETE` is enabled; fails if alerts/reports are still attached, checked before editorship; otherwise returns `permission_denied` if the caller isn't an editor of the dashboard — owners, Admins, and explicitly granted editors qualify) |
+| `restore_dashboard`               | Restore a soft-deleted dashboard from trash by ID or UUID (slug lookup does not cover trashed dashboards); not gated on `SOFT_DELETE`, so rows trashed while it was enabled stay recoverable, but only soft-deleted dashboards can be restored — permanently deleted dashboards are unrecoverable; returns `permission_denied` if the caller isn't an editor of the dashboard |
 
 ### SQL
 
