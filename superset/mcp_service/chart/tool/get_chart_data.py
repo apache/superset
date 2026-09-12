@@ -45,6 +45,7 @@ from superset.mcp_service.chart.chart_helpers import (
     get_cached_form_data,
     merge_extra_form_data_filters_into_query,
     rejected_requested_filter_columns,
+    resolve_form_data_datasource,
 )
 from superset.mcp_service.chart.chart_utils import validate_chart_dataset
 from superset.mcp_service.chart.query_result import (
@@ -697,10 +698,17 @@ async def get_chart_data(  # noqa: C901
             if guest_dashboard_id is not None:
                 guest_scope.authorize_query(query_context, guest_dashboard_id, chart)
 
+            datasource = getattr(query_context, "datasource", None)
+            datasource_id = getattr(datasource, "id", None)
+            datasource_type = getattr(datasource, "type", None)
+            if not isinstance(datasource_id, (int, str)):
+                datasource_id = chart.datasource_id
+            if not isinstance(datasource_type, str):
+                datasource_type = chart.datasource_type
             set_query_context_form_data(
                 query_context,
-                chart.datasource_id,
-                chart.datasource_type,
+                datasource_id,
+                str(datasource_type),
             )
 
             # Execute the query
@@ -1030,13 +1038,7 @@ async def _query_from_form_data(  # noqa: C901
     """
     from superset.commands.chart.data.get_data_command import ChartDataCommand
 
-    datasource_id = form_data.get("datasource_id")
-
-    # Handle combined datasource field (e.g., "1__table")
-    if not datasource_id and form_data.get("datasource"):
-        parts = str(form_data["datasource"]).split("__")
-        if len(parts) == 2:
-            datasource_id = parts[0]
+    datasource_id, datasource_type = resolve_form_data_datasource(form_data)
 
     if not datasource_id:
         logger.warning(
@@ -1069,6 +1071,7 @@ async def _query_from_form_data(  # noqa: C901
         )
 
         await ctx.report_progress(3, 4, "Executing data query")
+        set_query_context_form_data(query_context, datasource_id, datasource_type)
         with event_logger.log_context(action="mcp.get_chart_data.query_execution"):
             command = ChartDataCommand(query_context)
             command.validate()

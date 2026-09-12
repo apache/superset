@@ -47,6 +47,7 @@ def test_build_query_dict_synthesizes_temporal_filter() -> None:
     )
 
     assert query_dict["granularity"] == "ds"
+    assert query_dict["time_range"] == "Last 30 days"
     assert {
         "col": "ds",
         "op": "TEMPORAL_RANGE",
@@ -60,6 +61,7 @@ def test_build_query_dict_time_range_without_column_adds_no_filter() -> None:
 
     assert query_dict["filters"] == []
     assert "granularity" not in query_dict
+    assert query_dict["time_range"] == "Last 30 days"
 
 
 def test_build_query_dict_time_grain_emits_base_axis_column() -> None:
