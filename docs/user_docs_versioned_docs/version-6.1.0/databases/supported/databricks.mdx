@@ -45,11 +45,45 @@ export const databaseInfo = {
     connection_string:
       'databricks://token:{access_token}@{host}:{port}?http_path={http_path}&catalog={catalog}&schema={schema}',
     parameters: {
-      access_token: 'Personal access token from Settings > User Settings',
+      access_token:
+        'Personal access token from Settings > User Settings. Optional when OAuth M2M client ID/secret is set in Secure Extra.',
       host: 'Server hostname from cluster JDBC/ODBC settings',
       port: 'Port (default 443)',
       http_path: 'HTTP path from cluster JDBC/ODBC settings',
     },
+    authentication_methods: [
+      {
+        name: 'Personal Access Token',
+        description:
+          'Default. Use a Databricks personal access token in the Access token field.',
+      },
+      {
+        name: 'OAuth M2M (service principal)',
+        description:
+          'Connect with a Databricks service principal client ID and client secret. No personal access token is required.',
+        requirements:
+          'Create a workspace service principal and OAuth secret. Grant the principal Can Use on the SQL warehouse. Requires databricks-sdk (included in apache-superset[databricks]).',
+        secure_extra: {
+          auth_method: 'oauth-m2m',
+          client_id: '<service-principal-application-id>',
+          client_secret: '<oauth-secret>',
+        },
+        notes:
+          'In the database form, leave Access token blank or use a placeholder such as m2m. Paste the JSON into Advanced → Security → Secure extra.',
+      },
+      {
+        name: 'Azure Entra service principal',
+        description:
+          'Azure Databricks only. Use an Azure Entra application client ID and secret (auth_type=azure-sp-m2m).',
+        secure_extra: {
+          auth_method: 'azure-sp-m2m',
+          client_id: '<azure-app-id>',
+          client_secret: '<azure-client-secret>',
+        },
+        notes:
+          'Does not require databricks-sdk. Optionally include azure_tenant_id in Secure Extra if the tenant cannot be inferred from the workspace host.',
+      },
+    ],
     drivers: [
       {
         name: 'Databricks Python Connector (Recommended)',

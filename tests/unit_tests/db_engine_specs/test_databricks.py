@@ -101,7 +101,7 @@ def test_parameters_json_schema() -> None:
     assert json_schema == {
         "type": "object",
         "properties": {
-            "access_token": {"type": "string"},
+            "access_token": {"type": "string", "nullable": True},
             "database": {"type": "string"},
             "encryption": {
                 "description": "Use an encrypted connection to the database",
@@ -116,7 +116,7 @@ def test_parameters_json_schema() -> None:
                 "type": "integer",
             },
         },
-        "required": ["access_token", "database", "host", "http_path", "port"],
+        "required": ["database", "host", "http_path", "port"],
     }
 
 
@@ -668,6 +668,324 @@ def test_update_params_invalid_encrypted_extra_raises(mocker: MockerFixture) -> 
 
     with pytest.raises(json.JSONDecodeError):
         DatabricksNativeEngineSpec.update_params_from_encrypted_extra(database, {})
+
+
+def test_encrypted_extra_sensitive_fields() -> None:
+    """
+    ``client_secret`` is listed so it is masked in ``masked_encrypted_extra``.
+    """
+    from superset.db_engine_specs.databricks import DatabricksDynamicBaseEngineSpec
+
+    paths = DatabricksDynamicBaseEngineSpec.encrypted_extra_sensitive_field_paths()
+    assert "$.client_secret" in paths
+    assert "$.oauth2_client_info.secret" in paths
+
+
+def test_mask_encrypted_extra_client_secret() -> None:
+    """
+    ``client_secret`` is redacted; ``auth_method`` and ``client_id`` stay visible.
+    """
+    from superset.db_engine_specs.databricks import DatabricksDynamicBaseEngineSpec
+
+    config = json.dumps(
+        {
+            "auth_method": "oauth-m2m",
+            "client_id": "sp-application-id",
+            "client_secret": "super-secret",
+        }
+    )
+    assert DatabricksDynamicBaseEngineSpec.mask_encrypted_extra(config) == json.dumps(
+        {
+            "auth_method": "oauth-m2m",
+            "client_id": "sp-application-id",
+            "client_secret": "XXXXXXXXXX",
+        }
+    )
+
+
+def test_update_params_oauth_m2m_injects_credentials_provider(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Encrypted Extra M2M builds a ``credentials_provider`` and does not pass
+    ``client_id`` / ``client_secret`` through as driver kwargs.
+    """
+    from superset.db_engine_specs.databricks import DatabricksNativeEngineSpec
+
+    mock_config_cls = mocker.MagicMock()
+    mock_oauth = mocker.MagicMock(return_value="oauth-provider")
+    mocker.patch(
+        "superset.db_engine_specs.databricks._load_databricks_m2m_sdk",
+        return_value=(mock_config_cls, mock_oauth),
+    )
+
+    database = mocker.MagicMock()
+    database.url_object.host = "dbc-abc.cloud.databricks.com"
+    database.encrypted_extra = json.dumps(
+        {
+            "auth_method": "oauth-m2m",
+            "client_id": "sp-application-id",
+            "client_secret": "super-secret",
+            "http_headers": [["X-Custom", "value"]],
+        }
+    )
+    params: dict[str, Any] = {}
+
+    DatabricksNativeEngineSpec.update_params_from_encrypted_extra(database, params)
+
+    assert "client_id" not in params
+    assert "client_secret" not in params
+    assert "auth_method" not in params
+    assert params["http_headers"] == [["X-Custom", "value"]]
+    provider = params["connect_args"]["credentials_provider"]
+    assert callable(provider)
+
+    assert provider() == "oauth-provider"
+    mock_config_cls.assert_called_once_with(
+        host="https://dbc-abc.cloud.databricks.com",
+        client_id="sp-application-id",
+        client_secret="super-secret",  # noqa: S106
+    )
+    mock_oauth.assert_called_once()
+
+
+def test_update_params_oauth_m2m_strips_oauth2_client_info(
+    mocker: MockerFixture,
+) -> None:
+    """
+    U2M ``oauth2_client_info`` is still stripped when M2M is also configured.
+    """
+    from superset.db_engine_specs.databricks import DatabricksNativeEngineSpec
+
+    mocker.patch(
+        "superset.db_engine_specs.databricks._load_databricks_m2m_sdk",
+        return_value=(mocker.MagicMock(), mocker.MagicMock()),
+    )
+    database = mocker.MagicMock()
+    database.url_object.host = "dbc-abc.cloud.databricks.com"
+    database.encrypted_extra = json.dumps(
+        {
+            "auth_method": "oauth-m2m",
+            "client_id": "sp-application-id",
+            "client_secret": "super-secret",
+            "oauth2_client_info": {
+                "id": "u2m-client-id",
+                "secret": "u2m-client-secret",
+            },
+        }
+    )
+    params: dict[str, Any] = {}
+
+    DatabricksNativeEngineSpec.update_params_from_encrypted_extra(database, params)
+
+    assert "oauth2_client_info" not in params
+    assert "credentials_provider" in params["connect_args"]
+
+
+def test_update_params_oauth_m2m_missing_credentials_raises(
+    mocker: MockerFixture,
+) -> None:
+    """
+    ``auth_method=oauth-m2m`` without both credentials fails with a clear error.
+    """
+    from superset.db_engine_specs.databricks import DatabricksNativeEngineSpec
+
+    database = mocker.MagicMock()
+    database.encrypted_extra = json.dumps(
+        {"auth_method": "oauth-m2m", "client_id": "sp-application-id"}
+    )
+
+    with pytest.raises(ValueError, match="client_id and client_secret"):
+        DatabricksNativeEngineSpec.update_params_from_encrypted_extra(database, {})
+
+
+def test_update_params_oauth_m2m_missing_sdk_raises(mocker: MockerFixture) -> None:
+    """
+    Missing ``databricks-sdk`` fails with an install hint, not a driver error.
+    """
+    from superset.db_engine_specs.databricks import DatabricksNativeEngineSpec
+
+    mocker.patch(
+        "superset.db_engine_specs.databricks._load_databricks_m2m_sdk",
+        side_effect=ValueError(
+            "Databricks OAuth M2M requires the databricks-sdk package."
+        ),
+    )
+    database = mocker.MagicMock()
+    database.url_object.host = "dbc-abc.cloud.databricks.com"
+    database.encrypted_extra = json.dumps(
+        {
+            "auth_method": "oauth-m2m",
+            "client_id": "sp-application-id",
+            "client_secret": "super-secret",
+        }
+    )
+
+    with pytest.raises(ValueError, match="databricks-sdk"):
+        DatabricksNativeEngineSpec.update_params_from_encrypted_extra(database, {})
+
+
+def test_load_databricks_m2m_sdk_import_error(mocker: MockerFixture) -> None:
+    """
+    The lazy import surfaces a clear error when ``databricks-sdk`` is absent.
+    """
+    import builtins
+
+    from superset.db_engine_specs.databricks import _load_databricks_m2m_sdk
+
+    real_import = builtins.__import__
+
+    def fake_import(name: str, *args: Any, **kwargs: Any) -> Any:
+        if name == "databricks.sdk.core":
+            raise ImportError("No module named databricks.sdk")
+        return real_import(name, *args, **kwargs)
+
+    mocker.patch("builtins.__import__", side_effect=fake_import)
+    with pytest.raises(ValueError, match="databricks-sdk"):
+        _load_databricks_m2m_sdk()
+
+
+def test_update_params_azure_sp_m2m(mocker: MockerFixture) -> None:
+    """
+    Azure SP M2M sets connector ``auth_type`` / Azure kwargs and does not
+    require ``databricks-sdk``.
+    """
+    from superset.db_engine_specs.databricks import DatabricksNativeEngineSpec
+
+    load_sdk = mocker.patch(
+        "superset.db_engine_specs.databricks._load_databricks_m2m_sdk"
+    )
+    database = mocker.MagicMock()
+    database.encrypted_extra = json.dumps(
+        {
+            "auth_method": "azure-sp-m2m",
+            "client_id": "azure-app-id",
+            "client_secret": "azure-secret",
+            "azure_tenant_id": "tenant-123",
+        }
+    )
+    params: dict[str, Any] = {}
+
+    DatabricksNativeEngineSpec.update_params_from_encrypted_extra(database, params)
+
+    load_sdk.assert_not_called()
+    assert "client_id" not in params
+    assert "client_secret" not in params
+    assert params["connect_args"]["auth_type"] == "azure-sp-m2m"
+    assert params["connect_args"]["azure_client_id"] == "azure-app-id"
+    assert params["connect_args"]["azure_client_secret"] == "azure-secret"  # noqa: S105
+    assert params["connect_args"]["azure_tenant_id"] == "tenant-123"
+
+
+def test_update_params_azure_sp_m2m_missing_credentials_raises(
+    mocker: MockerFixture,
+) -> None:
+    from superset.db_engine_specs.databricks import DatabricksNativeEngineSpec
+
+    database = mocker.MagicMock()
+    database.encrypted_extra = json.dumps({"auth_method": "azure-sp-m2m"})
+
+    with pytest.raises(ValueError, match="client_id and client_secret"):
+        DatabricksNativeEngineSpec.update_params_from_encrypted_extra(database, {})
+
+
+def test_build_sqlalchemy_uri_placeholder_without_access_token() -> None:
+    """
+    An empty access token becomes the ``m2m`` URI placeholder so the dialect
+    still has a password while M2M auth wins at connect time.
+    """
+    from superset.db_engine_specs.databricks import DatabricksNativeParametersType
+
+    parameters = DatabricksNativeParametersType(
+        {
+            "host": "my_hostname",
+            "port": 1234,
+            "database": "test",
+            "encryption": False,
+        }
+    )
+    sqlalchemy_uri = DatabricksNativeEngineSpec.build_sqlalchemy_uri(parameters, None)
+    assert sqlalchemy_uri == "databricks+connector://token:m2m@my_hostname:1234/test"
+
+
+def test_validate_parameters_access_token_required_without_m2m(
+    mocker: MockerFixture,
+) -> None:
+    """
+    PAT-only connections still require ``access_token``.
+    """
+    mocker.patch(
+        "superset.db_engine_specs.databricks.is_hostname_valid", return_value=True
+    )
+    mocker.patch("superset.db_engine_specs.databricks.is_port_open", return_value=True)
+
+    errors = DatabricksNativeEngineSpec.validate_parameters(
+        {  # type: ignore[arg-type]
+            "parameters": {
+                "host": "dbc-abc.cloud.databricks.com",
+                "port": 443,
+                "database": "hive_metastore",
+            },
+            "extra": json.dumps(
+                {
+                    "engine_params": {
+                        "connect_args": {"http_path": "/sql/1.0/warehouses/x"}
+                    }
+                }
+            ),
+        }
+    )
+
+    missing = [
+        error
+        for error in errors
+        if error.error_type == SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR
+    ]
+    assert missing
+    assert "access_token" in missing[0].extra["missing"]
+
+
+def test_validate_parameters_access_token_optional_with_m2m(
+    mocker: MockerFixture,
+) -> None:
+    """
+    ``access_token`` is not required when Encrypted Extra has M2M credentials.
+    """
+    mocker.patch(
+        "superset.db_engine_specs.databricks.is_hostname_valid", return_value=True
+    )
+    mocker.patch("superset.db_engine_specs.databricks.is_port_open", return_value=True)
+
+    errors = DatabricksNativeEngineSpec.validate_parameters(
+        {  # type: ignore[arg-type]
+            "parameters": {
+                "host": "dbc-abc.cloud.databricks.com",
+                "port": 443,
+                "database": "hive_metastore",
+            },
+            "extra": json.dumps(
+                {
+                    "engine_params": {
+                        "connect_args": {"http_path": "/sql/1.0/warehouses/x"}
+                    }
+                }
+            ),
+            "masked_encrypted_extra": json.dumps(
+                {
+                    "auth_method": "oauth-m2m",
+                    "client_id": "sp-application-id",
+                    "client_secret": "super-secret",
+                }
+            ),
+        }
+    )
+
+    missing = [
+        error
+        for error in errors
+        if error.error_type == SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR
+    ]
+    assert missing == []
 
 
 @pytest.fixture
