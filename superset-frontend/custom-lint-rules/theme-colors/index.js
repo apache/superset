@@ -22,7 +22,6 @@
  * @author Apache
  */
 
-import { eslintCompatPlugin } from '@oxlint/plugins';
 import { COLOR_KEYWORDS } from './colors.js';
 
 /**
@@ -92,9 +91,9 @@ const WARNING_MESSAGE =
  */
 
 /** @type {{ rules: Record<string, import('oxlint').Rule.RuleModule> }} */
-const plugin = eslintCompatPlugin({
+const plugin = {
   meta: {
-    name: '@superset-ui/theme-colors',
+    name: 'theme-colors',
   },
   rules: {
     'no-literal-colors': {
@@ -195,6 +194,6 @@ const plugin = eslintCompatPlugin({
       },
     },
   },
-});
+};
 
 export default plugin;

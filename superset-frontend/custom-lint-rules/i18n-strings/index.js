@@ -26,12 +26,10 @@
 // Rule Definition
 //------------------------------------------------------------------------------
 
-import { eslintCompatPlugin } from '@oxlint/plugins';
-
 /** @type {{ rules: Record<string, import('oxlint').Rule.RuleModule> }} */
-const plugin = eslintCompatPlugin({
+const plugin = {
   meta: {
-    name: '@superset-ui/i18n-strings',
+    name: 'i18n-strings',
   },
   rules: {
     'no-template-vars': {
@@ -247,6 +245,6 @@ const plugin = eslintCompatPlugin({
       },
     },
   },
-});
+};
 
 export default plugin;

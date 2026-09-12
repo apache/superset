@@ -17,8 +17,6 @@
  * under the License.
  */
 
-import { eslintCompatPlugin } from '@oxlint/plugins';
-
 /**
  * @fileoverview Rule to warn about direct imports from @ant-design/icons
  * @author Apache
@@ -53,9 +51,9 @@ import { eslintCompatPlugin } from '@oxlint/plugins';
  */
 
 /** @type {{ rules: Record<string, import('oxlint').Rule.RuleModule> }} */
-const plugin = eslintCompatPlugin({
+const plugin = {
   meta: {
-    name: '@superset-ui/icons',
+    name: 'icons',
   },
   rules: {
     'no-fa-icons-usage': {
@@ -110,6 +108,6 @@ const plugin = eslintCompatPlugin({
       },
     },
   },
-});
+};
 
 export default plugin;
