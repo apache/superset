@@ -25,20 +25,20 @@ import {
   Row,
   SortingRule,
   HeaderGroup,
-  ColumnInstance,
   TablePropGetter,
   TableBodyPropGetter,
 } from 'react-table';
-import TableCollection from '.';
+import TableCollection, { type ListViewColumn } from '.';
 import { TableSize } from '../Table';
 
-// Type aliases for casting to the component's expected object-based types
-// Required because memo() loses the generic type parameter
+// Type aliases for casting to the component's expected object-based types,
+// since these stories' own useTable() calls are generic over plain `object`
+// rather than a concrete row type.
 type AnyProps = TablePropGetter<object>;
 type AnyBodyProps = TableBodyPropGetter<object>;
 type AnyHeaders = HeaderGroup<object>[];
 type AnyRows = Row<object>[];
-type AnyColumns = ColumnInstance<object>[];
+type AnyColumns = ListViewColumn<object>[];
 type AnyPrepareRow = (row: Row<object>) => void;
 
 export default {

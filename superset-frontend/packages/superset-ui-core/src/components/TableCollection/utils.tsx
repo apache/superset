@@ -23,16 +23,7 @@
  */
 
 import { ReactNode } from 'react';
-import {
-  CellValue,
-  Row,
-  ColumnInstance as RTColumnInstance,
-  HeaderGroup as RTHeaderGroup,
-  UseSortByColumnOptions,
-  UseSortByColumnProps,
-  UseResizeColumnsColumnOptions,
-  UseResizeColumnsColumnProps,
-} from 'react-table';
+import { CellValue, HeaderGroup, Row } from 'react-table';
 
 import { SortOrder } from '../Table';
 
@@ -49,23 +40,29 @@ const COLUMN_SIZE_MAP: Record<TableSize, number> = {
   xxl: 200,
 };
 
-type EnhancedColumnInstance<T extends object = any> = RTColumnInstance<T> &
-  Partial<UseSortByColumnOptions<T>> &
-  Partial<UseSortByColumnProps<T>> &
-  Partial<UseResizeColumnsColumnOptions<T>> &
-  Partial<UseResizeColumnsColumnProps<T>> & {
-    hidden?: boolean;
-    size?: keyof typeof COLUMN_SIZE_MAP;
-    className?: string;
-  };
-
-type EnhancedHeaderGroup<T extends object = any> = RTHeaderGroup<T> & {
-  isSorted?: boolean;
-  isSortedDesc?: boolean;
-};
+// The `columns` prop is the raw column config a caller authors, not a
+// react-table `ColumnInstance<T>` (those only exist once react-table has
+// built its column tree from this config). This is intentionally its own
+// interface rather than react-table's `Column<T>`: that type requires each
+// column's `accessor` to be either a specific `keyof T` literal or an
+// accessor function, but every column config in this codebase writes
+// `accessor` as a plain (TypeScript-widened) string, which satisfies
+// neither — matching react-table's stricter modeling here would mean
+// annotating every column array across ~20 call sites, not a change this
+// shim should make unilaterally.
+export interface ListViewColumn<T extends object = any> {
+  id?: string;
+  Header?: ReactNode | ((props: any) => ReactNode);
+  accessor?: keyof T | string | ((row: T) => unknown);
+  Cell?: (props: any) => ReactNode;
+  disableSortBy?: boolean;
+  hidden?: boolean;
+  size?: string;
+  className?: string;
+}
 
 function getSortingInfo<T extends object>(
-  headerGroups: EnhancedHeaderGroup<T>[],
+  headerGroups: HeaderGroup<T>[],
   headerId: string,
 ): {
   isSorted: boolean;
@@ -84,19 +81,22 @@ function getSortingInfo<T extends object>(
 }
 
 export function mapColumns<T extends object>(
-  columns: EnhancedColumnInstance<T>[],
-  headerGroups: EnhancedHeaderGroup<T>[],
+  columns: ListViewColumn<T>[],
+  headerGroups: HeaderGroup<T>[],
   columnsForWrapText?: string[],
 ) {
   return columns.map(column => {
-    const { isSorted, isSortedDesc } = getSortingInfo(headerGroups, column.id);
+    const id = column.id ?? '';
+    const { isSorted, isSortedDesc } = getSortingInfo(headerGroups, id);
     return {
       title: column.Header as ReactNode,
-      dataIndex: column.id?.includes('.') ? column.id.split('.') : column.id,
+      dataIndex: id.includes('.') ? id.split('.') : id,
       hidden: column.hidden,
-      key: column.id,
-      width: column.size ? COLUMN_SIZE_MAP[column.size] : undefined,
-      ellipsis: !columnsForWrapText?.includes(column.id),
+      key: id,
+      width: column.size
+        ? COLUMN_SIZE_MAP[column.size as TableSize]
+        : undefined,
+      ellipsis: !columnsForWrapText?.includes(id),
       defaultSortOrder: (isSorted
         ? isSortedDesc
           ? 'descend'
@@ -112,7 +112,7 @@ export function mapColumns<T extends object>(
           }: {
             value: CellValue<T>;
             row: { original: Row<T>; id: string };
-            column: RTColumnInstance<T>;
+            column: ListViewColumn<T>;
           }) => ReactNode;
 
           return cellRenderer({

@@ -17,17 +17,17 @@
  * under the License.
  */
 import { ReactNode, MouseEvent as ReactMouseEvent } from 'react';
-import { TableInstance, Row, UseRowSelectRowProps } from 'react-table';
+import { Row } from 'react-table';
 import { styled } from '@apache-superset/core/theme';
 import { isMobileConsumptionEnabled } from 'src/hooks/useIsMobile';
 import cx from 'classnames';
 
-interface CardCollectionProps {
+interface CardCollectionProps<T extends object = any> {
   bulkSelectEnabled?: boolean;
   loading: boolean;
-  prepareRow: TableInstance['prepareRow'];
-  renderCard?: (row: any) => ReactNode;
-  rows: TableInstance['rows'];
+  prepareRow: (row: Row<T>) => void;
+  renderCard?: (row: T & { loading: boolean }) => ReactNode;
+  rows: Row<T>[];
   showThumbnails?: boolean;
 }
 
@@ -68,14 +68,14 @@ const CardWrapper = styled.div`
   }
 `;
 
-export default function CardCollection({
+export default function CardCollection<T extends object = any>({
   bulkSelectEnabled,
   loading,
   prepareRow,
   renderCard,
   rows,
   showThumbnails,
-}: CardCollectionProps) {
+}: CardCollectionProps<T>) {
   function handleClick(
     event: ReactMouseEvent<HTMLDivElement, MouseEvent>,
     toggleRowSelected: (value?: boolean) => void,
@@ -92,8 +92,13 @@ export default function CardCollection({
     <CardContainer showThumbnails={showThumbnails}>
       {loading &&
         rows.length === 0 &&
+        // Skeleton placeholders render before any row data exists, so
+        // renderCard is called with only `loading` set; real card
+        // implementations only read row fields once loading is false.
         Array.from({ length: 25 }, (_, i) => (
-          <div key={i}>{renderCard({ loading })}</div>
+          <div key={i}>
+            {renderCard({ loading } as T & { loading: boolean })}
+          </div>
         ))}
       {rows.length > 0 &&
         rows.map(row => {
@@ -102,18 +107,11 @@ export default function CardCollection({
           return (
             <CardWrapper
               className={cx({
-                'card-selected':
-                  bulkSelectEnabled &&
-                  (row as Row & UseRowSelectRowProps<any>).isSelected,
+                'card-selected': bulkSelectEnabled && row.isSelected,
                 'bulk-select': bulkSelectEnabled,
               })}
               key={row.id}
-              onClick={e =>
-                handleClick(
-                  e,
-                  (row as Row & UseRowSelectRowProps<any>).toggleRowSelected,
-                )
-              }
+              onClick={e => handleClick(e, row.toggleRowSelected)}
               role="none"
             >
               {renderCard({ ...row.original, loading })}

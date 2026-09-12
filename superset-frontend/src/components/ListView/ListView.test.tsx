@@ -63,7 +63,6 @@ const mockedPropsComprehensive: MockedListViewProps = {
     {
       accessor: 'id',
       Header: 'ID',
-      sortable: true,
       id: 'id',
     },
     {
@@ -151,7 +150,6 @@ const mockedPropsSimple = {
     {
       accessor: 'id',
       Header: 'ID',
-      sortable: true,
       id: 'id',
     },
     {
