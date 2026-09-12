@@ -188,14 +188,12 @@ test('triggers onChange when the mode changes', async () => {
     store,
   });
   await waitForElementToBeRemoved(() => screen.queryByLabelText('Loading'));
-  userEvent.click(screen.getByTitle('Midnight'));
-  expect(await screen.findByTitle('Relative Date/Time')).toBeInTheDocument();
-  userEvent.click(screen.getByTitle('Relative Date/Time'));
-  userEvent.click(screen.getAllByTitle('Now')[1]);
-  expect(
-    await screen.findByText('Configure custom time range'),
-  ).toBeInTheDocument();
-  userEvent.click(screen.getAllByTitle('Specific Date/Time')[1]);
+  userEvent.click(screen.getByLabelText('Start (inclusive)'));
+  userEvent.click(await screen.findByTitle('Relative Date/Time'));
+  await waitFor(() => expect(onChange).toHaveBeenCalledTimes(1));
+  userEvent.click(screen.getByLabelText('End (exclusive)'));
+  const specificOptions = await screen.findAllByTitle('Specific Date/Time');
+  userEvent.click(specificOptions[specificOptions.length - 1]);
   await waitFor(() => expect(onChange).toHaveBeenCalledTimes(2));
 });
 

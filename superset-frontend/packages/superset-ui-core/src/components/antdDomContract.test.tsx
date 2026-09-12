@@ -280,13 +280,12 @@ test.each([
     />,
   ],
 ])(
-  '%s popup mounts inside the enclosing modal container',
+  '%s popup mounts outside the enclosing modal container',
   async (_name, select) => {
-    // Select/AsyncSelect anchor their popup with
-    // `triggerNode.closest('.ant-modal-container')` so the menu is clipped by
-    // the modal instead of escaping to <body> and scrolling away from its
-    // trigger. The class contract above only proves the class exists — this
-    // asserts the containment behaviour it exists for.
+    // Select/AsyncSelect no longer default `getPopupContainer`, so popups
+    // portal to <body> (antd's default) instead of being clipped by the
+    // modal. Rendering the menu inside the modal container produced a second
+    // scrollbar when the modal content overflows (#35833).
     render(
       <SupersetModal show title="t" onHide={() => {}}>
         {select}
@@ -298,10 +297,7 @@ test.each([
     await waitFor(() => {
       const popup = document.querySelector('.ant-select-dropdown');
       expect(popup).not.toBeNull();
-      // Assert the *direct* parent, not just an ancestor: when the `.closest()`
-      // lookup misses, the `triggerNode.parentNode` fallback still sits inside
-      // the modal, so an `ancestor` check passes either way and proves nothing.
-      expect(popup?.parentElement).toHaveClass('ant-modal-container');
+      expect(popup?.closest('.ant-modal-container')).toBeNull();
     });
   },
 );

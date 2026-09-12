@@ -176,9 +176,7 @@ function UserListModal({
                   value: role.id,
                   label: role.name,
                 }))}
-                getPopupContainer={trigger =>
-                  trigger.closest('.ant-modal-container')
-                }
+                getPopupContainer={() => document.body}
               />
             </FormItem>
             <FormItem
@@ -195,9 +193,7 @@ function UserListModal({
                   value: group.id,
                   label: group.name,
                 }))}
-                getPopupContainer={trigger =>
-                  trigger.closest('.ant-modal-container')
-                }
+                getPopupContainer={() => document.body}
               />
             </FormItem>
             {!isEditMode && (
