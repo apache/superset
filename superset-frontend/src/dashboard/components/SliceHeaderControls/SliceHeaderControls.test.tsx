@@ -58,6 +58,7 @@ const createProps = (viz_type = VizType.Sunburst) =>
   ({
     addDangerToast: jest.fn(),
     addSuccessToast: jest.fn(),
+    addWarningToast: jest.fn(),
     exploreChart: jest.fn(),
     exportCSV: jest.fn(),
     exportFullCSV: jest.fn(),
