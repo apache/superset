@@ -142,6 +142,8 @@ export interface ExplorePageState {
     hiddenFormData?: Partial<QueryFormData>;
     slice: Slice;
     controlsTransferred: string[];
+    // Bootstrap sends `is_standalone_mode()`, a boolean. The numeric mode is
+    // derived from the URL in ExploreViewContainer's mapStateToProps.
     standalone: boolean;
     force: boolean;
     common: JsonObject;
