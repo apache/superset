@@ -1012,6 +1012,11 @@ msgid "A reusable dataset will be saved with your chart."
 msgstr "Se guardará un conjunto de datos reutilizable con tu gráfico."
 
 msgid ""
+"A semantic view's provider query is produced when the chart runs and "
+"returned with its data."
+msgstr ""
+
+msgid ""
 "A set of parameters that become available in the query using Jinja "
 "templating syntax"
 msgstr ""
@@ -10045,6 +10050,9 @@ msgstr "No se han encontrado registros coincidentes"
 msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr "Actualmente no se han añadido filtros a este panel de control."
 
+msgid "No provider query is available for this run."
+msgstr ""
+
 msgid "No records found"
 msgstr "No se han encontrado registros"
 
@@ -15383,6 +15391,9 @@ msgid "The provided table was not found in the provided database"
 msgstr ""
 "La tabla proporcionada no se ha encontrado en la base de datos "
 "proporcionada"
+
+msgid "The provider query will be available after the chart runs."
+msgstr ""
 
 msgid "The query associated with the results was deleted."
 msgstr "La consulta asociada con los resultados se ha eliminado."

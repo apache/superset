@@ -1033,6 +1033,11 @@ msgstr ""
 "перевикористовувати для інших діаграм."
 
 msgid ""
+"A semantic view's provider query is produced when the chart runs and "
+"returned with its data."
+msgstr ""
+
+msgid ""
 "A set of parameters that become available in the query using Jinja "
 "templating syntax"
 msgstr ""
@@ -9547,6 +9552,9 @@ msgstr "Не знайдено відповідних результатів"
 msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr "Наразі до цього звіту не додано жодного фільтра."
 
+msgid "No provider query is available for this run."
+msgstr ""
+
 msgid "No records found"
 msgstr "Не знайдено жодного запису"
 
@@ -14590,6 +14598,9 @@ msgstr ""
 
 msgid "The provided table was not found in the provided database"
 msgstr "Таблицю не знайдено в базі даних"
+
+msgid "The provider query will be available after the chart runs."
+msgstr ""
 
 msgid "The query associated with the results was deleted."
 msgstr "Запит, який повʼязано з результатом, вилучено."

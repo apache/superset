@@ -913,6 +913,11 @@ msgid "A reusable dataset will be saved with your chart."
 msgstr "再利用可能なデータセットがチャートと共に保存されます。"
 
 msgid ""
+"A semantic view's provider query is produced when the chart runs and "
+"returned with its data."
+msgstr ""
+
+msgid ""
 "A set of parameters that become available in the query using Jinja "
 "templating syntax"
 msgstr "Jinjaテンプレート構文を使用してクエリ内で利用可能になるパラメータのセット"
@@ -8811,6 +8816,9 @@ msgstr "一致する結果が見つかりません"
 msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr "このダッシュボードにはマルチレイヤーdeck.glチャートはまだ追加されていません。"
 
+msgid "No provider query is available for this run."
+msgstr ""
+
 msgid "No records found"
 msgstr "レコードが見つかりません"
 
@@ -13387,6 +13395,9 @@ msgstr "主要メトリックは、円セグメントのサイズを定義する
 
 msgid "The provided table was not found in the provided database"
 msgstr "指定されたデータベース内にテーブルが見つかりませんでした"
+
+msgid "The provider query will be available after the chart runs."
+msgstr ""
 
 msgid "The query associated with the results was deleted."
 msgstr "結果に関連付けられたクエリが削除されました。"

@@ -1019,6 +1019,11 @@ msgid "A reusable dataset will be saved with your chart."
 msgstr "Ar jūsu diagrammu tiks saglabāta atkārtoti lietojama datu kopa."
 
 msgid ""
+"A semantic view's provider query is produced when the chart runs and "
+"returned with its data."
+msgstr ""
+
+msgid ""
 "A set of parameters that become available in the query using Jinja "
 "templating syntax"
 msgstr ""
@@ -9560,6 +9565,9 @@ msgstr "Nav atrasti atbilstoši rezultāti"
 msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr "Šim informācijas panelim pašlaik nav pievienotu filtru."
 
+msgid "No provider query is available for this run."
+msgstr ""
+
 msgid "No records found"
 msgstr "Ieraksti nav atrasti"
 
@@ -14601,6 +14609,9 @@ msgstr "Primārā metrika tiek izmantota loka segmentu izmēru noteikšanai"
 
 msgid "The provided table was not found in the provided database"
 msgstr "Norādītā tabula netika atrasta norādītajā datubāzē"
+
+msgid "The provider query will be available after the chart runs."
+msgstr ""
 
 msgid "The query associated with the results was deleted."
 msgstr "Ar rezultātiem saistītais vaicājums tika dzēsts."

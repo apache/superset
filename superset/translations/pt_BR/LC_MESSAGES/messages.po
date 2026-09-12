@@ -1024,6 +1024,11 @@ msgid "A reusable dataset will be saved with your chart."
 msgstr "Um conjunto de dados reutilizável vai ser salvo com seu gráfico."
 
 msgid ""
+"A semantic view's provider query is produced when the chart runs and "
+"returned with its data."
+msgstr ""
+
+msgid ""
 "A set of parameters that become available in the query using Jinja "
 "templating syntax"
 msgstr ""
@@ -10518,6 +10523,9 @@ msgstr "Não foram encontrados registros correspondentes"
 msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr "Nenhum filtro foi adicionado a esse painel no momento."
 
+msgid "No provider query is available for this run."
+msgstr ""
+
 msgid "No records found"
 msgstr "Não foram encontrados registos"
 
@@ -16097,6 +16105,9 @@ msgstr "A métrica primária é usada para definir os tamanhos dos segmentos de 
 #, fuzzy
 msgid "The provided table was not found in the provided database"
 msgstr "A tabela foi excluída ou renomeada no banco de dados."
+
+msgid "The provider query will be available after the chart runs."
+msgstr ""
 
 msgid "The query associated with the results was deleted."
 msgstr "A consulta associada aos resultados foi excluída."

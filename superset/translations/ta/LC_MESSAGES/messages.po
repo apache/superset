@@ -931,6 +931,11 @@ msgstr ""
 "சேமிக்கப்படும்."
 
 msgid ""
+"A semantic view's provider query is produced when the chart runs and "
+"returned with its data."
+msgstr ""
+
+msgid ""
 "A set of parameters that become available in the query using Jinja "
 "templating syntax"
 msgstr ""
@@ -9269,6 +9274,9 @@ msgstr "பொருத்தமான முடிவுகள் எதுவ�
 msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr "இந்த டேஷ்போர்டில் தற்போது வடிகட்டிகள் எதுவும் சேர்க்கப்படவில்லை."
 
+msgid "No provider query is available for this run."
+msgstr ""
+
 msgid "No records found"
 msgstr "பதிவுகள் எதுவும் காணப்படவில்லை"
 
@@ -13953,6 +13961,9 @@ msgstr "வில் துண்டு அளவுகளை வரையறு
 
 msgid "The provided table was not found in the provided database"
 msgstr "வழங்கப்பட்ட தரவுத்தளத்தில் வழங்கப்பட்ட அட்டவணை காணப்படவில்லை"
+
+msgid "The provider query will be available after the chart runs."
+msgstr ""
 
 msgid "The query associated with the results was deleted."
 msgstr "முடிவுகளுடன் தொடர்புடைய வினவல் நீக்கப்பட்டது."

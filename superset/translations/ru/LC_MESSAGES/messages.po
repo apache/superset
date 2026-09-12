@@ -999,6 +999,11 @@ msgid "A reusable dataset will be saved with your chart."
 msgstr "Переиспользуемый датасет будет сохранен вместе с диаграммой"
 
 msgid ""
+"A semantic view's provider query is produced when the chart runs and "
+"returned with its data."
+msgstr ""
+
+msgid ""
 "A set of parameters that become available in the query using Jinja "
 "templating syntax"
 msgstr "Набор параметров, доступных в запросе через шаблоны Jinja"
@@ -9390,6 +9395,9 @@ msgstr "Совпадений не найдено"
 msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr "На этот дашборд не добавлена ни одна диаграмма deck.gl."
 
+msgid "No provider query is available for this run."
+msgstr ""
+
 msgid "No records found"
 msgstr "Записи не найдены"
 
@@ -14286,6 +14294,9 @@ msgstr "Основная мера используется для определ
 
 msgid "The provided table was not found in the provided database"
 msgstr "Таблица не найдена в базе данных"
+
+msgid "The provider query will be available after the chart runs."
+msgstr ""
 
 msgid "The query associated with the results was deleted."
 msgstr "Запрос, связанный с этими результатами, был удален"

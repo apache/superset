@@ -17,11 +17,18 @@
  * under the License.
  */
 
-import { screen, render, waitFor } from 'spec/helpers/testing-library';
+import {
+  act,
+  createStore,
+  screen,
+  render,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
 import * as chartAction from 'src/components/Chart/chartAction';
 import type { ChartDataRequestResponse } from 'src/components/Chart/chartAction';
-import ViewQueryModal from './ViewQueryModal';
+import ViewQueryModal, { getSemanticReportState } from './ViewQueryModal';
+import chartReducer, { chart } from 'src/components/Chart/chartReducer';
 
 const mockFormData = {
   datasource: '1__table',
@@ -216,4 +223,180 @@ test('falls back to empty ownState when prop is omitted', async () => {
       ownState: {},
     }),
   );
+});
+
+test('shows semantic requests verbatim in entry order without fetching', async () => {
+  const getChartDataRequestSpy = jest.spyOn(chartAction, 'getChartDataRequest');
+  const requestTexts = [
+    '-- SQL\nSELECT  1\n\n-- SQL\nSELECT 2;\n',
+    '-- SQL\nSELECT 3;',
+  ];
+  const { container } = render(
+    <ViewQueryModal
+      latestQueryFormData={{
+        datasource: '12__semantic_view',
+        viz_type: 'table',
+      }}
+    />,
+    {
+      useRedux: true,
+      initialState: {
+        charts: {
+          0: {
+            ...chart,
+            queriesResponse: requestTexts.map(query => ({ query })),
+          },
+        },
+      },
+    },
+  );
+
+  await waitFor(() =>
+    expect(
+      Array.from(container.querySelectorAll('pre'), pre => pre.textContent),
+    ).toEqual(requestTexts),
+  );
+  expect(screen.getAllByRole('button', { name: 'Copy' })).toHaveLength(2);
+  expect(getChartDataRequestSpy).not.toHaveBeenCalled();
+  expect(fetchMock.callHistory.calls()).toHaveLength(0);
+  expect(screen.queryByRole('switch')).not.toBeInTheDocument();
+  expect(screen.queryByText('Run in SQL Lab')).not.toBeInTheDocument();
+});
+
+test('updates semantic request text when the saved chart run is replaced', async () => {
+  const getChartDataRequestSpy = jest.spyOn(chartAction, 'getChartDataRequest');
+  const store = createStore(
+    {
+      charts: {
+        42: {
+          ...chart,
+          id: 42,
+          queriesResponse: [{ query: '-- SQL\nSELECT 1' }],
+        },
+      },
+    },
+    { charts: chartReducer },
+  );
+  const { container } = render(
+    <ViewQueryModal
+      latestQueryFormData={{
+        datasource: '12__semantic_view',
+        viz_type: 'table',
+        slice_id: 42,
+      }}
+    />,
+    { store },
+  );
+  await waitFor(() =>
+    expect(container.querySelector('pre')?.textContent).toBe(
+      '-- SQL\nSELECT 1',
+    ),
+  );
+
+  act(() => {
+    store.dispatch({
+      type: chartAction.CHART_UPDATE_SUCCEEDED,
+      key: 42,
+      queriesResponse: [{ query: '-- SQL\nSELECT 2' }],
+    });
+  });
+  await waitFor(() =>
+    expect(container.querySelector('pre')?.textContent).toBe(
+      '-- SQL\nSELECT 2',
+    ),
+  );
+  expect(container.textContent).not.toContain('SELECT 1');
+  expect(getChartDataRequestSpy).not.toHaveBeenCalled();
+  expect(fetchMock.callHistory.calls()).toHaveLength(0);
+});
+
+test.each<{
+  report: { query?: string }[] | null | undefined;
+  expected: ReturnType<typeof getSemanticReportState>;
+}>([
+  { report: undefined, expected: 'not-run' },
+  { report: null, expected: 'not-run' },
+  { report: [], expected: 'not-run' },
+  { report: [{ query: '' }], expected: 'none-reported' },
+  { report: [{}], expected: 'none-reported' },
+  { report: [{ query: 'x' }], expected: 'has-requests' },
+  { report: [{}, { query: 'x' }], expected: 'has-requests' },
+])('classifies $report as $expected', ({ report, expected }) => {
+  expect(getSemanticReportState(report)).toBe(expected);
+});
+
+test.each<{
+  report: { query?: string }[] | null;
+  message: string;
+  otherMessage: string;
+}>([
+  {
+    report: null,
+    message: 'The provider query will be available after the chart runs.',
+    otherMessage: 'No provider query is available for this run.',
+  },
+  {
+    report: [{ query: '' }],
+    message: 'No provider query is available for this run.',
+    otherMessage: 'The provider query will be available after the chart runs.',
+  },
+  {
+    report: [{}],
+    message: 'No provider query is available for this run.',
+    otherMessage: 'The provider query will be available after the chart runs.',
+  },
+])(
+  'shows an honest empty state for $report',
+  ({ report, message, otherMessage }) => {
+    const getChartDataRequestSpy = jest.spyOn(
+      chartAction,
+      'getChartDataRequest',
+    );
+    render(
+      <ViewQueryModal
+        latestQueryFormData={{
+          datasource: '12__semantic_view',
+          viz_type: 'table',
+        }}
+      />,
+      {
+        useRedux: true,
+        initialState: { charts: { 0: { ...chart, queriesResponse: report } } },
+      },
+    );
+    expect(screen.getByRole('alert')).toHaveTextContent(message);
+    expect(screen.queryByText(otherMessage)).not.toBeInTheDocument();
+    expect(getChartDataRequestSpy).not.toHaveBeenCalled();
+    expect(fetchMock.callHistory.calls()).toHaveLength(0);
+  },
+);
+
+test('preserves empty entries alongside reported requests in a mixed run', () => {
+  const requestText = '-- graphql\nquery { measures }';
+  const { container } = render(
+    <ViewQueryModal
+      latestQueryFormData={{
+        datasource: '12__semantic_view',
+        viz_type: 'table',
+      }}
+    />,
+    {
+      useRedux: true,
+      initialState: {
+        charts: {
+          0: {
+            ...chart,
+            queriesResponse: [{}, { query: requestText }, { query: '' }],
+          },
+        },
+      },
+    },
+  );
+  const entries = container.querySelectorAll('[role="alert"], pre');
+  expect(Array.from(entries, entry => entry.textContent)).toEqual([
+    'No provider query is available for this run.',
+    requestText,
+    'No provider query is available for this run.',
+  ]);
+  expect(fetchMock.callHistory.calls()).toHaveLength(0);
 });
