@@ -21,9 +21,12 @@ import domToImage from 'dom-to-image-more';
 import { kebabCase } from 'lodash-es';
 import { t } from '@apache-superset/core/translation';
 import { SupersetTheme } from '@apache-superset/core/theme';
-import { addWarningToast } from 'src/components/MessageToasts/actions';
 import type { AgGridContainerElement } from '@superset-ui/core/components';
-import { forceLoadAllCharts, restoreVirtualization } from './downloadUtils';
+import {
+  dispatchWarningToast,
+  forceLoadAllCharts,
+  restoreVirtualization,
+} from './downloadUtils';
 
 const IMAGE_DOWNLOAD_QUALITY = 0.95;
 const PNG_SCALE = 2; // Higher quality for PNG
@@ -388,7 +391,7 @@ export default function downloadAsImageOptimized(
       : event.currentTarget.closest(selector);
 
     if (!elementToPrint) {
-      addWarningToast(
+      await dispatchWarningToast(
         t('Image download failed, please refresh and try again.'),
       );
       return;
@@ -433,7 +436,7 @@ export default function downloadAsImageOptimized(
       const isFirstDataRendered = agContainer._agGridFirstDataRendered === true;
 
       if (!isFirstDataRendered) {
-        addWarningToast(
+        await dispatchWarningToast(
           t('The chart is still loading. Please wait a moment and try again.'),
         );
         // This early return skips the capture, so restore virtualization here;
@@ -533,7 +536,7 @@ export default function downloadAsImageOptimized(
         link.click();
       } catch (error) {
         console.error('Creating image failed', error);
-        addWarningToast(
+        await dispatchWarningToast(
           t('Image download failed, please refresh and try again.'),
         );
       } finally {
@@ -614,7 +617,7 @@ export default function downloadAsImageOptimized(
       link.click();
     } catch (error) {
       console.error('Creating image failed', error);
-      addWarningToast(
+      await dispatchWarningToast(
         t('Image download failed, please refresh and try again.'),
       );
     } finally {

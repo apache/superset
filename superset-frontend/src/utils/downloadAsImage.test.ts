@@ -19,6 +19,7 @@
 import domToImage from 'dom-to-image-more';
 import { getInstanceByDom } from 'echarts/core';
 import { addWarningToast } from 'src/components/MessageToasts/actions';
+import { store } from 'src/views/store';
 import downloadAsImageOptimized, {
   waitForStableScrollHeight,
 } from './downloadAsImage';
@@ -34,7 +35,18 @@ jest.mock('echarts/core', () => ({
 }));
 
 jest.mock('src/components/MessageToasts/actions', () => ({
-  addWarningToast: jest.fn(),
+  // Must return a real action object: the utils pass the action to
+  // `store.dispatch`, and Redux rejects a dispatched `undefined`. Delegating
+  // to the actual creator keeps the mocked shape identical to production.
+  addWarningToast: jest.fn((text: string, options?: Record<string, unknown>) =>
+    jest
+      .requireActual('src/components/MessageToasts/actions')
+      .addWarningToast(text, options),
+  ),
+}));
+
+jest.mock('src/views/store', () => ({
+  store: { dispatch: jest.fn() },
 }));
 
 jest.mock('@apache-superset/core/translation', () => ({
@@ -45,6 +57,11 @@ const mockToJpeg = domToImage.toJpeg as jest.Mock;
 const mockToPng = domToImage.toPng as jest.Mock;
 const mockAddWarningToast = addWarningToast as jest.Mock;
 const mockGetInstanceByDom = getInstanceByDom as jest.Mock;
+const mockDispatch = store.dispatch as jest.Mock;
+// The genuine action the store receives, for dispatch-shape assertions.
+const realAddWarningToast = jest.requireActual(
+  'src/components/MessageToasts/actions',
+).addWarningToast as (text: string) => Record<string, unknown>;
 
 // document.fonts.ready is not implemented in jsdom; provide a resolved promise
 Object.defineProperty(document, 'fonts', {
@@ -210,6 +227,22 @@ test('shows warning toast when element is not found', async () => {
   expect(mockAddWarningToast).toHaveBeenCalledWith(
     'Image download failed, please refresh and try again.',
   );
+  // The action creator's result is what reaches the store, not the toast
+  // itself. Compared on the stable fields — the toast id is a fresh nanoid
+  // per call, so the full object can never be equal.
+  const dispatched = mockDispatch.mock.calls[0][0] as {
+    type: string;
+    payload: Record<string, unknown>;
+  };
+  const expected = realAddWarningToast(
+    'Image download failed, please refresh and try again.',
+  ) as { type: string; payload: { toastType: string; duration: number } };
+  expect(dispatched.type).toBe(expected.type);
+  expect(dispatched.payload).toMatchObject({
+    toastType: expected.payload.toastType,
+    duration: expected.payload.duration,
+    text: 'Image download failed, please refresh and try again.',
+  });
   expect(mockToJpeg).not.toHaveBeenCalled();
 });
 
