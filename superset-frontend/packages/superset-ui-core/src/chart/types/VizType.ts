@@ -22,6 +22,7 @@ export enum VizType {
   BigNumber = 'big_number',
   BigNumberTotal = 'big_number_total',
   BigNumberPeriodOverPeriod = 'pop_kpi',
+  BigNumberYoyMom = 'big_number_yoy_mom',
   BoxPlot = 'box_plot',
   Bubble = 'bubble_v2',
   Bullet = 'bullet',

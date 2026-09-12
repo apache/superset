@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -16,8 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import Echart from '../../components/Echart';
+import { BigNumberYoyMomProps } from './types';
 
-export { default as BigNumberChartPlugin } from './BigNumberWithTrendline';
-export { default as BigNumberTotalChartPlugin } from './BigNumberTotal';
-export { default as BigNumberPeriodOverPeriodChartPlugin } from './BigNumberPeriodOverPeriod';
-export { default as BigNumberYoyMomChartPlugin } from './BigNumberYoyMom';
+export default function BigNumberYoyMom({
+  width,
+  height,
+  echartOptions,
+  refs,
+  formData,
+}: BigNumberYoyMomProps) {
+  return (
+    <Echart
+      refs={refs}
+      width={width}
+      height={height}
+      echartOptions={echartOptions}
+      vizType={formData?.vizType}
+    />
+  );
+}
