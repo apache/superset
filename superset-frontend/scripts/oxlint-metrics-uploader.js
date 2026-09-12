@@ -189,7 +189,7 @@ async function runOxlintAndProcess() {
     const {
       metricsByRule: metricsByCustomRule,
       occurrencesData: customRuleOccurrencesData,
-    } = parseOxlintResult(results);
+    } = parseOxlintResult(oxlintCustomRuleResults);
 
     const mergedMetricsByRule = { ...metricsByRule, ...metricsByCustomRule };
     const mergedOccurrencesData = [
