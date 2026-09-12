@@ -84,6 +84,7 @@ from superset.reports.models import (
     ReportScheduleValidatorType,
     ReportState,
 )
+from superset.reports.notifications.base import NotificationContent
 from superset.reports.notifications.exceptions import (
     NotificationError,
     NotificationParamException,
@@ -3101,7 +3102,7 @@ def test_prune_log_soft_time_out(bulk_delete_logs, create_report_email_dashboard
 @patch("superset.commands.report.execute.logger")
 @patch("superset.commands.report.execute.create_notification")
 def test__send_with_client_errors(notification_mock, logger_mock):
-    notification_content = "I am some content"
+    notification_content = NotificationContent(name="I am some content", header_data={})
     recipients = ["test@foo.com"]
     report_state = BaseReportState(ReportSchedule(), datetime.utcnow(), uuid4())
     notification_mock.return_value.send.side_effect = NotificationParamException()
@@ -3117,7 +3118,7 @@ def test__send_with_client_errors(notification_mock, logger_mock):
 @patch("superset.commands.report.execute.logger")
 @patch("superset.commands.report.execute.create_notification")
 def test__send_with_multiple_errors(notification_mock, logger_mock):
-    notification_content = "I am some content"
+    notification_content = NotificationContent(name="I am some content", header_data={})
     recipients = ["test@foo.com", "test2@bar.com"]
     report_state = BaseReportState(ReportSchedule(), datetime.utcnow(), uuid4())
     notification_mock.return_value.send.side_effect = [
@@ -3145,7 +3146,7 @@ def test__send_with_multiple_errors(notification_mock, logger_mock):
 @patch("superset.commands.report.execute.logger")
 @patch("superset.commands.report.execute.create_notification")
 def test__send_with_server_errors(notification_mock, logger_mock):
-    notification_content = "I am some content"
+    notification_content = NotificationContent(name="I am some content", header_data={})
     recipients = ["test@foo.com"]
     report_state = BaseReportState(ReportSchedule(), datetime.utcnow(), uuid4())
     notification_mock.return_value.send.side_effect = NotificationError()

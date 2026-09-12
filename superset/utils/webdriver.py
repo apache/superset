@@ -380,6 +380,7 @@ class WebDriverPlaywright(WebDriverProxy):
                 context_suffix,
             )
             if attempt == TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS:
+                report_execution_context.reject_capture("blank_standard")
                 raise ScreenshotBlankCaptureError(
                     "Chromium returned a blank standard screenshot "
                     f"after {attempt} attempts"

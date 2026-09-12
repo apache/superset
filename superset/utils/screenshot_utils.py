@@ -1349,13 +1349,16 @@ def take_tiled_screenshot(  # noqa: C901
                             # Exhausted retries must never turn a rejected report
                             # tile into accepted content. Only thumbnails may
                             # retain a blank capture below.
+                            report_execution_context.reject_capture(
+                                f"blank_tile:{i + 1}/{num_tiles}"
+                            )
                             raise ScreenshotBlankCaptureError(
                                 "Chromium returned a blank tile "
                                 f"{i + 1}/{num_tiles} after {capture_attempt} attempts"
                             )
                         tile_screenshot = candidate
                         logger.warning(
-                            "report_capture_blank_tile_retained tile=%s/%s "
+                            "thumbnail_capture_blank_tile_retained tile=%s/%s "
                             "attempts=%s contentful_chart_holders=%s "
                             "dominant_pixel_ratio=%.5f near_white_pixel_ratio=%.5f "
                             "mean_luminance=%.2f luminance_stddev=%.2f entropy=%.3f "
@@ -1490,9 +1493,14 @@ def take_tiled_screenshot(  # noqa: C901
             )
             if combined_blankness.is_blank:
                 logger.warning(
-                    "report_capture_blank_combined_retained contentful_tiles=%s%s",
+                    "report_capture_blank_combined_rejected contentful_tiles=%s%s",
                     contentful_tiles_captured,
                     context_suffix,
+                )
+                report_execution_context.reject_capture("blank_combined")
+                raise ScreenshotBlankCaptureError(
+                    "Combined report screenshot remained perceptually blank "
+                    "after all tiles passed capture validation"
                 )
 
         return combined_screenshot

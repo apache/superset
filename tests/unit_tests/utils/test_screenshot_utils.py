@@ -539,6 +539,7 @@ class TestTakeTiledScreenshot:
 
         mock_page.evaluate.side_effect = evaluate
         mock_page.screenshot.return_value = _png(800, 1000, "white")
+        report_context = _report_context()
 
         with (
             patch("superset.utils.screenshot_utils.logger"),
@@ -554,13 +555,14 @@ class TestTakeTiledScreenshot:
                 mock_page,
                 "dashboard",
                 tile_height=1000,
-                report_execution_context=_report_context(),
+                report_execution_context=report_context,
             )
 
         assert mock_page.screenshot.call_count == 3
+        assert report_context.capture_rejection_reasons == ("blank_tile:1/2",)
         mock_combine.assert_not_called()
 
-    def test_blank_combined_image_is_advisory_after_contentful_tiles_pass(
+    def test_blank_combined_image_fails_closed_after_contentful_tiles_pass(
         self, mock_page
     ):
         element_info = {"height": 1000, "top": 0, "left": 0, "width": 800}
@@ -577,23 +579,28 @@ class TestTakeTiledScreenshot:
         mock_page.evaluate.side_effect = evaluate
         mock_page.screenshot.return_value = self._create_chart_like_tile()
 
+        report_context = _report_context()
         with (
             patch(
                 "superset.utils.screenshot_utils.combine_screenshot_tiles",
                 return_value=_two_tone_blank(800, 1000),
             ),
             patch("superset.utils.screenshot_utils.logger") as mock_logger,
+            pytest.raises(
+                ScreenshotBlankCaptureError,
+                match="Combined report screenshot remained perceptually blank",
+            ),
         ):
-            result = take_tiled_screenshot(
+            take_tiled_screenshot(
                 mock_page,
                 "dashboard",
                 tile_height=1000,
-                report_execution_context=_report_context(),
+                report_execution_context=report_context,
             )
 
-        assert result == _two_tone_blank(800, 1000)
+        assert report_context.capture_rejection_reasons == ("blank_combined",)
         assert any(
-            call.args[0].startswith("report_capture_blank_combined_retained")
+            call.args[0].startswith("report_capture_blank_combined_rejected")
             and call.args[1] == 1
             for call in mock_logger.warning.call_args_list
         )
@@ -802,7 +809,7 @@ class TestTakeTiledScreenshot:
             for call in mock_logger.warning.call_args_list
         )
         assert any(
-            call.args[0].startswith("report_capture_blank_tile_retained")
+            call.args[0].startswith("thumbnail_capture_blank_tile_retained")
             for call in mock_logger.warning.call_args_list
         )
 
