@@ -176,7 +176,7 @@ click-repl==0.3.0
     # via
     #   -c requirements/base-constraint.txt
     #   celery
-clickhouse-connect==1.7.2
+clickhouse-connect==1.8.0
     # via apache-superset
 cmdstanpy==1.1.0
     # via prophet

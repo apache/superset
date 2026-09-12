@@ -144,7 +144,7 @@ bigquery = [
     "sqlalchemy-bigquery>=1.17.2",
     "google-cloud-bigquery>=3.44.0",
 ]
-clickhouse = ["clickhouse-connect>=1.7.2, <2.0"]
+clickhouse = ["clickhouse-connect>=1.8.0, <2.0"]
 # The `cockroachdb` PyPI package (last released 2021) is abandoned and its
 # SQLAlchemy dialect cannot even import under SQLAlchemy 2.0 (it references
 # sqlalchemy.dialects.postgresql.psycopg2.PGCompiler_psycopg2, removed in
