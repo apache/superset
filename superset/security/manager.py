@@ -3038,6 +3038,29 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         if deleted_count := pvms.delete():
             logger.info("Deleted %i faulty permissions", deleted_count)
 
+    def _legacy_password_view_menus_to_exclude(self) -> set[str]:
+        """
+        Return FAB view-menu names for legacy password reset views whose
+        permissions should be excluded from role synchronization because their
+        registration is currently disabled.
+
+        Mirrors the skip logic in ``_skip_legacy_fab_password_view_registration``
+        so that an upgraded installation with a persisted ``ResetPasswordView``
+        (or ``ResetMyPasswordView``) permission/view-menu row -- created before
+        ``ENABLE_LEGACY_FAB_PASSWORD_VIEWS`` existed -- doesn't have Admin (or
+        any other role) retain that permission once the flag is off, even
+        though the view itself is no longer registered.
+
+        :returns: view-menu names to exclude from role assignment
+        """
+        if current_app.config.get("ENABLE_LEGACY_FAB_PASSWORD_VIEWS", False):
+            return set()
+
+        view_menus = {"ResetPasswordView"}
+        if not current_app.config.get("ENABLE_FORCE_PASSWORD_CHANGE", False):
+            view_menus.add("ResetMyPasswordView")
+        return view_menus
+
     def sync_role_definitions(self) -> None:
         """
         Initialize the Superset application with security roles and such.
@@ -3048,6 +3071,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         self.create_custom_permissions()
 
         pvms = self._get_all_pvms()
+
+        if excluded_view_menus := self._legacy_password_view_menus_to_exclude():
+            pvms = [
+                pvm for pvm in pvms if pvm.view_menu.name not in excluded_view_menus
+            ]
 
         # Creating default roles
         self.set_role("Admin", self._is_admin_pvm, pvms)
@@ -5887,8 +5915,48 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             role.name for role in self.get_user_roles()
         ]
 
-    # temporal change to remove the roles view from the security menu,
-    # after migrating all views to frontend, we will set FAB_ADD_SECURITY_VIEWS = False
+    def _skip_legacy_fab_password_view_registration(self) -> Callable[..., Any]:
+        """
+        Temporarily patch ``add_view_no_menu`` so legacy FAB password reset
+        views are skipped during ``register_views()``.
+
+        When ``ENABLE_LEGACY_FAB_PASSWORD_VIEWS`` is disabled, ``ResetPasswordView``
+        is always skipped, and ``ResetMyPasswordView`` is skipped unless
+        ``ENABLE_FORCE_PASSWORD_CHANGE`` is enabled (that flow still needs a
+        reachable reset form). When the flag is enabled, no patching occurs.
+
+        :returns: the original, unpatched ``add_view_no_menu`` bound method, so
+            the caller can restore it once ``register_views()`` completes.
+        """
+        original_add_view_no_menu: Callable[..., Any] = self.appbuilder.add_view_no_menu
+
+        if current_app.config.get("ENABLE_LEGACY_FAB_PASSWORD_VIEWS", False):
+            return original_add_view_no_menu
+
+        from flask_appbuilder.security.views import (
+            ResetMyPasswordView,
+            ResetPasswordView,
+        )
+
+        legacy_password_views: tuple[type[Any], ...] = (ResetPasswordView,)
+        if not current_app.config.get("ENABLE_FORCE_PASSWORD_CHANGE", False):
+            legacy_password_views = (*legacy_password_views, ResetMyPasswordView)
+
+        def add_view_no_menu_without_legacy_password_views(
+            baseview: Any, *args: Any, **kwargs: Any
+        ) -> Any:
+            if isinstance(baseview, legacy_password_views) or (
+                isinstance(baseview, type)
+                and issubclass(baseview, legacy_password_views)
+            ):
+                return baseview
+            return original_add_view_no_menu(baseview, *args, **kwargs)
+
+        self.appbuilder.add_view_no_menu = (  # type: ignore[method-assign]
+            add_view_no_menu_without_legacy_password_views
+        )
+        return original_add_view_no_menu
+
     def register_views(self) -> None:
         from superset.views.auth import SupersetAuthView, SupersetRegisterUserView
 
@@ -5930,16 +5998,30 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         original_auth_rate_limited = current_app.config["AUTH_RATE_LIMITED"]
         current_app.config["AUTH_RATE_LIMITED"] = False
 
+        original_add_view_no_menu: Callable[..., Any] = (
+            self._skip_legacy_fab_password_view_registration()
+        )
+
         try:
             super().register_views()
         finally:
-            # Restore original value even if an exception occurs
+            # Restore original values even if an exception occurs
             current_app.config["AUTH_RATE_LIMITED"] = original_auth_rate_limited
+            self.appbuilder.add_view_no_menu = (  # type: ignore[method-assign]
+                original_add_view_no_menu
+            )
 
+        # temporal change to remove the roles view from the security menu, after
+        # migrating all views to frontend, we will set FAB_ADD_SECURITY_VIEWS = False
         for view in list(self.appbuilder.baseviews):
-            if isinstance(view, self.rolemodelview.__class__) and getattr(
-                view, "route_base", None
-            ) in ["/roles", "/users", "/groups", "registrations"]:
+            route_base: Optional[str] = getattr(view, "route_base", None)
+            # Remove FAB security menu views (roles, users, groups, registrations)
+            if isinstance(view, self.rolemodelview.__class__) and route_base in [
+                "/roles",
+                "/users",
+                "/groups",
+                "/registrations",
+            ]:
                 self.appbuilder.baseviews.remove(view)
 
         security_menu = next(

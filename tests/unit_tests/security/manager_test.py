@@ -20,7 +20,7 @@
 import json  # noqa: TID251
 import logging
 from types import SimpleNamespace
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 from unittest.mock import MagicMock
 
 import pytest
@@ -3687,6 +3687,68 @@ def test_request_loader_rejects_invalid_guest_token_before_bearer(
     verify_jwt.assert_not_called()
 
 
+@pytest.mark.parametrize(
+    "enable_legacy_password_views,enable_force_password_change,expected_registered",
+    [
+        (False, False, {"NonPasswordView"}),
+        (False, True, {"NonPasswordView", "ResetMyPasswordView"}),
+        (
+            True,
+            False,
+            {"NonPasswordView", "ResetMyPasswordView", "ResetPasswordView"},
+        ),
+    ],
+)
+def test_skip_legacy_fab_password_view_registration_keeps_forced_change_target(
+    app_context: None,
+    enable_legacy_password_views: bool,
+    enable_force_password_change: bool,
+    expected_registered: set[str],
+) -> None:
+    """Forced password changes require the self-service reset view."""
+    from flask import current_app
+    from flask_appbuilder.security.views import ResetMyPasswordView, ResetPasswordView
+
+    class NonPasswordView:
+        pass
+
+    registered: list[str] = []
+
+    def add_view_no_menu(baseview: type[Any], *args: Any, **kwargs: Any) -> type[Any]:
+        registered.append(baseview.__name__)
+        return baseview
+
+    fake_appbuilder = SimpleNamespace(add_view_no_menu=add_view_no_menu)
+    sm = SupersetSecurityManager.__new__(SupersetSecurityManager)
+    sm.appbuilder = fake_appbuilder
+
+    previous_config = {
+        "ENABLE_LEGACY_FAB_PASSWORD_VIEWS": current_app.config[
+            "ENABLE_LEGACY_FAB_PASSWORD_VIEWS"
+        ],
+        "ENABLE_FORCE_PASSWORD_CHANGE": current_app.config[
+            "ENABLE_FORCE_PASSWORD_CHANGE"
+        ],
+    }
+    current_app.config["ENABLE_LEGACY_FAB_PASSWORD_VIEWS"] = (
+        enable_legacy_password_views
+    )
+    current_app.config["ENABLE_FORCE_PASSWORD_CHANGE"] = enable_force_password_change
+
+    original_add_view_no_menu: Callable[..., Any] = fake_appbuilder.add_view_no_menu
+    try:
+        original_add_view_no_menu = sm._skip_legacy_fab_password_view_registration()
+
+        fake_appbuilder.add_view_no_menu(ResetPasswordView)
+        fake_appbuilder.add_view_no_menu(ResetMyPasswordView)
+        fake_appbuilder.add_view_no_menu(NonPasswordView)
+    finally:
+        current_app.config.update(previous_config)
+        fake_appbuilder.add_view_no_menu = original_add_view_no_menu
+
+    assert set(registered) == expected_registered
+
+
 def test_reset_password_self_service_clears_flag(
     mocker: MockerFixture,
     app_context: None,
@@ -4173,3 +4235,45 @@ def test_gamma_receives_no_semantic_write_pvm() -> None:
     assert not sm._is_gamma_pvm(_pvm("can_write", "SemanticView"))
     assert sm._is_gamma_pvm(_pvm("can_read", "SemanticLayer"))
     assert sm._is_gamma_pvm(_pvm("can_read", "SemanticView"))
+
+
+def test_sync_role_definitions_excludes_stale_reset_password_view(
+    mocker: MockerFixture, app_context: None
+) -> None:
+    """Upgraded installs must not have Admin retain a disabled legacy view.
+
+    If a ``ResetPasswordView`` permission/view-menu row was persisted before
+    ``ENABLE_LEGACY_FAB_PASSWORD_VIEWS`` existed, ``sync_role_definitions``
+    must exclude it from every role's assignment once the flag is off, even
+    though the view itself is no longer registered and
+    ``_get_all_pvms`` still returns the stale row from the metadata db.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    stale_pvm = _pvm("can_this_form_get", "ResetPasswordView")
+    other_pvm = _pvm("can_read", "Dashboard")
+
+    mocker.patch.object(sm, "create_custom_permissions")
+    mocker.patch.object(sm, "_get_all_pvms", return_value=[stale_pvm, other_pvm])
+    mock_set_role = mocker.patch.object(sm, "set_role")
+    mocker.patch.object(sm, "create_missing_perms")
+    mocker.patch.object(sm, "clean_perms")
+
+    previous_config = {
+        "ENABLE_LEGACY_FAB_PASSWORD_VIEWS": current_app.config[
+            "ENABLE_LEGACY_FAB_PASSWORD_VIEWS"
+        ],
+        "PUBLIC_ROLE_LIKE": current_app.config["PUBLIC_ROLE_LIKE"],
+    }
+    current_app.config["ENABLE_LEGACY_FAB_PASSWORD_VIEWS"] = False
+    current_app.config["PUBLIC_ROLE_LIKE"] = None
+    try:
+        sm.sync_role_definitions()
+    finally:
+        current_app.config.update(previous_config)
+
+    for call in mock_set_role.call_args_list:
+        role_name, _classifier_fn, synced_pvms = call.args
+        assert stale_pvm not in synced_pvms, (
+            f"{role_name} role sync should exclude the stale ResetPasswordView pvm"
+        )
+        assert other_pvm in synced_pvms
