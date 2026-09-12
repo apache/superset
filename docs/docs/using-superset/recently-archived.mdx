@@ -54,6 +54,11 @@ returns to its normal list and disappears from the archive. Recovering is
 limited to the object's editors and admins; you can only recover objects you
 are able to see in this view.
 
+Seeing an archived object and acting on it are separate permissions: objects
+you can view but not edit still appear in the list, but their rows carry no
+actions. The **Recover** and **Delete permanently** buttons are shown only
+for objects you have permission to edit.
+
 ## Deleting an object permanently
 
 Use the **Delete permanently** action on a row to remove an object for good.
@@ -62,7 +67,8 @@ You will be asked to confirm.
 This cannot be undone. Unlike archiving, it does not move the object anywhere
 — the object and its version history are erased, and no retention window
 applies. The same audience that can recover an object can delete it
-permanently: its editors and admins.
+permanently: its editors and admins. As with recovery, the action appears
+only on rows you have permission to edit.
 
 Some objects cannot be deleted permanently while something still depends on
 them. A chart used by an alert or report, for example, is refused until that
