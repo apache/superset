@@ -5,6 +5,8 @@ sidebar_position: 8
 version: 1
 ---
 
+import useBaseUrl from '@docusaurus/useBaseUrl';
+
 # Version History
 
 Superset can record the history of a chart or dashboard as you edit it, and let
@@ -14,6 +16,17 @@ The panel lists each saved version with its author, timestamp, and a plain
 description of what changed — "Chart renamed to Q3 Revenue", "Added filter on
 'Region'" — rather than a raw diff. You can search the history and filter it
 down to changes on the entity itself or on the things it depends on.
+
+<img
+  src={useBaseUrl('/img/version-history/version-history-panel.jpg')}
+  alt="The version history panel, showing the current version and an earlier save, each expanded to its change descriptions"
+  width="360"
+/>
+
+Version history applies to **charts and dashboards**. Datasets do not have a
+version history panel; they participate in soft deletion and can be recovered
+from [Recently Archived](./recently-archived), but their
+edits are not versioned.
 
 ## Enabling and disabling it
 
@@ -39,6 +52,23 @@ stops filling — an empty or stale history misrepresents the entity as
 unchanged. History only accrues while capture is on; edits made while it was
 off are not reconstructed.
 
+## How long history is kept
+
+Version rows older than the retention window are pruned by a daily background
+task (`version_history.prune_old_versions`, scheduled through Celery beat).
+The window is read from the `SUPERSET_VERSION_HISTORY_RETENTION_DAYS`
+environment variable and defaults to 30 days.
+
+Pruning never removes an entity's current state: any version that is still
+live is preserved along with the rest of its transaction, however old it is.
+What ages out is closed history — earlier states you could otherwise have
+previewed or restored.
+
+Set the variable to zero (or any non-positive value) to keep history
+indefinitely. This window governs version history only; the separate retention
+window for archived (soft-deleted) objects is described on
+[Recently Archived](./recently-archived).
+
 ## Viewing history
 
 On a chart, open **… (actions) → View version history** in Explore. A dashboard
@@ -47,6 +77,12 @@ uses the same entry in its own **… (actions)** menu.
 The entry appears for users who may edit the entity — the same rule the server
 applies to overwriting it: administrators, plus anyone whose subjects are among
 the entity's editors. Users who cannot edit do not see the panel.
+
+This rule is enforced by the server, not just reflected in the UI: the version
+and activity endpoints refuse users without edit rights on the specific entity,
+so a read-only user cannot retrieve an entity's history through the API either.
+Embedded guest tokens are refused outright, regardless of any editorship their
+role might carry.
 
 One entry can appear that nobody typed: the first save through the chart
 editor of a chart created by an older Superset version, an import, or the
@@ -62,7 +98,14 @@ what the user changed.
 ## Previewing a version
 
 Selecting a version loads it into the page so you can see it before deciding
-anything. While a preview is active:
+anything.
+
+<img
+  src={useBaseUrl('/img/version-history/version-history-preview.jpg')}
+  alt="A chart in preview mode: a banner across the top names the historical version and offers Restore, Open as new chart, and Close preview"
+/>
+
+While a preview is active:
 
 - A banner across the top marks the page as historical and names the version.
 - The dashboard or chart itself is inert — filters, controls, and chart
