@@ -53,6 +53,15 @@ Scheduled report and alert captures require chart readiness to remain stable
 immediately before Chromium captures the image. A capture that re-enters a loading
 state during that window fails instead of delivering a screenshot with spinners.
 
+### Scheduled rendered reports fail closed after capture rejection
+
+Scheduled PDF and PNG delivery requires an accepted report capture context. A
+terminal rejection from standard, tiled, or combined-image validation is sticky
+for that execution and is checked again at the notification boundary. Reports and
+alerts cannot deliver a rendered artifact after rejection, even if an intermediate
+capture layer accidentally catches the original error. Text-only failure
+notifications and thumbnail capture behavior are unchanged.
+
 ### Resample "Fill the entire time range"
 
 Charts with Resample can enable **Fill the entire time range** so gap-filling

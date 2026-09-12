@@ -190,6 +190,12 @@ class ReportExecutionContext:
     capture_reserve_seconds: float = 0.0
     delivery_reserve_seconds: float = 0.0
     cleanup_reserve_seconds: float = 0.0
+    _capture_rejection_reasons: list[str] = field(
+        default_factory=list,
+        init=False,
+        compare=False,
+        repr=False,
+    )
 
     def __post_init__(self) -> None:
         """Validate that configured phase reserves fit inside the deadline."""
@@ -233,6 +239,23 @@ class ReportExecutionContext:
         """Capacity kept for delivery and terminal state persistence."""
 
         return self.delivery_reserve_seconds + self.cleanup_reserve_seconds
+
+    def reject_capture(self, reason: str) -> None:
+        """Permanently disqualify this execution's rendered artifact delivery."""
+
+        self._capture_rejection_reasons.append(reason)
+
+    @property
+    def capture_rejection_reasons(self) -> tuple[str, ...]:
+        """Return immutable reasons recorded by terminal capture validation."""
+
+        return tuple(self._capture_rejection_reasons)
+
+    @property
+    def capture_was_rejected(self) -> bool:
+        """Return whether any capture stage terminally rejected its output."""
+
+        return bool(self._capture_rejection_reasons)
 
 
 def get_report_task_timeout_options(

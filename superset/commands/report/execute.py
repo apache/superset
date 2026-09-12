@@ -1351,6 +1351,7 @@ class BaseReportState:
         recipient: ReportRecipients,
     ) -> None:
         """Send one notification, upgrading Slack v1 recipients when required."""
+        self._assert_rendered_delivery_allowed(notification_content)
         notification = create_notification(recipient, notification_content)
         if app.config["ALERT_REPORTS_NOTIFICATION_DRY_RUN"]:
             logger.info(
@@ -1375,6 +1376,37 @@ class BaseReportState:
 
         notification.send()
 
+    def _assert_rendered_delivery_allowed(
+        self,
+        notification_content: NotificationContent,
+    ) -> None:
+        """Enforce fail-closed capture provenance before rendered delivery."""
+
+        if not (notification_content.pdf or notification_content.screenshots):
+            return
+
+        report_context = getattr(self, "_report_execution_context", None)
+        rejection_reasons = (
+            report_context.capture_rejection_reasons
+            if report_context is not None
+            else ("missing_capture_context",)
+        )
+        if report_context is not None and not rejection_reasons:
+            return
+
+        logger.error(
+            "report_delivery_blocked %s terminal_reason=capture_rejected "
+            "rejection_reasons=%s",
+            report_context.log_context
+            if report_context is not None
+            else self._log_context,
+            ",".join(rejection_reasons),
+        )
+        raise ReportScheduleScreenshotFailedError(
+            "Rendered report delivery blocked because capture validation "
+            "did not produce an accepted artifact"
+        )
+
     def _send(
         self,
         notification_content: NotificationContent,
@@ -1389,6 +1421,7 @@ class BaseReportState:
         upgraded_delivery_failed = False
         self._slack_v1_upgrade.reset()
         report_context = getattr(self, "_report_execution_context", None)
+        self._assert_rendered_delivery_allowed(notification_content)
         for recipient in recipients:
             try:
                 log_report_delivery_phase(

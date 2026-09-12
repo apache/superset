@@ -486,6 +486,16 @@ applies to alerts that attach reports. Check worker logs for
 `ScreenshotBlankCaptureError` and `report_capture_validation` when investigating
 these failures.
 
+Rendered report delivery is fail closed. A terminal rejection from the standard,
+per-tile, or combined-image validation stage is recorded on the report execution
+context and checked again immediately before every notification send. A PDF or PNG
+without an accepted capture context is also rejected. This applies equally to
+report schedules and alerts that attach rendered reports. Text-only failure
+notifications may still be sent. Look for `report_delivery_blocked` when this
+delivery-boundary safeguard is triggered. Thumbnail captures remain permissive and
+use `thumbnail_capture_*` event names so they cannot be mistaken for report
+delivery events.
+
 Immediately before each scheduled report screenshot, chart readiness must remain
 stable for 500 milliseconds, unless less than one stability window of the
 execution budget is left, in which case the check is skipped and logged with
