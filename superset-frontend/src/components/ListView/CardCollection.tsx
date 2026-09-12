@@ -17,17 +17,17 @@
  * under the License.
  */
 import { ReactNode, MouseEvent as ReactMouseEvent } from 'react';
-import { TableInstance, Row, UseRowSelectRowProps } from 'react-table';
+import { Row, UseRowSelectRowProps } from 'react-table';
 import { styled } from '@apache-superset/core/theme';
 import { isMobileConsumptionEnabled } from 'src/hooks/useIsMobile';
 import cx from 'classnames';
 
-interface CardCollectionProps {
+interface CardCollectionProps<T extends object = any> {
   bulkSelectEnabled?: boolean;
   loading: boolean;
-  prepareRow: TableInstance['prepareRow'];
+  prepareRow: (row: Row<T>) => void;
   renderCard?: (row: any) => ReactNode;
-  rows: TableInstance['rows'];
+  rows: Row<T>[];
   showThumbnails?: boolean;
 }
 
@@ -68,14 +68,14 @@ const CardWrapper = styled.div`
   }
 `;
 
-export default function CardCollection({
+export default function CardCollection<T extends object = any>({
   bulkSelectEnabled,
   loading,
   prepareRow,
   renderCard,
   rows,
   showThumbnails,
-}: CardCollectionProps) {
+}: CardCollectionProps<T>) {
   function handleClick(
     event: ReactMouseEvent<HTMLDivElement, MouseEvent>,
     toggleRowSelected: (value?: boolean) => void,
@@ -104,14 +104,14 @@ export default function CardCollection({
               className={cx({
                 'card-selected':
                   bulkSelectEnabled &&
-                  (row as Row & UseRowSelectRowProps<any>).isSelected,
+                  (row as Row<T> & UseRowSelectRowProps<T>).isSelected,
                 'bulk-select': bulkSelectEnabled,
               })}
               key={row.id}
               onClick={e =>
                 handleClick(
                   e,
-                  (row as Row & UseRowSelectRowProps<any>).toggleRowSelected,
+                  (row as Row<T> & UseRowSelectRowProps<T>).toggleRowSelected,
                 )
               }
               role="none"
