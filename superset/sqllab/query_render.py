@@ -20,6 +20,7 @@ from __future__ import annotations
 from typing import Any, Callable, TYPE_CHECKING
 
 from flask_babel import gettext as __, lazy_gettext as _, ngettext
+from flask_babel.speaklater import LazyString
 from jinja2 import TemplateError
 from jinja2.meta import find_undeclared_variables
 
@@ -37,7 +38,7 @@ if TYPE_CHECKING:
 
 # Lazy on purpose: evaluated at import time, an eager constant would be
 # frozen in the default locale (see the same convention in views/core.py).
-PARAMETER_MISSING_ERR = _(
+PARAMETER_MISSING_ERR: LazyString = _(
     "Please check your template parameters for syntax errors and make sure "
     "they match across your SQL query and Set Parameters. Then, try running "
     "your query again."

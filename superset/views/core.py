@@ -41,6 +41,7 @@ from flask_appbuilder.security.decorators import (
     has_access_api,
 )
 from flask_babel import gettext as __, lazy_gettext as _
+from flask_babel.speaklater import LazyString
 from sqlalchemy.exc import SQLAlchemyError
 from werkzeug.utils import safe_join
 
@@ -108,7 +109,7 @@ logger = logging.getLogger(__name__)
 # locale forever. Lazy at module scope, coerced with str() at the point of
 # use inside a request — the mirror of the "eager __() in request context"
 # convention for inline error bodies.
-DATASOURCE_MISSING_ERR = _("The data source seems to have been deleted")
+DATASOURCE_MISSING_ERR: LazyString = _("The data source seems to have been deleted")
 
 SqlResults = dict[str, Any]
 
