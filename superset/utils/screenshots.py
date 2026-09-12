@@ -484,7 +484,7 @@ class ChartScreenshot(BaseScreenshot):
         window_size: WindowSize | None = None,
         thumb_size: WindowSize | None = None,
     ):
-        # Chart reports are in standalone="true" mode
+        # Chart reports render chart-only, with no nav and no editor controls
         url = modify_url_query(
             url,
             standalone=ChartStandaloneMode.HIDE_NAV.value,
