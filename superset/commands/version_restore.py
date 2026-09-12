@@ -89,6 +89,44 @@ class BaseRestoreVersionCommand(BaseCommand):
 
     def _do_restore(self) -> RestoreResult:
         entity = self.validate()
+
+        # Re-read the live row under a FOR UPDATE lock, refreshing the
+        # in-memory entity (``populate_existing``) from the *current committed*
+        # state, and re-assert it is still active (``deleted_at IS NULL``). A
+        # single locking query closes three races opened between validate()'s
+        # unlocked read and the revert:
+        #   * a concurrent content edit — a plain, non-locking read (bare
+        #     refresh()) returns the transaction's first-read snapshot on
+        #     MySQL/InnoDB REPEATABLE READ and would silently drop the edit
+        #     from the revert UPDATE;
+        #   * a concurrent hard delete — the row is gone, so the query returns
+        #     None;
+        #   * a concurrent soft delete — column loads (get()/refresh()) bypass
+        #     the global active-row filter, so without the explicit
+        #     ``deleted_at IS NULL`` predicate the revert would resurrect an
+        #     archived entity and report success.
+        # A None result (hard- or soft-deleted) is surfaced as the documented
+        # 404 — not the transaction wrapper's generic 422, and not via a
+        # refresh() whose missing-row failure is a hard-to-catch
+        # InvalidRequestError. This is the pessimistic (serialise) half; the
+        # restore endpoint does not yet also honor an If-Match precondition to
+        # *detect* (rather than serialise) a concurrent edit — a follow-up.
+        entity = (
+            db.session.query(self.model_cls)
+            .populate_existing()
+            # Disable eager loaders before FOR UPDATE. A ``lazy="subquery"``
+            # relationship (e.g. ``Slice.table``) wraps the primary query into
+            # ``SELECT DISTINCT … FOR UPDATE`` to fetch its related rows, and
+            # Postgres rejects ``FOR UPDATE`` with ``DISTINCT``. We only need the
+            # locked row's own columns here; relationships load lazily after.
+            .enable_eagerloads(False)
+            .filter_by(id=entity.id, deleted_at=None)
+            .with_for_update()
+            .one_or_none()
+        )
+        if entity is None:
+            raise self.not_found_exc()
+
         resolved = resolve_version(
             self.model_cls, self._uuid, self._version_uuid, entity=entity
         )
@@ -130,8 +168,10 @@ class BaseRestoreVersionCommand(BaseCommand):
             self.model_cls, self._uuid, transaction_id, entity=entity
         )
         if result is None:
-            # Race: entity deleted, or the target version row pruned,
-            # between validate()/resolve and the engine's re-check.
+            # Race: the target version row was pruned, or the entity deleted,
+            # between resolve and the engine's re-check. (A hard/soft delete
+            # before the lock is already caught by the locking query above;
+            # this covers the narrower window after it.)
             raise self.not_found_exc()
         return result
 

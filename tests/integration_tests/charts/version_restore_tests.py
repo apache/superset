@@ -24,11 +24,16 @@ the documented 400/404 errors for malformed or unknown UUIDs.
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import Any
+from unittest.mock import patch
+from uuid import UUID
 
 import pytest
+import sqlalchemy as sa
 from sqlalchemy_continuum import version_class
 
+from superset.commands.chart.restore_version import RestoreChartVersionCommand
 from superset.extensions import db
 from superset.models.slice import Slice
 from superset.utils import json as _json
@@ -161,6 +166,155 @@ class TestChartRestoreApi(SupersetTestCase):
             chart.is_managed_externally = False
             chart.slice_name = "Boys"
             db.session.commit()
+
+    def test_restore_fully_overwrites_a_concurrently_committed_edit(self) -> None:
+        """sc-115423: end-to-end, a restore fully overwrites an edit committed
+        by another connection — the concurrent value does not survive.
+
+        The dialect-independent regression guard for the fix is the unit test
+        asserting ``refresh(..., with_for_update=True)`` (dropping the flag
+        fails there on every backend). This test exercises the real command +
+        DB through the locking-refresh path and asserts the correct end state.
+        It reproduces the MySQL/InnoDB REPEATABLE-READ staleness the flag
+        guards against *only* when the restore shares this session's pre-edit
+        read view (no commit between the load below and the ``@transaction``
+        restore); where that holds, the pre-fix (plain-refresh) code leaves the
+        concurrent edit in place and this assertion fails. It is not relied on
+        as the sole MySQL guard for that reason.
+        """
+        _persist_fixture_state()
+        chart: Slice = (
+            db.session.query(Slice).filter(Slice.slice_name == "Boys").first()
+        )
+        assert chart is not None
+        chart_id = chart.id
+        chart_uuid = chart.uuid
+
+        # Edit + commit so there is a version whose value equals the *current*
+        # live value — that version is the restore target.
+        chart.slice_name = "Boys v1"
+        db.session.commit()
+
+        self.login(ADMIN_USERNAME)
+        listing = _json.loads(self._list(str(chart_uuid)).data.decode("utf-8"))
+        target = listing["result"][-1]  # the latest version == "Boys v1"
+        target_uuid = UUID(target["version_uuid"])
+
+        # Load the chart into THIS session (establishing its read snapshot /
+        # identity map) BEFORE the concurrent edit; then commit an edit from a
+        # SEPARATE connection. This is the interleaving a non-locking refresh
+        # would miss.
+        loaded = db.session.query(Slice).filter(Slice.id == chart_id).one()
+        assert loaded.slice_name == "Boys v1"  # loaded == restore target
+        with db.engine.begin() as conn:
+            conn.execute(
+                sa.text("UPDATE slices SET slice_name = :n WHERE id = :i"),
+                {"n": "edited by another connection", "i": chart_id},
+            )
+
+        RestoreChartVersionCommand(chart_uuid, target_uuid).run()
+
+        db.session.expire_all()
+        live = db.session.query(Slice).filter(Slice.id == chart_id).one()
+        assert live.slice_name == "Boys v1", (
+            f"restore did not fully overwrite the concurrent edit: {live.slice_name!r}"
+        )
+
+        # Cleanup
+        live.slice_name = "Boys"
+        db.session.commit()
+
+    def test_restore_raises_not_found_when_hard_deleted_before_lock(self) -> None:
+        """sc-115423: a concurrent hard delete committed between validate()'s
+        unlocked read and the FOR UPDATE lock must surface as the documented
+        404 (``not_found_exc``), not the transaction wrapper's generic 422.
+
+        The race is injected deterministically: ``validate`` is patched to
+        return the live entity and, as its side effect, commit the delete from
+        a separate connection — exactly the window the locking re-read closes.
+        The pre-fix code (bare ``refresh()``) raised ``InvalidRequestError``
+        here, which ``on_error`` wrapped into ``failed_exc`` (422).
+        """
+        _persist_fixture_state()
+        chart: Slice = (
+            db.session.query(Slice).filter(Slice.slice_name == "Boys").first()
+        )
+        assert chart is not None
+        chart_id = chart.id
+        chart_uuid = chart.uuid
+
+        chart.slice_name = "Boys v1"
+        db.session.commit()
+        self.login(ADMIN_USERNAME)
+        listing = _json.loads(self._list(str(chart_uuid)).data.decode("utf-8"))
+        target_uuid = UUID(listing["result"][-1]["version_uuid"])
+        loaded = db.session.query(Slice).filter(Slice.id == chart_id).one()
+
+        def _hard_delete_then_return() -> Slice:
+            # Separate connection/transaction — a genuine second session. Drop
+            # the M2M attachment rows first to satisfy the dashboard_slices FK,
+            # then the live row.
+            with db.engine.begin() as conn:
+                conn.execute(
+                    sa.text("DELETE FROM dashboard_slices WHERE slice_id = :i"),
+                    {"i": chart_id},
+                )
+                conn.execute(
+                    sa.text("DELETE FROM slices WHERE id = :i"), {"i": chart_id}
+                )
+            return loaded
+
+        cmd = RestoreChartVersionCommand(chart_uuid, target_uuid)
+        with patch.object(cmd, "validate", side_effect=_hard_delete_then_return):
+            with pytest.raises(cmd.not_found_exc):
+                cmd.run()
+
+    def test_restore_refuses_when_soft_deleted_before_lock(self) -> None:
+        """sc-115423: a concurrent soft delete (``deleted_at`` set) committed
+        between validate() and the lock must refuse — not silently resurrect
+        the archived entity and report success.
+
+        Column loads (``get()``/``refresh()``) bypass the global active-row
+        filter, so the fix's explicit ``deleted_at IS NULL`` predicate on the
+        locking query is what makes the soft-deleted row read as absent
+        (``one_or_none()`` → None → ``not_found_exc``). Without it the revert
+        would run against the archived row.
+        """
+        _persist_fixture_state()
+        chart: Slice = (
+            db.session.query(Slice).filter(Slice.slice_name == "Boys").first()
+        )
+        assert chart is not None
+        chart_id = chart.id
+        chart_uuid = chart.uuid
+
+        chart.slice_name = "Boys v1"
+        db.session.commit()
+        self.login(ADMIN_USERNAME)
+        listing = _json.loads(self._list(str(chart_uuid)).data.decode("utf-8"))
+        target_uuid = UUID(listing["result"][-1]["version_uuid"])
+        loaded = db.session.query(Slice).filter(Slice.id == chart_id).one()
+
+        def _soft_delete_then_return() -> Slice:
+            with db.engine.begin() as conn:
+                conn.execute(
+                    sa.text("UPDATE slices SET deleted_at = :ts WHERE id = :i"),
+                    {"ts": datetime.now(timezone.utc), "i": chart_id},
+                )
+            return loaded
+
+        cmd = RestoreChartVersionCommand(chart_uuid, target_uuid)
+        with patch.object(cmd, "validate", side_effect=_soft_delete_then_return):
+            with pytest.raises(cmd.not_found_exc):
+                cmd.run()
+
+        # Cleanup — clear the archival flag so a shared/session-scoped row does
+        # not leak a soft-deleted state into later tests.
+        with db.engine.begin() as conn:
+            conn.execute(
+                sa.text("UPDATE slices SET deleted_at = NULL WHERE id = :i"),
+                {"i": chart_id},
+            )
 
     def test_restore_returns_404_for_unknown_uuid(self) -> None:
         self.login(ADMIN_USERNAME)
