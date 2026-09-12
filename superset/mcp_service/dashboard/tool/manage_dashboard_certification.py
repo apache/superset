@@ -92,6 +92,25 @@ def manage_dashboard_certification(
             warnings=["No fields provided; dashboard unchanged."],
         )
 
+    # Externally managed dashboards refuse certification CHANGES (the
+    # no-field inspect path above still returns current values): their
+    # source of truth lives outside Superset, so a badge set here would be
+    # overwritten (or drift from the certifying system) on the next
+    # external sync. This tool writes by direct attribute assignment +
+    # commit rather than through a command, so no command-layer check can
+    # protect it — the refusal must live in the tool itself, after the
+    # editorship check, where a caller with no edit rights keeps getting
+    # the plain editorship denial.
+    if dashboard.is_managed_externally:
+        return ManageDashboardCertificationResponse(
+            permission_denied=True,
+            error=(
+                f"Dashboard '{dashboard.dashboard_title}' (ID: {dashboard.id}) "
+                "is managed externally; its certification is owned by the "
+                "external system and cannot be changed here."
+            ),
+        )
+
     changed_fields: list[str] = []
     warnings: list[str] = []
     # Captured before commit so the final response never has to dereference
