@@ -31,6 +31,7 @@ from superset.exceptions import (
     SupersetSyntaxErrorException,
     SupersetTemplateException,
 )
+from superset.jinja_context import UndefinedTemplateFunctionException
 
 
 @pytest.fixture
@@ -249,6 +250,55 @@ def test_validate_sql_template_processing_error(
     assert "Template processing failed" in error.error.message
     assert "Infinite recursion" in error.error.message
     mock_validator.validate.assert_not_called()
+
+
+def test_validate_sql_undefined_template_function(
+    mock_database: MagicMock,
+    mock_validator: MagicMock,
+    mock_template_processor: MagicMock,
+    mock_config: dict[str, Any],
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that an undefined Jinja function is logged at WARNING, not ERROR.
+
+    UndefinedTemplateFunctionException is a subclass of SupersetTemplateException
+    raised when the user references an undefined Jinja function (e.g. a dbt-style
+    `ref(...)` macro). This is a user input mistake, not a system fault, so it
+    must be logged at WARNING without a traceback while still surfacing the same
+    ValidatorSQL400Error to the client. Prior to the fix it fell into the generic
+    SupersetTemplateException branch and was logged at ERROR with exc_info.
+    """
+    logger_warning = mocker.patch(
+        "superset.commands.database.validate_sql.logger.warning"
+    )
+    logger_error = mocker.patch("superset.commands.database.validate_sql.logger.error")
+
+    mock_template_processor.process_template.side_effect = (
+        UndefinedTemplateFunctionException("'ref' is undefined")
+    )
+
+    data = {
+        "sql": "SELECT * FROM {{ ref('my_model') }} LIMIT 100",
+        "schema": "public",
+        "template_params": {},
+    }
+    command = ValidateSQLCommand(model_id=1, data=data)
+
+    with pytest.raises(ValidatorSQL400Error) as exc_info:
+        command.run()
+
+    error = exc_info.value
+    assert error.error.message is not None
+    assert "Template processing failed" in error.error.message
+    assert "'ref' is undefined" in error.error.message
+    mock_validator.validate.assert_not_called()
+
+    # The whole point of the fix: log at WARNING (no traceback), not ERROR.
+    logger_warning.assert_called_once()
+    logger_error.assert_not_called()
+    # No exc_info=True passed to the warning call (no full traceback).
+    assert "exc_info" not in logger_warning.call_args.kwargs
 
 
 def test_validate_sql_generic_exception(
