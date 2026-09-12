@@ -107,7 +107,7 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
             try:
                 db.session.flush()
             except IntegrityError as ex:
-                db.session.rollback()
+                db.session.rollback()  # pylint: disable=consider-using-transaction
                 raise_for_soft_deleted_slug_collision(self._properties.get("slug"), ex)
                 raise
             if json_metadata:
