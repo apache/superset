@@ -166,7 +166,7 @@ d1 = [
 ]
 databend = ["databend-sqlalchemy>=0.5.5, <1.0"]
 databricks = [
-    "databricks-sql-connector>=4.4.0, <4.5.0",
+    "databricks-sql-connector>=4.5.0, <4.6.0",
     "databricks-sqlalchemy==1.0.5",
 ]
 datafusion = ["flightsql-dbapi>=0.2.2, <0.3"]
