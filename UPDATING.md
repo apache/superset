@@ -154,6 +154,16 @@ This fixed embedding cap is independent of the operator's
 `MCP_RESPONSE_SIZE_CONFIG['max_bytes']` (50,000 by default); it does not guarantee
 that every payload fits a configured response limit.
 
+### Legacy FAB password reset routes are no longer registered by default
+
+The legacy Flask-AppBuilder SSR password reset views are no longer registered
+by default. `/superset/resetpassword` (admin-triggered password reset) is no
+longer reachable, and `/superset/resetmypassword` (self-service password
+reset) is also skipped unless `ENABLE_FORCE_PASSWORD_CHANGE` is enabled.
+Deployments that still link to either of these routes should set
+`ENABLE_LEGACY_FAB_PASSWORD_VIEWS = True` in `superset_config.py` to restore
+them.
+
 ### Default Docker image is now batteries-included; the minimal image moves to `-lean`
 
 The default `apache/superset` Docker image (the plain tags: `latest`, `master`,
