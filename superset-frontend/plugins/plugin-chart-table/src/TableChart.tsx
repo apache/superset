@@ -1309,7 +1309,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                   /* The following classes are added to support custom CSS styling */
                   className={cx(
                     'cell-bar',
-                    typeof value === 'number' && value < 0
+                    (typeof value === 'number' || typeof value === 'bigint') &&
+                      value < 0
                       ? 'negative'
                       : 'positive',
                   )}
