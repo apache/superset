@@ -28,6 +28,19 @@ import {
   RESTORE_VIRTUALIZATION_EVENT,
 } from 'src/dashboard/constants';
 
+/**
+ * Dispatches a warning toast through the full app store. The store module
+ * (`src/views/store`) builds the store at import time and needs bootstrap
+ * `common.conf`, so a top-level import here would break any suite that
+ * transitively imports this util without bootstrapping the app. Warning
+ * toasts sit on failure paths only, so resolving the store lazily costs
+ * nothing on the happy path.
+ */
+export async function dispatchWarningToast(message: string): Promise<void> {
+  const { store } = await import('src/views/store');
+  store.dispatch(addWarningToast(t(message)));
+}
+
 // Rows carry a `data-row-id` attribute (see Row.tsx) so the export path can
 // target a subset of them per batch. How many rows get forced into view at
 // once: large enough that a small dashboard finishes in one batch, small
