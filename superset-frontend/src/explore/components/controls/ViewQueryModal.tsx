@@ -102,7 +102,10 @@ const getResponseStats = (queriesResponse: QueryData[] | null) => {
   return {
     cachedQueries,
     queryCount: responses.length,
-    responseBytes: new Blob([JSON.stringify(responses)]).size,
+    responseBytes:
+      queriesResponse === null
+        ? null
+        : new Blob([JSON.stringify(responses)]).size,
     returnedRows,
     serializedResponse,
   };
@@ -229,7 +232,11 @@ const ViewQueryModal: FC<Props> = ({
           <dt>{t('Cached queries')}</dt>
           <dd>{cachedQueries}</dd>
           <dt>{t('Response size')}</dt>
-          <dd>{t('%s bytes', responseBytes.toLocaleString())}</dd>
+          <dd>
+            {responseBytes == null
+              ? t('Not available')
+              : t('%s bytes', responseBytes.toLocaleString())}
+          </dd>
           <dt>{t('Duration')}</dt>
           <dd>
             {duration == null ? t('Not available') : t('%s ms', duration)}

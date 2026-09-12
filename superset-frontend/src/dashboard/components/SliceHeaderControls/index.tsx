@@ -589,7 +589,11 @@ const SliceHeaderControls = (
               ownState={props.ownState}
               queriesResponse={props.queriesResponse}
               chartUpdateStartTime={props.chartUpdateStartTime}
-              chartUpdateEndTime={props.chartUpdateEndTime}
+              chartUpdateEndTime={
+                props.chartStatus === 'stopped'
+                  ? null
+                  : props.chartUpdateEndTime
+              }
               showResponse={canExplore || canViewTable}
             />
           }

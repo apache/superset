@@ -78,6 +78,9 @@ test('renders Alert component when query result contains validation error', asyn
   // Assert Alert component is rendered with error message
   expect(screen.getByRole('alert')).toBeInTheDocument();
   expect(screen.getByText('Missing temporal column')).toBeInTheDocument();
+  expect(
+    screen.queryByRole('tab', { name: 'Stats' }),
+  ).not.toBeInTheDocument();
 });
 
 test('renders both Alert and SQL query when parsing error occurs', async () => {
@@ -273,6 +276,9 @@ test('clamps negative chart update duration to zero', async () => {
   expect(screen.getByTestId('query-inspector-stats')).toHaveTextContent(
     'Duration0 ms',
   );
+  expect(screen.getByTestId('query-inspector-stats')).toHaveTextContent(
+    'Queries0Returned rows0Cached queries0Response size2 bytes',
+  );
 });
 
 test('only exposes the raw response when explicitly enabled', async () => {
@@ -327,6 +333,6 @@ test('shows empty response and unavailable duration states', async () => {
 
   await userEvent.click(screen.getByRole('tab', { name: 'Stats' }));
   expect(screen.getByTestId('query-inspector-stats')).toHaveTextContent(
-    'Queries0Returned rows0Cached queries0Response size2 bytesDurationNot available',
+    'Queries0Returned rows0Cached queries0Response sizeNot availableDurationNot available',
   );
 });

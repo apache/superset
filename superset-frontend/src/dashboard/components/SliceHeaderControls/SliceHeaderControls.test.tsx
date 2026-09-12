@@ -28,6 +28,7 @@ import mockState from 'spec/fixtures/mockState';
 import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
 import downloadAsImage from 'src/utils/downloadAsImage';
 import downloadAsPdf from 'src/utils/downloadAsPdf';
+import * as chartAction from 'src/components/Chart/chartAction';
 import SliceHeaderControls, { SliceHeaderControlsProps } from '.';
 
 jest.mock('src/utils/cachedSupersetGet');
@@ -164,6 +165,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  jest.restoreAllMocks();
   Reflect.deleteProperty(document, 'fullscreenElement');
   // TypedRegistry has no remove(); reset to a no-op so a registered slot does
   // not leak into other tests (the empty array is guarded, so nothing injects).
@@ -610,6 +612,7 @@ test('Should show "Query inspector"', () => {
   const props = {
     ...createProps(),
     supersetCanExplore: false,
+    queriesResponse: null,
   };
   props.slice.slice_id = 18;
   renderWrapper(props, {
@@ -622,6 +625,45 @@ test('Should show "Query inspector"', () => {
     screen.queryByRole('tab', { name: 'Response' }),
   ).not.toBeInTheDocument();
 });
+
+test.each([
+  ['success', '250 ms'],
+  ['rendered', '250 ms'],
+  ['stopped', 'Not available'],
+])(
+  'shows the appropriate query duration for a %s chart',
+  async (chartStatus, duration) => {
+    const getChartDataRequestSpy = jest
+      .spyOn(chartAction, 'getChartDataRequest')
+      .mockResolvedValue({ response: new Response(), json: { result: [] } });
+    // A stopped refresh retains the previous successful response.
+    const queriesResponse = [
+      { data: [{ country: 'KR' }, { country: 'US' }], is_cached: true },
+    ];
+    const props = {
+      ...createProps(),
+      chartStatus,
+      queriesResponse,
+      chartUpdateStartTime: 1000,
+      chartUpdateEndTime: 1250,
+    };
+    renderWrapper(props);
+
+    await userEvent.click(screen.getByRole('button', { name: 'More Options' }));
+    await userEvent.click(screen.getByText('Query inspector'));
+    await userEvent.click(screen.getByRole('tab', { name: 'Stats' }));
+
+    const stats = screen.getByTestId('query-inspector-stats');
+    expect(stats).toHaveTextContent('Queries1Returned rows2Cached queries1');
+    expect(stats).toHaveTextContent(
+      `Response size${new Blob([
+        JSON.stringify(queriesResponse),
+      ]).size.toLocaleString()} bytes`,
+    );
+    expect(stats).toHaveTextContent(`Duration${duration}`);
+    expect(getChartDataRequestSpy).toHaveBeenCalledTimes(1);
+  },
+);
 
 test('Should not show "Query inspector"', () => {
   const props = {
