@@ -17,7 +17,6 @@
  * under the License.
  */
 import { FC, Fragment, useCallback, useEffect, useState } from 'react';
-import { useSelector } from 'react-redux';
 
 import { omit } from 'lodash-es';
 import { t } from '@apache-superset/core/translation';
@@ -35,7 +34,8 @@ import { Loading } from '@superset-ui/core/components';
 import { SupportedLanguage } from '@superset-ui/core/components/CodeSyntaxHighlighter';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import ViewQuery from 'src/explore/components/controls/ViewQuery';
-import { ExplorePageState } from 'src/explore/types';
+import type { ChartState } from 'src/explore/types';
+import { useAppSelector } from 'src/views/store';
 import SemanticRequestView from './SemanticRequestView';
 
 interface Props {
@@ -71,9 +71,10 @@ const ViewQueryModal: FC<Props> = ({ latestQueryFormData, ownState }) => {
   const isSemanticView =
     new DatasourceKey(latestQueryFormData.datasource).type ===
     DatasourceType.SemanticView;
-  const queriesResponse = useSelector(
-    (state: ExplorePageState) =>
-      state.charts?.[latestQueryFormData.slice_id ?? 0]?.queriesResponse,
+  const queriesResponse = useAppSelector<
+    ChartState['queriesResponse'] | undefined
+  >(
+    state => state.charts?.[latestQueryFormData.slice_id ?? 0]?.queriesResponse,
   );
   const [result, setResult] = useState<Result[]>([]);
   const [isLoading, setIsLoading] = useState(false);
