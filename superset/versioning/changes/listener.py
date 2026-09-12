@@ -408,9 +408,9 @@ def finalize_change_records(session: Session) -> None:
         return
 
     session.info[_FINALIZING_KEY] = True
-    # The latency series measures CAPTURE overhead only: the timer starts
-    # after the transaction's own final flush — a cost that exists with
-    # versioning disabled and must not be charged to capture — and runs
+    # Measures the FINALIZE stage only: the timer starts after the flush,
+    # which excludes the transaction's own write cost but also excludes
+    # capture_initial_states' per-entity pre-state SELECTs — and runs
     # through every capture step and early return. Every commit on the
     # session emits a sample, including commits touching no versioned
     # entity, because the whole-listener overhead is exactly what the
