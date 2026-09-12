@@ -1057,6 +1057,137 @@ class PieChartConfig(BaseChartConfig):
         return self
 
 
+def _adapt_native_single_metric_form_data(data: Any) -> Any:  # noqa: C901
+    """Adapt bounded native single-metric controls before strict validation."""
+    if not isinstance(data, dict):
+        return data
+    data = dict(data)
+
+    # ``gauge`` is the public MCP discriminator; ``gauge_chart`` remains
+    # the native frontend viz_type and is accepted only as an input alias.
+    if data.get("chart_type") == "gauge_chart" or (
+        "chart_type" not in data and data.get("viz_type") == "gauge_chart"
+    ):
+        data["chart_type"] = "gauge"
+    data.pop("viz_type", None)
+
+    # These identify the Explore/chart envelope, not visualization controls.
+    for key in (
+        "datasource",
+        "datasource_id",
+        "datasource_name",
+        "datasource_type",
+        "form_data_key",
+        "slice_id",
+        "slice_name",
+        "url",
+    ):
+        data.pop(key, None)
+    data.pop("_mcp_dashboard_time_filter_subject", None)
+
+    metric = data.get("metric")
+    if isinstance(metric, str):
+        data["metric"] = {"name": metric, "saved_metric": True}
+    elif isinstance(metric, dict) and metric.get("expressionType") in {
+        "SIMPLE",
+        "SQL",
+    }:
+        expression_type = metric.get("expressionType")
+        if expression_type == "SQL":
+            data["metric"] = {
+                "sql_expression": metric.get("sqlExpression"),
+                "label": metric.get("label"),
+            }
+        else:
+            if not isinstance(metric.get("aggregate"), str):
+                raise ValueError("Native SIMPLE metrics require an aggregate")
+            column = metric.get("column")
+            column_name = (
+                column.get("column_name") or column.get("columnName")
+                if isinstance(column, dict)
+                else None
+            )
+            data["metric"] = {
+                "name": column_name,
+                "aggregate": metric.get("aggregate"),
+                "label": metric.get("label"),
+            }
+
+    groupby = data.get("groupby")
+    if isinstance(groupby, str):
+        groupby = [groupby]
+    if isinstance(groupby, list):
+        data["groupby"] = [
+            {"name": value} if isinstance(value, str) else value for value in groupby
+        ]
+
+    if isinstance(data.get("time_range"), str):
+        data["time_range"] = validate_time_range(data["time_range"]) or None
+
+    # Supported native SIMPLE filters are represented by FilterConfig.
+    # SQL adhoc filters remain intentionally unsupported on the typed MCP
+    # surface. TEMPORAL_RANGE is represented by time_range/granularity.
+    if "adhoc_filters" in data:
+        if "filters" in data:
+            raise ValueError("Use either filters or adhoc_filters, not both")
+        native_filters = data.pop("adhoc_filters")
+        if not isinstance(native_filters, list):
+            raise ValueError("adhoc_filters must be a list")
+        filters: list[dict[str, Any]] = []
+        for index, filter_ in enumerate(native_filters):
+            if not isinstance(filter_, dict):
+                raise ValueError(f"adhoc_filters[{index}] must be an object")
+            if filter_.get("expressionType") not in (None, "SIMPLE"):
+                raise ValueError(
+                    f"adhoc_filters[{index}] must use expressionType='SIMPLE'"
+                )
+            if str(filter_.get("clause", "WHERE")).upper() != "WHERE":
+                raise ValueError(f"adhoc_filters[{index}] must use clause='WHERE'")
+            operator = filter_.get("operator") or filter_.get("op")
+            subject = filter_.get("subject") or filter_.get("col")
+            comparator = filter_.get("comparator", filter_.get("val"))
+            if operator == "TEMPORAL_RANGE":
+                if not isinstance(subject, str) or not subject:
+                    raise ValueError(f"adhoc_filters[{index}] has no temporal subject")
+                if not isinstance(comparator, str):
+                    raise ValueError(
+                        f"adhoc_filters[{index}] requires a temporal comparator"
+                    )
+                comparator = validate_time_range(comparator) or NO_TIME_RANGE
+                if comparator == NO_TIME_RANGE:
+                    if data.get("temporal_column") not in (None, subject):
+                        raise ValueError(
+                            f"adhoc_filters[{index}] conflicts with another "
+                            "dashboard temporal binding"
+                        )
+                    data["temporal_column"] = subject
+                    continue
+                if (
+                    data.get("granularity_sqla") not in (None, subject)
+                    and data.get("time_range") != NO_TIME_RANGE
+                ) or data.get("time_range") not in (
+                    None,
+                    NO_TIME_RANGE,
+                    comparator,
+                ):
+                    raise ValueError(
+                        f"adhoc_filters[{index}] conflicts with another temporal "
+                        "range; multiple distinct temporal ranges are not supported"
+                    )
+                data["granularity_sqla"] = subject
+                data["time_range"] = comparator
+                continue
+            if operator == "==":
+                operator = "="
+            if operator not in get_args(FilterConfig.model_fields["op"].annotation):
+                raise ValueError(
+                    f"adhoc_filters[{index}] uses unsupported operator {operator!r}"
+                )
+            filters.append({"column": subject, "op": operator, "value": comparator})
+        data["filters"] = filters
+    return data
+
+
 class GaugeChartConfig(BaseChartConfig):
     """Config for gauge charts (viz_type ``gauge_chart``).
 
@@ -1155,136 +1286,9 @@ class GaugeChartConfig(BaseChartConfig):
 
     @model_validator(mode="before")
     @classmethod
-    def adapt_native_form_data(cls, data: Any) -> Any:  # noqa: C901
-        """Accept the Gauge plugin's native form_data without weakening typing."""
-        if not isinstance(data, dict):
-            return data
-        data = dict(data)
-
-        # ``gauge`` is the public MCP discriminator; ``gauge_chart`` remains
-        # the native frontend viz_type and is accepted only as an input alias.
-        if data.get("chart_type") == "gauge_chart" or (
-            "chart_type" not in data and data.get("viz_type") == "gauge_chart"
-        ):
-            data["chart_type"] = "gauge"
-        data.pop("viz_type", None)
-
-        # These identify the Explore/chart envelope, not Gauge controls.
-        for key in (
-            "datasource",
-            "datasource_id",
-            "datasource_name",
-            "datasource_type",
-            "form_data_key",
-            "slice_id",
-            "slice_name",
-            "url",
-        ):
-            data.pop(key, None)
-        data.pop("_mcp_dashboard_time_filter_subject", None)
-
-        metric = data.get("metric")
-        if isinstance(metric, str):
-            data["metric"] = {"name": metric, "saved_metric": True}
-        elif isinstance(metric, dict) and metric.get("expressionType") in {
-            "SIMPLE",
-            "SQL",
-        }:
-            expression_type = metric.get("expressionType")
-            if expression_type == "SQL":
-                data["metric"] = {
-                    "sql_expression": metric.get("sqlExpression"),
-                    "label": metric.get("label"),
-                }
-            else:
-                column = metric.get("column")
-                column_name = (
-                    column.get("column_name") or column.get("columnName")
-                    if isinstance(column, dict)
-                    else None
-                )
-                data["metric"] = {
-                    "name": column_name,
-                    "aggregate": metric.get("aggregate"),
-                    "label": metric.get("label"),
-                }
-
-        groupby = data.get("groupby")
-        if isinstance(groupby, str):
-            groupby = [groupby]
-        if isinstance(groupby, list):
-            data["groupby"] = [
-                {"name": value} if isinstance(value, str) else value
-                for value in groupby
-            ]
-
-        if isinstance(data.get("time_range"), str):
-            data["time_range"] = validate_time_range(data["time_range"]) or None
-
-        # Supported native SIMPLE filters are represented by FilterConfig.
-        # SQL adhoc filters remain intentionally unsupported on the typed MCP
-        # surface. TEMPORAL_RANGE is represented by time_range/granularity.
-        if "adhoc_filters" in data:
-            if "filters" in data:
-                raise ValueError("Use either filters or adhoc_filters, not both")
-            native_filters = data.pop("adhoc_filters")
-            if not isinstance(native_filters, list):
-                raise ValueError("adhoc_filters must be a list")
-            filters: list[dict[str, Any]] = []
-            for index, filter_ in enumerate(native_filters):
-                if not isinstance(filter_, dict):
-                    raise ValueError(f"adhoc_filters[{index}] must be an object")
-                if filter_.get("expressionType") not in (None, "SIMPLE"):
-                    raise ValueError(
-                        f"adhoc_filters[{index}] must use expressionType='SIMPLE'"
-                    )
-                if str(filter_.get("clause", "WHERE")).upper() != "WHERE":
-                    raise ValueError(f"adhoc_filters[{index}] must use clause='WHERE'")
-                operator = filter_.get("operator") or filter_.get("op")
-                subject = filter_.get("subject") or filter_.get("col")
-                comparator = filter_.get("comparator", filter_.get("val"))
-                if operator == "TEMPORAL_RANGE":
-                    if not isinstance(subject, str) or not subject:
-                        raise ValueError(
-                            f"adhoc_filters[{index}] has no temporal subject"
-                        )
-                    if not isinstance(comparator, str):
-                        raise ValueError(
-                            f"adhoc_filters[{index}] requires a temporal comparator"
-                        )
-                    comparator = validate_time_range(comparator) or NO_TIME_RANGE
-                    if comparator == NO_TIME_RANGE:
-                        if data.get("temporal_column") not in (None, subject):
-                            raise ValueError(
-                                f"adhoc_filters[{index}] conflicts with another "
-                                "dashboard temporal binding"
-                            )
-                        data["temporal_column"] = subject
-                        continue
-                    if (
-                        data.get("granularity_sqla") not in (None, subject)
-                        and data.get("time_range") != NO_TIME_RANGE
-                    ) or data.get("time_range") not in (
-                        None,
-                        NO_TIME_RANGE,
-                        comparator,
-                    ):
-                        raise ValueError(
-                            f"adhoc_filters[{index}] conflicts with another temporal "
-                            "range; multiple distinct temporal ranges are not supported"
-                        )
-                    data["granularity_sqla"] = subject
-                    data["time_range"] = comparator
-                    continue
-                if operator == "==":
-                    operator = "="
-                if operator not in get_args(FilterConfig.model_fields["op"].annotation):
-                    raise ValueError(
-                        f"adhoc_filters[{index}] uses unsupported operator {operator!r}"
-                    )
-                filters.append({"column": subject, "op": operator, "value": comparator})
-            data["filters"] = filters
-        return data
+    def adapt_native_form_data(cls, data: Any) -> Any:
+        """Accept bounded native form data without weakening typed validation."""
+        return _adapt_native_single_metric_form_data(data)
 
     @field_validator("time_range")
     @classmethod
@@ -1368,7 +1372,7 @@ class GaugeChartConfig(BaseChartConfig):
         return self
 
 
-class TreemapChartConfig(BaseChartConfig):
+class TreemapChartUpdateConfig(BaseChartConfig):
     """Config for treemap charts (viz_type ``treemap_v2``).
 
     Matches the frontend Treemap buildQuery contract: one ``metric`` sizing
@@ -1380,14 +1384,15 @@ class TreemapChartConfig(BaseChartConfig):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     chart_type: Literal["treemap_v2"] = "treemap_v2"
-    groupby: List[ColumnRef] = Field(
-        ...,
+    groupby: List[ColumnRef] | None = Field(
+        None,
         min_length=1,
+        max_length=20,
         description="Ordered category columns forming the treemap hierarchy "
         "(first = outermost level; order defines nesting)",
     )
-    metric: ColumnRef = Field(
-        ...,
+    metric: ColumnRef | None = Field(
+        None,
         description="Value metric sizing the tiles (use aggregate e.g. SUM, "
         "COUNT for ad-hoc, or set saved_metric=True for a saved dataset metric)",
     )
@@ -1410,9 +1415,58 @@ class TreemapChartConfig(BaseChartConfig):
         max_length=100,
     )
 
+    show_labels: bool = True
+    show_upper_labels: bool = True
+    label_type: Literal["key", "Key", "value", "key_value"] = "key_value"
+    label_position: Literal[
+        "top",
+        "left",
+        "right",
+        "bottom",
+        "inside",
+        "insideLeft",
+        "insideRight",
+        "insideTop",
+        "insideBottom",
+        "insideTopLeft",
+        "insideBottomLeft",
+        "insideTopRight",
+        "insideBottomRight",
+    ] = "insideTopLeft"
+    number_format: str = Field("SMART_NUMBER", max_length=100)
+    date_format: str = Field("smart_date", max_length=100)
+    currency_format: CurrencyFormat | None = None
+    time_range: str | None = Field(None, max_length=1000)
+    granularity_sqla: str | None = Field(None, min_length=1, max_length=255)
+    template_params: str | None = Field(None, max_length=10000)
+
+    @model_validator(mode="before")
+    @classmethod
+    def adapt_native_form_data(cls, data: Any) -> Any:
+        """Accept native hierarchy and saved, SIMPLE, and SQL metric inputs."""
+        return _adapt_native_single_metric_form_data(data)
+
+    @field_validator("time_range")
+    @classmethod
+    def validate_treemap_time_range(cls, value: str | None) -> str | None:
+        """Validate time ranges using the shared parser."""
+        return validate_time_range(value)
+
     @model_validator(mode="after")
-    def reject_metric_style_groupby(self) -> "TreemapChartConfig":
+    def reject_metric_style_groupby(self) -> "TreemapChartUpdateConfig":
         """groupby entries are hierarchy dimensions, not metrics."""
+        names = [col.name for col in self.groupby or []]
+        if len(set(names)) != len(names):
+            raise ValueError("groupby must contain unique hierarchy columns")
+        metric_label = (self.metric.label or self.metric.name) if self.metric else None
+        if (
+            self.metric
+            and metric_label in names
+            and (self.metric.label or self.metric.saved_metric)
+        ):
+            raise ValueError(
+                "metric output label must not collide with hierarchy columns"
+            )
         for i, col in enumerate(self.groupby or []):
             _reject_sql_expression_on_dimension(col, f"groupby[{i}]")
             if col.is_metric:
@@ -1422,6 +1476,18 @@ class TreemapChartConfig(BaseChartConfig):
                     "field)"
                 )
         return self
+
+
+class TreemapChartConfig(TreemapChartUpdateConfig):
+    """Complete Treemap configuration required for generation and compilation."""
+
+    groupby: List[ColumnRef] = Field(
+        ...,
+        min_length=1,
+        max_length=20,
+        description="Ordered hierarchy columns, outermost first",
+    )
+    metric: ColumnRef = Field(..., description="Metric sizing the hierarchy tiles")
 
 
 class PivotTableChartConfig(BaseChartConfig):
@@ -2925,7 +2991,7 @@ class UpdateChartRequest(ChartRequestNormalizerMixin, QueryCacheControl):
         description="Chart ID or UUID",
         validation_alias=AliasChoices("identifier", "id", "chart_id"),
     )
-    config: ChartConfig | None = Field(
+    config: ChartConfig | TreemapChartUpdateConfig | None = Field(
         None,
         description="Chart configuration. Optional; omit to only update chart_name.",
     )
@@ -3000,7 +3066,9 @@ class UpdateChartPreviewRequest(ChartRequestNormalizerMixin, FormDataCacheContro
         ),
     )
     dataset_id: int | str = Field(..., description="Dataset ID or UUID")
-    config: ChartConfig = Field(..., description="Chart configuration")
+    config: ChartConfig | TreemapChartUpdateConfig = Field(
+        ..., description="Chart configuration"
+    )
     generate_preview: bool = True
     preview_formats: List[Literal["url", "ascii", "vega_lite", "table"]] = Field(
         default_factory=lambda: ["url"],

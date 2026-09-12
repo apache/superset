@@ -41,6 +41,7 @@ from superset.mcp_service.chart.chart_utils import (
     merge_chart_form_data,
     merge_interactive_pivot_ui_config,
     merge_table_column_config,
+    resolve_treemap_update_config,
 )
 from superset.mcp_service.chart.compile import validate_and_compile
 from superset.mcp_service.chart.preview_utils import (
@@ -177,6 +178,39 @@ def update_chart_preview(  # noqa: C901
                 NORMALIZATION_EXCEPTIONS,
             )
 
+            warnings: list[str] = []
+            previous_form_data: dict[str, Any] | None = None
+
+            if request.form_data_key:
+                previous_form_data = _get_previous_form_data(request.form_data_key)
+                if previous_form_data is None:
+                    warnings.append(INVALID_FORM_DATA_KEY_WARNING)
+            previous_datasource = str(
+                (previous_form_data or {}).get("datasource")
+                or (previous_form_data or {}).get("datasource_id")
+                or ""
+            ).split("__", 1)[0]
+            dataset_rebind = previous_datasource != str(dataset.id) and (
+                bool(previous_datasource) or config.chart_type == "treemap_v2"
+            )
+            try:
+                config = resolve_treemap_update_config(
+                    config,
+                    previous_form_data or {},
+                    dataset_rebind=dataset_rebind,
+                )
+            except ValueError as ex:
+                return {
+                    "chart": None,
+                    "error": {
+                        "error_type": "ValidationError",
+                        "message": "Invalid Treemap update configuration",
+                        "details": str(ex),
+                    },
+                    "success": False,
+                    "schema_version": "2.0",
+                    "api_version": "v1",
+                }
             try:
                 config = DatasetValidator.normalize_column_names(
                     config,
@@ -195,25 +229,10 @@ def update_chart_preview(  # noqa: C901
                 config, dataset_id=request.dataset_id
             )
             new_form_data.pop("_mcp_warnings", None)
-            warnings: list[str] = []
-            previous_form_data: dict[str, Any] | None = None
-
-            if request.form_data_key:
-                previous_form_data = _get_previous_form_data(request.form_data_key)
-                if previous_form_data is None:
-                    warnings.append(INVALID_FORM_DATA_KEY_WARNING)
 
             if previous_form_data:
                 merge_table_column_config(previous_form_data, new_form_data)
                 merge_interactive_pivot_ui_config(previous_form_data, new_form_data)
-                previous_datasource = str(
-                    previous_form_data.get("datasource")
-                    or previous_form_data.get("datasource_id")
-                    or ""
-                ).split("__", 1)[0]
-                dataset_rebind = bool(
-                    previous_datasource
-                ) and previous_datasource != str(dataset.id)
                 new_form_data = merge_chart_form_data(
                     previous_form_data,
                     new_form_data,
@@ -254,7 +273,7 @@ def update_chart_preview(  # noqa: C901
                 config,
                 new_form_data,
                 dataset,
-                run_compile_check=config.chart_type == "gauge",
+                run_compile_check=config.chart_type in ("gauge", "treemap_v2"),
             )
             if not compile_result.success:
                 logger.warning(

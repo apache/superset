@@ -81,6 +81,8 @@ class TreemapChartPlugin(BaseChartPlugin):
         if not isinstance(config, TreemapChartConfig):
             return []
         refs: list[ColumnRef] = [*config.groupby, config.metric]
+        if config.granularity_sqla:
+            refs.append(ColumnRef(name=config.granularity_sqla))
         if config.filters:
             for f in config.filters:
                 refs.append(ColumnRef(name=f.column))
@@ -122,8 +124,14 @@ class TreemapChartPlugin(BaseChartPlugin):
                         config_dict["metric"]["name"], dataset_context
                     )
                 )
+        if granularity := config_dict.get("granularity_sqla"):
+            config_dict["granularity_sqla"] = (
+                DatasetValidator.get_canonical_column_name(granularity, dataset_context)
+            )
         DatasetValidator.normalize_filters(config_dict, dataset_context)
-        return TreemapChartConfig.model_validate(config_dict)
+        normalized = TreemapChartConfig.model_validate(config_dict)
+        normalized.__pydantic_fields_set__ = set(config.model_fields_set)
+        return normalized
 
     def schema_error_hint(self) -> ChartGenerationError | None:
         return ChartGenerationError(
