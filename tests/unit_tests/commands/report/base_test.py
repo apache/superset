@@ -33,27 +33,33 @@ from superset.commands.report.exceptions import (
 )
 from superset.reports.models import ReportScheduleType
 
-REPORT_TYPES = {
+# Tuples, not sets: these feed ``@pytest.mark.parametrize``, and pytest-xdist
+# requires every worker to collect the same test ids in the same order. A set
+# of strings iterates in per-process hash order (PYTHONHASHSEED), so a set here
+# makes workers disagree and xdist aborts with "Different tests were collected".
+REPORT_TYPES: tuple[ReportScheduleType, ...] = (
     ReportScheduleType.ALERT,
     ReportScheduleType.REPORT,
-}
+)
 
-TEST_SCHEDULES_EVERY_MINUTE = {
+TEST_SCHEDULES_EVERY_MINUTE: tuple[str, ...] = (
     "* * * * *",
     "1-5 * * * *",
     "10-20 * * * *",
     "0,45,10-20 * * * *",
     "23,45,50,51 * * * *",
     "10,20,30,40-45 * * * *",
-}
+)
 
-TEST_SCHEDULES_SINGLE_MINUTES = {
+TEST_SCHEDULES_SINGLE_MINUTES: tuple[str, ...] = (
     "1,5,8,10,12 * * * *",
     "10 1 * * *",
     "27,2 1-5 * * *",
-}
+)
 
-TEST_SCHEDULES = TEST_SCHEDULES_EVERY_MINUTE.union(TEST_SCHEDULES_SINGLE_MINUTES)
+TEST_SCHEDULES: tuple[str, ...] = (
+    TEST_SCHEDULES_EVERY_MINUTE + TEST_SCHEDULES_SINGLE_MINUTES
+)
 
 
 def dynamic_alert_minimum_interval(**kwargs) -> int:
