@@ -128,7 +128,10 @@ def create_tool_decorator(
             if protect:
                 from superset.mcp_service.auth import mcp_auth_hook
 
-                wrapped_func = mcp_auth_hook(func)
+                # Pass the registered (extension-prefixed) name so call-time
+                # checks keyed on tool identity cannot be confused by an
+                # extension tool that shares a base name with a host tool.
+                wrapped_func = mcp_auth_hook(func, tool_name=tool_name)
             else:
                 wrapped_func = func
 

@@ -1171,7 +1171,7 @@ def _mcp_tool_call_context() -> Generator[None, None, None]:
         _mcp_session_token.reset(token)
 
 
-def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
+def mcp_auth_hook(tool_func: F, *, tool_name: str | None = None) -> F:  # noqa: C901
     """
     Authentication and authorization decorator for MCP tools.
 
@@ -1188,6 +1188,8 @@ def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
     import functools
     import inspect
     import types
+
+    from superset.mcp_service.dataset_scope import enforce_call_dataset_scope
 
     is_async = inspect.iscoroutinefunction(tool_func)
 
@@ -1237,6 +1239,8 @@ def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
                     )
 
                 try:
+                    if tool_name is not None:
+                        enforce_call_dataset_scope(tool_name, _tool_sig, args, kwargs)
                     logger.debug(
                         "MCP tool call: user=%s, tool=%s",
                         user.username,
@@ -1284,6 +1288,8 @@ def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
                     )
 
                 try:
+                    if tool_name is not None:
+                        enforce_call_dataset_scope(tool_name, _tool_sig, args, kwargs)
                     logger.debug(
                         "MCP tool call: user=%s, tool=%s",
                         user.username,

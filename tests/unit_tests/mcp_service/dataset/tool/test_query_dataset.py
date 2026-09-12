@@ -1746,3 +1746,52 @@ async def test_query_dataset_available_columns_preview(
     else:
         assert "Available columns: (none)" in data["error"]
     assert "get_dataset_info with this dataset_id" in data["error"]
+
+
+@pytest.mark.parametrize("identifier", [1, "1", "00000000-0000-0000-0000-000000000001"])
+@pytest.mark.parametrize("in_scope", [True, False])
+async def test_scope_refuses_out_of_scope_query_and_admits_in_scope_one(
+    mcp_server: FastMCP,
+    identifier: int | str,
+    in_scope: bool,
+) -> None:
+    """The authenticated MCP entry point refuses rather than queries a substitute.
+
+    The in-scope case is what proves the refusal is a decision and not a
+    wholesale block: an implementation reading the wrong identifier field would
+    refuse both ways and still satisfy the negative case alone.
+    """
+    from uuid import UUID
+
+    from fastmcp.exceptions import ToolError
+
+    from superset.mcp_service.dataset_scope import OUT_OF_SCOPE_ERROR
+
+    dataset_uuid = UUID("00000000-0000-0000-0000-000000000001")
+    dataset = _make_dataset()
+    dataset.uuid = dataset_uuid
+    scope = frozenset({dataset_uuid}) if in_scope else frozenset()
+    with (
+        patch(
+            "superset.mcp_service.dataset_scope.get_dataset_scope",
+            return_value=scope,
+        ),
+        patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset),
+        patch.object(query_dataset_module, "execute_tabular_query") as execute,
+    ):
+        async with Client(mcp_server) as client:
+            if in_scope:
+                await client.call_tool(
+                    "query_dataset",
+                    {"request": {"dataset_id": identifier, "metrics": ["count"]}},
+                )
+            else:
+                # The client re-raises the base ToolError across the
+                # transport; what matters is that the explanation survives it.
+                with pytest.raises(ToolError) as excinfo:
+                    await client.call_tool(
+                        "query_dataset",
+                        {"request": {"dataset_id": identifier, "metrics": ["count"]}},
+                    )
+                assert OUT_OF_SCOPE_ERROR in str(excinfo.value)
+        assert execute.called is in_scope
