@@ -4238,6 +4238,7 @@ class TestDatabaseApi(SupersetTestCase):
         assert "dashboards" in rv.json
         assert "sqllab_tab_states" in rv.json
 
+    @pytest.mark.sql_json_flow
     @mock.patch.dict(
         "superset.config.SQL_VALIDATORS_BY_ENGINE",
         SQL_VALIDATORS_BY_ENGINE,
@@ -4386,6 +4387,7 @@ class TestDatabaseApi(SupersetTestCase):
         assert rv.status_code == 422
         assert "Kaboom!" in response["errors"][0]["message"]
 
+    @pytest.mark.sql_json_flow
     @mock.patch.dict(
         "superset.config.SQL_VALIDATORS_BY_ENGINE",
         SQL_VALIDATORS_BY_ENGINE,
@@ -4421,6 +4423,7 @@ class TestDatabaseApi(SupersetTestCase):
         assert isinstance(result, list)
         assert len(result) == 0
 
+    @pytest.mark.sql_json_flow
     @mock.patch.dict(
         "superset.config.SQL_VALIDATORS_BY_ENGINE",
         SQL_VALIDATORS_BY_ENGINE,
@@ -4456,6 +4459,7 @@ class TestDatabaseApi(SupersetTestCase):
         assert isinstance(result, list)
         assert len(result) == 0
 
+    @pytest.mark.sql_json_flow
     @mock.patch.dict(
         "superset.config.SQL_VALIDATORS_BY_ENGINE",
         SQL_VALIDATORS_BY_ENGINE,
