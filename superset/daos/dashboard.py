@@ -81,6 +81,136 @@ _SET_DASH_METADATA_SPECIAL_KEYS = {
 }
 
 
+# User-facing text persisted into a dangling tile's ``position_json`` slot.
+# A plain literal, not ``gettext``: see ``_repair_dangling_chart_nodes``.
+MISSING_CHART_PLACEHOLDER = "This chart no longer exists."
+
+
+def _layout_chart_id(node: Any) -> int | None:
+    """Return the integer ``chartId`` of a ``CHART`` layout node, else ``None``.
+
+    Mirrors the frontend ``layoutChartId`` — only ``type == "CHART"`` nodes
+    carry a chart reference; everything else (rows, tabs, markdown, headers)
+    returns ``None``.
+
+    Defensive against malformed persisted layout JSON, which is only validated
+    as parseable: a non-dict ``meta`` (e.g. ``"meta": "x"``) or a non-int
+    ``chartId`` (e.g. ``"chartId": [1]``) yields ``None`` so the node is ignored
+    rather than raising on a write path. ``chartId == 0`` is returned as a real
+    reference — no ``Slice`` has id 0, so it resolves as absent and is repaired,
+    matching the frontend, which also recognizes 0.
+    """
+    if not isinstance(node, dict) or node.get("type") != "CHART":
+        return None
+    meta = node.get("meta")
+    if not isinstance(meta, dict):
+        return None
+    chart_id = meta.get("chartId")
+    # ``bool`` is an ``int`` subclass; exclude it so a stray ``true`` is not
+    # misread as chartId 1.
+    if isinstance(chart_id, bool) or not isinstance(chart_id, int):
+        return None
+    return chart_id
+
+
+def _repair_dangling_chart_nodes(
+    positions: dict[str, Any],
+    valid_chart_ids: set[int],
+    dashboard_id: int | None = None,
+) -> int:
+    """Swap every ``CHART`` layout node whose ``chartId`` is absent from
+    *valid_chart_ids* for a markdown placeholder, in place, and return how
+    many were repaired (logging a diagnostic when any were, since this mutates
+    persisted, shared layout data).
+
+    ``position_json`` is a plain column with no coordination against
+    ``dashboard_slices``: a chart hard-deleted while it was a live member
+    leaves a layout node referencing an id that no longer resolves to any
+    ``Slice`` row, and a restore-with-skips reproduces the same divergence
+    (sc-115325). Left alone, such a slot silently accumulates
+    ``meta.uuid = None`` on every save.
+
+    The repair mirrors the frontend ``swapUnreachableChartSlots`` (#41551):
+    keep the node's id, children, and geometry, and replace only ``type`` and
+    ``meta`` so the slot renders the same "chart no longer exists" placeholder
+    the client already shows at render time — persisting it rather than
+    re-deriving it every load. *valid_chart_ids* must be resolved with the
+    soft-delete visibility filter bypassed, so a soft-deleted (recoverable)
+    member is never treated as dangling.
+
+    The placeholder text is a plain literal, not ``gettext``: ``position_json``
+    is persisted, shared data rendered verbatim to every viewer, so translating
+    it to the saving user's request locale would bake one language into content
+    shown to everyone. Per-viewer localization stays the frontend's job (its
+    ``MissingChart`` render path), which is request-scoped.
+    """
+    repaired = 0
+    for key, node in positions.items():
+        chart_id = _layout_chart_id(node)
+        if chart_id is not None and chart_id not in valid_chart_ids:
+            meta = node.get("meta") or {}
+            positions[key] = {
+                **node,
+                "type": "MARKDOWN",
+                "meta": {
+                    "width": meta.get("width"),
+                    "height": meta.get("height"),
+                    "code": MISSING_CHART_PLACEHOLDER,
+                },
+            }
+            repaired += 1
+    if repaired:
+        logger.info(
+            "Repaired %d dangling chart tile(s) in dashboard %s position_json",
+            repaired,
+            dashboard_id,
+        )
+    return repaired
+
+
+def _existing_chart_ids(chart_ids: set[int]) -> set[int]:
+    """Subset of *chart_ids* that resolve to an actual ``Slice`` row,
+    including soft-deleted ones.
+
+    The soft-delete visibility filter is bypassed on purpose: a soft-deleted
+    chart is still a recoverable dashboard member (its ``dashboard_slices``
+    junction row survives), so its layout slot must be preserved, not
+    repaired away.
+    """
+    ids = {cid for cid in chart_ids if cid}
+    if not ids:
+        return set()
+    with skip_visibility_filter(db.session, Slice):
+        rows = db.session.query(Slice.id).filter(Slice.id.in_(ids)).all()
+    return {row[0] for row in rows}
+
+
+def reconcile_position_json(positions: object, dashboard_id: int | None = None) -> int:
+    """Repair dangling ``CHART`` nodes in a raw ``position_json`` layout.
+
+    Collects the layout's chart ids, resolves which still exist (soft-deleted
+    included), and swaps the rest for placeholders via
+    :func:`_repair_dangling_chart_nodes`. Used by the raw ``position_json``
+    PUT path, which — unlike ``set_dash_metadata`` — has no ``uuid_map`` to
+    reuse. Returns the number of nodes repaired.
+    """
+    # ``position_json`` is validated as *parseable JSON*, not as an object, so
+    # a payload like ``"[]"`` or ``"null"`` reaches here as a non-dict. Leave it
+    # untouched (the caller re-serializes it unchanged) rather than raising.
+    if not isinstance(positions, dict):
+        return 0
+    chart_ids = {
+        chart_id
+        for node in positions.values()
+        if (chart_id := _layout_chart_id(node)) is not None
+    }
+    if not chart_ids:
+        return 0
+    return _repair_dangling_chart_nodes(
+        positions, _existing_chart_ids(chart_ids), dashboard_id
+    )
+
+
 class DashboardDAO(BaseDAO[Dashboard]):
     base_filter = DashboardAccessFilter
     # Column used by MCP tools for title-based identifier fallback, so a
@@ -343,9 +473,9 @@ class DashboardDAO(BaseDAO[Dashboard]):
         if (positions := data.get("positions")) is not None:
             # find slices in the position data
             slice_ids = [
-                value.get("meta", {}).get("chartId")
+                chart_id
                 for value in positions.values()
-                if isinstance(value, dict)
+                if (chart_id := _layout_chart_id(value)) is not None
             ]
 
             # Bypass the soft-delete visibility filter when resolving the
@@ -375,13 +505,16 @@ class DashboardDAO(BaseDAO[Dashboard]):
 
             # add UUID to positions
             uuid_map = {slice.id: str(slice.uuid) for slice in current_slices}
+            # Repair layout nodes referencing a chart that no longer resolves
+            # to any Slice row (hard-deleted / never existed). ``uuid_map`` is
+            # built from ``current_slices``, resolved above with the soft-delete
+            # filter bypassed, so a soft-deleted member stays valid and is
+            # preserved; only genuinely-absent references become placeholders.
+            # Done before the loop below so a repaired (now MARKDOWN) node is
+            # skipped there instead of getting ``meta.uuid = None`` (sc-115325).
+            _repair_dangling_chart_nodes(positions, set(uuid_map), dashboard.id)
             for obj in positions.values():
-                if (
-                    isinstance(obj, dict)
-                    and obj["type"] == "CHART"
-                    and obj["meta"]["chartId"]
-                ):
-                    chart_id = obj["meta"]["chartId"]
+                if (chart_id := _layout_chart_id(obj)) is not None:
                     obj["meta"]["uuid"] = uuid_map.get(chart_id)
 
             # remove leading and trailing white spaces in the dumped json
