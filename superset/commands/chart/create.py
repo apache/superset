@@ -82,7 +82,10 @@ class CreateChartCommand(CreateMixin, BaseCommand):
             # (SavedQuery/Query have no ``.name`` attribute, so accessing it
             # below raises an unhandled AttributeError) or silently, by
             # producing a permanently broken chart.
-            if datasource_type != DatasourceType.TABLE:
+            if datasource_type not in {
+                DatasourceType.TABLE,
+                DatasourceType.SEMANTIC_VIEW,
+            }:
                 raise DatasourceTypeInvalidError()
             datasource = get_datasource_by_id(datasource_id, datasource_type)
             self._properties["datasource_name"] = datasource.name

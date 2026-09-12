@@ -49,7 +49,7 @@ def _base_mocks(mocker: MockerFixture) -> None:
     )
 
 
-@pytest.mark.parametrize("datasource_type", ["saved_query", "query"])
+@pytest.mark.parametrize("datasource_type", ["saved_query", "query", "bogus"])
 def test_create_chart_rejects_non_table_datasource_type(
     mocker: MockerFixture, datasource_type: str
 ) -> None:
@@ -123,6 +123,38 @@ def test_create_chart_accepts_table_datasource(mocker: MockerFixture) -> None:
     cmd.validate()
 
     assert cmd._properties["datasource_name"] == "my_table"
+
+
+def test_create_chart_accepts_semantic_view_datasource(
+    mocker: MockerFixture,
+) -> None:
+    """A chart backed by a SIP-182 semantic view must be accepted: the view
+    is a first-class resolvable datasource (Slice resolves it through the
+    type-guarded ``semantic_view`` relationship), so the non-table guard
+    must explicitly allow it (apache/superset#44167)."""
+    from superset.semantic_layers.models import SemanticView
+
+    _base_mocks(mocker)
+    datasource = mocker.MagicMock(spec=SemanticView)
+    datasource.name = "my_semantic_view"
+    get_datasource_by_id = mocker.patch(
+        "superset.commands.chart.create.get_datasource_by_id",
+        return_value=datasource,
+    )
+    mocker.patch("superset.commands.chart.create.security_manager.raise_for_access")
+
+    cmd = CreateChartCommand(
+        {
+            "datasource_id": 11,
+            "datasource_type": "semantic_view",
+            "slice_name": "some_name",
+            "viz_type": "table",
+        }
+    )
+    cmd.validate()
+
+    assert cmd._properties["datasource_name"] == "my_semantic_view"
+    get_datasource_by_id.assert_called_once_with(11, "semantic_view")
 
 
 def test_create_chart_datasource_access_denied_still_raises_forbidden(
