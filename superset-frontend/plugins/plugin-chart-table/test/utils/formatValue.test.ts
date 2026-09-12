@@ -243,3 +243,28 @@ test('formatColumnValue with small number format and currency', () => {
   expect(result).toContain('€');
   expect(result).toContain('0.5000');
 });
+
+test('formatColumnValue supports bigint values without throwing', () => {
+  // Query results with integers > Number.MAX_SAFE_INTEGER are parsed as native
+  // BigInt by json-bigint. The formatter must not throw "Cannot convert a
+  // BigInt value to a number" (see #44007). BigInt is normalized to Number
+  // before being passed to any formatter, matching the same approach used in
+  // echarts (#42594). Precision loss for values beyond MAX_SAFE_INTEGER is
+  // an accepted trade-off consistent with the rest of Superset's chart stack.
+  const formatter = getNumberFormatter(',d');
+  const column: DataColumnMeta = {
+    key: 'big_val',
+    label: 'Big Value',
+    dataType: GenericDataType.Numeric,
+    formatter,
+    isNumeric: true,
+  };
+
+  // bigint is a valid DataRecordValue (see QueryResponse.ts)
+  const bigValue = BigInt('1425300509404304697');
+  expect(() => formatColumnValue(column, bigValue)).not.toThrow();
+  const [, result] = formatColumnValue(column, bigValue);
+  // Number(BigInt('1425300509404304697')) loses precision beyond MAX_SAFE_INTEGER
+  // (same trade-off as echarts). The cell renders without crashing.
+  expect(result).toBe('1,425,300,509,404,304,600');
+});
