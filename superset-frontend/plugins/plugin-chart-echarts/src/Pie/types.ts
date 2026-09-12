@@ -41,6 +41,8 @@ export type EchartsPieFormData = QueryFormData &
     labelLine: boolean;
     labelType: EchartsPieLabelType;
     labelTemplate: string | null;
+    labelMaxWidth: number;
+    labelOverflow: 'none' | 'truncate' | 'break';
     labelsOutside: boolean;
     metric?: string;
     outerRadius: number;
@@ -75,6 +77,8 @@ export const DEFAULT_FORM_DATA: EchartsPieFormData = {
   innerRadius: 30,
   labelLine: false,
   labelType: EchartsPieLabelType.Key,
+  labelMaxWidth: 0,
+  labelOverflow: 'none',
   legendOrientation: LegendOrientation.Top,
   legendType: LegendType.Scroll,
   numberFormat: 'SMART_NUMBER',

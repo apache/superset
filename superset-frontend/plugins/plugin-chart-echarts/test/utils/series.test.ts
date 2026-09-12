@@ -1032,6 +1032,11 @@ describe('getLegendProps', () => {
       right: 0,
       orient: 'horizontal',
       type: 'scroll',
+      textStyle: {
+        overflow: 'truncate',
+        width: 150,
+      },
+      tooltip: expect.any(Object),
       ...expectedThemeProps,
     });
   });
@@ -1051,6 +1056,11 @@ describe('getLegendProps', () => {
       right: 55,
       orient: 'horizontal',
       type: 'scroll',
+      textStyle: {
+        overflow: 'truncate',
+        width: 150,
+      },
+      tooltip: expect.any(Object),
       ...expectedThemeProps,
     });
   });
@@ -1114,6 +1124,11 @@ describe('getLegendProps', () => {
       right: 0,
       orient: 'horizontal',
       type: 'plain',
+      textStyle: {
+        overflow: 'truncate',
+        width: 150,
+      },
+      tooltip: expect.any(Object),
       ...expectedThemeProps,
     });
   });
@@ -1127,6 +1142,11 @@ describe('getLegendProps', () => {
       right: 0,
       orient: 'horizontal',
       type: 'plain',
+      textStyle: {
+        overflow: 'truncate',
+        width: 150,
+      },
+      tooltip: expect.any(Object),
       ...expectedThemeProps,
     });
   });
