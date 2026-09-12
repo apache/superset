@@ -33,19 +33,24 @@ Object.defineProperty(window, 'matchMedia', {
   })),
 });
 
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
-  getChartMetadataRegistry: () => ({
-    items: {
-      filter_select: {
-        value: {
-          datasourceCount: 1,
-          behaviors: ['NATIVE_FILTER'],
-        },
+jest.mock('@superset-ui/core', () => {
+  const items: Record<string, { value: Record<string, unknown> }> = {
+    filter_select: {
+      value: {
+        datasourceCount: 1,
+        behaviors: ['NATIVE_FILTER'],
+        supportsCascadeDependencies: true,
       },
     },
-  }),
-}));
+  };
+  return {
+    ...jest.requireActual('@superset-ui/core'),
+    getChartMetadataRegistry: () => ({
+      items,
+      get: (key: string) => items[key]?.value,
+    }),
+  };
+});
 
 const mockedProps = {
   isOpen: true,

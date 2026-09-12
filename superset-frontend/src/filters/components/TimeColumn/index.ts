@@ -29,6 +29,7 @@ export default class FilterTimeColumnPlugin extends ChartPlugin {
       name: t('Time column'),
       description: t('Time column filter plugin'),
       behaviors: [Behavior.InteractiveChart, Behavior.NativeFilter],
+      supportsCascadeDependencies: false,
       tags: [t('Experimental')],
       thumbnail,
     });
