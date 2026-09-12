@@ -19,8 +19,9 @@
 Each ``ChartRestApi`` / ``DashboardRestApi`` / ``DatasetRestApi`` carries
 the same read endpoint methods — ``list_versions`` and ``get_version`` —
 plus the ``activity`` endpoint on each resource. The bodies are
-byte-for-byte identical apart from the model class and the
-``security_manager.raise_for_access`` kwarg. Extracting the bodies here
+byte-for-byte identical apart from the model class; authorization is a
+single object-level editorship gate in ``resolve_endpoint_path_entity``
+(``security_manager.raise_for_editorship``). Extracting the bodies here
 lets each per-resource method collapse to a single delegation call, while
 the OpenAPI docstring + FAB decorators stay at the method site where they
 belong.
@@ -221,16 +222,22 @@ def concurrency_token_from(info: EntityVersionInfo) -> str | None:
     return info.version_uuid or unversioned_entity_token(info.entity_uuid)
 
 
-# Maps the versioned model class name to the keyword argument
-# ``security_manager.raise_for_access`` expects for the per-resource
-# gate. Slice → ``chart=``, Dashboard → ``dashboard=``, SqlaTable →
-# ``datasource=``. Centralised here so /versions/ and /activity/
-# endpoints share one source of truth for the dispatch.
-_RAISE_FOR_ACCESS_KWARG: dict[str, str] = {
-    "Slice": "chart",
-    "Dashboard": "dashboard",
-    "SqlaTable": "datasource",
-}
+def _version_endpoint_models() -> tuple[type, ...]:
+    """The exact model classes wired for the version endpoint families.
+
+    An explicit allowlist so a future entity added to the versioning
+    surface without an authorization decision fails closed rather than
+    silently inheriting a gate. Compared by class IDENTITY, not name —
+    an unrelated class that happens to be called ``Slice`` /
+    ``Dashboard`` / ``SqlaTable`` must not slip through. Deferred
+    imports keep this module out of the model-import cycle.
+    """
+    # pylint: disable=import-outside-toplevel
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.models.dashboard import Dashboard
+    from superset.models.slice import Slice
+
+    return (Slice, Dashboard, SqlaTable)
 
 
 class PathEntityResponseError(Exception):
@@ -238,7 +245,7 @@ class PathEntityResponseError(Exception):
 
     Endpoints catch it and return
     the carried response directly. The shape exists so the
-    UUID-parse + find-by-uuid + read-access check can live in one
+    UUID-parse + find-by-uuid + editorship check can live in one
     place across the ``/versions/`` and ``/activity/`` endpoint
     families."""
 
@@ -255,8 +262,8 @@ def resolve_endpoint_path_entity(
     1. Parse *uuid_str* into a UUID (or raise → 400).
     2. Look up the live entity via ``VersionDAO.find_active_by_uuid``
        (or raise → 404).
-    3. Run ``security_manager.raise_for_access`` with the resource-typed
-       kwarg (or raise → 403).
+    3. Enforce object-level editorship via
+       ``security_manager.raise_for_editorship`` (or raise → 403).
 
     Returns ``(entity, entity_uuid)`` on success — the parsed UUID is
     threaded out so callers don't re-parse the path-string. Raises
@@ -274,6 +281,14 @@ def resolve_endpoint_path_entity(
     ``api.response_400`` / ``api.response_403`` / ``api.response_404``
     on it. Pass ``self`` from the endpoint method.
     """
+    # Static wiring validation runs first: an unwired model must fail
+    # closed loudly before any parsing or database work, not surface as
+    # an incidental AttributeError inside the DAO lookup.
+    if model_cls not in _version_endpoint_models():
+        raise LookupError(
+            f"Model {model_cls.__name__!r} is not wired for version endpoints"
+        )
+
     try:
         entity_uuid = UUID(uuid_str)
     except ValueError as exc:
@@ -283,18 +298,26 @@ def resolve_endpoint_path_entity(
     if entity is None:
         raise PathEntityResponseError(api.response_404())
 
-    # Direct ``[…]`` would leak the unknown model name into a generic 500
-    # via the unhandled ``KeyError`` exception text. The three resource
-    # families wired today cover every key; a future entity added to the
-    # versioning surface without updating this dispatch table should fail
-    # closed (the test suite picks it up) rather than silently disclose.
-    kwarg = _RAISE_FOR_ACCESS_KWARG.get(model_cls.__name__)
-    if kwarg is None:
-        raise LookupError(
-            f"No raise_for_access kwarg registered for {model_cls.__name__!r}"
-        )
+    # M10 / SECURITY.md's guest row: an embedded guest's capability is
+    # reading the dashboards its token authorizes — never their change
+    # logs (author identities, field-level diffs). Denied explicitly
+    # BEFORE the editorship check: ``is_editor`` maps a guest's ROLE
+    # subjects into the editor set, so a role subject granted editorship
+    # would otherwise admit every guest holding that role.
+    if security_manager.is_guest_user():
+        raise PathEntityResponseError(api.response_403())
+    # Version history is EDIT-gated, not read-gated (sc-120001 decision,
+    # following the sc-103156 SIP): the full change log — author
+    # identities, timestamps, field-level before/after diffs — is for
+    # principals who may alter the entity, matching the UI's edit-gated
+    # menu and the restore command's gate. Object-level editorship
+    # (owner/editor/admin via ``raise_for_editorship``) rather than
+    # model-level ``can_write``, so a write-capable role cannot read the
+    # history of entities it does not own. Related-entity records inside
+    # the ACTIVITY stream additionally pass per-record read-visibility
+    # filtering (AV-008's silent filter), which is unchanged.
     try:
-        security_manager.raise_for_access(**{kwarg: entity})
+        security_manager.raise_for_editorship(entity)
     except SupersetSecurityException as exc:
         raise PathEntityResponseError(api.response_403()) from exc
 

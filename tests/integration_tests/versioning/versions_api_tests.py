@@ -42,7 +42,11 @@ from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils import json
 from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.constants import ADMIN_USERNAME, GAMMA_USERNAME
+from tests.integration_tests.constants import (
+    ADMIN_USERNAME,
+    ALPHA_USERNAME,
+    GAMMA_USERNAME,
+)
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
     load_birth_names_data,  # noqa: F401
@@ -167,13 +171,185 @@ class TestChartVersionsApi(SupersetTestCase):
         assert rv.status_code == 404, rv.data
 
     def test_list_versions_denies_unauthorized_user(self) -> None:
-        """The per-object access gate (``raise_for_access(chart=...)``) must
-        refuse a user without access — as a 403, or 404 if the object isn't
-        even visible to them."""
+        """The per-object editorship gate (``raise_for_editorship``) must
+        refuse a user who is not an editor — as a 403, or 404 if the object
+        isn't even visible to them."""
         chart_uuid = str(self._girls_chart().uuid)
         self.login(GAMMA_USERNAME)
         rv = self.client.get(f"/api/v1/chart/{chart_uuid}/versions/")
         assert rv.status_code in (403, 404), rv.data
+
+    def _births_dashboard(self) -> Dashboard:
+        # Commit first so fixture state created in this test process is
+        # visible to the request-side session (same idiom as
+        # ``_girls_chart`` and the activity suite's
+        # ``_persist_fixture_state``).
+        db.session.commit()
+        return db.session.query(Dashboard).filter(Dashboard.slug == "births").one()
+
+    def test_list_versions_denies_write_capable_non_editor_chart(self) -> None:
+        """sc-120001 pin: version history is EDIT-gated.
+
+        Alpha carries broad
+        read + datasource access — the OLD read gate admitted it — but is no
+        editor/owner of this chart, so the endpoint must refuse with 403.
+        (Reverted-gate control: with the read gate restored this test fails
+        with a 200.)"""
+        chart_uuid = str(self._girls_chart().uuid)
+        self.login(ALPHA_USERNAME)
+        rv = self.client.get(f"/api/v1/chart/{chart_uuid}/versions/")
+        assert rv.status_code == 403, rv.data
+
+    def test_list_versions_denies_write_capable_non_editor_dashboard(self) -> None:
+        """The dashboard endpoint refuses a write-capable non-editor.
+
+        This is QA TC-062/TC-066's leak, closed by the same shared edit
+        gate as the chart flavour."""
+        dashboard = self._births_dashboard()
+        self.login(ALPHA_USERNAME)
+        rv = self.client.get(f"/api/v1/dashboard/{dashboard.uuid}/versions/")
+        assert rv.status_code == 403, rv.data
+
+    def test_get_version_denies_write_capable_non_editor_chart(self) -> None:
+        """The chart get-one route runs the same edit gate before version
+        resolution.
+
+        The version uuid need not exist: the gate refuses the non-editor
+        before the snapshot is even looked up."""
+        chart_uuid = str(self._girls_chart().uuid)
+        self.login(ALPHA_USERNAME)
+        rv = self.client.get(f"/api/v1/chart/{chart_uuid}/versions/{MISSING_UUID}/")
+        assert rv.status_code == 403, rv.data
+
+    def test_get_version_denies_write_capable_non_editor_dashboard(self) -> None:
+        """The dashboard get-one route runs the same edit gate before
+        version resolution."""
+        dashboard = self._births_dashboard()
+        self.login(ALPHA_USERNAME)
+        rv = self.client.get(
+            f"/api/v1/dashboard/{dashboard.uuid}/versions/{MISSING_UUID}/"
+        )
+        assert rv.status_code == 403, rv.data
+
+    def test_list_versions_allows_object_editor(self) -> None:
+        """Object-level editorship admits (sc-120001 matrix positive case).
+
+        Gamma made an EDITOR of this one chart reads its history, while
+        remaining unable to read other charts' history (object-level,
+        not model-level can_write)."""
+        # pylint: disable=import-outside-toplevel
+        from superset import security_manager
+        from superset.subjects.utils import get_user_subject
+
+        chart = self._girls_chart()
+        chart_uuid = str(chart.uuid)
+        gamma = security_manager.find_user(GAMMA_USERNAME)
+        gamma_subject = get_user_subject(gamma.id)
+        assert gamma_subject is not None, "gamma user has no USER subject row"
+        original_editors = list(chart.editors)
+        chart.editors = [gamma_subject]
+        db.session.commit()
+        try:
+            self.login(GAMMA_USERNAME)
+            rv = self.client.get(f"/api/v1/chart/{chart_uuid}/versions/")
+            assert rv.status_code == 200, rv.data
+        finally:
+            chart = self._girls_chart()
+            chart.editors = original_editors
+            db.session.commit()
+
+    def test_editorship_gate_refuses_guest_principal(self) -> None:
+        """Guest principals never read change logs (sc-120001 / M10 pin).
+
+        An embedded guest-token principal is never an editor, and the
+        editorship gate the version endpoints run refuses it outright —
+        guests read embedded dashboards, never their change logs.
+        Deliberately pins the gate directly (guest HTTP-session plumbing
+        isn't worth the cost here); the endpoint→gate wiring is pinned
+        by the unit not-called test and the Alpha/Gamma HTTP matrix."""
+        # pylint: disable=import-outside-toplevel
+        from unittest.mock import patch as mock_patch
+
+        from superset import security_manager
+        from superset.exceptions import SupersetSecurityException
+        from superset.security.guest_token import GuestTokenResourceType
+        from superset.utils.core import override_user
+
+        dashboard = db.session.query(Dashboard).filter(Dashboard.slug == "births").one()
+        with mock_patch.dict(
+            "superset.extensions.feature_flag_manager._feature_flags",
+            EMBEDDED_SUPERSET=True,
+        ):
+            guest = security_manager.get_guest_user_from_token(
+                {
+                    "user": {},
+                    "iat": 0,
+                    "exp": 9999999999,
+                    "rls_rules": [],
+                    "resources": [
+                        {
+                            "type": GuestTokenResourceType.DASHBOARD,
+                            "id": str(dashboard.uuid),
+                        }
+                    ],
+                }
+            )
+            with override_user(guest):
+                with pytest.raises(SupersetSecurityException):
+                    security_manager.raise_for_editorship(dashboard)
+
+    def test_versions_refuse_guest_even_when_guest_role_is_editor(self) -> None:
+        """A guest is refused even when its role subject holds editorship.
+
+        The cross-model round's M10 case: ``is_editor`` maps a guest's
+        ROLE subjects into the editor set, so without the explicit guest
+        deny at the choke point, granting a role subject editorship would
+        open every guest holding that role. Layered refusal is accepted
+        here (401 if guest header auth doesn't bind on this route, 403
+        from the deny) — the invariant pinned is never-200; the explicit
+        pre-editorship deny itself is unit-pinned
+        (test_preflight_denies_guest_principals_outright)."""
+        # pylint: disable=import-outside-toplevel
+        from unittest.mock import patch as mock_patch
+
+        from flask import current_app
+
+        from superset import security_manager
+        from superset.security.guest_token import GuestTokenResourceType
+        from superset.subjects.utils import subjects_from_roles
+
+        dashboard = self._births_dashboard()
+        guest_role = security_manager.find_role(current_app.config["GUEST_ROLE_NAME"])
+        assert guest_role is not None
+        role_subjects = list(subjects_from_roles([guest_role]))
+        assert role_subjects, "guest role has no subject row"
+        original_editors = list(dashboard.editors)
+        dashboard.editors = original_editors + role_subjects
+        db.session.commit()
+        try:
+            with mock_patch.dict(
+                "superset.extensions.feature_flag_manager._feature_flags",
+                EMBEDDED_SUPERSET=True,
+            ):
+                token = security_manager.create_guest_access_token(
+                    user={"username": "vh_guest"},
+                    resources=[
+                        {
+                            "type": GuestTokenResourceType.DASHBOARD,
+                            "id": str(dashboard.uuid),
+                        }
+                    ],
+                    rls=[],
+                )
+                rv = self.client.get(
+                    f"/api/v1/dashboard/{dashboard.uuid}/versions/",
+                    headers={current_app.config["GUEST_TOKEN_HEADER_NAME"]: token},
+                )
+            assert rv.status_code in (401, 403), rv.data
+        finally:
+            dashboard = self._births_dashboard()
+            dashboard.editors = original_editors
+            db.session.commit()
 
     def test_put_non_numeric_pk_does_not_500_with_capture_on(self) -> None:
         """The PUT route is ``/<pk>`` (a string); with capture on, a
@@ -349,6 +525,25 @@ class TestDatasetVersionsApi(SupersetTestCase):
                 f"/api/v1/dataset/{ds_id}",
                 json={"description": original},
             )
+
+    def test_list_versions_denies_write_capable_non_editor_dataset(self) -> None:
+        """The dataset endpoint refuses a write-capable non-editor.
+
+        Alpha carries all-datasource access — the flavour where
+        read-vs-edit confusion would most plausibly regress — and is
+        still refused as a non-editor."""
+        ds_uuid = str(self._dataset().uuid)
+        self.login(ALPHA_USERNAME)
+        rv = self.client.get(f"/api/v1/dataset/{ds_uuid}/versions/")
+        assert rv.status_code == 403, rv.data
+
+    def test_get_version_denies_write_capable_non_editor_dataset(self) -> None:
+        """The dataset get-one route runs the same edit gate before
+        version resolution."""
+        ds_uuid = str(self._dataset().uuid)
+        self.login(ALPHA_USERNAME)
+        rv = self.client.get(f"/api/v1/dataset/{ds_uuid}/versions/{MISSING_UUID}/")
+        assert rv.status_code == 403, rv.data
 
     def test_put_override_columns_returns_version_fields(self) -> None:
         """The ``override_columns`` save is two commits / two Continuum

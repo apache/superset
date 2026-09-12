@@ -93,6 +93,10 @@ tags are included in asset export and import.
 Set `FEATURE_FLAGS = {"TAGGING_SYSTEM": False}` to restore the previous
 behavior. Existing tag rows are left untouched.
 
+### Version-history and activity endpoints are edit-gated
+
+Version-history and activity endpoints (`GET /api/v1/{chart,dashboard,dataset}/<uuid>/versions/…` and `…/activity/`) are now edit-gated: they require object-level editorship (owner/editor/admin) of the entity, matching the UI's edit-gated Version history menu and the restore endpoint's gate. Read-only users who could previously retrieve the full change log (author identities, field-level before/after diffs) via the API now receive 403. Embedded guest-token principals are always refused on these endpoints, even when a role subject they hold has been granted editorship. Related-entity visibility filtering inside the activity stream is unchanged.
+
 ### Global Async Queries re-platformed onto the Global Task Framework (breaking)
 
 Global Async Queries (GAQ) no longer runs on its own bespoke async-events

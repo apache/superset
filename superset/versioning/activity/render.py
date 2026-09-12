@@ -183,8 +183,8 @@ def apply_record_decoration(
                 # "(deleted) <kind>" marker — so the stream stays honest
                 # about WHEN something changed without disclosing WHAT, WHO,
                 # or WHICH entity. Self-path tombstones are untouched: the
-                # endpoint already gated them via ``raise_for_access`` on the
-                # path entity.
+                # endpoint already gated them via ``raise_for_editorship``
+                # on the path entity (an edit gate, stricter than read).
                 label = API_KIND_LABEL.get(api_kind, api_kind)
                 record["entity_name"] = ""
                 record["summary"] = f"(deleted) {label}"
