@@ -41,6 +41,7 @@ from superset.models.core import Database
 from superset.models.slice import Slice
 from superset.subjects.models import Subject
 from superset.subjects.types import SubjectType
+from superset.subjects.utils import get_or_create_user_subject
 from superset.utils import json
 from superset.utils.core import backend, get_example_default_schema, shortid
 from superset.utils.database import get_example_database, get_main_database
@@ -2611,6 +2612,139 @@ class TestDatasetApi(SupersetTestCase):
         self.login(GAMMA_USERNAME)
         table = self.get_birth_names_dataset()
         uri = f"api/v1/dataset/{table.id}/related_objects"
+        rv = self.client.get(uri)
+        assert rv.status_code == 404
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_get_datasets_bulk_related_objects(self):
+        """
+        Dataset API: Test bulk related objects matches the single lookup and
+        does not double count a dataset passed twice
+        """
+        self.login(ADMIN_USERNAME)
+        table = self.get_birth_names_dataset()
+        single = json.loads(
+            self.client.get(f"api/v1/dataset/{table.id}/related_objects").data
+        )
+
+        ids = rison.dumps([table.id, table.id])
+        uri = f"api/v1/dataset/related_objects/?q={ids}"
+        rv = self.get_assert_metric(uri, "bulk_related_objects")
+        assert rv.status_code == 200
+        response = json.loads(rv.data.decode("utf-8"))
+        assert response["charts"]["count"] == single["charts"]["count"]
+        assert response["dashboards"]["count"] == single["dashboards"]["count"]
+        assert {chart["id"] for chart in response["charts"]["result"]} == {
+            chart["id"] for chart in single["charts"]["result"]
+        }
+
+    @pytest.mark.usefixtures(
+        "load_birth_names_dashboard_with_slices", "load_energy_table_with_slice"
+    )
+    def test_get_datasets_bulk_related_objects_aggregates(self):
+        """
+        Dataset API: Test bulk related objects unions dependents across datasets
+        """
+        self.login(ADMIN_USERNAME)
+        birth_names = self.get_birth_names_dataset()
+        energy_usage = self.get_energy_usage_dataset()
+        singles = [
+            json.loads(
+                self.client.get(f"api/v1/dataset/{table.id}/related_objects").data
+            )
+            for table in (birth_names, energy_usage)
+        ]
+
+        ids = rison.dumps([birth_names.id, energy_usage.id])
+        uri = f"api/v1/dataset/related_objects/?q={ids}"
+        rv = self.client.get(uri)
+        assert rv.status_code == 200
+        response = json.loads(rv.data.decode("utf-8"))
+        # A chart has exactly one datasource, so chart sets are disjoint.
+        assert response["charts"]["count"] == sum(
+            single["charts"]["count"] for single in singles
+        )
+        assert {chart["id"] for chart in response["charts"]["result"]} == {
+            chart["id"] for single in singles for chart in single["charts"]["result"]
+        }
+        # Dashboards can be shared, so the union is at most the sum.
+        expected_dashboards = {
+            dashboard["id"]
+            for single in singles
+            for dashboard in single["dashboards"]["result"]
+        }
+        assert {
+            dashboard["id"] for dashboard in response["dashboards"]["result"]
+        } == expected_dashboards
+        assert response["dashboards"]["count"] == len(expected_dashboards)
+
+    def test_get_datasets_bulk_related_objects_keeps_restricted_in_count(self):
+        """
+        Dataset API: Test related objects report the full dependent count to a
+        non-admin editor while withholding the objects they cannot access
+        """
+        alpha = self.get_user(ALPHA_USERNAME)
+        database = Database(
+            database_name="db_related_restricted", sqlalchemy_uri="sqlite://"
+        )
+        db.session.add(database)
+        db.session.flush()
+        dataset = SqlaTable(
+            table_name="related_restricted",
+            database=database,
+            editors=[get_or_create_user_subject(alpha.id)],
+        )
+        db.session.add(dataset)
+        db.session.flush()
+        chart = Slice(
+            slice_name="restricted related chart",
+            datasource_id=dataset.id,
+            datasource_type="table",
+            viz_type="table",
+        )
+        db.session.add(chart)
+        db.session.commit()
+
+        try:
+            self.login(ALPHA_USERNAME)
+            with patch.object(security_manager, "can_access_chart", return_value=False):
+                bulk_rv = self.client.get(
+                    f"api/v1/dataset/related_objects/?q={rison.dumps([dataset.id])}"
+                )
+                single_rv = self.client.get(
+                    f"api/v1/dataset/{dataset.id}/related_objects"
+                )
+            for rv in (bulk_rv, single_rv):
+                assert rv.status_code == 200, rv.data
+                payload = json.loads(rv.data)
+                assert payload["charts"] == {
+                    "count": 1,
+                    "restricted_count": 1,
+                    "result": [],
+                }
+                assert "restricted related chart" not in rv.data.decode()
+        finally:
+            db.session.delete(chart)
+            db.session.delete(dataset)
+            db.session.delete(database)
+            db.session.commit()
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_get_datasets_bulk_related_objects_not_found(self):
+        """
+        Dataset API: Test bulk related objects returns 404 when no requested
+        dataset is visible to the user
+        """
+        max_id = db.session.query(func.max(SqlaTable.id)).scalar()
+        uri = f"api/v1/dataset/related_objects/?q={rison.dumps([max_id + 1])}"
+        self.login(ADMIN_USERNAME)
+        rv = self.client.get(uri)
+        assert rv.status_code == 404
+        self.logout()
+
+        self.login(GAMMA_USERNAME)
+        table = self.get_birth_names_dataset()
+        uri = f"api/v1/dataset/related_objects/?q={rison.dumps([table.id])}"
         rv = self.client.get(uri)
         assert rv.status_code == 404
 

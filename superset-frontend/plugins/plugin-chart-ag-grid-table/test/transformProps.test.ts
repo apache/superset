@@ -266,6 +266,69 @@ test('uses description from column even when verboseMap renames the column', () 
   expect(columnMeta!.description).toBe('Original column description');
 });
 
+test('does not crash when datasource omits metrics/columns (drill-to-detail datasource)', () => {
+  const props = createMockChartProps({
+    queriesData: [
+      {
+        data: [{ col_x: 10 }],
+        colnames: ['col_x'],
+        coltypes: [GenericDataType.Numeric],
+        rowcount: 1,
+        applied_filters: [],
+        rejected_filters: [],
+      },
+    ] as unknown as TableChartProps['queriesData'],
+    datasource: {} as unknown as TableChartProps['datasource'],
+  });
+
+  expect(() => transformProps(props)).not.toThrow();
+});
+
+test('does not mistake the all_records percent-metric query for the totals query', () => {
+  // buildQuery.ts appends both an "all records" percent-metric denominator
+  // query and a totals query as independent extraQueries when percent
+  // metrics with percent_metric_calculation "all_records" and show_totals
+  // are both enabled — queriesData has 3 entries, not 2.
+  const props = createMockChartProps({
+    rawFormData: {
+      viz_type: 'table',
+      datasource: '1__table',
+      query_mode: QueryMode.Aggregate,
+      metrics: ['sum__num'],
+      percent_metrics: ['sum__num'],
+      percent_metric_calculation: 'all_records',
+      show_totals: true,
+      column_config: {},
+      table_timestamp_format: '',
+    },
+    queriesData: [
+      {
+        data: [{ name: 'a', sum__num: 1 }],
+        colnames: ['name', 'sum__num'],
+        coltypes: [GenericDataType.String, GenericDataType.Numeric],
+        rowcount: 1,
+        applied_filters: [],
+        rejected_filters: [],
+      },
+      // all_records extra query: raw percent-metric denominator, not totals.
+      {
+        data: [{ sum__num: 100 }],
+        colnames: ['sum__num'],
+        coltypes: [GenericDataType.Numeric],
+      },
+      // totals extra query: the real one.
+      {
+        data: [{ sum__num: 42 }],
+        colnames: ['sum__num'],
+        coltypes: [GenericDataType.Numeric],
+      },
+    ] as unknown as TableChartProps['queriesData'],
+  });
+
+  const result = transformProps(props);
+  expect(result.totals).toEqual({ sum__num: 42 });
+});
+
 test('excludes Green/Red color-scheme rules from columnColorFormatters', () => {
   // Green/Red rules are rendered via the increase/decrease path, so they must
   // not reach getColorFormatters, which would treat the scheme name as a hex
@@ -314,6 +377,59 @@ test('excludes Green/Red color-scheme rules from columnColorFormatters', () => {
   expect(formattedColumns).toContain('metric_b');
   // ...but the Green rule is excluded.
   expect(formattedColumns).not.toContain('metric_a');
+});
+
+test('allowRearrangeColumns defaults to true when allow_rearrange_columns is unset', () => {
+  // Pre-existing v2 charts saved before this control existed have no
+  // allow_rearrange_columns key at all -- they must keep the always-on
+  // behavior v2 originally shipped with, not v1's false default.
+  const props = createMockChartProps();
+  const result = transformProps(props);
+  expect(result.allowRearrangeColumns).toBe(true);
+});
+
+test('allowRearrangeColumns is false when allow_rearrange_columns is explicitly false', () => {
+  const props = createMockChartProps({
+    rawFormData: {
+      viz_type: 'table',
+      datasource: '1__table',
+      query_mode: QueryMode.Aggregate,
+      metrics: [],
+      percent_metrics: [],
+      column_config: {},
+      table_timestamp_format: '',
+      granularity_sqla: 'day',
+      time_range: 'No filter',
+      allow_rearrange_columns: false,
+    } as unknown as TableChartProps['rawFormData'],
+  });
+  const result = transformProps(props);
+  expect(result.allowRearrangeColumns).toBe(false);
+});
+
+test('allowRenderHtml defaults to true when allow_render_html is unset', () => {
+  const props = createMockChartProps();
+  const result = transformProps(props);
+  expect(result.allowRenderHtml).toBe(true);
+});
+
+test('allowRenderHtml is false when allow_render_html is explicitly false', () => {
+  const props = createMockChartProps({
+    rawFormData: {
+      viz_type: 'table',
+      datasource: '1__table',
+      query_mode: QueryMode.Aggregate,
+      metrics: [],
+      percent_metrics: [],
+      column_config: {},
+      table_timestamp_format: '',
+      granularity_sqla: 'day',
+      time_range: 'No filter',
+      allow_render_html: false,
+    } as unknown as TableChartProps['rawFormData'],
+  });
+  const result = transformProps(props);
+  expect(result.allowRenderHtml).toBe(false);
 });
 
 test('retains saved percentage rules with automatic bounds when server pagination is enabled', () => {
