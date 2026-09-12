@@ -46,7 +46,7 @@
     "jsdom": "^30.0.1",
     "tscw-config": "^1.1.2",
     "typescript": "^7.0.2",
-    "vitest": "^4.0.18",
+    "vitest": "^5.0.0",
     "webpack": "^5.110.3",
     "webpack-cli": "^7.2.3"
   },
