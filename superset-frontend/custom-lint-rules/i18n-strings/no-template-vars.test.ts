@@ -18,50 +18,51 @@
  */
 
 /**
- * @fileoverview Test file for the no-fa-icons-usage rule
+ * @fileoverview Rule to warn about translation template variables
  * @author Apache
  */
 
-import type { Rule } from 'eslint';
-
-const { RuleTester } = require('eslint');
-const plugin: { rules: Record<string, Rule.RuleModule> } = require('.');
+import { RuleTester } from 'oxlint/plugins-dev';
+import plugin from '.';
 
 //------------------------------------------------------------------------------
 // Tests
 //------------------------------------------------------------------------------
-const ruleTester = new RuleTester({
-  languageOptions: {
-    ecmaVersion: 6,
-    parserOptions: { ecmaFeatures: { jsx: true } },
-  },
-});
-const rule: Rule.RuleModule = plugin.rules['no-fa-icons-usage'];
+
+const ruleTester = new RuleTester();
+const rule = plugin.rules['no-template-vars'];
 
 const errors: Array<{ message: string }> = [
   {
     message:
-      'FontAwesome icons should not be used. Use the src/components/Icons component instead.',
+      "Don't use variables in translation string templates. Flask-babel is a static translation service, so it can't handle strings that include variables",
   },
 ];
 
-ruleTester.run('no-fa-icons-usage', rule, {
-  valid: ['<Icons.Database />', '<Icons.Search />'],
+ruleTester.run('no-template-vars', rule, {
+  valid: [
+    't(`foo`)',
+    'tn(`foo`)',
+    't(`foo %s bar`)',
+    'tn(`foo %s bar`)',
+    't(`foo %s bar %s`)',
+    'tn(`foo %s bar %s`)',
+  ],
   invalid: [
     {
-      code: '<i className="fa fa-database"></i>',
+      code: 't(`foo${bar}`)',
       errors,
     },
     {
-      code: '<i className="fa fa-search"></i>',
+      code: 't(`foo${bar} ${baz}`)',
       errors,
     },
     {
-      code: '<i className="fa fa-home"></i>',
+      code: 'tn(`foo${bar}`)',
       errors,
     },
     {
-      code: '<i className="fa fa-arrow-right"></i>',
+      code: 'tn(`foo${bar} ${baz}`)',
       errors,
     },
   ],

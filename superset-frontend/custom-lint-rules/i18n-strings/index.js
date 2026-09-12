@@ -22,14 +22,17 @@
  * @author Apache
  */
 
-import type { Rule } from 'eslint';
-import type { Node } from 'estree';
-
 //------------------------------------------------------------------------------
 // Rule Definition
 //------------------------------------------------------------------------------
 
-const plugin: { rules: Record<string, Rule.RuleModule> } = {
+import { eslintCompatPlugin } from '@oxlint/plugins';
+
+/** @type {{ rules: Record<string, import('oxlint').Rule.RuleModule> }} */
+const plugin = eslintCompatPlugin({
+  meta: {
+    name: '@superset-ui/i18n-strings',
+  },
   rules: {
     'no-template-vars': {
       meta: {
@@ -39,17 +42,22 @@ const plugin: { rules: Record<string, Rule.RuleModule> } = {
         },
         schema: [],
       },
-      create(context: Rule.RuleContext): Rule.RuleListener {
-        function handler(node: Node): void {
-          const callNode = node as Node & {
-            arguments: Array<Node & { type: string; expressions?: Node[] }>;
-          };
+      /** @param {import('eslint').Rule.RuleContext} context */
+      createOnce(context) {
+        /** @param {import('estree').Node} node */
+        function handler(node) {
+          /**
+           * @type {import('estree').Node & {
+           *   arguments: Array<import('estree').Node & {
+           *     type: string;
+           *     expressions?: import('estree').Node[];
+           *   }>;
+           * }}
+           */
+          const callNode = node;
           // Check all arguments (e.g., tn has singular and plural templates)
           for (const arg of callNode.arguments ?? []) {
-            if (
-              arg.type === 'TemplateLiteral' &&
-              (arg as Node & { expressions?: Node[] }).expressions?.length
-            ) {
+            if (arg.type === 'TemplateLiteral' && arg.expressions?.length) {
               context.report({
                 node,
                 message:
@@ -90,23 +98,29 @@ const plugin: { rules: Record<string, Rule.RuleModule> } = {
             'Eager `{{property}}: {{fn}}(...)` is evaluated at module load, before i18n is initialized. Wrap in an arrow function: `{{property}}: () => {{fn}}(...)`.',
         },
       },
-      create(context: Rule.RuleContext): Rule.RuleListener {
-        const watchedProps: string[] = context.options[0]?.properties ?? [
+      /** @param {import('oxlint').Rule.RuleContext} context */
+      createOnce(context) {
+        /** @type {string[]} */
+        const watchedProps = context?.options?.[0]?.properties ?? [
           'label',
           'description',
         ];
         const TRANSLATE_FNS = new Set(['t', 'tn']);
 
-        function handler(node: Node): void {
-          const prop = node as Node & {
-            key: { type: string; name?: string; value?: string };
-            value: Node & {
-              type: string;
-              callee?: { type: string; name?: string };
-            };
-            shorthand?: boolean;
-            computed?: boolean;
-          };
+        /** @param {import('estree').Node} node */
+        function handler(node) {
+          /**
+           * @type {import('estree').Node & {
+           *   key: { type: string; name?: string; value?: string };
+           *   value: import('estree').Node & {
+           *     type: string;
+           *     callee?: { type: string; name?: string };
+           *   };
+           *   shorthand?: boolean;
+           *   computed?: boolean;
+           * }}
+           */
+          const prop = node;
           if (prop.shorthand || prop.computed) return;
 
           const keyName =
@@ -134,7 +148,7 @@ const plugin: { rules: Record<string, Rule.RuleModule> } = {
             messageId: 'eager',
             data: { property: keyName, fn: callee.callee.name },
             fix(fixer) {
-              const source = context.getSourceCode().getText(prop.value);
+              const source = context.sourceCode.getText(prop.value);
               return fixer.replaceText(prop.value, `() => ${source}`);
             },
           });
@@ -153,22 +167,23 @@ const plugin: { rules: Record<string, Rule.RuleModule> } = {
         },
         schema: [],
       },
-      create(context: Rule.RuleContext): Rule.RuleListener {
-        function isTitleCase(str: string): boolean {
+      /** @param {import('oxlint').Rule.RuleContext} context */
+      createOnce(context) {
+        /** @param {string} str */
+        function isTitleCase(str) {
           // Match "Delete Dataset", "Create Chart", etc. (2+ title-cased words)
           return /^[A-Z][a-z]+(\s+[A-Z][a-z]*)+$/.test(str);
         }
 
-        function isButtonContext(node: Node & { parent?: Node }): boolean {
-          const { parent } = node as Node & {
-            parent?: Node & Record<string, unknown>;
-          };
+        /** @param {import('estree').Node & { parent?: import('estree').Node }} node */
+        function isButtonContext(node) {
+          const { parent } = node;
           if (!parent) return false;
 
           // Check for button-specific props
           if (parent.type === 'Property') {
-            const key = (parent as unknown as { key: { name: string } }).key
-              .name;
+            const key =
+              /** @type {{ key: { name: string } }} */ (parent).key.name;
             return [
               'primaryButtonName',
               'secondaryButtonName',
@@ -179,14 +194,15 @@ const plugin: { rules: Record<string, Rule.RuleModule> } = {
 
           // Check for Button components
           // Cast to string because ESTree Node type doesn't include JSX types
-          if ((parent.type as string) === 'JSXExpressionContainer') {
-            const jsx = (parent as Node & { parent?: Node }).parent as
-              | (Node & {
-                  type: string;
-                  openingElement?: { name: { name: string } };
-                })
-              | undefined;
-            if ((jsx?.type as string) === 'JSXElement') {
+          if (parent.type === 'JSXExpressionContainer') {
+            /**
+             * @type {(import('estree').Node & {
+             *   type: string;
+             *   openingElement?: { name: { name: string } };
+             * }) | undefined}
+             */
+            const jsx = parent.parent;
+            if (jsx?.type === 'JSXElement') {
               const elementName = jsx?.openingElement?.name.name;
               return elementName === 'Button';
             }
@@ -195,22 +211,26 @@ const plugin: { rules: Record<string, Rule.RuleModule> } = {
           return false;
         }
 
-        function handler(node: Node): void {
-          const callNode = node as Node & {
-            arguments: Array<Node & { type: string; value?: unknown }>;
-          };
+        /** @param {import('estree').Node} node */
+        function handler(node) {
+          /**
+           * @type {import('estree').Node & {
+           *   arguments: Array<import('estree').Node & {
+           *     type: string;
+           *     value?: unknown;
+           *   }>;
+           * }}
+           */
+          const callNode = node;
           // Check all string literal arguments (e.g., tn has singular and plural)
           for (const arg of callNode.arguments ?? []) {
             if (arg.type === 'Literal' && typeof arg.value === 'string') {
               const text = arg.value;
 
-              if (
-                isButtonContext(node as Node & { parent?: Node }) &&
-                isTitleCase(text)
-              ) {
+              if (isButtonContext(node) && isTitleCase(text)) {
                 const sentenceCase = text
                   .toLowerCase()
-                  .replace(/^\w/, (c: string) => c.toUpperCase());
+                  .replace(/^\w/, c => c.toUpperCase());
                 context.report({
                   node: arg,
                   message: `Button text should use sentence case: "${text}" should be "${sentenceCase}"`,
@@ -227,6 +247,6 @@ const plugin: { rules: Record<string, Rule.RuleModule> } = {
       },
     },
   },
-};
+});
 
-module.exports = plugin;
+export default plugin;
