@@ -1019,6 +1019,11 @@ msgid "A reusable dataset will be saved with your chart."
 msgstr "S vaším grafem bude uložena znovupoužitelná sada dat."
 
 msgid ""
+"A semantic view's provider query is produced when the chart runs and "
+"returned with its data."
+msgstr ""
+
+msgid ""
 "A set of parameters that become available in the query using Jinja "
 "templating syntax"
 msgstr ""
@@ -9766,6 +9771,9 @@ msgstr "Žádné odpovídající výsledky"
 msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr "Na této nástěnce nejsou v současné době přidány žádné filtry."
 
+msgid "No provider query is available for this run."
+msgstr ""
+
 msgid "No records found"
 msgstr "Nebyly nalezeny žádné záznamy"
 
@@ -14913,6 +14921,9 @@ msgstr "Primární metrika se používá k definování velikostí segmentů obl
 
 msgid "The provided table was not found in the provided database"
 msgstr "Zadaná tabulka nebyla nalezena v zadané databázi"
+
+msgid "The provider query will be available after the chart runs."
+msgstr ""
 
 msgid "The query associated with the results was deleted."
 msgstr "Dotaz spojený s výsledky byl smazán."

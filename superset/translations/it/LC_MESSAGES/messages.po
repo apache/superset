@@ -1258,6 +1258,11 @@ msgstr ""
 "questa tabella. Ripristinalo tramite POST /api/v1/dataset/%(uuid)s/restore "
 "prima di caricare, oppure carica su un nome di tabella diverso."
 
+msgid ""
+"A semantic view's provider query is produced when the chart runs and "
+"returned with its data."
+msgstr ""
+
 msgid "A timeout occurred while executing the query."
 msgstr "Raggiunto timeout nell'eseguire la query."
 
@@ -12258,6 +12263,9 @@ msgstr ""
 "Nessun grafico deck.gl multistrato è attualmente aggiunto a questa "
 "dashboard."
 
+msgid "No provider query is available for this run."
+msgstr ""
+
 msgid "No records found"
 msgstr "Nessun record trovato"
 
@@ -18727,6 +18735,9 @@ msgstr ""
 
 msgid "The provided table was not found in the provided database"
 msgstr "La tabella indicata non è stata trovata nel database indicato"
+
+msgid "The provider query will be available after the chart runs."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,

@@ -1015,6 +1015,11 @@ msgstr ""
 "kauwhata."
 
 msgid ""
+"A semantic view's provider query is produced when the chart runs and "
+"returned with its data."
+msgstr ""
+
+msgid ""
 "A set of parameters that become available in the query using Jinja "
 "templating syntax"
 msgstr "He huinga tawhā ka wātea i te pātai mā te tikanga tauira Jinja"
@@ -10073,6 +10078,9 @@ msgstr "Kāore i kitea he rekoata hāngai"
 msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr "Kāore he tātari kua tāpiritia ki tēnei papatohu i tēnei wā."
 
+msgid "No provider query is available for this run."
+msgstr ""
+
 msgid "No records found"
 msgstr "Kāore i kitea he rekoata"
 
@@ -15406,6 +15414,9 @@ msgstr "Ka whakamahia te ine matua hei tautuhi i ngā rahi wāhanga kopeka"
 
 msgid "The provided table was not found in the provided database"
 msgstr "Kāore i kitea te ripanga kua tukuna i te pātengi raraunga kua tukuna"
+
+msgid "The provider query will be available after the chart runs."
+msgstr ""
 
 msgid "The query associated with the results was deleted."
 msgstr "I mukua te pātai e hāngai ana ki ngā hua."
