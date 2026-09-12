@@ -287,24 +287,42 @@ test('generates a new form_data param when none is available', async () => {
   replaceSpy.mockRestore();
 });
 
-// The mode is read from the URL, not from `explore.standalone` — the bootstrap
-// payload only carries a boolean and cannot distinguish mode 1 from mode 2.
-// Driving these through `search` covers the path the app actually takes.
+// These mirror production, where the backend supplies both: the `standalone`
+// URL param and the boolean `explore.standalone` from `is_standalone_mode()`.
+// Mode 2 is the explicit numeric opt-in; every other truthy value defers to the
+// boolean and stays chart-only, matching pre-granular-mode behaviour.
+const standaloneState = (search: string) => ({
+  search,
+  initialState: {
+    ...reduxState,
+    explore: { ...reduxState.explore, standalone: true },
+  },
+});
+
 test('renders chart in standalone mode', () => {
-  const { queryByTestId } = renderWithRouter({ search: '?standalone=1' });
+  const { queryByTestId } = renderWithRouter(standaloneState('?standalone=1'));
   expect(queryByTestId('standalone-app')).toBeInTheDocument();
 });
 
 test('renders chart in standalone mode when the param is "true"', () => {
-  // Screenshots request `standalone=true` (ChartStandaloneMode.HIDE_NAV), which
-  // getUrlParam maps to 1. Guards chart thumbnails against regressing to the
-  // full editor.
-  const { queryByTestId } = renderWithRouter({ search: '?standalone=true' });
+  // Screenshots request `standalone=true` (ChartStandaloneMode.HIDE_NAV).
+  // Guards chart thumbnails against regressing to the full editor.
+  const { queryByTestId } = renderWithRouter(
+    standaloneState('?standalone=true'),
+  );
+  expect(queryByTestId('standalone-app')).toBeInTheDocument();
+});
+
+test('renders chart for an unrecognized truthy standalone value', () => {
+  // The backend treats anything but absent/'false'/'0' as standalone, so a
+  // value it accepts must not leave the frontend rendering the full editor
+  // inside an already nav-less page.
+  const { queryByTestId } = renderWithRouter(standaloneState('?standalone=3'));
   expect(queryByTestId('standalone-app')).toBeInTheDocument();
 });
 
 test('renders full editor in standalone=2 mode (hide nav, show controls)', () => {
-  const { queryByTestId } = renderWithRouter({ search: '?standalone=2' });
+  const { queryByTestId } = renderWithRouter(standaloneState('?standalone=2'));
   expect(queryByTestId('standalone-app')).not.toBeInTheDocument();
 });
 

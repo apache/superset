@@ -1394,11 +1394,20 @@ function mapStateToProps(state: ExploreRootState) {
     form_data: patchedFormData,
     table_name: datasource.table_name,
     vizType: form_data.viz_type,
-    // Read the mode off the URL rather than `explore.standalone`: the bootstrap
-    // payload only carries a boolean (`is_standalone_mode`), which cannot tell
-    // mode 1 from mode 2. `getUrlParam` types this param as a number and already
-    // maps 'true' -> 1 and 'false' -> 0, so screenshot URLs keep working.
-    standalone: getUrlParam(URL_PARAMS.standalone) || 0,
+    // Mode 2 is an explicit numeric opt-in read from the URL, since the
+    // bootstrap payload only carries a boolean (`is_standalone_mode`) and
+    // cannot distinguish mode 1 from mode 2. Everything else defers to that
+    // boolean, so the backend (which still treats any value other than
+    // absent/'false'/'0' as standalone) and the frontend cannot disagree:
+    // `standalone=3` or a non-numeric truthy value keeps rendering chart-only,
+    // as it did before granular modes existed.
+    standalone:
+      getUrlParam(URL_PARAMS.standalone) ===
+      ExploreStandaloneMode.HideNavShowControls
+        ? ExploreStandaloneMode.HideNavShowControls
+        : explore.standalone
+          ? ExploreStandaloneMode.HideNav
+          : ExploreStandaloneMode.None,
     force: !!explore.force,
     chart,
     timeout: common.conf.SUPERSET_WEBSERVER_TIMEOUT,
