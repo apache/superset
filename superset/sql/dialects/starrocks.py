@@ -39,7 +39,7 @@ from sqlglot import exp
 from sqlglot.dialects.starrocks import StarRocks as _StarRocks
 from sqlglot.errors import ParseError
 from sqlglot.generators.starrocks import StarRocksGenerator as _StarRocksGenerator
-from sqlglot.helper import seq_get
+from sqlglot.helper import ensure_list, seq_get
 from sqlglot.parsers.starrocks import StarRocksParser as _StarRocksParser
 from sqlglot.tokens import TokenType
 
@@ -447,7 +447,7 @@ class StarRocksParser(_StarRocksParser):
         return self.expression(
             exp.Drop(
                 exists=if_exists,
-                this=this,
+                tables=ensure_list(this),
                 expressions=expressions,
                 kind=self.dialect.CREATABLE_KIND_MAPPING.get(kind) or kind,
                 temporary=temporary,
