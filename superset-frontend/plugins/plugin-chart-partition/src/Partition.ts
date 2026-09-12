@@ -30,7 +30,7 @@ import {
   sanitizeHtml,
 } from '@superset-ui/core';
 
-interface PartitionDataNode {
+export interface PartitionDataNode {
   // A plain string for the metric row and the first grouping level;
   // an array of the full ancestor path (e.g. ["a", "a.1", "a.1.1"])
   // for any node below that, per PartitionViz.nest_values /
@@ -41,7 +41,7 @@ interface PartitionDataNode {
   children?: PartitionDataNode[];
 }
 
-interface PartitionNode extends HierarchyNode<PartitionDataNode> {
+export interface PartitionNode extends HierarchyNode<PartitionDataNode> {
   x: number;
   dx: number;
   y: number;
@@ -75,21 +75,27 @@ interface IcicleProps {
 
 // Compute dx, dy, x, y for each node and
 // return an array of nodes in breadth-first order
-function init(root: PartitionNode): PartitionNode[] {
+export function init(root: PartitionNode): PartitionNode[] {
   const flat: PartitionNode[] = [];
   const dy = 1 / (root.height + 1);
-  let prev: PartitionNode | null = null;
+  // Tracks, per parent, how much of its [x, x+dx] band has already been
+  // claimed by earlier siblings -- so each child is always positioned
+  // relative to its own parent, regardless of how unevenly the tree
+  // branches (e.g. a sibling branch terminating before the deepest
+  // configured level).
+  const siblingOffsets = new Map<PartitionNode, number>();
   root.each((n: PartitionNode) => {
     n.y = dy * n.depth;
     n.dy = dy;
     if (n.parent) {
-      n.x = prev!.depth === n.parent.depth ? 0 : prev!.x + prev!.dx;
+      const offset = siblingOffsets.get(n.parent) || 0;
+      n.x = n.parent.x + offset;
       n.dx = (n.weight / n.parent.sum) * n.parent.dx;
+      siblingOffsets.set(n.parent, offset + n.dx);
     } else {
       n.x = 0;
       n.dx = 1;
     }
-    prev = n;
     flat.push(n);
   });
 
