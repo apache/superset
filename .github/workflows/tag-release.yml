@@ -92,6 +92,7 @@ jobs:
           INPUT_FORCE_LATEST: ${{ github.event.inputs.force-latest }}
           INPUT_GIT_REF: ${{ github.event.inputs.git-ref }}
           GITHUB_EVENT_RELEASE_TAG_NAME: ${{ github.event.release.tag_name }}
+          BUILD_PRESET: ${{ matrix.build_preset }}
         run: |
           RELEASE="${GITHUB_EVENT_RELEASE_TAG_NAME}"
           FORCE_LATEST=""
@@ -106,11 +107,25 @@ jobs:
             EVENT="release"
           fi
 
+          # supersetbot itself defaults every non-py311/py312 preset to an
+          # older pinned Python (see BASE_PY_IMAGE in its docker.js), so
+          # without an explicit override this publish would ship that
+          # stale interpreter instead of the release's own intended
+          # version. docker-build-extra-flags.sh (checked out alongside
+          # this release) is the single source of truth for that override;
+          # only its --build-arg PY_VER piece applies here, since its
+          # --tag piece is meant for the PR/push build in docker.yml.
+          EXTRA_FLAGS=""
+          if [ -x scripts/docker-build-extra-flags.sh ]; then
+            EXTRA_FLAGS="$(scripts/docker-build-extra-flags.sh "$BUILD_PRESET" dummy-tag | grep -oE -- '--build-arg PY_VER=[^[:space:]]+' || true)"
+          fi
+
           supersetbot docker \
             --push \
-            --preset ${{ matrix.build_preset }} \
+            --preset "$BUILD_PRESET" \
             --context "$EVENT" \
             --context-ref "$RELEASE" $FORCE_LATEST \
+            --extra-flags "$EXTRA_FLAGS" \
             --platform "linux/arm64" \
             --platform "linux/amd64"
 

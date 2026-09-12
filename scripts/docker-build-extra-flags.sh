@@ -42,7 +42,7 @@ IMAGE_TAG="${2:?usage: docker-build-extra-flags.sh <build_preset> <image_tag>}"
 
 EXTRA_FLAGS="--build-arg INCLUDE_CHROMIUM=false --tag $IMAGE_TAG"
 if [ "$BUILD_PRESET" != "py311" ] && [ "$BUILD_PRESET" != "py312" ]; then
-  EXTRA_FLAGS="--build-arg PY_VER=3.11.14-slim-trixie $EXTRA_FLAGS"
+  EXTRA_FLAGS="--build-arg PY_VER=3.11.16-slim-trixie $EXTRA_FLAGS"
 fi
 
 echo "$EXTRA_FLAGS"
