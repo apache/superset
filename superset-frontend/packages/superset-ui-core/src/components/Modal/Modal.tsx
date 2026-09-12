@@ -19,6 +19,7 @@
 import {
   isValidElement,
   cloneElement,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -223,12 +224,12 @@ const defaultResizableConfig = (hideFooter: boolean | undefined) => ({
   minWidth: RESIZABLE_MIN_WIDTH,
   enable: {
     bottom: true,
-    bottomLeft: false,
+    bottomLeft: true,
     bottomRight: true,
-    left: false,
-    top: false,
-    topLeft: false,
-    topRight: false,
+    left: true,
+    top: true,
+    topLeft: true,
+    topRight: true,
     right: true,
   },
 });
@@ -268,7 +269,23 @@ const CustomModal = ({
     [bodyStyle, stylesProp],
   );
   const draggableRef = useRef<HTMLDivElement>(null);
+  // Modal position at the start of a resize gesture; see onResize below.
+  const resizeBasePositionRef = useRef<{ x: number; y: number } | null>(null);
   const [bounds, setBounds] = useState<DraggableBounds>({});
+  // Controlled position for react-draggable. Keeping Draggable in controlled
+  // mode lets us sync position with re-resizable's onResize so that resizing
+  // from top/left edges correctly repositions the modal (anchoring the
+  // opposite corner) instead of fighting over position.
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+
+  // Reset drag position when modal closes so it doesn't retain the
+  // previous offset on next open.
+  useEffect(() => {
+    if (!show) {
+      setPosition({ x: 0, y: 0 });
+    }
+  }, [show]);
+
   const theme = useTheme();
 
   const handleOnHide = () => {
@@ -331,10 +348,19 @@ const CustomModal = ({
   };
 
   const getResizableConfig = useMemo(() => {
+    const defaults = defaultResizableConfig(hideFooter);
     if (Object.keys(resizableConfig).length === 0) {
-      return defaultResizableConfig(hideFooter);
+      return defaults;
     }
-    return resizableConfig;
+    return {
+      ...defaults,
+      ...resizableConfig,
+      // Preserve default enable handles unless the caller explicitly overrides them.
+      // Without this, callers that only set minHeight/minWidth/defaultSize would
+      // silently enable all resize handles (top, left, topLeft, etc.) because
+      // re-resizable enables all handles when no enable key is provided.
+      enable: resizableConfig.enable ?? defaults.enable,
+    };
   }, [hideFooter, resizableConfig]);
 
   const ModalTitle = () =>
@@ -375,12 +401,38 @@ const CustomModal = ({
             // `draggableConfig.disabled` is still honored.
             disabled={!draggable || !!draggableConfig?.disabled}
             handle={draggable ? '.draggable-trigger' : undefined}
+            // Controlled position and its drag sync are applied after the
+            // spread too: the resize anchoring below depends on owning both.
+            position={position}
+            onDrag={(_, data) => setPosition({ x: data.x, y: data.y })}
             // Pass nodeRef so react-draggable does not fall back to
             // ReactDOM.findDOMNode (deprecated in React 18+ Strict Mode).
             nodeRef={draggableRef}
           >
             {resizable ? (
-              <Resizable className="resizable" {...getResizableConfig}>
+              <Resizable
+                className="resizable"
+                {...getResizableConfig}
+                onResizeStart={() => {
+                  resizeBasePositionRef.current = position;
+                }}
+                onResize={(_e, direction, _ref, delta) => {
+                  // When resizing from the top or left, the opposite corner
+                  // should stay anchored. re-resizable adjusts size but
+                  // cannot move the Draggable wrapper, so we sync position.
+                  // delta is cumulative from gesture start, so the target
+                  // position must be derived from the position captured at
+                  // resize start, not accumulated per event. Direction
+                  // strings are camelCase ("topLeft"), so match
+                  // case-insensitively.
+                  const base = resizeBasePositionRef.current ?? position;
+                  const dir = direction.toLowerCase();
+                  setPosition(prev => ({
+                    x: dir.includes('left') ? base.x - delta.width : prev.x,
+                    y: dir.includes('top') ? base.y - delta.height : prev.y,
+                  }));
+                }}
+              >
                 <div className="resizable-wrapper" ref={draggableRef}>
                   {modal}
                 </div>
