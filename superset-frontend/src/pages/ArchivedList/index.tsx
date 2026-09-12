@@ -434,13 +434,20 @@ function ArchivedListBody({
           // error — the reader is shown what looks like an empty new chart
           // rather than told anything. Neither is a preview, and the silent
           // one is the worse of the two, so no row links out until the object
-          // is recovered.
-          return canWrite ? (
-            <Tooltip title={t('Recover this item to open it')}>
+          // is recovered. Both audiences get told why: editors are prompted
+          // to recover; readers, who cannot recover, learn the precondition.
+          return (
+            <Tooltip
+              title={
+                canWrite
+                  ? t('Recover this item to open it')
+                  : t(
+                      'Archived items must be recovered before they can be opened.',
+                    )
+              }
+            >
               <span>{name}</span>
             </Tooltip>
-          ) : (
-            <span>{name}</span>
           );
         },
         accessor: config.nameField,

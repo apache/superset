@@ -256,7 +256,16 @@ test.each([
     ).not.toBeInTheDocument();
     expect(screen.queryAllByTestId('archived-row-restore')).toHaveLength(0);
     expect(screen.queryAllByTestId('archived-row-purge')).toHaveLength(0);
-    userEvent.hover(rowName);
+    // findBy waits out antd's tooltip mouseEnterDelay, so the read-only copy
+    // appearing is the timing anchor — only then is asserting the absence of
+    // the editor copy meaningful (a query fired before the delay elapses
+    // passes vacuously for either string).
+    await userEvent.hover(rowName);
+    expect(
+      await screen.findByText(
+        'Archived items must be recovered before they can be opened.',
+      ),
+    ).toBeInTheDocument();
     expect(
       screen.queryByText('Recover this item to open it'),
     ).not.toBeInTheDocument();
@@ -266,9 +275,13 @@ test.each([
   },
 );
 
-test.each(['Chart', 'Dashboard', 'Dataset'])(
-  '%s write permission retains archived row actions',
-  async label => {
+test.each([
+  { label: 'Chart', name: 'Deleted Chart One' },
+  { label: 'Dashboard', name: 'Deleted Dashboard One' },
+  { label: 'Dataset', name: 'deleted_table_one' },
+])(
+  '$label write permission retains archived row actions',
+  async ({ label, name }) => {
     mockRoutes();
     renderArchivedList(storeWithReadAccess(label));
 
@@ -276,6 +289,14 @@ test.each(['Chart', 'Dashboard', 'Dataset'])(
       (await screen.findAllByTestId('archived-row-restore'))[0],
     ).toBeEnabled();
     expect(screen.getAllByTestId('archived-row-purge')[0]).toBeEnabled();
+
+    // Positive tooltip control: the editor DOES get the recover prompt —
+    // proving the hover-and-wait mechanism can surface a tooltip at all,
+    // which is what makes the read-only test's absence assertion credible.
+    await userEvent.hover(screen.getByText(name));
+    expect(
+      await screen.findByText('Recover this item to open it'),
+    ).toBeInTheDocument();
   },
 );
 
