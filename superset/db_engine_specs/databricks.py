@@ -33,7 +33,7 @@ from sqlalchemy.engine.default import DefaultDialect
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 
-from superset.constants import TimeGrain
+from superset.constants import PASSWORD_MASK, TimeGrain
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import (
     BaseEngineSpec,
@@ -85,13 +85,55 @@ def _parse_json_object(raw: Any) -> dict[str, Any]:
     return parsed if isinstance(parsed, dict) else {}
 
 
-def _has_m2m_credentials(encrypted_extra: dict[str, Any]) -> bool:
-    """Return True when Encrypted Extra has a complete M2M client ID/secret."""
-    return bool(
-        encrypted_extra.get("auth_method") in M2M_AUTH_METHODS
-        and encrypted_extra.get("client_id")
-        and encrypted_extra.get("client_secret")
+def _parse_extra_for_validation(
+    extra_raw: Any,
+) -> tuple[dict[str, Any], SupersetError | None]:
+    """Parse Extra JSON for ``validate_parameters`` without raising."""
+    if isinstance(extra_raw, dict):
+        return extra_raw, None
+    if not extra_raw:
+        return {}, None
+    try:
+        parsed = json.loads(extra_raw)
+    except json.JSONDecodeError:
+        return {}, SupersetError(
+            message="The extra connection parameters are not valid JSON.",
+            error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+            level=ErrorLevel.ERROR,
+            extra={"invalid": ["extra"]},
+        )
+    if isinstance(parsed, dict):
+        return parsed, None
+    return {}, None
+
+
+def _m2m_client_id(encrypted_extra: dict[str, Any]) -> Any:
+    return encrypted_extra.get("client_id") or encrypted_extra.get("azure_client_id")
+
+
+def _m2m_client_secret(encrypted_extra: dict[str, Any]) -> Any:
+    return encrypted_extra.get("client_secret") or encrypted_extra.get(
+        "azure_client_secret"
     )
+
+
+def _has_m2m_credentials(encrypted_extra: dict[str, Any]) -> bool:
+    """Return True when Encrypted Extra has a complete M2M client ID/secret.
+
+    ``mask_encrypted_extra`` redacts every top-level value (inherited ``$.*``),
+    so a masked payload still counts when ``auth_method`` is the password mask
+    and the client-id / client-secret keys (or Azure aliases) are present.
+    """
+    auth_method = encrypted_extra.get("auth_method")
+    if auth_method not in M2M_AUTH_METHODS and auth_method != PASSWORD_MASK:
+        return False
+    if not _m2m_client_id(encrypted_extra) or not _m2m_client_secret(encrypted_extra):
+        return False
+    if auth_method == AUTH_METHOD_AZURE_SP_M2M and not encrypted_extra.get(
+        "azure_tenant_id"
+    ):
+        return False
+    return True
 
 
 def _workspace_hostname(host: str) -> str:
@@ -103,7 +145,14 @@ def _workspace_hostname(host: str) -> str:
     return hostname.rstrip("/")
 
 
-def _load_databricks_m2m_sdk() -> tuple[Any, Any]:
+def _access_token_from_uri_password(password: str | None) -> str:
+    """Drop the dummy ``m2m`` password so the form does not treat it as a PAT."""
+    if not password or password == M2M_PLACEHOLDER_TOKEN:
+        return ""
+    return password
+
+
+def _load_databricks_m2m_sdk() -> tuple[Any, Any, Any]:
     """
     Lazy-import ``databricks-sdk`` so PAT-only installs keep working.
     """
@@ -115,39 +164,76 @@ def _load_databricks_m2m_sdk() -> tuple[Any, Any]:
             "Install it with: pip install 'apache-superset[databricks]' "
             "or pip install databricks-sdk."
         ) from ex
-    return Config, oauth_service_principal
+    try:
+        from databricks.sdk.core import azure_service_principal
+    except ImportError:
+        azure_service_principal = None
+    return Config, oauth_service_principal, azure_service_principal
 
 
-def _build_oauth_m2m_credentials_provider(
-    host: str,
-    client_id: str,
-    client_secret: str,
-) -> Callable[[], Any]:
+class _M2MCredentialsProvider:
     """
-    Official Databricks SQL connector M2M path.
+    Stable ``credentials_provider`` for the Databricks SQL connector.
 
-    Returns a ``credentials_provider`` callable that builds
-    ``oauth_service_principal`` from ``databricks.sdk.core.Config``.
+    ``Database._get_sqla_engine`` includes ``repr(engine_kwargs)`` in the
+    process-wide engine cache key. A new nested function on every build
+    would miss that cache. ``__repr__`` is identity-stable for the same
+    host / client / tenant (secret rotation evicts the cache on save).
     """
-    hostname = _workspace_hostname(host)
-    if not hostname:
-        raise ValueError(
-            "Databricks OAuth M2M requires a workspace host on the connection."
+
+    def __init__(
+        self,
+        host: str,
+        client_id: str,
+        client_secret: str,
+        *,
+        azure: bool = False,
+        azure_tenant_id: str | None = None,
+    ) -> None:
+        hostname = _workspace_hostname(host)
+        if not hostname:
+            raise ValueError(
+                "Databricks OAuth M2M requires a workspace host on the connection."
+            )
+        self._hostname = hostname
+        self._client_id = client_id
+        self._client_secret = client_secret
+        self._azure = azure
+        self._azure_tenant_id = azure_tenant_id
+        # Fail at engine creation, not on the first query.
+        self._config_cls, self._oauth_sp, self._azure_sp = _load_databricks_m2m_sdk()
+        if azure and self._azure_sp is None:
+            raise ValueError(
+                "Databricks Azure service-principal M2M requires "
+                "azure_service_principal from databricks-sdk. "
+                "Install it with: pip install 'apache-superset[databricks]' "
+                "or pip install databricks-sdk."
+            )
+
+    def __call__(self) -> Any:
+        if self._azure:
+            return self._azure_sp(
+                self._config_cls(
+                    host=f"https://{self._hostname}",
+                    azure_tenant_id=self._azure_tenant_id,
+                    azure_client_id=self._client_id,
+                    azure_client_secret=self._client_secret,
+                )
+            )
+        return self._oauth_sp(
+            self._config_cls(
+                host=f"https://{self._hostname}",
+                client_id=self._client_id,
+                client_secret=self._client_secret,
+            )
         )
 
-    # Import here so the ImportError message is raised when the provider is
-    # first built (engine creation), not later on first query.
-    config_cls, oauth_service_principal = _load_databricks_m2m_sdk()
-
-    def credentials_provider() -> Any:
-        config = config_cls(
-            host=f"https://{hostname}",
-            client_id=client_id,
-            client_secret=client_secret,
+    def __repr__(self) -> str:
+        return (
+            f"_M2MCredentialsProvider(host={self._hostname!r}, "
+            f"client_id={self._client_id!r}, azure={self._azure!r}, "
+            f"azure_tenant_id={self._azure_tenant_id!r})"
         )
-        return oauth_service_principal(config)
-
-    return credentials_provider
 
 
 try:
@@ -406,11 +492,12 @@ class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngine
         "port": "port",
     }
 
-    # Mask the service-principal secret; leave ``auth_method`` / ``client_id``
-    # visible when the database is edited (Snowflake / Redshift pattern).
+    # Keep the inherited ``$.*`` catch-all so unrelated secrets in Encrypted
+    # Extra stay masked. Named paths give clearer import-validation labels.
     # ``$.oauth2_client_info.secret`` is always added by the base class.
     # pylint: disable=invalid-name
     encrypted_extra_sensitive_fields = {
+        "$.*": "Encrypted Extra",
         "$.client_secret": "OAuth Client Secret",
         "$.azure_client_secret": "Azure Client Secret",
     }
@@ -567,7 +654,8 @@ class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngine
         * ``auth_method=oauth-m2m`` injects a ``credentials_provider`` (native
           Databricks service-principal M2M). ``client_id`` / ``client_secret``
           are not passed through as driver kwargs.
-        * ``auth_method=azure-sp-m2m`` sets Azure Entra connect args.
+        * ``auth_method=azure-sp-m2m`` injects a ``credentials_provider``
+          built from ``azure_service_principal`` (requires ``azure_tenant_id``).
         * Remaining non-secret keys are merged as before.
         """
         if not database.encrypted_extra:
@@ -591,31 +679,29 @@ class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngine
         encrypted_extra.pop("azure_client_secret", None)
         azure_tenant_id = encrypted_extra.pop("azure_tenant_id", None)
 
-        if auth_method == AUTH_METHOD_OAUTH_M2M:
+        if auth_method in M2M_AUTH_METHODS:
             if not client_id or not client_secret:
                 raise ValueError(
                     "Databricks OAuth M2M requires both client_id and "
                     "client_secret in Secure Extra."
                 )
+            is_azure = auth_method == AUTH_METHOD_AZURE_SP_M2M
+            if is_azure and not azure_tenant_id:
+                raise ValueError(
+                    "Databricks Azure service-principal M2M requires "
+                    "azure_tenant_id in Secure Extra."
+                )
             host = ""
             if getattr(database, "url_object", None) is not None:
                 host = database.url_object.host or ""
             connect_args = params.setdefault("connect_args", {})
-            connect_args["credentials_provider"] = (
-                _build_oauth_m2m_credentials_provider(host, client_id, client_secret)
+            connect_args["credentials_provider"] = _M2MCredentialsProvider(
+                host,
+                client_id,
+                client_secret,
+                azure=is_azure,
+                azure_tenant_id=azure_tenant_id,
             )
-        elif auth_method == AUTH_METHOD_AZURE_SP_M2M:
-            if not client_id or not client_secret:
-                raise ValueError(
-                    "Databricks Azure service-principal M2M requires both "
-                    "client_id and client_secret in Secure Extra."
-                )
-            connect_args = params.setdefault("connect_args", {})
-            connect_args["auth_type"] = AUTH_METHOD_AZURE_SP_M2M
-            connect_args["azure_client_id"] = client_id
-            connect_args["azure_client_secret"] = client_secret
-            if azure_tenant_id:
-                connect_args["azure_tenant_id"] = azure_tenant_id
 
         if encrypted_extra:
             params.update(encrypted_extra)
@@ -696,8 +782,9 @@ class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngine
         ],
     ) -> list[SupersetError]:
         errors: list[SupersetError] = []
-        extra_raw = properties.get("extra")
-        extra = json.loads(extra_raw) if extra_raw else {}  # type: ignore
+        extra, extra_error = _parse_extra_for_validation(properties.get("extra"))
+        if extra_error:
+            errors.append(extra_error)
         connect_args: dict[str, Any] = extra.get("engine_params", {}).get(
             "connect_args", {}
         )
@@ -851,7 +938,7 @@ class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
             item in url.query.items() for item in cls.encryption_parameters.items()
         )
         return {
-            "access_token": url.password,
+            "access_token": _access_token_from_uri_password(url.password),
             "host": url.host,
             "port": url.port,
             "database": url.database,
@@ -1010,17 +1097,17 @@ class DatabricksPythonConnectorEngineSpec(DatabricksDynamicBaseEngineSpec):
                 "name": "Azure Entra service principal",
                 "description": (
                     "Azure Databricks only. Use an Azure Entra application "
-                    "client ID and secret (auth_type=azure-sp-m2m)."
+                    "via credentials_provider (azure_service_principal)."
                 ),
                 "secure_extra": {
                     "auth_method": "azure-sp-m2m",
                     "client_id": "<azure-app-id>",
                     "client_secret": "<azure-client-secret>",
+                    "azure_tenant_id": "<tenant-id>",
                 },
                 "notes": (
-                    "Does not require databricks-sdk. Optionally include "
-                    "azure_tenant_id in Secure Extra if the tenant cannot be "
-                    "inferred from the workspace host."
+                    "Requires databricks-sdk. azure_tenant_id is required. "
+                    "The connector does not accept auth_type=azure-sp-m2m."
                 ),
             },
         ],
@@ -1136,7 +1223,7 @@ class DatabricksPythonConnectorEngineSpec(DatabricksDynamicBaseEngineSpec):
             item in url.query.items() for item in cls.encryption_parameters.items()
         )
         return {
-            "access_token": url.password,
+            "access_token": _access_token_from_uri_password(url.password),
             "host": url.host,
             "port": url.port,
             "http_path_field": query["http_path"],

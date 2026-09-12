@@ -605,42 +605,6 @@ Once configured, users can:
 
 This feature works with both "Databricks (legacy)" and "Databricks" engine types and automatically supports all major cloud providers (AWS, Azure, GCP).
 
-##### OAuth M2M (service principal)
-
-Superset can connect to Databricks with a **service principal client ID and client secret**, without a personal access token (PAT). This is machine-to-machine (M2M) auth for a shared database connection — it is **not** the per-user OAuth impersonation flow above.
-
-1. Create a Databricks service principal and an OAuth secret for it. Grant the principal **Can Use** on the SQL warehouse.
-2. In the database form, fill in host, port, HTTP path, catalog, and schema. Leave **Access token** blank, or enter a placeholder such as `m2m`.
-3. Open **Advanced → Security → Secure extra** and paste:
-
-```json
-{
-  "auth_method": "oauth-m2m",
-  "client_id": "<service-principal-application-id>",
-  "client_secret": "<oauth-secret>"
-}
-```
-
-Native Databricks M2M uses the official `credentials_provider` path and requires `databricks-sdk` (included in `apache-superset[databricks]`).
-
-For **Azure Databricks** with an Azure Entra application instead of a Databricks-managed OAuth secret, use:
-
-```json
-{
-  "auth_method": "azure-sp-m2m",
-  "client_id": "<azure-app-id>",
-  "client_secret": "<azure-client-secret>"
-}
-```
-
-Optionally add `"azure_tenant_id": "<tenant-id>"` if the tenant cannot be inferred from the workspace host. The Azure path does not require `databricks-sdk`.
-
-If you configure the connection via a SQLAlchemy URI instead of the dynamic form, a dummy password is enough because M2M takes precedence over `access_token`:
-
-```
-databricks://token:m2m@{host}:443?http_path={http_path}&catalog={catalog}&schema={schema}
-```
-
 #### Denodo
 
 The recommended connector library for Denodo is

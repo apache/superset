@@ -74,14 +74,15 @@ export const databaseInfo = {
       {
         name: 'Azure Entra service principal',
         description:
-          'Azure Databricks only. Use an Azure Entra application client ID and secret (auth_type=azure-sp-m2m).',
+          'Azure Databricks only. Use an Azure Entra application via credentials_provider (azure_service_principal).',
         secure_extra: {
           auth_method: 'azure-sp-m2m',
           client_id: '<azure-app-id>',
           client_secret: '<azure-client-secret>',
+          azure_tenant_id: '<tenant-id>',
         },
         notes:
-          'Does not require databricks-sdk. Optionally include azure_tenant_id in Secure Extra if the tenant cannot be inferred from the workspace host.',
+          'Requires databricks-sdk. azure_tenant_id is required. The connector does not accept auth_type=azure-sp-m2m.',
       },
     ],
     drivers: [
