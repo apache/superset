@@ -1679,6 +1679,138 @@ def test_convert_tbl_column_to_sqla_col_rejects_stored_subquery(
         datasource.convert_tbl_column_to_sqla_col(tbl_column)
 
 
+def test_get_timestamp_expression_wraps_jinja_undefined_error(
+    mocker: MockerFixture,
+) -> None:
+    """``UndefinedError`` from a time column template is wrapped in
+    ``QueryObjectValidationError`` instead of escaping raw."""
+    from jinja2.exceptions import UndefinedError
+
+    datasource = mocker.MagicMock()
+    datasource.db_engine_spec.get_column_spec.return_value = None
+    datasource.get_timestamp_expression = ExploreMixin.get_timestamp_expression.__get__(
+        datasource
+    )
+
+    template_processor = mocker.MagicMock()
+    template_processor.process_template.side_effect = UndefinedError(
+        "'nonexistent_var' is undefined"
+    )
+
+    with pytest.raises(
+        QueryObjectValidationError,
+        match=r"Time column template error",
+    ):
+        datasource.get_timestamp_expression(
+            column={"column_name": "{{ nonexistent_var.attr }}", "type": "DATETIME"},
+            time_grain=None,
+            template_processor=template_processor,
+        )
+
+
+def test_get_timestamp_expression_wraps_jinja_template_error(
+    mocker: MockerFixture,
+) -> None:
+    """``TemplateError`` from a time column template is wrapped in
+    ``QueryObjectValidationError`` instead of escaping raw."""
+    from jinja2.exceptions import TemplateSyntaxError
+
+    datasource = mocker.MagicMock()
+    datasource.db_engine_spec.get_column_spec.return_value = None
+    datasource.get_timestamp_expression = ExploreMixin.get_timestamp_expression.__get__(
+        datasource
+    )
+
+    template_processor = mocker.MagicMock()
+    template_processor.process_template.side_effect = TemplateSyntaxError(
+        "unexpected '}'", lineno=1
+    )
+
+    with pytest.raises(
+        QueryObjectValidationError,
+        match=r"Error while rendering time column expression",
+    ):
+        datasource.get_timestamp_expression(
+            column={"column_name": "{{ bad_syntax }", "type": "DATETIME"},
+            time_grain=None,
+            template_processor=template_processor,
+        )
+
+
+def test_convert_tbl_column_to_sqla_col_wraps_jinja_undefined_error(
+    mocker: MockerFixture,
+) -> None:
+    """``UndefinedError`` from a calculated column template is wrapped in
+    ``QueryObjectValidationError`` instead of escaping raw."""
+    from jinja2.exceptions import UndefinedError
+
+    datasource = mocker.MagicMock()
+    datasource.database = _database_for_expression(mocker)
+    datasource.catalog = None
+    datasource.schema = "public"
+    datasource.db_engine_spec.engine = "sqlite"
+    datasource._validate_stored_expression = (
+        ExploreMixin._validate_stored_expression.__get__(datasource)
+    )
+    datasource.convert_tbl_column_to_sqla_col = (
+        ExploreMixin.convert_tbl_column_to_sqla_col.__get__(datasource)
+    )
+
+    template_processor = mocker.MagicMock()
+    template_processor.process_template.side_effect = UndefinedError(
+        "'nonexistent_var' is undefined"
+    )
+
+    tbl_column = TableColumn(
+        column_name="calc_col",
+        expression="{{ nonexistent_var.attr }}",
+    )
+    with pytest.raises(
+        QueryObjectValidationError,
+        match=r"Calculated column template error",
+    ):
+        datasource.convert_tbl_column_to_sqla_col(
+            tbl_column, template_processor=template_processor
+        )
+
+
+def test_convert_tbl_column_to_sqla_col_wraps_jinja_template_error(
+    mocker: MockerFixture,
+) -> None:
+    """``TemplateError`` from a calculated column template is wrapped in
+    ``QueryObjectValidationError`` instead of escaping raw."""
+    from jinja2.exceptions import TemplateSyntaxError
+
+    datasource = mocker.MagicMock()
+    datasource.database = _database_for_expression(mocker)
+    datasource.catalog = None
+    datasource.schema = "public"
+    datasource.db_engine_spec.engine = "sqlite"
+    datasource._validate_stored_expression = (
+        ExploreMixin._validate_stored_expression.__get__(datasource)
+    )
+    datasource.convert_tbl_column_to_sqla_col = (
+        ExploreMixin.convert_tbl_column_to_sqla_col.__get__(datasource)
+    )
+
+    template_processor = mocker.MagicMock()
+    template_processor.process_template.side_effect = TemplateSyntaxError(
+        "unexpected '}'", lineno=1
+    )
+
+    tbl_column = TableColumn(
+        column_name="calc_col",
+        expression="{{ bad_syntax }",
+    )
+    with pytest.raises(
+        QueryObjectValidationError,
+        match=r"Error while rendering calculated column expression",
+    ):
+        datasource.convert_tbl_column_to_sqla_col(
+            tbl_column, template_processor=template_processor
+        )
+
+
 def test_get_sqla_col_falls_back_when_stored_expression_unparseable(
     mocker: MockerFixture,
 ) -> None:
