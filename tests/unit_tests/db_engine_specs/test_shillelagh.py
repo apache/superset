@@ -68,12 +68,9 @@ def test_database_engine_disables_attach(app_context: None, local_sqlite_file) -
     A database built the normal way, on the reachable ``gsheets://`` dialect that
     inherits the hook, has ATTACH disabled without any explicit registration.
     """
-    engine = Database(
-        database_name="database",
-        sqlalchemy_uri="gsheets://",
-    )._get_sqla_engine(nullpool=False)
+    database = Database(database_name="database", sqlalchemy_uri="gsheets://")
 
-    with engine.connect() as connection:
+    with database.get_sqla_engine() as engine, engine.connect() as connection:
         with pytest.raises(Exception, match="attached databases"):
             connection.execute(text(f"ATTACH DATABASE '{local_sqlite_file}' AS other"))
 
@@ -83,5 +80,7 @@ def test_unreachable_apsw_connection_is_refused() -> None:
     If the APSW handle cannot be reached the connection is refused, so a driver
     change can never quietly hand back a connection with ATTACH still enabled.
     """
-    with pytest.raises(TypeError, match="Expected an APSW connection, got object"):
+    with pytest.raises(
+        TypeError, match="Expected an APSW connection on object, got NoneType"
+    ):
         ShillelaghEngineSpec._scope_connection_to_adapters(object(), None)

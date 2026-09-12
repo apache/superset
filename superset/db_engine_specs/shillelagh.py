@@ -94,7 +94,8 @@ class ShillelaghEngineSpec(SqliteEngineSpec):
         apsw_connection = getattr(dbapi_connection, "_connection", None)
         if not isinstance(apsw_connection, apsw.Connection):
             raise TypeError(
-                f"Expected an APSW connection, got {type(dbapi_connection).__name__}"
+                f"Expected an APSW connection on {type(dbapi_connection).__name__}, "
+                f"got {type(apsw_connection).__name__}"
             )
 
         apsw_connection.limit(apsw.SQLITE_LIMIT_ATTACHED, 0)
