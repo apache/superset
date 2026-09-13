@@ -708,8 +708,16 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         # the live version, the command writes, and the two must not interleave
         # with another request's. Only a conditional save pays for the lock; an
         # unconditional PUT behaves exactly as it did before the guard existed.
+        # (On MySQL REPEATABLE READ the version read below is still a plain
+        # consistent read and can predate the lock; see the caveats on
+        # lock_entity_for_update.)
         if is_conditional_write():
-            lock_entity_for_update(SqlaTable, pk)
+            # Hold the locked entity for the rest of the request: the
+            # session's identity map references clean objects weakly, so
+            # discarding the return value could let the refreshed object
+            # be collected and the command's find_by_id re-read a stale
+            # row on MySQL REPEATABLE READ (see lock_entity_for_update).
+            _locked_entity = lock_entity_for_update(SqlaTable, pk)
 
         # Live version identifiers before the update (empty + query-free when
         # ``ENABLE_VERSIONING_CAPTURE`` is off).
