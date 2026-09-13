@@ -38,6 +38,7 @@ from typing import Any
 import sqlalchemy as sa
 from sqlalchemy.orm import Session
 
+from superset.utils.dates import naive_utcnow
 from superset.versioning.baseline.children import CHILD_BASELINE_HANDLERS
 from superset.versioning.baseline.shadow import insert_baseline_shadow_row
 from superset.versioning.utils import read_row_outside_flush
@@ -109,15 +110,25 @@ def _insert_baseline_row(
 
     # Insert a version_transaction row for the baseline.
     #
-    # ``issued_at`` and ``user_id`` are sourced from the entity's audit fields
-    # (``changed_on`` / ``changed_by_fk``, falling back to ``created_on`` /
-    # ``created_by_fk`` if the row was never edited), so the baseline reads
-    # in the version-history UI as "this is the state at the time of the
-    # last pre-versioning edit, by that user." Using ``now()`` and the
-    # current user would have made the baseline look chronologically newer
-    # than subsequent edits and attributed historical content to the user
-    # who happened to trigger the first save under versioning.
-    baseline_issued_at = row.get("changed_on") or row.get("created_on") or sa.func.now()
+    # ``issued_at`` is CAPTURE time, on the one shared clock
+    # (``naive_utcnow`` — the same helper the retention prune's cutoff
+    # uses). Retention keys on this column, so an audit-field timestamp
+    # (the entity's ``changed_on``) would let a freshly captured baseline
+    # expire at the very next prune whenever the last pre-versioning edit
+    # predated the retention window — permanently emptying the entity's
+    # pre-edit history; a server-side ``now()`` would mix the database
+    # server's local clock into an otherwise-UTC column. Panel ordering
+    # is unaffected (operation_type sorts the baseline first, not
+    # ``issued_at``). The visible trade-off, accepted for retention
+    # correctness: the baseline row pairs the pre-versioning author with
+    # a capture-time timestamp (≈ the first save under versioning), not
+    # the historical edit moment.
+    #
+    # ``user_id`` stays sourced from the audit fields (``changed_by_fk``,
+    # falling back to ``created_by_fk``) so the baseline remains attributed
+    # to the author of the pre-versioning state, not whoever happened to
+    # trigger the first save under versioning.
+    baseline_issued_at = naive_utcnow()
     baseline_user_id = row.get("changed_by_fk") or row.get("created_by_fk")
     tx_table = versioning_manager.transaction_cls.__table__
     result = conn.execute(

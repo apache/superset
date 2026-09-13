@@ -49,7 +49,7 @@ import logging
 import time
 from collections.abc import Iterator
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import Any
 
 import sqlalchemy as sa
@@ -57,6 +57,7 @@ from flask import current_app
 from sqlalchemy.exc import OperationalError
 
 from superset.extensions import celery_app, db, stats_logger_manager
+from superset.utils.dates import naive_utcnow
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -488,11 +489,12 @@ def _prune_old_versions_impl(retention_days: int) -> dict[str, Any]:
 
     tables = _resolve_shadow_tables(versioning_manager.transaction_cls.__table__)
     # Naive-UTC to match ``version_transaction.issued_at`` (Continuum stores
-    # it tz-naive via ``utc_now()``); ``datetime.utcnow()`` is deprecated on
-    # 3.12+, so derive the same value from the tz-aware clock and drop tzinfo.
-    cutoff = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(
-        days=retention_days
-    )
+    # it tz-naive via ``utc_now()``), derived from the shared clock helper —
+    # the baseline capture stamp uses the same one, so both sides share one
+    # UTC reference and derivation. (They still read their own process's
+    # wall clock — web/worker vs Celery beat — so NTP-scale skew between
+    # hosts remains possible; immaterial against a windows-of-days cutoff.)
+    cutoff = naive_utcnow() - timedelta(days=retention_days)
 
     # Drain the backlog one bounded, id-ordered window at a time. Each
     # window is its own retried SERIALIZABLE pass, so memory and
