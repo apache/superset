@@ -17,52 +17,49 @@
  * under the License.
  */
 
-/**
- * @fileoverview Rule to warn about translation template variables
- * @author Apache
- */
-/* eslint-disable no-template-curly-in-string */
-import { type Rule, RuleTester } from 'eslint';
+import { RuleTester } from 'oxlint/plugins-dev';
+import { describe, it } from 'node:test';
 import plugin from '.';
 
-//------------------------------------------------------------------------------
-// Tests
-//------------------------------------------------------------------------------
+RuleTester.describe = describe;
+RuleTester.it = it;
 
-const ruleTester = new RuleTester({ languageOptions: { ecmaVersion: 6 } });
-const rule: Rule.RuleModule = plugin.rules['no-template-vars'];
+const ruleTester = new RuleTester();
+const rule = plugin.rules['no-literal-colors'];
 
 const errors: Array<{ message: string }> = [
   {
     message:
-      "Don't use variables in translation string templates. Flask-babel is a static translation service, so it can't handle strings that include variables",
+      'Theme color variables are preferred over rgb(a)/hex/literal colors',
   },
 ];
 
-ruleTester.run('no-template-vars', rule, {
+ruleTester.run('no-literal-colors', rule, {
   valid: [
-    't(`foo`)',
-    'tn(`foo`)',
-    't(`foo %s bar`)',
-    'tn(`foo %s bar`)',
-    't(`foo %s bar %s`)',
-    'tn(`foo %s bar %s`)',
+    'const styles = { color: theme.colorText, background: theme.colorBg };',
+    "const colors = { red: 'not a property value' };",
+    "const color = 'red';",
+    'styled.div`color: ${theme.colorText};`',
   ],
   invalid: [
     {
-      code: 't(`foo${bar}`)',
+      code: "const styles = { color: 'red' };",
       errors,
     },
     {
-      code: 't(`foo${bar} ${baz}`)',
+      code: "const styles = { background: '#fff' };",
       errors,
     },
     {
-      code: 'tn(`foo${bar}`)',
+      code: "const styles = { color: 'rgb(1, 2, 3)' };",
       errors,
     },
     {
-      code: 'tn(`foo${bar} ${baz}`)',
+      code: 'styled.div`color: red;`',
+      errors,
+    },
+    {
+      code: 'const styles = () => `background: #fff;`;',
       errors,
     },
   ],

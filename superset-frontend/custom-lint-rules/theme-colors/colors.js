@@ -18,7 +18,8 @@
  */
 
 // https://www.w3.org/wiki/CSS/Properties/color/keywords
-const COLOR_KEYWORDS: string[] = [
+/** @type {string[]} */
+export const COLOR_KEYWORDS = [
   'black',
   'silver',
   'gray',
@@ -153,6 +154,7 @@ const COLOR_KEYWORDS: string[] = [
   'seagreen',
   'seashell',
   'sienna',
+  'silver',
   'skyblue',
   'slateblue',
   'slategray',
@@ -167,8 +169,7 @@ const COLOR_KEYWORDS: string[] = [
   'turquoise',
   'violet',
   'wheat',
+  'white',
   'whitesmoke',
   'yellowgreen',
 ];
-
-export default COLOR_KEYWORDS;
