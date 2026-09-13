@@ -63,6 +63,16 @@ A modern, enterprise-ready business intelligence web application.
 [**Resources**](#resources) |
 [**Organizations Using Superset**](https://superset.apache.org/inTheWild)
 
+## About this fork: Devin automations
+
+This fork (`moliyadhaval/superset`) runs four unattended Devin automations — a
+nightly security/dependency/code-quality scan that files `nightly-scan` issues,
+an auto-fix pipeline that opens one `devin/nightly-fix-<issue>-…` PR per issue,
+a dispatcher that polls for unfixed issues, and a daily observability dashboard
+on issue #18. What each one does, how to recognise its output, and how to
+reproduce the scans locally with `automation/Dockerfile` is documented in
+[automation/README.md](automation/README.md).
+
 ## Why Superset?
 
 Superset is a modern data exploration and data visualization platform. Superset can replace or augment proprietary business intelligence tools for many teams. Superset integrates well with a variety of data sources.
