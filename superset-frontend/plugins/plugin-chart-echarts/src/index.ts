@@ -17,6 +17,7 @@
  * under the License.
  */
 export { default as EchartsBoxPlotChartPlugin } from './BoxPlot';
+export { default as EchartsCandlestickChartPlugin } from './Candlestick';
 export { default as EchartsRoseChartPlugin } from './Rose';
 export { default as EchartsTimePivotChartPlugin } from './TimePivot';
 export { default as EchartsBulletChartPlugin } from './Bullet';
@@ -50,6 +51,7 @@ export { default as EchartsButterflyChartPlugin } from './Butterfly';
 export { default as EchartsGanttChartPlugin } from './Gantt';
 
 export { default as BoxPlotTransformProps } from './BoxPlot/transformProps';
+export { default as CandlestickTransformProps } from './Candlestick/transformProps';
 export { default as FunnelTransformProps } from './Funnel/transformProps';
 export { default as GaugeTransformProps } from './Gauge/transformProps';
 export { default as GraphTransformProps } from './Graph/transformProps';
