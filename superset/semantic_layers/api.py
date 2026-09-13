@@ -58,6 +58,7 @@ from superset.commands.semantic_layer.update import (
 )
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, PASSWORD_MASK
 from superset.daos.semantic_layer import SemanticLayerDAO
+from superset.databases.filters import DatabaseFilter
 from superset.datasets.schemas import get_delete_ids_schema
 from superset.exceptions import SupersetSecurityException
 from superset.models.core import Database
@@ -1100,6 +1101,16 @@ class SemanticLayerRestApi(BaseSupersetApi):
                     Database.changed_by_fk,
                 )
             )
+            # Scope the database inventory exactly as DatabaseRestApi does via
+            # its ``base_filters`` (superset/databases/api.py): reaching this
+            # ``can_read``-gated endpoint must not expose databases the caller
+            # cannot access. The semantic-layer branch below is already
+            # access-filtered; this closes the same gap on the database branch.
+            # ``DatabaseFilter`` ignores its ``value`` argument (it reads
+            # ``security_manager``), so ``None`` matches DatabaseRestApi's
+            # ``lambda: []`` factory. It is ANDed with the name filter below, so
+            # the order is not load-bearing.
+            db_q = DatabaseFilter("id", SQLAInterface(Database)).apply(db_q, None)
             if name_filter:
                 db_q = db_q.filter(Database.database_name.ilike(f"%{name_filter}%"))
             db_items = [("database", obj) for obj in db_q.all()]
