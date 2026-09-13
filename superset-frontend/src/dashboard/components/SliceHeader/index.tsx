@@ -68,6 +68,9 @@ type SliceHeaderProps = SliceHeaderControlsProps & {
   annotationQuery?: object;
   annotationError?: object;
   sliceName?: string;
+  // Display-only localized name. Shown when not editing; editing always
+  // operates on the canonical sliceName.
+  localizedName?: string;
   filters: object;
   handleToggleFullSize: () => void;
   formData: object;
@@ -169,6 +172,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
       isCached = [],
       isExpanded = false,
       sliceName = '',
+      localizedName,
       supersetCanExplore = false,
       supersetCanShare = false,
       supersetCanDownload = false,
@@ -245,20 +249,25 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
     const showRowLimitWarning =
       shouldShowRowLimitWarning && sqlRowCount >= rowLimit && rowLimit > 0;
 
+    // Editing operates on the canonical name; display localizes. The tooltip
+    // describes what is on screen, so it follows the displayed value too --
+    // and re-measures when that value changes, not just when slice_name does.
+    const displayName = editMode ? sliceName : (localizedName ?? sliceName);
+
     useEffect(() => {
       const headerElement = headerRef.current;
       if (canExplore) {
-        setHeaderTooltip(getSliceHeaderTooltip(sliceName));
+        setHeaderTooltip(getSliceHeaderTooltip(displayName));
       } else if (
         headerElement &&
         (headerElement.scrollWidth > headerElement.offsetWidth ||
           headerElement.scrollHeight > headerElement.offsetHeight)
       ) {
-        setHeaderTooltip(sliceName ?? null);
+        setHeaderTooltip(displayName ?? null);
       } else {
         setHeaderTooltip(null);
       }
-    }, [sliceName, width, height, canExplore]);
+    }, [displayName, width, height, canExplore]);
 
     const exploreUrl = `/explore/?dashboard_page_id=${dashboardPageId}&slice_id=${slice.slice_id}`;
 
@@ -290,7 +299,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
             <div>
               <EditableTitle
                 title={
-                  sliceName ||
+                  displayName ||
                   (editMode
                     ? '---' // this makes an empty title clickable
                     : '')
