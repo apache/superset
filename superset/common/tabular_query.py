@@ -389,10 +389,10 @@ def build_query_dict(
     if time_column:
         query_dict["granularity"] = time_column
     extras: dict[str, str] = {}
-    # Jinja get_time_filter() reads QueryObject.time_range, not only
-    # the TEMPORAL_RANGE filter used for SQL execution.
-    if time_range:
-        query_dict["time_range"] = time_range
+    # Do not set QueryObject.time_range here. Relative ranges must keep
+    # from_dttm/to_dttm in the cache key so day rollovers re-execute.
+    # Jinja get_time_filter() still sees the range via
+    # set_query_context_form_data hoisting TEMPORAL_RANGE filters.
     if time_grain:
         extras["time_grain_sqla"] = time_grain
     if semantic_selection_version is not None:

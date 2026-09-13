@@ -85,3 +85,45 @@ def test_query_context_form_data_supports_request_dependent_jinja_macros() -> No
     with current_app.test_request_context():
         set_query_context_form_data(cast(Any, query_context), 7, "table")
         assert_request_dependent_jinja_macros()
+
+
+def test_query_context_form_data_hoists_time_range_from_temporal_filter() -> None:
+    """TEMPORAL_RANGE filters alone still publish time_range for Jinja."""
+    query = QueryObject(
+        filters=cast(
+            Any,
+            [
+                {
+                    "col": "order_date",
+                    "op": "TEMPORAL_RANGE",
+                    "val": "Last week",
+                }
+            ],
+        ),
+        time_range=None,
+    )
+    query_context = SimpleNamespace(queries=[query], form_data={})
+
+    with current_app.test_request_context():
+        set_query_context_form_data(cast(Any, query_context), 7, "table")
+        assert ExtraCache().get_time_filter().time_range == "Last week"
+
+
+def test_query_context_form_data_tolerates_incomplete_query_context() -> None:
+    """Unit-test doubles without form_data/to_dict must not break Jinja wiring."""
+    with current_app.test_request_context():
+        set_query_context_form_data(cast(Any, object()), 7, "table")
+        assert g.form_data["datasource"] == {"id": 7, "type": "table"}
+        assert g.form_data["queries"] == []
+
+        set_query_context_form_data(
+            cast(
+                Any,
+                SimpleNamespace(
+                    queries=[SimpleNamespace(metrics=["count"], columns=[])]
+                ),
+            ),
+            7,
+            "table",
+        )
+        assert g.form_data["queries"] == []
