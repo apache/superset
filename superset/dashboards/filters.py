@@ -58,6 +58,20 @@ class DashboardTitleOrSlugFilter(BaseFilter):  # pylint: disable=too-few-public-
         )
 
 
+class DashboardFolderFilter(BaseFilter):  # pylint: disable=too-few-public-methods
+    """Filter dashboards by folder UUID or by the uncategorized root."""
+
+    name = _("Dashboard folder")
+    arg_name = "dashboard_folder"
+
+    def apply(self, query: Query, value: Any) -> Query:
+        if value in (None, ""):
+            return query
+        if value == "uncategorized":
+            return query.filter(Dashboard.folder_id.is_(None))
+        return query.filter(Dashboard.folder_id == value)
+
+
 class DashboardCreatedByMeFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     name = _("Created by me")
     arg_name = "dashboard_created_by_me"

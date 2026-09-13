@@ -40,6 +40,7 @@ from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import relationship, subqueryload
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.sql.elements import BinaryExpression
+from sqlalchemy_utils import UUIDType
 from superset_core.common.models import Dashboard as CoreDashboard
 
 from superset import db, is_feature_enabled, security_manager
@@ -169,6 +170,12 @@ class Dashboard(CoreDashboard, SoftDeleteMixin, AuditMixinNullable, ImportExport
     description = Column(Text)
     css = Column(utils.MediumText())
     theme_id = Column(Integer, ForeignKey("themes.id"), nullable=True)
+    folder_id = Column(
+        UUIDType(binary=True),
+        ForeignKey("dashboard_folders.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     certified_by = Column(Text)
     certification_details = Column(Text)
     json_metadata = Column(utils.MediumText())
@@ -203,6 +210,7 @@ class Dashboard(CoreDashboard, SoftDeleteMixin, AuditMixinNullable, ImportExport
         viewonly=True,
     )
     theme = relationship("Theme", foreign_keys=[theme_id])
+    folder = relationship("DashboardFolder", back_populates="dashboards")
     published = Column(Boolean, default=False)
     is_managed_externally = Column(Boolean, nullable=False, default=False)
     external_url = Column(Text, nullable=True)

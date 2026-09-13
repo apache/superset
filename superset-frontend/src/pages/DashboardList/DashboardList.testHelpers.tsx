@@ -205,6 +205,7 @@ export const API_ENDPOINTS = {
   DASHBOARD_FAVORITE_STATUS: 'glob:*/api/v1/dashboard/favorite_status*',
   DASHBOARD_RELATED_EDITORS: 'glob:*/api/v1/dashboard/related/editors*',
   DASHBOARD_RELATED_CHANGED_BY: 'glob:*/api/v1/dashboard/related/changed_by*',
+  DASHBOARD_FOLDERS: 'glob:*/api/v1/dashboard_folder/*',
   THUMBNAIL: '/thumbnail',
   CATCH_ALL: 'glob:*',
 };
@@ -319,6 +320,12 @@ export const setupMocks = (
     API_ENDPOINTS.DASHBOARD_RELATED_CHANGED_BY,
     { result: [], count: 0 },
     { name: API_ENDPOINTS.DASHBOARD_RELATED_CHANGED_BY },
+  );
+
+  fetchMock.get(
+    API_ENDPOINTS.DASHBOARD_FOLDERS,
+    { result: [], count: 0 },
+    { name: API_ENDPOINTS.DASHBOARD_FOLDERS },
   );
 
   global.URL.createObjectURL = jest.fn();

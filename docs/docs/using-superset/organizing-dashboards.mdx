@@ -1,0 +1,63 @@
+---
+title: Organizing Dashboards with Folders
+sidebar_position: 2
+version: 1
+---
+
+## Organizing Dashboards with Folders
+
+Dashboard folders provide a hierarchical way to organize the dashboards that
+you can access. Open **Dashboards** from the top navigation to use the folder
+tree beside the dashboard list.
+
+Selecting a folder filters the list to dashboards assigned to that folder. The
+**Folder** filter above the list stays synchronized with the folder tree, so you
+can navigate from either control. Select **Uncategorized** to show dashboards
+that are not assigned to a folder, or clear the selection to show all accessible
+dashboards.
+
+Use the arrow beside a folder to expand or collapse its children. You can also
+collapse the entire folder panel to leave more space for the dashboard list.
+
+### Creating and managing folders
+
+If your role can create dashboard folders, select the **+** button in the folder
+panel. Enter a folder name and optionally select a parent folder. Leaving the
+parent empty creates a top-level folder.
+
+Folder names:
+
+- are limited to 100 characters;
+- must be unique within the same parent, ignoring case and surrounding spaces;
+- cannot match the direct parent folder name.
+
+Available actions appear when you hover over a folder. Depending on your folder
+editorship and role permissions, you can rename or delete it. Deleting a folder
+also deletes its child folders, but it does not delete dashboards. Dashboards
+from the deleted folder tree become uncategorized.
+
+### Moving dashboards
+
+Open a dashboard's actions menu and select **Move to folder**. Choose a top-level
+folder first, then optionally choose one of its descendant folders. If you do
+not choose a descendant, the dashboard is placed directly in the selected
+top-level folder. Clear the parent selection to move the dashboard to
+**Uncategorized**.
+
+You must be allowed to edit the dashboard and write to the destination folder.
+Folders that you can browse but cannot write to are read-only and cannot be used
+as move destinations.
+
+### Visibility and permissions
+
+Folder visibility never grants access to a dashboard. The dashboard list still
+uses Superset's standard dashboard access rules.
+
+Administrators can see all folders. Other users see folders where one of their
+user, role, or group Subjects is an editor or viewer, along with folders that
+contain dashboards they can access. Ancestor folders may also appear so that
+visible descendants remain navigable. Editors may modify a folder only when
+they also have the corresponding DashboardFolder action permission. Viewers can
+use a folder for navigation but cannot modify it or select it as a dashboard
+move destination. A non-administrator cannot delete a folder tree that contains
+a descendant they cannot edit.

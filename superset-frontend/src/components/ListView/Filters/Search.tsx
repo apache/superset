@@ -58,9 +58,10 @@ function SearchFilter(
 ) {
   const theme = useTheme();
   const [value, setValue] = useState(initialValue || '');
-  const handleSubmit = () => {
-    if (value) {
-      onSubmit(value.trim());
+  const handleSubmit = (submittedValue: string) => {
+    const trimmedValue = submittedValue.trim();
+    if (trimmedValue) {
+      onSubmit(trimmedValue);
     }
   };
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -97,8 +98,8 @@ function SearchFilter(
         name={name}
         value={value}
         onChange={handleChange}
-        onPressEnter={handleSubmit}
-        onBlur={handleSubmit}
+        onPressEnter={event => handleSubmit(event.currentTarget.value)}
+        onBlur={event => handleSubmit(event.currentTarget.value)}
         prefix={
           <Icons.SearchOutlined iconColor={theme.colorIcon} iconSize="l" />
         }
