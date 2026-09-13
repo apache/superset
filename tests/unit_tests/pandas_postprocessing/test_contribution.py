@@ -16,6 +16,7 @@
 # under the License.
 
 from datetime import datetime
+from decimal import Decimal
 
 import pytest
 from numpy import nan
@@ -157,3 +158,87 @@ def test_contribution_with_numeric_prefix_time_shifts():
     # "22 weeks ago" group: a=2,b=4 -> 1/3,2/3; a=4,b=2 -> 2/3,1/3
     assert_array_equal(processed_df["a__22 weeks ago"].tolist(), [1 / 3, 2 / 3])
     assert_array_equal(processed_df["b__22 weeks ago"].tolist(), [2 / 3, 1 / 3])
+
+
+def test_contribution_leaves_string_columns_untouched():
+    """A non-numeric column alongside the metrics must not break the division.
+
+    `select_dtypes(include=["number", Decimal])` resolved `Decimal` to plain
+    `object`, so every string column was treated as a metric and the
+    contribution arithmetic raised `TypeError: unsupported operand type(s)
+    for /: 'str' and 'str'` -- surfacing as a 500 rather than a chart.
+    """
+    df = DataFrame({"label": ["x", "y"], "a": [1.0, 3.0]})
+    processed_df = contribution(
+        df,
+        orientation=PostProcessingContributionOrientation.COLUMN,
+    )
+    assert processed_df.columns.tolist() == ["label", "a"]
+    assert processed_df["label"].tolist() == ["x", "y"]
+    assert processed_df["a"].tolist() == [0.25, 0.75]
+
+
+def test_contribution_across_row_leaves_string_columns_untouched():
+    df = DataFrame({"label": ["x", "y"], "a": [1.0, 3.0], "b": [3.0, 1.0]})
+    processed_df = contribution(
+        df,
+        orientation=PostProcessingContributionOrientation.ROW,
+    )
+    assert processed_df["label"].tolist() == ["x", "y"]
+    assert processed_df["a"].tolist() == [0.25, 0.75]
+    assert processed_df["b"].tolist() == [0.75, 0.25]
+
+
+def test_contribution_rejects_selected_string_column():
+    """Selecting a string column is a validation error, not a crash.
+
+    The "not numeric" guard was unreachable for string columns, because they
+    were themselves being collected as numeric.
+    """
+    df = DataFrame({"label": ["x", "y"], "a": [1.0, 3.0]})
+    with pytest.raises(InvalidPostProcessingError, match="not numeric"):
+        contribution(df, columns=["label"])
+
+
+def test_contribution_on_decimal_columns():
+    """`Decimal` metrics (e.g. a psycopg2 NUMERIC column) still contribute.
+
+    They are held in an object-dtype column, so they have to be recognised by
+    value rather than by dtype.
+    """
+    df = DataFrame(
+        {
+            "label": ["x", "y"],
+            "a": [Decimal("1"), Decimal("3")],
+        }
+    )
+    processed_df = contribution(
+        df,
+        orientation=PostProcessingContributionOrientation.COLUMN,
+    )
+    assert processed_df["label"].tolist() == ["x", "y"]
+    assert processed_df["a"].tolist() == [0.25, 0.75]
+
+
+def test_contribution_ignores_columns_of_unsupported_objects():
+    """Object columns that are neither numeric nor Decimal are passed through."""
+    df = DataFrame({"payload": [{"k": 1}, {"k": 2}], "a": [1.0, 3.0]})
+    processed_df = contribution(
+        df,
+        orientation=PostProcessingContributionOrientation.COLUMN,
+    )
+    assert processed_df["payload"].tolist() == [{"k": 1}, {"k": 2}]
+    assert processed_df["a"].tolist() == [0.25, 0.75]
+
+
+def test_contribution_keeps_all_null_object_columns():
+    """An all-null object column carries no values, so filling it with zeros
+    and dividing is harmless; keep it in the calculation as before."""
+    df = DataFrame({"a": [1.0, 3.0], "empty": [None, None]})
+    processed_df = contribution(
+        df,
+        orientation=PostProcessingContributionOrientation.COLUMN,
+    )
+    assert processed_df.columns.tolist() == ["a", "empty"]
+    assert processed_df["a"].tolist() == [0.25, 0.75]
+    assert_array_equal(processed_df["empty"].tolist(), [nan, nan])
