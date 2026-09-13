@@ -341,6 +341,12 @@ const FilterBar: FC<FiltersBarProps> = ({
         if (parentValueChanged) {
           const childIds = resolveTransitiveChildIds(filter.id, filters);
           childIds.forEach(childId => {
+            // Only cascade-clear descendants that are in scope for the active
+            // tab, mirroring the handleClearAll scope guard. An out-of-scope
+            // child must keep its staged value (Apply would otherwise stage a
+            // null it never dispatches, leaving stale applied state) and its
+            // required-validateStatus (which would wrongly block Apply).
+            if (!inScopeFilterIds.has(childId)) return;
             const childMask = draft[childId];
             if (!childMask) return;
             childMask.extraFormData = {};
@@ -383,6 +389,7 @@ const FilterBar: FC<FiltersBarProps> = ({
       initializedFilters,
       setInitializedFilters,
       dataMaskApplied,
+      inScopeFilterIds,
       filters,
     ],
   );

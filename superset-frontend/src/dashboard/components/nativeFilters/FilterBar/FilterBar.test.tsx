@@ -1773,4 +1773,143 @@ describe('cascading native filter clear', () => {
 
     updateDataMaskSpy.mockRestore();
   });
+
+  test('cascading clear only affects in-scope descendants on tabbed dashboards', async () => {
+    const outOfScopeChildId = 'NATIVE_FILTER-cascade-neighborhood';
+    const updateDataMaskSpy = jest.spyOn(dataMaskActions, 'updateDataMask');
+
+    const dashboardLayoutWithTabs = {
+      ROOT_ID: { id: 'ROOT_ID', type: 'ROOT', children: ['TABS-1'] },
+      'TABS-1': {
+        id: 'TABS-1',
+        type: 'TABS',
+        children: ['TAB-active', 'TAB-inactive'],
+      },
+      'TAB-active': {
+        id: 'TAB-active',
+        type: 'TAB',
+        children: ['CHART_ROW-1'],
+        meta: { text: 'Active Tab' },
+        parents: ['ROOT_ID', 'TABS-1'],
+      },
+      'TAB-inactive': {
+        id: 'TAB-inactive',
+        type: 'TAB',
+        children: ['CHART_ROW-2'],
+        meta: { text: 'Inactive Tab' },
+        parents: ['ROOT_ID', 'TABS-1'],
+      },
+      'CHART_ROW-1': {
+        id: 'CHART_ROW-1',
+        type: 'CHART',
+        meta: { chartId: 18 },
+        parents: ['ROOT_ID', 'TABS-1', 'TAB-active'],
+      },
+      'CHART_ROW-2': {
+        id: 'CHART_ROW-2',
+        type: 'CHART',
+        meta: { chartId: 19 },
+        parents: ['ROOT_ID', 'TABS-1', 'TAB-inactive'],
+      },
+    };
+
+    // Transitive descendant of the parent, scoped to the *inactive* tab, so it
+    // is out of scope while TAB-active is active. Required so the pre-fix
+    // behavior (staged validateStatus 'error') also disabled Apply.
+    const outOfScopeChildFilter = createFilter({
+      id: outOfScopeChildId,
+      name: 'Neighborhood',
+      filterType: 'filter_select',
+      targets: [{ datasetId: 7, column: { name: 'neighborhood' } }],
+      cascadeParentIds: [parentId],
+      controlValues: { enableEmptyFilter: true },
+      chartsInScope: [19],
+    });
+
+    const state = createCascadeState();
+    state.dashboardLayout = {
+      present: dashboardLayoutWithTabs,
+      past: [],
+      future: [],
+    };
+    state.dashboardState = {
+      ...state.dashboardState,
+      activeTabs: ['TAB-active'],
+    };
+    state.nativeFilters = {
+      ...state.nativeFilters,
+      filters: {
+        ...state.nativeFilters.filters,
+        [outOfScopeChildId]: outOfScopeChildFilter,
+      },
+    };
+    state.dashboardInfo = {
+      ...state.dashboardInfo,
+      metadata: {
+        ...state.dashboardInfo.metadata,
+        native_filter_configuration: [
+          ...state.dashboardInfo.metadata.native_filter_configuration,
+          outOfScopeChildFilter,
+        ],
+      },
+    };
+    state.dataMask = {
+      ...state.dataMask,
+      [outOfScopeChildId]: createDataMask(outOfScopeChildId, ['Texas'], {
+        filters: [{ col: 'neighborhood', op: 'IN', val: ['Texas'] }],
+      }),
+    };
+
+    const props = createOpenedBarProps();
+    renderFilterBar(props, state);
+
+    await act(async () => {
+      jest.advanceTimersByTime(1000);
+    });
+
+    // Change the in-scope parent from USA to UK.
+    const parentLabel = await screen.findByText('Country');
+    const parentFormItem = parentLabel.closest('.ant-form-item') as HTMLElement;
+    const parentSelect = within(parentFormItem).getByRole('combobox');
+    await act(async () => {
+      await userEvent.click(parentSelect);
+    });
+    const ukOption = await screen.findByText('UK');
+    await act(async () => {
+      await userEvent.click(ukOption);
+    });
+
+    await act(async () => {
+      jest.advanceTimersByTime(1000);
+    });
+
+    // Apply must stay enabled: the out-of-scope required descendant was NOT
+    // cleared, so it stages no validateStatus 'error'. Pre-fix, the staged
+    // error on the out-of-scope required child disabled Apply globally.
+    const applyBtn = screen.getByTestId(getTestId('apply-button'));
+    expect(applyBtn).not.toBeDisabled();
+
+    await act(async () => {
+      await userEvent.click(applyBtn);
+    });
+
+    // The in-scope child is cascade-cleared.
+    const childCall = updateDataMaskSpy.mock.calls.find(
+      call => call[0] === childId,
+    );
+    expect(childCall).toBeDefined();
+    expect(childCall![1]?.filterState?.value).toEqual(null);
+    expect(childCall![1]?.extraFormData).toEqual({});
+
+    // The out-of-scope descendant is NOT cascade-cleared: it is applied with
+    // its existing value. Pre-fix it was staged null and never dispatched,
+    // leaving stale applied state for the other tab.
+    const outOfScopeCall = updateDataMaskSpy.mock.calls.find(
+      call => call[0] === outOfScopeChildId,
+    );
+    expect(outOfScopeCall).toBeDefined();
+    expect(outOfScopeCall![1]?.filterState?.value).toEqual(['Texas']);
+
+    updateDataMaskSpy.mockRestore();
+  });
 });
