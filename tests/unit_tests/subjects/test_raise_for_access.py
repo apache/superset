@@ -251,6 +251,128 @@ def test_raise_for_access_chart_editor_allows(app_context):
         sm.raise_for_access(chart=chart)
 
 
+def _make_real_slice_chart(*, kind: str):
+    """Build a real Slice whose ``datasource`` resolves through the real
+    ``table`` / ``semantic_view`` relationships (no MagicMock of the property)."""
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.models.slice import Slice
+    from superset.semantic_layers.models import SemanticView
+    from superset.utils.core import DatasourceType
+
+    chart = Slice()
+    chart.datasource_id = 1
+    chart.viewers = []
+    chart.editors = []
+
+    if kind == DatasourceType.SEMANTIC_VIEW:
+        chart.datasource_type = DatasourceType.SEMANTIC_VIEW
+        view = MagicMock(spec=SemanticView)
+        view.id = 1
+        view.perm = "[layer].[view](id:1)"
+        view.schema_perm = None
+        view.catalog_perm = None
+        chart.semantic_view = view
+    else:
+        chart.datasource_type = DatasourceType.TABLE
+        table = MagicMock(spec=SqlaTable)
+        table.id = 1
+        table.perm = "[db].[table](id:1)"
+        table.schema_perm = None
+        table.catalog_perm = None
+        chart.table = table
+
+    return chart
+
+
+def test_raise_for_access_semantic_view_chart_allows_with_datasource_access(
+    app_context,
+):
+    """A semantic-view chart with no viewers resolves its datasource through the
+    ``semantic_view`` relationship and is granted when the user holds the view's
+    ``datasource_access`` perm."""
+    sm = _make_sm()
+    chart = _make_real_slice_chart(kind="semantic_view")
+
+    with (
+        patch.object(sm, "is_admin", return_value=False),
+        patch.object(sm, "is_editor", return_value=False),
+        patch.object(sm, "is_viewer", return_value=False),
+        patch.object(sm, "is_guest_user", return_value=False),
+        patch.object(sm, "can_access", return_value=True),
+        patch("superset.is_feature_enabled", return_value=False),
+    ):
+        assert chart.datasource is chart.semantic_view
+        sm.raise_for_access(chart=chart)
+
+
+def test_raise_for_access_semantic_view_chart_denied_without_datasource_access(
+    app_context,
+):
+    """A semantic-view chart with no viewers is denied when the user does not
+    hold the view's ``datasource_access`` perm."""
+    sm = _make_sm()
+    chart = _make_real_slice_chart(kind="semantic_view")
+
+    with (
+        patch.object(sm, "is_admin", return_value=False),
+        patch.object(sm, "is_editor", return_value=False),
+        patch.object(sm, "is_viewer", return_value=False),
+        patch.object(sm, "is_guest_user", return_value=False),
+        patch.object(sm, "can_access", return_value=False),
+        patch.object(sm, "can_access_schema", return_value=False),
+        patch.object(sm, "get_chart_access_error_object", return_value=MagicMock()),
+        patch("superset.is_feature_enabled", return_value=False),
+    ):
+        with pytest.raises(SupersetSecurityException):
+            sm.raise_for_access(chart=chart)
+
+
+def test_raise_for_access_semantic_view_chart_editor_allows(app_context):
+    """An editor of the chart is granted regardless of datasource perms."""
+    sm = _make_sm()
+    chart = _make_real_slice_chart(kind="semantic_view")
+
+    with (
+        patch.object(sm, "is_admin", return_value=False),
+        patch.object(sm, "is_editor", side_effect=lambda r: r is chart),
+        patch.object(sm, "is_guest_user", return_value=False),
+        patch("superset.is_feature_enabled", return_value=False),
+    ):
+        sm.raise_for_access(chart=chart)
+
+
+def test_raise_for_access_semantic_view_chart_admin_allows(app_context):
+    """Admin is granted regardless of datasource perms."""
+    sm = _make_sm()
+    chart = _make_real_slice_chart(kind="semantic_view")
+
+    with (
+        patch.object(sm, "is_admin", return_value=True),
+        patch.object(sm, "is_editor", return_value=False),
+        patch.object(sm, "is_guest_user", return_value=False),
+        patch("superset.is_feature_enabled", return_value=False),
+    ):
+        sm.raise_for_access(chart=chart)
+
+
+def test_raise_for_access_table_chart_resolution_unchanged(app_context):
+    """A table chart still resolves through the ``table`` relationship and is
+    granted via its table perm; the semantic-view path is not consulted."""
+    sm = _make_sm()
+    chart = _make_real_slice_chart(kind="table")
+
+    with (
+        patch.object(sm, "is_admin", return_value=False),
+        patch.object(sm, "is_editor", return_value=False),
+        patch.object(sm, "is_viewer", return_value=False),
+        patch.object(sm, "is_guest_user", return_value=False),
+        patch.object(sm, "can_access", return_value=True),
+        patch("superset.is_feature_enabled", return_value=False),
+    ):
+        assert chart.datasource is chart.table
+        sm.raise_for_access(chart=chart)
+
+
 # -- Datasource chart-viewer promiscuous mode tests --
 
 

@@ -121,9 +121,71 @@ class TestSlice:
         slc = Slice()
         slc.id = 1
         slc.table = None
+        slc.semantic_view = None
 
         result = slc.datasource_url()
         assert result is None
+
+    def test_datasource_resolves_semantic_view_for_semantic_view_chart(self):
+        """datasource resolves the semantic_view relationship for
+        datasource_type="semantic_view" charts."""
+        slc = Slice()
+        slc.datasource_type = "semantic_view"
+        slc.datasource_id = 1
+        mock_view = MagicMock()
+        mock_view.id = 1
+        slc.semantic_view = mock_view
+
+        assert slc.datasource is mock_view
+
+    def test_datasource_resolves_table_for_table_chart(self):
+        """datasource resolves the table relationship for datasource_type="table"
+        charts."""
+        slc = Slice()
+        slc.datasource_type = "table"
+        mock_table = MagicMock()
+        slc.table = mock_table
+        slc.semantic_view = None
+
+        assert slc.datasource is mock_table
+
+    def test_datasource_prefers_table_over_semantic_view(self):
+        """With both relationships populated, datasource resolves the table."""
+        slc = Slice()
+        mock_table = MagicMock()
+        mock_view = MagicMock()
+        slc.table = mock_table
+        slc.semantic_view = mock_view
+
+        assert slc.datasource is mock_table
+
+    def test_datasource_empty_for_unsupported_datasource_type(self):
+        """Charts of an unsupported datasource_type resolve to an empty
+        datasource rather than accidentally matching a table or view."""
+        slc = Slice()
+        slc.datasource_type = "query"
+        slc.datasource_id = 1
+        slc.table = None
+        slc.semantic_view = None
+
+        assert slc.datasource is None
+
+    def test_datasource_resolution_preserves_perm_fields(self):
+        """Resolving the datasource must not mutate the chart's perm fields,
+        which the access filters rely on."""
+        slc = Slice()
+        slc.datasource_type = "semantic_view"
+        slc.datasource_id = 1
+        slc.perm = "[layer].[view](id:1)"
+        slc.schema_perm = None
+        slc.catalog_perm = None
+        slc.table = None
+        slc.semantic_view = MagicMock()
+
+        assert slc.datasource is not None
+        assert slc.perm == "[layer].[view](id:1)"
+        assert slc.schema_perm is None
+        assert slc.catalog_perm is None
 
     def test_icons_escapes_datasource_html(self):
         """icons must HTML-escape the datasource name and edit URL."""

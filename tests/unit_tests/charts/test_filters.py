@@ -179,3 +179,78 @@ def test_chart_filter_guest_no_resources_denied(mocker: MockerFixture) -> None:
     assert filt.apply(query, None) is query
     query.filter.assert_called_once()  # scoped (to nothing), not role-based
     viewers.assert_not_called()
+
+
+def _compile(clause: Any) -> str:
+    return str(
+        clause.statement.compile(
+            create_engine("sqlite://"),
+            compile_kwargs={"literal_binds": True},
+        )
+    )
+
+
+def _no_viewer_fallbacks(mocker: MockerFixture, perms: set[str]) -> Any:
+    """Build the no-viewer fallback clauses for a non-admin user.
+
+    Returns the fully-filtered Query so tests can compile and assert on the SQL.
+    get_user_id() is mocked to None to keep the editor/viewer subqueries out.
+    """
+    from superset import db
+    from superset.charts.filters import ChartFilter
+    from superset.extensions import security_manager
+    from superset.models.slice import Slice
+
+    mocker.patch("superset.charts.filters.get_user_id", return_value=None)
+    mocker.patch.object(
+        security_manager, "get_accessible_databases", return_value=[1, 2, 3]
+    )
+
+    def _perms(perm_name: str) -> set[str]:
+        return perms if perm_name == "datasource_access" else set()
+
+    mocker.patch.object(security_manager, "user_view_menu_names", side_effect=_perms)
+
+    filt: ChartFilter = ChartFilter.__new__(ChartFilter)
+    filt.model = Slice
+    return filt._apply_viewers(db.session.query(Slice))
+
+
+def test_chart_filter_no_viewer_semantic_view_matches_by_perm(
+    mocker: MockerFixture,
+) -> None:
+    """A semantic-view chart with no viewers is matched through the chart's own
+    perm (the view's ``datasource_access`` perm), not through a numeric-id join
+    to SqlaTable."""
+    compiled = _compile(_no_viewer_fallbacks(mocker, perms={"[layer].[view](id:1)"}))
+
+    assert "slices.datasource_type = 'semantic_view'" in compiled
+    assert "'[layer].[view](id:1)'" in compiled
+    # the table branch is still guarded by datasource_type so semantic-view
+    # foreign ids can never ride along on the table/database join
+    assert "slices.datasource_type = 'table'" in compiled
+    assert "JOIN tables AS tables_1" in compiled
+
+
+def test_chart_filter_no_viewer_semantic_view_excluded_without_perm(
+    mocker: MockerFixture,
+) -> None:
+    """Without the view's datasource_access perm, the semantic-view branch
+    carries no matching perm literal."""
+    compiled = _compile(_no_viewer_fallbacks(mocker, perms=set()))
+
+    assert "slices.datasource_type = 'semantic_view'" in compiled
+    assert "'[layer].[view](id:1)'" not in compiled
+    assert "slices.datasource_type = 'table'" in compiled
+
+
+def test_chart_filter_no_viewer_table_matches_by_database_access(
+    mocker: MockerFixture,
+) -> None:
+    """Table charts with no viewers keep the pre-existing database-access join:
+    matched via the databases the user can access even without explicit perms."""
+    compiled = _compile(_no_viewer_fallbacks(mocker, perms=set()))
+
+    assert "slices.datasource_type = 'table'" in compiled
+    assert "JOIN tables AS tables_1" in compiled
+    assert "dbs.id IN (1, 2, 3)" in compiled

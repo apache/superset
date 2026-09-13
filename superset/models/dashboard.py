@@ -358,7 +358,7 @@ class Dashboard(CoreDashboard, SoftDeleteMixin, AuditMixinNullable, ImportExport
             # Use the eagerly-loaded datasource from any slice in the group
             datasource = next(iter(slices)).datasource
 
-            if datasource:
+            if isinstance(datasource, BaseDatasource):
                 # Filter out unneeded fields from the datasource payload
                 result.append((datasource, datasource.data_for_slices(list(slices))))
 

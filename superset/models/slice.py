@@ -58,6 +58,7 @@ if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
     from superset.common.query_context_factory import QueryContextFactory
     from superset.connectors.sqla.models import SqlaTable
+    from superset.semantic_layers.models import SemanticView
 
 metadata = Model.metadata  # pylint: disable=no-member
 logger = logging.getLogger(__name__)
@@ -168,6 +169,15 @@ class Slice(  # pylint: disable=too-many-public-methods
         remote_side="SqlaTable.id",
         lazy="subquery",
     )
+    semantic_view = relationship(
+        "SemanticView",
+        foreign_keys=[datasource_id],
+        overlaps="table",
+        primaryjoin="and_(Slice.datasource_id == SemanticView.id, "
+        "Slice.datasource_type == 'semantic_view')",
+        remote_side="SemanticView.id",
+        lazy="subquery",
+    )
 
     token = ""
 
@@ -190,8 +200,10 @@ class Slice(  # pylint: disable=too-many-public-methods
         return self.slice_name or str(self.id)
 
     @property
-    def datasource(self) -> SqlaTable | None:
-        return self.table
+    def datasource(self) -> SqlaTable | SemanticView | None:
+        if table := self.table:
+            return table
+        return self.semantic_view
 
     def clone(self) -> Slice:
         return Slice(

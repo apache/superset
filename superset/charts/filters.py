@@ -33,7 +33,7 @@ from superset.subjects.filters import (
 )
 from superset.subjects.models import chart_editors
 from superset.tags.filters import BaseTagIdFilter, BaseTagNameFilter
-from superset.utils.core import get_user_id
+from superset.utils.core import DatasourceType, get_user_id
 from superset.utils.filters import (
     get_dataset_access_filters,
     guest_embedded_dashboard_filter,
@@ -151,10 +151,22 @@ class ChartFilter(BaseFilter):  # pylint: disable=too-few-public-methods
 
         # (C) No-viewer fallback: charts with no viewers → dataset-based access
         chart_has_viewers = Slice.viewers.any()
+
+        # TABLE charts keep the table/database join for dataset-based access.
+        # The datasource_type guard keeps the join unambiguous: a semantic-view
+        # chart's datasource_id (shared auto-increment id space) must never be
+        # matched against a coincidental SqlaTable.id. TABLE rows are otherwise
+        # matched exactly as before.
         table_alias = aliased(SqlaTable)
-        no_viewer_query = (
+        no_viewer_table_query = (
             db.session.query(Slice.id)
-            .join(table_alias, Slice.datasource_id == table_alias.id)
+            .join(
+                table_alias,
+                and_(
+                    Slice.datasource_id == table_alias.id,
+                    Slice.datasource_type == DatasourceType.TABLE,
+                ),
+            )
             .join(models.Database, table_alias.database_id == models.Database.id)
             .filter(
                 and_(
@@ -163,7 +175,21 @@ class ChartFilter(BaseFilter):  # pylint: disable=too-few-public-methods
                 )
             )
         )
-        filters.append(Slice.id.in_(no_viewer_query))
+        filters.append(Slice.id.in_(no_viewer_table_query))
+
+        # SEMANTIC_VIEW charts have no SqlaTable/Database row to join; access is
+        # evaluated against the chart's own perm, which set_related_perm keeps in
+        # sync with the view's ``datasource_access`` perm (no numeric-id join).
+        no_viewer_semantic_view_query = db.session.query(Slice.id).filter(
+            and_(
+                Slice.datasource_type == DatasourceType.SEMANTIC_VIEW,
+                ~chart_has_viewers,
+                Slice.perm.in_(
+                    security_manager.user_view_menu_names("datasource_access")
+                ),
+            )
+        )
+        filters.append(Slice.id.in_(no_viewer_semantic_view_query))
 
         extra_filters = current_app.config.get("EXTRA_ACCESS_QUERY_FILTERS", {})
         if extra_charts_filter := extra_filters.get("charts"):
