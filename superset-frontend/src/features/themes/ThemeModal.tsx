@@ -57,7 +57,10 @@ import SubjectPicker, {
   type SubjectPickerValue,
 } from 'src/features/subjects/SubjectPicker';
 import Subject, { SubjectType } from 'src/types/Subject';
-import { isUserEditorOrAdmin } from 'src/dashboard/util/permissionUtils';
+import {
+  isUserAdmin,
+  isUserEditorOrAdmin,
+} from 'src/dashboard/util/permissionUtils';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { ThemeObject } from './types';
@@ -199,7 +202,17 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
       (resource?.editors as Subject[]) || [],
       resource?.extra_editors,
     );
-  const isReadOnly = isSystemTheme || !canEditTheme;
+  // The active system-default/dark slot may be edited by admins only, even
+  // by a listed editor, mirroring UpdateThemeCommand.validate() on the
+  // server: that slot is rendered for every user, so a non-admin editor
+  // saving it would change what everyone sees.
+  const isActiveSystemThemeSlot =
+    currentTheme?.is_system_default === true ||
+    currentTheme?.is_system_dark === true;
+  const isReadOnly =
+    isSystemTheme ||
+    (isActiveSystemThemeSlot && !isUserAdmin(currentUser)) ||
+    !canEditTheme;
 
   const canDevelopThemes = canDevelop;
 
@@ -585,7 +598,14 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
               {t('System Theme - Read Only')}
             </Typography.Text>
           )}
-          {!isSystemTheme && isReadOnly && (
+          {!isSystemTheme && isActiveSystemThemeSlot && isReadOnly && (
+            <Typography.Text type="secondary" className="system-theme-notice">
+              {t(
+                'This theme is the active default/dark theme - only Admins can edit it - Read Only',
+              )}
+            </Typography.Text>
+          )}
+          {!isSystemTheme && !isActiveSystemThemeSlot && isReadOnly && (
             <Typography.Text type="secondary" className="system-theme-notice">
               {t('You are not an editor of this theme - Read Only')}
             </Typography.Text>
