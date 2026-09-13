@@ -20,11 +20,15 @@ Unit tests for get_chart_sql MCP tool
 """
 
 import importlib
+from datetime import datetime, timedelta, timezone
+from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
 
 from superset.mcp_service.auth import CLASS_PERMISSION_ATTR, METHOD_PERMISSION_ATTR
+from superset.mcp_service.chart import query_result as query_result_module
+from superset.mcp_service.chart.query_result import MAX_QUERY_RESULT_VALUE_BYTES
 from superset.mcp_service.chart.schemas import (
     ChartError,
     ChartSql,
@@ -134,6 +138,20 @@ class TestExtractSqlFromResult:
         assert output.datasource_name == ("my_table")
         assert output.error is None
 
+    def test_successful_sql_extraction_allows_response_string_over_cell_cap(self):
+        sql = "SELECT '" + "x" * (70 * 1024) + "'"
+
+        output = _extract_sql_from_result(
+            {"queries": [{"query": sql, "language": "sql"}]},
+            chart_id=10,
+            chart_name="Large SQL",
+            datasource_name="virtual_dataset",
+        )
+
+        assert isinstance(output, ChartSql)
+        assert output.sql == sql
+        assert len(output.model_dump_json().encode()) < 16 * 1024 * 1024
+
     def test_successful_sql_extraction_preserves_datasource_name(self):
         """Chart SQL preserves datasource names as domain values."""
         result = {
@@ -175,6 +193,35 @@ class TestExtractSqlFromResult:
         assert isinstance(output, ChartError)
         assert output.error_type == "EmptyQuery"
 
+    @pytest.mark.parametrize(
+        "result",
+        [
+            {"queries": {}},
+            {"queries": [object()]},
+            {"queries": [{"query": object()}]},
+            {"queries": [{"error": object()}]},
+            {"queries": [{"language": object(), "query": "SELECT 1"}]},
+        ],
+    )
+    def test_malformed_query_results_are_bounded(self, result: Any) -> None:
+        output = _extract_sql_from_result(
+            result, chart_id=1, chart_name="Test", datasource_name="ds"
+        )
+
+        assert isinstance(output, ChartError)
+        assert output.error_type == "MalformedQueryResult"
+
+    def test_query_count_and_aggregate_sql_bytes_are_bounded(self) -> None:
+        too_many = {"queries": [{"query": "SELECT 1"}] * 65}
+        oversized = {"queries": [{"query": "x" * (16 * 1024 * 1024 + 1)}]}
+
+        for result in (too_many, oversized):
+            output = _extract_sql_from_result(
+                result, chart_id=1, chart_name="Test", datasource_name="ds"
+            )
+            assert isinstance(output, ChartError)
+            assert output.error_type == "MalformedQueryResult"
+
     def test_no_sql_with_error_returns_chart_error(self):
         """Test that empty sql with an error message returns ChartError."""
         result = {
@@ -192,6 +239,58 @@ class TestExtractSqlFromResult:
         assert isinstance(output, ChartError)
         assert output.error_type == "QueryGenerationFailed"
         assert "Unknown column" in output.error
+
+    def test_error_only_result_at_source_cap_returns_bounded_fallback(self) -> None:
+        source_error = "x" * MAX_QUERY_RESULT_VALUE_BYTES
+
+        output = _extract_sql_from_result(
+            {"queries": [{"query": "", "error": source_error}]},
+            chart_id=5,
+            chart_name="Bad Chart",
+            datasource_name="ds",
+        )
+
+        assert isinstance(output, ChartError)
+        assert output.error_type == "MalformedQueryResult"
+        assert "response exceeds the total JSON-encoded byte limit" in output.error
+        assert len(output.model_dump_json().encode()) <= MAX_QUERY_RESULT_VALUE_BYTES
+
+    def test_chart_error_preflight_accepts_exact_limit_and_bounds_plus_one(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        error = 'SQL generation failed: quote " newline\n slash\\ café ' + "x" * 256
+        candidate = ChartError(
+            error=error,
+            error_type="QueryGenerationFailed",
+            timestamp=datetime(
+                2026,
+                9,
+                2,
+                12,
+                34,
+                56,
+                789012,
+                tzinfo=timezone(timedelta(hours=1)),
+            ),
+        )
+        exact_size = len(candidate.model_dump_json().encode())
+
+        monkeypatch.setattr(
+            query_result_module, "MAX_QUERY_RESULT_VALUE_BYTES", exact_size
+        )
+        boundary = query_result_module.response_json_failure(candidate)
+
+        assert boundary is None
+
+        monkeypatch.setattr(
+            query_result_module, "MAX_QUERY_RESULT_VALUE_BYTES", exact_size - 1
+        )
+        oversized = query_result_module.response_json_failure(candidate)
+
+        assert oversized is not None
+        assert oversized.error_type == "MalformedQueryResult"
+        assert "response exceeds the total JSON-encoded byte limit" in oversized.error
+        assert len(oversized.model_dump_json().encode()) <= exact_size - 1
 
     def test_sql_with_error_returns_chart_sql(self):
         """Test that partial SQL with a non-fatal error returns ChartSql with error."""
@@ -614,7 +713,13 @@ class TestBuildQueryContextTimeseriesAndMixed:
 
         queries = mock_factory.create.call_args[1]["queries"]
         assert len(queries) == 1
-        assert queries[0]["columns"][0] == "ds"
+        assert queries[0]["columns"][0] == {
+            "columnType": "BASE_AXIS",
+            "sqlExpression": "ds",
+            "label": "ds",
+            "expressionType": "SQL",
+            "isColumnReference": True,
+        }
         assert "region" in queries[0]["columns"]
 
     @patch("superset.common.query_context_factory.QueryContextFactory")
@@ -645,7 +750,13 @@ class TestBuildQueryContextTimeseriesAndMixed:
             _build_query_context_from_form_data(form_data, chart=None)
 
         queries = mock_factory.create.call_args[1]["queries"]
-        assert queries[0]["columns"][0] == "order_date"
+        assert queries[0]["columns"][0] == {
+            "columnType": "BASE_AXIS",
+            "sqlExpression": "order_date",
+            "label": "order_date",
+            "expressionType": "SQL",
+            "isColumnReference": True,
+        }
 
     @patch("superset.common.query_context_factory.QueryContextFactory")
     @patch("superset.daos.datasource.DatasourceDAO.get_datasource")
@@ -675,7 +786,7 @@ class TestBuildQueryContextTimeseriesAndMixed:
             _build_query_context_from_form_data(form_data, chart=None)
 
         queries = mock_factory.create.call_args[1]["queries"]
-        assert queries[0]["columns"].count("ds") == 1
+        assert [column["sqlExpression"] for column in queries[0]["columns"]] == ["ds"]
 
     @patch("superset.common.query_context_factory.QueryContextFactory")
     @patch("superset.daos.datasource.DatasourceDAO.get_datasource")
@@ -737,13 +848,13 @@ class TestBuildQueryContextTimeseriesAndMixed:
         assert len(queries) == 2
 
         # Primary query
-        assert "ds" in queries[0]["columns"]
+        assert queries[0]["columns"][0]["sqlExpression"] == "ds"
         assert "country" in queries[0]["columns"]
         assert queries[0]["metrics"] == ["sum__revenue"]
         assert queries[0]["time_range"] == "Last 30 days"
 
         # Secondary query
-        assert "ds" in queries[1]["columns"]
+        assert queries[1]["columns"][0]["sqlExpression"] == "ds"
         assert "channel" in queries[1]["columns"]
         assert queries[1]["metrics"] == ["count"]
         assert queries[1]["time_range"] == "Last 30 days"
@@ -778,7 +889,7 @@ class TestBuildQueryContextTimeseriesAndMixed:
             _build_query_context_from_form_data(form_data, chart=None)
 
         queries = mock_factory.create.call_args[1]["queries"]
-        assert queries[1]["columns"].count("ds") == 1
+        assert [column["sqlExpression"] for column in queries[1]["columns"]] == ["ds"]
 
     @patch("superset.common.query_context_factory.QueryContextFactory")
     @patch("superset.daos.datasource.DatasourceDAO.get_datasource")

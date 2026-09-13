@@ -19,12 +19,17 @@
 Unit tests for MCP service response utilities.
 """
 
+from decimal import Decimal
 from typing import Any
 
 from superset.mcp_service.utils.response_utils import (
+    data_column_stats_row_limit,
     format_data_columns,
+    format_data_quality,
     STATS_ROW_CAP,
+    STATS_TOTAL_WORK_CAP,
 )
+from superset.utils.core import GenericDataType
 
 
 class TestFormatDataColumns:
@@ -73,6 +78,65 @@ class TestFormatDataColumns:
 
         assert columns[0].sample_values == ["r0", "r1", "r2"]
 
+    def test_late_non_null_samples_share_the_bounded_statistics_pass(self) -> None:
+        data: list[dict[str, Any]] = [
+            {"amount": None, "enabled": None} for _ in range(10)
+        ] + [
+            {"amount": Decimal("1.25"), "enabled": True},
+            {"amount": 2, "enabled": False},
+            {"amount": 3.0, "enabled": True},
+            {"amount": 4, "enabled": False},
+        ]
+
+        columns = format_data_columns(data, ["amount", "enabled"])
+
+        assert columns[0].data_type == "numeric"
+        assert columns[0].sample_values == [Decimal("1.25"), 2, 3.0]
+        assert columns[1].data_type == "boolean"
+        assert columns[1].sample_values == [True, False, True]
+
+    def test_unique_count_uses_numeric_value_semantics_and_excludes_null(self) -> None:
+        data: list[dict[str, Any]] = [
+            {"value": 1},
+            {"value": "1"},
+            {"value": 1.0},
+            {"value": Decimal("1.00")},
+            {"value": None},
+        ]
+
+        column = format_data_columns(data, ["value"])[0]
+
+        assert column.null_count == 1
+        assert column.unique_count == 2
+
+    def test_unique_count_keeps_booleans_distinct_from_equal_integers(self) -> None:
+        data = [{"value": value} for value in (True, 1, False, 0)]
+
+        column = format_data_columns(data, ["value"], [GenericDataType.BOOLEAN])[0]
+
+        assert column.data_type == "boolean"
+        assert column.unique_count == 4
+
+    def test_authoritative_coltypes_apply_to_empty_data(self) -> None:
+        columns = format_data_columns(
+            [],
+            ["event_time", "enabled", "amount", "label"],
+            [
+                GenericDataType.TEMPORAL,
+                GenericDataType.BOOLEAN,
+                GenericDataType.NUMERIC,
+                GenericDataType.STRING,
+            ],
+        )
+
+        assert [column.data_type for column in columns] == [
+            "temporal",
+            "boolean",
+            "numeric",
+            "string",
+        ]
+        assert all(column.sample_values == [] for column in columns)
+
     def test_null_and_unique_counts_reflect_full_small_dataset(self) -> None:
         """Should count nulls/uniques across all rows when under the cap."""
         data: list[dict[str, Any]] = [
@@ -107,3 +171,41 @@ class TestFormatDataColumns:
         columns = format_data_columns(data, ["region", "revenue"])
 
         assert [c.name for c in columns] == ["region", "revenue"]
+
+    def test_wide_sparse_metadata_uses_shared_row_column_work_budget(self) -> None:
+        """50k sparse rows and 4096 columns must not trigger 204.8m scans."""
+        row_count = 50_000
+        column_count = 4096
+        rows: list[dict[str, Any]] = [{} for _ in range(row_count)]
+        raw_columns = [f"column_{index}" for index in range(column_count)]
+
+        columns = format_data_columns(rows, raw_columns)
+
+        sampled_rows = data_column_stats_row_limit(row_count, column_count)
+        assert sampled_rows == STATS_TOTAL_WORK_CAP // column_count
+        assert len(columns) == column_count
+        assert columns[0].statistics == {"sampled_rows": sampled_rows}
+        assert columns[-1].statistics == {"sampled_rows": sampled_rows}
+
+    def test_sampled_all_null_completeness_uses_sample_denominator(self) -> None:
+        for row_count in (10_000, 50_000):
+            rows = [{"value": None} for _ in range(row_count)]
+            columns = format_data_columns(rows, ["value"], [GenericDataType.NUMERIC])
+
+            assert format_data_quality(columns, row_count) == {
+                "completeness": 0.0,
+                "completeness_is_approximate": True,
+                "sampled_rows": STATS_ROW_CAP,
+            }
+
+    def test_exact_mixed_and_empty_completeness(self) -> None:
+        rows: list[dict[str, Any]] = [
+            {"left": 1, "right": None},
+            {"left": None, "right": 2},
+            {"left": 3, "right": 4},
+            {"left": None, "right": None},
+        ]
+        columns = format_data_columns(rows, ["left", "right"])
+
+        assert format_data_quality(columns, len(rows)) == {"completeness": 0.5}
+        assert format_data_quality([], 0) == {"completeness": 1.0}

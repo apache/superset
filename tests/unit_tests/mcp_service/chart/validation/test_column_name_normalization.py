@@ -120,6 +120,35 @@ class TestGetCanonicalColumnName:
         )
         assert result == "unknown_column"
 
+    def test_exact_match_wins_but_ambiguous_casefold_is_rejected(self) -> None:
+        context = DatasetContext(
+            id=1,
+            table_name="ambiguous",
+            schema=None,
+            database_name="main",
+            available_columns=[
+                {"name": "Revenue", "type": "NUMERIC"},
+                {"name": "revenue", "type": "NUMERIC"},
+            ],
+            available_metrics=[],
+        )
+        assert DatasetValidator.get_canonical_column_name("Revenue", context) == (
+            "Revenue"
+        )
+        with pytest.raises(ValueError, match="Revenue, revenue"):
+            DatasetValidator.get_canonical_column_name("REVENUE", context)
+
+    def test_normalization_preserves_top_level_field_provenance(
+        self, mock_dataset_context: DatasetContext
+    ) -> None:
+        config = TableChartConfig(columns=[ColumnRef(name="sales")])
+        normalized = DatasetValidator.normalize_column_names(
+            config, 18, dataset_context=mock_dataset_context
+        )
+        assert normalized.columns[0].name == "Sales"
+        assert normalized.model_fields_set == {"columns"}
+        assert "filters" not in normalized.model_fields_set
+
 
 class TestNormalizeFilters:
     """Test normalize_filters static method."""

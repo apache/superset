@@ -42,11 +42,18 @@ from superset.mcp_service.chart.chart_utils import (
     map_config_to_form_data,
     merge_chart_form_data,
     merge_interactive_pivot_ui_config,
+    merge_same_viz_form_data,
     merge_table_column_config,
+    merge_update_form_data,
+    validate_merged_bullet_form_data,
 )
 from superset.mcp_service.chart.compile import validate_and_compile
+from superset.mcp_service.chart.response_preflight import (
+    preflight_generate_chart_response,
+)
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
+    BulletChartConfig,
     ChartConfig,
     ColumnRef,
     GaugeChartConfig,
@@ -65,6 +72,13 @@ from superset.utils import json
 logger = logging.getLogger(__name__)
 
 
+def _bounded_update_response(payload: object) -> GenerateChartResponse:
+    """Validate and preflight one complete update-chart response."""
+    return preflight_generate_chart_response(
+        GenerateChartResponse.model_validate(payload)
+    )
+
+
 def _get_existing_form_data(chart: Any) -> dict[str, Any]:
     """Return a chart's saved form data, treating malformed params as empty."""
     if not getattr(chart, "params", None):
@@ -80,7 +94,7 @@ def _get_existing_form_data(chart: Any) -> dict[str, Any]:
 
 
 def _validation_error_response(message: str, details: str) -> GenerateChartResponse:
-    return GenerateChartResponse.model_validate(
+    return _bounded_update_response(
         {
             "chart": None,
             "error": {
@@ -115,6 +129,16 @@ def _wrapped_form_data_for_response(
     """Return form data without changing SQL metric strings."""
     payload = dict(new_form_data) if new_form_data is not None else {}
     return payload
+
+
+def _canonicalize_form_data_datasource(
+    form_data: dict[str, Any],
+    dataset_id: int | None,
+    datasource_type: str = "table",
+) -> None:
+    """Bind operation form data to the effective datasource after all merges."""
+    if dataset_id is not None:
+        form_data["datasource"] = f"{dataset_id}__{datasource_type}"
 
 
 def _entry_key(entry: Any) -> str:
@@ -389,12 +413,28 @@ def _build_replacement_form_data(
         dataset_rebind = False
     merge_table_column_config(existing_form_data, new_form_data)
     merge_interactive_pivot_ui_config(existing_form_data, new_form_data)
-    merged = _merge_replacement_config(
-        existing_form_data,
-        new_form_data,
-        parsed_config,
-        dataset_rebind=dataset_rebind,
-    )
+    if isinstance(parsed_config, BulletChartConfig):
+        merge_update_form_data(existing_form_data, new_form_data, parsed_config)
+        merged = new_form_data
+    else:
+        merged = _merge_replacement_config(
+            existing_form_data,
+            new_form_data,
+            parsed_config,
+            dataset_rebind=dataset_rebind,
+        )
+        merge_update_form_data(existing_form_data, merged, parsed_config)
+        merge_same_viz_form_data(existing_form_data, merged, parsed_config)
+        for config_field, form_data_field in (
+            ("group_by", "groupby"),
+            ("group_by_secondary", "groupby_b"),
+            ("sort_by", "order_by_cols"),
+        ):
+            if (
+                config_field in parsed_config.model_fields_set
+                and getattr(parsed_config, config_field, None) == []
+            ):
+                merged.pop(form_data_field, None)
     if replacement_dataset_id is not None:
         merged["datasource"] = f"{replacement_dataset_id}__table"
     return merged
@@ -428,6 +468,7 @@ def _build_update_payload(
                 else None
             ),
         )
+        _canonicalize_form_data_datasource(new_form_data, effective_dataset_id)
 
         chart_name = (
             request.chart_name
@@ -455,6 +496,7 @@ def _build_update_payload(
         patched = _append_table_columns(existing_form_data, request.add_columns)
         if isinstance(patched, GenerateChartResponse):
             return patched
+        _canonicalize_form_data_datasource(patched, effective_dataset_id)
         chart_name = request.chart_name or chart.slice_name
         additive_payload: dict[str, Any] = {
             "slice_name": chart_name,
@@ -469,9 +511,13 @@ def _build_update_payload(
 
     # Dataset-only update: rebind chart to a different dataset without changing viz
     if request.dataset_id is not None:
+        rebound_form_data = _get_existing_form_data(chart)
+        _canonicalize_form_data_datasource(rebound_form_data, request.dataset_id)
         payload = {
             "datasource_id": request.dataset_id,
             "datasource_type": "table",
+            "params": json.dumps(rebound_form_data),
+            "query_context": None,
         }
         if request.chart_name:
             payload["slice_name"] = request.chart_name
@@ -530,8 +576,7 @@ def _build_preview_form_data(
         merged["slice_name"] = chart.slice_name
 
     merged["slice_id"] = chart.id
-    if effective_dataset_id:
-        merged["datasource"] = f"{effective_dataset_id}__table"
+    _canonicalize_form_data_datasource(merged, effective_dataset_id)
 
     return merged
 
@@ -549,8 +594,9 @@ def _validate_update_against_dataset(
 
     When ``dataset_id`` is provided, validates against that dataset instead of
     the chart's existing datasource (used when rebinding to a new dataset).
-    Pass ``run_compile_check=False`` to skip the Tier 2 live-query check (used
-    for dataset-only rebinds where no new chart config is provided).
+    ``parsed_config`` may be None for a native dataset-only rebind; in that
+    case the merged form data is validated through the canonical native query
+    contract before the same query is compiled against the target dataset.
     """
     from superset.daos.dataset import DatasetDAO
 
@@ -566,7 +612,7 @@ def _validate_update_against_dataset(
             if dataset_id is not None
             else getattr(chart, "datasource_id", None)
         )
-        return GenerateChartResponse.model_validate(
+        return _bounded_update_response(
             {
                 "chart": None,
                 "error": {
@@ -578,6 +624,15 @@ def _validate_update_against_dataset(
                 "schema_version": "2.0",
                 "api_version": "v1",
             }
+        )
+
+    try:
+        if merged_config := validate_merged_bullet_form_data(form_data, parsed_config):
+            parsed_config = merged_config
+    except (TypeError, ValueError) as ex:
+        return _validation_error_response(
+            message="Merged Bullet chart configuration is invalid.",
+            details=str(ex),
         )
 
     compile_result = validate_and_compile(
@@ -601,7 +656,7 @@ def _validate_update_against_dataset(
             "error_code": compile_result.error_code,
             "suggestions": [],
         }
-    return GenerateChartResponse.model_validate(
+    return _bounded_update_response(
         {
             "chart": None,
             "error": error_payload,
@@ -778,7 +833,7 @@ async def update_chart(  # noqa: C901
                 f"No chart found with identifier: {display_id}."
                 " Use list_charts to get valid chart IDs."
             )
-            return GenerateChartResponse.model_validate(
+            return _bounded_update_response(
                 {
                     "chart": None,
                     "error": {
@@ -816,7 +871,7 @@ async def update_chart(  # noqa: C901
         validation_result = check_chart_data_access(chart)
         if not validation_result.is_valid:
             error_msg = validation_result.error or "Chart's dataset is not accessible"
-            return GenerateChartResponse.model_validate(
+            return _bounded_update_response(
                 {
                     "chart": None,
                     "error": {
@@ -856,7 +911,6 @@ async def update_chart(  # noqa: C901
         if validation_config is not None and effective_norm_dataset_id is not None:
             from superset.mcp_service.chart.validation.dataset_validator import (
                 DatasetValidator,
-                NORMALIZATION_EXCEPTIONS,
             )
 
             try:
@@ -869,7 +923,12 @@ async def update_chart(  # noqa: C901
                     request = request.model_copy(
                         update={"add_columns": validation_config.columns}
                     )
-            except NORMALIZATION_EXCEPTIONS as e:
+            except ValueError as e:
+                return _validation_error_response(
+                    message="Chart references could not be canonicalized.",
+                    details=str(e),
+                )
+            except (ImportError, AttributeError, KeyError, TypeError) as e:
                 logger.warning(
                     "Column normalization failed for chart %s: %s", chart.id, e
                 )
@@ -900,16 +959,14 @@ async def update_chart(  # noqa: C901
                 if validation_error is not None:
                     return validation_error
             elif request.dataset_id is not None:
-                # Dataset-only rebind: verify the target dataset exists before
-                # writing. Skip compile check — there is no new chart config to
-                # execute against the new dataset.
+                # Dataset-only rebinds validate and compile the full native
+                # chart state against the target before persistence.
                 with event_logger.log_context(action="mcp.update_chart.validation"):
                     validation_error = _validate_update_against_dataset(
                         None,
-                        {},
+                        new_form_data or {},
                         chart,
                         dataset_id=request.dataset_id,
-                        run_compile_check=False,
                     )
                 if validation_error is not None:
                     return validation_error
@@ -939,15 +996,14 @@ async def update_chart(  # noqa: C901
                 if validation_error is not None:
                     return validation_error
             elif request.dataset_id is not None:
-                # Dataset-only rebind: verify the target dataset exists before
-                # caching. Skip compile check — no new config to execute.
+                # Preview-first rebinds use the same fail-closed native compile
+                # gate before the merged form data can enter the cache.
                 with event_logger.log_context(action="mcp.update_chart.validation"):
                     validation_error = _validate_update_against_dataset(
                         None,
-                        {},
+                        preview_or_error,
                         chart,
                         dataset_id=request.dataset_id,
-                        run_compile_check=False,
                     )
                 if validation_error is not None:
                     return validation_error
@@ -1069,14 +1125,14 @@ async def update_chart(  # noqa: C901
             "schema_version": "2.0",
             "api_version": "v1",
         }
-        return GenerateChartResponse.model_validate(result)
+        return _bounded_update_response(result)
 
     except OAuth2RedirectError as ex:
         await ctx.warning(
             "Chart update requires OAuth authentication: identifier=%s"
             % request.identifier
         )
-        return GenerateChartResponse.model_validate(
+        return _bounded_update_response(
             {
                 "chart": None,
                 "success": False,
@@ -1089,7 +1145,7 @@ async def update_chart(  # noqa: C901
         )
     except OAuth2Error:
         await ctx.error("OAuth2 configuration error: chart_id=%s" % request.identifier)
-        return GenerateChartResponse.model_validate(
+        return _bounded_update_response(
             {
                 "chart": None,
                 "success": False,
@@ -1116,7 +1172,7 @@ async def update_chart(  # noqa: C901
                 "Database rollback failed during error handling", exc_info=True
             )
         execution_time = int((time.time() - start_time) * 1000)
-        return GenerateChartResponse.model_validate(
+        return _bounded_update_response(
             {
                 "chart": None,
                 "error": {

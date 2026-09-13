@@ -53,7 +53,7 @@ class AmbiguousDatasetReferenceError(ValueError):
         self.name = name
         self.matches = sorted(matches)
         self.reference_kind = reference_kind
-        choices = ", ".join(repr(match) for match in self.matches)
+        choices = ", ".join(self.matches)
         super().__init__(
             f"{reference_kind.capitalize()} reference {name!r} is ambiguous because "
             f"the dataset contains names that differ only by case: {choices}. "
@@ -83,6 +83,42 @@ def is_numeric_column(column: Mapping[str, Any]) -> bool:
     if column.get("is_numeric", False):
         return True
     return bool(_NUMERIC_TYPE_PATTERN.search(str(column.get("type") or "").upper()))
+
+
+def resolve_dataset_column(
+    column_name: str, dataset_context: DatasetContext
+) -> Mapping[str, Any] | None:
+    """Resolve an exact, otherwise unique case-insensitive dataset column.
+
+    Metadata ordering must never decide which SQL type is used for validation.
+    Exact case is authoritative; a case-insensitive fallback is safe only when
+    it identifies one column.
+    """
+
+    exact = [
+        column
+        for column in dataset_context.available_columns
+        if column["name"] == column_name
+    ]
+    if len(exact) == 1:
+        return exact[0]
+    if len(exact) > 1:
+        raise ValueError(f"Duplicate exact dataset column {column_name!r}")
+
+    folded = [
+        column
+        for column in dataset_context.available_columns
+        if column["name"].casefold() == column_name.casefold()
+    ]
+    if len(folded) == 1:
+        return folded[0]
+    if len(folded) > 1:
+        raise AmbiguousDatasetReferenceError(
+            column_name,
+            [column["name"] for column in folded],
+            "column",
+        )
+    return None
 
 
 def is_dataset_column_temporal(
@@ -155,8 +191,8 @@ def build_dataset_context_from_orm(dataset: Any) -> DatasetContext | None:
     database_name = getattr(database, "database_name", None) or ""
     return DatasetContext(
         id=dataset.id,
-        table_name=dataset.table_name,
-        schema=dataset.schema,
+        table_name=getattr(dataset, "table_name", str(dataset.id)),
+        schema=getattr(dataset, "schema", None),
         database_name=database_name,
         available_columns=columns,
         available_metrics=metrics,
@@ -251,21 +287,15 @@ class DatasetValidator:
             return None
 
         try:
-            resolved_name = resolve_dataset_reference(
-                temporal_column,
-                (column["name"] for column in dataset_context.available_columns),
-                "physical column",
+            matching_column = resolve_dataset_column(temporal_column, dataset_context)
+        except ValueError as ex:
+            return ChartGenerationError(
+                error_type="ambiguous_column_reference",
+                message=f"Temporal column '{temporal_column}' is ambiguous",
+                details=str(ex),
+                suggestions=["Use the exact-case dataset column name"],
+                error_code="AMBIGUOUS_COLUMN_REFERENCE",
             )
-        except AmbiguousDatasetReferenceError as ex:
-            return DatasetValidator._build_ambiguous_reference_error(ex)
-        matching_column = next(
-            (
-                column
-                for column in dataset_context.available_columns
-                if column["name"] == resolved_name
-            ),
-            None,
-        )
         if matching_column is None:
             return ChartGenerationError(
                 error_type="missing_temporal_column",
@@ -513,6 +543,25 @@ class DatasetValidator:
             The canonical column name from the dataset, or the original name
             if no match is found.
         """
+        names = [col["name"] for col in dataset_context.available_columns]
+        names.extend(metric["name"] for metric in dataset_context.available_metrics)
+        if column_name in names:
+            return column_name
+
+        candidates = [
+            name for name in names if name.casefold() == column_name.casefold()
+        ]
+        if len(candidates) == 1:
+            return candidates[0]
+        if len(candidates) > 1:
+            raise AmbiguousDatasetReferenceError(
+                column_name,
+                candidates,
+                "column or metric",
+            )
+
+        # Return original if not found (validation should catch this case)
+        return column_name
         resolved_column = resolve_dataset_reference(
             column_name,
             (col["name"] for col in dataset_context.available_columns),
@@ -542,6 +591,21 @@ class DatasetValidator:
         Returns the original name when no metric matches (validation catches
         the missing-metric case separately).
         """
+        names = [metric["name"] for metric in dataset_context.available_metrics]
+        if metric_name in names:
+            return metric_name
+        candidates = [
+            name for name in names if name.casefold() == metric_name.casefold()
+        ]
+        if len(candidates) == 1:
+            return candidates[0]
+        if len(candidates) > 1:
+            raise AmbiguousDatasetReferenceError(
+                metric_name,
+                candidates,
+                "metric",
+            )
+        return metric_name
         return (
             resolve_dataset_reference(
                 metric_name,
@@ -613,6 +677,7 @@ class DatasetValidator:
             )
             return config
 
+        explicit_fields = set(config.model_fields_set)
         normalized_config = plugin.normalize_column_refs(config, dataset_context)
         if temporal_column := getattr(normalized_config, "temporal_column", None):
             canonical_temporal_column = DatasetValidator.get_canonical_column_name(
@@ -622,6 +687,9 @@ class DatasetValidator:
                 normalized_config = normalized_config.model_copy(
                     update={"temporal_column": canonical_temporal_column}
                 )
+        # Plugin implementations may rebuild the model from a full dump. Keep
+        # caller provenance intact so omitted update fields remain omissions.
+        normalized_config.__pydantic_fields_set__ = explicit_fields
         return normalized_config
 
     @staticmethod
@@ -778,23 +846,20 @@ class DatasetValidator:
                 continue
 
             try:
-                resolved_name = resolve_dataset_reference(
-                    col_ref.name,
-                    (col["name"] for col in dataset_context.available_columns),
-                    "physical column",
+                col_info = resolve_dataset_column(col_ref.name, dataset_context)
+            except ValueError as ex:
+                errors.append(
+                    ChartGenerationError(
+                        error_type="ambiguous_column_reference",
+                        message=(
+                            f"Aggregate column '{col_ref.name}' is ambiguous by case"
+                        ),
+                        details=str(ex),
+                        suggestions=["Use the exact-case dataset column name"],
+                        error_code="AMBIGUOUS_COLUMN_REFERENCE",
+                    )
                 )
-            except AmbiguousDatasetReferenceError as ex:
-                errors.append(DatasetValidator._build_ambiguous_reference_error(ex))
                 continue
-            col_info = next(
-                (
-                    col
-                    for col in dataset_context.available_columns
-                    if col["name"] == resolved_name
-                ),
-                None,
-            )
-
             if col_info:
                 # Check numeric aggregates on non-numeric columns.
                 # MIN and MAX are intentionally excluded: they work on dates
