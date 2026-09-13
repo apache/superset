@@ -462,6 +462,73 @@ async def metrics_guide(ctx: Context) -> str:
     """
 ```
 
+## Built-in Dashboard Governance Tools
+
+Superset ships three built-in MCP tools for dashboard governance:
+`manage_dashboard_owners`, `manage_dashboard_roles`, and
+`manage_dashboard_certification`. They exist alongside the generic
+`update_dashboard` tool because a few governance fields are unsafe to expose
+as full-replacement lists to an LLM caller — each tool instead takes
+explicit, narrow operations with its own safety semantics.
+
+### `manage_dashboard_owners`
+
+Adds or removes dashboard owners (the USER-type entries in the dashboard's
+Subject-based `editors` list) via `add_owner_ids`/`remove_owner_ids`, never
+a full-replacement list. This guards against the "empty owners" footgun:
+`update_dashboard` intentionally dropped its `owners` field because a
+full-replacement list has no way to prevent an admin from emptying it
+outright.
+
+- **Owner-removal guard**: a request that would leave the dashboard with
+  zero owners is rejected. To transfer ownership, add the new owner in the
+  same call as removing the last existing one.
+- **Self-removal protection**: a non-admin caller who removes themselves is
+  automatically re-added, mirroring the lockout protection
+  `update_dashboard` already relies on (unless an `EXTRA_EDITORS_RESOLVER`
+  is configured). The response's `warnings` reports when this happens.
+- ROLE- or GROUP-type editors already on the dashboard are left untouched.
+- A no-op request (e.g. "adding" an ID that's already an owner) returns an
+  empty `owners` list rather than the full current set, so the tool can't
+  be used as a disguised directory lookup.
+
+### `manage_dashboard_roles`
+
+Adds or removes dashboard access roles (the ROLE-type entries in the
+dashboard's Subject-based `viewers` list) via
+`add_role_ids`/`remove_role_ids`, never a full-replacement list. This
+guards against silently widening or narrowing who can see a dashboard,
+which is why `update_dashboard` dropped its `roles` field.
+
+- **`ENABLE_VIEWERS` gating**: dashboard access roles only take effect when
+  the `ENABLE_VIEWERS` feature flag is enabled. The response always reports
+  the flag's current state via `viewers_enabled`, and `warnings` notes when
+  a change was applied but has no live effect (the roles list is still
+  stored either way — an empty roles list simply means "no role
+  restriction", i.e. normal permissions apply).
+- USER- or GROUP-type viewers already on the dashboard are left untouched.
+- Like `manage_dashboard_owners`, a no-op request returns an empty `roles`
+  list instead of the full current set, to avoid a disguised directory
+  lookup.
+
+### `manage_dashboard_certification`
+
+Sets or clears the `certified_by`/`certification_details` badge fields,
+split out from `update_dashboard` because certification is a distinct
+governance concern from layout/theme/metadata edits.
+
+- **Clear-vs-unchanged convention**: `certified_by` and
+  `certification_details` are independent optional fields — omit a field
+  (`None`) to leave it unchanged, pass an empty string to clear it, or pass
+  a value to set it. This mirrors the `slug`/`css` clear-with-empty-string
+  convention already used by `update_dashboard`.
+- Both fields are sanitized before being stored, since they render as a UI
+  badge/tooltip next to the dashboard title. An input that sanitizes down
+  to nothing (HTML-only or whitespace-only) is rejected rather than
+  silently clearing the field — callers must pass an explicit empty string
+  to clear.
+- The response's `changed_fields` lists which fields were actually applied.
+
 ## Next Steps
 
 - **[Development](./development.md)** - Project structure, APIs, and dev workflow
