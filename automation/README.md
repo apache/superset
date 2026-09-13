@@ -167,6 +167,34 @@ status.sh
 [app.devin.ai/settings/api-keys](https://app.devin.ai/settings/api-keys)) is
 optional and adds the Devin session list. Neither script writes to GitHub.
 
+## Resilience: the orchestrator
+
+`automation/orchestrator/` is a small Python package (`requests` + `tenacity`)
+that the dispatcher and fix sessions call instead of raw `curl`/`gh`, so the
+error handling is code that is tested, not prose the model re-interprets:
+
+```bash
+pip install -r automation/requirements.txt          # already in the toolbox image
+export GH_TOKEN=... DEVIN_API_KEY=...
+
+python -m automation.orchestrator dispatch --prompt-file fix-prompt.md [--cap 30] [--dry-run]
+python -m automation.orchestrator watch-session <session_id> --issue <N> [--timeout-minutes 90]
+python -m automation.orchestrator stale-branches [--days 3] [--delete]
+python -m pytest automation/tests                   # fake-API tests for all of the below
+```
+
+| Concern | What the code does |
+|---|---|
+| **429 / rate-limited 403** | Retried for every request with exponential backoff + full jitter (`tenacity`), honouring `Retry-After` / `X-RateLimit-Reset`; capped at 6 attempts / 120 s per wait / 15 min total (`RETRY_*` env vars). |
+| **5xx / timeouts** | Retried for reads. For writes (create session, comment) they raise `AmbiguousWriteError` and the caller **probes before writing again** — a POST that landed but whose reply was lost is found, not duplicated. |
+| **Other 4xx** | Fail immediately (`PermanentError`); never retried. |
+| **Idempotency** | Sessions are keyed by title (`Fix <category> issue #N`), dashboard comments by a hidden `<!-- devin:key -->` marker and edited in place, issues by PR body / branch name. |
+| **Per-issue failure** | `dispatch` catches the error, records `❌ failed` for that issue in the dashboard table, and continues with the next one. Exit code 1 if anything failed. |
+| **Orchestrator timeout** | `watch-session` polls `GET /sessions/{id}` and stops after `--timeout-minutes` regardless of what the Devin UI says. |
+| **PR check** | A session only counts as success when `pull_request` is non-null; `completed` + no PR is `❌ Failed - session finished but pull_request is null`. |
+| **Cleanup** | In a `finally`, `watch-session` posts the outcome to issue #18 and, on failure, deletes the `devin/nightly-fix-<N>-*` branch unless a PR (any state) references it. `stale-branches` finds leftovers older than `--days` with no open/merged PR. |
+| **Logging** | Standard `logging` to stderr, every line carries the context: `[Issue #14] create session ...: HTTP 500 ... Attempt 2/6 failed, retrying in 3.2s`. Tokens are only ever sent as headers, never logged. |
+
 ## Manually triggering a run
 
 From the Devin web app open the automation and use **Run now**; a manual run

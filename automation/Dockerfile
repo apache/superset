@@ -57,7 +57,9 @@ RUN apt-get update \
 
 # Same scanners the nightly-scan automation installs. ruff is pinned to the
 # version in requirements/development.txt so results match CI.
-RUN pip install pip-audit bandit radon "ruff==${RUFF_VERSION}"
+COPY automation/requirements.txt /tmp/automation-requirements.txt
+RUN pip install pip-audit bandit radon "ruff==${RUFF_VERSION}" \
+    -r /tmp/automation-requirements.txt
 
 COPY automation/scripts/ /usr/local/bin/
 RUN chmod +x /usr/local/bin/*.sh \
