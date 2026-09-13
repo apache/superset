@@ -91,6 +91,7 @@ import {
   mergeExtraFormData,
 } from 'src/dashboard/components/nativeFilters/utils';
 import { DatasetSelectLabel } from 'src/features/datasets/DatasetSelectLabel';
+import { ChartCustomizationPlugins } from 'src/constants';
 import {
   ALLOW_DEPENDENCIES as TYPES_SUPPORT_DEPENDENCIES,
   getFiltersConfigModalTestId,
@@ -389,6 +390,12 @@ const FiltersConfigForm = (
     // @ts-expect-error
     !!nativeFilterAndCustomizationItems[itemTypeField]?.value?.datasourceCount;
 
+  // The Dynamic Group By customization lets builders curate which columns
+  // viewers may group by via a column allowlist (stored in controlValues).
+  const isDynamicGroupBy =
+    isChartCustomization &&
+    itemTypeField === ChartCustomizationPlugins.DynamicGroupBy;
+
   const getDatasetId = () => {
     if (isChartCustomization) {
       if (formFilter?.dataset?.value) {
@@ -579,6 +586,37 @@ const FiltersConfigForm = (
       if (triggerFormChange) formChanged();
     },
     [filterId, form, formChanged],
+  );
+
+  // Seed a NEW Dynamic Group By control's allowlist with every groupable
+  // column so it defaults to "all selected" (builders can then deselect to
+  // restrict). Only seeds when no allowlist is set yet — a freshly created
+  // control, or one whose dataset just changed (which clears the allowlist).
+  // An existing selection, including a deliberately narrowed or emptied one,
+  // is never overwritten. The column names come from the same source that
+  // populates the multi-select options, so the default matches exactly what
+  // the builder can choose from. Seeding does not mark the form as changed, so
+  // editing a legacy control that never stored an allowlist stays a no-op
+  // unless the builder actually narrows the selection.
+  const seedGroupByAllowlist = useCallback(
+    (columnNames: string[]) => {
+      if (!isDynamicGroupBy || columnNames.length === 0) {
+        return;
+      }
+      const currentControlValues =
+        form.getFieldValue(['filters', filterId, 'controlValues']) || {};
+      if (currentControlValues.columnsAllowlist !== undefined) {
+        return;
+      }
+      setNativeFilterFieldValues(form, filterId, {
+        controlValues: {
+          ...currentControlValues,
+          columnsAllowlist: columnNames,
+        },
+      });
+      forceUpdate();
+    },
+    [isDynamicGroupBy, form, filterId, forceUpdate],
   );
 
   const hasPreFilter =
@@ -1166,6 +1204,20 @@ const FiltersConfigForm = (
                                 datasourceType: newDatasourceType,
                                 defaultDataMask: null,
                                 column: null,
+                                // Columns are dataset-specific, so clear the
+                                // Group By allowlist when the dataset changes to
+                                // avoid stale entries. Clearing it to undefined
+                                // lets seedGroupByAllowlist re-seed the default
+                                // (all groupable columns) once the new dataset's
+                                // columns load.
+                                ...(isDynamicGroupBy
+                                  ? {
+                                      controlValues: {
+                                        ...formFilter?.controlValues,
+                                        columnsAllowlist: undefined,
+                                      },
+                                    }
+                                  : {}),
                               });
                             }
                             forceUpdate();
@@ -1207,6 +1259,55 @@ const FiltersConfigForm = (
                               : FilterPanels.configuration.name,
                             children: (
                               <>
+                                {isDynamicGroupBy &&
+                                  hasDataset &&
+                                  showDataset && (
+                                    <StyledRowFormItem
+                                      expanded={expanded}
+                                      name={[
+                                        'filters',
+                                        filterId,
+                                        'controlValues',
+                                        'columnsAllowlist',
+                                      ]}
+                                      initialValue={
+                                        customizationToEdit?.controlValues
+                                          ?.columnsAllowlist
+                                      }
+                                      label={
+                                        <>
+                                          <StyledLabel>
+                                            {t('Groupable columns')}
+                                          </StyledLabel>
+                                          &nbsp;
+                                          <InfoTooltip
+                                            placement="top"
+                                            tooltip={t(
+                                              'Columns viewers are allowed to group by. Leave empty to allow all groupable columns.',
+                                            )}
+                                          />
+                                        </>
+                                      }
+                                      data-test="groupby-columns-allowlist"
+                                    >
+                                      <ColumnSelect
+                                        mode="multiple"
+                                        allowClear
+                                        form={form}
+                                        filterId={filterId}
+                                        datasetId={datasetId}
+                                        datasourceType={datasourceType}
+                                        filterValues={(column: Column) =>
+                                          !!column?.filterable
+                                        }
+                                        onColumnsLoaded={seedGroupByAllowlist}
+                                        onChange={() => {
+                                          forceUpdate();
+                                          formChanged();
+                                        }}
+                                      />
+                                    </StyledRowFormItem>
+                                  )}
                                 {canDependOnOtherFilters &&
                                   (hasAvailableFilters ||
                                     dependencies.length > 0) && (
