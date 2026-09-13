@@ -344,9 +344,18 @@ export default function exploreReducer(
     [actions.SET_FIELD_VALUE]() {
       const typedAction = action as SetFieldValueAction;
       const { controlName, value, validationErrors } = typedAction;
+      // Normalize server_page_length to number if it's a non-empty string
+      // representing an integer
+      const normalizedValue: unknown =
+        controlName === 'server_page_length' &&
+        typeof value === 'string' &&
+        value.trim() !== '' &&
+        Number.isInteger(Number(value))
+          ? Number(value)
+          : value;
       let new_form_data: QueryFormData & { [key: string]: unknown } = {
         ...state.form_data,
-        [controlName]: value,
+        [controlName]: normalizedValue,
       };
       const old_metrics_data = (state.form_data as { metrics?: MetricItem[] })
         .metrics;
@@ -398,7 +407,7 @@ export default function exploreReducer(
             typeof getControlStateFromControlConfig
           >[0],
           state as Parameters<typeof getControlStateFromControlConfig>[1],
-          value as JsonValue,
+          normalizedValue as JsonValue,
         ),
       } as ExtendedControlState;
 

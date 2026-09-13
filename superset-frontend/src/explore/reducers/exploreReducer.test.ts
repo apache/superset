@@ -123,3 +123,164 @@ test('SET_FIELD_VALUE clears the custom-shift date error when time_compare leave
   );
   expect(afterSwitch.controls.start_date_offset.validationErrors).toEqual([]);
 });
+
+// server_page_length is stored as a string when it comes from a freeForm
+// SelectControl, but the backend expects a number for comparison.
+test('normalizes server_page_length from string to number on SET_FIELD_VALUE', () => {
+  const initialState: ExploreState = {
+    form_data: { viz_type: 'table' } as unknown as QueryFormData,
+    controls: {},
+  };
+
+  const action = setControlValue('server_page_length', '100') as Parameters<
+    typeof exploreReducer
+  >[1];
+  const newState = exploreReducer(initialState, action);
+
+  expect(
+    (newState.form_data as unknown as { server_page_length: unknown })
+      .server_page_length,
+  ).toBe(100);
+  expect(
+    typeof (newState.form_data as unknown as { server_page_length: unknown })
+      .server_page_length,
+  ).toBe('number');
+});
+
+test('preserves server_page_length when already numeric', () => {
+  const initialState: ExploreState = {
+    form_data: { viz_type: 'table' } as unknown as QueryFormData,
+    controls: {},
+  };
+
+  const action = setControlValue('server_page_length', 100) as Parameters<
+    typeof exploreReducer
+  >[1];
+  const newState = exploreReducer(initialState, action);
+
+  expect(
+    (newState.form_data as unknown as { server_page_length: unknown })
+      .server_page_length,
+  ).toBe(100);
+});
+
+test('does not normalize other string control values', () => {
+  const initialState: ExploreState = {
+    form_data: { viz_type: 'table' } as unknown as QueryFormData,
+    controls: {},
+  };
+
+  const action = setControlValue('row_limit', '50') as Parameters<
+    typeof exploreReducer
+  >[1];
+  const newState = exploreReducer(initialState, action);
+
+  expect(
+    (newState.form_data as unknown as { row_limit: unknown }).row_limit,
+  ).toBe('50');
+});
+
+test('normalizes server_page_length from string "0" to number 0', () => {
+  const initialState: ExploreState = {
+    form_data: { viz_type: 'table' } as unknown as QueryFormData,
+    controls: {},
+  };
+
+  const action = setControlValue('server_page_length', '0') as Parameters<
+    typeof exploreReducer
+  >[1];
+  const newState = exploreReducer(initialState, action);
+
+  expect(
+    (newState.form_data as unknown as { server_page_length: unknown })
+      .server_page_length,
+  ).toBe(0);
+  expect(
+    typeof (newState.form_data as unknown as { server_page_length: unknown })
+      .server_page_length,
+  ).toBe('number');
+});
+
+test('preserves empty string for server_page_length for validation', () => {
+  const initialState: ExploreState = {
+    form_data: { viz_type: 'table' } as unknown as QueryFormData,
+    controls: {},
+  };
+
+  const action = setControlValue('server_page_length', '') as Parameters<
+    typeof exploreReducer
+  >[1];
+  const newState = exploreReducer(initialState, action);
+
+  expect(
+    (newState.form_data as unknown as { server_page_length: unknown })
+      .server_page_length,
+  ).toBe('');
+  expect(
+    typeof (newState.form_data as unknown as { server_page_length: unknown })
+      .server_page_length,
+  ).toBe('string');
+});
+
+test('preserves whitespace-only string for server_page_length for validation', () => {
+  const initialState: ExploreState = {
+    form_data: { viz_type: 'table' } as unknown as QueryFormData,
+    controls: {},
+  };
+
+  const action = setControlValue('server_page_length', '   ') as Parameters<
+    typeof exploreReducer
+  >[1];
+  const newState = exploreReducer(initialState, action);
+
+  expect(
+    (newState.form_data as unknown as { server_page_length: unknown })
+      .server_page_length,
+  ).toBe('   ');
+  expect(
+    typeof (newState.form_data as unknown as { server_page_length: unknown })
+      .server_page_length,
+  ).toBe('string');
+});
+
+test('preserves invalid string for server_page_length for validation', () => {
+  const initialState: ExploreState = {
+    form_data: { viz_type: 'table' } as unknown as QueryFormData,
+    controls: {},
+  };
+
+  const action = setControlValue('server_page_length', 'abc') as Parameters<
+    typeof exploreReducer
+  >[1];
+  const newState = exploreReducer(initialState, action);
+
+  expect(
+    (newState.form_data as unknown as { server_page_length: unknown })
+      .server_page_length,
+  ).toBe('abc');
+  expect(
+    typeof (newState.form_data as unknown as { server_page_length: unknown })
+      .server_page_length,
+  ).toBe('string');
+});
+
+test('preserves decimal string for server_page_length for validation', () => {
+  const initialState: ExploreState = {
+    form_data: { viz_type: 'table' } as unknown as QueryFormData,
+    controls: {},
+  };
+
+  const action = setControlValue('server_page_length', '10.5') as Parameters<
+    typeof exploreReducer
+  >[1];
+  const newState = exploreReducer(initialState, action);
+
+  expect(
+    (newState.form_data as unknown as { server_page_length: unknown })
+      .server_page_length,
+  ).toBe('10.5');
+  expect(
+    typeof (newState.form_data as unknown as { server_page_length: unknown })
+      .server_page_length,
+  ).toBe('string');
+});
