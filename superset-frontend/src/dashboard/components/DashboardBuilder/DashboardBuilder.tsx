@@ -87,6 +87,7 @@ import {
 } from 'src/dashboard/constants';
 import { selectCanRestoreDashboard } from 'src/features/versionHistory/canRestoreDashboard';
 import { selectIsDashboardVersionPreviewActive } from 'src/features/versionHistory/reducer';
+import { StickyTabsOffsetContext } from 'src/dashboard/components/gridComponents/TabsRenderer';
 import { getRootLevelTabsComponent, shouldFocusTabs } from './utils';
 import DashboardContainer from './DashboardContainer';
 import { useNativeFilters } from './state';
@@ -490,8 +491,9 @@ const DashboardBuilder = () => {
   // always get the desktop layout -- matching the pre-existing behavior the
   // docs already promise for embedded dashboards.
   const standaloneMode = getUrlParam(URL_PARAMS.standalone);
+  const isMobileViewport = useIsMobile();
   const isNotMobile =
-    !useIsMobile() || standaloneMode !== DashboardStandaloneMode.None;
+    !isMobileViewport || standaloneMode !== DashboardStandaloneMode.None;
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
   // Reset the drawer's open state when leaving mobile mode so it doesn't
@@ -774,6 +776,17 @@ const DashboardBuilder = () => {
     ? theme.sizeUnit * 4
     : theme.sizeUnit * 8;
 
+  // Tab bars nested in the grid pin just below the sticky header while the
+  // page scrolls. Not in the mobile viewport, where the header scrolls away
+  // and the mobile styling pins tab bars on its own; not in report mode,
+  // whose tiled screenshots scroll the page and would capture a pinned bar
+  // in every tile; and not while a chart is maximized, which sits inside its
+  // own stacking context and must not be covered by a pinned bar.
+  // (TabsRenderer itself opts out while editing, since drop targets rely on
+  // document flow.)
+  const stickyTabsOffset =
+    isMobileViewport || isReport || fullSizeChartId ? undefined : barTopOffset;
+
   const renderChild = useCallback(
     (adjustedWidth: number) => {
       const filterBarWidth = dashboardFiltersOpen
@@ -976,7 +989,9 @@ const DashboardBuilder = () => {
                   />
                 </div>
               ) : (
-                <DashboardContainer topLevelTabs={topLevelTabs} />
+                <StickyTabsOffsetContext.Provider value={stickyTabsOffset}>
+                  <DashboardContainer topLevelTabs={topLevelTabs} />
+                </StickyTabsOffsetContext.Provider>
               )
             ) : (
               <Loading />

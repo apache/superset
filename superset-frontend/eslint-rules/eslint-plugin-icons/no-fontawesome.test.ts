@@ -22,10 +22,8 @@
  * @author Apache
  */
 
-import type { Rule } from 'eslint';
-
-const { RuleTester } = require('eslint');
-const plugin: { rules: Record<string, Rule.RuleModule> } = require('.');
+import { RuleTester } from 'eslint';
+import plugin from '.';
 
 //------------------------------------------------------------------------------
 // Tests
@@ -36,7 +34,7 @@ const ruleTester = new RuleTester({
     parserOptions: { ecmaFeatures: { jsx: true } },
   },
 });
-const rule: Rule.RuleModule = plugin.rules['no-fa-icons-usage'];
+const rule = plugin.rules['no-fa-icons-usage'];
 
 const errors: Array<{ message: string }> = [
   {

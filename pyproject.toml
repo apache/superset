@@ -42,7 +42,7 @@ dependencies = [
     # ``google-auth`` 2.53+ dropped it, so Superset must declare it
     # explicitly to keep fresh ``pip install apache-superset`` working
     # without the ``base.txt`` lock file (#40962).
-    "cachetools>=7.1.7, <8",
+    "cachetools>=7.1.8, <8",
     "celery>=5.6.3, <6.0.0",
     "click>=8.5.0",
     "click-option-group",
@@ -50,11 +50,11 @@ dependencies = [
     "flask-cors>=6.0.5, <7.0",
     "croniter>=6.2.4",
     "cron-descriptor",
-    "cryptography>=50.0.0, <51.0.0",
+    "cryptography>=50.0.1, <51.0.0",
     "deprecation>=2.1.0, <2.2.0",
     "flask>=2.2.5, <4.0.0",
     "flask-appbuilder>=5.2.2, <6.0.0",
-    "flask-caching>=2.4.1, <3",
+    "flask-caching>=2.5.1, <3",
     "flask-compress>=1.13, <2.0",
     "flask-talisman>=1.0.0, <2.0",
     "flask-login>=0.6.0, < 1.0",
@@ -96,7 +96,7 @@ dependencies = [
     "pgsanity",
     "Pillow>=12.3.0, <13", # raise floor to match resolved pin; closes SCA false-positive on 11.x-range CVEs already fixed in 12.3.0
     "polyline>=2.0.4, <3.0",
-    "pydantic>=2.8.0",
+    "pydantic>=2.13.5",
     "pyparsing>=3.3.2, <4",
     "python-dateutil",
     "python-dotenv", # optional dependencies for Flask but required for Superset, see https://flask.palletsprojects.com/en/stable/installation/#optional-dependencies
@@ -117,7 +117,7 @@ dependencies = [
     # Dialect-specific gaps/bugs against this pin are worked around in
     # superset/sql/dialects/ (e.g. starrocks.py); check there for anything
     # that can be cleaned up when bumping
-    "sqlglot>=30.17.0, <31", # 30.16.0 adds Trino inline UDF IF/CASE routine statement parsing
+    "sqlglot>=30.18.0, <31", # 30.16.0 adds Trino inline UDF IF/CASE routine statement parsing
     # newer pandas needs 0.9+
     "tabulate>=0.10.0, <1.0",
     "typing-extensions>=4.16.0, <5",
@@ -130,7 +130,7 @@ dependencies = [
 
 [project.optional-dependencies]
 
-athena = ["pyathena[pandas]>=3.35.4, <4"]
+athena = ["pyathena[pandas]>=3.36.0, <4"]
 # No SQLAlchemy 2.0 support anywhere in this dialect's ecosystem today: our
 # own preset-io/sqlalchemy-aurora-data-api fork is dead since 2021, and the
 # more active community fork (cloud-utils/sqlalchemy-aurora-data-api) has an
@@ -142,19 +142,18 @@ bigquery = [
     # 1.17.1 is likely the final release: googleapis/python-bigquery-sqlalchemy
     # was archived 2026-05-16. Both 1.17.0 and 1.17.1 support SQLAlchemy 1.4/2.0.
     "sqlalchemy-bigquery>=1.17.2",
-    "google-cloud-bigquery>=3.42.3",
+    "google-cloud-bigquery>=3.44.0",
 ]
-clickhouse = ["clickhouse-connect>=1.7.2, <2.0"]
+clickhouse = ["clickhouse-connect>=1.8.0, <2.0"]
 # The `cockroachdb` PyPI package (last released 2021) is abandoned and its
 # SQLAlchemy dialect cannot even import under SQLAlchemy 2.0 (it references
 # sqlalchemy.dialects.postgresql.psycopg2.PGCompiler_psycopg2, removed in
 # 2.0). sqlalchemy-cockroachdb is the actively maintained replacement,
 # already linked from CockroachDbEngineSpec.metadata's docs_url, and
 # registers the same `cockroachdb` SQLAlchemy dialect entry point.
-# sqlalchemy-cockroachdb depends only on SQLAlchemy itself, not on a DBAPI
-# driver, so psycopg2-binary is pinned alongside it (matching the `postgres`
-# extra) to keep this extra self-contained -- CockroachDB speaks the
-# PostgreSQL wire protocol, so psycopg2 is what actually opens connections.
+# sqlalchemy-cockroachdb itself declares no DBAPI dependency (its own docs
+# require picking one), so pull in the same psycopg2-binary pin as the
+# `postgres` extra -- CockroachDB speaks the Postgres wire protocol.
 cockroachdb = ["sqlalchemy-cockroachdb>=2.0.0, <3", "psycopg2-binary==2.9.12"]
 crate = ["sqlalchemy-cratedb>=0.43.1, <1"]
 # sqlalchemy-d1's only release (0.1.0, Nov 2025) pins sqlalchemy<2,>=1.4,
@@ -167,7 +166,7 @@ d1 = [
 ]
 databend = ["databend-sqlalchemy>=0.5.5, <1.0"]
 databricks = [
-    "databricks-sql-connector>=4.4.0, <4.5.0",
+    "databricks-sql-connector>=4.5.0, <4.6.0",
     "databricks-sqlalchemy==1.0.5",
 ]
 datafusion = ["flightsql-dbapi>=0.2.2, <0.3"]
@@ -199,7 +198,11 @@ excel = ["xlrd>=2.0.2, <2.1"]
 excel-export = ["boto3"]
 fastmcp = [
     "fastmcp>=3.4.7,<4.0",
-    "mcp>=1.29.1,<3.0",
+    # fastmcp 3.x itself requires mcp<2.0; the upper bound here was looser
+    # than that until Dependabot proposed mcp 2.1.1 and the resolver caught
+    # the conflict (#43876). Capped to match what fastmcp 3.x actually
+    # supports until this extra moves to fastmcp 4.x, which accepts mcp 2.x.
+    "mcp>=1.29.1,<2.0",
     # tiktoken backs the response-size-guard token estimator. Without
     # it, the middleware falls back to a coarser character-based
     # heuristic that under-counts JSON-heavy MCP responses.
@@ -226,7 +229,12 @@ impala = ["impyla>=0.24.0, <0.25"]
 # superset/db_engine_specs/kusto.py's known_incompatibilities metadata.
 kusto = ["sqlalchemy-kusto>=3.1.2, <4"]
 kylin = ["kylinpy>=2.8.4, <2.9"]
-mssql = ["pymssql>=2.3.13, <3"]
+# MariaDB is a MySQL fork implementing the same wire protocol - connects via
+# the plain mysql dialect, same driver as mysql.
+mariadb = ["apache-superset[mysql]"]
+monetdb = ["sqlalchemy-monetdb>=2.1.0, <3", "pymonetdb>=1.9.1, <2"]
+mongodb = ["pymongosql>=0.7.4, <1"]
+mssql = ["pymssql>=2.4.0, <3"]
 # motherduck is an alias for duckdb - MotherDuck works via the duckdb driver
 motherduck = ["apache-superset[duckdb]"]
 mysql = ["mysqlclient>=2.2.8, <3"]
@@ -262,7 +270,7 @@ redshift = ["sqlalchemy-redshift>=1.0.0"]
 risingwave = ["sqlalchemy-risingwave>=2.0.0"]
 shillelagh = ["shillelagh[all]>=1.4.5, <2"]
 singlestore = ["sqlalchemy-singlestoredb>=1.2.1, <2"]
-snowflake = ["snowflake-sqlalchemy>=1.11.0, <2"]
+snowflake = ["snowflake-sqlalchemy>=1.11.1, <2"]
 sqlite = ["syntaqlite>=0.9.0,<0.10.0"]
 spark = [
     "pyhive[hive_pure_sasl]>=0.7",
@@ -273,22 +281,37 @@ tdengine = [
     "taospy>=2.8.10",
     "taos-ws-py>=0.7.0"
 ]
-teradata = ["teradatasql>=20.0.0.66"]
+teradata = ["teradatasql>=20.0.0.67"]
+# TimescaleDB is a genuine Postgres extension, not a fork - connects via the
+# plain postgresql dialect, same driver as postgres.
+timescaledb = ["apache-superset[postgres]"]
 thumbnails = [] # deprecated, will be removed in 7.0
 vertica = ["sqlalchemy-vertica-python>= 0.6.3, < 0.7"]
 netezza = ["nzalchemy>= 11.1.2, < 11.2"]
 starrocks = ["starrocks>=1.3.4, <2"]
 doris = ["pydoris>=1.2.0, <2.0.0"]
-oceanbase = ["oceanbase_py>=0.0.1.2"]
+# No `oceanbase` extra is published here: oceanbase_py pins
+# sqlalchemy-utils>=0.38.3,<0.39, which conflicts outright with Superset's
+# own sqlalchemy-utils==0.42.1 pin, so `pip install apache-superset[oceanbase]`
+# could never resolve. CI installs oceanbase_py as a standalone package with
+# --no-deps instead (see testcontainers.yml). Add the extra back once
+# oceanbase_py relaxes that pin.
 ydb = ["ydb-sqlalchemy>=0.1.22", "ydb-sqlglot-plugin>=0.2.8"]
+# YugabyteDB's YSQL layer is fully Postgres-wire compatible - connects via
+# the plain postgresql dialect, same driver as postgres.
+yugabytedb = ["apache-superset[postgres]"]
 development = [
     # no bounds for apache-superset-extensions-cli until a stable version
     "apache-superset-extensions-cli",
     "boto3",
-    "docker",
+    # 7.0.0 raises `docker.errors.DockerException: ... Not supported URL
+    # scheme http+docker` against the requests/urllib3 versions pinned
+    # elsewhere in this file -- breaks testcontainers (tests/testcontainers/)
+    # before any container even starts. 7.2.0 is confirmed working.
+    "docker>=7.2.0",
     "flask-testing",
     "freezegun",
-    "grpcio>=1.82.1",
+    "grpcio>=1.83.1",
     "openapi-spec-validator",
     "parameterized",
     "pip",
@@ -303,6 +326,7 @@ development = [
     "pytest-asyncio",
     "pytest-cov",
     "pytest-mock",
+    "pytest-xdist",
     "python-ldap>=3.4.7",
     "ruff",
     "sqloxide",

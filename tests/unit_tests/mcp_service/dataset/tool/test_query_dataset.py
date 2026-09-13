@@ -177,6 +177,8 @@ async def test_query_dataset_success(mcp_server: FastMCP) -> None:
     data = json.loads(result.content[0].text)
     assert data["dataset_id"] == 1
     assert data["dataset_name"] == "orders"
+    assert data["from_dttm"] is None
+    assert data["to_dttm"] is None
     assert data["row_count"] == 2
     assert len(data["data"]) == 2
     assert data["data"][0]["category"] == "Electronics"
@@ -1406,3 +1408,341 @@ async def test_query_dataset_bracket_hour_resolves_without_parse_error(
     assert since is not None
     assert until is not None
     assert since < until
+
+
+@pytest.mark.parametrize(
+    ("expression", "expected_start", "expected_end"),
+    [
+        ("Last month", "2026-06-17T00:00:00", "2026-07-17T00:00:00"),
+        ("Last year", "2025-07-17T00:00:00", "2026-07-17T00:00:00"),
+        ("previous calendar month", "2026-06-01T00:00:00", "2026-07-01T00:00:00"),
+        ("Current year", "2026-01-01T00:00:00", "2027-01-01T00:00:00"),
+        ("2025-06-01 : 2025-07-01", "2025-06-01T00:00:00", "2025-07-01T00:00:00"),
+        ("No filter", None, None),
+    ],
+)
+@pytest.mark.parametrize("use_filter", [False, True])
+@pytest.mark.parametrize("result_kind", ["fresh", "cached", "empty"])
+@pytest.mark.asyncio
+async def test_query_dataset_returns_engine_time_bounds(
+    mcp_server: FastMCP,
+    expression: str,
+    expected_start: str | None,
+    expected_end: str | None,
+    use_filter: bool,
+    result_kind: str,
+) -> None:
+    """Resolve MCP inputs with the real factory and serialize execution bounds."""
+    from flask import current_app
+    from freezegun import freeze_time
+
+    from superset.common.chart_data import ChartDataResultType
+    from superset.common.query_object_factory import QueryObjectFactory
+
+    dataset = _make_dataset(main_dttm_col="order_date")
+
+    def execute(
+        datasource_id: int, datasource_type: str, query_dict: dict[str, Any], **_: Any
+    ) -> dict[str, Any]:
+        """Use production date resolution in place of database execution."""
+        factory = QueryObjectFactory(current_app.config, MagicMock())
+        with freeze_time("2026-07-17 12:34:56"):
+            query = factory.create(
+                parent_result_type=ChartDataResultType.FULL,
+                **query_dict,
+            )
+        payload = _mock_command_result()
+        result = payload["queries"][0]
+        result.update(from_dttm=query.from_dttm, to_dttm=query.to_dttm)
+        result["is_cached"] = result_kind == "cached"
+        if result_kind == "empty":
+            result.update(data=[], colnames=[], rowcount=0)
+        return payload
+
+    request: dict[str, Any] = {"dataset_id": 1, "metrics": ["count"]}
+    if use_filter:
+        request["filters"] = [
+            {"col": "order_date", "op": "TEMPORAL_RANGE", "val": expression}
+        ]
+    else:
+        request["time_range"] = expression
+
+    with (
+        patch.object(query_dataset_module, "resolve_dataset", return_value=dataset),
+        patch.object(
+            query_dataset_module, "execute_tabular_query", side_effect=execute
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("query_dataset", {"request": request})
+
+    data = json.loads(result.content[0].text)
+    assert data["from_dttm"] == expected_start
+    assert data["to_dttm"] == expected_end
+    assert data["applied_filters"][0]["val"] == expression.strip()
+
+
+@pytest.mark.parametrize("empty", [False, True])
+@pytest.mark.asyncio
+async def test_query_dataset_reexecutes_across_rollover(
+    mcp_server: FastMCP, empty: bool
+) -> None:
+    """A relative range that rolls over re-executes, so bounds match the rows.
+
+    Sharing one cache entry across the rollover reported the requesting range
+    while serving the earlier range's rows.
+    """
+    from datetime import timedelta
+
+    from flask import current_app
+    from flask_caching import Cache
+    from freezegun import freeze_time
+    from pandas import DataFrame
+
+    from superset.common.chart_data import ChartDataResultType
+    from superset.common.query_context_processor import QueryContextProcessor
+    from superset.common.query_object import QueryObject
+    from superset.common.query_object_factory import QueryObjectFactory
+    from superset.constants import CacheRegion
+    from superset.models.helpers import QueryResult
+
+    dataset = _make_dataset(main_dttm_col="order_date")
+    dataset.column_names = ["count"]
+    context = MagicMock(datasource=dataset, force=False)
+    processor = QueryContextProcessor(context)
+    cache = Cache(current_app, config={"CACHE_TYPE": "SimpleCache"})
+    rows = [] if empty else [{"count": 3}]
+    source_result = QueryResult(
+        df=DataFrame(rows, columns=["count"]),
+        query="SELECT COUNT(*) AS count FROM orders",
+        duration=timedelta(0),
+        applied_filter_columns=["order_date"],
+    )
+    keys: list[str] = []
+
+    def execute(
+        datasource_id: int, datasource_type: str, query_dict: dict[str, Any], **_: Any
+    ) -> dict[str, Any]:
+        """Acquire through production cache handling; adapt its dataframe payload."""
+        query = QueryObjectFactory(current_app.config, MagicMock()).create(
+            parent_result_type=ChartDataResultType.FULL, **query_dict
+        )
+        keys.append(query.cache_key())
+        payload = processor.get_df_payload(query)
+        frame = payload.pop("df")
+        payload.update(
+            data=frame.to_dict(orient="records"), colnames=list(frame.columns)
+        )
+        return {"queries": [payload]}
+
+    with (
+        patch.object(query_dataset_module, "resolve_dataset", return_value=dataset),
+        patch.object(
+            query_dataset_module, "execute_tabular_query", side_effect=execute
+        ),
+        patch.dict(
+            "superset.common.utils.query_cache_manager._cache",
+            {CacheRegion.DATA: cache},
+        ),
+        patch.object(processor, "query_cache_key", side_effect=QueryObject.cache_key),
+        patch.object(processor, "get_cache_timeout", return_value=300),
+        patch.object(processor, "get_annotation_data", return_value={}),
+        patch.object(
+            processor, "get_query_result", return_value=source_result
+        ) as get_query_result,
+    ):
+        async with Client(mcp_server) as client:
+            request = {
+                "request": {
+                    "dataset_id": 1,
+                    "metrics": ["count"],
+                    "time_range": "Last month",
+                }
+            }
+            with freeze_time("2026-07-17 23:59:59"):
+                fresh = await client.call_tool("query_dataset", request)
+            with freeze_time("2026-07-18 00:00:01"):
+                cached = await client.call_tool("query_dataset", request)
+                stored = cache.get(keys[0])
+                assert stored is not None
+                assert "from_dttm" not in stored
+                assert "to_dttm" not in stored
+
+    assert get_query_result.call_count == 2
+    assert keys[0] != keys[1]
+    fresh_data = json.loads(fresh.content[0].text)
+    cached_data = json.loads(cached.content[0].text)
+    assert fresh_data["data"] == cached_data["data"] == rows
+    assert fresh_data["cache_status"]["cache_hit"] is False
+    assert cached_data["cache_status"]["cache_hit"] is False
+    assert fresh_data["from_dttm"] == "2026-06-17T00:00:00"
+    assert fresh_data["to_dttm"] == "2026-07-17T00:00:00"
+    assert cached_data["from_dttm"] == "2026-06-18T00:00:00"
+    assert cached_data["to_dttm"] == "2026-07-18T00:00:00"
+    assert cached_data["performance"]["cache_status"] == (
+        "no_data" if empty else "fresh"
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "dimensions",
+    [
+        ["address.city.name"],
+        ["event_name"],
+        ["address.city.name", "address.postal_code"],
+        ["address.city.name", "event_name", "address.postal_code"],
+    ],
+)
+async def test_query_dataset_unregistered_dimension_is_actionable(
+    mcp_server: FastMCP, dimensions: list[str]
+) -> None:
+    """Unregistered struct paths and wrong-dataset names explain how to recover."""
+    dataset = _make_dataset(
+        table_name="example_events",
+        columns=[_make_column("address"), _make_column("channel")],
+    )
+    with (
+        patch.object(query_dataset_module, "resolve_dataset", return_value=dataset),
+        patch.object(query_dataset_module, "execute_tabular_query") as execute,
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "query_dataset",
+                {
+                    "request": {
+                        "dataset_id": 1,
+                        "metrics": ["count"],
+                        "columns": dimensions,
+                    }
+                },
+            )
+    data = json.loads(result.content[0].text)
+    assert data["error_type"] == "ValidationError"
+    for dimension in dimensions:
+        assert dimension in data["error"]
+    assert "example_events" in data["error"]
+    assert "Available columns: address, channel" in data["error"]
+    assert "get_dataset_info" in data["error"]
+    dotted_dimensions = [name for name in dimensions if "." in name]
+    if dotted_dimensions:
+        assert "not registered" in data["error"]
+        for guidance in (
+            "query_dataset requires exact registered column names",
+            "registering a parent struct does not expose its nested fields",
+            "Refresh the dataset columns",
+            "add a calculated column",
+            "Use execute_sql",
+        ):
+            assert data["error"].count(guidance) == 1
+    else:
+        assert "nested fields" not in data["error"]
+    execute.assert_not_called()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("engine", ["sqlite", "bigquery"])
+async def test_query_dataset_registered_dotted_groupby(
+    mcp_server: FastMCP, engine: str
+) -> None:
+    """Registered dotted names reach SQL generation without MCP sanitization.
+
+    SQLite treats the dot as part of a literal identifier, not a struct path.
+    Splitting every dotted dimension into SQL identifiers would break this case.
+    """
+    from sqlalchemy.dialects.sqlite import dialect
+
+    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+    from superset.models.core import Database
+
+    sql_dialect = (
+        pytest.importorskip("sqlalchemy_bigquery").BigQueryDialect()
+        if engine == "bigquery"
+        else dialect()
+    )
+    database = Database(
+        database_name="test",
+        sqlalchemy_uri="bigquery://test-project"
+        if engine == "bigquery"
+        else "sqlite://",
+    )
+    mock_engine = MagicMock()
+    mock_engine.dialect = sql_dialect
+    engine_context = MagicMock()
+    engine_context.__enter__.return_value = mock_engine
+    dimension = "address.city.name"
+    dataset = SqlaTable(
+        id=1,
+        table_name="example_locations",
+        database=database,
+        columns=[TableColumn(column_name=dimension, type="TEXT")],
+        metrics=[SqlMetric(metric_name="count", expression="COUNT(*)")],
+    )
+    compiled: list[str] = []
+
+    def compile_query(
+        dataset_id: int, datasource_type: str, query: dict[str, Any], **kwargs: Any
+    ) -> dict[str, Any]:
+        """Exercise the real dataset SQL builder without a warehouse connection."""
+        assert query["columns"] == [dimension]
+        sqla_query = dataset.get_sqla_query(
+            groupby=query["columns"], metrics=query["metrics"], is_timeseries=False
+        )
+        compiled.append(str(sqla_query.sqla_query.compile(dialect=sql_dialect)))
+        return _mock_command_result(
+            data=[{dimension: "Sports", "count": 2}], colnames=[dimension, "count"]
+        )
+
+    with (
+        patch.object(query_dataset_module, "resolve_dataset", return_value=dataset),
+        patch.object(database, "get_sqla_engine", return_value=engine_context),
+        patch.object(dataset, "get_sqla_row_level_filters", return_value=[]),
+        patch.object(
+            query_dataset_module, "execute_tabular_query", side_effect=compile_query
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "query_dataset",
+                {
+                    "request": {
+                        "dataset_id": 1,
+                        "metrics": ["count"],
+                        "columns": [dimension],
+                    }
+                },
+            )
+    data = json.loads(result.content[0].text)
+    assert data["data"] == [{dimension: "Sports", "count": 2}]
+    assert len(compiled) == 1
+    if engine == "bigquery":
+        assert "`address`.`city`.`name`" in compiled[0]
+        assert "GROUP BY" in compiled[0]
+    else:
+        assert 'GROUP BY "address.city.name"' in compiled[0]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("column_count", [0, 12])
+async def test_query_dataset_available_columns_preview(
+    mcp_server: FastMCP, column_count: int
+) -> None:
+    """Dimension errors bound the preview and handle datasets without columns."""
+    dataset = _make_dataset()
+    dataset.columns = [_make_column(f"col_{i:02}") for i in range(column_count)]
+    with patch.object(query_dataset_module, "resolve_dataset", return_value=dataset):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "query_dataset",
+                {"request": {"dataset_id": 1, "columns": ["missing"]}},
+            )
+    data = json.loads(result.content[0].text)
+    assert data["error_type"] == "ValidationError"
+    if column_count:
+        assert "col_00" in data["error"]
+        assert "col_09" in data["error"]
+        assert "col_10" not in data["error"]
+        assert "(and 2 more)" in data["error"]
+    else:
+        assert "Available columns: (none)" in data["error"]
+    assert "get_dataset_info with this dataset_id" in data["error"]

@@ -29,16 +29,16 @@ test('render with empty value', () => {
   expect(screen.getByText('Configure Advanced Time Range')).toBeInTheDocument();
 });
 
-test('triggers since onChange', () => {
+test('triggers since onChange', async () => {
   const onChange = jest.fn();
   render(<AdvancedFrame onChange={onChange} value="Next week" />);
-  userEvent.type(screen.getAllByRole('textbox')[0], 'Last week');
+  await userEvent.type(screen.getAllByRole('textbox')[0], 'Last week');
   expect(onChange).toHaveBeenCalled();
 });
 
-test('triggers until onChange', () => {
+test('triggers until onChange', async () => {
   const onChange = jest.fn();
   render(<AdvancedFrame onChange={onChange} value="today : tomorrow" />);
-  userEvent.type(screen.getAllByRole('textbox')[1], 'dayAfterTomorrow');
+  await userEvent.type(screen.getAllByRole('textbox')[1], 'dayAfterTomorrow');
   expect(onChange).toHaveBeenCalled();
 });

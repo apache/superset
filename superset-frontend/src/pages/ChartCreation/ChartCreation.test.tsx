@@ -153,6 +153,20 @@ test('renders a select and a VizTypeGallery', async () => {
   expect(screen.getByText(/choose chart type/i)).toBeInTheDocument();
 });
 
+test('does not double up the vertical Steps icon-to-content gap', async () => {
+  // antd 6 added its own icon->content gap on `.ant-steps-item-wrapper`
+  // (column-gap), stacking on top of the pre-existing `margin-right` on
+  // `.ant-steps-item-icon` and shifting every step's content to the right.
+  const { container } = await renderComponent();
+  const styledContainer = container.firstChild;
+  expect(styledContainer).toHaveStyleRule('column-gap', '0', {
+    target: '.ant-steps-item-wrapper',
+  });
+  expect(styledContainer).toHaveStyleRule('margin-right', '8px', {
+    target: '.ant-steps-item-icon',
+  });
+});
+
 test('renders dataset help text when user lacks dataset write permissions', async () => {
   await renderComponent();
   expect(screen.queryByText('Add a dataset')).not.toBeInTheDocument();
@@ -183,15 +197,15 @@ test('renders an enabled button if datasource and viz type are selected', async 
   await renderComponent();
 
   const datasourceSelect = screen.getByRole('combobox', { name: 'Dataset' });
-  userEvent.click(datasourceSelect);
-  userEvent.click(await screen.findByText(/test_db/i));
+  await userEvent.click(datasourceSelect);
+  await userEvent.click(await screen.findByText(/test_db/i));
 
-  userEvent.click(
+  await userEvent.click(
     screen.getByRole('tab', {
       name: /All charts/i,
     }),
   );
-  userEvent.click(await screen.findByText('Table'));
+  await userEvent.click(await screen.findByText('Table'));
 
   expect(
     screen.getByRole('button', { name: 'Create new chart' }),
@@ -201,12 +215,12 @@ test('renders an enabled button if datasource and viz type are selected', async 
 test('double-click viz type does nothing if no datasource is selected', async () => {
   await renderComponent();
 
-  userEvent.click(
+  await userEvent.click(
     screen.getByRole('tab', {
       name: /All charts/i,
     }),
   );
-  userEvent.dblClick(await screen.findByText('Table'));
+  await userEvent.dblClick(await screen.findByText('Table'));
 
   expect(
     screen.getByRole('button', { name: 'Create new chart' }),
@@ -219,15 +233,15 @@ test('double-click viz type submits with formatted URL if datasource is selected
 
   const datasourceSelect = screen.getByRole('combobox', { name: 'Dataset' });
 
-  userEvent.click(datasourceSelect);
-  userEvent.click(await screen.findByText(/test_db/i));
+  await userEvent.click(datasourceSelect);
+  await userEvent.click(await screen.findByText(/test_db/i));
 
-  userEvent.click(
+  await userEvent.click(
     screen.getByRole('tab', {
       name: /All charts/i,
     }),
   );
-  userEvent.dblClick(await screen.findByText('Table'));
+  await userEvent.dblClick(await screen.findByText('Table'));
 
   expect(
     screen.getByRole('button', { name: 'Create new chart' }),
@@ -266,8 +280,8 @@ test('dropdown displays matching datasets when user types a search term', async 
   const datasourceSelect = await screen.findByRole('combobox', {
     name: 'Dataset',
   });
-  userEvent.click(datasourceSelect);
-  userEvent.type(datasourceSelect, 'flight');
+  await userEvent.click(datasourceSelect);
+  await userEvent.type(datasourceSelect, 'flight');
 
   await screen.findByText('flights');
   expect(screen.getByText('flights_delayed')).toBeInTheDocument();
@@ -418,7 +432,7 @@ test('dataset dropdown sorts options alphabetically by table name regardless of 
   await renderComponent();
 
   const datasourceSelect = screen.getByRole('combobox', { name: 'Dataset' });
-  userEvent.click(datasourceSelect);
+  await userEvent.click(datasourceSelect);
 
   // Wait for all three to appear
   await screen.findByText('apple_table');
@@ -503,7 +517,7 @@ test('lists a same-named dataset and semantic view as distinct, typed options', 
   });
 
   await renderComponent();
-  userEvent.click(screen.getByRole('combobox', { name: 'Datasource' }));
+  await userEvent.click(screen.getByRole('combobox', { name: 'Datasource' }));
 
   expect(await screen.findAllByText('shared_source')).toHaveLength(2);
   // The type label is plain text inside each option rather than colour or an
@@ -554,7 +568,7 @@ test('requests unified server ordering by table name', async () => {
   });
 
   await renderComponent();
-  userEvent.click(screen.getByRole('combobox', { name: 'Datasource' }));
+  await userEvent.click(screen.getByRole('combobox', { name: 'Datasource' }));
 
   await screen.findByText('alpha_semantic_view');
   expect(
@@ -580,8 +594,8 @@ test('searches semantic views through the combined datasource endpoint', async (
   const datasourceSelect = screen.getByRole('combobox', {
     name: 'Datasource',
   });
-  userEvent.click(datasourceSelect);
-  userEvent.type(datasourceSelect, 'shared');
+  await userEvent.click(datasourceSelect);
+  await userEvent.type(datasourceSelect, 'shared');
 
   expect(await screen.findByText('shared_source')).toBeInTheDocument();
   await waitFor(() =>
@@ -607,10 +621,10 @@ test('navigates to Explore with the semantic view composite identity', async () 
   });
 
   await renderComponent();
-  userEvent.click(screen.getByRole('combobox', { name: 'Datasource' }));
-  userEvent.click(await screen.findByText('shared_source'));
-  userEvent.click(screen.getByRole('tab', { name: /All charts/i }));
-  userEvent.dblClick(await screen.findByText('Table'));
+  await userEvent.click(screen.getByRole('combobox', { name: 'Datasource' }));
+  await userEvent.click(await screen.findByText('shared_source'));
+  await userEvent.click(screen.getByRole('tab', { name: /All charts/i }));
+  await userEvent.dblClick(await screen.findByText('Table'));
 
   expect(mockHistoryPush).toHaveBeenCalledWith(
     '/explore/?viz_type=table&datasource=42__semantic_view',
@@ -649,10 +663,10 @@ test('shows a failed datasource load as an error, then recovers on the next sear
   const datasourceSelect = screen.getByRole('combobox', {
     name: 'Datasource',
   });
-  userEvent.click(datasourceSelect);
-  userEvent.click(await screen.findByText('shared_source'));
-  userEvent.click(datasourceSelect);
-  userEvent.type(datasourceSelect, 'fail');
+  await userEvent.click(datasourceSelect);
+  await userEvent.click(await screen.findByText('shared_source'));
+  await userEvent.click(datasourceSelect);
+  await userEvent.type(datasourceSelect, 'fail');
 
   // The failure is reported as such, not disguised as an empty result.
   expect(
@@ -663,16 +677,16 @@ test('shows a failed datasource load as an error, then recovers on the next sear
   ).toBeNull();
 
   // The next search replaces the error with its results.
-  userEvent.clear(datasourceSelect);
-  userEvent.type(datasourceSelect, 'retry');
+  await userEvent.clear(datasourceSelect);
+  await userEvent.type(datasourceSelect, 'retry');
   expect(
     await screen.findByText('retry_view', {}, { timeout: 3000 }),
   ).toBeInTheDocument();
   expect(screen.queryByText('datasource load failed')).not.toBeInTheDocument();
 
   // The selection committed before the failure is still what gets created.
-  userEvent.click(screen.getByRole('tab', { name: /All charts/i }));
-  userEvent.dblClick(await screen.findByText('Table'));
+  await userEvent.click(screen.getByRole('tab', { name: /All charts/i }));
+  await userEvent.dblClick(await screen.findByText('Table'));
   expect(mockHistoryPush).toHaveBeenCalledWith(
     '/explore/?viz_type=table&datasource=42__semantic_view',
   );
@@ -704,8 +718,8 @@ test('keeps the legacy dataset-only picker when semantic layers are disabled', a
 
   await renderComponent();
   const datasourceSelect = screen.getByRole('combobox', { name: 'Dataset' });
-  userEvent.click(datasourceSelect);
-  userEvent.click(await screen.findByText('shared_source'));
+  await userEvent.click(datasourceSelect);
+  await userEvent.click(await screen.findByText('shared_source'));
 
   expect(screen.queryByText('Semantic View')).not.toBeInTheDocument();
   expect(screen.queryByText('Dataset', { selector: '.ant-tag' })).toBeNull();
@@ -715,8 +729,8 @@ test('keeps the legacy dataset-only picker when semantic layers are disabled', a
       .some(call => call.url.includes('/api/v1/datasource/')),
   ).toBe(false);
 
-  userEvent.click(screen.getByRole('tab', { name: /All charts/i }));
-  userEvent.dblClick(await screen.findByText('Table'));
+  await userEvent.click(screen.getByRole('tab', { name: /All charts/i }));
+  await userEvent.dblClick(await screen.findByText('Table'));
   expect(mockHistoryPush).toHaveBeenCalledWith(
     '/explore/?viz_type=table&datasource=42__table',
   );
@@ -730,7 +744,7 @@ test('keeps the legacy no-options state when semantic layers are disabled', asyn
   });
 
   await renderComponent();
-  userEvent.click(screen.getByRole('combobox', { name: 'Dataset' }));
+  await userEvent.click(screen.getByRole('combobox', { name: 'Dataset' }));
 
   expect(
     await screen.findByText('No data', { selector: '.ant-empty-description' }),

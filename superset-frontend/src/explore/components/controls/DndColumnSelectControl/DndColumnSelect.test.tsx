@@ -25,10 +25,18 @@ import {
 } from 'spec/helpers/testing-library';
 import configureMockStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
+import { useDroppable } from '@dnd-kit/core';
+import { useSortable } from '@dnd-kit/sortable';
 import {
   DndColumnSelect,
   DndColumnSelectProps,
 } from 'src/explore/components/controls/DndColumnSelectControl/DndColumnSelect';
+import { DndItemType } from 'src/explore/components/DndItemType';
+import {
+  CapturedDroppable,
+  captureDroppableData,
+  simulateFolderDrop,
+} from './dndTestUtils';
 
 // Mock SQLEditorWithValidation to enable Custom SQL testing in JSDOM
 jest.mock('src/components/SQLEditorWithValidation', () => ({
@@ -47,6 +55,37 @@ jest.mock('src/components/SQLEditorWithValidation', () => ({
     />
   ),
 }));
+
+jest.mock('@dnd-kit/core', () => ({
+  ...jest.requireActual('@dnd-kit/core'),
+  useDroppable: jest.fn(),
+}));
+
+// useSortable (for the reorderable pills) internally calls @dnd-kit/core's
+// useDroppable too; left unmocked, its calls clobber the dropzone's own
+// captured data since captureDroppableData just records the latest call.
+jest.mock('@dnd-kit/sortable', () => ({
+  ...jest.requireActual('@dnd-kit/sortable'),
+  useSortable: jest.fn(),
+}));
+
+const captured: CapturedDroppable = { current: undefined };
+
+beforeEach(() => {
+  captured.current = undefined;
+  (useDroppable as jest.Mock).mockImplementation(
+    captureDroppableData(captured),
+  );
+  (useSortable as jest.Mock).mockReturnValue({
+    attributes: {},
+    listeners: {},
+    setNodeRef: () => {},
+    transform: null,
+    transition: undefined,
+    isDragging: false,
+    setActivatorNodeRef: () => {},
+  });
+});
 
 const middlewares = [thunk];
 const mockStore = configureMockStore(middlewares);
@@ -135,7 +174,7 @@ test('warn selected custom metric when metric gets removed from dataset', async 
     screen.getByText('column1').parentElement ?? container,
   ).getByRole('button');
   expect(warningIcon).toBeInTheDocument();
-  userEvent.hover(warningIcon);
+  await userEvent.hover(warningIcon);
   const warningTooltip = await screen.findByText(
     'This column might be incompatible with current dataset',
   );
@@ -175,7 +214,7 @@ test('should allow selecting columns via click interface', async () => {
   const dropArea = screen.getByText('Drop columns here or click');
   expect(dropArea).toBeInTheDocument();
 
-  userEvent.click(dropArea);
+  await userEvent.click(dropArea);
 
   expect(dropArea).toBeInTheDocument();
 });
@@ -380,7 +419,7 @@ test('should complete full column selection workflow like original Cypress test'
 
   // Open ColumnSelectPopover
   const dropArea = screen.getByText(/Drop columns here or click/i);
-  userEvent.click(dropArea);
+  await userEvent.click(dropArea);
 
   // Wait for popover tabs
   await waitFor(() => {
@@ -394,15 +433,15 @@ test('should complete full column selection workflow like original Cypress test'
   const columnCombobox = await screen.findByRole('combobox', {
     name: /Columns and metrics/i,
   });
-  userEvent.click(columnCombobox);
+  await userEvent.click(columnCombobox);
 
   const stateOption = await screen.findByRole('option', { name: 'state' });
-  userEvent.click(stateOption);
+  await userEvent.click(stateOption);
 
   // Save column selection
   const saveButton = await screen.findByTestId('ColumnEdit#save');
   await waitFor(() => expect(saveButton).toBeEnabled());
-  userEvent.click(saveButton);
+  await userEvent.click(saveButton);
 
   // Verify onChange callback fires
   await waitFor(() => {
@@ -456,7 +495,7 @@ test('should create adhoc column via Custom SQL tab workflow', async () => {
 
   // Open popover modal
   const dropArea = screen.getByText(/Drop columns here or click/i);
-  userEvent.click(dropArea);
+  await userEvent.click(dropArea);
 
   // Wait for popover tabs
   await waitFor(() => {
@@ -465,17 +504,17 @@ test('should create adhoc column via Custom SQL tab workflow', async () => {
 
   // Switch to Custom SQL tab
   const customSqlTab = screen.getByRole('tab', { name: 'Custom SQL' });
-  userEvent.click(customSqlTab);
+  await userEvent.click(customSqlTab);
 
   // Enter SQL expression in mocked textarea
   const sqlEditor = await screen.findByRole('textbox', { name: 'Custom SQL' });
-  userEvent.clear(sqlEditor);
-  userEvent.type(sqlEditor, "state || '_total'");
+  await userEvent.clear(sqlEditor);
+  await userEvent.type(sqlEditor, "state || '_total'");
 
   // Save adhoc column
   const saveButton = await screen.findByTestId('ColumnEdit#save');
   await waitFor(() => expect(saveButton).toBeEnabled());
-  userEvent.click(saveButton);
+  await userEvent.click(saveButton);
 
   // Verify onChange fires with adhoc column object
   await waitFor(() => {
@@ -491,4 +530,96 @@ test('should create adhoc column via Custom SQL tab workflow', async () => {
   // Note: setControlValue handled by framework wrapper, not present in RTL isolation
 
   // Preserves Custom SQL workflow from original Cypress test
+});
+
+// --- folder drops ------------------------------------------------------
+// Dragging a whole folder from the DatasourcePanel expands into its columns;
+// only columns are added (metrics are filtered out, this control is
+// columns-only). Drop is driven through the production `resolveDragEnd`
+// dispatcher since jsdom cannot simulate real @dnd-kit pointer drags.
+
+test('folder drop adds all accepted columns for a multi-value control', () => {
+  const onChange = jest.fn();
+  render(
+    <DndColumnSelect
+      {...defaultProps}
+      onChange={onChange}
+      multi
+      options={[
+        { column_name: 'state' },
+        { column_name: 'city' },
+        { column_name: 'country' },
+      ]}
+    />,
+    { useDndKit: true, useRedux: true },
+  );
+
+  simulateFolderDrop(captured, [
+    { type: DndItemType.Column, value: { column_name: 'state' } as any },
+    { type: DndItemType.Column, value: { column_name: 'city' } as any },
+    // Metrics in the folder are not columns and must be filtered out.
+    { type: DndItemType.Metric, value: { metric_name: 'count' } as any },
+  ]);
+
+  expect(onChange).toHaveBeenCalledWith(['state', 'city']);
+});
+
+test('folder drop replaces the existing value for a single-value control', () => {
+  const onChange = jest.fn();
+  render(
+    <DndColumnSelect
+      {...defaultProps}
+      onChange={onChange}
+      multi={false}
+      value="state"
+      options={[{ column_name: 'state' }, { column_name: 'city' }]}
+    />,
+    { useDndKit: true, useRedux: true },
+  );
+
+  simulateFolderDrop(captured, [
+    { type: DndItemType.Column, value: { column_name: 'city' } as any },
+  ]);
+
+  // Only the first accepted item replaces the existing value, matching the
+  // single-item onDrop's replace behavior.
+  expect(onChange).toHaveBeenCalledWith('city');
+});
+
+test('folder drop adds the first item for an empty single-value control', () => {
+  const onChange = jest.fn();
+  render(
+    <DndColumnSelect
+      {...defaultProps}
+      onChange={onChange}
+      multi={false}
+      options={[{ column_name: 'state' }, { column_name: 'city' }]}
+    />,
+    { useDndKit: true, useRedux: true },
+  );
+
+  simulateFolderDrop(captured, [
+    { type: DndItemType.Column, value: { column_name: 'state' } as any },
+  ]);
+
+  expect(onChange).toHaveBeenCalledWith('state');
+});
+
+test('folder drop is a no-op when the folder has no column items', () => {
+  const onChange = jest.fn();
+  render(
+    <DndColumnSelect
+      {...defaultProps}
+      onChange={onChange}
+      multi
+      options={[{ column_name: 'state' }]}
+    />,
+    { useDndKit: true, useRedux: true },
+  );
+
+  simulateFolderDrop(captured, [
+    { type: DndItemType.Metric, value: { metric_name: 'count' } as any },
+  ]);
+
+  expect(onChange).not.toHaveBeenCalled();
 });
