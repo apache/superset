@@ -1,0 +1,47 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+cache_timeout: null
+certification_details: null
+certified_by: null
+dataset_uuid: e8623bb9-5e00-f531-506a-19607f5f8005
+description: Daily sales intensity across a year, one cell per day.
+params:
+  cell_padding: 2
+  cell_radius: 0
+  cell_size: 12
+  domain_granularity: month
+  granularity_sqla: order_date
+  metrics:
+  - aggregate: SUM
+    column:
+      column_name: sales
+    expressionType: SIMPLE
+    label: SUM(sales)
+    optionName: metric_sales_calendar
+  show_legend: true
+  show_metric_name: true
+  show_values: false
+  steps: 10
+  subdomain_granularity: day
+  time_range: '2004-01-01 : 2005-01-01'
+  viz_type: cal_heatmap
+  x_axis_time_format: smart_date
+query_context: null
+slice_name: Sales Calendar Heatmap
+uuid: ef13dcad-c918-4367-ab17-a31d56e770e0
+version: 1.0.0
+viz_type: cal_heatmap

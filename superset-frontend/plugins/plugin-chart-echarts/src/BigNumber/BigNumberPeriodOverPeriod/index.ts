@@ -21,8 +21,8 @@ import { ChartMetadata, ChartPlugin } from '@superset-ui/core';
 import buildQuery from './buildQuery';
 import controlPanel from './controlPanel';
 import transformProps from './transformProps';
-import thumbnail from './images/thumbnail.png';
-import thumbnailDark from './images/thumbnail-dark.png';
+import thumbnail from './images/custom_thumb_thumbnail.png';
+import thumbnailDark from './images/custom_thumb_thumbnail-dark.png';
 
 export default class PopKPIPlugin extends ChartPlugin {
   constructor() {
