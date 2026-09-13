@@ -238,13 +238,17 @@ class OcientEngineSpec(BaseEngineSpec):
 
     metadata = {
         "description": "Ocient is a hyperscale data analytics database.",
+        "logo": "ocient.png",
+        "homepage_url": "https://www.ocient.com/",
         "categories": [
             DatabaseCategory.ANALYTICAL_DATABASES,
             DatabaseCategory.PROPRIETARY,
         ],
         "pypi_packages": ["sqlalchemy-ocient"],
         "connection_string": "ocient://{username}:{password}@{host}:{port}/{database}",
+        "default_port": 4050,
         "install_instructions": "pip install sqlalchemy-ocient",
+        "docs_url": "https://docs.ocient.com/",
     }
 
     custom_errors: dict[Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]] = {

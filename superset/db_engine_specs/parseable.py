@@ -41,11 +41,14 @@ class ParseableEngineSpec(BaseEngineSpec):
             "Parseable is a distributed log analytics database "
             "with SQL-like query interface."
         ),
+        "logo": "parseable.png",
+        "homepage_url": "https://www.parseable.com",
         "categories": [DatabaseCategory.SEARCH_NOSQL, DatabaseCategory.OPEN_SOURCE],
         "pypi_packages": ["sqlalchemy-parseable"],
         "connection_string": (
             "parseable://{username}:{password}@{hostname}:{port}/{stream_name}"
         ),
+        "default_port": 8000,
         "connection_examples": [
             {
                 "description": "Example connection",
