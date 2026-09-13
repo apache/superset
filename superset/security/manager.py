@@ -2306,16 +2306,21 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         return True
 
-    def can_drill_dataset_via_dashboard_access(
-        self, dataset: "BaseDatasource", dashboard: "Dashboard"
-    ) -> bool:
+    def can_inherit_access_via_dashboard(self, dashboard: "Dashboard") -> bool:
         """
-        Return True if an embedded user or viewer (in promiscuous mode) can
-        drill a dataset via dashboard access.
+        Return True if the principal's access to a dashboard transitively grants
+        access to render that dashboard's charts and datasets, without explicit
+        per-chart or per-datasource grants.
+
+        This is the case for an embedded guest with access to the dashboard, or a
+        viewer of a published dashboard when ``VIEWER_PROMISCUOUS_MODE`` is
+        enabled. It mirrors the inheritance the legacy dashboard-level RBAC
+        provided: dashboard access flows down to the charts and datasets it
+        contains.
         """
         from superset import is_feature_enabled
 
-        if (
+        return bool(
             (
                 is_feature_enabled("EMBEDDED_SUPERSET")
                 and self.is_guest_user()
@@ -2327,10 +2332,23 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 and self.is_viewer(dashboard)
                 and dashboard.published
             )
-        ) and dataset.id in {dataset.id for dataset in dashboard.datasources}:
-            return True
+        )
 
-        return False
+    def can_drill_dataset_via_dashboard_access(
+        self, dataset: "BaseDatasource", dashboard: "Dashboard"
+    ) -> bool:
+        """
+        Return True if an embedded user or viewer (in promiscuous mode) can
+        drill a dataset via dashboard access.
+
+        Unlike :meth:`can_inherit_access_via_dashboard`, this additionally
+        verifies that ``dataset`` actually belongs to ``dashboard`` — drill
+        endpoints resolve the dataset from an untrusted request parameter, so
+        membership must be enforced rather than assumed.
+        """
+        return self.can_inherit_access_via_dashboard(dashboard) and dataset.id in {
+            dataset.id for dataset in dashboard.datasources
+        }
 
     def _validate_child_in_parent_multilayer(
         self, child_slice_id: int, parent_slice: "Slice"

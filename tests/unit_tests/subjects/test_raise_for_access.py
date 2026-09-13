@@ -502,3 +502,56 @@ def test_can_drill_dataset_via_dashboard_access_no_promiscuous_denies(
         for cm in _patch_drill_viewer(sm, monkeypatch, promiscuous=False):
             stack.enter_context(cm)
         assert sm.can_drill_dataset_via_dashboard_access(dataset, dashboard) is False
+
+
+def test_can_inherit_access_via_dashboard_viewer_promiscuous(app_context, monkeypatch):
+    """Viewer of a published dashboard inherits access in promiscuous mode,
+    independent of any individual dataset's membership."""
+    sm = _make_sm()
+    dashboard = MagicMock(published=True)
+
+    with contextlib.ExitStack() as stack:
+        for cm in _patch_drill_viewer(sm, monkeypatch, promiscuous=True):
+            stack.enter_context(cm)
+        assert sm.can_inherit_access_via_dashboard(dashboard) is True
+
+
+def test_can_inherit_access_via_dashboard_unpublished_denies(app_context, monkeypatch):
+    """An unpublished dashboard grants no inherited access, even to a viewer."""
+    sm = _make_sm()
+    dashboard = MagicMock(published=False)
+
+    with contextlib.ExitStack() as stack:
+        for cm in _patch_drill_viewer(sm, monkeypatch, promiscuous=True):
+            stack.enter_context(cm)
+        assert sm.can_inherit_access_via_dashboard(dashboard) is False
+
+
+def test_can_inherit_access_via_dashboard_no_promiscuous_denies(
+    app_context, monkeypatch
+):
+    """With VIEWER_PROMISCUOUS_MODE off, dashboard access is not inherited."""
+    sm = _make_sm()
+    dashboard = MagicMock(published=True)
+
+    with contextlib.ExitStack() as stack:
+        for cm in _patch_drill_viewer(sm, monkeypatch, promiscuous=False):
+            stack.enter_context(cm)
+        assert sm.can_inherit_access_via_dashboard(dashboard) is False
+
+
+def test_can_inherit_access_via_dashboard_embedded_guest(app_context, monkeypatch):
+    """An embedded guest with access to the dashboard inherits access to it."""
+    sm = _make_sm()
+    dashboard = MagicMock(published=False)
+    monkeypatch.setitem(current_app.config, "VIEWER_PROMISCUOUS_MODE", False)
+
+    with (
+        patch.object(sm, "is_guest_user", return_value=True),
+        patch.object(sm, "has_guest_access", return_value=True),
+        patch(
+            "superset.is_feature_enabled",
+            side_effect=lambda flag: flag == "EMBEDDED_SUPERSET",
+        ),
+    ):
+        assert sm.can_inherit_access_via_dashboard(dashboard) is True
