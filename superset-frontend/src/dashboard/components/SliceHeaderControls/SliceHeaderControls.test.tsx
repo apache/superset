@@ -319,6 +319,20 @@ test('Should "export full CSV"', async () => {
   expect(props.exportFullCSV).toHaveBeenCalledWith(371);
 });
 
+test('Should "export full CSV" for ag-grid table', async () => {
+  (global as any).featureFlags = {
+    [FeatureFlag.AllowFullCsvExport]: true,
+  };
+  const props = createProps(VizType.TableAgGrid);
+  renderWrapper(props);
+  openMenu();
+  expect(props.exportFullCSV).toHaveBeenCalledTimes(0);
+  userEvent.hover(screen.getByText('Download'));
+  userEvent.click(await screen.findByText('Export to full .CSV'));
+  expect(props.exportFullCSV).toHaveBeenCalledTimes(1);
+  expect(props.exportFullCSV).toHaveBeenCalledWith(371);
+});
+
 test('Should not show export full CSV if report is not table', async () => {
   (global as any).featureFlags = {
     [FeatureFlag.AllowFullCsvExport]: true,
@@ -352,6 +366,20 @@ test('Should "export full Excel"', async () => {
   expect(props.exportFullXLSX).toHaveBeenCalledTimes(0);
   await userEvent.hover(screen.getByText('Download'));
   await userEvent.click(await screen.findByText('Export to full Excel'));
+  expect(props.exportFullXLSX).toHaveBeenCalledTimes(1);
+  expect(props.exportFullXLSX).toHaveBeenCalledWith(371);
+});
+
+test('Should "export full Excel" for ag-grid table', async () => {
+  (global as any).featureFlags = {
+    [FeatureFlag.AllowFullCsvExport]: true,
+  };
+  const props = createProps(VizType.TableAgGrid);
+  renderWrapper(props);
+  openMenu();
+  expect(props.exportFullXLSX).toHaveBeenCalledTimes(0);
+  userEvent.hover(screen.getByText('Download'));
+  userEvent.click(await screen.findByText('Export to full Excel'));
   expect(props.exportFullXLSX).toHaveBeenCalledTimes(1);
   expect(props.exportFullXLSX).toHaveBeenCalledWith(371);
 });
