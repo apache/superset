@@ -606,6 +606,33 @@ def FLASK_APP_MUTATOR(app: Flask) -> None:
     app.before_request_funcs.setdefault(None, []).append(make_session_permanent)
 ```
 
+## Reacting to chart and dashboard creation
+
+`AFTER_ASSET_CREATE` is an optional hook that runs after a chart or dashboard
+is created, letting deployments react to new assets without forking the
+creation commands or views — for example to auto-categorize the asset, write
+an audit log entry, or fire a notification.
+
+The hook receives the model instance and the asset type string (`"chart"` or
+`"dashboard"`):
+
+```python
+# superset_config.py
+def _after_asset_create(model, asset_type):
+    audit_log.write(f"{asset_type} {model.id} created by {model.created_by}")
+
+
+AFTER_ASSET_CREATE = _after_asset_create
+```
+
+It defaults to `None`, which is a no-op: with nothing configured, chart and
+dashboard creation behaves exactly as it did before this hook existed.
+
+The hook runs before the surrounding database transaction commits, so an
+exception raised inside it aborts the chart or dashboard creation. Keep it
+fast and side-effect-light, and avoid raising unless you intend to cancel
+the creation.
+
 ## Carrying extra data through chart and dashboard exports
 
 Deployments often attach their own metadata to charts and dashboards — an owning
