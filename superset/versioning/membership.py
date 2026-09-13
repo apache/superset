@@ -16,7 +16,7 @@
 # under the License.
 """M2M dashboard-membership queries, shared across the versioning surfaces.
 
-``charts_attached_to_dashboard`` reads the ``dashboard_slices_version``
+``chart_attachment_windows_for_dashboard`` reads the ``dashboard_slices_version``
 association shadow and pairs its INSERT/DELETE rows into ``[attach, detach)``
 windows. It must **never** filter that shadow by ``end_transaction_id``:
 Continuum never closes an M2M association's ``end_transaction_id`` (see
@@ -40,10 +40,17 @@ if TYPE_CHECKING:
     from superset.versioning.activity.kinds import Window
 
 
-def charts_attached_to_dashboard(dashboard_id: int) -> list[tuple[int, Window]]:
-    """Return ``(slice_id, window)`` for every chart that has ever been on
-    *dashboard_id*, with each attachment episode's validity window in
-    transaction-id space.
+def chart_attachment_windows_for_dashboard(
+    dashboard_id: int,
+) -> list[tuple[int, Window]]:
+    """Return the ``[attach, detach)`` window of every chart attachment episode.
+
+    This is attachment *history*, not present membership: it yields
+    ``(slice_id, window)`` for every chart that has **ever** been on
+    *dashboard_id* — one entry per attachment episode, with the episode's
+    validity window in transaction-id space. A chart no longer on the
+    dashboard still appears here, bounded at its detach transaction; callers
+    that need the dashboard's current charts must not use this function.
 
     Reads from ``dashboard_slices_version`` (Continuum's auto-generated M2M
     shadow) and pairs its INSERT/DELETE rows via
@@ -55,7 +62,7 @@ def charts_attached_to_dashboard(dashboard_id: int) -> list[tuple[int, Window]]:
     # pylint: disable=import-outside-toplevel
     # attachment_windows is imported lazily (not at module top) so that this
     # module stays a leaf: importing it must not pull the activity package,
-    # whose read-path modules (scope.py) import charts_attached_to_dashboard
+    # whose read-path modules (scope.py) import chart_attachment_windows_for_dashboard
     # back from here — a module-top import created a circular import that only
     # surfaced at runtime, when a restore imported this module for the first
     # time (sc-119907).

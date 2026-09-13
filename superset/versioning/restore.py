@@ -213,21 +213,21 @@ def _restore_dashboard_membership(dashboard: Any, transaction_id: int) -> list[i
     # pylint: disable=import-outside-toplevel
     # Local imports: models.slice transitively imports models.core, which needs
     # the initialised app — a module-top import would recreate the bootstrap
-    # cycle documented in changes/listener.py. charts_attached_to_dashboard is
+    # cycle documented in changes/listener.py. chart_attachment_windows_for_dashboard is
     # imported lazily for the same reason: it pulls the window helpers, whose
     # package transitively imports the versioning.changes listener graph, so a
     # module-top import here would re-enter that same bootstrap cycle.
     from superset.models.slice import Slice
-    from superset.versioning.membership import charts_attached_to_dashboard
+    from superset.versioning.membership import chart_attachment_windows_for_dashboard
 
-    # charts_attached_to_dashboard owns the association-shadow read and the
+    # chart_attachment_windows_for_dashboard owns the association-shadow read and the
     # attach/detach window pairing (the single place that must never filter the
     # M2M shadow by end_transaction_id — Continuum never closes it). A slice was
     # a member at transaction_id iff one of its windows contains it (sc-119907).
     member_ids = sorted(
         {
             slice_id
-            for slice_id, window in charts_attached_to_dashboard(dashboard.id)
+            for slice_id, window in chart_attachment_windows_for_dashboard(dashboard.id)
             if window.contains(transaction_id)
         }
     )
