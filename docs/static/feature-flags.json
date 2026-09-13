@@ -10,6 +10,12 @@
         "description": "Enables Table V2 (AG Grid) viz plugin"
       },
       {
+        "name": "AI_ASSISTANT",
+        "default": false,
+        "lifecycle": "development",
+        "description": "Enables the conversational AI assistant: an experimental feature that answers questions about your data by running read-only queries. Off by default and inert until a model provider is configured via AI_LLM_PROVIDER_CLASS \u2014 with the flag on but no provider the endpoints still return 404, so enabling the flag alone sends nothing anywhere. The assistant's own tools are read-only; it cannot create or modify assets."
+      },
+      {
         "name": "ALERT_REPORT_TABS",
         "default": false,
         "lifecycle": "development",
