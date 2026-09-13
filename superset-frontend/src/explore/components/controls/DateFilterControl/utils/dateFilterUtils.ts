@@ -23,14 +23,14 @@ import {
 } from '@superset-ui/core';
 import { useSelector } from 'react-redux';
 import {
-  COMMON_RANGE_VALUES_SET,
+  COMMON_RANGE_REGEX,
   CALENDAR_RANGE_VALUES_SET,
   CURRENT_RANGE_VALUES_SET,
 } from '.';
 import { FrameType } from '../types';
 
 export const guessFrame = (timeRange: string): FrameType => {
-  if (COMMON_RANGE_VALUES_SET.has(timeRange)) {
+  if (COMMON_RANGE_REGEX.test(timeRange)) {
     return 'Common';
   }
   if (CALENDAR_RANGE_VALUES_SET.has(timeRange)) {
