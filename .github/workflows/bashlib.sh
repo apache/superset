@@ -278,7 +278,12 @@ playwright-install() {
 
 playwright-run() {
   local APP_ROOT=$1
-  local TEST_PATH=$2
+  shift || true
+  # Remaining arguments are test paths, relative to playwright/tests. Passing
+  # more than one lets a caller run a suite that spans directories (the GAQ
+  # specs live under both dashboard/ and sqllab/).
+  local TEST_PATHS=("$@")
+  local TEST_PATH=${TEST_PATHS[0]:-}
 
   # Start the Superset backend via gunicorn from the project root.
   # See cypress-run-all() above for the rationale — the Flask dev server
@@ -347,16 +352,26 @@ playwright-run() {
   say "::group::Run Playwright tests"
   echo "Running Playwright with baseURL: ${PLAYWRIGHT_BASE_URL}"
   if [ -n "$TEST_PATH" ]; then
-    # Check if there are any test files in the specified path
-    if ! find "playwright/tests/${TEST_PATH}" -name "*.spec.ts" -type f 2>/dev/null | grep -q .; then
-      echo "No test files found in ${TEST_PATH} - skipping test run"
+    # Check if there are any test files in the specified paths
+    local found=0
+    local candidate
+    for candidate in "${TEST_PATHS[@]}"; do
+      if find "playwright/tests/${candidate}" -name "*.spec.ts" -type f 2>/dev/null | grep -q .; then
+        found=1
+      elif [ -f "playwright/tests/${candidate}" ]; then
+        found=1
+      fi
+    done
+    if [ "$found" -eq 0 ]; then
+      echo "No test files found in ${TEST_PATHS[*]} - skipping test run"
       say "::endgroup::"
       return 0
     fi
-    echo "Running tests: ${TEST_PATH}"
+    echo "Running tests: ${TEST_PATHS[*]}"
     # Set INCLUDE_EXPERIMENTAL=true to allow experimental tests to run
     export INCLUDE_EXPERIMENTAL=true
-    npx playwright test "${TEST_PATH}" --output=playwright-results
+    # shellcheck disable=SC2086
+    npx playwright test "${TEST_PATHS[@]}" --output=playwright-results ${PLAYWRIGHT_EXTRA_ARGS:-}
     local status=$?
     # Unset to prevent leaking into subsequent commands
     unset INCLUDE_EXPERIMENTAL
@@ -366,6 +381,102 @@ playwright-run() {
     local status=$?
   fi
   say "::endgroup::"
+
+  return $status
+}
+
+playwright-run-gaq() {
+  # Global Async Queries needs more than a feature flag: submissions are handed
+  # to Celery, so without a worker consuming the queue the API returns 202 and
+  # no job ever runs -- the specs would time out rather than fail usefully.
+  # `playwright-run` boots gunicorn with this step's environment, so the flag
+  # set on the step reaches both the web server and the worker started here.
+  local APP_ROOT=$1
+  shift || true
+  local TEST_PATHS=("$@")
+
+  cd "$GITHUB_WORKSPACE"
+
+  if [ "${SUPERSET_FEATURE_GLOBAL_ASYNC_QUERIES:-}" != "true" ]; then
+    echo "::error::SUPERSET_FEATURE_GLOBAL_ASYNC_QUERIES must be \"true\" for this step; the specs would skip themselves and report nothing."
+    return 1
+  fi
+
+  local workerlog="${HOME}/superset-gaq-worker.log"
+  say "::group::Start Celery worker for GAQ"
+  # Mirrors docker/docker-bootstrap.sh's worker invocation.
+  nohup celery --app=superset.tasks.celery_app:app worker \
+    -O fair \
+    --loglevel=INFO \
+    --concurrency=2 \
+    >"$workerlog" 2>&1 </dev/null &
+  local workerPid=$!
+
+  # Fail fast on a worker that never comes up: a dead worker is
+  # indistinguishable from a slow one once the specs start timing out.
+  local timeout=60
+  while [ $timeout -gt 0 ]; do
+    if ! kill -0 "$workerPid" 2>/dev/null; then
+      echo "::error::Celery worker exited during startup"
+      cat "$workerlog" || true
+      say "::endgroup::"
+      return 1
+    fi
+    if grep -q "celery@.*ready" "$workerlog" 2>/dev/null; then
+      say "Celery worker is ready"
+      break
+    fi
+    sleep 1
+    timeout=$((timeout - 1))
+  done
+  if [ $timeout -eq 0 ]; then
+    echo "::error::Celery worker failed to become ready within 60 seconds"
+    cat "$workerlog" || true
+    kill "$workerPid" 2>/dev/null || true
+    say "::endgroup::"
+    return 1
+  fi
+  say "::endgroup::"
+
+  # The GAQ specs are excluded from every other project, so this is what makes
+  # them loadable at all -- see the chromium-gaq project in playwright.config.ts.
+  export INCLUDE_GAQ=true
+
+  local report="${GITHUB_WORKSPACE}/superset-frontend/playwright-gaq-report.json"
+  rm -f "$report"
+  export PLAYWRIGHT_JSON_OUTPUT_NAME="$report"
+  export PLAYWRIGHT_EXTRA_ARGS="--reporter=list,json"
+
+  # `set -e` is on: without the guard a failing run would exit before the
+  # worker log is emitted and before the did-it-actually-run check below.
+  local status=0
+  playwright-run "$APP_ROOT" "${TEST_PATHS[@]}" || status=$?
+
+  unset PLAYWRIGHT_EXTRA_ARGS PLAYWRIGHT_JSON_OUTPUT_NAME INCLUDE_GAQ
+
+  say "::group::Celery worker log"
+  cat "$workerlog" || true
+  say "::endgroup::"
+  kill "$workerPid" 2>/dev/null || true
+
+  # A suite that skips itself still exits 0. That is the failure mode this step
+  # exists to prevent, so assert that tests actually ran.
+  if [ ! -f "$report" ]; then
+    echo "::error::No Playwright JSON report produced; cannot confirm the GAQ specs ran."
+    return 1
+  fi
+  local expected skipped
+  expected=$(jq '.stats.expected // 0' "$report")
+  skipped=$(jq '.stats.skipped // 0' "$report")
+  say "GAQ suite: ${expected} passed, ${skipped} skipped"
+  if [ "$expected" -eq 0 ]; then
+    echo "::error::The GAQ specs reported zero executed tests -- they skipped themselves, which means GLOBAL_ASYNC_QUERIES was not active on the server under test."
+    return 1
+  fi
+  if [ "$skipped" -ne 0 ]; then
+    echo "::error::${skipped} GAQ test(s) skipped; this step must run the whole suite."
+    return 1
+  fi
 
   return $status
 }
