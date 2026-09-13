@@ -27,6 +27,7 @@ from superset.dashboards.schemas import (
     DashboardDatasetSchema,
     DashboardPostSchema,
     DashboardPutSchema,
+    ImportV1DashboardSchema,
 )
 
 GUEST_RESTRICTED_FIELDS = [
@@ -144,12 +145,18 @@ def test_dashboard_css_rejects_dangerous_constructs(css: str) -> None:
     assert "css" in exc_info.value.messages
 
 
-def test_dashboard_put_css_rejects_dangerous_constructs() -> None:
-    """The PUT schema applies the same CSS hardening."""
+def test_dashboard_put_schema_does_not_validate_css() -> None:
+    """The PUT schema deliberately does not validate css.
+
+    A dashboard PUT resends the full object on every save (renaming, moving
+    a chart, editing a filter), so a schema-level validator here would
+    re-reject a dashboard's existing css on any unrelated edit. Enforcement
+    moved to ``UpdateDashboardCommand``, which only validates css when it's
+    actually changing -- see ``tests/unit_tests/commands/dashboard/update_test.py``.
+    """
     schema = DashboardPutSchema()
-    with pytest.raises(ValidationError) as exc_info:
-        schema.load({"css": "div { width: expression(alert(1)); }"})
-    assert "css" in exc_info.value.messages
+    result = schema.load({"css": "div { width: expression(alert(1)); }"})
+    assert result["css"] == "div { width: expression(alert(1)); }"
 
 
 def test_dashboard_copy_css_rejects_dangerous_constructs() -> None:
@@ -160,6 +167,26 @@ def test_dashboard_copy_css_rejects_dangerous_constructs() -> None:
             {
                 "json_metadata": "{}",
                 "css": "div { width: expression(alert(1)); }",
+            }
+        )
+    assert "css" in exc_info.value.messages
+
+
+def test_dashboard_import_css_rejects_dangerous_constructs() -> None:
+    """Dashboard import applies the same CSS hardening as create/update.
+
+    A bundle import bypassing this check would let ``@import``-laden css
+    reach the database (and execute at render, since the css is injected
+    into the page unsanitised) despite the API paths blocking it.
+    """
+    schema = ImportV1DashboardSchema()
+    with pytest.raises(ValidationError) as exc_info:
+        schema.load(
+            {
+                "dashboard_title": "test",
+                "uuid": "3e1a1c0e-8b9d-4b0d-9b1e-6c9b1c0e8b9d",
+                "version": "1.0.0",
+                "css": "@import url('https://evil.example.com/x.css');",
             }
         )
     assert "css" in exc_info.value.messages
