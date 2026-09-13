@@ -385,8 +385,9 @@ export function transformSeries(
     onlyTotal?: boolean;
     legendState?: LegendState;
     formatter?: ValueFormatter;
-    totalStackedValues?: number[];
-    showValueIndexes?: number[];
+    totalStackedValues?: number[] | Record<string, number[]>;
+    showValueIndexes?: Record<string, number[]>;
+    stackGroup?: string;
     thresholdValues?: number[];
     richTooltip?: boolean;
     seriesKey?: OptionName;
@@ -423,7 +424,8 @@ export function transformSeries(
     formatter,
     legendState,
     totalStackedValues = [],
-    showValueIndexes = [],
+    showValueIndexes = {},
+    stackGroup,
     thresholdValues = [],
     richTooltip,
     seriesKey,
@@ -652,6 +654,21 @@ export function transformSeries(
         if (!stack && isSelectedLegend) {
           return formatter(numericValue);
         }
+        // Resolve per-stack-group index array and totals. When stackDimension
+        // creates separate ECharts stacks, each group has its own topmost-
+        // series index so the label appears on the correct bar segment.
+        const DEFAULT_STACK_GROUP = '__default__';
+        const resolvedStackGroup = stackGroup ?? DEFAULT_STACK_GROUP;
+        const stackShowValueIndexes = Array.isArray(showValueIndexes)
+          ? showValueIndexes
+          : (showValueIndexes[resolvedStackGroup] ??
+            showValueIndexes[DEFAULT_STACK_GROUP] ??
+            []);
+        const resolvedTotalStackedValues = Array.isArray(totalStackedValues)
+          ? totalStackedValues
+          : (totalStackedValues[resolvedStackGroup] ??
+            totalStackedValues[DEFAULT_STACK_GROUP] ??
+            []);
         if (!onlyTotal) {
           // A stacked segment with no height begins and ends at the same
           // coordinate as the top of the segment beneath it, so its label is
@@ -669,8 +686,10 @@ export function transformSeries(
           }
           return '';
         }
-        if (seriesIndex === showValueIndexes[dataIndex]) {
-          return formatter(isAreaExpand ? 1 : totalStackedValues[dataIndex]);
+        if (seriesIndex === stackShowValueIndexes[dataIndex]) {
+          return formatter(
+            isAreaExpand ? 1 : resolvedTotalStackedValues[dataIndex],
+          );
         }
         return '';
       },
