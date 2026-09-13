@@ -78,9 +78,7 @@ test('renders Alert component when query result contains validation error', asyn
   // Assert Alert component is rendered with error message
   expect(screen.getByRole('alert')).toBeInTheDocument();
   expect(screen.getByText('Missing temporal column')).toBeInTheDocument();
-  expect(
-    screen.queryByRole('tab', { name: 'Stats' }),
-  ).not.toBeInTheDocument();
+  expect(screen.queryByRole('tab', { name: 'Stats' })).not.toBeInTheDocument();
 });
 
 test('renders both Alert and SQL query when parsing error occurs', async () => {
