@@ -34,6 +34,8 @@ export class Panel implements sqlLabType.Panel {
 export class Tab implements sqlLabType.Tab {
   id: string;
 
+  backendId?: string;
+
   title: string;
 
   databaseId: number;
@@ -54,6 +56,7 @@ export class Tab implements sqlLabType.Tab {
     schema: string | null = null,
     editorGetter: () => Promise<sqlLabType.Editor>,
     panels: Panel[] = [],
+    backendId?: string,
   ) {
     this.id = id;
     this.title = title;
@@ -62,6 +65,7 @@ export class Tab implements sqlLabType.Tab {
     this.schema = schema;
     this.editorGetter = editorGetter;
     this.panels = panels;
+    this.backendId = backendId;
   }
 
   getEditor(): Promise<sqlLabType.Editor> {

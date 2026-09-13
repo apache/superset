@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, waitFor } from 'spec/helpers/testing-library';
+import { render, waitFor, createStore } from 'spec/helpers/testing-library';
+import reducerIndex from 'spec/helpers/reducerIndex';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import fetchMock from 'fetch-mock';
 import ExtensionsStartup from './ExtensionsStartup';
@@ -85,7 +86,7 @@ test('sets up global superset object when user is logged in', async () => {
   const loader = ExtensionsLoader.getInstance();
   const initializeSpy = jest
     .spyOn(loader, 'initializeExtensions')
-    .mockImplementation(() => Promise.resolve());
+    .mockImplementation(() => Promise.resolve([]));
 
   render(<ExtensionsStartup />, {
     useRedux: true,
@@ -127,7 +128,7 @@ test('initializes ExtensionsLoader when user is logged in', async () => {
   const loader = ExtensionsLoader.getInstance();
   const initializeSpy = jest
     .spyOn(loader, 'initializeExtensions')
-    .mockImplementation(() => Promise.resolve());
+    .mockImplementation(() => Promise.resolve([]));
 
   render(<ExtensionsStartup />, {
     useRedux: true,
@@ -170,7 +171,7 @@ test('only initializes once even with multiple renders', async () => {
 
   loader.initializeExtensions = jest.fn().mockImplementation(() => {
     initializeCallCount += 1;
-    return Promise.resolve();
+    return Promise.resolve([]);
   });
 
   const { rerender } = render(<ExtensionsStartup />, {
@@ -208,7 +209,7 @@ test('initializes ExtensionsLoader when EnableExtensions feature flag is enabled
   const originalInitialize = ExtensionsLoader.prototype.initializeExtensions;
   ExtensionsLoader.prototype.initializeExtensions = jest
     .fn()
-    .mockImplementation(() => Promise.resolve());
+    .mockImplementation(() => Promise.resolve([]));
 
   render(<ExtensionsStartup />, {
     useRedux: true,
@@ -260,26 +261,56 @@ test('does not initialize ExtensionsLoader when EnableExtensions feature flag is
   initializeSpy.mockRestore();
 });
 
-test('continues rendering children even when ExtensionsLoader initialization fails', async () => {
-  // Ensure feature flag is enabled
+test('surfaces a warning toast naming the extensions that failed to initialize', async () => {
   mockIsFeatureEnabled.mockReturnValue(true);
 
-  // Mock the initializeExtensions method to reject — ExtensionsLoader handles
-  // its own error logging internally
+  // A single extension's remote entry failing does not reject the aggregate;
+  // the loader resolves with the names of the failed extensions instead.
   const originalInitialize = ExtensionsLoader.prototype.initializeExtensions;
   ExtensionsLoader.prototype.initializeExtensions = jest
     .fn()
-    .mockImplementation(() => Promise.resolve());
+    .mockResolvedValue(['Broken Extension']);
+
+  const store = createStore(mockInitialState, reducerIndex);
+
+  render(
+    <ExtensionsStartup>
+      <div data-testid="child" />
+    </ExtensionsStartup>,
+    { store, useRouter: true },
+  );
+
+  await waitFor(() => {
+    const { messageToasts } = store.getState() as unknown as {
+      messageToasts: { text: string }[];
+    };
+    expect(
+      messageToasts.some(toast =>
+        /Some extensions failed to load: Broken Extension/.test(toast.text),
+      ),
+    ).toBe(true);
+  });
+
+  ExtensionsLoader.prototype.initializeExtensions = originalInitialize;
+});
+
+test('renders children and surfaces a warning toast when init fails', async () => {
+  // Ensure feature flag is enabled
+  mockIsFeatureEnabled.mockReturnValue(true);
+
+  // Mock the initializeExtensions method to reject so the caller's .catch runs.
+  const originalInitialize = ExtensionsLoader.prototype.initializeExtensions;
+  ExtensionsLoader.prototype.initializeExtensions = jest
+    .fn()
+    .mockRejectedValue(new Error('boom'));
+
+  const store = createStore(mockInitialState, reducerIndex);
 
   const { container } = render(
     <ExtensionsStartup>
       <div data-testid="child" />
     </ExtensionsStartup>,
-    {
-      useRedux: true,
-      useRouter: true,
-      initialState: mockInitialState,
-    },
+    { store, useRouter: true },
   );
 
   await waitFor(() => {
@@ -289,6 +320,17 @@ test('continues rendering children even when ExtensionsLoader initialization fai
     expect(
       container.querySelector('[data-testid="child"]'),
     ).toBeInTheDocument();
+  });
+
+  // The failure must reach the user as a warning toast rather than being
+  // swallowed silently.
+  await waitFor(() => {
+    const { messageToasts } = store.getState() as unknown as {
+      messageToasts: { text: string }[];
+    };
+    expect(
+      messageToasts.some(toast => /Extensions failed to load/.test(toast.text)),
+    ).toBe(true);
   });
 
   // Restore original method
