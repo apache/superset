@@ -119,7 +119,9 @@ test('shows tags helper text', () => {
 
   render(<AccessSection {...defaultProps} />);
 
-  expect(screen.getByText(/A list of tags that have been applied to this dashboard/)).toBeInTheDocument();
+  expect(
+    screen.getByText(/A list of tags that have been applied to this dashboard/),
+  ).toBeInTheDocument();
 });
 
 test('tags field is hidden when TaggingSystem feature is disabled', () => {
