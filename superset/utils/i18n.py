@@ -32,6 +32,8 @@ import logging
 from collections.abc import Iterable, Mapping
 from typing import Any, Callable
 
+from babel import Locale
+from babel.core import UnknownLocaleError
 from flask import current_app as app, g, has_request_context
 from flask_babel import get_locale
 
@@ -67,6 +69,29 @@ def is_asset_translation_enabled() -> bool:
     return len(app.config.get("LANGUAGES") or {}) > 1
 
 
+def _as_configured_name(locale: Locale) -> str:
+    """The ``LANGUAGES`` key naming ``locale``, or its canonical form.
+
+    Babel canonicalizes what it parses -- a deployment configuring ``zh_TW``
+    gets a locale that stringifies as ``zh_Hant_TW``. Deployments key their
+    translations by the identifier they configured and that the language picker
+    shows, so the hook is handed that name whenever one of them resolves to the
+    same locale.
+    """
+    canonical = str(locale)
+    for name in app.config.get("LANGUAGES") or {}:
+        if name == canonical:
+            return name
+        try:
+            if str(Locale.parse(name)) == canonical:
+                return name
+        except (ValueError, TypeError, UnknownLocaleError):
+            # A malformed LANGUAGES key is the deployment's problem, not a
+            # reason to fail the lookup: skip it and keep matching.
+            continue
+    return canonical
+
+
 def _target_locale() -> str | None:
     """The locale to translate into, or ``None`` when there is nothing to do.
 
@@ -77,7 +102,7 @@ def _target_locale() -> str | None:
     if locale is None:
         return None
 
-    locale_str = str(locale)
+    locale_str = _as_configured_name(locale)
     if locale_str == app.config.get("BABEL_DEFAULT_LOCALE", "en"):
         return None
 

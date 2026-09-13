@@ -398,3 +398,43 @@ def test_batch_hook_takes_precedence_when_both_are_configured(
     assert i18n.translate("Sales") == "Ventes"
     batch_hook.assert_called_once()
     single_hook.assert_not_called()
+
+
+def test_hook_receives_the_configured_locale_identifier(
+    mocker: MockerFixture,
+) -> None:
+    """Babel canonicalizes zh_TW to zh_Hant_TW; the hook wants what was configured.
+
+    A deployment keys its translations by the ``LANGUAGES`` identifier, which is
+    also what the language picker shows, so handing the hook Babel's canonical
+    form would miss every Traditional Chinese translation.
+    """
+    from babel import Locale
+
+    _enable(mocker)
+    current_app.config["LANGUAGES"] = {
+        "en": {"flag": "us", "name": "English"},
+        "zh_TW": {"flag": "tw", "name": "Traditional Chinese"},
+    }
+    mocker.patch.object(i18n, "get_locale", return_value=Locale.parse("zh_TW"))
+    hook = mocker.MagicMock(return_value="銷售")
+    current_app.config["TRANSLATION_HOOK"] = hook
+
+    assert i18n.translate("Sales") == "銷售"
+    assert hook.call_args.args[1] == "zh_TW"
+
+
+def test_unconfigured_locale_falls_back_to_the_canonical_form(
+    mocker: MockerFixture,
+) -> None:
+    """Nothing in LANGUAGES resolves to it, so the canonical name is all there is."""
+    from babel import Locale
+
+    _enable(mocker)
+    current_app.config["LANGUAGES"] = MULTI_LANG
+    mocker.patch.object(i18n, "get_locale", return_value=Locale.parse("zh_TW"))
+    hook = mocker.MagicMock(return_value="x")
+    current_app.config["TRANSLATION_HOOK"] = hook
+
+    i18n.translate("Sales")
+    assert hook.call_args.args[1] == "zh_Hant_TW"

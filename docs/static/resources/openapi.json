@@ -11264,6 +11264,11 @@
             "description": "If the chart is managed outside externally.",
             "type": "boolean"
           },
+          "localized_name": {
+            "description": "The slice name resolved for the viewer's locale (read-only). Falls back to slice_name when no translation applies.",
+            "readOnly": true,
+            "type": "string"
+          },
           "modified": {
             "description": "Last modification in human readable form.",
             "type": "string"
