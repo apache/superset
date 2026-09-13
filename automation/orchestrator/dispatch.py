@@ -118,7 +118,9 @@ def watch_session(
     """Poll a session until it finishes, with an orchestrator-side circuit breaker.
 
     Success requires *both* a finished status and a pull request on the
-    session; a "completed" session with ``pull_request == null`` is a failure.
+    session; a "completed" session with no pull request is a failure. The v3
+    API exposes ``pull_requests: [{pr_url, pr_state}]`` (older payloads used a
+    single ``pull_request`` object); both shapes are accepted.
     """
     deadline = time.monotonic() + timeout.total_seconds()
     attempt = 0
@@ -126,7 +128,7 @@ def watch_session(
         attempt += 1
         s = devin.get_session(session_id)
         status = str(s.get("status") or s.get("status_enum") or "").lower()
-        pr = s.get("pull_request")
+        pr = session_pr(s)
         log.info(
             "[Session %s] poll %d: status=%s pr=%s",
             session_id,
@@ -135,7 +137,7 @@ def watch_session(
             bool(pr),
         )
         if pr:
-            return True, str(pr.get("url") or pr)
+            return True, pr
         if status in DEAD_STATUSES:
             return False, f"session {status}"
         if status in FINISHED_STATUSES:
@@ -143,6 +145,17 @@ def watch_session(
         if time.monotonic() >= deadline:
             return False, f"timeout reached after {timeout} (last status: {status})"
         sleep(poll)
+
+
+def session_pr(session: dict[str, Any]) -> str | None:
+    """URL of the session's pull request, or None when it has not opened one."""
+    prs = list(session.get("pull_requests") or [])
+    if session.get("pull_request"):
+        prs.append(session["pull_request"])
+    for pr in prs:
+        if url := pr.get("pr_url") or pr.get("url"):
+            return str(url)
+    return None
 
 
 def branch_for_issue(gh: GitHub, issue: int) -> str | None:

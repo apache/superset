@@ -191,7 +191,7 @@ python -m pytest automation/tests                   # fake-API tests for all of 
 | **Idempotency** | Sessions are keyed by title (`Fix <category> issue #N`), dashboard comments by a hidden `<!-- devin:key -->` marker and edited in place, issues by PR body / branch name. |
 | **Per-issue failure** | `dispatch` catches the error, records `❌ failed` for that issue in the dashboard table, and continues with the next one. Exit code 1 if anything failed. |
 | **Orchestrator timeout** | `watch-session` polls `GET /sessions/{id}` and stops after `--timeout-minutes` regardless of what the Devin UI says. |
-| **PR check** | A session only counts as success when `pull_request` is non-null; `completed` + no PR is `❌ Failed - session finished but pull_request is null`. |
+| **PR check** | A session only counts as success when the Devin API reports a pull request for it (`pull_requests[]`); `completed` + no PR is `❌ Failed - session finished but pull_request is null`. |
 | **Cleanup** | In a `finally`, `watch-session` posts the outcome to issue #18 and, on failure, deletes the `devin/nightly-fix-<N>-*` branch unless a PR (any state) references it. `stale-branches` finds leftovers older than `--days` with no open/merged PR. |
 | **Logging** | Standard `logging` to stderr, every line carries the context: `[Issue #14] create session ...: HTTP 500 ... Attempt 2/6 failed, retrying in 3.2s`. Tokens are only ever sent as headers, never logged. |
 

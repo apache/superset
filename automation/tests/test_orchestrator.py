@@ -197,14 +197,25 @@ def test_attempted_issues_matches_body_branch_and_session() -> None:
 def test_watch_session_requires_pr(fake: tuple[Fake, str]) -> None:
     state, base = fake
     state.script["/sessions/s1"] = [
-        (200, {"status": "running", "pull_request": None}),
-        (200, {"status": "finished", "pull_request": None}),
+        (200, {"status": "running", "pull_requests": []}),
+        (200, {"status": "finished", "pull_requests": []}),
     ]
     ok, detail = ops.watch_session(
         devin_client(base), "s1", timeout=timedelta(minutes=1), sleep=lambda _: None
     )
     assert not ok
     assert "pull_request is null" in detail
+
+
+def test_watch_session_succeeds_on_pull_requests_list(fake: tuple[Fake, str]) -> None:
+    state, base = fake
+    pr = {"pr_url": "https://github.com/o/r/pull/7", "pr_state": "open"}
+    state.script["/sessions/s1"] = [(200, {"status": "running", "pull_requests": [pr]})]
+    ok, detail = ops.watch_session(
+        devin_client(base), "s1", timeout=timedelta(0), sleep=lambda _: None
+    )
+    assert ok
+    assert detail == pr["pr_url"]
 
 
 def test_watch_session_circuit_breaker(fake: tuple[Fake, str]) -> None:
