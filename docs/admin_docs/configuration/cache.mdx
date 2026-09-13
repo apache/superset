@@ -326,6 +326,32 @@ Then on configuration:
 WEBDRIVER_AUTH_FUNC = auth_driver
 ```
 
+### Refreshing successfully-rendered thumbnails
+
+Once a thumbnail renders successfully it is cached with no expiry, so on cache backends without
+TTL eviction (for example S3) a stale — or valid-but-blank — capture can be served indefinitely to
+callers that do not pass `force=true`. `THUMBNAIL_UPDATED_CACHE_TTL` bounds how long a
+successfully-rendered thumbnail is served before it is recomputed:
+
+```python
+from datetime import timedelta
+
+# Recompute a successfully-rendered thumbnail once it is older than 7 days (the default,
+# matching THUMBNAIL_CACHE_CONFIG's CACHE_DEFAULT_TIMEOUT).
+THUMBNAIL_UPDATED_CACHE_TTL = int(timedelta(days=7).total_seconds())
+```
+
+- **Opt out:** set `THUMBNAIL_UPDATED_CACHE_TTL = 0` (or `None`) to keep serving a rendered
+  thumbnail indefinitely (the previous behavior).
+- **Affected paths:** the freshness check applies to the on-demand dashboard screenshot endpoint
+  (`POST /api/v1/dashboard/<pk>/cache_dashboard_screenshot/`) and to dashboard thumbnails
+  recomputed by `superset compute-thumbnails` without `--force`. The high-traffic card-list
+  thumbnail endpoints and the chart on-demand screenshot endpoint are intentionally excluded and
+  keep serving the cached image.
+- **Rollout:** roll thumbnail workers before web servers when enabling this. During a mixed deploy
+  a new web server can enqueue a refresh that an older worker skips, leaving the thumbnail stale
+  until the worker pool finishes rolling (it self-heals afterward).
+
 ## ETag Support for Thumbnails
 
 Thumbnail and screenshot endpoints return `ETag` response headers based on the cached content digest. Clients can use conditional requests to avoid downloading unchanged images:
