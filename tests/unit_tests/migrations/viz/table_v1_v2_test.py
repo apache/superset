@@ -44,6 +44,9 @@ SOURCE_FORM_DATA: dict[str, Any] = {
 }
 
 TARGET_FORM_DATA: dict[str, Any] = {
+    # zebra_striping is intentionally absent from SOURCE_FORM_DATA: v1 has
+    # no control for it (always striped), so the migration materializes it
+    # unconditionally rather than carrying over a source key.
     "datasource": "1__table",
     "any_other_key": "untouched",
     "viz_type": "ag-grid-table",
@@ -62,6 +65,7 @@ TARGET_FORM_DATA: dict[str, Any] = {
     "color_pn": True,
     "allow_rearrange_columns": True,
     "allow_render_html": True,
+    "zebra_striping": True,
     "form_data_bak": SOURCE_FORM_DATA,
 }
 
