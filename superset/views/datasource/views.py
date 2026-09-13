@@ -121,25 +121,45 @@ class Datasource(BaseSupersetView):
         except SupersetSecurityException as ex:
             raise DatasetForbiddenError() from ex
 
-        if database_id != orm_datasource.database_id:
+        # The request may repoint the dataset to a different database and/or a
+        # different table/schema/catalog; update_from_object (below) applies
+        # whatever the request supplies. Resolve the target of both dimensions
+        # up front so the access check is evaluated against what the dataset
+        # will actually point at, not its current (stale) values.
+        database_changed = database_id != orm_datasource.database_id
+        requested_table = Table(
+            datasource_dict.get("table_name", orm_datasource.table_name),
+            datasource_dict.get("schema", orm_datasource.schema),
+            datasource_dict.get("catalog", orm_datasource.catalog),
+        )
+        table_changed = (
+            requested_table.table != orm_datasource.table_name
+            or requested_table.schema != orm_datasource.schema
+            or requested_table.catalog != orm_datasource.catalog
+        )
+
+        if database_changed:
             new_database = DatasetDAO.get_database_by_id(database_id)
             if new_database is None:
                 return json_error_response(_("Database not found."), status=422)
+            target_database = new_database
+        else:
+            target_database = orm_datasource.database
+
+        # Whenever the dataset is repointed -- to a new database or, within the
+        # same database, to a different table -- the caller must be authorised
+        # for the target table, mirroring the create path. Editorship of the
+        # dataset alone is not sufficient.
+        if database_changed or table_changed:
             try:
                 security_manager.raise_for_access(
-                    database=new_database,
-                    # Check access against the table/schema/catalog the
-                    # request is repointing to, not the dataset's current
-                    # values -- update_from_object (below) applies whatever
-                    # table_name/schema/catalog the request supplies.
-                    table=Table(
-                        datasource_dict.get("table_name", orm_datasource.table_name),
-                        datasource_dict.get("schema", orm_datasource.schema),
-                        datasource_dict.get("catalog", orm_datasource.catalog),
-                    ),
+                    database=target_database,
+                    table=requested_table,
                 )
             except SupersetSecurityException as ex:
                 raise DatasetForbiddenError() from ex
+
+        if database_changed:
             orm_datasource.database_id = database_id
 
         duplicates = [
