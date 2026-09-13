@@ -1750,6 +1750,14 @@ class TestRolePermission(SupersetTestCase):
             # user/tenant data) as content-addressed scripts; must load for
             # anonymous principals (login page, embedded dashboards).
             ["Superset", "language_pack_script"],
+            # Intentionally unauthenticated, matching a raw pre-signed S3 URL's
+            # own access model: the unguessable job_id in the path is the
+            # credential, and the underlying dashboard access check already
+            # ran once, when the export was requested (see
+            # security_manager.raise_for_access in export_xlsx). Must be
+            # reachable with no session at all, since it is clicked from a
+            # plain email link.
+            ["DashboardRestApi", "download_xlsx"],
             # Language pack endpoint serves JS bundle translations, no auth
             # needed; embedded dashboards fetch this without a guest-token
             # header, so it must be reachable unauthenticated.

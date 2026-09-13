@@ -18295,6 +18295,76 @@
         ]
       }
     },
+    "/api/v1/dashboard/export_xlsx/download/{job_id}/": {
+      "get": {
+        "description": "Intentionally requires no login: the unguessable job_id, emailed only to the original requester (or handed to their own session via export_xlsx_status), is the credential. The dashboard access check already ran once, when the export was requested -- see security_manager.raise_for_access in export_xlsx. The file streams through Superset with the deployment's own storage credentials instead of redirecting to a signed storage URL, so it works for ambient identities that cannot sign (e.g. workload identity federation) and never mints a bearer URL Superset cannot observe or revoke.",
+        "parameters": [
+          {
+            "description": "The job_id from the export_xlsx response",
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The .xlsx file as an attachment"
+          },
+          "410": {
+            "description": "The link is unknown, expired, or the export failed"
+          },
+          "501": {
+            "description": "Excel export is not configured on this server"
+          }
+        },
+        "security": [],
+        "summary": "Download a completed dashboard Excel export",
+        "tags": [
+          "Dashboards"
+        ]
+      }
+    },
+    "/api/v1/dashboard/export_xlsx/status/{job_id}/": {
+      "get": {
+        "description": "For a session with no email address to be notified at (e.g. an embedded/guest session), the frontend polls this endpoint with the job_id from the export_xlsx response instead of waiting for an email. Behind the same @protect() as the export request itself, unlike the login-free download_xlsx stream (which also has to work when clicked from a plain email link, possibly with no active session at all).",
+        "parameters": [
+          {
+            "description": "The job_id from the export_xlsx response",
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Job status: {\"status\": \"pending\"} while queued, {\"status\": \"running\"} once a worker has started executing, {\"status\": \"ready\", \"download_url\": \"...\"} once the file is available, or {\"status\": \"error\", \"message\": \"...\"} if the export failed."
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Poll the status of a dashboard Excel export job",
+        "tags": [
+          "Dashboards"
+        ]
+      }
+    },
     "/api/v1/dashboard/favorite_status/": {
       "get": {
         "parameters": [
@@ -19540,7 +19610,7 @@
     },
     "/api/v1/dashboard/{pk}/export_xlsx/": {
       "post": {
-        "description": "Enqueues an async task that writes each chart's data to its own worksheet, uploads the .xlsx to S3, and emails the requesting user a pre-signed download link. Returns immediately with a job id.",
+        "description": "Enqueues an async task that writes each chart's data to its own worksheet, uploads the .xlsx to the configured export storage, and records a download link. The requesting user is emailed the link when they have an address on file; either way the returned job id can be polled at export_xlsx/status/<job_id>/ for status and, once ready, the download link.",
         "parameters": [
           {
             "description": "The dashboard id",

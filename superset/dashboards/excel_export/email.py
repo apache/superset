@@ -55,7 +55,7 @@ def _humanize_ttl(seconds: int) -> str:
 
     Whole hours read as "24 hours"; sub-hour and non-hour values keep their
     minutes (e.g. "1 hour 30 minutes", "15 minutes") so the stated lifetime
-    always matches the real pre-signed URL expiration.
+    always matches the link's real expiration.
     """
     hours, remainder = divmod(seconds, 3600)
     parts: list[str] = []
