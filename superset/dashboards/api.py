@@ -682,7 +682,9 @@ class DashboardRestApi(
         if "charts" in result:
             # Only name the member charts the caller can access, consistent with
             # the per-object narrowing applied to the dashboard's datasets and
-            # charts sub-resources.
+            # charts sub-resources. The check reads each chart's editors and
+            # viewers, so load them for the whole set first.
+            DashboardDAO.prefetch_chart_access(dash)
             result["charts"] = [
                 slc.chart
                 for slc in dash.slices

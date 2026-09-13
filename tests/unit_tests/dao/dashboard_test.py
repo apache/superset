@@ -16,14 +16,18 @@
 # under the License.
 from datetime import datetime, timezone
 from typing import Any
+from unittest.mock import patch
 
+from sqlalchemy import event, inspect
 from sqlalchemy.orm.session import Session
 
-from superset import db
+from superset import db, security_manager
 from superset.connectors.sqla.models import Database, SqlaTable
 from superset.daos.dashboard import DashboardDAO
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
+from superset.subjects.models import Subject
+from superset.subjects.types import SubjectType
 from superset.utils import json
 from tests.unit_tests.conftest import with_feature_flags
 
@@ -168,3 +172,146 @@ def test_set_dash_metadata_updates_refresh_frequency_when_present(
     assert md["refresh_frequency"] == 0, (
         "refresh_frequency should be updated when present in data"
     )
+
+
+def _make_dashboard(slug: str, n_charts: int) -> Dashboard:
+    """A dashboard with n_charts member charts, each with one editor and viewer."""
+    editor = Subject(label=f"editor-{slug}", type=SubjectType.ROLE)
+    viewer = Subject(label=f"viewer-{slug}", type=SubjectType.ROLE)
+    dashboard = Dashboard(dashboard_title=slug, slug=slug)
+    for i in range(n_charts):
+        dashboard.slices.append(
+            Slice(
+                slice_name=f"{slug}-chart-{i}",
+                datasource_type="table",
+                datasource_id=1,
+                viz_type="table",
+                editors=[editor],
+                viewers=[viewer],
+            )
+        )
+    db.session.add(dashboard)
+    db.session.flush()
+    return dashboard
+
+
+def _count_statements(session: Session, fn) -> int:
+    """Number of SQL statements fn issues."""
+    seen = []
+
+    def before(conn, cursor, statement, params, ctx, many):  # noqa: PLR0913
+        seen.append(statement)
+
+    bind = session.get_bind()
+    event.listen(bind, "before_cursor_execute", before)
+    try:
+        fn()
+    finally:
+        event.remove(bind, "before_cursor_execute", before)
+    return len(seen)
+
+
+def test_prefetch_chart_access_loads_editors_and_viewers(
+    session: Session,
+) -> None:
+    """The per-chart access check reads editors and viewers on every slice.
+
+    Without the prefetch those are two lazy loads per chart, so the dashboard
+    GET issues a pair of queries for each member chart it narrows.
+    """
+    Dashboard.metadata.create_all(session.get_bind())
+
+    editor = Subject(label="editor", type=SubjectType.ROLE)
+    viewer = Subject(label="viewer", type=SubjectType.ROLE)
+    dashboard = Dashboard(dashboard_title="prefetch", slug="prefetch")
+    for i in range(3):
+        dashboard.slices.append(
+            Slice(
+                slice_name=f"chart-{i}",
+                datasource_type="table",
+                datasource_id=1,
+                viz_type="table",
+                editors=[editor],
+                viewers=[viewer],
+            )
+        )
+    session.add(dashboard)
+    session.flush()
+
+    # Drop everything from the identity map so the relationships start unloaded.
+    session.expire_all()
+    dashboard = session.query(Dashboard).filter_by(slug="prefetch").one()
+    assert all("editors" in inspect(slc).unloaded for slc in dashboard.slices)
+
+    # The access check short-circuits for an admin without reading either
+    # relationship, so the prefetch is a non-admin path.
+    with patch.object(security_manager, "is_admin", return_value=False):
+        DashboardDAO.prefetch_chart_access(dashboard)
+
+    for slc in dashboard.slices:
+        unloaded = inspect(slc).unloaded
+        assert "editors" not in unloaded
+        assert "viewers" not in unloaded
+        assert [s.label for s in slc.editors] == ["editor"]
+        assert [s.label for s in slc.viewers] == ["viewer"]
+
+
+def test_prefetch_chart_access_does_no_per_chart_work(
+    session: Session,
+) -> None:
+    """Adding charts must not add statements.
+
+    Asserting only that the relationships end up loaded would also pass for an
+    implementation that walks the slices and touches each one, which is the 2N
+    behaviour this is meant to remove. So count the statements at two sizes and
+    require the same number.
+
+    Not literally constant forever: selectinload batches its own IN lists at 500,
+    so each relationship adds one statement per 500 charts (1200 charts is 7
+    statements, against 2400 before). Both sizes here sit inside the first batch,
+    which is what makes the equality check meaningful.
+    """
+    Dashboard.metadata.create_all(session.get_bind())
+
+    small = _make_dashboard("count-small", 3)
+    large = _make_dashboard("count-large", 25)
+    session.expire_all()
+
+    with patch.object(security_manager, "is_admin", return_value=False):
+        small = session.query(Dashboard).filter_by(slug="count-small").one()
+        small_n = _count_statements(
+            session, lambda: DashboardDAO.prefetch_chart_access(small)
+        )
+        large = session.query(Dashboard).filter_by(slug="count-large").one()
+        large_n = _count_statements(
+            session, lambda: DashboardDAO.prefetch_chart_access(large)
+        )
+
+    assert small_n == large_n, (
+        f"prefetch scaled with chart count: {small_n} statements for 3 charts, "
+        f"{large_n} for 25"
+    )
+    assert small_n == 3, f"expected slices + editors + viewers, got {small_n}"
+
+
+def test_prefetch_chart_access_skips_the_query_for_admins(
+    session: Session,
+) -> None:
+    """An admin's access check never reads editors or viewers, so don't prefetch.
+
+    is_editor and is_viewer both return True on is_admin() before touching
+    either relationship. Prefetching for an admin would turn a zero-query
+    access check into three extra statements.
+    """
+    Dashboard.metadata.create_all(session.get_bind())
+
+    dashboard = _make_dashboard("admin-skip", 5)
+    session.expire_all()
+    dashboard = session.query(Dashboard).filter_by(slug="admin-skip").one()
+
+    with patch.object(security_manager, "is_admin", return_value=True):
+        n = _count_statements(
+            session, lambda: DashboardDAO.prefetch_chart_access(dashboard)
+        )
+
+    assert n == 0, f"prefetch issued {n} statements for an admin"
