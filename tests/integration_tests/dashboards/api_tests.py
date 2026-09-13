@@ -371,6 +371,28 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             assert {"id", "uid", "table_name", "type"} <= set(dataset)
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @patch(
+        "superset.dashboards.api.security_manager"
+        ".can_drill_dataset_via_dashboard_access"
+    )
+    @patch("superset.dashboards.api.security_manager.can_access_datasource")
+    def test_get_dashboard_datasets_keeps_definition_via_dashboard_access(
+        self, can_access_datasource_mock, can_drill_mock
+    ):
+        # A viewer in promiscuous mode cannot access the datasource directly, but
+        # can drill it via dashboard access, so the full definition is retained.
+        can_access_datasource_mock.return_value = False
+        can_drill_mock.return_value = True
+        self.login(ADMIN_USERNAME)
+        uri = "api/v1/dashboard/world_health/datasets"
+        response = self.get_assert_metric(uri, "get_datasets")
+        assert response.status_code == 200
+        data = json.loads(response.data.decode("utf-8"))
+        assert data["result"]
+        for dataset in data["result"]:
+            assert {"sql", "columns", "database"} <= set(dataset)
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @patch("superset.utils.log.logger")
     def test_get_dashboard_datasets_not_found(self, logger_mock):
         self.login(ALPHA_USERNAME)
@@ -503,6 +525,30 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             assert "form_data" not in chart
             assert "id" in chart
             assert "slice_name" in chart
+
+    @pytest.mark.usefixtures("create_dashboards")
+    @patch(
+        "superset.dashboards.api.security_manager"
+        ".can_drill_dataset_via_dashboard_access"
+    )
+    @patch("superset.dashboards.api.security_manager.can_access_chart")
+    def test_get_dashboard_charts_keeps_form_data_via_dashboard_access(
+        self, can_access_chart_mock, can_drill_mock
+    ):
+        """A viewer in promiscuous mode who cannot access a member chart directly
+        still receives its form_data when the chart is drillable via dashboard
+        access, so the chart can render."""
+        can_access_chart_mock.return_value = False
+        can_drill_mock.return_value = True
+        self.login(ADMIN_USERNAME)
+        dashboard = self.dashboards[0]
+        uri = f"api/v1/dashboard/{dashboard.id}/charts"
+        response = self.get_assert_metric(uri, "get_charts")
+        assert response.status_code == 200
+        data = json.loads(response.data.decode("utf-8"))
+        assert data["result"]
+        for chart in data["result"]:
+            assert "form_data" in chart
 
     @pytest.mark.usefixtures("create_dashboards")
     def test_get_dashboard_charts_by_slug(self):

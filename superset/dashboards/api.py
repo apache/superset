@@ -742,9 +742,9 @@ class DashboardRestApi(
               $ref: '#/components/responses/404'
         """
         try:
-            datasets = DashboardDAO.get_datasets_for_dashboard(id_or_slug)
+            dashboard, datasets = DashboardDAO.get_datasets_for_dashboard(id_or_slug)
             result = [
-                self._serialize_dashboard_dataset(datasource, payload)
+                self._serialize_dashboard_dataset(datasource, payload, dashboard)
                 for datasource, payload in datasets
             ]
             return self.response(200, result=result)
@@ -752,19 +752,34 @@ class DashboardRestApi(
             raise DatasetValidationError(err) from err
 
     def _serialize_dashboard_dataset(
-        self, datasource: Any, payload: dict[str, Any]
+        self, datasource: Any, payload: dict[str, Any], dashboard: Dashboard
     ) -> dict[str, Any]:
         """Dump a member dataset, narrowed when the caller cannot access it."""
         serialized = self.dashboard_dataset_schema.dump(payload)
-        if not security_manager.can_access_datasource(datasource):
+        if not (
+            security_manager.can_access_datasource(datasource)
+            or security_manager.can_drill_dataset_via_dashboard_access(
+                datasource, dashboard
+            )
+        ):
             for key in DASHBOARD_DATASET_INACCESSIBLE_FIELDS:
                 serialized.pop(key, None)
         return serialized
 
-    def _serialize_dashboard_chart(self, chart: Any) -> dict[str, Any]:
+    def _serialize_dashboard_chart(
+        self, chart: Any, dashboard: Dashboard
+    ) -> dict[str, Any]:
         """Dump a member chart, narrowed when the caller cannot access it."""
         serialized = self.chart_entity_response_schema.dump(chart)
-        if not security_manager.can_access_chart(chart):
+        if not (
+            security_manager.can_access_chart(chart)
+            or (
+                chart.datasource is not None
+                and security_manager.can_drill_dataset_via_dashboard_access(
+                    chart.datasource, dashboard
+                )
+            )
+        ):
             serialized.pop("form_data", None)
         return serialized
 
@@ -870,8 +885,10 @@ class DashboardRestApi(
               $ref: '#/components/responses/404'
         """
         try:
-            charts = DashboardDAO.get_charts_for_dashboard(id_or_slug)
-            result = [self._serialize_dashboard_chart(chart) for chart in charts]
+            dashboard, charts = DashboardDAO.get_charts_for_dashboard(id_or_slug)
+            result = [
+                self._serialize_dashboard_chart(chart, dashboard) for chart in charts
+            ]
             return self.response(200, result=result)
         except DashboardAccessDeniedError:
             return self.response_403()

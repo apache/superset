@@ -17,6 +17,7 @@
 
 """Tests for raise_for_access viewer access paths (Phase 4, Step 7)."""
 
+import contextlib
 from unittest.mock import MagicMock, patch, PropertyMock
 
 import pytest
@@ -417,3 +418,87 @@ def test_explore_command_uses_chart_access_when_slice_exists(app_context):
     ):
         cmd.run()
         mock_sm.raise_for_access.assert_called_once_with(chart=mock_slc)
+
+
+def _make_drill_dashboard(*, published: bool, dataset):
+    dashboard = MagicMock()
+    dashboard.published = published
+    dashboard.datasources = [dataset]
+    return dashboard
+
+
+def _patch_drill_viewer(sm, monkeypatch, *, promiscuous: bool):
+    monkeypatch.setitem(current_app.config, "VIEWER_PROMISCUOUS_MODE", promiscuous)
+    return (
+        patch.object(sm, "is_guest_user", return_value=False),
+        patch.object(sm, "is_viewer", return_value=True),
+        patch(
+            "superset.is_feature_enabled",
+            side_effect=lambda flag: flag == "ENABLE_VIEWERS",
+        ),
+    )
+
+
+def test_can_drill_dataset_via_dashboard_access_viewer_promiscuous(
+    app_context, monkeypatch
+):
+    """Viewer of a published dashboard can drill its datasets in promiscuous mode."""
+    sm = _make_sm()
+    dataset = MagicMock()
+    dataset.id = 7
+    dashboard = _make_drill_dashboard(published=True, dataset=dataset)
+
+    with contextlib.ExitStack() as stack:
+        for cm in _patch_drill_viewer(sm, monkeypatch, promiscuous=True):
+            stack.enter_context(cm)
+        assert sm.can_drill_dataset_via_dashboard_access(dataset, dashboard) is True
+
+
+def test_can_drill_dataset_via_dashboard_access_unpublished_denies(
+    app_context, monkeypatch
+):
+    """An unpublished dashboard denies drill access even for a promiscuous viewer."""
+    sm = _make_sm()
+    dataset = MagicMock()
+    dataset.id = 7
+    dashboard = _make_drill_dashboard(published=False, dataset=dataset)
+
+    with contextlib.ExitStack() as stack:
+        for cm in _patch_drill_viewer(sm, monkeypatch, promiscuous=True):
+            stack.enter_context(cm)
+        assert sm.can_drill_dataset_via_dashboard_access(dataset, dashboard) is False
+
+
+def test_can_drill_dataset_via_dashboard_access_unrelated_dataset_denies(
+    app_context, monkeypatch
+):
+    """A dataset not belonging to the dashboard is not drillable via its access."""
+    sm = _make_sm()
+    member_dataset = MagicMock()
+    member_dataset.id = 7
+    unrelated_dataset = MagicMock()
+    unrelated_dataset.id = 99
+    dashboard = _make_drill_dashboard(published=True, dataset=member_dataset)
+
+    with contextlib.ExitStack() as stack:
+        for cm in _patch_drill_viewer(sm, monkeypatch, promiscuous=True):
+            stack.enter_context(cm)
+        assert (
+            sm.can_drill_dataset_via_dashboard_access(unrelated_dataset, dashboard)
+            is False
+        )
+
+
+def test_can_drill_dataset_via_dashboard_access_no_promiscuous_denies(
+    app_context, monkeypatch
+):
+    """With VIEWER_PROMISCUOUS_MODE off, a viewer cannot drill via dashboard access."""
+    sm = _make_sm()
+    dataset = MagicMock()
+    dataset.id = 7
+    dashboard = _make_drill_dashboard(published=True, dataset=dataset)
+
+    with contextlib.ExitStack() as stack:
+        for cm in _patch_drill_viewer(sm, monkeypatch, promiscuous=False):
+            stack.enter_context(cm)
+        assert sm.can_drill_dataset_via_dashboard_access(dataset, dashboard) is False

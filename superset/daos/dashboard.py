@@ -204,9 +204,11 @@ class DashboardDAO(BaseDAO[Dashboard]):
         return dashboard
 
     @staticmethod
-    def get_datasets_for_dashboard(id_or_slug: str) -> list[tuple[Any, dict[str, Any]]]:
+    def get_datasets_for_dashboard(
+        id_or_slug: str,
+    ) -> tuple[Dashboard, list[tuple[Any, dict[str, Any]]]]:
         dashboard = DashboardDAO.get_by_id_or_slug(id_or_slug)
-        return dashboard.datasets_trimmed_for_slices()
+        return dashboard, dashboard.datasets_trimmed_for_slices()
 
     @staticmethod
     def get_tabs_for_dashboard(id_or_slug: str) -> dict[str, Any]:
@@ -214,8 +216,9 @@ class DashboardDAO(BaseDAO[Dashboard]):
         return dashboard.tabs
 
     @staticmethod
-    def get_charts_for_dashboard(id_or_slug: str) -> list[Slice]:
-        return DashboardDAO.get_by_id_or_slug(id_or_slug).slices
+    def get_charts_for_dashboard(id_or_slug: str) -> tuple[Dashboard, list[Slice]]:
+        dashboard = DashboardDAO.get_by_id_or_slug(id_or_slug)
+        return dashboard, dashboard.slices
 
     @staticmethod
     def get_dashboard_changed_on(id_or_slug_or_dashboard: str | Dashboard) -> datetime:
