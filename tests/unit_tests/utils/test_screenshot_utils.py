@@ -1998,3 +1998,109 @@ def test_expand_scrollable_content_js_unrolls_ag_grid_and_css_scroll() -> None:
     # bounded by a report's remaining deadline (see webdriver_test.py).
     assert "async (maxWaitMs) =>" in EXPAND_SCROLLABLE_CONTENT_JS
     assert "Date.now() + maxWaitMs" in EXPAND_SCROLLABLE_CONTENT_JS
+
+    # The generic-descendant reset repeats to a fixed point (bounded), not a
+    # single pass: an ancestor whose own height was computed as the sum of
+    # its still-clipped children (e.g. plugin-chart-table's `role="table"`
+    # sticky wrapper in useSticky.tsx) has scrollHeight == clientHeight
+    # *before* its child is expanded, so a single querySelectorAll pass
+    # skips it -- see test_expand_scrollable_content_resolves_nested_ancestor_clip
+    # below for the real-browser reproduction.
+    assert "changedInPass" in EXPAND_SCROLLABLE_CONTENT_JS
+    assert "passes < 5" in EXPAND_SCROLLABLE_CONTENT_JS
+
+
+def test_expand_scrollable_content_resolves_nested_ancestor_clip() -> None:
+    """Real-browser regression test (Playwright/Chromium) for the fixed-point
+    loop above: reproduces the exact nested clip that a single-pass reset
+    missed for `plugin-chart-table`.
+
+    `useSticky.tsx` renders a `role="table"` wrapper with a fixed pixel
+    height and `overflow: hidden`, around a `scrollBodyRef` div that has its
+    *own* fixed height + `overflow: auto`. Before any DOM mutation, the
+    wrapper's `scrollHeight` already equals its `clientHeight` (its height
+    was computed as the sum of its still-clipped children), so a single
+    querySelectorAll pass expands the inner scroll body but has already
+    evaluated -- and skipped -- the outer wrapper by the time the inner one
+    grows. This fixture reproduces that exact two-level shape and asserts
+    every row ends up inside the bounding box a locator-scoped
+    `element.screenshot()` would capture (the same clip Thread B of
+    @aminghadersohi's #43979 review flagged for the ag-Grid ancestor case).
+
+    Skips (does not fail) when Playwright's Python package or a Chromium
+    binary is unavailable -- this environment's own CI unit-test job does
+    not install either today, so this is currently a local/dev verification
+    aid rather than an enforced CI gate.
+    """
+    pytest.importorskip("playwright.sync_api")
+    from playwright.sync_api import Error as PlaywrightError, sync_playwright
+
+    from superset.utils.screenshot_utils import EXPAND_SCROLLABLE_CONTENT_JS
+
+    n_rows = 50
+    row_height_px = 30
+    body_height_px = 250  # only ~8 rows fit before the fix
+    outer_height_px = 300  # header + visible body rows, per useSticky's realHeight
+
+    rows_html = "".join(
+        f'<tr id="row-{i}" style="height:{row_height_px}px;"><td>row {i}</td></tr>'
+        for i in range(n_rows)
+    )
+    html = f"""
+    <!doctype html><html><body style="margin:0">
+    <div class="chart-container" style="min-height: {outer_height_px}px; position: relative;">
+      <div class="slice_container" style="height: {outer_height_px}px; display:flex; flex-direction:column; justify-content:center;">
+        <div role="table" style="width: 800px; height: {outer_height_px}px; overflow: hidden;">
+          <div style="overflow: hidden; width: 780px; height: 36px;">HEADER ROW</div>
+          <div style="height: {body_height_px}px; overflow: auto; width: 780px; box-sizing: border-box;">
+            <table style="table-layout: fixed; width: 100%;">
+              <tbody>{rows_html}</tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    </body></html>
+    """  # noqa: E501
+
+    with sync_playwright() as playwright:
+        try:
+            browser = playwright.chromium.launch()
+        except PlaywrightError as ex:
+            pytest.skip(f"Chromium is not installed for Playwright: {ex}")
+            return
+
+        try:
+            page = browser.new_page(viewport={"width": 900, "height": 900})
+            page.set_content(html)
+
+            chart_container = page.locator(".chart-container")
+            last_row = page.locator(f"#row-{n_rows - 1}")
+
+            before_box = chart_container.bounding_box()
+            before_last_row_box = last_row.bounding_box()
+            assert before_box is not None
+            assert before_last_row_box is not None
+            # Confirm the fixture actually reproduces clipping before
+            # asserting the fix resolves it, so a broken fixture fails
+            # loudly instead of vacuously passing.
+            assert (
+                before_last_row_box["y"] + before_last_row_box["height"]
+                > before_box["y"] + before_box["height"]
+            )
+
+            page.evaluate(EXPAND_SCROLLABLE_CONTENT_JS, 500)
+
+            after_box = chart_container.bounding_box()
+            after_last_row_box = last_row.bounding_box()
+            assert after_box is not None
+            assert after_last_row_box is not None
+            assert (
+                after_last_row_box["y"] + after_last_row_box["height"]
+                <= after_box["y"] + after_box["height"]
+            )
+            # Every row's height, plus the header -- not just the last
+            # row's position -- actually fits inside the grown container.
+            assert after_box["height"] >= n_rows * row_height_px
+        finally:
+            browser.close()
