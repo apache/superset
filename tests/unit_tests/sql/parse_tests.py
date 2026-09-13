@@ -3357,6 +3357,10 @@ def test_starrocks_generator_round_trip(sql: str, expected: str) -> None:
         # with no name or column list is also accepted; see the CONSTRAINT_
         # PARSERS override below).
         "CREATE TABLE t (k1 INT, KEY (k1))",
+        # Named inline KEY index def (an alias for INDEX with no leading
+        # keyword), which routes through the same override's identifier-then-
+        # column-list branch rather than the immediate "(" branch above.
+        "CREATE TABLE t (k1 INT, KEY idx_name (k1))",
         # GIN/NGRAM full-text index with an inline properties list.
         "CREATE TABLE t(k1 INT, INDEX idx (k1) USING GIN ('parser' = 'english')) "
         "DUPLICATE KEY(k1) DISTRIBUTED BY HASH(k1)",
