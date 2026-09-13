@@ -166,8 +166,8 @@ export type DashboardState = {
   refreshFrequency: number;
   shouldPersistRefreshFrequency?: boolean;
   // Display-only localized dashboard title (read-only; canonical title is in
-  // the header layout meta). Present only when asset-metadata translation is
-  // enabled.
+  // the header layout meta). Mirrors the canonical title when translation is
+  // off or no translation exists, so it is never a signal that one was found.
   localizedTitle?: string;
   // The canonical title `localizedTitle` was resolved for; the translation is
   // only displayed while the live title still matches it.

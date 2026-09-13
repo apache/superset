@@ -315,3 +315,32 @@ test('selecting Modified by filter encodes rel_o_m changed_by in API call', asyn
     );
   });
 });
+
+test('renders the localized dashboard title, falling back to dashboard_title', async () => {
+  // Served from a response of its own: the shared mock is asserted against by
+  // canonical title elsewhere in this suite.
+  const [translated, untranslated] = mockDashboards;
+  fetchMock.removeRoutes();
+  fetchMock.get(
+    API_ENDPOINTS.DASHBOARDS,
+    {
+      result: [
+        { ...translated, localized_title: 'Tableau des ventes' },
+        untranslated,
+      ],
+      count: 2,
+    },
+    { name: API_ENDPOINTS.DASHBOARDS },
+  );
+
+  renderDashboardList(mockAdminUser);
+  await screen.findByTestId('dashboard-list-view');
+
+  expect(await screen.findByText('Tableau des ventes')).toBeInTheDocument();
+  expect(
+    screen.queryByText(translated.dashboard_title),
+  ).not.toBeInTheDocument();
+
+  // Dashboards without a translation keep showing the canonical title.
+  expect(screen.getByText(untranslated.dashboard_title)).toBeInTheDocument();
+});

@@ -35,8 +35,8 @@ export interface Chart {
   url: string;
   viz_type: string;
   slice_name: string;
-  // Name resolved for the viewer's locale (read-only). Present only when
-  // asset-metadata translation is enabled; falls back to slice_name.
+  // Name resolved for the viewer's locale (read-only). Mirrors slice_name
+  // when translation is off or no translation exists.
   localized_name?: string;
   creator: string;
   changed_on: string;
