@@ -29,6 +29,7 @@ from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.daos.exceptions import DatasourceTypeNotSupportedError
 from superset.extensions import cache_manager
+from superset.models.core import Database
 from superset.semantic_layers.models import SemanticLayer, SemanticView
 from superset.utils import json
 from tests.integration_tests.base_tests import SupersetTestCase
@@ -107,6 +108,34 @@ def _gamma_granted(*pvms: tuple[str, str]) -> Iterator[None]:
             security_manager.del_permission_view_menu(
                 pvm.permission.name, pvm.view_menu.name
             )
+        db.session.commit()
+
+
+@contextmanager
+def _datasets_with_schemas() -> Iterator[str]:
+    """Persist two datasets under distinct, unique schemas; clean up on exit.
+
+    Yields a unique suffix so the caller can build the exact table and schema
+    names (``main_ds_<suffix>`` in schema ``main_<suffix>`` and
+    ``other_ds_<suffix>`` in schema ``other_<suffix>``). The unique schema name
+    guarantees the filter value cannot collide with pre-existing datasets.
+    """
+    suffix = uuid.uuid4().hex
+    database = Database(database_name=f"schema_db_{suffix}", sqlalchemy_uri="sqlite://")
+    main_ds = SqlaTable(
+        table_name=f"main_ds_{suffix}", schema=f"main_{suffix}", database=database
+    )
+    other_ds = SqlaTable(
+        table_name=f"other_ds_{suffix}", schema=f"other_{suffix}", database=database
+    )
+    db.session.add_all([database, main_ds, other_ds])
+    db.session.commit()
+    try:
+        yield suffix
+    finally:
+        db.session.rollback()
+        for obj in (main_ds, other_ds, database):
+            db.session.delete(obj)
         db.session.commit()
 
 
@@ -628,3 +657,36 @@ class TestDatasourceApi(SupersetTestCase):
                 status, names = self._list_semantic_views_as_gamma()
             assert status == 200
             assert names == set()
+
+    @with_feature_flags(SEMANTIC_LAYERS=True)
+    def test_combined_list_filters_by_schema(self):
+        """The schema filter narrows the combined list to matching datasets.
+
+        The per-run schema name is unique, so exactly one dataset can match:
+        the result set must equal ``{main_ds_<suffix>}``. That single exact-set
+        assertion proves both halves independently of pagination and of whatever
+        other datasets exist in the test database:
+
+        * ``other_ds`` (a different schema) is excluded by the WHERE clause —
+          were it dropped, the result would include the full dataset list.
+        * the semantic view (which has no schema) is excluded by the source-type
+          narrowing a schema filter triggers — with SEMANTIC_LAYERS on it would
+          otherwise appear in the combined ``all`` list, so its absence is
+          load-bearing, not incidental.
+        """
+        self.login(ADMIN_USERNAME)
+        with (
+            _datasets_with_schemas() as suffix,
+            _semantic_views("schema_filter"),
+        ):
+            rv = self.client.get(
+                "api/v1/datasource/?q="
+                f"(filters:!((col:schema,opr:eq,value:main_{suffix})),"
+                "order_column:table_name,order_direction:asc,page:0,page_size:100)"
+            )
+
+            assert rv.status_code == 200
+            payload = json.loads(rv.data.decode("utf-8"))
+            names = {item["table_name"] for item in payload["result"]}
+
+            assert names == {f"main_ds_{suffix}"}

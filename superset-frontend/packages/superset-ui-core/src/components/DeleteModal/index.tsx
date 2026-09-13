@@ -105,6 +105,9 @@ export function DeleteModal({
       name={name}
       title={title}
       wrapProps={{ 'aria-busy': loading }}
+      // Remove the modal from the DOM on close so a confirmed delete tears it
+      // down deterministically even inside memoized list-view table cells.
+      destroyOnHidden
       centered
     >
       {description}
