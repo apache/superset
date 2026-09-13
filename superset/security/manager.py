@@ -4792,6 +4792,33 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
                 return self.is_viewer(viewer_slc) or self.is_editor(viewer_slc)
 
+            def has_embedded_chart_access() -> bool:
+                # A chart embedded on its own has no parent dashboard, so the
+                # dashboard leg below can never authorize it. Grant datasource
+                # access when the guest token was issued for this very chart and
+                # the request is for that chart's own datasource.
+                # Resolve the guest user before touching the database: without
+                # one the chart grant can never hold, so the lookup below would
+                # be a query issued on every datasource check for nothing.
+                if not (
+                    is_feature_enabled("EMBEDDED_SUPERSET")
+                    and self.get_current_guest_user_if_guest()
+                    and form_data
+                    and form_data.get("type") != "NATIVE_FILTER"
+                    and (embedded_slice_id := form_data.get("slice_id"))
+                    and (
+                        embedded_slc := self.session.query(Slice)
+                        .filter(Slice.id == embedded_slice_id)
+                        .one_or_none()
+                    )
+                ):
+                    return False
+
+                return (
+                    embedded_slc.datasource == datasource
+                    and self.has_guest_access_to_chart(embedded_slc)
+                )
+
             if not (
                 self.can_access_schema(datasource)
                 or self.can_access("datasource_access", datasource.perm or "")
@@ -4901,6 +4928,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 # access if the user is a viewer or editor of the chart
                 # and promiscuous mode is enabled.
                 or has_promiscuous_chart_access()
+                # Standalone embedded chart, authorized by its own guest token.
+                or has_embedded_chart_access()
             ):
                 raise SupersetSecurityException(
                     self.get_datasource_access_error_object(datasource)
@@ -4999,8 +5028,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             if (
                 is_feature_enabled("EMBEDDED_SUPERSET")
                 and self.is_guest_user()
-                and any(
-                    self.has_guest_access(dashboard_) for dashboard_ in chart.dashboards
+                and (
+                    self.has_guest_access_to_chart(chart)
+                    or any(
+                        self.has_guest_access(dashboard_)
+                        for dashboard_ in chart.dashboards
+                    )
                 )
                 # Deliberately table-pinned: the guest token ``datasets``
                 # allowlist is dataset-id space, so resolving other
@@ -5338,6 +5371,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         from superset.commands.dashboard.embedded.exceptions import (
             EmbeddedDashboardNotFoundError,
         )
+        from superset.daos.chart import EmbeddedChartDAO
         from superset.daos.dashboard import EmbeddedDashboardDAO
         from superset.models.dashboard import Dashboard
 
@@ -5352,6 +5386,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 elif not dashboard.embedded:
                     # A raw dashboard id must still reference an embedded dashboard;
                     # otherwise a guest token could be scoped to a non-embedded one.
+                    raise EmbeddedDashboardNotFoundError()
+            elif resource["type"] == GuestTokenResourceType.CHART.value:
+                # Charts are only ever addressed by the embedded uuid; there is
+                # no legacy raw-id path to support.
+                if not EmbeddedChartDAO.find_by_id(str(resource["id"])):
                     raise EmbeddedDashboardNotFoundError()
 
     def create_guest_access_token(
@@ -5446,9 +5485,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
           version claim and are treated as
           :data:`DEFAULT_GUEST_TOKEN_REVOCATION_VERSION` (0), so they only become
           revoked once an admin has explicitly bumped the expected version above 0.
-        - **Per-embedded-dashboard cutoff** (``guest_token_revoked_before``): a
+        - **Per-embedded-resource cutoff** (``guest_token_revoked_before``): a
           token is revoked if its ``iat`` predates the revocation cutoff of any of
-          its embedded-dashboard resources.
+          its embedded resources, dashboard or chart.
         """
         return cls._is_guest_token_revoked_by_version(
             token
@@ -5472,31 +5511,41 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     @staticmethod
     def _is_guest_token_revoked_by_embedded(token: dict[str, Any]) -> bool:
         """Return True if the token predates a revocation on any of its
-        embedded-dashboard resources (``guest_token_revoked_before``).
+        embedded resources (``guest_token_revoked_before``).
 
         A token missing ``iat`` cannot prove it was issued after a revocation
-        cutoff, so it is treated as revoked whenever any of its dashboard
+        cutoff, so it is treated as revoked whenever any of its embedded
         resources has an active cutoff; otherwise it is not revoked.
         """
         issued_at = token.get("iat")
 
         # pylint: disable=import-outside-toplevel
+        from superset.daos.chart import EmbeddedChartDAO
         from superset.daos.dashboard import EmbeddedDashboardDAO
         from superset.models.dashboard import Dashboard
 
         for resource in token.get("resources") or []:
-            if resource.get("type") != GuestTokenResourceType.DASHBOARD.value:
-                continue
+            resource_type = resource.get("type")
             resource_id = str(resource.get("id"))
-            # A dashboard resource id may be an embedded UUID or, during the
-            # UUID migration, a legacy dashboard id. Resolve the embedded
-            # config(s) for either form (mirrors validate_guest_token_resources).
-            embedded = EmbeddedDashboardDAO.find_by_id(resource_id)
-            if embedded:
-                embedded_configs = [embedded]
+            embedded_configs: list[Any]
+            if resource_type == GuestTokenResourceType.DASHBOARD.value:
+                # A dashboard resource id may be an embedded UUID or, during the
+                # UUID migration, a legacy dashboard id. Resolve the embedded
+                # config(s) for either form (mirrors
+                # validate_guest_token_resources).
+                embedded = EmbeddedDashboardDAO.find_by_id(resource_id)
+                if embedded:
+                    embedded_configs = [embedded]
+                else:
+                    dashboard = Dashboard.get(resource_id)
+                    embedded_configs = list(dashboard.embedded) if dashboard else []
+            elif resource_type == GuestTokenResourceType.CHART.value:
+                # Charts are only ever addressed by the embedded uuid; there is
+                # no legacy raw-id path to support.
+                embedded_chart = EmbeddedChartDAO.find_by_id(resource_id)
+                embedded_configs = [embedded_chart] if embedded_chart else []
             else:
-                dashboard = Dashboard.get(resource_id)
-                embedded_configs = dashboard.embedded if dashboard else []
+                continue
             for embedded_config in embedded_configs:
                 revoked_before = getattr(
                     embedded_config, "guest_token_revoked_before", None
@@ -5513,13 +5562,18 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     def revoke_guest_token_access(
         self, embedded_uuid: str, before: Optional[int] = None
     ) -> None:
-        """Revoke all guest tokens issued for an embedded dashboard before
-        ``before`` (epoch seconds, default: now). Subsequent tokens are
+        """Revoke all guest tokens issued for an embedded dashboard or chart
+        before ``before`` (epoch seconds, default: now). Subsequent tokens are
         unaffected."""
         # pylint: disable=import-outside-toplevel
+        from superset.daos.chart import EmbeddedChartDAO
         from superset.daos.dashboard import EmbeddedDashboardDAO
 
-        embedded = EmbeddedDashboardDAO.find_by_id(str(embedded_uuid))
+        embedded: Any = EmbeddedDashboardDAO.find_by_id(str(embedded_uuid))
+        if embedded is None:
+            # The two embed uuid spaces are distinct, so falling through to
+            # charts on a dashboard miss is unambiguous (mirrors EmbeddedView).
+            embedded = EmbeddedChartDAO.find_by_id(str(embedded_uuid))
         if embedded is None:
             return
         # Round the cutoff up to the next whole second so that tokens whose
@@ -5705,6 +5759,21 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             isinstance(allowed_datasets, list)
             and all(isinstance(d, int) for d in allowed_datasets)
             and datasource_id in allowed_datasets
+        )
+
+    def has_guest_access_to_chart(self, chart: "Slice") -> bool:
+        """
+        Whether the current guest token grants this chart directly, i.e. the
+        chart is embedded on its own rather than through a dashboard.
+        """
+        user = self.get_current_guest_user_if_guest()
+        if not user or not chart.embedded:
+            return False
+
+        embedded_uuid = str(chart.embedded[0].uuid)
+        return any(
+            r["type"] == GuestTokenResourceType.CHART and str(r["id"]) == embedded_uuid
+            for r in user.resources
         )
 
     def has_guest_access(self, dashboard: "Dashboard") -> bool:

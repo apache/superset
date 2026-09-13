@@ -14,13 +14,14 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any
+from typing import Any, Optional
 
 from flask import current_app
 from flask_babel import lazy_gettext as _
 from sqlalchemy import and_, or_
 from sqlalchemy.orm import aliased
 from sqlalchemy.orm.query import Query
+from sqlalchemy.sql.elements import ColumnElement
 
 from superset import db, security_manager
 from superset.connectors.sqla import models
@@ -41,6 +42,35 @@ from superset.utils.filters import (
 from superset.views.base import BaseFilter
 from superset.views.base_api import BaseFavoriteFilter
 from superset.views.filters import BaseDeletedRecencyFilter, BaseDeletedStateFilter
+
+
+def guest_embedded_chart_filter() -> Optional[ColumnElement[bool]]:
+    """SQLAlchemy condition matching the charts embedded in their own right that
+    the current guest token grants, or None when it grants none.
+
+    The chart counterpart of ``guest_embedded_dashboard_filter``, which only ever
+    resolves the dashboard resources of a token. A chart is addressed solely by
+    its embed uuid, so there is no legacy raw-id form to route around here.
+
+    Returning None means "adds nothing to the guest's scope", never "not a
+    guest": the caller decides what an empty scope means, so this can be OR-ed
+    into the dashboard scope without widening a token that grants no charts.
+    """
+    # pylint: disable=import-outside-toplevel
+    from superset.models.embedded_chart import EmbeddedChart
+    from superset.security.guest_token import GuestTokenResourceType
+
+    guest = security_manager.get_current_guest_user_if_guest()
+    if guest is None:
+        return None
+    uuids = [
+        str(resource["id"])
+        for resource in guest.resources
+        if resource["type"] == GuestTokenResourceType.CHART.value
+    ]
+    if not uuids:
+        return None
+    return Slice.embedded.any(EmbeddedChart.uuid.in_(uuids))
 
 
 class ChartAllTextFilter(BaseFilter):  # pylint: disable=too-few-public-methods
@@ -111,11 +141,16 @@ class ChartCertifiedFilter(BaseFilter):  # pylint: disable=too-few-public-method
 
 class ChartFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     def apply(self, query: Query, value: Any) -> Query:
-        # Embedded guests are scoped to their token's dashboards first. A guest
-        # is never entitled to all charts, regardless of what its role grants,
-        # and an empty token scope denies all charts (a deny-all clause).
+        # Embedded guests are scoped to what their token grants first: charts on
+        # one of the token's embedded dashboards, plus charts embedded in their
+        # own right. A guest is never entitled to all charts, regardless of what
+        # its role grants, and a token granting neither denies all charts (the
+        # dashboard branch contributes a deny-all clause).
         if (guest_dashboards := guest_embedded_dashboard_filter()) is not None:
-            return query.filter(self.model.dashboards.any(guest_dashboards))
+            guest_scope: list[Any] = [self.model.dashboards.any(guest_dashboards)]
+            if (guest_charts := guest_embedded_chart_filter()) is not None:
+                guest_scope.append(guest_charts)
+            return query.filter(or_(*guest_scope))
 
         if security_manager.can_access_all_datasources():
             return query

@@ -60,6 +60,10 @@ def _sm_for_chart_access(is_guest: bool) -> MagicMock:
     sm.can_access_datasource.return_value = False
     sm.is_guest_user.return_value = is_guest
     sm._guest_token_allows_dataset.return_value = True
+    # A chart embedded on its own is granted through its own token rather than
+    # through a dashboard. Closed by default so each test opens exactly one
+    # guest path and the assertion reflects that path alone.
+    sm.has_guest_access_to_chart.return_value = False
     return sm
 
 
@@ -88,6 +92,18 @@ def test_guest_cannot_access_chart_outside_granted_dashboards() -> None:
     with patch("superset.is_feature_enabled", return_value=True):
         with pytest.raises(SupersetSecurityException):
             SupersetSecurityManager.raise_for_access(sm, chart=chart)
+
+
+def test_guest_can_access_chart_granted_directly() -> None:
+    """A guest whose token was issued for the chart itself may access it, even
+    when none of its dashboards are granted."""
+    chart = _make_chart([MagicMock()])
+    sm = _sm_for_chart_access(is_guest=True)
+    sm.has_guest_access.return_value = False
+    sm.has_guest_access_to_chart.return_value = True
+
+    with patch("superset.is_feature_enabled", return_value=True):
+        SupersetSecurityManager.raise_for_access(sm, chart=chart)  # no exception
 
 
 def test_guest_denied_member_chart_outside_dataset_allowlist() -> None:
