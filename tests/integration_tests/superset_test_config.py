@@ -91,10 +91,18 @@ FEATURE_FLAGS = {
     "DRILL_TO_DETAIL": True,
     "DRILL_BY": True,
     "GLOBAL_TASK_FRAMEWORK": True,
+    "AI_ASSISTANT": True,
     # Version-history UI ships dark; e2e coverage needs the panel reachable
     # (capture itself is enabled via ENABLE_VERSIONING_CAPTURE below).
     "VERSION_HISTORY": True,
 }
+
+# The AI assistant is registered only when its flag is on, so the flag is
+# enabled above and pointed at the scripted provider: deterministic, offline,
+# and with no vendor SDK. A real provider would make the suite depend on a
+# network call and a credential.
+AI_LLM_PROVIDER_CLASS = "superset.ai.llm.echo.EchoProvider"
+AI_LLM_PROVIDER_CONFIG: dict = {}
 
 WEBDRIVER_BASEURL = "http://0.0.0.0:8081/"
 
