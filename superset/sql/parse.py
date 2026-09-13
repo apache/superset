@@ -49,6 +49,7 @@ from sqlglot.optimizer.scope import (
 
 from superset.exceptions import QueryClauseValidationException, SupersetParseError
 from superset.sql.dialects import (
+    Databend,
     DB2,
     Dremio,
     Firebolt,
@@ -116,7 +117,7 @@ SQLGLOT_DIALECTS = {
     "cockroachdb": Dialects.POSTGRES,
     "couchbase": Dialects.MYSQL,
     # "crate": ???
-    # "databend": ???
+    "databend": Databend,
     "databricks": Dialects.DATABRICKS,
     "db2": DB2,
     # "denodo": ???
