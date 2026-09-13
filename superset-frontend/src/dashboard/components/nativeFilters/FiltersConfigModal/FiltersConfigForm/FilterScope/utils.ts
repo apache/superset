@@ -257,7 +257,8 @@ export const getTreeCheckedItems = (
   return [...new Set(checkedItems)];
 };
 
-// Looking for first common parent for selected charts/tabs/tab
+// Builds the scope of the selected charts/tabs as the dashboard root plus
+// the charts to exclude
 export const findFilterScope = (
   checkedKeys: string[],
   layout: Layout,
@@ -293,34 +294,30 @@ export const findFilterScope = (
     }
   });
 
-  // Get arrays of parents for selected charts
-  const checkedItemParents = chartKeys
-    .filter(item => layout[item]?.type === CHART_TYPE)
-    .map(key => {
-      const parents = [DASHBOARD_ROOT_ID, ...(layout[key]?.parents || [])];
-      return parents.filter(parent => isShowTypeInTree(layout[parent]));
-    });
-  // Sort arrays of parents to get first shortest array of parents,
-  // that means on it's level of parents located common parent, from this place parents start be different
-  checkedItemParents.sort((p1, p2) => p1.length - p2.length);
-  const rootPath = checkedItemParents.map(
-    parents => parents[checkedItemParents[0].length - 1],
+  // Anchor the scope at the dashboard root and let `excluded` carry the whole
+  // selection. Deriving `rootPath` from the closest common ancestor is lossy on
+  // dashboards with tabs: its depth was decided by the shallowest checked
+  // chart, so unchecking a single chart could move the anchor from ROOT down to
+  // the tab level. Every tab holding no checked chart then fell out of
+  // `rootPath`, and its charts never reached `excluded` either (that loop only
+  // visited charts whose parent is in `rootPath`), so they left the scope
+  // unreported and the filter bar showed the filter as out of scope on tabs the
+  // user never edited.
+  const checkedChartIds = new Set(
+    chartKeys
+      .filter(item => layout[item]?.type === CHART_TYPE)
+      .map(item => layout[item]?.meta?.chartId as number),
   );
 
-  const excluded: number[] = [];
-  const isExcluded = (parent: string, item: string) =>
-    rootPath.includes(parent) && !chartKeys.includes(item);
-  // looking for charts to be excluded: iterate over all charts
-  // and looking for charts that have one of their parents in `rootPath` and not in selected items
-  Object.entries(layout).forEach(([key, value]) => {
-    const parents = value.parents || [];
-    if (
-      value.type === CHART_TYPE &&
-      [DASHBOARD_ROOT_ID, ...parents]?.find(parent => isExcluded(parent, key))
-    ) {
-      excluded.push(value.meta.chartId as number);
-    }
-  });
+  const rootPath = [DASHBOARD_ROOT_ID];
+  const excluded = Object.values(layout)
+    .filter(
+      item =>
+        item.type === CHART_TYPE &&
+        item.meta?.chartId != null &&
+        !checkedChartIds.has(item.meta.chartId as number),
+    )
+    .map(item => item.meta.chartId as number);
 
   return {
     rootPath: [...new Set(rootPath)],
