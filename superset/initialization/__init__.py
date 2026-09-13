@@ -322,6 +322,11 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
             appbuilder.add_api(TaskRestApi)
 
+        if feature_flag_manager.is_feature_enabled("AI_ASSISTANT"):
+            from superset.ai.api import AIRestApi
+
+            appbuilder.add_api(AIRestApi)
+
         #
         # Setup regular views
         #
