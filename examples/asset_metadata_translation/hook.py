@@ -29,6 +29,10 @@ from collections.abc import Sequence
 
 logger = logging.getLogger(__name__)
 
+#: Bound parameters per IN clause. Kept under SQLite's pre-3.32 limit of 999,
+#: which is the lowest among the engines Superset supports as a metadata store.
+_MAX_PARAMS_PER_QUERY = 500
+
 
 def translation_hook(
     default_text: str,
@@ -94,21 +98,29 @@ def translation_batch_hook(
 
     # SAVEPOINT-scoped for the same reason as the single-string hook above: a
     # failed lookup must not leave the shared session in an aborted transaction.
+    #
+    # Chunked because this hook exists for large collections and every engine
+    # caps bound parameters -- SQLite at 999 before 3.32 -- so one IN over a big
+    # dashboard's chart names would raise, be swallowed below, and silently drop
+    # every translation on the page.
+    rows = []
     try:
         with db.session.begin_nested():
-            rows = (
-                db.session.query(
-                    AssetTranslation.default_text,
-                    AssetTranslation.translated_text,
+            for start in range(0, len(default_texts), _MAX_PARAMS_PER_QUERY):
+                chunk = default_texts[start : start + _MAX_PARAMS_PER_QUERY]
+                rows.extend(
+                    db.session.query(
+                        AssetTranslation.default_text,
+                        AssetTranslation.translated_text,
+                    )
+                    .filter(
+                        AssetTranslation.language_code == locale,
+                        AssetTranslation.default_text.in_(chunk),
+                        AssetTranslation.model_name == kwargs.get("model_name", ""),
+                        AssetTranslation.field_name == kwargs.get("field_name", ""),
+                    )
+                    .all()
                 )
-                .filter(
-                    AssetTranslation.language_code == locale,
-                    AssetTranslation.default_text.in_(default_texts),
-                    AssetTranslation.model_name == kwargs.get("model_name", ""),
-                    AssetTranslation.field_name == kwargs.get("field_name", ""),
-                )
-                .all()
-            )
     except Exception:  # pylint: disable=broad-except
         logger.exception(
             "asset translation batch lookup failed for %d strings",

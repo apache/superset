@@ -115,8 +115,10 @@ export interface Dashboard {
   changed_by: string;
   changed_on?: string;
   dashboard_title: string;
-  // Title resolved for the viewer's locale (read-only); falls back to
-  // dashboard_title. Present only when asset-metadata translation is enabled.
+  // Title resolved for the viewer's locale (read-only). The server always
+  // sends it when the column is selected, mirroring dashboard_title when
+  // translation is off or no translation exists -- so it is a display value,
+  // not a signal that a translation was found.
   localized_title?: string;
   id: number;
   published: boolean;

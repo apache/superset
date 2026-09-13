@@ -1281,7 +1281,13 @@ def i18n_macro(default_text: str) -> str:
     # pylint: disable=import-outside-toplevel
     from superset.utils.i18n import translate
 
-    return translate(default_text, model_name="template", field_name="i18n") or ""
+    # ``or default_text`` rather than ``or ""``: translate() already promises to
+    # return the original text on every fallback path, and mirroring that promise
+    # here means a future change to it cannot blank out a label.
+    return (
+        translate(default_text, model_name="template", field_name="i18n")
+        or default_text
+    )
 
 
 def dataset_macro(

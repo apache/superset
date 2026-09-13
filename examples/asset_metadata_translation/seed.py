@@ -32,7 +32,12 @@ def upsert(
     language_code: str,
     translated_text: str,
 ) -> None:
-    """Insert or update one translation row."""
+    """Stage an insert or update for one translation row.
+
+    Does not commit: the caller owns the transaction, so a batch either lands
+    whole or not at all rather than leaving the session pending-rollback
+    partway through.
+    """
     from superset import db
 
     from .model import AssetTranslation
@@ -59,11 +64,13 @@ def upsert(
                 translated_text=translated_text,
             )
         )
-    db.session.commit()
 
 
 def seed_demo() -> None:
     """Populate a few demo translations for manual testing."""
+    # Local imports: these are only importable inside the running app context.
+    from superset import db
+
     from .model import create_table
 
     create_table()
@@ -73,11 +80,24 @@ def seed_demo() -> None:
         ("Slice", "slice_name", "Sales", "fr", "Ventes"),
         ("Slice", "slice_name", "Sales", "mi", "Hokohoko"),
     ]
-    for model_name, field_name, default_text, language_code, translated_text in demo:
-        upsert(
-            model_name=model_name,
-            field_name=field_name,
-            default_text=default_text,
-            language_code=language_code,
-            translated_text=translated_text,
-        )
+    # One transaction for the whole batch: committing per row would leave the
+    # session pending-rollback if a later row failed, corrupting the rest.
+    try:
+        for (
+            model_name,
+            field_name,
+            default_text,
+            language_code,
+            translated_text,
+        ) in demo:
+            upsert(
+                model_name=model_name,
+                field_name=field_name,
+                default_text=default_text,
+                language_code=language_code,
+                translated_text=translated_text,
+            )
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        raise
