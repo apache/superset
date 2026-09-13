@@ -87,6 +87,7 @@ export {
 } from './Collapse';
 export { CronPicker, type CronError } from './CronPicker';
 export * from './DatePicker';
+export { Descriptions, type DescriptionsProps } from './Descriptions';
 export { DeleteModal, type DeleteModalProps } from './DeleteModal';
 export { Divider, type DividerProps } from './Divider';
 export { Drawer, type DrawerProps } from './Drawer';
@@ -164,6 +165,7 @@ export {
   type SliderSingleProps,
   type SliderRangeProps,
 } from './Slider';
+export { Splitter, type SplitterProps } from './Splitter';
 
 export { Switch, type SwitchProps } from './Switch';
 
@@ -173,6 +175,7 @@ export {
   LineEditableTabs,
   type TabsProps,
 } from './Tabs';
+export { TimePicker, TimeRangePicker } from './TimePicker';
 
 export { default as Tree, type TreeProps, type TreeDataNode } from './Tree';
 
