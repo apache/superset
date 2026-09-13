@@ -37,8 +37,7 @@ updates:
       - dependency-name: "react-checkbox-tree"
         update-types: ["version-update:semver-major"]
       # Babel 8 (7.x -> 8.x) is blocked on the surrounding ecosystem: @emotion/babel-plugin
-      # (NodePath#hoist), babel-plugin-jsx-remove-data-test-id (t.jSXOpeningElement), and
-      # ts-jest all rely on Babel APIs removed in v8 and have not shipped Babel 8 support.
+      # (NodePath#hoist) and babel-plugin-jsx-remove-data-test-id (t.jSXOpeningElement).
       # Ignore the coordinated major bump until the ecosystem catches up; it must be done
       # as a single manual upgrade anyway. TODO: remove when Babel 8 support is viable.
       - dependency-name: "@babel/*"
