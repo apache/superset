@@ -36,7 +36,7 @@ import {
 import { useFilterConfiguration } from '../state';
 
 export const useFilters = () => {
-  const preselectedNativeFilters = useSelector<any, Filters>(
+  const preselectedNativeFilters = useSelector<RootState, Filters | undefined>(
     state => state.dashboardState?.preselectNativeFilters,
   );
   const filterConfiguration = useFilterConfiguration();
