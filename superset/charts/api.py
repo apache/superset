@@ -234,6 +234,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         "get_version",
         "activity",
         "restore_version",
+        "lineage",
     }
     class_permission_name = "Chart"
     # Custom methods (``restore``) need an explicit entry; FAB's @protect()
@@ -667,6 +668,114 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             for slice_id in deck_slice_ids
             if slice_id in layers_by_id
         ]
+        return self.response(200, result=result)
+
+    @expose("/<id_or_uuid>/lineage", methods=("GET",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.lineage",
+        log_to_statsd=False,
+    )
+    def lineage(self, id_or_uuid: str) -> Response:
+        """Get lineage information for a chart.
+        ---
+        get:
+          summary: Get lineage information for a chart
+          description: >-
+            Returns upstream (dataset, database) and downstream (dashboards) lineage
+            information for a chart
+          parameters:
+          - in: path
+            name: id_or_uuid
+            schema:
+              type: string
+            description: Either the id of the chart, or its uuid
+          responses:
+            200:
+              description: Lineage information
+              content:
+                application/json:
+                  schema:
+                    $ref: "#/components/schemas/ChartLineageResponseSchema"
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            chart = ChartDAO.get_by_id_or_uuid(id_or_uuid)
+        except ChartNotFoundError:
+            return self.response_404()
+
+        chart_info = {
+            "id": chart.id,
+            "slice_name": chart.slice_name,
+            "viz_type": chart.viz_type,
+        }
+
+        # Get upstream (dataset and database) information. Schema/table/database
+        # details are only exposed to users who can access the underlying
+        # datasource; otherwise they are redacted so lineage never leaks
+        # datasource internals (the dataset id/name are kept so the graph
+        # still renders), mirroring the dashboard lineage endpoint.
+        upstream: dict[str, Any] = {}
+        if dataset := chart.datasource:
+            can_access = security_manager.can_access_datasource(dataset)
+            upstream["dataset"] = {
+                "id": dataset.id,
+                "name": dataset.name,
+                "database_id": dataset.database_id if can_access else None,
+                "database_name": (
+                    dataset.database.database_name
+                    if can_access and dataset.database
+                    else None
+                ),
+                "schema": dataset.schema if can_access else None,
+                "table_name": dataset.table_name if can_access else None,
+            }
+            if can_access and dataset.database:
+                upstream["database"] = {
+                    "id": dataset.database.id,
+                    "database_name": dataset.database.database_name,
+                    "backend": dataset.database.backend,
+                }
+            else:
+                upstream["database"] = None
+        else:
+            upstream["dataset"] = None
+            upstream["database"] = None
+
+        # Get downstream (dashboards) information, filtered by the current
+        # user's permissions so lineage never exposes dashboards the user
+        # cannot access.
+        dashboards: list[dict[str, Any]] = []
+        for dashboard in chart.dashboards:
+            if not security_manager.can_access_dashboard(dashboard):
+                continue
+            dashboards.append(
+                {
+                    "id": dashboard.id,
+                    "title": dashboard.dashboard_title,
+                    "slug": dashboard.slug,
+                }
+            )
+
+        downstream = {
+            "dashboards": {
+                "count": len(dashboards),
+                "result": dashboards,
+            },
+        }
+
+        result = {
+            "chart": chart_info,
+            "upstream": upstream,
+            "downstream": downstream,
+        }
         return self.response(200, result=result)
 
     @expose("/", methods=("POST",))
