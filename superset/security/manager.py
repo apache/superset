@@ -2233,8 +2233,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         Return True if the user can access the schema associated with specified
         datasource, False otherwise.
 
-        For SQL datasources: Checks database → catalog → schema hierarchy
-        For other explorables: Only checks all_datasources permission
+        For SQL datasources and Query-like explorables: Checks database → catalog
+        → schema hierarchy.  For other explorables: Only checks
+        all_datasources permission.
 
         :param datasource: The datasource
         :returns: Whether the user can access the datasource's schema
@@ -2245,17 +2246,26 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         if self.can_access_all_datasources():
             return True
 
-        # SQL-specific hierarchy checks
-        if isinstance(datasource, BaseDatasource):
+        # SQL-specific hierarchy checks.
+        # BaseDatasource always has database, catalog, and schema_perm.
+        # Explorable implementations (e.g. Query) may also carry these
+        # attributes — the isinstance gate below was introduced in the 6.1.0
+        # Explorable refactor and accidentally excluded Query, which is not a
+        # BaseDatasource but does expose the same hierarchy.
+        if isinstance(datasource, BaseDatasource) or (
+            getattr(datasource, "database", None) is not None
+            and hasattr(datasource, "schema_perm")
+        ):
+            database = cast("Database", getattr(datasource, "database", None))
             # Database-level access grants all schemas
-            if self.can_access_database(datasource.database):
+            if self.can_access_database(database):
                 return True
 
             # Catalog-level access grants all schemas in catalog
             if (
                 hasattr(datasource, "catalog")
                 and datasource.catalog
-                and self.can_access_catalog(datasource.database, datasource.catalog)
+                and self.can_access_catalog(database, datasource.catalog)
             ):
                 return True
 
@@ -4738,6 +4748,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 raise SupersetSecurityException(
                     self.get_table_access_error_object(denied)
                 )
+
+            return
 
         # Guest users MUST not modify the payload so it's requesting a
         # different chart or different ad-hoc metrics from what's saved.
