@@ -304,6 +304,32 @@ test('parseErrorJson with HTML message and status code', () => {
   });
 });
 
+test('parseErrorJson keeps a server message that only quotes an HTML tag', () => {
+  // A database driver echoes the offending fragment back in its syntax error.
+  // The message is prose, not an HTML error page, so it must survive intact
+  // instead of collapsing into the status-code message.
+  const message =
+    'Error: HTTPDriver received ClickHouse error code 62. DB::Exception: ' +
+    "Syntax error: failed at position 37 ('<') (line 1, col 37): <a> AS " +
+    '`My column_b77020` FROM (select number from numbers(10)) AS ' +
+    '`virtual_table` LIMIT 1000 FORMAT Native.';
+
+  expect(parseErrorJson({ status: 400, message })).toEqual({
+    status: 400,
+    message,
+    error: message,
+  });
+
+  // An actual error page still collapses, even when the server pads it with
+  // leading whitespace.
+  const page = '\n  <!doctype html><title>502 Bad Gateway</title>';
+  expect(parseErrorJson({ status: 502, message: page })).toEqual({
+    status: 502,
+    message: page,
+    error: 'Bad gateway',
+  });
+});
+
 test('parseErrorJson with stacktrace', () => {
   expect(
     parseErrorJson({ error: 'error message', stack: 'stacktrace' }),
