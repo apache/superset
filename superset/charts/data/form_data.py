@@ -72,8 +72,7 @@ def _serialize_query(
     query_data = dict(to_dict())
     filters = getattr(query, "filter", None)
     query_data["filters"] = filters
-    time_range = getattr(query, "time_range", None)
-    if time_range is not None:
+    if (time_range := getattr(query, "time_range", None)) is not None:
         query_data["time_range"] = time_range
     elif (hoisted := _time_range_from_filters(filters)) is not None:
         # Prefer QueryObject.time_range for cache keys / Explore payloads.
