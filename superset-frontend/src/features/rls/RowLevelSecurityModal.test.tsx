@@ -204,8 +204,8 @@ describe('Rule modal', () => {
 
     const name = await screen.findByTestId('rule-name-test');
     expect(name).toHaveDisplayValue('rls 1');
-    userEvent.clear(name);
-    userEvent.type(name, 'rls 2');
+    await userEvent.clear(name);
+    await userEvent.type(name, 'rls 2');
     expect(name).toHaveDisplayValue('rls 2');
 
     const filterType = await screen.findByText('Base');
@@ -219,20 +219,20 @@ describe('Rule modal', () => {
 
     const groupKey = await screen.findByTestId('group-key-test');
     expect(groupKey).toHaveValue('g1');
-    userEvent.clear(groupKey);
-    userEvent.type(groupKey, 'g2');
+    await userEvent.clear(groupKey);
+    await userEvent.type(groupKey, 'g2');
     expect(groupKey).toHaveValue('g2');
 
     const clause = await screen.findByTestId('clause-test');
     expect(clause).toHaveValue('gender="girl"');
-    userEvent.clear(clause);
-    userEvent.type(clause, 'gender="boy"');
+    await userEvent.clear(clause);
+    await userEvent.type(clause, 'gender="boy"');
     expect(clause).toHaveValue('gender="boy"');
 
     const description = await screen.findByTestId('description-test');
     expect(description).toHaveValue('test rls rule with RTL');
-    userEvent.clear(description);
-    userEvent.type(description, 'test description');
+    await userEvent.clear(description);
+    await userEvent.type(description, 'test description');
     expect(description).toHaveValue('test description');
   });
 
@@ -244,7 +244,7 @@ describe('Rule modal', () => {
     expect(addButton).toBeDisabled();
 
     const nameTextBox = screen.getByTestId('rule-name-test');
-    userEvent.type(nameTextBox, 'name');
+    await userEvent.type(nameTextBox, 'name');
 
     expect(addButton).toBeDisabled();
 
@@ -252,7 +252,7 @@ describe('Rule modal', () => {
     expect(addButton).toBeDisabled();
 
     const clause = await screen.findByTestId('clause-test');
-    userEvent.type(clause, 'gender="girl"');
+    await userEvent.type(clause, 'gender="girl"');
 
     expect(addButton).toBeEnabled();
   });
@@ -263,16 +263,18 @@ describe('Rule modal', () => {
     const addButton = screen.getByRole('button', { name: /add/i });
 
     const nameTextBox = screen.getByTestId('rule-name-test');
-    userEvent.type(nameTextBox, 'name');
+    await userEvent.type(nameTextBox, 'name');
 
     await selectOption('birth_names', 'Tables');
 
     const clause = await screen.findByTestId('clause-test');
-    userEvent.type(clause, 'gender="girl"');
+    await userEvent.type(clause, 'gender="girl"');
 
     fetchMock.clearHistory();
 
-    await waitFor(() => userEvent.click(addButton), { timeout: 10000 });
+    await waitFor(async () => await userEvent.click(addButton), {
+      timeout: 10000,
+    });
 
     await waitFor(
       () => {
@@ -293,7 +295,7 @@ describe('Rule modal', () => {
     });
 
     const addButton = screen.getByRole('button', { name: /save/i });
-    await waitFor(() => userEvent.click(addButton));
+    await waitFor(async () => await userEvent.click(addButton));
 
     await waitFor(
       () => {

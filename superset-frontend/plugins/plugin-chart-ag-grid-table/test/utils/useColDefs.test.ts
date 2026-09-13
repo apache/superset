@@ -470,6 +470,7 @@ test('cellStyle uses striped odd-row surface for adaptive contrast', () => {
         ...defaultProps,
         columns: [numericCol],
         data: [{ count: 42 }, { count: 43 }],
+        zebraStriping: true,
         columnColorFormatters: [
           {
             column: 'count',
@@ -513,6 +514,67 @@ test('cellStyle uses striped odd-row surface for adaptive contrast', () => {
       { backgroundColor },
       '#000000',
     ),
+  });
+});
+
+test('cellStyle uses a flat surface for contrast when zebra striping is disabled', () => {
+  // zebraStriping defaults to false/undefined -- AgGridTable's
+  // oddRowBackgroundColor override matches this by rendering a flat
+  // background in that case, so the contrast color computed here must not
+  // alternate either, or it'd pick a color meant for a stripe that isn't
+  // actually there.
+  const numericCol = makeColumn({
+    key: 'count',
+    label: 'Count',
+    dataType: GenericDataType.Numeric,
+    isNumeric: true,
+    isMetric: true,
+  });
+  const backgroundColor = 'rgba(0, 0, 0, 0.4)';
+
+  const { result } = renderHook(
+    () =>
+      useColDefs({
+        ...defaultProps,
+        columns: [numericCol],
+        data: [{ count: 42 }, { count: 43 }],
+        columnColorFormatters: [
+          {
+            column: 'count',
+            objectFormatting: ObjectFormattingEnum.BACKGROUND_COLOR,
+            getColorFromValue: (value: unknown) =>
+              typeof value === 'number' ? backgroundColor : undefined,
+          },
+        ],
+      }),
+    {
+      wrapper: makeThemeWrapper({
+        ...supersetTheme,
+        colorBgBase: '#ffffff',
+        colorFillQuaternary: '#000000',
+      }),
+    },
+  );
+
+  const cellStyle = getCellStyleFunction(result.current[0].cellStyle);
+  const expectedTextColor = getExpectedTextColor(
+    { backgroundColor },
+    '#ffffff',
+  );
+
+  expect(
+    getCellStyleResult(cellStyle, {
+      rowIndex: 0,
+    }),
+  ).toMatchObject({
+    '--ag-cell-value-color': expectedTextColor,
+  });
+  expect(
+    getCellStyleResult(cellStyle, {
+      rowIndex: 1,
+    }),
+  ).toMatchObject({
+    '--ag-cell-value-color': expectedTextColor,
   });
 });
 

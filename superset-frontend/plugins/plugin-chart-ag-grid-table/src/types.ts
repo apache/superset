@@ -86,6 +86,7 @@ export type TableChartFormData = QueryFormData & {
   allow_render_html?: boolean;
   show_numbered_column?: boolean;
   header_groups?: HeaderGroupConfig[];
+  zebra_striping?: boolean;
 };
 
 export interface TableChartProps extends ChartProps {
@@ -139,6 +140,7 @@ export interface AgGridTableChartTransformedProps<
   chartState?: AgGridChartState;
   showNumberedColumn: boolean;
   headerGroups?: HeaderGroupConfig[];
+  zebraStriping: boolean;
   onContextMenu?: (
     clientX: number,
     clientY: number,

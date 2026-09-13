@@ -599,6 +599,7 @@ const transformProps = (
     header_groups: headerGroups = [],
     allow_rearrange_columns: allowRearrangeColumns = true,
     allow_render_html: allowRenderHtml = true,
+    zebra_striping: zebraStriping = false,
   } = formData;
 
   // Calculate time comparison settings early since they're used in multiple places
@@ -968,6 +969,7 @@ const transformProps = (
     onChartStateChange,
     showNumberedColumn,
     headerGroups: resolvedHeaderGroups,
+    zebraStriping,
     onContextMenu,
   };
 };

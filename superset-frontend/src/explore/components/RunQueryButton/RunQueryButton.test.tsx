@@ -31,44 +31,44 @@ const createProps = (overrides: Record<string, any> = {}) => ({
   ...overrides,
 });
 
-test('renders update chart button', () => {
+test('renders update chart button', async () => {
   const props = createProps();
   render(<RunQueryButton {...props} />);
   expect(screen.getByText('Update chart')).toBeVisible();
-  userEvent.click(screen.getByRole('button'));
+  await userEvent.click(screen.getByRole('button'));
   expect(props.onQuery).toHaveBeenCalled();
 });
 
-test('renders create chart button', () => {
+test('renders create chart button', async () => {
   const props = createProps({ isNewChart: true });
   render(<RunQueryButton {...props} />);
   expect(screen.getByText('Create chart')).toBeVisible();
-  userEvent.click(screen.getByRole('button'));
+  await userEvent.click(screen.getByRole('button'));
   expect(props.onQuery).toHaveBeenCalled();
 });
 
-test('renders disabled button', () => {
+test('renders disabled button', async () => {
   const props = createProps({ errorMessage: 'error' });
   render(<RunQueryButton {...props} />);
   expect(screen.getByText('Update chart')).toBeVisible();
   expect(screen.getByRole('button')).toBeDisabled();
-  userEvent.click(screen.getByRole('button'));
+  await userEvent.click(screen.getByRole('button'));
   expect(props.onQuery).not.toHaveBeenCalled();
 });
 
-test('renders query running button', () => {
+test('renders query running button', async () => {
   const props = createProps({ loading: true });
   render(<RunQueryButton {...props} />);
   expect(screen.getByText('Stop')).toBeVisible();
-  userEvent.click(screen.getByRole('button'));
+  await userEvent.click(screen.getByRole('button'));
   expect(props.onStop).toHaveBeenCalled();
 });
 
-test('renders query running button disabled', () => {
+test('renders query running button disabled', async () => {
   const props = createProps({ loading: true, canStopQuery: false });
   render(<RunQueryButton {...props} />);
   expect(screen.getByText('Stop')).toBeVisible();
   expect(screen.getByRole('button')).toBeDisabled();
-  userEvent.click(screen.getByRole('button'));
+  await userEvent.click(screen.getByRole('button'));
   expect(props.onStop).not.toHaveBeenCalled();
 });

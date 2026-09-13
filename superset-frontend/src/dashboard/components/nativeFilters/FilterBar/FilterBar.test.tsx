@@ -291,7 +291,7 @@ test('FilterBar renders filter icon', () => {
   expect(screen.getByRole('img', { name: 'filter' })).toBeInTheDocument();
 });
 
-test('FilterBar calls toggleFiltersBar when collapse icon is clicked', () => {
+test('FilterBar calls toggleFiltersBar when collapse icon is clicked', async () => {
   const toggleFiltersBar = jest.fn();
   const props = createClosedBarProps(toggleFiltersBar);
   renderFilterBar(props);
@@ -299,11 +299,11 @@ test('FilterBar calls toggleFiltersBar when collapse icon is clicked', () => {
   const collapse = screen.getByRole('img', { name: 'vertical-align' });
   expect(toggleFiltersBar).not.toHaveBeenCalled();
 
-  userEvent.click(collapse);
+  await userEvent.click(collapse);
   expect(toggleFiltersBar).toHaveBeenCalled();
 });
 
-test('FilterBar opens when expand button is clicked', () => {
+test('FilterBar opens when expand button is clicked', async () => {
   const toggleFiltersBar = jest.fn();
   const props = createClosedBarProps(toggleFiltersBar);
   renderFilterBar(props);
@@ -311,7 +311,7 @@ test('FilterBar opens when expand button is clicked', () => {
   expect(screen.getByTestId(getTestId('filter-icon'))).toBeInTheDocument();
   expect(screen.getByTestId(getTestId('expand-button'))).toBeInTheDocument();
 
-  userEvent.click(screen.getByTestId(getTestId('collapsable')));
+  await userEvent.click(screen.getByTestId(getTestId('collapsable')));
   expect(toggleFiltersBar).toHaveBeenCalledWith(true);
 });
 
@@ -329,7 +329,7 @@ test('FilterBar hides edit filter button when user lacks permissions', () => {
   ).not.toBeInTheDocument();
 });
 
-test('FilterBar closes when collapse button is clicked', () => {
+test('FilterBar closes when collapse button is clicked', async () => {
   const toggleFiltersBar = jest.fn();
   const props = createOpenedBarProps(toggleFiltersBar);
   renderFilterBar(props);
@@ -337,7 +337,7 @@ test('FilterBar closes when collapse button is clicked', () => {
   const collapseButton = screen.getByTestId(getTestId('collapse-button'));
   expect(collapseButton).toBeInTheDocument();
 
-  userEvent.click(collapseButton);
+  await userEvent.click(collapseButton);
   expect(toggleFiltersBar).toHaveBeenCalledWith(false);
 });
 
@@ -391,9 +391,9 @@ test('FilterBar apply button is disabled after creating a filter', async () => {
   expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
 
   // Simulate add filter flow
-  userEvent.click(screen.getByTestId(getTestId('collapsable')));
-  userEvent.click(screen.getByLabelText('setting'));
-  userEvent.click(screen.getByText('Add or edit filters and controls'));
+  await userEvent.click(screen.getByTestId(getTestId('collapsable')));
+  await userEvent.click(screen.getByLabelText('setting'));
+  await userEvent.click(screen.getByText('Add or edit filters and controls'));
 
   // First add a filter via the dropdown (modal now shows empty state by default)
   const dropdownButton = screen.getByTestId('new-item-dropdown-button');
@@ -403,13 +403,13 @@ test('FilterBar apply button is disabled after creating a filter', async () => {
   });
   fireEvent.click(addFilterMenuItem);
 
-  userEvent.click(screen.getByText('Value'));
-  userEvent.click(screen.getByText('Time range'));
-  userEvent.type(
+  await userEvent.click(screen.getByText('Value'));
+  await userEvent.click(screen.getByText('Time range'));
+  await userEvent.type(
     screen.getByTestId(getModalTestId('name-input')),
     'Time filter 1',
   );
-  userEvent.click(screen.getByText('Save'));
+  await userEvent.click(screen.getByText('Save'));
 
   expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
 });
@@ -533,7 +533,7 @@ test('Clear All stages filter_select clear without dispatching until Apply', asy
   const clearBtn = screen.getByTestId(getTestId('clear-button'));
   expect(clearBtn).not.toBeDisabled();
   await act(async () => {
-    userEvent.click(clearBtn);
+    await userEvent.click(clearBtn);
   });
 
   // Clear All must not dispatch — staging only
@@ -543,7 +543,7 @@ test('Clear All stages filter_select clear without dispatching until Apply', asy
   const applyBtn = screen.getByTestId(getTestId('apply-button'));
   expect(applyBtn).not.toBeDisabled();
   await act(async () => {
-    userEvent.click(applyBtn);
+    await userEvent.click(applyBtn);
   });
   expect(updateDataMaskSpy).toHaveBeenCalledWith(filterId, {
     id: filterId,
@@ -602,14 +602,14 @@ test('Clear All stages filter_range clear with [null, null], dispatched on Apply
   const clearBtn = screen.getByTestId(getTestId('clear-button'));
   expect(clearBtn).not.toBeDisabled();
   await act(async () => {
-    userEvent.click(clearBtn);
+    await userEvent.click(clearBtn);
   });
 
   expect(updateDataMaskSpy).not.toHaveBeenCalled();
 
   const applyBtn = screen.getByTestId(getTestId('apply-button'));
   await act(async () => {
-    userEvent.click(applyBtn);
+    await userEvent.click(applyBtn);
   });
   expect(updateDataMaskSpy).toHaveBeenCalledWith(filterId, {
     id: filterId,
@@ -674,13 +674,13 @@ test('Clear All + Apply only dispatches for filters present in dataMask', async 
 
   const clearBtn = screen.getByTestId(getTestId('clear-button'));
   await act(async () => {
-    userEvent.click(clearBtn);
+    await userEvent.click(clearBtn);
   });
   expect(updateDataMaskSpy).not.toHaveBeenCalled();
 
   const applyBtn = screen.getByTestId(getTestId('apply-button'));
   await act(async () => {
-    userEvent.click(applyBtn);
+    await userEvent.click(applyBtn);
   });
   expect(updateDataMaskSpy).toHaveBeenCalledTimes(1);
   expect(updateDataMaskSpy).toHaveBeenCalledWith(idInMask, {
@@ -759,7 +759,7 @@ test('Clear All in horizontal bar does not re-apply default values', async () =>
   const clearBtn = screen.getByTestId(getTestId('clear-button'));
   expect(clearBtn).not.toBeDisabled();
   await act(async () => {
-    userEvent.click(clearBtn);
+    await userEvent.click(clearBtn);
   });
   // Let the clear-all trigger round-trip through the filter plugin
   await act(async () => {
@@ -901,7 +901,7 @@ test('FilterBar Clear All only clears in-scope filters, not out-of-scope ones', 
   expect(clearButton).toBeInTheDocument();
 
   await act(async () => {
-    userEvent.click(clearButton);
+    await userEvent.click(clearButton);
   });
   expect(updateDataMaskSpy).not.toHaveBeenCalled();
 
@@ -909,7 +909,7 @@ test('FilterBar Clear All only clears in-scope filters, not out-of-scope ones', 
   // retain their original values (Apply re-dispatches them unchanged).
   const applyButton = screen.getByTestId(getTestId('apply-button'));
   await act(async () => {
-    userEvent.click(applyButton);
+    await userEvent.click(applyButton);
   });
 
   expect(updateDataMaskSpy).toHaveBeenCalledWith(inScopeFilterId, {
@@ -978,7 +978,7 @@ test('Clear All on a required filter disables Apply via validateStatus', async (
 
   const clearBtn = screen.getByTestId(getTestId('clear-button'));
   await act(async () => {
-    userEvent.click(clearBtn);
+    await userEvent.click(clearBtn);
   });
 
   // No dispatch yet; Apply should be disabled because the required filter is empty
@@ -1035,12 +1035,12 @@ test('Clicking the gear "Add or edit filters and controls" item opens the Filter
   });
 
   const gear = await screen.findByTestId('filterbar-orientation-icon');
-  userEvent.click(gear);
+  await userEvent.click(gear);
 
   const addEditItem = await screen.findByText(
     'Add or edit filters and controls',
   );
-  userEvent.click(addEditItem);
+  await userEvent.click(addEditItem);
 
   expect(await screen.findByTestId('filter-modal')).toBeInTheDocument();
 });

@@ -331,3 +331,15 @@ test('allow_render_html defaults to true, matching v1, and has no visibility gat
   expect(control.config.renderTrigger).toBe(true);
   expect(control.config.visibility).toBeUndefined();
 });
+
+test('zebra_striping defaults to false and has no visibility gate', () => {
+  // v1 has no equivalent control at all (its striping is unconditional), so
+  // there's no "matching v1" default here -- new v2 charts default to v2's
+  // own subtle look, and the migration processor is what materializes True
+  // for charts migrated from v1.
+  const control = findControl(config, 'zebra_striping');
+  expect(control.config.type).toBe('CheckboxControl');
+  expect(control.config.default).toBe(false);
+  expect(control.config.renderTrigger).toBe(true);
+  expect(control.config.visibility).toBeUndefined();
+});
