@@ -20,6 +20,7 @@ export interface FaveStarProps {
   itemId: number;
   isStarred?: boolean;
   showTooltip?: boolean;
+  overlayClassName?: string;
   saveFaveStar(id: number, isStarred: boolean): any;
   fetchFaveStar?: (id: number) => void;
 }
