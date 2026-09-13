@@ -44,11 +44,11 @@ interface JSXElementNode {
   openingElement: JSXOpeningElement;
 }
 
-const plugin: { rules: Record<string, Rule.RuleModule> } = {
+const plugin = {
   rules: {
     'no-fa-icons-usage': {
       meta: {
-        type: 'problem',
+        type: 'problem' as const,
         docs: {
           description:
             'Disallow the usage of FontAwesome icons in the codebase',
@@ -91,4 +91,4 @@ const plugin: { rules: Record<string, Rule.RuleModule> } = {
   },
 };
 
-module.exports = plugin;
+export default plugin;

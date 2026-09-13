@@ -23,11 +23,16 @@
  * Runs as a separate check without needing custom binaries
  */
 
-const fs = require('fs');
-const path = require('path');
-const glob = require('glob');
-const parser = require('@babel/parser');
-const traverse = require('@babel/traverse').default;
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import glob from 'glob';
+import * as parser from '@babel/parser';
+import traverseModule from '@babel/traverse';
+
+const traverse = traverseModule.default;
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // ANSI color codes
 const RED = '\x1B[31m';
@@ -779,11 +784,11 @@ function main() {
 }
 
 // Run if called directly
-if (require.main === module) {
+if (__filename === process.argv[1]) {
   main();
 }
 
-module.exports = {
+export default {
   checkNoLiteralColors,
   checkNoFaIcons,
   checkI18nTemplates,

@@ -51,7 +51,7 @@ import { test, expect, Browser, BrowserContext, Page } from '@playwright/test';
 import { createServer, IncomingMessage, ServerResponse, Server } from 'http';
 import { AddressInfo, Socket } from 'net';
 import { readFileSync, existsSync } from 'fs';
-import { join } from 'path';
+import { dirname, join } from 'path';
 import {
   apiEnableEmbedding,
   getAccessToken,
@@ -66,6 +66,7 @@ import {
 import { apiDeleteChart } from '../../helpers/api/chart';
 import { EmbeddedPage } from '../../pages/EmbeddedPage';
 import { EMBEDDED } from '../../utils/constants';
+import { fileURLToPath } from 'url';
 
 const SUPERSET_DOMAIN = (() => {
   const url = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:8088';
@@ -74,6 +75,8 @@ const SUPERSET_DOMAIN = (() => {
 const SUPERSET_BASE_URL = SUPERSET_DOMAIN.endsWith('/')
   ? SUPERSET_DOMAIN
   : `${SUPERSET_DOMAIN}/`;
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const SDK_BUNDLE_PATH = join(
   __dirname,
