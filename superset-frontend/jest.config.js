@@ -43,6 +43,12 @@ export default {
     // lodash-es is ESM (type: module) which jest.mock cannot intercept; alias to
     // the CJS lodash build (identical API) so module mocks work in tests.
     '^lodash-es$': '<rootDir>/node_modules/lodash',
+    // @deck.gl/maplibre@9.4.0 ships ESM-only (no dist/*.cjs, no "require"
+    // export condition), unlike every other @deck.gl/* package - force
+    // resolution to its ESM entry point directly; transformIgnorePatterns
+    // below still needs to let it (and its relative imports) through babel.
+    '^@deck.gl/maplibre$':
+      '<rootDir>/node_modules/@deck.gl/maplibre/dist/index.js',
     '^src/(.*)$': '<rootDir>/src/$1',
     '^spec/(.*)$': '<rootDir>/spec/$1',
     // mapping plugins of superset-ui to source code
@@ -94,7 +100,11 @@ export default {
     // react-markdown and the remark/rehype/vfile packages it pulls in are
     // ESM-only, so they are allowed through for the suites that opt out of the
     // react-markdown stub in spec/helpers/shim.tsx to render real Markdown.
-    'node_modules/(?!@ant-design/(colors|fast-color)|@formatjs/.*|d3-(array|interpolate|color|time|scale|time-format|format|selection)|internmap|@mapbox/tiny-sdf|remark-gfm|(?!@ngrx|(?!deck.gl)|d3-scale)|markdown-table|micromark-*.|decode-named-character-reference|character-entities|mdast-util-*.|unist-util-*.|ccount|escape-string-regexp|nanoid|uuid|@rjsf/*.|@x0k/.*|echarts|zrender|fetch-mock|pretty-ms|parse-ms|ol|@babel/runtime|@emotion|cheerio|cheerio/lib|parse5|dom-serializer|entities|htmlparser2|rehype-sanitize|hast-util-sanitize|unified|react-markdown|vfile|web-namespaces|html-void-elements|html-url-attributes|estree-util-is-identifier-name|trim-lines|is-plain-obj|trough|unist-.*|hast-.*|hastscript|refractor|rehype-.*|remark-.*|mdast-.*|micromark-.*|parse-entities|character-reference-invalid|is-alphanumerical|is-alphabetical|is-decimal|is-hexadecimal|property-information|space-separated-tokens|comma-separated-tokens|bail|devlop|zwitch|longest-streak|geostyler|geostyler-.*|(?!geostyler)lodash|react-error-boundary|react-json-tree|react-base16-styling|lodash-es|rbush|quickselect|react-diff-viewer-continued|storybook/*.|json-stringify-pretty-compact|@x0k/json-schema-merge|content-disposition)',
+    //
+    // @deck.gl/maplibre@9.4.0 ships ESM-only (no dist/*.cjs), unlike every
+    // other @deck.gl/* package - allowed through so babel-jest can convert
+    // its import/export syntax (see the moduleNameMapper entry above).
+    'node_modules/(?!@ant-design/(colors|fast-color)|@formatjs/.*|d3-(array|interpolate|color|time|scale|time-format|format|selection)|internmap|@mapbox/tiny-sdf|@deck.gl/maplibre|remark-gfm|(?!@ngrx|(?!deck.gl)|d3-scale)|markdown-table|micromark-*.|decode-named-character-reference|character-entities|mdast-util-*.|unist-util-*.|ccount|escape-string-regexp|nanoid|uuid|@rjsf/*.|@x0k/.*|echarts|zrender|fetch-mock|pretty-ms|parse-ms|ol|@babel/runtime|@emotion|cheerio|cheerio/lib|parse5|dom-serializer|entities|htmlparser2|rehype-sanitize|hast-util-sanitize|unified|react-markdown|vfile|web-namespaces|html-void-elements|html-url-attributes|estree-util-is-identifier-name|trim-lines|is-plain-obj|trough|unist-.*|hast-.*|hastscript|refractor|rehype-.*|remark-.*|mdast-.*|micromark-.*|parse-entities|character-reference-invalid|is-alphanumerical|is-alphabetical|is-decimal|is-hexadecimal|property-information|space-separated-tokens|comma-separated-tokens|bail|devlop|zwitch|longest-streak|geostyler|geostyler-.*|(?!geostyler)lodash|react-error-boundary|react-json-tree|react-base16-styling|lodash-es|rbush|quickselect|react-diff-viewer-continued|storybook/*.|json-stringify-pretty-compact|@x0k/json-schema-merge|content-disposition)',
   ],
   preset: 'ts-jest',
   transform: {
