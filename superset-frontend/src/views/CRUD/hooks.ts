@@ -874,21 +874,11 @@ export const useChartEditModal = (
 
   function handleChartUpdated(edits: Chart) {
     // update the chart in our state with the edited info
-    const newCharts = charts.map((chart: Chart) => {
-      if (chart.id !== edits.id) {
-        return chart;
-      }
-      // The edit response carries the canonical name only, so a rename would
-      // otherwise leave the previous name's translation on screen. Drop it and
-      // fall back to the new canonical name until the list reloads.
-      const renamed =
-        'slice_name' in edits && edits.slice_name !== chart.slice_name;
-      return {
-        ...chart,
-        ...edits,
-        ...(renamed ? { localized_name: undefined } : {}),
-      };
-    });
+    // ``edits`` is the chart re-fetched after the save, so it already carries
+    // localized_name resolved for the new canonical name; the spread keeps it.
+    const newCharts = charts.map((chart: Chart) =>
+      chart.id === edits.id ? { ...chart, ...edits } : chart,
+    );
     setCharts(newCharts);
   }
 

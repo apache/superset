@@ -115,8 +115,8 @@ def _cache() -> dict[_CacheKey, str | None] | None:
     Scoping to the request is what makes prefetching worthwhile: a batch
     resolved up front stays visible to the per-item lookups that follow it
     during serialization, while staleness is bounded to a single response.
-    Background jobs (thumbnails, reports) have no request and simply resolve
-    directly.
+    Background jobs (thumbnails, reports) need no memo: with no request there is
+    no active locale, so they short-circuit before reaching a hook at all.
     """
     if not has_request_context():
         return None
