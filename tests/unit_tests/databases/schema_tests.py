@@ -595,6 +595,25 @@ def test_extra_validator_interpolates_json_decode_error() -> None:
     assert "%(" not in message
 
 
+@pytest.mark.parametrize("value", [123, None, [1, 2], True, "abc"])
+def test_extra_validator_rejects_non_dict_top_level_value(value: Any) -> None:
+    """
+    Test that extra_validator rejects a top-level extra value that is valid
+    JSON but not a mapping (int, null, list, bool, string), instead of
+    letting AttributeError propagate from extra_.get("metadata_params").
+    """
+    from superset.databases.schemas import DatabasePostSchema
+
+    schema = DatabasePostSchema()
+    payload = {
+        "database_name": "test_db",
+        "extra": json.dumps(value),
+    }
+    with pytest.raises(ValidationError) as exc_info:
+        schema.load(payload)
+    assert "must be a mapping" in str(exc_info.value)
+
+
 def test_cache_timeout_rejects_values_below_minus_one() -> None:
     """
     Test that cache_timeout rejects values less than -1.

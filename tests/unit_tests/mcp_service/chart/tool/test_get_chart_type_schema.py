@@ -74,6 +74,35 @@ class TestGetChartTypeSchema:
         props = result["schema"]["properties"]
         assert "metric" in props
 
+    def test_gauge_uses_public_identity_and_full_control_schema(self) -> None:
+        result = _call_schema("gauge")
+        assert result["chart_type"] == "gauge"
+        props = result["schema"]["properties"]
+        assert {
+            "metric",
+            "groupby",
+            "sort_by_metric",
+            "min_val",
+            "max_val",
+            "color_scheme",
+            "number_format",
+            "currency_format",
+            "value_formatter",
+            "start_angle",
+            "end_angle",
+            "show_pointer",
+            "show_progress",
+            "intervals",
+            "interval_color_indices",
+            "time_range",
+            "granularity_sqla",
+        } <= set(props)
+        assert all(example["chart_type"] == "gauge" for example in result["examples"])
+
+    def test_native_gauge_alias_returns_public_schema_identity(self) -> None:
+        result = _call_schema("gauge_chart")
+        assert result["chart_type"] == "gauge"
+
     def test_include_examples_false_omits_examples(self) -> None:
         result = _call_schema("xy", include_examples=False)
         assert "schema" in result

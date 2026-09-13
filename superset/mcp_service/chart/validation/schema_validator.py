@@ -26,6 +26,7 @@ from typing import Any, Dict, Tuple
 from pydantic import ValidationError as PydanticValidationError
 
 from superset.mcp_service.chart.schemas import (
+    _normalize_chart_request_input,
     GenerateChartRequest,
 )
 from superset.mcp_service.common.error_schemas import ChartGenerationError
@@ -79,6 +80,14 @@ class SchemaValidator:
                 error_code="INVALID_REQUEST_FORMAT",
             )
 
+        # Pre-validation runs before GenerateChartRequest's model validator,
+        # so apply the same public/native vocabulary adapter here. Copy both
+        # levels to avoid mutating the caller's request dictionary.
+        data = dict(data)
+        if isinstance(data.get("config"), dict):
+            data["config"] = dict(data["config"])
+        data = _normalize_chart_request_input(data)
+
         # Check for required top-level fields
         if "dataset_id" not in data:
             return False, ChartGenerationError(
@@ -131,6 +140,7 @@ class SchemaValidator:
                     "Add 'chart_type': 'xy' for line/bar/area/scatter charts",
                     "Add 'chart_type': 'table' for table visualizations",
                     "Add 'chart_type': 'pie' for pie or donut charts",
+                    "Add 'chart_type': 'gauge' for a gauge or dial",
                     "Add 'chart_type': 'pivot_table' for OSS pivot tables",
                     "Use 'interactive_pivot' only when schema discovery exposes it",
                     "Add 'chart_type': 'mixed_timeseries' for dual-series time charts",
@@ -167,6 +177,7 @@ class SchemaValidator:
                     "Use 'chart_type': 'xy' for line, bar, area, or scatter charts",
                     "Use 'chart_type': 'table' for tabular data display",
                     "Use 'chart_type': 'pie' for pie or donut charts",
+                    "Use 'chart_type': 'gauge' for a gauge or dial",
                     "Use 'chart_type': 'pivot_table' for OSS pivot tables",
                     "Use 'interactive_pivot' only when schema discovery exposes it",
                     "Use 'chart_type': 'mixed_timeseries' for dual-series time charts",

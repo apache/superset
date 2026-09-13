@@ -40,13 +40,13 @@ import {
   TimeGranularity,
   SMART_DATE_ID,
   getTimeFormatterForGranularity,
+  DateWithFormatter,
 } from '@superset-ui/core';
 import { CellProps, Column, HeaderProps } from 'react-table';
 import DataTable from '../src/DataTable/DataTable';
 import TableChart, { sanitizeHeaderId } from '../src/TableChart';
 import { GenericDataType } from '@apache-superset/core/common';
 import transformProps from '../src/transformProps';
-import DateWithFormatter from '../src/utils/DateWithFormatter';
 import testData from './testData';
 import { ProviderWrapper } from './testHelpers';
 

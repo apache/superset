@@ -245,15 +245,23 @@ class SecurityRestApi(BaseSupersetApi):
                 body["rls"],
                 **({"datasets": body["datasets"]} if "datasets" in body else {}),
             )
-            logger.info(
-                "Guest token issued: %s",
-                build_guest_token_audit_payload(
-                    issuer_user_id=get_user_id(),
-                    source_ip=request.remote_addr,
-                    body=body,
-                    token=token,
-                ),
+            audit_payload = build_guest_token_audit_payload(
+                issuer_user_id=get_user_id(),
+                source_ip=request.remote_addr,
+                body=body,
+                token=token,
+                header_name=current_app.config["GUEST_TOKEN_HEADER_NAME"],
+                header_budget_bytes=current_app.config["GUEST_TOKEN_HEADER_MAX_BYTES"],
             )
+            logger.info("Guest token issued: %s", audit_payload)
+            if audit_payload["header_budget_exceeded"]:
+                logger.warning(
+                    "Guest token exceeds configured request-header budget: "
+                    "token_bytes=%s header_bytes=%s header_budget_bytes=%s",
+                    audit_payload["token_bytes"],
+                    audit_payload["header_bytes"],
+                    audit_payload["header_budget_bytes"],
+                )
             return self.response(200, token=token)
         except EmbeddedDashboardNotFoundError as error:
             return self.response_400(message=error.message)
