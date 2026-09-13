@@ -89,6 +89,11 @@ class CeleryConfig:
         "superset.tasks.thumbnails",
         "superset.tasks.cache",
         "superset.tasks.export_dashboard_excel",
+        # Registers ai.run_turn. This class replaces the shipped CeleryConfig
+        # rather than extending it, so an import added there does not reach the
+        # worker here — without this line, worker execution enqueues a task the
+        # worker rejects as unregistered and the stream never produces a frame.
+        "superset.ai.tasks",
     )
     result_backend = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_RESULTS_DB}"
     worker_prefetch_multiplier = 1
@@ -121,6 +126,85 @@ FEATURE_FLAGS = {
     "MOBILE_CONSUMPTION_MODE": True,
     "SEMANTIC_LAYERS": True,
 }
+
+#
+# AI assistant, for local development.
+#
+# Enabled only when an endpoint and key are present in the environment, so
+# `docker compose up` with no AI variables behaves exactly as before. Put them in
+# docker/.env-local (untracked) — see docker/.env-local.example.
+#
+# Any OpenAI-compatible endpoint works, including a private gateway: point
+# SUPERSET_AI_LLM_BASE_URL at it and name your models. Nothing is sent anywhere
+# until these are set.
+#
+SUPERSET_AI_LLM_BASE_URL = os.getenv("SUPERSET_AI_LLM_BASE_URL")
+SUPERSET_AI_LLM_API_KEY = os.getenv("SUPERSET_AI_LLM_API_KEY")
+
+if SUPERSET_AI_LLM_BASE_URL and SUPERSET_AI_LLM_API_KEY:
+    FEATURE_FLAGS["AI_ASSISTANT"] = True
+    AI_LLM_PROVIDER_CLASS = os.getenv(
+        "SUPERSET_AI_LLM_PROVIDER_CLASS",
+        "superset.ai.llm.openai_compatible.OpenAICompatibleProvider",
+    )
+    AI_LLM_PROVIDER_CONFIG = {
+        "base_url": SUPERSET_AI_LLM_BASE_URL,
+        "api_key": SUPERSET_AI_LLM_API_KEY,
+        "models": {
+            # A tier left unset is an error when requested rather than a silent
+            # substitution, so the default tier at minimum has to be named.
+            "default": os.getenv("SUPERSET_AI_MODEL_DEFAULT", "gpt-4o-mini"),
+            "fast": os.getenv(
+                "SUPERSET_AI_MODEL_FAST",
+                os.getenv("SUPERSET_AI_MODEL_DEFAULT", "gpt-4o-mini"),
+            ),
+            "reasoning": os.getenv(
+                "SUPERSET_AI_MODEL_REASONING",
+                os.getenv("SUPERSET_AI_MODEL_DEFAULT", "gpt-4o-mini"),
+            ),
+        },
+    }
+    logger.info("AI assistant enabled, pointed at %s", SUPERSET_AI_LLM_BASE_URL)
+
+if FEATURE_FLAGS.get("AI_ASSISTANT"):
+    # Traces to the container log, so a local run shows what the agent did
+    # without standing up a monitoring stack.
+    from superset.ai.telemetry import LoggingAITelemetry  # noqa: E402
+
+    AI_TELEMETRY = [LoggingAITelemetry()]
+    # Local development wants to see the prompts and SQL in those traces; the
+    # production default withholds them.
+    AI_TELEMETRY_REDACT_CONTENT = False
+
+    # Where a turn runs. Inline by default, matching the shipped default: the
+    # turn executes inside the streaming request and needs neither Celery nor
+    # Redis, so the assistant works on a plain `docker compose up`.
+    #
+    # The trade-off is that the stream request *is* the run, so closing it — by
+    # reloading the page or navigating away — abandons the turn mid-flight and the
+    # answer is lost. Set SUPERSET_AI_EXECUTION_MODE=worker to run turns on the
+    # Celery worker instead, which decouples the run from any reader and lets a
+    # returning client re-attach to one already in progress.
+    AI_ASSISTANT_EXECUTION_MODE = os.getenv("SUPERSET_AI_EXECUTION_MODE", "inline")
+
+    # Worker execution needs a bus that crosses processes. The in-process default
+    # cannot carry events from the Celery worker to the web process holding the
+    # stream open, and the runtime refuses to start rather than hang — so this is
+    # configured alongside the mode above. Streams use commands the
+    # general-purpose cache client does not expose, hence its own connection
+    # rather than CACHE_CONFIG's.
+    if AI_ASSISTANT_EXECUTION_MODE == "worker":
+        AI_ASSISTANT_EVENT_BUS = "redis"
+        AI_ASSISTANT_EVENT_BUS_CACHE_CONFIG = {
+            "CACHE_TYPE": "RedisCache",
+            "CACHE_REDIS_HOST": REDIS_HOST,
+            "CACHE_REDIS_PORT": int(REDIS_PORT),
+            "CACHE_REDIS_USER": "",
+            "CACHE_REDIS_PASSWORD": "",
+            "CACHE_REDIS_DB": int(os.getenv("REDIS_AI_EVENTS_DB", "3")),
+            "CACHE_DEFAULT_TIMEOUT": 300,
+            "CACHE_REDIS_SSL": False,
+        }
 EXTENSIONS_PATH = "/app/docker/extensions"
 ALERT_REPORTS_NOTIFICATION_DRY_RUN = True
 # The Docker Compose app service is named "superset" and listens on 8088. Report
