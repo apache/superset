@@ -16,237 +16,244 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import fetchMock from 'fetch-mock';
+import { act } from '@testing-library/react';
+import { render, screen, within } from 'spec/helpers/testing-library';
 import {
-  render,
-  screen,
-  userEvent,
-  waitFor,
-} from 'spec/helpers/testing-library';
-import SqlEditorLeftBar, {
-  SqlEditorLeftBarProps,
-} from 'src/SqlLab/components/SqlEditorLeftBar';
-import {
-  table,
-  initialState,
-  defaultQueryEditor,
-  extraQueryEditor2,
-} from 'src/SqlLab/fixtures';
+  registerTestView,
+  registerTestViewContainer,
+  cleanupExtensions,
+} from 'spec/helpers/extensionTestHelpers';
+import { ViewLocations } from 'src/SqlLab/contributions';
+import { resetLeftBarViews } from 'src/SqlLab/components/SqlEditorLeftBar/builtins';
+import { initialState } from 'src/SqlLab/fixtures';
 import { EMPTY_STATE_QE_ID } from 'src/SqlLab/hooks/useQueryEditor';
-import * as useDatabaseSelectorModule from '../SqlEditorTopBar/useDatabaseSelector';
-import type { RootState } from 'src/views/store';
-import type { Store } from 'redux';
+import { resetLeftBarLayoutState } from 'src/SqlLab/hooks/useLeftBarLayout';
+import { resetLeftBarViewSettings } from 'src/SqlLab/hooks/useLeftBarViewSettings';
+import {
+  TAB_EXPLORER_ID,
+  TAB_SETTINGS_ID,
+} from 'src/SqlLab/hooks/useManageableLeftBarEntries';
+import SqlEditorLeftBar from '.';
 
-// Mock TableExploreTree to avoid complex tree rendering in tests
-jest.mock('../TableExploreTree', () => ({
+const mockTabExplorerMount = jest.fn();
+const mockTabExplorerUnmount = jest.fn();
+jest.mock('../TabExplorer', () => ({
   __esModule: true,
-  default: () => (
-    <div data-test="mock-table-explore-tree">TableExploreTree</div>
+  default: ({ queryEditorId }: { queryEditorId: string }) => {
+    // eslint-disable-next-line react-hooks/rules-of-hooks, global-require
+    const { useEffect } = require('react');
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    useEffect(() => {
+      mockTabExplorerMount();
+      return mockTabExplorerUnmount;
+    }, []);
+    return (
+      <div data-test="mock-tab-explorer" data-query-editor-id={queryEditorId} />
+    );
+  },
+}));
+
+jest.mock('../DatabaseSelectorPopover', () => ({
+  __esModule: true,
+  default: ({
+    queryEditorId,
+    compact,
+  }: {
+    queryEditorId: string;
+    compact?: boolean;
+  }) => (
+    <div
+      data-test="mock-database-selector-popover"
+      data-query-editor-id={queryEditorId}
+      data-compact={String(!!compact)}
+    />
   ),
 }));
 
-// Helper to switch from default TreeView to SelectView
-const switchToSelectView = async () => {
-  const changeButton = screen.getByTestId('DatabaseSelector');
-  // Click Change button to open database selector modal
-  await userEvent.click(changeButton);
+const makeTrigger = (label: string) => () => <span>{label}</span>;
+const makePanel = (testId: string, text: string) => () => (
+  <div data-test={testId}>{text}</div>
+);
 
-  // Verify popup is opened
-  await waitFor(() => {
-    expect(screen.getByText('Select Database and Schema')).toBeInTheDocument();
-  });
+const registerLeftBarView = (
+  id: string,
+  name: string,
+  icon: () => JSX.Element,
+  panel: () => JSX.Element,
+) => {
+  registerTestViewContainer(ViewLocations.sqllab.leftSidebar, id, name, icon);
+  registerTestView(id, id, name, panel);
 };
 
-const mockedProps = {
-  queryEditorId: defaultQueryEditor.id,
-  height: 0,
-};
-const mockData = {
-  database: {
-    id: 1,
-    database_name: 'main',
-    backend: 'mysql',
+// Explorer's registered view derives the active query editor id from
+// redux's tabHistory itself (see builtins.tsx), rather than through a prop
+// threaded by SqlEditorLeftBar — so every render here needs a store.
+const stateWithActiveTab = (id: string | undefined) => ({
+  ...initialState,
+  sqlLab: {
+    ...initialState.sqlLab,
+    tabHistory: id === undefined ? [] : [id],
   },
-};
+});
 
 beforeEach(() => {
-  fetchMock.get('glob:*/api/v1/database/?*', { result: [] });
-  fetchMock.get('glob:*/api/v1/database/*/catalogs/?*', {
-    count: 0,
-    result: [],
-  });
-  fetchMock.get('glob:*/api/v1/database/3/schemas/?*', {
-    error: 'Unauthorized',
-  });
-  fetchMock.get('glob:*/api/v1/database/1/schemas/?*', {
-    count: 2,
-    result: ['main', 'db1_schema', 'db1_schema2'],
-  });
-  fetchMock.get('glob:*/api/v1/database/2/schemas/?*', {
-    count: 2,
-    result: ['main', 'new_schema'],
-  });
-  fetchMock.get('glob:*/api/v1/database/*/tables/*', {
-    count: 2,
-    result: [
-      {
-        label: 'ab_user',
-        value: 'ab_user',
-      },
-      {
-        label: 'new_table',
-        value: 'new_table',
-      },
-    ],
-  });
-  fetchMock.get('glob:*/api/v1/database/*/table_metadata/*', {
-    status: 200,
-    body: {
-      columns: table.columns,
-    },
-  });
-  fetchMock.get('glob:*/api/v1/database/*/table_metadata/extra/*', {
-    status: 200,
-    body: {},
-  });
+  resetLeftBarViews();
+  resetLeftBarLayoutState();
+  resetLeftBarViewSettings();
+  mockTabExplorerMount.mockClear();
+  mockTabExplorerUnmount.mockClear();
 });
 
-afterEach(() => {
-  fetchMock.clearHistory().removeRoutes();
-  jest.clearAllMocks();
-});
+afterEach(cleanupExtensions);
 
-const renderAndWait = (
-  props: SqlEditorLeftBarProps,
-  store?: Store,
-  initialState?: RootState,
-) =>
-  waitFor(() =>
-    render(<SqlEditorLeftBar {...props} />, {
-      useRedux: true,
-      initialState,
-      ...(store && { store }),
-    }),
+test('normalizes an empty active tab to EMPTY_STATE_QE_ID', () => {
+  render(<SqlEditorLeftBar queryEditorId="" />, {
+    useRedux: true,
+    initialState: stateWithActiveTab(undefined),
+  });
+
+  expect(screen.getByTestId('mock-tab-explorer')).toHaveAttribute(
+    'data-query-editor-id',
+    EMPTY_STATE_QE_ID,
   );
-
-test('catalog selector should be visible when enabled in the database', async () => {
-  const { getByRole } = await renderAndWait(mockedProps, undefined, {
-    ...initialState,
-    sqlLab: {
-      ...initialState.sqlLab,
-      unsavedQueryEditor: {
-        id: mockedProps.queryEditorId,
-        dbId: mockData.database.id,
-      },
-      tables: [table],
-      databases: {
-        [mockData.database.id]: {
-          ...mockData.database,
-          allow_multi_catalog: true,
-        },
-      },
-    },
-  });
-  await switchToSelectView();
-
-  const dbSelect = getByRole('combobox', {
-    name: 'Select database or type to search databases',
-  });
-  const catalogSelect = getByRole('combobox', {
-    name: 'Select catalog or type to search catalogs',
-  });
-
-  expect(dbSelect).toBeInTheDocument();
-  expect(catalogSelect).toBeInTheDocument();
 });
 
-test('display no compatible schema found when schema api throws errors', async () => {
-  const reduxState = {
-    ...initialState,
-    sqlLab: {
-      ...initialState.sqlLab,
-      queryEditors: [
-        {
-          ...extraQueryEditor2,
-          dbId: 3,
-          schema: undefined,
-        },
-      ],
-      databases: {
-        [mockData.database.id]: {
-          ...mockData.database,
-          allow_multi_catalog: true,
-        },
-        3: {
-          id: 3,
-          database_name: 'unauth_db',
-          backend: 'minervasql',
-        },
-      },
-    },
+test('renders TabExplorer by default and never renders a menu itself (the rail lives in AppLayout)', () => {
+  render(<SqlEditorLeftBar queryEditorId="qe1" />, {
+    useRedux: true,
+    initialState: stateWithActiveTab('qe1'),
+  });
+
+  expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+  expect(screen.getByTestId('mock-tab-explorer')).toBeInTheDocument();
+});
+
+test('renders the extension panel when its view is active', () => {
+  registerLeftBarView(
+    'ext.a',
+    'Ext A',
+    makeTrigger('A'),
+    makePanel('panel-a', 'Panel A'),
+  );
+  resetLeftBarLayoutState({ activeViewId: 'ext.a' });
+
+  render(<SqlEditorLeftBar queryEditorId="qe1" />, {
+    useRedux: true,
+    initialState: stateWithActiveTab('qe1'),
+  });
+
+  expect(screen.getByTestId('panel-a')).toBeInTheDocument();
+  expect(screen.queryByTestId('mock-tab-explorer')).not.toBeInTheDocument();
+});
+
+test('a crashing panel is contained and does not crash the component', () => {
+  const consoleErrorSpy = jest
+    .spyOn(console, 'error')
+    .mockImplementation(() => {});
+  const Crashing = () => {
+    throw new Error('boom');
   };
-  await renderAndWait(
-    {
-      ...mockedProps,
-      queryEditorId: extraQueryEditor2.id,
-    },
-    undefined,
-    reduxState,
-  );
-  await switchToSelectView();
+  registerLeftBarView('ext.crash', 'Crash', makeTrigger('C'), Crashing);
+  resetLeftBarLayoutState({ activeViewId: 'ext.crash' });
 
-  await waitFor(() =>
-    expect(
-      fetchMock.callHistory.calls('glob:*/api/v1/database/3/schemas/?*').length,
-    ).toBeGreaterThanOrEqual(1),
-  );
-  const select = screen.getByRole('combobox', {
-    name: 'Select schema',
-  });
-  userEvent.click(select);
+  expect(() =>
+    render(<SqlEditorLeftBar queryEditorId="qe1" />, {
+      useRedux: true,
+      initialState: stateWithActiveTab('qe1'),
+    }),
+  ).not.toThrow();
   expect(
-    await screen.findByText('No compatible schema found'),
+    screen.getByTestId('left-bar-panel-slot-ext.crash'),
   ).toBeInTheDocument();
+
+  consoleErrorSpy.mockRestore();
 });
 
-test('ignore schema api when current schema is deprecated', async () => {
-  const invalidSchemaName = 'None';
-  await renderAndWait(mockedProps, undefined, {
-    ...initialState,
-    sqlLab: {
-      ...initialState.sqlLab,
-      unsavedQueryEditor: {
-        id: defaultQueryEditor.id,
-        schema: invalidSchemaName,
-        dbId: mockData.database.id,
-      },
-      tables: [table],
-      databases: {
-        [mockData.database.id]: {
-          ...mockData.database,
-        },
-      },
-    },
+test('falls back to Explorer when the persisted active view id is no longer registered', () => {
+  registerLeftBarView(
+    'ext.a',
+    'Ext A',
+    makeTrigger('A'),
+    makePanel('panel-a', 'Panel A'),
+  );
+  resetLeftBarLayoutState({ activeViewId: 'ext.gone' });
+
+  render(<SqlEditorLeftBar queryEditorId="qe1" />, {
+    useRedux: true,
+    initialState: stateWithActiveTab('qe1'),
   });
-  await switchToSelectView();
-  expect(fetchMock.callHistory.calls()).not.toContainEqual(
-    expect.arrayContaining([
-      expect.stringContaining(
-        `/tables/${mockData.database.id}/${invalidSchemaName}/`,
-      ),
-    ]),
-  );
+
+  expect(screen.getByTestId('mock-tab-explorer')).toBeInTheDocument();
+  expect(screen.queryByTestId('panel-a')).not.toBeInTheDocument();
 });
 
-test('uses EMPTY_STATE_QE_ID when queryEditorId is empty', async () => {
-  const useDatabaseSelectorSpy = jest.spyOn(
-    useDatabaseSelectorModule,
-    'default',
+test('renders the Settings panel, listing every registered view, when Settings is active', () => {
+  registerLeftBarView(
+    'ext.a',
+    'Ext A',
+    makeTrigger('A'),
+    makePanel('panel-a', 'Panel A'),
+  );
+  registerLeftBarView(
+    'ext.b',
+    'Ext B',
+    makeTrigger('B'),
+    makePanel('panel-b', 'Panel B'),
+  );
+  resetLeftBarLayoutState({ activeViewId: TAB_SETTINGS_ID });
+
+  render(<SqlEditorLeftBar queryEditorId="qe1" />, {
+    useRedux: true,
+    initialState: stateWithActiveTab('qe1'),
+  });
+
+  const settingsPanel = within(
+    screen.getByTestId('left-bar-view-settings-panel'),
+  );
+  expect(settingsPanel.getByText('Ext A')).toBeInTheDocument();
+  expect(settingsPanel.getByText('Ext B')).toBeInTheDocument();
+});
+
+test('does not remount a panel when switching to a different rail view and back, so its own local UI state persists', () => {
+  registerLeftBarView(
+    'ext.a',
+    'Ext A',
+    makeTrigger('A'),
+    makePanel('panel-a', 'Panel A'),
   );
 
-  await renderAndWait({ queryEditorId: '' }, undefined, initialState);
+  render(<SqlEditorLeftBar queryEditorId="qe1" />, {
+    useRedux: true,
+    initialState: stateWithActiveTab('qe1'),
+  });
+  expect(mockTabExplorerMount).toHaveBeenCalledTimes(1);
 
-  expect(useDatabaseSelectorSpy).toHaveBeenCalledWith(EMPTY_STATE_QE_ID);
+  // Switch away to a different rail view — Explorer's slot stays mounted,
+  // just hidden, rather than being unmounted.
+  act(() => {
+    resetLeftBarLayoutState({ activeViewId: 'ext.a' });
+  });
+  expect(screen.getByTestId('panel-a')).toBeInTheDocument();
+  expect(mockTabExplorerUnmount).not.toHaveBeenCalled();
 
-  useDatabaseSelectorSpy.mockRestore();
+  // Switch back — a genuine remount would call the mount effect again.
+  act(() => {
+    resetLeftBarLayoutState({ activeViewId: TAB_EXPLORER_ID });
+  });
+  expect(mockTabExplorerMount).toHaveBeenCalledTimes(1);
+  expect(mockTabExplorerUnmount).not.toHaveBeenCalled();
+});
+
+test('collapsed prop renders only the compact database selector', () => {
+  render(<SqlEditorLeftBar queryEditorId="qe1" collapsed />, {
+    useRedux: true,
+    initialState: stateWithActiveTab('qe1'),
+  });
+
+  expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+  expect(screen.queryByTestId('mock-tab-explorer')).not.toBeInTheDocument();
+  expect(screen.getByTestId('mock-database-selector-popover')).toHaveAttribute(
+    'data-compact',
+    'true',
+  );
 });

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import type { ReactElement } from 'react';
+import type { ComponentType } from 'react';
 import { views, menus, commands } from 'src/core';
 import { resetContributions } from 'src/core/commands';
 
@@ -39,9 +39,29 @@ export const registerTestView = (
   location: string,
   id: string,
   name: string,
-  provider: () => ReactElement,
+  provider: ComponentType,
 ) => {
   const disposable = views.registerView({ id, name }, location, provider);
+  disposables.push(disposable);
+  return disposable;
+};
+
+/**
+ * Registers a test view container at a given location and tracks it for
+ * cleanup. Its id becomes a valid `location` for a subsequent
+ * `registerTestView` call, to contribute the container's content.
+ */
+export const registerTestViewContainer = (
+  location: string,
+  id: string,
+  name: string,
+  icon: ComponentType,
+) => {
+  const disposable = views.registerViewContainer(location, {
+    id,
+    name,
+    icon,
+  });
   disposables.push(disposable);
   return disposable;
 };
