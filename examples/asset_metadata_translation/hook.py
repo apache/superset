@@ -47,17 +47,23 @@ def translation_hook(
 
     from .model import AssetTranslation
 
+    # SAVEPOINT-scoped: this runs on Superset's shared session, and on
+    # PostgreSQL a failed statement aborts the whole transaction. Swallowing the
+    # error without unwinding would leave the session broken, so the next query
+    # -- chart serialization, an access check -- would raise
+    # InFailedSqlTransaction and turn the promised canonical fallback into a 500.
     try:
-        row = (
-            db.session.query(AssetTranslation.translated_text)
-            .filter(
-                AssetTranslation.language_code == locale,
-                AssetTranslation.default_text == default_text,
-                AssetTranslation.model_name == kwargs.get("model_name", ""),
-                AssetTranslation.field_name == kwargs.get("field_name", ""),
+        with db.session.begin_nested():
+            row = (
+                db.session.query(AssetTranslation.translated_text)
+                .filter(
+                    AssetTranslation.language_code == locale,
+                    AssetTranslation.default_text == default_text,
+                    AssetTranslation.model_name == kwargs.get("model_name", ""),
+                    AssetTranslation.field_name == kwargs.get("field_name", ""),
+                )
+                .first()
             )
-            .first()
-        )
     except Exception:  # pylint: disable=broad-except
         logger.exception("asset translation lookup failed for %r", default_text)
         return None
@@ -86,20 +92,23 @@ def translation_batch_hook(
     if not default_texts:
         return {}
 
+    # SAVEPOINT-scoped for the same reason as the single-string hook above: a
+    # failed lookup must not leave the shared session in an aborted transaction.
     try:
-        rows = (
-            db.session.query(
-                AssetTranslation.default_text,
-                AssetTranslation.translated_text,
+        with db.session.begin_nested():
+            rows = (
+                db.session.query(
+                    AssetTranslation.default_text,
+                    AssetTranslation.translated_text,
+                )
+                .filter(
+                    AssetTranslation.language_code == locale,
+                    AssetTranslation.default_text.in_(default_texts),
+                    AssetTranslation.model_name == kwargs.get("model_name", ""),
+                    AssetTranslation.field_name == kwargs.get("field_name", ""),
+                )
+                .all()
             )
-            .filter(
-                AssetTranslation.language_code == locale,
-                AssetTranslation.default_text.in_(default_texts),
-                AssetTranslation.model_name == kwargs.get("model_name", ""),
-                AssetTranslation.field_name == kwargs.get("field_name", ""),
-            )
-            .all()
-        )
     except Exception:  # pylint: disable=broad-except
         logger.exception(
             "asset translation batch lookup failed for %d strings",

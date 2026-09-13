@@ -117,9 +117,10 @@ you.
 
 ## The `i18n` Jinja macro
 
-Templated fields (for example a chart axis label or a native filter name, when
-[SQL templating](/admin-docs/configuration/sql-templating) is enabled) can opt
-into translation explicitly:
+Content that passes through
+[SQL templating](/admin-docs/configuration/sql-templating) — virtual dataset
+SQL, calculated columns, metric expressions, SQL Lab queries — can opt into
+translation explicitly:
 
 ```jinja
 {{ i18n('Sales') }}
@@ -128,6 +129,13 @@ into translation explicitly:
 This resolves through the configured translation hook -- batch or single -- and
 the same enable gate; when the feature is off it simply returns the original
 text.
+
+:::caution
+The macro is bound only in the SQL template processor, so it reaches strings
+Superset renders server-side as part of a query. It does **not** reach labels
+the frontend renders from stored metadata -- chart axis labels and native
+filter names among them -- where `{{ i18n('Sales') }}` would display literally.
+:::
 
 ## Reference hook implementations
 
@@ -223,7 +231,7 @@ def TRANSLATION_BATCH_HOOK(default_texts, locale, **kwargs):
 | Chart / dashboard list & cards | `slice_name` / `dashboard_title` |
 | Dashboard view header & chart panel titles | `dashboard_title` / `slice_name` |
 | Home page "Recents" cards | recent-activity item titles |
-| Templated fields via `{{ i18n(...) }}` | any wrapped string |
+| SQL-templated content via `{{ i18n(...) }}` | any wrapped string |
 
 Editing flows (the chart/dashboard Properties modals, inline title editing)
 always operate on the **canonical** name, so a save can never overwrite the
