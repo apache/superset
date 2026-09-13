@@ -38,14 +38,16 @@ const VISIBLE_RECORD_LIMIT = 10;
 
 // The highlighted container gains inner padding but extends outward by
 // the same amount (negative margin) so its text stays column-aligned
-// with non-highlighted neighbors.
-const Container = styled.div<{ isPreviewed: boolean }>`
-  ${({ theme, isPreviewed }) => {
-    const inset = isPreviewed ? theme.sizeUnit * 3 : 0;
+// with non-highlighted neighbors. The current (live) version carries the
+// highlight at rest — the design's "you are here" state — and a previewed
+// historical version carries it while previewed.
+const Container = styled.div<{ isHighlighted: boolean }>`
+  ${({ theme, isHighlighted }) => {
+    const inset = isHighlighted ? theme.sizeUnit * 3 : 0;
     return `
       border-bottom: 1px solid ${theme.colorBorderSecondary};
-      background-color: ${isPreviewed ? theme.colorPrimaryBg : 'transparent'};
-      border-radius: ${isPreviewed ? theme.borderRadius : 0}px;
+      background-color: ${isHighlighted ? theme.colorPrimaryBg : 'transparent'};
+      border-radius: ${isHighlighted ? theme.borderRadius : 0}px;
       padding: ${theme.sizeUnit * 2}px ${inset}px ${theme.sizeUnit * 4}px;
       margin: 0 ${-inset}px;
     `;
@@ -102,10 +104,11 @@ const Meta = styled.div`
 
 // Icons and trailing controls center within the first text line (one
 // line-height tall) so they track the headline, not the middle of a
-// two-line header block.
-const IconWrapper = styled.span`
-  ${({ theme }) => `
-    color: ${theme.colorTextSecondary};
+// two-line header block. The current version's icon takes the brand
+// accent to match its highlighted "you are here" state.
+const IconWrapper = styled.span<{ isCurrent?: boolean }>`
+  ${({ theme, isCurrent }) => `
+    color: ${isCurrent ? theme.colorPrimary : theme.colorTextSecondary};
     display: flex;
     align-items: center;
     height: ${theme.fontSize * theme.lineHeight}px;
@@ -129,15 +132,16 @@ const KebabSlot = styled.span`
   `}
 `;
 
-// Icon-only trigger: neutral icon color instead of the link-button blue.
+// Icon-only trigger: the design gives row actions the brand accent
+// rather than the link-button blue or a neutral grey.
 const KebabButton = styled(Button)`
   ${({ theme }) => `
     && {
-      color: ${theme.colorTextTertiary};
+      color: ${theme.colorPrimary};
     }
     &&:hover,
     &&:focus {
-      color: ${theme.colorText};
+      color: ${theme.colorPrimaryHover};
     }
   `}
 `;
@@ -154,7 +158,12 @@ export interface SaveGroupItemProps {
   /** The newest self save: it IS the live state, not a historical one. */
   isCurrent: boolean;
   canRestore: boolean;
-  isPreviewed: boolean;
+  /**
+   * Whether this group carries the active "you are here" treatment. The
+   * panel derives it so exactly one group is highlighted at a time: the
+   * previewed group while a preview is open, else the current group.
+   */
+  isHighlighted: boolean;
   onPreview: (group: SaveGroup) => void;
   /** Leave an active historical preview (back to the live version). */
   onExitPreview?: () => void;
@@ -249,7 +258,7 @@ export default function SaveGroupItem({
   group,
   isCurrent,
   canRestore,
-  isPreviewed,
+  isHighlighted,
   onPreview,
   onExitPreview,
   onRestore,
@@ -301,7 +310,10 @@ export default function SaveGroupItem({
   const hiddenCount = group.records.length - visibleRecords.length;
 
   return (
-    <Container isPreviewed={isPreviewed} data-test="version-history-save-group">
+    <Container
+      isHighlighted={isHighlighted}
+      data-test="version-history-save-group"
+    >
       <Header
         // A group with no records has nothing to expand — render it as a
         // plain container instead of a focusable no-op button.
@@ -314,8 +326,14 @@ export default function SaveGroupItem({
         aria-label={hasRecords ? headline : undefined}
         hasRecords={hasRecords}
       >
-        <IconWrapper>
-          <Icons.CalendarOutlined iconSize="l" />
+        <IconWrapper isCurrent={isCurrent}>
+          {/* Semantic group icons per the design: the current (live)
+              version is a check-circle, saved snapshots a save icon. */}
+          {isCurrent ? (
+            <Icons.CheckCircleOutlined iconSize="l" />
+          ) : (
+            <Icons.SaveOutlined iconSize="l" />
+          )}
         </IconWrapper>
         <HeaderText>
           <HeadlineRow>
@@ -356,7 +374,7 @@ export default function SaveGroupItem({
               record={record}
               showRestore={canRestore && !isCurrent}
               showActions={group.versionUuid != null}
-              isPreviewed={isPreviewed}
+              isHighlighted={isHighlighted}
               isLast={index === visibleRecords.length - 1 && hiddenCount === 0}
               onPreview={previewIntent}
               onRestore={() => onRestore(group)}

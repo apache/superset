@@ -496,3 +496,32 @@ test('the close button dismisses the panel', async () => {
   );
   expect(props.onClose).toHaveBeenCalled();
 });
+
+test('exactly one group is highlighted: the previewed one while previewing, else the current one', () => {
+  const { newest, older } = dashboardPair();
+  const props = defaultProps([newest, older], 'dashboard');
+  const groupBackgrounds = () =>
+    screen
+      .getAllByTestId('version-history-save-group')
+      .map(el => getComputedStyle(el).backgroundColor);
+
+  const { rerender } = render(<VersionHistoryPanel {...props} />);
+
+  // At rest: the current (newest, first) group carries the treatment alone.
+  const [activeBg, restingBg] = groupBackgrounds();
+  expect(activeBg).not.toBe(restingBg);
+
+  // Previewing the older group moves the single highlight there — the
+  // current group must NOT stay lit (the double-highlight regression).
+  rerender(
+    <VersionHistoryPanel
+      {...props}
+      previewedTransactionId={older.transactionId}
+    />,
+  );
+  expect(groupBackgrounds()).toEqual([restingBg, activeBg]);
+
+  // Closing the preview returns the single highlight to the current group.
+  rerender(<VersionHistoryPanel {...props} previewedTransactionId={null} />);
+  expect(groupBackgrounds()).toEqual([activeBg, restingBg]);
+});
