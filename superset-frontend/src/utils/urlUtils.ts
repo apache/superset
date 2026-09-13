@@ -348,3 +348,20 @@ export function toQueryString(params: Record<string, any>): string {
   });
   return queryParts.length > 0 ? `?${queryParts.join('&')}` : '';
 }
+
+/**
+ * Confines a caller-supplied URL to http(s) and relative schemes before
+ * it's rendered as a link. Returns undefined for anything else, degrading
+ * the cell to plain text.
+ */
+export const toSafeHref = (url: string): string | undefined => {
+  try {
+    const { protocol } = new URL(url, window.location.origin);
+    if (protocol === 'http:' || protocol === 'https:') {
+      return url;
+    }
+  } catch {
+    // fall through: unparseable URLs are not rendered as links
+  }
+  return undefined;
+};
