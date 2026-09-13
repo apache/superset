@@ -14,8 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import numpy as np
 import pytest
 from pandas import DataFrame
+from pandas.testing import assert_frame_equal
 
 from superset.exceptions import InvalidPostProcessingError
 from superset.utils.pandas_postprocessing import histogram
@@ -221,6 +223,59 @@ def test_histogram_rejects_unbounded_bins():
     for bad_bins in (0, -1, 2_000_000_000, "auto", None):
         with pytest.raises(InvalidPostProcessingError):
             histogram(data, "a", [], bad_bins)
+
+
+@pytest.mark.parametrize(
+    ("cumulative", "normalize", "expected_counts"),
+    [
+        (False, False, [[1, 1], [1, 1]]),
+        (True, False, [[1, 2], [1, 2]]),
+        (False, True, [[0.25, 0.25], [0.25, 0.25]]),
+        (True, True, [[1 / 6, 1 / 3], [1 / 6, 1 / 3]]),
+    ],
+)
+def test_histogram_preserves_null_groups(
+    cumulative: bool, normalize: bool, expected_counts: list[list[float]]
+) -> None:
+    """Missing group keys retain observations; missing numeric values do not."""
+    df = DataFrame({"group": ["A", None, "A", None, None], "value": [1, 2, 3, 4, None]})
+    expected = DataFrame(expected_counts, columns=["1.0 - 2.5", "2.5 - 4.0"])
+    expected.insert(0, "group", ["A", np.nan])
+
+    result = histogram(
+        df, "value", ["group"], bins=2, cumulative=cumulative, normalize=normalize
+    )
+
+    assert_frame_equal(result, expected)
+
+
+def test_histogram_with_only_null_groups() -> None:
+    """An entirely missing grouping column produces one histogram."""
+    df = DataFrame({"group": [None, None, None], "value": [1, 2, 3]})
+    expected = DataFrame({"group": [np.nan], "1.0 - 2.0": [1], "2.0 - 3.0": [2]})
+
+    assert_frame_equal(histogram(df, "value", ["group"], bins=2), expected)
+
+
+def test_histogram_with_multiple_null_group_keys() -> None:
+    """Partial and entirely missing group keys remain distinct groups."""
+    df = DataFrame(
+        {
+            "first": ["A", "A", None, None],
+            "second": ["X", None, "X", None],
+            "value": [1, 2, 3, 4],
+        }
+    )
+    expected = DataFrame(
+        {
+            "first": ["A", "A", np.nan, np.nan],
+            "second": ["X", np.nan, "X", np.nan],
+            "1.0 - 2.5": [1, 1, 0, 0],
+            "2.5 - 4.0": [0, 0, 1, 1],
+        }
+    )
+
+    assert_frame_equal(histogram(df, "value", ["first", "second"], bins=2), expected)
 
 
 def test_histogram_rejects_bool_bins():
