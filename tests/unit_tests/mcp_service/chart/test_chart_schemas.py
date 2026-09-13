@@ -19,6 +19,8 @@
 Unit tests for MCP chart schema validation.
 """
 
+from typing import Any
+
 import pytest
 from pydantic import ValidationError
 
@@ -742,6 +744,83 @@ class TestUnknownFieldDetection:
         """
         with pytest.raises(ValidationError, match="Unknown field"):
             AxisConfig.model_validate({"title": "State", "sort_by": "metric"})
+
+
+class TestXAxisRouting:
+    """``x_axis`` names the x column and the axis styling; both must work.
+
+    Strict nested field checking makes the overlap load-bearing: a payload
+    routed to the wrong model is rejected rather than quietly half-applied.
+    """
+
+    XY_BASE = {"chart_type": "xy", "y": [{"name": "sales", "aggregate": "SUM"}]}
+    MIXED_BASE = {
+        "chart_type": "mixed_timeseries",
+        "metrics": [{"name": "revenue", "aggregate": "SUM"}],
+        "metrics_b": [{"name": "orders", "aggregate": "COUNT"}],
+    }
+
+    @pytest.mark.parametrize(
+        "value", [{"name": "category"}, {"column_name": "category"}, "category"]
+    )
+    def test_column_shaped_x_axis_becomes_the_x_column(self, value: Any) -> None:
+        config = XYChartConfig.model_validate({**self.XY_BASE, "x_axis": value})
+        assert config.x is not None
+        assert config.x.name == "category"
+        assert config.x_axis is None
+
+    def test_styling_shaped_x_axis_configures_the_axis(self) -> None:
+        config = XYChartConfig.model_validate(
+            {**self.XY_BASE, "x_axis": {"title": "State", "scale": "log"}}
+        )
+        assert config.x is None
+        assert config.x_axis is not None
+        assert config.x_axis.title == "State"
+        assert config.x_axis.scale == "log"
+
+    def test_column_and_styling_both_supplied(self) -> None:
+        config = XYChartConfig.model_validate(
+            {**self.XY_BASE, "x": {"name": "category"}, "x_axis": {"title": "State"}}
+        )
+        assert config.x is not None
+        assert config.x.name == "category"
+        assert config.x_axis is not None
+        assert config.x_axis.title == "State"
+
+    def test_column_named_twice_is_rejected(self) -> None:
+        """``x`` and a column-shaped ``x_axis`` together are ambiguous."""
+        with pytest.raises(ValidationError, match="Pass the column once"):
+            XYChartConfig.model_validate(
+                {**self.XY_BASE, "x": {"name": "a"}, "x_axis": {"name": "b"}}
+            )
+
+    def test_mistyped_styling_key_reported_against_the_axis(self) -> None:
+        """A styling payload stays a styling payload, typo and all."""
+        with pytest.raises(ValidationError, match="Unknown field 'sort_by'"):
+            XYChartConfig.model_validate(
+                {**self.XY_BASE, "x_axis": {"title": "State", "sort_by": "metric"}}
+            )
+
+    def test_mistyped_column_key_reported_against_the_column(self) -> None:
+        with pytest.raises(ValidationError, match="Unknown field 'aggregat'"):
+            XYChartConfig.model_validate(
+                {**self.XY_BASE, "x_axis": {"name": "category", "aggregat": "SUM"}}
+            )
+
+    def test_mixed_timeseries_x_axis_becomes_the_x_column(self) -> None:
+        config = MixedTimeseriesChartConfig.model_validate(
+            {**self.MIXED_BASE, "x_axis": {"name": "ds"}}
+        )
+        assert config.x.name == "ds"
+        assert config.x_axis is None
+
+    def test_mixed_timeseries_x_axis_styling(self) -> None:
+        config = MixedTimeseriesChartConfig.model_validate(
+            {**self.MIXED_BASE, "x": {"name": "ds"}, "x_axis": {"title": "Date"}}
+        )
+        assert config.x.name == "ds"
+        assert config.x_axis is not None
+        assert config.x_axis.title == "Date"
 
 
 class TestColumnRefSavedMetric:
