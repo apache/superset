@@ -29,7 +29,10 @@ from superset.commands.exceptions import CommandException
 from superset.exceptions import OAuth2Error, OAuth2RedirectError
 from superset.extensions import event_logger
 from superset.mcp_service.auth import has_dataset_access
-from superset.mcp_service.chart.chart_helpers import extract_form_data_key_from_url
+from superset.mcp_service.chart.chart_helpers import (
+    canonicalize_operation_form_data,
+    extract_form_data_key_from_url,
+)
 from superset.mcp_service.chart.chart_utils import (
     analyze_chart_capabilities,
     analyze_chart_semantics,
@@ -44,6 +47,9 @@ from superset.mcp_service.chart.compile import (
     validate_and_compile,
 )
 from superset.mcp_service.chart.preview_utils import SUPPORTED_FORM_DATA_PREVIEW_FORMATS
+from superset.mcp_service.chart.response_preflight import (
+    finalize_generate_chart_response,
+)
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
     ChartError,
@@ -62,6 +68,13 @@ logger = logging.getLogger(__name__)
 
 
 __all__ = ["CompileResult", "_compile_chart", "validate_and_compile", "generate_chart"]
+
+
+def _finalize_response(payload: object) -> GenerateChartResponse:
+    """Validate and preflight every public generate response."""
+    return finalize_generate_chart_response(
+        GenerateChartResponse.model_validate(payload)
+    )
 
 
 @tool(
@@ -86,10 +99,10 @@ async def generate_chart(  # noqa: C901
     - LLM clients MUST display returned chart URL to users
     - Use numeric dataset ID or UUID (NOT schema.table_name format)
     - MUST include chart_type in config (one of: 'xy', 'table', 'pie',
-      'gauge', 'treemap_v2', 'pivot_table', 'mixed_timeseries',
-      'handlebars',
-      'big_number', 'histogram', 'box_plot', 'waterfall', plus host-gated
-      types returned by get_chart_type_schema such as 'interactive_pivot')
+      'sunburst', 'gauge', 'treemap_v2', 'pivot_table', 'mixed_timeseries',
+      'handlebars', 'big_number',
+      'histogram', 'box_plot', 'waterfall', plus host-gated types returned by
+      get_chart_type_schema such as 'interactive_pivot')
 
     IMPORTANT: The 'chart_type' field in the config is a DISCRIMINATOR that determines
     which chart configuration schema to use. It MUST be included and MUST match the
@@ -108,6 +121,10 @@ async def generate_chart(  # noqa: C901
     - chart_type='pie' for pie/donut charts.
       Required fields: dimension, metric
 
+    - chart_type='sunburst' for multi-ring hierarchical part-to-whole charts.
+      Required fields: hierarchy, metric. When supplied, secondary_metric divided
+      by metric drives a sequential color scale; omit it for categorical colors.
+
     - chart_type='pivot_table' for pivot table visualizations.
       Required fields: rows, metrics (columns is optional, for cross-tabs)
 
@@ -125,12 +142,9 @@ async def generate_chart(  # noqa: C901
     - chart_type='big_number' for single KPI metric displays.
       Required fields: metric
 
-    - chart_type='gauge' for a dial/gauge display of a metric.
+    - chart_type='gauge_chart' for a dial/gauge display of a metric.
       Required fields: metric; optional: groupby (one dial per value),
       min_val, max_val
-
-    - chart_type='treemap_v2' for hierarchical part-to-whole.
-      Required fields: groupby (ordered hierarchy), metric
 
     - chart_type='histogram' for value-distribution charts.
       Required fields: column (numeric); optional: bins, groupby, normalize,
@@ -148,6 +162,7 @@ async def generate_chart(  # noqa: C901
     - "bar chart" / "line chart" / "area chart" / "scatter plot"
       -> chart_type='xy', kind='bar'/'line'/'area'/'scatter'
     - "pie chart" / "donut chart" -> chart_type='pie'
+    - "sunburst" / "hierarchical rings" -> chart_type='sunburst'
     - "table" / "data grid" -> chart_type='table'
     - "pivot table" / "cross-tab" -> chart_type='pivot_table'
     - "interactive pivot" / "AG Grid pivot" -> chart_type='interactive_pivot'
@@ -196,6 +211,20 @@ async def generate_chart(  # noqa: C901
             "chart_type": "pie",
             "dimension": {"name": "product_category"},
             "metric": {"name": "revenue", "aggregate": "SUM"}
+        }
+    }
+    ```
+
+    Example usage for a Sunburst hierarchy (frontend viz_type sunburst_v2):
+    ```json
+    {
+        "dataset_id": 123,
+        "config": {
+            "chart_type": "sunburst",
+            "hierarchy": [{"name": "region"}, {"name": "country"}],
+            "metric": {"name": "revenue", "aggregate": "SUM"},
+            "secondary_metric": {"name": "profit", "aggregate": "SUM"},
+            "show_labels": true
         }
     }
     ```
@@ -291,7 +320,7 @@ async def generate_chart(  # noqa: C901
                 "Chart validation failed: error=%s"
                 % (validation_result.error.model_dump(),)
             )
-            return GenerateChartResponse.model_validate(
+            return _finalize_response(
                 {
                     "chart": None,
                     "error": validation_result.error.model_dump(),
@@ -312,6 +341,10 @@ async def generate_chart(  # noqa: C901
         # Map the simplified config to Superset's form_data format
         # Pass dataset_id to enable column type checking for proper viz_type selection
         form_data = map_config_to_form_data(config, dataset_id=request.dataset_id)
+        form_data = canonicalize_operation_form_data(
+            form_data,
+            datasource_id=None,
+        )
 
         chart = None
         chart_id = None
@@ -388,7 +421,7 @@ async def generate_chart(  # noqa: C901
                     ],
                     error_code="DATASET_NOT_FOUND",
                 )
-                return GenerateChartResponse.model_validate(
+                return _finalize_response(
                     {
                         "chart": None,
                         "error": error.model_dump(),
@@ -402,6 +435,11 @@ async def generate_chart(  # noqa: C901
                         "api_version": "v1",
                     }
                 )
+
+            form_data = canonicalize_operation_form_data(
+                form_data,
+                datasource_id=dataset.id,
+            )
 
             # Generate chart name after dataset lookup so we can include dataset name
             dataset_name = getattr(dataset, "datasource_name", None) or getattr(
@@ -441,7 +479,7 @@ async def generate_chart(  # noqa: C901
                     ],
                     error_code="CHART_COMPILE_FAILED",
                 )
-                return GenerateChartResponse.model_validate(
+                return _finalize_response(
                     {
                         "chart": None,
                         "error": error.model_dump(),
@@ -498,6 +536,15 @@ async def generate_chart(  # noqa: C901
                     chart_viz_type = chart.viz_type
                     chart_uuid = str(chart.uuid) if chart.uuid else None
                     chart_datasource_id = chart.datasource_id
+
+                    # Chart identity is assigned by creation, never by native
+                    # form-data input. It is safe to expose/cache only after the
+                    # command returned the newly created chart ID.
+                    form_data = canonicalize_operation_form_data(
+                        form_data,
+                        datasource_id=dataset.id,
+                        chart_id=chart_id,
+                    )
 
                     # Reload server-generated timestamps (created_on,
                     # changed_on) so the serializer sees real values.
@@ -561,11 +608,11 @@ async def generate_chart(  # noqa: C901
                     )
                     from superset.utils.core import DatasourceType
 
-                    # Add datasource to form_data for the cache
-                    form_data_with_datasource = {
-                        **form_data,
-                        "datasource": f"{dataset.id}__table",
-                    }
+                    form_data_with_datasource = canonicalize_operation_form_data(
+                        form_data,
+                        datasource_id=dataset.id,
+                        chart_id=chart_id,
+                    )
 
                     cmd_params = CommandParameters(
                         datasource_type=DatasourceType.TABLE,
@@ -590,19 +637,10 @@ async def generate_chart(  # noqa: C901
                 # form_data_key remains None but chart is still valid
         else:
             await ctx.report_progress(2, 5, "Generating temporary chart preview")
-            # Generate explore link with cached form_data for preview-only mode
-            from superset.mcp_service.chart.chart_utils import generate_explore_link
-
-            explore_url = generate_explore_link(
-                request.dataset_id, form_data, prefer_permalink=False
-            )
-            await ctx.debug("Generated explore link: explore_url=%s" % (explore_url,))
-
-            # Extract form_data_key from the explore URL
-            form_data_key = extract_form_data_key_from_url(explore_url)
-
-            # Compile check for preview-only mode
-            # Validate dataset existence and user access before running queries
+            # Validate the final form data before caching it. In particular, an
+            # orphan Sunburst time grain must remain visible to _compile_chart's
+            # final-state guard instead of being cached and silently ignored by
+            # the query builder.
             await ctx.report_progress(3, 5, "Running compile check (test query)")
             numeric_dataset_id: int | None = None
             from superset.daos.dataset import DatasetDAO
@@ -622,6 +660,11 @@ async def generate_chart(  # noqa: C901
                 ds = DatasetDAO.find_by_id(request.dataset_id, id_column="uuid")
                 if ds and has_dataset_access(ds):
                     numeric_dataset_id = ds.id
+
+            form_data = canonicalize_operation_form_data(
+                form_data,
+                datasource_id=numeric_dataset_id,
+            )
 
             if numeric_dataset_id is not None:
                 with event_logger.log_context(
@@ -653,7 +696,7 @@ async def generate_chart(  # noqa: C901
                         ],
                         error_code="CHART_COMPILE_FAILED",
                     )
-                    return GenerateChartResponse.model_validate(
+                    return _finalize_response(
                         {
                             "chart": None,
                             "error": error.model_dump(),
@@ -669,6 +712,20 @@ async def generate_chart(  # noqa: C901
                         }
                     )
                 response_warnings.extend(compile_result.warnings)
+
+            # Cache only after final-form-data validation and every applicable
+            # compile check. A live compile requires an accessible numeric
+            # dataset; URL generation remains available for UUID/late-bound
+            # dataset resolution.
+            from superset.mcp_service.chart.chart_utils import generate_explore_link
+
+            explore_url = generate_explore_link(
+                request.dataset_id, form_data, prefer_permalink=False
+            )
+            await ctx.debug("Generated explore link: explore_url=%s" % (explore_url,))
+
+            # Extract form_data_key from the explore URL
+            form_data_key = extract_form_data_key_from_url(explore_url)
 
         # Generate semantic analysis
         capabilities = analyze_chart_capabilities(chart_viz_type, config)
@@ -693,6 +750,7 @@ async def generate_chart(  # noqa: C901
         # Generate previews if requested
         await ctx.report_progress(3, 5, "Generating chart previews")
         previews = {}
+        preview_errors: dict[str, ChartError] = {}
         if request.generate_preview:
             await ctx.debug(
                 "Generating previews: formats=%s" % (str(request.preview_formats),)
@@ -719,6 +777,7 @@ async def generate_chart(  # noqa: C901
                             )
 
                             if isinstance(preview_result, ChartError):
+                                preview_errors[format_type] = preview_result
                                 await ctx.warning(
                                     "Preview '%s' failed: %s"
                                     % (format_type, preview_result.error)
@@ -758,6 +817,7 @@ async def generate_chart(  # noqa: C901
                                 )
 
                                 if isinstance(preview_result, ChartError):
+                                    preview_errors[format_type] = preview_result
                                     await ctx.warning(
                                         "Preview '%s' failed: %s"
                                         % (format_type, preview_result.error)
@@ -842,6 +902,7 @@ async def generate_chart(  # noqa: C901
             "error": None,
             # Enhanced fields for better LLM integration
             "previews": previews,
+            "preview_errors": preview_errors,
             "capabilities": capabilities.model_dump() if capabilities else None,
             "semantics": semantics.model_dump() if semantics else None,
             "explore_url": explore_url,
@@ -871,14 +932,14 @@ async def generate_chart(  # noqa: C901
                 int((time.time() - start_time) * 1000),
             )
         )
-        return GenerateChartResponse.model_validate(result)
+        return _finalize_response(result)
 
     except OAuth2RedirectError as ex:
         await ctx.warning(
             "Chart generation requires OAuth authentication: dataset_id=%s"
             % request.dataset_id
         )
-        return GenerateChartResponse.model_validate(
+        return _finalize_response(
             {
                 "chart": None,
                 "success": False,
@@ -893,7 +954,7 @@ async def generate_chart(  # noqa: C901
         await ctx.error(
             "OAuth2 configuration error: dataset_id=%s" % request.dataset_id
         )
-        return GenerateChartResponse.model_validate(
+        return _finalize_response(
             {
                 "chart": None,
                 "success": False,
@@ -942,7 +1003,7 @@ async def generate_chart(  # noqa: C901
             error_code="CHART_GENERATION_FAILED",
         )
 
-        return GenerateChartResponse.model_validate(
+        return _finalize_response(
             {
                 "chart": None,
                 "error": error.model_dump(),

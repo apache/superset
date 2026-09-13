@@ -233,6 +233,8 @@ def _resolve_query_context(chart: Any) -> dict[str, Any] | None:
     if _needs_unsupported_processing(form_data):
         return None
 
+    # Rebuild for download, not the interactive table page/count queries.
+    form_data = {**form_data, "result_format": "xlsx"}
     return build_query_context_from_form_data(
         form_data,
         {"id": chart.datasource_id, "type": chart.datasource_type or "table"},

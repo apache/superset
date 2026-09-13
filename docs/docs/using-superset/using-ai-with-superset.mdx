@@ -341,3 +341,22 @@ Ask your admin for the MCP server URL and any authentication tokens you need.
 - Verify the connection in your AI client (e.g., the hammer icon in Claude Desktop)
 - Ask the AI "What Superset tools are available?" to confirm the connection
 - Restart your AI client if you recently changed the configuration
+
+
+### Sunburst chart data
+
+MCP chart tools support ordered Sunburst hierarchies with a primary metric and
+an optional secondary metric. When supplied, the secondary-to-primary ratio
+drives a sequential color scale (for example, profit divided by revenue shows
+margin); when omitted, arc colors are categorical. Use `chart_type: "sunburst"`
+in typed requests; the native chart uses `viz_type: "sunburst_v2"`.
+
+SQL NULL aggregate values are rendered as zero, matching the Sunburst frontend,
+including during compile checks, previews, and data exports. Missing result
+columns, numeric strings, booleans, and infinite metric values remain invalid.
+Chart queries also accept Superset's `cache_timeout = -1` setting to disable caching.
+
+Sunburst ASCII previews reserve space for an omitted-row count and mark clipped
+lines with dots. Preview width is bounded in terminal columns, including wide
+Unicode labels. Standard pandas timestamps using pytz UTC or named time zones
+retain their offsets and nanosecond precision in MCP results.
