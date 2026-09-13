@@ -40,7 +40,7 @@ from flask import current_app, Flask, g, has_app_context, Request, Response
 from flask_appbuilder import Model
 from flask_appbuilder.api import expose, permission_name, protect, safe
 from flask_appbuilder.models.filters import BaseFilter
-from flask_appbuilder.security.manager import AUTH_REMOTE_USER
+from flask_appbuilder.security.manager import AUTH_OAUTH, AUTH_REMOTE_USER
 from flask_appbuilder.security.sqla.apis import GroupApi, RoleApi, UserApi
 from flask_appbuilder.security.sqla.apis.permission_view_menu.api import (
     PermissionViewMenuApi,
@@ -5890,7 +5890,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     # temporal change to remove the roles view from the security menu,
     # after migrating all views to frontend, we will set FAB_ADD_SECURITY_VIEWS = False
     def register_views(self) -> None:
-        from superset.views.auth import SupersetAuthView, SupersetRegisterUserView
+        from superset.views.auth import (
+            SupersetAuthView,
+            SupersetOAuthView,
+            SupersetRegisterUserView,
+        )
 
         # AUTH_REMOTE_USER has no interactive login form to render: the whole
         # point is that an upstream proxy already authenticated the request and
@@ -5905,7 +5909,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         # ever being checked. Skip registering it for this auth type so
         # FlaskAppBuilder's AuthRemoteUserView actually claims the route.
         if self.register_superset_auth_view and self.auth_type != AUTH_REMOTE_USER:
-            self.auth_view = self.appbuilder.add_view_no_menu(SupersetAuthView)
+            auth_type = current_app.config["AUTH_TYPE"]
+            if auth_type == AUTH_OAUTH:
+                self.auth_view = self.appbuilder.add_view_no_menu(SupersetOAuthView)
+            else:
+                self.auth_view = self.appbuilder.add_view_no_menu(SupersetAuthView)
         if self.register_superset_registeruser_view:
             self.registeruser_view = self.appbuilder.add_view_no_menu(
                 SupersetRegisterUserView

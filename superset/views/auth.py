@@ -22,7 +22,7 @@ from flask import g, redirect
 from flask_appbuilder import expose
 from flask_appbuilder.const import LOGMSG_ERR_SEC_NO_REGISTER_HASH
 from flask_appbuilder.security.decorators import no_cache
-from flask_appbuilder.security.views import AuthView, WerkzeugResponse
+from flask_appbuilder.security.views import AuthOAuthView, AuthView, WerkzeugResponse
 from flask_babel import lazy_gettext
 
 from superset.views.base import BaseSupersetView
@@ -40,6 +40,20 @@ class SupersetAuthView(BaseSupersetView, AuthView):
             return redirect(self.appbuilder.get_url_for_index)
 
         return super().render_app_template()
+
+
+class SupersetOAuthView(BaseSupersetView, AuthOAuthView):
+    route_base = "/login"
+
+    @expose("/")
+    @expose("/<provider>")
+    @no_cache
+    def login(self, provider: Optional[str] = None) -> WerkzeugResponse:
+        if provider is None:
+            providers = list(self.appbuilder.sm.oauth_remotes.keys())
+            if len(providers) == 1:
+                provider = providers[0]
+        return super().login(provider)
 
 
 class SupersetRegisterUserView(BaseSupersetView):

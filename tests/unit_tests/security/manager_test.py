@@ -24,7 +24,7 @@ from typing import Any, Optional
 from unittest.mock import MagicMock
 
 import pytest
-from flask import current_app
+from flask import current_app, Flask
 from flask_appbuilder.const import AUTH_DB, AUTH_REMOTE_USER
 from flask_appbuilder.security.sqla.models import Role, User
 from pytest_mock import MockerFixture
@@ -43,6 +43,7 @@ from superset.security.manager import (
 from superset.sql.parse import Table
 from superset.superset_typing import AdhocColumn, AdhocMetric
 from superset.utils.core import DatasourceName, override_user
+from superset.views.auth import SupersetOAuthView
 
 
 def test_security_manager(app_context: None) -> None:
@@ -133,6 +134,57 @@ def test_register_views_still_registers_superset_auth_view_for_db_auth(
         call.args[0] for call in mock_appbuilder.add_view_no_menu.call_args_list
     ]
     assert SupersetAuthView in registered
+
+
+def test_superset_oauth_view_oauth_single_provider(
+    mocker: MockerFixture, app: Flask, app_context: None
+) -> None:
+    """
+    Test that SupersetOAuthView auto-selects the provider and delegates
+    to the parent login method when only a single OAuth provider is configured.
+    """
+    mock_provider = MagicMock()
+    mock_remotes = {"google": mock_provider}
+
+    mocker.patch.object(app.appbuilder.sm, "oauth_remotes", mock_remotes)
+
+    mock_super_login = mocker.patch(
+        "superset.views.auth.AuthOAuthView.login", return_value="mocked_response"
+    )
+
+    oauth_view = SupersetOAuthView()
+
+    oauth_view.appbuilder = app.appbuilder
+
+    oauth_view.login()
+
+    mock_super_login.assert_called_once_with("google")
+
+
+def test_superset_oauth_view_oauth_multiple_providers(
+    mocker: MockerFixture, app: Flask, app_context: None
+) -> None:
+    """
+    Test that SupersetOAuthView does NOT auto-select when multiple OAuth
+    providers are configured, and instead calls parent login without provider.
+    """
+    mock_provider1 = MagicMock()
+    mock_provider2 = MagicMock()
+    mock_remotes = {"google": mock_provider1, "github": mock_provider2}
+
+    mocker.patch.object(app.appbuilder.sm, "oauth_remotes", mock_remotes)
+
+    mock_super_login = mocker.patch(
+        "superset.views.auth.AuthOAuthView.login", return_value="mocked_response"
+    )
+
+    oauth_view = SupersetOAuthView()
+
+    oauth_view.appbuilder = app.appbuilder
+
+    oauth_view.login()
+
+    mock_super_login.assert_called_once_with(None)
 
 
 @pytest.fixture
