@@ -28,11 +28,15 @@ import pytest
 import rison
 import yaml
 
+from flask import current_app, g
 from freezegun import freeze_time
 from sqlalchemy import and_
 from superset import db, security_manager  # noqa: F401
 from superset.commands.dashboard.permalink.create import CreateDashboardPermalinkCommand
+from superset.daos.dashboard import EmbeddedDashboardDAO
+from superset.dashboards.excel_export.sync_budget import InlineExportPlan
 from superset.exceptions import LockAlreadyHeldException
+from superset.security.guest_token import GuestTokenResourceType, GuestUser
 from superset.models.dashboard import Dashboard
 from superset.models.core import FavStar, FavStarClassName
 from superset.reports.models import ReportSchedule, ReportScheduleType
@@ -3558,14 +3562,16 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         response = json.loads(rv.data.decode("utf-8"))
         assert response["count"] > 0
 
-    def test_export_xlsx_501_when_bucket_unset(self):
-        """Dashboard API: export_xlsx returns 501 when the S3 bucket is unset."""
+    def test_export_xlsx_400_for_empty_dashboard_without_storage(self):
+        """Dashboard API: with no storage configured the request is still validated
+        before an export runs, so a dashboard with no charts is rejected rather
+        than streaming an empty workbook."""
         admin = self.get_user("admin")
-        dashboard = self.insert_dashboard("xlsx-501", None, [admin.id])
+        dashboard = self.insert_dashboard("xlsx-sync-empty", None, [admin.id])
         self.login(ADMIN_USERNAME)
         try:
             rv = self.client.post(f"api/v1/dashboard/{dashboard.id}/export_xlsx/")
-            assert rv.status_code == 501
+            assert rv.status_code == 400
         finally:
             db.session.delete(dashboard)
             db.session.commit()
@@ -3687,6 +3693,10 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @with_config({"EXCEL_EXPORT_S3_BUCKET": "exports"})
+    @with_feature_flags(
+        ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=False,
+        ENABLE_DASHBOARD_DOWNLOAD_WEBDRIVER_SCREENSHOT=False,
+    )
     @patch("superset.dashboards.api.export_dashboard_excel")
     def test_export_xlsx_images_404_when_screenshot_flags_off(self, mock_task):
         """Dashboard API: ``mode=images`` is rejected with 404 when the webdriver
@@ -3724,6 +3734,356 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         mock_task.apply_async.assert_called_once()
         _, kwargs = mock_task.apply_async.call_args
         assert kwargs["kwargs"]["mode"] == "images"
+
+    # Direct download without export storage
+
+    @staticmethod
+    def _write_stub_workbook(path, *args, **kwargs):
+        """Stand in for the shared workbook builder, writing a real .xlsx."""
+        from superset.utils.excel_streaming import StreamingXlsxWriter
+
+        writer = StreamingXlsxWriter(path)
+        writer.add_sheet("10 - Chart", ["a"], [[1]])
+        writer.close()
+        return {}
+
+    @staticmethod
+    def _export_temp_files():
+        """Temp files the export path creates, so a leak can be detected."""
+        import glob
+        import os
+        import tempfile
+
+        return glob.glob(os.path.join(tempfile.gettempdir(), "dash-export-*"))
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @with_config({"EXCEL_EXPORT_S3_BUCKET": None})
+    @patch("superset.dashboards.api.export_dashboard_excel")
+    @patch("superset.dashboards.api.build_workbook")
+    def test_export_xlsx_200_streams_workbook_without_storage(
+        self, mock_build, mock_task
+    ):
+        """Dashboard API: with no storage configured the workbook is built inline
+        and returned as the response, instead of the request dead-ending."""
+        mock_build.side_effect = self._write_stub_workbook
+        self.login(ADMIN_USERNAME)
+        dashboard = db.session.query(Dashboard).filter_by(slug="world_health").first()
+
+        rv = self.client.post(
+            f"api/v1/dashboard/{dashboard.id}/export_xlsx/",
+            json={"active_data_mask": {}},
+            buffered=True,
+        )
+
+        assert rv.status_code == 200
+        assert rv.mimetype == (
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+        assert "attachment" in rv.headers["Content-Disposition"]
+        assert ".xlsx" in rv.headers["Content-Disposition"]
+        # XLSX files are ZIP archives.
+        assert rv.data.startswith(b"PK")
+        assert is_zipfile(BytesIO(rv.data))
+        # Direct downloads do not queue a task.
+        mock_task.apply_async.assert_not_called()
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @with_config({"EXCEL_EXPORT_S3_BUCKET": None})
+    @patch("superset.dashboards.api.build_workbook")
+    def test_export_xlsx_sync_builds_with_the_same_inputs_as_the_task(self, mock_build):
+        """Dashboard API: the synchronous path hands the shared builder the same
+        dashboard, filter state and mode the Celery task would, so both paths
+        produce the same workbook."""
+        mock_build.side_effect = self._write_stub_workbook
+        data_mask = {"NATIVE_FILTER-abc": {"extraFormData": {"time_range": "No"}}}
+        self.login(ADMIN_USERNAME)
+        dashboard = db.session.query(Dashboard).filter_by(slug="world_health").first()
+
+        rv = self.client.post(
+            f"api/v1/dashboard/{dashboard.id}/export_xlsx/",
+            json={"active_data_mask": data_mask},
+            buffered=True,
+        )
+
+        assert rv.status_code == 200
+        args, _ = mock_build.call_args
+        path, built_dashboard, active_data_mask, _job_id, mode, user = args
+        assert path.endswith(".xlsx")
+        assert built_dashboard.id == dashboard.id
+        assert active_data_mask == data_mask
+        assert mode == "data"
+        assert user.username == ADMIN_USERNAME
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @with_config({"EXCEL_EXPORT_S3_BUCKET": None})
+    @patch("superset.dashboards.api.ReleaseDistributedLock")
+    @patch("superset.dashboards.api.AcquireDistributedLock")
+    @patch("superset.dashboards.api.build_workbook")
+    @patch("superset.dashboards.api.plan_inline_export")
+    def test_export_xlsx_sync_refused_when_over_the_row_budget(
+        self, mock_plan, mock_build, mock_acquire, mock_release
+    ):
+        """Dashboard API: an export too large to serve inline is refused up front
+        with a message naming the fix, rather than being started and timing out."""
+        mock_plan.return_value = InlineExportPlan(
+            query_contexts={}, requested_rows=250_000, max_rows=100_000
+        )
+        self.login(ADMIN_USERNAME)
+        dashboard = db.session.query(Dashboard).filter_by(slug="world_health").first()
+
+        rv = self.client.post(
+            f"api/v1/dashboard/{dashboard.id}/export_xlsx/",
+            json={"active_data_mask": {}},
+        )
+
+        assert rv.status_code == 400
+        message = rv.data.decode("utf-8")
+        assert "EXCEL_EXPORT_S3_BUCKET" in message
+        # A budget refusal releases the lock without querying charts.
+        mock_plan.assert_called_once()
+        mock_build.assert_not_called()
+        mock_acquire.return_value.run.assert_called_once()
+        mock_release.return_value.run.assert_called_once()
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @with_config({"EXCEL_EXPORT_S3_BUCKET": None})
+    @patch("superset.dashboards.api.ReleaseDistributedLock")
+    @patch("superset.dashboards.api.AcquireDistributedLock")
+    @patch("superset.dashboards.api.plan_inline_export")
+    def test_export_xlsx_sync_releases_the_lock_when_planning_fails(
+        self, mock_plan, mock_acquire, mock_release
+    ):
+        """Dashboard API: a context-builder failure while planning must not keep
+        the user locked out until the lock's TTL expires."""
+        mock_plan.side_effect = RuntimeError("builder failed")
+        self.login(ADMIN_USERNAME)
+        dashboard = db.session.query(Dashboard).filter_by(slug="world_health").first()
+
+        rv = self.client.post(
+            f"api/v1/dashboard/{dashboard.id}/export_xlsx/",
+            json={"active_data_mask": {}},
+        )
+
+        assert rv.status_code == 500
+        mock_acquire.return_value.run.assert_called_once()
+        mock_release.return_value.run.assert_called_once()
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @with_config({"EXCEL_EXPORT_S3_BUCKET": None})
+    @patch("superset.dashboards.api.build_workbook")
+    @patch("superset.dashboards.api.plan_inline_export")
+    def test_export_xlsx_sync_runs_the_contexts_the_budget_measured(
+        self, mock_plan, mock_build
+    ):
+        """Dashboard API: the export runs the query contexts the row budget was
+        measured against. Resolving them a second time would risk vouching for one
+        set of queries and running another, since a deployment's context builder
+        need not be deterministic."""
+        measured = {10: {"queries": [{"row_limit": 5}]}, 20: None}
+        mock_plan.return_value = InlineExportPlan(
+            query_contexts=measured, requested_rows=5, max_rows=100_000
+        )
+        mock_build.side_effect = self._write_stub_workbook
+        self.login(ADMIN_USERNAME)
+        dashboard = db.session.query(Dashboard).filter_by(slug="world_health").first()
+
+        rv = self.client.post(
+            f"api/v1/dashboard/{dashboard.id}/export_xlsx/",
+            json={"active_data_mask": {}},
+            buffered=True,
+        )
+
+        assert rv.status_code == 200
+        assert mock_build.call_args.kwargs["query_contexts"] is measured
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @with_config({"EXCEL_EXPORT_S3_BUCKET": None})
+    @with_feature_flags(
+        ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True,
+        ENABLE_DASHBOARD_DOWNLOAD_WEBDRIVER_SCREENSHOT=True,
+    )
+    @patch("superset.dashboards.api.AcquireDistributedLock")
+    @patch("superset.dashboards.api.build_workbook")
+    def test_export_xlsx_images_refused_without_storage(self, mock_build, mock_acquire):
+        """Dashboard API: image export renders every chart through the headless
+        webdriver, which no row budget bounds and no request should wait on, so it
+        is refused rather than served inline -- even with the webdriver enabled."""
+        self.login(ADMIN_USERNAME)
+        dashboard = db.session.query(Dashboard).filter_by(slug="world_health").first()
+
+        rv = self.client.post(
+            f"api/v1/dashboard/{dashboard.id}/export_xlsx/",
+            json={"active_data_mask": {}, "mode": "images"},
+        )
+
+        assert rv.status_code == 400
+        assert "EXCEL_EXPORT_S3_BUCKET" in rv.data.decode("utf-8")
+        mock_build.assert_not_called()
+        mock_acquire.return_value.run.assert_not_called()
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @with_config({"EXCEL_EXPORT_S3_BUCKET": None})
+    @patch("superset.dashboards.api.ReleaseDistributedLock")
+    @patch("superset.dashboards.api.AcquireDistributedLock")
+    @patch("superset.dashboards.api.build_workbook")
+    def test_export_xlsx_sync_releases_the_lock_on_success(
+        self, mock_build, mock_acquire, mock_release
+    ):
+        """Dashboard API: the in-flight lock the synchronous path takes is released
+        once the response is ready, so the next export is not locked out."""
+        mock_build.side_effect = self._write_stub_workbook
+        self.login(ADMIN_USERNAME)
+        dashboard = db.session.query(Dashboard).filter_by(slug="world_health").first()
+
+        rv = self.client.post(
+            f"api/v1/dashboard/{dashboard.id}/export_xlsx/",
+            json={"active_data_mask": {}},
+            buffered=True,
+        )
+
+        assert rv.status_code == 200
+        mock_acquire.return_value.run.assert_called_once()
+        mock_release.return_value.run.assert_called_once()
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @with_config({"EXCEL_EXPORT_S3_BUCKET": None})
+    @patch("superset.dashboards.api.ReleaseDistributedLock")
+    @patch("superset.dashboards.api.AcquireDistributedLock")
+    @patch("superset.dashboards.api.build_workbook")
+    def test_export_xlsx_sync_releases_the_lock_when_building_fails(
+        self, mock_build, mock_acquire, mock_release
+    ):
+        """Dashboard API: a failure while building must not leave the user locked
+        out of their own dashboard until the lock's TTL expires."""
+        mock_build.side_effect = RuntimeError("boom")
+        self.login(ADMIN_USERNAME)
+        dashboard = db.session.query(Dashboard).filter_by(slug="world_health").first()
+
+        rv = self.client.post(
+            f"api/v1/dashboard/{dashboard.id}/export_xlsx/",
+            json={"active_data_mask": {}},
+        )
+
+        assert rv.status_code == 500
+        mock_acquire.return_value.run.assert_called_once()
+        mock_release.return_value.run.assert_called_once()
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @with_config({"EXCEL_EXPORT_S3_BUCKET": None})
+    @patch("superset.dashboards.api.build_workbook")
+    def test_export_xlsx_sync_deletes_the_temp_file_on_success(self, mock_build):
+        """Dashboard API: the temp workbook is deleted when the response closes."""
+        mock_build.side_effect = self._write_stub_workbook
+        before = self._export_temp_files()
+        self.login(ADMIN_USERNAME)
+        dashboard = db.session.query(Dashboard).filter_by(slug="world_health").first()
+
+        rv = self.client.post(
+            f"api/v1/dashboard/{dashboard.id}/export_xlsx/",
+            json={"active_data_mask": {}},
+        )
+
+        assert rv.status_code == 200
+        assert len(set(self._export_temp_files()) - set(before)) == 1
+        rv.close()
+        assert self._export_temp_files() == before
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @with_config({"EXCEL_EXPORT_S3_BUCKET": None})
+    @patch("superset.dashboards.api.build_workbook")
+    def test_export_xlsx_sync_deletes_the_temp_file_when_building_fails(
+        self, mock_build
+    ):
+        """Dashboard API: a half-written workbook is cleaned up too, so a failing
+        export does not fill the web server's disk."""
+        mock_build.side_effect = RuntimeError("boom")
+        before = self._export_temp_files()
+        self.login(ADMIN_USERNAME)
+        dashboard = db.session.query(Dashboard).filter_by(slug="world_health").first()
+
+        rv = self.client.post(
+            f"api/v1/dashboard/{dashboard.id}/export_xlsx/",
+            json={"active_data_mask": {}},
+        )
+
+        assert rv.status_code == 500
+        assert self._export_temp_files() == before
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @with_config({"EXCEL_EXPORT_S3_BUCKET": None})
+    @patch("superset.dashboards.api.AcquireDistributedLock")
+    @patch("superset.dashboards.api.build_workbook")
+    @patch("superset.dashboards.api.plan_inline_export")
+    def test_export_xlsx_sync_rejected_when_export_already_in_progress(
+        self, mock_plan, mock_build, mock_acquire
+    ):
+        """Dashboard API: the synchronous path honors the same per-user+dashboard
+        lock as the queued one, so one user cannot run two exports at once."""
+        mock_acquire.return_value.run.side_effect = LockAlreadyHeldException("held")
+        self.login(ADMIN_USERNAME)
+        dashboard = db.session.query(Dashboard).filter_by(slug="world_health").first()
+
+        rv = self.client.post(
+            f"api/v1/dashboard/{dashboard.id}/export_xlsx/",
+            json={"active_data_mask": {}},
+        )
+
+        assert rv.status_code == 202
+        assert "already in progress" in rv.data.decode("utf-8")
+        mock_plan.assert_not_called()
+        mock_build.assert_not_called()
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @with_config({"EXCEL_EXPORT_S3_BUCKET": None})
+    @with_feature_flags(EMBEDDED_SUPERSET=True)
+    @patch("superset.dashboards.api.build_workbook")
+    def test_export_xlsx_sync_still_blocks_guest_sessions(self, mock_build):
+        """Dashboard API: synchronous exports reject embedded guests."""
+        dashboard = db.session.query(Dashboard).filter_by(slug="world_health").first()
+        embedded = EmbeddedDashboardDAO.upsert(dashboard, ["superset.example"])
+        db.session.commit()
+        public_role = security_manager.get_public_role()
+        export_permission = security_manager.find_permission_view_menu(
+            "can_export", "Dashboard"
+        )
+        assert public_role is not None
+        assert export_permission is not None
+        permission_added = export_permission not in public_role.permissions
+        if permission_added:
+            security_manager.add_permission_role(public_role, export_permission)
+
+        try:
+            token = security_manager.create_guest_access_token(
+                {"username": "xlsx_guest"},
+                [
+                    {
+                        "type": GuestTokenResourceType.DASHBOARD,
+                        "id": str(embedded.uuid),
+                    }
+                ],
+                [],
+            )
+
+            with self.client as client:
+                rv = client.post(
+                    f"api/v1/dashboard/{dashboard.id}/export_xlsx/",
+                    json={"active_data_mask": {}},
+                    headers={
+                        current_app.config["GUEST_TOKEN_HEADER_NAME"]: token.decode(
+                            "utf-8"
+                        )
+                        if isinstance(token, bytes)
+                        else token
+                    },
+                )
+                assert isinstance(g.user, GuestUser)
+
+            assert rv.status_code == 400
+            assert "email address" in rv.data.decode("utf-8")
+            mock_build.assert_not_called()
+        finally:
+            if permission_added:
+                security_manager.del_permission_role(public_role, export_permission)
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_embedded_dashboards(self):

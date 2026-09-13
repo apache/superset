@@ -57,6 +57,7 @@ from superset.commands.deletion_retention.window import resolve_retention_window
 from superset.config import _THEME_DARK_BASE, _THEME_DEFAULT_BASE
 from superset.connectors.sqla import models
 from superset.daos.theme import ThemeDAO
+from superset.dashboards.excel_export.storage import is_export_storage_configured
 from superset.db_engine_specs import get_available_engine_specs
 from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 from superset.extensions import cache_manager
@@ -556,6 +557,7 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
 
     # should not expose API TOKEN to frontend
     frontend_config = {k: _get_frontend_config_value(k) for k in FRONTEND_CONF_KEYS}
+    frontend_config["EXCEL_EXPORT_STORAGE_CONFIGURED"] = is_export_storage_configured()
 
     frontend_config.update(_soft_delete_conf())
 

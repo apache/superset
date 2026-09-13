@@ -1539,10 +1539,10 @@ CSV_STREAMING_ROW_THRESHOLD = 100000
 EXCEL_EXPORT: dict[str, Any] = {}
 
 # ---------------------------------------------------
-# Dashboard "Export Data to Excel" (async, S3-backed)
+# Dashboard "Export Data to Excel"
 # ---------------------------------------------------
-# Destination S3 bucket for generated dashboard .xlsx exports. The feature is
-# disabled until this is set: the export endpoint returns 501 when it is None.
+# When set, dashboard .xlsx exports run in the background and arrive by email.
+# Otherwise, eligible data exports are returned directly to the browser.
 EXCEL_EXPORT_S3_BUCKET: str | None = None
 # Key prefix for export objects: {prefix}{dashboard_id}/{job_id}.xlsx
 EXCEL_EXPORT_S3_KEY_PREFIX = "dashboard-exports/"
@@ -1559,18 +1559,14 @@ EXCEL_EXPORT_S3_CLIENT_KWARGS: dict[str, Any] = {}
 # a rendered image. Set to None to fall back to the built-in default.
 EXCEL_EXPORT_TABLE_VIZ_TYPES: set[str] | None = None
 
-# Optional hook to build a query context for a chart that has no saved
-# ``query_context``, called before the built-in form-data rebuild. Receives the
-# chart's form data (its ``params`` with ``viz_type`` and the
-# ``datasource="{id}__{type}"`` string injected — i.e. ``Slice.form_data``) and
-# returns a query-context payload dict (the shape ``ChartDataQueryContextSchema``
-# loads) or ``None``. A deployment can point this at a service that runs the
-# chart's real frontend ``buildQuery`` (faithful post-processing / multi-query)
-# for viz types the built-in rebuild can't handle. Must return ``None`` — not a
-# partial/stub context — whenever it cannot build the chart faithfully, so the
-# export falls through to the built-in rebuild. The export deep-copies whatever
-# it returns before applying dashboard filters, so a builder is free to memoize
-# or share its payloads. Defaults to ``None`` (built-in behavior only).
+# Maximum combined query ``row_limit`` for a direct download. Queries without a
+# limit use ``ROW_LIMIT``. Keep this within the request timeout.
+EXCEL_EXPORT_SYNC_MAX_ROWS = 100_000
+
+# Optional query-context builder for charts without a saved ``query_context``.
+# It receives ``Slice.form_data`` and returns a payload accepted by
+# ``ChartDataQueryContextSchema``, or ``None`` to use the built-in rebuild.
+# Superset copies returned payloads before applying dashboard filters.
 EXCEL_EXPORT_QUERY_CONTEXT_BUILDER: (
     Callable[[dict[str, Any]], dict[str, Any] | None] | None
 ) = None

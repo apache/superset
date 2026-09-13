@@ -580,36 +580,44 @@ Note that a retried query returns partial data with no truncation indicator
 (e.g. a filter dropdown may list only a subset of values on tables above the
 row cap).
 
-### Dashboard "Export Data to Excel" requires a Celery worker and S3 bucket
+### Dashboard Excel exports support direct downloads
 
 A new dashboard action exports every chart's data to a single multi-sheet
-`.xlsx` asynchronously. It is disabled by default and turns on only when
-`EXCEL_EXPORT_S3_BUCKET` is set (the endpoint returns `501` otherwise). It also
-requires a running Celery worker and a configured SMTP transport, since the task
-emails the requesting user a pre-signed download link. New config keys:
-`EXCEL_EXPORT_S3_BUCKET`, `EXCEL_EXPORT_S3_KEY_PREFIX`,
+`.xlsx`. Without an export bucket, Superset builds the workbook during the
+request and returns it to the browser. When `EXCEL_EXPORT_S3_BUCKET` is set, a
+Celery worker builds and uploads the workbook, then emails the user a pre-signed
+download link. This queued path also needs a worker and SMTP transport.
+
+Direct downloads are limited by `EXCEL_EXPORT_SYNC_MAX_ROWS` (default
+`100_000`), based on the combined `row_limit` of the planned queries. Superset
+counts aggregate-only queries as one row, uses `ROW_LIMIT` when other queries
+omit it, and requires the background path for grouping sets. It returns `400`
+before querying if the total exceeds the limit. Image exports are hidden without
+an export bucket because they require background webdriver rendering.
+
+`POST /api/v1/dashboard/<id>/export_xlsx/` returns either `202` with a queued job
+id or `200` with the workbook. It no longer returns `501` when no bucket is set.
+
+New config keys: `EXCEL_EXPORT_S3_BUCKET`, `EXCEL_EXPORT_S3_KEY_PREFIX`,
 `EXCEL_EXPORT_LINK_TTL_SECONDS`, `EXCEL_EXPORT_S3_CLIENT_KWARGS`,
-`EXCEL_EXPORT_TABLE_VIZ_TYPES`, and `EXCEL_EXPORT_QUERY_CONTEXT_BUILDER`.
+`EXCEL_EXPORT_SYNC_MAX_ROWS`, `EXCEL_EXPORT_TABLE_VIZ_TYPES`, and
+`EXCEL_EXPORT_QUERY_CONTEXT_BUILDER`.
 
-The feature depends on `boto3`, which is **not** installed by default; install it
-with `pip install apache-superset[excel-export]`.
+The queued path depends on `boto3`, which is **not** installed by default; install
+it with `pip install apache-superset[excel-export]`. The direct-download path
+does not use it.
 
-Charts store their `query_context` only once they have been (re-)saved in
-Explore, so older charts may have none. For a fixed, conservative set of viz
-types (`table`, `big_number_total`, `big_number`, `pie`) the export rebuilds a
-query context from the chart's saved form data so those charts still export.
-The rebuild is a single-query mapping and does **not** reproduce plugin
-post-processing (pivot, rolling, forecast) or multi-query charts, so any chart of
-another type without a saved query context is skipped and listed in the email for
-the user to re-save. To cover those types, set `EXCEL_EXPORT_QUERY_CONTEXT_BUILDER`
-to a callable that receives the chart's form data and returns a query-context
-payload (or `None` to fall back to the built-in rebuild) — for example one backed
-by a service that runs the chart's real frontend `buildQuery`.
+For `table`, `big_number_total`, `big_number`, and `pie` charts without a saved
+`query_context`, Superset rebuilds a single query from saved form data. Charts
+that need post-processing or multiple queries are skipped and listed on the
+workbook's "Export Summary" sheet. Use `EXCEL_EXPORT_QUERY_CONTEXT_BUILDER` to
+support more chart types.
 
 A second mode, **Export Images to Excel**, embeds non-table charts as rendered
 images (which viz types stay tabular is controlled by
 `EXCEL_EXPORT_TABLE_VIZ_TYPES`). It renders through the headless webdriver, so the
-menu option only appears when the webdriver screenshot feature flags
+menu option only appears when an export bucket is configured and the webdriver
+screenshot feature flags
 (`ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS`,
 `ENABLE_DASHBOARD_DOWNLOAD_WEBDRIVER_SCREENSHOT`) are enabled.
 
