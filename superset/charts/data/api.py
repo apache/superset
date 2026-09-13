@@ -659,7 +659,7 @@ class ChartDataRestApi(ChartRestApi):
             result = command.execute(force_cached=force_cached)
         except ChartDataCacheLoadError as exc:
             return self.response_422(message=sanitize_error_message(exc.message))
-        except ChartDataQueryFailedError as exc:
+        except (ChartDataQueryFailedError, QueryObjectValidationError) as exc:
             return self.response_400(message=sanitize_error_message(exc.message))
 
             # Log is_cached if extra payload callback is provided
