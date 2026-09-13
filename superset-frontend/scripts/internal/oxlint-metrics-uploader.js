@@ -72,6 +72,39 @@ function parseRuleId(code) {
   return `${plugin}/${rule}`;
 }
 
+function parseOxlintResult(results) {
+  // Process OXC JSON output
+  const metricsByRule = {};
+  const occurrencesData = [];
+
+  // OXC JSON format has diagnostics array
+  if (results.diagnostics && Array.isArray(results.diagnostics)) {
+    results.diagnostics.forEach(diagnostic => {
+      const ruleId = parseRuleId(diagnostic.code);
+
+      const file = diagnostic.filename || 'unknown';
+      const line = diagnostic.labels?.[0]?.span?.line || 0;
+      const column = diagnostic.labels?.[0]?.span?.column || 0;
+      const message = diagnostic.message || '';
+
+      const ruleData = metricsByRule[ruleId] || { count: 0 };
+      ruleData.count += 1;
+      metricsByRule[ruleId] = ruleData;
+
+      occurrencesData.push({
+        rule: ruleId,
+        message,
+        file,
+        line,
+        column,
+        ts: DATETIME,
+      });
+    });
+  }
+
+  return { metricsByRule, occurrencesData };
+}
+
 async function writeToGoogleSheet(data, range, headers, append = false) {
   if (!sheets) {
     console.log('No Google Sheets credentials, skipping upload');
@@ -130,94 +163,44 @@ async function runOxlintAndProcess() {
     );
 
     const results = JSON.parse(oxlintOutput);
-
-    // Process OXC JSON output
-    const metricsByRule = {};
-    let occurrencesData = [];
-
-    // OXC JSON format has diagnostics array
-    if (results.diagnostics && Array.isArray(results.diagnostics)) {
-      results.diagnostics.forEach(diagnostic => {
-        const ruleId = parseRuleId(diagnostic.code);
-
-        const file = diagnostic.filename || 'unknown';
-        const line = diagnostic.labels?.[0]?.span?.line || 0;
-        const column = diagnostic.labels?.[0]?.span?.column || 0;
-        const message = diagnostic.message || '';
-
-        const ruleData = metricsByRule[ruleId] || { count: 0 };
-        ruleData.count += 1;
-        metricsByRule[ruleId] = ruleData;
-
-        occurrencesData.push({
-          rule: ruleId,
-          message,
-          file,
-          line,
-          column,
-          ts: DATETIME,
-        });
-      });
-    }
-
     console.log(
       `OXC found ${results.diagnostics?.length || 0} issues across ${results.number_of_files} files`,
     );
+    const { metricsByRule, occurrencesData } = parseOxlintResult(results);
 
-    // Also run minimal ESLint for custom rules and merge results
-    console.log('Running minimal ESLint for custom rules...');
-    let eslintOutput = '[]';
-    try {
-      // Run ESLint and capture output directly.
-      // Flat config (eslint.config.minimal.js) is explicitly selected via
-      // --config; ESLint v9+/v10 no longer support eslintrc or --no-eslintrc.
-      eslintOutput = execSync(
-        'npx eslint --config eslint.config.minimal.js --no-inline-config --format json src',
-        {
-          encoding: 'utf8',
-          maxBuffer: 50 * 1024 * 1024,
-          stdio: ['pipe', 'pipe', 'ignore'], // Ignore stderr
-        },
-      );
-    } catch (e) {
-      // ESLint exits with non-zero when it finds issues, capture the stdout
-      if (e.stdout) {
-        eslintOutput = e.stdout.toString();
-      }
-    }
+    // Also run Oxlint for custom rules and merge results
+    console.log('Running Oxlint for custom rules...');
+    // Run ESLint and capture output directly.
+    // Flat config (oxlint.custom-lint-rules.mts) is explicitly selected via --config
+    const oxlintCustomRuleOutput = execSync(
+      'npx oxlint --config oxlint.custom-lint-rules.mts --format json src',
+      {
+        encoding: 'utf8',
+        maxBuffer: 50 * 1024 * 1024, // 50MB buffer for large outputs
+        stdio: ['pipe', 'pipe', 'ignore'], // Ignore stderr
+      },
+    );
 
-    // Parse minimal ESLint output
-    try {
-      const eslintResults = JSON.parse(eslintOutput);
+    // Parse Oxlint output for custom rules
+    const oxlintCustomRuleResults = JSON.parse(oxlintCustomRuleOutput);
+    console.log(
+      `OXC found ${oxlintCustomRuleResults.diagnostics?.length || 0} issues across ${oxlintCustomRuleResults.number_of_files} files for custom rules`,
+    );
+    const {
+      metricsByRule: metricsByCustomRule,
+      occurrencesData: customRuleOccurrencesData,
+    } = parseOxlintResult(oxlintCustomRuleResults);
 
-      eslintResults.forEach(result => {
-        result.messages.forEach(({ ruleId, line, column, message }) => {
-          const ruleData = metricsByRule[ruleId] || { count: 0 };
-          ruleData.count += 1;
-          metricsByRule[ruleId] = ruleData;
-
-          occurrencesData.push({
-            rule: ruleId,
-            message,
-            file: result.filePath,
-            line,
-            column,
-            ts: DATETIME,
-          });
-        });
-      });
-
-      console.log(
-        `ESLint found ${eslintResults.reduce((sum, r) => sum + r.messages.length, 0)} custom rule violations`,
-      );
-    } catch (e) {
-      console.log('No ESLint issues found or parsing error:', e.message);
-    }
+    const mergedMetricsByRule = { ...metricsByRule, ...metricsByCustomRule };
+    const mergedOccurrencesData = [
+      ...occurrencesData,
+      ...customRuleOccurrencesData,
+    ];
 
     // Transform data for Google Sheets
-    const metricsData = Object.entries(metricsByRule).map(
+    const metricsData = Object.entries(mergedMetricsByRule).map(
       ([rule, { count }]) => [
-        'OXC+ESLint',
+        'OXC',
         rule,
         enrichedRules[rule]?.description || 'N/A',
         `${count}`,
@@ -225,7 +208,7 @@ async function runOxlintAndProcess() {
       ],
     );
 
-    occurrencesData = occurrencesData.map(
+    const finalizedConcurrencesData = mergedOccurrencesData.map(
       ({ rule, message, file, line, column }) => [
         rule,
         enrichedRules[rule]?.description || 'N/A',
@@ -255,7 +238,7 @@ async function runOxlintAndProcess() {
     ];
 
     console.log(
-      `Found ${Object.keys(metricsByRule).length} unique rules with ${occurrencesData.length} total occurrences`,
+      `Found ${Object.keys(metricsByRule).length} unique rules with ${finalizedConcurrencesData.length} total occurrences`,
     );
 
     await writeToGoogleSheet(
@@ -266,7 +249,7 @@ async function runOxlintAndProcess() {
     );
 
     await writeToGoogleSheet(
-      occurrencesData,
+      finalizedConcurrencesData,
       'ESLint Backlog!A:G',
       eslintBacklogHeaders,
     );

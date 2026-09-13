@@ -153,10 +153,11 @@ jobs:
         run: |
           zstd -d < docker-image.tar.zst | docker load
 
+      # The last weird node command is to run tests fo custom Superset lint rules
       - name: lint
         run: |
           docker run --rm $TAG bash -c \
-          "npm i && npm run lint"
+          "npm i && npm run lint && node --import tsx --test custom-lint-rules/**/*.test.ts"
 
       - name: tsc
         run: |
