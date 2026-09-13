@@ -1831,7 +1831,7 @@ describe('cascading native filter clear', () => {
       present: dashboardLayoutWithTabs,
       past: [],
       future: [],
-    };
+    } as unknown as typeof state.dashboardLayout;
     state.dashboardState = {
       ...state.dashboardState,
       activeTabs: ['TAB-active'],
@@ -1841,7 +1841,7 @@ describe('cascading native filter clear', () => {
       filters: {
         ...state.nativeFilters.filters,
         [outOfScopeChildId]: outOfScopeChildFilter,
-      },
+      } as typeof state.nativeFilters.filters,
     };
     state.dashboardInfo = {
       ...state.dashboardInfo,
@@ -1858,7 +1858,7 @@ describe('cascading native filter clear', () => {
       [outOfScopeChildId]: createDataMask(outOfScopeChildId, ['Texas'], {
         filters: [{ col: 'neighborhood', op: 'IN', val: ['Texas'] }],
       }),
-    };
+    } as typeof state.dataMask;
 
     const props = createOpenedBarProps();
     renderFilterBar(props, state);
