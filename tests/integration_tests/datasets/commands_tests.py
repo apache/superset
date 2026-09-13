@@ -192,6 +192,7 @@ class TestExportDatasetsCommand(SupersetTestCase):
                 },
             ],
             "folders": None,
+            "filters": [],
             "normalize_columns": False,
             "always_filter_main_dttm": False,
             "offset": 0,
@@ -263,6 +264,7 @@ class TestExportDatasetsCommand(SupersetTestCase):
             "uuid",
             "metrics",
             "columns",
+            "filters",
             "version",
             "database_uuid",
         ]

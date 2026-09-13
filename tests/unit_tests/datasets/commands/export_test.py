@@ -301,6 +301,7 @@ columns:
   datetime_format: null
   extra: null
   uuid: 00000000-0000-0000-0000-000000000009
+filters: []
 version: 1.0.0
 database_uuid: {database.uuid}
 """,
