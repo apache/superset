@@ -498,27 +498,45 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
     if time_range == NO_TIME_RANGE or time_range == _(NO_TIME_RANGE):
         return None, None
 
-    if time_range and time_range.startswith("Last") and separator not in time_range:
+    # The prefix checks below only recognize the documented presets ("Last day",
+    # "Current week", "previous calendar month", ...) case-insensitively, matching
+    # the rest of this function, which matches all of its regex patterns with
+    # re.IGNORECASE. A time_range that matches none of these prefixes falls through
+    # to the final "else" branch below, which silently ignores it and returns
+    # (None, today) instead of the intended range -- so a caller passing e.g.
+    # "last week" instead of "Last week" would previously get every row up to
+    # today rather than just last week's, with no error raised.
+    _time_range_lower = time_range.lower() if time_range else ""
+
+    if (
+        time_range
+        and _time_range_lower.startswith("last")
+        and separator not in time_range
+    ):
         time_range = time_range + separator + _relative_end
 
-    if time_range and time_range.startswith("Next") and separator not in time_range:
+    if (
+        time_range
+        and _time_range_lower.startswith("next")
+        and separator not in time_range
+    ):
         time_range = _relative_start + separator + time_range
 
     if (
         time_range
-        and time_range.startswith("previous calendar week")
+        and _time_range_lower.startswith("previous calendar week")
         and separator not in time_range
     ):
         time_range = "DATETRUNC(DATEADD(DATETIME('today'), -1, WEEK), WEEK) : DATETRUNC(DATETIME('today'), WEEK)"  # noqa: E501
     if (
         time_range
-        and time_range.startswith("previous calendar month")
+        and _time_range_lower.startswith("previous calendar month")
         and separator not in time_range
     ):
         time_range = "DATETRUNC(DATEADD(DATETIME('today'), -1, MONTH), MONTH) : DATETRUNC(DATETIME('today'), MONTH)"  # noqa: E501
     if (
         time_range
-        and time_range.startswith("previous calendar quarter")
+        and _time_range_lower.startswith("previous calendar quarter")
         and separator not in time_range
     ):
         time_range = (
@@ -527,37 +545,37 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
         )
     if (
         time_range
-        and time_range.startswith("previous calendar year")
+        and _time_range_lower.startswith("previous calendar year")
         and separator not in time_range
     ):
         time_range = "DATETRUNC(DATEADD(DATETIME('today'), -1, YEAR), YEAR) : DATETRUNC(DATETIME('today'), YEAR)"  # noqa: E501
     if (
         time_range
-        and time_range.startswith("Current day")
+        and _time_range_lower.startswith("current day")
         and separator not in time_range
     ):
         time_range = "DATETRUNC(DATEADD(DATETIME('today'), 0, DAY), DAY) : DATETRUNC(DATEADD(DATETIME('today'), 1, DAY), DAY)"  # noqa: E501
     if (
         time_range
-        and time_range.startswith("Current week")
+        and _time_range_lower.startswith("current week")
         and separator not in time_range
     ):
         time_range = "DATETRUNC(DATEADD(DATETIME('today'), 0, WEEK), WEEK) : DATETRUNC(DATEADD(DATETIME('today'), 1, WEEK), WEEK)"  # noqa: E501
     if (
         time_range
-        and time_range.startswith("Current month")
+        and _time_range_lower.startswith("current month")
         and separator not in time_range
     ):
         time_range = "DATETRUNC(DATEADD(DATETIME('today'), 0, MONTH), MONTH) : DATETRUNC(DATEADD(DATETIME('today'), 1, MONTH), MONTH)"  # noqa: E501
     if (
         time_range
-        and time_range.startswith("Current quarter")
+        and _time_range_lower.startswith("current quarter")
         and separator not in time_range
     ):
         time_range = "DATETRUNC(DATEADD(DATETIME('today'), 0, QUARTER), QUARTER) : DATETRUNC(DATEADD(DATETIME('today'), 1, QUARTER), QUARTER)"  # noqa: E501
     if (
         time_range
-        and time_range.startswith("Current year")
+        and _time_range_lower.startswith("current year")
         and separator not in time_range
     ):
         time_range = "DATETRUNC(DATEADD(DATETIME('today'), 0, YEAR), YEAR) : DATETRUNC(DATEADD(DATETIME('today'), 1, YEAR), YEAR)"  # noqa: E501

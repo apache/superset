@@ -225,6 +225,32 @@ def test_get_since_until() -> None:
     expected = expected = datetime(2016, 1, 1, 0, 0, 0), datetime(2017, 1, 1, 0, 0, 0)
     assert result == expected
 
+    # The "Last"/"Next"/"Current <unit>" presets above must be recognized
+    # regardless of case, matching every other pattern this function matches
+    # with re.IGNORECASE. Before this was fixed, any casing other than the
+    # exact literal below fell through to the final branch of this function
+    # and silently returned (None, today) -- e.g. "last week" produced no
+    # lower bound at all instead of raising or matching "Last week".
+    result = get_since_until("last year")
+    expected = datetime(2015, 11, 7), datetime(2016, 11, 7)
+    assert result == expected
+
+    result = get_since_until("NEXT 5 months")
+    expected = datetime(2016, 11, 7), datetime(2017, 4, 7)
+    assert result == expected
+
+    result = get_since_until("Previous Calendar Week")
+    expected = datetime(2016, 10, 31, 0, 0, 0), datetime(2016, 11, 7, 0, 0, 0)
+    assert result == expected
+
+    result = get_since_until("CURRENT DAY")
+    expected = datetime(2016, 11, 7, 0, 0, 0), datetime(2016, 11, 8, 0, 0, 0)
+    assert result == expected
+
+    result = get_since_until("current quarter")
+    expected = datetime(2016, 10, 1, 0, 0, 0), datetime(2017, 1, 1, 0, 0, 0)
+    assert result == expected
+
     # Tests for our new instant_time_comparison logic and Feature Flag off
     result = get_since_until(
         time_range="2000-01-01T00:00:00 : 2018-01-01T00:00:00",
