@@ -81,6 +81,7 @@ export default function getDropPosition(
   const draggingItem = monitor.getItem() as {
     id: string;
     type: string;
+    meta?: { validParents?: string[] };
   } | null;
 
   // if dropped self on self, do nothing
@@ -92,6 +93,7 @@ export default function getDropPosition(
     parentType: component.type,
     parentDepth: componentDepth,
     childType: draggingItem.type,
+    childMeta: draggingItem.meta,
   });
 
   const parentType = parentComponent?.type;
@@ -103,6 +105,7 @@ export default function getDropPosition(
     parentType,
     parentDepth,
     childType: draggingItem.type,
+    childMeta: draggingItem.meta,
   });
 
   if (!validChild && !validSibling) {

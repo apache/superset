@@ -39,6 +39,7 @@ import {
   DASHBOARD_ROOT_TYPE,
   DIVIDER_TYPE,
   HEADER_TYPE,
+  EXTENSION_TYPE,
   MARKDOWN_TYPE,
   ROW_TYPE,
   TABS_TYPE,
@@ -64,6 +65,7 @@ const parentMaxDepthLookup: Record<string, Record<string, number>> = {
   [DASHBOARD_GRID_TYPE]: {
     [CHART_TYPE]: depthOne,
     [DYNAMIC_TYPE]: depthOne,
+    [EXTENSION_TYPE]: depthOne,
     [MARKDOWN_TYPE]: depthOne,
     [COLUMN_TYPE]: depthOne,
     [DIVIDER_TYPE]: depthOne,
@@ -75,6 +77,7 @@ const parentMaxDepthLookup: Record<string, Record<string, number>> = {
   [ROW_TYPE]: {
     [CHART_TYPE]: depthFour,
     [DYNAMIC_TYPE]: depthFour,
+    [EXTENSION_TYPE]: depthFour,
     [MARKDOWN_TYPE]: depthFour,
     [COLUMN_TYPE]: depthFour,
   },
@@ -86,6 +89,7 @@ const parentMaxDepthLookup: Record<string, Record<string, number>> = {
   [TAB_TYPE]: {
     [CHART_TYPE]: depthFive,
     [DYNAMIC_TYPE]: depthFive,
+    [EXTENSION_TYPE]: depthFive,
     [MARKDOWN_TYPE]: depthFive,
     [COLUMN_TYPE]: depthThree,
     [DIVIDER_TYPE]: depthFive,
@@ -97,6 +101,7 @@ const parentMaxDepthLookup: Record<string, Record<string, number>> = {
   [COLUMN_TYPE]: {
     [CHART_TYPE]: depthFive,
     [HEADER_TYPE]: depthFive,
+    [EXTENSION_TYPE]: depthFive,
     [MARKDOWN_TYPE]: depthFive,
     [ROW_TYPE]: depthThree,
     [DIVIDER_TYPE]: depthThree,
@@ -108,6 +113,7 @@ const parentMaxDepthLookup: Record<string, Record<string, number>> = {
   [DYNAMIC_TYPE]: {},
   [DIVIDER_TYPE]: {},
   [HEADER_TYPE]: {},
+  [EXTENSION_TYPE]: {},
   [MARKDOWN_TYPE]: {},
 };
 
@@ -115,11 +121,26 @@ interface IsValidChildProps {
   parentType?: string;
   childType?: string;
   parentDepth?: unknown;
+  /**
+   * The child's meta, when available (e.g. during a drag). Extension-contributed
+   * components may declare `validParents` to restrict which container types may
+   * hold them; the restriction is seeded onto meta at creation.
+   */
+  childMeta?: { validParents?: string[] };
 }
 
 export default function isValidChild(child: IsValidChildProps): boolean {
-  const { parentType, childType, parentDepth } = child;
+  const { parentType, childType, parentDepth, childMeta } = child;
   if (!parentType || !childType || typeof parentDepth !== 'number') {
+    return false;
+  }
+
+  // Per-component parent restriction for extension components.
+  if (
+    childType === EXTENSION_TYPE &&
+    Array.isArray(childMeta?.validParents) &&
+    !childMeta.validParents.includes(parentType)
+  ) {
     return false;
   }
 

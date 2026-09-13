@@ -20,6 +20,7 @@ import {
   DASHBOARD_GRID_TYPE,
   CHART_TYPE,
   COLUMN_TYPE,
+  EXTENSION_TYPE,
   MARKDOWN_TYPE,
   TAB_TYPE,
 } from './componentTypes';
@@ -28,10 +29,20 @@ import { ComponentType } from '../types';
 interface WrapChildParams {
   parentType: ComponentType | undefined | null;
   childType: ComponentType | undefined | null;
+  /**
+   * The child's meta, when available. Extension-contributed components may set
+   * `wrapInRow: false` in their definition (seeded onto meta) to opt out of the
+   * default auto-wrapping.
+   */
+  childMeta?: { wrapInRow?: boolean };
 }
 
 type ParentTypes = typeof DASHBOARD_GRID_TYPE | typeof TAB_TYPE;
-type ChildTypes = typeof CHART_TYPE | typeof COLUMN_TYPE | typeof MARKDOWN_TYPE;
+type ChildTypes =
+  | typeof CHART_TYPE
+  | typeof COLUMN_TYPE
+  | typeof EXTENSION_TYPE
+  | typeof MARKDOWN_TYPE;
 
 const typeToWrapChildLookup: Record<
   ParentTypes,
@@ -40,12 +51,14 @@ const typeToWrapChildLookup: Record<
   [DASHBOARD_GRID_TYPE]: {
     [CHART_TYPE]: true,
     [COLUMN_TYPE]: true,
+    [EXTENSION_TYPE]: true,
     [MARKDOWN_TYPE]: true,
   },
 
   [TAB_TYPE]: {
     [CHART_TYPE]: true,
     [COLUMN_TYPE]: true,
+    [EXTENSION_TYPE]: true,
     [MARKDOWN_TYPE]: true,
   },
 };
@@ -53,8 +66,14 @@ const typeToWrapChildLookup: Record<
 export default function shouldWrapChildInRow({
   parentType,
   childType,
+  childMeta,
 }: WrapChildParams): boolean {
   if (!parentType || !childType) return false;
+
+  // Extension components may opt out of auto-wrapping.
+  if (childType === EXTENSION_TYPE && childMeta?.wrapInRow === false) {
+    return false;
+  }
 
   const wrapChildLookup = typeToWrapChildLookup[parentType as ParentTypes];
   if (!wrapChildLookup) return false;
