@@ -255,8 +255,7 @@
     "@emotion/babel-plugin": "^11.13.5",
     "@emotion/jest": "^11.14.2",
     "@formatjs/intl-durationformat": "^0.10.18",
-    "@istanbuljs/nyc-config-typescript": "^1.0.1",
-    "@playwright/test": "^1.62.1",
+    "@playwright/test": "^1.63.0",
     "@pmmmwh/react-refresh-webpack-plugin": "^0.6.3",
     "@storybook/addon-docs": "10.6.0",
     "@storybook/addon-links": "10.6.0",
@@ -384,9 +383,6 @@
     "@great-expectations/jsonforms-antd-renderers": {
       "antd": "$antd"
     },
-    "@istanbuljs/load-nyc-config": {
-      "js-yaml": "^3.15.1"
-    },
     "@jest/globals": "^30.4.0",
     "@jest/types": "^30.4.0",
     "@luma.gl/constants": "~9.2.5",
@@ -397,7 +393,7 @@
     "@luma.gl/webgl": "~9.2.5",
     "core-js": "^3.38.1",
     "cosmiconfig": {
-      "js-yaml": "^4.3.1"
+      "js-yaml": "^4.3.2"
     },
     "dompurify": "^3.4.13",
     "esbuild": "^0.28.1",
@@ -416,11 +412,11 @@
     "jest-runtime": "^30.4.0",
     "jest-util": "^30.4.0",
     "js-yaml-loader": {
-      "js-yaml": "^3.15.1"
+      "js-yaml": "^3.15.2"
     },
     "jspdf": "^4.2.0",
     "lerna": {
-      "js-yaml": "^4.3.1"
+      "js-yaml": "^4.3.2"
     },
     "minimatch@>=10": {
       "brace-expansion": ">=5.0.8"
@@ -429,7 +425,7 @@
     "nwsapi": "^2.2.24",
     "puppeteer": "^22.4.1",
     "react-diff-viewer-continued": {
-      "js-yaml": "^4.3.1"
+      "js-yaml": "^4.3.2"
     },
     "tar": "^7.5.16",
     "typescript-json-schema": "^0.68.0",
