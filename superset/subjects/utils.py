@@ -16,7 +16,7 @@
 # under the License.
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from flask_appbuilder.security.sqla.models import Group, Role, User
@@ -78,6 +78,51 @@ def get_user_subject_ids_subquery(user_id: int) -> CompoundSelect:
     )
 
     return union_all(user_subj, role_subj, group_subj, group_role_subj)
+
+
+def get_inherited_slice_ids_subquery(user_id: int) -> CompoundSelect:
+    """Return a Select of Slice IDs a user inherits access to via a dashboard.
+
+    A user who is an editor or viewer of a *published* dashboard inherits
+    access to every chart on that dashboard. This expresses the promiscuous
+    ``ENABLE_VIEWERS`` inheritance as SQL so it can back both per-object access
+    checks and (composed opt-in) list filters. The feature-flag gate is the
+    caller's responsibility — this builder is pure and never executed here.
+    """
+    from superset.models.dashboard import Dashboard, dashboard_slices
+    from superset.subjects.models import dashboard_editors, dashboard_viewers
+
+    subject_subquery = get_user_subject_ids_subquery(user_id)
+
+    def via(assoc: Any) -> Select:
+        return (
+            select(dashboard_slices.c.slice_id)
+            .select_from(dashboard_slices)
+            .join(Dashboard, Dashboard.id == dashboard_slices.c.dashboard_id)
+            .join(assoc, assoc.c.dashboard_id == Dashboard.id)
+            .where(
+                Dashboard.published.is_(True),
+                assoc.c.subject_id.in_(subject_subquery),
+            )
+        )
+
+    return union_all(via(dashboard_editors), via(dashboard_viewers))
+
+
+def get_inherited_datasource_ids_subquery(user_id: int, datasource_type: str) -> Select:
+    """Return a Select of datasource IDs a user inherits access to via a dashboard.
+
+    A dataset is inherited when it backs a chart the user inherits (see
+    :func:`get_inherited_slice_ids_subquery`). ``datasource_type`` is matched
+    explicitly because chart datasource IDs are only unique within a type.
+    """
+    from superset.models.slice import Slice
+
+    return select(Slice.datasource_id).where(
+        Slice.id.in_(get_inherited_slice_ids_subquery(user_id)),
+        Slice.datasource_type == datasource_type,
+        Slice.datasource_id.isnot(None),
+    )
 
 
 def get_user_group_subject_ids_subquery(user_id: int) -> Select:

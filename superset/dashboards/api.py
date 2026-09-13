@@ -742,15 +742,9 @@ class DashboardRestApi(
               $ref: '#/components/responses/404'
         """
         try:
-            dashboard, datasets = DashboardDAO.get_datasets_for_dashboard(id_or_slug)
-            # A dashboard's datasets are members of that dashboard, so access to
-            # the dashboard inherits down to them (embedded guest / promiscuous
-            # viewer). Resolve the inheritance once for the whole response.
-            inherits_access = security_manager.can_inherit_access_via_dashboard(
-                dashboard
-            )
+            datasets = DashboardDAO.get_datasets_for_dashboard(id_or_slug)
             result = [
-                self._serialize_dashboard_dataset(datasource, payload, inherits_access)
+                self._serialize_dashboard_dataset(datasource, payload)
                 for datasource, payload in datasets
             ]
             return self.response(200, result=result)
@@ -758,21 +752,19 @@ class DashboardRestApi(
             raise DatasetValidationError(err) from err
 
     def _serialize_dashboard_dataset(
-        self, datasource: Any, payload: dict[str, Any], inherits_access: bool
+        self, datasource: Any, payload: dict[str, Any]
     ) -> dict[str, Any]:
         """Dump a member dataset, narrowed when the caller cannot access it."""
         serialized = self.dashboard_dataset_schema.dump(payload)
-        if not (inherits_access or security_manager.can_access_datasource(datasource)):
+        if not security_manager.can_access_datasource(datasource):
             for key in DASHBOARD_DATASET_INACCESSIBLE_FIELDS:
                 serialized.pop(key, None)
         return serialized
 
-    def _serialize_dashboard_chart(
-        self, chart: Any, inherits_access: bool
-    ) -> dict[str, Any]:
+    def _serialize_dashboard_chart(self, chart: Any) -> dict[str, Any]:
         """Dump a member chart, narrowed when the caller cannot access it."""
         serialized = self.chart_entity_response_schema.dump(chart)
-        if not (inherits_access or security_manager.can_access_chart(chart)):
+        if not security_manager.can_access_chart(chart):
             serialized.pop("form_data", None)
         return serialized
 
@@ -878,17 +870,8 @@ class DashboardRestApi(
               $ref: '#/components/responses/404'
         """
         try:
-            dashboard, charts = DashboardDAO.get_charts_for_dashboard(id_or_slug)
-            # A dashboard's charts are members of that dashboard, so access to the
-            # dashboard inherits down to them (embedded guest / promiscuous
-            # viewer). Resolve the inheritance once for the whole response.
-            inherits_access = security_manager.can_inherit_access_via_dashboard(
-                dashboard
-            )
-            result = [
-                self._serialize_dashboard_chart(chart, inherits_access)
-                for chart in charts
-            ]
+            charts = DashboardDAO.get_charts_for_dashboard(id_or_slug)
+            result = [self._serialize_dashboard_chart(chart) for chart in charts]
             return self.response(200, result=result)
         except DashboardAccessDeniedError:
             return self.response_403()

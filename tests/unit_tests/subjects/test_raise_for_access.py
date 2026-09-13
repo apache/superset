@@ -555,3 +555,140 @@ def test_can_inherit_access_via_dashboard_embedded_guest(app_context, monkeypatc
         ),
     ):
         assert sm.can_inherit_access_via_dashboard(dashboard) is True
+
+
+# -- Promiscuous viewer dashboard-inheritance helpers --
+
+
+def test_promiscuous_viewer_inherits_chart_requires_promiscuous_mode(
+    app_context, monkeypatch
+):
+    """The chart inheritance helper short-circuits (no DB access) when
+    VIEWER_PROMISCUOUS_MODE is off."""
+    sm = _make_sm()
+    monkeypatch.setitem(current_app.config, "VIEWER_PROMISCUOUS_MODE", False)
+
+    with patch("superset.is_feature_enabled", return_value=True):
+        assert sm._promiscuous_viewer_inherits_chart(MagicMock()) is False
+
+
+def test_promiscuous_viewer_inherits_chart_excludes_guests(app_context, monkeypatch):
+    """Embedded guests never inherit chart access through this path; their
+    access flows through the token-scoped embedded path instead."""
+    sm = _make_sm()
+    monkeypatch.setitem(current_app.config, "VIEWER_PROMISCUOUS_MODE", True)
+
+    with (
+        patch(
+            "superset.is_feature_enabled",
+            side_effect=lambda flag: flag == "ENABLE_VIEWERS",
+        ),
+        patch.object(sm, "is_guest_user", return_value=True),
+    ):
+        assert sm._promiscuous_viewer_inherits_chart(MagicMock()) is False
+
+
+def test_promiscuous_viewer_inherits_chart_matches_membership(app_context, monkeypatch):
+    """When enabled, the helper grants iff the chart id is returned by the
+    inherited-slice subquery."""
+    sm = _make_sm()
+    monkeypatch.setitem(current_app.config, "VIEWER_PROMISCUOUS_MODE", True)
+    chart = MagicMock(id=7)
+
+    mock_session = MagicMock()
+    query_chain = mock_session.query.return_value.filter.return_value
+
+    with (
+        patch(
+            "superset.is_feature_enabled",
+            side_effect=lambda flag: flag == "ENABLE_VIEWERS",
+        ),
+        patch.object(sm, "is_guest_user", return_value=False),
+        patch("superset.security.manager.get_user_id", return_value=1),
+        patch(
+            "superset.subjects.utils.get_inherited_slice_ids_subquery",
+            return_value=MagicMock(),
+        ),
+        patch.object(
+            type(sm), "session", new_callable=PropertyMock, return_value=mock_session
+        ),
+    ):
+        query_chain.first.return_value = object()
+        assert sm._promiscuous_viewer_inherits_chart(chart) is True
+
+        query_chain.first.return_value = None
+        assert sm._promiscuous_viewer_inherits_chart(chart) is False
+
+
+def test_promiscuous_viewer_inherits_datasource_excludes_guests(
+    app_context, monkeypatch
+):
+    """The datasource inheritance helper also excludes guests."""
+    sm = _make_sm()
+    monkeypatch.setitem(current_app.config, "VIEWER_PROMISCUOUS_MODE", True)
+
+    with (
+        patch(
+            "superset.is_feature_enabled",
+            side_effect=lambda flag: flag == "ENABLE_VIEWERS",
+        ),
+        patch.object(sm, "is_guest_user", return_value=True),
+    ):
+        assert sm._promiscuous_viewer_inherits_datasource(MagicMock()) is False
+
+
+def test_raise_for_access_chart_inherited_via_dashboard(app_context):
+    """raise_for_access(chart=...) grants when the viewer inherits the chart via
+    a dashboard, even with every direct path closed."""
+    sm = _make_sm()
+    chart = _make_chart()
+
+    with (
+        patch.object(sm, "is_admin", return_value=False),
+        patch.object(sm, "is_editor", return_value=False),
+        patch.object(sm, "is_viewer", return_value=False),
+        patch.object(sm, "is_guest_user", return_value=False),
+        patch.object(sm, "can_access_datasource", return_value=False),
+        patch.object(sm, "_promiscuous_viewer_inherits_chart", return_value=True),
+        patch("superset.is_feature_enabled", return_value=True),
+    ):
+        sm.raise_for_access(chart=chart)  # no exception
+
+
+def test_raise_for_access_chart_denied_without_inheritance(app_context):
+    """With inheritance false and no other grant, chart access is denied."""
+    sm = _make_sm()
+    chart = _make_chart()
+
+    with (
+        patch.object(sm, "is_admin", return_value=False),
+        patch.object(sm, "is_editor", return_value=False),
+        patch.object(sm, "is_viewer", return_value=False),
+        patch.object(sm, "is_guest_user", return_value=False),
+        patch.object(sm, "can_access_datasource", return_value=False),
+        patch.object(sm, "_promiscuous_viewer_inherits_chart", return_value=False),
+        patch.object(sm, "get_chart_access_error_object", return_value=MagicMock()),
+        patch("superset.is_feature_enabled", return_value=True),
+    ):
+        with pytest.raises(SupersetSecurityException):
+            sm.raise_for_access(chart=chart)
+
+
+def test_raise_for_access_datasource_inherited_via_dashboard(app_context):
+    """raise_for_access(datasource=...) grants a bare datasource check (no
+    form_data) when the viewer inherits the datasource via a dashboard."""
+    sm = _make_sm()
+    datasource = MagicMock()
+    datasource.perm = "[db].[table]"
+
+    with (
+        patch.object(sm, "can_access_schema", return_value=False),
+        patch.object(sm, "can_access", return_value=False),
+        patch.object(sm, "_semantic_layer_grant_allows", return_value=False),
+        patch.object(sm, "is_editor", return_value=False),
+        patch.object(sm, "is_guest_user", return_value=False),
+        patch.object(sm, "get_current_guest_user_if_guest", return_value=None),
+        patch.object(sm, "_promiscuous_viewer_inherits_datasource", return_value=True),
+        patch("superset.is_feature_enabled", return_value=True),
+    ):
+        sm.raise_for_access(datasource=datasource)  # no exception
