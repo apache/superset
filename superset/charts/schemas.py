@@ -620,7 +620,7 @@ class ChartDataRollingOptionsSchema(ChartDataPostProcessingOperationOptionsSchem
             "column `y` with the rolling value in `y`, while `{'y': 'y2'}` will add "
             "a column `y2` based on rolling values calculated from `y`, leaving the "
             "original column `y` unchanged.",
-            "example": {"weekly_rolling_sales": "sales"},
+            "example": {"sales": "weekly_rolling_sales"},
         },
         # `rolling()` takes `columns` positionally with no default, exactly as
         # it takes `rolling_type`, which this schema already marks required.
