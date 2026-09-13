@@ -119,6 +119,7 @@ const formData: EchartsMixedTimeseriesFormData = {
   minorTicks: false,
   gridlines: true,
   axisTicks: true,
+  valueAxisLabels: true,
   opacity: 0,
   opacityB: 0,
   orderDesc: false,
@@ -1923,4 +1924,18 @@ test('should not apply a dashed lineStyle when timeShiftColor is disabled', () =
 
   expect(derivedSeries).toBeDefined();
   expect(derivedSeries?.lineStyle?.type).toBeUndefined();
+});
+
+test('hides the labels on both value axes', () => {
+  const { yAxis } = transformWithChrome({ valueAxisLabels: false });
+
+  expect(yAxis[0].axisLabel.show).toBe(false);
+  expect(yAxis[1].axisLabel.show).toBe(false);
+});
+
+test('shows the labels on both value axes when enabled', () => {
+  const { yAxis } = transformWithChrome({ valueAxisLabels: true });
+
+  expect(yAxis[0].axisLabel.show).toBe(true);
+  expect(yAxis[1].axisLabel.show).toBe(true);
 });
