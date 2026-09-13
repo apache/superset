@@ -28,6 +28,7 @@ from sqlalchemy.orm.exc import DetachedInstanceError
 
 from superset.mcp_service.chart.schemas import (
     AxisConfig,
+    BubbleChartConfig,
     ColumnRef,
     FilterConfig,
     GaugeChartConfig,
@@ -571,15 +572,17 @@ class _DetachableSlice:
 async def _generate_saved_chart(
     refetch: Any,
     compile_result: CompileResult | None = None,
+    config: Any = None,
 ) -> tuple[Any, _DetachableSlice, Mock]:
     """Run generate_chart(save_chart=True) with a chart that detaches on commit.
 
     ``refetch`` is used as the ``ChartDAO.find_by_id`` behaviour of the
-    serialization path.
+    serialization path. ``config`` defaults to a minimal table chart.
     """
     request = GenerateChartRequest(
         dataset_id="1",
-        config=TableChartConfig(chart_type="table", columns=[ColumnRef(name="region")]),
+        config=config
+        or TableChartConfig(chart_type="table", columns=[ColumnRef(name="region")]),
         save_chart=True,
         generate_preview=False,
     )
@@ -973,3 +976,33 @@ class TestGenerateChartSqlMetric:
         assert m["sqlExpression"] == _SQL_EXPR
         assert m["label"] == "Win Rate"
         assert m["optionName"] == "metric_sql_abcd1234"
+
+
+class TestGenerateBubbleWithSqlExpressionMetric:
+    """A SQL-expression metric must survive the response-building analyzers.
+
+    Bubble carries a metric in ``x``, and a SQL-expression ColumnRef has no
+    name, so the semantics analyzer joined None into its data story. The
+    analyzers run while the response is assembled — in save mode that is
+    after CreateChartCommand has already committed the chart, so the caller
+    got an exception for a chart that exists.
+    """
+
+    @pytest.mark.asyncio
+    async def test_saved_bubble_with_sql_expression_x_is_reported(self) -> None:
+        result, _chart, create_command = await _generate_saved_chart(
+            refetch=Mock(return_value=_make_mock_chart()),
+            config=BubbleChartConfig(
+                chart_type="bubble_v2",
+                entity={"name": "country"},
+                x={"sql_expression": "AVG(gdp)", "label": "GDP per capita"},
+                y={"name": "life_expectancy", "aggregate": "AVG"},
+                size={"name": "population", "aggregate": "SUM"},
+            ),
+        )
+
+        assert result.success is True
+        assert result.error is None
+        assert result.chart is not None
+        assert result.chart.id == 42
+        create_command.return_value.run.assert_called_once()
