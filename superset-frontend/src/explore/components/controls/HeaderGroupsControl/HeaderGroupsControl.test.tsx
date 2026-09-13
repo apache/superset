@@ -619,8 +619,9 @@ test('edits name, columns, alignment, and placement from the popover', async () 
   });
 
   await selectOption('AVG(sales)', 'Group columns');
-  await userEvent.click(screen.getAllByRole('radio', { name: 'Left' })[0]);
-  await userEvent.click(screen.getAllByRole('radio', { name: 'Left' })[1]);
+  const leftRadios = screen.getAllByRole('radio', { name: 'Left' });
+  await userEvent.click(leftRadios[0].closest('label') ?? leftRadios[0]);
+  await userEvent.click(leftRadios[1].closest('label') ?? leftRadios[1]);
 
   const payloads = onChange.mock.calls.map(
     ([next]) => next as HeaderGroupConfig[],
