@@ -20,8 +20,8 @@
  */
 
 /* eslint-disable no-console */
-const { sync } = require('fast-glob');
-const { copy } = require('fs-extra');
+import { sync } from 'fast-glob';
+import { copy } from 'fs-extra';
 
 const pkgGlob = process.argv[2] || '*';
 

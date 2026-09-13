@@ -443,7 +443,7 @@ describe('DatabaseModal', () => {
       expect(selectInput).toBeInTheDocument();
 
       // Simulate focusing the input
-      userEvent.click(selectInput);
+      await userEvent.click(selectInput);
 
       // Simulate pasting text into the input
       expect(() =>
@@ -457,7 +457,7 @@ describe('DatabaseModal', () => {
       setup();
 
       // On step 1, click dbButton to access SQL Alchemy form
-      userEvent.click(
+      await userEvent.click(
         await screen.findByRole('button', {
           name: /sqlite/i,
         }),
@@ -498,7 +498,7 @@ describe('DatabaseModal', () => {
       );
       // <SSHTunnelForm> - Basic tab's SSH Tunnel Form
       const SSHTunnelingToggle = screen.getByTestId('ssh-tunnel-switch');
-      userEvent.click(SSHTunnelingToggle);
+      await userEvent.click(SSHTunnelingToggle);
       const SSHTunnelServerAddressInput = await screen.findByTestId(
         'ssh-tunnel-server_address-input',
       );
@@ -570,14 +570,14 @@ describe('DatabaseModal', () => {
       setup();
 
       // On step 1, click dbButton to access step 2
-      userEvent.click(
+      await userEvent.click(
         await screen.findByRole('button', {
           name: /sqlite/i,
         }),
       );
       expect(await screen.findByText(/step 2 of 2/i)).toBeInTheDocument();
       // Click the "Advanced" tab
-      userEvent.click(screen.getByRole('tab', { name: /advanced/i }));
+      await userEvent.click(screen.getByRole('tab', { name: /advanced/i }));
 
       // ---------- Components ----------
       // <TabHeader> - AntD header
@@ -648,16 +648,16 @@ describe('DatabaseModal', () => {
 
       // ---------- Components ----------
       // On step 1, click dbButton to access step 2
-      userEvent.click(
+      await userEvent.click(
         await screen.findByRole('button', {
           name: /sqlite/i,
         }),
       );
       expect(await screen.findByText(/step 2 of 2/i)).toBeInTheDocument();
       // Click the "Advanced" tab
-      userEvent.click(screen.getByRole('tab', { name: /advanced/i }));
+      await userEvent.click(screen.getByRole('tab', { name: /advanced/i }));
       // Click the "SQL Lab" tab
-      userEvent.click(screen.getByTestId('sql-lab-label-test'));
+      await userEvent.click(screen.getByTestId('sql-lab-label-test'));
 
       // ----- BEGIN STEP 2 (ADVANCED - SQL LAB)
       // <TabHeader> - AntD header
@@ -809,15 +809,15 @@ describe('DatabaseModal', () => {
 
       // ---------- Components ----------
       // On step 1, click dbButton to access step 2
-      userEvent.click(
+      await userEvent.click(
         await screen.findByRole('button', {
           name: /sqlite/i,
         }),
       );
       // Click the "Advanced" tab
-      userEvent.click(screen.getByRole('tab', { name: /advanced/i }));
+      await userEvent.click(screen.getByRole('tab', { name: /advanced/i }));
       // Click the "Performance" tab
-      userEvent.click(screen.getByTestId('performance-label-test'));
+      await userEvent.click(screen.getByTestId('performance-label-test'));
       expect(await screen.findByText(/step 2 of 2/i)).toBeInTheDocument();
 
       // ----- BEGIN STEP 2 (ADVANCED - PERFORMANCE)
@@ -866,15 +866,15 @@ describe('DatabaseModal', () => {
 
       // ---------- Components ----------
       // On step 1, click dbButton to access step 2
-      userEvent.click(
+      await userEvent.click(
         await screen.findByRole('button', {
           name: /sqlite/i,
         }),
       );
       // Click the "Advanced" tab
-      userEvent.click(screen.getByRole('tab', { name: /advanced/i }));
+      await userEvent.click(screen.getByRole('tab', { name: /advanced/i }));
       // Click the "Security" tab
-      userEvent.click(screen.getByTestId('security-label-test'));
+      await userEvent.click(screen.getByTestId('security-label-test'));
       expect(await screen.findByText(/step 2 of 2/i)).toBeInTheDocument();
 
       // ----- BEGIN STEP 2 (ADVANCED - SECURITY)
@@ -942,21 +942,21 @@ describe('DatabaseModal', () => {
 
       // ---------- Components ----------
       // On step 1, click dbButton to access step 2
-      userEvent.click(
+      await userEvent.click(
         await screen.findByRole('button', {
           name: /sqlite/i,
         }),
       );
       // Click the "Advanced" tab
-      userEvent.click(screen.getByRole('tab', { name: /advanced/i }));
+      await userEvent.click(screen.getByRole('tab', { name: /advanced/i }));
       // Click the "Security" tab
-      userEvent.click(screen.getByTestId('security-label-test'));
+      await userEvent.click(screen.getByTestId('security-label-test'));
       // Click the "Allow file uploads" tab
 
       const allowFileUploadCheckbox = screen.getByRole('checkbox', {
         name: /Allow file uploads to database/i,
       });
-      userEvent.click(allowFileUploadCheckbox);
+      await userEvent.click(allowFileUploadCheckbox);
 
       // ----- BEGIN STEP 2 (ADVANCED - SECURITY)
       // <TabHeader> - AntD header
@@ -1020,15 +1020,15 @@ describe('DatabaseModal', () => {
 
       // ---------- Components ----------
       // On step 1, click dbButton to access step 2
-      userEvent.click(
+      await userEvent.click(
         await screen.findByRole('button', {
           name: /sqlite/i,
         }),
       );
       // Click the "Advanced" tab
-      userEvent.click(screen.getByRole('tab', { name: /advanced/i }));
+      await userEvent.click(screen.getByRole('tab', { name: /advanced/i }));
       // Click the "Other" tab
-      userEvent.click(screen.getByTestId('other-label-test'));
+      await userEvent.click(screen.getByTestId('other-label-test'));
       expect(await screen.findByText(/step 2 of 2/i)).toBeInTheDocument();
 
       // ----- BEGIN STEP 2 (ADVANCED - OTHER)
@@ -1081,7 +1081,7 @@ describe('DatabaseModal', () => {
 
       // ---------- Components ----------
       // On step 1, click dbButton to access step 2
-      userEvent.click(
+      await userEvent.click(
         await screen.findByRole('button', {
           name: /postgresql/i,
         }),
@@ -1102,7 +1102,7 @@ describe('DatabaseModal', () => {
       const postgreSQLButton = await screen.findByRole('button', {
         name: /postgresql/i,
       });
-      userEvent.click(postgreSQLButton);
+      await userEvent.click(postgreSQLButton);
 
       // Dynamic form has 3 steps, seeing this text means the dynamic form is present
       const dynamicFormStepText = screen.getByText(/step 2 of 3/i);
@@ -1113,12 +1113,12 @@ describe('DatabaseModal', () => {
       // Click the back button to go back to step 1,
       // then click the SQLite button to enter the SQL Alchemy form
       const backButton = screen.getByRole('button', { name: /back/i });
-      userEvent.click(backButton);
+      await userEvent.click(backButton);
 
       const sqliteButton = screen.getByRole('button', {
         name: /sqlite/i,
       });
-      userEvent.click(sqliteButton);
+      await userEvent.click(sqliteButton);
 
       // SQL Alchemy form has 2 steps, seeing this text means the SQL Alchemy form is present
       expect(await screen.findByText(/step 2 of 2/i)).toBeInTheDocument();
@@ -1132,7 +1132,7 @@ describe('DatabaseModal', () => {
       test('enters step 2 of 2 when proper database is selected', async () => {
         setup();
 
-        userEvent.click(
+        await userEvent.click(
           await screen.findByRole('button', {
             name: /sqlite/i,
           }),
@@ -1163,7 +1163,7 @@ describe('DatabaseModal', () => {
         test('properly interacts with textboxes', async () => {
           setup();
 
-          userEvent.click(
+          await userEvent.click(
             await screen.findByRole('button', {
               name: /sqlite/i,
             }),
@@ -1173,7 +1173,7 @@ describe('DatabaseModal', () => {
           const dbNametextBox = screen.getByTestId('database-name-input');
           expect(dbNametextBox).toHaveValue('SQLite');
 
-          userEvent.type(dbNametextBox, 'Different text');
+          await userEvent.type(dbNametextBox, 'Different text');
           expect(dbNametextBox).toHaveValue('SQLiteDifferent text');
 
           const sqlAlchemyURItextBox = screen.getByTestId(
@@ -1181,7 +1181,7 @@ describe('DatabaseModal', () => {
           );
           expect(sqlAlchemyURItextBox).toHaveValue('');
 
-          userEvent.type(sqlAlchemyURItextBox, 'Different text');
+          await userEvent.type(sqlAlchemyURItextBox, 'Different text');
           expect(sqlAlchemyURItextBox).toHaveValue('Different text');
         });
 
@@ -1210,14 +1210,14 @@ describe('DatabaseModal', () => {
         test('properly interacts with SSH Tunnel form textboxes for dynamic form', async () => {
           setup();
 
-          userEvent.click(
+          await userEvent.click(
             await screen.findByRole('button', {
               name: /postgresql/i,
             }),
           );
           expect(await screen.findByText(/step 2 of 3/i)).toBeInTheDocument();
           const SSHTunnelingToggle = screen.getByTestId('ssh-tunnel-switch');
-          userEvent.click(SSHTunnelingToggle);
+          await userEvent.click(SSHTunnelingToggle);
           const SSHTunnelServerAddressInput = await screen.findByTestId(
             'ssh-tunnel-server_address-input',
           );
@@ -1261,7 +1261,7 @@ describe('DatabaseModal', () => {
         test('properly interacts with SSH Tunnel form textboxes', async () => {
           setup();
 
-          userEvent.click(
+          await userEvent.click(
             await screen.findByRole('button', {
               name: /sqlite/i,
             }),
@@ -1269,7 +1269,7 @@ describe('DatabaseModal', () => {
 
           expect(await screen.findByText(/step 2 of 2/i)).toBeInTheDocument();
           const SSHTunnelingToggle = screen.getByTestId('ssh-tunnel-switch');
-          userEvent.click(SSHTunnelingToggle);
+          await userEvent.click(SSHTunnelingToggle);
           const SSHTunnelServerAddressInput = await screen.findByTestId(
             'ssh-tunnel-server_address-input',
           );
@@ -1313,7 +1313,7 @@ describe('DatabaseModal', () => {
         test('does not fire blur validation for SSH fields in the SQLAlchemy form', async () => {
           setup();
 
-          userEvent.click(
+          await userEvent.click(
             await screen.findByRole('button', {
               name: /sqlite/i,
             }),
@@ -1321,7 +1321,7 @@ describe('DatabaseModal', () => {
 
           expect(await screen.findByText(/step 2 of 2/i)).toBeInTheDocument();
           const SSHTunnelingToggle = screen.getByTestId('ssh-tunnel-switch');
-          userEvent.click(SSHTunnelingToggle);
+          await userEvent.click(SSHTunnelingToggle);
           const SSHTunnelServerAddressInput = await screen.findByTestId(
             'ssh-tunnel-server_address-input',
           );
@@ -1343,7 +1343,7 @@ describe('DatabaseModal', () => {
         test('if the SSH Tunneling toggle is not true, no inputs are displayed', async () => {
           setup();
 
-          userEvent.click(
+          await userEvent.click(
             await screen.findByRole('button', {
               name: /sqlite/i,
             }),
@@ -1373,7 +1373,7 @@ describe('DatabaseModal', () => {
         test('If user changes the login method, the inputs change', async () => {
           setup();
 
-          userEvent.click(
+          await userEvent.click(
             await screen.findByRole('button', {
               name: /sqlite/i,
             }),
@@ -1381,7 +1381,7 @@ describe('DatabaseModal', () => {
 
           expect(await screen.findByText(/step 2 of 2/i)).toBeInTheDocument();
           const SSHTunnelingToggle = screen.getByTestId('ssh-tunnel-switch');
-          userEvent.click(SSHTunnelingToggle);
+          await userEvent.click(SSHTunnelingToggle);
           const SSHTunnelUsePasswordInput = await screen.findByTestId(
             'ssh-tunnel-use_password-radio',
           );
@@ -1396,7 +1396,7 @@ describe('DatabaseModal', () => {
           // By default, we use Password as login method
           expect(SSHTunnelPasswordInput).toBeInTheDocument();
           // Change the login method to use private key
-          userEvent.click(SSHTunnelUsePrivateKeyInput);
+          await userEvent.click(SSHTunnelUsePrivateKeyInput);
           const SSHTunnelPrivateKeyInput = screen.getByTestId(
             'ssh-tunnel-private_key-input',
           );
@@ -1415,7 +1415,7 @@ describe('DatabaseModal', () => {
         setup();
 
         expect(await screen.findByText(/step 1 of 3/i)).toBeInTheDocument();
-        userEvent.click(
+        await userEvent.click(
           screen.getByRole('button', {
             name: /postgresql/i,
           }),
@@ -1426,7 +1426,7 @@ describe('DatabaseModal', () => {
       test('enters form credentials and runs fetchResource when "Connect" is clicked', async () => {
         setup();
 
-        userEvent.click(
+        await userEvent.click(
           await screen.findByRole('button', {
             name: /postgresql/i,
           }),
@@ -1474,7 +1474,7 @@ describe('DatabaseModal', () => {
         expect(passwordField).toHaveValue('demoPassword');
 
         expect(connectButton).toBeEnabled();
-        userEvent.click(connectButton);
+        await userEvent.click(connectButton);
         // Verify that validation was called during the form interaction
         // Note: With the optimized validation, redundant calls on the same db state are skipped
         await waitFor(() => {
@@ -1487,7 +1487,7 @@ describe('DatabaseModal', () => {
       test('does not fire redundant validation on blur when db has not changed', async () => {
         setup();
 
-        userEvent.click(
+        await userEvent.click(
           await screen.findByRole('button', {
             name: /postgresql/i,
           }),
@@ -1530,7 +1530,7 @@ describe('DatabaseModal', () => {
 
         setup();
 
-        userEvent.click(
+        await userEvent.click(
           await screen.findByRole('button', {
             name: /postgresql/i,
           }),
@@ -1584,23 +1584,29 @@ describe('DatabaseModal', () => {
     // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
     describe('Import database flow', () => {
       test('imports a file', async () => {
+        // jsdom does not implement scrollIntoView, which the modal calls
+        // once the importing filename renders
+        Element.prototype.scrollIntoView = jest.fn();
+
         setup();
 
-        const importDbButton = (await screen.findByTestId(
-          'import-database-btn',
-        )) as HTMLInputElement;
-        importDbButton.type = 'file';
-        importDbButton.files = {} as FileList;
+        const importDbButton = await screen.findByTestId('import-database-btn');
         expect(importDbButton).toBeInTheDocument();
+
+        // The visible button only triggers the underlying rc-upload file
+        // input; user-event's upload() requires the real <input type="file">.
+        const fileInput = document.querySelector(
+          'input[type="file"]',
+        ) as HTMLInputElement;
 
         const testFile = new File([new ArrayBuffer(1)], 'model_export.zip');
 
-        userEvent.click(importDbButton);
-        userEvent.upload(importDbButton, testFile);
+        await userEvent.click(importDbButton);
+        await userEvent.upload(fileInput, testFile);
 
-        expect(importDbButton.files?.[0]).toStrictEqual(testFile);
-        expect(importDbButton.files?.item(0)).toStrictEqual(testFile);
-        expect(importDbButton.files).toHaveLength(1);
+        expect(fileInput.files?.[0]).toStrictEqual(testFile);
+        expect(fileInput.files?.item(0)).toStrictEqual(testFile);
+        expect(fileInput.files).toHaveLength(1);
       });
 
       test('resets the upload entry after an invalid file error', async () => {
@@ -1679,9 +1685,11 @@ describe('DatabaseModal', () => {
       setup({ dbEngine: 'Google Sheets' });
 
       // Click the "Advanced" tab
-      userEvent.click(await screen.findByRole('tab', { name: /advanced/i }));
+      await userEvent.click(
+        await screen.findByRole('tab', { name: /advanced/i }),
+      );
       // Click the "Security" tab
-      userEvent.click(screen.getByTestId('security-label-test'));
+      await userEvent.click(screen.getByTestId('security-label-test'));
 
       // ----- BEGIN STEP 2 (ADVANCED - SECURITY)
       // <ExtraOptions> - Advanced tabs
@@ -1784,7 +1792,7 @@ describe('DatabaseModal', () => {
       const errorTitleMessage = screen.getByText(/Database Creation Error/i);
       expect(errorTitleMessage).toBeInTheDocument();
       const button = screen.getByText('See more');
-      userEvent.click(button);
+      await userEvent.click(button);
       const errorMessage = screen.getByText(/Test Error With String/i);
       expect(errorMessage).toBeInTheDocument();
       expect(step2of3text).toBeInTheDocument();
@@ -1820,7 +1828,9 @@ describe('DatabaseModal', () => {
   // is exactly what these assertions exercise. Whether a bad host/port really
   // fails to connect is a backend concern, covered by backend tests.
   const selectPostgres = async () => {
-    userEvent.click(await screen.findByRole('button', { name: /postgresql/i }));
+    await userEvent.click(
+      await screen.findByRole('button', { name: /postgresql/i }),
+    );
     // Dynamic form (step 2 of 3) is now visible
     expect(await screen.findByText(/step 2 of 3/i)).toBeInTheDocument();
   };
@@ -1838,8 +1848,8 @@ describe('DatabaseModal', () => {
       username: 'testusername',
       password: 'testpass',
     };
-    Object.entries(values).forEach(([name, value]) =>
-      userEvent.type(fieldByName(name), value),
+    Object.entries(values).forEach(
+      async ([name, value]) => await userEvent.type(fieldByName(name), value),
     );
   };
 
@@ -1857,7 +1867,7 @@ describe('DatabaseModal', () => {
     setup();
     await selectPostgres();
 
-    userEvent.click(screen.getByTestId('sqla-connect-btn'));
+    await userEvent.click(screen.getByTestId('sqla-connect-btn'));
 
     // assert on presence rather than visibility: the SQLAlchemy form mounts
     // inside an animated tab pane, and rc-motion's animation state in jsdom
@@ -1907,7 +1917,7 @@ describe('DatabaseModal', () => {
       // Blur the last field and let the (default, passing) validation settle
       // so its async onBlur result can't race with — and overwrite — the
       // submit-time validation below. Mirrors the Cypress `body.click(0, 0)`.
-      userEvent.click(document.body);
+      await userEvent.click(document.body);
       await waitFor(() => expect(submitButton).toBeEnabled());
 
       // Make validation fail the way a real backend would for an unreachable
@@ -1931,7 +1941,7 @@ describe('DatabaseModal', () => {
         },
       });
 
-      userEvent.click(submitButton);
+      await userEvent.click(submitButton);
 
       // Wait for the async error to render, then confirm it surfaced as an
       // antd inline field error (not a general alert)...

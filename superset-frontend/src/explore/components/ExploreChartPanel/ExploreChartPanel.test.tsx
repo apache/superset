@@ -162,7 +162,7 @@ describe('ChartContainer', () => {
     const cached = await screen.findByText('Cached');
     expect(cached).toBeInTheDocument();
 
-    userEvent.click(cached);
+    await userEvent.click(cached);
     expect(setForceQuery).toHaveBeenCalledTimes(1);
     expect(postChartFormData).toHaveBeenCalledTimes(1);
     expect(updateQueryFormData).toHaveBeenCalledTimes(1);
@@ -196,7 +196,7 @@ describe('ChartContainer', () => {
     const gutter = container.querySelector('.gutter');
     expect(gutter).toBeVisible();
 
-    userEvent.click(screen.getByLabelText('Collapse data panel'));
+    await userEvent.click(screen.getByLabelText('Collapse data panel'));
     expect(await screen.findByRole('timer')).toBeInTheDocument();
     expect(gutter).not.toBeVisible();
   });

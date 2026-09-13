@@ -99,6 +99,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     metricSqlExpressions,
     rawSummaryColumns,
     showNumberedColumn,
+    zebraStriping,
     onContextMenu,
     formData,
   } = props;
@@ -362,6 +363,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     conditionalFormatting: formData?.conditional_formatting,
     comparisonColorEnabled: formData?.comparison_color_enabled,
     comparisonColorScheme: formData?.comparison_color_scheme,
+    zebraStriping,
   });
 
   const isActiveFilterValue = useCallback(
@@ -730,6 +732,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         onColumnStateChange={handleColumnStateChange}
         chartState={chartState}
         onClientViewChange={handleClientViewChange}
+        zebraStriping={!!zebraStriping}
       />
     </StyledChartContainer>
   );

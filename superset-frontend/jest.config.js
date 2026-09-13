@@ -31,7 +31,7 @@ if (!process.env.CI) {
   ]);
 }
 
-module.exports = {
+export default {
   // [/\\] matches both path separators so the suite also collects on
   // native Windows, where jest hands the regex backslash-separated paths.
   testRegex:

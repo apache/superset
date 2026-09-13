@@ -154,7 +154,7 @@ function setup(overrideState: JsonObject = {}) {
 
 async function openActionsDropdown() {
   const btn = screen.getByRole('img', { name: 'ellipsis' });
-  userEvent.click(btn);
+  await userEvent.click(btn);
   expect(await screen.findByTestId('header-actions-menu')).toBeInTheDocument();
 }
 
@@ -296,29 +296,29 @@ test('should render the editable title', () => {
   expect(screen.getByDisplayValue('Dashboard Title')).toBeInTheDocument();
 });
 
-test('should edit the title', () => {
+test('should edit the title', async () => {
   setup(editableState);
   const editableTitle = screen.getByDisplayValue('Dashboard Title');
   expect(onChange).not.toHaveBeenCalled();
-  userEvent.click(editableTitle);
-  userEvent.clear(editableTitle);
-  userEvent.type(editableTitle, 'New Title');
-  userEvent.click(document.body);
+  await userEvent.click(editableTitle);
+  await userEvent.clear(editableTitle);
+  await userEvent.type(editableTitle, 'New Title');
+  await userEvent.click(document.body);
   expect(onChange).toHaveBeenCalled();
   expect(screen.getByDisplayValue('New Title')).toBeInTheDocument();
 });
 
-test('typing in the title only dispatches once on commit, not per keystroke', () => {
+test('typing in the title only dispatches once on commit, not per keystroke', async () => {
   setup(editableState);
   const editableTitle = screen.getByDisplayValue('Dashboard Title');
-  userEvent.click(editableTitle);
-  userEvent.clear(editableTitle);
-  userEvent.type(editableTitle, 'abcdef');
+  await userEvent.click(editableTitle);
+  await userEvent.clear(editableTitle);
+  await userEvent.type(editableTitle, 'abcdef');
   // No commit yet - typing should keep state local to DynamicEditableTitle
   expect(updateDashboardTitle).not.toHaveBeenCalled();
   expect(onChange).not.toHaveBeenCalled();
   // Commit by blurring
-  userEvent.click(document.body);
+  await userEvent.click(document.body);
   expect(updateDashboardTitle).toHaveBeenCalledTimes(1);
   expect(updateDashboardTitle).toHaveBeenCalledWith('abcdef');
   expect(onChange).toHaveBeenCalledTimes(1);
@@ -329,7 +329,7 @@ test('should render the "Draft" status', () => {
   expect(screen.getByText('Draft')).toBeInTheDocument();
 });
 
-test('should publish', () => {
+test('should publish', async () => {
   const canEditState = {
     dashboardInfo: {
       ...initialState.dashboardInfo,
@@ -340,7 +340,7 @@ test('should publish', () => {
   setup(canEditState);
   const draft = screen.getByText('Draft');
   expect(savePublished).toHaveBeenCalledTimes(0);
-  userEvent.click(draft);
+  await userEvent.click(draft);
   expect(savePublished).toHaveBeenCalledTimes(1);
 });
 
@@ -359,7 +359,7 @@ test('should render the "Undo" action as disabled', () => {
   expect(screen.getByTestId('undo-action').parentElement).toBeDisabled();
 });
 
-test('should undo when past actions exist', () => {
+test('should undo when past actions exist', async () => {
   setup(undoState);
   const undo = screen.getByTestId('undo-action');
   const undoButton = undo.parentElement;
@@ -367,7 +367,7 @@ test('should undo when past actions exist', () => {
   expect(undoButton).toBeEnabled();
   expect(onUndo).not.toHaveBeenCalled();
 
-  userEvent.click(undo);
+  await userEvent.click(undo);
   expect(onUndo).toHaveBeenCalledTimes(1);
 });
 
@@ -387,7 +387,7 @@ test('should have correct redo button structure', () => {
   expect(redoButton).toBeDisabled();
 });
 
-test('should enable undo button when past actions exist', () => {
+test('should enable undo button when past actions exist', async () => {
   setup(undoState);
 
   const undoButton = screen.getByTestId('undo-action').parentElement;
@@ -397,7 +397,7 @@ test('should enable undo button when past actions exist', () => {
   expect(redoButton).toBeDisabled();
   expect(onUndo).not.toHaveBeenCalled();
 
-  userEvent.click(screen.getByTestId('undo-action'));
+  await userEvent.click(screen.getByTestId('undo-action'));
   expect(onUndo).toHaveBeenCalledTimes(1);
 });
 
@@ -454,7 +454,7 @@ test('should enable redo button after undo creates future history', async () => 
 
   expect(onRedo).not.toHaveBeenCalled();
 
-  userEvent.click(screen.getByTestId('redo-action'));
+  await userEvent.click(screen.getByTestId('redo-action'));
   expect(onRedo).toHaveBeenCalledTimes(1);
 });
 
@@ -507,11 +507,11 @@ test('should enable undo button when real actions create past history', async ()
 
   expect(onUndo).not.toHaveBeenCalled();
 
-  userEvent.click(screen.getByTestId('undo-action'));
+  await userEvent.click(screen.getByTestId('undo-action'));
   expect(onUndo).toHaveBeenCalledTimes(1);
 });
 
-test('should disable both buttons when no actions available', () => {
+test('should disable both buttons when no actions available', async () => {
   setup(editableState);
 
   const undoButton = screen.getByTestId('undo-action').parentElement;
@@ -522,8 +522,15 @@ test('should disable both buttons when no actions available', () => {
   expect(onUndo).not.toHaveBeenCalled();
   expect(onRedo).not.toHaveBeenCalled();
 
-  userEvent.click(screen.getByTestId('undo-action'));
-  userEvent.click(screen.getByTestId('redo-action'));
+  // Both buttons are disabled via `pointer-events: none`, so a real user
+  // could never click them; explicitly opt out of user-event's pointer
+  // events check to confirm the disabled buttons still ignore clicks.
+  await userEvent.click(screen.getByTestId('undo-action'), {
+    pointerEventsCheck: 0,
+  });
+  await userEvent.click(screen.getByTestId('redo-action'), {
+    pointerEventsCheck: 0,
+  });
 
   expect(onUndo).not.toHaveBeenCalled();
   expect(onRedo).not.toHaveBeenCalled();
@@ -557,7 +564,7 @@ test('should render the "Save" button as disabled', () => {
   expect(screen.getByText('Save').parentElement).toBeDisabled();
 });
 
-test('should save', () => {
+test('should save', async () => {
   const unsavedState = {
     ...editableState,
     dashboardState: {
@@ -568,11 +575,11 @@ test('should save', () => {
   setup(unsavedState);
   const save = screen.getByText('Save');
   expect(onSave).not.toHaveBeenCalled();
-  userEvent.click(save);
+  await userEvent.click(save);
   expect(onSave).toHaveBeenCalledTimes(1);
 });
 
-test('should block saving and surface the size, limit, and config key when the layout exceeds the limit', () => {
+test('should block saving and surface the size, limit, and config key when the layout exceeds the limit', async () => {
   const oversizedState = {
     ...editableState,
     dashboardState: {
@@ -591,7 +598,7 @@ test('should block saving and surface the size, limit, and config key when the l
     },
   };
   setup(oversizedState);
-  userEvent.click(screen.getByText('Save'));
+  await userEvent.click(screen.getByText('Save'));
   expect(onSave).not.toHaveBeenCalled();
   expect(addDangerToast).toHaveBeenCalledTimes(1);
   const message = addDangerToast.mock.calls[0][0];
@@ -646,18 +653,18 @@ test('should fave', async () => {
   setup();
   const fave = screen.getByRole('img', { name: 'unstarred' });
   expect(saveFaveStar).not.toHaveBeenCalled();
-  userEvent.click(fave);
+  await userEvent.click(fave);
   expect(saveFaveStar).toHaveBeenCalledTimes(1);
 });
 
 // FaveStar.onClick passes the *prior* isStarred value to saveFaveStar — the
 // reducer flips it. So favoriting (unstarred → starred) sends `false`, and
 // unfavoriting (starred → unstarred) sends `true`.
-test('should call saveFaveStar with false when favoriting from the header', () => {
+test('should call saveFaveStar with false when favoriting from the header', async () => {
   setup();
   const header = screen.getByTestId('dashboard-header-container');
 
-  userEvent.click(within(header).getByRole('img', { name: 'unstarred' }));
+  await userEvent.click(within(header).getByRole('img', { name: 'unstarred' }));
   expect(saveFaveStar).toHaveBeenCalledTimes(1);
   expect(saveFaveStar).toHaveBeenCalledWith(
     initialState.dashboardInfo.id,
@@ -665,13 +672,13 @@ test('should call saveFaveStar with false when favoriting from the header', () =
   );
 });
 
-test('should call saveFaveStar with true when unfavoriting from the header', () => {
+test('should call saveFaveStar with true when unfavoriting from the header', async () => {
   setup({
     dashboardState: { ...initialState.dashboardState, isStarred: true },
   });
   const header = screen.getByTestId('dashboard-header-container');
 
-  userEvent.click(within(header).getByRole('img', { name: 'starred' }));
+  await userEvent.click(within(header).getByRole('img', { name: 'starred' }));
   expect(saveFaveStar).toHaveBeenCalledTimes(1);
   expect(saveFaveStar).toHaveBeenCalledWith(
     initialState.dashboardInfo.id,
@@ -679,7 +686,7 @@ test('should call saveFaveStar with true when unfavoriting from the header', () 
   );
 });
 
-test('should toggle the edit mode', () => {
+test('should toggle the edit mode', async () => {
   const canEditState = {
     dashboardInfo: {
       ...initialState.dashboardInfo,
@@ -689,7 +696,7 @@ test('should toggle the edit mode', () => {
   setup(canEditState);
   const editDashboard = screen.getByText('Edit dashboard');
   expect(screen.queryByText('Edit dashboard')).toBeInTheDocument();
-  userEvent.click(editDashboard);
+  await userEvent.click(editDashboard);
   expect(logEvent).toHaveBeenCalled();
 });
 
@@ -724,7 +731,7 @@ test('should refresh the charts', async () => {
     },
   });
   await openActionsDropdown();
-  userEvent.click(screen.getByText('Refresh dashboard'));
+  await userEvent.click(screen.getByText('Refresh dashboard'));
   expect(onRefresh).toHaveBeenCalledTimes(1);
 });
 
@@ -768,7 +775,7 @@ test('auto-refresh uses onRefresh with skipped filters and toggles refresh state
   }
 });
 
-test('resume clears tab pause flag', () => {
+test('resume clears tab pause flag', async () => {
   useRealTimeDashboardMock.mockReturnValue({
     isRealTimeDashboard: true,
     isPaused: true,
@@ -795,7 +802,7 @@ test('resume clears tab pause flag', () => {
     },
   });
 
-  userEvent.click(screen.getByTestId('auto-refresh-toggle'));
+  await userEvent.click(screen.getByTestId('auto-refresh-toggle'));
 
   expect(setPaused).toHaveBeenCalledWith(false);
   expect(setPausedByTab).toHaveBeenCalledWith(false);
@@ -859,7 +866,7 @@ test('should hide edit button and navbar, and show Exit fullscreen when in fulls
 test('should show Exit fullscreen when in fullscreen mode', async () => {
   setup();
 
-  userEvent.click(screen.getByTestId('actions-trigger'));
+  await userEvent.click(screen.getByTestId('actions-trigger'));
 
   expect(await screen.findByText('Exit fullscreen')).toBeInTheDocument();
 });
@@ -923,7 +930,7 @@ test('should call handleSaveAndCloseModal when Save is clicked in UnsavedChanges
     name: /save/i,
   });
 
-  userEvent.click(saveButton);
+  await userEvent.click(saveButton);
 
   expect(handleSaveAndCloseModal).toHaveBeenCalled();
 });
@@ -945,7 +952,7 @@ test('should call handleConfirmNavigation when user confirms navigation in Unsav
     name: /discard/i,
   });
 
-  userEvent.click(discardButton);
+  await userEvent.click(discardButton);
 
   expect(handleConfirmNavigation).toHaveBeenCalled();
 });
@@ -967,12 +974,12 @@ test('should call setShowUnsavedChangesModal(false) on cancel', async () => {
     name: /close/i,
   });
 
-  userEvent.click(closeButton);
+  await userEvent.click(closeButton);
 
   expect(setShowModal).toHaveBeenCalledWith(false);
 });
 
-test('should clear history and unsaved changes when entering edit mode', () => {
+test('should clear history and unsaved changes when entering edit mode', async () => {
   const clearDashboardHistory = jest.fn();
 
   jest.spyOn(redux, 'bindActionCreators').mockImplementation(() => ({
@@ -1011,7 +1018,7 @@ test('should clear history and unsaved changes when entering edit mode', () => {
   setup(canEditState);
 
   const editButton = screen.getByText('Edit dashboard');
-  userEvent.click(editButton);
+  await userEvent.click(editButton);
 
   expect(clearDashboardHistory).toHaveBeenCalledTimes(1);
   expect(setUnsavedChanges).toHaveBeenCalledWith(false);
@@ -1117,7 +1124,7 @@ test('should not duplicate subdirectory prefix when toggling fullscreen', async 
 
   setup();
   await openActionsDropdown();
-  userEvent.click(screen.getByText('Exit fullscreen'));
+  await userEvent.click(screen.getByText('Exit fullscreen'));
 
   // history.replace must be called with the Router-relative path, not window.location.pathname.
   // If the subdirectory prefix (/pcs) were included, React Router would prepend it again,
@@ -1142,7 +1149,7 @@ test('should not duplicate subdirectory prefix when entering fullscreen', async 
 
   setup();
   await openActionsDropdown();
-  userEvent.click(screen.getByText('Enter fullscreen'));
+  await userEvent.click(screen.getByText('Enter fullscreen'));
 
   expect(mockHistoryReplace).toHaveBeenCalledWith(
     expect.not.stringMatching(/^\/pcs\//),
