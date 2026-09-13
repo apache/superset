@@ -191,23 +191,31 @@ function AlertList({
       }
       executingIdsRef.current.add(alertId);
 
+      const isReport = alert.type === 'Report';
       executeReport(
         alertId,
         () => {
           addSuccessToast(
-            t('%(alertType)s "%(alertName)s" triggered successfully', {
-              alertType: alert.type,
-              alertName: alert.name,
-            }),
+            isReport
+              ? t('Report "%(alertName)s" triggered successfully', {
+                  alertName: alert.name,
+                })
+              : t('Alert "%(alertName)s" triggered successfully', {
+                  alertName: alert.name,
+                }),
           );
         },
         error => {
           addDangerToast(
-            t('Failed to trigger %(alertType)s "%(alertName)s": %(error)s', {
-              alertType: alert.type,
-              alertName: alert.name,
-              error,
-            }),
+            isReport
+              ? t('Failed to trigger report "%(alertName)s": %(error)s', {
+                  alertName: alert.name,
+                  error,
+                })
+              : t('Failed to trigger alert "%(alertName)s": %(error)s', {
+                  alertName: alert.name,
+                  error,
+                }),
           );
         },
       )
