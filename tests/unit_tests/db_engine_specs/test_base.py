@@ -298,6 +298,24 @@ def test_get_default_catalog(mocker: MockerFixture) -> None:
     assert BaseEngineSpec.get_default_catalog(database) is None
 
 
+def test_get_catalog_from_engine_params_url_database() -> None:
+    """
+    Test that `get_catalog_from_engine_params` returns the URL's database by default.
+    """
+    url = make_url("postgresql://user:pw@host/my_db")
+    assert BaseEngineSpec.get_catalog_from_engine_params(url, {}) == "my_db"
+
+
+def test_get_catalog_from_engine_params_no_database() -> None:
+    """
+    Test that `get_catalog_from_engine_params` returns `None` when the URL has no
+    database, regardless of `connect_args` -- the base implementation ignores them.
+    """
+    url = make_url("postgresql://user:pw@host/")
+    connect_args = {"database": "ignored"}
+    assert BaseEngineSpec.get_catalog_from_engine_params(url, connect_args) is None
+
+
 def test_prepare_identifier_returns_name_unchanged() -> None:
     name = "physical_column"
 
