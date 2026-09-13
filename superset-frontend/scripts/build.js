@@ -25,7 +25,7 @@
  */
 
 import { spawnSync } from 'node:child_process';
-import { globSync } from 'fast-glob';
+import { globSync } from 'node:fs';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 
