@@ -1053,3 +1053,14 @@ class TestRequestSchemaAliasChoices:
     def test_add_chart_to_dashboard_chart_alias(self) -> None:
         req = AddChartToDashboardRequest.model_validate({"dashboard_id": 1, "chart": 2})
         assert req.chart_id == 2
+
+
+def test_generate_dashboard_request_chart_ids_is_bounded() -> None:
+    """chart_ids is bounded (min 1, max 250) to prevent an unbounded array,
+    matching the length caps on sibling MCP request schemas."""
+    GenerateDashboardRequest(chart_ids=[1])
+    GenerateDashboardRequest(chart_ids=list(range(250)))
+    with pytest.raises(ValidationError):
+        GenerateDashboardRequest(chart_ids=[])
+    with pytest.raises(ValidationError):
+        GenerateDashboardRequest(chart_ids=list(range(251)))
