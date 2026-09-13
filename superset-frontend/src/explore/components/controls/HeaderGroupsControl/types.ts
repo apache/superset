@@ -16,20 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { ControlComponentProps } from 'src/explore/components/Control';
+import type {
+  HeaderGroupConfig,
+  HeaderGroupLabelAlign,
+  HeaderGroupPlacement,
+} from '@superset-ui/chart-controls';
 
-export * from './checkColumnType';
-export * from './selectOptions';
-export * from './D3Formatting';
-export * from './expandControlConfig';
-export * from './getColorFormatters';
-export * from './getTotalsMetrics';
-export { default as mainMetric } from './mainMetric';
-export { default as columnChoices, columnsByType } from './columnChoices';
-export * from './defineSavedMetrics';
-export * from './getStandardizedControls';
-export * from './getTemporalColumns';
-export * from './displayTimeRelatedControls';
-export * from './colorControls';
-export * from './metricColumnFilter';
-export * from './buildSortMetricOrderby';
-export * from './headerGroups';
+export const MAX_HEADER_GROUP_DEPTH = 3;
+
+export type { HeaderGroupConfig, HeaderGroupLabelAlign, HeaderGroupPlacement };
+
+export type HeaderGroupColumnOption = {
+  value: string;
+  label: string;
+};
+
+export type HeaderGroupsControlProps = ControlComponentProps<
+  HeaderGroupConfig[]
+> & {
+  columnOptions?: HeaderGroupColumnOption[];
+  timeComparisonGroups?: HeaderGroupConfig[];
+};

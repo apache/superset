@@ -25,10 +25,12 @@ import {
 } from 'spec/helpers/testing-library';
 import { t } from '@apache-superset/core/translation';
 import {
+  ComparisonType,
   DatasourceType,
+  FeatureFlag,
   getChartControlPanelRegistry,
   isFeatureEnabled,
-  FeatureFlag,
+  QueryMode,
 } from '@superset-ui/core';
 import { defaultControls, defaultState } from 'src/explore/store';
 import { ExplorePageState } from 'src/explore/types';
@@ -622,5 +624,215 @@ describe('ControlPanelsContainer', () => {
     getChartControlPanelRegistry().remove('line');
     getChartControlPanelRegistry().remove('bar');
     getChartControlPanelRegistry().remove('pie');
+  });
+
+  function withHeaderGroupsSync(
+    overrides: Partial<ControlPanelsContainerProps> = {},
+  ) {
+    const setControlValue = jest.fn();
+    const props = getDefaultProps();
+    const timeCompareControl = {
+      type: 'SelectControl' as const,
+      value: '1 year ago',
+    };
+    const queryModeControl = {
+      type: 'RadioButtonControl' as const,
+      value: QueryMode.Aggregate,
+    };
+    const comparisonTypeControl = {
+      type: 'SelectControl' as const,
+      value: ComparisonType.Values,
+    };
+    props.actions = { setControlValue };
+    props.controls = {
+      ...props.controls,
+      header_groups: {
+        type: 'HeaderGroupsControl',
+        value: [],
+      },
+      time_compare: timeCompareControl,
+      query_mode: queryModeControl,
+      comparison_type: comparisonTypeControl,
+    };
+    props.exploreState = {
+      ...props.exploreState,
+      form_data: {
+        ...props.form_data,
+        metrics: ['revenue'],
+        query_mode: QueryMode.Aggregate,
+        comparison_type: ComparisonType.Values,
+      },
+      controls: {
+        ...props.controls,
+        time_compare: timeCompareControl,
+        query_mode: queryModeControl,
+        comparison_type: comparisonTypeControl,
+      },
+    };
+    Object.assign(props, overrides);
+    return { props, setControlValue };
+  }
+
+  test('syncs time comparison header groups without opening Customize', async () => {
+    const { props, setControlValue } = withHeaderGroupsSync();
+
+    render(<ControlPanelsContainer {...props} />, { useRedux: true });
+
+    await waitFor(() => {
+      expect(setControlValue).toHaveBeenCalledWith(
+        'header_groups',
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: 'time-compare-revenue',
+            source: 'time_compare',
+          }),
+        ]),
+        undefined,
+        { programmatic: true },
+      );
+    });
+  });
+
+  test('does not rewrite header groups that already match time comparison', async () => {
+    const autoGroup = {
+      id: 'time-compare-revenue',
+      label: 'Renamed',
+      columns: ['Main revenue', '# revenue', '△ revenue', '% revenue'],
+      source: 'time_compare' as const,
+    };
+    const { props, setControlValue } = withHeaderGroupsSync();
+    props.controls = {
+      ...props.controls,
+      header_groups: {
+        type: 'HeaderGroupsControl',
+        value: [autoGroup],
+      },
+    };
+
+    render(<ControlPanelsContainer {...props} />, { useRedux: true });
+
+    await waitFor(() => {
+      expect(screen.getByRole('tab', { name: /data/i })).toBeInTheDocument();
+    });
+    expect(setControlValue).not.toHaveBeenCalled();
+  });
+
+  test('does not sync header groups when the control is absent', async () => {
+    const { props, setControlValue } = withHeaderGroupsSync();
+    props.controls = Object.fromEntries(
+      Object.entries(props.controls).filter(
+        ([name]) => name !== 'header_groups',
+      ),
+    );
+
+    render(<ControlPanelsContainer {...props} />, { useRedux: true });
+
+    await waitFor(() => {
+      expect(screen.getByRole('tab', { name: /data/i })).toBeInTheDocument();
+    });
+    expect(setControlValue).not.toHaveBeenCalled();
+  });
+
+  test('drops time comparison header groups when time comparison is cleared', async () => {
+    const { props, setControlValue } = withHeaderGroupsSync();
+    const emptyTimeCompare = { type: 'SelectControl' as const, value: [] };
+    props.controls = {
+      ...props.controls,
+      header_groups: {
+        type: 'HeaderGroupsControl',
+        value: [
+          {
+            id: 'time-compare-revenue',
+            label: 'Revenue',
+            columns: ['Main revenue'],
+            source: 'time_compare',
+          },
+          {
+            id: 'custom',
+            label: 'Custom',
+            columns: ['region'],
+          },
+        ],
+      },
+      time_compare: emptyTimeCompare,
+    };
+    props.exploreState = {
+      ...props.exploreState,
+      controls: {
+        ...props.exploreState.controls,
+        time_compare: emptyTimeCompare,
+      },
+    };
+
+    render(<ControlPanelsContainer {...props} />, { useRedux: true });
+
+    await waitFor(() => {
+      expect(setControlValue).toHaveBeenCalledWith(
+        'header_groups',
+        [expect.objectContaining({ id: 'custom' })],
+        undefined,
+        { programmatic: true },
+      );
+    });
+  });
+
+  test('does not sync time comparison header groups in raw records mode', async () => {
+    const { props, setControlValue } = withHeaderGroupsSync();
+    const rawQueryMode = {
+      type: 'RadioButtonControl' as const,
+      value: QueryMode.Raw,
+    };
+    props.controls = {
+      ...props.controls,
+      query_mode: rawQueryMode,
+    };
+    props.exploreState = {
+      ...props.exploreState,
+      form_data: {
+        ...props.exploreState.form_data,
+        query_mode: QueryMode.Raw,
+      },
+      controls: {
+        ...props.exploreState.controls,
+        query_mode: rawQueryMode,
+      },
+    };
+
+    render(<ControlPanelsContainer {...props} />, { useRedux: true });
+
+    await waitFor(() => {
+      expect(screen.getByRole('tab', { name: /data/i })).toBeInTheDocument();
+    });
+    expect(setControlValue).not.toHaveBeenCalled();
+  });
+
+  test('does not sync time comparison header groups unless comparison type is values', async () => {
+    const { props, setControlValue } = withHeaderGroupsSync();
+    const differenceType = {
+      type: 'SelectControl' as const,
+      value: ComparisonType.Difference,
+    };
+    props.controls = {
+      ...props.controls,
+      comparison_type: differenceType,
+    };
+    props.exploreState = {
+      ...props.exploreState,
+      form_data: {
+        ...props.exploreState.form_data,
+        comparison_type: ComparisonType.Difference,
+      },
+      controls: {
+        ...props.exploreState.controls,
+        comparison_type: differenceType,
+      },
+    };
+
+    render(<ControlPanelsContainer {...props} />, { useRedux: true });
+
+    await waitFor(() => {
+      expect(screen.getByRole('tab', { name: /data/i })).toBeInTheDocument();
+    });
+    expect(setControlValue).not.toHaveBeenCalled();
   });
 });

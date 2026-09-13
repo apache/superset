@@ -16,20 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { t } from '@apache-superset/core/translation';
 
-export * from './checkColumnType';
-export * from './selectOptions';
-export * from './D3Formatting';
-export * from './expandControlConfig';
-export * from './getColorFormatters';
-export * from './getTotalsMetrics';
-export { default as mainMetric } from './mainMetric';
-export { default as columnChoices, columnsByType } from './columnChoices';
-export * from './defineSavedMetrics';
-export * from './getStandardizedControls';
-export * from './getTemporalColumns';
-export * from './displayTimeRelatedControls';
-export * from './colorControls';
-export * from './metricColumnFilter';
-export * from './buildSortMetricOrderby';
-export * from './headerGroups';
+function getMainComparisonPrefixes(): string[] {
+  const translated = t('Main');
+  return translated === 'Main' ? ['Main'] : [translated, 'Main'];
+}
+
+export function isMainComparisonLabel(label?: string | null): boolean {
+  return Boolean(label && getMainComparisonPrefixes().includes(label));
+}
+
+export function stripMainComparisonPrefix(value: string): string {
+  for (const prefix of getMainComparisonPrefixes()) {
+    if (value.startsWith(`${prefix} `)) {
+      return value.slice(prefix.length + 1);
+    }
+  }
+  return value;
+}
+
+export function isMainComparisonKey(key?: string | null): boolean {
+  return Boolean(key && stripMainComparisonPrefix(key) !== key);
+}
