@@ -787,6 +787,34 @@ class Superset(BaseSupersetView):
 
     @has_access
     @event_logger.log_this
+    @expose("/extensions/view/<path:view_id>")
+    def extension_view(self, view_id: str) -> FlaskResponse:
+        """
+        Host page for a single extension-registered view
+        (``GlobalLocations.settings.panel`` and friends).
+
+        The route itself is client-side only (registered in
+        ``superset-frontend/src/views/routes.tsx``, resolved by
+        ``src/pages/ExtensionView``); this view exists only so that a
+        direct/full navigation to it -- a bookmark, a page refresh, or an
+        extension's own menu command using ``window.location.assign`` in
+        the absence of an SDK-level SPA-navigation primitive -- doesn't
+        404 at the Flask layer before the SPA ever gets a chance to render
+        and resolve ``view_id`` client-side. ``view_id`` itself isn't used
+        here at all.
+        """
+        if not g.user or not get_user_id():
+            return redirect_to_login()
+
+        payload = {
+            "user": bootstrap_user_data(g.user, include_perms=True),
+            "common": common_bootstrap_payload(),
+        }
+
+        return self.render_app_template(extra_bootstrap_data=payload)
+
+    @has_access
+    @event_logger.log_this
     @expose("/sqllab/history/", methods=("GET",))
     @deprecated(new_target="/sqllab/history")
     def sqllab_history(self) -> FlaskResponse:

@@ -57,4 +57,5 @@ export const RoutePaths = {
   USERS: '/users/',
   GROUPS: '/list_groups/',
   EXTENSIONS: '/extensions/list/',
+  EXTENSION_VIEW: '/extensions/view/:viewId',
 } as const;
