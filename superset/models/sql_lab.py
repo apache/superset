@@ -567,6 +567,66 @@ class SavedQuery(
         }
 
     @property
+    def name(self) -> str:
+        """
+        Expose ``label`` as ``name`` so callers that treat a ``SavedQuery`` as
+        a generic datasource (e.g. chart create/update commands) can rely on
+        a uniform ``name`` attribute across all datasource types.
+
+        ``label`` is a nullable column, so fall back to an id-based name
+        rather than returning ``None`` from a property typed as ``str``.
+        """
+        return self.label or f"Saved query {self.id}"
+
+    @property
+    def schema_perm(self) -> Optional[str]:
+        """
+        Schema-level permission string, mirroring ``Query.schema_perm``.
+
+        Required so that ``SecurityManager.raise_for_access(datasource=...)``
+        and the ``Slice`` ``before_insert``/``before_update`` listener (which
+        copies ``perm``/``catalog_perm``/``schema_perm`` onto the chart) can
+        treat a ``SavedQuery`` like any other datasource instead of raising
+        ``AttributeError``.
+        """
+        return f"{self.database.database_name}.{self.schema}"
+
+    @property
+    def catalog_perm(self) -> Optional[str]:
+        """Catalog-level permission string; see ``schema_perm`` above."""
+        return security_manager.get_catalog_perm(
+            self.database.database_name, self.catalog
+        )
+
+    @property
+    def perm(self) -> str:
+        """Object-level permission string; see ``schema_perm`` above."""
+        return f"[{self.database.database_name}].[{self.name}](id:{self.id})"
+
+    @property
+    def data(self) -> ExplorableData:
+        """
+        Minimal explorable payload.
+
+        ``SecurityManager`` builds access-denied error messages (and a few
+        dashboard-RBAC lookups) off ``datasource.data["id"]``/``["name"]``
+        for *every* datasource type it can be asked to authorize, not just
+        ones that are actually explorable; without this a denied saved-query
+        chart request fails with ``AttributeError`` instead of the intended
+        403.
+        """
+        result: ExplorableData = {
+            "id": self.id,
+            "name": self.name,
+            "type": "saved_query",
+            "schema": self.schema,
+            "catalog": self.catalog,
+        }
+        if self.database:
+            result["database"] = {"id": self.db_id, "backend": self.database.backend}
+        return result
+
+    @property
     def pop_tab_link(self) -> Markup:
         return Markup(
             f"""
