@@ -122,11 +122,10 @@ def _retry_after_seconds(headers: Any) -> float | None:
     return None
 
 
-def _log_retry(context: str, policy: RetryPolicy) -> Callable[[RetryCallState], None]:
+def _log_retry(policy: RetryPolicy) -> Callable[[RetryCallState], None]:
     def before_sleep(state: RetryCallState) -> None:
         log.warning(
-            "%s: %s. Attempt %d/%d failed, retrying in %.1fs",
-            context,
+            "%s. Attempt %d/%d failed, retrying in %.1fs",
             state.outcome.exception() if state.outcome else "",
             state.attempt_number,
             policy.max_attempts,
@@ -221,7 +220,7 @@ class BaseClient:
                 stop_after_attempt(self.policy.max_attempts)
                 | stop_after_delay(self.policy.budget_seconds)
             ),
-            before_sleep=_log_retry(context, self.policy),
+            before_sleep=_log_retry(self.policy),
             reraise=True,
         )
         return retrying(self._once, method, path, context, params, json_body)
