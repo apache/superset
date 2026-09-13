@@ -432,7 +432,6 @@
     },
     "tar": "^7.5.16",
     "typescript-json-schema": "^0.68.0",
-    "underscore": "^1.13.7",
     "uuid": "$uuid"
   },
   "browserslist": [
