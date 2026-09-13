@@ -84,10 +84,7 @@ test('shows selected tags in the tag selector', () => {
     { id: 2, name: 'Urgent' },
   ];
 
-  render(<AccessSection {...defaultProps} tags={[
-    { id: 1, name: 'Important' },
-    { id: 2, name: 'Urgent' },
-  ]} />);
+  render(<AccessSection {...defaultProps} tags={tags} />);
 
   expect(screen.getByTestId('dashboard-tags-field')).toBeInTheDocument();
 });
@@ -108,9 +105,9 @@ test('clears tags when clear button is clicked', () => {
   );
 
   const onClearTags = jest.fn();
-  
-  render(<AccessSection {...defaultProps} onClearTags={jest.fn()} />);
-  
+
+  render(<AccessSection {...defaultProps} onClearTags={onClearTags} />);
+
   // The clear button should be accessible
   expect(screen.getByTestId('dashboard-tags-field')).toBeInTheDocument();
 });
