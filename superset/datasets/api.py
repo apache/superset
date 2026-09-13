@@ -780,19 +780,16 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             response = self.response_403()
         except DatasetInvalidError as ex:
             response = self.response_422(message=ex.normalized_messages())
-        except DatasetRefreshFailedError as ex:
-            logger.exception(
-                "Error refreshing dataset during update %s: %s",
-                self.__class__.__name__,
-                str(ex),
-            )
+        except DatasetSoftDeletedTwinExistsError as ex:
             response = self.response_422(message=str(ex))
-        except DatasetUpdateFailedError as ex:
-            logger.error(
-                "Error updating model %s: %s",
+        except (DatasetRefreshFailedError, DatasetUpdateFailedError) as ex:
+            # One handler for both failure classes: identical response shape,
+            # and logger.exception carries the traceback either way. The
+            # exception class in the log line tells the two apart.
+            logger.exception(
+                "Error updating dataset %s: %s",
                 self.__class__.__name__,
                 str(ex),
-                exc_info=True,
             )
             response = self.response_422(message=str(ex))
         return response

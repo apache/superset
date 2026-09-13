@@ -392,12 +392,54 @@ def test_update_dataset_validation_errors(
 
     if exception == DatasetExistsValidationError:
         mock_dataset_dao.validate_update_uniqueness.return_value = False
+        # No hidden twin: a bare MagicMock attribute is truthy and would
+        # divert into the soft-deleted-twin guidance branch.
+        mock_dataset_dao.find_soft_deleted_logical_duplicate.return_value = None
     else:
         mock_dataset_dao.validate_update_uniqueness.return_value = True
 
     with pytest.raises(DatasetInvalidError) as excinfo:
         UpdateDatasetCommand(1, payload).run()
     assert any(error_msg in str(exc) for exc in excinfo.value._exceptions)
+
+
+def test_update_dataset_soft_deleted_twin_gets_guidance(
+    mocker: MockerFixture,
+) -> None:
+    """sc-107581: the update path mirrors create's hidden-twin 422.
+
+    When the uniqueness blocker is a SOFT-DELETED dataset (invisible in the
+    caller's list), the targeted error names the twin's uuid and the restore
+    endpoint instead of the opaque "already exists".
+    """
+    from superset.commands.dataset.exceptions import (
+        DatasetSoftDeletedTwinExistsError,
+    )
+
+    mock_dataset_dao = mocker.patch("superset.commands.dataset.update.DatasetDAO")
+    mocker.patch(
+        "superset.commands.dataset.update.security_manager.raise_for_editorship",
+    )
+    mocker.patch("superset.commands.utils.security_manager.is_admin", return_value=True)
+    mock_database = mocker.MagicMock()
+    mock_database.id = 1
+    mock_database.get_default_catalog.return_value = "catalog"
+    mock_database.allow_multi_catalog = False
+    mock_dataset = mocker.MagicMock()
+    mock_dataset.database = mock_database
+    mock_dataset.catalog = "catalog"
+    mock_dataset_dao.find_by_id.return_value = mock_dataset
+    mock_dataset_dao.get_database_by_id.return_value = mock_database
+    mock_dataset_dao.validate_update_uniqueness.return_value = False
+    twin = mocker.MagicMock()
+    twin.uuid = "twin-uuid-123"
+    mock_dataset_dao.find_soft_deleted_logical_duplicate.return_value = twin
+
+    with pytest.raises(DatasetSoftDeletedTwinExistsError) as excinfo:
+        UpdateDatasetCommand(1, {"table_name": "table", "schema": "schema"}).run()
+
+    assert "twin-uuid-123" in str(excinfo.value)
+    assert "/restore" in str(excinfo.value)
 
 
 @pytest.mark.parametrize(
