@@ -342,6 +342,16 @@ class GetChartInfoRequest(BaseModel):
             "and the caller to have dashboard access."
         ),
     )
+    extra_form_data: dict[str, Any] | None = Field(
+        default=None,
+        description=(
+            "Active dashboard filters the user currently has applied to this chart, "
+            "forwarded so the response reports the chart as the user actually views "
+            "it. Surfaced under filters.active_filters; this is not a query "
+            "(get_chart_info returns metadata only). Format: "
+            '{"filters": [{"col": "country", "op": "IN", "val": ["US"]}]}'
+        ),
+    )
     select_columns: Annotated[
         List[str],
         Field(
@@ -1355,6 +1365,62 @@ class GaugeChartConfig(BaseChartConfig):
             raise ValueError("intervals must be greater than min_val")
         if self.max_val is not None and any(bound > self.max_val for bound in bounds):
             raise ValueError("intervals must not exceed max_val")
+        return self
+
+
+class TreemapChartConfig(BaseChartConfig):
+    """Config for treemap charts (viz_type ``treemap_v2``).
+
+    Matches the frontend Treemap buildQuery contract: one ``metric`` sizing
+    the tiles plus an ordered ``groupby`` hierarchy — the first column is the
+    outermost level and each subsequent column nests inside it. When
+    ``sort_by_metric`` is set, tiles are ordered by the metric descending.
+    """
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    chart_type: Literal["treemap_v2"] = "treemap_v2"
+    groupby: List[ColumnRef] = Field(
+        ...,
+        min_length=1,
+        description="Ordered category columns forming the treemap hierarchy "
+        "(first = outermost level; order defines nesting)",
+    )
+    metric: ColumnRef = Field(
+        ...,
+        description="Value metric sizing the tiles (use aggregate e.g. SUM, "
+        "COUNT for ad-hoc, or set saved_metric=True for a saved dataset metric)",
+    )
+    sort_by_metric: bool = Field(
+        True,
+        description="Order tiles by the metric descending (frontend default)",
+    )
+    row_limit: int = Field(100, description="Max rows queried", ge=1, le=10000)
+    filters: List[FilterConfig] | None = Field(
+        None,
+        description="Structured filters (column/op/value). "
+        "Do NOT use adhoc_filters or raw SQL expressions.",
+    )
+    color_scheme: str | None = Field(
+        None,
+        description=(
+            "Superset color scheme ID (e.g. 'supersetColors', 'lyftColors', "
+            "'googleCategory10c', 'd3Category10'). Defaults to 'supersetColors'."
+        ),
+        max_length=100,
+    )
+
+    @model_validator(mode="after")
+    def reject_metric_style_groupby(self) -> "TreemapChartConfig":
+        """groupby entries are hierarchy dimensions, not metrics."""
+        for i, col in enumerate(self.groupby or []):
+            _reject_sql_expression_on_dimension(col, f"groupby[{i}]")
+            if col.is_metric:
+                raise ValueError(
+                    f"groupby[{i}] must be a plain column, not a metric; drop "
+                    "'aggregate'/'saved_metric' (metrics belong in the 'metric' "
+                    "field)"
+                )
         return self
 
 
@@ -2601,6 +2667,7 @@ ChartConfig = Annotated[
     | TableChartConfig
     | PieChartConfig
     | GaugeChartConfig
+    | TreemapChartConfig
     | PivotTableChartConfig
     | InteractivePivotChartConfig
     | MixedTimeseriesChartConfig
@@ -2613,7 +2680,7 @@ ChartConfig = Annotated[
         discriminator="chart_type",
         description=(
             "Chart configuration - specify chart_type as 'xy', 'table', "
-            "'pie', 'gauge', 'pivot_table', 'interactive_pivot', "
+            "'pie', 'gauge', 'treemap_v2', 'pivot_table', 'interactive_pivot', "
             "'mixed_timeseries', 'handlebars', "
             "'big_number', 'histogram', 'box_plot', or 'waterfall'"
         ),
@@ -3165,6 +3232,14 @@ class GetChartPreviewRequest(QueryCacheControl):
     ascii_height: int | None = Field(
         default=20, description="ASCII chart height in lines (for ascii format)"
     )
+    extra_form_data: dict[str, Any] | None = Field(
+        default=None,
+        description=(
+            "Extra form data to merge into the preview query, typically from "
+            "dashboard native filters, so the preview reflects the filtered view. "
+            'Format: {"filters": [{"col": "country", "op": "IN", "val": ["US"]}]}'
+        ),
+    )
 
 
 # Discriminated union preview formats for type safety
@@ -3504,6 +3579,28 @@ class ChartFiltersInfo(BaseModel):
             "dashboard passed via get_chart_info's dashboard_id argument. Empty "
             "when no dashboard_id was provided or no native filter targets this "
             "chart."
+        ),
+    )
+    active_filters: List[Dict[str, Any]] = Field(
+        default_factory=list,
+        description=(
+            "Dashboard native filters the user currently has ACTIVE on this chart "
+            "(live selections forwarded from the dashboard via extra_form_data), "
+            "distinct from the chart's own saved filters and from dashboard_filters "
+            "(the dashboard's default/configured state). A non-empty list means the "
+            "chart is being viewed filtered; report these as the active filters. "
+            "Column-based and adhoc filters exactly as forwarded, in their "
+            "original shapes; an active time-range filter is reported "
+            "separately under active_time_range."
+        ),
+    )
+    active_time_range: str | None = Field(
+        None,
+        description=(
+            "Dashboard time-range filter the user currently has ACTIVE on this "
+            "chart (forwarded via extra_form_data.time_range), distinct from the "
+            "chart's own saved time_range. Set when the active view includes a "
+            "time filter."
         ),
     )
 

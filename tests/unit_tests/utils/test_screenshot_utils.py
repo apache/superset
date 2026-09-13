@@ -16,21 +16,26 @@
 # under the License.
 
 import io
+import shutil
+import subprocess
 from unittest.mock import MagicMock, patch
 from uuid import UUID
 
 import pytest
 from PIL import Image, ImageDraw, ImageFont, UnidentifiedImageError
 
+from superset.utils import json
 from superset.utils.report_execution import (
     ReportExecutionContext,
     ReportExecutionDeadline,
 )
 from superset.utils.screenshot_utils import (
+    _stable_readiness_js,
     combine_screenshot_tiles,
     CONTENTFUL_CHART_HOLDERS_IN_CLIP_JS,
     get_screenshot_blankness_metrics,
     is_screenshot_nearly_uniform,
+    REPORT_CAPTURE_READINESS_STABILITY_MS,
     resolve_screenshot_task_budget_seconds,
     SCREENSHOT_TASK_BUDGET_MAX_MARGIN_SECONDS,
     ScreenshotBlankCaptureError,
@@ -40,6 +45,7 @@ from superset.utils.screenshot_utils import (
     take_tiled_screenshot,
     TILED_SCREENSHOT_TOTAL_WAIT_BUDGET_SECONDS,
     TiledScreenshotBudgetExceededError,
+    wait_for_stable_readiness,
 )
 
 
@@ -58,6 +64,83 @@ def _two_tone_blank(width: int = 100, height: int = 100) -> bytes:
     output = io.BytesIO()
     image.save(output, format="PNG")
     return output.getvalue()
+
+
+def test_stable_readiness_skips_impossible_dwell() -> None:
+    page = MagicMock()
+
+    waited = wait_for_stable_readiness(
+        page,
+        "() => true",
+        REPORT_CAPTURE_READINESS_STABILITY_MS / 1000,
+    )
+
+    assert waited is False
+    page.wait_for_function.assert_not_called()
+
+
+def test_stable_readiness_skips_when_budget_below_polling_margin() -> None:
+    page = MagicMock()
+
+    # Above the raw 500 ms window but below window + polling margin: the dwell
+    # cannot complete before the timeout, so it must skip rather than abort.
+    waited = wait_for_stable_readiness(page, "() => true", 0.6)
+
+    assert waited is False
+    page.wait_for_function.assert_not_called()
+
+
+def test_stable_readiness_javascript_resets_dwell_state() -> None:
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("Node.js is required to execute the readiness predicate")
+    assert node is not None
+
+    expression = _stable_readiness_js("() => globalThis.ready")
+    script = r"""
+const input = JSON.parse(require("fs").readFileSync(0, "utf8"));
+global.window = global;
+let now = 0;
+global.performance = {now: () => now};
+global.ready = false;
+const predicate = eval("(" + input.expression + ")");
+const results = [];
+const poll = (token, time, ready) => {
+  now = time;
+  global.ready = ready;
+  results.push(predicate({token, stabilityMs: 500}));
+};
+poll("first", 0, false);
+poll("first", 100, true);
+poll("first", 599, true);
+poll("first", 600, true);
+poll("first", 700, false);
+poll("first", 800, true);
+poll("first", 1300, true);
+poll("second", 1400, true);
+poll("second", 1900, true);
+process.stdout.write(JSON.stringify(results));
+"""
+
+    completed = subprocess.run(  # noqa: S603
+        [node, "-e", script],
+        input=json.dumps({"expression": expression}),
+        capture_output=True,
+        check=True,
+        text=True,
+    )
+
+    assert json.loads(completed.stdout) == [
+        False,
+        False,
+        False,
+        True,
+        False,
+        False,
+        True,
+        False,
+        True,
+    ]
 
 
 class TestScreenshotBlankDetection:
@@ -743,7 +826,7 @@ class TestTakeTiledScreenshot:
             self._create_chart_like_tile(),
         ]
 
-        def wait_for_function(script, **_kwargs):
+        def wait_for_function(script, *_args, **_kwargs):
             if "__supersetRepaintComplete" in script:
                 raise PlaywrightTimeout("no repaint")
             return None
@@ -836,9 +919,21 @@ class TestTakeTiledScreenshot:
         element_info = {"height": 1000, "top": 0, "left": 0, "width": 800}
         wait_calls = 0
 
-        def wait_for_function(*args, **kwargs):
+        def wait_for_function(
+            expression,
+            *,
+            arg=None,
+            timeout=None,
+            polling=None,
+        ):
             nonlocal wait_calls
-            events.append("mount" if wait_calls == 0 else "ready")
+            if wait_calls == 0:
+                events.append("mount")
+            elif "__supersetCaptureReadiness" in expression:
+                assert arg["stabilityMs"] == REPORT_CAPTURE_READINESS_STABILITY_MS
+                events.append("stable_ready")
+            else:
+                events.append("ready")
             wait_calls += 1
 
         def evaluate(script, _arg=None):
@@ -870,7 +965,13 @@ class TestTakeTiledScreenshot:
             )
 
         assert result == b"combined"
-        assert events == ["mount", "dimensions", "ready", "capture"]
+        assert events == [
+            "mount",
+            "dimensions",
+            "ready",
+            "stable_ready",
+            "capture",
+        ]
 
     def test_zero_holders_timeout_before_dimensions_or_capture(self, mock_page):
         """An empty DOM cannot vacuously pass the tiled readiness gate."""
@@ -1098,8 +1199,19 @@ class TestTakeTiledScreenshot:
                 report_execution_context=_report_context(),
             )
 
-        # One initial holder-mount gate, then one readiness poll per tile.
-        assert mock_page.wait_for_function.call_count == 4
+        # One initial holder-mount gate, then readiness and stable-readiness
+        # polls per tile.
+        stable_calls = [
+            call
+            for call in mock_page.wait_for_function.call_args_list
+            if call.args and "__supersetCaptureReadiness" in call.args[0]
+        ]
+        assert len(stable_calls) == 3
+        for stable_call in stable_calls:
+            assert (
+                stable_call.kwargs["arg"]["stabilityMs"]
+                == REPORT_CAPTURE_READINESS_STABILITY_MS
+            )
 
         # Each call uses viewport-scoped JS and the load_wait timeout
         mount_call, *tile_calls = mock_page.wait_for_function.call_args_list
@@ -1110,7 +1222,7 @@ class TestTakeTiledScreenshot:
             assert "getBoundingClientRect" in js
             assert "window.innerHeight" in js
             assert "dashboard-component-chart-holder" in js
-            assert call[1]["timeout"] == 30 * 1000
+            assert call.kwargs["timeout"] == 30 * 1000
 
     def test_per_tile_readiness_timeout_raises_and_skips_capture(self, mock_page):
         """A per-tile readiness timeout raises and does not capture that tile.
@@ -1169,6 +1281,25 @@ class TestTakeTiledScreenshot:
         # (spinner mounted vs nothing mounted vs waiting-on-database) so a
         # slow query can be told apart from the virtualization race.
         assert warning_args[14] == [{"chartId": "42", "state": "waiting_on_database"}]
+
+    def test_readiness_change_aborts_before_tile_capture(self, mock_page):
+        from superset.utils.screenshot_utils import PlaywrightTimeout
+
+        mock_page.wait_for_function.side_effect = [
+            None,
+            None,
+            PlaywrightTimeout("spinner returned"),
+        ]
+
+        with pytest.raises(PlaywrightTimeout, match="spinner returned"):
+            take_tiled_screenshot(
+                mock_page,
+                "dashboard",
+                tile_height=2000,
+                report_execution_context=_report_context(),
+            )
+
+        mock_page.screenshot.assert_not_called()
 
     def test_timeout_warning_includes_log_context(self, mock_page):
         """The log context (e.g. report execution id) is threaded through for

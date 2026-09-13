@@ -26,6 +26,7 @@ from pytest_mock import MockerFixture
 from superset.commands.semantic_layer.exceptions import (
     SemanticLayerCreateFailedError,
     SemanticLayerDeleteFailedError,
+    SemanticLayerForbiddenError,
     SemanticLayerInvalidError,
     SemanticLayerNotFoundError,
     SemanticLayerUpdateFailedError,
@@ -785,9 +786,6 @@ def test_put_semantic_layer_forbidden(
     mocker: MockerFixture,
 ) -> None:
     """Test PUT /<uuid> returns 403 when the caller is not an editor."""
-    from superset.commands.semantic_layer.exceptions import (
-        SemanticLayerForbiddenError,
-    )
 
     mock_command = mocker.patch(
         "superset.semantic_layers.api.UpdateSemanticLayerCommand",
@@ -901,9 +899,6 @@ def test_delete_semantic_layer_forbidden(
     mocker: MockerFixture,
 ) -> None:
     """Test DELETE /<uuid> returns 403 when the caller is not an editor."""
-    from superset.commands.semantic_layer.exceptions import (
-        SemanticLayerForbiddenError,
-    )
 
     mock_command = mocker.patch(
         "superset.semantic_layers.api.DeleteSemanticLayerCommand",
@@ -2701,6 +2696,23 @@ def test_semantic_layer_views_flag_off_unwrapped() -> None:
 
     assert response == ("404", 404)
     api.response_404.assert_called_once()
+
+
+@SEMANTIC_LAYERS_APP
+def test_get_semantic_layer_feature_disabled(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """Test GET /<uuid> returns 404 when the feature flag is disabled."""
+    mocker.patch(
+        "superset.semantic_layers.api.is_feature_enabled",
+        return_value=False,
+    )
+
+    response = client.get(f"/api/v1/semantic_layer/{uuid_lib.uuid4()}")
+
+    assert response.status_code == 404
 
 
 def test_semantic_layer_get_list_flag_off_unwrapped() -> None:
