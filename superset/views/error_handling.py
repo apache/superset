@@ -294,7 +294,15 @@ def set_app_error_handlers(app: Flask) -> None:  # noqa: C901
 
         if "text/html" in request.accept_mimetypes and not app.config["DEBUG"]:
             path = files("superset") / "static/assets/500.html"
-            return send_file(path, max_age=0), 500
+            # Try to serve HTML file; fall back to JSON if not built. This is the
+            # last-resort handler, so a missing ``500.html`` (a webpack artifact
+            # absent in API-only/unbuilt deployments) must not raise its own
+            # ``FileNotFoundError`` and collapse the response to a bare 500 with
+            # no SIP-40 body.
+            try:
+                return send_file(path, max_age=0), 500
+            except FileNotFoundError:
+                pass
 
         return json_error_response(
             [
