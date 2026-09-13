@@ -100,21 +100,57 @@ const config: ControlPanelConfig = {
         ],
         [
           {
-            name: 'comparison_color_scheme',
+            name: 'increase_color',
             config: {
-              type: 'SelectControl',
-              label: t('color scheme for comparison'),
-              default: ColorSchemeEnum.Green,
+              type: 'ColorPickerControl',
+              label: t('Color for increase'),
+              // No static default: charts saved before this control existed
+              // only have `comparison_color_scheme` ('Green' | 'Red', where
+              // 'Red' reverses increase/decrease colors). Leaving this
+              // control's value undefined lets `resolveComparisonColorKeys`
+              // (see BigNumberPeriodOverPeriod/utils.ts) resolve the correct
+              // color from that legacy scheme at render time. A hardcoded
+              // default here would win over the legacy fallback via
+              // `applyDefaultFormData` and silently repaint old dashboards.
               renderTrigger: true,
-              choices: [
-                [ColorSchemeEnum.Green, 'Green for increase, red for decrease'],
-                [ColorSchemeEnum.Red, 'Red for increase, green for decrease'],
+              presets: [
+                {
+                  label: t('Semantic colors'),
+                  colors: [ColorSchemeEnum.Green, ColorSchemeEnum.Red],
+                },
               ],
+              resolveThemeTokens: true,
+              outputFormat: 'hex',
               visibility: ({ controls }) =>
                 controls?.comparison_color_enabled?.value === true,
               description: t(
-                'Adds color to the chart symbols based on the positive or ' +
-                  'negative change from the comparison value.',
+                'Color used for the arrow and symbols when the metric ' +
+                  'increased from the comparison value. Defaults to green.',
+              ),
+            },
+          },
+          {
+            name: 'decrease_color',
+            config: {
+              type: 'ColorPickerControl',
+              label: t('Color for decrease'),
+              // See the comment on `increase_color` above: no static
+              // default, so `resolveComparisonColorKeys` can apply the
+              // legacy `comparison_color_scheme` fallback for old charts.
+              renderTrigger: true,
+              presets: [
+                {
+                  label: t('Semantic colors'),
+                  colors: [ColorSchemeEnum.Green, ColorSchemeEnum.Red],
+                },
+              ],
+              resolveThemeTokens: true,
+              outputFormat: 'hex',
+              visibility: ({ controls }) =>
+                controls?.comparison_color_enabled?.value === true,
+              description: t(
+                'Color used for the arrow and symbols when the metric ' +
+                  'decreased from the comparison value. Defaults to red.',
               ),
             },
           },
