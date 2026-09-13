@@ -78,7 +78,13 @@ def _failure_for_query_payload(
 
 
 def query_result_failure(result: Any) -> ChartError | None:
-    """Return a structured failure embedded in a ChartDataCommand payload."""
+    """Return a structured failure embedded in a ChartDataCommand payload.
+
+    ChartDataCommand can return an HTTP-successful envelope whose top level or
+    any query reports a failure. Every query is inspected before callers accept
+    data from the result. Successful statuses may carry informational messages,
+    so ``message`` alone is not treated as an error.
+    """
     if not isinstance(result, Mapping):
         return None
 

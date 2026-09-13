@@ -230,6 +230,23 @@ def get_chart_configs_resource() -> str:
         },
     }
 
+    gantt_chart_configs = {
+        "project_schedule": {
+            "description": "Task intervals grouped by owner",
+            "config": {
+                "chart_type": "gantt",
+                "start_time": {"name": "start_time"},
+                "end_time": {"name": "end_time"},
+                "category": {"name": "task_name"},
+                "series": {"name": "owner"},
+                "tooltip_columns": [{"name": "project"}],
+                "order_by": [{"column": "start_time", "ascending": True}],
+                "subcategories": True,
+            },
+            "use_cases": ["Project schedules", "Task and phase timelines"],
+        },
+    }
+
     from superset.mcp_service.chart.registry import get_registry
 
     interactive_pivot_configs = {}
@@ -302,6 +319,12 @@ def get_chart_configs_resource() -> str:
             "Pair comparison_period with comparison_type for time comparison",
             "This type appears only when the host enables its visualization plugin",
         ],
+        "gantt_charts": [
+            "Use temporal dataset columns for both start_time and end_time",
+            "Use category for the task/status row and series for color grouping",
+            "Set subcategories=true only when series is configured",
+            "Use tooltip_columns for dimensions and tooltip_metrics for aggregates",
+        ],
         "gauge_charts": [
             "Use the public chart_type='gauge'; gauge_chart is the native viz_type",
             "Use an aggregate, saved metric, or SQL metric that returns finite numbers",
@@ -321,6 +344,7 @@ def get_chart_configs_resource() -> str:
         "xy_chart_configs": xy_chart_configs,
         "table_chart_configs": table_chart_configs,
         "interactive_pivot_configs": interactive_pivot_configs,
+        "gantt_chart_configs": gantt_chart_configs,
         "gauge_configs": gauge_configs,
         "best_practices": best_practices,
         "usage_notes": [

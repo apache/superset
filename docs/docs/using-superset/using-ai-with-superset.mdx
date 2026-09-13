@@ -341,3 +341,46 @@ Ask your admin for the MCP server URL and any authentication tokens you need.
 - Verify the connection in your AI client (e.g., the hammer icon in Claude Desktop)
 - Ask the AI "What Superset tools are available?" to confirm the connection
 - Restart your AI client if you recently changed the configuration
+
+
+## Gantt charts through MCP
+
+Use `chart_type: "gantt"` with temporal `start_time` and `end_time` column
+references and a `category` task column. Optional `series` colors the intervals;
+`subcategories: true` separates tasks within each series. Ask
+`get_chart_type_schema` for the complete Gantt configuration and examples.
+
+Gantt Vega-Lite previews skip rows with null or invalid bounds, reversed intervals,
+or missing category values. An empty query result produces an empty preview;
+a nonempty result with no renderable intervals returns an error. Missing result
+fields and malformed result structures still return errors. Preview specifications
+contain at most 1,000 renderable rows and only fields used by the visualization.
+
+When updating a saved or cached Gantt chart, omitting `filters` preserves existing
+non-generated adhoc filters. Supplying `filters`, including `[]`, replaces them.
+The mapper-owned temporal binding is regenerated from the supplied configuration;
+an inactive native `No filter` placeholder is replaced by that binding. Unsupported
+merged filter state is rejected rather than silently discarded. Native sort entries
+must remain valid `[column, ascending_boolean]` pairs.
+
+The shared MCP query builder preserves explicit saved `orderby` values. For
+`mixed_timeseries`, primary ordering applies only to the primary query; secondary
+ordering uses `orderby_b` when provided. Typed Gantt `order_by` continues to map
+through native `order_by_cols`, independently of these saved query keys.
+
+The default `update_chart` preview-first flow validates the complete Gantt preview
+state, including its saved-chart envelope. The chart name (`slice_name`) is
+transport metadata, not a Gantt control; unknown visualization controls still fail
+validation.
+
+For same-dataset Gantt updates, omitted `tooltip_columns`, `tooltip_metrics`,
+`order_by`, and `row_limit` keep their saved values. Explicit empty lists clear
+those controls, and an explicitly supplied row limit replaces the saved limit.
+A dataset change does not inherit the old series, tooltips, ordering, or filters.
+
+A single Explore-authored temporal filter is retained when temporal settings are
+omitted, without adding a second generated binding. Explicit `temporal_column` or
+`time_range` replaces that native time predicate; explicit `filters`, including
+`[]`, retains its replacement semantics. Unsupported multiple temporal predicates
+remain validation errors. Empty strings in saved `x_axis_time_bounds` are treated
+as unset bounds, including a fully cleared range.
