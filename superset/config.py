@@ -690,6 +690,9 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Experimental PyArrow engine for CSV parsing (may have issues with dates/nulls)
     # @lifecycle: development
     "CSV_UPLOAD_PYARROW_ENGINE": False,
+    # Allow native filters to be placed directly on the dashboard canvas
+    # @lifecycle: development
+    "DASHBOARD_NATIVE_FILTERS_ON_CANVAS": False,
     # Allow metrics and columns to be grouped into folders in the chart builder
     # @lifecycle: development
     "DATASET_FOLDERS": False,

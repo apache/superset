@@ -28,6 +28,12 @@
         "description": "Experimental PyArrow engine for CSV parsing (may have issues with dates/nulls)"
       },
       {
+        "name": "DASHBOARD_NATIVE_FILTERS_ON_CANVAS",
+        "default": false,
+        "lifecycle": "development",
+        "description": "Allow native filters to be placed directly on the dashboard canvas"
+      },
+      {
         "name": "DATASET_FOLDERS",
         "default": false,
         "lifecycle": "development",

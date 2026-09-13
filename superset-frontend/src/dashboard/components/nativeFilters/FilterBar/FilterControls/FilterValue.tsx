@@ -39,6 +39,7 @@ import {
   ClientErrorObject,
   getClientErrorObject,
   isChartCustomization,
+  Filter,
 } from '@superset-ui/core';
 import { styled, SupersetTheme } from '@apache-superset/core/theme';
 import { useTheme } from '@emotion/react';
@@ -400,8 +401,9 @@ const FilterValue: FC<FilterValueProps> = ({
     () => ({
       filterBarOrientation: orientation,
       isOverflowingFilterBar: overflow,
+      inCanvas: Boolean((filter as Filter & { inCanvas?: boolean })?.inCanvas),
     }),
-    [orientation, overflow],
+    [orientation, overflow, filter],
   );
 
   if (error) {

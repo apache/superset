@@ -19,6 +19,7 @@
 /* eslint-env browser */
 import tinycolor from 'tinycolor2';
 import Tabs from '@superset-ui/core/components/Tabs';
+import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import { css, SupersetTheme } from '@apache-superset/core/theme';
 import SliceAdder from 'src/dashboard/containers/SliceAdder';
@@ -30,6 +31,7 @@ import NewRow from '../gridComponents/new/NewRow';
 import NewTabs from '../gridComponents/new/NewTabs';
 import NewMarkdown from '../gridComponents/new/NewMarkdown';
 import NewDynamicComponent from '../gridComponents/new/NewDynamicComponent';
+import NewFilterComponent from '../gridComponents/new/NewFilterComponent';
 
 const BUILDER_PANE_WIDTH = 374;
 
@@ -99,6 +101,9 @@ const BuilderComponentPane = ({ topOffset = 0 }) => (
                 <NewHeader />
                 <NewMarkdown />
                 <NewDivider />
+                {isFeatureEnabled(
+                  FeatureFlag.DashboardNativeFiltersOnCanvas,
+                ) && <NewFilterComponent />}
                 {dashboardComponents
                   .getAll()
                   .map(({ key: componentKey, metadata }) => (

@@ -32,6 +32,7 @@ export const NEW_ROW_ID = 'NEW_ROW_ID';
 export const NEW_TAB_ID = 'NEW_TAB_ID';
 export const NEW_TABS_ID = 'NEW_TABS_ID';
 export const NEW_DYNAMIC_COMPONENT = 'NEW_DYNAMIC_COMPONENT';
+export const NEW_FILTER_ID = 'NEW_FILTER_ID';
 
 // grid constants
 export const DASHBOARD_ROOT_DEPTH = 0;
