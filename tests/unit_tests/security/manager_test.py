@@ -53,6 +53,33 @@ def test_security_manager(app_context: None) -> None:
     assert sm
 
 
+def test_is_guest_user_no_jwt_returns_false_without_raising(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    """
+    ``is_guest_user`` must not propagate ``NoAuthorizationError``.
+
+    Resolving the current user on a request with no JWT and no guest token
+    invokes the app's request loader, which lets ``verify_jwt_in_request``
+    raise ``NoAuthorizationError``. When ``is_guest_user`` runs before auth
+    (e.g. error sanitization while handling an unrelated HTTPException) that
+    raise would escape as an unhandled exception. Such a request cannot be an
+    embedded guest viewer, so the method must return ``False`` instead.
+    """
+    from flask_jwt_extended.exceptions import NoAuthorizationError
+
+    mocker.patch(
+        "superset.is_feature_enabled",
+        side_effect=lambda feature: feature == "EMBEDDED_SUPERSET",
+    )
+    mocker.patch(
+        "superset.security.manager.get_current_user",
+        side_effect=NoAuthorizationError("Missing JWT in cookies or headers"),
+    )
+
+    assert SupersetSecurityManager.is_guest_user() is False
+
+
 def _register_views_with_mock_appbuilder(
     mocker: MockerFixture, auth_type: int
 ) -> MagicMock:
