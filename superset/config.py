@@ -3184,7 +3184,13 @@ SUBJECTS_RELATED_TYPES: list[SubjectType] | None = [
 # None = inherit global behavior.
 SUBJECTS_RELATED_TYPES_DASHBOARDS: list[SubjectType] | None = None
 SUBJECTS_RELATED_TYPES_CHARTS: list[SubjectType] | None = None
-SUBJECTS_RELATED_TYPES_RLS: list[SubjectType] | None = None
+# Row level security rules are commonly scoped to a role, so the RLS rule
+# editor's Subjects picker exposes roles in addition to the global default.
+SUBJECTS_RELATED_TYPES_RLS: list[SubjectType] | None = [
+    SubjectType.USER,
+    SubjectType.ROLE,
+    SubjectType.GROUP,
+]
 SUBJECTS_RELATED_TYPES_ALERT_REPORTS: list[SubjectType] | None = None
 
 

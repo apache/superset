@@ -696,14 +696,16 @@ become active dashboard Viewers after migration.
 API clients and automation should send and read `editors`, `viewers`, and `subjects` instead
 of the legacy fields.
 
-Subject pickers support users, groups, and roles, but only users and groups are selectable by
-default. Roles remain supported as Subject types for backwards compatibility with RLS role
+Subject pickers support users, groups, and roles. Dashboard, chart, and alert/report pickers show
+only users and groups by default, while the RLS picker also shows roles to preserve role-based RLS
+workflows. Roles remain supported as Subject types for backwards compatibility with RLS role
 assignments and the previous `DASHBOARD_RBAC` model, but they are not recommended for new
 resource-specific assignments. Prefer groups for membership-based access and keep roles focused
 on capability grants. Existing Role subject assignments remain effective after migration even when
-Roles are hidden from the default dropdown values; configure the relevant `SUBJECTS_RELATED_TYPES_*`
-setting to make Roles selectable when editing subject lists. See the [Security documentation](docs/admin_docs/security/security.mdx#subjects)
-for the full Subject model and picker configuration guidance.
+Roles are hidden from a picker's dropdown values; configure the relevant
+`SUBJECTS_RELATED_TYPES_*` setting to make Roles selectable in non-RLS subject lists. See the
+[Security documentation](docs/admin_docs/security/security.mdx#subjects) for the full Subject model
+and picker configuration guidance.
 
 To make roles selectable everywhere:
 
@@ -717,15 +719,13 @@ SUBJECTS_RELATED_TYPES = [
 ]
 ```
 
-To make roles selectable for RLS while other pickers keep the user and group default, use the
-RLS-specific override:
+The RLS picker includes users, roles, and groups by default. To customize it, use the RLS-specific
+override. For example, to show only roles:
 
 ```python
 from superset.subjects.types import SubjectType
 
 SUBJECTS_RELATED_TYPES_RLS = [
-    SubjectType.USER,
-    SubjectType.GROUP,
     SubjectType.ROLE,
 ]
 ```
