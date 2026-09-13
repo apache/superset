@@ -66,6 +66,7 @@ import { isChartCustomization } from '../FiltersConfigModal/utils';
 import { checkIsApplyDisabled, getFiltersToApply } from './utils';
 import { extractLabel } from '../selectors';
 import { FiltersBarProps } from './types';
+import { resolveTransitiveChildIds } from '../dependencyGraph';
 import {
   useAllAppliedDataMask,
   useFilters,
@@ -229,6 +230,9 @@ const FilterBar: FC<FiltersBarProps> = ({
   const [clearAllTriggers, setClearAllTriggers] = useState<
     Record<string, boolean>
   >({});
+  const [cascadeClearTriggers, setCascadeClearTriggers] = useState<
+    Record<string, boolean>
+  >({});
   const [initializedFilters, setInitializedFilters] = useState<Set<string>>(
     new Set(),
   );
@@ -311,6 +315,59 @@ const FilterBar: FC<FiltersBarProps> = ({
 
         const hasRequiredValue = isRequired && isEmptyValue;
 
+        // Cascade clearing: when a parent filter's value changes, every
+        // transitive descendant (child) dependent filter must have its
+        // selection reset. Otherwise the child keeps a stale value that no
+        // longer belongs to the parent's option set (e.g. Country=UK with a
+        // City value only valid under USA), producing impossible filter
+        // combinations that blank charts.
+        const prevMask = draft[filter.id];
+        const prevValue = prevMask?.filterState?.value;
+        const prevExtra = prevMask?.extraFormData;
+        const nextExtra = baseDataMask.extraFormData;
+        // Filters configured with defaultToFirstItem auto-select their first
+        // option on load. That seed is initialization, not a dependency
+        // change, and must not clear descendants. Persisted values reach the
+        // applied state through the sync effect rather than this callback, so
+        // any other first emission is a genuine user selection.
+        const isAutoSeedInit =
+          prevValue === undefined && !!filter.controlValues?.defaultToFirstItem;
+        // The effective dependency state is the parent's extraFormData (the
+        // clauses and time_range merged into descendants), not the raw
+        // selected value: inverse-selection toggles change the clause while
+        // the selected value stays identical.
+        const parentValueChanged =
+          !!prevMask && !isAutoSeedInit && !isEqual(prevExtra, nextExtra);
+        if (parentValueChanged) {
+          const childIds = resolveTransitiveChildIds(filter.id, filters);
+          childIds.forEach(childId => {
+            const childMask = draft[childId];
+            if (!childMask) return;
+            childMask.extraFormData = {};
+            const { filterState } = childMask;
+            if (filterState) {
+              const childIsRequired =
+                !!filters[childId]?.controlValues?.enableEmptyFilter;
+              // Mirror handleClearAll: range filters use [null, null] as the
+              // canonical cleared value.  Bare null would be ignored by
+              // RangeFilterPlugin's sync effect, leaving stale UI.
+              filterState.value =
+                filters[childId]?.filterType === 'filter_range'
+                  ? [null, null]
+                  : null;
+              filterState.validateStatus = childIsRequired
+                ? 'error'
+                : undefined;
+            }
+            // Signal the child's filter plugin to clear its visual selection
+            // and avoid re-applying defaults.
+            setCascadeClearTriggers(prev => ({
+              ...prev,
+              [childId]: true,
+            }));
+          });
+        }
+
         draft[filter.id] = {
           ...baseDataMask,
           filterState: {
@@ -326,6 +383,7 @@ const FilterBar: FC<FiltersBarProps> = ({
       initializedFilters,
       setInitializedFilters,
       dataMaskApplied,
+      filters,
     ],
   );
 
@@ -586,6 +644,14 @@ const FilterBar: FC<FiltersBarProps> = ({
     });
   }, []);
 
+  const handleCascadeClearComplete = useCallback((filterId: string) => {
+    setCascadeClearTriggers(prev => {
+      const newTriggers = { ...prev };
+      delete newTriggers[filterId];
+      return newTriggers;
+    });
+  }, []);
+
   useFilterUpdates(dataMaskSelected, setDataMaskSelected);
 
   const hasPendingChartCustomizations =
@@ -662,6 +728,8 @@ const FilterBar: FC<FiltersBarProps> = ({
         }
         clearAllTriggers={clearAllTriggers}
         onClearAllComplete={handleClearAllComplete}
+        cascadeClearTriggers={cascadeClearTriggers}
+        onCascadeClearComplete={handleCascadeClearComplete}
       />
     ) : verticalConfig ? (
       <Vertical
@@ -683,6 +751,8 @@ const FilterBar: FC<FiltersBarProps> = ({
         mobileMode={verticalConfig.mobileMode}
         clearAllTriggers={clearAllTriggers}
         onClearAllComplete={handleClearAllComplete}
+        cascadeClearTriggers={cascadeClearTriggers}
+        onCascadeClearComplete={handleCascadeClearComplete}
       />
     ) : null;
 
