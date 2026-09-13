@@ -34,6 +34,7 @@ from superset.subjects.utils import (
     get_or_create_group_subject,
     get_or_create_role_subject,
     get_user_group_subjects,
+    get_user_subject_ids,
     get_user_subject_ids_subquery,
 )
 
@@ -611,3 +612,47 @@ def test_compute_subjects_all_variants(mock_compute):
         ensure_no_lockout=True,
         field_name="editors",
     )
+
+
+def test_get_user_subject_ids_memoises_within_a_request(app) -> None:
+    """The subject lookup runs once per user per request, not once per check."""
+    with patch(
+        "superset.subjects.utils._query_user_subject_ids", return_value=[7, 8]
+    ) as query:
+        with app.test_request_context("/"):
+            assert get_user_subject_ids(1) == [7, 8]
+            assert get_user_subject_ids(1) == [7, 8]
+            assert query.call_count == 1
+
+            # A different principal is a different cache entry.
+            get_user_subject_ids(2)
+            assert query.call_count == 2
+
+    # The cache lives on ``g``, so it is bounded by the app context. A fresh
+    # one starts empty and the lookup runs again.
+    with app.app_context():
+        with patch(
+            "superset.subjects.utils._query_user_subject_ids", return_value=[7, 8]
+        ) as query:
+            with app.test_request_context("/"):
+                get_user_subject_ids(1)
+                assert query.call_count == 1
+
+
+def test_get_user_subject_ids_not_cached_outside_a_request(app_context) -> None:
+    """Background tasks and CLI commands keep the uncached behaviour."""
+    with patch(
+        "superset.subjects.utils._query_user_subject_ids", return_value=[7]
+    ) as query:
+        get_user_subject_ids(1)
+        get_user_subject_ids(1)
+        assert query.call_count == 2
+
+
+def test_get_user_subject_ids_returns_a_copy(app) -> None:
+    """Callers hand this list on, so mutating it must not poison the cache."""
+    with patch("superset.subjects.utils._query_user_subject_ids", return_value=[7]):
+        with app.test_request_context("/"):
+            first = get_user_subject_ids(1)
+            first.append(999)
+            assert get_user_subject_ids(1) == [7]
