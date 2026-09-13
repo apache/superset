@@ -4246,6 +4246,7 @@ class TestDatabaseApi(SupersetTestCase):
         assert "sqllab_tab_states" in rv.json
 
     @pytest.mark.sql_json_flow
+    @pytest.mark.usefixtures("load_birth_names_data")
     @mock.patch.dict(
         "superset.config.SQL_VALIDATORS_BY_ENGINE",
         SQL_VALIDATORS_BY_ENGINE,
@@ -4395,6 +4396,7 @@ class TestDatabaseApi(SupersetTestCase):
         assert "Kaboom!" in response["errors"][0]["message"]
 
     @pytest.mark.sql_json_flow
+    @pytest.mark.usefixtures("load_birth_names_data")
     @mock.patch.dict(
         "superset.config.SQL_VALIDATORS_BY_ENGINE",
         SQL_VALIDATORS_BY_ENGINE,
@@ -4407,8 +4409,8 @@ class TestDatabaseApi(SupersetTestCase):
         request_payload = {
             "sql": (
                 "SELECT *\nFROM birth_names\nWHERE 1=1\n"
-                "{% if city_filter is defined %}\n"
-                "    AND city = '{{ city_filter }}'\n{% endif %}\n"
+                "{% if state_filter is defined %}\n"
+                "    AND state = '{{ state_filter }}'\n{% endif %}\n"
                 "LIMIT {{ limit | default(100) }}"
             ),
             "schema": None,
@@ -4431,6 +4433,7 @@ class TestDatabaseApi(SupersetTestCase):
         assert len(result) == 0
 
     @pytest.mark.sql_json_flow
+    @pytest.mark.usefixtures("load_birth_names_data")
     @mock.patch.dict(
         "superset.config.SQL_VALIDATORS_BY_ENGINE",
         SQL_VALIDATORS_BY_ENGINE,
@@ -4443,12 +4446,12 @@ class TestDatabaseApi(SupersetTestCase):
         request_payload = {
             "sql": (
                 "SELECT *\nFROM birth_names\nWHERE 1=1\n"
-                "{% if city_filter is defined %}\n"
-                "    AND city = '{{ city_filter }}'\n"
+                "{% if state_filter is defined %}\n"
+                "    AND state = '{{ state_filter }}'\n"
                 "{% endif %}\nLIMIT {{ limit }}"
             ),
             "schema": None,
-            "template_params": {"city_filter": "New York", "limit": 50},
+            "template_params": {"state_filter": "CA", "limit": 50},
         }
 
         example_db = get_example_database()
@@ -4467,6 +4470,7 @@ class TestDatabaseApi(SupersetTestCase):
         assert len(result) == 0
 
     @pytest.mark.sql_json_flow
+    @pytest.mark.usefixtures("load_birth_names_data")
     @mock.patch.dict(
         "superset.config.SQL_VALIDATORS_BY_ENGINE",
         SQL_VALIDATORS_BY_ENGINE,
