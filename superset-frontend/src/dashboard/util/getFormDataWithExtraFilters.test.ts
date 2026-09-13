@@ -358,6 +358,63 @@ test('dynamic group by normalizes a single-select string value into a one-item g
   expectGroupBy(result, ['status']);
 });
 
+test('sankey chart maps dynamic group by columns to source, intermediate levels and target', () => {
+  const result = getFormDataWithExtraFilters({
+    ...makeGroupByArgs(['country', 'product', 'channel', 'outcome']),
+    chart: {
+      ...mockChart,
+      form_data: {
+        ...mockChart.form_data,
+        viz_type: 'sankey_v2',
+        datasource: '3__table',
+      },
+    },
+  }) as Record<string, unknown>;
+
+  expect(result.source).toEqual('country');
+  expect(result.intermediate_levels).toEqual(['product', 'channel']);
+  expect(result.target).toEqual('outcome');
+});
+
+test('sankey chart with two dynamic group by columns has no intermediate levels', () => {
+  const result = getFormDataWithExtraFilters({
+    ...makeGroupByArgs(['country', 'outcome']),
+    chart: {
+      ...mockChart,
+      form_data: {
+        ...mockChart.form_data,
+        viz_type: 'sankey_v2',
+        datasource: '3__table',
+      },
+    },
+  }) as Record<string, unknown>;
+
+  expect(result.source).toEqual('country');
+  expect(result.intermediate_levels).toEqual([]);
+  expect(result.target).toEqual('outcome');
+});
+
+test('sankey chart leaves its configured columns alone when only one dynamic group by column is selected', () => {
+  const result = getFormDataWithExtraFilters({
+    ...makeGroupByArgs(['country']),
+    chart: {
+      ...mockChart,
+      form_data: {
+        ...mockChart.form_data,
+        viz_type: 'sankey_v2',
+        datasource: '3__table',
+        source: 'configured_source',
+        target: 'configured_target',
+        intermediate_levels: ['configured_level'],
+      },
+    },
+  }) as Record<string, unknown>;
+
+  expect(result.source).toEqual('configured_source');
+  expect(result.target).toEqual('configured_target');
+  expect(result.intermediate_levels).toEqual(['configured_level']);
+});
+
 test('structural conflict: metric column blocks groupby override (nonConflictingColumns guard)', () => {
   const customizationId = 'CHART_CUSTOMIZATION-groupby-conflict';
   const argsWithMetricConflict: GetFormDataWithExtraFiltersArguments = {
