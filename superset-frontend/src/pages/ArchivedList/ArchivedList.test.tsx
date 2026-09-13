@@ -303,7 +303,7 @@ test('row actions are keyboard-operable (Enter restores)', async () => {
   // skipClick: no pointer click, so the only activation is the Enter
   // keypress itself; skipClick requires focusing manually first.
   restoreButtons[0].focus();
-  userEvent.type(restoreButtons[0], '{enter}', { skipClick: true });
+  await userEvent.type(restoreButtons[0], '{enter}', { skipClick: true });
 
   await waitFor(() => {
     expect(fetchMock.callHistory.calls(/chart\/uuid-1\/restore/)).toHaveLength(
@@ -514,9 +514,21 @@ test('a second Recover click while the first is in flight is ignored', async () 
   await screen.findByTestId('archived-list-view');
 
   const [restore] = await screen.findAllByTestId('archived-row-restore');
-  userEvent.click(restore);
-  userEvent.click(restore);
-  userEvent.click(restore);
+  // userEvent v14's click() is itself async (it awaits internally between
+  // pointerdown/pointerup and the resulting React commit), and each await
+  // gives the microtask queue a chance to fully drain -- including the
+  // mocked fetch resolving and the component's in-flight guard clearing in
+  // its `finally`. That makes both an unawaited fire-and-forget sequence
+  // and a fully-awaited sequential one race unpredictably or let each
+  // click land as a legitimate, separate request rather than a genuine
+  // "second click while the first is still in flight". fireEvent.click
+  // stays synchronous in v14 (same pattern already used above for the
+  // purge/delete flow), so it reliably fires all three clicks before any
+  // of them yields back to the microtask queue -- exactly the scenario
+  // the guard exists for.
+  fireEvent.click(restore);
+  fireEvent.click(restore);
+  fireEvent.click(restore);
 
   await waitFor(() =>
     expect(fetchMock.callHistory.calls(restoreEndpoint).length).toBeGreaterThan(
@@ -537,7 +549,7 @@ test('the type selector offers only the types the viewer can read', async () => 
   renderArchivedList(storeWithReadAccess('Dashboard', 'Dataset'));
   await screen.findByTestId('archived-list-view');
 
-  userEvent.click(screen.getByRole('combobox', { name: 'Type' }));
+  await userEvent.click(screen.getByRole('combobox', { name: 'Type' }));
 
   expect(
     await screen.findByRole('option', { name: 'Dashboard' }),
@@ -642,7 +654,7 @@ test('labels the dataset type "Datasource" when semantic layers is enabled', asy
   renderArchivedList();
   await screen.findByText('Deleted Chart One');
 
-  userEvent.click(screen.getByRole('combobox', { name: 'Type' }));
+  await userEvent.click(screen.getByRole('combobox', { name: 'Type' }));
   expect(
     await screen.findByRole('option', { name: 'Datasource' }),
   ).toBeInTheDocument();
@@ -669,7 +681,7 @@ test('labels the dataset type "Dataset" when semantic layers is disabled', async
   renderArchivedList();
   await screen.findByText('Deleted Chart One');
 
-  userEvent.click(screen.getByRole('combobox', { name: 'Type' }));
+  await userEvent.click(screen.getByRole('combobox', { name: 'Type' }));
   expect(
     await screen.findByRole('option', { name: 'Dataset' }),
   ).toBeInTheDocument();

@@ -1254,7 +1254,6 @@ class SemanticLayerRestApi(BaseSupersetApi):
         layer = SemanticLayerDAO.find_by_uuid(uuid)
         if not layer:
             return self.response_404()
-
         try:
             layer.raise_for_access()
         except SupersetSecurityException as ex:

@@ -2028,6 +2028,8 @@ def test_is_mutating(sql: str, engine: str, expected: bool) -> None:
         ("EXPLAIN ANALYZE VERBOSE UPDATE t SET x = 1", "postgresql"),
         ("EXPLAIN (ANALYZE)", "postgresql"),
         ("EXPLAIN ANALYZE )))", "postgresql"),
+        # The flag need not be followed by whitespace.
+        ("EXPLAIN ANALYZE(DELETE FROM t)", "postgresql"),
     ],
 )
 def test_is_mutating_fails_closed_on_gate_blind_spots(sql: str, engine: str) -> None:
@@ -3355,6 +3357,10 @@ def test_starrocks_generator_round_trip(sql: str, expected: str) -> None:
         # with no name or column list is also accepted; see the CONSTRAINT_
         # PARSERS override below).
         "CREATE TABLE t (k1 INT, KEY (k1))",
+        # Named inline KEY index def (an alias for INDEX with no leading
+        # keyword), which routes through the same override's identifier-then-
+        # column-list branch rather than the immediate "(" branch above.
+        "CREATE TABLE t (k1 INT, KEY idx_name (k1))",
         # GIN/NGRAM full-text index with an inline properties list.
         "CREATE TABLE t(k1 INT, INDEX idx (k1) USING GIN ('parser' = 'english')) "
         "DUPLICATE KEY(k1) DISTRIBUTED BY HASH(k1)",
@@ -5691,6 +5697,85 @@ def test_get_disallowed_tables_search_path_change(
         ("SET ROLE app_search_path_user", False),
         # `set_config('search_path', ...)` rebinds the path via a function call.
         ("SELECT set_config('search_path', 'information_schema', true)", True),
+        # Postgres evaluates the setting name, so a name built from an
+        # expression rebinds the path just like the literal form. It can't be
+        # resolved statically, so it's treated as a change.
+        ("SELECT set_config('search_' || 'path', 'information_schema', true)", True),
+        (
+            "SELECT set_config(CONCAT('search_', 'path'), 'information_schema', true)",
+            True,
+        ),
+        # A `set_config` with no arguments at all can't be resolved either.
+        ("SELECT set_config()", True),
+        # A rebind inside a statement whose body the parser leaves opaque (here
+        # a PL/pgSQL block) is not reachable on the tree, so it is matched on
+        # the raw text instead of being let through, in either spelling.
+        (
+            "DO $$ BEGIN PERFORM set_config('search_path', 'information_schema', "
+            "false); END $$",
+            True,
+        ),
+        ("DO $$ BEGIN SET search_path TO information_schema; END $$", True),
+        ("DO $$ BEGIN EXECUTE 'SET search_path = information_schema'; END $$", True),
+        ("CALL rebind_the_path()", False),
+        # A computed setting name never spells `search_path` contiguously, so
+        # the raw-text fallback matches on `set_config` as well.
+        (
+            "DO $$ BEGIN PERFORM set_config('search_' || 'path', "
+            "'information_schema', false); END $$",
+            True,
+        ),
+        # An opaque statement body with no rebind in it is not a change.
+        ("DO $$ BEGIN PERFORM pg_sleep(0); END $$", False),
+        # Opaque statements that can't carry a nested statement are not
+        # text-matched, so naming the setting doesn't make them a change.
+        ("SHOW search_path", False),
+        ("EXPLAIN ANALYZE SELECT * FROM some_table", False),
+        # `EXPLAIN ANALYZE` runs its body for real, so a rebind inside it
+        # takes effect. The tail is SQL, so it is classified by re-parsing
+        # rather than text-matched, in every spelling of the flag.
+        (
+            "EXPLAIN ANALYZE SELECT set_config('search_path', "
+            "'information_schema', false)",
+            True,
+        ),
+        (
+            "EXPLAIN (ANALYZE, BUFFERS) SELECT set_config('search_path', "
+            "'information_schema', false)",
+            True,
+        ),
+        (
+            "EXPLAIN ANALYSE SELECT set_config('search_path', "
+            "'information_schema', false)",
+            True,
+        ),
+        # A plain `EXPLAIN` only plans the body, so nothing is rebound.
+        (
+            "EXPLAIN SELECT set_config('search_path', 'information_schema', false)",
+            False,
+        ),
+        # Re-parsing keeps the `EXPLAIN` tail precise: a table whose name
+        # merely contains the setting is not a change.
+        ("EXPLAIN ANALYZE SELECT * FROM search_path_audit", False),
+        # PostgreSQL does not require whitespace after the flag.
+        (
+            "EXPLAIN ANALYZE(SELECT set_config('search_path', "
+            "'information_schema', false))",
+            True,
+        ),
+        # A body carrying the flag that can't be classified fails closed,
+        # whether it holds nothing but options or doesn't parse at all.
+        ("EXPLAIN (ANALYZE)", True),
+        ("EXPLAIN ANALYZE )))", True),
+        # The raw-text fallback matches whole words, so an unrelated routine
+        # whose name merely embeds one of them is not a change.
+        ("CALL reset_config()", False),
+        ("CALL my_search_path_helper()", False),
+        # `RESET` restores the server default, which need not be the schema
+        # the caller selected, so it rebinds resolution just as `SET` does.
+        ("RESET search_path", True),
+        ("RESET ALL", True),
+        ("RESET statement_timeout", False),
         # A different setting changed through `set_config` is not a search-path
         # change.
         ("SELECT set_config('statement_timeout', '0', true)", False),
@@ -5743,9 +5828,35 @@ def test_changes_search_path(sql: str, expected: bool) -> None:
         ("SET CATALOG tenant_b", "postgresql", True),
         ("SET CURRENT SCHEMA foo", "postgresql", True),
         ("SET ROLE admin", "postgresql", False),
+        # A rebind inside a body the parser leaves opaque (here a PL/pgSQL
+        # block) is matched on the raw text, in either spelling.
+        ("DO $$ BEGIN SET SCHEMA 'tenant_b'; END $$", "postgresql", True),
+        ("DO $$ BEGIN SET CATALOG tenant_b; END $$", "postgresql", True),
+        ("EXECUTE 'SET SCHEMA ''tenant_b'''", "postgresql", True),
+        # A schema is named all over ordinary SQL, so only the `SET` head
+        # counts: a body that merely creates or references one is not a
+        # rebind.
+        ("DO $$ BEGIN CREATE SCHEMA tenant_b; END $$", "postgresql", False),
+        ("CALL populate_schema()", "postgresql", False),
         # A `set_config()` whose setting name is a column reference rather than
         # a literal is treated conservatively as a schema change.
         ("SELECT set_config(schema_col, 'tenant_b', false)", "postgresql", True),
+        # `EXPLAIN ANALYZE` runs its body, so a `SET SCHEMA` carried inside one
+        # rebinds resolution just as the bare statement does. Without the
+        # flag the body is only planned, and `EXPLAIN` of an ordinary query
+        # rebinds nothing.
+        ("EXPLAIN ANALYZE SET SCHEMA 'tenant_b'", "postgresql", True),
+        # A qualifier between `SET` and the setting name is matched inside a
+        # nested body too, as it is when the statement stands alone.
+        (
+            "DO $$ BEGIN EXECUTE 'SET LOCAL SCHEMA ''tenant_b'''; END $$",
+            "postgresql",
+            True,
+        ),
+        ("SET LOCAL SCHEMA 'tenant_b'", "postgresql", True),
+        ("EXPLAIN SET SCHEMA 'tenant_b'", "postgresql", False),
+        ("EXPLAIN VERBOSE SELECT * FROM orders", "postgresql", False),
+        ("EXPLAIN (COSTS) SELECT * FROM orders", "postgresql", False),
         # Engines without a sqlglot AST (e.g. Kusto KQL) do not rebind schema
         # resolution through these forms.
         ("print x = 1", "kustokql", False),
@@ -5759,6 +5870,66 @@ def test_changes_default_schema(sql: str, engine: str, expected: bool) -> None:
     the schema the user selected.
     """
     assert SQLScript(sql, engine).changes_default_schema() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, engine, expected",
+    [
+        # A quoted catalog identifier is case-sensitive and may not match
+        # after the engine's default case folding.
+        ('SELECT * FROM "c1".s.t1', "snowflake", True),
+        # A quoted schema (``db``) identifier is equally unsafe.
+        ('SELECT * FROM c1."s".t1', "snowflake", True),
+        # An unquoted location can be safely folded to the engine's default
+        # case.
+        ("SELECT * FROM c1.s.t1", "snowflake", False),
+        # Quoting the table name itself doesn't affect catalog/schema safety.
+        ('SELECT * FROM "t1"', "snowflake", False),
+    ],
+)
+def test_has_quoted_table_location(sql: str, engine: str, expected: bool) -> None:
+    """
+    `has_quoted_table_location` flags queries whose catalog or schema is
+    quoted, so the SQL Lab dataset-creation flow keeps the dropdown schema
+    instead of deriving a location that may not match after case folding.
+    """
+    assert SQLStatement(sql, engine).has_quoted_table_location() == expected
+    assert SQLScript(sql, engine).has_quoted_table_location() == expected
+
+
+def test_has_quoted_table_location_unsupported_dialect() -> None:
+    """
+    Engines without a sqlglot AST (e.g. Kusto KQL) report no quoted table
+    location instead of raising, matching the ``BaseSQLStatement`` default.
+    """
+    statement = KustoKQLStatement("foo | take 100", "kustokql")
+    assert statement.has_quoted_table_location() is False
+
+
+@pytest.mark.parametrize(
+    "sql, engine, expected",
+    [
+        ("show columns from foo from bar", "mysql", True),
+        ("SELECT * FROM t1", "mysql", False),
+    ],
+)
+def test_is_show_statement(sql: str, engine: str, expected: bool) -> None:
+    """
+    `is_show_statement`/`has_show_statement` identify metadata statements so
+    the SQL Lab dataset-creation flow keeps the dropdown schema rather than
+    deriving one from a query with no meaningful result set.
+    """
+    assert SQLStatement(sql, engine).is_show_statement() == expected
+    assert SQLScript(sql, engine).has_show_statement() == expected
+
+
+def test_is_show_statement_unsupported_dialect() -> None:
+    """
+    Engines without a sqlglot AST are never treated as SHOW statements,
+    matching the ``BaseSQLStatement`` default.
+    """
+    statement = KustoKQLStatement("foo | take 100", "kustokql")
+    assert statement.is_show_statement() is False
 
 
 @pytest.mark.parametrize(
