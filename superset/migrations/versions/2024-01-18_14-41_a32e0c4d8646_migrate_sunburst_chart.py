@@ -34,11 +34,11 @@ from superset.migrations.shared.migrate_viz import MigrateSunburst  # noqa: E402
 
 def upgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind, future=True)
+    session = db.Session(bind=bind)
     MigrateSunburst.upgrade(session)
 
 
 def downgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind, future=True)
+    session = db.Session(bind=bind)
     MigrateSunburst.downgrade(session)

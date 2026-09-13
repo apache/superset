@@ -17,8 +17,13 @@
 import pytest
 from pytest_mock import MockerFixture
 
-from superset.commands.chart.exceptions import ChartForbiddenError, ChartInvalidError
+from superset.commands.chart.exceptions import (
+    ChartForbiddenError,
+    ChartInvalidError,
+    DatasourceTypeUpdateRequiredValidationError,
+)
 from superset.commands.chart.update import UpdateChartCommand
+from superset.commands.exceptions import DatasourceTypeInvalidError
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 from superset.utils import json
@@ -238,3 +243,100 @@ def test_update_chart_query_context_without_datasource_is_allowed(
         1,
         {"query_context": query_context, "query_context_generation": True},
     ).validate()
+
+
+@pytest.mark.parametrize("datasource_type", ["saved_query", "query"])
+def test_update_chart_rejects_repointing_to_non_table_datasource(
+    mocker: MockerFixture, datasource_type: str
+) -> None:
+    """Repointing a chart's datasource_id must be rejected the same way
+    CreateChartCommand rejects it (apache/superset#29697): Slice.datasource
+    only ever resolves the ``table`` relationship, so repointing at a
+    saved_query or query datasource would "succeed" but leave the chart
+    permanently unable to render -- or, for saved_query specifically, crash
+    on SavedQuery's missing ``.name`` attribute before that point is even
+    reached. This is a regular (non-query-context) update, so it goes
+    through editorship + compute_subjects, unlike the query-context-only
+    tests above."""
+    find_by_id = mocker.patch("superset.commands.chart.update.ChartDAO.find_by_id")
+    find_by_id.return_value = mocker.MagicMock(id=1, tags=[], dashboards=[])
+    mocker.patch("superset.commands.chart.update.security_manager.raise_for_editorship")
+    mocker.patch(
+        "superset.commands.chart.update.compute_subjects",
+        side_effect=lambda model, properties, exceptions: None,
+    )
+    get_datasource_by_id = mocker.patch(
+        "superset.commands.chart.update.get_datasource_by_id"
+    )
+
+    with pytest.raises(ChartInvalidError) as exc_info:
+        UpdateChartCommand(
+            1, {"datasource_id": 11, "datasource_type": datasource_type}
+        ).validate()
+
+    assert any(
+        isinstance(ex, DatasourceTypeInvalidError) for ex in exc_info.value._exceptions
+    )
+    get_datasource_by_id.assert_not_called()
+
+
+def test_update_chart_missing_datasource_type_keeps_required_error(
+    mocker: MockerFixture,
+) -> None:
+    """When datasource_id is given without datasource_type, the response
+    must keep reporting DatasourceTypeUpdateRequiredValidationError
+    ("Datasource type is required") rather than having it overwritten by
+    DatasourceTypeInvalidError ("Datasource type is invalid") -- both
+    exceptions key their message under ``datasource_type``, and
+    normalized_messages() only keeps the last one written for a given key."""
+    find_by_id = mocker.patch("superset.commands.chart.update.ChartDAO.find_by_id")
+    find_by_id.return_value = mocker.MagicMock(id=1, tags=[], dashboards=[])
+    mocker.patch("superset.commands.chart.update.security_manager.raise_for_editorship")
+    mocker.patch(
+        "superset.commands.chart.update.compute_subjects",
+        side_effect=lambda model, properties, exceptions: None,
+    )
+    get_datasource_by_id = mocker.patch(
+        "superset.commands.chart.update.get_datasource_by_id"
+    )
+
+    with pytest.raises(ChartInvalidError) as exc_info:
+        UpdateChartCommand(1, {"datasource_id": 11}).validate()
+
+    assert any(
+        isinstance(ex, DatasourceTypeUpdateRequiredValidationError)
+        for ex in exc_info.value._exceptions
+    )
+    assert not any(
+        isinstance(ex, DatasourceTypeInvalidError) for ex in exc_info.value._exceptions
+    )
+    get_datasource_by_id.assert_not_called()
+
+
+@pytest.mark.parametrize("datasource_type", ["saved_query", "query"])
+def test_update_chart_rejects_type_only_non_table_datasource(
+    mocker: MockerFixture, datasource_type: str
+) -> None:
+    """A type-only update (datasource_type given without datasource_id)
+    must be rejected the same way a repointing update is: leaving
+    datasource_id untouched while flipping datasource_type away from
+    ``table`` would still break Slice.datasource, since its relationship
+    only ever resolves the ``table`` type."""
+    find_by_id = mocker.patch("superset.commands.chart.update.ChartDAO.find_by_id")
+    find_by_id.return_value = mocker.MagicMock(id=1, tags=[], dashboards=[])
+    mocker.patch("superset.commands.chart.update.security_manager.raise_for_editorship")
+    mocker.patch(
+        "superset.commands.chart.update.compute_subjects",
+        side_effect=lambda model, properties, exceptions: None,
+    )
+    get_datasource_by_id = mocker.patch(
+        "superset.commands.chart.update.get_datasource_by_id"
+    )
+
+    with pytest.raises(ChartInvalidError) as exc_info:
+        UpdateChartCommand(1, {"datasource_type": datasource_type}).validate()
+
+    assert any(
+        isinstance(ex, DatasourceTypeInvalidError) for ex in exc_info.value._exceptions
+    )
+    get_datasource_by_id.assert_not_called()

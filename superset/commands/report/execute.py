@@ -35,6 +35,10 @@ from superset.commands.base import BaseCommand
 from superset.commands.dashboard.permalink.create import CreateDashboardPermalinkCommand
 from superset.commands.exceptions import CommandException, UpdateFailedError
 from superset.commands.report.alert import AlertCommand
+from superset.commands.report.chart_data import (
+    ChartDataRequestError,
+    request_chart_data,
+)
 from superset.commands.report.exceptions import (
     ReportScheduleAlertGracePeriodError,
     ReportScheduleClientErrorsException,
@@ -135,6 +139,29 @@ def resolve_executor_user(model: ReportSchedule) -> tuple["User", str]:
     if user is None:
         raise ReportScheduleExecutorNotFoundError(username)
     return user, username
+
+
+def _should_build_execution_context(model: ReportSchedule) -> bool:
+    """
+    Whether an execution should run under a :class:`ReportExecutionContext`.
+
+    Reports always do — their behavior is unchanged. Alerts join them only when
+    they deliver a rendered PNG/PDF screenshot to recipients, which happens when
+    ``ALERTS_ATTACH_REPORTS`` is enabled. Delivered screenshots must fail closed:
+    the context selects the fail-closed readiness predicate and disables
+    partial-tile fallback, so a blank or incomplete capture raises instead of
+    being delivered.
+
+    CSV/text alerts, alerts without the attach flag, the non-delivered
+    query-context capture, and UI thumbnails are deliberately excluded and keep
+    their lenient capture contract.
+    """
+    if model.type == ReportScheduleType.REPORT:
+        return True
+    return model.report_format in (
+        ReportDataFormat.PNG,
+        ReportDataFormat.PDF,
+    ) and feature_flag_manager.is_feature_enabled("ALERTS_ATTACH_REPORTS")
 
 
 def log_report_delivery_phase(
@@ -974,7 +1001,7 @@ class BaseReportState:
                 raise URLError(response.getcode())
         return content or None
 
-    def _get_data(self, result_format: ChartDataResultFormat) -> bytes:
+    def _get_data(self, result_format: ChartDataResultFormat) -> bytes:  # noqa: C901
         """
         Fetch tabular chart data (CSV or Excel) as raw bytes.
 
@@ -1012,50 +1039,56 @@ class BaseReportState:
             self._update_query_context(failed_error)
             db.session.refresh(self._report_schedule.chart)
 
+        def get_timeout() -> float | None:
+            """Cap every request by the available data-generation budget."""
+            return self._phase_timeout(
+                "data_generation",
+                requested_seconds=app.config["ALERT_REPORTS_CSV_REQUEST_TIMEOUT"],
+                reserve_seconds=(
+                    self._report_execution_context.post_capture_reserve_seconds
+                    if self._report_execution_context
+                    else 0.0
+                ),
+            )
+
         try:
             if self._report_schedule.chart.query_context is None:
                 url = self._get_url(result_format=result_format)
-                data = get_chart_csv_data(
-                    chart_url=url,
-                    auth_cookies=auth_cookies,
-                    timeout=self._phase_timeout(
-                        "data_generation",
-                        requested_seconds=app.config[
-                            "ALERT_REPORTS_CSV_REQUEST_TIMEOUT"
-                        ],
-                        reserve_seconds=(
-                            self._report_execution_context.post_capture_reserve_seconds
-                            if self._report_execution_context
-                            else 0.0
-                        ),
-                    ),
-                )
+                endpoint = "/api/v1/chart/{id}/data/"
+
+                def fetch(timeout: float | None) -> bytes | None:
+                    """Fetch the legacy export without exposing its URL in logs."""
+                    return get_chart_csv_data(
+                        chart_url=url, auth_cookies=auth_cookies, timeout=timeout
+                    )
             else:
                 request_payload = self._get_chart_data_request_payload(result_format)
                 url = get_url_path("ChartDataRestApi.data")
-                data = self._post_chart_data(
-                    chart_url=url,
-                    auth_cookies=auth_cookies,
-                    request_payload=request_payload,
-                    timeout=self._phase_timeout(
-                        "data_generation",
-                        requested_seconds=app.config[
-                            "ALERT_REPORTS_CSV_REQUEST_TIMEOUT"
-                        ],
-                        reserve_seconds=(
-                            self._report_execution_context.post_capture_reserve_seconds
-                            if self._report_execution_context
-                            else 0.0
-                        ),
-                    ),
-                )
+                endpoint = "/api/v1/chart/data"
+
+                def fetch(timeout: float | None) -> bytes | None:
+                    """Use the saved query context's existing POST export path."""
+                    return self._post_chart_data(
+                        chart_url=url,
+                        auth_cookies=auth_cookies,
+                        request_payload=request_payload,
+                        timeout=timeout,
+                    )
+
+            data = request_chart_data(
+                fetch,
+                get_timeout,
+                retry=app.config["ALERT_REPORTS_CSV_REQUEST_RETRY"],
+                endpoint=endpoint,
+                log_context=self._log_context,
+            )
             elapsed_seconds: float = (
                 datetime.now(timezone.utc).replace(tzinfo=None) - start_time
             ).total_seconds()
             logger.info(
                 "%s data generation from %s as user %s took %.2fs - execution_id: %s",
                 label,
-                url,
+                endpoint,
                 username,
                 elapsed_seconds,
                 self._execution_id,
@@ -1073,6 +1106,10 @@ class BaseReportState:
             if self._report_schedule.type == ReportScheduleType.REPORT:
                 raise
             raise timeout_error() from ex
+        except ChartDataRequestError as ex:
+            if ex.category == "timeout":
+                raise timeout_error() from ex
+            raise failed_error(str(ex)) from ex
         except ReportExecutionBudgetExceededError:
             raise
         except Exception as ex:
@@ -1597,6 +1634,9 @@ class BaseReportState:
         (caller should ``return`` without re-raising), or False if the caller
         should fall through to its own error handling path.
         """
+        if not feature_flag_manager.is_feature_enabled("ALERT_REPORTS_RETRY"):
+            return False
+
         retry_on_failure: bool = self._report_schedule.retry_on_failure
         if not retry_on_failure:
             return False
@@ -1712,7 +1752,8 @@ class ReportNotTriggeredErrorState(BaseReportState):
         # retry delay, consider the retry chain dead and let the new window
         # proceed (e.g., apply_async failed after committing RETRYING).
         if (
-            self._report_schedule.last_state == ReportState.RETRYING
+            feature_flag_manager.is_feature_enabled("ALERT_REPORTS_RETRY")
+            and self._report_schedule.last_state == ReportState.RETRYING
             and self._is_retry_window_stale()
         ):
             max_delay: int = app.config.get(
@@ -1744,6 +1785,8 @@ class ReportNotTriggeredErrorState(BaseReportState):
                     return
             self.send()
             # Clear any retry state from previous failed attempts in this window.
+            # Always reset on success regardless of feature flag — prevents
+            # stale counters from being reused if the flag is later re-enabled.
             self._reset_retry_counter()
             warning_message = (
                 ";".join(self._execution_warnings) if self._execution_warnings else None
@@ -1816,9 +1859,9 @@ class ReportNotTriggeredErrorState(BaseReportState):
                     second_error_message = str(second_ex)
                 finally:
                     try:
-                        self.update_report_schedule_and_log(
-                            ReportState.ERROR,
-                            error_message=second_error_message,
+                        # Notification bookkeeping is not another execution outcome.
+                        self.create_log(
+                            second_error_message,
                             include_execution_warnings=False,
                         )
                     except ReportScheduleUnexpectedError:
@@ -1972,13 +2015,13 @@ class ReportSuccessState(BaseReportState):
 
         try:
             self.send()
-        except Exception as ex:  # pylint: disable=broad-except
-            if self._handle_retry_or_error(str(ex), ex):
+        except Exception as first_ex:  # pylint: disable=broad-except
+            if self._handle_retry_or_error(str(first_ex), first_ex):
                 return  # retry scheduled — exit cleanly
 
             try:
                 self.update_report_schedule_and_log(
-                    ReportState.ERROR, error_message=str(ex)
+                    ReportState.ERROR, error_message=str(first_ex)
                 )
             except (ReportScheduleUnexpectedError, SQLAlchemyError) as logging_ex:
                 # Logging failed (likely StaleDataError), but we still want to
@@ -1991,11 +2034,51 @@ class ReportSuccessState(BaseReportState):
                     exc_info=True,
                 )
                 # Re-raise the original exception, not the logging failure
-                raise ex from logging_ex
+                raise first_ex from logging_ex
+
+            # A delivery failure from the Success/Grace path must notify the
+            # owner just like the first-run path (ReportNotTriggeredErrorState).
+            # Without this, a schedule whose previous run succeeded would fail
+            # silently — e.g. once a screenshot capture starts failing closed.
+            # The error grace period still throttles repeated notifications.
+            if not self.is_in_error_grace_period():
+                second_error_message = REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER
+                try:
+                    self.send_error(
+                        f"Error occurred for {self._report_schedule.type}:"
+                        f" {self._report_schedule.name}",
+                        str(first_ex),
+                    )
+                except SupersetErrorsException as second_ex:
+                    second_error_message = ";".join(
+                        [error.message for error in second_ex.errors]
+                    )
+                except ReportScheduleUnexpectedError:
+                    # send_error failed due to logging issue; log and continue
+                    # to raise the original error
+                    logger.warning(
+                        "Failed to send error notification due to database issue",
+                        exc_info=True,
+                    )
+                except Exception as second_ex:  # pylint: disable=broad-except
+                    second_error_message = str(second_ex)
+                finally:
+                    try:
+                        # Preserve the grace-period marker without another terminal log.
+                        self.create_log(
+                            second_error_message, include_execution_warnings=False
+                        )
+                    except ReportScheduleUnexpectedError:
+                        # Logging failed again; log it but don't hide first_ex
+                        logger.warning(
+                            "Failed to log final error state due to database issue",
+                            exc_info=True,
+                        )
             raise
 
         # send() succeeded — clear retry state and log success. Any execution
-        # warnings are incorporated by create_log().
+        # warnings are incorporated by create_log(). Always reset regardless
+        # of feature flag to prevent stale counters.
         self._reset_retry_counter()
         self.update_report_schedule_and_log(ReportState.SUCCESS, error_message=None)
 
@@ -2058,13 +2141,18 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
             if not self._model:
                 raise ReportScheduleExecuteUnexpectedError()
 
-            if self._model.type == ReportScheduleType.REPORT:
+            # Reports always run under an execution context; alerts join them
+            # only when they deliver a rendered screenshot, so a blank/partial
+            # capture fails closed instead of being delivered. Ownership and
+            # terminal-error persistence remain report-only recovery semantics.
+            if _should_build_execution_context(self._model):
                 # An invocation that enters on WORKING is a duplicate or stale
                 # recovery, not the owner that created the active row. Its state
                 # handler may terminalize a stale execution, but the command
                 # boundary must never infer ownership from a replayed UUID.
                 owns_report_working_state = (
-                    self._model.last_state != ReportState.WORKING
+                    self._model.type == ReportScheduleType.REPORT
+                    and self._model.last_state != ReportState.WORKING
                 )
                 total_seconds = resolve_report_execution_budget_seconds(
                     app.config,

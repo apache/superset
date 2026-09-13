@@ -134,7 +134,7 @@ const plugin: { rules: Record<string, Rule.RuleModule> } = {
             messageId: 'eager',
             data: { property: keyName, fn: callee.callee.name },
             fix(fixer) {
-              const source = context.getSourceCode().getText(prop.value);
+              const source = context.sourceCode.getText(prop.value);
               return fixer.replaceText(prop.value, `() => ${source}`);
             },
           });
@@ -229,4 +229,4 @@ const plugin: { rules: Record<string, Rule.RuleModule> } = {
   },
 };
 
-module.exports = plugin;
+export default plugin;

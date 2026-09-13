@@ -21,6 +21,7 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from flask import g
+from jinja2.exceptions import TemplateSyntaxError
 from pytest_mock import MockerFixture
 
 from superset.commands.sql_lab.streaming_export_command import (
@@ -131,6 +132,24 @@ def test_validate_access_denied(mock_db, mock_query):
         exc_info.value.error.error_type == SupersetErrorType.QUERY_SECURITY_ACCESS_ERROR
     )
     assert exc_info.value.status == 403
+
+
+@patch("superset.commands.sql_lab.streaming_export_command.db")
+def test_validate_jinja_template_error(mock_db, mock_query):
+    """Test validate converts a Jinja TemplateError into a 400 error."""
+    mock_query_result = mock_db.session.query.return_value.filter_by.return_value
+    mock_query_result.one_or_none.return_value = mock_query
+    mock_query.raise_for_access.side_effect = TemplateSyntaxError(
+        "unexpected end of template", lineno=1
+    )
+
+    command = StreamingSqlResultExportCommand("test_client_123")
+
+    with pytest.raises(SupersetErrorException) as exc_info:
+        command.validate()
+
+    assert exc_info.value.error.error_type == SupersetErrorType.GENERIC_COMMAND_ERROR
+    assert exc_info.value.status == 400
 
 
 @patch("superset.commands.sql_lab.streaming_export_command.db")

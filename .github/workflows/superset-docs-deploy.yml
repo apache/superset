@@ -117,8 +117,8 @@ jobs:
         with:
           node-version-file: "./docs/.nvmrc"
       - name: Setup Python
-        uses: ./.github/actions/setup-backend/
-      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        uses: $/.github/actions/setup-backend/
+      - uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
         with:
           distribution: "zulu"
           java-version: "21"
@@ -141,7 +141,7 @@ jobs:
           yarn install --check-cache
       - name: Download database diagnostics (if triggered by integration tests)
         if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success'
-        uses: dawidd6/action-download-artifact@b6e2e70617bc3265edd6dab6c906732b2f1ae151 # v21
+        uses: dawidd6/action-download-artifact@d63b86af1b34672e53c440b1b83979861906bad7 # v24
         continue-on-error: true
         with:
           workflow: superset-python-integrationtest.yml
@@ -150,7 +150,7 @@ jobs:
           path: docs/src/data/
       - name: Try to download latest diagnostics (for push/dispatch triggers)
         if: github.event_name != 'workflow_run'
-        uses: dawidd6/action-download-artifact@b6e2e70617bc3265edd6dab6c906732b2f1ae151 # v21
+        uses: dawidd6/action-download-artifact@d63b86af1b34672e53c440b1b83979861906bad7 # v24
         continue-on-error: true
         with:
           workflow: superset-python-integrationtest.yml
@@ -190,7 +190,14 @@ jobs:
         run: .github/workflows/scripts/check-docs-deploy-freshness.sh
       - name: deploy docs
         if: github.event_name == 'workflow_dispatch' || steps.recheck-freshness.outputs.still-current == 'true'
-        uses: ./.github/actions/github-action-push-to-another-repository
+        # github-action-push-to-another-repository is a submodule (not a
+        # plain directory), and the $/ self-repository syntax resolves
+        # action files directly from the repository without performing a
+        # real (submodule-aware) checkout, so it can't see into a
+        # submodule's link. Keep this one on the workspace-relative ./
+        # form, consistent with every other workflow in the repo that
+        # references a submodule action.
+        uses: ./.github/actions/github-action-push-to-another-repository # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here
         env:
           API_TOKEN_GITHUB: ${{ secrets.SUPERSET_SITE_BUILD }}
         with:
