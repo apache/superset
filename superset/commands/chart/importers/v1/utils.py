@@ -16,10 +16,15 @@
 # under the License.
 
 import copy
+import logging
 from inspect import isclass
 from typing import Any
 
 from superset import db, security_manager
+from superset.commands.chart.query_context_builder import build_query_context_config
+from superset.commands.chart.query_context_generator import (
+    get_query_context_generator,
+)
 from superset.commands.exceptions import ImportFailedError
 from superset.commands.importers.v1.utils import (
     apply_extra_import_fields,
@@ -31,6 +36,8 @@ from superset.models.slice import Slice
 from superset.subjects.models import Subject
 from superset.utils import json
 from superset.utils.core import AnnotationType, get_user
+
+logger = logging.getLogger(__name__)
 
 
 def filter_chart_annotations(chart_config: dict[str, Any]) -> None:
@@ -137,6 +144,83 @@ def _prepare_existing_chart_for_import(
     return None
 
 
+def _synthesize_query_context_if_absent(config: dict[str, Any]) -> None:
+    """
+    Synthesize a ``query_context`` for an imported chart that arrives without
+    one, so the first ``GET /api/v1/chart/{pk}/data/`` returns data instead of
+    HTTP 400 "Chart has no query context saved" (issue #33615, ADR-013). Guarded
+    on an ABSENT context so an existing/remapped one is never overwritten
+    (FR-006); mutates ``config`` in place.
+
+    Two-tier derivation:
+      1. AUTHORITATIVE — run the chart's real frontend ``buildQuery`` in V8
+         (QueryContextGenerator) for byte-faithful parity with the UI.
+      2. FALLBACK — a pure-Python generic derivation
+         (``build_query_context_config``) when the V8 bundle / py_mini_racer is
+         unavailable or the viz type is not (yet) covered by the bundle.
+    Either way the datasource is taken from the importer-resolved id/type ONLY,
+    never a value carried in params (ADR-014 authz/RLS). A per-chart derivation
+    error must never abort the bundle (RISK-T03 / FR-004).
+    """
+    if config.get("query_context"):
+        return
+    try:
+        params = config.get("params") or {}
+        # ``params`` is a dict early in the import flow but a JSON string once
+        # serialized ahead of migration; accept either so synthesis can run
+        # after ``migrate_chart`` on the migrated form data.
+        if isinstance(params, str):
+            try:
+                params = json.loads(params) or {}
+            except (json.JSONDecodeError, TypeError):
+                params = {}
+        viz_type = config["viz_type"]
+        datasource_id = config.get("datasource_id")
+        datasource_type = config.get("datasource_type", "table")
+
+        query_context_config = None
+        if datasource_id:
+            # form_data for the JS builder: the datasource is the
+            # importer-resolved id/type only (overwrite any incoming
+            # params.datasource — never trust it; ADR-014).
+            js_params = {
+                **params,
+                "datasource": f"{datasource_id}__{datasource_type}",
+            }
+            # Drop the source chart's exported `slice_id`: passing it to the V8
+            # buildQuery would let QueryContextFactory resolve an unrelated chart
+            # that happens to share that id in this installation, changing that
+            # chart's cache/guest-access behavior. The synthesized context must be
+            # bound to the datasource only, never a foreign slice.
+            js_params.pop("slice_id", None)
+            query_context_config = get_query_context_generator().generate(
+                viz_type, js_params
+            )
+        if query_context_config is None:
+            query_context_config = build_query_context_config(
+                params, viz_type, datasource_id, datasource_type
+            )
+
+        if query_context_config is not None:
+            config["query_context"] = json.dumps(query_context_config)
+            logger.info(
+                "Synthesized query_context for imported chart %s (queryable)",
+                config.get("uuid"),
+            )
+        else:
+            logger.info(
+                "Imported chart %s classified non-derivable; query_context left empty",
+                config.get("uuid"),
+            )
+    except Exception:  # pylint: disable=broad-except
+        # Non-derivable on error: leave query_context unset and keep going.
+        logger.warning(
+            "query_context synthesis failed for imported chart %s; "
+            "importing without a query_context",
+            config.get("uuid"),
+        )
+
+
 def import_chart(
     config: dict[str, Any],
     overwrite: bool = False,
@@ -201,6 +285,13 @@ def import_chart(
 
     # migrate old viz types to new ones
     config = migrate_chart(config)
+
+    # Synthesize the query_context AFTER migration so legacy viz types (e.g.
+    # dual_line -> mixed_timeseries) derive their queries from the migrated
+    # viz_type and params rather than the pre-migration form data (#33615
+    # review). Guarded on an absent context, so a chart that shipped its own
+    # query_context (already patched by migrate_chart) is never overwritten.
+    _synthesize_query_context_if_absent(config)
 
     extra = config.pop("extra", None)
     chart = Slice.import_from_dict(config, recursive=False, allow_reparenting=True)
