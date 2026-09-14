@@ -24,6 +24,29 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Default Docker image is now batteries-included; the minimal image moves to `-lean`
+
+The default `apache/superset` Docker image (the plain tags: `latest`, `master`,
+`5.0.0`, per-SHA) is now a batteries-included, production-grade image. It bundles
+the common metadata/analytics drivers (`psycopg2-binary` for PostgreSQL,
+`mysqlclient` for MySQL), the MCP server dependencies (`fastmcp`), and a headless
+Chromium (via Playwright) for Alerts & Reports and thumbnail generation. It still
+runs as the non-root `superset` user and is byte-compiled like before.
+
+The previous minimal image — with **no** database drivers — is still published,
+but under `-lean` tags: `latest-lean`, `master-lean`, `5.0.0-lean`, `<sha>-lean`.
+
+**What operators should expect:**
+
+- **The default image is larger** (several hundred MB more) because it ships a
+  headless Chromium and extra drivers. If you were relying on the minimal default
+  and layering your own drivers, switch your base image to the corresponding
+  `-lean` tag (for example `FROM apache/superset:master` becomes
+  `FROM apache/superset:master-lean`) to keep the previous footprint.
+- **No config change is required** for most deployments; the metadata-database
+  drivers most installations need are now present out of the box.
+- The `-dev` images (`latest-dev`, `master-dev`, …) are unchanged.
+
 ### Report capture readiness is rechecked immediately before screenshots
 
 Scheduled report and alert captures require chart readiness to remain stable
@@ -249,6 +272,7 @@ unknown impact as zero. Chart and dashboard purge endpoints are unchanged.
 
 - The dashboard datasource-based visibility fallback now fails closed: a dashboard whose member charts’ datasources cannot be resolved (deleted datasource rows, missing `datasource_id`, or unsupported datasource types) is no longer accessible to users without explicit editor/viewer rights, and a dashboard composed of semantic-view charts now requires `datasource_access` on (at least one of) its semantic views or their parent semantic layer — previously any authenticated user could open such a dashboard’s shell. Because the fallback now considers every member chart rather than only table-backed ones, a user holding `datasource_access` on any single member datasource — including a semantic view or its parent layer — can open a mixed dashboard that previously denied them. Dashboards with no charts remain accessible, and dashboards with explicit viewers are unaffected. Conversely, holders of `all_datasource_access` now see every published no-viewer dashboard in the dashboard list — including chart-less ones previously hidden by the inner joins — matching what the object-level gate already allowed them to open.
 - Version restore (`POST /api/v1/{chart,dashboard,dataset}/<uuid>/versions/<version_uuid>/restore`) now refuses an **externally managed** entity (`is_managed_externally = True`) with HTTP 403, enforcing server-side what the docs already promised. Previously the refusal existed only in the browser, so an otherwise-authorized editor could restore such an entity by calling the endpoint directly and have the restore overwritten on the next external sync. Soft-delete recovery is deliberately unaffected — it changes visibility, not content.
+- With version history enabled, the first save through the chart editor of a chart created by an older Superset version, an import, or the API may record a one-time settings-migration entry alongside the user's change. On a chart opened normally in Explore nearly all of it is suppressed from the readable history (apache/superset#43350) — the legacy-time rewrite into `adhoc_filters` happens during control initialization and is suppressed with the rest — so what can still record is what the save itself adds (`dashboards`, `query_context`) plus one narrow edge: a legacy key the rewrite removes (such as `granularity_sqla`) can record its removal while its modern replacement stays suppressed. When Explore is opened from a dashboard, via a shared `form_data_key` link, or with a `viz_type` URL parameter, that suppression evidence is deliberately not collected (fail-open), so a first save from those entry points can record the broader set of automatic rewrites. Subsequent saves of the same chart are unaffected. This can recur once per pre-existing chart after an upgrade.
 - `SAMPLES_ROW_LIMIT` is now the default for `/datasource/samples` requests without a valid explicit `per_page`, rather than a hard per-request ceiling; explicit limits are honored up to the existing global row-limit ceiling, matching `/chart/data` SAMPLES requests.
 - The `cockroachdb` extra (`pip install apache-superset[cockroachdb]`) now installs `sqlalchemy-cockroachdb` instead of the abandoned `cockroachdb` package, whose SQLAlchemy dialect could not be imported under SQLAlchemy 2.0. Existing environments with the old package installed must `pip uninstall cockroachdb` before reinstalling the extra -- both packages register the same `cockroachdb` SQLAlchemy dialect entry point, so leaving the old one in place can still load the abandoned implementation.
 
