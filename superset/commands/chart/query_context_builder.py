@@ -47,9 +47,6 @@ from superset.utils.core import split_adhoc_filters_into_base_filters
 # context that 400s on the data endpoint whenever the V8 bundle is unavailable.
 _NON_DATASOURCE_VIZ: frozenset[str] = frozenset({"markup", "divider"})
 
-# Default row limit mirrors the query-object default used across the read path.
-_DEFAULT_ROW_LIMIT = 5000
-
 
 def _translate_adhoc_filters(
     adhoc_filters: list[Any] | None,
@@ -141,6 +138,12 @@ def build_query_context_config(
         metrics = [params["metric"]]
     # `groupby` is the deprecated alias of `columns`.
     columns = params.get("columns") or params.get("groupby") or []
+    # Raw (non-aggregated) tables carry no metrics/groupby and select row-level
+    # ``all_columns`` instead. Without this the bundled raw ``Table.yaml``
+    # (query_mode: raw, empty metrics/groupby, populated all_columns) is
+    # misclassified non-derivable and its data endpoint 400s (#33615 review).
+    if not columns and params.get("query_mode") == "raw":
+        columns = params.get("all_columns") or []
     if not metrics and not columns:
         return None
 
@@ -160,7 +163,11 @@ def build_query_context_config(
         "metrics": metrics,
         "orderby": _derive_orderby(params),
         "annotation_layers": [],
-        "row_limit": params.get("row_limit", _DEFAULT_ROW_LIMIT),
+        # Leave ``row_limit`` unset when the chart does not specify one so the
+        # read path applies the runtime-configured ``ROW_LIMIT`` (50,000 by
+        # default), rather than baking in a hard-coded cap that would silently
+        # truncate imported charts to fewer rows than the UI shows (#33615 review).
+        "row_limit": params.get("row_limit"),
         "timeseries_limit": 0,
         "order_desc": params.get("order_desc", True),
         "url_params": {},

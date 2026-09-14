@@ -22,13 +22,24 @@
 // by entry.ts. Join: buildQuery module  <- (index.ts that imports it) -> plugin class
 // name -> MainPreset `.configure({ key: VizType.X })` -> VizType enum string.
 // A single builder legitimately maps to several keys (e.g. echarts_timeseries + _line/_bar/...).
-import { readFileSync, writeFileSync, readdirSync, statSync, existsSync } from 'node:fs';
+import {
+  readFileSync,
+  writeFileSync,
+  readdirSync,
+  statSync,
+  existsSync,
+} from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const FE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PLUGINS = path.join(FE, 'plugins');
-const OUT = path.join(FE, 'src', 'backend-querycontext', 'registry.generated.ts');
+const OUT = path.join(
+  FE,
+  'src',
+  'backend-querycontext',
+  'registry.generated.ts',
+);
 
 // --- 1. VizType enum: EnumName -> 'string_value' ---
 const vizTypeSrc = readFileSync(
@@ -36,7 +47,8 @@ const vizTypeSrc = readFileSync(
   'utf8',
 );
 const VIZ_ENUM = {};
-for (const m of vizTypeSrc.matchAll(/(\w+)\s*=\s*['"]([\w-]+)['"]/g)) VIZ_ENUM[m[1]] = m[2];
+for (const m of vizTypeSrc.matchAll(/(\w+)\s*=\s*['"]([\w-]+)['"]/g))
+  VIZ_ENUM[m[1]] = m[2];
 
 // --- 2. MainPreset: ClassName -> viz string ---
 const mainPreset = readFileSync(
@@ -47,7 +59,9 @@ const mainPreset = readFileSync(
 // PivotTableChartPluginV2 } from '...'`), then `new PivotTableChartPluginV2()`. Map
 // each local `new X()` name back to the ORIGINAL package export name the codegen sees.
 const importOrig = {}; // localName -> package-export name
-for (const im of mainPreset.matchAll(/import\s*\{([^}]*)\}\s*from\s*['"][^'"]+['"]/g)) {
+for (const im of mainPreset.matchAll(
+  /import\s*\{([^}]*)\}\s*from\s*['"][^'"]+['"]/g,
+)) {
   for (let spec of im[1].split(',')) {
     spec = spec.trim();
     if (!spec) continue;
@@ -79,8 +93,8 @@ function walk(dir, acc = []) {
   return acc;
 }
 const files = walk(PLUGINS);
-const indexFiles = files.filter((f) => /[/\\]index\.ts$/.test(f));
-const buildQueryFiles = files.filter((f) => /[/\\]buildQuery\.(ts|js)$/.test(f));
+const indexFiles = files.filter(f => /[/\\]index\.ts$/.test(f));
+const buildQueryFiles = files.filter(f => /[/\\]buildQuery\.(ts|js)$/.test(f));
 
 // resolve an import specifier from a file to an absolute module file (ts/js/index)
 function resolveImport(fromFile, spec) {
@@ -105,7 +119,9 @@ const edges = new Map(); // node -> node it forwards to
 const key = (name, file) => `${name}@${file}`;
 for (const idx of indexFiles) {
   const src = readFileSync(idx, 'utf8');
-  for (const m of src.matchAll(/export\s*\{([^}]*)\}\s*from\s*['"]([^'"]+)['"]/g)) {
+  for (const m of src.matchAll(
+    /export\s*\{([^}]*)\}\s*from\s*['"]([^'"]+)['"]/g,
+  )) {
     const target = resolveImport(idx, m[2]);
     if (!target) continue;
     for (let spec of m[1].split(',')) {
@@ -149,8 +165,13 @@ for (const bq of buildQueryFiles) {
   const owningIndexes = new Set();
   for (const idx of indexFiles) {
     const src = readFileSync(idx, 'utf8');
-    for (const m of src.matchAll(/import\s+\w+\s+from\s+['"]([^'"]+buildQuery)['"]/g)) {
-      if (resolveImport(idx, m[1]) === bqAbs && /export\s+default\s+class\s+\w+/.test(src))
+    for (const m of src.matchAll(
+      /import\s+\w+\s+from\s+['"]([^'"]+buildQuery)['"]/g,
+    )) {
+      if (
+        resolveImport(idx, m[1]) === bqAbs &&
+        /export\s+default\s+class\s+\w+/.test(src)
+      )
         owningIndexes.add(path.resolve(idx));
     }
   }
@@ -161,10 +182,32 @@ for (const bq of buildQueryFiles) {
     if (localCls) aliases.add(localCls[1]); // direct (unrenamed) registration
     for (const a of aliasesForDefault(idx)) aliases.add(a); // renamed re-exports
   }
-  const vizKeys = [...new Set([...aliases].map((c) => CLASS_TO_VIZ[c]).filter(Boolean))];
+  const vizKeys = [
+    ...new Set([...aliases].map(c => CLASS_TO_VIZ[c]).filter(Boolean)),
+  ];
   if (vizKeys.length === 0)
     unmapped.push({ bq: path.relative(FE, bq), classes: [...aliases] });
   else for (const v of vizKeys) REGISTRY[v] = bqAbs;
+}
+
+// --- 4b. Explicit overrides for plugins the structural matchers above do not
+// cover yet: Chord registers its buildQuery lazily
+// (`loadBuildQuery: () => import('./buildQuery')`) rather than as a static
+// default import, and Cartodiagram is constructed with arguments
+// (`new CartodiagramPlugin({...}).configure(...)`) rather than the empty-paren
+// form. Mapped explicitly so this change stays scoped to the two viz types
+// raised in review (#33615); generalizing the matchers to every such plugin is
+// left as a follow-up. Each path is asserted to exist so a plugin move surfaces
+// here instead of silently dropping the entry.
+const EXPLICIT_BUILD_QUERY = {
+  chord: 'plugins/plugin-chart-chord/src/buildQuery.ts',
+  cartodiagram: 'plugins/plugin-chart-cartodiagram/src/plugin/buildQuery.ts',
+};
+for (const [viz, rel] of Object.entries(EXPLICIT_BUILD_QUERY)) {
+  const abs = path.resolve(FE, rel);
+  if (!existsSync(abs))
+    throw new Error(`EXPLICIT_BUILD_QUERY path missing for '${viz}': ${rel}`);
+  REGISTRY[viz] = abs;
 }
 
 // --- 5. emit registry.generated.ts ---
@@ -185,8 +228,12 @@ for (const [, abs] of entries) {
     imports += `import ${id} from '${rel}';\n`;
   }
 }
+// Quote object keys only when required (dashes etc.), matching oxfmt's `as-needed`
+// style so the emitted file is oxfmt-idempotent and the `--check` and oxfmt hooks agree.
+const propKey = k => (/^[A-Za-z_$][\w$]*$/.test(k) ? k : `'${k}'`);
 let body = 'export const REGISTRY: Record<string, (fd: any) => any> = {\n';
-for (const [viz, abs] of entries) body += `  '${viz}': ${nameByPath.get(abs)} as (fd: any) => any,\n`;
+for (const [viz, abs] of entries)
+  body += `  ${propKey(viz)}: ${nameByPath.get(abs)} as (fd: any) => any,\n`;
 body += '};\n\nexport const VIZ_TYPES: string[] = Object.keys(REGISTRY);\n';
 
 const header = `// Licensed to the Apache Software Foundation (ASF) under one
@@ -229,5 +276,6 @@ console.log(`buildQuery modules: ${buildQueryFiles.length}`);
 console.log(`viz keys mapped: ${entries.length}`);
 console.log(`keys: ${entries.map(([v]) => v).join(', ')}`);
 console.log(`unmapped buildQuery (no MainPreset key): ${unmapped.length}`);
-for (const u of unmapped) console.log(`  - ${u.bq} (classes: ${u.classes.join(',') || 'none'})`);
+for (const u of unmapped)
+  console.log(`  - ${u.bq} (classes: ${u.classes.join(',') || 'none'})`);
 console.log(`wrote ${path.relative(FE, OUT)}`);

@@ -151,6 +151,38 @@ def test_handlebars_is_derivable() -> None:
     assert query_context["queries"][0]["metrics"] == ["count"]
 
 
+def test_raw_mode_all_columns_is_derivable() -> None:
+    """
+    A raw-mode table (``query_mode: raw``) carries no metrics/groupby and selects
+    row-level ``all_columns``. It must be derivable from ``all_columns`` rather
+    than classified non-derivable — the bundled raw ``Table.yaml`` otherwise kept
+    a null query_context and 400d on its data endpoint (#33615 review).
+    """
+    params = {
+        "query_mode": "raw",
+        "metrics": [],
+        "groupby": [],
+        "all_columns": ["gender", "name"],
+    }
+    query_context = build_query_context_config(params, "table", 7, "table")
+    assert query_context is not None
+    assert query_context["queries"][0]["columns"] == ["gender", "name"]
+    assert query_context["queries"][0]["metrics"] == []
+
+
+def test_row_limit_absent_left_unset_for_runtime_default() -> None:
+    """
+    When the chart specifies no ``row_limit`` the payload must leave it unset so
+    the read path applies the runtime-configured ``ROW_LIMIT``, rather than baking
+    in a hard-coded cap that silently truncates imported charts (#33615 review).
+    """
+    query_context = build_query_context_config(
+        {"metrics": ["count"]}, "table", 7, "table"
+    )
+    assert query_context is not None
+    assert query_context["queries"][0]["row_limit"] is None
+
+
 def test_adhoc_simple_filter_translation() -> None:
     """SIMPLE adhoc filters → simple {col, op, val} filters."""
     params = {
