@@ -201,9 +201,13 @@ const ColumnSelectPopoverTriggerInner = ({
         title={popoverTitle}
         destroyOnHidden
       >
-        {/* Wrap in span so the Popover can attach a ref without relying
-            on findDOMNode (deprecated in React 18+). */}
-        <span>{children}</span>
+        {/* Wrap in a span so the Popover can attach a ref without relying
+            on findDOMNode (deprecated in React 18+). It must be block-level:
+            antd anchors the popup to this element's box, and a bare inline
+            span around block content (or the empty placeholder the "add new"
+            popovers use) measures 0×0 at the control's left edge, which
+            renders the popover detached (sc-120502). */}
+        <span style={{ display: 'block' }}>{children}</span>
       </ControlPopover>
     </>
   );
