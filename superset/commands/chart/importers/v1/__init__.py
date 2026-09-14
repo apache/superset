@@ -125,9 +125,17 @@ class ImportChartsCommand(ImportModelsCommand):
                 chart = import_chart(
                     config, overwrite=overwrite, default_viewers=default_viewers
                 )
+                # Count the synthesis outcome from what THIS import did to the
+                # config, not from the returned row. `import_chart` returns an
+                # existing chart unchanged (before synthesis runs) when
+                # `overwrite` is false, so keying off `chart.query_context` would
+                # report that row's pre-existing context as newly synthesized by
+                # this import (#33615 review). `_synthesize_query_context_if_absent`
+                # only writes `config["query_context"]` when it actually derives
+                # one, so the config is the honest signal.
                 if had_query_context:
                     n_preserved += 1
-                elif chart.query_context:
+                elif config.get("query_context"):
                     n_queryable += 1
                 else:
                     n_non_derivable += 1

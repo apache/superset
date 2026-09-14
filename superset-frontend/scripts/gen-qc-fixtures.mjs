@@ -22,7 +22,7 @@
 // Node's V8. A viz is COVERED if its builder returns a real query_context on the base
 // form_data; otherwise it's honestly SKIPPED (reason recorded) — never faked.
 import { build } from 'esbuild';
-import { writeFileSync, mkdirSync } from 'node:fs';
+import { writeFileSync, mkdirSync, readdirSync, rmSync } from 'node:fs';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
@@ -63,7 +63,7 @@ const VIZ_TYPES = mod.exports.VIZ_TYPES || globalThis.SUPERSET_QC_VIZ_TYPES;
 // A deliberately broad base form_data — each plugin's buildQuery reads the fields it
 // needs and ignores the rest. Family-specific fields are all populated so most
 // builders find what they require without per-viz hand-tuning.
-const baseFor = (viz) => ({
+const baseFor = viz => ({
   datasource: '1__table',
   viz_type: viz,
   metric: 'count',
@@ -115,16 +115,42 @@ for (const viz of VIZ_TYPES) {
     continue;
   }
   if (!out || out.__unsupported__ || out.__error__) {
-    skipped.push([viz, out && out.__error__ ? `builder error: ${String(out.__error__).slice(0, 140)}` : 'unsupported']);
+    skipped.push([
+      viz,
+      out && out.__error__
+        ? `builder error: ${String(out.__error__).slice(0, 140)}`
+        : 'unsupported',
+    ]);
     continue;
   }
   if (!Array.isArray(out.queries) || out.queries.length === 0) {
     skipped.push([viz, 'no queries produced']);
     continue;
   }
-  writeFileSync(`${FEX}/formdata/${viz}.json`, `${JSON.stringify(fd, null, 2)}\n`);
-  writeFileSync(`${FEX}/expected/${viz}.json`, `${JSON.stringify(out, null, 2)}\n`);
+  writeFileSync(
+    `${FEX}/formdata/${viz}.json`,
+    `${JSON.stringify(fd, null, 2)}\n`,
+  );
+  writeFileSync(
+    `${FEX}/expected/${viz}.json`,
+    `${JSON.stringify(out, null, 2)}\n`,
+  );
   covered.push(viz);
+}
+
+// Reconcile: drop stale fixtures for viz types no longer covered (a plugin
+// removed/renamed, or one that stopped producing a query_context). Otherwise an
+// obsolete formdata/<viz>.json keeps failing the parity test's VIZ_TYPES
+// membership check, or an expected/<viz>.json compares against an outdated golden.
+const keep = new Set(covered.map(v => `${v}.json`));
+const removed = [];
+for (const dir of [`${FEX}/formdata`, `${FEX}/expected`]) {
+  for (const f of readdirSync(dir)) {
+    if (f.endsWith('.json') && !keep.has(f)) {
+      rmSync(`${dir}/${f}`);
+      removed.push(`${dir}/${f}`);
+    }
+  }
 }
 
 console.log(`REGISTRY viz types: ${VIZ_TYPES.length}`);
@@ -132,3 +158,5 @@ console.log(`COVERED (fixture+golden written): ${covered.length}`);
 console.log(`  ${covered.join(', ')}`);
 console.log(`SKIPPED (base form_data insufficient): ${skipped.length}`);
 for (const [v, r] of skipped) console.log(`  - ${v}: ${r}`);
+console.log(`REMOVED (stale fixtures reconciled): ${removed.length}`);
+for (const f of removed) console.log(`  - ${f}`);

@@ -126,11 +126,19 @@ def backfill_query_context(
 
     updated = 0
     non_derivable = 0
+    skipped = 0
     errors = 0
 
     for start in range(0, len(chart_ids), batch_size):
         batch_ids = chart_ids[start : start + batch_size]
         for chart in db.session.query(Slice).filter(Slice.id.in_(batch_ids)):
+            # Guard against a race with the id snapshot: a chart can gain a
+            # query_context (an import, an edit) between the snapshot above and
+            # this batch reload. The backfill only fills genuinely empty ones, so
+            # never overwrite a context that now exists (#33615 review).
+            if chart.query_context is not None:
+                skipped += 1
+                continue
             try:
                 context = _derive_query_context(chart, generator)
             except Exception as ex:  # pylint: disable=broad-except
@@ -157,5 +165,6 @@ def backfill_query_context(
     prefix = "[dry-run] would update" if dry_run else "updated"
     click.echo(
         f"backfill-query-context: {prefix} {updated}, "
-        f"non-derivable (left null) {non_derivable}, errors {errors}."
+        f"non-derivable (left null) {non_derivable}, "
+        f"skipped (already had context) {skipped}, errors {errors}."
     )
