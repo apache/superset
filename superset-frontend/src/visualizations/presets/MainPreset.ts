@@ -65,6 +65,7 @@ import {
   EchartsRoseChartPlugin,
   EchartsTimePivotChartPlugin,
   EchartsBulletChartPlugin,
+  EchartsButterflyChartPlugin,
 } from '@superset-ui/plugin-chart-echarts';
 import {
   SelectFilterPlugin,
@@ -162,6 +163,9 @@ export default class MainPreset extends Preset {
         }),
         new EchartsWaterfallChartPlugin().configure({
           key: VizType.Waterfall,
+        }),
+        new EchartsButterflyChartPlugin().configure({
+          key: VizType.Butterfly,
         }),
         new EchartsHeatmapChartPlugin().configure({ key: VizType.Heatmap }),
         new EchartsHistogramChartPlugin().configure({ key: VizType.Histogram }),

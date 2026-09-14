@@ -70,9 +70,8 @@ class TestManageDashboardCertification:
         assert dash.certification_details == "Verified against source-of-truth."
         assert mock_session.commit.call_count >= 1
         payload: dict[str, Any] = json.loads(result.content[0].text)
-        # Response text is wrapped for LLM context (mirrors the read-path
-        # sanitization on DashboardInfo.certified_by), so check substring.
-        assert "Data Platform Team" in payload["certified_by"]
+        assert payload["certified_by"] == "Data Platform Team"
+        assert payload["certification_details"] == "Verified against source-of-truth."
         assert set(payload["changed_fields"]) == {
             "certified_by",
             "certification_details",

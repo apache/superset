@@ -64,9 +64,10 @@ class BaseRestoreVersionCommand(BaseCommand):
     #: failure modes. ``not_found_exc`` covers "no such entity",
     #: "version_uuid not on this entity", and "capture disabled" (the
     #: route is inert under the kill-switch); the API handler maps each
-    #: to HTTP 404. ``forbidden_exc`` covers the row-level editorship
-    #: denial (HTTP 403). ``failed_exc`` wraps unexpected failures inside
-    #: the transaction (HTTP 422).
+    #: to HTTP 404. ``forbidden_exc`` covers the row-level editorship denial
+    #: and the refusal to restore an externally managed entity (both HTTP
+    #: 403). ``failed_exc`` wraps unexpected failures inside the transaction
+    #: (HTTP 422).
     not_found_exc: ClassVar[type[Exception]]
     forbidden_exc: ClassVar[type[Exception]]
     failed_exc: ClassVar[type[Exception]]
@@ -138,8 +139,8 @@ class BaseRestoreVersionCommand(BaseCommand):
         # With capture off, Continuum's write listeners are detached: a
         # revert would mutate the live entity with NO new version row —
         # a destructive, untracked write. The whole restore surface is
-        # therefore inert under the kill-switch, matching the read-side
-        # convention (404, indistinguishable from "no such version").
+        # therefore inert under the kill-switch (404, indistinguishable from
+        # "no such version"). Existing history remains readable.
         if not capture_enabled():
             raise self.not_found_exc()
         entity = find_active_by_uuid(self.model_cls, self._uuid)
@@ -149,4 +150,15 @@ class BaseRestoreVersionCommand(BaseCommand):
             security_manager.raise_for_editorship(entity)
         except SupersetSecurityException as ex:
             raise self.forbidden_exc() from ex
+        # Restore is withheld from externally managed entities: their source of
+        # truth lives outside Superset and would overwrite the restore on the
+        # next sync (documented in version-history.mdx). This must be enforced
+        # server-side, not only in the browser — an authorized editor could
+        # otherwise call the endpoint directly. Raised as forbidden_exc (HTTP
+        # 403); FAB's response_403 returns a fixed ``{"message": "Forbidden"}``
+        # body with no reason detail, identical to the editorship denial above,
+        # so the refusal discloses nothing but also can't be distinguished from
+        # a permission denial.
+        if entity.is_managed_externally:
+            raise self.forbidden_exc()
         return entity

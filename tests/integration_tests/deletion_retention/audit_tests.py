@@ -29,6 +29,10 @@ from sqlalchemy.orm import Session
 from superset import db
 from superset.commands.deletion_retention import audit
 from superset.commands.deletion_retention.audit import PurgeAuditLog
+from superset.commands.deletion_retention.purge_policy import (
+    REASON_CASCADE_INTEGRITY_FAILURE,
+    REASON_REPORT_SCHEDULE,
+)
 from superset.models.slice import Slice
 from superset.tasks.deletion_retention import _purge_impl
 
@@ -75,6 +79,7 @@ class TestPurgeAudit(DeletionRetentionTestBase):
         assert row.trigger == audit.TRIGGER_RETENTION
         assert row.actor == audit.ACTOR_SYSTEM
         assert row.confirmed_on is not None
+        assert row.reason is None
         assert isinstance(row.id, UUID)
 
     def test_known_failure_finalizes_audit_row(self) -> None:
@@ -97,6 +102,7 @@ class TestPurgeAudit(DeletionRetentionTestBase):
         row = db.session.query(PurgeAuditLog).filter_by(entity_uuid=chart_uuid).one()
         assert row.status == audit.STATUS_FAILED
         assert row.confirmed_on is None
+        assert row.reason is None
 
     def test_reconcile_confirms_pending_after_entity_commit(self) -> None:
         """A crash after entity commit is reconciled to confirmed."""
@@ -172,6 +178,9 @@ class TestPurgeAudit(DeletionRetentionTestBase):
         row = db.session.get(PurgeAuditLog, record_id)
         assert row.status == audit.STATUS_TARGET_ABSENT
         assert row.removed_dashboard_slices == 0
+        # The reconcile crash window is the documented reason-losing path:
+        # finalized rows here never carry a fabricated code.
+        assert row.reason is None
 
     def test_blocked_attempt_does_not_keep_the_intended_removal_count(self) -> None:
         """The write-ahead row records what the purge INTENDED to remove;
@@ -184,7 +193,7 @@ class TestPurgeAudit(DeletionRetentionTestBase):
             entity_uuid="00000000-0000-0000-0000-00000000cafe",
             removed_dashboard_slices=7,
         )
-        audit.block(record_id)
+        audit.block(record_id, REASON_REPORT_SCHEDULE)
 
         row = db.session.query(PurgeAuditLog).filter_by(id=record_id).one()
         assert row.status == audit.STATUS_BLOCKED
@@ -194,20 +203,56 @@ class TestPurgeAudit(DeletionRetentionTestBase):
         record_id: UUID = self._write_retention_record(entity_uuid="first-block")
 
         disposition: audit.RetentionBlockedDisposition = (
-            audit.finalize_retention_blocked(record_id)
+            audit.finalize_retention_blocked(record_id, REASON_REPORT_SCHEDULE)
         )
 
         record: PurgeAuditLog = self._get_audit_record(record_id)
         assert disposition == "retained"
         assert record.status == audit.STATUS_BLOCKED
+        assert record.reason == REASON_REPORT_SCHEDULE
+
+    def test_reason_is_persisted_only_for_blocked_outcomes(self) -> None:
+        """A reason offered for a non-blocked outcome is refused, not stored.
+
+        The audit records a cause for a purge that did not happen; a
+        confirmed or failed row asserting a blocker would misreport its own
+        outcome.
+        """
+        for status in (
+            audit.STATUS_CONFIRMED,
+            audit.STATUS_FAILED,
+            audit.STATUS_TARGET_ABSENT,
+        ):
+            record_id: UUID = self._write_retention_record(
+                entity_uuid=f"non-blocked-{status}"
+            )
+            audit.finalize(record_id, status, reason=REASON_REPORT_SCHEDULE)
+
+            record: PurgeAuditLog = self._get_audit_record(record_id)
+            db.session.refresh(record)
+            assert record.status == status
+            assert record.reason is None
+
+    def test_finalized_reason_is_immutable(self) -> None:
+        """A second finalization attempt never rewrites the recorded reason."""
+        record_id: UUID = self._write_retention_record(entity_uuid="reason-immutable")
+        audit.finalize_retention_blocked(record_id, REASON_REPORT_SCHEDULE)
+
+        audit.block(record_id, "some_other_code")
+        audit.finalize_retention_blocked(record_id, "some_other_code")
+
+        record: PurgeAuditLog = self._get_audit_record(record_id)
+        db.session.refresh(record)
+        assert record.status == audit.STATUS_BLOCKED
+        assert record.reason == REASON_REPORT_SCHEDULE
 
     def test_repeated_retention_block_suppresses_current_provisional(self) -> None:
         first_id: UUID = self._write_retention_record(entity_uuid="repeat-block")
-        audit.finalize_retention_blocked(first_id)
+        audit.finalize_retention_blocked(first_id, REASON_REPORT_SCHEDULE)
         second_id: UUID = self._write_retention_record(entity_uuid="repeat-block")
 
         disposition: audit.RetentionBlockedDisposition = (
-            audit.finalize_retention_blocked(second_id)
+            audit.finalize_retention_blocked(second_id, REASON_REPORT_SCHEDULE)
         )
 
         assert disposition == "suppressed"
@@ -215,18 +260,160 @@ class TestPurgeAudit(DeletionRetentionTestBase):
         assert first.status == audit.STATUS_BLOCKED
         assert db.session.get(PurgeAuditLog, second_id) is None
 
+    def test_reason_change_breaks_suppression_exactly_once(self) -> None:
+        """A reason change writes one new blocked row, then re-suppresses.
+
+        The suppression predicate keys on status AND reason: same-reason
+        nights suppress; the night the reason changes is retained with the
+        new code and becomes the new anchor.
+        """
+        entity: str = "reason-change"
+        first_id: UUID = self._write_retention_record(entity_uuid=entity)
+        assert (
+            audit.finalize_retention_blocked(first_id, REASON_REPORT_SCHEDULE)
+            == "retained"
+        )
+        second_id: UUID = self._write_retention_record(entity_uuid=entity)
+        assert (
+            audit.finalize_retention_blocked(second_id, REASON_REPORT_SCHEDULE)
+            == "suppressed"
+        )
+        changed_id: UUID = self._write_retention_record(entity_uuid=entity)
+        assert (
+            audit.finalize_retention_blocked(
+                changed_id, REASON_CASCADE_INTEGRITY_FAILURE
+            )
+            == "retained"
+        )
+        repeat_id: UUID = self._write_retention_record(entity_uuid=entity)
+        assert (
+            audit.finalize_retention_blocked(
+                repeat_id, REASON_CASCADE_INTEGRITY_FAILURE
+            )
+            == "suppressed"
+        )
+
+        rows: list[PurgeAuditLog] = (
+            db.session.query(PurgeAuditLog).filter_by(entity_uuid=entity).all()
+        )
+        assert {row.reason for row in rows} == {
+            REASON_REPORT_SCHEDULE,
+            REASON_CASCADE_INTEGRITY_FAILURE,
+        }
+        assert len(rows) == 2
+        assert all(row.status == audit.STATUS_BLOCKED for row in rows)
+
+    def test_mixed_reason_timestamp_tie_is_ambiguous_and_retains(self) -> None:
+        """Tied predecessors differing only in reason refuse suppression."""
+        timestamp: datetime = datetime.utcnow()
+        first_id: UUID = self._write_retention_record(
+            entity_uuid="mixed-reason-tie", created_on=timestamp
+        )
+        audit.finalize_retention_blocked(first_id, REASON_REPORT_SCHEDULE)
+        second_id: UUID = self._write_retention_record(
+            entity_uuid="mixed-reason-tie", created_on=timestamp
+        )
+        audit.finalize_retention_blocked(second_id, REASON_CASCADE_INTEGRITY_FAILURE)
+        current_id: UUID = self._write_retention_record(
+            entity_uuid="mixed-reason-tie", created_on=timestamp + timedelta(seconds=1)
+        )
+
+        disposition: audit.RetentionBlockedDisposition = (
+            audit.finalize_retention_blocked(current_id, REASON_REPORT_SCHEDULE)
+        )
+
+        assert disposition == "retained"
+        current: PurgeAuditLog = self._get_audit_record(current_id)
+        assert current.status == audit.STATUS_BLOCKED
+
+    def test_null_reason_historical_predecessor_never_suppresses(self) -> None:
+        """The first post-upgrade block of a long-blocked entity is retained.
+
+        Pre-feature blocked rows carry NULL; NULL never matches a current
+        code, so the entity anchors once with its code and same-code nights
+        suppress against the new anchor.
+        """
+        entity: str = "null-historical"
+        prior_id: UUID = self._write_retention_record(entity_uuid=entity)
+        audit.finalize(prior_id, audit.STATUS_BLOCKED)
+        prior: PurgeAuditLog = self._get_audit_record(prior_id)
+        assert prior.reason is None
+
+        current_id: UUID = self._write_retention_record(entity_uuid=entity)
+        assert (
+            audit.finalize_retention_blocked(current_id, REASON_REPORT_SCHEDULE)
+            == "retained"
+        )
+        current: PurgeAuditLog = self._get_audit_record(current_id)
+        assert current.reason == REASON_REPORT_SCHEDULE
+
+        repeat_id: UUID = self._write_retention_record(entity_uuid=entity)
+        assert (
+            audit.finalize_retention_blocked(repeat_id, REASON_REPORT_SCHEDULE)
+            == "suppressed"
+        )
+
+    def test_none_current_code_never_suppresses_and_warns(self) -> None:
+        """A missing current code fails safe: retained, with a warning."""
+        entity: str = "none-current-code"
+        first_id: UUID = self._write_retention_record(entity_uuid=entity)
+        audit.finalize_retention_blocked(first_id, REASON_REPORT_SCHEDULE)
+        current_id: UUID = self._write_retention_record(entity_uuid=entity)
+
+        with patch(
+            "superset.commands.deletion_retention.audit.logger.warning"
+        ) as warning:
+            disposition: audit.RetentionBlockedDisposition = (
+                audit.finalize_retention_blocked(current_id, None)
+            )
+
+        assert disposition == "retained"
+        assert warning.called
+        current: PurgeAuditLog = self._get_audit_record(current_id)
+        assert current.status == audit.STATUS_BLOCKED
+        assert current.reason is None
+
+    def test_predecessor_is_the_latest_row_overall(self) -> None:
+        """A newer same-entity row forbids suppressing against an older one.
+
+        With rows timestamped both before and after the current attempt, the
+        later-timestamped row is selected, fails the strictly-older check, and
+        causes retention. This verifies timestamp ordering, not causal order
+        across workers.
+        """
+        timestamp: datetime = datetime.utcnow()
+        older_id: UUID = self._write_retention_record(
+            entity_uuid="latest-overall", created_on=timestamp - timedelta(seconds=1)
+        )
+        audit.finalize_retention_blocked(older_id, REASON_REPORT_SCHEDULE)
+        newer_id: UUID = self._write_retention_record(
+            entity_uuid="latest-overall", created_on=timestamp + timedelta(seconds=1)
+        )
+        audit.finalize(newer_id, audit.STATUS_BLOCKED, reason=REASON_REPORT_SCHEDULE)
+        current_id: UUID = self._write_retention_record(
+            entity_uuid="latest-overall", created_on=timestamp
+        )
+
+        disposition: audit.RetentionBlockedDisposition = (
+            audit.finalize_retention_blocked(current_id, REASON_REPORT_SCHEDULE)
+        )
+
+        assert disposition == "retained"
+        current: PurgeAuditLog = self._get_audit_record(current_id)
+        assert current.status == audit.STATUS_BLOCKED
+
     def test_equal_timestamp_is_ambiguous_and_retains_current(self) -> None:
         timestamp: datetime = datetime.utcnow()
         first_id: UUID = self._write_retention_record(
             entity_uuid="equal-time", created_on=timestamp
         )
-        audit.finalize_retention_blocked(first_id)
+        audit.finalize_retention_blocked(first_id, REASON_REPORT_SCHEDULE)
         second_id: UUID = self._write_retention_record(
             entity_uuid="equal-time", created_on=timestamp
         )
 
         disposition: audit.RetentionBlockedDisposition = (
-            audit.finalize_retention_blocked(second_id)
+            audit.finalize_retention_blocked(second_id, REASON_REPORT_SCHEDULE)
         )
 
         assert disposition == "retained"
@@ -257,7 +444,7 @@ class TestPurgeAudit(DeletionRetentionTestBase):
             session.close()
 
         disposition: audit.RetentionBlockedDisposition = (
-            audit.finalize_retention_blocked(current_id)
+            audit.finalize_retention_blocked(current_id, REASON_REPORT_SCHEDULE)
         )
 
         assert predecessor is None
@@ -273,10 +460,10 @@ class TestPurgeAudit(DeletionRetentionTestBase):
         newer_id: UUID = self._write_retention_record(
             entity_uuid="overlap", created_on=current_time + timedelta(seconds=1)
         )
-        audit.finalize_retention_blocked(newer_id)
+        audit.finalize_retention_blocked(newer_id, REASON_REPORT_SCHEDULE)
 
         disposition: audit.RetentionBlockedDisposition = (
-            audit.finalize_retention_blocked(current_id)
+            audit.finalize_retention_blocked(current_id, REASON_REPORT_SCHEDULE)
         )
 
         assert disposition == "retained"
@@ -291,7 +478,7 @@ class TestPurgeAudit(DeletionRetentionTestBase):
         )
 
         disposition: audit.RetentionBlockedDisposition = (
-            audit.finalize_retention_blocked(current_id)
+            audit.finalize_retention_blocked(current_id, REASON_REPORT_SCHEDULE)
         )
 
         assert disposition == "retained"
@@ -300,7 +487,7 @@ class TestPurgeAudit(DeletionRetentionTestBase):
         null_id: UUID = self._write_retention_record(entity_uuid=None)
 
         disposition: audit.RetentionBlockedDisposition = (
-            audit.finalize_retention_blocked(null_id)
+            audit.finalize_retention_blocked(null_id, REASON_REPORT_SCHEDULE)
         )
 
         record: PurgeAuditLog = self._get_audit_record(null_id)
@@ -312,13 +499,13 @@ class TestPurgeAudit(DeletionRetentionTestBase):
         chart_id: UUID = self._write_retention_record(
             entity_uuid="shared-type", entity_type="slices"
         )
-        audit.finalize_retention_blocked(chart_id)
+        audit.finalize_retention_blocked(chart_id, REASON_REPORT_SCHEDULE)
         dashboard_id: UUID = self._write_retention_record(
             entity_uuid="shared-type", entity_type="dashboards"
         )
 
         dashboard_disposition: audit.RetentionBlockedDisposition = (
-            audit.finalize_retention_blocked(dashboard_id)
+            audit.finalize_retention_blocked(dashboard_id, REASON_REPORT_SCHEDULE)
         )
 
         assert dashboard_disposition == "retained"
@@ -328,7 +515,7 @@ class TestPurgeAudit(DeletionRetentionTestBase):
         audit.fail(record_id)
 
         disposition: audit.RetentionBlockedDisposition = (
-            audit.finalize_retention_blocked(record_id)
+            audit.finalize_retention_blocked(record_id, REASON_REPORT_SCHEDULE)
         )
 
         record: PurgeAuditLog = self._get_audit_record(record_id)
@@ -343,7 +530,7 @@ class TestPurgeAudit(DeletionRetentionTestBase):
             side_effect=audit.SQLAlchemyError("lookup failed"),
         ):
             disposition: audit.RetentionBlockedDisposition = (
-                audit.finalize_retention_blocked(record_id)
+                audit.finalize_retention_blocked(record_id, REASON_REPORT_SCHEDULE)
             )
 
         record: PurgeAuditLog = self._get_audit_record(record_id)
@@ -352,7 +539,7 @@ class TestPurgeAudit(DeletionRetentionTestBase):
 
     def test_suppression_delete_failure_recovers_blocked_evidence(self) -> None:
         first_id: UUID = self._write_retention_record(entity_uuid="delete-failure")
-        audit.finalize_retention_blocked(first_id)
+        audit.finalize_retention_blocked(first_id, REASON_REPORT_SCHEDULE)
         current_id: UUID = self._write_retention_record(entity_uuid="delete-failure")
 
         with patch(
@@ -360,7 +547,7 @@ class TestPurgeAudit(DeletionRetentionTestBase):
             side_effect=audit.SQLAlchemyError("delete failed"),
         ):
             disposition: audit.RetentionBlockedDisposition = (
-                audit.finalize_retention_blocked(current_id)
+                audit.finalize_retention_blocked(current_id, REASON_REPORT_SCHEDULE)
             )
 
         record: PurgeAuditLog = self._get_audit_record(current_id)
@@ -383,16 +570,18 @@ class TestPurgeAudit(DeletionRetentionTestBase):
             ),
         ):
             disposition: audit.RetentionBlockedDisposition = (
-                audit.finalize_retention_blocked(record_id)
+                audit.finalize_retention_blocked(record_id, REASON_REPORT_SCHEDULE)
             )
 
         record: PurgeAuditLog = self._get_audit_record(record_id)
         assert disposition == "fallback"
         assert record.status == audit.STATUS_BLOCKED
+        # The recovery retain branch carries the argument-sourced snapshot reason.
+        assert record.reason == REASON_REPORT_SCHEDULE
 
     def test_uncertain_suppression_commit_recreates_absent_evidence(self) -> None:
         first_id: UUID = self._write_retention_record(entity_uuid="absent-current")
-        audit.finalize_retention_blocked(first_id)
+        audit.finalize_retention_blocked(first_id, REASON_REPORT_SCHEDULE)
         current_id: UUID = self._write_retention_record(entity_uuid="absent-current")
         primary_session: Session = audit._dedicated_session()
         recovery_session: Session = audit._dedicated_session()
@@ -410,12 +599,16 @@ class TestPurgeAudit(DeletionRetentionTestBase):
             ),
         ):
             disposition: audit.RetentionBlockedDisposition = (
-                audit.finalize_retention_blocked(current_id)
+                audit.finalize_retention_blocked(current_id, REASON_REPORT_SCHEDULE)
             )
 
         record: PurgeAuditLog = self._get_audit_record(current_id)
         assert disposition == "fallback"
         assert record.status == audit.STATUS_BLOCKED
+        # The recovery re-insert branch sources the reason from the snapshot
+        # (populated from the call argument, never from the reason-less
+        # pending row).
+        assert record.reason == REASON_REPORT_SCHEDULE
 
     def test_failed_fallback_leaves_pending_evidence_for_reconciliation(self) -> None:
         record_id: UUID = self._write_retention_record(entity_uuid="fallback-failure")
@@ -438,7 +631,7 @@ class TestPurgeAudit(DeletionRetentionTestBase):
             ),
         ):
             disposition: audit.RetentionBlockedDisposition = (
-                audit.finalize_retention_blocked(record_id)
+                audit.finalize_retention_blocked(record_id, REASON_REPORT_SCHEDULE)
             )
 
         record: PurgeAuditLog = self._get_audit_record(record_id)
@@ -464,31 +657,34 @@ class TestPurgeAudit(DeletionRetentionTestBase):
             entity_type="slices",
             entity_uuid="indeterminate-rowcount",
             created_on=timestamp - timedelta(seconds=1),
+            reason=REASON_REPORT_SCHEDULE,
         )
         result: MagicMock = MagicMock(rowcount=-1)
         session: MagicMock = MagicMock()
         session.execute.return_value = result
 
         with pytest.raises(audit.SQLAlchemyError, match="indeterminate"):
-            audit._suppress_redundant_block(session, current, predecessor)
+            audit._suppress_redundant_block(
+                session, current, predecessor, REASON_REPORT_SCHEDULE
+            )
 
     def test_overlap_duplicates_do_not_cause_unbounded_sequential_growth(self) -> None:
         timestamp: datetime = datetime.utcnow()
         first_id: UUID = self._write_retention_record(
             entity_uuid="bounded-overlap", created_on=timestamp
         )
-        audit.finalize_retention_blocked(first_id)
+        audit.finalize_retention_blocked(first_id, REASON_REPORT_SCHEDULE)
         overlap_id: UUID = self._write_retention_record(
             entity_uuid="bounded-overlap", created_on=timestamp
         )
-        audit.finalize_retention_blocked(overlap_id)
+        audit.finalize_retention_blocked(overlap_id, REASON_REPORT_SCHEDULE)
         later_id: UUID = self._write_retention_record(
             entity_uuid="bounded-overlap",
             created_on=timestamp + timedelta(seconds=1),
         )
 
         disposition: audit.RetentionBlockedDisposition = (
-            audit.finalize_retention_blocked(later_id)
+            audit.finalize_retention_blocked(later_id, REASON_REPORT_SCHEDULE)
         )
 
         retained_count: int = (
@@ -516,7 +712,7 @@ class TestPurgeAudit(DeletionRetentionTestBase):
             current_id: UUID = self._write_retention_record(entity_uuid=entity_uuid)
 
             disposition: audit.RetentionBlockedDisposition = (
-                audit.finalize_retention_blocked(current_id)
+                audit.finalize_retention_blocked(current_id, REASON_REPORT_SCHEDULE)
             )
 
             current: PurgeAuditLog = self._get_audit_record(current_id)

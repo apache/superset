@@ -154,7 +154,7 @@ class CreateReportScheduleCommand(CreateMixin, BaseReportScheduleCommand):
         if (
             creation_method != ReportCreationMethod.ALERTS_REPORTS
             and not ReportScheduleDAO.validate_unique_creation_method(
-                dashboard_id, chart_id
+                dashboard_id, chart_id, creation_method
             )
         ):
             raise ReportScheduleCreationMethodUniquenessValidationError()

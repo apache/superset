@@ -16,8 +16,10 @@
 # under the License.
 """DB-touching helpers for the activity-view read path.
 
-All Phase A relationship walks (``charts_attached_to_dashboard``,
-``datasets_used_by_chart``, ``batch_datasets_used_by_charts``),
+The Phase A relationship walks (``datasets_used_by_chart``,
+``batch_datasets_used_by_charts``; the dashboard-membership walk
+``charts_attached_to_dashboard`` lives in
+:mod:`superset.versioning.membership`),
 the Phase B change-record fetch (``fetch_change_records`` /
 ``_select_change_rows_for_kinds``), the name-denormalization helpers
 (``_resolve_names_for_kind`` / ``apply_entity_name_denormalization``), the
@@ -116,60 +118,6 @@ def first_tracked_tx(
 
 
 # ---- Phase A: relationship-traversal queries ------------------------------
-
-
-def charts_attached_to_dashboard(dashboard_id: int) -> list[tuple[int, Window]]:
-    """Return ``(slice_id, window)`` for every chart that has ever been on
-    *dashboard_id*, with each association's validity window in
-    transaction-id space.
-
-    Reads from ``dashboard_slices_version`` (Continuum's auto-generated
-    M2M shadow). Rows with ``operation_type = 2`` (DELETE) are excluded
-    so we don't synthesize a phantom window from a detachment row.
-    """
-    # pylint: disable=import-outside-toplevel
-    from sqlalchemy_continuum import version_class
-
-    from superset.models.dashboard import Dashboard
-
-    metadata = version_class(Dashboard).__table__.metadata
-    m2m_tbl = metadata.tables.get("dashboard_slices_version")
-    if m2m_tbl is None:
-        return []
-
-    rows = (
-        db.session.connection()
-        .execute(
-            sa.select(
-                m2m_tbl.c.slice_id,
-                m2m_tbl.c.transaction_id,
-                m2m_tbl.c.end_transaction_id,
-            ).where(
-                m2m_tbl.c.dashboard_id == dashboard_id,
-                m2m_tbl.c.operation_type != 2,
-                m2m_tbl.c.slice_id.is_not(None),
-            )
-        )
-        .all()
-    )
-    result: list[tuple[int, Window]] = []
-    for row in rows:
-        try:
-            window = Window(row[1], row[2])
-        except ValueError:
-            # A degenerate shadow row (end_tx <= start_tx) must not 500 the
-            # endpoint; skip it and leave a breadcrumb for investigation.
-            logger.warning(
-                "activity: skipping degenerate dashboard_slices_version row "
-                "(dashboard_id=%s, slice_id=%s, tx=%s, end_tx=%s)",
-                dashboard_id,
-                row[0],
-                row[1],
-                row[2],
-            )
-            continue
-        result.append((row[0], window))
-    return result
 
 
 def datasets_used_by_chart(slice_id: int) -> list[tuple[int, Window]]:
