@@ -25,6 +25,7 @@ from superset.utils.core import DatasourceType
 
 @pytest.fixture
 def session_with_data(session: Session) -> Iterator[Session]:
+    from superset.models.core import FavStar  # noqa: F401
     from superset.models.slice import Slice
 
     engine = session.get_bind()
@@ -57,7 +58,7 @@ def test_slice_find_by_id_skip_base_filter(session_with_data: Session) -> None:
 
 
 def test_datasource_find_by_id_skip_base_filter_not_found(
-    session: Session,
+    session_with_data: Session,
 ) -> None:
     from superset.daos.chart import ChartDAO
 
@@ -65,12 +66,11 @@ def test_datasource_find_by_id_skip_base_filter_not_found(
     assert result is None
 
 
-def test_add_favorite(session: Session) -> None:
+def test_add_favorite(session_with_data: Session) -> None:
     from superset.daos.chart import ChartDAO
 
     chart = ChartDAO.find_by_id(1, skip_base_filter=True)
-    if not chart:
-        return
+    assert chart is not None
     assert len(ChartDAO.favorited_ids([chart])) == 0
 
     ChartDAO.add_favorite(chart)
@@ -80,12 +80,11 @@ def test_add_favorite(session: Session) -> None:
     assert len(ChartDAO.favorited_ids([chart])) == 1
 
 
-def test_remove_favorite(session: Session) -> None:
+def test_remove_favorite(session_with_data: Session) -> None:
     from superset.daos.chart import ChartDAO
 
     chart = ChartDAO.find_by_id(1, skip_base_filter=True)
-    if not chart:
-        return
+    assert chart is not None
     assert len(ChartDAO.favorited_ids([chart])) == 0
 
     ChartDAO.add_favorite(chart)

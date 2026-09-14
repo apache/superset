@@ -38,3 +38,11 @@ export const convertUTCTimestampToLocal = (utcTimestamp: number): number => {
   const offsetMs = date.getTimezoneOffset() * 60 * 1000;
   return utcTimestamp + offsetMs;
 };
+
+// Escapes HTML special characters before formatter output reaches an
+// innerHTML sink. Mirrors plugin-chart-country-map's escapeHtml.
+export const escapeHtml = (text: unknown): string => {
+  const div = document.createElement('div');
+  div.textContent = String(text);
+  return div.innerHTML;
+};

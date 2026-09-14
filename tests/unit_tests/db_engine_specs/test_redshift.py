@@ -19,6 +19,8 @@ from datetime import datetime
 from typing import Optional
 
 import pytest
+import sqlalchemy as sa
+from sqlalchemy.dialects import postgresql
 
 from superset.db_engine_specs.redshift import RedshiftEngineSpec
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
@@ -79,3 +81,63 @@ def test_normalize_table_name_for_upload(
 
     assert normalized_table == expected_table
     assert normalized_schema == expected_schema
+
+
+def test_extended_aggregation_func_inherited_from_postgres() -> None:
+    """
+    Redshift is a Postgres fork and inherits STDDEV_SAMP/VAR_SAMP from
+    `PostgresBaseEngineSpec` -- its documented SQL function reference matches
+    Postgres for these functions, though this has not been separately
+    verified against a live Redshift instance (see the SIP doc for caveats).
+
+    MEDIAN is overridden rather than inherited (see
+    `RedshiftEngineSpec._extended_aggregations`): unlike Postgres, Redshift
+    documents a native `MEDIAN(x)` function, so Redshift emits that directly
+    instead of Postgres's `percentile_cont(0.5) WITHIN GROUP (ORDER BY col)`
+    spelling -- which also sidesteps Redshift's documented restriction
+    against more than one sort-based aggregate with a different ORDER BY in
+    the same query, e.g. `MEDIAN(sales)` alongside `MEDIAN(margin)`.
+    """
+    from sqlalchemy import column
+
+    col = column("sales")
+
+    median_func = RedshiftEngineSpec.get_extended_aggregation_func("MEDIAN")
+    assert median_func is not None
+    assert (
+        str(median_func(col).compile(compile_kwargs={"literal_binds": True}))
+        == "median(sales)"
+    )
+
+    for aggregate in ("STDDEV_SAMP", "VAR_SAMP"):
+        assert RedshiftEngineSpec.get_extended_aggregation_func(aggregate) is not None
+
+
+def test_normalize_custom_sql_metric_date_trunc_unit() -> None:
+    expression: str = "DATE_TRUNC('QUARTER', created_at)"
+
+    assert RedshiftEngineSpec.normalize_custom_sql_metric(expression) == (
+        "DATE_TRUNC('quarter', created_at)"
+    )
+
+
+def test_date_trunc_metric_matches_quarter_grouping_in_complete_query() -> None:
+    metric: sa.ColumnElement = sa.literal_column(
+        RedshiftEngineSpec.normalize_custom_sql_metric(
+            "CASE WHEN DATE_TRUNC('QUARTER', created_at) = '2024-01-01' "
+            "THEN COUNT(*) END"
+        )
+    ).label("quarter_metric")
+    quarter: sa.ColumnElement = RedshiftEngineSpec.get_timestamp_expr(
+        col=sa.column("created_at"),
+        pdf=None,
+        time_grain="P3M",
+    )
+    query: sa.Select = (
+        sa.select(quarter, metric).select_from(sa.table("orders")).group_by(quarter)
+    )
+
+    sql: str = str(query.compile(dialect=postgresql.dialect()))
+
+    assert "DATE_TRUNC('QUARTER'" not in sql
+    assert sql.count("DATE_TRUNC('quarter'") >= 2

@@ -145,6 +145,46 @@ D3_TIME_FORMAT = {
 Restart Superset after changing `superset_config.py` so the frontend receives
 the updated formatter configuration.
 
+## Serving translated language packs
+
+Non-English page loads need the frontend translation catalog (the "language
+pack") available before the entry bundle runs, so translations are in place
+for the very first render instead of racing a later fetch. Superset delivers
+that pack as a separate, cacheable script rather than inlining it into the
+HTML:
+
+```html
+<script src="/language_pack/pt_BR/1a2b3c4d5e6f/script.js"></script>
+```
+
+`spa.html` emits this tag, pointing at the `language_pack_script` view, before
+loading the entry bundle whenever the request's locale isn't English. The
+`<version>` segment is a short hash of the pack's contents, so the URL is
+content-addressed:
+
+- When the version in the URL matches the server's current pack, the response
+  carries `Cache-Control: public, max-age=31536000, immutable` — the browser
+  fetches that language's pack once and reuses it across sessions.
+- If a cached HTML page references a version that's since changed (e.g. after
+  a translation update or upgrade), the endpoint still serves the current
+  pack, but with `Cache-Control: no-cache` so any copy stored under the
+  now-stale URL must be revalidated with the server before it's reused.
+- English pages emit no script tag; there's no pack to load.
+
+Each worker caches a locale's pack and version hash in memory for its
+lifetime, so a translation file changed on disk isn't picked up, and doesn't
+produce a new version hash, until the worker restarts. Restart (or roll)
+Superset after deploying a translation update so clients get the new pack.
+
+This endpoint is intentionally unauthenticated. Translation catalogs are
+static, public content shipped in the Superset repo, and the login page and
+embedded dashboards need them to load before a user session exists.
+
+If you already override the language pack via `COMMON_BOOTSTRAP_OVERRIDES_FUNC`
+(a `common.language_pack` value, historically used to work around translation
+race conditions), that override still takes precedence: `spa.html` skips the
+script tag and uses your supplied pack instead.
+
 ## Chart-data query timing
 
 Set `CHART_DATA_INCLUDE_TIMING = True` to add an optional versioned timing object
@@ -565,6 +605,55 @@ PERMANENT_SESSION_LIFETIME = timedelta(hours=24)
 def FLASK_APP_MUTATOR(app: Flask) -> None:
     app.before_request_funcs.setdefault(None, []).append(make_session_permanent)
 ```
+
+## Carrying extra data through chart and dashboard exports
+
+Deployments often attach their own metadata to charts and dashboards — an owning
+team, a catalogue entry, a cost centre — and need it to survive an export/import
+round trip between environments. `EXTRA_ASSET_EXPORT_FIELDS` and
+`EXTRA_ASSET_IMPORT_HANDLER` let you do that without forking the export commands.
+
+The export hook receives the model and the asset type (`"chart"` or `"dashboard"`)
+and returns a mapping, which is serialised under the `extra` key of the asset's
+YAML. The import hook receives the model, the asset type and that same mapping,
+once the asset exists and has an id:
+
+```python
+# superset_config.py
+def _export_fields(model, asset_type):
+    return {"owning_team": lookup_team(model)}
+
+
+def _import_handler(model, asset_type, extra):
+    if team := extra.get("owning_team"):
+        assign_team(model, team)
+
+
+EXTRA_ASSET_EXPORT_FIELDS = _export_fields
+EXTRA_ASSET_IMPORT_HANDLER = _import_handler
+```
+
+The exported YAML then carries:
+
+```yaml
+slice_name: Revenue by region
+...
+extra:
+  owning_team: analytics-platform
+```
+
+A few things worth knowing:
+
+- **Both hooks are optional and default to `None`.** With neither configured,
+exported files are byte-for-byte what they were before, and imports behave
+identically.
+- **Everything lives under the single `extra` key.** The import schemas reject
+unknown top-level fields, so namespacing under `extra` keeps that strictness
+while leaving you free to change the shape of your own payload later.
+- **An export hook returning `None` or an empty mapping writes nothing**, so
+assets without your metadata do not gain an empty `extra` block.
+- **The import handler runs after the asset is created or updated**, which means
+you can rely on `model.id`. Raising from it will fail the import.
 
 ## Customizing the landing page (index view)
 

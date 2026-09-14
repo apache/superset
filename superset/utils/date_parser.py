@@ -61,14 +61,16 @@ logging.getLogger("parsedatetime").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 # Source times used by ``is_constant_human_timedelta`` to tell a delta from an
-# anchor. They share a date -- mid-month and mid-year, away from any month or
-# year boundary a shift could clamp against -- and differ only in the hour, so
-# that the sole thing the comparison can detect is sensitivity to time of day.
-# Neither hour is parsedatetime's 09:00 default, so an anchor cannot coincide
-# with a probe and masquerade as a zero shift.
-_SHIFT_PROBE_TIMES: tuple[datetime, datetime] = (
+# anchor. The first two share a date and differ only in the hour, detecting
+# sensitivity to time of day. The third changes the date and weekday, detecting
+# weekday and month-name anchors. All are mid-month and mid-year, away from any
+# boundary a relative shift could clamp against. Neither hour is parsedatetime's
+# 09:00 default, so an anchor cannot coincide with a probe and masquerade as a
+# zero shift.
+_SHIFT_PROBE_TIMES: tuple[datetime, ...] = (
     datetime(2024, 6, 15, 3, 0, 0),
     datetime(2024, 6, 15, 21, 0, 0),
+    datetime(2024, 6, 18, 3, 0, 0),
 )
 
 # Mapping of ordinal words to their numeric values for date expressions
@@ -179,11 +181,11 @@ def is_constant_human_timedelta(human_readable: str | None) -> bool:
     timestamp (parsedatetime defaults to 09:00) no matter where the source
     time sits within the day, so it shifts each row by a different amount.
 
-    Probing two source times within the same day separates the two. A delta
-    shifts both probes equally; an anchor maps both onto one timestamp, which
-    -- the probes being distinct -- necessarily yields differing shifts. Both
-    probes share a date, so calendar irregularities such as leap years and
-    month lengths apply to them identically and cannot skew the comparison.
+    Probing source times across hours and dates separates the two. A delta
+    shifts every probe equally; an anchor depends on at least the source hour,
+    weekday, or month and therefore yields differing shifts. The probes avoid
+    calendar boundaries so leap years and month lengths cannot skew the
+    comparison.
     """
     if not is_parseable_human_timedelta(human_readable):
         return False

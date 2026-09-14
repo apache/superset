@@ -66,6 +66,7 @@ _DEFAULT_LIST_DASHBOARDS_REQUEST = ListDashboardsRequest()
         title="List dashboards",
         readOnlyHint=True,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 async def list_dashboards(

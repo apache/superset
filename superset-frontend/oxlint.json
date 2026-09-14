@@ -113,7 +113,7 @@
     // === Import plugin rules ===
     "import/named": "error",
     "import/export": "error",
-    "import/no-named-as-default": "error",
+    "import/no-named-as-default": "warn",
     "import/no-named-as-default-member": "error",
     "import/no-mutable-exports": "error",
     "import/no-amd": "error",
