@@ -42,7 +42,7 @@ from dataclasses import dataclass, field
 from typing import Any, ClassVar
 
 from superset.ai.llm.base import ToolCall, ToolDefinition, ToolResult
-from superset.mcp_service.utils.sanitization import (
+from superset.ai.prompt_framing import (
     LLM_CONTEXT_CLOSE_DELIMITER,
     LLM_CONTEXT_ESCAPED_CLOSE_DELIMITER,
     LLM_CONTEXT_ESCAPED_OPEN_DELIMITER,
@@ -260,7 +260,7 @@ def strip_prompt_framing(value: Any) -> Any:
     """
     Remove the model-facing untrusted-content framing from a value.
 
-    ``superset.mcp_service`` wraps user-authored text in ``<UNTRUSTED-CONTENT>``
+    The AI client wraps user-authored text in ``<UNTRUSTED-CONTENT>``
     delimiters so a model can tell data from instruction. That framing is
     meaningless to a person and appeared verbatim in the panel's tool log, so it
     is removed on the way to the browser — and only there. The model's copy keeps
