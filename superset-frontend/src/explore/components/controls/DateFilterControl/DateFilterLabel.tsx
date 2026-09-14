@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactNode, useState, useEffect, useMemo } from 'react';
+import { ReactNode, useState, useEffect, useMemo, useRef } from 'react';
 import { t } from '@apache-superset/core/translation';
 import {
   NO_TIME_RANGE,
@@ -166,6 +166,10 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
   const [isDescriptionHovered, setIsDescriptionHovered] = useState(false);
   const theme = useTheme();
   const [labelRef, labelIsTruncated] = useCSSTextTruncation<HTMLSpanElement>();
+  // Shared across both fetches below since they can write overlapping state
+  // (evalResponse, validTimeRange, lastFetchedTimeRange); guards against an
+  // older, slower request overwriting a newer one that resolved first.
+  const latestRequestId = useRef(0);
 
   useEffect(() => {
     if (!isControlHovered) {
@@ -180,8 +184,11 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
       setValidTimeRange(true);
       return;
     }
+    latestRequestId.current += 1;
+    const requestId = latestRequestId.current;
     fetchTimeRange(value, 'col', undefined, displayFormat).then(
       ({ value: actualRange, error }) => {
+        if (requestId !== latestRequestId.current) return;
         if (error) {
           setEvalResponse(error || '');
           setValidTimeRange(false);
@@ -231,8 +238,11 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
         return;
       }
       if (lastFetchedTimeRange !== timeRangeValue) {
+        latestRequestId.current += 1;
+        const requestId = latestRequestId.current;
         fetchTimeRange(timeRangeValue, 'col', undefined, displayFormat).then(
           ({ value: actualRange, error }) => {
+            if (requestId !== latestRequestId.current) return;
             if (error) {
               setEvalResponse(error || '');
               setValidTimeRange(false);
