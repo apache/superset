@@ -24,6 +24,29 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Default Docker image is now batteries-included; the minimal image moves to `-lean`
+
+The default `apache/superset` Docker image (the plain tags: `latest`, `master`,
+`5.0.0`, per-SHA) is now a batteries-included, production-grade image. It bundles
+the common metadata/analytics drivers (`psycopg2-binary` for PostgreSQL,
+`mysqlclient` for MySQL), the MCP server dependencies (`fastmcp`), and a headless
+Chromium (via Playwright) for Alerts & Reports and thumbnail generation. It still
+runs as the non-root `superset` user and is byte-compiled like before.
+
+The previous minimal image — with **no** database drivers — is still published,
+but under `-lean` tags: `latest-lean`, `master-lean`, `5.0.0-lean`, `<sha>-lean`.
+
+**What operators should expect:**
+
+- **The default image is larger** (several hundred MB more) because it ships a
+  headless Chromium and extra drivers. If you were relying on the minimal default
+  and layering your own drivers, switch your base image to the corresponding
+  `-lean` tag (for example `FROM apache/superset:master` becomes
+  `FROM apache/superset:master-lean`) to keep the previous footprint.
+- **No config change is required** for most deployments; the metadata-database
+  drivers most installations need are now present out of the box.
+- The `-dev` images (`latest-dev`, `master-dev`, …) are unchanged.
+
 ### Report capture readiness is rechecked immediately before screenshots
 
 Scheduled report and alert captures require chart readiness to remain stable
@@ -256,6 +279,17 @@ unknown impact as zero. Chart and dashboard purge endpoints are unchanged.
 ### Native Value filter "Select all" always targets the whole column
 
 The native "Value" filter's bulk "Select all" / "Clear" controls now operate on the entire loaded set of column values regardless of any text typed into the filter's search box. Previously the "Select all (N)" count briefly flickered to the search-scoped count before settling on the full-column count, and clicking "Select all" while searching could select only the currently matching subset. Search-scoped bulk selection was never a supported feature; the count is now stable and always matches what "Select all" selects (the full column). No configuration change is required.
+
+### `PERMISSION_INSTRUCTIONS_LINK` no longer supports `{datasource_name}`
+
+The datasource access-denied error is returned to a user who was just denied that
+dataset, so the dataset's name is no longer templated into the "Request access"
+link — nor included in the error message or its `extra` payload. Deployments whose
+`PERMISSION_INSTRUCTIONS_LINK` still contains `{datasource_name}` get the
+placeholder back verbatim in the rendered URL and a warning in the logs; the
+substitution is deliberately not blanked so the broken link is visible rather than
+silently truncated. Use `{datasource_id}` (still supported) to identify the dataset
+to your access-request system, and resolve the name there.
 
 ### MCP tool results preserve stored string values
 

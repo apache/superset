@@ -76,7 +76,7 @@ def test_get_ttl_seconds_falls_back(app_context: None) -> None:
         assert login_token.get_ttl_seconds() == 30
 
         # Strings (e.g. from an env var) are coerced rather than crashing.
-        current_app.config["LOGIN_TOKEN_TTL_SECONDS"] = "45"
+        current_app.config["LOGIN_TOKEN_TTL_SECONDS"] = "45"  # noqa: S105
         assert login_token.get_ttl_seconds() == 45
 
         for bad in ("not-a-number", 0, -1, None):
