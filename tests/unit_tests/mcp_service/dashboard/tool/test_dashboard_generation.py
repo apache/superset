@@ -20,8 +20,10 @@ Unit tests for dashboard generation MCP tools
 """
 
 import logging
+from copy import deepcopy
 from datetime import datetime
 from importlib import import_module
+from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
@@ -717,6 +719,7 @@ class TestGenerateDashboard:
             created = mock_dashboard_cls.return_value
             assert created.dashboard_title == ""
 
+    @pytest.mark.parametrize("stale_parents", [False, True])
     @patch("superset.models.dashboard.Dashboard")
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
     @patch("superset.db.session")
@@ -727,6 +730,7 @@ class TestGenerateDashboard:
         mock_find_by_id,
         mock_dashboard_cls,
         mcp_server,
+        stale_parents,
     ) -> None:
         """An explicit ``position_json`` replaces the auto-generated layout
         in full — the tool serializes the caller's dict verbatim into the
@@ -744,7 +748,7 @@ class TestGenerateDashboard:
             mock_dashboard,
         )
 
-        custom_layout = {
+        custom_layout: dict[str, Any] = {
             "DASHBOARD_VERSION_KEY": "v2",
             "ROOT_ID": {
                 "id": "ROOT_ID",
@@ -772,10 +776,13 @@ class TestGenerateDashboard:
                 "parents": ["ROOT_ID", "GRID_ID", "ROW-custom"],
             },
         }
+        submitted_layout = deepcopy(custom_layout)
+        if stale_parents:
+            submitted_layout["CHART-1"]["parents"] = []
         request = {
             "chart_ids": [1],
             "dashboard_title": "Custom Layout Dashboard",
-            "position_json": custom_layout,
+            "position_json": submitted_layout,
         }
 
         async with Client(mcp_server) as client:
@@ -793,6 +800,35 @@ class TestGenerateDashboard:
             # where the override silently merges with the default.
             assert "ROW-custom" in stored
 
+    @pytest.mark.parametrize(
+        "position_json",
+        [
+            {
+                "ROOT": {
+                    "id": "ROOT",
+                    "type": "ROW",
+                    "children": [
+                        {"id": "1", "type": "CHART", "metadata": {"chart_id": 1}}
+                    ],
+                }
+            },
+            {
+                "DASHBOARD_VERSION_KEY": "v2",
+                "ROOT_ID": {
+                    "id": "ROOT_ID",
+                    "type": "ROOT",
+                    "children": ["GRID_ID"],
+                },
+                "GRID_ID": {
+                    "id": "GRID_ID",
+                    "type": "GRID",
+                    "children": [],
+                    "parents": ["ROOT_ID"],
+                },
+            },
+        ],
+        ids=["nested-component", "missing-requested-chart"],
+    )
     @patch("superset.models.dashboard.Dashboard")
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
     @patch("superset.db.session")
@@ -803,8 +839,9 @@ class TestGenerateDashboard:
         mock_find_by_id,
         mock_dashboard_cls,
         mcp_server,
+        position_json,
     ) -> None:
-        """An LLM-shaped nested layout cannot create an unloadable dashboard."""
+        """Malformed layouts and omitted charts fall back to a complete grid."""
         charts = [_mock_chart(id=1, slice_name="Sales")]
         dashboard = _mock_dashboard(id=71, title="Safe Layout Dashboard")
         _setup_generate_dashboard_mocks(
@@ -817,15 +854,7 @@ class TestGenerateDashboard:
         request = {
             "chart_ids": [1],
             "dashboard_title": "Safe Layout Dashboard",
-            "position_json": {
-                "ROOT": {
-                    "id": "ROOT",
-                    "type": "ROW",
-                    "children": [
-                        {"id": "1", "type": "CHART", "metadata": {"chart_id": 1}}
-                    ],
-                }
-            },
+            "position_json": position_json,
         }
 
         async with Client(mcp_server) as client:

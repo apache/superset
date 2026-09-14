@@ -36,6 +36,7 @@ from superset.mcp_service.dashboard.constants import (
     GRID_COLUMN_COUNT,
     GRID_DEFAULT_CHART_WIDTH,
 )
+from superset.mcp_service.dashboard.layout_validation import validate_dashboard_layout
 from superset.mcp_service.dashboard.schemas import (
     DashboardInfo,
     GenerateDashboardRequest,
@@ -143,66 +144,6 @@ def _create_dashboard_layout(chart_objects: List[Any]) -> Dict[str, Any]:
     layout["DASHBOARD_VERSION_KEY"] = "v2"
 
     return layout
-
-
-def _is_valid_dashboard_layout(layout: Dict[str, Any], chart_ids: set[int]) -> bool:
-    """Return whether an explicit layout is safe for frontend hydration."""
-    components = {
-        component_id: component
-        for component_id, component in layout.items()
-        if isinstance(component, dict) and "type" in component
-    }
-    children_by_id: dict[str, list[str]] = {}
-    for component_id, component in components.items():
-        children = component.get("children")
-        if component.get("type") == "HEADER" and children is None:
-            children = []
-        if (
-            component.get("id") != component_id
-            or not isinstance(component.get("type"), str)
-            or not isinstance(children, list)
-            or any(
-                not isinstance(child_id, str) or child_id not in components
-                for child_id in children
-            )
-        ):
-            return False
-        if component["type"] == "CHART":
-            meta = component.get("meta")
-            if not isinstance(meta, dict) or meta.get("chartId") not in chart_ids:
-                return False
-        children_by_id[component_id] = children
-
-    root = components.get("ROOT_ID")
-    if (
-        layout.get("DASHBOARD_VERSION_KEY") != "v2"
-        or not isinstance(root, dict)
-        or root.get("id") != "ROOT_ID"
-        or root.get("type") != "ROOT"
-        or len(children_by_id["ROOT_ID"]) != 1
-    ):
-        return False
-
-    pending = ["ROOT_ID"]
-    seen: set[str] = set()
-    while pending:
-        component_id = pending.pop()
-        if component_id in seen:
-            return False
-        seen.add(component_id)
-        pending.extend(children_by_id[component_id])
-
-    root_child = components[children_by_id["ROOT_ID"][0]]
-    if root_child["type"] == "GRID":
-        return True
-    return (
-        root_child["type"] == "TABS"
-        and bool(children_by_id[root_child["id"]])
-        and all(
-            components[child_id]["type"] == "TAB"
-            for child_id in children_by_id[root_child["id"]]
-        )
-    )
 
 
 _DEFAULT_DASHBOARD_TITLE = "Dashboard"
@@ -327,10 +268,18 @@ def generate_dashboard(  # noqa: C901
         # Invalid explicit layouts make frontend hydration fail before chart
         # queries start, so fall back to the known-good packed grid.
         with event_logger.log_context(action="mcp.generate_dashboard.layout"):
-            if request.position_json and _is_valid_dashboard_layout(
-                request.position_json, set(found_chart_ids)
+            if request.position_json and (
+                validate_dashboard_layout(request.position_json, found_chart_ids)
+                is None
             ):
                 layout = request.position_json
+                pending: list[tuple[str, list[str]]] = [("ROOT_ID", [])]
+                while pending:
+                    component_id, parents = pending.pop()
+                    for child_id in layout[component_id].get("children") or []:
+                        child_parents = [*parents, component_id]
+                        layout[child_id]["parents"] = child_parents
+                        pending.append((child_id, child_parents))
             else:
                 layout = _create_dashboard_layout(chart_objects)
                 if request.position_json:

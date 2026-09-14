@@ -19,12 +19,13 @@ it at a provider you control. Nothing is sent anywhere until you configure it.
 
 ## Enabling it
 
-Two things are required: the feature flag, and a provider.
+Enable the assistant and its chat host, and configure a provider.
 
 ```python
 # superset_config.py
 FEATURE_FLAGS = {
     "AI_ASSISTANT": True,
+    "ENABLE_EXTENSIONS": True,
 }
 
 AI_LLM_PROVIDER_CLASS = "superset.ai.llm.anthropic.AnthropicProvider"
@@ -44,8 +45,9 @@ Install the matching extra:
 pip install "apache-superset[ai-anthropic]"   # or [ai-openai]
 ```
 
-Then run `superset init` so the assistant's permissions are created and assigned
-to roles. Without this the endpoints return `403`.
+Run `superset db upgrade` to create the conversation tables, then `superset init`
+to create and assign the assistant's permissions. Without the latter the
+endpoints return `403`.
 
 Conversations are stored in Superset's metadata database, so no extra
 infrastructure is needed for the default configuration.
@@ -110,6 +112,11 @@ Users may also pin a specific model per turn. Only models present in your
 `models` mapping are accepted; anything else is rejected.
 
 ## Agent profiles
+
+The optional authoring tools use Superset's FastMCP server in-process. Before
+enabling a profile with `create_virtual_dataset`, `generate_chart`, or
+`generate_dashboard`, install the `fastmcp` extra alongside your provider,
+for example `pip install "apache-superset[ai-openai,fastmcp]"`.
 
 A profile bundles the decisions that differ between a quick answer and a careful
 investigation: which tools are available, which model tier, and how many steps.
@@ -448,17 +455,20 @@ SUPERSET_AI_LLM_API_KEY=your-token
 SUPERSET_AI_MODEL_DEFAULT=your-model-name
 ```
 
+Before starting the stack, add the optional provider dependency you need to
+`docker/requirements-local.txt`:
+
+```
+openai>=1.60.0,<2
+```
+
 ```bash
 docker compose up
 ```
 
 The assistant appears once both a URL and a key are present; with neither set the
-stack behaves exactly as it did before. The model providers are optional extras,
-so add whichever one you need to `docker/requirements-local.txt`:
-
-```
-openai>=1.60.0,<2
-```
+stack behaves exactly as it did before. If you add dependencies to an already
+running stack, restart the application containers so bootstrap installs them.
 
 The local stack also logs traces to the container output and, unlike the
 production default, includes prompts and SQL in them.
@@ -480,6 +490,7 @@ production default, includes prompts and SQL in them.
 | `AI_ASSISTANT_EVENT_BUS` | `"memory"` | `memory` or `redis`. |
 | `AI_ASSISTANT_EVENT_BUS_CACHE_CONFIG` | local Redis | Redis connection for the event bus. |
 | `AI_ASSISTANT_EVENT_TTL_SECONDS` | `900` | Event stream retention. |
+| `AI_ASSISTANT_EVENT_STREAM_PREFIX` | `"ai-events-"` | Prefix for Redis event stream keys. |
 | `AI_ASSISTANT_MAX_HISTORY_MESSAGES` | `25` | Turns sent to the model. |
 | `AI_ASSISTANT_MAX_HISTORY_CHARS` | `100000` | Character budget for history. |
 | `AI_ASSISTANT_TIMEZONE` | `"UTC"` | Timezone for the date given to the model. |
@@ -489,6 +500,12 @@ production default, includes prompts and SQL in them.
 | `AI_DISABLED_PROMPT_SECTIONS` | `[]` | Drop shipped sections by key. |
 | `AI_SYSTEM_PROMPT_MUTATOR` | `None` | Last-mile prompt hook. |
 | `AI_KNOWLEDGE_PROVIDERS` | `[]` | Deployment domain knowledge. |
+| `AI_SUGGESTED_PROMPTS_ENABLED` | `False` | Generate opening-question suggestions with the provider. |
+| `AI_SUGGESTED_PROMPTS_COUNT` | `3` | Number of suggested questions. |
+| `AI_SUGGESTED_PROMPTS_MODEL_ALIAS` | `"fast"` | Model tier for suggestions. |
+| `AI_SUGGESTED_PROMPTS_MODEL` | `None` | Concrete model override for suggestions. |
+| `AI_SUGGESTED_PROMPTS_MAX_TOKENS` | `300` | Output token budget for suggestions. |
+| `AI_SUGGESTED_PROMPTS_PROMPT` | `None` | Replace the suggestion prompt; supports `{count}` and `{max_chars}`. |
 | `AI_AGENT_MCP_SERVERS` | `{}` | External MCP servers to attach. |
 | `AI_AGENT_MCP_DENY_FOREIGN_SQL` | `True` | Refuse SQL execution via a foreign server. |
 | `AI_TELEMETRY` | `[]` | Telemetry sinks, as instances or dotted paths. |
