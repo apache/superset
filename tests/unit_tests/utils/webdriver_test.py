@@ -28,7 +28,10 @@ from superset.utils.report_execution import (
     ReportExecutionContext,
     ReportExecutionDeadline,
 )
-from superset.utils.screenshot_utils import ScreenshotBlankCaptureError
+from superset.utils.screenshot_utils import (
+    REPORT_CAPTURE_READINESS_STABILITY_MS,
+    ScreenshotBlankCaptureError,
+)
 from superset.utils.webdriver import (
     check_playwright_availability,
     PLAYWRIGHT_AVAILABLE,
@@ -127,10 +130,35 @@ class TestStandardScreenshotValidation:
         assert result == output.getvalue()
         assert page.screenshot.call_count == 2
         page.bring_to_front.assert_called_once_with()
-        page.wait_for_function.assert_called_once_with(
-            "() => window.__supersetRepaintComplete === true",
-            timeout=5000,
+        assert any(
+            call.args == ("() => window.__supersetRepaintComplete === true",)
+            and call.kwargs == {"timeout": 5000}
+            for call in page.wait_for_function.call_args_list
         )
+        stable_calls = [
+            call
+            for call in page.wait_for_function.call_args_list
+            if "__supersetCaptureReadiness" in call.args[0]
+        ]
+        assert len(stable_calls) == 2
+
+    def test_readiness_change_aborts_before_standard_capture(self):
+        from superset.utils.webdriver import PlaywrightTimeout
+
+        page = MagicMock()
+        element = MagicMock()
+        page.wait_for_function.side_effect = PlaywrightTimeout("spinner returned")
+
+        with pytest.raises(PlaywrightTimeout, match="spinner returned"):
+            WebDriverPlaywright._get_validated_screenshot(
+                page,
+                element,
+                "standalone",
+                "execution_id=test",
+                _report_context(),
+            )
+
+        page.screenshot.assert_not_called()
 
     def test_repeated_blank_capture_fails_closed(self):
         page = MagicMock()
@@ -180,7 +208,13 @@ class TestStandardScreenshotValidation:
         valid.save(output, format="PNG")
         page.screenshot.side_effect = [_png("white"), output.getvalue()]
         page.evaluate.return_value = True
-        page.wait_for_function.side_effect = PlaywrightTimeout("stalled repaint")
+
+        def wait_for_function(script, *_args, **_kwargs):
+            if "__supersetRepaintComplete" in script:
+                raise PlaywrightTimeout("stalled repaint")
+            return None
+
+        page.wait_for_function.side_effect = wait_for_function
 
         result = WebDriverPlaywright._get_validated_screenshot(
             page,
@@ -191,9 +225,10 @@ class TestStandardScreenshotValidation:
         )
 
         assert result == output.getvalue()
-        page.wait_for_function.assert_called_once_with(
-            "() => window.__supersetRepaintComplete === true",
-            timeout=5000,
+        assert any(
+            call.args == ("() => window.__supersetRepaintComplete === true",)
+            and call.kwargs == {"timeout": 5000}
+            for call in page.wait_for_function.call_args_list
         )
 
     def test_repaint_preserves_celery_soft_timeout(self):
@@ -1493,6 +1528,80 @@ class TestWebDriverPlaywrightChartReadiness:
         )
 
         assert page.wait_for_function.call_args.kwargs["timeout"] == 590_000
+
+    def test_capture_readiness_wires_stable_predicate_and_timeout(self):
+        page = MagicMock()
+        element = MagicMock()
+        page.screenshot.return_value = _png("white")
+        page.evaluate.return_value = False
+
+        def signature_checked_wait(
+            expression,
+            *,
+            arg=None,
+            timeout=None,
+            polling=None,
+        ):
+            assert "__supersetCaptureReadiness" in expression
+            assert arg["stabilityMs"] == REPORT_CAPTURE_READINESS_STABILITY_MS
+
+        page.wait_for_function.side_effect = signature_checked_wait
+
+        result = WebDriverPlaywright._get_validated_screenshot(
+            page,
+            element,
+            "standalone",
+            "execution_id=test",
+            report_execution_context=_report_context(),
+        )
+
+        assert result == _png("white")
+        readiness_call = page.wait_for_function.call_args
+        assert "__supersetCaptureReadiness" in readiness_call.args[0]
+        assert (
+            readiness_call.kwargs["arg"]["stabilityMs"]
+            == REPORT_CAPTURE_READINESS_STABILITY_MS
+        )
+        assert readiness_call.kwargs["timeout"] == 690_000
+
+    def test_chart_capture_uses_chart_container_stable_predicate(self):
+        page = MagicMock()
+        element = MagicMock()
+        element.screenshot.return_value = _png("white")
+        page.evaluate.return_value = False
+
+        WebDriverPlaywright._get_validated_screenshot(
+            page,
+            element,
+            "chart-container",
+            "execution_id=test",
+            report_execution_context=_report_context(chart_id=7),
+        )
+
+        predicate = page.wait_for_function.call_args.args[0]
+        assert "document.querySelector('.chart-container')" in predicate
+
+    def test_capture_skips_stability_dwell_when_budget_is_too_short(self):
+        page = MagicMock()
+        element = MagicMock()
+        page.screenshot.return_value = _png("white")
+        page.evaluate.return_value = False
+        context = _report_context()
+        context = replace(
+            context,
+            deadline=replace(context.deadline, _clock=lambda: 689.6),
+        )
+
+        result = WebDriverPlaywright._get_validated_screenshot(
+            page,
+            element,
+            "standalone",
+            "execution_id=test",
+            report_execution_context=context,
+        )
+
+        assert result == _png("white")
+        page.wait_for_function.assert_not_called()
 
     def test_report_readiness_budget_exhaustion_skips_poll_and_capture(self):
         from uuid import UUID
