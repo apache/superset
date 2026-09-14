@@ -53,6 +53,29 @@ from superset.versioning.diff import (
 )
 
 
+def shadow_valid_at(shadow_table: sa.Table, tx: int) -> sa.ColumnElement[bool]:
+    """Continuum validity-strategy predicate: *shadow_table*'s row is the live
+    state as of transaction *tx* — ``transaction_id <= tx`` AND
+    (``end_transaction_id`` IS NULL OR ``end_transaction_id`` > tx) AND it
+    isn't a DELETE shadow.
+
+    The single definition every content-shadow reader in this module composes
+    (``shadow_rows_valid_at`` and the chart-uuid resolution in
+    ``_dashboard_slice_uuids_at_tx``), so a change to Continuum's validity
+    semantics is edited once. Only for shadows whose ``end_transaction_id``
+    Continuum actually closes — never the M2M association shadow (see
+    ``_dashboard_slice_uuids_at_tx``).
+    """
+    return sa.and_(
+        shadow_table.c.transaction_id <= tx,
+        sa.or_(
+            shadow_table.c.end_transaction_id.is_(None),
+            shadow_table.c.end_transaction_id > tx,
+        ),
+        shadow_table.c.operation_type != OPERATION_DELETE,
+    )
+
+
 def shadow_rows_valid_at(
     session: Session,
     shadow_table: sa.Table,
@@ -77,12 +100,7 @@ def shadow_rows_valid_at(
         .execute(
             sa.select(shadow_table).where(
                 fk_col == fk_value,
-                shadow_table.c.transaction_id <= tx,
-                sa.or_(
-                    shadow_table.c.end_transaction_id.is_(None),
-                    shadow_table.c.end_transaction_id > tx,
-                ),
-                shadow_table.c.operation_type != OPERATION_DELETE,
+                shadow_valid_at(shadow_table, tx),
             )
         )
         .mappings()
@@ -256,6 +274,19 @@ def _dashboard_slice_uuids_at_tx(
     ``end_transaction_id`` correctly, so its validity predicate is trustworthy
     and is kept: a chart attached at *tx* but with no slice-version row at *tx*
     is "not yet versioned" and excluded, matching Continuum's M2M ``Reverter``.
+
+    Known consequence (latent, pre-dates this rewrite): because ``pre`` and
+    ``post`` are each gated on content-validity at their own tx, a chart whose
+    attachment window spans both but whose content shadow becomes valid only
+    between them diffs as a phantom "added" (or "removed") membership change —
+    the record reports "content became versioned" as "membership changed". The
+    gating is nonetheless kept on purpose: the chart's uuid can only come from
+    a ``slices_version`` row, and the row valid AT *tx* is what disambiguates a
+    reused integer id across incarnations (a hard delete frees the id; a later
+    chart may carry it with a different uuid). Resolving the uuid from "any"
+    content row for the id would trade the phantom diff for a wrong-entity
+    diff. Decoupling membership from content-validity with an id-reuse-safe
+    anchor is a follow-up, not folded into this rewrite.
     The read runs on the passed *session* — the committing connection whose
     flushed-but-uncommitted current-tx rows are visible only there.
 
@@ -291,12 +322,7 @@ def _dashboard_slice_uuids_at_tx(
             .execute(
                 sa.select(slices_tbl.c.uuid).where(
                     slices_tbl.c.id.in_(chunk),
-                    slices_tbl.c.transaction_id <= tx,
-                    sa.or_(
-                        slices_tbl.c.end_transaction_id.is_(None),
-                        slices_tbl.c.end_transaction_id > tx,
-                    ),
-                    slices_tbl.c.operation_type != OPERATION_DELETE,
+                    shadow_valid_at(slices_tbl, tx),
                 )
             )
             .all()
