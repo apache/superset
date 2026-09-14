@@ -344,12 +344,11 @@ def test_force_purge_success_output_tolerates_missing_counts(
 def test_force_purge_reports_a_blocked_purge(
     mocker: MockerFixture, app_context: None
 ) -> None:
-    """A purge refused by the deletion rules names the blocking reason.
+    """A purge refused by the deletion rules names the reason and exits 1.
 
-    Pins the current contract: the refusal is reported on stdout and the
-    command exits 0. Whether a blocked compliance purge should instead exit
-    non-zero (so a script cannot mistake it for success) is an open question
-    raised with this test, not decided by it.
+    A blocked compliance purge is not a success: the message stays on stdout
+    unchanged, and the non-zero exit lets an operator's script tell it apart
+    from a completed purge.
     """
     _purge_command(
         mocker,
@@ -358,7 +357,7 @@ def test_force_purge_reports_a_blocked_purge(
 
     result = CliRunner().invoke(force_purge, ["--uuid", str(_UUID), "--yes"])
 
-    assert result.exit_code == 0, result.output
+    assert result.exit_code == 1, result.output
     assert f"Entity uuid={_UUID} was not purged" in result.output
     assert "report_schedule" in result.output
 
@@ -366,11 +365,12 @@ def test_force_purge_reports_a_blocked_purge(
 def test_force_purge_reports_nothing_to_purge(
     mocker: MockerFixture, app_context: None
 ) -> None:
+    """Nothing to purge is reported and, like a refusal, exits 1."""
     _purge_command(mocker, {"purged": False, "reason": "not_found"})
 
     result = CliRunner().invoke(force_purge, ["--uuid", str(_UUID), "--yes"])
 
-    assert result.exit_code == 0, result.output
+    assert result.exit_code == 1, result.output
     assert f"No entity found for uuid={_UUID} (nothing to purge)." in result.output
 
 
