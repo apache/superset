@@ -271,13 +271,13 @@ export function savePublished(
         }
       })
       .catch(async (response: Response) => {
-        const { error, message } = await getClientErrorObject(response);
+        const { error } = await getClientErrorObject(response);
         // Only show error if this is still the current dashboard
         const currentId = getState().dashboardInfo?.id;
         if (currentId === id) {
           dispatch(
             addDangerToast(
-              error && message !== 'Forbidden'
+              error && error !== 'Forbidden'
                 ? error
                 : t('You do not have permissions to edit this dashboard.'),
             ),
