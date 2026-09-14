@@ -36,13 +36,22 @@ def local_sqlite_file(tmp_path):
     return path
 
 
-def test_register_engine_events_disables_attach(local_sqlite_file) -> None:
+@pytest.mark.parametrize(
+    "uri, spec",
+    [
+        ("shillelagh://", ShillelaghEngineSpec),
+        # The meta database declares ``drivers = {"": ...}`` while its dialect
+        # reports ``apsw``, so the gate must key off the dialect.
+        ("superset://", SupersetEngineSpec),
+    ],
+)
+def test_register_engine_events_disables_attach(uri, spec, local_sqlite_file) -> None:
     """
-    After ``register_engine_events``, ``ATTACH DATABASE`` is rejected on a
+    After ``register_engine_events``, ``ATTACH DATABASE`` is rejected on an APSW
     shillelagh connection while ordinary queries keep working.
     """
-    engine = create_engine("shillelagh://")
-    ShillelaghEngineSpec.register_engine_events(engine)
+    engine = create_engine(uri)
+    spec.register_engine_events(engine)
 
     with engine.connect() as connection:
         assert connection.execute(text("SELECT 1")).scalar() == 1
@@ -54,9 +63,9 @@ def test_register_engine_events_disables_attach(local_sqlite_file) -> None:
 def test_attach_enabled_without_registration(local_sqlite_file) -> None:
     """
     Control: without ``register_engine_events`` the driver still permits ATTACH,
-    so the test above exercises a real capability. This pins driver behavior, not
-    Superset's: if it ever fails because the driver blocks ATTACH on its own, drop
-    this test rather than treating it as a regression.
+    so the test above exercises a real capability. If this ever fails because the
+    driver blocks ATTACH on its own, drop it rather than treating it as a
+    regression.
     """
     engine = create_engine("shillelagh://")
     with engine.connect() as connection:
@@ -98,20 +107,3 @@ def test_non_apsw_backend_is_left_alone() -> None:
 
     with engine.connect() as connection:
         assert connection.execute(text("SELECT 1")).scalar() == 1
-
-
-def test_meta_database_is_covered(local_sqlite_file) -> None:
-    """
-    The meta database runs on an APSW dialect and inherits this spec, so it is
-    covered too. It declares ``drivers = {"": ...}`` while its dialect reports
-    ``apsw``, so the gate must key off the dialect rather than the declared
-    drivers.
-    """
-    engine = create_engine("superset://")
-    SupersetEngineSpec.register_engine_events(engine)
-
-    with engine.connect() as connection:
-        assert connection.execute(text("SELECT 1")).scalar() == 1
-
-        with pytest.raises(Exception, match="attached databases"):
-            connection.execute(text(f"ATTACH DATABASE '{local_sqlite_file}' AS other"))

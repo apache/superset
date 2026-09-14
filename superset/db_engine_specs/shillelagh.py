@@ -73,6 +73,8 @@ class ShillelaghEngineSpec(SqliteEngineSpec):
     @classmethod
     def register_engine_events(cls, engine: Engine) -> None:
         super().register_engine_events(engine)
+        # The shillelagh dialects are owned by the library, so there is no
+        # ``on_connect`` of ours to extend, as ``SupersetAPSWDialect`` has.
         # Non-APSW shillelagh backends (``sqlglot``, ``multicorn2``) reach this
         # spec through the backend-only fallback in ``get_engine_spec`` and have
         # no APSW handle to limit.
@@ -90,8 +92,6 @@ class ShillelaghEngineSpec(SqliteEngineSpec):
         A shillelagh database reaches external sources through its adapters;
         ``ATTACH DATABASE`` is not part of that surface, and the underlying APSW
         driver would otherwise let a query open unrelated local SQLite files.
-        Refuse the connection if the APSW handle cannot be reached, rather than
-        handing back one the limit was never applied to.
         """
         # pylint: disable=import-outside-toplevel
         import apsw
