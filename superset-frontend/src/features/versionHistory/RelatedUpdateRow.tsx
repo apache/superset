@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ComponentType } from 'react';
+import { ComponentType, ReactNode } from 'react';
 import { t, tn } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 import { Icons, Tooltip } from '@superset-ui/core/components';
@@ -120,6 +120,11 @@ export default function RelatedUpdateRow({
 
   if (rollupEntityNames && rollupEntityNames.length > 1) {
     // No single target to link to; a tooltip lists the rolled-up names.
+    // Deliberately NOT merged here: each rolled-up record's
+    // `impact.affected_charts`. This tooltip answers "which entities rolled
+    // up", and the per-record affected-chart detail is surfaced on
+    // single-record rows below. Unioning affected charts across the rolled-up
+    // records is a possible follow-up, not an oversight.
     return (
       <Row data-test="version-history-related-row">
         <IconWrapper>
@@ -155,10 +160,45 @@ export default function RelatedUpdateRow({
   // The "Dataset used by N charts updated" phrasing summarizes siblings the
   // row cannot name inline; the impact payload carries them for the hover
   // detail (sc-119775), mirroring the rolled-up-names tooltip above.
+  const impactCount = record.impact?.charts ?? 0;
   const impactCharts = record.impact?.affected_charts ?? [];
   // The server caps the named refs while `charts` keeps the full count;
   // surface the difference as an overflow line.
-  const impactOverflow = (record.impact?.charts ?? 0) - impactCharts.length;
+  const impactOverflow = impactCount - impactCharts.length;
+  // Tooltip content: the named refs (plus overflow) when the backend supplied
+  // them; a count-only line when it emits `charts` but predates
+  // `affected_charts`, so the headline never advertises detail the hover
+  // cannot show; null when there is no impact at all, in which case no
+  // Tooltip is mounted — the common chart-related row stays as light as it
+  // was before the impact detail existed.
+  let impactTitle: ReactNode = null;
+  if (impactCharts.length > 0) {
+    impactTitle = [
+      ...tooltipNameList(
+        impactCharts.map(chart => ({
+          key: chart.id,
+          name: chart.name,
+        })),
+      ),
+      impactOverflow > 0 && (
+        <div key="impact-overflow">
+          {tn(
+            '…and %s more chart',
+            '…and %s more charts',
+            impactOverflow,
+            impactOverflow,
+          )}
+        </div>
+      ),
+    ];
+  } else if (impactCount > 0) {
+    impactTitle = tn(
+      '%s affected chart',
+      '%s affected charts',
+      impactCount,
+      impactCount,
+    );
+  }
   const linkable = !record.entity_deleted && Boolean(onOpen);
   // Both the server summary and the impact-aware phrasing end with the
   // entity name; split it out so the name can render as a link. Records
@@ -168,51 +208,34 @@ export default function RelatedUpdateRow({
       ? headline.lastIndexOf(record.entity_name)
       : -1;
 
+  const headlineNode = (
+    <Headline>
+      {nameIndex >= 0 ? (
+        <>
+          {headline.slice(0, nameIndex)}
+          <NameLink type="button" onClick={() => onOpen?.(record)}>
+            {entityName}
+          </NameLink>
+          {headline.slice(nameIndex + record.entity_name.length)}
+        </>
+      ) : (
+        headline
+      )}
+      {record.entity_deleted && ` (${t('deleted')})`}
+    </Headline>
+  );
+
   return (
     <Row data-test="version-history-related-row">
       <IconWrapper>
         <Icon iconSize="l" />
       </IconWrapper>
       <Content>
-        <Tooltip
-          title={
-            impactCharts.length > 0
-              ? [
-                  ...tooltipNameList(
-                    impactCharts.map(chart => ({
-                      key: chart.id,
-                      name: chart.name,
-                    })),
-                  ),
-                  impactOverflow > 0 && (
-                    <div key="impact-overflow">
-                      {tn(
-                        '…and %s more chart',
-                        '…and %s more charts',
-                        impactOverflow,
-                        impactOverflow,
-                      )}
-                    </div>
-                  ),
-                ]
-              : null
-          }
-        >
-          <Headline>
-            {nameIndex >= 0 ? (
-              <>
-                {headline.slice(0, nameIndex)}
-                <NameLink type="button" onClick={() => onOpen?.(record)}>
-                  {entityName}
-                </NameLink>
-                {headline.slice(nameIndex + record.entity_name.length)}
-              </>
-            ) : (
-              headline
-            )}
-            {record.entity_deleted && ` (${t('deleted')})`}
-          </Headline>
-        </Tooltip>
+        {impactTitle !== null ? (
+          <Tooltip title={impactTitle}>{headlineNode}</Tooltip>
+        ) : (
+          headlineNode
+        )}
         <Meta>
           {formatAuthor(record.changed_by)} ·{' '}
           {formatVersionDateTimeShort(record.issued_at)}

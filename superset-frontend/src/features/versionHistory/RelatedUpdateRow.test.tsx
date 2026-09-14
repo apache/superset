@@ -115,6 +115,21 @@ test('a single-chart impact still offers the names tooltip (pinned decision)', a
   expect(await screen.findByText('Alpha chart')).toBeInTheDocument();
 });
 
+test('a backend that emits the count but predates affected_charts gets a count-only tooltip', async () => {
+  // Older backends send `impact.charts` without `affected_charts`; the
+  // headline still says "used by N charts", so the hover must at least
+  // confirm the count rather than promise detail it cannot show.
+  const record: ActivityRecord = {
+    ...baseRecord,
+    impact: { charts: 4 },
+  };
+  render(<RelatedUpdateRow record={record} />);
+
+  userEvent.hover(screen.getByText(/Dataset used by 4 charts updated/));
+
+  expect(await screen.findByText('4 affected charts')).toBeInTheDocument();
+});
+
 test('a related record without impact names shows no tooltip', async () => {
   const record: ActivityRecord = {
     ...baseRecord,
