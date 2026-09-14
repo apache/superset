@@ -559,7 +559,7 @@ for class_name, info in class_info.items():
             # by engine name. Mirrors the SQL_VALIDATORS_BY_ENGINE default in
             # superset/config.py (and SQL_VALIDATION_ENGINES in
             # superset/db_engine_specs/lib.py); keep the three in sync.
-            'sql_validation': engine_attr == 'presto',
+            'sql_validation': engine_attr in {'presto'},
             'user_impersonation': bool(
                 {'impersonate_user', 'update_impersonation_config', 'get_url_for_impersonation'} & cap_methods
             ),
