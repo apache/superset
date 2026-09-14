@@ -33,6 +33,7 @@ from sqlalchemy import and_
 from superset import db, security_manager  # noqa: F401
 from superset.commands.dashboard.permalink.create import CreateDashboardPermalinkCommand
 from superset.exceptions import LockAlreadyHeldException
+from superset.daos.dashboard import reconcile_position_json
 from superset.models.dashboard import Dashboard
 from superset.models.core import FavStar, FavStarClassName
 from superset.reports.models import ReportSchedule, ReportScheduleType
@@ -2244,6 +2245,67 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         assert "chartId" not in node["meta"]
         # The slot id is unchanged, so its parent's children stay valid.
         assert stored["ROOT_ID"]["children"] == ["CHART-gone"]
+
+        db.session.delete(model)
+        db.session.commit()
+
+    def test_update_dashboard_json_metadata_positions_supersede_raw_position_json(
+        self,
+    ) -> None:
+        """PUT sending BOTH a raw ``position_json`` and ``json_metadata`` with
+        ``positions``: the metadata positions win (``set_dash_metadata``
+        reconciles and writes them), and the raw-field reconcile is skipped as
+        dead work rather than run and discarded (fitzee review on #44028). Pins
+        both the documented precedence and the skip.
+        """
+        admin = self.get_user("admin")
+        dashboard_id = self.insert_dashboard(
+            "precedence-recon", "precedence-recon", [admin.id]
+        ).id
+        self.login(ADMIN_USERNAME)
+        absent_chart_id = 999_999_998  # resolves to no Slice row
+        raw_positions = {
+            "ROOT_ID": {"id": "ROOT_ID", "type": "ROOT", "children": ["CHART-raw"]},
+            "CHART-raw": {
+                "id": "CHART-raw",
+                "type": "CHART",
+                "children": [],
+                "meta": {"chartId": absent_chart_id, "width": 4, "height": 50},
+            },
+        }
+        metadata_positions = {
+            "ROOT_ID": {"id": "ROOT_ID", "type": "ROOT", "children": ["CHART-meta"]},
+            "CHART-meta": {
+                "id": "CHART-meta",
+                "type": "CHART",
+                "children": [],
+                "meta": {"chartId": absent_chart_id, "width": 4, "height": 50},
+            },
+        }
+        uri = f"api/v1/dashboard/{dashboard_id}"
+        with patch(
+            "superset.commands.dashboard.update.reconcile_position_json",
+            wraps=reconcile_position_json,
+        ) as raw_reconcile:
+            rv = self.put_assert_metric(
+                uri,
+                {
+                    "position_json": json.dumps(raw_positions),
+                    "json_metadata": json.dumps({"positions": metadata_positions}),
+                },
+                "put",
+            )
+        assert rv.status_code == 200, rv.data
+        # The raw-field reconcile did not run: metadata positions supersede it.
+        raw_reconcile.assert_not_called()
+
+        model = db.session.query(Dashboard).get(dashboard_id)
+        stored = json.loads(model.position_json)
+        # The stored layout is the METADATA one (reconciled by set_dash_metadata),
+        # not the raw field.
+        assert "CHART-meta" in stored, stored
+        assert "CHART-raw" not in stored, stored
+        assert stored["CHART-meta"]["type"] == "MARKDOWN"
 
         db.session.delete(model)
         db.session.commit()

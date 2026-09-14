@@ -78,19 +78,6 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
                     ObjectType.dashboard, self._model.id, self._model.tags, tags
                 )
 
-            # Re-serialize position_json to escape 4-byte Unicode characters,
-            # and reconcile it against membership: a layout node referencing a
-            # chart that no longer resolves to any Slice row (hard-deleted) is
-            # swapped for a placeholder so ``position_json`` cannot keep
-            # accumulating dangling chart references (sc-115325). The
-            # ``set_dash_metadata`` path reconciles its own ``positions`` from
-            # ``json_metadata``; this covers a PUT that sends only the raw
-            # ``position_json`` field.
-            if position_json := self._properties.get("position_json"):
-                positions: object = json.loads(position_json)
-                reconcile_position_json(positions, self._model.id)
-                self._properties["position_json"] = json.dumps(positions)
-
             # ``set_dash_metadata`` merges the incoming metadata against
             # ``dashboard.params_dict`` (the *stored* ``json_metadata``) to
             # preserve fields the caller omitted. Routing ``json_metadata``
@@ -100,15 +87,39 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
             # field to its default -- so it is excluded here and applied
             # exclusively via ``set_dash_metadata``.
             json_metadata = self._properties.get("json_metadata")
+            metadata: dict[str, Any] | None = (
+                json.loads(json_metadata) if json_metadata else None
+            )
+
+            # Re-serialize position_json to escape 4-byte Unicode characters,
+            # and reconcile it against membership: a layout node referencing a
+            # chart that no longer resolves to any Slice row (hard-deleted) is
+            # swapped for a placeholder so ``position_json`` cannot keep
+            # accumulating dangling chart references (sc-115325).
+            #
+            # Precedence: when ``json_metadata`` carries ``positions`` (the
+            # frontend always sends them there), ``set_dash_metadata`` reconciles
+            # those and overwrites ``position_json`` from them, so a raw
+            # ``position_json`` field sent alongside is superseded. Reconciling
+            # it here would be dead work — including its membership query — so
+            # this branch runs only for a PUT that sends the raw field without
+            # ``positions`` in ``json_metadata``.
+            metadata_carries_positions = isinstance(metadata, dict) and (
+                "positions" in metadata
+            )
+            if (
+                position_json := self._properties.get("position_json")
+            ) and not metadata_carries_positions:
+                positions: object = json.loads(position_json)
+                reconcile_position_json(positions, self._model.id)
+                self._properties["position_json"] = json.dumps(positions)
+
             dashboard = DashboardDAO.update(
                 self._model,
                 {k: v for k, v in self._properties.items() if k != "json_metadata"},
             )
-            if json_metadata:
-                DashboardDAO.set_dash_metadata(
-                    dashboard,
-                    data=json.loads(json_metadata),
-                )
+            if metadata is not None:
+                DashboardDAO.set_dash_metadata(dashboard, data=metadata)
         return dashboard
 
     def validate(self) -> None:

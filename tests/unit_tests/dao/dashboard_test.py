@@ -17,11 +17,16 @@
 from datetime import datetime, timezone
 from typing import Any
 
+import pytest
 from sqlalchemy.orm.session import Session
 
 from superset import db
 from superset.connectors.sqla.models import Database, SqlaTable
-from superset.daos.dashboard import DashboardDAO, reconcile_position_json
+from superset.daos.dashboard import (
+    _layout_chart_id,
+    DashboardDAO,
+    reconcile_position_json,
+)
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils import json
@@ -170,7 +175,7 @@ def test_set_dash_metadata_updates_refresh_frequency_when_present(
     )
 
 
-def _chart_node(node_id: str, chart_id: int, width: int, height: int) -> dict[str, Any]:
+def _chart_node(node_id: str, chart_id: Any, width: int, height: int) -> dict[str, Any]:
     return {
         "type": "CHART",
         "id": node_id,
@@ -370,3 +375,74 @@ def test_reconcile_position_json_handles_edge_and_malformed_nodes(
     # Malformed nodes are left untouched (ignored, not repaired, not raised).
     assert positions["CHART-bad-meta"]["type"] == "CHART"
     assert positions["CHART-bad-id"]["type"] == "CHART"
+
+
+@pytest.mark.parametrize(
+    "chart_id, expected",
+    [
+        (7, 7),
+        (0, 0),  # real-but-absent reference, not "missing"
+        (7.0, 7),  # integral float (JSON round-trip / import)
+        ("7", 7),  # digit string (legacy data)
+        (" 7 ", 7),  # whitespace-padded digit string
+        (7.5, None),  # fractional float is not an id
+        ("7a", None),  # non-digit string
+        ("-1", None),  # sign is not a digit; no Slice has a negative id
+        (True, None),  # bool is an int subclass but never a chart id
+        ([1], None),
+        (None, None),
+    ],
+)
+def test_layout_chart_id_coerces_numeric_forms_only(
+    chart_id: Any, expected: int | None
+) -> None:
+    """Numeric *forms* of a chartId (integral float, digit string) resolve to
+    the int — legacy/imported layouts carry them and the pre-reconcile code
+    accepted them — while fractional floats, non-digit strings, and bools stay
+    ``None`` (fitzee review on #44028: returning ``None`` for ``123.0`` or
+    ``"123"`` would silently unlink a live chart AND skip its repair)."""
+    node = {"type": "CHART", "id": "CHART-x", "meta": {"chartId": chart_id}}
+    assert _layout_chart_id(node) == expected
+
+
+def test_reconcile_position_json_keeps_live_chart_referenced_in_numeric_form(
+    session: Session,
+) -> None:
+    """A live chart referenced as ``123.0`` or ``"123"`` is recognised as that
+    chart — left as a CHART tile, not repaired — while an ABSENT id in the same
+    forms is still repaired. This is the regression fitzee flagged: dropping
+    numeric forms would exclude a real chart from the membership rebuild (unlink
+    on save) and, with no id to resolve, never convert it to a placeholder — a
+    permanent orphan tile."""
+    Dashboard.metadata.create_all(session.get_bind())
+
+    dataset = SqlaTable(
+        table_name="numeric_form_table",
+        database=Database(database_name="numeric_form_db", sqlalchemy_uri="sqlite://"),
+    )
+    db.session.add(dataset)
+    db.session.flush()
+    live_chart = Slice(
+        slice_name="numeric_form_live",
+        datasource_id=dataset.id,
+        datasource_type="table",
+    )
+    db.session.add(live_chart)
+    db.session.flush()
+
+    positions: dict[str, Any] = {
+        "CHART-float": _chart_node("CHART-float", float(live_chart.id), 4, 50),
+        "CHART-str": _chart_node("CHART-str", str(live_chart.id), 4, 50),
+        "CHART-absent-float": _chart_node("CHART-absent-float", 0.0, 4, 50),
+        "CHART-absent-str": _chart_node("CHART-absent-str", "0", 4, 50),
+    }
+
+    repaired = reconcile_position_json(positions)
+
+    assert repaired == 2
+    # Live chart in either numeric form: recognised, kept as a CHART tile.
+    assert positions["CHART-float"]["type"] == "CHART"
+    assert positions["CHART-str"]["type"] == "CHART"
+    # Absent id in either numeric form: still repaired.
+    assert positions["CHART-absent-float"]["type"] == "MARKDOWN"
+    assert positions["CHART-absent-str"]["type"] == "MARKDOWN"

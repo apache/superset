@@ -94,11 +94,20 @@ def _layout_chart_id(node: Any) -> int | None:
     returns ``None``.
 
     Defensive against malformed persisted layout JSON, which is only validated
-    as parseable: a non-dict ``meta`` (e.g. ``"meta": "x"``) or a non-int
+    as parseable: a non-dict ``meta`` (e.g. ``"meta": "x"``) or a non-numeric
     ``chartId`` (e.g. ``"chartId": [1]``) yields ``None`` so the node is ignored
     rather than raising on a write path. ``chartId == 0`` is returned as a real
     reference — no ``Slice`` has id 0, so it resolves as absent and is repaired,
     matching the frontend, which also recognizes 0.
+
+    Numeric *forms* of an id are coerced rather than dropped: legacy, imported,
+    or JSON-round-tripped layouts can carry ``123.0`` (float) or ``"123"``
+    (digit string), which the pre-reconcile code passed straight into
+    ``Slice.id.in_(...)``. Returning ``None`` for those would silently unlink a
+    real chart on the next save (excluded from the membership rebuild) AND
+    skip its repair (no id to resolve) — a permanent orphan tile. An integral
+    float or a digit string is therefore read as its ``int``; a fractional
+    float, a non-digit string, or a ``bool`` is still ``None``.
     """
     if not isinstance(node, dict) or node.get("type") != "CHART":
         return None
@@ -108,9 +117,15 @@ def _layout_chart_id(node: Any) -> int | None:
     chart_id = meta.get("chartId")
     # ``bool`` is an ``int`` subclass; exclude it so a stray ``true`` is not
     # misread as chartId 1.
-    if isinstance(chart_id, bool) or not isinstance(chart_id, int):
+    if isinstance(chart_id, bool):
         return None
-    return chart_id
+    if isinstance(chart_id, int):
+        return chart_id
+    if isinstance(chart_id, float) and chart_id.is_integer():
+        return int(chart_id)
+    if isinstance(chart_id, str) and chart_id.strip().isdigit():
+        return int(chart_id.strip())
+    return None
 
 
 def _repair_dangling_chart_nodes(
