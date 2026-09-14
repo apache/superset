@@ -137,7 +137,7 @@ test('renaming is abandoned on Escape', async () => {
   await userEvent.click(within(menu).getByLabelText('Rename conversation'));
   const input = within(menu).getByLabelText('Conversation name');
   await userEvent.clear(input);
-  await userEvent.type(input, 'Discarded{esc}');
+  await userEvent.type(input, 'Discarded{Escape}');
 
   expect(props.onRenameTab).not.toHaveBeenCalled();
   expect(within(menu).getByText('Revenue question')).toBeInTheDocument();

@@ -181,11 +181,15 @@ class BrokenExpireCache(FakeStreamCache):
         raise RuntimeError("connection refused")
 
 
-def _terminal_event(index: int) -> StreamEvent:
-    """One event per terminal type, addressed by index so ids stay readable."""
+def _completion_events(index: int) -> list[StreamEvent]:
+    """Each run outcome ends with the orchestrator's final done frame."""
     from superset.ai.events import cancelled_event, done_event, error_event
 
-    return [done_event(True), error_event("boom"), cancelled_event()][index]
+    return [
+        [done_event(True)],
+        [error_event("boom"), done_event(False)],
+        [cancelled_event(), done_event(False)],
+    ][index]
 
 
 # --------------------------------------------------------------------------- #
@@ -239,7 +243,7 @@ def test_memory_bus_keeps_runs_apart() -> None:
 @pytest.mark.parametrize("index", [0, 1, 2])
 def test_memory_bus_stops_at_a_terminal_event(index: int) -> None:
     """
-    Consumption ends on ``done``, ``error`` or ``cancelled``.
+    Consumption ends on ``done``, including after an error or cancellation.
 
     Without this the reader waits out the full timeout after a run has already
     finished, which the user experiences as a response that never closes.
@@ -247,16 +251,17 @@ def test_memory_bus_stops_at_a_terminal_event(index: int) -> None:
     from superset.ai.eventbus import MemoryEventBus
     from superset.ai.events import assistant_delta_event
 
-    terminal = _terminal_event(index)
+    expected = _completion_events(index)
 
     bus = MemoryEventBus()
-    bus.publish("run-1", terminal)
+    for event in expected:
+        bus.publish("run-1", event)
     # Anything queued after the terminal event is not the client's business.
     bus.publish("run-1", assistant_delta_event("trailing"))
 
     events = _drain(bus, "run-1", timeout_seconds=5.0)
 
-    assert events == [terminal]
+    assert events == expected
 
 
 def test_memory_bus_yields_idle_while_nothing_is_published() -> None:
@@ -431,19 +436,20 @@ def test_redis_bus_skips_malformed_entries() -> None:
 
 @pytest.mark.parametrize("index", [0, 1, 2])
 def test_redis_bus_stops_at_a_terminal_event(index: int) -> None:
-    """Consumption ends on the first terminal event, as in-process it does."""
+    """Worker streams preserve the final done frame for every run outcome."""
     from superset.ai.eventbus import RedisStreamEventBus
     from superset.ai.events import assistant_delta_event
 
-    terminal = _terminal_event(index)
+    expected = _completion_events(index)
 
     bus = RedisStreamEventBus(cache=FakeStreamCache())
-    bus.publish("run-1", terminal)
+    for event in expected:
+        bus.publish("run-1", event)
     bus.publish("run-1", assistant_delta_event("trailing"))
 
     events = _drain(bus, "run-1", timeout_seconds=5.0)
 
-    assert events == [terminal]
+    assert events == expected
 
 
 def test_redis_bus_publish_survives_a_broken_backend() -> None:

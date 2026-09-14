@@ -47,12 +47,6 @@ logger = logging.getLogger(__name__)
 #: interval, so a caller can emit a keep-alive rather than block indefinitely.
 IDLE = None
 
-#: Terminal event types. Seeing one ends consumption, so a reader does not hang
-#: waiting for a producer that has already finished.
-_TERMINAL = frozenset(
-    {StreamEventType.DONE, StreamEventType.ERROR, StreamEventType.CANCELLED}
-)
-
 
 class BaseEventBus(ABC):
     """A per-run channel of events."""
@@ -134,7 +128,7 @@ class MemoryEventBus(BaseEventBus):
                 yield IDLE
                 continue
             yield event
-            if event.type in _TERMINAL:
+            if event.type is StreamEventType.DONE:
                 return
 
     def close(self, run_id: str) -> None:
@@ -209,7 +203,7 @@ class RedisStreamEventBus(BaseEventBus):
                 if event is None:
                     continue
                 yield event
-                if event.type in _TERMINAL:
+                if event.type is StreamEventType.DONE:
                     return
 
     def close(self, run_id: str) -> None:
