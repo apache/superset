@@ -82,7 +82,11 @@ class TestManageDashboardCertification:
             )
 
         payload: dict[str, Any] = json.loads(result.content[0].text)
-        assert payload["permission_denied"] is True
+        # Structural refusal, NOT an ACL denial: the flags must not be
+        # conflated — permission_denied's remediation ("ask for access")
+        # can never resolve a managed-externally refusal.
+        assert payload["managed_externally"] is True
+        assert payload["permission_denied"] is False
         assert "managed externally" in payload["error"]
         assert dash.certified_by is None
         assert dash.certification_details is None
@@ -114,6 +118,7 @@ class TestManageDashboardCertification:
 
         payload: dict[str, Any] = json.loads(result.content[0].text)
         assert payload.get("permission_denied") is not True
+        assert payload.get("managed_externally") is not True
         assert payload["certified_by"] == "External Certifier"
         assert payload["certification_details"] == "Synced from the source of truth"
         assert payload["changed_fields"] == []

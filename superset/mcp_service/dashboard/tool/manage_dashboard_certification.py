@@ -66,6 +66,12 @@ def manage_dashboard_certification(
     clear it, or pass a value to set it. Certification surfaces as a badge
     next to the dashboard title in the UI.
 
+    Externally managed dashboards refuse set/clear — the response carries
+    ``managed_externally=True``; the refusal is structural (the badge is
+    owned by the external system), so granting permissions cannot resolve
+    it and the call should not be retried. The no-field inspect call
+    still returns current values for such dashboards.
+
     Example::
 
         manage_dashboard_certification(request={
@@ -103,7 +109,7 @@ def manage_dashboard_certification(
     # the plain editorship denial.
     if dashboard.is_managed_externally:
         return ManageDashboardCertificationResponse(
-            permission_denied=True,
+            managed_externally=True,
             error=(
                 f"Dashboard '{dashboard.dashboard_title}' (ID: {dashboard.id}) "
                 "is managed externally; its certification is owned by the "
