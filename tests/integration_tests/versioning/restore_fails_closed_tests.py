@@ -119,10 +119,12 @@ class TestRestoreFailsClosedOnPrunedChildHistory(SupersetTestCase):
         """Command-level: the refusal rides the command's own transaction.
 
         The pruning fixture is COMMITTED (as a real retention pass would
-        be) and the test performs no rollback of its own, so the
-        command's @transaction rollback is what must leave the entity
-        untouched — a partial flush-then-raise would fail the fresh-read
-        assertions below.
+        be) and the test performs no rollback of its own: the durable
+        end-state — 422-shaped refusal, entity unchanged — is owned by
+        the command's transactional cleanup. (This cannot distinguish
+        verify-before-write from a rolled-back partial flush; the
+        check-happens-before-any-write ORDERING is pinned by
+        test_refusal_happens_before_any_write below.)
         """
         # pylint: disable=import-outside-toplevel
         from superset import security_manager
@@ -174,16 +176,16 @@ class TestRestoreFailsClosedOnPrunedChildHistory(SupersetTestCase):
 
     def test_verification_row_locks_block_a_concurrent_prune(self) -> None:
         """H1: the verifier's FOR UPDATE locks hold off the pruner's DELETE
-        until the restore's transaction ends, so the reconstruction inputs
-        cannot vanish between the check and the reverter's re-reads."""
+        until the restore's transaction ends — and release with it."""
         # pylint: disable=import-outside-toplevel
         from superset.versioning.restore import _verify_child_history_complete
 
         dialect = db.engine.dialect.name
         if dialect == "sqlite":
             pytest.skip(
-                "FOR UPDATE is a no-op on SQLite; its single-writer model "
-                "provides the equivalent guarantee"
+                "FOR UPDATE is a no-op on SQLite; there the verifier takes "
+                "a BEGIN IMMEDIATE write reservation instead (covered by "
+                "test_sqlite_verifier_reserves_the_write_lock)"
             )
 
         dataset, column, target_tx, _ = self._two_version_dataset()
@@ -191,19 +193,83 @@ class TestRestoreFailsClosedOnPrunedChildHistory(SupersetTestCase):
         _verify_child_history_complete(dataset, target_tx)
 
         shadow = version_class(TableColumn).__table__
+        delete_stmt = sa.delete(shadow).where(
+            shadow.c.id == column.id,
+            shadow.c.end_transaction_id.isnot(None),
+        )
         with db.engine.connect() as conn:
-            if dialect == "mysql":
-                conn.exec_driver_sql("SET SESSION innodb_lock_wait_timeout = 1")
-            else:
-                conn.exec_driver_sql("SET lock_timeout = '1s'")
-            with pytest.raises(sa.exc.OperationalError):
+            # Begin FIRST: exec_driver_sql would autobegin and make the
+            # later begin() raise InvalidRequestError instead of ever
+            # reaching the lock wait. The timeout is set inside the
+            # transaction (SET LOCAL reverts with it on Postgres; the
+            # MySQL session variable is reset below before the connection
+            # returns to the pool).
+            def _attempt_locked_delete() -> None:
                 with conn.begin():
-                    conn.execute(
+                    if dialect == "mysql":
+                        conn.exec_driver_sql("SET SESSION innodb_lock_wait_timeout = 1")
+                    else:
+                        conn.exec_driver_sql("SET LOCAL lock_timeout = '1s'")
+                    conn.execute(delete_stmt)
+
+            with pytest.raises(sa.exc.OperationalError) as excinfo:
+                _attempt_locked_delete()
+            # Specifically the dialect's lock-wait failure, not some other
+            # OperationalError.
+            orig = excinfo.value.orig
+            if dialect == "mysql":
+                assert orig.args, orig
+                assert orig.args[0] == 1205, orig
+                conn.rollback()
+                conn.exec_driver_sql("SET SESSION innodb_lock_wait_timeout = DEFAULT")
+            else:
+                assert getattr(orig, "pgcode", None) == "55P03", orig
+
+        # Releasing the verifier's transaction releases the locks: the
+        # same DELETE succeeds once unblocked (rolled back to keep the fixture).
+        db.session.rollback()
+        with db.engine.connect() as conn:
+            trans = conn.begin()
+            assert (conn.execute(delete_stmt).rowcount or 0) >= 1
+            trans.rollback()
+
+    def test_sqlite_verifier_reserves_the_write_lock(self) -> None:
+        """H1 on SQLite: the verifier takes a BEGIN IMMEDIATE reservation
+        before its reads, so no other writer can commit between the check
+        and the restore's own commit (FOR UPDATE is a no-op there, and
+        pysqlite's legacy mode would otherwise hold no transaction at all
+        for the SELECT sequence)."""
+        # pylint: disable=import-outside-toplevel
+        from superset.versioning.restore import _verify_child_history_complete
+
+        if db.engine.dialect.name != "sqlite":
+            pytest.skip("exercises the pysqlite write-reservation path")
+
+        dataset, column, target_tx, _ = self._two_version_dataset()
+        raw = db.session.connection().connection.dbapi_connection
+        _verify_child_history_complete(dataset, target_tx)
+        assert raw.in_transaction, (
+            "the verifier must hold a real SQLite transaction after its "
+            "reads — without the BEGIN IMMEDIATE reservation the SELECTs "
+            "run autocommit and a prune can land mid-restore"
+        )
+
+        # And the reservation actually blocks a concurrent writer.
+        shadow = version_class(TableColumn).__table__
+        with db.engine.connect() as writer:
+
+            def _attempt_concurrent_delete() -> None:
+                with writer.begin():
+                    writer.exec_driver_sql("PRAGMA busy_timeout = 300")
+                    writer.execute(
                         sa.delete(shadow).where(
                             shadow.c.id == column.id,
                             shadow.c.end_transaction_id.isnot(None),
                         )
                     )
+
+            with pytest.raises(sa.exc.OperationalError):
+                _attempt_concurrent_delete()
         db.session.rollback()
 
     def test_sqlite_snapshot_connection_holds_a_real_read_transaction(
@@ -284,6 +350,35 @@ class TestRestoreFailsClosedOnPrunedChildHistory(SupersetTestCase):
         refreshed = db.session.get(TableColumn, column.id)
         assert refreshed is not None
         assert refreshed.description == before
+        db.session.rollback()
+
+    def test_refusal_happens_before_any_write(self) -> None:
+        """M3 remainder: the refusal precedes the write phase entirely.
+
+        Asserted BEFORE any rollback: the write phase (single_flush_scope
+        + reverter) is never entered, the session carries no pending
+        entity DML, and parent/column state is untouched — so the guard
+        cannot be a rolled-back partial write in disguise.
+        """
+        dataset, column, target_tx, _ = self._two_version_dataset()
+        edited_description = column.description
+        parent_description = dataset.description
+        assert _delete_column_shadow_rows(column.id, closed_only=True) >= 1
+
+        with patch(
+            "superset.versioning.restore.single_flush_scope",
+            side_effect=AssertionError("write phase entered before refusal"),
+        ):
+            with pytest.raises(PrunedChildHistoryError):
+                restore_version(SqlaTable, dataset.uuid, target_tx, entity=dataset)
+
+        # No rollback yet: pending-state must already be clean.
+        assert not db.session.new
+        assert not db.session.deleted
+        dirty = [obj for obj in db.session.dirty if db.session.is_modified(obj)]
+        assert not dirty
+        assert dataset.description == parent_description
+        assert column.description == edited_description
         db.session.rollback()
 
     def test_documented_limitation_fully_pruned_deleted_child_fails_open(

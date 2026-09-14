@@ -133,30 +133,34 @@ def _verify_child_history_complete(entity: Any, target_tx: int) -> None:
     # bootstrap-cycle rationale as the other deferred imports here).
     from superset.connectors.sqla.models import SqlMetric, TableColumn
 
+    # SQLite drops FOR UPDATE, and pysqlite's legacy mode starts no real
+    # transaction for SELECTs — the verification reads and the reverter's
+    # re-reads could straddle a concurrent commit, and the write lock
+    # would otherwise arrive only at the deferred flush. Reserve the
+    # write lock up front (BEGIN IMMEDIATE) so no other writer can commit
+    # between the check and the restore's own commit; the read-to-write
+    # upgrade conflict cannot occur because the reservation precedes
+    # every read. No-op when the driver is already in a transaction.
+    if db.engine.dialect.name == "sqlite":
+        raw = db.session.connection().connection.dbapi_connection
+        if not raw.in_transaction:
+            raw.execute("BEGIN IMMEDIATE")
+
     missing: list[str] = []
     for label, child_cls in (("column", TableColumn), ("metric", SqlMetric)):
         shadow = version_class(child_cls).__table__
-        # Lock the reconstruction inputs (the non-DELETE rows valid at the
-        # target) FOR UPDATE in the transaction that owns the restore:
-        # under READ COMMITTED a retention pass could otherwise commit
-        # between this verification and the reverter's own re-reads,
-        # deleting a row that passed the check here. The row locks block
-        # the pruner's DELETE until this transaction commits (its
-        # SERIALIZABLE pass waits or retries); SQLite ignores FOR UPDATE,
-        # where its single-writer model provides the equivalent.
-        db.session.execute(
-            sa.select(shadow.c.id)
-            .where(
-                shadow.c.table_id == entity.id,
-                shadow.c.transaction_id <= target_tx,
-                sa.or_(
-                    shadow.c.end_transaction_id.is_(None),
-                    shadow.c.end_transaction_id > target_tx,
-                ),
-                shadow.c.operation_type != OPERATION_DELETE,
-            )
-            .with_for_update()
-        ).all()
+        # One locked read: EVERY surviving row the verdict depends on is
+        # taken FOR UPDATE in the transaction that owns the restore —
+        # covering non-DELETE rows (the reconstruction inputs) AND
+        # covering DELETE witnesses. The witnesses are load-bearing for
+        # the WRITE as well as the verdict: Continuum's one-to-many
+        # reconstruction selects the latest surviving row at/before the
+        # target and then excludes DELETEs, so a pruner deleting a
+        # covering DELETE witness mid-restore would resurrect an older
+        # incarnation the target never had. The row locks block the
+        # pruner's DELETE until this transaction commits (its
+        # SERIALIZABLE pass waits or retries). On SQLite the BEGIN
+        # IMMEDIATE reservation above provides the equivalent.
         rows = db.session.execute(
             sa.select(
                 shadow.c.id,
@@ -166,6 +170,7 @@ def _verify_child_history_complete(entity: Any, target_tx: int) -> None:
             )
             .where(shadow.c.table_id == entity.id)
             .order_by(shadow.c.id, shadow.c.transaction_id)
+            .with_for_update()
         ).all()
         by_child: dict[int, list[Any]] = {}
         for row in rows:
