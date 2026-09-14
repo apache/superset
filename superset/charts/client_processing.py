@@ -1268,6 +1268,42 @@ post_processors = {
 }
 
 
+def _apply_excel_explore_formats(
+    workbook_bytes: bytes,
+    df: pd.DataFrame,
+    form_data: dict[str, Any],
+    viz_type: Optional[str],
+    include_index: bool,
+) -> bytes:
+    """Apply Explore number/date/alignment formats to an already-written xlsx."""
+    if viz_type == "pivot_table_v2" and form_data.get("showValuesAs") in (
+        SHOW_VALUES_AS_PERCENT_MODES
+    ):
+        return workbook_bytes
+
+    from superset.utils.excel_display import (
+        apply_column_display,
+        styles_from_pivot_form_data,
+        styles_from_table_form_data,
+    )
+
+    headers = [str(column) for column in df.columns]
+    if viz_type == "table":
+        styles = styles_from_table_form_data(headers, form_data)
+    elif viz_type == "pivot_table_v2":
+        styles = styles_from_pivot_form_data(headers, form_data)
+    else:
+        return workbook_bytes
+
+    header_rows = df.columns.nlevels if isinstance(df.columns, pd.MultiIndex) else 1
+    if include_index:
+        header_rows = max(header_rows, getattr(df.index, "nlevels", 1))
+    return apply_column_display(workbook_bytes, styles, header_rows=header_rows)
+
+
+def _is_default_index_column(series: pd.Series) -> bool:
+
+
 def _is_default_index_column(series: pd.Series) -> bool:
     return series.tolist() == list(range(len(series)))
 
@@ -1441,6 +1477,7 @@ def apply_client_processing(  # noqa: C901
             )
         elif query["result_format"] == ChartDataResultFormat.XLSX:
             excel.apply_column_types(processed_df, query["coltypes"])
+            include_index = show_default_index
             query["data"] = excel.df_to_excel(
                 processed_df,
                 # A percent mode leaves every cell a fraction. Excel can render
@@ -1454,8 +1491,15 @@ def apply_client_processing(  # noqa: C901
                 ),
                 **{
                     **current_app.config["EXCEL_EXPORT"],
-                    "index": show_default_index,
+                    "index": include_index,
                 },
+            )
+            query["data"] = _apply_excel_explore_formats(
+                query["data"],
+                processed_df,
+                form_data,
+                viz_type,
+                include_index,
             )
 
     return result
