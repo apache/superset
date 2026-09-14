@@ -65,6 +65,9 @@ class _ResolvedDatasource:
     valid_columns: set[str]
     valid_metrics: set[str]
     warnings: list[str] = field(default_factory=list)
+    grain_column: str | None = None
+    valid_grains: dict[str, str] | None = None
+    temporal_columns: set[str] = field(default_factory=set)
 
 
 def _time_column_error(
@@ -89,6 +92,11 @@ def _resolve_builtin_dataset(
 
     dataset_id = request.dataset_id
     assert dataset_id is not None
+    if request.time_grain:
+        return SemanticLayerError.create(
+            error="time_grain applies to semantic views only, not built-in datasets.",
+            error_type="ValidationError",
+        )
 
     with event_logger.log_context(action="mcp.get_table.resolve_dataset"):
         dataset = DatasetDAO.find_by_id(
@@ -126,7 +134,13 @@ def _resolve_builtin_dataset(
             error_type="ValidationError",
         )
 
-    return _ResolvedDatasource(display_name, time_col, valid_columns, valid_metrics)
+    return _ResolvedDatasource(
+        display_name,
+        time_col,
+        valid_columns,
+        valid_metrics,
+        temporal_columns=valid_dttm_columns,
+    )
 
 
 def _resolve_external_view(
@@ -180,8 +194,42 @@ def _resolve_external_view(
             error_type="ValidationError",
         )
 
+    valid_grains: dict[str, str] = {
+        duration: grain["name"]
+        for grain in view.get_time_grains()
+        if (duration := grain["duration"]) is not None
+    }
+    grain_column: str | None = request.time_column
+    if request.time_grain:
+        if request.time_grain not in valid_grains:
+            choices: str = ", ".join(
+                f"{duration} ({name})"
+                for duration, name in sorted(valid_grains.items())
+            )
+            return SemanticLayerError.create(
+                error=f"Unsupported time_grain '{request.time_grain}' on view "
+                f"'{display_name}'. Queryable grains: {choices or 'none'}.",
+                error_type="ValidationError",
+            )
+        selected: list[str] = sorted(set(request.dimensions) & valid_dttm_columns)
+        if grain_column is None:
+            if len(selected) != 1:
+                return SemanticLayerError.create(
+                    error=f"time_grain on view '{display_name}' requires one temporal "
+                    f"dimension; selected: {selected}. Set time_column explicitly.",
+                    error_type="ValidationError",
+                )
+            grain_column = selected[0]
+
     return _ResolvedDatasource(
-        display_name, time_col, valid_columns, valid_metrics, warnings
+        display_name,
+        time_col,
+        valid_columns,
+        valid_metrics,
+        warnings,
+        grain_column=grain_column,
+        valid_grains=valid_grains,
+        temporal_columns=valid_dttm_columns,
     )
 
 
@@ -192,10 +240,13 @@ _NO_METRICS_HINT = (
 
 
 def _validate_request_names(
-    request: GetTableRequest, valid_columns: set[str], valid_metrics: set[str]
+    request: GetTableRequest,
+    valid_columns: set[str],
+    valid_metrics: set[str],
+    valid_grains: dict[str, str] | None = None,
 ) -> list[str]:
     """Validate requested dimensions, metrics, filters, and order_by names."""
-    return validate_query_names(
+    errors: list[str] = validate_query_names(
         valid_metrics,
         valid_columns,
         metrics=request.metrics,
@@ -207,15 +258,28 @@ def _validate_request_names(
         # cannot resolve.
         metrics_full_list_hint="call list_metrics for the full list",
     )
+    for dimension in request.dimensions:
+        base, _, suffix = dimension.rpartition("__")
+        if dimension not in valid_columns and base in valid_columns:
+            for duration, name in (valid_grains or {}).items():
+                if suffix.casefold() == name.casefold():
+                    errors.append(
+                        f"For '{dimension}', request dimension '{base}' and pass "
+                        f"time_grain='{duration}' instead."
+                    )
+    return errors
 
 
 def _build_query_dict(
     request: GetTableRequest,
     time_col: str | None,
+    grain_column: str | None = None,
 ) -> dict[str, Any]:
     """Assemble the query dict for QueryContextFactory."""
     return build_query_dict(
         time_column=time_col,
+        time_grain=request.time_grain,
+        grain_column=grain_column,
         metrics=request.metrics,
         dimensions=request.dimensions,
         filters=[{"col": f.col, "op": f.op, "val": f.val} for f in request.filters],
@@ -234,6 +298,7 @@ def _build_response(
     query_result: dict[str, Any],
     query_duration_ms: int,
     warnings: list[str],
+    temporal_columns: set[str] | None = None,
 ) -> GetTableResponse:
     """Format the query result into a GetTableResponse."""
     data = query_result.get("data", [])
@@ -264,7 +329,18 @@ def _build_response(
             warnings=warnings,
         )
 
-    columns_meta = format_data_columns(data, raw_columns)
+    # Semantic views return grain variants as <temporal dimension>__<grain>.
+    result_temporal_columns: set[str] = {
+        name
+        for name in raw_columns
+        if any(
+            name == base or name.startswith(f"{base}__")
+            for base in temporal_columns or set()
+        )
+    }
+    columns_meta = format_data_columns(
+        data, raw_columns, temporal_columns=result_temporal_columns
+    )
     cache_label = "cached" if cache_status and cache_status.cache_hit else "fresh"
     summary = (
         f"'{display_name}': {len(data)} rows, "
@@ -312,7 +388,7 @@ async def _run_get_table_query(
 
     await ctx.report_progress(2, 5, "Validating metrics and dimensions")
     validation_errors = _validate_request_names(
-        request, resolved.valid_columns, resolved.valid_metrics
+        request, resolved.valid_columns, resolved.valid_metrics, resolved.valid_grains
     )
     if validation_errors:
         error_msg = "; ".join(validation_errors)
@@ -323,7 +399,7 @@ async def _run_get_table_query(
         )
 
     await ctx.report_progress(3, 5, "Building query")
-    query_dict = _build_query_dict(request, resolved.time_col)
+    query_dict = _build_query_dict(request, resolved.time_col, resolved.grain_column)
 
     await ctx.debug("Query dict: %s" % (sorted(query_dict.keys()),))
     await ctx.report_progress(4, 5, "Executing query")
@@ -355,6 +431,7 @@ async def _run_get_table_query(
         query_result,
         query_duration_ms,
         resolved.warnings,
+        resolved.temporal_columns,
     )
 
     await ctx.info(
@@ -407,6 +484,11 @@ async def get_table(
 
     Works with both built-in datasets and external semantic views. The
     ``dataset_id`` or ``view_id`` comes from the ``list_metrics`` response.
+
+    Semantic views accept time_grain as an ISO duration or grain name, applied
+    to time_column or the single selected temporal dimension. For example:
+    {"view_id": 1, "metrics": ["revenue"], "dimensions": ["metric_time"],
+     "time_grain": "P1M"}.
 
     When reporting results, state the returned from_dttm (inclusive) and
     to_dttm (exclusive) primary bounds rather than guessing dates from the

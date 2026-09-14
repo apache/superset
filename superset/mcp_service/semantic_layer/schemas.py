@@ -212,6 +212,34 @@ class GetTableRequest(BaseModel):
             "Inferred from the dataset's main_dttm_col when omitted."
         ),
     )
+    time_grain: str | None = Field(
+        default=None,
+        description=(
+            "Optional time grain for the temporal dimension, as an ISO-8601 "
+            "duration (P1D, P1W, P1M, P3M, P1Y, PT1H, PT1M, PT1S) or its name "
+            "(day, week, month, quarter, year, hour, minute, second). Applies "
+            "to time_column when set, otherwise to the single temporal "
+            "dimension in dimensions. Semantic views only; a view's "
+            "queryable grains are listed in get_table validation errors."
+        ),
+    )
+
+    @field_validator("time_grain")
+    @classmethod
+    def normalize_time_grain(cls, value: str | None) -> str | None:
+        """Normalize grain names while leaving durations for view validation."""
+        from superset_core.semantic_layers.types import Grain, Grains
+
+        if value is None or not value.strip():
+            return None
+        value = value.strip()
+        names: dict[str, str] = {
+            grain.name.casefold(): grain.representation
+            for grain in vars(Grains).values()
+            if isinstance(grain, Grain)
+        }
+        return names.get(value.casefold(), value)
+
     row_limit: int = Field(
         default=1000,
         ge=1,

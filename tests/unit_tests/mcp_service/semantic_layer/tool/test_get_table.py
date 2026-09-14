@@ -31,6 +31,10 @@ from fastmcp import Client, FastMCP
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 from superset.mcp_service.app import mcp
+from superset.mcp_service.semantic_layer.schemas import (
+    GetTableRequest,
+    SemanticLayerError,
+)
 from superset.utils import json
 
 get_table_module: ModuleType = importlib.import_module(
@@ -106,6 +110,67 @@ def _make_view(view_id: int = 5) -> MagicMock:
     return view
 
 
+@pytest.fixture
+def temporal_view() -> Generator[MagicMock, None, None]:
+    """Resolve a view with a temporal dimension and three queryable grains."""
+    view: MagicMock = _make_view()
+    view.columns = [_make_column("metric_time", True), _make_column("country_name")]
+    view.get_time_grains.return_value = [
+        {"duration": "P1D", "name": "Day"},
+        {"duration": "P1W", "name": "Week"},
+        {"duration": "P1M", "name": "Month"},
+    ]
+    with patch(
+        "superset.daos.semantic_layer.SemanticViewDAO.find_by_id", return_value=view
+    ):
+        yield view
+
+
+@pytest.mark.asyncio
+async def test_get_table_temporal_result_type(
+    mcp_server: FastMCP,
+    temporal_view: MagicMock,
+) -> None:
+    """Grain-suffixed temporal results retain datetime metadata."""
+    with patch.object(
+        get_table_module,
+        "execute_tabular_query",
+        return_value={
+            "queries": [
+                {
+                    "data": [
+                        {
+                            "metric_time__day": "2024-09-01T00:00:00Z",
+                            "country_name": "Canada",
+                        }
+                    ],
+                    "colnames": ["metric_time__day", "country_name"],
+                }
+            ]
+        },
+    ):
+        async with Client(mcp_server) as client:
+            data: dict[str, Any] = json.loads(
+                (
+                    await client.call_tool(
+                        "get_table",
+                        {
+                            "request": {
+                                "view_id": 5,
+                                "metrics": ["bookings"],
+                                "dimensions": ["metric_time", "country_name"],
+                            }
+                        },
+                    )
+                )
+                .content[0]
+                .text
+            )
+    assert data["success"] is True
+    assert data["columns"][0]["data_type"] == "datetime"
+    assert data["columns"][1]["data_type"] == "string"
+
+
 def _access_denied_exc(message: str = "Access denied") -> SupersetSecurityException:
     return SupersetSecurityException(
         SupersetError(
@@ -114,6 +179,95 @@ def _access_denied_exc(message: str = "Access denied") -> SupersetSecurityExcept
             level=ErrorLevel.ERROR,
         )
     )
+
+
+@pytest.mark.parametrize("grain", ["P1M", "month", " Month "])
+def test_get_table_time_grain_query(grain: str, temporal_view: MagicMock) -> None:
+    """Duration and name forms reach the existing BASE_AXIS query builder."""
+    request: GetTableRequest = GetTableRequest(
+        view_id=5, metrics=["bookings"], dimensions=["metric_time"], time_grain=grain
+    )
+    resolved: Any = get_table_module._resolve_external_view(request)
+    assert not isinstance(resolved, SemanticLayerError)
+    query: dict[str, Any] = get_table_module._build_query_dict(
+        request, resolved.time_col, resolved.grain_column
+    )
+    assert query["extras"]["time_grain_sqla"] == "P1M"
+    assert query["columns"][0] == {
+        "label": "metric_time",
+        "sqlExpression": "metric_time",
+        "isColumnReference": True,
+        "columnType": "BASE_AXIS",
+        "timeGrain": "P1M",
+    }
+
+
+def test_get_table_unsupported_time_grain(temporal_view: MagicMock) -> None:
+    """Unsupported grains list this view's queryable durations and names."""
+    result: Any = get_table_module._resolve_external_view(
+        GetTableRequest(view_id=5, dimensions=["metric_time"], time_grain="PT1H")
+    )
+    assert isinstance(result, SemanticLayerError)
+    assert result.error_type == "ValidationError"
+    assert all(
+        choice in result.error for choice in ("P1D (Day)", "P1W (Week)", "P1M (Month)")
+    )
+
+
+def test_get_table_grain_alias_hint(temporal_view: MagicMock) -> None:
+    """A grain-suffixed unknown dimension suggests the base and time_grain."""
+    request: GetTableRequest = GetTableRequest(
+        view_id=5, dimensions=["metric_time__month"]
+    )
+    resolved: Any = get_table_module._resolve_external_view(request)
+    errors: list[str] = get_table_module._validate_request_names(
+        request, resolved.valid_columns, resolved.valid_metrics, resolved.valid_grains
+    )
+    assert any("Unknown dimension" in error for error in errors)
+    assert any(
+        "time_grain='P1M'" in error and "'metric_time'" in error for error in errors
+    )
+
+
+@pytest.mark.parametrize("dimensions", [[], ["metric_time", "other_time"]])
+def test_get_table_grain_requires_time_column(
+    temporal_view: MagicMock,
+    dimensions: list[str],
+) -> None:
+    """Absent or ambiguous temporal selections require an explicit column."""
+    temporal_view.columns.append(_make_column("other_time", True))
+    result: Any = get_table_module._resolve_external_view(
+        GetTableRequest(view_id=5, dimensions=dimensions, time_grain="P1M")
+    )
+    assert isinstance(result, SemanticLayerError)
+    assert result.error_type == "ValidationError"
+    assert "Set time_column" in result.error
+    assert all(name in result.error for name in dimensions)
+
+
+def test_get_table_grain_explicit_time_column(temporal_view: MagicMock) -> None:
+    """An explicit temporal column disambiguates the requested grain."""
+    temporal_view.columns.append(_make_column("other_time", True))
+    result: Any = get_table_module._resolve_external_view(
+        GetTableRequest(
+            view_id=5,
+            dimensions=["metric_time", "other_time"],
+            time_column="other_time",
+            time_grain="P1M",
+        )
+    )
+    assert not isinstance(result, SemanticLayerError)
+    assert result.grain_column == "other_time"
+
+
+def test_get_table_builtin_grain_rejected() -> None:
+    """Built-in datasets reject the unsupported grain parameter explicitly."""
+    result: Any = get_table_module._resolve_builtin_dataset(
+        GetTableRequest(dataset_id=42, time_grain="month")
+    )
+    assert isinstance(result, SemanticLayerError)
+    assert result.error_type == "ValidationError"
+    assert "semantic views only" in result.error
 
 
 @pytest.mark.asyncio
