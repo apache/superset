@@ -52,6 +52,7 @@ _DEFAULT_LIST_QUERIES_REQUEST = ListQueriesRequest()
         title="List queries",
         readOnlyHint=True,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 async def list_queries(

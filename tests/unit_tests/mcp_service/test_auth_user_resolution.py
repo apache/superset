@@ -233,6 +233,36 @@ def test_raises_when_no_auth_source(app) -> None:
                 get_user_from_request()
 
 
+def test_rejected_guest_token_does_not_fall_through_to_dev_username(app) -> None:
+    """A guest-marked token rejected for disabled guest auth must not degrade
+    to a weaker auth source (MCP_DEV_USERNAME here) via get_user_from_request.
+
+    Before the fix, _resolve_user_from_jwt_context returned None for this
+    case, which get_user_from_request treats identically to "no token
+    present" and falls through to the next priority source -- silently
+    executing the caller as MCP_DEV_USERNAME in a JWT-only deployment with a
+    dev username configured.
+    """
+    from superset.mcp_service.guest_token_verifier import GUEST_TOKEN_CLAIM
+
+    token = MagicMock()
+    token.claims = {GUEST_TOKEN_CLAIM: True, "sub": "attacker"}
+    token.client_id = "guest"
+
+    with app.app_context():
+        app.config["MCP_DEV_USERNAME"] = "dev_admin"
+        app.config["MCP_EMBEDDED_GUEST_AUTH_ENABLED"] = False
+        try:
+            with patch(
+                "fastmcp.server.dependencies.get_access_token", return_value=token
+            ):
+                with pytest.raises(ValueError, match="Guest-marked token"):
+                    get_user_from_request()
+        finally:
+            app.config.pop("MCP_DEV_USERNAME", None)
+            app.config.pop("MCP_EMBEDDED_GUEST_AUTH_ENABLED", None)
+
+
 def test_no_auth_source_error_message_has_no_config_details(app) -> None:
     """Client-facing auth error must be generic — no server config disclosed.
 

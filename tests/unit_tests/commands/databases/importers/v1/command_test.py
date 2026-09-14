@@ -133,3 +133,55 @@ def test_import_database_with_password_in_config(
     uuid = configs["databases/examples.yaml"]["uuid"]
     database = db.session.query(Database).filter_by(uuid=uuid).one()
     assert database.password == "yaml_password"  # noqa: S105
+
+
+def test_transient_schema_listing_failure_is_recovered_by_retry(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    A single transient failure while listing schemas for a connection must
+    not permanently discard the schema_access grant for a schema that
+    appeared on the live connection since the last successful sync. Before
+    this fix, ``add_permissions()`` gave up on a catalog after one failed
+    attempt at ``get_all_schema_names()`` -- even though the exception
+    caught (``GenericDBException``, a bare alias for the built-in
+    ``Exception``) does not distinguish a genuinely unlistable catalog from
+    a one-off connector hiccup -- so a schema that needed a first-time grant
+    during the failing attempt was never granted, silently, while the
+    import still reported success.
+    """
+    from superset import db, security_manager
+    from superset.commands.database.importers.v1 import ImportDatabasesCommand
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+    from superset.models.core import Database
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    add_permission_view_menu = mocker.spy(security_manager, "add_permission_view_menu")
+
+    engine = db.session.get_bind()
+    Database.metadata.create_all(engine)  # pylint: disable=no-member
+
+    configs = copy.deepcopy(databases_config)
+
+    # First import (existing=None): only "old_schema" exists on the live
+    # target connection.
+    mocker.patch.object(
+        SqliteEngineSpec, "get_schema_names", return_value={"old_schema"}
+    )
+    ImportDatabasesCommand._import(copy.deepcopy(configs))
+    add_permission_view_menu.reset_mock()
+
+    # A new schema now exists, but the first attempt to list schemas for
+    # this connection hits a transient failure (e.g. a driver hiccup right
+    # after the schema was created). Re-importing with overwrite=True --
+    # the only way to legitimately re-import an existing connection -- must
+    # still end up granting the new schema once the retry succeeds.
+    mocker.patch.object(
+        SqliteEngineSpec,
+        "get_schema_names",
+        side_effect=[Exception("transient driver error"), {"old_schema", "new_schema"}],
+    )
+    ImportDatabasesCommand._import(copy.deepcopy(configs), overwrite=True)
+
+    add_permission_view_menu.assert_any_call("schema_access", "[examples].[new_schema]")

@@ -136,6 +136,21 @@ def prophet(  # pylint: disable=too-many-arguments  # noqa: C901
     # union types
     if not isinstance(periods, int) or periods < 0:
         raise InvalidPostProcessingError(_("Periods must be a whole number"))
+    # The schema-declared upper bound is documentation-only for the raw
+    # post-processing ``options`` dict, so enforce it here: every forecast
+    # period adds a future row per series, making unbounded values an
+    # allocation amplifier. Imported locally to avoid a circular import
+    # (charts.schemas imports this package at module load).
+    # pylint: disable=import-outside-toplevel
+    from superset.charts.schemas import get_max_prophet_periods
+
+    if periods > (max_periods := get_max_prophet_periods()):
+        raise InvalidPostProcessingError(
+            _(
+                "Periods must not exceed %(max)s",
+                max=max_periods,
+            )
+        )
     if not confidence_interval or confidence_interval <= 0 or confidence_interval >= 1:
         raise InvalidPostProcessingError(
             _("Confidence interval must be between 0 and 1 (exclusive)")

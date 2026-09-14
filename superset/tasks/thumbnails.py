@@ -65,6 +65,7 @@ def cache_chart_thumbnail(
     user = security_manager.find_user(username)
     with override_user(user):
         screenshot = ChartScreenshot(url, chart.digest)
+        screenshot.cache_scope = f"chart:{chart.id}"
         screenshot.compute_and_cache(
             user=user,
             window_size=window_size,
@@ -102,6 +103,7 @@ def cache_dashboard_thumbnail(
     user = security_manager.find_user(username)
     with override_user(user):
         screenshot = DashboardScreenshot(url, dashboard.digest)
+        screenshot.cache_scope = f"dashboard:{dashboard.id}"
         resolved_cache_key = cache_key or screenshot.get_cache_key(
             window_size, thumb_size
         )
@@ -149,6 +151,7 @@ def cache_dashboard_screenshot(  # pylint: disable=too-many-arguments
 
     with override_user(current_user):
         screenshot = DashboardScreenshot(dashboard_url, dashboard.digest)
+        screenshot.cache_scope = f"dashboard:{dashboard.id}"
         screenshot.compute_and_cache(
             user=current_user,
             window_size=window_size,

@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import fetchMock from 'fetch-mock';
 import { act, render, screen, userEvent } from 'spec/helpers/testing-library';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import { Menu, MenuItem } from '@superset-ui/core/components/Menu';
@@ -143,6 +144,36 @@ describe('Header Report Dropdown', () => {
     mockedIsFeatureEnabled.mockRestore();
   });
 
+  afterEach(() => {
+    fetchMock.clearHistory().removeRoutes();
+  });
+
+  test('switches to the manage menu once the existing report is fetched', async () => {
+    const mockedProps = createProps();
+    fetchMock.get('glob:*/api/v1/report/?q=*', {
+      count: 1,
+      result: [
+        {
+          active: true,
+          creation_method: 'dashboards',
+          crontab: '0 12 * * 1',
+          dashboard_id: 1,
+          chart_id: null,
+          id: 5,
+          name: 'Weekly Report',
+          report_format: 'PNG',
+          type: 'Report',
+        },
+      ],
+    });
+    act(() => {
+      setup(mockedProps, stateWithOnlyUser);
+    });
+    expect(await screen.findByText('Email reports active')).toBeInTheDocument();
+    expect(screen.getByText('Edit email report')).toBeInTheDocument();
+    expect(screen.getByText('Delete email report')).toBeInTheDocument();
+  });
+
   test('renders correctly', () => {
     const mockedProps = createProps();
     act(() => {
@@ -168,7 +199,10 @@ describe('Header Report Dropdown', () => {
       setup(mockedProps, stateWithUserAndReport);
     });
     const editModal = await screen.findByText('Edit email report');
-    userEvent.click(editModal);
+    // forceSubMenuRender keeps the menu item in the DOM for querying even
+    // though the submenu popup is visually closed (pointer-events: none), so
+    // bypass user-event's pointer events check to click it directly.
+    await userEvent.click(editModal, { pointerEventsCheck: 0 });
     expect(mockedProps.showReportModal).toHaveBeenCalled();
   });
 
@@ -179,7 +213,8 @@ describe('Header Report Dropdown', () => {
       setup(mockedProps, stateWithUserAndReport);
     });
     const deleteModal = await screen.findByText('Delete email report');
-    userEvent.click(deleteModal);
+    // See forceSubMenuRender note above.
+    await userEvent.click(deleteModal, { pointerEventsCheck: 0 });
     expect(mockedProps.setCurrentReportDeleting).toHaveBeenCalled();
   });
 
@@ -209,20 +244,20 @@ describe('Header Report Dropdown', () => {
     act(() => {
       setup(mockedProps, stateWithNonAdminUser);
     });
-    userEvent.click(screen.getByRole('menuitem'));
+    await userEvent.click(screen.getByRole('menuitem'));
     expect(
       await screen.findByText('Set up an email report'),
     ).toBeInTheDocument();
   });
 
-  test('do not render Schedule Email Reports if user no permission', () => {
+  test('do not render Schedule Email Reports if user no permission', async () => {
     const mockedProps = createProps();
 
     act(() => {
       setup(mockedProps, stateWithNonMenuAccessOnManage);
     });
 
-    userEvent.click(screen.getByRole('menu'));
+    await userEvent.click(screen.getByRole('menu'));
     expect(
       screen.queryByText('Set up an email report'),
     ).not.toBeInTheDocument();

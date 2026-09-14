@@ -25,21 +25,34 @@ items the user already sees in the archive.
 """
 
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, TypeAlias
 
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
 
-from superset import is_feature_enabled, security_manager
+from superset import db, is_feature_enabled, security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.deletion_retention.force_purge import ForcePurgeCommand
+from superset.commands.deletion_retention.purge_impact import (
+    collect_dataset_purge_impact,
+    DatasetImpactObject,
+    DatasetPurgeImpact,
+    PurgeImpactChangedError,
+)
+from superset.connectors.sqla.models import SqlaTable
 from superset.daos.base import BaseDAO
 from superset.daos.exceptions import DAODeleteFailedError
 from superset.exceptions import SupersetSecurityException
-from superset.models.helpers import SoftDeleteMixin
+from superset.models.dashboard import Dashboard
+from superset.models.helpers import skip_visibility_filter, SoftDeleteMixin
+from superset.models.slice import Slice
 from superset.tasks.utils import get_current_user
 
 logger = logging.getLogger(__name__)
+
+ImpactCollector: TypeAlias = Callable[[Session, SoftDeleteMixin], DatasetPurgeImpact]
 
 #: Recorded when the audit trail cannot name the acting user. The purge routes
 #: are ``@protect()``-ed, so this should be unreachable; it exists so an
@@ -60,14 +73,21 @@ class SoftDeleteBinding:
     not_found: type[Exception]
     forbidden: type[Exception]
     delete_failed: type[Exception]
+    impact_collector: ImpactCollector | None = None
 
 
 class PurgeArchivedCommand(BaseCommand):
     """Permanently delete a single soft-deleted entity, by UUID."""
 
-    def __init__(self, model_uuid: str, binding: SoftDeleteBinding) -> None:
+    def __init__(
+        self,
+        model_uuid: str,
+        binding: SoftDeleteBinding,
+        confirmed_impact_token: str | None = None,
+    ) -> None:
         self._model_uuid = model_uuid
         self._binding = binding
+        self._confirmed_impact_token: str | None = confirmed_impact_token
         #: The authorized entity, resolved by ``validate()``. ``BaseCommand``
         #: fixes ``validate()``'s return type as ``None``, so the model is
         #: handed to ``run()`` here rather than returned.
@@ -78,6 +98,13 @@ class PurgeArchivedCommand(BaseCommand):
         model = self._model
         if model is None:  # pragma: no cover — validate() raises or sets it
             raise self._binding.not_found(f"No row with uuid={self._model_uuid!r}")
+        if self._binding.impact_collector is not None:
+            impact: DatasetPurgeImpact = self._binding.impact_collector(
+                db.session, model
+            )
+            if impact.impact_token != self._confirmed_impact_token:
+                raise PurgeImpactChangedError(impact)
+
         try:
             # ForcePurgeCommand owns the cascade + commit + audit.
             #
@@ -98,6 +125,7 @@ class PurgeArchivedCommand(BaseCommand):
                 # the CLI's fail-open default is an operator-trust decision
                 # that does not extend to REST principals.
                 require_audit=True,
+                confirmed_impact_token=self._confirmed_impact_token,
             ).run()
         except (SQLAlchemyError, DAODeleteFailedError) as ex:
             # Deliberately narrow: a database or DAO failure is a real
@@ -175,3 +203,82 @@ class PurgeArchivedCommand(BaseCommand):
         except SupersetSecurityException as ex:
             raise self._binding.forbidden() from ex
         self._model = model
+
+    def preview_dataset_impact(self) -> DatasetPurgeImpact:
+        """Return the authorized impact snapshot for an archived dataset."""
+        self.validate()
+        model: SoftDeleteMixin | None = self._model
+        collector: ImpactCollector | None = self._binding.impact_collector
+        if model is None or collector is None:
+            raise self._binding.not_found("The purge target is not a dataset")
+        return collector(db.session, model)
+
+
+def collect_dataset_impact(
+    session: Session, model: SoftDeleteMixin
+) -> DatasetPurgeImpact:
+    """Collect purge impact for a dataset binding."""
+    if not isinstance(model, SqlaTable):
+        raise TypeError("Dataset purge binding resolved a non-dataset model")
+    return collect_dataset_purge_impact(session, model.id)
+
+
+def serialize_dataset_purge_impact(impact: DatasetPurgeImpact) -> dict[str, Any]:
+    """Apply object access control and serialize a complete impact snapshot."""
+    chart_ids: list[int] = [item.id for item in impact.charts]
+    dashboard_ids: list[int] = [item.id for item in impact.dashboards]
+    with skip_visibility_filter(db.session, Slice, Dashboard):
+        charts: dict[int, Slice] = {
+            chart.id: chart
+            for chart in db.session.query(Slice).filter(Slice.id.in_(chart_ids)).all()
+        }
+        dashboards: dict[int, Dashboard] = {
+            dashboard.id: dashboard
+            for dashboard in db.session.query(Dashboard)
+            .filter(Dashboard.id.in_(dashboard_ids))
+            .all()
+        }
+
+    chart_result: list[dict[str, Any]] = []
+    for item in impact.charts:
+        chart: Slice | None = charts.get(item.id)
+        if chart is not None and security_manager.can_access_chart(chart):
+            chart_result.append(
+                _serialize_impact_object(item, chart.url, fallback="Untitled chart")
+            )
+
+    dashboard_result: list[dict[str, Any]] = []
+    for item in impact.dashboards:
+        dashboard: Dashboard | None = dashboards.get(item.id)
+        if dashboard is not None and security_manager.can_access_dashboard(dashboard):
+            dashboard_result.append(
+                _serialize_impact_object(
+                    item, dashboard.url, fallback="Untitled dashboard"
+                )
+            )
+
+    return {
+        "impact_token": impact.impact_token,
+        "charts": {
+            "count": len(impact.charts),
+            "restricted_count": len(impact.charts) - len(chart_result),
+            "result": chart_result,
+        },
+        "dashboards": {
+            "count": len(impact.dashboards),
+            "restricted_count": len(impact.dashboards) - len(dashboard_result),
+            "result": dashboard_result,
+        },
+    }
+
+
+def _serialize_impact_object(
+    item: DatasetImpactObject, live_url: str, *, fallback: str
+) -> dict[str, Any]:
+    """Serialize one authorized object without linking an archived target."""
+    return {
+        "uuid": item.uuid,
+        "name": item.name or fallback,
+        "archived": item.archived,
+        "url": None if item.archived else live_url,
+    }

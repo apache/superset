@@ -46,7 +46,9 @@ class ExportTagsCommand(ExportModelsCommand):
         self.dashboard_ids = dashboard_ids
         self.chart_ids = chart_ids
 
-    def run(self) -> Iterator[tuple[str, Callable[[], str]]]:
+    def run(
+        self, seen: set[str] | None = None
+    ) -> Iterator[tuple[str, Callable[[], str]]]:
         if not feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
             return
 

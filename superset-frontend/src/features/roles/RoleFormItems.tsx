@@ -72,6 +72,12 @@ export const PermissionsField = ({
             .replace(/_/g, ' ')
             .includes(input.toLowerCase().replace(/_/g, ' '))
         }
+        // Permission labels are long ("all datasource access on all_datasource_access",
+        // "can write on DashboardFilterStateRestApi"), and the dropdown otherwise
+        // inherits the trigger's width inside the modal, so every option was truncated
+        // to the point of being indistinguishable. Let the popup size to its content
+        // instead. See #40430.
+        popupMatchSelectWidth={false}
         getPopupContainer={trigger => trigger.closest('.ant-modal-container')}
         data-test="permissions-select"
       />
