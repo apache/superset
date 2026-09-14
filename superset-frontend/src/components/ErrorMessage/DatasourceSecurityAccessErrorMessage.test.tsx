@@ -112,6 +112,27 @@ test('treats a pre-is_access_denial payload as an access denial', () => {
   expect(screen.queryByText(/Quarterly Sales/)).toBeNull();
 });
 
+test('suppresses the request-access link for a pre-is_access_denial payload', () => {
+  // A pre-fix backend may have already templated the dataset name into
+  // `extra.link`. Without `is_access_denial` (or `tables`) to prove the
+  // payload is safe, the link must not render even though it's present.
+  const props = {
+    ...baseProps,
+    error: {
+      ...baseProps.error,
+      extra: {
+        datasource: 12,
+        datasource_name: 'Quarterly Sales',
+        owners: ['Jane Doe'],
+        link: 'https://access.example.com/request?dataset=12&name=Quarterly+Sales',
+      },
+      message: 'This endpoint requires the datasource 12',
+    },
+  };
+  render(<DatasourceSecurityAccessErrorMessage {...props} />);
+  expect(screen.queryByRole('link', { name: 'Request access' })).toBeNull();
+});
+
 test('explains table access for TABLE_SECURITY_ACCESS_ERROR', () => {
   const props = {
     ...baseProps,

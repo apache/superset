@@ -211,7 +211,7 @@ def test_datasource_error_object_includes_sorted_owner_names() -> None:
     assert error.extra["owners"] == ["Amir Patel", "Zoe Chen"]
     # The real dataset name must not appear — only a generic placeholder
     # for backward compatibility with older frontends.
-    assert error.extra["datasource_name"] != "Quarterly Sales"
+    assert error.extra["datasource_name"] == "a dataset"
     assert error.extra["datasource"] == 12
     assert error.extra["is_access_denial"] is True
 
