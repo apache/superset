@@ -22,10 +22,10 @@ import {
   getSmallNumberFormatter,
   isProbablyHTML,
   sanitizeHtml,
+  DateWithFormatter,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { DataColumnMeta } from '../types';
-import DateWithFormatter from './DateWithFormatter';
 
 /**
  * Format text for cell value.

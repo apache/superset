@@ -66,7 +66,7 @@ def mock_auth():
 
 
 @pytest.fixture(autouse=True)
-def allow_data_model_metadata():
+def allow_data_model_metadata():  # noqa: PT004
     """Keep the standalone get_schema suite in the unrestricted default path."""
     with patch.object(
         get_schema_module,
@@ -606,3 +606,40 @@ class TestGetSchemaPermissionMap:
         factories = set(get_schema_module._SCHEMA_CORE_FACTORIES.keys())
         perms = set(get_schema_module._MODEL_TYPE_CLASS_PERMISSION.keys())
         assert factories == perms
+
+    @pytest.mark.asyncio
+    async def test_resource_scope_is_enforced(self, app, mcp_server):
+        """RBAC access alone cannot bypass a scoped token's resource limit."""
+        with (
+            patch.dict(app.config, {"MCP_RBAC_ENABLED": True}),
+            patch("superset.security_manager.can_access", return_value=True),
+            patch.object(
+                get_schema_module, "_token_scope_allows", return_value=False
+            ) as scope_allows,
+        ):
+            async with Client(mcp_server) as client:
+                with pytest.raises(ToolError, match="Permission denied"):
+                    await client.call_tool(
+                        "get_schema", {"request": {"model_type": "chart"}}
+                    )
+
+        scope_allows.assert_called_once_with("read", "Chart")
+
+    @pytest.mark.asyncio
+    async def test_resource_scope_is_enforced_when_rbac_disabled(self, app, mcp_server):
+        """The RBAC feature flag does not disable credential scopes."""
+        with (
+            patch.dict(app.config, {"MCP_RBAC_ENABLED": False}),
+            patch("superset.security_manager.can_access") as can_access,
+            patch.object(
+                get_schema_module, "_token_scope_allows", return_value=False
+            ) as scope_allows,
+        ):
+            async with Client(mcp_server) as client:
+                with pytest.raises(ToolError, match="Permission denied"):
+                    await client.call_tool(
+                        "get_schema", {"request": {"model_type": "chart"}}
+                    )
+
+        can_access.assert_not_called()
+        scope_allows.assert_called_once_with("read", "Chart")

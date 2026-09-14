@@ -19,14 +19,14 @@ from __future__ import annotations
 
 import logging
 import traceback
+from datetime import datetime, timezone
 from http.client import HTTPResponse
-from typing import Any, cast, TYPE_CHECKING
+from typing import Any, cast, Final, TYPE_CHECKING
 from urllib import request
 from uuid import UUID, uuid4
 
 from celery.utils.log import get_task_logger
-from flask import g
-from sqlalchemy import or_, select
+from flask import current_app, g
 from superset_core.tasks.types import TaskProperties, TaskScope
 
 from superset.tasks.exceptions import ExecutorNotFoundError, InvalidExecutorError
@@ -41,8 +41,6 @@ from superset.utils.hashing import hash_from_str
 from superset.utils.urls import get_url_path
 
 if TYPE_CHECKING:
-    from flask_appbuilder.security.sqla.models import User
-
     from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice
     from superset.reports.models import ReportSchedule
@@ -50,55 +48,6 @@ if TYPE_CHECKING:
 
 logger = get_task_logger(__name__)
 logger.setLevel(logging.INFO)
-
-
-def _get_indirect_editor_user(editors: list[Any]) -> User | None:
-    """Return a deterministic user represented by role/group editor subjects."""
-    from flask_appbuilder.security.sqla.models import (
-        assoc_user_group,
-        assoc_user_role,
-        User,
-    )
-
-    from superset import db
-    from superset.subjects.types import SubjectType
-
-    role_ids = [
-        editor.role_id
-        for editor in editors
-        if editor.type == SubjectType.ROLE and editor.role_id
-    ]
-    group_ids = [
-        editor.group_id
-        for editor in editors
-        if editor.type == SubjectType.GROUP and editor.group_id
-    ]
-    conditions = []
-    if role_ids:
-        conditions.append(
-            User.id.in_(
-                select(assoc_user_role.c.user_id).where(
-                    assoc_user_role.c.role_id.in_(role_ids)
-                )
-            )
-        )
-    if group_ids:
-        conditions.append(
-            User.id.in_(
-                select(assoc_user_group.c.user_id).where(
-                    assoc_user_group.c.group_id.in_(group_ids)
-                )
-            )
-        )
-    if not conditions:
-        return None
-
-    return (
-        db.session.query(User)
-        .filter(User.active.is_(True), or_(*conditions))
-        .order_by(User.id)
-        .first()
-    )
 
 
 # pylint: disable=too-many-branches
@@ -112,9 +61,14 @@ def get_executor(  # noqa: C901
     types extract the user from the underlying object (e.g. CREATOR), a fixed user
     account, or the user that initiated the request.
 
-    The EDITOR, CREATOR_EDITOR, and MODIFIER_EDITOR types resolve users from the model's
-    editors (subjects). These check both direct user-type subjects and indirect
-    membership through role/group subjects.
+    The CREATOR_EDITOR, MODIFIER_EDITOR, and EDITOR types additionally require the
+    resolved user (the model's creator or modifier) to be an editor of the model,
+    directly (user-type subject) or indirectly (through a role/group subject). They
+    never resolve to any *other* attached editor: editor subjects can be attached to
+    a model by whoever creates or edits it with no consent from the attached user, so
+    resolving to an arbitrary attached editor would let a low-privileged creator or
+    modifier arrange for the task to execute as a different, potentially
+    higher-privileged, user.
 
     :param executors: The requested executor in descending order. When the
            first user is found it is returned.
@@ -128,7 +82,6 @@ def get_executor(  # noqa: C901
     :raises ExecutorNotFoundError: If no users were found in after
             iterating through all entries in `executors`
     """
-    from superset.subjects.types import SubjectType
     from superset.subjects.utils import get_user_subject_ids
 
     # Build set of all subject IDs that are editors of this model
@@ -139,13 +92,6 @@ def get_executor(  # noqa: C901
         if not user_id or not editor_subject_ids:
             return False
         return bool(set(get_user_subject_ids(user_id)) & editor_subject_ids)
-
-    # Direct user-type editors (for EDITOR fallback resolution)
-    editor_users = [
-        e.user
-        for e in getattr(model, "editors", [])
-        if e.type == SubjectType.USER and e.user is not None
-    ]
 
     for executor in executors:
         if isinstance(executor, FixedExecutor):
@@ -167,11 +113,15 @@ def get_executor(  # noqa: C901
             if (user := model.changed_by) and user.is_active:
                 return executor, user.username
         if executor == ExecutorType.EDITOR:
-            # Priority: modifier → creator → direct user editor → indirect editor.
-            # Inactive users are skipped at every step so that scheduling can
-            # fall through to another active owner/editor instead of failing
-            # outright (see: ExecutorNotFoundError only once no active
-            # candidate remains).
+            # Priority: modifier -> creator. Resolves only to whoever authored
+            # the model's current state -- changed_by/created_by are set by the
+            # framework from the authenticated session on write, so a caller
+            # who edits the object becomes changed_by themselves and cannot
+            # point this at a victim. Deliberately does NOT fall through to an
+            # arbitrary other attached editor (direct or via role/group
+            # membership): that would let a low-privileged creator/modifier
+            # attach a higher-privileged user as an editor with no consent and
+            # have the task execute with that victim's credentials.
             if (
                 (modifier := model.changed_by)
                 and modifier.is_active
@@ -184,14 +134,6 @@ def get_executor(  # noqa: C901
                 and _is_editor(creator.id)
             ):
                 return executor, creator.username
-            if active_editor_user := next(
-                (user for user in editor_users if user.is_active), None
-            ):
-                return executor, active_editor_user.username
-            if indirect_editor := _get_indirect_editor_user(
-                getattr(model, "editors", [])
-            ):
-                return executor, indirect_editor.username
 
     raise ExecutorNotFoundError()
 
@@ -238,6 +180,47 @@ def fetch_csrf_token(
 
     logger.error("Error fetching CSRF token, status code: %s", response.status)
     return {}
+
+
+def naive_utcnow() -> datetime:
+    """Return the current UTC time with the tzinfo stripped.
+
+    Task timestamp columns (``started_at``, ``ended_at``, ``subscribed_at``) are
+    naive ``DateTime`` columns holding UTC. Writing a tz-aware value to a naive
+    column lets some DB drivers convert it to the session-local timezone, which
+    would skew every duration computed from those columns by the local UTC
+    offset — so the offset is dropped here, once, before the value reaches the DB.
+
+    :returns: Current UTC time as a naive ``datetime``
+    """
+    return datetime.now(timezone.utc).replace(tzinfo=None)
+
+
+def floored_status_cursor() -> datetime:
+    """Return the current wall-clock time floored to whole seconds.
+
+    Used as the ``status_changes`` poll cursor. ``changed_on`` (FAB AuditMixin,
+    naive local) is stored at the metastore column's precision, and MySQL
+    ``DATETIME`` truncates to whole seconds — so a sub-second cursor could sit
+    *after* a same-second change and miss it under the ``changed_on >= cursor``
+    bound. Flooring keeps ``>=`` inclusive on every backend; re-delivering an
+    earlier same-second change is idempotent for the client. All producers of a
+    status cursor (the 202 handshake and each poll response) share this helper so
+    the precision contract lives in one place.
+
+    Known limitation: this cursor is stamped on the web tier's clock, while a
+    task's ``changed_on`` on a terminal transition is stamped by whichever worker
+    committed it. If a worker's clock trails the web tier by more than the floored
+    second, that completion can sit just under the ``>=`` bound and be skipped by
+    every poll, so a poll-mode client resolves the chart only at its stale timeout
+    (the websocket transport is unaffected — it delivers completion directly). Keep
+    the web and worker tiers clock-synced (e.g. NTP). The robust fix is a
+    DB-stamped status timestamp — as the orphan reaper already uses the DB clock
+    rather than the app clock — which is tracked as a follow-up.
+
+    :returns: Current naive-local time with sub-second precision dropped
+    """
+    return datetime.now().replace(microsecond=0)
 
 
 def generate_random_task_key() -> str:
@@ -358,14 +341,128 @@ def error_update(exception: BaseException) -> TaskProperties:
     """
     Create a properties update dict from an exception.
 
+    ``error_message`` is the consumer-facing failure reason (public); the
+    exception class and traceback are internal debug detail and go under
+    ``private["framework"]`` (visible only in debug mode). The nested ``private``
+    key is merged recursively by ``Task.update_properties`` so it does not clobber
+    other framework/task handles.
+
     :param exception: The exception that caused the failure
     :returns: TaskProperties dict with error fields populated
     """
-    return {
-        "error_message": str(exception),
-        "exception_type": type(exception).__name__,
-        "stack_trace": traceback.format_exc(),
-    }
+    return cast(
+        TaskProperties,
+        {
+            "error_message": str(exception),
+            "private": {
+                "framework": {
+                    "exception_type": type(exception).__name__,
+                    "stack_trace": traceback.format_exc(),
+                }
+            },
+        },
+    )
+
+
+def task_internals_visible() -> bool:
+    """Whether internal (``private``) task properties may be surfaced to API
+    consumers. Single source of truth for the visibility gate: internal task
+    state (framework orchestration handles, error tracebacks, task-execution
+    handles) is exposed only in debug mode.
+    """
+    return bool(current_app.debug)
+
+
+def merge_private_subtree(
+    current_private: Any, updates_private: dict[str, Any]
+) -> dict[str, Any]:
+    """Recursively merge the ``private`` properties subtree, per namespace.
+
+    Each namespace (``framework``, ``task``, ``subscription``) is a dict merged
+    independently, so a write to one never clobbers the others or drops earlier
+    keys — this is what structurally isolates task-owned freeform keys from
+    framework orchestration keys and from subscription-policy bookkeeping.
+    Defensive against a malformed persisted value: a non-dict subtree or a
+    non-dict namespace is treated as empty rather than raising ``TypeError`` on
+    unpacking (``private`` is framework-managed, so this only guards corrupted or
+    externally-tampered rows).
+    """
+    merged: dict[str, Any] = (
+        dict(current_private) if isinstance(current_private, dict) else {}
+    )
+    for namespace, ns_updates in updates_private.items():
+        existing = merged.get(namespace)
+        if isinstance(ns_updates, dict) and isinstance(existing, dict):
+            merged[namespace] = {**existing, **ns_updates}
+        else:
+            merged[namespace] = ns_updates
+    return merged
+
+
+# ``private`` namespace owned by a task type's subscription policy (per-client
+# bookkeeping such as chart-data's per-tab consumer list). Written only from the
+# policy hooks, under the submit/cancel lock; the executor never writes it, and
+# its whole-blob writes carry the row's current value through
+# :func:`preserve_subscription_state`.
+SUBSCRIPTION_PRIVATE_NAMESPACE: Final = "subscription"
+
+
+def preserve_subscription_state(
+    incoming: TaskProperties, current: TaskProperties | None
+) -> TaskProperties:
+    """Return ``incoming`` with ``private.subscription`` taken from ``current``.
+
+    The executor writes the complete property blob from an in-memory cache it
+    snapshotted when it picked the task up, and does not hold the submit/cancel
+    lock. A client that subscribed since the snapshot (a second browser tab
+    joining a SHARED chart-data task) would be silently dropped by such a write,
+    after which the first tab's detach would abort work the second still awaits,
+    and per-tab status fanout would skip it. Whole-blob writers run their value
+    through this helper with the row's current properties (read under the same
+    row lock as the UPDATE) so that subtree always reflects the policy's latest
+    write, whatever the executor's cache holds.
+    """
+    result: dict[str, Any] = dict(incoming)
+    private_value = result.get("private")
+    private: dict[str, Any] = (
+        dict(private_value) if isinstance(private_value, dict) else {}
+    )
+    current_private = current.get("private") if isinstance(current, dict) else None
+    current_subtree = (
+        current_private.get(SUBSCRIPTION_PRIVATE_NAMESPACE)
+        if isinstance(current_private, dict)
+        else None
+    )
+    if isinstance(current_subtree, dict):
+        private[SUBSCRIPTION_PRIVATE_NAMESPACE] = current_subtree
+    else:
+        private.pop(SUBSCRIPTION_PRIVATE_NAMESPACE, None)
+    if private or "private" in result:
+        result["private"] = private
+    return cast(TaskProperties, result)
+
+
+def merge_properties(
+    current: TaskProperties | None, updates: TaskProperties
+) -> TaskProperties:
+    """Merge ``updates`` into ``current`` with task-properties semantics.
+
+    Top-level keys are shallow-merged; the ``private`` subtree merges recursively
+    (see :func:`merge_private_subtree`), so writing one namespace never clobbers
+    the others. This is the pure form of
+    :meth:`superset.models.tasks.Task.update_properties` — use it to build a
+    complete properties dict for a zero-read write (e.g. a terminal FAILURE that
+    must preserve the executor's runtime state while adding error detail) without
+    loading the ORM entity.
+    """
+    merged: dict[str, Any] = dict(current or {})
+    incoming: dict[str, Any] = dict(updates)
+    if "private" in incoming:
+        merged["private"] = merge_private_subtree(
+            merged.get("private"), incoming.pop("private")
+        )
+    merged.update(incoming)
+    return cast(TaskProperties, merged)
 
 
 def parse_properties(json_str: str | None) -> TaskProperties:
@@ -379,16 +476,37 @@ def parse_properties(json_str: str | None) -> TaskProperties:
     :param json_str: JSON string or None
     :returns: TaskProperties dict (sparse - only contains keys that were set)
     """
+    return cast(TaskProperties, _parse_json_dict(json_str))
+
+
+def parse_payload(json_str: str | None) -> dict[str, Any]:
+    """
+    Parse a task's ``payload`` column into a dict.
+
+    The payload counterpart of :func:`parse_properties`; task code owns the
+    payload's shape, so it stays an untyped mapping.
+
+    :param json_str: JSON string or None
+    :returns: Payload dict, empty when absent or unparseable
+    """
+    return _parse_json_dict(json_str)
+
+
+def _parse_json_dict(json_str: str | None) -> dict[str, Any]:
+    """Decode a JSON object column, tolerating absent or malformed values.
+
+    ``properties`` and ``payload`` are free-form JSON text columns, so a
+    non-object value has to degrade to an empty dict rather than raise: these
+    are read on polling paths where one bad row must not fail the response.
+    """
     if not json_str:
         return {}
 
     try:
         raw = json.loads(json_str)
-        if isinstance(raw, dict):
-            return cast(TaskProperties, raw)
-        return {}
     except (json.JSONDecodeError, TypeError):
         return {}
+    return raw if isinstance(raw, dict) else {}
 
 
 def serialize_properties(props: TaskProperties) -> str:

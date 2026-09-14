@@ -118,11 +118,18 @@ FEATURE_FLAGS = {
     "ALERT_REPORTS": True,
     "DATASET_FOLDERS": True,
     "ENABLE_EXTENSIONS": True,
+    "MOBILE_CONSUMPTION_MODE": True,
     "SEMANTIC_LAYERS": True,
 }
 EXTENSIONS_PATH = "/app/docker/extensions"
 ALERT_REPORTS_NOTIFICATION_DRY_RUN = True
-WEBDRIVER_BASEURL = f"http://superset_app{os.environ.get('SUPERSET_APP_ROOT', '/')}/"  # When using docker compose baseurl should be http://superset_nginx{ENV{BASEPATH}}/  # noqa: E501
+# The Docker Compose app service is named "superset" and listens on 8088. Report
+# paths are root-relative, so urljoin drops the base path; only the scheme, host,
+# and port must be correct here. SUPERSET_APP_ROOT is kept for consumers that
+# concatenate paths directly (e.g. cache warm-up). For screenshots in the dev
+# stack (unbuilt static assets) point this at the nginx service instead:
+# http://nginx{SUPERSET_APP_ROOT}/
+WEBDRIVER_BASEURL = f"http://superset:8088{os.environ.get('SUPERSET_APP_ROOT', '/')}/"
 # The base URL for the email report hyperlinks.
 WEBDRIVER_BASEURL_USER_FRIENDLY = (
     f"http://localhost:8888/{os.environ.get('SUPERSET_APP_ROOT', '/')}/"

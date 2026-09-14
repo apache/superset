@@ -44,6 +44,11 @@ def mock_database(mocker: MockerFixture) -> MagicMock:
         "superset.commands.database.validate_sql.DatabaseDAO"
     )
     DatabaseDAO.find_by_id.return_value = database
+    # Access validation runs before template processing; it has its own
+    # coverage, so keep it a no-op here.
+    mocker.patch(
+        "superset.commands.database.validate_sql.security_manager.raise_for_access"
+    )
     return database
 
 

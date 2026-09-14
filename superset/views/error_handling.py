@@ -45,6 +45,10 @@ from superset.exceptions import (
 )
 from superset.superset_typing import FlaskResponse
 from superset.utils import core as utils, json
+from superset.utils.error_sanitization import (
+    sanitize_error_message,
+    sanitize_superset_errors,
+)
 from superset.utils.log import get_logger_from_status
 from superset.views.utils import redirect_to_login
 
@@ -74,12 +78,16 @@ def json_error_response(
 ) -> FlaskResponse:
     payload = payload or {}
 
+    if isinstance(error_details, SupersetError):
+        error_details = [error_details]
+
     if isinstance(error_details, list):
-        payload["errors"] = [dataclasses.asdict(error) for error in error_details]
-    elif isinstance(error_details, SupersetError):
-        payload["errors"] = [dataclasses.asdict(error_details)]
+        payload["errors"] = [
+            dataclasses.asdict(error)
+            for error in sanitize_superset_errors(error_details)
+        ]
     elif isinstance(error_details, str):
-        payload["error"] = error_details
+        payload["error"] = sanitize_error_message(error_details, status)
 
     return Response(
         json.dumps(payload, default=json.json_iso_dttm_ser, ignore_nan=True),
@@ -111,7 +119,7 @@ def handle_ssh_tunnel_error(ex: sshtunnel.BaseSSHTunnelForwarderError) -> FlaskR
     )
 
 
-def handle_api_exception(
+def handle_api_exception(  # noqa: C901
     f: Callable[..., FlaskResponse],
 ) -> Callable[..., FlaskResponse]:
     """
@@ -143,6 +151,15 @@ def handle_api_exception(
             return json_error_response(
                 utils.error_msg_from_exception(ex), status=cast(int, ex.code)
             )
+        except exc.OperationalError as ex:
+            # A connection-level failure (the server dropping the connection
+            # mid-query, or a connection that could never be established) is a
+            # server-side fault, not something the caller can correct by
+            # changing the request. It must not fall through to the 422 handler
+            # below, which OperationalError would otherwise match as a
+            # DatabaseError subclass.
+            logger.exception(ex)
+            return json_error_response(utils.error_msg_from_exception(ex), status=500)
         except (exc.IntegrityError, exc.DatabaseError, exc.DataError) as ex:
             logger.exception(ex)
             return json_error_response(utils.error_msg_from_exception(ex), status=422)

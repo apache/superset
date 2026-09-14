@@ -146,6 +146,17 @@ describe('OAuth2RedirectMessage Component', () => {
     expect(getByText(/provide authorization/i)).toBeInTheDocument();
   });
 
+  test('renders the prose body without preformatted/monospace styling so it wraps within the popover', () => {
+    const { container } = render(setup());
+
+    // The OAuth2 body is prose, not a stack trace, so it must not be styled as
+    // preformatted (monospace + pre-wrap). Otherwise it renders as a single
+    // unwrapped line that balloons the SQL Lab popover width.
+    const description = container.querySelector('[data-testid="description"]');
+    expect(description).not.toBeNull();
+    expect(description).not.toHaveStyle({ whiteSpace: 'pre-wrap' });
+  });
+
   test('renders the authorization link pointing at the OAuth2 URL', () => {
     const { getByText } = render(setup());
 
@@ -271,6 +282,7 @@ describe('OAuth2RedirectMessage Component', () => {
         { type: 'Schemas', id: 'LIST' },
         { type: 'Catalogs', id: 'LIST' },
         'Tables',
+        'TableMetadatas',
       ]);
     });
   });

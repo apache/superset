@@ -30,8 +30,12 @@ CI.
 This module closes that gap with a single smoke test file that:
 
 1. Builds the *real* ASGI app the way ``run_server()`` does --
-   ``mcp.http_app(transport="streamable-http", stateless_http=True)`` --
+   ``mcp.http_app(transport="streamable-http", stateless_http=...)`` --
    with the production FastMCP-level middleware list attached.
+   ``stateless_http`` defaults to True (``MCP_STATELESS_HTTP`` in
+   ``mcp_config.py``); this suite pins it to False, the value deployments
+   override to in order to avoid the crash documented on that config's
+   docstring.
 2. Serves it in-process over real MCP streamable-HTTP JSON-RPC using
    ``httpx.ASGITransport`` (no real TCP socket, no real network).
 3. Drives it with FastMCP's own high-level ``Client``, proving the full
@@ -143,7 +147,9 @@ async def _real_asgi_client() -> AsyncIterator[Client]:
     Builds the app the way ``run_server()`` does for the multi-pod/http_app
     path (``server.py:938``): FastMCP-level middleware from
     ``build_middleware_list()`` attached to the shared ``mcp`` instance, then
-    ``mcp.http_app(transport="streamable-http", stateless_http=True)``.
+    ``mcp.http_app(transport="streamable-http", stateless_http=False)`` --
+    pinned to False rather than reading ``MCP_STATELESS_HTTP``'s True default,
+    since False is what deployments actually run (see module docstring).
 
     The request/response cycle is driven over ``httpx.ASGITransport`` (no
     real socket) using FastMCP's own ``StreamableHttpTransport`` so the
@@ -165,7 +171,7 @@ async def _real_asgi_client() -> AsyncIterator[Client]:
         mcp.add_middleware(middleware)
 
     try:
-        asgi_app = mcp.http_app(transport="streamable-http", stateless_http=True)
+        asgi_app = mcp.http_app(transport="streamable-http", stateless_http=False)
 
         def httpx_client_factory(**kwargs: Any) -> httpx.AsyncClient:
             return httpx.AsyncClient(
@@ -206,6 +212,18 @@ async def test_tools_list_over_real_asgi_transport() -> None:
     assert len(tools) > 0
     tool_names = {tool.name for tool in tools}
     assert "health_check" in tool_names
+    assert not {
+        tool.name
+        for tool in tools
+        if tool.annotations is None or tool.annotations.openWorldHint is not False
+    }
+    assert not {
+        tool.name
+        for tool in tools
+        if tool.annotations is not None
+        and tool.annotations.readOnlyHint is False
+        and tool.annotations.idempotentHint is not False
+    }
 
 
 @pytest.mark.asyncio
@@ -226,3 +244,21 @@ async def test_tools_call_health_check_over_real_asgi_transport() -> None:
     data = json.loads(result.content[0].text)
     assert data["status"] == "healthy"
     assert data["service"] == "Superset MCP Service"
+
+
+@pytest.mark.asyncio
+async def test_tools_call_failure_sets_is_error_over_real_asgi_transport() -> None:
+    """A failed ``tools/call`` reaches the client with ``isError: true``.
+
+    An unknown tool name raises inside the middleware chain, so this exercises
+    the real path a permission denial takes: the exception propagates to the
+    outermost ``StructuredContentStripperMiddleware`` catch-all, whose result
+    then crosses the real JSON-RPC wire. Isolated middleware tests with a mocked
+    ``call_next`` cannot prove this -- inner middlewares rebuild the result and
+    can drop the flag -- which is why this runs over the full chain.
+    """
+    async with _real_asgi_client() as client:
+        result = await client.call_tool("no_such_tool", {}, raise_on_error=False)
+
+    assert result.is_error is True
+    assert result.content[0].text.startswith("Error:")

@@ -24,15 +24,21 @@ from unittest.mock import patch
 import pytest
 
 from superset import db
+from superset.commands.deletion_retention import audit
 from superset.commands.deletion_retention.audit import PurgeAuditLog
 from superset.commands.deletion_retention.force_purge import (
     AmbiguousPurgeTargetError,
     ForcePurgeCommand,
 )
+from superset.commands.deletion_retention.purge_impact import (
+    collect_dataset_purge_impact,
+    PurgeImpactChangedError,
+)
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.reports.models import ReportSchedule
+from superset.tasks.deletion_retention import _purge_impl
 
 from ._base import DeletionRetentionTestBase
 
@@ -100,6 +106,35 @@ class TestForcePurge(DeletionRetentionTestBase):
         assert audit.affected_referrers
         assert chart_uuid in audit.affected_referrers
 
+    def test_dataset_impact_drift_fails_audit_without_mutation(self) -> None:
+        """The locked recheck records a failed no-op when impact changed."""
+        reviewed_chart: Slice = self.make_chart("impact_reviewed", dataset=self.dataset)
+        dataset_id: int = self.dataset.id
+        dataset_uuid: str = str(self.dataset.uuid)
+        reviewed_token: str = collect_dataset_purge_impact(
+            db.session, dataset_id
+        ).impact_token
+        changed_chart: Slice = self.make_chart("impact_changed", dataset=self.dataset)
+        reviewed_chart_id: int = reviewed_chart.id
+        changed_chart_id: int = changed_chart.id
+
+        with pytest.raises(PurgeImpactChangedError):
+            ForcePurgeCommand(
+                dataset_uuid,
+                model_cls=SqlaTable,
+                confirmed_impact_token=reviewed_token,
+            ).run()
+
+        assert self.exists(SqlaTable, dataset_id)
+        assert self.exists(Slice, reviewed_chart_id)
+        assert self.exists(Slice, changed_chart_id)
+        audit_row: PurgeAuditLog = (
+            db.session.query(PurgeAuditLog).filter_by(entity_uuid=dataset_uuid).one()
+        )
+        assert audit_row.status == audit.STATUS_FAILED
+        assert audit_row.removed_dashboard_slices == 0
+        assert audit_row.affected_referrers is None
+
     def test_force_purge_counts_removed_dashboard_slices_before_db_cascade(
         self,
     ) -> None:
@@ -138,11 +173,42 @@ class TestForcePurge(DeletionRetentionTestBase):
         assert self.exists(Slice, chart_id)
         row = db.session.query(PurgeAuditLog).filter_by(entity_uuid=chart_uuid).one()
         assert row.status == "blocked"
+        assert row.reason == "report_schedule"
         log_info.assert_called_once_with(
             "force_purge: blocked %s uuid=%s reason=%s",
             "chart",
             chart_uuid,
             "associated alerts or reports exist",
+        )
+
+    def test_force_block_does_not_change_scheduled_deduplication_stream(self) -> None:
+        chart: Slice = self.make_chart("independent_block_streams")
+        report: ReportSchedule = ReportSchedule(
+            type="Report",
+            name="retention_it_independent_block_streams",
+            crontab="0 0 * * *",
+            chart=chart,
+        )
+        db.session.add(report)
+        db.session.commit()
+        chart_uuid: str = str(chart.uuid)
+        self.soft_delete(chart, days_ago=90)
+
+        first_scheduled: dict[str, object] = _purge_impl(30, dry_run=False)
+        force_result: dict[str, object] = ForcePurgeCommand(chart_uuid).run()
+        second_scheduled: dict[str, object] = _purge_impl(30, dry_run=False)
+
+        records: list[PurgeAuditLog] = (
+            db.session.query(PurgeAuditLog).filter_by(entity_uuid=chart_uuid).all()
+        )
+        assert first_scheduled["blocked_by_reference"] == 1
+        assert force_result["reason"] == "blocked"
+        assert second_scheduled["blocked_by_reference"] == 1
+        assert sorted((record.trigger, record.status) for record in records) == sorted(
+            [
+                (audit.TRIGGER_RETENTION, audit.STATUS_BLOCKED),
+                (audit.TRIGGER_FORCE, audit.STATUS_BLOCKED),
+            ]
         )
 
     def test_force_purge_refuses_an_ambiguous_uuid(self) -> None:

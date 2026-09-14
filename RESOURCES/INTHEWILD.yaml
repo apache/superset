@@ -441,6 +441,11 @@ categories:
       url: https://bestpair.info/
       contributors: ["@stevensuting"]
 
+    - name: Veremes
+      url: https://www.veremes.com/
+      logo: veremes.svg
+      contributors: ["@verdier"]
+
     - name: Virtuoso QA
       url: https://www.virtuosoqa.com
 

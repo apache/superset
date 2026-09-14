@@ -44,7 +44,7 @@ def _get_version_rows(chart: Slice) -> list[Any]:
     ver_cls = version_class(Slice)
     return (
         db.session.query(ver_cls)
-        .filter(ver_cls.id == chart.id)
+        .filter(ver_cls.id == chart.id, ver_cls.uuid == chart.uuid)
         .order_by(ver_cls.transaction_id.asc())
         .all()
     )
@@ -119,6 +119,48 @@ class TestChartRestoreApi(SupersetTestCase):
         # Cleanup
         chart.slice_name = original_name
         db.session.commit()
+
+    def test_restore_refuses_externally_managed_chart(self) -> None:
+        """sc-115616: restore is withheld server-side from an externally
+        managed chart even for an admin who could otherwise edit it — the
+        endpoint returns 403, not 200, so a direct API call cannot bypass the
+        browser gate.
+
+        Chart is the representative real-model/real-endpoint case; the guard
+        lives in the shared BaseRestoreVersionCommand.validate(), so the
+        dashboard and dataset commands inherit it (pinned across all three by
+        the parametrized unit test in
+        tests/unit_tests/commands/test_base_restore_version_command.py)."""
+        _persist_fixture_state()
+        chart: Slice = (
+            db.session.query(Slice).filter(Slice.slice_name == "Boys").first()
+        )
+        assert chart is not None
+        chart_uuid = str(chart.uuid)
+
+        # A save so there is a prior version to target.
+        chart.slice_name = "Boys v1"
+        db.session.commit()
+
+        self.login(ADMIN_USERNAME)
+        listing = _json.loads(self._list(chart_uuid).data.decode("utf-8"))
+        target_uuid = listing["result"][-1]["version_uuid"]
+
+        # Mark the chart as externally managed, then attempt the restore.
+        chart.is_managed_externally = True
+        db.session.commit()
+        try:
+            rv = self._restore(chart_uuid, target_uuid)
+            assert rv.status_code == 403, rv.data
+            # The refusal did not mutate the chart.
+            db.session.expire_all()
+            chart = db.session.query(Slice).filter(Slice.uuid == chart.uuid).one()
+            assert chart.slice_name == "Boys v1"
+        finally:
+            # Cleanup
+            chart.is_managed_externally = False
+            chart.slice_name = "Boys"
+            db.session.commit()
 
     def test_restore_returns_404_for_unknown_uuid(self) -> None:
         self.login(ADMIN_USERNAME)
@@ -236,7 +278,7 @@ class TestChartRestoreApi(SupersetTestCase):
         ver_cls = version_class(Slice)
         first_tx = (
             db.session.query(ver_cls.transaction_id)
-            .filter(ver_cls.id == chart_id)
+            .filter(ver_cls.id == chart_id, ver_cls.uuid == entity_uuid)
             .order_by(ver_cls.transaction_id.asc())
             .limit(1)
             .scalar()
@@ -289,7 +331,15 @@ class TestChartRestoreApi(SupersetTestCase):
         original_name = chart.slice_name
 
         ver_cls = version_class(Slice)
-        count_before = db.session.query(ver_cls).filter(ver_cls.id == chart_id).count()
+        # Pin to (id, uuid), as the API's version lookup does. A shared test
+        # database recycles integer ids across the suite, so an id-only count
+        # picks up shadow rows belonging to hard-deleted predecessors and
+        # over-states this chart's history.
+        count_before = (
+            db.session.query(ver_cls)
+            .filter(ver_cls.id == chart_id, ver_cls.uuid == chart.uuid)
+            .count()
+        )
         expected_old = count_before - 1 if count_before > 0 else None
 
         self.login(ADMIN_USERNAME)
@@ -334,7 +384,7 @@ class TestChartRestoreApi(SupersetTestCase):
         assert entity_uuid is not None
         first_tx = (
             db.session.query(ver_cls.transaction_id)
-            .filter(ver_cls.id == chart.id)
+            .filter(ver_cls.id == chart.id, ver_cls.uuid == chart.uuid)
             .order_by(ver_cls.transaction_id.asc())
             .limit(1)
             .scalar()
@@ -394,7 +444,7 @@ class TestChartRestoreApi(SupersetTestCase):
         assert boys_uuid is not None
         boys_tx = (
             db.session.query(ver_cls.transaction_id)
-            .filter(ver_cls.id == boys.id)
+            .filter(ver_cls.id == boys.id, ver_cls.uuid == boys_uuid)
             .order_by(ver_cls.transaction_id.asc())
             .limit(1)
             .scalar()
@@ -430,7 +480,7 @@ class TestChartRestoreApi(SupersetTestCase):
         assert entity_uuid is not None
         first_tx = (
             db.session.query(ver_cls.transaction_id)
-            .filter(ver_cls.id == chart_id)
+            .filter(ver_cls.id == chart_id, ver_cls.uuid == entity_uuid)
             .order_by(ver_cls.transaction_id.asc())
             .limit(1)
             .scalar()
@@ -443,7 +493,7 @@ class TestChartRestoreApi(SupersetTestCase):
 
         latest_tx = (
             db.session.query(ver_cls.transaction_id)
-            .filter(ver_cls.id == chart_id)
+            .filter(ver_cls.id == chart_id, ver_cls.uuid == entity_uuid)
             .order_by(ver_cls.transaction_id.desc())
             .limit(1)
             .scalar()

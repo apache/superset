@@ -65,6 +65,7 @@ from superset.reports.models import ReportRecipientType
 from superset.superset_typing import FlaskResponse
 from superset.themes.types import Theme, ThemeMode
 from superset.themes.utils import (
+    enforce_theme_algorithm,
     is_valid_theme,
 )
 from superset.translations.utils import get_language_pack_version
@@ -72,10 +73,12 @@ from superset.utils import core as utils, json
 from superset.utils.filters import get_dataset_access_filters
 from superset.utils.version import get_version_metadata, visible_version_metadata
 from superset.views.error_handling import json_error_response
+from superset.websocket.permissions import can_access_realtime_notifications
 
 from .utils import bootstrap_user_data, get_config_value
 
 FRONTEND_CONF_KEYS = (
+    "AUTH_ROLE_ADMIN",
     "SUPERSET_WEBSERVER_TIMEOUT",
     "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT",
     "SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT",
@@ -88,12 +91,16 @@ FRONTEND_CONF_KEYS = (
     "SQLLAB_SAVE_WARNING_MESSAGE",
     "SQLLAB_DEFAULT_DBID",
     "DISPLAY_MAX_ROW",
-    "GLOBAL_ASYNC_QUERIES_TRANSPORT",
     "GLOBAL_ASYNC_QUERIES_POLLING_DELAY",
+    "GLOBAL_ASYNC_QUERIES_POLLING_MAX_DELAY",
+    "GLOBAL_ASYNC_QUERIES_POLLING_STALE_TIMEOUT",
+    "GLOBAL_ASYNC_QUERIES_DEFAULT",
+    "WEBSOCKET_ENABLE",
+    "WEBSOCKET_URL",
+    "WEBSOCKET_JWT_EXPIRATION_SECONDS",
     "SQL_VALIDATORS_BY_ENGINE",
     "SQLALCHEMY_DOCS_URL",
     "SQLALCHEMY_DISPLAY_TEXT",
-    "GLOBAL_ASYNC_QUERIES_WEBSOCKET_URL",
     "DASHBOARD_AUTO_REFRESH_MODE",
     "DASHBOARD_AUTO_REFRESH_INTERVALS",
     "DASHBOARD_VIRTUALIZATION",
@@ -127,6 +134,7 @@ FRONTEND_CONF_KEYS = (
     "TABLE_VIZ_MAX_ROW_SERVER",
     "MAPBOX_API_KEY",
     "DEFAULT_MAP_RENDERER",
+    "DECK_MULTI_MAX_SLICES",
     "CSV_STREAMING_ROW_THRESHOLD",
     "EMBEDDED_DISABLE_PERMALINK_ORIGIN_REWRITE",
     "SCARF_ANALYTICS",
@@ -429,6 +437,11 @@ def get_theme_bootstrap_data() -> dict[str, Any]:
     default_theme = _process_theme(default_theme, ThemeMode.DEFAULT)
     dark_theme = _process_theme(dark_theme, ThemeMode.DARK)
 
+    # Force each theme to carry the algorithm of the slot it fills, so a light
+    # theme assigned to the dark slot (or vice versa) still renders consistently
+    default_theme = enforce_theme_algorithm(default_theme, ThemeMode.DEFAULT)
+    dark_theme = enforce_theme_algorithm(dark_theme, ThemeMode.DARK)
+
     return {
         "theme": {
             "default": default_theme,
@@ -629,6 +642,7 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
         "extra_categorical_color_schemes": app.config[
             "EXTRA_CATEGORICAL_COLOR_SCHEMES"
         ],
+        "extra_theme_tokens": app.config["EXTRA_THEME_TOKENS"],
         "menu_data": menu_data(g.user),
         "pdf_compression_level": app.config["PDF_COMPRESSION_LEVEL"],
         "user_subject_id": _get_user_subject_id(user_id),
@@ -646,6 +660,12 @@ def common_bootstrap_payload() -> dict[str, Any]:
     # Convert locale to string for proper cache key hashing
     locale_str = str(locale) if locale else None
     payload = dict(cached_common_bootstrap_data(utils.get_user_id(), locale_str))
+    frontend_config = payload.get("conf")
+    if isinstance(frontend_config, dict) and frontend_config.get("WEBSOCKET_ENABLE"):
+        payload["conf"] = {
+            **frontend_config,
+            "WEBSOCKET_ENABLE": can_access_realtime_notifications(),
+        }
     # The language pack itself is NOT embedded in the payload: spa.html loads
     # it through the content-addressed /language_pack/<lang>/<version>/script.js
     # tag before the entry bundle, keeping HTML small while still configuring

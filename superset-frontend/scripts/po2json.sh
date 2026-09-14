@@ -32,6 +32,10 @@ do
   then
     echo "po2json --domain superset --format jed1.x $file $filename.json"
     po2json --domain superset --format jed1.x --fuzzy $file $filename.json
-    oxfmt --write $(realpath $filename.json)
+    # messages.json is gitignored (generated output); oxfmt >=0.62 respects
+    # .gitignore even for explicitly-passed paths, so it would otherwise
+    # exit non-zero here with "All matched files may have been excluded by
+    # ignore rules." Skip the format step for this file instead of failing.
+    oxfmt --write --no-error-on-unmatched-pattern $(realpath $filename.json)
   fi
 done

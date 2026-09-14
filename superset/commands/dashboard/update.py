@@ -16,6 +16,7 @@
 # under the License.
 import logging
 import textwrap
+from collections.abc import Callable
 from functools import partial
 from typing import Any, Optional
 
@@ -48,7 +49,7 @@ from superset.reports.models import ReportSchedule
 from superset.subjects.types import SubjectType
 from superset.tags.models import ObjectType
 from superset.utils import json
-from superset.utils.core import send_email_smtp
+from superset.utils.core import remove_duplicates, send_email_smtp
 from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
@@ -170,42 +171,51 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
                         config=current_app.config,
                     )
 
+    def _reports_on_this_dashboard(
+        self,
+        finder: Callable[[str], list[ReportSchedule]],
+        keys: list[str],
+    ) -> list[ReportSchedule]:
+        """Reports referencing any of ``keys`` that belong to this dashboard.
+
+        A single report can reference several ``keys``, hence the
+        de-duplication by id.
+        """
+        dashboard_id = self._model.id  # type: ignore
+        return remove_duplicates(
+            (
+                report
+                for key in keys
+                for report in finder(key)
+                if report.dashboard_id == dashboard_id
+            ),
+            key=lambda report: report.id,
+        )
+
     def process_tab_diff(self) -> None:
         def find_deleted_tabs() -> list[str]:
             position_json = self._properties.get("position_json", "")
+            if not position_json:
+                return []
+            # ``tabs`` always answers with both keys, even for a layout it
+            # could not walk, so an empty ``all_tabs`` needs no guard of its
+            # own: nothing is diffed against the new layout.
             current_tabs = self._model.tabs  # type: ignore
-            if position_json and current_tabs:
-                position = json.loads(position_json)
-                deleted_tabs = [
-                    tab for tab in current_tabs["all_tabs"] if tab not in position
-                ]
-                return deleted_tabs
-            return []
+            position = json.loads(position_json)
+            return [tab for tab in current_tabs["all_tabs"] if tab not in position]
 
-        def find_reports_containing_tabs(tabs: list[str]) -> list[ReportSchedule]:
-            alert_reports_list = []
-            for tab in tabs:
-                for report in ReportScheduleDAO.find_by_extra_metadata(tab):
-                    alert_reports_list.append(report)
-            return alert_reports_list
-
-        def send_deactivated_email_warning(report: ReportSchedule) -> None:
-            description = textwrap.dedent(
-                """
-                The dashboard tab used in this report has been deleted and your report has been deactivated.
-                Please update your report settings to remove or change the tab used.
-                """  # noqa: E501
-            )
-            self._send_deactivated_report_email(report, description)
-
-        def deactivate_reports(reports_list: list[ReportSchedule]) -> None:
-            for report in reports_list:
-                ReportScheduleDAO.update(report, {"active": False})
-                send_deactivated_email_warning(report)
-
+        description = textwrap.dedent(
+            """
+            The dashboard tab used in this report has been deleted and your report has been deactivated.
+            Please update your report settings to remove or change the tab used.
+            """  # noqa: E501
+        )
         deleted_tabs = find_deleted_tabs()
-        reports = find_reports_containing_tabs(deleted_tabs)
-        deactivate_reports(reports)
+        for report in self._reports_on_this_dashboard(
+            ReportScheduleDAO.find_by_extra_metadata, deleted_tabs
+        ):
+            ReportScheduleDAO.update(report, {"active": False})
+            self._send_deactivated_report_email(report, description)
 
     def process_native_filter_diff(self) -> None:
         def find_deleted_native_filter_ids() -> list[str]:
@@ -226,20 +236,6 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
             }
             return list(current_filter_ids - new_filter_ids)
 
-        def find_reports_containing_native_filters(
-            filter_ids: list[str],
-        ) -> list[ReportSchedule]:
-            seen: set[int] = set()
-            reports: list[ReportSchedule] = []
-            for filter_id in filter_ids:
-                for report in ReportScheduleDAO.find_by_native_filter_id(filter_id):
-                    if report.dashboard_id != self._model.id:  # type: ignore
-                        continue
-                    if report.id not in seen:
-                        seen.add(report.id)
-                        reports.append(report)
-            return reports
-
         description = textwrap.dedent(
             """
             The dashboard filter used in this report has been deleted and your report has not been sent.
@@ -247,7 +243,9 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
             """  # noqa: E501
         )
         deleted_filter_ids = find_deleted_native_filter_ids()
-        for report in find_reports_containing_native_filters(deleted_filter_ids):
+        for report in self._reports_on_this_dashboard(
+            ReportScheduleDAO.find_by_native_filter_id, deleted_filter_ids
+        ):
             ReportScheduleDAO.update(report, {"active": False})
             self._send_deactivated_report_email(report, description)
 
