@@ -20,6 +20,7 @@
 import logging
 import math
 from collections.abc import Callable
+from contextvars import Token
 from dataclasses import dataclass
 from random import random
 from threading import Event, Thread
@@ -29,7 +30,12 @@ from uuid import uuid4
 
 from redis.exceptions import RedisError
 
-from superset.semantic_layers.cache_repository import SemanticCacheCoordinationError
+from superset.coordination.cache_backend import RedisCommandsMixin
+from superset.semantic_layers.cache_repository import (
+    semantic_cache_write_fence,
+    SemanticCacheCoordinationError,
+    SemanticCacheWriteFence,
+)
 
 SEMANTIC_CACHE_COORDINATION_FAILURE_METRIC: str = (
     "semantic_cache.containment.coordination_failure"
@@ -186,6 +192,29 @@ class SemanticCacheCoordinator:
             self._sleeper(min(0.025 + 0.025 * self._jitter(), remaining))
 
         renewal_failed: bool
+
+        def check_owner() -> bool:
+            """Check the caller's lease immediately before a fallback write."""
+            try:
+                return self._backend.refresh_owner_token(
+                    lease_key, owner_token, self._settings.lease_seconds
+                )
+            except RedisError as ex:
+                self._failure("Semantic cache lease check failed", ex)
+                return False  # pragma: no cover
+
+        fence_token: Token[SemanticCacheWriteFence | None] = (
+            semantic_cache_write_fence.set(
+                SemanticCacheWriteFence(
+                    lease_key,
+                    owner_token,
+                    check_owner,
+                    self._backend
+                    if isinstance(self._backend, RedisCommandsMixin)
+                    else None,
+                )
+            )
+        )
         try:
             renewal_failed = self._run_with_renewal(
                 lease_key,
@@ -193,6 +222,7 @@ class SemanticCacheCoordinator:
                 operation,
             )
         finally:
+            semantic_cache_write_fence.reset(fence_token)
             try:
                 released: bool = self._backend.release_owner_token(
                     lease_key,
