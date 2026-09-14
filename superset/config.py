@@ -1251,8 +1251,8 @@ CACHE_WARMUP_EXECUTORS = [ExecutorType.EDITOR]
 # ---------------------------------------------------
 # Thumbnail config (behind feature flag)
 # ---------------------------------------------------
-# By default, thumbnails are rendered per user, and will fall back to the Selenium
-# user for anonymous users. Similar to Alerts & Reports, thumbnails
+# By default, thumbnails are rendered as the user who requests them. Similar to
+# Alerts & Reports, thumbnails
 # can be configured to always be rendered as a fixed user. See
 # `superset.tasks.types.ExecutorType` for a full list of executor options.
 # To always use a fixed user account (admin in this example, use the following
@@ -1324,11 +1324,12 @@ SUPERSET_CACHE_WARMUP_USER: str | None = None
 # - Cascade/dependent filters and search-term variants are not warmed in this
 #   version; only base option queries are supported.
 
-# Time before selenium times out after trying to locate an element on the page and wait
-# for that element to load for a screenshot.
+# Time before the headless browser times out after trying to locate an element on the
+# page and wait for that element to load for a screenshot.
 SCREENSHOT_LOCATE_WAIT = int(timedelta(seconds=10).total_seconds())
 # Time before screenshot capture times out while waiting for chart readiness.
 SCREENSHOT_LOAD_WAIT = int(timedelta(minutes=1).total_seconds())
+# "SELENIUM" in the next two key names is historical; both apply to Playwright.
 # Give the browser an initial headstart, in seconds
 SCREENSHOT_SELENIUM_HEADSTART = 3
 # Wait for the chart animation, in seconds
