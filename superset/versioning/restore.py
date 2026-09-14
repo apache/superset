@@ -249,47 +249,37 @@ def _child_state_provable_at(
     tx-ordered) prove the child's state at *target_tx*.
 
     Interval semantics: a row is valid over ``[transaction_id,
-    end_transaction_id)`` (open end = unbounded), and a CLOSED end is
-    Continuum's evidence that a successor row for the same pk existed at
-    that tx. For non-DELETE rows the successor is always a same-parent
-    row (an UPDATE or the DELETE that removed the child), so their
-    intervals are trusted as-is. A terminal DELETE row's closure is
-    ambiguous per-parent: validity closes by pk ACROSS parents, so the
-    closer is either a same-parent re-birth (whose pruning must REFUSE —
-    the child may have existed at the target) or a foreign parent's
-    INSERT after id reuse (the child stayed absent here — SAFE).
-    *foreign_closures* carries the closure txs a surviving foreign-parent
-    row explains; a closed DELETE end at/before the target is treated as
-    covering the target only when it is in that set. So:
+    end_transaction_id)`` (open end = unbounded). A covering interval
+    proves the state (non-DELETE: present, restored; DELETE: provably
+    absent). With no covering interval the verdict rests on the LAST
+    same-parent row at/before the target:
 
-    * a non-DELETE interval covering the target: present (restored);
-    * a DELETE interval covering the target — by its own end bound, or
-      past a foreign-explained closure: provably absent;
-    * no covering interval: only born-after passes (every same-parent
-      row beyond the target, earliest is the birth INSERT). Anything
-      else leaves a gap that may have covered the target: fail closed.
+    * no such row at all → born-after: provable only when the earliest
+      surviving row is the child's birth INSERT;
+    * a DELETE whose closure a FOREIGN parent's surviving row explains
+      (``foreign_closures`` — Continuum closes validity by pk ACROSS
+      parents, so id recycling closes this parent's terminal DELETE at
+      the foreign INSERT's tx) → the child was absent HERE from the
+      delete through the target, even when the pk later ping-pongs back
+      to this parent after the target;
+    * anything else — an unexplained closed DELETE (a pruned same-parent
+      re-birth may have covered the target) or a non-DELETE row whose
+      interval expired before the target (its successor is missing) —
+      fails closed.
     """
     for row in rows:
-        if row.transaction_id > target_tx:
-            continue
-        end = row.end_transaction_id
-        if end is None or end > target_tx:
-            return True
-        if (
-            row.operation_type == OPERATION_DELETE
-            and end in foreign_closures
-            and not any(
-                other.transaction_id > row.transaction_id
-                and other.transaction_id <= target_tx
-                for other in rows
-            )
+        if row.transaction_id <= target_tx and (
+            row.end_transaction_id is None or row.end_transaction_id > target_tx
         ):
-            # Deleted here, id later recycled to another parent: the
-            # child remained absent for THIS parent through the target.
             return True
-    if all(row.transaction_id > target_tx for row in rows):
+    at_or_before = [row for row in rows if row.transaction_id <= target_tx]
+    if not at_or_before:
         return rows[0].operation_type == OPERATION_INSERT
-    return False
+    last = max(at_or_before, key=lambda row: row.transaction_id)
+    return (
+        last.operation_type == OPERATION_DELETE
+        and last.end_transaction_id in foreign_closures
+    )
 
 
 @dataclass

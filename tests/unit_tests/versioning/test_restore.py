@@ -175,15 +175,45 @@ _INSERT, _UPDATE, _DELETE = 0, 1, 2
             False,
             "unexplained closure still refuses",
         ),
-        # A witness does NOT excuse a hole between same-parent rows: a
-        # later same-parent row after the delete means the pk came back
-        # HERE, and the gap before it may have covered the target.
+        # The verdict rests on the LAST same-parent row at/before the
+        # target: here that is an UPDATE whose interval expired before
+        # the target with its successor missing — refuse regardless of
+        # any witness on the earlier delete.
         (
             [_Row(2, 5, _INSERT), _Row(5, 8, _DELETE), _Row(9, 10, _UPDATE)],
             10,
             frozenset({8}),
             False,
-            "same-parent successor disables the witness shortcut",
+            "expired non-delete last row refuses despite a witness",
+        ),
+        # Ping-pong recycling (#44251 CI round 2): the pk went foreign at
+        # 8 and came BACK to this parent at 15; a target inside the
+        # foreign period is provably absent — the last same-parent row
+        # at/before it is the witnessed DELETE, and the later same-parent
+        # re-birth (after the target) must not disable that.
+        (
+            [
+                _Row(2, 5, _INSERT),
+                _Row(5, 8, _DELETE),
+                _Row(15, 20, _INSERT),
+                _Row(20, None, _DELETE),
+            ],
+            10,
+            frozenset({8}),
+            True,
+            "ping-pong: target inside the foreign period is absent",
+        ),
+        (
+            [
+                _Row(2, 5, _INSERT),
+                _Row(5, 8, _DELETE),
+                _Row(15, 20, _INSERT),
+                _Row(20, None, _DELETE),
+            ],
+            10,
+            frozenset(),
+            False,
+            "ping-pong without a witness still refuses",
         ),
     ],
 )
