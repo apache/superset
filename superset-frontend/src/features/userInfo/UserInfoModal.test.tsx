@@ -41,6 +41,7 @@ const props = { show: true, onHide: jest.fn(), onSave: jest.fn(), user };
 afterEach(() => {
   fetchMock.clearHistory().removeRoutes();
   jest.clearAllMocks();
+  jest.restoreAllMocks();
 });
 
 test.each([
@@ -58,6 +59,7 @@ test.each([
     'Something went wrong while saving the user info',
   ],
 ])('shows %s', async (_, response, expectedToast) => {
+  jest.spyOn(console, 'error').mockImplementation(() => {});
   fetchMock.put(meEndpoint, response);
   render(<UserInfoEditModal {...props} />);
   fireEvent.change(screen.getByPlaceholderText("Enter the user's first name"), {
@@ -71,4 +73,30 @@ test.each([
   await waitFor(() =>
     expect(mockToasts.addDangerToast).toHaveBeenCalledWith(expectedToast),
   );
+  await waitFor(() =>
+    expect(screen.getByTestId('form-modal-save-button')).toBeEnabled(),
+  );
+  expect(props.onSave).not.toHaveBeenCalled();
+  expect(mockToasts.addSuccessToast).not.toHaveBeenCalled();
+  expect(
+    screen.getByPlaceholderText("Enter the user's first name"),
+  ).toHaveValue('J'.repeat(65));
+});
+
+test('calls onSave exactly once after a successful update', async () => {
+  fetchMock.put(meEndpoint, { status: 200, body: {} });
+  render(<UserInfoEditModal {...props} />);
+  fireEvent.change(screen.getByPlaceholderText("Enter the user's first name"), {
+    target: { value: 'Jane' },
+  });
+  await waitFor(() =>
+    expect(screen.getByTestId('form-modal-save-button')).toBeEnabled(),
+  );
+  fireEvent.click(screen.getByTestId('form-modal-save-button'));
+
+  await waitFor(() => expect(props.onSave).toHaveBeenCalledTimes(1));
+  expect(mockToasts.addSuccessToast).toHaveBeenCalledWith(
+    'The user was updated successfully',
+  );
+  expect(mockToasts.addDangerToast).not.toHaveBeenCalled();
 });

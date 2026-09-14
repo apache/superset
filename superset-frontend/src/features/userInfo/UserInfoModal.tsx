@@ -58,12 +58,12 @@ function UserInfoModal({
           ? t('The user was updated successfully')
           : t('The password reset was successful'),
       );
-      onSave();
     } catch (response) {
       const { error } = await getClientErrorObject(response);
       addDangerToast(
         error || t('Something went wrong while saving the user info'),
       );
+      throw response;
     }
   };
 
