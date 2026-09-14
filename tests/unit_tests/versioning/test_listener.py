@@ -481,3 +481,42 @@ def test_capture_initial_states_stage_is_timed_only_when_an_entity_is_captured(
     assert lifecycle_session.info[listener._INITIAL_STATES_KEY] == {
         ("chart", 7): (entity, {"slice_name": "x"})
     }
+
+    # A later flush of the SAME entity is a candidate but not a capture (its
+    # state is already retained, no SELECT is issued): it must not emit a
+    # near-zero sample that would dilute the percentiles the series is
+    # alerted on (aminghadersohi's probe: 4 flushes, 1 SELECT, 4 samples).
+    listener._capture_initial_states(lifecycle_session, (Slice,))
+    listener._capture_initial_states(lifecycle_session, (Slice,))
+    assert len(timing_calls()) == 1
+
+
+def test_initial_state_capture_failure_does_not_break_the_flush(
+    lifecycle_session: Session, mocker: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A raise in the per-entity pre-state capture is logged and counted, not
+    propagated out of ``before_flush`` — the twin of the transaction-lookup
+    guard in finalize, under the same "never break a user's save" invariant
+    (aminghadersohi probed the unguarded form failing the save)."""
+    mocker.patch("superset.extensions.stats_logger_manager", MagicMock())
+    error_spy = mocker.patch.object(listener, "incr_capture_error")
+
+    def explode(session: Session, obj: object) -> dict[str, str]:
+        raise RuntimeError("pre-state SELECT failed")
+
+    monkeypatch.setattr(listener, "capture_initial_state", explode)
+
+    class Slice:  # the class NAME maps to the 'chart' entity kind
+        id = 7
+
+    entity = Slice()
+    mocker.patch.object(
+        type(lifecycle_session),
+        "dirty",
+        new_callable=lambda: property(lambda self: {entity}),
+    )
+
+    listener._capture_initial_states(lifecycle_session, (Slice,))  # must not raise
+
+    error_spy.assert_called_once_with("capture_initial_states")
+    assert lifecycle_session.info.get(listener._INITIAL_STATES_KEY, {}) == {}

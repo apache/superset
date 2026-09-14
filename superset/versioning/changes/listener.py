@@ -470,8 +470,19 @@ def _capture_initial_states(
     try:
         for obj in list(session.dirty):
             if isinstance(obj, versioned_classes):
+                # Count captures, not candidates: an entity already retained
+                # from an earlier flush returns early without a SELECT, and a
+                # sample for it would be near-zero noise diluting the upper
+                # percentiles the series is alerted on.
+                before = len(initial_states)
                 _capture_dirty_entity_initial_state(session, obj, initial_states)
-                captured += 1
+                captured += len(initial_states) - before
+    except Exception:  # pylint: disable=broad-except
+        # Twin of the transaction-lookup guard in finalize: a versioning bug
+        # must never break a user's save, so a raise in the per-entity capture
+        # is logged and counted rather than propagated out of before_flush.
+        logger.exception("version_changes: initial-state capture failed")
+        incr_capture_error("capture_initial_states")
     finally:
         if captured:
             emit_capture_timing(
