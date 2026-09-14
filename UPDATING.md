@@ -24,6 +24,25 @@ assists people when migrating to a new version.
 
 ## Next
 
+### MySQL metadata database now actually defaults to READ COMMITTED
+
+Superset has always *intended* to default the metadata-database isolation
+level to READ COMMITTED on MySQL (and logged that it did), but the code
+discarded the result of SQLAlchemy's generative `execution_options()` call,
+so every MySQL deployment without an explicit `isolation_level` in
+`SQLALCHEMY_ENGINE_OPTIONS` has in fact been running at InnoDB's default
+REPEATABLE READ. The default is now applied for real. PostgreSQL is
+unaffected (its server default is already READ COMMITTED), and an explicit
+`SQLALCHEMY_ENGINE_OPTIONS["isolation_level"]` was and remains respected.
+
+If your deployment relies on REPEATABLE READ semantics (snapshot-stable
+long transactions, RR gap-locking behavior), pin the previous effective
+behavior explicitly:
+
+```python
+SQLALCHEMY_ENGINE_OPTIONS = {"isolation_level": "REPEATABLE READ"}
+```
+
 ### Default Docker image is now batteries-included; the minimal image moves to `-lean`
 
 The default `apache/superset` Docker image (the plain tags: `latest`, `master`,
