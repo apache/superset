@@ -170,10 +170,12 @@ class DatabaseDeleteSoftDeletedDatasetsExistFailedError(
     # are hidden (soft-deleted) rows even though their dataset list looks empty.
     message = _(
         "Cannot delete a database whose only remaining datasets are "
-        "soft-deleted. Restore them (POST /api/v1/dataset/<uuid>/restore) "
-        "and delete them permanently once a purge capability ships, or "
-        "remove the underlying rows out-of-band, before deleting the "
-        "database."
+        "soft-deleted. Purge each one first — GET "
+        "/api/v1/dataset/<uuid>/purge-impact for its impact token, then "
+        "POST /api/v1/dataset/<uuid>/purge with "
+        '{"confirmed_impact_token": <token>} — or restore them '
+        "(POST /api/v1/dataset/<uuid>/restore) if they should live on, "
+        "before deleting the database."
     )
 
 
