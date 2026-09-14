@@ -1298,7 +1298,17 @@ def _apply_excel_explore_formats(
     header_rows = df.columns.nlevels if isinstance(df.columns, pd.MultiIndex) else 1
     if include_index:
         header_rows = max(header_rows, getattr(df.index, "nlevels", 1))
-    return apply_column_display(workbook_bytes, styles, header_rows=header_rows)
+    workbook_bytes = apply_column_display(workbook_bytes, styles, header_rows=header_rows)
+    from superset.utils.excel_conditional import apply_conditional_formatting
+
+    rules = form_data.get("conditionalFormatting") or form_data.get(
+        "conditional_formatting"
+    )
+    if isinstance(rules, list):
+        workbook_bytes = apply_conditional_formatting(
+            workbook_bytes, rules, header_rows=header_rows
+        )
+    return workbook_bytes
 
 
 def _is_default_index_column(series: pd.Series) -> bool:
