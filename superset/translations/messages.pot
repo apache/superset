@@ -17279,3 +17279,9 @@ msgstr ""
 
 msgid "Show all"
 msgstr ""
+
+msgid "Imported"
+msgstr ""
+
+msgid "Original version"
+msgstr ""
