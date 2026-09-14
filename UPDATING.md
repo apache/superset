@@ -24,6 +24,11 @@ assists people when migrating to a new version.
 
 ## Next
 
+- `superset deletion-retention force-purge` now exits **1** when the target is
+  blocked by a deletion rule or is not found (the messages are unchanged), so a
+  scripted compliance erasure cannot mistake a refusal for a completed purge.
+  Only a completed purge exits 0; a usage error still exits 2.
+
 ### Default Docker image is now batteries-included; the minimal image moves to `-lean`
 
 The default `apache/superset` Docker image (the plain tags: `latest`, `master`,
