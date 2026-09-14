@@ -23,6 +23,7 @@ import time
 from typing import Any, cast, ClassVar, Sequence, TYPE_CHECKING
 
 import pandas as pd
+import pyarrow as pa
 from flask import current_app
 from flask_babel import gettext as _
 
@@ -72,6 +73,46 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def normalize_contribution_totals(
+    queries: list[QueryObject],
+    cache_values: dict[str, Any],
+) -> tuple[list[int], int | None]:
+    """Identify contribution queries and normalize the totals query in place.
+
+    Returns the indices of queries whose contribution post-processing needs a
+    shared totals row, and the index of the totals query itself (or ``None``).
+    The totals query's ``row_limit`` is cleared on both the ``QueryObject`` and
+    the matching ``cache_values`` entry so cache keys align with cached results.
+    Shared by ``QueryContext`` and ``QueryContextProcessor`` so the two stay in
+    lockstep.
+    """
+    queries_needing_totals: list[int] = []
+    totals_idx: int | None = None
+
+    for index, query in enumerate(queries):
+        if any(
+            pp.get("operation") == "contribution"
+            for pp in getattr(query, "post_processing", None) or []
+        ):
+            queries_needing_totals.append(index)
+
+        if (
+            totals_idx is None
+            and not query.columns
+            and query.metrics
+            and not query.post_processing
+        ):
+            totals_idx = index
+
+    if queries_needing_totals and totals_idx is not None:
+        queries[totals_idx].row_limit = None
+        raw_queries = cache_values.get("queries", [])
+        if totals_idx < len(raw_queries) and isinstance(raw_queries[totals_idx], dict):
+            raw_queries[totals_idx]["row_limit"] = None
+
+    return queries_needing_totals, totals_idx
+
+
 class QueryContextProcessor:
     """
     The query context contains the query object and additional fields necessary
@@ -94,6 +135,96 @@ class QueryContextProcessor:
         """Return the historical dataframe payload without timing metadata."""
         return self.get_df_payload_result(query_obj, force_cached).payload
 
+    @staticmethod
+    def _force_marker_key(nonce: str, cache_key: str) -> str:
+        """Cache key for the per-(nonce, cache_key) forced-refresh marker.
+
+        Deliberately distinct from the result cache key so the fresh result still
+        lands under the normal ``cache_key`` and non-forced loads stay warm.
+        """
+        return f"gtf-force-nonce:{nonce}:{cache_key}"
+
+    def _force_nonce(self, query_obj: QueryObject) -> str | None:
+        """The forced-refresh nonce for a query: its per-query token (the async
+        task's UUID, set on the read-back) if present, else the context-level token
+        (legacy/single-query fallback)."""
+        return (
+            getattr(query_obj, "force_nonce", None) or self._query_context.force_nonce
+        )
+
+    def _resolve_forced_query(
+        self, query_obj: QueryObject, cache_key: str | None
+    ) -> bool:
+        """Resolve ``QueryContext.force`` through an optional idempotency nonce.
+
+        A forced chart-data request in the async (GTF) flow is issued twice: the
+        async submit schedules the recompute, then a follow-up request reads the
+        warmed result. Re-running the force on that second request would recompute
+        the identical query (double execution). When a nonce is present (the async
+        task's UUID, carried per-query on the read-back — see :meth:`_force_nonce`),
+        the first execution records a marker (keyed by nonce + cache_key) once its
+        result is cached; any later request carrying the same nonce sees the marker
+        and reads the cache instead of recomputing. A brand new force refresh uses a
+        new task (new nonce), so it genuinely recomputes.
+
+        Without a nonce (synchronous forced refresh, legacy callers) force is
+        honored verbatim.
+
+        :returns: whether the source query should be forced (cache bypassed)
+        """
+        if not self._query_context.force:
+            return False
+        nonce = self._force_nonce(query_obj)
+        if not nonce or not cache_key:
+            return True
+        # Marker present => this forced refresh already computed and cached its
+        # result; read it rather than recomputing. Best-effort like the query
+        # cache itself: a marker read failure degrades to "absent" (force), never
+        # an error.
+        try:
+            marker = cache_manager.data_cache.get(
+                self._force_marker_key(nonce, cache_key)
+            )
+        except Exception:  # noqa: BLE001  pylint: disable=broad-except
+            logger.warning("Force-nonce marker read failed; forcing recompute")
+            return True
+        return marker is None
+
+    def _mark_force_executed(
+        self, query_obj: QueryObject, cache_key: str | None, persisted: bool
+    ) -> None:
+        """Record that this ``force_nonce``'s recompute has been cached.
+
+        No-op unless this is a nonce-bearing forced refresh whose fresh result was
+        actually persisted (``persisted``). Gating on persistence is essential: if
+        the result was silently skipped (oversized value) or the backend write
+        failed, an old value may still sit under the normal cache key — writing the
+        marker anyway would let a follow-up read stop forcing and serve that stale
+        value. Best-effort: a marker write failure is logged and swallowed, costing
+        at worst one extra recompute. The marker shares the result's TTL, so the
+        two expire together.
+        """
+        nonce = self._force_nonce(query_obj)
+        if not (persisted and self._query_context.force and nonce and cache_key):
+            return
+        try:
+            # A False return (backend reported a failed write) or an exception are
+            # both benign here — the result is cached, so a missing marker only
+            # costs one extra recompute on the follow-up read, never stale data.
+            if (
+                cache_manager.data_cache.set(
+                    self._force_marker_key(nonce, cache_key),
+                    1,
+                    timeout=self.get_cache_timeout(),
+                )
+                is False
+            ):
+                logger.warning(
+                    "Force-nonce marker write reported failure; may recompute once more"
+                )
+        except Exception:  # noqa: BLE001  pylint: disable=broad-except
+            logger.warning("Force-nonce marker write failed; may recompute once more")
+
     def get_df_payload_result(
         self, query_obj: QueryObject, force_cached: bool | None = False
     ) -> QueryAcquisitionResult:
@@ -106,7 +237,10 @@ class QueryContextProcessor:
 
         cache_key = self.query_cache_key(query_obj)
         timeout = self.get_cache_timeout()
-        force_query = self._query_context.force or timeout == CACHE_DISABLED_TIMEOUT
+        force_query = (
+            self._resolve_forced_query(query_obj, cache_key)
+            or timeout == CACHE_DISABLED_TIMEOUT
+        )
         query_planning_ns = max(0, time.perf_counter_ns() - query_planning_start_ns)
 
         cache_resolution_start_ns = time.perf_counter_ns()
@@ -171,6 +305,10 @@ class QueryContextProcessor:
                     datasource_uid=self._qc_datasource.uid,
                     region=CacheRegion.DATA,
                 )
+                # Record — only if the fresh result was actually persisted — that
+                # this forced refresh ran, so a follow-up request carrying the same
+                # nonce reads the freshly-cached result instead of recomputing it.
+                self._mark_force_executed(query_obj, cache_key, cache.result_persisted)
 
         payload_assembly_start_ns = time.perf_counter_ns()
         # the N-dimensional DataFrame has converted into flat DataFrame
@@ -403,6 +541,9 @@ class QueryContextProcessor:
     def get_data(
         self, df: pd.DataFrame, coltypes: list[GenericDataType]
     ) -> str | bytes | list[dict[str, Any]]:
+        if self._query_context.result_format == ChartDataResultFormat.ARROW:
+            return self._to_arrow_ipc(df)
+
         if self._query_context.result_format in ChartDataResultFormat.table_like():
             include_index = not isinstance(df.index, pd.RangeIndex)
             columns = list(df.columns)
@@ -429,34 +570,19 @@ class QueryContextProcessor:
 
         return df.to_dict(orient="records")
 
-    def _prepare_contribution_totals(self) -> tuple[list[int], int | None]:
+    @staticmethod
+    def _to_arrow_ipc(df: pd.DataFrame) -> bytes:
+        """Serialize to an Arrow IPC stream for throughput-sensitive callers.
+
+        Serialization happens at response time rather than in the cache, so
+        Arrow and JSON requests for the same query share cache entries and no
+        cache-key versioning is needed.
         """
-        Identify contribution queries and normalize the totals query so cache keys
-        align with cached results.
-        """
-        queries_needing_totals: list[int] = []
-        totals_idx: int | None = None
-
-        for i, query in enumerate(self._query_context.queries):
-            needs_totals = any(
-                pp.get("operation") == "contribution"
-                for pp in getattr(query, "post_processing", []) or []
-            )
-
-            if needs_totals:
-                queries_needing_totals.append(i)
-
-            is_totals_query = (
-                not query.columns and query.metrics and not query.post_processing
-            )
-            if is_totals_query and totals_idx is None:
-                totals_idx = i
-
-        if queries_needing_totals and totals_idx is not None:
-            totals_query = self._query_context.queries[totals_idx]
-            totals_query.row_limit = None
-
-        return queries_needing_totals, totals_idx
+        table = pa.Table.from_pandas(df, preserve_index=False)
+        sink = pa.BufferOutputStream()
+        with pa.ipc.new_stream(sink, table.schema) as writer:
+            writer.write_table(table)
+        return sink.getvalue().to_pybytes()
 
     def ensure_totals_available(
         self,
@@ -464,7 +590,9 @@ class QueryContextProcessor:
         totals_idx: int | None = None,
     ) -> None:
         if queries_needing_totals is None or totals_idx is None:
-            queries_needing_totals, totals_idx = self._prepare_contribution_totals()
+            queries_needing_totals, totals_idx = (
+                self._query_context.prepare_contribution_totals()
+            )
 
         if not queries_needing_totals or totals_idx is None:
             return
@@ -506,7 +634,9 @@ class QueryContextProcessor:
     ) -> QueryContextExecutionResult:
         """Return query results with timing kept outside query payloads."""
 
-        queries_needing_totals, totals_idx = self._prepare_contribution_totals()
+        queries_needing_totals, totals_idx = (
+            self._query_context.prepare_contribution_totals()
+        )
 
         # Skip ensure_totals_available when force_cached=True
         # This prevents recalculating contribution_totals from cached results
@@ -570,7 +700,15 @@ class QueryContextProcessor:
              :meth:`QueryContext.get_cache_timeout`.
           4. ``DATA_CACHE_CONFIG["CACHE_DEFAULT_TIMEOUT"]``.
           5. ``CACHE_DEFAULT_TIMEOUT`` — global fallback.
+
+        For an async execution the result is cached then read back by a follow-up
+        request, so the resolved timeout is finally floored to
+        ``GLOBAL_ASYNC_QUERIES_MIN_CACHE_TTL`` to prevent a short TTL from evicting
+        the result before it is fetched (see :meth:`_apply_async_min_cache_ttl`).
         """
+        return self._apply_async_min_cache_ttl(self._resolve_cache_timeout())
+
+    def _resolve_cache_timeout(self) -> int:
         # Step 1: Request-level custom timeout (e.g., Force refresh bypass)
         if self._query_context.custom_cache_timeout is not None:
             return self._query_context.custom_cache_timeout
@@ -598,6 +736,21 @@ class QueryContextProcessor:
 
         # Step 5: Global fallback.
         return current_app.config["CACHE_DEFAULT_TIMEOUT"]
+
+    def _apply_async_min_cache_ttl(self, timeout: int) -> int:
+        """Floor an async execution's result-cache TTL (no-op otherwise).
+
+        Only applies when this query context runs on the async path; a longer
+        timeout is kept as-is, and ``0`` (flask-caching "cache forever") is already
+        above any floor so it is left untouched. Synchronous requests are never
+        floored, even when GLOBAL_ASYNC_QUERIES is enabled.
+        """
+        if not self._query_context.is_async_execution:
+            return timeout
+        min_ttl: int = current_app.config.get("GLOBAL_ASYNC_QUERIES_MIN_CACHE_TTL", 0)
+        if 0 < timeout < min_ttl:
+            return min_ttl
+        return timeout
 
     @staticmethod
     def _is_native_filter_options_query(form_data: dict[str, Any]) -> bool:

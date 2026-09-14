@@ -1750,6 +1750,10 @@ class TestRolePermission(SupersetTestCase):
             # user/tenant data) as content-addressed scripts; must load for
             # anonymous principals (login page, embedded dashboards).
             ["Superset", "language_pack_script"],
+            # Language pack endpoint serves JS bundle translations, no auth
+            # needed; embedded dashboards fetch this without a guest-token
+            # header, so it must be reachable unauthenticated.
+            ["Superset", "language_pack"],
         ]
         unsecured_views = []
         for view_class in appbuilder.baseviews:

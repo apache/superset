@@ -51,7 +51,7 @@ class SavedQuery(Base):
 
 def upgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind, future=True)
+    session = db.Session(bind=bind)
 
     for model in (Query, SavedQuery):
         for record in session.query(model).filter(model.schema == "null"):

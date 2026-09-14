@@ -43,7 +43,7 @@ import {
   DndFilterSelectProps,
 } from 'src/explore/components/controls/DndColumnSelectControl/DndFilterSelect';
 import { PLACEHOLDER_DATASOURCE } from 'src/dashboard/constants';
-import { ExpressionTypes } from '../FilterControl/types';
+import { Clauses, ExpressionTypes } from '../FilterControl/types';
 import { DndItemType } from '../../DndItemType';
 import { Datasource } from '../../../types';
 import {
@@ -135,6 +135,35 @@ test('renders with value', async () => {
     store,
   });
   expect(await screen.findByText('COUNT(*)')).toBeInTheDocument();
+});
+
+test('renders the pill using the column verbose_name when one is set', async () => {
+  const value = new AdhocFilter({
+    expressionType: ExpressionTypes.Simple,
+    subject: 'num',
+    operator: '>',
+    comparator: '500',
+    clause: Clauses.Where,
+  });
+  render(
+    setup({
+      value,
+      columns: [
+        {
+          id: 1,
+          type: 'BIGINT',
+          type_generic: GenericDataType.Numeric,
+          column_name: 'num',
+          verbose_name: 'total_count',
+        },
+      ],
+    }),
+    {
+      useDndKit: true,
+      store,
+    },
+  );
+  expect(await screen.findByText('total_count > 500')).toBeInTheDocument();
 });
 
 test('renders options with saved metric', async () => {

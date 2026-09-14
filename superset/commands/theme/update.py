@@ -18,8 +18,10 @@ import logging
 from functools import partial
 from typing import Any, Optional
 
+from superset import security_manager
 from superset.commands.base import UpdateMixin
 from superset.commands.theme.exceptions import (
+    SystemThemeInUseError,
     SystemThemeProtectedError,
     ThemeNotFoundError,
 )
@@ -52,3 +54,11 @@ class UpdateThemeCommand(UpdateMixin):
         # Check if it's a system theme
         if self._model.is_system:
             raise SystemThemeProtectedError()
+
+        # The active system-default/dark theme slot may be edited by admins
+        # only; a non-admin editing it would change the theme rendered for
+        # every user, including the login page and other admins.
+        if (
+            self._model.is_system_default or self._model.is_system_dark
+        ) and not security_manager.is_admin():
+            raise SystemThemeInUseError()
