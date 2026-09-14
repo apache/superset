@@ -19,6 +19,7 @@ from datetime import datetime
 from typing import Any, Optional
 
 import pandas as pd
+from pandas.api.types import is_datetime64tz_dtype
 
 from superset.utils.core import GenericDataType
 
@@ -54,6 +55,70 @@ def _quote_formula(value: Any) -> Any:
         if isinstance(value, str) and len(value) and value[0] in FORMULA_PREFIXES
         else value
     )
+
+
+def _drop_timezone(value: Any) -> Any:
+    """
+    Convert one tz-aware timestamp to a naive wall-clock value.
+
+    Excel cannot store timezone offsets. ``tz_localize(None)`` keeps the
+    calendar date and time shown in Explore; ``tz_convert(None)`` would shift
+    the instant to UTC and can move the date by a day.
+    """
+    if isinstance(value, pd.Timestamp):
+        return value.tz_localize(None) if value.tz is not None else value
+    if isinstance(value, datetime) and value.tzinfo is not None:
+        return value.replace(tzinfo=None)
+    if isinstance(value, tuple):
+        return tuple(_drop_timezone(item) for item in value)
+    return value
+
+
+def _naive_index(index: pd.Index) -> pd.Index:
+    """Return ``index`` with timezone-aware timestamps made naive."""
+    if isinstance(index, pd.RangeIndex):
+        return index
+    if isinstance(index, pd.DatetimeIndex) and index.tz is not None:
+        return index.tz_localize(None)
+    if isinstance(index, pd.MultiIndex):
+        levels = [
+            level.tz_localize(None)
+            if isinstance(level, pd.DatetimeIndex) and level.tz is not None
+            else level
+            for level in index.levels
+        ]
+        index = index.set_levels(levels)
+        return index.map(_drop_timezone)
+    if not any(
+        isinstance(label, (datetime, pd.Timestamp))
+        and getattr(label, "tzinfo", None) is not None
+        for label in index
+    ):
+        return index
+    return index.map(_drop_timezone)
+
+
+def strip_timezones_for_excel(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Make timestamps timezone-naive so ``DataFrame.to_excel`` can write them.
+
+    Applied to values, column labels, and the row index (pivot exports place
+    temporal group-bys on the index). The frame is copied so callers can reuse
+    the original.
+    """
+    df = df.copy()
+    df.index = _naive_index(df.index)
+    if isinstance(df.columns, pd.MultiIndex) or any(
+        isinstance(label, (datetime, pd.Timestamp)) for label in df.columns
+    ):
+        df.columns = _naive_index(df.columns)
+    for position in range(len(df.columns)):
+        series = df.iloc[:, position]
+        if is_datetime64tz_dtype(series.dtype):
+            df.isetitem(position, series.dt.tz_localize(None))
+        elif pd.api.types.is_object_dtype(series.dtype):
+            df.isetitem(position, series.map(_drop_timezone))
+    return df
 
 
 def quote_formulas(df: pd.DataFrame) -> pd.DataFrame:
@@ -105,7 +170,7 @@ def df_to_excel(
     output = io.BytesIO()
 
     # make sure formulas are quoted, to prevent malicious injections
-    df = quote_formulas(df)
+    df = quote_formulas(strip_timezones_for_excel(df))
 
     # pylint: disable=abstract-class-instantiated
     with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
@@ -160,11 +225,15 @@ def apply_column_types(
                 )
             except ValueError:
                 series = series.astype(str)
-        elif isinstance(series.dtype, pd.DatetimeTZDtype):
-            # timezones are not supported
-            series = series.astype(str)
+        elif is_datetime64tz_dtype(series.dtype):
+            # Excel has no timezone type. Keep the wall-clock components so
+            # the cell stays a date/time instead of a formatted string.
+            series = series.dt.tz_localize(None)
         else:
-            continue
+            converted = series.map(_drop_timezone)
+            if converted.equals(series):
+                continue
+            series = converted
         # ``isetitem`` replaces the column at that position, which is both
         # unambiguous under duplicate labels and free of the in-place dtype
         # casting that ``iloc`` assignment attempts.
