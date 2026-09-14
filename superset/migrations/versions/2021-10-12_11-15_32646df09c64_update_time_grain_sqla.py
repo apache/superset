@@ -45,7 +45,7 @@ class Slice(Base):
 
 def migrate(mapping: dict[str, str]) -> None:
     bind = op.get_bind()
-    session = db.Session(bind=bind, future=True)
+    session = db.Session(bind=bind)
 
     for slc in session.query(Slice).all():
         try:

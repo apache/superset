@@ -22,6 +22,7 @@ import {
   DataRecord,
   getNumberFormatter,
   getTimeFormatter,
+  TimeGranularity,
 } from '@superset-ui/core';
 import { supersetTheme as theme } from '@apache-superset/core/theme';
 import { GenericDataType } from '@apache-superset/core/common';
@@ -40,6 +41,8 @@ import {
   getLegendProps,
   getOverMaxHiddenFormatter,
   getMinAndMaxFromBounds,
+  capTickMarks,
+  getTemporalTickValues,
   sanitizeHtml,
   sortAndFilterSeries,
   sortRows,
@@ -1703,6 +1706,148 @@ test('getAxisType does not coerce Numeric x-axis to Time regardless of values', 
   expect(getAxisType(false, false, GenericDataType.String)).toEqual(
     AxisType.Category,
   );
+});
+
+describe('getTemporalTickValues', () => {
+  const xAxisLabel = '__timestamp';
+
+  test('returns undefined for a non-time axis', () => {
+    const data: DataRecord[] = [{ [xAxisLabel]: 1712361600000 }];
+    expect(
+      getTemporalTickValues(
+        data,
+        xAxisLabel,
+        AxisType.Category,
+        TimeGranularity.WEEK,
+      ),
+    ).toBeUndefined();
+  });
+
+  test('returns undefined when there is no time grain', () => {
+    const data: DataRecord[] = [{ [xAxisLabel]: 1712361600000 }];
+    expect(
+      getTemporalTickValues(data, xAxisLabel, AxisType.Time, undefined),
+    ).toBeUndefined();
+  });
+
+  test('returns undefined for a non-weekly time grain', () => {
+    const data: DataRecord[] = [{ [xAxisLabel]: 1712361600000 }];
+    expect(
+      getTemporalTickValues(
+        data,
+        xAxisLabel,
+        AxisType.Time,
+        TimeGranularity.MONTH,
+      ),
+    ).toBeUndefined();
+  });
+
+  test('returns sorted, de-duplicated bucket timestamps for numbers and Dates', () => {
+    const t0 = Date.UTC(2026, 3, 6);
+    const t1 = Date.UTC(2026, 3, 13);
+    const data: DataRecord[] = [
+      { [xAxisLabel]: t1 },
+      { [xAxisLabel]: new Date(t0) },
+      { [xAxisLabel]: t0 }, // duplicate of the Date row above
+    ];
+    expect(
+      getTemporalTickValues(
+        data,
+        xAxisLabel,
+        AxisType.Time,
+        TimeGranularity.WEEK,
+      ),
+    ).toEqual([t0, t1]);
+  });
+
+  test('parses a zoned ISO string as the instant it names', () => {
+    const data: DataRecord[] = [{ [xAxisLabel]: '2026-04-06T00:00:00.000Z' }];
+    expect(
+      getTemporalTickValues(
+        data,
+        xAxisLabel,
+        AxisType.Time,
+        TimeGranularity.WEEK,
+      ),
+    ).toEqual([Date.UTC(2026, 3, 6)]);
+  });
+
+  test('parses a zone-less datetime string as local time, matching ECharts', () => {
+    const data: DataRecord[] = [{ [xAxisLabel]: '2026-04-06T00:00:00' }];
+    expect(
+      getTemporalTickValues(
+        data,
+        xAxisLabel,
+        AxisType.Time,
+        TimeGranularity.WEEK,
+      ),
+    ).toEqual([new Date(2026, 3, 6, 0, 0, 0).getTime()]);
+  });
+
+  test('parses a bare date string as local midnight, matching ECharts rather than native Date', () => {
+    // `new Date('2026-04-06')` is UTC, but ECharts parses it as local time.
+    // jest.config.js fixes the test TZ to America/New_York, so they disagree.
+    const data: DataRecord[] = [{ [xAxisLabel]: '2026-04-06' }];
+    const localMidnight = new Date(2026, 3, 6).getTime();
+    expect(localMidnight).not.toEqual(new Date('2026-04-06').getTime());
+    expect(
+      getTemporalTickValues(
+        data,
+        xAxisLabel,
+        AxisType.Time,
+        TimeGranularity.WEEK,
+      ),
+    ).toEqual([localMidnight]);
+  });
+
+  test('drops unparseable or nullish values and returns undefined when none remain', () => {
+    const data: DataRecord[] = [
+      { [xAxisLabel]: 'not-a-date' },
+      { [xAxisLabel]: null },
+    ];
+    expect(
+      getTemporalTickValues(
+        data,
+        xAxisLabel,
+        AxisType.Time,
+        TimeGranularity.WEEK,
+      ),
+    ).toBeUndefined();
+  });
+});
+
+describe('capTickMarks', () => {
+  test('returns values unchanged when within the cap', () => {
+    const values = [1, 2, 3];
+    expect(capTickMarks(values, 60)).toEqual(values);
+  });
+
+  test('downsamples to every step-th value when the last value already lands on the step', () => {
+    const values = Array.from({ length: 261 }, (_, i) => i);
+    // step = ceil(261 / 60) = 5, and 260 is already a multiple of 5, so
+    // nothing needs to be appended for the last bucket.
+    expect(capTickMarks(values, 60)).toEqual(
+      Array.from({ length: 53 }, (_, i) => i * 5),
+    );
+  });
+
+  test('appends the last value when it does not land on the step', () => {
+    const values = Array.from({ length: 262 }, (_, i) => i);
+    // step = ceil(262 / 60) = 5, stepping lands on 0..260, and the true last
+    // value (261) is appended on top since it isn't a multiple of 5.
+    expect(capTickMarks(values, 60)).toEqual([
+      ...Array.from({ length: 53 }, (_, i) => i * 5),
+      261,
+    ]);
+  });
+
+  test('maxTicks is not a hard bound once the last value has to be appended', () => {
+    const values = Array.from({ length: 300 }, (_, i) => i);
+    // step = ceil(300 / 60) = 5, which already lands on 60 stepped values
+    // (0..295) plus the appended last value (299), totaling 61 — one over
+    // maxTicks. Keeping the true last bucket wins over a hard cap.
+    expect(capTickMarks(values, 60)).toHaveLength(61);
+  });
 });
 
 test('getMinAndMaxFromBounds returns empty object when not truncating', () => {

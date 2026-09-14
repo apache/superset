@@ -32,6 +32,7 @@ import logging
 from collections.abc import Iterator
 from datetime import datetime, timedelta
 from typing import Any, cast
+from uuid import UUID
 
 import sqlalchemy as sa
 from flask import current_app
@@ -45,6 +46,7 @@ from superset.commands.deletion_retention.purge_cascade import (
     entity_uuid,
     suppress_purge_association_versions,
 )
+from superset.commands.deletion_retention.purge_policy import BlockerReason
 from superset.commands.deletion_retention.window import resolve_retention_window
 from superset.extensions import celery_app, feature_flag_manager, stats_logger_manager
 from superset.models.helpers import (
@@ -205,6 +207,19 @@ def _purge_model(
     return purged, would, failures, blocked
 
 
+def _finalize_blocked(record_id: UUID | None, blocker: BlockerReason) -> None:
+    """Finalize a blocked retention outcome and count suppression metrics."""
+    disposition: audit.RetentionBlockedDisposition = audit.finalize_retention_blocked(
+        record_id, blocker.code
+    )
+    if disposition == "suppressed":
+        stats_logger_manager.instance.incr(f"{_METRIC_PREFIX}.blocked_audit_suppressed")
+    elif disposition == "fallback":
+        stats_logger_manager.instance.incr(
+            f"{_METRIC_PREFIX}.blocked_audit_dedupe_fallback"
+        )
+
+
 def _purge_one(
     model: type[SoftDeleteMixin], entity_id: int, cutoff: datetime
 ) -> CascadeResult | None:
@@ -279,18 +294,8 @@ def _purge_one(
             affected_referrers=result.dangling_chart_uuids,
             removed_dashboard_slices=result.removed_dashboard_slices,
         )
-    elif result.blocked_reason is not None:
-        disposition: audit.RetentionBlockedDisposition = (
-            audit.finalize_retention_blocked(record_id)
-        )
-        if disposition == "suppressed":
-            stats_logger_manager.instance.incr(
-                f"{_METRIC_PREFIX}.blocked_audit_suppressed"
-            )
-        elif disposition == "fallback":
-            stats_logger_manager.instance.incr(
-                f"{_METRIC_PREFIX}.blocked_audit_dedupe_fallback"
-            )
+    elif result.blocker is not None:
+        _finalize_blocked(record_id, result.blocker)
     else:
         audit.fail(record_id)
     return result

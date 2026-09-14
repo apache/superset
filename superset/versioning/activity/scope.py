@@ -35,13 +35,13 @@ from __future__ import annotations
 from superset.versioning.activity.kinds import EntityWindows, Window
 from superset.versioning.activity.queries import (
     batch_datasets_used_by_charts,
-    charts_attached_to_dashboard,
     datasets_used_by_chart,
 )
 from superset.versioning.activity.windows import (
     intersect_windows,
     merge_entity_windows,
 )
+from superset.versioning.membership import charts_attached_to_dashboard
 
 
 def resolve_scope(

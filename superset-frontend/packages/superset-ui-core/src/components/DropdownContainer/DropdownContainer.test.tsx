@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import type { CSSProperties } from 'react';
 import { screen, render } from '@superset-ui/core/spec';
 import { Button, DropdownContainer, Icons } from '..';
 
@@ -177,4 +178,74 @@ test('component renders and functions without throwing errors', () => {
 
   // Basic functionality test
   expect(screen.getByText('Element 1')).toBeInTheDocument();
+});
+
+const ITEM_WIDTH = 100;
+/* Width the flex layout leaves the row once the trigger button is laid out. */
+const ROW_WIDTH = 250;
+/* Item count of the transient row that holds every item while remeasuring. */
+const ALL_ITEMS = 4;
+
+/**
+ * Lays items out at ITEM_WIDTH each. In the steady state the row is reported at
+ * the flex-bounded ROW_WIDTH, so a three-item row overflows and the trigger
+ * shows. In the all-items frame the row is reported at its own content width
+ * instead, which is the frame Edge can paint before the flex layout bounds the
+ * row and its children spill out. `onRowMeasure` receives the row during that
+ * frame so a test can assert how it is styled.
+ */
+const mockBoundingRects = (onRowMeasure: (row: HTMLElement) => void) => {
+  const getBoundingClientRect: (this: HTMLElement) => DOMRect = function () {
+    let right: number;
+    if (this.dataset.test === 'container') {
+      const allItemsFrame = this.children.length === ALL_ITEMS;
+      right = allItemsFrame ? this.children.length * ITEM_WIDTH : ROW_WIDTH;
+      if (allItemsFrame) {
+        onRowMeasure(this);
+      }
+    } else {
+      const itemNumber = Number(this.textContent?.match(/Element (\d+)/)?.[1]);
+      right = itemNumber ? itemNumber * ITEM_WIDTH : ROW_WIDTH;
+    }
+    return {
+      bottom: 0,
+      height: 0,
+      left: right - ITEM_WIDTH,
+      right,
+      top: 0,
+      width: ITEM_WIDTH,
+      x: right - ITEM_WIDTH,
+      y: 0,
+      toJSON: () => ({}),
+    };
+  };
+  jest
+    .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
+    .mockImplementation(getBoundingClientRect);
+};
+
+/* Grows an overflowing row by one item, which mounts every item for a frame
+ * while the new overflow index is calculated. */
+const remeasureWithExtraItem = (style?: CSSProperties) => {
+  const { rerender } = render(<DropdownContainer items={generateItems(3)} />);
+  rerender(<DropdownContainer items={generateItems(3)} />);
+  expect(screen.getByTestId('dropdown-container-btn')).toBeInTheDocument();
+  rerender(
+    <DropdownContainer items={generateItems(ALL_ITEMS)} style={style} />,
+  );
+};
+
+test('clips the item row while remeasuring, then restores it', () => {
+  const measured: string[] = [];
+  mockBoundingRects(row => {
+    measured.push(row.style.overflow);
+  });
+
+  remeasureWithExtraItem({ overflow: 'visible' });
+
+  /* While the row holds every item its children can spill past its own box, so
+   * clipping wins over the consumer's `overflow: visible` for that frame. Once
+   * the new overflow index is applied the consumer's value comes back. */
+  expect(measured[0]).toBe('hidden');
+  expect(measured.at(-1)).toBe('visible');
 });

@@ -72,6 +72,11 @@ class EntityVersionInfo:
     version: int | None = None
     transaction_id: int | None = None
     version_uuid: str | None = None
+    #: Resolved uuid of the entity itself, carried so callers that need a
+    #: concurrency token for an entity with no version rows yet don't have to
+    #: re-run the ``SELECT uuid`` this helper already issued. Not part of the
+    #: API response.
+    entity_uuid: UUID | None = None
 
 
 def _capture_enabled() -> bool:
@@ -123,6 +128,7 @@ def current_entity_version_info(
         version=version,
         transaction_id=transaction_id,
         version_uuid=str(version_uuid) if version_uuid else None,
+        entity_uuid=entity_uuid,
     )
 
 
@@ -142,6 +148,77 @@ def current_entity_etag_uuid(
         model_cls, entity_id, entity_uuid
     )
     return str(version_uuid) if version_uuid else None
+
+
+# Sentinel Continuum transaction id for an entity that has no version rows
+# yet. Continuum sequences start at 1, so it can never collide with a real
+# one, and the derived uuid stops matching the moment the first version row
+# lands — which is exactly the transition a concurrency guard must catch.
+_UNVERSIONED_TRANSACTION_ID = 0
+
+
+def unversioned_entity_token(entity_uuid: UUID) -> str:
+    """Concurrency token for an entity Continuum hasn't versioned yet."""
+    return str(VersionDAO.derive_version_uuid(entity_uuid, _UNVERSIONED_TRANSACTION_ID))
+
+
+def entity_concurrency_token(
+    model_cls: type[Model],
+    entity_id: int | None,
+    entity_uuid: UUID | None,
+) -> str | None:
+    """Resolve the optimistic-concurrency validator for *entity*.
+
+    Differs from :func:`current_entity_etag_uuid` in what it does for an
+    entity with no version rows: baseline rows are written lazily, on the
+    first update after the versioning migration, so a never-since-saved
+    entity has none. Reporting ``None`` there would leave the *first*
+    concurrent save on every such entity unguarded — the exact case a
+    two-tab race hits on a pristine entity. Those entities get a
+    deterministic unversioned token instead.
+
+    ``None`` still means "no validator exists": capture is off, or the
+    entity is missing.
+    """
+    if entity_id is None or entity_uuid is None or not _capture_enabled():
+        return None
+    return current_entity_etag_uuid(
+        model_cls, entity_id, entity_uuid
+    ) or unversioned_entity_token(entity_uuid)
+
+
+def lock_entity_for_update(model_cls: type[Model], entity_id: int | None) -> None:
+    """Row-lock *entity* so a conditional write's check and its update are atomic.
+
+    ``If-Match`` is verified against a read taken before the update command
+    runs. Without a lock two overlapping requests can both read the same live
+    version, both pass the check, and then commit one after the other,
+    reintroducing the lost update the check exists to prevent. The lock is
+    held until the command commits, because both run in the same scoped
+    session.
+
+    Renders no ``FOR UPDATE`` on SQLite, which serialises writers anyway.
+    """
+    try:
+        # The PUT route declares ``/<pk>`` (a string segment), so a non-numeric
+        # id must not raise a SQL cast error ahead of the command's 404.
+        entity_id = int(entity_id)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return
+    db.session.execute(
+        sa.select(model_cls.id).where(model_cls.id == entity_id).with_for_update()
+    )
+
+
+def concurrency_token_from(info: EntityVersionInfo) -> str | None:
+    """Concurrency token for an already-resolved :class:`EntityVersionInfo`.
+
+    Lets a write endpoint reuse the pre-update version lookup it already
+    made rather than issuing a second one.
+    """
+    if info.entity_uuid is None:
+        return None
+    return info.version_uuid or unversioned_entity_token(info.entity_uuid)
 
 
 # Maps the versioned model class name to the keyword argument

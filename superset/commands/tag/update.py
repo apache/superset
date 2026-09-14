@@ -22,11 +22,8 @@ from flask_appbuilder.models.sqla import Model
 from superset import db
 from superset.commands.base import BaseCommand, UpdateMixin
 from superset.commands.tag.exceptions import TagInvalidError, TagNotFoundError
-from superset.commands.tag.utils import (
-    current_user_can_modify_object,
-    to_object_model,
-    to_object_type,
-)
+from superset.commands.tag.utils import to_object_model, to_object_type
+from superset.commands.utils import current_user_can_modify_object
 from superset.daos.tag import TagDAO
 from superset.tags.models import Tag
 from superset.utils.decorators import transaction

@@ -236,6 +236,7 @@ async def _collect_external_metrics(
         title="List metrics",
         readOnlyHint=True,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 @requires_data_model_metadata_access
