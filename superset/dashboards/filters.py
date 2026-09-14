@@ -220,12 +220,14 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
                 and_(
                     Dashboard.published.is_(True),
                     ~dashboard_has_viewers,
-                    get_dataset_access_filters(
-                        Slice,
-                        security_manager.can_access_all_datasources(),
-                        layer_grant_clause,
+                    or_(
+                        ~Dashboard.slices.any(),
+                        get_dataset_access_filters(
+                          Slice,
+                          security_manager.can_access_all_datasources(),
+                          layer_grant_clause,
                     ),
-                )
+                ),
             )
         )
         filters.append(Dashboard.id.in_(no_viewer_query))
