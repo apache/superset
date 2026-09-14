@@ -283,13 +283,28 @@ unknown impact as zero. Chart and dashboard purge endpoints are unchanged.
   resolved streaks, `failed`) older than
   `PURGE_AUDIT_OPERATIONAL_RETENTION_DAYS` (default 90). A streak is ended
   only by proof the object is gone (`confirmed`/`target_absent`); a `failed`
-  attempt does not reset the "blocked since" record. Completed-destruction
+  attempt does not reset the "blocked since" record. Force-purge
+  (`force`-triggered) `blocked` records are exempt from both the duplicate
+  collapse and the operational age-out and are retained permanently — in
+  resolved streaks too — so repeated `force-purge` attempts against a
+  persistently blocked entity still add a record each, regardless of this
+  task. Completed-destruction
   evidence (`confirmed`, `target_absent`) is **never touched** unless the
   separate `PURGE_AUDIT_EVIDENCE_RETENTION_DAYS` opt-in is explicitly set,
   which is the operator's assertion that an approved compliance policy
   permits expiring destruction evidence. Automatic deletion is disabled by
   default; set `PURGE_AUDIT_PRUNING_ENABLED = True` after reviewing these
-  policies to enable it. Deployments that replace the default
+  policies to enable it — and only as the **second phase of a two-phase
+  rollout**. First deploy the migrations and this release's coordinated
+  audit-writer code to **every** process that writes audit rows — web/API
+  servers, the CLI (`superset deletion-retention …`), and Celery workers —
+  and let in-flight writes from older processes drain; only then enable the
+  flag. A writer on older code stamps and commits its audit row without the
+  coordination lock, so during a mixed-version rollout it can publish an
+  earlier `pending` row after a pruning batch's locked re-check and delete,
+  later turning the deleted block into the required post-boundary survivor.
+  Conversely, disable pruning and let running batches finish before rolling
+  any audit writer back to the older protocol. Deployments that replace the default
   `CELERY_CONFIG` must carry the new beat entry forward (the task shares
   `superset.tasks.deletion_retention` with the purge task, so no new worker
   import is needed). When audit pruning is enabled, a missing schedule or
@@ -1021,7 +1036,7 @@ With the flag on, delete confirmations across the chart/dashboard/dataset list p
 
 This also resolves the limitation noted under *Soft delete and restore for datasets*: a database blocked by soft-deleted datasets can now be freed by purging those datasets (per-entity endpoint, retention task, or `force-purge` CLI) instead of hard-deleting `tables` rows out-of-band.
 
-Automatic pruning of the `purge_audit_log` table is available but **off by default**: set `PURGE_AUDIT_PRUNING_ENABLED = True` to enable the `deletion_retention.prune_purge_audit` Celery beat task (daily, 03:30) so the table no longer grows unbounded and does not need manual pruning. Left at its default (`PURGE_AUDIT_PRUNING_ENABLED = False`) the table is never pruned and grows indefinitely — enabling it is an explicit operator choice. The policy is written to preserve the audit's meaning rather than trade it away: within an entity's current blockage streak the earliest — "blocked since" — record always survives (only redundant duplicate `blocked` records are collapsed), and completed-destruction evidence (`confirmed`, `target_absent`) is **never** removed unless the separate `PURGE_AUDIT_EVIDENCE_RETENTION_DAYS` opt-in is explicitly set. What ages out is operational noise — `blocked` records from already-resolved streaks and `failed` records — once older than `PURGE_AUDIT_OPERATIONAL_RETENTION_DAYS` (default 90). See the release-note entry above for the beat-schedule and `CELERY_CONFIG` details.
+Automatic pruning of the `purge_audit_log` table is available but **off by default**: set `PURGE_AUDIT_PRUNING_ENABLED = True` to enable the `deletion_retention.prune_purge_audit` Celery beat task (daily, 03:30), which collapses duplicate `blocked` records and ages out operational noise. That bounds the growth that comes from scheduled purges being repeatedly blocked or failing; it is **not** a bound on total table size. Force-purge (`force`-triggered) `blocked` records are retained permanently — exempt from both the duplicate collapse and the operational age-out, including in resolved streaks — so repeated `force-purge` attempts against a persistently blocked entity still add a record each; completed-destruction evidence is retained by default; and the first `blocked` record after each change of block reason is preserved. Left at its default (`PURGE_AUDIT_PRUNING_ENABLED = False`) the table is never pruned at all — enabling it is an explicit operator choice, and a second-phase one (see the rollout requirement in the release-note entry above). The policy is written to preserve the audit's meaning rather than trade it away: within an entity's current blockage streak the earliest — "blocked since" — record always survives (only redundant duplicate `blocked` records are collapsed), and completed-destruction evidence (`confirmed`, `target_absent`) is **never** removed unless the separate `PURGE_AUDIT_EVIDENCE_RETENTION_DAYS` opt-in is explicitly set. What ages out is operational noise — scheduled `blocked` records from already-resolved streaks and `failed` records — once older than `PURGE_AUDIT_OPERATIONAL_RETENTION_DAYS` (default 90). See the release-note entry above for the beat-schedule and `CELERY_CONFIG` details.
 
 
 ### Webhook alerts/reports block private/internal hosts by default
