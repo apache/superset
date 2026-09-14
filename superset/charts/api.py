@@ -103,7 +103,7 @@ from superset.commands.importers.exceptions import (
     NoValidFilesFoundError,
 )
 from superset.commands.importers.v1.utils import get_contents_from_bundle
-from superset.commands.purge import PurgeArchivedCommand, SoftDeleteBinding
+from superset.commands.purge import SoftDeleteBinding
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.chart import ChartDAO
 from superset.exceptions import (
@@ -216,6 +216,10 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         ChartRestoreFailedError,
     )
     soft_delete_logger: ClassVar[logging.Logger] = logger
+    purge_binding: ClassVar[SoftDeleteBinding] = _CHART_PURGE_BINDING
+    purge_failed_errors: ClassVar[tuple[type[Exception], ...]] = (
+        ChartDeleteFailedError,
+    )
 
     resource_name = "chart"
     allow_browser_login = True
@@ -1106,21 +1110,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        try:
-            PurgeArchivedCommand(uuid, _CHART_PURGE_BINDING).run()
-            return self.response(200, message="OK")
-        except ChartNotFoundError:
-            return self.response_404()
-        except ChartForbiddenError:
-            return self.response_403()
-        except ChartDeleteFailedError as ex:
-            logger.error(
-                "Error purging model %s: %s",
-                self.__class__.__name__,
-                str(ex),
-                exc_info=True,
-            )
-            return self.response_422(message=str(ex))
+        return self._purge_soft_deleted(uuid)
 
     @expose("/<pk>/cache_screenshot/", methods=("GET",))
     @protect()

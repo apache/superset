@@ -37,6 +37,8 @@ ROUTES: tuple[tuple[str, str], ...] = (
     ("chart", "restore"),
     ("dashboard", "restore"),
     ("dataset", "restore"),
+    ("chart", "purge"),
+    ("dashboard", "purge"),
 )
 
 

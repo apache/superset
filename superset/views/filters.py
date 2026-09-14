@@ -36,6 +36,7 @@ from superset.models.helpers import (
 from superset.utils.core import get_user_id
 
 if TYPE_CHECKING:
+    from superset.commands.purge import SoftDeleteBinding
     from superset.commands.restore import BaseRestoreCommand
     from superset.views.base_api import BaseSupersetModelRestApi
 
@@ -384,6 +385,8 @@ class SoftDeleteApiMixin:
     restore_failed_errors: ClassVar[tuple[type[Exception], ...]]
     restore_conflict_errors: ClassVar[tuple[type[Exception], ...]] = ()
     soft_delete_logger: ClassVar[logging.Logger]
+    purge_binding: ClassVar[SoftDeleteBinding]
+    purge_failed_errors: ClassVar[tuple[type[Exception], ...]]
 
     def _restore_soft_deleted(self, uuid: str) -> Response:
         """Run the bound restore command with the concrete API's error mapping."""
@@ -400,6 +403,28 @@ class SoftDeleteApiMixin:
         except self.restore_failed_errors as ex:
             self.soft_delete_logger.error(
                 "Error restoring model %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
+            )
+            return api.response_422(message=str(ex))
+
+    def _purge_soft_deleted(self, uuid: str) -> Response:
+        """Run the body-free chart/dashboard purge with its bound error mapping."""
+        # Avoid an import cycle: purge loads models whose APIs import this mixin.
+        from superset.commands.purge import PurgeArchivedCommand
+
+        api: BaseSupersetModelRestApi = cast("BaseSupersetModelRestApi", self)
+        try:
+            PurgeArchivedCommand(uuid, self.purge_binding).run()
+            return api.response(200, message="OK")
+        except self.soft_delete_not_found_errors:
+            return api.response_404()
+        except self.soft_delete_forbidden_errors:
+            return api.response_403()
+        except self.purge_failed_errors as ex:
+            self.soft_delete_logger.error(
+                "Error purging model %s: %s",
                 self.__class__.__name__,
                 str(ex),
                 exc_info=True,
