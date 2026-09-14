@@ -202,6 +202,28 @@ def _verify_child_history_complete(entity: Any, target_tx: int) -> None:
                 child_rows, target_tx, witnesses.get(child_id, frozenset())
             ):
                 missing.append(f"{label} id={child_id}")
+                # The refusal is fail-closed by design; the chain dump is
+                # what lets an operator (or CI) see WHY this child's state
+                # at the target is unprovable — which interval is missing
+                # and which closures had no witness.
+                logger.warning(
+                    "versioning: restore refused for %s id=%s at tx=%s — "
+                    "%s id=%s surviving chain=%s witnessed_closures=%s",
+                    type(entity).__name__,
+                    entity.id,
+                    target_tx,
+                    label,
+                    child_id,
+                    [
+                        (
+                            row.transaction_id,
+                            row.end_transaction_id,
+                            row.operation_type,
+                        )
+                        for row in child_rows
+                    ],
+                    sorted(witnesses.get(child_id, frozenset())),
+                )
 
     if missing:
         raise PrunedChildHistoryError(
