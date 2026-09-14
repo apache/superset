@@ -22,17 +22,22 @@ from __future__ import annotations
 import contextlib
 import importlib
 from collections.abc import Generator
-from types import ModuleType
+from types import MethodType, ModuleType
 from typing import Any
 from unittest.mock import call, MagicMock, Mock, patch
 
+import pyarrow as pa
 import pytest
 from fastmcp import Client, FastMCP
 from fastmcp.exceptions import ToolError
+from superset_core.semantic_layers.types import Dimension, Grains
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 from superset.mcp_service.app import mcp
+from superset.mcp_service.constants import DEFAULT_TOKEN_LIMIT
+from superset.mcp_service.utils.token_utils import estimate_response_tokens
+from superset.semantic_layers.models import SemanticView
 from superset.utils import json
 
 list_metrics_module: ModuleType = importlib.import_module(
@@ -103,6 +108,114 @@ def _make_view(view_id: int = 5) -> MagicMock:
     view.columns = [_make_column("listing__country_name"), _make_column("channel")]
     view.get_compatible_dimensions = MagicMock(return_value=["listing__country_name"])
     return view
+
+
+@pytest.fixture
+def large_metric_catalog() -> Generator[MagicMock, None, None]:
+    """Expose a large catalog through the real dimension-name projection."""
+    view: MagicMock = _make_view(5)
+    view.metrics = [_make_metric(f"metric_{i}") for i in range(60)]
+    view.columns = [_make_column(f"dimension_{i}") for i in range(40)]
+    dimensions: set[Dimension] = {
+        Dimension(
+            id=f"dimension_{i}",
+            name=f"dimension_{i}",
+            type=pa.timestamp("us"),
+            definition=f"dimension_{i}",
+            grain=grain,
+        )
+        for i in range(40)
+        for grain in (
+            Grains.HOUR,
+            Grains.DAY,
+            Grains.WEEK,
+            Grains.MONTH,
+            Grains.QUARTER,
+            Grains.YEAR,
+        )
+    }
+    view.implementation.get_dimensions.return_value = dimensions
+    view.implementation.get_metrics.return_value = []
+    view.implementation.get_compatible_dimensions.return_value = dimensions
+    view.get_compatible_dimensions.side_effect = MethodType(
+        SemanticView.get_compatible_dimensions, view
+    )
+    dataset: MagicMock = _make_dataset(1)
+    dataset.metrics = [_make_metric(f"builtin_{i}") for i in range(20)]
+    dataset.columns = [_make_column(f"column_{i}") for i in range(30)]
+    with _patched_dataset_search([dataset]) as (_, view_dao, _):
+        view_dao.find_accessible.return_value = [view]
+        view_dao.find_by_id.return_value = view
+        yield view
+
+
+@pytest.mark.asyncio
+async def test_list_metrics_default_page_token_bound(
+    mcp_server: FastMCP,
+    large_metric_catalog: MagicMock,
+) -> None:
+    """Default discovery leaves token headroom without embedded dimensions."""
+    async with Client(mcp_server) as client:
+        data: dict[str, Any] = json.loads(
+            (await client.call_tool("list_metrics", {})).content[0].text
+        )
+    assert data["success"] is True
+    assert data["total_count"] == 80
+    assert estimate_response_tokens(data) <= DEFAULT_TOKEN_LIMIT // 2
+    assert data["page_size"] == 25
+    assert len(data["metrics"]) == 25
+    assert all(metric["compatible_dimensions"] == [] for metric in data["metrics"])
+    large_metric_catalog.get_compatible_dimensions.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_list_metrics_embedded_page_token_bound(
+    mcp_server: FastMCP,
+    large_metric_catalog: MagicMock,
+) -> None:
+    """The largest embedded page fits after grain variants are collapsed."""
+    async with Client(mcp_server) as client:
+        data: dict[str, Any] = json.loads(
+            (
+                await client.call_tool(
+                    "list_metrics",
+                    {
+                        "request": {
+                            "view_id": 5,
+                            "include_compatible_dimensions": True,
+                            "page_size": 8,
+                        }
+                    },
+                )
+            )
+            .content[0]
+            .text
+        )
+    assert data["success"] is True
+    assert len(data["metrics"]) == data["page_size"] == 8
+    assert data["total_count"] == 60
+    for metric in data["metrics"]:
+        assert len(metric["compatible_dimensions"]) == 40
+        assert len({dim["name"] for dim in metric["compatible_dimensions"]}) == 40
+    assert estimate_response_tokens(data) < DEFAULT_TOKEN_LIMIT
+
+
+@pytest.mark.asyncio
+async def test_list_metrics_embedded_page_over_cap_rejected(
+    mcp_server: FastMCP,
+) -> None:
+    """Oversized embedded pages fail validation with a recovery suggestion."""
+    async with Client(mcp_server) as client:
+        with pytest.raises(ToolError, match="get_compatible_dimensions"):
+            await client.call_tool(
+                "list_metrics",
+                {
+                    "request": {
+                        "include_compatible_dimensions": True,
+                        "page_size": 9,
+                    }
+                },
+            )
 
 
 def _access_denied_exc(message: str = "Access denied") -> SupersetSecurityException:
@@ -290,7 +403,13 @@ async def test_list_metrics_external_per_metric_compatible_dimensions(
         async with Client(mcp_server) as client:
             result = await client.call_tool(
                 "list_metrics",
-                {"request": {"view_id": 5, "include_compatible_dimensions": True}},
+                {
+                    "request": {
+                        "view_id": 5,
+                        "include_compatible_dimensions": True,
+                        "page_size": 8,
+                    }
+                },
             )
         data = json.loads(result.content[0].text)
 
