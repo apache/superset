@@ -37,7 +37,6 @@ import {
   Droppable,
 } from 'src/dashboard/components/dnd/DragDroppable';
 import DragHandle from 'src/dashboard/components/dnd/DragHandle';
-import { isMobileConsumptionEnabled } from 'src/hooks/useIsMobile';
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
 import HoverMenu from 'src/dashboard/components/menu/HoverMenu';
@@ -53,6 +52,8 @@ import {
   RESTORE_VIRTUALIZATION_EVENT,
 } from 'src/dashboard/constants';
 import { isCurrentUserBot } from 'src/utils/isBot';
+import { URL_PARAMS } from 'src/constants';
+import { getUrlParam } from 'src/utils/urlUtils';
 
 export type RowProps = {
   id: string;
@@ -125,27 +126,6 @@ const GridRow = styled.div<{ editMode: boolean }>`
     &.grid-row--empty {
       min-height: ${theme.sizeUnit * 25}px;
     }
-
-    ${
-      isMobileConsumptionEnabled() &&
-      css`
-        @media (max-width: ${theme.screenSMMax}px) {
-          flex-direction: column;
-
-          & > :not(.hover-menu) {
-            width: 100% !important;
-            margin-right: 0 !important;
-          }
-
-          /* Stacked children get the same vertical gutter GridContent puts
-           between rows and Column puts between its children, so spacing
-           stays uniform across the whole stacked layout */
-          & > :not(.hover-menu):not(:last-child) {
-            margin-bottom: ${theme.sizeUnit * 4}px;
-          }
-        }
-      `
-    }
   `}
 `;
 
@@ -181,7 +161,10 @@ const Row = memo((props: RowProps) => {
   } = props;
 
   const [isFocused, setIsFocused] = useState(false);
-  const [isInView, setIsInView] = useState(false);
+  // In print mode, treat all rows as in-view so charts render immediately.
+  // This bypasses the IntersectionObserver virtualization entirely.
+  const isPrintMode = getUrlParam(URL_PARAMS.print) === 1;
+  const [isInView, setIsInView] = useState(isPrintMode);
   const [hoverMenuHovered, setHoverMenuHovered] = useState(false);
   const [containerHeight, setContainerHeight] = useState<number | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -197,10 +180,16 @@ const Row = memo((props: RowProps) => {
     let observerEnabler: IntersectionObserver | undefined;
     let observerDisabler: IntersectionObserver | undefined;
 
-    if (
-      isFeatureEnabled(FeatureFlag.DashboardVirtualization) &&
-      !isCurrentUserBot()
-    ) {
+    function setupObservers() {
+      // Skip IntersectionObserver in print mode — all charts must render
+      if (
+        isPrintMode ||
+        !isFeatureEnabled(FeatureFlag.DashboardVirtualization) ||
+        isCurrentUserBot()
+      ) {
+        return;
+      }
+
       observerEnabler = new IntersectionObserver(
         ([entry]) => {
           if (entry.isIntersecting && isComponentVisibleRef.current) {
@@ -233,54 +222,52 @@ const Row = memo((props: RowProps) => {
         observerEnabler.observe(element);
         observerDisabler.observe(element);
       }
+    }
 
-      // Client-side "Download as Image/PDF" (see src/utils/downloadUtils.ts)
-      // dispatches these events so off-screen rows render before the capture
-      // and lazy loading is restored afterwards. Without this, virtualized
-      // charts are exported as loading spinners.
-      //
-      // The force event optionally carries a `rowIds` batch in its detail so
-      // large dashboards can be force-rendered a few rows at a time instead
-      // of every row at once (see FORCE_RENDER_BATCH_SIZE in
-      // downloadUtils.ts). No detail means "force every row", preserving the
-      // original single-shot behavior for any other future caller.
-      const handleForceInView = (event: Event) => {
-        const rowIds = (event as CustomEvent<{ rowIds?: string[] }>).detail
-          ?.rowIds;
-        if (rowIds && !rowIds.includes(rowComponent.id as string)) {
-          return;
-        }
-        observerEnabler?.disconnect();
-        observerDisabler?.disconnect();
-        setIsInView(true);
-      };
-      const handleRestoreVirtualization = () => {
-        const el = containerRef.current;
-        if (el) {
-          observerEnabler?.observe(el);
-          observerDisabler?.observe(el);
-        }
-      };
-      window.addEventListener(FORCE_IN_VIEW_EVENT, handleForceInView);
-      window.addEventListener(
+    function disconnectObservers() {
+      observerEnabler?.disconnect();
+      observerDisabler?.disconnect();
+      observerEnabler = undefined;
+      observerDisabler = undefined;
+    }
+
+    setupObservers();
+
+    // Force all rows into view for client-side export (Download as Image/PDF)
+    // and for server-side PDF rendering via ?print=1. When FORCE_IN_VIEW_EVENT
+    // fires without a rowIds detail (or with a detail that includes this row's
+    // id), disconnect the IntersectionObservers so virtualization can't
+    // immediately un-render the now-in-view row, then mark it in-view.
+    function handleForceInView(e: Event) {
+      const detail = (e as CustomEvent).detail as
+        | { rowIds?: string[] }
+        | undefined;
+      if (detail?.rowIds && !detail.rowIds.includes(props.id)) {
+        return;
+      }
+      disconnectObservers();
+      setIsInView(true);
+    }
+
+    // Re-enable virtualization after a forced-in-view capture is complete.
+    function handleRestoreVirtualization() {
+      disconnectObservers();
+      setupObservers();
+    }
+
+    window.addEventListener(FORCE_IN_VIEW_EVENT, handleForceInView);
+    window.addEventListener(
+      RESTORE_VIRTUALIZATION_EVENT,
+      handleRestoreVirtualization,
+    );
+
+    return () => {
+      disconnectObservers();
+      window.removeEventListener(FORCE_IN_VIEW_EVENT, handleForceInView);
+      window.removeEventListener(
         RESTORE_VIRTUALIZATION_EVENT,
         handleRestoreVirtualization,
       );
-
-      return () => {
-        observerEnabler?.disconnect();
-        observerDisabler?.disconnect();
-        window.removeEventListener(FORCE_IN_VIEW_EVENT, handleForceInView);
-        window.removeEventListener(
-          RESTORE_VIRTUALIZATION_EVENT,
-          handleRestoreVirtualization,
-        );
-      };
-    }
-
-    return () => {
-      observerEnabler?.disconnect();
-      observerDisabler?.disconnect();
     };
   }, []);
 
@@ -376,7 +363,6 @@ const Row = memo((props: RowProps) => {
             backgroundStyle.className,
           )}
           data-test={`grid-row-${backgroundStyle.className}`}
-          data-row-id={rowComponent.id}
           ref={containerRef}
           editMode={editMode}
         >
