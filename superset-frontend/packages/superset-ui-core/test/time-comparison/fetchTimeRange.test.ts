@@ -91,6 +91,9 @@ test('formatTimeRange preserves the -∞/∞ placeholders when a date format is 
 test('formatTimeRange leaves human-readable values untouched even when a date format is set', () => {
   expect(formatTimeRange('Last week', 'col', '%d-%m-%Y')).toBe('Last week');
   expect(formatTimeRange('No filter', 'col', '%d-%m-%Y')).toBe('No filter');
+  expect(formatTimeRange('Yesterday : Tomorrow', 'col', '%d-%m-%Y')).toBe(
+    'Yesterday ≤ col < Tomorrow',
+  );
 });
 
 test('returns a formatted time range from response', async () => {
