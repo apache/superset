@@ -63,9 +63,43 @@ def test_no_deleted_holder_returns_so_caller_reraises(
 
 
 def test_no_slug_skips_the_probe(mocker: MockerFixture) -> None:
+    """Only ``None`` means "no slug sent" and skips the probe entirely."""
     finder = mocker.patch(_FINDER)
 
     raise_for_soft_deleted_slug_collision(None, Exception("boom"))
+
+    finder.assert_not_called()
+
+
+def test_empty_string_slug_is_probed(mocker: MockerFixture) -> None:
+    """An empty string is a real, storable slug value and IS probed.
+
+    The PUT schema accepts a zero-length slug and the uniqueness
+    prechecks compare every non-None value, so a collision on ""
+    deserves the same translation as any other."""
+    finder = mocker.patch(_FINDER, return_value=None)
+
     raise_for_soft_deleted_slug_collision("", Exception("boom"))
+
+    finder.assert_called_once()
+
+
+def test_live_holder_wins_over_archived_namesake(mocker: MockerFixture) -> None:
+    """A LIVE holder means the original error stands — no restore advice.
+
+    The race: archived A holds slug s; this request passes the live
+    uniqueness precheck; another request commits a live dashboard with s;
+    this request's flush then fails against the LIVE row. Advising a
+    restore of archived A could never resolve that conflict, so the
+    helper must return (original IntegrityError re-raised by the caller)
+    and never even consult the deleted-holder probe.
+    """
+    db_mock = mocker.patch("superset.db")
+    db_mock.session.query.return_value.filter.return_value.first.return_value = (
+        MagicMock()  # a live dashboard row holds the slug
+    )
+    finder = mocker.patch(_FINDER)
+
+    raise_for_soft_deleted_slug_collision("q1-report", Exception("boom"))
 
     finder.assert_not_called()

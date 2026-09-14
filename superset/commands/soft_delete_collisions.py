@@ -59,6 +59,10 @@ def find_soft_deleted_slot_holder(
     matches deleted rows only, so a live-row conflict is never
     misreported as restorable.
     """
+    # Deferred imports: ``superset`` and ``superset.models.helpers`` pull
+    # in the app factory / model registry, which must not run at import
+    # time of a commands module (app-init chain; see the module
+    # docstring).
     # pylint: disable=import-outside-toplevel
     from superset import db
     from superset.models.helpers import skip_visibility_filter
@@ -74,20 +78,38 @@ def find_soft_deleted_slot_holder(
 def raise_for_soft_deleted_slug_collision(slug: str | None, cause: Exception) -> None:
     """Translate a dashboard-slug ``IntegrityError`` when a deleted row holds it.
 
-    No-op (returning so the caller re-raises *cause*) when there is no
-    slug in play or no soft-deleted holder -- a genuine conflict keeps its
-    original error. Only reachable on the full-constraint dialects; the
-    partial-index dialects never raise for a soft-deleted slug in the
-    first place.
+    No-op (returning so the caller re-raises *cause*) when no slug was
+    sent (``None`` -- an empty string is a real, storable value and IS
+    probed), when a LIVE dashboard holds the slug, or when no
+    soft-deleted holder exists -- a genuine conflict keeps its original
+    error. The live-holder check matters under concurrency: another
+    request can commit the same slug between this request's uniqueness
+    precheck and its flush, and the failed constraint is then the live
+    row's -- advising a restore of some archived namesake could never
+    resolve that conflict. Only reachable on the full-constraint
+    dialects; the partial-index dialects never raise for a soft-deleted
+    slug in the first place.
     """
+    # Deferred imports: exceptions/models pull in the model registry,
+    # which must not run at import time of this shared module (app-init
+    # chain; and commands.dashboard.exceptions imports back into command
+    # modules that import this helper).
     # pylint: disable=import-outside-toplevel
+    from superset import db
     from superset.commands.dashboard.exceptions import (
         DashboardInvalidError,
         DashboardSlugReservedValidationError,
     )
     from superset.models.dashboard import Dashboard
 
-    if not slug:
+    if slug is None:
+        return
+    live_holder = (
+        db.session.query(Dashboard)
+        .filter(Dashboard.slug == slug, Dashboard.deleted_at.is_(None))
+        .first()
+    )
+    if live_holder is not None:
         return
     holder = find_soft_deleted_slot_holder(Dashboard, Dashboard.slug == slug)
     if holder is None:

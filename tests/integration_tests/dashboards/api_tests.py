@@ -1954,7 +1954,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         db.session.delete(model)
         db.session.commit()
 
-    def test_create_dashboard_slug_held_by_soft_deleted(self):
+    def test_create_dashboard_slug_held_by_soft_deleted(self) -> None:
         """sc-107581: a slug held by a soft-deleted dashboard is actionable.
 
         Whether a soft-deleted dashboard still reserves its slug depends on
@@ -1978,7 +1978,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         from superset.models.helpers import skip_visibility_filter
 
         insp = sa_inspect(db.engine)
-        slug_reserved_by_deleted = any(
+        slug_reserved_by_deleted: bool = any(
             uc["column_names"] == ["slug"]
             for uc in insp.get_unique_constraints("dashboards")
         ) or any(
@@ -1987,7 +1987,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             and ix["name"] != "ix_dashboards_active_slug"
             for ix in insp.get_indexes("dashboards")
         )
-        test_index = None
+        test_index: str | None = None
         if not slug_reserved_by_deleted and db.engine.dialect.name == "sqlite":
             test_index = "uq_test_sc107581_dashboards_slug"
             with db.engine.connect() as conn:
@@ -2004,8 +2004,8 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             )
             assert first.status_code == 201
             first_id = json.loads(first.data.decode("utf-8"))["id"]
-            holder = db.session.query(Dashboard).get(first_id)
-            holder_uuid = str(holder.uuid)
+            holder: Dashboard = db.session.query(Dashboard).get(first_id)
+            holder_uuid: str = str(holder.uuid)
             DashboardDAO.soft_delete([holder])
             db.session.commit()
 
