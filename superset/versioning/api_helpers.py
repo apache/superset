@@ -433,12 +433,24 @@ def restore_version_endpoint(
     except ValueError:
         return api.response_400(message="Invalid version UUID")
 
+    # pylint: disable=import-outside-toplevel
+    # Deferred: restore.py pulls the model/versioning graph (same
+    # bootstrap-cycle rationale as this module's other local imports).
+    from superset.versioning.restore import PrunedChildHistoryError
+
     try:
         result = command_cls(entity_uuid, version_uuid).run()
     except command_cls.not_found_exc:
         return api.response_404()
     except command_cls.forbidden_exc:
         return api.response_403()
+    except PrunedChildHistoryError as ex:
+        # Fail-closed refusal (sc-120012): needed child history was
+        # pruned by retention; the entity was left unchanged. The
+        # exception's message is user-facing. Passes through the
+        # command's @transaction untouched (on_error re-raises
+        # non-SQLAlchemy exceptions as-is).
+        return api.response_422(message=str(ex))
     except command_cls.failed_exc as ex:
         logger.exception("Error restoring %s version", model_cls.__name__)
         return api.response_422(message=str(ex))

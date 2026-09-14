@@ -37,10 +37,11 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
+import sqlalchemy as sa
 from sqlalchemy_continuum import version_class
 
 from superset.extensions import db
-from superset.versioning.baseline import OPERATION_DELETE
+from superset.versioning.baseline import OPERATION_DELETE, OPERATION_INSERT
 from superset.versioning.queries import find_active_by_uuid
 from superset.versioning.utils import single_flush_scope
 
@@ -69,6 +70,132 @@ _RESTORE_RELATIONS: dict[str, list[str]] = {
     "Dashboard": [],
     "Slice": [],
 }
+
+
+class PrunedChildHistoryError(Exception):
+    """The target version's child history is no longer fully recoverable.
+
+    Version-history retention prunes closed child shadow rows (and their
+    ``version_transaction`` rows) once they age out; a restore that
+    proceeded anyway would persist an INCOMPLETE column/metric set for a
+    ``SqlaTable`` — a durable partial write. Restore fails closed
+    instead (sc-120012). The message is user-facing.
+    """
+
+    def __init__(self, model_name: str, detail: str) -> None:
+        super().__init__(
+            f"This {model_name} version can no longer be fully restored: "
+            f"{detail} needed by the snapshot were pruned by "
+            "version-history retention. The entity was left unchanged."
+        )
+
+
+def _verify_child_history_complete(entity: Any, target_tx: int) -> None:
+    """Refuse the restore when a needed child shadow row was pruned.
+
+    ``revert(relations=...)`` reconstructs a ``SqlaTable``'s columns and
+    metrics from the child shadow rows valid at *target_tx*. Retention
+    can have pruned exactly those rows while the parent's row at
+    *target_tx* survives; the pruner also deletes the covering
+    ``version_transaction`` rows (change records cascade with them), so
+    the only surviving evidence is the validity chain itself. Per child
+    (grouped by the child's own ``id``), the state at *target_tx* is
+    PROVABLE when:
+
+    * a surviving non-DELETE row covers ``target_tx`` (restore includes
+      it — earlier holes cannot change the covering row's content), or
+    * every non-INSERT row has a surviving predecessor closing at its
+      ``transaction_id`` (the chain is contiguous) AND the child is
+      provably absent at ``target_tx``: born after it (first row is an
+      INSERT with a later tx) or deleted at/before it (the latest row at
+      or before ``target_tx`` is a DELETE).
+
+    Anything else means a pruned row MAY have covered ``target_tx`` —
+    fail closed (sc-120012).
+
+    Known limitation (ratified, sc-120012): the fail-closed guard refuses
+    every DETECTABLE pruning of needed child history, including a pruned
+    closed row whose successor survives, and protects all restores
+    targeting versions within the retention window. One residual fails
+    open: a column/metric deleted AFTER the target version whose entire
+    shadow chain — including its closing DELETE row — has aged out of
+    retention leaves no surviving evidence anywhere, so no read-side
+    guard can detect it. Why nothing survives to read: the pruner
+    deletes shadow rows by create-tx OR close-tx
+    (``tasks/version_history_retention.py`` ``_delete_for_transactions``)
+    and then the ``version_transaction`` rows themselves, cascading the
+    change records (same module, transaction-delete step) — and change
+    records are per-tx DIFFS (``versioning/changes/table.py`` path /
+    from_value / to_value columns), never a full child set, so replay
+    cannot reconstruct what pruning erased. Only reachable for targets
+    older than the retention window (the closing DELETE row's own tx must
+    itself have been prunable). Closing it is the deferred part (b):
+    the pruner preserving the dependency closure of restorable parents.
+    """
+    # pylint: disable=import-outside-toplevel
+    # Local imports: the models pull in the initialised-app graph (same
+    # bootstrap-cycle rationale as the other deferred imports here).
+    from superset.connectors.sqla.models import SqlMetric, TableColumn
+
+    missing: list[str] = []
+    for label, child_cls in (("column", TableColumn), ("metric", SqlMetric)):
+        shadow = version_class(child_cls).__table__
+        rows = db.session.execute(
+            sa.select(
+                shadow.c.id,
+                shadow.c.transaction_id,
+                shadow.c.end_transaction_id,
+                shadow.c.operation_type,
+            )
+            .where(shadow.c.table_id == entity.id)
+            .order_by(shadow.c.id, shadow.c.transaction_id)
+        ).all()
+        by_child: dict[int, list[Any]] = {}
+        for row in rows:
+            by_child.setdefault(row.id, []).append(row)
+        for child_id, child_rows in by_child.items():
+            if not _child_state_provable_at(child_rows, target_tx):
+                missing.append(f"{label} id={child_id}")
+
+    if missing:
+        raise PrunedChildHistoryError(
+            type(entity).__name__,
+            f"{len(missing)} column/metric history row(s) ({', '.join(missing[:10])})",
+        )
+
+
+def _child_state_provable_at(rows: list[Any], target_tx: int) -> bool:
+    """Whether *rows* (one child's surviving shadow rows, tx-ordered)
+    prove the child's state at *target_tx*. See
+    :func:`_verify_child_history_complete` for the rules."""
+    for row in rows:
+        if (
+            row.operation_type != OPERATION_DELETE
+            and row.transaction_id <= target_tx
+            and (row.end_transaction_id is None or row.end_transaction_id > target_tx)
+        ):
+            return True  # a surviving row covers the target: complete
+
+    # No covering row: the child must be PROVABLY absent at target_tx,
+    # which requires a contiguous chain (every non-INSERT row's
+    # predecessor survives — a hole means a pruned row may have covered
+    # the target).
+    closing_txs = {row.end_transaction_id for row in rows}
+    if any(
+        row.operation_type != OPERATION_INSERT and row.transaction_id not in closing_txs
+        for row in rows
+    ):
+        return False
+
+    first = rows[0]
+    if first.operation_type == OPERATION_INSERT and first.transaction_id > target_tx:
+        return True  # born after the target
+    at_or_before = [row for row in rows if row.transaction_id <= target_tx]
+    return bool(
+        at_or_before
+        and max(at_or_before, key=lambda row: row.transaction_id).operation_type
+        == OPERATION_DELETE  # deleted at/before the target
+    )
 
 
 @dataclass
@@ -161,13 +288,18 @@ def restore_version(
     # race, and so the change-records listener sees the complete state in
     # one ``after_flush`` pass. See ``single_flush_scope`` for the full
     # rationale.
-    # SC-120012: ``revert(relations=...)`` reconstructs children from the
-    # closed child shadow rows valid at the target transaction. Retention
-    # can legitimately prune closed child history while the parent
-    # transaction survives the window, in which case this WRITE persists an
-    # incomplete column/metric set for a SqlaTable — the same child-path
-    # gap noted read-only in ``queries.get_version``, worse here because it
-    # is durable. Tracked there; not closed in this change.
+    # SC-120012 (fail closed): ``revert(relations=...)`` reconstructs
+    # children from the child shadow rows valid at the target transaction,
+    # and retention can have pruned exactly those rows while the parent's
+    # row survives — proceeding would persist an incomplete column/metric
+    # set. Verified BEFORE any write; refusal leaves the entity untouched.
+    # The check and the revert read in the same session transaction, so
+    # under READ COMMITTED a prune committing between the two statements
+    # remains a (documented) window — fully closing it is the
+    # retention-policy follow-up deferred from sc-120012.
+    if model_cls.__name__ == "SqlaTable":
+        _verify_child_history_complete(entity, transaction_id)
+
     skipped_slice_ids: list[int] = []
     try:
         with single_flush_scope(db.session):

@@ -131,3 +131,71 @@ def test_single_flush_scope_skips_flush_on_exception() -> None:
         with single_flush_scope(session):
             raise RuntimeError("boom")
     session.flush.assert_not_called()
+
+
+class _Row:
+    def __init__(self, tx: int, end: int | None, op: int) -> None:
+        self.transaction_id = tx
+        self.end_transaction_id = end
+        self.operation_type = op
+
+
+def _provable(rows: list[_Row], target_tx: int) -> bool:
+    from superset.versioning.restore import _child_state_provable_at
+
+    return _child_state_provable_at(rows, target_tx)
+
+
+_INSERT, _UPDATE, _DELETE = 0, 1, 2
+
+
+@pytest.mark.parametrize(
+    ("rows", "target_tx", "expected", "case"),
+    [
+        # A surviving non-DELETE row covers the target: complete.
+        ([_Row(5, None, _INSERT)], 10, True, "live row covers"),
+        ([_Row(5, 20, _UPDATE)], 10, True, "closed row covers"),
+        # Headline sc-120012 case: the covering closed row was pruned and
+        # its successor survives — contiguity hole → refuse.
+        ([_Row(20, None, _UPDATE)], 10, False, "pruned cover, survivor update"),
+        (
+            [_Row(20, 30, _UPDATE), _Row(30, None, _UPDATE)],
+            10,
+            False,
+            "pruned cover, surviving chain tail",
+        ),
+        # Born after the target (contiguous chain): provably absent.
+        ([_Row(20, None, _INSERT)], 10, True, "born after target"),
+        (
+            [_Row(20, 30, _INSERT), _Row(30, None, _UPDATE)],
+            10,
+            True,
+            "born after target, contiguous chain",
+        ),
+        # Deleted at/before the target (contiguous): provably absent.
+        ([_Row(2, 5, _INSERT), _Row(5, 8, _DELETE)], 10, True, "deleted before target"),
+        # Pruned INSERT with a surviving mid-chain row and no cover:
+        # ambiguous → refuse.
+        (
+            [_Row(2, 5, _INSERT), _Row(20, None, _UPDATE)],
+            10,
+            False,
+            "hole between early history and tail",
+        ),
+        # Pruned re-birth: DELETE before target, then an UPDATE after it
+        # with no surviving predecessor — the re-birth may have covered
+        # the target → refuse.
+        (
+            [_Row(2, 5, _INSERT), _Row(5, 8, _DELETE), _Row(20, None, _UPDATE)],
+            10,
+            False,
+            "pruned re-birth after delete",
+        ),
+    ],
+)
+def test_child_state_provable_case_algebra(
+    rows: list[_Row], target_tx: int, expected: bool, case: str
+) -> None:
+    """sc-120012 fail-closed algebra: covered / provably-absent pass,
+    every detectable pruning hole refuses."""
+    assert _provable(rows, target_tx) is expected, case
