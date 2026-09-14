@@ -135,6 +135,13 @@ jest.mock('src/dashboard/containers/DashboardGrid', () => {
 });
 // The real component renders null, so mock it with a visible marker to let
 // tests assert whether DashboardBuilder mounts it.
+jest.mock('src/features/versionHistory/DashboardVersionHistory', () => ({
+  __esModule: true,
+  // Renders a marker inside the column so placement can be asserted; the
+  // real component's restore modal portals out, which is irrelevant here.
+  default: () => <aside data-test="mock-dashboard-version-history" />,
+}));
+
 jest.mock('src/dashboard/components/Header/HeadlessAutoRefresh', () => {
   const MockHeadlessAutoRefresh = () => (
     <div data-test="mock-headless-auto-refresh" />
@@ -224,6 +231,57 @@ describe('DashboardBuilder', () => {
       );
     } finally {
       rectSpy.mockRestore();
+    }
+  });
+
+  test('mounts the version-history panel inside the dashboard content area, below the header, on every breakpoint', async () => {
+    // sc-120489: the sc-119737 overflow fix had turned the panel into a
+    // fixed, full-viewport overlay (z 101) that covered the global nav and
+    // the dashboard's Share / Edit / ⋯ controls. It must instead live in the
+    // content area like the chart panel in Explore.
+    window.featureFlags = { [FeatureFlag.VersionHistory]: true };
+    const rectSpy = mockHeaderHeight(120);
+    try {
+      const { findByTestId, getByTestId, container } = setup();
+      const column = await findByTestId('dashboard-version-history-column');
+      expect(
+        await findByTestId('mock-dashboard-version-history'),
+      ).toBeInTheDocument();
+
+      // In the dashboard's own grid, not portaled to the body.
+      expect(container.contains(column)).toBe(true);
+      expect(column.parentElement).not.toBe(document.body);
+      // The header and its controls precede the panel in the document flow.
+      const header = getByTestId('dashboard-header-wrapper');
+      expect(
+        header.compareDocumentPosition(column) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+
+      // Wide: an in-flow third column beside the content, in the content
+      // row only — never spanning the header row.
+      expect(column).toHaveStyleRule('grid-row', '2');
+      expect(column).toHaveStyleRule('grid-column', '3');
+      expect(column).toHaveStyleRule('position', 'sticky');
+
+      // Below XXL: anchored absolutely inside the CONTENT cell (column 2,
+      // row 2) — not fixed to the viewport — and stacked below the sticky
+      // header (99) so the header stays clickable.
+      const narrow = { media: `(max-width: ${supersetTheme.screenXLMax}px)` };
+      expect(column).toHaveStyleRule('position', 'absolute', narrow);
+      expect(column).toHaveStyleRule('grid-column', '2', narrow);
+      expect(column).toHaveStyleRule('right', '0', narrow);
+      expect(column).toHaveStyleRule('z-index', '98', narrow);
+      expect(column).not.toHaveStyleRule('position', 'fixed', narrow);
+      // The panel itself sticks below the measured header height while the
+      // page scrolls, so it never slides under the header.
+      expect(column).toHaveStyleRule('top', '120px', {
+        ...narrow,
+        target: 'aside',
+      });
+    } finally {
+      rectSpy.mockRestore();
+      window.featureFlags = {};
     }
   });
 
