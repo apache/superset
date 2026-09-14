@@ -2955,10 +2955,6 @@ async def test_chart_data_survives_chart_detached_after_lookup(
     an internal-session error instead of chart data. The chart is detached at
     the end of the lookup block, right after its last legitimate ORM use.
     """
-    from unittest.mock import patch
-
-    from fastmcp import Client
-
     module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
 
     chart = _DetachAfterLookupChart()
@@ -3035,10 +3031,6 @@ async def test_guest_authorization_reads_an_attached_chart_after_detachment(
     snapshotted scalars cannot stand in, because the guard has to compare the
     guest payload against the stored chart itself.
     """
-    from unittest.mock import patch
-
-    from fastmcp import Client
-
     module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
 
     detached = _DetachAfterLookupChart()
@@ -3118,7 +3110,119 @@ async def test_guest_authorization_reads_an_attached_chart_after_detachment(
     assert stored_chart is attached, (
         "authorize_query must pin the re-fetched chart, not the detached one"
     )
-    # The three attributes query_context_modified() reads must be readable.
-    assert stored_chart.id == 9
-    assert stored_chart.query_context is not None
-    assert stored_chart.params_dict == {}
+    # authorize_query reads chart.id off the re-fetched chart to pin slice_id.
+    assert captured["query_context"].form_data["slice_id"] == 9
+
+
+@pytest.mark.asyncio
+async def test_guest_authorization_with_slice_already_pinned_by_the_factory(
+    mcp_server: Any, mock_auth: Any
+) -> None:
+    """Cover the case where query_context arrives with slice_ already set.
+
+    QueryContextFactory.create() pins slice_ from form_data.slice_id, so for a
+    saved chart the query context usually reaches authorize_query with slice_
+    populated -- and authorize_query only assigns when it is None. The chart
+    re-fetch still matters on this path: authorize_query reads chart.id off it
+    to pin slice_id, which raises on a detached instance. Runs the real
+    security_manager.query_context_modified afterwards to confirm the tamper
+    guard can read the stored chart rather than blowing up on it.
+    """
+    from superset.security.manager import query_context_modified
+
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+
+    stored_query_context = _DetachAfterLookupChart._COLUMNS["query_context"]
+    detached = _DetachAfterLookupChart()
+    # Stands in for the Slice the factory loaded via ChartDAO.find_by_id.
+    factory_pinned = SimpleNamespace(
+        id=9,
+        slice_name="Sales",
+        viz_type="table",
+        datasource_id=1,
+        datasource_type="table",
+        params=None,
+        params_dict={},
+        query_context=stored_query_context,
+    )
+    refetched = SimpleNamespace(
+        id=9,
+        slice_name="Sales",
+        viz_type="table",
+        datasource_id=1,
+        datasource_type="table",
+        params=None,
+        params_dict={},
+        query_context=stored_query_context,
+    )
+
+    def _detach_at_end_of_lookup(instance: Any) -> int:
+        instance.detach()
+        return 6
+
+    captured: dict[str, Any] = {}
+
+    def fake_load(self: Any, data: dict[str, Any]) -> Any:
+        query_context = SimpleNamespace(
+            queries=[
+                SimpleNamespace(
+                    filter=q.get("filters", []),
+                    time_range=q.get("time_range"),
+                    to_dict=lambda q=q: dict(q),
+                )
+                for q in data.get("queries", [])
+            ],
+            form_data={"slice_id": 9},
+            # Already pinned, as the factory would leave it.
+            slice_=factory_pinned,
+        )
+        captured["query_context"] = query_context
+        return query_context
+
+    class _Command:
+        def __init__(self, query_context: Any) -> None: ...
+        def validate(self) -> None: ...
+        def run(self) -> dict[str, Any]:
+            return {"queries": [{"data": [{"a": 1}], "colnames": ["a"], "rowcount": 1}]}
+
+    with (
+        patch.object(
+            module, "find_chart_by_identifier", side_effect=[detached, refetched]
+        ),
+        patch.object(
+            module,
+            "validate_chart_dataset",
+            return_value=SimpleNamespace(is_valid=True, warnings=[], error=None),
+        ),
+        patch.object(module.guest_scope, "is_guest_read", return_value=True),
+        patch.object(
+            module.guest_scope, "guest_dashboard_id", _detach_at_end_of_lookup
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand", _Command
+        ),
+        patch("superset.charts.schemas.ChartDataQueryContextSchema.load", fake_load),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_chart_data", {"request": {"identifier": 9}}
+            )
+
+    data = json.loads(result.content[0].text)
+    assert "error_type" not in data, (
+        f"guest request failed with slice_ pre-pinned: "
+        f"{data.get('error_type')}: {data.get('error')}"
+    )
+
+    query_context = captured["query_context"]
+    # authorize_query must leave an already-pinned slice_ alone...
+    assert query_context.slice_ is factory_pinned
+    # ...but it still reads chart.id off the re-fetched chart, which is the
+    # read that raises when that chart is the detached one.
+    assert query_context.form_data["slice_id"] == 9
+    assert query_context.form_data["dashboardId"] == 6
+
+    # The real tamper guard must be able to read the stored chart. Its verdict
+    # depends on payload comparison; what matters here is that reaching into
+    # id / query_context / params_dict does not raise.
+    assert query_context_modified(query_context) in (True, False)
