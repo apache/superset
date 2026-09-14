@@ -202,8 +202,18 @@ class TestRestoreFailsClosedOnPrunedChildHistory(SupersetTestCase):
             # later begin() raise InvalidRequestError instead of ever
             # reaching the lock wait. The timeout is set inside the
             # transaction (SET LOCAL reverts with it on Postgres; the
-            # MySQL session variable is reset below before the connection
-            # returns to the pool).
+            # MySQL session variable is saved and restored in the finally
+            # below, whatever the attempt does, so the pooled connection
+            # never leaks a 1s timeout).
+            original_timeout: int | None = None
+            if dialect == "mysql":
+                original_timeout = int(
+                    conn.exec_driver_sql(
+                        "SELECT @@SESSION.innodb_lock_wait_timeout"
+                    ).scalar()
+                )
+                conn.rollback()  # clear the autobegun read transaction
+
             def _attempt_locked_delete() -> None:
                 with conn.begin():
                     if dialect == "mysql":
@@ -212,18 +222,29 @@ class TestRestoreFailsClosedOnPrunedChildHistory(SupersetTestCase):
                         conn.exec_driver_sql("SET LOCAL lock_timeout = '1s'")
                     conn.execute(delete_stmt)
 
-            with pytest.raises(sa.exc.OperationalError) as excinfo:
-                _attempt_locked_delete()
-            # Specifically the dialect's lock-wait failure, not some other
-            # OperationalError.
-            orig = excinfo.value.orig
-            if dialect == "mysql":
-                assert orig.args, orig
-                assert orig.args[0] == 1205, orig
-                conn.rollback()
-                conn.exec_driver_sql("SET SESSION innodb_lock_wait_timeout = DEFAULT")
-            else:
-                assert getattr(orig, "pgcode", None) == "55P03", orig
+            try:
+                with pytest.raises(sa.exc.OperationalError) as excinfo:
+                    _attempt_locked_delete()
+                # Specifically the dialect's lock-wait failure, not some
+                # other OperationalError.
+                orig = excinfo.value.orig
+                if dialect == "mysql":
+                    assert orig.args, orig
+                    assert orig.args[0] == 1205, orig
+                else:
+                    assert getattr(orig, "pgcode", None) == "55P03", orig
+            finally:
+                if dialect == "mysql":
+                    try:
+                        conn.rollback()
+                        conn.exec_driver_sql(
+                            f"SET SESSION innodb_lock_wait_timeout = {original_timeout}"
+                        )
+                    except Exception:  # noqa: BLE001
+                        # Cannot prove the session variable was restored:
+                        # never return this connection to the pool.
+                        conn.invalidate()
+                        raise
 
         # Releasing the verifier's transaction releases the locks: the
         # same DELETE succeeds once unblocked (rolled back to keep the fixture).
@@ -380,6 +401,59 @@ class TestRestoreFailsClosedOnPrunedChildHistory(SupersetTestCase):
         assert dataset.description == parent_description
         assert column.description == edited_description
         db.session.rollback()
+
+    def test_sqlite_reservation_contention_maps_to_the_command_failure(
+        self,
+    ) -> None:
+        """Reservation contention must surface as the command's failure
+        type (→ endpoint 422), not a raw sqlite3.OperationalError: BEGIN
+        IMMEDIATE goes through the SQLAlchemy connection so exception
+        translation applies, and @transaction wraps only SQLAlchemy
+        errors."""
+        # pylint: disable=import-outside-toplevel
+        from superset import security_manager
+        from superset.commands.dataset.exceptions import DatasetUpdateFailedError
+        from superset.commands.dataset.restore_version import (
+            RestoreDatasetVersionCommand,
+        )
+        from superset.utils.core import override_user
+        from superset.versioning.queries import list_versions
+
+        if db.engine.dialect.name != "sqlite":
+            pytest.skip("exercises the SQLite write-reservation contention path")
+
+        dataset, _, target_tx, _ = self._two_version_dataset()
+        dataset_uuid = dataset.uuid
+        versions = list_versions(SqlaTable, dataset_uuid, entity=dataset)
+        assert versions is not None
+        target_entry = next(v for v in versions if v["transaction_id"] == target_tx)
+        admin = self.get_user("admin") or security_manager.add_user(
+            "admin",
+            "admin",
+            "user",
+            "admin@fab.org",
+            security_manager.find_role("Admin"),
+            password="general",  # noqa: S106 — test-only fixture credential
+        )
+        db.session.commit()  # release this session's own locks first
+        # Keep the command's reservation attempt from waiting out the
+        # default busy timeout.
+        db.session.connection().exec_driver_sql("PRAGMA busy_timeout = 300")
+
+        with db.engine.connect() as writer:
+            writer.exec_driver_sql("BEGIN IMMEDIATE")  # hold the write lock
+            try:
+                with override_user(admin):
+                    with pytest.raises(DatasetUpdateFailedError) as excinfo:
+                        RestoreDatasetVersionCommand(
+                            dataset_uuid, target_entry["version_uuid"]
+                        ).run()
+            finally:
+                writer.rollback()
+
+        # The translated SQLAlchemy error rides the failure's cause chain.
+        cause = excinfo.value.__cause__
+        assert isinstance(cause, sa.exc.OperationalError), cause
 
     def test_documented_limitation_fully_pruned_deleted_child_fails_open(
         self,

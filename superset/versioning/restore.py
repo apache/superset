@@ -142,9 +142,15 @@ def _verify_child_history_complete(entity: Any, target_tx: int) -> None:
     # upgrade conflict cannot occur because the reservation precedes
     # every read. No-op when the driver is already in a transaction.
     if db.engine.dialect.name == "sqlite":
-        raw = db.session.connection().connection.dbapi_connection
-        if not raw.in_transaction:
-            raw.execute("BEGIN IMMEDIATE")
+        conn = db.session.connection()
+        if not conn.connection.dbapi_connection.in_transaction:
+            # Issued through the SQLAlchemy Connection (not the raw DBAPI
+            # handle) so exception translation applies: reservation
+            # contention surfaces as sqlalchemy.exc.OperationalError,
+            # which the command's @transaction wraps into its failure
+            # type and the endpoint maps to 422 — a raw sqlite3 error
+            # would escape both as a 500.
+            conn.exec_driver_sql("BEGIN IMMEDIATE")
 
     missing: list[str] = []
     for label, child_cls in (("column", TableColumn), ("metric", SqlMetric)):
