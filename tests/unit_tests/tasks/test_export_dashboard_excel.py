@@ -839,3 +839,31 @@ def test_inflight_lock_released_on_failure(mocks: dict[str, Any]) -> None:
         "excel_export", {"user_id": 2, "dashboard_id": 1}
     )
     mocks["ReleaseDistributedLock"].return_value.run.assert_called_once_with()
+
+
+@pytest.mark.parametrize("query_mode", ["aggregate", "raw"])
+def test_rebuilt_paginated_table_exports_full_limit(query_mode: str) -> None:
+    """Excel rebuilds request all configured rows, without a count sheet."""
+    from superset.tasks import export_dashboard_excel as module
+
+    form_data = {
+        "groupby": ["country"],
+        "all_columns": ["country"],
+        "metrics": ["count"],
+        "query_mode": query_mode,
+        "server_pagination": True,
+        "server_page_length": 10,
+        "row_limit": 1000,
+        "result_format": "json",
+        "result_type": "full",
+    }
+    chart = _rebuildable_chart(form_data=form_data)
+    with _builder_hook(None):
+        result = module._resolve_query_context(chart)
+    assert result is not None
+    assert len(result["queries"]) == 1
+    query = result["queries"][0]
+    assert query["row_limit"] == 1000
+    assert query.get("row_offset", 0) == 0
+    assert not query.get("is_rowcount")
+    assert json.loads(chart.params) == form_data
