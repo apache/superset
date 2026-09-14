@@ -83,6 +83,31 @@ def test_a_second_consumer_does_not_run_the_turn(mocker: MockerFixture) -> None:
     profiles.assert_not_called()
 
 
+def test_duplicate_consumer_does_not_clear_cancellation(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    """A rejected consumer must leave the running worker's stop flag intact."""
+    from superset.ai.orchestrator import stream_turn, TurnRequest
+
+    mocker.patch("superset.ai.orchestrator._claim_pending", return_value=False)
+    clear_cancel = mocker.patch("superset.ai.orchestrator.clear_cancel")
+
+    assert (
+        list(
+            stream_turn(
+                TurnRequest(
+                    thread_uuid="t-1",
+                    user_id=7,
+                    run_id="r-1",
+                    assistant_message_uuid="m-1",
+                )
+            )
+        )
+        == []
+    )
+    clear_cancel.assert_not_called()
+
+
 def test_history_excludes_empty_and_system_messages(app_context: None) -> None:
     """
     Only real conversational turns are replayed to the model.

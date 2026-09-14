@@ -220,7 +220,8 @@ def stream_turn(request: TurnRequest) -> Iterator[StreamEvent]:
         yield error_event()
         yield done_event(ok=False)
     finally:
-        clear_cancel(request.run_id)
+        if state.get("claimed"):
+            clear_cancel(request.run_id)
         # A client that stops the run, or simply navigates away, abandons this
         # generator part-way through. Nothing above will have written the
         # message, so it would otherwise sit in ``streaming`` with no content
@@ -266,6 +267,7 @@ def _run(request: TurnRequest, state: dict[str, Any]) -> Iterator[StreamEvent]:
         state["finalised"] = True
         logger.info("AI message %s is already claimed", request.assistant_message_uuid)
         return
+    state["claimed"] = True
 
     from superset.ai.factories import (
         get_profiles,
