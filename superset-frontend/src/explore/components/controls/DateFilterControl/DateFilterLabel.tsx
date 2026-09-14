@@ -166,10 +166,13 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
   const [isDescriptionHovered, setIsDescriptionHovered] = useState(false);
   const theme = useTheme();
   const [labelRef, labelIsTruncated] = useCSSTextTruncation<HTMLSpanElement>();
-  // Shared across both fetches below since they can write overlapping state
-  // (evalResponse, validTimeRange, lastFetchedTimeRange); guards against an
-  // older, slower request overwriting a newer one that resolved first.
-  const latestRequestId = useRef(0);
+  // Separate per-effect: each only guards against a later request from the
+  // *same* effect. A shared counter would let effect 2's debounced draft
+  // fetch (which can still be pending/leftover after Apply) invalidate
+  // effect 1's Apply-triggered fetch purely because it started later,
+  // even though effect 1's result is the more relevant one.
+  const latestValueRequestId = useRef(0);
+  const latestDraftRequestId = useRef(0);
 
   useEffect(() => {
     if (!isControlHovered) {
@@ -184,11 +187,11 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
       setValidTimeRange(true);
       return;
     }
-    latestRequestId.current += 1;
-    const requestId = latestRequestId.current;
+    latestValueRequestId.current += 1;
+    const requestId = latestValueRequestId.current;
     fetchTimeRange(value, 'col', undefined, displayFormat).then(
       ({ value: actualRange, error }) => {
-        if (requestId !== latestRequestId.current) return;
+        if (requestId !== latestValueRequestId.current) return;
         if (error) {
           setEvalResponse(error || '');
           setValidTimeRange(false);
@@ -238,11 +241,11 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
         return;
       }
       if (lastFetchedTimeRange !== timeRangeValue) {
-        latestRequestId.current += 1;
-        const requestId = latestRequestId.current;
+        latestDraftRequestId.current += 1;
+        const requestId = latestDraftRequestId.current;
         fetchTimeRange(timeRangeValue, 'col', undefined, displayFormat).then(
           ({ value: actualRange, error }) => {
-            if (requestId !== latestRequestId.current) return;
+            if (requestId !== latestDraftRequestId.current) return;
             if (error) {
               setEvalResponse(error || '');
               setValidTimeRange(false);
