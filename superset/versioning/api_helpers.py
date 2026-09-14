@@ -34,6 +34,7 @@ restore command's ``validate()``, not here.
 
 from __future__ import annotations
 
+import functools
 import logging
 from dataclasses import dataclass
 from typing import Any
@@ -44,7 +45,6 @@ from flask import Response
 from flask_appbuilder import Model
 
 from superset.daos.version import VersionDAO
-from superset.exceptions import SupersetSecurityException
 from superset.extensions import db, security_manager
 from superset.versioning.etag import set_version_etag_by_uuid
 from superset.versioning.schemas import VersionListItemSchema
@@ -222,6 +222,7 @@ def concurrency_token_from(info: EntityVersionInfo) -> str | None:
     return info.version_uuid or unversioned_entity_token(info.entity_uuid)
 
 
+@functools.cache
 def _version_endpoint_models() -> tuple[type, ...]:
     """The exact model classes wired for the version endpoint families.
 
@@ -294,18 +295,20 @@ def resolve_endpoint_path_entity(
     except ValueError as exc:
         raise PathEntityResponseError(api.response_400(message="Invalid UUID")) from exc
 
+    # M10 / SECURITY.md's guest row: an embedded guest's capability is
+    # reading the dashboards its token authorizes — never their change
+    # logs (author identities, field-level diffs). ``is_editor`` itself
+    # refuses guest principals; the extra deny here runs BEFORE the
+    # database lookup so a guest probing UUIDs gets a uniform 403 whether
+    # or not the entity exists — the 403-vs-404 split would otherwise
+    # disclose which UUIDs exist to a principal with no read visibility
+    # into them.
+    if security_manager.is_guest_user():
+        raise PathEntityResponseError(api.response_403())
+
     entity = VersionDAO.find_active_by_uuid(model_cls, entity_uuid)
     if entity is None:
         raise PathEntityResponseError(api.response_404())
-
-    # M10 / SECURITY.md's guest row: an embedded guest's capability is
-    # reading the dashboards its token authorizes — never their change
-    # logs (author identities, field-level diffs). Denied explicitly
-    # BEFORE the editorship check: ``is_editor`` maps a guest's ROLE
-    # subjects into the editor set, so a role subject granted editorship
-    # would otherwise admit every guest holding that role.
-    if security_manager.is_guest_user():
-        raise PathEntityResponseError(api.response_403())
     # Version history is EDIT-gated, not read-gated (sc-120001 decision,
     # following the sc-103156 SIP): the full change log — author
     # identities, timestamps, field-level before/after diffs — is for
@@ -316,10 +319,13 @@ def resolve_endpoint_path_entity(
     # history of entities it does not own. Related-entity records inside
     # the ACTIVITY stream additionally pass per-record read-visibility
     # filtering (AV-008's silent filter), which is unchanged.
-    try:
-        security_manager.raise_for_editorship(entity)
-    except SupersetSecurityException as exc:
-        raise PathEntityResponseError(api.response_403()) from exc
+    # Same predicate as ``raise_for_editorship`` (the restore command's
+    # gate) without its soft-delete re-query: that re-query exists for
+    # callers holding a bypass-loaded row, and ``find_active_by_uuid``
+    # just loaded this entity live — re-fetching it would double the
+    # entity lookups on the hottest paths in this module.
+    if not security_manager.is_editor(entity):
+        raise PathEntityResponseError(api.response_403())
 
     return entity, entity_uuid
 

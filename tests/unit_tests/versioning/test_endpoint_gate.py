@@ -33,7 +33,6 @@ from unittest.mock import MagicMock
 import pytest
 from pytest_mock import MockerFixture
 
-from superset.exceptions import SupersetSecurityException
 from superset.models.dashboard import Dashboard
 from superset.versioning import api_helpers
 from superset.versioning.api_helpers import (
@@ -55,10 +54,12 @@ def _api() -> MagicMock:
 def test_preflight_enforces_editorship_not_read_access(
     mocker: MockerFixture, app_context: None
 ) -> None:
-    """The preflight consults only the editorship gate.
+    """The preflight consults only the editorship predicate.
 
-    The read gate must never run. (Reverted-gate control: restoring the
-    read gate fails the not-called assertion.)"""
+    ``is_editor`` — the same predicate ``raise_for_editorship`` (the
+    restore command's gate) enforces, called directly because the entity
+    was just loaded live. The read gate must never run. (Reverted-gate
+    control: restoring the read gate fails the not-called assertion.)"""
     entity = SimpleNamespace(id=1)
     mocker.patch.object(
         api_helpers.VersionDAO, "find_active_by_uuid", return_value=entity
@@ -75,7 +76,7 @@ def test_preflight_enforces_editorship_not_read_access(
     resolved, _ = resolve_endpoint_path_entity(_api(), Dashboard, _UUID)
 
     assert resolved is entity
-    sm.raise_for_editorship.assert_called_once_with(entity)
+    sm.is_editor.assert_called_once_with(entity)
     sm.raise_for_access.assert_not_called()
 
 
@@ -83,8 +84,8 @@ def test_preflight_maps_editorship_refusal_to_403(
     mocker: MockerFixture, app_context: None
 ) -> None:
     """A non-editor principal gets the 403 response, nothing else. The
-    security manager is stubbed with a plain object whose gate raises the
-    real exception type — and whose read gate raises AssertionError if
+    security manager is stubbed with a plain object whose editorship
+    predicate refuses — and whose read gate raises AssertionError if
     consulted, doubling as a not-called pin on the refusal path. (A bare
     ``mocker.patch.object`` here would yield an AsyncMock — see the
     LocalProxy note in the sibling test.)"""
@@ -92,9 +93,6 @@ def test_preflight_maps_editorship_refusal_to_403(
     mocker.patch.object(
         api_helpers.VersionDAO, "find_active_by_uuid", return_value=entity
     )
-
-    def _deny(_entity: Any) -> None:
-        raise SupersetSecurityException(MagicMock())
 
     def _read_gate_must_not_run(**_kwargs: Any) -> None:
         raise AssertionError("read gate must not be consulted")
@@ -104,7 +102,7 @@ def test_preflight_maps_editorship_refusal_to_403(
         "security_manager",
         SimpleNamespace(
             is_guest_user=lambda: False,
-            raise_for_editorship=_deny,
+            is_editor=lambda _entity: False,
             raise_for_access=_read_gate_must_not_run,
         ),
     )
@@ -145,12 +143,15 @@ def test_preflight_denies_guest_principals_outright(
 ) -> None:
     """Guest principals are refused before any editorship evaluation.
 
-    A guest's ROLE subjects feed ``is_editor``, so a role subject granted
-    editorship would otherwise admit every guest holding that role — the
-    M10 case. Neither gate may even be consulted."""
-    entity = SimpleNamespace(id=1)
-    mocker.patch.object(
-        api_helpers.VersionDAO, "find_active_by_uuid", return_value=entity
+    The deny runs BEFORE the database lookup: a guest probing UUIDs
+    gets a uniform 403 whether or not the entity exists, so the
+    403-vs-404 split cannot disclose which UUIDs exist. Neither gate may
+    even be consulted (``is_editor`` refuses guests on its own — the
+    endpoint deny is the ordering guarantee on top)."""
+    dao = mocker.patch.object(
+        api_helpers.VersionDAO,
+        "find_active_by_uuid",
+        return_value=SimpleNamespace(id=1),
     )
 
     def _gate_must_not_run(*_args: Any, **_kwargs: Any) -> None:
@@ -161,6 +162,7 @@ def test_preflight_denies_guest_principals_outright(
         "security_manager",
         SimpleNamespace(
             is_guest_user=lambda: True,
+            is_editor=_gate_must_not_run,
             raise_for_editorship=_gate_must_not_run,
             raise_for_access=_gate_must_not_run,
         ),
@@ -170,3 +172,45 @@ def test_preflight_denies_guest_principals_outright(
         resolve_endpoint_path_entity(_api(), Dashboard, _UUID)
 
     assert exc.value.response == "resp-403"
+    dao.assert_not_called()
+
+
+def test_is_editor_refuses_guest_principals_before_anything_else() -> None:
+    """SECURITY.md's matrix: a guest is NEVER an editor.
+
+    Called unbound with a stub manager so the real method body runs: a
+    guest principal is refused before the admin shortcut, before subject
+    resolution, and before the resource's editor list is ever touched —
+    so every caller of ``raise_for_editorship`` (restore, delete,
+    update, the MCP tools) inherits the deny. The resource stub would
+    happily admit anyone (a bare MagicMock's ``editors`` is truthy);
+    only the early return keeps the guest out."""
+    from superset.security.manager import SupersetSecurityManager
+
+    sm = MagicMock()
+    sm.is_guest_user.return_value = True
+
+    assert SupersetSecurityManager.is_editor(sm, MagicMock()) is False
+    sm.is_admin.assert_not_called()
+
+
+def test_raise_for_editorship_inherits_the_guest_deny(
+    mocker: MockerFixture, app_context: None
+) -> None:
+    """The enforcement gate refuses a guest via the predicate it wraps.
+
+    ``raise_for_editorship`` is exercised unbound with the REAL
+    ``is_editor`` bound through, a guest principal, and a non-soft-delete
+    resource: the guest deny inside ``is_editor`` must surface as the
+    gate's SupersetSecurityException — the write-path (restore command)
+    shape of the M10 escalation."""
+    from superset.exceptions import SupersetSecurityException
+    from superset.security.manager import SupersetSecurityManager
+
+    sm = MagicMock()
+    sm.is_guest_user.return_value = True
+    sm.is_admin.return_value = False
+    sm.is_editor = lambda resource: SupersetSecurityManager.is_editor(sm, resource)
+
+    with pytest.raises(SupersetSecurityException):
+        SupersetSecurityManager.raise_for_editorship(sm, SimpleNamespace(id=1))

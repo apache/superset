@@ -301,13 +301,13 @@ class TestChartVersionsApi(SupersetTestCase):
     def test_versions_refuse_guest_even_when_guest_role_is_editor(self) -> None:
         """A guest is refused even when its role subject holds editorship.
 
-        The cross-model round's M10 case: ``is_editor`` maps a guest's
-        ROLE subjects into the editor set, so without the explicit guest
-        deny at the choke point, granting a role subject editorship would
-        open every guest holding that role. Layered refusal is accepted
-        here (401 if guest header auth doesn't bind on this route, 403
-        from the deny) — the invariant pinned is never-200; the explicit
-        pre-editorship deny itself is unit-pinned
+        The cross-model round's M10 case: without the guest deny,
+        granting a role subject editorship would open every guest holding
+        that role. Guest header auth DOES bind on this route (verified —
+        the request reaches the deny), so the pin is an exact 403: a
+        regression that deleted the deny would surface here as 200, and
+        one that broke guest auth entirely would surface as 401. The
+        deny's placement before the lookup is unit-pinned
         (test_preflight_denies_guest_principals_outright)."""
         # pylint: disable=import-outside-toplevel
         from unittest.mock import patch as mock_patch
@@ -345,7 +345,7 @@ class TestChartVersionsApi(SupersetTestCase):
                     f"/api/v1/dashboard/{dashboard.uuid}/versions/",
                     headers={current_app.config["GUEST_TOKEN_HEADER_NAME"]: token},
                 )
-            assert rv.status_code in (401, 403), rv.data
+            assert rv.status_code == 403, rv.data
         finally:
             dashboard = self._births_dashboard()
             dashboard.editors = original_editors
