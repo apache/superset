@@ -280,7 +280,6 @@ def test_validate_parameters_catalog_and_credentials(
     g.user.email = "admin@example.com"
 
     create_engine = mocker.patch("superset.db_engine_specs.gsheets.create_engine")
-    mocker.patch.object(GSheetsEngineSpec, "register_engine_events")
     conn = create_engine.return_value.connect.return_value
     results = conn.execute.return_value
     results.fetchall.side_effect = [
@@ -1045,7 +1044,6 @@ def test_validate_parameters_skips_oauth2_connections_with_parameters(
     g.user.email = "admin@example.org"
 
     create_engine = mocker.patch("superset.db_engine_specs.gsheets.create_engine")
-    mocker.patch.object(GSheetsEngineSpec, "register_engine_events")
     conn = create_engine.return_value.connect.return_value
     results = conn.execute.return_value
     results.fetchall.side_effect = ProgrammingError(
@@ -1086,7 +1084,6 @@ def test_validate_parameters_skips_oauth2_connections_with_masked_encrypted_extr
     g.user.email = "admin@example.org"
 
     create_engine = mocker.patch("superset.db_engine_specs.gsheets.create_engine")
-    mocker.patch.object(GSheetsEngineSpec, "register_engine_events")
     conn = create_engine.return_value.connect.return_value
     results = conn.execute.return_value
     results.fetchall.side_effect = ProgrammingError(

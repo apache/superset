@@ -22,6 +22,7 @@ import pytest
 from sqlalchemy import create_engine, text
 
 from superset.db_engine_specs.shillelagh import ShillelaghEngineSpec
+from superset.db_engine_specs.superset import SupersetEngineSpec
 from superset.models.core import Database
 
 
@@ -97,3 +98,20 @@ def test_non_apsw_backend_is_left_alone() -> None:
 
     with engine.connect() as connection:
         assert connection.execute(text("SELECT 1")).scalar() == 1
+
+
+def test_meta_database_is_covered(local_sqlite_file) -> None:
+    """
+    The meta database runs on an APSW dialect and inherits this spec, so it is
+    covered too. It declares ``drivers = {"": ...}`` while its dialect reports
+    ``apsw``, so the gate must key off the dialect rather than the declared
+    drivers.
+    """
+    engine = create_engine("superset://")
+    SupersetEngineSpec.register_engine_events(engine)
+
+    with engine.connect() as connection:
+        assert connection.execute(text("SELECT 1")).scalar() == 1
+
+        with pytest.raises(Exception, match="attached databases"):
+            connection.execute(text(f"ATTACH DATABASE '{local_sqlite_file}' AS other"))
