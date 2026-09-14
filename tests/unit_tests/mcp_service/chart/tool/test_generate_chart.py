@@ -1006,3 +1006,7 @@ class TestGenerateBubbleWithSqlExpressionMetric:
         assert result.chart is not None
         assert result.chart.id == 42
         create_command.return_value.run.assert_called_once()
+        # the crash was in the semantics analyzer, so assert what it produced
+        assert result.semantics is not None
+        assert "GDP per capita" in result.semantics.data_story
+        assert "None" not in result.semantics.data_story
