@@ -185,9 +185,6 @@ class ReadOnlySqlPolicy(ToolPolicy):
 
     def _engine(self, arguments: dict[str, Any]) -> str:
         """Resolve the parser dialect from the selected Superset database."""
-        if engine := arguments.get("engine"):
-            return str(engine)
-
         database_id = arguments.get("database_id")
         if not isinstance(database_id, int) or isinstance(database_id, bool):
             return ""
