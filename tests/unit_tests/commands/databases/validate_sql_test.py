@@ -31,14 +31,15 @@ from superset.exceptions import (
     SupersetSyntaxErrorException,
     SupersetTemplateException,
 )
+from superset.sql_validators.base import SQLValidationAnnotation
 
 
 @pytest.fixture
 def mock_database(mocker: MockerFixture) -> MagicMock:
-    """Create a mock database with PostgreSQL engine."""
+    """Create a mock database with a Presto engine."""
     database = mocker.MagicMock()
     database.id = 1
-    database.db_engine_spec.engine = "postgresql"
+    database.db_engine_spec.engine = "presto"
 
     DatabaseDAO = mocker.patch(  # noqa: N806
         "superset.commands.database.validate_sql.DatabaseDAO"
@@ -56,7 +57,7 @@ def mock_database(mocker: MockerFixture) -> MagicMock:
 def mock_validator(mocker: MockerFixture) -> MagicMock:
     """Create a mock SQL validator."""
     validator = mocker.MagicMock()
-    validator.name = "PostgreSQLValidator"
+    validator.name = "PrestoDBSQLValidator"
     validator.validate.return_value = []
 
     get_validator_by_name = mocker.patch(
@@ -70,7 +71,7 @@ def mock_validator(mocker: MockerFixture) -> MagicMock:
 def mock_config(mocker: MockerFixture) -> dict[str, Any]:
     """Mock the application config."""
     config = {
-        "SQL_VALIDATORS_BY_ENGINE": {"postgresql": "PostgreSQLValidator"},
+        "SQL_VALIDATORS_BY_ENGINE": {"presto": "PrestoDBSQLValidator"},
         "SQLLAB_VALIDATION_TIMEOUT": 30,
     }
     mocker.patch("superset.commands.database.validate_sql.app.config", config)
@@ -170,6 +171,44 @@ def test_validate_sql_without_jinja_templates(
     mock_template_processor.process_template.assert_called_once()
     mock_validator.validate.assert_called_once()
     assert result == []
+
+
+def test_validate_sql_returns_serialized_annotations(
+    mock_database: MagicMock,
+    mock_validator: MagicMock,
+    mock_template_processor: MagicMock,
+    mock_config: dict[str, Any],
+) -> None:
+    """Test that validator annotations are serialized into the command result.
+
+    Also covers the case where a Jinja template renders successfully but the
+    rendered SQL is invalid: the rendered SQL is what reaches the validator, and
+    its annotations are not swallowed by template processing.
+    """
+    templated_sql = "SELECT col1 from_ {{ table }}"
+    invalid_sql = "SELECT col1 from_ table1"
+    mock_template_processor.process_template.return_value = invalid_sql
+    mock_validator.validate.return_value = [
+        SQLValidationAnnotation(
+            message='ERROR: syntax error at or near "table1"',
+            line_number=1,
+            start_column=None,
+            end_column=None,
+        )
+    ]
+
+    data = {"sql": templated_sql, "schema": "public", "template_params": {}}
+    command = ValidateSQLCommand(model_id=1, data=data)
+
+    assert command.run() == [
+        {
+            "line_number": 1,
+            "start_column": None,
+            "end_column": None,
+            "message": 'ERROR: syntax error at or near "table1"',
+        }
+    ]
+    assert mock_validator.validate.call_args.args[0] == invalid_sql
 
 
 def test_validate_sql_template_syntax_error(
@@ -279,6 +318,6 @@ def test_validate_sql_generic_exception(
 
     error = exc_info.value
     assert error.error.message is not None
-    assert "PostgreSQLValidator" in error.error.message
+    assert "PrestoDBSQLValidator" in error.error.message
     assert "Unexpected error occurred" in error.error.message
     mock_validator.validate.assert_not_called()
