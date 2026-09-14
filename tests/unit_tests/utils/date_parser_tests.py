@@ -357,6 +357,50 @@ def test_previous_calendar_quarter():
         assert result == expected
 
 
+def test_get_since_until_sub_day_shorthand() -> None:
+    """
+    Sub-day "Last <unit>" shorthand must resolve `since <= until` at any wall-clock
+    time, not just at midnight. Exercises the real, unmocked `get_since_until`
+    (unlike `test_get_since_until`, which mocks `parse_human_datetime`), frozen at
+    a non-midnight instant so both bounds of the range anchor consistently.
+    """
+    with freezegun.freeze_time("2026-09-14 17:16:40"):
+        result = get_since_until("Last hour")
+        expected = (
+            datetime(2026, 9, 14, 16, 16, 40),
+            datetime(2026, 9, 14, 17, 16, 40),
+        )
+        assert result == expected
+
+        result = get_since_until("Last minute")
+        expected = (
+            datetime(2026, 9, 14, 17, 15, 40),
+            datetime(2026, 9, 14, 17, 16, 40),
+        )
+        assert result == expected
+
+        result = get_since_until("Last second")
+        expected = (
+            datetime(2026, 9, 14, 17, 16, 39),
+            datetime(2026, 9, 14, 17, 16, 40),
+        )
+        assert result == expected
+
+        result = get_since_until("Last 5 minutes")
+        expected = (
+            datetime(2026, 9, 14, 17, 11, 40),
+            datetime(2026, 9, 14, 17, 16, 40),
+        )
+        assert result == expected
+
+        result = get_since_until("Last 2 hours")
+        expected = (
+            datetime(2026, 9, 14, 15, 16, 40),
+            datetime(2026, 9, 14, 17, 16, 40),
+        )
+        assert result == expected
+
+
 @patch("superset.utils.date_parser.parse_human_datetime", mock_parse_human_datetime)
 def test_datetime_eval() -> None:
     result = datetime_eval("datetime('now')")
