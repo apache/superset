@@ -618,6 +618,30 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             db.session.commit()
 
     @pytest.mark.usefixtures("create_dashboards")
+    @with_feature_flags(ENABLE_VIEWERS=True)
+    @with_config({"VIEWER_PROMISCUOUS_MODE": True})
+    def test_get_dashboard_charts_unpublished_denies_viewer(self):
+        """A viewer of an *unpublished* dashboard is denied outright — promiscuous
+        inheritance never applies, so no chart form_data leaks."""
+        from superset.subjects.utils import get_or_create_role_subject
+
+        dashboard = self.dashboards[0]
+        dashboard.published = False
+        gamma_subject = get_or_create_role_subject(
+            security_manager.find_role("Gamma").id
+        )
+        dashboard.viewers.append(gamma_subject)
+        db.session.commit()
+        try:
+            self.login(GAMMA_USERNAME)
+            uri = f"api/v1/dashboard/{dashboard.id}/charts"
+            response = self.get_assert_metric(uri, "get_charts")
+            assert response.status_code in (403, 404)
+        finally:
+            dashboard.viewers.remove(gamma_subject)
+            db.session.commit()
+
+    @pytest.mark.usefixtures("create_dashboards")
     def test_get_dashboard_charts_by_slug(self):
         """
         Dashboard API: Test getting charts belonging to a dashboard

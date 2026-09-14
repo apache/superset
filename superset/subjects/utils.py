@@ -26,7 +26,13 @@ from flask import has_app_context
 from sqlalchemy import select, union_all
 
 from superset import db
-from superset.subjects.models import Subject
+from superset.models.dashboard import Dashboard, dashboard_slices
+from superset.models.slice import Slice
+from superset.subjects.models import (
+    dashboard_editors,
+    dashboard_viewers,
+    Subject,
+)
 from superset.subjects.types import SubjectType
 
 
@@ -89,9 +95,6 @@ def get_inherited_slice_ids_subquery(user_id: int) -> CompoundSelect:
     checks and (composed opt-in) list filters. The feature-flag gate is the
     caller's responsibility — this builder is pure and never executed here.
     """
-    from superset.models.dashboard import Dashboard, dashboard_slices
-    from superset.subjects.models import dashboard_editors, dashboard_viewers
-
     subject_subquery = get_user_subject_ids_subquery(user_id)
 
     def via(assoc: Any) -> Select:
@@ -116,8 +119,6 @@ def get_inherited_datasource_ids_subquery(user_id: int, datasource_type: str) ->
     :func:`get_inherited_slice_ids_subquery`). ``datasource_type`` is matched
     explicitly because chart datasource IDs are only unique within a type.
     """
-    from superset.models.slice import Slice
-
     return select(Slice.datasource_id).where(
         Slice.id.in_(get_inherited_slice_ids_subquery(user_id)),
         Slice.datasource_type == datasource_type,
