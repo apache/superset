@@ -3300,6 +3300,69 @@ def test_raise_for_access_mssql_odbc_connect_database_self_reference_allowed(
     sm.raise_for_access(query=query)  # must not raise
 
 
+def test_raise_for_access_mssql_odbc_connect_wins_over_conflicting_connect_args(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Security regression guard for the odbc_connect/connect_args precedence
+    fix: the connection is configured with odbc_connect's Database=abcm
+    *and* a conflicting connect_args["database"]="another_db". Per the
+    verified runtime precedence (odbc_connect wins -- see
+    MssqlEngineSpec.get_catalog_from_engine_params), the connection
+    actually points to abcm, not another_db.
+
+    A query referencing abcm.dbo.temp is a genuine self-reference and must
+    still be authorized via the plain schema-level grant. A query
+    referencing another_db.dbo.secret must NOT be treated as a
+    self-reference just because connect_args claims "another_db" -- it's a
+    genuinely different catalog from what the connection actually uses, and
+    must still be denied without a catalog-level grant for it.
+
+    Before the precedence fix, get_catalog_from_engine_params checked
+    connect_args first and would have (incorrectly) reported "another_db"
+    as the connection's own catalog -- which would have flipped this test's
+    outcome: abcm.dbo.temp wrongly denied, another_db.dbo.secret wrongly
+    granted.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")  # noqa: N806
+    SqlaTable.query_datasources_by_name.return_value = []
+
+    database = _mssql_database(
+        mocker,
+        "mssql+pyodbc:///?odbc_connect="
+        "Driver%3D%7BODBC+Driver+17+for+SQL+Server%7D%3B"
+        "Server%3Dtcp%3Amyhost%2C1433%3B"
+        "Database%3Dabcm%3B"
+        "Uid%3DSuperSet%3BPwd%3Dpw",
+        extra={"engine_params": {"connect_args": {"database": "another_db"}}},
+    )
+    query = mocker.MagicMock(
+        database=database,
+        schema=None,
+        catalog=None,
+        sql=(
+            "SELECT * FROM abcm.dbo.temp a JOIN another_db.dbo.secret b ON a.id = b.id"
+        ),
+    )
+    # Only the plain schema-level grant exists -- no catalog-qualified grant
+    # for another_db, matching an admin who never intended to grant
+    # cross-database access to it at all.
+    mocker.patch.object(
+        sm,
+        "can_access",
+        side_effect=lambda perm, vm: vm == f"[{MSSQL_CONN_NAME}].[dbo]",
+    )
+
+    with pytest.raises(SupersetSecurityException) as excinfo:
+        sm.raise_for_access(query=query)
+    assert "another_db.dbo.secret" in str(excinfo.value)
+    assert "abcm.dbo.temp" not in str(excinfo.value)
+
+
 def test_raise_for_access_mssql_malformed_connect_args_denies_cleanly(
     mocker: MockerFixture,
     app_context: None,
