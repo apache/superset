@@ -116,25 +116,136 @@ class TestRestoreFailsClosedOnPrunedChildHistory(SupersetTestCase):
         return dataset, column, target_tx, before
 
     def test_pruned_child_refuses_restore_and_leaves_entity_unchanged(self) -> None:
+        """Command-level: the refusal rides the command's own transaction.
+
+        The pruning fixture is COMMITTED (as a real retention pass would
+        be) and the test performs no rollback of its own, so the
+        command's @transaction rollback is what must leave the entity
+        untouched — a partial flush-then-raise would fail the fresh-read
+        assertions below.
+        """
+        # pylint: disable=import-outside-toplevel
+        from superset import security_manager
+        from superset.commands.dataset.restore_version import (
+            RestoreDatasetVersionCommand,
+        )
+        from superset.utils.core import override_user
+        from superset.versioning.queries import list_versions
+
         dataset, column, target_tx, _ = self._two_version_dataset()
         edited_description = column.description
         column_count = len(dataset.columns)
+        dataset_uuid = dataset.uuid
+        column_id = column.id
 
         closed = _closed_column_shadow_rows(column.id)
         assert closed, "the edit should have closed the pre-edit shadow row"
         assert _delete_column_shadow_rows(column.id, closed_only=True) >= 1
+        db.session.commit()  # the prune is durable, like a real retention pass
 
-        with pytest.raises(PrunedChildHistoryError) as excinfo:
-            restore_version(SqlaTable, dataset.uuid, target_tx, entity=dataset)
+        versions = list_versions(SqlaTable, dataset_uuid, entity=dataset)
+        assert versions is not None
+        target_entry = next(v for v in versions if v["transaction_id"] == target_tx)
+        admin = self.get_user("admin") or security_manager.add_user(
+            "admin",
+            "admin",
+            "user",
+            "admin@fab.org",
+            security_manager.find_role("Admin"),
+            password="general",  # noqa: S106 — test-only fixture credential
+        )
+        with override_user(admin):
+            with pytest.raises(PrunedChildHistoryError) as excinfo:
+                RestoreDatasetVersionCommand(
+                    dataset_uuid, target_entry["version_uuid"]
+                ).run()
 
         assert "pruned" in str(excinfo.value)
         assert "left unchanged" in str(excinfo.value)
-        db.session.rollback()
+
+        # Fresh reads, no test-owned rollback: the command's transactional
+        # cleanup owns the unchanged state.
+        db.session.expire_all()
         dataset = _birth_names()
-        refreshed = db.session.get(TableColumn, column.id)
+        refreshed = db.session.get(TableColumn, column_id)
         assert refreshed is not None
         assert refreshed.description == edited_description
         assert len(dataset.columns) == column_count
+
+    def test_verification_row_locks_block_a_concurrent_prune(self) -> None:
+        """H1: the verifier's FOR UPDATE locks hold off the pruner's DELETE
+        until the restore's transaction ends, so the reconstruction inputs
+        cannot vanish between the check and the reverter's re-reads."""
+        # pylint: disable=import-outside-toplevel
+        from superset.versioning.restore import _verify_child_history_complete
+
+        dialect = db.engine.dialect.name
+        if dialect == "sqlite":
+            pytest.skip(
+                "FOR UPDATE is a no-op on SQLite; its single-writer model "
+                "provides the equivalent guarantee"
+            )
+
+        dataset, column, target_tx, _ = self._two_version_dataset()
+        # Acquire the verification locks inside the session's transaction.
+        _verify_child_history_complete(dataset, target_tx)
+
+        shadow = version_class(TableColumn).__table__
+        with db.engine.connect() as conn:
+            if dialect == "mysql":
+                conn.exec_driver_sql("SET SESSION innodb_lock_wait_timeout = 1")
+            else:
+                conn.exec_driver_sql("SET lock_timeout = '1s'")
+            with pytest.raises(sa.exc.OperationalError):
+                with conn.begin():
+                    conn.execute(
+                        sa.delete(shadow).where(
+                            shadow.c.id == column.id,
+                            shadow.c.end_transaction_id.isnot(None),
+                        )
+                    )
+        db.session.rollback()
+
+    def test_sqlite_snapshot_connection_holds_a_real_read_transaction(
+        self,
+    ) -> None:
+        """M2: on SQLite the snapshot helper must own a REAL read
+        transaction — pysqlite's legacy mode emits no BEGIN for SELECTs,
+        so without the helper's explicit BEGIN a concurrent writer could
+        commit between get_version's parent and child reads. Protection
+        shows as either the writer blocking (read lock held) or the
+        second read still agreeing with the first (stable snapshot)."""
+        if db.engine.dialect.name != "sqlite":
+            pytest.skip("exercises the pysqlite legacy-BEGIN recipe")
+        # pylint: disable=import-outside-toplevel
+        from superset.versioning.queries import _snapshot_read_connection
+
+        self._two_version_dataset()
+        db.session.commit()
+
+        shadow = version_class(TableColumn).__table__
+        count_stmt = sa.select(sa.func.count()).select_from(shadow)
+        with _snapshot_read_connection() as conn:
+            first = conn.execute(count_stmt).scalar()
+            assert first
+            writer_succeeded = False
+            try:
+                with db.engine.connect() as writer:
+                    with writer.begin():
+                        writer.exec_driver_sql("PRAGMA busy_timeout = 500")
+                        writer.execute(
+                            sa.delete(shadow).where(
+                                shadow.c.end_transaction_id.isnot(None)
+                            )
+                        )
+                    writer_succeeded = True
+            except sa.exc.OperationalError:
+                pass  # blocked by our read lock: the transaction is real
+            second = conn.execute(count_stmt).scalar()
+        assert (not writer_succeeded) or first == second, (
+            "a concurrent commit changed what the snapshot connection sees "
+            "mid-transaction — no real read transaction is being held"
+        )
 
     def test_control_without_guard_the_partial_write_happens(self) -> None:
         """CONTROL: with the guard removed, the incomplete write proceeds.

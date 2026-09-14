@@ -100,15 +100,11 @@ def _verify_child_history_complete(entity: Any, target_tx: int) -> None:
     ``version_transaction`` rows (change records cascade with them), so
     the only surviving evidence is the validity chain itself. Per child
     (grouped by the child's own ``id``), the state at *target_tx* is
-    PROVABLE when:
-
-    * a surviving non-DELETE row covers ``target_tx`` (restore includes
-      it — earlier holes cannot change the covering row's content), or
-    * every non-INSERT row has a surviving predecessor closing at its
-      ``transaction_id`` (the chain is contiguous) AND the child is
-      provably absent at ``target_tx``: born after it (first row is an
-      INSERT with a later tx) or deleted at/before it (the latest row at
-      or before ``target_tx`` is a DELETE).
+    PROVABLE when a surviving row's validity interval covers it (a
+    non-DELETE covering row: present, restored; a DELETE covering row:
+    provably absent), or when every surviving row lies beyond the target
+    and the earliest is the child's birth INSERT (born after). See
+    :func:`_child_state_provable_at` for the interval semantics.
 
     Anything else means a pruned row MAY have covered ``target_tx`` —
     fail closed (sc-120012).
@@ -140,6 +136,27 @@ def _verify_child_history_complete(entity: Any, target_tx: int) -> None:
     missing: list[str] = []
     for label, child_cls in (("column", TableColumn), ("metric", SqlMetric)):
         shadow = version_class(child_cls).__table__
+        # Lock the reconstruction inputs (the non-DELETE rows valid at the
+        # target) FOR UPDATE in the transaction that owns the restore:
+        # under READ COMMITTED a retention pass could otherwise commit
+        # between this verification and the reverter's own re-reads,
+        # deleting a row that passed the check here. The row locks block
+        # the pruner's DELETE until this transaction commits (its
+        # SERIALIZABLE pass waits or retries); SQLite ignores FOR UPDATE,
+        # where its single-writer model provides the equivalent.
+        db.session.execute(
+            sa.select(shadow.c.id)
+            .where(
+                shadow.c.table_id == entity.id,
+                shadow.c.transaction_id <= target_tx,
+                sa.or_(
+                    shadow.c.end_transaction_id.is_(None),
+                    shadow.c.end_transaction_id > target_tx,
+                ),
+                shadow.c.operation_type != OPERATION_DELETE,
+            )
+            .with_for_update()
+        ).all()
         rows = db.session.execute(
             sa.select(
                 shadow.c.id,
@@ -166,36 +183,32 @@ def _verify_child_history_complete(entity: Any, target_tx: int) -> None:
 
 def _child_state_provable_at(rows: list[Any], target_tx: int) -> bool:
     """Whether *rows* (one child's surviving shadow rows, tx-ordered)
-    prove the child's state at *target_tx*. See
-    :func:`_verify_child_history_complete` for the rules."""
+    prove the child's state at *target_tx*.
+
+    Interval semantics: a row is valid over ``[transaction_id,
+    end_transaction_id)`` (open end = unbounded), and a CLOSED end is
+    Continuum's evidence that a successor row existed at that tx — for a
+    DELETE row, a closed end means the child was re-inserted then. So:
+
+    * an interval covering the target proves the state either way — a
+      non-DELETE covering row means present (the revert includes it), a
+      DELETE covering row means provably absent (deleted at its tx, not
+      re-born until after the target, if ever);
+    * with NO covering interval, the only provable state is born-after:
+      every surviving row lies beyond the target and the earliest is the
+      child's birth INSERT. Anything else — an interval ending at/before
+      the target whose successor is missing, or a post-target
+      UPDATE/DELETE/re-birth whose predecessor is missing — leaves a gap
+      that may have covered the target: fail closed.
+    """
     for row in rows:
-        if (
-            row.operation_type != OPERATION_DELETE
-            and row.transaction_id <= target_tx
-            and (row.end_transaction_id is None or row.end_transaction_id > target_tx)
+        if row.transaction_id <= target_tx and (
+            row.end_transaction_id is None or row.end_transaction_id > target_tx
         ):
-            return True  # a surviving row covers the target: complete
-
-    # No covering row: the child must be PROVABLY absent at target_tx,
-    # which requires a contiguous chain (every non-INSERT row's
-    # predecessor survives — a hole means a pruned row may have covered
-    # the target).
-    closing_txs = {row.end_transaction_id for row in rows}
-    if any(
-        row.operation_type != OPERATION_INSERT and row.transaction_id not in closing_txs
-        for row in rows
-    ):
-        return False
-
-    first = rows[0]
-    if first.operation_type == OPERATION_INSERT and first.transaction_id > target_tx:
-        return True  # born after the target
-    at_or_before = [row for row in rows if row.transaction_id <= target_tx]
-    return bool(
-        at_or_before
-        and max(at_or_before, key=lambda row: row.transaction_id).operation_type
-        == OPERATION_DELETE  # deleted at/before the target
-    )
+            return True
+    if all(row.transaction_id > target_tx for row in rows):
+        return rows[0].operation_type == OPERATION_INSERT
+    return False
 
 
 @dataclass
@@ -293,10 +306,10 @@ def restore_version(
     # and retention can have pruned exactly those rows while the parent's
     # row survives — proceeding would persist an incomplete column/metric
     # set. Verified BEFORE any write; refusal leaves the entity untouched.
-    # The check and the revert read in the same session transaction, so
-    # under READ COMMITTED a prune committing between the two statements
-    # remains a (documented) window — fully closing it is the
-    # retention-policy follow-up deferred from sc-120012.
+    # The verification also row-locks the reconstruction inputs in this
+    # same transaction, so a retention pass committing between the check
+    # and the reverter's re-reads cannot delete them out from under the
+    # restore (the pruner blocks on the locks until this commits).
     if model_cls.__name__ == "SqlaTable":
         _verify_child_history_complete(entity, transaction_id)
 

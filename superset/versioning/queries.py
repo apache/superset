@@ -32,6 +32,8 @@ from __future__ import annotations
 
 import logging
 import uuid
+from collections.abc import Iterator
+from contextlib import contextmanager
 from typing import Any
 from uuid import UUID
 
@@ -626,11 +628,7 @@ def _fetch_version_row_and_children(
     # prune that already erased needed closed child history while the
     # parent survives — is handled fail-closed on the restore write path
     # and deferred for retention itself; see restore.py and sc-120012.)
-    iso = _SNAPSHOT_ISOLATION_BY_DIALECT.get(db.engine.dialect.name)
-    connect = db.engine.connect()
-    if iso is not None:
-        connect = connect.execution_options(isolation_level=iso)
-    with connect as conn, conn.begin():
+    with _snapshot_read_connection() as conn:
         row = conn.execute(stmt).mappings().first()
         if row is None:
             return None, [], []
@@ -642,3 +640,26 @@ def _fetch_version_row_and_children(
             conn, version_class(SqlMetric).__table__, "table_id", entity_id, target_tx
         )
     return row, columns, metrics
+
+
+@contextmanager
+def _snapshot_read_connection() -> Iterator[sa.engine.Connection]:
+    """A dedicated connection whose reads share ONE stable snapshot.
+
+    REPEATABLE READ on MySQL/Postgres pins every read in the transaction
+    to the first statement's snapshot. On SQLite, pysqlite's legacy
+    transactional mode never emits BEGIN for SELECTs — ``conn.begin()``
+    alone starts NO read transaction and reads could still straddle a
+    concurrent commit — so the documented SQLAlchemy recipe applies: emit
+    BEGIN ourselves when the transaction starts (listener scoped to this
+    connection; it dies with it). The isolation setup runs inside the
+    connect() context so a failure there still releases the connection.
+    """
+    with db.engine.connect() as conn:
+        iso = _SNAPSHOT_ISOLATION_BY_DIALECT.get(db.engine.dialect.name)
+        if iso is not None:
+            conn = conn.execution_options(isolation_level=iso)
+        elif db.engine.dialect.name == "sqlite":
+            sa.event.listen(conn, "begin", lambda c: c.exec_driver_sql("BEGIN"))
+        with conn.begin():
+            yield conn

@@ -172,8 +172,46 @@ _INSERT, _UPDATE, _DELETE = 0, 1, 2
             True,
             "born after target, contiguous chain",
         ),
-        # Deleted at/before the target (contiguous): provably absent.
-        ([_Row(2, 5, _INSERT), _Row(5, 8, _DELETE)], 10, True, "deleted before target"),
+        # Deleted at/before the target with the DELETE interval COVERING
+        # it (open end, or closed end beyond the target): provably absent.
+        (
+            [_Row(2, 5, _INSERT), _Row(5, None, _DELETE)],
+            10,
+            True,
+            "deleted before target, never re-born",
+        ),
+        (
+            [_Row(2, 5, _INSERT), _Row(5, 20, _DELETE)],
+            10,
+            True,
+            "deleted before target, re-born after it",
+        ),
+        # A closed DELETE end at/before the target is Continuum's
+        # evidence of a re-insert whose row is missing → refuse.
+        (
+            [_Row(2, 5, _INSERT), _Row(5, 8, _DELETE)],
+            10,
+            False,
+            "closed delete expires before target",
+        ),
+        # Codex H2 regression: prune erased the re-birth INSERT (8,15)
+        # and its closing DELETE (15,20); the child EXISTED at 10 but the
+        # survivors' gap [8, 20) crosses the target → refuse.
+        (
+            [_Row(2, 5, _INSERT), _Row(5, 8, _DELETE), _Row(20, None, _INSERT)],
+            10,
+            False,
+            "H2: pruned re-birth window crossing the target",
+        ),
+        # Codex M1 regression: a covering DELETE proves absence by its
+        # own interval even when its long-pruned predecessor is gone — a
+        # dead column must not block every later restore.
+        (
+            [_Row(20, None, _DELETE)],
+            30,
+            True,
+            "M1: covering delete with pruned predecessor",
+        ),
         # Pruned INSERT with a surviving mid-chain row and no cover:
         # ambiguous → refuse.
         (
@@ -199,3 +237,42 @@ def test_child_state_provable_case_algebra(
     """sc-120012 fail-closed algebra: covered / provably-absent pass,
     every detectable pruning hole refuses."""
     assert _provable(rows, target_tx) is expected, case
+
+
+def test_restore_endpoint_maps_pruned_history_to_422(app_context: None) -> None:
+    """The fail-closed refusal surfaces as a user-facing 422, not a 500.
+
+    PrunedChildHistoryError passes through the command's @transaction
+    untouched (on_error re-raises non-SQLAlchemy exceptions as-is), so
+    the endpoint must catch it ahead of the generic failed_exc branch."""
+    from superset.models.dashboard import Dashboard
+    from superset.versioning.api_helpers import restore_version_endpoint
+    from superset.versioning.restore import PrunedChildHistoryError
+
+    error = PrunedChildHistoryError("SqlaTable", "2 column/metric history row(s)")
+
+    class _Command:
+        not_found_exc = KeyError
+        forbidden_exc = PermissionError
+        failed_exc = RuntimeError
+
+        def __init__(self, *_args: object) -> None:
+            pass
+
+        def run(self) -> None:
+            raise error
+
+    api = MagicMock()
+    api.response_422.return_value = "resp-422"
+
+    response = restore_version_endpoint(
+        api,
+        Dashboard,
+        _Command,
+        "00000000-0000-0000-0000-000000000001",
+        "00000000-0000-0000-0000-000000000002",
+    )
+
+    assert response == "resp-422"
+    api.response_422.assert_called_once_with(message=str(error))
+    assert "left unchanged" in str(error)
