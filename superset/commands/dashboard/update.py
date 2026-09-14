@@ -97,15 +97,18 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
             # swapped for a placeholder so ``position_json`` cannot keep
             # accumulating dangling chart references (sc-115325).
             #
-            # Precedence: when ``json_metadata`` carries ``positions`` (the
-            # frontend always sends them there), ``set_dash_metadata`` reconciles
-            # those and overwrites ``position_json`` from them, so a raw
-            # ``position_json`` field sent alongside is superseded. Reconciling
-            # it here would be dead work — including its membership query — so
-            # this branch runs only for a PUT that sends the raw field without
-            # ``positions`` in ``json_metadata``.
-            metadata_carries_positions = isinstance(metadata, dict) and (
-                "positions" in metadata
+            # Precedence: when ``json_metadata`` carries a non-null ``positions``
+            # (the frontend always sends them there), ``set_dash_metadata``
+            # reconciles those and overwrites ``position_json`` from them, so a
+            # raw ``position_json`` field sent alongside is superseded and
+            # reconciling it here would be dead work — including its membership
+            # query. The test mirrors ``set_dash_metadata``'s own
+            # (``data.get("positions") is not None``): a present-but-null
+            # ``positions`` makes it skip the layout entirely, so the raw field
+            # must still be reconciled here or a dangling layout would be
+            # written as-is.
+            metadata_carries_positions = (
+                isinstance(metadata, dict) and metadata.get("positions") is not None
             )
             if (
                 position_json := self._properties.get("position_json")

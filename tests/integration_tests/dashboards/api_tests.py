@@ -2310,6 +2310,103 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         db.session.delete(model)
         db.session.commit()
 
+    def test_update_dashboard_null_metadata_positions_reconciles_raw_field(
+        self,
+    ) -> None:
+        """PUT with ``json_metadata.positions: null`` alongside a raw
+        ``position_json``: ``set_dash_metadata`` skips a null ``positions``
+        entirely, so the precedence skip must NOT fire — the raw field is the
+        one being written and must be reconciled (codeant on #44028: a
+        presence-only test skipped it and persisted the dangling layout).
+        """
+        admin = self.get_user("admin")
+        dashboard_id = self.insert_dashboard(
+            "null-positions-recon", "null-positions-recon", [admin.id]
+        ).id
+        self.login(ADMIN_USERNAME)
+        absent_chart_id = 999_999_997
+        raw_positions = {
+            "ROOT_ID": {"id": "ROOT_ID", "type": "ROOT", "children": ["CHART-raw"]},
+            "CHART-raw": {
+                "id": "CHART-raw",
+                "type": "CHART",
+                "children": [],
+                "meta": {"chartId": absent_chart_id, "width": 4, "height": 50},
+            },
+        }
+        uri = f"api/v1/dashboard/{dashboard_id}"
+        rv = self.put_assert_metric(
+            uri,
+            {
+                "position_json": json.dumps(raw_positions),
+                "json_metadata": json.dumps({"positions": None}),
+            },
+            "put",
+        )
+        assert rv.status_code == 200, rv.data
+
+        model = db.session.query(Dashboard).get(dashboard_id)
+        stored = json.loads(model.position_json)
+        assert stored["CHART-raw"]["type"] == "MARKDOWN", stored
+
+        db.session.delete(model)
+        db.session.commit()
+
+    def test_update_dashboard_rejects_a_malformed_chart_node_without_detaching(
+        self,
+    ) -> None:
+        """PUT whose ``json_metadata.positions`` carries a CHART node with no
+        usable ``chartId`` is refused with a 422 naming the slot, and the
+        dashboard's existing memberships are untouched — the wholesale
+        membership rebuild must not silently detach a chart because its node
+        was malformed (codeant on #44028).
+        """
+        admin = self.get_user("admin")
+        dashboard = self.insert_dashboard(
+            "malformed-node", "malformed-node", [admin.id]
+        )
+        from superset.connectors.sqla.models import SqlaTable
+
+        dataset_id = db.session.query(SqlaTable.id).order_by(SqlaTable.id).first()[0]
+        chart = self.insert_chart("malformed-node-member", [admin.id], dataset_id)
+        dashboard.slices = [chart]
+        db.session.commit()
+        dashboard_id, chart_id = dashboard.id, chart.id
+        self.login(ADMIN_USERNAME)
+        positions = {
+            "ROOT_ID": {
+                "id": "ROOT_ID",
+                "type": "ROOT",
+                "children": ["CHART-ok", "CHART-bad"],
+            },
+            "CHART-ok": {
+                "id": "CHART-ok",
+                "type": "CHART",
+                "children": [],
+                "meta": {"chartId": chart_id, "width": 4, "height": 50},
+            },
+            "CHART-bad": {
+                "id": "CHART-bad",
+                "type": "CHART",
+                "children": [],
+                "meta": {"chartId": [1], "width": 4, "height": 50},
+            },
+        }
+        uri = f"api/v1/dashboard/{dashboard_id}"
+        rv = self.put_assert_metric(
+            uri, {"json_metadata": json.dumps({"positions": positions})}, "put"
+        )
+        assert rv.status_code == 422, rv.data
+        assert b"CHART-bad" in rv.data
+
+        db.session.expire_all()
+        model = db.session.query(Dashboard).get(dashboard_id)
+        assert {s.id for s in model.slices} == {chart_id}
+
+        db.session.delete(model)
+        db.session.delete(db.session.query(Slice).get(chart_id))
+        db.session.commit()
+
     def test_update_dashboard_position_json_non_object_is_left_intact(self) -> None:
         """A raw ``position_json`` that is valid JSON but not an object
         (``"[]"``, ``"null"``, a scalar) must survive the PUT unchanged, not

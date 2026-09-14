@@ -23,6 +23,7 @@ from typing import Any, Dict, List
 
 from flask import g
 from flask_appbuilder.models.sqla.interface import SQLAInterface
+from marshmallow import ValidationError
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Query
 
@@ -30,6 +31,7 @@ from superset import security_manager
 from superset.commands.dashboard.exceptions import (
     DashboardAccessDeniedError,
     DashboardForbiddenError,
+    DashboardInvalidError,
     DashboardNotFoundError,
     DashboardUpdateFailedError,
 )
@@ -181,6 +183,36 @@ def _repair_dangling_chart_nodes(
             dashboard_id,
         )
     return repaired
+
+
+def _reject_malformed_chart_nodes(positions: dict[str, Any]) -> None:
+    """Fail closed on a ``CHART`` layout node whose ``chartId`` cannot be
+    resolved, naming the offending slot(s).
+
+    Used only on the path that rebuilds ``dashboard.slices`` wholesale from
+    the layout: there, skipping such a node would silently detach the chart
+    it references. (The pre-reconcile code failed that save too, with a 500
+    from the bad ``IN`` value; this is the same fail-closed outcome as a clear
+    422.) The repair path leaves malformed nodes untouched instead — it never
+    rebuilds membership, so ignoring is safe there.
+    """
+    malformed: list[str] = [
+        key
+        for key, node in positions.items()
+        if isinstance(node, dict)
+        and node.get("type") == "CHART"
+        and _layout_chart_id(node) is None
+    ]
+    if malformed:
+        raise DashboardInvalidError(
+            exceptions=[
+                ValidationError(
+                    "position_json CHART node(s) without a usable chartId: "
+                    + ", ".join(sorted(malformed)),
+                    field_name="json_metadata",
+                )
+            ]
+        )
 
 
 def _existing_chart_ids(chart_ids: set[int]) -> set[int]:
@@ -486,6 +518,12 @@ class DashboardDAO(BaseDAO[Dashboard]):
         )
 
         if (positions := data.get("positions")) is not None:
+            # A CHART node whose ``chartId`` cannot be resolved is not merely
+            # "ignored" here: the membership rebuild below is wholesale, so
+            # skipping the node would silently detach the chart it references.
+            # Fail closed with a clear 422 instead (the pre-reconcile code
+            # failed the save too, but with a 500 from the bad ``IN`` value).
+            _reject_malformed_chart_nodes(positions)
             # find slices in the position data
             slice_ids = [
                 chart_id

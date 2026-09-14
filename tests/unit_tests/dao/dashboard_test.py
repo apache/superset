@@ -21,6 +21,7 @@ import pytest
 from sqlalchemy.orm.session import Session
 
 from superset import db
+from superset.commands.dashboard.exceptions import DashboardInvalidError
 from superset.connectors.sqla.models import Database, SqlaTable
 from superset.daos.dashboard import (
     _layout_chart_id,
@@ -446,3 +447,47 @@ def test_reconcile_position_json_keeps_live_chart_referenced_in_numeric_form(
     # Absent id in either numeric form: still repaired.
     assert positions["CHART-absent-float"]["type"] == "MARKDOWN"
     assert positions["CHART-absent-str"]["type"] == "MARKDOWN"
+
+
+def test_set_dash_metadata_rejects_a_malformed_chart_node_instead_of_detaching(
+    session: Session,
+) -> None:
+    """A CHART node whose chartId cannot be resolved fails the save with a
+    422-shaped error naming the slot — it is NOT skipped, because the
+    membership rebuild is wholesale and skipping it would silently detach the
+    chart it references. Existing memberships are untouched by the refusal.
+    (codeant on #44028; the pre-reconcile code failed this save with a 500.)"""
+    Dashboard.metadata.create_all(session.get_bind())
+
+    dataset = SqlaTable(
+        table_name="malformed_table",
+        database=Database(database_name="malformed_db", sqlalchemy_uri="sqlite://"),
+    )
+    db.session.add(dataset)
+    db.session.flush()
+    member = Slice(
+        slice_name="malformed_member",
+        datasource_id=dataset.id,
+        datasource_type="table",
+    )
+    dashboard = Dashboard(dashboard_title="malformed", slug="malformed")
+    dashboard.slices = [member]
+    db.session.add_all([member, dashboard])
+    db.session.flush()
+
+    positions: dict[str, Any] = {
+        "CHART-ok": _chart_node("CHART-ok", member.id, 4, 50),
+        "CHART-bad": {
+            "type": "CHART",
+            "id": "CHART-bad",
+            "children": [],
+            "meta": {"chartId": [1], "width": 4, "height": 50},
+        },
+    }
+
+    with pytest.raises(DashboardInvalidError) as excinfo:
+        DashboardDAO.set_dash_metadata(dashboard, {"positions": positions})
+
+    assert "CHART-bad" in str(excinfo.value.normalized_messages())
+    # The refusal did not touch membership.
+    assert {chart.id for chart in dashboard.slices} == {member.id}
