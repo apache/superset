@@ -25,7 +25,8 @@ uuid, which a ``LIKE`` on the uuid column would never match.
 
 from __future__ import annotations
 
-from collections.abc import Callable
+import random
+from collections.abc import Callable, Sequence
 from datetime import datetime, timedelta
 from functools import partial
 from typing import Any
@@ -905,3 +906,176 @@ class TestPruneAudit(SupersetTestCase):
             "(permanent immortality per the force exemption)"
         )
         assert boundary in survivors
+
+
+def _legacy_repeats_an_earlier_block(
+    table: sa.FromClause,
+    now: datetime,
+    scope_entities: Sequence[tuple[str, str | None]] | None = None,
+) -> sa.ColumnElement[bool]:
+    """The pre-rewrite predicate, verbatim in its executable form."""
+    earlier: sa.FromClause = table.alias("earlier_block")
+    between: sa.FromClause = table.alias("reason_change")
+    reason_changed_between: sa.ColumnElement[bool] = sa.exists(
+        sa.select(sa.literal(1))
+        .select_from(between)
+        .where(
+            sa.and_(
+                between.c.status == STATUS_BLOCKED,
+                between.c.entity_type == table.c.entity_type,
+                between.c.entity_uuid == table.c.entity_uuid,
+                between.c.created_on >= earlier.c.created_on,
+                between.c.created_on <= table.c.created_on,
+                between.c.reason.is_distinct_from(table.c.reason),
+            )
+        )
+        .correlate(table, earlier)
+    )
+    repeats: sa.ColumnElement[bool] = sa.exists(
+        sa.select(sa.literal(1))
+        .select_from(earlier)
+        .where(
+            sa.and_(
+                earlier.c.status == STATUS_BLOCKED,
+                earlier.c.entity_type == table.c.entity_type,
+                earlier.c.entity_uuid == table.c.entity_uuid,
+                prune_audit._in_current_streak(earlier, now),
+                earlier.c.created_on < table.c.created_on,
+                earlier.c.reason.is_not_distinct_from(table.c.reason),
+                sa.not_(reason_changed_between),
+            )
+        )
+        .correlate(table)
+    )
+    return sa.and_(table.c.trigger != audit.TRIGGER_FORCE, repeats)
+
+
+_EQUIV_ENTITY_TYPE: str = f"{_PREFIX}equiv"
+_EQUIV_SEEDS: range = range(40)  # deterministic; recorded so a failure is reproducible
+_EQUIV_STATUSES: list[str] = [STATUS_BLOCKED] * 12 + [
+    STATUS_PENDING,
+    STATUS_CONFIRMED,
+    STATUS_TARGET_ABSENT,
+    STATUS_FAILED,
+]
+_EQUIV_REASONS: list[str | None] = [_REASON_A, _REASON_B, "user_attribute", None]
+
+
+def _random_history(rng: random.Random, now: datetime) -> list[dict[str, Any]]:
+    """One randomised multi-entity audit history exercising every rule.
+
+    Per entity: 20-60 rows; timestamps step 0-3 days (a 0 step is a TIE, so
+    tied same-reason and tied differing-reason neighbours occur); reasons
+    repeat the previous one with high probability (runs) and flip otherwise,
+    including to/from ``None`` (legacy reason-less runs); statuses are mostly
+    ``blocked`` with occasional ``pending`` (unresolved-attempt boundaries),
+    ``confirmed``/``target_absent`` (streak breakers / evidence bounds) and
+    ``failed``; a few rows are ``force``-triggered. Ages span ~1 year so the
+    operational and evidence cutoffs both bite.
+    """
+    rows: list[dict[str, Any]] = []
+    for entity in range(rng.randint(2, 4)):
+        uuid_: str = f"{_PREFIX}equiv-{entity}"
+        ts: datetime = now - timedelta(days=rng.randint(200, 400))
+        reason: str | None = rng.choice(_EQUIV_REASONS)
+        for _ in range(rng.randint(20, 60)):
+            ts = ts + timedelta(days=rng.choice([0, 0, 1, 1, 2, 3]))
+            if ts >= now:
+                break
+            status: str = rng.choice(_EQUIV_STATUSES)
+            if rng.random() < 0.25:
+                reason = rng.choice(_EQUIV_REASONS)
+            rows.append(
+                {
+                    "id": uuid4(),
+                    "status": status,
+                    "trigger": audit.TRIGGER_FORCE
+                    if rng.random() < 0.08
+                    else audit.TRIGGER_RETENTION,
+                    "actor": audit.ACTOR_SYSTEM,
+                    "entity_type": _EQUIV_ENTITY_TYPE,
+                    "entity_uuid": uuid_,
+                    "reason": reason if status == STATUS_BLOCKED else None,
+                    "removed_dashboard_slices": 0,
+                    "created_on": ts,
+                }
+            )
+    return rows
+
+
+class TestRepeatPredicateEquivalence(SupersetTestCase):
+    """The rewritten repeat predicate selects exactly what the legacy one did."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self._cleanup()
+
+    def tearDown(self) -> None:
+        self._cleanup()
+        super().tearDown()
+
+    def _cleanup(self) -> None:
+        db.session.rollback()
+        db.session.execute(
+            sa.delete(PurgeAuditLog.__table__).where(
+                PurgeAuditLog.__table__.c.entity_type == _EQUIV_ENTITY_TYPE
+            )
+        )
+        db.session.commit()
+
+    @staticmethod
+    def _candidate_sets(now: datetime) -> dict[str, set[UUID]]:
+        table: sa.Table = PurgeAuditLog.__table__
+        cutoff_op: datetime = now - timedelta(days=90)
+        cutoff_ev: datetime = now - timedelta(days=180)
+        out: dict[str, set[UUID]] = {}
+        for name, preds in (
+            ("duplicate", prune_audit._duplicate_predicates(table, now)),
+            ("operational", prune_audit._operational_predicates(table, now, cutoff_op)),
+            ("evidence", prune_audit._evidence_predicates(table, now, cutoff_ev)),
+        ):
+            out[name] = {
+                r[0]
+                for r in db.session.execute(
+                    sa.select(table.c.id).where(
+                        table.c.entity_type == _EQUIV_ENTITY_TYPE, *preds
+                    )
+                ).all()
+            }
+        return out
+
+    def test_rewritten_repeat_predicate_matches_legacy_on_random_histories(
+        self,
+    ) -> None:
+        """Compare all candidate categories for every recorded random seed.
+
+        The rewritten predicate must equal the legacy
+        nested-EXISTS predicate — the executable form of the equivalence
+        argument, covering ties, reason flips (incl. to/from NULL), pending
+        boundaries, streak breakers, evidence bounds and force rows."""
+        now: datetime = audit.utc_now()
+        checked_rows: int = 0
+        for seed in _EQUIV_SEEDS:
+            rng: random.Random = random.Random(seed)  # noqa: S311 — deterministic test data, not crypto
+            rows: list[dict[str, Any]] = _random_history(rng, now)
+            self._cleanup()
+            db.session.execute(sa.insert(PurgeAuditLog.__table__), rows)
+            db.session.commit()
+            checked_rows += len(rows)
+
+            rewritten: dict[str, set[UUID]] = self._candidate_sets(now)
+            with patch.object(
+                prune_audit,
+                "_repeats_an_earlier_block",
+                _legacy_repeats_an_earlier_block,
+            ):
+                legacy: dict[str, set[UUID]] = self._candidate_sets(now)
+
+            for category in ("duplicate", "operational", "evidence"):
+                assert rewritten[category] == legacy[category], (
+                    f"seed={seed} category={category}: "
+                    f"only-rewritten={len(rewritten[category] - legacy[category])} "
+                    f"only-legacy={len(legacy[category] - rewritten[category])}"
+                )
+        # Guard against a generator regression that quietly checks nothing.
+        assert checked_rows > 1000
