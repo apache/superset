@@ -418,10 +418,17 @@ def _select_change_rows_for_kinds(
                 vc.c.sequence.desc(),
                 vc.c.entity_id.desc(),
             )
+            # stream_results rides the STATEMENT, never the connection:
+            # ``Connection.execution_options`` mutates the session's
+            # connection in place, permanently flipping every later
+            # statement on the request into a server-side cursor — on
+            # PostgreSQL that wraps subsequent INSERTs/SAVEPOINTs in
+            # ``DECLARE ... CURSOR FOR`` and they fail with a syntax
+            # error (observed: Continuum's transaction insert and the
+            # DBEventLogger write after an activity read; sc-120955).
             result = (
                 db.session.connection()
-                .execution_options(stream_results=True)
-                .execute(stmt)
+                .execute(stmt.execution_options(stream_results=True))
                 .mappings()
             )
             ordinal = _merge_result_into_heap(
