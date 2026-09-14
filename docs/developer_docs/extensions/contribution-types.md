@@ -376,9 +376,22 @@ available.
 Roll out to a canary worker cohort after recording provider latency, error rate,
 and cache-backend health for a comparable baseline. Observe at least one normal
 traffic cycle. Alert ownership should sit with the semantic-platform operator.
-Track `semantic_cache.containment.enabled` and the fixed-name `hit`, `miss`,
-`bypass`, `lookup_failure`, `store_failure`, `store_skipped`,
-`coordination_failure`, and `unsupported` counters. Define deployment-specific rollback thresholds before the
+Track `semantic_cache.containment.enabled`, `semantic_cache.containment.hit`,
+`semantic_cache.containment.miss`, `semantic_cache.containment.bypass`,
+`semantic_cache.containment.store_skipped`, `semantic_cache.containment.store_failure`,
+`semantic_cache.containment.lookup_failure`, `semantic_cache.containment.transform_failure`,
+`semantic_cache.containment.prune_failure`, `semantic_cache.containment.coordination_failure`,
+`semantic_cache.containment.unsupported`, and `semantic_cache.containment.invalid_configuration`.
+Alert on the `semantic_cache.containment.store_failure`,
+`semantic_cache.containment.lookup_failure`, `semantic_cache.containment.transform_failure`,
+`semantic_cache.containment.prune_failure`, and `semantic_cache.containment.coordination_failure`
+counters, and unexpected `semantic_cache.containment.unsupported` or
+`semantic_cache.containment.invalid_configuration` at startup.
+Coordination socket/connect timeouts derive from `SEMANTIC_CACHE_COORDINATION_WAIT_SECONDS`
+(with a 1 ms minimum for zero wait); these bound individual I/O calls, not the whole request.
+Separate lease/value clients use a non-atomic immediate ownership recheck before writing;
+an atomic Lua fence is used only when both stores share the exact Redis client.
+Define deployment-specific rollback thresholds before the
 canary; recommended triggers are any provider-result mismatch, sustained provider
 error regression, coordination failures above 1% of cache mutations, or lookup and
 store failures above 5% of semantic requests.

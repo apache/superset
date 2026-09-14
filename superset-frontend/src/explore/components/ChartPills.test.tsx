@@ -96,3 +96,35 @@ test('does not claim a cache hit for mixed semantic provenance', () => {
 
   expect(screen.queryByTestId('cached-label')).not.toBeInTheDocument();
 });
+
+test.each(['MISS', undefined] as const)(
+  'aggregates a data HIT and a row-count %s as mixed provenance',
+  countStatus => {
+    render(
+      <ChartPills
+        queriesResponse={[
+          response('HIT', false),
+          { ...response(countStatus, false), data: [{ rowcount: 100 }] },
+        ]}
+        formData={{ viz_type: 'table', server_pagination: true }}
+        chartUpdateStartTime={0}
+        refreshCachedQuery={jest.fn()}
+        hideRowCount
+      />,
+    );
+    expect(screen.getByText('Mixed cache')).toBeInTheDocument();
+    expect(screen.queryByText('Semantic cache')).not.toBeInTheDocument();
+  },
+);
+
+test('aggregates all semantic hits', () => {
+  render(
+    <ChartPills
+      queriesResponse={[response('HIT', false), response('HIT', false)]}
+      chartUpdateStartTime={0}
+      refreshCachedQuery={jest.fn()}
+      hideRowCount
+    />,
+  );
+  expect(screen.getByText('Semantic cache')).toBeInTheDocument();
+});
