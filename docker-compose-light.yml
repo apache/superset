@@ -75,7 +75,6 @@ x-common-build: &common-build
   args:
     DEV_MODE: "true"
     INCLUDE_CHROMIUM: ${INCLUDE_CHROMIUM:-false}
-    INCLUDE_FIREFOX: ${INCLUDE_FIREFOX:-false}
     BUILD_TRANSLATIONS: ${BUILD_TRANSLATIONS:-false}
 
 services:

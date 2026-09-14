@@ -2644,8 +2644,6 @@ WEBDRIVER_OPTION_ARGS: list[str] = []
 WEBDRIVER_BASEURL = "http://0.0.0.0:8080/"
 # The base URL for the email report hyperlinks.
 WEBDRIVER_BASEURL_USER_FRIENDLY = WEBDRIVER_BASEURL
-# Time selenium will wait for the page to load and render for the email report.
-EMAIL_PAGE_RENDER_WAIT = int(timedelta(seconds=30).total_seconds())
 
 # Send user to a link where they can report bugs
 BUG_REPORT_URL = None
