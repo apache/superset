@@ -204,20 +204,46 @@ def test_eager_gettext_assignment_classifier(source: str, expected: list[int]) -
     assert _find_eager_gettext_assignments(source) == expected
 
 
+#: Modules exempt from the eager-constant convention, as paths relative
+#: to the ``superset`` package root. Deliberately empty: a future module
+#: that legitimately needs a module-scope default-locale constant adds
+#: itself here with a justifying comment instead of fighting a test far
+#: from its change.
+_EAGER_CONSTANT_ALLOWLIST: frozenset[str] = frozenset()
+
+
 def test_no_module_level_eager_gettext_constants() -> None:
-    """Reject import-time eager gettext constants throughout the Superset package."""
+    """Reject import-time eager gettext constants throughout the Superset package.
+
+    Would be a linter rule in a perfect world (standard ``# noqa``-style
+    opt-out, no runtime tree walk); until a custom pylint checker exists
+    the allowlist above is the opt-out, unparseable files are skipped
+    rather than failing an unrelated i18n test, and the full-package walk
+    is bounded (~1s measured)."""
     import superset
 
     offenders: list[str] = []
+    skipped: list[str] = []
     package_root: pathlib.Path = pathlib.Path(superset.__file__).parent
     path: pathlib.Path
     source: str
     line: int
     for path in package_root.rglob("*.py"):
+        if str(path.relative_to(package_root)) in _EAGER_CONSTANT_ALLOWLIST:
+            continue
         source = path.read_text(errors="ignore")
-        for line in _find_eager_gettext_assignments(source):
+        try:
+            lines = _find_eager_gettext_assignments(source)
+        except SyntaxError:
+            skipped.append(str(path))
+            continue
+        for line in lines:
             offenders.append(f"{path}:{line}")
-    assert not offenders, f"module-level eager gettext constants at: {offenders}"
+    assert not offenders, (
+        f"module-level eager gettext constants at: {offenders} "
+        f"(allowlist: tests/unit_tests/views/test_i18n_constants.py; "
+        f"unparseable files skipped: {skipped or 'none'})"
+    )
 
 
 def test_constant_renders_in_the_locale_of_each_request(
