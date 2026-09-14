@@ -19,7 +19,7 @@ import logging
 from contextvars import ContextVar
 from datetime import datetime
 from io import BytesIO
-from typing import Any, cast, Optional
+from typing import Any, cast, ClassVar, Optional
 from zipfile import is_zipfile, ZipFile
 
 from flask import current_app, redirect, request, Response, url_for
@@ -204,6 +204,18 @@ class ChartSQLAInterface(SQLAInterface):
 
 class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     datamodel = ChartSQLAInterface(Slice)
+
+    restore_command_cls: ClassVar[type[RestoreChartCommand]] = RestoreChartCommand
+    soft_delete_not_found_errors: ClassVar[tuple[type[Exception], ...]] = (
+        ChartNotFoundError,
+    )
+    soft_delete_forbidden_errors: ClassVar[tuple[type[Exception], ...]] = (
+        ChartForbiddenError,
+    )
+    restore_failed_errors: ClassVar[tuple[type[Exception], ...]] = (
+        ChartRestoreFailedError,
+    )
+    soft_delete_logger: ClassVar[logging.Logger] = logger
 
     resource_name = "chart"
     allow_browser_login = True
@@ -1049,21 +1061,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        try:
-            RestoreChartCommand(uuid).run()
-            return self.response(200, message="OK")
-        except ChartNotFoundError:
-            return self.response_404()
-        except ChartForbiddenError:
-            return self.response_403()
-        except ChartRestoreFailedError as ex:
-            logger.error(
-                "Error restoring model %s: %s",
-                self.__class__.__name__,
-                str(ex),
-                exc_info=True,
-            )
-            return self.response_422(message=str(ex))
+        return self._restore_soft_deleted(uuid)
 
     @expose("/<uuid>/purge", methods=("POST",))
     @protect()
