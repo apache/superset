@@ -182,25 +182,8 @@ def _verify_child_history_complete(entity: Any, target_tx: int) -> None:
         for row in rows:
             by_child.setdefault(row.id, []).append(row)
 
-        # Foreign-closure witnesses. Continuum's validity strategy closes
-        # rows by CHILD PK ALONE, across parents: when a deleted child's
-        # integer id is recycled to a DIFFERENT dataset (SQLite reuses
-        # freed ids routinely; MySQL reuses max(id)+1 after the top row
-        # is deleted), the foreign re-birth closes THIS parent's terminal
-        # DELETE row at the foreign INSERT's tx. Read per-parent, that
-        # closure is indistinguishable from a pruned same-parent re-birth
-        # — which must refuse — so for every closed DELETE end we check
-        # whether a surviving row of the same pk at exactly that tx under
-        # ANOTHER parent explains the closure. Witness rows are read
-        # WITHOUT the lock: they only ever downgrade a would-be refusal
-        # into a provable absence, and an absent child is not a
-        # reconstruction input, so their disappearance mid-restore cannot
-        # produce an incomplete write.
-        witnesses = _foreign_closure_witnesses(shadow, entity.id, by_child)
         for child_id, child_rows in by_child.items():
-            if not _child_state_provable_at(
-                child_rows, target_tx, witnesses.get(child_id, frozenset())
-            ):
+            if not _child_state_provable_at(child_rows, target_tx):
                 missing.append(f"{label} id={child_id}")
                 # The refusal is fail-closed by design; the chain dump is
                 # what lets an operator (or CI) see WHY this child's state
@@ -208,7 +191,7 @@ def _verify_child_history_complete(entity: Any, target_tx: int) -> None:
                 # and which closures had no witness.
                 logger.warning(
                     "versioning: restore refused for %s id=%s at tx=%s — "
-                    "%s id=%s surviving chain=%s witnessed_closures=%s",
+                    "%s id=%s surviving chain=%s",
                     type(entity).__name__,
                     entity.id,
                     target_tx,
@@ -222,7 +205,6 @@ def _verify_child_history_complete(entity: Any, target_tx: int) -> None:
                         )
                         for row in child_rows
                     ],
-                    sorted(witnesses.get(child_id, frozenset())),
                 )
 
     if missing:
@@ -232,41 +214,7 @@ def _verify_child_history_complete(entity: Any, target_tx: int) -> None:
         )
 
 
-def _foreign_closure_witnesses(
-    shadow: sa.Table, entity_id: int, by_child: dict[int, list[Any]]
-) -> dict[int, frozenset[int]]:
-    """Closure txs of each child's DELETE rows that a surviving row of the
-    same pk under ANOTHER parent explains (id recycling — see the witness
-    comment at the call site). One query for all children."""
-    wanted: dict[int, set[int]] = {}
-    for child_id, child_rows in by_child.items():
-        for row in child_rows:
-            if (
-                row.operation_type == OPERATION_DELETE
-                and row.end_transaction_id is not None
-            ):
-                wanted.setdefault(child_id, set()).add(row.end_transaction_id)
-    if not wanted:
-        return {}
-    witness_rows = db.session.execute(
-        sa.select(shadow.c.id, shadow.c.transaction_id).where(
-            shadow.c.id.in_(list(wanted)),
-            shadow.c.table_id != entity_id,
-            shadow.c.transaction_id.in_(
-                sorted({tx for txs in wanted.values() for tx in txs})
-            ),
-        )
-    ).all()
-    lookup = {(row.id, row.transaction_id) for row in witness_rows}
-    return {
-        child_id: frozenset(tx for tx in txs if (child_id, tx) in lookup)
-        for child_id, txs in wanted.items()
-    }
-
-
-def _child_state_provable_at(
-    rows: list[Any], target_tx: int, foreign_closures: frozenset[int] = frozenset()
-) -> bool:
+def _child_state_provable_at(rows: list[Any], target_tx: int) -> bool:
     """Whether *rows* (one child's surviving SAME-PARENT shadow rows,
     tx-ordered) prove the child's state at *target_tx*.
 
@@ -276,18 +224,29 @@ def _child_state_provable_at(
     absent). With no covering interval the verdict rests on the LAST
     same-parent row at/before the target:
 
-    * no such row at all → born-after: provable only when the earliest
+    * none at all → born-after: provable only when the earliest
       surviving row is the child's birth INSERT;
-    * a DELETE whose closure a FOREIGN parent's surviving row explains
-      (``foreign_closures`` — Continuum closes validity by pk ACROSS
-      parents, so id recycling closes this parent's terminal DELETE at
-      the foreign INSERT's tx) → the child was absent HERE from the
-      delete through the target, even when the pk later ping-pongs back
-      to this parent after the target;
-    * anything else — an unexplained closed DELETE (a pruned same-parent
-      re-birth may have covered the target) or a non-DELETE row whose
-      interval expired before the target (its successor is missing) —
-      fails closed.
+    * a DELETE → provably absent, UNCONDITIONALLY — even with a closed
+      end whose closer row no longer survives. Two invariants make this
+      sound (ratified, sc-120012): retention cannot erase the closer of
+      a surviving closed DELETE (the pruner deletes rows whose CLOSE
+      transaction is pruned, so this DELETE row would have gone with
+      it), and purge never touches the live parent's own rows — so a
+      missing closer is a purged FOREIGN incarnation of a recycled id,
+      not this parent's history;
+    * a non-DELETE whose interval expired before the target → its
+      same-parent successor is missing (that row's close-tx was pruned
+      while its own create-tx survived): the child may have existed at
+      the target — fail closed. This is the classic pruned-history
+      shape the guard exists for.
+
+    Known limitation (ratified): a same-parent re-birth whose window
+    ``[X, e)`` was retention-pruned via ``e`` while ``X`` survived is
+    observationally identical to a purged foreign closer, and is
+    accepted as absence. Only reachable for targets inside a
+    retention-pruned window (older than the cutoff); the consequence is
+    a silently omitted column that existed only in that window. Closing
+    it is sc-120945's dependency-closure retention work.
     """
     for row in rows:
         if row.transaction_id <= target_tx and (
@@ -298,10 +257,7 @@ def _child_state_provable_at(
     if not at_or_before:
         return rows[0].operation_type == OPERATION_INSERT
     last = max(at_or_before, key=lambda row: row.transaction_id)
-    return (
-        last.operation_type == OPERATION_DELETE
-        and last.end_transaction_id in foreign_closures
-    )
+    return last.operation_type == OPERATION_DELETE
 
 
 @dataclass

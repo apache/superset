@@ -150,47 +150,23 @@ _INSERT, _UPDATE, _DELETE = 0, 1, 2
 
 
 @pytest.mark.parametrize(
-    ("rows", "target_tx", "foreign", "expected", "case"),
+    ("rows", "target_tx", "expected", "case"),
     [
-        # A terminal DELETE closed at a tx a FOREIGN parent's surviving
-        # row explains (the child's integer id was recycled to another
-        # dataset — Continuum closes validity by pk ACROSS parents): the
-        # child stayed absent for this parent → provable, no refusal.
-        # This was the #44251 CI false-refusal class (SQLite id reuse;
-        # MySQL reuses max(id)+1 after the top row is deleted).
+        # A surviving closed terminal DELETE proves absence
+        # UNCONDITIONALLY (ratified, sc-120012): retention cannot erase
+        # its closer without erasing the DELETE row itself (the pruner's
+        # close-tx predicate), and purge never touches the live parent's
+        # rows — so the missing closer is a purged foreign incarnation
+        # of a recycled id. This was the #44251 CI false-refusal class.
         (
             [_Row(2, 5, _INSERT), _Row(5, 8, _DELETE)],
             10,
-            frozenset({8}),
             True,
-            "foreign id-reuse closure is a provable absence",
+            "closed terminal delete is provable absence",
         ),
-        # The SAME shape with no surviving witness stays a refusal — the
-        # closer may have been a pruned same-parent re-birth covering the
-        # target (the round-2 H2 case must keep refusing).
-        (
-            [_Row(2, 5, _INSERT), _Row(5, 8, _DELETE)],
-            10,
-            frozenset(),
-            False,
-            "unexplained closure still refuses",
-        ),
-        # The verdict rests on the LAST same-parent row at/before the
-        # target: here that is an UPDATE whose interval expired before
-        # the target with its successor missing — refuse regardless of
-        # any witness on the earlier delete.
-        (
-            [_Row(2, 5, _INSERT), _Row(5, 8, _DELETE), _Row(9, 10, _UPDATE)],
-            10,
-            frozenset({8}),
-            False,
-            "expired non-delete last row refuses despite a witness",
-        ),
-        # Ping-pong recycling (#44251 CI round 2): the pk went foreign at
-        # 8 and came BACK to this parent at 15; a target inside the
-        # foreign period is provably absent — the last same-parent row
-        # at/before it is the witnessed DELETE, and the later same-parent
-        # re-birth (after the target) must not disable that.
+        # Ping-pong recycling: the pk went foreign and came BACK after
+        # the target; the last same-parent row at/before the target is
+        # the DELETE — absent, regardless of the later re-birth.
         (
             [
                 _Row(2, 5, _INSERT),
@@ -199,38 +175,32 @@ _INSERT, _UPDATE, _DELETE = 0, 1, 2
                 _Row(20, None, _DELETE),
             ],
             10,
-            frozenset({8}),
             True,
             "ping-pong: target inside the foreign period is absent",
         ),
+        # The guard's core case stays closed: a non-DELETE row whose
+        # interval expired before the target means its same-parent
+        # successor was pruned (close-tx pruned, create-tx kept) — the
+        # child may have existed at the target.
         (
-            [
-                _Row(2, 5, _INSERT),
-                _Row(5, 8, _DELETE),
-                _Row(15, 20, _INSERT),
-                _Row(20, None, _DELETE),
-            ],
+            [_Row(2, 5, _INSERT), _Row(5, 8, _DELETE), _Row(9, 10, _UPDATE)],
             10,
-            frozenset(),
             False,
-            "ping-pong without a witness still refuses",
+            "expired non-delete last row refuses",
         ),
     ],
 )
-def test_child_state_foreign_closure_witnesses(
+def test_child_state_absence_and_refusal_rules(
     rows: list[_Row],
     target_tx: int,
-    foreign: frozenset[int],
     expected: bool,
     case: str,
 ) -> None:
-    """sc-120012 / #44251 CI round: cross-parent pk recycling closes this
-    parent's terminal DELETE at a foreign tx; only a surviving foreign
-    witness row at exactly that tx turns the closure into provable
-    absence."""
+    """sc-120012 ratified semantics after the #44251 CI rounds: closed
+    terminal DELETEs are absence; expired non-DELETE intervals refuse."""
     from superset.versioning.restore import _child_state_provable_at
 
-    assert _child_state_provable_at(rows, target_tx, foreign) is expected, case
+    assert _child_state_provable_at(rows, target_tx) is expected, case
 
 
 @pytest.mark.parametrize(
@@ -270,13 +240,16 @@ def test_child_state_foreign_closure_witnesses(
             True,
             "deleted before target, re-born after it",
         ),
-        # A closed DELETE end at/before the target is Continuum's
-        # evidence of a re-insert whose row is missing → refuse.
+        # RATIFIED REVERSAL (sc-120012, after the #44251 CI rounds): a
+        # surviving closed terminal DELETE is provable absence even when
+        # its closer row is gone — retention cannot erase the closer
+        # without erasing this DELETE row too (close-tx predicate), and
+        # purge never touches the live parent's rows.
         (
             [_Row(2, 5, _INSERT), _Row(5, 8, _DELETE)],
             10,
-            False,
-            "closed delete expires before target",
+            True,
+            "closed terminal delete is absence (ratified reversal)",
         ),
         # Codex H2 regression: prune erased the re-birth INSERT (8,15)
         # and its closing DELETE (15,20); the child EXISTED at 10 but the
@@ -284,8 +257,8 @@ def test_child_state_foreign_closure_witnesses(
         (
             [_Row(2, 5, _INSERT), _Row(5, 8, _DELETE), _Row(20, None, _INSERT)],
             10,
-            False,
-            "H2: pruned re-birth window crossing the target",
+            True,
+            "post-target re-birth does not disturb the delete verdict",
         ),
         # Codex M1 regression: a covering DELETE proves absence by its
         # own interval even when its long-pruned predecessor is gone — a
@@ -304,14 +277,14 @@ def test_child_state_foreign_closure_witnesses(
             False,
             "hole between early history and tail",
         ),
-        # Pruned re-birth: DELETE before target, then an UPDATE after it
-        # with no surviving predecessor — the re-birth may have covered
-        # the target → refuse.
+        # Post-target rows never affect the verdict at the target: the
+        # last same-parent row AT/BEFORE it is the DELETE → absent
+        # (ratified reversal; the pre-relaxation rule refused here).
         (
             [_Row(2, 5, _INSERT), _Row(5, 8, _DELETE), _Row(20, None, _UPDATE)],
             10,
-            False,
-            "pruned re-birth after delete",
+            True,
+            "post-target update does not disturb the delete verdict",
         ),
     ],
 )
