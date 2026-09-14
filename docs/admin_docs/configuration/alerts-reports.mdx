@@ -53,7 +53,7 @@ Screenshots will be taken but no messages actually sent as long as `ALERT_REPORT
 As of 7.0.0, Superset takes screenshots only with [Playwright](https://playwright.dev/python/) driving a headless Chromium browser. Selenium, Firefox, geckodriver and the `WEBDRIVER_TYPE` setting are not supported, and no feature flag is needed to use Playwright. Prior to 7.0.0, users were responisble for installing their own headless browser, and could use Selenium if desired.
 
 - The default Superset image (for example the `latest` and `<version>` tags) includes Playwright and Chromium.
-- The `lean` image and custom images need them installed, for example with `pip install playwright && playwright install-deps && playwright install chromium`. A working example of a Dockerfile that installs these tools is provided under "Building your own production Docker image" on the [Docker Builds](/admin-docs/installation/docker-builds#building-your-own-production-docker-image) page.
+- The `lean` image and custom images need them installed. A working example of a Dockerfile that installs these tools is provided under "Building your own production Docker image" on the [Docker Builds](/admin-docs/installation/docker-builds#building-your-own-production-docker-image) page.
 
 Only the worker container needs the browser.
 
