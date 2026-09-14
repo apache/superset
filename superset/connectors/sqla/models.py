@@ -23,7 +23,7 @@ import re
 from collections import defaultdict
 from collections.abc import Hashable
 from dataclasses import dataclass, field
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any, Callable, cast, Optional, Union
 from urllib.parse import parse_qsl, quote, urlencode, urlsplit, urlunsplit
 
@@ -150,6 +150,20 @@ class MetadataResult:
     added: list[str] = field(default_factory=list)
     removed: list[str] = field(default_factory=list)
     modified: list[str] = field(default_factory=list)
+
+
+def _is_calculated_column(column: TableColumn) -> bool:
+    """Return whether *column* is a user-defined virtual column.
+
+    ``fetch_metadata`` keeps calculated columns that the source table does
+    not list. Engine specs such as Trino also store an ``expression`` on
+    expanded nested ``ROW`` fields (dotted names like ``metadata.uuid``).
+    Those are still physical columns: if the source no longer lists them
+    they must be dropped so chart cache keys invalidate. See #43918.
+    """
+    if not column.expression:
+        return False
+    return "." not in (column.column_name or "")
 
 
 METRIC_FORM_DATA_PARAMS = [
@@ -2336,7 +2350,12 @@ class SqlaTable(
                     new_column.expression = expression
             else:
                 new_column = old_column
-                if new_column.type != col["type"]:
+                # Type and physical expression both feed generated SQL, so
+                # either change is schema drift that must invalidate chart
+                # cache keys (see changed_on bump below).
+                if new_column.type != col["type"] or (
+                    (new_column.expression or "") != expression
+                ):
                     results.modified.append(col["column_name"])
                 new_column.type = col["type"]
                 new_column.expression = expression
@@ -2351,11 +2370,15 @@ class SqlaTable(
 
         # Add back calculated (virtual) columns, i.e. those that weren't matched
         # against `new_columns` above and are thus still present in
-        # `old_columns_by_name`. Columns that were matched are already appended to
-        # `columns` in the loop above, and re-adding them here (e.g. via `old_columns`)
-        # would duplicate any synced physical column that also carries a truthy
-        # `expression`, such as Trino's expanded nested `ROW` fields.
-        columns.extend([col for col in old_columns_by_name.values() if col.expression])
+        # `old_columns_by_name`. Nested physical ROW fields also carry an
+        # expression; they are not calculated columns and must not be kept
+        # when the source no longer lists them (delete-orphan then removes
+        # the TableColumn row).
+        leftover_columns = list(old_columns_by_name.values())
+        dropped_physical_columns = any(
+            not _is_calculated_column(col) for col in leftover_columns
+        )
+        columns.extend(col for col in leftover_columns if _is_calculated_column(col))
         self.columns = columns
 
         if not self.main_dttm_col:
@@ -2364,6 +2387,15 @@ class SqlaTable(
 
         # Apply config supplied mutations.
         current_app.config["SQLA_TABLE_MUTATOR"](self)
+
+        # Child TableColumn rows own the FK, so mutating them (and reassigning
+        # ``self.columns``) does not emit an UPDATE on this tables row.
+        # AuditMixinNullable.changed_on onupdate therefore never fires, and
+        # query_cache_key() keeps serving results computed against the previous
+        # column definitions. Force the same bump DatasetDAO.update() applies
+        # when columns are saved. See #43918.
+        if results.added or results.modified or dropped_physical_columns:
+            self.changed_on = datetime.now()
 
         db.session.merge(self)
         return results
