@@ -149,11 +149,12 @@ def test_evidence_retention_fails_closed_on_invalid_values(value: Any) -> None:
     assert window.invalid_key == EVIDENCE_RETENTION_KEY
 
 
-def test_batch_size_defaults_to_one_hundred() -> None:
-    """Use the shipped batch-size default."""
-    assert current_app.config[prune_audit.BATCH_SIZE_KEY] == 100
-    assert prune_audit.BATCH_SIZE == 100
-    assert prune_audit.resolve_batch_size().size == 100
+def test_batch_size_defaults_to_fifty() -> None:
+    """Use the shipped batch-size default (keeps a concurrent writer's wait
+    around a second on MySQL on a long multi-reason history)."""
+    assert current_app.config[prune_audit.BATCH_SIZE_KEY] == 50
+    assert prune_audit.BATCH_SIZE == 50
+    assert prune_audit.resolve_batch_size().size == 50
 
 
 def test_unset_batch_size_falls_back_to_the_module_default_silently() -> None:

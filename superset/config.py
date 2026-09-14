@@ -1060,12 +1060,12 @@ PURGE_AUDIT_EVIDENCE_RETENTION_DAYS: int | None = None
 # audit write can wait. Measured on one entity with a 6,000-row multi-reason
 # blocked history (lock-hold per batch, PostgreSQL 16 / MySQL 8 REPEATABLE
 # READ): 50 -> ~0.15 s / ~1.2 s; 100 -> ~0.9 s / ~7.7 s; 500 -> ~6.4 s / ~50 s.
-# Smaller batches mean shorter waits but more lock acquisitions and, with the
-# fixed ten batches per run, a proportionally slower backlog drain. Must be an
-# integer in [1, 500] (SQLite's bind-variable floor bounds the top); an
-# invalid value makes the run skip entirely and report the key rather than
-# prune with an unknown batch size.
-PURGE_AUDIT_PRUNING_BATCH_SIZE: int = 100
+# The default keeps a concurrent writer's wait around a second even on MySQL;
+# larger batches drain a backlog faster (ten batches per run) at the cost of
+# longer waits. Must be an integer in [1, 500] (SQLite's bind-variable floor
+# bounds the top); an invalid value makes the run skip entirely and report
+# the key rather than prune with an unknown batch size.
+PURGE_AUDIT_PRUNING_BATCH_SIZE: int = 50
 
 # A function that receives a dict of all feature flags
 # (DEFAULT_FEATURE_FLAGS merged with FEATURE_FLAGS)

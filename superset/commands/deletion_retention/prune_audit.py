@@ -154,7 +154,7 @@ _STREAK_BREAKING_STATUSES: frozenset[str] = frozenset(
 #: that re-check's cost scales with candidates × the candidate entities'
 #: history depth, so the batch size is the operator's lever on writer wait
 #: (see config.py for the measured trade-off).
-BATCH_SIZE: int = 100
+BATCH_SIZE: int = 50
 #: Upper bound on the configurable batch size. The locked re-check and the
 #: literal-id DELETE bind every id of the batch in one ``IN`` list, and SQLite
 #: rejects statements with more than 999 bind variables; 500 was the shipped
