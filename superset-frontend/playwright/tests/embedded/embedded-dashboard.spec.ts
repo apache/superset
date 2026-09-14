@@ -21,7 +21,7 @@ import { test, expect, Browser, BrowserContext, Page } from '@playwright/test';
 import { createServer, IncomingMessage, ServerResponse, Server } from 'http';
 import { AddressInfo, Socket } from 'net';
 import { readFileSync, existsSync } from 'fs';
-import { join } from 'path';
+import { dirname, join } from 'path';
 import {
   apiEnableEmbedding,
   getAccessToken,
@@ -29,6 +29,9 @@ import {
 } from '../../helpers/api/embedded';
 import { getDashboardBySlug } from '../../helpers/api/dashboard';
 import { EmbeddedPage } from '../../pages/EmbeddedPage';
+import { fileURLToPath } from 'url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 /**
  * Superset domain (Flask server) — set by CI or defaults to local dev

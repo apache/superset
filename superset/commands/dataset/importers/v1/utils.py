@@ -29,6 +29,7 @@ from urllib.request import HTTPRedirectHandler
 
 import pandas as pd
 from flask import current_app as app
+from jinja2.exceptions import TemplateError
 from pandas.errors import OutOfBoundsDatetime
 from sqlalchemy import BigInteger, Boolean, Date, DateTime, Float, String, Text
 from sqlalchemy.exc import MultipleResultsFound
@@ -41,6 +42,7 @@ from superset.commands.dataset.exceptions import (
     MultiCatalogDisabledValidationError,
 )
 from superset.commands.exceptions import ImportFailedError
+from superset.commands.importers.exceptions import IncorrectFormatError
 from superset.commands.importers.v1.utils import (
     find_existing_by_import_identity,
     find_existing_for_import,
@@ -48,7 +50,7 @@ from superset.commands.importers.v1.utils import (
 from superset.connectors.sqla.models import SqlaTable
 from superset.constants import SKIP_VISIBILITY_FILTER_CLASSES
 from superset.daos.dataset import DatasetDAO
-from superset.exceptions import SupersetSecurityException
+from superset.exceptions import SupersetParseError, SupersetSecurityException
 from superset.models.core import Database
 from superset.models.helpers import ChildMultipleResultsFound
 from superset.sql.parse import Table
@@ -244,6 +246,25 @@ def validate_catalog(config: dict[str, Any]) -> None:
         and catalog != default_catalog
     ):
         raise MultiCatalogDisabledValidationError()
+
+
+def _get_template_params(dataset: SqlaTable) -> dict[str, Any]:
+    """
+    Return a dataset's template params as a dict for the access check.
+
+    Delegates to ``template_params_dict`` so the check reads the params the
+    same way rendering does, but tolerates the two inputs that property does
+    not guard: it raises on malformed JSON and passes non-dict JSON through.
+    Either yields an empty dict so the check still runs against the raw SQL.
+    """
+    try:
+        params = dataset.template_params_dict
+    except json.JSONDecodeError:
+        logger.warning(
+            "Unable to decode template_params for dataset %s", dataset.table_name
+        )
+        return {}
+    return params if isinstance(params, dict) else {}
 
 
 def import_dataset(  # noqa: C901
@@ -564,8 +585,31 @@ def import_dataset(  # noqa: C901
     if not ignore_permissions:
         try:
             security_manager.raise_for_access(datasource=dataset)
+            # For virtual datasets, also validate access to the tables the
+            # SQL references, matching the create and update commands.
+            if dataset.sql:
+                security_manager.raise_for_access(
+                    database=dataset.database,
+                    sql=dataset.sql,
+                    # Empty strings would qualify table names against a
+                    # nonexistent catalog/schema, so they are normalized to
+                    # None to let the check fall back to the defaults.
+                    catalog=dataset.catalog or None,
+                    schema=dataset.schema or None,
+                    # Jinja-templated SQL only reveals the tables it really
+                    # references once the params are applied, so they are
+                    # forwarded rather than left to default to empty.
+                    template_params=_get_template_params(dataset),
+                )
         except SupersetSecurityException as ex:
             raise DatasetAccessDeniedError() from ex
+        # SQL that can't be parsed or rendered can't be access-checked, so fail
+        # closed, but as an invalid payload (422) rather than an access denial
+        # or a server error.
+        except SupersetParseError as ex:
+            raise IncorrectFormatError(f"Invalid SQL: {ex.error.message}") from ex
+        except TemplateError as ex:
+            raise IncorrectFormatError(f"Invalid SQL: {ex}") from ex
 
     # `has_table` opens a live connection to the target database to run a
     # schema-introspection query. Its result is only ever consulted below to

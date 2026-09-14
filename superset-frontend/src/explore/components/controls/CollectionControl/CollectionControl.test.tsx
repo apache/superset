@@ -108,7 +108,7 @@ test('Should have add button', async () => {
     await screen.findByRole('button', { name: 'plus' }),
   ).toBeInTheDocument();
   expect(props.onChange).toHaveBeenCalledTimes(0);
-  userEvent.click(screen.getByRole('button', { name: 'plus' }));
+  await userEvent.click(screen.getByRole('button', { name: 'plus' }));
   expect(props.onChange).toHaveBeenCalledWith([
     { key: 'hrYAZ5iBH' },
     undefined,
@@ -124,7 +124,7 @@ test('Should have remove button', async () => {
   expect(props.onChange).toHaveBeenCalledTimes(0);
   const buttonElement = removeButton.closest('button');
   expect(buttonElement).not.toBeNull();
-  userEvent.click(buttonElement!);
+  await userEvent.click(buttonElement!);
   expect(props.onChange).toHaveBeenCalledWith([]);
 });
 
@@ -148,6 +148,6 @@ test('Should call Control component', async () => {
 
   expect(await screen.findByTestId('TestControl')).toBeInTheDocument();
   expect(props.onChange).toHaveBeenCalledTimes(0);
-  userEvent.click(screen.getByTestId('TestControl'));
+  await userEvent.click(screen.getByTestId('TestControl'));
   expect(props.onChange).toHaveBeenCalledWith([{ key: 'hrYAZ5iBH' }]);
 });

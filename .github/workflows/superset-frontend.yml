@@ -41,7 +41,7 @@ jobs:
 
       - name: Check for File Changes
         id: check
-        uses: ./.github/actions/change-detector/
+        uses: $/.github/actions/change-detector/
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 

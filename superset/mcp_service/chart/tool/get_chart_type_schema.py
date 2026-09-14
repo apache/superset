@@ -39,6 +39,7 @@ from superset.mcp_service.chart.schemas import (
     PieChartConfig,
     PivotTableChartConfig,
     TableChartConfig,
+    TreemapChartConfig,
     WaterfallChartConfig,
     XYChartConfig,
 )
@@ -50,7 +51,8 @@ _CHART_TYPE_ADAPTERS: Dict[str, TypeAdapter[Any]] = {
     "xy": TypeAdapter(XYChartConfig),
     "table": TypeAdapter(TableChartConfig),
     "pie": TypeAdapter(PieChartConfig),
-    "gauge_chart": TypeAdapter(GaugeChartConfig),
+    "gauge": TypeAdapter(GaugeChartConfig),
+    "treemap_v2": TypeAdapter(TreemapChartConfig),
     "pivot_table": TypeAdapter(PivotTableChartConfig),
     "interactive_pivot": TypeAdapter(InteractivePivotChartConfig),
     "mixed_timeseries": TypeAdapter(MixedTimeseriesChartConfig),
@@ -206,10 +208,17 @@ _CHART_EXAMPLES: Dict[str, list[Dict[str, Any]]] = {
             "show_total": True,
         },
     ],
-    "gauge_chart": [
+    "gauge": [
         {
-            "chart_type": "gauge_chart",
+            "chart_type": "gauge",
             "metric": {"name": "progress", "aggregate": "AVG"},
+        },
+    ],
+    "treemap_v2": [
+        {
+            "chart_type": "treemap_v2",
+            "groupby": [{"name": "region"}, {"name": "product"}],
+            "metric": {"name": "revenue", "aggregate": "SUM"},
         },
     ],
 }
@@ -222,6 +231,8 @@ def _get_chart_type_schema_impl(
     """Pure logic for chart type schema lookup — no auth, no decorators."""
     from superset.mcp_service.chart.registry import get_registry
 
+    if chart_type == "gauge_chart":
+        chart_type = "gauge"
     enabled_types = sorted(get_registry().all_types())
     adapter = _CHART_TYPE_ADAPTERS.get(chart_type)
     if adapter is None:
@@ -299,8 +310,9 @@ def get_chart_type_schema(
     for a chart configuration before calling generate_chart or update_chart.
 
     Valid chart_type values depend on the host deployment. Core types are xy,
-    table, pie, gauge_chart, pivot_table, mixed_timeseries, handlebars, big_number,
-    histogram, box_plot, and waterfall. Deployments that enable an AG Grid
+    table, pie, gauge, treemap_v2, pivot_table, mixed_timeseries, handlebars,
+    big_number, histogram, box_plot, and waterfall. Deployments that enable an
+    AG Grid
     pivot extension also expose interactive_pivot.
 
     Returns the JSON Schema for the requested chart type, optionally

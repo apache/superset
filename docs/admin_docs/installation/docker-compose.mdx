@@ -18,7 +18,7 @@ Since `docker compose` is primarily designed to run a set of containers on **a s
 and can't support requirements for **high availability**, we do not support nor recommend
 using our `docker compose` constructs to support production-type use-cases. For single host
 environments, we recommend using [minikube](https://minikube.sigs.k8s.io/docs/start/) along
-with our [installing on k8s](https://superset.apache.org/admin-docs/installation/running-on-kubernetes)
+with our [Kubernetes installation](/admin-docs/installation/kubernetes)
 documentation.
 :::
 
@@ -196,7 +196,9 @@ One important variable is `SUPERSET_LOAD_EXAMPLES` which determines whether the 
 container will populate example data and visualizations into the metadata database. These examples
 are helpful for learning and testing out Superset but unnecessary for experienced users and
 production deployments. The loading process can sometimes take a few minutes and a good amount of
-CPU, so you may want to disable it on a resource-constrained device.
+CPU, so you may want to disable it on a resource-constrained device. Once the example data and
+dashboards are present in the databases, later `superset_init` runs skip loading them; run
+`SUPERSET_FORCE_LOAD_EXAMPLES=yes docker compose up` to reload the examples anyway.
 
 For more advanced or dynamic configurations that are typically managed in a `superset_config.py` file
 located in your `PYTHONPATH`, note that it can be done by providing a
