@@ -45,16 +45,16 @@ Here are the build presets that are exposed through the `supersetbot docker` uti
   you want the smallest possible image and full control over what gets installed.
 - `dev`: For development, with dev-related utilities and root access. This
   includes some commonly used database drivers like `mysqlclient`, `psycopg2-binary` and
-  some other used for development/CI. The published `-dev` images do not include a headless
+  some others used for development/CI. The published `-dev` images do not include a headless
   browser; to add Chromium, build the `dev` target with `--build-arg INCLUDE_CHROMIUM=true`.
 - `py311`, e.g., Py311: Similar to lean but with a different Python version (in this example, 3.11).
 - `ci`: For certain CI workloads.
 - `websocket`: For Superset clusters supporting advanced features.
 - `dockerize`: Used by Helm in initContainers to wait for database dependencies to be available.
 
-Release tags follow this `superset`/`lean` naming starting with 7.0.0. Releases up to and
-including 6.1.0 publish the minimal image under the plain tag (e.g. `6.1.0`) and have no
-`-lean` tag.
+Release tags follow this `superset`/`lean` naming starting with 7.0.0. For earlier releases
+(6.1.0 and before), the plain tag (e.g. `6.1.0`) is the minimal image; where a `-lean` tag
+exists for one of those releases, it is the same minimal image.
 
 ## Key tags examples
 
@@ -95,9 +95,10 @@ You would build the image with `docker build -t mysuperset:latest .` or `docker 
 
 ```Dockerfile
 # Start from the minimal lean image (no drivers) and add exactly what you need,
-# or start from apache/superset:master to build on top of the batteries-included
+# or start from apache/superset:7.0.0 to build on top of the batteries-included
 # default (which already has psycopg2-binary, mysqlclient, MCP and Playwright).
-FROM apache/superset:master-lean
+# Change the version to the release you want to build from.
+FROM apache/superset:7.0.0-lean
 
 USER root
 
@@ -113,10 +114,8 @@ RUN . /app/.venv/bin/activate && \
     pymssql \
     # package needed for using single-sign on authentication:
     Authlib \
-    # install Playwright for taking screenshots for Alerts & Reports. This assumes the feature flag PLAYWRIGHT_REPORTS_AND_THUMBNAILS is enabled
-    # That feature flag will default to True starting in 6.0.0
-    # Playwright works only with Chrome.
-    # If you are still using Selenium instead of Playwright, you would instead install here the selenium package and a headless browser & webdriver
+    # Playwright with Chromium takes the screenshots for Alerts & Reports and thumbnails.
+    # It is required as of 7.0.0, which removed Selenium support.
     playwright \
     && playwright install-deps \
     && PLAYWRIGHT_BROWSERS_PATH=/usr/local/share/playwright-browsers playwright install chromium
