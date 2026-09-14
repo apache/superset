@@ -61,12 +61,7 @@ def test_register_engine_events_disables_attach(uri, spec, local_sqlite_file) ->
 
 
 def test_attach_enabled_without_registration(local_sqlite_file) -> None:
-    """
-    Control: without ``register_engine_events`` the driver still permits ATTACH,
-    so the test above exercises a real capability. If this ever fails because the
-    driver blocks ATTACH on its own, drop it rather than treating it as a
-    regression.
-    """
+    """Control: the driver permits ATTACH by default, so the gate test is meaningful."""
     engine = create_engine("shillelagh://")
     with engine.connect() as connection:
         connection.execute(text(f"ATTACH DATABASE '{local_sqlite_file}' AS other"))
@@ -97,11 +92,7 @@ def test_unreachable_apsw_connection_is_refused() -> None:
 
 
 def test_non_apsw_backend_is_left_alone() -> None:
-    """
-    Shillelagh also ships non-APSW backends, which reach this spec through the
-    backend-only fallback in ``get_engine_spec``. They have no APSW handle, so
-    the listener must not be registered for them.
-    """
+    """Non-APSW backends get no listener; see ``register_engine_events``."""
     engine = create_engine("shillelagh+sqlglot://")
     ShillelaghEngineSpec.register_engine_events(engine)
 
