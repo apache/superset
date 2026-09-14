@@ -30,6 +30,7 @@ from typing import Any, TYPE_CHECKING
 from urllib.parse import parse_qs, urlparse
 
 from superset.constants import EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS
+from superset.utils.core import ExtraFiltersReasonType
 
 if TYPE_CHECKING:
     from superset.mcp_service.chart.schemas import AppliedDashboardFilter
@@ -60,6 +61,75 @@ QUERY_CONTEXT_EXTRA_FORM_DATA_EXTRAS_KEYS = {
 
 class ChartNotOnDashboardError(ValueError):
     """Raised when a chart is not part of the given dashboard's slices."""
+
+
+def requested_filter_columns(extra_form_data: dict[str, Any] | None) -> set[str]:
+    """Return simple column names explicitly requested through extra form data."""
+    if not extra_form_data:
+        return set()
+
+    columns: set[str] = set()
+    for filter_ in extra_form_data.get("filters") or []:
+        if isinstance(filter_, dict) and isinstance(column := filter_.get("col"), str):
+            columns.add(column)
+    for filter_ in extra_form_data.get("adhoc_filters") or []:
+        if (
+            isinstance(filter_, dict)
+            and filter_.get("expressionType") == "SIMPLE"
+            and isinstance(column := filter_.get("subject"), str)
+        ):
+            columns.add(column)
+    return columns
+
+
+def rejected_columns_in_query(query: Any) -> set[str]:
+    """Return the rejected filter column names reported by one query payload.
+
+    Query construction reports dropped filters as ``rejected_filters`` entries
+    (``{"reason": ..., "column": ...}``), the shape every consumer of a
+    chart-data or query payload sees. The raw ``rejected_filter_columns`` list
+    is still accepted for payloads captured before that conversion.
+    """
+    if not isinstance(query, dict):
+        return set()
+
+    # QUERY results retain the datasource-only list so temporal pseudo-filter
+    # rejections cannot be mistaken for ordinary filters with the same name.
+    # Prefer it whenever present, including when it is empty.
+    if "rejected_filter_columns" in query:
+        return {
+            column
+            for column in query.get("rejected_filter_columns") or []
+            if isinstance(column, str)
+        }
+
+    columns = {
+        column
+        for entry in query.get("rejected_filters") or []
+        if isinstance(entry, dict)
+        and entry.get("reason") != ExtraFiltersReasonType.NO_TEMPORAL_COLUMN
+        and isinstance(column := entry.get("column"), str)
+    }
+    return columns
+
+
+def rejected_requested_filter_columns(
+    result: Any, extra_form_data: dict[str, Any] | None
+) -> list[str]:
+    """Find request filters rejected by datasource query construction.
+
+    Only columns the caller asked for are reported, so a stale filter stored in
+    an older chart configuration cannot fail the request.
+    """
+    if not isinstance(result, dict):
+        return []
+    requested = requested_filter_columns(extra_form_data)
+    rejected = {
+        column
+        for query in result.get("queries", [])
+        for column in rejected_columns_in_query(query)
+    }
+    return sorted(requested & rejected)
 
 
 def find_chart_by_identifier(

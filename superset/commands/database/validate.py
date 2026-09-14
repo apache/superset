@@ -27,6 +27,10 @@ from superset.commands.database.exceptions import (
     InvalidEngineError,
     InvalidParametersError,
 )
+from superset.commands.database.utils import (
+    engine_params_changed,
+    ssh_tunnel_endpoint_changed,
+)
 from superset.daos.database import DatabaseDAO
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs import get_engine_spec
@@ -90,11 +94,28 @@ class ValidateDatabaseParametersCommand(BaseCommand):
             event_logger.log_with_context(action="validation_error", engine=engine)
             raise InvalidParametersError(errors)
 
+        # A stored password/encrypted_extra/SSH tunnel credential must never
+        # be rehydrated onto a connection whose final effective destination
+        # the caller can change. `parameters` only covers what feeds into
+        # `sqlalchemy_uri` here -- `extra.engine_params` (merged into the
+        # actual DBAPI connect kwargs, e.g. `connect_args.host`/`port`) and
+        # the SSH tunnel endpoint can both override it independently.
+        identity_changed = False
+        ssh_tunnel_changed = False
+        if (model := self._model) is not None:
+            ssh_tunnel_changed = ssh_tunnel_endpoint_changed(
+                model.ssh_tunnel, self._properties.get("ssh_tunnel")
+            )
+            identity_changed = (
+                engine_params_changed(model.extra, self._properties.get("extra", "{}"))
+                or ssh_tunnel_changed
+            )
+
         serialized_encrypted_extra = self._properties.get(
             "masked_encrypted_extra",
             "{}",
         )
-        if self._model:
+        if self._model and not identity_changed:
             serialized_encrypted_extra = engine_spec.unmask_encrypted_extra(
                 self._model.encrypted_extra,
                 serialized_encrypted_extra,
@@ -110,13 +131,35 @@ class ValidateDatabaseParametersCommand(BaseCommand):
             encrypted_extra,
         )
         if self._model and sqlalchemy_uri == self._model.safe_sqlalchemy_uri():
+            if identity_changed:
+                raise InvalidParametersError(
+                    [
+                        SupersetError(
+                            message=__(
+                                "Testing this connection would change its "
+                                "effective destination (engine parameters "
+                                "or SSH tunnel endpoint) while reusing the "
+                                "stored password. Provide the real "
+                                "password to test a connection whose "
+                                "destination has changed."
+                            ),
+                            error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+                            level=ErrorLevel.ERROR,
+                        )
+                    ]
+                )
             sqlalchemy_uri = self._model.sqlalchemy_uri_decrypted
 
         # Forward the SSH tunnel into the connection test so that
         # tunnel-only databases are reached through the tunnel rather
         # than directly, mirroring the existing test_connection flow.
         ssh_tunnel_properties = self._properties.get("ssh_tunnel")
-        if ssh_tunnel_properties and self._model and self._model.ssh_tunnel:
+        if (
+            ssh_tunnel_properties
+            and self._model
+            and self._model.ssh_tunnel
+            and not ssh_tunnel_changed
+        ):
             ssh_tunnel_properties = unmask_password_info(
                 ssh_tunnel_properties,
                 self._model.ssh_tunnel,

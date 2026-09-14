@@ -16,33 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { getTimeFormatter } from '@superset-ui/core';
+import { DateWithFormatter, getTimeFormatter } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
-import DateWithFormatter from '../../src/utils/DateWithFormatter';
 import { formatColumnValue } from '../../src/utils/formatValue';
 import { DataColumnMeta } from '../../src/types';
 
 const formatter = getTimeFormatter('%H:%M:%S');
-
-test('formats a parseable timestamp with the configured formatter', () => {
-  const value = new DateWithFormatter('2017-02-14T11:22:33Z', { formatter });
-  expect(String(value)).toBe('11:22:33');
-});
-
-test('renders the original value when it is not a parseable timestamp', () => {
-  // Duration columns hold values like these. They produce an Invalid Date,
-  // which used to be formatted and rendered as "NaN:NaN:NaN".
-  ['00:01:54', '0 days 00:01:54'].forEach(input => {
-    const value = new DateWithFormatter(input, { formatter });
-    expect(Number.isNaN(value.getTime())).toBe(true);
-    expect(String(value)).toBe(input);
-  });
-});
-
-test('retains the original input when the formatter is String', () => {
-  const value = new DateWithFormatter('00:01:54');
-  expect(String(value)).toBe('00:01:54');
-});
 
 test('renders a duration cell through the column formatter without producing NaN', () => {
   // The cell text is produced by formatColumnValue, which hands the wrapped

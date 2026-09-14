@@ -1203,28 +1203,6 @@
           },
           "time_grain_sqla": {
             "description": "To what level of granularity should the temporal column be aggregated. Supports [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601#Durations) durations.",
-            "enum": [
-              "PT1S",
-              "PT5S",
-              "PT30S",
-              "PT1M",
-              "PT5M",
-              "PT10M",
-              "PT15M",
-              "PT30M",
-              "PT1H",
-              "PT6H",
-              "P1D",
-              "P1W",
-              "P1M",
-              "P3M",
-              "P1Y",
-              "1969-12-28T00:00:00Z/P1W",
-              "1969-12-29T00:00:00Z/P1W",
-              "P1W/1970-01-03T00:00:00Z",
-              "P1W/1970-01-04T00:00:00Z",
-              null
-            ],
             "example": "P1D",
             "nullable": true,
             "type": "string"
@@ -1485,12 +1463,14 @@
               "PT10M",
               "PT15M",
               "PT30M",
+              "PT0.5H",
               "PT1H",
               "PT6H",
               "P1D",
               "P1W",
               "P1M",
               "P3M",
+              "P0.25Y",
               "P1Y",
               "1969-12-28T00:00:00Z/P1W",
               "1969-12-29T00:00:00Z/P1W",
@@ -6070,6 +6050,10 @@
             "description": "Chart count",
             "type": "integer"
           },
+          "restricted_count": {
+            "description": "Charts the current user cannot access",
+            "type": "integer"
+          },
           "result": {
             "description": "A list of dashboards",
             "items": {
@@ -6101,6 +6085,10 @@
         "properties": {
           "count": {
             "description": "Dashboard count",
+            "type": "integer"
+          },
+          "restricted_count": {
+            "description": "Dashboards the current user cannot access",
             "type": "integer"
           },
           "result": {
@@ -14108,6 +14096,17 @@
           }
         },
         "type": "object"
+      },
+      "get_related_objects_ids_schema": {
+        "example": [
+          1,
+          2,
+          3
+        ],
+        "items": {
+          "type": "integer"
+        },
+        "type": "array"
       },
       "get_related_schema": {
         "properties": {
@@ -23648,6 +23647,60 @@
           }
         ],
         "summary": "Get related fields data",
+        "tags": [
+          "Datasets"
+        ]
+      }
+    },
+    "/api/v1/dataset/related_objects/": {
+      "get": {
+        "description": "Aggregates the charts built on any of the requested datasets and the dashboards those charts appear on. Each chart and dashboard is listed once even if it depends on several of the datasets. Requested datasets the user cannot see are ignored; the response is 404 only when none of them are visible.",
+        "parameters": [
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_related_objects_ids_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DatasetRelatedObjectsResponse"
+                }
+              }
+            },
+            "description": "Query result"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Get charts and dashboards associated to multiple datasets",
         "tags": [
           "Datasets"
         ]

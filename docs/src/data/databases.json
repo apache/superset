@@ -3215,7 +3215,7 @@
         "logo": "cockroachdb.png",
         "homepage_url": "https://www.cockroachlabs.com/",
         "categories": ["Traditional RDBMS", "Open Source"],
-        "pypi_packages": ["cockroachdb"],
+        "pypi_packages": ["sqlalchemy-cockroachdb", "psycopg2-binary"],
         "connection_string": "cockroachdb://root@{hostname}:{port}/{database}?sslmode=disable",
         "default_port": 26257,
         "docs_url": "https://github.com/cockroachdb/sqlalchemy-cockroachdb",
