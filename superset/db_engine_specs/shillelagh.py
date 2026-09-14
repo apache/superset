@@ -73,8 +73,6 @@ class ShillelaghEngineSpec(SqliteEngineSpec):
     @classmethod
     def register_engine_events(cls, engine: Engine) -> None:
         super().register_engine_events(engine)
-        # The shillelagh dialects are owned by the library, so there is no
-        # ``on_connect`` of ours to extend, as ``SupersetAPSWDialect`` has.
         # Non-APSW shillelagh backends (``sqlglot``, ``multicorn2``) reach this
         # spec through the backend-only fallback in ``get_engine_spec`` and have
         # no APSW handle to limit.
