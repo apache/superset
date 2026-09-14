@@ -40,6 +40,8 @@ from superset.mcp_service.chart.chart_helpers import (
 )
 from superset.mcp_service.chart.chart_utils import validate_chart_dataset
 from superset.mcp_service.chart.preview_utils import (
+    BUBBLE_VIZ_TYPES,
+    generate_bubble_vega_lite_preview,
     generate_gauge_ascii_preview,
     generate_gauge_vega_lite_preview,
 )
@@ -477,6 +479,11 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
                     error="No data available for Vega-Lite visualization",
                     error_type="NoDataError",
                 )
+            if form_data.get("viz_type") in BUBBLE_VIZ_TYPES:
+                # Bubble's metrics live under x/y/size, which the generic
+                # spec builder below does not read — it would position the
+                # bubbles by the first two result columns instead.
+                return generate_bubble_vega_lite_preview(chart_data, form_data)
 
             # Convert Superset chart type to Vega-Lite specification
             vega_spec = self._create_vega_lite_spec(chart_data)
