@@ -89,9 +89,10 @@ into a survivor fails the re-check and is not deleted). The re-check is a SELECT
 rather than a correlated ``WHERE`` on the DELETE because MySQL rejects a DELETE
 whose subquery reads the target table (ERROR 1093); the DELETE names only the
 literal surviving ids. Because the re-check predicates are correlated
-(per-entity index probes) and scoped to ≤``BATCH_SIZE`` ids, the locked work is
-bounded rather than a full-table scan, keeping lock-hold time short even on
-large tables.
+(per-entity index probes) and scoped to at most the configured batch of ids,
+the locked work is bounded by the batch size times the history depth of the
+entities in it rather than by the table's size — a workload-dependent cost,
+not a time bound, which the batch-size setting trades against drain speed.
 
 Audit creation/recovery and every pruning batch's DELETE take the same
 singleton database write lock. The lock is held through commit, so an audit row
@@ -155,12 +156,17 @@ _STREAK_BREAKING_STATUSES: frozenset[str] = frozenset(
 #: history depth, so the batch size is the operator's lever on writer wait
 #: (see config.py for the measured trade-off).
 BATCH_SIZE: int = 50
-#: Upper bound on the configurable batch size. The locked re-check and the
-#: literal-id DELETE bind every id of the batch in one ``IN`` list, and SQLite
-#: rejects statements with more than 999 bind variables; 500 was the shipped
-#: constant before the knob existed and is the largest value exercised.
+#: Upper bound on the configurable batch size — a conservative cross-dialect
+#: ceiling, not a derived limit. The locked re-check and the literal-id DELETE
+#: bind every id of the batch in one ``IN`` list alongside the predicates' own
+#: bindings, and the smallest parameter budget among supported backends
+#: (SQLite builds commonly allow 999) must hold both; 500 leaves ample room
+#: for the fixed predicate bindings and is the largest value this code has
+#: been exercised with.
 MAX_BATCH_SIZE: int = 500
 BATCH_SIZE_KEY: str = "PURGE_AUDIT_PRUNING_BATCH_SIZE"
+#: Sentinel distinguishing an absent config key from an explicit ``None``.
+_ABSENT: object = object()
 #: One shared budget for the whole run across all three categories; the
 #: remaining backlog carries over to the next scheduled run (FR-004/SC-004).
 MAX_BATCHES_PER_RUN: int = 10
@@ -235,24 +241,25 @@ class ResolvedBatchSize(NamedTuple):
 def resolve_batch_size() -> ResolvedBatchSize:
     """The per-batch candidate cap, or a disabled run when invalid.
 
-    Unset falls back to :data:`BATCH_SIZE` silently (the key is optional). A
-    present value must be an integer in ``[1, MAX_BATCH_SIZE]``: bools and
-    floats are config mistakes on a knob that governs deletion, zero or
-    negative would make no progress, and larger than the cap risks SQLite's
-    bind-variable floor. Fail-closed like the retention keys — but since the
-    batch size governs every category, an invalid value skips the whole run
-    rather than one category.
+    An ABSENT key falls back to :data:`BATCH_SIZE` silently (the key is
+    optional). A PRESENT value — including an explicit ``None`` — must be a
+    non-boolean ``int`` in ``[1, MAX_BATCH_SIZE]``; nothing is coerced, so a
+    numeric string, a float, or a ``Decimal`` is refused rather than
+    converted: bools and floats are config mistakes on a knob that governs
+    deletion, zero or negative would make no progress, and larger than the
+    cap risks the parameter budget. Fail-closed like the retention keys — but
+    since the batch size governs every category, an invalid value skips the
+    whole run rather than one category.
     """
-    value: Any = current_app.config.get(BATCH_SIZE_KEY)
-    if value is None:
+    value: Any = current_app.config.get(BATCH_SIZE_KEY, _ABSENT)
+    if value is _ABSENT:
         return ResolvedBatchSize(BATCH_SIZE)
-    if not isinstance(value, bool) and not isinstance(value, float):
-        try:
-            size: int = int(value)
-        except (TypeError, ValueError):
-            size = 0
-        if 1 <= size <= MAX_BATCH_SIZE:
-            return ResolvedBatchSize(size)
+    if (
+        isinstance(value, int)
+        and not isinstance(value, bool)
+        and 1 <= value <= MAX_BATCH_SIZE
+    ):
+        return ResolvedBatchSize(value)
     logger.warning(
         "prune_audit: invalid %s=%r (expected an integer in [1, %d]); skipping "
         "the run (pruning never widens on bad configuration)",
@@ -672,10 +679,11 @@ def _delete_batch(
     is a SELECT (not a correlated ``WHERE`` on the DELETE) because MySQL rejects
     a DELETE whose subquery reads the target table (ERROR 1093), and the
     candidacy predicates read ``purge_audit_log``; the DELETE then names only
-    the literal surviving-id list. Both statements are scoped to the ≤500 ids,
-    so the locked work is bounded to per-PK + per-entity index probes regardless
-    of table size (sc-116701 lock-hold-time). When discovery finds nothing, no
-    lock is taken at all.
+    the literal surviving-id list. Both statements are scoped to the batch's
+    ids, so the locked work is per-PK + per-entity index probes whose cost
+    grows with the batch size and the candidate entities' history depth, not
+    with the table's size (sc-116701 lock-hold-time). When discovery finds
+    nothing, no lock is taken at all.
 
     The backdated-write invariant is preserved: a row that a concurrent
     ``write_ahead`` turned into a survivor between the unlocked discovery and
@@ -730,8 +738,9 @@ def _delete_batch(
     # correlated WHERE on the DELETE — because MySQL rejects a DELETE whose
     # subquery reads the target table (ERROR 1093), and the candidacy predicates
     # read ``purge_audit_log``; the DELETE then names only the literal surviving
-    # ids. Both statements are bounded to ≤500 ids (per-PK + per-entity index
-    # probes), so the lock-hold stays short.
+    # ids. Both statements are bounded to the batch's ids (per-PK + per-entity
+    # index probes); the lock-hold grows with the batch size and the candidate
+    # entities' history depth, which the batch-size setting trades off.
     valid_ids: list[Any] = [
         row[0]
         for row in db.session.execute(

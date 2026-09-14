@@ -25,9 +25,10 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 from datetime import datetime
+from decimal import Decimal
 from functools import partial
 from typing import Any, Iterator
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 import sqlalchemy as sa
@@ -158,35 +159,63 @@ def test_batch_size_defaults_to_fifty() -> None:
 
 
 def test_unset_batch_size_falls_back_to_the_module_default_silently() -> None:
-    """The key is optional: absent means the default, with no warning."""
+    """An absent key means the module default, with no warning.
+
+    Absence is distinguished from an explicit ``None``, which is invalid.
+    """
     with without_config(prune_audit.BATCH_SIZE_KEY):
         with patch.object(prune_audit, "logger") as mock_logger:
-            resolved = prune_audit.resolve_batch_size()
+            resolved: prune_audit.ResolvedBatchSize = prune_audit.resolve_batch_size()
         mock_logger.warning.assert_not_called()
     assert resolved == (prune_audit.BATCH_SIZE, None)
 
 
-@pytest.mark.parametrize("value", [1, 50, 100, 500, "250"])
-def test_batch_size_accepts_integers_within_the_cap(value: Any) -> None:
+@pytest.mark.parametrize("value", [1, 50, 100, 500])
+def test_batch_size_accepts_integers_within_the_cap(value: int) -> None:
+    """A non-boolean int in [1, cap] is used as-is."""
     with patch.dict(current_app.config, {prune_audit.BATCH_SIZE_KEY: value}):
-        assert prune_audit.resolve_batch_size() == (int(value), None)
+        assert prune_audit.resolve_batch_size() == (value, None)
 
 
-@pytest.mark.parametrize("value", [0, -10, 501, True, False, 2.5, "fifty", [100]])
+@pytest.mark.parametrize(
+    "value",
+    [
+        None,  # explicit None is a present, invalid value — not absence
+        0,
+        -10,
+        501,
+        True,
+        False,
+        2.5,
+        100.0,  # an integral float is still not an int
+        Decimal("100.7"),  # would silently truncate under int()
+        "100",  # numeric strings are not coerced
+        "fifty",
+        [100],
+    ],
+)
 def test_batch_size_fails_closed_on_invalid_values(value: Any) -> None:
-    """Bools, floats, non-numeric, zero/negative, and above the SQLite-safe cap
-    all disable the run and identify the key — never a guessed batch size."""
+    """Any present value that is not a non-boolean int in range is refused.
+
+    Nothing is coerced — an explicit ``None``, a numeric string, a float, a
+    ``Decimal`` — so the advertised integer-only contract holds; the run is
+    disabled and the key identified, never a guessed batch size.
+    """
     with patch.dict(current_app.config, {prune_audit.BATCH_SIZE_KEY: value}):
         with patch.object(prune_audit, "logger") as mock_logger:
-            resolved = prune_audit.resolve_batch_size()
+            resolved: prune_audit.ResolvedBatchSize = prune_audit.resolve_batch_size()
         mock_logger.warning.assert_called_once()
     assert resolved.size is None
     assert resolved.invalid_key == prune_audit.BATCH_SIZE_KEY
 
 
 def test_invalid_batch_size_skips_the_whole_run_and_reports_the_key() -> None:
-    """The batch size governs every category, so unlike a bad retention key
-    (which disables one category) a bad batch size prunes nothing at all."""
+    """An invalid batch size prunes nothing at all and names the key.
+
+    The batch size governs every category, so unlike a bad retention key
+    (which disables one category) the whole run fails closed.
+    """
+    mock_drain: MagicMock
     with patch.dict(current_app.config, {prune_audit.BATCH_SIZE_KEY: 0}):
         with patch.object(prune_audit, "_drain") as mock_drain:
             result: PruneRunResult = prune_audit.run_prune()
@@ -196,7 +225,8 @@ def test_invalid_batch_size_skips_the_whole_run_and_reports_the_key() -> None:
 
 
 def test_configured_batch_size_reaches_every_batch() -> None:
-    """The resolved size is what each batch discovers and keys "drained" on."""
+    """The resolved size is what every batch discovers and keys "drained" on."""
+    mock_delete: MagicMock
     with patch.dict(current_app.config, {prune_audit.BATCH_SIZE_KEY: 7}):
         with patch.object(
             prune_audit, "_delete_batch", return_value=(3, 3)

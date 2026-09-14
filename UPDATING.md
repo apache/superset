@@ -303,14 +303,21 @@ unknown impact as zero. Chart and dashboard purge endpoints are unchanged.
   coordination lock, so during a mixed-version rollout it can publish an
   earlier `pending` row after a pruning batch's locked re-check and delete,
   later turning the deleted block into the required post-boundary survivor.
-  Conversely, disable pruning and let running batches finish before rolling
-  any audit writer back to the older protocol. Each pruning batch holds the
-  singleton audit coordination lock — the lock every audit write takes — for
-  its locked re-check, whose cost grows with the batch size times the history
-  depth of the entities in it; `PURGE_AUDIT_PRUNING_BATCH_SIZE` (default 50,
-  integer in [1, 500]) is the lever on how long a concurrent purge's audit
-  write can wait. Measured on one entity with a 6,000-row multi-reason blocked
-  history (lock-hold per batch, PostgreSQL / MySQL 8 REPEATABLE READ): 50 →
+  Conversely, before rolling any audit writer back to the older protocol,
+  disable the flag AND wait for every active pruning run to exit — the flag
+  is checked only when a task starts, so a run already underway continues
+  through its remaining batches and categories (including a task still in
+  discovery or between batches) — since a writer rolled back mid-run would
+  admit exactly the uncoordinated insert the forward rollout prohibits.
+  Each pruning batch holds the singleton audit coordination lock — the lock
+  every audit write takes — for its locked re-check, whose cost grows with
+  the batch size times the history depth of the entities in it: a
+  workload-dependent trade-off, not a time bound. `PURGE_AUDIT_PRUNING_BATCH_SIZE`
+  (default 50, non-boolean integer in [1, 500]) is the lever on how long a
+  concurrent purge's audit write can wait. Measured on one entity with a
+  6,000-row multi-reason blocked history (lock-hold per batch, PostgreSQL /
+  MySQL 8 REPEATABLE READ; the MySQL 500 figure is estimated from EXPLAIN
+  ANALYZE rather than a measured acquire-to-release sample): 50 →
   ~0.15 s / ~1.2 s; 100 → ~0.9 s / ~7.7 s; 500 → ~6.4 s / ~50 s. The default
   keeps a writer's wait around a second even on MySQL; larger batches drain a
   backlog faster (ten batches per run) at the cost of longer waits. An
@@ -1046,7 +1053,7 @@ With the flag on, delete confirmations across the chart/dashboard/dataset list p
 
 This also resolves the limitation noted under *Soft delete and restore for datasets*: a database blocked by soft-deleted datasets can now be freed by purging those datasets (per-entity endpoint, retention task, or `force-purge` CLI) instead of hard-deleting `tables` rows out-of-band.
 
-Automatic pruning of the `purge_audit_log` table is available but **off by default**: set `PURGE_AUDIT_PRUNING_ENABLED = True` to enable the `deletion_retention.prune_purge_audit` Celery beat task (daily, 03:30), which collapses duplicate `blocked` records and ages out operational noise. That bounds the growth that comes from scheduled purges being repeatedly blocked or failing; it is **not** a bound on total table size. Force-purge (`force`-triggered) `blocked` records are retained permanently — exempt from both the duplicate collapse and the operational age-out, including in resolved streaks — so repeated `force-purge` attempts against a persistently blocked entity still add a record each; completed-destruction evidence is retained by default; and the first `blocked` record after each change of block reason is preserved. Left at its default (`PURGE_AUDIT_PRUNING_ENABLED = False`) the table is never pruned at all — enabling it is an explicit operator choice, and a second-phase one (see the rollout requirement in the release-note entry above). `PURGE_AUDIT_PRUNING_BATCH_SIZE` (default 50) bounds each batch and therefore how long a batch holds the audit coordination lock against concurrent audit writes; see the release-note entry for the measured trade-off. The policy is written to preserve the audit's meaning rather than trade it away: within an entity's current blockage streak the earliest — "blocked since" — record always survives (only redundant duplicate `blocked` records are collapsed), and completed-destruction evidence (`confirmed`, `target_absent`) is **never** removed unless the separate `PURGE_AUDIT_EVIDENCE_RETENTION_DAYS` opt-in is explicitly set. What ages out is operational noise — scheduled `blocked` records from already-resolved streaks and `failed` records — once older than `PURGE_AUDIT_OPERATIONAL_RETENTION_DAYS` (default 90). See the release-note entry above for the beat-schedule and `CELERY_CONFIG` details.
+Automatic pruning of the `purge_audit_log` table is available but **off by default**: set `PURGE_AUDIT_PRUNING_ENABLED = True` to enable the `deletion_retention.prune_purge_audit` Celery beat task (daily, 03:30), which collapses duplicate `blocked` records and ages out operational noise. That bounds the growth that comes from scheduled purges being repeatedly blocked or failing; it is **not** a bound on total table size. Force-purge (`force`-triggered) `blocked` records are retained permanently — exempt from both the duplicate collapse and the operational age-out, including in resolved streaks — so repeated `force-purge` attempts against a persistently blocked entity still add a record each; completed-destruction evidence is retained by default; and the first `blocked` record after each change of block reason is preserved. Left at its default (`PURGE_AUDIT_PRUNING_ENABLED = False`) the table is never pruned at all — enabling it is an explicit operator choice, and a second-phase one (see the rollout requirement in the release-note entry above). `PURGE_AUDIT_PRUNING_BATCH_SIZE` (default 50) caps the candidates per batch; how long a batch holds the audit coordination lock against concurrent audit writes grows with that cap and with the history depth of the entities in the batch — a workload-dependent trade-off against drain speed, not a time bound; see the release-note entry for the measured numbers. The policy is written to preserve the audit's meaning rather than trade it away: within an entity's current blockage streak the earliest — "blocked since" — record always survives (only redundant duplicate `blocked` records are collapsed), and completed-destruction evidence (`confirmed`, `target_absent`) is **never** removed unless the separate `PURGE_AUDIT_EVIDENCE_RETENTION_DAYS` opt-in is explicitly set. What ages out is operational noise — scheduled `blocked` records from already-resolved streaks and `failed` records — once older than `PURGE_AUDIT_OPERATIONAL_RETENTION_DAYS` (default 90). See the release-note entry above for the beat-schedule and `CELERY_CONFIG` details.
 
 
 ### Webhook alerts/reports block private/internal hosts by default
