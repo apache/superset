@@ -165,7 +165,7 @@ export const getSuffixIcon = (
   return <Icons.DownOutlined iconSize="s" aria-label="down" />;
 };
 
-type FlattenOptionsProps = {
+export type FlattenOptionsProps = {
   flattenOptions?: Array<Record<string, any>>;
 };
 

@@ -69,8 +69,8 @@ export type PluginFilterSelectProps = PluginFilterStylesProps & {
   filterState: FilterState;
   isRefreshing: boolean;
   showOverflow: boolean;
-  parentRef?: RefObject<any | null>;
-  inputRef?: RefObject<any | null>;
+  parentRef?: RefObject<any>;
+  inputRef?: RefObject<any>;
   filterBarOrientation?: FilterBarOrientation;
   isOverflowingFilterBar?: boolean;
   clearAllTrigger?: Record<string, boolean>;

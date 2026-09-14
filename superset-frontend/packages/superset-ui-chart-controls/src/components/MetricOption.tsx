@@ -47,7 +47,7 @@ export interface MetricOptionProps {
   showFormula?: boolean;
   showType?: boolean;
   url?: string;
-  labelRef?: RefObject<any | null>;
+  labelRef?: RefObject<any>;
   shouldShowTooltip?: boolean;
 }
 

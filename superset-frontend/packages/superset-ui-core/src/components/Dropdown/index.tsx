@@ -116,8 +116,8 @@ export const NoAnimationDropdown = (props: NoAnimationDropdownProps) => {
   const { children, onBlur, onKeyDown, ...rest } = props;
   const childrenWithProps = cloneElement(
     children as ReactElement<{
-      onBlur?: FocusEventHandler;
-      onKeyDown?: KeyboardEventHandler;
+      onBlur?: FocusEventHandler<HTMLDivElement>;
+      onKeyDown?: KeyboardEventHandler<HTMLDivElement>;
     }>,
     {
       onBlur,

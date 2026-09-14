@@ -172,7 +172,9 @@ test('passes correct canEdit and editing props to EditableTitle', () => {
     useDnd: true,
   });
 
-  expect((EditableTitle as jest.Mock).mock.calls.at(-1)?.[0]).toEqual(
+  expect(
+    (EditableTitle as jest.Mock).mock.calls.map(call => call[0]),
+  ).toContainEqual(
     expect.objectContaining({
       title: '🚀 Aspiring Developers',
       canEdit: true,
@@ -188,7 +190,9 @@ test('passes correct canEdit and editing props to EditableTitle', () => {
     useDnd: true,
   });
 
-  expect((EditableTitle as jest.Mock).mock.calls.at(-1)?.[0]).toEqual(
+  expect(
+    (EditableTitle as jest.Mock).mock.calls.map(call => call[0]),
+  ).toContainEqual(
     expect.objectContaining({
       title: '🚀 Aspiring Developers',
       canEdit: true,

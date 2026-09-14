@@ -60,7 +60,7 @@ const DatasourceItemContainer = styled.div<{ isDragging?: boolean }>`
 `;
 
 interface DatasourcePanelDragOptionProps extends DatasourcePanelDndItem {
-  labelRef?: RefObject<any | null>;
+  labelRef?: RefObject<any>;
   showTooltip?: boolean;
 }
 

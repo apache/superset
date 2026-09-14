@@ -77,9 +77,9 @@ export type Props = Omit<SuperChartCoreProps, 'chartProps'> &
     /** Prop for form plugins using superchart */
     showOverflow?: boolean;
     /** Prop for popovercontainer ref */
-    parentRef?: RefObject<any | null>;
+    parentRef?: RefObject<any>;
     /** Prop for chart ref */
-    inputRef?: RefObject<any | null>;
+    inputRef?: RefObject<any>;
     /** Chart width */
     height?: number | string;
     /** Chart height */

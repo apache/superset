@@ -180,8 +180,8 @@ const SliceHeaderControls = (
   );
   const history = useHistory();
 
-  const queryMenuRef: RefObject<any | null> = useRef(null);
-  const resultsMenuRef: RefObject<any | null> = useRef(null);
+  const queryMenuRef: RefObject<any> = useRef(null);
+  const resultsMenuRef: RefObject<any> = useRef(null);
 
   const [modalFilters, setFilters] = useState<BinaryQueryObjectFilterClause[]>(
     [],

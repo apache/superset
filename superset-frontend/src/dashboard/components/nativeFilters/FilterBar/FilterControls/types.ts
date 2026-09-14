@@ -50,7 +50,7 @@ export interface FilterControlProps extends BaseFilterProps {
   onFilterSelectionChange: (filter: FilterElement, dataMask: DataMask) => void;
   inView?: boolean;
   showOverflow?: boolean;
-  parentRef?: RefObject<any | null>;
+  parentRef?: RefObject<any>;
   setFilterActive?: (isActive: boolean) => void;
   validateStatus?: string;
   clearAllTrigger?: boolean;
