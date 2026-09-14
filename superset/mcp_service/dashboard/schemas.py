@@ -85,6 +85,7 @@ if TYPE_CHECKING:
     from superset.models.dashboard import Dashboard
 
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
+from superset.exceptions import SupersetSecurityException
 from superset.mcp_service.common.cache_schemas import (
     CreatedByMeMixin,
     EditedByMeMixin,
@@ -114,6 +115,7 @@ from superset.mcp_service.utils.sanitization import (
     sanitize_user_input_with_changes,
 )
 from superset.mcp_service.utils.url_utils import get_superset_base_url
+from superset.utils.core import DatasourceType
 from superset.utils.json import loads as json_loads
 
 
@@ -2234,13 +2236,31 @@ class DashboardDatasetDatabaseInfo(BaseModel):
     backend: str | None = Field(None, description="Database backend (engine)")
 
 
+class DashboardDatasetSemanticLayerInfo(BaseModel):
+    """Semantic layer summary for a dashboard's semantic view."""
+
+    # SemanticLayer is keyed by UUID (it has no integer id); views carry an
+    # integer id, so the two are addressed differently on purpose.
+    uuid: str | None = Field(None, description="Semantic layer UUID")
+    name: str | None = Field(None, description="Semantic layer name")
+
+
 class DashboardDatasetSummary(BaseModel):
-    """A dataset used by a dashboard's charts, with columns and metrics."""
+    """A dataset or semantic view used by a dashboard's charts."""
 
     model_config = ConfigDict(populate_by_name=True)
 
     id: int | None = Field(None, description="Dataset ID")
     uuid: str | None = Field(None, description="Dataset UUID")
+    datasource_type: Literal["table", "semantic_view"] = Field(
+        "table",
+        description="Explorable kind: table for a SQL dataset, "
+        "semantic_view for a semantic-layer view",
+    )
+    name: str | None = Field(None, description="Explorable display name")
+    semantic_layer: DashboardDatasetSemanticLayerInfo | None = Field(
+        None, description="Semantic layer the view belongs to; None for SQL datasets"
+    )
     table_name: str | None = Field(None, description="Table name")
     schema_name: str | None = Field(None, description="Schema name", alias="schema")
     database: DashboardDatasetDatabaseInfo | None = Field(
@@ -2306,7 +2326,9 @@ class DashboardDatasets(BaseModel):
 
 
 def _serialize_dashboard_dataset(
-    datasource: Any, chart_count: int
+    datasource: Any,
+    chart_count: int,
+    datasource_type: Literal["table", "semantic_view"] = "table",
 ) -> DashboardDatasetSummary:
     """Serialize a datasource to a lean, LLM-safe dataset summary."""
     all_columns = list(getattr(datasource, "columns", None) or [])
@@ -2330,7 +2352,17 @@ def _serialize_dashboard_dataset(
         for metric in all_metrics[:MAX_DASHBOARD_DATASET_METRICS]
     ]
 
-    database = getattr(datasource, "database", None)
+    is_view: bool = datasource_type == DatasourceType.SEMANTIC_VIEW
+    layer: Any = getattr(datasource, "semantic_layer", None) if is_view else None
+    layer_info: DashboardDatasetSemanticLayerInfo | None = (
+        DashboardDatasetSemanticLayerInfo(
+            uuid=str(layer.uuid) if getattr(layer, "uuid", None) else None,
+            name=getattr(layer, "name", None),
+        )
+        if layer is not None
+        else None
+    )
+    database = None if is_view else getattr(datasource, "database", None)
     database_info = (
         DashboardDatasetDatabaseInfo(
             id=getattr(database, "id", None),
@@ -2345,8 +2377,11 @@ def _serialize_dashboard_dataset(
     return DashboardDatasetSummary(
         id=getattr(datasource, "id", None),
         uuid=str(dataset_uuid) if dataset_uuid else None,
-        table_name=getattr(datasource, "table_name", None),
-        schema_name=getattr(datasource, "schema", None),
+        datasource_type=datasource_type,
+        name=getattr(datasource, "name" if is_view else "table_name", None),
+        semantic_layer=layer_info,
+        table_name=None if is_view else getattr(datasource, "table_name", None),
+        schema_name=None if is_view else getattr(datasource, "schema", None),
         database=database_info,
         chart_count=chart_count,
         columns=columns,
@@ -2358,16 +2393,38 @@ def _serialize_dashboard_dataset(
     )
 
 
+def _has_dashboard_dataset_access(datasource: Any, datasource_type: str) -> bool:
+    """Use view permissions separately from BaseDatasource-only table checks.
+
+    security_manager.can_access_datasource expects a BaseDatasource; semantic
+    views implement their own view-or-layer permission rule in raise_for_access.
+    """
+    # Preserve the serializer's deferred auth import during MCP initialization.
+    from superset.mcp_service.auth import has_dataset_access
+
+    if datasource_type != DatasourceType.SEMANTIC_VIEW:
+        return has_dataset_access(datasource)
+    try:
+        datasource.raise_for_access()
+        return True
+    except SupersetSecurityException:
+        return False
+    except Exception as exc:
+        logger.warning("Error checking semantic view access: %s", exc)
+        return False
+
+
 def dashboard_datasets_serializer(dashboard: "Dashboard") -> DashboardDatasets:
-    """Serialize a Dashboard model to the datasets used by its charts.
+    """List the datasets and semantic views used by a dashboard's charts.
 
     Groups the dashboard's charts by datasource (mirroring
     ``Dashboard.datasets_trimmed_for_slices``) but keeps the full column and
     metric lists (capped) since native-filter configuration regularly needs
     columns that no chart references. Datasets the current user cannot
     access are excluded and only counted.
+    Each entry identifies its datasource_type and display name, with
+    semantic_layer metadata for views and database metadata for tables.
     """
-    from superset.mcp_service.auth import has_dataset_access
 
     slices_by_datasource: Dict[tuple[int, str], List[Any]] = {}
     for slc in getattr(dashboard, "slices", None) or []:
@@ -2381,21 +2438,27 @@ def dashboard_datasets_serializer(dashboard: "Dashboard") -> DashboardDatasets:
 
     datasets: List[DashboardDatasetSummary] = []
     inaccessible_count: int = 0
-    for slices in slices_by_datasource.values():
+    for (_, source_type), slices in slices_by_datasource.items():
+        kind: Literal["table", "semantic_view"] = (
+            "semantic_view" if source_type == DatasourceType.SEMANTIC_VIEW else "table"
+        )
+        relationship_name: str = (
+            "semantic_view" if kind == "semantic_view" else "datasource"
+        )
         datasource = next(
             (
-                getattr(slc, "datasource", None)
+                getattr(slc, relationship_name, None)
                 for slc in slices
-                if getattr(slc, "datasource", None) is not None
+                if getattr(slc, relationship_name, None) is not None
             ),
             None,
         )
         if datasource is None:
             continue
-        if not has_dataset_access(datasource):
+        if not _has_dashboard_dataset_access(datasource, kind):
             inaccessible_count += 1
             continue
-        datasets.append(_serialize_dashboard_dataset(datasource, len(slices)))
+        datasets.append(_serialize_dashboard_dataset(datasource, len(slices), kind))
 
     datasets.sort(key=lambda dataset: dataset.id or 0)
 
