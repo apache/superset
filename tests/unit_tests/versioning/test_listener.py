@@ -337,8 +337,147 @@ def test_emit_capture_timing_is_fail_open(mocker: Any) -> None:
     manager = MagicMock()
     manager.instance.timing.side_effect = RuntimeError("statsd down")
     mocker.patch("superset.extensions.stats_logger_manager", manager)
-    log_spy = mocker.patch.object(metrics.logger, "exception")
+    warning_spy = mocker.patch.object(metrics.logger, "warning")
+    exception_spy = mocker.patch.object(metrics.logger, "exception")
 
     metrics.emit_capture_timing("finalize", 1.0)  # must not raise
 
-    log_spy.assert_called_once()
+    # One warning line, no traceback: this runs on EVERY commit, so a
+    # structurally broken backend must not log a full stack per commit.
+    warning_spy.assert_called_once()
+    exception_spy.assert_not_called()
+
+
+def test_capture_latency_metric_fires_once_on_the_versioned_write_path(
+    lifecycle_session: Session, mocker: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The metric covers the REAL capture path, not just the no-op early
+    return: with a versioned entity's initial state retained (non-empty
+    buffer) and a transaction id resolved, finalize runs through stamping,
+    child-record collection, and persistence, and emits exactly one
+    ``finalize.latency`` sample for it (fitzee review on #44009)."""
+    sa.event.listen(
+        lifecycle_session, "before_commit", listener.finalize_change_records
+    )
+    manager = MagicMock()
+    mocker.patch("superset.extensions.stats_logger_manager", manager)
+
+    record = ChangeRecord(
+        kind="property",
+        operation="edit",
+        path=["slice_name"],
+        from_value="initial",
+        to_value="final",
+    )
+    monkeypatch.setattr(
+        listener, "compute_records_from_state", lambda obj, pre: [record]
+    )
+    monkeypatch.setattr(listener, "_current_transaction_id", lambda session: 42)
+    monkeypatch.setattr(
+        listener, "_stamp_action_kind_on_transaction", lambda session, tx: None
+    )
+    monkeypatch.setattr(
+        listener, "_append_child_records_to_buffer", lambda session, tx, buf: None
+    )
+    monkeypatch.setattr(
+        listener, "_inject_action_meta_record", lambda session, buf: None
+    )
+    persisted: list[tuple[int, dict[Any, Any]]] = []
+    monkeypatch.setattr(
+        listener,
+        "_persist_buffered_records",
+        lambda session, tx, buf: persisted.append((tx, dict(buf))),
+    )
+    # A retained pre-flush state for one versioned entity -> non-empty buffer.
+    lifecycle_session.info[listener._INITIAL_STATES_KEY] = {
+        ("chart", 7): (object(), {"slice_name": "initial"})
+    }
+
+    lifecycle_session.add(LifecycleRow(value="versioned"))
+    lifecycle_session.commit()
+
+    # The real path ran: records reached persistence for tx 42.
+    assert persisted == [(42, {("chart", 7): [record]})]
+    calls = [
+        call
+        for call in manager.instance.timing.call_args_list
+        if call.args[0] == "superset.versioning.capture.finalize.latency"
+    ]
+    assert len(calls) == 1
+    assert calls[0].args[1] >= 0
+
+
+def test_transaction_lookup_failure_does_not_break_the_commit(
+    lifecycle_session: Session, mocker: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The module's invariant — a versioning bug must never break a user's
+    save — holds at ``_current_transaction_id`` too. With the lookup raising
+    (a dropped connection, a Continuum internal error), the commit still
+    succeeds and the user's row is persisted; the failure is counted, not
+    propagated (fitzee finding on #44009, confirmed by aminghadersohi's probe:
+    before this guard the RuntimeError unwound out of before_commit and 0 rows
+    persisted)."""
+    sa.event.listen(
+        lifecycle_session, "before_commit", listener.finalize_change_records
+    )
+    mocker.patch("superset.extensions.stats_logger_manager", MagicMock())
+    error_spy = mocker.patch.object(listener, "incr_capture_error")
+
+    def explode(session: Session) -> int:
+        raise RuntimeError("continuum uow lookup failed")
+
+    monkeypatch.setattr(listener, "_current_transaction_id", explode)
+
+    lifecycle_session.add(LifecycleRow(value="survives"))
+    lifecycle_session.commit()  # must not raise
+
+    assert (
+        lifecycle_session.query(LifecycleRow).filter_by(value="survives").count() == 1
+    )
+    error_spy.assert_called_once_with("transaction_lookup")
+
+
+def test_capture_initial_states_stage_is_timed_only_when_an_entity_is_captured(
+    lifecycle_session: Session, mocker: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The before-flush stage — the per-entity pre-state reads that scale with
+    dirty versioned entities and sit outside finalize's timer — emits its own
+    ``capture_initial_states.latency`` sample, but only when at least one
+    versioned entity was captured, so unrelated autoflushes do not flood the
+    series (fitzee review on #44009)."""
+    manager = MagicMock()
+    mocker.patch("superset.extensions.stats_logger_manager", manager)
+    monkeypatch.setattr(
+        listener, "capture_initial_state", lambda session, obj: {"slice_name": "x"}
+    )
+
+    def timing_calls() -> list[Any]:
+        return [
+            call
+            for call in manager.instance.timing.call_args_list
+            if call.args[0]
+            == "superset.versioning.capture.capture_initial_states.latency"
+        ]
+
+    class Slice:  # the class NAME maps to the 'chart' entity kind
+        id = 7
+
+    # Nothing versioned dirty -> no sample.
+    lifecycle_session.add(LifecycleRow(value="unrelated"))
+    lifecycle_session.flush()
+    listener._capture_initial_states(lifecycle_session, (Slice,))
+    assert timing_calls() == []
+
+    # A dirty versioned entity -> exactly one sample, and its state retained.
+    entity = Slice()
+    mocker.patch.object(
+        type(lifecycle_session),
+        "dirty",
+        new_callable=lambda: property(lambda self: {entity}),
+    )
+    listener._capture_initial_states(lifecycle_session, (Slice,))
+    assert len(timing_calls()) == 1
+    assert timing_calls()[0].args[1] >= 0
+    assert lifecycle_session.info[listener._INITIAL_STATES_KEY] == {
+        ("chart", 7): (entity, {"slice_name": "x"})
+    }

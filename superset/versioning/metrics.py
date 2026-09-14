@@ -59,14 +59,18 @@ def emit_capture_timing(stage: str, duration_ms: float) -> None:
 
     The documented recovery lever for capture trouble is the
     ``ENABLE_VERSIONING_CAPTURE`` kill-switch, flipped on save-path
-    slowdown — this series
-    (``superset.versioning.capture.<stage>.latency``) is the signal an
-    operator alerts on before flipping it. :func:`incr_capture_error`
-    covers *loss*; this covers *slowdown*. The series includes every
-    commit on the session — commits touching no versioned entity still
-    pay the listener overhead — so alerts belong on upper percentiles,
-    not the mean. Best-effort under the same fail-open posture: metrics
-    emission must never itself break a user's save.
+    slowdown — the ``superset.versioning.capture.<stage>.latency`` series
+    are the signal an operator alerts on before flipping it. There are two
+    stages, and TOGETHER they cover the cost the kill-switch removes:
+    ``capture_initial_states`` (the before-flush per-entity pre-state reads,
+    which scale with the number of dirty versioned entities — on a bulk
+    edit the dominant cost — sampled only when at least one was captured)
+    and ``finalize`` (the post-flush record build and persist, sampled on
+    every commit on the session, including commits touching no versioned
+    entity, which still pay the listener overhead). Alert on both, on upper
+    percentiles rather than the mean. :func:`incr_capture_error` covers
+    *loss*; this covers *slowdown*. Best-effort under the same fail-open
+    posture: metrics emission must never itself break a user's save.
     """
     # pylint: disable=import-outside-toplevel
     try:
@@ -75,5 +79,10 @@ def emit_capture_timing(stage: str, duration_ms: float) -> None:
         stats_logger_manager.instance.timing(
             f"{_CAPTURE_METRIC_PREFIX}.{stage}.latency", duration_ms
         )
-    except Exception:  # pylint: disable=broad-except
-        logger.exception("versioning: failed to emit capture-latency metric")
+    except Exception as ex:  # pylint: disable=broad-except
+        # This runs on every commit, so a structurally broken stats backend
+        # (a custom StatsLogger without ``timing()``, or a not-yet-configured
+        # instance at startup) would otherwise log a full traceback per
+        # commit — identical each time. One warning line per occurrence, no
+        # stack, keeps the failure visible without flooding at commit rate.
+        logger.warning("versioning: failed to emit capture-latency metric: %s", ex)

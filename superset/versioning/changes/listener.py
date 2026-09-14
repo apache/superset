@@ -410,8 +410,9 @@ def finalize_change_records(session: Session) -> None:
     session.info[_FINALIZING_KEY] = True
     # Measures the FINALIZE stage only: the timer starts after the flush,
     # which excludes the transaction's own write cost but also excludes
-    # capture_initial_states' per-entity pre-state SELECTs — and runs
-    # through every capture step and early return. Every commit on the
+    # capture_initial_states' per-entity pre-state SELECTs (those are timed
+    # as their own ``capture_initial_states`` stage in before_flush) — and
+    # runs through every capture step and early return. Every commit on the
     # session emits a sample, including commits touching no versioned
     # entity, because the whole-listener overhead is exactly what the
     # kill-switch removes; a flush that raises emits nothing.
@@ -424,7 +425,12 @@ def finalize_change_records(session: Session) -> None:
         )
         buffer = _build_scalar_buffer(initial_states)
 
-        tx_id = _current_transaction_id(session)
+        try:
+            tx_id = _current_transaction_id(session)
+        except Exception:  # pylint: disable=broad-except
+            logger.exception("version_changes: transaction lookup failed")
+            incr_capture_error("transaction_lookup")
+            return
         if tx_id is None:
             return
 
@@ -438,6 +444,39 @@ def finalize_change_records(session: Session) -> None:
         session.info.pop(_FINALIZING_KEY, None)
         if start is not None:
             emit_capture_timing("finalize", (perf_counter() - start) * 1000.0)
+
+
+def _capture_initial_states(
+    session: Session, versioned_classes: tuple[type, ...]
+) -> None:
+    """The ``before_flush`` capture stage: retain each dirty versioned entity's
+    pre-flush database state for the final diff.
+
+    Timed as its own metric stage. The per-entity pre-state SELECTs issued
+    here are the capture cost that scales with the number of dirty versioned
+    entities — on a bulk edit plausibly the dominant cost the kill-switch
+    removes — and they run before the flush, outside ``finalize``'s timer. A
+    sample is emitted only when at least one versioned entity was captured,
+    so the many unrelated autoflushes do not flood the series with empty
+    samples; together with ``finalize`` the two stages cover the whole
+    listener. Module-level (not the registered closure) so it is
+    unit-testable without ``db.session``.
+    """
+    initial_states: dict[tuple[str, int], tuple[Any, dict[str, Any]]] = (
+        session.info.setdefault(_INITIAL_STATES_KEY, {})
+    )
+    start = perf_counter()
+    captured = 0
+    try:
+        for obj in list(session.dirty):
+            if isinstance(obj, versioned_classes):
+                _capture_dirty_entity_initial_state(session, obj, initial_states)
+                captured += 1
+    finally:
+        if captured:
+            emit_capture_timing(
+                "capture_initial_states", (perf_counter() - start) * 1000.0
+            )
 
 
 def register_change_record_listener() -> None:
@@ -463,12 +502,7 @@ def register_change_record_listener() -> None:
     def capture_initial_states(
         session: Session, _flush_context: Any, _instances: Any
     ) -> None:
-        initial_states: dict[tuple[str, int], tuple[Any, dict[str, Any]]] = (
-            session.info.setdefault(_INITIAL_STATES_KEY, {})
-        )
-        for obj in list(session.dirty):
-            if isinstance(obj, versioned_classes):
-                _capture_dirty_entity_initial_state(session, obj, initial_states)
+        _capture_initial_states(session, versioned_classes)
 
     event.listen(db.session, "before_flush", capture_initial_states)
     event.listen(db.session, "before_commit", finalize_change_records)
