@@ -149,6 +149,62 @@ def test_evidence_retention_fails_closed_on_invalid_values(value: Any) -> None:
     assert window.invalid_key == EVIDENCE_RETENTION_KEY
 
 
+def test_batch_size_defaults_to_one_hundred() -> None:
+    """Use the shipped batch-size default."""
+    assert current_app.config[prune_audit.BATCH_SIZE_KEY] == 100
+    assert prune_audit.BATCH_SIZE == 100
+    assert prune_audit.resolve_batch_size().size == 100
+
+
+def test_unset_batch_size_falls_back_to_the_module_default_silently() -> None:
+    """The key is optional: absent means the default, with no warning."""
+    with without_config(prune_audit.BATCH_SIZE_KEY):
+        with patch.object(prune_audit, "logger") as mock_logger:
+            resolved = prune_audit.resolve_batch_size()
+        mock_logger.warning.assert_not_called()
+    assert resolved == (prune_audit.BATCH_SIZE, None)
+
+
+@pytest.mark.parametrize("value", [1, 50, 100, 500, "250"])
+def test_batch_size_accepts_integers_within_the_cap(value: Any) -> None:
+    with patch.dict(current_app.config, {prune_audit.BATCH_SIZE_KEY: value}):
+        assert prune_audit.resolve_batch_size() == (int(value), None)
+
+
+@pytest.mark.parametrize("value", [0, -10, 501, True, False, 2.5, "fifty", [100]])
+def test_batch_size_fails_closed_on_invalid_values(value: Any) -> None:
+    """Bools, floats, non-numeric, zero/negative, and above the SQLite-safe cap
+    all disable the run and identify the key — never a guessed batch size."""
+    with patch.dict(current_app.config, {prune_audit.BATCH_SIZE_KEY: value}):
+        with patch.object(prune_audit, "logger") as mock_logger:
+            resolved = prune_audit.resolve_batch_size()
+        mock_logger.warning.assert_called_once()
+    assert resolved.size is None
+    assert resolved.invalid_key == prune_audit.BATCH_SIZE_KEY
+
+
+def test_invalid_batch_size_skips_the_whole_run_and_reports_the_key() -> None:
+    """The batch size governs every category, so unlike a bad retention key
+    (which disables one category) a bad batch size prunes nothing at all."""
+    with patch.dict(current_app.config, {prune_audit.BATCH_SIZE_KEY: 0}):
+        with patch.object(prune_audit, "_drain") as mock_drain:
+            result: PruneRunResult = prune_audit.run_prune()
+    mock_drain.assert_not_called()
+    assert result.total_removed == 0
+    assert result.invalid_config_keys == [prune_audit.BATCH_SIZE_KEY]
+
+
+def test_configured_batch_size_reaches_every_batch() -> None:
+    """The resolved size is what each batch discovers and keys "drained" on."""
+    with patch.dict(current_app.config, {prune_audit.BATCH_SIZE_KEY: 7}):
+        with patch.object(
+            prune_audit, "_delete_batch", return_value=(3, 3)
+        ) as mock_delete:
+            prune_audit.run_prune()
+    assert mock_delete.call_args_list
+    assert all(call.args[2] == 7 for call in mock_delete.call_args_list)
+
+
 def test_prune_run_result_totals_and_dict_shape() -> None:
     result: PruneRunResult = PruneRunResult(
         blocked_duplicates=3, operational_expired=2, evidence_expired=1

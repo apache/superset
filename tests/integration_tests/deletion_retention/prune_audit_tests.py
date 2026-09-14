@@ -172,7 +172,7 @@ class TestPruneAudit(SupersetTestCase):
 
         removed_per_run: list[int] = []
         with (
-            patch.object(prune_audit, "BATCH_SIZE", 10),
+            patch.dict(current_app.config, {prune_audit.BATCH_SIZE_KEY: 10}),
             patch.object(prune_audit, "MAX_BATCHES_PER_RUN", 2),
         ):
             while True:
@@ -584,7 +584,7 @@ class TestPruneAudit(SupersetTestCase):
         old_failed: UUID = self.add_row(STATUS_FAILED, entity="st", age_days=1000)
 
         with (
-            patch.object(prune_audit, "BATCH_SIZE", 1),
+            patch.dict(current_app.config, {prune_audit.BATCH_SIZE_KEY: 1}),
             patch.object(prune_audit, "MAX_BATCHES_PER_RUN", 2),
         ):
             result: prune_audit.PruneRunResult = self.run_prune()

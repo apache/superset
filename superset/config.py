@@ -1053,6 +1053,19 @@ PURGE_AUDIT_OPERATIONAL_RETENTION_DAYS: int = 90
 # days is the operator's assertion that an approved compliance policy permits
 # expiring destruction evidence older than that window.
 PURGE_AUDIT_EVIDENCE_RETENTION_DAYS: int | None = None
+# Candidate rows per pruning batch. Each batch holds the singleton audit
+# coordination lock — the same lock every audit write takes — for its locked
+# re-check, whose cost scales with the batch size times the history depth of
+# the entities in it, so this is the lever on how long a concurrent purge's
+# audit write can wait. Measured on one entity with a 6,000-row multi-reason
+# blocked history (lock-hold per batch, PostgreSQL 16 / MySQL 8 REPEATABLE
+# READ): 50 -> ~0.15 s / ~1.2 s; 100 -> ~0.9 s / ~7.7 s; 500 -> ~6.4 s / ~50 s.
+# Smaller batches mean shorter waits but more lock acquisitions and, with the
+# fixed ten batches per run, a proportionally slower backlog drain. Must be an
+# integer in [1, 500] (SQLite's bind-variable floor bounds the top); an
+# invalid value makes the run skip entirely and report the key rather than
+# prune with an unknown batch size.
+PURGE_AUDIT_PRUNING_BATCH_SIZE: int = 100
 
 # A function that receives a dict of all feature flags
 # (DEFAULT_FEATURE_FLAGS merged with FEATURE_FLAGS)

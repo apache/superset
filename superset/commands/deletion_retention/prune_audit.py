@@ -149,8 +149,18 @@ _STREAK_BREAKING_STATUSES: frozenset[str] = frozenset(
     {STATUS_CONFIRMED, STATUS_TARGET_ABSENT}
 )
 
-#: Rows deleted per statement, matching the purge task's batch convention.
-BATCH_SIZE: int = 500
+#: Candidate ids per batch when ``PURGE_AUDIT_PRUNING_BATCH_SIZE`` is unset.
+#: The coordination lock is held for the whole locked re-check of a batch, and
+#: that re-check's cost scales with candidates × the candidate entities'
+#: history depth, so the batch size is the operator's lever on writer wait
+#: (see config.py for the measured trade-off).
+BATCH_SIZE: int = 100
+#: Upper bound on the configurable batch size. The locked re-check and the
+#: literal-id DELETE bind every id of the batch in one ``IN`` list, and SQLite
+#: rejects statements with more than 999 bind variables; 500 was the shipped
+#: constant before the knob existed and is the largest value exercised.
+MAX_BATCH_SIZE: int = 500
+BATCH_SIZE_KEY: str = "PURGE_AUDIT_PRUNING_BATCH_SIZE"
 #: One shared budget for the whole run across all three categories; the
 #: remaining backlog carries over to the next scheduled run (FR-004/SC-004).
 MAX_BATCHES_PER_RUN: int = 10
@@ -213,6 +223,44 @@ def resolve_evidence_retention_days() -> ResolvedWindow:
     if value is None:
         return ResolvedWindow(None)
     return _validated_window(EVIDENCE_RETENTION_KEY, value)
+
+
+class ResolvedBatchSize(NamedTuple):
+    """The validated batch size, or ``None`` with the offending key."""
+
+    size: int | None
+    invalid_key: str | None = None
+
+
+def resolve_batch_size() -> ResolvedBatchSize:
+    """The per-batch candidate cap, or a disabled run when invalid.
+
+    Unset falls back to :data:`BATCH_SIZE` silently (the key is optional). A
+    present value must be an integer in ``[1, MAX_BATCH_SIZE]``: bools and
+    floats are config mistakes on a knob that governs deletion, zero or
+    negative would make no progress, and larger than the cap risks SQLite's
+    bind-variable floor. Fail-closed like the retention keys — but since the
+    batch size governs every category, an invalid value skips the whole run
+    rather than one category.
+    """
+    value: Any = current_app.config.get(BATCH_SIZE_KEY)
+    if value is None:
+        return ResolvedBatchSize(BATCH_SIZE)
+    if not isinstance(value, bool) and not isinstance(value, float):
+        try:
+            size: int = int(value)
+        except (TypeError, ValueError):
+            size = 0
+        if 1 <= size <= MAX_BATCH_SIZE:
+            return ResolvedBatchSize(size)
+    logger.warning(
+        "prune_audit: invalid %s=%r (expected an integer in [1, %d]); skipping "
+        "the run (pruning never widens on bad configuration)",
+        BATCH_SIZE_KEY,
+        value,
+        MAX_BATCH_SIZE,
+    )
+    return ResolvedBatchSize(None, BATCH_SIZE_KEY)
 
 
 @dataclass
@@ -607,6 +655,7 @@ def _evidence_predicates(
 def _delete_batch(
     select_candidates: Callable[[int], sa.sql.Select],
     recheck_predicates: Callable[[sa.FromClause], list[sa.ColumnElement[bool]]],
+    batch_size: int = BATCH_SIZE,
 ) -> tuple[int, int]:
     """Discover a candidate batch UNLOCKED, then delete it under the lock.
 
@@ -655,9 +704,9 @@ def _delete_batch(
     """
     table: sa.Table = PurgeAuditLog.__table__
     # Unlocked discovery: the expensive age-unbounded scan runs WITHOUT the
-    # coordination lock and only yields a ≤BATCH_SIZE id hint.
+    # coordination lock and only yields a ≤batch_size id hint.
     ids: list[Any] = [
-        row[0] for row in db.session.execute(select_candidates(BATCH_SIZE))
+        row[0] for row in db.session.execute(select_candidates(batch_size))
     ]
     if not ids:
         return 0, 0
@@ -733,7 +782,9 @@ class _DrainResult(NamedTuple):
     drained: bool
 
 
-def _drain(category: _Category, allowance: int) -> _DrainResult:
+def _drain(
+    category: _Category, allowance: int, batch_size: int = BATCH_SIZE
+) -> _DrainResult:
     """Delete one category in batches and report its budget outcome.
 
     Candidates are re-evaluated in each batch rather than paged from one
@@ -749,11 +800,11 @@ def _drain(category: _Category, allowance: int) -> _DrainResult:
     removed: int = 0
     while allowance > 0:
         discovered, batch_removed = _delete_batch(
-            category.select_candidates, category.recheck_predicates
+            category.select_candidates, category.recheck_predicates, batch_size
         )
         removed += batch_removed
         allowance -= 1
-        if discovered < BATCH_SIZE:
+        if discovered < batch_size:
             return _DrainResult(removed, allowance, True)
     # Out of allowance. Distinguish "nothing left anyway" from a real
     # backlog, so the carried_over signal only fires when rows remain.
@@ -787,6 +838,13 @@ def run_prune() -> PruneRunResult:
     now: datetime = utc_now()
     result: PruneRunResult = PruneRunResult()
     budget: int = MAX_BATCHES_PER_RUN
+
+    batch: ResolvedBatchSize = resolve_batch_size()
+    if batch.size is None:
+        # The batch size governs every category: with no valid cap there is no
+        # bounded batch to run, so the whole run fails closed and reports why.
+        result.invalid_config_keys = [BATCH_SIZE_KEY]
+        return result
 
     operational: ResolvedWindow = resolve_operational_retention_days()
     evidence: ResolvedWindow = resolve_evidence_retention_days()
@@ -829,7 +887,7 @@ def run_prune() -> PruneRunResult:
         # count.
         reserved: int = len(categories) - index - 1
         allowance: int = max(1, budget - reserved) if budget > 0 else 0
-        drain_result: _DrainResult = _drain(category, allowance)
+        drain_result: _DrainResult = _drain(category, allowance, batch.size)
         budget -= allowance - drain_result.unused_allowance
         _record_removed(result, category.name, drain_result.removed)
         result.carried_over = result.carried_over or not drain_result.drained
@@ -839,14 +897,18 @@ def run_prune() -> PruneRunResult:
 
 __all__: list[str] = [
     "BATCH_SIZE",
+    "BATCH_SIZE_KEY",
     "EVIDENCE_RETENTION_KEY",
+    "MAX_BATCH_SIZE",
     "MAX_BATCHES_PER_RUN",
     "OPERATIONAL_RETENTION_KEY",
     "OPERATIONAL_STATUSES",
     "PROTECTED_STATUSES",
     "PruneRunResult",
+    "ResolvedBatchSize",
     "ResolvedWindow",
     "resolve_evidence_retention_days",
+    "resolve_batch_size",
     "resolve_operational_retention_days",
     "run_prune",
 ]
