@@ -52,6 +52,20 @@ but under `-lean` tags: `latest-lean`, `master-lean`, `5.0.0-lean`, `<sha>-lean`
   drivers most installations need are now present out of the box.
 - The `-dev` images (`latest-dev`, `master-dev`, …) are unchanged.
 
+### Docker image publishing now excludes standalone `websocket` and `dockerize` images
+
+The Apache Superset Docker Hub repository no longer publishes standalone
+`apache/superset:*websocket` or `apache/superset:*dockerize` image tags. The
+realtime WebSocket server is bundled in the `superset`, `lean`, and `dev` images
+and can be launched with `/app/docker/entrypoints/run-websocket.sh`. Helm init
+containers use the main Superset image for dependency checks.
+
+Release branch pushes no longer publish Docker Hub images or cache layers; they
+validate the Docker build locally. Official release tags (`X.Y.Z`, `latest`, and
+their preset variants) are published only by the release workflow after release
+manager sign-off. The scheduled release-image refresh workflow was removed, so
+official release tag digests are not overwritten outside release publishing.
+
 ### Report capture readiness is rechecked immediately before screenshots
 
 Scheduled report and alert captures require chart readiness to remain stable
