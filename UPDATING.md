@@ -242,10 +242,12 @@ tags are included in asset export and import.
 
 **What operators should expect:**
 
-- **Implicit tags accrue.** Saving a chart, dashboard, dataset or saved query,
-  and favoriting an asset, write rows to `tag` and `tagged_object` (`type:chart`,
-  `editor:<user id>`, `favorited_by:<user id>`). These have always been created
-  when the flag was on; they are simply no longer opt-in.
+- **Implicit tags no longer accrue.** Saving a chart, dashboard, dataset or
+  saved query, and favoriting an asset, used to write rows to `tag` and
+  `tagged_object` (`type:chart`, `editor:<user id>`, `favorited_by:<user id>`).
+  That generation has since been removed; see "Superset no longer
+  auto-generates `type:`/`editor:`/`favorited_by:` tags" below for what
+  happens to rows created before upgrading.
 - **Exports gain a `tags` key and a `tags.yaml` file.** Chart and dashboard
   export bundles carry custom tags. Importers on 6.0 and later understand both;
   older importers skip the unrecognized `tags.yaml` file but reject chart and
@@ -623,8 +625,10 @@ remain queryable via the API and MCP's `list_tags`/`get_tag_info` tools,
 and are still exempt from bulk tag deletion — but no new ones are created,
 and the `superset sync_tags` CLI command that backfilled them has been
 removed. The `DASHBOARD_LIST_CUSTOM_TAGS_ONLY` config flag and the
-dashboard-list optimization it enabled are also removed, since every tag
-returned is now a custom tag by default.
+dashboard-list filtering it enables are kept, defaulting to `False`, so
+deployments that already set it to `True` to hide legacy implicit tags from
+dashboard-list responses keep that filtering; new deployments with no
+implicit tags left over have no reason to turn it on.
 
 ### MCP tool results preserve stored string values
 
