@@ -34,6 +34,7 @@ from superset import security_manager
 from superset.exceptions import SupersetMarshmallowValidationError
 from superset.models.sql_types import parse_currency_string
 from superset.utils import json
+from superset.utils.schema import DiscardIsManagedExternallyMixin
 
 get_delete_ids_schema = {
     "type": "array",
@@ -181,26 +182,7 @@ class DatasetPostSchema(Schema):
     uuid = fields.UUID(allow_none=True)
 
 
-class DatasetPutSchema(Schema):
-    # pylint: disable=unused-argument
-    @pre_load
-    def _discard_is_managed_externally(
-        self, data: dict[str, Any], **kwargs: Any
-    ) -> dict[str, Any]:
-        """Accept and discard ``is_managed_externally`` for wire compatibility.
-
-        The flag is not client-writable: the managed-externally update gate
-        refuses edits of flagged entities, so a client-set ``True`` would be
-        irreversible via the API. Older clients echo GET payloads back on
-        PUT, and this schema raises on unknown fields, so the key is dropped
-        here rather than removed from the accepted payload.
-        """
-        if isinstance(data, dict):
-            data.pop("is_managed_externally", None)
-        return data
-
-    is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
-
+class DatasetPutSchema(DiscardIsManagedExternallyMixin, Schema):
     table_name = fields.String(allow_none=True, validate=Length(1, 250))
     database_id = fields.Integer()
     sql = fields.String(allow_none=True)

@@ -208,16 +208,27 @@ def test_dashboard_colors_config_derived_only_update_is_exempt(
         pytest.fail("derived-only colors save refused for a managed dashboard")
 
 
-@pytest.mark.parametrize("key", ["color_scheme", "label_colors"])
-def test_dashboard_colors_config_refuses_null_for_absent_key(
-    mocker: MockerFixture, key: str
+@pytest.mark.parametrize(
+    ("key", "empty"),
+    [
+        ("color_scheme", None),
+        ("color_scheme", ""),
+        ("label_colors", None),
+        ("label_colors", {}),
+    ],
+)
+def test_dashboard_colors_config_allows_empty_for_absent_key(
+    mocker: MockerFixture, key: str, empty: object
 ) -> None:
-    """An explicit null for a key ABSENT from stored metadata is a change.
+    """Empty-vs-absent is NOT a color change — the routine view-time case.
 
-    absent != null: the DAO writes every provided key, so accepting the
-    null would add a literal null entry to the managed dashboard's
-    exported json_metadata. Pins the sentinel comparison (a plain
-    .get(key) default would compare equal and slip the gate).
+    The background colors sync always sends ``label_colors`` (as ``{}``
+    when nothing is set) while a dashboard is merely VIEWED; a managed
+    dashboard whose metadata lacks the key must not 403 every view.
+    Absent, explicit null, and empty all encode the same effective color
+    state (writing the empty key changes export bytes, not colors — the
+    next external sync owns the bytes). Supersedes the earlier
+    refuses-null-for-absent-key pin, which overcorrected.
     """
     entity = _managed_entity()
     entity.json_metadata = "{}"
@@ -225,8 +236,39 @@ def test_dashboard_colors_config_refuses_null_for_absent_key(
         mocker, "superset.commands.dashboard.update", "DashboardDAO", entity
     )
 
+    try:
+        UpdateDashboardColorsConfigCommand(1, {key: empty}).validate()
+    except DashboardForbiddenError:
+        pytest.fail(f"empty {key} for an absent stored key refused")
+
+
+@pytest.mark.parametrize("key", ["color_scheme", "label_colors"])
+def test_dashboard_colors_config_refuses_clearing_stored_colors(
+    mocker: MockerFixture, key: str
+) -> None:
+    """Emptying a key that HOLDS authoritative state is still a change."""
+    entity = _managed_entity()
+    entity.json_metadata = '{"color_scheme": "blues", "label_colors": {"a": "#000"}}'
+    _wire_module_mocks(
+        mocker, "superset.commands.dashboard.update", "DashboardDAO", entity
+    )
+
     with pytest.raises(DashboardForbiddenError):
         UpdateDashboardColorsConfigCommand(1, {key: None}).validate()
+
+
+def test_dashboard_colors_config_refuses_setting_value_on_absent_key(
+    mocker: MockerFixture,
+) -> None:
+    """A real value for an absent key IS a change (the inverse control)."""
+    entity = _managed_entity()
+    entity.json_metadata = "{}"
+    _wire_module_mocks(
+        mocker, "superset.commands.dashboard.update", "DashboardDAO", entity
+    )
+
+    with pytest.raises(DashboardForbiddenError):
+        UpdateDashboardColorsConfigCommand(1, {"color_scheme": "blues"}).validate()
 
 
 @pytest.mark.parametrize("key", ["color_scheme", "label_colors"])
@@ -295,3 +337,67 @@ def test_helper_refuses_only_externally_managed() -> None:
     local = MagicMock()
     local.is_managed_externally = False
     raise_if_managed_externally(local, ChartForbiddenError)  # must not raise
+
+
+def test_dashboard_published_only_update_is_exempt(mocker: MockerFixture) -> None:
+    """The publish toggle stays writable on a managed dashboard.
+
+    ``published`` is Superset-local visibility state, not dashboard
+    content owned by the external source of truth; the frontend's
+    savePublished PUTs exactly ``{published: bool}``. Control: the mixed
+    test below proves adding any other field re-arms the gate.
+    """
+    entity = _managed_entity()
+    _wire_module_mocks(
+        mocker, "superset.commands.dashboard.update", "DashboardDAO", entity
+    )
+
+    try:
+        UpdateDashboardCommand(1, {"published": False}).validate()
+    except DashboardForbiddenError:
+        pytest.fail("published-only update refused for a managed dashboard")
+
+
+def test_dashboard_published_with_content_field_is_refused(
+    mocker: MockerFixture,
+) -> None:
+    """Bundling content changes with the publish toggle does not slip the gate."""
+    entity = _managed_entity()
+    _wire_module_mocks(
+        mocker, "superset.commands.dashboard.update", "DashboardDAO", entity
+    )
+
+    with pytest.raises(DashboardForbiddenError):
+        UpdateDashboardCommand(
+            1, {"published": False, "dashboard_title": "renamed"}
+        ).validate()
+
+
+@pytest.mark.parametrize(
+    "command_name",
+    [
+        "UpdateDashboardNativeFiltersCommand",
+        "UpdateDashboardChartCustomizationsCommand",
+    ],
+)
+def test_dashboard_sibling_commands_inherit_the_managed_gate(
+    mocker: MockerFixture, command_name: str
+) -> None:
+    """Native-filters and chart-customizations updates refuse managed dashboards.
+
+    Both subclass UpdateDashboardCommand and call super().validate(), so
+    they inherit the gate. Deliberate: filter configuration and chart
+    customizations are dashboard CONTENT owned by the external source of
+    truth (edit-time writes, not view-time background syncs). This pin
+    turns the silent inheritance into declared behavior.
+    """
+    import superset.commands.dashboard.update as update_module
+
+    entity = _managed_entity()
+    _wire_module_mocks(
+        mocker, "superset.commands.dashboard.update", "DashboardDAO", entity
+    )
+    command_cls = getattr(update_module, command_name)
+
+    with pytest.raises(DashboardForbiddenError):
+        command_cls(1, {"json_metadata": "{}"}).validate()

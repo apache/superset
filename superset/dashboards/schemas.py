@@ -24,7 +24,10 @@ from superset import security_manager
 from superset.subjects.schemas import SubjectResponseSchema
 from superset.tags.models import TagType
 from superset.utils import json
-from superset.utils.schema import validate_external_url
+from superset.utils.schema import (
+    DiscardIsManagedExternallyMixin,
+    validate_external_url,
+)
 
 get_delete_ids_schema = {
     "type": "array",
@@ -480,26 +483,7 @@ class DashboardCopySchema(Schema):
     )
 
 
-class DashboardPutSchema(BaseDashboardSchema):
-    # pylint: disable=unused-argument
-    @pre_load
-    def _discard_is_managed_externally(
-        self, data: dict[str, Any], **kwargs: Any
-    ) -> dict[str, Any]:
-        """Accept and discard ``is_managed_externally`` for wire compatibility.
-
-        The flag is not client-writable: the managed-externally update gate
-        refuses edits of flagged entities, so a client-set ``True`` would be
-        irreversible via the API. Older clients echo GET payloads back on
-        PUT, and this schema raises on unknown fields, so the key is dropped
-        here rather than removed from the accepted payload.
-        """
-        if isinstance(data, dict):
-            data.pop("is_managed_externally", None)
-        return data
-
-    is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
-
+class DashboardPutSchema(DiscardIsManagedExternallyMixin, BaseDashboardSchema):
     dashboard_title = fields.String(
         metadata={"description": dashboard_title_description},
         allow_none=True,

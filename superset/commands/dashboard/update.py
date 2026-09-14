@@ -65,6 +65,12 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
     #: changes to the authoritative inputs.
     _refuses_externally_managed: bool = True
 
+    #: Superset-local fields not owned by the external source of truth: the
+    #: publish toggle is local visibility state (which authorized viewers
+    #: see the dashboard), not dashboard content, so an update touching
+    #: ONLY these fields passes the managed-externally gate.
+    _MANAGED_LOCAL_ONLY_FIELDS: frozenset[str] = frozenset({"published"})
+
     def __init__(self, model_id: int, data: dict[str, Any]):
         self._model_id = model_id
         self._properties = data.copy()
@@ -128,7 +134,10 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
         except SupersetSecurityException as ex:
             raise DashboardForbiddenError() from ex
 
-        if self._refuses_externally_managed:
+        if self._refuses_externally_managed and not (
+            self._properties
+            and set(self._properties) <= self._MANAGED_LOCAL_ONLY_FIELDS
+        ):
             raise_if_managed_externally(self._model, DashboardForbiddenError)
 
         # Validate slug uniqueness
@@ -321,19 +330,28 @@ class UpdateDashboardColorsConfigCommand(UpdateDashboardCommand):
         if self._model.is_managed_externally and self._changes_authoritative_colors():
             raise DashboardForbiddenError()
 
-    #: Sentinel distinguishing "key absent from stored metadata" from an
-    #: explicit null: an incoming ``color_scheme: null`` on a dashboard
-    #: whose metadata lacks the key would otherwise compare equal to the
-    #: ``.get()`` default and slip the gate — yet the DAO would then write
-    #: a literal null key into the exported json_metadata, a real change.
-    _METADATA_MISSING: object = object()
-
     def _changes_authoritative_colors(self) -> bool:
+        """Whether the payload changes the EFFECTIVE authoritative colors.
+
+        Compared by effective state, not raw metadata bytes: an absent
+        key, an explicit null, and an empty value ("" / {}) all encode
+        the same authoritative color state — none. The background colors
+        sync always sends ``label_colors`` (as ``{}`` when nothing is
+        set) while a dashboard is merely VIEWED, so refusing
+        empty-vs-absent would 403 every view of a managed dashboard
+        whose metadata lacks the key. The DAO may still write the empty
+        key into stored metadata — that changes export bytes, not color
+        state, and the next external sync owns the bytes anyway.
+        """
         assert self._model
         metadata = json.loads(self._model.json_metadata or "{}")
+
+        def effective(value: Any) -> Any:
+            return None if value in (None, "", {}) else value
+
         return any(
             key in self._properties
-            and self._properties[key] != metadata.get(key, self._METADATA_MISSING)
+            and effective(self._properties[key]) != effective(metadata.get(key))
             for key in self._AUTHORITATIVE_COLOR_KEYS
         )
 
