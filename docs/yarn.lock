@@ -9265,12 +9265,7 @@ immer@^11.0.0:
   resolved "https://registry.yarnpkg.com/immer/-/immer-11.1.11.tgz#bbf825a333ae1b16fd450d8da5f61d54de6a553d"
   integrity sha512-qzXuyXAkPySAGYkfsAwodDPWT8Zm7/Uo5BNt4BjhMhG5WlWyZZ4wQqnWwdS8kjlQ1Cwu6gjw3A6+0gTQwlyYtw==
 
-immutable@^4.3.9:
-  version "4.3.9"
-  resolved "https://registry.yarnpkg.com/immutable/-/immutable-4.3.9.tgz#c98349e05e9c6e2a4d8fe88ac0b363e0d536b544"
-  integrity sha512-ObHy4YN7ycwZOUCLI1/6svfyAFu7vL8RhAvVu/bh/RZW9EPlOyDaQ9jDQWCtdqzaXUjgXZCW1migtHE7YI7UGQ==
-
-immutable@^5.1.5:
+immutable@^5.1.5, immutable@^5.1.9:
   version "5.1.9"
   resolved "https://registry.yarnpkg.com/immutable/-/immutable-5.1.9.tgz#ac23c3a01992ab665e14ac9ffff298f28cd74a0c"
   integrity sha512-m8nVez3rwrgmWxtLMt1ZYXB2Lv7OKYn/disyxAlSDYAlKSlFoPPfIAmAM/M5xqL4m4C/wAPw7S2/CNaUii1Hxg==
@@ -13055,11 +13050,6 @@ redent@^3.0.0:
     indent-string "^4.0.0"
     strip-indent "^3.0.0"
 
-redux-immutable@^4.0.0:
-  version "4.0.0"
-  resolved "https://registry.yarnpkg.com/redux-immutable/-/redux-immutable-4.0.0.tgz#3a1a32df66366462b63691f0e1dc35e472bbc9f3"
-  integrity sha512-SchSn/DWfGb3oAejd+1hhHx01xUoxY+V7TeK0BKqpkLKiQPVFf7DYzEaKmrEVxsWxielKfSK9/Xq66YyxgR1cg==
-
 redux-thunk@^3.1.0:
   version "3.1.0"
   resolved "https://registry.yarnpkg.com/redux-thunk/-/redux-thunk-3.1.0.tgz#94aa6e04977c30e14e892eae84978c1af6058ff3"
@@ -14235,10 +14225,10 @@ swagger-client@^3.38.0:
     "@swagger-api/apidom-parser-adapter-openapi-yaml-3-2" "^1.12.0"
     "@swagger-api/apidom-parser-adapter-yaml-1-2" "^1.12.0"
 
-swagger-ui-react@^5.32.14:
-  version "5.32.14"
-  resolved "https://registry.yarnpkg.com/swagger-ui-react/-/swagger-ui-react-5.32.14.tgz#31b69b0f6910e87dbcc81886208061ca1f72e034"
-  integrity sha512-6LAVBeC78DplbJ7kutm/YeBYo22nPzGOca4bIZAvQG4w2eSetnYDdazaUfY0qzQUlg/H90HnYZX3rg67EmENOw==
+swagger-ui-react@^5.32.15:
+  version "5.32.15"
+  resolved "https://registry.yarnpkg.com/swagger-ui-react/-/swagger-ui-react-5.32.15.tgz#bbceed6a2c0c8f458437a088914292dbe8279e5b"
+  integrity sha512-QyCcnHLE2KGE+mMZNSwMABU9jV70OUtSIs6UrYgTXzG2eUSm75CqumNWuwD3QBn3S4F7FhmDNPb3di9kAvcFAw==
   dependencies:
     "@babel/runtime-corejs3" "^7.27.1"
     "@scarf/scarf" "=1.4.0"
@@ -14249,7 +14239,7 @@ swagger-ui-react@^5.32.14:
     deep-extend "0.6.0"
     dompurify "^3.4.13"
     ieee754 "^1.2.1"
-    immutable "^4.3.9"
+    immutable "^5.1.9"
     js-file-download "^0.4.12"
     js-yaml "=4.3.1"
     lodash "^4.18.1"
@@ -14264,7 +14254,6 @@ swagger-ui-react@^5.32.14:
     react-redux "^9.3.0"
     react-syntax-highlighter "^16.0.0"
     redux "^5.0.1"
-    redux-immutable "^4.0.0"
     remarkable "^2.0.1"
     reselect "^5.1.1"
     serialize-error "^8.1.0"
