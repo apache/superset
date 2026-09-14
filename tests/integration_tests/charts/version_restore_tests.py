@@ -318,9 +318,7 @@ class TestChartRestoreApi(SupersetTestCase):
 
         cmd = RestoreChartVersionCommand(chart_uuid, target_uuid)
         try:
-            with patch.object(
-                cmd, "validate", side_effect=_soft_delete_then_return
-            ):
+            with patch.object(cmd, "validate", side_effect=_soft_delete_then_return):
                 with pytest.raises(cmd.not_found_exc):
                     cmd.run()
         finally:
