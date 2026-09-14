@@ -148,8 +148,21 @@ def test_lock_contention_positive(orig: _Orig) -> None:
     assert is_lock_contention_error(_op_error(orig)) is True
 
 
-def test_lock_contention_text_fallback() -> None:
-    err = OperationalError("deadlock detected somewhere", None, Exception())
+@pytest.mark.parametrize(
+    "text",
+    [
+        "deadlock detected somewhere",
+        "Lock wait timeout exceeded; try restarting transaction",
+        # SQLite write contention carries no error code at all -- only
+        # these message texts. The integration suite runs on SQLite, so
+        # misclassifying them would route a genuine contention test to
+        # the 500/422 paths instead of the 409.
+        "(sqlite3.OperationalError) database is locked",
+        "(sqlite3.OperationalError) database table is locked: table_versions",
+    ],
+)
+def test_lock_contention_text_fallback(text: str) -> None:
+    err = OperationalError(text, None, Exception())
     err.orig = None
     assert is_lock_contention_error(err) is True
 

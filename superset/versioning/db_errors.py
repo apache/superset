@@ -63,7 +63,15 @@ def is_lock_contention_error(exc: BaseException | None) -> bool:
     if sqlstate in _PG_LOCK_CONTENTION:
         return True
     text = str(exc).lower()
-    return "deadlock" in text or "lock wait timeout" in text
+    # The string fallbacks cover drivers whose args/sqlstate shapes are
+    # not modelled above; "database (table) is locked" is SQLite's write
+    # contention, which carries no code at all.
+    return (
+        "deadlock" in text
+        or "lock wait timeout" in text
+        or "database is locked" in text
+        or "database table is locked" in text
+    )
 
 
 #: PostgreSQL SQLSTATE for "relation does not exist" (undefined_table).

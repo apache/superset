@@ -521,6 +521,39 @@ def test_put_dataset_maps_lock_contention_to_retryable_409(
     # read raised before the update command ever ran.
 
 
+def test_put_dataset_maps_entity_lock_contention_to_retryable_409(
+    session: Session,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """A lock race lost at the ENTITY-LOCK acquisition is also a 409.
+
+    The most common contention outcome of all: writer B blocks on
+    writer A's entity row lock and times out (1205) at
+    ``lock_entity_for_update`` -- before the validator read's own
+    try/except. Left unmapped this surfaced as an uncaught 500, defeating
+    the retryable-conflict contract the other two lock points advertise.
+    """
+    from sqlalchemy.exc import OperationalError
+
+    dataset = _create_dataset("test_put_entity_lock_contention")
+    timeout = OperationalError("stmt", None, Exception())
+    timeout.orig = type("Orig", (), {"args": (1205, "Lock wait timeout exceeded")})()
+
+    with patch(
+        "superset.datasets.api.lock_entity_for_update",
+        side_effect=timeout,
+    ):
+        response = client.put(
+            f"/api/v1/dataset/{dataset.id}",
+            json={"description": "from a racing tab"},
+            headers={"If-Match": '"anything"'},
+        )
+
+    assert response.status_code == 409
+    assert "Retry the same request" in response.get_data(as_text=True)
+
+
 def test_put_dataset_without_if_match_never_locks(
     session: Session,
     client: Any,

@@ -251,11 +251,12 @@ def current_live_transaction_id_locked(
     over an empty range (an entity with no live version row yet) takes a
     gap lock, and two concurrent conditional writers whose version rows
     share a primary-key gap can deadlock. That deadlock has two surfacing
-    points with different outcomes. At THIS read (rare -- gap locks are
+    points with the same outcome. At THIS read (rare -- gap locks are
     mutually compatible, so both readers usually succeed) the PUT path
     maps it to a retryable 409. At Continuum's version-row INSERT inside
-    the update command it surfaces as the command's pre-existing 422
-    error mapping. In both cases the loser's ``If-Match`` token is NOT
+    the update command the driver error is chained as the command
+    failure's ``__cause__``, which the PUT handler classifies to the
+    same retryable 409. Either way the loser's ``If-Match`` token is NOT
     proven stale and the correct client action is to retry the same
     request. The lock also briefly blocks retention pruning of this
     entity's version rows for the duration of the request transaction.

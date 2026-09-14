@@ -573,6 +573,25 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             logger.exception("Unexpected error in DatasetRestApi.post")
             return self.response_500(message="Fatal error")
 
+    def _lock_contention_response(self) -> Response:
+        """The shared retryable 409 for a conditional save losing a lock race.
+
+        The rollback is LOAD-BEARING for lock-wait-timeout: with
+        ``innodb_rollback_on_timeout`` OFF (the MySQL default) a 1205
+        rolls back only the failing STATEMENT -- the transaction is still
+        alive and still holds any entity row lock already acquired, and
+        this rollback is what releases it. For a deadlock (1213) InnoDB
+        already rolled the transaction back and this clears the aborted
+        session before responding.
+        """
+        db.session.rollback()  # pylint: disable=consider-using-transaction
+        return self.response(
+            409,
+            message=_(
+                "Another save is in progress for this dataset. Retry the same request."
+            ),
+        )
+
     @expose("/<pk>", methods=("PUT",))
     @protect()
     @statsd_metrics
@@ -715,12 +734,22 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         # lock_entity_for_update.)
         conditional = is_conditional_write()
         if conditional:
-            # Hold the locked entity for the rest of the request: the
-            # session's identity map references clean objects weakly, so
-            # discarding the return value could let the refreshed object
-            # be collected and the command's find_by_id re-read a stale
-            # row on MySQL REPEATABLE READ (see lock_entity_for_update).
-            _locked_entity = lock_entity_for_update(SqlaTable, pk)
+            # Blocking here is the serialisation doing its job; LOSING the
+            # race at this acquisition (deadlock, or lock-wait timeout
+            # after ``innodb_lock_wait_timeout``) is the most common
+            # contention outcome of all three lock points and maps to the
+            # same retryable 409 -- not an uncaught 500. The locked entity
+            # is HELD for the rest of the request: the session's identity
+            # map references clean objects weakly, so discarding the
+            # return value could let the refreshed object be collected and
+            # the command's find_by_id re-read a stale row on MySQL
+            # REPEATABLE READ (see lock_entity_for_update).
+            try:
+                _locked_entity = lock_entity_for_update(SqlaTable, pk)
+            except OperationalError as ex:
+                if not is_lock_contention_error(ex):
+                    raise
+                return self._lock_contention_response()
 
         # Live version identifiers before the update (empty + query-free when
         # ``ENABLE_VERSIONING_CAPTURE`` is off). On the conditional path the
@@ -731,8 +760,9 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         # wait) proves concurrent CONTENTION, not that this request's token
         # is stale — so it maps to a retryable 409, and the client should
         # retry the SAME request. (A deadlock at Continuum's version-row
-        # insert inside the command surfaces as the pre-existing 422 via the
-        # command's error mapping.)
+        # insert inside the command is classified by the
+        # DatasetUpdateFailedError handler below via ``__cause__`` and
+        # returns the same 409.)
         try:
             old_info = current_entity_version_info(
                 SqlaTable, pk, lock_for_stale_check=conditional
@@ -740,16 +770,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         except OperationalError as ex:
             if not (conditional and is_lock_contention_error(ex)):
                 raise
-            # Not a unit of work: the transaction is already dead (deadlock
-            # rollback); this clears the aborted session before responding.
-            db.session.rollback()  # pylint: disable=consider-using-transaction
-            return self.response(
-                409,
-                message=_(
-                    "Another save is in progress for this dataset. "
-                    "Retry the same request."
-                ),
-            )
+            return self._lock_contention_response()
 
         try:
             raise_for_stale_write(concurrency_token_from(old_info))
@@ -833,14 +854,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             # branch.) Same retryable classification as the read-point
             # handler above: the token is not proven stale.
             if conditional and is_lock_contention_error(ex.__cause__):
-                db.session.rollback()  # pylint: disable=consider-using-transaction
-                return self.response(
-                    409,
-                    message=_(
-                        "Another save is in progress for this dataset. "
-                        "Retry the same request."
-                    ),
-                )
+                return self._lock_contention_response()
             logger.error(
                 "Error updating model %s: %s",
                 self.__class__.__name__,
