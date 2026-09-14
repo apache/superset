@@ -933,17 +933,6 @@ def generate_gauge_vega_lite_preview(  # noqa: C901
 BUBBLE_VIZ_TYPES: frozenset[str] = frozenset({"bubble", "bubble_v2"})
 
 
-def _metric_field_name(metric: Any) -> str | None:
-    """Return the result-set column a form_data metric produces."""
-    if isinstance(metric, str):
-        return metric
-    if isinstance(metric, dict):
-        label = metric.get("label")
-        if isinstance(label, str) and label:
-            return label
-    return None
-
-
 def generate_bubble_vega_lite_preview(
     data: List[Dict[str, Any]], form_data: Dict[str, Any]
 ) -> VegaLitePreview:
@@ -957,7 +946,7 @@ def generate_bubble_vega_lite_preview(
     encoding: Dict[str, Any] = {}
 
     for channel in ("x", "y", "size"):
-        field = _metric_field_name(form_data.get(channel))
+        field = metric_result_label(form_data.get(channel))
         if field and field in sample:
             encoding[channel] = {
                 "field": field,

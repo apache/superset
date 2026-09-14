@@ -318,6 +318,32 @@ class TestBubbleSavedChartOrdering:
     def test_no_sort_metric_leaves_the_query_unordered(self, monkeypatch) -> None:
         assert "orderby" not in self._query(monkeypatch)
 
+    def test_the_callers_order_desc_wins_over_the_saved_flag(self, monkeypatch) -> None:
+        """An explicit order_desc must not contradict the emitted orderby.
+
+        get_chart_data passes order_desc positionally while the saved
+        form_data carries its own flag; reading only form_data leaves
+        qd['order_desc'] and qd['orderby'] disagreeing about direction.
+        """
+        from superset.mcp_service.chart import chart_helpers
+
+        monkeypatch.setattr(
+            chart_helpers,
+            "resolve_datasource_engine",
+            lambda datasource_id, datasource_type: "base",
+        )
+        size = self._size_metric()
+        form_data = map_bubble_config(BubbleChartConfig(**_base()))
+        form_data["orderby"] = size
+        form_data["order_desc"] = False
+
+        query = chart_helpers.build_query_dicts_from_form_data(
+            form_data, 1, "table", order_desc=True
+        )[0]
+
+        assert query["order_desc"] is True
+        assert query["orderby"] == [(size, False)]
+
 
 class TestBubbleVegaLitePreview:
     """The advertised Vega-Lite preview must draw bubbles, not an empty bar.
@@ -375,6 +401,39 @@ class TestBubbleVegaLitePreview:
         encoding = self._preview(form_data, self._rows()).specification["encoding"]
 
         assert encoding["color"]["field"] == "country"
+
+    def test_unlabeled_simple_metrics_resolve_to_their_result_column(self) -> None:
+        """A saved chart may carry SIMPLE metrics with no explicit label.
+
+        The result column is then the aggregate applied to the column name,
+        which is what the shared metric_result_label helper reconstructs.
+        """
+        form_data = {
+            "viz_type": "bubble_v2",
+            "entity": "country",
+            "series": "continent",
+            "x": {
+                "expressionType": "SIMPLE",
+                "aggregate": "AVG",
+                "column": {"column_name": "gdp"},
+            },
+            "y": {
+                "expressionType": "SIMPLE",
+                "aggregate": "AVG",
+                "column": {"column_name": "life_expectancy"},
+            },
+            "size": {
+                "expressionType": "SIMPLE",
+                "aggregate": "SUM",
+                "column": {"column_name": "population"},
+            },
+        }
+
+        encoding = self._preview(form_data, self._rows()).specification["encoding"]
+
+        assert encoding["x"]["field"] == "AVG(gdp)"
+        assert encoding["y"]["field"] == "AVG(life_expectancy)"
+        assert encoding["size"]["field"] == "SUM(population)"
 
     def test_saved_metric_names_are_used_as_fields(self) -> None:
         """A saved bubble chart stores saved metrics as plain name strings."""

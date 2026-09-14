@@ -600,7 +600,12 @@ def _build_single_query_dict(
     elif sort_metric := resolve_sort_metric(form_data):
         # Bubble's buildQuery pairs its "Sort query by" metric with the
         # negated order_desc flag; order_desc defaults to True (descending).
-        qd["orderby"] = [(sort_metric, not form_data.get("order_desc", True))]
+        # An explicit argument wins, or qd["order_desc"] set above would
+        # contradict the direction emitted here.
+        descending = (
+            order_desc if order_desc is not None else form_data.get("order_desc", True)
+        )
+        qd["orderby"] = [(sort_metric, not descending)]
     apply_form_data_filters_to_query(qd, form_data)
     return qd
 
