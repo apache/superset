@@ -345,7 +345,7 @@ export const useExploreAdditionalActionsMenu = (
   ...rest: MenuProps[]
 ): UseExploreAdditionalActionsMenuReturn => {
   const theme = useTheme();
-  const { addDangerToast, addSuccessToast } = useToasts();
+  const { addDangerToast, addSuccessToast, addWarningToast } = useToasts();
   const dispatch = useDispatch();
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const [dashboardSearchTerm, setDashboardSearchTerm] = useState('');
@@ -761,6 +761,7 @@ export const useExploreAdditionalActionsMenu = (
             exportPivotExcel(
               `${sliceSelector} .pvtTable`,
               slice?.slice_name ?? t('pivoted_xlsx'),
+              addWarningToast,
             );
             setIsDropdownVisible(false);
             dispatch(
