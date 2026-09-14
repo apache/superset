@@ -197,6 +197,32 @@ test('DateFilter should properly handle isOverflowingFilterBar prop changes', as
   expect(popoverAfterRerender?.parentElement).toBe(document.body);
 });
 
+test('applies a configured displayFormat to the evaluated range but leaves the human-readable pill untouched', async () => {
+  mockedFetchTimeRange.mockImplementation(
+    async (_value, _columnPlaceholder, _shifts, dateFormat) =>
+      dateFormat
+        ? { value: `2024-01-01 ≤ col < 2024-01-08 (${dateFormat})` }
+        : { value: FIELD_TOOLTIP },
+  );
+
+  render(
+    setup({
+      ...defaultProps,
+      value: 'Last week',
+      displayFormat: '%d-%m-%Y',
+    }),
+  );
+
+  // the pill shows the raw human-readable value regardless of displayFormat
+  expect(await screen.findByText('Last week')).toBeInTheDocument();
+
+  // the tooltip shows the evaluated range, formatted with displayFormat
+  await userEvent.hover(screen.getByText('Last week'));
+  expect(await screen.findByRole('tooltip')).toHaveTextContent(
+    '2024-01-01 ≤ col < 2024-01-08 (%d-%m-%Y)',
+  );
+});
+
 test('hovering the description icon does not show the date range tooltip', async () => {
   const tooltipOnClick = jest.fn();
   render(
