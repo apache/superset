@@ -161,7 +161,8 @@ const findAllSelectValues = () =>
     ),
   ]);
 
-const clearAll = () => userEvent.click(screen.getByLabelText('close-circle'));
+const clearAll = async () =>
+  await userEvent.click(screen.getByLabelText('close-circle'));
 
 const matchOrder = async (expectedLabels: string[]) => {
   const actualLabels: string[] = [];
@@ -180,7 +181,7 @@ const type = async (text: string, delay?: number, clear = true) => {
   if (clear) {
     await userEvent.clear(select);
   }
-  return userEvent.type(select, text, { delay: delay ?? 10 });
+  return await userEvent.type(select, text, { delay: delay ?? 10 });
 };
 
 const clearTypedText = async () => {
@@ -188,10 +189,19 @@ const clearTypedText = async () => {
   await userEvent.clear(select);
 };
 
-const open = () => waitFor(() => userEvent.click(getSelect()));
+const open = () => waitFor(async () => await userEvent.click(getSelect()));
+
+// userEvent.type()'s `{Escape}` key sequence isn't reliably picked up by
+// rc-select's keydown handler under jsdom; dispatch the key event directly.
+const closeDropdown = () =>
+  fireEvent.keyDown(getSelect(), {
+    key: 'Escape',
+    code: 'Escape',
+    keyCode: 27,
+  });
 
 const reopen = async () => {
-  await type('{esc}');
+  closeDropdown();
   await open();
 };
 
@@ -661,6 +671,9 @@ test('changes the selected item in single mode', async () => {
     }),
     expect.objectContaining(firstOption),
   );
+  // Selecting an option in single mode closes the dropdown, so reopen it
+  // before clicking the next option.
+  await open();
   await userEvent.click(await findSelectOption(secondOption.label));
   expect(onChange).toHaveBeenCalledWith(
     expect.objectContaining({
@@ -880,8 +893,13 @@ test('deselecting a new value also removes it from the options', async () => {
   await open();
   await type(NEW_OPTION);
   expect(await findSelectOption(NEW_OPTION)).toBeInTheDocument();
-  await type('{enter}');
-  clearTypedText();
+  // userEvent's `{enter}` key sequence isn't reliably picked up by
+  // rc-select's keydown handler under jsdom; dispatch the key event
+  // directly, same as closeDropdown() does for Escape elsewhere in this
+  // file. Do this before clearing the search text — it needs to still read
+  // "Kyle" for Enter to confirm it as the new selection.
+  fireEvent.keyDown(getSelect(), { key: 'Enter', code: 'Enter', keyCode: 13 });
+  await clearTypedText();
   await userEvent.click(await findSelectOption(NEW_OPTION));
   expect(await querySelectOption(NEW_OPTION)).not.toBeInTheDocument();
 });
@@ -926,7 +944,7 @@ test('Renders only an overflow tag if dropdown is open in oneLine mode', async (
     expect(withinSelector.getByText('+ 3 ...')).toBeVisible();
   });
 
-  await type('{esc}');
+  closeDropdown();
 
   expect(await withinSelector.findByText(OPTIONS[0].label)).toBeVisible();
   expect(withinSelector.queryByText(OPTIONS[1].label)).not.toBeInTheDocument();
@@ -971,7 +989,13 @@ test('Maintains stable maxTagCount to prevent click target disappearing in oneLi
   expect(withinSelector.getByText(OPTIONS[0].label)).toBeVisible();
   expect(withinSelector.getByText('+ 2 ...')).toBeVisible();
 
-  await userEvent.click(getSelect());
+  // Use a raw fireEvent mouseDown (single synchronous event, same as what
+  // rc-select itself listens for to open the dropdown) rather than
+  // userEvent's multi-step interaction so we can observe the DOM in the
+  // instant right after, before the dropdown-open effect (which collapses
+  // tags to the overflow count) has had a chance to run — this is the exact
+  // regression #35132 guarded against.
+  fireEvent.mouseDown(getSelect());
   expect(withinSelector.getByText(OPTIONS[0].label)).toBeVisible();
 
   await waitFor(() => {
@@ -982,7 +1006,7 @@ test('Maintains stable maxTagCount to prevent click target disappearing in oneLi
   });
 
   // Close dropdown
-  await type('{esc}');
+  closeDropdown();
 
   expect(await withinSelector.findByText(OPTIONS[0].label)).toBeVisible();
   expect(withinSelector.getByText('+ 2 ...')).toBeVisible();
@@ -1028,7 +1052,7 @@ test('dropdown width matches input width after tags collapse in oneLine mode', a
   } as DOMRect);
 
   // Close and reopen to trigger width measurement with mocked value
-  await type('{esc}');
+  closeDropdown();
   await open();
 
   const dropdown = document.querySelector(
@@ -1131,7 +1155,7 @@ test('"Deselect all" counts new selected options', async () => {
   await open();
   await type(NEW_OPTION);
   await userEvent.click(await findSelectOption(NEW_OPTION));
-  clearTypedText();
+  await clearTypedText();
   await open();
   await userEvent.click(await findSelectOption('Ava'));
   expect(await screen.findByText(deselectAllButtonText(2))).toBeInTheDocument();
@@ -1203,7 +1227,7 @@ test('stableSelectAll pins the "Select all" count to the full option set while s
       />,
     );
     const select = getSelect();
-    userEvent.click(select);
+    await userEvent.click(select);
     // Baseline: the full-column count is shown before any search.
     expect(
       await screen.findByText(selectAllButtonText(STABLE_OPTIONS.length)),
@@ -1233,7 +1257,7 @@ test('without stableSelectAll the "Select all" count narrows to the searched sub
       <Select {...defaultProps} options={STABLE_OPTIONS} mode="multiple" />,
     );
     const select = getSelect();
-    userEvent.click(select);
+    await userEvent.click(select);
     expect(
       await screen.findByText(selectAllButtonText(STABLE_OPTIONS.length)),
     ).toBeInTheDocument();
@@ -1268,7 +1292,7 @@ test('stableSelectAll selects the entire option set even while a search is activ
       />,
     );
     const select = getSelect();
-    userEvent.click(select);
+    await userEvent.click(select);
     await screen.findByText(selectAllButtonText(STABLE_OPTIONS.length));
 
     await userEvent.type(select, 'Ap');
@@ -1303,7 +1327,7 @@ test('stableSelectAll excludes disabled options from the full-set count while se
       />,
     );
     const select = getSelect();
-    userEvent.click(select);
+    await userEvent.click(select);
     expect(await screen.findByText(selectAllButtonText(5))).toBeInTheDocument();
 
     await userEvent.type(select, 'Ap');
@@ -1337,7 +1361,7 @@ test('stableSelectAll deduplicates already-selected values when selecting the fu
       />,
     );
     const select = getSelect();
-    userEvent.click(select);
+    await userEvent.click(select);
     await screen.findByText(selectAllButtonText(STABLE_OPTIONS.length));
 
     await userEvent.type(select, 'Ap');
@@ -1377,7 +1401,7 @@ test('stableSelectAll keeps "Clear" counting and clearing the full selection whi
       />,
     );
     const select = getSelect();
-    userEvent.click(select);
+    await userEvent.click(select);
     expect(
       await screen.findByText(deselectAllButtonText(2)),
     ).toBeInTheDocument();
@@ -1423,7 +1447,7 @@ test('stableSelectAll "Clear" count matches the action for a selected <NULL> val
       />,
     );
     const select = getSelect();
-    userEvent.click(select);
+    await userEvent.click(select);
     expect(
       await screen.findByText(deselectAllButtonText(2)),
     ).toBeInTheDocument();
@@ -1469,7 +1493,7 @@ test('stableSelectAll does not read a normal selection as the "Select all" senti
       />,
     );
     const select = getSelect();
-    userEvent.click(select);
+    await userEvent.click(select);
 
     await userEvent.type(select, 'erry');
     act(() => {
@@ -1499,7 +1523,7 @@ test('stableSelectAll counts and selects grouped options by their leaf values', 
     />,
   );
   const select = getSelect();
-  userEvent.click(select);
+  await userEvent.click(select);
 
   // Five leaf options across two groups. The group headers carry no value, so
   // without flattening the full set the count collapses to zero and the bulk
@@ -1812,6 +1836,9 @@ test('does not fire onChange if the same value is selected in single mode', asyn
   expect(onChange).toHaveBeenCalledTimes(0);
   await userEvent.click(await findSelectOption(optionText));
   expect(onChange).toHaveBeenCalledTimes(1);
+  // Selecting an option in single mode closes the dropdown, so reopen it
+  // before clicking the same option again.
+  await open();
   await userEvent.click(await findSelectOption(optionText));
   expect(onChange).toHaveBeenCalledTimes(1);
 });

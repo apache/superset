@@ -599,6 +599,20 @@ const config: ControlPanelConfig = {
         ],
         [
           {
+            name: 'zebra_striping',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Zebra striping'),
+              renderTrigger: true,
+              default: false,
+              description: t(
+                'Alternate the row background color to make rows easier to scan.',
+              ),
+            },
+          },
+        ],
+        [
+          {
             name: 'column_config',
             config: {
               type: 'ColumnConfigControl',

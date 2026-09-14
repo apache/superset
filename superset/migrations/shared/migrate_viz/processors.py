@@ -799,6 +799,14 @@ class MigrateTableChart(MigrateViz):
         if "allow_rearrange_columns" not in self.data:
             self.data["allow_rearrange_columns"] = False
 
+        # v1's TableChart always renders with Bootstrap-style zebra
+        # striping ("table-striped") -- there's no control for it, it's
+        # unconditional. v2's zebra_striping control defaults new charts to
+        # False (matching v2's own subtle-by-default look), so a migrated
+        # chart needs this materialized explicitly to keep its original
+        # striped appearance rather than silently losing it.
+        self.data["zebra_striping"] = True
+
     def _build_aggregate_mode_query(
         self, base_query_object: dict[str, Any], time_offsets: list[Any]
     ) -> tuple[list[Any], list[Any], Any, list[Any]]:
