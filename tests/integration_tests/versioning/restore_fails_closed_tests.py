@@ -26,7 +26,7 @@ from unittest.mock import patch
 
 import pytest
 import sqlalchemy as sa
-from sqlalchemy_continuum import version_class
+from sqlalchemy_continuum import version_class, versioning_manager
 
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.extensions import db
@@ -491,4 +491,59 @@ class TestRestoreFailsClosedOnPrunedChildHistory(SupersetTestCase):
         # The column existed at target_tx but is NOT restored — the
         # documented fail-open residual.
         assert all(col.id != added_id for col in dataset.columns)
+        db.session.rollback()
+
+    def test_foreign_id_reuse_does_not_refuse_the_restore(self) -> None:
+        """#44251 CI regression: a deleted column whose integer id was
+        recycled to ANOTHER dataset closes this parent's terminal DELETE
+        shadow at the foreign INSERT's tx (Continuum's validity strategy
+        closes by pk across parents). The verifier must read that closure
+        as provable absence — not as a pruned re-birth — or every restore
+        of the original dataset refuses forever after routine id reuse
+        (SQLite reuses freed ids; MySQL reuses max(id)+1 after the top
+        row is deleted)."""
+        dataset, column, target_tx, _ = self._two_version_dataset()
+
+        # Remove a column and take a post-delete snapshot point.
+        removed_id = dataset.columns[-1].id
+        db.session.delete(dataset.columns[-1])
+        dataset.description = f"{dataset.description}_col_removed"
+        db.session.commit()
+        dataset.description = f"{dataset.description}_snapshot"
+        db.session.commit()
+        target_tx = _latest_parent_tx(dataset)
+
+        # Simulate the id being recycled to another dataset: close this
+        # parent's terminal DELETE row at a foreign tx and plant the
+        # foreign parent's surviving INSERT row at exactly that tx —
+        # the shape Continuum's cross-parent validity closure produces.
+        shadow = version_class(TableColumn).__table__
+        tx_tbl = versioning_manager.transaction_cls.__table__
+        foreign_tx = db.session.execute(
+            tx_tbl.insert().values(issued_at=sa.func.now(), user_id=None)
+        ).inserted_primary_key[0]
+        db.session.execute(
+            sa.update(shadow)
+            .where(
+                shadow.c.id == removed_id,
+                shadow.c.table_id == dataset.id,
+                shadow.c.operation_type == 2,
+            )
+            .values(end_transaction_id=foreign_tx)
+        )
+        db.session.execute(
+            shadow.insert().values(
+                id=removed_id,
+                table_id=dataset.id + 999_999,  # a different parent
+                column_name="recycled",
+                transaction_id=foreign_tx,
+                end_transaction_id=None,
+                operation_type=0,
+            )
+        )
+        db.session.commit()
+
+        result = restore_version(SqlaTable, dataset.uuid, target_tx, entity=dataset)
+
+        assert result is not None
         db.session.rollback()

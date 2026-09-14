@@ -181,8 +181,26 @@ def _verify_child_history_complete(entity: Any, target_tx: int) -> None:
         by_child: dict[int, list[Any]] = {}
         for row in rows:
             by_child.setdefault(row.id, []).append(row)
+
+        # Foreign-closure witnesses. Continuum's validity strategy closes
+        # rows by CHILD PK ALONE, across parents: when a deleted child's
+        # integer id is recycled to a DIFFERENT dataset (SQLite reuses
+        # freed ids routinely; MySQL reuses max(id)+1 after the top row
+        # is deleted), the foreign re-birth closes THIS parent's terminal
+        # DELETE row at the foreign INSERT's tx. Read per-parent, that
+        # closure is indistinguishable from a pruned same-parent re-birth
+        # — which must refuse — so for every closed DELETE end we check
+        # whether a surviving row of the same pk at exactly that tx under
+        # ANOTHER parent explains the closure. Witness rows are read
+        # WITHOUT the lock: they only ever downgrade a would-be refusal
+        # into a provable absence, and an absent child is not a
+        # reconstruction input, so their disappearance mid-restore cannot
+        # produce an incomplete write.
+        witnesses = _foreign_closure_witnesses(shadow, entity.id, by_child)
         for child_id, child_rows in by_child.items():
-            if not _child_state_provable_at(child_rows, target_tx):
+            if not _child_state_provable_at(
+                child_rows, target_tx, witnesses.get(child_id, frozenset())
+            ):
                 missing.append(f"{label} id={child_id}")
 
     if missing:
@@ -192,30 +210,82 @@ def _verify_child_history_complete(entity: Any, target_tx: int) -> None:
         )
 
 
-def _child_state_provable_at(rows: list[Any], target_tx: int) -> bool:
-    """Whether *rows* (one child's surviving shadow rows, tx-ordered)
-    prove the child's state at *target_tx*.
+def _foreign_closure_witnesses(
+    shadow: sa.Table, entity_id: int, by_child: dict[int, list[Any]]
+) -> dict[int, frozenset[int]]:
+    """Closure txs of each child's DELETE rows that a surviving row of the
+    same pk under ANOTHER parent explains (id recycling — see the witness
+    comment at the call site). One query for all children."""
+    wanted: dict[int, set[int]] = {}
+    for child_id, child_rows in by_child.items():
+        for row in child_rows:
+            if (
+                row.operation_type == OPERATION_DELETE
+                and row.end_transaction_id is not None
+            ):
+                wanted.setdefault(child_id, set()).add(row.end_transaction_id)
+    if not wanted:
+        return {}
+    witness_rows = db.session.execute(
+        sa.select(shadow.c.id, shadow.c.transaction_id).where(
+            shadow.c.id.in_(list(wanted)),
+            shadow.c.table_id != entity_id,
+            shadow.c.transaction_id.in_(
+                sorted({tx for txs in wanted.values() for tx in txs})
+            ),
+        )
+    ).all()
+    lookup = {(row.id, row.transaction_id) for row in witness_rows}
+    return {
+        child_id: frozenset(tx for tx in txs if (child_id, tx) in lookup)
+        for child_id, txs in wanted.items()
+    }
+
+
+def _child_state_provable_at(
+    rows: list[Any], target_tx: int, foreign_closures: frozenset[int] = frozenset()
+) -> bool:
+    """Whether *rows* (one child's surviving SAME-PARENT shadow rows,
+    tx-ordered) prove the child's state at *target_tx*.
 
     Interval semantics: a row is valid over ``[transaction_id,
     end_transaction_id)`` (open end = unbounded), and a CLOSED end is
-    Continuum's evidence that a successor row existed at that tx — for a
-    DELETE row, a closed end means the child was re-inserted then. So:
+    Continuum's evidence that a successor row for the same pk existed at
+    that tx. For non-DELETE rows the successor is always a same-parent
+    row (an UPDATE or the DELETE that removed the child), so their
+    intervals are trusted as-is. A terminal DELETE row's closure is
+    ambiguous per-parent: validity closes by pk ACROSS parents, so the
+    closer is either a same-parent re-birth (whose pruning must REFUSE —
+    the child may have existed at the target) or a foreign parent's
+    INSERT after id reuse (the child stayed absent here — SAFE).
+    *foreign_closures* carries the closure txs a surviving foreign-parent
+    row explains; a closed DELETE end at/before the target is treated as
+    covering the target only when it is in that set. So:
 
-    * an interval covering the target proves the state either way — a
-      non-DELETE covering row means present (the revert includes it), a
-      DELETE covering row means provably absent (deleted at its tx, not
-      re-born until after the target, if ever);
-    * with NO covering interval, the only provable state is born-after:
-      every surviving row lies beyond the target and the earliest is the
-      child's birth INSERT. Anything else — an interval ending at/before
-      the target whose successor is missing, or a post-target
-      UPDATE/DELETE/re-birth whose predecessor is missing — leaves a gap
-      that may have covered the target: fail closed.
+    * a non-DELETE interval covering the target: present (restored);
+    * a DELETE interval covering the target — by its own end bound, or
+      past a foreign-explained closure: provably absent;
+    * no covering interval: only born-after passes (every same-parent
+      row beyond the target, earliest is the birth INSERT). Anything
+      else leaves a gap that may have covered the target: fail closed.
     """
     for row in rows:
-        if row.transaction_id <= target_tx and (
-            row.end_transaction_id is None or row.end_transaction_id > target_tx
+        if row.transaction_id > target_tx:
+            continue
+        end = row.end_transaction_id
+        if end is None or end > target_tx:
+            return True
+        if (
+            row.operation_type == OPERATION_DELETE
+            and end in foreign_closures
+            and not any(
+                other.transaction_id > row.transaction_id
+                and other.transaction_id <= target_tx
+                for other in rows
+            )
         ):
+            # Deleted here, id later recycled to another parent: the
+            # child remained absent for THIS parent through the target.
             return True
     if all(row.transaction_id > target_tx for row in rows):
         return rows[0].operation_type == OPERATION_INSERT

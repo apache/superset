@@ -150,6 +150,60 @@ _INSERT, _UPDATE, _DELETE = 0, 1, 2
 
 
 @pytest.mark.parametrize(
+    ("rows", "target_tx", "foreign", "expected", "case"),
+    [
+        # A terminal DELETE closed at a tx a FOREIGN parent's surviving
+        # row explains (the child's integer id was recycled to another
+        # dataset — Continuum closes validity by pk ACROSS parents): the
+        # child stayed absent for this parent → provable, no refusal.
+        # This was the #44251 CI false-refusal class (SQLite id reuse;
+        # MySQL reuses max(id)+1 after the top row is deleted).
+        (
+            [_Row(2, 5, _INSERT), _Row(5, 8, _DELETE)],
+            10,
+            frozenset({8}),
+            True,
+            "foreign id-reuse closure is a provable absence",
+        ),
+        # The SAME shape with no surviving witness stays a refusal — the
+        # closer may have been a pruned same-parent re-birth covering the
+        # target (the round-2 H2 case must keep refusing).
+        (
+            [_Row(2, 5, _INSERT), _Row(5, 8, _DELETE)],
+            10,
+            frozenset(),
+            False,
+            "unexplained closure still refuses",
+        ),
+        # A witness does NOT excuse a hole between same-parent rows: a
+        # later same-parent row after the delete means the pk came back
+        # HERE, and the gap before it may have covered the target.
+        (
+            [_Row(2, 5, _INSERT), _Row(5, 8, _DELETE), _Row(9, 10, _UPDATE)],
+            10,
+            frozenset({8}),
+            False,
+            "same-parent successor disables the witness shortcut",
+        ),
+    ],
+)
+def test_child_state_foreign_closure_witnesses(
+    rows: list[_Row],
+    target_tx: int,
+    foreign: frozenset[int],
+    expected: bool,
+    case: str,
+) -> None:
+    """sc-120012 / #44251 CI round: cross-parent pk recycling closes this
+    parent's terminal DELETE at a foreign tx; only a surviving foreign
+    witness row at exactly that tx turns the closure into provable
+    absence."""
+    from superset.versioning.restore import _child_state_provable_at
+
+    assert _child_state_provable_at(rows, target_tx, foreign) is expected, case
+
+
+@pytest.mark.parametrize(
     ("rows", "target_tx", "expected", "case"),
     [
         # A surviving non-DELETE row covers the target: complete.
