@@ -60,7 +60,7 @@
     "@saucelabs/theme-github-codeblock": "^0.3.0",
     "@storybook/addon-docs": "^10.6.0",
     "@superset-ui/core": "^0.20.4",
-    "@swc/core": "^1.16.1",
+    "@swc/core": "^1.16.2",
     "antd": "^6.6.2",
     "baseline-browser-mapping": "^2.11.21",
     "caniuse-lite": "^1.0.30001810",
