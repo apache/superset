@@ -84,11 +84,14 @@ ADVANCED_FEATURES = {
 }
 
 # Engines wired to a SQL validator by the ``SQL_VALIDATORS_BY_ENGINE`` default in
-# superset/config.py, which is the source of truth; restated rather than imported
-# because importing that module here would execute the operator's
-# ``superset_config.py`` on any import of this one. Keep the two in sync. The
-# SQLite-family validator ships too, but is opt-in as it needs the optional
-# ``syntaqlite`` package.
+# superset/config.py, which is the source of truth. It is restated rather than
+# imported because importing that module here would execute the operator's
+# ``superset_config.py`` on any import of this one, and read from it rather than
+# from ``current_app.config`` because this feeds a published capability matrix,
+# which should describe the shipped default and not one deployment's overrides.
+# The generator in docs/scripts/generate-database-docs.mjs restates it a third
+# time; keep all three in sync. The SQLite-family validator ships too, but is
+# opt-in as it needs the optional ``syntaqlite`` package.
 SQL_VALIDATION_ENGINES = frozenset({"presto"})
 
 
