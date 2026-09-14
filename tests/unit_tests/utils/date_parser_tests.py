@@ -359,10 +359,11 @@ def test_previous_calendar_quarter():
 
 def test_get_since_until_sub_day_shorthand() -> None:
     """
-    Sub-day "Last <unit>" shorthand must resolve `since <= until` at any wall-clock
-    time, not just at midnight. Exercises the real, unmocked `get_since_until`
-    (unlike `test_get_since_until`, which mocks `parse_human_datetime`), frozen at
-    a non-midnight instant so both bounds of the range anchor consistently.
+    Sub-day "Last <unit>" / "Next <unit>" shorthand must resolve to a bounded
+    range anchored on `now` (not the literal "today"/midnight) at any wall-clock
+    time. Exercises the real, unmocked `get_since_until` (unlike
+    `test_get_since_until`, which mocks `parse_human_datetime`), frozen at a
+    non-midnight instant so both bounds of the range anchor consistently.
     """
     with freezegun.freeze_time("2026-09-14 17:16:40"):
         result = get_since_until("Last hour")
@@ -397,6 +398,37 @@ def test_get_since_until_sub_day_shorthand() -> None:
         expected = (
             datetime(2026, 9, 14, 15, 16, 40),
             datetime(2026, 9, 14, 17, 16, 40),
+        )
+        assert result == expected
+
+        # "Next <unit>" hits the same shorthand rewrite from the other side: the
+        # since bound (not the matched unit) used to default to the literal
+        # "today", which undershot to midnight instead of anchoring on "now".
+        result = get_since_until("Next second")
+        expected = (
+            datetime(2026, 9, 14, 17, 16, 40),
+            datetime(2026, 9, 14, 17, 16, 41),
+        )
+        assert result == expected
+
+        result = get_since_until("Next minute")
+        expected = (
+            datetime(2026, 9, 14, 17, 16, 40),
+            datetime(2026, 9, 14, 17, 17, 40),
+        )
+        assert result == expected
+
+        result = get_since_until("Next hour")
+        expected = (
+            datetime(2026, 9, 14, 17, 16, 40),
+            datetime(2026, 9, 14, 18, 16, 40),
+        )
+        assert result == expected
+
+        result = get_since_until("Next 2 hours")
+        expected = (
+            datetime(2026, 9, 14, 17, 16, 40),
+            datetime(2026, 9, 14, 19, 16, 40),
         )
         assert result == expected
 
