@@ -161,6 +161,13 @@ def restore_version(
     # race, and so the change-records listener sees the complete state in
     # one ``after_flush`` pass. See ``single_flush_scope`` for the full
     # rationale.
+    # SC-120012: ``revert(relations=...)`` reconstructs children from the
+    # closed child shadow rows valid at the target transaction. Retention
+    # can legitimately prune closed child history while the parent
+    # transaction survives the window, in which case this WRITE persists an
+    # incomplete column/metric set for a SqlaTable — the same child-path
+    # gap noted read-only in ``queries.get_version``, worse here because it
+    # is durable. Tracked there; not closed in this change.
     skipped_slice_ids: list[int] = []
     try:
         with single_flush_scope(db.session):
