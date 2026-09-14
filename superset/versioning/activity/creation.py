@@ -27,7 +27,8 @@ like any other version (the record carries the same ``version_uuid``
 the ``/versions/`` family resolves).
 
 Placement and gating live in the orchestrator: the record is appended
-only for the PATH entity (the endpoint's edit-gate already covers it),
+only for the PATH entity (it inherits the activity endpoint's access
+gate — edit-gated once #44021 lands),
 only when the stream is not truncated, and never for
 ``include="related"``. If retention pruned the op=0 row or its
 transaction, no record is synthesized — the timeline simply starts at
@@ -96,38 +97,44 @@ def build_creation_record(
     from superset import security_manager
 
     shadow = version_class(model_cls).__table__
-    creation_tx_id = db.session.execute(
-        sa.select(shadow.c.transaction_id)
-        .where(
-            shadow.c.id == entity.id,
-            shadow.c.uuid == entity.uuid,
-            shadow.c.operation_type == 0,
-        )
-        .order_by(shadow.c.transaction_id.asc())
-        .limit(1)
-    ).scalar()
-    if creation_tx_id is None:
-        return None
-
     tx_tbl = versioning_manager.transaction_cls.__table__
     user_tbl = security_manager.user_model.__table__
+    # ONE inner-joined statement, not a shadow read followed by a
+    # transaction check: retention deletes shadow rows and transactions
+    # on different anchors (a transaction survives while any OTHER live
+    # row anchors it), so two statements leave a window where the shadow
+    # is pruned between them and the row would be synthesized for an
+    # unresolvable restore target. The join returns nothing unless BOTH
+    # halves survive.
     tx = (
         db.session.execute(
             sa.select(
+                shadow.c.transaction_id,
                 tx_tbl.c.issued_at,
                 tx_tbl.c.action_kind,
                 user_tbl.c.id.label("changed_by_id"),
                 user_tbl.c.first_name,
                 user_tbl.c.last_name,
             )
-            .select_from(tx_tbl.outerjoin(user_tbl, tx_tbl.c.user_id == user_tbl.c.id))
-            .where(tx_tbl.c.id == creation_tx_id)
+            .select_from(
+                shadow.join(tx_tbl, shadow.c.transaction_id == tx_tbl.c.id).outerjoin(
+                    user_tbl, tx_tbl.c.user_id == user_tbl.c.id
+                )
+            )
+            .where(
+                shadow.c.id == entity.id,
+                shadow.c.uuid == entity.uuid,
+                shadow.c.operation_type == 0,
+            )
+            .order_by(shadow.c.transaction_id.asc())
+            .limit(1)
         )
         .mappings()
         .first()
     )
     if tx is None:
         return None
+    creation_tx_id = tx["transaction_id"]
 
     api_kind = model_cls.__name__
     changed_by = (
@@ -152,7 +159,12 @@ def build_creation_record(
         "changed_by": changed_by,
         "kind": CREATION_RECORD_KIND,
         "operation": "announce",
-        "action_kind": tx["action_kind"],
+        # The transaction-level 'baseline' stamp is INTERNAL provenance:
+        # the public action_kind vocabulary is restore/import/clone/null
+        # (ActivityRecordSchema + the client's ActivityActionKind), so
+        # the synthetic record ships null and display is driven by
+        # creation_kind alone.
+        "action_kind": None,
         "path": [CREATION_RECORD_KIND],
         "from_value": None,
         "to_value": None,
