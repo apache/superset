@@ -45,6 +45,7 @@ import {
   SelectionChangedEvent,
 } from '@superset-ui/core/components/ThemedAgGridReact';
 import { t } from '@apache-superset/core/translation';
+import { useTheme } from '@apache-superset/core/theme';
 import {
   AgGridChartState,
   DataRecordValue,
@@ -118,6 +119,7 @@ export interface AgGridTableProps {
   gridRef?: RefObject<AgGridReact>;
   chartState?: AgGridChartState;
   onClientViewChange?: (snapshot: ClientViewSnapshot) => void;
+  zebraStriping: boolean;
 }
 
 ModuleRegistry.registerModules([AllCommunityModule, ClientSideRowModelModule]);
@@ -159,6 +161,7 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
     metricColumns = [],
     chartState,
     onClientViewChange,
+    zebraStriping,
   }) => {
     const gridRef = useRef<AgGridReact>(null);
     const inputRef = useRef<HTMLInputElement>(null);
@@ -167,6 +170,21 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
     const lastCapturedStateRef = useRef<string | null>(null);
     const hasCapturedInitialGridStateRef = useRef(false);
     const filterOperationVersionRef = useRef(0);
+
+    const theme = useTheme();
+    // ThemedAgGridReact defaults every AG Grid instance (including SQL Lab's
+    // results grid) to a subtle striped background via this same token, so
+    // an explicit override is needed in both directions here rather than
+    // just turning it on: "off" has to opt out of that shared default, and
+    // "on" reuses the same token instead of inventing a chart-specific color.
+    const themeOverrides = useMemo(
+      () => ({
+        oddRowBackgroundColor: zebraStriping
+          ? theme.colorFillQuaternary
+          : 'transparent',
+      }),
+      [zebraStriping, theme.colorFillQuaternary],
+    );
 
     const searchId = `search-${id}`;
 
@@ -668,6 +686,7 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
           <ThemedAgGridReact
             ref={gridRef}
             onGridReady={onGridReady}
+            themeOverrides={themeOverrides}
             className="ag-container"
             rowData={rowData}
             headerHeight={36}
