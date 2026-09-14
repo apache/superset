@@ -20,10 +20,14 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from contextvars import ContextVar
 from dataclasses import dataclass, fields
 from math import ceil
 from time import time
-from typing import cast, Protocol
+from typing import cast, Protocol, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from superset.coordination.cache_backend import RedisCommandsMixin
 
 from superset_core.semantic_layers.types import SemanticQuery, SemanticResult
 
@@ -64,6 +68,21 @@ class SemanticCacheBackendError(RuntimeError):
 
 class SemanticCacheCoordinationError(RuntimeError):
     """Expected operational failure raised by a mutation coordinator."""
+
+
+@dataclass(frozen=True)
+class SemanticCacheWriteFence:
+    """Mutation-local lease identity; never shared between concurrent writers."""
+
+    key: str
+    owner_token: str
+    check_owner: Callable[[], bool]
+    redis_backend: RedisCommandsMixin | None = None
+
+
+semantic_cache_write_fence: ContextVar[SemanticCacheWriteFence | None] = ContextVar(
+    "semantic_cache_write_fence", default=None
+)
 
 
 @dataclass(frozen=True)
@@ -141,7 +160,26 @@ class SemanticCacheRepository:
         error_type: type[SemanticCacheRepositoryError],
     ) -> None:
         try:
-            persisted: bool = self._backend.set(key, value, timeout=timeout)
+            fence: SemanticCacheWriteFence | None = semantic_cache_write_fence.get()
+            persisted: bool | None = None
+            if fence is not None:
+                fenced_set: (
+                    Callable[
+                        [SemanticCacheWriteFence, str, object, int | None], bool | None
+                    ]
+                    | None
+                ) = getattr(self._backend, "set_if_owner", None)
+                if fenced_set is not None:
+                    persisted = fenced_set(fence, key, value, timeout)
+                if persisted is None and not fence.check_owner():
+                    raise SemanticCacheCoordinationError(
+                        "Semantic cache lease ownership was lost"
+                    )
+            if persisted is None:
+                # Non-Redis or separate-client stores cannot atomically check
+                # the lease and SET. Recheck immediately before this best-effort
+                # write; a lease takeover between the two calls remains possible.
+                persisted = self._backend.set(key, value, timeout=timeout)
         except SemanticCacheBackendError as ex:
             raise error_type("Semantic cache backend set failed") from ex
         if not persisted:

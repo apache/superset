@@ -23,11 +23,29 @@ change production connection behavior (redis-py 8 defaults to RESP3 on
 the wire and a 5s socket timeout).
 """
 
+from typing import Any
 from unittest import mock
 
 import pytest
 from pytest_mock import MockerFixture
 from redis.exceptions import ConnectionError as RedisConnectionError
+
+
+def test_compare_owner_and_set_uses_two_keys_and_preserves_rejection() -> None:
+    """A rejected lease comparison must never be reported as a successful SET."""
+    from superset.coordination.cache_backend import RedisCacheBackend
+
+    backend: RedisCacheBackend = object.__new__(RedisCacheBackend)
+    client: mock.MagicMock = mock.MagicMock()
+    backend._cache = client
+    client.eval.return_value = 0
+    assert not backend.compare_owner_and_set("lease", "stale", "value", b"old", 60)
+    arguments: tuple[Any, ...] = client.eval.call_args.args
+    assert arguments[1:] == (2, "lease", "value", "stale", b"old", 60)
+    assert "redis.call('get', KEYS[1]) ~= ARGV[1]" in arguments[0]
+    client.set.assert_not_called()
+    client.eval.return_value = 1
+    assert backend.compare_owner_and_set("lease", "fresh", "value", b"new", 0)
 
 
 def test_redis_cache_backend_pins_protocol_and_timeout_defaults(
@@ -217,6 +235,8 @@ def test_redis_sentinel_cache_backend_stream_helpers(mocker: MockerFixture) -> N
     assert eval_args[1:] == (1, "lock", "tok")  # numkeys, KEYS[1], ARGV[1]
     master.eval.return_value = 0
     assert backend.compare_and_delete("lock", "other") == 0
+
+
 @pytest.mark.parametrize("backend_name", ["redis", "sentinel"])
 def test_owner_token_acquire_uses_atomic_set_nx_with_ttl(
     backend_name: str,

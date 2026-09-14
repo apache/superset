@@ -16,14 +16,17 @@
 # under the License.
 
 from collections.abc import Callable
-from typing import cast
+from time import monotonic
+from typing import Any, cast
 from unittest.mock import MagicMock
 
 import pyarrow as pa
 import pytest
+from flask import Flask
 from flask_caching.backends.nullcache import NullCache
 from flask_caching.backends.rediscache import RedisSentinelCache
 from pytest_mock import MockerFixture
+from redis.exceptions import TimeoutError as RedisTimeoutError
 from superset_core.semantic_layers.types import (
     AggregationType,
     Dimension,
@@ -62,6 +65,73 @@ from tests.unit_tests.semantic_layers.conftest import (
     build_semantic_result,
     build_view_meta,
 )
+
+
+@pytest.mark.parametrize("phase", ["acquire", "refresh", "release"])
+def test_coordination_timeout_keeps_provider_result(phase: str) -> None:
+    """Bounded Redis I/O errors stay inside the best-effort store boundary."""
+    import superset.semantic_layers.cache as cache_module
+
+    coordination: MagicMock = MagicMock()
+    coordination.acquire_owner_token.return_value = True
+    coordination.refresh_owner_token.return_value = True
+    coordination.release_owner_token.return_value = True
+    getattr(coordination, f"{phase}_owner_token").side_effect = RedisTimeoutError()
+    metrics: MagicMock = MagicMock()
+    backend: MagicMock = MagicMock(spec=SemanticCacheBackend)
+    backend.get.return_value = None
+    backend.set.return_value = True
+    initialize_semantic_cache(
+        parent_enabled=True,
+        requested=True,
+        backend=backend,
+        coordination=coordination,
+        wait_seconds=0.01,
+        lease_seconds=1,
+        metrics=metrics,
+    )
+    result: SemanticResult = build_semantic_result()
+    start: float = monotonic()
+    outcome: SemanticCacheOutcome = cache_module.semantic_cache_service.execute(
+        build_view_meta(),
+        build_semantic_query(),
+        lambda _: result,
+        capabilities=ContainmentCapabilities(),
+        force=True,
+    )
+    assert monotonic() - start < 1
+    assert outcome.result is result
+    assert not outcome.cache_hit
+    metrics.incr.assert_any_call("semantic_cache.containment.coordination_failure")
+    metrics.incr.assert_any_call("semantic_cache.containment.store_failure")
+
+
+@pytest.mark.parametrize("wait_seconds,expected", [(0.0, 0.001), (0.25, 0.25)])
+def test_coordination_constructs_private_bounded_client(
+    mocker: MockerFixture,
+    wait_seconds: float,
+    expected: float,
+) -> None:
+    """Do not mutate the unbounded shared client's connection settings."""
+    from superset.coordination.cache_backend import RedisCacheBackend
+    from superset.semantic_layers.cache import _bounded_coordination_backend
+
+    app: Flask = Flask(__name__)
+    app.config["DISTRIBUTED_COORDINATION_CONFIG"] = {"CACHE_TYPE": "RedisCache"}
+    original: RedisCacheBackend = object.__new__(RedisCacheBackend)
+    original._cache = MagicMock()
+    redis_constructor: MagicMock = mocker.patch(
+        "superset.coordination.cache_backend.redis.Redis"
+    )
+    with app.app_context():
+        bounded: OwnerTokenCoordinationBackend = _bounded_coordination_backend(
+            original, wait_seconds
+        )
+    assert bounded is not original
+    kwargs: dict[str, Any] = redis_constructor.call_args.kwargs
+    assert kwargs["socket_timeout"] == expected
+    assert kwargs["socket_connect_timeout"] == expected
+    original._cache.assert_not_called()
 
 
 class _ImmediateCoordinator:

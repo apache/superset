@@ -16,27 +16,37 @@
 # under the License.
 
 from collections.abc import Callable, Iterator
+from contextvars import Token
 from dataclasses import fields, replace
-from typing import cast
+from typing import Any, cast
 from unittest.mock import MagicMock
 
 import pytest
+from flask_caching.backends.rediscache import RedisCache
 from superset_core.semantic_layers.types import (
     AggregationType,
     SemanticQuery,
     SemanticResult,
 )
 
+from superset.coordination.cache_backend import RedisCacheBackend
+from superset.semantic_layers.cache import SafeSemanticCacheBackend
+from superset.semantic_layers.cache_coordination import (
+    SemanticCacheCoordinationSettings,
+    SemanticCacheCoordinator,
+)
 from superset.semantic_layers.cache_identity import IDENTITY_FORMAT_VERSION
 from superset.semantic_layers.cache_policy import ContainmentCapabilities, ReuseMode
 from superset.semantic_layers.cache_repository import (
     CachedEntry,
     MAX_SEMANTIC_CACHE_DESCRIPTORS_PER_BUCKET,
+    semantic_cache_write_fence,
     SemanticCacheBackendError,
     SemanticCacheCoordinationError,
     SemanticCacheLookupResult,
     SemanticCacheRepository,
     SemanticCacheStoreError,
+    SemanticCacheWriteFence,
     ViewMeta,
 )
 from tests.unit_tests.semantic_layers.conftest import (
@@ -48,6 +58,138 @@ from tests.unit_tests.semantic_layers.conftest import (
 
 def test_descriptor_bound_is_named_and_fixed() -> None:
     assert MAX_SEMANTIC_CACHE_DESCRIPTORS_PER_BUCKET == 128
+
+
+@pytest.mark.parametrize("owns_lease", [True, False])
+def test_distinct_redis_clients_use_immediate_nonatomic_recheck(
+    owns_lease: bool,
+) -> None:
+    """Separate-client Lua would check a lease in the wrong Redis database."""
+    coordination: RedisCacheBackend = object.__new__(RedisCacheBackend)
+    coordination._cache = MagicMock()
+    client: MagicMock = MagicMock()
+    values: RedisCache = RedisCache(host=client)
+    safe: SafeSemanticCacheBackend = SafeSemanticCacheBackend(values)
+    check: MagicMock = MagicMock(return_value=owns_lease)
+    fence: SemanticCacheWriteFence = SemanticCacheWriteFence(
+        "lease", "owner", check, coordination
+    )
+    repository: SemanticCacheRepository = SemanticCacheRepository(safe, _Coordinator())
+    token: Token[SemanticCacheWriteFence | None] = semantic_cache_write_fence.set(fence)
+    try:
+        if owns_lease:
+            repository._set("value", "fresh", 60, SemanticCacheStoreError)
+            client.set.assert_called_once()
+        else:
+            with pytest.raises(
+                SemanticCacheCoordinationError, match="ownership was lost"
+            ):
+                repository._set("value", "stale", 60, SemanticCacheStoreError)
+            client.set.assert_not_called()
+    finally:
+        semantic_cache_write_fence.reset(token)
+    check.assert_called_once_with()
+    client.eval.assert_not_called()
+    coordination._cache.eval.assert_not_called()
+
+
+class _FencedRedis:
+    """Redis command stub with a deterministic takeover before Lua executes."""
+
+    def __init__(self) -> None:
+        self.values: dict[str, bytes] = {}
+        self.timeouts: dict[str, int | None] = {}
+        self.before_set: Callable[[], None] | None = None
+        self.rejected: int = 0
+
+    def set(
+        self,
+        name: str,
+        value: bytes | str,
+        ex: int | None = None,
+        nx: bool = False,
+        **_: Any,
+    ) -> bool:
+        if nx and name in self.values:
+            return False
+        self.values[name] = value.encode() if isinstance(value, str) else value
+        self.timeouts[name] = ex
+        return True
+
+    def get(self, key: str) -> bytes | None:
+        return self.values.get(key)
+
+    def exists(self, key: str) -> bool:
+        return key in self.values
+
+    def delete(self, key: str) -> bool:
+        return self.values.pop(key, None) is not None
+
+    def eval(self, script: str, numkeys: int, *args: Any) -> int:
+        if numkeys == 2:
+            lease, key, owner, value, timeout = args
+            if self.before_set is not None:
+                callback: Callable[[], None] = self.before_set
+                self.before_set = None
+                callback()
+            if self.get(lease) != owner.encode():
+                self.rejected += 1
+                return 0
+            return int(self.set(key, value, ex=timeout if timeout > 0 else None))
+        lease, owner, *rest = args
+        if self.get(lease) != owner.encode():
+            return 0
+        if "'del'" in script:
+            return int(self.delete(lease))
+        self.timeouts[lease] = rest[0]
+        return 1
+
+
+@pytest.mark.parametrize("takeover_at", ["descriptor", "value"])
+def test_same_client_fence_rejects_paused_writer(takeover_at: str) -> None:
+    """Fresh payload, descriptor and TTL survive an old writer resuming at SET."""
+    client: _FencedRedis = _FencedRedis()
+    coordination: RedisCacheBackend = object.__new__(RedisCacheBackend)
+    coordination._cache = client  # type: ignore[assignment]
+    values: RedisCache = RedisCache(host=client, key_prefix="data:")
+    safe: SafeSemanticCacheBackend = SafeSemanticCacheBackend(values)
+    tokens: Iterator[str] = iter(["stale", "fresh"])
+    coordinator: SemanticCacheCoordinator = SemanticCacheCoordinator(
+        coordination,
+        SemanticCacheCoordinationSettings(0, 10),
+        token_factory=lambda: next(tokens),
+    )
+    repository: SemanticCacheRepository = SemanticCacheRepository(safe, coordinator)
+    meta: ViewMeta = build_view_meta()
+    fresh_meta: ViewMeta = replace(meta, timeout=120)
+    query: SemanticQuery = build_semantic_query()
+    stale_result: SemanticResult = build_semantic_result()
+    fresh_result: SemanticResult = replace(stale_result, requests=["fresh"])
+
+    def replace_owner() -> None:
+        lease_key: str = next(
+            key for key in client.values if key.startswith("semantic-cache-lock:")
+        )
+        client.delete(lease_key)  # Expiration while the old writer was paused.
+        assert repository.store(fresh_meta, query, fresh_result)
+
+    def pause_at_value() -> None:
+        client.before_set = replace_owner
+
+    client.before_set = replace_owner if takeover_at == "descriptor" else pause_at_value
+    with pytest.raises(SemanticCacheStoreError):
+        repository.store(meta, query, stale_result)
+    assert client.rejected == 1
+    lookup: SemanticCacheLookupResult = repository.lookup(
+        fresh_meta,
+        query,
+        ContainmentCapabilities(),
+    )
+    assert lookup.candidates[0].result.requests == ["fresh"]
+    descriptor: CachedEntry = lookup.candidates[0].entry
+    assert descriptor.timeout == 120
+    assert client.timeouts[f"data:{descriptor.value_key}"] == 120
+    assert client.timeouts[f"data:{repository._bucket_key(meta)}"] == 120
 
 
 def test_foundational_builders_produce_compatible_values() -> None:

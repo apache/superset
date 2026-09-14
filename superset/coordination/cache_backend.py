@@ -16,6 +16,7 @@
 # under the License.
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any
 
 import redis
@@ -40,6 +41,18 @@ if redis.call('get', KEYS[1]) == ARGV[1] then
   return redis.call('expire', KEYS[1], ARGV[2])
 end
 return 0
+"""
+
+_COMPARE_AND_SET_LUA: str = """
+if redis.call('get', KEYS[1]) ~= ARGV[1] then
+    return 0
+end
+if tonumber(ARGV[3]) > 0 then
+    redis.call('set', KEYS[2], ARGV[2], 'EX', ARGV[3])
+else
+    redis.call('set', KEYS[2], ARGV[2])
+end
+return 1
 """
 
 
@@ -120,6 +133,22 @@ class RedisCommandsMixin:
     ) -> bool:
         """Acquire an expiring lease only when the key is unowned."""
         return bool(self._cache.set(key, owner_token, nx=True, ex=lease_seconds))
+
+    def compare_owner_and_set(
+        self,
+        lease_key: str,
+        owner_token: str,
+        key: str,
+        value: bytes,
+        timeout: int,
+    ) -> bool:
+        """Fence a serialized value write on this client's lease atomically."""
+        evaluate: Callable[..., object] = self._cache.eval
+        return bool(
+            evaluate(
+                _COMPARE_AND_SET_LUA, 2, lease_key, key, owner_token, value, timeout
+            )
+        )
 
     def release_owner_token(self, key: str, owner_token: str) -> bool:
         """Release the lease only when the caller still owns it."""

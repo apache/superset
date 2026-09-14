@@ -23,12 +23,20 @@ import enum
 import logging
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Any, Protocol
 
+from flask import current_app, has_app_context
 from flask_caching.backends.nullcache import NullCache
-from flask_caching.backends.rediscache import RedisSentinelCache
+from flask_caching.backends.rediscache import RedisCache, RedisSentinelCache
+from redis.backoff import NoBackoff
+from redis.retry import Retry
 from superset_core.semantic_layers.types import SemanticQuery, SemanticResult
 
+from superset.coordination.cache_backend import (
+    RedisCacheBackend,
+    RedisCommandsMixin,
+    RedisSentinelCacheBackend,
+)
 from superset.semantic_layers.cache_coordination import (
     OwnerTokenCoordinationBackend,
     SemanticCacheCoordinationSettings,
@@ -46,6 +54,7 @@ from superset.semantic_layers.cache_repository import (
     SemanticCacheLookupResult,
     SemanticCacheRepository,
     SemanticCacheStoreError,
+    SemanticCacheWriteFence,
     ViewMeta,
 )
 from superset.semantic_layers.cache_transform import (
@@ -154,6 +163,65 @@ class SafeSemanticCacheBackend:
             return self._backend.delete(key)
         except Exception as ex:  # pylint: disable=broad-exception-caught
             raise SemanticCacheBackendError("Semantic cache delete failed") from ex
+
+    def set_if_owner(
+        self,
+        fence: SemanticCacheWriteFence,
+        key: str,
+        value: object,
+        timeout: int | None,
+    ) -> bool | None:
+        """Use Lua only when the value and lease share the exact Redis client."""
+        inner: Any = getattr(self._backend, "cache", self._backend)
+        coordination: RedisCommandsMixin | None = fence.redis_backend
+        # DATA_CACHE_CONFIG and DISTRIBUTED_COORDINATION_CONFIG construct
+        # separate clients (possibly separate databases/servers). Never run a
+        # cross-client Lua fence: None selects the non-atomic immediate recheck.
+        if (
+            not isinstance(inner, RedisCache)
+            or coordination is None
+            or inner._write_client is not coordination._cache
+        ):
+            return None
+        try:
+            return coordination.compare_owner_and_set(
+                fence.key,
+                fence.owner_token,
+                f"{inner._get_prefix()}{key}",
+                inner.serializer.dumps(value),
+                inner._normalize_timeout(timeout),
+            )
+        except Exception as ex:  # pylint: disable=broad-exception-caught
+            raise SemanticCacheBackendError("Semantic cache fenced set failed") from ex
+
+
+def _bounded_coordination_backend(
+    backend: OwnerTokenCoordinationBackend,
+    wait_seconds: float,
+) -> OwnerTokenCoordinationBackend:
+    """Construct a private, bounded Redis client from the coordination config."""
+    if not isinstance(backend, (RedisCacheBackend, RedisSentinelCacheBackend)):
+        return backend
+    if not has_app_context():
+        # Explicitly injected clients outside app initialization remain owned
+        # by their caller, including their I/O timeout configuration.
+        return backend
+    config: dict[str, Any] = dict(current_app.config["DISTRIBUTED_COORDINATION_CONFIG"])
+    # WAIT_SECONDS bounds contention, not network calls. Derive a positive
+    # per-I/O bound too; zero wait means no contention retries, not infinite I/O.
+    io_timeout: float = max(0.001, wait_seconds)
+    config["CACHE_REDIS_SOCKET_TIMEOUT"] = io_timeout
+    config["CACHE_REDIS_SOCKET_CONNECT_TIMEOUT"] = io_timeout
+    bounded: RedisCacheBackend | RedisSentinelCacheBackend = type(backend).from_config(
+        config
+    )
+    clients: list[Any] = [bounded._cache]
+    if isinstance(bounded, RedisSentinelCacheBackend):
+        clients.extend(bounded._sentinel.sentinels)
+    for client in clients:
+        # Disable redis-py's retry/backoff budget on these private connections.
+        client.connection_pool.connection_kwargs["retry"] = Retry(NoBackoff(), 0)
+    return bounded
 
 
 class SemanticCacheService:
@@ -401,7 +469,7 @@ def initialize_semantic_cache(
         return state
 
     coordinator: SemanticCacheCoordinator = SemanticCacheCoordinator(
-        coordination,
+        _bounded_coordination_backend(coordination, settings.wait_seconds),
         settings,
         failure_metric=(
             (lambda key: metrics.incr(key)) if metrics is not None else None
