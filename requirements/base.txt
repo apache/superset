@@ -44,7 +44,7 @@ cachelib==0.17.0
     # via
     #   flask-caching
     #   flask-session
-cachetools==7.1.7
+cachetools==7.1.8
     # via apache-superset (pyproject.toml)
 cattrs==25.1.1
     # via requests-cache
@@ -126,7 +126,7 @@ flask-appbuilder==5.2.2
     #   apache-superset-core
 flask-babel==4.0.0
     # via flask-appbuilder
-flask-caching==2.5.0
+flask-caching==2.5.1
     # via apache-superset (pyproject.toml)
 flask-compress==1.24
     # via apache-superset (pyproject.toml)
@@ -399,7 +399,7 @@ sqlalchemy-utils==0.42.1
     #   apache-superset (pyproject.toml)
     #   apache-superset-core
     #   flask-appbuilder
-sqlglot==30.17.0
+sqlglot==30.18.0
     # via
     #   apache-superset (pyproject.toml)
     #   apache-superset-core
