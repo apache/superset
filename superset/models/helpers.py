@@ -3568,14 +3568,20 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         # of zero; dividing by a one-day Timedelta keeps the exact fraction.
         exact_days = (calendar_shifted - reference) / Timedelta(days=1)
         weeks = round(exact_days / 7)
-        if weeks == 0:
-            # A sub-week offset (e.g. "3 days ago") is not the weekday-drift
-            # case this resolution exists to fix -- it does not touch a
-            # calendar unit wider than a week, so per-row rounding cannot
-            # disagree between rows. Returning a zero-day DateOffset here
-            # would override the raw per-row calendar shift with a no-op,
-            # leaving every row on its own current week instead of shifting
-            # it back. Returning None restores that raw per-row behavior.
+        if abs(exact_days) < 7:
+            # A sub-week offset (e.g. "3 days ago", "5 days ago") is not the
+            # weekday-drift case this resolution exists to fix -- it does not
+            # touch a calendar unit wider than a week, so per-row rounding
+            # cannot disagree between rows. Checking ``weeks == 0`` here is
+            # not enough: ``round()`` rounds to the nearest whole week rather
+            # than toward zero, so a 4-6 day offset already rounds to a
+            # nonzero week count (e.g. ``round(-5 / 7) == -1``) and would
+            # slip past that guard. Comparing the exact day count against a
+            # full week instead catches every sub-week offset. Returning a
+            # whole-week DateOffset here would override the raw per-row
+            # calendar shift, leaving every row shifted by the wrong number
+            # of days instead of the offset actually requested. Returning
+            # None restores that raw per-row behavior.
             return None
         return DateOffset(days=weeks * 7)
 

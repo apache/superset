@@ -288,19 +288,35 @@ def test_resolve_week_grain_offset_all_nat_returns_none() -> None:
     assert resolved is None
 
 
-def test_join_offset_dfs_week_grain_sub_week_offset_still_aligns() -> None:
+@mark.parametrize(
+    ("offset", "main_date", "offset_date"),
+    [
+        # Monday: shifting back 3 days crosses into the previous week.
+        # round(-3 / 7) == 0, so this offset is (and always was) caught by
+        # a naive `weeks == 0` check.
+        ("3 days ago", "2026-06-15", "2026-06-12"),  # Friday
+        # Saturday: shifting back 5 days lands on the following Monday
+        # (2026-W24), while round(-5 / 7) == -1 would incorrectly resolve
+        # a whole extra week back (2026-06-13, still 2026-W23) -- landing
+        # in the wrong week bucket and breaking the join. This is the gap
+        # a `weeks == 0` check misses: a 4-6 day offset already rounds to
+        # a nonzero week count and slips past it.
+        ("5 days ago", "2026-06-20", "2026-06-15"),  # Monday
+    ],
+)
+def test_join_offset_dfs_week_grain_sub_week_offset_still_aligns(
+    offset: str, main_date: str, offset_date: str
+) -> None:
     """
-    A sub-week offset (e.g. "3 days ago") rounds to zero whole weeks, which
-    is not the weekday-drift case the whole-week resolution exists to fix.
-    Applying a zero-day shift would leave the main series' join key on its
-    own current week instead of shifting it back, breaking the join
-    whenever the sub-week shift crosses a week boundary. The raw per-row
-    calendar offset must still be used for this case.
+    A sub-week offset (e.g. "3 days ago") is not the weekday-drift case the
+    whole-week resolution exists to fix. Applying a whole-week shift here
+    would leave the main series' join key off by the wrong number of days,
+    breaking the join whenever the sub-week shift crosses a week boundary.
+    The raw per-row calendar offset must still be used for this case.
     """
-    # Monday: shifting back 3 days crosses into the previous week.
-    df = DataFrame({"ds": [Timestamp("2026-06-15")], "D": [1]})
-    offset_df = DataFrame({"ds": [Timestamp("2026-06-12")], "B": [5]})  # Friday
-    offset_dfs = {"3 days ago": offset_df}
+    df = DataFrame({"ds": [Timestamp(main_date)], "D": [1]})
+    offset_df = DataFrame({"ds": [Timestamp(offset_date)], "B": [5]})
+    offset_dfs = {offset: offset_df}
 
     result = query_context_processor.join_offset_dfs(
         df, offset_dfs, TimeGrain.WEEK, join_keys=["ds"]
