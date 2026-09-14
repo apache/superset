@@ -270,6 +270,12 @@ const config: ControlPanelConfig = {
             config: {
               ...sharedControls.time_grain_sqla,
               visibility: ({ controls }) => {
+                // Time grain only applies to the aggregate query, so the
+                // control must follow the query mode like its siblings do.
+                if (!isAggMode({ controls })) {
+                  return false;
+                }
+
                 const dttmLookup = Object.fromEntries(
                   ensureIsArray(controls?.groupby?.options).map(option => [
                     (option.column_name || '').toLowerCase(),
@@ -475,14 +481,18 @@ const config: ControlPanelConfig = {
               type: 'SelectControl',
               label: t('Summary aggregation'),
               description: t(
-                'Aggregation used for the summary row, independent of each ' +
-                  "metric's own aggregation. Only applies to simple metrics " +
-                  '(a metric built from custom SQL keeps its own aggregation ' +
-                  'in the summary row).',
+                'Aggregation used for the summary row. By default each metric ' +
+                  'keeps its own aggregation; Sum and Average override it for ' +
+                  'the summary row only. The override applies to simple ' +
+                  'metrics (a metric built from custom SQL always keeps its ' +
+                  'own aggregation). Overriding a count or a distinct count ' +
+                  'sums the counted column instead, which fails outright on a ' +
+                  'non-numeric column.',
               ),
-              default: 'SUM',
+              default: 'ORIGINAL',
               clearable: false,
               choices: [
+                ['ORIGINAL', t("Each metric's own")],
                 ['SUM', t('Sum')],
                 ['AVG', t('Average')],
               ],
@@ -884,6 +894,9 @@ const config: ControlPanelConfig = {
                   verboseMap,
                   allColumns,
                   extraColorChoices,
+                  serverPagination: Boolean(
+                    explore?.controls?.server_pagination?.value,
+                  ),
                 };
               },
             },

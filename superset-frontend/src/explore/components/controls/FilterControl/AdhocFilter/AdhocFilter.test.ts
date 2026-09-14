@@ -207,6 +207,38 @@ describe('AdhocFilter', () => {
     expect(adhocFilter10.isValid()).toBe(true);
   });
 
+  test('is invalid when a comparator-taking operator has no comparator', () => {
+    // A comparator that was never set, or that was cleared through the value
+    // Select's clear affordance, is `undefined` rather than `null` or `[]`.
+    const adhocFilter1 = new AdhocFilter({
+      expressionType: ExpressionTypes.Simple,
+      subject: 'is_intro',
+      operator: 'IN',
+      comparator: undefined,
+      clause: Clauses.Where,
+    });
+    expect(adhocFilter1.isValid()).toBe(false);
+
+    const adhocFilter2 = new AdhocFilter({
+      expressionType: ExpressionTypes.Simple,
+      subject: 'is_intro',
+      operator: '==',
+      comparator: undefined,
+      clause: Clauses.Where,
+    });
+    expect(adhocFilter2.isValid()).toBe(false);
+
+    // `false` is a legitimate boolean comparator, not a missing value
+    const adhocFilter3 = new AdhocFilter({
+      expressionType: ExpressionTypes.Simple,
+      subject: 'is_intro',
+      operator: '==',
+      comparator: false,
+      clause: Clauses.Where,
+    });
+    expect(adhocFilter3.isValid()).toBe(true);
+  });
+
   test('can translate from simple expressions to sql expressions', () => {
     const adhocFilter1 = new AdhocFilter({
       expressionType: ExpressionTypes.Simple,
@@ -369,5 +401,33 @@ describe('AdhocFilter', () => {
       subject: undefined,
     });
     expect(adhocFilter.getDefaultLabel()).toBe('');
+  });
+  test('uses the column verbose_name in the label when one is given', () => {
+    const adhocFilter = new AdhocFilter({
+      expressionType: ExpressionTypes.Simple,
+      subject: 'num',
+      operator: '>',
+      comparator: '500',
+      clause: Clauses.Where,
+    });
+    expect(
+      adhocFilter.getDefaultLabel([
+        { column_name: 'num', verbose_name: 'total_count' },
+      ]),
+    ).toBe('total_count > 500');
+  });
+  test('falls back to the column_name when no verbose_name is set', () => {
+    const adhocFilter = new AdhocFilter({
+      expressionType: ExpressionTypes.Simple,
+      subject: 'num',
+      operator: '>',
+      comparator: '500',
+      clause: Clauses.Where,
+    });
+    expect(
+      adhocFilter.getDefaultLabel([{ column_name: 'num', verbose_name: '' }]),
+    ).toBe('num > 500');
+    expect(adhocFilter.getDefaultLabel([])).toBe('num > 500');
+    expect(adhocFilter.getDefaultLabel()).toBe('num > 500');
   });
 });

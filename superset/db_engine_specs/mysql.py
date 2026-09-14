@@ -25,6 +25,7 @@ from re import Pattern
 from typing import Any, Callable, Optional, TYPE_CHECKING
 from urllib import parse
 
+import sqlalchemy as sa
 from flask_babel import gettext as __
 from sqlalchemy import types
 from sqlalchemy.dialects.mysql import (
@@ -40,6 +41,7 @@ from sqlalchemy.dialects.mysql import (
     TINYTEXT,
 )
 from sqlalchemy.engine.url import URL
+from sqlalchemy.sql.elements import ColumnElement
 
 from superset.constants import TimeGrain
 from superset.db_engine_specs.base import (
@@ -93,6 +95,22 @@ class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
 
     supports_dynamic_schema = True
     supports_multivalues_insert = True
+
+    # Verified against a live mysql:8.0 instance, including under GROUP BY ...
+    # WITH ROLLUP. `STDDEV_SAMP`/`VAR_SAMP` are native, correct sample
+    # statistics. MEDIAN is deliberately absent: MySQL has neither a `MEDIAN`
+    # function nor `PERCENTILE_CONT` (confirmed: both error). Its `VARIANCE()`
+    # function is population variance, not sample variance, so it is not a
+    # valid stand-in for VAR_SAMP either.
+    # Inherited by MariaDB (a MySQL fork implementing the same aggregate
+    # functions) and by Aurora MySQL / its Data API variant (AWS's wire- and
+    # SQL-compatible managed MySQL) -- unlike CockroachDB/Greenplum/HANA
+    # relative to Postgres, none of these run a materially different query
+    # engine, so no separate reset is needed.
+    _extended_aggregations: dict[str, Callable[[ColumnElement], ColumnElement]] = {
+        "STDDEV_SAMP": sa.func.stddev_samp,
+        "VAR_SAMP": sa.func.var_samp,
+    }
 
     metadata = {
         "description": "MySQL is a popular open-source relational database.",
@@ -247,6 +265,43 @@ class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
         (
             re.compile(r"^var_string", re.IGNORECASE),
             types.VARCHAR(),
+            GenericDataType.STRING,
+        ),
+        # wire-protocol FIELD_TYPE names emitted by `get_datatype`, seen on
+        # SQL Lab and virtual dataset columns instead of DDL type names
+        (
+            re.compile(r"^newdecimal", re.IGNORECASE),
+            DECIMAL(),
+            GenericDataType.NUMERIC,
+        ),
+        (
+            re.compile(r"^tiny$", re.IGNORECASE),
+            TINYINT(),
+            GenericDataType.NUMERIC,
+        ),
+        (
+            re.compile(r"^short$", re.IGNORECASE),
+            types.SmallInteger(),
+            GenericDataType.NUMERIC,
+        ),
+        (
+            re.compile(r"^(blob|text)$", re.IGNORECASE),
+            types.String(),
+            GenericDataType.STRING,
+        ),
+        (
+            re.compile(r"^year$", re.IGNORECASE),
+            types.Integer(),
+            GenericDataType.NUMERIC,
+        ),
+        (
+            re.compile(r"^enum\b", re.IGNORECASE),
+            types.String(),
+            GenericDataType.STRING,
+        ),
+        (
+            re.compile(r"^set\b", re.IGNORECASE),
+            types.String(),
             GenericDataType.STRING,
         ),
     )
@@ -407,22 +462,27 @@ class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
 
     @classmethod
     def get_datatype(cls, type_code: Any) -> Optional[str]:
-        if not cls.type_code_map:
-            # only import and store if needed at least once
-            # pylint: disable=import-outside-toplevel
-            try:
-                import MySQLdb
-
-                mysql_module = MySQLdb
-            except ImportError:
-                mysql_module = __import__("pymysql")
-
-            ft = mysql_module.constants.FIELD_TYPE
-            cls.type_code_map = {
-                getattr(ft, k): k for k in dir(ft) if not k.startswith("_")
-            }
         datatype = type_code
         if isinstance(type_code, int):
+            if not cls.type_code_map:
+                # only import and store if needed at least once
+                # pylint: disable=import-outside-toplevel
+                try:
+                    import MySQLdb
+
+                    ft = MySQLdb.constants.FIELD_TYPE
+                except ImportError:
+                    try:
+                        import pymysql  # type: ignore[import-untyped]
+
+                        ft = pymysql.constants.FIELD_TYPE
+                    except ImportError:
+                        from mysql.connector.constants import FieldType
+
+                        ft = FieldType
+                cls.type_code_map = {
+                    getattr(ft, k): k for k in dir(ft) if not k.startswith("_")
+                }
             datatype = cls.type_code_map.get(type_code)
         if datatype and isinstance(datatype, str) and datatype:
             return datatype

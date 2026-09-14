@@ -290,6 +290,25 @@ test('isAdditiveMetric: non-additive aggregates, SQL, and saved metrics are not 
   expect(isAdditiveMetric('count')).toBe(false);
 });
 
+test('isAdditiveMetric: MEDIAN/STDDEV_SAMP/VAR_SAMP are non-additive, with no dedicated code needed', () => {
+  // Regression guard: MEDIAN/STDDEV_SAMP/VAR_SAMP are new system-wide metric
+  // aggregates (not pivot-table-specific). They must fall outside
+  // ADDITIVE_AGGREGATES so totals/subtotals route through the correct
+  // DB-rollup path automatically, same as AVG/COUNT_DISTINCT already do --
+  // averaging per-group medians (or variances) is exactly the class of bug
+  // SIP-216 fixed for AVG, and would be equally wrong here.
+  (['MEDIAN', 'STDDEV_SAMP', 'VAR_SAMP'] as const).forEach(aggregate => {
+    expect(
+      isAdditiveMetric({
+        expressionType: 'SIMPLE',
+        aggregate,
+        column: { column_name: 'num' },
+        label: `${aggregate.toLowerCase()}_num`,
+      } as QueryFormMetric),
+    ).toBe(false);
+  });
+});
+
 test('allMetricsAdditive: all additive vs any non-additive vs empty', () => {
   const sum = {
     expressionType: 'SIMPLE',

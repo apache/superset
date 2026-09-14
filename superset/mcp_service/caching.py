@@ -20,11 +20,32 @@ MCP response caching using FastMCP's native ResponseCachingMiddleware.
 """
 
 import logging
+from collections.abc import Callable
 from typing import Any, Dict
 
 from superset.mcp_service.storage import get_mcp_store
 
 logger = logging.getLogger(__name__)
+
+# FastMCP's cache key does not include the serialized result contract. Bump this
+# namespace whenever a cached response from an older release is not valid under
+# the active contract. This keeps rolling upgrades from serving incompatible
+# entries through newly upgraded processes without trying to rewrite cached data.
+MCP_RESPONSE_CACHE_NAMESPACE = "response-contract-v2:"
+
+
+def _version_cache_prefix(
+    prefix: str | Callable[[], str],
+) -> str | Callable[[], str]:
+    """Append the response-contract namespace to a configured store prefix."""
+    if callable(prefix):
+
+        def versioned_prefix() -> str:
+            return f"{prefix()}{MCP_RESPONSE_CACHE_NAMESPACE}"
+
+        return versioned_prefix
+
+    return f"{prefix}{MCP_RESPONSE_CACHE_NAMESPACE}"
 
 
 def _build_caching_settings(cache_config: Dict[str, Any]) -> Dict[str, Any]:
@@ -102,6 +123,27 @@ def create_response_caching_middleware() -> Any | None:
             logger.debug("MCP response caching disabled")
             return None
 
+        # ResponseCachingMiddleware keys cache entries on the method/tool
+        # name + arguments only and runs ahead of the per-request auth/RBAC
+        # checks, so a cache hit returns a response computed for a different
+        # caller. Only appropriate when every request is guaranteed to come
+        # from the same principal.
+        # that sends byte-identical arguments within the TTL, skipping every
+        # authorization check. Fail closed unless the operator explicitly
+        # accepts a cache shared across principals -- only safe when every
+        # request is guaranteed to come from the same principal (e.g. a
+        # single-user development deployment).
+        if not cache_config.get("dangerously_share_cache_across_principals", False):
+            logger.warning(
+                "MCP_CACHE_CONFIG['enabled'] is set, but response caching "
+                "stays disabled: cache keys do not include the requesting "
+                "principal, so cached responses would be served across users "
+                "without any authorization checks. Set "
+                "'dangerously_share_cache_across_principals': True only when "
+                "all requests share a single principal."
+            )
+            return None
+
         try:
             from fastmcp.server.middleware.caching import ResponseCachingMiddleware
         except ImportError:
@@ -114,14 +156,16 @@ def create_response_caching_middleware() -> Any | None:
         store = None
         if store_config.get("enabled", False):
             # Redis store requires a prefix
-            cache_prefix = cache_config.get("CACHE_KEY_PREFIX")
+            cache_prefix: str | Callable[[], str] | None = cache_config.get(
+                "CACHE_KEY_PREFIX"
+            )
             if not cache_prefix:
                 logger.warning(
                     "MCP_STORE_CONFIG enabled but no CACHE_KEY_PREFIX configured - "
                     "falling back to in-memory store"
                 )
             else:
-                store = get_mcp_store(prefix=cache_prefix)
+                store = get_mcp_store(prefix=_version_cache_prefix(cache_prefix))
 
         # Build per-operation settings from config
         settings = _build_caching_settings(cache_config)

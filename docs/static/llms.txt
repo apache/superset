@@ -14,7 +14,7 @@ Superset is designed for data exploration and visualization at scale. It feature
 - [Architecture](https://superset.apache.org/docs/installation/architecture): Production deployment architecture and components
 - [Docker Compose](https://superset.apache.org/docs/installation/docker-compose): Install Superset using Docker Compose
 - [Docker Builds](https://superset.apache.org/docs/installation/docker-builds): Building and customizing Docker images
-- [Kubernetes](https://superset.apache.org/docs/installation/kubernetes): Deploy Superset on Kubernetes with Helm
+- [Kubernetes](https://superset.apache.org/docs/installation/kubernetes): Deploy Superset on Kubernetes with the official Kubernetes Operator
 - [PyPI](https://superset.apache.org/docs/installation/pypi): Install from PyPI using pip
 - [Upgrading Superset](https://superset.apache.org/docs/installation/upgrading-superset): Upgrade between Superset versions
 
