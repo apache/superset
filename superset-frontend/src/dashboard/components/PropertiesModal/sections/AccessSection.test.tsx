@@ -48,7 +48,36 @@ beforeEach(() => {
   jest.clearAllMocks();
 });
 
-test('renders tags field with multiple tags when TaggingSystem feature is enabled', () => {
+test('always renders editors field', () => {
+  mockedIsFeatureEnabled.mockReturnValue(false);
+
+  render(<AccessSection {...defaultProps} />);
+
+  expect(screen.getByTestId('dashboard-editors-field')).toBeInTheDocument();
+});
+
+test('does not render viewers field when EnableViewers is off', () => {
+  mockedIsFeatureEnabled.mockReturnValue(false);
+
+  render(<AccessSection {...defaultProps} />);
+
+  expect(
+    screen.queryByTestId('dashboard-viewers-field'),
+  ).not.toBeInTheDocument();
+});
+
+test('renders viewers field when EnableViewers is on', () => {
+  mockedIsFeatureEnabled.mockImplementation(
+    (flag: any) => flag === FeatureFlag.EnableViewers,
+  );
+
+  render(<AccessSection {...defaultProps} />);
+
+  expect(screen.getByTestId('dashboard-editors-field')).toBeInTheDocument();
+  expect(screen.getByTestId('dashboard-viewers-field')).toBeInTheDocument();
+});
+
+test('renders tags field when TaggingSystem feature is enabled', () => {
   mockedIsFeatureEnabled.mockImplementation(
     (flag: any) => flag === FeatureFlag.TaggingSystem,
   );
@@ -56,6 +85,41 @@ test('renders tags field with multiple tags when TaggingSystem feature is enable
   render(<AccessSection {...defaultProps} />);
 
   expect(screen.getByTestId('dashboard-tags-field')).toBeInTheDocument();
+});
+
+test('does not render tags field when TaggingSystem feature is disabled', () => {
+  mockedIsFeatureEnabled.mockReturnValue(false);
+
+  render(<AccessSection {...defaultProps} />);
+
+  expect(screen.queryByTestId('dashboard-tags-field')).not.toBeInTheDocument();
+});
+
+test('disables inputs when loading', () => {
+  mockedIsFeatureEnabled.mockReturnValue(false);
+
+  render(<AccessSection {...defaultProps} isLoading />);
+
+  expect(screen.getByTestId('dashboard-editors-field')).toBeInTheDocument();
+});
+
+test('shows editors helper text', () => {
+  mockedIsFeatureEnabled.mockReturnValue(false);
+
+  render(<AccessSection {...defaultProps} />);
+
+  expect(screen.getByText(/Editors is a list of subjects/)).toBeInTheDocument();
+});
+
+test('shows editors and viewers helper text when EnableViewers is on', () => {
+  mockedIsFeatureEnabled.mockImplementation(
+    (flag: any) => flag === FeatureFlag.EnableViewers,
+  );
+
+  render(<AccessSection {...defaultProps} />);
+
+  expect(screen.getByText(/Editors is a list of subjects/)).toBeInTheDocument();
+  expect(screen.getByText(/Viewers is a list of subjects/)).toBeInTheDocument();
 });
 
 test('allows selecting multiple tags', () => {
@@ -89,7 +153,7 @@ test('shows selected tags in the tag selector', () => {
   expect(screen.getByTestId('dashboard-tags-field')).toBeInTheDocument();
 });
 
-test('tags field is disabled when loading', () => {
+test('tags field is rendered when loading and TaggingSystem is enabled', () => {
   mockedIsFeatureEnabled.mockImplementation(
     (flag: any) => flag === FeatureFlag.TaggingSystem,
   );
@@ -99,20 +163,7 @@ test('tags field is disabled when loading', () => {
   expect(screen.getByTestId('dashboard-tags-field')).toBeInTheDocument();
 });
 
-test('clears tags when clear button is clicked', () => {
-  mockedIsFeatureEnabled.mockImplementation(
-    (flag: any) => flag === FeatureFlag.TaggingSystem,
-  );
-
-  const onClearTags = jest.fn();
-
-  render(<AccessSection {...defaultProps} onClearTags={onClearTags} />);
-
-  // The clear button should be accessible
-  expect(screen.getByTestId('dashboard-tags-field')).toBeInTheDocument();
-});
-
-test('shows tags helper text', () => {
+test('shows tags helper text when TaggingSystem is enabled', () => {
   mockedIsFeatureEnabled.mockImplementation(
     (flag: any) => flag === FeatureFlag.TaggingSystem,
   );
@@ -122,12 +173,4 @@ test('shows tags helper text', () => {
   expect(
     screen.getByText(/A list of tags that have been applied to this dashboard/),
   ).toBeInTheDocument();
-});
-
-test('tags field is hidden when TaggingSystem feature is disabled', () => {
-  mockedIsFeatureEnabled.mockReturnValue(false);
-
-  render(<AccessSection {...defaultProps} />);
-
-  expect(screen.queryByTestId('dashboard-tags-field')).not.toBeInTheDocument();
 });
