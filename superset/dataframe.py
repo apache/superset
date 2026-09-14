@@ -17,13 +17,22 @@
 """Superset utilities for pandas.DataFrame."""
 
 import logging
+import math
+from decimal import Decimal
 from typing import Any
 
+import numpy as np
 import pandas as pd
 
 from superset.utils.core import JS_MAX_INTEGER
 
 logger = logging.getLogger(__name__)
+
+_NUMPY_FLOAT_TYPES = frozenset(
+    type(value)
+    for value in (np.float16(0), np.float32(0), np.float64(0), np.longdouble(0))
+)
+_PANDAS_MISSING_TYPES = frozenset((type(pd.NA), type(pd.NaT)))
 
 
 def _convert_big_integers(val: Any) -> Any:
@@ -34,45 +43,55 @@ def _convert_big_integers(val: Any) -> Any:
     :returns: the same value but recast as a string if it was an integer over
         ``JS_MAX_INTEGER``
     """
-    return str(val) if isinstance(val, int) and abs(val) > JS_MAX_INTEGER else val
+    return str(val) if type(val) is int and abs(val) > JS_MAX_INTEGER else val
 
 
-def _is_na(val: Any) -> bool:
-    """
-    Check if a value is NA/NaN for scalar values only.
-
-    pd.isna() raises ValueError for arrays/lists, so we catch that case.
-
-    :param val: the value to check
-    :returns: True if the value is NA/NaN, False otherwise
-    """
-    try:
-        return bool(pd.isna(val))
-    except ValueError:
-        # pd.isna raises ValueError for arrays (e.g., lists, dicts from JSON)
-        return False
+def _is_trusted_missing_or_nonfinite(value: Any) -> bool:
+    """Identify producer nulls without invoking an object's comparison hooks."""
+    value_type = type(value)
+    if value is None or value_type in _PANDAS_MISSING_TYPES:
+        return True
+    if value_type is Decimal:
+        return not Decimal.is_finite(value)
+    if value_type is float:
+        return not math.isfinite(value)
+    if value_type in _NUMPY_FLOAT_TYPES:
+        return not math.isfinite(float(value))
+    return False
 
 
-def df_to_records(dframe: pd.DataFrame) -> list[dict[str, Any]]:
+def df_to_records(
+    dframe: pd.DataFrame, *, convert_big_integers: bool = True
+) -> list[dict[str, Any]]:
     """
     Convert a DataFrame to a set of records.
 
-    NaN values are converted to None for JSON compatibility.
-    This handles division by zero and other operations that produce NaN.
+    Missing and non-finite values are converted to None for JSON compatibility.
+    This includes infinities produced by trusted pandas post-processing.
 
     :param dframe: the DataFrame to convert
+    :param convert_big_integers: whether integers outside JavaScript's safe range
+        should be represented as strings
     :returns: a list of dictionaries reflecting each single row of the DataFrame
     """
     if not dframe.columns.is_unique:
         logger.warning(
             "DataFrame columns are not unique, some columns will be omitted."
         )
+    # Materialize first. ``DataFrame.replace`` compares its replacement values
+    # against object-dtype cells and can therefore execute an arbitrary
+    # ``__eq__``. The projected records can be normalized by exact trusted type
+    # without changing cached/query DataFrame dtypes or invoking cell hooks.
     records = dframe.to_dict(orient="records")
 
     for record in records:
-        for key in record:
-            record[key] = (
-                None if _is_na(record[key]) else _convert_big_integers(record[key])
+        for key, value in dict.items(record):
+            dict.__setitem__(
+                record,
+                key,
+                None
+                if _is_trusted_missing_or_nonfinite(value)
+                else (_convert_big_integers(value) if convert_big_integers else value),
             )
 
     return records

@@ -44,6 +44,9 @@ from superset.mcp_service.chart.compile import (
     validate_and_compile,
 )
 from superset.mcp_service.chart.preview_utils import SUPPORTED_FORM_DATA_PREVIEW_FORMATS
+from superset.mcp_service.chart.response_preflight import (
+    preflight_generate_chart_response,
+)
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
     ChartError,
@@ -62,6 +65,16 @@ logger = logging.getLogger(__name__)
 
 
 __all__ = ["CompileResult", "_compile_chart", "validate_and_compile", "generate_chart"]
+
+
+def _bounded_generate_response(
+    payload: object, *, persisted_chart_id: int | None = None
+) -> GenerateChartResponse:
+    """Validate and preflight one complete generate-chart response."""
+    return preflight_generate_chart_response(
+        GenerateChartResponse.model_validate(payload),
+        persisted_chart_id=persisted_chart_id,
+    )
 
 
 @tool(
@@ -85,6 +98,10 @@ async def generate_chart(  # noqa: C901
     - Set save_chart=True to permanently save the chart
     - LLM clients MUST display returned chart URL to users
     - Use numeric dataset ID or UUID (NOT schema.table_name format)
+    - MUST include chart_type in config (one of: 'xy', 'table', 'pie', 'bullet',
+      'gauge_chart', 'pivot_table', 'mixed_timeseries', 'handlebars', 'big_number',
+      'histogram', 'box_plot', 'waterfall', plus host-gated types returned by
+      get_chart_type_schema such as 'interactive_pivot')
     - MUST include chart_type in config (one of: 'xy', 'table', 'pie',
       'gauge', 'treemap_v2', 'pivot_table', 'mixed_timeseries',
       'handlebars',
@@ -107,6 +124,10 @@ async def generate_chart(  # noqa: C901
 
     - chart_type='pie' for pie/donut charts.
       Required fields: dimension, metric
+
+    - chart_type='bullet' for progress/attainment against qualitative ranges
+      and targets. Required field: metric. Optional dimensions create one row
+      per category; ranges, markers, and marker_lines add comparison thresholds.
 
     - chart_type='pivot_table' for pivot table visualizations.
       Required fields: rows, metrics (columns is optional, for cross-tabs)
@@ -148,6 +169,7 @@ async def generate_chart(  # noqa: C901
     - "bar chart" / "line chart" / "area chart" / "scatter plot"
       -> chart_type='xy', kind='bar'/'line'/'area'/'scatter'
     - "pie chart" / "donut chart" -> chart_type='pie'
+    - "bullet chart" / "progress against target" -> chart_type='bullet'
     - "table" / "data grid" -> chart_type='table'
     - "pivot table" / "cross-tab" -> chart_type='pivot_table'
     - "interactive pivot" / "AG Grid pivot" -> chart_type='interactive_pivot'
@@ -291,7 +313,7 @@ async def generate_chart(  # noqa: C901
                 "Chart validation failed: error=%s"
                 % (validation_result.error.model_dump(),)
             )
-            return GenerateChartResponse.model_validate(
+            return _bounded_generate_response(
                 {
                     "chart": None,
                     "error": validation_result.error.model_dump(),
@@ -388,7 +410,7 @@ async def generate_chart(  # noqa: C901
                     ],
                     error_code="DATASET_NOT_FOUND",
                 )
-                return GenerateChartResponse.model_validate(
+                return _bounded_generate_response(
                     {
                         "chart": None,
                         "error": error.model_dump(),
@@ -441,7 +463,7 @@ async def generate_chart(  # noqa: C901
                     ],
                     error_code="CHART_COMPILE_FAILED",
                 )
-                return GenerateChartResponse.model_validate(
+                return _bounded_generate_response(
                     {
                         "chart": None,
                         "error": error.model_dump(),
@@ -653,7 +675,7 @@ async def generate_chart(  # noqa: C901
                         ],
                         error_code="CHART_COMPILE_FAILED",
                     )
-                    return GenerateChartResponse.model_validate(
+                    return _bounded_generate_response(
                         {
                             "chart": None,
                             "error": error.model_dump(),
@@ -871,14 +893,17 @@ async def generate_chart(  # noqa: C901
                 int((time.time() - start_time) * 1000),
             )
         )
-        return GenerateChartResponse.model_validate(result)
+        return _bounded_generate_response(
+            result,
+            persisted_chart_id=chart_id if request.save_chart else None,
+        )
 
     except OAuth2RedirectError as ex:
         await ctx.warning(
             "Chart generation requires OAuth authentication: dataset_id=%s"
             % request.dataset_id
         )
-        return GenerateChartResponse.model_validate(
+        return _bounded_generate_response(
             {
                 "chart": None,
                 "success": False,
@@ -893,7 +918,7 @@ async def generate_chart(  # noqa: C901
         await ctx.error(
             "OAuth2 configuration error: dataset_id=%s" % request.dataset_id
         )
-        return GenerateChartResponse.model_validate(
+        return _bounded_generate_response(
             {
                 "chart": None,
                 "success": False,
@@ -942,7 +967,7 @@ async def generate_chart(  # noqa: C901
             error_code="CHART_GENERATION_FAILED",
         )
 
-        return GenerateChartResponse.model_validate(
+        return _bounded_generate_response(
             {
                 "chart": None,
                 "error": error.model_dump(),
