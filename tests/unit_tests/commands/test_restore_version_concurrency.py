@@ -92,8 +92,13 @@ def test_do_restore_reads_the_entity_under_a_row_lock(
     # integration suite is the behavioural guard; this pins the call site).
     query.enable_eagerloads.assert_called_once_with(False)
     # The active-row predicate (deleted_at IS NULL) is what makes a concurrent
-    # *soft* delete read as absent — assert it is part of the locking filter.
-    query.filter_by.assert_called_once_with(id=entity.id, deleted_at=None)
+    # *soft* delete read as absent, and the uuid pin is what makes a hard
+    # delete + integer-id REUSE read as absent (404) instead of locking the
+    # stranger and failing restore_version's uuid check (500) — assert both
+    # are part of the locking filter.
+    query.filter_by.assert_called_once_with(
+        id=entity.id, uuid=cmd._uuid, deleted_at=None
+    )
     query.with_for_update.assert_called_once_with()
     query.one_or_none.assert_called_once_with()
 

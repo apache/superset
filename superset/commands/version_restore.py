@@ -93,7 +93,7 @@ class BaseRestoreVersionCommand(BaseCommand):
         # Re-read the live row under a FOR UPDATE lock, refreshing the
         # in-memory entity (``populate_existing``) from the *current committed*
         # state, and re-assert it is still active (``deleted_at IS NULL``). A
-        # single locking query closes three races opened between validate()'s
+        # single locking query closes four races opened between validate()'s
         # unlocked read and the revert:
         #   * a concurrent content edit — a plain, non-locking read (bare
         #     refresh()) returns the transaction's first-read snapshot on
@@ -104,13 +104,29 @@ class BaseRestoreVersionCommand(BaseCommand):
         #   * a concurrent soft delete — column loads (get()/refresh()) bypass
         #     the global active-row filter, so without the explicit
         #     ``deleted_at IS NULL`` predicate the revert would resurrect an
-        #     archived entity and report success.
+        #     archived entity and report success;
+        #   * a concurrent hard delete followed by integer-id REUSE — the new
+        #     row carries a different uuid, so pinning the lock to
+        #     ``(id, uuid)`` (the same defense ``restore_version`` applies to
+        #     the version lookup) reads it as absent. Pinned by ``id`` alone,
+        #     ``populate_existing`` would swap ``entity`` to the stranger and
+        #     ``restore_version``'s uuid check would raise ``ValueError`` — a
+        #     500, not the documented 404.
         # A None result (hard- or soft-deleted) is surfaced as the documented
         # 404 — not the transaction wrapper's generic 422, and not via a
         # refresh() whose missing-row failure is a hard-to-catch
         # InvalidRequestError. This is the pessimistic (serialise) half; the
         # restore endpoint does not yet also honor an If-Match precondition to
         # *detect* (rather than serialise) a concurrent edit — a follow-up.
+        #
+        # This is deliberately its own formulation rather than
+        # ``versioning.api_helpers.lock_entity_for_update`` (the conditional-
+        # write PUT path): that helper locks ``select(model.id)`` by id alone
+        # and returns nothing, whereas restore must also RELOAD the locked
+        # row's content (``populate_existing``), assert the active-row
+        # predicate, and pin the uuid. Both lock the same primary-key row, so
+        # the two paths still serialise against each other; only the extra
+        # needs of restore live here.
         entity = (
             db.session.query(self.model_cls)
             .populate_existing()
@@ -120,7 +136,7 @@ class BaseRestoreVersionCommand(BaseCommand):
             # Postgres rejects ``FOR UPDATE`` with ``DISTINCT``. We only need the
             # locked row's own columns here; relationships load lazily after.
             .enable_eagerloads(False)
-            .filter_by(id=entity.id, deleted_at=None)
+            .filter_by(id=entity.id, uuid=self._uuid, deleted_at=None)
             .with_for_update()
             .one_or_none()
         )

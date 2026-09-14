@@ -172,15 +172,20 @@ class TestChartRestoreApi(SupersetTestCase):
         by another connection — the concurrent value does not survive.
 
         The dialect-independent regression guard for the fix is the unit test
-        asserting ``refresh(..., with_for_update=True)`` (dropping the flag
-        fails there on every backend). This test exercises the real command +
-        DB through the locking-refresh path and asserts the correct end state.
-        It reproduces the MySQL/InnoDB REPEATABLE-READ staleness the flag
-        guards against *only* when the restore shares this session's pre-edit
-        read view (no commit between the load below and the ``@transaction``
-        restore); where that holds, the pre-fix (plain-refresh) code leaves the
-        concurrent edit in place and this assertion fails. It is not relied on
-        as the sole MySQL guard for that reason.
+        (``test_restore_version_concurrency.py``) asserting the locking re-read
+        chain — ``query(...).populate_existing().enable_eagerloads(False)
+        .filter_by(id=…, uuid=…, deleted_at=None).with_for_update()
+        .one_or_none()`` — so dropping the lock, the reload, or a pinned
+        predicate fails there on every backend. (There is deliberately no
+        ``refresh()``: a bare refresh returns the transaction's first-read
+        snapshot under REPEATABLE READ.) This test exercises the real command
+        + DB through that locking path and asserts the correct end state. It
+        reproduces the MySQL/InnoDB REPEATABLE-READ staleness *only* when the
+        restore shares this session's pre-edit read view (no commit between
+        the load below and the ``@transaction`` restore); where that holds,
+        the pre-fix (plain-refresh) code leaves the concurrent edit in place
+        and this assertion fails. It is not relied on as the sole MySQL guard
+        for that reason.
         """
         _persist_fixture_state()
         chart: Slice = (
@@ -212,17 +217,25 @@ class TestChartRestoreApi(SupersetTestCase):
                 {"n": "edited by another connection", "i": chart_id},
             )
 
-        RestoreChartVersionCommand(chart_uuid, target_uuid).run()
+        try:
+            RestoreChartVersionCommand(chart_uuid, target_uuid).run()
 
-        db.session.expire_all()
-        live = db.session.query(Slice).filter(Slice.id == chart_id).one()
-        assert live.slice_name == "Boys v1", (
-            f"restore did not fully overwrite the concurrent edit: {live.slice_name!r}"
-        )
-
-        # Cleanup
-        live.slice_name = "Boys"
-        db.session.commit()
+            db.session.expire_all()
+            live = db.session.query(Slice).filter(Slice.id == chart_id).one()
+            assert live.slice_name == "Boys v1", (
+                "restore did not fully overwrite the concurrent edit: "
+                f"{live.slice_name!r}"
+            )
+        finally:
+            # Cleanup runs even if the restore raises or the assertion fails, so
+            # the shared fixture chart never leaks a foreign name into later
+            # tests.
+            db.session.rollback()
+            with db.engine.begin() as conn:
+                conn.execute(
+                    sa.text("UPDATE slices SET slice_name = :n WHERE id = :i"),
+                    {"n": "Boys", "i": chart_id},
+                )
 
     def test_restore_raises_not_found_when_hard_deleted_before_lock(self) -> None:
         """sc-115423: a concurrent hard delete committed between validate()'s
@@ -304,17 +317,23 @@ class TestChartRestoreApi(SupersetTestCase):
             return loaded
 
         cmd = RestoreChartVersionCommand(chart_uuid, target_uuid)
-        with patch.object(cmd, "validate", side_effect=_soft_delete_then_return):
-            with pytest.raises(cmd.not_found_exc):
-                cmd.run()
-
-        # Cleanup — clear the archival flag so a shared/session-scoped row does
-        # not leak a soft-deleted state into later tests.
-        with db.engine.begin() as conn:
-            conn.execute(
-                sa.text("UPDATE slices SET deleted_at = NULL WHERE id = :i"),
-                {"i": chart_id},
-            )
+        try:
+            with patch.object(
+                cmd, "validate", side_effect=_soft_delete_then_return
+            ):
+                with pytest.raises(cmd.not_found_exc):
+                    cmd.run()
+        finally:
+            # Cleanup — clear the archival flag so a shared/session-scoped row
+            # does not leak a soft-deleted state into later tests. Unconditional:
+            # if run() raises anything other than not_found_exc, pytest.raises
+            # propagates it, and a trailing cleanup would never execute.
+            db.session.rollback()
+            with db.engine.begin() as conn:
+                conn.execute(
+                    sa.text("UPDATE slices SET deleted_at = NULL WHERE id = :i"),
+                    {"i": chart_id},
+                )
 
     def test_restore_returns_404_for_unknown_uuid(self) -> None:
         self.login(ADMIN_USERNAME)
