@@ -191,15 +191,24 @@ def apply_record_decoration(
                 record["from_value"] = None
                 record["to_value"] = None
                 record["path"] = None
-                # ``impact`` is deliberately NOT redacted here. It names the
-                # charts on the *path* dashboard that pointed at the related
-                # entity at that transaction — the requester's own dashboard
-                # members, which ``raise_for_access`` already gated — not the
-                # deleted entity itself or its editors, which is what this
-                # block exists to withhold. Naming them discloses nothing a
-                # requester entitled to the path entity cannot already see in
-                # its own chart list and history; the count was never redacted
-                # for the same reason. (Explicit decision, review of #43838.)
+                # ``impact`` is deliberately NOT redacted here — an explicit
+                # decision (review of #43838), recorded so this allowlist-by-
+                # omission is not mistaken for an oversight:
+                #   * it names the charts on the *path* dashboard that pointed
+                #     at the related entity at that transaction — the
+                #     requester's own dashboard members, which
+                #     ``raise_for_access`` already gated, and version history
+                #     is itself edit-gated (sc-120001) — not the deleted entity
+                #     or its editors, which is what this block withholds;
+                #   * chart titles are visible to a dashboard's viewers today
+                #     regardless of datasource access, and the historical
+                #     members are the dashboard's own history, so naming them
+                #     discloses nothing a requester entitled to the path entity
+                #     cannot already see (the count was never redacted either);
+                #   * "a dataset was deleted — which of my charts broke?" is the
+                #     primary use of the impact detail, and it is exactly the
+                #     tombstoned-related case, so redacting here would gut it.
+                # Not a SECURITY.md role/capability matrix row.
 
         # Strip the internal-only columns the API contract doesn't expose.
         for key in (
