@@ -26,6 +26,7 @@ from superset.migrations.shared.security_converge import (
     Permission,
     PermissionView,
     Pvm,
+    PvmMigrationMapType,
     Role,
     ViewMenu,
 )
@@ -194,7 +195,7 @@ def test_migrate_roles_renames_permission_and_migrates_role(session: Session) ->
     session.add(role)
     session.commit()
 
-    pvm_map = {
+    pvm_map: PvmMigrationMapType = {
         Pvm("Superset", "can_explore_json"): (Pvm("Chart", "can_read"),),
     }
     # Mirrors do_upgrade() in the rename migration: seed the successor first.
