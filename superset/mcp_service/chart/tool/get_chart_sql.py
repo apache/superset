@@ -155,6 +155,30 @@ def _resolve_effective_form_data(
     return saved if isinstance(saved, dict) else {}, False
 
 
+def _datasource_id_and_type_from_query_context(
+    query_context: Any,
+    qc_json: dict[str, Any],
+    chart: "Slice",
+) -> tuple[Any, str]:
+    """Prefer the executed datasource when it has a real id/type.
+
+    MagicMock test doubles have placeholder attributes that are not
+    int/str, so those fall through to the saved JSON, then the chart row.
+    """
+    datasource = getattr(query_context, "datasource", None)
+    datasource_id = getattr(datasource, "id", None)
+    datasource_type = getattr(datasource, "type", None)
+    datasource_json = qc_json.get("datasource") or {}
+    if not isinstance(datasource_id, (int, str)):
+        datasource_id = datasource_json.get("id", chart.datasource_id)
+    if not isinstance(datasource_type, str):
+        json_type = datasource_json.get("type")
+        datasource_type = (
+            json_type if isinstance(json_type, str) else chart.datasource_type
+        )
+    return datasource_id, str(datasource_type)
+
+
 def _sql_from_saved_query_context(
     chart: "Slice",
     extra_form_data: dict[str, Any] | None = None,
@@ -224,16 +248,14 @@ def _sql_from_saved_query_context(
             )
             return None
         query_context.result_type = ChartDataResultType.QUERY
-        # ChartDataDatasourceSchema only requires "id", so fall back to the
-        # chart's own datasource rather than raising on a context that the
-        # schema itself considers valid.
-        datasource_json = qc_json.get("datasource") or {}
+        datasource_id, datasource_type = _datasource_id_and_type_from_query_context(
+            query_context, qc_json, chart
+        )
         set_query_context_form_data(
             query_context,
-            datasource_json.get("id", chart.datasource_id),
-            datasource_json.get("type", chart.datasource_type),
+            datasource_id,
+            datasource_type,
         )
-
         command = ChartDataCommand(query_context)
         command.validate()
         result = command.run()
@@ -320,7 +342,7 @@ def _sql_from_form_data(
     set_query_context_form_data(
         query_context,
         query_context.datasource.id,
-        datasource_type,
+        str(query_context.datasource.type or datasource_type),
     )
     command = ChartDataCommand(query_context)
     command.validate()
