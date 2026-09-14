@@ -365,7 +365,6 @@ class BaseScreenshot:
                 cache_payload.computing()
                 self.cache.set(cache_key, cache_payload.to_dict())
                 image = None
-                # Assuming all sorts of things can go wrong with the headless browser
                 try:
                     logger.info(
                         "trying to generate screenshot for cache_key=%s", cache_key
