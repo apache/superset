@@ -23,12 +23,19 @@ to enable SQL queries on MongoDB collections.
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any, Optional, TYPE_CHECKING
 
 from sqlalchemy import types
+from sqlalchemy.engine.interfaces import Dialect
+from sqlalchemy.engine.url import URL
 
 from superset.constants import TimeGrain
+from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
+from superset.sql.parse import Table
+
+if TYPE_CHECKING:
+    from superset.models.core import Database
 
 
 class MongoDBEngineSpec(BaseEngineSpec):
@@ -37,6 +44,12 @@ class MongoDBEngineSpec(BaseEngineSpec):
     engine = "mongodb"
     engine_name = "MongoDB"
     force_column_alias_quotes = False
+
+    # A MongoDB database is exposed as a SQLAlchemy schema. PyMongoSQL always runs a
+    # query against the database in the connection URI and treats the whole FROM
+    # reference as the collection name, so the schema is selected by swapping the
+    # database in the URI rather than by qualifying the collection.
+    supports_dynamic_schema = True
 
     metadata = {
         "description": ("MongoDB is a document-oriented, operational NoSQL database."),
@@ -101,6 +114,48 @@ class MongoDBEngineSpec(BaseEngineSpec):
             "DATETIME({col}, 'start of day', 'weekday 1', '-7 days')"
         ),
     }
+
+    @classmethod
+    def adjust_engine_params(
+        cls,
+        uri: URL,
+        connect_args: dict[str, Any],
+        catalog: Optional[str] = None,
+        schema: Optional[str] = None,
+    ) -> tuple[URL, dict[str, Any]]:
+        uri, new_connect_args = super().adjust_engine_params(
+            uri,
+            connect_args,
+            catalog,
+            schema,
+        )
+
+        if schema:
+            uri = uri.set(database=schema)
+
+        return uri, new_connect_args
+
+    @classmethod
+    def get_schema_from_engine_params(
+        cls,
+        sqlalchemy_uri: URL,
+        connect_args: dict[str, Any],
+    ) -> Optional[str]:
+        return sqlalchemy_uri.database or None
+
+    @classmethod
+    def get_default_schema(
+        cls,
+        database: Database,
+        catalog: Optional[str],
+    ) -> Optional[str]:
+        return cls.get_schema_from_engine_params(
+            make_url_safe(database.sqlalchemy_uri), {}
+        )
+
+    @classmethod
+    def quote_table(cls, table: Table, dialect: Dialect) -> str:
+        return dialect.identifier_preparer.quote(table.table)
 
     @classmethod
     def epoch_to_dttm(cls) -> str:
