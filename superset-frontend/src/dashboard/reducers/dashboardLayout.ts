@@ -177,6 +177,16 @@ const actionHandlers: Record<
 
     if (!source || !destination || !dragging) return state;
 
+    // Defense in depth against the drop guard in getDropPosition: moving a
+    // component into itself or into one of its own descendants detaches the
+    // subtree and leaves a cycle that no root walk can reach or repair.
+    if (
+      destination.id === dragging.id ||
+      (state[destination.id]?.parents || []).includes(dragging.id)
+    ) {
+      return state;
+    }
+
     const nextEntities = reorderItem({
       entitiesMap: state,
       source,
