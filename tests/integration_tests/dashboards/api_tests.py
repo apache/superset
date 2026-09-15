@@ -4632,6 +4632,11 @@ class TestDashboardCustomTagsFiltering(SupersetTestCase):
 
     Note: DASHBOARD_LIST_CUSTOM_TAGS_ONLY config is checked at app startup in
     DashboardRestApi.__init__(), so these tests verify the current runtime behavior.
+
+    ``editor:``/``type:`` tags are no longer auto-generated (see
+    superset/tags/models.py), so this test creates them manually to simulate
+    the legacy rows an upgraded deployment may still carry, and verifies the
+    custom_tags relationship/API path still filters them out.
     """
 
     def setUp(self) -> None:
@@ -4643,7 +4648,7 @@ class TestDashboardCustomTagsFiltering(SupersetTestCase):
         """Verify custom_tags filtering at model and API level.
 
         With DASHBOARD_LIST_CUSTOM_TAGS_ONLY=True in superset_test_config.py:
-        1. dashboard.tags returns ALL tags (custom + editor + type)
+        1. dashboard.tags returns ALL tags (custom + legacy editor/type)
         2. dashboard.custom_tags returns ONLY custom tags
         3. API response returns ONLY custom tags in the "tags" property
         """
@@ -4656,15 +4661,21 @@ class TestDashboardCustomTagsFiltering(SupersetTestCase):
         db.session.flush()
 
         custom_tag = Tag(name="critical", type=TagType.custom)
-        db.session.add(custom_tag)
+        # Legacy implicit tags: no longer generated, but rows from before an
+        # upgrade may still exist and must keep being filtered out.
+        editor_tag = Tag(name="editor:admin", type=TagType.editor)
+        type_tag = Tag(name="type:dashboard", type=TagType.type)
+        db.session.add_all([custom_tag, editor_tag, type_tag])
         db.session.flush()
 
-        tagged_obj = TaggedObject(
-            tag_id=custom_tag.id,
-            object_id=dashboard.id,
-            object_type="dashboard",
+        db.session.add_all(
+            [
+                TaggedObject(
+                    tag_id=tag.id, object_id=dashboard.id, object_type="dashboard"
+                )
+                for tag in (custom_tag, editor_tag, type_tag)
+            ]
         )
-        db.session.add(tagged_obj)
         db.session.commit()
 
         try:
@@ -4727,5 +4738,6 @@ class TestDashboardCustomTagsFiltering(SupersetTestCase):
         finally:
             db.session.delete(dashboard)
             db.session.commit()
-            db.session.delete(custom_tag)
+            for tag in (custom_tag, editor_tag, type_tag):
+                db.session.delete(tag)
             db.session.commit()
