@@ -63,6 +63,7 @@ export default function PublishedStatus({
           id="unpublished-dashboard-tooltip"
           placement="bottom"
           title={draftButtonTooltip}
+          overlayClassName="dashboard-header-tooltip"
         >
           <div>
             <PublishedLabel
@@ -78,6 +79,7 @@ export default function PublishedStatus({
         id="unpublished-dashboard-tooltip"
         placement="bottom"
         title={draftDivTooltip}
+        overlayClassName="dashboard-header-tooltip"
       >
         <div>
           <PublishedLabel isPublished={isPublished} />
@@ -93,6 +95,7 @@ export default function PublishedStatus({
         id="published-dashboard-tooltip"
         placement="bottom"
         title={publishedTooltip}
+        overlayClassName="dashboard-header-tooltip"
       >
         <div>
           <PublishedLabel isPublished={isPublished} onClick={togglePublished} />
