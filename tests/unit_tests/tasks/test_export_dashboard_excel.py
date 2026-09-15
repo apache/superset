@@ -1482,6 +1482,7 @@ def test_rebuilt_paginated_table_executes_full_limit(
         "server_pagination": True,
         "server_page_length": 10,
         "row_limit": 1000,
+        "row_offset": 20,
         "result_format": "json",
         "result_type": "full",
     }
