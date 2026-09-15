@@ -46,13 +46,22 @@ Scheme and port mapping
   human to migrate rather than pointed at a guessed port. Operators should
   confirm the HTTP interface is enabled on the rewritten native connections.
 
+TLS: ``clickhouse-sqlalchemy`` enables TLS with ``?protocol=https``, but
+``clickhouse-connect`` ignores ``protocol`` and reads ``secure`` instead, so a
+preserved ``protocol=https`` would silently downgrade an encrypted connection to
+plaintext HTTP. ``protocol=https`` is therefore rewritten to ``secure=true`` and
+the meaningless ``protocol`` parameter is dropped; ``secure`` values that a
+connection already carries are left untouched.
+
 Password handling: the credential lives either inline in the URI or in
 ``encrypted_extra``; both are preserved because the URI is edited in place (only
-the scheme, and for native rows the port, are touched) and ``encrypted_extra``
-is never read.
+the scheme, the TLS parameter, and for native rows the port, are touched) and
+``encrypted_extra`` is never read.
 
 Only rows whose backend is exactly ``clickhouse`` are rewritten; rows already on
-``clickhousedb`` are skipped, which also makes ``upgrade`` idempotent.
+``clickhousedb`` are skipped, which also makes ``upgrade`` idempotent. A row
+whose rewritten URI would exceed the ``dbs.sqlalchemy_uri`` column length is
+skipped with a warning rather than truncated.
 
 Downgrade
 ---------
@@ -79,12 +88,16 @@ Create Date: 2026-09-15 00:00:00.000000
 
 """
 
+import logging
+
 from alembic import op
 from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm import declarative_base
 
 from superset import db
 from superset.migrations.shared.utils import paginated_update
+
+logger = logging.getLogger("alembic")
 
 # revision identifiers, used by Alembic.
 revision = "f7b3a9c14e02"
@@ -100,6 +113,10 @@ NATIVE_DRIVERS = {"native", "asynch"}
 NATIVE_DEFAULT_PORT = "9000"
 HTTP_DEFAULT_PORT = "8123"
 
+# Matches the String(1024) length of dbs.sqlalchemy_uri; the rewrite lengthens
+# the scheme (and may add a port), so a row near the limit could overflow.
+URI_MAX_LENGTH = 1024
+
 
 class Database(Base):  # type: ignore
     __tablename__ = "dbs"
@@ -108,51 +125,88 @@ class Database(Base):  # type: ignore
     sqlalchemy_uri = Column(String(1024), nullable=False)
 
 
-def _swap_native_default_port(remainder: str) -> str | None:
-    """Move a native-default port onto the HTTP interface.
+def _split_uri(remainder: str) -> tuple[str, str, str, str]:
+    """Split the part after ``://`` into userinfo, host:port, path and query.
 
-    ``remainder`` is everything after ``://`` -- ``userinfo@host[:port][/path]
-    [?query]``. Returns the remainder with the port rewritten to the HTTP
-    default when it is the native default (9000) or absent (which implies 9000),
-    and ``None`` when the port is a non-default native port or an IPv6 literal
-    host is present, so the caller can leave those rows on the legacy driver
-    rather than guess an HTTP port.
+    ``remainder`` is ``[userinfo@]host[:port][/path][?query]``. The authority
+    (userinfo + host) is delimited by the first ``/`` or ``?``, and the
+    credential separator is the last ``@`` *within* that authority -- searching
+    the whole string would let an ``@`` in the path or query be mistaken for it.
+    ``userinfo`` retains its trailing ``@`` (empty when there are no
+    credentials) so the pieces concatenate back losslessly.
     """
-    # Credentials are not escaped for "@", so the host section starts after the
-    # last one.
-    host_start = remainder.rfind("@") + 1
-
-    # The authority ends at the path or query, whichever comes first.
     end = len(remainder)
-    for index in range(host_start, len(remainder)):
-        if remainder[index] in "/?":
+    for index, char in enumerate(remainder):
+        if char in "/?":
             end = index
             break
 
-    authority = remainder[host_start:end]
-    if authority.startswith("["):
+    authority = remainder[:end]
+    rest = remainder[end:]
+
+    at = authority.rfind("@")
+    userinfo = authority[: at + 1]
+    hostport = authority[at + 1 :]
+
+    path, _, query = rest.partition("?")
+    return userinfo, hostport, path, query
+
+
+def _remap_native_port(hostport: str) -> str | None:
+    """Move a native-default port onto the HTTP interface.
+
+    Returns ``hostport`` with the port rewritten to the HTTP default when it is
+    the native default (9000) or absent (which implies 9000), and ``None`` when
+    the port is a non-default native port or an IPv6 literal host is present, so
+    the caller can leave those rows on the legacy driver rather than guess an
+    HTTP port.
+    """
+    if hostport.startswith("["):
         # IPv6 literal host -- the "host:port" split below is unsafe here.
         return None
 
-    host, colon, port = authority.rpartition(":")
+    host, colon, port = hostport.rpartition(":")
     if not colon:
         # No explicit port: the native driver defaults to 9000, so pin the HTTP
         # port explicitly for clickhouse-connect.
-        new_authority = f"{authority}:{HTTP_DEFAULT_PORT}"
-    elif port == NATIVE_DEFAULT_PORT:
-        new_authority = f"{host}:{HTTP_DEFAULT_PORT}"
-    else:
-        return None
+        return f"{hostport}:{HTTP_DEFAULT_PORT}"
+    if port == NATIVE_DEFAULT_PORT:
+        return f"{host}:{HTTP_DEFAULT_PORT}"
+    return None
 
-    return remainder[:host_start] + new_authority + remainder[end:]
+
+def _migrate_query(query: str) -> str:
+    """Translate the legacy ``protocol`` TLS flag to clickhouse-connect's.
+
+    ``clickhouse-sqlalchemy`` selects TLS with ``?protocol=https``;
+    ``clickhouse-connect`` ignores ``protocol`` and reads ``secure`` instead, so
+    a preserved ``protocol=https`` would silently downgrade an encrypted
+    connection to plaintext HTTP. ``protocol=https`` becomes ``secure=true`` and
+    the now-meaningless ``protocol`` parameter is dropped; every other parameter
+    keeps its position and value.
+    """
+    if not query:
+        return query
+
+    rewritten = []
+    for pair in query.split("&"):
+        key, _, value = pair.partition("=")
+        if key == "protocol":
+            if value.lower() == "https":
+                rewritten.append("secure=true")
+            # protocol=http (the plaintext default) carries no meaning for
+            # clickhouse-connect and is dropped.
+            continue
+        rewritten.append(pair)
+    return "&".join(rewritten)
 
 
 def _migrate_uri(uri: str) -> str | None:
     """Rewrite a legacy ``clickhouse`` URI onto ``clickhousedb+connect``.
 
     Returns ``None`` when the URI should be left untouched (already on the
-    ``clickhousedb`` backend, malformed, or a native connection whose port
-    cannot be mapped to the HTTP interface).
+    ``clickhousedb`` backend, malformed, a native connection whose port cannot
+    be mapped to the HTTP interface, or one that would overflow the column).
     """
     scheme, separator, remainder = uri.partition("://")
     if not separator:
@@ -163,13 +217,29 @@ def _migrate_uri(uri: str) -> str | None:
         # Already clickhousedb, or an unrelated engine.
         return None
 
+    userinfo, hostport, path, query = _split_uri(remainder)
+
     if driver in NATIVE_DRIVERS:
-        remapped = _swap_native_default_port(remainder)
+        remapped = _remap_native_port(hostport)
         if remapped is None:
             return None
-        remainder = remapped
+        hostport = remapped
 
-    return f"{TARGET_SCHEME}://{remainder}"
+    query = _migrate_query(query)
+
+    migrated = f"{TARGET_SCHEME}://{userinfo}{hostport}{path}"
+    if query:
+        migrated = f"{migrated}?{query}"
+
+    if len(migrated) > URI_MAX_LENGTH:
+        logger.warning(
+            "Skipping ClickHouse connection whose migrated URI exceeds the "
+            "%d-character dbs.sqlalchemy_uri limit; migrate it manually.",
+            URI_MAX_LENGTH,
+        )
+        return None
+
+    return migrated
 
 
 def upgrade() -> None:

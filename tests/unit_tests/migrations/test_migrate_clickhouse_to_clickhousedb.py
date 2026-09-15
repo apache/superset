@@ -145,6 +145,59 @@ def test_migrate_uri_ignores_at_sign_in_credentials() -> None:
     )
 
 
+def test_migrate_uri_ignores_at_sign_in_query() -> None:
+    """An "@" after the authority (in the path or query) must not be mistaken
+    for the credential separator."""
+    assert (
+        _migrate_uri("clickhouse+native://host:9000/db?comment=a@b")
+        == "clickhousedb+connect://host:8123/db?comment=a@b"
+    )
+
+
+@pytest.mark.parametrize(
+    "uri,expected",
+    [
+        # legacy TLS flag (protocol=https) becomes clickhouse-connect's secure
+        (
+            f"clickhouse://user:{MASK}@host:8443/db?protocol=https",
+            f"clickhousedb+connect://user:{MASK}@host:8443/db?secure=true",
+        ),
+        # protocol=http is the plaintext default and is simply dropped
+        (
+            f"clickhouse://user:{MASK}@host:8123/db?protocol=http",
+            f"clickhousedb+connect://user:{MASK}@host:8123/db",
+        ),
+        # other parameters keep their position around the rewritten flag
+        (
+            f"clickhouse://user:{MASK}@host:8443/db?a=1&protocol=https&b=2",
+            f"clickhousedb+connect://user:{MASK}@host:8443/db?a=1&secure=true&b=2",
+        ),
+        # native connection carrying the legacy TLS flag: port and flag both move
+        (
+            f"clickhouse+native://user:{MASK}@host:9000/db?protocol=https",
+            f"clickhousedb+connect://user:{MASK}@host:8123/db?secure=true",
+        ),
+        # a secure flag already present is preserved untouched
+        (
+            f"clickhouse://user:{MASK}@host:8443/db?secure=true",
+            f"clickhousedb+connect://user:{MASK}@host:8443/db?secure=true",
+        ),
+    ],
+)
+def test_migrate_uri_maps_legacy_tls_flag(uri: str, expected: str) -> None:
+    assert _migrate_uri(uri) == expected
+
+
+def test_migrate_uri_skips_rows_that_would_overflow_the_column() -> None:
+    """The rewrite lengthens the URI, so a row already near the column limit is
+    left on the legacy driver rather than truncated."""
+    padding = "x" * (migration.URI_MAX_LENGTH - len("clickhouse://host/"))
+    uri = f"clickhouse://host/{padding}"
+    assert len(uri) <= migration.URI_MAX_LENGTH
+    assert len(f"clickhousedb+connect://host/{padding}") > migration.URI_MAX_LENGTH
+    assert _migrate_uri(uri) is None
+
+
 def test_upgrade_rewrites_only_legacy_clickhouse_connections(engine) -> None:
     with Session(engine) as seed:
         seed.add_all(
