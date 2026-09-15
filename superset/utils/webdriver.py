@@ -57,10 +57,9 @@ from superset.utils.screenshot_utils import (
 WindowSize = tuple[int, int]
 logger = logging.getLogger(__name__)
 
-# Installation message for missing Playwright (Cypress doesn't work with DeckGL)
+# Installation hint appended to errors raised when Playwright or Chromium is missing
 PLAYWRIGHT_INSTALL_MESSAGE = (
-    "To complete the migration from Cypress "
-    "and enable WebGL/DeckGL screenshot support, install Playwright with: "
+    "Install Playwright and Chromium with: "
     "pip install playwright && playwright install chromium"
 )
 
