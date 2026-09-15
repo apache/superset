@@ -41,6 +41,10 @@ class PivotTableChartPlugin(BaseChartPlugin):
     native_viz_types: ClassVar[Mapping[str, str]] = {
         "pivot_table_v2": "Pivot Table",
     }
+    query_role_keys = BaseChartPlugin.query_role_keys | {
+        "groupbyColumns",
+        "groupbyRows",
+    }
 
     def pre_validate(
         self,
@@ -122,7 +126,7 @@ class PivotTableChartPlugin(BaseChartPlugin):
         return "pivot_table_v2"
 
     def normalize_column_refs(self, config: Any, dataset_context: Any) -> Any:
-        config_dict = config.model_dump()
+        config_dict = config.model_dump(exclude_unset=True)
 
         def _norm_col_list(key: str) -> None:
             if config_dict.get(key):

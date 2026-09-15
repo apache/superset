@@ -38,6 +38,7 @@ from superset.mcp_service.chart.schemas import (
     MixedTimeseriesChartConfig,
     PieChartConfig,
     PivotTableChartConfig,
+    SunburstChartConfig,
     TableChartConfig,
     TreemapChartConfig,
     WaterfallChartConfig,
@@ -51,6 +52,7 @@ _CHART_TYPE_ADAPTERS: Dict[str, TypeAdapter[Any]] = {
     "xy": TypeAdapter(XYChartConfig),
     "table": TypeAdapter(TableChartConfig),
     "pie": TypeAdapter(PieChartConfig),
+    "sunburst": TypeAdapter(SunburstChartConfig),
     "gauge": TypeAdapter(GaugeChartConfig),
     "treemap_v2": TypeAdapter(TreemapChartConfig),
     "pivot_table": TypeAdapter(PivotTableChartConfig),
@@ -97,6 +99,25 @@ _CHART_EXAMPLES: Dict[str, list[Dict[str, Any]]] = {
             "chart_type": "pie",
             "dimension": {"name": "region"},
             "metric": {"name": "revenue", "aggregate": "SUM"},
+        },
+    ],
+    "sunburst": [
+        {
+            "chart_type": "sunburst",
+            "hierarchy": [{"name": "region"}, {"name": "country"}],
+            "metric": {"name": "revenue", "aggregate": "SUM"},
+            "show_labels": True,
+            "sort_by_metric": True,
+        },
+        {
+            "chart_type": "sunburst",
+            "hierarchy": [{"name": "division"}, {"name": "product"}],
+            "metric": {"name": "revenue", "saved_metric": True},
+            "secondary_metric": {
+                "sql_expression": "SUM(profit)",
+                "label": "Profit",
+            },
+            "linear_color_scheme": "superset_seq_1",
         },
     ],
     "pivot_table": [
@@ -310,9 +331,9 @@ def get_chart_type_schema(
     for a chart configuration before calling generate_chart or update_chart.
 
     Valid chart_type values depend on the host deployment. Core types are xy,
-    table, pie, gauge, treemap_v2, pivot_table, mixed_timeseries, handlebars,
-    big_number, histogram, box_plot, and waterfall. Deployments that enable an
-    AG Grid
+    table, pie, sunburst, gauge, treemap_v2, pivot_table, mixed_timeseries,
+    handlebars, big_number,
+    histogram, box_plot, and waterfall. Deployments that enable an AG Grid
     pivot extension also expose interactive_pivot.
 
     Returns the JSON Schema for the requested chart type, optionally

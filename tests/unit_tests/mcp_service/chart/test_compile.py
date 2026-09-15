@@ -25,8 +25,11 @@ that only use Tier-1 validation are exercised end-to-end.
 
 from unittest.mock import Mock, patch
 
+import numpy as np
+import pandas as pd
 import pytest
 
+from superset.common.db_query_status import QueryStatus
 from superset.mcp_service.chart.compile import (
     CompileResult,
     validate_and_compile,
@@ -42,6 +45,10 @@ from superset.mcp_service.chart.schemas import (
 )
 from superset.mcp_service.chart.validation.dataset_validator import (
     build_dataset_context_from_orm,
+)
+from superset.utils.core import GenericDataType
+from tests.unit_tests.mcp_service.chart.query_result_fixtures import (
+    chart_data_command_result,
 )
 
 
@@ -381,8 +388,7 @@ class TestAdhocFiltersFromFormData:
     def test_where_filter_with_metric_name_rejected(self):
         """A saved-metric name used as a WHERE filter subject must be rejected.
 
-        WHERE filters need a physical column; metric names are only valid in
-        HAVING clauses where Superset can resolve them.
+        WHERE filters need a physical column; a saved metric cannot satisfy it.
         """
         ds = _orm_dataset()
         config = TableChartConfig(
@@ -406,12 +412,8 @@ class TestAdhocFiltersFromFormData:
         assert result.error_obj is not None
         assert "sum_boys" in (result.error_obj.message or "")
 
-    def test_having_filter_with_metric_name_passes(self):
-        """A saved-metric name used in a HAVING filter must be accepted.
-
-        HAVING filters are aggregate-level conditions; Superset resolves metric
-        names there so they are valid references.
-        """
+    def test_simple_having_filter_is_rejected_without_where_coercion(self):
+        """SIMPLE HAVING is unsupported and must never become a WHERE filter."""
         ds = _orm_dataset()
         config = TableChartConfig(
             chart_type="table", columns=[ColumnRef(name="gender")]
@@ -428,9 +430,31 @@ class TestAdhocFiltersFromFormData:
             ]
         }
         result = validate_and_compile(config, form_data, ds, run_compile_check=False)
-        assert result.success, (
-            "A saved-metric name in a HAVING filter should pass Tier-1 validation"
+        assert not result.success
+        assert result.error_obj is not None
+        assert result.error_obj.error_code == "UNSUPPORTED_FILTER_CLAUSE"
+
+    @pytest.mark.parametrize("clause", [None, 7, "where", "", "GROUP"])
+    def test_malformed_simple_filter_clause_is_rejected(self, clause):
+        ds = _orm_dataset()
+        config = TableChartConfig(
+            chart_type="table", columns=[ColumnRef(name="gender")]
         )
+        form_data = {
+            "adhoc_filters": [
+                {
+                    "expressionType": "SIMPLE",
+                    "clause": clause,
+                    "subject": "gender",
+                    "operator": "==",
+                    "comparator": "boy",
+                }
+            ]
+        }
+        result = validate_and_compile(config, form_data, ds, run_compile_check=False)
+        assert not result.success
+        assert result.error_obj is not None
+        assert result.error_obj.error_code == "INVALID_FILTER_CLAUSE"
 
 
 class TestValidateAndCompileTier2:
@@ -465,79 +489,12 @@ class TestValidateAndCompileTier2:
         assert result.error_code == "DATASET_NOT_FOUND"
 
 
-@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
-@patch("superset.mcp_service.chart.chart_helpers.build_query_context_from_form_data")
-def test_compile_gauge_uses_shared_query_builder_and_skips_invalid_dials(
-    mock_build_query_context, mock_cmd_cls
-):
-    """Gauge compile matches frontend ordering and retains finite groups."""
-    from superset.mcp_service.chart.compile import _compile_chart
-
-    mock_build_query_context.return_value = Mock()
-    mock_cmd_cls.return_value.validate.return_value = None
-    mock_cmd_cls.return_value.run.return_value = {
-        "queries": [
-            {
-                "data": [
-                    {"team": "A", "AVG(num)": 10},
-                    {"team": "B", "AVG(num)": "not numeric"},
-                ]
-            }
-        ]
-    }
-    form_data = {
-        "viz_type": "gauge_chart",
-        "metric": {
-            "expressionType": "SIMPLE",
-            "aggregate": "AVG",
-            "column": {"column_name": "num"},
-            "label": "AVG(num)",
-        },
-        "groupby": ["team"],
-        "sort_by_metric": True,
-        "row_limit": 10,
-    }
-
-    result = _compile_chart(form_data, dataset_id=3)
-
-    assert result.success
-    assert result.row_count == 1
-    query_form_data = mock_build_query_context.call_args.args[0]
-    assert query_form_data["sort_by_metric"] is True
-    assert query_form_data["metric"] == form_data["metric"]
-    assert query_form_data["datasource"] == "3__table"
-    mock_build_query_context.assert_called_once_with(
-        query_form_data, row_limit=10, force=False
-    )
-
-
-@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
-@patch("superset.mcp_service.chart.chart_helpers.build_query_context_from_form_data")
-def test_compile_gauge_accepts_numeric_saved_metric_result(
-    mock_build_query_context, mock_cmd_cls
-):
-    """Saved/SQL metrics stay supported when their concrete output is numeric."""
-    from superset.mcp_service.chart.compile import _compile_chart
-
-    mock_build_query_context.return_value = Mock()
-    mock_cmd_cls.return_value.validate.return_value = None
-    mock_cmd_cls.return_value.run.return_value = {
-        "queries": [{"data": [{"saved_sla": 99.5}]}]
-    }
-
-    result = _compile_chart(
-        {"viz_type": "gauge_chart", "metric": "saved_sla"}, dataset_id=3
-    )
-
-    assert result.success
-    assert result.row_count == 1
-
-
+@patch("superset.charts.data.form_data.set_query_context_form_data")
 @patch("superset.daos.dataset.DatasetDAO")
 @patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
 @patch("superset.common.query_context_factory.QueryContextFactory")
 def test_compile_chart_returns_database_error_when_wrapped_in_query_failed(
-    mock_factory, mock_cmd_cls, mock_dataset_dao
+    mock_factory, mock_cmd_cls, mock_dataset_dao, mock_set_form_data
 ):
     """ChartDataCommand converts OperationalError to a string inside
     ChartDataQueryFailedError (no __cause__ set). _classify_as_database_error
@@ -586,10 +543,11 @@ def test_compile_chart_returns_database_error_when_wrapped_in_query_failed(
     mock_db.db_engine_spec.extract_errors.assert_called_once()
 
 
+@patch("superset.charts.data.form_data.set_query_context_form_data")
 @patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
 @patch("superset.common.query_context_factory.QueryContextFactory")
 def test_compile_chart_returns_database_error_on_raw_sqlalchemy_error(
-    mock_factory, mock_cmd_cls
+    mock_factory, mock_cmd_cls, mock_set_form_data
 ):
     """When SQLAlchemyError escapes unwrapped, _compile_chart should
     catch it and return a database_connection_error."""
@@ -642,42 +600,158 @@ def test_valid_configs_pass_tier1(config_factory):
     assert result.success, result.error
 
 
-@pytest.mark.parametrize("clause", ["WHERE", "HAVING"])
-@pytest.mark.parametrize("subject", ["score", "Score", "SCORE"])
-def test_preserved_filter_ambiguity_is_actionable(clause: str, subject: str) -> None:
-    """The public compiler rejects ambiguous preserved filters, exact-first."""
-    dataset = _orm_dataset(column_names=["gender", "Score", "SCORE"])
-    config = TableChartConfig(chart_type="table", columns=[ColumnRef(name="gender")])
-    form_data = {
-        "adhoc_filters": [
+@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+@patch("superset.common.query_context_factory.QueryContextFactory")
+@patch("superset.charts.data.form_data.set_query_context_form_data")
+def test_compile_chart_seeds_form_data_before_query_execution(
+    mock_set_form_data, mock_factory, mock_cmd_cls
+):
+    """Virtual-dataset Jinja sees the programmatic query before execution."""
+    from superset.mcp_service.chart.compile import _compile_chart
+
+    query_context = Mock()
+    mock_factory.return_value.create.return_value = query_context
+    mock_cmd_cls.return_value.validate.return_value = None
+    call_order: list[str] = []
+    mock_set_form_data.side_effect = lambda *args: call_order.append("seed")
+    producer_result = chart_data_command_result(
+        [{"event_time": pd.Timestamp("2026-09-02T10:11:12Z"), "value": np.int64(1)}],
+        columns=["event_time", "value"],
+        coltypes=[GenericDataType.TEMPORAL, GenericDataType.NUMERIC],
+    )
+    mock_cmd_cls.return_value.run.side_effect = lambda: (
+        call_order.append("run") or producer_result
+    )
+
+    result = _compile_chart(
+        {"metrics": [{"label": "count", "expressionType": "SIMPLE"}]},
+        dataset_id=42,
+    )
+
+    assert result.success, result.error
+    mock_set_form_data.assert_called_once_with(query_context, 42, "table")
+    assert call_order == ["seed", "run"]
+
+
+@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+@patch("superset.common.query_context_factory.QueryContextFactory")
+@patch("superset.charts.data.form_data.set_query_context_form_data")
+def test_compile_chart_strictly_validates_every_query_result(
+    mock_set_form_data, mock_factory, mock_cmd_cls
+):
+    """A valid primary result cannot hide hostile secondary query data."""
+    from superset.mcp_service.chart.compile import _compile_chart
+
+    class HostileList(list):
+        def __iter__(self):
+            raise AssertionError("hostile secondary list hook executed")
+
+    mock_factory.return_value.create.return_value = Mock()
+    mock_cmd_cls.return_value.run.return_value = {
+        "queries": [{"data": [{"value": 1}]}, {"data": HostileList()}]
+    }
+
+    result = _compile_chart(
+        {"metrics": [{"label": "count", "expressionType": "SIMPLE"}]},
+        dataset_id=42,
+    )
+
+    assert not result.success
+    assert result.error_code == "CHART_COMPILE_FAILED"
+    assert "query 2 result data" in (result.error or "").lower()
+
+
+@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+@patch("superset.common.query_context_factory.QueryContextFactory")
+@patch("superset.charts.data.form_data.set_query_context_form_data")
+def test_compile_chart_rejects_hostile_enum_without_dispatching_hooks(
+    mock_set_form_data, mock_factory, mock_cmd_cls
+):
+    from enum import Enum
+
+    from superset.mcp_service.chart.compile import _compile_chart
+
+    class HostileEnum(Enum):
+        VALUE = "hostile"
+
+        def __getattribute__(self, name):
+            if name == "value":
+                raise AssertionError("hostile enum value hook executed")
+            return object.__getattribute__(self, name)
+
+        def __str__(self):
+            raise AssertionError("hostile enum string hook executed")
+
+    mock_factory.return_value.create.return_value = Mock()
+    mock_cmd_cls.return_value.run.return_value = {
+        "queries": [{"data": [{"value": HostileEnum.VALUE}]}]
+    }
+
+    result = _compile_chart(
+        {"metrics": [{"label": "count", "expressionType": "SIMPLE"}]},
+        dataset_id=42,
+    )
+
+    assert not result.success
+    assert result.error_code == "CHART_COMPILE_FAILED"
+    assert "hostile" in (result.error or "").lower()
+
+
+@pytest.mark.parametrize(
+    "value",
+    [10**5000, float("inf"), b"\xff", QueryStatus.SUCCESS],
+    ids=["huge-int", "infinity", "bytes", "query-status"],
+)
+@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+@patch("superset.common.query_context_factory.QueryContextFactory")
+@patch("superset.charts.data.form_data.set_query_context_form_data")
+def test_compile_chart_rejects_unbounded_or_noncanonical_scalars(
+    mock_set_form_data, mock_factory, mock_cmd_cls, value
+):
+    from superset.mcp_service.chart.compile import _compile_chart
+
+    mock_factory.return_value.create.return_value = Mock()
+    mock_cmd_cls.return_value.run.return_value = {
+        "queries": [
             {
-                "expressionType": "SIMPLE",
-                "clause": clause,
-                "subject": subject,
-                "operator": ">",
-                "comparator": 0,
+                "data": [{"value": value}],
+                "colnames": ["value"],
+                "coltypes": [0],
             }
         ]
     }
-    result = validate_and_compile(config, form_data, dataset, run_compile_check=False)
-    assert result.success is (subject != "score")
-    if subject == "score":
-        assert result.error_obj is not None
-        assert result.error_obj.error_code == "AMBIGUOUS_DATASET_REFERENCE"
-        assert "Score" in result.error_obj.details
-        assert "SCORE" in result.error_obj.details
 
-
-def test_aggregation_ambiguity_returns_validation_errors() -> None:
-    """Direct aggregation validation has the same structured ambiguity contract."""
-    from superset.mcp_service.chart.validation.dataset_validator import DatasetValidator
-
-    context = build_dataset_context_from_orm(
-        _orm_dataset(column_names=["Score", "SCORE"])
+    result = _compile_chart(
+        {"metrics": [{"label": "count", "expressionType": "SIMPLE"}]},
+        dataset_id=42,
     )
-    assert context is not None
-    errors = DatasetValidator._validate_aggregations(
-        [ColumnRef(name="score", aggregate="AVG")], context
+
+    assert not result.success
+    assert result.error_code == "CHART_COMPILE_FAILED"
+    assert result.error_obj is not None
+    assert result.error_obj.error_type == "compile_error"
+
+
+@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+@patch("superset.common.query_context_factory.QueryContextFactory")
+@patch("superset.charts.data.form_data.set_query_context_form_data")
+def test_compile_chart_canonicalizes_dataframe_nan_to_null(
+    mock_set_form_data, mock_factory, mock_cmd_cls
+):
+    from superset.mcp_service.chart.compile import _compile_chart
+
+    query = {
+        "data": [{"value": float("nan")}],
+        "colnames": ["value"],
+        "coltypes": [0],
+    }
+    mock_factory.return_value.create.return_value = Mock()
+    mock_cmd_cls.return_value.run.return_value = {"queries": [query]}
+
+    result = _compile_chart(
+        {"metrics": [{"label": "count", "expressionType": "SIMPLE"}]},
+        dataset_id=42,
     )
-    assert len(errors) == 1
-    assert errors[0].error_code == "AMBIGUOUS_DATASET_REFERENCE"
+
+    assert result.success
+    assert query["data"] == [{"value": None}]
