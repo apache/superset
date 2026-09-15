@@ -323,7 +323,9 @@ export function selectClientErrorMessage(
   if (statusMessage) {
     return statusMessage;
   }
-  return message || error || fallback;
+  return (
+    error || (typeof message === 'string' ? message : undefined) || fallback
+  );
 }
 
 export function getClientErrorMessage(
