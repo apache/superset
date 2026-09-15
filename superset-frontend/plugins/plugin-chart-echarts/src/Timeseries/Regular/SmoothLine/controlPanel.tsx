@@ -39,6 +39,7 @@ import {
   minorTicks,
   axisTicks,
   gridlines,
+  valueAxisLabels,
   richTooltipSection,
   seriesOrderSection,
   showValueSectionWithoutStack,
@@ -109,6 +110,7 @@ const config: ControlPanelConfig = {
         [minorTicks],
         [axisTicks],
         [gridlines],
+        [valueAxisLabels],
         ...legendSection,
         [<ControlSubSectionHeader>{t('X Axis')}</ControlSubSectionHeader>],
         [
