@@ -588,6 +588,10 @@ FEATURE_FLAGS = {
 
 ### Cross-Referencing Pattern
 
+The following paths are relative to this guide (`docs/DOCS_CLAUDE.md`).
+Recalculate the prefix from the file being edited instead of copying it
+unchanged.
+
 ```mdx
 For detailed configuration options, see:
 - [Configuring Superset](./admin_docs/configuration/configuring-superset.mdx)
