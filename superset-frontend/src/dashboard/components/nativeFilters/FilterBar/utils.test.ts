@@ -197,6 +197,27 @@ test('checkIsMissingRequiredValue returns true for required filter with null val
   expect(checkIsMissingRequiredValue(filter, filterState)).toBe(true);
 });
 
+test('checkIsMissingRequiredValue returns true for required filter with [null, null] value', () => {
+  const filter = createFilter('test-filter', { enableEmptyFilter: true });
+  const filterState: FilterState = { value: [null, null] };
+
+  expect(checkIsMissingRequiredValue(filter, filterState)).toBe(true);
+});
+
+test('checkIsMissingRequiredValue returns true for required filter with empty array value', () => {
+  const filter = createFilter('test-filter', { enableEmptyFilter: true });
+  const filterState: FilterState = { value: [] };
+
+  expect(checkIsMissingRequiredValue(filter, filterState)).toBe(true);
+});
+
+test('checkIsMissingRequiredValue returns false for a partially filled range', () => {
+  const filter = createFilter('test-filter', { enableEmptyFilter: true });
+  const filterState: FilterState = { value: [null, 70] };
+
+  expect(checkIsMissingRequiredValue(filter, filterState)).toBe(false);
+});
+
 test('checkIsMissingRequiredValue returns false for required filter with valid value', () => {
   const filter = createFilter('test-filter', { enableEmptyFilter: true });
   const filterState: FilterState = { value: ['CA'] };

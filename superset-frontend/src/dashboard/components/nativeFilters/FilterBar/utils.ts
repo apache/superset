@@ -56,9 +56,13 @@ export const checkIsMissingRequiredValue = (
   if (!isRequired) return false;
 
   const value = filterState?.value;
+  const isMissing =
+    value === null ||
+    value === undefined ||
+    (Array.isArray(value) && value.every(item => item === null));
 
   // TODO: this property should be unhardcoded
-  return value === null || value === undefined;
+  return isMissing;
 };
 
 export const checkIsValidateError = (dataMask: DataMaskStateWithId) => {
