@@ -384,6 +384,7 @@ MCP_CACHE_CONFIG: dict[str, Any] = {
         "update_chart",
         "update_chart_preview",
         "update_dashboard",
+        "update_dataset",
         "update_dataset_metric",
     ],
 }

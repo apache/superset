@@ -22,6 +22,7 @@ from .get_dataset_info import get_dataset_info
 from .list_datasets import list_datasets
 from .query_dataset import query_dataset
 from .restore_dataset import restore_dataset
+from .update_dataset import update_dataset
 from .update_dataset_metric import update_dataset_metric
 
 __all__ = [
@@ -32,5 +33,6 @@ __all__ = [
     "list_datasets",
     "query_dataset",
     "restore_dataset",
+    "update_dataset",
     "update_dataset_metric",
 ]
