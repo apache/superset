@@ -74,7 +74,7 @@ test('renders Tabs', async () => {
 test('recommends a registered client route for the default URL', async () => {
   await asyncRender(createProps());
 
-  userEvent.click(screen.getByRole('tab', { name: 'Settings' }));
+  await userEvent.click(screen.getByRole('tab', { name: 'Settings' }));
 
   expect(await screen.findByText('/dashboard/{id}/')).toBeInTheDocument();
   expect(
@@ -90,7 +90,7 @@ test('can sync columns from source', async () => {
   });
 
   const columnsTab = screen.getByTestId('collection-tab-Columns');
-  userEvent.click(columnsTab);
+  await userEvent.click(columnsTab);
 
   const syncButton = screen.getByText(/sync columns from source/i);
   expect(syncButton).toBeInTheDocument();
@@ -108,7 +108,7 @@ test('can sync columns from source', async () => {
     );
   });
 
-  userEvent.click(syncButton);
+  await userEvent.click(syncButton);
 
   // Wait for the fetch to be called
   const url = await fetchPromise;
@@ -542,7 +542,7 @@ test('fetchUsageData rethrows AbortError without updating state', async () => {
 
   // Navigate to Usage tab to trigger fetchUsageData
   const usageTab = screen.getByRole('tab', { name: /usage/i });
-  userEvent.click(usageTab);
+  await userEvent.click(usageTab);
 
   // Unmount immediately
   unmount();
