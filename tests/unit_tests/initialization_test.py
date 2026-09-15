@@ -16,6 +16,7 @@
 # under the License.
 
 import os
+import sys
 from unittest.mock import MagicMock, patch
 
 from sqlalchemy.exc import OperationalError
@@ -198,6 +199,48 @@ class TestSupersetAppInitializer:
         mock_init_decorators.assert_called_once()
         # The heavy MCP service app import is skipped.
         mock_init_host_tools.assert_not_called()
+
+    def test_disabled_worker_decorators_do_not_import_service_app(self):
+        """A disabled worker only swaps the decorators; applying a real
+        @tool/@prompt decoration must not import the MCP service app.
+
+        This exercises the concrete decorators (not the initializer, which is
+        mocked in the tests above). Since a Celery worker with
+        CORE_MCP_HOST_TOOLS_ENABLED=False never calls
+        initialize_core_mcp_host_tools(), superset.mcp_service.app is absent, and
+        the concrete @tool/@prompt decorators must stay no-ops so the heavy
+        host-tool stack is not loaded on demand.
+        """
+        from superset.core.mcp.core_mcp_injection import (
+            create_prompt_decorator,
+            create_tool_decorator,
+        )
+
+        # Simulate the worker: ensure the service app is not loaded, restoring
+        # whatever was there afterwards so we don't disturb other tests.
+        saved = sys.modules.pop("superset.mcp_service.app", None)
+        try:
+            assert "superset.mcp_service.app" not in sys.modules
+
+            @create_tool_decorator
+            def dummy_tool() -> int:
+                """A representative extension tool."""
+                return 1
+
+            @create_prompt_decorator
+            def dummy_prompt() -> str:
+                """A representative extension prompt."""
+                return "prompt"
+
+            # The heavy host-tool stack must stay unimported...
+            assert "superset.mcp_service.app" not in sys.modules
+            # ...and the decorators return the original functions untouched, so
+            # the extension keeps working.
+            assert dummy_tool() == 1
+            assert dummy_prompt() == "prompt"
+        finally:
+            if saved is not None:
+                sys.modules["superset.mcp_service.app"] = saved
 
     def test_database_uri_lazy_property(self):
         """Test database_uri property uses lazy initialization with smart caching."""

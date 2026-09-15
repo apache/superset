@@ -23,6 +23,7 @@ that replaces the abstract functions in superset-core during initialization.
 """
 
 import logging
+import sys
 from typing import Any, Callable, Optional, TypeVar
 
 try:
@@ -36,6 +37,21 @@ from superset.extensions.context import get_current_extension_context
 F = TypeVar("F", bound=Callable[..., Any])
 
 logger = logging.getLogger(__name__)
+
+# The concrete ``@tool``/``@prompt`` decorators register with the FastMCP instance
+# that lives in ``superset.mcp_service.app``. That module is the memory-heavy part
+# of MCP setup and is imported by ``initialize_core_mcp_host_tools`` before any
+# extension applies a decorator. Processes that never serve MCP (e.g. Celery
+# workers with ``CORE_MCP_HOST_TOOLS_ENABLED = False``) only swap the decorators
+# and never import it. In those processes a decoration must stay a no-op rather
+# than importing the service app on demand -- otherwise applying ``@tool`` in an
+# extension would still load the host-tool stack and defeat the memory savings.
+_MCP_SERVICE_APP_MODULE = "superset.mcp_service.app"
+
+
+def _mcp_host_tools_loaded() -> bool:
+    """Whether the MCP service app (and thus the host tools) is loaded here."""
+    return _MCP_SERVICE_APP_MODULE in sys.modules
 
 
 def _get_prefixed_id_with_context(base_id: str) -> tuple[str, str]:
@@ -96,6 +112,12 @@ def create_tool_decorator(
     """
 
     def decorator(func: F) -> F:
+        # Skip registration when the MCP service app is not loaded in this
+        # process, so applying @tool never imports the heavy host-tool stack
+        # (see the module-level note on _MCP_SERVICE_APP_MODULE).
+        if not _mcp_host_tools_loaded():
+            return func
+
         try:
             # Import here to avoid circular imports
             from superset.mcp_service.app import mcp
@@ -206,6 +228,12 @@ def create_prompt_decorator(
     """
 
     def decorator(func: F) -> F:
+        # Skip registration when the MCP service app is not loaded in this
+        # process, so applying @prompt never imports the heavy host-tool stack
+        # (see the module-level note on _MCP_SERVICE_APP_MODULE).
+        if not _mcp_host_tools_loaded():
+            return func
+
         try:
             # Import here to avoid circular imports
             from superset.mcp_service.app import mcp
@@ -282,7 +310,11 @@ def initialize_core_mcp_decorators() -> None:
     the abstract decorators raise ``NotImplementedError`` until they are replaced
     here, so skipping this step would break such extensions at import. It is
     comparatively cheap: it does not import the MCP service app or register any
-    host tools (see ``initialize_core_mcp_host_tools`` for that).
+    host tools (see ``initialize_core_mcp_host_tools`` for that). The concrete
+    decorators it installs are also lazy -- applying ``@tool``/``@prompt`` only
+    registers (and imports the service app) in processes where the host tools are
+    already loaded, so extensions stay import-safe without pulling in the
+    host-tool stack when it is disabled.
     """
     import superset_core.mcp.decorators
 
