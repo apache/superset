@@ -153,3 +153,68 @@ test('setDataMask queues the mask until the dashboard hydrates', () => {
     updateDataMask('NATIVE_FILTER-1', nativeFilterMask),
   );
 });
+
+// getScrollSize measures layout, which jsdom does not do, so the geometry is
+// stubbed: the dashboard has laid out and the body is taller than the frame.
+function layOut({ content, frame }: { content: number; frame: number }) {
+  // No data-test attribute on purpose: the production build strips them, so
+  // the measurement must key off something that survives it.
+  document.body.innerHTML = `
+    <div id="app">
+      <div class="dashboard"></div>
+      <div class="filter-bar-bounded" style="max-height: 100vh">
+        <div class="filter-bar-scroll"></div>
+      </div>
+    </div>`;
+  jest
+    .spyOn(
+      document.querySelector('.dashboard') as Element,
+      'getBoundingClientRect',
+    )
+    .mockReturnValue({ height: content } as DOMRect);
+  Object.defineProperty(document.body, 'scrollHeight', {
+    configurable: true,
+    get: () => content,
+  });
+  Object.defineProperty(document.documentElement, 'clientHeight', {
+    configurable: true,
+    get: () => frame,
+  });
+}
+
+afterEach(() => {
+  document.body.innerHTML = '';
+  document.documentElement.removeAttribute('style');
+  document.body.removeAttribute('style');
+});
+
+test('getScrollSize reports the content height rather than the frame height', () => {
+  layOut({ content: 1600, frame: 2400 });
+
+  expect(embeddedApi.getScrollSize().height).toBe(1600);
+});
+
+test('getScrollSize reports the frame until the dashboard has laid out', () => {
+  layOut({ content: 0, frame: 900 });
+
+  expect(embeddedApi.getScrollSize().height).toBe(900);
+});
+
+test('getScrollSize restores every style it lifts', () => {
+  layOut({ content: 1600, frame: 800 });
+  document.documentElement.style.height = '100%';
+  document.body.style.minHeight = '100vh';
+  const app = document.getElementById('app') as HTMLElement;
+  app.style.height = '100%';
+  const bar = document.querySelector('.filter-bar-bounded') as HTMLElement;
+
+  embeddedApi.getScrollSize();
+
+  expect(document.documentElement.style.height).toBe('100%');
+  expect(document.documentElement.style.minHeight).toBe('');
+  expect(document.body.style.height).toBe('');
+  expect(document.body.style.minHeight).toBe('100vh');
+  expect(app.style.height).toBe('100%');
+  expect(app.style.minHeight).toBe('');
+  expect(bar.style.maxHeight).toBe('100vh');
+});

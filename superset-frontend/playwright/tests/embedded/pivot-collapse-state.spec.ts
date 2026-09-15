@@ -48,10 +48,7 @@
  * query_context note below — or the suite only passes when admin wins.
  */
 import { test, expect, Browser, BrowserContext, Page } from '@playwright/test';
-import { createServer, IncomingMessage, ServerResponse, Server } from 'http';
-import { AddressInfo, Socket } from 'net';
-import { readFileSync, existsSync } from 'fs';
-import { dirname, join } from 'path';
+import { existsSync } from 'fs';
 import {
   apiEnableEmbedding,
   getAccessToken,
@@ -65,8 +62,12 @@ import {
 } from '../../helpers/api/dashboard';
 import { apiDeleteChart } from '../../helpers/api/chart';
 import { EmbeddedPage } from '../../pages/EmbeddedPage';
+import {
+  EmbedAppServer,
+  SDK_BUNDLE_PATH,
+  startEmbedAppServer,
+} from '../../helpers/embeddedAppServer';
 import { EMBEDDED } from '../../utils/constants';
-import { fileURLToPath } from 'url';
 
 const SUPERSET_DOMAIN = (() => {
   const url = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:8088';
@@ -76,69 +77,7 @@ const SUPERSET_BASE_URL = SUPERSET_DOMAIN.endsWith('/')
   ? SUPERSET_DOMAIN
   : `${SUPERSET_DOMAIN}/`;
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-
-const SDK_BUNDLE_PATH = join(
-  __dirname,
-  '../../../../superset-embedded-sdk/bundle/index.js',
-);
-const EMBED_APP_DIR = join(__dirname, '../../embedded-app');
-const INDEX_HTML_PATH = join(EMBED_APP_DIR, 'index.html');
 const DATASET_NAME = 'birth_names';
-
-interface EmbedAppServer {
-  server: Server;
-  url: string;
-  close: () => Promise<void>;
-}
-
-async function startEmbedAppServer(): Promise<EmbedAppServer> {
-  const sockets = new Set<Socket>();
-  const server = createServer((req: IncomingMessage, res: ServerResponse) => {
-    const urlPath = req.url?.split('?')[0] || '/';
-    if (urlPath === '/sdk/index.js') {
-      if (!existsSync(SDK_BUNDLE_PATH)) {
-        res.writeHead(404);
-        res.end(
-          'SDK bundle not found. Run: cd superset-embedded-sdk && npm ci && npm run build',
-        );
-        return;
-      }
-      res.writeHead(200, { 'Content-Type': 'text/javascript' });
-      res.end(readFileSync(SDK_BUNDLE_PATH));
-      return;
-    }
-    if (urlPath === '/' || urlPath === '/index.html') {
-      res.writeHead(200, { 'Content-Type': 'text/html' });
-      res.end(readFileSync(INDEX_HTML_PATH));
-      return;
-    }
-    res.writeHead(404);
-    res.end('Not found');
-  });
-  server.on('connection', socket => {
-    sockets.add(socket);
-    socket.once('close', () => sockets.delete(socket));
-  });
-  await new Promise<void>((resolve, reject) => {
-    server.once('error', reject);
-    server.listen(0, '127.0.0.1', () => {
-      server.removeListener('error', reject);
-      resolve();
-    });
-  });
-  const address = server.address() as AddressInfo;
-  return {
-    server,
-    url: `http://127.0.0.1:${address.port}`,
-    close: () =>
-      new Promise<void>(resolve => {
-        for (const socket of sockets) socket.destroy();
-        sockets.clear();
-        server.close(() => resolve());
-      }),
-  };
-}
 
 function createAdminContext(browser: Browser): Promise<BrowserContext> {
   return browser.newContext({
