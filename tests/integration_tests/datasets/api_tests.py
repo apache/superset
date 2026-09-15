@@ -3322,7 +3322,7 @@ class TestDatasetApi(SupersetTestCase):
             },
         )
         assert rv.status_code == 400
-        assert "catalog" in rv.data.decode("utf-8")
+        assert "contact an admin to remove the duplicates" in rv.data.decode("utf-8")
 
     @pytest.mark.usefixtures(
         "load_energy_table_with_slice", "load_birth_names_dashboard_with_slices"

@@ -1555,10 +1555,9 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
                 return self.response_400(
                     message=(
                         f"Multiple datasets named '{table_name}' exist in "
-                        f"schema '{schema}' of this database, differing only "
-                        "by catalog. Specify the 'catalog' field to "
-                        "disambiguate, or contact an admin about removing "
-                        "duplicate legacy datasets."
+                        f"schema '{schema}' of this database with no catalog "
+                        "set. These are duplicate legacy rows; contact an "
+                        "admin to remove the duplicates."
                     )
                 )
         else:
