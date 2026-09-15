@@ -293,9 +293,8 @@ test('drill by only offers dimension columns', async () => {
  * sc-111089 T014: a semantic-view datasource resolves its drill metadata
  * from the view's structure — never from the colliding regular dataset's
  * drill_info — and the menu renders cleanly against the narrowed
- * (dimension-derived) column shape. Without the drillby extension, the
- * view's dimensions pass the drillable filter, which is deliberate:
- * dimensions are the view's groupable surface.
+ * (dimension-derived) column shape. The mapped dimensions carry groupby:
+ * true and pass the dimension-only drillable filter.
  */
 test('semantic-view datasource resolves via the structure endpoint and renders the menu', async () => {
   mockCachedSupersetGet.mockResolvedValue({
@@ -363,4 +362,9 @@ test('semantic-view datasource resolves via the structure endpoint and renders t
     String(call[0]?.endpoint).includes('/drill_info/'),
   );
   expect(drillInfoCalls).toHaveLength(0);
+  await waitFor(() => {
+    expect(screen.getByTestId('drillable-columns')).toHaveTextContent(
+      'Orders Status',
+    );
+  });
 });

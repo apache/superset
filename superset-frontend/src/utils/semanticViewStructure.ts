@@ -124,5 +124,6 @@ export const semanticViewDimensionsToColumns = (
       is_dttm: mappedType === GenericDataType.Temporal,
       type_generic: mappedType,
       filterable: true,
+      groupby: true,
     };
   });

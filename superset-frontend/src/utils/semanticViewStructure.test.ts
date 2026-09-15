@@ -18,12 +18,27 @@
  */
 import fetchMock from 'fetch-mock';
 import { supersetGetCache } from 'src/utils/cachedSupersetGet';
-import { fetchSemanticViewStructure } from './semanticViewStructure';
+import {
+  fetchSemanticViewStructure,
+  semanticViewDimensionsToColumns,
+} from './semanticViewStructure';
 
 afterEach(() => {
   fetchMock.removeRoutes();
   fetchMock.clearHistory();
   supersetGetCache.clear();
+});
+
+test('marks semantic dimensions as groupable for drill by', () => {
+  expect(
+    semanticViewDimensionsToColumns([
+      { name: 'Orders Status', type: 'VARCHAR' },
+      { name: 'Created At', type: 'TIMESTAMP' },
+    ]),
+  ).toEqual([
+    expect.objectContaining({ column_name: 'Orders Status', groupby: true }),
+    expect.objectContaining({ column_name: 'Created At', groupby: true }),
+  ]);
 });
 
 test('maps the structure payload', async () => {
