@@ -872,6 +872,136 @@ class RestoreDatasetResponse(BaseModel):
     )
 
 
+UPDATABLE_DATASET_FIELDS: frozenset[str] = frozenset(
+    {
+        "table_name",
+        "sql",
+        "description",
+        "main_dttm_col",
+        "cache_timeout",
+    }
+)
+
+
+class UpdateDatasetRequest(BaseModel):
+    """Request schema for update_dataset."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    dataset_id: int | str = Field(
+        ...,
+        description="Dataset identifier — numeric ID or UUID string. "
+        "Use list_datasets to find valid IDs.",
+    )
+    table_name: str | None = Field(
+        None,
+        max_length=250,
+        description="New dataset name. For a virtual dataset this is just its "
+        "label; for a physical dataset it must match an existing table.",
+    )
+    sql: str | None = Field(
+        None,
+        description="New SQL for a virtual dataset. Rejected for physical "
+        "datasets. Columns are re-synced from the new query unless "
+        "sync_columns is false.",
+    )
+    description: str | None = Field(None, description="Dataset description.")
+    main_dttm_col: str | None = Field(
+        None,
+        description="Default datetime column; must be one of the dataset's "
+        "columns (after re-sync, when columns are re-synced).",
+    )
+    cache_timeout: int | None = Field(
+        None,
+        ge=-1,
+        description="Cache timeout in seconds. 0 means the cache never expires, "
+        "-1 bypasses the cache, null falls back to the database default.",
+    )
+    sync_columns: bool | None = Field(
+        None,
+        description="Re-sync the column list from the data source. Defaults "
+        "to true when sql changes and false otherwise. Pass true alone to "
+        "pick up schema changes in the underlying table or query.",
+    )
+
+    @field_validator("dataset_id", mode="before")
+    @classmethod
+    def reject_bool_identifier(cls, value: object) -> object:
+        """bool is a subclass of int, so dataset_id=true would coerce to
+        dataset ID 1 and update the wrong object; reject it outright."""
+        if isinstance(value, bool):
+            raise ValueError("dataset_id must be an integer ID or UUID string")
+        return value
+
+    def updates(self) -> Dict[str, Any]:
+        """Return only the dataset properties explicitly provided by the caller.
+
+        ``exclude_unset`` distinguishes "not provided" (leave the stored value
+        alone) from an explicit ``null`` (clear the stored value).
+        """
+        return self.model_dump(
+            exclude_unset=True,
+            include=set(UPDATABLE_DATASET_FIELDS),
+        )
+
+    @model_validator(mode="after")
+    def validate_updates(self) -> "UpdateDatasetRequest":
+        """Require at least one change and reject values that would corrupt
+        the dataset (an empty name, or clearing sql, which silently turns a
+        virtual dataset into a physical one)."""
+        provided = self.model_fields_set & UPDATABLE_DATASET_FIELDS
+        if not provided and self.sync_columns is not True:
+            raise ValueError(
+                "At least one dataset property must be provided to update, or "
+                "sync_columns must be true. Updatable properties: "
+                f"{sorted(UPDATABLE_DATASET_FIELDS)}."
+            )
+        if "table_name" in provided and not (self.table_name or "").strip():
+            raise ValueError("table_name cannot be empty or null")
+        if "sql" in provided and not (self.sql or "").strip():
+            raise ValueError("sql cannot be empty or null")
+        return self
+
+
+class UpdateDatasetResponse(BaseModel):
+    """Response schema for update_dataset."""
+
+    dataset_id: int | None = Field(None, description="Dataset ID")
+    dataset_name: str | None = Field(None, description="Dataset name after update")
+    updated_properties: List[str] = Field(
+        default_factory=list,
+        description="Names of the dataset properties that were updated.",
+    )
+    columns_synced: bool = Field(
+        False, description="Whether columns were re-synced from the data source."
+    )
+    added_columns: List[str] = Field(
+        default_factory=list, description="Columns added by the re-sync."
+    )
+    removed_columns: List[str] = Field(
+        default_factory=list,
+        description="Columns removed by the re-sync. Charts that use them "
+        "will fail until they are updated.",
+    )
+    warnings: List[str] = Field(
+        default_factory=list,
+        description="Problems that did not undo the update but need attention.",
+    )
+    url: str | None = Field(
+        None, description="Explore URL for the dataset. None if the update failed."
+    )
+    error: str | None = Field(
+        None, description="Error message if the update failed, otherwise null."
+    )
+    permission_denied: bool = Field(
+        False,
+        description=(
+            "True when the caller lacks permission to update the dataset (do not "
+            "retry; ask the user)."
+        ),
+    )
+
+
 VALID_FILTER_OPS = Literal[
     "==",
     "!=",

@@ -187,6 +187,7 @@ Dataset Management:
 - get_dataset_info: Get detailed dataset information by ID (includes columns/metrics)
 - create_dataset: Register a physical table as a dataset against an existing DB connection (requires write access)
 - create_virtual_dataset: Save a SQL query as a virtual dataset for charting (requires write access)
+- update_dataset: Update a dataset's name, SQL (virtual datasets), description, default datetime column or cache timeout, re-syncing columns when the SQL changes (requires dataset ownership)
 - update_dataset_metric: Update a saved metric on a dataset — expression, name, verbose_name, format (requires dataset ownership)
 - delete_dataset: Delete a dataset by ID/UUID (requires editor rights — owner or Admin; destructive; charts built on it stop working; soft-deletes to trash when the SOFT_DELETE feature flag is on, permanent otherwise)
 - restore_dataset: Restore a soft-deleted dataset from trash by ID/UUID (requires editor rights — owner or Admin; only applies to datasets trashed under the SOFT_DELETE feature flag)
@@ -519,11 +520,12 @@ Input format:
 {_instance_info_role_bullet}- ALWAYS check the user's roles BEFORE suggesting write operations (creating datasets,
   charts, or dashboards). SQL execution is a separate permission — see execute_sql below.
 - Write tools (generate_chart, generate_dashboard, update_chart, update_dashboard,
-  duplicate_dashboard, create_dataset, create_virtual_dataset, update_dataset_metric,
-  save_sql_query, add_chart_to_existing_dashboard, manage_native_filters,
-  remove_chart_from_dashboard, update_chart_preview, manage_dashboard_owners,
-  manage_dashboard_roles, manage_dashboard_certification) require write
-  permissions. These tools are only listed for users who have the necessary access.
+  duplicate_dashboard, create_dataset, create_virtual_dataset, update_dataset,
+  update_dataset_metric, save_sql_query, add_chart_to_existing_dashboard,
+  manage_native_filters, remove_chart_from_dashboard, update_chart_preview,
+  manage_dashboard_owners, manage_dashboard_roles, manage_dashboard_certification)
+  require write permissions. These tools are only listed for users who have the
+  necessary access.
   If a write tool does not appear in the tool list, the current user lacks write access.
 - execute_sql requires SQL Lab access (execute_sql_query permission), which is separate
   from write access. A user may have SQL Lab access without having write access to charts
@@ -846,6 +848,7 @@ from superset.mcp_service.dataset.tool import (  # noqa: F401, E402
     list_datasets,
     query_dataset,
     restore_dataset,
+    update_dataset,
     update_dataset_metric,
 )
 from superset.mcp_service.explore.tool import (  # noqa: F401, E402
