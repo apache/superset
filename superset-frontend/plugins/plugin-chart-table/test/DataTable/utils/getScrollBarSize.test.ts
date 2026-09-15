@@ -45,8 +45,8 @@ test('getCustomScrollBarSize measures the probe using the shared custom scrollba
 });
 
 test('CUSTOM_SCROLLBAR_SIZE matches the custom scrollbar width rendered in the sticky table', () => {
-  // useSticky.tsx's scrollBarStyles must stay in sync with this constant so
-  // the sticky header's shrink amount always matches the body's real
-  // scrollbar width.
+  // useSticky.tsx's scrollBarStyles sets `::-webkit-scrollbar { width: ... }`
+  // from this constant, so it must stay in sync with it or the real
+  // scrollbar body/sizer render won't match what this constant claims.
   expect(CUSTOM_SCROLLBAR_SIZE).toBe(8);
 });

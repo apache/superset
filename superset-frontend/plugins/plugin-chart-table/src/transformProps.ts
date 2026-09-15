@@ -36,6 +36,7 @@ import {
   SMART_DATE_ID,
   TimeFormats,
   TimeFormatter,
+  DateWithFormatter,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import {
@@ -47,7 +48,6 @@ import {
 
 import { isEmpty, merge } from 'lodash-es';
 import isEqualColumns from './utils/isEqualColumns';
-import DateWithFormatter from './utils/DateWithFormatter';
 import {
   BasicColorFormatterType,
   DataColumnMeta,
@@ -760,6 +760,8 @@ const transformProps = (
       ),
       passedData,
       theme,
+      undefined,
+      serverPagination,
     ) ?? defaultColorFormatters;
 
   const basicColorColumnFormatters = getBasicColorFormatterForColumn(

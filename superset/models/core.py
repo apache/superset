@@ -927,6 +927,13 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             rows = None
             description = None
 
+            # Give an active GTF chart-data task a chance to capture an engine
+            # cancel id off the live cursor before the (blocking) execute below,
+            # so a concurrent abort/timeout can kill the query. No-op otherwise.
+            from superset.tasks.query_cancel import notify_cursor
+
+            notify_cursor(cursor)
+
             for i, statement in enumerate(script.statements):
                 # For a single statement, execute the original SQL as-is. Re-rendering
                 # via statement.format() would round-trip through sqlglot

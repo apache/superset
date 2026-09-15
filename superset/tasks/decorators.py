@@ -20,7 +20,16 @@ from __future__ import annotations
 
 import inspect
 import logging
-from typing import Any, Callable, cast, Generic, ParamSpec, TYPE_CHECKING, TypeVar
+from typing import (
+    Any,
+    Callable,
+    cast,
+    Generic,
+    overload,
+    ParamSpec,
+    TYPE_CHECKING,
+    TypeVar,
+)
 
 from superset_core.tasks.types import TaskOptions, TaskScope, TaskStatus
 
@@ -34,12 +43,30 @@ from superset.tasks.registry import TaskRegistry
 from superset.tasks.utils import generate_random_task_key
 
 if TYPE_CHECKING:
+    from uuid import UUID
+
     from superset.models.tasks import Task
+    from superset.tasks.subscription import TaskSubscriptionPolicy
 
 logger = logging.getLogger(__name__)
 
 P = ParamSpec("P")
 R = TypeVar("R")
+
+
+@overload
+def task(func: Callable[P, R]) -> "TaskWrapper[P]": ...
+
+
+@overload
+def task(
+    func: None = None,
+    *,
+    name: str | None = None,
+    scope: TaskScope = TaskScope.PRIVATE,
+    timeout: int | None = None,
+    subscription_policy: "TaskSubscriptionPolicy | None" = None,
+) -> Callable[[Callable[P, R]], "TaskWrapper[P]"]: ...
 
 
 def task(
@@ -48,6 +75,7 @@ def task(
     name: str | None = None,
     scope: TaskScope = TaskScope.PRIVATE,
     timeout: int | None = None,
+    subscription_policy: "TaskSubscriptionPolicy | None" = None,
 ) -> Callable[[Callable[P, R]], "TaskWrapper[P]"] | "TaskWrapper[P]":
     """
     Decorator to register a task with default scope.
@@ -74,6 +102,12 @@ def task(
         timeout: Optional timeout in seconds. When the timeout is reached,
                  abort handlers are triggered if registered. Can be overridden
                  at call time via TaskOptions(timeout=...).
+        subscription_policy: Optional per-client subscription policy. The
+                 framework's subscriptions are principal-grain; a policy refines
+                 that with a finer per-client grain (e.g. one browser tab), so a
+                 cancel from one client of a principal does not abort a SHARED
+                 task another client of the same principal is still awaiting. See
+                 ``superset.tasks.subscription.TaskSubscriptionPolicy``.
 
     Usage:
         # Private task (default scope) - no parentheses
@@ -111,7 +145,6 @@ def task(
     """
 
     def decorator(f: Callable[P, R]) -> "TaskWrapper[P]":
-        # Use function name if no name provided
         base_task_name = name if name is not None else f.__name__
 
         # Apply ambient context detection for ID prefixing (like MCP decorators)
@@ -140,11 +173,12 @@ def task(
                 f"Use get_context() instead for ambient context access."
             )
 
-        # Register task
-        TaskRegistry.register(task_name, f)
+        TaskRegistry.register(task_name, f, subscription_policy=subscription_policy)
 
         # Create wrapper with schedule() method, default options, scope, and timeout
-        wrapper = TaskWrapper(task_name, f, default_options, scope, timeout)
+        wrapper = TaskWrapper(
+            task_name, f, default_options, scope, timeout, subscription_policy
+        )
 
         # Preserve signature for introspection
         wrapper.__signature__ = sig  # type: ignore[attr-defined]
@@ -182,12 +216,14 @@ class TaskWrapper(Generic[P]):
         default_options: TaskOptions,
         scope: TaskScope = TaskScope.PRIVATE,
         default_timeout: int | None = None,
+        subscription_policy: "TaskSubscriptionPolicy | None" = None,
     ) -> None:
         self.name = name
         self.func = func
         self.default_options = default_options
         self.scope = scope
         self.default_timeout = default_timeout
+        self.subscription_policy = subscription_policy
         self.__name__ = func.__name__
         self.__doc__ = func.__doc__
         self.__module__ = func.__module__
@@ -213,8 +249,9 @@ class TaskWrapper(Generic[P]):
         """
         Merge decorator defaults with call-time overrides.
 
-        Call-time options take precedence over decorator defaults.
-        For timeout, an explicit None in TaskOptions disables the decorator timeout.
+        Call-time options take precedence over decorator defaults. A call-time
+        ``timeout`` overrides only when set to a concrete value; ``None`` inherits
+        the decorator's timeout.
 
         Args:
             override_options: Options provided at call time, or None
@@ -227,17 +264,19 @@ class TaskWrapper(Generic[P]):
                 task_key=self.default_options.task_key,
                 task_name=self.default_options.task_name,
                 timeout=self.default_timeout,  # Use decorator default
+                depends_on=self.default_options.depends_on,
             )
 
-        # Merge: use override if provided, otherwise use default
-        # For timeout: if override_options.timeout is explicitly set (even to None),
-        # use it; otherwise fall back to decorator default
+        # Merge: use override if provided, otherwise use default.
+        # For timeout: use the override only when it is a concrete value; ``None``
+        # (the default) falls back to the decorator timeout — it does not disable it.
         return TaskOptions(
             task_key=override_options.task_key or self.default_options.task_key,
             task_name=override_options.task_name or self.default_options.task_name,
             timeout=override_options.timeout
             if override_options.timeout is not None
             else self.default_timeout,
+            depends_on=override_options.depends_on or self.default_options.depends_on,
         )
 
     def _validate_task(self, options: TaskOptions) -> None:
@@ -287,10 +326,10 @@ class TaskWrapper(Generic[P]):
             raise GlobalTaskFrameworkDisabledError()
 
         # Extract and merge options (decorator defaults + call-time overrides)
-        override_options = cast(TaskOptions | None, kwargs.pop("options", None))
-        options = self._merge_options(override_options)
+        options = self._merge_options(
+            cast(TaskOptions | None, kwargs.pop("options", None))
+        )
 
-        # Validate task configuration
         self._validate_task(options)
 
         # Extract task_name and task_key from merged options, scope from decorator
@@ -313,6 +352,7 @@ class TaskWrapper(Generic[P]):
                 "task_name": task_name,
                 "scope": scope.value,
                 "properties": properties,
+                "depends_on": options.depends_on,
             }
         ).run_with_info()
 
@@ -339,7 +379,6 @@ class TaskWrapper(Generic[P]):
 
         from superset.daos.tasks import TaskDAO
 
-        # Check if already in terminal state
         if task.status in TERMINAL_STATES:
             logger.info(
                 "Joined already-completed task %s (uuid=%s, status=%s)",
@@ -387,6 +426,147 @@ class TaskWrapper(Generic[P]):
             refreshed = TaskDAO.find_one_or_none(uuid=task.uuid, skip_base_filter=True)
             return refreshed if refreshed else task
 
+    def _gate_on_prerequisites(self, task: "Task") -> "Task | None":
+        """Block the inline caller until this task's prerequisites are terminal.
+
+        Same ``all_success`` DAG semantics as the async path (shared via
+        :mod:`superset.tasks.dependencies`): ready → returns ``None`` (proceed); a
+        prerequisite still running → block on the coordination completion signal
+        (the sync analogue of the async defer — the caller *is* the executor and
+        has no worker slot to free), then re-check; a prerequisite that ended
+        non-success → fail this dependent and return its terminal ``Task`` for the
+        caller to return.
+        """
+        from flask import current_app
+
+        from superset.daos.tasks import TaskDAO
+        from superset.tasks.dependencies import (
+            DAG_WAITING,
+            fail_dependent_on_unmet_prerequisite,
+            unmet_prerequisite,
+        )
+
+        try:
+            app = current_app._get_current_object()  # noqa: SLF001
+        except RuntimeError:
+            app = None
+
+        # Re-read fresh so ``depends_on`` reflects committed edges (the just-created
+        # task's selectin collection can be stale), matching the async path's fresh
+        # worker load.
+        current = (
+            TaskDAO.find_one_or_none(uuid=task.uuid, skip_base_filter=True) or task
+        )
+        unmet = unmet_prerequisite(current)
+        while unmet is DAG_WAITING:
+            for prerequisite in current.depends_on:
+                if prerequisite.status not in TERMINAL_STATES:
+                    # Unbounded wait by design: it mirrors the async path's
+                    # unbounded defer-retry (wait until the prerequisite is
+                    # terminal). Follow-up: bound it by TaskOptions.timeout for the
+                    # sync caller if a use case needs it.
+                    try:
+                        TaskManager.wait_for_completion(
+                            task_uuid=prerequisite.uuid, poll_interval=1.0, app=app
+                        )
+                    except ValueError:
+                        # The prerequisite was pruned mid-wait (no row). Stop
+                        # waiting and let the re-check below treat it as failed,
+                        # matching the async path's missing-prerequisite handling.
+                        break
+            current = (
+                TaskDAO.find_one_or_none(uuid=task.uuid, skip_base_filter=True)
+                or current
+            )
+            unmet = unmet_prerequisite(current)
+        if unmet is not None:
+            fail_dependent_on_unmet_prerequisite(task.uuid, cast("Task", unmet))
+            return (
+                TaskDAO.find_one_or_none(uuid=task.uuid, skip_base_filter=True) or task
+            )
+        return None
+
+    def _abort_if_preaborted(self, task: "Task") -> "Task | None":
+        """If the task was aborted before inline execution started, finalize it as
+        ABORTED and return the terminal task; otherwise return ``None`` to proceed.
+        Matches the async pre-execution check in ``scheduler.py``."""
+        from superset.commands.tasks.internal_update import (
+            InternalStatusTransitionCommand,
+        )
+        from superset.daos.tasks import TaskDAO
+        from superset.tasks.constants import ABORT_STATES
+
+        if task.status not in ABORT_STATES:
+            return None
+        logger.info(
+            "Task %s (uuid=%s) was aborted before execution started",
+            self.name,
+            task.uuid,
+        )
+        # Ensure status is ABORTED (not just ABORTING)
+        transitioned = InternalStatusTransitionCommand(
+            task_uuid=task.uuid,
+            new_status=TaskStatus.ABORTED,
+            expected_status=[TaskStatus.PENDING, TaskStatus.ABORTING],
+            set_ended_at=True,
+        ).run()
+        # Wake waiters (websocket-mode clients don't poll), but only when this path
+        # performed the transition, so a cancel that already published completion
+        # isn't echoed. Mirrors the async pre-execution check in ``scheduler.py``.
+        if transitioned:
+            TaskManager.publish_completion(task.uuid, TaskStatus.ABORTED.value)
+        refreshed = TaskDAO.find_one_or_none(uuid=task.uuid, skip_base_filter=True)
+        return refreshed if refreshed else task
+
+    def _finalize_inline_terminal_status(
+        self, ctx: "TaskContext", task_uuid: "UUID"
+    ) -> None:
+        """After the inline body returned, write the terminal status via atomic
+        conditional transitions: TIMED_OUT / ABORTED when an abort was detected, or
+        IN_PROGRESS → SUCCESS on normal completion (a no-op if concurrently aborted).
+        """
+        from superset.commands.tasks.internal_update import (
+            InternalStatusTransitionCommand,
+        )
+
+        if ctx._abort_detected or ctx.timeout_triggered:  # noqa: SLF001
+            new_status = (
+                TaskStatus.TIMED_OUT if ctx.timeout_triggered else TaskStatus.ABORTED
+            )
+            InternalStatusTransitionCommand(
+                task_uuid=task_uuid,
+                new_status=new_status,
+                expected_status=TaskStatus.ABORTING,
+                set_ended_at=True,
+            ).run()
+            logger.info(
+                "Task %s (uuid=%s) finalized as %s",
+                self.name,
+                task_uuid,
+                new_status.value,
+            )
+            return
+        # Normal completion - atomic IN_PROGRESS → SUCCESS (a no-op if the task was
+        # concurrently aborted).
+        if InternalStatusTransitionCommand(
+            task_uuid=task_uuid,
+            new_status=TaskStatus.SUCCESS,
+            expected_status=TaskStatus.IN_PROGRESS,
+            set_ended_at=True,
+        ).run():
+            logger.debug(
+                "Synchronous execution of task %s (uuid=%s) completed successfully",
+                self.name,
+                task_uuid,
+            )
+        else:
+            logger.info(
+                "Task %s (uuid=%s) IN_PROGRESS → SUCCESS failed "
+                "(may have been aborted concurrently)",
+                self.name,
+                task_uuid,
+            )
+
     def _execute_inline(
         self,
         task: "Task",
@@ -410,26 +590,17 @@ class TaskWrapper(Generic[P]):
             InternalStatusTransitionCommand,
         )
         from superset.daos.tasks import TaskDAO
-        from superset.tasks.constants import ABORT_STATES
 
-        # PRE-EXECUTION CHECK: Don't execute if already aborted/aborting
-        # (Matches async flow in scheduler.py)
-        if task.status in ABORT_STATES:
-            logger.info(
-                "Task %s (uuid=%s) was aborted before execution started",
-                self.name,
-                task.uuid,
-            )
-            # Ensure status is ABORTED (not just ABORTING)
-            InternalStatusTransitionCommand(
-                task_uuid=task.uuid,
-                new_status=TaskStatus.ABORTED,
-                expected_status=[TaskStatus.PENDING, TaskStatus.ABORTING],
-                set_ended_at=True,
-            ).run()
-            # Refresh to get updated task
-            refreshed = TaskDAO.find_one_or_none(uuid=task.uuid, skip_base_filter=True)
-            return refreshed if refreshed else task
+        # PRE-EXECUTION CHECK: don't execute if already aborted/aborting.
+        if (preaborted := self._abort_if_preaborted(task)) is not None:
+            return preaborted
+
+        # DAG gate: block/fail on unmet prerequisites before claiming the task,
+        # mirroring the async path's all_success semantics (shared via
+        # superset.tasks.dependencies). Returns a terminal task if a prerequisite
+        # failed (fail-fast); otherwise proceeds once prerequisites succeed.
+        if (gated := self._gate_on_prerequisites(task)) is not None:
+            return gated
 
         # Atomic transition: PENDING → IN_PROGRESS (set started_at for duration
         # tracking)
@@ -453,7 +624,6 @@ class TaskWrapper(Generic[P]):
         # Update cached status (no DB read needed - we just wrote IN_PROGRESS)
         task.status = TaskStatus.IN_PROGRESS.value
 
-        # Build context with the updated task entity
         ctx = TaskContext(task)
 
         # Start timeout timer if configured
@@ -473,69 +643,27 @@ class TaskWrapper(Generic[P]):
             with use_context(ctx):
                 self.func(*args, **kwargs)
 
-            # Determine terminal status based on abort detection
-            # Use atomic conditional updates to prevent overwriting concurrent abort
-            if ctx._abort_detected or ctx.timeout_triggered:
-                # Abort was detected - transition ABORTING → terminal
-                if ctx.timeout_triggered:
-                    InternalStatusTransitionCommand(
-                        task_uuid=task_uuid,
-                        new_status=TaskStatus.TIMED_OUT,
-                        expected_status=TaskStatus.ABORTING,
-                        set_ended_at=True,
-                    ).run()
-                    logger.info(
-                        "Task %s (uuid=%s) timed out and completed cleanup",
-                        self.name,
-                        task_uuid,
-                    )
-                else:
-                    InternalStatusTransitionCommand(
-                        task_uuid=task_uuid,
-                        new_status=TaskStatus.ABORTED,
-                        expected_status=TaskStatus.ABORTING,
-                        set_ended_at=True,
-                    ).run()
-                    logger.info(
-                        "Task %s (uuid=%s) was aborted by user",
-                        self.name,
-                        task_uuid,
-                    )
-            else:
-                # Normal completion - atomic IN_PROGRESS → SUCCESS
-                # This will fail (return False) if task was concurrently aborted
-                if InternalStatusTransitionCommand(
-                    task_uuid=task_uuid,
-                    new_status=TaskStatus.SUCCESS,
-                    expected_status=TaskStatus.IN_PROGRESS,
-                    set_ended_at=True,
-                ).run():
-                    logger.debug(
-                        "Synchronous execution of task %s (uuid=%s) "
-                        "completed successfully",
-                        self.name,
-                        task_uuid,
-                    )
-                else:
-                    # Transition failed - task was likely aborted concurrently
-                    logger.info(
-                        "Task %s (uuid=%s) IN_PROGRESS → SUCCESS failed "
-                        "(may have been aborted concurrently)",
-                        self.name,
-                        task_uuid,
-                    )
+            # The work finished; stop the abort listener from flipping this to
+            # ABORTED if a cancel signal lands now (mirrors the async executor).
+            ctx.mark_execution_completed()
+
+            # Determine and write the terminal status (abort/timeout vs success).
+            self._finalize_inline_terminal_status(ctx, task_uuid)
 
             # Refresh once at end to return current state
             final_task = TaskDAO.find_one_or_none(uuid=task_uuid, skip_base_filter=True)
             return final_task if final_task else task
 
         except Exception as ex:
+            # The work is done (it raised); stop a late cancel signal from also
+            # running abort handlers on top of failure handling.
+            ctx.mark_execution_completed()
             # Atomic transition to FAILURE (only if still IN_PROGRESS)
             InternalStatusTransitionCommand(
                 task_uuid=task_uuid,
                 new_status=TaskStatus.FAILURE,
                 expected_status=[TaskStatus.IN_PROGRESS, TaskStatus.ABORTING],
-                properties={"error_message": str(ex)},
+                properties=ctx.error_properties(exception=ex),
                 set_ended_at=True,
             ).run()
 
@@ -564,12 +692,21 @@ class TaskWrapper(Generic[P]):
             if final_task and final_task.status in TERMINAL_STATES:
                 TaskManager.publish_completion(task_uuid, final_task.status)
 
-    def schedule(self, *args: P.args, **kwargs: P.kwargs) -> "Task":
+    def schedule(
+        self,
+        *args: Any,
+        options: TaskOptions | None = None,
+        **kwargs: Any,
+    ) -> "Task":
         """
         Schedule this task for asynchronous execution.
 
         The signature mirrors the original task function, with an additional
-        keyword-only 'options' parameter for execution metadata.
+        keyword-only 'options' parameter for execution metadata. Business args
+        are typed as ``Any`` here because PEP 612 does not allow adding a
+        keyword-only parameter alongside the captured ``ParamSpec``; the runtime
+        ``__signature__`` (patched in ``__init__``) still mirrors the wrapped
+        function for introspection and IDE support.
 
         Args:
             *args, **kwargs: Business arguments for the task function
@@ -605,15 +742,13 @@ class TaskWrapper(Generic[P]):
             raise GlobalTaskFrameworkDisabledError()
 
         # Extract and merge options (decorator defaults + call-time overrides)
-        override_options = cast(TaskOptions | None, kwargs.pop("options", None))
-        options = self._merge_options(override_options)
+        merged_options = self._merge_options(options)
 
-        # Validate task configuration
-        self._validate_task(options)
+        self._validate_task(merged_options)
 
         # Extract task_name and task_key from merged options, scope from decorator
-        task_name = options.task_name
-        task_key = options.task_key
+        task_name = merged_options.task_name
+        task_key = merged_options.task_key
         scope = self.scope  # Use scope from decorator
 
         # Create task entry in metastore and schedule execution
@@ -622,7 +757,8 @@ class TaskWrapper(Generic[P]):
             task_name=task_name,
             task_key=task_key,
             scope=scope,
-            timeout=options.timeout,
+            timeout=merged_options.timeout,
             args=args,
             kwargs=kwargs,
+            depends_on=merged_options.depends_on,
         )

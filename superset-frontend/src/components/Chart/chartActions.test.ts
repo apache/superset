@@ -26,6 +26,7 @@ import {
   getChartBuildQueryRegistry,
   QueryFormData,
   JsonObject,
+  QueryData,
   AnnotationLayer,
   AnnotationType,
   AnnotationSourceType,
@@ -41,6 +42,10 @@ import * as dataMaskActions from 'src/dataMask/actions';
 import configureMockStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import { initialState } from 'src/SqlLab/fixtures';
+
+/** A 200 response never re-issues, so the refetch must not be called. */
+const neverRefetch = () =>
+  Promise.reject(new Error('refetch should not be called'));
 
 interface MockState {
   charts: {
@@ -153,7 +158,12 @@ describe('chart actions', () => {
     );
     waitForAsyncDataStub = jest
       .spyOn(asyncEvent, 'waitForAsyncData')
-      .mockImplementation((data: unknown) => Promise.resolve(data));
+      // New contract: resolve by invoking the caller-provided refetch thunk,
+      // forwarding the job's task_ids as the per-query forced-refresh nonces.
+      .mockImplementation(
+        (job: unknown, refetch: (nonces?: string[]) => Promise<unknown>) =>
+          refetch((job as asyncEvent.AsyncJob)?.task_ids),
+      );
   });
 
   test('should drop stale success dispatches when a newer controller has replaced ours in state', async () => {
@@ -375,6 +385,7 @@ describe('chart actions', () => {
             1, 2, 3,
           ] as unknown as actions.ChartDataRequestResponse['json']['result'],
         },
+        neverRefetch,
       );
       expect(result).toEqual([1, 2, 3]);
     });
@@ -392,6 +403,7 @@ describe('chart actions', () => {
             1, 2, 3,
           ] as unknown as actions.ChartDataRequestResponse['json']['result'],
         },
+        neverRefetch,
       );
       expect(result).toEqual([1, 2, 3]);
     });
@@ -402,14 +414,20 @@ describe('chart actions', () => {
       ).featureFlags = {
         [FeatureFlag.GlobalAsyncQueries]: true,
       };
+      // On 202 the body is the async job ({task_ids}); once the tasks resolve
+      // (stubbed waitForAsyncData invokes the refetch), the re-request returns
+      // the cached data.
+      const refetch = jest
+        .fn()
+        .mockResolvedValue([1, 2, 3] as unknown as QueryData[]);
       const result = await handleChartDataResponse(
         { status: 202 } as Response,
         {
-          result: [
-            1, 2, 3,
-          ] as unknown as actions.ChartDataRequestResponse['json']['result'],
-        },
+          task_ids: ['task-1'],
+        } as unknown as actions.ChartDataRequestResponse['json'],
+        refetch,
       );
+      expect(refetch).toHaveBeenCalledTimes(1);
       expect(result).toEqual([1, 2, 3]);
     });
 
@@ -479,7 +497,7 @@ describe('chart actions', () => {
         fetchMock.removeRoute(MOCK_URL);
         fetchMock.post(
           `glob:*${MOCK_URL}*`,
-          { status: 202, body: { result: [{ job_id: 'job-1' }] } },
+          { status: 202, body: { task_ids: ['task-1'] } },
           { name: MOCK_URL },
         );
       });
@@ -567,6 +585,93 @@ describe('chart actions', () => {
         expect(updateFailedAction.queriesResponse[0].error).toBe(
           'validation failed',
         );
+      });
+
+      test('rejects rather than treating a repeat 202 body as chart data', async () => {
+        // Regression: the post-completion re-issue is always synchronous, so a
+        // 202 body ({task_ids}) can never reach a consumer as if it were rows.
+        // The route mocked above answers 202 for every POST.
+        await expect(
+          actions.requestChartDataResolved({
+            formData: { viz_type: 'my_viz' } as QueryFormData,
+          }),
+        ).rejects.toThrow('unexpected response status (202)');
+
+        // The initial async submit plus exactly one synchronous re-issue.
+        const history = fetchMock.callHistory.calls(`glob:*${MOCK_URL}*`);
+        expect(history).toHaveLength(2);
+        expect(String(history[1].options.body)).not.toContain('async_mode');
+
+        // The initial async submit carries this tab's id, so the backend can
+        // ref-count the tab as a consumer of the (shared) chart-data task.
+        const initialBody = JSON.parse(String(history[0].options.body));
+        expect(initialBody.async_mode).toBe(true);
+        expect(typeof initialBody.tab_id).toBe('string');
+        expect(initialBody.tab_id.length).toBeGreaterThan(0);
+      });
+
+      test('re-issues synchronously after async completion, reading the warm cache', async () => {
+        // 1: initial async request → 202; 2: the post-completion re-issue is
+        // synchronous and returns the payload inline (200). No third call and no
+        // second background task.
+        fetchMock.removeRoute(MOCK_URL);
+        let calls = 0;
+        fetchMock.post(
+          `glob:*${MOCK_URL}*`,
+          () => {
+            calls += 1;
+            return calls === 1
+              ? { status: 202, body: { task_ids: ['task-1'] } }
+              : { status: 200, body: { result: [{ data: [1, 2, 3] }] } };
+          },
+          { name: MOCK_URL },
+        );
+
+        const actionThunk = actions.postChartFormData(
+          { viz_type: 'my_viz' } as QueryFormData,
+          true, // force: the async task computes fresh, the re-issue reads its result
+          undefined,
+          undefined,
+        );
+        await actionThunk(
+          dispatch as unknown as actions.ChartThunkDispatch,
+          mockGetState as unknown as () => actions.RootState,
+          undefined,
+        );
+
+        // Exactly two requests: the async submit, then one synchronous re-issue —
+        // no repeat-202 loop and no duplicate background task.
+        expect(calls).toBe(2);
+        const history = fetchMock.callHistory.calls(`glob:*${MOCK_URL}*`);
+        expect(history).toHaveLength(2);
+        // Both requests keep force=true — server-side dedup (the force nonce), not
+        // a client-flipped force, is what prevents the re-issue from recomputing.
+        expect(history[0].url).toContain('force=true');
+        expect(history[1].url).toContain('force=true');
+        // The submit opts into async; the re-issue is synchronous (no new GTF task).
+        expect(String(history[0].options.body)).toContain('async_mode');
+        expect(String(history[1].options.body)).not.toContain('async_mode');
+        // The forced-refresh nonce IS the async task's UUID: the submit carries
+        // none (the worker stamps each query with its own task id and records the
+        // marker), and the synchronous re-issue carries the 202's task_ids as the
+        // per-query force nonces, so the server reads back instead of recomputing.
+        const forceCalls = buildV1ChartDataPayloadStub.mock.calls.filter(
+          ([arg]) => (arg as { force?: boolean }).force === true,
+        );
+        expect(forceCalls).toHaveLength(2);
+        const submitNonces = (
+          forceCalls[0][0] as { queryForceNonces?: string[] }
+        ).queryForceNonces;
+        const reissueNonces = (
+          forceCalls[1][0] as { queryForceNonces?: string[] }
+        ).queryForceNonces;
+        expect(submitNonces).toBeUndefined();
+        expect(reissueNonces).toEqual(['task-1']);
+
+        const succeeded = dispatch.mock.calls.find(
+          ([action]) => action?.type === actions.CHART_UPDATE_SUCCEEDED,
+        )?.[0];
+        expect(succeeded).toBeDefined();
       });
     });
   });

@@ -31,7 +31,6 @@ from marshmallow import (
 from marshmallow.validate import Length, OneOf, Range
 
 from superset import security_manager
-from superset.connectors.sqla.models import SqlaTable
 from superset.exceptions import SupersetMarshmallowValidationError
 from superset.models.sql_types import parse_currency_string
 from superset.utils import json
@@ -46,6 +45,7 @@ get_export_ids_schema = {
     "items": {"type": "integer"},
     "example": [1, 2, 3],
 }
+get_related_objects_ids_schema = get_delete_ids_schema
 get_drill_info_schema = {
     "type": "object",
     "properties": {
@@ -240,6 +240,9 @@ class DatasetRelatedDashboard(Schema):
 
 class DatasetRelatedCharts(Schema):
     count = fields.Integer(metadata={"description": "Chart count"})
+    restricted_count = fields.Integer(
+        metadata={"description": "Charts the current user cannot access"}
+    )
     result = fields.List(
         fields.Nested(DatasetRelatedChart),
         metadata={"description": "A list of dashboards"},
@@ -248,6 +251,9 @@ class DatasetRelatedCharts(Schema):
 
 class DatasetRelatedDashboards(Schema):
     count = fields.Integer(metadata={"description": "Dashboard count"})
+    restricted_count = fields.Integer(
+        metadata={"description": "Dashboards the current user cannot access"}
+    )
     result = fields.List(
         fields.Nested(DatasetRelatedDashboard),
         metadata={"description": "A list of dashboards"},
@@ -334,8 +340,12 @@ class ImportV1ColumnSchema(Schema):
     filterable = fields.Boolean()
     expression = fields.String(allow_none=True)
     description = fields.String(allow_none=True)
-    python_date_format = fields.String(allow_none=True)
-    datetime_format = fields.String(allow_none=True)
+    python_date_format = fields.String(
+        allow_none=True, validate=[Length(1, 255), validate_python_date_format]
+    )
+    datetime_format = fields.String(
+        allow_none=True, validate=[Length(1, 100), validate_python_date_format]
+    )
     uuid = fields.UUID(allow_none=True)
 
 
@@ -528,6 +538,14 @@ class DatasetCacheWarmUpResponseSchema(Schema):
 class DatasetColumnDrillInfoSchema(Schema):
     column_name = fields.String(required=True)
     verbose_name = fields.String(required=False)
+    # Consumers need every column to resolve display labels, but only dimensions
+    # belong in the drill-by picker, so ship the flag and let them narrow.
+    groupby = fields.Boolean(required=False)
+
+
+class DatasetMetricDrillInfoSchema(Schema):
+    metric_name = fields.String(required=True)
+    verbose_name = fields.String(required=False)
 
 
 class UserSchema(Schema):
@@ -555,6 +573,7 @@ class DrillInfoEditorSchema(Schema):
 class DatasetDrillInfoSchema(Schema):
     id = fields.Integer()
     columns = fields.List(fields.Nested(DatasetColumnDrillInfoSchema))
+    metrics = fields.List(fields.Nested(DatasetMetricDrillInfoSchema))
     table_name = fields.String()
     editors = fields.List(fields.Nested(DrillInfoEditorSchema))
     created_by = fields.Nested(UserSchema)
@@ -563,25 +582,29 @@ class DatasetDrillInfoSchema(Schema):
     changed_on_humanized = fields.String()
 
     # pylint: disable=unused-argument
-    @post_dump(pass_original=True)
-    def post_dump(
-        self, serialized: dict[str, Any], obj: SqlaTable, **kwargs: Any
-    ) -> dict[str, Any]:
+    @post_dump
+    def post_dump(self, serialized: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         """
-        Clear API response to avoid exposing sensitive information for embedded users,
-        and filter columns to only include those with groupby=True for drill operations.
-        """
-        dimensions = {
-            col.column_name
-            for col in getattr(obj, "columns", [])
-            if getattr(col, "groupby", False)
-        }
-        serialized["columns"] = [
-            col
-            for col in serialized.get("columns", [])
-            if col["column_name"] in dimensions
-        ]
+        Clear API response to avoid exposing sensitive information for embedded users.
 
+        Both ``columns`` and ``metrics`` are returned whole. Besides feeding the
+        drill-by dimension picker, this response is the source of the verbose map
+        that labels the dashboard "View as table" results grid, and a chart can
+        select any column or metric -- a raw-records table routinely selects
+        non-dimension columns. Narrowing to ``groupby=True`` here left those
+        columns, and every metric, showing their raw technical names. Each column
+        carries its ``groupby`` flag instead, so the drill-by picker can narrow to
+        dimensions client-side, which is the only consumer that needs it.
+
+        Guests get the same lists. They reach this endpoint only through the
+        dashboard fallback, which first verifies dashboard access to a dashboard
+        built on this dataset, and they already see these labels rendered in that
+        dashboard's charts. The branch stays minimal in every other respect.
+        """
         if security_manager.is_guest_user():
-            return {"id": serialized["id"], "columns": serialized["columns"]}
+            return {
+                "id": serialized["id"],
+                "columns": serialized["columns"],
+                "metrics": serialized.get("metrics", []),
+            }
         return serialized

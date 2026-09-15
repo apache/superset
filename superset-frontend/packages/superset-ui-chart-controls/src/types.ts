@@ -494,6 +494,16 @@ export const MultipleValueComparators = [
   Comparator.BetweenOrRightEqual,
 ];
 
+export enum BoundUnit {
+  Value = 'value',
+  Percent = 'percent',
+}
+
+export enum PercentDenominator {
+  Sum = 'sum',
+  Max = 'max',
+}
+
 export type ConditionalFormattingConfig = {
   operator?: Comparator;
   targetValue?: number | string;
@@ -506,6 +516,14 @@ export type ConditionalFormattingConfig = {
   useGradient?: boolean;
   columnFormatting?: string;
   objectFormatting?: ObjectFormattingEnum;
+  minBound?: number;
+  maxBound?: number;
+  centerValue?: number;
+  lowColor?: RGBColor | string;
+  midColor?: RGBColor | string;
+  highColor?: RGBColor | string;
+  boundUnit?: BoundUnit;
+  percentDenominator?: PercentDenominator;
 };
 
 export type ColorFormatters = {
@@ -523,8 +541,6 @@ export type ResolvedColorFormatterResult = {
   backgroundColor?: string;
   color?: string;
 };
-
-export default {};
 
 export function isColumnMeta(column: AnyDict): column is ColumnMeta {
   return !!column && 'column_name' in column;

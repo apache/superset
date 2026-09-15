@@ -21,6 +21,7 @@ from flask import current_app
 from jsonschema import validate as validate_json_schema
 from jsonschema.exceptions import ValidationError as JSONSchemaValidationError
 from marshmallow import ValidationError
+from marshmallow.validate import OneOf
 from pytest_mock import MockerFixture
 
 from superset.charts.schemas import (
@@ -37,10 +38,12 @@ from superset.charts.schemas import (
     ChartPutSchema,
     DEFAULT_MAX_PROPHET_PERIODS,
     get_max_prophet_periods,
+    get_prophet_time_grain_choices,
     get_time_grain_choices,
     MAX_VIZ_TYPE_LENGTH,
     MAX_VIZ_TYPE_ORDER_LENGTH,
 )
+from superset.utils.pandas_postprocessing.utils import PROPHET_TIME_GRAIN_MAP
 
 
 def test_chart_get_list_schema_accepts_viz_type_display_order() -> None:
@@ -352,21 +355,31 @@ def test_chart_data_query_object_schema_deprecated_fields_renamed(
 
 @pytest.mark.parametrize(
     "app",
-    [{"TIME_GRAIN_ADDONS": {"PT10M": "10 minutes"}}],
+    [{"TIME_GRAIN_ADDONS": {"PT7M": "7 minutes"}}],
     indirect=True,
 )
 def test_time_grain_validation_with_config_addons(app_context: None) -> None:
-    """Test that validation includes TIME_GRAIN_ADDONS from config"""
-    schema = ChartDataProphetOptionsSchema()
+    """
+    Test that custom TIME_GRAIN_ADDONS are accepted by ChartDataExtrasSchema
+    (SQLA) but rejected by ChartDataProphetOptionsSchema (which only supports
+    mapped Prophet grains).
+    """
+    # Custom addon grain is valid for SQLA time grain
+    extras_schema = ChartDataExtrasSchema()
+    extras_result = extras_schema.load({"time_grain_sqla": "PT7M"})
+    assert extras_result["time_grain_sqla"] == "PT7M"
 
-    # Custom time grain should now be valid
+    # Custom addon grain is not supported by Prophet and should be rejected
+    prophet_schema = ChartDataProphetOptionsSchema()
     custom_data = {
-        "time_grain": "PT10M",
+        "time_grain": "PT7M",
         "periods": 5,
         "confidence_interval": 0.9,
     }
-    result = schema.load(custom_data)
-    assert result["time_grain"] == "PT10M"
+    with pytest.raises(ValidationError) as exc_info:
+        prophet_schema.load(custom_data)
+    assert "time_grain" in exc_info.value.messages
+    assert "Must be one of" in str(exc_info.value.messages["time_grain"])
 
 
 def test_prophet_periods_within_bound(app_context: None) -> None:
@@ -612,3 +625,61 @@ def test_post_processing_operation_schema_rejects_string_helpers(
     schema = ChartDataPostProcessingOperationSchema()
     with pytest.raises(ValidationError):
         schema.load({"operation": operation, "options": {}})
+
+
+def test_prophet_schema_advertises_only_resolvable_grains(app_context: None) -> None:
+    """The grains the Prophet field advertises are exactly those prophet() maps.
+
+    Asserted against the field's own validator rather than the helper, so that
+    re-pointing it at the wider ``get_time_grain_choices()`` fails here.
+    """
+    field = ChartDataProphetOptionsSchema().fields["time_grain"]
+    advertised = {
+        choice
+        for validator in field.validators
+        if isinstance(validator, OneOf)
+        for choice in validator.choices
+    }
+    assert advertised == set(PROPHET_TIME_GRAIN_MAP)
+    assert advertised == set(get_prophet_time_grain_choices())
+
+
+def test_prophet_choices_exclude_an_addon_the_shared_helper_includes(
+    app_context: None,
+) -> None:
+    """A TIME_GRAIN_ADDONS key stays in ``get_time_grain_choices()``, not Prophet's.
+
+    Asserted on the helpers, which is where the narrowing lives. A field's
+    ``OneOf`` choices are evaluated once, when the schema module is imported, so
+    the addon set here does not reach the field; the field-level guarantee is
+    covered by ``test_prophet_schema_advertises_only_resolvable_grains``.
+    """
+    original_addons = current_app.config.get("TIME_GRAIN_ADDONS", {})
+
+    try:
+        current_app.config["TIME_GRAIN_ADDONS"] = {"PT7M": "7 minute"}
+
+        # The shared helper still advertises the addon - it is not narrowed.
+        assert "PT7M" in get_time_grain_choices()
+
+        # Prophet does not, because it has no frequency to resolve it to.
+        assert "PT7M" not in get_prophet_time_grain_choices()
+
+        # The field rejects it as well, whatever TIME_GRAIN_ADDONS holds at
+        # import time, because its choices come from the map.
+        with pytest.raises(ValidationError) as exc_info:
+            ChartDataProphetOptionsSchema().load(
+                {"time_grain": "PT7M", "periods": 7, "confidence_interval": 0.8}
+            )
+        assert "time_grain" in exc_info.value.messages
+    finally:
+        current_app.config["TIME_GRAIN_ADDONS"] = original_addons
+
+
+@pytest.mark.parametrize("grain", ["PT5S", "PT30S", "PT6H", "PT0.5H", "P0.25Y"])
+def test_prophet_accepts_every_mapped_grain(app_context: None, grain: str) -> None:
+    """Grains that resolve in the map load through the schema."""
+    result = ChartDataProphetOptionsSchema().load(
+        {"time_grain": grain, "periods": 7, "confidence_interval": 0.8}
+    )
+    assert result["time_grain"] == grain

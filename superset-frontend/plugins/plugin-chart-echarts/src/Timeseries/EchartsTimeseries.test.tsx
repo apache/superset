@@ -290,6 +290,66 @@ test('observes extra control height changes when ResizeObserver is available', a
   expect(disconnectSpy).toHaveBeenCalled();
 });
 
+test('uses the post-control body height for compact custom-legend visibility', async () => {
+  mockOffsetHeight = 40;
+  const { queryByTestId } = render(
+    <EchartsTimeseries
+      {...defaultProps}
+      height={140}
+      echartOptions={{
+        grid: { bottom: 80, containLabel: true, top: 20 },
+      }}
+      formData={{ ...defaultFormData, zoomable: true }}
+      customLegend={
+        {
+          grid: { bottom: 80, top: 20 },
+          items: Array.from({ length: 20 }, (_, index) => ({
+            color: '#123456',
+            interactive: true,
+            name: `Series ${index}`,
+            selected: true,
+          })),
+          orientation: LegendOrientation.Top,
+          showSelectors: true,
+        } as never
+      }
+    />,
+  );
+
+  await waitFor(() => {
+    expect(queryByTestId('timeseries-custom-legend')).not.toBeInTheDocument();
+    expect(getLatestHeight()).toBe(100);
+    expect(getLatestEchartProps().echartOptions.grid).toEqual({
+      bottom: 80,
+      containLabel: false,
+      top: 12,
+    });
+  });
+});
+
+test('keeps a no-legend grid within a very small post-control body', async () => {
+  mockOffsetHeight = 40;
+  render(
+    <EchartsTimeseries
+      {...defaultProps}
+      height={50}
+      echartOptions={{
+        grid: { bottom: 37, containLabel: false, top: 12 },
+      }}
+      formData={{ ...defaultFormData, zoomable: true }}
+    />,
+  );
+
+  await waitFor(() => {
+    expect(getLatestHeight()).toBe(10);
+    expect(getLatestEchartProps().echartOptions.grid).toEqual({
+      bottom: 0,
+      containLabel: false,
+      top: 9,
+    });
+  });
+});
+
 test('falls back to window resize listener when ResizeObserver is unavailable', async () => {
   (globalThis as { ResizeObserver?: typeof ResizeObserver }).ResizeObserver =
     undefined;

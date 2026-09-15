@@ -78,5 +78,3 @@ export const DEFAULT_METRICS: Metric[] = [
     uuid: nanoid(),
   },
 ];
-
-export default {};

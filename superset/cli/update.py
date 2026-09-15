@@ -92,13 +92,16 @@ def update_api_docs() -> None:
         if isinstance(base_api, BaseApi) and base_api.version == api_version:
             base_api.add_api_spec(api_spec)
             version_found = True
-    if version_found:
-        click.secho("Generating openapi.json", fg="green")
-        with open(openapi_json, "w") as outfile:
-            json.dump(api_spec.to_dict(), outfile, sort_keys=True, indent=2)
-            outfile.write("\n")
-    else:
-        click.secho("API version not found", err=True)
+    if not version_found:
+        # Exiting zero here would leave the stale file in place and report
+        # success, which reads as "the spec is current" to any caller diffing
+        # the result.
+        raise click.ClickException(f"No {api_version} API found to document")
+
+    click.secho("Generating openapi.json", fg="green")
+    with open(openapi_json, "w") as outfile:
+        json.dump(api_spec.to_dict(), outfile, sort_keys=True, indent=2)
+        outfile.write("\n")
 
 
 @click.command()

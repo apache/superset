@@ -1103,7 +1103,6 @@ class TestChartApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
             "viewers": [],
             "params": None,
             "slice_name": "title",
-            "tags": [],
             "viz_type": None,
             "query_context": None,
             "is_managed_externally": False,
@@ -1113,6 +1112,13 @@ class TestChartApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
         assert "id" in data["result"]
         assert "thumbnail_url" in data["result"]
         assert "url" in data["result"]
+        # implicit tags created by the tagging system's SQLA event listeners
+        tags = data["result"].pop("tags")
+        assert len(tags) == 2
+        assert {(tag["name"], tag["type"]) for tag in tags} == {
+            ("type:chart", TagType.type.value),
+            (f"editor:{admin.id}", TagType.editor.value),
+        }
         for key, value in data["result"].items():
             # We can't assert timestamp values or id/urls
             if key not in (

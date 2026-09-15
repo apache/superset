@@ -35,7 +35,7 @@ from sqlalchemy.sql.elements import TextClause
 from superset import db
 from superset.connectors.sqla.models import SqlaTable, TableColumn, SqlMetric
 from superset.constants import EMPTY_STRING, NULL_STRING
-from superset.superset_typing import QueryObjectDict
+from superset.superset_typing import AdhocMetric, QueryObjectDict
 from superset.db_engine_specs.bigquery import BigQueryEngineSpec
 from superset.db_engine_specs.druid import DruidEngineSpec
 from superset.exceptions import (
@@ -71,6 +71,63 @@ VIRTUAL_TABLE_STRING_TYPES: dict[str, Pattern[str]] = {
     "presto": re.compile(r"^VARCHAR*"),
     "sqlite": re.compile(r"^STRING$"),
 }
+
+
+@pytest.mark.parametrize(
+    "expression, expected_comment",
+    [
+        ("DATE_TRUNC('QUARTER', created_at) /* inline */", "/* inline */"),
+        ("DATE_TRUNC('QUARTER', created_at) -- trailing", "/* trailing */"),
+    ],
+)
+def test_saved_postgresql_metric_preserves_normalized_source_and_comments(
+    expression: str,
+    expected_comment: str,
+) -> None:
+    database: Database = Database(
+        database_name="postgres",
+        sqlalchemy_uri="postgresql://",
+    )
+    table: SqlaTable = SqlaTable(table_name="orders", database=database)
+    metric: SqlMetric = SqlMetric(
+        metric_name="quarter",
+        expression=expression,
+        table=table,
+    )
+
+    compiled: str = str(metric.get_sqla_col())
+
+    assert "DATE_TRUNC('quarter', created_at)" in compiled
+    assert expected_comment in compiled
+
+
+@pytest.mark.parametrize(
+    "expression, expected_comment",
+    [
+        ("DATE_TRUNC('QUARTER', created_at) /* inline */", "/* inline */"),
+        ("DATE_TRUNC('QUARTER', created_at) -- trailing", "/* trailing */"),
+    ],
+)
+def test_adhoc_postgresql_metric_preserves_normalized_source_and_comments(
+    app_context: AppContext,
+    expression: str,
+    expected_comment: str,
+) -> None:
+    database: Database = Database(
+        database_name="postgres",
+        sqlalchemy_uri="postgresql://",
+    )
+    table: SqlaTable = SqlaTable(table_name="orders", database=database)
+    metric: AdhocMetric = {
+        "expressionType": "SQL",
+        "sqlExpression": expression,
+        "label": "quarter",
+    }
+
+    compiled: str = str(table.adhoc_metric_to_sqla(metric, {}))
+
+    assert "DATE_TRUNC('quarter', created_at)" in compiled
+    assert expected_comment in compiled
 
 
 class FilterTestCase(NamedTuple):

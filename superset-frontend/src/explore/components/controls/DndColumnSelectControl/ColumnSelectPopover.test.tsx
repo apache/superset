@@ -77,6 +77,16 @@ const renderPopover = (
   );
 };
 
+// The antd Select renders its option list into a portal on a later tick, so
+// every read has to wait for it; a synchronous querySelector races the portal
+// and returns null.
+const getDropdown = async (): Promise<HTMLElement> => {
+  await waitFor(() =>
+    expect(document.querySelector('.ant-select-dropdown-list')).not.toBeNull(),
+  );
+  return document.querySelector('.ant-select-dropdown-list') as HTMLElement;
+};
+
 test('updates adhocColumn when switching to sqlExpression tab with custom label', () => {
   const mockColumns = [{ column_name: 'year' }];
   const mockOnChange = jest.fn();
@@ -215,9 +225,7 @@ test('Should filter simple columns by column_name and verbose_name', async () =>
 
   await userEvent.type(combobox, 'revenue');
 
-  let dropdown = document.querySelector(
-    '.ant-select-dropdown-list',
-  ) as HTMLElement;
+  let dropdown = await getDropdown();
   expect(within(dropdown).getByText('Total Sales')).toBeInTheDocument();
   expect(
     within(dropdown).queryByText('User Identifier'),
@@ -229,7 +237,7 @@ test('Should filter simple columns by column_name and verbose_name', async () =>
   await userEvent.clear(combobox);
   await userEvent.type(combobox, 'Identifier');
 
-  dropdown = document.querySelector('.ant-select-dropdown-list') as HTMLElement;
+  dropdown = await getDropdown();
   expect(within(dropdown).getByText('User Identifier')).toBeInTheDocument();
   expect(within(dropdown).queryByText('Total Sales')).not.toBeInTheDocument();
   expect(within(dropdown).queryByText('Creation Date')).not.toBeInTheDocument();
@@ -237,7 +245,7 @@ test('Should filter simple columns by column_name and verbose_name', async () =>
   await userEvent.clear(combobox);
   await userEvent.type(combobox, '_at');
 
-  dropdown = document.querySelector('.ant-select-dropdown-list') as HTMLElement;
+  dropdown = await getDropdown();
   expect(within(dropdown).getByText('Creation Date')).toBeInTheDocument();
   expect(within(dropdown).getByText('Last Update')).toBeInTheDocument();
   expect(within(dropdown).queryByText('Total Sales')).not.toBeInTheDocument();
@@ -291,9 +299,7 @@ test('Should filter saved expressions by column_name and verbose_name', async ()
 
   await userEvent.type(combobox, 'revenue');
 
-  let dropdown = document.querySelector(
-    '.ant-select-dropdown-list',
-  ) as HTMLElement;
+  let dropdown = await getDropdown();
   expect(within(dropdown).getByText('Total Sales')).toBeInTheDocument();
   expect(within(dropdown).queryByText('Tax Amount')).not.toBeInTheDocument();
   expect(within(dropdown).queryByText('Net Profit')).not.toBeInTheDocument();
@@ -303,7 +309,7 @@ test('Should filter saved expressions by column_name and verbose_name', async ()
   await userEvent.clear(combobox);
   await userEvent.type(combobox, 'Rate');
 
-  dropdown = document.querySelector('.ant-select-dropdown-list') as HTMLElement;
+  dropdown = await getDropdown();
   expect(within(dropdown).getByText('Discount Rate')).toBeInTheDocument();
   expect(within(dropdown).queryByText('Total Sales')).not.toBeInTheDocument();
   expect(within(dropdown).queryByText('Tax Amount')).not.toBeInTheDocument();
@@ -311,7 +317,7 @@ test('Should filter saved expressions by column_name and verbose_name', async ()
   await userEvent.clear(combobox);
   await userEvent.type(combobox, 'profit');
 
-  dropdown = document.querySelector('.ant-select-dropdown-list') as HTMLElement;
+  dropdown = await getDropdown();
   expect(within(dropdown).getByText('Net Profit')).toBeInTheDocument();
   expect(within(dropdown).getByText('Profit Margin')).toBeInTheDocument();
   expect(within(dropdown).queryByText('Total Sales')).not.toBeInTheDocument();
@@ -352,16 +358,15 @@ const renderSemanticPopover = (
   );
 };
 
-const openDimensionsDropdown = () => {
+const openDimensionsDropdown = async () => {
   const combobox = screen.getByRole('combobox', { name: 'Dimensions' });
   userEvent.click(combobox);
+  await getDropdown();
   return combobox;
 };
 
-const getOptionItem = (label: string) => {
-  const dropdown = document.querySelector(
-    '.ant-select-dropdown-list',
-  ) as HTMLElement;
+const getOptionItem = async (label: string) => {
+  const dropdown = await getDropdown();
   return within(dropdown).getByText(label).closest('.ant-select-item');
 };
 
@@ -409,11 +414,9 @@ test('lists every expression-less dimension as a Saved option without mutating m
   const onChange = jest.fn();
   renderSemanticPopover({ onChange });
 
-  openDimensionsDropdown();
+  await openDimensionsDropdown();
 
-  const dropdown = document.querySelector(
-    '.ant-select-dropdown-list',
-  ) as HTMLElement;
+  const dropdown = await getDropdown();
   expect(within(dropdown).getByText('Order Date')).toBeInTheDocument();
   expect(within(dropdown).getByText('Product Category')).toBeInTheDocument();
   expect(within(dropdown).getByText('region')).toBeInTheDocument();
@@ -423,18 +426,18 @@ test('lists every expression-less dimension as a Saved option without mutating m
   await waitFor(() => expect(saveButton).toBeEnabled());
   userEvent.click(saveButton);
 
-  expect(onChange).toHaveBeenCalledWith(SEMANTIC_COLUMNS[0]);
+  await waitFor(() =>
+    expect(onChange).toHaveBeenCalledWith(SEMANTIC_COLUMNS[0]),
+  );
 });
 
 test('searches Saved dimensions by name and verbose name', async () => {
   renderSemanticPopover();
 
-  const combobox = openDimensionsDropdown();
+  const combobox = await openDimensionsDropdown();
   await userEvent.type(combobox, 'Product');
 
-  let dropdown = document.querySelector(
-    '.ant-select-dropdown-list',
-  ) as HTMLElement;
+  let dropdown = await getDropdown();
   expect(within(dropdown).getByText('Product Category')).toBeInTheDocument();
   expect(within(dropdown).queryByText('Order Date')).not.toBeInTheDocument();
   expect(within(dropdown).queryByText('region')).not.toBeInTheDocument();
@@ -442,7 +445,7 @@ test('searches Saved dimensions by name and verbose name', async () => {
   await userEvent.clear(combobox);
   await userEvent.type(combobox, 'region');
 
-  dropdown = document.querySelector('.ant-select-dropdown-list') as HTMLElement;
+  dropdown = await getDropdown();
   expect(within(dropdown).getByText('region')).toBeInTheDocument();
   expect(
     within(dropdown).queryByText('Product Category'),
@@ -516,7 +519,7 @@ test('clearing the Simple-mode item resets the selection', async () => {
   await waitFor(() => expect(setLabel).toHaveBeenCalledWith(''));
 });
 
-test('disables Saved dimensions absent from a verified compatibility result', () => {
+test('disables Saved dimensions absent from a verified compatibility result', async () => {
   renderSemanticPopover(
     {},
     {
@@ -529,20 +532,20 @@ test('disables Saved dimensions absent from a verified compatibility result', ()
     },
   );
 
-  openDimensionsDropdown();
+  await openDimensionsDropdown();
 
-  expect(getOptionItem('Order Date')).not.toHaveClass(
+  expect(await getOptionItem('Order Date')).not.toHaveClass(
     'ant-select-item-option-disabled',
   );
-  expect(getOptionItem('Product Category')).toHaveClass(
+  expect(await getOptionItem('Product Category')).toHaveClass(
     'ant-select-item-option-disabled',
   );
-  expect(getOptionItem('region')).toHaveClass(
+  expect(await getOptionItem('region')).toHaveClass(
     'ant-select-item-option-disabled',
   );
 });
 
-test('a verified empty compatibility result disables every Saved dimension', () => {
+test('a verified empty compatibility result disables every Saved dimension', async () => {
   renderSemanticPopover(
     {},
     {
@@ -551,17 +554,17 @@ test('a verified empty compatibility result disables every Saved dimension', () 
     },
   );
 
-  openDimensionsDropdown();
+  await openDimensionsDropdown();
 
-  expect(getOptionItem('Order Date')).toHaveClass(
+  expect(await getOptionItem('Order Date')).toHaveClass(
     'ant-select-item-option-disabled',
   );
-  expect(getOptionItem('Product Category')).toHaveClass(
+  expect(await getOptionItem('Product Category')).toHaveClass(
     'ant-select-item-option-disabled',
   );
 });
 
-test('a failed compatibility request shows a non-blocking warning and unfiltered options', () => {
+test('a failed compatibility request shows a non-blocking warning and unfiltered options', async () => {
   renderSemanticPopover(
     {},
     {
@@ -574,16 +577,16 @@ test('a failed compatibility request shows a non-blocking warning and unfiltered
     /could not verify|compatib/i,
   );
 
-  openDimensionsDropdown();
-  expect(getOptionItem('Order Date')).not.toHaveClass(
+  await openDimensionsDropdown();
+  expect(await getOptionItem('Order Date')).not.toHaveClass(
     'ant-select-item-option-disabled',
   );
-  expect(getOptionItem('Product Category')).not.toHaveClass(
+  expect(await getOptionItem('Product Category')).not.toHaveClass(
     'ant-select-item-option-disabled',
   );
 });
 
-test('a loading compatibility request shows neither warning nor a filtered list', () => {
+test('a loading compatibility request shows neither warning nor a filtered list', async () => {
   renderSemanticPopover(
     {},
     {
@@ -594,8 +597,8 @@ test('a loading compatibility request shows neither warning nor a filtered list'
 
   expect(screen.queryByRole('alert')).not.toBeInTheDocument();
 
-  openDimensionsDropdown();
-  expect(getOptionItem('Order Date')).not.toHaveClass(
+  await openDimensionsDropdown();
+  expect(await getOptionItem('Order Date')).not.toHaveClass(
     'ant-select-item-option-disabled',
   );
 });
@@ -647,15 +650,15 @@ test('an edited dimension that became incompatible cannot be saved until replace
   expect(feedback.id).toBeTruthy();
   expect(saveButton).toHaveAttribute('aria-describedby', feedback.id);
 
-  openDimensionsDropdown();
-  const dropdown = document.querySelector(
-    '.ant-select-dropdown-list',
-  ) as HTMLElement;
+  await openDimensionsDropdown();
+  const dropdown = await getDropdown();
   userEvent.click(within(dropdown).getByText('Order Date'));
 
   await waitFor(() => expect(saveButton).toBeEnabled());
   userEvent.click(saveButton);
-  expect(onChange).toHaveBeenCalledWith(SEMANTIC_COLUMNS[0]);
+  await waitFor(() =>
+    expect(onChange).toHaveBeenCalledWith(SEMANTIC_COLUMNS[0]),
+  );
 });
 
 test('a legacy edited adhoc value opens Saved, stays inspectable, and blocks Save until replaced', async () => {
@@ -685,15 +688,15 @@ test('a legacy edited adhoc value opens Saved, stays inspectable, and blocks Sav
 
   // Explicitly choosing a compatible dimension is the only way to save.
   fireEvent.click(screen.getByRole('tab', { name: 'Saved' }));
-  openDimensionsDropdown();
-  const dropdown = document.querySelector(
-    '.ant-select-dropdown-list',
-  ) as HTMLElement;
+  await openDimensionsDropdown();
+  const dropdown = await getDropdown();
   userEvent.click(within(dropdown).getByText('Order Date'));
 
   await waitFor(() => expect(saveButton).toBeEnabled());
   userEvent.click(saveButton);
-  expect(onChange).toHaveBeenCalledWith(SEMANTIC_COLUMNS[0]);
+  await waitFor(() =>
+    expect(onChange).toHaveBeenCalledWith(SEMANTIC_COLUMNS[0]),
+  );
 });
 
 const SEMANTIC_METRICS = [
@@ -711,7 +714,7 @@ const SEMANTIC_METRICS = [
   },
 ];
 
-test('disables Saved metrics by the compatible-metric list, not the dimension list', () => {
+test('disables Saved metrics by the compatible-metric list, not the dimension list', async () => {
   // Adversarial fixture: the dimension list contains the OTHER metric name, so
   // keying metric options off compatible dimensions inverts both outcomes.
   renderSemanticPopover(
@@ -734,15 +737,15 @@ test('disables Saved metrics by the compatible-metric list, not the dimension li
   });
   userEvent.click(combobox);
 
-  expect(getOptionItem('Total Sales')).not.toHaveClass(
+  expect(await getOptionItem('Total Sales')).not.toHaveClass(
     'ant-select-item-option-disabled',
   );
-  expect(getOptionItem('Tax Amount')).toHaveClass(
+  expect(await getOptionItem('Tax Amount')).toHaveClass(
     'ant-select-item-option-disabled',
   );
 });
 
-test('a metrics-only semantic view still renders the Saved select', () => {
+test('a metrics-only semantic view still renders the Saved select', async () => {
   renderSemanticPopover({
     columns: [],
     metrics: SEMANTIC_METRICS,
@@ -754,8 +757,8 @@ test('a metrics-only semantic view still renders the Saved select', () => {
   });
   userEvent.click(combobox);
 
-  expect(getOptionItem('Total Sales')).toBeInTheDocument();
-  expect(getOptionItem('Tax Amount')).toBeInTheDocument();
+  expect(await getOptionItem('Total Sales')).toBeInTheDocument();
+  expect(await getOptionItem('Tax Amount')).toBeInTheDocument();
 });
 
 test('table datasources keep expression-based classification and enabled modes', async () => {
@@ -794,9 +797,7 @@ test('table datasources keep expression-based classification and enabled modes',
     name: 'Columns and metrics',
   });
   userEvent.click(combobox);
-  const dropdown = document.querySelector(
-    '.ant-select-dropdown-list',
-  ) as HTMLElement;
+  const dropdown = await getDropdown();
   expect(within(dropdown).getByText('plain_col')).toBeInTheDocument();
   expect(within(dropdown).queryByText('calc_col')).not.toBeInTheDocument();
 });
@@ -862,9 +863,7 @@ test('a feature-declaring semantic view keeps expression-based classification an
     name: 'Columns and metrics',
   });
   userEvent.click(simpleCombobox);
-  const dropdown = document.querySelector(
-    '.ant-select-dropdown-list',
-  ) as HTMLElement;
+  const dropdown = await getDropdown();
   expect(within(dropdown).getByText('Plain Dimension')).toBeInTheDocument();
   expect(
     within(dropdown).queryByText('calc_dimension'),
@@ -874,12 +873,12 @@ test('a feature-declaring semantic view keeps expression-based classification an
   const saveButton = screen.getByTestId('ColumnEdit#save');
   await waitFor(() => expect(saveButton).toBeEnabled());
   userEvent.click(saveButton);
-  expect(onChange).toHaveBeenCalledWith(columns[0]);
+  await waitFor(() => expect(onChange).toHaveBeenCalledWith(columns[0]));
 
   expect(screen.queryByRole('alert')).not.toBeInTheDocument();
 });
 
-test('non-semantic datasources still filter Saved options by compatibility metadata only when verified', () => {
+test('non-semantic datasources still filter Saved options by compatibility metadata only when verified', async () => {
   const store = mockStore({
     explore: {
       datasource: { type: 'table' },
@@ -908,9 +907,7 @@ test('non-semantic datasources still filter Saved options by compatibility metad
   userEvent.click(
     screen.getByRole('combobox', { name: 'Columns and metrics' }),
   );
-  const dropdown = document.querySelector(
-    '.ant-select-dropdown-list',
-  ) as HTMLElement;
+  const dropdown = await getDropdown();
   expect(
     within(dropdown).getByText('keep_me').closest('.ant-select-item'),
   ).not.toHaveClass('ant-select-item-option-disabled');

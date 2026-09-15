@@ -37,7 +37,8 @@ import {
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { supersetTheme } from '@apache-superset/core/theme';
-import type { SeriesOption } from 'echarts';
+import { init, type SeriesOption } from 'echarts';
+import type { GridComponentOption } from 'echarts/components';
 import transformProps from '../../src/Timeseries/transformProps';
 import {
   EchartsTimeseriesSeriesType,
@@ -46,6 +47,7 @@ import {
 } from '../../src/Timeseries/types';
 import { StackControlsValue, TIMESERIES_CONSTANTS } from '../../src/constants';
 import {
+  ForecastSeriesEnum,
   LegendOrientation,
   LegendType,
   EchartsTimeseriesChartProps,
@@ -159,6 +161,27 @@ const formData: SqlaFormData = {
   groupby: ['foo', 'bar'],
   viz_type: 'my_viz',
 };
+
+type CustomLegendResult = {
+  customLegend?: {
+    grid: {
+      bottom: number | string;
+      top: number | string;
+    };
+    items: {
+      color: string;
+      interactive: boolean;
+      name: string;
+      selected: boolean;
+    }[];
+    orientation: LegendOrientation.Top | LegendOrientation.Bottom;
+    showSelectors: boolean;
+  };
+};
+
+function getCustomLegend(transformed: ReturnType<typeof transformProps>) {
+  return (transformed as unknown as CustomLegendResult).customLegend;
+}
 
 describe('EchartsTimeseries transformProps', () => {
   test('should transform chart props for viz', () => {
@@ -1177,6 +1200,345 @@ test('honors an explicit List selection for zoomable top legends even when toolb
   expect((transformed.echartOptions.legend as any).type).toBe(LegendType.Plain);
 });
 
+test('moves a visible horizontal Plain legend into a custom HTML legend and restores normal plot padding', () => {
+  const chartProps = createTestChartProps({
+    width: 800,
+    height: 400,
+    formData: {
+      ...formData,
+      legendOrientation: LegendOrientation.Top,
+      legendType: LegendType.Plain,
+      showLegend: true,
+      yAxisTitleMargin: 0,
+      yAxisTitlePosition: 'Left',
+    },
+  });
+
+  const transformed = transformProps(chartProps);
+  const legend = transformed.echartOptions.legend as {
+    show?: boolean;
+    type?: LegendType;
+  };
+  const grid = transformed.echartOptions.grid as GridComponentOption;
+  const customLegend = getCustomLegend(transformed);
+
+  expect(legend).toMatchObject({ show: false, type: LegendType.Plain });
+  expect(grid).toMatchObject({ top: 20, bottom: 20 });
+  expect(customLegend).toMatchObject({
+    orientation: LegendOrientation.Top,
+    showSelectors: true,
+  });
+  expect(customLegend?.items.map(item => item.name)).toEqual([
+    'San Francisco',
+    'New York',
+  ]);
+  expect(customLegend?.items.every(item => item.interactive)).toBe(true);
+  expect(customLegend?.items.every(item => item.selected)).toBe(true);
+  expect(customLegend?.items.every(item => Boolean(item.color))).toBe(true);
+  expect('contentHeight' in transformed).toBe(false);
+});
+
+test.each([LegendOrientation.Top, LegendOrientation.Bottom])(
+  'uses the custom HTML legend for a %s-oriented Plain legend',
+  legendOrientation => {
+    const transformed = transformProps(
+      createTestChartProps({
+        formData: {
+          ...formData,
+          legendOrientation,
+          legendType: LegendType.Plain,
+          showLegend: true,
+        },
+      }),
+    );
+
+    expect(getCustomLegend(transformed)?.orientation).toBe(legendOrientation);
+    expect((transformed.echartOptions.legend as { show?: boolean }).show).toBe(
+      false,
+    );
+  },
+);
+
+test.each([
+  [LegendType.Scroll, LegendOrientation.Top],
+  [LegendType.Plain, LegendOrientation.Left],
+  [LegendType.Plain, LegendOrientation.Right],
+] as const)(
+  'keeps %s/%s legends on the native ECharts path',
+  (legendType, legendOrientation) => {
+    const transformed = transformProps(
+      createTestChartProps({
+        formData: {
+          ...formData,
+          legendOrientation,
+          legendType,
+          showLegend: true,
+        },
+      }),
+    );
+
+    expect(getCustomLegend(transformed)).toBeUndefined();
+    expect((transformed.echartOptions.legend as { show?: boolean }).show).toBe(
+      true,
+    );
+  },
+);
+
+test('keeps the custom legend absent when a compact chart hides the Plain legend', () => {
+  const transformed = transformProps(
+    createTestChartProps({
+      height: 80,
+      formData: {
+        ...formData,
+        legendOrientation: LegendOrientation.Top,
+        legendType: LegendType.Plain,
+        showLegend: true,
+      },
+    }),
+  );
+  const grid = transformed.echartOptions.grid as GridComponentOption;
+
+  expect(getCustomLegend(transformed)).toBeUndefined();
+  expect((transformed.echartOptions.legend as { show?: boolean }).show).toBe(
+    false,
+  );
+  expect(grid).toMatchObject({ top: 12, bottom: 5 });
+  expect(80 - Number(grid.top) - Number(grid.bottom)).toBeGreaterThan(0);
+});
+
+test.each([
+  [10, 9, 0.25, 9, 0],
+  [13, 12, 0.25, 12, 0],
+  [20, 12, 0.25, 12, 7],
+  [30, 12, 1, 12, 17],
+  [99, 12, 7, 12, 80],
+  [100, 12, 8, 12, 80],
+])(
+  'keeps the hidden-legend zoomable ECharts grid within a %ipx canvas',
+  (height, expectedGridY, expectedGridHeight, expectedTop, expectedBottom) => {
+    const getContext = jest
+      .spyOn(HTMLCanvasElement.prototype, 'getContext')
+      .mockReturnValue({
+        measureText: (text: string) => ({ width: text.length * 7 }),
+      } as never);
+    const transformed = transformProps(
+      createTestChartProps({
+        height,
+        formData: {
+          ...formData,
+          legendOrientation: LegendOrientation.Top,
+          legendType: LegendType.Plain,
+          showLegend: true,
+          zoomable: true,
+        },
+      }),
+    );
+    const chart = init(null, null, {
+      height,
+      renderer: 'svg',
+      ssr: true,
+      width: transformed.width,
+    });
+
+    try {
+      chart.setOption(transformed.echartOptions);
+      const gridModel = (
+        chart as unknown as {
+          getModel: () => {
+            getComponent: (component: string) => {
+              coordinateSystem: {
+                getRect: () => { height: number; y: number };
+              };
+            };
+          };
+        }
+      )
+        .getModel()
+        .getComponent('grid');
+
+      expect(getCustomLegend(transformed)).toBeUndefined();
+      expect(transformed.echartOptions.grid).toMatchObject({
+        bottom: expectedBottom,
+        top: expectedTop,
+      });
+      const gridRect = gridModel.coordinateSystem.getRect();
+      expect(gridRect).toMatchObject({
+        height: expectedGridHeight,
+        y: expectedGridY,
+      });
+      expect(gridRect.y).toBeGreaterThanOrEqual(0);
+      expect(gridRect.y + gridRect.height).toBeLessThanOrEqual(height);
+    } finally {
+      chart.dispose();
+      getContext.mockRestore();
+    }
+  },
+);
+
+test('passes final axis-title grid reservations to the custom legend', () => {
+  const transformed = transformProps(
+    createTestChartProps({
+      height: 300,
+      formData: {
+        ...formData,
+        legendOrientation: LegendOrientation.Top,
+        legendType: LegendType.Plain,
+        showLegend: true,
+        xAxisTitle: 'Time',
+        xAxisTitleMargin: 60,
+        yAxisTitle: 'Value',
+        yAxisTitleMargin: 40,
+        yAxisTitlePosition: 'Top',
+        zoomable: true,
+      },
+    }),
+  );
+  const grid = transformed.echartOptions.grid as GridComponentOption;
+
+  expect(getCustomLegend(transformed)?.grid).toEqual({
+    bottom: grid.bottom,
+    top: grid.top,
+  });
+});
+
+test('derives custom legend items from a single-object custom series override', () => {
+  const transformed = transformProps(
+    createTestChartProps({
+      formData: {
+        ...formData,
+        echartOptions: `{
+          series: {
+            name: 'San Francisco',
+            type: 'line',
+            data: [[0, 9]],
+            itemStyle: { color: '#123456' }
+          }
+        }`,
+        legendOrientation: LegendOrientation.Top,
+        legendType: LegendType.Plain,
+        showLegend: true,
+      },
+    }),
+  );
+
+  expect(getCustomLegend(transformed)?.items).toEqual([
+    expect.objectContaining({
+      color: '#123456',
+      name: 'San Francisco',
+    }),
+  ]);
+});
+
+test('keeps a hidden native legend model active for custom legend dispatch actions', () => {
+  const transformed = transformProps(
+    createTestChartProps({
+      formData: {
+        ...formData,
+        legendOrientation: LegendOrientation.Top,
+        legendType: LegendType.Plain,
+        showLegend: true,
+      },
+    }),
+  );
+  const chart = init(null, null, {
+    height: transformed.height,
+    renderer: 'svg',
+    ssr: true,
+    width: transformed.width,
+  });
+
+  try {
+    chart.setOption(transformed.echartOptions);
+    const toggled = jest.fn();
+    const inverted = jest.fn();
+    const selectedAll = jest.fn();
+    chart.on('legendselectchanged', toggled);
+    chart.on('legendinverseselect', inverted);
+    chart.on('legendselectall', selectedAll);
+    chart.dispatchAction({
+      name: 'San Francisco',
+      type: 'legendToggleSelect',
+    });
+
+    expect((transformed.echartOptions.legend as { show?: boolean }).show).toBe(
+      false,
+    );
+    expect(toggled).toHaveBeenCalledWith(
+      expect.objectContaining({
+        selected: expect.objectContaining({
+          'New York': true,
+          'San Francisco': false,
+        }),
+      }),
+    );
+
+    chart.dispatchAction({ type: 'legendInverseSelect' });
+    expect(inverted).toHaveBeenCalledWith(
+      expect.objectContaining({
+        selected: expect.objectContaining({
+          'New York': false,
+          'San Francisco': true,
+        }),
+      }),
+    );
+
+    chart.dispatchAction({ type: 'legendAllSelect' });
+    expect(selectedAll).toHaveBeenCalledWith(
+      expect.objectContaining({
+        selected: expect.objectContaining({
+          'New York': true,
+          'San Francisco': true,
+        }),
+      }),
+    );
+  } finally {
+    chart.dispose();
+  }
+});
+
+test('derives custom legend visuals from the final reordered Forecast series', () => {
+  const legendNames = ['Forecast Alpha', 'Forecast Beta'];
+  const forecastValues = Object.fromEntries(
+    legendNames.flatMap((name, index) => [
+      [name, index + 1],
+      [`${name}${ForecastSeriesEnum.ForecastLower}`, index],
+      [`${name}${ForecastSeriesEnum.ForecastUpper}`, index + 2],
+      [`${name}${ForecastSeriesEnum.ForecastTrend}`, index + 1.5],
+    ]),
+  );
+  const transformed = transformProps(
+    createTestChartProps({
+      formData: {
+        ...formData,
+        forecastEnabled: true,
+        legendOrientation: LegendOrientation.Top,
+        legendType: LegendType.Plain,
+        showLegend: true,
+      },
+      queriesData: [
+        createTestQueryData(
+          createTestData([forecastValues], { intervalMs: 300000000 }),
+        ),
+      ],
+    }),
+  );
+  const renderedSeries = transformed.echartOptions.series as SeriesOption[];
+  const customLegend = getCustomLegend(transformed);
+
+  legendNames.forEach(name => {
+    const representative = renderedSeries.find(series => series.name === name);
+    const item = customLegend?.items.find(candidate => candidate.name === name);
+
+    expect(representative?.id).toBe(
+      `${name}${ForecastSeriesEnum.ForecastLower}`,
+    );
+    expect(item?.color).toBe(
+      (representative as { itemStyle?: { color?: string } } | undefined)
+        ?.itemStyle?.color,
+    );
+  });
+});
+
 test('honors user-selected plain legend type for top orientation when space allows (#39540)', () => {
   // Regression test for issue #39540: switching the legend type control from
   // scroll to plain must reach the rendered ECharts config. Horizontal legends
@@ -1195,8 +1557,9 @@ test('honors user-selected plain legend type for top orientation when space allo
     legend: { show?: boolean; type?: LegendType };
   };
 
-  expect(legend.show).toBe(true);
+  expect(legend.show).toBe(false);
   expect(legend.type).toBe(LegendType.Plain);
+  expect(getCustomLegend(transformProps(chartProps))).toBeDefined();
 });
 
 test('honors user-selected plain legend type for bottom orientation when space allows (#39540)', () => {
@@ -1213,8 +1576,9 @@ test('honors user-selected plain legend type for bottom orientation when space a
     legend: { show?: boolean; type?: LegendType };
   };
 
-  expect(legend.show).toBe(true);
+  expect(legend.show).toBe(false);
   expect(legend.type).toBe(LegendType.Plain);
+  expect(getCustomLegend(transformProps(chartProps))).toBeDefined();
 });
 
 const timeCompareFormData: SqlaFormData = {
@@ -3211,4 +3575,583 @@ test('boundary label alignment is dropped when the orientation moves the time ax
   expect(vertical.axisLabel.showMaxLabel).toBe(true);
   expect(horizontal.axisLabel.showMinLabel).toBe(true);
   expect(horizontal.axisLabel.showMaxLabel).toBe(true);
+});
+
+test('tooltip formats each series with its own metric format instead of the default formatter', () => {
+  // Two saved metrics with different formats: `pct_change` carries a percentage
+  // D3 format, `count` carries a currency format. The series labels already
+  // honor each metric's format; the tooltip must do the same.
+  const chartProps = createTestChartProps({
+    formData: {
+      metrics: ['count', 'pct_change'],
+      richTooltip: true,
+    },
+    queriesData: [
+      createTestQueryData(
+        [{ count: 1000, pct_change: 0.1234, __timestamp: BASE_TIMESTAMP }],
+        { label_map: { count: ['count'], pct_change: ['pct_change'] } },
+      ),
+    ],
+    datasource: {
+      verboseMap: {},
+      columnFormats: { pct_change: '.2%' },
+      currencyFormats: { count: { symbol: 'USD', symbolPosition: 'prefix' } },
+    },
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const { tooltip } = echartOptions as unknown as TooltipFormatterOptions;
+
+  const result = tooltip.formatter([
+    { seriesId: 'count', seriesName: 'count', value: [BASE_TIMESTAMP, 1000] },
+    {
+      seriesId: 'pct_change',
+      seriesName: 'pct_change',
+      value: [BASE_TIMESTAMP, 0.1234],
+    },
+  ]);
+
+  expect(result).toContain('12.34%');
+  expect(result).toContain('$');
+});
+
+test('tooltip resolves per-metric formats for series renamed by verbose_name', () => {
+  // With a verbose_name configured, the rendered series name (and so the
+  // tooltip key) is the verbose label, while `label_map` stays keyed by the
+  // raw metric label. The formatter lookup has to bridge that gap.
+  const chartProps = createTestChartProps({
+    formData: {
+      metrics: ['count', 'pct_change'],
+      richTooltip: true,
+    },
+    queriesData: [
+      createTestQueryData(
+        [{ count: 1000, pct_change: 0.1234, __timestamp: BASE_TIMESTAMP }],
+        { label_map: { count: ['count'], pct_change: ['pct_change'] } },
+      ),
+    ],
+    datasource: {
+      verboseMap: { count: 'Total Count', pct_change: 'Percent Change' },
+      columnFormats: { pct_change: '.2%' },
+      currencyFormats: { count: { symbol: 'USD', symbolPosition: 'prefix' } },
+    },
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const { tooltip } = echartOptions as unknown as TooltipFormatterOptions;
+
+  const result = tooltip.formatter([
+    {
+      seriesId: 'Total Count',
+      seriesName: 'Total Count',
+      value: [BASE_TIMESTAMP, 1000],
+    },
+    {
+      seriesId: 'Percent Change',
+      seriesName: 'Percent Change',
+      value: [BASE_TIMESTAMP, 0.1234],
+    },
+  ]);
+
+  expect(result).toContain('12.34%');
+  expect(result).toContain('$');
+});
+
+test('tooltip keeps per-metric formats on time-comparison (time-shifted) series', () => {
+  // A time-shifted series renders under a name carrying the offset, and its
+  // `label_map` entry leads with that offset rather than the metric. The
+  // formatter lookup has to land on the underlying metric so the shifted row is
+  // formatted like the series it is compared against.
+  const chartProps = createTestChartProps({
+    formData: {
+      metrics: ['count', 'pct_change'],
+      richTooltip: true,
+      timeCompare: ['1 year ago'],
+    },
+    queriesData: [
+      createTestQueryData(
+        [
+          {
+            count: 1000,
+            pct_change: 0.1234,
+            'count, 1 year ago': 900,
+            __timestamp: BASE_TIMESTAMP,
+          },
+        ],
+        {
+          label_map: {
+            count: ['count'],
+            pct_change: ['pct_change'],
+            'count, 1 year ago': ['1 year ago', 'count'],
+          },
+        },
+      ),
+    ],
+    datasource: {
+      verboseMap: {},
+      columnFormats: { pct_change: '.2%' },
+      currencyFormats: { count: { symbol: 'USD', symbolPosition: 'prefix' } },
+    },
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const { tooltip } = echartOptions as unknown as TooltipFormatterOptions;
+
+  const result = tooltip.formatter([
+    { seriesId: 'count', seriesName: 'count', value: [BASE_TIMESTAMP, 1000] },
+    {
+      seriesId: 'count, 1 year ago',
+      seriesName: 'count, 1 year ago',
+      value: [BASE_TIMESTAMP, 900],
+    },
+  ]);
+
+  // The base series and its time-shifted counterpart keep the currency format.
+  expect(result).toContain('$ 1k');
+  expect(result).toContain('$ 900');
+});
+
+test('tooltip does not apply a metric currency format to a Percentage time comparison', () => {
+  // Reported on #33757: a Time Comparison set to Percentage change on a
+  // currency metric kept rendering the derived row in dollars. That row holds a
+  // ratio rather than a value in the metric's units, so it must not inherit the
+  // metric's saved CurrencyFormatter.
+  const chartProps = createTestChartProps({
+    formData: {
+      metric: 'sum__num',
+      metrics: ['sum__num'],
+      richTooltip: true,
+      time_compare: ['1 week ago'],
+      comparison_type: ComparisonType.Percentage,
+    },
+    queriesData: [
+      createTestQueryData(
+        [{ sum__num: 100, '1 week ago': 0.25, __timestamp: BASE_TIMESTAMP }],
+        { label_map: { sum__num: ['sum__num'], '1 week ago': ['1 week ago'] } },
+      ),
+    ],
+    datasource: {
+      verboseMap: {},
+      columnFormats: {},
+      currencyFormats: {
+        sum__num: { symbol: 'USD', symbolPosition: 'prefix' },
+      },
+    },
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const { tooltip } = echartOptions as unknown as TooltipFormatterOptions;
+
+  const result = tooltip.formatter([
+    {
+      seriesId: 'sum__num',
+      seriesName: 'sum__num',
+      value: [BASE_TIMESTAMP, 100],
+    },
+    {
+      seriesId: '1 week ago',
+      seriesName: '1 week ago',
+      value: [BASE_TIMESTAMP, 0.25],
+    },
+  ]);
+
+  // The source metric keeps its currency; the percentage-change row does not.
+  expect(result).toContain('$ 100');
+  expect(result).toContain('25.00%');
+  expect(result).not.toContain('$ 0.25');
+});
+
+test('tooltip does not apply a metric currency format to a grouped Percentage time comparison', () => {
+  // A groupby appends the dimension values to the derived series name
+  // ("1 week ago, East"), so matching the dimensionless names alone left the
+  // grouped rows resolving back to the source metric's CurrencyFormatter.
+  const chartProps = createTestChartProps({
+    formData: {
+      metric: 'sum__num',
+      metrics: ['sum__num'],
+      groupby: ['region'],
+      richTooltip: true,
+      time_compare: ['1 week ago'],
+      comparison_type: ComparisonType.Percentage,
+    },
+    queriesData: [
+      createTestQueryData(
+        [
+          {
+            'sum__num, East': 100,
+            '1 week ago, East': 0.25,
+            __timestamp: BASE_TIMESTAMP,
+          },
+        ],
+        {
+          label_map: {
+            'sum__num, East': ['sum__num', 'East'],
+            '1 week ago, East': ['1 week ago', 'East'],
+          },
+        },
+      ),
+    ],
+    datasource: {
+      verboseMap: {},
+      columnFormats: {},
+      currencyFormats: {
+        sum__num: { symbol: 'USD', symbolPosition: 'prefix' },
+      },
+    },
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const { tooltip } = echartOptions as unknown as TooltipFormatterOptions;
+
+  const result = tooltip.formatter([
+    {
+      seriesId: 'sum__num, East',
+      seriesName: 'sum__num, East',
+      value: [BASE_TIMESTAMP, 100],
+    },
+    {
+      seriesId: '1 week ago, East',
+      seriesName: '1 week ago, East',
+      value: [BASE_TIMESTAMP, 0.25],
+    },
+  ]);
+
+  expect(result).toContain('$ 100');
+  expect(result).toContain('25.00%');
+  expect(result).not.toContain('$ 0.25');
+});
+
+test('tooltip does not apply a metric currency format to a Ratio time comparison', () => {
+  // A Ratio comparison is `source / compare`, a plain multiplier, so the derived row is
+  // no more in the metric's currency than a Percentage one is — but it is not a
+  // percentage either, so it takes a unitless number format rather than the percent one.
+  const chartProps = createTestChartProps({
+    formData: {
+      metric: 'sum__num',
+      metrics: ['sum__num'],
+      richTooltip: true,
+      time_compare: ['1 week ago'],
+      comparison_type: ComparisonType.Ratio,
+    },
+    queriesData: [
+      createTestQueryData(
+        [{ sum__num: 100, '1 week ago': 1.25, __timestamp: BASE_TIMESTAMP }],
+        { label_map: { sum__num: ['sum__num'], '1 week ago': ['1 week ago'] } },
+      ),
+    ],
+    datasource: {
+      verboseMap: {},
+      columnFormats: {},
+      currencyFormats: {
+        sum__num: { symbol: 'USD', symbolPosition: 'prefix' },
+      },
+    },
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const { tooltip } = echartOptions as unknown as TooltipFormatterOptions;
+
+  const result = tooltip.formatter([
+    {
+      seriesId: 'sum__num',
+      seriesName: 'sum__num',
+      value: [BASE_TIMESTAMP, 100],
+    },
+    {
+      seriesId: '1 week ago',
+      seriesName: '1 week ago',
+      value: [BASE_TIMESTAMP, 1.25],
+    },
+  ]);
+
+  // The source metric keeps its currency; the ratio row renders as a plain number.
+  expect(result).toContain('$ 100');
+  expect(result).toContain('1.25');
+  expect(result).not.toContain('$ 1.25');
+});
+
+test('tooltip does not apply a metric currency format to a grouped Ratio time comparison', () => {
+  const chartProps = createTestChartProps({
+    formData: {
+      metric: 'sum__num',
+      metrics: ['sum__num'],
+      groupby: ['region'],
+      richTooltip: true,
+      time_compare: ['1 week ago'],
+      comparison_type: ComparisonType.Ratio,
+    },
+    queriesData: [
+      createTestQueryData(
+        [
+          {
+            'sum__num, East': 100,
+            '1 week ago, East': 1.25,
+            __timestamp: BASE_TIMESTAMP,
+          },
+        ],
+        {
+          label_map: {
+            'sum__num, East': ['sum__num', 'East'],
+            '1 week ago, East': ['1 week ago', 'East'],
+          },
+        },
+      ),
+    ],
+    datasource: {
+      verboseMap: {},
+      columnFormats: {},
+      currencyFormats: {
+        sum__num: { symbol: 'USD', symbolPosition: 'prefix' },
+      },
+    },
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const { tooltip } = echartOptions as unknown as TooltipFormatterOptions;
+
+  const result = tooltip.formatter([
+    {
+      seriesId: 'sum__num, East',
+      seriesName: 'sum__num, East',
+      value: [BASE_TIMESTAMP, 100],
+    },
+    {
+      seriesId: '1 week ago, East',
+      seriesName: '1 week ago, East',
+      value: [BASE_TIMESTAMP, 1.25],
+    },
+  ]);
+
+  expect(result).toContain('$ 100');
+  expect(result).toContain('1.25');
+  expect(result).not.toContain('$ 1.25');
+});
+
+test('tooltip formats derived rows when timeCompare normalization strips the offset', () => {
+  // With `timeCompare` populated, `labelMap` has its leading offset shifted off before
+  // the formatters run, so the derived identity has to be captured during that pass —
+  // reading `labelMap[key][0]` afterwards sees the dimension value instead.
+  const chartProps = createTestChartProps({
+    formData: {
+      metric: 'sum__num',
+      metrics: ['sum__num'],
+      groupby: ['region'],
+      richTooltip: true,
+      timeCompare: ['1 week ago'],
+      time_compare: ['1 week ago'],
+      comparison_type: ComparisonType.Percentage,
+    },
+    queriesData: [
+      createTestQueryData(
+        [
+          {
+            'sum__num, East': 100,
+            '1 week ago, East': 0.25,
+            __timestamp: BASE_TIMESTAMP,
+          },
+        ],
+        {
+          label_map: {
+            'sum__num, East': ['sum__num', 'East'],
+            '1 week ago, East': ['1 week ago', 'East'],
+          },
+        },
+      ),
+    ],
+    datasource: {
+      verboseMap: {},
+      columnFormats: {},
+      currencyFormats: {
+        sum__num: { symbol: 'USD', symbolPosition: 'prefix' },
+      },
+    },
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const { tooltip } = echartOptions as unknown as TooltipFormatterOptions;
+
+  const result = tooltip.formatter([
+    {
+      seriesId: 'sum__num, East',
+      seriesName: 'sum__num, East',
+      value: [BASE_TIMESTAMP, 100],
+    },
+    {
+      seriesId: '1 week ago, East',
+      seriesName: '1 week ago, East',
+      value: [BASE_TIMESTAMP, 0.25],
+    },
+  ]);
+
+  expect(result).toContain('$ 100');
+  expect(result).toContain('25.00%');
+  expect(result).not.toContain('$ 0.25');
+});
+
+test('tooltip gives a Ratio row a unitless format when timeCompare is set', () => {
+  const chartProps = createTestChartProps({
+    formData: {
+      metric: 'sum__num',
+      metrics: ['sum__num'],
+      groupby: ['region'],
+      richTooltip: true,
+      timeCompare: ['1 week ago'],
+      time_compare: ['1 week ago'],
+      comparison_type: ComparisonType.Ratio,
+    },
+    queriesData: [
+      createTestQueryData(
+        [
+          {
+            'sum__num, East': 100,
+            '1 week ago, East': 1.25,
+            __timestamp: BASE_TIMESTAMP,
+          },
+        ],
+        {
+          label_map: {
+            'sum__num, East': ['sum__num', 'East'],
+            '1 week ago, East': ['1 week ago', 'East'],
+          },
+        },
+      ),
+    ],
+    datasource: {
+      verboseMap: {},
+      columnFormats: {},
+      currencyFormats: {
+        sum__num: { symbol: 'USD', symbolPosition: 'prefix' },
+      },
+    },
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const { tooltip } = echartOptions as unknown as TooltipFormatterOptions;
+
+  const result = tooltip.formatter([
+    {
+      seriesId: 'sum__num, East',
+      seriesName: 'sum__num, East',
+      value: [BASE_TIMESTAMP, 100],
+    },
+    {
+      seriesId: '1 week ago, East',
+      seriesName: '1 week ago, East',
+      value: [BASE_TIMESTAMP, 1.25],
+    },
+  ]);
+
+  expect(result).toContain('$ 100');
+  expect(result).toContain('1.25');
+  expect(result).not.toContain('$ 1.25');
+});
+
+test('tooltip keeps the metric format when a dimension value equals the offset', () => {
+  // A groupby value can legitimately read like the configured offset, giving a *base*
+  // series called `sum__num, 1 week ago`. Matching the rendered name would classify it
+  // as derived and strip its currency; `label_map` leads with the metric, not the
+  // offset, so it stays a base row.
+  const chartProps = createTestChartProps({
+    formData: {
+      metric: 'sum__num',
+      metrics: ['sum__num'],
+      groupby: ['region'],
+      richTooltip: true,
+      time_compare: ['1 week ago'],
+      comparison_type: ComparisonType.Percentage,
+    },
+    queriesData: [
+      createTestQueryData(
+        [
+          {
+            'sum__num, 1 week ago': 100,
+            '1 week ago, 1 week ago': 0.25,
+            __timestamp: BASE_TIMESTAMP,
+          },
+        ],
+        {
+          label_map: {
+            // The region is named "1 week ago"; the metric still leads the base entry.
+            'sum__num, 1 week ago': ['sum__num', '1 week ago'],
+            // Its derived counterpart leads with the offset.
+            '1 week ago, 1 week ago': ['1 week ago', '1 week ago'],
+          },
+        },
+      ),
+    ],
+    datasource: {
+      verboseMap: {},
+      columnFormats: {},
+      currencyFormats: {
+        sum__num: { symbol: 'USD', symbolPosition: 'prefix' },
+      },
+    },
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const { tooltip } = echartOptions as unknown as TooltipFormatterOptions;
+
+  const result = tooltip.formatter([
+    {
+      seriesId: 'sum__num, 1 week ago',
+      seriesName: 'sum__num, 1 week ago',
+      value: [BASE_TIMESTAMP, 100],
+    },
+    {
+      seriesId: '1 week ago, 1 week ago',
+      seriesName: '1 week ago, 1 week ago',
+      value: [BASE_TIMESTAMP, 0.25],
+    },
+  ]);
+
+  // The base row keeps its currency even though its name ends in the offset, and the
+  // genuinely derived row is still formatted as a percentage.
+  expect(result).toContain('$ 100');
+  expect(result).toContain('25.00%');
+});
+
+test('tooltip keeps the metric format on a Difference time comparison', () => {
+  // Difference is `source - compare`, which stays in the metric's units, so unlike
+  // Percentage and Ratio it must keep the currency format.
+  const chartProps = createTestChartProps({
+    formData: {
+      metric: 'sum__num',
+      metrics: ['sum__num'],
+      richTooltip: true,
+      time_compare: ['1 week ago'],
+      comparison_type: ComparisonType.Difference,
+    },
+    queriesData: [
+      createTestQueryData(
+        [{ sum__num: 100, '1 week ago': 25, __timestamp: BASE_TIMESTAMP }],
+        { label_map: { sum__num: ['sum__num'], '1 week ago': ['1 week ago'] } },
+      ),
+    ],
+    datasource: {
+      verboseMap: {},
+      columnFormats: {},
+      currencyFormats: {
+        sum__num: { symbol: 'USD', symbolPosition: 'prefix' },
+      },
+    },
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const { tooltip } = echartOptions as unknown as TooltipFormatterOptions;
+
+  const result = tooltip.formatter([
+    {
+      seriesId: 'sum__num',
+      seriesName: 'sum__num',
+      value: [BASE_TIMESTAMP, 100],
+    },
+    {
+      seriesId: '1 week ago',
+      seriesName: '1 week ago',
+      value: [BASE_TIMESTAMP, 25],
+    },
+  ]);
+
+  expect(result).toContain('$ 100');
+  expect(result).toContain('$ 25');
 });
