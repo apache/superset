@@ -263,6 +263,9 @@ describe('DashboardBuilder', () => {
       expect(column).toHaveStyleRule('grid-row', '2');
       expect(column).toHaveStyleRule('grid-column', '3');
       expect(column).toHaveStyleRule('position', 'sticky');
+      expect(column).toHaveStyleRule('top', '120px');
+      expect(column).toHaveStyleRule('height', 'calc(100vh - 120px)');
+      expect(column).toHaveStyleRule('display', 'none', { target: ':empty' });
 
       // Below XXL: anchored absolutely inside the CONTENT cell (column 2,
       // row 2) — not fixed to the viewport — and stacked below the sticky
