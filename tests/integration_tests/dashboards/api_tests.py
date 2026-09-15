@@ -21,6 +21,7 @@ from io import BytesIO
 from time import sleep
 from unittest.mock import ANY, patch
 from zipfile import is_zipfile, ZipFile
+from werkzeug.test import TestResponse
 
 from tests.integration_tests.insert_chart_mixin import InsertChartMixin
 
@@ -2035,6 +2036,61 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             if test_index:
                 with db.engine.connect() as conn:
                     conn.execute(text(f"DROP INDEX {test_index}"))
+
+    def test_create_dashboard_uuid_collision_is_not_slug_guidance(self) -> None:
+        """Do not advise restoring an archived slug holder for a UUID collision."""
+        from superset.models.helpers import skip_visibility_filter
+
+        # UUIDMixin declares uuid with unique=True, so create_all also creates
+        # UUID uniqueness on SQLite; no test-created index is needed here.
+        self.login(ADMIN_USERNAME)
+        uri: str = "api/v1/dashboard/"
+        archived_slug: str = "sc107581-uuid-archived"
+        live_slug: str = "sc107581-uuid-live"
+        try:
+            first: TestResponse = self.post_assert_metric(
+                uri,
+                {"dashboard_title": "archived uuid test", "slug": archived_slug},
+                "post",
+            )
+            assert first.status_code == 201
+            first_id: int = json.loads(first.data.decode("utf-8"))["id"]
+            holder: Dashboard = db.session.query(Dashboard).filter_by(id=first_id).one()
+            holder_uuid: str = str(holder.uuid)
+            DashboardDAO.soft_delete([holder])
+            db.session.commit()
+            live: TestResponse = self.post_assert_metric(
+                uri, {"dashboard_title": "live uuid test", "slug": live_slug}, "post"
+            )
+            assert live.status_code == 201
+            live_uuid: str = json.loads(live.data.decode("utf-8"))["uuid"]
+            response: TestResponse = self.post_assert_metric(
+                uri,
+                {
+                    "dashboard_title": "conflicting uuid",
+                    "slug": archived_slug,
+                    "uuid": live_uuid,
+                },
+                "post",
+            )
+            assert response.status_code == 422
+            body: str = response.data.decode("utf-8")
+            assert "restore" not in body.lower()
+            assert holder_uuid not in body
+            assert archived_slug not in body
+            assert json.loads(body)["message"] == "Dashboards could not be created."
+        finally:
+            db.session.rollback()
+            with skip_visibility_filter(db.session, Dashboard):
+                rows: list[Dashboard] = (
+                    db.session.query(Dashboard)
+                    .filter(Dashboard.slug.in_([archived_slug, live_slug]))
+                    .all()
+                )
+            row: Dashboard
+            for row in rows:
+                db.session.delete(row)
+            db.session.commit()
 
     def test_create_dashboard_via_api_links_charts_from_positions(self):
         """Regression for #32966: creating a dashboard through the REST API with a

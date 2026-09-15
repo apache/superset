@@ -23,10 +23,12 @@ endpoint, anything else re-raises untouched, and no probe runs when no
 slug is in play.
 """
 
+from sqlite3 import IntegrityError as SQLiteIntegrityError
 from unittest.mock import MagicMock
 
 import pytest
 from pytest_mock import MockerFixture
+from sqlalchemy.exc import IntegrityError
 
 from superset.commands.dashboard.exceptions import DashboardInvalidError
 from superset.commands.soft_delete_collisions import (
@@ -36,16 +38,42 @@ from superset.commands.soft_delete_collisions import (
 _FINDER = "superset.commands.soft_delete_collisions.find_soft_deleted_slot_holder"
 
 
+def _slug_error() -> IntegrityError:
+    """Build a wrapper with a recognized SQLite slug diagnostic."""
+    return IntegrityError(
+        None, None, SQLiteIntegrityError("UNIQUE constraint failed: dashboards.slug")
+    )
+
+
+def _pg_error(
+    name: str | None, code: str = "23505", *, psycopg3: bool = False
+) -> IntegrityError:
+    """Build a PostgreSQL driver diagnostic without importing the driver."""
+    orig: MagicMock = MagicMock(spec=Exception)
+    orig.pgcode = None if psycopg3 else code
+    orig.sqlstate = code if psycopg3 else None
+    orig.diag = MagicMock()
+    orig.diag.constraint_name = name
+    return IntegrityError(None, None, orig)
+
+
+@pytest.fixture(autouse=True)
+def no_live_holder(mocker: MockerFixture) -> None:
+    """Keep helper unit tests independent of database contents."""
+    db_mock: MagicMock = mocker.patch("superset.db")
+    db_mock.session.query.return_value.filter.return_value.first.return_value = None
+
+
 def test_deleted_holder_translates_to_guidance(mocker: MockerFixture) -> None:
-    holder = MagicMock()
+    holder: MagicMock = MagicMock()
     holder.uuid = "abcd-1234"
     mocker.patch(_FINDER, return_value=holder)
-    cause = Exception("UNIQUE constraint failed: dashboards.slug")
+    cause: IntegrityError = _slug_error()
 
     with pytest.raises(DashboardInvalidError) as excinfo:
         raise_for_soft_deleted_slug_collision("q1-report", cause)
 
-    messages = str(excinfo.value.normalized_messages())
+    messages: str = str(excinfo.value.normalized_messages())
     assert "abcd-1234" in messages
     assert "/api/v1/dashboard/abcd-1234/restore" in messages
     assert excinfo.value.__cause__ is cause
@@ -59,12 +87,12 @@ def test_no_deleted_holder_returns_so_caller_reraises(
 
     # Returning (rather than raising) is the contract that lets the caller
     # re-raise the original IntegrityError unmasked.
-    raise_for_soft_deleted_slug_collision("q1-report", Exception("boom"))
+    raise_for_soft_deleted_slug_collision("q1-report", _slug_error())
 
 
 def test_no_slug_skips_the_probe(mocker: MockerFixture) -> None:
     """Only ``None`` means "no slug sent" and skips the probe entirely."""
-    finder = mocker.patch(_FINDER)
+    finder: MagicMock = mocker.patch(_FINDER)
 
     raise_for_soft_deleted_slug_collision(None, Exception("boom"))
 
@@ -77,9 +105,9 @@ def test_empty_string_slug_is_probed(mocker: MockerFixture) -> None:
     The PUT schema accepts a zero-length slug and the uniqueness
     prechecks compare every non-None value, so a collision on ""
     deserves the same translation as any other."""
-    finder = mocker.patch(_FINDER, return_value=None)
+    finder: MagicMock = mocker.patch(_FINDER, return_value=None)
 
-    raise_for_soft_deleted_slug_collision("", Exception("boom"))
+    raise_for_soft_deleted_slug_collision("", _slug_error())
 
     finder.assert_called_once()
 
@@ -94,12 +122,111 @@ def test_live_holder_wins_over_archived_namesake(mocker: MockerFixture) -> None:
     helper must return (original IntegrityError re-raised by the caller)
     and never even consult the deleted-holder probe.
     """
-    db_mock = mocker.patch("superset.db")
+    db_mock: MagicMock = mocker.patch("superset.db")
     db_mock.session.query.return_value.filter.return_value.first.return_value = (
         MagicMock()  # a live dashboard row holds the slug
     )
-    finder = mocker.patch(_FINDER)
+    finder: MagicMock = mocker.patch(_FINDER)
 
-    raise_for_soft_deleted_slug_collision("q1-report", Exception("boom"))
+    raise_for_soft_deleted_slug_collision("q1-report", _slug_error())
 
     finder.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "cause",
+    [
+        _pg_error("uq_dashboards_uuid"),
+        _pg_error(None),
+        _pg_error("idx_unique_slug", "23503"),
+        Exception("no driver diagnostic"),
+        IntegrityError(None, None, Exception("unidentifiable")),
+        IntegrityError(None, None, Exception(1062)),
+        IntegrityError(
+            None, None, Exception(1062, "Duplicate entry 'x' for key idx_unique_slug")
+        ),
+        IntegrityError(
+            None,
+            None,
+            SQLiteIntegrityError(
+                "UNIQUE constraint failed: dashboards.slug, dashboards.uuid"
+            ),
+        ),
+        IntegrityError(
+            None,
+            None,
+            SQLiteIntegrityError("UNIQUE constraint failed: dashboards.uuid"),
+        ),
+        IntegrityError(
+            None,
+            None,
+            Exception(1062, "Duplicate entry 'x' for key 'uq_dashboards_uuid'"),
+        ),
+        IntegrityError(
+            None, None, Exception(1048, "Column 'idx_unique_slug' cannot be null")
+        ),
+        IntegrityError(
+            None,
+            None,
+            Exception(
+                1062, "Duplicate entry 'idx_unique_slug' for key 'uq_dashboards_uuid'"
+            ),
+        ),
+        IntegrityError(
+            "INSERT INTO dashboards (slug) VALUES ('idx_unique_slug')",
+            None,
+            SQLiteIntegrityError("UNIQUE constraint failed: dashboards.uuid"),
+        ),
+    ],
+)
+def test_unrelated_or_ambiguous_error_skips_archived_holder(
+    mocker: MockerFixture, cause: Exception
+) -> None:
+    """Leave UUID and unidentified errors untouched despite an archived namesake."""
+    holder: MagicMock = MagicMock()
+    holder.uuid = "archived-holder"
+    finder: MagicMock = mocker.patch(_FINDER, return_value=holder)
+    raise_for_soft_deleted_slug_collision("q1-report", cause)
+    finder.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "cause",
+    [
+        _pg_error("idx_unique_slug"),
+        _pg_error("ix_dashboards_active_slug"),
+        _pg_error("idx_unique_slug", psycopg3=True),
+        _pg_error("ix_dashboards_active_slug", psycopg3=True),
+        _slug_error(),
+        IntegrityError(
+            None,
+            None,
+            SQLiteIntegrityError("unique constraint failed: dashboards.slug"),
+        ),
+        IntegrityError(
+            None, None, Exception(1062, "Duplicate entry 'x' for key 'idx_unique_slug'")
+        ),
+        IntegrityError(
+            None,
+            None,
+            Exception(1062, "Duplicate entry 'x' for key 'ix_dashboards_active_slug'"),
+        ),
+        IntegrityError(
+            None,
+            None,
+            Exception(1062, "Duplicate entry 'x' for key 'dashboards.idx_unique_slug'"),
+        ),
+    ],
+)
+def test_identified_slug_error_translates_to_guidance(
+    mocker: MockerFixture, cause: Exception
+) -> None:
+    """Translate only a recognized slug uniqueness diagnostic across drivers."""
+    holder: MagicMock = MagicMock()
+    holder.uuid = "archived-holder"
+    mocker.patch(_FINDER, return_value=holder)
+    with pytest.raises(DashboardInvalidError) as excinfo:
+        raise_for_soft_deleted_slug_collision("q1-report", cause)
+    messages: str = str(excinfo.value.normalized_messages())
+    assert "/api/v1/dashboard/archived-holder/restore" in messages
+    assert excinfo.value.__cause__ is cause

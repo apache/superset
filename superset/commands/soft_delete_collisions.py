@@ -40,12 +40,51 @@ existing "already exists" error.
 from __future__ import annotations
 
 import logging
+import re
 from typing import Any, TYPE_CHECKING
 
 logger = logging.getLogger(__name__)
 
+#: Slug uniqueness objects. ``idx_unique_slug`` is the original full constraint
+#: (migration 1a48a5411020); ``ix_dashboards_active_slug`` is the live-rows-only
+#: index that replaced it on PostgreSQL / MySQL 8.0.13+ (9e1f3b8c4d2a).
+_SLUG_UNIQUE_NAMES: frozenset[str] = frozenset(
+    {"idx_unique_slug", "ix_dashboards_active_slug"}
+)
+
 if TYPE_CHECKING:
     from flask_appbuilder import Model
+
+
+def _is_dashboard_slug_uniqueness_error(cause: Exception) -> bool:
+    """Identify dashboard slug uniqueness violations from driver diagnostics."""
+    # Wrapper text includes SQL and user-supplied values, not just the error.
+    orig: Exception | None = getattr(cause, "orig", None)
+    if orig is None:
+        return False
+
+    pgcode: str | None = getattr(orig, "pgcode", None) or getattr(
+        orig, "sqlstate", None
+    )
+    if pgcode is not None:
+        constraint_name: str | None = getattr(
+            getattr(orig, "diag", None), "constraint_name", None
+        )
+        return pgcode == "23505" and constraint_name in _SLUG_UNIQUE_NAMES
+
+    args: tuple[Any, ...] = getattr(orig, "args", ())
+    if args and isinstance(args[0], int):
+        if args[0] != 1062 or len(args) < 2 or not isinstance(args[1], str):
+            return False
+        # Match the quoted key diagnostic, not a name in the duplicate value.
+        # MySQL can qualify the key with the table name.
+        key_match: re.Match[str] | None = re.search(
+            r"""for key (['"`])(?:dashboards\.)?([^'"`]+)\1$""", args[1]
+        )
+        return key_match is not None and key_match[2] in _SLUG_UNIQUE_NAMES
+
+    # SQLite's driver text is the diagnostic alone, unlike the wrapper.
+    return str(orig).lower() == "unique constraint failed: dashboards.slug"
 
 
 def find_soft_deleted_slot_holder(
@@ -86,9 +125,13 @@ def raise_for_soft_deleted_slug_collision(slug: str | None, cause: Exception) ->
     request can commit the same slug between this request's uniqueness
     precheck and its flush, and the failed constraint is then the live
     row's -- advising a restore of some archived namesake could never
-    resolve that conflict. Only reachable on the full-constraint
-    dialects; the partial-index dialects never raise for a soft-deleted
-    slug in the first place.
+    resolve that conflict.
+
+    Translate only an identified dashboard-slug uniqueness violation; other
+    integrity failures (UUID, foreign key, NOT NULL), including unidentifiable
+    ones, remain on the caller's original error path. The create schema accepts
+    a client-supplied UUID, so UUID collisions reach the same flush, and slug
+    restore guidance cannot resolve them (reviewer finding in #44184).
     """
     # Deferred imports: exceptions/models pull in the model registry,
     # which must not run at import time of this shared module (app-init
@@ -104,14 +147,18 @@ def raise_for_soft_deleted_slug_collision(slug: str | None, cause: Exception) ->
 
     if slug is None:
         return
-    live_holder = (
+    if not _is_dashboard_slug_uniqueness_error(cause):
+        return
+    live_holder: "Dashboard | None" = (
         db.session.query(Dashboard)
         .filter(Dashboard.slug == slug, Dashboard.deleted_at.is_(None))
         .first()
     )
     if live_holder is not None:
         return
-    holder = find_soft_deleted_slot_holder(Dashboard, Dashboard.slug == slug)
+    holder: "Model | None" = find_soft_deleted_slot_holder(
+        Dashboard, Dashboard.slug == slug
+    )
     if holder is None:
         return
     raise DashboardInvalidError(
