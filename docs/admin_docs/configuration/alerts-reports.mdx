@@ -388,8 +388,9 @@ EMAIL_REPORTS_SUBJECT_PREFIX = "[Superset] " # optional - overwrites default val
 
 # Screenshot browser configuration
 # Playwright always launches Chromium, so there is no browser type to set, and the
-# defaults work for most deployments. The values below are the defaults. Extra
-# Chromium launch arguments can be passed with WEBDRIVER_OPTION_ARGS.
+# defaults work for most deployments. The values below are the defaults. To render
+# sharper screenshots, raise pixel_density in WEBDRIVER_WINDOW. Extra Chromium
+# launch arguments can be passed with WEBDRIVER_OPTION_ARGS.
 # WEBDRIVER_WINDOW = {"dashboard": (1600, 2000), "slice": (3000, 1200), "pixel_density": 1}
 # WEBDRIVER_OPTION_ARGS = []
 
