@@ -132,6 +132,10 @@ export async function resolveSnapshotCharts(
           slice_id: id,
           slice_url: `/explore/?slice_id=${id}`,
           slice_name: slice?.slice_name ?? t('Untitled chart'),
+          // Charts absent from the live dashboard are rebuilt here, so the
+          // localized name has to come along or the preview shows canonical
+          // names for exactly those charts.
+          localized_name: slice?.localized_name,
           form_data: { ...form_data, slice_id: id },
           description: slice?.description ?? '',
           description_markeddown: '',

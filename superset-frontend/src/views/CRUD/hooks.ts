@@ -874,6 +874,8 @@ export const useChartEditModal = (
 
   function handleChartUpdated(edits: Chart) {
     // update the chart in our state with the edited info
+    // ``edits`` is the chart re-fetched after the save, so it already carries
+    // localized_name resolved for the new canonical name; the spread keeps it.
     const newCharts = charts.map((chart: Chart) =>
       chart.id === edits.id ? { ...chart, ...edits } : chart,
     );
