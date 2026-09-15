@@ -67,7 +67,11 @@ export default function downloadAsPdf(
 
     // Force any virtualized (unmounted) charts to render before capturing, so
     // off-screen rows are not exported as loading spinners.
-    const didForceLoad = await forceLoadAllCharts(elementToPrint);
+    const didForceLoad = await forceLoadAllCharts(
+      elementToPrint,
+      undefined,
+      addWarningToast,
+    );
 
     const options = {
       margin: 10,
