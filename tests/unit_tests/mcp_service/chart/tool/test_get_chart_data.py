@@ -25,7 +25,7 @@ from datetime import datetime, time as datetime_time, timedelta, timezone, tzinf
 from decimal import Decimal
 from types import SimpleNamespace
 from typing import Any, cast
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
@@ -34,6 +34,7 @@ import pandas as pd
 import pytest
 import pytz
 from dateutil import tz as dateutil_tz
+from fastmcp import Client
 
 from superset.mcp_service.chart.chart_helpers import (
     rejected_requested_filter_columns,
@@ -5120,3 +5121,359 @@ async def test_query_from_form_data_refreshed_reflects_force_refresh_only(
     assert isinstance(result, ChartData)
     assert result.cache_status is not None
     assert result.cache_status.refreshed is expected_refreshed
+
+
+def test_xlsxwriter_preserves_nonfinite_group_rows() -> None:
+    """The optional XLSX fallback preserves groups with non-finite metrics."""
+    import base64
+    from io import BytesIO
+
+    from openpyxl import load_workbook
+
+    from superset.mcp_service.chart.tool.get_chart_data import (
+        _create_excel_with_xlsxwriter,
+    )
+
+    rows: list[dict[str, Any]] = [
+        {"team": "Empty", "score": None},
+        {"team": "NaN", "score": float("nan")},
+        {"team": "Infinity", "score": float("inf")},
+        {"team": "Negative infinity", "score": -float("inf")},
+        {"team": "Finite", "score": 42},
+    ]
+    chart = MagicMock(slice_name="Gauge")
+    content = _create_excel_with_xlsxwriter(chart, rows, ["team", "score"])
+    workbook = load_workbook(BytesIO(base64.b64decode(content)))
+    assert list(workbook.active.values)[0] == ("team", "score")
+    assert [row[0] for row in list(workbook.active.values)[1:]] == [
+        row["team"] for row in rows
+    ]
+
+
+class _DetachAfterLookupChart:
+    """Slice stand-in that starts attached and detaches on demand.
+
+    After ``detach()`` every attribute read raises ``DetachedInstanceError``,
+    which is what a real Slice does once the session has committed (expiring
+    its attributes) and then been torn down.
+    """
+
+    _COLUMNS = {
+        "id": 9,
+        "slice_name": "Sales",
+        "viz_type": "table",
+        "datasource_id": 1,
+        "datasource_type": "table",
+        "params": None,
+        "query_context": (
+            '{"datasource": {"id": 1, "type": "table"},'
+            ' "queries": [{"columns": ["country"], "metrics": ["count"],'
+            ' "filters": [], "row_limit": 100}],'
+            ' "result_format": "json", "result_type": "full"}'
+        ),
+    }
+
+    def __init__(self) -> None:
+        object.__setattr__(self, "_detached", False)
+
+    def detach(self) -> None:
+        object.__setattr__(self, "_detached", True)
+
+    def __getattr__(self, name: str) -> Any:
+        from sqlalchemy.orm.exc import DetachedInstanceError
+
+        if object.__getattribute__(self, "_detached"):
+            raise DetachedInstanceError(
+                "Instance <Slice at 0x0> is not bound to a Session; "
+                f"attribute refresh operation cannot proceed (attribute: {name})"
+            )
+        try:
+            return self._COLUMNS[name]
+        except KeyError:
+            raise AttributeError(name) from None
+
+
+@pytest.mark.parametrize("export_format", ["json", "csv", "excel"])
+@pytest.mark.asyncio
+async def test_chart_data_survives_chart_detached_after_lookup(
+    export_format: str, mcp_server: Any, mock_auth: Any
+) -> None:
+    """The tool must still return data when the Slice detaches after lookup.
+
+    Reproduces the reported failure: the session commits and is torn down
+    partway through the request, so every later read on the chart instance
+    raises DetachedInstanceError and the broad SQLAlchemyError handler returns
+    an internal-session error instead of chart data. The chart is detached at
+    the end of the lookup block, right after its last legitimate ORM use.
+    """
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+
+    chart = _DetachAfterLookupChart()
+
+    def _detach_at_end_of_lookup(instance: Any) -> None:
+        instance.detach()
+        return None
+
+    def fake_load(self: Any, data: dict[str, Any]) -> Any:
+        queries = [
+            SimpleNamespace(
+                filter=query.get("filters", []),
+                time_range=query.get("time_range"),
+                to_dict=lambda query=query: dict(query),
+            )
+            for query in data.get("queries", [])
+        ]
+        return SimpleNamespace(queries=queries, form_data=data.get("form_data", {}))
+
+    class _Command:
+        def __init__(self, query_context: Any) -> None: ...
+        def validate(self) -> None: ...
+        def run(self) -> dict[str, Any]:
+            return {
+                "queries": [
+                    {
+                        "data": [{"country": "USA"}],
+                        "colnames": ["country"],
+                        "rowcount": 1,
+                    }
+                ]
+            }
+
+    with (
+        patch.object(module, "find_chart_by_identifier", return_value=chart),
+        patch.object(
+            module,
+            "validate_chart_dataset",
+            return_value=SimpleNamespace(is_valid=True, warnings=[], error=None),
+        ),
+        patch.object(
+            module.guest_scope, "guest_dashboard_id", _detach_at_end_of_lookup
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand", _Command
+        ),
+        patch("superset.charts.schemas.ChartDataQueryContextSchema.load", fake_load),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_chart_data",
+                {"request": {"identifier": 9, "format": export_format}},
+            )
+
+    data = json.loads(result.content[0].text)
+    assert "error_type" not in data, (
+        f"format={export_format}: chart detached after lookup produced "
+        f"{data.get('error_type')}: {data.get('error')}"
+    )
+    assert data["chart_id"] == 9
+    assert data["chart_name"] == "Sales"
+
+
+@pytest.mark.asyncio
+async def test_guest_authorization_reads_an_attached_chart_after_detachment(
+    mcp_server: Any, mock_auth: Any
+) -> None:
+    """The guest tamper guard must be handed an attached Slice.
+
+    guest_scope.authorize_query pins query_context.slice_ for
+    security_manager.query_context_modified, which reads id, query_context and
+    params_dict off that instance. The lookup's log context has committed by
+    then, so reusing the looked-up Slice fails once it is detached -- and the
+    snapshotted scalars cannot stand in, because the guard has to compare the
+    guest payload against the stored chart itself.
+    """
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+
+    detached = _DetachAfterLookupChart()
+    # What a re-fetch returns: a live instance the guard can read.
+    attached = SimpleNamespace(
+        id=9,
+        slice_name="Sales",
+        viz_type="table",
+        datasource_id=1,
+        datasource_type="table",
+        params=None,
+        params_dict={},
+        query_context=_DetachAfterLookupChart._COLUMNS["query_context"],
+    )
+
+    def _detach_at_end_of_lookup(instance: Any) -> int:
+        instance.detach()
+        return 6
+
+    captured: dict[str, Any] = {}
+
+    def fake_load(self: Any, data: dict[str, Any]) -> Any:
+        query_context = SimpleNamespace(
+            queries=[
+                SimpleNamespace(
+                    filter=q.get("filters", []),
+                    time_range=q.get("time_range"),
+                    to_dict=lambda q=q: dict(q),
+                )
+                for q in data.get("queries", [])
+            ],
+            form_data={},
+            slice_=None,
+        )
+        captured["query_context"] = query_context
+        return query_context
+
+    class _Command:
+        def __init__(self, query_context: Any) -> None: ...
+        def validate(self) -> None: ...
+        def run(self) -> dict[str, Any]:
+            return {"queries": [{"data": [{"a": 1}], "colnames": ["a"], "rowcount": 1}]}
+
+    with (
+        patch.object(
+            module,
+            "find_chart_by_identifier",
+            side_effect=[detached, attached],
+        ),
+        patch.object(
+            module,
+            "validate_chart_dataset",
+            return_value=SimpleNamespace(is_valid=True, warnings=[], error=None),
+        ),
+        patch.object(module.guest_scope, "is_guest_read", return_value=True),
+        patch.object(
+            module.guest_scope, "guest_dashboard_id", _detach_at_end_of_lookup
+        ),
+        # Real guest_scope.authorize_query -- it is the code under test here.
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand", _Command
+        ),
+        patch("superset.charts.schemas.ChartDataQueryContextSchema.load", fake_load),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_chart_data", {"request": {"identifier": 9}}
+            )
+
+    data = json.loads(result.content[0].text)
+    assert "error_type" not in data, (
+        f"guest request failed after detachment: "
+        f"{data.get('error_type')}: {data.get('error')}"
+    )
+
+    stored_chart = captured["query_context"].slice_
+    assert stored_chart is attached, (
+        "authorize_query must pin the re-fetched chart, not the detached one"
+    )
+    # authorize_query reads chart.id off the re-fetched chart to pin slice_id.
+    assert captured["query_context"].form_data["slice_id"] == 9
+
+
+@pytest.mark.asyncio
+async def test_guest_authorization_with_slice_already_pinned_by_the_factory(
+    mcp_server: Any, mock_auth: Any
+) -> None:
+    """Cover the case where query_context arrives with slice_ already set.
+
+    QueryContextFactory.create() pins slice_ from form_data.slice_id, so for a
+    saved chart the query context usually reaches authorize_query with slice_
+    populated -- and authorize_query only assigns when it is None. The chart
+    re-fetch still matters on this path: authorize_query reads chart.id off it
+    to pin slice_id, which raises on a detached instance. Runs the real
+    security_manager.query_context_modified afterwards to confirm the tamper
+    guard can read the stored chart rather than blowing up on it.
+    """
+    from superset.security.manager import query_context_modified
+
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+
+    stored_query_context = _DetachAfterLookupChart._COLUMNS["query_context"]
+    detached = _DetachAfterLookupChart()
+    # Stands in for the Slice the factory loaded via ChartDAO.find_by_id.
+    factory_pinned = SimpleNamespace(
+        id=9,
+        slice_name="Sales",
+        viz_type="table",
+        datasource_id=1,
+        datasource_type="table",
+        params=None,
+        params_dict={},
+        query_context=stored_query_context,
+    )
+    refetched = SimpleNamespace(
+        id=9,
+        slice_name="Sales",
+        viz_type="table",
+        datasource_id=1,
+        datasource_type="table",
+        params=None,
+        params_dict={},
+        query_context=stored_query_context,
+    )
+
+    def _detach_at_end_of_lookup(instance: Any) -> int:
+        instance.detach()
+        return 6
+
+    captured: dict[str, Any] = {}
+
+    def fake_load(self: Any, data: dict[str, Any]) -> Any:
+        query_context = SimpleNamespace(
+            queries=[
+                SimpleNamespace(
+                    filter=q.get("filters", []),
+                    time_range=q.get("time_range"),
+                    to_dict=lambda q=q: dict(q),
+                )
+                for q in data.get("queries", [])
+            ],
+            form_data={"slice_id": 9},
+            # Already pinned, as the factory would leave it.
+            slice_=factory_pinned,
+        )
+        captured["query_context"] = query_context
+        return query_context
+
+    class _Command:
+        def __init__(self, query_context: Any) -> None: ...
+        def validate(self) -> None: ...
+        def run(self) -> dict[str, Any]:
+            return {"queries": [{"data": [{"a": 1}], "colnames": ["a"], "rowcount": 1}]}
+
+    with (
+        patch.object(
+            module, "find_chart_by_identifier", side_effect=[detached, refetched]
+        ),
+        patch.object(
+            module,
+            "validate_chart_dataset",
+            return_value=SimpleNamespace(is_valid=True, warnings=[], error=None),
+        ),
+        patch.object(module.guest_scope, "is_guest_read", return_value=True),
+        patch.object(
+            module.guest_scope, "guest_dashboard_id", _detach_at_end_of_lookup
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand", _Command
+        ),
+        patch("superset.charts.schemas.ChartDataQueryContextSchema.load", fake_load),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_chart_data", {"request": {"identifier": 9}}
+            )
+
+    data = json.loads(result.content[0].text)
+    assert "error_type" not in data, (
+        f"guest request failed with slice_ pre-pinned: "
+        f"{data.get('error_type')}: {data.get('error')}"
+    )
+
+    query_context = captured["query_context"]
+    # authorize_query must leave an already-pinned slice_ alone...
+    assert query_context.slice_ is factory_pinned
+    # ...but it still reads chart.id off the re-fetched chart, which is the
+    # read that raises when that chart is the detached one.
+    assert query_context.form_data["slice_id"] == 9
+    assert query_context.form_data["dashboardId"] == 6
+
+    # The real tamper guard must be able to read the stored chart. Its verdict
+    # depends on payload comparison; what matters here is that reaching into
+    # id / query_context / params_dict does not raise.
+    assert query_context_modified(query_context) in (True, False)
