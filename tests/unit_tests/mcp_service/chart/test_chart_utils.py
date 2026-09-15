@@ -36,8 +36,10 @@ from superset.mcp_service.chart.chart_utils import (
     is_column_truly_temporal,
     map_config_to_form_data,
     map_filter_operator,
+    map_pie_config,
     map_table_config,
     map_xy_config,
+    merge_chart_form_data,
     merge_interactive_pivot_ui_config,
     merge_table_column_config,
     validate_chart_dataset,
@@ -47,11 +49,67 @@ from superset.mcp_service.chart.schemas import (
     ColumnRef,
     FilterConfig,
     LegendConfig,
+    PieChartConfig,
     SortByConfig,
     TableChartConfig,
     XYChartConfig,
 )
 from superset.utils.core import ColumnSpec, FilterOperator, GenericDataType
+
+
+@pytest.mark.parametrize(
+    "updates,expected",
+    [
+        ({}, {"color_scheme": "lyftColors", "row_limit": 42}),
+        (
+            {"color_scheme": "googleCategory10c", "row_limit": 200},
+            {"color_scheme": "googleCategory10c", "row_limit": 200},
+        ),
+        (
+            {"color_scheme": None, "row_limit": 100},
+            {"color_scheme": "supersetColors", "row_limit": 100},
+        ),
+    ],
+)
+def test_merge_chart_preserves_omitted_defaults(
+    updates: dict[str, Any], expected: dict[str, Any]
+) -> None:
+    config = PieChartConfig(
+        dimension=ColumnRef(name="product"),
+        metric=ColumnRef(name="revenue", aggregate="SUM"),
+        **updates,
+    )
+    new_form_data = map_pie_config(config)
+    existing = {
+        "viz_type": new_form_data["viz_type"],
+        "color_scheme": "lyftColors",
+        "row_limit": 42,
+    }
+    merged = merge_chart_form_data(existing, new_form_data, config)
+    assert {key: merged[key] for key in expected} == expected
+    assert merged["metric"] == new_form_data["metric"]
+
+
+@pytest.mark.parametrize("dataset_rebind", [False, True])
+def test_merge_chart_defaults_on_viz_change_or_dataset_rebind(
+    dataset_rebind: bool,
+) -> None:
+    config = PieChartConfig(
+        dimension=ColumnRef(name="product"),
+        metric=ColumnRef(name="revenue", aggregate="SUM"),
+    )
+    new_form_data = map_pie_config(config)
+    existing = {
+        "viz_type": new_form_data["viz_type"] if dataset_rebind else "table",
+        "color_scheme": "lyftColors",
+        "row_limit": 42,
+    }
+    assert (
+        merge_chart_form_data(
+            existing, new_form_data, config, dataset_rebind=dataset_rebind
+        )
+        == new_form_data
+    )
 
 
 class TestGetTableChartTypeLabel:
