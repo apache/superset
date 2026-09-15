@@ -732,7 +732,7 @@ export function extractSeries(
       // Skip bigint/string-integer normalization for the xAxis dimension.
       // Normalizing xAxis to Number would corrupt categorical labels like
       // '007' → 7, breaking axis matching/sorting.
-      if (key === xAxis) {
+      if (key === xAxis && xAxisType === AxisType.Category) {
         normalized[key] = value;
         return;
       }
