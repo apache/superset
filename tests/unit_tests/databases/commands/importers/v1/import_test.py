@@ -344,6 +344,129 @@ def test_import_database_with_masked_encrypted_extra_existing_db(
     assert encrypted["credentials_info"]["private_key"] != PASSWORD_MASK
 
 
+def test_import_database_existing_no_overwrite_backfills_permissions(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    ``import_database(config, overwrite=False)`` is called unconditionally by
+    the chart, dataset, and saved-query bundle importers
+    (``superset/commands/chart/importers/v1/__init__.py``,
+    ``superset/commands/dataset/importers/v1/__init__.py``, and
+    ``superset/commands/query/importers/v1/__init__.py``), and by the
+    dashboard importer (``superset/commands/dashboard/importers/v1/__init__.py``)
+    whenever both ``overwrite``/``overwrite_all`` aren't simultaneously
+    ``True`` -- the common case -- whenever the bundle references a
+    database, including one that already exists in the target, eg because a
+    prior import already created it. Before this fix, the early return for
+    an existing, non-overwritten database skipped ``add_permissions()``
+    entirely, so a schema added to the live connection since that database
+    was first imported would never get a first-time grant through this path
+    either.
+    """
+    from superset import security_manager
+    from superset.commands.database.importers.v1.utils import import_database
+    from superset.models.core import Database
+    from tests.integration_tests.fixtures.importexport import database_config
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mock_add_permissions = mocker.patch(
+        "superset.commands.database.importers.v1.utils.add_permissions"
+    )
+
+    engine = db.session.get_bind()
+    Database.metadata.create_all(engine)  # pylint: disable=no-member
+
+    config = copy.deepcopy(database_config)
+    existing = import_database(config)
+    mock_add_permissions.reset_mock()
+
+    again = copy.deepcopy(database_config)
+    result = import_database(again, overwrite=False)
+
+    assert result.id == existing.id
+    mock_add_permissions.assert_called_once_with(existing)
+
+
+def test_import_database_existing_no_overwrite_no_permission_skips_backfill(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    The permission backfill added for the existing/no-overwrite branch must
+    stay behind the same ``can_write`` gate as every other permission-view
+    creation in ``import_database()`` -- a principal without database-write
+    access must not trigger it just by importing a
+    chart/dataset/saved-query/dashboard bundle that happens to reference an
+    existing database.
+    """
+    from superset import security_manager
+    from superset.commands.database.importers.v1.utils import import_database
+    from superset.models.core import Database
+    from tests.integration_tests.fixtures.importexport import database_config
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mock_add_permissions = mocker.patch(
+        "superset.commands.database.importers.v1.utils.add_permissions"
+    )
+
+    engine = db.session.get_bind()
+    Database.metadata.create_all(engine)  # pylint: disable=no-member
+
+    config = copy.deepcopy(database_config)
+    existing = import_database(config)
+    mock_add_permissions.reset_mock()
+
+    mocker.patch.object(security_manager, "can_access", return_value=False)
+
+    again = copy.deepcopy(database_config)
+    result = import_database(again, overwrite=False)
+
+    assert result.id == existing.id
+    mock_add_permissions.assert_not_called()
+
+
+def test_import_database_existing_no_overwrite_backfill_oauth2_redirect_is_nonfatal(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    The permission backfill on the existing/no-overwrite branch must tolerate
+    an ``OAuth2RedirectError`` from ``add_permissions()`` the same way the
+    fresh-import path already does (see
+    ``test_import_database_oauth2_redirect_is_nonfatal``) -- logged, not
+    propagated, so the import still returns the existing database normally.
+    """
+    from superset import security_manager
+    from superset.commands.database.importers.v1.utils import import_database
+    from superset.exceptions import OAuth2RedirectError
+    from superset.models.core import Database
+    from tests.integration_tests.fixtures.importexport import database_config
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mock_add_permissions = mocker.patch(
+        "superset.commands.database.importers.v1.utils.add_permissions"
+    )
+
+    engine = db.session.get_bind()
+    Database.metadata.create_all(engine)  # pylint: disable=no-member
+
+    config = copy.deepcopy(database_config)
+    existing = import_database(config)
+    mock_add_permissions.reset_mock()
+    mock_add_permissions.side_effect = OAuth2RedirectError(
+        url="https://oauth.example.com/authorize",
+        tab_id="abc-123",
+        redirect_uri="https://superset.example.com/callback",
+    )
+
+    again = copy.deepcopy(database_config)
+    result = import_database(again, overwrite=False)
+
+    assert result.id == existing.id
+    mock_add_permissions.assert_called_once_with(existing)
+
+
 def test_import_database_oauth2_redirect_is_nonfatal(
     mocker: MockerFixture,
     session: Session,
@@ -376,6 +499,45 @@ def test_import_database_oauth2_redirect_is_nonfatal(
 
     assert database.database_name == "imported_database"
     mock_add_perms.assert_called_once_with(database)
+
+
+def test_import_database_dbapi_error_during_backfill_is_nonfatal(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    ``add_permissions()`` calls ``get_all_catalog_names()`` for catalog
+    discovery outside of its own per-catalog error handling, so a mapped
+    DBAPI error from that call -- not just a connection failure -- must be
+    tolerated the same way an ``OAuth2RedirectError`` already is, instead of
+    failing the whole import.
+    """
+    from superset import security_manager
+    from superset.commands.database.importers.v1.utils import import_database
+    from superset.db_engine_specs.exceptions import SupersetDBAPIProgrammingError
+    from superset.models.core import Database
+    from tests.integration_tests.fixtures.importexport import database_config
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mock_add_permissions = mocker.patch(
+        "superset.commands.database.importers.v1.utils.add_permissions"
+    )
+
+    engine = db.session.get_bind()
+    Database.metadata.create_all(engine)  # pylint: disable=no-member
+
+    config = copy.deepcopy(database_config)
+    existing = import_database(config)
+    mock_add_permissions.reset_mock()
+    mock_add_permissions.side_effect = SupersetDBAPIProgrammingError(
+        "permission denied for catalog discovery"
+    )
+
+    again = copy.deepcopy(database_config)
+    result = import_database(again, overwrite=False)
+
+    assert result.id == existing.id
+    mock_add_permissions.assert_called_once_with(existing)
 
 
 def test_import_datasources_cli_encrypts_password(
@@ -591,6 +753,49 @@ def test_import_database_host_change_with_new_credentials(
     moved["sqlalchemy_uri"] = "postgresql://user:newpass@host2:5432/prod"
     database = import_database(moved, overwrite=True)
     assert database.password == "newpass"  # noqa: S105
+
+
+def test_import_database_engine_params_change_requires_new_credentials(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    An overwrite that changes `extra.engine_params` (e.g.
+    `connect_args.host`/`port`, which the DBAPI merges into the actual
+    connection target ahead of anything carried in `sqlalchemy_uri`) must
+    not silently reuse the stored password: the submitted URI can still
+    match the stored host, while the DBAPI actually connects elsewhere.
+    """
+    from superset import security_manager
+    from superset.commands.database.importers.v1.utils import import_database
+    from superset.models.core import Database
+    from tests.integration_tests.fixtures.importexport import database_config
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch("superset.commands.database.importers.v1.utils.add_permissions")
+
+    engine = db.session.get_bind()
+    Database.metadata.create_all(engine)  # pylint: disable=no-member
+
+    config = copy.deepcopy(database_config)
+    database = import_database(config)
+    assert database.password == "pass"  # noqa: S105
+
+    hostile = copy.deepcopy(database_config)
+    hostile["sqlalchemy_uri"] = f"postgresql://user:{PASSWORD_MASK}@host1"
+    hostile["extra"] = {
+        "engine_params": {
+            "connect_args": {"host": "attacker.example.com", "port": 15432}
+        }
+    }
+    with pytest.raises(ImportFailedError):
+        import_database(hostile, overwrite=True)
+
+    # the same engine_params (a normal re-import of an exported bundle) still works
+    unchanged = copy.deepcopy(database_config)
+    unchanged["sqlalchemy_uri"] = f"postgresql://user:{PASSWORD_MASK}@host1"
+    unchanged["password"] = "pass"  # noqa: S105
+    database = import_database(unchanged, overwrite=True)
+    assert database.password == "pass"  # noqa: S105
 
 
 def test_import_database_unparseable_uri_treated_as_change(

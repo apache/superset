@@ -35,6 +35,7 @@ from superset.commands.semantic_layer.exceptions import (
 )
 from superset.commands.utils import current_user_can_modify_object
 from superset.daos.semantic_layer import SemanticLayerDAO, SemanticViewDAO
+from superset.exceptions import SupersetSecurityException
 from superset.semantic_layers.masking import unmask_configuration
 from superset.semantic_layers.models import SemanticLayer, SemanticView
 from superset.semantic_layers.registry import registry
@@ -137,6 +138,10 @@ class UpdateSemanticLayerCommand(BaseCommand):
         self._model = SemanticLayerDAO.find_by_uuid(self._uuid)
         if not self._model:
             raise SemanticLayerNotFoundError()
+        try:
+            self._model.raise_for_access()
+        except SupersetSecurityException as ex:
+            raise SemanticLayerForbiddenError() from ex
 
         if not current_user_can_modify_object(self._model):
             raise SemanticLayerForbiddenError()

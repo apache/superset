@@ -80,9 +80,8 @@ const mockTasks = [
       progress_current: null,
       progress_total: null,
       error_message: null,
-      exception_type: null,
-      stack_trace: null,
       timeout: null,
+      dedupe_count: 2,
     },
   },
   {
@@ -110,8 +109,6 @@ const mockTasks = [
       progress_current: null,
       progress_total: null,
       error_message: null,
-      exception_type: null,
-      stack_trace: null,
       timeout: null,
     },
   },
@@ -147,14 +144,19 @@ const mockTasks = [
         subscribed_at: '2024-01-15T12:00:01Z',
       },
     ],
+    depends_on: [
+      {
+        uuid: 'prereq-uuid-1',
+        task_name: 'Totals Query',
+        status: TaskStatus.InProgress,
+      },
+    ],
     properties: {
       is_abortable: null,
       progress_percent: null,
       progress_current: null,
       progress_total: null,
       error_message: null,
-      exception_type: null,
-      stack_trace: null,
       timeout: null,
     },
   },
@@ -229,6 +231,14 @@ test('displays task data including types, scope labels, and duration', async () 
 
   // Duration (299s = 4m 59s via prettyMs)
   expect(screen.getByText('4m 59s')).toBeInTheDocument();
+
+  // Dependencies and dedupe counts render as icons in the Details column: the
+  // partition icon for a task with prerequisites (depends_on) and the plus icon
+  // + count for a reused task (dedupe_count). (antd PartitionOutlined/PlusOutlined
+  // map to role "img" names "partition"/"plus".) The "waiting on N" state is
+  // covered by TaskDependenciesPopover.test.tsx.
+  expect(screen.getByRole('img', { name: 'partition' })).toBeInTheDocument();
+  expect(screen.getByRole('img', { name: 'plus' })).toBeInTheDocument();
 });
 
 test('shows cancel button and modal for cancellable tasks', async () => {
@@ -282,8 +292,6 @@ test('does not show cancel button for completed shared tasks', async () => {
       progress_current: null,
       progress_total: null,
       error_message: null,
-      exception_type: null,
-      stack_trace: null,
       timeout: null,
     },
   };
