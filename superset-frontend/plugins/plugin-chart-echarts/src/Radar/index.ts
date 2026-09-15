@@ -26,8 +26,8 @@ import thumbnail from './images/thumbnail.png';
 import thumbnailDark from './images/thumbnail-dark.png';
 import example1 from './images/example1.jpg';
 import example1Dark from './images/example1-dark.jpg';
-import example2 from './images/example2.jpg';
-import example2Dark from './images/example2-dark.jpg';
+import example2 from './images/custom_thumb_example2.jpg';
+import example2Dark from './images/custom_thumb_example2-dark.jpg';
 import { EchartsRadarChartProps, EchartsRadarFormData } from './types';
 import { EchartsChartPlugin } from '../types';
 
