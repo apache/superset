@@ -427,7 +427,7 @@ def test_update_dataset_soft_deleted_twin_gets_guidance(
     mock_database.id = 1
     mock_database.get_default_catalog.return_value = "catalog"
     mock_database.allow_multi_catalog = False
-    mock_dataset = mocker.MagicMock()
+    mock_dataset = mocker.MagicMock(is_managed_externally=False)
     mock_dataset.database = mock_database
     mock_dataset.catalog = "catalog"
     mock_dataset_dao.find_by_id.return_value = mock_dataset
