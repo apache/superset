@@ -155,6 +155,7 @@ test('an actionable toast remains until it is explicitly dismissed', () => {
   });
 
   act(() => jest.advanceTimersByTime(1000));
+  act(() => jest.advanceTimersByTime(200));
   expect(onCloseToast).not.toHaveBeenCalled();
   jest.useRealTimers();
 });
