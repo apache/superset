@@ -14,10 +14,49 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from importlib.metadata import requires
 from unittest import mock
 
 import pytest
-from sqlalchemy import column
+from packaging.requirements import Requirement
+from pytest_mock import MockerFixture
+from sqlalchemy import __version__ as sqlalchemy_version, column, create_engine, text
+
+
+@pytest.mark.parametrize("scheme", ["pinot", "pinot+http", "pinot+https"])
+def test_dialect_supports_installed_sqlalchemy(
+    scheme: str, mocker: MockerFixture
+) -> None:
+    """Validate the optional SQLAlchemy dependency contract and sync dialect aliases."""
+    pytest.importorskip("pinotdb.sqlalchemy")
+    requirements = [
+        Requirement(requirement) for requirement in requires("pinotdb") or []
+    ]
+    sqlalchemy_requirements = [
+        requirement
+        for requirement in requirements
+        if requirement.name == "sqlalchemy"
+        and (
+            requirement.marker is None
+            or requirement.marker.evaluate({"extra": "sqlalchemy"})
+        )
+    ]
+    assert sqlalchemy_requirements
+    assert all(
+        sqlalchemy_version in requirement.specifier
+        for requirement in sqlalchemy_requirements
+    )
+    socket = mocker.patch("socket.socket", side_effect=AssertionError("Network I/O"))
+    engine = create_engine(f"{scheme}://localhost:8099/query/sql")
+    try:
+        _, connect_args = engine.dialect.create_connect_args(engine.url)
+        assert connect_args["scheme"] == (
+            "https" if scheme == "pinot+https" else "http"
+        )
+        assert str(text("SELECT :value").compile(engine)) == "SELECT %(value)s"
+    finally:
+        engine.dispose()
+    socket.assert_not_called()
 
 
 @pytest.mark.parametrize(
