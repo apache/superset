@@ -879,6 +879,17 @@ test('should show Exit fullscreen when in standalone mode at top level', async (
 });
 
 test('should show Enter fullscreen when not in standalone mode', async () => {
+  // Keep the router location and window.location in agreement. The shared mock
+  // reports `?standalone=1`; leaving it would let this test pass on a stale
+  // premise if the component ever read `location.search` instead of
+  // `window.location.search`.
+  const { useLocation } = jest.requireMock('react-router-dom');
+  useLocation.mockReturnValue({
+    pathname: '/dashboard',
+    search: '',
+    hash: '',
+    state: undefined,
+  });
   window.history.pushState({}, 'Test page', '/dashboard');
   setup();
   await openActionsDropdown();
