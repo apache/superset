@@ -124,6 +124,7 @@
                           "INVALID_PAYLOAD_FORMAT_ERROR",
                           "INVALID_PAYLOAD_SCHEMA_ERROR",
                           "MARSHMALLOW_ERROR",
+                          "CSRF_ERROR",
                           "REPORT_NOTIFICATION_ERROR"
                         ],
                         "type": "string"
