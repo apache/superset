@@ -1,0 +1,133 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+# Publishes superset-frontend's Storybook to Chromatic for visual
+# regression testing. See https://www.chromatic.com/docs/github-actions
+#
+# Runs on pushes to master (keeps the Chromatic baseline in sync with
+# mainline) and on pull requests that touch superset-frontend. Fork PRs
+# don't receive CHROMATIC_PROJECT_TOKEN -- GitHub withholds repository
+# secrets from pull_request runs triggered by a fork -- so the publish
+# steps below no-op for them (via the CHROMATIC_PROJECT_TOKEN != '' guard)
+# rather than failing.
+#
+# Non-blocking for now (exitZeroOnChanges: true): visual changes are
+# surfaced as a PR check/comment for review, not enforced as a merge gate.
+# A prior Chromatic setup here (#21095) was removed in #27232 for being
+# unmaintained and overlapping with Applitools (since also discontinued).
+# Keep this one simple and watch it before considering a required check.
+#
+# The master (push) run auto-accepts its own changes so the baseline stays
+# current; otherwise every subsequent PR would keep reporting the same
+# already-merged diff against a stale baseline. PR runs are left alone so a
+# human still reviews what changed.
+name: Chromatic
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - "superset-frontend/**"
+  pull_request:
+    types: [synchronize, opened, reopened, ready_for_review]
+    paths:
+      - "superset-frontend/**"
+  workflow_dispatch: {}
+
+# cancel previous workflow jobs for PRs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+env:
+  TAG: apache/superset:chromatic-${{ github.run_id }}
+  CHROMATIC_PROJECT_TOKEN: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+
+permissions:
+  contents: read
+
+jobs:
+  chromatic:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 30
+    # pull-requests: write lets chromaui/action post its check and PR
+    # comment. Withheld automatically by GitHub for fork-triggered
+    # pull_request runs, same as CHROMATIC_PROJECT_TOKEN above.
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          # TurboSnap (onlyChanged below) needs history to diff against the
+          # baseline commit, but NOT fetch-depth: 0. This Chromatic project
+          # was dormant for ~2 years (Chromatic here shipped in #21095,
+          # removed in #27232) before this workflow, so its last known
+          # baseline predates thousands of commits on a very active repo.
+          # With full history, Chromatic's CLI tries to `git log` every
+          # commit back to that ancient baseline as individual CLI args and
+          # hits the OS ARG_MAX limit (E2BIG) -- see
+          # https://github.com/chromaui/chromatic-cli/issues/432, where the
+          # Chromatic team's own recommended workaround is exactly this: a
+          # bounded depth, since a multi-year-old baseline isn't useful
+          # anyway. 500 is far more than any realistic PR needs once a
+          # recent baseline exists (i.e. after this workflow's own first
+          # successful run on master).
+          fetch-depth: 500
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+
+      - name: Build Docker Image
+        if: ${{ env.CHROMATIC_PROJECT_TOKEN != '' }}
+        run: |
+          docker buildx build \
+            -t $TAG \
+            --cache-from=type=registry,ref=apache/superset-cache:3.11-slim-trixie \
+            --target superset-node-ci \
+            .
+
+      # --webpack-stats-json writes preview-stats.json into storybook-static.
+      # TurboSnap (onlyChanged below) needs it to trace which stories a
+      # changed file affects; without it, chromaui/action fails with "Could
+      # not retrieve dependent story files" since storybookBuildDir points
+      # at an already-built Storybook it can't inject its own stats
+      # collection into.
+      - name: Build Storybook
+        if: ${{ env.CHROMATIC_PROJECT_TOKEN != '' }}
+        run: |
+          mkdir -p ${{ github.workspace }}/superset-frontend/storybook-static
+          docker run \
+          -v ${{ github.workspace }}/superset-frontend/storybook-static:/app/superset-frontend/storybook-static \
+          --rm $TAG \
+          bash -c "npm i && npm run build-storybook -- --webpack-stats-json"
+
+      - name: Publish to Chromatic
+        if: ${{ env.CHROMATIC_PROJECT_TOKEN != '' }}
+        uses: chromaui/action@6b31c4307e3f5a150ab5345b051bb40a62923a5f # v18.7.3
+        with:
+          projectToken: ${{ env.CHROMATIC_PROJECT_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          workingDir: superset-frontend
+          storybookBuildDir: storybook-static
+          # TurboSnap: only re-snapshot stories affected by files changed
+          # since the baseline build.
+          onlyChanged: true
+          exitZeroOnChanges: true
+          autoAcceptChanges: ${{ github.event_name == 'push' }}
+          zip: true
