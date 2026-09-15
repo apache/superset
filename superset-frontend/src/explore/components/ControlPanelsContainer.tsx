@@ -55,8 +55,12 @@ import {
   Dataset,
   ExpandedControlItem,
   isCustomControlItem,
+  getHeaderGroupsControlProps,
+  headerGroupsHaveSameColumns,
   isTemporalColumn,
   sections,
+  syncTimeComparisonGroups,
+  type HeaderGroupConfig,
 } from '@superset-ui/chart-controls';
 import { useSelector } from 'react-redux';
 import { kebabCase, isEqual } from 'lodash-es';
@@ -324,6 +328,70 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   const { x_axis, adhoc_filters } = form_data;
 
   const previousXAxis = usePrevious(x_axis);
+
+  const hasHeaderGroupsControl = Boolean(props.controls.header_groups);
+  const headerGroupsValue = props.controls.header_groups?.value;
+  const exploreDatasource = props.exploreState.datasource;
+  const exploreFormData = props.exploreState.form_data;
+  const exploreControls = props.exploreState.controls;
+  const timeCompareValue = exploreControls?.time_compare?.value;
+  const queryModeValue = exploreControls?.query_mode?.value;
+  const comparisonTypeValue = exploreControls?.comparison_type?.value;
+  const queryColnames = props.chart.queriesResponse?.[0]?.colnames;
+
+  // HeaderGroupsControl is on the Customize tab and is not mounted until that
+  // tab is opened. Sync time-comparison auto-groups into form_data here so
+  // enabling Time Comparison updates the chart without visiting Customize.
+  useEffect(() => {
+    if (!hasHeaderGroupsControl || !setControlValue) {
+      return;
+    }
+    const current = ensureIsArray(headerGroupsValue) as HeaderGroupConfig[];
+    const { timeComparisonGroups } = getHeaderGroupsControlProps(
+      {
+        datasource: exploreDatasource,
+        form_data: {
+          metrics: exploreFormData?.metrics,
+          percent_metrics: exploreFormData?.percent_metrics,
+          groupby: exploreFormData?.groupby,
+          all_columns: exploreFormData?.all_columns,
+          query_mode: exploreFormData?.query_mode,
+          comparison_type: exploreFormData?.comparison_type,
+          time_compare: exploreFormData?.time_compare,
+        },
+        controls: {
+          time_compare: { value: timeCompareValue },
+          query_mode: { value: queryModeValue },
+          comparison_type: { value: comparisonTypeValue },
+        },
+      },
+      {
+        queriesResponse: queryColnames ? [{ colnames: queryColnames }] : null,
+      },
+    );
+    const next = syncTimeComparisonGroups(current, timeComparisonGroups);
+    if (!headerGroupsHaveSameColumns(current, next)) {
+      setControlValue('header_groups', next, undefined, {
+        programmatic: true,
+      });
+    }
+  }, [
+    exploreDatasource,
+    comparisonTypeValue,
+    exploreFormData?.all_columns,
+    exploreFormData?.comparison_type,
+    exploreFormData?.groupby,
+    exploreFormData?.metrics,
+    exploreFormData?.percent_metrics,
+    exploreFormData?.query_mode,
+    exploreFormData?.time_compare,
+    hasHeaderGroupsControl,
+    headerGroupsValue,
+    queryColnames,
+    queryModeValue,
+    setControlValue,
+    timeCompareValue,
+  ]);
 
   useEffect(() => {
     if (

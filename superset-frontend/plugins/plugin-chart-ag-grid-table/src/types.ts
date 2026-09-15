@@ -21,6 +21,7 @@ import type {
   ColorFormatters,
   CustomFormatter,
   DataColumnMeta,
+  HeaderGroupConfig,
   TableColumnConfig,
 } from '@superset-ui/chart-controls';
 import {
@@ -84,6 +85,7 @@ export type TableChartFormData = QueryFormData & {
   allow_rearrange_columns?: boolean;
   allow_render_html?: boolean;
   show_numbered_column?: boolean;
+  header_groups?: HeaderGroupConfig[];
   zebra_striping?: boolean;
 };
 
@@ -137,6 +139,7 @@ export interface AgGridTableChartTransformedProps<
   onChartStateChange?: (chartState: JsonObject) => void;
   chartState?: AgGridChartState;
   showNumberedColumn: boolean;
+  headerGroups?: HeaderGroupConfig[];
   zebraStriping: boolean;
   onContextMenu?: (
     clientX: number,
