@@ -643,3 +643,175 @@ def test_list_filter_database_grant_does_not_leak_colliding_semantic_dashboard(
     semantic-view chart to the colliding table and leak its dashboard."""
     titles = _apply_list_filter(datasource_perms=set(), accessible_databases=[10])
     assert titles == {"regular"}
+
+
+# ---------------------------------------------------------------------------
+# Drill membership: Dashboard.has_member_datasource (SC-119500 / FR-005)
+# ---------------------------------------------------------------------------
+
+
+def test_membership_recognizes_semantic_view_member(
+    access_fixtures: SimpleNamespace,
+) -> None:
+    """A member semantic view is recognized — the table-shaped
+    ``Dashboard.datasources`` set made this vacuously false."""
+    dashboard = access_fixtures.semantic_dashboard
+    assert dashboard.has_member_datasource(access_fixtures.view) is True
+
+
+def test_membership_rejects_colliding_non_member_table(
+    access_fixtures: SimpleNamespace,
+) -> None:
+    """A table sharing the member view's numeric id but NOT on the dashboard
+    is no member — a bare id-set test could have said true."""
+    dashboard = access_fixtures.semantic_dashboard
+    assert dashboard.has_member_datasource(access_fixtures.table) is False
+
+
+def test_membership_recognizes_table_member(
+    access_fixtures: SimpleNamespace,
+) -> None:
+    """Table membership keeps working through the same pair comparison."""
+    dashboard = access_fixtures.regular_dashboard
+    assert dashboard.has_member_datasource(access_fixtures.table) is True
+
+
+def test_membership_rejects_colliding_non_member_view(
+    access_fixtures: SimpleNamespace,
+) -> None:
+    """The mirror collision: the semantic view sharing the member table's id
+    is no member of the table dashboard."""
+    dashboard = access_fixtures.regular_dashboard
+    assert dashboard.has_member_datasource(access_fixtures.view) is False
+
+
+def test_drill_via_dashboard_access_recognizes_semantic_member(
+    access_fixtures: SimpleNamespace, app_context: None
+) -> None:
+    """SC-119500 / FR-005: an embedded guest with dashboard access can pass
+    the drill membership check for a member semantic view. Capability gating
+    (``supports_drill_to_detail``) is separate and still denies semantic
+    views today; this pins the membership primitive for the day a provider
+    enables drill."""
+    sm = _gate_sm()
+    with (
+        patch(
+            "superset.is_feature_enabled",
+            side_effect=lambda flag: flag == "EMBEDDED_SUPERSET",
+        ),
+        patch.object(sm, "is_guest_user", return_value=True),
+        patch.object(sm, "has_guest_access", return_value=True),
+    ):
+        assert sm.can_drill_dataset_via_dashboard_access(
+            access_fixtures.view, access_fixtures.semantic_dashboard
+        )
+
+
+def test_drill_via_dashboard_access_rejects_colliding_non_member(
+    access_fixtures: SimpleNamespace, app_context: None
+) -> None:
+    """The colliding table is not drillable via the semantic dashboard — the
+    replaced id-set membership test would have matched its bare id."""
+    sm = _gate_sm()
+    with (
+        patch(
+            "superset.is_feature_enabled",
+            side_effect=lambda flag: flag == "EMBEDDED_SUPERSET",
+        ),
+        patch.object(sm, "is_guest_user", return_value=True),
+        patch.object(sm, "has_guest_access", return_value=True),
+    ):
+        assert not sm.can_drill_dataset_via_dashboard_access(
+            access_fixtures.table, access_fixtures.semantic_dashboard
+        )
+
+
+def test_has_drill_access_drill_to_detail_semantic_member(
+    access_fixtures: SimpleNamespace, app_context: None
+) -> None:
+    """Drill to Detail's dashboard-membership leg recognizes a member
+    semantic view (no slice context in the form data)."""
+    sm = _gate_sm()
+    assert sm.has_drill_access(
+        {}, access_fixtures.semantic_dashboard, access_fixtures.view
+    )
+
+
+def test_has_drill_access_rejects_colliding_non_member(
+    access_fixtures: SimpleNamespace, app_context: None
+) -> None:
+    """And the colliding non-member table stays rejected on the same leg."""
+    sm = _gate_sm()
+    assert not sm.has_drill_access(
+        {}, access_fixtures.semantic_dashboard, access_fixtures.table
+    )
+
+
+# ---------------------------------------------------------------------------
+# Embedded-guest datasets allowlist (SC-119500 / FR-006)
+# ---------------------------------------------------------------------------
+
+
+def test_guest_allowlist_denies_semantic_member_chart(
+    access_fixtures: SimpleNamespace, app_context: None
+) -> None:
+    """FR-006 pin — DECIDED fail-closed semantic, not an accident: a guest
+    token carrying a ``datasets`` allowlist denies a semantic-view member
+    chart, because the allowlist is dataset-id space and resolving other
+    datasource types into it would reintroduce id-collision ambiguity. The
+    token even allowlists id 1 — the number this view shares with a table —
+    and must still deny. Revisit only with a type-qualified allowlist claim."""
+    # pylint: disable=import-outside-toplevel
+    from superset.exceptions import SupersetSecurityException
+
+    sm = _gate_sm()
+    guest = MagicMock()
+    guest.guest_token = {"datasets": [1]}
+    with (
+        patch(
+            "superset.is_feature_enabled",
+            side_effect=lambda flag: flag == "EMBEDDED_SUPERSET",
+        ),
+        patch.object(sm, "is_admin", return_value=False),
+        patch.object(sm, "is_editor", return_value=False),
+        patch.object(sm, "is_guest_user", return_value=True),
+        patch.object(sm, "get_current_guest_user_if_guest", return_value=guest),
+        patch.object(sm, "has_guest_access", return_value=True),
+        patch.object(sm, "can_access_all_datasources", return_value=False),
+        patch.object(sm, "can_access", return_value=False),
+        patch.object(sm, "get_chart_access_error_object", return_value=MagicMock()),
+        patch.object(
+            sm, "get_datasource_access_error_object", return_value=MagicMock()
+        ),
+        pytest.raises(SupersetSecurityException),
+    ):
+        sm.raise_for_access(chart=access_fixtures.semantic_slice)
+
+
+def test_guest_allowlist_allows_table_member_chart(
+    access_fixtures: SimpleNamespace, app_context: None
+) -> None:
+    """Companion control: the very same token admits the table-backed member
+    chart whose dataset id it names — the denial above is the type gap, not
+    a broken allowlist."""
+    sm = _gate_sm()
+    guest = MagicMock()
+    guest.guest_token = {"datasets": [1]}
+    with (
+        patch(
+            "superset.is_feature_enabled",
+            side_effect=lambda flag: flag == "EMBEDDED_SUPERSET",
+        ),
+        patch.object(sm, "is_admin", return_value=False),
+        patch.object(sm, "is_editor", return_value=False),
+        patch.object(sm, "is_guest_user", return_value=True),
+        patch.object(sm, "get_current_guest_user_if_guest", return_value=guest),
+        patch.object(sm, "has_guest_access", return_value=True),
+        patch.object(sm, "can_access_all_datasources", return_value=False),
+        patch.object(sm, "can_access", return_value=False),
+        patch.object(sm, "get_chart_access_error_object", return_value=MagicMock()),
+        patch.object(
+            sm, "get_datasource_access_error_object", return_value=MagicMock()
+        ),
+    ):
+        sm.raise_for_access(chart=access_fixtures.table_slice)
