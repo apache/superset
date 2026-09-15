@@ -31,6 +31,7 @@ from flask import (
     send_file,
 )
 from flask_babel import gettext as _
+from flask_babel.speaklater import LazyString
 from flask_wtf.csrf import CSRFError
 from sqlalchemy import exc
 from werkzeug.exceptions import HTTPException
@@ -72,7 +73,7 @@ def get_error_level_from_status(
 
 
 def json_error_response(
-    error_details: str | SupersetError | list[SupersetError] | None = None,
+    error_details: str | LazyString | SupersetError | list[SupersetError] | None = None,
     status: int = 500,
     payload: dict[str, Any] | None = None,
 ) -> FlaskResponse:
@@ -88,6 +89,15 @@ def json_error_response(
         ]
     elif isinstance(error_details, str):
         payload["error"] = sanitize_error_message(error_details, status)
+    elif isinstance(error_details, LazyString):
+        # A flask-babel LazyString fails the isinstance(str) check above,
+        # and the body used to silently degrade to ``{}`` — an error
+        # response whose status said "denied" but whose payload said
+        # nothing. Coerce so the message survives; call sites should still
+        # prefer the eager gettext alias for error bodies. Deliberately
+        # narrow: any OTHER out-of-contract object keeps degrading to an
+        # empty body rather than leaking ``str(obj)`` to the client.
+        payload["error"] = sanitize_error_message(str(error_details), status)
 
     return Response(
         json.dumps(payload, default=json.json_iso_dttm_ser, ignore_nan=True),
