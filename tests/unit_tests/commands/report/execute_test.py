@@ -2906,6 +2906,7 @@ def test_send_preserves_transient_upgrade_failure_for_file_reports(
         "January 1, 2021",
         "execution_id_example",
     )
+    report_state._report_execution_context = _active_report_context()
     notification_content = NotificationContent(
         name="Private channel report",
         header_data={
@@ -2987,6 +2988,7 @@ def test_send_classifies_probe_failure_for_file_reports(
         "January 1, 2021",
         "execution_id_example",
     )
+    report_state._report_execution_context = _active_report_context()
     notification_content = NotificationContent(
         name="Private channel report",
         header_data={
@@ -3036,6 +3038,7 @@ def test_send_classifies_malformed_file_recipient_as_client_error(
         "January 1, 2021",
         "execution_id_example",
     )
+    report_state._report_execution_context = _active_report_context()
     notification_content = NotificationContent(
         name="Private channel report",
         header_data={
@@ -3091,6 +3094,7 @@ def test_send_does_not_fall_back_to_slack_v1_for_file_uploads(
         "January 1, 2021",
         "execution_id_example",
     )
+    report_state._report_execution_context = _active_report_context()
     notification_content = NotificationContent(
         name="Private channel report",
         header_data={
@@ -3255,6 +3259,18 @@ def _make_notification_state(
     return state
 
 
+def _active_report_context() -> ReportExecutionContext:
+    return ReportExecutionContext(
+        execution_id=UUID("084e7ee6-5557-4ecd-9632-b7f39c9ec524"),
+        report_schedule_id=11,
+        deadline=ReportExecutionDeadline(
+            total_seconds=900,
+            started_at=0,
+            _clock=lambda: 0,
+        ),
+    )
+
+
 @patch("superset.commands.report.execute.feature_flag_manager")
 def test_get_notification_content_png_screenshot(
     mock_ff, mocker: MockerFixture
@@ -3275,6 +3291,7 @@ def test_slack_retry_deadline_flows_from_report_state_to_transport(
     """One absolute execution deadline reaches every Slack v2 destination."""
     app.config["ALERT_REPORTS_NOTIFICATION_DRY_RUN"] = False
     state = _make_notification_state(mocker, report_format=ReportDataFormat.PNG)
+    state._report_execution_context = _active_report_context()
     mocker.patch.object(state, "_get_screenshots", return_value=[b"img"])
     deadline_factory = mocker.patch(
         "superset.commands.report.execute.get_slack_send_retry_deadline",
@@ -3295,6 +3312,141 @@ def test_slack_retry_deadline_flows_from_report_state_to_transport(
     assert content.slack_retry_deadline == 123.0
     deadline_factory.assert_called_once_with(None)
     assert send_to_channels.call_args.kwargs["retry_deadline"] == 123.0
+
+
+@pytest.mark.parametrize(
+    ("schedule_type", "report_format", "content"),
+    [
+        (
+            ReportScheduleType.REPORT,
+            ReportDataFormat.PNG,
+            NotificationContent(
+                name="report",
+                header_data=_make_notification_header(),
+                screenshots=[b"png"],
+            ),
+        ),
+        (
+            ReportScheduleType.REPORT,
+            ReportDataFormat.PDF,
+            NotificationContent(
+                name="report", header_data=_make_notification_header(), pdf=b"%PDF"
+            ),
+        ),
+        (
+            ReportScheduleType.ALERT,
+            ReportDataFormat.PNG,
+            NotificationContent(
+                name="alert",
+                header_data=_make_notification_header(),
+                screenshots=[b"png"],
+            ),
+        ),
+        (
+            ReportScheduleType.ALERT,
+            ReportDataFormat.PDF,
+            NotificationContent(
+                name="alert", header_data=_make_notification_header(), pdf=b"%PDF"
+            ),
+        ),
+    ],
+)
+def test_rejected_capture_blocks_every_rendered_delivery_path(
+    mocker: MockerFixture,
+    schedule_type: ReportScheduleType,
+    report_format: ReportDataFormat,
+    content: NotificationContent,
+) -> None:
+    state = _make_notification_state(
+        mocker,
+        report_format=report_format,
+        schedule_type=schedule_type,
+    )
+    report_context = _active_report_context()
+    report_context.reject_capture("blank_combined")
+    state._report_execution_context = report_context
+    recipient = mocker.Mock(spec=ReportRecipients)
+    send_notification = mocker.patch.object(state, "_send_notification")
+
+    with pytest.raises(
+        ReportScheduleScreenshotFailedError,
+        match="capture validation did not produce an accepted artifact",
+    ):
+        state._send(content, [recipient])
+
+    send_notification.assert_not_called()
+
+
+def test_rejected_capture_does_not_block_text_failure_notification(
+    mocker: MockerFixture,
+) -> None:
+    state = _make_notification_state(mocker, report_format=ReportDataFormat.PDF)
+    report_context = _active_report_context()
+    report_context.reject_capture("blank_combined")
+    state._report_execution_context = report_context
+    recipient = mocker.Mock(spec=ReportRecipients)
+    send_notification = mocker.patch.object(state, "_send_notification")
+    content = NotificationContent(
+        name="failed report",
+        header_data=_make_notification_header(),
+        text="The report capture failed",
+    )
+
+    state._send(content, [recipient])
+
+    send_notification.assert_called_once_with(content, recipient)
+
+
+@pytest.mark.parametrize(
+    "content",
+    [
+        NotificationContent(
+            name="report",
+            header_data=_make_notification_header(),
+            screenshots=[b"png"],
+        ),
+        NotificationContent(
+            name="report", header_data=_make_notification_header(), pdf=b"%PDF"
+        ),
+    ],
+    ids=["png", "pdf"],
+)
+def test_rendered_delivery_without_capture_context_fails_closed(
+    mocker: MockerFixture,
+    content: NotificationContent,
+) -> None:
+    state = _make_notification_state(mocker)
+    recipient = mocker.Mock(spec=ReportRecipients)
+    send_notification = mocker.patch.object(state, "_send_notification")
+
+    with pytest.raises(
+        ReportScheduleScreenshotFailedError,
+        match="capture validation did not produce an accepted artifact",
+    ):
+        state._send(content, [recipient])
+
+    send_notification.assert_not_called()
+
+
+def test_direct_notification_send_cannot_bypass_capture_rejection(
+    mocker: MockerFixture,
+) -> None:
+    state = _make_notification_state(mocker)
+    report_context = _active_report_context()
+    report_context.reject_capture("blank_tile:1/2")
+    state._report_execution_context = report_context
+    recipient = mocker.Mock(spec=ReportRecipients)
+    create_notification = mocker.patch(
+        "superset.commands.report.execute.create_notification"
+    )
+    content = NotificationContent(
+        name="report", header_data=_make_notification_header(), pdf=b"%PDF"
+    )
+
+    with pytest.raises(ReportScheduleScreenshotFailedError):
+        state._send_notification(content, recipient)
+
+    create_notification.assert_not_called()
 
 
 def test_slack_retry_deadline_clamps_elapsed_working_timeout(
