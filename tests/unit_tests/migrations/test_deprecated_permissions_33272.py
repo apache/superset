@@ -98,26 +98,43 @@ def _make_pvm(session: Session, view_name: str, permission_name: str) -> Permiss
     return pvm
 
 
+def test_pvm_list_and_pvm_map_are_disjoint() -> None:
+    """
+    ``PVM_LIST`` (pure deletions) and ``PVM_MAP`` (renames) must never share
+    an entry -- and, more strongly, no ``PVM_LIST`` entry's permission name
+    should even collide with a ``NEW_PVMS`` successor permission on its own
+    view menu. Either would indicate a permission miscategorized as a pure
+    deletion when it actually has a live successor -- the exact bug class
+    this whole rework exists to fix.
+    """
+    assert set(PVM_LIST).isdisjoint(PVM_MAP.keys())
+    assert not any(pvm.permission in NEW_PVMS.get(pvm.view, ()) for pvm in PVM_LIST)
+
+
 def test_delete_migration_real_pvm_list_removes_deprecated_pvm_only(
     session: Session,
 ) -> None:
     """
     Run the actual deletion migration's ``do_upgrade`` (which calls
-    ``delete_pvms(session, PVM_LIST)`` against the REAL 25-entry list) over a
-    DB seeded with:
-      - one representative real ``PVM_LIST`` entry, attached to a role
-      - one valid/unrelated PVM (not in ``PVM_LIST``), which must survive
-      - one dynamic/object-specific PVM (``database_access`` on a per-db view
-        menu), which must survive because ``PVM_LIST`` never contains it
+    ``delete_pvms(session, PVM_LIST)`` against the REAL, verified 6-entry
+    list) over a DB seeded with a role holding both:
+      - one representative real ``PVM_LIST`` entry
+      - one valid/unrelated PVM (not in ``PVM_LIST``)
+    plus a dynamic/object-specific PVM (``database_access`` on a per-db view
+    menu), unattached to any role.
+
+    Asserts the targeted PVM and its role association are gone, while the
+    role's other (untargeted) permission, the unrelated PVM, and the dynamic
+    PVM all survive completely unchanged.
     """
-    target = Pvm("Superset", "can_select_star")
+    target = Pvm("Superset", "can_profile")
     assert target in PVM_LIST, "test assumes this PVM_LIST entry still exists"
 
     deprecated_pvm = _make_pvm(session, target.view, target.permission)
-    role = Role(name="Gamma", permissions=[deprecated_pvm])
+    unrelated_pvm = _make_pvm(session, "Superset", "can_csv")
+    role = Role(name="Gamma", permissions=[deprecated_pvm, unrelated_pvm])
     session.add(role)
 
-    unrelated_pvm = _make_pvm(session, "Superset", "can_csv")
     dynamic_pvm = _make_pvm(session, "[my_db].(id:1)", "database_access")
     session.commit()
 
@@ -128,14 +145,18 @@ def test_delete_migration_real_pvm_list_removes_deprecated_pvm_only(
     assert (
         session.query(PermissionView)
         .join(Permission)
-        .filter(Permission.name == "can_select_star")
+        .filter(Permission.name == "can_profile")
         .count()
         == 0
     )
+    # its Permission is now orphaned (no other PVM used "can_profile")
+    assert session.query(Permission).filter_by(name="can_profile").count() == 0
+
+    # the role keeps its other (untargeted) permission, unchanged
     role = session.query(Role).filter_by(name="Gamma").one()
-    assert role.permissions == []
-    # its Permission is now orphaned (no other PVM used "can_select_star")
-    assert session.query(Permission).filter_by(name="can_select_star").count() == 0
+    assert len(role.permissions) == 1
+    assert role.permissions[0].view_menu.name == "Superset"
+    assert role.permissions[0].permission.name == "can_csv"
 
     # the unrelated valid PVM survives untouched
     remaining_unrelated = session.get(PermissionView, unrelated_pvm.id)
@@ -181,14 +202,16 @@ def test_rename_migration_real_pvm_map_migrates_role_to_verified_successor(
 ) -> None:
     """
     Run the actual rename migration's ``do_upgrade`` (``add_pvms(NEW_PVMS)``
-    then ``migrate_roles(PVM_MAP)`` with the REAL 12-entry map) over a DB
-    seeded with one representative real old PVM from ``PVM_MAP``, attached to
-    a role.
+    then ``migrate_roles(PVM_MAP)`` with the REAL, now 33-entry map) over a DB
+    seeded with a role holding both:
+      - one representative real old PVM from ``PVM_MAP``
+      - one valid/unrelated PVM (not in ``PVM_MAP``)
 
     Asserts: the role ends up holding the actual verified successor
-    (``can_execute_sql_query`` on ``SQLLab``); the old PVM (and its
-    now-orphaned Permission/ViewMenu) is gone; the successor PVM itself
-    survives (it's a shared, actively-used permission).
+    (``can_execute_sql_query`` on ``SQLLab``) ADDED alongside the untargeted
+    permission, not replacing it; the old PVM (and its now-orphaned
+    Permission/ViewMenu) is gone; the successor PVM itself survives (it's a
+    shared, actively-used permission).
     """
     old_key = Pvm("Superset", "can_sql_json")
     assert old_key in PVM_MAP, "test assumes this PVM_MAP entry still exists"
@@ -198,18 +221,19 @@ def test_rename_migration_real_pvm_map_migrates_role_to_verified_successor(
     )
 
     old_pvm = _make_pvm(session, old_key.view, old_key.permission)
-    role = Role(name="Gamma", permissions=[old_pvm])
+    unrelated_pvm = _make_pvm(session, "Superset", "can_csv")
+    role = Role(name="Gamma", permissions=[old_pvm, unrelated_pvm])
     session.add(role)
     session.commit()
 
     rename_migration.do_upgrade(session)
     session.commit()
 
-    # role now holds the verified successor instead of the old PVM
+    # role now holds the verified successor ADDED alongside the untargeted
+    # permission, rather than replacing it
     role = session.query(Role).filter_by(name="Gamma").one()
-    assert len(role.permissions) == 1
-    assert role.permissions[0].view_menu.name == "SQLLab"
-    assert role.permissions[0].permission.name == "can_execute_sql_query"
+    held = {(p.view_menu.name, p.permission.name) for p in role.permissions}
+    assert held == {("SQLLab", "can_execute_sql_query"), ("Superset", "can_csv")}
 
     # the old PVM is gone
     assert (
@@ -221,9 +245,6 @@ def test_rename_migration_real_pvm_map_migrates_role_to_verified_successor(
     )
     # its Permission was orphaned (nothing else referenced "can_sql_json")
     assert session.query(Permission).filter_by(name="can_sql_json").count() == 0
-    # its ViewMenu ("Superset") was orphaned too -- only this test's old_pvm
-    # referenced it, and add_pvms(NEW_PVMS) never creates a "Superset" entry
-    assert session.query(ViewMenu).filter_by(name="Superset").count() == 0
 
     # the successor PVM itself is a live, shared permission and must survive
     assert (
@@ -238,6 +259,93 @@ def test_rename_migration_real_pvm_map_migrates_role_to_verified_successor(
         == 1
     )
 
+    # the unrelated PVM (and the now-shared "Superset" view menu it still
+    # references) survives untouched
+    remaining_unrelated = session.get(PermissionView, unrelated_pvm.id)
+    assert remaining_unrelated is not None
+    assert remaining_unrelated.view_menu.name == "Superset"
+    assert remaining_unrelated.permission.name == "can_csv"
+
+
+def test_rename_migration_is_idempotent_with_real_pvm_map(session: Session) -> None:
+    """
+    Running the real rename migration's ``do_upgrade`` twice must not raise
+    or leave inconsistent state. ``migrate_roles``'s existing
+    ``_find_pvm().one_or_none()`` + ``if old_pvm:`` guard already makes the
+    second pass a safe no-op -- this is a regression test for that existing
+    behavior against the much larger, now-33-entry ``PVM_MAP``, not a fix for
+    new behavior.
+    """
+    old_key = next(iter(PVM_MAP))
+    successors = PVM_MAP[old_key]
+
+    old_pvm = _make_pvm(session, old_key.view, old_key.permission)
+    role = Role(name="Gamma", permissions=[old_pvm])
+    session.add(role)
+    session.commit()
+
+    rename_migration.do_upgrade(session)
+    session.commit()
+    rename_migration.do_upgrade(session)
+    session.commit()
+
+    role = session.query(Role).filter_by(name="Gamma").one()
+    held = {(p.view_menu.name, p.permission.name) for p in role.permissions}
+    assert held == {(s.view, s.permission) for s in successors}
+
+    assert (
+        session.query(PermissionView)
+        .join(Permission)
+        .filter(Permission.name == old_key.permission)
+        .count()
+        == 0
+    )
+
+
+def test_delete_and_rename_migrations_chained_do_not_interfere(
+    session: Session,
+) -> None:
+    """
+    Runs the delete migration's ``do_upgrade`` immediately followed by the
+    rename migration's ``do_upgrade`` against ONE shared session, mirroring
+    how ``alembic upgrade`` actually chains them back-to-back. Seeds a role
+    with one PVM from each migration's list and confirms both migrations'
+    effects land correctly together. ``PVM_LIST`` and ``PVM_MAP`` are disjoint
+    (see ``test_pvm_list_and_pvm_map_are_disjoint``), so this is mostly a
+    structural confirmation that holds -- more valuable to pin down now given
+    the much larger ``PVM_MAP``.
+    """
+    delete_target = PVM_LIST[0]
+    rename_key = next(iter(PVM_MAP))
+    rename_successors = PVM_MAP[rename_key]
+
+    delete_pvm = _make_pvm(session, delete_target.view, delete_target.permission)
+    rename_pvm = _make_pvm(session, rename_key.view, rename_key.permission)
+    role = Role(name="Gamma", permissions=[delete_pvm, rename_pvm])
+    session.add(role)
+    session.commit()
+
+    delete_migration.do_upgrade(session)
+    rename_migration.do_upgrade(session)
+    session.commit()
+
+    # the delete target is gone entirely, with no successor created for it
+    assert (
+        session.query(PermissionView)
+        .join(Permission)
+        .filter(Permission.name == delete_target.permission)
+        .count()
+        == 0
+    )
+
+    # the role holds exactly the rename key's successors -- neither the
+    # delete target nor the old rename key remain
+    role = session.query(Role).filter_by(name="Gamma").one()
+    held = {(p.view_menu.name, p.permission.name) for p in role.permissions}
+    assert (delete_target.view, delete_target.permission) not in held
+    assert (rename_key.view, rename_key.permission) not in held
+    assert held == {(s.view, s.permission) for s in rename_successors}
+
 
 def test_rename_migration_new_pvms_all_creatable(session: Session) -> None:
     """
@@ -246,6 +354,7 @@ def test_rename_migration_new_pvms_all_creatable(session: Session) -> None:
     via ``add_pvms``, and every successor referenced anywhere in ``PVM_MAP``'s
     values must appear somewhere in ``NEW_PVMS`` (so ``migrate_roles`` can
     never resolve a target to ``None`` for lack of the successor existing).
+    This now exercises the much larger, expanded ``NEW_PVMS``/``PVM_MAP``.
     """
     from superset.migrations.shared.security_converge import add_pvms
 

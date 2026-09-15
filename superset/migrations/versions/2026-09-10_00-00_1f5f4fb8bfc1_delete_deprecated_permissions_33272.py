@@ -24,12 +24,16 @@ the codebase. Permissions deprecated across past releases (mostly on the
 ``Superset`` monolithic view) therefore persist forever across upgrades
 (apache/superset#33272).
 
-Each permission in ``PVM_LIST`` below was individually confirmed to have no
-successor -- its endpoint/method was deleted outright, not renamed or
-consolidated -- by cross-checking current ``superset/views``/API code, the
-full ``superset/migrations/`` history (none already handles them), and
-UPDATING.md. See the grouped comment above ``PVM_LIST`` for the removal
-evidence behind each entry.
+An earlier draft of this migration put 25 permissions here, all assumed to be
+pure deletions. Two follow-up investigation passes -- checking historical
+``superset/views/core.py``, the actual ``gh pr diff`` for every cited removal
+PR, and live ``MODEL_API_RW_METHOD_PERMISSION_MAP`` successors -- found most
+of those 25 actually have a real, verifiable live successor, so treating them
+as pure deletions would have silently dropped custom roles' grants with no
+replacement. Those 19 entries were moved to the rename migration's
+``PVM_MAP`` instead (see that file). Only the 6 entries below were confirmed
+to have no successor at all -- their endpoint/method was deleted outright,
+not renamed or consolidated.
 
 Renames with a verified live successor (e.g. ``can_explore_json`` ->
 ``can_read`` on ``Chart``) are handled separately in the next migration via
@@ -65,49 +69,28 @@ from superset.migrations.shared.security_converge import (  # noqa: E402
 # which are reused across many view menus (one per Database/SqlaTable/schema/
 # catalog).
 #
-# Removal evidence (all on the "Superset" view menu unless noted):
-#   can_select_star, can_test_conn, can_sync_druid_source -- dead code /
-#     connector removal (Druid, SIP-11/68); no PR citation found.
-#   can_available_domains (PR #24381), can_datasources (PR #24333).
-#   can_approve, can_request_access -- access-request workflow removed
-#     (PR #22022).
-#   can_copy_dash, can_save_dash, can_add_slices (PR #24353).
-#   can_validate_sql_json, can_schemas_access_for_file_upload,
-#     can_extra_table_metadata (PR #24354, "Removed deprecated APIs", no
-#     successor named).
-#   can_my_queries on "SqlLab" (PR #27117) -- no 1:1 successor.
-#   can_created_dashboards, can_created_slices, can_fave_dashboards,
-#     can_fave_slices, can_favstar, can_user_slices (PR #24400, "Removed
-#     deprecated APIs", no successor named).
-#   can_sqllab_viz and its sibling can_sqllab_table_viz, can_import_dashboards,
-#     can_profile, can_csrf_token -- confirmed gone from current code, no
-#     remaining reference anywhere in superset/; no PR citation found.
+# Removal evidence (all on the "Superset" view menu):
+#   can_sync_druid_source -- PR #19770, no `@deprecated` decorator; the entire
+#     native Druid connector (SIP-11/SIP-68) was deleted outright, so no
+#     successor concept exists.
+#   can_approve, can_request_access -- both PR #24266, `@deprecated()` with no
+#     `new_target`; the whole access-request/approval workflow and its
+#     backing model were deleted.
+#   can_save_dash -- PR #24353, `@deprecated()` with no `new_target` (its two
+#     siblings from the same PR, `can_copy_dash`/`can_add_slices`, DO have
+#     real successors and are now in the rename migration instead).
+#   can_profile -- PR #26462, explicit full feature removal (the Profile page
+#     was deleted as unmaintained).
+#   can_override_role_permissions -- PR #23714, `@deprecated()` with no
+#     `new_target`; the PR body states it was "not called from client side
+#     code at all."
 PVM_LIST = (
-    Pvm("Superset", "can_select_star"),
-    Pvm("Superset", "can_test_conn"),
     Pvm("Superset", "can_sync_druid_source"),
-    Pvm("Superset", "can_available_domains"),
-    Pvm("Superset", "can_validate_sql_json"),
-    Pvm("Superset", "can_schemas_access_for_file_upload"),
-    Pvm("Superset", "can_extra_table_metadata"),
-    Pvm("Superset", "can_datasources"),
     Pvm("Superset", "can_approve"),
     Pvm("Superset", "can_request_access"),
-    Pvm("Superset", "can_copy_dash"),
     Pvm("Superset", "can_save_dash"),
-    Pvm("Superset", "can_add_slices"),
-    Pvm("SqlLab", "can_my_queries"),
-    Pvm("Superset", "can_created_dashboards"),
-    Pvm("Superset", "can_created_slices"),
-    Pvm("Superset", "can_fave_dashboards"),
-    Pvm("Superset", "can_fave_slices"),
-    Pvm("Superset", "can_favstar"),
-    Pvm("Superset", "can_user_slices"),
-    Pvm("Superset", "can_sqllab_viz"),
-    Pvm("Superset", "can_sqllab_table_viz"),
-    Pvm("Superset", "can_import_dashboards"),
     Pvm("Superset", "can_profile"),
-    Pvm("Superset", "can_csrf_token"),
+    Pvm("Superset", "can_override_role_permissions"),
 )
 
 
