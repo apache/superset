@@ -250,3 +250,22 @@ def test_extended_aggregation_func_median_stddev_var_executes() -> None:
             query = select(func(literal_column("sales"))).select_from(text("t"))
             result = conn.execute(query).scalar()
             assert result == pytest.approx(expected_value)
+
+
+def test_motherduck_properties() -> None:
+    from superset.db_engine_specs.duckdb import DuckDBEngineSpec, MotherDuckEngineSpec
+
+    assert MotherDuckEngineSpec.engine == "motherduck"
+    assert MotherDuckEngineSpec.engine_name == "MotherDuck"
+    assert issubclass(MotherDuckEngineSpec, DuckDBEngineSpec)
+
+
+def test_motherduck_metadata() -> None:
+    from superset.db_engine_specs.duckdb import MotherDuckEngineSpec
+
+    metadata = MotherDuckEngineSpec.metadata
+    assert (
+        "MotherDuck is a serverless cloud analytics platform" in metadata["description"]
+    )
+    assert metadata["logo"] == "motherduck.png"
+    assert "duckdb-engine" in metadata["pypi_packages"]
