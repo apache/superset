@@ -45,6 +45,29 @@ class HostileDecimal(Decimal):
         raise AssertionError("hostile Decimal float hook executed")
 
 
+def test_df_to_records_preserves_finite_longdouble_and_nulls_nonfinite() -> None:
+    """Long-double classification must not narrow through Python float."""
+    finite = np.longdouble("1e400")
+    frame = pd.DataFrame(
+        {
+            "value": pd.Series(
+                [
+                    finite,
+                    np.longdouble("inf"),
+                    np.longdouble("-inf"),
+                    np.longdouble("nan"),
+                ],
+                dtype=object,
+            )
+        }
+    )
+
+    records = df_to_records(frame)
+
+    assert records[0]["value"] is finite
+    assert [record["value"] for record in records[1:]] == [None, None, None]
+
+
 def test_df_to_records_does_not_compare_object_column_values() -> None:
     """Materialization must not run equality hooks before envelope validation."""
 

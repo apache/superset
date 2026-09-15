@@ -572,7 +572,7 @@ class QueryContextProcessor:
         # QueryObject post-processing has completed before this materialization
         # boundary. Canonicalize its trusted missing/non-finite scalar outputs,
         # while downstream envelope validation still rejects injected infinity.
-        return df_to_records(df, convert_big_integers=False)
+        return df_to_records(df)
 
     @staticmethod
     def _to_arrow_ipc(df: pd.DataFrame) -> bytes:

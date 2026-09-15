@@ -18,6 +18,7 @@
 
 import logging
 import math
+import warnings
 from decimal import Decimal
 from typing import Any
 
@@ -56,7 +57,7 @@ def _is_trusted_missing_or_nonfinite(value: Any) -> bool:
     if value_type is float:
         return not math.isfinite(value)
     if value_type in _NUMPY_FLOAT_TYPES:
-        return not math.isfinite(float(value))
+        return not bool(np.isfinite(value))
     return False
 
 
@@ -75,13 +76,16 @@ def df_to_records(
     :returns: a list of dictionaries reflecting each single row of the DataFrame
     """
     if not dframe.columns.is_unique:
-        logger.warning(
-            "DataFrame columns are not unique, some columns will be omitted."
-        )
+        message = "DataFrame columns are not unique, some columns will be omitted."
+        logger.warning(message)
+        warnings.warn(message, UserWarning, stacklevel=2)
     # Materialize first, then inspect only exact trusted scalar types. DataFrame
     # replacement and generic missing-value checks compare object-column values;
     # an injected value could run ``__eq__`` before the MCP envelope validator.
-    records = dframe.to_dict(orient="records")
+    records = [
+        dict(zip(dframe.columns, row, strict=True))
+        for row in dframe.itertuples(index=False, name=None)
+    ]
 
     for record in records:
         for key, value in dict.items(record):
