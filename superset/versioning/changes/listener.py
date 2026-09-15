@@ -174,22 +174,34 @@ def build_action_headline(
 _REGISTERED_SENTINEL = "_versioning_change_listener_registered"
 
 
+def _uncaptured_identity(
+    obj: Any,
+    initial_states: dict[tuple[str, int], tuple[Any, dict[str, Any]]],
+) -> tuple[str, int] | None:
+    """Return the entity identity only when its pre-state needs a read."""
+    entity_kind: str | None = ENTITY_KIND_BY_CLASS_NAME.get(type(obj).__name__)
+    if entity_kind is None:
+        return None
+    entity_id: int | None = getattr(obj, "id", None)
+    if entity_id is None:
+        return None
+    key: tuple[str, int] = (entity_kind, entity_id)
+    if key in initial_states:
+        return None
+    return key
+
+
 def _capture_dirty_entity_initial_state(
     session: Session,
     obj: Any,
     initial_states: dict[tuple[str, int], tuple[Any, dict[str, Any]]],
 ) -> None:
     """Retain one dirty entity's first database state for this transaction."""
-    entity_kind = ENTITY_KIND_BY_CLASS_NAME.get(type(obj).__name__)
-    if entity_kind is None:
+    key: tuple[str, int] | None = _uncaptured_identity(obj, initial_states)
+    if key is None:
         return
-    entity_id = getattr(obj, "id", None)
-    if entity_id is None:
-        return
-    key = (entity_kind, entity_id)
-    if key in initial_states:
-        return
-    if (pre_state := capture_initial_state(session, obj)) is not None:
+    pre_state: dict[str, Any] | None = capture_initial_state(session, obj)
+    if pre_state is not None:
         initial_states[key] = (obj, pre_state)
 
 
@@ -449,14 +461,14 @@ def finalize_change_records(session: Session) -> None:
 def _capture_initial_states(
     session: Session, versioned_classes: tuple[type, ...]
 ) -> None:
-    """The ``before_flush`` capture stage: retain each dirty versioned entity's
-    pre-flush database state for the final diff.
+    """Retain dirty versioned entities' pre-flush states for the final diff.
 
     Timed as its own metric stage. The per-entity pre-state SELECTs issued
     here are the capture cost that scales with the number of dirty versioned
     entities — on a bulk edit plausibly the dominant cost the kill-switch
     removes — and they run before the flush, outside ``finalize``'s timer. A
-    sample is emitted only when at least one versioned entity was captured,
+    sample is emitted only when at least one pre-state read was attempted,
+    including failed reads that return no state,
     so the many unrelated autoflushes do not flood the series with empty
     samples; together with ``finalize`` the two stages cover the whole
     listener. Module-level (not the registered closure) so it is
@@ -465,26 +477,40 @@ def _capture_initial_states(
     initial_states: dict[tuple[str, int], tuple[Any, dict[str, Any]]] = (
         session.info.setdefault(_INITIAL_STATES_KEY, {})
     )
-    start = perf_counter()
-    captured = 0
+    start: float = perf_counter()
+    attempted: bool = False
+    obj: Any
     try:
         for obj in list(session.dirty):
             if isinstance(obj, versioned_classes):
-                # Count captures, not candidates: an entity already retained
-                # from an earlier flush returns early without a SELECT, and a
-                # sample for it would be near-zero noise diluting the upper
-                # percentiles the series is alerted on.
-                before = len(initial_states)
-                _capture_dirty_entity_initial_state(session, obj, initial_states)
-                captured += len(initial_states) - before
+                key: tuple[str, int] | None = _uncaptured_identity(obj, initial_states)
+                if key is None:
+                    continue
+                try:
+                    # Deduplication precedes the marker: retained entities
+                    # need no read, while failed reads still cost time.
+                    attempted = True
+                    pre_state: dict[str, Any] | None = capture_initial_state(
+                        session, obj
+                    )
+                    if pre_state is not None:
+                        initial_states[key] = (obj, pre_state)
+                except Exception:  # pylint: disable=broad-except
+                    logger.exception(
+                        "version_changes: initial-state capture failed for %s id=%s",
+                        key[0],
+                        key[1],
+                    )
+                    incr_capture_error("capture_initial_states")
+                    continue
     except Exception:  # pylint: disable=broad-except
         # Twin of the transaction-lookup guard in finalize: a versioning bug
-        # must never break a user's save, so a raise in the per-entity capture
-        # is logged and counted rather than propagated out of before_flush.
+        # must never break a user's save, including when dirty iteration or
+        # eligibility checking fails before the per-entity capture handler.
         logger.exception("version_changes: initial-state capture failed")
         incr_capture_error("capture_initial_states")
     finally:
-        if captured:
+        if attempted:
             emit_capture_timing(
                 "capture_initial_states", (perf_counter() - start) * 1000.0
             )

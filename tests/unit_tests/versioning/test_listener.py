@@ -437,15 +437,11 @@ def test_transaction_lookup_failure_does_not_break_the_commit(
     error_spy.assert_called_once_with("transaction_lookup")
 
 
-def test_capture_initial_states_stage_is_timed_only_when_an_entity_is_captured(
+def test_capture_initial_states_stage_is_timed_only_when_a_read_is_attempted(
     lifecycle_session: Session, mocker: Any, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """The before-flush stage — the per-entity pre-state reads that scale with
-    dirty versioned entities and sit outside finalize's timer — emits its own
-    ``capture_initial_states.latency`` sample, but only when at least one
-    versioned entity was captured, so unrelated autoflushes do not flood the
-    series (fitzee review on #44009)."""
-    manager = MagicMock()
+    """Emit a stage sample only when a pre-state read is attempted."""
+    manager: MagicMock = MagicMock()
     mocker.patch("superset.extensions.stats_logger_manager", manager)
     monkeypatch.setattr(
         listener, "capture_initial_state", lambda session, obj: {"slice_name": "x"}
@@ -460,7 +456,7 @@ def test_capture_initial_states_stage_is_timed_only_when_an_entity_is_captured(
         ]
 
     class Slice:  # the class NAME maps to the 'chart' entity kind
-        id = 7
+        id: int = 7
 
     # Nothing versioned dirty -> no sample.
     lifecycle_session.add(LifecycleRow(value="unrelated"))
@@ -469,11 +465,11 @@ def test_capture_initial_states_stage_is_timed_only_when_an_entity_is_captured(
     assert timing_calls() == []
 
     # A dirty versioned entity -> exactly one sample, and its state retained.
-    entity = Slice()
+    entity: Slice = Slice()
     mocker.patch.object(
         type(lifecycle_session),
         "dirty",
-        new_callable=lambda: property(lambda self: {entity}),
+        new_callable=lambda: property(lambda self: [entity]),
     )
     listener._capture_initial_states(lifecycle_session, (Slice,))
     assert len(timing_calls()) == 1
@@ -482,13 +478,157 @@ def test_capture_initial_states_stage_is_timed_only_when_an_entity_is_captured(
         ("chart", 7): (entity, {"slice_name": "x"})
     }
 
-    # A later flush of the SAME entity is a candidate but not a capture (its
+    # A later flush of the SAME entity is a candidate but not a read attempt (its
     # state is already retained, no SELECT is issued): it must not emit a
     # near-zero sample that would dilute the percentiles the series is
     # alerted on (aminghadersohi's probe: 4 flushes, 1 SELECT, 4 samples).
     listener._capture_initial_states(lifecycle_session, (Slice,))
     listener._capture_initial_states(lifecycle_session, (Slice,))
     assert len(timing_calls()) == 1
+
+
+def test_initial_state_capture_isolates_each_entity(
+    lifecycle_session: Session, mocker: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Keep earlier states and attempt later entities after a capture raises."""
+
+    class Slice:
+        id: int
+
+        def __init__(self, entity_id: int) -> None:
+            self.id = entity_id
+
+    entities: list[Slice] = [Slice(1), Slice(2), Slice(3)]
+    attempts: list[int] = []
+    error_spy: MagicMock = mocker.patch.object(listener, "incr_capture_error")
+    log_spy: MagicMock = mocker.patch.object(listener.logger, "exception")
+    mocker.patch("superset.extensions.stats_logger_manager", MagicMock())
+    mocker.patch.object(
+        type(lifecycle_session),
+        "dirty",
+        new_callable=lambda: property(lambda self: entities),
+    )
+
+    def capture(session: Session, obj: Slice) -> dict[str, Any]:
+        """Fail the middle read while recording every attempted entity."""
+        attempts.append(obj.id)
+        if obj.id == 2:
+            raise RuntimeError("middle read failed")
+        return {"slice_name": str(obj.id)}
+
+    monkeypatch.setattr(listener, "capture_initial_state", capture)
+    listener._capture_initial_states(lifecycle_session, (Slice,))
+
+    assert attempts == [1, 2, 3]
+    assert lifecycle_session.info[listener._INITIAL_STATES_KEY] == {
+        ("chart", 1): (entities[0], {"slice_name": "1"}),
+        ("chart", 3): (entities[2], {"slice_name": "3"}),
+    }
+    error_spy.assert_called_once_with("capture_initial_states")
+    log_spy.assert_called_once_with(
+        "version_changes: initial-state capture failed for %s id=%s", "chart", 2
+    )
+
+
+@pytest.mark.parametrize("outcome", ["swallowed", "mixed", "escaping"])
+def test_initial_state_read_attempts_emit_one_timing_sample(
+    lifecycle_session: Session,
+    mocker: Any,
+    monkeypatch: pytest.MonkeyPatch,
+    outcome: str,
+) -> None:
+    """Time attempted reads even when no pre-state survives a failure."""
+
+    class Slice:
+        id: int
+
+        def __init__(self, entity_id: int) -> None:
+            self.id = entity_id
+
+    entities: list[Slice] = [Slice(1), Slice(2)]
+    manager: MagicMock = MagicMock()
+    mocker.patch("superset.extensions.stats_logger_manager", manager)
+    mocker.patch.object(listener, "perf_counter", side_effect=[10.0, 10.125])
+    mocker.patch.object(
+        type(lifecycle_session),
+        "dirty",
+        new_callable=lambda: property(lambda self: entities),
+    )
+    read_spy: MagicMock
+    if outcome == "swallowed":
+        # Keep the real capture function, including its fail-open read handler.
+        read_spy = mocker.patch(
+            "superset.versioning.changes.state._read_pre_state",
+            side_effect=RuntimeError("read failed"),
+        )
+    elif outcome == "mixed":
+        read_spy = MagicMock(side_effect=[{"slice_name": "first"}, None])
+        monkeypatch.setattr(listener, "capture_initial_state", read_spy)
+    else:
+        read_spy = MagicMock(side_effect=RuntimeError("capture failed"))
+        monkeypatch.setattr(listener, "capture_initial_state", read_spy)
+
+    listener._capture_initial_states(lifecycle_session, (Slice,))
+
+    assert read_spy.call_count == 2
+    manager.instance.timing.assert_called_once_with(
+        "superset.versioning.capture.capture_initial_states.latency", 125.0
+    )
+    if outcome == "mixed":
+        assert lifecycle_session.info[listener._INITIAL_STATES_KEY] == {
+            ("chart", 1): (entities[0], {"slice_name": "first"})
+        }
+    else:
+        assert lifecycle_session.info[listener._INITIAL_STATES_KEY] == {}
+
+
+def test_initial_state_ineligible_entities_emit_no_timing(
+    lifecycle_session: Session, mocker: Any
+) -> None:
+    """Skip unknown kinds and missing IDs without attempting a read."""
+
+    class Unknown:
+        id: int = 1
+
+    class Slice:
+        id: None = None
+
+    manager: MagicMock = MagicMock()
+    capture_spy: MagicMock = mocker.patch.object(listener, "capture_initial_state")
+    mocker.patch("superset.extensions.stats_logger_manager", manager)
+    mocker.patch.object(
+        type(lifecycle_session),
+        "dirty",
+        new_callable=lambda: property(lambda self: [Unknown(), Slice()]),
+    )
+
+    listener._capture_initial_states(lifecycle_session, (Unknown, Slice))
+
+    capture_spy.assert_not_called()
+    manager.instance.timing.assert_not_called()
+
+
+def test_initial_state_iteration_failure_does_not_break_the_flush(
+    lifecycle_session: Session, mocker: Any
+) -> None:
+    """Retain the outer fail-open backstop when obtaining dirty entities fails."""
+    manager: MagicMock = MagicMock()
+    error_spy: MagicMock = mocker.patch.object(listener, "incr_capture_error")
+    mocker.patch("superset.extensions.stats_logger_manager", manager)
+
+    def broken_dirty(session: Session) -> list[object]:
+        """Simulate failure before a dirty entity can be selected."""
+        raise RuntimeError("dirty iteration failed")
+
+    mocker.patch.object(
+        type(lifecycle_session),
+        "dirty",
+        new_callable=lambda: property(broken_dirty),
+    )
+    listener._capture_initial_states(lifecycle_session, (LifecycleRow,))
+
+    error_spy.assert_called_once_with("capture_initial_states")
+    manager.instance.timing.assert_not_called()
 
 
 def test_initial_state_capture_failure_does_not_break_the_flush(
