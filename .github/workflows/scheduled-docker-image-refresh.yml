@@ -109,14 +109,18 @@ jobs:
           persist-credentials: false
 
       # Keep workflow tooling on the triggering revision. Release tags can
-      # contain action pins that no longer satisfy the repository allowlist.
+      # contain action pins that no longer satisfy the repository allowlist,
+      # and -- as of #44220's fix -- won't have scripts/docker_release_target.py
+      # either, since that helper postdates every release published so far.
       - name: Checkout workflow actions
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.sha }}
           path: workflow-source
           persist-credentials: false
-          sparse-checkout: .github/actions
+          sparse-checkout: |
+            .github/actions
+            scripts
 
       # This action lives under a second, sparse checkout of this same repo
       # into workflow-source/ (see above), not at the repository root, so
@@ -170,6 +174,12 @@ jobs:
           # and refuses to guess at anything else. Factored out of this YAML
           # so it has direct pytest coverage instead of only ever being
           # exercised by a real scheduled run.
+          #
+          # The helper itself is read from workflow-source/ (see the
+          # "Checkout workflow actions" step above), not the plain `scripts/`
+          # path -- the working directory here is the *release's* checkout,
+          # which predates this helper entirely, same as it predates the
+          # `superset` Dockerfile stage.
           DRY_RUN_CMD="$(supersetbot docker \
             --preset "$BUILD_PRESET" \
             --context release \
@@ -179,7 +189,7 @@ jobs:
             --dry-run)"
           EXTRA_FLAGS="$(
             printf '%s\n' "$DRY_RUN_CMD" |
-              python3 scripts/docker_release_target.py "$BUILD_PRESET"
+              python3 workflow-source/scripts/docker_release_target.py "$BUILD_PRESET"
           )"
 
           supersetbot docker \
