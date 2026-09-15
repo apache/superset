@@ -37,10 +37,14 @@ import sqlalchemy as sa
 from superset.extensions import db
 
 if TYPE_CHECKING:
+    from sqlalchemy.orm import Session
+
     from superset.versioning.activity.kinds import Window
 
 
-def charts_attached_to_dashboard(dashboard_id: int) -> list[tuple[int, Window]]:
+def charts_attached_to_dashboard(
+    dashboard_id: int, session: Session | None = None
+) -> list[tuple[int, Window]]:
     """Return ``(slice_id, window)`` for every chart that has ever been on
     *dashboard_id*, with each attachment episode's validity window in
     transaction-id space.
@@ -69,8 +73,15 @@ def charts_attached_to_dashboard(dashboard_id: int) -> list[tuple[int, Window]]:
     if m2m_tbl is None:
         return []
 
+    # *session* lets a caller thread the committing session so the read hits
+    # the same connection as its other reads — required on the commit-
+    # finalization path (changes/shadow_queries.py), where the current
+    # transaction's association-shadow rows are flushed-but-not-committed and
+    # visible only on that session's connection. Defaults to the Flask-scoped
+    # ``db.session``, which the read/restore-path callers already run on.
     rows = (
-        db.session.connection()
+        (session or db.session)
+        .connection()
         .execute(
             sa.select(
                 m2m_tbl.c.slice_id,
