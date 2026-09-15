@@ -165,7 +165,9 @@ test('toast undo preserves filters edited after the notification', async () => {
   );
   act(() => toast.action?.onClick());
 
-  expect(store.getState().dataMask.region.filterState?.value).toEqual(['LATAM']);
+  expect(store.getState().dataMask.region.filterState?.value).toEqual([
+    'LATAM',
+  ]);
   expect(store.getState().dataMask.time).toBeUndefined();
 });
 
