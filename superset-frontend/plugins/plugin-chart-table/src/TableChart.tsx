@@ -499,9 +499,16 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     function getValueRange(key: string, alignPositiveNegative: boolean) {
       const nums = data
         ?.map(row => row?.[key])
-        .filter(value => typeof value === 'number' || typeof value === 'bigint')
+        .filter(
+          value =>
+            typeof value === 'number' ||
+            typeof value === 'bigint' ||
+            (typeof value === 'string' && /^-?\d+$/.test(value)),
+        )
         .map(value =>
-          typeof value === 'bigint' ? Number(value) : value,
+          typeof value === 'bigint' || typeof value === 'string'
+            ? Number(value)
+            : value,
         ) as number[];
       if (nums.length > 0) {
         return (
@@ -1198,7 +1205,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             top: 0;
             ${
               valueRange &&
-              (typeof value === 'number' || typeof value === 'bigint') &&
+              (typeof value === 'number' ||
+                typeof value === 'bigint' ||
+                (typeof value === 'string' && /^-?\d+$/.test(value))) &&
               valueRangeFlag &&
               `
                 width: ${`${cellWidth({
@@ -1324,8 +1333,10 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                   /* The following classes are added to support custom CSS styling */
                   className={cx(
                     'cell-bar',
-                    (typeof value === 'number' || typeof value === 'bigint') &&
-                      value < 0
+                    (typeof value === 'number' ||
+                      typeof value === 'bigint' ||
+                      (typeof value === 'string' && /^-?\d+$/.test(value))) &&
+                      Number(value) < 0
                       ? 'negative'
                       : 'positive',
                   )}
