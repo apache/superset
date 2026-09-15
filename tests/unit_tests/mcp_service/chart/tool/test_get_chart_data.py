@@ -2838,9 +2838,7 @@ async def test_get_chart_data_preserves_base_exception_propagation(
 
     monkeypatch.setattr(module, "_get_chart_data", fail)
     with pytest.raises(type(system_failure)):
-        await module.execute_chart_data(
-            GetChartDataRequest(identifier=1), MagicMock()
-        )
+        await module.execute_chart_data(GetChartDataRequest(identifier=1), MagicMock())
 
 
 def _extract_metrics_load_path(load_opt: Any) -> list[str]:
