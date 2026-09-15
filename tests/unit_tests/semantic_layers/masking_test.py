@@ -29,6 +29,7 @@ from superset.semantic_layers import masking
 from superset.semantic_layers.masking import (
     _is_secret_schema,
     _mask_all,
+    _mask_object,
     mask_configuration,
     unmask_configuration,
 )
@@ -140,6 +141,18 @@ def test_mask_empty_or_non_dict_configuration_is_empty() -> None:
     assert mask_configuration("demo", None) == {}
     assert mask_configuration("demo", {}) == {}
     assert mask_configuration("demo", "not-a-dict") == {}
+
+
+def test_mask_object_reveals_a_dict_the_schema_does_not_type_as_an_object() -> None:
+    """A usable schema typing this position as a scalar yields no object
+    variants, so the dict is revealed rather than masked.
+
+    An unresolvable ``$ref`` used to arrive here too, via ``_resolve_ref``
+    returning ``{}``; it now raises and fails closed at the ``_mask_value``
+    boundary instead, leaving this branch for genuinely undescribed objects.
+    """
+    value = {"nested": "kept"}
+    assert _mask_object(value, {"type": "string"}, {}) == value
 
 
 def test_mask_all_masks_scalars_recursively() -> None:
