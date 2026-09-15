@@ -36,6 +36,7 @@ from superset.commands.database.exceptions import (
 from superset.commands.database.sync_permissions import SyncPermissionsCommand
 from superset.commands.database.utils import (
     engine_params_changed,
+    oauth2_endpoint_rebind_unsafe,
     ssh_tunnel_rebind_unsafe,
     uri_identity_changed,
 )
@@ -195,8 +196,9 @@ class UpdateDatabaseCommand(BaseCommand):
     def _check_no_unsafe_secret_rebind(self) -> None:
         """
         Refuse an update that changes the connection's effective destination
-        (URI host/port, `extra.engine_params`, or the SSH tunnel endpoint)
-        while leaving the corresponding stored secret masked.
+        (URI host/port, `extra.engine_params`, the SSH tunnel endpoint, or the
+        OAuth2 endpoint URIs in `encrypted_extra`) while leaving the
+        corresponding stored secret masked.
 
         Without this, an editor could silently redirect the real stored
         password/encrypted_extra/SSH tunnel credential to a different
@@ -266,4 +268,18 @@ class UpdateDatabaseCommand(BaseCommand):
         ):
             raise DatabaseInvalidError(
                 exceptions=[DatabaseUpdateUnsafeRebindError(field_name="ssh_tunnel")]
+            )
+
+        # The OAuth2 endpoints live inside encrypted_extra, so a change there is
+        # invisible to the URI/engine-params check above -- yet the stored client
+        # secret is what the next token exchange posts to the new endpoint.
+        if "masked_encrypted_extra" in self._properties and (
+            oauth2_endpoint_rebind_unsafe(
+                model.encrypted_extra, self._properties["masked_encrypted_extra"]
+            )
+        ):
+            raise DatabaseInvalidError(
+                exceptions=[
+                    DatabaseUpdateUnsafeRebindError(field_name="masked_encrypted_extra")
+                ]
             )
