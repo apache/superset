@@ -17279,3 +17279,9 @@ msgstr ""
 
 msgid "Show all"
 msgstr ""
+
+#, python-format
+msgid ""
+"Slug %(slug)s belongs to the soft-deleted dashboard %(uuid)s. Restore it"
+" via POST /api/v1/dashboard/%(uuid)s/restore, or use a different slug."
+msgstr ""

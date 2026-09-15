@@ -41,6 +41,7 @@ from superset.commands.dataset.exceptions import (
     DatasetMetricsExistsValidationError,
     DatasetMetricsNotFoundValidationError,
     DatasetNotFoundError,
+    DatasetSoftDeletedTwinExistsError,
     DatasetUpdateFailedError,
     MultiCatalogDisabledValidationError,
 )
@@ -149,6 +150,12 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
             table,
             self._model_id,
         ):
+            # Same hidden-twin guidance as the create path: when the blocking
+            # row is a SOFT-DELETED dataset, raise the targeted 422 naming
+            # the twin's uuid and the restore pointer instead of the opaque
+            # "already exists" (the twin is invisible in the caller's list).
+            if soft_twin := DatasetDAO.find_soft_deleted_logical_duplicate(db, table):
+                raise DatasetSoftDeletedTwinExistsError(str(soft_twin.uuid))
             exceptions.append(DatasetExistsValidationError(table))
 
         # Repointing a physical dataset (or converting a virtual dataset to a
