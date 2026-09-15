@@ -242,3 +242,24 @@ def test_contribution_keeps_all_null_object_columns():
     assert processed_df.columns.tolist() == ["a", "empty"]
     assert processed_df["a"].tolist() == [0.25, 0.75]
     assert_array_equal(processed_df["empty"].tolist(), [nan, nan])
+
+
+def test_contribution_on_decimal_columns_with_nulls():
+    """A Decimal metric with nulls mixed in is still recognised as Decimal.
+
+    `infer_dtype(..., skipna=True)` ignores the nulls when inferring the
+    column's value type, matching a nullable NUMERIC column as returned by
+    a driver like psycopg2.
+    """
+    df = DataFrame(
+        {
+            "label": ["x", "y", "z"],
+            "a": [Decimal("1"), None, Decimal("3")],
+        }
+    )
+    processed_df = contribution(
+        df,
+        orientation=PostProcessingContributionOrientation.COLUMN,
+    )
+    assert processed_df["label"].tolist() == ["x", "y", "z"]
+    assert processed_df["a"].tolist() == [0.25, 0.0, 0.75]
