@@ -167,44 +167,80 @@ const StyledContent = styled.div<{
   grid-column: 2;
   grid-row: 2;
   /* @z-index-above-dashboard-header (100) + 2 = 102: a maximized chart
-     must also cover the version-history overlay (101) so the two stack the
-     same way on both sides of the overlay breakpoint. */
+     must also cover the version-history panel (99 in-flow, 98 as the
+     content-area overlay) so the two stack the same way on both sides of
+     the breakpoint. */
   ${({ fullSizeChartId }) => fullSizeChartId && `z-index: 102;`}
 `;
 
-// Sticks alongside the page scroll so the panel stays fully visible.
+// The version-history panel lives in the dashboard CONTENT area, below the
+// header, mirroring the chart panel's placement in Explore (sc-120489): the
+// page header, the global nav and the dashboard's Share / Edit / ⋯ controls
+// stay in the document flow above it and remain visible and clickable.
+//
+// At and above the XXL breakpoint it is an in-flow third grid column beside
+// the content (row 2 only — never the header row), sticking alongside the
+// page scroll so it stays fully visible.
+//
 // Below the XXL breakpoint the dashboard grid's min-content width plus the
-// panel exceed the viewport (the content column cannot shrink), which would
-// push the panel past the page's right edge and clip its own controls
-// (sc-119737). Mirror the Explore panel host in spirit — Explore anchors
-// absolutely inside its relatively-positioned container, but the dashboard
-// page owns the scroll, so this pins to the viewport instead. While open at
-// these widths the overlay covers the page's right edge (including the top
-// navbar while scrolled to the top) — accepted: it is a closable surface.
-const VersionHistoryColumn = styled.div`
-  ${({ theme }) => css`
+// panel would exceed the viewport (the content column cannot shrink) and push
+// the panel past the page's right edge (sc-119737). Explore solves this by
+// anchoring its panel absolutely inside the relatively-positioned content
+// container; the grid equivalent is an absolutely-positioned grid item placed
+// in the content cell (column 2, row 2) — an absolutely-positioned grid item
+// uses its grid AREA as containing block — so it overlays the content only,
+// adds no width to the grid, and never covers the header row or the nav. It
+// stacks below the sticky header (99) and below a maximized chart (102).
+// Because the dashboard page owns the scroll and the content cell is as tall
+// as the dashboard, the panel itself (the ``aside``) is sticky at the
+// measured header height so it never slides under the header while scrolled.
+const VersionHistoryColumn = styled.div<{
+  topOffset: number;
+  bottomOffset: number;
+}>`
+  ${({ theme, topOffset, bottomOffset }) => css`
     grid-column: 3;
-    grid-row: 1 / span 2;
+    grid-row: 2;
     position: sticky;
-    top: 0;
+    /* Sticks directly below the header once the page scrolls, but is SIZED
+       from the header's rendered bottom, which also accounts for a still-
+       visible global nav above it. Sizing from the header height alone
+       overflows the viewport by the nav's height while the page is
+       unscrolled — exactly the short-dashboard case this column sits in. */
+    top: ${topOffset}px;
     align-self: start;
-    height: 100vh;
+    height: calc(100vh - ${bottomOffset}px);
     z-index: 99;
+    /* Load-bearing contract with DashboardVersionHistory's closed state:
+       it must render nothing in place (its restore modal portals out), so
+       :empty collapses the host at every breakpoint, including its grid
+       row height. Pinned by the closed-state test in
+       DashboardVersionHistory.test.tsx (sc-119737). */
+    &:empty {
+      display: none;
+    }
     @media (max-width: ${theme.screenXLMax}px) {
-      /* @z-index-above-dashboard-header (100) + 1 = 101 */
-      position: fixed;
+      /* @z-index-above-dashboard-header (100) - 1 = 98 */
+      grid-column: 2;
+      position: absolute;
+      top: 0;
       right: 0;
       bottom: 0;
       height: auto;
-      z-index: 101;
+      z-index: 98;
       box-shadow: ${theme.boxShadow};
-      /* Load-bearing contract with DashboardVersionHistory's closed state:
-         it must render nothing in place (its restore modal portals out of
-         the column), so the column stays :empty and this zero-width fixed
-         box paints no stray shadow at the viewport edge. Pinned by the
-         closed-state test in DashboardVersionHistory.test.tsx. */
+      /* The same empty-in-place contract also suppresses the overlay's
+         shadow at the content's right edge. */
       &:empty {
         box-shadow: none;
+      }
+      /* The column spans the whole (tall) content cell; keep the panel
+         itself in view below the sticky header while the page scrolls. The
+         panel's root is VersionHistoryPanel's <aside>. */
+      & > aside {
+        position: sticky;
+        top: ${topOffset}px;
+        height: calc(100vh - ${topOffset}px);
       }
     }
   `}
@@ -585,18 +621,28 @@ const DashboardBuilder = () => {
     isReport;
 
   const [barTopOffset, setBarTopOffset] = useState(0);
+  // The header's rendered BOTTOM, not just its height: a still-visible global
+  // navigation above it means the content below starts lower than the header
+  // alone accounts for. Sizing the history column from this keeps its open
+  // panel inside the viewport (sc-120489 review).
+  const [barBottomOffset, setBarBottomOffset] = useState(0);
   const [currentFilterBarWidth, setCurrentFilterBarWidth] = useState(
     CLOSED_FILTER_BAR_WIDTH,
   );
 
   useEffect(() => {
     setBarTopOffset(headerRef.current?.getBoundingClientRect()?.height || 0);
+    setBarBottomOffset(headerRef.current?.getBoundingClientRect()?.bottom || 0);
 
     let observer: ResizeObserver;
     if (global.hasOwnProperty('ResizeObserver') && headerRef.current) {
       observer = new ResizeObserver(entries => {
         setBarTopOffset(
           current => entries?.[0]?.contentRect?.height || current,
+        );
+        setBarBottomOffset(
+          current =>
+            headerRef.current?.getBoundingClientRect()?.bottom || current,
         );
       });
 
@@ -1001,7 +1047,11 @@ const DashboardBuilder = () => {
         </DashboardContentWrapper>
       </StyledContent>
       {isFeatureEnabled(FeatureFlag.VersionHistory) && (
-        <VersionHistoryColumn>
+        <VersionHistoryColumn
+          data-test="dashboard-version-history-column"
+          topOffset={barTopOffset}
+          bottomOffset={barBottomOffset}
+        >
           <Suspense fallback={null}>
             <DashboardVersionHistory />
           </Suspense>
