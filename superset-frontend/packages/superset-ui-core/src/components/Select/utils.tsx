@@ -105,7 +105,6 @@ export const propertyComparator =
     }
     return String(propertyA).localeCompare(String(propertyB)); // fallback to string comparison
   };
-
 export const sortSelectedFirstHelper = (
   a: AntdLabeledValue,
   b: AntdLabeledValue,
