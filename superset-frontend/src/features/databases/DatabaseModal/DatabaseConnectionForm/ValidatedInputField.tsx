@@ -38,6 +38,33 @@ const FIELD_TEXT_MAP = {
     placeholder: t('e.g. AccountAdmin'),
     className: 'form-group-w-50',
   },
+  aws_access_key_id: {
+    label: t('AWS Access Key ID'),
+    placeholder: t('e.g. AKIAIOSFODNN7EXAMPLE'),
+  },
+  aws_secret_access_key: {
+    label: t('AWS Secret Access Key'),
+    placeholder: t('e.g. ********'),
+  },
+  region_name: {
+    label: t('Region'),
+    placeholder: t('e.g. us-east-1'),
+    className: 'form-group-w-50',
+  },
+  s3_staging_dir: {
+    label: t('S3 Staging Directory'),
+    placeholder: t('e.g. s3://my-bucket/staging/'),
+  },
+  schema_name: {
+    label: t('Schema'),
+    placeholder: t('e.g. default'),
+    className: 'form-group-w-50',
+  },
+  work_group: {
+    label: t('Work Group'),
+    placeholder: t('e.g. primary'),
+    className: 'form-group-w-50',
+  },
 };
 
 type FieldTextMapKey = keyof typeof FIELD_TEXT_MAP;
