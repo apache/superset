@@ -23,11 +23,15 @@ import { ReactNode } from 'react';
 import { LOG_ACTIONS_FORCE_REFRESH_DASHBOARD } from 'src/logger/LogUtils';
 import { useHeaderAutoRefresh } from './useHeaderAutoRefresh';
 
+const mockStartAutoRefresh = jest.fn();
+const mockEndAutoRefresh = jest.fn();
+const mockSetRefreshInFlight = jest.fn();
+
 jest.mock('src/dashboard/contexts/AutoRefreshContext', () => ({
   useAutoRefreshContext: () => ({
-    startAutoRefresh: jest.fn(),
-    endAutoRefresh: jest.fn(),
-    setRefreshInFlight: jest.fn(),
+    startAutoRefresh: mockStartAutoRefresh,
+    endAutoRefresh: mockEndAutoRefresh,
+    setRefreshInFlight: mockSetRefreshInFlight,
   }),
 }));
 
@@ -45,8 +49,10 @@ jest.mock('src/dashboard/hooks/useRealTimeDashboard', () => ({
   }),
 }));
 
+const mockUseAutoRefreshTabPause = jest.fn();
 jest.mock('src/dashboard/hooks/useAutoRefreshTabPause', () => ({
-  useAutoRefreshTabPause: jest.fn(),
+  useAutoRefreshTabPause: (...args: unknown[]) =>
+    mockUseAutoRefreshTabPause(...args),
 }));
 
 const createWrapper = (conf: Record<string, unknown> = {}) => {
@@ -151,4 +157,24 @@ test('forceRefresh normalizes a negative config value to 0 (unstaggered)', async
     LOG_ACTIONS_FORCE_REFRESH_DASHBOARD,
     expect.objectContaining({ interval: 0 }),
   );
+});
+
+test('a silent refresh reports only the affected chart ids to startAutoRefresh, not the whole dashboard', async () => {
+  mockStartAutoRefresh.mockClear();
+  mockUseAutoRefreshTabPause.mockClear();
+  const { props } = renderHeaderAutoRefresh(
+    {},
+    { chartIds: [1, 2], timedRefreshImmuneSlices: [2] },
+  );
+
+  const { onRefresh: handleTabVisibilityRefresh } =
+    mockUseAutoRefreshTabPause.mock.calls[0][0];
+
+  await act(async () => {
+    await handleTabVisibilityRefresh();
+  });
+
+  expect(props.onRefresh).toHaveBeenCalledTimes(1);
+  expect(mockStartAutoRefresh).toHaveBeenCalledWith([1]);
+  expect(mockStartAutoRefresh).not.toHaveBeenCalledWith([1, 2]);
 });
