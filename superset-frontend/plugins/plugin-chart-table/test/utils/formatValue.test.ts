@@ -343,9 +343,7 @@ test('regression #44079: MEMORY_BINARY formatter with large-integer string does 
     isNumeric: true,
   };
 
-  expect(() =>
-    formatColumnValue(column, '1425300509404304697'),
-  ).not.toThrow();
+  expect(() => formatColumnValue(column, '1425300509404304697')).not.toThrow();
 });
 
 test('formatColumnValue: floats are not affected by the integer-string guard', () => {
@@ -409,4 +407,3 @@ test('formatColumnValue: normal small integers are not affected', () => {
     '9,007,199,254,740,991',
   );
 });
-
