@@ -34,7 +34,12 @@ import { getDashboardUrlParams } from 'src/utils/urlUtils';
 import { DownloadScreenshotFormat } from '../components/menu/DownloadMenuItems/types';
 
 const RETRY_INTERVAL = 3000;
-const MAX_RETRIES = 30;
+const DEFAULT_SCREENSHOT_TASK_TIMEOUT_SECONDS = 6 * 60;
+
+type ScreenshotTaskResponse = {
+  cache_key?: string;
+  task_timeout_seconds?: number;
+};
 
 export const useDownloadScreenshot = (
   dashboardId: number,
@@ -74,6 +79,9 @@ export const useDownloadScreenshot = (
   const downloadScreenshot = useCallback(
     (format: DownloadScreenshotFormat) => {
       let retries = 0;
+      let maxRetries = Math.ceil(
+        (DEFAULT_SCREENSHOT_TASK_TIMEOUT_SECONDS * 1000) / RETRY_INTERVAL,
+      );
       let isFetching = false;
       let isDownloaded = false;
 
@@ -144,7 +152,7 @@ export const useDownloadScreenshot = (
         if (isDownloaded || isFetching) {
           return;
         }
-        if (retries >= MAX_RETRIES) {
+        if (retries >= maxRetries) {
           stopIntervals('failure');
           logging.error('Max retries reached', {
             cacheKey,
@@ -173,9 +181,19 @@ export const useDownloadScreenshot = (
         },
       })
         .then(({ json }) => {
-          const cacheKey = json?.cache_key;
+          const task = json as ScreenshotTaskResponse | undefined;
+          const cacheKey = task?.cache_key;
           if (!cacheKey) {
             throw new Error('No image URL in response');
+          }
+          if (
+            typeof task.task_timeout_seconds === 'number' &&
+            Number.isFinite(task.task_timeout_seconds) &&
+            task.task_timeout_seconds > 0
+          ) {
+            maxRetries = Math.ceil(
+              (task.task_timeout_seconds * 1000) / RETRY_INTERVAL,
+            );
           }
           const retryIntervalId = setInterval(() => {
             fetchImageWithRetry(cacheKey);
