@@ -43,11 +43,12 @@ def default_subject(alert_name: str) -> str:
     return f"[MoH Alert] {alert_name}"
 
 
-def render_subject(alert: MohAlert, extra: dict[str, Any]) -> str:
+def render_subject(alert: MohAlert, extra: dict[str, Any], rows: list[Any]) -> str:
     if alert.subject_template:
+        period_col = extra.get("period_col", "period")
         return alert.subject_template.format(
             alert_name=alert.name,
-            period=extra.get("period_col", ""),
+            period=_row_value(rows, period_col),
         )
     return default_subject(alert.name)
 
@@ -74,6 +75,8 @@ def render_alert_email(
         if c in row_keys(rows)
     ]
     period_col = extra.get("period_col", "period")
+    period_value = _row_value(rows, period_col)
+    message = extra.get("message")
 
     table = _build_table(
         rows, facility_col, name_cols, metric_cols, period_col, email_cap
@@ -88,14 +91,23 @@ def render_alert_email(
         else ""
     )
 
+    message_html = (
+        f'<div style="margin:12px 0;padding:10px 12px;background:#f0f5ff;'
+        f'border-left:3px solid #1a5cff">{html.escape(message)}</div>'
+        if message
+        else ""
+    )
+
     lines = [
         '<div style="font-family:Segoe UI,Arial,sans-serif;'
         'max-width:640px;margin:0 auto;color:#222">',
         f'<h2 style="color:#12346b;margin:0 0 4px">{html.escape(alert.name)}</h2>',
         f'<p style="margin:0 0 4px;color:#444">Period: '
-        f"<b>{html.escape(period_col)}</b> &mdash; generated {generated}</p>",
+        f"<b>{html.escape(str(period_value or period_col or ''))}</b> &mdash; "
+        f"generated {generated}</p>",
         '<p style="margin:0 0 12px;color:#444">Below are the facilities in '
         "<b>your area</b> that triggered this alert.</p>",
+        message_html,
         table,
         link_html,
         '<hr style="border:none;border-top:1px solid #ddd;margin:18px 0">',
@@ -105,6 +117,14 @@ def render_alert_email(
         "</div>",
     ]
     return "\n".join(lines)
+
+
+def _row_value(rows: list[Any], column: str) -> Any:
+    """Return ``column``'s value from the first row, or None if absent."""
+    for row in rows:
+        if column in row_keys([row]) and row.get(column) is not None:
+            return row.get(column)
+    return None
 
 
 def row_keys(rows: list[Any]) -> set[str]:
@@ -123,7 +143,9 @@ def _build_table(
     email_cap: int,
 ) -> str:
     headers = ["Facility"] + [
-        c for c in ("Woreda", "Zone", "Region") if _has_col(rows, c)
+        _header_label(c)
+        for c in ("woreda", "zone", "region")
+        if _has_col(rows, c)
     ]
     headers += list(metric_cols)
     header_row = "".join(
@@ -167,3 +189,8 @@ def _build_table(
 
 def _has_col(rows: list[Any], name: str) -> bool:
     return name in row_keys(rows)
+
+
+def _header_label(column: str) -> str:
+    """Title-case a column name for a table header (e.g. ``region`` -> ``Region``)."""
+    return column.replace("_", " ").title()
