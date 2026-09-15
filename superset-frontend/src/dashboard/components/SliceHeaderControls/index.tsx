@@ -38,6 +38,7 @@ import {
   VizType,
   BinaryQueryObjectFilterClause,
   JsonObject,
+  QueryData,
   QueryFormData,
 } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
@@ -150,6 +151,9 @@ export interface SliceHeaderControlsProps {
   crossFiltersEnabled?: boolean;
 
   ownState?: JsonObject;
+  queriesResponse?: QueryData[] | null;
+  chartUpdateStartTime?: number;
+  chartUpdateEndTime?: number | null;
 }
 type SliceHeaderControlsPropsWithRouter = SliceHeaderControlsProps &
   RouteComponentProps;
@@ -585,13 +589,21 @@ const SliceHeaderControls = (
       label: (
         <ModalTrigger
           triggerNode={
-            <div data-test="view-query-menu-item">{t('View query')}</div>
+            <div data-test="view-query-menu-item">{t('Query inspector')}</div>
           }
-          modalTitle={t('View query')}
+          modalTitle={t('Query inspector')}
           modalBody={
             <ViewQueryModal
               latestQueryFormData={props.formData}
               ownState={props.ownState}
+              queriesResponse={props.queriesResponse}
+              chartUpdateStartTime={props.chartUpdateStartTime}
+              chartUpdateEndTime={
+                props.chartStatus === 'stopped'
+                  ? null
+                  : props.chartUpdateEndTime
+              }
+              showResponse={canViewResultsTable}
             />
           }
           draggable
