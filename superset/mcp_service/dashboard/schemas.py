@@ -645,7 +645,10 @@ class GenerateDashboardRequest(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     chart_ids: List[int] = Field(
-        ..., description="List of chart IDs to include in the dashboard", min_length=1
+        ...,
+        description="List of chart IDs to include in the dashboard",
+        min_length=1,
+        max_length=250,
     )
     dashboard_title: str | None = Field(
         None,
