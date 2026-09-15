@@ -153,8 +153,9 @@ class DashboardStandaloneMode(Enum):
 
 
 class ChartStandaloneMode(Enum):
-    HIDE_NAV = "true"
     SHOW_NAV = 0
+    HIDE_NAV = 1
+    HIDE_NAV_SHOW_CONTROLS = 2
 
 
 # pylint: disable=too-few-public-methods

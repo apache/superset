@@ -64,7 +64,10 @@ import {
   LocalStorageKeys,
 } from 'src/utils/localStorageHelpers';
 import { RESERVED_CHART_URL_PARAMS, URL_PARAMS } from 'src/constants';
-import { QUERY_MODE_REQUISITES } from 'src/explore/constants';
+import {
+  QUERY_MODE_REQUISITES,
+  ExploreStandaloneMode,
+} from 'src/explore/constants';
 import { areObjectsEqual } from 'src/reduxUtils';
 import * as logActions from 'src/logger/actions';
 import {
@@ -245,6 +248,8 @@ const updateHistory = debounce(
           standalone ? URL_PARAMS.standalone.name : 'base',
           {
             [URL_PARAMS.formDataKey.name]: key ?? '',
+            // Carry the active mode through, so mode 2 is not rewritten to 1.
+            ...(standalone ? { [URL_PARAMS.standalone.name]: standalone } : {}),
             ...additionalParam,
           },
           force,
@@ -333,6 +338,8 @@ interface ExploreRootState {
     can_overwrite: boolean;
     sliceName?: string;
     triggerRender: boolean;
+    // The bootstrap payload sends `is_standalone_mode()`, a boolean. The numeric
+    // mode is derived from the URL in mapStateToProps, not from here.
     standalone: boolean;
     force: boolean;
     form_data?: QueryFormData;
@@ -380,7 +387,7 @@ interface StateProps {
   form_data: QueryFormData;
   table_name?: string;
   vizType?: string;
-  standalone: boolean;
+  standalone: number;
   force: boolean;
   chart: ChartState;
   timeout: number;
@@ -1027,7 +1034,7 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
     );
   }
 
-  if (props.standalone) {
+  if (props.standalone === ExploreStandaloneMode.HideNav) {
     return renderChartContainer();
   }
 
@@ -1391,7 +1398,20 @@ function mapStateToProps(state: ExploreRootState) {
     form_data: patchedFormData,
     table_name: datasource.table_name,
     vizType: form_data.viz_type,
-    standalone: !!explore.standalone,
+    // Mode 2 is an explicit numeric opt-in read from the URL, since the
+    // bootstrap payload only carries a boolean (`is_standalone_mode`) and
+    // cannot distinguish mode 1 from mode 2. Everything else defers to that
+    // boolean, so the backend (which still treats any value other than
+    // absent/'false'/'0' as standalone) and the frontend cannot disagree:
+    // `standalone=3` or a non-numeric truthy value keeps rendering chart-only,
+    // as it did before granular modes existed.
+    standalone:
+      getUrlParam(URL_PARAMS.standalone) ===
+      ExploreStandaloneMode.HideNavShowControls
+        ? ExploreStandaloneMode.HideNavShowControls
+        : explore.standalone
+          ? ExploreStandaloneMode.HideNav
+          : ExploreStandaloneMode.None,
     force: !!explore.force,
     chart,
     timeout: common.conf.SUPERSET_WEBSERVER_TIMEOUT,
