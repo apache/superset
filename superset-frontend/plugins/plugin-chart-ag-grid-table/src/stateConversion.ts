@@ -384,9 +384,16 @@ export function convertAgGridStateToOwnState(
     ownState.columnOrder = columnOrder;
   }
 
-  const filterConversion = convertFilterModel(agGridState.filterModel);
-  if (filterConversion?.sqlClauses) {
-    ownState.sqlClauses = filterConversion.sqlClauses;
+  // Forward the raw AG Grid filter model so buildQuery can convert header
+  // filters into structured, dialect-safe `{ col, op, val }` filters for
+  // download queries (see buildQuery's isDownloadQuery branch). Serializing raw
+  // SQL clauses here instead leaves column identifiers unquoted, which breaks
+  // CSV/Excel export for column names with spaces or reserved words.
+  if (
+    agGridState.filterModel &&
+    Object.keys(agGridState.filterModel).length > 0
+  ) {
+    ownState.agGridFilterModel = agGridState.filterModel;
   }
 
   if (agGridState.pageSize !== undefined) {

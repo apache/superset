@@ -856,7 +856,7 @@ describe('plugin-chart-ag-grid-table', () => {
         expect(totalsQuery.extras?.having).toBeUndefined();
       });
 
-      test('should exclude download HAVING filters (sqlClauses) from totals query', () => {
+      test('should exclude download HAVING filters from totals query', () => {
         const { queries } = buildQuery(
           {
             ...basicFormData,
@@ -866,7 +866,13 @@ describe('plugin-chart-ag-grid-table', () => {
           },
           {
             ownState: {
-              sqlClauses: { count: 'count > 10' },
+              agGridFilterModel: {
+                count: {
+                  filterType: 'number',
+                  type: 'greaterThan',
+                  filter: 10,
+                },
+              },
             },
           },
         );
@@ -877,6 +883,53 @@ describe('plugin-chart-ag-grid-table', () => {
 
         expect(mainQuery.extras?.having).toBe('count > 10');
         expect(totalsQuery.extras?.having).toBeUndefined();
+      });
+
+      test('sends filtered-download column filters as structured, dialect-safe filters (sc-112797)', () => {
+        // Regression test for the ClickHouse "Invalid SQL clause" export bug:
+        // header filters on column names containing spaces must NOT be
+        // interpolated unquoted into extras.where (which fails backend clause
+        // validation on ClickHouse and any dialect that needs identifier
+        // quoting). Structured { col, op, val } filters let the backend quote
+        // each identifier for the target dialect, so the same fix works for
+        // ClickHouse, Postgres, MySQL and BigQuery.
+        const { queries } = buildQuery(
+          {
+            ...basicFormData,
+            query_mode: QueryMode.Raw,
+            all_columns: [
+              'Destination Address Street',
+              'Destination Address State',
+            ],
+            result_format: 'csv',
+          },
+          {
+            ownState: {
+              agGridFilterModel: {
+                'Destination Address Street': {
+                  filterType: 'text',
+                  type: 'contains',
+                  filter: 'Main',
+                },
+                'Destination Address State': {
+                  filterType: 'set',
+                  values: ['CA', 'NY'],
+                },
+              },
+            },
+          },
+        );
+
+        const query = queries[0];
+        expect(query.filters).toEqual(
+          expect.arrayContaining([
+            { col: 'Destination Address Street', op: 'ILIKE', val: '%Main%' },
+            { col: 'Destination Address State', op: 'IN', val: ['CA', 'NY'] },
+          ]),
+        );
+        // The regressed path put these on extras.where as raw, unquoted SQL;
+        // the structured path leaves the WHERE clause empty.
+        expect(query.extras?.where || undefined).toBeUndefined();
       });
 
       test('should not modify totals query when no AG Grid filters applied', () => {
