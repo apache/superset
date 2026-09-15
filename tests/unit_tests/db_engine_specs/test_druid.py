@@ -15,12 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime
-from typing import Optional
+from typing import Any, cast, Optional
 from unittest import mock
 
 import pandas as pd
 import pytest
 from sqlalchemy import column
+from sqlalchemy.engine.url import make_url
 
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.result_set import SupersetResultSet
@@ -258,3 +259,172 @@ def test_unmask_encrypted_extra() -> None:
     assert DruidEngineSpec.unmask_encrypted_extra(old, new) == json.dumps(
         {"connect_args": {"scheme": "http", "jwt": "old-token", "password": "new"}}
     )
+
+
+# ---------------------------------------------------------------------------
+# Dynamic connection form (BasicParametersMixin)
+#
+# Druid connects over a fixed SQL endpoint (`/druid/v2/sql/`) and toggles TLS by
+# switching between pydruid's `druid` (http) and `druid+https` dialects, so the
+# form omits the database field and encodes encryption in the driver name rather
+# than a query parameter.
+# ---------------------------------------------------------------------------
+
+
+def _parameters(**overrides: Any) -> Any:
+    from superset.db_engine_specs.base import BasicParametersType
+
+    parameters: dict[str, Any] = {
+        "username": "user",
+        "password": "pwd",
+        "host": "localhost",
+        "port": 9088,
+        "query": {},
+    }
+    parameters.update(overrides)
+    return cast(BasicParametersType, parameters)
+
+
+def test_get_engine_spec_supports_parameters() -> None:
+    """
+    Druid must resolve to a spec that supports the dynamic connection form so
+    the ``/available`` endpoint returns individual parameters.
+    """
+    from superset.db_engine_specs import get_engine_spec
+    from superset.db_engine_specs.druid import DruidEngineSpec
+
+    spec = cast("type[DruidEngineSpec]", get_engine_spec("druid"))
+    assert spec is DruidEngineSpec
+    assert spec.parameters_schema is not None
+    assert hasattr(spec, "build_sqlalchemy_uri")
+
+
+@pytest.mark.parametrize(
+    "encryption,expected_driver",
+    [
+        (False, "druid"),
+        (True, "druid+https"),
+    ],
+)
+def test_build_sqlalchemy_uri_toggles_scheme(
+    encryption: bool, expected_driver: str
+) -> None:
+    """
+    The encryption toggle selects the http vs. https pydruid dialect and always
+    injects the fixed SQL endpoint path.
+    """
+    from superset.db_engine_specs.druid import DruidEngineSpec
+
+    uri = make_url(
+        DruidEngineSpec.build_sqlalchemy_uri(_parameters(encryption=encryption))
+    )
+
+    assert uri.drivername == expected_driver
+    assert uri.database == "druid/v2/sql/"
+    assert uri.host == "localhost"
+    assert uri.port == 9088
+
+
+def test_build_sqlalchemy_uri_preserves_query_params() -> None:
+    from superset.db_engine_specs.druid import DruidEngineSpec
+
+    uri = make_url(
+        DruidEngineSpec.build_sqlalchemy_uri(_parameters(query={"header": "true"}))
+    )
+
+    assert uri.query["header"] == "true"
+
+
+def test_build_sqlalchemy_uri_renders_password() -> None:
+    """The stored URI is used to connect, so the password must not be masked."""
+    from superset.db_engine_specs.druid import DruidEngineSpec
+
+    uri = DruidEngineSpec.build_sqlalchemy_uri(_parameters(password="s3cret"))  # noqa: S106
+
+    assert "s3cret" in uri
+
+
+@pytest.mark.parametrize(
+    "uri,expected_encryption",
+    [
+        ("druid://user:pwd@localhost:9088/druid/v2/sql/", False),
+        ("druid+http://user:pwd@localhost:9088/druid/v2/sql/", False),
+        ("druid+https://user:pwd@localhost:9088/druid/v2/sql/", True),
+    ],
+)
+def test_get_parameters_from_uri_encryption(
+    uri: str, expected_encryption: bool
+) -> None:
+    from superset.db_engine_specs.druid import DruidEngineSpec
+
+    parameters = DruidEngineSpec.get_parameters_from_uri(uri)
+
+    assert parameters["encryption"] is expected_encryption
+    assert parameters["host"] == "localhost"
+    assert parameters["port"] == 9088
+    assert parameters["database"] == "druid/v2/sql/"
+
+
+def test_get_parameters_from_uri_accepts_encrypted_extra_keyword() -> None:
+    """
+    ``Database.parameters`` passes ``encrypted_extra`` by keyword; a signature
+    mismatch would silently empty the connection form.
+    """
+    from superset.db_engine_specs.druid import DruidEngineSpec
+
+    parameters = DruidEngineSpec.get_parameters_from_uri(
+        "druid+https://user:pwd@localhost:9088/druid/v2/sql/",
+        encrypted_extra={},
+    )
+
+    assert parameters["encryption"] is True
+
+
+@pytest.mark.parametrize("encryption", [True, False])
+def test_parameters_round_trip(encryption: bool) -> None:
+    from superset.db_engine_specs.druid import DruidEngineSpec
+
+    uri = DruidEngineSpec.build_sqlalchemy_uri(
+        _parameters(encryption=encryption, query={"header": "true"})
+    )
+    parameters = DruidEngineSpec.get_parameters_from_uri(uri)
+
+    assert parameters["encryption"] is encryption
+    assert parameters["host"] == "localhost"
+    assert parameters["port"] == 9088
+    assert parameters["username"] == "user"
+    assert parameters["query"] == {"header": "true"}
+
+
+def test_parameters_json_schema_omits_database() -> None:
+    """
+    The SQL endpoint path is fixed, so ``database`` must not appear as a form
+    field; the encryption toggle must be present instead.
+    """
+    from superset.db_engine_specs.druid import DruidEngineSpec
+
+    schema = DruidEngineSpec.parameters_json_schema()
+
+    assert "database" not in schema["properties"]
+    assert "encryption" in schema["properties"]
+    assert set(schema["required"]) == {"host", "port"}
+
+
+def test_parameters_schema_reloads_emitted_parameters() -> None:
+    """
+    ``get_parameters_from_uri`` emits the fixed ``database`` path, which is not a
+    form field. Re-loading that dict through the schema (the create/update path)
+    must not raise on the unknown ``database`` key.
+    """
+    from superset.db_engine_specs.druid import DruidEngineSpec
+
+    parameters = DruidEngineSpec.get_parameters_from_uri(
+        "druid+https://user:pwd@localhost:9088/druid/v2/sql/"
+    )
+    assert parameters["database"] == "druid/v2/sql/"
+
+    loaded = DruidEngineSpec.parameters_schema.load(parameters)
+
+    assert "database" not in loaded
+    assert loaded["host"] == "localhost"
+    assert loaded["encryption"] is True
