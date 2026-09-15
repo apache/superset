@@ -22,6 +22,7 @@ from .hana import Hana
 from .opensearch import OpenSearch
 from .pinot import Pinot
 from .starrocks import StarRocks
+from .trino import Trino
 from .vertica import Vertica
 
 __all__ = [
@@ -33,5 +34,6 @@ __all__ = [
     "OpenSearch",
     "Pinot",
     "StarRocks",
+    "Trino",
     "Vertica",
 ]
