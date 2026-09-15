@@ -68,6 +68,13 @@ def test_dedup_case_insensitive_custom_suffix() -> None:
     ]
 
 
+def test_dedup_reserves_generated_names() -> None:
+    """Names generated from different bases must not collide."""
+    result = dedup(["a"] * 14 + ["a1"] * 2, suffix="")
+    assert len(set(result)) == len(result)
+    assert result[-1] == "a15"
+
+
 def test_column_names_as_bytes() -> None:
     """
     Test that we can handle column names as bytes.
