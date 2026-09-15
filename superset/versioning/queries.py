@@ -32,6 +32,8 @@ from __future__ import annotations
 
 import logging
 import uuid
+from collections.abc import Iterator
+from contextlib import contextmanager
 from typing import Any
 from uuid import UUID
 
@@ -504,7 +506,6 @@ def get_version(
     lookup on the same request.
     """
     # pylint: disable=import-outside-toplevel
-    from superset.connectors.sqla.models import SqlaTable
 
     if entity is None:
         entity = find_active_by_uuid(model_cls, entity_uuid)
@@ -536,7 +537,7 @@ def get_version(
         .where(ver_tbl.c.transaction_id == transaction_id)
         .limit(1)
     )
-    row = db.session.execute(stmt).mappings().first()
+    row, columns, metrics = _fetch_version_row_and_children(model_cls, stmt, entity.id)
     if row is None:
         return None
 
@@ -571,30 +572,94 @@ def get_version(
     }
 
     # For datasets, attach the columns/metrics as they were at this
-    # transaction by reading from Continuum's child shadow tables
-    # (``table_columns_version`` / ``sql_metrics_version``). Empty lists
-    # when the dataset had no children at this tx.
-    if model_cls is SqlaTable:
-        # Residual read-consistency window: these child fetches run after
-        # the parent snapshot fetch, so a prune committing in between can
-        # age out closed child shadow rows that were valid at target_tx —
-        # columns/metrics silently missing rather than a 404. Pre-existing
-        # retention policy behavior (the prune can also erase closed child
-        # history while the parent survives) — tracked as SC-120012
-        # (snapshot-isolated reads + child-history retention policy), which
-        # also covers the restore command's use of the same child path.
-        # pylint: disable=import-outside-toplevel
-        from superset.connectors.sqla.models import SqlMetric, TableColumn
-        from superset.versioning.changes import shadow_rows_valid_at
+    # transaction (fetched with the parent row in one snapshot above).
+    # Empty lists when the dataset had no children at this tx.
+    # pylint: disable=import-outside-toplevel
+    from superset.connectors.sqla.models import SqlaTable
 
-        target_tx = row["transaction_id"]
-        cols_tbl = version_class(TableColumn).__table__
-        metrics_tbl = version_class(SqlMetric).__table__
-        result["columns"] = shadow_rows_valid_at(
-            db.session, cols_tbl, "table_id", entity.id, target_tx
-        )
-        result["metrics"] = shadow_rows_valid_at(
-            db.session, metrics_tbl, "table_id", entity.id, target_tx
-        )
+    if model_cls is SqlaTable:
+        result["columns"] = columns
+        result["metrics"] = metrics
 
     return result
+
+
+#: Isolation level pinning a single snapshot across several reads on one
+#: transaction. SQLite is absent deliberately: a SQLite transaction is
+#: already serializable, and its dialect rejects "REPEATABLE READ".
+_SNAPSHOT_ISOLATION_BY_DIALECT: dict[str, str] = {
+    "mysql": "REPEATABLE READ",
+    "postgresql": "REPEATABLE READ",
+}
+
+
+def _fetch_version_row_and_children(
+    model_cls: type[Model], stmt: sa.sql.Select, entity_id: int
+) -> tuple[Any, list[dict[str, Any]], list[dict[str, Any]]]:
+    """Fetch the parent version row — for datasets, WITH its children in
+    ONE snapshot (sc-120012, race portion, closed).
+
+    A dedicated connection (not the request session) so the isolation
+    level can be pinned per-transaction: under READ COMMITTED each
+    statement reads its own snapshot, letting a concurrent retention
+    prune erase closed child shadow rows between the parent fetch and the
+    child fetches (sc-120012, race portion). REPEATABLE READ pins all
+    three reads to the first statement's snapshot; SQLite needs nothing
+    (single-transaction reads are serializable there).
+
+    The parent row can come back ``None`` when a prune commits between
+    the caller's version resolution (request session) and this snapshot —
+    the caller translates that to a 404, which is the honest answer for a
+    version that no longer exists.
+    """
+    # pylint: disable=import-outside-toplevel
+    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+    from superset.versioning.changes import shadow_rows_valid_at
+
+    if model_cls is not SqlaTable:
+        # No child shadows to pair the read with: the request session's
+        # ordinary read suffices.
+        return db.session.execute(stmt).mappings().first(), [], []
+
+    # The parent snapshot fetch and the child fetches share one
+    # transaction whose isolation pins a single snapshot, so a retention
+    # prune committing between the reads cannot age out closed child rows
+    # that were valid at target_tx mid-request. (The POLICY portion — a
+    # prune that already erased needed closed child history while the
+    # parent survives — is handled fail-closed on the restore write path
+    # and deferred for retention itself; see restore.py and sc-120012.)
+    with _snapshot_read_connection() as conn:
+        row = conn.execute(stmt).mappings().first()
+        if row is None:
+            return None, [], []
+        target_tx = row["transaction_id"]
+        columns = shadow_rows_valid_at(
+            conn, version_class(TableColumn).__table__, "table_id", entity_id, target_tx
+        )
+        metrics = shadow_rows_valid_at(
+            conn, version_class(SqlMetric).__table__, "table_id", entity_id, target_tx
+        )
+    return row, columns, metrics
+
+
+@contextmanager
+def _snapshot_read_connection() -> Iterator[sa.engine.Connection]:
+    """A dedicated connection whose reads share ONE stable snapshot.
+
+    REPEATABLE READ on MySQL/Postgres pins every read in the transaction
+    to the first statement's snapshot. On SQLite, pysqlite's legacy
+    transactional mode never emits BEGIN for SELECTs — ``conn.begin()``
+    alone starts NO read transaction and reads could still straddle a
+    concurrent commit — so the documented SQLAlchemy recipe applies: emit
+    BEGIN ourselves when the transaction starts (listener scoped to this
+    connection; it dies with it). The isolation setup runs inside the
+    connect() context so a failure there still releases the connection.
+    """
+    with db.engine.connect() as conn:
+        iso = _SNAPSHOT_ISOLATION_BY_DIALECT.get(db.engine.dialect.name)
+        if iso is not None:
+            conn = conn.execution_options(isolation_level=iso)
+        elif db.engine.dialect.name == "sqlite":
+            sa.event.listen(conn, "begin", lambda c: c.exec_driver_sql("BEGIN"))
+        with conn.begin():
+            yield conn
