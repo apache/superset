@@ -19,6 +19,8 @@
 
 import math
 from collections.abc import Mapping
+from decimal import Decimal
+from numbers import Real
 from typing import Any
 
 from superset.mcp_service.chart.schemas import ChartError
@@ -223,3 +225,83 @@ def validate_gauge_query_result(
     """Check Gauge results using the same finite-dial contract as rendering."""
     normalized = normalize_gauge_query_result(result, form_data)
     return normalized if isinstance(normalized, ChartError) else None
+
+
+def normalize_chart_query_result(result: Any, form_data: Mapping[str, Any]) -> Any:
+    """Validate chart-specific result contracts before consumers use rows."""
+    if form_data.get("viz_type") != "treemap_v2":
+        return normalize_gauge_query_result(result, form_data)
+    if failure := query_result_failure(result):
+        return failure
+    label = metric_result_label(form_data.get("metric"))
+    hierarchy = form_data.get("groupby")
+    if (
+        not label
+        or not isinstance(hierarchy, list)
+        or not hierarchy
+        or not all(isinstance(column, str) and column for column in hierarchy)
+        or len(set(hierarchy)) != len(hierarchy)
+        or label in hierarchy
+    ):
+        return ChartError(
+            error=(
+                "Treemap requires unique hierarchy columns and a distinct metric label."
+            ),
+            error_type="InvalidTreemapFormData",
+        )
+    queries = result.get("queries") if isinstance(result, Mapping) else None
+    if not isinstance(queries, list) or len(queries) != 1:
+        return ChartError(
+            error="Treemap requires exactly one query result.",
+            error_type="InvalidTreemapResult",
+        )
+    query = queries[0]
+    rows = query.get("data") if isinstance(query, Mapping) else None
+    if not isinstance(rows, list):
+        return ChartError(
+            error="Treemap query data must be an array of rows.",
+            error_type="InvalidTreemapResult",
+        )
+    if failure := _validate_treemap_rows(rows, hierarchy, label):
+        return failure
+    return result
+
+
+def _validate_treemap_rows(
+    rows: list[Any], hierarchy: list[str], label: str
+) -> ChartError | None:
+    """Require complete hierarchy outputs and finite numeric metric values."""
+    for index, row in enumerate(rows):
+        if not isinstance(row, Mapping) or any(
+            column not in row for column in [*hierarchy, label]
+        ):
+            return ChartError(
+                error=f"Treemap row {index} is missing hierarchy or metric outputs.",
+                error_type="InvalidTreemapResult",
+            )
+        value = row[label]
+        try:
+            valid = (
+                not isinstance(value, bool)
+                and isinstance(value, (Real, Decimal))
+                and (
+                    value.is_finite()
+                    if isinstance(value, Decimal)
+                    else math.isfinite(value)
+                )
+            )
+        except (OverflowError, ValueError):
+            valid = False
+        if not valid:
+            return ChartError(
+                error=(
+                    f"Treemap row {index} metric {label!r} must be finite and numeric."
+                ),
+                error_type="InvalidTreemapMetric",
+            )
+        if any(isinstance(row[column], (dict, list)) for column in hierarchy):
+            return ChartError(
+                error=f"Treemap row {index} hierarchy values must be scalar.",
+                error_type="InvalidTreemapResult",
+            )
+    return None

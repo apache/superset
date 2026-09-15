@@ -954,7 +954,7 @@ Specifying a tool name that does not exist logs a warning at startup and is othe
 
 ## Disabling chart type plugins
 
-The `generate_chart` tool dispatches per chart type (`xy`, `table`, `pie`, `gauge`, `pivot_table`, `interactive_pivot`, `mixed_timeseries`, `handlebars`, `big_number`, `histogram`, `box_plot`, `waterfall`) to a registered chart type plugin. Gauge requests use the public MCP discriminator `chart_type: "gauge"`; Superset stores the corresponding native Explore visualization as `viz_type: "gauge_chart"`. Two settings let operators enable or disable individual chart type plugins at runtime, without a code deploy.
+The `generate_chart` tool dispatches per chart type (`xy`, `table`, `pie`, `gauge`, `treemap_v2`, `pivot_table`, `interactive_pivot`, `mixed_timeseries`, `handlebars`, `big_number`, `histogram`, `box_plot`, `waterfall`) to a registered chart type plugin. Gauge requests use the public MCP discriminator `chart_type: "gauge"`; Superset stores the corresponding native Explore visualization as `viz_type: "gauge_chart"`. Two settings let operators enable or disable individual chart type plugins at runtime, without a code deploy.
 
 Gauge data inspection and JSON/CSV/XLSX exports preserve source groups, including NULL and non-finite metric values, using the same row-count and completeness semantics as other chart types. The default XLSX exporter writes non-finite floats as `nan`, `inf`, or `-inf` text, matching CSV and distinguishing them from blank NULL cells. Only previews and compile checks skip NULL, NaN, non-finite, and other nonnumeric dial values while preserving finite groups. In preview/compile paths, a nonempty result containing no finite dial returns an error; genuinely empty results retain the no-data behavior. Compile checks inspect the configured dial limit (at most 10), rather than only two groups. Grouped Vega previews center each needle within its own facet and extend it to the midpoint of the dial band. Automatic all-zero ranges span 0–1. Empty or whitespace-only temporal ranges, like `No filter`, are neutral sentinels; missing or non-string native temporal comparators are invalid.
 
@@ -1060,3 +1060,62 @@ once, even when multiple dimensions are missing.
 The tool does not rewrite dots into SQL path separators: quoting and nested-field
 support depend on the dataset's database dialect, and dots can also be literal
 characters in column names.
+
+
+### Treemap charts
+
+Saved and cached previews honor the configured Treemap row limit across ASCII,
+table, and Vega representations. SQL Decimal metrics are accepted when finite;
+booleans and nonfinite values are rejected. Categories with identical display
+names but distinct raw types retain separate geometry groups. Currency settings
+use the native `symbolPosition` property. Adding filters while omitting the
+temporal column preserves saved predicates and the existing neutral time binding;
+explicit empty filters or a cleared temporal column remove those controls.
+
+
+Use `chart_type: "treemap_v2"` with an ordered `groupby` hierarchy and one
+`metric`. Hierarchy columns accept typed references (`{"name": "region"}`)
+or native strings. Metrics accept typed column references with an aggregate,
+saved metric names, or native SIMPLE/SQL metric objects. SQL metrics still
+require a label and pass the shared SQL-expression validation. Unknown controls
+and executable JavaScript hooks are not accepted.
+
+```json
+{
+  "dataset_id": 7,
+  "config": {
+    "chart_type": "treemap_v2",
+    "groupby": ["region", "product"],
+    "metric": {"name": "revenue", "aggregate": "SUM"},
+    "row_limit": 100,
+    "sort_by_metric": true,
+    "show_labels": true,
+    "show_upper_labels": true,
+    "label_type": "key_value",
+    "number_format": ",.2f"
+  }
+}
+```
+
+Bounded queries sort by the metric descending when requested, then by hierarchy
+columns ascending to break ties, matching the frontend query contract.
+`update_chart` and `update_chart_preview` preserve omitted same-dataset Treemap
+controls, including hierarchy, metrics, formatting, filters, temporal state and
+`template_params`. Partial configurations are accepted only for updates; a new
+chart still requires hierarchy and metric roles. Explicit empty filters clear
+filters, and explicit null clears nullable controls. Rebinding to another dataset
+requires complete roles and inherits only supported presentation controls.
+
+ASCII and table previews show hierarchy and values. Vega-Lite previews use
+bounded slice-and-dice rectangles with metric-proportional areas, hierarchy
+paths, categorical colors, labels and tooltips. This is not the native ECharts
+layout: use the Explore URL for native formatting and interactions. The preview
+supports up to 1,000 nonnegative rows, 20 hierarchy levels, and the built-in
+`supersetColors` and `lyftColors` schemes. Unsupported color/currency formats,
+negative values, zero totals and over-limit geometry return
+`UnsupportedTreemapPreview` rather than a substitute scatter or bar chart.
+`SMART_NUMBER` is approximated with SI formatting in this preview.
+
+Queries must return every hierarchy output and the metric's exact output label.
+Malformed/error envelopes and nonnumeric or nonfinite metric outputs return
+structured errors instead of apparently successful previews, charts or exports.

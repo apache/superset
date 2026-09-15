@@ -43,7 +43,10 @@ jobs:
     needs: changes
     if: needs.changes.outputs.python == 'true'
     runs-on: ubuntu-26.04
-    timeout-minutes: 30
+    # The full coverage run is followed by independent SQL and semantic-layer
+    # 100% gates. Allow all three coverage-preserving phases to finish under
+    # ordinary runner variance rather than cancelling after successful tests.
+    timeout-minutes: 40
     permissions:
       id-token: write
     strategy:

@@ -17,12 +17,15 @@
 
 """Tests for get_chart_type_schema tool logic."""
 
+from typing import Any
+
 import pytest
 
 from superset.extensions import feature_flag_manager
 from superset.mcp_service.chart.tool.get_chart_type_schema import (
     _CHART_EXAMPLES,
     _CHART_TYPE_ADAPTERS,
+    _compiled_chart_schema,
     _get_chart_type_schema_impl as _call_schema,
     VALID_CHART_TYPES,
 )
@@ -148,3 +151,26 @@ class TestGetChartTypeSchema:
         for chart_type in VALID_CHART_TYPES:
             assert chart_type in _CHART_EXAMPLES
             assert len(_CHART_EXAMPLES[chart_type]) >= 1
+
+
+def test_schema_cache_compiles_once_and_isolates_response_mutation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Repeated discovery avoids compilation without sharing mutable response data."""
+    _compiled_chart_schema.cache_clear()
+    adapter = _CHART_TYPE_ADAPTERS["treemap_v2"]
+    original = adapter.json_schema
+    calls = 0
+
+    def counted_schema() -> dict[str, Any]:
+        nonlocal calls
+        calls += 1
+        return original()
+
+    monkeypatch.setattr(adapter, "json_schema", counted_schema)
+    first = _call_schema("treemap_v2")
+    first["schema"]["properties"].clear()
+    second = _call_schema("treemap_v2")
+    assert "groupby" in second["schema"]["properties"]
+    assert calls == 1
+    _compiled_chart_schema.cache_clear()

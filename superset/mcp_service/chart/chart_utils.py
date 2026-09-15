@@ -52,6 +52,7 @@ from superset.mcp_service.chart.schemas import (
     SortByConfig,
     TableChartConfig,
     TreemapChartConfig,
+    TreemapChartUpdateConfig,
     WaterfallChartConfig,
     XYChartConfig,
 )
@@ -672,6 +673,115 @@ def _without_generated_gauge_time_filter(
     ]
 
 
+def resolve_treemap_update_config(
+    config: ChartConfig | TreemapChartUpdateConfig,
+    existing: dict[str, Any],
+    *,
+    dataset_rebind: bool = False,
+) -> ChartConfig:
+    """Fill omitted required roles only from an authorized same-dataset Treemap."""
+    if not isinstance(config, TreemapChartUpdateConfig) or isinstance(
+        config, TreemapChartConfig
+    ):
+        return config
+    values = config.model_dump(exclude_unset=True)
+    if existing.get("viz_type") == "treemap_v2" and not dataset_rebind:
+        for field in ("groupby", "metric"):
+            if field not in config.model_fields_set and field in existing:
+                values[field] = existing[field]
+    resolved = TreemapChartConfig.model_validate(values)
+    resolved.__pydantic_fields_set__ = set(config.model_fields_set)
+    return resolved
+
+
+_TREEMAP_PRESENTATION_KEYS = frozenset(
+    {
+        "color_scheme",
+        "show_labels",
+        "show_upper_labels",
+        "label_type",
+        "label_position",
+        "number_format",
+        "date_format",
+        "currency_format",
+    }
+)
+
+
+def _merge_treemap_filters(
+    existing: dict[str, Any],
+    patch: dict[str, Any],
+    config: TreemapChartConfig,
+    dataset_rebind: bool,
+) -> None:
+    """Separate explicit filter/temporal changes from mapper-generated defaults."""
+    fields = config.model_fields_set
+    if "temporal_column" in fields and config.temporal_column is None:
+        patch["adhoc_filters"] = _without_generated_gauge_time_filter(patch)
+        patch.pop(MCP_DASHBOARD_TIME_FILTER_SUBJECT, None)
+    if dataset_rebind:
+        return
+    if "temporal_column" not in fields:
+        # Discard the mapper's default binding before removing its provenance.
+        patch["adhoc_filters"] = _without_generated_gauge_time_filter(patch)
+        patch.pop(MCP_DASHBOARD_TIME_FILTER_SUBJECT, None)
+        if "filters" in fields and config.filters:
+            if subject := existing.get(MCP_DASHBOARD_TIME_FILTER_SUBJECT):
+                patch[MCP_DASHBOARD_TIME_FILTER_SUBJECT] = subject
+            preserve_previous_adhoc_filters(patch, existing)
+    if "filters" not in fields:
+        if "temporal_column" in fields:
+            inherited = (
+                [] if dataset_rebind else _without_generated_gauge_time_filter(existing)
+            )
+            patch["adhoc_filters"] = [*inherited, *patch.get("adhoc_filters", [])]
+        else:
+            patch.pop("adhoc_filters", None)
+
+
+def _merge_treemap_form_data(
+    existing: dict[str, Any],
+    generated: dict[str, Any],
+    config: TreemapChartConfig,
+    dataset_rebind: bool,
+) -> dict[str, Any]:
+    """Apply only explicit controls; never inherit query roles across datasets."""
+    fields = config.model_fields_set
+    merged = {
+        key: value
+        for key, value in existing.items()
+        if not dataset_rebind or key in _TREEMAP_PRESENTATION_KEYS
+    }
+    patch = dict(generated)
+    for field in type(config).model_fields:
+        if field not in fields and (
+            not dataset_rebind or field in _TREEMAP_PRESENTATION_KEYS
+        ):
+            patch.pop(field, None)
+    _merge_treemap_filters(existing, patch, config, dataset_rebind)
+    merged.update(patch)
+    for field in fields:
+        if getattr(config, field) is None:
+            merged.pop(field, None)
+    if "filters" in fields and not config.filters:
+        merged.pop("adhoc_filters", None)
+        merged.pop(MCP_DASHBOARD_TIME_FILTER_SUBJECT, None)
+    if "temporal_column" in fields and config.temporal_column is None:
+        merged.pop(MCP_DASHBOARD_TIME_FILTER_SUBJECT, None)
+    # These roles belong to other plugins and must not affect Treemap queries.
+    for key in (
+        "metrics",
+        "columns",
+        "all_columns",
+        "x_axis",
+        "groupby_b",
+        "metrics_b",
+        "order_by_cols",
+    ):
+        merged.pop(key, None)
+    return merged
+
+
 def merge_chart_form_data(  # noqa: C901
     existing_form_data: dict[str, Any],
     new_form_data: dict[str, Any],
@@ -687,6 +797,10 @@ def merge_chart_form_data(  # noqa: C901
     """
     if existing_form_data.get("viz_type") != new_form_data.get("viz_type"):
         return dict(new_form_data)
+    if isinstance(config, TreemapChartConfig):
+        return _merge_treemap_form_data(
+            existing_form_data, new_form_data, config, dataset_rebind
+        )
     if not isinstance(config, GaugeChartConfig):
         if dataset_rebind:
             return dict(new_form_data)
@@ -1276,6 +1390,16 @@ def map_treemap_config(config: TreemapChartConfig) -> Dict[str, Any]:
         "row_limit": config.row_limit,
         "color_scheme": config.color_scheme or "supersetColors",
     }
+    for key in _TREEMAP_PRESENTATION_KEYS | {
+        "time_range",
+        "granularity_sqla",
+        "template_params",
+    }:
+        value = getattr(config, key)
+        if value is not None:
+            form_data[key] = (
+                value.to_form_data() if isinstance(value, CurrencyFormat) else value
+            )
     _add_adhoc_filters(form_data, config.filters)
     return form_data
 
