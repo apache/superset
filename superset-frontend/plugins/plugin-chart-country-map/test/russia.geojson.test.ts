@@ -74,6 +74,11 @@ test('Karelia and Murmansk have distinct full-size boundaries', () => {
   expect(kareliaMaxX).toBeGreaterThan(37);
   expect(kareliaMaxY).toBeGreaterThan(66);
 
-  const [, murmanskMinY] = bounds(murmansk!);
+  const [murmanskMinX, murmanskMinY, murmanskMaxX, murmanskMaxY] = bounds(
+    murmansk!,
+  );
+  expect(murmanskMinX).toBeLessThan(30);
   expect(murmanskMinY).toBeGreaterThan(65);
+  expect(murmanskMaxX).toBeGreaterThan(40);
+  expect(murmanskMaxY).toBeGreaterThan(69);
 });
