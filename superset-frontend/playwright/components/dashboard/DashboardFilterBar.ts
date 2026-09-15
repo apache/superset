@@ -51,16 +51,26 @@ export class DashboardFilterBar {
    * @param index - The zero-based position of the filter.
    */
   async selectOption(optionText: string, index = 0): Promise<void> {
-    const select = new Select(
+    const select = this.getFilterValueSelect(index);
+    await select.open();
+    await select.clickOption(optionText);
+    await select.close();
+  }
+
+  /**
+   * Gets the `Select` behind a native filter's value combobox, for callers that
+   * need lower-level control (e.g. opening the dropdown to inspect its
+   * rendered options) than {@link selectOption} exposes.
+   * @param index - The zero-based position of the filter.
+   */
+  getFilterValueSelect(index = 0): Select {
+    return new Select(
       this.page,
       this.root
         .locator(DashboardFilterBar.SELECTORS.FILTER_VALUE)
         .nth(index)
         .getByRole('combobox'),
     );
-    await select.open();
-    await select.clickOption(optionText);
-    await select.close();
   }
 
   /**

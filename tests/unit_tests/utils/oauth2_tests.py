@@ -83,6 +83,15 @@ def test_get_oauth2_access_token_base_refresh(mocker: MockerFixture) -> None:
     """
     Test `get_oauth2_access_token` when the token needs to be refreshed.
     """
+    # The refresh path serializes through a DistributedLock, which -- per
+    # DISTRIBUTED_COORDINATION_CONFIG -- may be Redis-backed rather than the
+    # KeyValue-table fallback. The lock's own acquire/release mechanics
+    # already have dedicated coverage in tests/unit_tests/distributed_lock/
+    # and tests/unit_tests/coordination/, so this test has no reason to
+    # exercise either backend for real; mocked as a no-op context manager,
+    # same as tests/unit_tests/utils/screenshot_test.py does for the other
+    # DistributedLock caller.
+    mocker.patch("superset.utils.oauth2.DistributedLock")
     db = mocker.patch("superset.utils.oauth2.db")
     db_engine_spec = mocker.MagicMock()
     db_engine_spec.get_oauth2_fresh_token.return_value = {

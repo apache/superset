@@ -97,6 +97,22 @@ export const TIMEOUT = {
  * Embedded dashboard test app configuration.
  * The test app is served by a Node.js http server started in the test fixture.
  */
+/**
+ * Global Async Queries endpoints, as the browser calls them.
+ *
+ * Kept here rather than inline so the dashboard helpers and the SQL Lab spec
+ * assert against one definition: the SQL Lab case asserts this endpoint is
+ * *never* touched, which would silently start passing for the wrong reason if
+ * the two copies of the path ever drifted apart.
+ */
+export const GAQ = {
+  /**
+   * Task-status poll the client uses to observe completion. Replaced
+   * `/api/v1/async_event/` when GAQ moved onto the Global Task Framework.
+   */
+  TASK_STATUS_CHANGES_PATH: '/api/v1/task/status_changes',
+} as const;
+
 export const EMBEDDED = {
   /** Timeout for iframe to appear in the DOM */
   IFRAME_LOAD: 15000, // 15s

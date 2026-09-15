@@ -106,6 +106,16 @@ def test_get_from_cache_key(mocker: MockerFixture, screenshot_obj):
 class TestComputeAndCache:
     def _setup_compute_and_cache(self, mocker: MockerFixture, screenshot_obj):
         """Helper method to handle the common setup for the tests."""
+        # compute_and_cache wraps its body in a DistributedLock, which -- per
+        # DISTRIBUTED_COORDINATION_CONFIG -- may be Redis-backed rather than
+        # the KeyValue-table fallback. Either backend is real infrastructure
+        # these tests have no business depending on: the lock's own
+        # acquire/release mechanics (Redis vs. DB, contention, TTL) already
+        # have dedicated coverage in tests/unit_tests/distributed_lock/ and
+        # tests/unit_tests/coordination/. Mocked here as a no-op context
+        # manager so this file only ever exercises compute_and_cache's own
+        # caching logic.
+        mocker.patch("superset.utils.screenshots.DistributedLock")
         # Patch the methods
         get_from_cache_key = mocker.patch(
             BASE_SCREENSHOT_PATH + ".get_from_cache_key", return_value=None
