@@ -818,6 +818,7 @@ class TestAutoOrientationLandscapeFactorBeforeBanding:
             "SCREENSHOT_PLAYWRIGHT_DEFAULT_TIMEOUT": 30000,
             "SCREENSHOT_PLAYWRIGHT_WAIT_EVENT": "domcontentloaded",
             "SCREENSHOT_SELENIUM_HEADSTART": 0,
+            "SCREENSHOT_LOCATE_WAIT": 10,
             "SCREENSHOT_LOAD_WAIT": 10,
             "BROWSER_PRINT_PDF_VIEWPORT_WIDTH": 1600,
             "BROWSER_PRINT_PDF_HEADER_FOOTER": False,
@@ -840,11 +841,9 @@ class TestAutoOrientationLandscapeFactorBeforeBanding:
                 # This is the BAND_TABLE_COLUMNS_JS call — return a valid result
                 return {"banded": 0}
             # Return sensible defaults for all other JS calls
-            if isinstance(script, str) and "SHOW_ALL" in script:
-                return {"clientExpanded": 0, "serverWarning": 0}
             if isinstance(script, str) and "getBoundingClientRect" in script:
                 return []
-            return 0
+            return {}
 
         mock_page.evaluate.side_effect = capture_evaluate
         mock_page.wait_for_function.return_value = None
@@ -893,6 +892,7 @@ class TestAutoOrientationLandscapeFactorBeforeBanding:
             "SCREENSHOT_PLAYWRIGHT_DEFAULT_TIMEOUT": 30000,
             "SCREENSHOT_PLAYWRIGHT_WAIT_EVENT": "domcontentloaded",
             "SCREENSHOT_SELENIUM_HEADSTART": 0,
+            "SCREENSHOT_LOCATE_WAIT": 10,
             "SCREENSHOT_LOAD_WAIT": 10,
             "BROWSER_PRINT_PDF_VIEWPORT_WIDTH": 1600,
             "BROWSER_PRINT_PDF_HEADER_FOOTER": False,
@@ -912,11 +912,9 @@ class TestAutoOrientationLandscapeFactorBeforeBanding:
             evaluate_calls.append((script, args))
             if args and isinstance(args[0], dict) and "usableWidth" in args[0]:
                 return {"banded": 0}
-            if isinstance(script, str) and "SHOW_ALL" in script:
-                return {"clientExpanded": 0, "serverWarning": 0}
             if isinstance(script, str) and "getBoundingClientRect" in script:
                 return []
-            return 0
+            return {}
 
         mock_page.evaluate.side_effect = capture_evaluate
         mock_page.wait_for_function.return_value = None
