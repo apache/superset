@@ -647,6 +647,13 @@ export function extractSeries(
     const normalized: DataRecord = {};
     Object.keys(datum).forEach(key => {
       const value = datum[key];
+      // Skip bigint/string-integer normalization for the xAxis dimension.
+      // Normalizing xAxis to Number would corrupt categorical labels like
+      // '007' → 7, breaking axis matching/sorting.
+      if (key === xAxis) {
+        normalized[key] = value;
+        return;
+      }
       normalized[key] =
         typeof value === 'bigint' ||
         (typeof value === 'string' && /^-?\d+$/.test(value))
