@@ -21,9 +21,11 @@ from __future__ import annotations
 from typing import Annotated, Any, Literal, Union
 from unittest.mock import patch
 
+import pytest
 from pydantic import BaseModel, Field, SecretStr
 
 from superset.constants import PASSWORD_MASK
+from superset.semantic_layers import masking
 from superset.semantic_layers.masking import (
     _is_secret_schema,
     _mask_all,
@@ -258,12 +260,8 @@ def _with_schema(schema: Any) -> Any:
     )
 
 
-def test_unresolvable_ref_reveals_its_subtree() -> None:
-    """A $ref into a missing $defs is unknowable at that position, so its
-    subtree is revealed rather than masked --- consistent with #43474, which
-    reveals any object it cannot classify as secret. (A real provider schema
-    resolves its refs; only the whole-schema-unavailable case fails closed.)
-    """
+def test_unresolvable_ref_masks_its_subtree() -> None:
+    """A failed explicit reference masks its subtree, not unrelated fields."""
     schema = {
         "type": "object",
         "properties": {"conn": {"$ref": "#/$defs/Missing"}},
@@ -271,7 +269,7 @@ def test_unresolvable_ref_reveals_its_subtree() -> None:
     }
     with _with_schema(schema):
         masked = mask_configuration("fake", {"conn": {"host": "h"}})
-    assert masked["conn"] == {"host": "h"}
+    assert masked["conn"] == {"host": PASSWORD_MASK}
 
 
 def test_untyped_array_is_revealed() -> None:
@@ -379,3 +377,118 @@ def test_additionalproperties_divergent_union_variants_mask_conservatively() -> 
         masked = mask_configuration("fake", {"kind": "plain", "extra": "sensitive"})
     assert masked["kind"] == "plain"
     assert masked["extra"] == PASSWORD_MASK
+
+
+@pytest.mark.parametrize("union", ["anyOf", "oneOf", "allOf"])
+@pytest.mark.parametrize("reverse", [False, True])
+def test_silent_union_sibling_cannot_reveal_secret_extras(
+    union: str, reverse: bool
+) -> None:
+    """A silent branch cannot override another branch's secret annotation."""
+    variants: list[dict[str, Any]] = [
+        {"properties": {"host": {"type": "string"}}},
+        {
+            "properties": {"host": {"type": "string"}},
+            "additionalProperties": {"writeOnly": True},
+        },
+    ]
+    if reverse:
+        variants.reverse()
+    with _with_schema({union: variants}):
+        masked: dict[str, Any] = mask_configuration(
+            "fake", {"host": "h", "extra": "credential"}
+        )
+    assert masked == {"host": "h", "extra": PASSWORD_MASK}
+
+
+def test_silent_union_without_secret_annotations_reveals_extras() -> None:
+    """Silence alone does not classify additional properties as secrets."""
+    with _with_schema({"anyOf": [{"type": "object"}, {"type": "object"}]}):
+        masked: dict[str, Any] = mask_configuration("fake", {"extra": "plain"})
+    assert masked == {"extra": "plain"}
+
+
+@pytest.mark.parametrize("cyclic", [False, True])
+@pytest.mark.parametrize("in_union", [False, True])
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ("secret", PASSWORD_MASK),
+        ({"secret": "s", "empty": ""}, {"secret": PASSWORD_MASK, "empty": ""}),
+        (
+            ["s", {"secret": "s"}, None, False, 0],
+            [PASSWORD_MASK, {"secret": PASSWORD_MASK}, None, False, 0],
+        ),
+    ],
+)
+def test_broken_references_mask_only_the_affected_value(
+    cyclic: bool, in_union: bool, value: Any, expected: Any
+) -> None:
+    """Missing and cyclic references fail closed across value shapes."""
+    reference: dict[str, Any] = {"$ref": "#/$defs/A"}
+    schema: dict[str, Any] = {
+        "type": "object",
+        "properties": {
+            "plain": {"type": "string"},
+            "secret": {"anyOf": [reference, {"type": "null"}]}
+            if in_union
+            else reference,
+        },
+        "$defs": {"A": {"$ref": "#/$defs/B"}, "B": {"$ref": "#/$defs/A"}}
+        if cyclic
+        else {},
+    }
+    with _with_schema(schema):
+        masked: dict[str, Any] = mask_configuration(
+            "fake", {"plain": "visible", "secret": value}
+        )
+    assert masked == {"plain": "visible", "secret": expected}
+
+
+@pytest.mark.parametrize(
+    ("failure", "reason"),
+    [
+        ("missing", "provider not registered"),
+        ("raising", "schema generation failed"),
+        ("invalid", "non-dictionary schema"),
+    ],
+)
+def test_schema_fallback_warns_without_logging_credentials(
+    failure: str, reason: str, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Warn with a safe reason while keeping fallback payloads masked."""
+    config: dict[str, Any] = {"nested": {"password": "PAYLOAD-CREDENTIAL"}}
+    with (
+        patch.dict(masking.registry, {"fake": _FakeProvider(None)}, clear=True),
+        patch.object(
+            _FakeProvider,
+            "get_configuration_schema",
+            side_effect=RuntimeError("EXCEPTION-CREDENTIAL")
+            if failure == "raising"
+            else None,
+            return_value=None,
+        ),
+        caplog.at_level("WARNING", logger=masking.__name__),
+    ):
+        layer_type: str = "absent" if failure == "missing" else "fake"
+        masked: dict[str, Any] = mask_configuration(layer_type, config)
+    assert masked == {"nested": {"password": PASSWORD_MASK}}
+    messages: list[str] = [
+        record.getMessage()
+        for record in caplog.records
+        if record.name == masking.__name__
+    ]
+    assert len(messages) == 1
+    assert layer_type in messages[0]
+    assert reason in messages[0]
+    assert "PAYLOAD-CREDENTIAL" not in caplog.text
+    assert "EXCEPTION-CREDENTIAL" not in caplog.text
+    assert all(record.exc_info is None for record in caplog.records)
+
+
+def test_valid_secret_schema_does_not_warn(caplog: pytest.LogCaptureFixture) -> None:
+    """Ordinary secret masking is not reported as a schema failure."""
+    with _with_schema({"additionalProperties": {"writeOnly": True}}):
+        masked: dict[str, Any] = mask_configuration("fake", {"password": "s"})
+    assert masked == {"password": PASSWORD_MASK}
+    assert not caplog.records

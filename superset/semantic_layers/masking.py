@@ -26,10 +26,11 @@ provider's schema and replaces the values of those fields with
 field passes through untouched so clients can still display and edit the
 non-secret parts.
 
-Fail-closed posture: when the schema cannot say which fields are secret —
-the layer's type has no registered provider (extension not loaded), schema
-generation fails, or a key is not described by the schema — every scalar
-value in the affected subtree is masked rather than exposed.
+Fail closed when no provider is registered, schema generation raises, or
+the provider returns a non-dictionary schema. Within a usable schema,
+mask fields classified as secret and reveal undescribed fields. An explicit
+reference that cannot be resolved masks the affected subtree. Recursive
+fallback masking preserves container shape and existing falsy values.
 
 Every client-facing path that emits a stored configuration must route through
 :func:`mask_configuration` — today that is only ``_serialize_layer`` on the two
@@ -57,14 +58,21 @@ rejects it.
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from superset.constants import PASSWORD_MASK
 from superset.semantic_layers.registry import registry
 
+logger: logging.Logger = logging.getLogger(__name__)
+
 _UNION_KEYS = ("anyOf", "oneOf", "allOf")
 
 JsonSchema = dict[str, Any]
+
+
+class _UnresolvableRefError(Exception):
+    """An explicit schema reference cannot be resolved."""
 
 
 def _resolve_ref(schema: JsonSchema, defs: dict[str, JsonSchema]) -> JsonSchema:
@@ -73,7 +81,7 @@ def _resolve_ref(schema: JsonSchema, defs: dict[str, JsonSchema]) -> JsonSchema:
     while "$ref" in schema:
         ref_name = schema["$ref"].rsplit("/", 1)[-1]
         if ref_name in seen or ref_name not in defs:
-            return {}
+            raise _UnresolvableRefError
         seen.add(ref_name)
         schema = defs[ref_name]
     return schema
@@ -183,11 +191,8 @@ def _mask_object(
     """Mask a dict value against the object schemas it may conform to."""
     variants = _object_variants(schema, defs)
     if not variants:
-        # The schema does not describe this position as an object (e.g. an
-        # unresolvable $ref). Reveal it, matching #43474's top-level behavior
-        # of masking only fields the schema marks secret; the top-level
-        # fail-closed (whole schema unavailable) is handled in
-        # ``mask_configuration``.
+        # A usable schema that does not describe an object leaves it visible.
+        # Broken references instead fail closed at the _mask_value boundary.
         return value
     properties: dict[str, list[JsonSchema]] = {}
     for variant in variants:
@@ -197,29 +202,22 @@ def _mask_object(
     # ``additionalProperties``. Mask against EVERY variant's
     # additionalProperties schema, not just the first: when variants declare
     # differing additionalProperties, trusting one branch could reveal a
-    # value another branch marks secret. If any variant does not describe
-    # such keys with a schema (no dict ``additionalProperties``), the key is
-    # unclassifiable there, so fail closed and mask it.
+    # value another branch marks secret. A silent sibling cannot cancel an
+    # explicit secret classification.
     additional_schemas = [
         variant["additionalProperties"]
         for variant in variants
         if isinstance(variant.get("additionalProperties"), dict)
     ]
-    all_variants_classify_extra = all(
-        isinstance(variant.get("additionalProperties"), dict) for variant in variants
-    )
     masked: dict[str, Any] = {}
     for key, item in value.items():
         subs = properties.get(key)
         if subs is None:
-            # A key no variant declares. If every variant constrains extra
-            # keys with an ``additionalProperties`` schema, classify against
-            # all of them (differing variants must agree to reveal); otherwise
-            # the key is schema-undescribed, so reveal it (a nested secret is
-            # only masked where the schema marks it, matching #43474).
+            # Classify extras against every available schema. Without any
+            # additional-properties schema, retain reveal-unless-marked behavior.
             masked[key] = (
                 _mask_against(item, additional_schemas, defs)
-                if additional_schemas and all_variants_classify_extra
+                if additional_schemas
                 else item
             )
         else:
@@ -260,15 +258,18 @@ def _mask_list(
 
 def _mask_value(value: Any, schema: JsonSchema, defs: dict[str, JsonSchema]) -> Any:
     """Mask secrets in ``value`` as classified by ``schema``."""
-    if _is_secret_schema(schema, defs):
-        # Mask only a truthy secret; an empty/None/0/False value hides
-        # nothing and is left as-is (matching the top-level masker in #43474).
-        return PASSWORD_MASK if value else value
-    if isinstance(value, dict):
-        return _mask_object(value, schema, defs)
-    if isinstance(value, list):
-        return _mask_list(value, schema, defs)
-    return value
+    try:
+        if _is_secret_schema(schema, defs):
+            # Mask only a truthy secret; an empty/None/0/False value hides
+            # nothing and is left as-is (matching the top-level masker in #43474).
+            return PASSWORD_MASK if value else value
+        if isinstance(value, dict):
+            return _mask_object(value, schema, defs)
+        if isinstance(value, list):
+            return _mask_list(value, schema, defs)
+        return value
+    except _UnresolvableRefError:
+        return _mask_all(value)
 
 
 def mask_configuration(layer_type: str, configuration: Any) -> dict[str, Any]:
@@ -284,6 +285,9 @@ def mask_configuration(layer_type: str, configuration: Any) -> dict[str, Any]:
         return {}
     cls = registry.get(layer_type)
     if cls is None:
+        logger.warning(
+            "Masking semantic layer type %s: provider not registered", layer_type
+        )
         return _mask_all(configuration)
     try:
         # The connector's own published shape (the same source #43474's
@@ -291,8 +295,14 @@ def mask_configuration(layer_type: str, configuration: Any) -> dict[str, Any]:
         # secrets rather than only top-level ``writeOnly`` properties.
         schema: JsonSchema = cls.get_configuration_schema()
     except Exception:  # pylint: disable=broad-except
+        logger.warning(
+            "Masking semantic layer type %s: schema generation failed", layer_type
+        )
         return _mask_all(configuration)
     if not isinstance(schema, dict):
+        logger.warning(
+            "Masking semantic layer type %s: non-dictionary schema", layer_type
+        )
         return _mask_all(configuration)
     return _mask_value(configuration, schema, schema.get("$defs", {}))
 
