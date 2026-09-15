@@ -39,7 +39,7 @@ params:
   - 13
   datasource: 22__table
   extra_form_data: {}
-  groupby: []
+  columns: []
   order_by_cols: []
   order_desc: true
   percent_metrics: []
