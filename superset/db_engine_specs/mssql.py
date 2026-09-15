@@ -25,6 +25,7 @@ from typing import Any, Optional
 from flask_babel import gettext as __
 from sqlalchemy import types
 from sqlalchemy.dialects.mssql.base import SMALLDATETIME
+from sqlalchemy.engine.url import URL
 
 from superset.constants import TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
@@ -193,6 +194,108 @@ class MssqlEngineSpec(BaseEngineSpec):
         data = super().fetch_data(cursor, limit)
         # Lists of `pyodbc.Row` need to be unpacked further
         return cls.pyodbc_rows_to_tuples(data)
+
+    @classmethod
+    def get_catalog_from_engine_params(
+        cls,
+        sqlalchemy_uri: URL,
+        connect_args: dict[str, Any],
+    ) -> str | None:
+        """
+        Resolve the database from genuine, statically-configured connection
+        settings only, checked in the order the actual connection is built --
+        not the order that's easiest to read in Python.
+
+        ``pyodbc.connect()`` always appends ``connect_args`` as extra
+        "key=value;" pairs onto whatever positional connection string
+        SQLAlchemy already built, and per the ODBC specification a driver
+        resolves a repeated keyword to its *first* occurrence. So whichever
+        database is already baked into that positional string -- from
+        ``odbc_connect`` (which becomes the *entire* string, ignoring the
+        URL's own host/database) or from the URL's own database segment --
+        always wins over ``connect_args["database"]``. The latter only takes
+        effect when the built string doesn't specify a database at all.
+        Verified empirically against a real SQL Server + the actual
+        Microsoft ODBC Driver 18 for SQL Server: a ``Database=`` embedded in
+        ``odbc_connect`` or the URL wins over a conflicting
+        ``connect_args["database"]`` every time -- even an *empty*
+        ``Database=`` wins and silently suppresses ``connect_args``, since
+        the driver stops at the first occurrence of the keyword regardless
+        of its value.
+
+        Only ``Database=`` is recognized inside ``odbc_connect`` --
+        ``Initial Catalog=`` is an OLEDB/ADO.NET connection-string keyword,
+        not an ODBC one. Microsoft's own ODBC Driver for SQL Server keyword
+        reference does not list it, and empirically the driver silently
+        ignores it (falls back to the login's default database) when it's
+        the only database-selecting keyword present -- so treating it as
+        authoritative here would report a catalog the real connection never
+        actually uses.
+
+        Returns None when none of these statically state a database -- e.g.
+        a host/DSN-only URI that relies on the SQL login's server-side
+        default database, or an ``odbc_connect`` string with an explicit but
+        empty ``Database=``. That default is only known to SQL Server
+        itself, at connect time; resolving it would require a live query,
+        which this method deliberately does not perform.
+        """
+        odbc_connect = sqlalchemy_uri.query.get("odbc_connect", "")
+        if isinstance(odbc_connect, str) and odbc_connect:
+            found, database = cls._parse_odbc_connect_database(odbc_connect)
+            if found:
+                # odbc_connect is the entire connection string, checked by
+                # the driver before connect_args is ever appended -- so its
+                # own Database= (present at all, even empty) is final.
+                return database
+        elif sqlalchemy_uri.database:
+            return sqlalchemy_uri.database
+
+        if isinstance(database := connect_args.get("database"), str) and database:
+            return database
+
+        return None
+
+    @staticmethod
+    def _parse_odbc_connect_database(odbc_connect: str) -> tuple[bool, str | None]:
+        """
+        Parse a ``Database=`` entry out of a raw ODBC connection string,
+        respecting brace-quoted (``{...}``) values that may themselves
+        contain a literal ``;`` (e.g. ``Database={my;db}``).
+
+        Returns ``(found, value)``. ``found`` is True as soon as a
+        ``Database=`` keyword appears at all -- even with an empty value --
+        because the ODBC "first occurrence wins" rule means the driver
+        resolves the keyword right there and never actually reaches a later
+        ``connect_args["database"]``; callers must not fall back to
+        ``connect_args`` in that case, only when ``found`` is False.
+        """
+        parts = []
+        current: list[str] = []
+        depth = 0
+        for char in odbc_connect:
+            if char == "{":
+                depth += 1
+                current.append(char)
+            elif char == "}":
+                depth = max(0, depth - 1)
+                current.append(char)
+            elif char == ";" and depth == 0:
+                parts.append("".join(current))
+                current = []
+            else:
+                current.append(char)
+        parts.append("".join(current))
+
+        for part in parts:
+            key, _, value = part.partition("=")
+            key = key.strip().lower()
+            value = value.strip()
+            if value.startswith("{") and value.endswith("}") and len(value) >= 2:
+                value = value[1:-1]
+            if key == "database":
+                return True, value or None
+
+        return False, None
 
     @classmethod
     def extract_error_message(cls, ex: Exception) -> str:
