@@ -34,6 +34,7 @@ from typing import Any
 from uuid import uuid4
 
 import pytest
+from werkzeug.test import TestResponse
 
 from superset.connectors.sqla.models import SqlaTable
 from superset.extensions import db
@@ -201,6 +202,88 @@ class TestDashboardActivityView(SupersetTestCase):
             db.session.commit()
 
     # ---- 200 happy paths ----
+
+    def test_related_dataset_detail_requires_dataset_editorship(self) -> None:
+        """A dashboard editor gains dataset detail only after dataset editorship."""
+        from superset import security_manager
+        from superset.subjects.models import Subject
+        from superset.subjects.utils import get_user_subject
+        from superset.utils.core import override_user
+
+        _persist_fixture_state()
+        dashboard: Dashboard = _get_birth_names_dashboard()
+        dataset: SqlaTable = _get_birth_names_dataset()
+        dashboard_id: int = dashboard.id
+        dataset_id: int = dataset.id
+        dashboard_uuid: str = str(dashboard.uuid)
+        dataset_uuid: str = str(dataset.uuid)
+        original_dashboard_editors: list[Subject] = list(dashboard.editors)
+        original_dataset_editors: list[Subject] = list(dataset.editors)
+        original_description: str | None = dataset.description
+        reader_subject: Subject | None = get_user_subject(
+            self.get_user(ALPHA_USERNAME).id
+        )
+        admin_subject: Subject | None = get_user_subject(
+            self.get_user(ADMIN_USERNAME).id
+        )
+        assert reader_subject is not None
+        assert admin_subject is not None
+        marker: str = f"redaction detail {uuid4().hex}"
+        try:
+            dashboard.editors = [reader_subject]
+            dataset.editors = [admin_subject]
+            db.session.commit()
+            with override_user(self.get_user(ADMIN_USERNAME)):
+                dataset.description = marker
+                db.session.commit()
+
+            self.login(ALPHA_USERNAME)
+            with override_user(self.get_user(ALPHA_USERNAME)):
+                assert security_manager.is_editor(dashboard)
+                assert not security_manager.is_editor(dataset)
+            response: TestResponse = self._activity(dashboard_uuid, include="related")
+            assert response.status_code == 200
+            body: dict[str, Any] = _json.loads(response.data)
+            related: list[dict[str, Any]] = [
+                record
+                for record in body["result"]
+                if record["entity_kind"] == "dataset"
+                and record["entity_uuid"] == dataset_uuid
+            ]
+            assert related
+            record: dict[str, Any]
+            for record in related:
+                assert record["entity_name"]
+                assert record["summary"]
+                assert record["changed_by"] is None
+                assert record["from_value"] is None
+                assert record["to_value"] is None
+                assert record["path"] is None
+
+            dataset.editors = [admin_subject, reader_subject]
+            db.session.commit()
+            response = self._activity(dashboard_uuid, include="related")
+            assert response.status_code == 200
+            body = _json.loads(response.data)
+            detailed: list[dict[str, Any]] = [
+                record
+                for record in body["result"]
+                if record["entity_kind"] == "dataset"
+                and record["entity_uuid"] == dataset_uuid
+                and record["to_value"] == marker
+            ]
+            assert detailed
+            assert detailed[0]["path"] is not None
+            assert detailed[0]["from_value"] == original_description
+            assert detailed[0]["changed_by"] is not None
+        finally:
+            db.session.rollback()
+            dashboard = db.session.query(Dashboard).filter_by(id=dashboard_id).one()
+            dataset = db.session.query(SqlaTable).filter_by(id=dataset_id).one()
+            dashboard.editors = original_dashboard_editors
+            dataset.editors = original_dataset_editors
+            dataset.description = original_description
+            db.session.commit()
 
     def test_activity_returns_200_with_envelope_shape(self) -> None:
         """Smoke test: the endpoint returns the documented envelope shape
