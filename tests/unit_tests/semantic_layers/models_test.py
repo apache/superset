@@ -19,12 +19,16 @@
 
 from __future__ import annotations
 
+import os
 import uuid
+from pathlib import Path
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, PropertyMock
 
 import pyarrow as pa
 import pytest
+from flask.testing import FlaskClient
+from pytest_mock import MockerFixture
 from superset_core.semantic_layers.types import (
     Dimension,
     Grains,
@@ -34,7 +38,9 @@ from superset_core.semantic_layers.types import (
     SemanticRequest,
     SemanticResult,
 )
+from werkzeug.test import TestResponse
 
+from superset.exceptions import QueryObjectValidationError
 from superset.semantic_layers.models import (
     ColumnMetadata,
     get_column_type,
@@ -408,10 +414,69 @@ def test_semantic_view_query_language() -> None:
 
 
 def test_semantic_view_get_query_str() -> None:
-    """Test SemanticView get_query_str method."""
-    view = SemanticView()
-    result = view.get_query_str({})
-    assert result == "Not implemented for semantic layers"
+    """Reject query previews that cannot provide a semantic provider request."""
+    view: SemanticView = SemanticView()
+    with pytest.raises(
+        QueryObjectValidationError, match="produced when the chart runs"
+    ):
+        view.get_query_str({})
+
+
+def test_semantic_query_placeholder_is_absent() -> None:
+    """Keep the retired placeholder out of backend and frontend source."""
+    root: Path = Path(__file__).resolve().parents[3]
+    directory: Path
+    current: str
+    directories: list[str]
+    filenames: list[str]
+    filename: str
+    for directory in (root / "superset", root / "superset-frontend" / "src"):
+        for current, directories, filenames in os.walk(directory):
+            directories[:] = sorted(set(directories) - {"static", "__pycache__"})
+            for filename in filenames:
+                source: Path = Path(current) / filename
+                if source.suffix in {".py", ".ts", ".tsx", ".js", ".jsx"}:
+                    assert (
+                        b"Not implemented for semantic layers"
+                        not in source.read_bytes()
+                    ), str(source)
+
+
+def test_semantic_view_query_endpoint_returns_error(
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """Return a semantic query validation error in the chart-data envelope."""
+    view: SemanticView = SemanticView(id=1)
+    implementation: MagicMock = MagicMock()
+    implementation.get_dimensions.return_value = []
+    implementation.get_metrics.return_value = []
+    mocker.patch.object(
+        SemanticView,
+        "implementation",
+        new_callable=PropertyMock,
+        return_value=implementation,
+    )
+    mocker.patch(
+        "superset.daos.datasource.DatasourceDAO.get_datasource", return_value=view
+    )
+    mocker.patch.object(SemanticView, "raise_for_access")
+
+    response: TestResponse = client.post(
+        "/api/v1/chart/data",
+        json={
+            "datasource": {"id": 1, "type": "semantic_view"},
+            "queries": [{}],
+            "result_type": "query",
+            "result_format": "json",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json["result"][0]["error"]
+    assert response.json["result"][0]["language"] is None
+    assert "query" not in response.json["result"][0]
 
 
 def test_semantic_view_get_extra_cache_keys() -> None:

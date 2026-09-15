@@ -1077,6 +1077,11 @@ msgid "A reusable dataset will be saved with your chart."
 msgstr "Un set de date reutilizabil va fi salvat cu graficul dvs."
 
 msgid ""
+"A semantic view's provider query is produced when the chart runs and "
+"returned with its data."
+msgstr ""
+
+msgid ""
 "A set of parameters that become available in the query using Jinja "
 "templating syntax"
 msgstr ""
@@ -10292,6 +10297,9 @@ msgstr ""
 "Nu există diagrame deck.gl cu mai multe straturi adăugate în prezent la "
 "acest tablou de bord."
 
+msgid "No provider query is available for this run."
+msgstr ""
+
 msgid "No records found"
 msgstr "Nicio înregistrare găsită"
 
@@ -15676,6 +15684,9 @@ msgstr ""
 
 msgid "The provided table was not found in the provided database"
 msgstr "Tabelul furnizat nu a fost găsit în baza de date furnizată"
+
+msgid "The provider query will be available after the chart runs."
+msgstr ""
 
 msgid "The query associated with the results was deleted."
 msgstr "Interogarea asociată cu rezultatele a fost ștearsă."

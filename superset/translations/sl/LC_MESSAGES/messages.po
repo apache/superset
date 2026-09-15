@@ -994,6 +994,11 @@ msgid "A reusable dataset will be saved with your chart."
 msgstr "Podatkovni set bo shranjen skupaj z grafikonom."
 
 msgid ""
+"A semantic view's provider query is produced when the chart runs and "
+"returned with its data."
+msgstr ""
+
+msgid ""
 "A set of parameters that become available in the query using Jinja "
 "templating syntax"
 msgstr ""
@@ -9457,6 +9462,9 @@ msgstr "Ni ustreznih rezultatov"
 msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr "Na to nadzorno ploščo trenutno ni dodanih večplastnih grafikonov deck.gl."
 
+msgid "No provider query is available for this run."
+msgstr ""
+
 msgid "No records found"
 msgstr "Ni zapisov"
 
@@ -14377,6 +14385,9 @@ msgstr "Primarna mera določa velikost lokov segmentov"
 
 msgid "The provided table was not found in the provided database"
 msgstr "Podana tabela ni bila najdena v podani podatkovni bazi"
+
+msgid "The provider query will be available after the chart runs."
+msgstr ""
 
 msgid "The query associated with the results was deleted."
 msgstr "Poizvedba, povezana z rezultati, je bila izbrisana."

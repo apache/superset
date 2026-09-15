@@ -1117,6 +1117,11 @@ msgid "A reusable dataset will be saved with your chart."
 msgstr "سيتم حفظ مجموعة بيانات قابلة لإعادة الاستخدام مع الرسم البياني الخاص بك."
 
 msgid ""
+"A semantic view's provider query is produced when the chart runs and "
+"returned with its data."
+msgstr ""
+
+msgid ""
 "A set of parameters that become available in the query using Jinja "
 "templating syntax"
 msgstr ""
@@ -10540,6 +10545,9 @@ msgstr "لم يتم العثور على سجلات مطابقة"
 msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr "لم تتم إضافة أي فلاتر حاليًا إلى لوحة التحكم هذه."
 
+msgid "No provider query is available for this run."
+msgstr ""
+
 msgid "No records found"
 msgstr " لم يتم العثور على أية سجلات "
 
@@ -16001,6 +16009,9 @@ msgstr "يتم استخدام المقياس الأساسي لتحديد أحج�
 
 msgid "The provided table was not found in the provided database"
 msgstr "لم يتم العثور على الجدول المقدم في قاعدة البيانات المقدمة"
+
+msgid "The provider query will be available after the chart runs."
+msgstr ""
 
 msgid "The query associated with the results was deleted."
 msgstr "تم حذف الاستعلام المرتبط بالنتائج."

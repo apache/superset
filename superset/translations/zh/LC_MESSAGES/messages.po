@@ -1044,6 +1044,11 @@ msgid "A reusable dataset will be saved with your chart."
 msgstr "一个可重复使用的数据集将与您的图表一起保存。"
 
 msgid ""
+"A semantic view's provider query is produced when the chart runs and "
+"returned with its data."
+msgstr ""
+
+msgid ""
 "A set of parameters that become available in the query using Jinja "
 "templating syntax"
 msgstr "使用 Jinja 模板语法在查询中可用的一组参数"
@@ -9942,6 +9947,9 @@ msgstr "未找到匹配结果"
 msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr "当前仪表板未添加任何多层 deck.gl 图表。"
 
+msgid "No provider query is available for this run."
+msgstr ""
+
 msgid "No records found"
 msgstr "没有找到任何记录"
 
@@ -15100,6 +15108,9 @@ msgstr "主计量指标用于定义弧段大小。"
 #, fuzzy
 msgid "The provided table was not found in the provided database"
 msgstr "该表在数据库中不存在"
+
+msgid "The provider query will be available after the chart runs."
+msgstr ""
 
 msgid "The query associated with the results was deleted."
 msgstr "与结果关联的查询已删除。"
