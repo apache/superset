@@ -201,3 +201,41 @@ report_schedule_editors = Table(
     ),
     UniqueConstraint("subject_id", "report_schedule_id"),
 )
+
+dashboard_folder_editors = Table(
+    "dashboard_folder_editors",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column(
+        "subject_id",
+        Integer,
+        ForeignKey("subjects.id", ondelete="CASCADE"),
+        nullable=False,
+    ),
+    Column(
+        "folder_id",
+        UUIDType(binary=True),
+        ForeignKey("dashboard_folders.id", ondelete="CASCADE"),
+        nullable=False,
+    ),
+    UniqueConstraint("subject_id", "folder_id"),
+)
+
+dashboard_folder_viewers = Table(
+    "dashboard_folder_viewers",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column(
+        "subject_id",
+        Integer,
+        ForeignKey("subjects.id", ondelete="CASCADE"),
+        nullable=False,
+    ),
+    Column(
+        "folder_id",
+        UUIDType(binary=True),
+        ForeignKey("dashboard_folders.id", ondelete="CASCADE"),
+        nullable=False,
+    ),
+    UniqueConstraint("subject_id", "folder_id"),
+)
