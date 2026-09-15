@@ -492,9 +492,10 @@ export default function transformProps(
   const idxSelectedDimension =
     stack === StackControlsValue.Stack &&
     stackDimension &&
-    chartProps.rawFormData?.groupby
+    chartProps.rawFormData?.groupby &&
+    (chartProps.rawFormData.groupby as string[]).includes(stackDimension)
       ? ((metrics || []).length > 1 ? 1 : 0) +
-        chartProps.rawFormData.groupby.indexOf(stackDimension)
+        (chartProps.rawFormData.groupby as string[]).indexOf(stackDimension)
       : -1;
 
   const seriesStackIds: string[] = rawSeries.map(entry => {
@@ -510,11 +511,12 @@ export default function transformProps(
   // Compute per-stack-group totalStackedValues so each group's "onlyTotal"
   // label shows that group's own sum rather than the global sum across all
   // groups. Group series by their stack group key and sum their data.
-  const perGroupTotalStackedValues: Record<string, number[]> = {};
+  const perGroupTotalStackedValues: Record<string, number[]> =
+    Object.create(null);
   if (stack && onlyTotal) {
     rawSeries.forEach((entry, idx) => {
       const group = seriesStackIds[idx];
-      if (!perGroupTotalStackedValues[group]) {
+      if (!Object.prototype.hasOwnProperty.call(perGroupTotalStackedValues, group)) {
         perGroupTotalStackedValues[group] = [];
       }
       const groupTotals = perGroupTotalStackedValues[group];

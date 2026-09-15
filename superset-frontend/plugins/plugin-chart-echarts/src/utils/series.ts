@@ -447,7 +447,7 @@ export function extractShowValueIndexes(
     seriesStackIds?: string[];
   },
 ): Record<string, number[]> {
-  const result: Record<string, number[]> = {};
+  const result: Record<string, number[]> = Object.create(null);
   const { legendState, stack, isHorizontal, onlyTotal, seriesStackIds } = opts;
   if (!stack) {
     return result;
@@ -455,7 +455,7 @@ export function extractShowValueIndexes(
 
   series.forEach((entry, seriesIndex) => {
     const stackGroup = seriesStackIds?.[seriesIndex] ?? DEFAULT_STACK_GROUP;
-    if (!result[stackGroup]) {
+    if (!Object.prototype.hasOwnProperty.call(result, stackGroup)) {
       result[stackGroup] = [];
     }
     const showValueIndexes = result[stackGroup];
