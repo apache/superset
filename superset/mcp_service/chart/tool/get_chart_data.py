@@ -401,22 +401,11 @@ def _build_query_results(
 async def _get_chart_data(  # noqa: C901
     request: GetChartDataRequest, ctx: Context
 ) -> ChartData | ChartError:
-    """Get chart data by ID or UUID.
+    """Produce chart data for one request, without containment or preflight.
 
-    Returns the actual data behind a chart for LLM analysis without image rendering.
-
-    Supports:
-    - Numeric ID or UUID lookup
-    - Multiple formats: json, csv, excel
-    - Cache control: use_cache, force_refresh, cache_timeout
-    - Optional row limit override (respects chart's configured limits)
-    - form_data_key: retrieves data using unsaved chart configuration from Explore
-
-    When form_data_key is provided, the tool uses the cached (unsaved) chart
-    configuration to query data, allowing you to get data for what the user
-    actually sees in the Explore view (not the saved version).
-
-    Returns underlying data in requested format with cache status.
+    Inner producer behind :func:`execute_chart_data`. Callers should use that
+    entry point instead so failures stay bounded and every response is
+    finalized.
     """
     await ctx.info(
         "Starting chart data retrieval: identifier=%s, format=%s, limit=%s, "
@@ -1637,10 +1626,16 @@ def _log_chart_data_failure(message: str) -> None:
         pass
 
 
-async def _finalized_chart_data(
+async def execute_chart_data(
     request: GetChartDataRequest, ctx: Context
 ) -> ChartData | ChartError:
-    """Contain and preflight one chart-data producer invocation."""
+    """Shared core behind get_chart_data.
+
+    Undecorated entry point so other tools (e.g. get_dashboard_data) reuse the
+    same query and guest-authorization path without re-entering the auth-wrapped
+    tool. Contains and preflights one chart-data producer invocation, so callers
+    receive a finalized response instead of an unbounded exception.
+    """
     try:
         response = await _get_chart_data(request, ctx)
     except Exception:
@@ -1666,5 +1661,21 @@ async def _finalized_chart_data(
 async def get_chart_data(
     request: GetChartDataRequest, ctx: Context
 ) -> ChartData | ChartError:
-    """Get saved or cached unsaved chart data in JSON or export formats."""
-    return await _finalized_chart_data(request, ctx)
+    """Get chart data by ID or UUID.
+
+    Returns the actual data behind a chart for LLM analysis without image rendering.
+
+    Supports:
+    - Numeric ID or UUID lookup
+    - Multiple formats: json, csv, excel
+    - Cache control: use_cache, force_refresh, cache_timeout
+    - Optional row limit override (respects chart's configured limits)
+    - form_data_key: retrieves data using unsaved chart configuration from Explore
+
+    When form_data_key is provided, the tool uses the cached (unsaved) chart
+    configuration to query data, allowing you to get data for what the user
+    actually sees in the Explore view (not the saved version).
+
+    Returns underlying data in requested format with cache status.
+    """
+    return await execute_chart_data(request, ctx)
