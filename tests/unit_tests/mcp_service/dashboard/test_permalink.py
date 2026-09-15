@@ -466,14 +466,15 @@ def test_build_dashboard_permalink_url(
         WEBDRIVER_BASEURL_USER_FRIENDLY="https://dashboards.example.test/",
         APPLICATION_ROOT=application_root,
     ):
-        expected = (
-            f"https://dashboards.example.test{application_root.rstrip('/')}"
-            "/dashboard/p/shared-key/"
-        )
         if in_request:
+            expected = "https://dashboards.example.test/dashboard/p/shared-key/"
             with app.test_request_context("/mcp"):
                 assert build_dashboard_permalink_url("shared-key") == expected
         else:
+            expected = (
+                f"https://dashboards.example.test{application_root.rstrip('/')}"
+                "/dashboard/p/shared-key/"
+            )
             with app.app_context():
                 assert build_dashboard_permalink_url("shared-key") == expected
 
