@@ -30,6 +30,7 @@ from superset.dashboards.permalink.exceptions import DashboardPermalinkGetFailed
 from superset.dashboards.permalink.types import DashboardPermalinkValue
 from superset.mcp_service.auth import load_user_with_relationships
 from superset.mcp_service.dashboard.schemas import (
+    NativeFilterSummary,
     redact_filter_state_data_model_metadata,
 )
 from superset.mcp_service.privacy import user_can_view_data_model_metadata
@@ -154,6 +155,7 @@ def get_matching_dashboard_permalink_state(
     dashboard_id: int | None,
     dashboard_uuid: str | None = None,
     dashboard_slug: str | None = None,
+    native_filters: list[NativeFilterSummary] | None = None,
 ) -> DashboardPermalinkState | None:
     """Return the permalink state when it belongs to the dashboard.
 
@@ -180,5 +182,5 @@ def get_matching_dashboard_permalink_state(
     raw_state = value.get("state")
     state: dict[str, object] = dict(raw_state) if isinstance(raw_state, dict) else {}
     if not user_can_view_data_model_metadata():
-        state = redact_filter_state_data_model_metadata(state)
+        state = redact_filter_state_data_model_metadata(state, native_filters)
     return DashboardPermalinkState(key=key, state=state)
