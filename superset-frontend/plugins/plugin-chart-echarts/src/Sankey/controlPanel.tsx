@@ -46,6 +46,23 @@ const config: ControlPanelConfig = {
         ],
         [
           {
+            name: 'intermediate_levels',
+            config: {
+              ...dndGroupByControl,
+              label: t('Intermediate levels'),
+              multi: true,
+              default: [],
+              description: t(
+                'Optional ordered columns rendered as intermediate stages ' +
+                  'between Source and Target. Drag to reorder. When set, ' +
+                  'each row flows Source → level 1 → … → Target.',
+              ),
+              freeForm: false,
+            },
+          },
+        ],
+        [
+          {
             name: 'target',
             config: {
               ...dndGroupByControl,
@@ -68,7 +85,50 @@ const config: ControlPanelConfig = {
     {
       label: t('Chart Options'),
       expanded: true,
-      controlSetRows: [['color_scheme']],
+      controlSetRows: [
+        ['color_scheme'],
+        [
+          {
+            name: 'roam',
+            config: {
+              type: 'SelectControl',
+              label: t('Enable graph roaming'),
+              renderTrigger: true,
+              default: true,
+              choices: [
+                [false, t('Disabled')],
+                ['scale', t('Scale only')],
+                ['move', t('Move only')],
+                [true, t('Scale and Move')],
+              ],
+              description: t(
+                'Whether to enable panning and zooming the diagram, which ' +
+                  'keeps dense flows readable in a small dashboard tile.',
+              ),
+            },
+          },
+        ],
+        [
+          {
+            name: 'node_alignment',
+            config: {
+              type: 'RadioButtonControl',
+              renderTrigger: true,
+              label: t('Node alignment'),
+              default: 'justify',
+              options: [
+                ['justify', t('Justify')],
+                ['left', t('Left')],
+                ['right', t('Right')],
+              ],
+              description: t(
+                'Horizontal alignment of nodes in the diagram. Justify ' +
+                  'pushes nodes without outgoing flows to the last level.',
+              ),
+            },
+          },
+        ],
+      ],
     },
   ],
 };
