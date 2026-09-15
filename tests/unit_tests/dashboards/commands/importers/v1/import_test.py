@@ -28,8 +28,9 @@ from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
 
 from superset import security_manager
+from superset.commands.dashboard.importers.v1 import ImportDashboardsCommand
 from superset.commands.dashboard.importers.v1.utils import import_dashboard
-from superset.commands.exceptions import ImportFailedError
+from superset.commands.exceptions import CommandInvalidError, ImportFailedError
 from superset.commands.importers.v1.utils import import_tag
 from superset.extensions import feature_flag_manager
 from superset.models.dashboard import Dashboard
@@ -759,16 +760,6 @@ def test_import_slug_collision_requires_overwrite_permission(
     session.rollback()
 
 
-import copy
-
-import pytest
-import yaml
-from pytest_mock import MockerFixture
-from sqlalchemy.orm.session import Session
-
-from superset.commands.exceptions import CommandInvalidError
-from superset.models.dashboard import Dashboard
-
 # a minimal bundle: metadata + one dashboard config with a fresh UUID and a
 # slug that collides with an existing active dashboard
 COLLIDING_SLUG = "contested-slug"
@@ -777,6 +768,7 @@ FRESH_UUID = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
 
 
 def _make_bundle(slug: str | None) -> dict[str, str]:
+    """Minimal dashboard bundle: metadata + one dashboard config."""
     dashboard = {
         "dashboard_title": "Incoming dash",
         "description": None,
@@ -784,14 +776,10 @@ def _make_bundle(slug: str | None) -> dict[str, str]:
         "slug": slug,
         "uuid": FRESH_UUID,
         "position": {},
-        "owner_email": "admin@superset.com",
-        "roles": [],
-        "color_scheme": "",
+        "version": "1.0.0",
     }
     return {
-        "metadata.yaml": yaml.dump(
-            {"version": "1.0.0", "type": "Dashboards", "timestamp": "2026-01-01T00:00:00Z"}
-        ),
+        "metadata.yaml": yaml.dump({"version": "1.0.0", "type": "Dashboard"}),
         "dashboards/incoming.yaml": yaml.dump(dashboard),
     }
 
@@ -799,6 +787,11 @@ def _make_bundle(slug: str | None) -> dict[str, str]:
 def _seed_existing_dashboard(session: Session) -> Dashboard:
     engine = session.get_bind()
     Dashboard.metadata.create_all(engine)  # pylint: disable=no-member
+    from superset.databases.ssh_tunnel.models import SSHTunnel
+    from superset.models.core import Database
+
+    Database.metadata.create_all(engine)  # pylint: disable=no-member
+    SSHTunnel.metadata.create_all(engine)  # pylint: disable=no-member
     existing = Dashboard(
         dashboard_title="Existing dash",
         slug=COLLIDING_SLUG,
@@ -812,81 +805,40 @@ def _seed_existing_dashboard(session: Session) -> Dashboard:
 
 
 def test_import_slug_collision_flags_overwrite_confirm(
-    mocker: MockerFixture,
     session: Session,
 ) -> None:
     """A fresh-UUID dashboard whose slug is owned by another active dashboard
     must fail validation with the same message a UUID collision produces, so
     the ImportModal shows the OVERWRITE confirmation instead of letting the
     import silently merge into the slug-owning dashboard."""
-    from superset.commands.dashboard.importers.v1 import ImportDashboardsCommand
-
     _seed_existing_dashboard(session)
-    mocker.patch("superset.commands.dashboard.importers.v1.load_metadata")
-    mocker.patch(
-        "superset.commands.dashboard.importers.v1.load_configs",
-        side_effect=lambda contents, schemas, passwords, exceptions, **kwargs: {
-            "dashboards/incoming.yaml": yaml.safe_load(
-                contents["dashboards/incoming.yaml"]
-            )
-        },
-    )
-
     command = ImportDashboardsCommand(_make_bundle(COLLIDING_SLUG), overwrite=False)
     with pytest.raises(CommandInvalidError) as excinfo:
         command.validate()
 
     messages = excinfo.value._exceptions[0].messages
-    assert messages == {
-        "dashboards/incoming.yaml": [
-            "Dashboard already exists and `overwrite=true` was not passed"
-        ]
-    }
+    assert messages["dashboards/incoming.yaml"] == (
+        "Dashboard already exists and `overwrite=true` was not passed"
+    )
 
 
 def test_import_slug_collision_with_overwrite_passes_gate(
-    mocker: MockerFixture,
     session: Session,
 ) -> None:
     """With ``overwrite`` confirmed the slug collision is not a validation
     error: the import proceeds through the slug-resolution and permission
     gates in ``import_dashboard()``."""
-    from superset.commands.dashboard.importers.v1 import ImportDashboardsCommand
-
     _seed_existing_dashboard(session)
-    mocker.patch("superset.commands.dashboard.importers.v1.load_metadata")
-    mocker.patch(
-        "superset.commands.dashboard.importers.v1.load_configs",
-        side_effect=lambda contents, schemas, passwords, exceptions, **kwargs: {
-            "dashboards/incoming.yaml": yaml.safe_load(
-                contents["dashboards/incoming.yaml"]
-            )
-        },
-    )
-
     command = ImportDashboardsCommand(_make_bundle(COLLIDING_SLUG), overwrite=True)
     command.validate()
 
 
 def test_import_no_slug_collision_passes_gate(
-    mocker: MockerFixture,
     session: Session,
 ) -> None:
     """A fresh slug (or no slug at all) must not be flagged: the check only
     fires when a different active dashboard owns the incoming slug."""
-    from superset.commands.dashboard.importers.v1 import ImportDashboardsCommand
-
     _seed_existing_dashboard(session)
-    mocker.patch("superset.commands.dashboard.importers.v1.load_metadata")
-    mocker.patch(
-        "superset.commands.dashboard.importers.v1.load_configs",
-        side_effect=lambda contents, schemas, passwords, exceptions, **kwargs: {
-            "dashboards/incoming.yaml": yaml.safe_load(
-                contents["dashboards/incoming.yaml"]
-            )
-        },
-    )
-
     command = ImportDashboardsCommand(_make_bundle("brand-new-slug"), overwrite=False)
     command.validate()
 
@@ -895,25 +847,12 @@ def test_import_no_slug_collision_passes_gate(
 
 
 def test_import_slug_collision_same_uuid_not_flagged(
-    mocker: MockerFixture,
     session: Session,
 ) -> None:
     """A config whose UUID matches the slug owner is the same dashboard: the
     base UUID check already handles it (and flags it as expected), the slug
     branch must not double-report."""
-    from superset.commands.dashboard.importers.v1 import ImportDashboardsCommand
-
     _seed_existing_dashboard(session)
-    mocker.patch("superset.commands.dashboard.importers.v1.load_metadata")
-    mocker.patch(
-        "superset.commands.dashboard.importers.v1.load_configs",
-        side_effect=lambda contents, schemas, passwords, exceptions, **kwargs: {
-            "dashboards/incoming.yaml": yaml.safe_load(
-                contents["dashboards/incoming.yaml"]
-            )
-        },
-    )
-
     bundle = _make_bundle(COLLIDING_SLUG)
     dashboard = yaml.safe_load(bundle["dashboards/incoming.yaml"])
     dashboard["uuid"] = EXISTING_UUID
@@ -923,6 +862,8 @@ def test_import_slug_collision_same_uuid_not_flagged(
     with pytest.raises(CommandInvalidError) as excinfo:
         command.validate()
 
-    # exactly one message, from the UUID branch, not two
-    messages = excinfo.value._exceptions[0].messages
-    assert len(messages["dashboards/incoming.yaml"]) == 1
+    # exactly one validation error, from the UUID branch, not two
+    assert len(excinfo.value._exceptions) == 1
+    assert excinfo.value._exceptions[0].messages["dashboards/incoming.yaml"] == (
+        "Dashboard already exists and `overwrite=true` was not passed"
+    )
