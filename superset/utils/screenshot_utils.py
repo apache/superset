@@ -55,6 +55,7 @@ SCREENSHOT_BLANK_MAX_ENTROPY = 1.5
 SCREENSHOT_BLANK_MIN_EDGE_DIFFERENCE = 8
 SCREENSHOT_BLANK_MIN_STRUCTURAL_EDGE_RATIO = 0.02
 SCREENSHOT_BLANK_SAMPLE_SIZES = (256, 1024)
+REPORT_CAPTURE_READINESS_STABILITY_MS = 500
 
 # Runtime task-budget policy shared with the approach introduced in #42118.
 # Celery exposes the effective per-task hard/soft limits only on the running
@@ -487,6 +488,35 @@ REPORT_ALL_CHART_HOLDERS_READY_JS = (
     f"() => {{ {UNREADY_ALL_CHART_HOLDERS_JS_BODY} "
     "return holders.length > 0 && unready.length === 0; }"
 )
+
+
+def _stable_readiness_js(readiness_predicate: str) -> str:
+    """Require a readiness predicate to remain true for a capture dwell."""
+
+    return f"""
+    args => {{
+        const ready = ({readiness_predicate})();
+        const now = performance.now();
+        const previous = window.__supersetCaptureReadiness;
+        if (!ready) {{
+            window.__supersetCaptureReadiness = {{token: args.token, since: null}};
+            return false;
+        }}
+        if (!previous || previous.token !== args.token || previous.since === null) {{
+            window.__supersetCaptureReadiness = {{token: args.token, since: now}};
+            return false;
+        }}
+        return now - previous.since >= args.stabilityMs;
+    }}
+    """
+
+
+STABLE_REPORT_CHART_HOLDERS_READY_JS = _stable_readiness_js(
+    REPORT_CHART_HOLDERS_READY_JS
+)
+STABLE_REPORT_ALL_CHART_HOLDERS_READY_JS = _stable_readiness_js(
+    REPORT_ALL_CHART_HOLDERS_READY_JS
+)
 CHART_HOLDERS_MOUNTED_JS = (
     f"() => document.querySelectorAll('{CHART_HOLDER_SELECTOR}').length > 0"
 )
@@ -516,6 +546,38 @@ CHART_CONTAINER_READY_JS = f"""
         );
 }}
 """
+STABLE_CHART_CONTAINER_READY_JS = _stable_readiness_js(CHART_CONTAINER_READY_JS)
+
+
+def wait_for_stable_readiness(
+    page: Page,
+    readiness_predicate: str,
+    timeout_seconds: float,
+) -> bool:
+    """Wait for capture readiness when the available budget can satisfy the dwell.
+
+    Returns ``False`` when less than one stability window plus a polling-interval
+    margin remains. The caller may proceed because the preceding readiness gate has
+    already completed; starting an impossible dwell would only convert a usable
+    capture budget into a timeout.
+    """
+
+    # The first poll only records the dwell start, so success needs the full
+    # stability window plus at least one polling interval on top of it.
+    minimum_timeout_seconds = (REPORT_CAPTURE_READINESS_STABILITY_MS + 250) / 1000
+    if timeout_seconds <= minimum_timeout_seconds:
+        return False
+
+    page.wait_for_function(
+        readiness_predicate,
+        arg={
+            "token": str(time.monotonic_ns()),
+            "stabilityMs": REPORT_CAPTURE_READINESS_STABILITY_MS,
+        },
+        timeout=timeout_seconds * 1000,
+    )
+    return True
+
 
 # Diagnostic companion to CHART_CONTAINER_READY_JS: reports why a chart
 # capture is (or is not) ready. Chart pages have no dashboard grid holders,
@@ -883,7 +945,7 @@ def take_tiled_screenshot(  # noqa: C901
 
         screenshot_tiles: list[bytes] = []
         blank_tile_retries = 0
-        contentful_tiles_captured = 0
+        contentful_tile_indexes: list[int] = []
 
         def _raise_if_budget_exhausted() -> None:
             elapsed, remaining = _deadline_values()
@@ -1152,6 +1214,43 @@ def take_tiled_screenshot(  # noqa: C901
             # Take screenshot with clipping to capture only this tile's content
             tile_screenshot: bytes | None = None
             for capture_attempt in range(1, TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS + 1):
+                if report_execution_context:
+                    stable_wait = _timeout_seconds(
+                        "capture_readiness_stability",
+                        reserve_seconds=(
+                            report_execution_context.readiness_reserve_seconds
+                        ),
+                    )
+                    try:
+                        waited_for_stability = wait_for_stable_readiness(
+                            page,
+                            STABLE_REPORT_CHART_HOLDERS_READY_JS,
+                            stable_wait,
+                        )
+                        logger.info(
+                            "report_capture_readiness_stable tile=%s/%s "
+                            "attempt=%s/%s stability_ms=%s skipped=%s%s",
+                            i + 1,
+                            num_tiles,
+                            capture_attempt,
+                            TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS,
+                            REPORT_CAPTURE_READINESS_STABILITY_MS,
+                            not waited_for_stability,
+                            context_suffix,
+                        )
+                    except PlaywrightTimeout:
+                        logger.warning(
+                            "report_capture_readiness_changed tile=%s/%s "
+                            "attempt=%s/%s%s; aborting before capture or delivery",
+                            i + 1,
+                            num_tiles,
+                            capture_attempt,
+                            TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS,
+                            context_suffix,
+                            exc_info=True,
+                        )
+                        readiness_timeout = True
+                        raise
                 capture_timeout = (
                     _timeout_seconds(
                         "screenshot_capture",
@@ -1250,13 +1349,16 @@ def take_tiled_screenshot(  # noqa: C901
                             # Exhausted retries must never turn a rejected report
                             # tile into accepted content. Only thumbnails may
                             # retain a blank capture below.
+                            report_execution_context.reject_capture(
+                                f"blank_tile:{i + 1}/{num_tiles}"
+                            )
                             raise ScreenshotBlankCaptureError(
                                 "Chromium returned a blank tile "
                                 f"{i + 1}/{num_tiles} after {capture_attempt} attempts"
                             )
                         tile_screenshot = candidate
                         logger.warning(
-                            "report_capture_blank_tile_retained tile=%s/%s "
+                            "thumbnail_capture_blank_tile_retained tile=%s/%s "
                             "attempts=%s contentful_chart_holders=%s "
                             "dominant_pixel_ratio=%.5f near_white_pixel_ratio=%.5f "
                             "mean_luminance=%.2f luminance_stddev=%.2f entropy=%.3f "
@@ -1315,7 +1417,7 @@ def take_tiled_screenshot(  # noqa: C901
             assert tile_screenshot is not None
             screenshot_tiles.append(tile_screenshot)
             if contentful_chart_holders > 0:
-                contentful_tiles_captured += 1
+                contentful_tile_indexes.append(i)
 
             logger.debug(
                 "Captured tile %s/%s with clip %s%s",
@@ -1371,29 +1473,53 @@ def take_tiled_screenshot(  # noqa: C901
             log_context=log_context,
         )
 
-        if report_execution_context and contentful_tiles_captured:
-            combined_blankness = get_screenshot_blankness_metrics(combined_screenshot)
-            logger.info(
-                "report_capture_validation capture=combined "
-                "contentful_tiles=%s is_blank=%s "
-                "dominant_pixel_ratio=%.5f near_white_pixel_ratio=%.5f "
-                "mean_luminance=%.2f luminance_stddev=%.2f entropy=%.3f "
-                "structural_edge_ratio=%.5f%s",
-                contentful_tiles_captured,
-                combined_blankness.is_blank,
-                combined_blankness.dominant_pixel_ratio,
-                combined_blankness.near_white_pixel_ratio,
-                combined_blankness.mean_luminance,
-                combined_blankness.luminance_stddev,
-                combined_blankness.entropy,
-                combined_blankness.structural_edge_ratio,
-                context_suffix,
-            )
-            if combined_blankness.is_blank:
+        if report_execution_context and contentful_tile_indexes:
+            contentful_indexes = set(contentful_tile_indexes)
+            rejected_combined_tiles: list[int] = []
+            y_offset = 0
+            with Image.open(io.BytesIO(combined_screenshot)) as combined_image:
+                for tile_index, tile in enumerate(screenshot_tiles):
+                    with Image.open(io.BytesIO(tile)) as source_tile:
+                        tile_width, tile_height = source_tile.size
+                    if tile_index in contentful_indexes:
+                        combined_region = combined_image.crop(
+                            (0, y_offset, tile_width, y_offset + tile_height)
+                        )
+                        output = io.BytesIO()
+                        combined_region.save(output, format="PNG")
+                        blankness = get_screenshot_blankness_metrics(output.getvalue())
+                        logger.info(
+                            "report_capture_validation capture=combined_region "
+                            "tile=%s/%s is_blank=%s dominant_pixel_ratio=%.5f "
+                            "near_white_pixel_ratio=%.5f mean_luminance=%.2f "
+                            "luminance_stddev=%.2f entropy=%.3f "
+                            "structural_edge_ratio=%.5f%s",
+                            tile_index + 1,
+                            num_tiles,
+                            blankness.is_blank,
+                            blankness.dominant_pixel_ratio,
+                            blankness.near_white_pixel_ratio,
+                            blankness.mean_luminance,
+                            blankness.luminance_stddev,
+                            blankness.entropy,
+                            blankness.structural_edge_ratio,
+                            context_suffix,
+                        )
+                        if blankness.is_blank:
+                            rejected_combined_tiles.append(tile_index + 1)
+                    y_offset += tile_height
+
+            if rejected_combined_tiles:
                 logger.warning(
-                    "report_capture_blank_combined_retained contentful_tiles=%s%s",
-                    contentful_tiles_captured,
+                    "report_capture_blank_combined_rejected contentful_tiles=%s "
+                    "rejected_tiles=%s%s",
+                    len(contentful_tile_indexes),
+                    rejected_combined_tiles,
                     context_suffix,
+                )
+                report_execution_context.reject_capture("blank_combined")
+                raise ScreenshotBlankCaptureError(
+                    "Combined report screenshot lost content from validated tiles"
                 )
 
         return combined_screenshot

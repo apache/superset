@@ -17,31 +17,33 @@
 """Per-record impact computation for the activity DTO.
 
 Only dashboard-path activity records pointing at a ``SqlaTable``
-related entity carry an ``impact`` field — the number of charts on
-the dashboard at that transaction that were pointing at the dataset.
-This module computes that count in a single batched query per
-request:
+related entity carry an ``impact`` field — the charts on the
+dashboard at that transaction that were pointing at the dataset, as
+a count plus per-chart id/name references. This module computes that
+payload in a single batched read per request:
 
 * :func:`collect_impact_pairs` — pulls the distinct
-  ``(dataset_id, transaction_id)`` pairs that need counts.
-* :func:`batch_chart_counts` — counts the matching charts without a
+  ``(dataset_id, transaction_id)`` pairs that need computing.
+* :func:`batch_chart_impacts` — collects the matching charts without a
   join: dashboard membership comes from ``charts_attached_to_dashboard``'s
   attach/detach windows over ``dashboard_slices_version``, and a
-  member-scoped ``slices_version`` scan supplies the chart→dataset window;
-  the two are combined per pair by :func:`_count_attached_charts_at`.
+  member-scoped ``slices_version`` scan supplies the chart→dataset window
+  and the chart's name-at-transaction; the two are combined per pair by
+  :func:`_collect_attached_charts_at`.
 * :func:`impact_for_record` — pure projection from the pre-fetched
-  counts onto each record (returns ``None`` for non-Dashboard paths
-  or non-SqlaTable kinds, matching the ``impact`` computation).
+  chart references onto each record (returns ``None`` for
+  non-Dashboard paths or non-SqlaTable kinds, matching the
+  ``impact`` computation).
 
-Splitting the count batching from the pure projection keeps the SQL
-inside one function (the batched read) and the per-record decoration
-inside another (no DB).
+Splitting the batched read from the pure projection keeps the SQL
+inside one function and the per-record decoration inside another
+(no DB).
 """
 
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from typing import Any
+from typing import Any, TypedDict
 
 import sqlalchemy as sa
 
@@ -53,6 +55,15 @@ from superset.versioning.activity.kinds import (
     Window,
 )
 from superset.versioning.baseline import OPERATION_DELETE
+from superset.versioning.schemas import IMPACT_AFFECTED_CHARTS_CAP
+
+
+class ChartRef(TypedDict):
+    """One affected chart in an ``impact`` payload: id plus name-at-transaction."""
+
+    id: int
+    name: str
+
 
 # Headroom left below SQLite's 999 bind-variable floor for the handful of scalar
 # binds in the slice-scan WHERE (datasource_type, operation_type, the two tx
@@ -79,28 +90,29 @@ def collect_impact_pairs(
     }
 
 
-def batch_chart_counts(
+def batch_chart_impacts(
     dashboard_id: int, pairs: set[tuple[int, int]]
-) -> dict[tuple[int, int], int]:
-    """For every ``(dataset_id, target_tx)`` in *pairs*, count the
+) -> dict[tuple[int, int], list[ChartRef]]:
+    """For every ``(dataset_id, target_tx)`` in *pairs*, collect the
     distinct charts that were both on *dashboard_id* and pointing at
-    *dataset_id* at *target_tx*.
+    *dataset_id* at *target_tx*, as id + name-at-transaction references.
 
     No join: ``charts_attached_to_dashboard`` supplies each member chart's
     ``[attach, detach)`` windows from the association shadow (Continuum never
     closes an M2M shadow's ``end_transaction_id``, so a validity-window filter
-    on it would count a chart removed before ``target_tx`` — sc-119907), and a
-    member-scoped scan of ``slices_version`` supplies the chart→dataset window,
-    whose ``end_transaction_id`` the validity backfill *does* close, so the
-    ordinary validity predicate is right there. The Python loop counts a slice
-    for a pair when both an attachment window and its chart→dataset window
-    contain ``target_tx``. Replaces the previous N+1 shape that fired one COUNT
-    per related record, and the m2m⋈slices join whose M2M validity window was
-    the buggy naive filter.
+    on it would include a chart removed before ``target_tx`` — sc-119907), and a
+    member-scoped scan of ``slices_version`` supplies the chart→dataset window
+    (whose ``end_transaction_id`` the validity backfill *does* close, so the
+    ordinary validity predicate is right there) plus the chart's name at that
+    transaction. The Python loop counts a slice for a pair when both an
+    attachment window and its chart→dataset window contain ``target_tx``.
+    Replaces the previous N+1 shape that fired one COUNT per related record, and
+    the m2m⋈slices join whose M2M validity window was the buggy naive filter.
 
-    Returns ``{(dataset_id, target_tx): count}``; pairs whose count
-    would be zero are omitted so the caller's ``.get(key, 0)`` is
-    correct.
+    Returns ``{(dataset_id, target_tx): [ChartRef, ...]}`` with each pair's
+    charts sorted by name; the name is the chart's name at that transaction (the
+    matched version row). Pairs with no matching charts are omitted so the
+    caller's ``.get(key)`` falsiness check is correct.
     """
     if not pairs:
         return {}
@@ -128,7 +140,7 @@ def batch_chart_counts(
     if not attach_windows:
         return {}
 
-    # Chart→dataset validity from the slice parent shadow, whose
+    # Chart→dataset validity and name from the slice parent shadow, whose
     # end_transaction_id the validity backfill *does* close, so the ordinary
     # half-open validity predicate is correct here. Bounded on the DB side to
     # this dashboard's member charts (the attach_windows keys) and the
@@ -161,6 +173,7 @@ def batch_chart_counts(
             conditions.append(slices_tbl.c.datasource_id.in_(dataset_ids))
         stmt = sa.select(
             slices_tbl.c.id.label("slice_id"),
+            slices_tbl.c.slice_name,
             slices_tbl.c.datasource_id,
             slices_tbl.c.transaction_id.label("slice_start"),
             slices_tbl.c.end_transaction_id.label("slice_end"),
@@ -171,30 +184,33 @@ def batch_chart_counts(
     for dataset_id, target_tx in pairs:
         pairs_by_dataset.setdefault(dataset_id, []).append(target_tx)
 
-    return _count_attached_charts_at(attach_windows, slice_rows, pairs_by_dataset)
+    return _sorted_chart_refs(
+        _collect_attached_charts_at(attach_windows, slice_rows, pairs_by_dataset)
+    )
 
 
-def _count_attached_charts_at(
+def _collect_attached_charts_at(
     attach_windows: dict[int, list[Window]],
     slice_rows: Sequence[Mapping[str, Any]],
     pairs_by_dataset: dict[int, list[int]],
-) -> dict[tuple[int, int], int]:
-    """Pure combiner: for each ``(dataset_id, target_tx)``, count the distinct
-    charts whose attachment window and chart→dataset window both contain
-    ``target_tx``.
+) -> dict[tuple[int, int], dict[int, str]]:
+    """Pure combiner: for each ``(dataset_id, target_tx)``, collect the distinct
+    charts (``slice_id`` → name-at-transaction) whose attachment window and
+    chart→dataset window both contain ``target_tx``.
 
     *attach_windows* maps ``slice_id`` to its ``[attach, detach)`` episodes
     (from the association shadow — see
     :func:`~superset.versioning.activity.windows.attachment_windows`); a chart
     removed before ``target_tx`` has no window containing it and is therefore
-    not counted. *slice_rows* are the chart→dataset parent-shadow rows
-    (``slice_id``, ``datasource_id``, ``slice_start``, ``slice_end``), whose
-    ``end_transaction_id`` (``slice_end``) the validity backfill does close, so
-    the half-open validity predicate is correct for them. Split out of
-    :func:`batch_chart_counts` so this membership logic is unit-testable
+    not collected. *slice_rows* are the chart→dataset parent-shadow rows
+    (``slice_id``, ``slice_name``, ``datasource_id``, ``slice_start``,
+    ``slice_end``), whose ``end_transaction_id`` (``slice_end``) the validity
+    backfill does close, so the half-open validity predicate is correct for
+    them; ``slice_name`` is the chart's name on that matched version row. Split
+    out of :func:`batch_chart_impacts` so this membership logic is unit-testable
     without a live shadow-table fixture.
     """
-    matches: dict[tuple[int, int], set[int]] = {}
+    matches: dict[tuple[int, int], dict[int, str]] = {}
     for row in slice_rows:
         windows = attach_windows.get(row["slice_id"])
         if not windows:
@@ -206,27 +222,55 @@ def _count_attached_charts_at(
                 row["slice_end"] is None or row["slice_end"] > target_tx
             )
             if in_attach and in_slice:
-                matches.setdefault((ds_id, target_tx), set()).add(row["slice_id"])
-    return {pair: len(slice_ids) for pair, slice_ids in matches.items()}
+                matches.setdefault((ds_id, target_tx), {})[row["slice_id"]] = (
+                    row["slice_name"] or ""
+                )
+    return matches
+
+
+def _sorted_chart_refs(
+    matches: dict[tuple[int, int], dict[int, str]],
+) -> dict[tuple[int, int], list[ChartRef]]:
+    """Order each pair's deduped charts by (casefolded name, id).
+
+    Pure function, split from the batched read so the ordering contract is
+    directly testable: names compare case-insensitively, ties break on id
+    for a deterministic wire order, and empty names sort first (they render
+    as an "Untitled" fallback downstream).
+    """
+    return {
+        pair: sorted(
+            (ChartRef(id=slice_id, name=name) for slice_id, name in charts.items()),
+            key=lambda chart: (chart["name"].casefold(), chart["id"]),
+        )
+        for pair, charts in matches.items()
+    }
 
 
 def impact_for_record(
     record: dict[str, Any],
     path_kind: str,
-    counts: dict[tuple[int, int], int],
-) -> dict[str, int] | None:
-    """Synthesize the ``impact`` field for one record using the pre-
-    fetched *counts* mapping. Pure function — no DB.
+    impacts: dict[tuple[int, int], list[ChartRef]],
+) -> dict[str, Any] | None:
+    """Synthesize the ``impact`` field for one record from *impacts*.
 
-    For the ``impact`` computation: only
+    Pure function — no DB. For the ``impact`` computation: only
     ``path=Dashboard`` and ``related=SqlaTable`` shapes carry an
-    impact; everything else returns ``None``.
+    impact; everything else returns ``None``. The payload keeps the
+    ``charts`` count and adds ``affected_charts`` — the affected charts
+    (id + name) that the count summarizes — so the rollup entry's
+    hover tooltip can list them. ``affected_charts`` is capped at
+    :data:`IMPACT_AFFECTED_CHARTS_CAP`; ``charts`` stays the full count so
+    the consumer can render an "and N more" overflow line.
     """
     api_kind = TABLE_KIND_TO_API.get(record["entity_kind"])
     if path_kind != "Dashboard" or api_kind != "SqlaTable":
         return None
     key = (record["entity_id"], record["transaction_id"])
-    chart_count = counts.get(key, 0)
-    if chart_count == 0:
+    charts = impacts.get(key) or []
+    if not charts:
         return None
-    return {"charts": chart_count}
+    return {
+        "charts": len(charts),
+        "affected_charts": charts[:IMPACT_AFFECTED_CHARTS_CAP],
+    }
