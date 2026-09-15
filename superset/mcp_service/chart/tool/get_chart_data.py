@@ -318,7 +318,6 @@ def _build_query_results(
     return results
 
 
-
 def _is_json_null(value: Any) -> bool:
     """True for values JSON has no representation for: None, NaN, NaT.
 
@@ -353,8 +352,7 @@ def _json_safe_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     if not rows:
         return rows
     return [
-        {k: (None if _is_json_null(v) else v) for k, v in row.items()}
-        for row in rows
+        {k: (None if _is_json_null(v) else v) for k, v in row.items()} for row in rows
     ]
 
 
@@ -964,7 +962,9 @@ async def execute_chart_data(  # noqa: C901
                         display_name=col_name.replace("_", " ").title(),
                         data_type=data_type,
                         sample_values=sample_values[:3],
-                        null_count=sum(1 for row in raw_rows if row.get(col_name) is None),
+                        null_count=sum(
+                            1 for row in raw_rows if row.get(col_name) is None
+                        ),
                         unique_count=len({str(row.get(col_name)) for row in data}),
                     )
                 )

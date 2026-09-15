@@ -104,9 +104,9 @@ async def test_requery_still_takes_a_request_envelope(app: Any) -> None:
         "payload is rejected by validation."
     )
     request_model = schema["$defs"]["RenderChartRequeryRequest"]["properties"]
-    assert (
-        "identifier" in request_model
-    ), "The widget keys the chart by `identifier` (not `chart_id`)."
+    assert "identifier" in request_model, (
+        "The widget keys the chart by `identifier` (not `chart_id`)."
+    )
     # group_by was removed because extra_form_data ignores it; if it comes
     # back, the widget needs a deliberate decision, not a silent no-op.
     assert "group_by" not in request_model

@@ -42,14 +42,14 @@ from superset_core.mcp.decorators import tool, ToolAnnotations
 from superset.extensions import event_logger
 from superset.mcp_service.chart.constants import CHART_VIEWER_URI
 from superset.mcp_service.chart.schemas import (
-    DashboardCell,
-    DashboardRender,
-    RenderDashboardRequest,
     ChartData,
     ChartError,
+    DashboardCell,
+    DashboardRender,
     GetChartDataRequest,
     RenderChartRequeryRequest,
     RenderChartRequest,
+    RenderDashboardRequest,
 )
 from superset.mcp_service.chart.tool.get_chart_data import execute_chart_data
 from superset.mcp_service.utils.url_utils import get_superset_base_url
@@ -288,9 +288,9 @@ async def _render_dashboard_impl(
     """Undecorated body of ``render_dashboard`` (see the tool for docs)."""
     from superset.daos.dashboard import DashboardDAO
     from superset.mcp_service.dashboard.schemas import (
+        dashboard_layout_serializer,
         DashboardError,
         DashboardLayout,
-        dashboard_layout_serializer,
     )
     from superset.mcp_service.mcp_core import ModelGetInfoCore
 
@@ -312,9 +312,7 @@ async def _render_dashboard_impl(
         return ChartError(error=layout.error, error_type=layout.error_type)
 
     positions = [
-        p
-        for p in layout.charts
-        if request.tab_id is None or p.tab_id == request.tab_id
+        p for p in layout.charts if request.tab_id is None or p.tab_id == request.tab_id
     ]
 
     cells: list[DashboardCell] = []
@@ -400,7 +398,9 @@ async def _render_dashboard_impl(
         dashboard_title=layout.dashboard_title,
         active_tab_id=request.tab_id,
         dashboard_url=(
-            f"{base_url}/superset/dashboard/{layout.id}/" if base_url and layout.id else None
+            f"{base_url}/superset/dashboard/{layout.id}/"
+            if base_url and layout.id
+            else None
         ),
         tabs=[
             {"id": t.id, "name": t.name, "parent_tab_id": t.parent_tab_id}
