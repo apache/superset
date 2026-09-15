@@ -46,10 +46,53 @@ type EmbeddedSupersetApi = {
   setDataMask: ({ dataMask }: { dataMask: DataMaskStateWithId }) => void;
 };
 
-const getScrollSize = (): Size => ({
-  width: document.body.scrollWidth,
-  height: document.body.scrollHeight,
-});
+// Hosts size the iframe from this value, so it has to describe the content, not
+// the frame. The app fills its frame by design, so measuring it directly just
+// reads back the height the host already set, and a host that applies the
+// result with any headroom of its own grows the iframe on every poll. Drop the
+// fill-the-frame constraint, read, restore, all in one task so nothing repaints
+// in between. Inline styles are used deliberately: a stylesheet rule has to win
+// a specificity contest against whatever the theme sets, and losing it silently
+// turns this back into a measurement of the frame.
+//
+// Before the dashboard lays out there is nothing to measure and the document is
+// a few pixels tall. Report the viewport instead: a host applying that near
+// zero height would collapse the frame, and charts only render once they are in
+// view, so the embed could never recover.
+const getScrollSize = (): Size => {
+  const root = document.documentElement;
+  const { body } = document;
+  const app = document.getElementById('app');
+  const content = document.querySelector(
+    '[data-test="dashboard-content-wrapper"]',
+  );
+  if (!content || content.getBoundingClientRect().height === 0) {
+    return { width: body.scrollWidth, height: root.clientHeight };
+  }
+
+  // The vertical filter bar is capped to the frame so its action buttons stay
+  // reachable. That cap is viewport-derived too, so it has to come off for the
+  // measurement or a tall filter list reports as frame-high.
+  const bar = document.querySelector<HTMLElement>('.filter-bar-bounded');
+  const previous = [
+    root.style.height,
+    body.style.height,
+    app?.style.height,
+    bar?.style.maxHeight,
+  ];
+  root.style.height = 'auto';
+  body.style.height = 'auto';
+  if (app) app.style.height = 'auto';
+  if (bar) bar.style.maxHeight = 'none';
+  try {
+    // Reading these forces layout, so they reflect the lifted constraints.
+    return { width: body.scrollWidth, height: body.scrollHeight };
+  } finally {
+    [root.style.height, body.style.height] = [previous[0]!, previous[1]!];
+    if (app) app.style.height = previous[2]!;
+    if (bar) bar.style.maxHeight = previous[3]!;
+  }
+};
 
 const getDashboardPermalink = async ({
   anchor,

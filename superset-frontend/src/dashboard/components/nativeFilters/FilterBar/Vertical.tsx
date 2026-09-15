@@ -39,6 +39,7 @@ import { Icons } from '@superset-ui/core/components/Icons';
 import { EmptyState, Loading } from '@superset-ui/core/components';
 import { useChartLayoutItems } from 'src/dashboard/util/useChartLayoutItems';
 import { useChartIds } from 'src/dashboard/util/charts/useChartIds';
+import { isEmbedded } from 'src/dashboard/util/isEmbedded';
 import { getFilterBarTestId, useChartsVerboseMaps } from './utils';
 import { VerticalBarProps } from './types';
 import Header from './Header';
@@ -64,8 +65,8 @@ const BarWrapper = styled.div<{ width: number }>`
   }
 `;
 
-const Bar = styled.div<{ width: number }>`
-  ${({ theme, width }) => `
+const Bar = styled.div<{ width: number; maxHeight?: string }>`
+  ${({ theme, width, maxHeight }) => `
     & .ant-typography-edit-content {
       left: 0;
       margin-top: 0;
@@ -78,9 +79,29 @@ const Bar = styled.div<{ width: number }>`
     flex-grow: 1;
     width: ${width}px;
     background: ${theme.colorBgContainer};
+    /* The bar is as wide as the column, so it paints over the column's right
+       border. Keep its own so the separator is continuous whether or not the
+       bar reaches that far down. */
     border-right: 1px solid ${theme.colorSplit};
-    border-bottom: 1px solid ${theme.colorSplit};
-    min-height: 100%;
+    ${
+      maxHeight
+        ? /* In an embed the bar is as tall as its content, but never taller
+             than the frame: a short filter list leaves the document short so
+             a content-fit host can size the iframe to it, and a long one fills
+             the frame with the list scrolling inside and the action buttons at
+             the bottom, the way it behaves outside an embed. While
+             getScrollSize() measures, it lifts this cap (see
+             src/embedded/api.tsx) so the reported height describes the content
+             rather than the frame it is used to size. The borders move to the
+             column behind it, which spans the full height either way. */
+          `max-height: ${maxHeight};
+           min-height: 0;
+           &.open > *:not(.filter-bar-scroll) {
+             flex: 0 0 auto;
+           }`
+        : `border-bottom: 1px solid ${theme.colorSplit};
+           min-height: 100%;`
+    }
     display: none;
     &.open {
       display: flex;
@@ -118,15 +139,23 @@ const FilterBarEmptyStateContainer = styled.div`
   margin-top: ${({ theme }) => theme.sizeUnit * 8}px;
 `;
 
-const FilterControlsWrapper = styled.div`
-  ${({ theme }) => `
+const FilterControlsWrapper = styled.div<{ bounded?: boolean }>`
+  ${({ theme, bounded }) => `
     display: flex;
     flex-direction: column;
     gap: ${theme.sizeUnit * 2}px;
     padding: ${theme.sizeUnit * 4}px;
     padding-top: 0; /* Works with other changes in PR https://github.com/apache/superset/pull/38646 to reduces space between filter header and 1st filter */
-    // 108px padding to make room for buttons with position: absolute
-    padding-bottom: ${theme.sizeUnit * 27}px;
+    ${
+      bounded
+        ? /* The bar is a bounded flex column: the action buttons are a sibling
+             of the scroll area rather than floating over it, so no room needs
+             reserving and the reservation would just be dead space at the end
+             of the list. */
+          `padding-bottom: ${theme.sizeUnit * 4}px;`
+        : /* 108px padding to make room for buttons with position: absolute */
+          `padding-bottom: ${theme.sizeUnit * 27}px;`
+    }
   `}
 `;
 
@@ -175,9 +204,22 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
     };
   }, [onScroll]);
 
+  // Inside an iframe `100vh` resolves to the iframe's own height, so sizing the
+  // panel from it makes the document height a function of the iframe height: a
+  // host that sizes the iframe from content height then feeds its own output
+  // back in. Bound the panel instead and let the filter list flex inside it.
+  const embedded = isEmbedded();
   const tabPaneStyle = useMemo(
-    () => ({ overflow: 'auto', height, overscrollBehavior: 'contain' }),
-    [height],
+    () =>
+      embedded
+        ? {
+            overflow: 'auto',
+            flex: '1 1 auto',
+            minHeight: 0,
+            overscrollBehavior: 'contain',
+          }
+        : { overflow: 'auto', height, overscrollBehavior: 'contain' },
+    [embedded, height],
   );
 
   const dataMask = useSelector<RootState, DataMaskStateWithId>(
@@ -223,7 +265,7 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
       filterValues.length > 0 || chartCustomizationValues.length > 0;
 
     return hasFiltersOrCustomizations ? (
-      <FilterControlsWrapper>
+      <FilterControlsWrapper bounded={embedded}>
         <FilterControls
           dataMaskSelected={dataMaskSelected}
           onFilterSelectionChange={onSelectionChange}
@@ -252,6 +294,7 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
   }, [
     canEdit,
     dataMaskSelected,
+    embedded,
     filterValues.length,
     onSelectionChange,
     onPendingCustomizationDataMaskChange,
@@ -301,8 +344,12 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
           </CollapsedBar>
         )}
         <Bar
-          className={cx({ open: filtersOpen })}
+          className={cx(
+            { open: filtersOpen },
+            embedded && 'filter-bar-bounded',
+          )}
           width={width}
+          maxHeight={embedded ? '100vh' : undefined}
           css={
             mobileMode &&
             css`
@@ -326,7 +373,11 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
               <Loading position="inline-centered" size="s" muted />
             </div>
           ) : (
-            <div css={tabPaneStyle} onScroll={onScroll}>
+            <div
+              className="filter-bar-scroll"
+              css={tabPaneStyle}
+              onScroll={onScroll}
+            >
               <>
                 <UrlFiltersVertical />
                 <CrossFiltersVertical hideHeader={hasOnlyOneSectionType} />
