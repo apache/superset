@@ -49,6 +49,7 @@ from superset.db_engine_specs.base import (
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.models.sql_lab import Query
+from superset.sql.dialects.postgres import normalize_date_trunc_units
 from superset.sql.parse import process_jinja_sql
 from superset.utils import core as utils, json
 from superset.utils.core import GenericDataType, QuerySource
@@ -57,7 +58,6 @@ if TYPE_CHECKING:
     from superset.models.core import Database  # pragma: no cover
 
 logger = logging.getLogger()
-
 
 # Regular expressions to catch custom errors
 CONNECTION_INVALID_USERNAME_REGEX = re.compile(
@@ -180,6 +180,20 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
     engine_name = "PostgreSQL"
     supports_multivalues_insert = True
 
+    # The time grain templates below spell ``DATE_TRUNC`` units in lowercase.
+    # PostgreSQL-like engines compare a metric's ``DATE_TRUNC`` call against
+    # the ``GROUP BY`` expression structurally, so a custom metric using a
+    # different unit spelling fails with a grouping error. Every spec that
+    # inherits these templates therefore also inherits the normalization that
+    # keeps custom metric units aligned with them; specs that replace the
+    # templates (e.g. Snowflake) replace the normalization as well.
+    preserves_custom_sql_metric_source = True
+
+    @classmethod
+    def normalize_custom_sql_metric(cls, expression: str) -> str:
+        """Canonicalize DATE_TRUNC units to match generated time grains."""
+        return normalize_date_trunc_units(expression)
+
     _time_grain_expressions = {
         None: "{col}",
         TimeGrain.SECOND: "DATE_TRUNC('second', {col})",
@@ -292,17 +306,32 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
         time_grain: str | None,
     ) -> TimestampExpression:
         """
-        Construct a timestamp expression while preserving pure ``DATE`` semantics.
+        Construct a timestamp expression for Postgres temporal columns.
 
         Applying ``DATE_TRUNC`` to a ``DATE`` column implicitly casts the value to
         ``TIMESTAMP``, which can trigger unwanted timezone conversion on the client
         and shift the displayed date by a day. To avoid this, the truncated value is
         cast back to ``DATE`` when the source column is a pure ``DATE`` type.
 
+        String columns explicitly marked as temporal are cast to ``TIMESTAMP`` before
+        applying a time grain because Postgres does not implicitly cast strings for
+        ``DATE_TRUNC`` or ``EXTRACT``.
+
         See https://github.com/apache/superset/issues/42254.
+        See https://github.com/apache/superset/issues/42386.
         """
         expr = super().get_timestamp_expr(col, pdf, time_grain)
         col_type = getattr(col, "type", None)
+        if (
+            time_grain
+            and isinstance(col_type, String)
+            and pdf not in ("epoch_s", "epoch_ms")
+        ):
+            expr = TimestampExpression(
+                expr.name.replace("{col}", "CAST({col} AS TIMESTAMP)"),
+                col,
+                type_=DateTime(),
+            )
         # ``DateTime``/``TIMESTAMP`` are distinct SQLAlchemy types (not subclasses
         # of ``Date``), so this only matches pure ``DATE`` columns.
         if time_grain and isinstance(col_type, Date):

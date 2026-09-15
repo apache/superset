@@ -150,6 +150,16 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
     # Snowflake doesn't support IS true/false syntax, use = true/false instead
     use_equality_for_boolean_filters = True
 
+    # Snowflake defines its own time grain templates with uppercase DATE_TRUNC
+    # units, so the lowercase normalization inherited from
+    # PostgresBaseEngineSpec does not apply.
+    preserves_custom_sql_metric_source = False
+
+    @classmethod
+    def normalize_custom_sql_metric(cls, expression: str) -> str:
+        """Leave custom metric SQL unchanged; Snowflake grains are uppercase."""
+        return expression
+
     parameters_schema = SnowflakeParametersSchema()
     default_driver = "snowflake"
     sqlalchemy_uri_placeholder = "snowflake://"

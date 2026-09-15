@@ -58,6 +58,7 @@ import {
 import { FilterBarOrientation, RootState } from 'src/dashboard/types';
 import {
   DropdownContainer,
+  type DropdownItem,
   type DropdownRef as DropdownContainerRef,
   Typography,
 } from '@superset-ui/core/components';
@@ -447,6 +448,14 @@ const FilterControls: FC<FilterControlsProps> = ({
     return [...activeOverflowedFilters, ...overflowedCrossFilters];
   }, [overflowedCrossFilters, overflowedFiltersInScope]);
 
+  const overflowedCustomizationsInScope = useMemo(
+    () =>
+      customizationsInScope.filter(({ id }) =>
+        overflowedIds?.includes(`chart-customization-${id}`),
+      ),
+    [customizationsInScope, overflowedIds],
+  );
+
   const rendererCrossFilter = useCallback(
     (
       crossFilter: CrossFilterIndicator,
@@ -610,28 +619,56 @@ const FilterControls: FC<FilterControlsProps> = ({
           dropdownContent={
             overflowedFiltersInScope.length ||
             overflowedCrossFilters.length ||
+            overflowedCustomizationsInScope.length ||
             (filtersOutOfScope.length && showCollapsePanel) ||
             (customizationsOutOfScope.length && showCustomizationCollapsePanel)
-              ? () => (
-                  <>
-                    <FiltersDropdownContent
-                      overflowedCrossFilters={overflowedCrossFilters}
-                      filtersInScope={overflowedFiltersInScope}
-                      filtersOutOfScope={filtersOutOfScope}
-                      renderer={renderer}
-                      rendererCrossFilter={rendererCrossFilter}
-                      showCollapsePanel={showCollapsePanel}
-                      forceRenderOutOfScope={hasRequiredFirst}
-                    />
-                    {showCustomizationCollapsePanel && (
-                      <CustomizationsOutOfScopeCollapsible
-                        customizationsOutOfScope={customizationsOutOfScope}
-                        renderer={customizationRenderer}
-                        forceRender={false}
+              ? (overflowedItems: DropdownItem[]) => {
+                  // Which ids are overflowed comes from DropdownContainer's own
+                  // fresh, synchronous partition of `items` (the argument it
+                  // passes here), not from `overflowedIds` state — that state
+                  // only updates one render later via onOverflowingStateChange,
+                  // so using it here could show a filter here that
+                  // DropdownContainer's *own* main row, computed this same
+                  // render, has already stopped excluding (duplicate chip).
+                  const overflowedItemIds = new Set(
+                    overflowedItems.map(item => item.id),
+                  );
+                  const freshOverflowedFiltersInScope = filtersInScope.filter(
+                    ({ id }) => overflowedItemIds.has(id),
+                  );
+                  const freshOverflowedCrossFilters =
+                    selectedCrossFilters.filter(({ emitterId, name }) =>
+                      overflowedItemIds.has(`${name}${emitterId}`),
+                    );
+                  const freshOverflowedCustomizationsInScope =
+                    customizationsInScope.filter(({ id }) =>
+                      overflowedItemIds.has(`chart-customization-${id}`),
+                    );
+                  return (
+                    <>
+                      <FiltersDropdownContent
+                        overflowedCrossFilters={freshOverflowedCrossFilters}
+                        filtersInScope={freshOverflowedFiltersInScope}
+                        filtersOutOfScope={filtersOutOfScope}
+                        overflowedCustomizationsInScope={
+                          freshOverflowedCustomizationsInScope
+                        }
+                        renderer={renderer}
+                        rendererCrossFilter={rendererCrossFilter}
+                        customizationRenderer={customizationRenderer}
+                        showCollapsePanel={showCollapsePanel}
+                        forceRenderOutOfScope={hasRequiredFirst}
                       />
-                    )}
-                  </>
-                )
+                      {showCustomizationCollapsePanel && (
+                        <CustomizationsOutOfScopeCollapsible
+                          customizationsOutOfScope={customizationsOutOfScope}
+                          renderer={customizationRenderer}
+                          forceRender={false}
+                        />
+                      )}
+                    </>
+                  );
+                }
               : undefined
           }
           forceRender={hasRequiredFirst}
@@ -655,6 +692,10 @@ const FilterControls: FC<FilterControlsProps> = ({
       activeOverflowedFiltersInScope,
       overflowedFiltersInScope,
       overflowedCrossFilters,
+      overflowedCustomizationsInScope,
+      filtersInScope,
+      selectedCrossFilters,
+      customizationsInScope,
       filtersOutOfScope,
       showCollapsePanel,
       customizationsOutOfScope,

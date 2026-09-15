@@ -30,10 +30,7 @@ import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 import { Alert } from '@apache-superset/core/components';
 import { Loading } from '@superset-ui/core/components';
-import {
-  getChartDataRequest,
-  handleChartDataResponse,
-} from 'src/components/Chart/chartAction';
+import { requestChartDataResolved } from 'src/components/Chart/chartAction';
 import type { Dataset } from 'src/components/Chart/types';
 import type { ExplorePageState } from 'src/explore/types';
 import { selectVersionPreview, versionPreviewApplied } from './reducer';
@@ -118,6 +115,9 @@ export default function ChartVersionPreview() {
     }
     fetchIdRef.current += 1;
     const fetchId = fetchIdRef.current;
+    // Abort the async chart-data wait (stop polling + cancel the GTF tasks) when
+    // the preview is superseded or unmounts, not just suppress the state update.
+    const controller = new AbortController();
     setIsLoading(true);
     setError(null);
     setQueriesData(null);
@@ -175,10 +175,10 @@ export default function ChartVersionPreview() {
         datasourceId,
         datasourceType,
       );
-      const { response, json } = await getChartDataRequest({
-        formData: previewFormData,
-      });
-      const result = await handleChartDataResponse(response, json);
+      const result = await requestChartDataResolved(
+        { formData: previewFormData },
+        controller.signal,
+      );
       if (fetchId !== fetchIdRef.current) {
         return;
       }
@@ -216,6 +216,7 @@ export default function ChartVersionPreview() {
     // afterwards.
     return () => {
       fetchIdRef.current += 1;
+      controller.abort();
     };
   }, [dispatch, entityUuid, versionUuid]);
 

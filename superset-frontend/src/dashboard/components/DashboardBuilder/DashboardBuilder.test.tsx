@@ -115,8 +115,21 @@ jest.mock('src/dashboard/components/nativeFilters/FilterBar', () => {
   MockFilterBar.displayName = 'MockFilterBar';
   return MockFilterBar;
 });
+// Exposes the sticky offset the builder hands to tab bars in the grid.
 jest.mock('src/dashboard/containers/DashboardGrid', () => {
-  const MockDashboardGrid = () => <div data-test="mock-dashboard-grid" />;
+  const { useContext } = jest.requireActual('react');
+  const { StickyTabsOffsetContext } = jest.requireActual(
+    'src/dashboard/components/gridComponents/TabsRenderer/StickyTabsOffsetContext',
+  );
+  const MockDashboardGrid = () => {
+    const stickyTabsOffset = useContext(StickyTabsOffsetContext);
+    return (
+      <div
+        data-test="mock-dashboard-grid"
+        data-sticky-tabs-offset={stickyTabsOffset ?? 'none'}
+      />
+    );
+  };
   MockDashboardGrid.displayName = 'MockDashboardGrid';
   return MockDashboardGrid;
 });
@@ -177,6 +190,89 @@ describe('DashboardBuilder', () => {
     const { getByTestId } = setup();
     const stickyContainer = getByTestId('dashboard-content-wrapper');
     expect(stickyContainer).toHaveClass('dashboard');
+  });
+
+  // jsdom lays nothing out; report a height for the sticky header so the
+  // offset handed to the grid is distinguishable from "no offset".
+  function mockHeaderHeight(height: number) {
+    return jest
+      .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
+      .mockImplementation(function measure(this: HTMLElement) {
+        const size =
+          this.dataset.test === 'dashboard-header-wrapper' ? height : 0;
+        return {
+          x: 0,
+          y: 0,
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: size,
+          width: 0,
+          height: size,
+          toJSON: () => ({}),
+        } as DOMRect;
+      });
+  }
+
+  test('hands the sticky header height to tab bars in the grid while viewing', async () => {
+    const rectSpy = mockHeaderHeight(120);
+    try {
+      const { findByTestId } = setup();
+      expect(await findByTestId('mock-dashboard-grid')).toHaveAttribute(
+        'data-sticky-tabs-offset',
+        '120',
+      );
+    } finally {
+      rectSpy.mockRestore();
+    }
+  });
+
+  test('leaves tab bars in the grid unpinned in report mode (?standalone=3)', async () => {
+    // Report screenshots of large dashboards are captured tile by tile while
+    // scrolling the page; a pinned bar would repeat in every tile.
+    const originalHref = window.location.href;
+    window.history.replaceState({}, '', '/?standalone=3');
+    const rectSpy = mockHeaderHeight(120);
+    try {
+      const { findByTestId } = setup();
+      expect(await findByTestId('mock-dashboard-grid')).toHaveAttribute(
+        'data-sticky-tabs-offset',
+        'none',
+      );
+    } finally {
+      rectSpy.mockRestore();
+      window.history.replaceState({}, '', originalHref);
+    }
+  });
+
+  test('leaves tab bars in the grid unpinned while a chart is maximized', async () => {
+    const rectSpy = mockHeaderHeight(120);
+    try {
+      const { findByTestId } = setup({
+        dashboardState: { ...mockState.dashboardState, fullSizeChartId: 123 },
+      });
+      expect(await findByTestId('mock-dashboard-grid')).toHaveAttribute(
+        'data-sticky-tabs-offset',
+        'none',
+      );
+    } finally {
+      rectSpy.mockRestore();
+    }
+  });
+
+  test('leaves tab bars in the grid unpinned in the mobile viewport', async () => {
+    (useIsMobile as jest.Mock).mockReturnValue(true);
+    const rectSpy = mockHeaderHeight(120);
+    try {
+      const { findByTestId } = setup();
+      expect(await findByTestId('mock-dashboard-grid')).toHaveAttribute(
+        'data-sticky-tabs-offset',
+        'none',
+      );
+    } finally {
+      rectSpy.mockRestore();
+      (useIsMobile as jest.Mock).mockReturnValue(false);
+    }
   });
 
   test('should add the "dashboard--editing" class if editMode=true', () => {

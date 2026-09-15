@@ -29,6 +29,8 @@ from superset.jinja_context import JinjaTemplateProcessor
 from superset.sql.parse import (
     _check_script_length,
     _count_weighted_table_references,
+    _find_last_token_node,
+    _get_select_trailing_child,
     BaseSQLStatement,
     count_referenced_tables,
     CTASMethod,
@@ -1358,20 +1360,12 @@ LIMIT 100
     assert "increase timeout for large scans" in formatted[hint_end:]
 
 
-@pytest.mark.xfail(
-    reason=(
-        "#38189 is not fully fixed: a `;`-terminated statement still hits "
-        "the comment-relocation branch and corrupts the hint block. Only "
-        "the no-semicolon form from the original repro was fixed."
-    ),
-    strict=True,
-)
 def test_sqlscript_format_preserves_optimizer_hint_block_with_semicolon() -> None:
     """
     Same as `test_sqlscript_format_preserves_optimizer_hint_block`, but with
-    a terminating `;` on the statement -- this still reproduces #38189: the
-    trailing `--` comment gets injected inside the `/*+ SET_VAR(...) */`
-    hint block, corrupting it for StarRocks/MySQL-style engines.
+    a terminating `;` on the statement -- verifies #38189 fix so that trailing
+    `--` comments land after the statement rather than injected into the
+    `/*+ SET_VAR(...) */` hint block for StarRocks/MySQL-style engines.
     """
     sql = """SELECT /*+ SET_VAR(query_timeout = 3000) */ col1, col2
 FROM my_table
@@ -1386,6 +1380,61 @@ LIMIT 100;
     assert "SET_VAR(query_timeout /*" not in formatted
     hint_end = formatted.index(hint) + len(hint)
     assert "increase timeout for large scans" in formatted[hint_end:]
+
+
+def test_sqlscript_format_preserves_optimizer_hint_with_cte_and_semicolon() -> None:
+    """
+    Ensure optimizer hints with CTEs and trailing comments survive formatting intact.
+    """
+    sql = """WITH cte AS (SELECT 1 AS id)
+SELECT /*+ SET_VAR(query_timeout = 3000) */ id
+FROM cte
+WHERE id = 1;
+
+-- trailing explanation comment"""
+    statement = SQLScript(sql, "mysql").statements[0]
+    formatted = statement.format()
+
+    hint = "/*+ SET_VAR(query_timeout = 3000) */"
+    assert hint in formatted
+    assert "SET_VAR(query_timeout /*" not in formatted
+    hint_end = formatted.index(hint) + len(hint)
+    assert "trailing explanation comment" in formatted[hint_end:]
+
+
+def test_find_last_token_node_branches() -> None:
+    """
+    Directly test all branches of _find_last_token_node and _get_select_trailing_child.
+    """
+    # 1. Empty select returns None from _get_select_trailing_child
+    # and falls back to node
+    empty_select = exp.Select()
+    assert _get_select_trailing_child(empty_select) is None
+    assert _find_last_token_node(empty_select) is empty_select
+
+    # 2. Select with list clause vs single Expression clause
+    select_with_exprs = exp.Select(expressions=[exp.Literal.number(1)])
+    assert _get_select_trailing_child(select_with_exprs) == exp.Literal.number(1)
+
+    select_with_where = exp.Select(where=exp.Where(this=exp.Literal.number(2)))
+    assert _get_select_trailing_child(select_with_where) == exp.Literal.number(2)
+
+    # 3. Node with hint or comments in args is skipped during child traversal
+    col_with_comment = exp.Column(this="foo", comments=["my comment"])
+    assert _find_last_token_node(col_with_comment) is not None
+
+    table_with_hint = exp.Table(
+        this="bar", hint=exp.Hint(expressions=[exp.var("HINT")])
+    )
+    assert _find_last_token_node(table_with_hint) is not None
+
+    # 4. Non-select node with list of expressions
+    tup = exp.Tuple(expressions=[exp.Literal.number(1), exp.Literal.number(2)])
+    assert _find_last_token_node(tup) == exp.Literal.number(2)
+
+    # 5. Leaf node with no children returns itself
+    lit = exp.Literal.number(42)
+    assert _find_last_token_node(lit) is lit
 
 
 @pytest.mark.parametrize(
@@ -1979,6 +2028,8 @@ def test_is_mutating(sql: str, engine: str, expected: bool) -> None:
         ("EXPLAIN ANALYZE VERBOSE UPDATE t SET x = 1", "postgresql"),
         ("EXPLAIN (ANALYZE)", "postgresql"),
         ("EXPLAIN ANALYZE )))", "postgresql"),
+        # The flag need not be followed by whitespace.
+        ("EXPLAIN ANALYZE(DELETE FROM t)", "postgresql"),
     ],
 )
 def test_is_mutating_fails_closed_on_gate_blind_spots(sql: str, engine: str) -> None:
@@ -2502,6 +2553,21 @@ LATERAL generate_series(1, value) AS i;
         ),
         # not really valid SQL, but let's roll with it
         ("SELECT * FROM my_table LIMIT invalid", "postgresql", None),
+        # A ClickHouse `LIMIT ... BY` caps rows per group, not overall, so it is
+        # not a row limit. sqlglot hangs the `BY` columns off the `Limit` node,
+        # or off the `Offset` node for the `OFFSET` / `m, n` spellings.
+        ("SELECT * FROM t ORDER BY id, val LIMIT 2 BY id", "clickhouse", None),
+        ("SELECT * FROM t ORDER BY id, val LIMIT 2 BY id, val", "clickhouse", None),
+        (
+            "SELECT * FROM t ORDER BY id, val LIMIT 2 OFFSET 1 BY id",
+            "clickhouse",
+            None,
+        ),
+        ("SELECT * FROM t ORDER BY id, val LIMIT 1, 2 BY id", "clickhouse", None),
+        # ... while a plain ClickHouse limit, with or without an offset, is.
+        ("SELECT * FROM t ORDER BY c LIMIT 555", "clickhouse", 555),
+        ("SELECT * FROM t LIMIT 5 OFFSET 3", "clickhouse", 5),
+        ("SELECT * FROM t LIMIT 3, 5", "clickhouse", 5),
     ],
 )
 def test_get_limit_value(sql: str, engine: str, expected: str) -> None:
@@ -2717,6 +2783,158 @@ LIMIT 1000
             LimitMethod.FETCH_MANY,
             "SELECT\n  *\nFROM birth_names\nLIMIT 555",
         ),
+        # A ClickHouse `LIMIT ... BY` shares the `limit`/`offset` slot with the
+        # row limit, so `FORCE_LIMIT` wraps instead of overwriting it.
+        (
+            "SELECT * FROM limit_by ORDER BY id, val LIMIT 2 BY id",
+            "clickhouse",
+            1001,
+            LimitMethod.FORCE_LIMIT,
+            """
+SELECT
+  *
+FROM (
+  SELECT
+    *
+  FROM limit_by
+  ORDER BY
+    id,
+    val
+  LIMIT 2 BY id
+)
+LIMIT 1001
+            """.strip(),
+        ),
+        (
+            "SELECT * FROM limit_by ORDER BY id, val LIMIT 2 BY id, val",
+            "clickhouse",
+            1001,
+            LimitMethod.FORCE_LIMIT,
+            """
+SELECT
+  *
+FROM (
+  SELECT
+    *
+  FROM limit_by
+  ORDER BY
+    id,
+    val
+  LIMIT 2 BY id, val
+)
+LIMIT 1001
+            """.strip(),
+        ),
+        # For `LIMIT n OFFSET m BY x` sqlglot hangs the `BY` columns off the
+        # `Offset` node instead, so the `limit` arg alone doesn't reveal them.
+        (
+            "SELECT * FROM limit_by ORDER BY id, val LIMIT 2 OFFSET 1 BY id",
+            "clickhouse",
+            1001,
+            LimitMethod.FORCE_LIMIT,
+            """
+SELECT
+  *
+FROM (
+  SELECT
+    *
+  FROM limit_by
+  ORDER BY
+    id,
+    val
+  LIMIT 2
+  OFFSET 1 BY id
+)
+LIMIT 1001
+            """.strip(),
+        ),
+        (
+            "SELECT * FROM limit_by ORDER BY id, val LIMIT 1, 2 BY id",
+            "clickhouse",
+            1001,
+            LimitMethod.FORCE_LIMIT,
+            """
+SELECT
+  *
+FROM (
+  SELECT
+    *
+  FROM limit_by
+  ORDER BY
+    id,
+    val
+  LIMIT 2
+  OFFSET 1 BY id
+)
+LIMIT 1001
+            """.strip(),
+        ),
+        # `WITH TOTALS` rides into the subquery untouched: ClickHouse keeps
+        # emitting the totals block for a wrapped query, so the cap really is
+        # the only thing the rewrite adds.
+        (
+            "SELECT id, count() AS c FROM limit_by "
+            "GROUP BY id WITH TOTALS ORDER BY id LIMIT 2 BY id",
+            "clickhouse",
+            1001,
+            LimitMethod.FORCE_LIMIT,
+            """
+SELECT
+  *
+FROM (
+  SELECT
+    id,
+    count() AS c
+  FROM limit_by
+  GROUP BY
+    id
+  WITH TOTALS
+  ORDER BY
+    id
+  LIMIT 2 BY id
+)
+LIMIT 1001
+            """.strip(),
+        ),
+        # `SETTINGS` and `FORMAT` do not survive a demotion into the subquery,
+        # so they move up onto the wrapper instead.
+        (
+            "SELECT * FROM limit_by ORDER BY id LIMIT 2 BY id "
+            "SETTINGS extremes = 1 FORMAT JSONCompact",
+            "clickhouse",
+            1001,
+            LimitMethod.FORCE_LIMIT,
+            """
+SELECT
+  *
+FROM (
+  SELECT
+    *
+  FROM limit_by
+  ORDER BY
+    id
+  LIMIT 2 BY id
+)
+LIMIT 1001
+SETTINGS extremes = 1
+FORMAT JSONCompact
+            """.strip(),
+        ),
+        # A ClickHouse limit without a `BY` still takes the in-place path.
+        (
+            "SELECT * FROM t ORDER BY c LIMIT 555",
+            "clickhouse",
+            1001,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\n  *\nFROM t\nORDER BY\n  c\nLIMIT 1001",
+        ),
+        (
+            "SELECT * FROM t LIMIT 5 OFFSET 3",
+            "clickhouse",
+            1001,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\n  *\nFROM t\nLIMIT 1001\nOFFSET 3",
+        ),
     ],
 )
 def test_set_limit_value(
@@ -2729,6 +2947,88 @@ def test_set_limit_value(
     statement = SQLStatement(sql, engine)
     statement.set_limit_value(limit, method)
     assert statement.format() == expected
+
+
+@pytest.mark.parametrize("engine", ["clickhouse", "clickhousedb"])
+@pytest.mark.parametrize(
+    "sql",
+    [
+        "SELECT * FROM limit_by ORDER BY id, val LIMIT 2 BY id",
+        "SELECT * FROM limit_by ORDER BY id, val LIMIT 2 BY id, val",
+        "SELECT * FROM limit_by ORDER BY id, val LIMIT 2 OFFSET 1 BY id",
+        "SELECT * FROM limit_by ORDER BY id, val LIMIT 1, 2 BY id",
+    ],
+)
+def test_set_limit_value_preserves_clickhouse_limit_by(sql: str, engine: str) -> None:
+    """
+    A row limit must not cannibalize a ClickHouse ``LIMIT ... BY``.
+
+    ``LIMIT 2 BY id`` keeps 2 rows *per id*; ``FORCE_LIMIT`` used to build a
+    fresh ``Limit`` node over ``args["limit"]``, dropping the ``BY`` columns and
+    turning the query into a flat ``LIMIT 1001`` -- a different result set, with
+    no error to hint at it. ``get_limit_value()`` reported the per-group 2 as a
+    row cap on top of that, so ``_set_query_limit()`` clamped the query to 2 rows.
+
+    The cap can't simply be appended next to the ``BY`` either: sqlglot cannot
+    parse ClickHouse's own ``LIMIT n BY x LIMIT m`` ("Found multiple 'LIMIT'
+    clauses"), so the result would not survive a reparse. Wrapping the query is
+    what keeps both the grouping and the cap.
+    """
+    statement = SQLStatement(sql, engine)
+    assert statement.get_limit_value() is None
+
+    statement.set_limit_value(1001, LimitMethod.FORCE_LIMIT)
+    limited = statement.format()
+
+    assert "BY id" in limited
+    assert limited.endswith("LIMIT 1001")
+    # The rewrite has to be valid ClickHouse, not just valid-looking.
+    assert SQLStatement(limited, engine).format() == limited
+
+
+def test_set_limit_value_keeps_clickhouse_top_level_modifiers() -> None:
+    """
+    The wrap must not demote clauses that only work at the top level.
+
+    ClickHouse rejects `FORMAT` inside a subquery outright, and a `SETTINGS`
+    attached to a subquery binds to that subquery alone -- top-level-only
+    settings such as ``extremes`` would silently stop applying. Both therefore
+    move onto the wrapper, which is where the original query had them.
+
+    The row-producing modifiers are left alone, because ClickHouse honors them
+    inside a `FROM` subquery: a wrapped `WITH TOTALS` query still emits its
+    totals block, and `WITH ROLLUP`/`WITH CUBE` still emit their extra rows.
+    Hoisting those would change the result rather than preserve it.
+    """
+    statement = SQLStatement(
+        "SELECT id, count() AS c FROM limit_by "
+        "GROUP BY id WITH TOTALS ORDER BY id LIMIT 2 BY id "
+        "SETTINGS extremes = 1 FORMAT JSONCompact",
+        "clickhouse",
+    )
+    statement.set_limit_value(1001, LimitMethod.FORCE_LIMIT)
+    limited = statement.format()
+
+    assert limited.endswith("LIMIT 1001\nSETTINGS extremes = 1\nFORMAT JSONCompact")
+    # `WITH TOTALS` stays with the aggregation it belongs to.
+    assert "WITH TOTALS\n" in limited.split("LIMIT 2 BY id")[0]
+    assert SQLStatement(limited, "clickhouse").format() == limited
+
+
+@pytest.mark.parametrize(
+    "engine", ["clickhouse", "clickhousedb", "postgresql", "mysql"]
+)
+def test_set_limit_value_without_limit_by_stays_in_place(engine: str) -> None:
+    """
+    Queries with no ``LIMIT ... BY`` keep the cheaper in-place rewrite.
+
+    The wrap is reserved for the ``LIMIT ... BY`` case; everything else -- every
+    non-ClickHouse dialect, and ClickHouse's own plain ``LIMIT`` -- must still
+    have its limit replaced without gaining a subquery.
+    """
+    statement = SQLStatement("SELECT * FROM t ORDER BY c LIMIT 555", engine)
+    statement.set_limit_value(1001, LimitMethod.FORCE_LIMIT)
+    assert statement.format() == "SELECT\n  *\nFROM t\nORDER BY\n  c\nLIMIT 1001"
 
 
 @pytest.mark.parametrize(
@@ -3057,6 +3357,10 @@ def test_starrocks_generator_round_trip(sql: str, expected: str) -> None:
         # with no name or column list is also accepted; see the CONSTRAINT_
         # PARSERS override below).
         "CREATE TABLE t (k1 INT, KEY (k1))",
+        # Named inline KEY index def (an alias for INDEX with no leading
+        # keyword), which routes through the same override's identifier-then-
+        # column-list branch rather than the immediate "(" branch above.
+        "CREATE TABLE t (k1 INT, KEY idx_name (k1))",
         # GIN/NGRAM full-text index with an inline properties list.
         "CREATE TABLE t(k1 INT, INDEX idx (k1) USING GIN ('parser' = 'english')) "
         "DUPLICATE KEY(k1) DISTRIBUTED BY HASH(k1)",
@@ -5393,6 +5697,85 @@ def test_get_disallowed_tables_search_path_change(
         ("SET ROLE app_search_path_user", False),
         # `set_config('search_path', ...)` rebinds the path via a function call.
         ("SELECT set_config('search_path', 'information_schema', true)", True),
+        # Postgres evaluates the setting name, so a name built from an
+        # expression rebinds the path just like the literal form. It can't be
+        # resolved statically, so it's treated as a change.
+        ("SELECT set_config('search_' || 'path', 'information_schema', true)", True),
+        (
+            "SELECT set_config(CONCAT('search_', 'path'), 'information_schema', true)",
+            True,
+        ),
+        # A `set_config` with no arguments at all can't be resolved either.
+        ("SELECT set_config()", True),
+        # A rebind inside a statement whose body the parser leaves opaque (here
+        # a PL/pgSQL block) is not reachable on the tree, so it is matched on
+        # the raw text instead of being let through, in either spelling.
+        (
+            "DO $$ BEGIN PERFORM set_config('search_path', 'information_schema', "
+            "false); END $$",
+            True,
+        ),
+        ("DO $$ BEGIN SET search_path TO information_schema; END $$", True),
+        ("DO $$ BEGIN EXECUTE 'SET search_path = information_schema'; END $$", True),
+        ("CALL rebind_the_path()", False),
+        # A computed setting name never spells `search_path` contiguously, so
+        # the raw-text fallback matches on `set_config` as well.
+        (
+            "DO $$ BEGIN PERFORM set_config('search_' || 'path', "
+            "'information_schema', false); END $$",
+            True,
+        ),
+        # An opaque statement body with no rebind in it is not a change.
+        ("DO $$ BEGIN PERFORM pg_sleep(0); END $$", False),
+        # Opaque statements that can't carry a nested statement are not
+        # text-matched, so naming the setting doesn't make them a change.
+        ("SHOW search_path", False),
+        ("EXPLAIN ANALYZE SELECT * FROM some_table", False),
+        # `EXPLAIN ANALYZE` runs its body for real, so a rebind inside it
+        # takes effect. The tail is SQL, so it is classified by re-parsing
+        # rather than text-matched, in every spelling of the flag.
+        (
+            "EXPLAIN ANALYZE SELECT set_config('search_path', "
+            "'information_schema', false)",
+            True,
+        ),
+        (
+            "EXPLAIN (ANALYZE, BUFFERS) SELECT set_config('search_path', "
+            "'information_schema', false)",
+            True,
+        ),
+        (
+            "EXPLAIN ANALYSE SELECT set_config('search_path', "
+            "'information_schema', false)",
+            True,
+        ),
+        # A plain `EXPLAIN` only plans the body, so nothing is rebound.
+        (
+            "EXPLAIN SELECT set_config('search_path', 'information_schema', false)",
+            False,
+        ),
+        # Re-parsing keeps the `EXPLAIN` tail precise: a table whose name
+        # merely contains the setting is not a change.
+        ("EXPLAIN ANALYZE SELECT * FROM search_path_audit", False),
+        # PostgreSQL does not require whitespace after the flag.
+        (
+            "EXPLAIN ANALYZE(SELECT set_config('search_path', "
+            "'information_schema', false))",
+            True,
+        ),
+        # A body carrying the flag that can't be classified fails closed,
+        # whether it holds nothing but options or doesn't parse at all.
+        ("EXPLAIN (ANALYZE)", True),
+        ("EXPLAIN ANALYZE )))", True),
+        # The raw-text fallback matches whole words, so an unrelated routine
+        # whose name merely embeds one of them is not a change.
+        ("CALL reset_config()", False),
+        ("CALL my_search_path_helper()", False),
+        # `RESET` restores the server default, which need not be the schema
+        # the caller selected, so it rebinds resolution just as `SET` does.
+        ("RESET search_path", True),
+        ("RESET ALL", True),
+        ("RESET statement_timeout", False),
         # A different setting changed through `set_config` is not a search-path
         # change.
         ("SELECT set_config('statement_timeout', '0', true)", False),
@@ -5445,9 +5828,35 @@ def test_changes_search_path(sql: str, expected: bool) -> None:
         ("SET CATALOG tenant_b", "postgresql", True),
         ("SET CURRENT SCHEMA foo", "postgresql", True),
         ("SET ROLE admin", "postgresql", False),
+        # A rebind inside a body the parser leaves opaque (here a PL/pgSQL
+        # block) is matched on the raw text, in either spelling.
+        ("DO $$ BEGIN SET SCHEMA 'tenant_b'; END $$", "postgresql", True),
+        ("DO $$ BEGIN SET CATALOG tenant_b; END $$", "postgresql", True),
+        ("EXECUTE 'SET SCHEMA ''tenant_b'''", "postgresql", True),
+        # A schema is named all over ordinary SQL, so only the `SET` head
+        # counts: a body that merely creates or references one is not a
+        # rebind.
+        ("DO $$ BEGIN CREATE SCHEMA tenant_b; END $$", "postgresql", False),
+        ("CALL populate_schema()", "postgresql", False),
         # A `set_config()` whose setting name is a column reference rather than
         # a literal is treated conservatively as a schema change.
         ("SELECT set_config(schema_col, 'tenant_b', false)", "postgresql", True),
+        # `EXPLAIN ANALYZE` runs its body, so a `SET SCHEMA` carried inside one
+        # rebinds resolution just as the bare statement does. Without the
+        # flag the body is only planned, and `EXPLAIN` of an ordinary query
+        # rebinds nothing.
+        ("EXPLAIN ANALYZE SET SCHEMA 'tenant_b'", "postgresql", True),
+        # A qualifier between `SET` and the setting name is matched inside a
+        # nested body too, as it is when the statement stands alone.
+        (
+            "DO $$ BEGIN EXECUTE 'SET LOCAL SCHEMA ''tenant_b'''; END $$",
+            "postgresql",
+            True,
+        ),
+        ("SET LOCAL SCHEMA 'tenant_b'", "postgresql", True),
+        ("EXPLAIN SET SCHEMA 'tenant_b'", "postgresql", False),
+        ("EXPLAIN VERBOSE SELECT * FROM orders", "postgresql", False),
+        ("EXPLAIN (COSTS) SELECT * FROM orders", "postgresql", False),
         # Engines without a sqlglot AST (e.g. Kusto KQL) do not rebind schema
         # resolution through these forms.
         ("print x = 1", "kustokql", False),
@@ -5461,6 +5870,66 @@ def test_changes_default_schema(sql: str, engine: str, expected: bool) -> None:
     the schema the user selected.
     """
     assert SQLScript(sql, engine).changes_default_schema() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, engine, expected",
+    [
+        # A quoted catalog identifier is case-sensitive and may not match
+        # after the engine's default case folding.
+        ('SELECT * FROM "c1".s.t1', "snowflake", True),
+        # A quoted schema (``db``) identifier is equally unsafe.
+        ('SELECT * FROM c1."s".t1', "snowflake", True),
+        # An unquoted location can be safely folded to the engine's default
+        # case.
+        ("SELECT * FROM c1.s.t1", "snowflake", False),
+        # Quoting the table name itself doesn't affect catalog/schema safety.
+        ('SELECT * FROM "t1"', "snowflake", False),
+    ],
+)
+def test_has_quoted_table_location(sql: str, engine: str, expected: bool) -> None:
+    """
+    `has_quoted_table_location` flags queries whose catalog or schema is
+    quoted, so the SQL Lab dataset-creation flow keeps the dropdown schema
+    instead of deriving a location that may not match after case folding.
+    """
+    assert SQLStatement(sql, engine).has_quoted_table_location() == expected
+    assert SQLScript(sql, engine).has_quoted_table_location() == expected
+
+
+def test_has_quoted_table_location_unsupported_dialect() -> None:
+    """
+    Engines without a sqlglot AST (e.g. Kusto KQL) report no quoted table
+    location instead of raising, matching the ``BaseSQLStatement`` default.
+    """
+    statement = KustoKQLStatement("foo | take 100", "kustokql")
+    assert statement.has_quoted_table_location() is False
+
+
+@pytest.mark.parametrize(
+    "sql, engine, expected",
+    [
+        ("show columns from foo from bar", "mysql", True),
+        ("SELECT * FROM t1", "mysql", False),
+    ],
+)
+def test_is_show_statement(sql: str, engine: str, expected: bool) -> None:
+    """
+    `is_show_statement`/`has_show_statement` identify metadata statements so
+    the SQL Lab dataset-creation flow keeps the dropdown schema rather than
+    deriving one from a query with no meaningful result set.
+    """
+    assert SQLStatement(sql, engine).is_show_statement() == expected
+    assert SQLScript(sql, engine).has_show_statement() == expected
+
+
+def test_is_show_statement_unsupported_dialect() -> None:
+    """
+    Engines without a sqlglot AST are never treated as SHOW statements,
+    matching the ``BaseSQLStatement`` default.
+    """
+    statement = KustoKQLStatement("foo | take 100", "kustokql")
+    assert statement.is_show_statement() is False
 
 
 @pytest.mark.parametrize(
