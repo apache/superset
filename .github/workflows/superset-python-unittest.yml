@@ -43,7 +43,8 @@ jobs:
     needs: changes
     if: needs.changes.outputs.python == 'true'
     runs-on: ubuntu-26.04
-    timeout-minutes: 30
+    # Allow the full suite, coverage finalization, and scoped coverage gates to finish.
+    timeout-minutes: 45
     permissions:
       id-token: write
     strategy:
