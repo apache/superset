@@ -27,3 +27,12 @@
 # Notify PMC members of config changes e.g. feature flags
 
 /superset/config.py @michael-s-molina @villebro @rusackas @sadpandajoe
+
+# The MCP service exposes a versioned tool contract to external AI clients, so
+# changes to its tools, schemas and annotations break callers outside this repo.
+# Notify its active maintainers of changes to the service and its tests.
+
+/superset/mcp_service/ @aminghadersohi @rebenitez1802 @gabotorresruiz
+/tests/unit_tests/mcp_service/ @aminghadersohi @rebenitez1802 @gabotorresruiz
+/tests/unit_tests/test_mcp_stdio_entrypoint.py @aminghadersohi @rebenitez1802 @gabotorresruiz
+/.devcontainer/with-mcp/ @aminghadersohi @rebenitez1802 @gabotorresruiz
