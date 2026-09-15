@@ -117,6 +117,144 @@ def _access_denied_exc(message: str = "Access denied") -> SupersetSecurityExcept
 
 
 @pytest.mark.asyncio
+async def test_get_table_incompatible_view_dimensions(mcp_server: FastMCP) -> None:
+    """Reject known-incompatible pairs before querying, with deterministic guidance."""
+    view: MagicMock = _make_view()
+    view.metrics = [_make_metric("orders"), _make_metric("bookings")]
+    view.columns = [_make_column("product__product_name"), _make_column("category")]
+    view.get_compatible_dimensions.return_value = ["country_name"]
+    with (
+        patch(
+            "superset.daos.semantic_layer.SemanticViewDAO.find_by_id", return_value=view
+        ),
+        patch.object(get_table_module, "execute_tabular_query") as execute,
+        patch.object(get_table_module, "_build_query_dict") as build,
+    ):
+        async with Client(mcp_server) as client:
+            result: Any = await client.call_tool(
+                "get_table",
+                {
+                    "request": {
+                        "view_id": 5,
+                        "metrics": ["orders", "bookings"],
+                        "dimensions": ["product__product_name", "category"],
+                    }
+                },
+            )
+        data: dict[str, Any] = json.loads(result.content[0].text)
+    assert data["success"] is False
+    assert data["error_type"] == "ValidationError"
+    assert data["error"] == (
+        "Dimension(s) ['category', 'product__product_name'] are not compatible "
+        "with the selected metric(s) ['bookings', 'orders'] for view 'view_5'. "
+        "Call get_compatible_dimensions for the valid combinations."
+    )
+    view.get_compatible_dimensions.assert_called_once_with(["orders", "bookings"], [])
+    build.assert_not_called()
+    execute.assert_not_called()
+
+
+@pytest.mark.parametrize("backend_fails", [False, True])
+@pytest.mark.asyncio
+async def test_get_table_compatible_view_executes(
+    mcp_server: FastMCP,
+    backend_fails: bool,
+) -> None:
+    """Compatible selections execute; genuine backend failures remain InternalError."""
+    view: MagicMock = _make_view()
+    view.get_compatible_dimensions.return_value = ["country_name"]
+    query_result: dict[str, Any] = {
+        "queries": [
+            {
+                "data": [{"country_name": "GB", "bookings": 3}],
+                "colnames": ["country_name", "bookings"],
+                "rowcount": 1,
+            }
+        ]
+    }
+    with (
+        patch(
+            "superset.daos.semantic_layer.SemanticViewDAO.find_by_id", return_value=view
+        ),
+        patch.object(
+            get_table_module, "execute_tabular_query", return_value=query_result
+        ) as execute,
+    ):
+        if backend_fails:
+            execute.side_effect = RuntimeError("provider execution failed")
+        async with Client(mcp_server) as client:
+            result: Any = await client.call_tool(
+                "get_table",
+                {
+                    "request": {
+                        "view_id": 5,
+                        "metrics": ["bookings"],
+                        "dimensions": ["country_name"],
+                    }
+                },
+            )
+        data: dict[str, Any] = json.loads(result.content[0].text)
+    view.get_compatible_dimensions.assert_called_once_with(["bookings"], [])
+    execute.assert_called_once()
+    assert execute.call_args.args[:2] == (5, "semantic_view")
+    if backend_fails:
+        assert data["success"] is False
+        assert data["error_type"] == "InternalError"
+        assert "provider execution failed" in data["error"]
+    else:
+        assert data["success"] is True
+        assert data["data"] == [{"country_name": "GB", "bookings": 3}]
+
+
+@pytest.mark.parametrize(
+    "builtin,metrics,dimensions",
+    [
+        (True, ["revenue"], ["region"]),
+        (False, [], ["country_name"]),
+        (False, ["bookings"], []),
+    ],
+)
+@pytest.mark.asyncio
+async def test_get_table_skips_compatibility_without_join_risk(
+    mcp_server: FastMCP,
+    builtin: bool,
+    metrics: list[str],
+    dimensions: list[str],
+) -> None:
+    """Builtin datasets and empty selections never consult view compatibility."""
+    dataset: MagicMock = _make_dataset()
+    view: MagicMock = _make_view()
+    dataset.get_compatible_dimensions.return_value = []
+    view.get_compatible_dimensions.return_value = []
+    query_result: dict[str, Any] = {"queries": [{"data": [], "colnames": []}]}
+    with (
+        patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset),
+        patch(
+            "superset.daos.semantic_layer.SemanticViewDAO.find_by_id", return_value=view
+        ),
+        patch.object(
+            get_table_module, "execute_tabular_query", return_value=query_result
+        ) as execute,
+    ):
+        async with Client(mcp_server) as client:
+            result: Any = await client.call_tool(
+                "get_table",
+                {
+                    "request": {
+                        "dataset_id" if builtin else "view_id": 42 if builtin else 5,
+                        "metrics": metrics,
+                        "dimensions": dimensions,
+                    }
+                },
+            )
+        data: dict[str, Any] = json.loads(result.content[0].text)
+    assert data["success"] is True
+    execute.assert_called_once()
+    dataset.get_compatible_dimensions.assert_not_called()
+    view.get_compatible_dimensions.assert_not_called()
+
+
+@pytest.mark.asyncio
 async def test_get_table_builtin_happy_path(mcp_server: FastMCP) -> None:
     """get_table returns tabular data for a built-in dataset."""
     mock_ds = _make_dataset(42)
