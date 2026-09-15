@@ -30,6 +30,7 @@ import pytest
 from celery.exceptions import SoftTimeLimitExceeded
 from flask import current_app
 
+from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.dashboards.excel_export import email as real_email
 from superset.exceptions import SupersetException
 from superset.security.guest_token import GuestToken, GuestTokenResourceType
@@ -1469,10 +1470,10 @@ def test_inflight_lock_released_on_failure(mocks: dict[str, Any]) -> None:
 
 
 @pytest.mark.parametrize("query_mode", ["aggregate", "raw"])
-def test_rebuilt_paginated_table_exports_full_limit(query_mode: str) -> None:
-    """Excel rebuilds request all configured rows, without a count sheet."""
-    from superset.tasks import export_dashboard_excel as module
-
+def test_rebuilt_paginated_table_executes_full_limit(
+    mocks: dict[str, Any], query_mode: str
+) -> None:
+    """The real export path sends one full-limit query to ChartDataCommand."""
     form_data = {
         "groupby": ["country"],
         "all_columns": ["country"],
@@ -1485,12 +1486,24 @@ def test_rebuilt_paginated_table_exports_full_limit(query_mode: str) -> None:
         "result_type": "full",
     }
     chart = _rebuildable_chart(form_data=form_data)
+    mocks["get_charts_in_layout_order"].return_value = [chart]
+    mocks["ChartDataCommand"].return_value.run.return_value = {
+        "queries": [{"colnames": ["country"], "data": [{"country": "US"}]}]
+    }
+
     with _builder_hook(None):
-        result = module._resolve_query_context(chart)
-    assert result is not None
-    assert len(result["queries"]) == 1
-    query = result["queries"][0]
+        _run()
+
+    payload = mocks["ChartDataQueryContextSchema"].return_value.load.call_args.args[0]
+    assert payload["result_format"] == ChartDataResultFormat.JSON
+    assert payload["result_type"] == ChartDataResultType.FULL
+    assert len(payload["queries"]) == 1
+    query = payload["queries"][0]
     assert query["row_limit"] == 1000
     assert query.get("row_offset", 0) == 0
     assert not query.get("is_rowcount")
+    mocks["ChartDataCommand"].assert_called_once_with(
+        mocks["ChartDataQueryContextSchema"].return_value.load.return_value
+    )
+    mocks["ChartDataCommand"].return_value.run.assert_called_once_with()
     assert json.loads(chart.params) == form_data
