@@ -92,7 +92,7 @@ export const DEFAULT_FORM_DATA: EchartsPieFormData = {
 export type PieChartTransformedProps =
   BaseTransformedProps<EchartsPieFormData> &
     ContextMenuTransformedProps &
-    CrossFilterTransformedProps;
+    CrossFilterTransformedProps<string[] | string[][]>;
 
 export interface PieChartDataItem {
   name: string;
