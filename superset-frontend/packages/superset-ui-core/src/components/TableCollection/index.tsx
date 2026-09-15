@@ -367,4 +367,7 @@ function TableCollection<T extends object>({
   );
 }
 
-export default memo(TableCollection);
+// React.memo erases the wrapped component's generic type parameter; cast
+// back to the original generic signature so callers can still instantiate
+// TableCollection<T> explicitly.
+export default memo(TableCollection) as typeof TableCollection;
