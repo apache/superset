@@ -51,13 +51,19 @@ function formatValue(
   }
   if (formatter) {
     // Query results with integers beyond Number.MAX_SAFE_INTEGER are parsed as
-    // native BigInt by json-bigint (see parseResponse.ts). Normalize to Number
-    // before passing to any formatter so that no individual formatter factory
-    // needs to handle BigInt arithmetic. This matches the same normalization
-    // applied to echarts in #42594. Precision loss beyond MAX_SAFE_INTEGER is
-    // the accepted trade-off consistent with the rest of Superset's chart stack.
-    const numericValue =
-      typeof value === 'bigint' ? Number(value) : (value as number);
+    // Query results with integers beyond Number.MAX_SAFE_INTEGER are now
+    // parsed as decimal strings by parseResponse.ts (e.g. "12345678901234567890").
+    // Accept both native bigint (legacy / direct callers) and decimal-integer
+    // strings. The /^-?\d+$/ guard is intentionally strict: floats, NaN,
+    // Infinity, scientific-notation strings, and pre-formatted values must
+    // NOT be coerced here — they flow through as-is so NumberFormatter can
+    // handle them with its own null/NaN/Infinity guards.
+    const numericValue: number =
+      typeof value === 'bigint'
+        ? Number(value)
+        : typeof value === 'string' && /^-?\d+$/.test(value)
+          ? Number(value)
+          : (value as number);
     // If formatter is a CurrencyFormatter, pass row context for AUTO mode
     if (formatter instanceof CurrencyFormatter) {
       return [false, formatter(numericValue, rowData, currencyColumn)];

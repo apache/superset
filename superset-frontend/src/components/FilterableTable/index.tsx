@@ -54,6 +54,9 @@ const sortResults = (valueA: string | number, valueB: string | number) => {
     return -1;
   }
 
+  // Large-integer strings (e.g. "12345678901234567890") are matched by
+  // ONLY_NUMBER_REGEX and converted to Number by parseFloat, giving consistent
+  // sort ordering. Precision loss at this scale is an accepted trade-off.
   return aValue < bValue ? -1 : 1;
 };
 
