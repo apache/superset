@@ -31,7 +31,9 @@ import type {
   chat,
   commands,
   core,
+  dashboard,
   editors,
+  explore,
   extensions,
   menus,
   navigation,
@@ -45,7 +47,9 @@ export interface Namespaces {
   core: typeof core;
   chat: typeof chat;
   commands: typeof commands;
+  dashboard: typeof dashboard;
   editors: typeof editors;
+  explore: typeof explore;
   extensions: typeof extensions;
   menus: typeof menus;
   navigation: typeof navigation;
