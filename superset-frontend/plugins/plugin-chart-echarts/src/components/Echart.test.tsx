@@ -73,6 +73,7 @@ jest.mock('echarts/core', () => ({
 jest.mock('echarts/charts', () => ({
   BarChart: 'BarChart',
   BoxplotChart: 'BoxplotChart',
+  CandlestickChart: 'CandlestickChart',
   CustomChart: 'CustomChart',
   FunnelChart: 'FunnelChart',
   GaugeChart: 'GaugeChart',
