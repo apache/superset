@@ -435,6 +435,26 @@ export function extractDataTotalValues(
   };
 }
 
+const DEFAULT_STACK_GROUP = '__default__';
+
+/**
+ * Computes, per stack group, which series index is the "topmost" (i.e. the
+ * series that should display the value label) for each data point.
+ *
+ * When a stackDimension splits bars into separate ECharts stack groups the
+ * computation must be done independently per group, otherwise only the
+ * globally-last series is flagged and all other groups miss their label.
+ *
+ * @param series      The raw series array (parallel to the rendered series).
+ * @param opts.stack           Whether stacking is active.
+ * @param opts.onlyTotal       Whether to show only the stack total.
+ * @param opts.isHorizontal    Whether the chart is horizontal.
+ * @param opts.legendState     Active legend state (hidden series are skipped).
+ * @param opts.seriesStackIds  Optional per-series stack-group key (parallel to
+ *                             `series`). Defaults to a single shared group.
+ * @returns A `Record<stackGroupKey, number[]>` where each inner array maps
+ *          `dataIndex → seriesIndex` of the topmost series in that group.
+ */
 export function extractShowValueIndexes(
   series: SeriesOption[],
   opts: {
@@ -442,35 +462,43 @@ export function extractShowValueIndexes(
     onlyTotal?: boolean;
     isHorizontal?: boolean;
     legendState?: LegendState;
+    seriesStackIds?: string[];
   },
-): number[] {
-  const showValueIndexes: number[] = [];
-  const { legendState, stack, isHorizontal, onlyTotal } = opts;
-  if (stack) {
-    series.forEach((entry, seriesIndex) => {
-      const { data = [] } = entry;
-      (data as [any, number][]).forEach((datum, dataIndex) => {
-        if (entry.id && legendState && !legendState[entry.id]) {
-          return;
-        }
-        if (!onlyTotal && datum[isHorizontal ? 0 : 1] !== null) {
+): Record<string, number[]> {
+  const result: Record<string, number[]> = {};
+  const { legendState, stack, isHorizontal, onlyTotal, seriesStackIds } = opts;
+  if (!stack) {
+    return result;
+  }
+
+  series.forEach((entry, seriesIndex) => {
+    const stackGroup = seriesStackIds?.[seriesIndex] ?? DEFAULT_STACK_GROUP;
+    if (!result[stackGroup]) {
+      result[stackGroup] = [];
+    }
+    const showValueIndexes = result[stackGroup];
+
+    const { data = [] } = entry;
+    (data as [any, number][]).forEach((datum, dataIndex) => {
+      if (entry.id && legendState && !legendState[entry.id]) {
+        return;
+      }
+      const numericValue = datum[isHorizontal ? 0 : 1];
+      if (!onlyTotal && numericValue !== null) {
+        showValueIndexes[dataIndex] = seriesIndex;
+      }
+      if (onlyTotal) {
+        if (numericValue > 0) {
           showValueIndexes[dataIndex] = seriesIndex;
         }
-        if (onlyTotal) {
-          if (datum[isHorizontal ? 0 : 1] > 0) {
-            showValueIndexes[dataIndex] = seriesIndex;
-          }
-          if (
-            !showValueIndexes[dataIndex] &&
-            datum[isHorizontal ? 0 : 1] !== null
-          ) {
-            showValueIndexes[dataIndex] = seriesIndex;
-          }
+        if (!showValueIndexes[dataIndex] && numericValue !== null) {
+          showValueIndexes[dataIndex] = seriesIndex;
         }
-      });
+      }
     });
-  }
-  return showValueIndexes;
+  });
+
+  return result;
 }
 
 export function sortAndFilterSeries(
