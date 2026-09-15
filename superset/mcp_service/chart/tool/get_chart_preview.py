@@ -269,7 +269,7 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
                 chart=self.chart,
                 extra_form_data=self.request.extra_form_data,
                 row_limit=_preview_row_limit(form_data, 50),
-                order_desc=True,
+                order_desc=form_data.get("order_desc", True),
                 force=False,
             )
 
@@ -349,7 +349,7 @@ class TablePreviewStrategy(PreviewFormatStrategy):
                 chart=self.chart,
                 extra_form_data=self.request.extra_form_data,
                 row_limit=_preview_row_limit(form_data, 20),
-                order_desc=True,
+                order_desc=form_data.get("order_desc", True),
                 force=False,
             )
 
@@ -451,7 +451,7 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
                 chart=self.chart,
                 extra_form_data=self.request.extra_form_data,
                 row_limit=_preview_row_limit(form_data, 1000),
-                order_desc=True,
+                order_desc=form_data.get("order_desc", True),
                 force=self.request.force_refresh,
             )
 

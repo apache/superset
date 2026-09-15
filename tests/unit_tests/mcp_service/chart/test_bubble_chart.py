@@ -318,6 +318,24 @@ class TestBubbleSavedChartOrdering:
     def test_no_sort_metric_leaves_the_query_unordered(self, monkeypatch) -> None:
         assert "orderby" not in self._query(monkeypatch)
 
+    def test_no_explicit_direction_defers_to_the_saved_flag(self, monkeypatch) -> None:
+        """Callers that do not mean to override must leave the saved order."""
+        from superset.mcp_service.chart import chart_helpers
+
+        monkeypatch.setattr(
+            chart_helpers,
+            "resolve_datasource_engine",
+            lambda datasource_id, datasource_type: "base",
+        )
+        size = self._size_metric()
+        form_data = map_bubble_config(BubbleChartConfig(**_base()))
+        form_data["orderby"] = size
+        form_data["order_desc"] = False
+
+        query = chart_helpers.build_query_dicts_from_form_data(form_data, 1, "table")[0]
+
+        assert query["orderby"] == [(size, True)]
+
     def test_the_callers_order_desc_wins_over_the_saved_flag(self, monkeypatch) -> None:
         """An explicit order_desc must not contradict the emitted orderby.
 

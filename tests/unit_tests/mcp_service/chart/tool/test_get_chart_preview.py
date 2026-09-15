@@ -129,6 +129,49 @@ def _bubble_chart() -> SimpleNamespace:
     "superset.mcp_service.chart.tool.get_chart_preview."
     "build_query_context_from_form_data"
 )
+def test_saved_chart_preview_forwards_its_own_sort_direction(
+    mock_build_query_context, mock_command
+) -> None:
+    """The preview must not assert a sort direction the chart did not ask for.
+
+    These strategies used to pass a hardcoded order_desc=True. Since an
+    explicit argument outranks form_data in the query builder, that silently
+    flipped a saved ascending sort to descending — with a row limit, it
+    changes which rows come back, not just their order.
+    """
+    chart = _bubble_chart()
+    chart.params = utils_json.dumps(
+        {
+            "viz_type": "bubble_v2",
+            "entity": "country",
+            "x": {"label": "AVG(gdp)"},
+            "y": {"label": "AVG(life_expectancy)"},
+            "size": {"label": "SUM(population)"},
+            "orderby": {"label": "SUM(population)"},
+            "order_desc": False,
+            "row_limit": 1,
+        }
+    )
+    mock_build_query_context.return_value = SimpleNamespace(
+        queries=[SimpleNamespace(metrics=["SUM(population)"], columns=["country"])]
+    )
+    mock_command.return_value.validate.return_value = None
+    mock_command.return_value.run.return_value = {
+        "queries": [{"data": [{"country": "France", "SUM(population)": 67000000}]}]
+    }
+
+    VegaLitePreviewStrategy(
+        chart, GetChartPreviewRequest(identifier=109, format="vega_lite")
+    ).generate()
+
+    assert mock_build_query_context.call_args.kwargs["order_desc"] is False
+
+
+@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+@patch(
+    "superset.mcp_service.chart.tool.get_chart_preview."
+    "build_query_context_from_form_data"
+)
 def test_saved_bubble_vega_preview_encodes_its_three_metrics(
     mock_build_query_context, mock_command
 ) -> None:
