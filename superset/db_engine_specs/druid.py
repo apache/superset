@@ -22,7 +22,7 @@ from datetime import datetime
 from typing import Any, TYPE_CHECKING
 
 from flask_babel import gettext as __
-from marshmallow import fields, Schema
+from marshmallow import EXCLUDE, fields, Schema
 from marshmallow.validate import Range
 from sqlalchemy import types
 from sqlalchemy.engine.url import URL
@@ -58,6 +58,12 @@ class DruidParametersSchema(Schema):
     intentionally omits the ``database`` field. The ``encryption`` toggle selects
     the http vs. https pydruid dialect rather than adding a query parameter.
     """
+
+    class Meta:  # pylint: disable=too-few-public-methods
+        # `get_parameters_from_uri` emits the fixed `database` path, which is not
+        # a form field; ignore it (and any other stray keys) on reload instead of
+        # raising an "Unknown field" error.
+        unknown = EXCLUDE
 
     username = fields.String(allow_none=True, metadata={"description": __("Username")})
     password = fields.String(allow_none=True, metadata={"description": __("Password")})

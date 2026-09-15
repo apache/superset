@@ -291,8 +291,10 @@ def test_get_engine_spec_supports_parameters() -> None:
     the ``/available`` endpoint returns individual parameters.
     """
     from superset.db_engine_specs import get_engine_spec
+    from superset.db_engine_specs.druid import DruidEngineSpec
 
-    spec = get_engine_spec("druid")
+    spec = cast("type[DruidEngineSpec]", get_engine_spec("druid"))
+    assert spec is DruidEngineSpec
     assert spec.parameters_schema is not None
     assert hasattr(spec, "build_sqlalchemy_uri")
 
@@ -406,3 +408,23 @@ def test_parameters_json_schema_omits_database() -> None:
     assert "database" not in schema["properties"]
     assert "encryption" in schema["properties"]
     assert set(schema["required"]) == {"host", "port"}
+
+
+def test_parameters_schema_reloads_emitted_parameters() -> None:
+    """
+    ``get_parameters_from_uri`` emits the fixed ``database`` path, which is not a
+    form field. Re-loading that dict through the schema (the create/update path)
+    must not raise on the unknown ``database`` key.
+    """
+    from superset.db_engine_specs.druid import DruidEngineSpec
+
+    parameters = DruidEngineSpec.get_parameters_from_uri(
+        "druid+https://user:pwd@localhost:9088/druid/v2/sql/"
+    )
+    assert parameters["database"] == "druid/v2/sql/"
+
+    loaded = DruidEngineSpec.parameters_schema.load(parameters)
+
+    assert "database" not in loaded
+    assert loaded["host"] == "localhost"
+    assert loaded["encryption"] is True
