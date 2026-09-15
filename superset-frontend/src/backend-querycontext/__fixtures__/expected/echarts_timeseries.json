@@ -1,0 +1,92 @@
+{
+  "datasource": {
+    "id": 1,
+    "type": "table"
+  },
+  "force": false,
+  "queries": [
+    {
+      "time_range": "No filter",
+      "granularity": "ds",
+      "filters": [],
+      "extras": {
+        "time_grain_sqla": "P1D",
+        "having": "",
+        "where": ""
+      },
+      "applied_time_extras": {},
+      "columns": [
+        {
+          "timeGrain": "P1D",
+          "columnType": "BASE_AXIS",
+          "sqlExpression": "ds",
+          "label": "ds",
+          "expressionType": "SQL"
+        },
+        "gender"
+      ],
+      "metrics": ["count"],
+      "orderby": [["count", false]],
+      "annotation_layers": [],
+      "row_limit": 100,
+      "series_columns": ["gender"],
+      "series_limit": 0,
+      "order_desc": true,
+      "url_params": {},
+      "custom_params": {},
+      "custom_form_data": {},
+      "time_offsets": [],
+      "post_processing": [
+        {
+          "operation": "pivot",
+          "options": {
+            "index": ["ds"],
+            "columns": ["gender"],
+            "aggregates": {
+              "count": {
+                "operator": "mean"
+              }
+            },
+            "drop_missing_columns": true
+          }
+        },
+        {
+          "operation": "flatten"
+        }
+      ]
+    }
+  ],
+  "form_data": {
+    "datasource": "1__table",
+    "viz_type": "echarts_timeseries",
+    "metric": "count",
+    "metrics": ["count"],
+    "groupby": ["gender"],
+    "columns": ["gender"],
+    "all_columns": ["gender", "name"],
+    "entity": "gender",
+    "series": "gender",
+    "series_columns": ["gender"],
+    "x_axis": "ds",
+    "granularity_sqla": "ds",
+    "time_grain_sqla": "P1D",
+    "time_range": "No filter",
+    "row_limit": 100,
+    "adhoc_filters": [],
+    "source": "gender",
+    "target": "name",
+    "source_category": "gender",
+    "target_category": "name",
+    "x_axis_column": "gender",
+    "y_axis": "name",
+    "x": "count",
+    "y": "count",
+    "size": "count",
+    "column": "num",
+    "metrics_b": ["count"],
+    "groupby_b": ["gender"],
+    "adhoc_filters_b": []
+  },
+  "result_format": "json",
+  "result_type": "full"
+}
