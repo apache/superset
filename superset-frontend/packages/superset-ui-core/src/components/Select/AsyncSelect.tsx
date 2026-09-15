@@ -56,6 +56,7 @@ import {
   sortComparatorForNoSearchHelper,
   getSuffixIcon,
   dropDownRenderHelper,
+  type FlattenOptionsProps,
   handleFilterOptionHelper,
   makeQuoteAwareTokenizer,
   mapOptions,
@@ -666,7 +667,9 @@ const AsyncSelect = forwardRef(
     };
 
     const popupRender = (
-      originNode: ReactElement & { ref?: RefObject<HTMLElement> },
+      originNode: ReactElement<FlattenOptionsProps> & {
+        ref?: RefObject<HTMLElement | null>;
+      },
     ) =>
       dropDownRenderHelper(
         originNode,

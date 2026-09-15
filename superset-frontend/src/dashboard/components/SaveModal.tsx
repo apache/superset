@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint-env browser */
-import { useRef, useState } from 'react';
+import { useRef, useState, ReactElement } from 'react';
 import { Radio, RadioChangeEvent } from '@superset-ui/core/components/Radio';
 import {
   Button,
@@ -33,7 +33,7 @@ import { useTheme } from '@apache-superset/core/theme';
 
 import {
   ModalTrigger,
-  ModalTriggerRef,
+  type ModalTriggerRef,
 } from '@superset-ui/core/components/ModalTrigger';
 import {
   SAVE_TYPE_OVERWRITE,
@@ -51,7 +51,7 @@ type SaveModalProps = {
   expandedSlices: Record<string, any>;
   layout: Record<string, any>;
   saveType: SaveType;
-  triggerNode: JSX.Element;
+  triggerNode: ReactElement;
   customCss: string;
   colorNamespace?: string;
   colorScheme?: string;
@@ -84,7 +84,7 @@ function SaveModal({
   lastModifiedTime,
 }: SaveModalProps) {
   const theme = useTheme();
-  const modal = useRef() as ModalTriggerRef;
+  const modal = useRef<ModalTriggerRef['current']>(null);
 
   const [saveType, setSaveType] = useState<SaveType>(initialSaveType);
   const [newDashName, setNewDashName] = useState(

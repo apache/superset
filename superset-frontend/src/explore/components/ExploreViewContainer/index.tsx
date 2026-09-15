@@ -1124,7 +1124,7 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
                   : ''
               }
             `}
-            {...(isChartVersionPreviewActive ? { inert: '' } : {})}
+            inert={isChartVersionPreviewActive}
           >
             {/* eslint-disable @typescript-eslint/no-explicit-any -- DataSourcePanel uses narrower types that are compatible at runtime */}
             <DataSourcePanel
@@ -1194,8 +1194,7 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
                   : ''
               }
             `}
-            // inert blocks keyboard focus too; React 18 needs the spread form
-            {...(isChartVersionPreviewActive ? { inert: '' } : {})}
+            inert={isChartVersionPreviewActive}
           >
             <ConnectedControlPanelsContainer
               exploreState={props.exploreState}

@@ -27,7 +27,6 @@ import {
   useRef,
   useState,
   useReducer,
-  Reducer,
   useCallback,
   ChangeEvent,
 } from 'react';
@@ -656,7 +655,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   dbEngine,
 }) => {
   const [db, setDB] = useReducer<
-    Reducer<Partial<DatabaseObject> | null, DBReducerActionType>
+    Partial<DatabaseObject> | null,
+    [DBReducerActionType]
   >(dbReducer, null);
   // Database fetch logic
   const {

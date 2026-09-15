@@ -30,6 +30,7 @@ import {
   ComponentPropsWithRef,
   CSSProperties,
   UIEventHandler,
+  type JSX,
 } from 'react';
 import { TableInstance, Hooks } from 'react-table';
 import { useTheme, css } from '@apache-superset/core/theme';

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactNode } from 'react';
+import { ReactNode, ReactElement } from 'react';
 
 interface ControlHeaderProps {
   children: ReactNode;
@@ -24,7 +24,7 @@ interface ControlHeaderProps {
 
 export const ControlHeader = ({
   children,
-}: ControlHeaderProps): JSX.Element => (
+}: ControlHeaderProps): ReactElement => (
   <div className="ControlHeader">
     <div className="pull-left">{children}</div>
   </div>

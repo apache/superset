@@ -192,9 +192,8 @@ describe('PropertiesModal', () => {
       expect(screen.getByText('ColorSchemeSelect')).toBeInTheDocument();
     });
 
-    expect(spyColorSchemeSelect).toHaveBeenCalledWith(
+    expect(spyColorSchemeSelect.mock.calls.map(call => call[0])).toContainEqual(
       expect.objectContaining({ value: 'supersetColors' }),
-      {},
     );
   });
 
@@ -245,10 +244,9 @@ describe('PropertiesModal', () => {
     await userEvent.click(stylingHeader!);
 
     await waitFor(() => {
-      expect(spyColorSchemeSelect).toHaveBeenCalledWith(
-        expect.objectContaining({ value: 'supersetColors' }),
-        {},
-      );
+      expect(
+        spyColorSchemeSelect.mock.calls.map(call => call[0]),
+      ).toContainEqual(expect.objectContaining({ value: 'supersetColors' }));
     });
   });
 

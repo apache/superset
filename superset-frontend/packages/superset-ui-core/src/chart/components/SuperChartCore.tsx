@@ -42,10 +42,10 @@ function IDENTITY<T>(x: T) {
   return x;
 }
 
-const EMPTY = () => null;
+const EMPTY = Object.assign(() => null, { preload: () => Promise.resolve() });
 
 interface LoadingProps {
-  error: { toString(): string };
+  error?: unknown;
 }
 
 interface LoadedModules {
@@ -204,7 +204,7 @@ const SuperChartCore = forwardRef<SuperChartCoreRef, Props>(
             <div className="alert alert-warning" role="alert">
               <strong>{t('ERROR')}</strong>&nbsp;
               <code>chartType=&quot;{loadingChartType}&quot;</code> &mdash;
-              {error.toString()}
+              {String(error)}
             </div>
           );
         }

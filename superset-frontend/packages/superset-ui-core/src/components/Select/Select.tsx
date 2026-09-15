@@ -42,6 +42,7 @@ import {
 import { debounce, isEqual, uniq } from 'lodash-es';
 import {
   dropDownRenderHelper,
+  type FlattenOptionsProps,
   getOption,
   getSuffixIcon,
   getValue,
@@ -763,7 +764,9 @@ const Select = forwardRef(
     const isLoading = loading ?? false;
 
     const popupRender = (
-      originNode: ReactElement & { ref?: RefObject<HTMLElement> },
+      originNode: ReactElement<FlattenOptionsProps> & {
+        ref?: RefObject<HTMLElement | null>;
+      },
     ) =>
       dropDownRenderHelper(
         originNode,

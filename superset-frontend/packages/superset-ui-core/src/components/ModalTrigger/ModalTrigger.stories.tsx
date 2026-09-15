@@ -17,13 +17,14 @@
  * under the License.
  */
 import { ModalTrigger } from '.';
+import type { ReactElement } from 'react';
 
 interface IModalTriggerProps {
-  triggerNode: JSX.Element;
+  triggerNode: ReactElement;
   dialogClassName?: string;
   modalTitle?: string;
-  modalBody?: JSX.Element;
-  modalFooter?: JSX.Element;
+  modalBody?: ReactElement;
+  modalFooter?: ReactElement;
   beforeOpen?: () => void;
   onExit?: () => void;
   isButton?: boolean;

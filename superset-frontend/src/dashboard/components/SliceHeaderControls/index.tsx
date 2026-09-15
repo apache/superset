@@ -104,7 +104,7 @@ const VerticalDotsTrigger = () => (
 );
 
 export interface SliceHeaderControlsProps {
-  chartHolderRef?: RefObject<HTMLDivElement>;
+  chartHolderRef?: RefObject<HTMLDivElement | null>;
   slice: {
     description: string;
     viz_type: string;

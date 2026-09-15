@@ -23,6 +23,7 @@ import { dashboardLayout } from 'spec/fixtures/mockDashboardLayout';
 import mockDatasource, { datasourceId, id } from 'spec/fixtures/mockDatasource';
 import { buildNativeFilter } from 'spec/fixtures/mockNativeFilters';
 import {
+  act,
   fireEvent,
   render,
   screen,
@@ -734,7 +735,9 @@ test('modifies the name of a filter', async () => {
   // Flush the 500ms debounce on the filter name input.
   // Using advanceTimersByTime instead of runAllTimers to avoid infinite
   // loops caused by recursive antd animation timers.
-  jest.advanceTimersByTime(1000);
+  act(() => {
+    jest.advanceTimersByTime(1000);
+  });
 
   // Switch back to real timers so waitFor polling works
   jest.useRealTimers();
@@ -856,7 +859,9 @@ test('enables save button and includes updated title when editing an existing di
   await userEvent.clear(titleInput);
   await userEvent.type(titleInput, 'Second Edit');
 
-  jest.advanceTimersByTime(500);
+  act(() => {
+    jest.advanceTimersByTime(500);
+  });
   jest.useRealTimers();
 
   await waitFor(() =>
@@ -920,7 +925,9 @@ test('enables save button and includes updated title when editing an existing ch
   await userEvent.clear(titleInput);
   await userEvent.type(titleInput, 'Second Edit');
 
-  jest.advanceTimersByTime(500);
+  act(() => {
+    jest.advanceTimersByTime(500);
+  });
   jest.useRealTimers();
 
   await waitFor(() =>

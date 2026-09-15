@@ -26,6 +26,7 @@ import {
   useCallback,
   useMemo,
   useRef,
+  ReactElement,
 } from 'react';
 
 import {
@@ -125,7 +126,7 @@ function SuperChart({
   height = 400,
   width = '100%',
   ...rest
-}: Props): JSX.Element {
+}: Props): ReactElement {
   /**
    * SuperChart's core ref
    */
@@ -264,7 +265,7 @@ function SuperChart({
               ({ data }) => !data || (Array.isArray(data) && data.length === 0),
             ));
 
-      let chart: JSX.Element;
+      let chart: ReactElement;
       if (noResultQueries) {
         chart = noResults ? (
           <>{noResults}</>

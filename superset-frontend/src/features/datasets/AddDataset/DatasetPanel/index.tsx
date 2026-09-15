@@ -89,7 +89,7 @@ const DatasetPanelWrapper = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<SupersetError>();
   const requestIdRef = useRef(0);
-  const currentRequestRef = useRef<TableMetadataRequest>();
+  const currentRequestRef = useRef<TableMetadataRequest | undefined>(undefined);
   const supportsSchemas = database?.supports_schemas;
 
   const getTableMetadata = useCallback(

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactChild, RefObject, useCallback } from 'react';
+import { ReactNode, RefObject, useCallback } from 'react';
 import { useHistory } from 'react-router-dom';
 import { t } from '@apache-superset/core/translation';
 import { css, useTheme } from '@apache-superset/core/theme';
@@ -32,9 +32,9 @@ export const ViewResultsModalTrigger = ({
 }: {
   canExplore?: boolean;
   exploreUrl: string;
-  triggerNode: ReactChild;
+  triggerNode: ReactNode;
   modalTitle: string;
-  modalBody: ReactChild;
+  modalBody: ReactNode;
   modalRef?: RefObject<any>;
 }) => {
   const history = useHistory();

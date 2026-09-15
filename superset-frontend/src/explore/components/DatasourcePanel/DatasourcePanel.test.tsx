@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactChild } from 'react';
+import { ReactNode } from 'react';
 import {
   cleanup,
   render,
@@ -45,7 +45,7 @@ import { FoldersEditorItemType } from 'src/components/Datasource/types';
 jest.mock(
   'react-virtualized-auto-sizer',
   () =>
-    ({ children }: { children: (params: { height: number }) => ReactChild }) =>
+    ({ children }: { children: (params: { height: number }) => ReactNode }) =>
       children({ height: 500 }),
 );
 

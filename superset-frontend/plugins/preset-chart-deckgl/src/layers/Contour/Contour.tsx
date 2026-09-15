@@ -166,8 +166,7 @@ export const getLayer: GetLayerType<ContourLayer> = function ({
     contours,
     cellSize: safeCellSize,
     aggregation: aggregation.toUpperCase(),
-    getPosition: (d: { position: number[]; weight: number }) =>
-      d.position as Position,
+    getPosition: (d: { position: Position; weight: number }) => d.position,
     getWeight: (d: { weight: number }) => d.weight || 0,
     ...commonLayerProps({
       formData: fd,

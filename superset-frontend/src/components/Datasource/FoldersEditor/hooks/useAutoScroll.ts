@@ -29,7 +29,7 @@ const MAX_SPEED_MULTIPLIER = 3;
 
 interface UseAutoScrollOptions {
   listRef: React.RefObject<ListImperativeAPI | null>;
-  containerRef: React.RefObject<HTMLDivElement>;
+  containerRef: React.RefObject<HTMLDivElement | null>;
   isDragging: boolean;
   listHeight: number;
 }

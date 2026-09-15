@@ -24,9 +24,10 @@ import {
   memo,
   FunctionComponent,
   useState,
-  ChangeEvent,
+  FormEvent,
   useEffect,
   type RefObject,
+  ReactElement,
 } from 'react';
 
 import { Constants, ThemedAgGridReact } from '@superset-ui/core/components';
@@ -109,14 +110,14 @@ export interface AgGridTableProps {
   handleSelectionChanged: (event: SelectionChangedEvent) => void;
   filters?: Record<string, DataRecordValue[]> | null;
   isActiveFilterValue?: (key: string, val: DataRecordValue) => boolean;
-  renderTimeComparisonDropdown: () => JSX.Element | null;
+  renderTimeComparisonDropdown: () => ReactElement | null;
   cleanedTotals: DataRecord;
   showTotals: boolean;
   width: number;
   onColumnStateChange?: (state: AgGridChartStateWithMetadata) => void;
   onFilterChanged?: (completeFilterState: FilterState) => void;
   metricColumns?: string[];
-  gridRef?: RefObject<AgGridReact>;
+  gridRef?: RefObject<AgGridReact | null>;
   chartState?: AgGridChartState;
   onClientViewChange?: (snapshot: ClientViewSnapshot) => void;
   zebraStriping: boolean;
@@ -287,7 +288,8 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
     }, []);
 
     const onFilterTextBoxChanged = useCallback(
-      ({ target: { value } }: ChangeEvent<HTMLInputElement>) => {
+      (event: FormEvent<HTMLInputElement>) => {
+        const { value } = event.target as HTMLInputElement;
         if (serverPagination) {
           setSearchValue(value);
           debouncedSearch(value);

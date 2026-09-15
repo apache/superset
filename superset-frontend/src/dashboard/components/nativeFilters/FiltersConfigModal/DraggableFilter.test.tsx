@@ -34,7 +34,7 @@ import {
 } from './DraggableFilter';
 
 const DndWrapper: React.FC<{
-  children: React.ReactElement;
+  children: React.ReactNode;
   items: string[];
 }> = ({ children, items }) => {
   const sensor = useSensor(PointerSensor, {
@@ -50,7 +50,7 @@ const DndWrapper: React.FC<{
   );
 };
 
-const renderWithDnd = (component: React.ReactElement, items: string[] = []) =>
+const renderWithDnd = (component: React.ReactNode, items: string[] = []) =>
   render(<DndWrapper items={items}>{component}</DndWrapper>);
 
 test('identifies divider items correctly', () => {

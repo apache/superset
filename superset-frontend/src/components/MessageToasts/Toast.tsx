@@ -75,7 +75,9 @@ interface ToastPresenterProps {
 }
 
 export default function Toast({ toast, onCloseToast }: ToastPresenterProps) {
-  const hideTimer = useRef<ReturnType<typeof setTimeout>>();
+  const hideTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
   const [visible, setVisible] = useState(false);
 
   const showToast = () => {

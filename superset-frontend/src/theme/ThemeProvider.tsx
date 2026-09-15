@@ -23,6 +23,7 @@ import {
   useEffect,
   useMemo,
   useState,
+  ReactElement,
 } from 'react';
 import {} from '@superset-ui/core';
 import {
@@ -43,7 +44,7 @@ interface ThemeProviderProps {
 export function SupersetThemeProvider({
   children,
   themeController,
-}: ThemeProviderProps): JSX.Element {
+}: ThemeProviderProps): ReactElement {
   const [currentTheme, setCurrentTheme] = useState<Theme>(
     themeController.getTheme(),
   );
