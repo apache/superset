@@ -1031,6 +1031,45 @@ FEATURE_FLAGS: dict[str, bool] = {}
 SOFT_DELETE_RETENTION_DAYS: int = 30
 SOFT_DELETE_PURGE_DRY_RUN: bool = False
 
+# Retention policy for the purge audit log itself (the durable evidence the
+# purge task writes). Pruning is deletion-only and scheduled
+# (``deletion_retention.prune_purge_audit``); it never mutates surviving rows.
+# Automatic deletion is opt-in so operators can validate retention policy and
+# workload characteristics before the first irreversible run. A disabled run
+# reports itself rather than silently doing nothing.
+PURGE_AUDIT_PRUNING_ENABLED: bool = False
+# How long operational audit records (``blocked``, ``failed``) are kept.
+# Duplicate blocked records within a current blockage streak are removed
+# regardless of age (the streak's earliest record and the first record after
+# each change of block reason always survive); this window governs failed
+# records and blocked records from resolved streaks.
+# It never applies to completed-destruction evidence — see the evidence key
+# below. Zero or negative values are invalid: the run logs a warning and
+# skips the age-based category rather than widening removal.
+PURGE_AUDIT_OPERATIONAL_RETENTION_DAYS: int = 90
+# Evidence expiration opt-in. ``None`` (the default) means completed
+# destruction records (``confirmed``, ``target_absent``) — the only surviving
+# trace of destroyed objects — are never pruned. Setting a positive number of
+# days is the operator's assertion that an approved compliance policy permits
+# expiring destruction evidence older than that window.
+PURGE_AUDIT_EVIDENCE_RETENTION_DAYS: int | None = None
+# Candidate rows per pruning batch. Each batch holds the singleton audit
+# coordination lock — the same lock every audit write takes — for its locked
+# re-check, whose cost grows with the batch size times the history depth of
+# the entities in it: a workload-dependent trade-off, not a time bound, and
+# the lever on how long a concurrent purge's audit write can wait. Measured
+# on one entity with a 6,000-row multi-reason blocked history (lock-hold per
+# batch, PostgreSQL 16 / MySQL 8 REPEATABLE READ; the MySQL 500 figure is
+# estimated from EXPLAIN ANALYZE rather than a measured acquire-to-release
+# sample): 50 -> ~0.15 s / ~1.2 s; 100 -> ~0.9 s / ~7.7 s; 500 -> ~6.4 s / ~50 s.
+# The default keeps a concurrent writer's wait around a second even on MySQL;
+# larger batches drain a backlog faster (ten batches per run) at the cost of
+# longer waits. Must be a non-boolean integer in [1, 500] (a conservative
+# cross-dialect ceiling for the bind-parameter budget); an explicit invalid
+# value — including None, a numeric string, or a float — makes the run skip
+# entirely and report the key rather than prune with an unknown batch size.
+PURGE_AUDIT_PRUNING_BATCH_SIZE: int = 50
+
 # A function that receives a dict of all feature flags
 # (DEFAULT_FEATURE_FLAGS merged with FEATURE_FLAGS)
 # can alter it, and returns a similar dict. Note the dict of feature
@@ -1835,6 +1874,13 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
             "task": "deletion_retention.purge_soft_deleted",
             "schedule": crontab(minute=0, hour=0),
         },
+        # Purge-audit retention. Daily at 03:30, offset from the purge task
+        # and the version-history prune; the task itself reports and skips
+        # when PURGE_AUDIT_PRUNING_ENABLED is False.
+        "deletion_retention.prune_purge_audit": {
+            "task": "deletion_retention.prune_purge_audit",
+            "schedule": crontab(minute=30, hour=3),
+        },
         # Uncomment to enable pruning of the query table
         # "prune_query": {
         #     "task": "prune_query",
@@ -2133,9 +2179,11 @@ WTF_CSRF_TIME_LIMIT = int(timedelta(weeks=1).total_seconds())
 # The URL may include any of these placeholders, which are substituted with
 # URL-encoded values so the link can deep-link into an access-request system:
 #   {datasource_id}    - id of the denied dataset (datasource errors)
-#   {datasource_name}  - name of the denied dataset (datasource errors)
 #   {table_names}      - comma-separated denied table names (table/SQL errors)
 #   {username}         - the requesting user's username
+# {datasource_name} was retired: the link is shown to a user who was just denied
+# the dataset, so its name must not be templated in. A URL still using it keeps
+# the placeholder literal (and logs a warning) rather than rendering it empty.
 # A URL with no placeholders is used as-is. Example:
 #   "https://access.example.com/request?dataset={datasource_id}&user={username}"
 PERMISSION_INSTRUCTIONS_LINK = ""
