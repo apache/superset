@@ -825,6 +825,39 @@ export function getLegendProps(
   const getLegendWidth = (paddingWidth: number) =>
     Math.max(paddingWidth - MARGIN_GUTTER, MIN_LEGEND_WIDTH);
 
+  /**
+   * Returns a legend tooltip config that:
+   * 1. Only appears when the label is actually truncated (name wider than maxTextWidth)
+   * 2. Positions the tooltip ABOVE the legend item to avoid overlapping the chart
+   */
+  const makeLegendTooltip = (maxTextWidth: number): any => ({
+    show: true,
+    confine: false, // allow tooltip to render above the canvas boundary
+    position: (
+      _pos: [number, number],
+      _params: unknown,
+      _el: unknown,
+      elRect: { x: number; y: number; width: number; height: number },
+      size: { contentSize: [number, number]; viewSize: [number, number] },
+    ) => {
+      const tooltipWidth = size.contentSize[0];
+      const tooltipHeight = size.contentSize[1];
+      // Center horizontally over the hovered legend item
+      const x = Math.min(
+        Math.max(elRect.x + elRect.width / 2 - tooltipWidth / 2, 0),
+        size.viewSize[0] - tooltipWidth,
+      );
+      // Place above the legend item; negative y appears above canvas with confine:false
+      const y = elRect.y - tooltipHeight - 8;
+      return [x, y];
+    },
+    formatter: (params: { name: string }) => {
+      // Suppress tooltip when text fits — approx 7.5px per char at default font size
+      const approxMaxChars = Math.floor(maxTextWidth / 7.5);
+      return params.name.length > approxMaxChars ? params.name : '';
+    },
+  });
+
   switch (orientation) {
     case LegendOrientation.Left:
       legend.left = 0;
@@ -833,6 +866,7 @@ export function getLegendProps(
           overflow: 'truncate',
           width: getLegendWidth(padding.left),
         };
+        legend.tooltip = makeLegendTooltip(getLegendWidth(padding.left));
       }
       break;
     case LegendOrientation.Right:
@@ -843,6 +877,7 @@ export function getLegendProps(
           overflow: 'truncate',
           width: getLegendWidth(padding.right),
         };
+        legend.tooltip = makeLegendTooltip(getLegendWidth(padding.right));
       }
       break;
     case LegendOrientation.Bottom:
@@ -853,6 +888,11 @@ export function getLegendProps(
       if (type === LegendType.Plain) {
         legend.right = 0;
       }
+      legend.textStyle = {
+        overflow: 'truncate',
+        width: 150,
+      };
+      legend.tooltip = makeLegendTooltip(150);
       break;
     case LegendOrientation.Top:
       legend.top = 0;
@@ -860,6 +900,11 @@ export function getLegendProps(
       if (type === LegendType.Plain && padding?.left) {
         legend.left = padding.left;
       }
+      legend.textStyle = {
+        overflow: 'truncate',
+        width: 150,
+      };
+      legend.tooltip = makeLegendTooltip(150);
       break;
     default:
       legend.top = 0;

@@ -260,6 +260,8 @@ export default function transformProps(
     labelLine,
     labelType,
     labelTemplate,
+    labelMaxWidth,
+    labelOverflow,
     legendMargin,
     legendOrientation,
     legendType,
@@ -546,10 +548,18 @@ export default function transformProps(
             position: 'outer',
             alignTo: 'none',
             bleedMargin: 5,
+            ...(labelMaxWidth > 0 && {
+              width: labelMaxWidth,
+              ...(labelOverflow !== 'none' && { overflow: labelOverflow }),
+            }),
           }
         : {
             ...defaultLabel,
             position: 'inner',
+            ...(labelMaxWidth > 0 && {
+              width: labelMaxWidth,
+              ...(labelOverflow !== 'none' && { overflow: labelOverflow }),
+            }),
           },
       emphasis: {
         label: {
