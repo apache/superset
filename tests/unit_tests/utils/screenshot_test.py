@@ -17,6 +17,7 @@
 
 # pylint: disable=import-outside-toplevel, unused-argument
 
+from inspect import signature
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -26,9 +27,12 @@ from superset.utils.hashing import hash_from_dict
 from superset.utils.screenshots import (
     BaseScreenshot,
     ChartScreenshot,
+    DashboardScreenshot,
+    ScreenshotCacheError,
     ScreenshotCachePayload,
     ScreenshotCachePayloadType,
 )
+from superset.utils.webdriver import WebDriverPlaywright, WebDriverProxy
 
 BASE_SCREENSHOT_PATH = "superset.utils.screenshots.BaseScreenshot"
 
@@ -77,6 +81,112 @@ def test_get_screenshot(mocker: MockerFixture, screenshot_obj):
     assert screenshot_data == fake_bytes
 
 
+def test_complete_dashboard_capture_uses_internal_driver_policy() -> None:
+    screenshot = DashboardScreenshot(
+        "http://example.com",
+        "digest",
+        require_complete_capture=True,
+    )
+
+    driver = screenshot.driver()
+
+    assert isinstance(driver, WebDriverPlaywright)
+    assert driver._require_complete_capture is True  # pylint: disable=protected-access
+    assert (
+        "require_complete_capture"
+        not in signature(WebDriverProxy.get_screenshot).parameters
+    )
+
+
+def test_api_generation_keys_remain_unique_after_request_pointer_expires(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    values: dict[str, object] = {}
+    cache = MagicMock()
+    cache.get.side_effect = values.get
+    cache.set.side_effect = lambda key, value: values.__setitem__(key, value)
+    monkeypatch.setattr(BaseScreenshot, "cache", cache)
+
+    screenshot = DashboardScreenshot("http://example.com", "digest")
+    scope = "dashboard:7"
+    request_key = screenshot.get_api_request_cache_key(
+        (1600, 1200),
+        (1600, 1200),
+        "permalink",
+        scope,
+    )
+    first = screenshot.get_next_api_generation_cache_key(request_key, None)
+    screenshot.store_cache_payload(
+        first,
+        ScreenshotCachePayload(image=FAKE_PNG_BYTES, scope=scope),
+    )
+    screenshot.set_current_api_generation_cache_key(request_key, first, scope)
+
+    # The pointer is written before the worker refreshes the completed image's
+    # TTL, so it can expire while that image is still valid.
+    del values[request_key]
+    assert screenshot.get_current_api_generation_cache_key(request_key, scope) is None
+
+    replacement_after_pointer_expiry = screenshot.get_next_api_generation_cache_key(
+        request_key, None
+    )
+    second = screenshot.get_next_api_generation_cache_key(request_key, first)
+    screenshot.store_cache_payload(
+        replacement_after_pointer_expiry,
+        ScreenshotCachePayload(scope=scope),
+    )
+
+    assert request_key != screenshot.get_cache_key(
+        (1600, 1200),
+        (1600, 1200),
+        "permalink",
+    )
+    assert len({first, replacement_after_pointer_expiry, second}) == 3
+    previous = screenshot.get_from_cache_key(first)
+    assert previous is not None
+    assert previous.get_image().read() == FAKE_PNG_BYTES
+
+
+def test_explicit_cache_write_rejection_raises(monkeypatch: pytest.MonkeyPatch) -> None:
+    cache = MagicMock()
+    cache.set.return_value = False
+    monkeypatch.setattr(BaseScreenshot, "cache", cache)
+
+    with pytest.raises(ScreenshotCacheError):
+        BaseScreenshot.store_cache_payload("key", ScreenshotCachePayload())
+
+
+def test_mark_cache_error_if_incomplete_does_not_clobber_success(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    cache = MagicMock()
+    cache.get.return_value = ScreenshotCachePayload(
+        image=FAKE_PNG_BYTES,
+        scope="dashboard:5",
+    ).to_dict()
+    monkeypatch.setattr(BaseScreenshot, "cache", cache)
+
+    with patch("superset.utils.screenshots.DistributedLock"):
+        BaseScreenshot.mark_cache_error_if_incomplete("key", "dashboard:5")
+
+    cache.set.assert_not_called()
+
+
+def test_mark_cache_error_if_incomplete_persists_small_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    cache = MagicMock()
+    cache.get.return_value = ScreenshotCachePayload(scope="dashboard:5").to_dict()
+    monkeypatch.setattr(BaseScreenshot, "cache", cache)
+
+    with patch("superset.utils.screenshots.DistributedLock"):
+        BaseScreenshot.mark_cache_error_if_incomplete("key", "dashboard:5")
+
+    stored_payload = cache.set.call_args.args[1]
+    assert stored_payload["status"] == "Error"
+    assert stored_payload["image"] is None
+
+
 def test_get_cache_key(app_context, screenshot_obj):
     """Test get_cache_key method"""
     expected_cache_key = hash_from_dict(
@@ -101,6 +211,27 @@ def test_get_from_cache_key(mocker: MockerFixture, screenshot_obj):
     cache_payload = screenshot_obj.get_from_cache_key("key")
     assert isinstance(cache_payload, ScreenshotCachePayload)
     assert cache_payload._image == fake_bytes  # pylint: disable=protected-access
+
+
+def test_cache_read_failure_preserves_legacy_miss_behavior(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    cache = MagicMock()
+    cache.get.side_effect = RuntimeError("cache unavailable")
+    monkeypatch.setattr(BaseScreenshot, "cache", cache)
+
+    assert BaseScreenshot.get_from_cache_key("key") is None
+
+
+def test_cache_read_failure_can_be_distinguished_by_api(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    cache = MagicMock()
+    cache.get.side_effect = RuntimeError("cache unavailable")
+    monkeypatch.setattr(BaseScreenshot, "cache", cache)
+
+    with pytest.raises(ScreenshotCacheError, match="Could not read"):
+        BaseScreenshot.get_from_cache_key("key", raise_on_error=True)
 
 
 class TestComputeAndCache:
