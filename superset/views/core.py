@@ -201,7 +201,7 @@ class Superset(BaseSupersetView):
                         initial_form_data["url_params"] = dict(url_params)
                 else:
                     return json_error_response(
-                        _("Error: permalink state not found"), status=404
+                        __("Error: permalink state not found"), status=404
                     )
             except (ChartNotFoundError, ExplorePermalinkGetFailedError) as ex:
                 return json_error_response(
@@ -308,7 +308,7 @@ class Superset(BaseSupersetView):
 
         if action == "saveas" and not slice_add_perm:
             return json_error_response(
-                _("You don't have the rights to create a chart"),
+                __("You don't have the rights to create a chart"),
                 status=403,
             )
 
@@ -444,7 +444,7 @@ class Superset(BaseSupersetView):
             dash_overwrite_perm = security_manager.is_editor(dash)
             if not dash_overwrite_perm:
                 return json_error_response(
-                    _("You don't have the rights to alter this dashboard"),
+                    __("You don't have the rights to alter this dashboard"),
                     status=403,
                 )
         elif new_dashboard_name:
@@ -453,7 +453,7 @@ class Superset(BaseSupersetView):
             dash_add_perm = security_manager.can_access("can_write", "Dashboard")
             if not dash_add_perm:
                 return json_error_response(
-                    _("You don't have the rights to create a dashboard"),
+                    __("You don't have the rights to create a dashboard"),
                     status=403,
                 )
 
@@ -645,7 +645,7 @@ class Superset(BaseSupersetView):
         except DashboardPermalinkGetFailedError as ex:
             return json_error_response(__("Error: %(msg)s", msg=ex.message), status=404)
         if not value:
-            return json_error_response(_("permalink state not found"), status=404)
+            return json_error_response(__("permalink state not found"), status=404)
 
         dashboard_id, state = value["dashboardId"], value.get("state", {})
         url = url_for(
