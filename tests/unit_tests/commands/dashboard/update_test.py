@@ -251,12 +251,17 @@ def test_update_dashboard_does_not_reject_unchanged_dangerous_css(
 
 
 def test_update_dashboard_rejects_new_dangerous_css(mocker: MockerFixture) -> None:
-    """A genuinely new css value is still validated on update."""
+    """A genuinely new css value is still validated on update, and the
+    resulting error stays keyed under "css" -- matching the field-shaped
+    error the PUT schema returned before this validation moved into the
+    command -- rather than falling back to marshmallow's generic
+    "_schema" key."""
     _mock_dependencies(mocker, existing_css="")
 
     dangerous_css = "div { width: expression(alert(1)); }"
     with pytest.raises(DashboardInvalidError) as exc_info:
         UpdateDashboardCommand(1, {"css": dangerous_css}).validate()
+    assert "css" in exc_info.value.normalized_messages()
     assert any(
         "disallowed construct" in str(message)
         for exc in exc_info.value._exceptions

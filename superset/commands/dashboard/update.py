@@ -180,7 +180,12 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
                 try:
                     validate_css(new_css)
                 except ValidationError as ex:
-                    exceptions.append(ex)
+                    # Re-key under "css" -- validate_css() raises with the
+                    # default "_schema" field_name, since it's also used as
+                    # a marshmallow field validator elsewhere, where
+                    # marshmallow assigns the field name itself regardless
+                    # of what's set here.
+                    exceptions.append(ValidationError(ex.messages, field_name="css"))
 
         if exceptions:
             raise DashboardInvalidError(exceptions=exceptions)
