@@ -126,6 +126,32 @@ Build ad-hoc SQL datasets that can be used as the basis for charts:
 > "Create a dataset from: SELECT region, SUM(revenue) as total_revenue FROM orders GROUP BY region"
 > "Make a virtual dataset called 'monthly_signups' from the users table filtered to last 12 months"
 
+### Query the Semantic Layer
+
+Discover and query metrics across both built-in datasets and external semantic
+views (when your deployment has semantic views registered), without writing SQL:
+
+- **Discover metrics** -- search metrics by name or description across every dataset and semantic view you can access, with each metric's compatible dimensions included
+- **Query by metric and dimension** -- get tabular results by naming metrics and dimensions instead of writing SQL, with optional filters and time ranges
+- **Progressively refine a query** -- given metrics and/or dimensions already picked, find the ones that can still be added without breaking the query
+
+**Example prompts:**
+
+> "What metrics are available related to revenue?"
+> "Show me revenue by region for the last 30 days"
+> "I've picked the revenue metric -- what dimensions can I break it down by?"
+
+:::tip Recommended workflow
+1. **`list_metrics`** -- search for a metric; note its `dataset_id` (built-in) or `view_id` (external semantic view)
+2. **`get_table`** -- pass that `dataset_id`/`view_id` along with metric and dimension names to get results
+3. **`get_compatible_dimensions`** / **`get_compatible_metrics`** -- as the user adds selections, check what else can validly be combined
+
+Built-in datasets accept any combination of saved metrics and groupby-enabled
+columns since a SQL `GROUP BY` has no metric-level constraints. External
+semantic views can impose additional compatibility rules, which these tools
+surface instead of failing the query outright.
+:::
+
 ### Run SQL Queries
 
 Execute SQL directly through your AI assistant:
@@ -266,6 +292,15 @@ Ask your admin for the MCP server URL and any authentication tokens you need.
 | `get_dataset_info`       | Get dataset metadata (columns, metrics, schema details)                                                                      |
 | `create_virtual_dataset` | Create a virtual dataset from a SQL query                                                                                    |
 | `update_dataset_metric`  | Update a saved metric's expression, name, verbose_name, or format (affects every chart using it; requires dataset ownership) |
+
+### Semantic Layer
+
+| Tool                         | Description                                                                                                                       |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `list_metrics`                | Discover metrics by name/description across built-in datasets and external semantic views, with compatible dimensions included    |
+| `get_table`                   | Query a dataset or semantic view by metric and dimension names, with optional filters, time range, and sorting                    |
+| `get_compatible_dimensions`   | Given metrics/dimensions already selected, return the dimensions that can still be added                                          |
+| `get_compatible_metrics`      | Given metrics/dimensions already selected, return the metrics that can still be added                                             |
 
 ### Charts
 
