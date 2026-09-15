@@ -733,6 +733,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         except Exception as ex:
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex) from ex
         sqla.event.listen(engine, "handle_error", mark_database_engine_error)
+        self.db_engine_spec.register_engine_events(engine)
         if cache_key is not None:
             with _ENGINE_CACHE_LOCK:
                 _ENGINE_CACHE[cache_key] = engine
