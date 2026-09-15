@@ -204,6 +204,7 @@ MCP_EMBEDDED_GUEST_AUTH_ENABLED: bool = False
 MCP_GUEST_ALLOWED_TOOLS: set[str] = {
     "get_dashboard_info",
     "get_dashboard_layout",
+    "get_dashboard_data",
     "list_dashboards",
     "list_charts",
     "get_chart_info",

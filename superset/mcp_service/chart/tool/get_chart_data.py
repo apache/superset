@@ -338,7 +338,7 @@ def _strict_bullet_result_data(
         openWorldHint=False,
     ),
 )
-async def get_chart_data(  # noqa: C901
+async def get_chart_data(
     request: GetChartDataRequest, ctx: Context
 ) -> ChartData | ChartError:
     """Get chart data by ID or UUID.
@@ -357,6 +357,18 @@ async def get_chart_data(  # noqa: C901
     actually sees in the Explore view (not the saved version).
 
     Returns underlying data in requested format with cache status.
+    """
+    return await execute_chart_data(request, ctx)
+
+
+async def execute_chart_data(  # noqa: C901
+    request: GetChartDataRequest, ctx: Context
+) -> ChartData | ChartError:
+    """Shared core behind get_chart_data.
+
+    Undecorated entry point so other tools (e.g. get_dashboard_data) reuse the
+    same query and guest-authorization path without re-entering the auth-wrapped
+    tool.
     """
     await ctx.info(
         "Starting chart data retrieval: identifier=%s, format=%s, limit=%s, "
