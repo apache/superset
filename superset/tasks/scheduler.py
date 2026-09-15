@@ -31,7 +31,11 @@ from superset_core.tasks.types import TaskStatus
 from superset import is_feature_enabled
 from superset.commands.exceptions import CommandException
 from superset.commands.logs.prune import LogPruneCommand
-from superset.commands.report.exceptions import ReportScheduleUnexpectedError
+from superset.commands.report.exceptions import (
+    ReportScheduleCsvTimeout,
+    ReportScheduleUnexpectedError,
+    ReportScheduleXlsxTimeout,
+)
 from superset.commands.report.execute import AsyncExecuteReportScheduleCommand
 from superset.commands.report.log_prune import AsyncPruneReportScheduleLogCommand
 from superset.commands.sql_lab.query import QueryPruneCommand
@@ -176,6 +180,16 @@ def execute(
     except ReportScheduleUnexpectedError:
         logger.exception(
             "An unexpected error occurred while executing the report: %s", task_id
+        )
+        self.update_state(state="FAILURE")
+    except (ReportScheduleCsvTimeout, ReportScheduleXlsxTimeout):
+        # Attachment generation timeouts are failed executions, despite their
+        # HTTP 408 status. Keep them visible to error-level task monitoring.
+        logger.exception(
+            "Report attachment generation timed out; execution_id=%s "
+            "report_schedule_id=%s",
+            task_id,
+            report_schedule_id,
         )
         self.update_state(state="FAILURE")
     except CommandException as ex:

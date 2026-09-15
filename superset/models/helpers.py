@@ -80,7 +80,6 @@ from superset import db, is_feature_enabled
 from superset.advanced_data_type.types import AdvancedDataTypeResponse
 from superset.common.db_query_status import QueryStatus
 from superset.common.grouping_sets import (
-    grouping_id_column,
     grouping_marker_label,
     grouping_sets_clause,
 )
@@ -1744,6 +1743,11 @@ class QueryStringExtended(NamedTuple):
     prequeries: list[str]
     sql: str
     sql_shifted_temporal_labels: set[str]
+
+    @property
+    def full_sql(self) -> str:
+        """The prequeries and the main query as one displayable statement."""
+        return ";\n\n".join([*self.prequeries, self.sql]) + ";"
 
 
 class SqlaQuery(NamedTuple):
@@ -3640,6 +3644,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     from_sql = parsed_script.format()
 
             except Exception as ex:  # pylint: disable=broad-except
+                # A caught DB error can leave db.session in "pending rollback"
+                # state, which would poison unrelated queries later in this request.
+                db.session.rollback()  # pylint: disable=consider-using-transaction
+
                 # RLS injection failures fail closed: only continue when it is
                 # positively confirmed that no RLS predicates apply to the
                 # referenced tables; any other outcome aborts the query.
@@ -3860,9 +3868,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         return values
 
     def get_query_str(self, query_obj: QueryObjectDict) -> str:
-        query_str_ext = self.get_query_str_extended(query_obj)
-        all_queries = query_str_ext.prequeries + [query_str_ext.sql]
-        return ";\n\n".join(all_queries) + ";"
+        return self.get_query_str_extended(query_obj).full_sql
 
     def _get_series_orderby(
         self,
@@ -4860,10 +4866,31 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             and groupby_all_columns
             and db_engine_spec.supports_grouping_sets
         )
+        # Both the GROUPING() marker labels and the `grouping_sets` level
+        # definitions sent by the frontend (see buildQuery.ts) are expressed in
+        # terms of the column's logical/requested label (``.key``), not the
+        # engine-mutated SQL alias (``.name``). BigQuery, for example, mangles
+        # labels containing spaces (e.g. a Custom SQL column named "Test Row")
+        # into something like "Test_Row_a1b2c3" for `.name`, while `.key` keeps
+        # the original "Test Row". Keying by `.name` here would silently drop
+        # such columns from every rollup level (the `col in ...` guard below),
+        # producing an invalid ``GROUP BY GROUPING SETS`` clause that omits a
+        # selected, non-aggregated column.
+        groupby_columns_by_label = {
+            gby_expr.key: gby_expr for gby_expr in groupby_all_columns.values()
+        }
         if use_grouping_sets:
+            # Route the marker through `make_sqla_column_compatible` like every
+            # other selected column: the SQL-level alias is engine-mutated if
+            # required (e.g. BigQuery rejects aliases with spaces), while
+            # `.key` keeps the unmutated marker label so it lines up with the
+            # `groupby_columns_by_label` keys above and with what the frontend
+            # looks for when splitting the combined result back per level.
             select_exprs = select_exprs + [
-                grouping_id_column(gby_expr, grouping_marker_label(name))
-                for name, gby_expr in groupby_all_columns.items()
+                self.make_sqla_column_compatible(
+                    sa.func.grouping(gby_expr), grouping_marker_label(label)
+                )
+                for label, gby_expr in groupby_columns_by_label.items()
             ]
 
         # Expected output columns
@@ -4880,9 +4907,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             if use_grouping_sets:
                 gs_levels = [
                     [
-                        groupby_all_columns[col]
+                        groupby_columns_by_label[col]
                         for col in level
-                        if col in groupby_all_columns
+                        if col in groupby_columns_by_label
                     ]
                     for level in grouping_sets or []
                 ]

@@ -465,6 +465,74 @@ class TestValidateAndCompileTier2:
         assert result.error_code == "DATASET_NOT_FOUND"
 
 
+@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+@patch("superset.mcp_service.chart.chart_helpers.build_query_context_from_form_data")
+def test_compile_gauge_uses_shared_query_builder_and_skips_invalid_dials(
+    mock_build_query_context, mock_cmd_cls
+):
+    """Gauge compile matches frontend ordering and retains finite groups."""
+    from superset.mcp_service.chart.compile import _compile_chart
+
+    mock_build_query_context.return_value = Mock()
+    mock_cmd_cls.return_value.validate.return_value = None
+    mock_cmd_cls.return_value.run.return_value = {
+        "queries": [
+            {
+                "data": [
+                    {"team": "A", "AVG(num)": 10},
+                    {"team": "B", "AVG(num)": "not numeric"},
+                ]
+            }
+        ]
+    }
+    form_data = {
+        "viz_type": "gauge_chart",
+        "metric": {
+            "expressionType": "SIMPLE",
+            "aggregate": "AVG",
+            "column": {"column_name": "num"},
+            "label": "AVG(num)",
+        },
+        "groupby": ["team"],
+        "sort_by_metric": True,
+        "row_limit": 10,
+    }
+
+    result = _compile_chart(form_data, dataset_id=3)
+
+    assert result.success
+    assert result.row_count == 1
+    query_form_data = mock_build_query_context.call_args.args[0]
+    assert query_form_data["sort_by_metric"] is True
+    assert query_form_data["metric"] == form_data["metric"]
+    assert query_form_data["datasource"] == "3__table"
+    mock_build_query_context.assert_called_once_with(
+        query_form_data, row_limit=10, force=False
+    )
+
+
+@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+@patch("superset.mcp_service.chart.chart_helpers.build_query_context_from_form_data")
+def test_compile_gauge_accepts_numeric_saved_metric_result(
+    mock_build_query_context, mock_cmd_cls
+):
+    """Saved/SQL metrics stay supported when their concrete output is numeric."""
+    from superset.mcp_service.chart.compile import _compile_chart
+
+    mock_build_query_context.return_value = Mock()
+    mock_cmd_cls.return_value.validate.return_value = None
+    mock_cmd_cls.return_value.run.return_value = {
+        "queries": [{"data": [{"saved_sla": 99.5}]}]
+    }
+
+    result = _compile_chart(
+        {"viz_type": "gauge_chart", "metric": "saved_sla"}, dataset_id=3
+    )
+
+    assert result.success
+    assert result.row_count == 1
+
+
 @patch("superset.daos.dataset.DatasetDAO")
 @patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
 @patch("superset.common.query_context_factory.QueryContextFactory")
@@ -572,3 +640,44 @@ def test_valid_configs_pass_tier1(config_factory):
     ds = _orm_dataset()
     result = validate_and_compile(config_factory(), {}, ds, run_compile_check=False)
     assert result.success, result.error
+
+
+@pytest.mark.parametrize("clause", ["WHERE", "HAVING"])
+@pytest.mark.parametrize("subject", ["score", "Score", "SCORE"])
+def test_preserved_filter_ambiguity_is_actionable(clause: str, subject: str) -> None:
+    """The public compiler rejects ambiguous preserved filters, exact-first."""
+    dataset = _orm_dataset(column_names=["gender", "Score", "SCORE"])
+    config = TableChartConfig(chart_type="table", columns=[ColumnRef(name="gender")])
+    form_data = {
+        "adhoc_filters": [
+            {
+                "expressionType": "SIMPLE",
+                "clause": clause,
+                "subject": subject,
+                "operator": ">",
+                "comparator": 0,
+            }
+        ]
+    }
+    result = validate_and_compile(config, form_data, dataset, run_compile_check=False)
+    assert result.success is (subject != "score")
+    if subject == "score":
+        assert result.error_obj is not None
+        assert result.error_obj.error_code == "AMBIGUOUS_DATASET_REFERENCE"
+        assert "Score" in result.error_obj.details
+        assert "SCORE" in result.error_obj.details
+
+
+def test_aggregation_ambiguity_returns_validation_errors() -> None:
+    """Direct aggregation validation has the same structured ambiguity contract."""
+    from superset.mcp_service.chart.validation.dataset_validator import DatasetValidator
+
+    context = build_dataset_context_from_orm(
+        _orm_dataset(column_names=["Score", "SCORE"])
+    )
+    assert context is not None
+    errors = DatasetValidator._validate_aggregations(
+        [ColumnRef(name="score", aggregate="AVG")], context
+    )
+    assert len(errors) == 1
+    assert errors[0].error_code == "AMBIGUOUS_DATASET_REFERENCE"
