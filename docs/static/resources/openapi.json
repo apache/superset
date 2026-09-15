@@ -205,9 +205,29 @@
       },
       "ActivityImpact": {
         "properties": {
+          "affected_charts": {
+            "description": "The affected sibling charts (id + name), sorted by name \u2014 the detail behind the ``charts`` count, rendered as the rollup entry's hover tooltip. Capped at 50 entries per record; ``charts`` always carries the full count.",
+            "items": {
+              "$ref": "#/components/schemas/ActivityImpactChart"
+            },
+            "type": "array"
+          },
           "charts": {
             "description": "Number of sibling charts on the path entity affected by the same related-record change at this transaction.",
             "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "ActivityImpactChart": {
+        "properties": {
+          "id": {
+            "description": "Chart id.",
+            "type": "integer"
+          },
+          "name": {
+            "description": "Chart name at the change's transaction \u2014 it may differ from the live name if the chart was renamed since.",
+            "type": "string"
           }
         },
         "type": "object"
