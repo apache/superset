@@ -19,28 +19,11 @@
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import { logging } from '@apache-superset/core/utils';
-import {
-  addInfoToast,
-  addWarningToast,
-} from 'src/components/MessageToasts/actions';
+import { addInfoToast } from 'src/components/MessageToasts/actions';
 import {
   FORCE_IN_VIEW_EVENT,
   RESTORE_VIRTUALIZATION_EVENT,
 } from 'src/dashboard/constants';
-
-/**
- * Dispatches a warning toast through the full app store. The store module
- * (`src/views/store`) builds the store at import time and needs bootstrap
- * `common.conf`, so a top-level import here would break any suite that
- * transitively imports this util without bootstrapping the app. Warning
- * toasts sit on failure paths only, so resolving the store lazily costs
- * nothing on the happy path. The message arrives pre-translated — call
- * sites wrap their literals in `t()` so the extraction keeps them.
- */
-export async function dispatchWarningToast(message: string): Promise<void> {
-  const { store } = await import('src/views/store');
-  store.dispatch(addWarningToast(message));
-}
 
 // Rows carry a `data-row-id` attribute (see Row.tsx) so the export path can
 // target a subset of them per batch. How many rows get forced into view at
@@ -140,10 +123,17 @@ function chunk<T>(items: T[], size: number): T[][] {
  * render in small batches (rather than all at once) and waits for them to
  * finish loading. Returns true if virtualization was active (caller must
  * restore it).
+ *
+ * @param addWarningToast bound via `useToasts()`/`bindActionCreators`, not the
+ *   raw action creator from `actions.ts`: this module has no dispatch of its
+ *   own, so an unbound creator would only build a Redux action object and
+ *   never render a toast. Covers the case where charts still haven't
+ *   finished loading once the overall timeout elapses.
  */
 export async function forceLoadAllCharts(
   container: Element,
   onProgress?: (progress: ForceLoadProgress) => void,
+  addWarningToast?: (message: string) => void,
 ): Promise<boolean> {
   const useVirtualization = isFeatureEnabled(
     FeatureFlag.DashboardVirtualization,
@@ -195,7 +185,7 @@ export async function forceLoadAllCharts(
       Math.max(0, deadline - Date.now()),
     );
     if (!allLoaded) {
-      addWarningToast(
+      addWarningToast?.(
         t('Some charts did not finish loading. The export may be incomplete.'),
       );
     }

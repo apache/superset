@@ -433,7 +433,11 @@ export default function downloadAsImageOptimized(
     // Force any virtualized (unmounted) charts to render before capturing, so
     // off-screen rows are not exported as loading spinners. Must be restored on
     // every exit path below.
-    const didForceLoad = await forceLoadAllCharts(elementToPrint);
+    const didForceLoad = await forceLoadAllCharts(
+      elementToPrint,
+      undefined,
+      addWarningToast,
+    );
 
     const filter = (node: Element) =>
       typeof node.className === 'string'
