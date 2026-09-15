@@ -384,6 +384,11 @@ WTF_CSRF_EXEMPT_LIST = [
     "superset.dashboards.api.cache_dashboard_screenshot",
     "superset.views.core.log",
     "superset.views.datasource.views.samples",
+    # Minting a one-time login token is a server-to-server call from a trusted
+    # parent application's backend, authenticated by
+    # LOGIN_TOKEN_IDENTITY_RESOLVER rather than by a session cookie. There is no
+    # session to forge against, and such a caller has no CSRF token to present.
+    "superset.security.api.login_token",
     "flask_appbuilder.security.views.acs",
 ]
 
