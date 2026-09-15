@@ -50,7 +50,6 @@ function formatValue(
     return [false, 'N/A'];
   }
   if (formatter) {
-    // Query results with integers beyond Number.MAX_SAFE_INTEGER are parsed as
     // Query results with integers beyond Number.MAX_SAFE_INTEGER are now
     // parsed as decimal strings by parseResponse.ts (e.g. "12345678901234567890").
     // Accept both native bigint (legacy / direct callers) and decimal-integer
