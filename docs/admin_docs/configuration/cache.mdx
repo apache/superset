@@ -241,7 +241,7 @@ FEATURE_FLAGS = {
 }
 ```
 
-By default thumbnails are rendered per user, and will fall back to the Selenium user for anonymous users.
+By default thumbnails are rendered as the user who requests them.
 To always render thumbnails as a fixed user (`admin` in this example), use the following configuration:
 
 ```python
@@ -286,7 +286,7 @@ THUMBNAIL_CACHE_CONFIG = init_thumbnail_cache
 ```
 
 Using the above example cache keys for dashboards will be `superset_thumb__dashboard__{ID}`. You can
-override the base URL for Selenium using:
+override the base URL that the headless browser uses to reach Superset using:
 
 ```
 WEBDRIVER_BASEURL = "https://superset.company.com"
@@ -311,20 +311,34 @@ CACHE_WARMUP_EXECUTORS = [FixedExecutor("admin")]
 Use a dedicated read-only service account here rather than a personal admin account, so that
 thumbnail rendering and cache warmup tasks don't fail if a specific user's credentials change.
 
-Additional Selenium WebDriver configuration can be set using `WEBDRIVER_CONFIGURATION`. You can
-implement a custom function to authenticate Selenium. The default function uses the `flask-login`
-session cookie. Here's an example of a custom function signature:
+Thumbnails are rendered with Playwright and a headless Chromium browser. Extra Chromium launch
+arguments can be set using `WEBDRIVER_OPTION_ARGS`. You can implement a custom function to
+authenticate the Playwright browser context. The default function uses the `flask-login` session
+cookie. Here's an example of a custom function signature:
 
 ```python
-def auth_driver(driver: WebDriver, user: "User") -> WebDriver:
-    pass
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from flask_appbuilder.security.sqla.models import User
+    from playwright.sync_api import BrowserContext
+
+
+def auth_browser_context(browser_context: BrowserContext, user: User) -> BrowserContext:
+    # Add cookies or headers that authenticate as `user`, then return the context.
+    return browser_context
 ```
 
 Then on configuration:
 
 ```
-WEBDRIVER_AUTH_FUNC = auth_driver
+WEBDRIVER_AUTH_FUNC = auth_browser_context
 ```
+
+To replace the authentication logic entirely, subclass `superset.utils.machine_auth.MachineAuthProvider`,
+override `authenticate_browser_context()`, and set `MACHINE_AUTH_PROVIDER_CLASS` to your class.
 
 ## ETag Support for Thumbnails
 
