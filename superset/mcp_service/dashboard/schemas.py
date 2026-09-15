@@ -1070,7 +1070,19 @@ class DashboardMutationErrorFields(BaseModel):
     error: str | None = Field(None, description="Error message, if operation failed")
     permission_denied: bool = Field(
         default=False,
-        description=("True when the user lacks edit rights on the target dashboard."),
+        description=(
+            "True when the user lacks edit rights on the target dashboard. "
+            "Remediation: ask the user to grant access; do not retry as-is."
+        ),
+    )
+    managed_externally: bool = Field(
+        default=False,
+        description=(
+            "True when the mutation was refused because the dashboard is "
+            "managed externally. Structural, not an access denial: granting "
+            "permissions cannot resolve it and the call should not be "
+            "retried — the entity's source of truth lives outside Superset."
+        ),
     )
 
 
