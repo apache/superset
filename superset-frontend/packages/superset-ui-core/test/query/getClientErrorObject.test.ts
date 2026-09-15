@@ -396,5 +396,13 @@ test('selectClientErrorMessage applies consistent precedence', () => {
   expect(selectClientErrorMessage({ error: 'Server detail' }, 'Fallback')).toBe(
     'Server detail',
   );
+  expect(
+    selectClientErrorMessage(
+      parseErrorJson({
+        message: { field: ['Normalized validation detail'] },
+      }),
+      'Fallback',
+    ),
+  ).toBe('Normalized validation detail');
   expect(selectClientErrorMessage({ error: '' }, 'Fallback')).toBe('Fallback');
 });
