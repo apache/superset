@@ -20,7 +20,7 @@ import type { ComposeOption } from 'echarts/core';
 import type { BarSeriesOption } from 'echarts/charts';
 import type { GridComponentOption } from 'echarts/components';
 import type { CallbackDataParams } from 'echarts/types/src/util/types';
-import { isEmpty } from 'lodash-es';
+import { escape, isEmpty } from 'lodash-es';
 import {
   CategoricalColorNamespace,
   NumberFormats,
@@ -34,6 +34,7 @@ import { defaultGrid, defaultYAxis } from '../defaults';
 import { getLegendProps } from '../utils/series';
 import { getDefaultTooltip } from '../utils/tooltip';
 import { getPercentFormatter } from '../utils/formatters';
+import { NULL_STRING } from '../constants';
 
 export default function transformProps(
   chartProps: HistogramChartProps,
@@ -89,7 +90,9 @@ export default function transformProps(
   const barSeries: BarSeriesOption[] = data.map(datum => {
     const seriesName =
       groupby.length > 0
-        ? groupby.map(key => datum[getColumnLabel(key)]).join(', ')
+        ? groupby
+            .map(key => datum[getColumnLabel(key)] ?? NULL_STRING)
+            .join(', ')
         : getColumnLabel(column);
     const seriesData = Object.keys(datum)
       .filter(key => groupbySet.has(key) === false)
@@ -123,7 +126,10 @@ export default function transformProps(
     const title = params[0].name;
     const rows = params.map(param => {
       const { marker, seriesName, value } = param;
-      return [`${marker}${seriesName}`, yAxisFormatter.format(value as number)];
+      return [
+        `${marker}${escape(seriesName)}`,
+        yAxisFormatter.format(value as number),
+      ];
     });
     if (groupby.length > 0) {
       const total = params.reduce(
