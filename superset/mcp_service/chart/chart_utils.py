@@ -694,7 +694,8 @@ def merge_chart_form_data(  # noqa: C901
         if "filters" not in fields_set:
             preserve_previous_adhoc_filters(new_form_data, existing_form_data)
         merged = {**existing_form_data, **new_form_data}
-        # Mappers emit defaults even when an update omits these controls.
+        # Preserve the shared color/limit controls when omitted. Chart-specific
+        # presentation defaults retain their existing mapper behavior.
         for field in ("color_scheme", "row_limit"):
             if field not in fields_set and field in existing_form_data:
                 merged[field] = existing_form_data[field]
