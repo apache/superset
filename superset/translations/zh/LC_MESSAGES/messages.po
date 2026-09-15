@@ -19730,3 +19730,148 @@ msgstr "© 图层归属"
 #, fuzzy
 msgid "№"
 msgstr "№"
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberYoyMom/controlPanel.tsx
+msgid "MoM comparison source"
+msgstr "MoM 比较来源"
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberYoyMom/controlPanel.tsx
+msgid "Time comparison (shift)"
+msgstr "时间比较（偏移）"
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberYoyMom/controlPanel.tsx
+msgid "Comparison value metric"
+msgstr "比较值指标"
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberYoyMom/controlPanel.tsx
+msgid "MoM comparison value"
+msgstr "MoM 比较值"
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberYoyMom/controlPanel.tsx
+msgid "MoM time shift"
+msgstr "MoM 时间偏移"
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberYoyMom/controlPanel.tsx
+msgid "YoY comparison source"
+msgstr "YoY 比较来源"
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberYoyMom/controlPanel.tsx
+msgid "YoY comparison value"
+msgstr "YoY 比较值"
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberYoyMom/controlPanel.tsx
+msgid "YoY time shift"
+msgstr "YoY 时间偏移"
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberYoyMom/controlPanel.tsx
+msgid "Title text"
+msgstr "标题文本"
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberYoyMom/controlPanel.tsx
+msgid "Title font size"
+msgstr "标题字号"
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberYoyMom/controlPanel.tsx
+msgid "Title color"
+msgstr "标题颜色"
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberYoyMom/controlPanel.tsx
+msgid "Title left position"
+msgstr "标题左侧位置"
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberYoyMom/controlPanel.tsx
+msgid "Horizontal offset in pixels from the left edge."
+msgstr "距左侧边缘的水平偏移（像素）。"
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberYoyMom/controlPanel.tsx
+msgid "Title top position"
+msgstr "标题顶部位置"
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberYoyMom/controlPanel.tsx
+msgid "Vertical offset in pixels from the top edge."
+msgstr "距顶部边缘的垂直偏移（像素）。"
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberYoyMom/controlPanel.tsx
+msgid "Big number font size"
+msgstr "大数字字号"
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberYoyMom/controlPanel.tsx
+msgid "Big number color"
+msgstr "大数字颜色"
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberYoyMom/controlPanel.tsx
+msgid "Big number left position"
+msgstr "大数字左侧位置"
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberYoyMom/controlPanel.tsx
+msgid "Gap from title"
+msgstr "距标题间隙"
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberYoyMom/controlPanel.tsx
+msgid "Vertical gap in pixels between the title and the big number."
+msgstr "标题与大数字之间的垂直间隙（像素）。"
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberYoyMom/controlPanel.tsx
+msgid "MoM Comparison"
+msgstr "MoM 比较"
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberYoyMom/controlPanel.tsx
+msgid "Show MoM comparison"
+msgstr "显示 MoM 比较"
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberYoyMom/controlPanel.tsx
+msgid "MoM label"
+msgstr "MoM 标签"
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberYoyMom/controlPanel.tsx
+msgid "MoM percent difference format"
+msgstr "MoM 百分比差值格式"
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberYoyMom/controlPanel.tsx
+msgid "YoY Comparison"
+msgstr "YoY 比较"
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberYoyMom/controlPanel.tsx
+msgid "Show YoY comparison"
+msgstr "显示 YoY 比较"
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberYoyMom/controlPanel.tsx
+msgid "YoY label"
+msgstr "YoY 标签"
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberYoyMom/controlPanel.tsx
+msgid "YoY percent difference format"
+msgstr "YoY 百分比差值格式"
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberYoyMom/controlPanel.tsx
+msgid "Comparison Style"
+msgstr "比较样式"
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberYoyMom/controlPanel.tsx
+msgid "Comparison spacing"
+msgstr "比较间距"
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberYoyMom/controlPanel.tsx
+msgid "Horizontal spacing between MoM and YoY."
+msgstr "MoM 与 YoY 之间的水平间距。"
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberYoyMom/controlPanel.tsx
+msgid "Swap MoM and YoY positions"
+msgstr "交换 MoM 和 YoY 位置"
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberYoyMom/controlPanel.tsx
+msgid "Gap from big number"
+msgstr "距大数字间隙"
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberYoyMom/controlPanel.tsx
+msgid "Vertical gap in pixels between the big number and the comparison rows."
+msgstr "大数字与比较行之间的垂直间隙（像素）。"
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberYoyMom/controlPanel.tsx
+msgid "No change color"
+msgstr "无变化颜色"
+msgid "Big Number with YoY & MoM"
+msgstr "带同比与环比的大数字"
+
+msgid "Showcases a single number along with period-over-period (MoM) and year-over-year (YoY) percentage changes."
+msgstr "展示单个数字及其环比（MoM）、同比（YoY）对比变化。"
