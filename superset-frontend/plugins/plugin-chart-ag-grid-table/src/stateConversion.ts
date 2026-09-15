@@ -102,10 +102,12 @@ export function convertAgGridStateToOwnState(
   // download queries (see buildQuery's isDownloadQuery branch). Serializing raw
   // SQL clauses here instead leaves column identifiers unquoted, which breaks
   // CSV/Excel export for column names with spaces or reserved words.
-  if (
-    agGridState.filterModel &&
-    Object.keys(agGridState.filterModel).length > 0
-  ) {
+  //
+  // Always forward it when present (even when empty) so a cleared filter set
+  // overwrites any previously persisted model on merge, rather than leaving a
+  // stale filter to be re-applied on the next export. An empty model yields no
+  // filters in buildQuery.
+  if (agGridState.filterModel) {
     ownState.agGridFilterModel = agGridState.filterModel;
   }
 

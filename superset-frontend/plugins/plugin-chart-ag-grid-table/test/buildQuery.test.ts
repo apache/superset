@@ -1020,6 +1020,35 @@ describe('plugin-chart-ag-grid-table', () => {
         expect(totalsQuery.filters ?? []).not.toContainEqual(stateFilter);
       });
 
+      test('routes a percent-metric download filter (keyed %label) to HAVING, not WHERE', () => {
+        const { queries } = buildQuery(
+          {
+            ...basicFormData,
+            metrics: ['count'],
+            percent_metrics: ['count'],
+            query_mode: QueryMode.Aggregate,
+            result_format: 'csv',
+          },
+          {
+            ownState: {
+              agGridFilterModel: {
+                '%count': {
+                  filterType: 'number',
+                  type: 'greaterThan',
+                  filter: 0.5,
+                },
+              },
+            },
+          },
+        );
+
+        const query = queries[0];
+        expect(query.extras?.having).toContain('%count');
+        expect(query.filters ?? []).not.toContainEqual(
+          expect.objectContaining({ col: '%count' }),
+        );
+      });
+
       test('should not modify totals query when no AG Grid filters applied', () => {
         const { queries } = buildQuery(
           {

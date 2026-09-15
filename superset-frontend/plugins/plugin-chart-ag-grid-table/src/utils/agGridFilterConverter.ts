@@ -294,6 +294,11 @@ export function formatDateForSuperset(dateStr: string): string {
  */
 export function getStartOfDay(dateStr: string): string {
   const date = new Date(dateStr);
+  // An invalid date would throw on toISOString() and abort the whole query;
+  // return the input unchanged instead (mirrors formatDateForSuperset).
+  if (Number.isNaN(date.getTime())) {
+    return dateStr;
+  }
   date.setHours(0, 0, 0, 0);
   return formatDateForSuperset(date.toISOString());
 }
@@ -303,6 +308,11 @@ export function getStartOfDay(dateStr: string): string {
  */
 export function getEndOfDay(dateStr: string): string {
   const date = new Date(dateStr);
+  // An invalid date would throw on toISOString() and abort the whole query;
+  // return the input unchanged instead (mirrors formatDateForSuperset).
+  if (Number.isNaN(date.getTime())) {
+    return dateStr;
+  }
   date.setHours(23, 59, 59, 999);
   return formatDateForSuperset(date.toISOString());
 }
