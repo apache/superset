@@ -37,11 +37,13 @@ import sqlalchemy as sa
 from superset.extensions import db
 
 if TYPE_CHECKING:
+    from sqlalchemy.orm import Session
+
     from superset.versioning.activity.kinds import Window
 
 
 def chart_attachment_windows_for_dashboard(
-    dashboard_id: int,
+    dashboard_id: int, session: Session | None = None
 ) -> list[tuple[int, Window]]:
     """Return the ``[attach, detach)`` window of every chart attachment episode.
 
@@ -76,8 +78,15 @@ def chart_attachment_windows_for_dashboard(
     if m2m_tbl is None:
         return []
 
+    # *session* lets a caller thread the committing session so the read hits
+    # the same connection as its other reads — required on the commit-
+    # finalization path (changes/shadow_queries.py), where the current
+    # transaction's association-shadow rows are flushed-but-not-committed and
+    # visible only on that session's connection. Defaults to the Flask-scoped
+    # ``db.session``, which the read/restore-path callers already run on.
     rows = (
-        db.session.connection()
+        (session or db.session)
+        .connection()
         .execute(
             sa.select(
                 m2m_tbl.c.slice_id,
