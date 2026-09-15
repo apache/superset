@@ -48,6 +48,26 @@ const config: ControlPanelConfig = {
           },
         ],
         ['entity'],
+        [
+          {
+            name: 'region_format',
+            config: {
+              type: 'SelectControl',
+              label: t('Region value format'),
+              default: null,
+              choices: [
+                [null, t('Legacy ISO values')],
+                ['name', t('Region name')],
+                ['abbreviation', t('ISO suffix / abbreviation')],
+                ['iso_3166_2', t('ISO 3166-2')],
+              ],
+              description: t(
+                'Explicit formats validate all values against bundled boundaries. Supported countries: USA, Canada, Australia, Japan, UK. Unrecognized or ambiguous values fail rather than displaying blank regions.',
+              ),
+              renderTrigger: true,
+            },
+          },
+        ],
         ['metric'],
         ['adhoc_filters'],
       ],

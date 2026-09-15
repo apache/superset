@@ -322,6 +322,26 @@ def get_chart_configs_resource() -> str:
         "table_chart_configs": table_chart_configs,
         "interactive_pivot_configs": interactive_pivot_configs,
         "gauge_configs": gauge_configs,
+        "geographic_configs": {
+            "regional_choropleth": {
+                "chart_type": "country_map",
+                "country": "usa",
+                "region_format": "abbreviation",
+                "entity": {"name": "state"},
+                "metric": {"name": "sales", "aggregate": "SUM"},
+            },
+            "country_choropleth": {
+                "chart_type": "world_map",
+                "country_format": "cca2",
+                "entity": {"name": "country"},
+                "metric": {"name": "sales", "aggregate": "SUM"},
+            },
+            "geographic_points": {
+                "chart_type": "deck_scatter",
+                "latitude": {"name": "latitude"},
+                "longitude": {"name": "longitude"},
+            },
+        },
         "best_practices": best_practices,
         "usage_notes": [
             "All examples are valid ChartConfig objects that pass validation",

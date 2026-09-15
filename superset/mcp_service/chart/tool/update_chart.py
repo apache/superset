@@ -51,6 +51,7 @@ from superset.mcp_service.chart.schemas import (
     ColumnRef,
     GaugeChartConfig,
     GenerateChartResponse,
+    GeographicChartConfig,
     PerformanceMetadata,
     TableChartConfig,
     UpdateChartRequest,
@@ -370,11 +371,11 @@ def _build_replacement_form_data(
     new_form_data.pop("_mcp_warnings", None)
     dataset_rebind = replacement_dataset_id is not None
     if replacement_dataset_id is not None and not isinstance(
-        parsed_config, GaugeChartConfig
+        parsed_config, (GaugeChartConfig, GeographicChartConfig)
     ):
         # Drop only the inherited state the replacement dataset cannot
-        # resolve, then merge as a same-dataset update. Gauge keeps the
-        # stricter presentation-only rebind handled downstream.
+        # resolve, then merge as a same-dataset update. Gauge and geographic
+        # configs keep the stricter presentation-only rebind downstream.
         invalid_keys = _inherited_state_invalid_keys(
             existing_form_data,
             new_form_data,
@@ -796,13 +797,23 @@ async def update_chart(  # noqa: C901
             request.dataset_id is not None
             and request.dataset_id != getattr(chart, "datasource_id", None)
             and request.config is None
-            and getattr(chart, "viz_type", None) == "gauge_chart"
+            and getattr(chart, "viz_type", None)
+            in {"gauge_chart", "country_map", "world_map", "deck_scatter"}
         ):
             return _validation_error_response(
-                message="Gauge dataset rebind requires a complete Gauge config.",
+                message=(
+                    "Gauge dataset rebind requires a complete Gauge config."
+                    if getattr(chart, "viz_type", None) == "gauge_chart"
+                    else "Dataset rebind requires a complete typed geographic config."
+                ),
                 details=(
-                    "Provide chart_type='gauge' and a metric valid on the target "
-                    "dataset. This prevents stale metric, groupby, and filter roles "
+                    (
+                        "Provide chart_type='gauge' and a metric valid on the target "
+                        if getattr(chart, "viz_type", None) == "gauge_chart"
+                        else "Provide chart_type and complete geographic/metric roles "
+                        "valid on the target "
+                    )
+                    + "dataset. This prevents stale metric, groupby, and filter roles "
                     "from the previous dataset from being retained."
                 ),
             )
