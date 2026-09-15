@@ -106,6 +106,16 @@ ACTION_KINDS: frozenset[str] = frozenset(
     {ACTION_KIND_RESTORE, ACTION_KIND_IMPORT, ACTION_KIND_CLONE}
 )
 
+# Stamped by the BASELINE WRITER (superset.versioning.baseline.insertion)
+# directly onto the version_transaction row it mints for a retroactive
+# op=0 baseline — never set by commands through ``session.info``, which
+# is why it is not a member of ``ACTION_KINDS`` above. Consumers use it
+# to tell a pre-tracking baseline ("Original version") from a
+# tracking-on creation INSERT ("Created"): both are operation_type=0
+# shadow rows, and only the transaction's provenance distinguishes them
+# (sc-120488).
+ACTION_KIND_BASELINE = "baseline"
+
 # Key on ``session.info`` carrying a synthetic "headline" change record
 # for the current transaction — the ``__meta__`` record convention. Set
 # by commands alongside ``ACTION_KIND_KEY`` when the avenue has a payload

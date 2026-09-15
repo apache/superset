@@ -478,6 +478,21 @@ class ActivityRecordSchema(Schema):
             )
         },
     )
+    creation_kind = fields.String(
+        allow_none=True,
+        validate=validate.OneOf(["pre_tracking", "created", "imported"]),
+        metadata={
+            "description": (
+                "Set only on the synthetic starting-version record "
+                '(``kind == "__creation__"``): how the entity came to '
+                'exist. ``"pre_tracking"`` — a retroactive baseline for '
+                'an entity that predates versioning; ``"created"`` — '
+                'a creation with tracking on; ``"imported"`` — an '
+                "import, attributed to the importing user. Machine "
+                "values: display copy is owned by the client."
+            )
+        },
+    )
     first_tracked_save = fields.Boolean(
         metadata={
             "description": (
