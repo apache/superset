@@ -162,20 +162,14 @@ jobs:
           #
           # supersetbot's preset -> Dockerfile-target mapping tracks current
           # master, but this job builds an arbitrary *historical* release ref
-          # (checked out above). A preset introduced after that release won't
-          # have a matching stage in its Dockerfile. That's exactly what broke
-          # here (#44220): `superset` was added as both a new Dockerfile stage
-          # and the preset backing the plain tags (`latest`, `<version>`,
-          # per-SHA) by #44100. Releases cut before it, like 6.1.0, still have
-          # their plain tags built from the pre-existing `lean` stage — that
-          # was the plain tag's source before #44100 split it out (see
-          # docs/admin_docs/installation/docker-builds.mdx as of that commit)
-          # — so `lean` is the correct substitute, not a guess.
-          #
-          # Detect the mismatch by asking supersetbot what it would actually
-          # run (--dry-run) and checking the target stage it picked against
-          # the Dockerfile actually checked out for this release.
-          EXTRA_FLAGS=""
+          # (checked out above), which can predate a preset's target stage —
+          # see #44220. Ask supersetbot what it would actually run (--dry-run)
+          # and hand that, plus the Dockerfile actually checked out for this
+          # release, to scripts/docker_release_target.py, which knows the one
+          # verified compatibility substitution (see its module docstring)
+          # and refuses to guess at anything else. Factored out of this YAML
+          # so it has direct pytest coverage instead of only ever being
+          # exercised by a real scheduled run.
           DRY_RUN_CMD="$(supersetbot docker \
             --preset "$BUILD_PRESET" \
             --context release \
@@ -183,22 +177,10 @@ jobs:
             $FORCE_LATEST_FLAG \
             --platform linux/amd64 \
             --dry-run)"
-          # `|| true`: under `set -e`/`pipefail`, a `--dry-run` command with no
-          # `--target` in its output (grep matches nothing) would otherwise
-          # abort the whole step right here with no diagnostic at all, rather
-          # than leaving TARGET_STAGE empty so the check below can skip
-          # cleanly.
-          TARGET_STAGE="$(grep -oE -- '--target [A-Za-z0-9_.-]+' <<<"$DRY_RUN_CMD" | tail -1 | cut -d' ' -f2 || true)"
-
-          if [ -n "$TARGET_STAGE" ] && ! grep -qiE "^[[:space:]]*FROM .* AS ${TARGET_STAGE}\$" Dockerfile; then
-            if [ "$BUILD_PRESET" = "superset" ] && grep -qiE '^[[:space:]]*FROM .* AS lean$' Dockerfile; then
-              echo "::notice::Release $LATEST_RELEASE predates the 'superset' Dockerfile stage added in #44100; building the 'superset' preset from 'lean' instead so its plain tags ($LATEST_RELEASE, latest, per-SHA) still get refreshed."
-              EXTRA_FLAGS="--target lean --label target=lean"
-            else
-              echo "::error::Preset '$BUILD_PRESET' resolves to Dockerfile target '$TARGET_STAGE', which does not exist in release $LATEST_RELEASE, and no known-safe substitute applies. Refusing to guess — see #44220 for the same failure mode with the 'superset' preset."
-              exit 1
-            fi
-          fi
+          EXTRA_FLAGS="$(
+            printf '%s\n' "$DRY_RUN_CMD" |
+              python3 scripts/docker_release_target.py "$BUILD_PRESET"
+          )"
 
           supersetbot docker \
             --push \
