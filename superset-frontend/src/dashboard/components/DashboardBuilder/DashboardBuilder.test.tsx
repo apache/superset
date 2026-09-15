@@ -522,7 +522,7 @@ describe('DashboardBuilder', () => {
     expect(filterbar).toHaveStyleRule('width', `${expectedValue}px`);
   });
 
-  test('should set header max width based on open filter bar width', () => {
+  test('header is bounded by its grid track with an open filter bar', () => {
     const expectedValue = 320;
     const setter = jest.fn();
     (useStoredSidebarWidth as jest.Mock).mockImplementation(() => [
@@ -542,15 +542,17 @@ describe('DashboardBuilder', () => {
 
     const { getByTestId } = setup();
 
-    expect(getByTestId('dashboard-header-wrapper')).toHaveStyleRule(
-      'max-width',
-      `calc(100vw - ${expectedValue}px)`,
-    );
+    // Sized from the grid track, not the viewport: `100vw` includes the
+    // scrollbar gutter, so capping against it pushed the header past the
+    // visible edge whenever a scrollbar took up space.
+    const header = getByTestId('dashboard-header-wrapper');
+    expect(header).toHaveStyleRule('max-width', '100%');
+    expect(header).toHaveStyleRule('min-width', '0');
 
     nativeFiltersSpy.mockRestore();
   });
 
-  test('should use closed filter bar width when the panel is collapsed', () => {
+  test('header is bounded by its grid track with a collapsed filter bar', () => {
     const setter = jest.fn();
     (useStoredSidebarWidth as jest.Mock).mockImplementation(() => [
       OPEN_FILTER_BAR_WIDTH,
@@ -569,15 +571,14 @@ describe('DashboardBuilder', () => {
 
     const { getByTestId } = setup();
 
-    expect(getByTestId('dashboard-header-wrapper')).toHaveStyleRule(
-      'max-width',
-      `calc(100vw - ${CLOSED_FILTER_BAR_WIDTH}px)`,
-    );
+    const header = getByTestId('dashboard-header-wrapper');
+    expect(header).toHaveStyleRule('max-width', '100%');
+    expect(header).toHaveStyleRule('min-width', '0');
 
     nativeFiltersSpy.mockRestore();
   });
 
-  test('should not constrain header width when filter bar is hidden', () => {
+  test('header is bounded by its grid track with no filter bar', () => {
     const setter = jest.fn();
     (useStoredSidebarWidth as jest.Mock).mockImplementation(() => [
       OPEN_FILTER_BAR_WIDTH,
@@ -596,10 +597,9 @@ describe('DashboardBuilder', () => {
 
     const { getByTestId } = setup();
 
-    expect(getByTestId('dashboard-header-wrapper')).toHaveStyleRule(
-      'max-width',
-      'calc(100vw - 0px)',
-    );
+    const header = getByTestId('dashboard-header-wrapper');
+    expect(header).toHaveStyleRule('max-width', '100%');
+    expect(header).toHaveStyleRule('min-width', '0');
 
     nativeFiltersSpy.mockRestore();
   });
