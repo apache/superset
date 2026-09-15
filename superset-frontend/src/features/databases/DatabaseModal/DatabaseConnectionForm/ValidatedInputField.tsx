@@ -45,6 +45,7 @@ const FIELD_TEXT_MAP = {
   aws_secret_access_key: {
     label: t('AWS Secret Access Key'),
     placeholder: t('e.g. ********'),
+    visibilityToggle: true,
   },
   region_name: {
     label: t('Region'),
@@ -77,12 +78,21 @@ export const validatedInputField = ({
   db,
   field,
   isValidating,
+  isEditMode,
 }: FieldPropTypes) => (
   <ValidatedInput
     id={field}
     name={field}
     required={required}
     isValidating={isValidating}
+    // Mask secret fields (render as a password input). In edit mode the value
+    // is the server-side mask, so the visibility toggle is disabled to match
+    // the `passwordField` behavior.
+    visibilityToggle={
+      FIELD_TEXT_MAP[field as 'aws_secret_access_key']?.visibilityToggle
+        ? !isEditMode
+        : undefined
+    }
     value={db?.parameters?.[field as keyof DatabaseParameters]}
     validationMethods={{ onBlur: getValidation }}
     errorMessage={validationErrors?.[field]}
