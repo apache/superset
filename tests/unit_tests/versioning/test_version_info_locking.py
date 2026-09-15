@@ -34,16 +34,19 @@ tests/integration_tests/versioning/conditional_token_lock_tests.py.
 """
 
 from unittest.mock import MagicMock
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from pytest_mock import MockerFixture
 
-from superset.versioning.api_helpers import current_entity_version_info
+from superset.versioning.api_helpers import (
+    current_entity_version_info,
+    EntityVersionInfo,
+)
 from superset.versioning.queries import current_live_transaction_id_locked
 
 
 def _mock_queries_db(mocker: MockerFixture) -> MagicMock:
-    db = MagicMock()
+    db: MagicMock = MagicMock()
     mocker.patch("superset.versioning.queries.db", new=db)
     mocker.patch("superset.versioning.queries.version_class", new=MagicMock())
     return db
@@ -59,27 +62,27 @@ def test_locked_read_is_an_exclusive_locking_row_read(mocker: MockerFixture) -> 
     fails here on every backend. Ordered-and-limited so a defensive
     multi-open-row state cannot raise MultipleResultsFound.
     """
-    db = _mock_queries_db(mocker)
+    db: MagicMock = _mock_queries_db(mocker)
 
     current_live_transaction_id_locked(MagicMock(), 1, uuid4())
 
-    query = db.session.query.return_value
-    filtered = query.filter.return_value.filter.return_value
-    limited = filtered.order_by.return_value.limit.return_value
+    query: MagicMock = db.session.query.return_value
+    filtered: MagicMock = query.filter.return_value.filter.return_value
+    limited: MagicMock = filtered.order_by.return_value.limit.return_value
     limited.with_for_update.assert_called_once_with()
     limited.with_for_update.return_value.scalar.assert_called_once_with()
 
 
 def test_version_info_threads_the_lock_flag(mocker: MockerFixture) -> None:
     """lock_for_stale_check=True swaps in the locked transaction id."""
-    dao = MagicMock()
+    dao: MagicMock = MagicMock()
     dao.current_version_info.return_value = (0, 5)
     dao.current_live_transaction_id_locked.return_value = 6
     mocker.patch("superset.versioning.api_helpers.VersionDAO", new=dao)
     mocker.patch("superset.versioning.api_helpers._capture_enabled", return_value=True)
-    entity_uuid = uuid4()
+    entity_uuid: UUID = uuid4()
 
-    info = current_entity_version_info(
+    info: EntityVersionInfo = current_entity_version_info(
         MagicMock(), 1, entity_uuid, lock_for_stale_check=True
     )
 
@@ -94,12 +97,12 @@ def test_version_info_threads_the_lock_flag(mocker: MockerFixture) -> None:
 
 def test_version_info_defaults_to_plain_reads(mocker: MockerFixture) -> None:
     """Without the flag (every GET path) the locking read never runs."""
-    dao = MagicMock()
+    dao: MagicMock = MagicMock()
     dao.current_version_info.return_value = (0, 5)
     mocker.patch("superset.versioning.api_helpers.VersionDAO", new=dao)
     mocker.patch("superset.versioning.api_helpers._capture_enabled", return_value=True)
 
-    info = current_entity_version_info(MagicMock(), 1, uuid4())
+    info: EntityVersionInfo = current_entity_version_info(MagicMock(), 1, uuid4())
 
     dao.current_live_transaction_id_locked.assert_not_called()
     assert info.transaction_id == 5

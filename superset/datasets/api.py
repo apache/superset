@@ -619,9 +619,11 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
               type: string
             name: If-Match
             description: >-
-              Optional optimistic-concurrency guard. Pass the ``ETag`` returned
-              by a prior read of this dataset; the update is rejected with 412
-              if the dataset has changed since.
+              Optional optimistic-concurrency guard. Pass the ``ETag``
+              returned by a prior read of this dataset; the update is
+              rejected with 412 if the dataset has changed since, or
+              with a retryable 409 if a concurrent save won a lock race
+              (see those responses for which action each calls for).
           requestBody:
             description: Dataset schema
             required: true
@@ -698,10 +700,30 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
               $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
+            409:
+              description: >-
+                A concurrent save on this dataset won a database lock
+                race, so this conditional request could not be applied.
+                The client's ``If-Match`` token is NOT proven stale:
+                unlike a 412, the correct action is to retry the SAME
+                request (with backoff; a few attempts, then surface the
+                conflict) rather than refetch the entity for a new
+                token.
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
             412:
               description: >-
                 The dataset changed since the version identified by the
-                request's ``If-Match`` header; the update was not applied.
+                request's ``If-Match`` header; the update was not
+                applied. The token is stale: refetch the entity to pick
+                up the current version before retrying — retrying the
+                same request unchanged will fail again (contrast the
+                retryable 409 above).
               content:
                 application/json:
                   schema:
@@ -732,7 +754,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         # (On MySQL REPEATABLE READ the version read below is still a plain
         # consistent read and can predate the lock; see the caveats on
         # lock_entity_for_update.)
-        conditional = is_conditional_write()
+        conditional: bool = is_conditional_write()
         if conditional:
             # Blocking here is the serialisation doing its job; LOSING the
             # race at this acquisition (deadlock, or lock-wait timeout

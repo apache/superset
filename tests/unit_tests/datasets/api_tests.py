@@ -590,6 +590,55 @@ def test_put_dataset_without_if_match_never_locks(
     assert version_info.call_args_list[0].kwargs["lock_for_stale_check"] is False
 
 
+def test_put_dataset_keeps_422_when_sql_text_merely_mentions_a_lock(
+    session: Session,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """Response boundary: a contaminated non-lock failure stays a 422.
+
+    sc-120050 review (Richard Fogaça): an unrelated ``DataError`` whose
+    SQL or bound parameters happen to contain "deadlock" used to be
+    classified as contention and answered 409 "Retry the same request"
+    — advice that can never succeed, because nothing is contending. The
+    command wraps SQLAlchemy errors as ``DatasetUpdateFailedError`` and
+    the endpoint classifies its ``__cause__``, so the regression belongs
+    at this boundary as well as in the classifier's own unit tests.
+    """
+    from sqlalchemy.exc import DataError
+
+    from superset.commands.dataset.exceptions import DatasetUpdateFailedError
+
+    dataset = _create_dataset("test_put_contaminated_data_error")
+    driver_error: Exception = type(
+        "Orig", (Exception,), {"args": (1064, "You have an error in your SQL syntax")}
+    )()
+    contaminated: DataError = DataError(
+        "UPDATE slices SET description = %(description)s",
+        {"description": "deadlock analysis"},
+        driver_error,
+    )
+    assert "deadlock" in str(contaminated).lower()
+    failure: DatasetUpdateFailedError = DatasetUpdateFailedError()
+    failure.__cause__ = contaminated
+
+    with (
+        # Keep the request on the CONDITIONAL path (that is where the
+        # classifier runs) without needing a live token: the stale check
+        # itself is not what this test pins.
+        patch("superset.datasets.api.raise_for_stale_write"),
+        patch("superset.datasets.api.UpdateDatasetCommand.run", side_effect=failure),
+    ):
+        response = client.put(
+            f"/api/v1/dataset/{dataset.id}",
+            json={"description": "deadlock analysis"},
+            headers={"If-Match": '"anything"'},
+        )
+
+    assert response.status_code == 422, response.get_data(as_text=True)
+    assert "Retry the same request" not in response.get_data(as_text=True)
+
+
 def test_put_dataset_guards_a_dataset_with_no_version_rows(
     session: Session,
     client: Any,

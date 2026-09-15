@@ -270,7 +270,7 @@ def current_live_transaction_id_locked(
     ``MultipleResultsFound``. Renders the dialect's locking clause
     (``FOR UPDATE`` / none on SQLite, which serialises writers anyway).
     """
-    ver_cls = version_class(model_cls)
+    ver_cls: type[Any] = version_class(model_cls)
     return (
         db.session.query(ver_cls.transaction_id)
         .filter(identity_filter(ver_cls, entity_id, entity_uuid))
