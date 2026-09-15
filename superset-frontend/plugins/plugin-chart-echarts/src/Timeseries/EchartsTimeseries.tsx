@@ -57,6 +57,7 @@ import {
 } from './types';
 import { formatSeriesName } from '../utils/series';
 import { getTemporalXAxisDrillByFilter } from '../utils/xAxisDrillByFilter';
+import { buildTimeseriesDrillFilters } from './drillFilters';
 import { ExtraControls } from '../components/ExtraControls';
 import TimeseriesLegend from './TimeseriesLegend';
 import { TIMESERIES_CONSTANTS } from '../constants';
@@ -137,6 +138,7 @@ export default function EchartsTimeseries({
   emitCrossFilters,
   coltypeMapping,
   onLegendScroll,
+  onDrillDown,
 }: TimeseriesChartTransformedProps) {
   const { stack } = formData;
   const theme = useTheme();
@@ -144,6 +146,12 @@ export default function EchartsTimeseries({
   // eslint-disable-next-line no-param-reassign
   refs.echartRef = echartRef;
   const clickTimer = useRef<ReturnType<typeof setTimeout>>();
+  useEffect(
+    () => () => {
+      if (clickTimer.current) clearTimeout(clickTimer.current);
+    },
+    [],
+  );
 
   // Draggable percent-change baseline: when the rebase view is active, a
   // vertical line is drawn on the plot; dragging it re-indexes every series
@@ -542,6 +550,45 @@ export default function EchartsTimeseries({
 
   const eventHandlers: EventHandlers = {
     click: props => {
+      // Drill-down takes priority over cross-filter when a hierarchy is configured.
+      // The DrillDownHost provides onDrillDown only when a hierarchy exists.
+      const hasDrillHierarchy = !!onDrillDown;
+
+      if (hasDrillHierarchy) {
+        if (clickTimer.current) {
+          clearTimeout(clickTimer.current);
+        }
+        clickTimer.current = setTimeout(() => {
+          // Timeseries-family charts are always x-axis driven: the hierarchy
+          // advances along the x-axis column and any groupby is only a series
+          // breakdown. buildTimeseriesDrillFilters owns the series-event guard,
+          // the orientation-aware value extraction, and the grain-aware
+          // temporal filter, so the real click path is covered by its tests.
+          const drillFilters = buildTimeseriesDrillFilters({
+            componentType: props.componentType,
+            data: props.data,
+            name: props.name,
+            xAxisType: xAxis.type,
+            xAxisLabel: xAxis.label,
+            orientation: formData.orientation,
+            dateFormat: formData.xAxisTimeFormat,
+            numberFormat: formData.xAxisNumberFormat,
+            coltype: coltypeMapping?.[xAxis.label],
+            granularitySqla: formData.granularitySqla,
+            timeGrain: resolvedTimeGrain,
+          });
+          // Cross-filter is emitted by the DrillDownHost with the full
+          // accumulated drill path; here we only report the click upward.
+          if (drillFilters.length > 0) {
+            const label = drillFilters
+              .map(f => f.formattedVal ?? String(f.val))
+              .join(', ');
+            onDrillDown(drillFilters, label);
+          }
+        }, TIMER_DURATION);
+        return;
+      }
+
       // Allow cross-filter by dimensions OR by categorical X-axis (issue #25334)
       if (!hasDimensions && !canCrossFilterByXAxis) {
         return;
@@ -743,6 +790,9 @@ export default function EchartsTimeseries({
 
   const handleXAxisLabelClick = useCallback(
     (event: ECElementEvent) => {
+      // During drill-down the cross-filter is managed by DrillDownHost;
+      // axis label clicks must not emit a conflicting cross-filter.
+      if (onDrillDown) return;
       const { value } = event;
       if (
         canCrossFilterByXAxis &&
@@ -763,6 +813,7 @@ export default function EchartsTimeseries({
       canCrossFilterByXAxis,
       handleTimeAxisChange,
       handleXAxisChange,
+      onDrillDown,
       xAxis.type,
     ],
   );
