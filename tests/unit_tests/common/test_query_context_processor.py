@@ -26,7 +26,11 @@ import pytest
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.chart_data_timing import QueryDataResult, QueryTiming
 from superset.common.db_query_status import QueryStatus
-from superset.common.query_context_processor import QueryContextProcessor
+from superset.common.query_context_processor import (
+    normalize_contribution_totals,
+    QueryContextProcessor,
+)
+from superset.exceptions import QueryObjectValidationError
 from superset.utils.core import GenericDataType
 from superset.utils.date_parser import get_past_or_future
 
@@ -37,6 +41,19 @@ def mock_query_context():
         "superset.common.query_context_processor.QueryContextProcessor"
     ) as mock_query_context_processor:
         yield mock_query_context_processor
+
+
+def _wire_contribution_totals(mock_query_context: MagicMock) -> None:
+    """Give a mock query context the real ``prepare_contribution_totals`` behavior.
+
+    ``QueryContext`` owns the normalization and the processor delegates to it, so a
+    bare MagicMock would return a value the processor cannot unpack.
+    """
+    mock_query_context.prepare_contribution_totals.side_effect = lambda: (
+        normalize_contribution_totals(
+            mock_query_context.queries, mock_query_context.cache_values
+        )
+    )
 
 
 def _query_timing() -> QueryTiming:
@@ -96,6 +113,25 @@ def processor(mock_query_context):
     )
 
     return processor
+
+
+def test_query_cache_key_binds_annotation_data_to_requesting_user(processor):
+    """The cache key for annotated queries must differ per requesting user."""
+    query_obj = MagicMock()
+    query_obj.annotation_layers = [{"sourceType": "NATIVE", "name": "a", "value": 1}]
+    with (
+        patch(
+            "superset.common.query_context_processor.get_user_id",
+            side_effect=[1, 2],
+        ),
+        patch("superset.common.query_context_processor.security_manager"),
+    ):
+        processor.query_cache_key(query_obj)
+        processor.query_cache_key(query_obj)
+    contexts = [
+        call.kwargs["annotation_context"] for call in query_obj.cache_key.call_args_list
+    ]
+    assert contexts[0] != contexts[1]
 
 
 def test_get_data_table_like(processor, mock_query_context):
@@ -1142,7 +1178,7 @@ def test_processing_time_offsets_quarter_offset_shifts_query_window(
 
     datasource.query = fake_query
     datasource.normalize_df = MagicMock(
-        side_effect=lambda offset_df, _query_object: offset_df
+        side_effect=lambda offset_df, _query_object, _labels=None: offset_df
     )
 
     with (
@@ -1236,7 +1272,7 @@ def test_processing_time_offsets_accepts_zero_shift_offset(
 
     datasource.query = fake_query
     datasource.normalize_df = MagicMock(
-        side_effect=lambda offset_df, _query_object: offset_df
+        side_effect=lambda offset_df, _query_object, _labels=None: offset_df
     )
 
     with (
@@ -1414,6 +1450,10 @@ def test_ensure_totals_available_updates_cache_values():
         "result_format": "json",
     }
 
+    # Synchronous request: the async result-cache TTL floor does not apply.
+    mock_query_context.is_async_execution = False
+    _wire_contribution_totals(mock_query_context)
+
     # Create processor
     processor = QueryContextProcessor(mock_query_context)
     processor._qc_datasource = mock_datasource
@@ -1505,6 +1545,8 @@ def test_get_df_payload_validates_before_cache_key_generation():
     mock_query_context = MagicMock()
     mock_query_context.force = False
     mock_query_context.result_type = "full"
+    # Synchronous request: the async result-cache TTL floor does not apply.
+    mock_query_context.is_async_execution = False
 
     # Create a mock datasource
     mock_datasource = MagicMock()
@@ -1636,6 +1678,9 @@ def test_cache_values_sync_after_ensure_totals_available():
         "result_type": "full",
         "result_format": "json",
     }
+    # Synchronous request: the async result-cache TTL floor does not apply.
+    mock_query_context.is_async_execution = False
+    _wire_contribution_totals(mock_query_context)
 
     # Create processor
     processor = QueryContextProcessor(mock_query_context)
@@ -1909,6 +1954,9 @@ def test_force_cached_normalizes_totals_query_row_limit():
         "queries": [main_query.to_dict(), totals_query.to_dict()]
     }
     mock_query_context.get_query_result = MagicMock()
+    # Synchronous request: the async result-cache TTL floor does not apply.
+    mock_query_context.is_async_execution = False
+    _wire_contribution_totals(mock_query_context)
 
     processor = QueryContextProcessor(mock_query_context)
     processor._qc_datasource = mock_datasource
@@ -1999,6 +2047,7 @@ def test_get_df_payload_invalidates_cache_missing_applied_filter_columns():
             self.annotation_data = {}
             self.bq_memory_limited = False
             self.bq_memory_limited_row_count = 0
+            self.result_persisted = False
             self.set_query_result = MagicMock()
 
     mock_cache = MockCache()
@@ -2344,7 +2393,7 @@ def test_relative_offset_preserves_inner_bounds(
 
     datasource.query = fake_query
     datasource.normalize_df = MagicMock(
-        side_effect=lambda offset_df, _query_object: offset_df
+        side_effect=lambda offset_df, _query_object, _labels=None: offset_df
     )
 
     with (
@@ -2377,3 +2426,202 @@ def test_relative_offset_preserves_inner_bounds(
     # for #40501. Without the fix, inner_from/to_dttm == shifted dates.
     assert captured[0]["inner_from_dttm"] == pd.Timestamp("2026-05-01")
     assert captured[0]["inner_to_dttm"] == pd.Timestamp("2026-05-28")
+
+
+def test_get_native_annotation_data_requires_annotation_read_access():
+    """Native annotation layers are only served to users who can read them."""
+    query_obj = MagicMock()
+    query_obj.annotation_layers = [{"sourceType": "NATIVE", "name": "a", "value": 1}]
+    with (
+        patch(
+            "superset.common.query_context_processor.security_manager"
+        ) as security_manager_mock,
+        patch(
+            "superset.common.query_context_processor.AnnotationLayerDAO.find_by_ids",
+            return_value=[],
+        ) as find_by_ids_mock,
+    ):
+        # ``can_access`` is synchronous; force a plain Mock so the patched
+        # manager doesn't hand back a truthy coroutine that slips past the
+        # ``not can_access(...)`` guard.
+        security_manager_mock.can_access = MagicMock(return_value=False)
+        with pytest.raises(QueryObjectValidationError):
+            QueryContextProcessor.get_native_annotation_data(query_obj)
+    security_manager_mock.can_access.assert_called_once_with("can_read", "Annotation")
+    find_by_ids_mock.assert_not_called()
+
+
+# =============================================================================
+# Forced-refresh idempotency nonce (GTF async double-execution guard)
+# =============================================================================
+
+
+# A query object with no per-query nonce: the force helpers then fall back to the
+# context-level nonce (the path these tests exercise).
+_QO_NO_NONCE = MagicMock(force_nonce=None)
+
+
+def test_resolve_forced_query_false_when_not_forced(processor, mock_query_context):
+    mock_query_context.force = False
+    assert processor._resolve_forced_query(_QO_NO_NONCE, "ck") is False
+
+
+def test_resolve_forced_query_true_when_forced_without_nonce(
+    processor, mock_query_context
+):
+    """A forced refresh with no nonce (sync/legacy) forces verbatim."""
+    mock_query_context.force = True
+    mock_query_context.force_nonce = None
+    assert processor._resolve_forced_query(_QO_NO_NONCE, "ck") is True
+
+
+def test_resolve_forced_query_true_when_forced_without_cache_key(
+    processor, mock_query_context
+):
+    mock_query_context.force = True
+    mock_query_context.force_nonce = "nonce-1"
+    assert processor._resolve_forced_query(_QO_NO_NONCE, None) is True
+
+
+def test_resolve_forced_query_reads_cache_when_marker_present(
+    processor, mock_query_context
+):
+    """Marker present => this forced refresh already cached its result; read it."""
+    mock_query_context.force = True
+    mock_query_context.force_nonce = "nonce-1"
+    with patch(
+        "superset.common.query_context_processor.cache_manager"
+    ) as cache_manager:
+        cache_manager.data_cache.get.return_value = 1  # marker exists
+        assert processor._resolve_forced_query(_QO_NO_NONCE, "ck") is False
+    cache_manager.data_cache.get.assert_called_once_with("gtf-force-nonce:nonce-1:ck")
+
+
+def test_resolve_forced_query_forces_when_marker_absent(processor, mock_query_context):
+    """No marker for THIS (nonce, cache_key) — including a cache_key that shifted
+    since the forced compute (templated/time-relative keys) — forces a recompute
+    rather than mis-reading another key's result."""
+    mock_query_context.force = True
+    mock_query_context.force_nonce = "nonce-1"
+    with patch(
+        "superset.common.query_context_processor.cache_manager"
+    ) as cache_manager:
+        cache_manager.data_cache.get.return_value = None  # no marker
+        assert processor._resolve_forced_query(_QO_NO_NONCE, "ck") is True
+
+
+def test_mark_force_executed_sets_marker_for_nonce_refresh(
+    processor, mock_query_context
+):
+    mock_query_context.force = True
+    mock_query_context.force_nonce = "nonce-1"
+    with (
+        patch("superset.common.query_context_processor.cache_manager") as cache_manager,
+        patch.object(processor, "get_cache_timeout", return_value=123),
+    ):
+        processor._mark_force_executed(_QO_NO_NONCE, "ck", persisted=True)
+    cache_manager.data_cache.set.assert_called_once_with(
+        "gtf-force-nonce:nonce-1:ck", 1, timeout=123
+    )
+
+
+def test_mark_force_executed_noop_when_result_not_persisted(
+    processor, mock_query_context
+):
+    """If the fresh result wasn't actually cached (oversized/backend error), the
+    marker must NOT be written — otherwise a follow-up read stops forcing and can
+    serve a stale pre-refresh value."""
+    mock_query_context.force = True
+    mock_query_context.force_nonce = "nonce-1"
+    with patch(
+        "superset.common.query_context_processor.cache_manager"
+    ) as cache_manager:
+        processor._mark_force_executed(_QO_NO_NONCE, "ck", persisted=False)
+    cache_manager.data_cache.set.assert_not_called()
+
+
+def test_mark_force_executed_noop_without_nonce(processor, mock_query_context):
+    mock_query_context.force = True
+    mock_query_context.force_nonce = None
+    with patch(
+        "superset.common.query_context_processor.cache_manager"
+    ) as cache_manager:
+        processor._mark_force_executed(_QO_NO_NONCE, "ck", persisted=True)
+    cache_manager.data_cache.set.assert_not_called()
+
+
+def test_mark_force_executed_swallows_marker_write_error(processor, mock_query_context):
+    """A marker write failure is best-effort — logged and swallowed."""
+    mock_query_context.force = True
+    mock_query_context.force_nonce = "nonce-1"
+    with (
+        patch("superset.common.query_context_processor.cache_manager") as cache_manager,
+        patch.object(processor, "get_cache_timeout", return_value=123),
+    ):
+        cache_manager.data_cache.set.side_effect = RuntimeError("backend down")
+        processor._mark_force_executed(
+            _QO_NO_NONCE, "ck", persisted=True
+        )  # must not raise
+
+
+def test_resolve_forced_query_forces_when_marker_read_errors(
+    processor, mock_query_context
+):
+    """A marker read failure degrades to 'absent' (force), never an error."""
+    mock_query_context.force = True
+    mock_query_context.force_nonce = "nonce-1"
+    with patch(
+        "superset.common.query_context_processor.cache_manager"
+    ) as cache_manager:
+        cache_manager.data_cache.get.side_effect = RuntimeError("backend down")
+        assert processor._resolve_forced_query(_QO_NO_NONCE, "ck") is True
+
+
+def test_resolve_forced_query_prefers_per_query_nonce(processor, mock_query_context):
+    """The per-query nonce (the async task's UUID, set on the read-back) takes
+    precedence over the context-level nonce and keys the marker lookup."""
+    mock_query_context.force = True
+    mock_query_context.force_nonce = "ctx-nonce"
+    query_obj = MagicMock(force_nonce="task-uuid")
+    with patch(
+        "superset.common.query_context_processor.cache_manager"
+    ) as cache_manager:
+        cache_manager.data_cache.get.return_value = 1  # marker exists
+        assert processor._resolve_forced_query(query_obj, "ck") is False
+    cache_manager.data_cache.get.assert_called_once_with("gtf-force-nonce:task-uuid:ck")
+
+
+def test_mark_force_executed_uses_per_query_nonce(processor, mock_query_context):
+    """The marker is written under the per-query nonce when present."""
+    mock_query_context.force = True
+    mock_query_context.force_nonce = "ctx-nonce"
+    query_obj = MagicMock(force_nonce="task-uuid")
+    with (
+        patch("superset.common.query_context_processor.cache_manager") as cache_manager,
+        patch.object(processor, "get_cache_timeout", return_value=123),
+    ):
+        processor._mark_force_executed(query_obj, "ck", persisted=True)
+    cache_manager.data_cache.set.assert_called_once_with(
+        "gtf-force-nonce:task-uuid:ck", 1, timeout=123
+    )
+
+
+def test_gauge_json_metric_label_ignores_verbose_name(
+    processor: QueryContextProcessor, mock_query_context: MagicMock
+) -> None:
+    """Gauge JSON rows retain saved metric keys, unlike CSV/XLSX exports."""
+    from superset.mcp_service.chart.query_result import validate_gauge_query_result
+
+    mock_query_context.datasource.data = {"verbose_map": {"saved_sla": "SLA percent"}}
+    mock_query_context.result_format = ChartDataResultFormat.JSON
+    rows = processor.get_data(
+        pd.DataFrame({"saved_sla": [42]}), [GenericDataType.NUMERIC]
+    )
+    assert rows == [{"saved_sla": 42}]
+    assert (
+        validate_gauge_query_result(
+            {"queries": [{"data": rows}]},
+            {"viz_type": "gauge_chart", "metric": "saved_sla"},
+        )
+        is None
+    )

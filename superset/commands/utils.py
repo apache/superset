@@ -32,6 +32,7 @@ from superset.commands.exceptions import (
 from superset.daos.datasource import DatasourceDAO
 from superset.daos.exceptions import DatasourceNotFound
 from superset.daos.tag import TagDAO
+from superset.exceptions import SupersetSecurityException
 from superset.subjects.exceptions import SubjectsNotFoundValidationError
 from superset.subjects.models import Subject
 from superset.subjects.utils import (
@@ -50,6 +51,30 @@ if TYPE_CHECKING:
 
 def _has_extra_editors_resolver() -> bool:
     return bool(has_app_context() and current_app.config.get("EXTRA_EDITORS_RESOLVER"))
+
+
+def current_user_can_modify_object(model: Any) -> bool:
+    """Whether the current user is authorized to create/modify ``model``.
+
+    Delegates to ``security_manager.raise_for_editorship``, which grants
+    access to admins and any subject in ``model.editors`` (when that
+    relationship exists). For models that don't carry an ``editors``
+    relationship, or when the current subject isn't one of them, this falls
+    back to allowing the object's creator.
+
+    Callers that need to distinguish "not found" from "no access" should
+    look the model up bypassing DAO base filters (e.g.
+    ``skip_base_filter=True``) before calling this, so an object the user
+    cannot access reaches the check instead of resolving to ``None`` and
+    being written without any check.
+    """
+    try:
+        security_manager.raise_for_editorship(model)
+        return True
+    except SupersetSecurityException:
+        return bool(
+            model.created_by and model.created_by == security_manager.current_user
+        )
 
 
 def populate_subject_list(

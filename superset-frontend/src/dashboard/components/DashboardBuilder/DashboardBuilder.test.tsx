@@ -16,6 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+// Imported first: loading this before 'spec/helpers/testing-library' or
+// '@superset-ui/core' ensures mockAntdWithDesktopBreakpoint is defined
+// before anything transitively requires (and thus mocks) 'antd'.
+import { mockAntdWithDesktopBreakpoint } from 'spec/helpers/mobileTestUtils';
 import fetchMock from 'fetch-mock';
 import {
   fireEvent,
@@ -30,6 +34,7 @@ import {
   CLOSED_FILTER_BAR_WIDTH,
 } from 'src/dashboard/constants';
 import DashboardBuilder from 'src/dashboard/components/DashboardBuilder/DashboardBuilder';
+import { useIsMobile } from 'src/hooks/useIsMobile';
 import useStoredSidebarWidth from 'src/components/ResizableSidebar/useStoredSidebarWidth';
 import {
   fetchFaveStar,
@@ -56,6 +61,9 @@ fetchMock.get('glob:*/csstemplateasyncmodelview/api/read', {});
 fetchMock.put('glob:*/api/v1/dashboard/*', {});
 // Add mock for logging endpoint
 fetchMock.post('glob:*/log/?*', {});
+
+// Mock useBreakpoint to return desktop breakpoints (prevents mobile rendering)
+jest.mock('antd', () => mockAntdWithDesktopBreakpoint());
 
 jest.mock('src/dashboard/actions/dashboardState', () => ({
   ...jest.requireActual('src/dashboard/actions/dashboardState'),
@@ -107,8 +115,21 @@ jest.mock('src/dashboard/components/nativeFilters/FilterBar', () => {
   MockFilterBar.displayName = 'MockFilterBar';
   return MockFilterBar;
 });
+// Exposes the sticky offset the builder hands to tab bars in the grid.
 jest.mock('src/dashboard/containers/DashboardGrid', () => {
-  const MockDashboardGrid = () => <div data-test="mock-dashboard-grid" />;
+  const { useContext } = jest.requireActual('react');
+  const { StickyTabsOffsetContext } = jest.requireActual(
+    'src/dashboard/components/gridComponents/TabsRenderer/StickyTabsOffsetContext',
+  );
+  const MockDashboardGrid = () => {
+    const stickyTabsOffset = useContext(StickyTabsOffsetContext);
+    return (
+      <div
+        data-test="mock-dashboard-grid"
+        data-sticky-tabs-offset={stickyTabsOffset ?? 'none'}
+      />
+    );
+  };
   MockDashboardGrid.displayName = 'MockDashboardGrid';
   return MockDashboardGrid;
 });
@@ -121,6 +142,10 @@ jest.mock('src/dashboard/components/Header/HeadlessAutoRefresh', () => {
   MockHeadlessAutoRefresh.displayName = 'MockHeadlessAutoRefresh';
   return MockHeadlessAutoRefresh;
 });
+jest.mock('src/hooks/useIsMobile', () => ({
+  ...jest.requireActual('src/hooks/useIsMobile'),
+  useIsMobile: jest.fn().mockReturnValue(false),
+}));
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('DashboardBuilder', () => {
@@ -165,6 +190,89 @@ describe('DashboardBuilder', () => {
     const { getByTestId } = setup();
     const stickyContainer = getByTestId('dashboard-content-wrapper');
     expect(stickyContainer).toHaveClass('dashboard');
+  });
+
+  // jsdom lays nothing out; report a height for the sticky header so the
+  // offset handed to the grid is distinguishable from "no offset".
+  function mockHeaderHeight(height: number) {
+    return jest
+      .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
+      .mockImplementation(function measure(this: HTMLElement) {
+        const size =
+          this.dataset.test === 'dashboard-header-wrapper' ? height : 0;
+        return {
+          x: 0,
+          y: 0,
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: size,
+          width: 0,
+          height: size,
+          toJSON: () => ({}),
+        } as DOMRect;
+      });
+  }
+
+  test('hands the sticky header height to tab bars in the grid while viewing', async () => {
+    const rectSpy = mockHeaderHeight(120);
+    try {
+      const { findByTestId } = setup();
+      expect(await findByTestId('mock-dashboard-grid')).toHaveAttribute(
+        'data-sticky-tabs-offset',
+        '120',
+      );
+    } finally {
+      rectSpy.mockRestore();
+    }
+  });
+
+  test('leaves tab bars in the grid unpinned in report mode (?standalone=3)', async () => {
+    // Report screenshots of large dashboards are captured tile by tile while
+    // scrolling the page; a pinned bar would repeat in every tile.
+    const originalHref = window.location.href;
+    window.history.replaceState({}, '', '/?standalone=3');
+    const rectSpy = mockHeaderHeight(120);
+    try {
+      const { findByTestId } = setup();
+      expect(await findByTestId('mock-dashboard-grid')).toHaveAttribute(
+        'data-sticky-tabs-offset',
+        'none',
+      );
+    } finally {
+      rectSpy.mockRestore();
+      window.history.replaceState({}, '', originalHref);
+    }
+  });
+
+  test('leaves tab bars in the grid unpinned while a chart is maximized', async () => {
+    const rectSpy = mockHeaderHeight(120);
+    try {
+      const { findByTestId } = setup({
+        dashboardState: { ...mockState.dashboardState, fullSizeChartId: 123 },
+      });
+      expect(await findByTestId('mock-dashboard-grid')).toHaveAttribute(
+        'data-sticky-tabs-offset',
+        'none',
+      );
+    } finally {
+      rectSpy.mockRestore();
+    }
+  });
+
+  test('leaves tab bars in the grid unpinned in the mobile viewport', async () => {
+    (useIsMobile as jest.Mock).mockReturnValue(true);
+    const rectSpy = mockHeaderHeight(120);
+    try {
+      const { findByTestId } = setup();
+      expect(await findByTestId('mock-dashboard-grid')).toHaveAttribute(
+        'data-sticky-tabs-offset',
+        'none',
+      );
+    } finally {
+      rectSpy.mockRestore();
+      (useIsMobile as jest.Mock).mockReturnValue(false);
+    }
   });
 
   test('should add the "dashboard--editing" class if editMode=true', () => {
@@ -429,6 +537,7 @@ describe('DashboardBuilder', () => {
         dashboardFiltersOpen: true,
         toggleDashboardFiltersOpen: jest.fn(),
         nativeFiltersEnabled: true,
+        hasFilters: true,
       });
 
     const { getByTestId } = setup();
@@ -455,6 +564,7 @@ describe('DashboardBuilder', () => {
         dashboardFiltersOpen: false,
         toggleDashboardFiltersOpen: jest.fn(),
         nativeFiltersEnabled: true,
+        hasFilters: true,
       });
 
     const { getByTestId } = setup();
@@ -481,6 +591,7 @@ describe('DashboardBuilder', () => {
         dashboardFiltersOpen: true,
         toggleDashboardFiltersOpen: jest.fn(),
         nativeFiltersEnabled: false,
+        hasFilters: false,
       });
 
     const { getByTestId } = setup();
@@ -540,6 +651,7 @@ describe('DashboardBuilder', () => {
       dashboardFiltersOpen: true,
       toggleDashboardFiltersOpen: jest.fn(),
       nativeFiltersEnabled: false,
+      hasFilters: false,
     });
     const { queryByTestId } = setup();
 
@@ -553,6 +665,7 @@ describe('DashboardBuilder', () => {
       dashboardFiltersOpen: true,
       toggleDashboardFiltersOpen: jest.fn(),
       nativeFiltersEnabled: true,
+      hasFilters: true,
     });
     const { queryByTestId } = setup();
 
@@ -566,12 +679,41 @@ describe('DashboardBuilder', () => {
       dashboardFiltersOpen: true,
       toggleDashboardFiltersOpen: jest.fn(),
       nativeFiltersEnabled: true,
+      hasFilters: true,
     });
     const { queryByTestId } = setup({
       dashboardState: { ...mockState.dashboardState, editMode: true },
     });
 
     expect(queryByTestId('dashboard-filters-panel')).not.toBeInTheDocument();
+  });
+
+  test('should keep the vertical filter bar reachable on a narrow standalone view (?standalone=2) even in mobile mode', () => {
+    // Regression test: standalone=2 (HideNavAndTitle) suppresses
+    // DashboardHeader, which is the only place the mobile filter drawer's
+    // trigger lives. Without excluding standalone views from mobile mode,
+    // a narrow standalone dashboard would lose the drawer trigger AND the
+    // always-visible desktop sidebar, leaving native filters unreachable.
+    const originalHref = window.location.href;
+    window.history.replaceState({}, '', '/?standalone=2');
+    (useIsMobile as jest.Mock).mockReturnValueOnce(true);
+    jest.spyOn(useNativeFiltersModule, 'useNativeFilters').mockReturnValue({
+      showDashboard: true,
+      missingInitialFilters: [],
+      dashboardFiltersOpen: true,
+      toggleDashboardFiltersOpen: jest.fn(),
+      nativeFiltersEnabled: true,
+      hasFilters: true,
+    });
+    try {
+      const { getByTestId } = setup();
+      expect(getByTestId('dashboard-filters-panel')).not.toHaveStyleRule(
+        'display',
+        'none',
+      );
+    } finally {
+      window.history.replaceState({}, '', originalHref);
+    }
   });
 
   test('should hide the vertical filter bar in report mode (?standalone=3)', () => {
@@ -583,6 +725,7 @@ describe('DashboardBuilder', () => {
       dashboardFiltersOpen: true,
       toggleDashboardFiltersOpen: jest.fn(),
       nativeFiltersEnabled: true,
+      hasFilters: true,
     });
     try {
       const { getByTestId } = setup();
@@ -608,6 +751,7 @@ describe('DashboardBuilder', () => {
       dashboardFiltersOpen: true,
       toggleDashboardFiltersOpen: jest.fn(),
       nativeFiltersEnabled: true,
+      hasFilters: true,
     });
     try {
       const { getByTestId } = setup();
@@ -629,6 +773,7 @@ describe('DashboardBuilder', () => {
       dashboardFiltersOpen: true,
       toggleDashboardFiltersOpen: jest.fn(),
       nativeFiltersEnabled: true,
+      hasFilters: true,
     });
     try {
       const { getByTestId } = setup();

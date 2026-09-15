@@ -62,6 +62,20 @@ def test_convert_dttm(
     assert_convert_dttm(spec, target_type, expected_result, dttm)
 
 
+@pytest.mark.parametrize(
+    "time_grain,expected",
+    [
+        (None, "{col}"),
+        ("PT1S", "toStartOfSecond(toDateTime64({col}, 3))"),
+        ("PT1M", "toStartOfMinute(toDateTime({col}))"),
+    ],
+)
+def test_time_grain_expressions(time_grain: Optional[str], expected: str) -> None:
+    from superset.db_engine_specs.clickhouse import ClickHouseBaseEngineSpec
+
+    assert ClickHouseBaseEngineSpec._time_grain_expressions[time_grain] == expected
+
+
 def test_convert_dttm_normalizes_aware_datetime_to_utc() -> None:
     from superset.db_engine_specs.clickhouse import (
         ClickHouseEngineSpec as spec,  # noqa: N813
@@ -129,7 +143,30 @@ def test_connect_convert_dttm(
             GenericDataType.STRING,
             False,
         ),
-        ("Array(UInt8)", String, None, GenericDataType.STRING, False),
+        ("Array(UInt8)", String, None, GenericDataType.MULTI_VALUE, False),
+        ("Array(String)", String, None, GenericDataType.MULTI_VALUE, False),
+        ("Array(UInt64)", String, None, GenericDataType.MULTI_VALUE, False),
+        (
+            "Array(LowCardinality(String))",
+            String,
+            None,
+            GenericDataType.MULTI_VALUE,
+            False,
+        ),
+        # Array(Enum(...)) is a real array and must classify as MULTI_VALUE, not
+        # get short-circuited by the Enum rule (the anchored ^Array\( pattern is
+        # ordered before the Enum entry).
+        (
+            "Array(Enum8('a' = 1, 'b' = 2))",
+            String,
+            None,
+            GenericDataType.MULTI_VALUE,
+            False,
+        ),
+        # Arrays nested inside Map/Tuple are not top-level array columns; the
+        # anchored pattern must not over-match them into MULTI_VALUE.
+        ("Map(String, Array(String))", String, None, GenericDataType.STRING, False),
+        ("Tuple(Array(String))", String, None, GenericDataType.STRING, False),
         ("Enum('hello', 'world')", String, None, GenericDataType.STRING, False),
         ("Enum('UInt32', 'Bool')", String, None, GenericDataType.STRING, False),
         (
@@ -616,3 +653,115 @@ def test_use_equality_for_boolean_filters_property() -> None:
     from superset.db_engine_specs.clickhouse import ClickHouseBaseEngineSpec
 
     assert ClickHouseBaseEngineSpec.use_equality_for_boolean_filters is True
+
+
+def _compile(expr) -> str:
+    return str(expr.compile(compile_kwargs={"literal_binds": True}))
+
+
+def test_clickhouse_supports_multivalue_columns() -> None:
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseEngineSpec as spec,
+    )
+
+    assert spec.supports_multivalue_columns is True
+
+
+def test_multivalue_contains_any_sql() -> None:
+    from sqlalchemy import column
+
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseEngineSpec as spec,
+    )
+
+    expr = spec.array_contains_any(column("skills"), ["Driver", "Cook"])
+    assert _compile(expr) == "hasAny(skills, array('Driver', 'Cook'))"
+
+
+def test_multivalue_contains_all_sql() -> None:
+    from sqlalchemy import column
+
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseEngineSpec as spec,
+    )
+
+    expr = spec.array_contains_all(column("skills"), ["Driver", "Cook"])
+    assert _compile(expr) == "hasAll(skills, array('Driver', 'Cook'))"
+
+
+def test_multivalue_contains_binds_parameters() -> None:
+    """Values must be bound parameters, not inlined (SQL-injection safety)."""
+    from sqlalchemy import column
+
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseEngineSpec as spec,
+    )
+
+    expr = spec.array_contains_any(column("skills"), ["Driver"])
+    compiled = expr.compile()
+    assert "Driver" not in str(compiled)
+    assert "Driver" in compiled.params.values()
+
+
+def test_multivalue_length_sql() -> None:
+    from sqlalchemy import column
+
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseEngineSpec as spec,
+    )
+
+    expr = spec.array_length(column("skills"))
+    assert _compile(expr) == "length(skills)"
+
+
+@pytest.mark.parametrize(
+    "native_type,expected",
+    [
+        ("Array(String)", GenericDataType.STRING),
+        ("Array(Int32)", GenericDataType.NUMERIC),
+        ("Array(UInt64)", GenericDataType.NUMERIC),
+        ("Array(Decimal(10, 2))", GenericDataType.NUMERIC),
+        ("Array(DateTime)", GenericDataType.TEMPORAL),
+        ("Array(Enum8('a' = 1))", GenericDataType.STRING),
+        # Wrappers around the element type don't change the generic type.
+        ("Array(Nullable(Int64))", GenericDataType.NUMERIC),
+        ("Array(LowCardinality(String))", GenericDataType.STRING),
+        # Non-array / nested-array types have no array element type.
+        ("String", None),
+        ("Map(String, Array(String))", None),
+    ],
+)
+def test_multivalue_get_array_element_type(
+    native_type: str, expected: GenericDataType | None
+) -> None:
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseEngineSpec as spec,
+    )
+
+    assert spec.get_array_element_type(native_type) == expected
+
+
+def test_multivalue_array_explode_sql() -> None:
+    """array_explode compiles to ``arrayJoin(col)`` (element expansion)."""
+    from sqlalchemy import column
+
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseEngineSpec as spec,
+    )
+
+    expr = spec.array_explode(column("scores"))
+    assert _compile(expr) == "arrayJoin(scores)"
+
+
+def test_multivalue_contains_any_numeric_coercion_sql() -> None:
+    """Numeric-array element values must render as numbers, not quoted strings."""
+    from sqlalchemy import column
+
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseEngineSpec as spec,
+    )
+
+    # Simulate values already coerced to numbers (as helpers.py does via the
+    # element type) and confirm the emitted array literal is numeric.
+    expr = spec.array_contains_any(column("scores"), [5, 6])
+    assert _compile(expr) == "hasAny(scores, array(5, 6))"

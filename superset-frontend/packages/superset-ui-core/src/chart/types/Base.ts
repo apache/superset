@@ -45,6 +45,13 @@ export interface ContextMenuFilters {
     filters: BinaryQueryObjectFilterClause[];
     groupbyFieldName: string;
     adhocFilterFieldName?: string;
+    /**
+     * Filters scoped to the clicked x-axis value (category or time bucket),
+     * as opposed to `filters`, which are scoped to the clicked series.
+     * When both are present, the Drill By UI lets the user choose which
+     * of the two (or both) to apply to the drilled chart.
+     */
+    xAxisFilters?: BinaryQueryObjectFilterClause[];
   };
 }
 
@@ -106,8 +113,19 @@ export interface BackendOwnState {
  * Each chart plugin can implement this to convert its internal state representation
  * to the standardized backend format.
  */
+export interface ChartStateConverterOptions {
+  // Set when converting for a download/export query rather than the chart's
+  // live (re-)query. Some chart-specific state (e.g. AG Grid's client-side
+  // sort/filter) is normally excluded from the live query's ownState to
+  // avoid triggering an unnecessary requery, but a downloaded file has no
+  // client-side pass to apply that state, so it still needs to be converted
+  // for exports to reproduce the displayed view.
+  forExport?: boolean;
+}
+
 export type ChartStateConverter<TChartState = JsonObject> = (
   chartState: TChartState,
+  options?: ChartStateConverterOptions,
 ) => Partial<BackendOwnState>;
 
 export interface PlainObject {
@@ -146,5 +164,3 @@ export enum AxisType {
 export interface LegendState {
   [key: string]: boolean;
 }
-
-export default {};

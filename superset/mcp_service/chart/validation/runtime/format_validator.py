@@ -217,7 +217,14 @@ class FormatTypeValidator:
         """Suggest appropriate format based on column and aggregation."""
         if column.aggregate in ["COUNT", "COUNT_DISTINCT"]:
             return ",d"  # Integer with thousands separator
-        elif column.aggregate in ["AVG", "STDDEV", "VAR"]:
+        elif column.aggregate in [
+            "AVG",
+            "MEDIAN",
+            "STDDEV_SAMP",
+            "VAR_SAMP",
+            "STDDEV",
+            "VAR",
+        ]:
             return ",.2f"  # Two decimals for statistical measures
         elif column.aggregate in ["SUM", "MIN", "MAX"]:
             # Could be currency or regular number, default to flexible

@@ -44,6 +44,18 @@ def import_theme(config: dict[str, Any], overwrite: bool = False) -> "Theme | No
     if existing:
         if not overwrite or not can_write:
             return existing
+        if existing.is_system:
+            raise ThemeImportError("Cannot overwrite a system theme via import")
+        # The active system-default/dark theme slot may be overwritten by
+        # admins only; a non-admin overwriting it would change the theme
+        # rendered for every user, including the login page and other
+        # admins.
+        if (
+            existing.is_system_default or existing.is_system_dark
+        ) and not security_manager.is_admin():
+            raise ThemeImportError(
+                "Cannot overwrite the active system-default/dark theme via import"
+            )
         config["id"] = existing.id
     elif not can_write:
         raise ThemeImportError(

@@ -135,6 +135,15 @@ describe('dashboardState actions', () => {
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('saveDashboardRequest', () => {
+    const findDangerToast = (dispatch: jest.Mock) =>
+      dispatch.mock.calls
+        .map(call => call[0])
+        .find(
+          action =>
+            action?.type === ADD_TOAST &&
+            action.payload.toastType === ToastType.Danger,
+        );
+
     test('should dispatch UPDATE_COMPONENTS_PARENTS_LIST action', () => {
       const { getState, dispatch } = setup({
         dashboardState: { hasUnsavedChanges: false },
@@ -226,6 +235,89 @@ describe('dashboardState actions', () => {
         await waitFor(() => expect(putStub.mock.calls.length).toBe(1));
         const { body } = putStub.mock.calls[0][0];
         expect(body).toBe(JSON.stringify(confirmedDashboardData));
+      });
+
+      test('warns about the overwrite values when a diff is detected', async () => {
+        const { getState, dispatch } = setup();
+        const thunk = saveDashboardRequest(
+          newDashboardData,
+          192,
+          SAVE_TYPE_OVERWRITE,
+        );
+        thunk(dispatch, getState);
+        await waitFor(() =>
+          expect(findDangerToast(dispatch)?.payload.text).toBe(
+            'Please confirm the overwrite values.',
+          ),
+        );
+        expect(putStub.mock.calls.length).toBe(0);
+      });
+
+      test('reports the actual error when the overwrite precheck fails', async () => {
+        getStub.mockRestore();
+        getStub = jest
+          .spyOn(SupersetClient, 'get')
+          .mockRejectedValue(new Error('precheck exploded'));
+        const { getState, dispatch } = setup();
+        const thunk = saveDashboardRequest(
+          newDashboardData,
+          192,
+          SAVE_TYPE_OVERWRITE,
+        );
+        thunk(dispatch, getState);
+        await waitFor(() =>
+          expect(findDangerToast(dispatch)?.payload.text).toContain(
+            'precheck exploded',
+          ),
+        );
+        expect(putStub.mock.calls.length).toBe(0);
+      });
+    });
+
+    // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+    describe('when FeatureFlag.CONFIRM_DASHBOARD_DIFF is disabled', () => {
+      beforeEach(() => {
+        mockIsFeatureEnabled.mockImplementation(() => false);
+      });
+
+      afterEach(() => {
+        mockIsFeatureEnabled.mockRestore();
+      });
+
+      test('never runs the overwrite precheck', async () => {
+        const { getState, dispatch } = setup();
+        const thunk = saveDashboardRequest(
+          newDashboardData,
+          192,
+          SAVE_TYPE_OVERWRITE,
+        );
+        thunk(dispatch, getState);
+        await waitFor(() => expect(putStub.mock.calls.length).toBe(1));
+        expect(getStub).not.toHaveBeenCalledWith(
+          expect.objectContaining({ endpoint: '/api/v1/dashboard/192' }),
+        );
+      });
+
+      // An unexpected failure used to reach the overwrite-confirm handler,
+      // which reported it as "Please confirm the overwrite values." even with
+      // the feature flag off, hiding the real error.
+      test('reports the actual error when the update throws unexpectedly', async () => {
+        putStub.mockRestore();
+        putStub = jest.spyOn(SupersetClient, 'put').mockImplementation(() => {
+          throw new Error('unexpected boom');
+        });
+        const { getState, dispatch } = setup();
+        const thunk = saveDashboardRequest(
+          newDashboardData,
+          192,
+          SAVE_TYPE_OVERWRITE,
+        );
+        thunk(dispatch, getState);
+        await waitFor(() =>
+          expect(findDangerToast(dispatch)?.payload.text).toContain(
+            'unexpected boom',
+          ),
+        );
       });
     });
 
@@ -379,15 +471,6 @@ describe('dashboardState actions', () => {
     // permission-denied copy, while a 403 from outside Superset (reverse proxy,
     // WAF, SSO gateway) carries a non-JSON body and must fall back to the
     // generic status-derived toast. See #42239.
-    const findDangerToast = (dispatch: jest.Mock) =>
-      dispatch.mock.calls
-        .map(call => call[0])
-        .find(
-          action =>
-            action?.type === ADD_TOAST &&
-            action.payload.toastType === ToastType.Danger,
-        );
-
     test('maps a non-JSON 403 save failure to the generic error toast', async () => {
       const { getState, dispatch } = setup();
       putStub.mockRestore();

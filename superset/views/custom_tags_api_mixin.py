@@ -27,8 +27,9 @@ class CustomTagsOptimizationMixin:
 
     When enabled via config, this mixin:
     1. Configures list_columns to use custom_tags (filtered relationship)
-    2. Rewrites frontend requests from 'tags.*' to 'custom_tags.*'
-    3. Transforms responses to rename 'custom_tags' back to 'tags'
+    2. Exposes custom_tags as tags in the response schema
+    3. Rewrites frontend requests from 'tags.*' to 'custom_tags.*'
+    4. Transforms responses to rename 'custom_tags' back to 'tags'
 
     This provides SQL query optimization (97% reduction) while maintaining
     frontend compatibility.
@@ -61,6 +62,18 @@ class CustomTagsOptimizationMixin:
         """
         self._custom_tags_only = current_app.config.get(config_key, False)
         self.list_columns = custom_columns if self._custom_tags_only else full_columns
+
+    def _init_model_schemas(self) -> None:
+        """Keep the optimized relationship's public schema name stable."""
+        super()._init_model_schemas()  # type: ignore[misc]
+
+        list_model_schema = getattr(self, "list_model_schema", None)
+        if (
+            self._custom_tags_only
+            and list_model_schema
+            and "custom_tags" in list_model_schema.fields
+        ):
+            list_model_schema.fields["custom_tags"].data_key = "tags"
 
     def get_list(self, **kwargs: Any) -> Response:
         """Override to rewrite request parameters for custom_tags optimization.

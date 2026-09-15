@@ -28,7 +28,7 @@ tool result into a real interactive visualization instead of a prose summary.
 drill-down, brush-to-zoom and filtering. It is marked ``visibility: ["app"]`` so
 compliant hosts keep it out of the model's tool list.
 
-Both tools are thin wrappers over :func:`get_chart_data_core` — the shared,
+Both tools are thin wrappers over :func:`execute_chart_data` — the shared,
 already-authorized data path — so all data access continues to flow through the
 same RBAC/RLS-enforcing query pipeline as ``get_chart_data``.
 """
@@ -51,7 +51,7 @@ from superset.mcp_service.chart.schemas import (
     RenderChartRequeryRequest,
     RenderChartRequest,
 )
-from superset.mcp_service.chart.tool.get_chart_data import get_chart_data_core
+from superset.mcp_service.chart.tool.get_chart_data import execute_chart_data
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 
 logger = logging.getLogger(__name__)
@@ -155,7 +155,7 @@ async def _render_chart_impl(
         format="json",
     )
     with event_logger.log_context(action="mcp.render_chart"):
-        result = await get_chart_data_core(data_request, ctx)
+        result = await execute_chart_data(data_request, ctx)
 
     if isinstance(result, ChartData):
         result.explore_url = _build_explore_url(result.chart_id)
@@ -170,6 +170,7 @@ async def _render_chart_impl(
         title="Render chart",
         readOnlyHint=True,
         destructiveHint=False,
+        openWorldHint=False,
     ),
     meta=_RENDER_CHART_UI_META,
 )
@@ -250,7 +251,7 @@ async def _render_chart_requery_impl(
         format="json",
     )
     with event_logger.log_context(action="mcp.render_chart_requery"):
-        result = await get_chart_data_core(data_request, ctx)
+        result = await execute_chart_data(data_request, ctx)
 
     if isinstance(result, ChartData):
         result.explore_url = _build_explore_url(result.chart_id)
@@ -265,6 +266,7 @@ async def _render_chart_requery_impl(
         title="Re-query chart (widget drill-down)",
         readOnlyHint=True,
         destructiveHint=False,
+        openWorldHint=False,
     ),
     meta=_REQUERY_UI_META,
 )
@@ -348,7 +350,7 @@ async def _render_dashboard_impl(
         # Same authorized path as a single chart: per-chart RBAC/RLS still
         # applies, so an inaccessible chart degrades to one placeholder cell
         # instead of failing the whole dashboard.
-        result = await get_chart_data_core(
+        result = await execute_chart_data(
             GetChartDataRequest(
                 identifier=position.chart_id,
                 limit=request.limit,
@@ -418,6 +420,7 @@ async def _render_dashboard_impl(
         title="Render dashboard",
         readOnlyHint=True,
         destructiveHint=False,
+        openWorldHint=False,
     ),
     meta=_RENDER_CHART_UI_META,
 )

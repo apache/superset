@@ -41,6 +41,7 @@ from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.extensions import event_logger, stats_logger_manager
 from superset.mcp_service.auth import (
     _get_app_context_manager,
+    _mcp_user_id_var,
     get_user_from_request,
     is_tool_visible_to_current_user,
     MCPNoAuthSourceError,
@@ -217,18 +218,30 @@ _SENSITIVE_PARAM_KEYS = frozenset(
 )
 
 
+def _sanitize_value(value: Any) -> Any:
+    """Apply ``_sanitize_params`` recursively to any dict/list container."""
+    if isinstance(value, dict):
+        return _sanitize_params(value)
+    if isinstance(value, list):
+        return [_sanitize_value(item) for item in value]
+    return value
+
+
 def _sanitize_params(params: dict[str, Any]) -> dict[str, Any]:
-    """Remove sensitive fields from params before logging."""
+    """Remove sensitive fields from params before logging.
+
+    Recurses into nested containers, including lists of lists, so sensitive
+    keys are redacted no matter which wrapper they arrive under
+    (``arguments``, ``request``, etc.).
+    """
     if not isinstance(params, dict):
         return params
     result: dict[str, Any] = {}
     for k, v in params.items():
         if k.lower() in _SENSITIVE_PARAM_KEYS:
             result[k] = "[REDACTED]"
-        elif k == "arguments" and isinstance(v, dict):
-            result[k] = _sanitize_params(v)
         else:
-            result[k] = v
+            result[k] = _sanitize_value(v)
     return result
 
 
@@ -625,6 +638,24 @@ class LoggingMiddleware(Middleware):
             success = False
             raise
         finally:
+            # user_id was captured before call_next() ran the tool, i.e.
+            # before the @tool auth decorator (superset/mcp_service/auth.py)
+            # resolves the user. It sets g.user on a per-call app context
+            # that _get_app_context_manager() pushes and pops around the
+            # tool's execution (see its docstring), so g.user/get_user_id()
+            # are back to their pre-call state by the time we get here —
+            # re-reading get_user_id() would still yield the stale value.
+            # _mcp_user_id_var is a plain ContextVar (not tied to that Flask
+            # app-context lifecycle) that _setup_user_context() sets before
+            # the context pops, so it survives to this point.
+            resolved_user_id = _mcp_user_id_var.get(None)
+            if resolved_user_id is not None:
+                user_id = resolved_user_id
+            # Reset so a later on_call_tool/on_message in the same asyncio
+            # task (e.g. an unprotected tool or resource/prompt read that
+            # never calls _setup_user_context()) doesn't inherit this call's
+            # resolved user id.
+            _mcp_user_id_var.set(None)
             duration_ms = int((time.time() - start_time) * 1000)
             self._log_call_tool_result(
                 context=context,
@@ -666,34 +697,44 @@ class LoggingMiddleware(Middleware):
             self._extract_context_info(context)
         )
         try:
-            with _get_app_context_manager():
-                event_logger.log(
-                    user_id=user_id,
-                    action="mcp_message",
-                    dashboard_id=dashboard_id,
-                    duration_ms=None,
-                    slice_id=slice_id,
-                    referrer=None,
-                    curated_payload={
-                        "tool": getattr(context.message, "name", None),
-                        "agent_id": agent_id,
-                        "params": _sanitize_params(params),
-                        "method": context.method,
-                        "dashboard_id": dashboard_id,
-                        "slice_id": slice_id,
-                        "dataset_id": dataset_id,
-                    },
-                )
-        except Exception as log_error:  # noqa: BLE001
-            logger.warning("Failed to log mcp_message event: %s", log_error)
-        logger.info(
-            "MCP message: tool=%s, agent_id=%s, user_id=%s, method=%s",
-            getattr(context.message, "name", None),
-            agent_id,
-            user_id,
-            context.method,
-        )
-        return await call_next(context)
+            return await call_next(context)
+        finally:
+            # See the matching comment in on_call_tool: g.user/get_user_id()
+            # are stale here because the per-call app context has already
+            # been popped. _mcp_user_id_var survives it.
+            resolved_user_id = _mcp_user_id_var.get(None)
+            if resolved_user_id is not None:
+                user_id = resolved_user_id
+            # See the matching reset in on_call_tool.
+            _mcp_user_id_var.set(None)
+            try:
+                with _get_app_context_manager():
+                    event_logger.log(
+                        user_id=user_id,
+                        action="mcp_message",
+                        dashboard_id=dashboard_id,
+                        duration_ms=None,
+                        slice_id=slice_id,
+                        referrer=None,
+                        curated_payload={
+                            "tool": getattr(context.message, "name", None),
+                            "agent_id": agent_id,
+                            "params": _sanitize_params(params),
+                            "method": context.method,
+                            "dashboard_id": dashboard_id,
+                            "slice_id": slice_id,
+                            "dataset_id": dataset_id,
+                        },
+                    )
+            except Exception as log_error:  # noqa: BLE001
+                logger.warning("Failed to log mcp_message event: %s", log_error)
+            logger.info(
+                "MCP message: tool=%s, agent_id=%s, user_id=%s, method=%s",
+                getattr(context.message, "name", None),
+                agent_id,
+                user_id,
+                context.method,
+            )
 
 
 # Tools that MUST retain ``outputSchema`` / ``structuredContent`` despite the
@@ -847,14 +888,20 @@ class StructuredContentStripperMiddleware(Middleware):
                     },
                 )
             tool_name = getattr(context.message, "name", None)
+            # Flag the failure so clients can distinguish it from a
+            # successful call. This still serializes to
+            # CallToolResult(isError=True) (see ToolResult.to_mcp_result).
             return ToolResult(
                 content=[mt.TextContent(type="text", text=error_text)],
                 meta={"mcp_call_id": mcp_call_id} if mcp_call_id else None,
+                is_error=True,
                 # Keep-list tools keep their ``outputSchema`` advertised, so a
                 # text-only error result violates it and strict clients reject
                 # the whole call ("has an output schema but did not return
-                # structured content"). Emit a schema-shaped error instead so
-                # the failure reaches the user as a readable message.
+                # structured content"). Emit a schema-shaped error for those
+                # tools only. Everything else keeps ``structured_content`` None:
+                # that payload is the one implicated in the bridge encoding
+                # failure above, and only the boolean flips false->true.
                 structured_content=(
                     _schema_shaped_error(e, tool_name)
                     if tool_name in self._keep_tools()
@@ -1052,7 +1099,9 @@ class GlobalErrorHandlerMiddleware(Middleware):
             ) from error
         elif isinstance(error, HTTPException):
             # HTTP errors from screenshot endpoints or API calls
-            raise ToolError(f"Service error in {tool_name}: {error.detail}") from error
+            raise ToolError(
+                f"Service error in {tool_name}: {_sanitize_error_for_logging(error)}"
+            ) from error
         elif isinstance(error, MCPPermissionDeniedError):
             # MCP RBAC permission denied — convert to structured ToolError.
             # Must come before the generic PermissionError branch because
@@ -1067,7 +1116,8 @@ class GlobalErrorHandlerMiddleware(Middleware):
         elif isinstance(error, ValueError):
             # Value/parameter errors from tool code
             raise ToolError(
-                f"Invalid parameter in {tool_name}: {str(error)}"
+                f"Invalid parameter in {tool_name}: "
+                f"{_sanitize_error_for_logging(error)}"
             ) from error
         elif isinstance(error, (ObjectNotFoundError, CommandInvalidError)):
             # Superset command: not found (404) or validation (422)

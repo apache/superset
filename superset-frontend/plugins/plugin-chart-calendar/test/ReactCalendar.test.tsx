@@ -25,9 +25,11 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import { CALENDAR_TOOLTIP_CLASS } from '../src/tooltip';
+import { convertUTCTimestampToLocal } from '../src/utils';
 
 interface MockCalHeatMapConfig {
   itemSelector: Element;
+  dateFormatter?: (date: Date, format: string) => string;
 }
 
 type MetricNameInput = string | string[];
@@ -38,6 +40,7 @@ let mockInitCallCount = 0;
 let mockThrowOnInitCall: number | null = null;
 let mockDestroyCallCount = 0;
 let mockDestroyedInstanceIds: string[] = [];
+let mockDateFormatter: MockCalHeatMapConfig['dateFormatter'];
 
 const mockTheme = {
   colorBgElevated: '#ffffff',
@@ -56,6 +59,7 @@ jest.mock('../src/vendor/cal-heatmap', () => ({
       } = require('../src/tooltip');
 
       mockInitCallCount += 1;
+      mockDateFormatter = config.dateFormatter;
       if (mockThrowOnInitCall === mockInitCallCount) {
         throw new Error('Mock CalHeatMap init failure');
       }
@@ -284,7 +288,26 @@ afterEach(() => {
   mockThrowOnInitCall = null;
   mockDestroyCallCount = 0;
   mockDestroyedInstanceIds = [];
+  mockDateFormatter = undefined;
   document.body.innerHTML = '';
+});
+
+test('Calendar provides a timezone-safe date formatter to CalHeatMap', () => {
+  const calendarOwner = document.createElement('div');
+  document.body.appendChild(calendarOwner);
+
+  Calendar(calendarOwner, {
+    ...createCalendarProps('localized-metric'),
+    theme: mockTheme,
+  });
+
+  if (!mockDateFormatter) {
+    throw new Error('Expected Calendar to configure a date formatter');
+  }
+
+  const localDate = new Date(convertUTCTimestampToLocal(Date.UTC(2024, 0, 1)));
+
+  expect(mockDateFormatter(localDate, '%Y-%m-%d')).toBe('2024-01-01');
 });
 
 test('rerender and unmount clean up only the affected calendar tooltips', () => {

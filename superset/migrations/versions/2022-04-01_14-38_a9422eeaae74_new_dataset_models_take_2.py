@@ -894,7 +894,7 @@ def reset_postgres_id_sequence(table: str) -> None:
 
 def upgrade() -> None:
     bind = op.get_bind()
-    session: Session = Session(bind=bind, future=True)
+    session: Session = Session(bind=bind)
     Base.metadata.drop_all(bind=bind, tables=new_tables)
     Base.metadata.create_all(bind=bind, tables=new_tables)
 

@@ -20,7 +20,7 @@ from io import BytesIO
 from typing import Any
 from zipfile import ZipFile
 
-from flask import current_app as app, request, Response, send_file
+from flask import current_app as app, request, Response
 from flask_appbuilder.api import expose, protect, rison as parse_rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
@@ -55,7 +55,7 @@ from superset.themes.schemas import (
     ThemePostSchema,
     ThemePutSchema,
 )
-from superset.utils.core import sanitize_cookie_token
+from superset.utils.core import send_export_zip
 from superset.utils.decorators import transaction
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
@@ -79,6 +79,7 @@ class ThemeRestApi(BaseSupersetModelRestApi):
         "set_system_dark",
         "unset_system_default",
         "unset_system_dark",
+        "system",
     }
     class_permission_name = "Theme"
     method_permission_name = {
@@ -87,6 +88,7 @@ class ThemeRestApi(BaseSupersetModelRestApi):
         "set_system_dark": "write",
         "unset_system_default": "write",
         "unset_system_dark": "write",
+        "system": "read",
     }
 
     resource_name = "theme"
@@ -350,6 +352,8 @@ class ThemeRestApi(BaseSupersetModelRestApi):
             return self.response_404()
         except SystemThemeProtectedError:
             return self.response_403()
+        except SystemThemeInUseError:
+            return self.response_403()
         except Exception as ex:
             logger.exception("Unexpected error in PUT /theme/%s", pk)
             return self.response_422(message=str(ex))
@@ -484,15 +488,7 @@ class ThemeRestApi(BaseSupersetModelRestApi):
                 return self.response_404()
         buf.seek(0)
 
-        response = send_file(
-            buf,
-            mimetype="application/zip",
-            as_attachment=True,
-            download_name=filename,
-        )
-        if token := sanitize_cookie_token(request.args.get("token")):
-            response.set_cookie(token, "done", max_age=600)
-        return response
+        return send_export_zip(buf, filename)
 
     @expose("/import/", methods=("POST",))
     @protect()
@@ -788,3 +784,54 @@ class ThemeRestApi(BaseSupersetModelRestApi):
             return self.response(200, result="success")
         except Exception as ex:
             return self.response_422(message=str(ex))
+
+    @expose("/system", methods=("GET",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.system",
+        log_to_statsd=False,
+    )
+    def system(self) -> Response:
+        """Return the resolved system theme slice used to bootstrap the page.
+        ---
+        get:
+          summary: Get the resolved system default and dark themes
+          description: >-
+            Returns the same processed theme payload embedded in the page
+            bootstrap: the resolved system default and dark themes, the default
+            mode, and the UI theme administration flag. The client uses this to
+            apply system theme changes live without a full page reload, keeping
+            the result identical to what a reload would render.
+          responses:
+            200:
+              description: Resolved system theme slice
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: object
+                        properties:
+                          default:
+                            type: object
+                          dark:
+                            type: object
+                          defaultMode:
+                            type: string
+                          enableUiThemeAdministration:
+                            type: boolean
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        # Local import to avoid a circular import between superset.views.base
+        # and this module (mirrors the security_manager import pattern above).
+        from superset.views.base import get_theme_bootstrap_data
+
+        return self.response(200, result=get_theme_bootstrap_data()["theme"])

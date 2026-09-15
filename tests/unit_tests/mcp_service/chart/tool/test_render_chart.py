@@ -157,7 +157,7 @@ async def test_render_chart_populates_explore_url() -> None:
     ctx = AsyncMock()
     core = AsyncMock(return_value=_sample_chart_data())
     with (
-        patch(f"{RENDER_MODULE}.get_chart_data_core", core),
+        patch(f"{RENDER_MODULE}.execute_chart_data", core),
         patch(f"{RENDER_MODULE}.get_superset_base_url", return_value="https://s.io"),
     ):
         result = await render_chart_mod._render_chart_impl(
@@ -175,7 +175,7 @@ async def test_render_chart_populates_explore_url() -> None:
 async def test_render_chart_passes_through_errors() -> None:
     ctx = AsyncMock()
     err = ChartError(error="nope", error_type="NotFound")
-    with patch(f"{RENDER_MODULE}.get_chart_data_core", AsyncMock(return_value=err)):
+    with patch(f"{RENDER_MODULE}.execute_chart_data", AsyncMock(return_value=err)):
         result = await render_chart_mod._render_chart_impl(
             RenderChartRequest(identifier=999), ctx
         )
@@ -193,7 +193,7 @@ async def test_render_chart_requery_applies_filter_and_time_range() -> None:
         return _sample_chart_data()
 
     with (
-        patch(f"{RENDER_MODULE}.get_chart_data_core", side_effect=_capture),
+        patch(f"{RENDER_MODULE}.execute_chart_data", side_effect=_capture),
         patch(f"{RENDER_MODULE}.get_superset_base_url", return_value="https://s.io"),
     ):
         result = await render_chart_mod._render_chart_requery_impl(
@@ -292,7 +292,7 @@ async def test_render_chart_attaches_theme() -> None:
     ctx = AsyncMock()
     with (
         patch(
-            f"{RENDER_MODULE}.get_chart_data_core",
+            f"{RENDER_MODULE}.execute_chart_data",
             AsyncMock(return_value=_sample_chart_data()),
         ),
         patch(f"{RENDER_MODULE}.get_superset_base_url", return_value="https://s.io"),

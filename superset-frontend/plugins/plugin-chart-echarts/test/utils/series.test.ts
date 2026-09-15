@@ -22,6 +22,7 @@ import {
   DataRecord,
   getNumberFormatter,
   getTimeFormatter,
+  TimeGranularity,
 } from '@superset-ui/core';
 import { supersetTheme as theme } from '@apache-superset/core/theme';
 import { GenericDataType } from '@apache-superset/core/common';
@@ -40,6 +41,8 @@ import {
   getLegendProps,
   getOverMaxHiddenFormatter,
   getMinAndMaxFromBounds,
+  capTickMarks,
+  getTemporalTickValues,
   sanitizeHtml,
   sortAndFilterSeries,
   sortRows,
@@ -51,7 +54,7 @@ import {
   LegendType,
 } from '../../src/types';
 import { defaultLegendPadding } from '../../src/defaults';
-import { NULL_STRING } from '../../src/constants';
+import { NULL_STRING, StackControlsValue } from '../../src/constants';
 
 const {
   getHorizontalLegendAvailableWidth,
@@ -548,6 +551,76 @@ describe('extractSeries', () => {
     ]);
   });
 
+  // Regression for #36401: query results containing integers beyond
+  // Number.MAX_SAFE_INTEGER are parsed as native BigInt (see
+  // packages/superset-ui-core/src/connection/callApi/parseResponse.ts).
+  // In "Expand" (100%/contribution) stacking mode, the raw datum value is
+  // divided by the row's total, which throws if the datum is still a
+  // BigInt at that point even though the total itself is a Number.
+  test('normalizes a BigInt datum value before dividing in Expand stack mode', () => {
+    const data = [
+      {
+        __timestamp: '2000-01-01',
+        metric_a: BigInt('9007199254740993'),
+        metric_b: 10,
+      },
+    ];
+    const totalStackedValues = [9007199254740993 + 10];
+
+    expect(() =>
+      extractSeries(data, {
+        totalStackedValues,
+        stack: StackControlsValue.Expand,
+      }),
+    ).not.toThrow();
+
+    const [series] = extractSeries(data, {
+      totalStackedValues,
+      stack: StackControlsValue.Expand,
+    });
+    const metricA = series.find(s => s.id === 'metric_a');
+    const expandedValue = (
+      metricA?.data as [string, number][] | undefined
+    )?.[0]?.[1];
+    expect(expandedValue).toBeCloseTo(9007199254740993 / totalStackedValues[0]);
+  });
+
+  // Regression for #36401: the default series sort (SortSeriesType.Sum)
+  // calls lodash's sumBy across all rows for a given series name. If one
+  // row's metric value was parsed as BigInt and another row's value for
+  // the same series is a Number, summing them throws before extractSeries
+  // ever reaches the Expand-mode conversion.
+  test('sorts series by sum without throwing when rows mix BigInt and Number values for the same series', () => {
+    const data = [
+      {
+        __timestamp: '2000-01-01',
+        a: BigInt('9007199254740993'),
+      },
+      {
+        __timestamp: '2000-02-01',
+        a: 5,
+      },
+    ];
+
+    expect(() =>
+      extractSeries(data, { sortSeriesType: SortSeriesType.Sum }),
+    ).not.toThrow();
+
+    const [series] = extractSeries(data, {
+      sortSeriesType: SortSeriesType.Sum,
+    });
+    expect(series).toEqual([
+      {
+        id: 'a',
+        name: 'a',
+        data: [
+          ['2000-01-01', 9007199254740992],
+          ['2000-02-01', 5],
+        ],
+      },
+    ]);
+  });
+
   test('should remove rows that have a null x-value', () => {
     const data = [
       {
@@ -735,6 +808,46 @@ describe('extractGroupbyLabel', () => {
       }),
     ).toEqual('');
     expect(extractGroupbyLabel({})).toEqual('');
+  });
+});
+
+describe('extractDataTotalValues', () => {
+  test('sums numeric metric values across a stacked datum', () => {
+    const { totalStackedValues, thresholdValues } = extractDataTotalValues(
+      [{ __timestamp: '2000-01-01', metric_a: 10, metric_b: 20 }],
+      { stack: true, percentageThreshold: 50, xAxisCol: '__timestamp' },
+    );
+    expect(totalStackedValues).toEqual([30]);
+    expect(thresholdValues).toEqual([15]);
+  });
+
+  // Regression for #36401: query results containing integers beyond
+  // Number.MAX_SAFE_INTEGER are parsed as native BigInt (see
+  // packages/superset-ui-core/src/connection/callApi/parseResponse.ts).
+  // Summing a BigInt datum value against the Number accumulator here
+  // throws instead of producing a stacked total.
+  test('sums a stacked datum containing a BigInt metric value without throwing', () => {
+    const data: DataRecord[] = [
+      {
+        __timestamp: '2000-01-01',
+        metric_a: 10,
+        metric_b: BigInt('9007199254740993'),
+      },
+    ];
+    const { totalStackedValues, thresholdValues } = extractDataTotalValues(
+      data,
+      {
+        stack: true,
+        percentageThreshold: 50,
+        xAxisCol: '__timestamp',
+      },
+    );
+    // BigInt('9007199254740993') exceeds Number.MAX_SAFE_INTEGER, so
+    // converting it to a Number loses precision (rounds to
+    // 9007199254740992). The assertions reflect that expected,
+    // best-effort numeric representation rather than exact BigInt math.
+    expect(totalStackedValues).toEqual([9007199254741002]);
+    expect(thresholdValues).toEqual([4503599627370501]);
   });
 });
 
@@ -1593,6 +1706,148 @@ test('getAxisType does not coerce Numeric x-axis to Time regardless of values', 
   expect(getAxisType(false, false, GenericDataType.String)).toEqual(
     AxisType.Category,
   );
+});
+
+describe('getTemporalTickValues', () => {
+  const xAxisLabel = '__timestamp';
+
+  test('returns undefined for a non-time axis', () => {
+    const data: DataRecord[] = [{ [xAxisLabel]: 1712361600000 }];
+    expect(
+      getTemporalTickValues(
+        data,
+        xAxisLabel,
+        AxisType.Category,
+        TimeGranularity.WEEK,
+      ),
+    ).toBeUndefined();
+  });
+
+  test('returns undefined when there is no time grain', () => {
+    const data: DataRecord[] = [{ [xAxisLabel]: 1712361600000 }];
+    expect(
+      getTemporalTickValues(data, xAxisLabel, AxisType.Time, undefined),
+    ).toBeUndefined();
+  });
+
+  test('returns undefined for a non-weekly time grain', () => {
+    const data: DataRecord[] = [{ [xAxisLabel]: 1712361600000 }];
+    expect(
+      getTemporalTickValues(
+        data,
+        xAxisLabel,
+        AxisType.Time,
+        TimeGranularity.MONTH,
+      ),
+    ).toBeUndefined();
+  });
+
+  test('returns sorted, de-duplicated bucket timestamps for numbers and Dates', () => {
+    const t0 = Date.UTC(2026, 3, 6);
+    const t1 = Date.UTC(2026, 3, 13);
+    const data: DataRecord[] = [
+      { [xAxisLabel]: t1 },
+      { [xAxisLabel]: new Date(t0) },
+      { [xAxisLabel]: t0 }, // duplicate of the Date row above
+    ];
+    expect(
+      getTemporalTickValues(
+        data,
+        xAxisLabel,
+        AxisType.Time,
+        TimeGranularity.WEEK,
+      ),
+    ).toEqual([t0, t1]);
+  });
+
+  test('parses a zoned ISO string as the instant it names', () => {
+    const data: DataRecord[] = [{ [xAxisLabel]: '2026-04-06T00:00:00.000Z' }];
+    expect(
+      getTemporalTickValues(
+        data,
+        xAxisLabel,
+        AxisType.Time,
+        TimeGranularity.WEEK,
+      ),
+    ).toEqual([Date.UTC(2026, 3, 6)]);
+  });
+
+  test('parses a zone-less datetime string as local time, matching ECharts', () => {
+    const data: DataRecord[] = [{ [xAxisLabel]: '2026-04-06T00:00:00' }];
+    expect(
+      getTemporalTickValues(
+        data,
+        xAxisLabel,
+        AxisType.Time,
+        TimeGranularity.WEEK,
+      ),
+    ).toEqual([new Date(2026, 3, 6, 0, 0, 0).getTime()]);
+  });
+
+  test('parses a bare date string as local midnight, matching ECharts rather than native Date', () => {
+    // `new Date('2026-04-06')` is UTC, but ECharts parses it as local time.
+    // jest.config.js fixes the test TZ to America/New_York, so they disagree.
+    const data: DataRecord[] = [{ [xAxisLabel]: '2026-04-06' }];
+    const localMidnight = new Date(2026, 3, 6).getTime();
+    expect(localMidnight).not.toEqual(new Date('2026-04-06').getTime());
+    expect(
+      getTemporalTickValues(
+        data,
+        xAxisLabel,
+        AxisType.Time,
+        TimeGranularity.WEEK,
+      ),
+    ).toEqual([localMidnight]);
+  });
+
+  test('drops unparseable or nullish values and returns undefined when none remain', () => {
+    const data: DataRecord[] = [
+      { [xAxisLabel]: 'not-a-date' },
+      { [xAxisLabel]: null },
+    ];
+    expect(
+      getTemporalTickValues(
+        data,
+        xAxisLabel,
+        AxisType.Time,
+        TimeGranularity.WEEK,
+      ),
+    ).toBeUndefined();
+  });
+});
+
+describe('capTickMarks', () => {
+  test('returns values unchanged when within the cap', () => {
+    const values = [1, 2, 3];
+    expect(capTickMarks(values, 60)).toEqual(values);
+  });
+
+  test('downsamples to every step-th value when the last value already lands on the step', () => {
+    const values = Array.from({ length: 261 }, (_, i) => i);
+    // step = ceil(261 / 60) = 5, and 260 is already a multiple of 5, so
+    // nothing needs to be appended for the last bucket.
+    expect(capTickMarks(values, 60)).toEqual(
+      Array.from({ length: 53 }, (_, i) => i * 5),
+    );
+  });
+
+  test('appends the last value when it does not land on the step', () => {
+    const values = Array.from({ length: 262 }, (_, i) => i);
+    // step = ceil(262 / 60) = 5, stepping lands on 0..260, and the true last
+    // value (261) is appended on top since it isn't a multiple of 5.
+    expect(capTickMarks(values, 60)).toEqual([
+      ...Array.from({ length: 53 }, (_, i) => i * 5),
+      261,
+    ]);
+  });
+
+  test('maxTicks is not a hard bound once the last value has to be appended', () => {
+    const values = Array.from({ length: 300 }, (_, i) => i);
+    // step = ceil(300 / 60) = 5, which already lands on 60 stepped values
+    // (0..295) plus the appended last value (299), totaling 61 — one over
+    // maxTicks. Keeping the true last bucket wins over a hard cap.
+    expect(capTickMarks(values, 60)).toHaveLength(61);
+  });
 });
 
 test('getMinAndMaxFromBounds returns empty object when not truncating', () => {

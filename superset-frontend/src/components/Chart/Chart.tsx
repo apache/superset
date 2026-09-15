@@ -40,6 +40,7 @@ import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { isCurrentUserBot } from 'src/utils/isBot';
+import type { AsyncModeOverride } from 'src/utils/asyncMode';
 import { ChartSource } from 'src/types/ChartSource';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
 import { Dispatch } from 'redux';
@@ -92,6 +93,8 @@ export interface ChartProps {
   /** Whether to suppress the loading spinner (during auto-refresh) */
   suppressLoadingSpinner?: boolean;
   filterState?: FilterState;
+  /** Per-dashboard `async_mode` override, threaded to self-contained charts. */
+  asyncModeOverride?: AsyncModeOverride;
 }
 
 export type Actions = {
@@ -211,6 +214,7 @@ function Chart({
     onChartStateChange,
     suppressLoadingSpinner,
     filterState,
+    asyncModeOverride,
   } = restProps;
 
   const renderStartTimeRef = useRef<number>(Logger.getTimestamp());
@@ -383,6 +387,7 @@ function Chart({
             filterState={filterState}
             suppressLoadingSpinner={suppressLoadingSpinner}
             source={dashboardId ? ChartSource.Dashboard : ChartSource.Explore}
+            asyncModeOverride={asyncModeOverride}
           />
         ) : (
           <Loading size={dashboardId ? 's' : 'm'} muted={!!dashboardId} />
@@ -393,6 +398,7 @@ function Chart({
       actions,
       addFilter,
       annotationData,
+      asyncModeOverride,
       chartAlert,
       chartId,
       chartIsStale,
