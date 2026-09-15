@@ -317,10 +317,18 @@ authenticate the Playwright browser context. The default function uses the `flas
 cookie. Here's an example of a custom function signature:
 
 ```python
-from playwright.sync_api import BrowserContext
+from __future__ import annotations
 
-def auth_browser_context(browser_context: BrowserContext, user: "User") -> BrowserContext:
-    pass
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from flask_appbuilder.security.sqla.models import User
+    from playwright.sync_api import BrowserContext
+
+
+def auth_browser_context(browser_context: BrowserContext, user: User) -> BrowserContext:
+    # Add cookies or headers that authenticate as `user`, then return the context.
+    return browser_context
 ```
 
 Then on configuration:
