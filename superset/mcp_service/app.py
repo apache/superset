@@ -175,11 +175,13 @@ Alerts & Reports:
 - get_report_info: Get detailed alert/report schedule info by ID
 
 Dataset Management:
-- list_datasets: List datasets with advanced filters (1-based pagination)
+- list_datasets: List datasets with advanced filters (1-based pagination; deleted_state='only'/'include' surfaces trashed datasets the caller may restore)
 - get_dataset_info: Get detailed dataset information by ID (includes columns/metrics)
 - create_dataset: Register a physical table as a dataset against an existing DB connection (requires write access)
 - create_virtual_dataset: Save a SQL query as a virtual dataset for charting (requires write access)
 - update_dataset_metric: Update a saved metric on a dataset — expression, name, verbose_name, format (requires dataset ownership)
+- delete_dataset: Delete a dataset by ID/UUID (requires editor rights — owner or Admin; destructive; charts built on it stop working; soft-deletes to trash when the SOFT_DELETE feature flag is on, permanent otherwise)
+- restore_dataset: Restore a soft-deleted dataset from trash by ID/UUID (requires editor rights — owner or Admin; only applies to datasets trashed under the SOFT_DELETE feature flag)
 - query_dataset: Query a dataset using its semantic layer (saved metrics, dimensions, filters) without needing a saved chart
 
 Semantic Layer:
@@ -825,9 +827,11 @@ from superset.mcp_service.database.tool import (  # noqa: F401, E402
 from superset.mcp_service.dataset.tool import (  # noqa: F401, E402
     create_dataset,
     create_virtual_dataset,
+    delete_dataset,
     get_dataset_info,
     list_datasets,
     query_dataset,
+    restore_dataset,
     update_dataset_metric,
 )
 from superset.mcp_service.explore.tool import (  # noqa: F401, E402
