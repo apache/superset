@@ -157,12 +157,29 @@ jobs:
           # just with a freshly-pulled base image layer underneath.
           # `--force-latest` is only passed when the config job confirmed the
           # fetched release is the newest one (see FORCE_LATEST_FLAG above).
+          #
+          # supersetbot itself defaults every non-py311/py312 preset to an
+          # older pinned Python (see BASE_PY_IMAGE in its docker.js), so
+          # without an explicit override this refresh would rebuild on that
+          # stale interpreter instead of the checked-out release's own
+          # intended version, silently defeating the point of this cron.
+          # docker-build-extra-flags.sh (checked out at $LATEST_RELEASE,
+          # same as the rest of this job) is the single source of truth for
+          # that override; only its --build-arg PY_VER piece is extracted,
+          # since its --tag piece is meant for the PR/push build in
+          # docker.yml, not this workflow's own tag scheme.
+          EXTRA_FLAGS=""
+          if [ -x scripts/docker-build-extra-flags.sh ]; then
+            EXTRA_FLAGS="$(scripts/docker-build-extra-flags.sh "$BUILD_PRESET" dummy-tag | grep -oE -- '--build-arg PY_VER=[^[:space:]]+' || true)"
+          fi
+
           supersetbot docker \
             --push \
             --preset "$BUILD_PRESET" \
             --context release \
             --context-ref "$LATEST_RELEASE" \
             $FORCE_LATEST_FLAG \
+            --extra-flags "$EXTRA_FLAGS" \
             --platform "linux/arm64" \
             --platform "linux/amd64"
 
