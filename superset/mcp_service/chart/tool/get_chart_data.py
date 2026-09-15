@@ -44,6 +44,10 @@ from superset.mcp_service.chart.chart_helpers import (
     rejected_requested_filter_columns,
 )
 from superset.mcp_service.chart.chart_utils import validate_chart_dataset
+from superset.mcp_service.chart.constants import (
+    LARGE_RESULT_ROW_THRESHOLD,
+    WIDE_RESULT_COLUMN_THRESHOLD,
+)
 from superset.mcp_service.chart.query_result import (
     query_result_failure,
 )
@@ -145,6 +149,25 @@ def _coerce_row_limit(value: Any, default: int) -> int:
     except (TypeError, ValueError):
         return default
     return coerced if coerced > 0 else default
+
+
+def build_shape_insights(row_count: int, column_count: int) -> list[str]:
+    """Advice about the *shape* of a result, or nothing at all.
+
+    Only speaks up when a reader could act on it. The row threshold used to sit
+    at 100, which fires on results that are entirely ordinary for a chart, so
+    the advice appeared constantly and meant nothing — and a field that always
+    warns is a field people learn to skip.
+    """
+    insights: list[str] = []
+    if row_count > LARGE_RESULT_ROW_THRESHOLD:
+        insights.append(
+            f"Large result ({row_count:,} rows) - consider filtering "
+            "or a coarser time grain"
+        )
+    if column_count > WIDE_RESULT_COLUMN_THRESHOLD:
+        insights.append("Many columns available - focus on key metrics")
+    return insights
 
 
 def _recommend_visualizations(
@@ -295,6 +318,44 @@ def _build_query_results(
     return results
 
 
+def _is_json_null(value: Any) -> bool:
+    """True for values JSON has no representation for: None, NaN, NaT.
+
+    Uses the self-inequality property (``x != x``) rather than importing
+    pandas, so it catches ``float('nan')``, ``numpy.nan`` and ``pandas.NaT``
+    without a hard dependency or a type-by-type list.
+    """
+    if value is None:
+        return True
+    try:
+        return bool(value != value)
+    except (TypeError, ValueError):  # pragma: no cover - exotic scalars
+        return False
+
+
+def _json_safe_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Replace null-ish scalars in query rows so the result can be serialized.
+
+    ``pandas.NaT`` subclasses ``datetime.datetime``, so pydantic_core takes the
+    datetime path and reads ``.year`` — which on NaT is ``nan``, a float. That
+    raises ``TypeError: 'float' object cannot be interpreted as an integer``
+    during serialization, AFTER the query has run and the response has been
+    built. The ``fallback=str`` FastMCP passes never fires, because NaT is not
+    an unknown type.
+
+    A single NULL in a temporal column was therefore enough to make any tool
+    embedding that chart fail — get_chart_data, render_chart and
+    render_dashboard alike. Bare ``nan`` is normalized too: it serializes to
+    the literal ``NaN``, which is not valid JSON and which strict clients
+    reject.
+    """
+    if not rows:
+        return rows
+    return [
+        {k: (None if _is_json_null(v) else v) for k, v in row.items()} for row in rows
+    ]
+
+
 @tool(
     tags=["data"],
     class_permission_name="Chart",
@@ -333,9 +394,11 @@ async def execute_chart_data(  # noqa: C901
 ) -> ChartData | ChartError:
     """Shared core behind get_chart_data.
 
-    Undecorated entry point so other tools (e.g. get_dashboard_data) reuse the
-    same query and guest-authorization path without re-entering the auth-wrapped
-    tool.
+    Undecorated entry point so other tools (e.g. get_dashboard_data and the
+    MCP Apps ``render_chart`` widget tool) reuse the same query and
+    guest-authorization path without re-entering the auth-wrapped tool.
+    Wrapping it again would push a second app context and re-run RBAC, so all
+    authorization stays on the public tools.
     """
     await ctx.info(
         "Starting chart data retrieval: identifier=%s, format=%s, limit=%s, "
@@ -577,6 +640,10 @@ async def execute_chart_data(  # noqa: C901
             # The query_context contains all the information needed to reproduce
             # the chart's data exactly as shown in the visualization
             query_context_json = None
+            # Set only when we fall back to reconstructing the query from
+            # form_data, which drops Superset's post_processing stage.
+            fidelity_warning: str | None = None
+
             if using_unsaved_state and cached_form_data_dict is not None:
                 form_data = cached_form_data_dict
             else:
@@ -632,6 +699,20 @@ async def execute_chart_data(  # noqa: C901
             if query_context_json is None and not using_unsaved_state:
                 # Fallback: Chart has no saved query_context
                 # This can happen with older charts that haven't been re-saved
+                # This warning went only to the MCP log, where no user or
+                # client could see it — so charts on this path rendered
+                # plausible-looking numbers that silently disagreed with
+                # Superset. It travels with the data now.
+                fidelity_warning = (
+                    "This chart was rendered without Superset's query "
+                    "pipeline. Time grouping, sorting, pivoting and "
+                    "multi-series joins were not applied, so BOTH the values "
+                    "and their arrangement may differ from Superset — a "
+                    "chart grouped by month can come back as individual "
+                    "days, and a pivot table can come back as a single "
+                    "total. Compare against Superset before relying on "
+                    "these numbers."
+                )
                 await ctx.warning(
                     "Chart has no saved query_context. "
                     "Data may not match the chart visualization exactly. "
@@ -824,7 +905,12 @@ async def execute_chart_data(  # noqa: C901
 
             # Extract data from result (we've already validated it exists above)
             query_result = result["queries"][0]
-            data = query_result.get("data", [])
+            # Keep the pre-normalization rows: _json_safe_rows maps NaN/NaT to
+            # None so the result serializes, which would otherwise inflate the
+            # null counts below. Data quality is measured on what the query
+            # actually returned, where only a real NULL counts as missing.
+            raw_rows = query_result.get("data", [])
+            data = _json_safe_rows(raw_rows)
             raw_columns = query_result.get("colnames", [])
 
             await ctx.debug(
@@ -876,7 +962,9 @@ async def execute_chart_data(  # noqa: C901
                         display_name=col_name.replace("_", " ").title(),
                         data_type=data_type,
                         sample_values=sample_values[:3],
-                        null_count=sum(1 for row in data if row.get(col_name) is None),
+                        null_count=sum(
+                            1 for row in raw_rows if row.get(col_name) is None
+                        ),
                         unique_count=len({str(row.get(col_name)) for row in data}),
                     )
                 )
@@ -887,13 +975,7 @@ async def execute_chart_data(  # noqa: C901
             )
 
             # Generate insights and recommendations
-            insights = []
-            if len(data) > 100:
-                insights.append(
-                    "Large dataset - consider filtering for better performance"
-                )
-            if len(raw_columns) > 10:
-                insights.append("Many columns available - focus on key metrics")
+            insights = build_shape_insights(len(data), len(raw_columns))
 
             # Add cache-specific insights
             if cache_status.cache_hit:
@@ -971,7 +1053,7 @@ async def execute_chart_data(  # noqa: C901
                 ):
                     return _export_data_as_csv(
                         chart_facts,
-                        data[: request.limit] if request.limit else data,
+                        raw_rows[: request.limit] if request.limit else raw_rows,
                         raw_columns,
                         cache_status,
                         performance,
@@ -982,7 +1064,7 @@ async def execute_chart_data(  # noqa: C901
                 ):
                     return _export_data_as_excel(
                         chart_facts,
-                        data[: request.limit] if request.limit else data,
+                        raw_rows[: request.limit] if request.limit else raw_rows,
                         raw_columns,
                         cache_status,
                         performance,
@@ -1015,6 +1097,7 @@ async def execute_chart_data(  # noqa: C901
                 chart_id=chart_id,
                 chart_name=chart_name or f"Chart {chart_id}",
                 chart_type=chart_viz_type or "unknown",
+                fidelity_warning=fidelity_warning,
                 columns=columns,
                 data=data[: request.limit] if request.limit else data,
                 query_results=_build_query_results(result["queries"], request.limit),
@@ -1181,7 +1264,9 @@ async def _query_from_form_data(  # noqa: C901
             )
 
         query_result = result["queries"][0]
-        data = query_result.get("data", [])
+        # See the note above: null counts are measured pre-normalization.
+        raw_rows = query_result.get("data", [])
+        data = _json_safe_rows(raw_rows)
         raw_columns = query_result.get("colnames", [])
 
         if not any(query.get("data") for query in result["queries"]):
@@ -1210,7 +1295,7 @@ async def _query_from_form_data(  # noqa: C901
                     display_name=col_name.replace("_", " ").title(),
                     data_type=data_type,
                     sample_values=sample_values[:3],
-                    null_count=sum(1 for row in data if row.get(col_name) is None),
+                    null_count=sum(1 for row in raw_rows if row.get(col_name) is None),
                     unique_count=len({str(row.get(col_name)) for row in data}),
                 )
             )
@@ -1232,7 +1317,7 @@ async def _query_from_form_data(  # noqa: C901
             )
             return export(
                 chart,
-                data[: request.limit] if request.limit else data,
+                raw_rows[: request.limit] if request.limit else raw_rows,
                 raw_columns,
                 cache_status,
                 PerformanceMetadata(query_duration_ms=0, cache_status="fresh_query"),

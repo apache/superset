@@ -27,7 +27,7 @@ from fastmcp.exceptions import ToolError, ValidationError as FastMCPValidationEr
 from fastmcp.server.middleware import Middleware, MiddlewareContext
 from fastmcp.server.middleware.middleware import CallNext
 from fastmcp.tools.tool import Tool, ToolResult
-from flask import g
+from flask import g, has_app_context
 from pydantic import ValidationError
 from sqlalchemy.exc import OperationalError, TimeoutError
 from starlette.exceptions import HTTPException
@@ -737,6 +737,40 @@ class LoggingMiddleware(Middleware):
             )
 
 
+# Tools that MUST retain ``outputSchema`` / ``structuredContent`` despite the
+# global stripping. MCP Apps widgets read the structured tool result to render an
+# interactive UI, so stripping it would break the widget. ``render_chart`` is the
+# initial render; ``render_chart_requery`` returns the fresh data the widget
+# renders after a drill-down / zoom, so it must be exempt too.
+# Overridable via the ``MCP_STRUCTURED_CONTENT_KEEP_TOOLS`` config key.
+# Fallback used when no Flask app context is available to read
+# MCP_STRUCTURED_CONTENT_KEEP_TOOLS from. Must stay in sync with that config
+# default — a tool present in one and not the other keeps its structured
+# content in a running server and loses it outside one, which is the kind of
+# difference that only shows up in the environment you did not test.
+DEFAULT_STRUCTURED_CONTENT_KEEP_TOOLS: frozenset[str] = frozenset(
+    {"render_chart", "render_chart_requery", "render_dashboard"}
+)
+
+
+def _schema_shaped_error(exc: Exception, tool_name: str | None) -> dict[str, Any]:
+    """Build an error payload that satisfies a keep-list tool's ``outputSchema``.
+
+    Keep-list tools return a union (``ChartData | ChartError``), which FastMCP
+    advertises as ``{"result": {"anyOf": [...]}}`` with ``x-fastmcp-wrap-result``.
+    Shaping the error as the ``MCPBaseError`` branch — wrapped in ``result`` —
+    keeps the failure path conformant with what the tool declared.
+    """
+    from superset.mcp_service.common.error_schemas import MCPBaseError
+
+    payload = MCPBaseError(
+        error_type=type(exc).__name__,
+        message=str(exc),
+    ).model_dump(mode="json")
+    logger.debug("Schema-shaped error for keep-list tool %s", tool_name)
+    return {"result": payload}
+
+
 class StructuredContentStripperMiddleware(Middleware):
     """Strip ``outputSchema`` and ``structured_content`` to prevent encoding errors.
 
@@ -754,7 +788,30 @@ class StructuredContentStripperMiddleware(Middleware):
     This middleware handles both sides:
     - ``on_list_tools``: removes ``output_schema`` from every tool definition
     - ``on_call_tool``: removes ``structured_content`` from every tool result
+
+    **Keep-list exemption.** Tools listed in
+    ``MCP_STRUCTURED_CONTENT_KEEP_TOOLS`` (default: ``render_chart``) are
+    exempt from both operations. MCP Apps widgets depend on the structured
+    tool result to render, so their schema/content is preserved. These tools
+    must return an encodable structured payload; keep the keep-list small and
+    only add tools whose transports are known to tolerate ``structuredContent``.
     """
+
+    def __init__(self, keep_tools: frozenset[str] | None = None) -> None:
+        # Resolved lazily from config when not explicitly injected, so config
+        # overrides in ``superset_config.py`` are honored without re-wiring.
+        self._keep_tools_override = keep_tools
+
+    def _keep_tools(self) -> frozenset[str]:
+        if self._keep_tools_override is not None:
+            return self._keep_tools_override
+        if has_app_context():
+            from flask import current_app
+
+            configured = current_app.config.get("MCP_STRUCTURED_CONTENT_KEEP_TOOLS")
+            if configured is not None:
+                return frozenset(configured)
+        return DEFAULT_STRUCTURED_CONTENT_KEEP_TOOLS
 
     async def on_list_tools(
         self,
@@ -769,10 +826,13 @@ class StructuredContentStripperMiddleware(Middleware):
             # list, not an error object — causing "encoding without a string argument".
             # Return an empty list; GlobalErrorHandlerMiddleware already logged it.
             return []
+        keep = self._keep_tools()
         return [
-            t.model_copy(update={"output_schema": None})
-            if t.output_schema is not None
-            else t
+            (
+                t.model_copy(update={"output_schema": None})
+                if t.output_schema is not None and t.name not in keep
+                else t
+            )
             for t in tools
         ]
 
@@ -827,19 +887,33 @@ class StructuredContentStripperMiddleware(Middleware):
                         "duration_ms": None,
                     },
                 )
+            tool_name = getattr(context.message, "name", None)
             # Flag the failure so clients can distinguish it from a
             # successful call. This still serializes to
-            # CallToolResult(isError=True) (see ToolResult.to_mcp_result);
-            # what keeps it encodable is that structured_content stays None
-            # and only the boolean flips false->true, not the structured
-            # payload implicated in the bridge failure above. That leg is
-            # unverified against the live Claude.ai bridge.
+            # CallToolResult(isError=True) (see ToolResult.to_mcp_result).
             return ToolResult(
                 content=[mt.TextContent(type="text", text=error_text)],
                 meta={"mcp_call_id": mcp_call_id} if mcp_call_id else None,
                 is_error=True,
+                # Keep-list tools keep their ``outputSchema`` advertised, so a
+                # text-only error result violates it and strict clients reject
+                # the whole call ("has an output schema but did not return
+                # structured content"). Emit a schema-shaped error for those
+                # tools only. Everything else keeps ``structured_content`` None:
+                # that payload is the one implicated in the bridge encoding
+                # failure above, and only the boolean flips false->true.
+                structured_content=(
+                    _schema_shaped_error(e, tool_name)
+                    if tool_name in self._keep_tools()
+                    else None
+                ),
             )
-        if isinstance(result, ToolResult) and result.structured_content is not None:
+        tool_name = getattr(context.message, "name", None)
+        if (
+            isinstance(result, ToolResult)
+            and result.structured_content is not None
+            and tool_name not in self._keep_tools()
+        ):
             result = ToolResult(content=result.content, meta=result.meta)
         return result
 

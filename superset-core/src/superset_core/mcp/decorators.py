@@ -58,6 +58,7 @@ def tool(
     class_permission_name: str | None = None,
     method_permission_name: str | None = None,
     annotations: ToolAnnotations | None = None,
+    meta: dict[str, Any] | None = None,
 ) -> Any:  # Use Any to avoid mypy issues with dependency injection
     """
     Decorator to register an MCP tool with optional authentication.
@@ -87,6 +88,10 @@ def tool(
             Defaults to "write" if tags includes "mutate", else "read".
         annotations: MCP tool annotations (title, readOnlyHint, destructiveHint, etc.)
             These hints help MCP clients understand tool behavior and safety.
+        meta: Optional ``_meta`` dict attached to the tool definition. Used by the
+            MCP Apps extension to link a tool to an interactive UI resource via
+            ``{"ui": {"resourceUri": "ui://..."}}`` so hosts render its result as
+            a widget. See https://modelcontextprotocol.io/extensions/apps/overview.
 
     Returns:
         Decorator function that registers and wraps the tool, or the wrapped function

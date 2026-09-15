@@ -1,0 +1,127 @@
+{
+  "$defs": {
+    "RenderChartRequeryRequest": {
+      "description": "Request for ``render_chart_requery`` \u2014 the app-visible re-query tool the\nchart-viewer widget calls for drill-down, brush-to-zoom, and filtering.\n\nThis tool is intended to be invoked by the widget (``_meta.ui.visibility =\n[\"app\"]``), not the model. It translates high-level interactions into an\n``extra_form_data`` override and re-runs the same authorized data query.",
+      "properties": {
+        "cache_timeout": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Cache timeout override in seconds (0 to disable)"
+        },
+        "filter": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Drill filter as an object, e.g. {\"col\": \"country\", \"val\": \"US\"}. Alternative to filter_col/filter_val; takes precedence when both are provided. Sent by the chart-viewer widget on click-to-drill."
+        },
+        "filter_col": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Column to filter on (paired with filter_val) when drilling into a clicked data point."
+        },
+        "filter_val": {
+          "anyOf": [
+            {},
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Value the clicked data point represents; filters filter_col == filter_val."
+        },
+        "force_refresh": {
+          "default": false,
+          "description": "Invalidate cache and fetch fresh data",
+          "type": "boolean"
+        },
+        "granularity": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Time grain override for the narrowed range (e.g. P1D, PT1H) when zooming into a time-series. This is a best-effort hint: saved query contexts for some chart configurations ignore time_grain_sqla."
+        },
+        "identifier": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Chart identifier (numeric ID or UUID) to re-query."
+        },
+        "limit": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Maximum number of data rows to return."
+        },
+        "time_range": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Time range override (Superset time-range syntax, e.g. \"Last quarter\" or an ISO \"start : end\" range) for brush-to-zoom."
+        },
+        "use_cache": {
+          "default": true,
+          "description": "Use cache if available",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "identifier"
+      ],
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "request": {
+      "$ref": "#/$defs/RenderChartRequeryRequest"
+    }
+  },
+  "required": [
+    "request"
+  ],
+  "type": "object"
+}

@@ -450,6 +450,16 @@ npm run build-translation
 
 cd ../
 
+# Build the MCP Apps chart widget. Like superset/static/assets, its
+# dist/index.html is gitignored and produced here, not committed; MANIFEST.in
+# ships that one file. This MUST run before `python -m build`, because the
+# sdist contains only the built dist/index.html — not the widget's
+# package.json or src/ — so it cannot be rebuilt from the released tarball.
+# Skipping this step yields a wheel whose ui://superset/chart-viewer MCP
+# resource falls back to a placeholder.
+cd superset/mcp_service/chart/resources/chart_viewer/
+npm ci && npm run build
+cd ../../../../../
 
 # Compile translations for the backend
 ./scripts/translations/generate_mo_files.sh
