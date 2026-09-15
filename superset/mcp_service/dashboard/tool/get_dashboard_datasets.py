@@ -18,7 +18,7 @@
 """
 Get dashboard datasets FastMCP tool
 
-Returns the datasets used by a dashboard's charts, including columns and
+Returns the datasets and semantic views used by a dashboard's charts, with columns and
 metrics. This is the prerequisite context an agent needs before configuring
 native filters on a dashboard (e.g. picking filter target columns).
 """
@@ -62,7 +62,12 @@ async def get_dashboard_datasets(
     request: GetDashboardDatasetsRequest, ctx: Context
 ) -> DashboardDatasets | DashboardError:
     """
-    List the datasets used by a dashboard's charts, by ID, UUID, or slug.
+    List the datasets and semantic views used by a dashboard's charts.
+
+    Look up the dashboard by ID, UUID, or slug. Each entry's datasource_type
+    distinguishes a table from a semantic_view, and name is its display name.
+    Views include semantic_layer (uuid, name), with table_name, schema and database
+    set to null.
 
     Each dataset includes its table name, schema, database connection
     (id, name, backend), columns (name, type, is_dttm, verbose_name) and
@@ -113,6 +118,7 @@ async def get_dashboard_datasets(
             slice_dataset.subqueryload(SqlaTable.columns),
             slice_dataset.subqueryload(SqlaTable.metrics),
             slice_dataset.joinedload(SqlaTable.database),
+            subqueryload(Dashboard.slices).subqueryload(Slice.semantic_view),
         ]
 
         with event_logger.log_context(action="mcp.get_dashboard_datasets.lookup"):

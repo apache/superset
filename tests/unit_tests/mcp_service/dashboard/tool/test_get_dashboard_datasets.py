@@ -18,12 +18,16 @@
 """Unit tests for the MCP get_dashboard_datasets tool."""
 
 from importlib import import_module
+from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
-from fastmcp import Client
+from fastmcp import Client, FastMCP
 
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import SupersetSecurityException
 from superset.mcp_service.app import mcp
+from superset.semantic_layers.models import ColumnMetadata, MetricMetadata
 from superset.utils import json
 
 get_dashboard_datasets_module = import_module(
@@ -33,6 +37,149 @@ get_dashboard_datasets_module = import_module(
 
 def _wrapped(value: str) -> str:
     return value
+
+
+def _build_view_slice(view_id: int = 2) -> Mock:
+    """Build a semantic-view chart with no SQL datasource relationship."""
+    view: Mock = Mock()
+    view.id = view_id
+    view.uuid = "view-uuid"
+    view.name = "Orders"
+    view.semantic_layer = Mock(uuid="6f0f1c2a-0000-4000-8000-000000000007")
+    view.semantic_layer.name = "Jaffle Shop"
+    view.columns = [ColumnMetadata("order_date", "TIMESTAMP", True, "Order date")]
+    view.metrics = [MetricMetadata("revenue", "SUM(amount)", "Revenue")]
+    view.raise_for_access = Mock(return_value=None)
+    slc: Mock = Mock(datasource_id=view_id, datasource_type="semantic_view")
+    slc.datasource = None
+    slc.semantic_view = view
+    return slc
+
+
+@patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+@pytest.mark.asyncio
+async def test_get_dashboard_datasets_view_only(
+    mock_find: Mock,
+    mcp_server: FastMCP,
+) -> None:
+    """A dashboard containing only a semantic-view chart exposes its source."""
+    mock_find.return_value = _build_dashboard_mock(slices=[_build_view_slice()])
+    async with Client(mcp_server) as client:
+        data: dict[str, Any] = json.loads(
+            (
+                await client.call_tool(
+                    "get_dashboard_datasets", {"request": {"identifier": 1}}
+                )
+            )
+            .content[0]
+            .text
+        )
+    assert data["dataset_count"] == 1
+
+
+@pytest.mark.parametrize("view_id", [2, 1])
+@patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+@pytest.mark.asyncio
+async def test_get_dashboard_datasets_mixed_kinds(
+    mock_find: Mock,
+    mcp_server: FastMCP,
+    view_id: int,
+) -> None:
+    """Tables and views remain distinct even when their IDs collide."""
+    table: Mock = _build_datasource_mock(
+        dataset_id=1, table_name="orders", database=_build_database_mock()
+    )
+    view_slice: Mock = _build_view_slice(view_id)
+    mock_find.return_value = _build_dashboard_mock(
+        slices=[view_slice, _build_slice_mock(table)]
+    )
+    async with Client(mcp_server) as client:
+        data: dict[str, Any] = json.loads(
+            (
+                await client.call_tool(
+                    "get_dashboard_datasets", {"request": {"identifier": 1}}
+                )
+            )
+            .content[0]
+            .text
+        )
+    assert data["dataset_count"] == 2
+    assert data["inaccessible_dataset_count"] == 0
+    assert [entry["id"] for entry in data["datasets"]] == [1, view_id]
+    by_kind: dict[str, Any] = {
+        entry["datasource_type"]: entry for entry in data["datasets"]
+    }
+    assert by_kind["table"]["table_name"] == by_kind["table"]["name"] == "orders"
+    assert by_kind["table"]["database"]["name"] == "examples"
+    assert by_kind["table"]["semantic_layer"] is None
+    view: dict[str, Any] = by_kind["semantic_view"]
+    assert view["name"] == "Orders"
+    assert view["uuid"] == "view-uuid"
+    assert view["semantic_layer"] == {
+        "uuid": "6f0f1c2a-0000-4000-8000-000000000007",
+        "name": "Jaffle Shop",
+    }
+    assert view["table_name"] is None
+    assert view["schema"] is None
+    assert view["database"] is None
+    assert view["columns"] == [
+        {
+            "column_name": "order_date",
+            "type": "TIMESTAMP",
+            "is_dttm": True,
+            "verbose_name": "Order date",
+        }
+    ]
+    assert view["metrics"] == [
+        {
+            "metric_name": "revenue",
+            "expression": "SUM(amount)",
+            "verbose_name": "Revenue",
+        }
+    ]
+    view_slice.semantic_view.raise_for_access.assert_called_once_with()
+
+
+@pytest.mark.parametrize("unexpected_error", [False, True])
+@patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+@pytest.mark.asyncio
+async def test_get_dashboard_datasets_inaccessible_view(
+    mock_find: Mock,
+    mcp_server: FastMCP,
+    unexpected_error: bool,
+) -> None:
+    """Denied or failed view access excludes the view but preserves the table."""
+    view_slice: Mock = _build_view_slice()
+    view_slice.semantic_view.raise_for_access.side_effect = (
+        RuntimeError("Access backend unavailable")
+        if unexpected_error
+        else SupersetSecurityException(
+            SupersetError(
+                message="Denied",
+                level=ErrorLevel.ERROR,
+                error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+            )
+        )
+    )
+    mock_find.return_value = _build_dashboard_mock(
+        slices=[
+            _build_slice_mock(_build_datasource_mock(dataset_id=1)),
+            view_slice,
+        ]
+    )
+    async with Client(mcp_server) as client:
+        data: dict[str, Any] = json.loads(
+            (
+                await client.call_tool(
+                    "get_dashboard_datasets", {"request": {"identifier": 1}}
+                )
+            )
+            .content[0]
+            .text
+        )
+    assert data["dataset_count"] == 1
+    assert data["inaccessible_dataset_count"] == 1
+    assert data["datasets"][0]["datasource_type"] == "table"
 
 
 def _build_column_mock(
