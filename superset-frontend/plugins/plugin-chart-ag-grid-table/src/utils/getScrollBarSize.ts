@@ -16,18 +16,33 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+let cached: number | undefined;
 
-/**
- * Jest configuration for @storybook/test-runner
- *
- * This extends the default test-runner config with custom timeouts
- * to handle slow story rendering in CI environments.
- */
-const { getJestConfig } = require('@storybook/test-runner');
-const testRunnerConfig = getJestConfig();
+const css = (x: TemplateStringsArray) => x.join('\n');
 
-module.exports = {
-  ...testRunnerConfig,
-  // Increase timeout from default 15s to 60s for CI environments
-  testTimeout: 60000,
-};
+export default function getScrollBarSize(forceRefresh = false) {
+  if (typeof document === 'undefined') {
+    return 0;
+  }
+  if (cached === undefined || forceRefresh) {
+    const inner = document.createElement('div');
+    const outer = document.createElement('div');
+    inner.style.cssText = css`
+      width: auto;
+      height: 100%;
+      overflow: scroll;
+    `;
+    outer.style.cssText = css`
+      position: absolute;
+      visibility: hidden;
+      overflow: hidden;
+      width: 100px;
+      height: 50px;
+    `;
+    outer.append(inner);
+    document.body.append(outer);
+    cached = outer.clientWidth - inner.clientWidth;
+    outer.remove();
+  }
+  return cached;
+}

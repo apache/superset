@@ -22,7 +22,7 @@
 /**
  * Check commit messages only for the first commit in branch.
  */
-const { execSync, spawnSync } = require('child_process');
+import { execSync, spawnSync } from 'node:child_process';
 
 const envVariable = process.argv[2] || 'GIT_PARAMS';
 

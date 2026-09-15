@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+/** @jsxImportSource @emotion/react */
 import {
   Children,
   cloneElement,
@@ -286,9 +288,28 @@ function StickyWrap({
       </colgroup>
     );
 
-    const headerContainerWidth = hasVerticalScroll
-      ? maxWidth - scrollBarSize
-      : maxWidth;
+    // Below, `width: maxWidth` is applied unconditionally (never reduced by
+    // subtracting a separately-measured scrollbar width, unlike this file's
+    // previous `maxWidth - scrollBarSize`). That's the load-bearing part of
+    // this fix: the shared colgroup (computed from the sizer below, whose
+    // own clientWidth can only ever be <= maxWidth) can never need more
+    // width than that, so a header/footer wrapper that's never narrowed
+    // below maxWidth can never clip it, regardless of whether any
+    // JS-measured scrollbar size agrees with what the sizer/body actually
+    // reserve in a given browser.
+    //
+    // `scrollbarGutter`/`scrollBarStyles` below are a separate, secondary
+    // measure -- matching an actual clip boundary is not what they're for
+    // (an `overflow: hidden` box's clip boundary sits at its real
+    // border-box edge regardless of `scrollbar-gutter`, which only affects
+    // what `clientWidth` reports). They keep header/footer's reported
+    // `clientWidth` consistent with body's so that, when both a vertical
+    // and a horizontal scrollbar are present, the horizontal `scrollLeft`
+    // synced from body (see `onScroll` below) reveals the same slice of the
+    // row in header/footer as is actually visible in body.
+    const headerFooterGutter: CSSProperties = {
+      scrollbarGutter: hasVerticalScroll ? 'stable' : undefined,
+    };
 
     headerTable = (
       <div
@@ -296,9 +317,11 @@ function StickyWrap({
         ref={scrollHeaderRef}
         style={{
           overflow: 'hidden',
-          width: headerContainerWidth,
+          width: maxWidth,
           boxSizing: 'border-box',
+          ...headerFooterGutter,
         }}
+        css={scrollBarStyles}
         role="presentation"
       >
         {cloneElement(
@@ -317,9 +340,11 @@ function StickyWrap({
         ref={scrollFooterRef}
         style={{
           overflow: 'hidden',
-          width: headerContainerWidth,
+          width: maxWidth,
           boxSizing: 'border-box',
+          ...headerFooterGutter,
         }}
+        css={scrollBarStyles}
         role="presentation"
       >
         {cloneElement(

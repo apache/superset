@@ -83,6 +83,18 @@ def validate_time_grain_sqla(value: Any) -> None:
     )(value)
 
 
+def get_prophet_time_grain_choices() -> list[str]:
+    """Get the time grains Prophet forecasting can actually resolve.
+
+    Deliberately narrower than :func:`get_time_grain_choices`: ``prophet()``
+    resolves a grain through the static ``PROPHET_TIME_GRAIN_MAP``, so an
+    operator-configured ``TIME_GRAIN_ADDONS`` key has no pandas frequency to
+    resolve to. Advertising one here would document a forecast the API
+    cannot serve.
+    """
+    return list(PROPHET_TIME_GRAIN_MAP)
+
+
 # Fallback upper bound for the number of Prophet forecast periods when the
 # application config cannot be read (for example, outside of an app context).
 DEFAULT_MAX_PROPHET_PERIODS = 10000
@@ -788,7 +800,7 @@ class ChartDataProphetOptionsSchema(ChartDataPostProcessingOperationOptionsSchem
             "[ISO 8601](https://en.wikipedia.org/wiki/ISO_8601#Durations) durations.",
             "example": "P1D",
         },
-        validate=validate.OneOf(choices=tuple(PROPHET_TIME_GRAIN_MAP.keys())),
+        validate=validate.OneOf(choices=get_prophet_time_grain_choices()),
         required=True,
     )
     periods = fields.Integer(

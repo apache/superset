@@ -28,10 +28,15 @@ import pytest
 from pytest_mock import MockerFixture
 
 from superset.commands.chart.create import CreateChartCommand
-from superset.commands.chart.exceptions import ChartForbiddenError, ChartInvalidError
+from superset.commands.chart.exceptions import (
+    ChartForbiddenError,
+    ChartInvalidError,
+    ChartQueryContextDatasourceMismatchValidationError,
+)
 from superset.commands.exceptions import DatasourceTypeInvalidError
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
+from superset.utils import json
 
 
 def _base_mocks(mocker: MockerFixture) -> None:
@@ -152,3 +157,83 @@ def test_create_chart_datasource_access_denied_still_raises_forbidden(
                 "viz_type": "table",
             }
         ).validate()
+
+
+def _create_payload(query_context: str) -> dict[str, object]:
+    return {
+        "datasource_id": 42,
+        "datasource_type": "table",
+        "slice_name": "some_name",
+        "viz_type": "table",
+        "query_context": query_context,
+    }
+
+
+def _mock_table_datasource(mocker: MockerFixture) -> None:
+    _base_mocks(mocker)
+    datasource = mocker.MagicMock()
+    datasource.name = "my_table"
+    mocker.patch(
+        "superset.commands.chart.create.get_datasource_by_id",
+        return_value=datasource,
+    )
+    mocker.patch("superset.commands.chart.create.security_manager.raise_for_access")
+
+
+def test_create_chart_query_context_matching_datasource_is_allowed(
+    mocker: MockerFixture,
+) -> None:
+    """A query context targeting the chart's own datasource is accepted."""
+    _mock_table_datasource(mocker)
+
+    CreateChartCommand(
+        _create_payload(
+            json.dumps({"datasource": {"id": 42, "type": "table"}, "queries": []})
+        )
+    ).validate()
+
+
+@pytest.mark.parametrize(
+    "datasource",
+    [
+        {"id": 99, "type": "table"},  # different id
+        {"id": 42, "type": "query"},  # different type
+        {"id": "99", "type": "table"},  # different id as string
+        {"id": 42},  # matching id but missing type
+    ],
+)
+def test_create_chart_query_context_mismatched_datasource_is_rejected(
+    mocker: MockerFixture,
+    datasource: dict[str, object],
+) -> None:
+    """A query context pointing at a different datasource than the one the
+    chart is created against is rejected."""
+    _mock_table_datasource(mocker)
+
+    with pytest.raises(ChartInvalidError) as exc_info:
+        CreateChartCommand(
+            _create_payload(json.dumps({"datasource": datasource, "queries": []}))
+        ).validate()
+
+    assert any(
+        isinstance(ex, ChartQueryContextDatasourceMismatchValidationError)
+        for ex in exc_info.value._exceptions
+    )
+
+
+@pytest.mark.parametrize(
+    "query_context",
+    [
+        "{}",  # no datasource key
+        '{"datasource": null}',  # null datasource
+        "not-json",  # unparseable payload
+    ],
+)
+def test_create_chart_query_context_without_datasource_is_allowed(
+    mocker: MockerFixture,
+    query_context: str,
+) -> None:
+    """Payloads with no verifiable datasource fall back to the chart's own."""
+    _mock_table_datasource(mocker)
+
+    CreateChartCommand(_create_payload(query_context)).validate()
