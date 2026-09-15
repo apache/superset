@@ -86,26 +86,27 @@ export const propertyComparator =
     const propertyA = a[property as keyof CustomLabeledValue];
     const propertyB = b[property as keyof CustomLabeledValue];
     if (typeof propertyA === 'string' && typeof propertyB === 'string') {
+      // If both strings are decimal integers (e.g. large BIGINT values decoded
+      // by parseResponse.ts), compare numerically using BigInt to preserve full
+      // precision beyond Number.MAX_SAFE_INTEGER. Number() would coerce
+      // 9007199254740993 and 9007199254740992 to the same value.
+      if (/^-?\d+$/.test(propertyA) && /^-?\d+$/.test(propertyB)) {
+        const a = BigInt(propertyA);
+        const b = BigInt(propertyB);
+        if (a < b) return -1;
+        if (a > b) return 1;
+        return 0;
+      }
       return propertyA.localeCompare(propertyB);
     }
     if (typeof propertyA === 'number' && typeof propertyB === 'number') {
       return propertyA - propertyB;
     }
-    // BIGINT columns can decode to native `bigint` values or decimal strings
-    // (see parseResponse.ts). Compare numerically rather than falling through
-    // to the string fallback below, which would sort lexicographically.
-    if (
-      (typeof propertyA === 'bigint' ||
-        typeof propertyA === 'number' ||
-        (typeof propertyA === 'string' && /^-?\d+$/.test(propertyA))) &&
-      (typeof propertyB === 'bigint' ||
-        typeof propertyB === 'number' ||
-        (typeof propertyB === 'string' && /^-?\d+$/.test(propertyB)))
-    ) {
-      const a = Number(propertyA);
-      const b = Number(propertyB);
-      if (a < b) return -1;
-      if (a > b) return 1;
+    // Native bigint (legacy path — parseResponse.ts now emits strings, but
+    // direct callers may still pass bigint). Compare via BigInt arithmetic.
+    if (typeof propertyA === 'bigint' && typeof propertyB === 'bigint') {
+      if (propertyA < propertyB) return -1;
+      if (propertyA > propertyB) return 1;
       return 0;
     }
     return String(propertyA).localeCompare(String(propertyB)); // fallback to string comparison

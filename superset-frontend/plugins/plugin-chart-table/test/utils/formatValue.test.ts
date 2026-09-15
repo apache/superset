@@ -349,7 +349,9 @@ test('regression #44079: MEMORY_BINARY formatter with large-integer string does 
 });
 
 test('formatColumnValue: floats are not affected by the integer-string guard', () => {
-  // The /^-?\d+$/ regex rejects floats, so they flow through unchanged.
+  // The /^-?\d+$/ regex rejects float strings, so they flow through to the
+  // formatter as-is. Pass values as strings to actually exercise the regex
+  // rejection path (passing numbers bypasses the string guard entirely).
   const formatter = getNumberFormatter(',.4f');
   const column: DataColumnMeta = {
     key: 'flt',
@@ -359,9 +361,12 @@ test('formatColumnValue: floats are not affected by the integer-string guard', (
     isNumeric: true,
   };
 
-  expect(formatColumnValue(column, 3.14159)[1]).toBe('3.1416');
-  expect(formatColumnValue(column, -0.001)[1]).toBe('-0.0010');
-  expect(formatColumnValue(column, 1.5e10)[1]).toBe('15,000,000,000.0000');
+  // Float strings: /^-?\d+$/ rejects these, so they reach formatter as strings
+  // and NumberFormatter's own parseFloat handles them.
+  expect(formatColumnValue(column, '3.14159')[1]).toBe('3.1416');
+  expect(formatColumnValue(column, '-0.001')[1]).toBe('-0.0010');
+  // Scientific notation string: also rejected by /^-?\d+$/ regex
+  expect(formatColumnValue(column, '1.5e10')[1]).toBe('15,000,000,000.0000');
 });
 
 test('formatColumnValue: NaN and Infinity are not affected by the integer-string guard', () => {
