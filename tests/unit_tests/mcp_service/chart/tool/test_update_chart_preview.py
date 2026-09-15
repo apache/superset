@@ -1408,3 +1408,39 @@ class TestUpdateChartPreviewValidation:
             assert isinstance(error, dict)
             assert error["error_type"] == "DatasetNotAccessible"
             mock_create_form_data.assert_not_called()
+
+
+@pytest.mark.parametrize("allowed", [True, False])
+def test_previous_form_data_uses_existing_explore_access_gate(allowed: bool) -> None:
+    """Cached config retrieval retains Explore's resource-access check."""
+    from superset.commands.dataset.exceptions import DatasetAccessDeniedError
+    from superset.utils.core import DatasourceType
+
+    cached_form_data = '{"viz_type": "gantt_chart", "category": "task"}'
+    state = {
+        "owner": None,
+        "datasource_id": 7,
+        "datasource_type": "table",
+        "chart_id": 12,
+        "form_data": cached_form_data,
+    }
+    with (
+        patch(
+            "superset.commands.explore.form_data.get.app",
+            Mock(config={"EXPLORE_FORM_DATA_CACHE_CONFIG": {}}),
+        ),
+        patch("superset.commands.explore.form_data.get.cache_manager") as cache_manager,
+        patch(
+            "superset.commands.explore.form_data.utils.explore_check_access",
+            side_effect=None if allowed else DatasetAccessDeniedError(),
+        ) as check_access,
+    ):
+        cache_manager.explore_form_data_cache.get.return_value = state
+
+        result = update_chart_preview_module._get_previous_form_data("cached-key")
+
+    cache_manager.explore_form_data_cache.get.assert_called_once_with("cached-key")
+    check_access.assert_called_once_with(7, 12, DatasourceType.TABLE)
+    assert result == (
+        {"viz_type": "gantt_chart", "category": "task"} if allowed else None
+    )
