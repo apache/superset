@@ -78,7 +78,6 @@ def mock_app():
     app = MagicMock()
     app.config = {
         "WEBDRIVER_OPTION_ARGS": [],
-        "SCREENSHOT_LOCATE_WAIT": 10,
         "SCREENSHOT_LOAD_WAIT": 10,
     }
     return app
@@ -296,7 +295,6 @@ class TestWebDriverPlaywrightFallback:
             "SCREENSHOT_SELENIUM_ANIMATION_WAIT": 1,
             "SCREENSHOT_REPLACE_UNEXPECTED_ERRORS": False,
             "SCREENSHOT_TILED_ENABLED": False,
-            "SCREENSHOT_LOCATE_WAIT": 10,
             "SCREENSHOT_LOAD_WAIT": 10,
         }
 
@@ -356,7 +354,6 @@ class TestWebDriverPlaywrightFallback:
             "SCREENSHOT_SELENIUM_ANIMATION_WAIT": 0,
             "SCREENSHOT_REPLACE_UNEXPECTED_ERRORS": False,
             "SCREENSHOT_TILED_ENABLED": False,
-            "SCREENSHOT_LOCATE_WAIT": 10,
             "SCREENSHOT_LOAD_WAIT": 10,
         }
 
@@ -434,7 +431,6 @@ class TestWebDriverPlaywrightFallback:
                 "SCREENSHOT_PLAYWRIGHT_WAIT_EVENT": "networkidle",
                 "SCREENSHOT_SELENIUM_HEADSTART": 5,
                 "SCREENSHOT_SELENIUM_ANIMATION_WAIT": 1,
-                "SCREENSHOT_LOCATE_WAIT": 10,
                 "SCREENSHOT_LOAD_WAIT": 10,
                 "SCREENSHOT_REPLACE_UNEXPECTED_ERRORS": True,
                 "SCREENSHOT_TILED_ENABLED": False,
@@ -622,7 +618,6 @@ class TestWebDriverPlaywrightErrorHandling:
             "SCREENSHOT_SELENIUM_ANIMATION_WAIT": 0,
             "SCREENSHOT_REPLACE_UNEXPECTED_ERRORS": False,
             "SCREENSHOT_TILED_ENABLED": False,
-            "SCREENSHOT_LOCATE_WAIT": 10,
             "SCREENSHOT_LOAD_WAIT": 60,
         }
 
@@ -680,7 +675,6 @@ class TestWebDriverPlaywrightErrorHandling:
             "SCREENSHOT_SELENIUM_ANIMATION_WAIT": 0,
             "SCREENSHOT_REPLACE_UNEXPECTED_ERRORS": False,
             "SCREENSHOT_TILED_ENABLED": False,
-            "SCREENSHOT_LOCATE_WAIT": 10,
             "SCREENSHOT_LOAD_WAIT": 60,
         }
 
@@ -750,7 +744,6 @@ class TestWebDriverPlaywrightErrorHandling:
                 "SCREENSHOT_PLAYWRIGHT_WAIT_EVENT": "networkidle",
                 "SCREENSHOT_SELENIUM_HEADSTART": 5,
                 "SCREENSHOT_SELENIUM_ANIMATION_WAIT": 1,
-                "SCREENSHOT_LOCATE_WAIT": 10,
                 "SCREENSHOT_LOAD_WAIT": 10,
                 "SCREENSHOT_REPLACE_UNEXPECTED_ERRORS": True,
                 "SCREENSHOT_TILED_ENABLED": False,
@@ -829,7 +822,6 @@ class TestWebDriverPlaywrightErrorHandling:
                 "SCREENSHOT_PLAYWRIGHT_WAIT_EVENT": "networkidle",
                 "SCREENSHOT_SELENIUM_HEADSTART": 5,
                 "SCREENSHOT_SELENIUM_ANIMATION_WAIT": 1,
-                "SCREENSHOT_LOCATE_WAIT": 10,
                 "SCREENSHOT_LOAD_WAIT": 10,
                 "SCREENSHOT_REPLACE_UNEXPECTED_ERRORS": False,
                 "SCREENSHOT_TILED_ENABLED": True,
@@ -919,7 +911,6 @@ class TestWebDriverPlaywrightErrorHandling:
                 "SCREENSHOT_PLAYWRIGHT_WAIT_EVENT": "networkidle",
                 "SCREENSHOT_SELENIUM_HEADSTART": 5,
                 "SCREENSHOT_SELENIUM_ANIMATION_WAIT": 1,
-                "SCREENSHOT_LOCATE_WAIT": 10,
                 "SCREENSHOT_LOAD_WAIT": 10,
                 "SCREENSHOT_REPLACE_UNEXPECTED_ERRORS": False,
                 "SCREENSHOT_TILED_ENABLED": True,
@@ -1005,7 +996,6 @@ class TestWebDriverPlaywrightErrorHandling:
                 "SCREENSHOT_PLAYWRIGHT_WAIT_EVENT": "networkidle",
                 "SCREENSHOT_SELENIUM_HEADSTART": 1,
                 "SCREENSHOT_SELENIUM_ANIMATION_WAIT": 1,
-                "SCREENSHOT_LOCATE_WAIT": 10,
                 "SCREENSHOT_LOAD_WAIT": 10,
                 "SCREENSHOT_REPLACE_UNEXPECTED_ERRORS": False,
                 "SCREENSHOT_TILED_ENABLED": True,
@@ -1084,7 +1074,6 @@ class TestWebDriverPlaywrightErrorHandling:
                 "SCREENSHOT_PLAYWRIGHT_WAIT_EVENT": "networkidle",
                 "SCREENSHOT_SELENIUM_HEADSTART": 5,
                 "SCREENSHOT_SELENIUM_ANIMATION_WAIT": 1,
-                "SCREENSHOT_LOCATE_WAIT": 10,
                 "SCREENSHOT_LOAD_WAIT": 10,
                 "SCREENSHOT_REPLACE_UNEXPECTED_ERRORS": False,
                 "SCREENSHOT_TILED_ENABLED": False,
@@ -1157,7 +1146,6 @@ class TestWebDriverPlaywrightErrorHandling:
                 "SCREENSHOT_PLAYWRIGHT_WAIT_EVENT": "networkidle",
                 "SCREENSHOT_SELENIUM_HEADSTART": 0,
                 "SCREENSHOT_SELENIUM_ANIMATION_WAIT": 0,
-                "SCREENSHOT_LOCATE_WAIT": 10,
                 "SCREENSHOT_LOAD_WAIT": 10,
                 "SCREENSHOT_REPLACE_UNEXPECTED_ERRORS": False,
                 "SCREENSHOT_TILED_ENABLED": True,
@@ -1209,7 +1197,6 @@ class TestWebDriverPlaywrightChartReadiness:
         "SCREENSHOT_SELENIUM_ANIMATION_WAIT": 0,
         "SCREENSHOT_REPLACE_UNEXPECTED_ERRORS": False,
         "SCREENSHOT_TILED_ENABLED": False,
-        "SCREENSHOT_LOCATE_WAIT": 10,
         "SCREENSHOT_LOAD_WAIT": 5,
     }
 
@@ -1914,7 +1901,6 @@ class TestWebDriverPlaywrightAnimationWaitOrder:
         "SCREENSHOT_SELENIUM_HEADSTART": 0,
         "SCREENSHOT_SELENIUM_ANIMATION_WAIT": 2,
         "SCREENSHOT_REPLACE_UNEXPECTED_ERRORS": False,
-        "SCREENSHOT_LOCATE_WAIT": 10,
         "SCREENSHOT_LOAD_WAIT": 30,
     }
 

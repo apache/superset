@@ -1324,9 +1324,6 @@ SUPERSET_CACHE_WARMUP_USER: str | None = None
 # - Cascade/dependent filters and search-term variants are not warmed in this
 #   version; only base option queries are supported.
 
-# Time before selenium times out after trying to locate an element on the page and wait
-# for that element to load for a screenshot.
-SCREENSHOT_LOCATE_WAIT = int(timedelta(seconds=10).total_seconds())
 # Time before screenshot capture times out while waiting for chart readiness.
 SCREENSHOT_LOAD_WAIT = int(timedelta(minutes=1).total_seconds())
 # Give the browser an initial headstart, in seconds
