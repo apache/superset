@@ -201,6 +201,13 @@ class DatasetInfo(BaseModel):
     )
     database_id: int | None = Field(None, description="Database ID")
     uuid: str | None = Field(None, description="Dataset UUID")
+    deleted_at: str | datetime | None = Field(
+        None,
+        description=(
+            "When the dataset was moved to trash (soft-deleted); null for live "
+            "datasets. Only populated when listing with deleted_state."
+        ),
+    )
     schema_perm: str | None = Field(None, description="Schema permission string")
     url: str | None = Field(None, description="Explore view URL for this dataset")
     sql: str | None = Field(None, description="SQL for virtual datasets")
@@ -285,6 +292,20 @@ class ListDatasetsRequest(
                 "only certified datasets (preferred when selecting governed "
                 "semantic-layer assets), false to return only uncertified "
                 "datasets, or omit to return both (default)."
+            ),
+        ),
+    ]
+    deleted_state: Annotated[
+        Literal["include", "only"] | None,
+        Field(
+            default=None,
+            description=(
+                "Surface soft-deleted (trashed) datasets: 'only' returns just "
+                "trashed datasets, 'include' returns live and trashed datasets "
+                "together. Omit for live datasets only (default). Trashed rows "
+                "carry a non-null deleted_at and are limited to datasets the "
+                "caller owns (admins see all); requires the SOFT_DELETE "
+                "feature flag to have produced trashed rows."
             ),
         ),
     ]
@@ -750,6 +771,107 @@ class UpdateDatasetMetricResponse(BaseModel):
     )
 
 
+class DeleteDatasetRequest(BaseModel):
+    """Request schema for delete_dataset."""
+
+    identifier: int | str = Field(
+        ...,
+        description=(
+            "Dataset identifier - numeric ID or UUID string (NOT the table name)."
+        ),
+    )
+
+    @field_validator("identifier", mode="before")
+    @classmethod
+    def reject_bool_identifier(cls, value: object) -> object:
+        """bool is a subclass of int, so identifier=true would coerce to
+        dataset ID 1 and delete the wrong object; reject it outright."""
+        if isinstance(value, bool):
+            raise ValueError("identifier must be an integer ID or UUID string")
+        return value
+
+
+class DeleteDatasetResponse(BaseModel):
+    """Result of a delete_dataset operation."""
+
+    success: bool = Field(description="Whether the dataset was deleted")
+    deleted_id: int | None = Field(None, description="ID of the deleted dataset")
+    deleted_name: str | None = Field(
+        None, description="Table name of the deleted dataset"
+    )
+    soft_deleted: bool = Field(
+        False,
+        description=(
+            "True when the dataset was soft-deleted (moved to trash, because the "
+            "SOFT_DELETE feature flag is enabled) and can be restored by an "
+            "owner or Admin. False means the delete was permanent."
+        ),
+    )
+    affected_chart_count: int = Field(
+        0,
+        description=(
+            "Number of charts (visible to the caller) built on this dataset. "
+            "They stop working while the dataset is deleted."
+        ),
+    )
+    affected_dashboard_count: int = Field(
+        0,
+        description=(
+            "Number of dashboards (visible to the caller) containing those charts."
+        ),
+    )
+    message: str | None = Field(None, description="Human-readable outcome message")
+    error: str | None = Field(None, description="Error message if the delete failed")
+    error_type: str | None = Field(None, description="Type of error if failed")
+    permission_denied: bool = Field(
+        False,
+        description=(
+            "True when the caller lacks permission to delete the dataset (do not "
+            "retry; ask the user)."
+        ),
+    )
+
+
+class RestoreDatasetRequest(BaseModel):
+    """Request schema for restore_dataset."""
+
+    identifier: int | str = Field(
+        ...,
+        description=(
+            "Dataset identifier - numeric ID or UUID string (NOT the table name)."
+        ),
+    )
+
+    @field_validator("identifier", mode="before")
+    @classmethod
+    def reject_bool_identifier(cls, value: object) -> object:
+        """bool is a subclass of int, so identifier=true would coerce to
+        dataset ID 1 and target the wrong object; reject it outright."""
+        if isinstance(value, bool):
+            raise ValueError("identifier must be an integer ID or UUID string")
+        return value
+
+
+class RestoreDatasetResponse(BaseModel):
+    """Result of a restore_dataset operation."""
+
+    success: bool = Field(description="Whether the dataset was restored from trash")
+    restored_id: int | None = Field(None, description="ID of the restored dataset")
+    restored_name: str | None = Field(
+        None, description="Table name of the restored dataset"
+    )
+    message: str | None = Field(None, description="Human-readable outcome message")
+    error: str | None = Field(None, description="Error message if the restore failed")
+    error_type: str | None = Field(None, description="Type of error if failed")
+    permission_denied: bool = Field(
+        False,
+        description=(
+            "True when the caller lacks permission to restore the dataset (do not "
+            "retry; ask the user)."
+        ),
+    )
+
+
 VALID_FILTER_OPS = Literal[
     "==",
     "!=",
@@ -1012,6 +1134,7 @@ def serialize_dataset_object(dataset: Any) -> DatasetInfo | None:
         uuid=str(getattr(dataset, "uuid", ""))
         if getattr(dataset, "uuid", None)
         else None,
+        deleted_at=getattr(dataset, "deleted_at", None),
         schema_perm=getattr(dataset, "schema_perm", None),
         url=(
             f"{get_superset_base_url()}/explore/"
