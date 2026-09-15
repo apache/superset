@@ -2080,15 +2080,17 @@ def test_adjust_engine_params_preserves_existing_http_scheme() -> None:
     """A pre-existing ``http_scheme`` (e.g. from a server cert) wins."""
     from superset.db_engine_specs.trino import TrinoEngineSpec
 
+    # Use differing values on the two sides so the test actually guards the
+    # ``setdefault`` precedence: the pre-existing ``http`` must survive and the
+    # URI's ``protocol=https`` must not overwrite it.
     url = make_url("trino://user@localhost:8080/hive?protocol=https")
-    connect_args: dict[str, Any] = {
-        "http_scheme": "https",
-        "verify": "/path/to/tls.crt",
-    }
+    connect_args: dict[str, Any] = {"http_scheme": "http"}
 
-    _, connect_args = TrinoEngineSpec.adjust_engine_params(url, connect_args)
+    uri, connect_args = TrinoEngineSpec.adjust_engine_params(url, connect_args)
 
-    assert connect_args["http_scheme"] == "https"
+    assert connect_args["http_scheme"] == "http"
+    # ``protocol`` is consumed into ``http_scheme``, not left behind on the URI.
+    assert "protocol" not in uri.query
 
 
 def test_adjust_engine_params_without_protocol_preserves_other_query() -> None:
