@@ -112,7 +112,8 @@ import {
   setNativeFilterFieldValues,
   shouldShowTimeRangePicker,
   useForceUpdate,
-  mapSemanticTypeToGenericDataType,
+  fetchSemanticViewStructure,
+  semanticViewDimensionsToColumns,
   doesChartMatchFilterDatasource,
 } from './utils';
 import {
@@ -737,34 +738,19 @@ const FiltersConfigForm = (
   useEffect(() => {
     if (datasetId) {
       if (datasourceType === DatasourceType.SemanticView) {
-        cachedSupersetGet({
-          endpoint: `/api/v1/semantic_view/${datasetId}/structure`,
-        })
-          .then((response: JsonResponse) => {
-            const {
-              name: svName,
-              dimensions = [],
-              metrics: svMetrics = [],
-            } = response.json?.result ?? {};
-            const columns = dimensions.map(
-              (dim: { name: string; type: string }) => {
-                const mappedType = mapSemanticTypeToGenericDataType(dim.type);
-                return {
-                  column_name: dim.name,
-                  type: dim.type,
-                  is_dttm: mappedType === GenericDataType.Temporal,
-                  filterable: true,
-                  type_generic: mappedType,
-                };
-              },
-            );
+        fetchSemanticViewStructure(datasetId)
+          .then(({ name: svName, dimensions, metrics: svMetrics }) => {
+            const columns = semanticViewDimensionsToColumns(dimensions);
+            // The /structure wire carries no metric uuid, and this state's
+            // consumers key on metric_name/verbose_name without reading
+            // uuid — so the cast is narrowed to exactly that one absent
+            // property; every other field stays compiler-checked.
             const mappedMetrics = svMetrics.map(
               (m: { name: string; definition: string }) => ({
                 metric_name: m.name,
                 expression: m.definition,
-                verbose_name: null,
               }),
-            );
+            ) as Omit<Metric, 'uuid'>[] as Metric[];
             setMetrics(mappedMetrics);
             setDatasetDetails({
               columns,
