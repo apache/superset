@@ -19299,6 +19299,16 @@
           }
         },
         "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardCacheScreenshotResponseSchema"
+                }
+              }
+            },
+            "description": "Existing dashboard screenshot task status"
+          },
           "202": {
             "content": {
               "application/json": {
@@ -19320,6 +19330,9 @@
           },
           "500": {
             "$ref": "#/components/responses/500"
+          },
+          "503": {
+            "description": "Screenshot cache unavailable"
           }
         },
         "security": [

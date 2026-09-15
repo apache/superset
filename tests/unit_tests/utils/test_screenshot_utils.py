@@ -562,6 +562,41 @@ class TestTakeTiledScreenshot:
         assert report_context.capture_rejection_reasons == ("blank_tile:1/2",)
         mock_combine.assert_not_called()
 
+    def test_repeated_blank_tiles_fail_closed_for_api_exports(self, mock_page):
+        element_info = {"height": 1000, "top": 0, "left": 0, "width": 800}
+
+        def evaluate(script, _arg=None):
+            if "scrollWidth" in script:
+                return element_info
+            if script == CONTENTFUL_CHART_HOLDERS_IN_CLIP_JS:
+                return {"total": 1, "contentful": 1}
+            if "requestAnimationFrame" in script or "window.scrollTo" in script:
+                return None
+            return [{"chartId": "7", "state": "rendered"}]
+
+        mock_page.evaluate.side_effect = evaluate
+        mock_page.screenshot.return_value = _png(800, 1000, "white")
+
+        with (
+            patch("superset.utils.screenshot_utils.logger"),
+            patch(
+                "superset.utils.screenshot_utils.combine_screenshot_tiles"
+            ) as mock_combine,
+            pytest.raises(
+                ScreenshotBlankCaptureError,
+                match="blank tile 1/1 after 3 attempts",
+            ),
+        ):
+            take_tiled_screenshot(
+                mock_page,
+                "dashboard",
+                tile_height=1000,
+                require_complete_capture=True,
+            )
+
+        assert mock_page.screenshot.call_count == 3
+        mock_combine.assert_not_called()
+
     def test_blank_combined_image_fails_closed_after_contentful_tiles_pass(
         self, mock_page
     ):
@@ -605,6 +640,38 @@ class TestTakeTiledScreenshot:
             and call.args[2] == [1]
             for call in mock_logger.warning.call_args_list
         )
+
+    def test_blank_combined_image_fails_closed_for_api_exports(self, mock_page):
+        element_info = {"height": 1000, "top": 0, "left": 0, "width": 800}
+
+        def evaluate(script, _arg=None):
+            if "scrollWidth" in script:
+                return element_info
+            if script == CONTENTFUL_CHART_HOLDERS_IN_CLIP_JS:
+                return {"total": 1, "contentful": 1}
+            if "requestAnimationFrame" in script or "window.scrollTo" in script:
+                return None
+            return [{"chartId": "7", "state": "rendered"}]
+
+        mock_page.evaluate.side_effect = evaluate
+        mock_page.screenshot.return_value = self._create_chart_like_tile()
+
+        with (
+            patch(
+                "superset.utils.screenshot_utils.combine_screenshot_tiles",
+                return_value=_two_tone_blank(800, 1000),
+            ),
+            pytest.raises(
+                ScreenshotBlankCaptureError,
+                match="Combined report screenshot lost content",
+            ),
+        ):
+            take_tiled_screenshot(
+                mock_page,
+                "dashboard",
+                tile_height=1000,
+                require_complete_capture=True,
+            )
 
     def test_sparse_contentful_tile_is_not_diluted_by_empty_tiles(self, mock_page):
         element_info = {"height": 8000, "top": 0, "left": 0, "width": 800}
@@ -1425,6 +1492,7 @@ class TestTakeTiledScreenshot:
         """
         from superset.utils.screenshot_utils import (
             CHART_HOLDERS_READY_JS,
+            DASHBOARD_ALL_CHART_HOLDERS_READY_JS,
             FIND_CHART_HOLDER_STATES_JS,
             FIND_UNREADY_CHART_HOLDERS_JS,
             REPORT_CHART_HOLDERS_READY_JS,
@@ -1441,6 +1509,8 @@ class TestTakeTiledScreenshot:
             assert "holder.className.match(/\\bdashboard-chart-id-(\\d+)\\b/)" in js
         assert "holders.length > 0" not in CHART_HOLDERS_READY_JS
         assert "holders.length > 0" in REPORT_CHART_HOLDERS_READY_JS
+        assert ".dashboard-grid" in DASHBOARD_ALL_CHART_HOLDERS_READY_JS
+        assert "holders.length > 0" not in DASHBOARD_ALL_CHART_HOLDERS_READY_JS
 
         assert "rendered" in FIND_CHART_HOLDER_STATES_JS
         assert "empty" in FIND_CHART_HOLDER_STATES_JS
@@ -1455,6 +1525,7 @@ class TestTakeTiledScreenshot:
         from superset.utils.screenshot_utils import (
             CHART_CONTAINER_READY_JS,
             CHART_HOLDERS_READY_JS,
+            DASHBOARD_ALL_CHART_HOLDERS_READY_JS,
             FIND_CHART_HOLDER_STATES_JS,
             FIND_UNREADY_CHART_HOLDERS_JS,
             REPORT_CHART_HOLDERS_READY_JS,
@@ -1463,6 +1534,7 @@ class TestTakeTiledScreenshot:
         for js in (
             CHART_CONTAINER_READY_JS,
             CHART_HOLDERS_READY_JS,
+            DASHBOARD_ALL_CHART_HOLDERS_READY_JS,
             FIND_CHART_HOLDER_STATES_JS,
             FIND_UNREADY_CHART_HOLDERS_JS,
             REPORT_CHART_HOLDERS_READY_JS,
