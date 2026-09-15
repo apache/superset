@@ -838,11 +838,10 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   const columns = useMemo(
     () => [
       {
-        Cell: () => null,
-        accessor: 'kind_icon',
-        disableSortBy: true,
-        size: 'xs',
+        accessor: 'id',
         id: 'id',
+        hidden: true,
+        disableSortBy: true,
       },
       {
         Cell: ({
@@ -912,6 +911,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         },
         Header: t('Name'),
         accessor: 'table_name',
+        size: 'xxxl',
         id: 'table_name',
       },
       {
