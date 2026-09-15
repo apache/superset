@@ -98,7 +98,9 @@ export default function Toast({ toast, onCloseToast }: ToastPresenterProps) {
 
   useEffect(() => {
     setTimeout(showToast);
-    if (toast.duration > 0) {
+    // Interactive notifications remain available until the user activates or
+    // dismisses them, so keyboard and assistive-technology users are not raced.
+    if (!toast.action && toast.duration > 0) {
       hideTimer.current = setTimeout(handleClosePress, toast.duration);
     }
     return () => {

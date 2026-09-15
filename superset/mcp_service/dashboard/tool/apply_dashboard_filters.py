@@ -202,9 +202,14 @@ def _select_data_mask(
     return {"extraFormData": extra_form_data, "filterState": filter_state}
 
 
-def _time_data_mask(time_range: str) -> dict[str, Any]:
+def _time_data_mask(conf: dict[str, Any], time_range: str) -> dict[str, Any]:
     """Build the data mask a filter_time filter produces for ``time_range``."""
     is_set = bool(time_range) and time_range != NO_TIME_RANGE
+    if not is_set and (conf.get("controlValues") or {}).get("enableEmptyFilter"):
+        raise _FilterApplyError(
+            f"Filter '{conf.get('name') or conf.get('id')}' requires a time "
+            "range and cannot be cleared."
+        )
     return {
         "extraFormData": {"time_range": time_range} if is_set else {},
         "filterState": {"value": time_range if is_set else None},
@@ -249,7 +254,7 @@ def _apply_one(
                 f"Filter '{spec.filter_name_or_id}' is a filter_time filter; "
                 "provide 'time_range', not 'values'."
             )
-        data_mask = _time_data_mask(spec.time_range)
+        data_mask = _time_data_mask(conf, spec.time_range)
         summary = AppliedFilterSummary(
             id=filter_id,
             name=conf.get("name"),

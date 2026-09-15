@@ -18,6 +18,7 @@
  */
 import { useEffect } from 'react';
 import { useDispatch, useStore } from 'react-redux';
+import isEqual from 'lodash/isEqual';
 import { t } from '@apache-superset/core/translation';
 import {
   addSuccessToast,
@@ -75,6 +76,7 @@ export default function useDashboardFilterSync(dashboardId?: number) {
           entries.forEach(([id, dataMask]) => {
             dispatch(updateDataMask(id, dataMask));
           });
+          const applied = store.getState().dataMask;
           let undone = false;
           const toast = addSuccessToast(t('Filters applied from chat'), {
             duration: 8000,
@@ -84,6 +86,9 @@ export default function useDashboardFilterSync(dashboardId?: number) {
                 if (!active || undone || version !== appliedRequest) return;
                 undone = true;
                 entries.forEach(([id]) => {
+                  if (!isEqual(store.getState().dataMask[id], applied[id])) {
+                    return;
+                  }
                   // Remove first: updateDataMask merges rather than replaces.
                   dispatch(removeDataMask(id));
                   if (Object.prototype.hasOwnProperty.call(previous, id)) {

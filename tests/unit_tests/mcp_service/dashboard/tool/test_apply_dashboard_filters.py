@@ -231,6 +231,35 @@ async def test_no_filter_time_range_clears_the_filter(mcp_server: object) -> Non
 
 
 @pytest.mark.asyncio
+async def test_required_time_range_cannot_be_cleared(mcp_server: object) -> None:
+    """Reject a clear that permalink hydration would replace with the default."""
+    required_time_filter = {
+        **TIME_FILTER,
+        "controlValues": {"enableEmptyFilter": True},
+        "defaultDataMask": {
+            "filterState": {"value": "Last week"},
+            "extraFormData": {"time_range": "Last week"},
+        },
+    }
+    with (
+        patch(DAO_GET, return_value=_mock_dashboard([required_time_filter])),
+        patch(CREATE_PERMALINK) as create,
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "filters": [
+                    {"filter_name_or_id": "Time Range", "time_range": "No filter"}
+                ],
+            },
+        )
+
+    assert "requires a time range and cannot be cleared" in data["error"]
+    create.assert_not_called()
+
+
+@pytest.mark.asyncio
 async def test_empty_values_clear_an_optional_select(mcp_server: object) -> None:
     """Empty values clear an optional select."""
     captured: dict[str, Any] = {}

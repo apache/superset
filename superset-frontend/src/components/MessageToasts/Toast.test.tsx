@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { fireEvent, render, waitFor } from 'spec/helpers/testing-library';
+import { act, fireEvent, render, waitFor } from 'spec/helpers/testing-library';
 import Toast from 'src/components/MessageToasts/Toast';
 import { ToastMeta } from 'src/components/MessageToasts/types';
 import mockMessageToasts from './mockMessageToasts';
@@ -140,4 +140,21 @@ test('an action button invokes its callback and dismisses the toast', async () =
   await waitFor(() =>
     expect(onCloseToast).toHaveBeenCalledWith(props.toast.id),
   );
+});
+
+test('an actionable toast remains until it is explicitly dismissed', () => {
+  jest.useFakeTimers();
+  const onCloseToast = jest.fn();
+  setup({
+    toast: {
+      ...props.toast,
+      duration: 100,
+      action: { label: 'Undo', onClick: jest.fn() },
+    },
+    onCloseToast,
+  });
+
+  act(() => jest.advanceTimersByTime(1000));
+  expect(onCloseToast).not.toHaveBeenCalled();
+  jest.useRealTimers();
 });

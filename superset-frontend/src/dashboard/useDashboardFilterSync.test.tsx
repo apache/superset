@@ -154,6 +154,21 @@ test('toast undo restores the prior mask and removes newly introduced entries', 
   expect(store.getState().dataMask).toEqual(previous);
 });
 
+test('toast undo preserves filters edited after the notification', async () => {
+  const { store } = setup();
+  await receive();
+  const toast = store.getState().messageToasts[0];
+  act(() =>
+    store.dispatch(
+      updateDataMask('region', { filterState: { value: ['LATAM'] } }),
+    ),
+  );
+  act(() => toast.action?.onClick());
+
+  expect(store.getState().dataMask.region.filterState?.value).toEqual(['LATAM']);
+  expect(store.getState().dataMask.time).toBeUndefined();
+});
+
 test('toast undo does not restore inherited properties for forwarded filter ids', async () => {
   resolvePermalink.mockResolvedValue({
     ...permalink,
