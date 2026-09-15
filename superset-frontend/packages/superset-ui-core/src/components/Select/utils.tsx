@@ -91,16 +91,21 @@ export const propertyComparator =
     if (typeof propertyA === 'number' && typeof propertyB === 'number') {
       return propertyA - propertyB;
     }
-    // BIGINT columns can decode to native `bigint` values (see json-bigint
-    // parsing of large numeric values). Compare numerically rather than
-    // falling through to the string fallback below, which would sort them
-    // lexicographically (e.g. "10", "100", "2").
+    // BIGINT columns can decode to native `bigint` values or decimal strings
+    // (see parseResponse.ts). Compare numerically rather than falling through
+    // to the string fallback below, which would sort lexicographically.
     if (
-      (typeof propertyA === 'bigint' || typeof propertyA === 'number') &&
-      (typeof propertyB === 'bigint' || typeof propertyB === 'number')
+      (typeof propertyA === 'bigint' ||
+        typeof propertyA === 'number' ||
+        (typeof propertyA === 'string' && /^-?\d+$/.test(propertyA))) &&
+      (typeof propertyB === 'bigint' ||
+        typeof propertyB === 'number' ||
+        (typeof propertyB === 'string' && /^-?\d+$/.test(propertyB)))
     ) {
-      if (propertyA < propertyB) return -1;
-      if (propertyA > propertyB) return 1;
+      const a = Number(propertyA);
+      const b = Number(propertyB);
+      if (a < b) return -1;
+      if (a > b) return 1;
       return 0;
     }
     return String(propertyA).localeCompare(String(propertyB)); // fallback to string comparison
