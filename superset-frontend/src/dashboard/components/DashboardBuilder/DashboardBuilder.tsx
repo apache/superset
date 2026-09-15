@@ -88,6 +88,7 @@ import {
 import { selectCanRestoreDashboard } from 'src/features/versionHistory/canRestoreDashboard';
 import { selectIsDashboardVersionPreviewActive } from 'src/features/versionHistory/reducer';
 import { StickyTabsOffsetContext } from 'src/dashboard/components/gridComponents/TabsRenderer';
+import { isEmbedded } from 'src/dashboard/util/isEmbedded';
 import { getRootLevelTabsComponent, shouldFocusTabs } from './utils';
 import DashboardContainer from './DashboardContainer';
 import { useNativeFilters } from './state';
@@ -109,6 +110,12 @@ const FiltersPanel = styled.div<{ width: number; hidden: boolean }>`
   grid-row: 1 / span 2;
   z-index: 11;
   width: ${({ width }) => width}px;
+  /* In an embed the bar inside this column is bounded to its content so the
+     action buttons stay reachable, which leaves its own border ending partway
+     down. This column always spans the full grid, so the separator lives here
+     instead of on the bar. */
+  ${({ theme }) =>
+    isEmbedded() && `border-right: 1px solid ${theme.colorSplit};`}
   ${({ hidden }) => hidden && `display: none;`}
 `;
 
@@ -120,14 +127,22 @@ const StickyPanel = styled.div<{ width: number }>`
 `;
 
 // @z-index-above-dashboard-popovers (99) + 1 = 100
-const StyledHeader = styled.div<{ filterBarWidth: number }>`
-  ${({ theme, filterBarWidth }) => css`
+const StyledHeader = styled.div`
+  ${({ theme }) => css`
     grid-column: 2;
     grid-row: 1;
     position: sticky;
     top: 0;
     z-index: 99;
-    max-width: calc(100vw - ${filterBarWidth}px);
+    /* The grid track already knows how wide this column is. Capping against
+       100vw instead measured the viewport including the scrollbar gutter, so
+       with classic (space-taking) scrollbars the header ran past the visible
+       edge and every dashboard with the filter bar open scrolled horizontally
+       by the width of the scrollbar. min-width keeps the 1fr track from being
+       blown out by the header's own min-content width, which is what the
+       absolute cap was doing implicitly. */
+    min-width: 0;
+    max-width: 100%;
 
     /* Mobile consumption mode: let the dashboard title scroll away and keep
        only the tab bar sticky. A pinned title would sit underneath the
@@ -848,10 +863,6 @@ const DashboardBuilder = () => {
 
   const isVerticalFilterBarVisible =
     showFilterBar && filterBarOrientation === FilterBarOrientation.Vertical;
-  const headerFilterBarWidth = isVerticalFilterBarVisible
-    ? currentFilterBarWidth
-    : 0;
-
   return (
     <DashboardWrapper>
       {isVerticalFilterBarVisible && (
@@ -865,11 +876,7 @@ const DashboardBuilder = () => {
           {renderChild}
         </ResizableSidebar>
       )}
-      <StyledHeader
-        data-test="dashboard-header-wrapper"
-        ref={headerRef}
-        filterBarWidth={headerFilterBarWidth}
-      >
+      <StyledHeader data-test="dashboard-header-wrapper" ref={headerRef}>
         {headerContent}
         <Droppable
           data-test="top-level-tabs"
@@ -1000,7 +1007,10 @@ const DashboardBuilder = () => {
           </StyledDashboardContent>
         </DashboardContentWrapper>
       </StyledContent>
-      {isFeatureEnabled(FeatureFlag.VersionHistory) && (
+      {/* Guests have no version history, and the column is sized from `100vh`,
+          which inside an iframe is the iframe's own height: rendering it in an
+          embed pins the document height to the iframe height for no benefit. */}
+      {isFeatureEnabled(FeatureFlag.VersionHistory) && !isEmbedded() && (
         <VersionHistoryColumn>
           <Suspense fallback={null}>
             <DashboardVersionHistory />
