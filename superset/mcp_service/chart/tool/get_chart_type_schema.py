@@ -31,6 +31,7 @@ from superset.extensions import event_logger
 from superset.mcp_service.chart.schemas import (
     BigNumberChartConfig,
     BoxPlotChartConfig,
+    BulletChartConfig,
     GaugeChartConfig,
     HandlebarsChartConfig,
     HistogramChartConfig,
@@ -49,6 +50,7 @@ logger = logging.getLogger(__name__)
 # Module-level TypeAdapters — one per chart type, compiled once.
 _CHART_TYPE_ADAPTERS: Dict[str, TypeAdapter[Any]] = {
     "xy": TypeAdapter(XYChartConfig),
+    "bullet": TypeAdapter(BulletChartConfig),
     "table": TypeAdapter(TableChartConfig),
     "pie": TypeAdapter(PieChartConfig),
     "gauge": TypeAdapter(GaugeChartConfig),
@@ -80,6 +82,26 @@ _CHART_EXAMPLES: Dict[str, list[Dict[str, Any]]] = {
             "kind": "bar",
             "x": {"name": "category"},
             "y": [{"name": "sales", "aggregate": "SUM"}],
+        },
+    ],
+    "bullet": [
+        {
+            "chart_type": "bullet",
+            "metric": {"name": "revenue", "aggregate": "SUM"},
+            "ranges": [100000, 250000, 500000],
+            "range_labels": ["Minimum", "Target", "Stretch"],
+            "markers": [300000],
+            "marker_labels": ["Plan"],
+            "show_labels": True,
+        },
+        {
+            "chart_type": "bullet",
+            "metric": {"name": "attainment", "saved_metric": True},
+            "dimensions": [{"name": "region"}],
+            "marker_lines": [1],
+            "marker_line_labels": ["Goal"],
+            "y_axis_format": ".0%",
+            "row_limit": 100,
         },
     ],
     "table": [
@@ -310,9 +332,9 @@ def get_chart_type_schema(
     for a chart configuration before calling generate_chart or update_chart.
 
     Valid chart_type values depend on the host deployment. Core types are xy,
-    table, pie, gauge, treemap_v2, pivot_table, mixed_timeseries, handlebars,
-    big_number, histogram, box_plot, and waterfall. Deployments that enable an
-    AG Grid
+    table, pie, bullet, gauge, treemap_v2, pivot_table, mixed_timeseries,
+    handlebars, big_number, histogram, box_plot, and waterfall. Deployments that
+    enable an AG Grid
     pivot extension also expose interactive_pivot.
 
     Returns the JSON Schema for the requested chart type, optionally

@@ -22,7 +22,6 @@ Tests for preview_utils query context column building.
 import ast
 import inspect
 from pathlib import Path
-from unittest.mock import Mock, patch
 
 from superset.mcp_service.chart import preview_utils
 
@@ -212,71 +211,33 @@ def test_build_query_columns_empty_columns_key_keeps_groupby():
     ) == ["country"]
 
 
-@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
-@patch("superset.mcp_service.chart.chart_helpers.build_query_context_from_form_data")
-@patch("superset.extensions.db.session.get")
-def test_unsaved_gauge_preview_uses_shared_builder_and_preserves_ordering(
-    mock_find_dataset, mock_build_query_context, mock_command
-):
-    """Unsaved previews execute the same Gauge QueryObject path as Explore."""
-    mock_find_dataset.return_value = Mock(id=7)
-    mock_build_query_context.return_value = Mock()
-    mock_command.return_value.validate.return_value = None
-    mock_command.return_value.run.return_value = {
-        "queries": [{"data": [{"AVG(score)": 75}]}]
-    }
-    form_data = {
-        "viz_type": "gauge_chart",
-        "metric": {
-            "expressionType": "SIMPLE",
-            "aggregate": "AVG",
-            "column": {"column_name": "score"},
-            "label": "AVG(score)",
-        },
-        "groupby": [],
-        "sort_by_metric": True,
-        "row_limit": 4,
-        "intervals": "30,70,200",
-        "datasource_id": 99,
-        "datasource_type": "query",
-        "datasource": "99__query",
-    }
+def test_generate_preview_seeds_form_data_before_query():
+    from unittest.mock import MagicMock, patch
 
-    result = preview_utils.generate_preview_from_form_data(
-        form_data, dataset_id=7, preview_format="ascii"
-    )
+    call_order: list[str] = []
+    with (
+        patch(
+            "superset.charts.data.form_data.set_query_context_form_data"
+        ) as mock_set_form_data,
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand"
+        ) as mock_cmd_cls,
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory"
+        ) as mock_factory,
+        patch("superset.extensions.db") as mock_db,
+    ):
+        mock_db.session.get.return_value = MagicMock(id=12)
+        query_context = MagicMock()
+        mock_factory.return_value.create.return_value = query_context
+        mock_set_form_data.side_effect = lambda *_args: call_order.append("seed")
+        mock_cmd_cls.return_value.run.side_effect = lambda: (
+            call_order.append("run") or {"queries": [{"data": []}]}
+        )
 
-    assert result.ascii_content.startswith("Gauge Chart")
-    query_form_data = mock_build_query_context.call_args.args[0]
-    assert query_form_data["sort_by_metric"] is True
-    assert query_form_data["datasource"] == "7__table"
-    assert query_form_data["datasource_id"] == 7
-    assert query_form_data["datasource_type"] == "table"
-    from superset.mcp_service.chart.chart_helpers import resolve_form_data_datasource
+        preview_utils.generate_preview_from_form_data(
+            {"metrics": [{"label": "count"}]}, 12, "table"
+        )
 
-    assert resolve_form_data_datasource(query_form_data) == (7, "table")
-    assert form_data["datasource_id"] == 99
-    mock_build_query_context.assert_called_once_with(
-        query_form_data, row_limit=4, force=False
-    )
-
-
-@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
-@patch("superset.mcp_service.chart.chart_helpers.build_query_context_from_form_data")
-@patch("superset.extensions.db.session.get")
-def test_unsaved_gauge_preview_surfaces_query_error(
-    mock_find_dataset, mock_build_query_context, mock_command
-):
-    mock_find_dataset.return_value = Mock(id=7)
-    mock_build_query_context.return_value = Mock()
-    mock_command.return_value.validate.return_value = None
-    mock_command.return_value.run.return_value = {
-        "queries": [{"status": "failed", "error": "bad metric", "data": []}]
-    }
-    result = preview_utils.generate_preview_from_form_data(
-        {"viz_type": "gauge_chart", "metric": "saved_sla"},
-        dataset_id=7,
-        preview_format="vega_lite",
-    )
-    assert result.error_type == "QueryError"
-    assert "bad metric" in result.error
+    mock_set_form_data.assert_called_once_with(query_context, 12, "table")
+    assert call_order == ["seed", "run"]

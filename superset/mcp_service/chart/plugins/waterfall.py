@@ -89,7 +89,7 @@ class WaterfallChartPlugin(BaseChartPlugin):
     def to_form_data(
         self, config: Any, dataset_id: int | str | None = None
     ) -> dict[str, Any]:
-        return map_waterfall_config(config)
+        return map_waterfall_config(config, dataset_id=dataset_id)
 
     def generate_name(self, config: Any, dataset_name: str | None = None) -> str:
         metric_name = config.metric.label or config.metric.name
