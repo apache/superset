@@ -292,7 +292,7 @@ class Dashboard(CoreDashboard, SoftDeleteMixin, AuditMixinNullable, ImportExport
         # explorable with a string id never matches the integer
         # ``datasource_id`` column, which is likewise fail closed.
         candidate_type = getattr(datasource, "type", None)
-        candidate_id = datasource.id
+        candidate_id: object = getattr(datasource, "id", None)
         if candidate_type is None or candidate_id is None:
             return False
         return any(

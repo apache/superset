@@ -36,7 +36,7 @@ from __future__ import annotations
 import uuid as uuid_lib
 from contextlib import contextmanager, ExitStack
 from types import SimpleNamespace
-from typing import Iterator
+from typing import cast, Iterator
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -648,6 +648,17 @@ def test_list_filter_database_grant_does_not_leak_colliding_semantic_dashboard(
 # ---------------------------------------------------------------------------
 # Drill membership: Dashboard.has_member_datasource (SC-119500 / FR-005)
 # ---------------------------------------------------------------------------
+
+
+def test_membership_rejects_datasource_without_id() -> None:
+    """A duck-typed datasource without an id is not a dashboard member."""
+    from superset.connectors.sqla.models import BaseDatasource
+    from superset.models.dashboard import Dashboard
+
+    datasource: BaseDatasource = cast(BaseDatasource, SimpleNamespace(type="table"))
+    dashboard: Dashboard = Dashboard()
+
+    assert dashboard.has_member_datasource(datasource) is False
 
 
 def test_membership_recognizes_semantic_view_member(

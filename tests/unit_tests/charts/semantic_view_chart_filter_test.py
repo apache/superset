@@ -222,6 +222,8 @@ def _apply_chart_filter(
     datasource_perms: set[str],
     accessible_databases: list[int],
     all_datasources: bool = False,
+    schema_perms: set[str] | None = None,
+    catalog_perms: set[str] | None = None,
 ) -> set[str]:
     """Run ChartFilter for an anonymous-subject user and return the names of
     the charts it yields."""
@@ -230,10 +232,10 @@ def _apply_chart_filter(
     from superset.charts.filters import ChartFilter
     from superset.models.slice import Slice
 
-    view_menus = {
+    view_menus: dict[str, set[str]] = {
         "datasource_access": set(datasource_perms),
-        "schema_access": set(),
-        "catalog_access": set(),
+        "schema_access": schema_perms or set(),
+        "catalog_access": catalog_perms or set(),
     }
     sm = MagicMock()
     sm.is_admin.return_value = False
@@ -348,3 +350,114 @@ def test_list_all_datasource_access_lists_everything(
         datasource_perms=set(), accessible_databases=[], all_datasources=True
     )
     assert names == ALL_CHART_NAMES
+
+
+@pytest.mark.parametrize(
+    "grant", ["datasource_access", "schema_access", "catalog_access"]
+)
+def test_hard_deleted_dataset_retains_only_schema_catalog_list_access(
+    chart_fixtures: SimpleNamespace, grant: str
+) -> None:
+    """ORM deletion removes the dataset grant but leaves broader list grants."""
+    from flask_appbuilder.security.sqla.models import PermissionView, Role, User
+
+    from superset import security_manager
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.daos.dataset import DatasetDAO
+    from superset.exceptions import SupersetSecurityException
+    from superset.models.slice import Slice
+
+    session: Session = chart_fixtures.session
+    table: SqlaTable = SqlaTable(
+        table_name="deleted_dataset", database_id=10, schema="public", catalog="catalog"
+    )
+    session.add(table)
+    session.flush()
+    chart: Slice = Slice(
+        slice_name="retained chart",
+        datasource_id=table.id,
+        datasource_type="table",
+        viz_type="table",
+    )
+    session.add(chart)
+    session.flush()
+    dataset_perm: str = table.perm
+    schema_perm: str = table.schema_perm
+    catalog_perm: str = table.catalog_perm
+    grant_perm: str = {
+        "datasource_access": dataset_perm,
+        "schema_access": schema_perm,
+        "catalog_access": catalog_perm,
+    }[grant]
+    pvm: PermissionView | None = security_manager.find_permission_view_menu(
+        grant, grant_perm
+    )
+    assert pvm is not None
+    role: Role = Role(name="deleted_dataset_reader", permissions=[pvm])
+    user: User = User(
+        username="deleted_dataset_reader",
+        first_name="Dataset",
+        last_name="Reader",
+        email="reader@example.com",
+        roles=[role],
+    )
+    session.add(user)
+    session.flush()
+    user_id: int = user.id
+    chart_id: int = chart.id
+
+    DatasetDAO.hard_delete([table])
+    session.flush()
+    session.expire_all()
+
+    assert (
+        security_manager.find_permission_view_menu("datasource_access", dataset_perm)
+        is None
+    )
+    assert (
+        security_manager.find_permission_view_menu("schema_access", schema_perm)
+        is not None
+    )
+    assert (
+        security_manager.find_permission_view_menu("catalog_access", catalog_perm)
+        is not None
+    )
+    assert session.get(Slice, chart_id) is chart
+    assert chart.perm == dataset_perm
+    assert chart.schema_perm == schema_perm
+    assert chart.catalog_perm == catalog_perm
+    assert chart.resolved_datasource is None
+
+    with (
+        patch("superset.security.manager.g", SimpleNamespace(user=user)),
+        patch("superset.security.manager.get_user_id", return_value=user_id),
+        patch.object(security_manager, "is_guest_user", return_value=False),
+    ):
+        datasource_perms: set[str] = security_manager.user_view_menu_names(
+            "datasource_access"
+        )
+        schema_perms: set[str] = security_manager.user_view_menu_names("schema_access")
+        catalog_perms: set[str] = security_manager.user_view_menu_names(
+            "catalog_access"
+        )
+
+    assert datasource_perms == set()
+    assert schema_perms == ({schema_perm} if grant == "schema_access" else set())
+    assert catalog_perms == ({catalog_perm} if grant == "catalog_access" else set())
+    names: set[str] = _apply_chart_filter(
+        datasource_perms=datasource_perms,
+        accessible_databases=[],
+        schema_perms=schema_perms,
+        catalog_perms=catalog_perms,
+    )
+    assert ("retained chart" in names) is (grant != "datasource_access")
+    with (
+        patch.object(security_manager, "is_admin", return_value=False),
+        patch.object(security_manager, "is_editor", return_value=False),
+        patch.object(security_manager, "is_guest_user", return_value=False),
+        patch.object(
+            security_manager, "get_chart_access_error_object", return_value=MagicMock()
+        ),
+        pytest.raises(SupersetSecurityException),
+    ):
+        security_manager.raise_for_access(chart=chart)
