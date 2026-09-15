@@ -165,6 +165,151 @@ def test_column_type_recognition() -> None:
     assert col_spec is None, "TINYINT doesn't match any patterns"
 
 
+def test_motherduck_impersonation(mocker: MockerFixture) -> None:
+    """
+    Test ``impersonate_user`` embeds the username in the md: path.
+
+    The hook lives on DuckDBEngineSpec because engine spec resolution is by
+    backend name, so md: databases resolve to the DuckDB spec.
+    """
+    from sqlalchemy.engine.url import URL
+
+    from superset.db_engine_specs.duckdb import DuckDBEngineSpec
+
+    database = mocker.MagicMock()
+
+    url = URL.create("duckdb", database="md:my_db", query={"motherduck_token": "abc"})
+    url, engine_kwargs = DuckDBEngineSpec.impersonate_user(
+        database=database,
+        username="alice",
+        user_token=None,
+        url=url,
+        engine_kwargs={},
+    )
+    assert url.database == "md:my_db?session_name=alice"
+    assert url.username is None
+    assert url.query["motherduck_token"] == "abc"  # noqa: S105
+    assert engine_kwargs == {}
+
+
+def test_duckdb_local_impersonation_is_a_noop(mocker: MockerFixture) -> None:
+    """
+    Test ``impersonate_user`` leaves local DuckDB URLs alone.
+
+    The base implementation puts the username in the URL, which duckdb-engine
+    forwards as a ``connect()`` kwarg that duckdb rejects.
+    """
+    from sqlalchemy.engine.url import URL
+
+    from superset.db_engine_specs.duckdb import DuckDBEngineSpec
+
+    database = mocker.MagicMock()
+
+    url = URL.create("duckdb", database="/path/to/duck.db")
+    url, _ = DuckDBEngineSpec.impersonate_user(
+        database=database,
+        username="alice",
+        user_token=None,
+        url=url,
+        engine_kwargs={},
+    )
+    assert url == URL.create("duckdb", database="/path/to/duck.db")
+
+
+def test_duckdb_impersonation_drops_configured_username(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test ``impersonate_user`` drops a username configured in the URI.
+
+    duckdb-engine forwards it as a ``connect()`` kwarg that duckdb rejects.
+    """
+    from sqlalchemy.engine.url import URL
+
+    from superset.db_engine_specs.duckdb import DuckDBEngineSpec
+
+    database = mocker.MagicMock()
+
+    for db in ["md:my_db", "/path/to/duck.db"]:
+        url, _ = DuckDBEngineSpec.impersonate_user(
+            database=database,
+            username="alice",
+            user_token=None,
+            url=URL.create("duckdb", username="configured", database=db),
+            engine_kwargs={},
+        )
+        assert url.username is None
+
+
+def test_motherduck_impersonation_escapes_structural_characters(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test ``impersonate_user`` escapes characters that would inject parameters.
+    """
+    from sqlalchemy.engine.url import URL
+
+    from superset.db_engine_specs.duckdb import MotherDuckEngineSpec
+
+    database = mocker.MagicMock()
+
+    url = URL.create("duckdb", database="md:my_db?attach_mode=single")
+    url, _ = MotherDuckEngineSpec.impersonate_user(  # inherited from DuckDBEngineSpec
+        database=database,
+        username="a&host=evil",
+        user_token=None,
+        url=url,
+        engine_kwargs={},
+    )
+    assert url.database == "md:my_db?attach_mode=single&session_name=a%26host%3Devil"
+
+
+def test_motherduck_impersonation_replaces_configured_session_name(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test ``impersonate_user`` replaces a session_name configured in the path.
+    """
+    from sqlalchemy.engine.url import URL
+
+    from superset.db_engine_specs.duckdb import MotherDuckEngineSpec
+
+    database = mocker.MagicMock()
+
+    url = URL.create(
+        "duckdb", database="md:my_db?session_name=fixed&attach_mode=single"
+    )
+    url, _ = MotherDuckEngineSpec.impersonate_user(
+        database=database,
+        username="alice",
+        user_token=None,
+        url=url,
+        engine_kwargs={},
+    )
+    assert url.database == "md:my_db?attach_mode=single&session_name=alice"
+
+
+def test_motherduck_impersonation_without_username(mocker: MockerFixture) -> None:
+    """
+    Test ``impersonate_user`` leaves the URL alone when there is no username.
+    """
+    from sqlalchemy.engine.url import URL
+
+    from superset.db_engine_specs.duckdb import MotherDuckEngineSpec
+
+    database = mocker.MagicMock()
+
+    url = URL.create("duckdb", database="md:my_db")
+    url, _ = MotherDuckEngineSpec.impersonate_user(
+        database=database,
+        username=None,
+        user_token=None,
+        url=url,
+        engine_kwargs={},
+    )
+    assert url == URL.create("duckdb", database="md:my_db")
+
+
 def test_fetch_data_preserves_cursor_description(mocker: MockerFixture) -> None:
     """
     DuckDBEngineSpec previously overrode fetch_data to capture and restore
