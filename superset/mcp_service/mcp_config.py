@@ -63,6 +63,11 @@ WEBDRIVER_BASEURL_USER_FRIENDLY = WEBDRIVER_BASEURL
 # user's Superset administrator and the Apache Superset issue tracker.
 MCP_BUG_REPORT_CONTACT: str | None = None
 
+# Optional dataset routing mode: effective role names -> registered dataset UUIDs.
+# None preserves the complete MCP tool surface; {} permits no datasets.
+# This only narrows access and is not a substitute for permissions or RLS.
+MCP_DATASET_ROLE_ALLOWLIST: dict[str, list[str]] | None = None
+
 # MCP Debug mode - shows suppressed initialization output in stdio mode
 MCP_DEBUG = False
 
@@ -891,6 +896,7 @@ def get_mcp_config(app_config: dict[str, Any] | None = None) -> dict[str, Any]:
         "MCP_EMBEDDED_GUEST_AUTH_ENABLED": MCP_EMBEDDED_GUEST_AUTH_ENABLED,
         "MCP_GUEST_ALLOWED_TOOLS": set(MCP_GUEST_ALLOWED_TOOLS),
         "MCP_RESTRICTED_TOOL_POLICY": MCP_RESTRICTED_TOOL_POLICY,
+        "MCP_DATASET_ROLE_ALLOWLIST": MCP_DATASET_ROLE_ALLOWLIST,
         **MCP_SESSION_CONFIG,
         **MCP_CSRF_CONFIG,
     }
