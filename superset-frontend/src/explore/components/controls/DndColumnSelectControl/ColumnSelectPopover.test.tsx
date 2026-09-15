@@ -389,6 +389,77 @@ test('saved-only semantic view opens on Saved with Simple and Custom SQL disable
   expect(getCurrentTab).toHaveBeenCalledWith('saved');
 });
 
+test('Simple-only callers can select a saved-only semantic dimension', async () => {
+  const getCurrentTab = jest.fn();
+  const onChange = jest.fn();
+  renderSemanticPopover({
+    disabledTabs: new Set(['saved', 'sqlExpression']),
+    getCurrentTab,
+    onChange,
+  });
+
+  expect(screen.getByRole('tab', { name: 'Saved' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+  expect(getCurrentTab).toHaveBeenCalledWith('saved');
+  for (const name of ['Simple', 'Custom SQL']) {
+    expect(screen.getByRole('tab', { name })).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    );
+  }
+  await openDimensionsDropdown();
+  userEvent.click(within(await getDropdown()).getByText('Product Category'));
+  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  await waitFor(() =>
+    expect(onChange).toHaveBeenCalledWith(SEMANTIC_COLUMNS[1]),
+  );
+});
+
+test.each([
+  { type: 'table' },
+  {
+    type: 'semantic_view',
+    semantic_view_features: ['ADHOC_COLUMN_EXPRESSIONS'],
+  },
+])('expression-classified $type respects Simple-only callers', datasource => {
+  renderSemanticPopover(
+    { disabledTabs: new Set(['saved', 'sqlExpression']) },
+    { datasource },
+  );
+
+  expect(screen.queryByRole('tab', { name: 'Saved' })).not.toBeInTheDocument();
+  expect(screen.getByRole('tab', { name: 'Simple' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+  expect(screen.getByRole('tab', { name: 'Custom SQL' })).toHaveAttribute(
+    'aria-disabled',
+    'true',
+  );
+});
+
+test('all-disabled expression modes show feedback instead of selecting a disabled tab', () => {
+  const getCurrentTab = jest.fn();
+  renderSemanticPopover(
+    {
+      disabledTabs: new Set(['saved', 'simple', 'sqlExpression']),
+      getCurrentTab,
+    },
+    { datasource: { type: 'table' } },
+  );
+
+  expect(
+    screen.getByText('No selection modes are available for this control.'),
+  ).toBeInTheDocument();
+  expect(screen.queryByRole('tab')).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole('button', { name: 'Save' }),
+  ).not.toBeInTheDocument();
+  expect(getCurrentTab).not.toHaveBeenCalled();
+});
+
 test('semantic view declaring adhoc expressions keeps the existing default mode', () => {
   renderSemanticPopover(
     {},
@@ -747,6 +818,7 @@ test('disables Saved metrics by the compatible-metric list, not the dimension li
 
 test('a metrics-only semantic view still renders the Saved select', async () => {
   renderSemanticPopover({
+    disabledTabs: new Set(['saved', 'sqlExpression']),
     columns: [],
     metrics: SEMANTIC_METRICS,
     selectedMetrics: ['total_sales', 'tax_amount'],

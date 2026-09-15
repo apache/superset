@@ -366,6 +366,12 @@ const ColumnSelectPopover = ({
 
   const effectiveDisabledTabs = useMemo(() => {
     const merged = new Set([...disabledTabs, ...capabilities.disabledModes]);
+    // Callers hide Saved to exclude calculated expressions. With Saved
+    // classification it contains ordinary dimensions and metrics instead.
+    // Preserve provider restrictions while keeping that selection mode usable.
+    if (savedClassification && !capabilities.disabledModes.includes('saved')) {
+      merged.delete(TABS_KEYS.SAVED);
+    }
     // A legacy adhoc value must stay inspectable: keep Custom SQL reachable
     // for viewing even though such a value can no longer be saved.
     if (initialAdhocColumn && savedClassification) {
@@ -389,11 +395,15 @@ const ColumnSelectPopover = ({
       : 'simple';
   const defaultActiveTabKey = !effectiveDisabledTabs.has(preferredTabKey)
     ? preferredTabKey
-    : ([TABS_KEYS.SAVED, TABS_KEYS.SIMPLE, TABS_KEYS.SQL_EXPRESSION].find(
+    : [TABS_KEYS.SAVED, TABS_KEYS.SIMPLE, TABS_KEYS.SQL_EXPRESSION].find(
         key => !effectiveDisabledTabs.has(key),
-      ) ?? preferredTabKey);
+      );
 
   useEffect(() => {
+    if (defaultActiveTabKey === undefined) {
+      setSelectedTab(null);
+      return;
+    }
     getCurrentTab(defaultActiveTabKey);
     setSelectedTab(defaultActiveTabKey);
   }, [defaultActiveTabKey, getCurrentTab, setSelectedTab]);
@@ -549,6 +559,17 @@ const ColumnSelectPopover = ({
     () => sqlKeywords.concat(getColumnKeywords(columns)),
     [columns],
   );
+
+  if (defaultActiveTabKey === undefined) {
+    return (
+      <Form layout="vertical" id="metrics-edit-popover">
+        <Alert type="warning">
+          {t('No selection modes are available for this control.')}
+        </Alert>
+        <Button onClick={onResetStateAndClose}>{t('Close')}</Button>
+      </Form>
+    );
+  }
 
   return (
     <Form layout="vertical" id="metrics-edit-popover">
