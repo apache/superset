@@ -46,7 +46,7 @@ class PinotEngineSpec(BaseEngineSpec):
         ],
         "pypi_packages": ["pinotdb"],
         "version_requirements": (
-            "The Pinot extra requires pinotdb[sqlalchemy] 8.0.0 or later."
+            "The Pinot extra requires pinotdb[sqlalchemy]>=8.0.0,<10.0.0."
             " Earlier releases declare SQLAlchemy below 2 in their SQLAlchemy extra."
         ),
         "connection_string": (

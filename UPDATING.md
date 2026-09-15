@@ -24,7 +24,7 @@ assists people when migrating to a new version.
 
 ## Next
 
-- The Pinot extra requires pinotdb[sqlalchemy] 8.0.0 or later. Earlier releases declare SQLAlchemy below 2 in their SQLAlchemy extra.
+- The Pinot extra requires pinotdb[sqlalchemy]>=8.0.0,<10.0.0. Earlier releases declare SQLAlchemy below 2 in their SQLAlchemy extra.
 
 - `superset deletion-retention force-purge` now exits **1** when the target is
   blocked by a deletion rule or is not found (the messages are unchanged), so a
