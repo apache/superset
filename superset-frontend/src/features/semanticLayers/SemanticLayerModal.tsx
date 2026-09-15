@@ -407,11 +407,6 @@ export default function SemanticLayerModal({
                 label: type.name,
               }))}
               getPopupContainer={() => document.body}
-              dropdownAlign={{
-                points: ['tl', 'bl'],
-                offset: [0, 4],
-                overflow: { adjustX: 0, adjustY: 1 },
-              }}
             />
           </ModalFormField>
         ) : (

@@ -49,7 +49,7 @@ decryption to fail loudly rather than yielding attacker-influenced plaintext.
 Using authenticated encryption for secrets at rest is an ASVS L1 expectation
 (11.3.2 / cryptography best practice).
 
-`config.py` already documents that operators *can* switch to GCM by writing a
+`config.py` already documents that operators _can_ switch to GCM by writing a
 custom `AbstractEncryptedFieldAdapter`, but:
 
 1. it is opt-in, undocumented as a security recommendation, and easy to miss;

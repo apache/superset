@@ -15,20 +15,72 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import pandas as pd
 import pytest
 from flask import current_app
+from jsonschema import validate as validate_json_schema
+from jsonschema.exceptions import ValidationError as JSONSchemaValidationError
 from marshmallow import ValidationError
+from marshmallow.validate import OneOf
+from pytest_mock import MockerFixture
 
 from superset.charts.schemas import (
+    chart_get_list_schema,
+    ChartDataAdhocMetricSchema,
+    ChartDataExtrasSchema,
+    ChartDataPostProcessingOperationSchema,
     ChartDataProphetOptionsSchema,
     ChartDataQueryObjectSchema,
+    ChartDataResponseResult,
     ChartDataRollingOptionsSchema,
+    ChartDataTimingSchema,
     ChartPostSchema,
     ChartPutSchema,
     DEFAULT_MAX_PROPHET_PERIODS,
     get_max_prophet_periods,
+    get_prophet_time_grain_choices,
     get_time_grain_choices,
+    MAX_VIZ_TYPE_LENGTH,
+    MAX_VIZ_TYPE_ORDER_LENGTH,
 )
+from superset.utils.pandas_postprocessing.utils import PROPHET_TIME_GRAIN_MAP
+
+
+def test_chart_get_list_schema_accepts_viz_type_display_order() -> None:
+    validate_json_schema(
+        instance={
+            "order_column": "viz_type",
+            "viz_type_order": ["slug_z", "slug_a"],
+        },
+        schema=chart_get_list_schema,
+    )
+    validate_json_schema(
+        instance={"order_column": "viz_type", "viz_type_order": []},
+        schema=chart_get_list_schema,
+    )
+
+
+@pytest.mark.parametrize(
+    "viz_type_order",
+    [
+        "slug_a",
+        [1],
+        ["slug_a", "slug_a"],
+        ["a" * (MAX_VIZ_TYPE_LENGTH + 1)],
+        [f"slug_{index}" for index in range(MAX_VIZ_TYPE_ORDER_LENGTH + 1)],
+    ],
+)
+def test_chart_get_list_schema_rejects_invalid_viz_type_display_order(
+    viz_type_order: object,
+) -> None:
+    with pytest.raises(JSONSchemaValidationError):
+        validate_json_schema(
+            instance={
+                "order_column": "viz_type",
+                "viz_type_order": viz_type_order,
+            },
+            schema=chart_get_list_schema,
+        )
 
 
 def test_get_time_grain_choices(app_context: None) -> None:
@@ -58,6 +110,47 @@ def test_get_time_grain_choices(app_context: None) -> None:
     finally:
         # Restore original config
         current_app.config["TIME_GRAIN_ADDONS"] = original_addons
+
+
+def test_chart_data_timing_schema_validates_version(app_context: None) -> None:
+    schema = ChartDataTimingSchema()
+    payload = {
+        "version": 1,
+        "query": {
+            "query_planning_ms": 1.0,
+            "cache_resolution_ms": 2.0,
+            "data_acquisition_ms": None,
+            "payload_assembly_ms": 4.0,
+            "total_ms": 10.0,
+        },
+    }
+
+    assert schema.load(payload)["version"] == 1
+
+    with pytest.raises(ValidationError) as exc_info:
+        schema.load({**payload, "version": 2})
+    assert "version" in exc_info.value.messages
+
+
+def test_chart_data_response_timing_is_optional_but_never_null(
+    app_context: None,
+) -> None:
+    timing_field = ChartDataResponseResult().fields["timing"]
+    timing_payload = {
+        "version": 1,
+        "query": {
+            "query_planning_ms": 1.0,
+            "cache_resolution_ms": 2.0,
+            "data_acquisition_ms": None,
+            "payload_assembly_ms": 4.0,
+            "total_ms": 10.0,
+        },
+    }
+
+    assert timing_field.required is False
+    assert timing_field.deserialize(timing_payload) == timing_payload
+    with pytest.raises(ValidationError):
+        timing_field.deserialize(None)
 
 
 def test_chart_data_prophet_options_schema_time_grain_validation(
@@ -262,21 +355,31 @@ def test_chart_data_query_object_schema_deprecated_fields_renamed(
 
 @pytest.mark.parametrize(
     "app",
-    [{"TIME_GRAIN_ADDONS": {"PT10M": "10 minutes"}}],
+    [{"TIME_GRAIN_ADDONS": {"PT7M": "7 minutes"}}],
     indirect=True,
 )
 def test_time_grain_validation_with_config_addons(app_context: None) -> None:
-    """Test that validation includes TIME_GRAIN_ADDONS from config"""
-    schema = ChartDataProphetOptionsSchema()
+    """
+    Test that custom TIME_GRAIN_ADDONS are accepted by ChartDataExtrasSchema
+    (SQLA) but rejected by ChartDataProphetOptionsSchema (which only supports
+    mapped Prophet grains).
+    """
+    # Custom addon grain is valid for SQLA time grain
+    extras_schema = ChartDataExtrasSchema()
+    extras_result = extras_schema.load({"time_grain_sqla": "PT7M"})
+    assert extras_result["time_grain_sqla"] == "PT7M"
 
-    # Custom time grain should now be valid
+    # Custom addon grain is not supported by Prophet and should be rejected
+    prophet_schema = ChartDataProphetOptionsSchema()
     custom_data = {
-        "time_grain": "PT10M",
+        "time_grain": "PT7M",
         "periods": 5,
         "confidence_interval": 0.9,
     }
-    result = schema.load(custom_data)
-    assert result["time_grain"] == "PT10M"
+    with pytest.raises(ValidationError) as exc_info:
+        prophet_schema.load(custom_data)
+    assert "time_grain" in exc_info.value.messages
+    assert "Must be one of" in str(exc_info.value.messages["time_grain"])
 
 
 def test_prophet_periods_within_bound(app_context: None) -> None:
@@ -420,3 +523,163 @@ def test_chart_external_url_rejects_non_absolute(app_context: None, url: str) ->
             }
         )
     assert "external_url" in exc_info.value.messages
+
+
+def test_chart_data_extras_rejects_system_sampling(app_context: None) -> None:
+    """
+    ``extras["system_sampling"]`` is a server-side marker (set by the samples
+    query action) that routes physical-dataset sampling queries through the
+    engine's bounded-read retry. It must never be settable through the
+    chart-data API: this pins the schema's unknown-field rejection so a future
+    ``unknown = INCLUDE`` (or an explicit field) cannot silently make an
+    operator-limit-affecting flag client-controllable.
+    """
+    with pytest.raises(ValidationError) as exc_info:
+        ChartDataExtrasSchema().load({"system_sampling": True})
+    assert "system_sampling" in exc_info.value.messages
+
+
+def _no_config_app(mocker: MockerFixture) -> None:
+    """Make ``current_app.config`` raise as it does outside an app context."""
+    app = mocker.MagicMock()
+    type(app).config = mocker.PropertyMock(
+        side_effect=RuntimeError("Working outside of application context.")
+    )
+    mocker.patch("superset.charts.schemas.current_app", app)
+
+
+def test_post_processing_builtin_op_does_not_read_config(
+    mocker: MockerFixture,
+) -> None:
+    """A built-in operation validates without dereferencing ``current_app``.
+
+    Chart query schemas are loaded in places that have no app context (for
+    example OpenAPI spec generation), so validating a built-in must not depend
+    on one.
+    """
+    _no_config_app(mocker)
+    schema = ChartDataPostProcessingOperationSchema()
+
+    assert schema.load({"operation": "aggregate"})["operation"] == "aggregate"
+
+
+def test_post_processing_unknown_op_outside_app_context(
+    mocker: MockerFixture,
+) -> None:
+    """Outside an app context an unknown operation is a ValidationError.
+
+    The missing config is treated as "no extra ops registered" rather than
+    surfacing a RuntimeError to the caller.
+    """
+    _no_config_app(mocker)
+    schema = ChartDataPostProcessingOperationSchema()
+
+    with pytest.raises(ValidationError) as exc_info:
+        schema.load({"operation": "not_a_real_op"})
+    assert "operation" in exc_info.value.messages
+
+
+def _custom_op(df: pd.DataFrame, **options: object) -> pd.DataFrame:
+    """Named callable registered as an extra op — used in tests only."""
+    return df
+
+
+@pytest.mark.parametrize(
+    "app",
+    [{"EXTRA_PANDAS_POSTPROCESSING_OPS": [_custom_op]}],
+    indirect=True,
+)
+def test_post_processing_extra_op_is_accepted(app_context: None) -> None:
+    """An op registered via EXTRA_PANDAS_POSTPROCESSING_OPS validates by name."""
+    schema = ChartDataPostProcessingOperationSchema()
+
+    assert schema.load({"operation": "_custom_op"})["operation"] == "_custom_op"
+
+
+@pytest.mark.parametrize("aggregate", ["MEDIAN", "STDDEV_SAMP", "VAR_SAMP"])
+def test_chart_data_adhoc_metric_schema_accepts_extended_aggregates(
+    app_context: None, aggregate: str
+) -> None:
+    """
+    The chart-data REST schema's ``aggregate`` enum must stay in sync with
+    ``EXTENDED_METRIC_AGGREGATES``, otherwise Swagger/generated clients
+    reject requests using these compiler-supported aggregates.
+    """
+    schema = ChartDataAdhocMetricSchema()
+    result = schema.load(
+        {
+            "expressionType": "SIMPLE",
+            "aggregate": aggregate,
+            "column": {"column_name": "value"},
+        }
+    )
+    assert result["aggregate"] == aggregate
+
+
+@pytest.mark.parametrize("operation", ["escape_separator", "unescape_separator"])
+def test_post_processing_operation_schema_rejects_string_helpers(
+    app_context: None, operation: str
+) -> None:
+    """`escape_separator`/`unescape_separator` are internal str -> str helpers,
+    not DataFrame post-processing operations, and shouldn't validate as one."""
+    schema = ChartDataPostProcessingOperationSchema()
+    with pytest.raises(ValidationError):
+        schema.load({"operation": operation, "options": {}})
+
+
+def test_prophet_schema_advertises_only_resolvable_grains(app_context: None) -> None:
+    """The grains the Prophet field advertises are exactly those prophet() maps.
+
+    Asserted against the field's own validator rather than the helper, so that
+    re-pointing it at the wider ``get_time_grain_choices()`` fails here.
+    """
+    field = ChartDataProphetOptionsSchema().fields["time_grain"]
+    advertised = {
+        choice
+        for validator in field.validators
+        if isinstance(validator, OneOf)
+        for choice in validator.choices
+    }
+    assert advertised == set(PROPHET_TIME_GRAIN_MAP)
+    assert advertised == set(get_prophet_time_grain_choices())
+
+
+def test_prophet_choices_exclude_an_addon_the_shared_helper_includes(
+    app_context: None,
+) -> None:
+    """A TIME_GRAIN_ADDONS key stays in ``get_time_grain_choices()``, not Prophet's.
+
+    Asserted on the helpers, which is where the narrowing lives. A field's
+    ``OneOf`` choices are evaluated once, when the schema module is imported, so
+    the addon set here does not reach the field; the field-level guarantee is
+    covered by ``test_prophet_schema_advertises_only_resolvable_grains``.
+    """
+    original_addons = current_app.config.get("TIME_GRAIN_ADDONS", {})
+
+    try:
+        current_app.config["TIME_GRAIN_ADDONS"] = {"PT7M": "7 minute"}
+
+        # The shared helper still advertises the addon - it is not narrowed.
+        assert "PT7M" in get_time_grain_choices()
+
+        # Prophet does not, because it has no frequency to resolve it to.
+        assert "PT7M" not in get_prophet_time_grain_choices()
+
+        # The field rejects it as well, whatever TIME_GRAIN_ADDONS holds at
+        # import time, because its choices come from the map.
+        with pytest.raises(ValidationError) as exc_info:
+            ChartDataProphetOptionsSchema().load(
+                {"time_grain": "PT7M", "periods": 7, "confidence_interval": 0.8}
+            )
+        assert "time_grain" in exc_info.value.messages
+    finally:
+        current_app.config["TIME_GRAIN_ADDONS"] = original_addons
+
+
+@pytest.mark.parametrize("grain", ["PT5S", "PT30S", "PT6H", "PT0.5H", "P0.25Y"])
+def test_prophet_accepts_every_mapped_grain(app_context: None, grain: str) -> None:
+    """Grains that resolve in the map load through the schema."""
+    result = ChartDataProphetOptionsSchema().load(
+        {"time_grain": grain, "periods": 7, "confidence_interval": 0.8}
+    )
+    assert result["time_grain"] == grain

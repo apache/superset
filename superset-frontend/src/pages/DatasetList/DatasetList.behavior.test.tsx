@@ -21,6 +21,7 @@ import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
 import rison from 'rison';
 import { ComponentType } from 'react';
+import { mockUserSubjectsBootstrapData } from 'spec/helpers/mockBootstrapData';
 import {
   setupMocks,
   renderDatasetList,
@@ -36,6 +37,10 @@ import {
 } from './DatasetList.testHelpers';
 
 jest.mock('src/utils/export');
+
+jest.mock('src/utils/getBootstrapData', () =>
+  mockUserSubjectsBootstrapData([1]),
+);
 
 // Mock withToasts HOC to be a passthrough so we can spy on toast calls
 jest.mock('src/components/MessageToasts/withToasts', () => ({
@@ -452,9 +457,7 @@ test('clicking duplicate opens modal and submits duplicate request', async () =>
   expect(row).toBeInTheDocument();
 
   const duplicateIcon = await within(row!).findByTestId('copy');
-  const duplicateButton = duplicateIcon.closest(
-    '[role="button"]',
-  ) as HTMLElement | null;
+  const duplicateButton = duplicateIcon.closest('button') as HTMLElement | null;
   expect(duplicateButton).toBeTruthy();
 
   await userEvent.click(duplicateButton!);

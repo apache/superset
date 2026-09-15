@@ -18,7 +18,9 @@
  */
 
 import {
+  DEFAULT_DECK_MULTI_MAX_SLICES,
   getBootstrapDataFromDocument,
+  getDeckMultiMaxSlices,
   getDefaultMapRenderer,
   getMapProviderMapStyle,
   getMapboxApiKeyFromBootstrap,
@@ -56,6 +58,16 @@ test('Mapbox key helpers report absence and presence from bootstrap data', () =>
   expect(
     hasMapboxApiKey({ common: { conf: { MAPBOX_API_KEY: 'pk.test' } } }),
   ).toBe(true);
+});
+
+test('deck.gl multi-slice cap falls back to the default when unset', () => {
+  expect(getDeckMultiMaxSlices({ common: { conf: {} } })).toBe(
+    DEFAULT_DECK_MULTI_MAX_SLICES,
+  );
+  expect(getDeckMultiMaxSlices(undefined)).toBe(DEFAULT_DECK_MULTI_MAX_SLICES);
+  expect(
+    getDeckMultiMaxSlices({ common: { conf: { DECK_MULTI_MAX_SLICES: 5 } } }),
+  ).toBe(5);
 });
 
 test('bootstrap data helper parses document data safely', () => {
@@ -279,6 +291,22 @@ test('lookalike OpenStreetMap hostnames do not receive OSM attribution', () => {
   expect(typeof style).toBe('object');
   if (typeof style !== 'string') {
     expect(style.sources['osm-raster-tiles'].tiles).toEqual([lookalikeTileUrl]);
+    expect(style.sources['osm-raster-tiles']).not.toHaveProperty('attribution');
+  }
+});
+
+test('relative raster tile templates do not receive OSM attribution', () => {
+  // A host-relative template cannot be parsed by `new URL`, so the OSM
+  // hostname check must fall through to "not OSM" rather than throw.
+  const relativeTileUrl = '/local-tiles/{z}/{x}/{y}.png';
+  const style = resolveMapStyle(
+    `tile://${relativeTileUrl}`,
+    'default-style.json',
+  );
+
+  expect(typeof style).toBe('object');
+  if (typeof style !== 'string') {
+    expect(style.sources['osm-raster-tiles'].tiles).toEqual([relativeTileUrl]);
     expect(style.sources['osm-raster-tiles']).not.toHaveProperty('attribution');
   }
 });

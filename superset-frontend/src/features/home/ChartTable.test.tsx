@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { mockUserSubjectsBootstrapData } from 'spec/helpers/mockBootstrapData';
 import {
   render,
   screen,
@@ -35,6 +36,10 @@ jest.mock('src/utils/export', () => ({
   default: jest.fn(),
 }));
 
+jest.mock('src/utils/getBootstrapData', () =>
+  mockUserSubjectsBootstrapData([2]),
+);
+
 const mockExport = handleResourceExport as jest.MockedFunction<
   typeof handleResourceExport
 >;
@@ -52,6 +57,7 @@ const mockCharts = Array.from({ length: 3 }).map((_, i) => ({
   viz_type: VizType.Bar,
   datasource_title: `ds${i}`,
   thumbnail_url: '',
+  editors: [{ id: 2, label: 'Admin User', type: 1 }],
 }));
 
 fetchMock.get(

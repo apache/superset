@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactNode, isValidElement } from 'react';
+import { ReactNode } from 'react';
 import {
   ascending as d3ascending,
   quantile as d3quantile,
@@ -40,7 +40,6 @@ import {
 import { Layer, PickingInfo, Color } from '@deck.gl/core';
 import { ScaleLinear } from 'd3-scale';
 import { ColorBreakpointType } from '../types';
-import sandboxedEval from '../utils/sandbox';
 import { TooltipProps } from '../components/Tooltip';
 import { getCrossFilterDataMask } from '../utils/crossFiltersDataMask';
 import { COLOR_SCHEME_TYPES, ColorSchemeType } from '../utilities/utils';
@@ -68,26 +67,19 @@ export function commonLayerProps({
 }) {
   const fd = formData;
   let onHover;
-  let tooltipContentGenerator = setTooltipContent;
-  if (fd.js_tooltip) {
-    tooltipContentGenerator = sandboxedEval(fd.js_tooltip);
-  }
-  if (tooltipContentGenerator) {
+  if (setTooltipContent) {
     let currentTooltipContent: ReactNode = null;
-
-    const isCustomTooltip = (content: ReactNode): boolean =>
-      isValidElement(content) &&
-      content.props?.['data-tooltip-type'] === 'custom';
 
     onHover = (o: JsonObject) => {
       if (o.picked) {
-        currentTooltipContent = tooltipContentGenerator(o);
+        currentTooltipContent = setTooltipContent(o);
       }
 
-      if (
-        currentTooltipContent &&
-        (o.picked || isCustomTooltip(currentTooltipContent))
-      ) {
+      // Only show the tooltip while a feature is actually hovered. Custom
+      // (Handlebars) tooltips used to stay visible and follow the cursor
+      // after hover-out because their content was kept on screen even when
+      // nothing was picked.
+      if (o.picked && currentTooltipContent) {
         setTooltip({
           content: currentTooltipContent,
           x: o.x,
@@ -102,13 +94,7 @@ export function commonLayerProps({
   }
 
   let onClick;
-  if (fd.js_onclick_href) {
-    onClick = (o: any) => {
-      const href = sandboxedEval(fd.js_onclick_href)(o);
-      window.open(href);
-      return true;
-    };
-  } else if (fd.table_filter && onSelect !== undefined) {
+  if (fd.table_filter && onSelect !== undefined) {
     onClick = (o: any) => {
       onSelect(o.object[fd.line_column]);
       return true;

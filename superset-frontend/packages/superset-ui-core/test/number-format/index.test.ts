@@ -20,6 +20,7 @@
 import {
   createD3NumberFormatter,
   createDurationFormatter,
+  createLengthFormatter,
   createSiAtMostNDigitFormatter,
   createMemoryFormatter,
   formatNumber,
@@ -35,6 +36,7 @@ describe('index', () => {
     [
       createD3NumberFormatter,
       createDurationFormatter,
+      createLengthFormatter,
       createSiAtMostNDigitFormatter,
       createMemoryFormatter,
       formatNumber,

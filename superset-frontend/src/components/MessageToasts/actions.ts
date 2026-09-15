@@ -31,6 +31,7 @@ export function addToast({
   text,
   duration = 8000,
   noDuplicate = false,
+  allowHtml = false,
 }: Omit<ToastMeta, 'id'>) {
   return {
     type: ADD_TOAST,
@@ -40,6 +41,11 @@ export function addToast({
       text,
       duration,
       noDuplicate,
+      // Must ride the payload explicitly: the destructure-and-rebuild above
+      // drops any field not named here, and the loss is silent -- the toast
+      // tests inject flags downstream of this hop, so they stay green while
+      // every HTML toast quietly loses its anchor.
+      allowHtml,
     },
   };
 }

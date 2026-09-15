@@ -43,7 +43,7 @@ This is a list of statements that describe how we do frontend development in Sup
 - We organize our repo so similar files live near each other, and tests are co-located with the files they test.
   - See: [SIP-61](https://github.com/apache/superset/issues/12098)
 - We prefer small, easily testable files and components.
-- We use OXC (oxlint) and Prettier to automatically fix lint errors and format the code.
+- We use OXC tooling, namely `oxlint` and `oxfmt`, to automatically fix lint errors and format the code.
   - We do not debate code formatting style in PRs, instead relying on automated tooling to enforce it.
   - If there's not a linting rule, we don't have a rule!
   - See: [Linting How-Tos](../contributing/howtos.md#typescript--javascript)

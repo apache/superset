@@ -24,7 +24,7 @@ import { styled } from '@apache-superset/core/theme';
 const RemovedContent = styled.div`
   display: flex;
   flex-direction: column;
-  height: 400px; // arbitrary
+  height: 400px; /* arbitrary */
   text-align: center;
   justify-content: center;
   align-items: center;

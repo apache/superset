@@ -37,6 +37,7 @@ import {
   ENDPOINTS,
 } from '../../helpers/api/dataset';
 import { createTestDataset } from './dataset-test-helpers';
+import { isFeatureEnabled } from '../../helpers/featureFlags';
 import {
   waitForGet,
   waitForPost,
@@ -79,7 +80,7 @@ test('should navigate to Explore when dataset name is clicked', async ({
   await datasetListPage.clickDatasetName(datasetName);
 
   // Wait for Explore page to load (validates URL + datasource control)
-  await explorePage.waitForPageLoad();
+  await explorePage.waitForPageLoad({ timeout: TIMEOUT.EXPLORE_PAGE_LOAD });
 
   // Verify correct dataset is loaded in datasource control
   const loadedDatasetName = await explorePage.getDatasetName();
@@ -120,19 +121,21 @@ test('should delete a dataset with confirmation', async ({
   const deleteModal = new DeleteConfirmationModal(page);
   await deleteModal.waitForVisible();
 
-  // Type "DELETE" to confirm
-  await deleteModal.fillConfirmationInput('DELETE');
-
-  // Click the Delete button
-  await deleteModal.clickDelete();
+  // Confirm: types "DELETE" while the modal is destructive, and goes straight
+  // through once SOFT_DELETE makes it a recoverable archive instead.
+  await deleteModal.confirmDeletion();
 
   // Modal should close
   await deleteModal.waitForHidden();
 
-  // Verify success toast appears with correct message.
+  // Verify success toast appears with correct message. The copy names what
+  // actually happened, so it tracks the mode: archiving is not deleting, and
+  // a toast saying otherwise would misreport a recoverable action as final.
   const toast = new Toast(page);
   await expect(toast.getSuccess()).toBeVisible();
-  await expect(toast.getMessage()).toContainText('Deleted');
+  await expect(toast.getMessage()).toContainText(
+    (await isFeatureEnabled(page, 'SOFT_DELETE')) ? 'Archived' : 'Deleted',
+  );
 
   // Verify dataset is removed from list (deleted rows are removed from the DOM, so assert count rather than visibility)
   await expect(datasetListPage.getDatasetRow(datasetName)).toHaveCount(0, {
@@ -431,11 +434,9 @@ test('should bulk delete multiple datasets', async ({
   const deleteModal = new DeleteConfirmationModal(page);
   await deleteModal.waitForVisible();
 
-  // Type "DELETE" to confirm
-  await deleteModal.fillConfirmationInput('DELETE');
-
-  // Click the Delete button
-  await deleteModal.clickDelete();
+  // Confirm: types "DELETE" while the modal is destructive, and goes straight
+  // through once SOFT_DELETE makes it a recoverable archive instead.
+  await deleteModal.confirmDeletion();
 
   // Modal should close
   await deleteModal.waitForHidden();

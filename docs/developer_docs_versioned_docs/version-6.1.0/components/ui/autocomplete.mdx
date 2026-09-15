@@ -33,146 +33,135 @@ AutoComplete component for search functionality.
 <StoryWithControls
   component="AutoComplete"
   props={{
-  placeholder: "Type to search...",
-  options: [
-    {
-      value: "Dashboard",
-      label: "Dashboard"
+    placeholder: 'Type to search...',
+    options: [
+      {
+        value: 'Dashboard',
+        label: 'Dashboard',
+      },
+      {
+        value: 'Chart',
+        label: 'Chart',
+      },
+      {
+        value: 'Dataset',
+        label: 'Dataset',
+      },
+      {
+        value: 'Database',
+        label: 'Database',
+      },
+      {
+        value: 'Query',
+        label: 'Query',
+      },
+    ],
+    style: {
+      width: 300,
     },
-    {
-      value: "Chart",
-      label: "Chart"
-    },
-    {
-      value: "Dataset",
-      label: "Dataset"
-    },
-    {
-      value: "Database",
-      label: "Database"
-    },
-    {
-      value: "Query",
-      label: "Query"
-    }
-  ],
-  style: {
-    width: 300
-  },
-  filterOption: true
-}}
+    filterOption: true,
+  }}
   controls={[
-  {
-    name: "placeholder",
-    label: "Placeholder",
-    type: "text",
-    description: "Placeholder text for AutoComplete"
-  },
-  {
-    name: "style",
-    label: "Style",
-    type: "object",
-    description: "Custom styles for AutoComplete"
-  },
-  {
-    name: "value",
-    label: "Value",
-    type: "text",
-    description: "Selected option"
-  },
-  {
-    name: "disabled",
-    label: "Disabled",
-    type: "boolean",
-    description: "Disable the AutoComplete"
-  },
-  {
-    name: "popupMatchSelectWidth",
-    label: "Popup Match Select Width",
-    type: "number",
-    description: "Width of the dropdown"
-  },
-  {
-    name: "allowClear",
-    label: "Allow Clear",
-    type: "boolean",
-    description: "Show clear button"
-  },
-  {
-    name: "autoFocus",
-    label: "Auto Focus",
-    type: "boolean",
-    description: "If get focus when component mounted"
-  },
-  {
-    name: "backfill",
-    label: "Backfill",
-    type: "boolean",
-    description: "If backfill selected item the input when using keyboard"
-  },
-  {
-    name: "popupClassName",
-    label: "Popup Class Name",
-    type: "text",
-    description: "The className of dropdown menu"
-  },
-  {
-    name: "filterOption",
-    label: "Filter Option",
-    type: "boolean",
-    description: "Enable filtering of options based on input"
-  },
-  {
-    name: "notFoundContent",
-    label: "Not Found Content",
-    type: "text",
-    description: "Specify content to show when no result matches."
-  },
-  {
-    name: "open",
-    label: "Open",
-    type: "boolean",
-    description: "Controlled open state of dropdown"
-  },
-  {
-    name: "status",
-    label: "Status",
-    type: "select",
-    options: [
-      "error",
-      "warning"
-    ],
-    description: "Set validation status"
-  },
-  {
-    name: "size",
-    label: "Size",
-    type: "select",
-    options: [
-      "large",
-      "middle",
-      "small"
-    ],
-    description: "The size of the input box"
-  },
-  {
-    name: "variant",
-    label: "Variant",
-    type: "select",
-    options: [
-      "outlined",
-      "borderless",
-      "filled"
-    ],
-    description: "Variants of input"
-  },
-  {
-    name: "virtual",
-    label: "Virtual",
-    type: "boolean",
-    description: "Disable virtual scroll when set to false"
-  }
-]}
+    {
+      name: 'placeholder',
+      label: 'Placeholder',
+      type: 'text',
+      description: 'Placeholder text for AutoComplete',
+    },
+    {
+      name: 'style',
+      label: 'Style',
+      type: 'object',
+      description: 'Custom styles for AutoComplete',
+    },
+    {
+      name: 'value',
+      label: 'Value',
+      type: 'text',
+      description: 'Selected option',
+    },
+    {
+      name: 'disabled',
+      label: 'Disabled',
+      type: 'boolean',
+      description: 'Disable the AutoComplete',
+    },
+    {
+      name: 'popupMatchSelectWidth',
+      label: 'Popup Match Select Width',
+      type: 'number',
+      description: 'Width of the dropdown',
+    },
+    {
+      name: 'allowClear',
+      label: 'Allow Clear',
+      type: 'boolean',
+      description: 'Show clear button',
+    },
+    {
+      name: 'autoFocus',
+      label: 'Auto Focus',
+      type: 'boolean',
+      description: 'If get focus when component mounted',
+    },
+    {
+      name: 'backfill',
+      label: 'Backfill',
+      type: 'boolean',
+      description: 'If backfill selected item the input when using keyboard',
+    },
+    {
+      name: 'popupClassName',
+      label: 'Popup Class Name',
+      type: 'text',
+      description: 'The className of dropdown menu',
+    },
+    {
+      name: 'filterOption',
+      label: 'Filter Option',
+      type: 'boolean',
+      description: 'Enable filtering of options based on input',
+    },
+    {
+      name: 'notFoundContent',
+      label: 'Not Found Content',
+      type: 'text',
+      description: 'Specify content to show when no result matches.',
+    },
+    {
+      name: 'open',
+      label: 'Open',
+      type: 'boolean',
+      description: 'Controlled open state of dropdown',
+    },
+    {
+      name: 'status',
+      label: 'Status',
+      type: 'select',
+      options: ['error', 'warning'],
+      description: 'Set validation status',
+    },
+    {
+      name: 'size',
+      label: 'Size',
+      type: 'select',
+      options: ['large', 'middle', 'small'],
+      description: 'The size of the input box',
+    },
+    {
+      name: 'variant',
+      label: 'Variant',
+      type: 'select',
+      options: ['outlined', 'borderless', 'filled'],
+      description: 'Variants of input',
+    },
+    {
+      name: 'virtual',
+      label: 'Virtual',
+      type: 'boolean',
+      description: 'Disable virtual scroll when set to false',
+    },
+  ]}
 />
 
 ## Try It
@@ -184,8 +173,14 @@ function Demo() {
   return (
     <AutoComplete
       placeholder="Type to search..."
-      options={[{"value":"Dashboard","label":"Dashboard"},{"value":"Chart","label":"Chart"},{"value":"Dataset","label":"Dataset"},{"value":"Database","label":"Database"},{"value":"Query","label":"Query"}]}
-      style={{"width":300}}
+      options={[
+        { value: 'Dashboard', label: 'Dashboard' },
+        { value: 'Chart', label: 'Chart' },
+        { value: 'Dataset', label: 'Dataset' },
+        { value: 'Database', label: 'Database' },
+        { value: 'Query', label: 'Query' },
+      ]}
+      style={{ width: 300 }}
       filterOption
     />
   );
@@ -194,12 +189,12 @@ function Demo() {
 
 ## Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `placeholder` | `string` | `"Type to search..."` | Placeholder text for AutoComplete |
-| `options` | `any` | `[{"value":"Dashboard","label":"Dashboard"},{"value":"Chart","label":"Chart"},{"value":"Dataset","label":"Dataset"},{"value":"Database","label":"Database"},{"value":"Query","label":"Query"}]` | The dropdown options |
-| `style` | `any` | `{"width":300}` | Custom styles for AutoComplete |
-| `filterOption` | `boolean` | `true` | Enable filtering of options based on input |
+| Prop           | Type      | Default                                                                                                                                                                                         | Description                                |
+| -------------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| `placeholder`  | `string`  | `"Type to search..."`                                                                                                                                                                           | Placeholder text for AutoComplete          |
+| `options`      | `any`     | `[{"value":"Dashboard","label":"Dashboard"},{"value":"Chart","label":"Chart"},{"value":"Dataset","label":"Dataset"},{"value":"Database","label":"Database"},{"value":"Query","label":"Query"}]` | The dropdown options                       |
+| `style`        | `any`     | `{"width":300}`                                                                                                                                                                                 | Custom styles for AutoComplete             |
+| `filterOption` | `boolean` | `true`                                                                                                                                                                                          | Enable filtering of options based on input |
 
 ## Import
 

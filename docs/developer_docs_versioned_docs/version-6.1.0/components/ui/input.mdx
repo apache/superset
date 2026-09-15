@@ -33,94 +33,75 @@ The Input component from Superset's UI library.
 <StoryWithControls
   component="Input"
   props={{
-  allowClear: false,
-  disabled: false,
-  showCount: false,
-  type: "text",
-  variant: "outlined"
-}}
+    allowClear: false,
+    disabled: false,
+    showCount: false,
+    type: 'text',
+    variant: 'outlined',
+  }}
   controls={[
-  {
-    name: "allowClear",
-    label: "Allow Clear",
-    type: "boolean"
-  },
-  {
-    name: "disabled",
-    label: "Disabled",
-    type: "boolean"
-  },
-  {
-    name: "showCount",
-    label: "Show Count",
-    type: "boolean"
-  },
-  {
-    name: "type",
-    label: "Type",
-    type: "select",
-    options: [
-      "text",
-      "password",
-      "email",
-      "number",
-      "tel",
-      "url",
-      "search"
-    ],
-    description: "HTML input type"
-  },
-  {
-    name: "variant",
-    label: "Variant",
-    type: "select",
-    options: [
-      "outlined",
-      "borderless",
-      "filled"
-    ],
-    description: "Input style variant"
-  },
-  {
-    name: "defaultValue",
-    label: "Default Value",
-    type: "text",
-    description: "Default input value"
-  },
-  {
-    name: "id",
-    label: "ID",
-    type: "text",
-    description: "HTML id attribute"
-  },
-  {
-    name: "maxLength",
-    label: "Max Length",
-    type: "number",
-    description: "Maximum length of input"
-  },
-  {
-    name: "status",
-    label: "Status",
-    type: "select",
-    options: [
-      "error",
-      "warning"
-    ],
-    description: "Validation status"
-  },
-  {
-    name: "size",
-    label: "Size",
-    type: "select",
-    options: [
-      "large",
-      "middle",
-      "small"
-    ],
-    description: "Size of the input"
-  }
-]}
+    {
+      name: 'allowClear',
+      label: 'Allow Clear',
+      type: 'boolean',
+    },
+    {
+      name: 'disabled',
+      label: 'Disabled',
+      type: 'boolean',
+    },
+    {
+      name: 'showCount',
+      label: 'Show Count',
+      type: 'boolean',
+    },
+    {
+      name: 'type',
+      label: 'Type',
+      type: 'select',
+      options: ['text', 'password', 'email', 'number', 'tel', 'url', 'search'],
+      description: 'HTML input type',
+    },
+    {
+      name: 'variant',
+      label: 'Variant',
+      type: 'select',
+      options: ['outlined', 'borderless', 'filled'],
+      description: 'Input style variant',
+    },
+    {
+      name: 'defaultValue',
+      label: 'Default Value',
+      type: 'text',
+      description: 'Default input value',
+    },
+    {
+      name: 'id',
+      label: 'ID',
+      type: 'text',
+      description: 'HTML id attribute',
+    },
+    {
+      name: 'maxLength',
+      label: 'Max Length',
+      type: 'number',
+      description: 'Maximum length of input',
+    },
+    {
+      name: 'status',
+      label: 'Status',
+      type: 'select',
+      options: ['error', 'warning'],
+      description: 'Validation status',
+    },
+    {
+      name: 'size',
+      label: 'Size',
+      type: 'select',
+      options: ['large', 'middle', 'small'],
+      description: 'Size of the input',
+    },
+  ]}
 />
 
 ## Try It
@@ -129,24 +110,19 @@ Edit the code below to experiment with the component:
 
 ```tsx live
 function Demo() {
-  return (
-    <Input
-      type="text"
-      variant="outlined"
-    />
-  );
+  return <Input type="text" variant="outlined" />;
 }
 ```
 
 ## Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `allowClear` | `boolean` | `false` | - |
-| `disabled` | `boolean` | `false` | - |
-| `showCount` | `boolean` | `false` | - |
-| `type` | `string` | `"text"` | HTML input type |
-| `variant` | `string` | `"outlined"` | Input style variant |
+| Prop         | Type      | Default      | Description         |
+| ------------ | --------- | ------------ | ------------------- |
+| `allowClear` | `boolean` | `false`      | -                   |
+| `disabled`   | `boolean` | `false`      | -                   |
+| `showCount`  | `boolean` | `false`      | -                   |
+| `type`       | `string`  | `"text"`     | HTML input type     |
+| `variant`    | `string`  | `"outlined"` | Input style variant |
 
 ## Import
 

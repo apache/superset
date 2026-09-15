@@ -36,6 +36,7 @@ import type {
   QueryResponse,
   TimeFormatter,
 } from '@superset-ui/core';
+import { type RGBColor } from '@superset-ui/core/components';
 import { GenericDataType } from '@apache-superset/core/common';
 import { sharedControls, sharedControlComponents } from './shared-controls';
 
@@ -86,7 +87,7 @@ export interface Dataset {
   name?: string;
   description: string | null;
   uid?: string;
-  owners?: Owner[];
+  editors?: Owner[];
   filter_select?: boolean;
   filter_select_enabled?: boolean;
   column_names?: string[];
@@ -488,18 +489,36 @@ export const MultipleValueComparators = [
   Comparator.BetweenOrRightEqual,
 ];
 
+export enum BoundUnit {
+  Value = 'value',
+  Percent = 'percent',
+}
+
+export enum PercentDenominator {
+  Sum = 'sum',
+  Max = 'max',
+}
+
 export type ConditionalFormattingConfig = {
   operator?: Comparator;
   targetValue?: number | string;
   targetValueLeft?: number;
   targetValueRight?: number;
   column?: string;
-  colorScheme?: string;
+  colorScheme?: RGBColor | string;
   toAllRow?: boolean;
   toTextColor?: boolean;
   useGradient?: boolean;
   columnFormatting?: string;
   objectFormatting?: ObjectFormattingEnum;
+  minBound?: number;
+  maxBound?: number;
+  centerValue?: number;
+  lowColor?: RGBColor | string;
+  midColor?: RGBColor | string;
+  highColor?: RGBColor | string;
+  boundUnit?: BoundUnit;
+  percentDenominator?: PercentDenominator;
 };
 
 export type ColorFormatters = {
@@ -517,8 +536,6 @@ export type ResolvedColorFormatterResult = {
   backgroundColor?: string;
   color?: string;
 };
-
-export default {};
 
 export function isColumnMeta(column: AnyDict): column is ColumnMeta {
   return !!column && 'column_name' in column;
@@ -713,4 +730,5 @@ export interface DataColumnMeta {
   isChildColumn?: boolean;
   description?: string;
   currencyCodeColumn?: string;
+  isFilterable?: boolean;
 }

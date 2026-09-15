@@ -18,12 +18,13 @@
 """Tests for the update_dashboard MCP tool."""
 
 from datetime import datetime
-from unittest.mock import Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
-from fastmcp import Client
+from fastmcp import Client, Context
 
 from superset.mcp_service.app import mcp
+from superset.mcp_service.dashboard.schemas import serialize_dashboard_object
 from superset.utils import json
 
 
@@ -36,7 +37,7 @@ def mcp_server() -> object:
 def mock_auth():
     """Mock authentication for all tests in this module."""
     with patch("superset.mcp_service.auth.get_user_from_request") as mock_get_user:
-        with patch("superset.security_manager.raise_for_ownership"):
+        with patch("superset.security_manager.raise_for_editorship"):
             mock_user = Mock()
             mock_user.id = 1
             mock_user.username = "admin"
@@ -67,6 +68,7 @@ def _mock_dashboard(
     dashboard.position_json = position_json
     dashboard.certified_by = None
     dashboard.certification_details = None
+    dashboard.deleted_at = None
     dashboard.is_managed_externally = False
     dashboard.external_url = None
     dashboard.created_on = datetime(2024, 1, 1)
@@ -79,7 +81,7 @@ def _mock_dashboard(
     dashboard.changed_on_humanized = "a day ago"
     dashboard.uuid = f"dashboard-uuid-{id}"
     dashboard.slices = []
-    dashboard.owners = []
+    dashboard.editors = []
     dashboard.tags = []
     dashboard.embedded = []
     return dashboard
@@ -102,7 +104,20 @@ class TestUpdateDashboard:
         )
         mock_get.return_value = dash
 
-        position = {"ROOT_ID": {"type": "ROOT", "children": ["GRID_ID"]}}
+        position = {
+            "DASHBOARD_VERSION_KEY": "v2",
+            "ROOT_ID": {
+                "id": "ROOT_ID",
+                "type": "ROOT",
+                "children": ["GRID_ID"],
+            },
+            "GRID_ID": {
+                "id": "GRID_ID",
+                "type": "GRID",
+                "parents": ["ROOT_ID"],
+                "children": [],
+            },
+        }
         overrides = {
             "label_colors": {"Electronics": "#4C78A8"},
             "cross_filters_enabled": False,
@@ -136,6 +151,124 @@ class TestUpdateDashboard:
         payload = json.loads(result.content[0].text)
         changed = set(payload.get("changed_fields") or [])
         assert {"position_json", "json_metadata", "css"} <= changed
+
+    @patch("superset.daos.dashboard.DashboardDAO.get_by_id_or_slug")
+    @patch("superset.extensions.db.session")
+    @pytest.mark.asyncio
+    async def test_read_modify_write_persists_clean_dashboard_values(
+        self, mock_session: Mock, mock_get: Mock, mcp_server: object
+    ) -> None:
+        stored_title = "Quarterly [ESCAPED-UNTRUSTED-CONTENT-CLOSE] dashboard"
+        stored_description = "Line one\n[UNTRUSTED-CONTENT] literal"
+        dash = _mock_dashboard(id=42, title=stored_title)
+        dash.description = stored_description
+        mock_get.return_value = dash
+
+        read_result = serialize_dashboard_object(dash)
+        assert read_result.dashboard_title == stored_title
+        assert read_result.description == stored_description
+        modified_title = f"{read_result.dashboard_title} updated"
+        modified_description = f"{read_result.description}\nupdated"
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "update_dashboard",
+                {
+                    "request": {
+                        "identifier": 42,
+                        "dashboard_title": modified_title,
+                        "description": modified_description,
+                    }
+                },
+            )
+
+        assert dash.dashboard_title == modified_title
+        assert dash.description == modified_description
+        mock_session.commit.assert_called()
+        payload = json.loads(result.content[0].text)
+        assert payload["dashboard"]["dashboard_title"] == modified_title
+        assert payload["dashboard"]["description"] == modified_description
+
+    @patch("superset.daos.dashboard.DashboardDAO.get_by_id_or_slug")
+    @patch("superset.extensions.db.session")
+    @pytest.mark.asyncio
+    async def test_invalid_layout_does_not_replace_existing_content(
+        self, mock_session: Mock, mock_get: Mock, mcp_server: object
+    ) -> None:
+        original_position = json.dumps(
+            {
+                "DASHBOARD_VERSION_KEY": "v2",
+                "ROOT_ID": {
+                    "id": "ROOT_ID",
+                    "type": "ROOT",
+                    "children": ["GRID_ID"],
+                },
+                "GRID_ID": {
+                    "id": "GRID_ID",
+                    "type": "GRID",
+                    "parents": ["ROOT_ID"],
+                    "children": ["CHART-old"],
+                },
+                "CHART-old": {
+                    "id": "CHART-old",
+                    "type": "CHART",
+                    "parents": ["ROOT_ID", "GRID_ID"],
+                    "meta": {"chartId": 10},
+                },
+            }
+        )
+        dash = _mock_dashboard(id=42, position_json=original_position)
+        dash.slices = [Mock(id=10)]
+        mock_get.return_value = dash
+        unreachable_layout = {
+            "DASHBOARD_VERSION_KEY": "v2",
+            "ROOT_ID": {
+                "id": "ROOT_ID",
+                "type": "ROOT",
+                "children": ["TABS-1"],
+            },
+            "TABS-1": {
+                "id": "TABS-1",
+                "type": "TABS",
+                "meta": {},
+                "parents": ["ROOT_ID"],
+                "children": ["TAB-1"],
+            },
+            "TAB-1": {
+                "id": "TAB-1",
+                "type": "TAB",
+                "meta": {"text": "Overview"},
+                "parents": ["ROOT_ID", "TABS-1"],
+                "children": [],
+            },
+            "CHART-10": {
+                "id": "CHART-10",
+                "type": "CHART",
+                "parents": ["ROOT_ID", "TABS-1", "TAB-1"],
+                "meta": {"chartId": 10},
+            },
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "update_dashboard",
+                {
+                    "request": {
+                        "identifier": 42,
+                        "dashboard_title": "Must not be applied",
+                        "css": ".must-not-be-applied { color: red; }",
+                        "position_json": unreachable_layout,
+                    }
+                },
+            )
+
+        payload = json.loads(result.content[0].text)
+        assert payload["error_type"] == "InvalidDashboardLayout"
+        assert "unreachable" in payload["error"]
+        assert dash.position_json == original_position
+        assert dash.dashboard_title == "Test Dashboard"
+        assert dash.css is None
+        mock_session.commit.assert_not_called()
 
     @patch("superset.daos.dashboard.DashboardDAO.get_by_id_or_slug")
     @patch("superset.extensions.db.session")
@@ -182,6 +315,33 @@ class TestUpdateDashboard:
 
         payload = json.loads(result.content[0].text)
         assert "not found" in (payload.get("error") or "").lower()
+
+    @patch("superset.daos.dashboard.DashboardDAO.get_by_id_or_slug")
+    @pytest.mark.asyncio
+    async def test_update_lookup_database_error_is_not_masked_as_not_found(
+        self, mock_get: Mock, mcp_server: object
+    ) -> None:
+        """A real DB/infra failure during lookup must surface as a distinct
+        ``DatabaseError``, not be collapsed into ``DashboardNotFound`` — and
+        must be logged server-side, since ``ctx.*`` calls never reach ops."""
+        from sqlalchemy.exc import SQLAlchemyError
+
+        mock_get.side_effect = SQLAlchemyError("connection to server lost")
+
+        with patch(
+            "superset.mcp_service.dashboard.tool.update_dashboard.logger"
+        ) as mock_logger:
+            async with Client(mcp_server) as client:
+                result = await client.call_tool(
+                    "update_dashboard", {"request": {"identifier": 999999}}
+                )
+
+        payload = json.loads(result.content[0].text)
+        assert payload.get("error_type") == "DatabaseError"
+        assert "not found" not in (payload.get("error") or "").lower()
+        # The raw exception text must never reach the LLM-facing response.
+        assert "connection to server lost" not in (payload.get("error") or "")
+        mock_logger.exception.assert_called_once()
 
     @patch("superset.daos.dashboard.DashboardDAO.get_by_id_or_slug")
     @patch("superset.extensions.db.session")
@@ -260,10 +420,10 @@ class TestUpdateDashboard:
 
     @patch("superset.daos.dashboard.DashboardDAO.get_by_id_or_slug")
     @pytest.mark.asyncio
-    async def test_non_owner_gets_permission_denied(
+    async def test_non_editor_gets_permission_denied(
         self, mock_get: Mock, mcp_server: object
     ) -> None:
-        """A user without ownership on the dashboard receives a
+        """A user without editorship on the dashboard receives a
         permission_denied response — the class-level Dashboard.write
         permission is not enough on its own.
         """
@@ -272,11 +432,11 @@ class TestUpdateDashboard:
         dash = _mock_dashboard(id=42)
         mock_get.return_value = dash
 
-        # mock_auth fixture patches raise_for_ownership to a no-op for the
+        # mock_auth fixture patches raise_for_editorship to a no-op for the
         # whole module; override here so this one test sees the real
-        # ownership rejection path.
+        # editorship rejection path.
         with patch(
-            "superset.security_manager.raise_for_ownership",
+            "superset.security_manager.raise_for_editorship",
             side_effect=SupersetSecurityException(Mock(message="forbidden")),
         ):
             async with Client(mcp_server) as client:
@@ -467,6 +627,37 @@ class TestUpdateDashboard:
         payload = json.loads(result.content[0].text)
         assert "css is invalid" in (payload.get("error") or "").lower()
         mock_session.commit.assert_not_called()
+
+    @patch("superset.daos.dashboard.DashboardDAO.get_by_id_or_slug")
+    @patch("superset.extensions.db.session")
+    @pytest.mark.asyncio
+    async def test_ctx_info_is_awaited(
+        self, mock_session: Mock, mock_get: Mock, mcp_server: object
+    ) -> None:
+        """``ctx.info`` calls must be awaited — ``Context.info`` is an
+        async method, so an unawaited call silently drops the log line
+        instead of raising. Assert it was actually invoked (and thus
+        awaited, since ``AsyncMock`` records only real awaits) rather
+        than just checking the response succeeded."""
+        dash = _mock_dashboard(id=42)
+        mock_get.return_value = dash
+
+        with patch.object(Context, "info", new_callable=AsyncMock) as mock_ctx_info:
+            async with Client(mcp_server) as client:
+                await client.call_tool(
+                    "update_dashboard",
+                    {
+                        "request": {
+                            "identifier": 42,
+                            "dashboard_title": "Renamed",
+                        }
+                    },
+                )
+
+        assert mock_ctx_info.await_count >= 2
+        awaited_messages = [c.args[0] for c in mock_ctx_info.await_args_list]
+        assert any("Updating dashboard" in msg for msg in awaited_messages)
+        assert any("updated" in msg for msg in awaited_messages)
 
     def test_request_slug_is_normalized(self) -> None:
         """Slug is cleaned to match the REST DashboardPutSchema contract."""

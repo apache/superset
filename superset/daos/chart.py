@@ -29,7 +29,7 @@ from superset.commands.chart.exceptions import ChartNotFoundError
 from superset.daos.base import BaseDAO, ColumnOperator, ColumnOperatorEnum
 from superset.extensions import db
 from superset.models.core import FavStar, FavStarClassName
-from superset.models.slice import id_or_uuid_filter, Slice, slice_user
+from superset.models.slice import id_or_uuid_filter, Slice
 from superset.utils.core import get_user_id
 
 logger = logging.getLogger(__name__)
@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
 CHART_CUSTOM_FIELDS = {
     "viz_type": ["eq", "in", "like"],
     "datasource_name": ["eq", "in", "like"],
-    "owner": ["eq", "in"],
+    "editor": ["eq", "in"],
 }
 
 
@@ -52,7 +52,7 @@ class ChartDAO(BaseDAO[Slice]):
         query: Query,
         column_operators: list[ColumnOperator] | None = None,
     ) -> Query:
-        """Override to handle owner filter via the slice_user M2M table."""
+        """Override to handle editor filters via the chart_editors M2M table."""
         if not column_operators:
             return query
 
@@ -60,26 +60,46 @@ class ChartDAO(BaseDAO[Slice]):
         for c in column_operators:
             if not isinstance(c, ColumnOperator):
                 c = ColumnOperator.model_validate(c)
-            if c.col == "owner":
+            if c.col == "editor":
+                from superset.subjects.models import chart_editors, Subject
+
                 operator_enum = ColumnOperatorEnum(c.opr)
-                subq = select(slice_user.c.slice_id).where(
-                    operator_enum.apply(slice_user.c.user_id, c.value)
+                subq = (
+                    select(chart_editors.c.chart_id)
+                    .join(
+                        Subject.__table__,
+                        Subject.__table__.c.id == chart_editors.c.subject_id,
+                    )
+                    .where(
+                        Subject.__table__.c.type == 1,
+                        operator_enum.apply(Subject.__table__.c.user_id, c.value),
+                    )
                 )
                 query = query.filter(
                     Slice.id.in_(subq)  # type: ignore[attr-defined,unused-ignore]
                 )
-            elif c.col == "created_by_fk_or_owner":
+            elif c.col == "created_by_fk_or_editor":
                 if c.opr != "eq":
                     raise ValueError(
-                        f"created_by_fk_or_owner only supports 'eq'; got '{c.opr}'"
+                        f"created_by_fk_or_editor only supports 'eq'; got '{c.opr}'"
                     )
-                owner_subq = select(slice_user.c.slice_id).where(
-                    slice_user.c.user_id == c.value
+                from superset.subjects.models import chart_editors, Subject
+
+                editor_subq = (
+                    select(chart_editors.c.chart_id)
+                    .join(
+                        Subject.__table__,
+                        Subject.__table__.c.id == chart_editors.c.subject_id,
+                    )
+                    .where(
+                        Subject.__table__.c.type == 1,
+                        Subject.__table__.c.user_id == c.value,
+                    )
                 )
                 query = query.filter(
                     or_(
                         Slice.created_by_fk == c.value,  # type: ignore[attr-defined,unused-ignore]
-                        Slice.id.in_(owner_subq),  # type: ignore[attr-defined,unused-ignore]
+                        Slice.id.in_(editor_subq),  # type: ignore[attr-defined,unused-ignore]
                     )
                 )
             else:

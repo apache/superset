@@ -42,6 +42,7 @@ jest.mock('react-map-gl/maplibre', () => ({
     <div data-test="maplibre-map" data-map-style={JSON.stringify(mapStyle)}>
       <button
         type="button"
+        aria-label="move map"
         data-test="maplibre-move"
         onClick={() =>
           onMove({ viewState: { longitude: 1, latitude: 2, zoom: 3 } })

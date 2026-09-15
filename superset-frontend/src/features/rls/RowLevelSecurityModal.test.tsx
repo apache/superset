@@ -31,8 +31,8 @@ import RowLevelSecurityModal, {
 import { FilterType } from './types';
 
 const getRuleEndpoint = 'glob:*/api/v1/rowlevelsecurity/1';
-const getRelatedRolesEndpoint =
-  'glob:*/api/v1/rowlevelsecurity/related/roles?q*';
+const getRelatedSubjectsEndpoint =
+  'glob:*/api/v1/rowlevelsecurity/related/subjects?q*';
 const getRelatedTablesEndpoint =
   'glob:*/api/v1/rowlevelsecurity/related/tables?q*';
 const postRuleEndpoint = 'glob:*/api/v1/rowlevelsecurity/*';
@@ -47,8 +47,8 @@ const mockGetRuleResult = {
     filter_type: 'Filter Type',
     group_key: 'Group Key',
     name: 'Name',
-    'roles.id': 'Roles Id',
-    'roles.name': 'Roles Name',
+    'subjects.id': 'Subjects Id',
+    'subjects.label': 'Subjects Label',
     'tables.id': 'Tables Id',
     'tables.table_name': 'Tables Table Name',
   },
@@ -59,10 +59,11 @@ const mockGetRuleResult = {
     group_key: 'g1',
     id: 1,
     name: 'rls 1',
-    roles: [
+    subjects: [
       {
         id: 1,
-        name: 'Admin',
+        label: 'Admin',
+        type: 2,
       },
     ],
     tables: [
@@ -78,29 +79,30 @@ const mockGetRuleResult = {
     'filter_type',
     'tables.id',
     'tables.table_name',
-    'roles.id',
-    'roles.name',
+    'subjects.id',
+    'subjects.label',
+    'subjects.type',
     'group_key',
     'clause',
   ],
   show_title: 'Show Row Level Security Filter',
 };
 
-const mockGetRolesResult = {
+const mockGetSubjectsResult = {
   count: 3,
   result: [
     {
-      extra: {},
+      extra: { type: 2 },
       text: 'Admin',
       value: 1,
     },
     {
-      extra: {},
+      extra: { type: 2 },
       text: 'Public',
       value: 2,
     },
     {
-      extra: {},
+      extra: { type: 2 },
       text: 'Alpha',
       value: 3,
     },
@@ -129,7 +131,7 @@ const mockGetTablesResult = {
 };
 
 fetchMock.get(getRuleEndpoint, mockGetRuleResult);
-fetchMock.get(getRelatedRolesEndpoint, mockGetRolesResult);
+fetchMock.get(getRelatedSubjectsEndpoint, mockGetSubjectsResult);
 fetchMock.get(getRelatedTablesEndpoint, mockGetTablesResult);
 fetchMock.post(postRuleEndpoint, {}, { name: postRuleEndpoint });
 fetchMock.put(putRuleEndpoint, {});
@@ -163,9 +165,9 @@ describe('Rule modal', () => {
     expect(fetchMock.callHistory.calls(getRelatedTablesEndpoint)).toHaveLength(
       0,
     );
-    expect(fetchMock.callHistory.calls(getRelatedRolesEndpoint)).toHaveLength(
-      0,
-    );
+    expect(
+      fetchMock.callHistory.calls(getRelatedSubjectsEndpoint),
+    ).toHaveLength(0);
   });
 
   test('Sets correct title for editing existing rule', async () => {
@@ -175,8 +177,8 @@ describe('Rule modal', () => {
         id: 1,
         name: 'test rule',
         filter_type: FilterType.Base,
-        tables: [{ key: 1, id: 1, value: 'birth_names' }],
-        roles: [],
+        tables: [{ id: 1, table_name: 'birth_names' }],
+        subjects: [],
       },
     });
     const title = screen.getByText('Edit Rule');
@@ -185,9 +187,9 @@ describe('Rule modal', () => {
     expect(fetchMock.callHistory.calls(getRelatedTablesEndpoint)).toHaveLength(
       0,
     );
-    expect(fetchMock.callHistory.calls(getRelatedRolesEndpoint)).toHaveLength(
-      0,
-    );
+    expect(
+      fetchMock.callHistory.calls(getRelatedSubjectsEndpoint),
+    ).toHaveLength(0);
   });
 
   test('Fills correct values when editing rule', async () => {
@@ -202,35 +204,35 @@ describe('Rule modal', () => {
 
     const name = await screen.findByTestId('rule-name-test');
     expect(name).toHaveDisplayValue('rls 1');
-    userEvent.clear(name);
-    userEvent.type(name, 'rls 2');
+    await userEvent.clear(name);
+    await userEvent.type(name, 'rls 2');
     expect(name).toHaveDisplayValue('rls 2');
 
     const filterType = await screen.findByText('Base');
     expect(filterType).toBeInTheDocument();
 
-    const roles = await screen.findByText('Admin');
-    expect(roles).toBeInTheDocument();
+    const subjects = await screen.findByText('Admin');
+    expect(subjects).toBeInTheDocument();
 
     const tables = await screen.findByText('birth_names');
     expect(tables).toBeInTheDocument();
 
     const groupKey = await screen.findByTestId('group-key-test');
     expect(groupKey).toHaveValue('g1');
-    userEvent.clear(groupKey);
-    userEvent.type(groupKey, 'g2');
+    await userEvent.clear(groupKey);
+    await userEvent.type(groupKey, 'g2');
     expect(groupKey).toHaveValue('g2');
 
     const clause = await screen.findByTestId('clause-test');
     expect(clause).toHaveValue('gender="girl"');
-    userEvent.clear(clause);
-    userEvent.type(clause, 'gender="boy"');
+    await userEvent.clear(clause);
+    await userEvent.type(clause, 'gender="boy"');
     expect(clause).toHaveValue('gender="boy"');
 
     const description = await screen.findByTestId('description-test');
     expect(description).toHaveValue('test rls rule with RTL');
-    userEvent.clear(description);
-    userEvent.type(description, 'test description');
+    await userEvent.clear(description);
+    await userEvent.type(description, 'test description');
     expect(description).toHaveValue('test description');
   });
 
@@ -242,7 +244,7 @@ describe('Rule modal', () => {
     expect(addButton).toBeDisabled();
 
     const nameTextBox = screen.getByTestId('rule-name-test');
-    userEvent.type(nameTextBox, 'name');
+    await userEvent.type(nameTextBox, 'name');
 
     expect(addButton).toBeDisabled();
 
@@ -250,7 +252,7 @@ describe('Rule modal', () => {
     expect(addButton).toBeDisabled();
 
     const clause = await screen.findByTestId('clause-test');
-    userEvent.type(clause, 'gender="girl"');
+    await userEvent.type(clause, 'gender="girl"');
 
     expect(addButton).toBeEnabled();
   });
@@ -261,16 +263,18 @@ describe('Rule modal', () => {
     const addButton = screen.getByRole('button', { name: /add/i });
 
     const nameTextBox = screen.getByTestId('rule-name-test');
-    userEvent.type(nameTextBox, 'name');
+    await userEvent.type(nameTextBox, 'name');
 
     await selectOption('birth_names', 'Tables');
 
     const clause = await screen.findByTestId('clause-test');
-    userEvent.type(clause, 'gender="girl"');
+    await userEvent.type(clause, 'gender="girl"');
 
     fetchMock.clearHistory();
 
-    await waitFor(() => userEvent.click(addButton), { timeout: 10000 });
+    await waitFor(async () => await userEvent.click(addButton), {
+      timeout: 10000,
+    });
 
     await waitFor(
       () => {
@@ -291,7 +295,7 @@ describe('Rule modal', () => {
     });
 
     const addButton = screen.getByRole('button', { name: /save/i });
-    await waitFor(() => userEvent.click(addButton));
+    await waitFor(async () => await userEvent.click(addButton));
 
     await waitFor(
       () => {
@@ -299,8 +303,11 @@ describe('Rule modal', () => {
         // Find the PUT request among all calls
         const putCall = allCalls.find(call => call.options?.method === 'put');
         expect(putCall).toBeTruthy();
-        expect(putCall?.options?.body).toContain('"name":"rls 1"');
-        expect(putCall?.options?.body).toContain('"filter_type":"Base"');
+        const body = JSON.parse(putCall?.options?.body as string);
+        expect(body.name).toBe('rls 1');
+        expect(body.filter_type).toBe('Base');
+        expect(body.tables).toEqual([2]);
+        expect(body.subjects).toEqual([1]);
       },
       { timeout: 10000 },
     );

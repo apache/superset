@@ -243,6 +243,7 @@ export const accessTokenField = ({
   validationErrors,
   db,
   isEditMode,
+  isValidating,
   default_value,
   description,
 }: FieldPropTypes) => (
@@ -250,6 +251,7 @@ export const accessTokenField = ({
     id="access_token"
     name="access_token"
     required={required}
+    isValidating={isValidating}
     visibilityToggle={!isEditMode}
     value={db?.parameters?.access_token}
     validationMethods={{ onBlur: getValidation }}

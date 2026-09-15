@@ -16,12 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, getMetricLabel } from '@superset-ui/core';
-import { addJsColumnsToExtraProps, DataRecord } from '../spatialUtils';
+import { ChartProps, getMetricLabel, QueryFormMetric } from '@superset-ui/core';
+import { DataRecord } from '../spatialUtils';
 import {
   createBaseTransformResult,
   getRecordsFromQuery,
-  getMetricLabelFromFormData,
   parseMetricValue,
   addPropertiesToFeature,
 } from '../transformUtils';
@@ -105,14 +104,18 @@ function processPolygonData(
     metric,
     point_radius_fixed,
     reverse_long_lat,
-    js_columns,
   } = formData;
 
   if (!line_column || !records.length) {
     return [];
   }
 
-  const metricLabel = getMetricLabelFromFormData(metric);
+  // Metric from GUI Config (Explore) can be an object (saved/adhoc), so normalize it to
+  // the query-result label; this key is used to read the metric and expose it
+  // in extraProps for tooltip resolution.
+  const metricLabel = metric
+    ? getMetricLabel(metric as QueryFormMetric)
+    : undefined;
 
   let elevationLabel: string | undefined;
   let fixedElevationValue: number | undefined;
@@ -135,7 +138,7 @@ function processPolygonData(
     }
   }
 
-  const excludeKeys = new Set([line_column, ...(js_columns || [])]);
+  const excludeKeys = new Set([line_column]);
 
   return records.flatMap(record => {
     let feature: PolygonFeature = {
@@ -143,7 +146,6 @@ function processPolygonData(
       metrics: {},
     };
 
-    feature = addJsColumnsToExtraProps(feature, record, js_columns);
     const updatedFeature = addPropertiesToFeature(
       feature as unknown as Record<string, unknown>,
       record,
@@ -221,6 +223,12 @@ function processPolygonData(
           typeof metricValue === 'number'
         ) {
           feature.metrics![metricLabel] = metricValue;
+          // Expose the configured metric under its own label in extraProps so
+          // tooltip field lookups can resolve it with the same key users select.
+          feature.extraProps = {
+            ...feature.extraProps,
+            [metricLabel]: metricValue,
+          };
         }
       }
 

@@ -1,0 +1,175 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+import getCellStyle from '../../src/utils/getCellStyle';
+
+// A standard conditional-formatting rule that paints metric_a red.
+const standardCfFormatter = {
+  column: 'metric_a',
+  getColorFromValue: () => '#ff0000',
+  objectFormatting: undefined,
+  toTextColor: false,
+};
+
+function buildParams(overrides: Record<string, unknown> = {}) {
+  return {
+    value: 100,
+    valueFormatted: '100',
+    colDef: { field: 'metric_a' },
+    rowIndex: 0,
+    node: { rowPinned: undefined, data: {} },
+    col: {
+      key: 'metric_a',
+      metricName: 'metric_a',
+      isNumeric: true,
+      config: {},
+    },
+    cellSurfaceColor: '#ffffff',
+    hoverCellSurfaceColor: '#eeeeee',
+    hasColumnColorFormatters: false,
+    columnColorFormatters: [],
+    hasBasicColorFormatters: false,
+    basicColorFormatters: undefined,
+    ...overrides,
+  } as unknown as Parameters<typeof getCellStyle>[0];
+}
+
+test('applies a standard conditional-format background', () => {
+  const style = getCellStyle(
+    buildParams({
+      hasColumnColorFormatters: true,
+      columnColorFormatters: [standardCfFormatter],
+    }),
+  );
+  expect(style.backgroundColor).toBe('#ff0000');
+});
+
+test('preserves the standard CF background when the column has no increase/decrease formatter', () => {
+  // hasBasicColorFormatters is enabled (e.g. a Green/Red rule exists on another
+  // column), but this column has no basic formatter entry. The standard
+  // conditional-format background must not be clobbered with undefined.
+  const style = getCellStyle(
+    buildParams({
+      hasColumnColorFormatters: true,
+      columnColorFormatters: [standardCfFormatter],
+      hasBasicColorFormatters: true,
+      basicColorFormatters: [{}], // row 0 has no formatter for metric_a
+    }),
+  );
+  expect(style.backgroundColor).toBe('#ff0000');
+});
+
+test('applies the increase/decrease background when the column has one', () => {
+  const style = getCellStyle(
+    buildParams({
+      hasColumnColorFormatters: true,
+      columnColorFormatters: [standardCfFormatter],
+      hasBasicColorFormatters: true,
+      basicColorFormatters: [
+        {
+          metric_a: {
+            backgroundColor: '#00ff00',
+            mainArrow: '↑',
+            arrowColor: 'green',
+          },
+        },
+      ],
+    }),
+  );
+  expect(style.backgroundColor).toBe('#00ff00');
+});
+
+test('applies a cross-column formatter to its target column, keyed off the source column value', () => {
+  // Rule reads metric_a (source) and paints metric_b (target, via columnFormatting).
+  const crossColumnFormatter = {
+    column: 'metric_a',
+    columnFormatting: 'metric_b',
+    getColorFromValue: (v: number) => (v === 100 ? '#ff0000' : undefined),
+    objectFormatting: undefined,
+    toTextColor: false,
+  };
+
+  const targetStyle = getCellStyle(
+    buildParams({
+      colDef: { field: 'metric_b' },
+      value: 999,
+      hasColumnColorFormatters: true,
+      columnColorFormatters: [crossColumnFormatter],
+      node: { rowPinned: undefined, data: { metric_a: 100, metric_b: 999 } },
+    }),
+  );
+  expect(targetStyle.backgroundColor).toBe('#ff0000');
+
+  const sourceStyle = getCellStyle(
+    buildParams({
+      colDef: { field: 'metric_a' },
+      value: 100,
+      hasColumnColorFormatters: true,
+      columnColorFormatters: [crossColumnFormatter],
+      node: { rowPinned: undefined, data: { metric_a: 100, metric_b: 999 } },
+    }),
+  );
+  expect(sourceStyle.backgroundColor).toBe('');
+});
+
+test('does not apply basic formatting to the pinned summary row', () => {
+  const style = getCellStyle(
+    buildParams({
+      node: { rowPinned: 'bottom', data: {} },
+      hasBasicColorFormatters: true,
+      basicColorFormatters: [
+        { metric_a: { backgroundColor: '#00ff00', mainArrow: '↑' } },
+      ],
+    }),
+  );
+  expect(style.backgroundColor).toBe('');
+});
+
+test('applies a legacy v1 toAllRow formatter to every cell in the row', () => {
+  // Migrated v1 charts carry `toAllRow: true` unchanged rather than being
+  // rewritten to `columnFormatting: ENTIRE_ROW`; both must color every cell.
+  const legacyEntireRowFormatter = {
+    column: 'metric_a',
+    toAllRow: true,
+    getColorFromValue: (v: number) => (v === 100 ? '#ff0000' : undefined),
+    objectFormatting: undefined,
+    toTextColor: false,
+  };
+
+  const otherColumnStyle = getCellStyle(
+    buildParams({
+      colDef: { field: 'metric_b' },
+      value: 999,
+      hasColumnColorFormatters: true,
+      columnColorFormatters: [legacyEntireRowFormatter],
+      node: { rowPinned: undefined, data: { metric_a: 100, metric_b: 999 } },
+    }),
+  );
+  expect(otherColumnStyle.backgroundColor).toBe('#ff0000');
+
+  const sourceColumnStyle = getCellStyle(
+    buildParams({
+      colDef: { field: 'metric_a' },
+      value: 100,
+      hasColumnColorFormatters: true,
+      columnColorFormatters: [legacyEntireRowFormatter],
+      node: { rowPinned: undefined, data: { metric_a: 100, metric_b: 999 } },
+    }),
+  );
+  expect(sourceColumnStyle.backgroundColor).toBe('#ff0000');
+});

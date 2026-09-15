@@ -17,12 +17,22 @@
  * under the License.
  */
 
-import { MemoryRouter } from 'react-router-dom';
+import { createMemoryHistory, type Update } from 'history';
+import { MemoryRouter, Router } from 'react-router-dom';
 import { isFeatureEnabled } from '@superset-ui/core';
 
-import { render, screen } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  fireEvent,
+  within,
+} from 'spec/helpers/testing-library';
+import { SubjectType } from 'src/types/Subject';
 
 import DashboardCard from './DashboardCard';
+
+const aliceEditor = { id: 1, label: 'Alice Doe', type: SubjectType.User };
+const bobEditor = { id: 2, label: 'Bob Smith', type: SubjectType.User };
 
 const mockDashboard = {
   id: 1,
@@ -33,12 +43,9 @@ const mockDashboard = {
   url: '/dashboard/1',
   changed_on_utc: '2024-01-01T00:00:00',
   changed_on_delta_humanized: '2 days ago',
-  owners: [
-    { id: 1, name: 'Alice', first_name: 'Alice', last_name: 'Doe' },
-    { id: 2, name: 'Bob', first_name: 'Bob', last_name: 'Smith' },
-  ],
   changed_by_name: 'John Doe',
   changed_by: 'john.doe@example.com',
+  editors: [aliceEditor, bobEditor],
 };
 
 const mockHasPerm = jest.fn().mockReturnValue(true);
@@ -60,6 +67,10 @@ beforeAll(() => {
 
 afterAll(() => {
   mockedIsFeatureEnabled.mockClear();
+});
+
+afterEach(() => {
+  jest.restoreAllMocks();
 });
 
 beforeEach(() => {
@@ -100,6 +111,43 @@ test('Renders the modified date', () => {
   expect(modifiedDateElement).toBeInTheDocument();
 });
 
+test('clicking the thumbnail navigates to the dashboard exactly once', () => {
+  // The cover is a router link and the whole card is clickable, so a click on
+  // the cover used to be handled twice and pushed two identical entries, which
+  // left the Back button popping the duplicate rather than returning the user
+  // to the page they came from.
+  jest.spyOn(global, 'fetch').mockResolvedValue({
+    blob: () => Promise.resolve(new Blob([''], { type: 'image/png' })),
+  } as Response);
+  const history = createMemoryHistory({
+    initialEntries: ['/superset/welcome/'],
+  });
+  const { container } = render(
+    <Router history={history}>
+      <DashboardCard
+        dashboard={mockDashboard}
+        hasPerm={mockHasPerm}
+        bulkSelectEnabled={false}
+        loading={false}
+        showThumbnails
+        openDashboardEditModal={mockOpenDashboardEditModal}
+        saveFavoriteStatus={mockSaveFavoriteStatus}
+        favoriteStatus={false}
+        handleBulkDashboardExport={mockHandleBulkDashboardExport}
+        onDelete={mockOnDelete}
+      />
+    </Router>,
+  );
+  const navigations: string[] = [];
+  history.listen(({ action, location }: Update) =>
+    navigations.push(`${action} ${location.pathname}`),
+  );
+
+  fireEvent.click(within(container).getByRole('link'));
+
+  expect(navigations).toEqual(['PUSH /dashboard/1']);
+});
+
 describe('thumbnail URL construction', () => {
   let fetchSpy: jest.SpyInstance;
 
@@ -138,7 +186,7 @@ describe('thumbnail URL construction', () => {
       dashboard_title: 'UTC Dashboard',
       published: false,
       url: '/dashboard/2',
-      owners: [],
+      editors: [aliceEditor, bobEditor],
       changed_on_utc: '2024-01-01T00:00:00',
     });
 
@@ -155,7 +203,7 @@ describe('thumbnail URL construction', () => {
       dashboard_title: 'Fallback Dashboard',
       published: false,
       url: '/dashboard/3',
-      owners: [],
+      editors: [aliceEditor, bobEditor],
       changed_on: '2024-06-01T12:00:00',
     });
 
@@ -172,7 +220,7 @@ describe('thumbnail URL construction', () => {
       dashboard_title: 'No Timestamp Dashboard',
       published: false,
       url: '/dashboard/4',
-      owners: [],
+      editors: [aliceEditor, bobEditor],
     });
 
     expect(fetchSpy).not.toHaveBeenCalled();

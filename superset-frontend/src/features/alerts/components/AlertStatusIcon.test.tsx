@@ -73,3 +73,11 @@ test('labels the Not triggered state "Nothing triggered" for alerts', async () =
   userEvent.hover(screen.getByRole('img'));
   expect(await screen.findByText('Nothing triggered')).toBeInTheDocument();
 });
+
+test('renders an icon and labels it "Report retrying" for the Retrying state', async () => {
+  renderIcon(AlertState.Retrying, true);
+  const icon = screen.getByRole('img');
+  expect(icon).toBeInTheDocument();
+  userEvent.hover(icon);
+  expect(await screen.findByText('Report retrying')).toBeInTheDocument();
+});

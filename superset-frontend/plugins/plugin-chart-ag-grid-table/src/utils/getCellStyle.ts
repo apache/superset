@@ -24,6 +24,7 @@ import {
 } from '@superset-ui/chart-controls';
 import { CellClassParams } from '@superset-ui/core/components/ThemedAgGridReact';
 import { BasicColorFormatterType, InputColumn } from '../types';
+import getRowBasicColorFormatter from './getRowBasicColorFormatter';
 
 type CellStyleParams = CellClassParams & {
   hasColumnColorFormatters: boolean | undefined;
@@ -54,29 +55,81 @@ const getCellStyle = (params: CellStyleParams) => {
   let backgroundColor;
   let color;
   if (hasColumnColorFormatters) {
-    columnColorFormatters!
-      .filter(formatter => {
-        const colTitle = formatter?.column?.includes('Main')
-          ? formatter?.column?.replace('Main', '').trim()
-          : formatter?.column;
-        return colTitle === colDef.field;
-      })
-      .forEach(formatter => {
-        const formatterResult =
-          value || value === 0 ? formatter.getColorFromValue(value) : false;
-        if (formatterResult) {
-          if (
-            formatter.objectFormatting === ObjectFormattingEnum.TEXT_COLOR ||
-            formatter.toTextColor
-          ) {
-            color = formatterResult;
-          } else if (
-            formatter.objectFormatting !== ObjectFormattingEnum.CELL_BAR
-          ) {
-            backgroundColor = formatterResult;
-          }
+    const applyFormatter = (
+      formatter: ColorFormatters[number],
+      valueToFormat: typeof value,
+    ) => {
+      const formatterResult =
+        valueToFormat || valueToFormat === 0
+          ? formatter.getColorFromValue(valueToFormat)
+          : false;
+      if (formatterResult) {
+        if (
+          formatter.objectFormatting === ObjectFormattingEnum.TEXT_COLOR ||
+          formatter.toTextColor
+        ) {
+          color = formatterResult;
+        } else if (
+          formatter.objectFormatting !== ObjectFormattingEnum.CELL_BAR
+        ) {
+          backgroundColor = formatterResult;
         }
-      });
+      }
+    };
+
+    // formatter.column can be a legacy display label ("Main colname") for
+    // time-comparison columns rather than the row's actual data key, so
+    // resolve it to the real field id before using it to read row values.
+    const resolveColumnKey = (columnKey: string) =>
+      columnKey.startsWith('Main ')
+        ? columnKey.slice('Main '.length)
+        : columnKey;
+
+    // Formatters with no formatting target color their own source column,
+    // keyed off this cell's own value. Excludes legacy v1 `toAllRow` rules,
+    // which are entire-row formatters handled below.
+    columnColorFormatters!
+      .filter(
+        formatter =>
+          !formatter.columnFormatting &&
+          !formatter.toAllRow &&
+          resolveColumnKey(formatter.column) === colDef.field,
+      )
+      .forEach(formatter => applyFormatter(formatter, value));
+
+    // Formatters with a real target column color that target column,
+    // keyed off the value in the formatter's own (source) column.
+    columnColorFormatters!
+      .filter(
+        formatter =>
+          formatter.columnFormatting &&
+          formatter.columnFormatting !== ObjectFormattingEnum.ENTIRE_ROW &&
+          resolveColumnKey(formatter.columnFormatting) === colDef.field,
+      )
+      .forEach(formatter =>
+        applyFormatter(
+          formatter,
+          node?.data?.[resolveColumnKey(formatter.column)],
+        ),
+      );
+
+    // Entire-row formatters apply to every cell in the row, keyed off the
+    // value in the formatter's own column rather than this cell's column.
+    // `toAllRow` is the legacy v1 flag for the same behavior; migrated
+    // charts carry it over unchanged rather than being rewritten to
+    // `columnFormatting: ENTIRE_ROW`, so both are honored here.
+    columnColorFormatters!
+      .filter(
+        formatter =>
+          formatter.columnFormatting === ObjectFormattingEnum.ENTIRE_ROW ||
+          formatter.toAllRow,
+      )
+      .forEach(formatter =>
+        applyFormatter(
+          formatter,
+          node?.data?.[resolveColumnKey(formatter.column)],
+        ),
+      );
   }
 
   if (
@@ -84,8 +137,19 @@ const getCellStyle = (params: CellStyleParams) => {
     col?.metricName &&
     node?.rowPinned !== 'bottom'
   ) {
-    backgroundColor =
-      basicColorFormatters?.[rowIndex]?.[col.metricName]?.backgroundColor;
+    const basicBackgroundColor = getRowBasicColorFormatter(
+      node,
+      rowIndex,
+      basicColorFormatters,
+    )?.[col.metricName]?.backgroundColor;
+    // Only override when this column actually has an increase/decrease
+    // formatter. Green/Red conditional-format rules only target some metrics,
+    // so a column carrying only a standard conditional-format rule would
+    // otherwise have its background clobbered with `undefined` when Green/Red
+    // rules exist on other columns.
+    if (basicBackgroundColor) {
+      backgroundColor = basicBackgroundColor;
+    }
   }
 
   const textAlign =

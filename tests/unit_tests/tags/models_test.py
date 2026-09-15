@@ -207,7 +207,7 @@ def test_get_tag_with_different_tag_types() -> None:
     tag_types = [
         TagType.custom,
         TagType.type,
-        TagType.owner,
+        TagType.editor,
         TagType.favorited_by,
     ]
 

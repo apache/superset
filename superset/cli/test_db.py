@@ -120,14 +120,16 @@ def test_datetime(console: Console, engine: Engine) -> None:
     now = datetime.now()
 
     console.print("Inserting timestamp value...")
-    insert_stmt = insert(table).values(ts=now)
-    engine.execute(insert_stmt)
+    with engine.begin() as conn:
+        insert_stmt = insert(table).values(ts=now)
+        conn.execute(insert_stmt)
 
     console.print("Reading timestamp value...")
-    select_stmt = select(table)
-    row = engine.execute(select_stmt).fetchone()
-    assert row[0] == now
-    console.print(":thumbs_up: [green]Success!")
+    with engine.connect() as conn:
+        select_stmt = select(table)
+        row = conn.execute(select_stmt).fetchone()
+        assert row[0] == now
+        console.print(":thumbs_up: [green]Success!")
 
 
 @click.command()

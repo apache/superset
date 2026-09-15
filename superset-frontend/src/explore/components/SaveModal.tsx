@@ -52,10 +52,7 @@ import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { Alert } from '@apache-superset/core/components';
 import { Radio } from '@superset-ui/core/components/Radio';
 import { GRID_COLUMN_COUNT } from 'src/dashboard/util/constants';
-import {
-  canUserEditDashboard,
-  isUserAdmin,
-} from 'src/dashboard/util/permissionUtils';
+import { canUserEditDashboard } from 'src/dashboard/util/permissionUtils';
 import { setSaveChartModalVisibility } from 'src/explore/actions/saveModalActions';
 import {
   SaveActionType,
@@ -68,6 +65,7 @@ import {
   updateChartState,
 } from 'src/dashboard/actions/dashboardState';
 import { Dashboard } from 'src/types/Dashboard';
+import { canOverwriteSlice as canOverwriteSliceFor } from 'src/explore/exploreUtils/canOverwriteSlice';
 import { TabNode, TabTreeNode } from '../types';
 import { CHART_WIDTH, CHART_HEIGHT } from 'src/dashboard/constants';
 
@@ -229,10 +227,7 @@ const SaveModal = ({
 
   const canOverwriteSlice = useCallback(
     (): boolean =>
-      (can_overwrite ||
-        isUserAdmin(user) ||
-        slice?.owners?.includes(user.userId)) &&
-      !slice?.is_managed_externally,
+      canOverwriteSliceFor({ slice, user, canOverwrite: can_overwrite }),
     [can_overwrite, slice, user],
   );
 
@@ -346,7 +341,10 @@ const SaveModal = ({
       if (dashboardId) {
         try {
           const result = (await loadDashboard(dashboardId)) as Dashboard;
-          if (canUserEditDashboard(result, user)) {
+          if (
+            canUserEditDashboard(result, user) &&
+            !result.is_managed_externally
+          ) {
             setDashboard({ label: result.dashboard_title, value: result.id });
             await loadTabs(dashboardId);
           }
@@ -367,7 +365,11 @@ const SaveModal = ({
             for (const { id } of metadataDashboards) {
               // eslint-disable-next-line no-await-in-loop
               const result = await loadDashboard(id).catch(() => null);
-              if (result && canUserEditDashboard(result, user)) {
+              if (
+                result &&
+                canUserEditDashboard(result, user) &&
+                !result.is_managed_externally
+              ) {
                 editable = result as Dashboard;
                 break;
               }
@@ -478,6 +480,17 @@ const SaveModal = ({
       };
 
       try {
+        // Persist the form data before any datasource conversion. Saving a
+        // Query as a dataset rewrites form_data through changeDatasource, so
+        // re-applying this render's Query-backed copy afterwards would undo
+        // that conversion right before createSlice reads the store, making
+        // the chart API receive datasource_type="query". Dashboard assignment
+        // does not travel through form_data -- create/updateSlice receive it
+        // as an explicit argument.
+        const formData = form_data || {};
+        delete formData.url_params;
+        actions.setFormData({ ...formData });
+
         if (datasource?.type === DatasourceType.Query) {
           const { schema, sql, database } = datasource;
           const { templateParams } = datasource;
@@ -496,9 +509,6 @@ const SaveModal = ({
         if (slice && action === 'overwrite') {
           sliceDashboards = await actions.getSliceDashboards(slice);
         }
-
-        const formData = form_data || {};
-        delete formData.url_params;
 
         let dashboardResult: DashboardGetResponse | null = null;
         let selectedTabId: string | undefined;
@@ -520,7 +530,6 @@ const SaveModal = ({
             sliceDashboards = sliceDashboards.includes(dashboardResult.id)
               ? sliceDashboards
               : [...sliceDashboards, dashboardResult.id];
-            formData.dashboards = sliceDashboards;
             if (
               action === ChartStatusType.saveas &&
               selectedTab?.value !== 'OUT_OF_TAB'
@@ -529,9 +538,6 @@ const SaveModal = ({
             }
           }
         }
-
-        // Sets the form data
-        actions.setFormData({ ...formData });
 
         //  Update or create slice
         let value: { id: number };
@@ -642,9 +648,14 @@ const SaveModal = ({
             value: search,
           },
           {
-            col: 'owners',
-            opr: 'rel_m_m',
-            value: user.userId,
+            col: 'id',
+            opr: 'is_editable',
+            value: true,
+          },
+          {
+            col: 'is_managed_externally',
+            opr: 'eq',
+            value: false,
           },
         ],
         page,
@@ -666,7 +677,7 @@ const SaveModal = ({
         totalCount: count,
       };
     },
-    [user.userId],
+    [],
   );
 
   const onTabChange = useCallback(
@@ -737,7 +748,7 @@ const SaveModal = ({
                     "This chart is managed externally and can't be overwritten in Superset.",
                   )
                 : t(
-                    'Must be a chart owner to overwrite this chart. Save as a new chart instead.',
+                    'Must be a chart editor to overwrite this chart. Save as a new chart instead.',
                   )}
             </Typography.Text>
           </div>

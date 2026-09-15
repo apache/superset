@@ -21,7 +21,6 @@ import { PolygonLayer } from '@deck.gl/layers';
 import { Position } from '@deck.gl/core';
 import { t } from '@apache-superset/core/translation';
 import { commonLayerProps } from '../common';
-import sandboxedEval from '../../utils/sandbox';
 import { GetLayerType, createDeckGLComponent } from '../../factory';
 import { ColorType } from '../../types';
 import TooltipRow from '../../TooltipRow';
@@ -69,13 +68,8 @@ export const getLayer: GetLayerType<ContourLayer> = function ({
   emitCrossFilters,
 }) {
   const fd = formData;
-  const {
-    aggregation = 'SUM',
-    js_data_mutator: jsFnMutator,
-    contours: rawContours,
-    cellSize = '200',
-  } = fd;
-  let data = payload.data.features;
+  const { aggregation = 'SUM', contours: rawContours, cellSize = '200' } = fd;
+  const data = payload.data.features;
 
   // Store original data for tooltip access
   const originalDataMap = new Map();
@@ -112,12 +106,6 @@ export const getLayer: GetLayerType<ContourLayer> = function ({
       };
     },
   );
-
-  if (jsFnMutator) {
-    // Applying user defined data mutator if defined
-    const jsFnMutatorFunction = sandboxedEval(fd.js_data_mutator);
-    data = jsFnMutatorFunction(data);
-  }
 
   // Create wrapper for tooltip content that adds nearby points
   const tooltipContentGenerator = (o: any) => {

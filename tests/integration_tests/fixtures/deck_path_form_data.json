@@ -8,12 +8,6 @@
   "datasource": "12__table",
   "filters": [],
   "having": "",
-  "js_columns": [
-    "color"
-  ],
-  "js_datapoint_mutator": "d => {\n return {\n ...d,\n color: colors.hexToRGB(d.extraProps.color),\n }\n}",
-  "js_onclick_href": "",
-  "js_tooltip": "",
   "line_column": "path_json",
   "line_type": "json",
   "line_width": 150,

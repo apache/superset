@@ -103,10 +103,16 @@ export const fetchTimeRange = async (
           ),
         ),
     };
-  } catch (response) {
+  } catch (caught) {
+    // Forward-compat: TS 6.0 types caught values as `unknown`; cast to the
+    // shape getClientErrorObject accepts and narrow for statusText access.
+    const response = caught as Parameters<typeof getClientErrorObject>[0];
     const clientError = await getClientErrorObject(response);
     return {
-      error: clientError.message || clientError.error || response.statusText,
+      error:
+        clientError.message ||
+        clientError.error ||
+        (response as { statusText?: string }).statusText,
     };
   }
 };

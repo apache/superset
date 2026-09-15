@@ -47,8 +47,10 @@ def _get_prefixed_id_with_context(base_id: str) -> tuple[str, str]:
     """
     if context := get_current_extension_context():
         # Extension context: prefix ID to prevent collisions
-        manifest = context.manifest
-        prefixed_id = f"extensions.{manifest.publisher}.{manifest.name}.{base_id}"
+        prefixed_id = (
+            f"extensions.{context.extension.publisher}."
+            f"{context.extension.name}.{base_id}"
+        )
         context_type = "extension"
     else:
         # Host context: use original ID

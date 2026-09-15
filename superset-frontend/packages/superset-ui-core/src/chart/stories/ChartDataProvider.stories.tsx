@@ -32,8 +32,7 @@ import {
   wordCloudFormData,
 } from '../../../../superset-ui-core/test/chart/fixtures/formData';
 
-import { Expandable } from '@storybook-shared';
-import { VerifyCORS, renderError } from '@storybook-shared';
+import { Expandable, VerifyCORS, renderError } from '@storybook-shared';
 
 const BIG_NUMBER = bigNumberFormData.viz_type;
 const SANKEY = sankeyFormData.viz_type;

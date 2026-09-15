@@ -63,7 +63,7 @@ import {
   MarkAreaComponent,
   MarkLineComponent,
 } from 'echarts/components';
-import { LabelLayout } from 'echarts/features';
+import { LabelLayout, LegacyGridContainLabel } from 'echarts/features';
 import {
   EchartsHandler,
   EchartsProps,
@@ -72,6 +72,7 @@ import {
 } from '../types';
 import { DEFAULT_LOCALE } from '../constants';
 import { mergeEchartsThemeOverrides } from '../utils/themeOverrides';
+import { loadLocale } from './echartsLocale';
 
 // Define this interface here to avoid creating a dependency back to superset-frontend,
 // TODO: to move the type to @superset-ui/core
@@ -119,17 +120,32 @@ use([
   TitleComponent,
   VisualMapComponent,
   LabelLayout,
+  // Superset chart options rely on `grid.containLabel`, which echarts 6
+  // ignores (clipping axis labels) unless this legacy feature is registered.
+  LegacyGridContainLabel,
 ]);
 
-const loadLocale = async (locale: string) => {
-  let lang;
+// Report/thumbnail screenshots use standalone="true" (charts) or 3 (reports);
+// live embeds use 1/2 and keep animation. See superset/utils/screenshots.py.
+export function isReportScreenshotMode(): boolean {
   try {
-    lang = await import(`echarts/lib/i18n/lang${locale}`);
+    const standalone = new URLSearchParams(window.location.search).get(
+      'standalone',
+    );
+    return standalone === 'true' || standalone === '3';
   } catch {
-    // Locale not supported in ECharts
+    return false;
   }
-  return lang?.default;
-};
+}
+
+// Report-screenshot readiness contract (see superset/utils/screenshot_utils.py).
+// `echarts-host` marks the canvas host element; `echarts-render-finished` is
+// toggled OFF before each setOption and ON in the ECharts `finished` event --
+// the only signal that the canvas is fully painted (chartStatus/onRenderSuccess
+// both fire pre-paint). The readiness gate treats a host that lacks
+// `echarts-render-finished` as not-yet-painted so it never captures a blank chart.
+export const ECHARTS_HOST_CLASS = 'echarts-host';
+export const ECHARTS_RENDER_FINISHED_CLASS = 'echarts-render-finished';
 
 function Echart(
   {
@@ -193,6 +209,11 @@ function Echart(
           locale,
           width,
           height,
+        });
+        // Paint marker for the report-screenshot readiness gate. `finished`
+        // is the only event that guarantees the canvas is fully drawn.
+        chartRef.current.on('finished', () => {
+          divRef.current?.classList.add(ECHARTS_RENDER_FINISHED_CLASS);
         });
       }
       // did mount
@@ -278,15 +299,24 @@ function Echart(
         ? theme.echartsOptionsOverridesByChartType?.[vizType] || {}
         : {};
 
-      // Disable animations during auto-refresh to reduce visual noise
-      const animationOverride = isDashboardRefreshing
-        ? {
-            animation: false,
-            animationDuration: 0,
-          }
-        : {};
+      // Disable animation on auto-refresh and screenshots. Screenshots have no
+      // "render finished" signal, so a running draw can be captured mid-frame,
+      // producing partial/blank charts.
+      const animationOverride =
+        isDashboardRefreshing || isReportScreenshotMode()
+          ? {
+              animation: false,
+              animationDuration: 0,
+            }
+          : {};
+
+      // ECharts' built-in ARIA descriptions are off by default so behavior
+      // doesn't change for existing deployments; a theme or chart's options
+      // can opt in (or further customize aria handling) by overriding this.
+      const ariaDefault = { aria: { enabled: false } };
 
       const themedEchartOptions = mergeEchartsThemeOverrides(
+        ariaDefault,
         baseTheme,
         echartOptions,
         globalOverrides,
@@ -305,6 +335,9 @@ function Echart(
             }
           )?.dataZoom
         : undefined;
+      // Clear the paint marker before (re)drawing; the `finished` handler
+      // re-adds it once the new frame is fully rendered.
+      divRef.current?.classList.remove(ECHARTS_RENDER_FINISHED_CLASS);
       chartRef.current?.setOption(themedEchartOptions, {
         notMerge,
         replaceMerge: notMerge ? undefined : ['series'],
@@ -396,7 +429,14 @@ function Echart(
     handleSizeChange({ width, height });
   }, [width, height, handleSizeChange]);
 
-  return <Styles ref={divRef} height={height} width={width} />;
+  return (
+    <Styles
+      ref={divRef}
+      className={ECHARTS_HOST_CLASS}
+      height={height}
+      width={width}
+    />
+  );
 }
 
 export default forwardRef(Echart);

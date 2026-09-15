@@ -28,7 +28,7 @@ from uuid import uuid4
 import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.exc import OperationalError
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 from sqlalchemy_utils import UUIDType
 
 from superset import db

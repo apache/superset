@@ -55,15 +55,19 @@ import { getDefaultTooltip } from '../utils/tooltip';
 import { Refs } from '../types';
 import { getContributionLabel } from './utils';
 
-const percentFormatter = getNumberFormatter(NumberFormats.PERCENT_2_POINT);
+const defaultPercentFormatter = getNumberFormatter(
+  NumberFormats.PERCENT_2_POINT,
+);
 
 export function parseParams({
   params,
   numberFormatter,
+  percentFormatter = defaultPercentFormatter,
   sanitizeName = false,
 }: {
   params: Pick<CallbackDataParams, 'name' | 'value' | 'percent'>;
   numberFormatter: ValueFormatter;
+  percentFormatter?: ValueFormatter;
   sanitizeName?: boolean;
 }): string[] {
   const { name: rawName = '', value, percent } = params;
@@ -73,52 +77,154 @@ export function parseParams({
   return [name, formattedValue, formattedPercent];
 }
 
-function getTotalValuePadding({
-  chartPadding,
-  donut,
+/**
+ * Bounding box of the pie arc in unit coordinates: outer radius = 1,
+ * mathematical y-up convention matching ECharts' angle convention
+ * (0° points right, 90° points up, angles sweep clockwise from
+ * `startAngle` to `startAngle - sweptAngle`).
+ */
+export interface ArcBoundingBox {
+  minX: number;
+  maxX: number;
+  minY: number;
+  maxY: number;
+}
+
+/**
+ * Computes the bounding box of an annular sector from its angles.
+ *
+ * The box is spanned by the outer arc endpoints, the inner arc endpoints
+ * (which collapse to the pie origin when `innerRatio` is 0), and every axis
+ * extreme (0°/90°/180°/270°) the arc sweeps through.
+ *
+ * @param startAngle - The start angle of the arc in degrees.
+ * @param sweptAngle - The total angle covered by the arc in degrees.
+ * @param innerRatio - Inner radius as a fraction of the outer radius (0–1).
+ */
+export function getArcBoundingBox(
+  startAngle: number,
+  sweptAngle: number,
+  innerRatio: number,
+): ArcBoundingBox {
+  if (sweptAngle >= 360) {
+    return { minX: -1, maxX: 1, minY: -1, maxY: 1 };
+  }
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const endAngle = startAngle - sweptAngle;
+  const points: [number, number][] = [];
+  [startAngle, endAngle].forEach(angle => {
+    const x = Math.cos(toRad(angle));
+    const y = Math.sin(toRad(angle));
+    points.push([x, y], [innerRatio * x, innerRatio * y]);
+  });
+  for (
+    let axis = Math.ceil(endAngle / 90) * 90;
+    axis <= startAngle;
+    axis += 90
+  ) {
+    points.push([Math.cos(toRad(axis)), Math.sin(toRad(axis))]);
+  }
+  const xs = points.map(([x]) => x);
+  const ys = points.map(([, y]) => y);
+  return {
+    minX: Math.min(...xs),
+    maxX: Math.max(...xs),
+    minY: Math.min(...ys),
+    maxY: Math.max(...ys),
+  };
+}
+
+/**
+ * Arcs covering only a sliver of the circle would otherwise scale up without
+ * bound; cap the fit scale at the factor a quarter arc reaches naturally.
+ */
+const MAX_RADIUS_SCALE = 2;
+
+export interface PieLayout {
+  /** Pie origin in px, relative to the padded series rect. */
+  center: [number, number];
+  /** Inner/outer radius percent strings, scaled to fit the arc's box. */
+  radius: [string, string];
+  /** Pie origin in px, in container coordinates (for the graphic component). */
+  totalAnchor: { x: number; y: number };
+}
+
+/**
+ * Lays out the pie geometrically for any start/sweep angle combination:
+ * scales the radius until the arc's bounding box fills the available rect
+ * (so partial arcs reclaim the space a full circle would leave empty) and
+ * shifts the pie origin so that box is centered. A full circle reproduces
+ * ECharts' default layout exactly.
+ */
+export function getPieLayout({
   width,
   height,
+  padding,
+  startAngle,
+  sweptAngle,
+  donut,
+  innerRadius,
+  outerRadius,
 }: {
-  chartPadding: {
-    bottom: number;
-    left: number;
-    right: number;
-    top: number;
-  };
-  donut: boolean;
   width: number;
   height: number;
-}) {
-  const padding: {
-    left?: string;
-    top?: string;
-  } = {
-    top: donut ? 'middle' : '0',
-    left: 'center',
+  padding: { top: number; bottom: number; left: number; right: number };
+  startAngle: number;
+  sweptAngle: number;
+  donut: boolean;
+  innerRadius: number;
+  outerRadius: number;
+}): PieLayout {
+  const rectWidth = Math.max(width - padding.left - padding.right, 1);
+  const rectHeight = Math.max(height - padding.top - padding.bottom, 1);
+  const innerRatio = donut ? innerRadius / Math.max(outerRadius, 1) : 0;
+  const box = getArcBoundingBox(startAngle, sweptAngle, innerRatio);
+  const boxWidth = box.maxX - box.minX;
+  const boxHeight = box.maxY - box.minY;
+
+  // ECharts resolves percentage radii against min(rect width, height) / 2.
+  // Grow that basis until the arc's bounding box hits the rect on one axis.
+  const fullBasis = Math.min(rectWidth, rectHeight) / 2;
+  const fitBasis = Math.min(rectWidth / boxWidth, rectHeight / boxHeight);
+  const scale = Math.min(fitBasis / fullBasis, MAX_RADIUS_SCALE);
+  const outerPx = (outerRadius / 100) * fullBasis * scale;
+
+  // Place the pie origin so the arc's box is centered in the rect. Unit y
+  // points up while screen y points down, hence the sign flip.
+  const round = (value: number) => Math.round(value * 100) / 100;
+  const centerX = rectWidth / 2 - ((box.minX + box.maxX) / 2) * outerPx;
+  const centerY = rectHeight / 2 + ((box.minY + box.maxY) / 2) * outerPx;
+
+  // The pie origin is the natural spot for the "Total" text (the middle of
+  // the hole, or the flat edge of a half donut), but for narrow arcs it can
+  // fall far outside the drawn shape, even off-canvas. Clamp it into the
+  // arc's bounding box, which always sits within the rect.
+  const clamp = (value: number, min: number, max: number) =>
+    Math.min(Math.max(value, min), max);
+  const halfBoxWidth = (boxWidth / 2) * outerPx;
+  const halfBoxHeight = (boxHeight / 2) * outerPx;
+  const anchorX = clamp(
+    centerX,
+    rectWidth / 2 - halfBoxWidth,
+    rectWidth / 2 + halfBoxWidth,
+  );
+  const anchorY = clamp(
+    centerY,
+    rectHeight / 2 - halfBoxHeight,
+    rectHeight / 2 + halfBoxHeight,
+  );
+
+  return {
+    center: [round(centerX), round(centerY)],
+    radius: [
+      `${round(donut ? innerRadius * scale : 0)}%`,
+      `${round(outerRadius * scale)}%`,
+    ],
+    totalAnchor: {
+      x: round(padding.left + anchorX),
+      y: round(padding.top + anchorY),
+    },
   };
-  if (chartPadding.top) {
-    padding.top = donut
-      ? `${50 + (chartPadding.top / height / 2) * 100}%`
-      : `${(chartPadding.top / height) * 100}%`;
-  }
-  if (chartPadding.bottom) {
-    padding.top = donut
-      ? `${50 - (chartPadding.bottom / height / 2) * 100}%`
-      : '0';
-  }
-  if (chartPadding.left) {
-    // When legend is on the left, shift text right to center it in the available space
-    const leftPaddingPercent = (chartPadding.left / width) * 100;
-    const adjustedLeftPercent = 50 + leftPaddingPercent * 0.25;
-    padding.left = `${adjustedLeftPercent}%`;
-  }
-  if (chartPadding.right) {
-    // When legend is on the right, shift text left to center it in the available space
-    const rightPaddingPercent = (chartPadding.right / width) * 100;
-    const adjustedLeftPercent = 50 - rightPaddingPercent * 0.75;
-    padding.left = `${adjustedLeftPercent}%`;
-  }
-  return padding;
 }
 
 export default function transformProps(
@@ -166,6 +272,8 @@ export default function transformProps(
     showLabels,
     showLegend,
     showLabelsThreshold,
+    startAngle,
+    sweptAngle,
     sliceId,
     showTotal,
     roseType,
@@ -192,6 +300,9 @@ export default function transformProps(
     currencyCodeColumn,
     detectedCurrency,
   );
+  const percentFormatter = numberFormat?.endsWith('%')
+    ? getNumberFormatter(numberFormat)
+    : defaultPercentFormatter;
 
   let data = rawData;
   const otherRows: DataRecord[] = [];
@@ -342,6 +453,7 @@ export default function transformProps(
     const [name, formattedValue, formattedPercent] = parseParams({
       params,
       numberFormatter,
+      percentFormatter,
     });
     switch (labelType) {
       case EchartsPieLabelType.Key:
@@ -404,14 +516,27 @@ export default function transformProps(
     effectiveLegendMargin,
   );
 
+  const pieLayout = getPieLayout({
+    width,
+    height,
+    padding: chartPadding,
+    startAngle,
+    sweptAngle,
+    donut,
+    innerRadius,
+    outerRadius,
+  });
+
   const series: PieSeriesOption[] = [
     {
       type: 'pie',
       ...chartPadding,
       animation: false,
       roseType: roseType || undefined,
-      radius: [`${donut ? innerRadius : 0}%`, `${outerRadius}%`],
-      center: ['50%', '50%'],
+      radius: pieLayout.radius,
+      center: pieLayout.center,
+      startAngle,
+      endAngle: startAngle - sweptAngle,
       avoidLabelOverlap: true,
       labelLine: labelsOutside && labelLine ? { show: true } : { show: false },
       minShowLabelAngle,
@@ -449,6 +574,7 @@ export default function transformProps(
         const [name, formattedValue, formattedPercent] = parseParams({
           params,
           numberFormatter,
+          percentFormatter,
           sanitizeName: true,
         });
         if (params?.data?.isOther) {
@@ -472,9 +598,18 @@ export default function transformProps(
     graphic: showTotal
       ? {
           type: 'text',
-          ...getTotalValuePadding({ chartPadding, donut, width, height }),
+          // Donut: center the text on the pie origin (the middle of the
+          // hole, or the flat edge of a partial arc). Pie: park it at the
+          // top center of the padded rect so it doesn't overlap the slices.
+          x: donut
+            ? pieLayout.totalAnchor.x
+            : chartPadding.left +
+              (width - chartPadding.left - chartPadding.right) / 2,
+          y: donut ? pieLayout.totalAnchor.y : chartPadding.top,
           style: {
             text: t('Total: %s', numberFormatter(totalValue)),
+            align: 'center',
+            verticalAlign: donut ? 'middle' : 'top',
             fontSize: 16,
             fontWeight: 'bold',
             fill: theme.colorText,

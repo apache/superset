@@ -43,13 +43,13 @@ test('should render the expand button', () => {
   ).toBeInTheDocument();
 });
 
-test('should toggle', () => {
+test('should toggle', async () => {
   const mockedProps = createProps();
   render(<Header {...mockedProps} />, { useRedux: true });
   const expandBtn = screen.getByRole('button', {
     name: 'vertical-align',
   });
   expect(mockedProps.toggleFiltersBar).not.toHaveBeenCalled();
-  userEvent.click(expandBtn);
+  await userEvent.click(expandBtn);
   expect(mockedProps.toggleFiltersBar).toHaveBeenCalled();
 });

@@ -46,3 +46,52 @@ describe('assetUrl should ignore static asset prefix for absolute URLs', () => {
     expect(ensureStaticPrefix(absoluteResourcePath)).toBe(absoluteResourcePath);
   });
 });
+
+describe('ensureStaticPrefix should be idempotent', () => {
+  test('does not double-prefix a path that already starts with the static-assets prefix', () => {
+    staticAssetsPrefixMock.mockReturnValue('/superset');
+    const alreadyRooted =
+      '/superset/static/assets/images/superset-logo-horiz.png';
+    expect(ensureStaticPrefix(alreadyRooted)).toBe(alreadyRooted);
+  });
+
+  test('still prefixes a relative path that does not yet carry the prefix', () => {
+    staticAssetsPrefixMock.mockReturnValue('/superset');
+    expect(ensureStaticPrefix('/static/assets/x.png')).toBe(
+      '/superset/static/assets/x.png',
+    );
+  });
+
+  test('treats segment boundaries — `/supersetfoo` is not the same as `/superset`', () => {
+    staticAssetsPrefixMock.mockReturnValue('/superset');
+    expect(ensureStaticPrefix('/supersetfoo/img.png')).toBe(
+      '/superset/supersetfoo/img.png',
+    );
+  });
+
+  test('handles nested application roots', () => {
+    staticAssetsPrefixMock.mockReturnValue('/preset/superset');
+    const alreadyRooted = '/preset/superset/static/x.png';
+    expect(ensureStaticPrefix(alreadyRooted)).toBe(alreadyRooted);
+  });
+
+  test('returns the prefix itself unchanged when passed in bare', () => {
+    staticAssetsPrefixMock.mockReturnValue('/superset');
+    expect(ensureStaticPrefix('/superset')).toBe('/superset');
+  });
+
+  test('is a no-op when the static-assets prefix is empty (root deployment)', () => {
+    staticAssetsPrefixMock.mockReturnValue('');
+    expect(ensureStaticPrefix('/static/x.png')).toBe('/static/x.png');
+  });
+
+  test('returns undefined instead of throwing when passed undefined', () => {
+    staticAssetsPrefixMock.mockReturnValue('/superset');
+    expect(ensureStaticPrefix(undefined)).toBeUndefined();
+  });
+
+  test('returns undefined instead of throwing when passed null', () => {
+    staticAssetsPrefixMock.mockReturnValue('/superset');
+    expect(ensureStaticPrefix(null)).toBeUndefined();
+  });
+});

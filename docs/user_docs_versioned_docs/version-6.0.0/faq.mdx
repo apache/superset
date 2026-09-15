@@ -7,7 +7,7 @@ sidebar_position: 9
 ## How big of a dataset can Superset handle?
 
 Superset can work with even gigantic databases! Superset acts as a thin layer above your underlying
-databases or data engines, which do all the processing.  Superset simply visualizes the results of
+databases or data engines, which do all the processing. Superset simply visualizes the results of
 the query.
 
 The key to achieving acceptable performance in Superset is whether your database can execute queries
@@ -17,7 +17,7 @@ Superset, benchmark and tune your data warehouse.
 ## What are the computing specifications required to run Superset?
 
 The specs of your Superset installation depend on how many users you have and what their activity is, not
-on the size of your data.  Superset admins in the community have reported 8GB RAM, 2vCPUs as adequate to
+on the size of your data. Superset admins in the community have reported 8GB RAM, 2vCPUs as adequate to
 run a moderately-sized instance. To develop Superset, e.g., compile code or build images, you may
 need more power.
 
@@ -101,10 +101,10 @@ Metadata field:
 
 ```json
 {
-   "filter_immune_slices": [],
-    "expanded_slices": {},
-    "filter_immune_slice_fields": {},
-    "timed_refresh_immune_slices": [324]
+  "filter_immune_slices": [],
+  "expanded_slices": {},
+  "filter_immune_slice_fields": {},
+  "timed_refresh_immune_slices": [324]
 }
 ```
 
@@ -117,8 +117,8 @@ value in milliseconds in the JSON Metadata field:
 
 ```json
 {
-    "stagger_refresh": false,
-    "stagger_time": 2500
+  "stagger_refresh": false,
+  "stagger_time": 2500
 }
 ```
 
@@ -161,8 +161,8 @@ information like your list of users and dashboard definitions. While Superset su
 only a few database engines are supported for use as the OLTP backend / metadata store.
 
 Superset is tested using MySQL, PostgreSQL, and SQLite backends. It’s recommended you install
-Superset on one of these database servers for production.  Installation on other OLTP databases
-may work but isn’t tested.  It has been reported that [Microsoft SQL Server does _not_
+Superset on one of these database servers for production. Installation on other OLTP databases
+may work but isn’t tested. It has been reported that [Microsoft SQL Server does _not_
 work as a Superset backend](https://github.com/apache/superset/issues/18961). Column-store,
 non-OLTP databases are not designed for this type of workload.
 
@@ -180,11 +180,11 @@ second etc). Example:
 
 ```json
 {
-    "label_colors": {
-        "foo": "#FF69B4",
-        "bar": "lightblue",
-        "baz": 0
-    }
+  "label_colors": {
+    "foo": "#FF69B4",
+    "bar": "lightblue",
+    "baz": 0
+  }
 }
 ```
 
@@ -250,8 +250,8 @@ guarantees and are not recommended but may fit your use case temporarily:
 ## How can I see usage statistics (e.g., monthly active users)?
 
 This functionality is not included with Superset, but you can extract and analyze Superset's application
-metadata to see what actions have occurred.  By default, user activities are logged in the `logs` table
-in Superset's metadata database.  One company has published a write-up of [how they analyzed Superset
+metadata to see what actions have occurred. By default, user activities are logged in the `logs` table
+in Superset's metadata database. One company has published a write-up of [how they analyzed Superset
 usage, including example queries](https://engineering.hometogo.com/monitor-superset-usage-via-superset-c7f9fba79525).
 
 ## What Does Hours Offset in the Edit Dataset view do?

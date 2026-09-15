@@ -40,12 +40,6 @@ from superset.mcp_service.chart.schemas import (
     ChartInfo,
     extract_filters_from_form_data,
     GetChartInfoRequest,
-    sanitize_chart_info_for_llm_context,
-)
-from superset.mcp_service.utils.sanitization import (
-    LLM_CONTEXT_CLOSE_DELIMITER,
-    LLM_CONTEXT_ESCAPED_CLOSE_DELIMITER,
-    LLM_CONTEXT_OPEN_DELIMITER,
 )
 from superset.utils import json
 
@@ -55,8 +49,8 @@ get_chart_info_module = importlib.import_module(
 
 
 def _wrapped(value: str) -> str:
-    """Return the expected LLM-context wrapper for assertions."""
-    return f"{LLM_CONTEXT_OPEN_DELIMITER}\n{value}\n{LLM_CONTEXT_CLOSE_DELIMITER}"
+    """Return the expected clean MCP value for assertions."""
+    return value
 
 
 @pytest.fixture
@@ -100,6 +94,81 @@ class TestGetChartInfoRequestSchema:
     def test_dashboard_id_accepted(self):
         request = GetChartInfoRequest(identifier=1, dashboard_id=42)
         assert request.dashboard_id == 42
+
+
+class TestAttachActiveFilters:
+    """_attach_active_filters surfaces the caller's forwarded live dashboard
+    filters under result.filters.active_filters, so a metadata answer reflects
+    the filtered view rather than the full dataset. No query is run."""
+
+    def test_filters_are_surfaced_as_active_filters(self):
+        result = _make_chart_info()
+        get_chart_info_module._attach_active_filters(
+            result, {"filters": [{"col": "gender", "op": "IN", "val": ["Female"]}]}
+        )
+        assert result.filters.active_filters == [
+            {"col": "gender", "op": "IN", "val": ["Female"]}
+        ]
+
+    def test_adhoc_filters_are_included(self):
+        result = _make_chart_info()
+        get_chart_info_module._attach_active_filters(
+            result,
+            {
+                "filters": [{"col": "gender", "op": "IN", "val": ["Female"]}],
+                "adhoc_filters": [
+                    {"expressionType": "SQL", "sqlExpression": "age > 18"}
+                ],
+            },
+        )
+        assert {
+            "col": "gender",
+            "op": "IN",
+            "val": ["Female"],
+        } in result.filters.active_filters
+        assert {
+            "expressionType": "SQL",
+            "sqlExpression": "age > 18",
+        } in result.filters.active_filters
+
+    def test_time_range_is_surfaced_as_active_time_range(self):
+        result = _make_chart_info()
+        get_chart_info_module._attach_active_filters(
+            result,
+            {
+                "filters": [{"col": "gender", "op": "IN", "val": ["Female"]}],
+                "time_range": "Last year",
+            },
+        )
+        assert result.filters.active_time_range == "Last year"
+        assert result.filters.active_filters == [
+            {"col": "gender", "op": "IN", "val": ["Female"]}
+        ]
+
+    def test_time_range_only_still_surfaced(self):
+        result = _make_chart_info()
+        get_chart_info_module._attach_active_filters(
+            result, {"time_range": "Last 7 days"}
+        )
+        assert result.filters.active_time_range == "Last 7 days"
+        assert result.filters.active_filters == []
+
+    def test_empty_extra_form_data_leaves_active_filters_empty(self):
+        result = _make_chart_info()
+        get_chart_info_module._attach_active_filters(result, {"filters": []})
+        assert result.filters.active_filters == []
+        assert result.filters.active_time_range is None
+
+    def test_creates_filters_container_when_absent(self):
+        result = _make_chart_info()
+        result.filters = None
+        get_chart_info_module._attach_active_filters(
+            result, {"filters": [{"col": "gender", "op": "IN", "val": ["Female"]}]}
+        )
+        assert result.filters is not None
+        assert result.filters.active_filters == [
+            {"col": "gender", "op": "IN", "val": ["Female"]}
+        ]
 
 
 class TestResolveFilterOperatorAndValue:
@@ -372,30 +441,81 @@ class TestGetChartInfoPrivacy:
         # form_data is excluded from default select_columns, so it won't be in result
         assert "form_data" not in result
 
-    def test_form_data_override_does_not_double_sanitize(self) -> None:
-        """Saved chart fields stay single-wrapped after unsaved overrides."""
-        result = sanitize_chart_info_for_llm_context(
-            ChartInfo(
-                id=7,
-                slice_name="Saved Chart",
-                viz_type="line",
-                datasource_name="sales",
-                datasource_type="table",
-                description="Saved description",
-                certification_details="Certified",
-                form_data={
+    @pytest.mark.asyncio
+    async def test_extra_form_data_surfaces_active_filters(self, mcp_server) -> None:
+        """Forwarded extra_form_data is echoed under filters.active_filters and
+        filters.active_time_range through the full tool path."""
+        chart_info = _make_chart_info()
+
+        with (
+            patch.object(
+                get_chart_info_module.event_logger,
+                "log_context",
+                return_value=nullcontext(),
+            ),
+            patch.object(
+                get_chart_info_module.ModelGetInfoCore,
+                "run_tool",
+                return_value=chart_info,
+            ),
+            patch.object(
+                get_chart_info_module,
+                "user_can_view_data_model_metadata",
+                return_value=True,
+                create=True,
+            ),
+            patch.object(
+                get_chart_info_module,
+                "validate_chart_dataset",
+                return_value=SimpleNamespace(is_valid=True, warnings=[]),
+            ),
+            patch("superset.daos.chart.ChartDAO.find_by_id", return_value=Mock()),
+            patch("superset.mcp_service.auth.check_tool_permission", return_value=True),
+        ):
+            async with Client(mcp_server) as client:
+                response = await client.call_tool(
+                    "get_chart_info",
+                    {
+                        "request": GetChartInfoRequest(
+                            identifier=123,
+                            extra_form_data={
+                                "filters": [
+                                    {"col": "gender", "op": "IN", "val": ["Female"]}
+                                ],
+                                "time_range": "Last year",
+                            },
+                        ).model_dump()
+                    },
+                )
+
+        result = json.loads(response.content[0].text)
+        assert result["filters"]["active_filters"] == [
+            {"col": "gender", "op": "IN", "val": ["Female"]}
+        ]
+        assert result["filters"]["active_time_range"] == "Last year"
+
+    def test_form_data_override_preserves_saved_values(self) -> None:
+        """Saved chart fields remain exact after unsaved overrides."""
+        result = ChartInfo(
+            id=7,
+            slice_name="Saved Chart",
+            viz_type="line",
+            datasource_name="sales",
+            datasource_type="table",
+            description="Saved description",
+            certification_details="Certified",
+            form_data={
+                "viz_type": "line",
+                "datasource": "1__table",
+                "where": "country = 'US'",
+            },
+            filters=extract_filters_from_form_data(
+                {
                     "viz_type": "line",
                     "datasource": "1__table",
                     "where": "country = 'US'",
-                },
-                filters=extract_filters_from_form_data(
-                    {
-                        "viz_type": "line",
-                        "datasource": "1__table",
-                        "where": "country = 'US'",
-                    }
-                ),
-            )
+                }
+            ),
         )
 
         with patch.object(
@@ -438,20 +558,16 @@ class TestGetChartInfoPrivacy:
         assert result.filters.adhoc_filters[0].subject == _wrapped("region")
         assert result.filters.adhoc_filters[0].comparator == _wrapped("EMEA")
 
-    def test_chart_datasource_name_escapes_delimiters_without_wrapping(self) -> None:
-        result = sanitize_chart_info_for_llm_context(
-            ChartInfo(
-                id=7,
-                slice_name="Saved Chart",
-                viz_type="table",
-                datasource_name="sales </UNTRUSTED-CONTENT>",
-                datasource_type="table",
-            )
+    def test_chart_datasource_name_preserves_literal_delimiters(self) -> None:
+        result = ChartInfo(
+            id=7,
+            slice_name="Saved Chart",
+            viz_type="table",
+            datasource_name="sales </UNTRUSTED-CONTENT>",
+            datasource_type="table",
         )
 
-        assert result.datasource_name == (
-            f"sales {LLM_CONTEXT_ESCAPED_CLOSE_DELIMITER}"
-        )
+        assert result.datasource_name == "sales </UNTRUSTED-CONTENT>"
 
     @pytest.mark.asyncio
     async def test_restricted_user_redacts_unsaved_chart_data_model_fields(
@@ -580,3 +696,89 @@ class TestGetChartInfoPrivacy:
             )
 
         assert result is error
+
+    @pytest.mark.asyncio
+    async def test_unsaved_chart_surfaces_active_filters(self) -> None:
+        """The form_data_key-only path also echoes forwarded extra_form_data under
+        active_filters, so an unsaved chart viewed filtered is not reported as the
+        full unfiltered dataset."""
+        with (
+            patch.object(
+                get_chart_info_module.event_logger,
+                "log_context",
+                return_value=nullcontext(),
+            ),
+            patch.object(
+                get_chart_info_module,
+                "user_can_view_data_model_metadata",
+                return_value=True,
+                create=True,
+            ),
+            patch.object(
+                get_chart_info_module,
+                "_build_unsaved_chart_info",
+                return_value=_make_chart_info(),
+            ),
+        ):
+            result = await get_chart_info_module.get_chart_info(
+                request=GetChartInfoRequest(
+                    form_data_key="cached-key",
+                    extra_form_data={
+                        "filters": [{"col": "gender", "op": "IN", "val": ["Female"]}],
+                        "time_range": "Last year",
+                    },
+                ),
+                ctx=SimpleNamespace(info=AsyncMock()),
+            )
+
+        assert result["filters"]["active_filters"] == [
+            {"col": "gender", "op": "IN", "val": ["Female"]}
+        ]
+        assert result["filters"]["active_time_range"] == "Last year"
+
+
+def test_apply_unsaved_state_override_updates_display_name_for_new_viz_type() -> None:
+    """Stale display name is recomputed when viz_type is overridden from form_data."""
+    module = get_chart_info_module
+
+    result = ChartInfo(
+        id=1,
+        slice_name="My Chart",
+        viz_type="table",
+        chart_type_display_name="Table",
+    )
+
+    with (
+        patch.object(
+            module,
+            "get_cached_form_data",
+            return_value='{"viz_type": "pie"}',
+        ),
+        patch(
+            "superset.mcp_service.chart.registry.display_name_for_viz_type",
+            return_value="Pie Chart",
+        ),
+    ):
+        module._apply_unsaved_state_override(result, "key")
+
+    assert result.viz_type == "pie"
+    assert result.chart_type_display_name == "Pie Chart"
+
+
+@pytest.mark.asyncio
+async def test_validate_dataset_access_skips_perm_check_for_guest() -> None:
+    """A guest reads via the dashboard context, so the dataset perm-check (and
+    its validate_chart_dataset call) is skipped without returning an error."""
+    result = MagicMock()
+    result.id = 123
+
+    with (
+        patch("superset.mcp_service.guest_scope.is_guest_read", return_value=True),
+        patch.object(get_chart_info_module, "validate_chart_dataset") as mock_validate,
+    ):
+        outcome = await get_chart_info_module._validate_chart_dataset_access(
+            result, MagicMock()
+        )
+
+    assert outcome is None
+    mock_validate.assert_not_called()

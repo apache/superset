@@ -38,36 +38,36 @@ const normalizePathWithFallback = (
   fallback: string,
 ): string => (path ?? fallback).replace(/\/$/, '');
 
-/**
- * Matches a plain absolute path prefix (e.g. "" for root deployments or
- * "/analytics" for a subdirectory). The character after the leading slash must
- * not be another slash, so protocol-relative URLs ("//host") and scheme-bearing
- * values ("javascript:...") do not qualify.
- */
-const SAFE_APPLICATION_ROOT_RE = /^(\/[\w\-.][\w\-./]*)?$/;
+// The application root is server-rendered operator configuration, but it
+// flows into URL sinks across the app (script.src in ExtensionsLoader,
+// history.pushState in navigationUtils), so enforce the documented
+// "/segment(/segment)*" shape at the source: a value that doesn't conform
+// degrades to a root deployment rather than reaching those sinks.
+// Each segment must begin with a non-dot character so a literal "." or ".."
+// segment (e.g. "/app/..") is rejected — otherwise browser path normalization
+// would collapse `ensureAppRoot('/foo')` → `/app/../foo` → `/foo`, silently
+// defeating subdirectory containment. Dots are still allowed inside a
+// segment (e.g. "/foo.bar").
+//
+// This guards the *literal* value only. Percent-encoded dot segments
+// ("/app/%2e%2e") pass through unchanged: `%` is a permitted path-segment
+// character and the regex does not decode. A browser would later normalize
+// "/app/%2e%2e/foo" → "/foo", so such a value silently defeats subdirectory
+// prefixing — but application_root is operator-controlled, server-rendered
+// configuration (SECURITY.md trust-boundary 2), so an encoded-traversal value
+// is an unsupported misconfiguration, not an attacker-reachable input. It is
+// intentionally neither decoded nor rejected here; the behavior is pinned by a
+// test in getBootstrapData.test.ts.
+const APP_ROOT_PATH_RE = /^(?:\/[\w~%-]+(?:\.[\w~%-]+)*)*$/;
 
-/**
- * The application root (SUPERSET_APP_ROOT) is reflected into links and
- * navigation, so constrain it to a plain absolute path before use. Anything
- * that isn't a simple "/path" prefix falls back to the default root so a
- * malformed value can't be reinterpreted as HTML or redirect off-origin. This
- * also keeps the bootstrap-derived value from being treated as a tainted href
- * source by static analysis.
- */
-const sanitizeApplicationRoot = (
-  path: string | undefined,
-  fallback: string,
-): string => {
-  const normalizedFallback = normalizePathWithFallback(fallback, fallback);
-  const normalized = normalizePathWithFallback(path, fallback);
-  return SAFE_APPLICATION_ROOT_RE.test(normalized)
-    ? normalized
-    : normalizedFallback;
-};
+const sanitizeAppRoot = (root: string): string =>
+  APP_ROOT_PATH_RE.test(root) ? root : '';
 
-const APPLICATION_ROOT_NO_TRAILING_SLASH = sanitizeApplicationRoot(
-  getBootstrapData().common.application_root,
-  DEFAULT_BOOTSTRAP_DATA.common.application_root,
+const APPLICATION_ROOT_NO_TRAILING_SLASH = sanitizeAppRoot(
+  normalizePathWithFallback(
+    getBootstrapData().common.application_root,
+    DEFAULT_BOOTSTRAP_DATA.common.application_root,
+  ),
 );
 
 const STATIC_ASSETS_PREFIX_NO_TRAILING_SLASH = normalizePathWithFallback(

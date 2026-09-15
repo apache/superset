@@ -58,6 +58,8 @@ logger = logging.getLogger(__name__)
         title="Generate explore link",
         readOnlyHint=False,
         destructiveHint=False,
+        idempotentHint=False,
+        openWorldHint=False,
     ),
 )
 async def generate_explore_link(
@@ -105,7 +107,8 @@ async def generate_explore_link(
     Only use generate_chart when user EXPLICITLY requests to save/create a
     permanent chart.
 
-    Returns explore URL for immediate use.
+    Returns explore URL for immediate use. The URL scheme matches the configured
+    instance URL (HTTPS in production/staging, HTTP in local development).
     """
     chart_type = request.config.chart_type if request.config else "none"
     await ctx.info(
@@ -277,7 +280,7 @@ async def generate_explore_link(
                 normalized_config,
                 form_data,
                 dataset,
-                run_compile_check=False,
+                run_compile_check=normalized_config.chart_type == "gauge",
             )
         if not compile_result.success:
             await ctx.warning(

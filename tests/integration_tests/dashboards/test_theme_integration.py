@@ -28,7 +28,7 @@ from superset.commands.dashboard.importers import v1
 from superset.models.core import Theme
 from superset.models.dashboard import Dashboard
 from superset.utils import json
-from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.base_tests import subjects_from_users, SupersetTestCase
 from tests.integration_tests.constants import ADMIN_USERNAME
 
 
@@ -59,7 +59,7 @@ class TestDashboardThemeIntegration(SupersetTestCase):
             dashboard_title=f"Test Dashboard {self.test_id}",
             slug=f"test-dashboard-{self.test_id}",
             position_json="{}",
-            owners=[self.get_user("admin")],
+            editors=subjects_from_users([self.get_user("admin")]),
             created_by=self.get_user("admin"),
             changed_by=self.get_user("admin"),
         )
@@ -240,7 +240,7 @@ class TestDashboardThemeIntegration(SupersetTestCase):
             dashboard_title=f"Test Dashboard 2 {self.test_id}",
             slug=f"test-dashboard-2-{self.test_id}",
             position_json="{}",
-            owners=[self.get_user("admin")],
+            editors=subjects_from_users([self.get_user("admin")]),
             created_by=self.get_user("admin"),
             changed_by=self.get_user("admin"),
         )
@@ -288,7 +288,7 @@ class TestDashboardThemeIntegration(SupersetTestCase):
             dashboard_title=f"Test Dashboard 2 {self.test_id}",
             slug=f"test-dashboard-2-{self.test_id}",
             position_json="{}",
-            owners=[self.get_user("admin")],
+            editors=subjects_from_users([self.get_user("admin")]),
             created_by=self.get_user("admin"),
             changed_by=self.get_user("admin"),
         )

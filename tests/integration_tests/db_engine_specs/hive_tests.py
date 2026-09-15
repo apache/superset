@@ -183,12 +183,14 @@ def test_df_to_sql_if_exists_replace(mock_upload_to_s3, mock_g):
     app.config["CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC"]: lambda *args: ""  # noqa: F722
     mock_upload_to_s3.return_value = "mock-location"
     mock_g.user = True
+    mock_execute = mock.MagicMock(return_value=True)
+    mock_connection = mock.MagicMock()
+    mock_connection.execute = mock_execute
+    mock_engine = mock.MagicMock()
+    mock_engine.begin().__enter__.return_value = mock_connection
     mock_database = mock.MagicMock()
     mock_database.get_df.return_value.empty = False
-    mock_execute = mock.MagicMock(return_value=True)
-    mock_database.get_sqla_engine.return_value.__enter__.return_value.execute = (
-        mock_execute
-    )
+    mock_database.get_sqla_engine().__enter__.return_value = mock_engine
     table_name = "foobar"
 
     with app.app_context():
@@ -213,12 +215,14 @@ def test_df_to_sql_if_exists_replace_with_schema(mock_upload_to_s3, mock_g):
     app.config["CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC"]: lambda *args: ""  # noqa: F722
     mock_upload_to_s3.return_value = "mock-location"
     mock_g.user = True
+    mock_execute = mock.MagicMock(return_value=True)
+    mock_connection = mock.MagicMock()
+    mock_connection.execute = mock_execute
+    mock_engine = mock.MagicMock()
+    mock_engine.begin().__enter__.return_value = mock_connection
     mock_database = mock.MagicMock()
     mock_database.get_df.return_value.empty = False
-    mock_execute = mock.MagicMock(return_value=True)
-    mock_database.get_sqla_engine.return_value.__enter__.return_value.execute = (
-        mock_execute
-    )
+    mock_database.get_sqla_engine().__enter__.return_value = mock_engine
     table_name = "foobar"
     schema = "schema"
 
@@ -353,7 +357,9 @@ def test_where_latest_partition(mock_method):
             columns,
         )
     query_result = str(result.compile(compile_kwargs={"literal_binds": True}))
-    assert "SELECT  \nWHERE ds = '01-01-19' AND hour = 1" == query_result
+    # SQLAlchemy 2.0 changed how select() with no columns renders - a single
+    # trailing space before the newline instead of two under 1.4.
+    assert "SELECT \nWHERE ds = '01-01-19' AND hour = 1" == query_result
 
 
 @mock.patch("superset.db_engine_specs.presto.PrestoEngineSpec.latest_partition")

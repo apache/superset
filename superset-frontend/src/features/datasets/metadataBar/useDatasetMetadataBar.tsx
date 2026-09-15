@@ -50,7 +50,7 @@ export const useDatasetMetadataBar = ({
         table_name,
         changed_by,
         created_by,
-        owners,
+        editors = [],
       } = dataset;
       const notAvailable = t('Not available');
       const createdBy =
@@ -60,10 +60,9 @@ export const useDatasetMetadataBar = ({
       const modifiedBy = changed_by
         ? `${changed_by.first_name} ${changed_by.last_name}`
         : notAvailable;
-      const formattedOwners =
-        owners && owners.length > 0
-          ? owners.map(owner => `${owner.first_name} ${owner.last_name}`)
-          : [notAvailable];
+      const editorLabels = editors
+        .map(editor => editor.label)
+        .filter((label): label is string => Boolean(label));
       items.push({
         type: MetadataType.Table,
         title: table_name || notAvailable,
@@ -74,9 +73,9 @@ export const useDatasetMetadataBar = ({
         modifiedBy,
       });
       items.push({
-        type: MetadataType.Owner,
+        type: MetadataType.Editor,
         createdBy,
-        owners: formattedOwners,
+        editors: editorLabels,
         createdOn: created_on_humanized || notAvailable,
       });
       if (description) {

@@ -17,11 +17,14 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
+from marshmallow import ValidationError
+from sqlalchemy.exc import IntegrityError
 
 from superset.commands.security.create import CreateRLSRuleCommand
 from superset.commands.security.delete import DeleteRLSRuleCommand
 from superset.commands.security.exceptions import RLSDatasourceForbiddenError
 from superset.commands.security.update import UpdateRLSRuleCommand
+from superset.utils.core import RowLevelSecurityFilterType
 
 
 def _mock_tables(*table_ids: int) -> list[MagicMock]:
@@ -46,15 +49,11 @@ def test_create_rls_rule_forbidden_when_no_datasource_access() -> None:
     with (
         _patch_query("superset.commands.security.create", tables),
         patch(
-            "superset.commands.security.create.populate_roles",
-            return_value=[],
-        ),
-        patch(
             "superset.commands.security.utils.security_manager.can_access_datasource",
             return_value=False,
         ) as can_access,
     ):
-        command = CreateRLSRuleCommand({"tables": [1], "roles": []})
+        command = CreateRLSRuleCommand({"tables": [1], "subjects": []})
         with pytest.raises(RLSDatasourceForbiddenError):
             command.validate()
 
@@ -67,15 +66,11 @@ def test_create_rls_rule_allowed_when_datasource_access() -> None:
     with (
         _patch_query("superset.commands.security.create", tables),
         patch(
-            "superset.commands.security.create.populate_roles",
-            return_value=[],
-        ),
-        patch(
             "superset.commands.security.utils.security_manager.can_access_datasource",
             return_value=True,
         ) as can_access,
     ):
-        command = CreateRLSRuleCommand({"tables": [1, 2], "roles": []})
+        command = CreateRLSRuleCommand({"tables": [1, 2], "subjects": []})
         command.validate()
 
     # Access is checked for every referenced datasource.
@@ -89,17 +84,169 @@ def test_create_rls_rule_forbidden_if_any_datasource_denied() -> None:
     with (
         _patch_query("superset.commands.security.create", tables),
         patch(
-            "superset.commands.security.create.populate_roles",
-            return_value=[],
-        ),
-        patch(
             "superset.commands.security.utils.security_manager.can_access_datasource",
             side_effect=[True, False],
         ),
     ):
-        command = CreateRLSRuleCommand({"tables": [1, 2], "roles": []})
+        command = CreateRLSRuleCommand({"tables": [1, 2], "subjects": []})
         with pytest.raises(RLSDatasourceForbiddenError):
             command.validate()
+
+
+def test_create_regular_rls_rule_requires_subjects() -> None:
+    tables = _mock_tables(1)
+
+    with (
+        _patch_query("superset.commands.security.create", tables),
+        patch(
+            "superset.commands.security.utils.security_manager.can_access_datasource",
+            return_value=True,
+        ),
+    ):
+        command = CreateRLSRuleCommand(
+            {
+                "filter_type": RowLevelSecurityFilterType.REGULAR.value,
+                "tables": [1],
+                "subjects": [],
+            }
+        )
+
+        with pytest.raises(ValidationError) as exc:
+            command.validate()
+
+    assert "subjects" in exc.value.messages
+
+
+def test_create_rls_rule_rejects_duplicate_name() -> None:
+    tables = _mock_tables(1)
+
+    with (
+        _patch_query("superset.commands.security.create", tables),
+        patch(
+            "superset.commands.security.utils.security_manager.can_access_datasource",
+            return_value=True,
+        ),
+        patch(
+            "superset.commands.security.create.RLSDAO.validate_uniqueness",
+            return_value=False,
+        ) as validate_uniqueness,
+    ):
+        command = CreateRLSRuleCommand({"name": "dup", "tables": [1], "subjects": []})
+        with pytest.raises(ValidationError) as exc:
+            command.validate()
+
+    validate_uniqueness.assert_called_once_with("dup")
+    assert "name" in exc.value.messages
+
+
+def test_create_rls_rule_allows_unique_name() -> None:
+    tables = _mock_tables(1)
+
+    with (
+        _patch_query("superset.commands.security.create", tables),
+        patch(
+            "superset.commands.security.create.RLSDAO.validate_uniqueness",
+            return_value=True,
+        ),
+        patch(
+            "superset.commands.security.utils.security_manager.can_access_datasource",
+            return_value=True,
+        ),
+    ):
+        command = CreateRLSRuleCommand(
+            {"name": "unique", "tables": [1], "subjects": []}
+        )
+        command.validate()
+
+
+def test_create_rls_rule_translates_concurrent_duplicate_name() -> None:
+    """A unique-constraint violation surfaced at flush time (e.g. from a
+    concurrent request that slipped past the preflight check) must be
+    translated into the same descriptive validation error, not left as an
+    opaque database error.
+    """
+    command = CreateRLSRuleCommand({"name": "dup", "tables": [1], "subjects": []})
+
+    with (
+        patch.object(command, "validate"),
+        patch("superset.commands.security.create.RLSDAO.create"),
+        patch(
+            "superset.commands.security.create.db.session.flush",
+            side_effect=IntegrityError("stmt", {}, Exception("duplicate name")),
+        ),
+    ):
+        with pytest.raises(ValidationError) as exc:
+            command.run.__wrapped__(command)
+
+    assert "name" in exc.value.messages
+
+
+def test_update_rls_rule_translates_concurrent_duplicate_name() -> None:
+    """Same as the create-command race, but for the update path."""
+    command = UpdateRLSRuleCommand(1, {"name": "dup"})
+    command._model = MagicMock()
+
+    with (
+        patch.object(command, "validate"),
+        patch("superset.commands.security.update.RLSDAO.update"),
+        patch(
+            "superset.commands.security.update.db.session.flush",
+            side_effect=IntegrityError("stmt", {}, Exception("duplicate name")),
+        ),
+    ):
+        with pytest.raises(ValidationError) as exc:
+            command.run.__wrapped__(command)
+
+    assert "name" in exc.value.messages
+
+
+def test_update_rls_rule_rejects_duplicate_name() -> None:
+    rule = MagicMock()
+    rule.id = 1
+
+    with (
+        patch(
+            "superset.commands.security.update.RLSDAO.find_by_id",
+            return_value=rule,
+        ),
+        patch(
+            "superset.commands.security.update.RLSDAO.validate_uniqueness",
+            return_value=False,
+        ) as validate_uniqueness,
+    ):
+        command = UpdateRLSRuleCommand(1, {"name": "dup"})
+        with pytest.raises(ValidationError) as exc:
+            command.validate()
+
+    # The rule being updated is excluded from the uniqueness check.
+    validate_uniqueness.assert_called_once_with("dup", 1)
+    assert "name" in exc.value.messages
+
+
+def test_update_rls_rule_allows_unchanged_name() -> None:
+    """Saving a rule without renaming it must not be rejected as a duplicate."""
+    rule = MagicMock()
+    rule.id = 1
+    rule.tables = _mock_tables(1)
+
+    with (
+        patch(
+            "superset.commands.security.update.RLSDAO.find_by_id",
+            return_value=rule,
+        ),
+        patch(
+            "superset.commands.security.update.RLSDAO.validate_uniqueness",
+            return_value=True,
+        ) as validate_uniqueness,
+        patch(
+            "superset.commands.security.utils.security_manager.can_access_datasource",
+            return_value=True,
+        ),
+    ):
+        command = UpdateRLSRuleCommand(1, {"name": "same"})
+        command.validate()
+
+    validate_uniqueness.assert_called_once_with("same", 1)
 
 
 def test_update_rls_rule_forbidden_when_no_datasource_access() -> None:
@@ -112,15 +259,11 @@ def test_update_rls_rule_forbidden_when_no_datasource_access() -> None:
             return_value=MagicMock(),
         ),
         patch(
-            "superset.commands.security.update.populate_roles",
-            return_value=[],
-        ),
-        patch(
             "superset.commands.security.utils.security_manager.can_access_datasource",
             return_value=False,
         ) as can_access,
     ):
-        command = UpdateRLSRuleCommand(1, {"tables": [1], "roles": []})
+        command = UpdateRLSRuleCommand(1, {"tables": [1], "subjects": []})
         with pytest.raises(RLSDatasourceForbiddenError):
             command.validate()
 
@@ -137,25 +280,37 @@ def test_update_rls_rule_allowed_when_datasource_access() -> None:
             return_value=MagicMock(),
         ),
         patch(
-            "superset.commands.security.update.populate_roles",
-            return_value=[],
-        ),
-        patch(
             "superset.commands.security.utils.security_manager.can_access_datasource",
             return_value=True,
         ) as can_access,
     ):
-        command = UpdateRLSRuleCommand(1, {"tables": [1], "roles": []})
+        command = UpdateRLSRuleCommand(1, {"tables": [1], "subjects": []})
         command.validate()
 
     can_access.assert_called_once_with(datasource=tables[0])
     assert command._properties["tables"] == tables
 
 
-def test_update_rls_rule_partial_update_preserves_tables_and_roles() -> None:
-    """A partial update without tables/roles must not clear those bindings.
+def test_update_regular_rls_rule_requires_subjects() -> None:
+    rule = MagicMock()
+    rule.filter_type = RowLevelSecurityFilterType.REGULAR.value
+    rule.subjects = []
 
-    When the request body omits ``tables``/``roles``, validate() must not add
+    with patch(
+        "superset.commands.security.update.RLSDAO.find_by_id",
+        return_value=rule,
+    ):
+        command = UpdateRLSRuleCommand(1, {"subjects": []})
+        with pytest.raises(ValidationError) as exc:
+            command.validate()
+
+    assert "subjects" in exc.value.messages
+
+
+def test_update_rls_rule_partial_update_preserves_tables_and_subjects() -> None:
+    """A partial update without tables/subjects must not clear those bindings.
+
+    When the request body omits ``tables``/``subjects``, validate() must not add
     those keys to the properties passed to the DAO, so the existing bindings
     are left untouched instead of being overwritten with empty lists.
     """
@@ -167,8 +322,12 @@ def test_update_rls_rule_partial_update_preserves_tables_and_roles() -> None:
             return_value=rule,
         ),
         patch(
-            "superset.commands.security.update.populate_roles",
-        ) as populate_roles,
+            "superset.commands.security.update.populate_subject_list",
+        ) as populate_subject_list,
+        patch(
+            "superset.commands.security.update.RLSDAO.validate_uniqueness",
+            return_value=True,
+        ),
         patch("superset.commands.security.update.db.session.query") as query,
         patch(
             "superset.commands.security.utils.security_manager.can_access_datasource",
@@ -179,15 +338,15 @@ def test_update_rls_rule_partial_update_preserves_tables_and_roles() -> None:
         command.validate()
 
     # Omitted relationships are not resolved or written back.
-    populate_roles.assert_not_called()
+    populate_subject_list.assert_not_called()
     query.assert_not_called()
     assert "tables" not in command._properties
-    assert "roles" not in command._properties
+    assert "subjects" not in command._properties
     assert command._properties["name"] == "new name"
 
 
-def test_update_rls_rule_only_roles_present_does_not_touch_tables() -> None:
-    """Updating only ``roles`` must not resolve or overwrite ``tables``."""
+def test_update_rls_rule_only_subjects_present_does_not_touch_tables() -> None:
+    """Updating only ``subjects`` must not resolve or overwrite ``tables``."""
     rule = MagicMock()
     rule.tables = _mock_tables(1)
     with (
@@ -196,21 +355,21 @@ def test_update_rls_rule_only_roles_present_does_not_touch_tables() -> None:
             return_value=rule,
         ),
         patch(
-            "superset.commands.security.update.populate_roles",
-            return_value=["resolved-role"],
-        ) as populate_roles,
+            "superset.commands.security.update.populate_subject_list",
+            return_value=["resolved-subject"],
+        ) as populate_subject_list,
         patch("superset.commands.security.update.db.session.query") as query,
         patch(
             "superset.commands.security.utils.security_manager.can_access_datasource",
             return_value=True,
         ),
     ):
-        command = UpdateRLSRuleCommand(1, {"roles": [1]})
+        command = UpdateRLSRuleCommand(1, {"subjects": [1]})
         command.validate()
 
-    populate_roles.assert_called_once()
+    populate_subject_list.assert_called_once_with([1], default_to_user=False)
     query.assert_not_called()
-    assert command._properties["roles"] == ["resolved-role"]
+    assert command._properties["subjects"] == ["resolved-subject"]
     assert "tables" not in command._properties
 
 
@@ -227,6 +386,10 @@ def test_update_rls_rule_partial_update_enforces_access_on_existing_tables() -> 
         patch(
             "superset.commands.security.update.RLSDAO.find_by_id",
             return_value=rule,
+        ),
+        patch(
+            "superset.commands.security.update.RLSDAO.validate_uniqueness",
+            return_value=True,
         ),
         patch("superset.commands.security.update.db.session.query") as query,
         patch(

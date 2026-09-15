@@ -44,47 +44,31 @@ class DatabaseExistsValidationError(ValidationError):
         )
 
 
+class DatabaseUpdateUnsafeRebindError(ValidationError):
+    """
+    Marshmallow validation error for an update that would change a
+    database's effective connection destination while leaving the stored
+    password/encrypted_extra/SSH tunnel credential masked.
+    """
+
+    def __init__(self, field_name: str = "sqlalchemy_uri") -> None:
+        super().__init__(
+            _(
+                "This update would change the connection's effective "
+                "destination (host/port, engine parameters, or SSH tunnel "
+                "endpoint) while reusing the stored credential. Provide "
+                "the real password (or SSH tunnel credential) to confirm "
+                "a connection move."
+            ),
+            field_name=field_name,
+        )
+
+
 class DatabaseRequiredFieldValidationError(ValidationError):
     def __init__(self, field_name: str) -> None:
         super().__init__(
             [_("Field is required")],
             field_name=field_name,
-        )
-
-
-class DatabaseExtraJSONValidationError(ValidationError):
-    """
-    Marshmallow validation error for database encrypted extra must be a valid JSON
-    """
-
-    def __init__(self, json_error: str = "") -> None:
-        super().__init__(
-            [
-                _(
-                    "Field cannot be decoded by JSON. %(json_error)s",
-                    json_error=json_error,
-                )
-            ],
-            field_name="extra",
-        )
-
-
-class DatabaseExtraValidationError(ValidationError):
-    """
-    Marshmallow validation error for database encrypted extra must be a valid JSON
-    """
-
-    def __init__(self, key: str = "") -> None:
-        super().__init__(
-            [
-                _(
-                    "The metadata_params in Extra field "
-                    "is not configured correctly. The key "
-                    "%{key}s is invalid.",
-                    key=key,
-                )
-            ],
-            field_name="extra",
         )
 
 
@@ -123,6 +107,28 @@ class DatabaseUploadFileTooLarge(CommandException):
     message = _("Database upload file exceeds the maximum allowed size.")
 
 
+class DatabaseUploadSoftDeletedDatasetExistsError(DatabaseUploadFailed):
+    """The upload targets a table whose dataset sits soft-deleted in the trash.
+
+    Creating a new dataset over the same physical table would make an active
+    twin of the hidden row and permanently block its restore, so the upload
+    is refused before any file data is written. The message names only
+    executable recoveries (restore, or a different table name) — there is no
+    hard-delete/purge API surface until the purge work lands.
+    """
+
+    def __init__(self, dataset_uuid: str) -> None:
+        super().__init__(
+            _(
+                "A soft-deleted dataset (uuid %(uuid)s) already references "
+                "this table. Restore it via POST "
+                "/api/v1/dataset/%(uuid)s/restore before uploading, or upload "
+                "to a different table name.",
+                uuid=dataset_uuid,
+            )
+        )
+
+
 class DatabaseUploadSaveMetadataFailed(CommandException):
     status = 500
     message = _("Database upload file failed, while saving metadata")
@@ -156,6 +162,21 @@ class DatabaseDeleteDatasetsExistFailedError(DeleteFailedError):
     message = _("Cannot delete a database that has datasets attached")
 
 
+class DatabaseDeleteSoftDeletedDatasetsExistFailedError(
+    DatabaseDeleteDatasetsExistFailedError
+):
+    # Subclasses the live-datasets error so the existing API handler catches
+    # both; only the message differs, telling the operator that the blockers
+    # are hidden (soft-deleted) rows even though their dataset list looks empty.
+    message = _(
+        "Cannot delete a database whose only remaining datasets are "
+        "soft-deleted. Restore them (POST /api/v1/dataset/<uuid>/restore) "
+        "and delete them permanently once a purge capability ships, or "
+        "remove the underlying rows out-of-band, before deleting the "
+        "database."
+    )
+
+
 class DatabaseDeleteFailedError(DeleteFailedError):
     message = _("Database could not be deleted.")
 
@@ -171,6 +192,15 @@ class DatabaseTestConnectionFailedError(SupersetErrorsException):
 
 class DatabaseSecurityUnsafeError(CommandInvalidError):
     message = _("Stopped an unsafe database connection")
+
+
+class DatabaseTestConnectionUnsafeRebindError(CommandInvalidError):
+    message = _(
+        "Testing this connection would change its effective destination "
+        "(engine parameters or SSH tunnel endpoint) while reusing the stored "
+        "password. Provide the real password to test a connection whose "
+        "destination has changed."
+    )
 
 
 class DatabaseTestConnectionDriverError(CommandInvalidError):

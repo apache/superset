@@ -24,7 +24,7 @@ from flask_babel import gettext as _
 from pandas import DataFrame, MultiIndex
 
 from superset.exceptions import InvalidPostProcessingError
-from superset.utils.core import PostProcessingContributionOrientation
+from superset.utils.core import PostProcessingContributionOrientation, TIME_COMPARISON
 from superset.utils.pandas_postprocessing.utils import validate_column_args
 
 
@@ -130,7 +130,7 @@ def get_column_groups(
         time_shift = None
         if time_shifts and isinstance(col_0, str):
             for ts in time_shifts:
-                if col_0.endswith(ts):
+                if col_0.endswith(TIME_COMPARISON + ts):
                     time_shift = ts
                     break
         if time_shift is not None:

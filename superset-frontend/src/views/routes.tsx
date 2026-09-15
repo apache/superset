@@ -26,6 +26,7 @@ import {
 } from 'react';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import getBootstrapData from 'src/utils/getBootstrapData';
+import { stripAppRoot } from 'src/utils/navigationUtils';
 import { RoutePaths } from './routePaths';
 
 // not lazy loaded since this is the home page.
@@ -57,6 +58,10 @@ const AnnotationList = lazy(
 
 const ChartList = lazy(
   () => import(/* webpackChunkName: "ChartList" */ 'src/pages/ChartList'),
+);
+
+const ArchivedList = lazy(
+  () => import(/* webpackChunkName: "ArchivedList" */ 'src/pages/ArchivedList'),
 );
 
 const CssTemplateList = lazy(
@@ -190,21 +195,39 @@ const RedirectWarning = lazy(
 
 type Routes = {
   path: string;
-  Component: ComponentType<any>;
-  Fallback?: ComponentType<any>;
+  Component: ComponentType;
+  Fallback?: ComponentType;
   props?: ComponentProps<any>;
+  /**
+   * Marks a route as usable in the mobile consumption-only experience.
+   * Routes without this flag show the MobileUnsupported screen on small
+   * screens when MOBILE_CONSUMPTION_MODE is enabled.
+   */
+  mobileSupported?: boolean;
 }[];
 
 export const routes: Routes = [
-  { path: RoutePaths.REDIRECT, Component: RedirectWarning },
-  { path: RoutePaths.LOGIN, Component: Login },
-  { path: RoutePaths.REGISTER_ACTIVATION, Component: Register },
-  { path: RoutePaths.REGISTER, Component: Register },
-  { path: RoutePaths.LOGOUT, Component: Login },
-  { path: RoutePaths.HOME, Component: Home },
+  {
+    path: RoutePaths.REDIRECT,
+    Component: RedirectWarning,
+    mobileSupported: true,
+  },
+  { path: RoutePaths.LOGIN, Component: Login, mobileSupported: true },
+  {
+    path: RoutePaths.REGISTER_ACTIVATION,
+    Component: Register,
+    mobileSupported: true,
+  },
+  { path: RoutePaths.REGISTER, Component: Register, mobileSupported: true },
+  { path: RoutePaths.LOGOUT, Component: Login, mobileSupported: true },
+  { path: RoutePaths.HOME, Component: Home, mobileSupported: true },
   { path: RoutePaths.FILE_HANDLER, Component: FileHandler },
-  { path: RoutePaths.DASHBOARD_LIST, Component: DashboardList },
-  { path: RoutePaths.DASHBOARD, Component: Dashboard },
+  {
+    path: RoutePaths.DASHBOARD_LIST,
+    Component: DashboardList,
+    mobileSupported: true,
+  },
+  { path: RoutePaths.DASHBOARD, Component: Dashboard, mobileSupported: true },
   { path: RoutePaths.CHART_ADD, Component: ChartCreation },
   { path: RoutePaths.CHART_LIST, Component: ChartList },
   { path: RoutePaths.DATASET_LIST, Component: DatasetList },
@@ -234,14 +257,21 @@ export const routes: Routes = [
   { path: RoutePaths.ROW_LEVEL_SECURITY, Component: RowLevelSecurityList },
   { path: RoutePaths.TASKS, Component: TaskList },
   { path: RoutePaths.SQLLAB, Component: SqlLab },
-  { path: RoutePaths.USER_INFO, Component: UserInfo },
+  { path: RoutePaths.USER_INFO, Component: UserInfo, mobileSupported: true },
   { path: RoutePaths.ACTION_LOG, Component: ActionLogList },
-  { path: RoutePaths.REGISTRATIONS, Component: UserRegistrations },
 ];
 
 if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
   routes.push({ path: RoutePaths.ALL_ENTITIES, Component: AllEntities });
   routes.push({ path: RoutePaths.TAGS, Component: Tags });
+}
+
+// Recently-Archived view — gated by the soft-delete feature (T007).
+if (isFeatureEnabled(FeatureFlag.SoftDelete)) {
+  routes.push({
+    path: '/archived/',
+    Component: ArchivedList,
+  });
 }
 
 const user = getBootstrapData()?.user;
@@ -277,7 +307,16 @@ const frontEndRoutes: Record<string, boolean> = routes
 
 export const isFrontendRoute = (path?: string): boolean => {
   if (path) {
-    const basePath = path.split(/[?#]/)[0]; // strip out query params and link bookmarks
+    // Strip query / hash, then strip the application-root segment so menu URLs
+    // emitted by the backend (`url_for(...)` → `/<appRoot>/<route>`) match
+    // against the route table, which is keyed by post-basename paths.
+    //
+    // Note: this is a literal dictionary lookup, not a path-pattern match —
+    // parameterised routes such as `/dashboard/:idOrSlug/` are NOT matched
+    // by a concrete `/dashboard/123/` URL. Callers relying on that behaviour
+    // (e.g., the brand-link SPA-route check in `Menu.tsx`) accept a
+    // full-page-reload fallback for those URLs.
+    const basePath = stripAppRoot(path.split(/[?#]/)[0]);
     return !!frontEndRoutes[basePath];
   }
   return false;

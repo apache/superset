@@ -36,6 +36,7 @@ from contextvars import ContextVar
 from typing import Any, cast
 
 import httpx
+from authlib.jose import JsonWebToken
 from authlib.jose.errors import JoseError
 from fastmcp.server.auth.auth import AccessToken
 from fastmcp.server.auth.providers.jwt import JWTVerifier
@@ -393,6 +394,10 @@ class MCPJWTVerifier(JWTVerifier):
         # is unset, so self.algorithm is always truthy post-construction).
         explicit_algorithm = kwargs.get("algorithm")
         super().__init__(*args, **kwargs)
+        # fastmcp >= 3.4.2 removed self.jwt from JWTVerifier (switched to joserfc
+        # internally). Restore it here using authlib so that load_access_token()
+        # can continue to call self.jwt.decode() with the raw verification key.
+        self.jwt = JsonWebToken([self.algorithm])
         # Surface permissive auth configuration at startup. Config-gated:
         # a verifier is only built when auth is enabled (see mcp_config).
         # Prefer the raw MCP_JWT_ALGORITHM config value over the constructor

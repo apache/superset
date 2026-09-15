@@ -16,58 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ControlPanelsContainerProps } from '@superset-ui/chart-controls/types';
 import { GenericDataType } from '@apache-superset/core/common';
 import controlPanel from '../../../src/Timeseries/Regular/Line/controlPanel';
+import { getControl, mockControls } from '../helpers';
 
 const config = controlPanel;
 
-const getControl = (controlName: string) => {
-  for (const section of config.controlPanelSections) {
-    if (section && section.controlSetRows) {
-      for (const row of section.controlSetRows) {
-        for (const control of row) {
-          if (
-            typeof control === 'object' &&
-            control !== null &&
-            'name' in control &&
-            control.name === controlName
-          ) {
-            return control;
-          }
-        }
-      }
-    }
-  }
-
-  return null;
-};
-
-const mockControls = (
-  xAxisColumn: string | null,
-  typeGeneric: GenericDataType | null,
-): ControlPanelsContainerProps => {
-  const columns =
-    xAxisColumn && typeGeneric !== null
-      ? [{ column_name: xAxisColumn, type_generic: typeGeneric }]
-      : [];
-
-  return {
-    controls: {
-      // @ts-expect-error
-      x_axis: {
-        value: xAxisColumn,
-      },
-      // @ts-expect-error
-      datasource: {
-        datasource: { columns },
-      },
-    },
-  };
-};
-
-const timeFormatControl: any = getControl('x_axis_time_format');
-const numberFormatControl: any = getControl('x_axis_number_format');
+const timeFormatControl = getControl(config, 'x_axis_time_format')!;
+const numberFormatControl = getControl(config, 'x_axis_number_format')!;
 
 test('should include x_axis_time_format control', () => {
   expect(timeFormatControl).toBeDefined();

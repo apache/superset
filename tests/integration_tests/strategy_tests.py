@@ -79,7 +79,7 @@ class TestCacheWarmUp(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         dash = self.get_dash_by_slug("births")
         for _ in range(10):
-            self.client.get(f"/superset/dashboard/{dash.id}/")
+            self.client.get(f"/dashboard/{dash.id}/")
 
         strategy = TopNDashboardsStrategy(1)
         result = sorted(strategy.get_urls())

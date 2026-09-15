@@ -19,7 +19,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { SupersetClient } from '@superset-ui/core';
 import { ExportStatus, StreamingProgress } from './StreamingExportModal';
-import { makeUrl } from 'src/utils/pathUtils';
+import { makeUrl } from 'src/utils/navigationUtils';
 import { applicationRoot } from 'src/utils/getBootstrapData';
 
 interface UseStreamingExportOptions {
@@ -38,8 +38,8 @@ interface StreamingExportParams {
    * The API endpoint URL for the export request.
    *
    * URLs should be prefixed with the application root at the call site using
-   * `makeUrl()` from 'src/utils/pathUtils'. This ensures proper handling for
-   * subdirectory deployments (e.g., /superset/api/v1/...).
+   * `makeUrl()` from `src/utils/navigationUtils`. This ensures proper handling
+   * for subdirectory deployments (e.g., /superset/api/v1/...).
    *
    * A defensive guard (`ensureUrlPrefix`) will apply the prefix if missing,
    * but callers should not rely on this fallback behavior.

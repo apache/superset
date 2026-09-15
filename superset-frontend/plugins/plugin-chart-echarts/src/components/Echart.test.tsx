@@ -16,9 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, waitFor } from '../../../../spec/helpers/testing-library';
 import type { EChartsCoreOption } from 'echarts/core';
-import Echart from './Echart';
+import { render, waitFor } from '../../../../spec/helpers/testing-library';
+import Echart, {
+  ECHARTS_HOST_CLASS,
+  ECHARTS_RENDER_FINISHED_CLASS,
+  isReportScreenshotMode,
+} from './Echart';
 import type { EchartsProps } from '../types';
 
 type Handler = (params: unknown) => void;
@@ -130,6 +134,20 @@ const trigger = (name: string) => {
   (listeners[name] || []).forEach(listener => listener.handler({}));
 };
 
+const originalLocation = `${window.location.pathname}${window.location.search}`;
+
+const setStandalone = (standalone?: string) => {
+  window.history.replaceState(
+    {},
+    '',
+    standalone === undefined ? '/' : `/?standalone=${standalone}`,
+  );
+};
+
+afterEach(() => {
+  window.history.replaceState({}, '', originalLocation);
+});
+
 beforeEach(() => {
   Object.keys(listeners).forEach(name => {
     delete listeners[name];
@@ -220,4 +238,69 @@ test('replaces stale query event handlers without clearing regular event handler
   expect(regularClickHandler).toHaveBeenCalledTimes(1);
   expect(firstQueryHandler).not.toHaveBeenCalled();
   expect(secondQueryHandler).not.toHaveBeenCalled();
+});
+
+test.each([
+  // Report/thumbnail screenshots render in standalone "true" (charts) or 3 (reports)
+  ['true', true],
+  ['3', true],
+  // Live embeds use 1/2 and must keep animation
+  ['1', false],
+  ['2', false],
+  ['0', false],
+  [undefined, false],
+])(
+  'isReportScreenshotMode() is %p for standalone=%p',
+  (standalone, expected) => {
+    setStandalone(standalone);
+    expect(isReportScreenshotMode()).toBe(expected);
+  },
+);
+
+test('disables animation when rendering in report screenshot mode', async () => {
+  setStandalone('true');
+  render(renderEchart(), { initialState, useRedux: true });
+
+  await waitFor(() => expect(mockChart.setOption).toHaveBeenCalled());
+
+  const lastOptions = mockChart.setOption.mock.calls.at(-1)?.[0];
+  expect(lastOptions.animation).toBe(false);
+});
+
+test('keeps animation enabled when not in report screenshot mode', async () => {
+  setStandalone(undefined);
+  render(renderEchart(), { initialState, useRedux: true });
+
+  await waitFor(() => expect(mockChart.setOption).toHaveBeenCalled());
+
+  const lastOptions = mockChart.setOption.mock.calls.at(-1)?.[0];
+  expect(lastOptions.animation).not.toBe(false);
+});
+
+test('tags the ECharts canvas host with the readiness-gate class', async () => {
+  const { container } = render(renderEchart(), {
+    initialState,
+    useRedux: true,
+  });
+  await waitFor(() => expect(mockChart.setOption).toHaveBeenCalled());
+  expect(container.querySelector(`.${ECHARTS_HOST_CLASS}`)).not.toBeNull();
+});
+
+test('marks the host painted only on the ECharts `finished` event', async () => {
+  const { container } = render(renderEchart(), {
+    initialState,
+    useRedux: true,
+  });
+  await waitFor(() => expect(mockChart.setOption).toHaveBeenCalled());
+
+  const host = container.querySelector(`.${ECHARTS_HOST_CLASS}`) as HTMLElement;
+  expect(host).not.toBeNull();
+
+  // `setOption` ran during mount, which clears the marker; `finished` has not
+  // fired yet, so the host must NOT be flagged as painted.
+  expect(host).not.toHaveClass(ECHARTS_RENDER_FINISHED_CLASS);
+
+  // Simulate ECharts completing its draw -> the host is flagged painted.
+  trigger('finished');
+  expect(host).toHaveClass(ECHARTS_RENDER_FINISHED_CLASS);
 });

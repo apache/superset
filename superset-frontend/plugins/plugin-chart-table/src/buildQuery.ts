@@ -31,8 +31,10 @@ import {
 } from '@superset-ui/core';
 
 import {
+  getTotalsMetrics,
   isTimeComparison,
   timeCompareOperator,
+  toTotalsAggregate,
 } from '@superset-ui/chart-controls';
 import { isEmpty } from 'lodash-es';
 import { TableChartFormData } from './types';
@@ -227,7 +229,10 @@ export const buildQuery: BuildQuery<TableChartFormData> = (
         formData?.result_type === 'results');
 
     if (isDownloadQuery) {
-      moreProps.row_limit = Number(formDataCopy.row_limit) || 0;
+      moreProps.row_limit =
+        formDataCopy.row_limit != null
+          ? Number(formDataCopy.row_limit)
+          : undefined;
       moreProps.row_offset = 0;
     }
 
@@ -344,9 +349,11 @@ export const buildQuery: BuildQuery<TableChartFormData> = (
       formData.show_totals &&
       queryMode === QueryMode.Aggregate
     ) {
+      const totalsAggregate = toTotalsAggregate(formData.totals_aggregate);
       extraQueries.push({
         ...queryObject,
         columns: [],
+        metrics: getTotalsMetrics(metrics, totalsAggregate),
         row_limit: 0,
         row_offset: 0,
         // Reapply only the percent-metric contribution rule so the totals row

@@ -30,6 +30,32 @@ import { MemoryRouter } from 'react-router-dom';
 import { QueryParamProvider } from 'use-query-params';
 import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 import AlertListComponent from 'src/pages/AlertReportList';
+import { SubjectType } from 'src/types/Subject';
+import getBootstrapData from 'src/utils/getBootstrapData';
+
+jest.mock('src/utils/getBootstrapData', () => ({
+  __esModule: true,
+  default: jest.fn(() => ({
+    common: {
+      conf: {},
+      feature_flags: {},
+      user_subjects: [1],
+    },
+  })),
+}));
+
+const mockGetBootstrapData = getBootstrapData as jest.MockedFunction<
+  typeof getBootstrapData
+>;
+
+const mockBootstrapData = (userSubjects: number[]) =>
+  ({
+    common: {
+      conf: {},
+      feature_flags: {},
+      user_subjects: userSubjects,
+    },
+  }) as ReturnType<typeof getBootstrapData>;
 
 jest.setTimeout(30000);
 
@@ -39,6 +65,11 @@ const AlertList = AlertListComponent as unknown as React.FC<
 
 // -- Mock data (IDs start at 1 to avoid the `if (data?.id)` falsy guard) --
 
+const EDITORS = [
+  { id: 1, label: 'Admin User', type: SubjectType.User },
+  { id: 2, label: 'Data Analyst', type: SubjectType.User },
+];
+
 const mockAlerts = [
   {
     id: 1,
@@ -46,8 +77,8 @@ const mockAlerts = [
     active: true,
     last_state: 'Success',
     type: 'Alert',
-    owners: [{ id: 1, first_name: 'Admin', last_name: 'User' }],
     recipients: [{ id: 1, type: 'Email' }],
+    editors: [EDITORS[0]],
     changed_by: { id: 1, first_name: 'Admin', last_name: 'User' },
     changed_on_delta_humanized: '1 day ago',
     created_by: { id: 1, first_name: 'Admin', last_name: 'User' },
@@ -63,8 +94,8 @@ const mockAlerts = [
     active: true,
     last_state: 'Error',
     type: 'Alert',
-    owners: [{ id: 2, first_name: 'Data', last_name: 'Analyst' }],
     recipients: [{ id: 2, type: 'Slack' }],
+    editors: [EDITORS[1]],
     changed_by: { id: 2, first_name: 'Data', last_name: 'Analyst' },
     changed_on_delta_humanized: '2 days ago',
     created_by: { id: 2, first_name: 'Data', last_name: 'Analyst' },
@@ -80,8 +111,8 @@ const mockAlerts = [
     active: false,
     last_state: 'Working',
     type: 'Alert',
-    owners: [{ id: 1, first_name: 'Admin', last_name: 'User' }],
     recipients: [{ id: 3, type: 'Email' }],
+    editors: [EDITORS[0]],
     changed_by: { id: 1, first_name: 'Admin', last_name: 'User' },
     changed_on_delta_humanized: '5 days ago',
     created_by: { id: 1, first_name: 'Admin', last_name: 'User' },
@@ -100,8 +131,8 @@ const mockReports = [
     active: true,
     last_state: 'Success',
     type: 'Report',
-    owners: [{ id: 1, first_name: 'Admin', last_name: 'User' }],
     recipients: [{ id: 10, type: 'Email' }],
+    editors: [EDITORS[0]],
     changed_by: { id: 1, first_name: 'Admin', last_name: 'User' },
     changed_on_delta_humanized: '1 day ago',
     created_by: { id: 1, first_name: 'Admin', last_name: 'User' },
@@ -117,8 +148,8 @@ const mockReports = [
     active: false,
     last_state: 'Not triggered',
     type: 'Report',
-    owners: [{ id: 1, first_name: 'Admin', last_name: 'User' }],
     recipients: [{ id: 11, type: 'Slack' }],
+    editors: [EDITORS[0]],
     changed_by: { id: 1, first_name: 'Admin', last_name: 'User' },
     changed_on_delta_humanized: '3 days ago',
     created_by: { id: 1, first_name: 'Admin', last_name: 'User' },
@@ -142,8 +173,8 @@ const ENDPOINTS = {
   LIST: 'glob:*/api/v1/report/?*',
   INFO: 'glob:*/api/v1/report/_info*',
   SINGLE: 'glob:*/api/v1/report/*',
+  EDITORS: 'glob:*/api/v1/report/related/editors*',
   CREATED_BY: 'glob:*/api/v1/report/related/created_by*',
-  OWNERS: 'glob:*/api/v1/report/related/owners*',
   CHANGED_BY: 'glob:*/api/v1/report/related/changed_by*',
 };
 
@@ -186,9 +217,20 @@ const setupMocks = (
     { name: 'list' },
   );
 
-  fetchMock.get(ENDPOINTS.CREATED_BY, { result: [] }, { name: 'created-by' });
+  fetchMock.get(
+    ENDPOINTS.EDITORS,
+    {
+      result: EDITORS.map(editor => ({
+        value: editor.id,
+        text: editor.label,
+        extra: { type: editor.type },
+      })),
+      count: EDITORS.length,
+    },
+    { name: 'editors' },
+  );
 
-  fetchMock.get(ENDPOINTS.OWNERS, { result: [], count: 0 }, { name: 'owners' });
+  fetchMock.get(ENDPOINTS.CREATED_BY, { result: [] }, { name: 'created-by' });
 
   fetchMock.get(
     ENDPOINTS.CHANGED_BY,
@@ -214,6 +256,7 @@ const setupMocks = (
 // -- Setup / teardown --
 
 beforeEach(() => {
+  mockGetBootstrapData.mockReturnValue(mockBootstrapData([1]));
   fetchMock.removeRoutes().clearHistory();
   setupMocks();
 });
@@ -236,7 +279,7 @@ test('loads rows from API and renders alert names, status, and actions', async (
   const switches = screen.getAllByRole('switch');
   expect(switches).toHaveLength(3);
 
-  // Delete actions present for owned alerts (userId=1 owns alerts 1 and 3)
+  // Delete actions present for alerts where subject id 1 is an editor.
   const deleteButtons = screen.getAllByTestId('delete-action');
   expect(deleteButtons.length).toBeGreaterThanOrEqual(2);
 
@@ -438,6 +481,7 @@ test('bulk select shows selected count and enables bulk actions after row select
 });
 
 test('read-only users do not see delete and bulk select controls', async () => {
+  mockGetBootstrapData.mockReturnValue(mockBootstrapData([]));
   fetchMock.removeRoutes().clearHistory();
   setupMocks(['can_read']); // no can_write
 
@@ -467,7 +511,7 @@ test('read-only users do not see delete and bulk select controls', async () => {
   // No bulk select toggle
   expect(screen.queryByTestId('bulk-select-toggle')).not.toBeInTheDocument();
 
-  // Switches are all disabled (user 99 doesn't own any alerts)
+  // Switches are all disabled because user 99 is not an editor of any alert.
   const switches = screen.getAllByRole('switch');
   switches.forEach(sw => {
     expect(sw).toBeDisabled();
@@ -496,7 +540,7 @@ test('trigger-now action calls execute API for owned alert', async () => {
   renderAlertList();
   await screen.findByText('Weekly Sales Alert');
 
-  // Alert 1 is owned by mockUser (userId: 1) so allowEdit is true,
+  // mockUser's subject is an editor of alert 1, so allowEdit is true,
   // meaning the trigger-now button is rendered.
   const triggerButtons = screen.getAllByTestId('trigger-now-action');
   expect(triggerButtons.length).toBeGreaterThanOrEqual(1);

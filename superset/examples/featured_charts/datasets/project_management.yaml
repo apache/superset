@@ -16,7 +16,7 @@
 # under the License.
 always_filter_main_dttm: false
 cache_timeout: null
-catalog: examples
+catalog: null
 columns:
 - advanced_data_type: null
   column_name: start_time

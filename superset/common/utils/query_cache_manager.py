@@ -88,6 +88,11 @@ class QueryCacheManager:
         self.queried_dttm = queried_dttm
         self.bq_memory_limited: bool = False
         self.bq_memory_limited_row_count: int = 0
+        # Whether set_query_result actually persisted the value to the backend
+        # (False when caching was skipped/failed — e.g. oversized value). Used to
+        # gate the forced-refresh idempotency marker so a follow-up read never
+        # serves a stale value under the belief the fresh one was cached.
+        self.result_persisted: bool = False
 
     # pylint: disable=too-many-arguments
     def set_query_result(
@@ -148,7 +153,7 @@ class QueryCacheManager:
                 "bq_memory_limited_row_count": self.bq_memory_limited_row_count,
             }
             if self.is_loaded and key and self.status != QueryStatus.FAILED:
-                self.set(
+                self.result_persisted = self.set(
                     key=key,
                     value=value,
                     timeout=timeout,
@@ -177,7 +182,16 @@ class QueryCacheManager:
         if not key or not _cache[region] or force_query:
             return query_cache
 
-        if cache_value := _cache[region].get(key):
+        try:
+            cache_value = _cache[region].get(key)
+        except Exception as ex:  # pylint: disable=broad-except
+            # A cache backend outage (e.g. Redis connection/timeout errors)
+            # should not surface as an error to the caller: treat it the
+            # same as a cache miss and fall through to querying live data.
+            logger.warning("Error reading cache: %s", error_msg_from_exception(ex))
+            cache_value = None
+
+        if cache_value:
             logger.debug("Cache key: %s", key)
             # Log cache hit for debugging
             logger.debug("CACHE GET - Key: %s, Region: %s", key, region)
@@ -197,11 +211,9 @@ class QueryCacheManager:
                 )
                 query_cache.status = QueryStatus.SUCCESS
                 query_cache.is_loaded = True
-                query_cache.is_cached = cache_value is not None
+                query_cache.is_cached = True
                 query_cache.sql_rowcount = cache_value.get("sql_rowcount", None)
-                query_cache.cache_dttm = (
-                    cache_value["dttm"] if cache_value is not None else None
-                )
+                query_cache.cache_dttm = cache_value["dttm"]
                 query_cache.queried_dttm = cache_value.get(
                     "queried_dttm", cache_value.get("dttm")
                 )
@@ -236,12 +248,17 @@ class QueryCacheManager:
         timeout: int | None = None,
         datasource_uid: str | None = None,
         region: CacheRegion = CacheRegion.DEFAULT,
-    ) -> None:
+    ) -> bool:
         """
         set value to specify cache region, proxy for `set_and_log_cache`
+
+        :returns: whether the value was actually persisted to the backend
         """
         if key:
-            set_and_log_cache(_cache[region], key, value, timeout, datasource_uid)
+            return set_and_log_cache(
+                _cache[region], key, value, timeout, datasource_uid
+            )
+        return False
 
     @staticmethod
     def delete(

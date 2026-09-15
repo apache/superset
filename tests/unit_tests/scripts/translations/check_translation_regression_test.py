@@ -157,6 +157,166 @@ def test_writes_report_on_regression(tmp_path: Path) -> None:
     assert "deleting" in body.lower()
 
 
+def test_backfilling_untranslated_strings_as_fuzzy_is_not_a_regression(
+    tmp_path: Path,
+) -> None:
+    # The ja/fi backfill case: previously-empty msgstrs are filled with fuzzy
+    # guesses. The aggregate fuzzy count rises (0 -> 2) but no *confirmed*
+    # translation was lost — the new fuzzy keys were untranslated in the
+    # baseline — so the per-msgid check must let it pass.
+    before = {
+        "ja": {
+            "translated": 10,
+            "fuzzy": 0,
+            "translated_keys": ["A", "B"],
+            "fuzzy_keys": [],
+        }
+    }
+    after = {
+        "ja": {
+            "translated": 10,
+            "fuzzy": 2,
+            "translated_keys": ["A", "B"],
+            "fuzzy_keys": ["C", "D"],
+        }
+    }
+    _compare(tmp_path, before, after)  # no SystemExit
+
+
+def test_invalidating_a_confirmed_translation_is_a_regression(tmp_path: Path) -> None:
+    # A key that was a confirmed (non-fuzzy) translation in the baseline is
+    # fuzzy after the PR -> a reworded source stranded it.
+    before = {
+        "fr": {
+            "translated": 2,
+            "fuzzy": 0,
+            "translated_keys": ["A", "B"],
+            "fuzzy_keys": [],
+        }
+    }
+    after = {
+        "fr": {
+            "translated": 1,
+            "fuzzy": 1,
+            "translated_keys": ["A"],
+            "fuzzy_keys": ["B"],
+        }
+    }
+    with pytest.raises(SystemExit) as exc:
+        _compare(tmp_path, before, after)
+    assert exc.value.code == 1
+
+
+def test_preexisting_fuzzy_staying_fuzzy_is_not_a_regression(tmp_path: Path) -> None:
+    # `B` was already fuzzy on the base branch and stays fuzzy: it was never a
+    # confirmed translation, so the PR did not invalidate anything.
+    before = {
+        "de": {
+            "translated": 1,
+            "fuzzy": 1,
+            "translated_keys": ["A"],
+            "fuzzy_keys": ["B"],
+        }
+    }
+    after = {
+        "de": {
+            "translated": 1,
+            "fuzzy": 1,
+            "translated_keys": ["A"],
+            "fuzzy_keys": ["B"],
+        }
+    }
+    _compare(tmp_path, before, after)  # no SystemExit
+
+
+def test_a_real_regression_is_caught_even_alongside_a_backfill(tmp_path: Path) -> None:
+    # The same PR both backfills empties as fuzzy (X, Y) and strands a confirmed
+    # translation (C). The aggregate fuzzy delta (+3) cannot separate these; the
+    # per-msgid check still catches C.
+    before = {
+        "ja": {
+            "translated": 3,
+            "fuzzy": 0,
+            "translated_keys": ["A", "B", "C"],
+            "fuzzy_keys": [],
+        }
+    }
+    after = {
+        "ja": {
+            "translated": 2,
+            "fuzzy": 3,
+            "translated_keys": ["A", "B"],
+            "fuzzy_keys": ["C", "X", "Y"],
+        }
+    }
+    with pytest.raises(SystemExit) as exc:
+        _compare(tmp_path, before, after)
+    assert exc.value.code == 1
+
+
+def test_report_counts_only_invalidated_msgids(tmp_path: Path) -> None:
+    # B and C were confirmed translations now turned fuzzy; D is a backfill of a
+    # previously-untranslated key. The report must count 2, not 3.
+    before_file = tmp_path / "before.json"
+    before_file.write_text(
+        json.dumps(
+            {
+                "ja": {
+                    "translated": 3,
+                    "fuzzy": 0,
+                    "translated_keys": ["A", "B", "C"],
+                    "fuzzy_keys": [],
+                }
+            }
+        )
+    )
+    report = tmp_path / "report.md"
+    after = {
+        "ja": {
+            "translated": 1,
+            "fuzzy": 3,
+            "translated_keys": ["A"],
+            "fuzzy_keys": ["B", "C", "D"],
+        }
+    }
+    with patch.object(check_translation_regression, "get_counts", return_value=after):
+        with pytest.raises(SystemExit):
+            check_translation_regression.cmd_compare(
+                str(before_file), tmp_path, str(report)
+            )
+    body = report.read_text(encoding="utf-8")
+    assert "| `ja` | 2 |" in body
+
+
+def test_entry_keys_classifies_translated_fuzzy_and_context(tmp_path: Path) -> None:
+    po = tmp_path / "messages.po"
+    po.write_text(
+        'msgid ""\n'
+        'msgstr ""\n'
+        '"Content-Type: text/plain; charset=UTF-8\\n"\n'
+        "\n"
+        'msgid "confirmed"\n'
+        'msgstr "ok"\n'
+        "\n"
+        "#, fuzzy\n"
+        'msgid "guess"\n'
+        'msgstr "maybe"\n'
+        "\n"
+        'msgid "still empty"\n'
+        'msgstr ""\n'
+        "\n"
+        'msgctxt "ctx"\n'
+        'msgid "confirmed"\n'
+        'msgstr "ok in context"\n',
+        encoding="utf-8",
+    )
+    keys = check_translation_regression.entry_keys(po)
+    # The header (empty msgid) and the untranslated entry are excluded; the
+    # context-qualified "confirmed" stays distinct from the plain one.
+    assert keys["translated_keys"] == ["confirmed", "ctx\x04confirmed"]
+    assert keys["fuzzy_keys"] == ["guess"]
+
+
 def test_count_stats_parses_translated_and_fuzzy() -> None:
     stderr = (
         "3731 translated messages, 1009 fuzzy translations, 175 untranslated messages."

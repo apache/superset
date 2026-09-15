@@ -23,7 +23,7 @@ import json  # noqa: TID251
 import re
 from datetime import timedelta
 from textwrap import dedent
-from typing import Any
+from typing import Any, cast
 from urllib.parse import parse_qs, urlparse
 
 import pytest
@@ -33,7 +33,11 @@ from sqlalchemy.dialects import sqlite
 from sqlalchemy.engine.url import make_url, URL
 from sqlalchemy.sql import sqltypes
 
-from superset.db_engine_specs.base import BaseEngineSpec, convert_inspector_columns
+from superset.db_engine_specs.base import (
+    BaseEngineSpec,
+    BasicParametersType,
+    convert_inspector_columns,
+)
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import OAuth2RedirectError
 from superset.sql.parse import Table
@@ -83,6 +87,13 @@ def test_get_text_clause_with_colon() -> None:
         "SELECT foo FROM tbl WHERE foo = '123:456')"
     )
     assert text_clause.text == "SELECT foo FROM tbl WHERE foo = '123\\:456')"
+
+
+def test_normalize_custom_sql_metric_is_identity_by_default() -> None:
+    """Unconfigured engines preserve custom metric SQL exactly."""
+    expression: str = "DATE_TRUNC('QUARTER', created_at) /* keep */"
+
+    assert BaseEngineSpec.normalize_custom_sql_metric(expression) == expression
 
 
 def test_validate_db_uri(mocker: MockerFixture) -> None:
@@ -287,6 +298,13 @@ def test_get_default_catalog(mocker: MockerFixture) -> None:
     assert BaseEngineSpec.get_default_catalog(database) is None
 
 
+def test_prepare_identifier_returns_name_unchanged() -> None:
+    name = "physical_column"
+
+    assert BaseEngineSpec.prepare_identifier(name, normalize_columns=False) is name
+    assert BaseEngineSpec.prepare_identifier(name, normalize_columns=True) is name
+
+
 def test_quote_table() -> None:
     """
     Test the `quote_table` function.
@@ -362,6 +380,66 @@ def test_unmask_encrypted_extra() -> None:
     )
 
 
+def test_mask_encrypted_extra_oauth2_client_info_with_narrow_override() -> None:
+    """
+    Test that the OAuth2 client secret is masked even when an engine spec
+    overrides `encrypted_extra_sensitive_fields` without including it.
+    """
+
+    class NarrowFieldsSpec(BaseEngineSpec):
+        encrypted_extra_sensitive_fields = {"$.auth_params.password"}
+
+    config = json.dumps(
+        {
+            "auth_params": {"password": "my_password"},
+            "oauth2_client_info": {
+                "id": "my_client_id",
+                "secret": "my_client_secret",
+            },
+        }
+    )
+
+    assert NarrowFieldsSpec.mask_encrypted_extra(config) == json.dumps(
+        {
+            "auth_params": {"password": "XXXXXXXXXX"},
+            "oauth2_client_info": {
+                "id": "my_client_id",
+                "secret": "XXXXXXXXXX",
+            },
+        }
+    )
+
+
+def test_mask_encrypted_extra_oauth2_client_info_without_sensitive_fields() -> None:
+    """
+    Test that the OAuth2 client secret is masked even when an engine spec
+    declares no sensitive fields at all.
+    """
+
+    class NoFieldsSpec(BaseEngineSpec):
+        encrypted_extra_sensitive_fields: set[str] = set()
+
+    config = json.dumps(
+        {
+            "auth_params": {"password": "my_password"},
+            "oauth2_client_info": {
+                "id": "my_client_id",
+                "secret": "my_client_secret",
+            },
+        }
+    )
+
+    assert NoFieldsSpec.mask_encrypted_extra(config) == json.dumps(
+        {
+            "auth_params": {"password": "my_password"},
+            "oauth2_client_info": {
+                "id": "my_client_id",
+                "secret": "XXXXXXXXXX",
+            },
+        }
+    )
+
+
 @pytest.mark.parametrize(
     "masked_encrypted_extra,expected_result",
     [
@@ -373,6 +451,7 @@ def test_unmask_encrypted_extra() -> None:
             {
                 "$.credentials_info.private_key",
                 "$.access_token",
+                "$.oauth2_client_info.secret",
             },
         ),
         (
@@ -383,11 +462,12 @@ def test_unmask_encrypted_extra() -> None:
             {
                 "$.credentials_info.private_key",
                 "$.access_token",
+                "$.oauth2_client_info.secret",
             },
         ),
         (
             None,
-            {"$.*"},
+            {"$.*", "$.oauth2_client_info.secret"},
         ),
     ],
 )
@@ -1144,21 +1224,19 @@ def test_get_oauth2_fresh_token_success(mocker: MockerFixture) -> None:
     assert result == {"access_token": "new-access-token", "expires_in": 3600}
 
 
-@pytest.mark.parametrize("status_code", [400, 401, 403])
 @with_config({"DATABASE_OAUTH2_TIMEOUT": timedelta(seconds=30)})
-def test_get_oauth2_fresh_token_raises_on_auth_error(
+def test_get_oauth2_fresh_token_raises_on_invalid_grant(
     mocker: MockerFixture,
-    status_code: int,
 ) -> None:
     """
-    Test that get_oauth2_fresh_token raises OAuth2TokenRefreshError on 400/401/403.
+    Test that a definitive refresh-token rejection requests interactive OAuth2.
     """
     from superset.db_engine_specs.base import BaseEngineSpec
     from superset.exceptions import OAuth2TokenRefreshError
 
     mock_post = mocker.patch("superset.db_engine_specs.base.requests.post")
-    mock_post.return_value.status_code = status_code
-    mock_post.return_value.text = '{"error": "invalid_grant"}'
+    mock_post.return_value.status_code = 400
+    mock_post.return_value.json.return_value = {"error": "invalid_grant"}
 
     config: OAuth2ClientConfig = {
         "id": "client-id",
@@ -1173,7 +1251,40 @@ def test_get_oauth2_fresh_token_raises_on_auth_error(
     with pytest.raises(OAuth2TokenRefreshError) as exc_info:
         BaseEngineSpec.get_oauth2_fresh_token(config, "refresh-token")
 
-    assert exc_info.value.error.extra["error"] == '{"error": "invalid_grant"}'
+    assert "invalid_grant" not in str(exc_info.value.to_dict())
+
+
+@pytest.mark.parametrize(
+    "status_code,error", [(400, "temporarily_unavailable"), (401, "invalid_client")]
+)
+@with_config({"DATABASE_OAUTH2_TIMEOUT": timedelta(seconds=30)})
+def test_get_oauth2_fresh_token_preserves_token_on_ambiguous_error(
+    mocker: MockerFixture,
+    status_code: int,
+    error: str,
+) -> None:
+    """Non-invalid_grant responses remain ordinary provider failures."""
+    from requests.exceptions import HTTPError
+
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    mock_post = mocker.patch("superset.db_engine_specs.base.requests.post")
+    mock_post.return_value.status_code = status_code
+    mock_post.return_value.json.return_value = {"error": error}
+    mock_post.return_value.raise_for_status.side_effect = HTTPError()
+
+    config: OAuth2ClientConfig = {
+        "id": "client-id",
+        "secret": "client-secret",
+        "scope": "read write",
+        "redirect_uri": "http://localhost:8088/api/v1/database/oauth2/",
+        "authorization_request_uri": "https://oauth.example.com/authorize",
+        "token_request_uri": "https://oauth.example.com/token",
+        "request_content_type": "json",
+    }
+
+    with pytest.raises(HTTPError):
+        BaseEngineSpec.get_oauth2_fresh_token(config, "refresh-token")
 
 
 @with_config({"DATABASE_OAUTH2_TIMEOUT": timedelta(seconds=30)})
@@ -1360,3 +1471,166 @@ def test_resolve_column_type_falls_back_to_pa_mapped() -> None:
 def test_resolve_column_type_returns_none_when_both_absent() -> None:
     """None is returned when neither source provides a type."""
     assert BaseEngineSpec.resolve_column_type(None, None) is None
+
+
+def test_base_spec_supports_offset_default_true() -> None:
+    """
+    New engines opt-in to OFFSET support by default. Engines that do not
+    support OFFSET (like Elasticsearch SQL) opt out explicitly.
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    assert BaseEngineSpec.supports_offset is True
+
+
+def test_base_spec_public_information_includes_supports_offset() -> None:
+    """
+    The supports_offset capability is exposed via get_public_information
+    so the frontend can reason about it (e.g. future UI disablement).
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    info = BaseEngineSpec.get_public_information()
+
+    assert "supports_offset" in info
+    assert info["supports_offset"] is True
+
+
+def _parameters(encryption: bool) -> BasicParametersType:
+    parameters: dict[str, Any] = {
+        "username": "user",
+        "password": "pwd",
+        "host": "localhost",
+        "port": 5432,
+        "database": "db",
+        "query": {},
+        "encryption": encryption,
+    }
+    return cast(BasicParametersType, parameters)
+
+
+def test_build_sqlalchemy_uri_omits_disable_parameters_by_default() -> None:
+    """
+    Specs that do not define ``encryption_disable_parameters`` must keep
+    emitting nothing at all when encryption is off.
+    """
+    from superset.db_engine_specs.base import BasicParametersMixin
+
+    class TestEngineSpec(BasicParametersMixin):
+        engine = "testdb"
+        encryption_parameters = {"sslmode": "require"}
+
+    uri = TestEngineSpec.build_sqlalchemy_uri(_parameters(encryption=False))
+
+    assert make_url(uri).query == {}
+
+
+@pytest.mark.parametrize(
+    "encryption,expected_query",
+    [
+        (True, {"sslmode": "require"}),
+        (False, {"sslmode": "disable"}),
+    ],
+)
+def test_build_sqlalchemy_uri_applies_disable_parameters(
+    encryption: bool, expected_query: dict[str, str]
+) -> None:
+    from superset.db_engine_specs.base import BasicParametersMixin
+
+    class TestEngineSpec(BasicParametersMixin):
+        engine = "testdb"
+        encryption_parameters = {"sslmode": "require"}
+        encryption_disable_parameters = {"sslmode": "disable"}
+
+    uri = TestEngineSpec.build_sqlalchemy_uri(_parameters(encryption=encryption))
+
+    assert dict(make_url(uri).query) == expected_query
+
+
+@pytest.mark.parametrize(
+    "uri,expected_encryption",
+    [
+        ("testdb://user:pwd@localhost:5432/db?sslmode=require", True),
+        ("testdb://user:pwd@localhost:5432/db?sslmode=disable", False),
+    ],
+)
+def test_get_parameters_from_uri_strips_both_parameter_sets(
+    uri: str, expected_encryption: bool
+) -> None:
+    """
+    Both sets share a key with differing values, so neither may leak into
+    ``query`` and reappear as a user-supplied extra parameter.
+    """
+    from superset.db_engine_specs.base import BasicParametersMixin
+
+    class TestEngineSpec(BasicParametersMixin):
+        engine = "testdb"
+        encryption_parameters = {"sslmode": "require"}
+        encryption_disable_parameters = {"sslmode": "disable"}
+
+    parameters = TestEngineSpec.get_parameters_from_uri(uri)
+
+    assert parameters["encryption"] is expected_encryption
+    assert parameters["query"] == {}
+
+
+def test_get_parameters_from_uri_keeps_unrelated_query_parameters() -> None:
+    from superset.db_engine_specs.base import BasicParametersMixin
+
+    class TestEngineSpec(BasicParametersMixin):
+        engine = "testdb"
+        encryption_parameters = {"sslmode": "require"}
+        encryption_disable_parameters = {"sslmode": "disable"}
+
+    parameters = TestEngineSpec.get_parameters_from_uri(
+        "testdb://user:pwd@localhost:5432/db?sslmode=disable&application_name=superset"
+    )
+
+    assert parameters["query"] == {"application_name": "superset"}
+
+
+def test_get_public_information_exposes_ansi_identifier_quote() -> None:
+    """The base spec advertises ANSI double quotes for identifier quoting,
+    escaped by doubling the closing character."""
+    assert BaseEngineSpec.get_public_information()["identifier_quote"] == {
+        "start": '"',
+        "end": '"',
+        "escape_by_doubling": True,
+    }
+
+
+def test_multivalue_columns_disabled_by_default() -> None:
+    """Engines must opt in to multi-value support; base defaults to off."""
+    assert BaseEngineSpec.supports_multivalue_columns is False
+
+
+@pytest.mark.parametrize(
+    "method", ["array_contains_any", "array_contains_all", "array_length"]
+)
+def test_array_capabilities_raise_when_unsupported(method: str) -> None:
+    """Array capability methods raise NotImplementedError unless overridden."""
+    from sqlalchemy import column
+
+    fn = getattr(BaseEngineSpec, method)
+    args = (column("c"), ["v"]) if "contains" in method else (column("c"),)
+    with pytest.raises(NotImplementedError):
+        fn(*args)
+
+
+@pytest.mark.parametrize("aggregate", ["MEDIAN", "STDDEV_SAMP", "VAR_SAMP"])
+def test_base_spec_extended_aggregation_func_defaults_to_unsupported(
+    aggregate: str,
+) -> None:
+    """
+    By default, an engine spec has no verified expression for the "extended"
+    aggregates (MEDIAN/STDDEV_SAMP/VAR_SAMP) -- they must be explicitly opted
+    into per engine spec, the same way `supports_grouping_sets` and
+    `_time_grain_expressions` work. Silence here means "unsupported", not
+    "untested" -- callers must not fall back to guessing SQL.
+    """
+    assert BaseEngineSpec.get_extended_aggregation_func(aggregate) is None
+
+
+def test_base_spec_extended_aggregation_func_unknown_name_is_unsupported() -> None:
+    """An aggregate name outside the known extended set is also just None."""
+    assert BaseEngineSpec.get_extended_aggregation_func("NOT_A_REAL_AGGREGATE") is None

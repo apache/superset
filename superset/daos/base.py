@@ -37,14 +37,15 @@ from flask import current_app
 from flask_appbuilder.models.filters import BaseFilter
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from pydantic import BaseModel, Field
-from sqlalchemy import asc, cast, desc, or_, Text
-from sqlalchemy.exc import SQLAlchemyError, StatementError
+from sqlalchemy import asc, cast, desc, false, or_, Text
+from sqlalchemy.exc import OperationalError, SQLAlchemyError, StatementError
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.inspection import inspect
 from sqlalchemy.orm import ColumnProperty, joinedload, Query, RelationshipProperty
 from superset_core.common.daos import BaseDAO as CoreBaseDAO
 from superset_core.common.models import CoreModel
 
+from superset import is_feature_enabled
 from superset.constants import SKIP_VISIBILITY_FILTER_CLASSES
 from superset.daos.exceptions import (
     DAOFindFailedError,
@@ -81,24 +82,46 @@ class ColumnOperatorEnum(str, Enum):
         return op_func(column, value)
 
 
-def _escape_like(value: str) -> str:
-    """Escape LIKE/ILIKE wildcards to prevent wildcard injection."""
-    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+def _escape_like(value: Any) -> str:
+    """Escape LIKE/ILIKE wildcards to prevent wildcard injection.
+
+    The filter payload is typed ``Any``, so non-string scalars (e.g. numeric
+    JSON values) can reach LIKE-family operators; coerce them to ``str`` so
+    they degrade to a literal match instead of raising ``AttributeError``.
+    ``None`` never reaches this function — ``_like_op`` short-circuits it
+    first, because coercing ``None`` to ``""`` would build a wildcard-only
+    pattern (``%%``) that matches every row.
+    """
+    return str(value).replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
+def _like_op(template: str, case_insensitive: bool = False) -> Any:
+    """Build a LIKE-family operator with SQL-faithful NULL semantics.
+
+    ``template`` places the escaped value inside the pattern (e.g. ``"%{}%"``
+    for contains). A ``None`` value matches no rows — mirroring SQL's
+    three-valued logic, where ``x LIKE NULL`` evaluates to NULL — rather
+    than raising or degenerating into a match-everything pattern.
+    """
+
+    def op(col: Any, val: Any) -> Any:
+        if val is None:
+            return false()
+        pattern = template.format(_escape_like(val))
+        if case_insensitive:
+            return col.ilike(pattern, escape="\\")
+        return col.like(pattern, escape="\\")
+
+    return op
 
 
 # Define operator_map as a module-level dict after the enum is defined
 operator_map: Dict[ColumnOperatorEnum, Any] = {
     ColumnOperatorEnum.eq: lambda col, val: col == val,
     ColumnOperatorEnum.ne: lambda col, val: col != val,
-    ColumnOperatorEnum.sw: lambda col, val: col.like(
-        f"{_escape_like(val)}%", escape="\\"
-    ),
-    ColumnOperatorEnum.ew: lambda col, val: col.like(
-        f"%{_escape_like(val)}", escape="\\"
-    ),
-    ColumnOperatorEnum.ct: lambda col, val: col.ilike(
-        f"%{_escape_like(val)}%", escape="\\"
-    ),
+    ColumnOperatorEnum.sw: _like_op("{}%"),
+    ColumnOperatorEnum.ew: _like_op("%{}"),
+    ColumnOperatorEnum.ct: _like_op("%{}%", case_insensitive=True),
     ColumnOperatorEnum.in_: lambda col, val: col.in_(
         val if isinstance(val, (list, tuple)) else [val]
     ),
@@ -109,12 +132,8 @@ operator_map: Dict[ColumnOperatorEnum, Any] = {
     ColumnOperatorEnum.gte: lambda col, val: col >= val,
     ColumnOperatorEnum.lt: lambda col, val: col < val,
     ColumnOperatorEnum.lte: lambda col, val: col <= val,
-    ColumnOperatorEnum.like: lambda col, val: col.like(
-        f"%{_escape_like(val)}%", escape="\\"
-    ),
-    ColumnOperatorEnum.ilike: lambda col, val: col.ilike(
-        f"%{_escape_like(val)}%", escape="\\"
-    ),
+    ColumnOperatorEnum.like: _like_op("%{}%"),
+    ColumnOperatorEnum.ilike: _like_op("%{}%", case_insensitive=True),
     ColumnOperatorEnum.is_null: lambda col, _: col.is_(None),
     ColumnOperatorEnum.is_not_null: lambda col, _: col.isnot(None),
 }
@@ -188,6 +207,10 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
     """
     Child classes can register base filtering to be applied to all filter methods
     """
+    force_fetch: ClassVar[bool] = False
+    """
+    Child classes can force ORM fetch helpers to refresh already-loaded rows.
+    """
     id_column_name: ClassVar[str] = "id"
     uuid_column_name: ClassVar[str] = "uuid"
 
@@ -207,17 +230,29 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
         )[0]
 
     @classmethod
+    def _query(cls, force_fetch: bool | None = None) -> Query:
+        """
+        Return a model query, optionally refreshing identity-map instances.
+        """
+        query = db.session.query(cls.model_cls)
+        should_force_fetch = cls.force_fetch if force_fetch is None else force_fetch
+        if should_force_fetch:
+            query = query.populate_existing()
+        return query
+
+    @classmethod
     def find_by_id_or_uuid(
         cls,
         model_id_or_uuid: str,
         skip_base_filter: bool = False,
         *,
         skip_visibility_filter: bool = False,
+        force_fetch: bool | None = None,
     ) -> T | None:
         """
         Find a model by id or uuid, if defined applies `base_filter`
         """
-        query = db.session.query(cls.model_cls)
+        query = cls._query(force_fetch)
         if skip_visibility_filter:
             query = query.execution_options(
                 **{SKIP_VISIBILITY_FILTER_CLASSES: {cls.model_cls}}
@@ -236,6 +271,11 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
             filter = uuid_column == model_id_or_uuid
         try:
             return query.filter(filter).one_or_none()
+        except OperationalError:
+            # A transient connection-level failure (e.g. the server dropping the
+            # connection mid-query) surfaces as OperationalError, a StatementError
+            # subclass. Let it propagate instead of masking it as a "not found".
+            raise
         except StatementError:
             # can happen if neither uuid nor int is passed
             return None
@@ -287,6 +327,7 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
         query_options: list[Any] | None = None,
         *,
         skip_visibility_filter: bool = False,
+        force_fetch: bool | None = None,
     ) -> T | None:
         """
         Private method to find a model by any column value.
@@ -298,11 +339,12 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
             skip_visibility_filter: Whether to skip the soft-delete visibility filter
             query_options: SQLAlchemy query options (e.g., joinedload,
                 subqueryload) to apply to the query for eager loading
+            force_fetch: Whether to refresh already-loaded identity-map instances
 
         Returns:
             Model instance or None if not found
         """
-        query = db.session.query(cls.model_cls)
+        query = cls._query(force_fetch)
         if skip_visibility_filter:
             query = query.execution_options(
                 **{SKIP_VISIBILITY_FILTER_CLASSES: {cls.model_cls}}
@@ -322,6 +364,11 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
 
         try:
             return query.filter(column == converted_value).one_or_none()
+        except OperationalError:
+            # A transient connection-level failure (e.g. the server dropping the
+            # connection mid-query) surfaces as OperationalError, a StatementError
+            # subclass. Let it propagate instead of masking it as a "not found".
+            raise
         except StatementError:
             # can happen if int is passed instead of a string or similar
             return None
@@ -335,6 +382,7 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
         query_options: list[Any] | None = None,
         *,
         skip_visibility_filter: bool = False,
+        force_fetch: bool | None = None,
     ) -> T | None:
         """
         Find a model by ID using specified or default ID column.
@@ -347,6 +395,7 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
                 subqueryload) to apply to the query for eager loading
             skip_visibility_filter: Keyword-only. Whether to skip the
                 soft-delete visibility filter
+            force_fetch: Whether to refresh already-loaded identity-map instances
 
         Returns:
             Model instance or None if not found
@@ -358,6 +407,7 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
             skip_base_filter,
             query_options,
             skip_visibility_filter=skip_visibility_filter,
+            force_fetch=force_fetch,
         )
 
     @classmethod
@@ -368,6 +418,7 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
         id_column: str | None = None,
         *,
         skip_visibility_filter: bool = False,
+        force_fetch: bool | None = None,
     ) -> list[T]:
         """
         Find a List of models by a list of ids, if defined applies `base_filter`
@@ -378,6 +429,7 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
                          (defaults to id_column_name)
         :param skip_visibility_filter: Keyword-only. If true, skip the
             soft-delete visibility filter so soft-deleted rows are returned
+        :param force_fetch: Whether to refresh already-loaded identity-map instances
         """
         column = id_column or cls.id_column_name
         id_col = getattr(cls.model_cls, column, None)
@@ -404,7 +456,7 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
         if not converted_ids:
             return []
 
-        query = db.session.query(cls.model_cls)
+        query = cls._query(force_fetch)
         if skip_visibility_filter:
             query = query.execution_options(
                 **{SKIP_VISIBILITY_FILTER_CLASSES: {cls.model_cls}}
@@ -414,6 +466,11 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
 
         try:
             results = query.all()
+        except OperationalError:
+            # A transient connection-level failure (e.g. the server dropping the
+            # connection mid-query) surfaces as OperationalError. Let it propagate
+            # as a 5xx instead of masking it as a 400 "record doesn't exist".
+            raise
         except SQLAlchemyError as ex:
             model_name = cls.model_cls.__name__ if cls.model_cls else "Unknown"
             raise DAOFindFailedError(
@@ -423,22 +480,28 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
         return results
 
     @classmethod
-    def find_all(cls, skip_base_filter: bool = False) -> list[T]:
+    def find_all(
+        cls, skip_base_filter: bool = False, *, force_fetch: bool | None = None
+    ) -> list[T]:
         """
         Get all that fit the `base_filter`
         """
-        query = db.session.query(cls.model_cls)
+        query = cls._query(force_fetch)
         query = cls._apply_base_filter(query, skip_base_filter)
         return query.all()
 
     @classmethod
     def find_one_or_none(
-        cls, skip_base_filter: bool = False, **filter_by: Any
+        cls,
+        skip_base_filter: bool = False,
+        *,
+        force_fetch: bool | None = None,
+        **filter_by: Any,
     ) -> T | None:
         """
         Get the first that fit the `base_filter`
         """
-        query = db.session.query(cls.model_cls)
+        query = cls._query(force_fetch)
         query = cls._apply_base_filter(query, skip_base_filter)
         return query.filter_by(**filter_by).one_or_none()
 
@@ -526,16 +589,22 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
         soft delete.
 
         For models that include ``SoftDeleteMixin``, this calls
-        ``soft_delete()``. For all other models, this calls ``hard_delete()``
-        (the original behaviour).
+        ``soft_delete()`` — but only while the temporary ``SOFT_DELETE`` rollout
+        gate is enabled. When the gate is off, every model
+        hard-deletes (the original behaviour), so the substrate can ship dark.
+        For all other models, this always calls ``hard_delete()``.
 
         :param items: The items to delete
         """
         from superset.models.helpers import (
-            SoftDeleteMixin,  # pylint: disable=import-outside-toplevel
+            SoftDeleteMixin,  # avoid circular import: models.helpers <-> daos
         )
 
-        if cls.model_cls is not None and issubclass(cls.model_cls, SoftDeleteMixin):
+        if (
+            cls.model_cls is not None
+            and issubclass(cls.model_cls, SoftDeleteMixin)
+            and is_feature_enabled("SOFT_DELETE")
+        ):
             cls.soft_delete(items)
         else:
             cls.hard_delete(items)
@@ -645,10 +714,21 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
                 f"found {len(pk_cols)} columns."
             )
         related_pk = pk_cols[0]
-        if operator_enum == ColumnOperatorEnum.eq:
-            return query.filter(column.any(related_pk == value))
-        if operator_enum == ColumnOperatorEnum.ne:
-            # "no related row has id == value"
+        if operator_enum in (ColumnOperatorEnum.eq, ColumnOperatorEnum.ne):
+            # `value` must be scalar for both eq and ne: a list/tuple would
+            # silently compile to `related_pk == [...]` (or `!= [...]`),
+            # which behaves unpredictably across backends instead of
+            # failing fast. Use `in`/`nin` to match multiple related ids.
+            if isinstance(value, (list, tuple)):
+                counterpart = "in" if operator_enum == ColumnOperatorEnum.eq else "nin"
+                raise ValueError(
+                    f"Operator '{operator_enum.value}' on relationship "
+                    f"column '{col_name}' requires a scalar value, got "
+                    f"{type(value).__name__}. Use '{counterpart}' to match "
+                    f"multiple related ids."
+                )
+            if operator_enum == ColumnOperatorEnum.eq:
+                return query.filter(column.any(related_pk == value))
             return query.filter(~column.any(related_pk == value))
         if operator_enum == ColumnOperatorEnum.in_:
             values = value if isinstance(value, (list, tuple)) else [value]

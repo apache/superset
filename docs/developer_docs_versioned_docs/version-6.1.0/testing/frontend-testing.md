@@ -58,4 +58,4 @@ npm run test -- MyComponent.test.tsx
 
 ---
 
-*This documentation is under active development. Check back soon for updates!*
+_This documentation is under active development. Check back soon for updates!_

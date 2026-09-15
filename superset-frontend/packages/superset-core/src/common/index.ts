@@ -130,6 +130,7 @@ export enum GenericDataType {
   String = 1,
   Temporal = 2,
   Boolean = 3,
+  MultiValue = 4,
 }
 
 /**
@@ -227,8 +228,6 @@ export interface Extension {
   id: string;
   /** Human-readable name of the extension */
   name: string;
-  /** URL or path to the extension's remote entry point */
-  remoteEntry: string;
   /** Version of the extension */
   version: string;
 }

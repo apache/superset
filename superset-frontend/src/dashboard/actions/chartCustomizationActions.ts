@@ -137,6 +137,7 @@ export function saveChartCustomization(
       dispatch({
         type: SET_NATIVE_FILTERS_CONFIG_COMPLETE,
         filterChanges: mergedResult,
+        deletedIds,
       });
 
       dispatch(

@@ -69,10 +69,14 @@ def test_log_audit_event_handles_logger_error(
 def test_role_api_post_add_logs_event(mock_log: MagicMock) -> None:
     """SupersetRoleApi.post_add logs a RoleCreated event."""
     api = SupersetRoleApi.__new__(SupersetRoleApi)
+    api.datamodel = MagicMock()
     role = MagicMock(spec=Role)
     role.name = "TestRole"
     role.id = 42
-    api.post_add(role)
+    with patch("superset.daos.role.RoleDAO._sync_subject") as mock_sync:
+        api.post_add(role)
+    mock_sync.assert_called_once_with(role)
+    api.datamodel.session.commit.assert_called_once_with()
     mock_log.assert_called_once_with(
         "RoleCreated", {"role_name": "TestRole", "role_id": 42}
     )
@@ -82,10 +86,14 @@ def test_role_api_post_add_logs_event(mock_log: MagicMock) -> None:
 def test_role_api_post_update_logs_event(mock_log: MagicMock) -> None:
     """SupersetRoleApi.post_update logs a RoleUpdated event."""
     api = SupersetRoleApi.__new__(SupersetRoleApi)
+    api.datamodel = MagicMock()
     role = MagicMock(spec=Role)
     role.name = "TestRole"
     role.id = 42
-    api.post_update(role)
+    with patch("superset.daos.role.RoleDAO._sync_subject") as mock_sync:
+        api.post_update(role)
+    mock_sync.assert_called_once_with(role)
+    api.datamodel.session.commit.assert_called_once_with()
     mock_log.assert_called_once_with(
         "RoleUpdated", {"role_name": "TestRole", "role_id": 42}
     )
@@ -168,10 +176,14 @@ def test_user_api_post_delete_logs_event(mock_log: MagicMock) -> None:
 def test_group_api_post_add_logs_event(mock_log: MagicMock) -> None:
     """SupersetGroupApi.post_add logs a GroupCreated event."""
     api = SupersetGroupApi.__new__(SupersetGroupApi)
+    api.datamodel = MagicMock()
     group = MagicMock(spec=Group)
     group.name = "TestGroup"
     group.id = 10
-    api.post_add(group)
+    with patch("superset.daos.group.GroupDAO._sync_subject") as mock_sync:
+        api.post_add(group)
+    mock_sync.assert_called_once_with(group)
+    api.datamodel.session.commit.assert_called_once_with()
     mock_log.assert_called_once_with(
         "GroupCreated", {"group_name": "TestGroup", "group_id": 10}
     )
@@ -181,10 +193,14 @@ def test_group_api_post_add_logs_event(mock_log: MagicMock) -> None:
 def test_group_api_post_update_logs_event(mock_log: MagicMock) -> None:
     """SupersetGroupApi.post_update logs a GroupUpdated event."""
     api = SupersetGroupApi.__new__(SupersetGroupApi)
+    api.datamodel = MagicMock()
     group = MagicMock(spec=Group)
     group.name = "TestGroup"
     group.id = 10
-    api.post_update(group)
+    with patch("superset.daos.group.GroupDAO._sync_subject") as mock_sync:
+        api.post_update(group)
+    mock_sync.assert_called_once_with(group)
+    api.datamodel.session.commit.assert_called_once_with()
     mock_log.assert_called_once_with(
         "GroupUpdated", {"group_name": "TestGroup", "group_id": 10}
     )

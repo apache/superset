@@ -104,30 +104,19 @@ export default class ChartClient {
     const buildQueryRegistry = getChartBuildQueryRegistry();
 
     if (metaDataRegistry.has(visType)) {
-      const { useLegacyApi } = metaDataRegistry.get(visType)!;
       const buildQuery =
         (await buildQueryRegistry.get(visType)) ?? (() => formData);
-      const requestConfig: RequestConfig = useLegacyApi
-        ? {
-            endpoint: '/superset/explore_json/',
-            postPayload: {
-              form_data: buildQuery(formData),
-            },
-            ...options,
-          }
-        : {
-            endpoint: '/api/v1/chart/data',
-            jsonPayload: {
-              query_context: buildQuery(formData),
-            },
-            ...options,
-          };
+      const requestConfig: RequestConfig = {
+        endpoint: '/api/v1/chart/data',
+        jsonPayload: buildQuery(formData),
+        ...options,
+      };
 
-      return this.client
-        .post(requestConfig)
-        .then(response =>
-          Array.isArray(response.json) ? response.json : [response.json],
-        );
+      return this.client.post(requestConfig).then(response => {
+        const { result } = response.json as { result?: QueryData[] };
+
+        return Array.isArray(result) ? result : [response.json as QueryData];
+      });
     }
 
     return Promise.reject(new Error(`Unknown chart type: ${visType}`));
@@ -139,7 +128,7 @@ export default class ChartClient {
   ): Promise<Datasource> {
     return this.client
       .get({
-        endpoint: `/superset/fetch_datasource_metadata?datasourceKey=${datasourceKey}`,
+        endpoint: `/fetch_datasource_metadata?datasourceKey=${datasourceKey}`,
         ...options,
       } as RequestConfig)
       .then(response => response.json as Datasource);

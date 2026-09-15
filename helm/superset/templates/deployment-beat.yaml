@@ -24,13 +24,7 @@ metadata:
   name: {{ template "superset.fullname" . }}-celerybeat
   namespace: {{ .Release.Namespace }}
   labels:
-    app: {{ template "superset.name" . }}-celerybeat
-    chart: {{ template "superset.chart" . }}
-    release: {{ .Release.Name }}
-    heritage: {{ .Release.Service }}
-    {{- if .Values.extraLabels }}
-      {{- toYaml .Values.extraLabels | nindent 4 }}
-    {{- end }}
+    {{- include "superset.componentLabels" (dict "component" "celerybeat" "root" .) | nindent 4 }}
   {{- if .Values.supersetCeleryBeat.deploymentAnnotations }}
   annotations: {{- toYaml .Values.supersetCeleryBeat.deploymentAnnotations | nindent 4 }}
   {{- end }}
@@ -43,9 +37,12 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/superset_config.py: {{ include "superset-config" . | sha256sum }}
+        checksum/superset_config.py: {{ include "superset.config" . | sha256sum }}
         checksum/superset_bootstrap.sh: {{ tpl .Values.bootstrapScript . | sha256sum }}
-        checksum/connections: {{ .Values.supersetNode.connections | toYaml | sha256sum }}
+        checksum/database: {{ .Values.database | toYaml | sha256sum }}
+        checksum/redis: {{ .Values.cache | toYaml | sha256sum }}
+        checksum/config: {{ .Values.config | toYaml | sha256sum }}
+        checksum/featureFlags: {{ .Values.featureFlags | toYaml | sha256sum }}
         checksum/extraConfigs: {{ .Values.extraConfigs | toYaml | sha256sum }}
         checksum/extraSecrets: {{ .Values.extraSecrets | toYaml | sha256sum }}
         checksum/extraSecretEnv: {{ .Values.extraSecretEnv | toYaml | sha256sum }}
@@ -58,12 +55,11 @@ spec:
         {{- if .Values.supersetCeleryBeat.podAnnotations }}
           {{- toYaml .Values.supersetCeleryBeat.podAnnotations | nindent 8 }}
         {{- end }}
-      labels:
-        app: "{{ template "superset.name" . }}-celerybeat"
-        release: {{ .Release.Name }}
-        {{- if .Values.extraLabels }}
-          {{- toYaml .Values.extraLabels | nindent 8 }}
+        {{- with .Values.globalPodAnnotations }}
+          {{- toYaml . | nindent 8 }}
         {{- end }}
+      labels:
+        {{- include "supersetCeleryBeat.selectorLabels" . | nindent 8 }}
         {{- if .Values.supersetCeleryBeat.podLabels }}
           {{- toYaml .Values.supersetCeleryBeat.podLabels | nindent 8 }}
         {{- end }}
@@ -79,8 +75,14 @@ spec:
         {{- if .Values.supersetCeleryBeat.podSecurityContext }}
           {{- toYaml .Values.supersetCeleryBeat.podSecurityContext | nindent 8 }}
         {{- end }}
+      {{- if or .Values.supersetCeleryBeat.initContainers .Values.supersetCeleryBeat.extraInitContainers }}
+      initContainers:
       {{- if .Values.supersetCeleryBeat.initContainers }}
-      initContainers: {{-  tpl (toYaml .Values.supersetCeleryBeat.initContainers) . | nindent 6 }}
+      {{-  tpl (toYaml .Values.supersetCeleryBeat.initContainers) . | nindent 6 }}
+      {{- end }}
+      {{- if .Values.supersetCeleryBeat.extraInitContainers }}
+      {{-  tpl (toYaml .Values.supersetCeleryBeat.extraInitContainers) . | nindent 6 }}
+      {{- end }}
       {{- end }}
       {{- with .Values.hostAliases }}
       hostAliases: {{- toYaml . | nindent 6 }}

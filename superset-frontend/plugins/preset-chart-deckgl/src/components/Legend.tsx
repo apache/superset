@@ -1,6 +1,5 @@
 /* eslint-disable react/jsx-sort-default-props */
 /* eslint-disable react/sort-prop-types */
-/* eslint-disable jsx-a11y/anchor-is-valid */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -43,11 +42,18 @@ const StyledLegend = styled.div`
       padding-left: 0;
       margin: 0;
 
-      & li a {
+      & li button {
+        appearance: none;
+        border: none;
+        background: none;
+        font: inherit;
+        width: 100%;
+        text-align: left;
         display: flex;
         color: ${theme.colorText};
         text-decoration: none;
         padding: ${theme.sizeUnit}px 0;
+        cursor: pointer;
 
         & span {
           margin-right: ${theme.sizeUnit}px;
@@ -89,7 +95,7 @@ const parseInterval = (label: string) => {
 export type LegendProps = {
   format: string | null;
   forceCategorical?: boolean;
-  position?: null | 'tl' | 'tr' | 'bl' | 'br';
+  position?: null | 'none' | 'tl' | 'tr' | 'bl' | 'br';
   categories: Record<string, { enabled: boolean; color: Color | undefined }>;
   toggleCategory?: (key: string) => void;
   showSingleCategory?: (key: string) => void;
@@ -136,12 +142,27 @@ const Legend = ({
     return format(k);
   };
 
-  if (Object.keys(categoriesObject).length === 0 || position === null) {
+  // Hide the legend when there are no categories, or when Legend Position is
+  // "None". "None" is the 'none' sentinel from the control; null/'' are also
+  // treated as hidden so charts saved under the older null-valued choice keep
+  // working. An unset position (undefined) keeps the 'tr' default so layers
+  // without a Legend Position control (e.g. Hex, Path) still show their legend.
+  if (
+    Object.keys(categoriesObject).length === 0 ||
+    !position ||
+    position === 'none'
+  ) {
     return null;
   }
 
   const categories = Object.entries(categoriesObject).map(([k, v]) => {
-    const color = `rgba(${v.color?.join(', ')})`;
+    const [r, g, b, a] = v.color ?? [];
+    // deck.gl colour arrays express alpha as 0-255, but CSS rgba() expects
+    // an alpha channel of 0-1, so it must be normalized before use.
+    const color =
+      a === undefined
+        ? `rgba(${r}, ${g}, ${b})`
+        : `rgba(${r}, ${g}, ${b}, ${a / 255})`;
     // Render the swatch as a real coloured box rather than a colour-tinted
     // text glyph. U+25FC/U+25FB are in Unicode's Emoji set but lack
     // Emoji_Presentation, so Chromium resolves them to a colour-emoji font
@@ -160,20 +181,13 @@ const Legend = ({
 
     return (
       <li key={k}>
-        <a
-          href="#"
-          role="button"
-          onClick={e => {
-            e.preventDefault();
-            toggleCategory(k);
-          }}
-          onDoubleClick={e => {
-            e.preventDefault();
-            showSingleCategory(k);
-          }}
+        <button
+          type="button"
+          onClick={() => toggleCategory(k)}
+          onDoubleClick={() => showSingleCategory(k)}
         >
           <span aria-hidden style={swatchStyle} /> {formatCategoryLabel(k)}
-        </a>
+        </button>
       </li>
     );
   });

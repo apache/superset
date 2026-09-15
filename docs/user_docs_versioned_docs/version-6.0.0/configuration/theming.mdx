@@ -4,6 +4,7 @@ hide_title: true
 sidebar_position: 12
 version: 1
 ---
+
 # Theming Superset
 
 :::note
@@ -34,11 +35,13 @@ You can also extend with Superset-specific tokens (documented in the default the
 When `ENABLE_UI_THEME_ADMINISTRATION = True` is configured, administrators can manage system-wide themes directly from the UI:
 
 #### Setting System Themes
+
 - **System Default Theme**: Click the sun icon on any theme to set it as the system-wide default
 - **System Dark Theme**: Click the moon icon on any theme to set it as the system dark mode theme
 - **Automatic OS Detection**: When both default and dark themes are set, Superset automatically detects and applies the appropriate theme based on OS preferences
 
 #### Managing System Themes
+
 - System themes are indicated with special badges in the theme list
 - Only administrators with write permissions can modify system theme settings
 - Removing a system theme designation reverts to configuration file defaults
@@ -46,6 +49,7 @@ When `ENABLE_UI_THEME_ADMINISTRATION = True` is configured, administrators can m
 ### Applying Themes to Dashboards
 
 Once created, themes can be applied to individual dashboards:
+
 - Edit any dashboard and select your custom theme from the theme dropdown
 - Each dashboard can have its own theme, allowing for branded or context-specific styling
 

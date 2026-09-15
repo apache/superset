@@ -16,15 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@apache-superset/core/translation';
+import { t, tn } from '@apache-superset/core/translation';
 import {
   getExtensionsRegistry,
   SupersetClient,
   isFeatureEnabled,
   FeatureFlag,
 } from '@superset-ui/core';
-import { css, styled, useTheme } from '@apache-superset/core/theme';
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { css, useTheme } from '@apache-superset/core/theme';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import type { CellProps } from 'react-table';
 import rison from 'rison';
 import { useSelector } from 'react-redux';
@@ -39,6 +39,7 @@ import {
 import withToasts from 'src/components/MessageToasts/withToasts';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import {
+  ActionButton,
   Button,
   DeleteModal,
   Dropdown,
@@ -55,6 +56,7 @@ import {
 } from 'src/components';
 import { Typography } from '@superset-ui/core/components/Typography';
 import { getUrlParam } from 'src/utils/urlUtils';
+import { ensureAppRoot } from 'src/utils/navigationUtils';
 import { URL_PARAMS } from 'src/constants';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
@@ -69,7 +71,7 @@ import { DatabaseObject } from 'src/features/databases/types';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
 import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
-import type Owner from 'src/types/Owner';
+import type User from 'src/types/User';
 import {
   databaseLabel,
   databaseLabelLower,
@@ -90,7 +92,7 @@ const SEMANTIC_LAYERS_FLAG = 'SEMANTIC_LAYERS' as FeatureFlag;
 type ConnectionItem = DatabaseObject & {
   source_type?: 'database' | 'semantic_layer';
   sl_type?: string;
-  changed_by?: Owner;
+  changed_by?: User;
   changed_on_delta_humanized?: string;
 };
 
@@ -98,6 +100,91 @@ interface DatabaseDeleteObject extends DatabaseObject {
   charts: any;
   dashboards: any;
   sqllab_tab_count: number;
+}
+
+/** How many dependent semantic views the delete confirmation lists by name. */
+const MAX_DEPENDENT_VIEWS_LISTED = 10;
+
+type SemanticLayerDeletePreview =
+  | { status: 'loading'; item: ConnectionItem }
+  | {
+      status: 'loaded';
+      item: ConnectionItem;
+      dependentViewCount: number;
+      dependentViewNames: string[];
+    }
+  | { status: 'failed'; item: ConnectionItem };
+
+type ResolvedSemanticLayerDeletePreview = Exclude<
+  SemanticLayerDeletePreview,
+  { status: 'loading' }
+>;
+
+function SemanticLayerCascadeWarning({
+  preview,
+}: {
+  preview: ResolvedSemanticLayerDeletePreview;
+}) {
+  if (preview.status === 'failed') {
+    return (
+      <p>
+        {t(
+          'Deleting this semantic layer also permanently deletes any semantic views it contains, and charts built on those views will stop working. The affected views could not be listed.',
+        )}
+      </p>
+    );
+  }
+
+  // A reachable layer always has all of its views counted (the layer's perm
+  // and its views' perms travel together), so zero means genuinely empty —
+  // never access-filtered. An honest empty message keeps the destructive
+  // warning credible for the layers where it matters.
+  if (preview.dependentViewCount === 0) {
+    return <p>{t('This semantic layer has no dependent semantic views.')}</p>;
+  }
+
+  const listedViewCount = preview.dependentViewNames.length;
+  const overflowViewCount = preview.dependentViewCount - listedViewCount;
+
+  return (
+    <>
+      <p>
+        {tn(
+          'This will also permanently delete its %s semantic view. Charts built on that view will stop working.',
+          'This will also permanently delete its %s semantic views. Charts built on those views will stop working.',
+          preview.dependentViewCount,
+          preview.dependentViewCount,
+        )}
+      </p>
+      {listedViewCount > 0 && (
+        <>
+          <h4>{t('Affected semantic views')}</h4>
+          <List
+            split={false}
+            size="small"
+            dataSource={preview.dependentViewNames}
+            renderItem={(name: string, index: number) => (
+              <List.Item key={`${index}-${name}`} compact>
+                <List.Item.Meta avatar={<span>•</span>} title={name} />
+              </List.Item>
+            )}
+            footer={
+              overflowViewCount > 0 && (
+                <div>
+                  {tn(
+                    '... and %s other',
+                    '... and %s others',
+                    overflowViewCount,
+                    overflowViewCount,
+                  )}
+                </div>
+              )
+            }
+          />
+        </>
+      )}
+    </>
+  );
 }
 interface DatabaseListProps {
   addDangerToast: (msg: string) => void;
@@ -109,14 +196,6 @@ interface DatabaseListProps {
     lastName: string;
   };
 }
-
-const Actions = styled.div`
-  .action-button {
-    display: inline-block;
-    height: 100%;
-    color: ${({ theme }) => theme.colorIcon};
-  }
-`;
 
 function BooleanDisplay({ value }: { value: boolean }) {
   return value ? (
@@ -263,8 +342,8 @@ function DatabaseList({
   const [slCurrentlyEditing, setSlCurrentlyEditing] = useState<string | null>(
     null,
   );
-  const [slCurrentlyDeleting, setSlCurrentlyDeleting] =
-    useState<ConnectionItem | null>(null);
+  const [slDeletePreview, setSlDeletePreview] =
+    useState<SemanticLayerDeletePreview | null>(null);
 
   const [allowUploads, setAllowUploads] = useState<boolean>(false);
   const isAdmin = isUserAdmin(fullUser);
@@ -309,6 +388,43 @@ function DatabaseList({
         ),
     [],
   );
+
+  // Deleting a semantic layer cascade-deletes its semantic views, so the
+  // confirmation must say what else is about to be destroyed. If the lookup
+  // fails the modal still opens, with an uncounted warning: the count is an
+  // aid, not a gate on deleting. The generation counter drops stale
+  // resolutions -- without it a slow lookup could reopen a modal the user
+  // already dismissed, or replace a newer row's modal with an older one.
+  const slDeleteLookupRef = useRef(0);
+  const openSemanticLayerDeleteModal = useCallback((item: ConnectionItem) => {
+    slDeleteLookupRef.current += 1;
+    const lookupId = slDeleteLookupRef.current;
+    setSlDeletePreview({ status: 'loading', item });
+    return SupersetClient.get({
+      endpoint: `/api/v1/datasource/?q=${rison.encode_uri({
+        filters: [{ col: 'semantic_layer_uuid', opr: 'eq', value: item.uuid }],
+        order_column: 'table_name',
+        order_direction: 'asc',
+        page: 0,
+        page_size: MAX_DEPENDENT_VIEWS_LISTED,
+      })}`,
+    })
+      .then(({ json = {} }) => {
+        if (slDeleteLookupRef.current !== lookupId) return;
+        setSlDeletePreview({
+          status: 'loaded',
+          item,
+          dependentViewCount: json.count ?? 0,
+          dependentViewNames: (json.result ?? []).map(
+            (view: { table_name: string }) => view.table_name,
+          ),
+        });
+      })
+      .catch(() => {
+        if (slDeleteLookupRef.current !== lookupId) return;
+        setSlDeletePreview({ status: 'failed', item });
+      });
+  }, []);
 
   function handleDatabaseDelete(database: DatabaseObject) {
     const { id, database_name: dbName } = database;
@@ -572,7 +688,7 @@ function DatabaseList({
       () => {
         refreshData();
         addSuccessToast(t('Deleted: %s', item.database_name));
-        setSlCurrentlyDeleting(null);
+        setSlDeletePreview(null);
       },
       createErrorHandler(errMsg =>
         addDangerToast(
@@ -683,43 +799,41 @@ function DatabaseList({
 
           if (isSemanticLayer) {
             if (!canEdit && !canDelete) return null;
+            const isLoadingDependents =
+              slDeletePreview?.status === 'loading' &&
+              slDeletePreview.item.uuid === original.uuid;
             return (
-              <Actions className="actions">
+              <div className="actions">
                 {canDelete && (
-                  <Tooltip
-                    id="delete-action-tooltip"
-                    title={t('Delete')}
+                  <ActionButton
+                    label={t('Delete')}
+                    tooltip={
+                      isLoadingDependents
+                        ? t('Loading dependent semantic views')
+                        : t('Delete')
+                    }
                     placement="bottom"
-                  >
-                    <span
-                      role="button"
-                      tabIndex={0}
-                      className="action-button"
-                      onClick={() => setSlCurrentlyDeleting(original)}
-                    >
-                      <Icons.DeleteOutlined iconSize="l" />
-                    </span>
-                  </Tooltip>
+                    icon={
+                      isLoadingDependents ? (
+                        <Icons.LoadingOutlined iconSize="l" spin />
+                      ) : (
+                        <Icons.DeleteOutlined iconSize="l" />
+                      )
+                    }
+                    disabled={isLoadingDependents}
+                    onClick={() => openSemanticLayerDeleteModal(original)}
+                  />
                 )}
                 {canEdit && (
-                  <Tooltip
-                    id="edit-action-tooltip"
-                    title={t('Edit')}
+                  <ActionButton
+                    label={t('Edit')}
+                    tooltip={t('Edit')}
                     placement="bottom"
-                  >
-                    <span
-                      role="button"
-                      tabIndex={0}
-                      className="action-button"
-                      onClick={() =>
-                        setSlCurrentlyEditing(original.uuid ?? null)
-                      }
-                    >
-                      <Icons.EditOutlined iconSize="l" />
-                    </span>
-                  </Tooltip>
+                    icon={<Icons.EditOutlined iconSize="l" />}
+                    onClick={() => setSlCurrentlyEditing(original.uuid ?? null)}
+                  />
                 )}
-              </Actions>
+              </div>
             );
           }
 
@@ -732,75 +846,50 @@ function DatabaseList({
             return null;
           }
           return (
-            <Actions className="actions">
+            <div className="actions">
               {canEdit && (
-                <Tooltip
-                  id="edit-action-tooltip"
-                  title={t('Edit')}
+                <ActionButton
+                  label={t('Edit')}
+                  tooltip={t('Edit')}
                   placement="bottom"
-                >
-                  <span
-                    role="button"
-                    data-test="database-edit"
-                    tabIndex={0}
-                    className="action-button"
-                    onClick={handleEdit}
-                  >
+                  icon={
                     <Icons.EditOutlined data-test="edit-alt" iconSize="l" />
-                  </span>
-                </Tooltip>
+                  }
+                  dataTest="database-edit"
+                  onClick={handleEdit}
+                />
               )}
               {canExport && (
-                <Tooltip
-                  id="export-action-tooltip"
-                  title={t('Export')}
+                <ActionButton
+                  label={t('Export')}
+                  tooltip={t('Export')}
                   placement="bottom"
-                >
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    className="action-button"
-                    onClick={handleExport}
-                  >
-                    <Icons.UploadOutlined iconSize="l" />
-                  </span>
-                </Tooltip>
+                  icon={<Icons.UploadOutlined iconSize="l" />}
+                  dataTest="database-export"
+                  onClick={handleExport}
+                />
               )}
               {canEdit && (
-                <Tooltip
-                  id="sync-action-tooltip"
-                  title={t('Sync Permissions')}
+                <ActionButton
+                  label={t('Sync Permissions')}
+                  tooltip={t('Sync Permissions')}
                   placement="bottom"
-                >
-                  <span
-                    role="button"
-                    data-test="database-sync-perm"
-                    tabIndex={0}
-                    className="action-button"
-                    onClick={handleSync}
-                  >
-                    <Icons.SyncOutlined iconSize="l" />
-                  </span>
-                </Tooltip>
+                  icon={<Icons.SyncOutlined iconSize="l" />}
+                  dataTest="database-sync-perm"
+                  onClick={handleSync}
+                />
               )}
               {canDelete && (
-                <span
-                  role="button"
-                  tabIndex={0}
-                  className="action-button"
-                  data-test="database-delete"
+                <ActionButton
+                  label={t('Delete %s', databaseLabelLower())}
+                  tooltip={t('Delete %s', databaseLabelLower())}
+                  placement="bottom"
+                  icon={<Icons.DeleteOutlined iconSize="l" />}
+                  dataTest="database-delete"
                   onClick={handleDelete}
-                >
-                  <Tooltip
-                    id="delete-action-tooltip"
-                    title={t('Delete %s', databaseLabelLower())}
-                    placement="bottom"
-                  >
-                    <Icons.DeleteOutlined iconSize="l" />
-                  </Tooltip>
-                </span>
+                />
               )}
-            </Actions>
+            </div>
           );
         },
         Header: t('Actions'),
@@ -828,6 +917,8 @@ function DatabaseList({
       handleDatabaseExport,
       handleDatabasePermSync,
       openDatabaseDeleteModal,
+      openSemanticLayerDeleteModal,
+      slDeletePreview,
     ],
   );
 
@@ -979,20 +1070,21 @@ function DatabaseList({
         addSuccessToast={addSuccessToast}
         semanticLayerUuid={slCurrentlyEditing ?? undefined}
       />
-      {slCurrentlyDeleting && (
+      {slDeletePreview && slDeletePreview.status !== 'loading' && (
         <DeleteModal
           description={
-            <p>
-              {t('Are you sure you want to delete')}{' '}
-              <b>{slCurrentlyDeleting.database_name}</b>?
-            </p>
+            <>
+              <p>
+                {t('Are you sure you want to delete')}{' '}
+                <b>{slDeletePreview.item.database_name}</b>?
+              </p>
+              <SemanticLayerCascadeWarning preview={slDeletePreview} />
+            </>
           }
           onConfirm={() => {
-            if (slCurrentlyDeleting) {
-              handleSemanticLayerDelete(slCurrentlyDeleting);
-            }
+            handleSemanticLayerDelete(slDeletePreview.item);
           }}
-          onHide={() => setSlCurrentlyDeleting(null)}
+          onHide={() => setSlDeletePreview(null)}
           open
           title={
             <ModalTitleWithIcon
@@ -1032,7 +1124,7 @@ function DatabaseList({
                           avatar={<span>•</span>}
                           title={
                             <Typography.Link
-                              href={`/superset/dashboard/${result.id}`}
+                              href={ensureAppRoot(`/dashboard/${result.id}`)}
                               target="_atRiskItem"
                             >
                               {result.title}
@@ -1075,7 +1167,9 @@ function DatabaseList({
                           avatar={<span>•</span>}
                           title={
                             <Typography.Link
-                              href={`/explore/?slice_id=${result.id}`}
+                              href={ensureAppRoot(
+                                `/explore/?slice_id=${result.id}`,
+                              )}
                               target="_atRiskItem"
                             >
                               {result.slice_name}

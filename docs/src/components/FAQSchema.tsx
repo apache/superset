@@ -39,7 +39,9 @@ interface FAQSchemaProps {
  *   { question: "How do I install it?", answer: "You can install via..." }
  * ]} />
  */
-export default function FAQSchema({ faqs }: FAQSchemaProps): JSX.Element | null {
+export default function FAQSchema({
+  faqs,
+}: FAQSchemaProps): JSX.Element | null {
   // FAQPage schema requires a non-empty mainEntity array per schema.org specs
   if (!faqs || faqs.length === 0) {
     return null;
@@ -48,7 +50,7 @@ export default function FAQSchema({ faqs }: FAQSchemaProps): JSX.Element | null 
   const schema = {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
-    mainEntity: faqs.map((faq) => ({
+    mainEntity: faqs.map(faq => ({
       '@type': 'Question',
       name: faq.question,
       acceptedAnswer: {

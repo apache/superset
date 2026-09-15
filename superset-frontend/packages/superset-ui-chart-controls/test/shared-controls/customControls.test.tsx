@@ -20,7 +20,11 @@
 import { GenericDataType } from '@apache-superset/core/common';
 import { xAxisForceCategoricalControl } from '../../src/shared-controls/customControls';
 import { checkColumnType } from '../../src/utils/checkColumnType';
-import type { ControlState } from '@superset-ui/chart-controls';
+import type {
+  ControlPanelState,
+  ControlState,
+  ControlStateMapping,
+} from '@superset-ui/chart-controls';
 
 jest.mock('../../src/utils/checkColumnType');
 jest.mock('@superset-ui/core', () => ({
@@ -39,18 +43,42 @@ test('xAxisForceCategoricalControl should not treat temporal columns as categori
     controls: {
       x_axis: { value: 'date_column' },
       datasource: { datasource: {} },
-    },
-  };
+    } as unknown as ControlStateMapping,
+  } as unknown as ControlPanelState;
 
   const result = xAxisForceCategoricalControl.config.initialValue!(
     control,
-    state as any,
+    state,
   );
 
   // Verify: should return control value (false) for non-numeric columns
   expect(result).toBe(false);
   expect(mockCheckColumnType).toHaveBeenCalledWith('date_column', {}, [
     GenericDataType.Numeric,
+  ]);
+
+  mockCheckColumnType.mockClear();
+});
+
+test('xAxisForceCategoricalControl is visible for numeric and temporal x-axes', () => {
+  const mockCheckColumnType = jest.mocked(checkColumnType);
+  mockCheckColumnType.mockReturnValue(true);
+
+  const controls = {
+    x_axis: { value: 'date_column' },
+    datasource: { datasource: {} },
+  } as unknown as ControlStateMapping;
+
+  const visible = xAxisForceCategoricalControl.config.visibility!({
+    controls,
+  });
+
+  expect(visible).toBe(true);
+  // Temporal columns must be included so the toggle is exposed for time-grain
+  // charts (e.g. weekly grain), where the time scale misaligns ticks/markers.
+  expect(mockCheckColumnType).toHaveBeenCalledWith('date_column', {}, [
+    GenericDataType.Numeric,
+    GenericDataType.Temporal,
   ]);
 
   mockCheckColumnType.mockClear();

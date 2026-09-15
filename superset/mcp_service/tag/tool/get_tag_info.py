@@ -47,6 +47,7 @@ logger = logging.getLogger(__name__)
         title="Get tag info",
         readOnlyHint=True,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 async def get_tag_info(request: GetTagInfoRequest, ctx: Context) -> TagInfo | TagError:
@@ -55,7 +56,7 @@ async def get_tag_info(request: GetTagInfoRequest, ctx: Context) -> TagInfo | Ta
     Returns tag details including name, type, and description.
 
     Tag types: custom (user-created), type (implicit by object type),
-    owner (implicit by ownership), favorited_by (implicit by favorites).
+    editor (implicit by editorship), favorited_by (implicit by favorites).
 
     To find a tag ID, use the list_tags tool first.
 
@@ -97,6 +98,9 @@ async def get_tag_info(request: GetTagInfoRequest, ctx: Context) -> TagInfo | Ta
         return result
 
     except Exception as e:
+        logger.exception(
+            "Tag information retrieval failed: identifier=%s", request.identifier
+        )
         await ctx.error(
             "Tag information retrieval failed: identifier=%s, error=%s, error_type=%s"
             % (request.identifier, str(e), type(e).__name__)

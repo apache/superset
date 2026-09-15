@@ -303,6 +303,30 @@ test('should add renameOperator if multiple metrics exist', () => {
   });
 });
 
+test('should correctly match offsets that share a numeric prefix', () => {
+  expect(
+    renameOperator(
+      {
+        ...formData,
+
+        comparison_type: ComparisonType.Values,
+        time_compare: ['1 year ago', '11 year ago'],
+      },
+      queryObject,
+    ),
+  ).toEqual({
+    operation: 'rename',
+    options: {
+      columns: {
+        'count(*)__1 year ago': '1 year ago',
+        'count(*)__11 year ago': '11 year ago',
+      },
+      inplace: true,
+      level: 0,
+    },
+  });
+});
+
 test('should remove renameOperator', () => {
   expect(
     renameOperator(

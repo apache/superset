@@ -71,8 +71,8 @@ export const useDashboardsMenuItems = ({
           label: (
             <Link
               target="_blank"
-              rel="noreferer noopener"
-              to={`/superset/dashboard/${dashboard.id}${urlQueryString}`}
+              rel="noreferrer noopener"
+              to={`/dashboard/${dashboard.id}${urlQueryString}`}
               css={css`
                 display: flex;
                 flex-direction: row;

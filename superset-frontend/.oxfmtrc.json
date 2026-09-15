@@ -1,0 +1,23 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "singleQuote": true,
+  "trailingComma": "all",
+  "arrowParens": "avoid",
+  "printWidth": 80,
+  "sortPackageJson": true,
+  "ignorePatterns": [
+    "coverage/",
+    "esm/",
+    "lib/",
+    "tmp/",
+    "node_modules/",
+    "tsconfig.json",
+    "lerna.json",
+    "CHANGELOG/",
+    "*.geojson",
+    "*-topo.json",
+    "storybook-static/",
+    "*.snap",
+    "/.nx/workspace-data"
+  ]
+}
