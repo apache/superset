@@ -23,6 +23,7 @@ invariants) is covered by
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from contextlib import contextmanager
 from datetime import datetime
 from decimal import Decimal
@@ -488,6 +489,150 @@ def test_maximum_literal_scope_executes_with_sqlite_bind_budget() -> None:
             assert list(connection.scalars(query)) == []
     finally:
         engine.dispose()
+
+
+@pytest.mark.parametrize(
+    ("backend", "version", "uses_window"),
+    [
+        ("mysql", (5, 7, 44), False),
+        ("mysql", (8, 0, 36), True),
+        ("mysql", (8, 4, 0), True),
+        ("postgresql", (17, 0), True),
+        ("sqlite", (3, 45, 0), True),
+    ],
+)
+@pytest.mark.parametrize("initialized", [True, False])
+def test_repeat_dispatch_uses_metadata_server_version(
+    backend: str,
+    version: tuple[int, ...],
+    uses_window: bool,
+    initialized: bool,
+) -> None:
+    """Route compatible MySQL servers by version, including first connection."""
+    dialect: sa.engine.Dialect = mysql.dialect()
+    dialect.name = backend
+    dialect.server_version_info = version if initialized else None
+    connected_dialect: sa.engine.Dialect = mysql.dialect()
+    connected_dialect.name = backend
+    connected_dialect.server_version_info = version
+    table: sa.Table = prune_audit.PurgeAuditLog.__table__
+    mock_db: MagicMock
+    with patch.object(prune_audit, "db") as mock_db:
+        mock_db.session.get_bind.return_value.dialect = dialect
+        mock_db.session.connection.return_value.dialect = connected_dialect
+        query: sa.sql.Select = sa.select(table.c.id).where(
+            prune_audit._repeats_an_earlier_block(table, datetime(2026, 2, 1))
+        )
+        sql: str = str(query.compile(dialect=mysql.dialect())).lower()
+    assert ("lag(" in sql) is uses_window
+    assert mock_db.session.connection.call_count == (
+        1 if backend == "mysql" and not initialized else 0
+    )
+
+
+@pytest.mark.parametrize(
+    "scope_entities",
+    [None, [("chart", "shared"), ("dashboard", "shared")], []],
+)
+def test_repeat_paths_isolate_entity_types_and_agree(
+    scope_entities: list[tuple[str, str | None]] | None,
+) -> None:
+    """Keep each type's first block when UUIDs collide, in both query paths."""
+    engine: sa.Engine = sa.create_engine("sqlite://")
+    metadata: sa.MetaData = sa.MetaData()
+    table: sa.Table = prune_audit.PurgeAuditLog.__table__.to_metadata(metadata)
+    ids: list[UUID] = [uuid4() for _ in range(3)]
+    rows: list[dict[str, Any]] = [
+        {
+            "id": id_,
+            "entity_type": entity_type,
+            "entity_uuid": "shared",
+            "status": STATUS_BLOCKED,
+            "trigger": "scheduled",
+            "actor": "system",
+            "created_on": datetime(2026, 1, day),
+            "reason": "same",
+        }
+        for id_, entity_type, day in zip(
+            ids, ["chart", "dashboard", "chart"], [1, 2, 3], strict=True
+        )
+    ]
+    try:
+        metadata.create_all(engine)
+        with engine.begin() as connection:
+            connection.execute(sa.insert(table), rows)
+            predicate: Callable[..., sa.ColumnElement[bool]]
+            for predicate in (
+                prune_audit._window_repeats_an_earlier_block,
+                prune_audit._legacy_repeats_an_earlier_block,
+            ):
+                assert set(
+                    connection.scalars(
+                        sa.select(table.c.id).where(
+                            predicate(table, datetime(2026, 2, 1), scope_entities)
+                        )
+                    )
+                ) == ({ids[2]} if scope_entities != [] else set())
+    finally:
+        engine.dispose()
+
+
+def test_evidence_drain_skips_scope_lookup_but_rechecks_under_lock() -> None:
+    """Exercise category dispatch without an unused evidence scope query."""
+    table: sa.Table = prune_audit.PurgeAuditLog.__table__
+    row_id: UUID = uuid4()
+    events: MagicMock = MagicMock()
+    mock_db: MagicMock
+    lock: MagicMock
+    with (
+        patch.dict(
+            current_app.config,
+            {OPERATIONAL_RETENTION_KEY: None, EVIDENCE_RETENTION_KEY: 180},
+        ),
+        patch.object(prune_audit, "db") as mock_db,
+        patch.object(prune_audit, "acquire_coordination_lock") as lock,
+    ):
+        events.attach_mock(mock_db.session.execute, "execute")
+        events.attach_mock(mock_db.session.rollback, "rollback")
+        events.attach_mock(lock, "lock")
+        events.attach_mock(mock_db.session.commit, "commit")
+
+        def execute(statement: sa.sql.Executable) -> Any:
+            """Return candidates while allowing the redundant query to execute."""
+            if mock_db.session.execute.call_count == 1:
+                return []  # No duplicate candidates.
+            if str(statement).startswith("DELETE"):
+                return MagicMock(rowcount=1)
+            if str(statement).startswith("SELECT DISTINCT"):
+                return [("chart", "shared")]
+            return [(row_id,)]
+
+        mock_db.session.execute.side_effect = execute
+        result: PruneRunResult = prune_audit.run_prune()
+    assert result.evidence_expired == 1
+    assert [event[0] for event in events.mock_calls] == [
+        "execute",
+        "execute",
+        "rollback",
+        "lock",
+        "execute",
+        "execute",
+        "commit",
+    ]
+    recheck: sa.sql.Select = mock_db.session.execute.call_args_list[2].args[0]
+    sql: str = str(
+        recheck.compile(
+            dialect=postgresql.dialect(), compile_kwargs={"literal_binds": True}
+        )
+    )
+    assert "SELECT DISTINCT" not in sql
+    assert "EXISTS" in sql
+    assert "pending" in sql
+    assert "blocked" in sql
+    assert table.c.id.name in sql
+    delete_sql: str = str(mock_db.session.execute.call_args_list[3].args[0])
+    assert delete_sql.startswith("DELETE FROM purge_audit_log")
+    assert "SELECT" not in delete_sql
 
 
 def test_repeat_query_uses_lag_without_ctes() -> None:

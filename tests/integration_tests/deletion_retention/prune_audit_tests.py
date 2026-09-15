@@ -1071,7 +1071,17 @@ class TestRepeatPredicateEquivalence(SupersetTestCase):
             ):
                 legacy: dict[str, set[UUID]] = self._candidate_sets(now)
 
+            with patch.object(
+                prune_audit,
+                "_repeats_an_earlier_block",
+                prune_audit._legacy_repeats_an_earlier_block,
+            ):
+                fallback: dict[str, set[UUID]] = self._candidate_sets(now)
+
             for category in ("duplicate", "operational", "evidence"):
+                assert fallback[category] == legacy[category], (
+                    f"seed={seed} category={category}: legacy fallback diverged"
+                )
                 assert rewritten[category] == legacy[category], (
                     f"seed={seed} category={category}: "
                     f"only-rewritten={len(rewritten[category] - legacy[category])} "

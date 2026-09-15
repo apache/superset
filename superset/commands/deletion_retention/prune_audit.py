@@ -352,6 +352,76 @@ def _repeats_an_earlier_block(
     now: datetime,
     scope_entities: Sequence[tuple[str, str | None]] | None = None,
 ) -> sa.ColumnElement[bool]:
+    """Select the repeat query supported by the metadata server.
+
+    MySQL before 8.0 needs the correlated predecessor query. The dialect's
+    server version is initialized on connection, not inferred from its name.
+    Discovery initializes it before the coordination-locked re-check.
+    """
+    dialect: sa.engine.Dialect = db.session.get_bind().dialect
+    if dialect.name == "mysql":
+        if dialect.server_version_info is None:
+            dialect = db.session.connection().dialect
+        if dialect.server_version_info < (8, 0):
+            return _legacy_repeats_an_earlier_block(table, now, scope_entities)
+    return _window_repeats_an_earlier_block(table, now, scope_entities)
+
+
+def _legacy_repeats_an_earlier_block(
+    table: sa.FromClause,
+    now: datetime,
+    scope_entities: Sequence[tuple[str, str | None]] | None = None,
+) -> sa.ColumnElement[bool]:
+    """Preserve the non-window predecessor predicate for MySQL 5.7.
+
+    This compatibility path retains correlated probes rather than the window
+    optimization; its cost depends on each candidate's entity history.
+    """
+    earlier: sa.FromClause = table.alias("earlier_block")
+    between: sa.FromClause = table.alias("reason_change")
+    reason_changed_between: sa.ColumnElement[bool] = sa.exists(
+        sa.select(sa.literal(1))
+        .select_from(between)
+        .where(
+            between.c.status == STATUS_BLOCKED,
+            between.c.entity_type == table.c.entity_type,
+            between.c.entity_uuid == table.c.entity_uuid,
+            between.c.created_on >= earlier.c.created_on,
+            between.c.created_on <= table.c.created_on,
+            between.c.reason.is_distinct_from(table.c.reason),
+        )
+        .correlate(table, earlier)
+    )
+    repeats: sa.ColumnElement[bool] = sa.exists(
+        sa.select(sa.literal(1))
+        .select_from(earlier)
+        .where(
+            earlier.c.status == STATUS_BLOCKED,
+            earlier.c.entity_type == table.c.entity_type,
+            earlier.c.entity_uuid == table.c.entity_uuid,
+            _in_current_streak(earlier, now),
+            earlier.c.created_on < table.c.created_on,
+            earlier.c.reason.is_not_distinct_from(table.c.reason),
+            sa.not_(reason_changed_between),
+        )
+        .correlate(table)
+    )
+    scope: list[sa.ColumnElement[bool]] = []
+    if scope_entities is not None:
+        scope = [
+            table.c.entity_type.in_(sorted({t for t, _ in scope_entities})),
+            table.c.entity_uuid.in_(
+                sorted({u for _, u in scope_entities if u is not None})
+            ),
+        ]
+    return sa.and_(table.c.trigger != TRIGGER_FORCE, repeats, *scope)
+
+
+def _window_repeats_an_earlier_block(
+    table: sa.FromClause,
+    now: datetime,
+    scope_entities: Sequence[tuple[str, str | None]] | None = None,
+) -> sa.ColumnElement[bool]:
     """Whether a same-reason current-streak block precedes this row with no
     change of reason in between.
 
@@ -382,8 +452,8 @@ def _repeats_an_earlier_block(
     PostgreSQL round-1 plan materialized a groups CTE and joined on entity
     alone before filtering ranks, comparing 36 million row pairs.
 
-    Keep the repeat-id query uncorrelated: sc-120493 measurements in
-    lock-hold-evidence/REPORT.md, Variant 2, showed MySQL repeatedly executing
+    Keep the repeat-id query uncorrelated: the sc-120493 Variant 2
+    measurements showed MySQL repeatedly executing
     per-row predecessor scalars. During re-check, scope blocked rows, timestamp
     groups and boundaries with literal entity-type and UUID lists from the
     fresh locked lookup. Their cross-product may include extra entity histories,
@@ -768,6 +838,8 @@ def _delete_batch(
     select_candidates: Callable[[int], sa.sql.Select],
     recheck_predicates: Callable[..., list[sa.ColumnElement[bool]]],
     batch_size: int = BATCH_SIZE,
+    *,
+    needs_entity_scope: bool = True,
 ) -> tuple[int, int]:
     """Discover a candidate batch UNLOCKED, then delete it under the lock.
 
@@ -841,14 +913,16 @@ def _delete_batch(
     # Literal values expose column statistics to the planner; a scope subquery
     # or JOIN caused severe cardinality underestimates and nested loops
     # (sc-120493). DISTINCT pairs are bounded by len(ids) <= MAX_BATCH_SIZE.
-    scope_entities: list[tuple[str, str | None]] = [
-        (row[0], row[1])
-        for row in db.session.execute(
-            sa.select(table.c.entity_type, table.c.entity_uuid)
-            .where(table.c.id.in_(ids))
-            .distinct()
-        )
-    ]
+    scope_entities: list[tuple[str, str | None]] | None = None
+    if needs_entity_scope:
+        scope_entities = [
+            (row[0], row[1])
+            for row in db.session.execute(
+                sa.select(table.c.entity_type, table.c.entity_uuid)
+                .where(table.c.id.in_(ids))
+                .distinct()
+            )
+        ]
     # Locked re-check as a SELECT, then a literal-id DELETE. With the lock held
     # no writer can commit, and the re-check's fresh post-lock snapshot sees
     # current committed state; it re-applies the SAME candidacy predicates
@@ -894,8 +968,8 @@ class _Category(NamedTuple):
     """One delete category: how to discover candidates and how to re-check them.
 
     ``select_candidates`` is the unlocked discovery select (LIMIT-bounded);
-    ``recheck_predicates`` accepts the fresh entity pairs as scope_entities,
-    binds their types and UUIDs as literal lists, and supplies the SAME candidacy
+    ``recheck_predicates`` accepts fresh entity pairs as scope_entities when
+    ``needs_entity_scope`` is true, and supplies the SAME candidacy
     for the coordination-locked, id-scoped re-check delete. Both are built from
     one shared predicate list per category, so discovery and the locked gate
     cannot drift.
@@ -904,6 +978,7 @@ class _Category(NamedTuple):
     name: _CategoryName
     select_candidates: Callable[[int], sa.sql.Select]
     recheck_predicates: Callable[..., list[sa.ColumnElement[bool]]]
+    needs_entity_scope: bool = True
 
 
 class _DrainResult(NamedTuple):
@@ -932,7 +1007,10 @@ def _drain(
     removed: int = 0
     while allowance > 0:
         discovered, batch_removed = _delete_batch(
-            category.select_candidates, category.recheck_predicates, batch_size
+            category.select_candidates,
+            category.recheck_predicates,
+            batch_size,
+            needs_entity_scope=category.needs_entity_scope,
         )
         removed += batch_removed
         allowance -= 1
@@ -1009,6 +1087,7 @@ def run_prune() -> PruneRunResult:
                 "evidence_expired",
                 partial(_evidence_candidates, now, evidence_cutoff),
                 partial(_evidence_predicates, now=now, cutoff=evidence_cutoff),
+                needs_entity_scope=False,
             )
         )
 
