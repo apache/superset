@@ -70,6 +70,8 @@ GROUP BY orgunit, org_unit_name, region, zone, woreda, value, period</pre>
           </div>
           <div><label>Working timeout (sec)</label><input type="number" name="working_timeout" value="{{ alert.working_timeout or 120 }}"></div>
         </div>
+        <label>Message (shown at the top of the email)</label>
+        <textarea name="message" rows="3">{{ extra.get('message', '') if extra else '' }}</textarea>
         <label>html_extra (JSON column mapping) <span class="muted">— e.g. {"facility_name_col": "org_unit_name", "period_col": "period", "metric_cols": ["value"]}</span></label>
         <textarea name="html_extra" rows="2">{{ alert.html_extra or '{}' }}</textarea>
         <label>Description</label>

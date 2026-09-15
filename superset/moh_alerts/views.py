@@ -34,6 +34,9 @@ from flask import Blueprint, current_app, redirect, render_template, request, ur
 from flask_login import current_user
 from sqlalchemy import text
 
+from superset.moh_alerts.connection import get_moh_database
+from superset.utils import json
+
 if TYPE_CHECKING:
     pass
 
@@ -131,7 +134,13 @@ def upsert(alert_id: int | None = None):
             else None
         )
         alert.subject_template = request.form.get("subject_template") or None
-        alert.html_extra = request.form.get("html_extra") or "{}"
+        extra = json.loads(request.form.get("html_extra") or "{}")
+        message = (request.form.get("message") or "").strip()
+        if message:
+            extra["message"] = message
+        else:
+            extra.pop("message", None)
+        alert.html_extra = json.dumps(extra)
         alert.owner_id = (
             int(request.form["owner_id"]) if request.form.get("owner_id") else None
         )
@@ -144,6 +153,7 @@ def upsert(alert_id: int | None = None):
         alert=alert,
         databases=databases,
         is_new=alert_id is None,
+        extra=json.loads(alert.html_extra or "{}"),
     )
 
 
@@ -188,7 +198,7 @@ def test(alert_id: int):
     # Dry-run: evaluate + resolve recipients, never send.
     result: dict[str, Any] = {"alert": alert, "databases": databases, "test": None}
     try:
-        database = db.session.get(_load_database_model(), alert.database_id)
+        database = get_moh_database(alert.database_id)
         with database.get_sqla_engine() as engine:
             with engine.connect() as conn:
                 rows = [dict(r) for r in conn.execute(text(alert.sql_query)).mappings()]

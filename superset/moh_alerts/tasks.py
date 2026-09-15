@@ -35,6 +35,7 @@ from flask import current_app
 from sqlalchemy import bindparam, text
 
 from superset.extensions import celery_app
+from superset.moh_alerts.connection import get_moh_database
 from superset.moh_alerts.deep_link import build_deep_link
 from superset.moh_alerts.email_renderer import render_alert_email, render_subject
 from superset.moh_alerts.recipient_resolver import resolve
@@ -64,12 +65,6 @@ def _load_models():
     )
 
     return MohAlert, MohAlertDelivery, MohAlertDeliveryRecipient
-
-
-def _load_database_model():
-    from superset.models.core import Database  # pylint: disable=import-outside-toplevel
-
-    return Database
 
 
 def _send_email_smtp(*args, **kwargs):
@@ -146,8 +141,10 @@ def execute(self: Task, alert_id: int) -> None:  # pylint: disable=unused-argume
     if alert is None or not alert.enabled:
         return
 
-    grace = alert.grace_period or current_app.config.get(
-        "MOH_ALERTS_DEFAULT_GRACE_PERIOD", 14400
+    grace = (
+        alert.grace_period
+        if alert.grace_period is not None
+        else current_app.config.get("MOH_ALERTS_DEFAULT_GRACE_PERIOD", 14400)
     )
     if _is_recent_success(alert.id, grace):
         _log_skipped(alert)
@@ -196,11 +193,8 @@ def _log_skipped(alert: MohAlert) -> None:
 def _run_delivery(alert: MohAlert, delivery: MohAlertDelivery) -> None:
     db = _load_db()
     _, _, recipient_model = _load_models()
-    database_model = _load_database_model()
 
-    database = db.session.get(database_model, alert.database_id)
-    if database is None:
-        raise ValueError(f"database_id {alert.database_id} not found")
+    database = get_moh_database(alert.database_id)
 
     rows = _evaluate(alert, database)
 
@@ -250,15 +244,27 @@ def _run_delivery(alert: MohAlert, delivery: MohAlertDelivery) -> None:
 
         user_org_unit, user_level = _user_org_context(database, username, schema)
         deep_link = build_deep_link(alert, user_org_unit) if user_org_unit else None
-        subject = render_subject(alert, extra)
+        subject = render_subject(alert, extra, subset)
         body = render_alert_email(alert, extra, subset, deep_link, email_cap=email_cap)
-        _send_email_smtp(
-            to=email,
-            subject=subject,
-            html_content=body,
-            config=current_app.config,
-            images={},
-        )
+        sent = False
+        try:
+            _send_email_smtp(
+                to=email,
+                subject=subject,
+                html_content=body,
+                config=current_app.config,
+                images={},
+            )
+            sent = True
+            sent_count += 1
+        except Exception as ex:  # pylint: disable=broad-except
+            logger.warning(
+                "moh alert %s: email to %s (%s) failed: %s",
+                alert.id,
+                username,
+                email,
+                ex,
+            )
         db.session.add(
             recipient_model(
                 delivery_id=delivery.id,
@@ -267,10 +273,9 @@ def _run_delivery(alert: MohAlert, delivery: MohAlertDelivery) -> None:
                 org_unit_id=user_org_unit,
                 org_unit_level=user_level,
                 facilities=len(subset),
-                sent=True,
+                sent=sent,
             )
         )
-        sent_count += 1
 
     delivery.status = "success"
     delivery.finished_at = datetime.now(tz=timezone.utc).replace(tzinfo=None)
@@ -307,7 +312,28 @@ def _emails_for_usernames(usernames: Any) -> dict[str, str]:
         "WHERE username IN :u AND email IS NOT NULL AND email <> ''"
     ).bindparams(bindparam("u", expanding=True))
     rows = db.session.execute(sql, {"u": names}).mappings()
-    return {str(r["username"]): str(r["email"]) for r in rows}
+    return {
+        str(r["username"]): str(r["email"])
+        for r in rows
+        if not _is_reserved_test_email(str(r["email"]))
+    }
+
+
+def _is_reserved_test_email(email: str) -> bool:
+    """True for RFC-2606 reserved-domain addresses (e.g. *@example.com).
+
+    Real SMTP servers reject these with a 5xx refusal; skipping them keeps a
+    single invalid recipient from blocking the rest of a delivery.
+    """
+    domain = email.rsplit("@", 1)[-1].lower().strip()
+    return domain in {
+        "example.com",
+        "example.org",
+        "example.net",
+        "example.edu",
+        "invalid",
+        "localhost",
+    }
 
 
 def _user_org_context(
