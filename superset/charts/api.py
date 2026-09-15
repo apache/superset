@@ -67,9 +67,12 @@ from superset.charts.schemas import (
     chart_get_list_schema,
     CHART_SCHEMAS,
     ChartCacheWarmUpRequestSchema,
+    ChartEntityResponseSchema,
     ChartGetResponseSchema,
     ChartPostSchema,
     ChartPutSchema,
+    EmbeddedChartConfigSchema,
+    EmbeddedChartResponseSchema,
     get_delete_ids_schema,
     get_export_ids_schema,
     get_fav_star_ids_schema,
@@ -105,11 +108,14 @@ from superset.commands.importers.exceptions import (
 from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.commands.purge import PurgeArchivedCommand, SoftDeleteBinding
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
-from superset.daos.chart import ChartDAO
+from superset.daos.chart import ChartDAO, EmbeddedChartDAO
+from superset.dashboards.schemas import DashboardDatasetSchema
 from superset.exceptions import (
     ScreenshotImageNotAvailableException,
+    SupersetSecurityException,
 )
-from superset.extensions import event_logger, security_manager
+from superset.extensions import db, event_logger, security_manager
+from superset.models.embedded_chart import EmbeddedChart
 from superset.models.slice import Slice
 from superset.security.manager import (
     get_extra_editor_subject_ids,
@@ -234,6 +240,10 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         "get_version",
         "activity",
         "restore_version",
+        "get_embedded",
+        "get_embedded_context",
+        "set_embedded",
+        "delete_embedded",
     }
     class_permission_name = "Chart"
     # Custom methods (``restore``) need an explicit entry; FAB's @protect()
@@ -253,6 +263,10 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         # single chart's metadata can resolve a Multiple Layers container's
         # declared layers too.
         "deck_layers": "read",
+        "get_embedded": "read",
+        "get_embedded_context": "read",
+        "set_embedded": "set_embedded",
+        "delete_embedded": "set_embedded",
     }
 
     list_columns = [
@@ -366,9 +380,19 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     edit_model_schema = ChartPutSchema()
     chart_get_response_schema = ChartGetResponseSchema()
 
+    embedded_response_schema = EmbeddedChartResponseSchema()
+    chart_entity_response_schema = ChartEntityResponseSchema()
+    dashboard_dataset_schema = DashboardDatasetSchema()
+    embedded_config_schema = EmbeddedChartConfigSchema()
+
     openapi_spec_tag = "Charts"
     """ Override the name set for this collection of endpoints """
-    openapi_spec_component_schemas = CHART_SCHEMAS + (VersionListItemSchema,)
+    openapi_spec_component_schemas = CHART_SCHEMAS + (
+        VersionListItemSchema,
+        # Referenced by $ref from the embedded endpoints, so it has to be
+        # registered as a component rather than only inlined.
+        EmbeddedChartResponseSchema,
+    )
 
     apispec_parameter_schemas = {
         "chart_get_list_schema": chart_get_list_schema,
@@ -2016,3 +2040,272 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         return restore_version_endpoint(
             self, Slice, RestoreChartVersionCommand, uuid_str, version_uuid_str
         )
+
+    @expose("/<pk>/embedded", methods=("GET",))
+    @protect()
+    @safe
+    @permission_name("read")
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_embedded",
+        log_to_statsd=False,
+    )
+    def get_embedded(self, pk: int) -> Response:
+        """Get the chart's embedded configuration.
+        ---
+        get:
+          summary: Get the chart's embedded configuration
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+            description: The chart id
+          responses:
+            200:
+              description: Result contains the embedded chart config
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/EmbeddedChartResponseSchema'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        chart = ChartDAO.find_by_id(pk)
+        if not chart:
+            return self.response_404()
+        if not chart.embedded:
+            return self.response(404)
+        embedded: EmbeddedChart = chart.embedded[0]
+        result = self.embedded_response_schema.dump(embedded)
+        return self.response(200, result=result)
+
+    @expose("/<pk>/embedded_context", methods=("GET",))
+    @protect()
+    @safe
+    @permission_name("read")
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.get_embedded_context"
+        ),
+        log_to_statsd=False,
+    )
+    def get_embedded_context(self, pk: int) -> Response:
+        """Get a chart together with the dataset needed to render it.
+        ---
+        get:
+          summary: Get a chart and its dataset in one payload
+          description: >-
+            The chart analogue of a dashboard's ``/charts`` and ``/datasets``
+            sub-resources, collapsed into one call because a chart has exactly
+            one of each. Sits under the ``Chart`` read permission, so a
+            standalone embedded chart loads with the same grant its guest token
+            already needs to fetch that chart's data.
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+            description: The chart id
+          responses:
+            200:
+              description: The chart and its dataset
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: object
+                        properties:
+                          slice:
+                            $ref: '#/components/schemas/ChartEntityResponseSchema'
+                          dataset:
+                            type: object
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        # pylint: disable=import-outside-toplevel
+        from superset.dashboards.api import DASHBOARD_DATASET_INACCESSIBLE_FIELDS
+
+        # Resolved through the base filters so ChartFilter's scoping -- including
+        # its embedded-guest branch -- decides what is visible here.
+        chart = self.datamodel.get(pk, self._base_filters)
+        if not chart:
+            return self.response_404()
+        try:
+            security_manager.raise_for_access(chart=chart)
+        except SupersetSecurityException:
+            return self.response_403()
+        datasource = chart.datasource
+        if datasource is None:
+            return self.response_404()
+
+        dataset = self.dashboard_dataset_schema.dump(datasource.data)
+        # A dashboard narrows member datasets the caller cannot access on their
+        # own, because it returns many datasets of uneven sensitivity. Here there
+        # is exactly one and it belongs to the chart the caller was just
+        # authorized on, so a guest holding a token for that chart keeps the
+        # rendering metadata -- columns, metrics, verbose map -- it needs to draw
+        # the chart. ``params`` is withheld even then: it is operator-authored
+        # free-form configuration rather than anything the renderer reads.
+        entitled_guest = security_manager.has_guest_access_to_chart(chart)
+        if not (security_manager.can_access_datasource(datasource) or entitled_guest):
+            for key in DASHBOARD_DATASET_INACCESSIBLE_FIELDS:
+                dataset.pop(key, None)
+        elif entitled_guest:
+            dataset.pop("params", None)
+
+        return self.response(
+            200,
+            result={
+                "slice": self.chart_entity_response_schema.dump(chart),
+                "dataset": dataset,
+            },
+        )
+
+    @expose("/<pk>/embedded", methods=("POST", "PUT"))
+    @protect()
+    @safe
+    @permission_name("set_embedded")
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.set_embedded",
+        log_to_statsd=False,
+    )
+    def set_embedded(self, pk: int) -> Response:
+        """Set a chart's embedded configuration.
+        ---
+        post:
+          summary: Set a chart's embedded configuration
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+            description: The chart id
+          requestBody:
+            description: The embedded configuration to set
+            required: true
+            content:
+              application/json:
+                schema: EmbeddedChartConfigSchema
+          responses:
+            200:
+              description: Successfully set the configuration
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/EmbeddedChartResponseSchema'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        put:
+          summary: Update a chart's embedded configuration
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+            description: The chart id
+          requestBody:
+            description: The embedded configuration to set
+            required: true
+            content:
+              application/json:
+                schema: EmbeddedChartConfigSchema
+          responses:
+            200:
+              description: Successfully set the configuration
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/EmbeddedChartResponseSchema'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        chart = ChartDAO.find_by_id(pk)
+        if not chart:
+            return self.response_404()
+        try:
+            body = self.embedded_config_schema.load(request.json)
+            embedded = EmbeddedChartDAO.upsert(chart, body["allowed_domains"])
+            db.session.commit()  # pylint: disable=consider-using-transaction
+            result = self.embedded_response_schema.dump(embedded)
+            return self.response(200, result=result)
+        except ValidationError as error:
+            db.session.rollback()  # pylint: disable=consider-using-transaction
+            return self.response_400(message=error.messages)
+
+    @expose("/<pk>/embedded", methods=("DELETE",))
+    @protect()
+    @safe
+    @permission_name("set_embedded")
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.delete_embedded"
+        ),
+        log_to_statsd=False,
+    )
+    def delete_embedded(self, pk: int) -> Response:
+        """Delete a chart's embedded configuration.
+        ---
+        delete:
+          summary: Delete a chart's embedded configuration
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+            description: The chart id
+          responses:
+            200:
+              description: Successfully removed the configuration
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        chart = ChartDAO.find_by_id(pk)
+        if not chart:
+            return self.response_404()
+        chart.embedded = []
+        db.session.commit()  # pylint: disable=consider-using-transaction
+        return self.response(200, message="OK")

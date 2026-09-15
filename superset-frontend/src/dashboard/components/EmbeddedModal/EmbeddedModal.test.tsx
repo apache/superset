@@ -168,6 +168,35 @@ test('enables Save Changes button when allowed domains are modified', async () =
   expect(saveChangesBtn).toBeEnabled();
 });
 
+test('refetches the configuration when resourceType changes but dashboardId does not', async () => {
+  const chartResponse = {
+    result: { uuid: 'chart-uuid', dashboard_id: '1', allowed_domains: [] },
+  };
+  (makeApi as any)
+    .mockReturnValueOnce(jest.fn().mockResolvedValue(defaultResponse))
+    .mockReturnValueOnce(jest.fn().mockResolvedValue(chartResponse));
+
+  const { rerender } = render(
+    <DashboardEmbedModal {...defaultProps} resourceType="dashboard" />,
+    { useRedux: true },
+  );
+  const dashboardDomainsInput = (await screen.findByRole('textbox', {
+    name: /Allowed Domains/i,
+  })) as HTMLInputElement;
+  await waitFor(() => {
+    expect(dashboardDomainsInput.value).toBe('example.com');
+  });
+
+  rerender(<DashboardEmbedModal {...defaultProps} resourceType="chart" />);
+
+  const chartDomainsInput = (await screen.findByRole('textbox', {
+    name: /Allowed Domains/i,
+  })) as HTMLInputElement;
+  await waitFor(() => {
+    expect(chartDomainsInput.value).toBe('');
+  });
+});
+
 test('renders extension component when registered', async () => {
   const extensionsRegistry = getExtensionsRegistry();
 

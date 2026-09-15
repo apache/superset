@@ -186,8 +186,12 @@ export interface BootstrapData {
     GUEST_TOKEN_HEADER_MAX_BYTES?: number | null;
   };
   embedded?: {
+    // Which resource this uuid resolves to. Older payloads predate charts
+    // being embeddable and omit it, so treat a missing value as a dashboard.
+    resource_type?: 'dashboard' | 'chart';
     dashboard_id: string;
-    // Domains allowed to embed this dashboard. An empty/undefined list means
+    chart_id?: string;
+    // Domains allowed to embed this resource. An empty/undefined list means
     // any domain is allowed (no restriction).
     allowed_domains?: string[];
   };
