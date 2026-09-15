@@ -421,6 +421,9 @@ test('an unlabelled related record does not assemble its sentence from fragments
 });
 
 test('groupHeadline renders the starting-version label per creation kind', () => {
+  expect(groupHeadline(group({ creationKind: 'unknown' }))).toBe(
+    'Starting version',
+  );
   expect(groupHeadline(group({ creationKind: 'pre_tracking' }))).toBe(
     'Original version',
   );

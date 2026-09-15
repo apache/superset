@@ -255,11 +255,12 @@
             "nullable": true
           },
           "creation_kind": {
-            "description": "Set only on the synthetic starting-version record (``kind == \"__creation__\"``): how the entity came to exist. ``\"pre_tracking\"`` \u2014 a retroactive baseline for an entity that predates versioning; ``\"created\"`` \u2014 a creation with tracking on; ``\"imported\"`` \u2014 an import, attributed to the importing user. Machine values: display copy is owned by the client.",
+            "description": "Set only on the synthetic starting-version record (``kind == \"__creation__\"``): how the entity came to exist. ``\"pre_tracking\"`` \u2014 a retroactive baseline for an entity that predates versioning; ``\"created\"`` \u2014 a creation with tracking on; ``\"imported\"`` \u2014 an import, attributed to the importing user; ``\"unknown\"`` \u2014 an unstamped starting version whose creation provenance cannot be established. Machine values: display copy is owned by the client.",
             "enum": [
               "pre_tracking",
               "created",
               "imported",
+              "unknown",
               null
             ],
             "nullable": true,
@@ -335,7 +336,8 @@
               "time_range",
               "color_palette",
               "field",
-              "__meta__"
+              "__meta__",
+              "__creation__"
             ],
             "type": "string"
           },

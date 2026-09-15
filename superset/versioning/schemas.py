@@ -204,6 +204,7 @@ ACTIVITY_CHANGE_KINDS: tuple[str, ...] = (
     # whose record's ``to_value`` carries the restored-to
     # ``version_uuid`` / ``version_number``.
     "__meta__",
+    "__creation__",
 )
 
 #: Allowed values for ``ActivityRecordSchema.operation`` — the per-record
@@ -480,7 +481,7 @@ class ActivityRecordSchema(Schema):
     )
     creation_kind = fields.String(
         allow_none=True,
-        validate=validate.OneOf(["pre_tracking", "created", "imported"]),
+        validate=validate.OneOf(["pre_tracking", "created", "imported", "unknown"]),
         metadata={
             "description": (
                 "Set only on the synthetic starting-version record "
@@ -488,7 +489,9 @@ class ActivityRecordSchema(Schema):
                 'exist. ``"pre_tracking"`` — a retroactive baseline for '
                 'an entity that predates versioning; ``"created"`` — '
                 'a creation with tracking on; ``"imported"`` — an '
-                "import, attributed to the importing user. Machine "
+                "import, attributed to the importing user; "
+                '``"unknown"`` — an unstamped starting version whose '
+                "creation provenance cannot be established. Machine "
                 "values: display copy is owned by the client."
             )
         },

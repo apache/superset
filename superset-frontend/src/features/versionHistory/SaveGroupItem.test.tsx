@@ -177,10 +177,10 @@ test('the current starting version has nothing to preview', () => {
   ).not.toBeInTheDocument();
 });
 
-test('ordinary record-bearing groups do not grow the creation affordance', () => {
+test('a creation-marked group with records gets no creation preview', () => {
   renderItem({
     group: creationGroup({
-      creationKind: undefined,
+      creationKind: 'created',
       records: [
         {
           version_uuid: 'v-1',
@@ -205,6 +205,14 @@ test('ordinary record-bearing groups do not grow the creation affordance', () =>
       ],
     }),
   });
+
+  expect(
+    screen.queryByRole('button', { name: 'Preview this version' }),
+  ).not.toBeInTheDocument();
+});
+
+test('an empty group with no creationKind gets no preview affordance', () => {
+  renderItem({ group: creationGroup({ creationKind: undefined }) });
 
   expect(
     screen.queryByRole('button', { name: 'Preview this version' }),

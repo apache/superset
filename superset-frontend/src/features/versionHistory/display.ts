@@ -314,6 +314,7 @@ export function describeRecord(record: ActivityRecord): string {
  * is a one-line change here.
  */
 export const CREATION_LABELS: Record<CreationKind, string> = {
+  unknown: t('Starting version'),
   pre_tracking: t('Original version'),
   created: t('Created'),
   imported: t('Imported'),

@@ -86,7 +86,7 @@ class TestActivityCreationRow(SupersetTestCase):
         db.session.delete(entity)
         db.session.commit()
 
-    def test_new_chart_has_one_created_row(self) -> None:
+    def test_new_chart_has_one_unknown_origin_row(self) -> None:
         slc = self._make_chart("sc120488_new_chart")
         try:
             records, count, truncated = get_activity(
@@ -96,7 +96,7 @@ class TestActivityCreationRow(SupersetTestCase):
             creations = _creation_records(records)
             assert len(creations) == 1
             creation = creations[0]
-            assert creation["creation_kind"] == "created"
+            assert creation["creation_kind"] == "unknown"
             assert creation["source"] == "self"
             assert creation["entity_name"] == "sc120488_new_chart"
             # Previewable/restorable: the version_uuid is the one the
@@ -110,7 +110,7 @@ class TestActivityCreationRow(SupersetTestCase):
         finally:
             self._cleanup(slc)
 
-    def test_new_dashboard_has_one_created_row(self) -> None:
+    def test_new_dashboard_has_one_unknown_origin_row(self) -> None:
         dash = Dashboard(dashboard_title="sc120488_new_dash", slug=None)
         db.session.add(dash)
         db.session.commit()
@@ -118,7 +118,7 @@ class TestActivityCreationRow(SupersetTestCase):
             records, count, _ = get_activity(Dashboard, dash.uuid, resolved_entity=dash)
             creations = _creation_records(records)
             assert len(creations) == 1
-            assert creations[0]["creation_kind"] == "created"
+            assert creations[0]["creation_kind"] == "unknown"
             assert count == len(records)
         finally:
             self._cleanup(dash)

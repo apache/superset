@@ -56,24 +56,32 @@ CREATION_RECORD_KIND = "__creation__"
 CREATION_KIND_PRE_TRACKING = "pre_tracking"
 CREATION_KIND_CREATED = "created"
 CREATION_KIND_IMPORTED = "imported"
+CREATION_KIND_UNKNOWN: str = "unknown"
 CREATION_KINDS: tuple[str, ...] = (
     CREATION_KIND_PRE_TRACKING,
     CREATION_KIND_CREATED,
     CREATION_KIND_IMPORTED,
+    CREATION_KIND_UNKNOWN,
 )
 
 
 def _creation_kind_for(action_kind: str | None) -> str:
     # pylint: disable=import-outside-toplevel
-    from superset.versioning.changes import ACTION_KIND_BASELINE, ACTION_KIND_IMPORT
+    from superset.versioning.changes import (
+        ACTION_KIND_BASELINE,
+        ACTION_KIND_CLONE,
+        ACTION_KIND_IMPORT,
+    )
 
     if action_kind == ACTION_KIND_BASELINE:
         return CREATION_KIND_PRE_TRACKING
     if action_kind == ACTION_KIND_IMPORT:
         return CREATION_KIND_IMPORTED
-    # Continuum's own INSERT (ordinary creation), and clones — a clone IS
-    # a creation from the new entity's point of view.
-    return CREATION_KIND_CREATED
+    if action_kind == ACTION_KIND_CLONE:
+        return CREATION_KIND_CREATED
+    # Unstamped ordinary inserts and historical retroactive baselines are
+    # indistinguishable. Do not invent creation provenance for either.
+    return CREATION_KIND_UNKNOWN
 
 
 def build_creation_record(

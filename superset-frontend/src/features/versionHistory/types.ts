@@ -34,7 +34,7 @@ export type ActivityOperation =
 
 export type ActivityActionKind = 'restore' | 'import' | 'clone' | null;
 
-export type CreationKind = 'pre_tracking' | 'created' | 'imported';
+export type CreationKind = 'pre_tracking' | 'created' | 'imported' | 'unknown';
 
 export interface ActivityChangedBy {
   id: number;
