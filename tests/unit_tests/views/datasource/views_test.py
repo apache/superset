@@ -501,6 +501,118 @@ def test_save_checks_access_against_requested_table_not_stale_one(
     assert call_kwargs["table"].schema == "finance"
 
 
+@patch("superset.views.datasource.views.db")
+@patch("superset.views.datasource.views.DatasetDAO.get_database_by_id")
+@patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
+@patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
+def test_save_rejects_same_database_repoint_to_table_without_access(
+    mock_get_datasource: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_get_database_by_id: MagicMock,
+    mock_db: MagicMock,
+) -> None:
+    """
+    A request that keeps the same ``database.id`` but changes
+    ``table_name``/``schema``/``catalog`` also repoints the dataset via
+    ``update_from_object``. The target-table access check must run in this
+    case too -- editorship of the dataset alone must not let a caller point
+    it at a table they are not authorised for within the same database.
+    """
+    mock_orm = MagicMock()
+    mock_orm.database_id = 1
+    mock_orm.table_name = "authorised_table"
+    mock_orm.schema = "public"
+    mock_orm.catalog = None
+    mock_orm.data = {"id": 1}
+    mock_get_datasource.return_value = mock_orm
+    mock_security_manager.raise_for_editorship.return_value = None
+    # Same database, so no lookup happens; access to the requested table is denied.
+    mock_security_manager.raise_for_access.side_effect = _security_exception()
+
+    from flask import Flask
+
+    from superset.commands.dataset.exceptions import DatasetForbiddenError
+
+    raw_save = _get_view_func("save")
+    app = Flask(__name__)
+    with app.test_request_context(
+        "/datasource/save/",
+        method="POST",
+        data={
+            "data": superset_json.dumps(
+                {
+                    "id": 1,
+                    "type": "table",
+                    "database": {"id": 1},  # unchanged
+                    "table_name": "secret_table",  # but repointed to another table
+                    "schema": "finance",
+                    "columns": [],
+                }
+            )
+        },
+    ):
+        with pytest.raises(DatasetForbiddenError):
+            raw_save(_view_self())
+
+    mock_security_manager.raise_for_access.assert_called_once()
+    call_kwargs = mock_security_manager.raise_for_access.call_args.kwargs
+    assert call_kwargs["database"] is mock_orm.database
+    assert call_kwargs["table"].table == "secret_table"
+    assert call_kwargs["table"].schema == "finance"
+    # No cross-database lookup for a same-database repoint.
+    mock_get_database_by_id.assert_not_called()
+
+
+@patch("superset.views.datasource.views.db")
+@patch("superset.views.datasource.views.DatasetDAO.get_database_by_id")
+@patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
+@patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
+def test_save_allows_unchanged_datasource_without_access_recheck(
+    mock_get_datasource: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_get_database_by_id: MagicMock,
+    mock_db: MagicMock,
+) -> None:
+    """
+    A plain save that changes neither the database nor the table (e.g. a
+    column/metric edit) must not require a fresh datasource-access check --
+    editorship already gates it, and re-checking would be a behavior change.
+    """
+    mock_orm = MagicMock()
+    mock_orm.database_id = 1
+    mock_orm.table_name = "my_table"
+    mock_orm.schema = "public"
+    mock_orm.catalog = None
+    mock_orm.data = {"id": 1}
+    mock_get_datasource.return_value = mock_orm
+    mock_security_manager.raise_for_editorship.return_value = None
+
+    from flask import Flask
+
+    raw_save = _get_view_func("save")
+    app = Flask(__name__)
+    with app.test_request_context(
+        "/datasource/save/",
+        method="POST",
+        data={
+            "data": superset_json.dumps(
+                {
+                    "id": 1,
+                    "type": "table",
+                    "database": {"id": 1},
+                    "table_name": "my_table",
+                    "schema": "public",
+                    "columns": [],
+                }
+            )
+        },
+    ):
+        raw_save(_view_self())
+
+    mock_security_manager.raise_for_access.assert_not_called()
+    mock_get_database_by_id.assert_not_called()
+
+
 # ---------------------------------------------------------------------------
 # Datasource.samples
 # ---------------------------------------------------------------------------
