@@ -441,3 +441,104 @@ def test_identifier_quote_uses_square_brackets() -> None:
         "end": "]",
         "escape_by_doubling": True,
     }
+
+
+def _basic_parameters(**overrides: Any) -> dict[str, Any]:
+    parameters: dict[str, Any] = {
+        "username": "user",
+        "password": "password",
+        "host": "localhost",
+        "port": 1433,
+        "database": "db",
+        "query": {},
+    }
+    parameters.update(overrides)
+    return parameters
+
+
+def test_mssql_supports_dynamic_form() -> None:
+    """
+    DB Eng Specs (mssql): ``MssqlEngineSpec`` opts into the dynamic connection
+    form via ``BasicParametersMixin``, exposing a parameters schema and the
+    recommended pymssql driver.
+    """
+    from superset.db_engine_specs.base import BasicParametersMixin
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+
+    assert issubclass(MssqlEngineSpec, BasicParametersMixin)
+    assert MssqlEngineSpec.default_driver == "pymssql"
+    assert MssqlEngineSpec.parameters_json_schema() is not None
+
+
+def test_build_sqlalchemy_uri_uses_pymssql_driver() -> None:
+    """
+    DB Eng Specs (mssql): ``build_sqlalchemy_uri`` produces a
+    ``mssql+pymssql://user:pass@host:port/db`` URI from the dynamic form
+    parameters.
+    """
+    from sqlalchemy.engine.url import make_url
+
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+
+    uri = MssqlEngineSpec.build_sqlalchemy_uri(_basic_parameters())  # type: ignore[arg-type]
+
+    assert uri == "mssql+pymssql://user:password@localhost:1433/db"
+    url = make_url(uri)
+    assert url.drivername == "mssql+pymssql"
+    assert url.username == "user"
+    assert url.password == "password"  # noqa: S105
+    assert url.host == "localhost"
+    assert url.port == 1433
+    assert url.database == "db"
+
+
+def test_get_parameters_from_uri_roundtrip() -> None:
+    """
+    DB Eng Specs (mssql): ``get_parameters_from_uri`` is the inverse of
+    ``build_sqlalchemy_uri`` for the standard host/port/user/password/database
+    parameters.
+    """
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+
+    parameters = MssqlEngineSpec.get_parameters_from_uri(
+        "mssql+pymssql://user:password@localhost:1433/db"
+    )
+    assert parameters == {
+        "username": "user",
+        "password": "password",
+        "host": "localhost",
+        "port": 1433,
+        "database": "db",
+        "query": {},
+        "encryption": False,
+    }
+
+
+def test_validate_parameters_reports_missing() -> None:
+    """
+    DB Eng Specs (mssql): ``validate_parameters`` flags missing mandatory
+    fields so the dynamic form can validate progressively.
+    """
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+
+    errors = MssqlEngineSpec.validate_parameters({"parameters": {}})
+    assert len(errors) == 1
+    error = errors[0]
+    assert error.error_type == SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR
+    assert error.extra is not None
+    assert set(error.extra["missing"]) == {"host", "port", "username", "database"}
+
+
+def test_azure_synapse_keeps_pyodbc_driver() -> None:
+    """
+    DB Eng Specs (mssql): ``AzureSynapseSpec`` inherits the dynamic form from
+    ``MssqlEngineSpec`` but keeps its own recommended pyodbc driver, so a built
+    URI targets ``mssql+pyodbc``. In deployments without pyodbc installed the
+    dynamic form is not surfaced (the driver is absent from the available
+    drivers), preserving the legacy SQLAlchemy-URI experience.
+    """
+    from superset.db_engine_specs.mssql import AzureSynapseSpec
+
+    assert AzureSynapseSpec.default_driver == "pyodbc"
+    uri = AzureSynapseSpec.build_sqlalchemy_uri(_basic_parameters())  # type: ignore[arg-type]
+    assert uri == "mssql+pyodbc://user:password@localhost:1433/db"
