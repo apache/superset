@@ -66,6 +66,7 @@ from typing import Any, NoReturn, TYPE_CHECKING
 
 from flask import current_app as app, g, has_app_context
 from flask_babel import gettext as __
+from jinja2.exceptions import TemplateError
 
 from superset import db
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -75,6 +76,7 @@ from superset.exceptions import (
     SupersetErrorException,
     SupersetParseError,
     SupersetSecurityException,
+    SupersetTemplateException,
     SupersetTimeoutException,
 )
 from superset.extensions import cache_manager
@@ -759,6 +761,7 @@ class SQLExecutor:
         :param sql: SQL string potentially containing Jinja2 templates
         :param template_params: Parameters to pass to the template
         :returns: Rendered SQL string
+        :raises SupersetTemplateException: if the template fails to render
         """
         if template_params is None:
             return sql
@@ -766,7 +769,10 @@ class SQLExecutor:
         from superset.jinja_context import get_template_processor
 
         tp = get_template_processor(database=self.database)
-        return tp.process_template(sql, **template_params)
+        try:
+            return tp.process_template(sql, **template_params)
+        except TemplateError as ex:
+            raise SupersetTemplateException(str(ex)) from ex
 
     def _apply_limit_to_script(self, script: SQLScript, opts: QueryOptions) -> None:
         """
