@@ -35,6 +35,9 @@ from superset.commands.dataset.exceptions import (
     DatasetColumnsExistsValidationError,
     DatasetDataAccessIsNotAllowed,
     DatasetExistsValidationError,
+    DatasetFiltersDuplicateValidationError,
+    DatasetFiltersExistsValidationError,
+    DatasetFiltersNotFoundValidationError,
     DatasetForbiddenError,
     DatasetInvalidError,
     DatasetMetricsDuplicateValidationError,
@@ -278,6 +281,10 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
             self._validate_metrics(metrics, exceptions)
             self._validate_expressions(metrics, "metrics", exceptions)
 
+        if filters := self._properties.get("filters"):
+            self._validate_filters(filters, exceptions)
+            self._validate_expressions(filters, "filters", exceptions)
+
         if predicate := self._properties.get("fetch_values_predicate"):
             self._validate_fetch_values_predicate(predicate, exceptions)
 
@@ -347,6 +354,27 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
             ]
             if not DatasetDAO.validate_metrics_uniqueness(self._model_id, metric_names):
                 exceptions.append(DatasetMetricsExistsValidationError())
+
+    def _validate_filters(
+        self, filters: list[dict[str, Any]], exceptions: list[ValidationError]
+    ) -> None:
+        if self._get_duplicates(filters, "filter_name"):
+            exceptions.append(DatasetFiltersDuplicateValidationError())
+        else:
+            # validate invalid id's
+            filter_ids: list[int] = [
+                sql_filter["id"] for sql_filter in filters if "id" in sql_filter
+            ]
+            if not DatasetDAO.validate_filters_exist(self._model_id, filter_ids):
+                exceptions.append(DatasetFiltersNotFoundValidationError())
+            # validate new filter names uniqueness
+            filter_names: list[str] = [
+                sql_filter["filter_name"]
+                for sql_filter in filters
+                if "id" not in sql_filter
+            ]
+            if not DatasetDAO.validate_filters_uniqueness(self._model_id, filter_names):
+                exceptions.append(DatasetFiltersExistsValidationError())
 
     def _validate_expressions(
         self,

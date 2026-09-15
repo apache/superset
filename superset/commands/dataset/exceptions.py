@@ -121,6 +121,35 @@ class DatasetMetricsExistsValidationError(ValidationError):
         super().__init__([_("One or more metrics already exist")], field_name="metrics")
 
 
+class DatasetFiltersNotFoundValidationError(ValidationError):
+    """
+    Marshmallow validation error when dataset filter for update does not exist
+    """
+
+    def __init__(self) -> None:
+        super().__init__([_("One or more filters do not exist")], field_name="filters")
+
+
+class DatasetFiltersDuplicateValidationError(ValidationError):
+    """
+    Marshmallow validation error when dataset filters have a duplicate on the list
+    """
+
+    def __init__(self) -> None:
+        super().__init__(
+            [_("One or more filters are duplicated")], field_name="filters"
+        )
+
+
+class DatasetFiltersExistsValidationError(ValidationError):
+    """
+    Marshmallow validation error when dataset filters already exist
+    """
+
+    def __init__(self) -> None:
+        super().__init__([_("One or more filters already exist")], field_name="filters")
+
+
 class TableNotFoundValidationError(ValidationError):
     """
     Marshmallow validation error when a table does not exist on the database
