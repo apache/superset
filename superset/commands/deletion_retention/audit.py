@@ -54,6 +54,8 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from superset import db
 from superset.models.purge_audit_log import (
+    PURGE_AUDIT_COORDINATION_ID,
+    PurgeAuditCoordination,
     PurgeAuditLog,
     STATUS_BLOCKED,
     STATUS_CONFIRMED,
@@ -63,6 +65,10 @@ from superset.models.purge_audit_log import (
 )
 
 logger: logging.Logger = logging.getLogger(__name__)
+
+
+class PurgeAuditCoordinationError(RuntimeError):
+    """The database coordination sentinel is absent or indeterminate."""
 
 
 def _dedicated_session() -> Session:
@@ -95,16 +101,35 @@ class _AuditRecoverySnapshot:
     reason: str | None
 
 
-def _utc_now() -> datetime:
-    """Naive UTC now for the audit columns.
+def utc_now() -> datetime:
+    """Naive UTC now for the purge-audit table's timestamps.
 
     Note this deliberately differs from the metadata schema's audit
     columns (``changed_on`` / ``deleted_at``), which are naive-local per
     the PR #33693 UTC revert — the purge audit table is self-contained
     (``created_on`` and the reconcile cutoff both use this clock), so it
-    can use the saner convention without a comparison hazard.
+    can use the saner convention without a comparison hazard. Public
+    because pruning must compute its cutoffs on this same clock.
     """
     return datetime.now(timezone.utc).replace(tzinfo=None)
+
+
+def acquire_coordination_lock(session: Session) -> None:
+    """Hold the singleton audit/pruning lock until ``session`` commits.
+
+    Incrementing the version performs a real write on every supported metadata
+    database. This supplies SQLite's database write lock and a row lock on
+    PostgreSQL/MySQL without relying on ``SELECT FOR UPDATE`` support.
+    """
+    updated_rows: int | None = session.execute(
+        sa.update(PurgeAuditCoordination.__table__)
+        .where(PurgeAuditCoordination.__table__.c.id == PURGE_AUDIT_COORDINATION_ID)
+        .values(lock_version=PurgeAuditCoordination.__table__.c.lock_version + 1)
+    ).rowcount
+    if updated_rows != 1:
+        raise PurgeAuditCoordinationError(
+            "purge-audit coordination sentinel is missing or indeterminate"
+        )
 
 
 def write_ahead(
@@ -120,6 +145,18 @@ def write_ahead(
     write itself fails (which must not block the purge)."""
     session = _dedicated_session()
     try:
+        # Lock BEFORE stamping the clock: this ordering is load-bearing, not
+        # incidental. Acquiring the coordination lock first serializes this write
+        # against a concurrent pruning batch (which holds the same lock across its
+        # DELETE), so a write_ahead that loses the race commits only after the
+        # batch and is never visible to that batch's SELECT. Because ``utc_now()``
+        # below is read only after the batch commits, the new row's ``created_on``
+        # also sorts after the batch's run cutoff under bounded clock skew -- but
+        # the module's streak invariants, not wall-clock ordering alone, are the
+        # primary safeguard against a row landing in an already-pruned streak.
+        # Reordering the lock and the ``created_on=utc_now()`` stamp would
+        # reintroduce the race.
+        acquire_coordination_lock(session)
         record = PurgeAuditLog(
             status=STATUS_PENDING,
             trigger=trigger,
@@ -127,7 +164,7 @@ def write_ahead(
             entity_type=entity_type,
             entity_uuid=entity_uuid,
             removed_dashboard_slices=removed_dashboard_slices,
-            created_on=_utc_now(),
+            created_on=utc_now(),
         )
         session.add(record)
         session.commit()
@@ -160,7 +197,7 @@ def finalize(
     try:
         values: dict[str, Any] = {"status": status}
         if status == STATUS_CONFIRMED:
-            values["confirmed_on"] = _utc_now()
+            values["confirmed_on"] = utc_now()
         referrers = details.get("affected_referrers")
         if referrers:
             values["affected_referrers"] = ",".join(referrers)
@@ -340,6 +377,7 @@ def _recover_retention_blocked(
     """Retain blocked evidence on a fresh session after persistence uncertainty."""
     recovery_session: Session = _dedicated_session()
     try:
+        acquire_coordination_lock(recovery_session)
         current: PurgeAuditLog | None = recovery_session.get(PurgeAuditLog, record_id)
         if current is not None:
             if current.status == STATUS_PENDING:
@@ -361,7 +399,10 @@ def _recover_retention_blocked(
                 entity_type=snapshot.entity_type,
                 entity_uuid=snapshot.entity_uuid,
                 removed_dashboard_slices=0,
-                created_on=snapshot.created_on,
+                # Recovery is a new database-visible write. Timestamp it after
+                # acquiring the coordination lock so it cannot materialize in
+                # pruning's already-processed logical past.
+                created_on=utc_now(),
                 reason=snapshot.reason,
             )
         )
@@ -460,7 +501,7 @@ def reconcile_pending(stale_before: datetime | None = None) -> dict[str, int]:
     inventing one would assert evidence this process never witnessed. The
     next scheduled attempt re-anchors the entity with its real code.
     """
-    cutoff = stale_before or _utc_now() - _PENDING_STALE_AFTER
+    cutoff: datetime = stale_before or utc_now() - _PENDING_STALE_AFTER
     reconciled = absent = failed = 0
     session = _dedicated_session()
     try:

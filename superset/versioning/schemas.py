@@ -250,13 +250,38 @@ class ActivityChangedBySchema(Schema):
     last_name = fields.String()
 
 
-class ActivityImpactSchema(Schema):
-    """Dependent-count summary attached to ``source='related'`` records.
+# Each activity record's ``impact.affected_charts`` list is capped. The cap
+# bounds ONE record's payload (a per-tooltip number), not the page: it is
+# applied per record in ``impact_for_record``, so a page of 200 records can
+# still carry up to 200 × this many refs, and it only binds when a single
+# dataset feeds more than this many charts on one dashboard. ``impact.charts``
+# always carries the full count, so a consumer can render an "and N more"
+# overflow line. Defined with the contract so the field description below
+# quotes the same number the computation enforces.
+IMPACT_AFFECTED_CHARTS_CAP: int = 50
 
-    Synthesized server-side at the time of the activity query — it counts
-    siblings affected by the same upstream change at the same transaction
-    (e.g., how many charts on the requested dashboard pointed at the
-    dataset whose edit this record represents).
+
+class ActivityImpactChartSchema(Schema):
+    """One affected sibling chart inside an ``impact`` payload."""
+
+    id = fields.Integer(metadata={"description": "Chart id."})
+    name = fields.String(
+        metadata={
+            "description": (
+                "Chart name at the change's transaction — it may differ "
+                "from the live name if the chart was renamed since."
+            )
+        },
+    )
+
+
+class ActivityImpactSchema(Schema):
+    """Dependent summary attached to ``source='related'`` records.
+
+    Synthesized server-side at the time of the activity query — it
+    identifies siblings affected by the same upstream change at the same
+    transaction (e.g., which charts on the requested dashboard pointed at
+    the dataset whose edit this record represents).
     """
 
     charts = fields.Integer(
@@ -264,6 +289,18 @@ class ActivityImpactSchema(Schema):
             "description": (
                 "Number of sibling charts on the path entity affected by "
                 "the same related-record change at this transaction."
+            )
+        },
+    )
+    affected_charts = fields.List(
+        fields.Nested(ActivityImpactChartSchema),
+        metadata={
+            "description": (
+                "The affected sibling charts (id + name), sorted by name — "
+                "the detail behind the ``charts`` count, rendered as the "
+                "rollup entry's hover tooltip. Capped at "
+                f"{IMPACT_AFFECTED_CHARTS_CAP} entries per record; "
+                "``charts`` always carries the full count."
             )
         },
     )
