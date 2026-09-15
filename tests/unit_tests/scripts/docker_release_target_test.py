@@ -33,10 +33,7 @@ FROM lean AS showtime
 """
 
 # The current Dockerfile shape (post-#44100): `superset` builds FROM `lean`.
-CURRENT_DOCKERFILE = (
-    PRE_44100_DOCKERFILE
-    + "\nFROM lean AS superset\n"
-)
+CURRENT_DOCKERFILE = PRE_44100_DOCKERFILE + "\nFROM lean AS superset\n"
 
 NO_LEAN_NO_SUPERSET_DOCKERFILE = """
 FROM python:3.11 AS python-base
@@ -120,7 +117,9 @@ def test_missing_target_in_dry_run_output_is_refused() -> None:
     pitfall here)."""
     with pytest.raises(ValueError, match="--target"):
         docker_release_target.resolve_extra_flags(
-            "superset", "docker buildx build --platform linux/amd64 .", CURRENT_DOCKERFILE
+            "superset",
+            "docker buildx build --platform linux/amd64 .",
+            CURRENT_DOCKERFILE,
         )
 
 
