@@ -40,6 +40,25 @@ def _get_bootstrap(user_id: int = 1) -> dict[str, Any]:
         return cached_common_bootstrap_data(user_id=user_id, locale=None)
 
 
+@pytest.mark.parametrize("configured", [False, True])
+def test_bootstrap_exposes_excel_export_storage_capability(
+    app_context: None,
+    configured: bool,
+) -> None:
+    """The dashboard menu can hide image export when storage is unavailable."""
+    with (
+        patch("superset.views.base.menu_data", return_value={}),
+        patch(
+            "superset.views.base.is_export_storage_configured",
+            return_value=configured,
+        ) as storage_configured,
+    ):
+        payload = cached_common_bootstrap_data.uncached(user_id=1, locale=None)
+
+    storage_configured.assert_called_once_with()
+    assert payload["conf"]["EXCEL_EXPORT_STORAGE_CONFIGURED"] is configured
+
+
 def test_bootstrap_saml_providers(app_context: None) -> None:
     """SAML providers are included in bootstrap data."""
     from flask import current_app

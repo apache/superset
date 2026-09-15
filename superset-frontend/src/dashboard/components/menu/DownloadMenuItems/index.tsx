@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SyntheticEvent } from 'react';
-import { useSelector } from 'react-redux';
+import { SyntheticEvent, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { logging } from '@apache-superset/core/utils';
 import { t } from '@apache-superset/core/translation';
 import {
@@ -27,17 +27,20 @@ import {
   SupersetClient,
 } from '@superset-ui/core';
 import { MenuItem } from '@superset-ui/core/components/Menu';
-import { parse as parseContentDisposition } from 'content-disposition';
 import { useDownloadScreenshot } from 'src/dashboard/hooks/useDownloadScreenshot';
 import { NATIVE_FILTER_PREFIX } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/utils';
 import { MenuKeys, RootState } from 'src/dashboard/types';
 import downloadAsPdf from 'src/utils/downloadAsPdf';
 import downloadAsImage from 'src/utils/downloadAsImage';
-import handleResourceExport from 'src/utils/export';
+import handleResourceExport, {
+  downloadBlob,
+  getFilenameFromResponse,
+} from 'src/utils/export';
 import {
   LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_PDF,
   LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_IMAGE,
 } from 'src/logger/LogUtils';
+import { removeToast } from 'src/components/MessageToasts/actions';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 
 import { MenuItemTooltip } from 'src/components/Chart/DisabledMenuItemTooltip';
@@ -70,8 +73,18 @@ export const useDownloadMenuItems = (
     canExportImage,
   } = props;
 
-  const { addDangerToast, addSuccessToast } = useToasts();
+  const dispatch = useDispatch();
+  const { addDangerToast, addInfoToast, addSuccessToast } = useToasts();
   const dataMask = useSelector((state: RootState) => state.dataMask);
+  const isExcelExportStorageConfigured = useSelector(
+    (state: RootState) =>
+      state.dashboardInfo?.common?.conf?.EXCEL_EXPORT_STORAGE_CONFIGURED !==
+      false,
+  );
+  // Disable both Excel actions while either export is running.
+  const [exportingXlsx, setExportingXlsx] = useState<'data' | 'images' | null>(
+    null,
+  );
   const SCREENSHOT_NODE_SELECTOR = '.dashboard';
 
   const buildActiveDataMask = (): Record<string, { extraFormData: object }> =>
@@ -130,35 +143,14 @@ export const useDownloadMenuItems = (
         parseMethod: 'raw',
       });
 
-      // Parse filename from Content-Disposition header
-      const disposition = response.headers.get('Content-Disposition');
-      let fileName = `dashboard_${dashboardId}_example.zip`;
-
-      if (disposition) {
-        try {
-          const parsed = parseContentDisposition(disposition);
-          if (parsed?.parameters?.filename) {
-            fileName = parsed.parameters.filename;
-          }
-        } catch (error) {
-          logging.warn('Failed to parse Content-Disposition header:', error);
-        }
-      }
-
-      // Convert response to blob and trigger download
       const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      try {
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = fileName;
-        a.style.display = 'none';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-      } finally {
-        window.URL.revokeObjectURL(url);
-      }
+      downloadBlob(
+        blob,
+        getFilenameFromResponse(
+          response,
+          `dashboard_${dashboardId}_example.zip`,
+        ),
+      );
 
       addSuccessToast(t('Dashboard exported as example successfully'));
     } catch (error) {
@@ -168,14 +160,34 @@ export const useDownloadMenuItems = (
   };
 
   const onExportXlsx = async (mode: 'data' | 'images') => {
+    setExportingXlsx(mode);
+    const progressToast = addInfoToast(t('Preparing dashboard Excel export…'), {
+      duration: -1,
+    });
     try {
-      const { json } = await SupersetClient.post({
+      const response = await SupersetClient.post({
         endpoint: `/api/v1/dashboard/${dashboardId}/export_xlsx/`,
         jsonPayload: { active_data_mask: buildActiveDataMask(), mode },
+        // Parse the queued response or workbook after checking its status.
+        parseMethod: 'raw',
+        // A retry may hit the first request's lock and lose its file response.
+        fetchRetryOptions: { retries: 0 },
       });
-      // The throttle response (an export is already running) returns 202 with a
-      // message but no job_id; only a freshly enqueued job carries a job_id.
-      if ((json as { job_id?: string })?.job_id) {
+
+      // A 202 is queued; any successful non-202 response is the workbook.
+      if (response.status !== 202) {
+        const blob = await response.blob();
+        downloadBlob(
+          blob,
+          getFilenameFromResponse(response, `dashboard_${dashboardId}.xlsx`),
+        );
+        addSuccessToast(t('Dashboard data exported to Excel'));
+        return;
+      }
+
+      // Only a newly queued export has a job id.
+      const json = (await response.json()) as { job_id?: string };
+      if (json?.job_id) {
         addSuccessToast(
           t(
             "Your export is being prepared. You'll receive an email when it's ready.",
@@ -187,16 +199,21 @@ export const useDownloadMenuItems = (
         );
       }
     } catch (error) {
-      // status comes from the response (Partial<SupersetClientResponse>), which
-      // the union type does not expose uniformly; read it via a narrow cast.
-      const { status } = (await getClientErrorObject(error)) as {
+      // The client error union does not expose response fields uniformly.
+      const { status, message } = (await getClientErrorObject(error)) as {
         status?: number;
+        message?: string;
       };
-      if (status === 501) {
-        addDangerToast(t('Excel export is not configured on this server.'));
+      // Show actionable client errors; keep server errors generic.
+      if (message && status && status >= 400 && status < 500) {
+        addDangerToast(message);
       } else {
         addDangerToast(t('Sorry, something went wrong. Try again later.'));
       }
+    } finally {
+      dispatch(removeToast(progressToast.payload.id));
+      // Re-enable the actions after success or failure.
+      setExportingXlsx(null);
     }
   };
 
@@ -244,23 +261,25 @@ export const useDownloadMenuItems = (
         },
       ];
 
+  const xlsxExportLabel = (mode: 'data' | 'images', text: string) =>
+    exportingXlsx === mode ? t('Preparing export…') : text;
+
   const exportMenuItems: MenuItem[] = [
     ...(userCanExport
       ? [
           {
             key: 'export-xlsx',
-            label: t('Export Data to Excel'),
+            label: xlsxExportLabel('data', t('Export Data to Excel')),
+            disabled: exportingXlsx !== null,
             onClick: () => onExportXlsx('data'),
           },
-          // Image export renders charts through the headless webdriver, so only
-          // offer it where that infrastructure is available (same signal as the
-          // PDF/PNG image downloads above); otherwise non-table charts would
-          // silently come back empty.
-          ...(isWebDriverScreenshotEnabled
+          // Image exports require the same webdriver flags as PDF and PNG.
+          ...(isWebDriverScreenshotEnabled && isExcelExportStorageConfigured
             ? [
                 {
                   key: 'export-xlsx-images',
-                  label: t('Export Images to Excel'),
+                  label: xlsxExportLabel('images', t('Export Images to Excel')),
+                  disabled: exportingXlsx !== null,
                   onClick: () => onExportXlsx('images'),
                 },
               ]
