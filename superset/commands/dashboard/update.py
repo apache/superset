@@ -107,7 +107,7 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
             # ``positions`` makes it skip the layout entirely, so the raw field
             # must still be reconciled here or a dangling layout would be
             # written as-is.
-            metadata_carries_positions = (
+            metadata_carries_positions: bool = (
                 isinstance(metadata, dict) and metadata.get("positions") is not None
             )
             if (

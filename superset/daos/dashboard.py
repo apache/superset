@@ -25,6 +25,7 @@ from flask import g
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import ValidationError
 from sqlalchemy import or_, select
+from sqlalchemy.engine import Row
 from sqlalchemy.orm import Query
 
 from superset import security_manager
@@ -135,7 +136,9 @@ def _repair_dangling_chart_nodes(
     valid_chart_ids: set[int],
     dashboard_id: int | None = None,
 ) -> int:
-    """Swap every ``CHART`` layout node whose ``chartId`` is absent from
+    """Replace dangling chart nodes with markdown placeholders.
+
+    Swap every ``CHART`` layout node whose ``chartId`` is absent from
     *valid_chart_ids* for a markdown placeholder, in place, and return how
     many were repaired (logging a diagnostic when any were, since this mutates
     persisted, shared layout data).
@@ -161,11 +164,11 @@ def _repair_dangling_chart_nodes(
     shown to everyone. Per-viewer localization stays the frontend's job (its
     ``MissingChart`` render path), which is request-scoped.
     """
-    repaired = 0
+    repaired: int = 0
     for key, node in positions.items():
-        chart_id = _layout_chart_id(node)
+        chart_id: int | None = _layout_chart_id(node)
         if chart_id is not None and chart_id not in valid_chart_ids:
-            meta = node.get("meta") or {}
+            meta: dict[str, Any] = node.get("meta") or {}
             positions[key] = {
                 **node,
                 "type": "MARKDOWN",
@@ -216,7 +219,9 @@ def _reject_malformed_chart_nodes(positions: dict[str, Any]) -> None:
 
 
 def _existing_chart_ids(chart_ids: set[int]) -> set[int]:
-    """Subset of *chart_ids* that resolve to an actual ``Slice`` row,
+    """Return chart IDs that exist, including soft-deleted ones.
+
+    Subset of *chart_ids* that resolve to an actual ``Slice`` row,
     including soft-deleted ones.
 
     The soft-delete visibility filter is bypassed on purpose: a soft-deleted
@@ -224,11 +229,13 @@ def _existing_chart_ids(chart_ids: set[int]) -> set[int]:
     junction row survives), so its layout slot must be preserved, not
     repaired away.
     """
-    ids = {cid for cid in chart_ids if cid}
+    ids: set[int] = {cid for cid in chart_ids if cid}
     if not ids:
         return set()
     with skip_visibility_filter(db.session, Slice):
-        rows = db.session.query(Slice.id).filter(Slice.id.in_(ids)).all()
+        rows: list[Row[tuple[int]]] = (
+            db.session.query(Slice.id).filter(Slice.id.in_(ids)).all()
+        )
     return {row[0] for row in rows}
 
 
@@ -246,7 +253,7 @@ def reconcile_position_json(positions: object, dashboard_id: int | None = None) 
     # untouched (the caller re-serializes it unchanged) rather than raising.
     if not isinstance(positions, dict):
         return 0
-    chart_ids = {
+    chart_ids: set[int] = {
         chart_id
         for node in positions.values()
         if (chart_id := _layout_chart_id(node)) is not None
@@ -694,6 +701,14 @@ class DashboardDAO(BaseDAO[Dashboard]):
         metadata = json.loads(data["json_metadata"])
         old_to_new_slice_ids: dict[int, int] = {}
         if data.get("duplicate_slices"):
+            # Reconcile before cloning (sc-115325, reviewer finding in #44028):
+            # a chart hard-deleted while a member has no clone, so remapping
+            # its layout ID would write None and fail strict save validation.
+            # The old IDs still identify the original rows here, and no clone
+            # IDs exist to confuse the existence lookup. Repairing first uses
+            # the raw-layout markdown placeholder while preserving geometry;
+            # the remap below skips that slot because it has no chartId.
+            reconcile_position_json(metadata.get("positions"), original_dash.id)
             # Duplicating slices as well, mapping old ids to new ones
             for slc in original_dash.slices:
                 new_slice = slc.clone()
