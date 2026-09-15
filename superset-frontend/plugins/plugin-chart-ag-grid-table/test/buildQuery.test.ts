@@ -932,6 +932,94 @@ describe('plugin-chart-ag-grid-table', () => {
         expect(query.extras?.where || undefined).toBeUndefined();
       });
 
+      test('sends an equals download filter with the == FilterOperator (not raw =)', () => {
+        const { queries } = buildQuery(
+          {
+            ...basicFormData,
+            query_mode: QueryMode.Raw,
+            all_columns: ['Destination Address State'],
+            result_format: 'csv',
+          },
+          {
+            ownState: {
+              agGridFilterModel: {
+                'Destination Address State': {
+                  filterType: 'text',
+                  type: 'equals',
+                  filter: 'CA',
+                },
+              },
+            },
+          },
+        );
+
+        const query = queries[0];
+        expect(query.filters).toContainEqual({
+          col: 'Destination Address State',
+          op: '==',
+          val: 'CA',
+        });
+        expect(query.extras?.where || undefined).toBeUndefined();
+      });
+
+      test('splits a numeric inRange download filter into two bounded filters', () => {
+        const { queries } = buildQuery(
+          {
+            ...basicFormData,
+            query_mode: QueryMode.Raw,
+            all_columns: ['Age'],
+            result_format: 'csv',
+          },
+          {
+            ownState: {
+              agGridFilterModel: {
+                Age: {
+                  filterType: 'number',
+                  type: 'inRange',
+                  filter: 18,
+                  filterTo: 65,
+                },
+              },
+            },
+          },
+        );
+
+        const query = queries[0];
+        expect(query.filters).toEqual(
+          expect.arrayContaining([
+            { col: 'Age', op: '>=', val: 18 },
+            { col: 'Age', op: '<=', val: 65 },
+          ]),
+        );
+        expect(query.extras?.where || undefined).toBeUndefined();
+      });
+
+      test('should exclude a non-metric download WHERE filter from the totals query', () => {
+        const { queries } = buildQuery(
+          {
+            ...basicFormData,
+            show_totals: true,
+            query_mode: QueryMode.Aggregate,
+            result_format: 'csv',
+          },
+          {
+            ownState: {
+              agGridFilterModel: {
+                state: { filterType: 'text', type: 'equals', filter: 'CA' },
+              },
+            },
+          },
+        );
+
+        const mainQuery = queries[0];
+        // Downloads never get a rowcount query, so totals is queries[1].
+        const totalsQuery = queries[1];
+        const stateFilter = { col: 'state', op: '==', val: 'CA' };
+
+        expect(mainQuery.filters).toContainEqual(stateFilter);
+        expect(totalsQuery.filters ?? []).not.toContainEqual(stateFilter);
+      });
+
       test('should not modify totals query when no AG Grid filters applied', () => {
         const { queries } = buildQuery(
           {

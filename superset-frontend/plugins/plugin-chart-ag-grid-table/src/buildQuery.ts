@@ -743,15 +743,14 @@ export const buildQueryUncached: BuildQuery<TableChartFormData> = (
           : undefined;
 
     if (showAggregateTotals || rawSummaryColumns.length > 0) {
-      // Start from the original, pre-filter extras (captured before any
-      // AG Grid WHERE/HAVING or download sqlClauses were merged in above)
-      // rather than trying to subtract those fragments back out of the
-      // now-combined `queryObject.extras` string. AG Grid filters can
-      // reference calculated columns that aren't available once the
-      // totals subquery drops all grouping columns (columns: []), and that
-      // applies to HAVING just as much as WHERE, and to the download
-      // sqlClauses path just as much as the live agGridComplexWhere path —
-      // starting clean avoids having to special-case each source.
+      // Start from the original, pre-filter extras (captured before any AG Grid
+      // complexWhere/havingClause fragments were merged in above) rather than
+      // trying to subtract those fragments back out of the now-combined
+      // `queryObject.extras` string. AG Grid filters can reference calculated
+      // columns that aren't available once the totals subquery drops all
+      // grouping columns (columns: []), and that applies to HAVING just as much
+      // as WHERE — starting clean avoids having to special-case each source.
+      // The structured simpleFilters are stripped separately below.
       const totalsExtras = { ...extras };
       if (!totalsExtras.where) {
         delete totalsExtras.where;
