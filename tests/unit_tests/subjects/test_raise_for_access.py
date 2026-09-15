@@ -17,6 +17,7 @@
 
 """Tests for raise_for_access viewer access paths (Phase 4, Step 7)."""
 
+import contextlib
 from unittest.mock import MagicMock, patch, PropertyMock
 
 import pytest
@@ -417,3 +418,188 @@ def test_explore_command_uses_chart_access_when_slice_exists(app_context):
     ):
         cmd.run()
         mock_sm.raise_for_access.assert_called_once_with(chart=mock_slc)
+
+
+def _make_drill_dashboard(*, published: bool, dataset):
+    dashboard = MagicMock()
+    dashboard.published = published
+    dashboard.datasources = [dataset]
+    return dashboard
+
+
+def _patch_drill_viewer(sm, monkeypatch, *, promiscuous: bool):
+    monkeypatch.setitem(current_app.config, "VIEWER_PROMISCUOUS_MODE", promiscuous)
+    return (
+        patch.object(sm, "is_guest_user", return_value=False),
+        patch.object(sm, "is_viewer", return_value=True),
+        patch(
+            "superset.is_feature_enabled",
+            side_effect=lambda flag: flag == "ENABLE_VIEWERS",
+        ),
+    )
+
+
+def test_can_drill_dataset_via_dashboard_access_viewer_promiscuous(
+    app_context, monkeypatch
+):
+    """Viewer of a published dashboard can drill its datasets in promiscuous mode."""
+    sm = _make_sm()
+    dataset = MagicMock()
+    dataset.id = 7
+    dashboard = _make_drill_dashboard(published=True, dataset=dataset)
+
+    with contextlib.ExitStack() as stack:
+        for cm in _patch_drill_viewer(sm, monkeypatch, promiscuous=True):
+            stack.enter_context(cm)
+        assert sm.can_drill_dataset_via_dashboard_access(dataset, dashboard) is True
+
+
+def test_can_drill_dataset_via_dashboard_access_unpublished_denies(
+    app_context, monkeypatch
+):
+    """An unpublished dashboard denies drill access even for a promiscuous viewer."""
+    sm = _make_sm()
+    dataset = MagicMock()
+    dataset.id = 7
+    dashboard = _make_drill_dashboard(published=False, dataset=dataset)
+
+    with contextlib.ExitStack() as stack:
+        for cm in _patch_drill_viewer(sm, monkeypatch, promiscuous=True):
+            stack.enter_context(cm)
+        assert sm.can_drill_dataset_via_dashboard_access(dataset, dashboard) is False
+
+
+def test_can_drill_dataset_via_dashboard_access_unrelated_dataset_denies(
+    app_context, monkeypatch
+):
+    """A dataset not belonging to the dashboard is not drillable via its access."""
+    sm = _make_sm()
+    member_dataset = MagicMock()
+    member_dataset.id = 7
+    unrelated_dataset = MagicMock()
+    unrelated_dataset.id = 99
+    dashboard = _make_drill_dashboard(published=True, dataset=member_dataset)
+
+    with contextlib.ExitStack() as stack:
+        for cm in _patch_drill_viewer(sm, monkeypatch, promiscuous=True):
+            stack.enter_context(cm)
+        assert (
+            sm.can_drill_dataset_via_dashboard_access(unrelated_dataset, dashboard)
+            is False
+        )
+
+
+def test_can_drill_dataset_via_dashboard_access_no_promiscuous_denies(
+    app_context, monkeypatch
+):
+    """With VIEWER_PROMISCUOUS_MODE off, a viewer cannot drill via dashboard access."""
+    sm = _make_sm()
+    dataset = MagicMock()
+    dataset.id = 7
+    dashboard = _make_drill_dashboard(published=True, dataset=dataset)
+
+    with contextlib.ExitStack() as stack:
+        for cm in _patch_drill_viewer(sm, monkeypatch, promiscuous=False):
+            stack.enter_context(cm)
+        assert sm.can_drill_dataset_via_dashboard_access(dataset, dashboard) is False
+
+
+def test_can_inherit_access_via_dashboard_viewer_promiscuous(app_context, monkeypatch):
+    """Viewer of a published dashboard inherits access in promiscuous mode,
+    independent of any individual dataset's membership."""
+    sm = _make_sm()
+    dashboard = MagicMock(published=True)
+
+    with contextlib.ExitStack() as stack:
+        for cm in _patch_drill_viewer(sm, monkeypatch, promiscuous=True):
+            stack.enter_context(cm)
+        assert sm.can_inherit_access_via_dashboard(dashboard) is True
+
+
+def test_can_inherit_access_via_dashboard_unpublished_denies(app_context, monkeypatch):
+    """An unpublished dashboard grants no inherited access, even to a viewer."""
+    sm = _make_sm()
+    dashboard = MagicMock(published=False)
+
+    with contextlib.ExitStack() as stack:
+        for cm in _patch_drill_viewer(sm, monkeypatch, promiscuous=True):
+            stack.enter_context(cm)
+        assert sm.can_inherit_access_via_dashboard(dashboard) is False
+
+
+def test_can_inherit_access_via_dashboard_no_promiscuous_denies(
+    app_context, monkeypatch
+):
+    """With VIEWER_PROMISCUOUS_MODE off, dashboard access is not inherited."""
+    sm = _make_sm()
+    dashboard = MagicMock(published=True)
+
+    with contextlib.ExitStack() as stack:
+        for cm in _patch_drill_viewer(sm, monkeypatch, promiscuous=False):
+            stack.enter_context(cm)
+        assert sm.can_inherit_access_via_dashboard(dashboard) is False
+
+
+def test_can_inherit_access_via_dashboard_embedded_guest(app_context, monkeypatch):
+    """An embedded guest with access to the dashboard inherits access to it."""
+    sm = _make_sm()
+    dashboard = MagicMock(published=False)
+    monkeypatch.setitem(current_app.config, "VIEWER_PROMISCUOUS_MODE", False)
+
+    with (
+        patch.object(sm, "is_guest_user", return_value=True),
+        patch.object(sm, "has_guest_access", return_value=True),
+        patch(
+            "superset.is_feature_enabled",
+            side_effect=lambda flag: flag == "EMBEDDED_SUPERSET",
+        ),
+    ):
+        assert sm.can_inherit_access_via_dashboard(dashboard) is True
+
+
+# -- Promiscuous viewer dashboard-inheritance helpers --
+
+
+def test_promiscuous_viewer_inherits_chart_requires_promiscuous_mode(
+    app_context, monkeypatch
+):
+    """The chart inheritance helper short-circuits (no DB access) when
+    VIEWER_PROMISCUOUS_MODE is off."""
+    sm = _make_sm()
+    monkeypatch.setitem(current_app.config, "VIEWER_PROMISCUOUS_MODE", False)
+
+    with patch("superset.is_feature_enabled", return_value=True):
+        assert sm._promiscuous_viewer_inherits_chart(MagicMock()) is False
+
+
+def test_promiscuous_viewer_inherits_chart_excludes_guests(app_context, monkeypatch):
+    """Embedded guests never inherit chart access through this path; their
+    access flows through the token-scoped embedded path instead."""
+    sm = _make_sm()
+    monkeypatch.setitem(current_app.config, "VIEWER_PROMISCUOUS_MODE", True)
+
+    with (
+        patch(
+            "superset.is_feature_enabled",
+            side_effect=lambda flag: flag == "ENABLE_VIEWERS",
+        ),
+        patch.object(sm, "is_guest_user", return_value=True),
+    ):
+        assert sm._promiscuous_viewer_inherits_chart(MagicMock()) is False
+
+
+def test_promiscuous_viewer_inherits_datasource_excludes_guests(
+    app_context, monkeypatch
+):
+    """The datasource inheritance helper also excludes guests."""
+    sm = _make_sm()
+    monkeypatch.setitem(current_app.config, "VIEWER_PROMISCUOUS_MODE", True)
+
+    with (
+        patch(
+            "superset.is_feature_enabled",
+            side_effect=lambda flag: flag == "ENABLE_VIEWERS",
+        ),
+        patch.object(sm, "is_guest_user", return_value=True),
+    ):
+        assert sm._promiscuous_viewer_inherits_datasource(MagicMock()) is False
