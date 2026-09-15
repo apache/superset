@@ -250,7 +250,7 @@ def get_activity(
 
     *resolved_entity*, when supplied, is the already-resolved live path
     entity (the endpoint resolves it once via ``resolve_endpoint_path_entity``
-    for the ``raise_for_access`` gate); passing it here skips a second
+    for the editorship gate); passing it here skips a second
     identical ``find_active_by_uuid`` lookup and the TOCTOU window between
     them. The count is post-visibility (silent visibility filter),
     post-include-filter, and — when ``q`` is supplied — post-

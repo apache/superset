@@ -20,13 +20,13 @@ After fetching + filtering, each record needs the synthesized fields
 the API contract documents — ``entity_kind`` translated to the user-
 facing form, ``entity_uuid``, ``entity_deleted`` /
 ``entity_deletion_state``, ``source`` (self vs. related),
-``summary`` (the headline), ``impact`` (chart-count for
+``summary`` (the headline), ``impact`` (affected-chart payload for
 dashboard→dataset records), ``version_uuid``, ``changed_by``.
 
 This module collects all those decorations:
 
 * :func:`apply_record_decoration` — orchestrates the per-page additions in
-  one pass: pulls tombstones + uuids + impact counts in batches, then
+  one pass: pulls tombstones + uuids + impact payloads in batches, then
   walks records adding the synthesized fields and stripping the
   internal-only columns the API contract doesn't expose.
 * :func:`_lookup_entity_uuids` plus the historical UUID resolver — identify
@@ -46,7 +46,7 @@ import sqlalchemy as sa
 
 from superset.extensions import db
 from superset.versioning.activity.impact import (
-    batch_chart_counts,
+    batch_chart_impacts,
     collect_impact_pairs,
     impact_for_record,
 )
@@ -111,11 +111,10 @@ def apply_record_decoration(
     tombstones = check_entity_tombstones(distinct)
     live_uuids = _lookup_entity_uuids(distinct, tombstones)
     historical_uuids = resolve_historical_entity_uuids(records)
-    # Pre-compute impact counts for the whole page in one batch query
-    # instead of one COUNT per related record (was N+1).
-    impact_counts = batch_chart_counts(
-        path_id, collect_impact_pairs(records, path_kind)
-    )
+    # Pre-compute impact payloads (affected-chart ids + names) for the
+    # whole page in one batch query instead of one query per related
+    # record (was N+1).
+    impact_refs = batch_chart_impacts(path_id, collect_impact_pairs(records, path_kind))
 
     for record in records:
         api_kind = TABLE_KIND_TO_API.get(record["entity_kind"], "")
@@ -168,7 +167,7 @@ def apply_record_decoration(
             record["impact"] = None
         else:
             record["summary"] = _build_summary(api_kind, record)
-            record["impact"] = impact_for_record(record, path_kind, impact_counts)
+            record["impact"] = impact_for_record(record, path_kind, impact_refs)
             if record["entity_deleted"]:
                 # Security: a tombstoned related entity has no live row, so
                 # the visibility filter cannot access-gate it (there is
@@ -183,8 +182,8 @@ def apply_record_decoration(
                 # "(deleted) <kind>" marker — so the stream stays honest
                 # about WHEN something changed without disclosing WHAT, WHO,
                 # or WHICH entity. Self-path tombstones are untouched: the
-                # endpoint already gated them via ``raise_for_access`` on the
-                # path entity.
+                # endpoint already gated them via ``raise_for_editorship``
+                # on the path entity (an edit gate, stricter than read).
                 label = API_KIND_LABEL.get(api_kind, api_kind)
                 record["entity_name"] = ""
                 record["summary"] = f"(deleted) {label}"
@@ -192,6 +191,24 @@ def apply_record_decoration(
                 record["from_value"] = None
                 record["to_value"] = None
                 record["path"] = None
+                # ``impact`` is deliberately NOT redacted here — an explicit
+                # decision (review of #43838), recorded so this allowlist-by-
+                # omission is not mistaken for an oversight:
+                #   * it names the charts on the *path* dashboard that pointed
+                #     at the related entity at that transaction — the
+                #     requester's own dashboard members, which
+                #     ``raise_for_access`` already gated, and version history
+                #     is itself edit-gated (sc-120001) — not the deleted entity
+                #     or its editors, which is what this block withholds;
+                #   * chart titles are visible to a dashboard's viewers today
+                #     regardless of datasource access, and the historical
+                #     members are the dashboard's own history, so naming them
+                #     discloses nothing a requester entitled to the path entity
+                #     cannot already see (the count was never redacted either);
+                #   * "a dataset was deleted — which of my charts broke?" is the
+                #     primary use of the impact detail, and it is exactly the
+                #     tombstoned-related case, so redacting here would gut it.
+                # Not a SECURITY.md role/capability matrix row.
 
         # Strip the internal-only columns the API contract doesn't expose.
         for key in (
