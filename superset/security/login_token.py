@@ -36,7 +36,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta
-from typing import Any, Callable, TypedDict
+from typing import Any, Callable, cast, TypedDict
 from uuid import UUID, uuid4
 
 from flask import current_app, Request
@@ -199,4 +199,8 @@ def consume(token: str) -> LoginTokenUserInfo | None:
     if expired or not userinfo:
         return None
 
-    return userinfo
+    # The codec decodes to a plain dict. The row was written by ``mint`` from a
+    # ``LoginTokenUserInfo``, so the shape holds by construction; a foreign or
+    # malformed row is caught by the falsy check above and, failing that, by
+    # ``auth_user_oauth`` requiring a username or email.
+    return cast(LoginTokenUserInfo, userinfo)
