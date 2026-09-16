@@ -577,3 +577,181 @@ class TestGuestUserDatasourceAccess(SupersetTestCase):
                         )
                     }
                 )
+
+
+@patch.dict(
+    "superset.extensions.feature_flag_manager._feature_flags",
+    EMBEDDED_SUPERSET=True,
+)
+@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices_class_scope")
+@pytest.mark.usefixtures("load_world_bank_dashboard_with_slices_class_scope")
+class TestGuestUserChartAccess(SupersetTestCase):
+    """Chart-scoped guest tokens (e.g. minted by the show_chart MCP tool).
+
+    A chart token must grant exactly the charts it lists — nothing more —
+    and must not be interchangeable with dashboard-scoped tokens.
+    """
+
+    def _chart_guest(self, resource_id: str):
+        return security_manager.get_guest_user_from_token(
+            {
+                "user": {},
+                "resources": [
+                    {"type": GuestTokenResourceType.CHART, "id": resource_id}
+                ],
+                "iat": 10,
+                "exp": 20,
+                "rls_rules": [],
+            }
+        )
+
+    def setUp(self) -> None:
+        self.chart = self.get_slice("Girls")
+        self.other_chart = self.get_slice("Boys")
+        self.world_bank_chart = self.get_slice("Treemap")
+        self.datasource = self.chart.datasource
+        self.dash = self.get_dash_by_slug("births")
+        self.embedded = EmbeddedDashboardDAO.upsert(self.dash, [])
+        self.id_guest = self._chart_guest(str(self.chart.id))
+        self.uuid_guest = self._chart_guest(str(self.chart.uuid))
+        self.dashboard_guest = security_manager.get_guest_user_from_token(
+            {
+                "user": {},
+                "resources": [
+                    {
+                        "type": GuestTokenResourceType.DASHBOARD,
+                        "id": str(self.embedded.uuid),
+                    }
+                ],
+                "iat": 10,
+                "exp": 20,
+                "rls_rules": [],
+            }
+        )
+
+    def test_has_guest_chart_access__by_id(self):
+        g.user = self.id_guest
+        assert security_manager.has_guest_chart_access(self.chart)
+
+    def test_has_guest_chart_access__by_uuid(self):
+        g.user = self.uuid_guest
+        assert security_manager.has_guest_chart_access(self.chart)
+
+    def test_has_guest_chart_access__denies_unlisted_chart(self):
+        g.user = self.id_guest
+        assert not security_manager.has_guest_chart_access(self.other_chart)
+
+    def test_has_guest_chart_access__denies_dashboard_token(self):
+        g.user = self.dashboard_guest
+        assert not security_manager.has_guest_chart_access(self.chart)
+
+    def test_raise_for_access_chart__granted(self):
+        g.user = self.id_guest
+        security_manager.raise_for_access(chart=self.chart)
+
+    def test_raise_for_access_chart__denies_unlisted_chart(self):
+        g.user = self.id_guest
+        with self.assertRaises(SupersetSecurityException):  # noqa: PT027
+            security_manager.raise_for_access(chart=self.other_chart)
+
+    def test_raise_for_access_chart__denies_dashboard_token(self):
+        g.user = self.dashboard_guest
+        with self.assertRaises(SupersetSecurityException):  # noqa: PT027
+            security_manager.raise_for_access(chart=self.chart)
+
+    def test_raise_for_access_datasource__granted(self):
+        g.user = self.id_guest
+        for kwarg in ["viz", "query_context"]:
+            security_manager.raise_for_access(
+                **{
+                    kwarg: Mock(
+                        datasource=self.datasource,
+                        form_data={
+                            "slice_id": self.chart.id,
+                            "metrics": self.chart.params_dict["metrics"],
+                        },
+                        slice_=self.chart,
+                        queries=[],
+                    )
+                }
+            )
+
+    def test_raise_for_access_datasource__denies_unlisted_chart(self):
+        # form_data references a chart the token does not list; without a
+        # dashboardId fallback the datasource access must be denied.
+        g.user = self.id_guest
+        for kwarg in ["viz", "query_context"]:
+            with self.assertRaises(SupersetSecurityException):  # noqa: PT027
+                security_manager.raise_for_access(
+                    **{
+                        kwarg: Mock(
+                            datasource=self.datasource,
+                            form_data={
+                                "slice_id": self.other_chart.id,
+                                "metrics": self.other_chart.params_dict["metrics"],
+                            },
+                            slice_=self.other_chart,
+                            queries=[],
+                        )
+                    }
+                )
+
+    def test_raise_for_access_datasource__denies_mismatched_datasource(self):
+        # The token's chart is listed, but the queried datasource belongs to
+        # a different dataset — the grant must not transfer.
+        g.user = self.id_guest
+        for kwarg in ["viz", "query_context"]:
+            with self.assertRaises(SupersetSecurityException):  # noqa: PT027
+                security_manager.raise_for_access(
+                    **{
+                        kwarg: Mock(
+                            datasource=self.world_bank_chart.datasource,
+                            form_data={
+                                "slice_id": self.chart.id,
+                                "metrics": self.chart.params_dict["metrics"],
+                            },
+                            slice_=self.chart,
+                            queries=[],
+                        )
+                    }
+                )
+
+    def test_chart_filter__scopes_to_token_charts(self):
+        from flask_appbuilder.models.sqla.interface import SQLAInterface
+
+        from superset.charts.filters import ChartFilter
+        from superset.models.slice import Slice
+
+        g.user = self.id_guest
+        query = ChartFilter("id", SQLAInterface(Slice, db.session)).apply(
+            db.session.query(Slice), None
+        )
+        result_ids = {chart.id for chart in query.all()}
+        assert result_ids == {self.chart.id}
+
+    def test_chart_filter__dashboard_token_sees_dashboard_charts_only(self):
+        from flask_appbuilder.models.sqla.interface import SQLAInterface
+
+        from superset.charts.filters import ChartFilter
+        from superset.models.slice import Slice
+
+        g.user = self.dashboard_guest
+        query = ChartFilter("id", SQLAInterface(Slice, db.session)).apply(
+            db.session.query(Slice), None
+        )
+        result_ids = {chart.id for chart in query.all()}
+        dashboard_chart_ids = {chart.id for chart in self.dash.slices}
+        assert result_ids == dashboard_chart_ids
+        assert self.world_bank_chart.id not in result_ids
+
+    def test_chart_filter__unknown_scope_denies_all(self):
+        g.user = self._chart_guest("06383667-3e02-4e5e-843f-44e9c5896b6c")
+        from flask_appbuilder.models.sqla.interface import SQLAInterface
+
+        from superset.charts.filters import ChartFilter
+        from superset.models.slice import Slice
+
+        query = ChartFilter("id", SQLAInterface(Slice, db.session)).apply(
+            db.session.query(Slice), None
+        )
+        assert query.count() == 0
