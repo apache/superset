@@ -94,6 +94,10 @@ Realtime transports, including WebSocket delivery backed by Redis or Valkey Pub/
 
 The realtime notification permission is distinct from the permission to read the underlying object. It controls whether a principal receives push notifications, not whether they may read the object once they call the protected REST API. Existing websocket connections are authorized by the JWT accepted at upgrade time; permission revocation after token minting is bounded by `WEBSOCKET_JWT_EXPIRATION_SECONDS` plus the websocket server's socket-check interval. Redis Streams are internal server-to-server coordination primitives and should not be directly exposed as an end-user subscription surface.
 
+### Version History and Change Metadata
+
+An entity's version history — its change-record activity stream, field-level before/after diffs, and the author identity and timestamps attached to each change — is not part of the base *Read data* capability. Reading it requires **object-level editorship** of the entity (owner, editor, or Admin), the same capability required to restore a version. A principal who can read an entity's current state but is not an editor of it — including an **embedded guest token** and any **view-only** (read-but-not-edit) role — is not entitled to its version history, change metadata, or author identity, and such requests are refused. Related-entity records in a cross-entity activity view remain silently filtered to the reader's own read access. A bug that discloses version history, change-record diffs, or author identity to a principal lacking object-level editorship is in scope.
+
 ### Vulnerability Scope
 
 The test for whether a finding is in scope is a single question:
