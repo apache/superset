@@ -608,8 +608,8 @@ class TestPruneAudit(SupersetTestCase):
         select_candidates: Callable[[int], sa.sql.Select] = partial(
             prune_audit._duplicate_candidates, now
         )
-        recheck_predicates: prune_audit._RecheckPredicates = partial(
-            prune_audit._duplicate_predicates, now=now
+        recheck_predicates: prune_audit._RecheckPredicates = (
+            prune_audit._DuplicateRecheck(now)
         )
 
         attempt: UUID = self.add_row(STATUS_PENDING, entity="rc", age_days=2)
@@ -668,8 +668,8 @@ class TestPruneAudit(SupersetTestCase):
         select_candidates: Callable[[int], sa.sql.Select] = partial(
             prune_audit._duplicate_candidates, now
         )
-        recheck_predicates: prune_audit._RecheckPredicates = partial(
-            prune_audit._duplicate_predicates, now=now
+        recheck_predicates: prune_audit._RecheckPredicates = (
+            prune_audit._DuplicateRecheck(now)
         )
 
         real_acquire = prune_audit.acquire_coordination_lock
@@ -1034,6 +1034,8 @@ class TestRepeatPredicateEquivalence(SupersetTestCase):
         cutoff_op: datetime = now - timedelta(days=90)
         cutoff_ev: datetime = now - timedelta(days=180)
         out: dict[str, set[UUID]] = {}
+        name: str
+        preds: list[sa.ColumnElement[bool]]
         for name, preds in (
             (
                 "duplicate",

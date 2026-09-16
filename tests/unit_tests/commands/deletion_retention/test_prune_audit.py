@@ -23,7 +23,6 @@ invariants) is covered by
 
 from __future__ import annotations
 
-import inspect
 import sqlite3
 from collections.abc import Callable
 from contextlib import contextmanager
@@ -996,13 +995,39 @@ def test_r2_run_and_batch_are_observable(caplog: pytest.LogCaptureFixture) -> No
     assert "discovered=1 removed=0" in caplog.text
 
 
-def test_r2_evidence_and_recheck_have_explicit_contracts() -> None:
-    """Evidence has no scope dependency and rechecks retain argument checking."""
-    assert (
-        "scope_entities"
-        not in inspect.signature(prune_audit._evidence_predicates).parameters
+@pytest.mark.parametrize(
+    ("factory", "predicate_name", "has_cutoff", "uses_scope"),
+    [
+        (prune_audit._DuplicateRecheck, "_duplicate_predicates", False, True),
+        (prune_audit._OperationalRecheck, "_operational_predicates", True, True),
+        (prune_audit._EvidenceRecheck, "_evidence_predicates", True, False),
+    ],
+)
+def test_recheck_adapters_forward_candidacy_inputs(
+    factory: Callable[..., prune_audit._RecheckPredicates],
+    predicate_name: str,
+    has_cutoff: bool,
+    uses_scope: bool,
+) -> None:
+    """Each adapter forwards the clock, cutoff and applicable scope unchanged."""
+    now: datetime = datetime(2026, 2, 1)
+    cutoff: datetime = datetime(2025, 11, 1)
+    adapter: prune_audit._RecheckPredicates = (
+        factory(now, cutoff) if has_cutoff else factory(now)
     )
-    assert "Callable[...," not in str(inspect.signature(prune_audit._delete_batch))
+    table: sa.Table = prune_audit.PurgeAuditLog.__table__
+    scope: list[tuple[str, str | None]] = [("dashboard", "one")]
+    expected: list[sa.ColumnElement[bool]] = [sa.true()]
+    predicate: MagicMock
+    with patch.object(prune_audit, predicate_name, return_value=expected) as predicate:
+        assert adapter(table, scope_entities=scope) is expected
+    args: tuple[sa.Table, datetime] | tuple[sa.Table, datetime, datetime] = (
+        (table, now, cutoff) if has_cutoff else (table, now)
+    )
+    if uses_scope:
+        predicate.assert_called_once_with(*args, scope_entities=scope)
+    else:
+        predicate.assert_called_once_with(*args)
 
 
 def test_r2_legacy_recheck_omits_unused_scope_binds() -> None:
