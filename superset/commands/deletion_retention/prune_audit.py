@@ -473,6 +473,9 @@ def _repeats_an_earlier_block(
         .select_from(groups)
         # Suffixes trail every other clause, so never add ORDER BY/LIMIT to
         # this select: they would be emitted before WINDOW and fail to parse.
+        # Aliasing this select (``aliased()``/``.alias()``, or any ORM
+        # adaption over ``grp``) rewrites the FROM but not the raw column
+        # text or this suffix, so both would keep naming the old alias.
         .suffix_with(f"WINDOW w AS (PARTITION BY {window_body})")
         .correlate(None)
         .subquery("preceding_groups")

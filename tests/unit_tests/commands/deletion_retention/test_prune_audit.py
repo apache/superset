@@ -502,6 +502,11 @@ def test_repeat_query_uses_lag_without_ctes() -> None:
     assert "with " not in sql
     assert "lag(" in sql
     assert "dense_rank(" not in sql
+    # The point of the shape: every LAG shares one named window, so the
+    # engine makes a single ordered pass instead of one per column.
+    assert sql.count("window w as (") == 1
+    assert sql.count("over w") == 5
+    assert "over (partition" not in sql
 
 
 @pytest.mark.parametrize("count", [1, 2, prune_audit.MAX_BATCH_SIZE])
