@@ -218,7 +218,9 @@ def test_run_repairs_a_position_json_with_a_detached_cycle(
 
 
 def _mock_dependencies(mocker: MockerFixture, existing_css: str) -> None:
-    model = mocker.MagicMock(id=1, tags=[], css=existing_css)
+    model = mocker.MagicMock(
+        id=1, tags=[], css=existing_css, is_managed_externally=False
+    )
     mocker.patch(
         "superset.commands.dashboard.update.DashboardDAO.find_by_id",
         return_value=model,
