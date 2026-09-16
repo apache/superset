@@ -326,15 +326,15 @@ def get_activity(
     # rides the list BEFORE ``total`` so the count endpoint agrees with
     # the page contents (+1) and pagination places it on the final page.
     # Gating is inherited, not re-implemented: the endpoint access-gated
-    # the path entity before calling here (edit-gated once #44021 lands),
+    # the path entity before calling here (requiring edit access),
     # and the record only ever describes that same path entity.
     if include != "related" and not truncated:
         # pylint: disable=import-outside-toplevel
         from superset.versioning.activity.creation import build_creation_record
         from superset.versioning.activity.kinds import NAME_COLUMN
 
-        name_attr = NAME_COLUMN.get(path_kind, (None, None))[1]
-        creation = build_creation_record(
+        name_attr: str | None = NAME_COLUMN.get(path_kind, (None, None))[1]
+        creation: dict[str, Any] | None = build_creation_record(
             model_cls,
             path_entity,
             getattr(path_entity, name_attr) if name_attr else None,

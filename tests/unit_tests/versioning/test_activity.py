@@ -100,6 +100,7 @@ def test_creation_record_schema_accepts_synthetic_kind() -> None:
         ("baseline", "pre_tracking"),
         ("import", "imported"),
         ("clone", "created"),
+        ("create", "created"),
         ("unrecognized", "unknown"),
     ],
 )

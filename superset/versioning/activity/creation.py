@@ -28,7 +28,7 @@ the ``/versions/`` family resolves).
 
 Placement and gating live in the orchestrator: the record is appended
 only for the PATH entity (it inherits the activity endpoint's access
-gate — edit-gated once #44021 lands),
+gate — edit access to the path entity),
 only when the stream is not truncated, and never for
 ``include="related"``. If retention pruned the op=0 row or its
 transaction, no record is synthesized — the timeline simply starts at
@@ -44,25 +44,14 @@ from flask_appbuilder import Model
 
 from superset.extensions import db
 from superset.versioning.activity.kinds import USER_FACING_KIND
-from superset.versioning.queries import derive_version_uuid
-
-#: ``kind`` value of the synthetic record. Like ``__meta__``, the dunder
-#: name keeps it out of the field-verb vocabulary; renderers dispatch on
-#: it explicitly.
-CREATION_RECORD_KIND = "__creation__"
-
-#: ``creation_kind`` machine values — the API ships these, never display
-#: strings; the frontend owns the user-facing copy in ONE constant.
-CREATION_KIND_PRE_TRACKING = "pre_tracking"
-CREATION_KIND_CREATED = "created"
-CREATION_KIND_IMPORTED = "imported"
-CREATION_KIND_UNKNOWN: str = "unknown"
-CREATION_KINDS: tuple[str, ...] = (
-    CREATION_KIND_PRE_TRACKING,
+from superset.versioning.creation_kinds import (
     CREATION_KIND_CREATED,
     CREATION_KIND_IMPORTED,
+    CREATION_KIND_PRE_TRACKING,
     CREATION_KIND_UNKNOWN,
+    CREATION_RECORD_KIND,
 )
+from superset.versioning.queries import derive_version_uuid
 
 
 def _creation_kind_for(action_kind: str | None) -> str:
@@ -70,6 +59,7 @@ def _creation_kind_for(action_kind: str | None) -> str:
     from superset.versioning.changes import (
         ACTION_KIND_BASELINE,
         ACTION_KIND_CLONE,
+        ACTION_KIND_CREATE,
         ACTION_KIND_IMPORT,
     )
 
@@ -77,7 +67,7 @@ def _creation_kind_for(action_kind: str | None) -> str:
         return CREATION_KIND_PRE_TRACKING
     if action_kind == ACTION_KIND_IMPORT:
         return CREATION_KIND_IMPORTED
-    if action_kind == ACTION_KIND_CLONE:
+    if action_kind in (ACTION_KIND_CLONE, ACTION_KIND_CREATE):
         return CREATION_KIND_CREATED
     # Unstamped ordinary inserts and historical retroactive baselines are
     # indistinguishable. Do not invent creation provenance for either.
@@ -85,7 +75,7 @@ def _creation_kind_for(action_kind: str | None) -> str:
 
 
 def build_creation_record(
-    model_cls: type[Model], entity: Any, entity_name: str | None
+    model_cls: type[Model], entity: Model, entity_name: str | None
 ) -> dict[str, Any] | None:
     """The synthetic starting-version record for *entity*, or ``None``.
 
@@ -104,9 +94,9 @@ def build_creation_record(
 
     from superset import security_manager
 
-    shadow = version_class(model_cls).__table__
-    tx_tbl = versioning_manager.transaction_cls.__table__
-    user_tbl = security_manager.user_model.__table__
+    shadow: sa.Table = version_class(model_cls).__table__
+    tx_tbl: sa.Table = versioning_manager.transaction_cls.__table__
+    user_tbl: sa.Table = security_manager.user_model.__table__
     # ONE inner-joined statement, not a shadow read followed by a
     # transaction check: retention deletes shadow rows and transactions
     # on different anchors (a transaction survives while any OTHER live
@@ -114,7 +104,7 @@ def build_creation_record(
     # is pruned between them and the row would be synthesized for an
     # unresolvable restore target. The join returns nothing unless BOTH
     # halves survive.
-    tx = (
+    tx: sa.engine.RowMapping | None = (
         db.session.execute(
             sa.select(
                 shadow.c.transaction_id,
@@ -142,10 +132,10 @@ def build_creation_record(
     )
     if tx is None:
         return None
-    creation_tx_id = tx["transaction_id"]
+    creation_tx_id: int = tx["transaction_id"]
 
-    api_kind = model_cls.__name__
-    changed_by = (
+    api_kind: str = model_cls.__name__
+    changed_by: dict[str, Any] | None = (
         {
             "id": tx["changed_by_id"],
             "first_name": tx["first_name"],
@@ -167,7 +157,7 @@ def build_creation_record(
         "changed_by": changed_by,
         "kind": CREATION_RECORD_KIND,
         "operation": "announce",
-        # The transaction-level 'baseline' stamp is INTERNAL provenance:
+        # Transaction-level baseline/create stamps are INTERNAL provenance:
         # the public action_kind vocabulary is restore/import/clone/null
         # (ActivityRecordSchema + the client's ActivityActionKind), so
         # the synthetic record ships null and display is driven by

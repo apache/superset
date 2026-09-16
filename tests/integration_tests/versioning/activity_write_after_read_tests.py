@@ -55,7 +55,7 @@ class TestActivityReadThenWrite(SupersetTestCase):
         """The DBEventLogger shape: read activity, then INSERT + commit on
         the SAME session. With the connection mutated into stream_results
         mode this failed on PostgreSQL before any assertion ran."""
-        slc = Slice(
+        slc: Slice = Slice(
             slice_name="sc120955_read_then_write",
             datasource_type="table",
             datasource_id=1,
@@ -68,14 +68,21 @@ class TestActivityReadThenWrite(SupersetTestCase):
             # history (its own INSERT), so the streaming fetch executes.
             slc.slice_name = "sc120955_read_then_write_edited"
             db.session.commit()
+            records: list[dict[str, Any]]
             with override_user(_admin_user()):
                 records, _, _ = get_activity(Slice, slc.uuid, resolved_entity=slc)
-            assert records is not None
+            assert any(
+                record["kind"] != "__creation__"
+                and record["entity_uuid"] == str(slc.uuid)
+                and record["path"] == ["slice_name"]
+                and record["to_value"] == "sc120955_read_then_write_edited"
+                for record in records
+            )
 
             # A write through the same session must still work — this is
             # what Continuum's transaction INSERT, SAVEPOINTs, and the
             # DBEventLogger all do after the endpoint's read.
-            follower = Slice(
+            follower: Slice = Slice(
                 slice_name="sc120955_follow_up_write",
                 datasource_type="table",
                 datasource_id=1,

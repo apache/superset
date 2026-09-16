@@ -26,6 +26,7 @@ from __future__ import annotations
 from marshmallow import fields, Schema, validate
 
 from superset.versioning.changes import ACTION_KINDS
+from superset.versioning.creation_kinds import CREATION_KINDS, CREATION_RECORD_KIND
 
 
 class VersionChangedBySchema(Schema):
@@ -204,7 +205,7 @@ ACTIVITY_CHANGE_KINDS: tuple[str, ...] = (
     # whose record's ``to_value`` carries the restored-to
     # ``version_uuid`` / ``version_number``.
     "__meta__",
-    "__creation__",
+    CREATION_RECORD_KIND,
 )
 
 #: Allowed values for ``ActivityRecordSchema.operation`` — the per-record
@@ -479,9 +480,9 @@ class ActivityRecordSchema(Schema):
             )
         },
     )
-    creation_kind = fields.String(
+    creation_kind: fields.String = fields.String(
         allow_none=True,
-        validate=validate.OneOf(["pre_tracking", "created", "imported", "unknown"]),
+        validate=validate.OneOf(CREATION_KINDS),
         metadata={
             "description": (
                 "Set only on the synthetic starting-version record "
