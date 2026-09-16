@@ -1158,3 +1158,21 @@ def test_handle_boolean_filter_equality_compilation() -> None:
         str(result_false.compile(compile_kwargs={"literal_binds": True}))
         == "is_test_user = false"
     )
+
+
+def test_handle_boolean_filter_computed_column_compilation() -> None:
+    """
+    Test that handle_boolean_filter compiles properly on computed boolean expressions.
+    """
+    from sqlalchemy import literal_column
+    from superset.db_engine_specs.databricks import DatabricksBaseEngineSpec
+    from superset.utils.core import FilterOperator
+
+    computed_col = literal_column("(total_amount > 100)")
+    result = DatabricksBaseEngineSpec.handle_boolean_filter(
+        computed_col, FilterOperator.IS_TRUE, True
+    )
+    assert (
+        str(result.compile(compile_kwargs={"literal_binds": True}))
+        == "(total_amount > 100) = true"
+    )
