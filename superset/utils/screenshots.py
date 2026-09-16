@@ -366,12 +366,10 @@ class BaseScreenshot:
                 raise ScreenshotCacheError(
                     f"Could not read screenshot cache key {cache_key}"
                 ) from ex
-            # Preserve the historical thumbnail/chart behavior: a transient
-            # read failure is treated as a miss. The dashboard screenshot API
-            # opts into the exception so it can distinguish an outage from a
-            # genuinely absent generation and return 503 instead of enqueueing.
-            logger.exception("Failed to read screenshot cache key %s", cache_key)
-            return None
+            # Existing thumbnail/chart callers historically propagate cache
+            # backend failures. Only strict API callers opt into the translated
+            # error above so they can return a deliberate service response.
+            raise
         if payload:
             # Initially, only bytes were stored. This was changed to store an instance
             # of ScreenshotCachePayload, but since it can't be serialized in all

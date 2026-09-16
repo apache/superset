@@ -226,14 +226,15 @@ def test_get_from_cache_key(mocker: MockerFixture, screenshot_obj):
     assert cache_payload._image == fake_bytes  # pylint: disable=protected-access
 
 
-def test_cache_read_failure_preserves_legacy_miss_behavior(
+def test_cache_read_failure_preserves_legacy_exception_behavior(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     cache = MagicMock()
     cache.get.side_effect = RuntimeError("cache unavailable")
     monkeypatch.setattr(BaseScreenshot, "cache", cache)
 
-    assert BaseScreenshot.get_from_cache_key("key") is None
+    with pytest.raises(RuntimeError, match="cache unavailable"):
+        BaseScreenshot.get_from_cache_key("key")
 
 
 def test_cache_read_failure_can_be_distinguished_by_api(
@@ -290,6 +291,24 @@ class TestComputeAndCache:
         mocker.patch("superset.utils.screenshots.DistributedLock")
 
         with pytest.raises(ScreenshotCacheError, match="Could not read"):
+            screenshot.compute_and_cache(force=True, cache_key="key")
+
+        get_screenshot.assert_not_called()
+        cache.set.assert_not_called()
+
+    def test_legacy_capture_read_failure_aborts_without_write(
+        self,
+        mocker: MockerFixture,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        cache = MagicMock()
+        cache.get.side_effect = TimeoutError("cache unavailable")
+        monkeypatch.setattr(BaseScreenshot, "cache", cache)
+        screenshot = BaseScreenshot("http://example.com", "digest")
+        get_screenshot = mocker.patch(BASE_SCREENSHOT_PATH + ".get_screenshot")
+        mocker.patch("superset.utils.screenshots.DistributedLock")
+
+        with pytest.raises(TimeoutError, match="cache unavailable"):
             screenshot.compute_and_cache(force=True, cache_key="key")
 
         get_screenshot.assert_not_called()
