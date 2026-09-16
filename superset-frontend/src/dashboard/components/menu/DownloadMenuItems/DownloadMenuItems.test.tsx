@@ -169,7 +169,12 @@ test('Export Data to Excel posts mode "data" and shows a pending toast', async (
 
   render(<MenuWrapper />, { useRedux: true, initialState: loggedInState });
 
-  await userEvent.click(screen.getByText('Export Data to Excel'));
+  // forceSubMenuRender keeps the submenu item in the DOM for querying
+  // even while visually closed (pointer-events: none); bypass user-event's
+  // pointer-events check rather than simulating the hover-to-open flow.
+  await userEvent.click(screen.getByText('Export Data to Excel'), {
+    pointerEventsCheck: 0,
+  });
 
   await waitFor(() => {
     expect(mockSupersetClient.post).toHaveBeenCalledWith({
@@ -191,7 +196,10 @@ test('Export Images to Excel posts mode "images" and shows a pending toast', asy
 
   render(<MenuWrapper />, { useRedux: true, initialState: loggedInState });
 
-  await userEvent.click(screen.getByText('Export Images to Excel'));
+  // See forceSubMenuRender note above.
+  await userEvent.click(screen.getByText('Export Images to Excel'), {
+    pointerEventsCheck: 0,
+  });
 
   await waitFor(() => {
     expect(mockSupersetClient.post).toHaveBeenCalledWith({
@@ -357,7 +365,10 @@ test('Export Data to Excel shows an "already in progress" toast when throttled',
 
   render(<MenuWrapper />, { useRedux: true, initialState: loggedInState });
 
-  await userEvent.click(screen.getByText('Export Data to Excel'));
+  // See forceSubMenuRender note above.
+  await userEvent.click(screen.getByText('Export Data to Excel'), {
+    pointerEventsCheck: 0,
+  });
 
   await waitFor(() => {
     expect(mockAddInfoToast).toHaveBeenCalledWith(
@@ -372,7 +383,10 @@ test('Export Data to Excel shows a config error toast on 501', async () => {
 
   render(<MenuWrapper />, { useRedux: true, initialState: loggedInState });
 
-  await userEvent.click(screen.getByText('Export Data to Excel'));
+  // See forceSubMenuRender note above.
+  await userEvent.click(screen.getByText('Export Data to Excel'), {
+    pointerEventsCheck: 0,
+  });
 
   await waitFor(() => {
     expect(mockAddDangerToast).toHaveBeenCalledWith(
@@ -387,7 +401,10 @@ test('Export Data to Excel shows a generic error toast on other failures', async
 
   render(<MenuWrapper />, { useRedux: true, initialState: loggedInState });
 
-  await userEvent.click(screen.getByText('Export Data to Excel'));
+  // See forceSubMenuRender note above.
+  await userEvent.click(screen.getByText('Export Data to Excel'), {
+    pointerEventsCheck: 0,
+  });
 
   await waitFor(() => {
     expect(mockAddDangerToast).toHaveBeenCalledWith(
@@ -414,7 +431,10 @@ test('Export as Example calls SupersetClient.get with correct endpoint', async (
 
   render(<MenuWrapper />, { useRedux: true, initialState: loggedInState });
 
-  await userEvent.click(screen.getByText('Export as Example'));
+  // See forceSubMenuRender note above.
+  await userEvent.click(screen.getByText('Export as Example'), {
+    pointerEventsCheck: 0,
+  });
 
   await waitFor(() => {
     expect(mockSupersetClient.get).toHaveBeenCalledWith({
@@ -433,7 +453,10 @@ test('Export as Example shows error toast on failure', async () => {
 
   render(<MenuWrapper />, { useRedux: true, initialState: loggedInState });
 
-  await userEvent.click(screen.getByText('Export as Example'));
+  // See forceSubMenuRender note above.
+  await userEvent.click(screen.getByText('Export as Example'), {
+    pointerEventsCheck: 0,
+  });
 
   await waitFor(() => {
     expect(mockAddDangerToast).toHaveBeenCalledWith(
