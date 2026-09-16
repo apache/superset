@@ -97,7 +97,7 @@ not a fixed time bound, which the batch-size setting trades against drain speed.
 
 Audit creation/recovery and every pruning batch's DELETE take the same
 singleton database write lock. It serializes creation and recovery, not in-place
-finalization: unresolved-attempt guards protect against that concurrent change.
+finalization: pending-aware candidacy guards protect against that concurrent change.
 The expensive candidate discovery runs before the lock, so it does not
 extend the lock-hold. Automatic pruning still ships disabled by default so
 operators explicitly choose their retention policy.
@@ -161,7 +161,7 @@ BATCH_SIZE: int = 50
 #: two scope lists repeated in three derived tables), plus fewer than 50 scalar
 #: binds.
 #: A 100-row ceiling keeps both rechecks below SQLite's historical 999-variable
-#: limit without changing the measured window-query plan. Custom SQLite limits
+#: limit without changing the window-query plan. Custom SQLite limits
 #: below 750 require a smaller configured batch.
 MAX_BATCH_SIZE: int = 100
 BATCH_SIZE_KEY: str = "PURGE_AUDIT_PRUNING_BATCH_SIZE"
