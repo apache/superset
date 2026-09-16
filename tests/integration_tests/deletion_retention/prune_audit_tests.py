@@ -608,8 +608,8 @@ class TestPruneAudit(SupersetTestCase):
         select_candidates: Callable[[int], sa.sql.Select] = partial(
             prune_audit._duplicate_candidates, now
         )
-        recheck_predicates: Callable[[sa.FromClause], list[sa.ColumnElement[bool]]] = (
-            partial(prune_audit._duplicate_predicates, now=now)
+        recheck_predicates: prune_audit._RecheckPredicates = partial(
+            prune_audit._duplicate_predicates, now=now
         )
 
         attempt: UUID = self.add_row(STATUS_PENDING, entity="rc", age_days=2)
@@ -668,8 +668,8 @@ class TestPruneAudit(SupersetTestCase):
         select_candidates: Callable[[int], sa.sql.Select] = partial(
             prune_audit._duplicate_candidates, now
         )
-        recheck_predicates: Callable[[sa.FromClause], list[sa.ColumnElement[bool]]] = (
-            partial(prune_audit._duplicate_predicates, now=now)
+        recheck_predicates: prune_audit._RecheckPredicates = partial(
+            prune_audit._duplicate_predicates, now=now
         )
 
         real_acquire = prune_audit.acquire_coordination_lock
@@ -1024,21 +1024,38 @@ class TestRepeatPredicateEquivalence(SupersetTestCase):
         db.session.commit()
 
     @staticmethod
-    def _candidate_sets(now: datetime) -> dict[str, set[UUID]]:
+    def _candidate_sets(
+        now: datetime,
+        scope_entities: Sequence[tuple[str, str | None]] | None = None,
+        candidate_ids: list[UUID] | None = None,
+    ) -> dict[str, set[UUID]]:
+        """Compare full candidacy, with identity scope only as an optimization."""
         table: sa.Table = PurgeAuditLog.__table__
         cutoff_op: datetime = now - timedelta(days=90)
         cutoff_ev: datetime = now - timedelta(days=180)
         out: dict[str, set[UUID]] = {}
         for name, preds in (
-            ("duplicate", prune_audit._duplicate_predicates(table, now)),
-            ("operational", prune_audit._operational_predicates(table, now, cutoff_op)),
+            (
+                "duplicate",
+                prune_audit._duplicate_predicates(table, now, scope_entities),
+            ),
+            (
+                "operational",
+                prune_audit._operational_predicates(
+                    table, now, cutoff_op, scope_entities
+                ),
+            ),
             ("evidence", prune_audit._evidence_predicates(table, now, cutoff_ev)),
         ):
             out[name] = {
                 r[0]
                 for r in db.session.execute(
-                    sa.select(table.c.id).where(
-                        table.c.entity_type == _EQUIV_ENTITY_TYPE, *preds
+                    sa.select(table.c.id)
+                    .where(table.c.entity_type == _EQUIV_ENTITY_TYPE, *preds)
+                    .where(
+                        table.c.id.in_(candidate_ids)
+                        if candidate_ids is not None
+                        else sa.true()
                     )
                 ).all()
             }
@@ -1063,29 +1080,43 @@ class TestRepeatPredicateEquivalence(SupersetTestCase):
             db.session.commit()
             checked_rows += len(rows)
 
-            rewritten: dict[str, set[UUID]] = self._candidate_sets(now)
-            with patch.object(
-                prune_audit,
-                "_repeats_an_earlier_block",
-                _legacy_repeats_an_earlier_block,
-            ):
-                legacy: dict[str, set[UUID]] = self._candidate_sets(now)
+            subset: list[dict[str, Any]] = rows[::2]
+            scopes: list[
+                tuple[list[tuple[str, str | None]] | None, list[UUID] | None]
+            ] = [
+                (None, None),
+                (
+                    [(r["entity_type"], r["entity_uuid"]) for r in subset],
+                    [r["id"] for r in subset],
+                ),
+                ([], []),
+            ]
+            scope: list[tuple[str, str | None]] | None
+            ids: list[UUID] | None
+            for scope, ids in scopes:
+                with patch.object(prune_audit, "_repeat_path", return_value="window"):
+                    rewritten: dict[str, set[UUID]] = self._candidate_sets(
+                        now, scope, ids
+                    )
+                with patch.object(
+                    prune_audit,
+                    "_repeats_an_earlier_block",
+                    _legacy_repeats_an_earlier_block,
+                ):
+                    legacy: dict[str, set[UUID]] = self._candidate_sets(now, scope, ids)
+                with patch.object(prune_audit, "_repeat_path", return_value="legacy"):
+                    fallback: dict[str, set[UUID]] = self._candidate_sets(
+                        now, scope, ids
+                    )
 
-            with patch.object(
-                prune_audit,
-                "_repeats_an_earlier_block",
-                prune_audit._legacy_repeats_an_earlier_block,
-            ):
-                fallback: dict[str, set[UUID]] = self._candidate_sets(now)
-
-            for category in ("duplicate", "operational", "evidence"):
-                assert fallback[category] == legacy[category], (
-                    f"seed={seed} category={category}: legacy fallback diverged"
-                )
-                assert rewritten[category] == legacy[category], (
-                    f"seed={seed} category={category}: "
-                    f"only-rewritten={len(rewritten[category] - legacy[category])} "
-                    f"only-legacy={len(legacy[category] - rewritten[category])}"
-                )
+                for category in ("duplicate", "operational", "evidence"):
+                    assert fallback[category] == legacy[category], (
+                        f"seed={seed} category={category}: legacy fallback diverged"
+                    )
+                    assert rewritten[category] == legacy[category], (
+                        f"seed={seed} category={category}: "
+                        f"only-rewritten={len(rewritten[category] - legacy[category])} "
+                        f"only-legacy={len(legacy[category] - rewritten[category])}"
+                    )
         # Guard against a generator regression that quietly checks nothing.
         assert checked_rows > 1000

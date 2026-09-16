@@ -1064,8 +1064,8 @@ PURGE_AUDIT_EVIDENCE_RETENTION_DAYS: int | None = None
 # sample): 50 -> ~0.15 s / ~1.2 s; 100 -> ~0.9 s / ~7.7 s; 500 -> ~6.4 s / ~50 s.
 # The default keeps a concurrent writer's wait around a second even on MySQL;
 # larger batches drain a backlog faster (ten batches per run) at the cost of
-# longer waits. Must be a non-boolean integer in [1, 500] (a conservative
-# cross-dialect ceiling for the bind-parameter budget); an explicit invalid
+# longer waits. Must be a non-boolean integer in [1, 100] (the repeated scope
+# binds fit SQLite's historical 999-variable budget); an explicit invalid
 # value — including None, a numeric string, or a float — makes the run skip
 # entirely and report the key rather than prune with an unknown batch size.
 PURGE_AUDIT_PRUNING_BATCH_SIZE: int = 50

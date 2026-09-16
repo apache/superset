@@ -24,6 +24,16 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Purge-audit pruning batch ceiling
+
+`PURGE_AUDIT_PRUNING_BATCH_SIZE` accepts integers from 1 through 100; the
+default remains 50. Deployments that configured 101–500 must lower that value,
+otherwise pruning skips the run and reports the invalid configuration key.
+This ceiling keeps the window recheck's repeated scope parameters below SQLite's
+historical 999-variable limit. Custom SQLite builds with a limit below 750 need
+a smaller batch. MySQL before 8.0, MariaDB before 10.2, and unknown MySQL-family
+server versions use the equivalent non-window repeat predicate.
+
 ### Default Docker image is now batteries-included; the minimal image moves to `-lean`
 
 The default `apache/superset` Docker image (the plain tags: `latest`, `master`,
