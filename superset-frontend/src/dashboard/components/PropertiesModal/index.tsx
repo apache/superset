@@ -609,10 +609,11 @@ const PropertiesModal = ({
         name: t('General information'),
         validator: () => {
           const errors = [];
-          const values = form.getFieldsValue();
+          // Not getFieldsValue(): it omits fields that have not registered
+          // yet, and this can run before the title field mounts.
+          const title = form.getFieldValue('title');
 
-          // Check validation - only add if title is empty
-          if (!values.title || values.title.trim().length === 0) {
+          if (!title || title.trim().length === 0) {
             errors.push(t('Dashboard name is required'));
           }
 
