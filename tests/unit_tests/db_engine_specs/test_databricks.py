@@ -1221,3 +1221,34 @@ def test_spark_handle_boolean_filter_computed_column_compilation() -> None:
         str(result.compile(compile_kwargs={"literal_binds": True}))
         == "(item_count > 0) = true"
     )
+
+
+def test_handle_boolean_filter_subclasses_compilation() -> None:
+    """
+    Test that DatabricksNativeEngineSpec and DatabricksPythonConnectorEngineSpec
+    compile boolean filters with equality comparison.
+    """
+    from sqlalchemy import Boolean, Column
+    from superset.db_engine_specs.databricks import (
+        DatabricksNativeEngineSpec,
+        DatabricksPythonConnectorEngineSpec,
+    )
+    from superset.utils.core import FilterOperator
+
+    bool_col = Column("flag", Boolean)
+
+    native_res = DatabricksNativeEngineSpec.handle_boolean_filter(
+        bool_col, FilterOperator.IS_TRUE, True
+    )
+    assert (
+        str(native_res.compile(compile_kwargs={"literal_binds": True}))
+        == "flag = true"
+    )
+
+    pyconn_res = DatabricksPythonConnectorEngineSpec.handle_boolean_filter(
+        bool_col, FilterOperator.IS_FALSE, False
+    )
+    assert (
+        str(pyconn_res.compile(compile_kwargs={"literal_binds": True}))
+        == "flag = false"
+    )
