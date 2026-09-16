@@ -112,7 +112,7 @@ cachelib==0.17.0
     #   -c requirements/base-constraint.txt
     #   flask-caching
     #   flask-session
-cachetools==7.1.7
+cachetools==7.1.8
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -176,7 +176,7 @@ click-repl==0.3.0
     # via
     #   -c requirements/base-constraint.txt
     #   celery
-clickhouse-connect==1.7.2
+clickhouse-connect==1.8.0
     # via apache-superset
 cmdstanpy==1.1.0
     # via prophet
@@ -314,7 +314,7 @@ flask-babel==4.0.0
     # via
     #   -c requirements/base-constraint.txt
     #   flask-appbuilder
-flask-caching==2.5.0
+flask-caching==2.5.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -861,7 +861,7 @@ pymongo==4.17.0
     #   testcontainers
 pymongosql==0.7.4
     # via apache-superset
-pymssql==2.3.13
+pymssql==2.4.1
     # via
     #   apache-superset
     #   testcontainers
@@ -1098,7 +1098,7 @@ sqlalchemy-utils==0.42.1
     #   apache-superset
     #   apache-superset-core
     #   flask-appbuilder
-sqlglot==30.17.0
+sqlglot==30.18.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset

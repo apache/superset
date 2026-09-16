@@ -25,15 +25,15 @@ test('should render a div.hover-menu', () => {
   expect(container.querySelector('.hover-menu')).toBeInTheDocument();
 });
 
-test('should call onHover when mouse enters and leaves', () => {
+test('should call onHover when mouse enters and leaves', async () => {
   const onHover = jest.fn();
   render(<HoverMenu onHover={onHover} />);
 
   const hoverMenu = screen.getByTestId('hover-menu');
 
-  userEvent.hover(hoverMenu);
+  await userEvent.hover(hoverMenu);
   expect(onHover).toHaveBeenCalledWith({ isHovered: true });
 
-  userEvent.unhover(hoverMenu);
+  await userEvent.unhover(hoverMenu);
   expect(onHover).toHaveBeenCalledWith({ isHovered: false });
 });
