@@ -166,6 +166,14 @@ const Tabs = (props: TabsProps): ReactElement => {
   const prevTabIds = usePrevious(props.component.children);
 
   useEffect(() => {
+    // A TABS component with no children resolves no tab id, so there is
+    // nothing to activate. Dispatching the unresolved id would register an
+    // `undefined` entry in dashboardState.activeTabs, which JSON.stringify
+    // coerces to `null` when the dashboard state is posted to the permalink
+    // endpoint.
+    if (!activeKey) {
+      return;
+    }
     if (prevActiveKey) {
       props.setActiveTab(activeKey, prevActiveKey);
     } else {

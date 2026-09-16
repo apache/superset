@@ -265,6 +265,24 @@ test('Switching tabs', async () => {
   expect(props.onChangeTab).toHaveBeenCalled();
 });
 
+test('A childless TABS component does not register an active tab', () => {
+  // Regression guard for the permalink failure caused by empty tab containers:
+  // a TABS component with no children has no tab id to activate, so resolving
+  // `children[tabIndex]` yields `undefined`. Dispatching that into
+  // `dashboardState.activeTabs` puts an `undefined` entry in the array, which
+  // `JSON.stringify` coerces to `null` in the permalink request body.
+  const props = createProps();
+  props.editMode = false;
+  props.component.children = [];
+
+  render(<Tabs {...props} />, {
+    useRedux: true,
+    useDnd: true,
+  });
+
+  expect(props.setActiveTab).not.toHaveBeenCalled();
+});
+
 test('activeTabs hydrated from a permalink selects the matching tab content', () => {
   // Regression guard for #36132: when a dashboard is opened via a
   // permalink/anchor (including embedded dashboards), the permalink state is
