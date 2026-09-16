@@ -37,7 +37,7 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timedelta
 from typing import Any, Callable, TypedDict
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from flask import current_app, Request
 
@@ -78,7 +78,11 @@ LoginTokenIdentityResolver = Callable[..., LoginTokenUserInfo | None]
 
 def is_enabled() -> bool:
     """Whether the flow is usable: feature flag on and a resolver configured."""
-    from superset import is_feature_enabled
+    # Deferred: ``superset/__init__`` imports the app factory, so a module-level
+    # import here would be circular via superset.daos / superset.security.
+    from superset import (  # pylint: disable=import-outside-toplevel
+        is_feature_enabled,
+    )
 
     if not is_feature_enabled("LOGIN_TOKEN"):
         return False
@@ -172,8 +176,6 @@ def consume(token: str) -> LoginTokenUserInfo | None:
     Returns ``None`` for an unknown, malformed, or expired token -- callers must
     not distinguish between those cases in their response.
     """
-    from uuid import UUID
-
     try:
         key = UUID(token)
     except (AttributeError, TypeError, ValueError):
