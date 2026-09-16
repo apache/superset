@@ -612,6 +612,74 @@ def test_delete_batch_reads_entity_scope_only_after_the_fresh_snapshot_lock() ->
     assert "SELECT" not in delete_sql
 
 
+def test_delete_batch_skips_the_locked_scope_lookup_when_the_category_opts_out() -> (
+    None
+):
+    """Take one fewer statement under the lock for a scope-free category.
+
+    The counterpart to
+    ``test_delete_batch_reads_entity_scope_only_after_the_fresh_snapshot_lock``:
+    with ``needs_entity_scope=False`` the scope SELECT is not issued at all,
+    and ``scope_entities`` is absent from the re-check call rather than passed
+    empty -- so a predicate builder that does need a scope raises instead of
+    silently binding an unscoped history.
+    """
+    table: sa.Table = prune_audit.PurgeAuditLog.__table__
+    ids: list[UUID] = [uuid4(), uuid4()]
+    select_candidates: MagicMock = MagicMock()
+    recheck_predicates: MagicMock = MagicMock(return_value=[])
+    events: MagicMock = MagicMock()
+    mock_db: MagicMock
+    lock: MagicMock
+    with (
+        patch.object(prune_audit, "db") as mock_db,
+        patch.object(prune_audit, "acquire_coordination_lock") as lock,
+    ):
+        events.attach_mock(mock_db.session.execute, "execute")
+        events.attach_mock(mock_db.session.rollback, "rollback")
+        events.attach_mock(lock, "lock")
+        events.attach_mock(mock_db.session.commit, "commit")
+        mock_db.session.execute.side_effect = [
+            [(id_,) for id_ in ids],
+            [(ids[0],)],
+            MagicMock(rowcount=1),
+        ]
+        assert prune_audit._delete_batch(
+            select_candidates, recheck_predicates, 2, needs_entity_scope=False
+        ) == (2, 1)
+    # Re-check then delete: exactly one fewer execute between the lock and the
+    # commit than the scoped path takes.
+    assert [event[0] for event in events.mock_calls] == [
+        "execute",
+        "rollback",
+        "lock",
+        "execute",
+        "execute",
+        "commit",
+    ]
+    recheck_predicates.assert_called_once_with(table)
+    assert "scope_entities" not in recheck_predicates.call_args.kwargs
+    assert str(mock_db.session.execute.call_args_list[1].args[0]).startswith("SELECT")
+
+
+def test_only_the_evidence_category_opts_out_of_the_locked_scope_lookup() -> None:
+    """Wire the opt-out to the one category whose predicates take no scope."""
+    mock_delete: MagicMock
+    with patch.dict(current_app.config, {EVIDENCE_RETENTION_KEY: 3650}):
+        with patch.object(
+            prune_audit, "_delete_batch", return_value=(0, 0)
+        ) as mock_delete:
+            prune_audit.run_prune()
+    assert [
+        (call.args[1].func, call.kwargs["needs_entity_scope"])
+        for call in mock_delete.call_args_list
+    ] == [
+        (prune_audit._duplicate_predicates, True),
+        (prune_audit._operational_predicates, True),
+        (prune_audit._evidence_predicates, False),
+    ]
+
+
 @pytest.mark.parametrize(
     ("scope_entities", "has_repeat"),
     [
