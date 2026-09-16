@@ -54,6 +54,8 @@ from superset.mcp_service.chart.schemas import (
     TableChartConfig,
     XYChartConfig,
 )
+from superset.mcp_service.chart.validation.dataset_validator import DatasetValidator
+from superset.mcp_service.common.error_schemas import DatasetContext
 from superset.utils.core import ColumnSpec, FilterOperator, GenericDataType
 
 
@@ -79,6 +81,19 @@ def test_merge_chart_preserves_omitted_defaults(
         metric=ColumnRef(name="revenue", aggregate="SUM"),
         **updates,
     )
+    config = DatasetValidator.normalize_column_names(
+        config,
+        dataset_id=1,
+        dataset_context=DatasetContext(
+            id=1,
+            table_name="sales",
+            database_name="db",
+            available_columns=[{"name": "Product"}, {"name": "Revenue"}],
+            available_metrics=[],
+        ),
+    )
+    assert config.dimension.name == "Product"
+    assert config.metric.name == "Revenue"
     new_form_data = map_pie_config(config)
     existing = {
         "viz_type": new_form_data["viz_type"],
