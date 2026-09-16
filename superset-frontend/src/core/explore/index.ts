@@ -31,7 +31,9 @@ const getExploreState = () => (store.getState() as RootState).explore;
 const isExploreActive = (): boolean => navigation.getPage() === 'explore';
 
 const getChartId: typeof exploreApi.getChartId = () =>
-  isExploreActive() ? getExploreState().slice?.slice_id ?? undefined : undefined;
+  isExploreActive()
+    ? (getExploreState().slice?.slice_id ?? undefined)
+    : undefined;
 
 const getControlValues: typeof exploreApi.getControlValues = () =>
   isExploreActive()

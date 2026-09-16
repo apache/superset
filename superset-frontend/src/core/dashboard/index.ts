@@ -41,7 +41,7 @@ const requireDashboardId = (): number => {
 };
 
 const getDashboardId: typeof dashboardApi.getDashboardId = () =>
-  isDashboardActive() ? getState().dashboardInfo.id ?? undefined : undefined;
+  isDashboardActive() ? (getState().dashboardInfo.id ?? undefined) : undefined;
 
 const getLayout: typeof dashboardApi.getLayout = () =>
   isDashboardActive()
@@ -68,7 +68,7 @@ const updateLayoutNode: typeof dashboardApi.updateLayoutNode = async (
 };
 
 const getCss: typeof dashboardApi.getCss = () =>
-  isDashboardActive() ? getState().dashboardInfo.css ?? '' : '';
+  isDashboardActive() ? (getState().dashboardInfo.css ?? '') : '';
 
 const setCss: typeof dashboardApi.setCss = async (css: string) => {
   requireDashboardId();
