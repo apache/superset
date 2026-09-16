@@ -69,6 +69,22 @@ test('treats a four-digit integer string as a year, not as milliseconds', () => 
   );
 });
 
+test('does not treat a short non-year digit-only string as epoch milliseconds', () => {
+  // A YYYYMMDD date key or bare year-adjacent string like these is neither
+  // the four-digit year form nor long enough to plausibly be an epoch
+  // timestamp, so it must be left unchanged rather than silently rendered
+  // as a moment near 1970.
+  expect(stringifyTimeInput('20260903', format)).toBe('20260903');
+  expect(stringifyTimeInput('19870214', format)).toBe('19870214');
+  expect(stringifyTimeInput('999999999', format)).toBe('999999999');
+});
+
+test('treats a ten-digit integer string as epoch milliseconds', () => {
+  expect(stringifyTimeInput('1000000000', format)).toBe(
+    '1970-01-12T13:46:40.000Z',
+  );
+});
+
 test('returns the original input of an unparseable DateWithFormatter without re-entering the formatter', () => {
   // The `${value}` fallback calls `DateWithFormatter.toString()`, which must
   // return the input rather than call the formatter again, or the two would
