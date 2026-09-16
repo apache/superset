@@ -80,6 +80,8 @@ def touch_dashboards(dashboards: list[Any] | None) -> None:
     When charts are created with attached dashboards or updated to link to new
     dashboards, bump the dashboard audit metadata so the dashboards list view
     and caches reflect the recent change (resolves apache/superset#44305).
+
+    :param dashboards: list of Dashboard models to update
     """
     if not dashboards:
         return
