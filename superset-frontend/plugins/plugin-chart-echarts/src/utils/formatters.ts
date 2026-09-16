@@ -35,6 +35,10 @@ import {
 } from '@superset-ui/core';
 import { TIMESERIES_CONSTANTS } from '../constants';
 
+// Renders quarter-grained temporal axes as e.g. "2024-Q1" instead of a
+// month/year smart date. `%q` is the d3-time-format quarter specifier.
+export const QUARTER_TIME_FORMAT = '%Y-Q%q';
+
 export const getSmartDateDetailedFormatter = () =>
   getTimeFormatter(SMART_DATE_DETAILED_ID);
 
@@ -44,6 +48,10 @@ export const getSmartDateFormatter = (timeGrain?: string) => {
   // If no time grain provided, use the standard smart date formatter
   if (!timeGrain) {
     return baseFormatter;
+  }
+
+  if (timeGrain === TimeGranularity.QUARTER) {
+    return getTimeFormatter(QUARTER_TIME_FORMAT);
   }
 
   // Create a wrapper that normalizes dates based on time grain
@@ -62,15 +70,6 @@ export const getSmartDateFormatter = (timeGrain?: string) => {
         // Set to January 1st at midnight UTC - smart formatter will show year
         const year = normalizedDate.getUTCFullYear();
         const cleanDate = new Date(Date.UTC(year, 0, 1, 0, 0, 0, 0));
-        return baseFormatter(cleanDate);
-      } else if (timeGrain === TimeGranularity.QUARTER) {
-        // Set to first month of quarter, first day, midnight UTC
-        const year = normalizedDate.getUTCFullYear();
-        const month = normalizedDate.getUTCMonth();
-        const quarterStartMonth = Math.floor(month / 3) * 3;
-        const cleanDate = new Date(
-          Date.UTC(year, quarterStartMonth, 1, 0, 0, 0, 0),
-        );
         return baseFormatter(cleanDate);
       } else if (timeGrain === TimeGranularity.MONTH) {
         // Set to first of month at midnight UTC - smart formatter will show month name or year
@@ -188,10 +187,13 @@ export function getTooltipTimeFormatter(
   timeGrain?: TimeGranularity,
 ): TimeFormatter | StringConstructor {
   // When a time grain is active and the user hasn't pinned an explicit format,
-  // honor the grain so tooltips read "Jan 2021", "2021 Q1", "2021", weekly
+  // honor the grain so tooltips read "Jan 2021", "2021-Q1", "2021", weekly
   // ranges, etc. instead of a fixed timestamp. An explicit custom format is
   // always respected verbatim.
   if (!format || format === SMART_DATE_ID) {
+    if (timeGrain === TimeGranularity.QUARTER) {
+      return getTimeFormatter(QUARTER_TIME_FORMAT);
+    }
     if (timeGrain) {
       return getTimeFormatter(undefined, timeGrain);
     }
