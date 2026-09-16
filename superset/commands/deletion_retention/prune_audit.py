@@ -378,9 +378,29 @@ def _repeats_an_earlier_block(
     P is the immediately preceding distinct blocked timestamp. A row repeats
     only when P is in the current streak and both timestamp groups contain
     solely its reason (including all-NULL groups). LAG over timestamp groups
-    supplies P and its reason counts without a group self-join. The sc-120493
-    PostgreSQL round-1 plan materialized a groups CTE and joined on entity
-    alone before filtering ranks, comparing 36 million row pairs.
+    supplies P and its reason counts without a group self-join.
+
+    All five ``LAG`` columns share one SQL-level named ``WINDOW w`` (a raw
+    text fragment: SQLAlchemy Core has no construct for a named ``WINDOW``
+    clause) instead of five separate ``LAG(...) OVER (...)`` expressions that
+    happen to repeat the same partition/order spec. PostgreSQL already
+    recognizes five identical inline window specs as one logical pass, but
+    MySQL 8 does not merge them — each materializes its own temporary table,
+    roughly five sequential passes over the batch's timestamp groups. A named
+    window is the SQL-level way to say "this is the same window" so MySQL
+    evaluates it once; PostgreSQL and SQLite (>= 3.25) accept the same syntax
+    unchanged (sc-120950).
+    An equality join back to a *second* instance of the timestamp-groups
+    derived table (fetching P's aggregates via
+    ``(entity_type, entity_uuid, ts = prev_ts)`` instead of four more ``LAG``
+    columns) was measured and rejected here: PostgreSQL's planner
+    misestimates the derived table's row count for a single-entity batch scope
+    and chooses a Nested Loop over an unindexed ``Materialize`` of the second
+    instance — an O(batch × history) comparison, the same failure shape as
+    the sc-120493 round-1 CTE/entity-only-merge regression, just via a
+    different join path. The named-``WINDOW`` shape keeps the exact join
+    structure already measured safe on PostgreSQL (sc-120493): only the
+    ``LAG`` columns' SQL text changes.
 
     Keep the repeat-id query uncorrelated: sc-120493 measurements in
     lock-hold-evidence/REPORT.md, Variant 2, showed MySQL repeatedly executing
@@ -414,6 +434,7 @@ def _repeats_an_earlier_block(
         .correlate(None)
         .subquery("blocked_rows")
     )
+    groups_name = "blocked_timestamp_groups"
     groups: sa.Subquery = (
         sa.select(
             source.c.entity_type,
@@ -428,21 +449,28 @@ def _repeats_an_earlier_block(
         .where(*blocked_filters, *scope)
         .group_by(source.c.entity_type, source.c.entity_uuid, source.c.created_on)
         .correlate(None)
-        .subquery("blocked_timestamp_groups")
+        .subquery(groups_name)
+    )
+    # A raw-text named WINDOW clause: the one construct SQLAlchemy Core
+    # cannot emit. ``groups_name`` is the literal alias every LAG column
+    # below must qualify with, so the FROM clause and the WINDOW clause
+    # cannot drift apart.
+    window_spec: str = (
+        f"{groups_name}.entity_type, {groups_name}.entity_uuid "
+        f"ORDER BY {groups_name}.ts"
     )
     grp: sa.Subquery = (
         sa.select(
             groups,
             *[
-                sa.func.lag(groups.c[name])
-                .over(
-                    partition_by=(groups.c.entity_type, groups.c.entity_uuid),
-                    order_by=groups.c.ts,
+                sa.literal_column(f"lag({groups_name}.{name}) OVER w").label(
+                    f"prev_{name}"
                 )
-                .label(f"prev_{name}")
                 for name in ("ts", "n", "n_coded", "min_reason", "max_reason")
             ],
         )
+        .select_from(groups)
+        .suffix_with(f"WINDOW w AS (PARTITION BY {window_spec})")
         .correlate(None)
         .subquery("preceding_groups")
     )
