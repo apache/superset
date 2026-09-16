@@ -214,8 +214,8 @@ class CertificateException(SupersetException):
     ) -> None:
         """Translate the default certificate error when constructing the exception.
 
-        Deliberately diverges from the sibling pattern of a class-level
-        ``message`` default: translating at construction resolves to a
+        Replaces this subclass's class-level ``message`` default with
+        construction-time translation, which resolves to a
         plain ``str`` inside the request that raises, so no LazyString
         can leak into ``to_dict()`` / JSON error bodies (the degradation
         class fixed for ``json_error_response``). The class-level

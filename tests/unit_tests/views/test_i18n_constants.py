@@ -233,7 +233,7 @@ def test_no_module_level_eager_gettext_constants() -> None:
             continue
         source = path.read_text(errors="ignore")
         try:
-            lines = _find_eager_gettext_assignments(source)
+            lines: list[int] = _find_eager_gettext_assignments(source)
         except SyntaxError:
             skipped.append(str(path))
             continue
@@ -263,8 +263,8 @@ def test_constant_renders_in_the_locale_of_each_request(
     from flask import Flask, request
     from flask_babel import Babel
 
-    msgid = "The data source seems to have been deleted"
-    translated = "Die Datenquelle scheint geloescht worden zu sein"
+    msgid: str = "The data source seems to have been deleted"
+    translated: str = "Die Datenquelle scheint geloescht worden zu sein"
     catalog: Catalog = Catalog(locale="de")
     catalog.add(msgid, translated)
     mo_dir: pathlib.Path = tmp_path / "de" / "LC_MESSAGES"
