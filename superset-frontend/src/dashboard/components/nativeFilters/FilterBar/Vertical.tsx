@@ -40,6 +40,10 @@ import { EmptyState, Loading } from '@superset-ui/core/components';
 import { useChartLayoutItems } from 'src/dashboard/util/useChartLayoutItems';
 import { useChartIds } from 'src/dashboard/util/charts/useChartIds';
 import { isEmbedded } from 'src/dashboard/util/isEmbedded';
+import {
+  FILTER_BAR_BOUNDED_CLASS,
+  FILTER_BAR_SCROLL_CLASS,
+} from 'src/dashboard/util/embeddedLayout';
 import { getFilterBarTestId, useChartsVerboseMaps } from './utils';
 import { VerticalBarProps } from './types';
 import Header from './Header';
@@ -90,7 +94,7 @@ const Bar = styled.div<{ width: number; maxHeight?: string }>`
              list scrolls inside it. getScrollSize() lifts the cap to measure. */
           `max-height: ${maxHeight};
            min-height: 0;
-           &.open > *:not(.filter-bar-scroll) {
+           &.open > *:not(.${FILTER_BAR_SCROLL_CLASS}) {
              flex: 0 0 auto;
            }`
         : `border-bottom: 1px solid ${theme.colorSplit};
@@ -336,7 +340,7 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
         <Bar
           className={cx(
             { open: filtersOpen },
-            embedded && 'filter-bar-bounded',
+            embedded && FILTER_BAR_BOUNDED_CLASS,
           )}
           width={width}
           maxHeight={embedded ? '100vh' : undefined}
@@ -367,7 +371,7 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
             </div>
           ) : (
             <div
-              className="filter-bar-scroll"
+              className={FILTER_BAR_SCROLL_CLASS}
               css={tabPaneStyle}
               onScroll={onScroll}
             >
