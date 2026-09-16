@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import {
   render,
   screen,
@@ -101,7 +100,9 @@ test('calls onJsonMetadataChange when a mapping is deleted', async () => {
   };
   render(<LabelColorMapping {...propsWithData} />);
 
-  const deleteButton = await screen.findByRole('button', { name: /delete|remove/i });
+  const deleteButton = await screen.findByRole('button', {
+    name: /delete|remove/i,
+  });
   fireEvent.click(deleteButton);
 
   await waitFor(() => {
