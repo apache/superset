@@ -17,9 +17,7 @@
 
 from types import SimpleNamespace
 from typing import Any, cast
-from unittest.mock import patch
 
-import pytest
 from flask import current_app, g
 
 from superset.charts.data.form_data import (
@@ -27,8 +25,6 @@ from superset.charts.data.form_data import (
     set_query_context_form_data,
 )
 from superset.common.query_object import QueryObject
-from superset.common.tabular_query import build_query_dict
-from superset.common.utils.time_range_utils import get_since_until_from_time_range
 from superset.constants import NO_TIME_RANGE
 from superset.jinja_context import ExtraCache, get_dataset_id_from_context
 
@@ -92,8 +88,13 @@ def test_query_context_form_data_supports_request_dependent_jinja_macros() -> No
         assert_request_dependent_jinja_macros()
 
 
-def test_query_context_form_data_hoists_time_range_from_temporal_filter() -> None:
-    """TEMPORAL_RANGE filters alone still publish time_range for Jinja."""
+def test_query_context_form_data_does_not_hoist_temporal_range_filter() -> None:
+    """A TEMPORAL_RANGE filter alone is not a published time range.
+
+    Chart-data API and async workers serialize QueryObject.to_dict(), which
+    omits time_range. Inventing one from filters would make get_time_filter()
+    diverge from the request-body path.
+    """
     query = QueryObject(
         filters=cast(
             Any,
@@ -111,122 +112,22 @@ def test_query_context_form_data_hoists_time_range_from_temporal_filter() -> Non
 
     with current_app.test_request_context():
         set_query_context_form_data(cast(Any, query_context), 7, "table")
-        assert ExtraCache().get_time_filter().time_range == "Last week"
+        assert ExtraCache().get_time_filter().time_range == NO_TIME_RANGE
 
 
-def test_query_context_form_data_hoists_time_range_from_raw_cache_values() -> None:
-    """_apply_granularity strips TEMPORAL_RANGE; Jinja reads the raw query dict."""
+def test_query_context_form_data_accepts_explicit_time_range() -> None:
+    """Tabular callers overlay the range without setting QueryObject.time_range."""
     query = QueryObject(
         filters=cast(Any, [{"col": "region", "op": "IN", "val": ["North"]}]),
         time_range=None,
-        granularity="order_date",
-    )
-    query_context = SimpleNamespace(
-        queries=[query],
-        form_data={},
-        cache_values={
-            "queries": [
-                {
-                    "filters": [
-                        {"col": "region", "op": "IN", "val": ["North"]},
-                        {
-                            "col": "order_date",
-                            "op": "TEMPORAL_RANGE",
-                            "val": "Last week",
-                        },
-                    ],
-                    "granularity": "order_date",
-                }
-            ]
-        },
-    )
-
-    with current_app.test_request_context():
-        set_query_context_form_data(cast(Any, query_context), 7, "table")
-        assert ExtraCache().get_time_filter().time_range == "Last week"
-        assert ExtraCache().get_time_filter("order_date").time_range == "Last week"
-
-
-def test_query_context_form_data_hoists_after_apply_granularity() -> None:
-    """Real QueryContextFactory.create drops TEMPORAL_RANGE; Jinja still resolves."""
-    from superset.common.query_context_factory import QueryContextFactory
-
-    dataset = SimpleNamespace(
-        columns=[
-            SimpleNamespace(column_name="region", is_dttm=False),
-            SimpleNamespace(column_name="order_date", is_dttm=True),
-        ],
-        main_dttm_col="order_date",
-    )
-    query_dict = {
-        "filters": [
-            {"col": "region", "op": "IN", "val": ["North"]},
-            {"col": "order_date", "op": "TEMPORAL_RANGE", "val": "Last week"},
-        ],
-        "columns": ["region"],
-        "metrics": ["count"],
-        "granularity": "order_date",
-    }
-
-    with (
-        current_app.test_request_context(),
-        patch.object(QueryContextFactory, "_convert_to_model", return_value=dataset),
-    ):
-        query_context = QueryContextFactory().create(
-            datasource={"id": 7, "type": "table"},
-            queries=[query_dict],
-            form_data={},
-        )
-        processed = query_context.queries[0]
-        assert processed.time_range is None
-        assert all(flt.get("op") != "TEMPORAL_RANGE" for flt in processed.filter)
-
-        set_query_context_form_data(query_context, 7, "table")
-        assert ExtraCache().get_time_filter().time_range == "Last week"
-
-
-@pytest.mark.parametrize(
-    ("time_range", "expect_since", "expect_until"),
-    [
-        ("1966-01-01 : ", True, False),
-        (" : 1966-01-01", False, True),
-    ],
-)
-def test_query_context_form_data_hoists_one_sided_semantic_view_range(
-    time_range: str,
-    expect_since: bool,
-    expect_until: bool,
-) -> None:
-    """One-sided semantic-view rewrites emit no TEMPORAL_RANGE; Jinja still resolves."""
-    query_dict = build_query_dict(
-        time_column="ds",
-        metrics=["count"],
-        time_range=time_range,
-        rewrite_one_sided_time_range=True,
-    )
-    assert "time_range" not in query_dict
-    assert all(flt["op"] != "TEMPORAL_RANGE" for flt in query_dict["filters"])
-
-    query = QueryObject(
-        filters=cast(Any, query_dict["filters"]),
-        time_range=None,
-        granularity=query_dict["granularity"],
     )
     query_context = SimpleNamespace(queries=[query], form_data={})
 
     with current_app.test_request_context():
-        set_query_context_form_data(cast(Any, query_context), 7, "table")
-        resolved = ExtraCache().get_time_filter().time_range
-        assert resolved != NO_TIME_RANGE
-        since, until = get_since_until_from_time_range(resolved)
-        assert (since is not None) is expect_since
-        assert (until is not None) is expect_until
-        bound = since or until
-        assert bound is not None
-        assert (bound.year, bound.month, bound.day) == (1966, 1, 1)
-        # Column-scoped lookup falls through to the hoisted range when the
-        # rewritten filters are comparisons rather than TEMPORAL_RANGE.
-        assert ExtraCache().get_time_filter("ds").time_range == resolved
+        set_query_context_form_data(
+            cast(Any, query_context), 7, "table", time_range="Last week"
+        )
+        assert ExtraCache().get_time_filter().time_range == "Last week"
 
 
 def test_one_sided_comparison_on_other_column_is_not_time_range() -> None:
