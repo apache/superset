@@ -251,6 +251,9 @@ class DatabricksHiveEngineSpec(HiveEngineSpec):
     # consolidates all Databricks connection methods. This spec exists for
     # backwards compatibility with Interactive Cluster connections.
 
+    # Databricks Interactive Clusters reject IS boolean syntax in certain query contexts
+    use_equality_for_boolean_filters: bool = True
+
     _show_functions_column = "function"
 
     _time_grain_expressions = time_grain_expressions
