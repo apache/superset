@@ -525,4 +525,43 @@ def test_update_chart_removing_dashboards_does_not_touch_remaining(
     assert d2.changed_by is None
 
 
+def test_update_chart_without_dashboards_in_payload_leaves_dashboards_untouched(
+    mocker: MockerFixture,
+) -> None:
+    """Updates that do not alter dashboard links do not evaluate dashboard touches."""
+    dashboard = MagicMock(id=1, changed_on=None, changed_by=None)
+    chart = MagicMock(
+        is_managed_externally=False,
+        id=10,
+        tags=[],
+        dashboards=[dashboard],
+        datasource_id=42,
+        datasource_type="table",
+    )
+    mocker.patch(
+        "superset.commands.chart.update.ChartDAO.find_by_id",
+        return_value=chart,
+    )
+    mocker.patch(
+        "superset.commands.chart.update.security_manager.raise_for_editorship",
+    )
+    mocker.patch(
+        "superset.commands.chart.update.compute_subjects",
+        side_effect=lambda model, properties, exceptions: None,
+    )
+    mocker.patch(
+        "superset.commands.chart.update.ChartDAO.update",
+        return_value=chart,
+    )
+
+    g.user = MagicMock()
+    cmd = UpdateChartCommand(10, {"slice_name": "Renamed only"})
+    cmd.run()
+
+    assert dashboard.changed_on is None
+    assert dashboard.changed_by is None
+
+
+
+
 
