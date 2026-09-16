@@ -483,6 +483,11 @@ def test_get_sql_results_oauth2(mocker: MockerFixture, app) -> None:
         mocker.patch("superset.daos.key_value.KeyValueDAO.delete_expired_entries")
         mocker.patch("superset.daos.key_value.KeyValueDAO.create_entry")
         mocker.patch("superset.db_engine_specs.base.db.session.commit")
+        # handle_query_error() refreshes `query` from the DB to check for a
+        # concurrently-committed STOPPED status before overwriting it with
+        # FAILED; `query` here is a MagicMock, not a real persistent ORM
+        # instance, so the real refresh() would error introspecting it.
+        mocker.patch("superset.sql_lab.db.session.refresh", return_value=None)
 
         g = mocker.patch("superset.db_engine_specs.base.g")
         g.user = mocker.MagicMock()

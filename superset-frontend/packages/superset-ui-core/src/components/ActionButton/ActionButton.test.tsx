@@ -40,7 +40,7 @@ test('calls onClick when clicked', async () => {
   render(<ActionButton {...defaultProps} onClick={onClick} />);
 
   const button = screen.getByRole('button');
-  userEvent.click(button);
+  await userEvent.click(button);
 
   expect(onClick).toHaveBeenCalledTimes(1);
 });
@@ -50,7 +50,7 @@ test('renders with tooltip when tooltip prop is provided', async () => {
   render(<ActionButton {...defaultProps} tooltip={tooltipText} />);
 
   const button = screen.getByRole('button');
-  userEvent.hover(button);
+  await userEvent.hover(button);
 
   const tooltip = await screen.findByRole('tooltip');
   expect(tooltip).toBeInTheDocument();
@@ -61,7 +61,7 @@ test('renders without tooltip when tooltip prop is not provided', async () => {
   render(<ActionButton {...defaultProps} />);
 
   const button = screen.getByRole('button');
-  userEvent.hover(button);
+  await userEvent.hover(button);
 
   const tooltip = screen.queryByRole('tooltip');
   expect(tooltip).not.toBeInTheDocument();
@@ -72,7 +72,7 @@ test('supports ReactElement tooltip', async () => {
   render(<ActionButton {...defaultProps} tooltip={tooltipElement} />);
 
   const button = screen.getByRole('button');
-  userEvent.hover(button);
+  await userEvent.hover(button);
 
   const tooltip = await screen.findByRole('tooltip');
   expect(tooltip).toBeInTheDocument();
@@ -93,7 +93,7 @@ test('renders with custom placement for tooltip', async () => {
   );
 
   const button = screen.getByRole('button');
-  userEvent.hover(button);
+  await userEvent.hover(button);
 
   const tooltip = await screen.findByRole('tooltip');
   expect(tooltip).toBeInTheDocument();

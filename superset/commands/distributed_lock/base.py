@@ -19,17 +19,13 @@ from __future__ import annotations
 
 import logging
 import uuid
-from typing import Any, TYPE_CHECKING
+from typing import Any
 
 from flask import current_app
 
 from superset.commands.base import BaseCommand
 from superset.distributed_lock.utils import get_key
-from superset.extensions import cache_manager
 from superset.key_value.types import JsonKeyValueCodec, KeyValueResource
-
-if TYPE_CHECKING:
-    import redis
 
 logger = logging.getLogger(__name__)
 
@@ -37,17 +33,6 @@ logger = logging.getLogger(__name__)
 def get_default_lock_ttl() -> int:
     """Get the default lock TTL from config."""
     return int(current_app.config.get("DISTRIBUTED_LOCK_DEFAULT_TTL", 30))
-
-
-def get_redis_client() -> "redis.Redis[Any] | None":
-    """
-    Get Redis client from distributed coordination if available.
-
-    Returns None if DISTRIBUTED_COORDINATION_CONFIG is not configured,
-    allowing fallback to database-backed locking.
-    """
-    backend = cache_manager.distributed_coordination
-    return backend._cache if backend else None
 
 
 class BaseDistributedLockCommand(BaseCommand):

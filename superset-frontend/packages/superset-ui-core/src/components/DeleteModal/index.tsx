@@ -40,6 +40,8 @@ export function DeleteModal({
   title,
   name,
   recoverable = false,
+  primaryButtonName,
+  primaryButtonStyle,
   disablePrimaryButton = false,
   loading = false,
   confirmationResetKey,
@@ -99,12 +101,19 @@ export function DeleteModal({
       primaryButtonLoading={loading}
       onHide={hide}
       onHandledPrimaryAction={confirm}
-      primaryButtonName={recoverable ? t('Archive') : t('Delete')}
-      primaryButtonStyle={recoverable ? 'primary' : 'danger'}
+      primaryButtonName={
+        primaryButtonName ?? (recoverable ? t('Archive') : t('Delete'))
+      }
+      primaryButtonStyle={
+        primaryButtonStyle ?? (recoverable ? 'primary' : 'danger')
+      }
       show={open}
       name={name}
       title={title}
       wrapProps={{ 'aria-busy': loading }}
+      // Remove the modal from the DOM on close so a confirmed delete tears it
+      // down deterministically even inside memoized list-view table cells.
+      destroyOnHidden
       centered
     >
       {description}
