@@ -59,11 +59,14 @@ if os.environ.get("FASTMCP_TRANSPORT", "stdio") == "stdio":
 
 from superset.mcp_service.app import init_fastmcp_server, mcp
 from superset.mcp_service.caching import create_response_caching_middleware
+from superset.mcp_service.mcp_config import MCP_STRUCTURED_OUTPUT_ENABLED
 from superset.mcp_service.middleware import create_response_size_guard_middleware
 from superset.mcp_service.server import build_middleware_list
 
 
-def _add_default_middlewares() -> None:
+def _add_default_middlewares(
+    *, structured_output_enabled: bool = MCP_STRUCTURED_OUTPUT_ENABLED
+) -> None:
     """Add the standard middleware stack to the MCP instance.
 
     Delegates to ``server.build_middleware_list()`` for the core stack so
@@ -76,7 +79,9 @@ def _add_default_middlewares() -> None:
     ``build_middleware_list()`` already returns middlewares in the correct
     outermost-first order.
     """
-    for middleware in build_middleware_list():
+    for middleware in build_middleware_list(
+        structured_output_enabled=structured_output_enabled
+    ):
         mcp.add_middleware(middleware)
 
     # Response size guard is innermost (added last), then response caching.
@@ -143,7 +148,11 @@ def main() -> None:
             # Initialize the FastMCP server
             # Disable auth config for stdio mode to avoid Flask app output
             init_fastmcp_server()
-            _add_default_middlewares()
+            _add_default_middlewares(
+                structured_output_enabled=flask_app.config.get(
+                    "MCP_STRUCTURED_OUTPUT_ENABLED", MCP_STRUCTURED_OUTPUT_ENABLED
+                )
+            )
 
         # Log captured output to stderr for debugging (optional)
         captured = captured_output.getvalue()
@@ -176,7 +185,11 @@ def main() -> None:
         flask_app = get_flask_app()
         auth_provider = _create_auth_provider(flask_app)
         init_fastmcp_server(auth=auth_provider)
-        _add_default_middlewares()
+        _add_default_middlewares(
+            structured_output_enabled=flask_app.config.get(
+                "MCP_STRUCTURED_OUTPUT_ENABLED", MCP_STRUCTURED_OUTPUT_ENABLED
+            )
+        )
 
         # Run with specified transport
         if transport == "streamable-http":

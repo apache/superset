@@ -185,6 +185,42 @@ def test_cached_gauge_update_preserves_controls_and_compiles(
 class TestUpdateChartPreview:
     """Tests for update_chart_preview MCP tool."""
 
+    @pytest.mark.parametrize("redirect", [False, True])
+    def test_oauth_errors_include_response_versions(
+        self, redirect: bool, mock_auth: Mock
+    ) -> None:
+        """OAuth error branches retain the common response contract."""
+        from superset.exceptions import OAuth2Error, OAuth2RedirectError
+
+        error = (
+            OAuth2RedirectError(
+                "https://example.com/oauth",
+                "tab-1",
+                "https://example.com/redirect",
+            )
+            if redirect
+            else OAuth2Error("token refresh failed")
+        )
+        request = UpdateChartPreviewRequest(
+            dataset_id=1,
+            config=TableChartConfig(
+                chart_type="table",
+                columns=[ColumnRef(name="country")],
+            ),
+        )
+
+        with patch.object(
+            update_chart_preview_module, "_find_dataset", side_effect=error
+        ):
+            result = update_chart_preview_module.update_chart_preview(
+                request=request,
+                ctx=Mock(),
+            )
+
+        assert result["success"] is False
+        assert result["schema_version"] == "2.0"
+        assert result["api_version"] == "v1"
+
     @pytest.mark.asyncio
     async def test_update_chart_preview_request_structure(self):
         """Test that chart preview update request structures are properly formed."""
@@ -1362,9 +1398,9 @@ class TestUpdateChartPreviewValidation:
                 "update_chart_preview", {"request": request.model_dump()}
             )
 
-            assert result.data["success"] is False
-            assert result.data["chart"] is None
-            error = result.data["error"]
+            assert result.structured_content["success"] is False
+            assert result.structured_content["chart"] is None
+            error = result.structured_content["error"]
             assert isinstance(error, dict)
             assert error["error_code"] == "CHART_VALIDATION_FAILED"
             assert "sum_boys" in error["suggestions"]
@@ -1402,9 +1438,9 @@ class TestUpdateChartPreviewValidation:
                 "update_chart_preview", {"request": request.model_dump()}
             )
 
-            assert result.data["success"] is False
-            assert result.data["chart"] is None
-            error = result.data["error"]
+            assert result.structured_content["success"] is False
+            assert result.structured_content["chart"] is None
+            error = result.structured_content["error"]
             assert isinstance(error, dict)
             assert error["error_type"] == "DatasetNotAccessible"
             mock_create_form_data.assert_not_called()
