@@ -4139,6 +4139,22 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 .values(perm=new_perm)
             )
 
+            # Update dependent charts so their denormalized perm stays in sync
+            # with the view: chart-list access filters match on Slice.perm.
+            from superset.models.slice import (  # pylint: disable=import-outside-toplevel
+                Slice,
+            )
+
+            chart_table = Slice.__table__  # pylint: disable=no-member
+            connection.execute(
+                chart_table.update()
+                .where(
+                    chart_table.c.datasource_type == DatasourceType.SEMANTIC_VIEW,
+                    chart_table.c.datasource_id == target.id,
+                )
+                .values(perm=new_perm)
+            )
+
     def semantic_view_after_delete(
         self,
         mapper: Mapper,

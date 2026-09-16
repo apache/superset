@@ -1433,6 +1433,71 @@ def test_semantic_view_before_update_updates_perm(app: Any) -> None:
         db.session.rollback()
 
 
+def test_semantic_view_before_update_syncs_dependent_slice_perms(app: Any) -> None:
+    """Renaming a view also updates dependent charts' denormalized perm.
+
+    The chart-list access filter matches no-viewer semantic-view charts on
+    ``Slice.perm``, so a rename must propagate the new perm to the chart or the
+    chart loses visibility in lists even for entitled users.
+    """
+    from superset import security_manager
+    from superset.charts.filters import ChartFilter
+    from superset.extensions import db
+    from superset.models.slice import Slice
+    from superset.utils.core import DatasourceType
+
+    layer = SemanticLayer()
+    layer.name = "Sync Layer"
+    layer.uuid = uuid.UUID("bbbb1111-2222-3333-4444-555566667777")
+    layer.type = "test"
+
+    view = SemanticView()
+    view.name = "Old Sync View"
+    view.semantic_layer_uuid = layer.uuid
+
+    db.session.add(layer)
+    db.session.add(view)
+    db.session.flush()
+
+    chart = Slice(
+        slice_name="On the view",
+        datasource_type=DatasourceType.SEMANTIC_VIEW,
+        datasource_id=view.id,
+        datasource_name="Old Sync View",
+        viz_type="table",
+        params="{}",
+    )
+    db.session.add(chart)
+    db.session.flush()
+
+    try:
+        assert chart.perm == view.perm
+
+        view.name = "New Sync View"
+        db.session.flush()
+        db.session.expire(chart)
+        db.session.expire(view)
+
+        new_perm = view.perm
+        assert chart.perm == new_perm
+
+        # The chart stays discoverable through the chart-list access filter
+        # (ChartFilter._apply_viewers) that matches by Slice.perm.
+        with (
+            patch("superset.charts.filters.get_user_id", return_value=None),
+            patch.object(
+                security_manager, "user_view_menu_names", return_value={new_perm}
+            ),
+            patch.object(security_manager, "get_accessible_databases", return_value=[]),
+        ):
+            filt: ChartFilter = ChartFilter.__new__(ChartFilter)
+            filt.model = Slice
+            visible = filt._apply_viewers(db.session.query(Slice)).all()
+            assert chart.id in {slc.id for slc in visible}
+    finally:
+        db.session.rollback()
+
+
 def test_semantic_layer_after_delete_calls_security_manager() -> None:
     """Test SemanticLayer.after_delete delegates to security manager."""
     from superset import security_manager

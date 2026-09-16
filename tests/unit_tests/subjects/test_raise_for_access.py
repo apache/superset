@@ -317,7 +317,7 @@ def test_raise_for_access_semantic_view_chart_allows_with_datasource_access(
         patch.object(sm, "can_access", return_value=True),
         patch("superset.is_feature_enabled", return_value=False),
     ):
-        assert chart.datasource is chart.semantic_view
+        assert chart.resolved_datasource is chart.semantic_view
         sm.raise_for_access(chart=chart)
 
 
