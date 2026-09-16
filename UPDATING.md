@@ -126,6 +126,26 @@ tags are included in asset export and import.
 Set `FEATURE_FLAGS = {"TAGGING_SYSTEM": False}` to restore the previous
 behavior. Existing tag rows are left untouched.
 
+### MCP structured tool outputs are opt-in
+
+Native MCP tools define concrete output schemas, but Superset preserves the
+text-only wire contract by default for compatibility with clients and transport
+bridges that cannot encode structured results. Set the following only after
+validating every MCP client and bridge used by the deployment:
+
+```python
+MCP_STRUCTURED_OUTPUT_ENABLED = True
+```
+
+When enabled, tool discovery includes `outputSchema` and successful tool calls
+include matching `structuredContent` alongside the existing text representation.
+When disabled, the outer compatibility middleware removes both fields as a pair;
+server-side output validation still applies to native tools.
+
+`StructuredContentStripperMiddleware` is deprecated for custom startup paths but
+retains its original stripping behavior. Replace it with
+`ToolResultCompatibilityMiddleware(structured_output_enabled=False)`.
+
 ### Version-history and activity endpoints are edit-gated
 
 Version-history and activity endpoints (`GET /api/v1/{chart,dashboard,dataset}/<uuid>/versions/…` and `…/activity/`) are now edit-gated: they require object-level editorship (owner/editor/admin) of the entity, matching the UI's edit-gated Version history menu and the restore endpoint's gate. Read-only users who could previously retrieve the full change log (author identities, field-level before/after diffs) via the API now receive 403. Embedded guest-token principals are always refused on these endpoints, even when a role subject they hold has been granted editorship. Related-entity visibility filtering inside the activity stream is unchanged.
