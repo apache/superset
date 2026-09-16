@@ -199,25 +199,25 @@ def test_set_dash_metadata_repairs_dangling_chart_tiles(session: Session) -> Non
     """
     Dashboard.metadata.create_all(session.get_bind())
 
-    dataset = SqlaTable(
+    dataset: SqlaTable = SqlaTable(
         table_name="dangle_table",
         database=Database(database_name="dangle_db", sqlalchemy_uri="sqlite://"),
     )
     db.session.add(dataset)
     db.session.flush()
 
-    live_chart = Slice(
+    live_chart: Slice = Slice(
         slice_name="dangle_live",
         datasource_id=dataset.id,
         datasource_type="table",
     )
-    trashed_chart = Slice(
+    trashed_chart: Slice = Slice(
         slice_name="dangle_trashed",
         datasource_id=dataset.id,
         datasource_type="table",
         deleted_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
     )
-    dashboard = Dashboard(
+    dashboard: Dashboard = Dashboard(
         dashboard_title="dangle_dash",
         slices=[live_chart, trashed_chart],
         published=True,
@@ -226,7 +226,7 @@ def test_set_dash_metadata_repairs_dangling_chart_tiles(session: Session) -> Non
     db.session.flush()
     db.session.expire(dashboard, ["slices"])
 
-    absent_chart_id = 987_654_321
+    absent_chart_id: int = 987_654_321
     positions: dict[str, dict[str, Any]] = {
         "CHART-live": _chart_node("CHART-live", live_chart.id, 4, 50),
         "CHART-trashed": _chart_node("CHART-trashed", trashed_chart.id, 4, 50),
@@ -241,13 +241,13 @@ def test_set_dash_metadata_repairs_dangling_chart_tiles(session: Session) -> Non
     assert positions["CHART-live"]["meta"]["uuid"] == str(live_chart.uuid)
     assert positions["CHART-trashed"]["type"] == "CHART"
     assert positions["CHART-trashed"]["meta"]["uuid"] == str(trashed_chart.uuid)
-    member_ids = {chart.id for chart in dashboard.slices}
+    member_ids: set[int] = {chart.id for chart in dashboard.slices}
     assert live_chart.id in member_ids
     assert trashed_chart.id in member_ids
 
     # The genuinely-absent reference is repaired to a markdown placeholder,
     # keeping the node id and geometry but dropping the chart reference.
-    gone = positions["CHART-gone"]
+    gone: dict[str, Any] = positions["CHART-gone"]
     assert gone["type"] == "MARKDOWN", gone
     assert gone["meta"]["code"] == "This chart no longer exists."
     assert gone["meta"]["width"] == 6
@@ -268,19 +268,19 @@ def test_reconcile_position_json_repairs_only_absent_charts(session: Session) ->
     """
     Dashboard.metadata.create_all(session.get_bind())
 
-    dataset = SqlaTable(
+    dataset: SqlaTable = SqlaTable(
         table_name="reconcile_table",
         database=Database(database_name="reconcile_db", sqlalchemy_uri="sqlite://"),
     )
     db.session.add(dataset)
     db.session.flush()
 
-    live_chart = Slice(
+    live_chart: Slice = Slice(
         slice_name="reconcile_live",
         datasource_id=dataset.id,
         datasource_type="table",
     )
-    trashed_chart = Slice(
+    trashed_chart: Slice = Slice(
         slice_name="reconcile_trashed",
         datasource_id=dataset.id,
         datasource_type="table",
@@ -289,7 +289,7 @@ def test_reconcile_position_json_repairs_only_absent_charts(session: Session) ->
     db.session.add_all([live_chart, trashed_chart])
     db.session.flush()
 
-    absent_chart_id = 987_654_321
+    absent_chart_id: int = 987_654_321
     positions: dict[str, dict[str, Any]] = {
         "CHART-live": _chart_node("CHART-live", live_chart.id, 4, 50),
         "CHART-trashed": _chart_node("CHART-trashed", trashed_chart.id, 4, 50),
@@ -302,7 +302,7 @@ def test_reconcile_position_json_repairs_only_absent_charts(session: Session) ->
         },
     }
 
-    repaired = reconcile_position_json(positions)
+    repaired: int = reconcile_position_json(positions)
 
     assert repaired == 1
     assert positions["CHART-live"]["type"] == "CHART"
@@ -335,13 +335,13 @@ def test_reconcile_position_json_handles_edge_and_malformed_nodes(
     ``position_json`` is only validated as parseable JSON)."""
     Dashboard.metadata.create_all(session.get_bind())
 
-    dataset = SqlaTable(
+    dataset: SqlaTable = SqlaTable(
         table_name="edge_table",
         database=Database(database_name="edge_db", sqlalchemy_uri="sqlite://"),
     )
     db.session.add(dataset)
     db.session.flush()
-    live_chart = Slice(
+    live_chart: Slice = Slice(
         slice_name="edge_live",
         datasource_id=dataset.id,
         datasource_type="table",
@@ -366,7 +366,7 @@ def test_reconcile_position_json_handles_edge_and_malformed_nodes(
         },
     }
 
-    repaired = reconcile_position_json(positions)
+    repaired: int = reconcile_position_json(positions)
 
     # Only chartId=0 counts as a dangling reference to repair.
     assert repaired == 1
@@ -402,7 +402,11 @@ def test_layout_chart_id_coerces_numeric_forms_only(
     accepted them — while fractional floats, non-digit strings, and bools stay
     ``None`` (fitzee review on #44028: returning ``None`` for ``123.0`` or
     ``"123"`` would silently unlink a live chart AND skip its repair)."""
-    node = {"type": "CHART", "id": "CHART-x", "meta": {"chartId": chart_id}}
+    node: dict[str, Any] = {
+        "type": "CHART",
+        "id": "CHART-x",
+        "meta": {"chartId": chart_id},
+    }
     assert _layout_chart_id(node) == expected
 
 
@@ -417,13 +421,13 @@ def test_reconcile_position_json_keeps_live_chart_referenced_in_numeric_form(
     permanent orphan tile."""
     Dashboard.metadata.create_all(session.get_bind())
 
-    dataset = SqlaTable(
+    dataset: SqlaTable = SqlaTable(
         table_name="numeric_form_table",
         database=Database(database_name="numeric_form_db", sqlalchemy_uri="sqlite://"),
     )
     db.session.add(dataset)
     db.session.flush()
-    live_chart = Slice(
+    live_chart: Slice = Slice(
         slice_name="numeric_form_live",
         datasource_id=dataset.id,
         datasource_type="table",
@@ -438,7 +442,7 @@ def test_reconcile_position_json_keeps_live_chart_referenced_in_numeric_form(
         "CHART-absent-str": _chart_node("CHART-absent-str", "0", 4, 50),
     }
 
-    repaired = reconcile_position_json(positions)
+    repaired: int = reconcile_position_json(positions)
 
     assert repaired == 2
     # Live chart in either numeric form: recognised, kept as a CHART tile.
@@ -459,18 +463,18 @@ def test_set_dash_metadata_rejects_a_malformed_chart_node_instead_of_detaching(
     (codeant on #44028; the pre-reconcile code failed this save with a 500.)"""
     Dashboard.metadata.create_all(session.get_bind())
 
-    dataset = SqlaTable(
+    dataset: SqlaTable = SqlaTable(
         table_name="malformed_table",
         database=Database(database_name="malformed_db", sqlalchemy_uri="sqlite://"),
     )
     db.session.add(dataset)
     db.session.flush()
-    member = Slice(
+    member: Slice = Slice(
         slice_name="malformed_member",
         datasource_id=dataset.id,
         datasource_type="table",
     )
-    dashboard = Dashboard(dashboard_title="malformed", slug="malformed")
+    dashboard: Dashboard = Dashboard(dashboard_title="malformed", slug="malformed")
     dashboard.slices = [member]
     db.session.add_all([member, dashboard])
     db.session.flush()

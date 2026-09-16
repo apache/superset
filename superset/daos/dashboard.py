@@ -32,7 +32,7 @@ from superset import security_manager
 from superset.commands.dashboard.exceptions import (
     DashboardAccessDeniedError,
     DashboardForbiddenError,
-    DashboardInvalidError,
+    DashboardLayoutInvalidError,
     DashboardNotFoundError,
     DashboardUpdateFailedError,
 )
@@ -86,7 +86,7 @@ _SET_DASH_METADATA_SPECIAL_KEYS = {
 
 # User-facing text persisted into a dangling tile's ``position_json`` slot.
 # A plain literal, not ``gettext``: see ``_repair_dangling_chart_nodes``.
-MISSING_CHART_PLACEHOLDER = "This chart no longer exists."
+MISSING_CHART_PLACEHOLDER: str = "This chart no longer exists."
 
 
 def _layout_chart_id(node: Any) -> int | None:
@@ -114,10 +114,10 @@ def _layout_chart_id(node: Any) -> int | None:
     """
     if not isinstance(node, dict) or node.get("type") != "CHART":
         return None
-    meta = node.get("meta")
+    meta: Any = node.get("meta")
     if not isinstance(meta, dict):
         return None
-    chart_id = meta.get("chartId")
+    chart_id: Any = meta.get("chartId")
     # ``bool`` is an ``int`` subclass; exclude it so a stray ``true`` is not
     # misread as chartId 1.
     if isinstance(chart_id, bool):
@@ -207,7 +207,7 @@ def _reject_malformed_chart_nodes(positions: dict[str, Any]) -> None:
         and _layout_chart_id(node) is None
     ]
     if malformed:
-        raise DashboardInvalidError(
+        raise DashboardLayoutInvalidError(
             exceptions=[
                 ValidationError(
                     "position_json CHART node(s) without a usable chartId: "
@@ -723,9 +723,9 @@ class DashboardDAO(BaseDAO[Dashboard]):
 
             # update chartId of layout entities
             for value in metadata["positions"].values():
-                if isinstance(value, dict) and value.get("meta", {}).get("chartId"):
-                    old_id = value["meta"]["chartId"]
-                    new_id = old_to_new_slice_ids.get(old_id)
+                old_id: int | None = _layout_chart_id(value)
+                if old_id is not None:
+                    new_id: int | None = old_to_new_slice_ids.get(old_id)
                     value["meta"]["chartId"] = new_id
         else:
             dash.slices = original_dash.slices

@@ -306,13 +306,10 @@ class TestDashboardDAO(SupersetTestCase):
             assert source.position_json == original_positions
             assert source.json_metadata == original_metadata
         finally:
-            if dash is None:
-                db.session.rollback()
-            else:
-                for slc in list(dash.slices):
-                    db.session.delete(slc)
-                db.session.delete(dash)
-                db.session.commit()
+            # The copy is flushed but never committed. Roll it back rather
+            # than generating CREATE and DELETE association versions in the
+            # same Continuum transaction during fixture cleanup.
+            db.session.rollback()
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @patch("superset.daos.dashboard.g")

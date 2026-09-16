@@ -24,6 +24,11 @@ from zipfile import is_zipfile, ZipFile
 
 from tests.integration_tests.insert_chart_mixin import InsertChartMixin
 
+from typing import Any
+
+from flask_appbuilder.security.sqla.models import User
+from werkzeug.test import TestResponse
+
 import pytest
 import rison
 import yaml
@@ -2210,13 +2215,13 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         wiring. No ``json_metadata`` is sent, so ``set_dash_metadata`` does not
         run and this exercises the raw path in isolation.
         """
-        admin = self.get_user("admin")
-        dashboard_id = self.insert_dashboard(
+        admin: User = self.get_user("admin")
+        dashboard_id: int = self.insert_dashboard(
             "dangle-recon", "dangle-recon", [admin.id]
         ).id
         self.login(ADMIN_USERNAME)
-        absent_chart_id = 999_999_999  # resolves to no Slice row
-        positions = {
+        absent_chart_id: int = 999_999_999  # resolves to no Slice row
+        positions: dict[str, Any] = {
             "ROOT_ID": {"id": "ROOT_ID", "type": "ROOT", "children": ["CHART-gone"]},
             "CHART-gone": {
                 "id": "CHART-gone",
@@ -2225,15 +2230,15 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
                 "meta": {"chartId": absent_chart_id, "width": 4, "height": 50},
             },
         }
-        uri = f"api/v1/dashboard/{dashboard_id}"
-        rv = self.put_assert_metric(
+        uri: str = f"api/v1/dashboard/{dashboard_id}"
+        rv: TestResponse = self.put_assert_metric(
             uri, {"position_json": json.dumps(positions)}, "put"
         )
         assert rv.status_code == 200, rv.data
 
-        model = db.session.query(Dashboard).get(dashboard_id)
-        stored = json.loads(model.position_json)
-        node = stored["CHART-gone"]
+        model: Dashboard = db.session.query(Dashboard).get(dashboard_id)
+        stored: dict[str, Any] = json.loads(model.position_json)
+        node: dict[str, Any] = stored["CHART-gone"]
         # The dangling CHART node is now a markdown placeholder, node id,
         # children, and geometry preserved, chart reference dropped.
         assert node["type"] == "MARKDOWN", node
@@ -2258,13 +2263,13 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         dead work rather than run and discarded (fitzee review on #44028). Pins
         both the documented precedence and the skip.
         """
-        admin = self.get_user("admin")
-        dashboard_id = self.insert_dashboard(
+        admin: User = self.get_user("admin")
+        dashboard_id: int = self.insert_dashboard(
             "precedence-recon", "precedence-recon", [admin.id]
         ).id
         self.login(ADMIN_USERNAME)
-        absent_chart_id = 999_999_998  # resolves to no Slice row
-        raw_positions = {
+        absent_chart_id: int = 999_999_998  # resolves to no Slice row
+        raw_positions: dict[str, Any] = {
             "ROOT_ID": {"id": "ROOT_ID", "type": "ROOT", "children": ["CHART-raw"]},
             "CHART-raw": {
                 "id": "CHART-raw",
@@ -2273,7 +2278,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
                 "meta": {"chartId": absent_chart_id, "width": 4, "height": 50},
             },
         }
-        metadata_positions = {
+        metadata_positions: dict[str, Any] = {
             "ROOT_ID": {"id": "ROOT_ID", "type": "ROOT", "children": ["CHART-meta"]},
             "CHART-meta": {
                 "id": "CHART-meta",
@@ -2282,12 +2287,12 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
                 "meta": {"chartId": absent_chart_id, "width": 4, "height": 50},
             },
         }
-        uri = f"api/v1/dashboard/{dashboard_id}"
+        uri: str = f"api/v1/dashboard/{dashboard_id}"
         with patch(
             "superset.commands.dashboard.update.reconcile_position_json",
             wraps=reconcile_position_json,
         ) as raw_reconcile:
-            rv = self.put_assert_metric(
+            rv: TestResponse = self.put_assert_metric(
                 uri,
                 {
                     "position_json": json.dumps(raw_positions),
@@ -2299,8 +2304,8 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         # The raw-field reconcile did not run: metadata positions supersede it.
         raw_reconcile.assert_not_called()
 
-        model = db.session.query(Dashboard).get(dashboard_id)
-        stored = json.loads(model.position_json)
+        model: Dashboard = db.session.query(Dashboard).get(dashboard_id)
+        stored: dict[str, Any] = json.loads(model.position_json)
         # The stored layout is the METADATA one (reconciled by set_dash_metadata),
         # not the raw field.
         assert "CHART-meta" in stored, stored
@@ -2319,13 +2324,13 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         one being written and must be reconciled (codeant on #44028: a
         presence-only test skipped it and persisted the dangling layout).
         """
-        admin = self.get_user("admin")
-        dashboard_id = self.insert_dashboard(
+        admin: User = self.get_user("admin")
+        dashboard_id: int = self.insert_dashboard(
             "null-positions-recon", "null-positions-recon", [admin.id]
         ).id
         self.login(ADMIN_USERNAME)
-        absent_chart_id = 999_999_997
-        raw_positions = {
+        absent_chart_id: int = 999_999_997
+        raw_positions: dict[str, Any] = {
             "ROOT_ID": {"id": "ROOT_ID", "type": "ROOT", "children": ["CHART-raw"]},
             "CHART-raw": {
                 "id": "CHART-raw",
@@ -2334,8 +2339,8 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
                 "meta": {"chartId": absent_chart_id, "width": 4, "height": 50},
             },
         }
-        uri = f"api/v1/dashboard/{dashboard_id}"
-        rv = self.put_assert_metric(
+        uri: str = f"api/v1/dashboard/{dashboard_id}"
+        rv: TestResponse = self.put_assert_metric(
             uri,
             {
                 "position_json": json.dumps(raw_positions),
@@ -2345,8 +2350,8 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         )
         assert rv.status_code == 200, rv.data
 
-        model = db.session.query(Dashboard).get(dashboard_id)
-        stored = json.loads(model.position_json)
+        model: Dashboard = db.session.query(Dashboard).get(dashboard_id)
+        stored: dict[str, Any] = json.loads(model.position_json)
         assert stored["CHART-raw"]["type"] == "MARKDOWN", stored
 
         db.session.delete(model)
@@ -2361,19 +2366,24 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         membership rebuild must not silently detach a chart because its node
         was malformed (codeant on #44028).
         """
-        admin = self.get_user("admin")
-        dashboard = self.insert_dashboard(
+        admin: User = self.get_user("admin")
+        dashboard: Dashboard = self.insert_dashboard(
             "malformed-node", "malformed-node", [admin.id]
         )
         from superset.connectors.sqla.models import SqlaTable
 
-        dataset_id = db.session.query(SqlaTable.id).order_by(SqlaTable.id).first()[0]
-        chart = self.insert_chart("malformed-node-member", [admin.id], dataset_id)
+        dataset_id: int = (
+            db.session.query(SqlaTable.id).order_by(SqlaTable.id).first()[0]
+        )
+        chart: Slice = self.insert_chart(
+            "malformed-node-member", [admin.id], dataset_id
+        )
         dashboard.slices = [chart]
         db.session.commit()
-        dashboard_id, chart_id = dashboard.id, chart.id
+        dashboard_id: int = dashboard.id
+        chart_id: int = chart.id
         self.login(ADMIN_USERNAME)
-        positions = {
+        positions: dict[str, Any] = {
             "ROOT_ID": {
                 "id": "ROOT_ID",
                 "type": "ROOT",
@@ -2392,15 +2402,15 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
                 "meta": {"chartId": [1], "width": 4, "height": 50},
             },
         }
-        uri = f"api/v1/dashboard/{dashboard_id}"
-        rv = self.put_assert_metric(
+        uri: str = f"api/v1/dashboard/{dashboard_id}"
+        rv: TestResponse = self.put_assert_metric(
             uri, {"json_metadata": json.dumps({"positions": positions})}, "put"
         )
         assert rv.status_code == 422, rv.data
         assert b"CHART-bad" in rv.data
 
         db.session.expire_all()
-        model = db.session.query(Dashboard).get(dashboard_id)
+        model: Dashboard = db.session.query(Dashboard).get(dashboard_id)
         assert {s.id for s in model.slices} == {chart_id}
 
         db.session.delete(model)
@@ -2413,19 +2423,19 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         500 (sc-115325 python-review: the reconcile guard and the tab-diff
         guard both tolerate a non-dict layout). Exercises the whole command,
         where tab-diff processing runs before reconciliation."""
-        admin = self.get_user("admin")
+        admin: User = self.get_user("admin")
         self.login(ADMIN_USERNAME)
         for payload in ("[]", "null", "5", '"just a string"'):
-            dashboard_id = self.insert_dashboard(
+            dashboard_id: int = self.insert_dashboard(
                 f"nonobj-{payload!r}", None, [admin.id]
             ).id
-            rv = self.put_assert_metric(
+            rv: TestResponse = self.put_assert_metric(
                 f"api/v1/dashboard/{dashboard_id}",
                 {"position_json": payload},
                 "put",
             )
             assert rv.status_code == 200, (payload, rv.data)
-            model = db.session.query(Dashboard).get(dashboard_id)
+            model: Dashboard = db.session.query(Dashboard).get(dashboard_id)
             assert json.loads(model.position_json) == json.loads(payload)
             db.session.delete(model)
             db.session.commit()
