@@ -127,6 +127,7 @@ export const useResultsPane = ({
         );
         return {
           colnames: result.colnames,
+          collabels: result.collabels,
           coltypes: result.coltypes,
           data: limitedData,
           rowcount: limitedData.length,

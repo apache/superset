@@ -115,7 +115,6 @@ export const SamplesPane = ({
           setColnames(ensureIsArray(response?.colnames));
           setColtypes(ensureIsArray(response?.coltypes));
           setCollabels(ensureIsArray(response?.collabels));
-          setColtypes(ensureIsArray(response?.coltypes));
           // Fall back to the rows actually returned rather than to zero: the
           // controls only render when there are rows, and a hardcoded 0 would
           // label a populated table as "0 rows".
