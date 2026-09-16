@@ -21,10 +21,15 @@ from unittest.mock import MagicMock, patch
 from superset.security.manager import SupersetSecurityManager
 
 _DASHBOARD_RESOURCE = {"type": "dashboard", "id": "abc-uuid"}
+_CHART_RESOURCE = {"type": "chart", "id": "chart-uuid"}
 
 
 def _token(iat: int) -> dict[str, Any]:
     return {"type": "guest", "iat": iat, "resources": [_DASHBOARD_RESOURCE]}
+
+
+def _chart_token(iat: int) -> dict[str, Any]:
+    return {"type": "guest", "iat": iat, "resources": [_CHART_RESOURCE]}
 
 
 def _embedded(revoked_before) -> MagicMock:
@@ -115,6 +120,82 @@ def test_guest_token_not_revoked_when_resource_unresolvable() -> None:
         assert SupersetSecurityManager._is_guest_token_revoked(_token(1000)) is False
 
 
+def test_chart_guest_token_revoked_when_issued_before_revocation() -> None:
+    # A chart resource carries the same per-embed cutoff semantics as a
+    # dashboard one: issued at 1000, revoked from 2000 -> rejected.
+    with patch(
+        "superset.daos.chart.EmbeddedChartDAO.find_by_id",
+        return_value=_embedded(2000),
+    ):
+        assert (
+            SupersetSecurityManager._is_guest_token_revoked(_chart_token(1000)) is True
+        )
+
+
+def test_chart_guest_token_valid_when_issued_after_revocation() -> None:
+    with patch(
+        "superset.daos.chart.EmbeddedChartDAO.find_by_id",
+        return_value=_embedded(2000),
+    ):
+        assert (
+            SupersetSecurityManager._is_guest_token_revoked(_chart_token(3000)) is False
+        )
+
+
+def test_chart_guest_token_not_revoked_when_no_revocation_set() -> None:
+    with patch(
+        "superset.daos.chart.EmbeddedChartDAO.find_by_id",
+        return_value=_embedded(None),
+    ):
+        assert (
+            SupersetSecurityManager._is_guest_token_revoked(_chart_token(1000)) is False
+        )
+
+
+def test_chart_guest_token_without_iat_is_revoked_when_cutoff_set() -> None:
+    # Same fail-closed rule as the dashboard path: without ``iat`` the token
+    # cannot be shown to postdate the cutoff.
+    token = {"type": "guest", "resources": [_CHART_RESOURCE]}
+    with patch(
+        "superset.daos.chart.EmbeddedChartDAO.find_by_id",
+        return_value=_embedded(2000),
+    ):
+        assert SupersetSecurityManager._is_guest_token_revoked(token) is True
+
+
+def test_chart_guest_token_not_revoked_when_resource_unresolvable() -> None:
+    # A chart resource id is only ever an embedded uuid, so an unresolved id
+    # leaves no cutoff to enforce.
+    with patch(
+        "superset.daos.chart.EmbeddedChartDAO.find_by_id",
+        return_value=None,
+    ):
+        assert (
+            SupersetSecurityManager._is_guest_token_revoked(_chart_token(1000)) is False
+        )
+
+
+def test_guest_token_revoked_by_any_resource_in_a_mixed_token() -> None:
+    # A token scoped to both an embedded dashboard and an embedded chart is
+    # revoked when either resource's cutoff postdates it.
+    token = {
+        "type": "guest",
+        "iat": 1000,
+        "resources": [_DASHBOARD_RESOURCE, _CHART_RESOURCE],
+    }
+    with (
+        patch(
+            "superset.daos.dashboard.EmbeddedDashboardDAO.find_by_id",
+            return_value=_embedded(None),
+        ),
+        patch(
+            "superset.daos.chart.EmbeddedChartDAO.find_by_id",
+            return_value=_embedded(2000),
+        ),
+    ):
+        assert SupersetSecurityManager._is_guest_token_revoked(token) is True
+
+
 def _manager() -> SupersetSecurityManager:
     # Build an instance without running the (heavy) FAB __init__: we only
     # exercise revoke_guest_token_access, which depends on nothing but
@@ -149,9 +230,75 @@ def test_revoke_guest_token_access_defaults_to_ceil_of_now() -> None:
 
 
 def test_revoke_guest_token_access_noop_when_embedded_missing() -> None:
-    with patch(
-        "superset.daos.dashboard.EmbeddedDashboardDAO.find_by_id",
-        return_value=None,
+    with (
+        patch(
+            "superset.daos.dashboard.EmbeddedDashboardDAO.find_by_id",
+            return_value=None,
+        ),
+        patch(
+            "superset.daos.chart.EmbeddedChartDAO.find_by_id",
+            return_value=None,
+        ),
     ):
         # Should simply return without raising when the UUID does not resolve.
         _manager().revoke_guest_token_access("missing-uuid")
+
+
+def test_revoke_guest_token_access_resolves_an_embedded_chart() -> None:
+    # A uuid that is not an embedded dashboard is retried against embedded
+    # charts, so the cutoff lands on the chart's own config.
+    embedded_chart = _embedded(None)
+    with (
+        patch(
+            "superset.daos.dashboard.EmbeddedDashboardDAO.find_by_id",
+            return_value=None,
+        ),
+        patch(
+            "superset.daos.chart.EmbeddedChartDAO.find_by_id",
+            return_value=embedded_chart,
+        ),
+    ):
+        _manager().revoke_guest_token_access("chart-uuid", before=1234)
+    assert embedded_chart.guest_token_revoked_before == 1234
+
+
+def test_revoked_chart_guest_token_is_rejected_by_the_request_loader() -> None:
+    """A cutoff on the embedded chart makes the request loader reject the token.
+
+    ``get_guest_user_from_request`` swallows every failure into ``None``, so the
+    same request is also replayed with the cutoff cleared: only the cutoff can
+    explain the difference between the two outcomes.
+    """
+    manager = _manager()
+    token = dict(_chart_token(1000), user={"username": "guest"}, rls_rules=[])
+    request = MagicMock()
+    request.headers = {"X-GuestToken": "raw-chart-guest-token"}
+    guest_user = object()
+
+    with (
+        patch.object(
+            SupersetSecurityManager, "parse_jwt_guest_token", return_value=token
+        ),
+        patch.object(
+            SupersetSecurityManager,
+            "get_guest_user_from_token",
+            return_value=guest_user,
+        ),
+        patch(
+            "superset.security.manager.get_conf",
+            return_value={
+                "GUEST_TOKEN_HEADER_NAME": "X-GuestToken",
+                "GUEST_TOKEN_REVOCATION_ENABLED": False,
+            },
+        ),
+    ):
+        with patch(
+            "superset.daos.chart.EmbeddedChartDAO.find_by_id",
+            return_value=_embedded(2000),
+        ):
+            assert manager.get_guest_user_from_request(request) is None
+        with patch(
+            "superset.daos.chart.EmbeddedChartDAO.find_by_id",
+            return_value=_embedded(None),
+        ):
+            assert manager.get_guest_user_from_request(request) is guest_user

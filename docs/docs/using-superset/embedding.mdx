@@ -61,6 +61,27 @@ embedDashboard({
 
 ---
 
+## Guest role permissions
+
+Embedded viewers authenticate with a guest token rather than a session, and Superset resolves them onto the role named by `GUEST_ROLE_NAME` (default: `Public`). What that role grants therefore decides whether an embed loads.
+
+Set `PUBLIC_ROLE_LIKE = "Public"` and run `superset init` to sync the built-in defaults, which already cover both embeddable resource types. This is the supported path, and an embedded chart needs nothing added to it.
+
+If you maintain the guest role by hand, an embedded chart needs at least:
+
+| Grant                          | Needed for                                                       |
+| ------------------------------ | ---------------------------------------------------------------- |
+| `can read on Chart`            | The chart definition, its dataset, and `/api/v1/chart/data`       |
+| `can read on CurrentUserRestApi` | `/api/v1/me/roles/`, which the embedded page calls before it renders anything |
+
+Omitting the second one is easy to miss: the embed fails during authentication rather than while loading the chart, so the browser console reports an authentication failure with no mention of a missing grant.
+
+An embedded chart needs **no** grant on Explore. It reads its definition and dataset through the same `Chart` permission it already needs to fetch data, so a guest role that can open an embedded dashboard can open an embedded chart.
+
+The guest token itself, not the role, decides *which* dashboards and charts are in scope — a role grant alone never widens a guest past the resources its token names.
+
+---
+
 ## Callbacks
 
 ### `resolvePermalinkUrl`

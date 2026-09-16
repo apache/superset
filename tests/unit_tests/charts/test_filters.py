@@ -179,3 +179,144 @@ def test_chart_filter_guest_no_resources_denied(mocker: MockerFixture) -> None:
     assert filt.apply(query, None) is query
     query.filter.assert_called_once()  # scoped (to nothing), not role-based
     viewers.assert_not_called()
+
+
+def _guest_with_resources(mocker: MockerFixture, resources: list[dict[str, Any]]):
+    """Point the security manager at a guest user carrying ``resources``."""
+    from superset.extensions import security_manager
+
+    guest: MagicMock = MagicMock()
+    guest.resources = resources
+    return mocker.patch.object(
+        security_manager, "get_current_guest_user_if_guest", return_value=guest
+    )
+
+
+def test_guest_embedded_chart_filter_matches_token_charts(
+    mocker: MockerFixture,
+) -> None:
+    """A token's chart resources become an EXISTS over the chart's embed rows."""
+    from superset.charts.filters import guest_embedded_chart_filter
+
+    _guest_with_resources(
+        mocker,
+        [
+            {"type": "chart", "id": "11111111-1111-1111-1111-111111111111"},
+            {"type": "dashboard", "id": "22222222-2222-2222-2222-222222222222"},
+        ],
+    )
+
+    clause = guest_embedded_chart_filter()
+    assert clause is not None
+    compiled: str = str(clause.compile(create_engine("sqlite://")))
+    assert "EXISTS" in compiled
+    # Scoped through the chart's own embed config, not through dashboards.
+    assert "embedded_charts" in compiled
+
+
+def test_guest_embedded_chart_filter_none_without_chart_resources(
+    mocker: MockerFixture,
+) -> None:
+    """A dashboard-only token contributes nothing to the chart scope, so the
+    dashboard branch alone decides what the guest sees."""
+    from superset.charts.filters import guest_embedded_chart_filter
+
+    _guest_with_resources(mocker, [{"type": "dashboard", "id": "abc"}])
+
+    assert guest_embedded_chart_filter() is None
+
+
+def test_guest_embedded_chart_filter_none_for_non_guest(mocker: MockerFixture) -> None:
+    from superset.charts.filters import guest_embedded_chart_filter
+    from superset.extensions import security_manager
+
+    mocker.patch.object(
+        security_manager, "get_current_guest_user_if_guest", return_value=None
+    )
+
+    assert guest_embedded_chart_filter() is None
+
+
+def test_chart_filter_scopes_guest_to_token_charts(mocker: MockerFixture) -> None:
+    """A token issued for a standalone embedded chart resolves that chart.
+
+    Without the chart branch the dashboard scope is a deny-all clause, so the
+    chart the token was minted for is filtered out of the Chart API entirely.
+    """
+    from sqlalchemy import false
+
+    from superset.charts.filters import ChartFilter
+    from superset.extensions import security_manager
+    from superset.models.slice import Slice
+
+    mocker.patch.object(
+        security_manager, "can_access_all_datasources", return_value=False
+    )
+    mocker.patch(
+        "superset.charts.filters.guest_embedded_dashboard_filter",
+        return_value=false(),
+    )
+    _guest_with_resources(
+        mocker, [{"type": "chart", "id": "11111111-1111-1111-1111-111111111111"}]
+    )
+
+    captured: dict[str, Any] = {}
+    query: MagicMock = MagicMock()
+
+    def _capture_filter(clause: object) -> MagicMock:
+        captured["clause"] = clause
+        return query
+
+    query.filter.side_effect = _capture_filter
+
+    filt: ChartFilter = ChartFilter.__new__(ChartFilter)
+    filt.model = Slice
+    assert filt.apply(query, None) is query
+    query.filter.assert_called_once()
+    query.join.assert_not_called()
+
+    compiled: str = str(captured["clause"].compile(create_engine("sqlite://")))
+    assert "embedded_charts" in compiled
+
+
+def test_chart_filter_guest_scope_unions_dashboards_and_charts(
+    mocker: MockerFixture,
+) -> None:
+    """A token holding both resource kinds resolves both, and nothing else."""
+    from superset.charts.filters import ChartFilter
+    from superset.extensions import security_manager
+    from superset.models.dashboard import Dashboard
+    from superset.models.slice import Slice
+
+    mocker.patch.object(
+        security_manager, "can_access_all_datasources", return_value=False
+    )
+    mocker.patch(
+        "superset.charts.filters.guest_embedded_dashboard_filter",
+        return_value=Dashboard.id.in_([1, 2]),
+    )
+    _guest_with_resources(
+        mocker,
+        [
+            {"type": "dashboard", "id": "1"},
+            {"type": "chart", "id": "11111111-1111-1111-1111-111111111111"},
+        ],
+    )
+
+    captured: dict[str, Any] = {}
+    query: MagicMock = MagicMock()
+
+    def _capture_filter(clause: object) -> MagicMock:
+        captured["clause"] = clause
+        return query
+
+    query.filter.side_effect = _capture_filter
+
+    filt: ChartFilter = ChartFilter.__new__(ChartFilter)
+    filt.model = Slice
+    filt.apply(query, None)
+
+    compiled: str = str(captured["clause"].compile(create_engine("sqlite://")))
+    assert "dashboard_slices" in compiled
+    assert "embedded_charts" in compiled
+    assert " OR " in compiled
