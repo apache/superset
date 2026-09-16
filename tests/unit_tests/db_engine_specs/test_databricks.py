@@ -1252,3 +1252,30 @@ def test_handle_boolean_filter_subclasses_compilation() -> None:
         str(pyconn_res.compile(compile_kwargs={"literal_binds": True}))
         == "flag = false"
     )
+
+
+def test_handle_boolean_filter_databricks_hive_compilation() -> None:
+    """
+    Test that DatabricksHiveEngineSpec also compiles boolean filters with equality comparison.
+    """
+    from sqlalchemy import Boolean, Column
+    from superset.db_engine_specs.databricks import DatabricksHiveEngineSpec
+    from superset.utils.core import FilterOperator
+
+    bool_col = Column("is_interactive", Boolean)
+
+    hive_true_res = DatabricksHiveEngineSpec.handle_boolean_filter(
+        bool_col, FilterOperator.IS_TRUE, True
+    )
+    assert (
+        str(hive_true_res.compile(compile_kwargs={"literal_binds": True}))
+        == "is_interactive = true"
+    )
+
+    hive_false_res = DatabricksHiveEngineSpec.handle_boolean_filter(
+        bool_col, FilterOperator.IS_FALSE, False
+    )
+    assert (
+        str(hive_false_res.compile(compile_kwargs={"literal_binds": True}))
+        == "is_interactive = false"
+    )
