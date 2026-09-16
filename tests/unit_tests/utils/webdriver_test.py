@@ -290,6 +290,31 @@ class TestStandardScreenshotValidation:
 
         assert page.screenshot.call_count == 3
 
+    def test_api_capture_fails_closed_when_content_probe_errors(self):
+        from superset.utils.webdriver import PlaywrightError
+
+        page = MagicMock()
+        element = MagicMock()
+        page.screenshot.return_value = _png("white")
+        page.evaluate.side_effect = [
+            True,
+            PlaywrightError("content probe failed"),
+        ]
+
+        with pytest.raises(PlaywrightError, match="content probe failed"):
+            WebDriverPlaywright._get_validated_screenshot(
+                page,
+                element,
+                "standalone",
+                "cache_key=test",
+                None,
+                validate_rendered_content=True,
+                require_complete_capture=True,
+                load_wait_seconds=5,
+            )
+
+        page.screenshot.assert_called_once()
+
     def test_api_capture_discards_chart_that_returns_to_loading(self):
         page = MagicMock()
         element = MagicMock()
