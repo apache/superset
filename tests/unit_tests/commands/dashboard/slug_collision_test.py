@@ -35,7 +35,7 @@ from superset.commands.soft_delete_collisions import (
     raise_for_soft_deleted_slug_collision,
 )
 
-_FINDER = "superset.commands.soft_delete_collisions.find_soft_deleted_slot_holder"
+_FINDER: str = "superset.commands.soft_delete_collisions.find_soft_deleted_slot_holder"
 
 
 def _slug_error() -> IntegrityError:
@@ -54,6 +54,14 @@ def _pg_error(
     orig.sqlstate = code if psycopg3 else None
     orig.diag = MagicMock()
     orig.diag.constraint_name = name
+    return IntegrityError(None, None, orig)
+
+
+def _mysql_error(key: str, errno: int = 1062) -> IntegrityError:
+    """Include both MySQL errno and its non-PostgreSQL SQLSTATE."""
+    orig: MagicMock = MagicMock(spec=Exception)
+    orig.args = (errno, f"Duplicate entry 'x' for key '{key}'")
+    orig.sqlstate = "23000"
     return IntegrityError(None, None, orig)
 
 
@@ -83,11 +91,12 @@ def test_no_deleted_holder_returns_so_caller_reraises(
     mocker: MockerFixture,
 ) -> None:
     """A conflict NOT caused by a soft-deleted row must not be masked."""
-    mocker.patch(_FINDER, return_value=None)
+    finder: MagicMock = mocker.patch(_FINDER, return_value=None)
 
     # Returning (rather than raising) is the contract that lets the caller
     # re-raise the original IntegrityError unmasked.
     raise_for_soft_deleted_slug_collision("q1-report", _slug_error())
+    finder.assert_called_once()
 
 
 def test_no_slug_skips_the_probe(mocker: MockerFixture) -> None:
@@ -136,6 +145,8 @@ def test_live_holder_wins_over_archived_namesake(mocker: MockerFixture) -> None:
 @pytest.mark.parametrize(
     "cause",
     [
+        _mysql_error("uq_dashboards_uuid"),
+        _mysql_error("idx_unique_slug", errno=1048),
         _pg_error("uq_dashboards_uuid"),
         _pg_error(None),
         _pg_error("idx_unique_slug", "23503"),
@@ -193,6 +204,9 @@ def test_unrelated_or_ambiguous_error_skips_archived_holder(
 @pytest.mark.parametrize(
     "cause",
     [
+        _mysql_error("idx_unique_slug"),
+        _mysql_error("dashboards.idx_unique_slug"),
+        _mysql_error("ix_dashboards_active_slug"),
         _pg_error("idx_unique_slug"),
         _pg_error("ix_dashboards_active_slug"),
         _pg_error("idx_unique_slug", psycopg3=True),

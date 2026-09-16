@@ -31,6 +31,7 @@ import yaml
 
 from freezegun import freeze_time
 from sqlalchemy import and_
+from sqlalchemy.engine.reflection import Inspector
 from superset import db, security_manager  # noqa: F401
 from superset.commands.dashboard.permalink.create import CreateDashboardPermalinkCommand
 from superset.exceptions import LockAlreadyHeldException
@@ -1978,7 +1979,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
 
         from superset.models.helpers import skip_visibility_filter
 
-        insp = sa_inspect(db.engine)
+        insp: Inspector = sa_inspect(db.engine)
         slug_reserved_by_deleted: bool = any(
             uc["column_names"] == ["slug"]
             for uc in insp.get_unique_constraints("dashboards")
@@ -1998,25 +1999,25 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             slug_reserved_by_deleted = True
 
         self.login(ADMIN_USERNAME)
-        uri = "api/v1/dashboard/"
+        uri: str = "api/v1/dashboard/"
         try:
-            first = self.post_assert_metric(
+            first: TestResponse = self.post_assert_metric(
                 uri, {"dashboard_title": "held", "slug": "sc107581-held"}, "post"
             )
             assert first.status_code == 201
-            first_id = json.loads(first.data.decode("utf-8"))["id"]
+            first_id: int = json.loads(first.data.decode("utf-8"))["id"]
             holder: Dashboard = db.session.query(Dashboard).get(first_id)
             holder_uuid: str = str(holder.uuid)
             DashboardDAO.soft_delete([holder])
             db.session.commit()
 
-            rv = self.post_assert_metric(
+            rv: TestResponse = self.post_assert_metric(
                 uri, {"dashboard_title": "reclaim", "slug": "sc107581-held"}, "post"
             )
 
             if slug_reserved_by_deleted:
                 assert rv.status_code == 422
-                body = rv.data.decode("utf-8")
+                body: str = rv.data.decode("utf-8")
                 assert holder_uuid in body
                 assert f"/api/v1/dashboard/{holder_uuid}/restore" in body
             else:
@@ -2025,11 +2026,12 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         finally:
             db.session.rollback()
             with skip_visibility_filter(db.session, Dashboard):
-                rows = (
+                rows: list[Dashboard] = (
                     db.session.query(Dashboard)
                     .filter(Dashboard.slug == "sc107581-held")
                     .all()
                 )
+            row: Dashboard
             for row in rows:
                 db.session.delete(row)
             db.session.commit()

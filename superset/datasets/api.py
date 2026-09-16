@@ -793,7 +793,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         except (DatasetRefreshFailedError, DatasetUpdateFailedError) as ex:
             # One handler for both failure classes: identical response shape,
             # and logger.exception carries the traceback either way. The
-            # exception class in the log line tells the two apart.
+            # exception class in the traceback tells the two apart.
             logger.exception(
                 "Error updating dataset %s: %s",
                 self.__class__.__name__,

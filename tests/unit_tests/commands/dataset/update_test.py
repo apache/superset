@@ -16,6 +16,7 @@
 # under the License.
 
 from typing import Any, cast
+from unittest.mock import MagicMock
 
 import pytest
 from marshmallow import ValidationError
@@ -418,22 +419,24 @@ def test_update_dataset_soft_deleted_twin_gets_guidance(
         DatasetSoftDeletedTwinExistsError,
     )
 
-    mock_dataset_dao = mocker.patch("superset.commands.dataset.update.DatasetDAO")
+    mock_dataset_dao: MagicMock = mocker.patch(
+        "superset.commands.dataset.update.DatasetDAO"
+    )
     mocker.patch(
         "superset.commands.dataset.update.security_manager.raise_for_editorship",
     )
     mocker.patch("superset.commands.utils.security_manager.is_admin", return_value=True)
-    mock_database = mocker.MagicMock()
+    mock_database: MagicMock = mocker.MagicMock()
     mock_database.id = 1
     mock_database.get_default_catalog.return_value = "catalog"
     mock_database.allow_multi_catalog = False
-    mock_dataset = mocker.MagicMock(is_managed_externally=False)
+    mock_dataset: MagicMock = mocker.MagicMock(is_managed_externally=False)
     mock_dataset.database = mock_database
     mock_dataset.catalog = "catalog"
     mock_dataset_dao.find_by_id.return_value = mock_dataset
     mock_dataset_dao.get_database_by_id.return_value = mock_database
     mock_dataset_dao.validate_update_uniqueness.return_value = False
-    twin = mocker.MagicMock()
+    twin: MagicMock = mocker.MagicMock()
     twin.uuid = "twin-uuid-123"
     mock_dataset_dao.find_soft_deleted_logical_duplicate.return_value = twin
 

@@ -156,6 +156,7 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
             # row is a SOFT-DELETED dataset, raise the targeted 422 naming
             # the twin's uuid and the restore pointer instead of the opaque
             # "already exists" (the twin is invisible in the caller's list).
+            soft_twin: SqlaTable | None
             if soft_twin := DatasetDAO.find_soft_deleted_logical_duplicate(db, table):
                 raise DatasetSoftDeletedTwinExistsError(str(soft_twin.uuid))
             exceptions.append(DatasetExistsValidationError(table))

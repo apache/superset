@@ -39,11 +39,8 @@ existing "already exists" error.
 
 from __future__ import annotations
 
-import logging
 import re
 from typing import Any, TYPE_CHECKING
-
-logger = logging.getLogger(__name__)
 
 #: Slug uniqueness objects. ``idx_unique_slug`` is the original full constraint
 #: (migration 1a48a5411020); ``ix_dashboards_active_slug`` is the live-rows-only
@@ -63,15 +60,8 @@ def _is_dashboard_slug_uniqueness_error(cause: Exception) -> bool:
     if orig is None:
         return False
 
-    pgcode: str | None = getattr(orig, "pgcode", None) or getattr(
-        orig, "sqlstate", None
-    )
-    if pgcode is not None:
-        constraint_name: str | None = getattr(
-            getattr(orig, "diag", None), "constraint_name", None
-        )
-        return pgcode == "23505" and constraint_name in _SLUG_UNIQUE_NAMES
-
+    # MySQL drivers can expose SQLSTATE as well as errno. Their SQLSTATE
+    # must not send a MySQL diagnostic down the PostgreSQL-only path.
     args: tuple[Any, ...] = getattr(orig, "args", ())
     if args and isinstance(args[0], int):
         if args[0] != 1062 or len(args) < 2 or not isinstance(args[1], str):
@@ -82,6 +72,15 @@ def _is_dashboard_slug_uniqueness_error(cause: Exception) -> bool:
             r"""for key (['"`])(?:dashboards\.)?([^'"`]+)\1$""", args[1]
         )
         return key_match is not None and key_match[2] in _SLUG_UNIQUE_NAMES
+
+    pgcode: str | None = getattr(orig, "pgcode", None) or getattr(
+        orig, "sqlstate", None
+    )
+    if pgcode is not None:
+        constraint_name: str | None = getattr(
+            getattr(orig, "diag", None), "constraint_name", None
+        )
+        return pgcode == "23505" and constraint_name in _SLUG_UNIQUE_NAMES
 
     # SQLite's driver text is the diagnostic alone, unlike the wrapper.
     return str(orig).lower() == "unique constraint failed: dashboards.slug"
