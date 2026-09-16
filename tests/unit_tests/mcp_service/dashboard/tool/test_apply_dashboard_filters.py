@@ -1055,3 +1055,120 @@ async def test_inverse_select_is_rejected_without_side_effects(
     assert "inverse selection, which this tool does not support" in data["error"]
     create.assert_not_called()
     publish.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_single_select_rejects_multiple_values(mcp_server: object) -> None:
+    """A single-select control cannot render two values, so refuse to store them."""
+    conf = {
+        **SELECT_FILTER,
+        "controlValues": {**SELECT_FILTER["controlValues"], "multiSelect": False},
+    }
+    with (
+        patch(DAO_GET, return_value=_mock_dashboard([conf])),
+        patch(CREATE_PERMALINK) as create,
+        patch(
+            "superset.mcp_service.dashboard.tool.apply_dashboard_filters."
+            "_publish_filters_applied"
+        ) as publish,
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "filters": [
+                    {"filter_name_or_id": "Region", "values": ["EMEA", "APAC"]}
+                ],
+            },
+        )
+    assert "single-select and accepts at most one value" in data["error"]
+    create.assert_not_called()
+    publish.assert_not_called()
+
+
+@pytest.mark.parametrize("values", [["EMEA"], []])
+@pytest.mark.asyncio
+async def test_single_select_accepts_one_value_or_a_clear(
+    mcp_server: object, values: list[str]
+) -> None:
+    """One value and an explicit clear both stay valid for a single-select."""
+    conf = {
+        **SELECT_FILTER,
+        "controlValues": {**SELECT_FILTER["controlValues"], "multiSelect": False},
+    }
+    captured: dict[str, Any] = {}
+    with (
+        patch(DAO_GET, return_value=_mock_dashboard([conf])),
+        patch(CREATE_PERMALINK, side_effect=_mock_permalink_command(captured)),
+        patch(
+            "superset.mcp_service.dashboard.tool.apply_dashboard_filters."
+            "_publish_filters_applied"
+        ),
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "filters": [{"filter_name_or_id": "Region", "values": values}],
+            },
+        )
+    assert data["error"] is None
+    mask = captured["state"]["dataMask"]["NATIVE_FILTER-region"]
+    assert mask["filterState"]["value"] == (values or None)
+
+
+@pytest.mark.asyncio
+async def test_inherited_mask_drops_filters_the_dashboard_no_longer_has(
+    mcp_server: object,
+) -> None:
+    """A filter deleted or recreated between turns must not carry state forward."""
+    stale_id = "NATIVE_FILTER-deleted"
+    base_state = {
+        "dataMask": {
+            "NATIVE_FILTER-region": {
+                "id": "NATIVE_FILTER-region",
+                "ownState": {},
+                "extraFormData": {
+                    "filters": [{"col": "region", "op": "IN", "val": ["EMEA"]}]
+                },
+                "filterState": {"value": ["EMEA"], "label": "EMEA"},
+            },
+            stale_id: {
+                "id": stale_id,
+                "ownState": {},
+                "extraFormData": {
+                    "filters": [{"col": "gone", "op": "IN", "val": ["x"]}]
+                },
+                "filterState": {"value": ["x"], "label": "x"},
+            },
+        }
+    }
+    captured: dict[str, Any] = {}
+    with (
+        patch(DAO_GET, return_value=_mock_dashboard([SELECT_FILTER, TIME_FILTER])),
+        patch(CREATE_PERMALINK, side_effect=_mock_permalink_command(captured)),
+        patch(GET_PERMALINK) as get_command,
+        patch(CAN_VIEW_DATA_MODEL, return_value=True),
+    ):
+        get_command.return_value.run.return_value = {
+            "dashboardId": "1",
+            "state": base_state,
+        }
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "base_permalink_key": "base-key",
+                "filters": [
+                    {
+                        "filter_name_or_id": "Time Range",
+                        "time_range": "2024-01-01 : 2025-01-01",
+                    }
+                ],
+            },
+        )
+    assert data["error"] is None
+    assert set(captured["state"]["dataMask"]) == {
+        "NATIVE_FILTER-region",
+        "NATIVE_FILTER-time",
+    }

@@ -46,7 +46,9 @@ flowchart LR
 `apply_dashboard_filters` supports exact-match select filters without inverse
 selection, and time filters. Inverse-selection configurations are rejected.
 Select filters configured for contains, starts-with, or ends-with matching are
-rejected rather than silently applying exact matching. Clearing a required select
+rejected rather than silently applying exact matching. A single-select filter
+accepts at most one value; a longer list is rejected rather than stored as a
+selection the control cannot render. Clearing a required select
 filter with `values: []` matches no rows, including when opening the returned
 permalink; an explicit clear does not restore its saved default.
 
@@ -62,7 +64,9 @@ then pass that key with a Time Range = `2024-01-01 : 2025-01-01` request to
 keep EMEA and add the year constraint. Each new value replaces that filter's
 entire prior entry; unmentioned filters persist. Omit the base key to start
 from dashboard defaults. `applied_filters` summarizes only the new request,
-not the inherited selections.
+not the inherited selections. Inherited entries for filters the dashboard no
+longer defines are dropped, so a filter deleted or recreated between turns
+does not carry a stale predicate forward.
 
 Base state is resolved server-side under the calling user's dashboard access
 and merged without display redaction; the raw base mask is not returned.
@@ -80,6 +84,10 @@ key through the dashboard's authorized permalink load path.
 Live browser updates require `WEBSOCKET_ENABLE = True`, a configured
 `DISTRIBUTED_COORDINATION_CONFIG` backend, a running `superset-websocket`
 server, and a strong, non-default `WEBSOCKET_JWT_SECRET` of at least 32 bytes.
+`WEBSOCKET_URL` must also point at a `ws://`/`wss://` endpoint the browser can
+reach. Its default, `ws://127.0.0.1:8080/`, resolves to the browser's own
+loopback, so a remote deployment that leaves it unchanged has every
+server-side piece configured correctly while live updates never connect.
 The browser user also needs
 `can_read` on `Realtime`. With the default configuration the realtime half
 is inert, but the tool still creates and returns a permalink URL.

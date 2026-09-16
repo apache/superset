@@ -174,6 +174,14 @@ def _select_data_mask(
             f"operator '{operator}', which this tool does not support. "
             "Only exact-match select filters are supported."
         )
+    # A single-select filter renders one value; storing several would disagree
+    # with the control the moment a viewer touches it. multiSelect defaults to
+    # true, so only an explicit false restricts the selection.
+    if control_values.get("multiSelect") is False and len(values) > 1:
+        raise _FilterApplyError(
+            f"Filter '{conf.get('name') or conf.get('id')}' is single-select "
+            f"and accepts at most one value, but {len(values)} were given."
+        )
 
     if values:
         extra_form_data: dict[str, Any] = {
@@ -323,12 +331,14 @@ async def apply_dashboard_filters(
     its filter ID; call get_dashboard_info first to see which filters a
     dashboard has. Only exact-match select filters without inverse selection
     are supported. Supply ``values`` for a filter_select filter (an empty
-    list clears it) and ``time_range`` for a filter_time filter. Filters
+    list clears it, and a single-select filter accepts at most one value)
+    and ``time_range`` for a filter_time filter. Filters
     left out of the request keep the dashboard's default value unless
     base_permalink_key is supplied. For follow-up turns (e.g. "also filter
     to 2024"), pass the previous response's permalink_key as
     base_permalink_key to preserve prior selections. New values replace
-    the entire entry for that filter; unmentioned filters persist. Omit the
+    the entire entry for that filter; unmentioned filters persist, except
+    for filters the dashboard no longer defines, which are dropped. Omit the
     base key to start over. An unresolved base key fails without creating a link.
 
     Example usage:
@@ -403,7 +413,18 @@ async def apply_dashboard_filters(
                 return ApplyDashboardFiltersResponse(
                     dashboard_id=request.dashboard_id, error=str(exc)
                 )
-            data_mask = {**base_mask, **data_mask}
+            # An entry for a filter the dashboard no longer defines is stale:
+            # opening the permalink drops it during hydration, but a live
+            # receiver would dispatch it and fall back to every chart. Keep
+            # only entries the current configuration still knows about so both
+            # paths show the same state.
+            known_ids = {conf.get("id") for conf in configs if conf.get("id")}
+            inherited = {
+                filter_id: entry
+                for filter_id, entry in base_mask.items()
+                if filter_id in known_ids
+            }
+            data_mask = {**inherited, **data_mask}
 
         with event_logger.log_context(action="mcp.apply_dashboard_filters.permalink"):
             key = create_dashboard_permalink(
