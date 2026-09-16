@@ -63,7 +63,7 @@ logger = logging.getLogger(__name__)
 #
 # Unknown models fail closed (``LookupError``) rather than defaulting to a
 # relation-less restore — a silently partial restore is worse than a loud
-# failure (mirrors ``_RAISE_FOR_ACCESS_KWARG`` in ``api_helpers``).
+# failure (mirrors ``_version_endpoint_models`` in ``api_helpers``).
 _RESTORE_RELATIONS: dict[str, list[str]] = {
     "SqlaTable": ["columns", "metrics"],
     "Dashboard": [],
@@ -161,6 +161,13 @@ def restore_version(
     # race, and so the change-records listener sees the complete state in
     # one ``after_flush`` pass. See ``single_flush_scope`` for the full
     # rationale.
+    # SC-120012: ``revert(relations=...)`` reconstructs children from the
+    # closed child shadow rows valid at the target transaction. Retention
+    # can legitimately prune closed child history while the parent
+    # transaction survives the window, in which case this WRITE persists an
+    # incomplete column/metric set for a SqlaTable — the same child-path
+    # gap noted read-only in ``queries.get_version``, worse here because it
+    # is durable. Tracked there; not closed in this change.
     skipped_slice_ids: list[int] = []
     try:
         with single_flush_scope(db.session):
@@ -213,21 +220,21 @@ def _restore_dashboard_membership(dashboard: Any, transaction_id: int) -> list[i
     # pylint: disable=import-outside-toplevel
     # Local imports: models.slice transitively imports models.core, which needs
     # the initialised app — a module-top import would recreate the bootstrap
-    # cycle documented in changes/listener.py. charts_attached_to_dashboard is
+    # cycle documented in changes/listener.py. chart_attachment_windows_for_dashboard is
     # imported lazily for the same reason: it pulls the window helpers, whose
     # package transitively imports the versioning.changes listener graph, so a
     # module-top import here would re-enter that same bootstrap cycle.
     from superset.models.slice import Slice
-    from superset.versioning.membership import charts_attached_to_dashboard
+    from superset.versioning.membership import chart_attachment_windows_for_dashboard
 
-    # charts_attached_to_dashboard owns the association-shadow read and the
+    # chart_attachment_windows_for_dashboard owns the association-shadow read and the
     # attach/detach window pairing (the single place that must never filter the
     # M2M shadow by end_transaction_id — Continuum never closes it). A slice was
     # a member at transaction_id iff one of its windows contains it (sc-119907).
     member_ids = sorted(
         {
             slice_id
-            for slice_id, window in charts_attached_to_dashboard(dashboard.id)
+            for slice_id, window in chart_attachment_windows_for_dashboard(dashboard.id)
             if window.contains(transaction_id)
         }
     )
