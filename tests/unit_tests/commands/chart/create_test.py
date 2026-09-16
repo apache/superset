@@ -317,3 +317,27 @@ def test_create_chart_updates_multiple_dashboards_changed_on(
     assert d2.changed_by == user
 
 
+def test_create_chart_without_dashboards_runs_cleanly(
+    mocker: MockerFixture,
+) -> None:
+    """Creating a chart with no attached dashboards runs smoothly without error."""
+    _mock_table_datasource(mocker)
+    g.user = MagicMock()
+    mocker.patch(
+        "superset.commands.chart.create.ChartDAO.create",
+        return_value=MagicMock(),
+    )
+
+    cmd = CreateChartCommand(
+        {
+            "datasource_id": 42,
+            "datasource_type": "table",
+            "slice_name": "Standalone Chart",
+            "viz_type": "table",
+        }
+    )
+    chart = cmd.run()
+    assert chart is not None
+
+
+
