@@ -710,8 +710,13 @@ async def test_get_table_rejects_open_ended_range_before_execution(
 async def test_get_table_exposes_filters_to_jinja_macros(
     mcp_server: FastMCP,
 ) -> None:
-    """get_table publishes the same Jinja inputs as other ChartDataCommand paths."""
-    from superset.common.query_object import QueryObject
+    """get_table publishes the same Jinja inputs as other ChartDataCommand paths.
+
+    Uses the real QueryContextFactory so ``_apply_granularity`` strips the
+    TEMPORAL_RANGE filter; the hoist must then read cache_values.
+    """
+    from flask import g
+
     from tests.unit_tests.charts.data.form_data_test import (
         assert_request_dependent_jinja_macros,
     )
@@ -719,20 +724,12 @@ async def test_get_table_exposes_filters_to_jinja_macros(
     mock_ds = _make_dataset(7)
     observed: dict[str, bool] = {}
 
-    def fake_create(*_args: Any, **kwargs: Any) -> SimpleNamespace:
-        query_dict = kwargs["queries"][0]
-        query = QueryObject(
-            filters=query_dict.get("filters"),
-            time_range=query_dict.get("time_range"),
-            columns=query_dict.get("columns"),
-            metrics=query_dict.get("metrics"),
-        )
-        return SimpleNamespace(
-            queries=[query],
-            form_data=kwargs.get("form_data") or {},
-        )
-
     def run_query(*_args: Any, **_kwargs: Any) -> dict[str, Any]:
+        processed_filters = g.form_data["queries"][0]["filters"] or []
+        assert all(
+            (flt.get("op") if isinstance(flt, dict) else None) != "TEMPORAL_RANGE"
+            for flt in processed_filters
+        )
         # get_table has no url_params; skip that chart-only assertion.
         assert_request_dependent_jinja_macros(expected_url_param=None)
         observed["ran"] = True
@@ -756,8 +753,8 @@ async def test_get_table_exposes_filters_to_jinja_macros(
             side_effect=run_query,
         ),
         patch(
-            "superset.common.query_context_factory.QueryContextFactory.create",
-            side_effect=fake_create,
+            "superset.common.query_context_factory.QueryContextFactory._convert_to_model",
+            return_value=mock_ds,
         ),
     ):
         async with Client(mcp_server) as client:

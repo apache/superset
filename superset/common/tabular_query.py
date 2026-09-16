@@ -390,7 +390,9 @@ def build_query_dict(
     # Do not set QueryObject.time_range here. Relative ranges must keep
     # from_dttm/to_dttm in the cache key so day rollovers re-execute.
     # Jinja get_time_filter() still sees the range via
-    # set_query_context_form_data hoisting TEMPORAL_RANGE filters.
+    # set_query_context_form_data: it hoists TEMPORAL_RANGE (or one-sided
+    # >= / < rewrites) from the processed query, and falls back to the raw
+    # dict in cache_values after _apply_granularity strips that filter.
     if time_grain:
         query_dict["extras"] = {"time_grain_sqla": time_grain}
     if order:

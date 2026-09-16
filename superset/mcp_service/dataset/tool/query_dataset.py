@@ -300,9 +300,10 @@ async def query_dataset(  # noqa: C901
         await ctx.report_progress(3, 5, "Building query")
         # TEMPORAL_RANGE is already in query_filters. Do not also set
         # QueryObject.time_range: relative ranges must keep from_dttm/to_dttm
-        # in the cache key so rollovers re-execute. Jinja get_time_filter()
-        # still sees the range via set_query_context_form_data hoisting it
-        # from the TEMPORAL_RANGE filter.
+        # in the cache key so rollovers re-execute. _apply_granularity then
+        # deletes that filter from the processed QueryObject, so Jinja
+        # get_time_filter() reads the range from the raw query dict in
+        # cache_values via set_query_context_form_data.
         query_dict: dict[str, Any] = build_query_dict(
             time_column=granularity,
             metrics=request.metrics,
