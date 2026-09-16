@@ -29,11 +29,17 @@ import {
   BinaryQueryObjectFilterClause,
   ensureIsArray,
   getClientErrorObject,
+  getXAxisLabel,
+  isQueryFormColumn,
+  isXAxisSet,
   QueryData,
   QueryFormData,
 } from '@superset-ui/core';
 import { simpleFilterToAdhoc } from 'src/utils/simpleFilterToAdhoc';
-import { requestChartDataResolved } from 'src/components/Chart/chartAction';
+import {
+  requestChartDataResolved,
+  type RequestParams,
+} from 'src/components/Chart/chartAction';
 import { DrillDownLevel } from './types';
 
 /**
@@ -102,6 +108,13 @@ interface UseDrillDownStateArgs {
    * root). Defaults to false so non-dashboard callers keep plain persistence.
    */
   crossFilterCleared?: boolean;
+  /**
+   * Base request params (timeout, dashboard_id, async_mode_override) for drill
+   * queries, mirroring exploreJSON. The hook adds the per-request AbortSignal.
+   * Without these a superseded synchronous drill keeps running, hung queries
+   * lack the normal timeout, and per-dashboard async overrides are ignored.
+   */
+  requestParams?: RequestParams;
 }
 
 interface UseDrillDownStateResult {
@@ -145,6 +158,7 @@ export function useDrillDownState({
   formData,
   baseQueriesResponse,
   crossFilterCleared,
+  requestParams,
 }: UseDrillDownStateArgs): UseDrillDownStateResult {
   const chartKey = chartId;
 
@@ -215,6 +229,28 @@ export function useDrillDownState({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Reset live when the owning cross-filter is cleared while the chart stays
+  // mounted (the user removes this chart's cross-filter from the filter bar).
+  // Only a false -> true transition counts: mount and the normal drill sequence
+  // (the click writes a non-empty mask, so crossFilterCleared stays false) must
+  // not trip this, otherwise an in-progress drill would reset itself.
+  const prevCrossFilterClearedRef = useRef(crossFilterCleared);
+  useLayoutEffect(() => {
+    const wasCleared = prevCrossFilterClearedRef.current;
+    prevCrossFilterClearedRef.current = crossFilterCleared;
+    if (!crossFilterCleared || wasCleared) {
+      return;
+    }
+    if (chartKey != null) {
+      drillStateStore.delete(chartKey);
+    }
+    setDrillStack([]);
+    setSelectedLeaf(undefined);
+    setSelectedLeafFilters(undefined);
+    setDrillData(null);
+    setError(undefined);
+  }, [crossFilterCleared, chartKey]);
+
   // Persist drill navigation synchronously so it survives remounts (see
   // drillStateStore) without racing. Writing on a deferred effect would let a
   // remount triggered by the same interaction (e.g. clearing a cross-filter)
@@ -281,8 +317,14 @@ export function useDrillDownState({
     if (drillLevels.length > 0) {
       // The primary dimension is always the initial (index 0) level, even if
       // the author listed it later in the control; normalize it to the front
-      // (deduped) so the first drill advances off the primary dimension.
-      const xAxisStr = typeof xAxis === 'string' ? xAxis : undefined;
+      // (deduped) so the first drill advances off the primary dimension. An
+      // x-axis may be an ad-hoc (Custom SQL) column, so resolve its label
+      // rather than assuming a plain string.
+      const xAxisStr = isXAxisSet(formData)
+        ? getXAxisLabel(formData)
+        : typeof xAxis === 'string'
+          ? xAxis
+          : undefined;
       if (xAxisStr) {
         return [xAxisStr, ...drillLevels.filter(col => col !== xAxisStr)];
       }
@@ -325,16 +367,17 @@ export function useDrillDownState({
     // Swap the field the hierarchy is anchored to. When the chart has an
     // x-axis, the hierarchy is x-axis driven (the groupby, if any, is only a
     // series breakdown and must be preserved), so swap x_axis. Only groupby-
-    // based charts (Pie/Funnel/…, no x_axis) swap the groupby.
+    // based charts (Pie/Funnel/…, no x_axis) swap the groupby. An x-axis may be
+    // an ad-hoc (Custom SQL) column, so detect it structurally, not as a string.
     const xAxisIsSet =
-      typeof fdRecord.x_axis === 'string' || typeof fdRecord.xAxis === 'string';
+      isXAxisSet(formData) || typeof fdRecord.xAxis === 'string';
     const groupbyValue = fdRecord[DEFAULT_GROUPBY_FIELD];
 
     const updated = { ...formData } as Record<string, unknown>;
 
     if (xAxisIsSet) {
       // Axis charts (Bar/Line/Area/…): advance the x-axis column.
-      if (typeof fdRecord.x_axis === 'string') {
+      if (isQueryFormColumn(fdRecord.x_axis)) {
         updated.x_axis = nextColumn;
       }
       if (typeof fdRecord.xAxis === 'string') {
@@ -376,6 +419,11 @@ export function useDrillDownState({
   // every unrelated dashboard re-render).
   const effectiveFormDataRef = useRef(effectiveFormData);
   effectiveFormDataRef.current = effectiveFormData;
+
+  // Read the latest request params from the fetch effect without listing them
+  // as a dependency (their identity churns on unrelated dashboard re-renders).
+  const requestParamsRef = useRef(requestParams);
+  requestParamsRef.current = requestParams;
 
   // Re-run the fetch only when the *content* of the drill query changes, not
   // when an unrelated re-render (e.g. a cross-filter update elsewhere on the
@@ -434,7 +482,17 @@ export function useDrillDownState({
         try {
           // eslint-disable-next-line no-await-in-loop
           const queriesResponse = await requestChartDataResolved(
-            { formData: activeFormData },
+            {
+              formData: activeFormData,
+              // Same request params as exploreJSON (timeout, dashboard_id,
+              // async override) plus this drill's abort signal, so the POST
+              // itself is abortable and honors the query timeout — not only the
+              // async-task wait.
+              requestParams: {
+                ...requestParamsRef.current,
+                signal: controller.signal,
+              },
+            },
             controller.signal,
           );
           if (!cancelled) {

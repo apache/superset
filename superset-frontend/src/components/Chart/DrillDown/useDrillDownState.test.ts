@@ -426,6 +426,118 @@ test('a remount after the owning cross-filter was cleared discards persisted dri
   expect(third.result.current.drillStack).toHaveLength(0);
 });
 
+test('clearing the owning cross-filter while mounted resets the drill in place', async () => {
+  const formData = {
+    ...baseFormData,
+    drilldown_hierarchy: ['country', 'region', 'city'],
+  };
+
+  const { result, rerender } = renderHook(
+    ({ cleared }: { cleared: boolean }) =>
+      useDrillDownState({
+        chartId: 42,
+        formData,
+        baseQueriesResponse: [{ data: [] }],
+        crossFilterCleared: cleared,
+      }),
+    { initialProps: { cleared: false } },
+  );
+
+  act(() => {
+    result.current.drillDown([{ col: 'country', op: '==', val: 'USA' }], 'USA');
+  });
+  await waitFor(() => expect(result.current.isLoading).toBe(false));
+  expect(result.current.isDrilling).toBe(true);
+
+  // The user removes this chart's cross-filter from the filter bar while the
+  // chart stays mounted: crossFilterCleared flips false -> true, and the drill
+  // must reset in place instead of continuing to show drilled data.
+  act(() => {
+    rerender({ cleared: true });
+  });
+  expect(result.current.isDrilling).toBe(false);
+  expect(result.current.drillStack).toHaveLength(0);
+});
+
+test('an ad-hoc (Custom SQL) x-axis still drills along the x-axis, not groupby', () => {
+  const formData = {
+    ...baseFormData,
+    x_axis: {
+      sqlExpression: 'lower(country)',
+      label: 'country_expr',
+      expressionType: 'SQL',
+    },
+    groupby: ['series_col'],
+    drilldown_hierarchy: ['country_expr', 'region', 'city'],
+  } as unknown as QueryFormData;
+
+  const { result } = renderHook(() =>
+    useDrillDownState({
+      chartId: 42,
+      formData,
+      baseQueriesResponse: [{ data: [] }],
+    }),
+  );
+
+  act(() => {
+    result.current.drillDown(
+      [{ col: 'country_expr', op: '==', val: 'usa' }],
+      'usa',
+    );
+  });
+
+  const fd = result.current.effectiveFormData as Record<string, unknown>;
+  // Drilling advances the x-axis to the next level; the groupby (series
+  // breakdown) must be preserved, not rewritten as if there were no x-axis.
+  expect(fd.x_axis).toEqual('region');
+  expect(fd.groupby).toEqual(['series_col']);
+});
+
+test('unmounting an in-flight drill aborts the request and surfaces no error', () => {
+  const { requestChartDataResolved } = jest.requireMock(
+    'src/components/Chart/chartAction',
+  );
+  let capturedSignal: AbortSignal | undefined;
+  requestChartDataResolved.mockImplementation(
+    (_params: unknown, signal?: AbortSignal) => {
+      capturedSignal = signal;
+      // Never settles on its own; the abort is what ends it.
+      return new Promise(() => {});
+    },
+  );
+
+  const formData = {
+    ...baseFormData,
+    drilldown_hierarchy: ['country', 'region'],
+  } as unknown as QueryFormData;
+
+  const { result, unmount } = renderHook(() =>
+    useDrillDownState({
+      chartId: 42,
+      formData,
+      baseQueriesResponse: [{ data: [] }],
+    }),
+  );
+
+  act(() => {
+    result.current.drillDown([{ col: 'country', op: '==', val: 'USA' }], 'USA');
+  });
+  expect(result.current.isLoading).toBe(true);
+  expect(capturedSignal).toBeDefined();
+  expect(capturedSignal?.aborted).toBe(false);
+
+  unmount();
+
+  // Cleanup aborts the in-flight request so a superseded/unmounted drill
+  // cancels its outstanding work; the abort is intentional, not an error.
+  expect(capturedSignal?.aborted).toBe(true);
+  expect(result.current.error).toBeUndefined();
+
+  // Restore the shared mock for subsequent tests.
+  requestChartDataResolved.mockReset();
+  requestChartDataResolved.mockResolvedValue([{ data: [{ col1: 'val1' }] }]);
+});
+
 test('reconfiguring the chart (viz type change) clears persisted drill state', async () => {
   const formData = {
     ...baseFormData,

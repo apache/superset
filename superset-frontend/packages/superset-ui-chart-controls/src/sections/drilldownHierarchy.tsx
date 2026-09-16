@@ -57,9 +57,12 @@ export const drilldownHierarchySection: ControlPanelSectionConfig = {
               'clicked value. Drag rows to reorder levels.',
           ),
           default: [],
-          // The drill levels must be plain column references (the drill logic
-          // matches them by name), so disallow ad-hoc/custom SQL columns.
+          // The drill levels must be plain column references — the drill logic
+          // matches them by name and renders them as breadcrumb text — so
+          // disallow ad-hoc/Custom SQL columns. `freeForm: false` alone is not
+          // enough for DndColumnSelect, so also hide the Custom SQL tab.
           freeForm: false,
+          disabledTabs: new Set(['sqlExpression']),
           // Configures click behavior only and does not affect the base query,
           // so editing it re-renders without marking the chart stale.
           renderTrigger: true,

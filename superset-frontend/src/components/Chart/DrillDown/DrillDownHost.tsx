@@ -36,6 +36,8 @@ import { useSelector } from 'react-redux';
 import { css } from '@apache-superset/core/theme';
 import { ChartSource } from 'src/types/ChartSource';
 import type { RootState } from 'src/dashboard/types';
+import { selectAsyncModeOverride } from 'src/utils/asyncMode';
+import type { RequestParams } from 'src/components/Chart/chartAction';
 import { useDrillDownState } from './useDrillDownState';
 import { DrillDownBreadcrumb } from './DrillDownBreadcrumb';
 import type { ChartRendererProps } from '../ChartRenderer';
@@ -110,6 +112,30 @@ export function DrillDownHost({
     !!rendererProps.emitCrossFilters &&
     ensureIsArray(crossFilterValue).length === 0;
 
+  // Request params for drill queries, mirroring exploreJSON so superseded
+  // drills abort, hung queries time out, and the per-dashboard async override
+  // is honored. The hook adds the per-request AbortSignal.
+  const asyncModeOverride = useSelector(selectAsyncModeOverride);
+  const dashboardId = useSelector<RootState, number | undefined>(
+    state => state.dashboardInfo?.id,
+  );
+  const webserverTimeout = useSelector<RootState, number | undefined>(
+    state => state.common?.conf?.SUPERSET_WEBSERVER_TIMEOUT,
+  );
+  const drillRequestParams = useMemo<RequestParams>(() => {
+    const params: RequestParams = {};
+    if (webserverTimeout) {
+      params.timeout = webserverTimeout * 1000;
+    }
+    if (dashboardId) {
+      params.dashboard_id = dashboardId;
+    }
+    if (asyncModeOverride) {
+      params.async_mode_override = asyncModeOverride;
+    }
+    return params;
+  }, [webserverTimeout, dashboardId, asyncModeOverride]);
+
   const {
     isDrilling,
     drillStack,
@@ -127,6 +153,7 @@ export function DrillDownHost({
     formData,
     baseQueriesResponse: queriesResponse,
     crossFilterCleared,
+    requestParams: drillRequestParams,
   });
 
   // Drill-down is a dashboard interaction gated behind the DRILL_DOWN feature
@@ -139,7 +166,12 @@ export function DrillDownHost({
     rendererProps.source === ChartSource.Dashboard;
 
   const onDrillDown = useMemo<OnDrillDownHook | undefined>(() => {
-    if (!drillEnabled) {
+    // Suspend drilling while a drill query is in error: the overlay has fallen
+    // back to the base chart, so a click here would append a base-level value
+    // as the next level and emit contradictory filters (e.g. country=USA plus
+    // country=Canada). The breadcrumb still allows navigating up, which
+    // re-queries and clears the error.
+    if (!drillEnabled || error != null) {
       return undefined;
     }
     return (filters, label) => {
@@ -169,6 +201,7 @@ export function DrillDownHost({
     };
   }, [
     drillEnabled,
+    error,
     drillDown,
     drillStack,
     rendererProps.emitCrossFilters,

@@ -432,6 +432,9 @@ test('a failed drill surfaces an error and does not leave the chart stuck loadin
   // failure the overlay falls back to a recoverable state instead of leaving
   // chartStatus === 'loading' with null data.
   expect(lastProps.chartStatus).not.toEqual('loading');
+  // ...and drilling is suspended while in error, so clicking the recovered base
+  // chart cannot append a contradictory next level.
+  expect(lastProps.onDrillDown).toBeUndefined();
 
   // Restore the shared mock for subsequent tests.
   requestChartDataResolved.mockResolvedValue([{ data: [{ region: 'Texas' }] }]);

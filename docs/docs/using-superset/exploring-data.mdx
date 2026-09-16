@@ -365,8 +365,10 @@ feature flag, and can be enabled in any combination:
 - **Drill-down hierarchy** (`DRILL_DOWN`, off by default): configure an ordered **Drill-down
   hierarchy** in the chart's control panel, then left-click a data point on a dashboard chart to
   descend to the next level of that hierarchy *in place*. A breadcrumb above the chart lets you
-  step back up, and each level emits a cross-filter for the accumulated path so the rest of the
-  dashboard follows along. It answers "let me navigate this dimension hierarchy by clicking."
+  step back up. When the dashboard has **Cross-filtering** enabled, each level also emits a
+  cross-filter for the accumulated path so the rest of the dashboard follows along; with
+  cross-filtering off, drilling stays local to the chart. It answers "let me navigate this
+  dimension hierarchy by clicking."
 
 Drill to detail and Drill by are context-menu actions that open modals; the drill-down hierarchy is
 an in-place, click-to-navigate interaction on the dashboard itself.
