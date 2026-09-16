@@ -90,9 +90,9 @@ export function mapColumns<T extends object>(
     const { isSorted, isSortedDesc } = getSortingInfo(headerGroups, id);
     return {
       title: column.Header as ReactNode,
-      dataIndex: id.includes('.') ? id.split('.') : id,
+      dataIndex: column.id?.includes('.') ? column.id.split('.') : column.id,
       hidden: column.hidden,
-      key: id,
+      key: column.id,
       width: column.size
         ? COLUMN_SIZE_MAP[column.size as TableSize]
         : undefined,
