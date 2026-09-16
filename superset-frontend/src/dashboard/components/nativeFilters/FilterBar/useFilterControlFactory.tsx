@@ -62,9 +62,13 @@ export const useFilterControlFactory = (
   const filterValues = useMemo(
     () =>
       (Object.values(filters) as (Filter | Divider)[]).filter(
-        filter => isFilterDivider(filter) || !canvasFilterIds.has(filter.id),
+        filter =>
+          isFilterDivider(filter) ||
+          !canvasFilterIds.has(filter.id) ||
+          (Boolean(filter.requiredFirst) &&
+            dataMaskSelected[filter.id]?.filterState?.value === undefined),
       ),
-    [filters, canvasFilterIds],
+    [filters, canvasFilterIds, dataMaskSelected],
   );
   const filtersWithValues: (Filter | Divider)[] = useMemo(
     () =>

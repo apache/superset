@@ -92,3 +92,69 @@ test('renders dividers and filters not bound to canvas, but excludes canvas-boun
   // Filter not on canvas must remain in FilterBar rendering
   expect(renderedIds).toContain('NATIVE_FILTER-bar');
 });
+
+test('keeps uninitialized requiredFirst canvas filters mounted until initialized, then excludes them', () => {
+  const store = mockStore({
+    dashboardInfo: {
+      metadata: {
+        native_filter_configuration: [
+          {
+            id: 'NATIVE_FILTER-required-canvas',
+            name: 'Required Canvas Filter',
+            type: NativeFilterType.NativeFilter,
+            requiredFirst: true,
+            targets: [{}],
+            defaultDataMask: {},
+            controlValues: {},
+          },
+        ],
+      },
+    },
+    dashboardState: {
+      preselectNativeFilters: {},
+    },
+    dashboardLayout: {
+      present: {
+        'FILTER_CARD-1': {
+          id: 'FILTER_CARD-1',
+          type: FILTER_TYPE,
+          meta: {
+            filterId: 'NATIVE_FILTER-required-canvas',
+          },
+        },
+      },
+    },
+  });
+
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <Provider store={store}>{children}</Provider>
+  );
+
+  // When uninitialized (no dataMask), requiredFirst filter stays mounted so it can initialize
+  const { result, rerender } = renderHook(
+    ({ dataMask }: { dataMask: any }) =>
+      useFilterControlFactory(dataMask, jest.fn()),
+    {
+      wrapper,
+      initialProps: { dataMask: {} },
+    },
+  );
+
+  expect(
+    result.current.filtersWithValues.map(item => item.id),
+  ).toContain('NATIVE_FILTER-required-canvas');
+
+  // Once initialized with a value, it is excluded from FilterBar rendering
+  rerender({
+    dataMask: {
+      'NATIVE_FILTER-required-canvas': {
+        filterState: { value: 'selected-val' },
+      },
+    },
+  });
+
+  expect(
+    result.current.filtersWithValues.map(item => item.id),
+  ).not.toContain('NATIVE_FILTER-required-canvas');
+});
+

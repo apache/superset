@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { NativeFilterType } from '@superset-ui/core';
 import { fireEvent, render, screen } from 'spec/helpers/testing-library';
 import * as dataMaskActions from 'src/dataMask/actions';
 import newComponentFactory from 'src/dashboard/util/newComponentFactory';
@@ -119,6 +120,7 @@ const mockNativeFilters = {
   'native-filter-1': {
     id: 'native-filter-1',
     name: 'Country Filter',
+    type: NativeFilterType.NativeFilter,
     filterType: 'filter_select',
     targets: [{ datasetId: 1, column: { name: 'country' } }],
     defaultDataMask: {},
@@ -244,6 +246,25 @@ test('renders drag handle, settings, and delete button in edit mode', () => {
   expect(screen.getByTestId('drag')).toBeInTheDocument();
   expect(screen.getByTestId('setting')).toBeInTheDocument();
   expect(screen.getByLabelText('Delete component')).toBeInTheDocument();
+  expect(
+    screen.getByRole('button', { name: 'Filter settings' }),
+  ).toBeInTheDocument();
+  expect(screen.queryByText('Filter settings')).not.toBeInTheDocument();
+});
+
+test('settings IconButton exposes an accessible name without visible label text', () => {
+  render(<FilterHolder {...defaultProps} editMode />, {
+    useRedux: true,
+    initialState: {
+      nativeFilters: { filters: mockNativeFilters },
+      dataMask: {},
+    },
+  });
+
+  expect(
+    screen.getByRole('button', { name: 'Filter settings' }),
+  ).toBeInTheDocument();
+  expect(screen.queryByText('Filter settings')).not.toBeInTheDocument();
 });
 
 test('strips validateStatus before dispatching updateDataMask in instant mode', () => {
@@ -355,13 +376,130 @@ test('manual mode: clicking Clear stages clear without dispatching until Apply i
   fireEvent.click(clearBtn);
   expect(updateDataMaskSpy).not.toHaveBeenCalled();
   expect(applyBtn).not.toBeDisabled();
+  expect(clearBtn).toBeDisabled();
 
   // Click Apply: commits the clear to Redux
   fireEvent.click(applyBtn);
   expect(updateDataMaskSpy).toHaveBeenCalledWith(
     'native-filter-1',
     expect.objectContaining({
-      filterState: { value: undefined },
+      filterState: { value: null },
+    }),
+  );
+  updateDataMaskSpy.mockRestore();
+});
+
+test('excludes dividers and non-native-filters from available filter options', () => {
+  const filtersWithDivider = {
+    'divider-1': {
+      id: 'divider-1',
+      title: 'Divider Section',
+      type: NativeFilterType.Divider,
+    },
+  };
+
+  render(<FilterHolder {...defaultProps} editMode />, {
+    useRedux: true,
+    initialState: {
+      nativeFilters: { filters: filtersWithDivider },
+      dataMask: {},
+    },
+  });
+
+  expect(
+    screen.getByText('No native filters configured. Add a filter first.'),
+  ).toBeInTheDocument();
+  expect(screen.queryByText('Divider Section')).not.toBeInTheDocument();
+});
+
+test('does not treat divider as valid filter when filterId points to divider', () => {
+  const filtersWithDivider = {
+    'divider-1': {
+      id: 'divider-1',
+      title: 'Divider Section',
+      type: NativeFilterType.Divider,
+    },
+  };
+  const dividerBoundProps = {
+    ...defaultProps,
+    component: {
+      ...defaultProps.component,
+      meta: {
+        ...defaultProps.component.meta,
+        filterId: 'divider-1',
+      },
+    },
+  };
+
+  render(<FilterHolder {...dividerBoundProps} editMode={false} />, {
+    useRedux: true,
+    initialState: {
+      nativeFilters: { filters: filtersWithDivider },
+      dataMask: {},
+    },
+  });
+
+  expect(screen.queryByTestId('mock-filter-control')).not.toBeInTheDocument();
+  expect(screen.getByText('Filter not configured')).toBeInTheDocument();
+});
+
+test('manual mode: required filter cannot be cleared and committed via Apply', () => {
+  const updateDataMaskSpy = jest.spyOn(dataMaskActions, 'updateDataMask');
+  const requiredFilters = {
+    'required-filter-1': {
+      id: 'required-filter-1',
+      name: 'Required Filter',
+      type: NativeFilterType.NativeFilter,
+      filterType: 'filter_select',
+      targets: [{ datasetId: 1, column: { name: 'country' } }],
+      defaultDataMask: {},
+      controlValues: { enableEmptyFilter: true },
+    },
+  };
+  const requiredProps = {
+    ...defaultProps,
+    component: {
+      ...defaultProps.component,
+      meta: {
+        ...defaultProps.component.meta,
+        filterId: 'required-filter-1',
+        applyMode: 'manual',
+      },
+    },
+  };
+
+  render(<FilterHolder {...requiredProps} editMode={false} />, {
+    useRedux: true,
+    initialState: {
+      nativeFilters: { filters: requiredFilters },
+      dataMask: {
+        'required-filter-1': {
+          filterState: { value: ['USA'] },
+        },
+      },
+    },
+  });
+
+  const clearBtn = screen.getByRole('button', { name: 'Clear' });
+  const applyBtn = screen.getByRole('button', { name: 'Apply' });
+  expect(clearBtn).not.toBeDisabled();
+  expect(applyBtn).toBeDisabled();
+
+  // Click Clear: should stage clear with error, and Apply MUST remain disabled
+  fireEvent.click(clearBtn);
+  expect(updateDataMaskSpy).not.toHaveBeenCalled();
+  expect(applyBtn).toBeDisabled();
+
+  // Now click control to select a valid value ('USA')
+  fireEvent.click(screen.getByTestId('mock-filter-control'));
+  expect(applyBtn).not.toBeDisabled();
+
+  // Click Apply: commits to Redux and strips validateStatus
+  fireEvent.click(applyBtn);
+  expect(updateDataMaskSpy).toHaveBeenCalledWith(
+    'required-filter-1',
+    expect.objectContaining({
+      filterState: { value: ['USA'], validateStatus: undefined },
     }),
   );
   updateDataMaskSpy.mockRestore();
