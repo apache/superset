@@ -109,7 +109,7 @@ const plugin = {
        * @param {import('oxlint').Rule.RuleContext} context
        * @returns {import('oxlint').Rule.RuleListener}
        */
-      createOnce(context) {
+      create(context) {
         /** @type {string[]} */
         const warned = [];
 
