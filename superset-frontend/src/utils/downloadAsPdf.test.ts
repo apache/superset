@@ -43,6 +43,10 @@ jest.mock('./downloadUtils', () => ({
 
 afterEach(() => {
   jest.restoreAllMocks();
+  // `restoreAllMocks` only restores `jest.spyOn` spies; `domToPdf` is a
+  // module mock, so a per-test `mockRejectedValue`/`mockResolvedValue`
+  // would otherwise leak into later tests. Reset it explicitly.
+  (jest.requireMock('dom-to-pdf').default as jest.Mock).mockReset();
 });
 
 test('warns the user via the bound toast callback and returns early when the target element is not found', async () => {
