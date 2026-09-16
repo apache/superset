@@ -477,3 +477,52 @@ def test_update_chart_does_not_touch_unchanged_dashboards(
     assert existing_dashboard.changed_by is None
 
 
+def test_update_chart_removing_dashboards_does_not_touch_remaining(
+    mocker: MockerFixture,
+) -> None:
+    """Removing a dashboard from a chart leaves remaining dashboards untouched."""
+    d1 = MagicMock(id=1, changed_on=None, changed_by=None)
+    d2 = MagicMock(id=2, changed_on=None, changed_by=None)
+
+    chart = MagicMock(
+        is_managed_externally=False,
+        id=10,
+        tags=[],
+        dashboards=[d1, d2],
+        datasource_id=42,
+        datasource_type="table",
+    )
+    mocker.patch(
+        "superset.commands.chart.update.ChartDAO.find_by_id",
+        return_value=chart,
+    )
+    mocker.patch(
+        "superset.commands.chart.update.DashboardDAO.find_by_ids",
+        return_value=[d1],
+    )
+    mocker.patch(
+        "superset.commands.chart.update.security_manager.raise_for_editorship",
+    )
+    mocker.patch(
+        "superset.commands.chart.update.compute_subjects",
+        side_effect=lambda model, properties, exceptions: None,
+    )
+    mocker.patch(
+        "superset.commands.chart.update.ChartDAO.update",
+        return_value=chart,
+    )
+
+    user = MagicMock()
+    g.user = user
+
+    # Keep only d1, removing d2
+    cmd = UpdateChartCommand(10, {"dashboards": [1]})
+    cmd.run()
+
+    assert d1.changed_on is None
+    assert d1.changed_by is None
+    assert d2.changed_on is None
+    assert d2.changed_by is None
+
+
+
