@@ -351,7 +351,7 @@ class ChartPostSchema(Schema):
     uuid = fields.UUID(allow_none=True)
 
 
-class ChartPutSchema(Schema):
+class ChartPutSchema(utils.DiscardIsManagedExternallyMixin, Schema):
     """
     Schema to update or patch a chart
     """
@@ -407,7 +407,6 @@ class ChartPutSchema(Schema):
     certification_details = fields.String(
         metadata={"description": certification_details_description}, allow_none=True
     )
-    is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True, validate=utils.validate_external_url)
     tags = fields.List(fields.Integer(metadata={"description": tags_description}))
     uuid = fields.UUID(allow_none=True)
