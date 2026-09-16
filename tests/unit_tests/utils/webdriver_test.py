@@ -164,6 +164,7 @@ class TestStandardScreenshotValidation:
         page = MagicMock()
         element = MagicMock()
         page.screenshot.return_value = _png("white")
+        report_context = _report_context()
 
         with pytest.raises(
             ScreenshotBlankCaptureError,
@@ -174,10 +175,11 @@ class TestStandardScreenshotValidation:
                 element,
                 "standalone",
                 "execution_id=test",
-                _report_context(),
+                report_context,
             )
 
         assert page.screenshot.call_count == 3
+        assert report_context.capture_rejection_reasons == ("blank_standard",)
 
     def test_blank_empty_state_capture_is_allowed(self):
         page = MagicMock()
