@@ -24,23 +24,18 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import { FeatureFlag, VizType, getExtensionsRegistry } from '@superset-ui/core';
+import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridReact';
 import mockState from 'spec/fixtures/mockState';
 import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
+import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import downloadAsImage from 'src/utils/downloadAsImage';
 import downloadAsPdf from 'src/utils/downloadAsPdf';
 import SliceHeaderControls, { SliceHeaderControlsProps } from '.';
 
 jest.mock('src/utils/cachedSupersetGet');
-jest.mock('src/explore/components/DataTablesPane', () => ({
-  ResultsPaneOnDashboard: ({
-    columnDisplayNames,
-  }: {
-    columnDisplayNames?: Record<string, string>;
-  }) => (
-    <div data-test="results-pane">
-      {JSON.stringify(columnDisplayNames ?? {})}
-    </div>
-  ),
+jest.mock('src/components/Chart/chartAction', () => ({
+  ...jest.requireActual('src/components/Chart/chartAction'),
+  getChartDataRequest: jest.fn(),
 }));
 jest.mock('src/utils/downloadAsImage', () =>
   jest.fn(() => jest.fn().mockResolvedValue(undefined)),
@@ -52,7 +47,14 @@ jest.mock('src/utils/downloadAsPdf', () =>
 const mockCachedSupersetGet = cachedSupersetGet as jest.MockedFunction<
   typeof cachedSupersetGet
 >;
+const mockGetChartDataRequest = getChartDataRequest as jest.MockedFunction<
+  typeof getChartDataRequest
+>;
 const SLICE_ID = 371;
+
+beforeAll(() => {
+  setupAGGridModules();
+});
 
 const createProps = (viz_type = VizType.Sunburst) =>
   ({
@@ -161,6 +163,7 @@ const mockFullscreenElement = (getElement: () => Element | null) => {
 
 beforeEach(() => {
   mockCachedSupersetGet.mockClear();
+  mockGetChartDataRequest.mockReset();
   mockDownloadAsImage.mockClear();
   mockDownloadAsPdf.mockClear();
   mockCachedSupersetGet.mockResolvedValue({
@@ -789,13 +792,20 @@ test('Results grid receives verbose names for a view-as-table-only user', async 
   (global as any).featureFlags = {
     [FeatureFlag.DrillToDetail]: false,
   };
-  mockCachedSupersetGet.mockResolvedValue({
-    response: {} as Response,
+  // Verbose labels come from the chart data response's `collabels`, resolved
+  // on the backend, rather than the dataset's drill_info verbose map.
+  mockGetChartDataRequest.mockResolvedValue({
     json: {
-      result: {
-        columns: [{ column_name: 'region', verbose_name: 'Region' }],
-        metrics: [{ metric_name: 'sum__num', verbose_name: 'Yearly Total' }],
-      },
+      result: [
+        {
+          colnames: ['region', 'sum__num'],
+          collabels: ['Region', 'Yearly Total'],
+          coltypes: [1, 0],
+          data: [{ region: 'North', sum__num: 42 }],
+          rowcount: 1,
+          sql_rowcount: 1,
+        },
+      ],
     },
   } as any);
   const props = {
@@ -808,19 +818,12 @@ test('Results grid receives verbose names for a view-as-table-only user', async 
       ['can_get_drill_info', 'Dataset'],
     ],
   });
-  // Let the drill_info request settle the way it would while the dashboard loads.
-  await waitFor(() => expect(mockCachedSupersetGet).toHaveBeenCalled());
   await openMenu();
   await userEvent.click(screen.getByTestId('view-query-menu-item'));
 
-  await waitFor(() =>
-    expect(
-      JSON.parse(screen.getByTestId('results-pane').textContent as string),
-    ).toEqual({
-      region: 'Region',
-      sum__num: 'Yearly Total',
-    }),
-  );
+  expect(await screen.findByText('Region')).toBeInTheDocument();
+  expect(screen.getByText('Yearly Total')).toBeInTheDocument();
+  expect(screen.getByText('North')).toBeInTheDocument();
 });
 
 test('Should show "Embed code" in Share menu when feature flag is enabled and chart has data', async () => {
