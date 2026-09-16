@@ -24,19 +24,16 @@ the codebase. Permissions deprecated across past releases (mostly on the
 ``Superset`` monolithic view) therefore persist forever across upgrades
 (apache/superset#33272).
 
-An earlier draft of this migration put 25 permissions here, all assumed to be
-pure deletions. Two follow-up investigation passes -- checking historical
-``superset/views/core.py``, the actual ``gh pr diff`` for every cited removal
-PR, and live ``MODEL_API_RW_METHOD_PERMISSION_MAP`` successors -- found most
-of those 25 actually have a real, verifiable live successor, so treating them
-as pure deletions would have silently dropped custom roles' grants with no
-replacement. Those 19 entries were moved to the rename migration's
-``PVM_MAP`` instead (see that file). Only the 6 entries below were confirmed
-to have no successor at all -- their endpoint/method was deleted outright,
-not renamed or consolidated.
+Each permission in ``PVM_LIST`` below was individually confirmed to have no
+successor worth auto-granting: either the endpoint/method was deleted outright
+with no live equivalent, or its nominal successor is a generic ``can_write``
+on a ``ModelRestApi`` resource that would hand a role a materially broader,
+largely unrelated capability instance-wide, rather than the one narrow action
+the dead permission ever represented. See the grouped comment above
+``PVM_LIST`` for the evidence and reasoning behind each entry.
 
-Renames with a verified live successor (e.g. ``can_explore_json`` ->
-``can_read`` on ``Chart``) are handled separately in the next migration via
+Renames with a verified, proportionate live successor (e.g. ``can_explore_json``
+-> ``can_read`` on ``Chart``) are handled separately in the next migration via
 ``migrate_roles``, so role assignments are preserved for those. This migration
 only targets the explicit ``(view_menu, permission)`` pairs in ``PVM_LIST`` --
 never a name-based sweep -- so it structurally cannot touch the per-object
@@ -76,14 +73,29 @@ from superset.migrations.shared.security_converge import (  # noqa: E402
 #   can_approve, can_request_access -- both PR #24266, `@deprecated()` with no
 #     `new_target`; the whole access-request/approval workflow and its
 #     backing model were deleted.
-#   can_save_dash -- PR #24353, `@deprecated()` with no `new_target` (its two
-#     siblings from the same PR, `can_copy_dash`/`can_add_slices`, DO have
-#     real successors and are now in the rename migration instead).
+#   can_save_dash -- PR #24353, `@deprecated()` with no `new_target`.
 #   can_profile -- PR #26462, explicit full feature removal (the Profile page
 #     was deleted as unmaintained).
 #   can_override_role_permissions -- PR #23714, `@deprecated()` with no
 #     `new_target`; the PR body states it was "not called from client side
 #     code at all."
+#   can_testconn, can_sqllab_viz, can_import_dashboards, can_add_slices --
+#     each does have a technically-live `@deprecated(new_target=...)`
+#     successor (Database/Dataset/Chart/Dashboard `can_write` respectively),
+#     but that successor authorizes full create/edit/delete of the resource
+#     instance-wide -- a materially broader, largely unrelated grant compared
+#     to the one narrow action these dead permissions ever gated (testing a
+#     connection; creating one dataset; importing one dashboard; appending
+#     charts to a dashboard you already own). None of their removal PRs
+#     (#24354, #24375, #24353) documented in UPDATING.md that operators
+#     should re-grant a successor to custom roles, so deleting them now
+#     strands no one who followed the docs -- whereas migrating them would
+#     silently upgrade a long-dead grant into a live, broader one on any
+#     upgraded install that never cleaned up the role. Deleted here instead.
+#     (`can_copy_dash`, from the same PR #24353 batch, is the one exception:
+#     its live successor, `Dashboard.can_write`, gates the exact same
+#     dashboard-copy action today, not a broader unrelated one -- so it stays
+#     a rename; see the next migration.)
 PVM_LIST = (
     Pvm("Superset", "can_sync_druid_source"),
     Pvm("Superset", "can_approve"),
@@ -91,6 +103,10 @@ PVM_LIST = (
     Pvm("Superset", "can_save_dash"),
     Pvm("Superset", "can_profile"),
     Pvm("Superset", "can_override_role_permissions"),
+    Pvm("Superset", "can_testconn"),
+    Pvm("Superset", "can_sqllab_viz"),
+    Pvm("Superset", "can_import_dashboards"),
+    Pvm("Superset", "can_add_slices"),
 )
 
 

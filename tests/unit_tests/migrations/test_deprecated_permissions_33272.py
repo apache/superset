@@ -102,13 +102,20 @@ def test_pvm_list_and_pvm_map_are_disjoint() -> None:
     """
     ``PVM_LIST`` (pure deletions) and ``PVM_MAP`` (renames) must never share
     an entry -- and, more strongly, no ``PVM_LIST`` entry's permission name
-    should even collide with a ``NEW_PVMS`` successor permission on its own
-    view menu. Either would indicate a permission miscategorized as a pure
-    deletion when it actually has a live successor -- the exact bug class
-    this whole rework exists to fix.
+    should even collide with any ``NEW_PVMS`` successor permission name,
+    regardless of which view menu that successor lives on (every ``PVM_LIST``
+    entry's own view is "Superset", which never appears as a ``NEW_PVMS`` key,
+    so a same-view lookup would never catch anything -- the check must be
+    against the full, flattened set of successor permission names). Either
+    violation would indicate a permission miscategorized as a pure deletion
+    when it actually has a live successor -- the exact bug class this whole
+    rework exists to fix.
     """
     assert set(PVM_LIST).isdisjoint(PVM_MAP.keys())
-    assert not any(pvm.permission in NEW_PVMS.get(pvm.view, ()) for pvm in PVM_LIST)
+    all_new_pvms_permissions = {
+        permission for permissions in NEW_PVMS.values() for permission in permissions
+    }
+    assert not any(pvm.permission in all_new_pvms_permissions for pvm in PVM_LIST)
 
 
 def test_delete_migration_real_pvm_list_removes_deprecated_pvm_only(
@@ -293,10 +300,20 @@ def test_rename_migration_is_idempotent_with_real_pvm_map(session: Session) -> N
     held = {(p.view_menu.name, p.permission.name) for p in role.permissions}
     assert held == {(s.view, s.permission) for s in successors}
 
+    # Filter on both view and permission: PVM_MAP contains same-name,
+    # different-view pairs (e.g. can_recent_activity -> Log/can_recent_activity),
+    # so filtering on permission name alone could match the new successor row
+    # and mask a real problem, or spuriously fail depending on which PVM_MAP
+    # entry happens to be first -- pinning down both fields makes this
+    # order-independent.
     assert (
         session.query(PermissionView)
         .join(Permission)
-        .filter(Permission.name == old_key.permission)
+        .join(ViewMenu)
+        .filter(
+            Permission.name == old_key.permission,
+            ViewMenu.name == old_key.view,
+        )
         .count()
         == 0
     )
