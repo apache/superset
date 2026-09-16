@@ -609,8 +609,6 @@ const PropertiesModal = ({
         name: t('General information'),
         validator: () => {
           const errors = [];
-          // Not getFieldsValue(): it omits fields that have not registered
-          // yet, and this can run before the title field mounts.
           const title = form.getFieldValue('title');
 
           if (!title || title.trim().length === 0) {
