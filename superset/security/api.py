@@ -394,12 +394,18 @@ class SecurityRestApi(BaseSupersetApi):
         login_user(user)
         logger.info("Session established from a one-time login token for '%s'", user)
 
-        next_url = request.args.get("next") or "/"
-        if not is_safe_redirect_url(next_url):
+        # Only ever redirect to a value that has passed the internal-URL check.
+        # Assigning into a separate variable inside the guarded branch — rather
+        # than reassigning the request-derived one — keeps the sanitizer on the
+        # path to the redirect, which taint analysis can follow.
+        requested_next = request.args.get("next") or "/"
+        safe_next_url = "/"
+        if is_safe_redirect_url(requested_next):
+            safe_next_url = requested_next
+        else:
             logger.warning("Rejected unsafe `next` on login-token consume")
-            next_url = "/"
 
-        return redirect(next_url)
+        return redirect(safe_next_url)
 
 
 class RoleRestAPI(BaseSupersetApi):
