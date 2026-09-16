@@ -51,7 +51,8 @@ export declare function getDashboardId(): number | undefined;
  * @example
  * ```typescript
  * const layout = dashboard.getLayout();
- * console.log(layout['CHART-abc123'].meta.width);
+ * const chartNode = layout['CHART-abc123'] as { meta: { width: number } };
+ * console.log(chartNode.meta.width);
  * ```
  */
 export declare function getLayout(): Record<string, unknown>;
