@@ -5822,22 +5822,32 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         Returns True if the current user is an editor of the resource.
 
         Checks whether any of the user's subject IDs (user, roles, groups)
-        are present in the resource's ``editors`` list.
+        are present in the resource's ``editors`` list. Embedded
+        guest-token principals are never editors, regardless of the
+        subjects their token's roles map to.
 
         :param resource: The dashboard, dataset, chart, etc. resource
         :returns: Whether the current user is an editor of the resource
         """
-        from superset.subjects.utils import get_user_subject_ids, subjects_from_roles
+        from superset.subjects.utils import get_user_subject_ids
+
+        # SECURITY.md's capability matrix grants the embedded guest-token
+        # principal NO edit capability on any resource: a guest is never
+        # an editor, even when a ROLE subject its token carries has been
+        # granted editorship — mapping guest role subjects into the
+        # editor set would let any guest holding that role mutate or
+        # restore the entity (the M10 escalation). Denied here, at the
+        # predicate, so every enforcement caller of
+        # ``raise_for_editorship`` inherits the rule rather than each
+        # endpoint re-implementing the guest deny.
+        if self.is_guest_user():
+            return False
 
         if self.is_admin():
             return True
 
         if user_id := get_user_id():
             subject_ids = set(get_user_subject_ids(user_id))
-        elif self.is_guest_user():
-            subject_ids = {
-                s.id for s in subjects_from_roles(getattr(g.user, "roles", []))
-            }
         else:
             subject_ids = set()
         if not subject_ids:
