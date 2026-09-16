@@ -72,7 +72,7 @@ def scheduler() -> None:
                     **async_options,
                 )
 
-
+# NGLS - BEGIN
 @celery_app.task(name="reports.execute", bind=True)
 # pylint: disable=line-too-long
 def execute(self: Celery.task, report_schedule_id: int, scheduled_dttm: str, trigger_now: bool = False,) -> None:
@@ -107,7 +107,7 @@ def execute(self: Celery.task, report_schedule_id: int, scheduled_dttm: str, tri
         )
         if level == LoggerLevel.EXCEPTION:
             self.update_state(state="FAILURE")
-
+# NGLS - END
 
 @celery_app.task(name="reports.prune_log")
 def prune_log() -> None:

@@ -37,9 +37,15 @@ from superset.reports.commands.bulk_delete import BulkDeleteReportScheduleComman
 from superset.reports.commands.create import CreateReportScheduleCommand
 from superset.reports.commands.delete import DeleteReportScheduleCommand
 from superset.reports.commands.exceptions import (
+    # NGLS - BEGIN
+    ReportScheduleAlreadyRunningError,
+    # NGLS - END
     ReportScheduleBulkDeleteFailedError,
     ReportScheduleCreateFailedError,
     ReportScheduleDeleteFailedError,
+    # NGLS - BEGIN
+    ReportScheduleExecuteUnexpectedError,
+    # NGLS - END
     ReportScheduleForbiddenError,
     ReportScheduleInvalidError,
     ReportScheduleNotFoundError,
@@ -557,9 +563,9 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         try:
             report_schedule = self.datamodel.get(pk)
             if not report_schedule:
-                return self.response_404()
+                raise ReportScheduleNotFoundError()
             if report_schedule.last_state == ReportState.WORKING:
-                return self.response(409)
+                raise ReportScheduleAlreadyRunningError()
             scheduled_dttm = datetime.now(timezone.utc)
             execute.apply_async(
                 (
@@ -568,7 +574,11 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
                     True,
                 )
             )
-            return self.response(200)
+            return self.response(200, message="OK")
+        except ReportScheduleNotFoundError as ex:
+            return self.response_404()
+        except ReportScheduleAlreadyRunningError as ex:
+            return self.response(409, message=str(ex))
         except Exception as ex: # pylint: disable=broad-except
             logger.error(
                 "Error triggering report schedule %s: %s",
@@ -576,5 +586,5 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
                 str(ex),
                 exc_info=True,
             )
-            return self.response_500()
+            return self.response(500, message="Something went wrong. Please try again later.")
     # NGLS - END
