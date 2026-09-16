@@ -16,15 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  test,
-  expect,
-  Browser,
-  BrowserContext,
-  Frame,
-  Page,
-} from '@playwright/test';
-import { existsSync } from 'fs';
+import { test, expect, Frame, Page } from '@playwright/test';
 import {
   apiEnableEmbedding,
   getAccessToken,
@@ -49,7 +41,9 @@ import {
 import { EmbeddedPage } from '../../pages/EmbeddedPage';
 import {
   EmbedAppServer,
-  SDK_BUNDLE_PATH,
+  SUPERSET_DOMAIN,
+  createAdminContext,
+  skipUnlessSdkBundleBuilt,
   startEmbedAppServer,
 } from '../../helpers/embeddedAppServer';
 
@@ -61,15 +55,6 @@ import {
  * that never settles, and a filter bar whose action buttons follow the frame
  * instead of staying with the filter list.
  */
-
-const SUPERSET_DOMAIN = (() => {
-  const url = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:8088';
-  return url.replace(/\/+$/, '');
-})();
-
-const SUPERSET_BASE_URL = SUPERSET_DOMAIN.endsWith('/')
-  ? SUPERSET_DOMAIN
-  : `${SUPERSET_DOMAIN}/`;
 
 /**
  * The reports came from dashboards with a long vertical filter bar, so the
@@ -91,13 +76,6 @@ const WINDOW_HEIGHT = 800;
  * The loop test applies the same headroom for that reason.
  */
 const HOST_HEADROOM = 40;
-
-function createAdminContext(browser: Browser): Promise<BrowserContext> {
-  return browser.newContext({
-    storageState: 'playwright/.auth/user.json',
-    baseURL: SUPERSET_BASE_URL,
-  });
-}
 
 /** Set the iframe to an exact pixel height. */
 function setIframeHeight(page: Page, height: number): Promise<void> {
@@ -198,10 +176,7 @@ test.describe('Embedded dashboard iframe sizing', () => {
   }
 
   test.beforeAll(async ({ browser }) => {
-    test.skip(
-      !existsSync(SDK_BUNDLE_PATH),
-      'Embedded SDK bundle not found. Build it with: cd superset-embedded-sdk && npm ci && npm run build',
-    );
+    skipUnlessSdkBundleBuilt();
 
     appServer = await startEmbedAppServer();
 

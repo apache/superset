@@ -55,6 +55,7 @@ import {
   DASHBOARD_GRID_TYPE,
   DASHBOARD_ROOT_TYPE,
 } from 'src/dashboard/util/componentTypes';
+import { isEmbedded } from 'src/dashboard/util/isEmbedded';
 import * as useNativeFiltersModule from './state';
 
 fetchMock.get('glob:*/csstemplateasyncmodelview/api/read', {});
@@ -146,6 +147,18 @@ jest.mock('src/hooks/useIsMobile', () => ({
   ...jest.requireActual('src/hooks/useIsMobile'),
   useIsMobile: jest.fn().mockReturnValue(false),
 }));
+jest.mock('src/dashboard/util/isEmbedded', () => ({
+  isEmbedded: jest.fn(() => false),
+}));
+// Lazy-loaded behind the VersionHistory flag; a visible marker lets tests
+// assert whether DashboardBuilder mounts it at all.
+jest.mock('src/features/versionHistory/DashboardVersionHistory', () => {
+  const MockDashboardVersionHistory = () => (
+    <div data-test="mock-dashboard-version-history" />
+  );
+  MockDashboardVersionHistory.displayName = 'MockDashboardVersionHistory';
+  return { __esModule: true, default: MockDashboardVersionHistory };
+});
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('DashboardBuilder', () => {
@@ -1107,4 +1120,76 @@ test('withholds the empty-state edit action while previewing a version', async (
   expect(
     queryByRole('button', { name: 'Edit the dashboard' }),
   ).not.toBeInTheDocument();
+});
+
+// Renders with the vertical filter bar open so the embed-only branches have
+// a panel and a column to act on.
+const renderForEmbedChecks = () => {
+  (useStoredSidebarWidth as jest.Mock).mockImplementation(() => [
+    100,
+    jest.fn(),
+  ]);
+  (fetchFaveStar as jest.Mock).mockReturnValue({ type: 'mock-action' });
+  (setActiveTab as jest.Mock).mockReturnValue({ type: 'mock-action' });
+  return render(<DashboardBuilder />, {
+    useRedux: true,
+    store: storeWithState({
+      ...mockState,
+      dashboardLayout: undoableDashboardLayout,
+    }),
+    useDnd: true,
+    useRouter: true,
+    useTheme: true,
+  });
+};
+
+test('mounts the version history column outside an embed', async () => {
+  window.featureFlags = { [FeatureFlag.VersionHistory]: true };
+
+  const { findByTestId } = renderForEmbedChecks();
+
+  expect(
+    await findByTestId('mock-dashboard-version-history'),
+  ).toBeInTheDocument();
+  window.featureFlags = {};
+});
+
+test('does not mount the version history column in an embed', () => {
+  // Sized from 100vh, which inside an iframe pins the document to the frame
+  // and reintroduces the host resize loop; guests have no history to show.
+  window.featureFlags = { [FeatureFlag.VersionHistory]: true };
+  (isEmbedded as jest.Mock).mockReturnValue(true);
+
+  const { queryByTestId } = renderForEmbedChecks();
+
+  expect(
+    queryByTestId('mock-dashboard-version-history'),
+  ).not.toBeInTheDocument();
+  (isEmbedded as jest.Mock).mockReturnValue(false);
+  window.featureFlags = {};
+});
+
+test('filters panel carries the column separator in an embed', () => {
+  // The bounded bar ends at its content, so the full-height panel draws the
+  // separator instead.
+  (isEmbedded as jest.Mock).mockReturnValue(true);
+  const nativeFiltersSpy = jest
+    .spyOn(useNativeFiltersModule, 'useNativeFilters')
+    .mockReturnValue({
+      showDashboard: true,
+      missingInitialFilters: [],
+      dashboardFiltersOpen: true,
+      toggleDashboardFiltersOpen: jest.fn(),
+      nativeFiltersEnabled: true,
+      hasFilters: true,
+    });
+
+  const { getByTestId } = renderForEmbedChecks();
+
+  expect(getByTestId('dashboard-filters-panel')).toHaveStyleRule(
+    'border-right',
+    `1px solid ${supersetTheme.colorSplit}`,
+  );
+  nativeFiltersSpy.mockRestore();
+  (isEmbedded as jest.Mock).mockReturnValue(false);
 });

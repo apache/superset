@@ -596,9 +596,6 @@ const DashboardBuilder = () => {
     isReport;
 
   const [barTopOffset, setBarTopOffset] = useState(0);
-  const [currentFilterBarWidth, setCurrentFilterBarWidth] = useState(
-    CLOSED_FILTER_BAR_WIDTH,
-  );
 
   useEffect(() => {
     setBarTopOffset(headerRef.current?.getBoundingClientRect()?.height || 0);
@@ -803,9 +800,6 @@ const DashboardBuilder = () => {
       const filterBarWidth = dashboardFiltersOpen
         ? adjustedWidth
         : CLOSED_FILTER_BAR_WIDTH;
-      if (filterBarWidth !== currentFilterBarWidth) {
-        setCurrentFilterBarWidth(filterBarWidth);
-      }
       return (
         <FiltersPanel
           width={filterBarWidth}

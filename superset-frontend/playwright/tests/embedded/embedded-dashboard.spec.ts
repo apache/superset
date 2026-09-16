@@ -17,8 +17,7 @@
  * under the License.
  */
 
-import { test, expect, Browser, BrowserContext, Page } from '@playwright/test';
-import { existsSync } from 'fs';
+import { test, expect, Page } from '@playwright/test';
 import {
   apiEnableEmbedding,
   getAccessToken,
@@ -28,37 +27,11 @@ import { getDashboardBySlug } from '../../helpers/api/dashboard';
 import { EmbeddedPage } from '../../pages/EmbeddedPage';
 import {
   EmbedAppServer,
-  SDK_BUNDLE_PATH,
+  SUPERSET_DOMAIN,
+  createAdminContext,
+  skipUnlessSdkBundleBuilt,
   startEmbedAppServer,
 } from '../../helpers/embeddedAppServer';
-
-/**
- * Superset domain (Flask server) — set by CI or defaults to local dev
- */
-const SUPERSET_DOMAIN = (() => {
-  const url = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:8088';
-  return url.replace(/\/+$/, '');
-})();
-
-const SUPERSET_BASE_URL = SUPERSET_DOMAIN.endsWith('/')
-  ? SUPERSET_DOMAIN
-  : `${SUPERSET_DOMAIN}/`;
-
-/**
- * Create a minimal static file server for the embedded test app.
- * Serves only a fixed allowlist of routes — the test app references just
- * its index.html and the SDK bundle, so anything else is 404.
- */
-/**
- * Create a browser context authenticated as admin for API-only work
- * (enabling embedding, restoring config). Caller is responsible for closing.
- */
-function createAdminContext(browser: Browser): Promise<BrowserContext> {
-  return browser.newContext({
-    storageState: 'playwright/.auth/user.json',
-    baseURL: SUPERSET_BASE_URL,
-  });
-}
 
 // ─── Test Suite ────────────────────────────────────────────────────────────
 
@@ -96,11 +69,7 @@ test.describe('Embedded Dashboard E2E', () => {
   }
 
   test.beforeAll(async ({ browser }) => {
-    // Skip all tests if the SDK bundle hasn't been built
-    test.skip(
-      !existsSync(SDK_BUNDLE_PATH),
-      'Embedded SDK bundle not found. Build it with: cd superset-embedded-sdk && npm ci && npm run build',
-    );
+    skipUnlessSdkBundleBuilt();
 
     appServer = await startEmbedAppServer();
 

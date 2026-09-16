@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { test, Browser, BrowserContext } from '@playwright/test';
 import { createServer, IncomingMessage, ServerResponse, Server } from 'http';
 import { AddressInfo, Socket } from 'net';
 import { readFileSync, existsSync } from 'fs';
@@ -29,6 +30,39 @@ export const SDK_BUNDLE_PATH = join(
   __dirname,
   '../../../superset-embedded-sdk/bundle/index.js',
 );
+
+/**
+ * Skip the calling suite when the SDK bundle has not been built. Call from
+ * `test.beforeAll` so the whole file is reported as skipped rather than failed.
+ */
+export function skipUnlessSdkBundleBuilt(): void {
+  test.skip(
+    !existsSync(SDK_BUNDLE_PATH),
+    'Embedded SDK bundle not found. Build it with: cd superset-embedded-sdk && npm ci && npm run build',
+  );
+}
+
+/**
+ * The Superset origin the SDK embeds from, without a trailing slash: set by CI
+ * through PLAYWRIGHT_BASE_URL, defaulting to the local dev server.
+ */
+export const SUPERSET_DOMAIN = (
+  process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:8088'
+).replace(/\/+$/, '');
+
+/** The same origin as a Playwright `baseURL`, which wants the trailing slash. */
+export const SUPERSET_BASE_URL = `${SUPERSET_DOMAIN}/`;
+
+/**
+ * A browser context authenticated as admin for API-only work such as enabling
+ * embedding or minting guest tokens. The caller closes it.
+ */
+export function createAdminContext(browser: Browser): Promise<BrowserContext> {
+  return browser.newContext({
+    storageState: 'playwright/.auth/user.json',
+    baseURL: SUPERSET_BASE_URL,
+  });
+}
 
 const INDEX_HTML_PATH = join(__dirname, '../embedded-app/index.html');
 

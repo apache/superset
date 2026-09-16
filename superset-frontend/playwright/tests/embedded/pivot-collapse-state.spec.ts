@@ -47,8 +47,7 @@
  * Fixture charts must therefore hold up under GUEST evaluation — see the
  * query_context note below — or the suite only passes when admin wins.
  */
-import { test, expect, Browser, BrowserContext, Page } from '@playwright/test';
-import { existsSync } from 'fs';
+import { test, expect, Page } from '@playwright/test';
 import {
   apiEnableEmbedding,
   getAccessToken,
@@ -64,27 +63,14 @@ import { apiDeleteChart } from '../../helpers/api/chart';
 import { EmbeddedPage } from '../../pages/EmbeddedPage';
 import {
   EmbedAppServer,
-  SDK_BUNDLE_PATH,
+  SUPERSET_DOMAIN,
+  createAdminContext,
+  skipUnlessSdkBundleBuilt,
   startEmbedAppServer,
 } from '../../helpers/embeddedAppServer';
 import { EMBEDDED } from '../../utils/constants';
 
-const SUPERSET_DOMAIN = (() => {
-  const url = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:8088';
-  return url.replace(/\/+$/, '');
-})();
-const SUPERSET_BASE_URL = SUPERSET_DOMAIN.endsWith('/')
-  ? SUPERSET_DOMAIN
-  : `${SUPERSET_DOMAIN}/`;
-
 const DATASET_NAME = 'birth_names';
-
-function createAdminContext(browser: Browser): Promise<BrowserContext> {
-  return browser.newContext({
-    storageState: 'playwright/.auth/user.json',
-    baseURL: SUPERSET_BASE_URL,
-  });
-}
 
 async function findDatasetIdByName(page: Page, name: string): Promise<number> {
   const query = `(filters:!((col:table_name,opr:eq,value:'${name}')))`;
@@ -107,10 +93,7 @@ test.describe('Embedded Pivot Table collapse state (#33406)', () => {
   let chartId: number;
 
   test.beforeAll(async ({ browser }) => {
-    test.skip(
-      !existsSync(SDK_BUNDLE_PATH),
-      'Embedded SDK bundle not found. Build it with: cd superset-embedded-sdk && npm ci && npm run build',
-    );
+    skipUnlessSdkBundleBuilt();
 
     appServer = await startEmbedAppServer();
     const context = await createAdminContext(browser);
