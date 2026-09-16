@@ -151,10 +151,41 @@ class UserInfo(BaseModel):
     roles: list[str] = Field(
         default_factory=list,
         description=(
-            "Role names assigned to the user (e.g., Admin, Alpha, Gamma, Viewer). "
-            "Use this to determine what actions the user can perform."
+            "Role names the user holds, whether assigned directly or through a "
+            "group (e.g., Admin, Alpha, Gamma, Viewer). Use this to determine "
+            "what actions the user can perform."
         ),
     )
+
+
+def _role_names(user: Any) -> list[str]:
+    """Return the names of every role the user holds, direct or through a group.
+
+    ``User.roles`` only holds directly assigned roles, so a user whose access
+    comes from a group would otherwise look role-less — while the security
+    manager, which reads both, lets them through. Group roles are appended
+    after the direct ones, each name kept once.
+    """
+    names: list[str] = []
+
+    def add(roles: Any) -> None:
+        for role in roles or []:
+            name = getattr(role, "name", None)
+            if name is not None and name not in names:
+                names.append(name)
+
+    try:
+        add(getattr(user, "roles", None))
+    except TypeError:
+        return []
+    try:
+        for group in getattr(user, "groups", None) or []:
+            add(getattr(group, "roles", None))
+    except TypeError:
+        # Group roles are additive: a user object without a usable ``groups``
+        # relationship still reports the roles assigned to it directly.
+        pass
+    return names
 
 
 def serialize_user_object(user: Any) -> UserInfo | None:
@@ -162,12 +193,7 @@ def serialize_user_object(user: Any) -> UserInfo | None:
     if not user:
         return None
 
-    user_roles: list[str] = []
-    if (raw_roles := getattr(user, "roles", None)) is not None:
-        try:
-            user_roles = [role.name for role in raw_roles if hasattr(role, "name")]
-        except TypeError:
-            user_roles = []
+    user_roles = _role_names(user)
 
     return UserInfo(
         id=getattr(user, "id", None),
