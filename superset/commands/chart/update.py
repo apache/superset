@@ -103,6 +103,8 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
             )
 
         if "dashboards" in self._properties:
+            # Touch newly associated dashboards so their audit metadata reflects
+            # the addition of this chart (resolves #44305).
             existing_dash_ids = {d.id for d in self._model.dashboards}
             new_dashboards = [
                 d
