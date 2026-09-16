@@ -176,6 +176,77 @@ def test_import_theme_allows_regular_theme_overwrite(
     assert config["id"] == existing.id
 
 
+@patch("superset.subjects.utils.get_user_subject")
+@patch("superset.utils.core.get_user")
+@patch("superset.security_manager")
+@patch("superset.db")
+def test_import_theme_original_creator_can_overwrite_without_explicit_editor(
+    mock_db, mock_security_manager, mock_get_user, mock_get_user_subject
+):
+    """A theme's original creator can overwrite it via import even when
+    they're not (yet) in its `editors` list -- e.g. a theme created before
+    per-theme editors shipped. The fallback also backfills `editors` so
+    later overwrites don't need it."""
+    mock_security_manager.can_access.return_value = True
+    mock_security_manager.is_editor = Mock(return_value=False)
+    mock_security_manager.is_admin = Mock(return_value=False)
+
+    user = Mock()
+    user.id = 42
+    mock_get_user.return_value = user
+
+    existing = _mock_existing()
+    existing.created_by_fk = 42
+    existing.editors = []
+    mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
+        existing
+    )
+
+    subject = Mock()
+    mock_get_user_subject.return_value = subject
+
+    config = {"uuid": "some-uuid", "theme_name": "updated", "json_data": "{}"}
+
+    with patch("superset.models.core.Theme.import_from_dict") as mock_import_from_dict:
+        mock_theme = MagicMock(spec=Theme)
+        mock_theme.id = 1
+        mock_import_from_dict.return_value = mock_theme
+
+        result = import_theme(config, overwrite=True)
+
+    assert result is mock_theme
+    assert config["id"] == existing.id
+    assert subject in existing.editors
+
+
+@patch("superset.utils.core.get_user")
+@patch("superset.security_manager")
+@patch("superset.db")
+def test_import_theme_non_creator_non_editor_overwrite_denied(
+    mock_db, mock_security_manager, mock_get_user
+):
+    """A non-editor who didn't create the theme still can't overwrite it."""
+    mock_security_manager.can_access.return_value = True
+    mock_security_manager.is_editor = Mock(return_value=False)
+    mock_security_manager.is_admin = Mock(return_value=False)
+
+    user = Mock()
+    user.id = 42
+    mock_get_user.return_value = user
+
+    existing = _mock_existing()
+    existing.created_by_fk = 99
+    existing.editors = []
+    mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
+        existing
+    )
+
+    config = {"uuid": "some-uuid", "theme_name": "hostile", "json_data": "{}"}
+
+    with pytest.raises(ThemeImportError):
+        import_theme(config, overwrite=True)
+
+
 @patch("superset.security_manager")
 @patch("superset.db")
 def test_import_theme_no_overwrite_returns_existing(mock_db, mock_security_manager):
