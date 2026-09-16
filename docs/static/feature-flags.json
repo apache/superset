@@ -85,7 +85,7 @@
         "name": "PARTITION_FILTER_MAPPING",
         "default": false,
         "lifecycle": "development",
-        "description": "Mirror filters on a dataset's business column onto its physical partition column, so engines that require an explicit partition predicate can prune."
+        "description": "Configure and validate a mapping from a dataset's business column onto its physical partition column, so engines that require an explicit partition predicate can prune. For now this only stores and validates the mapping; no query consumer emits the mirrored predicate yet."
       },
       {
         "name": "PRESTO_EXPAND_DATA",
