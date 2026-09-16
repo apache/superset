@@ -34,6 +34,7 @@ from superset import security_manager
 from superset.exceptions import SupersetMarshmallowValidationError
 from superset.models.sql_types import parse_currency_string
 from superset.utils import json
+from superset.utils.schema import DiscardIsManagedExternallyMixin
 
 get_delete_ids_schema = {
     "type": "array",
@@ -181,7 +182,7 @@ class DatasetPostSchema(Schema):
     uuid = fields.UUID(allow_none=True)
 
 
-class DatasetPutSchema(Schema):
+class DatasetPutSchema(DiscardIsManagedExternallyMixin, Schema):
     table_name = fields.String(allow_none=True, validate=Length(1, 250))
     database_id = fields.Integer()
     sql = fields.String(allow_none=True)
@@ -204,7 +205,6 @@ class DatasetPutSchema(Schema):
     metrics = fields.List(fields.Nested(DatasetMetricsPutSchema))
     folders = fields.List(fields.Nested(FolderSchema), required=False)
     extra = fields.String(allow_none=True)
-    is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True)
     uuid = fields.UUID(allow_none=True)
 
