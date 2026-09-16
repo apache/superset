@@ -23,7 +23,7 @@ import io
 import logging
 import time
 from abc import abstractmethod
-from contextlib import closing, contextmanager
+from contextlib import contextmanager
 from decimal import Decimal
 from numbers import Real
 from typing import Any, Callable, Generator
@@ -246,28 +246,31 @@ class BaseStreamingCSVExportCommand(BaseCommand):
         delimiter = csv_export_config.get("sep", ",")
         decimal_separator = csv_export_config.get("decimal", ".")
 
-        # Apply SQL mutations (e.g. SQL_QUERY_MUTATOR config hook) before
-        # execution.  All non-streaming paths go through this — the streaming
-        # path was originally skipping it, which left trailing semicolons
-        # unstripped for engines like Trino that reject them.
-        #
-        # `is_split=True` mirrors the non-streaming download path exactly:
-        # Database.get_df() -> _execute_sql_with_mutation_and_logging()
-        # always calls mutate_sql_based_on_config(..., is_split=True) on
-        # SQL Lab's stored select_sql/executed_sql, and the chart query
-        # path applies its own mutation upstream (in
-        # get_query_str_extended, with is_split=False) before landing
-        # here. Since `is_split` and `MUTATE_AFTER_SPLIT` are compared
-        # for equality, `is_split=True` is the complement of that
-        # upstream chart mutation -- together they mutate the SQL
-        # exactly once for either MUTATE_AFTER_SPLIT setting, instead of
-        # double-mutating when it's False and never mutating when it's
-        # True.
-        sql = database.mutate_sql_based_on_config(sql, is_split=True)
-
         with db.session() as session:
             # Merge database to prevent DetachedInstanceError
             merged_database = session.merge(database)
+
+            # Apply SQL mutations (e.g. SQL_QUERY_MUTATOR config hook) before
+            # execution.  All non-streaming paths go through this — the streaming
+            # path was originally skipping it, which left trailing semicolons
+            # unstripped for engines like Trino that reject them.  Mutate using
+            # the merged database, not the original: a configured mutator can
+            # read database attributes, and the original instance may be
+            # detached from the session by the time this generator runs.
+            #
+            # `is_split=True` mirrors the non-streaming download path exactly:
+            # Database.get_df() -> _execute_sql_with_mutation_and_logging()
+            # always calls mutate_sql_based_on_config(..., is_split=True) on
+            # SQL Lab's stored select_sql/executed_sql, and the chart query
+            # path applies its own mutation upstream (in
+            # get_query_str_extended, with is_split=False) before landing
+            # here. Since `is_split` and `MUTATE_AFTER_SPLIT` are compared
+            # for equality, `is_split=True` is the complement of that
+            # upstream chart mutation -- together they mutate the SQL
+            # exactly once for either MUTATE_AFTER_SPLIT setting, instead of
+            # double-mutating when it's False and never mutating when it's
+            # True.
+            sql = merged_database.mutate_sql_based_on_config(sql, is_split=True)
 
             # Use get_raw_connection() instead of get_sqla_engine() directly.
             # This is critical for:
@@ -281,15 +284,15 @@ class BaseStreamingCSVExportCommand(BaseCommand):
             #    configured on the database.
             # 3. OAuth2 — get_raw_connection() wraps execution in
             #    check_for_oauth2() context.
-            with closing(
-                merged_database.get_raw_connection(catalog=catalog, schema=schema)
+            # get_raw_connection() is itself a context manager (it already
+            # closes the connection internally), so it must be entered
+            # directly — wrapping it in closing() skips __enter__ and leaves
+            # `conn` as the context-manager object instead of the DBAPI
+            # connection.
+            with merged_database.get_raw_connection(
+                catalog=catalog, schema=schema
             ) as conn:
                 cursor = conn.cursor()
-                # Set cursor.arraysize to control the batch size for fetchmany().
-                # This ensures DBAPI drivers (Trino, PostgreSQL, etc.) fetch
-                # rows in manageable chunks instead of buffering the entire
-                # result set client-side.
-                cursor.arraysize = limit
                 try:
                     cursor.execute(sql)
                     columns = (
