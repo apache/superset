@@ -110,6 +110,7 @@ from superset.exceptions import (
     SupersetParseError,
     SupersetSecurityException,
     SupersetSyntaxErrorException,
+    SupersetTemplateException,
 )
 from superset.extensions import feature_flag_manager
 from superset.jinja_context import BaseTemplateProcessor
@@ -3571,12 +3572,17 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         msg=str(ex),
                     )
                 ) from ex
-            except (TemplateError, SupersetSyntaxErrorException) as ex:
-                # Extract error message from different exception types
+            except (
+                TemplateError,
+                SupersetSyntaxErrorException,
+                SupersetTemplateException,
+            ) as ex:
                 if isinstance(ex, TemplateError):
                     error_msg = ex.message
-                else:  # SupersetSyntaxErrorException
+                elif isinstance(ex, SupersetSyntaxErrorException):
                     error_msg = str(ex.errors[0].message if ex.errors else ex)
+                else:  # SupersetTemplateException
+                    error_msg = str(ex)
 
                 raise QueryObjectValidationError(
                     _(
@@ -4405,26 +4411,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         col = sa.column(column.get("column_name"), type_=type_)
 
         if template_processor:
-            try:
-                expression = template_processor.process_template(column["column_name"])
-            except UndefinedError as ex:
-                raise QueryObjectValidationError(
-                    _(
-                        "Time column template error: %(msg)s",
-                        msg=str(ex),
-                    )
-                ) from ex
-            except (TemplateError, SupersetSyntaxErrorException) as ex:
-                if isinstance(ex, TemplateError):
-                    error_msg = ex.message
-                else:
-                    error_msg = str(ex.errors[0].message if ex.errors else ex)
-                raise QueryObjectValidationError(
-                    _(
-                        "Error while rendering time column expression: %(msg)s",
-                        msg=error_msg,
-                    )
-                ) from ex
+            expression = template_processor.process_template(column["column_name"])
             expression = self._validate_stored_expression(expression)
             col = sa.literal_column(expression, type_=type_)
 
@@ -4454,11 +4441,17 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             msg=str(ex),
                         )
                     ) from ex
-                except (TemplateError, SupersetSyntaxErrorException) as ex:
+                except (
+                    TemplateError,
+                    SupersetSyntaxErrorException,
+                    SupersetTemplateException,
+                ) as ex:
                     if isinstance(ex, TemplateError):
                         error_msg = ex.message
-                    else:
+                    elif isinstance(ex, SupersetSyntaxErrorException):
                         error_msg = str(ex.errors[0].message if ex.errors else ex)
+                    else:  # SupersetTemplateException
+                        error_msg = str(ex)
                     raise QueryObjectValidationError(
                         _(
                             "Error while rendering calculated column "
