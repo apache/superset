@@ -64,7 +64,8 @@ def emit_capture_timing(stage: str, duration_ms: float) -> None:
     stages, and TOGETHER they cover the cost the kill-switch removes:
     ``capture_initial_states`` (the before-flush per-entity pre-state reads,
     which scale with the number of dirty versioned entities — on a bulk
-    edit the dominant cost — sampled only when at least one was captured)
+    edit the dominant cost — sampled whenever at least one pre-state read
+    was attempted, including reads that fail and retain nothing)
     and ``finalize`` (the post-flush record build and persist, sampled on
     every commit on the session, including commits touching no versioned
     entity, which still pay the listener overhead). Alert on both, on upper

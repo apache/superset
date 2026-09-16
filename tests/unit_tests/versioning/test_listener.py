@@ -131,10 +131,10 @@ def test_capture_retains_the_first_pre_flush_state(
     """Repeated flushes retain the entity's initial database state once."""
 
     class Slice:
-        id = 7
+        id: int = 7
 
-    entity = Slice()
-    initial = {"slice_name": "initial"}
+    entity: Slice = Slice()
+    initial: dict[str, Any] = {"slice_name": "initial"}
     captures: list[object] = []
 
     def capture(_session: Session, obj: object) -> dict[str, str]:
@@ -142,12 +142,17 @@ def test_capture_retains_the_first_pre_flush_state(
         return initial
 
     monkeypatch.setattr(listener, "capture_initial_state", capture)
-    states: dict[tuple[str, int], tuple[object, dict[str, object]]] = {}
+    monkeypatch.setattr(
+        type(lifecycle_session), "dirty", property(lambda self: [entity])
+    )
+    monkeypatch.setattr(listener, "emit_capture_timing", MagicMock())
 
-    listener._capture_dirty_entity_initial_state(lifecycle_session, entity, states)
-    listener._capture_dirty_entity_initial_state(lifecycle_session, entity, states)
+    listener._capture_initial_states(lifecycle_session, (Slice,))
+    listener._capture_initial_states(lifecycle_session, (Slice,))
 
-    assert states == {("chart", 7): (entity, initial)}
+    assert lifecycle_session.info[listener._INITIAL_STATES_KEY] == {
+        ("chart", 7): (entity, initial)
+    }
     assert captures == [entity]
 
 
@@ -265,18 +270,18 @@ def test_capture_latency_metric_fires_on_commit(
     sa.event.listen(
         lifecycle_session, "before_commit", listener.finalize_change_records
     )
-    manager = MagicMock()
+    manager: MagicMock = MagicMock()
     mocker.patch("superset.extensions.stats_logger_manager", manager)
     lifecycle_session.add(LifecycleRow(value="timed"))
     lifecycle_session.commit()
 
-    calls = [
+    calls: list[Any] = [
         call
         for call in manager.instance.timing.call_args_list
         if call.args[0] == "superset.versioning.capture.finalize.latency"
     ]
     assert len(calls) == 1
-    duration_ms = calls[0].args[1]
+    duration_ms: float = calls[0].args[1]
     assert isinstance(duration_ms, float)
     assert duration_ms >= 0
 
@@ -287,7 +292,7 @@ def test_capture_latency_metric_skips_reentrant_finalize(
     """The reentrancy guard returns before the timer starts: a re-entered
     finalize must not dilute the latency series with instant zero
     samples."""
-    manager = MagicMock()
+    manager: MagicMock = MagicMock()
     mocker.patch("superset.extensions.stats_logger_manager", manager)
     lifecycle_session.info[listener._FINALIZING_KEY] = True
     listener.finalize_change_records(lifecycle_session)
@@ -300,7 +305,7 @@ def test_capture_latency_metric_skips_nested_transaction(
 ) -> None:
     """The other arm of the same guard: a nested transaction emits no
     sample either."""
-    manager = MagicMock()
+    manager: MagicMock = MagicMock()
     mocker.patch("superset.extensions.stats_logger_manager", manager)
     lifecycle_session.add(LifecycleRow(value="outer"))
     lifecycle_session.flush()
@@ -315,9 +320,9 @@ def test_capture_latency_metric_emits_nothing_when_flush_fails(
 ) -> None:
     """A flush that raises is the user's own failing write, not capture
     cost: the exception propagates and no sample lands in the series."""
-    manager = MagicMock()
+    manager: MagicMock = MagicMock()
     mocker.patch("superset.extensions.stats_logger_manager", manager)
-    session = MagicMock()
+    session: MagicMock = MagicMock()
     session.info = {}
     session.in_nested_transaction.return_value = False
     session.flush.side_effect = RuntimeError("constraint violation")
@@ -334,11 +339,11 @@ def test_emit_capture_timing_is_fail_open(mocker: Any) -> None:
     logs rather than silent."""
     from superset.versioning import metrics
 
-    manager = MagicMock()
+    manager: MagicMock = MagicMock()
     manager.instance.timing.side_effect = RuntimeError("statsd down")
     mocker.patch("superset.extensions.stats_logger_manager", manager)
-    warning_spy = mocker.patch.object(metrics.logger, "warning")
-    exception_spy = mocker.patch.object(metrics.logger, "exception")
+    warning_spy: MagicMock = mocker.patch.object(metrics.logger, "warning")
+    exception_spy: MagicMock = mocker.patch.object(metrics.logger, "exception")
 
     metrics.emit_capture_timing("finalize", 1.0)  # must not raise
 
@@ -359,10 +364,10 @@ def test_capture_latency_metric_fires_once_on_the_versioned_write_path(
     sa.event.listen(
         lifecycle_session, "before_commit", listener.finalize_change_records
     )
-    manager = MagicMock()
+    manager: MagicMock = MagicMock()
     mocker.patch("superset.extensions.stats_logger_manager", manager)
 
-    record = ChangeRecord(
+    record: ChangeRecord = ChangeRecord(
         kind="property",
         operation="edit",
         path=["slice_name"],
@@ -398,7 +403,7 @@ def test_capture_latency_metric_fires_once_on_the_versioned_write_path(
 
     # The real path ran: records reached persistence for tx 42.
     assert persisted == [(42, {("chart", 7): [record]})]
-    calls = [
+    calls: list[Any] = [
         call
         for call in manager.instance.timing.call_args_list
         if call.args[0] == "superset.versioning.capture.finalize.latency"
@@ -421,7 +426,7 @@ def test_transaction_lookup_failure_does_not_break_the_commit(
         lifecycle_session, "before_commit", listener.finalize_change_records
     )
     mocker.patch("superset.extensions.stats_logger_manager", MagicMock())
-    error_spy = mocker.patch.object(listener, "incr_capture_error")
+    error_spy: MagicMock = mocker.patch.object(listener, "incr_capture_error")
 
     def explode(session: Session) -> int:
         raise RuntimeError("continuum uow lookup failed")
@@ -485,6 +490,52 @@ def test_capture_initial_states_stage_is_timed_only_when_a_read_is_attempted(
     listener._capture_initial_states(lifecycle_session, (Slice,))
     listener._capture_initial_states(lifecycle_session, (Slice,))
     assert len(timing_calls()) == 1
+
+
+def test_initial_state_identity_failure_does_not_skip_later_entities(
+    lifecycle_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """An ID property failure must not discard another entity's pre-state."""
+
+    class Slice:
+        """Expose the failure before the per-entity state read begins."""
+
+        def __init__(self, entity_id: int) -> None:
+            self.entity_id: int = entity_id
+
+        @property
+        def id(self) -> int:
+            """Fail identity lookup for the middle entity only."""
+            if self.entity_id == 2:
+                raise RuntimeError("identity lookup failed")
+            return self.entity_id
+
+    entities: list[Slice] = [Slice(1), Slice(2), Slice(3)]
+    attempts: list[int] = []
+    error_spy: MagicMock = MagicMock()
+    timing_spy: MagicMock = MagicMock()
+    monkeypatch.setattr(listener, "incr_capture_error", error_spy)
+    monkeypatch.setattr(listener, "emit_capture_timing", timing_spy)
+    monkeypatch.setattr(
+        type(lifecycle_session), "dirty", property(lambda self: entities)
+    )
+
+    def capture(session: Session, obj: Slice) -> dict[str, Any]:
+        """Record only entities whose identity allowed a state read."""
+        attempts.append(obj.id)
+        return {"slice_name": str(obj.id)}
+
+    monkeypatch.setattr(listener, "capture_initial_state", capture)
+    listener._capture_initial_states(lifecycle_session, (Slice,))
+
+    assert attempts == [1, 3]
+    assert lifecycle_session.info[listener._INITIAL_STATES_KEY] == {
+        ("chart", 1): (entities[0], {"slice_name": "1"}),
+        ("chart", 3): (entities[2], {"slice_name": "3"}),
+    }
+    error_spy.assert_called_once_with("capture_initial_states")
+    timing_spy.assert_called_once()
+    assert timing_spy.call_args.args[0] == "capture_initial_states"
 
 
 def test_initial_state_capture_isolates_each_entity(
@@ -639,7 +690,7 @@ def test_initial_state_capture_failure_does_not_break_the_flush(
     guard in finalize, under the same "never break a user's save" invariant
     (aminghadersohi probed the unguarded form failing the save)."""
     mocker.patch("superset.extensions.stats_logger_manager", MagicMock())
-    error_spy = mocker.patch.object(listener, "incr_capture_error")
+    error_spy: MagicMock = mocker.patch.object(listener, "incr_capture_error")
 
     def explode(session: Session, obj: object) -> dict[str, str]:
         raise RuntimeError("pre-state SELECT failed")
@@ -647,9 +698,9 @@ def test_initial_state_capture_failure_does_not_break_the_flush(
     monkeypatch.setattr(listener, "capture_initial_state", explode)
 
     class Slice:  # the class NAME maps to the 'chart' entity kind
-        id = 7
+        id: int = 7
 
-    entity = Slice()
+    entity: Slice = Slice()
     mocker.patch.object(
         type(lifecycle_session),
         "dirty",

@@ -191,20 +191,6 @@ def _uncaptured_identity(
     return key
 
 
-def _capture_dirty_entity_initial_state(
-    session: Session,
-    obj: Any,
-    initial_states: dict[tuple[str, int], tuple[Any, dict[str, Any]]],
-) -> None:
-    """Retain one dirty entity's first database state for this transaction."""
-    key: tuple[str, int] | None = _uncaptured_identity(obj, initial_states)
-    if key is None:
-        return
-    pre_state: dict[str, Any] | None = capture_initial_state(session, obj)
-    if pre_state is not None:
-        initial_states[key] = (obj, pre_state)
-
-
 def _build_scalar_buffer(
     initial_states: dict[tuple[str, int], tuple[Any, dict[str, Any]]],
 ) -> dict[tuple[str, int], list[ChangeRecord]]:
@@ -435,10 +421,12 @@ def finalize_change_records(session: Session) -> None:
         initial_states: dict[tuple[str, int], tuple[Any, dict[str, Any]]] = (
             session.info.get(_INITIAL_STATES_KEY, {})
         )
-        buffer = _build_scalar_buffer(initial_states)
+        buffer: dict[tuple[str, int], list[ChangeRecord]] = _build_scalar_buffer(
+            initial_states
+        )
 
         try:
-            tx_id = _current_transaction_id(session)
+            tx_id: int | None = _current_transaction_id(session)
         except Exception:  # pylint: disable=broad-except
             logger.exception("version_changes: transaction lookup failed")
             incr_capture_error("transaction_lookup")
@@ -483,7 +471,14 @@ def _capture_initial_states(
     try:
         for obj in list(session.dirty):
             if isinstance(obj, versioned_classes):
-                key: tuple[str, int] | None = _uncaptured_identity(obj, initial_states)
+                try:
+                    key: tuple[str, int] | None = _uncaptured_identity(
+                        obj, initial_states
+                    )
+                except Exception:  # pylint: disable=broad-except
+                    logger.exception("version_changes: identity lookup failed")
+                    incr_capture_error("capture_initial_states")
+                    continue
                 if key is None:
                     continue
                 try:
