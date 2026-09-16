@@ -110,6 +110,33 @@ async function settled<T>(read: () => Promise<T>): Promise<T> {
 }
 
 /**
+ * Poll a measurement until it has not changed for `holdMs`. Unlike `settled`,
+ * which accepts the first two reads that agree, this rides out size changes
+ * that arrive in bursts with quiet gaps between them.
+ */
+async function stableFor<T>(
+  read: () => Promise<T>,
+  holdMs: number,
+): Promise<T> {
+  let last: T | undefined;
+  let lastChange = Date.now();
+  await expect
+    .poll(
+      async () => {
+        const next = await read();
+        if (next !== last) {
+          last = next;
+          lastChange = Date.now();
+        }
+        return Date.now() - lastChange >= holdMs;
+      },
+      { intervals: [250], timeout: 30000 },
+    )
+    .toBe(true);
+  return last as T;
+}
+
+/**
  * The guest document itself. The dashboard is served from a different origin,
  * so page-level evaluate cannot reach it; Playwright's Frame can.
  */
@@ -162,15 +189,31 @@ test.describe('Embedded dashboard iframe sizing', () => {
       const bar = document.querySelector('.filter-bar-bounded');
       return !bar || bar.querySelector('.filter-bar-scroll') !== null;
     });
-    // The filter controls keep growing as their options arrive, and the
-    // browser re-anchors the list's scroll offset each time. Measure only
-    // once the guest has stopped fetching and the list has stopped changing
-    // size.
+    // Every filter control renders a loading row until its values arrive,
+    // then swaps in the real control at a different height, and the browser
+    // re-anchors the list's scroll offset each time. Measure only once all
+    // of them have loaded and the list has held its size for a while: on a
+    // loaded CI runner the last few values can land seconds apart.
+    await guestFrame(page).waitForFunction(
+      expectedCount => {
+        const controls = document.querySelectorAll(
+          '[data-test="form-item-value"]',
+        );
+        return (
+          controls.length === expectedCount &&
+          ![...controls].some(control => control.querySelector('.loading'))
+        );
+      },
+      FILTER_COUNT,
+      { timeout: 60000 },
+    );
     await page.waitForLoadState('networkidle');
-    await settled(() =>
-      guestFrame(page).evaluate(
-        () => document.querySelector('.filter-bar-scroll')?.scrollHeight ?? 0,
-      ),
+    await stableFor(
+      () =>
+        guestFrame(page).evaluate(
+          () => document.querySelector('.filter-bar-scroll')?.scrollHeight ?? 0,
+        ),
+      2000,
     );
     return embeddedPage;
   }
