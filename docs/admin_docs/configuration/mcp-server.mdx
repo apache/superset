@@ -1035,7 +1035,7 @@ result = mcp.list_charts(request={"deleted_state": "only"})
 
 Trashed rows carry a non-null `deleted_at` timestamp in the response (populated only when `deleted_state` is used). Visibility follows the same restore-audience scoping as the equivalent REST API filters (`chart_deleted_state` / `dashboard_deleted_state`): a non-admin caller sees only the trashed objects they can edit (the same audience that can restore them), not merely the ones they own; admins see all trashed objects.
 
-Tools whose resource doesn't support trash listing reject the `deleted_state` parameter with an error.
+`deleted_state` is only defined on `list_charts` and `list_dashboards`. Other list tools don't declare the field at all, so passing it is silently ignored rather than rejected — it never returns trashed objects.
 
 ## Disabling built-in tools
 
