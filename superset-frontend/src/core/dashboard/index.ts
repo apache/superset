@@ -18,28 +18,35 @@
  */
 import { dashboard as dashboardApi } from '@apache-superset/core';
 import { isNativeFilter } from '@superset-ui/core';
-import type { Divider, Filter } from '@superset-ui/core';
+import type { DataMask, Divider, Filter } from '@superset-ui/core';
 import { updateComponents } from 'src/dashboard/actions/dashboardLayout';
 import { dashboardInfoChanged } from 'src/dashboard/actions/dashboardInfo';
 import { updateDataMask } from 'src/dataMask/actions';
 import { store, RootState } from 'src/views/store';
+import { navigation } from '../navigation';
 
 const getState = () => store.getState() as RootState;
 
+// The Redux slices below are retained across an in-SPA navigation, so
+// checking them alone can't tell a still-active dashboard from a stale one
+// left over from before the user navigated to another page.
+const isDashboardActive = (): boolean => navigation.getPage() === 'dashboard';
+
 const requireDashboardId = (): number => {
   const { id } = getState().dashboardInfo;
-  if (id == null) {
+  if (!isDashboardActive() || id == null) {
     throw new Error('No dashboard is currently active');
   }
   return id;
 };
 
 const getDashboardId: typeof dashboardApi.getDashboardId = () =>
-  getState().dashboardInfo.id ?? undefined;
+  isDashboardActive() ? getState().dashboardInfo.id ?? undefined : undefined;
 
-const getLayout: typeof dashboardApi.getLayout = () => ({
-  ...(getState().dashboardLayout.present as Record<string, unknown>),
-});
+const getLayout: typeof dashboardApi.getLayout = () =>
+  isDashboardActive()
+    ? { ...(getState().dashboardLayout.present as Record<string, unknown>) }
+    : {};
 
 const updateLayoutNode: typeof dashboardApi.updateLayoutNode = async (
   nodeId: string,
@@ -60,7 +67,8 @@ const updateLayoutNode: typeof dashboardApi.updateLayoutNode = async (
   );
 };
 
-const getCss: typeof dashboardApi.getCss = () => getState().dashboardInfo.css ?? '';
+const getCss: typeof dashboardApi.getCss = () =>
+  isDashboardActive() ? getState().dashboardInfo.css ?? '' : '';
 
 const setCss: typeof dashboardApi.setCss = async (css: string) => {
   requireDashboardId();
@@ -68,6 +76,7 @@ const setCss: typeof dashboardApi.setCss = async (css: string) => {
 };
 
 const getFilters: typeof dashboardApi.getFilters = () => {
+  if (!isDashboardActive()) return [];
   const { nativeFilters, dataMask } = getState();
   const filterElements = Object.values(nativeFilters.filters) as Array<
     Filter | Divider
@@ -90,7 +99,14 @@ const updateFilters: typeof dashboardApi.updateFilters = async (
 ) => {
   requireDashboardId();
   updates.forEach(({ filterId, extraFormData, filterState }) => {
-    store.dispatch(updateDataMask(filterId, { extraFormData, filterState }));
+    const dataMask: DataMask = {};
+    if (extraFormData !== undefined) {
+      dataMask.extraFormData = extraFormData;
+    }
+    if (filterState !== undefined) {
+      dataMask.filterState = filterState;
+    }
+    store.dispatch(updateDataMask(filterId, dataMask));
   });
 };
 

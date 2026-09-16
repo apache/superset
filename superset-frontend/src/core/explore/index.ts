@@ -21,35 +21,45 @@ import type { ChartDataResponseResult, QueryFormData } from '@superset-ui/core';
 import { setControlValue } from 'src/explore/actions/exploreActions';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import { store, RootState } from 'src/views/store';
+import { navigation } from '../navigation';
 
 const getExploreState = () => (store.getState() as RootState).explore;
 
-const getChartId: typeof exploreApi.getChartId = () =>
-  getExploreState().slice?.slice_id ?? undefined;
+// The Redux slice below is retained across an in-SPA navigation, so
+// checking it alone can't tell a still-active chart from a stale one left
+// over from before the user navigated to another page.
+const isExploreActive = (): boolean => navigation.getPage() === 'explore';
 
-const getControlValues: typeof exploreApi.getControlValues = () => ({
-  ...(getExploreState().form_data as Record<string, unknown>),
-});
+const getChartId: typeof exploreApi.getChartId = () =>
+  isExploreActive() ? getExploreState().slice?.slice_id ?? undefined : undefined;
+
+const getControlValues: typeof exploreApi.getControlValues = () =>
+  isExploreActive()
+    ? { ...(getExploreState().form_data as Record<string, unknown>) }
+    : {};
 
 const getControlValue: typeof exploreApi.getControlValue = (name: string) =>
-  (getExploreState().form_data as Record<string, unknown>)[name];
+  isExploreActive()
+    ? (getExploreState().form_data as Record<string, unknown>)[name]
+    : undefined;
+
+const requireFormData = (): QueryFormData => {
+  const { form_data } = getExploreState();
+  if (!isExploreActive() || !form_data?.datasource) {
+    throw new Error('No chart is currently loaded in Explore');
+  }
+  return form_data;
+};
 
 const setControlValues: typeof exploreApi.setControlValues = async (
   values: Record<string, unknown>,
 ) => {
+  requireFormData();
   Object.entries(values).forEach(([controlName, value]) => {
     store.dispatch(
       setControlValue(controlName, value, undefined, { programmatic: true }),
     );
   });
-};
-
-const requireFormData = (): QueryFormData => {
-  const { form_data } = getExploreState();
-  if (!form_data?.datasource) {
-    throw new Error('No chart is currently loaded in Explore');
-  }
-  return form_data;
 };
 
 const getQuery: typeof exploreApi.getQuery = async () => {
