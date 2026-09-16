@@ -38,7 +38,9 @@ const setControlValues: typeof exploreApi.setControlValues = async (
   values: Record<string, unknown>,
 ) => {
   Object.entries(values).forEach(([controlName, value]) => {
-    store.dispatch(setControlValue(controlName, value));
+    store.dispatch(
+      setControlValue(controlName, value, undefined, { programmatic: true }),
+    );
   });
 };
 

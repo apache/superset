@@ -47,6 +47,12 @@ export declare function getChartId(): number | undefined;
  * chart currently loaded in Explore. Keys are control names, e.g.
  * `viz_type`, `metrics`, `echart_options`.
  *
+ * The returned object is a read-only snapshot: it is a shallow copy, so
+ * nested values (e.g. `metrics`, `adhoc_filters`) are shared references
+ * with Explore's internal state. Mutating them directly has no defined
+ * effect on the rendered chart and may corrupt that state — use
+ * {@link setControlValues} to apply changes instead.
+ *
  * @returns A map of control name to its current value.
  *
  * @example
