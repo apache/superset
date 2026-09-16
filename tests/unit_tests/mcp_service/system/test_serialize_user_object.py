@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -51,6 +52,58 @@ def test_extracts_basic_fields() -> None:
     assert result.email == "admin@example.com"
     assert result.active is True
     assert result.roles == []
+
+
+def _role(name: str) -> MagicMock:
+    role = MagicMock()
+    role.name = name
+    return role
+
+
+def _user(roles: list[Any], groups: list[Any] | None = None) -> MagicMock:
+    user = MagicMock()
+    user.id = 1
+    user.username = "u"
+    user.first_name = "U"
+    user.last_name = "Ser"
+    user.email = "u@example.com"
+    user.active = True
+    user.roles = roles
+    user.groups = groups if groups is not None else []
+    return user
+
+
+def test_includes_roles_granted_through_groups() -> None:
+    """A user whose access comes from a group is not role-less."""
+    group = MagicMock()
+    group.roles = [_role("editor"), _role("sql_lab")]
+
+    result = serialize_user_object(_user(roles=[], groups=[group]))
+
+    assert result is not None
+    assert result.roles == ["editor", "sql_lab"]
+
+
+def test_merges_direct_and_group_roles_without_duplicates() -> None:
+    group = MagicMock()
+    group.roles = [_role("Admin"), _role("editor")]
+
+    result = serialize_user_object(_user(roles=[_role("Admin")], groups=[group]))
+
+    assert result is not None
+    assert result.roles == ["Admin", "editor"]
+
+
+def test_keeps_direct_roles_when_groups_are_not_iterable() -> None:
+    """A user object without a usable groups relationship still reports its
+    own roles."""
+    user = _user(roles=[_role("Admin")])
+    user.groups = object()
+
+    result = serialize_user_object(user)
+
+    assert result is not None
+    assert result.roles == ["Admin"]
 
 
 def test_extracts_role_names_from_orm_objects() -> None:
