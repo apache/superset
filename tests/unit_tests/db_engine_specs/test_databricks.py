@@ -1138,6 +1138,7 @@ def test_handle_boolean_filter_equality_compilation() -> None:
     comparisons instead of IS expressions for IS_TRUE and IS_FALSE.
     """
     from sqlalchemy import Boolean, Column
+
     from superset.db_engine_specs.databricks import DatabricksBaseEngineSpec
     from superset.utils.core import FilterOperator
 
@@ -1165,6 +1166,7 @@ def test_handle_boolean_filter_computed_column_compilation() -> None:
     Test that handle_boolean_filter compiles properly on computed boolean expressions.
     """
     from sqlalchemy import literal_column
+
     from superset.db_engine_specs.databricks import DatabricksBaseEngineSpec
     from superset.utils.core import FilterOperator
 
@@ -1183,6 +1185,7 @@ def test_spark_handle_boolean_filter_equality_compilation() -> None:
     Test that SparkEngineSpec also compiles boolean filters to equality expressions.
     """
     from sqlalchemy import Boolean, Column
+
     from superset.db_engine_specs.spark import SparkEngineSpec
     from superset.utils.core import FilterOperator
 
@@ -1207,9 +1210,11 @@ def test_spark_handle_boolean_filter_equality_compilation() -> None:
 
 def test_spark_handle_boolean_filter_computed_column_compilation() -> None:
     """
-    Test that SparkEngineSpec handles boolean filters on computed expressions with equality.
+    Test that SparkEngineSpec handles boolean filters on computed
+    expressions with equality.
     """
     from sqlalchemy import literal_column
+
     from superset.db_engine_specs.spark import SparkEngineSpec
     from superset.utils.core import FilterOperator
 
@@ -1229,6 +1234,7 @@ def test_handle_boolean_filter_subclasses_compilation() -> None:
     compile boolean filters with equality comparison.
     """
     from sqlalchemy import Boolean, Column
+
     from superset.db_engine_specs.databricks import (
         DatabricksNativeEngineSpec,
         DatabricksPythonConnectorEngineSpec,
@@ -1241,8 +1247,7 @@ def test_handle_boolean_filter_subclasses_compilation() -> None:
         bool_col, FilterOperator.IS_TRUE, True
     )
     assert (
-        str(native_res.compile(compile_kwargs={"literal_binds": True}))
-        == "flag = true"
+        str(native_res.compile(compile_kwargs={"literal_binds": True})) == "flag = true"
     )
 
     pyconn_res = DatabricksPythonConnectorEngineSpec.handle_boolean_filter(
@@ -1256,9 +1261,11 @@ def test_handle_boolean_filter_subclasses_compilation() -> None:
 
 def test_handle_boolean_filter_databricks_hive_compilation() -> None:
     """
-    Test that DatabricksHiveEngineSpec also compiles boolean filters with equality comparison.
+    Test that DatabricksHiveEngineSpec also compiles boolean filters with
+    equality comparison.
     """
     from sqlalchemy import Boolean, Column
+
     from superset.db_engine_specs.databricks import DatabricksHiveEngineSpec
     from superset.utils.core import FilterOperator
 
