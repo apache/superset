@@ -53,6 +53,9 @@ function bounds(feature: Feature) {
 
 test('Karelia and Murmansk have distinct full-size boundaries', () => {
   const filePath = path.join(__dirname, '../src/countries/russia.geojson');
+  // The 1:50m map is about 747 kB. Replacing only the two incorrect regions
+  // keeps the payload close to that baseline instead of shipping all 1:10m data.
+  expect(fs.statSync(filePath).size).toBeLessThan(760_000);
   const { features }: { features: Feature[] } = JSON.parse(
     fs.readFileSync(filePath, 'utf-8'),
   );
