@@ -431,3 +431,49 @@ def test_update_chart_touches_newly_linked_dashboards(
     assert new_dashboard.changed_on is not None
     assert new_dashboard.changed_by == user
 
+
+def test_update_chart_does_not_touch_unchanged_dashboards(
+    mocker: MockerFixture,
+) -> None:
+    """Updating a chart without changing dashboard attachments does not touch them."""
+    existing_dashboard = MagicMock(id=1, changed_on=None, changed_by=None)
+
+    chart = MagicMock(
+        is_managed_externally=False,
+        id=10,
+        tags=[],
+        dashboards=[existing_dashboard],
+        datasource_id=42,
+        datasource_type="table",
+    )
+    mocker.patch(
+        "superset.commands.chart.update.ChartDAO.find_by_id",
+        return_value=chart,
+    )
+    mocker.patch(
+        "superset.commands.chart.update.DashboardDAO.find_by_ids",
+        return_value=[existing_dashboard],
+    )
+    mocker.patch(
+        "superset.commands.chart.update.security_manager.raise_for_editorship",
+    )
+    mocker.patch(
+        "superset.commands.chart.update.compute_subjects",
+        side_effect=lambda model, properties, exceptions: None,
+    )
+    mocker.patch(
+        "superset.commands.chart.update.ChartDAO.update",
+        return_value=chart,
+    )
+
+    user = MagicMock()
+    g.user = user
+
+    cmd = UpdateChartCommand(10, {"dashboards": [1]})
+    cmd.run()
+
+    # The unchanged dashboard should remain untouched
+    assert existing_dashboard.changed_on is None
+    assert existing_dashboard.changed_by is None
+
+
