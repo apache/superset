@@ -47,7 +47,7 @@ from superset.views.base_api import (
     requires_json,
     statsd_metrics,
 )
-from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
+from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedUsers
 
 logger = logging.getLogger(__name__)
 
@@ -157,9 +157,9 @@ class QueryRestApi(BaseSupersetModelRestApi):
         "database": [["id", DatabaseFilter, lambda: []]],
     }
     related_field_filters = {
-        "created_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
-        "changed_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
-        "user": RelatedFieldFilter("first_name", FilterRelatedOwners),
+        "created_by": RelatedFieldFilter("first_name", FilterRelatedUsers),
+        "changed_by": RelatedFieldFilter("first_name", FilterRelatedUsers),
+        "user": RelatedFieldFilter("first_name", FilterRelatedUsers),
     }
 
     search_columns = [
@@ -182,8 +182,9 @@ class QueryRestApi(BaseSupersetModelRestApi):
     @parse_rison(queries_get_updated_since_schema)
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".get_updated_since",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.get_updated_since"
+        ),
         log_to_statsd=False,
     )
     def get_updated_since(self, **kwargs: Any) -> FlaskResponse:

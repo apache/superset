@@ -119,6 +119,7 @@ from superset.extensions import event_logger
         title="My new tool",
         readOnlyHint=True,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 async def my_new_tool(request: MyRequest, ctx: Context) -> MyResponse:
@@ -139,6 +140,8 @@ async def my_new_tool(request: MyRequest, ctx: Context) -> MyResponse:
         title="Create something",
         readOnlyHint=False,
         destructiveHint=False,
+        idempotentHint=False,
+        openWorldHint=False,
     ),
 )
 async def create_something(request: CreateRequest, ctx: Context) -> CreateResponse:
@@ -210,8 +213,10 @@ The `@tool` decorator from `superset_core.mcp.decorators` accepts:
 ```python
 annotations=ToolAnnotations(
     title="Human-readable title",
-    readOnlyHint=True,   # Whether tool only reads data
-    destructiveHint=False, # Whether tool has destructive side effects
+    readOnlyHint=False,  # Whether tool only reads data
+    destructiveHint=False,  # Whether tool has destructive side effects
+    idempotentHint=False,  # Whether repeated mutating calls have additional effects
+    openWorldHint=False,  # Whether tool interacts with external entities
 )
 ```
 
@@ -243,17 +248,27 @@ async def my_tool(request: MyRequest, ctx: Context) -> MyResponse:
     # g.user is set automatically before this runs
     ...
 
-# Public tool (no auth) - use sparingly
+# Public tool (no auth) - use sparingly, and add the tool name to
+# ALLOWED_UNPROTECTED in app.py (e.g. generate_bug_report)
 @tool(protect=False)
-async def health_check(ctx: Context) -> dict:
+async def public_status(ctx: Context) -> dict:
     return {"status": "healthy"}
 ```
 
+Note: `health_check` is a protected, authenticated tool (`@tool(tags=["core"], ...)`,
+no `protect=False`) — it is not an example of a public tool.
+
 **Authentication priority order** (in `auth.py`):
-1. JWT context (per-request ContextVar from FastMCP)
+1. JWT context (per-request ContextVar from FastMCP). Also resolves a verified
+   embedded **guest token** to a `GuestUser` when `MCP_EMBEDDED_GUEST_AUTH_ENABLED`
+   + `EMBEDDED_SUPERSET` are on (a guest is never downgraded to a lower priority).
 2. API Key authentication (via FAB SecurityManager)
 3. `MCP_DEV_USERNAME` config (development only)
 4. `g.user` fallback (set by external middleware)
+
+Guest tokens are verified by `GuestTokenVerifier` (in the `CompositeTokenVerifier`,
+before the JWT verifier) using the shared core `GUEST_TOKEN_JWT_*` config, then
+built into a `GuestUser` in `_resolve_user_from_jwt_context`. See `SECURITY.md`.
 
 **`@mcp_auth_hook`** is only used directly on **resources** — tools get auth wrapping from `@tool(protect=True)`.
 
@@ -430,7 +445,7 @@ The MCP service uses FastMCP middleware (registered in `server.py`):
 
 - **`LoggingMiddleware`**: Logs tool calls with duration, entity IDs, sanitizes sensitive data
 - **`GlobalErrorHandlerMiddleware`**: Catches unhandled exceptions, converts to ToolError
-- **`StructuredContentStripperMiddleware`**: Strips structuredContent from responses (Claude.ai compatibility)
+- **`ToolResultCompatibilityMiddleware`**: Gates structured results using `MCP_STRUCTURED_OUTPUT_ENABLED` and sanitizes last-resort errors
 - **`ResponseSizeGuardMiddleware`**: Prevents oversized responses from crashing clients
 - **`ResponseCachingMiddleware`**: Optional response caching (in-memory by default, Redis when store enabled)
 
@@ -452,6 +467,20 @@ MCP_USER_RESOLVER = None         # Custom function to extract username from JWT
 
 # RBAC
 MCP_RBAC_ENABLED = True          # Enable permission checking (default: True)
+
+# Embedded guest auth (opt-in; requires the EMBEDDED_SUPERSET feature flag).
+# Reuses core GUEST_TOKEN_JWT_* config — no MCP-specific guest secret/audience.
+MCP_EMBEDDED_GUEST_AUTH_ENABLED = False
+# Default-deny: the ONLY tools a guest may call (everything else is denied).
+MCP_GUEST_ALLOWED_TOOLS = {
+    "get_dashboard_info", "get_dashboard_layout", "list_dashboards",
+    "list_charts", "get_chart_info", "get_chart_data", "get_chart_preview",
+}
+# Principal-agnostic extension point: given the current user, return an allow-list
+# (only these tools are callable) or None if unrestricted. Defaults to restricting
+# embedded guests to MCP_GUEST_ALLOWED_TOOLS; override to add other restricted
+# principals without touching the enforcement path.
+MCP_RESTRICTED_TOOL_POLICY = None  # Callable[[user], frozenset[str] | None]
 
 
 # Response Caching (optional, uses in-memory store by default; Redis when MCP_STORE_CONFIG enabled)
@@ -548,29 +577,39 @@ async def test_my_tool_success(mcp_server):
 
 ### 4. Missing ToolAnnotations
 **Problem**: Tool lacks MCP directory compliance metadata.
-**Solution**: Always include `annotations=ToolAnnotations(title=..., readOnlyHint=..., destructiveHint=...)`.
+**Solution**: Always include `title`, `readOnlyHint`, `destructiveHint`, and
+`openWorldHint`. Mutating tools (`readOnlyHint=False`) must also include
+`idempotentHint`.
 
-### 5. Using `Optional` Instead of Union Syntax
+### 5. Unconstrained Output Schema
+**Problem**: Returning `dict[str, Any]` advertises an object with no useful
+fields to MCP clients.
+**Solution**: Give every tool a concrete Pydantic model or `TypedDict` return
+annotation that describes both success and error fields. Superset derives
+`outputSchema` from that annotation and advertises it when
+`MCP_STRUCTURED_OUTPUT_ENABLED=True`.
+
+### 6. Using `Optional` Instead of Union Syntax
 **Problem**: Old-style `Optional[T]` is not Python 3.10+ style.
 **Solution**: Use `T | None` and `list[str]` instead of `Optional[T]` and `List[str]`.
 
-### 6. Direct Database Queries
+### 7. Direct Database Queries
 **Problem**: Bypasses Superset's security and caching layers.
 **Solution**: Use DAO classes (ChartDAO, DashboardDAO, DatasetDAO, DatabaseDAO).
 
-### 7. Not Using Core Classes
+### 8. Not Using Core Classes
 **Problem**: Duplicating list/get_info logic across tools.
 **Solution**: Use `ModelListCore`, `ModelGetInfoCore`, `ModelGetSchemaCore`.
 
-### 8. Missing Apache License Headers
+### 9. Missing Apache License Headers
 **Problem**: CI fails on license check.
 **Solution**: Add ASF license header to all new `.py` files (see template at top of this doc).
 
-### 9. Circular Imports
+### 10. Circular Imports
 **Problem**: Importing from `app.py` in tool files causes circular dependencies.
 **Solution**: Use `from superset_core.mcp.decorators import tool` for tools/prompts. Only import `from superset.mcp_service.app import mcp` in resource files.
 
-### 10. Missing event_logger Instrumentation
+### 11. Missing event_logger Instrumentation
 **Problem**: Tool operations are invisible to observability.
 **Solution**: Wrap key operations with `event_logger.log_context(action="mcp.tool_name.step")`.
 
@@ -581,6 +620,7 @@ async def test_my_tool_success(mcp_server):
 - [ ] Used `@tool(tags=[...], class_permission_name="...", annotations=ToolAnnotations(...))` decorator
 - [ ] Import: `from superset_core.mcp.decorators import tool, ToolAnnotations`
 - [ ] Created Pydantic request/response schemas in `{module}/schemas.py`
+- [ ] Used a concrete response model or `TypedDict` return annotation
 - [ ] Used DAO classes instead of direct queries
 - [ ] Added `event_logger.log_context()` instrumentation
 - [ ] Used `await ctx.info/error/debug()` for context logging

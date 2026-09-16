@@ -19,18 +19,31 @@
 import { memo, useCallback, useEffect, useState } from 'react';
 import { Map as MapLibreMap } from 'react-map-gl/maplibre';
 import { Map as MapboxMap } from 'react-map-gl/mapbox';
+import * as maplibregl from 'maplibre-gl';
 import { WebMercatorViewport } from '@math.gl/web-mercator';
+import {
+  resolveMapStyle,
+  type ResolvedMapStyle,
+} from '@superset-ui/core/utils/mapStyles';
 import { useTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import ScatterPlotOverlay from './components/ScatterPlotOverlay';
 import { getMapboxApiKey } from './utils/mapbox';
+import { DEFAULT_POINT_RADIUS } from './mapLibreDefaults';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import './MapLibre.css';
 
-const DEFAULT_MAP_STYLE = 'https://tiles.openfreemap.org/styles/liberty';
+// maplibre-gl 6's ESM-only build derives its worker URL from
+// `import.meta.url`, which our (non-ESM-output) webpack bundle rewrites to
+// a build-time path that doesn't match maplibre's `^https?:` check, so
+// `WORKER_URL` silently resolves to `''` and no worker gets created. Point
+// it at the copy CopyPlugin emits alongside the rest of our static assets
+// (see webpack.config.js) instead, using the runtime-configurable public
+// path so this also works behind a reverse-proxy / APPLICATION_ROOT
+// prefix. This must run before the first MapLibre map mounts.
+maplibregl.setWorkerUrl(`${__webpack_public_path__}maplibre-gl-worker.mjs`);
 
-export const DEFAULT_MAX_ZOOM = 16;
-export const DEFAULT_POINT_RADIUS = 60;
+const DEFAULT_MAP_STYLE = 'https://tiles.openfreemap.org/styles/liberty';
 
 interface Viewport {
   longitude: number;
@@ -160,7 +173,10 @@ function MapLibre({
   const clusters = clusterer.getClusters(bbox, Math.round(viewport.zoom));
 
   const theme = useTheme();
-  const resolvedMapStyle = mapStyle || DEFAULT_MAP_STYLE;
+  const resolvedMapStyle: ResolvedMapStyle =
+    mapProvider === 'mapbox'
+      ? mapStyle || DEFAULT_MAP_STYLE
+      : resolveMapStyle(mapStyle, DEFAULT_MAP_STYLE);
   const mapboxApiKey = mapProvider === 'mapbox' ? getMapboxApiKey() : '';
 
   if (mapProvider === 'mapbox' && !mapboxApiKey) {

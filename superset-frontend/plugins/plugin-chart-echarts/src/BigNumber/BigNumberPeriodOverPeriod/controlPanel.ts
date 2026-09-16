@@ -25,7 +25,7 @@ import {
   sections,
   ColorSchemeEnum,
 } from '@superset-ui/chart-controls';
-import { noop } from 'lodash';
+import { noop } from 'lodash-es';
 import {
   headerFontSize,
   subheaderFontSize,

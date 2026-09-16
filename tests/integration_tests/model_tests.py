@@ -31,6 +31,7 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
 )
 
 import pytest
+from sqlalchemy import create_engine
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.types import DateTime  # noqa: F401
 
@@ -150,6 +151,7 @@ class TestDatabaseModel(SupersetTestCase):
         SupersetTestCase.is_module_installed("pyhive"), "pyhive not installed"
     )
     def test_impersonate_user_presto(self, mocked_create_engine):
+        mocked_create_engine.return_value = create_engine("sqlite://")
         uri = "presto://localhost"
         principal_user = security_manager.find_user(username="gamma")
         extra = """
@@ -201,6 +203,7 @@ class TestDatabaseModel(SupersetTestCase):
     )
     @mock.patch("superset.models.core.create_engine")
     def test_adjust_engine_params_mysql(self, mocked_create_engine):
+        mocked_create_engine.return_value = create_engine("sqlite://")
         model = Database(
             database_name="test_database1",
             sqlalchemy_uri="mysql://user:password@localhost",
@@ -208,7 +211,14 @@ class TestDatabaseModel(SupersetTestCase):
         model._get_sqla_engine()
         call_args = mocked_create_engine.call_args
 
-        assert str(call_args[0][0]) == "mysql://user:password@localhost"
+        # SQLAlchemy 2.0 changed URL.__str__() to hide the password by
+        # default (it used to render it in full under 1.4); use
+        # render_as_string(hide_password=False) to compare the real,
+        # unmasked URL the engine was actually created with.
+        assert (
+            call_args[0][0].render_as_string(hide_password=False)
+            == "mysql://user:password@localhost"
+        )
         assert call_args[1]["connect_args"]["local_infile"] == 0
 
         model = Database(
@@ -218,11 +228,15 @@ class TestDatabaseModel(SupersetTestCase):
         model._get_sqla_engine()
         call_args = mocked_create_engine.call_args
 
-        assert str(call_args[0][0]) == "mysql+mysqlconnector://user:password@localhost"
+        assert (
+            call_args[0][0].render_as_string(hide_password=False)
+            == "mysql+mysqlconnector://user:password@localhost"
+        )
         assert call_args[1]["connect_args"]["allow_local_infile"] == 0
 
     @mock.patch("superset.models.core.create_engine")
     def test_impersonate_user_trino(self, mocked_create_engine):
+        mocked_create_engine.return_value = create_engine("sqlite://")
         principal_user = security_manager.find_user(username="gamma")
 
         with override_user(principal_user):
@@ -245,8 +259,12 @@ class TestDatabaseModel(SupersetTestCase):
             model._get_sqla_engine()
             call_args = mocked_create_engine.call_args
 
+            # SQLAlchemy 2.0 changed URL.__str__() to hide the password by
+            # default (it used to render it in full under 1.4); use
+            # render_as_string(hide_password=False) to compare the real,
+            # unmasked URL the engine was actually created with.
             assert (
-                str(call_args[0][0])
+                call_args[0][0].render_as_string(hide_password=False)
                 == "trino://original_user:original_user_password@localhost/"
             )
             assert call_args[1]["connect_args"]["user"] == "gamma"
@@ -259,6 +277,7 @@ class TestDatabaseModel(SupersetTestCase):
         SupersetTestCase.is_module_installed("thrift"), "thrift not installed"
     )
     def test_impersonate_user_hive(self, mocked_create_engine):
+        mocked_create_engine.return_value = create_engine("sqlite://")
         uri = "hive://localhost"
         principal_user = security_manager.find_user(username="gamma")
         extra = """
@@ -395,47 +414,66 @@ class TestSqlaTableModel(SupersetTestCase):
     def test_get_timestamp_expression(self):
         tbl = self.get_table(name="birth_names")
         ds_col = tbl.get_column("ds")
-        sqla_literal = ds_col.get_timestamp_expression(None)
-        assert str(sqla_literal.compile()) == "ds"
+        try:
+            sqla_literal = ds_col.get_timestamp_expression(None)
+            assert str(sqla_literal.compile()) == "ds"
 
-        sqla_literal = ds_col.get_timestamp_expression("P1D")
-        compiled = f"{sqla_literal.compile()}"
-        if tbl.database.backend == "mysql":
-            assert compiled == "DATE(ds)"
+            sqla_literal = ds_col.get_timestamp_expression("P1D")
+            compiled = f"{sqla_literal.compile()}"
+            if tbl.database.backend == "mysql":
+                assert compiled == "DATE(ds)"
 
-        prev_ds_expr = ds_col.expression
-        ds_col.expression = "DATE_ADD(ds, 1)"
-        sqla_literal = ds_col.get_timestamp_expression("P1D")
-        compiled = f"{sqla_literal.compile()}"
-        if tbl.database.backend == "mysql":
-            assert compiled == "DATE(DATE_ADD(ds, 1))"
-        ds_col.expression = prev_ds_expr
+            prev_ds_expr = ds_col.expression
+            ds_col.expression = "DATE_ADD(ds, 1)"
+            sqla_literal = ds_col.get_timestamp_expression("P1D")
+            compiled = f"{sqla_literal.compile()}"
+            if tbl.database.backend == "mysql":
+                assert compiled == "DATE(DATE_ADD(ds, 1))"
+            ds_col.expression = prev_ds_expr
+        finally:
+            # Discard the in-memory attribute history so the next session
+            # autoflush doesn't see this row as dirty. The test only
+            # exercises the in-memory compile path; any persisted write
+            # would be accidental. ``rollback`` rather than ``expire`` —
+            # the latter doesn't reliably clear SA's per-attribute history
+            # tracking for already-loaded objects.
+            metadata_db.session.rollback()
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_get_timestamp_expression_epoch(self):
         tbl = self.get_table(name="birth_names")
         ds_col = tbl.get_column("ds")
 
-        ds_col.expression = None
-        ds_col.python_date_format = "epoch_s"
-        sqla_literal = ds_col.get_timestamp_expression(None)
-        compiled = f"{sqla_literal.compile()}"
-        if tbl.database.backend == "mysql":
-            assert compiled == "from_unixtime(ds)"
+        try:
+            ds_col.expression = None
+            ds_col.python_date_format = "epoch_s"
+            sqla_literal = ds_col.get_timestamp_expression(None)
+            compiled = f"{sqla_literal.compile()}"
+            if tbl.database.backend == "mysql":
+                assert compiled == "from_unixtime(ds)"
 
-        ds_col.python_date_format = "epoch_s"
-        sqla_literal = ds_col.get_timestamp_expression("P1D")
-        compiled = f"{sqla_literal.compile()}"
-        if tbl.database.backend == "mysql":
-            assert compiled == "DATE(from_unixtime(ds))"
+            ds_col.python_date_format = "epoch_s"
+            sqla_literal = ds_col.get_timestamp_expression("P1D")
+            compiled = f"{sqla_literal.compile()}"
+            if tbl.database.backend == "mysql":
+                assert compiled == "DATE(from_unixtime(ds))"
 
-        prev_ds_expr = ds_col.expression
-        ds_col.expression = "DATE_ADD(ds, 1)"
-        sqla_literal = ds_col.get_timestamp_expression("P1D")
-        compiled = f"{sqla_literal.compile()}"
-        if tbl.database.backend == "mysql":
-            assert compiled == "DATE(from_unixtime(DATE_ADD(ds, 1)))"
-        ds_col.expression = prev_ds_expr
+            prev_ds_expr = ds_col.expression
+            ds_col.expression = "DATE_ADD(ds, 1)"
+            sqla_literal = ds_col.get_timestamp_expression("P1D")
+            compiled = f"{sqla_literal.compile()}"
+            if tbl.database.backend == "mysql":
+                assert compiled == "DATE(from_unixtime(DATE_ADD(ds, 1)))"
+            ds_col.expression = prev_ds_expr
+        finally:
+            # Discard the in-memory attribute history so the next session
+            # autoflush doesn't see this row as dirty —
+            # ``python_date_format`` isn't restored above and the test
+            # never commits, so the mutation would otherwise leak.
+            # ``rollback`` rather than ``expire`` — the latter doesn't
+            # reliably clear SA's per-attribute history tracking for
+            # already-loaded objects.
+            metadata_db.session.rollback()
 
     def query_with_expr_helper(self, is_timeseries, inner_join=True):
         tbl = self.get_table(name="birth_names")

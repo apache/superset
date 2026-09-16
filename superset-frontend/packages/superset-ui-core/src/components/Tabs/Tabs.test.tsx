@@ -48,7 +48,7 @@ describe('Tabs', () => {
       expect(getByText('Tab 3')).toBeInTheDocument();
 
       const activeTabContent = container.querySelector(
-        '.ant-tabs-tabpane-active',
+        '.ant-tabs-content-active',
       );
 
       expect(activeTabContent).toBeDefined();
@@ -61,7 +61,7 @@ describe('Tabs', () => {
       const { container } = render(<Tabs items={defaultItems} />);
       const tabsElement = container.querySelector('.ant-tabs');
       const tabsNav = container.querySelector('.ant-tabs-nav');
-      const tabsContent = container.querySelector('.ant-tabs-content-holder');
+      const tabsContent = container.querySelector('.ant-tabs-body-holder');
 
       expect(tabsElement).toBeDefined();
       expect(tabsNav).toBeDefined();
@@ -213,7 +213,7 @@ describe('Tabs', () => {
       expect(getByText('Legacy Tab 2')).toBeInTheDocument();
 
       const activeTabContent = container.querySelector(
-        '.ant-tabs-tabpane-active [data-testid="legacy-content-1"]',
+        '.ant-tabs-content-active [data-testid="legacy-content-1"]',
       );
 
       expect(activeTabContent).toBeDefined();
@@ -311,9 +311,9 @@ test('fullHeight prop renders component hierarchy correctly', () => {
   const { container } = render(<Tabs items={defaultItems} fullHeight />);
 
   const tabsElement = container.querySelector('.ant-tabs');
-  const contentHolder = container.querySelector('.ant-tabs-content-holder');
-  const content = container.querySelector('.ant-tabs-content');
-  const tabPane = container.querySelector('.ant-tabs-tabpane');
+  const contentHolder = container.querySelector('.ant-tabs-body-holder');
+  const content = container.querySelector('.ant-tabs-body');
+  const tabPane = container.querySelector('.ant-tabs-content');
 
   expect(tabsElement).toBeInTheDocument();
   expect(contentHolder).toBeInTheDocument();
@@ -343,9 +343,7 @@ test('fullHeight prop maintains structure when content updates', () => {
   rerender(<Tabs items={newItems} fullHeight />);
 
   const updatedTabsElement = container.querySelector('.ant-tabs');
-  const updatedContentHolder = container.querySelector(
-    '.ant-tabs-content-holder',
-  );
+  const updatedContentHolder = container.querySelector('.ant-tabs-body-holder');
 
   expect(updatedTabsElement).toBeInTheDocument();
   expect(updatedContentHolder).toBeInTheDocument();
@@ -359,7 +357,7 @@ test('fullHeight prop works with allowOverflow to handle tall content', () => {
 
   const tabsElement = container.querySelector('.ant-tabs') as HTMLElement;
   const contentHolder = container.querySelector(
-    '.ant-tabs-content-holder',
+    '.ant-tabs-body-holder',
   ) as HTMLElement;
 
   expect(tabsElement).toBeInTheDocument();

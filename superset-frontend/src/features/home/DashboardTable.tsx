@@ -92,6 +92,11 @@ function DashboardTable({
   const [activeTab, setActiveTab] = useState(defaultTab);
   const [preparingExport, setPreparingExport] = useState<boolean>(false);
   const [loaded, setLoaded] = useState<boolean>(false);
+  // Pending "+ Dashboard" navigation feedback — see the matching comment in
+  // pages/DashboardList/index.tsx: /dashboard/new/ is a hard navigation whose
+  // GET creates the dashboard server-side, so the button must show a loading
+  // state until the page unloads instead of looking dead.
+  const [creatingDashboard, setCreatingDashboard] = useState<boolean>(false);
   const [dashboardToDelete, setDashboardToDelete] = useState<Dashboard | null>(
     null,
   );
@@ -202,8 +207,10 @@ function DashboardTable({
             ),
             name: t('Dashboard'),
             buttonStyle: 'secondary',
+            loading: creatingDashboard,
             onClick: () => {
-              navigateTo('/dashboard/new', { assign: true });
+              setCreatingDashboard(true);
+              navigateTo('/dashboard/new/', { assign: true });
             },
           },
           {
@@ -263,7 +270,7 @@ function DashboardTable({
               hasPerm={hasPerm}
               bulkSelectEnabled={false}
               showThumbnails={showThumbnails}
-              userId={user?.userId}
+              user={user}
               loading={loading}
               openDashboardEditModal={(dashboard: Dashboard) =>
                 setEditModal(dashboard)

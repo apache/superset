@@ -36,8 +36,23 @@ function normalizeUrl(url: string): string {
 /**
  * Return true if the URL scheme is safe for navigation.
  * Blocks javascript:, data:, vbscript:, file:, etc.
+ *
+ * Protocol-relative URLs (`//host/...`) are rejected because they perform a
+ * cross-origin navigation despite parsing as "relative" — the standalone
+ * `new URL(...)` call throws on them, so without an explicit guard the catch
+ * branch would let them through.
+ *
+ * Backslash variants (`/\host`, `\/host`, `\\host`, and any URL containing a
+ * backslash) are rejected up-front, BEFORE the `new URL` attempt. Browsers
+ * normalise `/\` → `//` in special-scheme authorities, so a backslash
+ * anywhere in the input lets an attacker craft a cross-origin target that
+ * presents as router-relative to the eye. Without the explicit rejection,
+ * `new URL('/\\evil.com')` would throw and the catch branch would return
+ * `true`, allowing the interstitial UI to display the URL as if it were a
+ * safe relative path.
  */
 export function isAllowedScheme(url: string): boolean {
+  if (/^[/\\][/\\]/.test(url) || url.includes('\\')) return false;
   try {
     const parsed = new URL(url);
     return ALLOWED_SCHEMES.includes(parsed.protocol);

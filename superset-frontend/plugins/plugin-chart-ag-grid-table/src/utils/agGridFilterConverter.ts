@@ -165,6 +165,26 @@ function escapeSQLString(value: string): string {
   return value.replace(/'/g, "''");
 }
 
+/**
+ * Coerce a range-filter bound to a finite number, or null if it is not a valid
+ * numeric value. Unlike a bare Number() call, empty and whitespace-only strings
+ * are rejected (Number('') === 0), so they never get interpolated into SQL.
+ * @param value - Raw bound value from the AG Grid filter model
+ * @returns The finite number, or null if the value is not numeric
+ */
+function toFiniteNumber(value: FilterValue | undefined): number | null {
+  // Number(null) and Number('') both coerce to 0 and pass Number.isFinite,
+  // so reject nullish and empty/whitespace-only strings before coercing.
+  if (value === null || value === undefined) {
+    return null;
+  }
+  if (typeof value === 'string' && value.trim() === '') {
+    return null;
+  }
+  const coerced = Number(value);
+  return Number.isFinite(coerced) ? coerced : null;
+}
+
 // Maximum column name length - conservative upper bound that exceeds all common
 // database identifier limits (MySQL: 64, PostgreSQL: 63, SQL Server: 128, Oracle: 128)
 const MAX_COLUMN_NAME_LENGTH = 255;
@@ -378,8 +398,17 @@ function simpleFilterToWhereClause(
     return '';
   }
 
-  if (type === FILTER_OPERATORS.IN_RANGE && filterTo !== undefined) {
-    return `${columnName} ${SQL_OPERATORS.BETWEEN} ${value} AND ${filterTo}`;
+  // Handle IN_RANGE unconditionally so a missing/cleared upper bound can never
+  // fall through to the generic clause below and emit an invalid single-operand
+  // BETWEEN. Range bounds are interpolated into the clause without quoting, so
+  // both ends must coerce to finite numbers; otherwise the clause is dropped.
+  if (type === FILTER_OPERATORS.IN_RANGE) {
+    const lowerBound = toFiniteNumber(value);
+    const upperBound = toFiniteNumber(filterTo);
+    if (lowerBound === null || upperBound === null) {
+      return '';
+    }
+    return `${columnName} ${SQL_OPERATORS.BETWEEN} ${lowerBound} AND ${upperBound}`;
   }
 
   const formattedValue = formatValueForOperator(type, value!);

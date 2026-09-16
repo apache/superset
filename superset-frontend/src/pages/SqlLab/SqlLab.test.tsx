@@ -18,7 +18,7 @@
  */
 import fetchMock from 'fetch-mock';
 import { isValidElement } from 'react';
-import { omit } from 'lodash';
+import { omit } from 'lodash-es';
 import {
   render,
   act,

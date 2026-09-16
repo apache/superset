@@ -85,7 +85,7 @@ const BulkTagModal: FC<BulkTagModalProps> = ({
         }
         addSuccessToast(t('Tagged %s %ss', tagged.length, resourceName));
       })
-      .catch(err => {
+      .catch(() => {
         addDangerToast(t('Failed to tag items'));
       });
 

@@ -18,8 +18,8 @@
  */
 import { FunctionComponent, useState, useRef, ChangeEvent } from 'react';
 
-import SchemaForm, { FormProps } from '@rjsf/core';
-import { FormValidation } from '@rjsf/utils';
+import SchemaForm from '@rjsf/core';
+import { type FormValidation } from '@rjsf/utils';
 import validator from '@rjsf/validator-ajv8';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
@@ -74,10 +74,13 @@ const getValidationRules = () => scheduledQueriesConf?.VALIDATION || [];
 
 const getValidator = () => {
   const rules: any = getValidationRules();
-  return (formData: Record<string, any>, errors: FormValidation) => {
+  return (
+    formData: Record<string, any> | undefined,
+    errors: FormValidation,
+  ) => {
     rules.forEach((rule: any) => {
       const test = validators[rule.name as keyof typeof validators];
-      const args = rule.arguments.map((name: string) => formData[name]);
+      const args = rule.arguments.map((name: string) => formData?.[name]);
       const container = rule.container || rule.arguments.slice(-1)[0];
       if (!test(args[0], args[1])) {
         errors[container]?.addError(rule.message);
@@ -121,6 +124,9 @@ export const StyledButtonComponent = styled(Button)`
   `}
 `;
 
+// rjsf's default theme renders glyphicon <i> elements Superset doesn't ship a
+// font for; hide them and draw text glyphs instead. rjsf 6 renamed the
+// array-item button classes from "array-item-*" to "rjsf-array-item-*".
 const StyledJsonSchema = styled.div`
   i.glyphicon {
     display: none;
@@ -128,13 +134,13 @@ const StyledJsonSchema = styled.div`
   .btn-add::after {
     content: '+';
   }
-  .array-item-move-up::after {
+  .rjsf-array-item-move-up::after {
     content: '↑';
   }
-  .array-item-move-down::after {
+  .rjsf-array-item-move-down::after {
     content: '↓';
   }
-  .array-item-remove::after {
+  .rjsf-array-item-remove::after {
     content: '-';
   }
 `;
@@ -157,7 +163,7 @@ const ScheduleQueryButton: FunctionComponent<ScheduleQueryButtonProps> = ({
   const onScheduleSubmit = ({
     formData,
   }: {
-    formData?: Omit<FormProps<Record<string, any>>, 'schema'>;
+    formData?: Record<string, any>;
   }) => {
     const query = {
       label,

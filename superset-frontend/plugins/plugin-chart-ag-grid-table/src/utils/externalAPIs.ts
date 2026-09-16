@@ -20,6 +20,17 @@
 import { SetDataMaskHook } from '@superset-ui/core';
 import { SortByItem } from '../types';
 
+export interface ClientViewColumn {
+  key: string;
+  label: string;
+}
+
+export interface ClientViewSnapshot {
+  rows: Record<string, unknown>[];
+  columns: ClientViewColumn[];
+  count: number;
+}
+
 interface TableOwnState {
   currentPage?: number;
   pageSize?: number;
@@ -27,6 +38,9 @@ interface TableOwnState {
   sortOrder?: 'asc' | 'desc';
   searchText?: string;
   sortBy?: SortByItem[];
+  rawSummaryColumns?: string[];
+  totalsRequested?: boolean;
+  clientView?: ClientViewSnapshot;
 }
 
 export const updateTableOwnState = (

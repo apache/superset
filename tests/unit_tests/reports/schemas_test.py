@@ -19,7 +19,12 @@ import pytest
 from marshmallow import ValidationError
 from pytest_mock import MockerFixture
 
-from superset.reports.schemas import ReportSchedulePostSchema, ReportSchedulePutSchema
+from superset.reports.schemas import (
+    ReportRecipientSchema,
+    ReportSchedulePostSchema,
+    ReportSchedulePutSchema,
+    ReportScheduleSubscribeSchema,
+)
 
 
 def test_report_post_schema_custom_width_validation(mocker: MockerFixture) -> None:
@@ -75,6 +80,157 @@ def test_report_post_schema_custom_width_validation(mocker: MockerFixture) -> No
     assert excinfo.value.messages == {
         "custom_width": ["Screenshot width must be between 100px and 200px"]
     }
+
+
+def test_report_recipient_schema_email_valid() -> None:
+    """Valid email target is accepted by the recipient schema."""
+    schema = ReportRecipientSchema()
+    result = schema.load(
+        {
+            "type": "Email",
+            "recipient_config_json": {"target": "user@example.com"},
+        }
+    )
+    assert result["recipient_config_json"]["target"] == "user@example.com"
+
+
+def test_report_recipient_schema_email_invalid_target() -> None:
+    """Invalid email address in target field raises a validation error."""
+    schema = ReportRecipientSchema()
+    with pytest.raises(ValidationError) as excinfo:
+        schema.load(
+            {
+                "type": "Email",
+                "recipient_config_json": {"target": "not-an-email"},
+            }
+        )
+    assert "target" in excinfo.value.messages
+
+
+def test_report_recipient_schema_email_invalid_cc() -> None:
+    """Invalid address in ccTarget field raises a validation error."""
+    schema = ReportRecipientSchema()
+    with pytest.raises(ValidationError) as excinfo:
+        schema.load(
+            {
+                "type": "Email",
+                "recipient_config_json": {
+                    "target": "user@example.com",
+                    "ccTarget": "bad-email",
+                },
+            }
+        )
+    assert "ccTarget" in excinfo.value.messages
+
+
+def test_report_recipient_schema_email_invalid_bcc() -> None:
+    """Invalid address in bccTarget field raises a validation error."""
+    schema = ReportRecipientSchema()
+    with pytest.raises(ValidationError) as excinfo:
+        schema.load(
+            {
+                "type": "Email",
+                "recipient_config_json": {
+                    "target": "user@example.com",
+                    "bccTarget": "not-valid",
+                },
+            }
+        )
+    assert "bccTarget" in excinfo.value.messages
+
+
+def test_report_recipient_schema_email_empty_bcc_allowed() -> None:
+    """Empty string in bccTarget is accepted (optional field)."""
+    schema = ReportRecipientSchema()
+    result = schema.load(
+        {
+            "type": "Email",
+            "recipient_config_json": {
+                "target": "user@example.com",
+                "bccTarget": "",
+            },
+        }
+    )
+    assert result["recipient_config_json"]["target"] == "user@example.com"
+
+
+def test_report_recipient_schema_email_empty_cc_allowed() -> None:
+    """Empty string in ccTarget is accepted (optional field)."""
+    schema = ReportRecipientSchema()
+    result = schema.load(
+        {
+            "type": "Email",
+            "recipient_config_json": {
+                "target": "user@example.com",
+                "ccTarget": "",
+            },
+        }
+    )
+    assert result["recipient_config_json"]["target"] == "user@example.com"
+
+
+def test_report_recipient_schema_slack_skips_email_validation() -> None:
+    """Slack recipients are not validated as email addresses."""
+    schema = ReportRecipientSchema()
+    result = schema.load(
+        {
+            "type": "Slack",
+            "recipient_config_json": {"target": "#general"},
+        }
+    )
+    assert result["recipient_config_json"]["target"] == "#general"
+
+
+def test_subscribe_schema_ignores_excluded_fields(mocker: MockerFixture) -> None:
+    """Excluded fields sent by the client are silently dropped, not rejected."""
+    mocker.patch(
+        "flask.current_app.config",
+        {
+            "ALERT_REPORTS_MIN_CUSTOM_SCREENSHOT_WIDTH": 100,
+            "ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH": 2000,
+        },
+    )
+    schema = ReportScheduleSubscribeSchema()
+    result = schema.load(
+        {
+            "type": "Report",
+            "name": "My subscription",
+            "crontab": "0 9 * * *",
+            "timezone": "UTC",
+            "chart": 1,
+            # These are excluded server-side — should be silently dropped
+            "recipients": [
+                {"type": "Email", "recipient_config_json": {"target": "x@y.com"}}
+            ],
+            "creation_method": "alerts_reports",
+        }
+    )
+    assert "recipients" not in result
+    assert "creation_method" not in result
+    assert "owners" not in result
+
+
+def test_subscribe_schema_rejects_alert_type(mocker: MockerFixture) -> None:
+    """Subscribe endpoint must not allow Alert type — prevents privilege escalation."""
+    mocker.patch(
+        "flask.current_app.config",
+        {
+            "ALERT_REPORTS_MIN_CUSTOM_SCREENSHOT_WIDTH": 100,
+            "ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH": 2000,
+        },
+    )
+    schema = ReportScheduleSubscribeSchema()
+    with pytest.raises(ValidationError) as exc_info:
+        schema.load(
+            {
+                "type": "Alert",
+                "name": "My alert",
+                "crontab": "0 9 * * *",
+                "timezone": "UTC",
+                "chart": 1,
+            }
+        )
+    assert "type" in exc_info.value.messages
 
 
 MINIMAL_POST_PAYLOAD = {
@@ -256,3 +412,172 @@ def test_put_schema_allows_database_on_report_type(mocker: MockerFixture) -> Non
     with pytest.raises(ValidationError) as exc:
         post_schema.load({**MINIMAL_POST_PAYLOAD, "database": 1})
     assert "database" in exc.value.messages
+
+
+# ---------------------------------------------------------------------------
+# Retry config field tests
+# ---------------------------------------------------------------------------
+
+
+_PATCH_RETRY_FLAG = "superset.reports.schemas.is_feature_enabled"
+
+
+def test_retry_fields_defaults(mocker: MockerFixture) -> None:
+    """POST schema: retry fields have correct defaults when omitted."""
+    mocker.patch("flask.current_app.config", CUSTOM_WIDTH_CONFIG)
+    mocker.patch(_PATCH_RETRY_FLAG, return_value=True)
+    schema = ReportSchedulePostSchema()
+    result = schema.load(MINIMAL_POST_PAYLOAD)
+    assert result["retry_on_failure"] is False
+    assert result["retry_max_attempts"] == 3
+    assert result["send_failed_reports"] is False
+    assert result["retry_notify_owners"] is True
+    assert result["retry_notify_recipients"] is False
+
+
+def test_retry_fields_accepted(mocker: MockerFixture) -> None:
+    """POST schema: retry fields are accepted with valid values."""
+    mocker.patch("flask.current_app.config", CUSTOM_WIDTH_CONFIG)
+    mocker.patch(_PATCH_RETRY_FLAG, return_value=True)
+    schema = ReportSchedulePostSchema()
+    result = schema.load(
+        {
+            **MINIMAL_POST_PAYLOAD,
+            "retry_on_failure": True,
+            "retry_max_attempts": 5,
+            "send_failed_reports": True,
+            "retry_notify_owners": False,
+            "retry_notify_recipients": True,
+        }
+    )
+    assert result["retry_on_failure"] is True
+    assert result["retry_max_attempts"] == 5
+    assert result["send_failed_reports"] is True
+    assert result["retry_notify_owners"] is False
+    assert result["retry_notify_recipients"] is True
+
+
+@pytest.mark.parametrize(
+    "value",
+    [0, 11, -1],
+    ids=["zero", "eleven", "negative"],
+)
+def test_retry_max_attempts_out_of_range(mocker: MockerFixture, value: int) -> None:
+    """POST schema: retry_max_attempts outside 1–10 is rejected."""
+    mocker.patch("flask.current_app.config", CUSTOM_WIDTH_CONFIG)
+    mocker.patch(_PATCH_RETRY_FLAG, return_value=True)
+    schema = ReportSchedulePostSchema()
+    with pytest.raises(ValidationError) as exc:
+        schema.load(
+            {
+                **MINIMAL_POST_PAYLOAD,
+                "retry_on_failure": True,
+                "retry_max_attempts": value,
+            }
+        )
+    assert "retry_max_attempts" in exc.value.messages
+
+
+@pytest.mark.parametrize(
+    "value",
+    [1, 10],
+    ids=["min", "max"],
+)
+def test_retry_max_attempts_boundary_values(mocker: MockerFixture, value: int) -> None:
+    """POST schema: retry_max_attempts at boundaries (1 and 10) is accepted."""
+    mocker.patch("flask.current_app.config", CUSTOM_WIDTH_CONFIG)
+    mocker.patch(_PATCH_RETRY_FLAG, return_value=True)
+    schema = ReportSchedulePostSchema()
+    result = schema.load(
+        {**MINIMAL_POST_PAYLOAD, "retry_on_failure": True, "retry_max_attempts": value}
+    )
+    assert result["retry_max_attempts"] == value
+
+
+def test_send_failed_reports_requires_retry_on_failure(
+    mocker: MockerFixture,
+) -> None:
+    """POST schema: send_failed_reports=True with retry_on_failure=False is rejected."""
+    mocker.patch("flask.current_app.config", CUSTOM_WIDTH_CONFIG)
+    mocker.patch(_PATCH_RETRY_FLAG, return_value=True)
+    schema = ReportSchedulePostSchema()
+    with pytest.raises(ValidationError) as exc:
+        schema.load(
+            {
+                **MINIMAL_POST_PAYLOAD,
+                "retry_on_failure": False,
+                "send_failed_reports": True,
+            }
+        )
+    assert "send_failed_reports" in exc.value.messages
+
+
+def test_put_schema_accepts_retry_fields(mocker: MockerFixture) -> None:
+    """PUT schema: retry fields are accepted as optional partial updates."""
+    mocker.patch("flask.current_app.config", CUSTOM_WIDTH_CONFIG)
+    mocker.patch(_PATCH_RETRY_FLAG, return_value=True)
+    schema = ReportSchedulePutSchema()
+    result = schema.load({"retry_on_failure": True, "retry_max_attempts": 7})
+    assert result["retry_on_failure"] is True
+    assert result["retry_max_attempts"] == 7
+
+
+def test_put_schema_retry_max_attempts_out_of_range(
+    mocker: MockerFixture,
+) -> None:
+    """PUT schema: retry_max_attempts outside 1–10 is rejected."""
+    mocker.patch("flask.current_app.config", CUSTOM_WIDTH_CONFIG)
+    mocker.patch(_PATCH_RETRY_FLAG, return_value=True)
+    schema = ReportSchedulePutSchema()
+    with pytest.raises(ValidationError) as exc:
+        schema.load({"retry_max_attempts": 11})
+    assert "retry_max_attempts" in exc.value.messages
+
+
+@pytest.mark.parametrize(
+    "schema_class,payload_base",
+    [
+        (ReportSchedulePostSchema, MINIMAL_POST_PAYLOAD),
+        (ReportSchedulePutSchema, {}),
+    ],
+    ids=["post", "put"],
+)
+def test_include_cta_round_trips(
+    mocker: MockerFixture, schema_class, payload_base
+) -> None:
+    mocker.patch("flask.current_app.config", CUSTOM_WIDTH_CONFIG)
+    schema = schema_class()
+
+    result = schema.load({**payload_base, "include_cta": False})
+    assert result["include_cta"] is False
+
+    result = schema.load({**payload_base, "include_cta": True})
+    assert result["include_cta"] is True
+
+    # explicit null is accepted and round-trips as None (legacy NULL rows are
+    # treated as True at execution time)
+    result = schema.load({**payload_base, "include_cta": None})
+    assert result["include_cta"] is None
+
+    # omitted key is absent from the load result (the model default applies)
+    result = schema.load(payload_base)
+    assert "include_cta" not in result
+
+
+@pytest.mark.parametrize(
+    "schema_class,payload_base",
+    [
+        (ReportSchedulePostSchema, MINIMAL_POST_PAYLOAD),
+        (ReportSchedulePutSchema, {}),
+    ],
+    ids=["post", "put"],
+)
+def test_include_cta_rejects_non_boolean(
+    mocker: MockerFixture, schema_class, payload_base
+) -> None:
+    mocker.patch("flask.current_app.config", CUSTOM_WIDTH_CONFIG)
+    schema = schema_class()
+
+    with pytest.raises(ValidationError) as exc:
+        schema.load({**payload_base, "include_cta": "not-a-boolean"})
+    assert "include_cta" in exc.value.messages

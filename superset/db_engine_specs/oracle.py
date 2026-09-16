@@ -36,10 +36,10 @@ class OracleEngineSpec(BaseEngineSpec):
             DatabaseCategory.PROPRIETARY,
         ],
         "pypi_packages": ["oracledb"],
-        "connection_string": "oracle://{username}:{password}@{hostname}:{port}",
+        "connection_string": "oracle+oracledb://{username}:{password}@{hostname}:{port}",
         "default_port": 1521,
         "notes": "Previously used cx_Oracle, now uses oracledb.",
-        "docs_url": "https://cx-oracle.readthedocs.io/en/latest/user_guide/installation.html",
+        "docs_url": "https://python-oracledb.readthedocs.io/en/latest/user_guide/installation.html",
     }
     force_column_alias_quotes = True
     max_column_name_length = 128

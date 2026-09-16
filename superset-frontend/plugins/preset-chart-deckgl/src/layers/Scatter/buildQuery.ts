@@ -23,7 +23,6 @@ import {
   QueryFormMetric,
   QueryFormOrderBy,
   SqlaFormData,
-  QueryFormColumn,
   QueryObject,
 } from '@superset-ui/core';
 import {
@@ -31,10 +30,7 @@ import {
   addSpatialNullFilters,
   SpatialFormData,
 } from '../spatialUtils';
-import {
-  addJsColumnsToColumns,
-  addTooltipColumnsToQuery,
-} from '../buildQueryUtils';
+import { addTooltipColumnsToQuery } from '../buildQueryUtils';
 import { isMetricValue } from '../utils/metricUtils';
 
 export interface DeckScatterFormData
@@ -55,13 +51,7 @@ export interface DeckScatterFormData
 }
 
 export default function buildQuery(formData: DeckScatterFormData) {
-  const {
-    spatial,
-    point_radius_fixed,
-    dimension,
-    js_columns,
-    tooltip_contents,
-  } = formData;
+  const { spatial, point_radius_fixed, dimension, tooltip_contents } = formData;
 
   if (!spatial) {
     throw new Error('Spatial configuration is required for Scatter charts');
@@ -76,12 +66,6 @@ export default function buildQuery(formData: DeckScatterFormData) {
         columns.push(dimension);
       }
 
-      const columnStrings = columns.map(col =>
-        typeof col === 'string' ? col : col.label || col.sqlExpression || '',
-      );
-      const withJsColumns = addJsColumnsToColumns(columnStrings, js_columns);
-
-      columns = withJsColumns as QueryFormColumn[];
       columns = addTooltipColumnsToQuery(columns, tooltip_contents);
 
       // Only add metric if point_radius_fixed is a metric type

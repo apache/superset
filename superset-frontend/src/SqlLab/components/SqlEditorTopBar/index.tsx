@@ -31,11 +31,13 @@ export interface SqlEditorTopBarProps {
   queryEditorId: string;
   defaultPrimaryActions: React.ReactNode;
   defaultSecondaryActions: MenuItemType[];
+  extra?: React.ReactNode;
 }
 
 const SqlEditorTopBar = ({
   defaultPrimaryActions,
   defaultSecondaryActions,
+  extra,
 }: SqlEditorTopBarProps) => (
   <StyledFlex justify="space-between" gap="small" id="js-sql-toolbar">
     <Flex gap="small" align="center">
@@ -47,6 +49,7 @@ const SqlEditorTopBar = ({
         />
       </Flex>
     </Flex>
+    {extra}
   </StyledFlex>
 );
 

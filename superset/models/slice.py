@@ -21,6 +21,7 @@ from typing import Any, TYPE_CHECKING
 from urllib import parse
 
 import sqlalchemy as sqla
+from flask import has_request_context, url_for
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from markupsafe import escape, Markup
@@ -31,7 +32,6 @@ from sqlalchemy import (
     ForeignKey,
     Integer,
     String,
-    Table,
     Text,
 )
 from sqlalchemy.engine.base import Connection
@@ -42,37 +42,86 @@ from superset_core.common.models import Chart as CoreChart
 
 from superset import db, is_feature_enabled, security_manager
 from superset.legacy import update_time_range
-from superset.models.helpers import AuditMixinNullable, ImportExportMixin
+from superset.models.helpers import (
+    AuditMixinNullable,
+    ImportExportMixin,
+    SoftDeleteMixin,
+)
+from superset.security.manager import get_extra_editor_subject_ids
+from superset.subjects.models import chart_editors, chart_viewers, Subject
 from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.tasks.utils import get_current_user
 from superset.thumbnails.digest import get_chart_digest
 from superset.utils import core as utils, json
-from superset.viz import BaseViz, viz_types
 
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
     from superset.common.query_context_factory import QueryContextFactory
     from superset.connectors.sqla.models import SqlaTable
+    from superset.daos.datasource import Datasource
+
+    # avoid circular import: superset.connectors.sqla.models imports this module,
+    # and superset.semantic_layers.models -> semantic_layers.mapper imports
+    # superset.connectors.sqla.models. The ``semantic_view`` relationship below
+    # names its target as a string, so the class is only needed for typing.
+    from superset.semantic_layers.models import SemanticView
 
 metadata = Model.metadata  # pylint: disable=no-member
-slice_user = Table(
-    "slice_user",
-    metadata,
-    Column("id", Integer, primary_key=True),
-    Column("user_id", Integer, ForeignKey("ab_user.id", ondelete="CASCADE")),
-    Column("slice_id", Integer, ForeignKey("slices.id", ondelete="CASCADE")),
-)
 logger = logging.getLogger(__name__)
 
 
 class Slice(  # pylint: disable=too-many-public-methods
-    CoreChart, AuditMixinNullable, ImportExportMixin
+    CoreChart, SoftDeleteMixin, AuditMixinNullable, ImportExportMixin
 ):
     """A slice is essentially a report or a view on data"""
 
     query_context_factory: QueryContextFactory | None = None
 
     __tablename__ = "slices"
+    __table_args__: tuple[sqla.Index, ...] = (
+        sqla.Index(
+            "ix_slices_datasource_type_datasource_id",
+            "datasource_type",
+            "datasource_id",
+        ),
+    )
+    # query_context is excluded: it is a cached/regenerated field, not user-authored.
+    # deleted_at is deletion-state metadata (SoftDeleteMixin), tracked by soft
+    # delete, not content versioning; it is also absent from the slices_version
+    # shadow table, so leaving it in would fail every capture INSERT.
+    # Exclude M2M association relationships: Continuum only captures FK columns on
+    # association INSERTs (not the auto-increment id), which breaks the NOT NULL PK.
+    # Ownership changes are administrative metadata, not user-authored content.
+    # Audit / save-marker columns are auto-bumped on every save. Excluding
+    # them lets Continuum's is_modified() return False on no-op saves
+    # (e.g. owners-only edits) so we don't create empty version rows.
+    # version_transaction.user_id / issued_at preserve "who/when".
+    # The perm-string class (perm / schema_perm / catalog_perm) is derived
+    # security state, not user-authored content: permission maintenance
+    # rewrites it in bulk, and versioning it produced phantom transactions
+    # flooding the activity stream (10 "Chart updated" rows for one user
+    # save — surfaced by the version-history UI). Excluding it
+    # also means a restore can't resurrect stale permission strings; the
+    # live, derived values stay authoritative.
+    __versioned__: dict[str, Any] = {
+        "exclude": [
+            "query_context",
+            "owners",
+            "editors",
+            "viewers",
+            "dashboards",
+            "changed_on",
+            "created_on",
+            "changed_by_fk",
+            "created_by_fk",
+            "last_saved_at",
+            "last_saved_by_fk",
+            "perm",
+            "schema_perm",
+            "catalog_perm",
+            "deleted_at",
+        ]
+    }
     id = Column(Integer, primary_key=True)
     slice_name = Column(String(250))
     datasource_id = Column(Integer)
@@ -97,11 +146,17 @@ class Slice(  # pylint: disable=too-many-public-methods
     last_saved_by = relationship(
         security_manager.user_model, foreign_keys=[last_saved_by_fk]
     )
-    owners = relationship(
-        security_manager.user_model,
-        secondary=slice_user,
+    editors = relationship(
+        Subject,
+        secondary=chart_editors,
         passive_deletes=True,
     )
+    viewers = relationship(
+        Subject,
+        secondary=chart_viewers,
+        passive_deletes=True,
+    )
+
     tags = relationship(
         "Tag",
         secondary="tagged_object",
@@ -119,6 +174,24 @@ class Slice(  # pylint: disable=too-many-public-methods
         "Slice.datasource_type == 'table')",
         remote_side="SqlaTable.id",
         lazy="subquery",
+    )
+    # Counterpart of ``table`` for charts built on a semantic view. ``datasource_id``
+    # is only unique within a ``datasource_type``, so the join is guarded on the
+    # type to keep a same-id dataset from being resolved by mistake. View-only:
+    # ``datasource_id`` is written by the chart, never through this relationship.
+    # ``selectin`` costs one extra bounded ``IN (...)`` query per batch of charts
+    # loaded (the type predicate rules out the FK-only shortcut); the default
+    # lazy load would be one query per semantic-view chart on a list page. The
+    # string target resolves because ``superset.daos.datasource`` imports
+    # ``SemanticView`` unconditionally during app initialisation.
+    semantic_view = relationship(
+        "SemanticView",
+        foreign_keys=[datasource_id],
+        primaryjoin="and_(Slice.datasource_id == SemanticView.id, "
+        "Slice.datasource_type == 'semantic_view')",
+        remote_side="SemanticView.id",
+        viewonly=True,
+        lazy="selectin",
     )
 
     token = ""
@@ -145,6 +218,72 @@ class Slice(  # pylint: disable=too-many-public-methods
     def datasource(self) -> SqlaTable | None:
         return self.table
 
+    def _display_datasource(self) -> SqlaTable | SemanticView | None:
+        """Return the datasource used to name and link this chart in listings.
+
+        Display-only counterpart of ``datasource``: it also resolves semantic
+        views, selected strictly by ``datasource_type`` so a chart can never be
+        labelled with a same-id datasource of another kind. ``datasource`` itself
+        deliberately stays ``SqlaTable``-only because access checks and exports
+        depend on that type.
+        """
+        if self.datasource_type == utils.DatasourceType.SEMANTIC_VIEW:
+            return self.semantic_view
+        return self.table
+
+    @property
+    def resolved_datasource(self) -> Datasource | None:
+        """The chart's datasource, resolved across datasource types.
+
+        ``Slice.datasource`` is pinned to table-backed datasources (the
+        ``table`` relationship joins on ``datasource_type == 'table'``), so
+        charts on other datasource types — semantic views in particular —
+        resolve to ``None`` there. Authorization call sites must use this
+        resolver instead, so those charts participate in access checks
+        rather than silently vanishing from them.
+
+        Returns ``None`` when the datasource row does not exist, the type is
+        unknown, or the resolved model does not participate in access
+        control (no ``perm``, e.g. ``SavedQuery``); callers must treat
+        ``None`` as inaccessible, never as absent. Non-table lookups issue a
+        database query on every access — deduplicate before calling this in
+        a loop.
+        """
+        if not self.datasource_id:
+            return None
+        if self.datasource_type == utils.DatasourceType.TABLE:
+            return self.table
+        if self.datasource_type == utils.DatasourceType.SEMANTIC_VIEW:
+            # Resolved through the type-guarded ``semantic_view`` relationship
+            # rather than a DAO query: identity-map cached, and its join
+            # predicate already enforces the type constraint. ``None`` when
+            # the row is gone, matching the DAO fallback's semantics.
+            return self.semantic_view
+        # pylint: disable=import-outside-toplevel
+        # Deferred to avoid a circular import: superset.daos.datasource
+        # imports connectors and sql_lab models at module top.
+        from superset.daos.datasource import DatasourceDAO
+        from superset.daos.exceptions import (
+            DatasourceNotFound,
+            DatasourceTypeNotSupportedError,
+            DatasourceValueIsIncorrect,
+        )
+
+        try:
+            resolved = DatasourceDAO.get_datasource(
+                self.datasource_type, self.datasource_id
+            )
+        except (
+            DatasourceNotFound,
+            DatasourceTypeNotSupportedError,
+            DatasourceValueIsIncorrect,
+        ):
+            return None
+        # A model without a ``perm`` cannot be authorized by
+        # ``can_access_datasource`` — treat it as inaccessible rather than
+        # letting the access check crash on it.
+        return resolved if hasattr(resolved, "perm") else None
+
     def clone(self) -> Slice:
         return Slice(
             slice_name=self.slice_name,
@@ -157,45 +296,26 @@ class Slice(  # pylint: disable=too-many-public-methods
             cache_timeout=self.cache_timeout,
         )
 
+    # The helpers below read the resolved datasource through ``getattr`` so an
+    # unresolved reference (``None``) or a datasource kind lacking the attribute
+    # yields ``None`` for that one chart instead of failing a whole listing.
+
     @renders("datasource_name")
     def datasource_link(self) -> Markup | None:
-        datasource = self.datasource
-        return datasource.link if datasource else None
+        return getattr(self._display_datasource(), "link", None)
 
     @renders("datasource_url")
     def datasource_url(self) -> str | None:
-        # Use getattr to guard against datasource types that don't have explore_url
-        # (e.g. Query objects), which would otherwise raise AttributeError and cause
-        # the entire chart list response to fail.
-        if self.table:
-            return getattr(self.table, "explore_url", None)
-        datasource = self.datasource
-        return getattr(datasource, "explore_url", None) if datasource else None
+        return getattr(self._display_datasource(), "explore_url", None)
 
     def datasource_name_text(self) -> str | None:
-        if self.table:
-            if self.table.schema:
-                return f"{self.table.schema}.{self.table.table_name}"
-            return self.table.table_name
-        if self.datasource:
-            if self.datasource.schema:
-                return f"{self.datasource.schema}.{self.datasource.name}"
-            return self.datasource.name
-        return None
+        # ``SqlaTable.name`` is ``schema.table_name`` when a schema is set;
+        # ``SemanticView.name`` is the view's name.
+        return getattr(self._display_datasource(), "name", None)
 
     @property
     def datasource_edit_url(self) -> str | None:
-        datasource = self.datasource
-        return datasource.url if datasource else None
-
-    @property
-    def viz(self) -> BaseViz | None:
-        form_data = json.loads(self.params)
-        viz_class = viz_types.get(self.viz_type)
-        datasource = self.datasource
-        if viz_class and datasource:
-            return viz_class(datasource=datasource, form_data=form_data)
-        return None
+        return getattr(self._display_datasource(), "url", None)
 
     @property
     def description_markeddown(self) -> str:
@@ -207,8 +327,7 @@ class Slice(  # pylint: disable=too-many-public-methods
         data: dict[str, Any] = {}
         self.token = ""
         try:
-            viz = self.viz
-            data = viz.data if viz else self.form_data
+            data = self.form_data
             self.token = utils.get_form_data_token(data)
         except Exception as ex:  # pylint: disable=broad-except
             logger.exception(ex)
@@ -224,7 +343,9 @@ class Slice(  # pylint: disable=too-many-public-methods
             "form_data": self.form_data,
             "query_context": self.query_context,
             "modified": self.modified(),
-            "owners": [owner.id for owner in self.owners],
+            "editors": [s.id for s in self.editors],
+            "extra_editors": get_extra_editor_subject_ids(self),
+            "viewers": [s.id for s in self.viewers],
             "slice_id": self.id,
             "slice_name": self.slice_name,
             "slice_url": self.slice_url,
@@ -244,7 +365,14 @@ class Slice(  # pylint: disable=too-many-public-methods
         if the dashboard has changed
         """
         if digest := self.digest:
-            return f"/api/v1/chart/{self.id}/thumbnail/{digest}/"
+            if not has_request_context():
+                # Out-of-request callers (CLI, celery tasks) have no
+                # SCRIPT_NAME to honor; keep the router-relative shape so
+                # the property stays callable anywhere.
+                return f"/api/v1/chart/{self.id}/thumbnail/{digest}/"
+            # url_for respects SCRIPT_NAME, so the URL carries the application
+            # root prefix under subdirectory deployments.
+            return url_for("ChartRestApi.thumbnail", pk=self.id, digest=digest)
 
         return None
 
@@ -307,11 +435,6 @@ class Slice(  # pylint: disable=too-many-public-methods
         return self.get_explore_url()
 
     @property
-    def explore_json_url(self) -> str:
-        """Defines the url to access the slice"""
-        return self.get_explore_url("/superset/explore_json")
-
-    @property
     def edit_url(self) -> str:
         return f"/chart/edit/{self.id}"
 
@@ -322,15 +445,23 @@ class Slice(  # pylint: disable=too-many-public-methods
     @property
     def slice_link(self) -> Markup:
         name = escape(self.chart)
-        return Markup(f'<a href="{self.url}">{name}</a>')
+        # FAB list view renders this raw HTML; use url_for so Flask prepends
+        # SCRIPT_NAME (the application_root). `Slice.url` itself stays router-
+        # relative so frontend callers can apply ensureAppRoot exactly once.
+        href = url_for("ExploreView.root", slice_id=self.id)
+        return Markup(f'<a href="{href}">{name}</a>')
 
     @property
     def icons(self) -> str:
+        # Escape the data-controlled datasource name and edit URL before they
+        # are interpolated into HTML attributes.
+        url = escape(self.datasource_edit_url)
+        datasource = escape(self.datasource_name_text() or "")
         return f"""
         <a
-                href="{self.datasource_edit_url}"
+                href="{url}"
                 data-toggle="tooltip"
-                title="{self.datasource}">
+                title="{datasource}">
             <i class="fa fa-database"></i>
         </a>
         """

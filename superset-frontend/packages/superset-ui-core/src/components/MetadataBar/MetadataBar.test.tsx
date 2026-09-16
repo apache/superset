@@ -36,7 +36,7 @@ const SQL_TITLE = 'Click to view query';
 const TABLE_TITLE = 'database.schema.table';
 const CREATED_BY = 'Jane Smith';
 const MODIFIED_BY = 'Jane Smith';
-const OWNERS = ['John Doe', 'Mary Wilson'];
+const EDITORS = ['John Doe', 'Mary Wilson'];
 const TAGS = ['management', 'research', 'poc'];
 const A_WEEK_AGO = 'a week ago';
 const TWO_DAYS_AGO = '2 days ago';
@@ -71,9 +71,9 @@ const ITEMS: ContentType[] = [
     modifiedBy: MODIFIED_BY,
   },
   {
-    type: MetadataType.Owner,
+    type: MetadataType.Editor,
     createdBy: CREATED_BY,
-    owners: OWNERS,
+    editors: EDITORS,
     createdOn: A_WEEK_AGO,
   },
   {
@@ -211,15 +211,15 @@ test('correctly renders the last modified tooltip', async () => {
   expect(within(tooltip).getByText(MODIFIED_BY)).toBeInTheDocument();
 });
 
-test('correctly renders the owner tooltip', async () => {
+test('correctly renders the editor tooltip', async () => {
   render(<MetadataBar items={ITEMS.slice(0, 4)} />);
   await userEvent.hover(screen.getByText(CREATED_BY));
   const tooltip = await screen.findByRole('tooltip');
   expect(tooltip).toBeInTheDocument();
   expect(within(tooltip).getByText(CREATED_BY)).toBeInTheDocument();
   expect(within(tooltip).getByText(A_WEEK_AGO)).toBeInTheDocument();
-  OWNERS.forEach(owner =>
-    expect(within(tooltip).getByText(owner)).toBeInTheDocument(),
+  EDITORS.forEach(editor =>
+    expect(within(tooltip).getByText(editor)).toBeInTheDocument(),
   );
 });
 

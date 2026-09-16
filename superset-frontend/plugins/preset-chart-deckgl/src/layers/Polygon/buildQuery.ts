@@ -46,7 +46,7 @@ export interface DeckPolygonFormData extends SqlaFormData {
       };
   reverse_long_lat?: boolean;
   filter_nulls?: boolean;
-  js_columns?: string[];
+  cross_filter_column?: string | null;
   tooltip_contents?: unknown[];
   tooltip_template?: string;
 }
@@ -57,7 +57,7 @@ export default function buildQuery(formData: DeckPolygonFormData) {
     metric,
     point_radius_fixed,
     filter_nulls = true,
-    js_columns,
+    cross_filter_column,
     tooltip_contents,
   } = formData;
 
@@ -71,12 +71,9 @@ export default function buildQuery(formData: DeckPolygonFormData) {
       line_column,
     ];
 
-    const jsColumns = ensureIsArray(js_columns || []);
-    jsColumns.forEach((col: string) => {
-      if (!columns.includes(col)) {
-        columns.push(col);
-      }
-    });
+    if (cross_filter_column && !columns.includes(cross_filter_column)) {
+      columns.push(cross_filter_column);
+    }
 
     columns = addTooltipColumnsToQuery(columns, tooltip_contents);
 

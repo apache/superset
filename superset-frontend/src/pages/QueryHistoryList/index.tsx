@@ -47,7 +47,7 @@ import { QueryObject, QueryObjectColumns } from 'src/views/CRUD/types';
 import { Icons } from '@superset-ui/core/components/Icons';
 import QueryPreviewModal from 'src/features/queries/QueryPreviewModal';
 import { addSuccessToast } from 'src/components/MessageToasts/actions';
-import getOwnerName from 'src/utils/getOwnerName';
+import getUserName from 'src/utils/getUserName';
 import { extendedDayjs } from '@superset-ui/core/utils/dates';
 
 const PAGE_SIZE = 25;
@@ -344,7 +344,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
           row: {
             original: { user },
           },
-        }: any) => getOwnerName(user),
+        }: any) => getUserName(user),
         id: QueryObjectColumns.UserFirstName,
       },
       {
@@ -362,18 +362,22 @@ function QueryList({ addDangerToast }: QueryListProps) {
         accessor: QueryObjectColumns.Sql,
         Header: t('SQL'),
         Cell: ({ row: { original, id } }: any) => (
-          <div
-            tabIndex={0}
-            role="button"
+          <button
+            type="button"
             data-test={`open-sql-preview-${id}`}
             onClick={() => setQueryCurrentlyPreviewing(original)}
-            onKeyDown={e => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                setQueryCurrentlyPreviewing(original);
-              }
-            }}
-            style={{ cursor: 'pointer' }}
+            css={css`
+              appearance: none;
+              border: none;
+              background: none;
+              padding: 0;
+              margin: 0;
+              font: inherit;
+              display: block;
+              width: 100%;
+              text-align: left;
+              cursor: pointer;
+            `}
           >
             <StyledCodeSyntaxHighlighter
               language="sql"
@@ -384,7 +388,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
             >
               {shortenSQL(original.sql, SQL_PREVIEW_MAX_LINES)}
             </StyledCodeSyntaxHighlighter>
-          </div>
+          </button>
         ),
         size: 'xxl',
         id: QueryObjectColumns.Sql,

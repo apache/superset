@@ -19,7 +19,7 @@
 
 import { useState } from 'react';
 import fetchMock from 'fetch-mock';
-import { omit, omitBy } from 'lodash';
+import { omit, omitBy } from 'lodash-es';
 import {
   render,
   screen,
@@ -79,12 +79,7 @@ const dataset = {
   created_on_humanized: '01-01-2001',
   description: 'desc',
   table_name: 'my_dataset',
-  owners: [
-    {
-      first_name: 'Sarah',
-      last_name: 'Connor',
-    },
-  ],
+  editors: [{ id: 1, label: 'Sarah Connor', type: 1 }],
   columns: [
     {
       column_name: 'gender',
@@ -133,7 +128,7 @@ const renderModal = async (
     },
   });
 
-  userEvent.click(screen.getByRole('button', { name: 'Show modal' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Show modal' }));
   await screen.findByRole('dialog', { name: `Drill by: ${chartName}` });
 };
 
@@ -165,7 +160,7 @@ test('should render the button', async () => {
 test('should close the modal', async () => {
   await renderModal();
   expect(screen.getByRole('dialog')).toBeInTheDocument();
-  userEvent.click(screen.getAllByRole('button', { name: 'Close' })[1]);
+  await userEvent.click(screen.getAllByRole('button', { name: 'Close' })[1]);
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 });
 
@@ -245,7 +240,7 @@ test('should render radio buttons', async () => {
   expect(tableRadio).toBeInTheDocument();
   expect(chartRadio).toBeChecked();
   expect(tableRadio).not.toBeChecked();
-  userEvent.click(tableRadio);
+  await userEvent.click(tableRadio.closest('label') ?? tableRadio);
   expect(chartRadio).not.toBeChecked();
   expect(tableRadio).toBeChecked();
 });
@@ -266,13 +261,13 @@ test('render breadcrumbs', async () => {
   ).toBeInTheDocument();
   expect(within(breadcrumbItems[1]).getByText('name')).toBeInTheDocument();
 
-  userEvent.click(screen.getByText('gender (boy)'));
+  await userEvent.click(screen.getByText('gender (boy)'));
 
   const newBreadcrumbItems = screen.getAllByTestId('drill-by-breadcrumb-item');
   // we need to assert that there is only 1 element now
   // eslint-disable-next-line jest-dom/prefer-in-document
   expect(newBreadcrumbItems).toHaveLength(1);
-  expect(within(breadcrumbItems[0]).getByText('gender')).toBeInTheDocument();
+  expect(within(newBreadcrumbItems[0]).getByText('gender')).toBeInTheDocument();
 });
 
 test('should render "Edit chart" as disabled without can_explore permission', async () => {
@@ -416,7 +411,7 @@ describe('Table view with pagination', () => {
 
     // Switch to table view
     const tableRadio = await screen.findByRole('radio', { name: /table/i });
-    userEvent.click(tableRadio);
+    await userEvent.click(tableRadio.closest('label') ?? tableRadio);
 
     // Wait for table to render
     await waitFor(() => {
@@ -435,7 +430,7 @@ describe('Table view with pagination', () => {
 
     // Switch to table view
     const tableRadio = await screen.findByRole('radio', { name: /table/i });
-    userEvent.click(tableRadio);
+    await userEvent.click(tableRadio.closest('label') ?? tableRadio);
 
     await waitFor(() => {
       expect(screen.getByTestId('drill-by-results-table')).toBeInTheDocument();
@@ -460,19 +455,19 @@ describe('Table view with pagination', () => {
     const tableRadio = screen.getByRole('radio', { name: /table/i });
 
     // Switch to table view
-    userEvent.click(tableRadio);
+    await userEvent.click(tableRadio.closest('label') ?? tableRadio);
     await waitFor(() => {
       expect(screen.getByTestId('drill-by-results-table')).toBeInTheDocument();
     });
 
     // Switch back to chart view
-    userEvent.click(chartRadio);
+    await userEvent.click(chartRadio.closest('label') ?? chartRadio);
     await waitFor(() => {
       expect(screen.getByTestId('drill-by-chart')).toBeInTheDocument();
     });
 
     // Switch back to table view - should maintain state
-    userEvent.click(tableRadio);
+    await userEvent.click(tableRadio.closest('label') ?? tableRadio);
     await waitFor(() => {
       expect(screen.getByTestId('drill-by-results-table')).toBeInTheDocument();
     });
@@ -494,7 +489,7 @@ describe('Table view with pagination', () => {
 
     // Switch to table view
     const tableRadio = await screen.findByRole('radio', { name: /table/i });
-    userEvent.click(tableRadio);
+    await userEvent.click(tableRadio.closest('label') ?? tableRadio);
 
     await waitFor(() => {
       expect(screen.getByTestId('drill-by-results-table')).toBeInTheDocument();
@@ -535,7 +530,7 @@ describe('Table view with pagination', () => {
 
     // Switch to table view
     const tableRadio = await screen.findByRole('radio', { name: /table/i });
-    userEvent.click(tableRadio);
+    await userEvent.click(tableRadio.closest('label') ?? tableRadio);
 
     await waitFor(() => {
       expect(screen.getByTestId('drill-by-results-table')).toBeInTheDocument();
@@ -557,7 +552,7 @@ describe('Table view with pagination', () => {
 
     // Switch to table view
     const tableRadio = await screen.findByRole('radio', { name: /table/i });
-    userEvent.click(tableRadio);
+    await userEvent.click(tableRadio.closest('label') ?? tableRadio);
 
     await waitFor(() => {
       expect(screen.getByTestId('drill-by-results-table')).toBeInTheDocument();
@@ -578,7 +573,7 @@ describe('Table view with pagination', () => {
     });
 
     const tableRadio = await screen.findByRole('radio', { name: /table/i });
-    userEvent.click(tableRadio);
+    await userEvent.click(tableRadio.closest('label') ?? tableRadio);
     await waitFor(() =>
       expect(screen.getByTestId('drill-by-results-table')).toBeInTheDocument(),
     );
@@ -609,7 +604,7 @@ describe('Table view with pagination', () => {
     });
 
     const tableRadio = await screen.findByRole('radio', { name: /table/i });
-    userEvent.click(tableRadio);
+    await userEvent.click(tableRadio.closest('label') ?? tableRadio);
     await waitFor(() =>
       expect(screen.getByTestId('drill-by-results-table')).toBeInTheDocument(),
     );

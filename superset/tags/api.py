@@ -40,7 +40,7 @@ from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.tag import TagDAO
 from superset.exceptions import MissingUserContextException
 from superset.extensions import event_logger
-from superset.tags.filters import UserCreatedTagTypeFilter
+from superset.tags.filters import TagFavoriteFilter, UserCreatedTagTypeFilter
 from superset.tags.models import ObjectType, Tag
 from superset.tags.schemas import (
     delete_tags_schema,
@@ -57,7 +57,7 @@ from superset.views.base_api import (
     RelatedFieldFilter,
     statsd_metrics,
 )
-from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
+from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedUsers
 
 logger = logging.getLogger(__name__)
 
@@ -116,11 +116,23 @@ class TagRestApi(BaseSupersetModelRestApi):
     }
 
     related_field_filters = {
-        "created_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
+        "created_by": RelatedFieldFilter("first_name", FilterRelatedUsers),
     }
     allowed_rel_fields = {"created_by", "changed_by"}
 
-    search_filters = {"type": [UserCreatedTagTypeFilter]}
+    search_columns = [
+        "id",
+        "name",
+        "type",
+        "description",
+        "created_by",
+        "changed_by",
+    ]
+
+    search_filters = {
+        "type": [UserCreatedTagTypeFilter],
+        "id": [TagFavoriteFilter],
+    }
 
     add_model_schema = TagPostSchema()
     edit_model_schema = TagPutSchema()
@@ -474,6 +486,64 @@ class TagRestApi(BaseSupersetModelRestApi):
             )
             return self.response_422(message=str(ex))
 
+    @expose("/<pk>", methods=("DELETE",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.delete",
+        log_to_statsd=False,
+    )
+    def delete(self, pk: int) -> Response:
+        """Deletes a Tag
+        ---
+        delete:
+          description: >-
+            Delete a Tag by id. This will remove all tagged objects with
+            this tag.
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+          responses:
+            200:
+              description: Tag deleted
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        # Overrides the FAB-generated single-object delete route (which would
+        # otherwise call self.datamodel.delete directly, bypassing
+        # DeleteTagsCommand's ownership and system-tag checks) so both the
+        # single-object and bulk-delete routes share the same validation.
+        tag = TagDAO.find_by_id(pk)
+        if not tag:
+            return self.response_404()
+        try:
+            DeleteTagsCommand([tag.name]).run()
+            return self.response(200, message="OK")
+        except TagNotFoundError:
+            return self.response_404()
+        except TagInvalidError as ex:
+            return self.response_422(message=ex.normalized_messages())
+        except TagDeleteFailedError as ex:
+            return self.response_422(message=str(ex))
+
     @expose("/", methods=("DELETE",))
     @protect()
     @safe
@@ -543,11 +613,28 @@ class TagRestApi(BaseSupersetModelRestApi):
         ---
         get:
           summary: Get all objects associated with a tag
+          description: >-
+            Get all objects associated with a tag.
+            If tagIds is set, tags will be ignored.
           parameters:
-          - in: path
+          - in: query
+            name: tagIds
             schema:
-              type: integer
-            name: tag_id
+              type: array
+              items:
+                type: integer
+          - in: query
+            name: tags
+            schema:
+              type: array
+              items:
+                type: string
+          - in: query
+            name: types
+            schema:
+              type: array
+              items:
+                type: string
           responses:
             200:
               description: List of tagged objects associated with a Tag
@@ -600,8 +687,9 @@ class TagRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @parse_rison({"type": "array", "items": {"type": "integer"}})
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".favorite_status",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.favorite_status"
+        ),
         log_to_statsd=False,
     )
     def favorite_status(self, **kwargs: Any) -> Response:
@@ -698,8 +786,9 @@ class TagRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".remove_favorite",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.remove_favorite"
+        ),
         log_to_statsd=False,
     )
     def remove_favorite(self, pk: int) -> Response:

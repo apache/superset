@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useRef, useState } from 'react';
-import { FeatureFlag, VizType } from '@superset-ui/core';
+import { ContextMenuFilters, FeatureFlag, VizType } from '@superset-ui/core';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import mockState from 'spec/fixtures/mockState';
@@ -30,6 +30,48 @@ import ChartContextMenu, {
 
 jest.mock('src/utils/cachedSupersetGet');
 
+// The scope-selector behavior within the submenu (which filters get built
+// for x-axis/series/both) is covered by DrillBySubmenu.test.tsx. Here we
+// only need a stand-in that lets us trigger onDrillBy with a distinguishable
+// config, so we can assert ChartContextMenu wires it into the modal.
+jest.mock('../DrillBy/DrillBySubmenu', () => ({
+  DrillBySubmenu: ({ onDrillBy, onCloseMenu, dataset }: any) => (
+    <>
+      <button
+        type="button"
+        data-test="fake-drill-by-submenu"
+        onClick={() => {
+          // Mirrors DrillBySubmenu's real handleSelection, which calls
+          // onDrillBy and onCloseMenu together once a column is picked.
+          onDrillBy(
+            { column_name: 'city', groupby: true },
+            { id: 1, columns: [], metrics: [] },
+            {
+              filters: [{ col: 'selected_scope' }],
+              groupbyFieldName: 'groupby',
+            },
+          );
+          onCloseMenu?.();
+        }}
+      >
+        Fake Drill By
+      </button>
+      <div data-test="drillable-columns">
+        {(dataset?.drillable_columns ?? [])
+          .map((col: any) => col.column_name)
+          .join(',')}
+      </div>
+    </>
+  ),
+}));
+
+jest.mock('src/components/Chart/DrillBy/DrillByModal', () => ({
+  __esModule: true,
+  default: ({ drillByConfig }: any) => (
+    <div data-test="drill-by-modal">{JSON.stringify(drillByConfig)}</div>
+  ),
+}));
+
 const mockCachedSupersetGet = cachedSupersetGet as jest.MockedFunction<
   typeof cachedSupersetGet
 >;
@@ -39,7 +81,11 @@ const defaultFormData = {
   viz_type: VizType.Pie,
 };
 
-const TestWrapper = () => {
+const TestWrapper = ({
+  openFilters = {},
+}: {
+  openFilters?: ContextMenuFilters;
+}) => {
   const contextMenuRef = useRef<ChartContextMenuRef>(null);
   const [isTooltipVisible, setIsTooltipVisible] = useState(true);
 
@@ -51,7 +97,7 @@ const TestWrapper = () => {
     <>
       <button
         type="button"
-        onClick={() => contextMenuRef.current?.open(100, 100, {})}
+        onClick={() => contextMenuRef.current?.open(100, 100, openFilters)}
         data-test="open-context-menu"
       >
         Open Context Menu
@@ -71,8 +117,8 @@ const TestWrapper = () => {
   );
 };
 
-const setup = () =>
-  render(<TestWrapper />, {
+const setup = (openFilters?: ContextMenuFilters) =>
+  render(<TestWrapper openFilters={openFilters} />, {
     useRedux: true,
     initialState: {
       ...mockState,
@@ -149,4 +195,96 @@ test('tooltip is restored when user selects a menu item', async () => {
   await waitFor(() => {
     expect(screen.getByTestId('tooltip-visible')).toBeInTheDocument();
   });
+});
+
+test('drill by modal uses the scope selected in the submenu over the raw context filters', async () => {
+  setup({
+    drillBy: {
+      filters: [{ col: 'raw_scope', op: '==', val: 'raw' }],
+      groupbyFieldName: 'groupby',
+    },
+  });
+
+  userEvent.click(screen.getByTestId('open-context-menu'));
+
+  await waitFor(() => {
+    expect(screen.getByTestId('chart-context-menu')).toBeInTheDocument();
+  });
+
+  const submenuButton = await screen.findByTestId('fake-drill-by-submenu');
+  userEvent.click(submenuButton);
+
+  await waitFor(() => {
+    expect(screen.getByTestId('drill-by-modal')).toBeInTheDocument();
+  });
+
+  const modalConfig = JSON.parse(
+    screen.getByTestId('drill-by-modal').textContent || '{}',
+  );
+  expect(modalConfig.filters).toEqual([{ col: 'selected_scope' }]);
+});
+
+test('context menu can be reopened after Drill By closes it via onCloseMenu', async () => {
+  // Ant Design's Dropdown keeps its overlay mounted and toggles an
+  // `ant-dropdown-hidden` class rather than unmounting, so open/closed is
+  // asserted on that class instead of the overlay's presence in the DOM.
+  const isMenuOpen = () =>
+    !screen
+      .getByTestId('chart-context-menu')
+      .closest('.ant-dropdown')
+      ?.classList.contains('ant-dropdown-hidden');
+
+  setup();
+
+  const openButton = screen.getByTestId('open-context-menu');
+  userEvent.click(openButton);
+
+  await waitFor(() => {
+    expect(isMenuOpen()).toBe(true);
+  });
+
+  const submenuButton = await screen.findByTestId('fake-drill-by-submenu');
+  userEvent.click(submenuButton);
+
+  await waitFor(() => {
+    expect(isMenuOpen()).toBe(false);
+  });
+
+  userEvent.click(openButton);
+
+  await waitFor(() => {
+    expect(isMenuOpen()).toBe(true);
+  });
+});
+
+test('drill by only offers dimension columns', async () => {
+  // drill_info returns every column so the results grid can label non-dimension
+  // ones; narrowing to dimensions is this component's job, not the API's.
+  mockCachedSupersetGet.mockResolvedValue({
+    response: {} as Response,
+    json: {
+      result: {
+        columns: [
+          { column_name: 'city', verbose_name: 'City', groupby: true },
+          { column_name: 'revenue', verbose_name: 'Revenue', groupby: false },
+        ],
+        metrics: [],
+      },
+    },
+  } as any);
+  setup({
+    drillBy: {
+      filters: [{ col: 'raw_scope', op: '==', val: 'raw' }],
+      groupbyFieldName: 'groupby',
+    },
+  });
+
+  userEvent.click(screen.getByTestId('open-context-menu'));
+
+  await waitFor(() => {
+    expect(screen.getByTestId('drillable-columns')).toHaveTextContent('city');
+  });
+  expect(screen.getByTestId('drillable-columns')).not.toHaveTextContent(
+    'revenue',
+  );
 });

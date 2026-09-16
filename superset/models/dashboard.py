@@ -19,10 +19,10 @@ from __future__ import annotations
 import logging
 import uuid
 from collections import defaultdict, deque
-from typing import Any, Callable
+from typing import Any, Callable, Optional
 
 import sqlalchemy as sqla
-from flask import current_app as app
+from flask import current_app as app, has_request_context, url_for
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from flask_appbuilder.security.sqla.models import User
@@ -35,7 +35,6 @@ from sqlalchemy import (
     String,
     Table,
     Text,
-    UniqueConstraint,
 )
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import relationship, subqueryload
@@ -46,9 +45,18 @@ from superset_core.common.models import Dashboard as CoreDashboard
 from superset import db, is_feature_enabled, security_manager
 from superset.connectors.sqla.models import BaseDatasource, SqlaTable
 from superset.daos.datasource import DatasourceDAO
-from superset.models.helpers import AuditMixinNullable, ImportExportMixin
+from superset.models.helpers import (
+    AuditMixinNullable,
+    ImportExportMixin,
+    SoftDeleteMixin,
+)
 from superset.models.slice import Slice
 from superset.models.user_attributes import UserAttribute
+from superset.subjects.models import (
+    dashboard_editors,
+    dashboard_viewers,
+    Subject,
+)
 from superset.tasks.thumbnails import cache_dashboard_thumbnail
 from superset.tasks.utils import get_current_user
 from superset.thumbnails.digest import get_dashboard_digest
@@ -63,11 +71,21 @@ def copy_dashboard(_mapper: Mapper, _connection: Connection, target: Dashboard) 
     if dashboard_id is None:
         return
 
+    from superset.subjects.utils import (
+        get_default_viewers_for_groups,
+        get_user_subject,
+    )
+
     session = sqla.inspect(target).session  # pylint: disable=disallowed-name
     new_user = session.query(User).filter_by(id=target.id).first()
 
     # copy template dashboard to user
     template = session.query(Dashboard).filter_by(id=int(dashboard_id)).first()
+    editors = []
+    if new_user:
+        subj = get_user_subject(new_user.id)
+        if subj:
+            editors.append(subj)
     dashboard = Dashboard(
         dashboard_title=template.dashboard_title,
         position_json=template.position_json,
@@ -75,7 +93,12 @@ def copy_dashboard(_mapper: Mapper, _connection: Connection, target: Dashboard) 
         css=template.css,
         json_metadata=template.json_metadata,
         slices=template.slices,
-        owners=[new_user],
+        editors=editors,
+        # Resolved from the in-memory collection: this runs in ``after_insert``
+        # for the user, before their ``ab_user_group`` rows are written.
+        viewers=get_default_viewers_for_groups(
+            list(getattr(new_user, "groups", []) or [])
+        ),
     )
     session.add(dashboard)
 
@@ -93,45 +116,53 @@ sqla.event.listen(User, "after_insert", copy_dashboard)
 dashboard_slices = Table(
     "dashboard_slices",
     metadata,
-    Column("id", Integer, primary_key=True),
-    Column("dashboard_id", Integer, ForeignKey("dashboards.id", ondelete="CASCADE")),
-    Column("slice_id", Integer, ForeignKey("slices.id", ondelete="CASCADE")),
-    UniqueConstraint("dashboard_id", "slice_id"),
-)
-
-
-dashboard_user = Table(
-    "dashboard_user",
-    metadata,
-    Column("id", Integer, primary_key=True),
-    Column("user_id", Integer, ForeignKey("ab_user.id", ondelete="CASCADE")),
-    Column("dashboard_id", Integer, ForeignKey("dashboards.id", ondelete="CASCADE")),
-)
-
-
-DashboardRoles = Table(
-    "dashboard_roles",
-    metadata,
-    Column("id", Integer, primary_key=True),
     Column(
         "dashboard_id",
         Integer,
         ForeignKey("dashboards.id", ondelete="CASCADE"),
-        nullable=False,
+        primary_key=True,
     ),
     Column(
-        "role_id",
+        "slice_id",
         Integer,
-        ForeignKey("ab_role.id", ondelete="CASCADE"),
-        nullable=False,
+        ForeignKey("slices.id", ondelete="CASCADE"),
+        primary_key=True,
     ),
+    sqla.Index("ix_dashboard_slices_slice_id", "slice_id"),
 )
 
 
-class Dashboard(CoreDashboard, AuditMixinNullable, ImportExportMixin):
+class Dashboard(CoreDashboard, SoftDeleteMixin, AuditMixinNullable, ImportExportMixin):
     """The dashboard object!"""
 
     __tablename__ = "dashboards"
+    # SPIKE (full-Continuum): ``slices`` removed from
+    # the exclude list so Continuum auto-creates an association version table
+    # for ``dashboard_slices`` and ``Reverter(relations=["slices"])`` can
+    # restore chart membership. Owners / roles / editors / viewers stay
+    # excluded — access metadata, not user-authored content (ADR-005).
+    # Audit columns (changed_on/created_on/changed_by_fk/created_by_fk) are
+    # auto-bumped by AuditMixin on every save; excluding them lets Continuum's
+    # is_modified() return False on no-op saves (e.g. owners-only edits) so we
+    # don't create empty version rows. version_transaction.user_id /
+    # issued_at preserve "who/when" without per-row duplication.
+    # deleted_at is deletion-state metadata (SoftDeleteMixin), not user-authored
+    # content: it is tracked by soft delete, not by content versioning. It is also
+    # absent from the Continuum shadow table, so leaving it in would make every
+    # capture INSERT fail once soft delete is applied to dashboards.
+    __versioned__: dict[str, Any] = {
+        "exclude": [
+            "owners",
+            "roles",
+            "editors",
+            "viewers",
+            "changed_on",
+            "created_on",
+            "changed_by_fk",
+            "created_by_fk",
+            "deleted_at",
+        ]
+    }
     id = Column(Integer, primary_key=True)
     dashboard_title = Column(String(500))
     position_json = Column(utils.MediumText())
@@ -141,14 +172,16 @@ class Dashboard(CoreDashboard, AuditMixinNullable, ImportExportMixin):
     certified_by = Column(Text)
     certification_details = Column(Text)
     json_metadata = Column(utils.MediumText())
-    slug = Column(String(255), unique=True)
+    # Slug uniqueness is enforced via a partial unique index
+    # (``ix_dashboards_active_slug WHERE deleted_at IS NULL``) on
+    # PostgreSQL and MySQL 8.0.13+ (excluding MariaDB), so soft-deleted rows
+    # do not reserve their slug. SQLite, MariaDB, and MySQL <8.0.13 keep the
+    # original full unique constraint via the migration; on those dialects
+    # slug reservation persists across soft-delete. See the 9e1f3b8c4d2a
+    # migration for details.
+    slug = Column(String(255))
     slices: list[Slice] = relationship(
         Slice, secondary=dashboard_slices, backref="dashboards"
-    )
-    owners = relationship(
-        security_manager.user_model,
-        secondary=dashboard_user,
-        passive_deletes=True,
     )
     tags = relationship(
         "Tag",
@@ -173,7 +206,17 @@ class Dashboard(CoreDashboard, AuditMixinNullable, ImportExportMixin):
     published = Column(Boolean, default=False)
     is_managed_externally = Column(Boolean, nullable=False, default=False)
     external_url = Column(Text, nullable=True)
-    roles = relationship(security_manager.role_model, secondary=DashboardRoles)
+    editors = relationship(
+        Subject,
+        secondary=dashboard_editors,
+        passive_deletes=True,
+    )
+    viewers = relationship(
+        Subject,
+        secondary=dashboard_viewers,
+        passive_deletes=True,
+    )
+
     embedded = relationship(
         "EmbeddedDashboard",
         back_populates="dashboard",
@@ -192,17 +235,38 @@ class Dashboard(CoreDashboard, AuditMixinNullable, ImportExportMixin):
     ]
     extra_import_fields = ["is_managed_externally", "external_url", "theme_id"]
 
+    @classmethod
+    def _unique_constraints(cls) -> list[set[str]]:
+        """Import identity keys for ``import_from_dict``.
+
+        ``slug`` lost its column-level ``unique=True`` when the full unique
+        constraint was replaced by a partial (active-rows-only) index for
+        soft-delete. ``ImportExportMixin._unique_constraints`` derives import
+        lookup keys from unique columns/constraints, so without this override a
+        re-import whose UUID differs but whose ``slug`` matches an existing
+        active dashboard would no longer be matched-and-updated by slug — it
+        would fall through to an insert and collide on the partial active-slug
+        index at flush. Re-add ``{"slug"}`` here so import keeps matching by
+        slug (the pre-soft-delete behaviour) while DB-level uniqueness stays
+        partial. A ``NULL`` slug is skipped by the importer's filter builder,
+        so this only adds a real lookup when the imported config carries a slug.
+        """
+        constraints = super()._unique_constraints()
+        if {"slug"} not in constraints:
+            constraints.append({"slug"})
+        return constraints
+
     def __repr__(self) -> str:
         return f"Dashboard<{self.id or self.slug}>"
 
     @property
     def url(self) -> str:
-        return f"/superset/dashboard/{self.slug or self.id}/"
+        return f"/dashboard/{self.slug or self.id}/"
 
     @staticmethod
     def get_url(id_: int, slug: str | None = None) -> str:
         # To be able to generate URL's without instantiating a Dashboard object
-        return f"/superset/dashboard/{slug or id_}/"
+        return f"/dashboard/{slug or id_}/"
 
     @property
     def datasources(self) -> set[BaseDatasource]:
@@ -221,7 +285,16 @@ class Dashboard(CoreDashboard, AuditMixinNullable, ImportExportMixin):
     @renders("dashboard_title")
     def dashboard_link(self) -> Markup:
         title = escape(self.dashboard_title or "<empty>")
-        return Markup(f'<a href="{self.url}">{title}</a>')
+        # FAB list view renders this raw HTML; use url_for so Flask prepends
+        # SCRIPT_NAME (the application_root) and the row link works under
+        # subdirectory deployments. `Dashboard.url` itself stays router-
+        # relative so frontend callers can apply ensureAppRoot exactly once.
+        # url_for percent-encodes the user-controlled slug path param; escape
+        # the result before Markup-marking for HTML attribute defence-in-depth.
+        href = escape(
+            url_for("Superset.dashboard", dashboard_id_or_slug=self.slug or self.id)
+        )
+        return Markup(f'<a href="{href}">{title}</a>')
 
     @property
     def digest(self) -> str | None:
@@ -234,7 +307,14 @@ class Dashboard(CoreDashboard, AuditMixinNullable, ImportExportMixin):
         if the dashboard has changed
         """
         if digest := self.digest:
-            return f"/api/v1/dashboard/{self.id}/thumbnail/{digest}/"
+            if not has_request_context():
+                # Out-of-request callers (CLI, celery tasks) have no
+                # SCRIPT_NAME to honor; keep the router-relative shape so
+                # the property stays callable anywhere.
+                return f"/api/v1/dashboard/{self.id}/thumbnail/{digest}/"
+            # url_for respects SCRIPT_NAME, so the URL carries the application
+            # root prefix under subdirectory deployments.
+            return url_for("DashboardRestApi.thumbnail", pk=self.id, digest=digest)
 
         return None
 
@@ -264,13 +344,15 @@ class Dashboard(CoreDashboard, AuditMixinNullable, ImportExportMixin):
             "is_managed_externally": self.is_managed_externally,
         }
 
-    def datasets_trimmed_for_slices(self) -> list[dict[str, Any]]:
+    def datasets_trimmed_for_slices(
+        self,
+    ) -> list[tuple[BaseDatasource, dict[str, Any]]]:
         slices_by_datasource: dict[int, set[Slice]] = defaultdict(set)
 
         for slc in self.slices:
             slices_by_datasource[slc.datasource_id].add(slc)
 
-        result: list[dict[str, Any]] = []
+        result: list[tuple[BaseDatasource, dict[str, Any]]] = []
 
         for _, slices in slices_by_datasource.items():
             # Use the eagerly-loaded datasource from any slice in the group
@@ -278,7 +360,7 @@ class Dashboard(CoreDashboard, AuditMixinNullable, ImportExportMixin):
 
             if datasource:
                 # Filter out unneeded fields from the datasource payload
-                result.append(datasource.data_for_slices(list(slices)))
+                result.append((datasource, datasource.data_for_slices(list(slices))))
 
         return result
 
@@ -297,15 +379,69 @@ class Dashboard(CoreDashboard, AuditMixinNullable, ImportExportMixin):
         return {}
 
     @property
-    def tabs(self) -> dict[str, Any]:
+    def tabs(self) -> dict[str, Any]:  # noqa: C901
+        # Callers index ``all_tabs`` and iterate ``tab_tree``, so every exit
+        # returns that shape. A bare ``{}`` reaches the API as a payload with
+        # neither key, which a caller cannot iterate.
+        no_tabs: dict[str, Any] = {"all_tabs": {}, "tab_tree": []}
+        if not isinstance(self.position, dict):
+            logger.warning("Dashboard %s: layout is not a mapping", self.id)
+            return no_tabs
         if self.position == {}:
-            return {}
+            return no_tabs
 
-        def get_node(node_id: str) -> dict[str, Any]:
+        def get_node(node_id: str) -> Optional[dict[str, Any]]:
             """
             Helper function for getting a node from the position_data
             """
-            return self.position[node_id]
+            return self.position.get(node_id)
+
+        def resolve_child(child_id: Any) -> Optional[dict[str, Any]]:
+            """
+            Helper function for reading a child id, or None if it cannot be walked
+            """
+            child = get_node(child_id) if isinstance(child_id, str) else None
+            if not isinstance(child, dict):
+                logger.warning(
+                    "Dashboard %s: skipping layout node %s, missing or malformed",
+                    self.id,
+                    child_id,
+                )
+                return None
+            if child_id in visited:
+                logger.warning(
+                    "Dashboard %s: skipping layout node %s, the layout reaches "
+                    "it more than once",
+                    self.id,
+                    child_id,
+                )
+                return None
+            visited.add(child_id)
+            return child
+
+        def register_tab(node: dict[str, Any]) -> None:
+            """
+            Helper function for titling a TAB node and adding it to all_tabs
+            """
+            meta = node.get("meta")
+            title = meta.get("text") if isinstance(meta, dict) else None
+            if not isinstance(title, str):
+                logger.warning(
+                    "Dashboard %s: tab node %s has no title in the layout",
+                    self.id,
+                    node.get("id"),
+                )
+                title = ""
+            node["title"] = title
+            node_id = node.get("id")
+            if not isinstance(node_id, str):
+                logger.warning(
+                    "Dashboard %s: skipping tab node with no usable id in the layout",
+                    self.id,
+                )
+                return
+            node["value"] = node_id
+            all_tabs[node_id] = title
 
         def build_tab_tree(
             node: dict[str, Any], children: list[dict[str, Any]]
@@ -313,29 +449,67 @@ class Dashboard(CoreDashboard, AuditMixinNullable, ImportExportMixin):
             """
             Function for building the tab tree structure and list of all tabs
             """
+            if "type" not in node:
+                logger.warning(
+                    "Dashboard %s: skipping untyped layout node %s",
+                    self.id,
+                    node.get("id"),
+                )
+                return
 
+            # A node whose type is not one of the four below is walked through
+            # without contributing to the tree, exactly as an untabbed layout
+            # element always has been.
+            node_type = node["type"]
+            child_ids = node.get("children", [])
+            if not isinstance(child_ids, list):
+                logger.warning(
+                    "Dashboard %s: layout node %s has malformed children",
+                    self.id,
+                    node.get("id"),
+                )
+                child_ids = []
             new_children: list[dict[str, Any]] = []
             # new children to overwrite parent's children
-            for child_id in node.get("children", []):
-                child = get_node(child_id)
-                if node["type"] == "TABS":
-                    # if TABS add create a new list and append children to it
-                    # new_children.append(child)
-                    children.append(child)
+            for child_id in child_ids:
+                child = resolve_child(child_id)
+                if child is None:
+                    continue
+                if node_type == "TABS":
+                    # Only a node that will register as a tab belongs in the
+                    # tree. Anything else -- an untyped node, or a tab whose id
+                    # cannot key ``all_tabs`` -- is rejected later and would be
+                    # left in the tree with no ``value`` and no ``title``. It is
+                    # still walked, so tabs stored below it are not lost.
+                    if child.get("type") == "TAB" and isinstance(child.get("id"), str):
+                        children.append(child)
+                    else:
+                        logger.warning(
+                            "Dashboard %s: keeping layout node %s out of the "
+                            "tab tree, it is not a usable tab",
+                            self.id,
+                            child_id,
+                        )
                     queue.append((child, new_children))
-                elif node["type"] in ["GRID", "ROOT"]:
+                elif node_type in ["GRID", "ROOT"]:
                     queue.append((child, children))
-                elif node["type"] == "TAB":
+                elif node_type == "TAB":
                     queue.append((child, new_children))
-            if node["type"] == "TAB":
+            if node_type == "TAB":
                 node["children"] = new_children
-                node["title"] = node["meta"]["text"]
-                node["value"] = node["id"]
-                all_tabs[node["id"]] = node["title"]
+                register_tab(node)
 
         root = get_node("ROOT_ID")
+        if not isinstance(root, dict):
+            logger.warning("Dashboard %s: layout has no usable ROOT_ID node", self.id)
+            return no_tabs
+
         tab_tree: list[dict[str, Any]] = []
         all_tabs: dict[str, str] = {}
+        # A layout is a tree, so every node is reached once. A stored layout
+        # that reaches one twice would walk it twice, and a cycle would never
+        # stop, so the walk keeps track of what it has already reached.
+        visited: set[str] = {"ROOT_ID"}
         queue: deque[tuple[dict[str, Any], list[dict[str, Any]]]] = deque()
         queue.append((root, tab_tree))
         while queue:
@@ -367,7 +541,7 @@ class Dashboard(CoreDashboard, AuditMixinNullable, ImportExportMixin):
                 .filter_by(id=dashboard_id)
                 .first()
             )
-            # remove ids and relations (like owners, created by, slices, ...)
+            # remove ids and relations (like editors, created by, slices, ...)
             copied_dashboard = dashboard.copy()
             for slc in dashboard.slices:
                 datasource_ids.add((slc.datasource_id, slc.datasource_type))

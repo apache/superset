@@ -130,7 +130,9 @@ def assign_uuids(
     for dialect, sql in uuid_by_dialect.items():
         if isinstance(bind.dialect, dialect):
             op.execute(
-                f"UPDATE {dialect().identifier_preparer.quote(table_name)} SET uuid = {sql}"  # noqa: S608, E501
+                text(
+                    f"UPDATE {dialect().identifier_preparer.quote(table_name)} SET uuid = {sql}"  # noqa: S608, E501
+                )
             )
             print(f"Done. Assigned {count} uuids in {time.time() - start_time:.3f}s.\n")
             return

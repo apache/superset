@@ -26,8 +26,7 @@ from sqlalchemy import (
     Table,
     UniqueConstraint,
 )
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import Load, relationship, Session
+from sqlalchemy.orm import declarative_base, Load, relationship, Session
 
 logger = logging.getLogger("alembic.env")
 

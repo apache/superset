@@ -27,6 +27,40 @@ export interface ApiRequestOptions {
 }
 
 /**
+ * Werkzeug (Flask's dev server, used in CI) periodically drops connections
+ * mid-request under concurrent load — surfacing as `socket hang up`,
+ * `ECONNRESET`, or `ERR_EMPTY_RESPONSE`. These are transport-layer
+ * failures, not application errors, so retrying is safe.
+ *
+ * The matcher is intentionally narrow: only retry on signatures that
+ * indicate the server never produced a response. Application errors
+ * (4xx/5xx, HTTP-level CSRF rejection) bubble up unchanged.
+ */
+const TRANSIENT_NETWORK_ERROR =
+  /socket hang up|ECONNRESET|ERR_EMPTY_RESPONSE|ECONNREFUSED|EPIPE/i;
+const TRANSIENT_RETRY_ATTEMPTS = 3;
+const TRANSIENT_RETRY_BACKOFF_MS = 250;
+
+async function withTransientRetry<T>(fn: () => Promise<T>): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < TRANSIENT_RETRY_ATTEMPTS; attempt += 1) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+      if (!TRANSIENT_NETWORK_ERROR.test(String(error))) {
+        throw error;
+      }
+      // Linear backoff — werkzeug recovers in 100–300 ms after a drop.
+      await new Promise(resolve => {
+        setTimeout(resolve, TRANSIENT_RETRY_BACKOFF_MS * (attempt + 1));
+      });
+    }
+  }
+  throw lastError;
+}
+
+/**
  * Get base URL for Referer header
  * Reads from environment variable configured in playwright.config.ts
  * Preserves full base URL including path prefix (e.g., /app/prefix/)
@@ -39,7 +73,7 @@ function getBaseUrl(): string {
   return url.endsWith('/') ? url : `${url}/`;
 }
 
-interface CsrfResult {
+export interface CsrfResult {
   token: string;
   error?: string;
 }
@@ -49,11 +83,13 @@ interface CsrfResult {
  * Superset provides a CSRF token via api/v1/security/csrf_token/
  * The session cookie is automatically included by page.request
  */
-async function getCsrfToken(page: Page): Promise<CsrfResult> {
+export async function getCsrfToken(page: Page): Promise<CsrfResult> {
   try {
-    const response = await page.request.get('api/v1/security/csrf_token/', {
-      failOnStatusCode: false,
-    });
+    const response = await withTransientRetry(() =>
+      page.request.get('api/v1/security/csrf_token/', {
+        failOnStatusCode: false,
+      }),
+    );
 
     if (!response.ok()) {
       return {
@@ -107,11 +143,13 @@ export async function apiGet(
   url: string,
   options?: ApiRequestOptions,
 ): Promise<APIResponse> {
-  return page.request.get(url, {
-    headers: options?.headers,
-    params: options?.params,
-    failOnStatusCode: options?.failOnStatusCode ?? true,
-  });
+  return withTransientRetry(() =>
+    page.request.get(url, {
+      headers: options?.headers,
+      params: options?.params,
+      failOnStatusCode: options?.failOnStatusCode ?? true,
+    }),
+  );
 }
 
 /**
@@ -126,12 +164,14 @@ export async function apiPost(
 ): Promise<APIResponse> {
   const headers = await buildHeaders(page, options);
 
-  return page.request.post(url, {
-    data,
-    headers,
-    params: options?.params,
-    failOnStatusCode: options?.failOnStatusCode ?? true,
-  });
+  return withTransientRetry(() =>
+    page.request.post(url, {
+      data,
+      headers,
+      params: options?.params,
+      failOnStatusCode: options?.failOnStatusCode ?? true,
+    }),
+  );
 }
 
 /**
@@ -146,12 +186,14 @@ export async function apiPut(
 ): Promise<APIResponse> {
   const headers = await buildHeaders(page, options);
 
-  return page.request.put(url, {
-    data,
-    headers,
-    params: options?.params,
-    failOnStatusCode: options?.failOnStatusCode ?? true,
-  });
+  return withTransientRetry(() =>
+    page.request.put(url, {
+      data,
+      headers,
+      params: options?.params,
+      failOnStatusCode: options?.failOnStatusCode ?? true,
+    }),
+  );
 }
 
 /**
@@ -166,12 +208,14 @@ export async function apiPatch(
 ): Promise<APIResponse> {
   const headers = await buildHeaders(page, options);
 
-  return page.request.patch(url, {
-    data,
-    headers,
-    params: options?.params,
-    failOnStatusCode: options?.failOnStatusCode ?? true,
-  });
+  return withTransientRetry(() =>
+    page.request.patch(url, {
+      data,
+      headers,
+      params: options?.params,
+      failOnStatusCode: options?.failOnStatusCode ?? true,
+    }),
+  );
 }
 
 /**
@@ -185,9 +229,11 @@ export async function apiDelete(
 ): Promise<APIResponse> {
   const headers = await buildHeaders(page, options);
 
-  return page.request.delete(url, {
-    headers,
-    params: options?.params,
-    failOnStatusCode: options?.failOnStatusCode ?? true,
-  });
+  return withTransientRetry(() =>
+    page.request.delete(url, {
+      headers,
+      params: options?.params,
+      failOnStatusCode: options?.failOnStatusCode ?? true,
+    }),
+  );
 }

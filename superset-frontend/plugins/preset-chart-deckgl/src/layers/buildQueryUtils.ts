@@ -23,26 +23,6 @@ import {
   getColumnLabel,
 } from '@superset-ui/core';
 
-export function addJsColumnsToColumns(
-  columns: string[],
-  jsColumns?: string[],
-  existingColumns?: string[],
-): string[] {
-  if (!jsColumns?.length) return columns;
-
-  const allExisting = new Set([...columns, ...(existingColumns || [])]);
-  const result = [...columns];
-
-  jsColumns.forEach(col => {
-    if (!allExisting.has(col)) {
-      result.push(col);
-      allExisting.add(col);
-    }
-  });
-
-  return result;
-}
-
 export function addNullFilters(
   filters: QueryObjectFilterClause[],
   columnNames: string[],

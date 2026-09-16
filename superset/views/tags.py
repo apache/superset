@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 
 
 class TagModelView(SupersetModelView):
-    route_base = "/superset/tags"
+    route_base = "/tags"
     datamodel = SQLAInterface(Tag)
     class_permission_name = "Tags"
     include_route_methods = {"list"}

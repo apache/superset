@@ -26,7 +26,7 @@ import { TIMEOUT } from '../../utils/constants';
 const SELECT_SELECTORS = {
   DROPDOWN: '.ant-select-dropdown',
   OPTION: '.ant-select-item-option',
-  SEARCH_INPUT: '.ant-select-selection-search-input',
+  SEARCH_INPUT: '.ant-select-input',
   CLEAR: '.ant-select-clear',
 } as const;
 

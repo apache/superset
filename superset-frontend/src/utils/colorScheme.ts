@@ -23,7 +23,7 @@ import {
   getCategoricalSchemeRegistry,
   getLabelsColorMap,
 } from '@superset-ui/core';
-import { intersection, omit, pick } from 'lodash';
+import { intersection, omit, pick } from 'lodash-es';
 import { areObjectsEqual } from 'src/reduxUtils';
 
 const EMPTY_ARRAY: string[] = [];

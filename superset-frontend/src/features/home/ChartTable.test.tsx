@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { mockUserSubjectsBootstrapData } from 'spec/helpers/mockBootstrapData';
 import {
   render,
   screen,
@@ -24,7 +25,7 @@ import {
 } from 'spec/helpers/testing-library';
 import { VizType } from '@superset-ui/core';
 import fetchMock from 'fetch-mock';
-import { act } from 'react-dom/test-utils';
+import { act } from 'react';
 import handleResourceExport from 'src/utils/export';
 import { LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import ChartTable from './ChartTable';
@@ -34,6 +35,10 @@ jest.mock('src/utils/export', () => ({
   __esModule: true,
   default: jest.fn(),
 }));
+
+jest.mock('src/utils/getBootstrapData', () =>
+  mockUserSubjectsBootstrapData([2]),
+);
 
 const mockExport = handleResourceExport as jest.MockedFunction<
   typeof handleResourceExport
@@ -52,6 +57,7 @@ const mockCharts = Array.from({ length: 3 }).map((_, i) => ({
   viz_type: VizType.Bar,
   datasource_title: `ds${i}`,
   thumbnail_url: '',
+  editors: [{ id: 2, label: 'Admin User', type: 1 }],
 }));
 
 fetchMock.get(

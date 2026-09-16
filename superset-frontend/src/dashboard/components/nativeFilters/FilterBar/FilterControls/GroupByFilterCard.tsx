@@ -37,12 +37,14 @@ import {
 import {
   Typography,
   Select,
+  type LabeledValue,
   Popover,
   Loading,
   Icons,
   Tooltip,
   FormItem,
 } from '@superset-ui/core/components';
+import { propertyComparator } from '@superset-ui/core/components/Select/utils';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from 'src/dashboard/types';
 import { setPendingChartCustomization } from 'src/dashboard/actions/chartCustomizationActions';
@@ -201,6 +203,11 @@ const DescriptionTooltip = ({ description }: { description: string }) => (
     >
       <Icons.InfoCircleOutlined
         className="text-muted"
+        // Deliberate role="button" override on this tooltip-trigger icon
+        // (no click handler; BaseIconComponent would otherwise auto-compute
+        // role="img" since there's no onClick) — matches the same pattern
+        // used by DescriptionToolTip/DeckglLayerVisibilityTooltip.
+        // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
         role="button"
         css={theme => ({
           paddingLeft: `${theme.sizeUnit}px`,
@@ -209,6 +216,18 @@ const DescriptionTooltip = ({ description }: { description: string }) => (
     </Tooltip>
   </ToolTipContainer>
 );
+
+// Sort display values by label: ascending when sortAscending is true, descending
+// when false, and source order (no sort) when it is unset.
+export const createLabelSortComparator =
+  (sortAscending?: boolean) =>
+  (a: LabeledValue, b: LabeledValue): number => {
+    if (sortAscending === undefined) {
+      return 0;
+    }
+    const labelComparator = propertyComparator('label');
+    return sortAscending ? labelComparator(a, b) : labelComparator(b, a);
+  };
 
 const GroupByFilterCardContent: FC<{
   customizationItem: ChartCustomization;
@@ -229,14 +248,6 @@ const GroupByFilterCardContent: FC<{
     }
     return t('None');
   }, [dataset, datasetName]);
-
-  const aggregationDisplay = useMemo(() => {
-    const sortMetric = customizationItem.controlValues?.sortMetric;
-    if (sortMetric) {
-      return sortMetric.toUpperCase();
-    }
-    return t('None');
-  }, [customizationItem.controlValues?.sortMetric]);
 
   return (
     <div>
@@ -270,11 +281,6 @@ const GroupByFilterCardContent: FC<{
         <RowValue>
           {typeof datasetLabel === 'string' ? datasetLabel : t('Dataset')}
         </RowValue>
-      </Row>
-
-      <Row>
-        <RowLabel>{t('Aggregation')}</RowLabel>
-        <RowValue>{aggregationDisplay}</RowValue>
       </Row>
     </div>
   );
@@ -341,6 +347,13 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
 
   const canSelectMultiple =
     customizationItem.controlValues?.canSelectMultiple ?? true;
+
+  const sortAscending = customizationItem.controlValues?.sortAscending;
+
+  const sortComparator = useMemo(
+    () => createLabelSortComparator(sortAscending),
+    [sortAscending],
+  );
 
   const columnDisplayName = useMemo(() => {
     if (customizationItem.name) {
@@ -594,6 +607,7 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
                   .toLowerCase()
                   .includes(input.toLowerCase())
               }
+              sortComparator={sortComparator}
               getPopupContainer={triggerNode => triggerNode.parentNode}
               oneLine={isHorizontalLayout}
               className="select-container"
@@ -623,6 +637,7 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
                 .toLowerCase()
                 .includes(input.toLowerCase())
             }
+            sortComparator={sortComparator}
             loading={loading}
           />
         </div>
@@ -630,7 +645,7 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
 
       {loading && (
         <div style={{ textAlign: 'center', marginTop: 8 }}>
-          <Loading position="inline" />
+          <Loading position="inline" size="s" muted />
         </div>
       )}
     </div>

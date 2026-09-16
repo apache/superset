@@ -201,7 +201,9 @@ const ColumnSelectPopoverTriggerInner = ({
         title={popoverTitle}
         destroyOnHidden
       >
-        {children}
+        {/* Wrap in span so the Popover can attach a ref without relying
+            on findDOMNode (deprecated in React 18+). */}
+        <span>{children}</span>
       </ControlPopover>
     </>
   );

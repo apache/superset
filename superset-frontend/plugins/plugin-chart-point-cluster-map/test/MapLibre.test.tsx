@@ -18,7 +18,12 @@
  */
 
 import { type ReactNode } from 'react';
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import '@testing-library/jest-dom';
+import {
+  OSM_TILE_ATTRIBUTION,
+  OSM_TILE_STYLE_URL,
+} from '@superset-ui/core/utils/mapStyles';
 
 // Capture the most recent viewport props passed to the Map component
 let lastMapProps: Record<string, unknown> = {};
@@ -65,6 +70,23 @@ jest.mock('@apache-superset/core/theme', () => ({
 jest.mock('maplibre-gl/dist/maplibre-gl.css', () => ({}));
 jest.mock('../src/MapLibre.css', () => ({}));
 
+// maplibre-gl 6 is an ESM-only package with no "require"/"default" export
+// condition, so jest's (CJS-based) resolver can't locate the real module to
+// mock over it by name; { virtual: true } skips that resolution step.
+//
+// The mock jest.fn() is created inline (not hoisted out to a `const`)
+// because MapLibre.tsx calls maplibregl.setWorkerUrl() synchronously at
+// import time, and `import`/jest.mock() calls are themselves hoisted above
+// this file's plain `const` declarations — a `const` referenced here would
+// still be in its temporal dead zone when that import-time call fires.
+jest.mock(
+  'maplibre-gl',
+  () => ({ __esModule: true, setWorkerUrl: jest.fn() }),
+  { virtual: true },
+);
+
+// eslint-disable-next-line import/first
+import * as maplibregl from 'maplibre-gl';
 // eslint-disable-next-line import/first
 import MapLibre from '../src/MapLibre';
 
@@ -89,8 +111,25 @@ const defaultProps = {
   onViewportChange: jest.fn(),
 };
 
+// Captured before the first jest.clearAllMocks() below wipes the call the
+// module made at import time.
+const setWorkerUrlCallAtImport = [
+  ...jest.mocked(maplibregl.setWorkerUrl).mock.calls,
+];
+
+test('points maplibre-gl at the CopyPlugin-emitted worker asset before any map can mount', () => {
+  // maplibre-gl 6's ESM-only build derives its worker URL from
+  // `import.meta.url`, which webpack rewrites to a build-time path that
+  // doesn't match maplibre's `^https?:` check, so the worker silently
+  // fails to start unless setWorkerUrl() is called first (see MapLibre.tsx).
+  expect(setWorkerUrlCallAtImport).toEqual([
+    ['/static/assets/maplibre-gl-worker.mjs'],
+  ]);
+});
+
 beforeEach(() => {
   lastMapProps = {};
+  document.body.innerHTML = '';
   jest.clearAllMocks();
   mockFitBounds.mockImplementation(
     (
@@ -181,6 +220,65 @@ test('passes globalOpacity to ScatterPlotOverlay', () => {
   const overlay = container.querySelector('[data-testid="scatter-overlay"]');
   expect(overlay).not.toBeNull();
   expect(overlay!.getAttribute('data-opacity')).toBe('0.5');
+});
+
+test('converts OSM raster tile templates into MapLibre style objects', () => {
+  render(<MapLibre {...defaultProps} mapStyle={OSM_TILE_STYLE_URL} />);
+
+  expect(lastMapProps.mapStyle).toEqual({
+    version: 8,
+    sources: {
+      'osm-raster-tiles': {
+        type: 'raster',
+        tiles: [OSM_TILE_STYLE_URL],
+        tileSize: 256,
+        attribution: OSM_TILE_ATTRIBUTION,
+      },
+    },
+    layers: [
+      {
+        id: 'osm-raster-layer',
+        type: 'raster',
+        source: 'osm-raster-tiles',
+        minzoom: 0,
+        maxzoom: 22,
+      },
+    ],
+  });
+});
+
+test('keeps the missing Mapbox key signal for saved Mapbox charts', () => {
+  render(
+    <MapLibre
+      {...defaultProps}
+      mapProvider="mapbox"
+      mapStyle="mapbox://styles/mapbox/dark-v11"
+    />,
+  );
+
+  expect(
+    screen.getByText(
+      'Mapbox requires a MAPBOX_API_KEY to be configured on the server.',
+    ),
+  ).toBeInTheDocument();
+  expect(lastMapProps.mapStyle).toBeUndefined();
+});
+
+test('passes Mapbox styles through when a key exists', () => {
+  document.body.innerHTML = `<div id="app" data-bootstrap='${JSON.stringify({
+    common: { conf: { MAPBOX_API_KEY: 'pk.test' } },
+  })}'></div>`;
+
+  render(
+    <MapLibre
+      {...defaultProps}
+      mapProvider="mapbox"
+      mapStyle="mapbox://styles/mapbox/dark-v11"
+    />,
+  );
+
+  expect(lastMapProps.mapStyle).toBe('mapbox://styles/mapbox/dark-v11');
+  expect(lastMapProps.mapboxAccessToken).toBe('pk.test');
 });
 
 test('handles undefined bounds gracefully', () => {

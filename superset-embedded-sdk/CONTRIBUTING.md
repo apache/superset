@@ -32,6 +32,7 @@ and therefore are not easily unit-testable. We have instead opted to test the sd
 This way, the tests can assert that the sdk actually mounts the iframe and communicates with it correctly.
 
 At time of writing, these tests are not written yet, because we haven't yet put together the demo app that they will leverage.
+
 ### Things to e2e test once we have a demo app:
 
 **happy path:**

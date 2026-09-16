@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useMemo, useState, ReactNode } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
+  Column,
   useFilters,
   usePagination,
   useRowSelect,
@@ -34,7 +35,7 @@ import {
 } from 'use-query-params';
 
 import rison from 'rison';
-import { isEqual } from 'lodash';
+import { isEqual } from 'lodash-es';
 import {
   ListViewFetchDataConfig as FetchDataConfig,
   ListViewFilter as Filter,
@@ -45,10 +46,17 @@ import {
   ViewModeType,
 } from './types';
 
+type QueryFilterState = {
+  [id: string]: FilterValue['value'];
+};
+
 // Define custom RisonParam for proper encoding/decoding; note that
 // %, &, +, and # must be encoded to avoid breaking the url
-const RisonParam: QueryParamConfig<string, any> = {
-  encode: (data?: any | null) => {
+const RisonParam: QueryParamConfig<
+  QueryFilterState | undefined,
+  QueryFilterState | undefined
+> = {
+  encode: data => {
     if (data === undefined || data === null) return undefined;
 
     const cleanData = JSON.parse(
@@ -67,7 +75,7 @@ const RisonParam: QueryParamConfig<string, any> = {
   decode: (dataStr?: string | string[]) =>
     dataStr === undefined || Array.isArray(dataStr)
       ? undefined
-      : rison.decode(dataStr),
+      : (rison.decode(dataStr) as QueryFilterState),
 };
 
 export const SELECT_WIDTH = 176;
@@ -78,25 +86,16 @@ export class ListViewError extends Error {
   name = 'ListViewError';
 }
 
-// removes element from a list, returns new list
-export function removeFromList(list: any[], index: number): any[] {
-  return list.filter((_, i) => index !== i);
-}
-
 // apply update to elements of object list, returns new list
-function updateInList(list: any[], index: number, update: any): any[] {
+function updateInList<T>(list: T[], index: number, update: Partial<T>): T[] {
   const element = list.find((_, i) => index === i);
 
   return [
     ...list.slice(0, index),
-    { ...element, ...update },
+    { ...element, ...update } as T,
     ...list.slice(index + 1),
   ];
 }
-
-type QueryFilterState = {
-  [id: string]: FilterValue['value'];
-};
 
 function mergeCreateFilterValues(list: Filter[], updateObj: QueryFilterState) {
   return list.map(({ id, urlDisplay, operator }) => {
@@ -143,7 +142,7 @@ export function convertFilters(fts: InternalFilter[]): FilterValue[] {
 
 // convertFilters but to handle new decoded rison format
 export function convertFiltersRison(
-  filterObj: any,
+  filterObj: QueryFilterState,
   list: Filter[],
 ): FilterValue[] {
   const filters: FilterValue[] = [];
@@ -174,36 +173,20 @@ export function convertFiltersRison(
   return filters;
 }
 
-export function extractInputValue(inputType: Filter['input'], event: any) {
-  if (!inputType || inputType === 'text') {
-    return event.currentTarget.value;
-  }
-  if (inputType === 'checkbox') {
-    return event.currentTarget.checked;
-  }
-
-  return null;
-}
-
-interface UseListViewConfig {
-  fetchData: (conf: FetchDataConfig) => any;
-  columns: any[];
-  data: any[];
+interface UseListViewConfig<D extends object = any> {
+  fetchData: (conf: FetchDataConfig) => void;
+  columns: Column<D>[];
+  data: D[];
   count: number;
   initialPageSize: number;
   initialSort?: SortColumn[];
-  bulkSelectMode?: boolean;
   initialFilters?: Filter[];
-  bulkSelectColumnConfig?: {
-    id: string;
-    Header: (conf: any) => ReactNode;
-    Cell: (conf: any) => ReactNode;
-  };
   renderCard?: boolean;
   defaultViewMode?: ViewModeType;
+  forceViewMode?: ViewModeType;
 }
 
-export function useListViewState({
+export function useListViewState<D extends object = any>({
   fetchData,
   columns,
   data,
@@ -211,11 +194,10 @@ export function useListViewState({
   initialPageSize,
   initialFilters = [],
   initialSort = [],
-  bulkSelectMode = false,
-  bulkSelectColumnConfig,
   renderCard = false,
   defaultViewMode = 'card',
-}: UseListViewConfig) {
+  forceViewMode,
+}: UseListViewConfig<D>) {
   const [query, setQuery] = useQueryParams({
     filters: RisonParam,
     pageIndex: NumberParam,
@@ -242,17 +224,36 @@ export function useListViewState({
   };
 
   const [viewMode, setViewMode] = useState<ViewModeType>(
-    (query.viewMode as ViewModeType) ||
+    // forceViewMode overrides everything (used for mobile)
+    forceViewMode ||
+      (query.viewMode as ViewModeType) ||
       (renderCard ? defaultViewMode : 'table'),
   );
 
-  const columnsWithSelect = useMemo(() => {
+  // Update viewMode when forceViewMode changes (e.g., screen resize). When
+  // forceViewMode is cleared (e.g., resizing from mobile back to desktop),
+  // fall back to the persisted query param or the default view instead of
+  // leaving the view stuck in the previously forced mode.
+  useEffect(() => {
+    if (forceViewMode) {
+      setViewMode(forceViewMode);
+    } else {
+      setViewMode(
+        (query.viewMode as ViewModeType) ||
+          (renderCard ? defaultViewMode : 'table'),
+      );
+    }
+    // Only react to forceViewMode transitions; query.viewMode, renderCard, and
+    // defaultViewMode are read for their current values, not to retrigger
+    // this effect on every change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [forceViewMode]);
+
+  const columnsWithFilter = useMemo(
     // add exact filter type so filters with falsy values are not filtered out
-    const columnsWithFilter = columns.map(f => ({ ...f, filter: 'exact' }));
-    return bulkSelectMode
-      ? [bulkSelectColumnConfig, ...columnsWithFilter]
-      : columnsWithFilter;
-  }, [bulkSelectMode, columns]);
+    () => columns.map(f => ({ ...f, filter: 'exact' })),
+    [columns],
+  );
 
   const {
     getTableProps,
@@ -269,26 +270,25 @@ export function useListViewState({
     selectedFlatRows,
     toggleAllRowsSelected,
     state: { pageIndex, pageSize, sortBy, filters },
-  } = useTable(
+  } = useTable<D>(
     {
-      columns: columnsWithSelect,
+      columns: columnsWithFilter,
       data,
       disableFilters: true,
       disableSortRemove: true,
-      initialState: initialState as any,
+      initialState,
       manualFilters: true,
       manualPagination: true,
       manualSortBy: true,
       autoResetFilters: false,
       pageCount: Math.ceil(count / initialPageSize),
-      ...({ count } as any),
     },
     useFilters,
     useSortBy,
     usePagination,
     useRowState,
     useRowSelect,
-  ) as any;
+  );
 
   const [internalFilters, setInternalFilters] = useState<InternalFilter[]>(
     query.filters && initialFilters.length
@@ -321,7 +321,13 @@ export function useListViewState({
       }
     });
 
-    const queryParams: any = {
+    const queryParams: {
+      filters?: QueryFilterState;
+      pageIndex: number;
+      sortColumn?: string;
+      sortOrder?: 'asc' | 'desc';
+      viewMode?: ViewModeType;
+    } = {
       filters: Object.keys(filterObj).length ? filterObj : undefined,
       pageIndex,
     };
@@ -351,7 +357,7 @@ export function useListViewState({
     }
   }, [query]);
 
-  const applyFilterValue = (index: number, value: any) => {
+  const applyFilterValue = (index: number, value: InnerFilterValue) => {
     setInternalFilters(currentInternalFilters => {
       // skip redundant updates
       if (currentInternalFilters[index].value === value) {

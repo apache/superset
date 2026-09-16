@@ -47,6 +47,9 @@ const getCrossFilterDataMask =
   ) =>
   (value: string) => {
     const selected = Object.values(selectedValues);
+    if (!labelMap[value] && !selected.includes(value)) {
+      return undefined;
+    }
     let values: string[];
     if (selected.includes(value)) {
       values = selected.filter(v => v !== value);
@@ -65,8 +68,11 @@ const getCrossFilterDataMask =
             values.length === 0
               ? []
               : groupby.map((col, idx) => {
-                  const val = groupbyValues.map(v => v[idx]);
-                  if (val === null || val === undefined)
+                  const val = groupbyValues.map(v => {
+                    const metricsCount = v.length - groupby.length;
+                    return v[metricsCount + idx];
+                  });
+                  if (val.every(vv => vv == null))
                     return {
                       col,
                       op: 'IS NULL' as const,

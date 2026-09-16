@@ -21,18 +21,21 @@ import { availableDomains, allowCrossDomain } from './hostNamesConfig';
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('hostNamesConfig', () => {
+  let locationSpy: jest.SpyInstance;
+
   beforeEach(() => {
     // Reset DOM
     document.body.innerHTML = '';
 
     // Mock window.location
-    Object.defineProperty(window, 'location', {
-      value: {
-        hostname: 'localhost',
-        search: '',
-      },
-      writable: true,
-    });
+    locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
+      hostname: 'localhost',
+      search: '',
+    } as Location);
+  });
+
+  afterEach(() => {
+    locationSpy.mockRestore();
   });
 
   test('should export availableDomains as array of strings', () => {

@@ -18,6 +18,7 @@
  */
 import React from 'react';
 import {
+  act,
   fireEvent,
   render,
   RenderResult,
@@ -25,6 +26,10 @@ import {
 } from 'spec/helpers/testing-library';
 
 import { DASHBOARD_GRID_ID } from 'src/dashboard/util/constants';
+import {
+  FORCE_IN_VIEW_EVENT,
+  RESTORE_VIRTUALIZATION_EVENT,
+} from 'src/dashboard/constants';
 import { getMockStore } from 'spec/fixtures/mockStore';
 import { dashboardLayout as mockLayout } from 'spec/fixtures/mockDashboardLayout';
 import { initialState } from 'src/SqlLab/fixtures';
@@ -240,6 +245,15 @@ test('should call deleteComponent when deleted', () => {
   expect(deleteComponent).toHaveBeenCalledTimes(1);
 });
 
+test('settings IconButton exposes an accessible name without visible label text', () => {
+  setup({ component: rowWithoutChildren, editMode: true });
+
+  expect(
+    screen.getByRole('button', { name: 'Row settings' }),
+  ).toBeInTheDocument();
+  expect(screen.queryByText('Row settings')).not.toBeInTheDocument();
+});
+
 test('should pass appropriate availableColumnCount to children', () => {
   const { getByTestId } = setup();
   expect(getByTestId('mock-dashboard-component')).toHaveTextContent(
@@ -327,5 +341,59 @@ describe('visibility handling for intersection observers', () => {
     const nonIntersectingEntry = { isIntersecting: false };
     expect(() => callback([nonIntersectingEntry])).not.toThrow();
     expect(callback([nonIntersectingEntry])).toBe(false);
+  });
+
+  test('force-in-view event with no detail disconnects the observers for every row', () => {
+    setup({ isComponentVisible: true });
+
+    act(() => {
+      window.dispatchEvent(new Event(FORCE_IN_VIEW_EVENT));
+    });
+
+    expect(mockDisconnect).toHaveBeenCalled();
+  });
+
+  test('force-in-view event scoped to other rowIds does not disconnect this row', () => {
+    setup({ isComponentVisible: true });
+
+    act(() => {
+      window.dispatchEvent(
+        new CustomEvent(FORCE_IN_VIEW_EVENT, {
+          detail: { rowIds: ['SOME_OTHER_ROW_ID'] },
+        }),
+      );
+    });
+
+    expect(mockDisconnect).not.toHaveBeenCalled();
+  });
+
+  test('force-in-view event scoped to this rowId disconnects the observers', () => {
+    setup({ isComponentVisible: true });
+
+    act(() => {
+      window.dispatchEvent(
+        new CustomEvent(FORCE_IN_VIEW_EVENT, {
+          detail: { rowIds: [props.id] },
+        }),
+      );
+    });
+
+    expect(mockDisconnect).toHaveBeenCalled();
+  });
+
+  test('restore-virtualization event re-observes after a force-in-view', () => {
+    setup({ isComponentVisible: true });
+    expect(mockObserve).toHaveBeenCalledTimes(2);
+
+    act(() => {
+      window.dispatchEvent(new Event(FORCE_IN_VIEW_EVENT));
+    });
+    act(() => {
+      window.dispatchEvent(new Event(RESTORE_VIRTUALIZATION_EVENT));
+    });
+
+    // The initial mount observes twice (enabler + disabler); restoring
+    // after a force-in-view re-observes both again.
+    expect(mockObserve).toHaveBeenCalledTimes(4);
   });
 });

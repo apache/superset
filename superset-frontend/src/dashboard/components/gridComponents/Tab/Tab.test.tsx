@@ -27,6 +27,7 @@ import {
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import { EditableTitle } from '@superset-ui/core/components';
 import { setEditMode, onRefresh } from 'src/dashboard/actions/dashboardState';
+import * as getBootstrapData from 'src/utils/getBootstrapData';
 
 import type { FC } from 'react';
 import ActualTab from './Tab';
@@ -295,7 +296,7 @@ test('Drop on a tab', async () => {
   );
 });
 
-test('Edit table title', () => {
+test('Edit table title', async () => {
   const props = createProps();
   props.editMode = true;
   props.renderType = 'RENDER_TAB';
@@ -308,7 +309,7 @@ test('Edit table title', () => {
   expect(getByTestId('dragdroppable-object')).toBeInTheDocument();
 
   expect(props.updateComponents).not.toHaveBeenCalled();
-  userEvent.click(screen.getByText('🚀 Aspiring Developers'));
+  await userEvent.click(screen.getByText('🚀 Aspiring Developers'));
   expect(props.updateComponents).toHaveBeenCalled();
 });
 
@@ -373,7 +374,7 @@ test('Render tab content with no children', () => {
   expect(screen.queryByText('edit mode')).not.toBeInTheDocument();
 });
 
-test('Render tab content with no children, canEdit: true', () => {
+test('Render tab content with no children, canEdit: true', async () => {
   const props = createProps();
   props.component.children = [];
   render(<Tab {...props} />, {
@@ -386,7 +387,7 @@ test('Render tab content with no children, canEdit: true', () => {
     },
   });
   expect(screen.getByText('edit mode')).toBeVisible();
-  userEvent.click(screen.getByRole('button', { name: 'edit mode' }));
+  await userEvent.click(screen.getByRole('button', { name: 'edit mode' }));
   expect(setEditMode).toHaveBeenCalled();
 });
 
@@ -439,7 +440,7 @@ test('Render tab (with content) editMode:true', () => {
   expect(getAllByTestId('MockDroppable')).toHaveLength(3);
 });
 
-test('Should call "handleDrop" and "handleTopDropTargetDrop"', () => {
+test('Should call "handleDrop" and "handleTopDropTargetDrop"', async () => {
   const props = createProps();
   props.isFocused = true;
   props.editMode = true;
@@ -452,11 +453,11 @@ test('Should call "handleDrop" and "handleTopDropTargetDrop"', () => {
   );
 
   expect(props.handleComponentDrop).not.toHaveBeenCalled();
-  userEvent.click(getAllByTestId('MockDroppable')[0]);
+  await userEvent.click(getAllByTestId('MockDroppable')[0]);
   expect(props.handleComponentDrop).toHaveBeenCalledTimes(1);
   expect(props.onDropOnTab).not.toHaveBeenCalled();
   rerender(<Tab {...props} />);
-  userEvent.click(getAllByTestId('MockDroppable')[1]);
+  await userEvent.click(getAllByTestId('MockDroppable')[1]);
   expect(props.onDropOnTab).toHaveBeenCalledTimes(1);
   expect(props.handleComponentDrop).toHaveBeenCalledTimes(2);
 });
@@ -488,6 +489,36 @@ test('Render tab content with no children, editMode: true, canEdit: true', () =>
   ).toHaveAttribute('href', '/chart/add?dashboard_id=23');
 });
 
+test('empty-tab "create a new chart" link is single-prefixed under subdirectory deployment', () => {
+  // The empty-tab CTA composes the chart-add URL via ensureAppRoot. Under
+  // SUPERSET_APP_ROOT=/superset the rendered href must be exactly
+  // `/superset/chart/add?dashboard_id=23` — not `/chart/add?…` (no prefix)
+  // and not `/superset/superset/chart/add?…` (double prefix). The link uses
+  // target="_blank", so basename routing does NOT re-apply the prefix.
+  const applicationRootSpy = jest
+    .spyOn(getBootstrapData, 'applicationRoot')
+    .mockReturnValue('/superset');
+
+  try {
+    const props = createProps();
+    props.editMode = true;
+    props.component.children = [];
+    render(<Tab {...props} />, {
+      useRedux: true,
+      useDnd: true,
+      initialState: {
+        dashboardInfo: { dash_edit_perm: true },
+      },
+    });
+
+    expect(
+      screen.getByRole('link', { name: 'create a new chart' }),
+    ).toHaveAttribute('href', '/superset/chart/add?dashboard_id=23');
+  } finally {
+    applicationRootSpy.mockRestore();
+  }
+});
+
 test('Drag to empty state, editMode: true, canEdit: true', async () => {
   const props = createProps();
   props.editMode = true;
@@ -513,7 +544,7 @@ test('Drag to empty state, editMode: true, canEdit: true', async () => {
 
   // Click the MockDroppable button that wraps the empty state indicator (index 1)
   // This simulates dropping a component on the empty state
-  userEvent.click(mockDroppableButtons[1]);
+  await userEvent.click(mockDroppableButtons[1]);
 
   // Verify that handleComponentDrop was called with correct destination
   await waitFor(() => {

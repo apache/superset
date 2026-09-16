@@ -65,18 +65,34 @@ export type AntdExposedProps = Pick<
   | 'onOpenChange'
   | 'optionRender'
   | 'placeholder'
+  | 'prefix'
   | 'showArrow'
   | 'showSearch'
   | 'tokenSeparators'
   | 'virtual'
   | 'getPopupContainer'
   | 'menuItemSelectedIcon'
-  | 'dropdownAlign'
+  // lets a caller with long option labels stop the popup inheriting the
+  // trigger's width, which otherwise truncates every option
+  | 'popupMatchSelectWidth'
 >;
 
 export type SelectOptionsType = Exclude<AntdProps['options'], undefined>;
 
 export interface BaseSelectProps extends AntdExposedProps {
+  /**
+   * Whether the select is searchable. antd 6 also accepts a `SearchConfig`
+   * object here, but Superset's Select manages search behavior itself
+   * (filtering, sorting, "create option" handling), so only the boolean
+   * form is supported — an object would be silently discarded.
+   */
+  showSearch?: boolean;
+  /**
+   * Separators used to tokenize pasted text into multiple values.
+   * antd 6 also accepts a function form, but Superset's paste handling
+   * only supports the array form.
+   */
+  tokenSeparators?: string[];
   /**
    * Optional CSS class name to apply to the select container
    */
@@ -88,6 +104,18 @@ export interface BaseSelectProps extends AntdExposedProps {
    * False by default.
    * */
   allowNewOptions?: boolean;
+  /**
+   * Accept values pasted into the Select even when they are not part of the
+   * currently loaded options and `allowNewOptions` is false. Useful for
+   * selects whose full option set is searched server-side and only partially
+   * loaded on the client (e.g. dashboard filters with "Dynamically search all
+   * filter values"), where a pasted value can legitimately exist in the
+   * dataset but fall outside the loaded page.
+   * Only applies to multi-select paste; single-select paste resolves through
+   * `allowNewOptions` and ignores this flag.
+   * False by default.
+   * */
+  allowNewOptionsOnPaste?: boolean;
   /**
    * It adds the aria-label tag for accessibility standards.
    * Must be plain English and localized.
@@ -177,6 +205,21 @@ export interface SelectProps extends BaseSelectProps {
    * True by default.
    * */
   allowSelectAll?: boolean;
+  /**
+   * When true, the bulk "Select all" / "Clear" controls operate on the full
+   * loaded option set instead of the search-filtered subset, so their counts
+   * stay stable and the controls stay visible while searching. Clicking
+   * "Select all" selects every selectable option in the loaded set regardless
+   * of the active search, and "Clear" removes the corresponding selections;
+   * options with a falsy value (e.g. `0`, `''`, `false`, `<NULL>`), disabled
+   * options, and the transient "create new option" entry are not selectable.
+   * "Full set" here means the currently loaded options, which for async or
+   * row-limited selects may be fewer than the column's full cardinality.
+   * Intended for the native Value filter, whose "Select all" targets the whole
+   * column.
+   * Default false.
+   * */
+  stableSelectAll?: boolean;
   /**
    * It defines the options of the Select.
    * The options can be static, an array of options.

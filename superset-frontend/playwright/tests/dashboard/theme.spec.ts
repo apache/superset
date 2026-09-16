@@ -44,6 +44,29 @@ import { TIMEOUT } from '../../utils/constants';
 
 const NONADMIN_USERNAME = process.env.PLAYWRIGHT_NONADMIN_USERNAME || 'gamma';
 const NONADMIN_PASSWORD = process.env.PLAYWRIGHT_NONADMIN_PASSWORD || 'general';
+const SUBJECT_TYPE_USER = 1;
+
+type RelatedSubject = {
+  value: number;
+  text?: string;
+  extra?: {
+    type?: number;
+    secondary_label?: string;
+  };
+};
+
+function matchesUsername(subject: RelatedSubject, username: string) {
+  const normalizedUsername = username.toLowerCase();
+  const text = subject.text?.toLowerCase() ?? '';
+  const secondaryLabel = subject.extra?.secondary_label?.toLowerCase() ?? '';
+
+  return (
+    subject.extra?.type === SUBJECT_TYPE_USER &&
+    (text === normalizedUsername ||
+      text.includes(normalizedUsername) ||
+      secondaryLabel.includes(normalizedUsername))
+  );
+}
 
 // Clear storageState so the default page fixture starts unauthenticated.
 // Admin API calls use an explicit admin context with saved auth instead.
@@ -87,32 +110,33 @@ test('non-admin user can view a themed dashboard without 403 or infinite spinner
     dashboardId = dashBody.id;
     expect(dashboardId).toBeTruthy();
 
-    // 3. Grant non-admin user access by adding them as a dashboard owner
+    // 3. Grant non-admin user access by adding them as a dashboard editor
     const usersRes = await apiGet(
       adminPage,
-      `api/v1/dashboard/related/owners?q=(filter:'${NONADMIN_USERNAME}')`,
+      `api/v1/dashboard/related/editors?q=(filter:'${NONADMIN_USERNAME}')`,
     );
     expect(usersRes.ok()).toBe(true);
     const usersBody = await usersRes.json();
-    const gammaUserId = usersBody.result?.[0]?.value;
-    expect(gammaUserId).toBeTruthy();
+    const gammaSubjectId = (
+      usersBody.result as RelatedSubject[] | undefined
+    )?.find(subject => matchesUsername(subject, NONADMIN_USERNAME))?.value;
+    expect(gammaSubjectId).toBeTruthy();
     const putRes = await apiPutDashboard(adminPage, dashboardId!, {
-      owners: [gammaUserId],
+      editors: [gammaSubjectId],
     });
     expect(putRes.ok()).toBe(true);
 
     // --- NON-ADMIN USER PHASE (page has no cached auth via test.use) ---
 
-    // 4. Instrument network: track any /api/v1/theme/ requests and 403 responses
+    // 4. Instrument network: track any /api/v1/theme/ request, with its status.
+    // Recording the status rather than asserting on a separate 403-only array
+    // keeps the diagnostic — a failure prints whether the calls were forbidden
+    // or merely unexpected — without a second, subsumed assertion.
     const themeApiRequests: string[] = [];
-    const forbiddenResponses: string[] = [];
     page.on('response', response => {
       const url = response.url();
       if (url.includes('/api/v1/theme/')) {
-        themeApiRequests.push(url);
-      }
-      if (response.status() === 403 && url.includes('/api/v1/theme/')) {
-        forbiddenResponses.push(url);
+        themeApiRequests.push(`${response.status()} ${url}`);
       }
     });
 
@@ -127,14 +151,19 @@ test('non-admin user can view a themed dashboard without 403 or infinite spinner
     const dashboardPage = new DashboardPage(page);
     await dashboardPage.gotoById(dashboardId!);
 
-    // 7. Assert dashboard fully loads (not stuck on infinite spinner)
+    // 7. Assert dashboard fully loads (not stuck on infinite spinner).
+    // The dashboard is created with no position_json, so its grid renders
+    // empty — there is no chart to wait for, only the grid itself.
     await dashboardPage.waitForLoad({ timeout: TIMEOUT.PAGE_LOAD });
-    await dashboardPage.waitForChartsToLoad();
+    await dashboardPage.waitForGridToLoad();
 
-    // 8. Assert no /api/v1/theme/ requests were made (theme data comes from dashboard response)
-    expect(themeApiRequests).toHaveLength(0);
-    // Assert no 403 responses on /api/v1/theme/ (scoped to avoid login/unrelated 403 noise)
-    expect(forbiddenResponses).toHaveLength(0);
+    // 8. A non-admin must render the themed dashboard without ever calling the
+    // theme API — theme data rides along on the dashboard response, and the
+    // endpoint itself is admin-only, so any call here would 403 and break them.
+    expect(
+      themeApiRequests,
+      'Non-admin dashboard load must not call the theme API',
+    ).toHaveLength(0);
   } finally {
     // Cleanup: delete test resources using admin context
     if (dashboardId) {

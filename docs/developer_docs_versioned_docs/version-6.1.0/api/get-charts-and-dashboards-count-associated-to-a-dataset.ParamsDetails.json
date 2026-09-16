@@ -1,0 +1,10 @@
+{
+  "parameters": [
+    {
+      "in": "path",
+      "name": "id_or_uuid",
+      "required": true,
+      "schema": { "type": "string" }
+    }
+  ]
+}

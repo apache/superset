@@ -14,26 +14,32 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Optional
+from typing import Any
 
-from flask import g
-from flask_appbuilder.security.sqla.models import Role
+from flask import current_app
 from flask_babel import lazy_gettext as _
 from sqlalchemy import and_, or_
 from sqlalchemy.orm.query import Query
 
-from superset import db, is_feature_enabled, security_manager
+from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
-from superset.models.dashboard import Dashboard, is_uuid
-from superset.models.embedded_dashboard import EmbeddedDashboard
+from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.security.guest_token import GuestTokenResourceType, GuestUser
+from superset.semantic_layers.models import SemanticLayer, SemanticView
+from superset.subjects.filters import (
+    EditableFilter,
+)
+from superset.subjects.models import dashboard_editors, dashboard_viewers
 from superset.tags.filters import BaseTagIdFilter, BaseTagNameFilter
-from superset.utils.core import get_user_id
-from superset.utils.filters import get_dataset_access_filters
+from superset.utils.core import DatasourceType, get_user_id
+from superset.utils.filters import (
+    get_dataset_access_filters,
+    guest_embedded_dashboard_filter,
+)
 from superset.views.base import BaseFilter
 from superset.views.base_api import BaseFavoriteFilter
+from superset.views.filters import BaseDeletedRecencyFilter, BaseDeletedStateFilter
 
 
 class DashboardTitleOrSlugFilter(BaseFilter):  # pylint: disable=too-few-public-methods
@@ -104,115 +110,141 @@ class DashboardTagIdFilter(BaseTagIdFilter):  # pylint: disable=too-few-public-m
 class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     """
     List dashboards with the following criteria:
-        1. Those which the user owns
-        2. Those which have been published (if they have access to at least one slice)
-        3. Those that they have access to via a role (if `DASHBOARD_RBAC` is enabled)
 
-    If the user is an admin then show all dashboards.
-    This means they do not get curation but can still sort by "published"
-    if they wish to see those dashboards which are published first.
+        1. Embedded guests: only the dashboards in their token, nothing else
+        2. Admins: all dashboards
+        3. Editors: their dashboards (published or not)
+        4. Viewers: published dashboards
+        5. Dashboards with no viewers → fall back to dataset-based access
+           (published only)
     """
 
     def apply(self, query: Query, value: Any) -> Query:
+        # Guests are scoped to their token's dashboards only, never widened by
+        # the role paths below (mirrors ChartFilter).
+        if (guest_condition := guest_embedded_dashboard_filter()) is not None:
+            return query.filter(guest_condition)
+
         if security_manager.is_admin():
             return query
 
-        is_rbac_disabled_filter = []
-        dashboard_has_roles = Dashboard.roles.any()
-        if is_feature_enabled("DASHBOARD_RBAC"):
-            is_rbac_disabled_filter.append(~dashboard_has_roles)
+        return self._apply_viewers(query)
 
-        datasource_perm_query = (
-            db.session.query(Dashboard.id)
-            .join(Dashboard.slices, isouter=True)
-            .join(SqlaTable, Slice.datasource_id == SqlaTable.id)
-            .join(Database, SqlaTable.database_id == Database.id)
-            .filter(
-                and_(
-                    Dashboard.published.is_(True),
-                    *is_rbac_disabled_filter,
-                    get_dataset_access_filters(
-                        Slice,
-                        security_manager.can_access_all_datasources(),
-                    ),
-                )
-            )
-        )
+    def _apply_viewers(self, query: Query) -> Query:
+        from superset.subjects.utils import get_user_subject_ids_subquery
 
-        owner_ids_query = (
-            db.session.query(Dashboard.id)
-            .join(Dashboard.owners)
-            .filter(security_manager.user_model.id == get_user_id())
-        )
+        user_id = get_user_id()
+        subject_subquery = get_user_subject_ids_subquery(user_id) if user_id else None
 
-        feature_flagged_filters = []
-        if is_feature_enabled("DASHBOARD_RBAC"):
-            roles_based_query = (
+        filters: list[Any] = []
+
+        # (A) Editor query: editors see all their dashboards (published or not)
+        if subject_subquery is not None:
+            editor_query = (
                 db.session.query(Dashboard.id)
-                .join(Dashboard.roles)
+                .join(
+                    dashboard_editors,
+                    Dashboard.id == dashboard_editors.c.dashboard_id,
+                )
+                .filter(dashboard_editors.c.subject_id.in_(subject_subquery))
+            )
+            filters.append(Dashboard.id.in_(editor_query))
+
+        # (B) Viewer query: viewers see published dashboards
+        if subject_subquery is not None:
+            viewer_query = (
+                db.session.query(Dashboard.id)
+                .join(
+                    dashboard_viewers,
+                    Dashboard.id == dashboard_viewers.c.dashboard_id,
+                )
                 .filter(
                     and_(
                         Dashboard.published.is_(True),
-                        dashboard_has_roles,
-                        Role.id.in_([x.id for x in security_manager.get_user_roles()]),
+                        dashboard_viewers.c.subject_id.in_(subject_subquery),
+                    )
+                )
+            )
+            filters.append(Dashboard.id.in_(viewer_query))
+
+        # (C) No-viewer fallback: dashboards with no viewers → dataset-based access
+        # A datasource_access grant on a parent semantic layer covers its
+        # views (sc-119501; the double perm fetch alongside
+        # get_dataset_access_filters is accepted until sc-119500 reworks the
+        # helper's signature for the chart-list mirror of this clause).
+        layer_grant_clause = SemanticLayer.perm.in_(
+            security_manager.user_view_menu_names("datasource_access")
+        )
+        # Note: for ordinary users a dashboard with no charts is never yielded
+        # here (every access predicate is NULL-false after the outer joins)
+        # even though the object gate allows opening it — a deliberate,
+        # pre-existing asymmetry. For ``all_datasource_access`` holders the
+        # spliced literal True below yields such rows, matching the gate.
+        dashboard_has_viewers = Dashboard.viewers.any()
+        no_viewer_query = (
+            db.session.query(Dashboard.id)
+            .join(Dashboard.slices, isouter=True)
+            # Type-aware datasource joins: the SqlaTable join is constrained
+            # to table-backed charts (an unconstrained id join can bind a
+            # semantic-view chart to an unrelated table sharing its numeric
+            # id) and kept outer so charts on other datasource types survive
+            # into the access filter — their access matches through the perm
+            # columns denormalized onto Slice by ``set_related_perm``.
+            .join(
+                SqlaTable,
+                and_(
+                    Slice.datasource_id == SqlaTable.id,
+                    Slice.datasource_type == DatasourceType.TABLE,
+                ),
+                isouter=True,
+            )
+            .join(Database, SqlaTable.database_id == Database.id, isouter=True)
+            # A datasource_access grant on a semantic LAYER covers its views,
+            # as SemanticView.raise_for_access enforces on the data path
+            # (sc-119501) — surface those dashboards here too, through the
+            # same type-guarded outer-join shape as the SqlaTable join.
+            .join(
+                SemanticView,
+                and_(
+                    Slice.datasource_id == SemanticView.id,
+                    Slice.datasource_type == DatasourceType.SEMANTIC_VIEW,
+                ),
+                isouter=True,
+            )
+            .join(
+                SemanticLayer,
+                SemanticView.semantic_layer_uuid == SemanticLayer.uuid,
+                isouter=True,
+            )
+            .filter(
+                and_(
+                    Dashboard.published.is_(True),
+                    ~dashboard_has_viewers,
+                    get_dataset_access_filters(
+                        Slice,
+                        security_manager.can_access_all_datasources(),
+                        layer_grant_clause,
                     ),
                 )
             )
-
-            feature_flagged_filters.append(Dashboard.id.in_(roles_based_query))
-
-        if is_feature_enabled("EMBEDDED_SUPERSET") and security_manager.is_guest_user(
-            g.user
-        ):
-            guest_user: GuestUser = g.user
-            embedded_dashboard_ids = [
-                r["id"]
-                for r in guest_user.resources
-                if r["type"] == GuestTokenResourceType.DASHBOARD.value
-            ]
-
-            # TODO (embedded): only use uuid filter once uuids are rolled out
-            condition = (
-                Dashboard.embedded.any(
-                    EmbeddedDashboard.uuid.in_(embedded_dashboard_ids)
-                )
-                if any(is_uuid(id_) for id_ in embedded_dashboard_ids)
-                else Dashboard.id.in_(embedded_dashboard_ids)
-            )
-
-            feature_flagged_filters.append(condition)
-
-        query = query.filter(
-            or_(
-                Dashboard.id.in_(owner_ids_query),
-                Dashboard.id.in_(datasource_perm_query),
-                *feature_flagged_filters,
-            )
         )
+        filters.append(Dashboard.id.in_(no_viewer_query))
 
-        return query
+        extra_filters = current_app.config.get("EXTRA_ACCESS_QUERY_FILTERS", {})
+        if extra_dashboards_filter := extra_filters.get("dashboards"):
+            user_id = get_user_id()
+            if user_id:
+                filters.append(Dashboard.id.in_(extra_dashboards_filter(user_id)))
+
+        return query.filter(or_(*filters)) if filters else query
 
 
-class FilterRelatedRoles(BaseFilter):  # pylint: disable=too-few-public-methods
-    """
-    A filter to allow searching for related roles of a resource.
+class DashboardEditableFilter(EditableFilter):  # pylint: disable=too-few-public-methods
+    """Filter for dashboards the user can edit."""
 
-    Use in the api by adding something like:
-    related_field_filters = {
-      "roles": RelatedFieldFilter("name", FilterRelatedRoles),
-    }
-    """
-
-    name = _("Role")
-    arg_name = "roles"
-
-    def apply(self, query: Query, value: Optional[Any]) -> Query:
-        role_model = security_manager.role_model
-        if value:
-            return query.filter(
-                role_model.name.ilike(f"%{value}%"),
-            )
-        return query
+    model = Dashboard
+    editors_table = dashboard_editors
+    editors_fk_column = "dashboard_id"
 
 
 class DashboardCertifiedFilter(BaseFilter):  # pylint: disable=too-few-public-methods
@@ -255,3 +287,27 @@ class DashboardHasCreatedByFilter(BaseFilter):  # pylint: disable=too-few-public
         if value is False:
             return query.filter(and_(Dashboard.created_by_fk.is_(None)))
         return query
+
+
+class DashboardDeletedRecencyFilter(  # pylint: disable=too-few-public-methods
+    BaseDeletedRecencyFilter
+):
+    """Archive time-range preset: rows archived within the last N days."""
+
+    arg_name = "dashboard_deleted_recency"
+
+
+class DashboardDeletedStateFilter(  # pylint: disable=too-few-public-methods
+    BaseDeletedStateFilter
+):
+    """Rison filter for the GET list that exposes soft-deleted dashboards.
+
+    Soft-deleted rows are scoped to the **restore audience** (editors or
+    admins) by ``BaseDeletedStateFilter._scope_to_restore_audience`` — the
+    cross-entity contract lives on the base, so this class is a pure
+    declaration. Live rows keep their normal ``DashboardAccessFilter``
+    visibility.
+    """
+
+    arg_name = "dashboard_deleted_state"
+    model = Dashboard

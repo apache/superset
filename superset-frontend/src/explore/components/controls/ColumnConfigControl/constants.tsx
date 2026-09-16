@@ -61,6 +61,7 @@ const d3NumberFormat: ControlFormItemSpec<'Select'> = {
 };
 
 const d3TimeFormat: ControlFormItemSpec<'Select'> = {
+  allowNewOptions: true,
   controlType: 'Select',
   label: t('D3 format'),
   description: D3_TIME_FORMAT_DOCS,
@@ -249,5 +250,12 @@ export const DEFAULT_CONFIG_FORM_LAYOUT: ColumnConfigFormLayout = {
       'columnWidth',
       { name: 'horizontalAlign', override: { defaultValue: 'left' } },
     ],
+  ],
+  [GenericDataType.MultiValue]: [
+    [
+      'columnWidth',
+      { name: 'horizontalAlign', override: { defaultValue: 'left' } },
+    ],
+    ['truncateLongCells'],
   ],
 };

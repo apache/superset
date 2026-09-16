@@ -20,7 +20,7 @@ import logging
 from datetime import datetime, timezone
 from typing import Any
 
-from flask import current_app
+from flask import current_app, g, has_request_context
 from flask_caching import Cache
 from pandas import DataFrame
 
@@ -86,6 +86,13 @@ class QueryCacheManager:
         self.cache_value = cache_value
         self.sql_rowcount = sql_rowcount
         self.queried_dttm = queried_dttm
+        self.bq_memory_limited: bool = False
+        self.bq_memory_limited_row_count: int = 0
+        # Whether set_query_result actually persisted the value to the backend
+        # (False when caching was skipped/failed — e.g. oversized value). Used to
+        # gate the forced-refresh idempotency marker so a follow-up read never
+        # serves a stale value under the belief the fresh one was cached.
+        self.result_persisted: bool = False
 
     # pylint: disable=too-many-arguments
     def set_query_result(
@@ -123,6 +130,15 @@ class QueryCacheManager:
                     )
                 self.is_loaded = True
 
+            # Capture BigQuery memory-limit flag so it survives cache hits
+            if has_request_context():
+                self.bq_memory_limited = getattr(g, "bq_memory_limited", False)
+                self.bq_memory_limited_row_count = getattr(
+                    g, "bq_memory_limited_row_count", 0
+                )
+                g.bq_memory_limited = False
+                g.bq_memory_limited_row_count = 0
+
             value = {
                 "df": self.df,
                 "query": self.query,
@@ -133,9 +149,11 @@ class QueryCacheManager:
                 "sql_rowcount": self.sql_rowcount,
                 "queried_dttm": self.queried_dttm,
                 "dttm": self.queried_dttm,  # Backwards compatibility
+                "bq_memory_limited": self.bq_memory_limited,
+                "bq_memory_limited_row_count": self.bq_memory_limited_row_count,
             }
             if self.is_loaded and key and self.status != QueryStatus.FAILED:
-                self.set(
+                self.result_persisted = self.set(
                     key=key,
                     value=value,
                     timeout=timeout,
@@ -164,7 +182,16 @@ class QueryCacheManager:
         if not key or not _cache[region] or force_query:
             return query_cache
 
-        if cache_value := _cache[region].get(key):
+        try:
+            cache_value = _cache[region].get(key)
+        except Exception as ex:  # pylint: disable=broad-except
+            # A cache backend outage (e.g. Redis connection/timeout errors)
+            # should not surface as an error to the caller: treat it the
+            # same as a cache miss and fall through to querying live data.
+            logger.warning("Error reading cache: %s", error_msg_from_exception(ex))
+            cache_value = None
+
+        if cache_value:
             logger.debug("Cache key: %s", key)
             # Log cache hit for debugging
             logger.debug("CACHE GET - Key: %s, Region: %s", key, region)
@@ -184,15 +211,19 @@ class QueryCacheManager:
                 )
                 query_cache.status = QueryStatus.SUCCESS
                 query_cache.is_loaded = True
-                query_cache.is_cached = cache_value is not None
+                query_cache.is_cached = True
                 query_cache.sql_rowcount = cache_value.get("sql_rowcount", None)
-                query_cache.cache_dttm = (
-                    cache_value["dttm"] if cache_value is not None else None
-                )
+                query_cache.cache_dttm = cache_value["dttm"]
                 query_cache.queried_dttm = cache_value.get(
                     "queried_dttm", cache_value.get("dttm")
                 )
                 query_cache.cache_value = cache_value
+                query_cache.bq_memory_limited = cache_value.get(
+                    "bq_memory_limited", False
+                )
+                query_cache.bq_memory_limited_row_count = cache_value.get(
+                    "bq_memory_limited_row_count", 0
+                )
                 current_app.config["STATS_LOGGER"].incr("loaded_from_cache")
             except KeyError as ex:
                 logger.exception(ex)
@@ -217,12 +248,17 @@ class QueryCacheManager:
         timeout: int | None = None,
         datasource_uid: str | None = None,
         region: CacheRegion = CacheRegion.DEFAULT,
-    ) -> None:
+    ) -> bool:
         """
         set value to specify cache region, proxy for `set_and_log_cache`
+
+        :returns: whether the value was actually persisted to the backend
         """
         if key:
-            set_and_log_cache(_cache[region], key, value, timeout, datasource_uid)
+            return set_and_log_cache(
+                _cache[region], key, value, timeout, datasource_uid
+            )
+        return False
 
     @staticmethod
     def delete(

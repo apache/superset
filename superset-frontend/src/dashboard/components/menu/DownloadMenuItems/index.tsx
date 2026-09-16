@@ -17,17 +17,20 @@
  * under the License.
  */
 import { SyntheticEvent } from 'react';
+import { useSelector } from 'react-redux';
 import { logging } from '@apache-superset/core/utils';
 import { t } from '@apache-superset/core/translation';
 import {
   FeatureFlag,
+  getClientErrorObject,
   isFeatureEnabled,
   SupersetClient,
 } from '@superset-ui/core';
 import { MenuItem } from '@superset-ui/core/components/Menu';
-import contentDisposition from 'content-disposition';
+import { parse as parseContentDisposition } from 'content-disposition';
 import { useDownloadScreenshot } from 'src/dashboard/hooks/useDownloadScreenshot';
-import { MenuKeys } from 'src/dashboard/types';
+import { NATIVE_FILTER_PREFIX } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/utils';
+import { MenuKeys, RootState } from 'src/dashboard/types';
 import downloadAsPdf from 'src/utils/downloadAsPdf';
 import downloadAsImage from 'src/utils/downloadAsImage';
 import handleResourceExport from 'src/utils/export';
@@ -68,7 +71,18 @@ export const useDownloadMenuItems = (
   } = props;
 
   const { addDangerToast, addSuccessToast } = useToasts();
+  const dataMask = useSelector((state: RootState) => state.dataMask);
   const SCREENSHOT_NODE_SELECTOR = '.dashboard';
+
+  const buildActiveDataMask = (): Record<string, { extraFormData: object }> =>
+    Object.entries(dataMask || {}).reduce<
+      Record<string, { extraFormData: object }>
+    >((acc, [id, mask]) => {
+      if (id.startsWith(NATIVE_FILTER_PREFIX)) {
+        acc[id] = { extraFormData: mask?.extraFormData ?? {} };
+      }
+      return acc;
+    }, {});
 
   const isWebDriverScreenshotEnabled =
     isFeatureEnabled(FeatureFlag.EnableDashboardScreenshotEndpoints) &&
@@ -122,7 +136,7 @@ export const useDownloadMenuItems = (
 
       if (disposition) {
         try {
-          const parsed = contentDisposition.parse(disposition);
+          const parsed = parseContentDisposition(disposition);
           if (parsed?.parameters?.filename) {
             fileName = parsed.parameters.filename;
           }
@@ -150,6 +164,39 @@ export const useDownloadMenuItems = (
     } catch (error) {
       logging.error(error);
       addDangerToast(t('Sorry, something went wrong. Try again later.'));
+    }
+  };
+
+  const onExportXlsx = async (mode: 'data' | 'images') => {
+    try {
+      const { json } = await SupersetClient.post({
+        endpoint: `/api/v1/dashboard/${dashboardId}/export_xlsx/`,
+        jsonPayload: { active_data_mask: buildActiveDataMask(), mode },
+      });
+      // The throttle response (an export is already running) returns 202 with a
+      // message but no job_id; only a freshly enqueued job carries a job_id.
+      if ((json as { job_id?: string })?.job_id) {
+        addSuccessToast(
+          t(
+            "Your export is being prepared. You'll receive an email when it's ready.",
+          ),
+        );
+      } else {
+        addSuccessToast(
+          t('An export for this dashboard is already in progress.'),
+        );
+      }
+    } catch (error) {
+      // status comes from the response (Partial<SupersetClientResponse>), which
+      // the union type does not expose uniformly; read it via a narrow cast.
+      const { status } = (await getClientErrorObject(error)) as {
+        status?: number;
+      };
+      if (status === 501) {
+        addDangerToast(t('Excel export is not configured on this server.'));
+      } else {
+        addDangerToast(t('Sorry, something went wrong. Try again later.'));
+      }
     }
   };
 
@@ -198,6 +245,28 @@ export const useDownloadMenuItems = (
       ];
 
   const exportMenuItems: MenuItem[] = [
+    ...(userCanExport
+      ? [
+          {
+            key: 'export-xlsx',
+            label: t('Export Data to Excel'),
+            onClick: () => onExportXlsx('data'),
+          },
+          // Image export renders charts through the headless webdriver, so only
+          // offer it where that infrastructure is available (same signal as the
+          // PDF/PNG image downloads above); otherwise non-table charts would
+          // silently come back empty.
+          ...(isWebDriverScreenshotEnabled
+            ? [
+                {
+                  key: 'export-xlsx-images',
+                  label: t('Export Images to Excel'),
+                  onClick: () => onExportXlsx('images'),
+                },
+              ]
+            : []),
+        ]
+      : []),
     {
       key: 'export-yaml',
       label: t('Export YAML'),

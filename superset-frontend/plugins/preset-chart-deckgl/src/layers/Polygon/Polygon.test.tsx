@@ -16,12 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import type { ReactElement } from 'react';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { render, screen } from '@testing-library/react';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import '@testing-library/jest-dom';
 import { supersetTheme, ThemeProvider } from '@apache-superset/core/theme';
 import DeckGLPolygon, { getPoints } from './Polygon';
+import type { LegendProps } from '../../components/Legend';
 import { COLOR_SCHEME_TYPES } from '../../utilities/utils';
 import * as utils from '../../utils';
 
@@ -33,21 +35,45 @@ const mockGetColorBreakpointsBuckets = jest.spyOn(
 );
 
 // Mock DeckGL container and Legend
+const mockDeckGLContainerProps: Array<Record<string, unknown>> = [];
+
 jest.mock('../../DeckGLContainer', () => ({
-  DeckGLContainerStyledWrapper: ({ children }: any) => (
-    <div data-testid="deckgl-container">{children}</div>
-  ),
+  DeckGLContainerStyledWrapper: (props: Record<string, unknown>) => {
+    mockDeckGLContainerProps.push(props);
+    const React = jest.requireActual('react');
+    return React.createElement(
+      'div',
+      { 'data-testid': 'deckgl-container' },
+      props.children,
+    );
+  },
 }));
 
-jest.mock('../../components/Legend', () => ({ categories, position }: any) => (
-  <div
-    data-testid="legend"
-    data-categories={JSON.stringify(categories)}
-    data-position={position}
-  >
-    Legend Mock
-  </div>
-));
+jest.mock('../../utils/mapbox', () => ({
+  getMapboxApiKey: () => 'bootstrap-mapbox-key',
+  hasMapboxApiKey: () => true,
+}));
+
+// Stand in for the real Legend, exposing the props it received so the layer's
+// wiring can be asserted. The hide-on-"none" behavior belongs to the real
+// Legend (covered in Legend.test.tsx), so the mock does not reimplement it.
+// Emits data-test (the configured testIdAttribute) so screen queries resolve.
+jest.mock(
+  '../../components/Legend',
+  () =>
+    ({
+      categories,
+      position,
+    }: Pick<LegendProps, 'categories' | 'position'>) => (
+      <div
+        data-test="legend"
+        data-categories={JSON.stringify(categories)}
+        data-position={String(position)}
+      >
+        Legend Mock
+      </div>
+    ),
+);
 
 const mockProps = {
   formData: {
@@ -109,6 +135,95 @@ const mockProps = {
   emitCrossFilters: false,
 };
 
+describe('DeckGLPolygon renderer propagation', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockGetBuckets.mockReturnValue({});
+    mockGetColorBreakpointsBuckets.mockReturnValue({});
+  });
+
+  const renderWithTheme = (component: ReactElement) =>
+    render(<ThemeProvider theme={supersetTheme}>{component}</ThemeProvider>);
+
+  const lastDeckGLContainerProps = () =>
+    mockDeckGLContainerProps
+      .slice()
+      .reverse()
+      .find(props => props?.viewport !== undefined);
+
+  test('passes selected MapLibre renderer props to the container', () => {
+    mockDeckGLContainerProps.length = 0;
+
+    renderWithTheme(
+      <DeckGLPolygon
+        {...mockProps}
+        formData={{
+          ...mockProps.formData,
+          map_renderer: 'maplibre',
+          maplibre_style: 'https://example.com/polygon-maplibre-style.json',
+          mapbox_style: 'mapbox://styles/mapbox/dark-v9',
+        }}
+      />,
+    );
+
+    expect(lastDeckGLContainerProps()).toEqual(
+      expect.objectContaining({
+        mapProvider: 'maplibre',
+        mapStyle: 'https://example.com/polygon-maplibre-style.json',
+        mapboxApiKey: 'bootstrap-mapbox-key',
+      }),
+    );
+  });
+
+  test('passes selected Mapbox renderer props to the container', () => {
+    mockDeckGLContainerProps.length = 0;
+
+    renderWithTheme(
+      <DeckGLPolygon
+        {...mockProps}
+        formData={{
+          ...mockProps.formData,
+          map_renderer: 'mapbox',
+          maplibre_style: 'https://example.com/polygon-maplibre-style.json',
+          mapbox_style: 'mapbox://styles/mapbox/satellite-v9',
+        }}
+      />,
+    );
+
+    expect(lastDeckGLContainerProps()).toEqual(
+      expect.objectContaining({
+        mapProvider: 'mapbox',
+        mapStyle: 'mapbox://styles/mapbox/satellite-v9',
+        mapboxApiKey: 'bootstrap-mapbox-key',
+      }),
+    );
+  });
+
+  test('falls back to legacy map_style when provider-specific style is absent', () => {
+    mockDeckGLContainerProps.length = 0;
+
+    renderWithTheme(
+      <DeckGLPolygon
+        {...mockProps}
+        formData={{
+          ...mockProps.formData,
+          map_renderer: 'maplibre',
+          maplibre_style: undefined,
+          map_style: 'legacy-map-style',
+        }}
+      />,
+    );
+
+    expect(lastDeckGLContainerProps()).toEqual(
+      expect.objectContaining({
+        mapProvider: 'maplibre',
+        mapStyle: 'legacy-map-style',
+        mapboxApiKey: 'bootstrap-mapbox-key',
+      }),
+    );
+  });
+});
+
 describe('DeckGLPolygon bucket generation logic', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -119,7 +234,7 @@ describe('DeckGLPolygon bucket generation logic', () => {
     mockGetColorBreakpointsBuckets.mockReturnValue({});
   });
 
-  const renderWithTheme = (component: React.ReactElement) =>
+  const renderWithTheme = (component: ReactElement) =>
     render(<ThemeProvider theme={supersetTheme}>{component}</ThemeProvider>);
 
   test('should use getBuckets for linear_palette color scheme', () => {
@@ -227,7 +342,7 @@ describe('DeckGLPolygon Error Handling and Edge Cases', () => {
     mockGetColorBreakpointsBuckets.mockReturnValue({});
   });
 
-  const renderWithTheme = (component: React.ReactElement) =>
+  const renderWithTheme = (component: ReactElement) =>
     render(<ThemeProvider theme={supersetTheme}>{component}</ThemeProvider>);
 
   test('handles empty features data gracefully', () => {
@@ -266,20 +381,26 @@ describe('DeckGLPolygon Error Handling and Edge Cases', () => {
     expect(mockGetBuckets).not.toHaveBeenCalled();
   });
 
-  test('handles null legend_position correctly', () => {
-    const propsWithNullLegendPosition = {
-      ...mockProps,
-      formData: {
-        ...mockProps.formData,
-        legend_position: null,
-      },
-    };
+  // The layer forwards formData.legend_position to the Legend's position prop
+  // unchanged; hiding for the "none" sentinel is the Legend's responsibility
+  // (covered in Legend.test.tsx). Asserting the wiring here avoids
+  // re-implementing the hide gate in the mock.
+  test.each(['none', 'tr'])(
+    'forwards legend_position "%s" to the Legend',
+    legendPosition => {
+      const props = {
+        ...mockProps,
+        formData: { ...mockProps.formData, legend_position: legendPosition },
+      };
 
-    renderWithTheme(<DeckGLPolygon {...propsWithNullLegendPosition} />);
+      renderWithTheme(<DeckGLPolygon {...props} />);
 
-    // Legend should not be rendered when position is null
-    expect(screen.queryByTestId('legend')).not.toBeInTheDocument();
-  });
+      expect(screen.getByTestId('legend')).toHaveAttribute(
+        'data-position',
+        legendPosition,
+      );
+    },
+  );
 });
 
 describe('DeckGLPolygon Legend Integration', () => {
@@ -291,20 +412,20 @@ describe('DeckGLPolygon Legend Integration', () => {
     });
   });
 
-  const renderWithTheme = (component: React.ReactElement) =>
+  const renderWithTheme = (component: ReactElement) =>
     render(<ThemeProvider theme={supersetTheme}>{component}</ThemeProvider>);
 
   test('renders legend with non-empty categories when metric and linear_palette are defined', () => {
-    const { container } = renderWithTheme(<DeckGLPolygon {...mockProps} />);
+    renderWithTheme(<DeckGLPolygon {...mockProps} />);
 
     // Verify the component renders and calls the correct bucket function
     expect(mockGetBuckets).toHaveBeenCalled();
     expect(mockGetColorBreakpointsBuckets).not.toHaveBeenCalled();
 
     // Verify the legend mock was rendered with non-empty categories
-    const legendElement = container.querySelector('[data-testid="legend"]');
-    expect(legendElement).toBeTruthy();
-    const categoriesAttr = legendElement?.getAttribute('data-categories');
+    const legendElement = screen.getByTestId('legend');
+    expect(legendElement).toBeInTheDocument();
+    const categoriesAttr = legendElement.getAttribute('data-categories');
     const categoriesData = JSON.parse(categoriesAttr || '{}');
     expect(Object.keys(categoriesData)).toHaveLength(2);
   });

@@ -65,7 +65,7 @@ export default function AdhocFilterOption({
       partitionColumn={partitionColumn ?? undefined}
     >
       <OptionControlLabel
-        label={actualTimeRange ?? adhocFilter.getDefaultLabel()}
+        label={actualTimeRange ?? adhocFilter.getDefaultLabel(options)}
         tooltipTitle={title ?? adhocFilter.getTooltipTitle()}
         onRemove={() =>
           onRemoveFilter({

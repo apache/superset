@@ -125,6 +125,11 @@ InteractiveButton.argTypes = {
     options: buttonSizes,
     control: { type: 'select' },
   },
+  styleConfig: {
+    description:
+      'Optional visual overrides (controlHeight, paddingInline, fontSize, fontWeight, borderRadius, ctaMinWidth, ctaMinHeight, iconGap).',
+    control: { type: 'object' },
+  },
   target: {
     name: TARGETS.label,
     control: { type: 'select' },

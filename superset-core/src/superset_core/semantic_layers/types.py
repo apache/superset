@@ -18,8 +18,9 @@
 from __future__ import annotations
 
 import enum
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date, datetime, time, timedelta
+from typing import Any
 
 import isodate
 import pyarrow as pa
@@ -90,6 +91,28 @@ class Dimension:
     definition: str | None = None
     description: str | None = None
     grain: Grain | None = None
+    verbose_name: str | None = field(default=None, compare=False)
+    metadata: dict[str, Any] = field(default_factory=dict, compare=False)
+
+
+class AggregationType(str, enum.Enum):
+    """
+    Aggregation function applied by a metric.
+
+    Additivity (across an arbitrary set of grouping dimensions):
+    * ``SUM``, ``COUNT``: fully additive — sub-group sums roll up via ``sum``.
+    * ``MIN``, ``MAX``: roll up via ``min`` / ``max`` of sub-group values.
+    * ``AVG``, ``COUNT_DISTINCT``, ``OTHER``: not safely roll-uppable from
+      sub-aggregates without auxiliary data.
+    """
+
+    SUM = "SUM"
+    COUNT = "COUNT"
+    MIN = "MIN"
+    MAX = "MAX"
+    AVG = "AVG"
+    COUNT_DISTINCT = "COUNT_DISTINCT"
+    OTHER = "OTHER"
 
 
 @dataclass(frozen=True)
@@ -100,6 +123,10 @@ class Metric:
 
     definition: str
     description: str | None = None
+    aggregation: AggregationType | None = None
+    verbose_name: str | None = field(default=None, compare=False)
+    d3format: str | None = field(default=None, compare=False)
+    metadata: dict[str, Any] = field(default_factory=dict, compare=False)
 
 
 @dataclass(frozen=True)
@@ -119,6 +146,8 @@ class Operator(str, enum.Enum):
     NOT_IN = "NOT IN"
     LIKE = "LIKE"
     NOT_LIKE = "NOT LIKE"
+    ILIKE = "ILIKE"
+    NOT_ILIKE = "NOT ILIKE"
     IS_NULL = "IS NULL"
     IS_NOT_NULL = "IS NOT NULL"
     ADHOC = "ADHOC"
@@ -137,7 +166,7 @@ class Filter:
     type: PredicateType
     column: Dimension | Metric | None
     operator: Operator
-    value: FilterValues | frozenset[FilterValues]
+    value: FilterValues | tuple[FilterValues, ...] | frozenset[FilterValues]
 
 
 class OrderDirection(enum.Enum):

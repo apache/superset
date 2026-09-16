@@ -65,7 +65,7 @@ const StyledCrossLinks = styled.div`
 function CrossLinks({
   crossLinks,
   maxLinks = 20,
-  linkPrefix = '/superset/dashboard/',
+  linkPrefix = '/dashboard/',
   external = false,
 }: CrossLinksProps) {
   const [crossLinksRef, plusRef, elementsTruncated, hasHiddenElements] =

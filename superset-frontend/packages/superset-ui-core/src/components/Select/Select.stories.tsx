@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { t } from '@apache-superset/core/translation';
 import { SelectOptionsType, SelectProps } from './types';
 import { Select } from '.';
 
@@ -109,7 +110,7 @@ export const InteractiveSelect = ({
 
 InteractiveSelect.args = {
   mode: 'single',
-  placeholder: 'Select ...',
+  placeholder: t('Select ...'),
   showSearch: true,
   allowNewOptions: false,
   allowClear: false,
@@ -337,6 +338,46 @@ AtEveryCorner.parameters = {
   },
 };
 
+const manyPermissionLabels = [
+  'can read SavedQuery',
+  'can write SavedQuery',
+  'can read Database',
+  'can read Query',
+  'can activate TabStateView',
+  'can copy clipboard Superset',
+  'can csv Superset',
+  'can delete query TabStateView',
+  'can delete TableSchemaView',
+  'can delete TabStateView',
+  'can estimate query cost SQLLab',
+  'can execute sql query SQLLab',
+];
+const manyPermissionOptions = Array.from({ length: 32 }, (_, i) => ({
+  label:
+    manyPermissionLabels[i % manyPermissionLabels.length] +
+    (i >= manyPermissionLabels.length ? ` ${i}` : ''),
+  value: `perm_${i}`,
+}));
+
+/**
+ * Regression coverage for a narrow container where selected tags wrap to
+ * multiple rows (e.g. the Role edit modal's Permissions field, which has no
+ * `maxTagCount` override and defaults to wrapping at 4 tags per row). See
+ * https://github.com/apache/superset/issues/39339.
+ */
+export const ManySelectedValuesWrapping = () => (
+  <div style={{ width: 600 }}>
+    <Select
+      ariaLabel="many-selected-values-select"
+      mode="multiple"
+      showSearch
+      options={manyPermissionOptions}
+      value={manyPermissionOptions.map(o => o.value)}
+      getPopupContainer={trigger => trigger.parentElement as HTMLElement}
+    />
+  </div>
+);
+
 export const PageScroll = () => (
   <div style={{ height: 2000, overflowY: 'auto' }}>
     <div
@@ -404,7 +445,7 @@ AdvancedPlayground.args = {
   autoFocus: true,
   allowNewOptions: false,
   allowClear: false,
-  autoClearSearchValue: false,
+  autoClearSearchValue: true,
   allowSelectAll: true,
   disabled: false,
   invertSelection: false,
@@ -414,7 +455,7 @@ AdvancedPlayground.args = {
   oneLine: false,
   optionsCount: options.length,
   optionFilterProps: ['value', 'label', 'custom'],
-  placeholder: 'Select ...',
+  placeholder: t('Select ...'),
   showSearch: true,
 };
 

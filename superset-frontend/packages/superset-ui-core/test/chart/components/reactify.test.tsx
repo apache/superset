@@ -19,9 +19,9 @@
 
 import '@testing-library/jest-dom';
 import PropTypes from 'prop-types';
-import { PureComponent } from 'react';
+import { useEffect, useState } from 'react';
 import { reactify } from '@superset-ui/core';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { RenderFuncType } from '../../../src/chart/components/reactify';
 
 describe('reactify(renderFn)', () => {
@@ -45,55 +45,67 @@ describe('reactify(renderFn)', () => {
     content: 'ghi',
   };
 
-  const willUnmountCb = jest.fn();
+  let latestUnmountContext:
+    | {
+        container?: HTMLDivElement;
+        props?: { content?: string; id?: string };
+      }
+    | undefined;
+
+  const willUnmountCb = jest.fn(function captureUnmountContext() {
+    latestUnmountContext = this as typeof latestUnmountContext;
+  });
 
   const TheChart = reactify(renderFn);
   const TheChartWithWillUnmountHook = reactify(renderFn, {
     componentWillUnmount: willUnmountCb,
   });
 
-  class TestComponent extends PureComponent<{}, { content: string }> {
-    constructor(props = {}) {
-      super(props);
-      this.state = { content: 'abc' };
-    }
+  function TestComponent() {
+    const [content, setContent] = useState('abc');
 
-    componentDidMount() {
-      setTimeout(() => {
-        this.setState({ content: 'def' });
+    useEffect(() => {
+      const timer = setTimeout(() => {
+        setContent('def');
       }, 10);
-    }
+      return () => clearTimeout(timer);
+    }, []);
 
-    render() {
-      const { content } = this.state;
-
-      return <TheChart id="test" content={content} />;
-    }
+    return <TheChart id="test" content={content} />;
   }
 
-  class AnotherTestComponent extends PureComponent<{}, {}> {
-    render() {
-      return <TheChartWithWillUnmountHook id="another_test" />;
-    }
+  function AnotherTestComponent() {
+    const [content, setContent] = useState('abc');
+
+    useEffect(() => {
+      const timer = setTimeout(() => {
+        setContent('def');
+      }, 10);
+      return () => clearTimeout(timer);
+    }, []);
+
+    return <TheChartWithWillUnmountHook id="another_test" content={content} />;
   }
 
-  test('returns a React component class', () =>
-    new Promise(done => {
-      render(<TestComponent />);
+  beforeEach(() => {
+    (renderFn as jest.Mock).mockClear();
+    willUnmountCb.mockClear();
+    latestUnmountContext = undefined;
+  });
 
-      expect(renderFn).toHaveBeenCalledTimes(1);
-      expect(screen.getByText('abc')).toBeInTheDocument();
-      expect(screen.getByText('abc').parentNode).toHaveAttribute('id', 'test');
-      setTimeout(() => {
-        expect(renderFn).toHaveBeenCalledTimes(2);
-        expect(screen.getByText('def')).toBeInTheDocument();
-        expect(screen.getByText('def').parentNode).toHaveAttribute(
-          'id',
-          'test',
-        );
-        done(undefined);
-      }, 20);
-    }));
+  test('returns a React component and re-renders on prop changes', async () => {
+    render(<TestComponent />);
+
+    expect(renderFn).toHaveBeenCalledTimes(1);
+    expect(screen.getByText('abc')).toBeInTheDocument();
+    expect(screen.getByText('abc').parentNode).toHaveAttribute('id', 'test');
+
+    await waitFor(() => {
+      expect(screen.getByText('def')).toBeInTheDocument();
+    });
+    expect(screen.getByText('def').parentNode).toHaveAttribute('id', 'test');
+    expect(renderFn).toHaveBeenCalledTimes(2);
+  });
   describe('displayName', () => {
     test('has displayName if renderFn.displayName is defined', () => {
       expect(TheChart.displayName).toEqual('BoldText');
@@ -126,20 +138,29 @@ describe('reactify(renderFn)', () => {
       expect(AnotherChart.defaultProps).toBeUndefined();
     });
   });
-  test('does not try to render if not mounted', () => {
+  test('calls renderFn when container is set', () => {
     const anotherRenderFn = jest.fn();
-    const AnotherChart = reactify(anotherRenderFn); // enables valid new AnotherChart() call
-    // @ts-expect-error
-    new AnotherChart({ id: 'test' }).execute();
-    expect(anotherRenderFn).not.toHaveBeenCalled();
+    const AnotherChart = reactify(anotherRenderFn);
+    const { unmount } = render(<AnotherChart id="test" />);
+    expect(anotherRenderFn).toHaveBeenCalled();
+    unmount();
   });
-  test('calls willUnmount hook when it is provided', () =>
-    new Promise(done => {
-      const { unmount } = render(<AnotherTestComponent />);
-      setTimeout(() => {
-        unmount();
-        expect(willUnmountCb).toHaveBeenCalledTimes(1);
-        done(undefined);
-      }, 20);
-    }));
+  test('calls willUnmount hook with the committed container and latest props', async () => {
+    const { unmount } = render(<AnotherTestComponent />);
+
+    await waitFor(() => {
+      expect(screen.getByText('def')).toBeInTheDocument();
+    });
+
+    const committedContainer = screen.getByText('def').parentElement;
+
+    unmount();
+
+    expect(willUnmountCb).toHaveBeenCalledTimes(1);
+    expect(latestUnmountContext?.props).toMatchObject({
+      id: 'another_test',
+      content: 'def',
+    });
+    expect(latestUnmountContext?.container).toBe(committedContainer);
+  });
 });

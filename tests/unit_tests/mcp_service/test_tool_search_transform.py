@@ -17,6 +17,7 @@
 
 """Tests for MCP tool search transform configuration and application."""
 
+import logging
 from types import SimpleNamespace
 from unittest.mock import MagicMock, Mock, patch
 
@@ -869,7 +870,7 @@ def test_tool_search_permission_filter_hides_disallowed_tools():
     with app.app_context():
         g.user = SimpleNamespace(username="viewer")
         with patch(
-            "superset.security_manager", new_callable=MagicMock
+            "superset.mcp_service.auth.security_manager", new_callable=MagicMock
         ) as security_manager:
             security_manager.can_access.side_effect = [True, False]
 
@@ -901,6 +902,30 @@ def test_tool_search_permission_filter_hides_protected_tools_without_user() -> N
     assert result == [public]
 
 
+def test_tool_search_permission_filter_denies_all_on_invalid_credentials() -> None:
+    """Invalid credentials (PermissionError) deny all tools, including public ones."""
+    app = Flask(__name__)
+    app.config["MCP_RBAC_ENABLED"] = True
+
+    def protected_tool():
+        pass
+
+    setattr(protected_tool, CLASS_PERMISSION_ATTR, "Dataset")
+    setattr(protected_tool, METHOD_PERMISSION_ATTR, "read")
+
+    protected = SimpleNamespace(fn=protected_tool)
+    public = SimpleNamespace(fn=lambda: None)
+
+    with app.app_context():
+        with patch(
+            "superset.mcp_service.auth.get_user_from_request",
+            side_effect=PermissionError("Invalid API key"),
+        ):
+            result = _filter_tools_by_current_user_permission([protected, public])
+
+    assert result == []
+
+
 def test_tool_search_filter_hides_metadata_tools_without_access() -> None:
     """Privacy-marked tools are hidden even if broad Dataset read exists."""
     app = Flask(__name__)
@@ -916,7 +941,7 @@ def test_tool_search_filter_hides_metadata_tools_without_access() -> None:
     with app.app_context():
         g.user = SimpleNamespace(username="viewer")
         with patch(
-            "superset.mcp_service.server.user_can_view_data_model_metadata",
+            "superset.mcp_service.privacy.user_can_view_data_model_metadata",
             return_value=False,
         ):
             result = _filter_tools_by_current_user_permission([metadata, public])
@@ -943,10 +968,12 @@ def test_tool_search_permission_filter_still_applies_rbac_to_metadata_tools() ->
         g.user = SimpleNamespace(username="viewer")
         with (
             patch(
-                "superset.mcp_service.server.user_can_view_data_model_metadata",
+                "superset.mcp_service.privacy.user_can_view_data_model_metadata",
                 return_value=True,
             ),
-            patch("superset.security_manager", new_callable=Mock) as security_manager,
+            patch(
+                "superset.mcp_service.auth.security_manager", new_callable=Mock
+            ) as security_manager,
         ):
             security_manager.can_access.return_value = False
             result = _filter_tools_by_current_user_permission([metadata, public])
@@ -973,7 +1000,9 @@ def test_tool_search_permission_filter_resolves_user_from_request() -> None:
                 "superset.mcp_service.auth.get_user_from_request",
                 return_value=SimpleNamespace(username="viewer"),
             ),
-            patch("superset.security_manager", new_callable=Mock) as security_manager,
+            patch(
+                "superset.mcp_service.auth.security_manager", new_callable=Mock
+            ) as security_manager,
         ):
             security_manager.can_access.return_value = True
             result = _filter_tools_by_current_user_permission([protected])
@@ -996,10 +1025,12 @@ def test_tool_search_permission_filter_keeps_get_schema_visible_without_metadata
         g.user = SimpleNamespace(username="viewer")
         with (
             patch(
-                "superset.mcp_service.server.user_can_view_data_model_metadata",
+                "superset.mcp_service.privacy.user_can_view_data_model_metadata",
                 return_value=False,
             ),
-            patch("superset.security_manager", new_callable=Mock) as security_manager,
+            patch(
+                "superset.mcp_service.auth.security_manager", new_callable=Mock
+            ) as security_manager,
         ):
             security_manager.can_access.return_value = True
             result = _filter_tools_by_current_user_permission([schema_tool])
@@ -1196,3 +1227,168 @@ def test_create_serializer_include_schemas_true_with_compact():
     assert result[0]["inputSchema"]["properties"]["filters"]["items"] == {
         "type": "object"
     }
+
+
+# -- search_tools optional query tests --
+
+
+def test_call_tool_proxy_rejects_synthetic_names_with_warning_log_level() -> None:
+    """call_tool proxy raises ToolError(log_level=WARNING) for synthetic names.
+
+    FastMCP logs ToolError at the exception's log_level before middleware sees
+    it.  Synthetic-name rejections are LLM misuse (a 400-class error), not
+    system failures, so WARNING prevents them from reaching Sentry via the
+    ERROR-level LoggingIntegration.
+    """
+    import asyncio
+
+    from fastmcp.exceptions import ToolError as FastMCPToolError
+
+    mock_mcp = MagicMock()
+    config = {
+        "strategy": "bm25",
+        "max_results": 5,
+        "always_visible": [],
+        "search_tool_name": "search_tools",
+        "call_tool_name": "call_tool",
+    }
+    _apply_tool_search_transform(mock_mcp, config)
+    transform = mock_mcp.add_transform.call_args[0][0]
+    call_tool_obj = transform._make_call_tool()
+
+    async def _run_and_capture(name: str) -> FastMCPToolError:
+        import pytest
+
+        with pytest.raises(FastMCPToolError) as exc_info:
+            await call_tool_obj.fn(name=name, arguments=None, ctx=None)
+        return exc_info.value
+
+    for synthetic_name in ("search_tools", "call_tool"):
+        exc = asyncio.run(_run_and_capture(synthetic_name))
+        assert exc.log_level == logging.WARNING, (
+            f"Expected WARNING for '{synthetic_name}', got {exc.log_level}"
+        )
+        assert synthetic_name in str(exc)
+
+
+def test_search_tool_query_is_optional_in_schema() -> None:
+    """search_tools schema marks query optional with a flat concrete type.
+
+    The query schema must not use ``anyOf`` — MCP bridges (mcp-remote,
+    Claude Desktop) strip ``anyOf`` and leave the field typeless, the same
+    failure mode ``_fix_call_tool_arguments`` guards against.
+    """
+    mock_mcp = MagicMock()
+    config = {
+        "strategy": "bm25",
+        "max_results": 5,
+        "always_visible": [],
+        "search_tool_name": "search_tools",
+        "call_tool_name": "call_tool",
+    }
+    _apply_tool_search_transform(mock_mcp, config)
+    transform = mock_mcp.add_transform.call_args[0][0]
+    search_tool = transform._make_search_tool()
+
+    params = search_tool.parameters
+    assert "query" not in params.get("required", [])
+    query_schema = params["properties"]["query"]
+    assert query_schema["type"] == "string"
+    assert "anyOf" not in query_schema
+
+
+def test_search_tool_with_no_query_returns_all_visible_tools() -> None:
+    """search_tools returns all visible tools when called with no arguments."""
+    import asyncio
+    from unittest.mock import AsyncMock
+
+    mock_mcp = MagicMock()
+    config = {
+        "strategy": "bm25",
+        "max_results": 5,
+        "always_visible": [],
+        "search_tool_name": "search_tools",
+        "call_tool_name": "call_tool",
+    }
+    _apply_tool_search_transform(mock_mcp, config)
+    transform = mock_mcp.add_transform.call_args[0][0]
+
+    tool_a = MagicMock()
+    tool_b = MagicMock()
+    all_tools = [tool_a, tool_b]
+
+    async def run() -> list[MagicMock]:
+        transform._get_visible_tools = AsyncMock(return_value=all_tools)
+        transform._render_results = AsyncMock(return_value=[{"name": "tool_a"}])
+        search_tool = transform._make_search_tool()
+        await search_tool.run({})  # must not raise ValidationError
+        return transform._render_results.call_args[0][0]
+
+    rendered_with = asyncio.run(run())
+    assert rendered_with == all_tools
+
+
+def test_search_tool_empty_string_query_returns_all_visible_tools() -> None:
+    """An explicitly empty query is treated like an omitted one (fail open).
+
+    BM25/regex search with no search terms would rank nothing and return
+    an empty catalog — the same discovery footgun as the required-query
+    bug. Clients sending ``{"query": ""}`` to mean "list everything" get
+    the full visible catalog instead.
+    """
+    import asyncio
+    from unittest.mock import AsyncMock
+
+    mock_mcp = MagicMock()
+    config = {
+        "strategy": "bm25",
+        "max_results": 5,
+        "always_visible": [],
+        "search_tool_name": "search_tools",
+        "call_tool_name": "call_tool",
+    }
+    _apply_tool_search_transform(mock_mcp, config)
+    transform = mock_mcp.add_transform.call_args[0][0]
+
+    all_tools = [MagicMock(), MagicMock()]
+
+    async def run() -> list[MagicMock]:
+        transform._get_visible_tools = AsyncMock(return_value=all_tools)
+        transform._search = AsyncMock()
+        transform._render_results = AsyncMock(return_value=[])
+        search_tool = transform._make_search_tool()
+        await search_tool.run({"query": ""})
+        return transform._render_results.call_args[0][0]
+
+    rendered_with = asyncio.run(run())
+    assert rendered_with == all_tools
+    assert not transform._search.called
+
+
+def test_search_tool_regex_with_no_query_returns_all_visible_tools() -> None:
+    """Regex strategy returns all visible tools when called with no arguments."""
+    import asyncio
+    from unittest.mock import AsyncMock
+
+    mock_mcp = MagicMock()
+    config = {
+        "strategy": "regex",
+        "max_results": 5,
+        "always_visible": [],
+        "search_tool_name": "search_tools",
+        "call_tool_name": "call_tool",
+    }
+    _apply_tool_search_transform(mock_mcp, config)
+    transform = mock_mcp.add_transform.call_args[0][0]
+
+    all_tools = [MagicMock(), MagicMock()]
+
+    async def run() -> list[MagicMock]:
+        transform._get_visible_tools = AsyncMock(return_value=all_tools)
+        transform._render_results = AsyncMock(return_value=[])
+        search_tool = transform._make_search_tool()
+        await search_tool.run({})
+        return transform._render_results.call_args[0][0]
+
+    rendered_with = asyncio.run(run())
+    assert rendered_with == all_tools

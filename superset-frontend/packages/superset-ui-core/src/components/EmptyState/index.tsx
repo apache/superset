@@ -134,6 +134,10 @@ const ImageContainer = ({
       ? imageMap[image as keyof typeof imageMap]
       : image;
   return (
+    // Groups Empty's SVG illustration + description into one accessible
+    // image; can't be a literal <img> since it's a component tree, not an
+    // image file reference.
+    // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
     <div role="img" aria-label="empty">
       <Empty
         description={false}
@@ -167,9 +171,11 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
       {image && <ImageContainer image={image} size={size} />}
       <div
         css={(theme: SupersetTheme) => css`
-          max-width: ${containerSize === 'large'
-            ? theme.sizeUnit * 150
-            : theme.sizeUnit * 100}px;
+          max-width: ${
+            containerSize === 'large'
+              ? theme.sizeUnit * 150
+              : theme.sizeUnit * 100
+          }px;
         `}
       >
         {title && <Title size={effectiveTextSize}>{title}</Title>}

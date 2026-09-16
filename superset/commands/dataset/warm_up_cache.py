@@ -20,9 +20,13 @@ from typing import Any, Optional
 
 from superset.commands.base import BaseCommand
 from superset.commands.chart.warm_up_cache import ChartWarmUpCacheCommand
-from superset.commands.dataset.exceptions import WarmUpCacheTableNotFoundError
+from superset.commands.dataset.exceptions import (
+    DatasetAccessDeniedError,
+    WarmUpCacheTableNotFoundError,
+)
 from superset.connectors.sqla.models import SqlaTable
-from superset.extensions import db
+from superset.exceptions import SupersetSecurityException
+from superset.extensions import db, security_manager
 from superset.models.core import Database
 from superset.models.slice import Slice
 
@@ -63,6 +67,10 @@ class DatasetWarmUpCacheCommand(BaseCommand):
         ).one_or_none()
         if not table:
             raise WarmUpCacheTableNotFoundError()
+        try:
+            security_manager.raise_for_access(datasource=table)
+        except SupersetSecurityException as ex:
+            raise DatasetAccessDeniedError() from ex
         self._charts = (
             db.session.query(Slice)
             .filter_by(datasource_id=table.id, datasource_type=table.type)

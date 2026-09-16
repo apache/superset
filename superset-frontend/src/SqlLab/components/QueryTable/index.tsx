@@ -28,9 +28,10 @@ import {
 } from '@superset-ui/core/components';
 import ProgressBar from '@superset-ui/core/components/ProgressBar';
 import { t } from '@apache-superset/core/translation';
-import { QueryResponse, QueryState } from '@superset-ui/core';
+import { QueryResponse } from '@superset-ui/core';
 import { useTheme } from '@apache-superset/core/theme';
-import { shallowEqual, useDispatch, useSelector } from 'react-redux';
+import { shallowEqual, useSelector } from 'react-redux';
+import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
 
 import {
   queryEditorSetSql,
@@ -43,7 +44,7 @@ import {
 import { fDuration, extendedDayjs } from '@superset-ui/core/utils/dates';
 import { SqlLabRootState } from 'src/SqlLab/types';
 import { UserWithPermissionsAndRoles as User } from 'src/types/bootstrapTypes';
-import { makeUrl } from 'src/utils/pathUtils';
+import { openInNewTab } from 'src/utils/navigationUtils';
 import ResultSet from '../ResultSet';
 import HighlightedSql from '../HighlightedSql';
 import { StaticPosition, StyledTooltip, ModalResultSetWrapper } from './styles';
@@ -79,8 +80,7 @@ interface QueryTableProps {
 }
 
 const openQuery = (id: number) => {
-  const url = makeUrl(`/sqllab?queryId=${id}`);
-  window.open(url);
+  openInNewTab(`/sqllab?queryId=${id}`);
 };
 
 const QueryTable = ({
@@ -92,7 +92,7 @@ const QueryTable = ({
   latestQueryId,
 }: QueryTableProps) => {
   const theme = useTheme();
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const [selectedQuery, setSelectedQuery] = useState<QueryResponse | null>(
     null,
   );
@@ -406,24 +406,12 @@ const QueryTable = ({
         modalBody={
           selectedQuery ? (
             <ModalResultSetWrapper>
-              {(() => {
-                const height =
-                  reduxQueries[selectedQuery.id]?.state ===
-                    QueryState.Success &&
-                  reduxQueries[selectedQuery.id]?.results
-                    ? Math.floor(window.innerHeight * 0.5)
-                    : undefined;
-                return (
-                  <ResultSet
-                    showSql
-                    queryId={selectedQuery.id}
-                    displayLimit={displayLimit}
-                    defaultQueryLimit={1000}
-                    useFixedHeight
-                    height={height}
-                  />
-                );
-              })()}
+              <ResultSet
+                showSql
+                queryId={selectedQuery.id}
+                displayLimit={displayLimit}
+                defaultQueryLimit={1000}
+              />
             </ModalResultSetWrapper>
           ) : null
         }

@@ -26,10 +26,10 @@ import {
   isTimeComparison,
   timeCompareOperator,
 } from '@superset-ui/chart-controls';
-import { isEmpty } from 'lodash';
+import { isEmpty } from 'lodash-es';
 
 export default function buildQuery(formData: QueryFormData) {
-  const { cols: groupby } = formData;
+  const { cols: groupby, extra_form_data } = formData;
 
   const queryContextA = buildQueryContext(formData, baseQueryObject => {
     const postProcessing: PostProcessingRule[] = [];
@@ -58,14 +58,24 @@ export default function buildQuery(formData: QueryFormData) {
         timeOffsets = timeOffsets.concat(['inherit']);
       }
     }
+
+    if (
+      extra_form_data?.time_compare &&
+      !timeOffsets.includes(extra_form_data.time_compare)
+    ) {
+      timeOffsets = [extra_form_data.time_compare];
+    }
+
     return [
       {
         ...baseQueryObject,
         groupby,
         post_processing: postProcessing,
-        time_offsets: isTimeComparison(formData, baseQueryObject)
-          ? ensureIsArray(timeOffsets)
-          : [],
+        time_offsets:
+          isTimeComparison(formData, baseQueryObject) ||
+          extra_form_data?.time_compare
+            ? ensureIsArray(timeOffsets)
+            : [],
       },
     ];
   });

@@ -16,16 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import * as reactRedux from 'react-redux';
-import { act } from 'react';
+import { act, type ComponentProps } from 'react';
 import {
   cleanup,
+  createStore,
   fireEvent,
   render,
   screen,
   userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
+import reducerIndex from 'spec/helpers/reducerIndex';
 import fetchMock from 'fetch-mock';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { createDatasource } from 'src/SqlLab/actions/sqlLab';
@@ -40,6 +41,19 @@ const mockedProps = {
   datasource: testQuery,
 };
 
+// Render with the SqlLab user fixture preloaded into the mock store so the
+// component's useSelector(state => state.user) returns a useful value.
+// Previously this test used jest.spyOn(reactRedux, 'useSelector') to inject
+// the user directly, which can't intercept calls routed through the typed
+// useAppSelector hook.
+const renderModal = (
+  props: Partial<ComponentProps<typeof SaveDatasetModal>> = {},
+) =>
+  render(<SaveDatasetModal {...mockedProps} {...props} />, {
+    useRedux: true,
+    initialState: { user },
+  });
+
 fetchMock.get('glob:*/api/v1/dataset/?*', {
   result: mockdatasets,
   dataset_count: 3,
@@ -47,17 +61,23 @@ fetchMock.get('glob:*/api/v1/dataset/?*', {
 
 jest.useFakeTimers({ advanceTimers: true });
 
-// Mock the user
-const useSelectorMock = jest.spyOn(reactRedux, 'useSelector');
 beforeEach(() => {
-  useSelectorMock.mockClear();
   cleanup();
 });
 
-// Mock the createDatasource action
-const useDispatchMock = jest.spyOn(reactRedux, 'useDispatch');
+afterEach(() => {
+  // In-body restores are skipped when an assertion throws, leaking a
+  // configured spy into later tests.
+  jest.restoreAllMocks();
+});
+
+// Mock createDatasource to return a thunk that resolves with the dataset's
+// new id. The test's mock store includes redux-thunk middleware (from RTK's
+// getDefaultMiddleware), so dispatch(createDatasource(...)) properly unwraps
+// the thunk and the production code's .then((data) => clearDatasetCache(data.id))
+// chain receives `{ id: 123 }`. Individual tests can override per-call as needed.
 jest.mock('src/SqlLab/actions/sqlLab', () => ({
-  createDatasource: jest.fn(),
+  createDatasource: jest.fn(() => () => Promise.resolve({ id: 123 })),
 }));
 jest.mock('src/explore/exploreUtils/formData', () => ({
   postFormData: jest.fn(),
@@ -70,7 +90,7 @@ jest.mock('src/utils/cachedSupersetGet', () => ({
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('SaveDatasetModal', () => {
   test('renders a "Save as new" field', () => {
-    render(<SaveDatasetModal {...mockedProps} />, { useRedux: true });
+    renderModal();
 
     const saveRadioBtn = screen.getByRole('radio', {
       name: /save as new/i,
@@ -87,7 +107,7 @@ describe('SaveDatasetModal', () => {
   });
 
   test('renders an "Overwrite existing" field', () => {
-    render(<SaveDatasetModal {...mockedProps} />, { useRedux: true });
+    renderModal();
 
     const overwriteRadioBtn = screen.getByRole('radio', {
       name: /overwrite existing/i,
@@ -103,26 +123,48 @@ describe('SaveDatasetModal', () => {
   });
 
   test('renders a close button', () => {
-    render(<SaveDatasetModal {...mockedProps} />, { useRedux: true });
+    renderModal();
 
     expect(screen.getByRole('button', { name: /close/i })).toBeInTheDocument();
   });
 
   test('renders a save button when "Save as new" is selected', () => {
-    render(<SaveDatasetModal {...mockedProps} />, { useRedux: true });
+    renderModal();
 
     // "Save as new" is selected when the modal opens by default
     expect(screen.getByRole('button', { name: /save/i })).toBeInTheDocument();
   });
 
-  test('renders an overwrite button when "Overwrite existing" is selected', () => {
-    render(<SaveDatasetModal {...mockedProps} />, { useRedux: true });
+  test('disables the save button when the dataset name is empty or whitespace-only', async () => {
+    renderModal();
+
+    const nameInput = screen.getByRole('textbox');
+    const saveBtn = screen.getByRole('button', { name: /save/i });
+
+    // Default name is present, so save starts enabled
+    expect(saveBtn).toBeEnabled();
+
+    // Clearing the name disables save
+    await userEvent.clear(nameInput);
+    await waitFor(() => expect(saveBtn).toBeDisabled());
+
+    // Whitespace-only name keeps save disabled
+    await userEvent.type(nameInput, '   ');
+    await waitFor(() => expect(saveBtn).toBeDisabled());
+
+    // A non-empty name re-enables save
+    await userEvent.type(nameInput, 'My dataset');
+    await waitFor(() => expect(saveBtn).toBeEnabled());
+  });
+
+  test('renders an overwrite button when "Overwrite existing" is selected', async () => {
+    renderModal();
 
     // Click the overwrite radio button to reveal the overwrite confirmation and back buttons
     const overwriteRadioBtn = screen.getByRole('radio', {
       name: /overwrite existing/i,
     });
-    userEvent.click(overwriteRadioBtn);
+    await userEvent.click(overwriteRadioBtn);
 
     expect(
       screen.getByRole('button', { name: /overwrite/i }),
@@ -130,8 +172,7 @@ describe('SaveDatasetModal', () => {
   });
 
   test('renders the overwrite button as disabled until an existing dataset is selected', async () => {
-    useSelectorMock.mockReturnValue({ ...user });
-    render(<SaveDatasetModal {...mockedProps} />, { useRedux: true });
+    renderModal();
 
     // Click the overwrite radio button
     const overwriteRadioBtn = screen.getByRole('radio', {
@@ -168,8 +209,7 @@ describe('SaveDatasetModal', () => {
   });
 
   test('renders a confirm overwrite screen when overwrite is clicked', async () => {
-    useSelectorMock.mockReturnValue({ ...user });
-    render(<SaveDatasetModal {...mockedProps} />, { useRedux: true });
+    renderModal();
 
     // Click the overwrite radio button
     const overwriteRadioBtn = screen.getByRole('radio', {
@@ -215,11 +255,7 @@ describe('SaveDatasetModal', () => {
   });
 
   test('sends the schema when creating the dataset', async () => {
-    const dummyDispatch = jest.fn().mockResolvedValue({});
-    useDispatchMock.mockReturnValue(dummyDispatch);
-    useSelectorMock.mockReturnValue({ ...user });
-
-    render(<SaveDatasetModal {...mockedProps} />, { useRedux: true });
+    renderModal();
 
     const inputFieldText = screen.getByDisplayValue(/unimportant/i);
     fireEvent.change(inputFieldText, { target: { value: 'my dataset' } });
@@ -227,7 +263,7 @@ describe('SaveDatasetModal', () => {
     const saveConfirmationBtn = screen.getByRole('button', {
       name: /save/i,
     });
-    userEvent.click(saveConfirmationBtn);
+    await userEvent.click(saveConfirmationBtn);
 
     expect(createDatasource).toHaveBeenCalledWith({
       datasourceName: 'my dataset',
@@ -239,18 +275,26 @@ describe('SaveDatasetModal', () => {
     });
   });
 
-  test('sends the catalog when creating the dataset', async () => {
-    const dummyDispatch = jest.fn().mockResolvedValue({});
-    useDispatchMock.mockReturnValue(dummyDispatch);
-    useSelectorMock.mockReturnValue({ ...user });
+  test('trims surrounding whitespace from the dataset name on save', async () => {
+    renderModal();
 
-    render(
-      <SaveDatasetModal
-        {...mockedProps}
-        datasource={{ ...mockedProps.datasource, catalog: 'public' }}
-      />,
-      { useRedux: true },
+    const inputFieldText = screen.getByDisplayValue(/unimportant/i);
+    fireEvent.change(inputFieldText, { target: { value: '  my dataset  ' } });
+
+    const saveConfirmationBtn = screen.getByRole('button', {
+      name: /save/i,
+    });
+    await userEvent.click(saveConfirmationBtn);
+
+    expect(createDatasource).toHaveBeenCalledWith(
+      expect.objectContaining({ datasourceName: 'my dataset' }),
     );
+  });
+
+  test('sends the catalog when creating the dataset', async () => {
+    renderModal({
+      datasource: { ...mockedProps.datasource, catalog: 'public' },
+    });
 
     const inputFieldText = screen.getByDisplayValue(/unimportant/i);
     fireEvent.change(inputFieldText, { target: { value: 'my dataset' } });
@@ -258,7 +302,7 @@ describe('SaveDatasetModal', () => {
     const saveConfirmationBtn = screen.getByRole('button', {
       name: /save/i,
     });
-    userEvent.click(saveConfirmationBtn);
+    await userEvent.click(saveConfirmationBtn);
 
     expect(createDatasource).toHaveBeenCalledWith({
       datasourceName: 'my dataset',
@@ -271,7 +315,7 @@ describe('SaveDatasetModal', () => {
   });
 
   test('does not renders a checkbox button when template processing is disabled', () => {
-    render(<SaveDatasetModal {...mockedProps} />, { useRedux: true });
+    renderModal();
     expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
   });
 
@@ -280,34 +324,30 @@ describe('SaveDatasetModal', () => {
     global.featureFlags = {
       [FeatureFlag.EnableTemplateProcessing]: true,
     };
-    render(<SaveDatasetModal {...mockedProps} />, { useRedux: true });
+    renderModal();
     expect(screen.getByRole('checkbox')).toBeInTheDocument();
   });
 
-  test('correctly includes template parameters when template processing is enabled', () => {
+  test('correctly includes template parameters when template processing is enabled', async () => {
     // @ts-expect-error
     global.featureFlags = {
       [FeatureFlag.EnableTemplateProcessing]: true,
     };
-    const propsWithTemplateParam = {
-      ...mockedProps,
+    renderModal({
       datasource: {
         ...testQuery,
         templateParams: JSON.stringify({ my_param: 12 }),
       },
-    };
-    render(<SaveDatasetModal {...propsWithTemplateParam} />, {
-      useRedux: true,
     });
     const inputFieldText = screen.getByDisplayValue(/unimportant/i);
     fireEvent.change(inputFieldText, { target: { value: 'my dataset' } });
 
-    userEvent.click(screen.getByRole('checkbox'));
+    await userEvent.click(screen.getByRole('checkbox'));
 
     const saveConfirmationBtn = screen.getByRole('button', {
       name: /save/i,
     });
-    userEvent.click(saveConfirmationBtn);
+    await userEvent.click(saveConfirmationBtn);
 
     expect(createDatasource).toHaveBeenCalledWith({
       datasourceName: 'my dataset',
@@ -319,30 +359,26 @@ describe('SaveDatasetModal', () => {
     });
   });
 
-  test('correctly excludes template parameters when template processing is enabled', () => {
+  test('correctly excludes template parameters when template processing is enabled', async () => {
     // @ts-expect-error
     global.featureFlags = {
       [FeatureFlag.EnableTemplateProcessing]: true,
     };
-    const propsWithTemplateParam = {
-      ...mockedProps,
+    renderModal({
       datasource: {
         ...testQuery,
         templateParams: JSON.stringify({ my_param: 12 }),
       },
-    };
-    render(<SaveDatasetModal {...propsWithTemplateParam} />, {
-      useRedux: true,
     });
     const inputFieldText = screen.getByDisplayValue(/unimportant/i);
     fireEvent.change(inputFieldText, { target: { value: 'my dataset' } });
 
-    userEvent.click(screen.getByRole('checkbox'));
+    await userEvent.click(screen.getByRole('checkbox'));
 
     const saveConfirmationBtn = screen.getByRole('button', {
       name: /save/i,
     });
-    userEvent.click(saveConfirmationBtn);
+    await userEvent.click(saveConfirmationBtn);
 
     expect(createDatasource).toHaveBeenCalledWith({
       datasourceName: 'my dataset',
@@ -393,19 +429,11 @@ describe('SaveDatasetModal', () => {
       .spyOn(SupersetClient, 'put')
       .mockResolvedValue({ json: { result: { id: 0 } } } as any);
 
-    const dummyDispatch = jest.fn().mockResolvedValue({});
-    useDispatchMock.mockReturnValue(dummyDispatch);
-    useSelectorMock.mockReturnValue({ ...user });
-
-    const propsWithTemplateParam = {
-      ...mockedProps,
+    renderModal({
       datasource: {
         ...testQuery,
         templateParams: JSON.stringify({ my_param: 12, _filters: 'foo' }),
       },
-    };
-    render(<SaveDatasetModal {...propsWithTemplateParam} />, {
-      useRedux: true,
     });
 
     // Check the "Include Template Parameters" checkbox
@@ -443,19 +471,11 @@ describe('SaveDatasetModal', () => {
       .spyOn(SupersetClient, 'put')
       .mockResolvedValue({ json: { result: { id: 0 } } } as any);
 
-    const dummyDispatch = jest.fn().mockResolvedValue({});
-    useDispatchMock.mockReturnValue(dummyDispatch);
-    useSelectorMock.mockReturnValue({ ...user });
-
-    const propsWithTemplateParam = {
-      ...mockedProps,
+    renderModal({
       datasource: {
         ...testQuery,
         templateParams: JSON.stringify({ my_param: 12 }),
       },
-    };
-    render(<SaveDatasetModal {...propsWithTemplateParam} />, {
-      useRedux: true,
     });
 
     // Do NOT check the "Include Template Parameters" checkbox
@@ -489,12 +509,9 @@ describe('SaveDatasetModal', () => {
       'postFormData',
     );
 
-    const dummyDispatch = jest.fn().mockResolvedValue({ id: 123 });
-    useDispatchMock.mockReturnValue(dummyDispatch);
-    useSelectorMock.mockReturnValue({ ...user });
     postFormData.mockResolvedValue('chart_key_123');
 
-    render(<SaveDatasetModal {...mockedProps} />, { useRedux: true });
+    renderModal();
 
     const inputFieldText = screen.getByDisplayValue(/unimportant/i);
     fireEvent.change(inputFieldText, { target: { value: 'my dataset' } });
@@ -502,11 +519,44 @@ describe('SaveDatasetModal', () => {
     const saveConfirmationBtn = screen.getByRole('button', {
       name: /save/i,
     });
-    userEvent.click(saveConfirmationBtn);
+    await userEvent.click(saveConfirmationBtn);
 
     await waitFor(() => {
       expect(clearDatasetCache).toHaveBeenCalledWith(123);
     });
+  });
+
+  test('surfaces the error and keeps the modal open when saving fails', async () => {
+    // The chart-payload step's toast was built but never dispatched, so a
+    // failure there was silent.
+    const postFormData = jest.spyOn(
+      require('src/explore/exploreUtils/formData'),
+      'postFormData',
+    );
+    postFormData.mockRejectedValue(new Error('Boom'));
+    const onHide = jest.fn();
+    const store = createStore({ user }, reducerIndex);
+
+    render(<SaveDatasetModal {...mockedProps} onHide={onHide} />, { store });
+
+    fireEvent.change(screen.getByDisplayValue(/unimportant/i), {
+      target: { value: 'my dataset' },
+    });
+    await userEvent.click(screen.getByRole('button', { name: /save/i }));
+
+    // `createStore` builds its reducer map at runtime, so state isn't typed.
+    const toasts = () =>
+      (
+        store.getState() as unknown as {
+          messageToasts: { toastType: string }[];
+        }
+      ).messageToasts;
+
+    await waitFor(() => {
+      expect(toasts()).toHaveLength(1);
+    });
+    expect(toasts()[0].toastType).toBe('DANGER_TOAST');
+    expect(onHide).not.toHaveBeenCalled();
   });
 
   test('clearDatasetCache is imported and available', () => {

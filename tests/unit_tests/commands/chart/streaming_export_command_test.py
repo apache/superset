@@ -25,7 +25,10 @@ from superset.commands.chart.data.streaming_export_command import (
 
 
 def _setup_chart_mocks(
-    mocker: MockerFixture, sql: str = "SELECT * FROM test"
+    mocker: MockerFixture,
+    sql: str = "SELECT * FROM test",
+    catalog: str | None = None,
+    schema: str | None = None,
 ) -> tuple[MockerFixture, MockerFixture, MockerFixture]:
     """Set up common mocks for chart streaming export tests."""
     mock_db = mocker.patch("superset.commands.streaming_export.base.db")
@@ -36,6 +39,11 @@ def _setup_chart_mocks(
     datasource = mocker.MagicMock()
     datasource.get_query_str.return_value = sql
     datasource.database = mocker.MagicMock()
+    datasource.database.mutate_sql_based_on_config.side_effect = (
+        lambda sql_, **kwargs: sql_
+    )
+    datasource.catalog = catalog
+    datasource.schema = schema
     query_context.datasource = datasource
     query_context.queries = [mocker.MagicMock()]
     mock_session.merge.return_value = datasource.database
@@ -160,6 +168,42 @@ def test_csv_generation_with_special_characters(mocker: MockerFixture) -> None:
     assert '"Comma,Value"' in csv_data
 
 
+def test_csv_generation_escapes_formula_prefixes(mocker: MockerFixture) -> None:
+    """Streaming CSV must escape formula prefixes like the batch export path."""
+    mock_db, query_context, datasource = _setup_chart_mocks(mocker)
+
+    mock_result = mocker.MagicMock()
+    mock_result.keys.return_value = ["=header", "name"]
+    mock_result.fetchmany.side_effect = [
+        [("=cmd|' /C calc'!A0", "safe"), ("+SUM(A1:A2)", "@evil")],
+        [],
+    ]
+
+    mock_connection = mocker.MagicMock()
+    mock_connection.execution_options.return_value.execute.return_value = mock_result
+    mock_connection.__enter__.return_value = mock_connection
+    mock_connection.__exit__.return_value = None
+
+    mock_engine = mocker.MagicMock()
+    mock_engine.connect.return_value = mock_connection
+    datasource.database.get_sqla_engine.return_value.__enter__.return_value = (
+        mock_engine
+    )
+
+    command = StreamingCSVExportCommand(query_context, chunk_size=10)
+    csv_generator_callable = command.run()
+    csv_data = "".join(csv_generator_callable())
+
+    lines = [line.strip() for line in csv_data.strip().split("\n")]
+    # Header cell is escaped too
+    assert lines[0] == "'=header,name"
+    # Formula-prefixed cells are neutralized ('-prefixed, pipe escaped)
+    assert "'=cmd\\|' /C calc'!A0" in csv_data
+    assert "\n=cmd" not in csv_data
+    assert "'+SUM(A1:A2)" in csv_data
+    assert "'@evil" in csv_data
+
+
 def test_streaming_with_null_values(mocker: MockerFixture) -> None:
     """Test CSV generation handles NULL values correctly."""
     mock_db, query_context, datasource = _setup_chart_mocks(mocker)
@@ -256,3 +300,81 @@ def test_empty_result_set(mocker: MockerFixture) -> None:
     lines = [line.strip() for line in csv_data.strip().split("\n")]
     assert len(lines) == 1
     assert lines[0] == "col1,col2"
+
+
+def test_catalog_and_schema_passed_to_engine(mocker: MockerFixture) -> None:
+    """Test that catalog and schema are forwarded to get_sqla_engine.
+
+    Prequeries (e.g. SET search_path for PostgreSQL) are now run automatically
+    via a connect event listener registered inside get_sqla_engine, not by the
+    streaming command itself.
+    """
+    mock_db, query_context, datasource = _setup_chart_mocks(
+        mocker, catalog="my_catalog", schema="my_schema"
+    )
+
+    mock_result = mocker.MagicMock()
+    mock_result.keys.return_value = ["col1"]
+    mock_result.fetchmany.side_effect = [[("val",)], []]
+
+    mock_connection = mocker.MagicMock()
+    mock_connection.execution_options.return_value.execute.return_value = mock_result
+    mock_connection.__enter__.return_value = mock_connection
+    mock_connection.__exit__.return_value = None
+
+    mock_engine = mocker.MagicMock()
+    mock_engine.connect.return_value = mock_connection
+    datasource.database.get_sqla_engine.return_value.__enter__.return_value = (
+        mock_engine
+    )
+
+    command = StreamingCSVExportCommand(query_context)
+    list(command.run()())
+
+    datasource.database.get_sqla_engine.assert_called_once_with(
+        catalog="my_catalog",
+        schema="my_schema",
+    )
+
+
+def test_streaming_export_mutation_does_not_double_apply(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Regression test for a bug caught in review of apache/superset#40465's fix:
+    ``datasource.get_query_str()`` (used to build the SQL for chart streaming
+    exports) already runs it through
+    ``Database.mutate_sql_based_on_config(sql)`` -- with ``is_split=False`` --
+    upstream in ``get_query_str_extended``. If
+    ``_execute_query_and_stream`` mutated again with the same default
+    ``is_split=False``, a ``SQL_QUERY_MUTATOR`` would run twice under the
+    default ``MUTATE_AFTER_SPLIT=False`` config, and never run at all under
+    ``MUTATE_AFTER_SPLIT=True`` (since neither call would use
+    ``is_split=True``). Passing ``is_split=True`` here is the complement of
+    the upstream call, so exactly one of the two fires for either setting.
+    """
+    mock_db, query_context, datasource = _setup_chart_mocks(
+        mocker, sql="SELECT * FROM test /* mutated */"
+    )
+
+    mock_result = mocker.MagicMock()
+    mock_result.keys.return_value = ["col1"]
+    mock_result.fetchmany.side_effect = [[("val",)], []]
+
+    mock_connection = mocker.MagicMock()
+    mock_connection.execution_options.return_value.execute.return_value = mock_result
+    mock_connection.__enter__.return_value = mock_connection
+    mock_connection.__exit__.return_value = None
+
+    mock_engine = mocker.MagicMock()
+    mock_engine.connect.return_value = mock_connection
+    datasource.database.get_sqla_engine.return_value.__enter__.return_value = (
+        mock_engine
+    )
+
+    command = StreamingCSVExportCommand(query_context)
+    list(command.run()())
+
+    datasource.database.mutate_sql_based_on_config.assert_called_once_with(
+        "SELECT * FROM test /* mutated */", is_split=True
+    )

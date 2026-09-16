@@ -19,6 +19,7 @@
 
 import { Page } from '@playwright/test';
 import { Button, Select } from '../components/core';
+import { gotoWithRetry } from '../helpers/navigation';
 
 /**
  * Create Dataset Page object for the dataset creation wizard.
@@ -75,7 +76,7 @@ export class CreateDatasetPage {
    * Navigate to the create dataset page
    */
   async goto(): Promise<void> {
-    await this.page.goto('dataset/add/');
+    await gotoWithRetry(this.page, 'dataset/add/');
   }
 
   /**

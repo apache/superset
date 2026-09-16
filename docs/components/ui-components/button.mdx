@@ -16,12 +16,18 @@
     specific language governing permissions and limitations
     under the License.
 -->
----
-title: Button Component
-sidebar_position: 1
+
 ---
 
-import { StoryExample, StoryWithControls } from '../../src/components/StorybookWrapper';
+title: Button Component
+sidebar_position: 1
+
+---
+
+import {
+  StoryExample,
+  StoryWithControls,
+} from '../../src/components/StorybookWrapper';
 import { Button } from '../../../superset-frontend/packages/superset-ui-core/src/components/Button';
 
 # Button Component
@@ -31,6 +37,7 @@ The Button component is a fundamental UI element used throughout Superset for us
 ## Basic Usage
 
 The default button with primary styling:
+
 <StoryExample
   component={() => (
     <Button buttonStyle="primary" onClick={() => console.log('Clicked!')}>
@@ -56,47 +63,57 @@ The default button with primary styling:
     buttonStyle: 'primary',
     buttonSize: 'default',
     label: 'Click Me',
-    disabled: false
+    disabled: false,
   }}
   controls={[
     {
       name: 'buttonStyle',
       label: 'Button Style',
       type: 'select',
-      options: ['primary', 'secondary', 'tertiary', 'success', 'warning', 'danger', 'default', 'link', 'dashed']
+      options: [
+        'primary',
+        'secondary',
+        'tertiary',
+        'success',
+        'warning',
+        'danger',
+        'default',
+        'link',
+        'dashed',
+      ],
     },
     {
       name: 'buttonSize',
       label: 'Button Size',
       type: 'select',
-      options: ['default', 'small', 'xsmall']
+      options: ['default', 'small', 'xsmall'],
     },
     {
       name: 'label',
       label: 'Button Text',
-      type: 'text'
+      type: 'text',
     },
     {
       name: 'disabled',
       label: 'Disabled',
-      type: 'boolean'
-    }
+      type: 'boolean',
+    },
   ]}
 />
 
 ## Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `buttonStyle` | `'primary' \| 'secondary' \| 'tertiary' \| 'success' \| 'warning' \| 'danger' \| 'default' \| 'link' \| 'dashed'` | `'default'` | Button style |
-| `buttonSize` | `'default' \| 'small' \| 'xsmall'` | `'default'` | Button size |
-| `disabled` | `boolean` | `false` | Whether the button is disabled |
-| `cta` | `boolean` | `false` | Whether the button is a call-to-action button |
-| `tooltip` | `ReactNode` | - | Tooltip content |
-| `placement` | `TooltipProps['placement']` | - | Tooltip placement |
-| `onClick` | `function` | - | Callback when button is clicked |
-| `href` | `string` | - | Turns button into an anchor link |
-| `target` | `string` | - | Target attribute for anchor links |
+| Prop          | Type                                                                                                              | Default     | Description                                   |
+| ------------- | ----------------------------------------------------------------------------------------------------------------- | ----------- | --------------------------------------------- |
+| `buttonStyle` | `'primary' \| 'secondary' \| 'tertiary' \| 'success' \| 'warning' \| 'danger' \| 'default' \| 'link' \| 'dashed'` | `'default'` | Button style                                  |
+| `buttonSize`  | `'default' \| 'small' \| 'xsmall'`                                                                                | `'default'` | Button size                                   |
+| `disabled`    | `boolean`                                                                                                         | `false`     | Whether the button is disabled                |
+| `cta`         | `boolean`                                                                                                         | `false`     | Whether the button is a call-to-action button |
+| `tooltip`     | `ReactNode`                                                                                                       | -           | Tooltip content                               |
+| `placement`   | `TooltipProps['placement']`                                                                                       | -           | Tooltip placement                             |
+| `onClick`     | `function`                                                                                                        | -           | Callback when button is clicked               |
+| `href`        | `string`                                                                                                          | -           | Turns button into an anchor link              |
+| `target`      | `string`                                                                                                          | -           | Target attribute for anchor links             |
 
 ## Usage
 
@@ -105,10 +122,7 @@ import Button from 'src/components/Button';
 
 function MyComponent() {
   return (
-    <Button
-      buttonStyle="primary"
-      onClick={() => console.log('Button clicked')}
-    >
+    <Button buttonStyle="primary" onClick={() => console.log('Button clicked')}>
       Click Me
     </Button>
   );

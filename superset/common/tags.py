@@ -32,11 +32,9 @@ def add_types_to_charts(
 
     charts = (
         select(
-            [
-                tag.c.id.label("tag_id"),
-                slices.c.id.label("object_id"),
-                literal(ObjectType.chart.name).label("object_type"),
-            ]
+            tag.c.id.label("tag_id"),
+            slices.c.id.label("object_id"),
+            literal(ObjectType.chart.name).label("object_type"),
         )
         .select_from(
             join(
@@ -64,11 +62,9 @@ def add_types_to_dashboards(
 
     dashboards = (
         select(
-            [
-                tag.c.id.label("tag_id"),
-                dashboard_table.c.id.label("object_id"),
-                literal(ObjectType.dashboard.name).label("object_type"),
-            ]
+            tag.c.id.label("tag_id"),
+            dashboard_table.c.id.label("object_id"),
+            literal(ObjectType.dashboard.name).label("object_type"),
         )
         .select_from(
             join(
@@ -96,11 +92,9 @@ def add_types_to_saved_queries(
 
     saved_queries = (
         select(
-            [
-                tag.c.id.label("tag_id"),
-                saved_query.c.id.label("object_id"),
-                literal(ObjectType.query.name).label("object_type"),
-            ]
+            tag.c.id.label("tag_id"),
+            saved_query.c.id.label("object_id"),
+            literal(ObjectType.query.name).label("object_type"),
         )
         .select_from(
             join(
@@ -128,11 +122,9 @@ def add_types_to_datasets(
 
     datasets = (
         select(
-            [
-                tag.c.id.label("tag_id"),
-                tables.c.id.label("object_id"),
-                literal(ObjectType.dataset.name).label("object_type"),
-            ]
+            tag.c.id.label("tag_id"),
+            tables.c.id.label("object_id"),
+            literal(ObjectType.dataset.name).label("object_type"),
         )
         .select_from(
             join(
@@ -238,18 +230,16 @@ def add_owners_to_charts(
 
     charts = (
         select(
-            [
-                tag.c.id.label("tag_id"),
-                slices.c.id.label("object_id"),
-                literal(ObjectType.chart.name).label("object_type"),
-            ]
+            tag.c.id.label("tag_id"),
+            slices.c.id.label("object_id"),
+            literal(ObjectType.chart.name).label("object_type"),
         )
         .select_from(
             join(
                 join(
                     slices,
                     tag,
-                    tag.c.name == "owner:" + slices.c.created_by_fk,
+                    tag.c.name == "editor:" + slices.c.created_by_fk,
                 ),
                 tagged_object,
                 and_(
@@ -274,18 +264,16 @@ def add_owners_to_dashboards(
 
     dashboards = (
         select(
-            [
-                tag.c.id.label("tag_id"),
-                dashboard_table.c.id.label("object_id"),
-                literal(ObjectType.dashboard.name).label("object_type"),
-            ]
+            tag.c.id.label("tag_id"),
+            dashboard_table.c.id.label("object_id"),
+            literal(ObjectType.dashboard.name).label("object_type"),
         )
         .select_from(
             join(
                 join(
                     dashboard_table,
                     tag,
-                    tag.c.name == "owner:" + dashboard_table.c.created_by_fk,
+                    tag.c.name == "editor:" + dashboard_table.c.created_by_fk,
                 ),
                 tagged_object,
                 and_(
@@ -310,18 +298,16 @@ def add_owners_to_saved_queries(
 
     saved_queries = (
         select(
-            [
-                tag.c.id.label("tag_id"),
-                saved_query.c.id.label("object_id"),
-                literal(ObjectType.query.name).label("object_type"),
-            ]
+            tag.c.id.label("tag_id"),
+            saved_query.c.id.label("object_id"),
+            literal(ObjectType.query.name).label("object_type"),
         )
         .select_from(
             join(
                 join(
                     saved_query,
                     tag,
-                    tag.c.name == "owner:" + saved_query.c.created_by_fk,
+                    tag.c.name == "editor:" + saved_query.c.created_by_fk,
                 ),
                 tagged_object,
                 and_(
@@ -346,18 +332,16 @@ def add_owners_to_datasets(
 
     datasets = (
         select(
-            [
-                tag.c.id.label("tag_id"),
-                tables.c.id.label("object_id"),
-                literal(ObjectType.dataset.name).label("object_type"),
-            ]
+            tag.c.id.label("tag_id"),
+            tables.c.id.label("object_id"),
+            literal(ObjectType.dataset.name).label("object_type"),
         )
         .select_from(
             join(
                 join(
                     tables,
                     tag,
-                    tag.c.name == "owner:" + tables.c.created_by_fk,
+                    tag.c.name == "editor:" + tables.c.created_by_fk,
                 ),
                 tagged_object,
                 and_(
@@ -377,7 +361,7 @@ def add_owners_to_datasets(
 
 def add_owners(metadata: MetaData) -> None:
     """
-    Tag every object according to its owner:
+    Tag every object according to its editor:
 
       INSERT INTO tagged_object (tag_id, object_id, object_type)
       SELECT
@@ -386,7 +370,7 @@ def add_owners(metadata: MetaData) -> None:
         'chart' AS object_type
       FROM slices
       JOIN tag
-      ON tag.name = CONCAT('owner:', slices.created_by_fk)
+      ON tag.name = CONCAT('editor:', slices.created_by_fk)
       LEFT OUTER JOIN tagged_object
         ON tagged_object.tag_id = tag.id
         AND tagged_object.object_id = slices.id
@@ -399,7 +383,7 @@ def add_owners(metadata: MetaData) -> None:
         'dashboard' AS object_type
       FROM dashboards
       JOIN tag
-      ON tag.name = CONCAT('owner:', dashboards.created_by_fk)
+      ON tag.name = CONCAT('editor:', dashboards.created_by_fk)
       LEFT OUTER JOIN tagged_object
         ON tagged_object.tag_id = tag.id
         AND tagged_object.object_id = dashboards.id
@@ -412,7 +396,7 @@ def add_owners(metadata: MetaData) -> None:
         'query' AS object_type
       FROM saved_query
       JOIN tag
-      ON tag.name = CONCAT('owner:', saved_query.created_by_fk)
+      ON tag.name = CONCAT('editor:', saved_query.created_by_fk)
       LEFT OUTER JOIN tagged_object
         ON tagged_object.tag_id = tag.id
         AND tagged_object.object_id = saved_query.id
@@ -425,7 +409,7 @@ def add_owners(metadata: MetaData) -> None:
         'dataset' AS object_type
       FROM tables
       JOIN tag
-      ON tag.name = CONCAT('owner:', tables.created_by_fk)
+      ON tag.name = CONCAT('editor:', tables.created_by_fk)
       LEFT OUTER JOIN tagged_object
         ON tagged_object.tag_id = tag.id
         AND tagged_object.object_id = tables.id
@@ -440,11 +424,11 @@ def add_owners(metadata: MetaData) -> None:
     columns = ["tag_id", "object_id", "object_type"]
 
     # create a custom tag for each user
-    ids = select([users.c.id])
+    ids = select(users.c.id)
     insert = tag.insert()
     for (id_,) in db.session.execute(ids):
         with contextlib.suppress(IntegrityError):  # already exists
-            db.session.execute(insert, name=f"owner:{id_}", type=TagType.owner)
+            db.session.execute(insert, name=f"editor:{id_}", type=TagType.editor)
     add_owners_to_charts(metadata, tag, tagged_object, columns)
     add_owners_to_dashboards(metadata, tag, tagged_object, columns)
     add_owners_to_saved_queries(metadata, tag, tagged_object, columns)
@@ -478,18 +462,16 @@ def add_favorites(metadata: MetaData) -> None:
     columns = ["tag_id", "object_id", "object_type"]
 
     # create a custom tag for each user
-    ids = select([users.c.id])
+    ids = select(users.c.id)
     insert = tag.insert()
     for (id_,) in db.session.execute(ids):
         with contextlib.suppress(IntegrityError):  # already exists
             db.session.execute(insert, name=f"favorited_by:{id_}", type=TagType.type)
     favstars = (
         select(
-            [
-                tag.c.id.label("tag_id"),
-                favstar.c.obj_id.label("object_id"),
-                func.lower(favstar.c.class_name).label("object_type"),
-            ]
+            tag.c.id.label("tag_id"),
+            favstar.c.obj_id.label("object_id"),
+            func.lower(favstar.c.class_name).label("object_type"),
         )
         .select_from(
             join(

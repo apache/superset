@@ -37,7 +37,7 @@
  * ```
  */
 
-import { Disposable } from '../common';
+import { Disposable, Event } from '../common';
 
 /**
  * Represents a menu item that links a view to a command.
@@ -102,3 +102,37 @@ export declare function registerMenuItem(
  * ```
  */
 export declare function getMenu(location: string): Menu | undefined;
+
+/**
+ * Event fired when a menu item is registered.
+ */
+export interface MenuItemRegisteredEvent {
+  /** The menu item that was registered. */
+  item: MenuItem;
+  /** The location where the item was registered. */
+  location: string;
+  /** The group the item was placed in. */
+  group: 'primary' | 'secondary' | 'context';
+}
+
+/**
+ * Event fired when a menu item is unregistered.
+ */
+export interface MenuItemUnregisteredEvent {
+  /** The menu item that was unregistered. */
+  item: MenuItem;
+  /** The location where the item was registered. */
+  location: string;
+  /** The group the item was placed in. */
+  group: 'primary' | 'secondary' | 'context';
+}
+
+/**
+ * Event fired when a menu item is registered.
+ */
+export declare const onDidRegisterMenuItem: Event<MenuItemRegisteredEvent>;
+
+/**
+ * Event fired when a menu item is unregistered.
+ */
+export declare const onDidUnregisterMenuItem: Event<MenuItemUnregisteredEvent>;

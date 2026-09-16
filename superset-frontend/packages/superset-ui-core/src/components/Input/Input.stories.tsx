@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import type { StoryObj } from '@storybook/react';
+import type { StoryObj } from '@storybook/react-webpack5';
 import { Input, InputNumber } from '.';
 import type { InputProps, InputNumberProps, TextAreaProps } from './types';
 

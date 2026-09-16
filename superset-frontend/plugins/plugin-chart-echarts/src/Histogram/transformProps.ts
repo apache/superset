@@ -20,7 +20,7 @@ import type { ComposeOption } from 'echarts/core';
 import type { BarSeriesOption } from 'echarts/charts';
 import type { GridComponentOption } from 'echarts/components';
 import type { CallbackDataParams } from 'echarts/types/src/util/types';
-import { isEmpty } from 'lodash';
+import { isEmpty } from 'lodash-es';
 import {
   CategoricalColorNamespace,
   NumberFormats,
@@ -79,7 +79,7 @@ export default function transformProps(
   const yAxisFormatter = formatter(yAxisFormat);
 
   const percentFormatter = getPercentFormatter(NumberFormats.PERCENT_2_POINT);
-  const groupbySet = new Set(groupby);
+  const groupbySet = new Set(groupby.map(getColumnLabel));
   const xAxisData: string[] = Object.keys(data[0])
     .filter(key => !groupbySet.has(key))
     .map(key => {

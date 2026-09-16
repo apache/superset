@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { cloneDeep } from 'lodash';
+import { cloneDeep } from 'lodash-es';
 import CategoricalColorScale from './CategoricalColorScale';
 import { ColorsLookup } from './types';
 import getCategoricalSchemeRegistry from './CategoricalSchemeRegistrySingleton';
