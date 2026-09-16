@@ -633,6 +633,12 @@ exception raised inside it aborts the chart or dashboard creation. Keep it
 fast and side-effect-light, and avoid raising unless you intend to cancel
 the creation.
 
+The hook fires for any chart or dashboard created through the REST API
+(including Explore's Save As) and for blank dashboards created from the UI's
+"+ New dashboard" button. MCP-generated charts go through the same path, but
+MCP-generated dashboards currently build the dashboard directly and skip the
+hook.
+
 ## Carrying extra data through chart and dashboard exports
 
 Deployments often attach their own metadata to charts and dashboards — an owning
