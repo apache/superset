@@ -218,7 +218,7 @@ class BaseReportScheduleCommand(BaseCommand):
                 anchor_list: list[str] = json.loads(anchor)
                 if _invalid_tab_ids := set(anchor_list) - set(position_data.keys()):
                     invalid_tab_ids.update(_invalid_tab_ids)
-            except json.JSONDecodeError:
+            except (json.JSONDecodeError, TypeError):
                 if anchor not in position_data:
                     invalid_tab_ids.add(anchor)
 
