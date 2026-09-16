@@ -47,9 +47,19 @@ class ExportModelsCommand(BaseCommand):
     dao: type[BaseDAO[Model]] = BaseDAO
     not_found: type[CommandException] = CommandException
 
-    def __init__(self, model_ids: list[int], export_related: bool = True):
+    def __init__(
+        self,
+        model_ids: list[int],
+        export_related: bool = True,
+        include_deleted: bool = False,
+    ):
         self.model_ids = model_ids
         self.export_related = export_related
+        # Soft-deleted rows are hidden from ``find_by_ids`` by the visibility
+        # filter. Nested exports set this so a parent asset that sits in the
+        # trash still reaches the bundle, keeping the bundle's internal
+        # references resolvable; the base (permission) filter still applies.
+        self.include_deleted = include_deleted
 
         # this will be set when calling validate()
         self._models: list[Model] = []
@@ -104,6 +114,9 @@ class ExportModelsCommand(BaseCommand):
                     seen.add(file_name)
 
     def validate(self) -> None:
-        self._models = self.dao.find_by_ids(self.model_ids)
+        self._models = self.dao.find_by_ids(
+            self.model_ids,
+            skip_visibility_filter=self.include_deleted,
+        )
         if len(self._models) != len(self.model_ids):
             raise self.not_found()
