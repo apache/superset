@@ -636,30 +636,104 @@ test('clears undo history after hydrating the dashboard', async () => {
 // ---------------------------------------------------------------------------
 
 test('restores native filter state from localStorage when no URL key is present', async () => {
-  const savedMask = {
-    'NATIVE_FILTER-abc123': {
-      filterState: { value: ['California'] },
-      extraFormData: {
-        filters: [{ col: 'state', op: 'IN', val: ['California'] }],
+  // Versioned format: { dataMask, filterDefinitions }. The current code rejects
+  // unversioned entries (ID-only check) since the key has not shipped yet.
+  const savedVersioned = {
+    dataMask: {
+      'NATIVE_FILTER-abc123': {
+        filterState: { value: ['California'] },
+        extraFormData: {
+          filters: [{ col: 'state', op: 'IN', val: ['California'] }],
+        },
+      },
+    },
+    filterDefinitions: {
+      'NATIVE_FILTER-abc123': {
+        targets: [{ column: { name: 'state' } }],
+        type: 'filter_select',
       },
     },
   };
+  // Authenticated user — key format: dashboard__native_filters__{userId}__{dashboardId}
   localStorage.setItem(
-    'dashboard__native_filters__1',
-    JSON.stringify(savedMask),
+    'dashboard__native_filters__42__1',
+    JSON.stringify(savedVersioned),
   );
 
-  // Include the filter ID in native_filter_configuration so the validation
-  // added to prevent stale-config restores accepts the stored entry.
+  // Include the filter ID (with matching targets/type) so versioned validation passes.
   mockUseDashboard.mockReturnValue({
     result: {
       ...mockDashboard,
       metadata: {
-        native_filter_configuration: [{ id: 'NATIVE_FILTER-abc123' }],
+        native_filter_configuration: [
+          {
+            id: 'NATIVE_FILTER-abc123',
+            filterType: 'filter_select',
+            targets: [{ column: { name: 'state' } }],
+          },
+        ],
       },
     },
     error: null,
   });
+
+  render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="1" />
+    </Suspense>,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: {
+        dashboardInfo: { id: 1, metadata: {} },
+        dashboardState: { sliceIds: [] },
+        nativeFilters: { filters: {} },
+        dataMask: {},
+        user: { userId: 42 },
+      },
+    },
+  );
+
+  await waitFor(() => {
+    expect(screen.queryByText('loading')).not.toBeInTheDocument();
+  });
+
+  expect(hydrateDashboard).toHaveBeenCalledWith(
+    expect.objectContaining({
+      dataMask: expect.objectContaining({
+        'NATIVE_FILTER-abc123': expect.objectContaining({
+          filterState: { value: ['California'] },
+        }),
+      }),
+    }),
+  );
+
+  localStorage.removeItem('dashboard__native_filters__42__1');
+});
+
+test('skips localStorage restore for guest/embedded users (userId is undefined)', async () => {
+  // Guest users have no stable identity; reading localStorage could share
+  // filter state across different guest-token sessions, so the restore path
+  // must be skipped entirely when userId is null/undefined.
+  const savedVersioned = {
+    dataMask: {
+      'NATIVE_FILTER-guest': {
+        filterState: { value: ['SomeValue'] },
+        extraFormData: {},
+      },
+    },
+    filterDefinitions: {
+      'NATIVE_FILTER-guest': {
+        targets: [{ column: { name: 'col' } }],
+        type: 'filter_select',
+      },
+    },
+  };
+  // Write under the guest (dashboard-only) key — should never be read.
+  localStorage.setItem(
+    'dashboard__native_filters__1',
+    JSON.stringify(savedVersioned),
+  );
 
   render(
     <Suspense fallback="loading">
@@ -682,39 +756,47 @@ test('restores native filter state from localStorage when no URL key is present'
     expect(screen.queryByText('loading')).not.toBeInTheDocument();
   });
 
+  // dataMask should be empty — guest users skip localStorage restoration
   expect(hydrateDashboard).toHaveBeenCalledWith(
-    expect.objectContaining({
-      dataMask: expect.objectContaining({
-        'NATIVE_FILTER-abc123': expect.objectContaining({
-          filterState: { value: ['California'] },
-        }),
-      }),
-    }),
+    expect.objectContaining({ dataMask: {} }),
   );
 
   localStorage.removeItem('dashboard__native_filters__1');
 });
 
 test('scopes localStorage key to userId when user is authenticated', async () => {
-  const savedMask = {
-    'NATIVE_FILTER-xyz': {
-      filterState: { value: ['2024'] },
-      extraFormData: {},
+  const savedVersioned = {
+    dataMask: {
+      'NATIVE_FILTER-xyz': {
+        filterState: { value: ['2024'] },
+        extraFormData: {},
+      },
+    },
+    filterDefinitions: {
+      'NATIVE_FILTER-xyz': {
+        targets: [{ column: { name: 'year' } }],
+        type: 'filter_select',
+      },
     },
   };
   // key is scoped to userId=7 and dashboardId=1
   localStorage.setItem(
     'dashboard__native_filters__7__1',
-    JSON.stringify(savedMask),
+    JSON.stringify(savedVersioned),
   );
 
-  // Include the filter ID in native_filter_configuration so the validation
-  // added to prevent stale-config restores accepts the stored entry.
+  // Include the filter ID in native_filter_configuration so versioned validation passes.
   mockUseDashboard.mockReturnValue({
     result: {
       ...mockDashboard,
       metadata: {
-        native_filter_configuration: [{ id: 'NATIVE_FILTER-xyz' }],
+        native_filter_configuration: [
+          {
+            id: 'NATIVE_FILTER-xyz',
+            filterType: 'filter_select',
+            targets: [{ column: { name: 'year' } }],
+          },
+        ],
       },
     },
     error: null,
@@ -811,7 +893,7 @@ test('does not restore localStorage filters when a nativeFiltersKey is in the UR
 test('ignores corrupted localStorage data (array) and uses empty dataMask', async () => {
   // An array is not a valid dataMask shape and must be rejected
   localStorage.setItem(
-    'dashboard__native_filters__1',
+    'dashboard__native_filters__42__1',
     JSON.stringify([1, 2, 3]),
   );
 
@@ -827,7 +909,7 @@ test('ignores corrupted localStorage data (array) and uses empty dataMask', asyn
         dashboardState: { sliceIds: [] },
         nativeFilters: { filters: {} },
         dataMask: {},
-        user: { userId: undefined },
+        user: { userId: 42 },
       },
     },
   );
@@ -841,7 +923,7 @@ test('ignores corrupted localStorage data (array) and uses empty dataMask', asyn
     expect.objectContaining({ dataMask: {} }),
   );
 
-  localStorage.removeItem('dashboard__native_filters__1');
+  localStorage.removeItem('dashboard__native_filters__42__1');
 });
 
 test('restores versioned localStorage filters and drops them if targets change', async () => {
@@ -862,8 +944,9 @@ test('restores versioned localStorage filters and drops them if targets change',
     },
   };
 
+  // Use an authenticated user key — restoration skips unauthenticated users.
   localStorage.setItem(
-    'dashboard__native_filters__1',
+    'dashboard__native_filters__5__1',
     JSON.stringify(savedVersionedData),
   );
 
@@ -896,6 +979,7 @@ test('restores versioned localStorage filters and drops them if targets change',
         dashboardState: { sliceIds: [] },
         nativeFilters: { filters: {} },
         dataMask: {},
+        user: { userId: 5 },
       },
     },
   );
@@ -940,6 +1024,7 @@ test('restores versioned localStorage filters and drops them if targets change',
         dashboardState: { sliceIds: [] },
         nativeFilters: { filters: {} },
         dataMask: {},
+        user: { userId: 5 },
       },
     },
   );
@@ -953,5 +1038,5 @@ test('restores versioned localStorage filters and drops them if targets change',
     }),
   );
 
-  localStorage.removeItem('dashboard__native_filters__1');
+  localStorage.removeItem('dashboard__native_filters__5__1');
 });

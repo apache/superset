@@ -291,7 +291,11 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
         }
       } else if (nativeFilterKeyValue) {
         dataMask = await getFilterValue(id, nativeFilterKeyValue);
-      } else {
+      } else if (userId != null) {
+        // Skip localStorage restore for unauthenticated/guest users: they have
+        // no stable identity and reading localStorage here would share filter
+        // state across different guest-token sessions. Use != null (not !!userId)
+        // so a valid userId of 0 is not treated as anonymous.
         const savedFilters = getSavedDashboardFilters(id, userId);
         // Guard against corrupted or unexpected localStorage data shapes
         // (e.g. a JSON array or primitive) before assigning to dataMask.
@@ -300,49 +304,72 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
           typeof savedFilters === 'object' &&
           !Array.isArray(savedFilters)
         ) {
+          // Reject unversioned entries: the storage key has not shipped, so
+          // there are no legitimate unversioned values in the wild. Falling
+          // back to an ID-only check on an unversioned entry would restore
+          // stale extraFormData for any retargeted filter, so we discard it
+          // outright and let the dashboard open with its configured defaults.
           const isVersioned =
             'dataMask' in savedFilters && 'filterDefinitions' in savedFilters;
-          const maskToRestore = isVersioned
-            ? savedFilters.dataMask
-            : savedFilters;
-          const savedDefinitions = isVersioned
-            ? savedFilters.filterDefinitions
-            : {};
+          if (!isVersioned) {
+            // Nothing to restore — proceed with URL/default state
+          } else {
+            const maskToRestore = savedFilters.dataMask;
+            const savedDefinitions = savedFilters.filterDefinitions;
 
-          const currentFilters = (dashboard?.metadata
-            ?.native_filter_configuration ?? []) as NativeFilterConfigEntry[];
+            // Validate that the nested dataMask itself is a non-null plain
+            // object before calling Object.entries. A versioned entry whose
+            // dataMask field is null (e.g. corrupted storage) would otherwise
+            // throw here and prevent the dashboard from hydrating.
+            if (
+              maskToRestore != null &&
+              typeof maskToRestore === 'object' &&
+              !Array.isArray(maskToRestore)
+            ) {
+              // Filter out any null/falsey legacy entries in
+              // native_filter_configuration before looking up IDs, to avoid
+              // dereferencing null when a dashboard has legacy null config rows.
+              const currentFilters = (
+                (dashboard?.metadata?.native_filter_configuration ??
+                  []) as Array<NativeFilterConfigEntry | null | undefined>
+              ).filter(
+                (f): f is NativeFilterConfigEntry => f != null && !!f.id,
+              );
 
-          // Only restore entries whose filter ID still exists in the current
-          // native filter configuration. If we have a snapshotted definition
-          // (from the newer versioned schema), we also verify that the filter's
-          // target columns/datasets and type have not changed. This prevents
-          // stale extraFormData from a retargeted filter from being hydrated.
-          const validatedFilters = Object.fromEntries(
-            Object.entries(maskToRestore).filter(([filterId]) => {
-              const currentConfig = currentFilters.find(f => f.id === filterId);
-              if (!currentConfig) return false;
+              // Only restore entries whose filter ID still exists in the current
+              // native filter configuration. Because this is a versioned entry,
+              // we also verify that the filter's target columns/datasets and type
+              // have not changed. This prevents stale extraFormData from a
+              // retargeted filter from being hydrated.
+              const validatedFilters = Object.fromEntries(
+                Object.entries(maskToRestore).filter(([filterId]) => {
+                  const currentConfig = currentFilters.find(
+                    f => f.id === filterId,
+                  );
+                  if (!currentConfig) return false;
 
-              if (isVersioned) {
-                const savedDef = savedDefinitions[filterId];
-                if (!savedDef) return false;
+                  const savedDef = savedDefinitions?.[filterId];
+                  if (!savedDef) return false;
 
-                // Validate that the target column(s) and filter type have not changed
-                const currentTargets = JSON.stringify(currentConfig.targets);
-                const savedTargets = JSON.stringify(savedDef.targets);
+                  // Validate that the target column(s) and filter type have not changed
+                  const currentTargets = JSON.stringify(currentConfig.targets);
+                  const savedTargets = JSON.stringify(savedDef.targets);
 
-                if (
-                  currentTargets !== savedTargets ||
-                  currentConfig.filterType !== savedDef.type
-                ) {
-                  return false;
-                }
+                  if (
+                    currentTargets !== savedTargets ||
+                    currentConfig.filterType !== savedDef.type
+                  ) {
+                    return false;
+                  }
+
+                  return true;
+                }),
+              );
+
+              if (Object.keys(validatedFilters).length > 0) {
+                dataMask = validatedFilters;
               }
-              return true;
-            }),
-          );
-
-          if (Object.keys(validatedFilters).length > 0) {
-            dataMask = validatedFilters;
+            }
           }
         }
       }
@@ -503,7 +530,17 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   const activeFilters = useSelector(selectActiveFilters);
 
   useEffect(() => {
-    if (!id || hydratedDashboardId !== id || !isDashboardHydrated.current)
+    // Skip persistence for unauthenticated/guest users: they have no stable
+    // identity to scope the key to, and restoring filter state across
+    // guest-token sessions would leak selections between unrelated sessions.
+    // Use == null (not !userId) so a valid userId of 0 is not treated as
+    // anonymous.
+    if (
+      !id ||
+      userId == null ||
+      hydratedDashboardId !== id ||
+      !isDashboardHydrated.current
+    )
       return;
     // Persist only entries that correspond to configured native filters.
     // This avoids saving chart customization or other transient dataMask
@@ -520,6 +557,12 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
         .filter(filterId => filterId in fullDataMask)
         .map(filterId => [filterId, fullDataMask[filterId]]),
     );
+    // Also skip when the configuration is non-empty but dataMask has already
+    // been cleared (e.g. during SPA unmount before the next dashboard hydrates).
+    // The ref stays true across the switch so the hydratedDashboardId guard
+    // alone is not sufficient — a nativeFilterMask of {} would still overwrite
+    // the user's saved selection.
+    if (Object.keys(nativeFilterMask).length === 0) return;
     saveDashboardFilters(id, userId, nativeFilterMask, nativeFilters);
   }, [id, hydratedDashboardId, fullDataMask, nativeFilters, userId]);
 
