@@ -1149,6 +1149,24 @@ test('setThemeConfig flags an override when only theme_dark differs from the wor
   expect(controller.hasThemeConfigOverride()).toBe(true);
 });
 
+test('setThemeConfig clears the override when a brand forward reverts to the workspace default', () => {
+  // Guards the clear-on-revert direction: once the host forwards the workspace
+  // default again, the dashboard's own theme must be allowed to apply.
+  const controller = createController();
+
+  controller.setThemeConfig({
+    theme_default: { token: { colorPrimary: '#sdk-brand' } },
+    theme_dark: DARK_THEME,
+  });
+  expect(controller.hasThemeConfigOverride()).toBe(true);
+
+  controller.setThemeConfig({
+    theme_default: DEFAULT_THEME,
+    theme_dark: DARK_THEME,
+  });
+  expect(controller.hasThemeConfigOverride()).toBe(false);
+});
+
 test('setThemeConfig handles theme_default only', () => {
   mockGetBootstrapData.mockReturnValue(
     createMockBootstrapData({
@@ -2286,6 +2304,40 @@ test('refreshSystemThemes applies a new system default live and notifies subscri
   const lastConfig =
     mockSetConfig.mock.calls[mockSetConfig.mock.calls.length - 1][0];
   expect(lastConfig.token.colorBgBase).toBe('#abcdef');
+
+  getSpy.mockRestore();
+});
+
+test('refreshSystemThemes moves the workspace baseline used by the override check', async () => {
+  // After a live refresh, forwarding the refreshed default is not an override,
+  // while forwarding the previous default now is.
+  const controller = createController();
+  const NEW_DEFAULT: AnyThemeConfig = {
+    token: { colorBgBase: '#abcdef', colorPrimary: '#123456' },
+  };
+  const getSpy = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+    json: {
+      result: {
+        default: NEW_DEFAULT,
+        dark: DARK_THEME,
+        defaultMode: 'default',
+      },
+    },
+  } as any);
+
+  await controller.refreshSystemThemes();
+
+  controller.setThemeConfig({
+    theme_default: NEW_DEFAULT,
+    theme_dark: DARK_THEME,
+  });
+  expect(controller.hasThemeConfigOverride()).toBe(false);
+
+  controller.setThemeConfig({
+    theme_default: DEFAULT_THEME,
+    theme_dark: DARK_THEME,
+  });
+  expect(controller.hasThemeConfigOverride()).toBe(true);
 
   getSpy.mockRestore();
 });
