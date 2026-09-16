@@ -14,22 +14,22 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""merge deprecated-permissions cleanup with purge-audit-pruning and username index
+"""Merge purge-audit pruning and username index heads.
 
-Revision ID: aa5aa836f85c
-Revises: ('c7f53d184ea2', '88a01c781622', '3ce9a4572f8a')
-Create Date: 2026-09-16 00:00:00.000000
+Revision ID: e2f3a1b9c640
+Revises: c7f53d184ea2, 88a01c781622
+Create Date: 2026-09-15 06:50:00.000000
 
 """
 
 # revision identifiers, used by Alembic.
-revision = "aa5aa836f85c"
-down_revision = ("c7f53d184ea2", "88a01c781622", "3ce9a4572f8a")
+revision = "e2f3a1b9c640"
+down_revision = ("c7f53d184ea2", "88a01c781622")
 
 
-def upgrade():
-    pass
+def upgrade() -> None:
+    """Join both migration branches without changing schema or data."""
 
 
-def downgrade():
-    pass
+def downgrade() -> None:
+    """Restore both parent heads without changing schema or data."""

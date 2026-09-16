@@ -51,6 +51,25 @@ upgrading. See the two migrations' docstrings (`superset/migrations/versions/
 `..._00-01_3ce9a4572f8a_rename_deprecated_permissions_33272.py`) for the full
 per-permission mapping and reasoning.
 
+### MySQL metadata database now actually defaults to READ COMMITTED
+
+Superset has always *intended* to default the metadata-database isolation
+level to READ COMMITTED on MySQL (and logged that it did), but the code
+discarded the result of SQLAlchemy's generative `execution_options()` call,
+so every MySQL deployment without an explicit `isolation_level` in
+`SQLALCHEMY_ENGINE_OPTIONS` has in fact been running at InnoDB's default
+REPEATABLE READ. The default is now applied for real. PostgreSQL is
+unaffected (its server default is already READ COMMITTED), and an explicit
+`SQLALCHEMY_ENGINE_OPTIONS["isolation_level"]` was and remains respected.
+
+If your deployment relies on REPEATABLE READ semantics (snapshot-stable
+long transactions, RR gap-locking behavior), pin the previous effective
+behavior explicitly:
+
+```python
+SQLALCHEMY_ENGINE_OPTIONS = {"isolation_level": "REPEATABLE READ"}
+```
+
 ### Default Docker image is now batteries-included; the minimal image moves to `-lean`
 
 The default `apache/superset` Docker image (the plain tags: `latest`, `master`,
@@ -132,6 +151,10 @@ behavior. Existing tag rows are left untouched.
 ### Version-history and activity endpoints are edit-gated
 
 Version-history and activity endpoints (`GET /api/v1/{chart,dashboard,dataset}/<uuid>/versions/…` and `…/activity/`) are now edit-gated: they require object-level editorship (owner/editor/admin) of the entity, matching the UI's edit-gated Version history menu and the restore endpoint's gate. Read-only users who could previously retrieve the full change log (author identities, field-level before/after diffs) via the API now receive 403. Embedded guest-token principals are always refused on these endpoints, even when a role subject they hold has been granted editorship. Related-entity visibility filtering inside the activity stream is unchanged.
+
+### Updates of externally managed entities are refused server-side
+
+`PUT /api/v1/{chart,dashboard,dataset}/<id>` — including the chart query-context-only save, `PUT /api/v1/dataset/<pk>/refresh`, and the legacy Explore chart overwrite (`/superset/explore/`, `action=overwrite`) — now refuses an **externally managed** entity (`is_managed_externally = True`) with HTTP 403, enforcing server-side what the UI already does by hiding the edit affordances. Previously the refusal existed only in the browser, so an otherwise-authorized editor could mutate such an entity by calling the endpoint directly and have the change overwritten on the next external sync (the stored chart query context is executable state — report execution runs it — so it is gated too; Explore's background query-context save receives a 403 it ignores for such charts). The dashboard colors-sync path (`PUT /api/v1/dashboard/<id>/colors`, fired in the background while a dashboard is viewed) keeps working for the **derived** color values (`color_scheme_domain`, `shared_label_colors`, `map_label_colors`) but refuses a payload that would change the authoritative `color_scheme`/`label_colors`. The `is_managed_externally` flag itself is now ignored by the ordinary PUT schemas (accepted for wire compatibility, then discarded): it was previously client-writable there, and with the new gate a client-set `true` would have been irreversible via the API. A matching gate for version restore is added separately in #44013.
 
 ### Global Async Queries re-platformed onto the Global Task Framework (breaking)
 
