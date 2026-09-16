@@ -22,7 +22,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { ResizeCallback, ResizeStartCallback } from 're-resizable';
 import { css, useTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
-import { DataMask, Filter } from '@superset-ui/core';
+import { DataMask, Divider, Filter, isNativeFilter } from '@superset-ui/core';
 import { Button, Select } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import PopoverDropdown from '@superset-ui/core/components/PopoverDropdown';
@@ -70,6 +70,11 @@ export interface FilterHolderProps {
   handleComponentDrop: (...args: unknown[]) => unknown;
 }
 
+const isValueEmpty = (value: unknown): boolean =>
+  value == null ||
+  (Array.isArray(value) && value.length === 0) ||
+  (typeof value === 'string' && value.trim() === '');
+
 const FilterHolder = ({
   id,
   parentId,
@@ -99,9 +104,11 @@ const FilterHolder = ({
   const dataMask = useSelector((state: RootState) => state.dataMask || {});
 
   const filterId = component.meta?.filterId as string | undefined;
-  const filter = filterId
-    ? (nativeFilters[filterId] as Filter | undefined)
-    : undefined;
+  const rawFilter = filterId ? nativeFilters[filterId] : undefined;
+  const filter =
+    rawFilter && isNativeFilter(rawFilter as Filter | Divider)
+      ? (rawFilter as Filter)
+      : undefined;
 
   const titlePosition =
     (component.meta?.titlePosition as 'top' | 'left') || 'top';
@@ -178,12 +185,42 @@ const FilterHolder = ({
       : mask;
   }, []);
 
+  const isApplyDisabled = useMemo(() => {
+    if (!stagedDataMask || !filter) {
+      return true;
+    }
+    if (stagedDataMask.filterState?.validateStatus === 'error') {
+      return true;
+    }
+    const isRequired = !!filter.controlValues?.enableEmptyFilter;
+    const value = stagedDataMask.filterState?.value;
+    if (isRequired && isValueEmpty(value)) {
+      return true;
+    }
+    return false;
+  }, [filter, stagedDataMask]);
+
   const handleFilterSelectionChange = useCallback(
     (targetFilter: Filter, nextDataMask: DataMask) => {
-      const sanitized = sanitizeDataMask(nextDataMask);
       if (applyMode === 'manual') {
-        setStagedDataMask(sanitized);
+        const isRequired = !!targetFilter.controlValues?.enableEmptyFilter;
+        const value = nextDataMask.filterState?.value;
+        const isEmpty = isValueEmpty(value);
+        const validateStatus =
+          (isRequired && isEmpty) ||
+          nextDataMask.filterState?.validateStatus === 'error'
+            ? 'error'
+            : undefined;
+
+        setStagedDataMask({
+          ...nextDataMask,
+          filterState: {
+            ...nextDataMask.filterState,
+            validateStatus,
+          },
+        });
       } else {
+        const sanitized = sanitizeDataMask(nextDataMask);
         dispatch(updateDataMask(targetFilter.id, sanitized));
       }
     },
@@ -191,23 +228,27 @@ const FilterHolder = ({
   );
 
   const handleApplyStagedFilter = useCallback(() => {
-    if (filter && stagedDataMask) {
+    if (filter && stagedDataMask && !isApplyDisabled) {
       dispatch(updateDataMask(filter.id, sanitizeDataMask(stagedDataMask)));
       setStagedDataMask(null);
     }
-  }, [dispatch, filter, sanitizeDataMask, stagedDataMask]);
+  }, [dispatch, filter, isApplyDisabled, sanitizeDataMask, stagedDataMask]);
 
   const handleClearStagedFilter = useCallback(() => {
     if (filter) {
       const clearedValue =
-        filter.filterType === 'filter_range' ? [null, null] : undefined;
+        filter.filterType === 'filter_range' ? [null, null] : null;
+      const isRequired = !!filter.controlValues?.enableEmptyFilter;
       const clearedMask: DataMask = {
-        filterState: { value: clearedValue },
+        filterState: {
+          value: clearedValue,
+          validateStatus: isRequired ? 'error' : undefined,
+        },
         extraFormData: {},
       };
       if (applyMode === 'manual') {
         const hasAppliedValue =
-          dataMask[filter.id]?.filterState?.value !== undefined;
+          !isValueEmpty(dataMask[filter.id]?.filterState?.value);
         if (hasAppliedValue) {
           setStagedDataMask(clearedMask);
         } else {
@@ -226,10 +267,12 @@ const FilterHolder = ({
 
   const availableFilters = useMemo(
     () =>
-      Object.values(nativeFilters).map((f: Filter) => ({
-        label: f.name || f.id,
-        value: f.id,
-      })),
+      Object.values(nativeFilters)
+        .filter((f: any): f is Filter => isNativeFilter(f))
+        .map((f: Filter) => ({
+          label: f.name || f.id,
+          value: f.id,
+        })),
     [nativeFilters],
   );
 
@@ -477,6 +520,8 @@ const FilterHolder = ({
                 <DragHandle position="top" />
                 <IconButton
                   onClick={() => setIsFocused(true)}
+                  label={t('Filter settings')}
+                  hideVisibleLabel
                   icon={<Icons.SettingOutlined iconSize="m" />}
                 />
                 <DeleteComponentButton onDelete={handleDelete} />
@@ -538,7 +583,7 @@ const FilterHolder = ({
                     <Button
                       type="primary"
                       size="small"
-                      disabled={!stagedDataMask}
+                      disabled={isApplyDisabled}
                       onClick={handleApplyStagedFilter}
                       css={css`
                         font-size: 11px;
@@ -551,10 +596,10 @@ const FilterHolder = ({
                     <Button
                       size="small"
                       disabled={
-                        (stagedDataMask?.filterState?.value === undefined &&
-                          stagedDataMask?.extraFormData !== undefined) ||
+                        (stagedDataMask !== null &&
+                          isValueEmpty(stagedDataMask?.filterState?.value)) ||
                         (!stagedDataMask &&
-                          !dataMask[filter?.id || '']?.filterState?.value)
+                          isValueEmpty(dataMask[filter?.id || '']?.filterState?.value))
                       }
                       onClick={handleClearStagedFilter}
                       css={css`
