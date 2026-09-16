@@ -50,21 +50,34 @@ def _set_resolver(value: Any) -> None:
     current_app.config["LOGIN_TOKEN_IDENTITY_RESOLVER"] = value
 
 
-def test_is_enabled_requires_flag_and_resolver(app_context: None) -> None:
-    """Both the feature flag and a resolver are needed; either alone is closed."""
+@pytest.mark.parametrize(
+    "flag_on,resolver_set,expected",
+    [
+        (False, False, False),
+        (False, True, False),
+        (True, False, False),
+        (True, True, True),
+    ],
+)
+def test_is_enabled_requires_flag_and_resolver(
+    app_context: None,
+    mocker: MockerFixture,
+    flag_on: bool,
+    resolver_set: bool,
+    expected: bool,
+) -> None:
+    """Both the feature flag and a resolver are needed; either alone is closed.
+
+    The flag is patched rather than written to ``config["FEATURE_FLAGS"]``:
+    ``FeatureFlagManager.init_app`` snapshots the merged flags at app
+    initialization, so a runtime mutation of that dict has no effect.
+    """
     original = current_app.config.get("LOGIN_TOKEN_IDENTITY_RESOLVER")
+    mocker.patch("superset.is_feature_enabled", return_value=flag_on)
     try:
-        _set_resolver(lambda request, **kwargs: USERINFO)
-        current_app.config["FEATURE_FLAGS"]["LOGIN_TOKEN"] = False
-        assert login_token.is_enabled() is False
-
-        current_app.config["FEATURE_FLAGS"]["LOGIN_TOKEN"] = True
-        assert login_token.is_enabled() is True
-
-        _set_resolver(None)
-        assert login_token.is_enabled() is False
+        _set_resolver((lambda request, **kwargs: USERINFO) if resolver_set else None)
+        assert login_token.is_enabled() is expected
     finally:
-        current_app.config["FEATURE_FLAGS"]["LOGIN_TOKEN"] = False
         _set_resolver(original)
 
 
