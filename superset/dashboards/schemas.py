@@ -24,7 +24,10 @@ from superset import security_manager
 from superset.subjects.schemas import SubjectResponseSchema
 from superset.tags.models import TagType
 from superset.utils import json
-from superset.utils.schema import validate_external_url
+from superset.utils.schema import (
+    DiscardIsManagedExternallyMixin,
+    validate_external_url,
+)
 
 get_delete_ids_schema = {
     "type": "array",
@@ -480,7 +483,7 @@ class DashboardCopySchema(Schema):
     )
 
 
-class DashboardPutSchema(BaseDashboardSchema):
+class DashboardPutSchema(DiscardIsManagedExternallyMixin, BaseDashboardSchema):
     dashboard_title = fields.String(
         metadata={"description": dashboard_title_description},
         allow_none=True,
@@ -528,7 +531,6 @@ class DashboardPutSchema(BaseDashboardSchema):
     certification_details = fields.String(
         metadata={"description": certification_details_description}, allow_none=True
     )
-    is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True, validate=validate_external_url)
     tags = fields.List(
         fields.Integer(metadata={"description": tags_description}, allow_none=True)
