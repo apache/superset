@@ -26,6 +26,7 @@ import inspect
 import logging
 import sys
 from typing import Any, Callable, get_type_hints, Optional, TypeVar
+
 from pydantic import TypeAdapter
 
 try:
@@ -157,7 +158,7 @@ def _get_prefixed_id_with_context(base_id: str) -> tuple[str, str]:
     return prefixed_id, context_type
 
 
-def create_tool_decorator(
+def create_tool_decorator(  # noqa: C901
     func_or_name: str | Callable[..., Any] | None = None,
     *,
     name: Optional[str] = None,
