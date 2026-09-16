@@ -30,7 +30,22 @@ import {
   getAccessToken,
   getGuestToken,
 } from '../../helpers/api/embedded';
-import { getDashboardBySlug } from '../../helpers/api/dashboard';
+import {
+  apiDeleteDashboard,
+  apiPostDashboard,
+  buildSingleRowDashboardLayout,
+} from '../../helpers/api/dashboard';
+import {
+  apiDeleteChart,
+  apiPostChart,
+  apiPutChart,
+} from '../../helpers/api/chart';
+import { getDatasetByName } from '../../helpers/api/dataset';
+import { extractIdFromResponse } from '../../helpers/api/assertions';
+import {
+  buildFilterJsonMetadata,
+  buildSelectFilter,
+} from '../dashboard/dashboard-test-helpers';
 import { EmbeddedPage } from '../../pages/EmbeddedPage';
 import {
   EmbedAppServer,
@@ -57,12 +72,15 @@ const SUPERSET_BASE_URL = SUPERSET_DOMAIN.endsWith('/')
   : `${SUPERSET_DOMAIN}/`;
 
 /**
- * Any dashboard exercises the sizing contract; the examples one is the default
- * so CI needs no extra fixture. Override to point at a dashboard with a long
- * vertical filter bar, which is where the original reports came from.
+ * The reports came from dashboards with a long vertical filter bar, so the
+ * fixture is one chart plus enough filters that the bar overflows the window:
+ * that is what makes the bar's scroll offset and its action buttons observable.
+ * Built here rather than borrowed from the examples so the suite does not
+ * depend on which filters an example ships with.
  */
-const DASHBOARD_SLUG =
-  process.env.EMBEDDED_SIZING_DASHBOARD_SLUG || 'world_health';
+const DATASET_NAME = 'birth_names';
+const FILTER_COLUMNS = ['gender', 'state', 'name'] as const;
+const FILTER_COUNT = 12;
 
 /** Host viewport used throughout, so "taller than the window" is unambiguous. */
 const WINDOW_HEIGHT = 800;
@@ -146,6 +164,7 @@ test.describe('Embedded dashboard iframe sizing', () => {
   let accessToken: string;
   let embedUuid: string;
   let dashboardId: number;
+  let chartId: number;
 
   async function setupEmbeddedPage(page: Page): Promise<EmbeddedPage> {
     const embeddedPage = new EmbeddedPage(page);
@@ -165,6 +184,16 @@ test.describe('Embedded dashboard iframe sizing', () => {
       const bar = document.querySelector('.filter-bar-bounded');
       return !bar || bar.querySelector('.filter-bar-scroll') !== null;
     });
+    // The filter controls keep growing as their options arrive, and the
+    // browser re-anchors the list's scroll offset each time. Measure only
+    // once the guest has stopped fetching and the list has stopped changing
+    // size.
+    await page.waitForLoadState('networkidle');
+    await settled(() =>
+      guestFrame(page).evaluate(
+        () => document.querySelector('.filter-bar-scroll')?.scrollHeight ?? 0,
+      ),
+    );
     return embeddedPage;
   }
 
@@ -179,13 +208,55 @@ test.describe('Embedded dashboard iframe sizing', () => {
     const context = await createAdminContext(browser);
     const setupPage = await context.newPage();
     try {
-      const dashboard = await getDashboardBySlug(setupPage, DASHBOARD_SLUG);
-      if (!dashboard) {
+      const dataset = await getDatasetByName(setupPage, DATASET_NAME);
+      if (!dataset) {
         throw new Error(
-          `Dashboard "${DASHBOARD_SLUG}" not found. Ensure load_examples ran in CI setup.`,
+          `Dataset "${DATASET_NAME}" not found. Ensure load_examples ran in CI setup.`,
         );
       }
-      dashboardId = dashboard.id;
+      const suffix = `${Date.now()}`;
+      const chartResp = await apiPostChart(setupPage, {
+        slice_name: `embedded_sizing_${suffix}`,
+        viz_type: 'big_number_total',
+        datasource_id: dataset.id,
+        datasource_type: 'table',
+        params: JSON.stringify({
+          datasource: `${dataset.id}__table`,
+          viz_type: 'big_number_total',
+          metric: 'count',
+          adhoc_filters: [],
+        }),
+      });
+      expect(chartResp.ok()).toBe(true);
+      chartId = await extractIdFromResponse(chartResp);
+
+      const nativeFilters = Array.from({ length: FILTER_COUNT }, (_, i) =>
+        buildSelectFilter({
+          datasetId: dataset.id,
+          column: FILTER_COLUMNS[i % FILTER_COLUMNS.length],
+          chartsInScope: [chartId],
+          name: `Filter ${String(i + 1).padStart(2, '0')}`,
+        }),
+      );
+      const dashResp = await apiPostDashboard(setupPage, {
+        dashboard_title: `embedded_sizing_${suffix}`,
+        published: true,
+        position_json: JSON.stringify(
+          buildSingleRowDashboardLayout([
+            { id: chartId, sliceName: 'embedded_sizing', width: 6, height: 50 },
+          ]),
+        ),
+        json_metadata: JSON.stringify(
+          buildFilterJsonMetadata({ chartsInScope: [chartId], nativeFilters }),
+        ),
+      });
+      expect(dashResp.ok()).toBe(true);
+      dashboardId = await extractIdFromResponse(dashResp);
+      const linkResp = await apiPutChart(setupPage, chartId, {
+        dashboards: [dashboardId],
+      });
+      expect(linkResp.ok()).toBe(true);
+
       const embedded = await apiEnableEmbedding(setupPage, dashboardId);
       embedUuid = embedded.uuid;
       accessToken = await getAccessToken(setupPage);
@@ -195,14 +266,19 @@ test.describe('Embedded dashboard iframe sizing', () => {
   });
 
   test.afterAll(async ({ browser }) => {
-    if (dashboardId !== undefined) {
+    if (dashboardId !== undefined || chartId !== undefined) {
       const context = await createAdminContext(browser);
       try {
         const setupPage = await context.newPage();
-        await apiEnableEmbedding(setupPage, dashboardId, []);
+        if (dashboardId !== undefined) {
+          await apiDeleteDashboard(setupPage, dashboardId);
+        }
+        if (chartId !== undefined) {
+          await apiDeleteChart(setupPage, chartId);
+        }
       } catch (err) {
         // eslint-disable-next-line no-console
-        console.error('[embedded sizing teardown] restore failed:', err);
+        console.error('[embedded sizing teardown] cleanup failed:', err);
       } finally {
         await context.close();
       }
@@ -266,8 +342,8 @@ test.describe('Embedded dashboard iframe sizing', () => {
     await setupEmbeddedPage(page);
 
     // Lifting the filter bar's cap removes the overflow, which makes the
-    // browser clamp the list's scroll offset. Vacuous on a dashboard with no
-    // vertical filter bar, meaningful on the ones the reports came from.
+    // browser clamp the list's scroll offset. The fixture's filter list is
+    // taller than the frame, so an offset of 400 is a real scroll position.
     const scrolled = await guestFrame(page).evaluate(() => {
       const scroller =
         document.querySelector<HTMLElement>('.filter-bar-scroll');
@@ -303,30 +379,37 @@ test.describe('Embedded dashboard iframe sizing', () => {
     });
   });
 
-  test('a frame taller than the window keeps the content at the top', async ({
+  test('a frame taller than the content keeps the filter bar actions with the filter list', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 1280, height: WINDOW_HEIGHT });
     await setupEmbeddedPage(page);
 
-    const contentBottom = () =>
+    const applyButtonTop = () =>
       guestFrame(page).evaluate(() => {
-        const content = document.querySelector('#app .dashboard');
-        if (!content) return null;
-        return Math.round(
-          content.getBoundingClientRect().bottom + window.scrollY,
+        const apply = document.querySelector(
+          '[data-test="filter-bar__apply-button"]',
         );
+        if (!apply) return null;
+        return Math.round(apply.getBoundingClientRect().top + window.scrollY);
       });
 
-    await setIframeHeight(page, 800);
-    const atShortFrame = await settled(contentBottom);
+    // Both frames are taller than the content, so nothing in view should move
+    // between them. The window-sized frame is deliberately not the baseline:
+    // there the bar is capped to the frame and the buttons sit at its bottom
+    // by design, with the list scrolling inside.
+    await setIframeHeight(page, 2400);
+    const atTallFrame = await settled(applyButtonTop);
+    const contentHeight = await settled(() => reportedHeight(page));
 
     await setIframeHeight(page, 4000);
-    const atTallFrame = await settled(contentBottom);
+    const atTallerFrame = await settled(applyButtonTop);
 
-    expect(atShortFrame).not.toBeNull();
-    // The dashboard must not stretch to fill a frame the host oversized, or
-    // everything anchored to its end is pushed out of the viewer's reach.
-    expect(atTallFrame).toBe(atShortFrame);
+    expect(atTallFrame).not.toBeNull();
+    // The buttons must follow the filter list, not the bottom of whatever
+    // frame the host set. Before the fix they sat after a viewport-sized
+    // list, so they landed 3908px down in a 4000px frame.
+    expect(atTallerFrame).toBe(atTallFrame);
+    expect(atTallFrame).toBeLessThan(contentHeight);
   });
 });
