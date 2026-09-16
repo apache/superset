@@ -296,7 +296,7 @@ doris = ["pydoris>=1.2.0, <2.0.0"]
 # could never resolve. CI installs oceanbase_py as a standalone package with
 # --no-deps instead (see testcontainers.yml). Add the extra back once
 # oceanbase_py relaxes that pin.
-ydb = ["ydb-sqlalchemy>=0.1.22", "ydb-sqlglot-plugin>=0.2.8"]
+ydb = ["ydb-sqlalchemy>=0.1.23", "ydb-sqlglot-plugin>=0.2.8"]
 # YugabyteDB's YSQL layer is fully Postgres-wire compatible - connects via
 # the plain postgresql dialect, same driver as postgres.
 yugabytedb = ["apache-superset[postgres]"]
