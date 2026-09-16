@@ -48,7 +48,7 @@ from superset.schemas import error_payload_content
 from superset.sql_lab import Query as SqllabQuery
 from superset.superset_typing import FlaskResponse
 from superset.utils.core import get_user_id, time_function
-from superset.views.error_handling import handle_api_exception
+from superset.views.error_handling import handle_api_exception, json_error_response
 
 logger = logging.getLogger(__name__)
 get_related_schema = {
@@ -104,13 +104,9 @@ def requires_json(f: Callable[..., Any]) -> Callable[..., Any]:
 
     def wraps(self: BaseSupersetModelRestApi, *args: Any, **kwargs: Any) -> Response:
         if not request.is_json:
-            # pylint: disable=import-outside-toplevel
-            # Deferred: error_handling imports views.base at call time;
-            # a top-level import here would tighten the views import
-            # cycle for no benefit.
-            from superset.views.error_handling import json_error_response
-
-            ex = InvalidPayloadFormatError(message="Request is not JSON")
+            ex: InvalidPayloadFormatError = InvalidPayloadFormatError(
+                message="Request is not JSON"
+            )
             return json_error_response([ex.error], status=ex.status)
         return f(self, *args, **kwargs)
 

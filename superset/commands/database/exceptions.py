@@ -173,9 +173,9 @@ class DatabaseDeleteSoftDeletedDatasetsExistFailedError(
         "soft-deleted. Purge each one first — GET "
         "/api/v1/dataset/<uuid>/purge-impact for its impact token, then "
         "POST /api/v1/dataset/<uuid>/purge with "
-        '{"confirmed_impact_token": <token>} — or restore them '
-        "(POST /api/v1/dataset/<uuid>/restore) if they should live on, "
-        "before deleting the database."
+        '{"confirmed_impact_token": <token>} — before deleting the '
+        "database. Restoring them (POST /api/v1/dataset/<uuid>/restore) "
+        "keeps the datasets, but the database still cannot be deleted."
     )
 
 
