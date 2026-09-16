@@ -260,6 +260,8 @@ class DatabricksHiveEngineSpec(HiveEngineSpec):
 
 
 class DatabricksBaseEngineSpec(BaseEngineSpec):
+    """Base engine specification for Databricks flavors and connection methods."""
+
     _time_grain_expressions = time_grain_expressions
 
     # Databricks SQL is Spark SQL under the hood: identifiers are quoted with
@@ -268,7 +270,7 @@ class DatabricksBaseEngineSpec(BaseEngineSpec):
     identifier_quote_end: str = "`"
 
     # Databricks SQL rejects 'col IN (0)' or 'col IS true' in certain query contexts
-    # (DATATYPE_MISMATCH.DATA_DIFF_TYPES). Enabling equality operators ensures
+    # (DATATYPE_MISMATCH.DATA_DIFF_TYPES, see #36765). Enabling equality operators ensures
     # boolean filters compile as 'col = true' / 'col = false'.
     use_equality_for_boolean_filters: bool = True
 
