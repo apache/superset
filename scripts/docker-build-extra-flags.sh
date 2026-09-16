@@ -59,6 +59,11 @@ case "$BUILD_PRESET" in
     ;;
   *)
     CACHE_REF="apache/superset-cache:${DEFAULT_PY_VER}"
+    # Keep the superset cache ref for Compose consumers; isolate other
+    # matrix targets so concurrent exports cannot overwrite its layers.
+    if [ "$BUILD_PRESET" != "superset" ]; then
+      CACHE_REF="${CACHE_REF}-${BUILD_PRESET}"
+    fi
     EXTRA_FLAGS="--build-arg PY_VER=$DEFAULT_PY_VER $EXTRA_FLAGS"
     ;;
 esac

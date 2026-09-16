@@ -63,6 +63,11 @@ jobs:
         with:
           persist-credentials: false
           fetch-depth: 0
+          ref: master
+
+      - name: Preserve Docker flags helper
+        shell: bash
+        run: cp scripts/docker-build-extra-flags.sh "$RUNNER_TEMP/docker-build-extra-flags.sh"
 
       - name: Setup Docker Environment
         uses: $/.github/actions/setup-docker
@@ -104,8 +109,10 @@ jobs:
             fi
             git checkout "${INPUT_GIT_REF}"
             EVENT="release"
+          else
+            git checkout "${GITHUB_EVENT_RELEASE_TAG_NAME}"
           fi
-          EXTRA_FLAGS="$(scripts/docker-build-extra-flags.sh "$BUILD_PRESET")"
+          EXTRA_FLAGS="$(bash "$RUNNER_TEMP/docker-build-extra-flags.sh" "$BUILD_PRESET")"
 
           DOCKERHUB_TOKEN= supersetbot docker \
             --push \

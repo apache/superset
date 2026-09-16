@@ -14,8 +14,10 @@ permissions:
   pull-requests: read
 
 concurrency:
+  # Queue publishing runs so a later push with no Docker changes cannot
+  # cancel an active master image publish midway through its matrix.
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref || github.run_id }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   changes:
@@ -172,7 +174,11 @@ jobs:
           assert_build_plan pull_request refs/pull/44250/merge "" pull_request "" --load "--platform linux/amd64" ""
           for preset in superset dev lean; do
             assert_effective_py_ver "$preset" "3.11.14-slim-trixie"
-            assert_cache_ref "$preset" "3.11.14-slim-trixie"
+            expected_cache="3.11.14-slim-trixie"
+            if [ "$preset" != "superset" ]; then
+              expected_cache="${expected_cache}-${preset}"
+            fi
+            assert_cache_ref "$preset" "$expected_cache"
             assert_no_cache_push_for_validation "$preset"
           done
           assert_effective_py_ver py311 "3.11-slim-bookworm"
@@ -187,8 +193,8 @@ jobs:
           assert_master_tag py311 master-py311
           assert_master_tag py312 master-py312
           assert_cache_push_for_master superset "3.11.14-slim-trixie"
-          assert_cache_push_for_master dev "3.11.14-slim-trixie"
-          assert_cache_push_for_master lean "3.11.14-slim-trixie"
+          assert_cache_push_for_master dev "3.11.14-slim-trixie-dev"
+          assert_cache_push_for_master lean "3.11.14-slim-trixie-lean"
           assert_cache_push_for_master py311 "3.11-slim-bookworm"
           assert_cache_push_for_master py312 "3.12-slim-bookworm"
           assert_release_tag superset "6.1.0"
