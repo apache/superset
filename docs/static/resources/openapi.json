@@ -1889,6 +1889,13 @@
             "nullable": true,
             "type": "string"
           },
+          "collabels": {
+            "description": "A list of column labels, for display purposes",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "colnames": {
             "description": "A list of column names",
             "items": {
