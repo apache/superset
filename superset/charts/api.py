@@ -1213,7 +1213,14 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             check_updated_staleness=screenshot_obj.supports_updated_staleness,
         ):
             logger.info("Triggering screenshot ASYNC")
-            screenshot_obj.cache.set(cache_key, ScreenshotCachePayload().to_dict())
+            # Mark the entry in-flight without discarding any retained image: a
+            # fresh empty payload here would 404 the image_url during the retry
+            # and, if the render fails again, permanently lose the last-good
+            # image. `computing()` keeps `_image`, refreshes the timestamp and
+            # flips status to COMPUTING, so the read path keeps serving the
+            # last-good image while the task runs.
+            cache_payload.computing()
+            screenshot_obj.cache.set(cache_key, cache_payload.to_dict())
             cache_chart_thumbnail.delay(
                 current_user=get_current_user(),
                 chart_id=chart.id,

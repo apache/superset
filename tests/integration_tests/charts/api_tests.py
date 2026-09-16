@@ -1226,7 +1226,7 @@ class TestChartApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
         flag would evaluate True and the stale entry would be rescheduled,
         failing the assertions below. Because the card path calls
         ``should_trigger_task()`` with no kwarg, they still hold."""
-        from datetime import datetime, timedelta, timezone
+        from datetime import datetime, timedelta
 
         self.login(ADMIN_USERNAME)
 
@@ -1236,10 +1236,10 @@ class TestChartApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
             .one_or_none()
         )
         # A valid, correctly-scoped UPDATED entry, but 400s old against a 300s TTL.
-        # UTC-aware to match the cache's UTC timestamp normalization.
-        stale_timestamp = (
-            datetime.now(timezone.utc) - timedelta(seconds=400)
-        ).isoformat()
+        # Naive to match the cache's naive `datetime.now()` timestamps: a tz-aware
+        # value here would either be read as future on a UTC-ahead host or raise
+        # when subtracted from naive now().
+        stale_timestamp = (datetime.now() - timedelta(seconds=400)).isoformat()
         mock_get_from_cache_key.return_value = ScreenshotCachePayload(
             b"fake image data",
             scope=f"chart:{chart.id}",
@@ -1292,6 +1292,53 @@ class TestChartApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
 
         assert rv.status_code == 200
         assert rv.data == b"fake image data"
+
+    @with_feature_flags(THUMBNAILS=True)
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @patch("superset.charts.api.cache_chart_thumbnail")
+    @patch("superset.charts.api.ChartScreenshot.cache")
+    @patch("superset.charts.api.ChartScreenshot.get_from_cache_key")
+    def test_cache_screenshot_retry_preserves_retained_image(
+        self, mock_get_from_cache_key, mock_cache, mock_cache_task
+    ):
+        """A forced on-demand ``cache_screenshot`` that re-triggers a render
+        after a prior failure must not wipe the last-good image. The retained
+        ERROR entry still carries valid bytes; the endpoint marks it COMPUTING
+        (keeping the image and refreshing the timestamp) instead of pre-writing
+        an empty PENDING payload. This keeps the read path serving the last-good
+        image while the retry runs -- and if the render fails again ``error()``
+        still retains it -- rather than 404-ing ``image_url`` until success."""
+        self.login(ADMIN_USERNAME)
+
+        chart = (
+            db.session.query(Slice)
+            .filter_by(slice_name="Girl Name Cloud")
+            .one_or_none()
+        )
+        # A retained, valid, correctly-scoped image whose entry is in ERROR
+        # backoff (the state left behind by a failed prior render).
+        payload = ScreenshotCachePayload(
+            b"fake image data",
+            scope=f"chart:{chart.id}",
+        )
+        payload.status = StatusValues.ERROR
+        mock_get_from_cache_key.return_value = payload
+
+        rv = self.client.get(
+            f"api/v1/chart/{chart.id}/cache_screenshot/"
+            f"?q={rison.dumps({'force': True})}"
+        )
+
+        # Trigger fires: the task is enqueued and the endpoint returns 202.
+        assert rv.status_code == 202
+        mock_cache_task.delay.assert_called_once()
+
+        # The pre-write must preserve the retained image and only flip the entry
+        # to COMPUTING -- NOT discard it with a fresh empty PENDING payload.
+        mock_cache.set.assert_called_once()
+        written_payload = mock_cache.set.call_args[0][1]
+        assert written_payload["status"] == StatusValues.COMPUTING.value
+        assert written_payload["image"] is not None
 
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_get_deck_layers(self):

@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import base64
 import logging
-from datetime import datetime, timezone
+from datetime import datetime
 from enum import Enum
 from io import BytesIO
 from typing import cast, TYPE_CHECKING, TypedDict
@@ -102,6 +102,14 @@ def validate_screenshot_image(image: bytes | None) -> str | None:
     return None
 
 
+# Clock skew between the worker writing a timestamp and the web host reading it
+# can make a just-written entry look slightly in the future (a small negative
+# age); tolerate that so the two tiers CONVERGE instead of the web re-enqueuing
+# forever. A timestamp implausibly far in the future (beyond this bound) is
+# treated as unusable so the entry self-heals.
+_FUTURE_TIMESTAMP_TOLERANCE_SECONDS = 300
+
+
 class ScreenshotCachePayload:
     def __init__(
         self,
@@ -111,7 +119,7 @@ class ScreenshotCachePayload:
         scope: str | None = None,
     ):
         self._image = image
-        self._timestamp = timestamp or datetime.now(timezone.utc).isoformat()
+        self._timestamp = timestamp or datetime.now().isoformat()
         self.status = StatusValues.UPDATED if image else status
         self._scope = scope
 
@@ -151,7 +159,7 @@ class ScreenshotCachePayload:
         self._scope = scope
 
     def update_timestamp(self) -> None:
-        self._timestamp = datetime.now(timezone.utc).isoformat()
+        self._timestamp = datetime.now().isoformat()
 
     def pending(self) -> None:
         self.update_timestamp()
@@ -185,29 +193,44 @@ class ScreenshotCachePayload:
         return self.status.value
 
     def get_invalid_image_reason(self) -> str | None:
-        """Reason this payload's image should not be served/cached, or None if
-        it passes validation (or it isn't claiming a successful screenshot)."""
-        if self.status != StatusValues.UPDATED:
+        # Validate whenever an image is present, regardless of status: retained
+        # ERROR/COMPUTING entries still carry their previous image and are now
+        # served by the read paths, so a corrupt/blank retained image must be
+        # rejected (treated as a cache miss) too.
+        if self._image is None:
             return None
         return validate_screenshot_image(self._image)
 
     def _age_seconds(self) -> float | None:
         """Seconds since this entry's timestamp.
 
-        Returns None only when the stored timestamp is unusable/corrupt (a
-        string ``datetime.fromisoformat`` cannot parse -- ValueError/TypeError),
-        which callers treat as 'past any TTL' so the entry self-heals.
+        Timestamps are stored NAIVE (``datetime.now().isoformat()``), so the age
+        is computed against a naive ``datetime.now()``. Keeping the naive format
+        means old pods reading entries written by a newer pod (and vice versa)
+        during a rolling deploy never hit a naive-minus-aware ``TypeError``.
 
-        A negative age (a future timestamp from residual clock skew after UTC
-        normalization -- e.g. a worker whose clock is slightly ahead of the web
-        host) is returned as-is rather than coerced to None. Callers apply
-        ``age is None or age >/>= TTL``, so a negative age reads as NOT
+        Returns None when the stored timestamp is unusable:
+
+        - A corrupt string ``datetime.fromisoformat`` cannot parse
+          (``ValueError``) or a legacy tz-aware string that raises ``TypeError``
+          when subtracted from naive now(). Callers treat None as 'past any TTL',
+          so the entry self-heals.
+        - A timestamp implausibly far in the future (age below
+          ``-_FUTURE_TIMESTAMP_TOLERANCE_SECONDS``), also treated as unusable so
+          it self-heals.
+
+        A small negative age (a future timestamp within tolerance, from clock
+        skew between the worker that wrote the entry and the web host reading it)
+        is returned as-is rather than coerced to None. Callers apply
+        ``age is None or age >/>= TTL``, so a small negative age reads as NOT
         stale/expired: the entry is treated as fresh. This is what lets the web
         tier and the worker converge -- if a future timestamp were treated as
         stale, the web would re-enqueue at 202 while the worker saw its own
         timestamp as fresh and skipped, looping forever."""
         try:
-            stored = datetime.fromisoformat(self.get_timestamp())
+            age = (
+                datetime.now() - datetime.fromisoformat(self.get_timestamp())
+            ).total_seconds()
         except (ValueError, TypeError):
             logger.warning(
                 "Unusable screenshot cache timestamp %r; "
@@ -215,12 +238,14 @@ class ScreenshotCachePayload:
                 self.get_timestamp(),
             )
             return None
-        if stored.tzinfo is None:
-            # Legacy entry written before UTC normalization: assume UTC so
-            # aware/naive subtraction never raises and old entries age out
-            # normally (not a mass self-heal).
-            stored = stored.replace(tzinfo=timezone.utc)
-        return (datetime.now(timezone.utc) - stored).total_seconds()
+        if age < -_FUTURE_TIMESTAMP_TOLERANCE_SECONDS:
+            logger.warning(
+                "Screenshot cache timestamp %r is implausibly in the future; "
+                "treating entry as expired/stale",
+                self.get_timestamp(),
+            )
+            return None
+        return age
 
     def is_error_cache_ttl_expired(self) -> bool:
         # strict '>' (an entry exactly at the TTL is still fresh). An unusable
@@ -279,11 +304,10 @@ class ScreenshotCachePayload:
         :param check_updated_staleness: Whether a successfully-rendered
             (``UPDATED``) entry older than ``THUMBNAIL_UPDATED_CACHE_TTL``
             should be treated as a cache miss and recomputed. Enabled per
-            screenshot type (see ``BaseScreenshot.supports_updated_staleness``)
-            so only endpoints that degrade gracefully when the entry is
-            re-rendered opt in -- the chart on-demand path pre-wipes the entry
-            to PENDING and serves only ``UPDATED``, so a stale-driven recompute
-            there could surface a transient 404, hence it stays disabled.
+            screenshot type (see ``BaseScreenshot.supports_updated_staleness``):
+            only ``DashboardScreenshot`` opts in, keeping this fix scoped to the
+            reported dashboard endpoint; the high-traffic card-list thumbnail
+            endpoints never pass it.
         """
         return (
             force
@@ -322,13 +346,12 @@ class BaseScreenshot:
     cache_scope: str | None = None
     # Whether a stale-but-valid UPDATED cache entry should be recomputed on a
     # force-less on-demand request (see should_trigger_task's
-    # ``check_updated_staleness``). Off by default and enabled only on
-    # screenshot types whose serving path degrades gracefully while a refresh
-    # is in flight; ChartScreenshot leaves it False because its on-demand path
-    # pre-wipes the entry to PENDING and serves only UPDATED. Only the on-demand
-    # screenshot endpoints thread this through -- the high-traffic card-list
-    # thumbnail endpoints deliberately call should_trigger_task() with no args so
-    # they never opt into updated-staleness recompute.
+    # ``check_updated_staleness``). Off by default; only DashboardScreenshot
+    # enables it, keeping this fix scoped to the reported dashboard endpoint
+    # (ChartScreenshot leaves it False). Only the on-demand screenshot endpoints
+    # thread this through -- the high-traffic card-list thumbnail endpoints
+    # deliberately call should_trigger_task() with no args so they never opt
+    # into updated-staleness recompute.
     supports_updated_staleness: bool = False
 
     def __init__(self, url: str, digest: str | None):

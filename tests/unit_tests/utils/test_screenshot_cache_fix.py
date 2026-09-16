@@ -21,7 +21,7 @@ Tests for screenshot cache bug fixes:
 2. Recompute stale COMPUTING tasks and UPDATED without image
 """
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -270,9 +270,7 @@ class TestShouldTriggerTask:
         mock_app.config = {"THUMBNAIL_COMPUTING_CACHE_TTL": 300}
 
         # Create payload with COMPUTING status from 400 seconds ago (stale)
-        old_timestamp = (
-            datetime.now(timezone.utc) - timedelta(seconds=400)
-        ).isoformat()
+        old_timestamp = (datetime.now() - timedelta(seconds=400)).isoformat()
         payload = ScreenshotCachePayload(
             status=StatusValues.COMPUTING, timestamp=old_timestamp
         )
@@ -287,9 +285,7 @@ class TestShouldTriggerTask:
         mock_app.config = {"THUMBNAIL_COMPUTING_CACHE_TTL": 300}
 
         # Create payload with COMPUTING status from 100 seconds ago (fresh)
-        fresh_timestamp = (
-            datetime.now(timezone.utc) - timedelta(seconds=100)
-        ).isoformat()
+        fresh_timestamp = (datetime.now() - timedelta(seconds=100)).isoformat()
         payload = ScreenshotCachePayload(
             status=StatusValues.COMPUTING, timestamp=fresh_timestamp
         )
@@ -329,9 +325,7 @@ class TestShouldTriggerTask:
         }
 
         # Create payload with ERROR status from 400 seconds ago (expired)
-        old_timestamp = (
-            datetime.now(timezone.utc) - timedelta(seconds=400)
-        ).isoformat()
+        old_timestamp = (datetime.now() - timedelta(seconds=400)).isoformat()
         payload = ScreenshotCachePayload(
             status=StatusValues.ERROR, timestamp=old_timestamp
         )
@@ -347,9 +341,7 @@ class TestShouldTriggerTask:
         }
 
         # Create payload with ERROR status from 100 seconds ago (fresh)
-        fresh_timestamp = (
-            datetime.now(timezone.utc) - timedelta(seconds=100)
-        ).isoformat()
+        fresh_timestamp = (datetime.now() - timedelta(seconds=100)).isoformat()
         payload = ScreenshotCachePayload(
             status=StatusValues.ERROR, timestamp=fresh_timestamp
         )
@@ -374,9 +366,7 @@ class TestShouldTriggerTask:
         served a bad-but-valid cached capture forever."""
         mock_app.config = {"THUMBNAIL_UPDATED_CACHE_TTL": 300}
 
-        old_timestamp = (
-            datetime.now(timezone.utc) - timedelta(seconds=400)
-        ).isoformat()
+        old_timestamp = (datetime.now() - timedelta(seconds=400)).isoformat()
         # Matching scope so the pre-existing scope-mismatch clause doesn't
         # decide the result -- the staleness clause must be what fires.
         payload = ScreenshotCachePayload(
@@ -404,9 +394,7 @@ class TestShouldTriggerTask:
         caller."""
         mock_app.config = {"THUMBNAIL_UPDATED_CACHE_TTL": 300}
 
-        old_timestamp = (
-            datetime.now(timezone.utc) - timedelta(seconds=400)
-        ).isoformat()
+        old_timestamp = (datetime.now() - timedelta(seconds=400)).isoformat()
         payload = ScreenshotCachePayload(
             image=FAKE_PNG_BYTES, timestamp=old_timestamp, scope="dashboard:1"
         )
@@ -426,9 +414,7 @@ class TestShouldTriggerTask:
         enabled -- isolates freshness from the opt-in gate."""
         mock_app.config = {"THUMBNAIL_UPDATED_CACHE_TTL": 300}
 
-        fresh_timestamp = (
-            datetime.now(timezone.utc) - timedelta(seconds=100)
-        ).isoformat()
+        fresh_timestamp = (datetime.now() - timedelta(seconds=100)).isoformat()
         payload = ScreenshotCachePayload(
             image=FAKE_PNG_BYTES, timestamp=fresh_timestamp, scope="dashboard:1"
         )
@@ -449,9 +435,7 @@ class TestShouldTriggerTask:
         switch, isolated from the opt-in gate."""
         mock_app.config = {"THUMBNAIL_UPDATED_CACHE_TTL": 0}
 
-        very_old_timestamp = (
-            datetime.now(timezone.utc) - timedelta(days=365)
-        ).isoformat()
+        very_old_timestamp = (datetime.now() - timedelta(days=365)).isoformat()
         payload = ScreenshotCachePayload(
             image=FAKE_PNG_BYTES, timestamp=very_old_timestamp, scope="dashboard:1"
         )
@@ -475,9 +459,7 @@ class TestIsComputingStale:
         mock_app.config = {"THUMBNAIL_COMPUTING_CACHE_TTL": 300}
 
         # Timestamp from 400 seconds ago
-        old_timestamp = (
-            datetime.now(timezone.utc) - timedelta(seconds=400)
-        ).isoformat()
+        old_timestamp = (datetime.now() - timedelta(seconds=400)).isoformat()
         payload = ScreenshotCachePayload(
             status=StatusValues.COMPUTING, timestamp=old_timestamp
         )
@@ -490,9 +472,7 @@ class TestIsComputingStale:
         mock_app.config = {"THUMBNAIL_COMPUTING_CACHE_TTL": 300}
 
         # Timestamp from 100 seconds ago
-        fresh_timestamp = (
-            datetime.now(timezone.utc) - timedelta(seconds=100)
-        ).isoformat()
+        fresh_timestamp = (datetime.now() - timedelta(seconds=100)).isoformat()
         payload = ScreenshotCachePayload(
             status=StatusValues.COMPUTING, timestamp=fresh_timestamp
         )
@@ -505,9 +485,7 @@ class TestIsComputingStale:
         mock_app.config = {"THUMBNAIL_COMPUTING_CACHE_TTL": 300}
 
         # Timestamp from exactly 300 seconds ago
-        exact_timestamp = (
-            datetime.now(timezone.utc) - timedelta(seconds=300)
-        ).isoformat()
+        exact_timestamp = (datetime.now() - timedelta(seconds=300)).isoformat()
         payload = ScreenshotCachePayload(
             status=StatusValues.COMPUTING, timestamp=exact_timestamp
         )
@@ -521,9 +499,7 @@ class TestIsComputingStale:
         mock_app.config = {"THUMBNAIL_COMPUTING_CACHE_TTL": 300}
 
         # Timestamp from 301 seconds ago (just past TTL)
-        past_ttl_timestamp = (
-            datetime.now(timezone.utc) - timedelta(seconds=301)
-        ).isoformat()
+        past_ttl_timestamp = (datetime.now() - timedelta(seconds=301)).isoformat()
         payload = ScreenshotCachePayload(
             status=StatusValues.COMPUTING, timestamp=past_ttl_timestamp
         )
@@ -552,9 +528,9 @@ class TestIsComputingStale:
     def test_computing_tz_aware_timestamp_is_stale(
         self, mock_app: MagicMock, mock_logger: MagicMock
     ) -> None:
-        """A tz-aware timestamp now subtracts cleanly from an aware UTC now();
-        a 2020 timestamp is genuinely old, so it is stale via normal age math
-        with no warning."""
+        """A legacy tz-aware timestamp cannot be subtracted from the naive
+        now(): it raises TypeError, so _age_seconds returns None and the entry
+        is treated as stale (self-heal), with a warning logged."""
         mock_app.config = {"THUMBNAIL_COMPUTING_CACHE_TTL": 300}
 
         payload = ScreenshotCachePayload(
@@ -562,16 +538,16 @@ class TestIsComputingStale:
         )
 
         assert payload.is_computing_stale() is True
-        mock_logger.warning.assert_not_called()
+        mock_logger.warning.assert_called_once()
 
     @patch("superset.utils.screenshots.logger")
     @patch("superset.utils.screenshots.app")
     def test_computing_legacy_naive_timestamp_is_stale(
         self, mock_app: MagicMock, mock_logger: MagicMock
     ) -> None:
-        """A legacy naive timestamp (written before UTC normalization) is
-        assumed to be UTC; an old one is stale via normal age math, no
-        warning."""
+        """A legacy naive timestamp compares naive-to-naive against now(): an
+        old one yields a large positive age and is stale via normal age math,
+        with no warning."""
         mock_app.config = {"THUMBNAIL_COMPUTING_CACHE_TTL": 300}
 
         payload = ScreenshotCachePayload(
@@ -583,24 +559,40 @@ class TestIsComputingStale:
 
     @patch("superset.utils.screenshots.logger")
     @patch("superset.utils.screenshots.app")
-    def test_computing_future_timestamp_is_not_stale(
+    def test_computing_within_tolerance_future_is_not_stale(
         self, mock_app: MagicMock, mock_logger: MagicMock
     ) -> None:
-        """A future timestamp (negative age, e.g. a worker whose clock is ahead
-        of the web host after UTC normalization) is treated as FRESH -- the
-        negative age reads as not stale -- so the web tier and worker converge
-        instead of looping. No warning is logged."""
+        """A future timestamp within tolerance (small negative age, e.g. a
+        worker whose clock is slightly ahead of the web host) is treated as
+        FRESH -- the negative age reads as not stale -- so the web tier and
+        worker converge instead of looping. No warning is logged."""
         mock_app.config = {"THUMBNAIL_COMPUTING_CACHE_TTL": 300}
 
-        future_timestamp = (
-            datetime.now(timezone.utc) + timedelta(seconds=600)
-        ).isoformat()
+        future_timestamp = (datetime.now() + timedelta(seconds=120)).isoformat()
         payload = ScreenshotCachePayload(
             status=StatusValues.COMPUTING, timestamp=future_timestamp
         )
 
         assert payload.is_computing_stale() is False
         mock_logger.warning.assert_not_called()
+
+    @patch("superset.utils.screenshots.logger")
+    @patch("superset.utils.screenshots.app")
+    def test_computing_beyond_tolerance_future_is_stale(
+        self, mock_app: MagicMock, mock_logger: MagicMock
+    ) -> None:
+        """A timestamp implausibly far in the future (beyond the tolerance
+        bound) is treated as unusable: _age_seconds returns None, the entry is
+        stale (self-heal), and a warning is logged."""
+        mock_app.config = {"THUMBNAIL_COMPUTING_CACHE_TTL": 300}
+
+        future_timestamp = (datetime.now() + timedelta(seconds=600)).isoformat()
+        payload = ScreenshotCachePayload(
+            status=StatusValues.COMPUTING, timestamp=future_timestamp
+        )
+
+        assert payload.is_computing_stale() is True
+        mock_logger.warning.assert_called_once()
 
 
 class TestIsErrorCacheTtlExpired:
@@ -611,9 +603,7 @@ class TestIsErrorCacheTtlExpired:
         """An ERROR entry older than the TTL is expired."""
         mock_app.config = {"THUMBNAIL_ERROR_CACHE_TTL": 300}
 
-        old_timestamp = (
-            datetime.now(timezone.utc) - timedelta(seconds=400)
-        ).isoformat()
+        old_timestamp = (datetime.now() - timedelta(seconds=400)).isoformat()
         payload = ScreenshotCachePayload(
             status=StatusValues.ERROR, timestamp=old_timestamp
         )
@@ -625,9 +615,7 @@ class TestIsErrorCacheTtlExpired:
         """A fresh ERROR entry is not expired."""
         mock_app.config = {"THUMBNAIL_ERROR_CACHE_TTL": 300}
 
-        fresh_timestamp = (
-            datetime.now(timezone.utc) - timedelta(seconds=100)
-        ).isoformat()
+        fresh_timestamp = (datetime.now() - timedelta(seconds=100)).isoformat()
         payload = ScreenshotCachePayload(
             status=StatusValues.ERROR, timestamp=fresh_timestamp
         )
@@ -655,9 +643,9 @@ class TestIsErrorCacheTtlExpired:
     def test_error_tz_aware_timestamp_is_expired(
         self, mock_app: MagicMock, mock_logger: MagicMock
     ) -> None:
-        """A tz-aware timestamp now subtracts cleanly from an aware UTC now();
-        a 2020 timestamp is genuinely old, so it is expired via normal age math
-        with no warning."""
+        """A legacy tz-aware timestamp cannot be subtracted from the naive
+        now(): it raises TypeError, so _age_seconds returns None and the entry
+        is treated as expired (self-heal), with a warning logged."""
         mock_app.config = {"THUMBNAIL_ERROR_CACHE_TTL": 300}
 
         payload = ScreenshotCachePayload(
@@ -665,16 +653,16 @@ class TestIsErrorCacheTtlExpired:
         )
 
         assert payload.is_error_cache_ttl_expired() is True
-        mock_logger.warning.assert_not_called()
+        mock_logger.warning.assert_called_once()
 
     @patch("superset.utils.screenshots.logger")
     @patch("superset.utils.screenshots.app")
     def test_error_legacy_naive_timestamp_is_expired(
         self, mock_app: MagicMock, mock_logger: MagicMock
     ) -> None:
-        """A legacy naive timestamp (written before UTC normalization) is
-        assumed to be UTC; an old one is expired via normal age math, no
-        warning."""
+        """A legacy naive timestamp compares naive-to-naive against now(): an
+        old one yields a large positive age and is expired via normal age math,
+        with no warning."""
         mock_app.config = {"THUMBNAIL_ERROR_CACHE_TTL": 300}
 
         payload = ScreenshotCachePayload(
@@ -686,24 +674,40 @@ class TestIsErrorCacheTtlExpired:
 
     @patch("superset.utils.screenshots.logger")
     @patch("superset.utils.screenshots.app")
-    def test_error_future_timestamp_is_not_expired(
+    def test_error_within_tolerance_future_is_not_expired(
         self, mock_app: MagicMock, mock_logger: MagicMock
     ) -> None:
-        """A future timestamp (negative age, e.g. a worker whose clock is ahead
-        of the web host after UTC normalization) is treated as FRESH -- the
-        negative age reads as not expired -- so the web tier and worker converge
-        instead of looping. No warning is logged."""
+        """A future timestamp within tolerance (small negative age, e.g. a
+        worker whose clock is slightly ahead of the web host) is treated as
+        FRESH -- the negative age reads as not expired -- so the web tier and
+        worker converge instead of looping. No warning is logged."""
         mock_app.config = {"THUMBNAIL_ERROR_CACHE_TTL": 300}
 
-        future_timestamp = (
-            datetime.now(timezone.utc) + timedelta(seconds=600)
-        ).isoformat()
+        future_timestamp = (datetime.now() + timedelta(seconds=120)).isoformat()
         payload = ScreenshotCachePayload(
             status=StatusValues.ERROR, timestamp=future_timestamp
         )
 
         assert payload.is_error_cache_ttl_expired() is False
         mock_logger.warning.assert_not_called()
+
+    @patch("superset.utils.screenshots.logger")
+    @patch("superset.utils.screenshots.app")
+    def test_error_beyond_tolerance_future_is_expired(
+        self, mock_app: MagicMock, mock_logger: MagicMock
+    ) -> None:
+        """A timestamp implausibly far in the future (beyond the tolerance
+        bound) is treated as unusable: _age_seconds returns None, the entry is
+        expired (self-heal), and a warning is logged."""
+        mock_app.config = {"THUMBNAIL_ERROR_CACHE_TTL": 300}
+
+        future_timestamp = (datetime.now() + timedelta(seconds=600)).isoformat()
+        payload = ScreenshotCachePayload(
+            status=StatusValues.ERROR, timestamp=future_timestamp
+        )
+
+        assert payload.is_error_cache_ttl_expired() is True
+        mock_logger.warning.assert_called_once()
 
 
 class TestIsUpdatedStale:
@@ -714,9 +718,7 @@ class TestIsUpdatedStale:
         """An UPDATED entry older than the TTL is stale."""
         mock_app.config = {"THUMBNAIL_UPDATED_CACHE_TTL": 300}
 
-        old_timestamp = (
-            datetime.now(timezone.utc) - timedelta(seconds=400)
-        ).isoformat()
+        old_timestamp = (datetime.now() - timedelta(seconds=400)).isoformat()
         payload = ScreenshotCachePayload(image=FAKE_PNG_BYTES, timestamp=old_timestamp)
 
         assert payload.is_updated_stale() is True
@@ -726,9 +728,7 @@ class TestIsUpdatedStale:
         """Just past the TTL (301s) the entry is stale."""
         mock_app.config = {"THUMBNAIL_UPDATED_CACHE_TTL": 300}
 
-        past_ttl_timestamp = (
-            datetime.now(timezone.utc) - timedelta(seconds=301)
-        ).isoformat()
+        past_ttl_timestamp = (datetime.now() - timedelta(seconds=301)).isoformat()
         payload = ScreenshotCachePayload(
             image=FAKE_PNG_BYTES, timestamp=past_ttl_timestamp
         )
@@ -740,9 +740,7 @@ class TestIsUpdatedStale:
         """A recently-rendered UPDATED entry is not stale."""
         mock_app.config = {"THUMBNAIL_UPDATED_CACHE_TTL": 300}
 
-        fresh_timestamp = (
-            datetime.now(timezone.utc) - timedelta(seconds=100)
-        ).isoformat()
+        fresh_timestamp = (datetime.now() - timedelta(seconds=100)).isoformat()
         payload = ScreenshotCachePayload(
             image=FAKE_PNG_BYTES, timestamp=fresh_timestamp
         )
@@ -756,9 +754,7 @@ class TestIsUpdatedStale:
         unpinnable exactly-at-TTL wall-clock case."""
         mock_app.config = {"THUMBNAIL_UPDATED_CACHE_TTL": 300}
 
-        under_ttl_timestamp = (
-            datetime.now(timezone.utc) - timedelta(seconds=299)
-        ).isoformat()
+        under_ttl_timestamp = (datetime.now() - timedelta(seconds=299)).isoformat()
         payload = ScreenshotCachePayload(
             image=FAKE_PNG_BYTES, timestamp=under_ttl_timestamp
         )
@@ -771,9 +767,7 @@ class TestIsUpdatedStale:
         stale."""
         mock_app.config = {"THUMBNAIL_UPDATED_CACHE_TTL": 0}
 
-        very_old_timestamp = (
-            datetime.now(timezone.utc) - timedelta(days=365)
-        ).isoformat()
+        very_old_timestamp = (datetime.now() - timedelta(days=365)).isoformat()
         payload = ScreenshotCachePayload(
             image=FAKE_PNG_BYTES, timestamp=very_old_timestamp
         )
@@ -786,9 +780,7 @@ class TestIsUpdatedStale:
         check via ``app.config.get`` without raising."""
         mock_app.config = {"THUMBNAIL_UPDATED_CACHE_TTL": None}
 
-        very_old_timestamp = (
-            datetime.now(timezone.utc) - timedelta(days=365)
-        ).isoformat()
+        very_old_timestamp = (datetime.now() - timedelta(days=365)).isoformat()
         payload = ScreenshotCachePayload(
             image=FAKE_PNG_BYTES, timestamp=very_old_timestamp
         )
@@ -814,9 +806,9 @@ class TestIsUpdatedStale:
     def test_tz_aware_timestamp_is_stale(
         self, mock_app: MagicMock, mock_logger: MagicMock
     ) -> None:
-        """A tz-aware timestamp now subtracts cleanly from an aware UTC now();
-        a 2020 timestamp is genuinely old, so it is stale via normal age math
-        with no warning."""
+        """A legacy tz-aware timestamp cannot be subtracted from the naive
+        now(): it raises TypeError, so _age_seconds returns None and the entry
+        is treated as stale (self-heal), with a warning logged."""
         mock_app.config = {"THUMBNAIL_UPDATED_CACHE_TTL": 300}
 
         payload = ScreenshotCachePayload(
@@ -824,16 +816,16 @@ class TestIsUpdatedStale:
         )
 
         assert payload.is_updated_stale() is True
-        mock_logger.warning.assert_not_called()
+        mock_logger.warning.assert_called_once()
 
     @patch("superset.utils.screenshots.logger")
     @patch("superset.utils.screenshots.app")
     def test_legacy_naive_timestamp_is_stale(
         self, mock_app: MagicMock, mock_logger: MagicMock
     ) -> None:
-        """A legacy naive timestamp (written before UTC normalization) is
-        assumed to be UTC so aware/naive subtraction never raises; an old one
-        is stale via normal age math with no warning (not a mass self-heal)."""
+        """A legacy naive timestamp compares naive-to-naive against now(): an
+        old one yields a large positive age and is stale via normal age math
+        with no warning (not a mass self-heal)."""
         mock_app.config = {"THUMBNAIL_UPDATED_CACHE_TTL": 300}
 
         payload = ScreenshotCachePayload(
@@ -845,18 +837,16 @@ class TestIsUpdatedStale:
 
     @patch("superset.utils.screenshots.logger")
     @patch("superset.utils.screenshots.app")
-    def test_future_timestamp_is_not_stale(
+    def test_within_tolerance_future_is_not_stale(
         self, mock_app: MagicMock, mock_logger: MagicMock
     ) -> None:
-        """A future timestamp (negative age, e.g. a worker whose clock is ahead
-        of the web host after UTC normalization) is treated as FRESH -- the
-        negative age reads as not stale -- so the web tier and worker converge
-        instead of looping. No warning is logged."""
+        """A future timestamp within tolerance (small negative age, e.g. a
+        worker whose clock is slightly ahead of the web host) is treated as
+        FRESH -- the negative age reads as not stale -- so the web tier and
+        worker converge instead of looping. No warning is logged."""
         mock_app.config = {"THUMBNAIL_UPDATED_CACHE_TTL": 300}
 
-        future_timestamp = (
-            datetime.now(timezone.utc) + timedelta(seconds=600)
-        ).isoformat()
+        future_timestamp = (datetime.now() + timedelta(seconds=120)).isoformat()
         payload = ScreenshotCachePayload(
             image=FAKE_PNG_BYTES, timestamp=future_timestamp
         )
@@ -864,19 +854,35 @@ class TestIsUpdatedStale:
         assert payload.is_updated_stale() is False
         mock_logger.warning.assert_not_called()
 
+    @patch("superset.utils.screenshots.logger")
+    @patch("superset.utils.screenshots.app")
+    def test_beyond_tolerance_future_is_stale(
+        self, mock_app: MagicMock, mock_logger: MagicMock
+    ) -> None:
+        """A timestamp implausibly far in the future (beyond the tolerance
+        bound) is treated as unusable: _age_seconds returns None, the entry is
+        stale (self-heal), and a warning is logged."""
+        mock_app.config = {"THUMBNAIL_UPDATED_CACHE_TTL": 300}
+
+        future_timestamp = (datetime.now() + timedelta(seconds=600)).isoformat()
+        payload = ScreenshotCachePayload(
+            image=FAKE_PNG_BYTES, timestamp=future_timestamp
+        )
+
+        assert payload.is_updated_stale() is True
+        mock_logger.warning.assert_called_once()
+
     @patch("superset.utils.screenshots.app")
     def test_worker_ahead_timestamp_does_not_loop(self, mock_app: MagicMock) -> None:
         """Convergence regression: an UPDATED entry whose timestamp is ~120s in
-        the future (the rendering worker's clock is ahead of the web host) must
-        NOT be treated as stale. If it were, the web tier would keep re-enqueuing
-        at 202 while the worker saw its own fresh timestamp and skipped -- an
-        endless loop. Treating the negative age as fresh lets the web serve 200
-        and the two tiers converge."""
+        the future (the rendering worker's clock is ahead of the web host, within
+        tolerance) must NOT be treated as stale. If it were, the web tier would
+        keep re-enqueuing at 202 while the worker saw its own fresh timestamp and
+        skipped -- an endless loop. Treating the small negative age as fresh lets
+        the web serve 200 and the two tiers converge."""
         mock_app.config = {"THUMBNAIL_UPDATED_CACHE_TTL": 300}
 
-        worker_ahead_timestamp = (
-            datetime.now(timezone.utc) + timedelta(seconds=120)
-        ).isoformat()
+        worker_ahead_timestamp = (datetime.now() + timedelta(seconds=120)).isoformat()
         payload = ScreenshotCachePayload(
             image=FAKE_PNG_BYTES, timestamp=worker_ahead_timestamp
         )
@@ -893,9 +899,7 @@ class TestIsUpdatedStale:
         _age_seconds is ever consulted (so no warning is logged either)."""
         mock_app.config = {"THUMBNAIL_UPDATED_CACHE_TTL": 0}
 
-        future_timestamp = (
-            datetime.now(timezone.utc) + timedelta(seconds=600)
-        ).isoformat()
+        future_timestamp = (datetime.now() + timedelta(seconds=600)).isoformat()
         payload = ScreenshotCachePayload(
             image=FAKE_PNG_BYTES, timestamp=future_timestamp
         )
@@ -904,16 +908,14 @@ class TestIsUpdatedStale:
         mock_logger.warning.assert_not_called()
 
     @patch("superset.utils.screenshots.logger")
-    def test_age_seconds_future_timestamp_returns_negative(
+    def test_age_seconds_within_tolerance_future_returns_negative(
         self, mock_logger: MagicMock
     ) -> None:
         """_age_seconds returns the raw negative age for a future timestamp
-        (residual clock skew after UTC normalization) rather than None, so every
+        within tolerance (residual clock skew) rather than None, so every
         caller's ``age is None or age >/>= TTL`` reads it as fresh and the web
         tier and worker converge. No warning is logged."""
-        future_timestamp = (
-            datetime.now(timezone.utc) + timedelta(seconds=600)
-        ).isoformat()
+        future_timestamp = (datetime.now() + timedelta(seconds=120)).isoformat()
         payload = ScreenshotCachePayload(
             image=FAKE_PNG_BYTES, timestamp=future_timestamp
         )
@@ -922,6 +924,21 @@ class TestIsUpdatedStale:
         assert age is not None
         assert age < 0
         mock_logger.warning.assert_not_called()
+
+    @patch("superset.utils.screenshots.logger")
+    def test_age_seconds_beyond_tolerance_future_returns_none(
+        self, mock_logger: MagicMock
+    ) -> None:
+        """_age_seconds returns None for a timestamp implausibly far in the
+        future (beyond the tolerance bound) and logs a warning, so callers treat
+        the entry as stale/expired and it self-heals."""
+        future_timestamp = (datetime.now() + timedelta(seconds=600)).isoformat()
+        payload = ScreenshotCachePayload(
+            image=FAKE_PNG_BYTES, timestamp=future_timestamp
+        )
+
+        assert payload._age_seconds() is None
+        mock_logger.warning.assert_called_once()
 
 
 class TestIntegrationCacheBugFix:
@@ -973,9 +990,7 @@ class TestIntegrationCacheBugFix:
         BaseScreenshot.cache = MockCache()
 
         # Create stale COMPUTING entry and seed it in the cache
-        old_timestamp = (
-            datetime.now(timezone.utc) - timedelta(seconds=400)
-        ).isoformat()
+        old_timestamp = (datetime.now() - timedelta(seconds=400)).isoformat()
         stale_payload = ScreenshotCachePayload(
             status=StatusValues.COMPUTING, timestamp=old_timestamp
         )
@@ -1035,9 +1050,7 @@ class TestIntegrationCacheBugFix:
 
         # Seed a stale (400s old) but valid UPDATED entry with a *matching*
         # scope so the pre-existing scope-mismatch clause doesn't fire first.
-        old_timestamp = (
-            datetime.now(timezone.utc) - timedelta(seconds=400)
-        ).isoformat()
+        old_timestamp = (datetime.now() - timedelta(seconds=400)).isoformat()
         stale_payload = ScreenshotCachePayload(
             image=FAKE_PNG_BYTES, timestamp=old_timestamp, scope="dashboard:1"
         )
@@ -1093,9 +1106,7 @@ class TestIntegrationCacheBugFix:
         screenshot_obj.cache_scope = "chart:1"
 
         # Seed a stale (400s old) but valid UPDATED entry with a matching scope.
-        old_timestamp = (
-            datetime.now(timezone.utc) - timedelta(seconds=400)
-        ).isoformat()
+        old_timestamp = (datetime.now() - timedelta(seconds=400)).isoformat()
         stale_payload = ScreenshotCachePayload(
             image=FAKE_PNG_BYTES, timestamp=old_timestamp, scope="chart:1"
         )
@@ -1176,9 +1187,16 @@ class TestReadSideImageValidation:
     returned to the caller — this is what the dashboard/chart screenshot
     endpoints call to fetch bytes to serve."""
 
-    def test_zero_byte_image_is_treated_as_cache_miss(
+    def test_zero_byte_image_serializes_to_no_image_and_is_not_rejected(
         self, mocker: MockerFixture, screenshot_obj: BaseScreenshot
     ) -> None:
+        """A zero-byte image serializes to ``None`` (``to_dict`` stores no image
+        for falsy bytes), so after a cache round trip it is a *no-image* entry
+        rather than one carrying invalid bytes. Now that image validation keys
+        off whether bytes are actually present, get_from_cache_key returns it
+        as-is with no "empty" warning; the empty entry self-heals via
+        should_trigger_task (UPDATED with no image) and ``get_image()`` -> 404
+        at the endpoint, not via a read-side cache miss."""
         mock_logger = mocker.patch("superset.utils.screenshots.logger")
         BaseScreenshot.cache = MockCache()
         cache_key = screenshot_obj.get_cache_key()
@@ -1187,11 +1205,9 @@ class TestReadSideImageValidation:
 
         result = screenshot_obj.get_from_cache_key(cache_key)
 
-        assert result is None
-        assert any(
-            cache_key in call.args and "empty" in call.args
-            for call in mock_logger.warning.call_args_list
-        )
+        assert result is not None
+        assert result._image is None
+        mock_logger.warning.assert_not_called()
 
     def test_garbage_bytes_image_is_treated_as_cache_miss(
         self, mocker: MockerFixture, screenshot_obj: BaseScreenshot
@@ -1237,6 +1253,71 @@ class TestReadSideImageValidation:
 
         assert result is not None
         assert result.status == StatusValues.PENDING
+
+
+class TestRetainedImageValidationRegardlessOfStatus:
+    """get_invalid_image_reason validates the image whenever one is present,
+    regardless of status. Retained ERROR/COMPUTING entries keep their previous
+    image and are served by the read paths, so a corrupt/blank retained image
+    must be rejected (treated as a cache miss) too -- not only for UPDATED
+    entries."""
+
+    def test_error_payload_with_invalid_bytes_returns_reason(self) -> None:
+        # error() retains the previous image while flipping status to ERROR.
+        payload = ScreenshotCachePayload(image=b"not-a-real-image")
+        payload.error()
+        assert payload.status == StatusValues.ERROR
+        assert payload.get_invalid_image_reason() == "undecodable"
+
+    def test_error_payload_with_valid_bytes_returns_none(self) -> None:
+        payload = ScreenshotCachePayload(image=FAKE_PNG_BYTES)
+        payload.error()
+        assert payload.status == StatusValues.ERROR
+        assert payload.get_invalid_image_reason() is None
+
+    def test_no_image_payload_is_not_rejected(self) -> None:
+        """A PENDING entry with no image isn't claiming an image at all, so it
+        must not be rejected."""
+        payload = ScreenshotCachePayload(status=StatusValues.PENDING)
+        assert payload._image is None
+        assert payload.get_invalid_image_reason() is None
+
+    def test_retained_error_entry_with_corrupt_bytes_is_cache_miss(
+        self, mocker: MockerFixture, screenshot_obj: BaseScreenshot
+    ) -> None:
+        """A retained ERROR entry carrying corrupt bytes is served by
+        get_from_cache_key today, so it must be rejected as a cache miss."""
+        mock_logger = mocker.patch("superset.utils.screenshots.logger")
+        BaseScreenshot.cache = MockCache()
+        cache_key = screenshot_obj.get_cache_key()
+        payload = ScreenshotCachePayload(image=b"not-a-real-image")
+        payload.error()
+        BaseScreenshot.cache.set(cache_key, payload.to_dict())
+
+        result = screenshot_obj.get_from_cache_key(cache_key)
+
+        assert result is None
+        assert any(
+            cache_key in call.args and "undecodable" in call.args
+            for call in mock_logger.warning.call_args_list
+        )
+
+    def test_retained_error_entry_with_valid_bytes_is_served(
+        self, screenshot_obj: BaseScreenshot
+    ) -> None:
+        """A retained ERROR entry with a valid image is still returned so the
+        stale-but-valid thumbnail stays servable."""
+        BaseScreenshot.cache = MockCache()
+        cache_key = screenshot_obj.get_cache_key()
+        payload = ScreenshotCachePayload(image=FAKE_PNG_BYTES)
+        payload.error()
+        BaseScreenshot.cache.set(cache_key, payload.to_dict())
+
+        result = screenshot_obj.get_from_cache_key(cache_key)
+
+        assert result is not None
+        assert result.status == StatusValues.ERROR
+        assert result.get_image().read() == FAKE_PNG_BYTES
 
 
 class TestDeserializationPreservesStatus:

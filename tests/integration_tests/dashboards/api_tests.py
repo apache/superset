@@ -4314,7 +4314,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         stale entry would be rescheduled (202, no cached bytes). Because the card
         path calls ``should_trigger_task()`` with no kwarg, the assertions below
         hold and this pins that the flag is not propagated here."""
-        from datetime import datetime, timedelta, timezone
+        from datetime import datetime, timedelta
 
         self.login(ADMIN_USERNAME)
 
@@ -4324,10 +4324,10 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             .first()
         )
         # A valid, correctly-scoped UPDATED entry, but 400s old against a 300s TTL.
-        # UTC-aware to match the cache's UTC timestamp normalization.
-        stale_timestamp = (
-            datetime.now(timezone.utc) - timedelta(seconds=400)
-        ).isoformat()
+        # Naive to match the cache's naive `datetime.now()` timestamps: a tz-aware
+        # value here would either be read as future on a UTC-ahead host or raise
+        # when subtracted from naive now().
+        stale_timestamp = (datetime.now() - timedelta(seconds=400)).isoformat()
         mock_get_from_cache_key.return_value = ScreenshotCachePayload(
             b"fake image data",
             scope=f"dashboard:{dashboard.id}",
