@@ -14,8 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from datetime import datetime
 from typing import Any
 
+from flask import g
 from marshmallow import ValidationError
 
 from superset.commands.chart.exceptions import (
@@ -69,3 +71,24 @@ def validate_query_context_datasource(
 
     if not ids_match or not types_match:
         exceptions.append(ChartQueryContextDatasourceMismatchValidationError())
+
+
+def touch_dashboards(dashboards: list[Any] | None) -> None:
+    """
+    Update changed_on and changed_by for associated dashboards.
+
+    When charts are created with attached dashboards or updated to link to new
+    dashboards, bump the dashboard audit metadata so the dashboards list view
+    and caches reflect the recent change (resolves apache/superset#44305).
+    """
+    if not dashboards:
+        return
+
+    now = datetime.now()
+    user = getattr(g, "user", None)
+
+    for dashboard in dashboards:
+        dashboard.changed_on = now
+        if user is not None:
+            dashboard.changed_by = user
+
