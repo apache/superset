@@ -1109,3 +1109,16 @@ def test_identifier_quote_uses_backticks() -> None:
         "end": "`",
         "escape_by_doubling": True,
     }
+
+
+def test_use_equality_for_boolean_filters_property() -> None:
+    """
+    Test that Databricks engine specs enable use_equality_for_boolean_filters.
+    Databricks SQL rejects 'col IN (0)' or 'col IS true' in certain contexts
+    due to DATATYPE_MISMATCH.DATA_DIFF_TYPES, requiring equality comparison.
+    """
+    from superset.db_engine_specs.databricks import (
+        DatabricksBaseEngineSpec,
+    )
+
+    assert DatabricksBaseEngineSpec.use_equality_for_boolean_filters is True
