@@ -26,7 +26,7 @@ hold the corrected guidance to its claims — each test names the bullet
 it protects, so a future edit that reintroduces bad advice fails here.
 """
 
-from typing import Any
+from typing import TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -35,33 +35,41 @@ from superset.exceptions import SupersetSecurityException
 from superset.tasks.types import ExecutorType, FixedExecutor
 from superset.tasks.utils import get_executor
 
+if TYPE_CHECKING:
+    from superset.security.manager import SupersetSecurityManager
 
-def _make_sm() -> Any:
+
+def _make_sm() -> "SupersetSecurityManager":
+    """Build only the manager shell needed by the patched access gate."""
+    # Avoid app-init regression: the manager imports the model registry;
+    # resolve it after the app_context fixture initializes the application.
     # pylint: disable=import-outside-toplevel
     from superset.security.manager import SupersetSecurityManager
 
-    return SupersetSecurityManager(MagicMock())
+    return SupersetSecurityManager.__new__(SupersetSecurityManager)
 
 
 def _make_dashboard(*, published: bool, has_viewers: bool) -> MagicMock:
     dashboard: MagicMock = MagicMock()
     dashboard.published = published
     dashboard.viewers = [MagicMock()] if has_viewers else []
-    dashboard.datasources = []
+    dashboard.slices = []
     return dashboard
 
 
-def _gate(sm: Any, dashboard: MagicMock, *, is_viewer: bool, is_editor: bool) -> None:
+def _gate(
+    sm: "SupersetSecurityManager",
+    dashboard: MagicMock,
+    *,
+    is_viewer: bool,
+    is_editor: bool,
+) -> None:
     """Run the object-read gate as a non-admin, non-guest principal."""
     with (
         patch.object(sm, "is_admin", return_value=False),
         patch.object(sm, "is_editor", return_value=is_editor),
         patch.object(sm, "is_viewer", return_value=is_viewer),
         patch.object(sm, "is_guest_user", return_value=False),
-        patch(
-            "superset.is_feature_enabled",
-            side_effect=lambda flag: flag == "ENABLE_VIEWERS",
-        ),
         patch.object(sm, "get_dashboard_access_error_object", return_value=MagicMock()),
     ):
         sm.raise_for_access(dashboard=dashboard)
@@ -75,7 +83,7 @@ def test_viewer_membership_alone_does_not_unblock_an_unpublished_dashboard(
     UPDATING.md must not offer this for an unpublished dashboard — the
     viewer branch requires publication too, so the report keeps failing.
     """
-    sm: Any = _make_sm()
+    sm: "SupersetSecurityManager" = _make_sm()
     dashboard: MagicMock = _make_dashboard(published=False, has_viewers=True)
 
     with pytest.raises(SupersetSecurityException):
@@ -86,7 +94,7 @@ def test_publishing_unblocks_the_viewer_execution_principal(
     app_context: None,
 ) -> None:
     """Documented remedy 1: publish, with the principal's read access intact."""
-    sm: Any = _make_sm()
+    sm: "SupersetSecurityManager" = _make_sm()
     dashboard: MagicMock = _make_dashboard(published=True, has_viewers=True)
 
     _gate(sm, dashboard, is_viewer=True, is_editor=False)
@@ -101,7 +109,7 @@ def test_editorship_unblocks_regardless_of_published_state(
     datasource fallback, so this works while the dashboard stays
     unpublished.
     """
-    sm: Any = _make_sm()
+    sm: "SupersetSecurityManager" = _make_sm()
     dashboard: MagicMock = _make_dashboard(published=False, has_viewers=True)
 
     _gate(sm, dashboard, is_viewer=False, is_editor=True)
@@ -119,6 +127,8 @@ def test_fixed_executor_ignores_schedule_ownership() -> None:
     report.created_by = MagicMock(username="original_owner")
     report.changed_by = MagicMock(username="original_owner")
 
+    executor_type: ExecutorType
+    username: str
     executor_type, username = get_executor(
         executors=[FixedExecutor("reports_service_account")],
         model=report,
@@ -130,6 +140,7 @@ def test_fixed_executor_ignores_schedule_ownership() -> None:
     # resolved execution principal does not move.
     report.created_by = MagicMock(username="dashboard_editor")
     report.changed_by = MagicMock(username="dashboard_editor")
+    username_after: str
     _, username_after = get_executor(
         executors=[FixedExecutor("reports_service_account")],
         model=report,

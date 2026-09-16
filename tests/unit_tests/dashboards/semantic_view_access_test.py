@@ -471,6 +471,15 @@ def test_gate_denies_unpublished_empty_dashboard(
         sm.raise_for_access(dashboard=unpublished_empty)
 
 
+def test_gate_allows_published_table_dashboard_for_entitled_user(
+    access_fixtures: SimpleNamespace, app_context: None
+) -> None:
+    """Publication admits a datasource-entitled reader with no viewer subjects."""
+    sm: SupersetSecurityManager = _gate_sm()
+    with _gate_patches(sm, granted_perms={TABLE_PERM}):
+        sm.raise_for_access(dashboard=access_fixtures.regular_dashboard)
+
+
 def test_gate_denies_unpublished_dashboard_despite_datasource_grant(
     access_fixtures: SimpleNamespace, app_context: None
 ) -> None:
