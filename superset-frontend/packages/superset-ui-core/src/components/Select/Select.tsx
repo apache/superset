@@ -75,7 +75,6 @@ import {
   TOKEN_SEPARATORS,
   VIRTUAL_THRESHOLD,
 } from './constants';
-import { Space } from '../Space';
 import { Button } from '../Button';
 
 // An option is eligible for a bulk "Select all" when it carries a truthy value
@@ -1055,7 +1054,7 @@ const Select = forwardRef(
             )
           }
           options={visibleOptions}
-          optionRender={option => <Space>{option.label || option.value}</Space>}
+          optionRender={option => option.label || option.value}
           oneLine={oneLine}
           popupMatchSelectWidth={oneLine ? dropdownWidth : true}
           builtinPlacements={DROPDOWN_BUILTIN_PLACEMENTS}
