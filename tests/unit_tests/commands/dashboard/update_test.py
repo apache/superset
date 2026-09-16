@@ -174,7 +174,9 @@ def test_process_native_filter_diff_only_touches_reports_on_the_updated_dashboar
 
 
 def _mock_dependencies(mocker: MockerFixture, existing_css: str) -> None:
-    model = mocker.MagicMock(id=1, tags=[], css=existing_css)
+    model = mocker.MagicMock(
+        id=1, tags=[], css=existing_css, is_managed_externally=False
+    )
     mocker.patch(
         "superset.commands.dashboard.update.DashboardDAO.find_by_id",
         return_value=model,
