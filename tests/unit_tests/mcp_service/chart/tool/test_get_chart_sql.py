@@ -1819,3 +1819,161 @@ class TestRejectedFilterColumnsAreSurfaced:
         )
 
         assert isinstance(result, ChartSql)
+
+
+class TestDetachedInstanceError:
+    """Tests that DetachedInstanceError is handled gracefully.
+
+    When the SQLAlchemy session commits mid-request (e.g. DBEventLogger.log),
+    ORM objects expire and become detached. Accessing lazy attributes on a
+    detached Slice raises DetachedInstanceError. The tool must:
+    1. Call db.session.refresh() immediately after loading the chart so all
+       column values are loaded upfront before any downstream operation.
+    2. Catch SQLAlchemyError (the base class) and return a ChartError
+       instead of propagating the exception.
+    """
+
+    @pytest.mark.asyncio
+    async def test_session_refresh_called_after_chart_load(self):
+        """db.session.refresh() is invoked right after _find_chart_by_identifier."""
+        from contextlib import nullcontext
+        from unittest.mock import MagicMock, patch
+
+        from superset.utils import json
+
+        mock_chart = MagicMock()
+        mock_chart.id = 42
+        mock_chart.slice_name = "Sales Chart"
+        mock_chart.viz_type = "table"
+        mock_chart.datasource_id = 1
+        mock_chart.datasource_type = "table"
+        mock_chart.params = "{}"
+
+        refresh_calls: list[object] = []
+
+        def _fake_refresh(obj: object) -> None:
+            refresh_calls.append(obj)
+
+        chart_sql_result = ChartSql(
+            chart_id=42,
+            chart_name="Sales Chart",
+            sql="SELECT COUNT(*) FROM sales",
+            language="sql",
+            datasource_name="sales",
+        )
+
+        with (
+            patch.object(
+                _get_chart_sql_mod,
+                "_find_chart_by_identifier",
+                return_value=mock_chart,
+            ),
+            patch.object(
+                _get_chart_sql_mod.db,
+                "session",
+                **{"refresh.side_effect": _fake_refresh},
+            ),
+            patch.object(
+                _get_chart_sql_mod,
+                "validate_chart_dataset",
+                return_value=MagicMock(is_valid=True, warnings=[]),
+            ),
+            patch.object(
+                _get_chart_sql_mod.event_logger,
+                "log_context",
+                return_value=nullcontext(),
+            ),
+            patch.object(
+                _get_chart_sql_mod,
+                "_resolve_effective_form_data",
+                return_value=({"metrics": ["count"]}, False),
+            ),
+            patch.object(
+                _get_chart_sql_mod,
+                "_sql_from_saved_query_context",
+                return_value=chart_sql_result,
+            ),
+        ):
+            from fastmcp import Client
+
+            from superset.mcp_service.app import mcp
+
+            with patch("superset.mcp_service.auth.get_user_from_request") as mu:
+                mu.return_value = MagicMock(id=1, username="admin")
+                with patch(
+                    "superset.mcp_service.auth.check_tool_permission",
+                    return_value=True,
+                ):
+                    async with Client(mcp) as client:
+                        response = await client.call_tool(
+                            "get_chart_sql",
+                            {"request": GetChartSqlRequest(identifier=42).model_dump()},
+                        )
+
+        data = json.loads(response.content[0].text)
+        assert "error_type" not in data, (
+            f"Expected ChartSql but got ChartError: {data.get('error')}"
+        )
+        assert data.get("chart_id") == 42
+
+        assert len(refresh_calls) == 1, (
+            "db.session.refresh() should be called once after loading the chart"
+        )
+        assert refresh_calls[0] is mock_chart
+
+    @pytest.mark.asyncio
+    async def test_detached_instance_error_returns_chart_error(self):
+        """DetachedInstanceError during SQL retrieval returns ChartError."""
+        from contextlib import nullcontext
+        from unittest.mock import MagicMock, patch
+
+        from sqlalchemy.orm.exc import DetachedInstanceError
+
+        from superset.utils import json
+
+        mock_chart = MagicMock()
+        mock_chart.id = 42
+        mock_chart.slice_name = "Sales Chart"
+        mock_chart.viz_type = "table"
+        mock_chart.datasource_id = 1
+
+        with (
+            patch.object(
+                _get_chart_sql_mod,
+                "_find_chart_by_identifier",
+                return_value=mock_chart,
+            ),
+            patch.object(
+                _get_chart_sql_mod.db,
+                "session",
+                **{
+                    "refresh.side_effect": DetachedInstanceError(
+                        "Instance is not bound to a Session"
+                    )
+                },
+            ),
+            patch.object(
+                _get_chart_sql_mod.event_logger,
+                "log_context",
+                return_value=nullcontext(),
+            ),
+        ):
+            from fastmcp import Client
+
+            from superset.mcp_service.app import mcp
+
+            with patch("superset.mcp_service.auth.get_user_from_request") as mu:
+                mu.return_value = MagicMock(id=1, username="admin")
+                with patch(
+                    "superset.mcp_service.auth.check_tool_permission",
+                    return_value=True,
+                ):
+                    async with Client(mcp) as client:
+                        response = await client.call_tool(
+                            "get_chart_sql",
+                            {"request": GetChartSqlRequest(identifier=42).model_dump()},
+                        )
+
+        data = json.loads(response.content[0].text)
+        assert data["error_type"] == "DatabaseError"
+        assert "database session error" in data["error"].lower()
