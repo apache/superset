@@ -109,6 +109,10 @@ import {
 } from '../../FoldersEditor/treeUtils';
 import FoldersEditor from '../../FoldersEditor';
 import { DatasourceFolder } from 'src/explore/components/DatasourcePanel/types';
+import {
+  getDatasetCertification,
+  isDatasetExtraValid,
+} from './datasetCertification';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -185,6 +189,9 @@ interface DatasourceObject {
   description?: string;
   default_endpoint?: string;
   extra?: string;
+  certified_by?: string;
+  certification_details?: string;
+  dataset_certification_changed?: boolean;
   datasource_type?: string;
   type?: string;
   offset?: number;
@@ -972,6 +979,7 @@ function DatasourceEditor({
   // Initialize datasource state with transformed editors and metrics
   const [datasource, setDatasource] = useState<DatasourceObject>(() => ({
     ...propsDatasource,
+    ...getDatasetCertification(propsDatasource.extra),
     editors: normalizeSubjectsToPickerValues(propsDatasource.editors || []),
     metrics: propsDatasource.metrics?.map(hydrateMetricExtra),
   }));
@@ -1704,12 +1712,67 @@ function DatasourceEditor({
     onDatasourceChange,
   ]);
 
+  const renderCertificationFieldset = useCallback(() => {
+    const certificationError = !isDatasetExtraValid(datasource.extra)
+      ? t('Fix the Extra JSON to edit certification')
+      : undefined;
+
+    return isSqla ? (
+      <Fieldset
+        title={t('Certification')}
+        item={datasource}
+        onFieldChange={(fieldKey, value) => {
+          if (
+            fieldKey !== 'certified_by' &&
+            fieldKey !== 'certification_details'
+          ) {
+            return;
+          }
+          setDatasource(previousDatasource => ({
+            ...previousDatasource,
+            [fieldKey]: typeof value === 'string' ? value : undefined,
+            dataset_certification_changed: true,
+          }));
+        }}
+      >
+        <Field
+          fieldKey="certified_by"
+          label={t('Certified by')}
+          description={t('Person or group that has certified this dataset')}
+          errorMessage={certificationError}
+          control={
+            <TextControl
+              controlId="dataset_certified_by"
+              placeholder={t('Certified by')}
+              disabled={Boolean(certificationError)}
+            />
+          }
+        />
+        <Field
+          fieldKey="certification_details"
+          label={t('Certification details')}
+          description={t('Details of the dataset certification')}
+          errorMessage={certificationError}
+          control={
+            <TextControl
+              controlId="dataset_certification_details"
+              placeholder={t('Certification details')}
+              disabled={Boolean(certificationError)}
+            />
+          }
+        />
+      </Fieldset>
+    ) : null;
+  }, [datasource, isSqla]);
+
   const renderSettingsFieldset = useCallback(
     () => (
       <Fieldset
         title={t('Basic')}
         item={datasource}
-        onChange={onDatasourceChange}
+        onFieldChange={(fieldKey, value) =>
+          onDatasourcePropChange(String(fieldKey), value)
+        }
       >
         <Field
           fieldKey="description"
@@ -1763,15 +1826,20 @@ function DatasourceEditor({
             }
           />
         )}
+        <EditorsSelector
+          datasource={datasource}
+          onChange={newEditors => {
+            onDatasourcePropChange('editors', newEditors);
+          }}
+        />
         {isSqla && (
           <Field
             fieldKey="extra"
             label={t('Extra')}
             description={t(
-              'Extra data to specify table metadata. Currently supports ' +
-                'metadata of the format: `{ "certification": { "certified_by": ' +
-                '"Data Platform Team", "details": "This table is the source of truth." ' +
-                '}, "warning_markdown": "This is a warning." }`.',
+              'Extra data to specify table metadata, such as ' +
+                '`{ "warning_markdown": "This is a warning." }`. ' +
+                'Use the Certification fields below for certification metadata.',
             )}
             control={
               <TextAreaControl
@@ -1783,15 +1851,9 @@ function DatasourceEditor({
             }
           />
         )}
-        <EditorsSelector
-          datasource={datasource}
-          onChange={newEditors => {
-            onDatasourceChange({ ...datasource, editors: newEditors });
-          }}
-        />
       </Fieldset>
     ),
-    [datasource, onDatasourceChange, isSqla],
+    [datasource, onDatasourcePropChange, isSqla],
   );
 
   const renderAdvancedFieldset = useCallback(
@@ -1799,7 +1861,9 @@ function DatasourceEditor({
       <Fieldset
         title={t('Advanced')}
         item={datasource}
-        onChange={onDatasourceChange}
+        onFieldChange={(fieldKey, value) =>
+          onDatasourcePropChange(String(fieldKey), value)
+        }
       >
         <Field
           fieldKey="cache_timeout"
@@ -1847,7 +1911,7 @@ function DatasourceEditor({
         />
       </Fieldset>
     ),
-    [datasource, onDatasourceChange, isSqla],
+    [datasource, onDatasourcePropChange, isSqla],
   );
 
   const renderSourceFieldset = useCallback(
@@ -2621,7 +2685,10 @@ function DatasourceEditor({
         children: (
           <Row gutter={16}>
             <Col xs={24} md={12}>
-              <FormContainer>{renderSettingsFieldset()}</FormContainer>
+              <FormContainer>
+                {renderSettingsFieldset()}
+                {renderCertificationFieldset()}
+              </FormContainer>
             </Col>
             <Col xs={24} md={12}>
               <FormContainer>{renderAdvancedFieldset()}</FormContainer>
@@ -2651,6 +2718,7 @@ function DatasourceEditor({
       folders,
       folderCount,
       handleFoldersChange,
+      renderCertificationFieldset,
       renderSettingsFieldset,
       renderAdvancedFieldset,
       // `renderSpatialTab` is intentionally retained (see its definition above)

@@ -121,71 +121,90 @@ class TestSlice:
         slc = Slice()
         slc.id = 1
         slc.table = None
-        slc.semantic_view = None
 
         result = slc.datasource_url()
         assert result is None
 
-    def test_datasource_resolves_semantic_view_for_semantic_view_chart(self):
-        """datasource resolves the semantic_view relationship for
-        datasource_type="semantic_view" charts."""
+    @staticmethod
+    def _semantic_view_slice() -> Slice:
+        """Build a chart on a semantic view, with a colliding table also attached.
+
+        The table stands in for a regular dataset that happens to share the
+        numeric id; it must never leak into the semantic-view chart's display.
+        """
         slc = Slice()
+        slc.id = 1
         slc.datasource_type = "semantic_view"
-        slc.datasource_id = 1
-        mock_view = MagicMock()
-        mock_view.id = 1
-        slc.semantic_view = mock_view
+        slc.datasource_id = 2
+        view = MagicMock()
+        view.name = "orders"
+        view.url = "/semantic_view/abc/"
+        view.explore_url = "/explore/?datasource_type=semantic_view&datasource_id=2"
+        view.link = "<a>orders</a>"
+        slc.semantic_view = view
+        table = MagicMock()
+        table.name = "public.colliding_table"
+        table.explore_url = "/explore/?datasource_type=table&datasource_id=2"
+        slc.table = table
+        return slc
 
-        assert slc.datasource is mock_view
+    def test_datasource_url_uses_semantic_view_explore_url(self) -> None:
+        """A semantic-view chart links to the view's Explore page, not a table's."""
+        slc = self._semantic_view_slice()
 
-    def test_datasource_resolves_table_for_table_chart(self):
-        """datasource resolves the table relationship for datasource_type="table"
-        charts."""
-        slc = Slice()
+        assert (
+            slc.datasource_url()
+            == "/explore/?datasource_type=semantic_view&datasource_id=2"
+        )
+
+    def test_datasource_name_text_uses_semantic_view_name(self) -> None:
+        """A semantic-view chart is named after the view (no schema prefix)."""
+        slc = self._semantic_view_slice()
+
+        assert slc.datasource_name_text() == "orders"
+
+    def test_display_datasource_never_falls_back_across_types(self) -> None:
+        """A semantic-view chart with no view resolves to None, not to a table."""
+        slc = self._semantic_view_slice()
+        slc.semantic_view = None
+
+        assert slc._display_datasource() is None
+        assert slc.datasource_url() is None
+        assert slc.datasource_name_text() is None
+
+    def test_table_chart_display_is_unchanged_by_semantic_view_relationship(
+        self,
+    ) -> None:
+        """A table chart ignores ``semantic_view`` even if it is populated."""
+        slc = self._semantic_view_slice()
         slc.datasource_type = "table"
-        mock_table = MagicMock()
-        slc.table = mock_table
+
+        assert slc.datasource_url() == "/explore/?datasource_type=table&datasource_id=2"
+        assert slc.datasource_name_text() == "public.colliding_table"
+
+    def test_datasource_edit_url_and_link_use_semantic_view(self) -> None:
+        """Edit URL and legacy link come from the view for a semantic-view chart."""
+        slc = self._semantic_view_slice()
+
+        assert slc.datasource_edit_url == "/semantic_view/abc/"
+        assert slc.datasource_link() == "<a>orders</a>"
+
+    def test_datasource_link_is_none_when_unresolved(self) -> None:
+        """A chart whose datasource cannot be resolved has no link, no error."""
+        slc = self._semantic_view_slice()
         slc.semantic_view = None
 
-        assert slc.datasource is mock_table
+        assert slc.datasource_link() is None
+        assert slc.datasource_edit_url is None
 
-    def test_datasource_prefers_table_over_semantic_view(self):
-        """With both relationships populated, datasource resolves the table."""
-        slc = Slice()
-        mock_table = MagicMock()
-        mock_view = MagicMock()
-        slc.table = mock_table
-        slc.semantic_view = mock_view
+    def test_icons_names_the_semantic_view(self) -> None:
+        """icons uses the semantic view's name and edit URL for its tooltip."""
+        slc = self._semantic_view_slice()
 
-        assert slc.datasource is mock_table
+        html = slc.icons
 
-    def test_datasource_empty_for_unsupported_datasource_type(self):
-        """Charts of an unsupported datasource_type resolve to an empty
-        datasource rather than accidentally matching a table or view."""
-        slc = Slice()
-        slc.datasource_type = "query"
-        slc.datasource_id = 1
-        slc.table = None
-        slc.semantic_view = None
-
-        assert slc.datasource is None
-
-    def test_datasource_resolution_preserves_perm_fields(self):
-        """Resolving the datasource must not mutate the chart's perm fields,
-        which the access filters rely on."""
-        slc = Slice()
-        slc.datasource_type = "semantic_view"
-        slc.datasource_id = 1
-        slc.perm = "[layer].[view](id:1)"
-        slc.schema_perm = None
-        slc.catalog_perm = None
-        slc.table = None
-        slc.semantic_view = MagicMock()
-
-        assert slc.datasource is not None
-        assert slc.perm == "[layer].[view](id:1)"
-        assert slc.schema_perm is None
-        assert slc.catalog_perm is None
+        assert 'title="orders"' in html
+        assert 'href="/semantic_view/abc/"' in html
 
     def test_icons_escapes_datasource_html(self):
         """icons must HTML-escape the datasource name and edit URL."""
@@ -199,8 +218,7 @@ class TestSlice:
             ),
             patch.object(
                 Slice,
-                "datasource",
-                new_callable=PropertyMock,
+                "datasource_name_text",
                 return_value="<img src=x onerror=alert(1)>",
             ),
         ):

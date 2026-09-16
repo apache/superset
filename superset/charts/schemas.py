@@ -20,6 +20,7 @@ from __future__ import annotations
 from typing import Any, TYPE_CHECKING
 
 from flask import current_app
+from flask_appbuilder.api.schemas import get_list_schema
 from flask_babel import gettext as _
 from marshmallow import (
     EXCLUDE,
@@ -47,6 +48,7 @@ from superset.utils.core import (
     PostProcessingBoxplotWhiskerType,
     PostProcessingContributionOrientation,
 )
+from superset.utils.pandas_postprocessing.utils import PROPHET_TIME_GRAIN_MAP
 
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
@@ -70,6 +72,27 @@ def get_time_grain_choices() -> Any:
         }.keys()
         if i
     ]
+
+
+def validate_time_grain_sqla(value: Any) -> None:
+    """Ensure the time grain is supported by the configured engine specs."""
+    choices = get_time_grain_choices()
+    validate.OneOf(
+        choices=choices,
+        error=_("Must be one of: {choices}."),
+    )(value)
+
+
+def get_prophet_time_grain_choices() -> list[str]:
+    """Get the time grains Prophet forecasting can actually resolve.
+
+    Deliberately narrower than :func:`get_time_grain_choices`: ``prophet()``
+    resolves a grain through the static ``PROPHET_TIME_GRAIN_MAP``, so an
+    operator-configured ``TIME_GRAIN_ADDONS`` key has no pandas frequency to
+    resolve to. Advertising one here would document a forecast the API
+    cannot serve.
+    """
+    return list(PROPHET_TIME_GRAIN_MAP)
 
 
 # Fallback upper bound for the number of Prophet forecast periods when the
@@ -113,6 +136,26 @@ def validate_prophet_periods(value: int) -> None:
 #
 # RISON/JSON schemas for query parameters
 #
+MAX_VIZ_TYPE_ORDER_LENGTH = 256
+MAX_VIZ_TYPE_LENGTH = 250
+
+chart_get_list_schema = {
+    **get_list_schema,
+    "properties": {
+        **get_list_schema["properties"],
+        "viz_type_order": {
+            "type": "array",
+            "items": {"type": "string", "maxLength": MAX_VIZ_TYPE_LENGTH},
+            "maxItems": MAX_VIZ_TYPE_ORDER_LENGTH,
+            "uniqueItems": True,
+            "description": (
+                "Visualization type slugs in display-name order. Used only when "
+                "order_column is viz_type."
+            ),
+        },
+    },
+}
+
 get_delete_ids_schema = {
     "type": "array",
     "items": {"type": "integer"},
@@ -757,7 +800,7 @@ class ChartDataProphetOptionsSchema(ChartDataPostProcessingOperationOptionsSchem
             "[ISO 8601](https://en.wikipedia.org/wiki/ISO_8601#Durations) durations.",
             "example": "P1D",
         },
-        validate=validate.OneOf(choices=get_time_grain_choices()),
+        validate=validate.OneOf(choices=get_prophet_time_grain_choices()),
         required=True,
     )
     periods = fields.Integer(
@@ -1012,7 +1055,15 @@ class ChartDataGeodeticParseOptionsSchema(
 
 
 class ChartDataPostProcessingOperationSchema(Schema):
-    _builtin_ops = pandas_postprocessing.__all__
+    # OPERATIONS excludes escape_separator/unescape_separator: those are
+    # internal str -> str helpers used by flatten, not DataFrame
+    # post-processing operations, so dispatching one against a DataFrame
+    # raises a confusing TypeError instead of the intended clean validation
+    # error. No field-level `validate=` here: it would run before, and thus
+    # reject, any EXTRA_PANDAS_POSTPROCESSING_OPS-registered custom
+    # operation, which `validate_operation` below is responsible for
+    # allowing.
+    _builtin_ops = pandas_postprocessing.OPERATIONS
 
     operation = fields.String(
         metadata={
@@ -1138,7 +1189,7 @@ class ChartDataExtrasSchema(Schema):
             "[ISO 8601](https://en.wikipedia.org/wiki/ISO_8601#Durations) durations.",
             "example": "P1D",
         },
-        validate=validate.OneOf(choices=get_time_grain_choices()),
+        validate=validate_time_grain_sqla,
         allow_none=True,
     )
     instant_time_comparison_range = fields.String(
@@ -1568,6 +1619,19 @@ class ChartDataQueryObjectSchema(Schema):
                 data[new] = value
         return data
 
+    force_nonce = fields.String(
+        metadata={
+            "description": "Per-query forced-refresh idempotency token: the async "
+            "task's UUID (as returned in the 202 `task_ids`, in query order). Sent "
+            "on the synchronous read-back of a forced refresh so it reads the "
+            "result the task warmed instead of recomputing. Because the token is "
+            "the task's identity, concurrent refreshes joining the same shared task "
+            "read back under the same token. Ignored when `force` is false."
+        },
+        required=False,
+        allow_none=True,
+    )
+
 
 class ChartDataQueryContextSchema(Schema):
     query_context_factory: QueryContextFactory | None = None
@@ -1584,6 +1648,20 @@ class ChartDataQueryContextSchema(Schema):
             "description": "Should the queries be forced to load from the source. "
             "Default: `false`"
         },
+        allow_none=True,
+    )
+
+    force_nonce = fields.String(
+        metadata={
+            "description": "Forced-refresh idempotency token for a single-query "
+            "request: the async task's UUID (as returned in the 202 `task_ids`). "
+            "Sent on the synchronous read-back of a forced refresh so it reads the "
+            "result the task warmed instead of recomputing; concurrent refreshes "
+            "joining the same shared task read back under the same token. Multi-query "
+            "requests set the per-query `force_nonce` on each query instead. Ignored "
+            "when `force` is false."
+        },
+        required=False,
         allow_none=True,
     )
 
@@ -1606,9 +1684,38 @@ class ChartDataQueryContextSchema(Schema):
 
     form_data = fields.Raw(allow_none=True, required=False)
 
+    async_mode = fields.Boolean(
+        metadata={
+            "description": "Opt this request into asynchronous execution on the "
+            "Global Task Framework (requires the GLOBAL_ASYNC_QUERIES feature "
+            "flag). When true the response is HTTP 202 with the query task ids to "
+            "poll; when absent or false the query runs synchronously (HTTP 200). "
+            "Default: `false`."
+        },
+        required=False,
+        allow_none=True,
+    )
+
+    tab_id = fields.String(
+        metadata={
+            "description": "Opaque per-browser-tab id (see the frontend `getTabId`). "
+            "On an async request it ref-counts this tab as a consumer of the shared "
+            "chart-data task so a cancel/navigate-away from one tab doesn't abort a "
+            "task another tab still awaits. Read by the API as a request-level "
+            "routing hint; not part of the query context."
+        },
+        required=False,
+        allow_none=True,
+    )
+
     # pylint: disable=unused-argument
     @post_load
     def make_query_context(self, data: dict[str, Any], **kwargs: Any) -> QueryContext:
+        # ``async_mode`` and ``tab_id`` are request-level hints (read by the API to
+        # decide sync vs async and to route the per-tab subscription), not part of
+        # the QueryContext, so drop them before building one.
+        data.pop("async_mode", None)
+        data.pop("tab_id", None)
         query_context = self.get_query_context_factory().create(**data)
         return query_context
 
@@ -1835,25 +1942,32 @@ class ChartDataResponseSchema(Schema):
 
 
 class ChartDataAsyncResponseSchema(Schema):
-    channel_id = fields.String(
-        metadata={"description": "Unique session async channel ID"},
+    task_ids = fields.List(
+        fields.String(),
+        metadata={
+            "description": "UUIDs of the scheduled GTF tasks (one per QueryObject "
+            "that missed the cache), in query order. The client polls "
+            "`/api/v1/task/status_changes`, aggregates these tasks' statuses, and "
+            "re-issues this request once they all succeed."
+        },
         allow_none=False,
     )
-    job_id = fields.String(
-        metadata={"description": "Unique async job ID"},
+    cursor = fields.String(
+        metadata={
+            "description": "Status-changes recovery cursor captured before any task "
+            "was created. The client polls `/api/v1/task/status_changes` from it and "
+            "is guaranteed to observe each task's completion."
+        },
         allow_none=False,
     )
-    user_id = fields.String(
-        metadata={"description": "Requesting user ID"},
+    tab_id = fields.String(
+        metadata={
+            "description": "The per-client (e.g. browser-tab) id echoed back when the "
+            "caller advertised one, so a later cancel detaches exactly that client. "
+            "Absent when the caller supplied none."
+        },
+        required=False,
         allow_none=True,
-    )
-    status = fields.String(
-        metadata={"description": "Status value for async job"},
-        allow_none=False,
-    )
-    result_url = fields.String(
-        metadata={"description": "Unique result URL for fetching async query data"},
-        allow_none=False,
     )
 
 

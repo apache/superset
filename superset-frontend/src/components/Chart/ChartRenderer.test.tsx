@@ -22,6 +22,7 @@ import {
   getChartMetadataRegistry,
   VizType,
   JsonObject,
+  FeatureFlag,
   FeatureFlagMap,
 } from '@superset-ui/core';
 import ChartRenderer, {
@@ -47,6 +48,11 @@ jest.mock('@superset-ui/core', () => ({
       data-test="mock-super-chart"
       data-is-refreshing={isRefreshing ? 'true' : 'false'}
       data-enable-no-results={props.enableNoResults ? 'true' : 'false'}
+      data-async-mode={String(
+        (props.hooks as { resolveAsyncMode?: () => boolean } | undefined)?.[
+          'resolveAsyncMode'
+        ]?.(),
+      )}
     >
       {JSON.stringify(postTransformProps(props).formData)}
     </div>
@@ -435,6 +441,34 @@ test('does not mark chart as refreshing when spinner suppression is disabled', (
     'data-is-refreshing',
     'false',
   );
+});
+
+test('threads the per-dashboard async_mode override into resolveAsyncMode for self-contained charts', () => {
+  // Self-contained charts (e.g. StatefulChart / the Matrixify path) resolve
+  // async mode through the injected `resolveAsyncMode` hook; it must receive the
+  // dashboard override so `force_on`/`force_off` win over the deployment default,
+  // matching the Redux chart path. GAQ must be on for the override to matter.
+  const previousFlags = window.featureFlags;
+  window.featureFlags = {
+    ...previousFlags,
+    [FeatureFlag.GlobalAsyncQueries]: true,
+  } as FeatureFlagMap;
+  try {
+    const { getByTestId, rerender } = render(
+      <ChartRenderer {...requiredProps} asyncModeOverride="force_off" />,
+    );
+    expect(getByTestId('mock-super-chart')).toHaveAttribute(
+      'data-async-mode',
+      'false',
+    );
+    rerender(<ChartRenderer {...requiredProps} asyncModeOverride="force_on" />);
+    expect(getByTestId('mock-super-chart')).toHaveAttribute(
+      'data-async-mode',
+      'true',
+    );
+  } finally {
+    window.featureFlags = previousFlags;
+  }
 });
 
 test('does not render chart during loading when last data has errors', () => {
