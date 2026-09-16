@@ -278,55 +278,22 @@ test('should increment the depth of its children', () => {
   );
 });
 
-test('row droptarget height should shrink after the tallest chart in the row is resized smaller (regression for #37644)', () => {
-  // Emulates a flex row sized to fit-content: its clientHeight is at least
-  // as tall as its tallest child, including a droptarget sibling whose
-  // height was explicitly set to a pixel value by a prior render. This
-  // mirrors how a real browser lays out GridRow and its droptargets.
-  const clientHeightDescriptor = Object.getOwnPropertyDescriptor(
-    Element.prototype,
-    'clientHeight',
-  );
-  let trueContentHeight = 300;
+test('row droptarget height tracks the row instead of staying pinned to a stale measured height (regression for #37644)', () => {
+  const { container, rerender } = setup({ editMode: true });
+  const getDroptargetHeight = () =>
+    container.querySelector<HTMLElement>('.empty-droptarget--vertical')?.style
+      .height;
 
-  Object.defineProperty(Element.prototype, 'clientHeight', {
-    configurable: true,
-    get(this: Element) {
-      if (!this.classList.contains('grid-row')) return 0;
-      const appliedHeights = Array.from(
-        this.querySelectorAll<HTMLElement>('.empty-droptarget--vertical'),
-      ).map(el => parseFloat(el.style.height) || 0);
-      return Math.max(trueContentHeight, 0, ...appliedHeights);
-    },
-  });
+  // The droptarget stretches to the row via CSS (height: 100%) rather than
+  // a pixel value measured from the row's tallest chart, so it can never be
+  // left pinned to a chart's prior (larger) height after a resize.
+  expect(getDroptargetHeight()).toBe('100%');
 
-  try {
-    const { container, rerender } = setup({ editMode: true });
-    const getDroptargetHeight = () =>
-      container.querySelector<HTMLElement>('.empty-droptarget--vertical')?.style
-        .height;
+  // Something (e.g. hovering the row's own HoverMenu while resizing)
+  // causes Row to re-render after the tallest chart in the row shrinks.
+  rerender(<Row {...props} editMode component={{ ...props.component }} />);
 
-    // Sanity: the droptarget renders a height while the row's tallest
-    // chart is large.
-    expect(getDroptargetHeight()).toBeTruthy();
-
-    // The tallest chart in the row shrinks, then something (e.g. hovering
-    // the row's own HoverMenu while resizing) causes Row to re-render.
-    trueContentHeight = 100;
-    rerender(<Row {...props} editMode component={{ ...props.component }} />);
-
-    // The droptarget must track the shrunk content instead of staying
-    // pinned to the chart's prior (larger) measured height.
-    expect(getDroptargetHeight()).not.toBe('300px');
-  } finally {
-    if (clientHeightDescriptor) {
-      Object.defineProperty(
-        Element.prototype,
-        'clientHeight',
-        clientHeightDescriptor,
-      );
-    }
-  }
+  expect(getDroptargetHeight()).toBe('100%');
 });
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
