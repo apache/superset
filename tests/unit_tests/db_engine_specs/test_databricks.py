@@ -1203,3 +1203,21 @@ def test_spark_handle_boolean_filter_equality_compilation() -> None:
         str(result_false.compile(compile_kwargs={"literal_binds": True}))
         == "is_active = false"
     )
+
+
+def test_spark_handle_boolean_filter_computed_column_compilation() -> None:
+    """
+    Test that SparkEngineSpec handles boolean filters on computed expressions with equality.
+    """
+    from sqlalchemy import literal_column
+    from superset.db_engine_specs.spark import SparkEngineSpec
+    from superset.utils.core import FilterOperator
+
+    computed_col = literal_column("(item_count > 0)")
+    result = SparkEngineSpec.handle_boolean_filter(
+        computed_col, FilterOperator.IS_TRUE, True
+    )
+    assert (
+        str(result.compile(compile_kwargs={"literal_binds": True}))
+        == "(item_count > 0) = true"
+    )
