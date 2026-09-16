@@ -1119,6 +1119,7 @@ def test_use_equality_for_boolean_filters_property() -> None:
     """
     from superset.db_engine_specs.databricks import (
         DatabricksBaseEngineSpec,
+        DatabricksHiveEngineSpec,
         DatabricksNativeEngineSpec,
         DatabricksPythonConnectorEngineSpec,
     )
@@ -1126,3 +1127,4 @@ def test_use_equality_for_boolean_filters_property() -> None:
     assert DatabricksBaseEngineSpec.use_equality_for_boolean_filters is True
     assert DatabricksNativeEngineSpec.use_equality_for_boolean_filters is True
     assert DatabricksPythonConnectorEngineSpec.use_equality_for_boolean_filters is True
+    assert DatabricksHiveEngineSpec.use_equality_for_boolean_filters is True
