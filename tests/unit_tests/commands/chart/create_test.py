@@ -24,7 +24,10 @@ Slice.datasource only ever resolves a ``table``-typed datasource, so even a
 successfully created chart of another type could never actually render.
 """
 
+from unittest.mock import MagicMock
+
 import pytest
+from flask import g
 from pytest_mock import MockerFixture
 
 from superset.commands.chart.create import CreateChartCommand
@@ -240,10 +243,7 @@ def test_create_chart_query_context_without_datasource_is_allowed(
 
 
 def test_create_chart_updates_dashboard_changed_on(mocker: MockerFixture) -> None:
-    """Issue #44305: Creating a chart linked to dashboards must update changed_on and changed_by."""
-    from unittest.mock import MagicMock
-    from flask import g
-
+    """Issue #44305: Creating a chart linked to dashboards must touch audit metadata."""
     _mock_table_datasource(mocker)
     user = MagicMock()
     g.user = user
@@ -253,8 +253,14 @@ def test_create_chart_updates_dashboard_changed_on(mocker: MockerFixture) -> Non
         "superset.commands.chart.create.DashboardDAO.find_by_ids",
         return_value=[dashboard],
     )
-    mocker.patch("superset.commands.chart.create.security_manager.is_editor", return_value=True)
-    mocker.patch("superset.commands.chart.create.ChartDAO.create", return_value=MagicMock())
+    mocker.patch(
+        "superset.commands.chart.create.security_manager.is_editor",
+        return_value=True,
+    )
+    mocker.patch(
+        "superset.commands.chart.create.ChartDAO.create",
+        return_value=MagicMock(),
+    )
 
     cmd = CreateChartCommand(
         {
@@ -269,4 +275,45 @@ def test_create_chart_updates_dashboard_changed_on(mocker: MockerFixture) -> Non
 
     assert dashboard.changed_on is not None
     assert dashboard.changed_by == user
+
+
+def test_create_chart_updates_multiple_dashboards_changed_on(
+    mocker: MockerFixture,
+) -> None:
+    """Ensure all dashboards linked to the newly created chart get touched."""
+    _mock_table_datasource(mocker)
+    user = MagicMock()
+    g.user = user
+
+    d1 = MagicMock(is_managed_externally=False, changed_on=None, changed_by=None)
+    d2 = MagicMock(is_managed_externally=False, changed_on=None, changed_by=None)
+    mocker.patch(
+        "superset.commands.chart.create.DashboardDAO.find_by_ids",
+        return_value=[d1, d2],
+    )
+    mocker.patch(
+        "superset.commands.chart.create.security_manager.is_editor",
+        return_value=True,
+    )
+    mocker.patch(
+        "superset.commands.chart.create.ChartDAO.create",
+        return_value=MagicMock(),
+    )
+
+    cmd = CreateChartCommand(
+        {
+            "datasource_id": 42,
+            "datasource_type": "table",
+            "slice_name": "Multi-Dash Chart",
+            "viz_type": "table",
+            "dashboards": [101, 102],
+        }
+    )
+    cmd.run()
+
+    assert d1.changed_on is not None
+    assert d1.changed_by == user
+    assert d2.changed_on is not None
+    assert d2.changed_by == user
+
 
