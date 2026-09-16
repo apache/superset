@@ -47,6 +47,10 @@ class SparkEngineSpec(HiveEngineSpec):
     _time_grain_expressions = time_grain_expressions
     engine_name = "Apache Spark SQL"
 
+    # Spark SQL shares syntax rules with Databricks SQL; equality comparisons
+    # are required for boolean filters to avoid type mismatch errors.
+    use_equality_for_boolean_filters: bool = True
+
     metadata = {
         "description": "Apache Spark SQL is a module for structured data processing.",
         "logo": "apache-spark.png",
