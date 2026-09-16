@@ -762,7 +762,6 @@ def _evidence_predicates(
     table: sa.FromClause,
     now: datetime,
     cutoff: datetime,
-    scope_entities: Sequence[tuple[str, str | None]] | None = None,
 ) -> list[sa.ColumnElement[bool]]:
     """The candidacy predicates for the evidence-expiry category.
 
@@ -770,6 +769,12 @@ def _evidence_predicates(
     (:func:`_evidence_candidates`) and the coordination-locked re-check
     delete. The boundary-recession guard is a correlated ``EXISTS``, so a
     bounded id set resolves per-entity via index.
+
+    Takes no ``scope_entities``: unlike the duplicate and operational
+    categories this one never invokes :func:`_repeats_an_earlier_block`, the
+    only predicate that binds a literal entity scope. Its category is
+    therefore declared ``needs_entity_scope=False`` so :func:`_delete_batch`
+    skips the scope SELECT under the lock entirely.
     """
     older: sa.FromClause = table.alias("older_blocked")
     # ``pending`` counts alongside ``blocked``: the purge path finalizes a
@@ -802,6 +807,7 @@ def _delete_batch(
     select_candidates: Callable[[int], sa.sql.Select],
     recheck_predicates: Callable[..., list[sa.ColumnElement[bool]]],
     batch_size: int = BATCH_SIZE,
+    needs_entity_scope: bool = True,
 ) -> tuple[int, int]:
     """Discover a candidate batch UNLOCKED, then delete it under the lock.
 
@@ -875,14 +881,24 @@ def _delete_batch(
     # Literal values expose column statistics to the planner; a scope subquery
     # or JOIN caused severe cardinality underestimates and nested loops
     # (sc-120493). DISTINCT pairs are bounded by len(ids) <= MAX_BATCH_SIZE.
-    scope_entities: list[tuple[str, str | None]] = [
-        (row[0], row[1])
-        for row in db.session.execute(
-            sa.select(table.c.entity_type, table.c.entity_uuid)
-            .where(table.c.id.in_(ids))
-            .distinct()
-        )
-    ]
+    #
+    # Read only for the categories whose predicates consume it -- the ones
+    # carrying the uncorrelated repeat check, which binds the scope as literal
+    # lists. The evidence category's guards are all correlated per-row probes,
+    # so for it this SELECT would be dead work on exactly the locked path this
+    # batching exists to keep short. The kwarg is therefore omitted rather than
+    # passed empty, so a predicate builder that needs a scope can never silently
+    # receive an absent one.
+    scope_kwargs: dict[str, Any] = {}
+    if needs_entity_scope:
+        scope_kwargs["scope_entities"] = [
+            (row[0], row[1])
+            for row in db.session.execute(
+                sa.select(table.c.entity_type, table.c.entity_uuid)
+                .where(table.c.id.in_(ids))
+                .distinct()
+            )
+        ]
     # Locked re-check as a SELECT, then a literal-id DELETE. With the lock held
     # no writer can commit, and the re-check's fresh post-lock snapshot sees
     # current committed state; it re-applies the SAME candidacy predicates
@@ -899,7 +915,7 @@ def _delete_batch(
         for row in db.session.execute(
             sa.select(table.c.id).where(
                 table.c.id.in_(ids),
-                *recheck_predicates(table, scope_entities=scope_entities),
+                *recheck_predicates(table, **scope_kwargs),
             )
         )
     ]
@@ -928,16 +944,22 @@ class _Category(NamedTuple):
     """One delete category: how to discover candidates and how to re-check them.
 
     ``select_candidates`` is the unlocked discovery select (LIMIT-bounded);
-    ``recheck_predicates`` accepts the fresh entity pairs as scope_entities,
-    binds their types and UUIDs as literal lists, and supplies the SAME candidacy
-    for the coordination-locked, id-scoped re-check delete. Both are built from
+    ``recheck_predicates`` supplies the SAME candidacy for the
+    coordination-locked, id-scoped re-check delete. Both are built from
     one shared predicate list per category, so discovery and the locked gate
     cannot drift.
+
+    ``needs_entity_scope`` declares whether ``recheck_predicates`` consumes a
+    ``scope_entities`` kwarg -- the fresh entity pairs whose types and UUIDs it
+    binds as literal lists. Only the categories carrying the uncorrelated
+    repeat check do; declaring it false keeps that extra SELECT off the locked
+    path for the categories that would ignore its result.
     """
 
     name: _CategoryName
     select_candidates: Callable[[int], sa.sql.Select]
     recheck_predicates: Callable[..., list[sa.ColumnElement[bool]]]
+    needs_entity_scope: bool = True
 
 
 class _DrainResult(NamedTuple):
@@ -966,7 +988,10 @@ def _drain(
     removed: int = 0
     while allowance > 0:
         discovered, batch_removed = _delete_batch(
-            category.select_candidates, category.recheck_predicates, batch_size
+            category.select_candidates,
+            category.recheck_predicates,
+            batch_size,
+            needs_entity_scope=category.needs_entity_scope,
         )
         removed += batch_removed
         allowance -= 1
@@ -1043,6 +1068,7 @@ def run_prune() -> PruneRunResult:
                 "evidence_expired",
                 partial(_evidence_candidates, now, evidence_cutoff),
                 partial(_evidence_predicates, now=now, cutoff=evidence_cutoff),
+                needs_entity_scope=False,
             )
         )
 
