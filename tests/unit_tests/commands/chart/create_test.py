@@ -340,4 +340,18 @@ def test_create_chart_without_dashboards_runs_cleanly(
     assert chart is not None
 
 
+def test_touch_dashboards_with_no_user() -> None:
+    """When g.user is None, changed_on is updated while changed_by remains untouched."""
+    from superset.commands.chart.utils import touch_dashboards
+
+    dashboard = MagicMock(changed_on=None, changed_by=None)
+    g.user = None
+
+    touch_dashboards([dashboard])
+
+    assert dashboard.changed_on is not None
+    assert dashboard.changed_by is None
+
+
+
 
