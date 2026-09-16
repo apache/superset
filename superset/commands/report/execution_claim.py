@@ -1,0 +1,117 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements. See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership. The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License. You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied. See the License for the
+# specific language governing permissions and limitations
+# under the License.
+"""Atomic admission for scheduled report executions and their retries."""
+
+from dataclasses import dataclass
+from datetime import datetime, timezone
+
+from sqlalchemy.orm import Session
+
+from superset.reports.models import ReportSchedule, ReportState
+
+
+def normalize_window(value: datetime | None) -> datetime | None:
+    """Compare database timestamps and broker timestamps at UTC second precision."""
+    if value is None:
+        return None
+    if value.tzinfo is not None:
+        value = value.astimezone(timezone.utc)
+    return value.replace(tzinfo=None, microsecond=0)
+
+
+@dataclass(frozen=True)
+class ExecutionClaim:
+    """State observed by the worker which won the database claim."""
+
+    initial_state: str | None
+
+
+def claim_execution(
+    session: Session,
+    schedule_id: int,
+    execution_id: str,
+    window: datetime,
+    *,
+    is_retry: bool,
+    expected_owner: str | None,
+    retries_enabled: bool,
+    stale_retry_seconds: float,
+) -> ExecutionClaim | None:
+    """Atomically promote an eligible schedule to WORKING, committing ownership.
+
+    A conditional UPDATE is the claim, not the preceding read. A competing
+    worker observing the same row loses when any admission field changes.
+    Ownership survives terminal states to fence broker redelivery of a window.
+    """
+    schedule = (
+        session.query(ReportSchedule)
+        .filter_by(id=schedule_id)
+        .populate_existing()
+        .one_or_none()
+    )
+    if schedule is None or schedule.last_state == ReportState.WORKING:
+        return None
+    normalized = normalize_window(window)
+    assert normalized is not None
+    initial_state = schedule.last_state
+    if is_retry:
+        if (
+            not retries_enabled
+            or not schedule.retry_on_failure
+            or initial_state != ReportState.RETRYING
+            or not expected_owner
+            or schedule.execution_owner != expected_owner
+            or normalize_window(schedule.retry_scheduled_dttm) != normalized
+        ):
+            return None
+    else:
+        previous_window = normalize_window(schedule.execution_window)
+        if previous_window is not None and normalized <= previous_window:
+            return None
+        if initial_state == ReportState.RETRYING:
+            anchor = normalize_window(schedule.retry_scheduled_dttm)
+            touched = normalize_window(schedule.last_eval_dttm)
+            if anchor == normalized or (
+                touched is not None
+                and (datetime.utcnow() - touched).total_seconds() < stale_retry_seconds
+            ):
+                return None
+    matched = (
+        session.query(ReportSchedule)
+        .filter(
+            ReportSchedule.id == schedule_id,
+            ReportSchedule.last_state == initial_state,
+            ReportSchedule.last_eval_dttm == schedule.last_eval_dttm,
+            ReportSchedule.execution_owner == schedule.execution_owner,
+            ReportSchedule.execution_window == schedule.execution_window,
+            ReportSchedule.retry_on_failure == schedule.retry_on_failure,
+            ReportSchedule.retry_scheduled_dttm == schedule.retry_scheduled_dttm,
+        )
+        .update(
+            {
+                ReportSchedule.last_state: ReportState.WORKING,
+                ReportSchedule.last_eval_dttm: datetime.utcnow(),
+                ReportSchedule.execution_owner: execution_id,
+                ReportSchedule.execution_window: normalized,
+            },
+            synchronize_session=False,
+        )
+    )
+    session.commit()  # pylint: disable=consider-using-transaction
+    if matched != 1:
+        return None
+    return ExecutionClaim(initial_state=initial_state)

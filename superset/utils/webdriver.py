@@ -28,7 +28,10 @@ from flask import current_app as app
 
 from superset.extensions import machine_auth_provider_factory
 from superset.utils.report_execution import (
+    CHART_HOLDER_SEMANTIC_POLICY,
+    ChartHolderDiagnostics,
     ReportExecutionContext,
+    TERMINAL_CHART_HOLDER_STATES,
 )
 from superset.utils.screenshot_utils import (
     CHART_CONTAINER_HAS_RENDERED_CONTENT_JS,
@@ -333,13 +336,16 @@ class WebDriverPlaywright(WebDriverProxy):
                         else REPORT_HAS_RENDERED_CHART_HOLDERS_JS
                     )
                 )
-            except PlaywrightError:
-                has_rendered_content = False
+            except PlaywrightError as ex:
+                report_execution_context.reject_capture("content_state_unknown")
                 logger.warning(
                     "report_capture_content_state_failed capture=standard%s",
                     context_suffix,
                     exc_info=True,
                 )
+                raise ScreenshotBlankCaptureError(
+                    "Unable to establish capture content state"
+                ) from ex
             is_blank = has_rendered_content and blankness.is_blank
             logger.info(
                 "report_capture_validation capture=standard attempt=%s/%s "
@@ -489,22 +495,24 @@ class WebDriverPlaywright(WebDriverProxy):
         if report_execution_context:
             log_context = report_execution_context.log_context
         context_suffix = f" [{log_context}]" if log_context else ""
-        ready_states = {"rendered", "empty", "error", "virtualized"}
         initial_chart_holder_states = page.evaluate(FIND_CHART_HOLDER_STATES_JS)
         initial_unready_chart_holders = [
             holder
             for holder in initial_chart_holder_states
-            if holder.get("state") not in ready_states
+            if holder.get("state") not in TERMINAL_CHART_HOLDER_STATES
         ]
+        initial_diagnostics = ChartHolderDiagnostics.from_holder_states(
+            initial_chart_holder_states
+        )
+        initial_semantic_success = (
+            initial_diagnostics.semantic_success
+            if element_name == "standalone"
+            else None
+        )
         expected_holders = (
             report_execution_context.expected_chart_count
             if report_execution_context
             else None
-        )
-        initial_mounted_holders = len(initial_chart_holder_states)
-        initial_ready_holders = sum(
-            holder.get("state") in ready_states
-            for holder in initial_chart_holder_states
         )
         deadline = (
             report_execution_context.deadline if report_execution_context else None
@@ -513,11 +521,21 @@ class WebDriverPlaywright(WebDriverProxy):
         deadline_remaining = deadline.remaining_seconds if deadline else None
         logger.info(
             "report_readiness_poll url=%s expected_holders=%s mounted_holders=%s "
-            "ready_holders=%s elapsed_seconds=%s remaining_seconds=%s%s states=%s",
+            "ready_holders=%s rendered_holders=%s empty_holders=%s "
+            "error_holders=%s virtualized_holders=%s unready_holders=%s "
+            "semantic_success=%s semantic_policy=%s elapsed_seconds=%s "
+            "remaining_seconds=%s%s states=%s",
             url,
             expected_holders,
-            initial_mounted_holders,
-            initial_ready_holders,
+            initial_diagnostics.mounted_holders,
+            initial_diagnostics.ready_holders,
+            initial_diagnostics.rendered_holders,
+            initial_diagnostics.empty_holders,
+            initial_diagnostics.error_holders,
+            initial_diagnostics.virtualized_holders,
+            initial_diagnostics.unready_holders,
+            initial_semantic_success,
+            CHART_HOLDER_SEMANTIC_POLICY,
             f"{deadline_elapsed:.2f}" if deadline_elapsed is not None else None,
             f"{deadline_remaining:.2f}" if deadline_remaining is not None else None,
             context_suffix,
@@ -654,11 +672,11 @@ class WebDriverPlaywright(WebDriverProxy):
             unready_chart_holders = [
                 holder
                 for holder in chart_holder_states
-                if holder.get("state") not in ready_states
+                if holder.get("state") not in TERMINAL_CHART_HOLDER_STATES
             ]
-            mounted_holders = len(chart_holder_states)
-            ready_holders = sum(
-                holder.get("state") in ready_states for holder in chart_holder_states
+            diagnostics = ChartHolderDiagnostics.from_holder_states(chart_holder_states)
+            semantic_success = (
+                diagnostics.semantic_success if element_name == "standalone" else None
             )
             # `FIND_CHART_HOLDER_STATES_JS` short-circuits off-screen holders to
             # "virtualized" (counted as ready above), so on the report path -- a
@@ -676,15 +694,25 @@ class WebDriverPlaywright(WebDriverProxy):
             )
             logger.warning(
                 "report_readiness_terminal url=%s expected_holders=%s "
-                "mounted_holders=%s ready_holders=%s elapsed_seconds=%.2f "
-                "remaining_seconds=%s effective_wait_seconds=%.2f%s "
-                "terminal_reason=readiness_timeout unready_holders=%s "
-                "all_unready_holders=%s states=%s; "
+                "mounted_holders=%s ready_holders=%s rendered_holders=%s "
+                "empty_holders=%s error_holders=%s virtualized_holders=%s "
+                "unready_holders=%s semantic_success=%s semantic_policy=%s "
+                "elapsed_seconds=%.2f remaining_seconds=%s "
+                "effective_wait_seconds=%.2f%s "
+                "terminal_reason=readiness_timeout "
+                "unready_holder_states=%s all_unready_holders=%s states=%s; "
                 "aborting before capture or delivery",
                 url,
                 expected_holders,
-                mounted_holders,
-                ready_holders,
+                diagnostics.mounted_holders,
+                diagnostics.ready_holders,
+                diagnostics.rendered_holders,
+                diagnostics.empty_holders,
+                diagnostics.error_holders,
+                diagnostics.virtualized_holders,
+                diagnostics.unready_holders,
+                semantic_success,
+                CHART_HOLDER_SEMANTIC_POLICY,
                 deadline_elapsed,
                 (
                     f"{deadline_remaining:.2f}"
@@ -721,9 +749,9 @@ class WebDriverPlaywright(WebDriverProxy):
             )
             return
         chart_holder_states = page.evaluate(FIND_CHART_HOLDER_STATES_JS)
-        mounted_holders = len(chart_holder_states)
-        ready_holders = sum(
-            holder.get("state") in ready_states for holder in chart_holder_states
+        diagnostics = ChartHolderDiagnostics.from_holder_states(chart_holder_states)
+        semantic_success = (
+            diagnostics.semantic_success if element_name == "standalone" else None
         )
         deadline_elapsed = deadline.elapsed_seconds if deadline else elapsed
         deadline_remaining = (
@@ -731,15 +759,40 @@ class WebDriverPlaywright(WebDriverProxy):
         )
         logger.info(
             "report_readiness_ready url=%s expected_holders=%s mounted_holders=%s "
-            "ready_holders=%s elapsed_seconds=%.2f remaining_seconds=%s%s",
+            "ready_holders=%s rendered_holders=%s empty_holders=%s "
+            "error_holders=%s virtualized_holders=%s unready_holders=%s "
+            "semantic_success=%s semantic_policy=%s elapsed_seconds=%.2f "
+            "remaining_seconds=%s%s",
             url,
             expected_holders,
-            mounted_holders,
-            ready_holders,
+            diagnostics.mounted_holders,
+            diagnostics.ready_holders,
+            diagnostics.rendered_holders,
+            diagnostics.empty_holders,
+            diagnostics.error_holders,
+            diagnostics.virtualized_holders,
+            diagnostics.unready_holders,
+            semantic_success,
+            CHART_HOLDER_SEMANTIC_POLICY,
             deadline_elapsed,
             (f"{deadline_remaining:.2f}" if deadline_remaining is not None else None),
             context_suffix,
         )
+        if diagnostics.error_holders:
+            logger.warning(
+                "report_semantic_status url=%s expected_holders=%s "
+                "rendered_holders=%s empty_holders=%s error_holders=%s "
+                "semantic_success=false semantic_policy=%s%s; "
+                "capture readiness is satisfied, but the report contains "
+                "terminal chart errors",
+                url,
+                expected_holders,
+                diagnostics.rendered_holders,
+                diagnostics.empty_holders,
+                diagnostics.error_holders,
+                CHART_HOLDER_SEMANTIC_POLICY,
+                context_suffix,
+            )
 
     def get_screenshot(  # pylint: disable=too-many-locals, too-many-statements  # noqa: C901
         self,

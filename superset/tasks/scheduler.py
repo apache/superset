@@ -135,6 +135,7 @@ def execute(
     self: Task,
     report_schedule_id: int,
     scheduled_dttm_iso: str | None = None,
+    expected_owner: str | None = None,
 ) -> None:
     stats_logger: BaseStatsLogger = current_app.config["STATS_LOGGER"]
     stats_logger.incr("reports.execute")
@@ -165,6 +166,8 @@ def execute(
             task_id,
             report_schedule_id,
             scheduled_dttm,
+            is_retry=scheduled_dttm_iso is not None,
+            expected_owner=expected_owner,
         ).run()
     except SoftTimeLimitExceeded:
         stats_logger.incr("reports.execute.celery_soft_timeout")

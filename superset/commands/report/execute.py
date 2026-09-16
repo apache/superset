@@ -20,6 +20,7 @@ import urllib.parse
 import urllib.request
 from collections.abc import Sequence
 from contextlib import closing
+from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 from typing import Any, Optional, TYPE_CHECKING, Union
 from urllib.error import URLError
@@ -60,6 +61,11 @@ from superset.commands.report.exceptions import (
     ReportScheduleWorkingTimeoutError,
     ReportScheduleXlsxFailedError,
     ReportScheduleXlsxTimeout,
+)
+from superset.commands.report.execution_claim import (
+    claim_execution,
+    ExecutionClaim,
+    normalize_window,
 )
 from superset.commands.report.slack_upgrade import SlackV1UpgradeCoordinator
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
@@ -103,11 +109,13 @@ from superset.utils.decorators import (
 from superset.utils.file import sanitize_title
 from superset.utils.pdf import build_pdf_from_screenshots
 from superset.utils.report_execution import (
+    get_report_task_timeout_options,
     ReportExecutionBudgetExceededError,
     ReportExecutionContext,
     ReportExecutionDeadline,
     resolve_report_execution_budget_seconds,
 )
+from superset.utils.screenshot_utils import validate_report_screenshot
 from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
 from superset.utils.urls import get_url_path
 
@@ -142,26 +150,8 @@ def resolve_executor_user(model: ReportSchedule) -> tuple["User", str]:
 
 
 def _should_build_execution_context(model: ReportSchedule) -> bool:
-    """
-    Whether an execution should run under a :class:`ReportExecutionContext`.
-
-    Reports always do — their behavior is unchanged. Alerts join them only when
-    they deliver a rendered PNG/PDF screenshot to recipients, which happens when
-    ``ALERTS_ATTACH_REPORTS`` is enabled. Delivered screenshots must fail closed:
-    the context selects the fail-closed readiness predicate and disables
-    partial-tile fallback, so a blank or incomplete capture raises instead of
-    being delivered.
-
-    CSV/text alerts, alerts without the attach flag, the non-delivered
-    query-context capture, and UI thumbnails are deliberately excluded and keep
-    their lenient capture contract.
-    """
-    if model.type == ReportScheduleType.REPORT:
-        return True
-    return model.report_format in (
-        ReportDataFormat.PNG,
-        ReportDataFormat.PDF,
-    ) and feature_flag_manager.is_feature_enabled("ALERTS_ATTACH_REPORTS")
+    """Give every scheduled report and alert a shared deadline and ownership context."""
+    return model.type in (ReportScheduleType.REPORT, ReportScheduleType.ALERT)
 
 
 def log_report_delivery_phase(
@@ -243,14 +233,36 @@ def persist_owned_report_execution_terminal_error(
             report_schedule.last_state == ReportState.WORKING
             and latest_working_log is not None
             and latest_working_log.uuid == execution_id
+            and (
+                report_context is None
+                or not report_context.execution_claimed
+                or report_schedule.execution_owner == str(execution_id)
+            )
         )
         ended_at = datetime.now(timezone.utc).replace(tzinfo=None)
         working_log.state = ReportState.ERROR
         working_log.error_message = error_message
         working_log.end_dttm = ended_at
         if owns_schedule_state:
-            report_schedule.last_state = ReportState.ERROR
-            report_schedule.last_eval_dttm = ended_at
+            with db.session.no_autoflush:
+                owns_schedule_state = (
+                    db.session.query(ReportSchedule)
+                    .filter(
+                        ReportSchedule.id == report_schedule_id,
+                        ReportSchedule.last_state == ReportState.WORKING,
+                        ReportSchedule.execution_owner
+                        == report_schedule.execution_owner,
+                        ReportSchedule.last_eval_dttm == report_schedule.last_eval_dttm,
+                    )
+                    .update(
+                        {
+                            ReportSchedule.last_state: ReportState.ERROR,
+                            ReportSchedule.last_eval_dttm: ended_at,
+                        },
+                        synchronize_session=False,
+                    )
+                    == 1
+                )
 
         db.session.commit()  # pylint: disable=consider-using-transaction
         log_context = (
@@ -312,6 +324,7 @@ class BaseReportState:
         self._start_dttm: datetime = datetime.now(timezone.utc).replace(tzinfo=None)
         self._execution_id = execution_id
         self._report_execution_context = report_execution_context
+        self._delivery_started = False
         self._execution_warnings: list[str] = []
         self._slack_v1_upgrade = SlackV1UpgradeCoordinator(
             report_schedule,
@@ -405,6 +418,29 @@ class BaseReportState:
         execution run are cleared to ensure that they are not propagated to the
         execution log.
         """
+
+        context = self._report_execution_context
+        if context is not None and context.execution_claimed:
+            with db.session.no_autoflush:
+                matched = (
+                    db.session.query(ReportSchedule)
+                    .filter(
+                        ReportSchedule.id == self._report_schedule.id,
+                        ReportSchedule.execution_owner == str(self._execution_id),
+                    )
+                    .update(
+                        {
+                            ReportSchedule.last_state: state,
+                            ReportSchedule.last_eval_dttm: datetime.now(
+                                timezone.utc
+                            ).replace(tzinfo=None),
+                        },
+                        synchronize_session=False,
+                    )
+                )
+            if matched != 1:
+                db.session.rollback()  # pylint: disable=consider-using-transaction
+                raise ReportSchedulePreviousWorkingError()
 
         if state == ReportState.WORKING:
             self._report_schedule.last_value = None
@@ -759,6 +795,40 @@ class BaseReportState:
             for tab_anchor in tab_anchors
         ]
 
+    def _reject_capture(self, reason: str) -> None:
+        """Keep capture failures sticky even if an intermediate caller catches them."""
+        if self._report_execution_context is not None:
+            self._report_execution_context.reject_capture(reason)
+
+    def _validate_screenshot(self, screenshot: bytes | None) -> None:
+        """Require a valid screenshot from any selected driver."""
+        if self._report_execution_context is None:
+            raise ReportScheduleScreenshotFailedError("Missing capture context")
+        if screenshot is None:
+            self._reject_capture("missing_image")
+            raise ReportScheduleScreenshotFailedError(
+                "Screenshot failed; aborting to avoid sending a partial report"
+            )
+        validate_report_screenshot(screenshot, self._report_execution_context)
+
+    def _assert_execution_owned(self) -> None:
+        """Do not deliver after recovery or a successor has fenced this worker."""
+        context = self._report_execution_context
+        if context is None or not context.execution_claimed:
+            return
+        with db.session.no_autoflush:
+            owned = (
+                db.session.query(ReportSchedule.id)
+                .filter(
+                    ReportSchedule.id == self._report_schedule.id,
+                    ReportSchedule.execution_owner == str(self._execution_id),
+                )
+                .with_for_update()
+                .first()
+            )
+        if owned is None:
+            raise ReportSchedulePreviousWorkingError()
+
     def _get_screenshots(self) -> list[bytes]:
         """
         Get chart or dashboard screenshots
@@ -810,10 +880,8 @@ class BaseReportState:
                     log_context=self._log_context,
                     report_execution_context=self._report_execution_context,
                 )
-                if imge is None:
-                    raise ReportScheduleScreenshotFailedError(
-                        "Screenshot failed; aborting to avoid sending a partial report"
-                    )
+                self._validate_screenshot(imge)
+                assert imge is not None
                 imges.append(imge)
             elapsed_seconds: float = (
                 datetime.now(timezone.utc).replace(tzinfo=None) - start_time
@@ -831,6 +899,7 @@ class BaseReportState:
                 len(imges),
             )
         except SoftTimeLimitExceeded as ex:
+            self._reject_capture("capture_interrupted")
             elapsed_seconds = (
                 datetime.now(timezone.utc).replace(tzinfo=None) - start_time
             ).total_seconds()
@@ -852,8 +921,10 @@ class BaseReportState:
             # executions propagate the Celery signal to terminal cleanup.
             raise ReportScheduleScreenshotTimeout() from ex
         except ReportExecutionBudgetExceededError:
+            self._reject_capture("capture_budget_exceeded")
             raise
         except Exception as ex:
+            self._reject_capture("capture_failed")
             elapsed_seconds = (
                 datetime.now(timezone.utc).replace(tzinfo=None) - start_time
             ).total_seconds()
@@ -891,7 +962,11 @@ class BaseReportState:
             "pdf_generation",
             reserve_seconds=reserve_seconds,
         )
+        for screenshot in screenshots:
+            self._validate_screenshot(screenshot)
         pdf = build_pdf_from_screenshots(screenshots)
+        if self._report_execution_context is not None:
+            self._report_execution_context.approve_artifact(pdf)
         self._phase_timeout(
             "pdf_generation",
             reserve_seconds=reserve_seconds,
@@ -1392,7 +1467,24 @@ class BaseReportState:
             else ("missing_capture_context",)
         )
         if report_context is not None and not report_context.capture_was_rejected:
-            return
+            try:
+                for screenshot in notification_content.screenshots or []:
+                    validate_report_screenshot(screenshot, report_context)
+                if (
+                    notification_content.pdf
+                    and not report_context.artifact_was_validated(
+                        notification_content.pdf
+                    )
+                ):
+                    report_context.reject_capture("unvalidated_pdf")
+                if not report_context.capture_was_rejected:
+                    return
+            except (SoftTimeLimitExceeded, ReportExecutionBudgetExceededError):
+                raise
+            except Exception as ex:
+                report_context.reject_capture("delivery_validation_failed")
+                raise ReportScheduleScreenshotFailedError(str(ex)) from ex
+            rejection_reasons = report_context.capture_rejection_reasons
 
         logger.error(
             "report_delivery_blocked %s terminal_reason=capture_rejected "
@@ -1423,6 +1515,7 @@ class BaseReportState:
         report_context = getattr(self, "_report_execution_context", None)
         self._assert_rendered_delivery_allowed(notification_content)
         for recipient in recipients:
+            self._assert_execution_owned()
             try:
                 log_report_delivery_phase(
                     report_context,
@@ -1430,6 +1523,9 @@ class BaseReportState:
                     "start",
                     enforce_budget=True,
                 )
+                # Delivery outcomes may be ambiguous; do not replay the whole
+                # execution after a notification may have been accepted.
+                self._delivery_started = True
                 self._send_notification(notification_content, recipient)
                 log_report_delivery_phase(
                     report_context,
@@ -1558,9 +1654,7 @@ class BaseReportState:
         be compared safely.  MySQL DateTime columns truncate microseconds,
         so without this the round-tripped anchor would differ from the
         in-memory value."""
-        if dt is not None:
-            return dt.replace(tzinfo=None, microsecond=0)
-        return dt
+        return normalize_window(dt)
 
     def _is_retry_window_stale(self) -> bool:
         """
@@ -1599,8 +1693,17 @@ class BaseReportState:
         # shares the same window identity.  This lets _is_retry_window_stale()
         # detect when a *new* crontab window fires while retries are in-flight.
         execute_task.apply_async(
-            (self._report_schedule.id, self._scheduled_dttm.isoformat()),
+            (
+                self._report_schedule.id,
+                self._scheduled_dttm.isoformat(),
+                str(self._execution_id),
+            ),
             countdown=delay_seconds,
+            **get_report_task_timeout_options(
+                is_report=self._report_schedule.type == ReportScheduleType.REPORT,
+                working_timeout=self._report_schedule.working_timeout,
+                config=app.config,
+            ),
         )
 
     def send_retry_notification(
@@ -1634,7 +1737,7 @@ class BaseReportState:
         url = self._get_url(user_friendly=True)
         notification_content = NotificationContent(
             name=sanitize_title(self._report_schedule.name),
-            text=error_message,
+            text="Report execution failed. Contact the report owner for details.",
             header_data=header_data,
             url=url,
             retry_attempt=attempt,
@@ -1652,14 +1755,17 @@ class BaseReportState:
         max_attempts: int = self._report_schedule.retry_max_attempts
         notification_content = NotificationContent(
             name=sanitize_title(self._report_schedule.name),
-            text=error_message,
+            text=(
+                "Report execution failed after retries. "
+                "Contact the report owner for details."
+            ),
             header_data=header_data,
             url=url,
             retry_max_attempts=max_attempts,
         )
         self._send(notification_content, self._report_schedule.recipients)
 
-    def _handle_retry_or_error(
+    def _handle_retry_or_error(  # noqa: C901
         self, error_message: str, original_exception: Exception
     ) -> bool:
         """
@@ -1672,6 +1778,10 @@ class BaseReportState:
 
         retry_on_failure: bool = self._report_schedule.retry_on_failure
         if not retry_on_failure:
+            return False
+
+        if self._delivery_started:
+            self._reset_retry_counter()
             return False
 
         max_attempts: int = self._report_schedule.retry_max_attempts
@@ -1687,7 +1797,7 @@ class BaseReportState:
         # send the retry-failure notification *after* the attempt ran so
         # the email reflects what happened, not what is about to be
         # scheduled.  ("You will receive an update after each retry.")
-        if current_attempt > 0:
+        if 0 < current_attempt < max_attempts:
             try:
                 self.send_retry_notification(
                     current_attempt, max_attempts, error_message
@@ -1741,8 +1851,13 @@ class BaseReportState:
         last_working = ReportScheduleDAO.find_last_entered_working_log(
             self._report_schedule
         )
-        if not last_working:
+        if not last_working and not self._report_schedule.execution_owner:
             return False
+        # A worker can die between committing its claim and creating the log.
+        # In that gap, a previous execution's old log must not expire this claim.
+        entered_at = self._report_schedule.last_eval_dttm
+        if not self._report_schedule.execution_owner and last_working:
+            entered_at = last_working.end_dttm
         working_timeout = self._report_schedule.working_timeout
         if self._report_schedule.type == ReportScheduleType.REPORT:
             # Same effective budget the execution enforces (global budget
@@ -1759,7 +1874,7 @@ class BaseReportState:
             and self._report_schedule.last_eval_dttm is not None
             and datetime.now(timezone.utc).replace(tzinfo=None)
             - timedelta(seconds=working_timeout)
-            > last_working.end_dttm
+            > entered_at
         )
 
     def next(self) -> None:
@@ -1812,6 +1927,7 @@ class ReportNotTriggeredErrorState(BaseReportState):
                     self._report_schedule, self._execution_id
                 ).run()
                 if not triggered:
+                    self._reset_retry_counter()
                     self.update_report_schedule_and_log(
                         ReportState.NOOP, error_message=message
                     )
@@ -1918,6 +2034,25 @@ class ReportWorkingState(BaseReportState):
 
     def next(self) -> None:
         if self.is_on_working_timeout():
+            with db.session.no_autoflush:
+                recovered = (
+                    db.session.query(ReportSchedule)
+                    .filter(
+                        ReportSchedule.id == self._report_schedule.id,
+                        ReportSchedule.last_state == ReportState.WORKING,
+                        ReportSchedule.execution_owner
+                        == self._report_schedule.execution_owner,
+                        ReportSchedule.last_eval_dttm
+                        == self._report_schedule.last_eval_dttm,
+                    )
+                    .update(
+                        {ReportSchedule.execution_owner: None},
+                        synchronize_session=False,
+                    )
+                )
+            if recovered != 1:
+                db.session.rollback()  # pylint: disable=consider-using-transaction
+                raise ReportSchedulePreviousWorkingError()
             last_working = ReportScheduleDAO.find_last_entered_working_log(
                 self._report_schedule
             )
@@ -1997,11 +2132,14 @@ class ReportSuccessState(BaseReportState):
                     self._report_schedule, self._execution_id
                 ).run()
                 if not triggered:
+                    self._reset_retry_counter()
                     self.update_report_schedule_and_log(
                         ReportState.NOOP, error_message=message
                     )
                     return
             except Exception as ex:
+                if self._handle_retry_or_error(str(ex), ex):
+                    return
                 # Ensure the schedule always transitions out of WORKING to
                 # ERROR, even if sending the error notification itself fails —
                 # otherwise the schedule is stuck in WORKING until the working
@@ -2129,17 +2267,24 @@ class ReportScheduleStateMachine:  # pylint: disable=too-few-public-methods
         report_schedule: ReportSchedule,
         scheduled_dttm: datetime,
         report_execution_context: ReportExecutionContext | None = None,
+        execution_claim: ExecutionClaim | None = None,
     ):
         self._execution_id = task_uuid
         self._report_schedule = report_schedule
         self._scheduled_dttm = scheduled_dttm
         self._report_execution_context = report_execution_context
+        self._execution_claim = execution_claim
 
     @transaction()
     def run(self) -> None:
+        initial_state = (
+            self._execution_claim.initial_state
+            if self._execution_claim is not None
+            else self._report_schedule.last_state
+        )
         for state_cls in self.states_cls:
-            if (self._report_schedule.last_state is None and state_cls.initial) or (
-                self._report_schedule.last_state in state_cls.current_states
+            if (initial_state is None and state_cls.initial) or (
+                initial_state in state_cls.current_states
             ):
                 state_cls(
                     self._report_schedule,
@@ -2159,13 +2304,23 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
     - On Alerts uses related Command AlertCommand and sends configured notifications
     """
 
-    def __init__(self, task_id: str, model_id: int, scheduled_dttm: datetime):
+    def __init__(
+        self,
+        task_id: str,
+        model_id: int,
+        scheduled_dttm: datetime,
+        *,
+        is_retry: bool = False,
+        expected_owner: str | None = None,
+    ):
         self._model_id = model_id
         self._model: Optional[ReportSchedule] = None
         self._scheduled_dttm = scheduled_dttm
         self._execution_id = UUID(task_id)
+        self._is_retry = is_retry
+        self._expected_owner = expected_owner
 
-    def run(self) -> None:
+    def run(self) -> None:  # noqa: C901
         monotonic_started_at = time.monotonic()
         report_execution_context: ReportExecutionContext | None = None
         owns_report_working_state = False
@@ -2174,10 +2329,21 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
             if not self._model:
                 raise ReportScheduleExecuteUnexpectedError()
 
-            # Reports always run under an execution context; alerts join them
-            # only when they deliver a rendered screenshot, so a blank/partial
-            # capture fails closed instead of being delivered. Ownership and
-            # terminal-error persistence remain report-only recovery semantics.
+            if self._is_retry and (
+                not feature_flag_manager.is_feature_enabled("ALERT_REPORTS_RETRY")
+                or not self._model.retry_on_failure
+                or self._model.last_state != ReportState.RETRYING
+                or normalize_window(self._model.retry_scheduled_dttm)
+                != normalize_window(self._scheduled_dttm)
+            ):
+                logger.info(
+                    "report_retry_discarded report_schedule_id=%s execution_id=%s",
+                    self._model_id,
+                    self._execution_id,
+                )
+                return
+
+            # All scheduled executions share ownership and retry fencing.
             if _should_build_execution_context(self._model):
                 # An invocation that enters on WORKING is a duplicate or stale
                 # recovery, not the owner that created the active row. Its state
@@ -2203,6 +2369,7 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
                 )
                 report_execution_context = ReportExecutionContext(
                     execution_id=self._execution_id,
+                    attempt=self._model.retry_attempt + 1 if self._is_retry else 1,
                     report_schedule_id=self._model.id,
                     dashboard_id=self._model.dashboard_id,
                     chart_id=self._model.chart_id,
@@ -2262,11 +2429,43 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
                         self._execution_id,
                         report_execution_context,
                     ).get_dashboard_urls()
+                execution_claim = None
+                if self._model.last_state != ReportState.WORKING:
+                    execution_claim = claim_execution(
+                        db.session,
+                        self._model.id,
+                        str(self._execution_id),
+                        self._scheduled_dttm,
+                        is_retry=self._is_retry,
+                        expected_owner=self._expected_owner,
+                        retries_enabled=feature_flag_manager.is_feature_enabled(
+                            "ALERT_REPORTS_RETRY"
+                        ),
+                        stale_retry_seconds=(
+                            app.config.get(
+                                "ALERT_REPORTS_RETRY_MAX_DELAY_SECONDS", 3600
+                            )
+                            + resolve_report_execution_budget_seconds(
+                                app.config, working_timeout=self._model.working_timeout
+                            )
+                        ),
+                    )
+                    if execution_claim is None:
+                        logger.info(
+                            "report_execution_not_claimed schedule_id=%s",
+                            self._model.id,
+                        )
+                        return
+                    if report_execution_context is not None:
+                        report_execution_context = replace(
+                            report_execution_context, execution_claimed=True
+                        )
                 ReportScheduleStateMachine(
                     self._execution_id,
                     self._model,
                     self._scheduled_dttm,
                     report_execution_context,
+                    execution_claim,
                 ).run()
 
             elapsed_seconds: float = (
