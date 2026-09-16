@@ -423,6 +423,8 @@ class WebDriverPlaywright(WebDriverProxy):
                     context_suffix,
                     exc_info=True,
                 )
+                if require_complete_capture:
+                    raise
             is_blank = has_rendered_content and blankness.is_blank
             logger.info(
                 "report_capture_validation capture=standard attempt=%s/%s "

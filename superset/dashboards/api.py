@@ -2100,11 +2100,6 @@ class DashboardRestApi(
                             next_cache_key,
                             cache_payload,
                         )
-                        screenshot_obj.set_current_api_generation_cache_key(
-                            request_cache_key,
-                            next_cache_key,
-                            cache_scope,
-                        )
                     except ScreenshotCacheError:
                         logger.exception(
                             "Screenshot task preparation failed: %s",
@@ -2129,9 +2124,9 @@ class DashboardRestApi(
                             thumb_size=thumb_size,
                             window_size=window_size,
                             cache_key=next_cache_key,
-                            # The API has already selected and published a fresh
-                            # generation. Duplicate deliveries should never force a
-                            # completed result to recompute.
+                            # The API has already selected a fresh generation.
+                            # Duplicate deliveries should never force a completed
+                            # result to recompute.
                             force=False,
                         )
                     except Exception:  # pylint: disable=broad-except
@@ -2140,6 +2135,25 @@ class DashboardRestApi(
                             cache_scope,
                         )
                         raise
+                    try:
+                        # Publish only after Celery accepts the task. Otherwise a
+                        # process exit between these operations strands a fresh
+                        # Pending generation that no worker can complete.
+                        screenshot_obj.set_current_api_generation_cache_key(
+                            request_cache_key,
+                            next_cache_key,
+                            cache_scope,
+                        )
+                    except ScreenshotCacheError:
+                        logger.exception(
+                            "Screenshot generation publication failed: %s",
+                            next_cache_key,
+                        )
+                        lock_response = self.response(
+                            503,
+                            message=gettext("Screenshot cache is unavailable"),
+                        )
+                        return lock_response
                     lock_response = build_response(202, next_cache_key, cache_payload)
                     return lock_response
             except ReleaseDistributedLockFailedException:
@@ -2275,7 +2289,11 @@ class DashboardRestApi(
             try:
                 image = cache_payload.get_image()
             except ScreenshotImageNotAvailableException:
-                return self.response_404()
+                return self.response(
+                    404,
+                    message=gettext("Not found"),
+                    extra={"task_status": cache_payload.get_status()},
+                )
 
             filename = get_filename(
                 dashboard.dashboard_title or "screenshot", dashboard.id, skip_id=True

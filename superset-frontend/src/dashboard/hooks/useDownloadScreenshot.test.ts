@@ -78,6 +78,17 @@ const createResponse = (): Response =>
 
 const notReadyError = () => ({ status: 404 });
 
+const terminalError = () => ({
+  status: 404,
+  clone: () => ({
+    json: () =>
+      Promise.resolve({
+        message: 'Not found',
+        extra: { task_status: 'Error' },
+      }),
+  }),
+});
+
 // Chain several Promise.resolves to drain nested microtasks (.then/.catch/.finally
 // in the hook). setImmediate-based flush would stall under fake timers.
 const flushPromises = async () => {
@@ -204,6 +215,31 @@ test('logs cacheKey, dashboardId, and format when retries are exhausted', async 
     dashboardId: DASHBOARD_ID,
     format: DownloadScreenshotFormat.PNG,
   });
+
+  jest.clearAllTimers();
+  jest.useRealTimers();
+});
+
+test('stops polling immediately when screenshot generation reaches Error', async () => {
+  jest.useFakeTimers();
+  mockPostSuccess(720);
+  (SupersetClient.get as jest.Mock).mockRejectedValue(terminalError());
+
+  await triggerDownload();
+
+  expect(SupersetClient.get).toHaveBeenCalledTimes(1);
+  expect(logging.error).toHaveBeenCalledWith('Screenshot generation failed', {
+    cacheKey: CACHE_KEY,
+    dashboardId: DASHBOARD_ID,
+    format: DownloadScreenshotFormat.PNG,
+  });
+
+  await act(async () => {
+    jest.advanceTimersByTime(RETRY_INTERVAL * 5);
+    await flushPromises();
+  });
+
+  expect(SupersetClient.get).toHaveBeenCalledTimes(1);
 
   jest.clearAllTimers();
   jest.useRealTimers();

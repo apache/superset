@@ -41,6 +41,31 @@ type ScreenshotTaskResponse = {
   task_timeout_seconds?: number;
 };
 
+type ScreenshotTaskErrorResponse = {
+  extra?: {
+    task_status?: string;
+  };
+};
+
+const getScreenshotTaskStatus = async (error: unknown) => {
+  const apiError = error as SupersetApiError | undefined;
+  if (typeof apiError?.extra?.task_status === 'string') {
+    return apiError.extra.task_status;
+  }
+  const response = error as Response | undefined;
+  if (typeof response?.clone !== 'function') {
+    return undefined;
+  }
+  try {
+    const payload = (await response
+      .clone()
+      .json()) as ScreenshotTaskErrorResponse;
+    return payload.extra?.task_status;
+  } catch {
+    return undefined;
+  }
+};
+
 export const useDownloadScreenshot = (
   dashboardId: number,
   logEvent?: Function,
@@ -84,6 +109,7 @@ export const useDownloadScreenshot = (
       );
       let isFetching = false;
       let isDownloaded = false;
+      let hasFailed = false;
 
       const toastIntervalId = setInterval(
         () =>
@@ -128,7 +154,7 @@ export const useDownloadScreenshot = (
             return response.blob().then(blob => ({ blob, fileName }));
           })
           .then(({ blob, fileName }) => {
-            if (isDownloaded) {
+            if (isDownloaded || hasFailed) {
               return;
             }
             isDownloaded = true;
@@ -142,17 +168,28 @@ export const useDownloadScreenshot = (
             document.body.removeChild(a);
             window.URL.revokeObjectURL(url);
           })
-          .catch(err => {
+          .catch(async err => {
             if ((err as SupersetApiError).status === 404) {
+              if ((await getScreenshotTaskStatus(err)) === 'Error') {
+                hasFailed = true;
+                stopIntervals('failure');
+                logging.error('Screenshot generation failed', {
+                  cacheKey,
+                  dashboardId,
+                  format,
+                });
+                return;
+              }
               throw new Error('Image not ready');
             }
           });
 
       const fetchImageWithRetry = (cacheKey: string) => {
-        if (isDownloaded || isFetching) {
+        if (isDownloaded || hasFailed || isFetching) {
           return;
         }
         if (retries >= maxRetries) {
+          hasFailed = true;
           stopIntervals('failure');
           logging.error('Max retries reached', {
             cacheKey,
