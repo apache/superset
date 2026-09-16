@@ -18,15 +18,17 @@
  */
 
 /**
- * MINIMAL ESLint flat config - ONLY for rules OXC doesn't support.
+ * MINIMAL Oxlint config - ONLY for custom rules
  *
  * This config is run alongside the OXC (oxlint) linter, which handles the
- * bulk of linting. ESLint here only covers the custom Superset plugins that
+ * bulk of linting. Oxlint here only covers the custom Superset plugins that
  * oxlint cannot express. It is consumed by
  * `scripts/oxlint-metrics-uploader.js` (`npm run lint-stats`).
  *
- * Migrated from the legacy `.eslintrc.minimal.js` (eslintrc) format to flat
+ * 1. Migrated from the legacy `.eslintrc.minimal.js` (eslintrc) format to flat
  * config for ESLint v9+/v10, where eslintrc is no longer supported.
+ * 2. Migrated from legacy `eslint.config.minimal.js` to `oxlint.custom-lint-rules.mts`
+ * for speed
  *
  * Only covers:
  * - Custom Superset plugins (theme-colors, icons, i18n-strings)
@@ -64,8 +66,13 @@ export default defineConfig({
     reportUnusedDisableDirectives: 'off',
     respectEslintDisableDirectives: false
   },
+  // Toggle off built-in lint rules that cannot be toggled off by setting empty `plugins` array at L59
+  // TODO: remove once Oxlint has managed to fix said issue and/or it cannot be reproduced in your run.
   rules: {
-    "no-unused-vars": "off"
+    "no-unused-vars": "off",
+    "no-extra-boolean-cast": "off",
+    "no-shadow-restricted-names": "off",
+    "no-control-regex": "off"
   },
   overrides: [
     {
