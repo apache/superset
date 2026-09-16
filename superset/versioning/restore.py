@@ -32,6 +32,7 @@ reported as skipped rather than revived or dangling.
 from __future__ import annotations
 
 import logging
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
@@ -102,8 +103,10 @@ def _verify_child_history_complete(entity: Any, target_tx: int) -> None:
     (grouped by the child's own ``id``), the state at *target_tx* is
     PROVABLE when a surviving row's validity interval covers it (a
     non-DELETE covering row: present, restored; a DELETE covering row:
-    provably absent), or when every surviving row lies beyond the target
-    and the earliest is the child's birth INSERT (born after). See
+    provably absent). Without a covering interval, a last same-parent
+    row at/before the target that is DELETE is accepted as absence.
+    If no row is at/before the target, an earliest surviving INSERT
+    is accepted as born-after evidence, not proof of the original birth. See
     :func:`_child_state_provable_at` for the interval semantics.
 
     Anything else means a pruned row MAY have covered ``target_tx`` —
@@ -112,11 +115,18 @@ def _verify_child_history_complete(entity: Any, target_tx: int) -> None:
     Known limitation (ratified, sc-120012): the fail-closed guard refuses
     every DETECTABLE pruning of needed child history, including a pruned
     closed row whose successor survives, and protects all restores
-    targeting versions within the retention window. One residual fails
-    open: a column/metric deleted AFTER the target version whose entire
-    shadow chain — including its closing DELETE row — has aged out of
-    retention leaves no surviving evidence anywhere, so no read-side
-    guard can detect it. Why nothing survives to read: the pruner
+    targeting versions within the retention window. Missing evidence can
+    be indistinguishable from legitimate absence in three shapes:
+
+    * a column/metric deleted AFTER the target version whose entire
+      shadow chain — including its closing DELETE row — has aged out of
+      retention leaves no surviving evidence anywhere;
+    * an erased same-parent re-birth window leaves an earlier terminal
+      DELETE, indistinguishable from a purged foreign incarnation;
+    * erased birth and covering rows leave only a later re-insertion
+      INSERT, indistinguishable from a child first born after the target.
+
+    No read-side check can recover that erased evidence. The pruner
     deletes shadow rows by create-tx OR close-tx
     (``tasks/version_history_retention.py`` ``_delete_for_transactions``)
     and then the ``version_transaction`` rows themselves, cascading the
@@ -125,8 +135,8 @@ def _verify_child_history_complete(entity: Any, target_tx: int) -> None:
     from_value / to_value columns), never a full child set, so replay
     cannot reconstruct what pruning erased. Only reachable for targets
     older than the retention window (the closing DELETE row's own tx must
-    itself have been prunable). Closing it is the deferred part (b):
-    the pruner preserving the dependency closure of restorable parents.
+    itself have been prunable). Dependency-closure retention is the
+    separate post-GA sc-120945 follow-up, not implemented by this guard.
     """
     # pylint: disable=import-outside-toplevel
     # Local imports: the models pull in the initialised-app graph (same
@@ -142,7 +152,7 @@ def _verify_child_history_complete(entity: Any, target_tx: int) -> None:
     # upgrade conflict cannot occur because the reservation precedes
     # every read. No-op when the driver is already in a transaction.
     if db.engine.dialect.name == "sqlite":
-        conn = db.session.connection()
+        conn: sa.engine.Connection = db.session.connection()
         if not conn.connection.dbapi_connection.in_transaction:
             # Issued through the SQLAlchemy Connection (not the raw DBAPI
             # handle) so exception translation applies: reservation
@@ -154,7 +164,7 @@ def _verify_child_history_complete(entity: Any, target_tx: int) -> None:
 
     missing: list[str] = []
     for label, child_cls in (("column", TableColumn), ("metric", SqlMetric)):
-        shadow = version_class(child_cls).__table__
+        shadow: sa.Table = version_class(child_cls).__table__
         # One locked read: EVERY surviving row the verdict depends on is
         # taken FOR UPDATE in the transaction that owns the restore —
         # covering non-DELETE rows (the reconstruction inputs) AND
@@ -167,7 +177,7 @@ def _verify_child_history_complete(entity: Any, target_tx: int) -> None:
         # pruner's DELETE until this transaction commits (its
         # SERIALIZABLE pass waits or retries). On SQLite the BEGIN
         # IMMEDIATE reservation above provides the equivalent.
-        rows = db.session.execute(
+        rows: Sequence[sa.engine.Row[Any]] = db.session.execute(
             sa.select(
                 shadow.c.id,
                 shadow.c.transaction_id,
@@ -187,8 +197,7 @@ def _verify_child_history_complete(entity: Any, target_tx: int) -> None:
                 missing.append(f"{label} id={child_id}")
                 # The refusal is fail-closed by design; the chain dump is
                 # what lets an operator (or CI) see WHY this child's state
-                # at the target is unprovable — which interval is missing
-                # and which closures had no witness.
+                # at the target is unprovable from the surviving intervals.
                 logger.warning(
                     "versioning: restore refused for %s id=%s at tx=%s — "
                     "%s id=%s surviving chain=%s",
@@ -225,7 +234,8 @@ def _child_state_provable_at(rows: list[Any], target_tx: int) -> bool:
     same-parent row at/before the target:
 
     * none at all → born-after: provable only when the earliest
-      surviving row is the child's birth INSERT;
+      surviving row is INSERT (original birth and re-insertion cannot
+      be distinguished if earlier history was erased);
     * a DELETE → provably absent, UNCONDITIONALLY — even with a closed
       end whose closer row no longer survives. Two invariants make this
       sound (ratified, sc-120012): retention cannot erase the closer of
@@ -246,17 +256,19 @@ def _child_state_provable_at(rows: list[Any], target_tx: int) -> bool:
     accepted as absence. Only reachable for targets inside a
     retention-pruned window (older than the cutoff); the consequence is
     a silently omitted column that existed only in that window. Closing
-    it is sc-120945's dependency-closure retention work.
+    it is sc-120945's separate post-GA dependency-closure retention work.
+    Similarly, if only a later re-insertion INSERT survives, the born-after
+    branch cannot distinguish it from the child's original birth.
     """
     for row in rows:
         if row.transaction_id <= target_tx and (
             row.end_transaction_id is None or row.end_transaction_id > target_tx
         ):
             return True
-    at_or_before = [row for row in rows if row.transaction_id <= target_tx]
+    at_or_before: list[Any] = [row for row in rows if row.transaction_id <= target_tx]
     if not at_or_before:
         return rows[0].operation_type == OPERATION_INSERT
-    last = max(at_or_before, key=lambda row: row.transaction_id)
+    last: Any = max(at_or_before, key=lambda row: row.transaction_id)
     return last.operation_type == OPERATION_DELETE
 
 

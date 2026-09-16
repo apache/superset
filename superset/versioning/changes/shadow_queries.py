@@ -72,7 +72,7 @@ def shadow_rows_valid_at(
     # Accept a raw Connection so callers needing snapshot isolation across
     # SEVERAL reads (get_version's parent + child pair, sc-120012) can run
     # this on their own transaction instead of the request session's.
-    conn = (
+    conn: sa.engine.Connection = (
         session if isinstance(session, sa.engine.Connection) else session.connection()
     )
     rows = (

@@ -23,14 +23,20 @@ from __future__ import annotations
 
 from typing import Any
 from unittest.mock import patch
+from uuid import UUID
 
 import pytest
 import sqlalchemy as sa
+from flask_appbuilder.security.sqla.models import User
 from sqlalchemy_continuum import version_class, versioning_manager
 
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.extensions import db
-from superset.versioning.restore import PrunedChildHistoryError, restore_version
+from superset.versioning.restore import (
+    PrunedChildHistoryError,
+    restore_version,
+    RestoreResult,
+)
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.birth_names_dashboard import (  # noqa: F401
     load_birth_names_dashboard_with_slices,
@@ -43,7 +49,7 @@ def _persist_fixture_state() -> None:
 
 
 def _birth_names() -> SqlaTable:
-    dataset = (
+    dataset: SqlaTable = (
         db.session.query(SqlaTable)
         .filter(SqlaTable.table_name == "birth_names")
         .first()
@@ -54,7 +60,7 @@ def _birth_names() -> SqlaTable:
 
 
 def _latest_parent_tx(dataset: SqlaTable) -> int:
-    ver_cls = version_class(SqlaTable)
+    ver_cls: Any = version_class(SqlaTable)
     return (
         db.session.query(ver_cls.transaction_id)
         .filter(ver_cls.id == dataset.id)
@@ -65,7 +71,7 @@ def _latest_parent_tx(dataset: SqlaTable) -> int:
 
 
 def _closed_column_shadow_rows(column_id: int) -> list[Any]:
-    shadow = version_class(TableColumn).__table__
+    shadow: sa.Table = version_class(TableColumn).__table__
     return (
         db.session.execute(
             sa.select(shadow.c.transaction_id).where(
@@ -80,8 +86,8 @@ def _closed_column_shadow_rows(column_id: int) -> list[Any]:
 
 def _delete_column_shadow_rows(column_id: int, *, closed_only: bool) -> int:
     """Simulate retention pruning a column's shadow rows."""
-    shadow = version_class(TableColumn).__table__
-    stmt = sa.delete(shadow).where(shadow.c.id == column_id)
+    shadow: sa.Table = version_class(TableColumn).__table__
+    stmt: sa.sql.dml.Delete = sa.delete(shadow).where(shadow.c.id == column_id)
     if closed_only:
         stmt = stmt.where(shadow.c.end_transaction_id.isnot(None))
     return db.session.execute(stmt).rowcount
@@ -103,13 +109,13 @@ class TestRestoreFailsClosedOnPrunedChildHistory(SupersetTestCase):
         the one valid; the post-T edit closes it.
         """
         _persist_fixture_state()
-        dataset = _birth_names()
+        dataset: SqlaTable = _birth_names()
         dataset.description = f"{dataset.description or ''}_v1"
         db.session.commit()
-        target_tx = _latest_parent_tx(dataset)
+        target_tx: int = _latest_parent_tx(dataset)
 
-        column = dataset.columns[0]
-        before = column.description
+        column: TableColumn = dataset.columns[0]
+        before: str = column.description
         column.description = f"{column.description or ''}_edited"
         dataset.description = f"{dataset.description}_v2"
         db.session.commit()
@@ -134,21 +140,28 @@ class TestRestoreFailsClosedOnPrunedChildHistory(SupersetTestCase):
         from superset.utils.core import override_user
         from superset.versioning.queries import list_versions
 
+        dataset: SqlaTable
+        column: TableColumn
+        target_tx: int
         dataset, column, target_tx, _ = self._two_version_dataset()
-        edited_description = column.description
-        column_count = len(dataset.columns)
-        dataset_uuid = dataset.uuid
-        column_id = column.id
+        edited_description: str | None = column.description
+        column_count: int = len(dataset.columns)
+        dataset_uuid: UUID = dataset.uuid
+        column_id: int = column.id
 
-        closed = _closed_column_shadow_rows(column.id)
+        closed: list[Any] = _closed_column_shadow_rows(column.id)
         assert closed, "the edit should have closed the pre-edit shadow row"
         assert _delete_column_shadow_rows(column.id, closed_only=True) >= 1
         db.session.commit()  # the prune is durable, like a real retention pass
 
-        versions = list_versions(SqlaTable, dataset_uuid, entity=dataset)
+        versions: list[dict[str, Any]] | None = list_versions(
+            SqlaTable, dataset_uuid, entity=dataset
+        )
         assert versions is not None
-        target_entry = next(v for v in versions if v["transaction_id"] == target_tx)
-        admin = self.get_user("admin") or security_manager.add_user(
+        target_entry: dict[str, Any] = next(
+            v for v in versions if v["transaction_id"] == target_tx
+        )
+        admin: User | None = self.get_user("admin") or security_manager.add_user(
             "admin",
             "admin",
             "user",
@@ -169,7 +182,7 @@ class TestRestoreFailsClosedOnPrunedChildHistory(SupersetTestCase):
         # cleanup owns the unchanged state.
         db.session.expire_all()
         dataset = _birth_names()
-        refreshed = db.session.get(TableColumn, column_id)
+        refreshed: TableColumn | None = db.session.get(TableColumn, column_id)
         assert refreshed is not None
         assert refreshed.description == edited_description
         assert len(dataset.columns) == column_count
@@ -180,7 +193,7 @@ class TestRestoreFailsClosedOnPrunedChildHistory(SupersetTestCase):
         # pylint: disable=import-outside-toplevel
         from superset.versioning.restore import _verify_child_history_complete
 
-        dialect = db.engine.dialect.name
+        dialect: str = db.engine.dialect.name
         if dialect == "sqlite":
             pytest.skip(
                 "FOR UPDATE is a no-op on SQLite; there the verifier takes "
@@ -188,12 +201,15 @@ class TestRestoreFailsClosedOnPrunedChildHistory(SupersetTestCase):
                 "test_sqlite_verifier_reserves_the_write_lock)"
             )
 
+        dataset: SqlaTable
+        column: TableColumn
+        target_tx: int
         dataset, column, target_tx, _ = self._two_version_dataset()
         # Acquire the verification locks inside the session's transaction.
         _verify_child_history_complete(dataset, target_tx)
 
-        shadow = version_class(TableColumn).__table__
-        delete_stmt = sa.delete(shadow).where(
+        shadow: sa.Table = version_class(TableColumn).__table__
+        delete_stmt: sa.sql.dml.Delete = sa.delete(shadow).where(
             shadow.c.id == column.id,
             shadow.c.end_transaction_id.isnot(None),
         )
@@ -227,7 +243,7 @@ class TestRestoreFailsClosedOnPrunedChildHistory(SupersetTestCase):
                     _attempt_locked_delete()
                 # Specifically the dialect's lock-wait failure, not some
                 # other OperationalError.
-                orig = excinfo.value.orig
+                orig: Any = excinfo.value.orig
                 if dialect == "mysql":
                     assert orig.args, orig
                     assert orig.args[0] == 1205, orig
@@ -250,7 +266,7 @@ class TestRestoreFailsClosedOnPrunedChildHistory(SupersetTestCase):
         # same DELETE succeeds once unblocked (rolled back to keep the fixture).
         db.session.rollback()
         with db.engine.connect() as conn:
-            trans = conn.begin()
+            trans: sa.engine.RootTransaction = conn.begin()
             assert (conn.execute(delete_stmt).rowcount or 0) >= 1
             trans.rollback()
 
@@ -266,8 +282,11 @@ class TestRestoreFailsClosedOnPrunedChildHistory(SupersetTestCase):
         if db.engine.dialect.name != "sqlite":
             pytest.skip("exercises the pysqlite write-reservation path")
 
+        dataset: SqlaTable
+        column: TableColumn
+        target_tx: int
         dataset, column, target_tx, _ = self._two_version_dataset()
-        raw = db.session.connection().connection.dbapi_connection
+        raw: Any = db.session.connection().connection.dbapi_connection
         _verify_child_history_complete(dataset, target_tx)
         assert raw.in_transaction, (
             "the verifier must hold a real SQLite transaction after its "
@@ -276,7 +295,7 @@ class TestRestoreFailsClosedOnPrunedChildHistory(SupersetTestCase):
         )
 
         # And the reservation actually blocks a concurrent writer.
-        shadow = version_class(TableColumn).__table__
+        shadow: sa.Table = version_class(TableColumn).__table__
         with db.engine.connect() as writer:
 
             def _attempt_concurrent_delete() -> None:
@@ -310,12 +329,14 @@ class TestRestoreFailsClosedOnPrunedChildHistory(SupersetTestCase):
         self._two_version_dataset()
         db.session.commit()
 
-        shadow = version_class(TableColumn).__table__
-        count_stmt = sa.select(sa.func.count()).select_from(shadow)
+        shadow: sa.Table = version_class(TableColumn).__table__
+        count_stmt: sa.Select[tuple[int]] = sa.select(sa.func.count()).select_from(
+            shadow
+        )
         with _snapshot_read_connection() as conn:
-            first = conn.execute(count_stmt).scalar()
+            first: int | None = conn.execute(count_stmt).scalar()
             assert first
-            writer_succeeded = False
+            writer_succeeded: bool = False
             try:
                 with db.engine.connect() as writer:
                     with writer.begin():
@@ -328,7 +349,7 @@ class TestRestoreFailsClosedOnPrunedChildHistory(SupersetTestCase):
                     writer_succeeded = True
             except sa.exc.OperationalError:
                 pass  # blocked by our read lock: the transaction is real
-            second = conn.execute(count_stmt).scalar()
+            second: int | None = conn.execute(count_stmt).scalar()
         assert (not writer_succeeded) or first == second, (
             "a concurrent commit changed what the snapshot connection sees "
             "mid-transaction — no real read transaction is being held"
@@ -345,13 +366,19 @@ class TestRestoreFailsClosedOnPrunedChildHistory(SupersetTestCase):
         intact-history test proves the same restore reverts the column
         in place when its history survives).
         """
+        dataset: SqlaTable
+        column: TableColumn
+        target_tx: int
+        before: str
         dataset, column, target_tx, before = self._two_version_dataset()
         assert column.description != before
-        parent_target_description = dataset.description.removesuffix("_v2")
+        parent_target_description: str = dataset.description.removesuffix("_v2")
         assert _delete_column_shadow_rows(column.id, closed_only=True) >= 1
 
         with patch("superset.versioning.restore._verify_child_history_complete"):
-            result = restore_version(SqlaTable, dataset.uuid, target_tx, entity=dataset)
+            result: RestoreResult | None = restore_version(
+                SqlaTable, dataset.uuid, target_tx, entity=dataset
+            )
 
         assert result is not None
         db.session.flush()
@@ -362,13 +389,19 @@ class TestRestoreFailsClosedOnPrunedChildHistory(SupersetTestCase):
         db.session.rollback()
 
     def test_intact_history_restores_as_before(self) -> None:
+        dataset: SqlaTable
+        column: TableColumn
+        target_tx: int
+        before: str
         dataset, column, target_tx, before = self._two_version_dataset()
 
-        result = restore_version(SqlaTable, dataset.uuid, target_tx, entity=dataset)
+        result: RestoreResult | None = restore_version(
+            SqlaTable, dataset.uuid, target_tx, entity=dataset
+        )
 
         assert result is not None
         db.session.flush()
-        refreshed = db.session.get(TableColumn, column.id)
+        refreshed: TableColumn | None = db.session.get(TableColumn, column.id)
         assert refreshed is not None
         assert refreshed.description == before
         db.session.rollback()
@@ -377,13 +410,18 @@ class TestRestoreFailsClosedOnPrunedChildHistory(SupersetTestCase):
         """M3 remainder: the refusal precedes the write phase entirely.
 
         Asserted BEFORE any rollback: the write phase (single_flush_scope
-        + reverter) is never entered, the session carries no pending
-        entity DML, and parent/column state is untouched — so the guard
+        + reverter) is never entered, the ORM has no pending entity
+        changes, and parent/column state is untouched — so the guard
         cannot be a rolled-back partial write in disguise.
+        The deliberate Core shadow DELETE is pending in this transaction;
+        it is not represented by the ORM's session.deleted collection.
         """
+        dataset: SqlaTable
+        column: TableColumn
+        target_tx: int
         dataset, column, target_tx, _ = self._two_version_dataset()
-        edited_description = column.description
-        parent_description = dataset.description
+        edited_description: str | None = column.description
+        parent_description: str | None = dataset.description
         assert _delete_column_shadow_rows(column.id, closed_only=True) >= 1
 
         with patch(
@@ -393,10 +431,12 @@ class TestRestoreFailsClosedOnPrunedChildHistory(SupersetTestCase):
             with pytest.raises(PrunedChildHistoryError):
                 restore_version(SqlaTable, dataset.uuid, target_tx, entity=dataset)
 
-        # No rollback yet: pending-state must already be clean.
+        # No rollback yet: ORM pending state must already be clean.
         assert not db.session.new
         assert not db.session.deleted
-        dirty = [obj for obj in db.session.dirty if db.session.is_modified(obj)]
+        dirty: list[Any] = [
+            obj for obj in db.session.dirty if db.session.is_modified(obj)
+        ]
         assert not dirty
         assert dataset.description == parent_description
         assert column.description == edited_description
@@ -422,12 +462,18 @@ class TestRestoreFailsClosedOnPrunedChildHistory(SupersetTestCase):
         if db.engine.dialect.name != "sqlite":
             pytest.skip("exercises the SQLite write-reservation contention path")
 
+        dataset: SqlaTable
+        target_tx: int
         dataset, _, target_tx, _ = self._two_version_dataset()
-        dataset_uuid = dataset.uuid
-        versions = list_versions(SqlaTable, dataset_uuid, entity=dataset)
+        dataset_uuid: UUID = dataset.uuid
+        versions: list[dict[str, Any]] | None = list_versions(
+            SqlaTable, dataset_uuid, entity=dataset
+        )
         assert versions is not None
-        target_entry = next(v for v in versions if v["transaction_id"] == target_tx)
-        admin = self.get_user("admin") or security_manager.add_user(
+        target_entry: dict[str, Any] = next(
+            v for v in versions if v["transaction_id"] == target_tx
+        )
+        admin: User | None = self.get_user("admin") or security_manager.add_user(
             "admin",
             "admin",
             "user",
@@ -452,7 +498,7 @@ class TestRestoreFailsClosedOnPrunedChildHistory(SupersetTestCase):
                 writer.rollback()
 
         # The translated SQLAlchemy error rides the failure's cause chain.
-        cause = excinfo.value.__cause__
+        cause: BaseException | None = excinfo.value.__cause__
         assert isinstance(cause, sa.exc.OperationalError), cause
 
     def test_documented_limitation_fully_pruned_deleted_child_fails_open(
@@ -468,14 +514,16 @@ class TestRestoreFailsClosedOnPrunedChildHistory(SupersetTestCase):
         this test RED — when it does, invert it into the requirement.
         """
         _persist_fixture_state()
-        dataset = _birth_names()
+        dataset: SqlaTable = _birth_names()
 
-        added = TableColumn(column_name="sc120012_doomed", type="VARCHAR(10)")
+        added: TableColumn = TableColumn(
+            column_name="sc120012_doomed", type="VARCHAR(10)"
+        )
         dataset.columns.append(added)
         dataset.description = f"{dataset.description or ''}_with_doomed"
         db.session.commit()
-        target_tx = _latest_parent_tx(dataset)
-        added_id = added.id
+        target_tx: int = _latest_parent_tx(dataset)
+        added_id: int = added.id
 
         db.session.delete(added)
         dataset.description = f"{dataset.description}_doomed_gone"
@@ -484,7 +532,9 @@ class TestRestoreFailsClosedOnPrunedChildHistory(SupersetTestCase):
         # Prune the ENTIRE chain (insert row, closed rows, delete row).
         assert _delete_column_shadow_rows(added_id, closed_only=False) >= 1
 
-        result = restore_version(SqlaTable, dataset.uuid, target_tx, entity=dataset)
+        result: RestoreResult | None = restore_version(
+            SqlaTable, dataset.uuid, target_tx, entity=dataset
+        )
 
         assert result is not None
         db.session.flush()
@@ -502,10 +552,13 @@ class TestRestoreFailsClosedOnPrunedChildHistory(SupersetTestCase):
         of the original dataset refuses forever after routine id reuse
         (SQLite reuses freed ids; MySQL reuses max(id)+1 after the top
         row is deleted)."""
+        dataset: SqlaTable
+        column: TableColumn
+        target_tx: int
         dataset, column, target_tx, _ = self._two_version_dataset()
 
         # Remove a column and take a post-delete snapshot point.
-        removed_id = dataset.columns[-1].id
+        removed_id: int = dataset.columns[-1].id
         db.session.delete(dataset.columns[-1])
         dataset.description = f"{dataset.description}_col_removed"
         db.session.commit()
@@ -517,9 +570,9 @@ class TestRestoreFailsClosedOnPrunedChildHistory(SupersetTestCase):
         # parent's terminal DELETE row at a foreign tx and plant the
         # foreign parent's surviving INSERT row at exactly that tx —
         # the shape Continuum's cross-parent validity closure produces.
-        shadow = version_class(TableColumn).__table__
-        tx_tbl = versioning_manager.transaction_cls.__table__
-        foreign_tx = db.session.execute(
+        shadow: sa.Table = version_class(TableColumn).__table__
+        tx_tbl: sa.Table = versioning_manager.transaction_cls.__table__
+        foreign_tx: int = db.session.execute(
             tx_tbl.insert().values(issued_at=sa.func.now(), user_id=None)
         ).inserted_primary_key[0]
         db.session.execute(
@@ -543,7 +596,26 @@ class TestRestoreFailsClosedOnPrunedChildHistory(SupersetTestCase):
         )
         db.session.commit()
 
-        result = restore_version(SqlaTable, dataset.uuid, target_tx, entity=dataset)
+        # Target AFTER the foreign closer, so the deleted child's interval
+        # no longer covers it. Remove the foreign incarnation as a purge
+        # would: the original parent's proof must not require a witness.
+        dataset.description = f"{dataset.description}_after_foreign_closer"
+        db.session.commit()
+        target_tx = _latest_parent_tx(dataset)
+        assert target_tx > foreign_tx
+        db.session.execute(
+            sa.delete(shadow).where(
+                shadow.c.id == removed_id,
+                shadow.c.table_id == dataset.id + 999_999,
+            )
+        )
+        db.session.commit()
+
+        result: RestoreResult | None = restore_version(
+            SqlaTable, dataset.uuid, target_tx, entity=dataset
+        )
 
         assert result is not None
+        db.session.flush()
+        assert all(child.id != removed_id for child in dataset.columns)
         db.session.rollback()

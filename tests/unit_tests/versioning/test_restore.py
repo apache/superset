@@ -25,13 +25,14 @@ flush contract.
 
 from __future__ import annotations
 
+from typing import Any
 from unittest.mock import MagicMock, patch
 from uuid import UUID
 
 import pytest
 
-from superset.versioning.baseline import OPERATION_DELETE
-from superset.versioning.restore import restore_version
+from superset.versioning.baseline import OPERATION_DELETE, OPERATION_INSERT
+from superset.versioning.restore import _child_state_provable_at, restore_version
 from superset.versioning.utils import single_flush_scope
 
 _UUID = UUID("00000000-0000-0000-0000-000000000000")
@@ -134,19 +135,22 @@ def test_single_flush_scope_skips_flush_on_exception() -> None:
 
 
 class _Row:
+    """Minimal validity interval consumed by the restore proof."""
+
     def __init__(self, tx: int, end: int | None, op: int) -> None:
-        self.transaction_id = tx
-        self.end_transaction_id = end
-        self.operation_type = op
+        self.transaction_id: int = tx
+        self.end_transaction_id: int | None = end
+        self.operation_type: int = op
 
 
 def _provable(rows: list[_Row], target_tx: int) -> bool:
-    from superset.versioning.restore import _child_state_provable_at
-
+    """Evaluate the real proof against a small same-parent history."""
     return _child_state_provable_at(rows, target_tx)
 
 
-_INSERT, _UPDATE, _DELETE = 0, 1, 2
+_INSERT: int = OPERATION_INSERT
+_UPDATE: int = 1
+_DELETE: int = OPERATION_DELETE
 
 
 @pytest.mark.parametrize(
@@ -198,8 +202,6 @@ def test_child_state_absence_and_refusal_rules(
 ) -> None:
     """sc-120012 ratified semantics after the #44251 CI rounds: closed
     terminal DELETEs are absence; expired non-DELETE intervals refuse."""
-    from superset.versioning.restore import _child_state_provable_at
-
     assert _child_state_provable_at(rows, target_tx) is expected, case
 
 
@@ -209,6 +211,8 @@ def test_child_state_absence_and_refusal_rules(
         # A surviving non-DELETE row covers the target: complete.
         ([_Row(5, None, _INSERT)], 10, True, "live row covers"),
         ([_Row(5, 20, _UPDATE)], 10, True, "closed row covers"),
+        # [tx, end) includes a child changed in the target transaction.
+        ([_Row(10, None, _UPDATE)], 10, True, "row created at target covers"),
         # Headline sc-120012 case: the covering closed row was pruned and
         # its successor survives — contiguity hole → refuse.
         ([_Row(20, None, _UPDATE)], 10, False, "pruned cover, survivor update"),
@@ -251,9 +255,10 @@ def test_child_state_absence_and_refusal_rules(
             True,
             "closed terminal delete is absence (ratified reversal)",
         ),
-        # Codex H2 regression: prune erased the re-birth INSERT (8,15)
-        # and its closing DELETE (15,20); the child EXISTED at 10 but the
-        # survivors' gap [8, 20) crosses the target → refuse.
+        # DOCUMENTED LIMITATION: an erased same-parent re-birth (8,15)
+        # and its closing DELETE (15,20) look like a purged foreign
+        # incarnation. The ratified rule accepts absence, not refusal.
+        # sc-120945 is the separate post-GA retention-policy follow-up.
         (
             [_Row(2, 5, _INSERT), _Row(5, 8, _DELETE), _Row(20, None, _INSERT)],
             10,
@@ -296,6 +301,16 @@ def test_child_state_provable_case_algebra(
     assert _provable(rows, target_tx) is expected, case
 
 
+def test_documented_limitation_rebirth_looks_like_first_birth() -> None:
+    """Erased birth/covering history cannot be distinguished from born-after.
+
+    This characterizes missing evidence, not a desired fidelity guarantee.
+    It is not a retention-policy regression: no pruner runs in this unit test.
+    """
+    survivors: list[_Row] = [_Row(20, None, _INSERT)]
+    assert _provable(survivors, 10)
+
+
 def test_restore_endpoint_maps_pruned_history_to_422(app_context: None) -> None:
     """The fail-closed refusal surfaces as a user-facing 422, not a 500.
 
@@ -306,12 +321,14 @@ def test_restore_endpoint_maps_pruned_history_to_422(app_context: None) -> None:
     from superset.versioning.api_helpers import restore_version_endpoint
     from superset.versioning.restore import PrunedChildHistoryError
 
-    error = PrunedChildHistoryError("SqlaTable", "2 column/metric history row(s)")
+    error: PrunedChildHistoryError = PrunedChildHistoryError(
+        "SqlaTable", "2 column/metric history row(s)"
+    )
 
     class _Command:
-        not_found_exc = KeyError
-        forbidden_exc = PermissionError
-        failed_exc = RuntimeError
+        not_found_exc: type[Exception] = KeyError
+        forbidden_exc: type[Exception] = PermissionError
+        failed_exc: type[Exception] = RuntimeError
 
         def __init__(self, *_args: object) -> None:
             pass
@@ -319,10 +336,10 @@ def test_restore_endpoint_maps_pruned_history_to_422(app_context: None) -> None:
         def run(self) -> None:
             raise error
 
-    api = MagicMock()
+    api: MagicMock = MagicMock()
     api.response_422.return_value = "resp-422"
 
-    response = restore_version_endpoint(
+    response: Any = restore_version_endpoint(
         api,
         Dashboard,
         _Command,
