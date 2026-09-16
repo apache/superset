@@ -65,11 +65,20 @@ jest.mock('src/dashboard/components/dnd/DragDroppable', () => ({
   Droppable: ({
     children,
     depth,
+    style,
+    className,
   }: {
     children: (args: object) => React.ReactNode;
     depth: number;
+    style?: React.CSSProperties;
+    className?: string;
   }) => (
-    <div data-test="mock-droppable" data-depth={depth}>
+    <div
+      data-test="mock-droppable"
+      data-depth={depth}
+      className={className}
+      style={style}
+    >
       {children({})}
     </div>
   ),
@@ -267,6 +276,57 @@ test('should increment the depth of its children', () => {
     'data-depth',
     `${props.depth + 1}`,
   );
+});
+
+test('row droptarget height should shrink after the tallest chart in the row is resized smaller (regression for #37644)', () => {
+  // Emulates a flex row sized to fit-content: its clientHeight is at least
+  // as tall as its tallest child, including a droptarget sibling whose
+  // height was explicitly set to a pixel value by a prior render. This
+  // mirrors how a real browser lays out GridRow and its droptargets.
+  const clientHeightDescriptor = Object.getOwnPropertyDescriptor(
+    Element.prototype,
+    'clientHeight',
+  );
+  let trueContentHeight = 300;
+
+  Object.defineProperty(Element.prototype, 'clientHeight', {
+    configurable: true,
+    get(this: Element) {
+      if (!this.classList.contains('grid-row')) return 0;
+      const appliedHeights = Array.from(
+        this.querySelectorAll<HTMLElement>('.empty-droptarget--vertical'),
+      ).map(el => parseFloat(el.style.height) || 0);
+      return Math.max(trueContentHeight, 0, ...appliedHeights);
+    },
+  });
+
+  try {
+    const { container, rerender } = setup({ editMode: true });
+    const getDroptargetHeight = () =>
+      container.querySelector<HTMLElement>('.empty-droptarget--vertical')?.style
+        .height;
+
+    // Sanity: the droptarget renders a height while the row's tallest
+    // chart is large.
+    expect(getDroptargetHeight()).toBeTruthy();
+
+    // The tallest chart in the row shrinks, then something (e.g. hovering
+    // the row's own HoverMenu while resizing) causes Row to re-render.
+    trueContentHeight = 100;
+    rerender(<Row {...props} editMode component={{ ...props.component }} />);
+
+    // The droptarget must track the shrunk content instead of staying
+    // pinned to the chart's prior (larger) measured height.
+    expect(getDroptargetHeight()).not.toBe('300px');
+  } finally {
+    if (clientHeightDescriptor) {
+      Object.defineProperty(
+        Element.prototype,
+        'clientHeight',
+        clientHeightDescriptor,
+      );
+    }
+  }
 });
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
