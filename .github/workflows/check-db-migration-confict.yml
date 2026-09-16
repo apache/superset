@@ -60,12 +60,14 @@ jobs:
                 pull_number: pull.number,
               });
               const files = await github.paginate(listFilesOpts);
+              // Match on `filename`, not `contents_url`: the API percent-encodes
+              // path separators in `contents_url` (`/contents/superset%2Fmigrations%2F...`),
+              // so a substring test for `/contents/superset/migrations` never matches.
               if (
-                files.some(x => x.contents_url.includes('/contents/superset/migrations'))
+                files.some(x => x.filename.startsWith('superset/migrations/'))
               ) {
                 console.log(`PR #${pull.number} "${pull.title}" also added db migration`)
                 await github.rest.issues.createComment({
-                  issue_number: context.issue.number,
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   issue_number: pull.number,
