@@ -27,6 +27,7 @@ from superset.connectors.sqla import models
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import FavStar
 from superset.models.slice import Slice
+from superset.semantic_layers.models import SemanticLayer, SemanticView
 from superset.subjects.filters import (
     EditableFilter,
     subject_relation_exists_for_current_user,
@@ -178,15 +179,33 @@ class ChartFilter(BaseFilter):  # pylint: disable=too-few-public-methods
         filters.append(Slice.id.in_(no_viewer_table_query))
 
         # SEMANTIC_VIEW charts have no SqlaTable/Database row to join; access is
-        # evaluated against the chart's own perm, which set_related_perm keeps in
-        # sync with the view's ``datasource_access`` perm (no numeric-id join).
-        no_viewer_semantic_view_query = db.session.query(Slice.id).filter(
-            and_(
-                Slice.datasource_type == DatasourceType.SEMANTIC_VIEW,
-                ~chart_has_viewers,
-                Slice.perm.in_(
-                    security_manager.user_view_menu_names("datasource_access")
+        # evaluated against the chart's own ``perm`` (which set_related_perm
+        # keeps in sync with the view's ``datasource_access`` perm) or the
+        # parent layer's ``perm``, mirroring ``SemanticView.raise_for_access``
+        # and ``build_semantic_view_query`` (no numeric-id join into SqlaTable).
+        perms = security_manager.user_view_menu_names("datasource_access")
+        no_viewer_semantic_view_query = (
+            db.session.query(Slice.id)
+            .join(
+                SemanticView,
+                and_(
+                    Slice.datasource_id == SemanticView.id,
+                    Slice.datasource_type == DatasourceType.SEMANTIC_VIEW,
                 ),
+            )
+            .join(
+                SemanticLayer,
+                SemanticView.semantic_layer_uuid == SemanticLayer.uuid,
+            )
+            .filter(
+                and_(
+                    Slice.datasource_type == DatasourceType.SEMANTIC_VIEW,
+                    ~chart_has_viewers,
+                    or_(
+                        Slice.perm.in_(perms),
+                        SemanticLayer.perm.in_(perms),
+                    ),
+                )
             )
         )
         filters.append(Slice.id.in_(no_viewer_semantic_view_query))

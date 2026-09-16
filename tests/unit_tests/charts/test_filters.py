@@ -221,13 +221,34 @@ def test_chart_filter_no_viewer_semantic_view_matches_by_perm(
 ) -> None:
     """A semantic-view chart with no viewers is matched through the chart's own
     perm (the view's ``datasource_access`` perm), not through a numeric-id join
-    to SqlaTable."""
+    to SqlaTable. The view and its parent layer are joined so the layer's perm
+    can participate in the access check."""
     compiled = _compile(_no_viewer_fallbacks(mocker, perms={"[layer].[view](id:1)"}))
 
     assert "slices.datasource_type = 'semantic_view'" in compiled
     assert "'[layer].[view](id:1)'" in compiled
+    assert "JOIN semantic_views" in compiled
+    assert "JOIN semantic_layers" in compiled
     # the table branch is still guarded by datasource_type so semantic-view
     # foreign ids can never ride along on the table/database join
+    assert "slices.datasource_type = 'table'" in compiled
+    assert "JOIN tables AS tables_1" in compiled
+
+
+def test_chart_filter_no_viewer_semantic_view_matches_layer_perm(
+    mocker: MockerFixture,
+) -> None:
+    """A datasource_access grant on a parent semantic layer matches its views'
+    charts through the layer perm (mirrors SemanticView.raise_for_access)."""
+    layer_perm = "[test_layer](id:11111111-2222-3333-4444-555566667777)"
+    compiled = _compile(_no_viewer_fallbacks(mocker, perms={layer_perm}))
+
+    assert "slices.datasource_type = 'semantic_view'" in compiled
+    assert "JOIN semantic_views" in compiled
+    assert "JOIN semantic_layers" in compiled
+    assert f"'{layer_perm}'" in compiled
+    # the layer perm is ANDed with the semantic-view type guard, never the
+    # table branch
     assert "slices.datasource_type = 'table'" in compiled
     assert "JOIN tables AS tables_1" in compiled
 
