@@ -1130,3 +1130,31 @@ def test_use_equality_for_boolean_filters_property() -> None:
     assert DatabricksPythonConnectorEngineSpec.use_equality_for_boolean_filters is True
     assert DatabricksHiveEngineSpec.use_equality_for_boolean_filters is True
     assert SparkEngineSpec.use_equality_for_boolean_filters is True
+
+
+def test_handle_boolean_filter_equality_compilation() -> None:
+    """
+    Test that handle_boolean_filter on DatabricksBaseEngineSpec produces equality
+    comparisons instead of IS expressions for IS_TRUE and IS_FALSE.
+    """
+    from sqlalchemy import Boolean, Column
+    from superset.db_engine_specs.databricks import DatabricksBaseEngineSpec
+    from superset.utils.core import FilterOperator
+
+    bool_col = Column("is_test_user", Boolean)
+
+    result_true = DatabricksBaseEngineSpec.handle_boolean_filter(
+        bool_col, FilterOperator.IS_TRUE, True
+    )
+    assert (
+        str(result_true.compile(compile_kwargs={"literal_binds": True}))
+        == "is_test_user = true"
+    )
+
+    result_false = DatabricksBaseEngineSpec.handle_boolean_filter(
+        bool_col, FilterOperator.IS_FALSE, False
+    )
+    assert (
+        str(result_false.compile(compile_kwargs={"literal_binds": True}))
+        == "is_test_user = false"
+    )
