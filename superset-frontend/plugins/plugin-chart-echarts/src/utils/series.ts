@@ -39,7 +39,7 @@ import { SortSeriesType, LegendPaddingType } from '@superset-ui/chart-controls';
 import { format } from 'echarts/core';
 import type { LegendComponentOption } from 'echarts/components';
 import type { SeriesOption } from 'echarts';
-import { isEmpty, maxBy, meanBy, minBy, orderBy, sumBy } from 'lodash-es';
+import { escape, isEmpty, maxBy, meanBy, minBy, orderBy, sumBy } from 'lodash-es';
 import {
   NULL_STRING,
   StackControlsValue,
@@ -863,7 +863,7 @@ export function getLegendProps(
     formatter: (params: { name: string }) => {
       // Suppress tooltip when text fits — approx 7.5px per char at default font size
       const approxMaxChars = Math.floor(maxTextWidth / 7.5);
-      return params.name.length > approxMaxChars ? params.name : '';
+      return params.name.length > approxMaxChars ? escape(params.name) : '';
     },
   });
 
