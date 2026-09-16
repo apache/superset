@@ -25,22 +25,28 @@ import {
 } from '@superset-ui/core';
 import { PostProcessingFactory } from './types';
 
+type AnomalyDetectionMethod = Exclude<
+  PostProcessingAnomalyDetection,
+  undefined
+>['options']['method'];
+
 export const anomalyDetectionOperator: PostProcessingFactory<
   PostProcessingAnomalyDetection
-> = (formData, _queryObject) => {
+> = (formData, queryObject) => {
   const xAxisLabel = getXAxisLabel(formData);
   if (!formData.anomalyDetectionEnabled || !xAxisLabel) {
     return undefined;
   }
-  const method = (formData.anomalyDetectionMethod || 'zscore') as
-    | 'zscore'
-    | 'mad'
-    | 'prophet';
-  // Prophet requires a temporal x-axis; skip if no temporal indicator present
+  const method = (formData.anomalyDetectionMethod ||
+    'zscore') as AnomalyDetectionMethod;
+  // Prophet requires a temporal x-axis; skip if no temporal indicator present.
+  // `extras.time_grain_sqla` catches dashboard-applied grains that never
+  // reach formData, same as prophetOperator's own grain resolution.
   const xAxisColumn = getXAxisColumn(formData);
   const hasTemporalIndicator =
     (isAdhocColumn(xAxisColumn) &&
       Boolean(xAxisColumn.timeGrain as TimeGranularity)) ||
+    Boolean(queryObject.extras?.time_grain_sqla) ||
     Boolean(formData.granularity_sqla) ||
     Boolean(formData.time_grain_sqla);
   if (method === 'prophet' && !hasTemporalIndicator) {

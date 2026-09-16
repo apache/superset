@@ -26,13 +26,13 @@ import {
   QueryFormData,
 } from '@superset-ui/core';
 import {
+  anomalyDetectionOperator,
   contributionOperator,
   extractExtraMetrics,
   flattenOperator,
   isTimeComparison,
   pivotOperator,
   prophetOperator,
-  anomalyDetectionOperator,
   renameOperator,
   resampleOperator,
   rollingWindowOperator,

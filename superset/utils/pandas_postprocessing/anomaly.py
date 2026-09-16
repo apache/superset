@@ -23,6 +23,7 @@ from pandas import DataFrame
 
 from superset.exceptions import InvalidPostProcessingError
 from superset.utils.core import DTTM_ALIAS
+from superset.utils.pandas_postprocessing.prophet import _prophet_parse_seasonality
 
 
 def _detect_anomalies_zscore(
@@ -140,19 +141,6 @@ def _detect_anomalies_prophet(
         fit_df["y"].values > forecast["yhat_upper"].values
     )
     return pd.Series(is_anomaly, index=df.index)
-
-
-def _parse_seasonality(
-    val: Optional[Union[bool, int]],
-) -> Union[bool, str, int]:
-    if val is None:
-        return "auto"
-    if isinstance(val, bool):
-        return val
-    try:
-        return int(val)
-    except (ValueError, TypeError):
-        return val
 
 
 def _validate_anomaly_inputs(
@@ -287,9 +275,9 @@ def anomaly_detection(
                 column=column,
                 index=index,
                 confidence_interval=confidence_interval,
-                yearly_seasonality=_parse_seasonality(yearly_seasonality),
-                weekly_seasonality=_parse_seasonality(weekly_seasonality),
-                daily_seasonality=_parse_seasonality(daily_seasonality),
+                yearly_seasonality=_prophet_parse_seasonality(yearly_seasonality),
+                weekly_seasonality=_prophet_parse_seasonality(weekly_seasonality),
+                daily_seasonality=_prophet_parse_seasonality(daily_seasonality),
             )
         else:
             is_anomaly = detect_fn(series, rolling_window, sensitivity)

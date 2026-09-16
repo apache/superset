@@ -28,26 +28,26 @@ const validateRange =
   ): ((v: unknown) => string | false) =>
   (v: unknown) => {
     const n = Number(v);
-    return Number.isFinite(n) && check(n) ? t(message) : false;
+    return Number.isFinite(n) && check(n) ? message : false;
   };
 
 const validateMinRollingWindow = validateRange(
   n => n < 3,
-  'Rolling window must be >= 3',
+  t('Rolling window must be >= 3'),
 );
 const validatePositiveNumber = validateRange(
   n => n <= 0,
-  'Value must be a positive number',
+  t('Value must be a positive number'),
 );
 const validateConfidenceInterval = validateRange(
   n => n <= 0 || n >= 1,
-  'Confidence interval must be between 0 and 1 (exclusive)',
+  t('Confidence interval must be between 0 and 1 (exclusive)'),
 );
 const validateSeasonality = (v: unknown): string | false =>
   v === null || v === undefined || v === '' || typeof v === 'boolean'
     ? false
     : legacyValidateInteger(v);
-export const ANOMALY_DEFAULT_DATA = {
+export const ANOMALY_DETECTION_DEFAULT_DATA = {
   anomalyDetectionEnabled: false,
   anomalyDetectionMethod: 'zscore',
   anomalyDetectionRollingWindow: 14,
@@ -70,7 +70,7 @@ export const anomalyDetectionControls: ControlPanelSectionConfig = {
           type: 'CheckboxControl',
           label: t('Enable anomaly detection'),
           renderTrigger: false,
-          default: ANOMALY_DEFAULT_DATA.anomalyDetectionEnabled,
+          default: ANOMALY_DETECTION_DEFAULT_DATA.anomalyDetectionEnabled,
           description: t('Enable anomaly detection on the time series'),
         },
       },
@@ -86,7 +86,7 @@ export const anomalyDetectionControls: ControlPanelSectionConfig = {
             ['mad', t('MAD (Median Absolute Deviation)')],
             ['prophet', t('Prophet (Seasonality-aware)')],
           ],
-          default: ANOMALY_DEFAULT_DATA.anomalyDetectionMethod,
+          default: ANOMALY_DETECTION_DEFAULT_DATA.anomalyDetectionMethod,
           description: t(
             'Algorithm to use for anomaly detection. Z-Score uses rolling mean and standard deviation. MAD uses rolling median absolute deviation which is more robust to outliers. Prophet uses Facebook Prophet to model seasonality and flags points outside the confidence interval.',
           ),
@@ -100,7 +100,7 @@ export const anomalyDetectionControls: ControlPanelSectionConfig = {
           type: 'TextControl',
           label: t('Rolling window'),
           validators: [legacyValidateInteger, validateMinRollingWindow],
-          default: ANOMALY_DEFAULT_DATA.anomalyDetectionRollingWindow,
+          default: ANOMALY_DETECTION_DEFAULT_DATA.anomalyDetectionRollingWindow,
           description: t(
             'Size of the rolling window for computing statistics. Must be >= 3.',
           ),
@@ -116,7 +116,7 @@ export const anomalyDetectionControls: ControlPanelSectionConfig = {
           type: 'TextControl',
           label: t('Sensitivity'),
           validators: [legacyValidateNumber, validatePositiveNumber],
-          default: ANOMALY_DEFAULT_DATA.anomalyDetectionSensitivity,
+          default: ANOMALY_DETECTION_DEFAULT_DATA.anomalyDetectionSensitivity,
           description: t(
             'Threshold for anomaly detection. Higher values mean fewer anomalies are detected. Typical values: 2.0 (more sensitive) to 4.0 (less sensitive).',
           ),
@@ -132,7 +132,8 @@ export const anomalyDetectionControls: ControlPanelSectionConfig = {
           type: 'TextControl',
           label: t('Confidence interval'),
           validators: [legacyValidateNumber, validateConfidenceInterval],
-          default: ANOMALY_DEFAULT_DATA.anomalyDetectionConfidenceInterval,
+          default:
+            ANOMALY_DETECTION_DEFAULT_DATA.anomalyDetectionConfidenceInterval,
           description: t(
             'Width of the confidence interval. Should be between 0 and 1',
           ),
@@ -154,7 +155,8 @@ export const anomalyDetectionControls: ControlPanelSectionConfig = {
             [true, t('Yes')],
             [false, t('No')],
           ],
-          default: ANOMALY_DEFAULT_DATA.anomalyDetectionSeasonalityYearly,
+          default:
+            ANOMALY_DETECTION_DEFAULT_DATA.anomalyDetectionSeasonalityYearly,
           description: t(
             'Should yearly seasonality be applied. An integer value will specify Fourier order of seasonality.',
           ),
@@ -176,7 +178,8 @@ export const anomalyDetectionControls: ControlPanelSectionConfig = {
             [true, t('Yes')],
             [false, t('No')],
           ],
-          default: ANOMALY_DEFAULT_DATA.anomalyDetectionSeasonalityWeekly,
+          default:
+            ANOMALY_DETECTION_DEFAULT_DATA.anomalyDetectionSeasonalityWeekly,
           description: t(
             'Should weekly seasonality be applied. An integer value will specify Fourier order of seasonality.',
           ),
@@ -198,7 +201,8 @@ export const anomalyDetectionControls: ControlPanelSectionConfig = {
             [true, t('Yes')],
             [false, t('No')],
           ],
-          default: ANOMALY_DEFAULT_DATA.anomalyDetectionSeasonalityDaily,
+          default:
+            ANOMALY_DETECTION_DEFAULT_DATA.anomalyDetectionSeasonalityDaily,
           description: t(
             'Should daily seasonality be applied. An integer value will specify Fourier order of seasonality.',
           ),

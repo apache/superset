@@ -574,6 +574,8 @@ describe('collapseForecastKeys', () => {
       collapseForecastKeys(['b__yhat_lower', 'a__yhat', 'b__yhat']),
     ).toEqual(['b', 'a']);
   });
+});
+
 test('formatForecastTooltipSeries should append anomaly marker when anomaly is on the forecast trend', () => {
   expect(
     formatForecastTooltipSeries({

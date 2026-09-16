@@ -237,6 +237,33 @@ test('should resolve the temporal indicator from an adhoc x-axis column for prop
   });
 });
 
+test('should resolve the temporal indicator from the query object extras for prophet', () => {
+  expect(
+    anomalyDetectionOperator(
+      {
+        ...formData,
+        granularity_sqla: undefined,
+        time_grain_sqla: undefined,
+        x_axis: 'ds',
+        anomalyDetectionEnabled: true,
+        anomalyDetectionMethod: 'prophet',
+        anomalyDetectionConfidenceInterval: '0.8',
+      },
+      { ...queryObject, extras: { time_grain_sqla: 'P1W' } },
+    ),
+  ).toEqual({
+    operation: 'anomaly_detection',
+    options: {
+      method: 'prophet',
+      index: 'ds',
+      confidence_interval: 0.8,
+      yearly_seasonality: undefined,
+      weekly_seasonality: undefined,
+      daily_seasonality: undefined,
+    },
+  });
+});
+
 test('should use default method zscore when anomalyDetectionMethod is not set', () => {
   expect(
     anomalyDetectionOperator(

@@ -24,57 +24,7 @@ import pytest
 from superset.exceptions import InvalidPostProcessingError
 from superset.utils.core import DTTM_ALIAS
 from superset.utils.pandas_postprocessing import anomaly_detection
-from superset.utils.pandas_postprocessing.anomaly import _parse_seasonality
-
-anomaly_df = pd.DataFrame(
-    {
-        DTTM_ALIAS: [datetime(2020, 1, i) for i in range(1, 21)],
-        "a": [
-            10,
-            11,
-            10,
-            12,
-            11,
-            10,
-            11,
-            10,
-            100,
-            11,
-            10,
-            12,
-            11,
-            10,
-            11,
-            10,
-            12,
-            11,
-            10,
-            11,
-        ],
-        "b": [
-            5,
-            6,
-            5,
-            6,
-            5,
-            6,
-            5,
-            6,
-            5,
-            6,
-            5,
-            6,
-            5,
-            6,
-            5,
-            6,
-            5,
-            6,
-            5,
-            6,
-        ],
-    }
-)
+from tests.unit_tests.fixtures.dataframes import anomaly_df
 
 
 def test_anomaly_detection_zscore():
@@ -338,14 +288,6 @@ def test_anomaly_detection_skips_null_columns_from_forecast():
     assert "metric__yhat_upper__anomaly" not in result.columns
 
 
-def test_parse_seasonality():
-    assert _parse_seasonality(None) == "auto"
-    assert _parse_seasonality(True) is True
-    assert _parse_seasonality(False) is False
-    assert _parse_seasonality(4) == 4
-    assert _parse_seasonality(0) == 0
-
-
 def test_anomaly_detection_prophet_mocked():
     """Cover the Prophet detection path without requiring the prophet package."""
     dates = pd.date_range("2020-01-01", periods=20, freq="D")
@@ -463,11 +405,6 @@ def test_detect_anomalies_prophet_tz_aware():
 
     assert len(result) == 10
     assert not result.any()
-
-
-def test_parse_seasonality_non_int_string():
-    """Cover the except branch: non-numeric value passes through unchanged."""
-    assert _parse_seasonality("fourier_order") == "fourier_order"
 
 
 def test_anomaly_detection_prophet_non_temporal_index():

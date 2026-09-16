@@ -549,7 +549,7 @@ export function transformSeries(
   }
 
   let transformedData = data;
-  if (Array.isArray(data) && colorByPrimaryAxis) {
+  if (Array.isArray(data) && colorByPrimaryAxis && !isAnomaly) {
     transformedData = applyColorByPrimaryAxis(
       series,
       colorScale,
