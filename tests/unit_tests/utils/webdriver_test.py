@@ -386,6 +386,42 @@ class TestStandardScreenshotValidation:
             timeout=pytest.approx(1900),
         )
 
+    def test_api_capture_is_capped_by_existing_task_deadline(self):
+        page = MagicMock()
+        element = MagicMock()
+        valid = Image.new("RGB", (100, 100), "white")
+        ImageDraw.Draw(valid).rectangle((20, 20, 80, 80), fill="black")
+        output = io.BytesIO()
+        valid.save(output, format="PNG")
+        page.screenshot.return_value = output.getvalue()
+        page.evaluate.return_value = True
+
+        with patch("superset.utils.webdriver.time.monotonic", return_value=103.0):
+            result = WebDriverPlaywright._get_validated_screenshot(
+                page,
+                element,
+                "standalone",
+                "cache_key=test",
+                None,
+                validate_rendered_content=True,
+                require_complete_capture=True,
+                load_wait_seconds=60,
+                capture_wait_seconds=60,
+                task_deadline=104.0,
+            )
+
+        assert result == output.getvalue()
+        stability_call = next(
+            call
+            for call in page.wait_for_function.call_args_list
+            if "stabilityMs" in call.kwargs.get("arg", {})
+        )
+        assert stability_call.kwargs["timeout"] == pytest.approx(1000)
+        page.screenshot.assert_called_once_with(
+            full_page=True,
+            timeout=pytest.approx(1000),
+        )
+
 
 class TestWebDriverPlaywrightFallback:
     """Test WebDriverPlaywright fallback behavior when unavailable."""
@@ -1551,6 +1587,46 @@ class TestWebDriverPlaywrightChartReadiness:
         assert readiness_calls
         assert "holders.length > 0" not in readiness_calls[0].args[0]
         assert result == _png("black")
+
+    @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
+    @patch("superset.utils.webdriver._browser_manager")
+    @patch("superset.utils.webdriver.app")
+    def test_api_capture_threads_task_deadline_to_standard_capture(
+        self,
+        mock_app,
+        mock_browser_manager,
+    ):
+        import superset.utils.webdriver as webdriver_module
+
+        webdriver_class = webdriver_module.WebDriverPlaywright
+        mock_app.config = {**self._base_config}
+        mock_context, mock_page = self._make_pw_mocks(mock_browser_manager)
+        mock_page.evaluate.return_value = []
+
+        with (
+            patch.object(webdriver_class, "auth", return_value=mock_context),
+            patch.object(
+                webdriver_class,
+                "_get_validated_screenshot",
+                return_value=_png("black"),
+            ) as validated_capture,
+            patch(
+                "superset.utils.webdriver.resolve_screenshot_task_budget_seconds",
+                return_value=240.0,
+            ),
+            patch("superset.utils.webdriver.time.monotonic", return_value=100.0),
+        ):
+            result = webdriver_class(
+                "chrome",
+                require_complete_capture=True,
+            ).get_screenshot(
+                "http://example.com",
+                "standalone",
+                MagicMock(),
+            )
+
+        assert result == _png("black")
+        assert validated_capture.call_args.kwargs["task_deadline"] == 340.0
 
     @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
     @patch("superset.utils.webdriver._browser_manager")

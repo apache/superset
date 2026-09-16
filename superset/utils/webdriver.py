@@ -280,6 +280,7 @@ class WebDriverPlaywright(WebDriverProxy):
         require_complete_capture: bool = False,
         load_wait_seconds: float = 60.0,
         capture_wait_seconds: float = 60.0,
+        task_deadline: float | None = None,
     ) -> bytes:
         """Capture a standard screenshot and reject incomplete rendered output."""
 
@@ -287,11 +288,16 @@ class WebDriverPlaywright(WebDriverProxy):
         # Readiness may legitimately consume its full configured wait. Keep all
         # retries bounded by one deadline while reserving one browser-operation
         # timeout for capture/repaint after readiness becomes stable.
-        api_capture_deadline = (
-            time.monotonic() + load_wait_seconds + capture_wait_seconds
-            if require_complete_capture and report_execution_context is None
-            else None
-        )
+        api_capture_deadline: float | None = None
+        if require_complete_capture and report_execution_context is None:
+            local_capture_deadline = (
+                time.monotonic() + load_wait_seconds + capture_wait_seconds
+            )
+            api_capture_deadline = (
+                min(local_capture_deadline, task_deadline)
+                if task_deadline is not None
+                else local_capture_deadline
+            )
 
         def api_capture_timeout(
             phase: str,
@@ -844,6 +850,11 @@ class WebDriverPlaywright(WebDriverProxy):
     ) -> bytes | None:
         screenshot_started_at = time.monotonic()
         require_complete_capture = self._require_complete_capture
+        task_deadline: float | None = None
+        if require_complete_capture and report_execution_context is None:
+            task_budget = resolve_screenshot_task_budget_seconds(log_context)
+            if task_budget is not None:
+                task_deadline = screenshot_started_at + task_budget
         if report_execution_context:
             log_context = report_execution_context.log_context
             report_execution_context.deadline.available_seconds(
@@ -1243,6 +1254,7 @@ class WebDriverPlaywright(WebDriverProxy):
                                 app.config["SCREENSHOT_PLAYWRIGHT_DEFAULT_TIMEOUT"]
                                 / 1000
                             ),
+                            task_deadline=task_deadline,
                         )
                         logger.debug(
                             "Screenshot result: %d bytes for url: %s%s",
@@ -1313,6 +1325,7 @@ class WebDriverPlaywright(WebDriverProxy):
                         capture_wait_seconds=(
                             app.config["SCREENSHOT_PLAYWRIGHT_DEFAULT_TIMEOUT"] / 1000
                         ),
+                        task_deadline=task_deadline,
                     )
                     logger.debug(
                         "Screenshot result: %d bytes for url: %s%s",
