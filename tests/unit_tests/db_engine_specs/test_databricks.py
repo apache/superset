@@ -1176,3 +1176,30 @@ def test_handle_boolean_filter_computed_column_compilation() -> None:
         str(result.compile(compile_kwargs={"literal_binds": True}))
         == "(total_amount > 100) = true"
     )
+
+
+def test_spark_handle_boolean_filter_equality_compilation() -> None:
+    """
+    Test that SparkEngineSpec also compiles boolean filters to equality expressions.
+    """
+    from sqlalchemy import Boolean, Column
+    from superset.db_engine_specs.spark import SparkEngineSpec
+    from superset.utils.core import FilterOperator
+
+    bool_col = Column("is_active", Boolean)
+
+    result_true = SparkEngineSpec.handle_boolean_filter(
+        bool_col, FilterOperator.IS_TRUE, True
+    )
+    assert (
+        str(result_true.compile(compile_kwargs={"literal_binds": True}))
+        == "is_active = true"
+    )
+
+    result_false = SparkEngineSpec.handle_boolean_filter(
+        bool_col, FilterOperator.IS_FALSE, False
+    )
+    assert (
+        str(result_false.compile(compile_kwargs={"literal_binds": True}))
+        == "is_active = false"
+    )
