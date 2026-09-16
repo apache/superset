@@ -141,23 +141,6 @@ def _mock_command_result(
     }
 
 
-def _query_context_from_factory_kwargs(
-    *_args: Any,
-    **kwargs: Any,
-) -> SimpleNamespace:
-    """Build a QueryContext-shaped object from QueryContextFactory.create args."""
-    from superset.common.query_object import QueryObject
-
-    query_dict = kwargs["queries"][0]
-    query = QueryObject(
-        filters=query_dict.get("filters"),
-        time_range=query_dict.get("time_range"),
-        columns=query_dict.get("columns"),
-        metrics=query_dict.get("metrics"),
-    )
-    return SimpleNamespace(queries=[query], form_data=kwargs.get("form_data") or {})
-
-
 @pytest.mark.asyncio
 async def test_query_dataset_success(mcp_server: FastMCP) -> None:
     """Happy path: metrics + columns returns data."""
@@ -208,7 +191,13 @@ async def test_query_dataset_success(mcp_server: FastMCP) -> None:
 async def test_query_dataset_exposes_filters_to_jinja_macros(
     mcp_server: FastMCP,
 ) -> None:
-    """The MCP query path populates the form data read by dataset Jinja macros."""
+    """The MCP query path populates the form data read by dataset Jinja macros.
+
+    Uses the real QueryContextFactory so ``_apply_granularity`` strips the
+    TEMPORAL_RANGE filter; the hoist must then read cache_values.
+    """
+    from flask import g
+
     from tests.unit_tests.charts.data.form_data_test import (
         assert_request_dependent_jinja_macros,
     )
@@ -217,6 +206,11 @@ async def test_query_dataset_exposes_filters_to_jinja_macros(
     observed: dict[str, bool] = {}
 
     def run_query(*_args: Any, **_kwargs: Any) -> dict[str, Any]:
+        processed_filters = g.form_data["queries"][0]["filters"] or []
+        assert all(
+            (flt.get("op") if isinstance(flt, dict) else None) != "TEMPORAL_RANGE"
+            for flt in processed_filters
+        )
         # query_dataset has no url_params; skip that chart-only assertion.
         assert_request_dependent_jinja_macros(expected_url_param=None)
         observed["ran"] = True
@@ -225,8 +219,8 @@ async def test_query_dataset_exposes_filters_to_jinja_macros(
     with (
         patch.object(query_dataset_module, "resolve_dataset", return_value=dataset),
         patch(
-            "superset.common.query_context_factory.QueryContextFactory.create",
-            side_effect=_query_context_from_factory_kwargs,
+            "superset.common.query_context_factory.QueryContextFactory._convert_to_model",
+            return_value=dataset,
         ),
         patch(
             "superset.commands.chart.data.get_data_command.ChartDataCommand.validate",
