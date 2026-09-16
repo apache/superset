@@ -210,18 +210,29 @@ class MssqlEngineSpec(BaseEngineSpec):
         "key=value;" pairs onto whatever positional connection string
         SQLAlchemy already built, and per the ODBC specification a driver
         resolves a repeated keyword to its *first* occurrence. So whichever
-        database is already baked into that positional string -- from
-        ``odbc_connect`` (which becomes the *entire* string, ignoring the
-        URL's own host/database) or from the URL's own database segment --
-        always wins over ``connect_args["database"]``. The latter only takes
-        effect when the built string doesn't specify a database at all.
-        Verified empirically against a real SQL Server + the actual
-        Microsoft ODBC Driver 18 for SQL Server: a ``Database=`` embedded in
-        ``odbc_connect`` or the URL wins over a conflicting
-        ``connect_args["database"]`` every time -- even an *empty*
-        ``Database=`` wins and silently suppresses ``connect_args``, since
-        the driver stops at the first occurrence of the keyword regardless
-        of its value.
+        database is already baked into that positional string always wins
+        over ``connect_args["database"]``, which only takes effect when the
+        built string doesn't specify a database at all. Verified empirically
+        against a real SQL Server + the actual Microsoft ODBC Driver 18 for
+        SQL Server: a ``Database=`` embedded in ``odbc_connect`` or the URL
+        wins over a conflicting ``connect_args["database"]`` every time --
+        even an *empty* ``Database=`` wins and silently suppresses
+        ``connect_args``, since the driver stops at the first occurrence of
+        the keyword regardless of its value.
+
+        Within that positional string itself, precedence is, in order:
+
+        - ``odbc_connect``, which becomes the *entire* string and makes
+          SQLAlchemy ignore the URL's own host/database/query entirely.
+        - A ``database`` *query parameter* on the URL (e.g.
+          ``?database=foo``), which ``PyODBCConnector.create_connect_args``
+          merges into its working options *after* the URL's own path-segment
+          database -- so it silently overrides a conflicting path segment,
+          not just a missing one. Verified against SQLAlchemy 2.0.52:
+          ``mssql+pyodbc://u:p@host/path_db?database=query_db`` builds
+          ``Database=query_db``, never ``path_db``.
+        - The URL's own path-segment database (``sqlalchemy_uri.database``),
+          used only when there's no ``database`` query parameter.
 
         Only ``Database=`` is recognized inside ``odbc_connect`` --
         ``Initial Catalog=`` is an OLEDB/ADO.NET connection-string keyword,
@@ -247,6 +258,14 @@ class MssqlEngineSpec(BaseEngineSpec):
                 # the driver before connect_args is ever appended -- so its
                 # own Database= (present at all, even empty) is final.
                 return database
+        elif (
+            isinstance(query_database := sqlalchemy_uri.query.get("database"), str)
+            and query_database
+        ):
+            # A "database" query parameter is merged into the URL's own
+            # options *after* the path segment, so it overrides -- not just
+            # supplements -- sqlalchemy_uri.database in the built string.
+            return query_database
         elif sqlalchemy_uri.database:
             return sqlalchemy_uri.database
 
