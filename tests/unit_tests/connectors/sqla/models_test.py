@@ -19,6 +19,7 @@ from unittest.mock import MagicMock
 
 import pandas as pd
 import pytest
+from jinja2.exceptions import UndefinedError
 from pytest_mock import MockerFixture
 from sqlalchemy import create_engine
 from sqlalchemy.dialects import sqlite
@@ -2001,3 +2002,24 @@ def test_gauge_query_restores_long_sql_metric_label(mocker: MockerFixture) -> No
         )
         is None
     )
+
+
+def test_get_fetch_values_predicate_wraps_undefined_error(
+    mocker: MockerFixture,
+) -> None:
+    """UndefinedError from process_template must be caught and re-raised as
+    QueryObjectValidationError, not bubble as a raw 500."""
+    database = mocker.MagicMock()
+    sqla_table = SqlaTable(
+        table_name="my_sqla_table",
+        columns=[],
+        metrics=[],
+        database=database,
+    )
+    sqla_table.fetch_values_predicate = "{{ foo.bar }} = 1"
+
+    mock_processor = mocker.MagicMock()
+    mock_processor.process_template.side_effect = UndefinedError("'foo' is undefined")
+
+    with pytest.raises(QueryObjectValidationError):
+        sqla_table.get_fetch_values_predicate(template_processor=mock_processor)
