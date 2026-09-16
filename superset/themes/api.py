@@ -53,8 +53,8 @@ from superset.daos.theme import ThemeDAO
 from superset.extensions import event_logger
 from superset.models.core import Theme
 from superset.security.manager import (
-    get_extra_editor_subject_ids,
-    get_extra_editors_by_pk,
+    attach_extra_editors,
+    attach_extra_editors_to_rows,
 )
 from superset.subjects.filters import FilterRelatedSubjects, subject_type_filter
 from superset.themes.filters import ThemeAllTextFilter
@@ -189,21 +189,13 @@ class ThemeRestApi(BaseSupersetModelRestApi):
 
     def pre_get(self, data: dict[str, Any]) -> None:
         """Attach ``extra_editors``, matching the dashboard/chart GET response."""
-        if app.config.get("EXTRA_EDITORS_RESOLVER"):
-            theme = ThemeDAO.find_by_id(data["id"])
-            if theme:
-                data[API_RESULT_RES_KEY]["extra_editors"] = (
-                    get_extra_editor_subject_ids(theme)
-                )
+        if theme := ThemeDAO.find_by_id(data["id"]):
+            attach_extra_editors(data[API_RESULT_RES_KEY], theme)
 
     def pre_get_list(self, data: dict[str, Any]) -> None:
         """Attach ``extra_editors`` to each row, matching the single-object GET."""
         super().pre_get_list(data)
-        ids = data.get("ids", [])
-        extra_editors_by_id = get_extra_editors_by_pk(Theme, ids)
-        for row, row_id in zip(data.get("result", []), ids, strict=False):
-            if row_id in extra_editors_by_id:
-                row["extra_editors"] = extra_editors_by_id[row_id]
+        attach_extra_editors_to_rows(data, Theme)
 
     @expose("/<int:pk>", methods=("DELETE",))
     @protect()

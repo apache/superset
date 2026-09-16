@@ -112,8 +112,8 @@ from superset.exceptions import (
 from superset.extensions import event_logger, security_manager
 from superset.models.slice import Slice
 from superset.security.manager import (
-    get_extra_editor_subject_ids,
-    get_extra_editors_by_pk,
+    attach_extra_editors,
+    attach_extra_editors_to_rows,
 )
 from superset.subjects.filters import (
     FilterRelatedSubjects,
@@ -479,8 +479,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             result = self.chart_get_response_schema.dump(dash)
             if resolver := current_app.config.get("EXTRA_OWNERS_RESOLVER"):
                 result["extra_owners"] = resolver(dash)
-            if current_app.config.get("EXTRA_EDITORS_RESOLVER"):
-                result["extra_editors"] = get_extra_editor_subject_ids(dash)
+            attach_extra_editors(result, dash)
 
             return set_version_etag(
                 self.response(200, result=result),
@@ -492,11 +491,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     def pre_get_list(self, data: dict[str, Any]) -> None:
         """Attach ``extra_editors`` to each row, matching the single-object GET."""
         super().pre_get_list(data)
-        ids = data.get("ids", [])
-        extra_editors_by_id = get_extra_editors_by_pk(Slice, ids)
-        for row, row_id in zip(data.get("result", []), ids, strict=False):
-            if row_id in extra_editors_by_id:
-                row["extra_editors"] = extra_editors_by_id[row_id]
+        attach_extra_editors_to_rows(data, Slice)
 
     @expose("/", methods=("GET",))
     @protect()

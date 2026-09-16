@@ -46,6 +46,46 @@ def _set_importer_as_theme_editor(theme: "Theme", user: Any | None) -> None:
         theme.editors.append(subject)
 
 
+def _authorize_theme_overwrite(existing: "Theme", user: Any | None) -> None:
+    """Raise unless the current user may overwrite an existing theme."""
+    from superset import security_manager
+
+    if existing.is_system:
+        raise ThemeImportError("Cannot overwrite a system theme via import")
+    # The active system-default/dark theme slot may be overwritten by
+    # admins only; a non-admin overwriting it would change the theme
+    # rendered for every user, including the login page and other admins.
+    if (
+        existing.is_system_default or existing.is_system_dark
+    ) and not security_manager.is_admin():
+        raise ThemeImportError(
+            "Cannot overwrite the active system-default/dark theme via import"
+        )
+    # Overwriting an existing theme requires editorship (admins bypass).
+    # The one-time migration that introduced per-theme editors backfilled
+    # `editors` from each theme's creator, but any theme created by a path
+    # that bypasses `CreateThemeCommand` (or predates that backfill running)
+    # can still have a creator who isn't in `editors`. Fall back to
+    # `created_by_fk` so that creator isn't locked out of their own theme.
+    is_original_creator = user is not None and existing.created_by_fk == user.id
+    if (
+        user
+        and not is_original_creator
+        and not security_manager.is_editor(existing)
+        and not security_manager.is_admin()
+    ):
+        raise ThemeImportError(
+            "A theme already exists and user doesn't have permissions to overwrite it"
+        )
+    if is_original_creator and user and not security_manager.is_editor(existing):
+        # Backfill so the next overwrite doesn't need the fallback.
+        from superset.subjects.utils import get_user_subject
+
+        subject = get_user_subject(user.id)
+        if subject and subject not in existing.editors:
+            existing.editors.append(subject)
+
+
 def import_theme(config: dict[str, Any], overwrite: bool = False) -> "Theme | None":
     """Import a single theme from config dictionary"""
     from superset import db, security_manager
@@ -59,28 +99,7 @@ def import_theme(config: dict[str, Any], overwrite: bool = False) -> "Theme | No
     if existing:
         if not overwrite or not can_write:
             return existing
-        if existing.is_system:
-            raise ThemeImportError("Cannot overwrite a system theme via import")
-        # The active system-default/dark theme slot may be overwritten by
-        # admins only; a non-admin overwriting it would change the theme
-        # rendered for every user, including the login page and other
-        # admins.
-        if (
-            existing.is_system_default or existing.is_system_dark
-        ) and not security_manager.is_admin():
-            raise ThemeImportError(
-                "Cannot overwrite the active system-default/dark theme via import"
-            )
-        # Overwriting an existing theme requires editorship (admins bypass).
-        if (
-            user
-            and not security_manager.is_editor(existing)
-            and not security_manager.is_admin()
-        ):
-            raise ThemeImportError(
-                "A theme already exists and user doesn't have "
-                "permissions to overwrite it"
-            )
+        _authorize_theme_overwrite(existing, user)
         config["id"] = existing.id
     elif not can_write:
         raise ThemeImportError(

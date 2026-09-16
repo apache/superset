@@ -202,6 +202,26 @@ def get_extra_editors_by_pk(
     }
 
 
+def attach_extra_editors(result: dict[str, Any], resource: Model) -> None:
+    """
+    Attach ``extra_editors`` to a single-object API response, if configured.
+    """
+    if has_app_context() and current_app.config.get("EXTRA_EDITORS_RESOLVER"):
+        result["extra_editors"] = get_extra_editor_subject_ids(resource)
+
+
+def attach_extra_editors_to_rows(data: dict[str, Any], model_cls: type[Model]) -> None:
+    """
+    Attach ``extra_editors`` to each row of a list API response, matching
+    ``attach_extra_editors``'s single-object behavior.
+    """
+    ids = data.get("ids", [])
+    extra_editors_by_id = get_extra_editors_by_pk(model_cls, ids)
+    for row, row_id in zip(data.get("result", []), ids, strict=False):
+        if row_id in extra_editors_by_id:
+            row["extra_editors"] = extra_editors_by_id[row_id]
+
+
 # Retired from ``PERMISSION_INSTRUCTIONS_LINK``: see
 # ``_render_permission_instructions_link``.
 RETIRED_PERMISSION_LINK_PLACEHOLDER = "{datasource_name}"

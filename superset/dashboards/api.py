@@ -147,8 +147,8 @@ from superset.models.dashboard import Dashboard
 from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.security.guest_token import GuestUser
 from superset.security.manager import (
-    get_extra_editor_subject_ids,
-    get_extra_editors_by_pk,
+    attach_extra_editors,
+    attach_extra_editors_to_rows,
 )
 from superset.semantic_layers.models import SemanticView
 from superset.subjects.filters import (
@@ -480,11 +480,7 @@ class DashboardRestApi(
     def pre_get_list(self, data: dict[str, Any]) -> None:
         """Attach ``extra_editors`` to each row, matching the single-object GET."""
         super().pre_get_list(data)
-        ids = data.get("ids", [])
-        extra_editors_by_id = get_extra_editors_by_pk(Dashboard, ids)
-        for row, row_id in zip(data.get("result", []), ids, strict=False):
-            if row_id in extra_editors_by_id:
-                row["extra_editors"] = extra_editors_by_id[row_id]
+        attach_extra_editors_to_rows(data, Dashboard)
 
     list_select_columns = list_columns + ["changed_on", "created_on", "changed_by_fk"]
     order_columns = [
@@ -729,8 +725,7 @@ class DashboardRestApi(
                 for slc in dash.slices
                 if security_manager.can_access_chart(slc)
             ]
-        if current_app.config.get("EXTRA_EDITORS_RESOLVER"):
-            result["extra_editors"] = get_extra_editor_subject_ids(dash)
+        attach_extra_editors(result, dash)
         add_extra_log_payload(
             dashboard_id=dash.id, action=f"{self.__class__.__name__}.get"
         )
