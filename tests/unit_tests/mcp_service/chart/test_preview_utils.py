@@ -26,8 +26,6 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-import pytest
-
 from superset.mcp_service.chart import preview_utils
 from superset.mcp_service.chart.schemas import TablePreview
 

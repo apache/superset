@@ -227,11 +227,22 @@ class PreviewFormatStrategy:
         from superset.commands.chart.data.get_data_command import ChartDataCommand
 
         self._authorize_guest_query(query_context)
-        set_query_context_form_data(
-            query_context,
-            self.chart.datasource_id,
-            self.chart.datasource_type,
-        )
+        # Prefer the executed datasource. Chart-like objects may omit a real
+        # id; skip the Jinja helper rather than raising so typed preview
+        # errors still surface.
+        datasource = getattr(query_context, "datasource", None)
+        datasource_id = getattr(datasource, "id", None)
+        datasource_type = getattr(datasource, "type", None)
+        if not isinstance(datasource_id, (int, str)):
+            datasource_id = getattr(self.chart, "datasource_id", None)
+        if not isinstance(datasource_type, str):
+            datasource_type = getattr(self.chart, "datasource_type", None) or "table"
+        if isinstance(datasource_id, (int, str)):
+            set_query_context_form_data(
+                query_context,
+                datasource_id,
+                str(datasource_type),
+            )
         command = ChartDataCommand(query_context)
         command.validate()
         return command.run()
