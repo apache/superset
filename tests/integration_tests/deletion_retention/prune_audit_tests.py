@@ -1052,7 +1052,14 @@ class TestRepeatPredicateEquivalence(SupersetTestCase):
         The rewritten predicate must equal the legacy
         nested-EXISTS predicate — the executable form of the equivalence
         argument, covering ties, reason flips (incl. to/from NULL), pending
-        boundaries, streak breakers, evidence bounds and force rows."""
+        boundaries, streak breakers and force rows.
+
+        Only the duplicate and operational categories exercise the predicate:
+        they are the two that call ``_repeats_an_earlier_block``. ``evidence``
+        is compared as an explicit control — its guards are independent of the
+        rewrite, so patching the predicate must leave its candidate set
+        untouched. It proves isolation, not equivalence; a change that made it
+        differ would mean the rewrite had leaked out of its two categories."""
         now: datetime = audit.utc_now()
         checked_rows: int = 0
         for seed in _EQUIV_SEEDS:
@@ -1071,6 +1078,9 @@ class TestRepeatPredicateEquivalence(SupersetTestCase):
             ):
                 legacy: dict[str, set[UUID]] = self._candidate_sets(now)
 
+            # "evidence" is the control: it never reaches the patched
+            # predicate, so equality there asserts isolation from the rewrite
+            # rather than equivalence of it.
             for category in ("duplicate", "operational", "evidence"):
                 assert rewritten[category] == legacy[category], (
                     f"seed={seed} category={category}: "
