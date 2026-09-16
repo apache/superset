@@ -49,8 +49,14 @@ pybabel extract \
   --project=Superset \
   -k _ -k __ -k t -k tn:1,2 -k tct .
 
-# Normalize .pot file
-msgcat --sort-by-msgid --no-wrap --no-location superset/translations/messages.pot -o superset/translations/messages.pot
+# Normalize the .pot: sort by msgid, keep each message on one line, drop source
+# locations. msgcat's sort flag is `--sort-output`; the `--sort-by-msgid`
+# spelling used here before is not a msgcat option, and gettext rejects the call
+# with `unrecognized option` (verified on 0.23.2 and 1.0). With no `set -e` in
+# this script that failure was non-fatal, so the step never ran and the template
+# was published unnormalized. `|| exit 1` makes a failed normalization stop the
+# script instead.
+msgcat --sort-output --no-wrap --no-location superset/translations/messages.pot -o superset/translations/messages.pot || exit 1
 
 cat $LICENSE_TMP superset/translations/messages.pot > messages.pot.tmp \
   && mv messages.pot.tmp superset/translations/messages.pot
