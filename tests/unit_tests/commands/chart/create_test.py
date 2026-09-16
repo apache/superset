@@ -237,3 +237,36 @@ def test_create_chart_query_context_without_datasource_is_allowed(
     _mock_table_datasource(mocker)
 
     CreateChartCommand(_create_payload(query_context)).validate()
+
+
+def test_create_chart_updates_dashboard_changed_on(mocker: MockerFixture) -> None:
+    """Issue #44305: Creating a chart linked to dashboards must update changed_on and changed_by."""
+    from unittest.mock import MagicMock
+    from flask import g
+
+    _mock_table_datasource(mocker)
+    user = MagicMock()
+    g.user = user
+
+    dashboard = MagicMock(is_managed_externally=False, changed_on=None, changed_by=None)
+    mocker.patch(
+        "superset.commands.chart.create.DashboardDAO.find_by_ids",
+        return_value=[dashboard],
+    )
+    mocker.patch("superset.commands.chart.create.security_manager.is_editor", return_value=True)
+    mocker.patch("superset.commands.chart.create.ChartDAO.create", return_value=MagicMock())
+
+    cmd = CreateChartCommand(
+        {
+            "datasource_id": 42,
+            "datasource_type": "table",
+            "slice_name": "New Chart",
+            "viz_type": "table",
+            "dashboards": [101],
+        }
+    )
+    cmd.run()
+
+    assert dashboard.changed_on is not None
+    assert dashboard.changed_by == user
+
