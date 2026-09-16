@@ -23,10 +23,11 @@ down to changes on the entity itself or on the things it depends on.
   width="360"
 />
 
-Version history applies to **charts and dashboards**. Datasets do not have a
-version history panel; they participate in soft deletion and can be recovered
-from [Recently Archived](./recently-archived), but their
-edits are not versioned.
+The version history panels described here apply to **charts and dashboards**.
+Datasets do not have a dedicated history panel, but their edits are captured
+by backend versioning and exposed through the dataset version APIs and related
+activity. Datasets also participate in soft deletion and can be recovered from
+[Recently Archived](./recently-archived.mdx).
 
 ## Enabling and disabling it
 
@@ -54,20 +55,35 @@ off are not reconstructed.
 
 ## How long history is kept
 
-Version rows older than the retention window are pruned by a daily background
-task (`version_history.prune_old_versions`, scheduled through Celery beat).
-The window is read from the `SUPERSET_VERSION_HISTORY_RETENTION_DAYS`
-environment variable and defaults to 30 days.
+The `version_history.prune_old_versions` background task prunes expired
+history. The default Celery beat configuration schedules it daily at 03:00
+in the configured Celery timezone. It runs only when beat and workers are
+running with the required schedule and task registration; see the
+[operator checklist](./recently-archived.mdx#running-retention-tasks).
 
-Pruning never removes an entity's current state: any version that is still
-live is preserved along with the rest of its transaction, however old it is.
-What ages out is closed history — earlier states you could otherwise have
-previewed or restored.
+The `SUPERSET_VERSION_HISTORY_RETENTION_DAYS` configuration value defaults to
+30 days. It is initialized from the environment variable of the same name
+and can be overridden in `superset_config.py`. Restart the relevant processes
+after changing environment or configuration values.
 
-Set the variable to zero (or any non-positive value) to keep history
-indefinitely. This window governs version history only; the separate retention
-window for archived (soft-deleted) objects is described on
-[Recently Archived](./recently-archived).
+At startup, a non-integer environment value or one above 36,500 logs a warning
+and falls back to 30 days. Use zero, not an arbitrarily large number, to
+disable pruning.
+
+Pruning preserves live version rows and their anchoring transactions,
+regardless of age. It does not preserve every historical row that shares
+one of those transactions: closed rows can be removed when their closing
+transaction expires. Retention can therefore remove history used by previews
+and restores; version history is not a substitute for backups.
+
+Set the value to zero (or any non-positive value) to disable history pruning.
+There is no dry-run switch for this task. Neither `VERSION_HISTORY` nor
+`ENABLE_VERSIONING_CAPTURE` disables pruning of existing history. To preserve
+history while the feature is off, set the retention value to zero or remove
+the pruning task's beat schedule entry. This window governs version
+history only; permanent deletion of an entity also removes its history,
+regardless of this setting. The separate retention window for archived objects
+is described on [Recently Archived](./recently-archived.mdx).
 
 ## Viewing history
 
@@ -102,8 +118,13 @@ anything.
 
 <img
   src={useBaseUrl('/img/version-history/version-history-preview.jpg')}
-  alt="A chart in preview mode: a banner across the top names the historical version and offers Restore, Open as new chart, and Close preview"
+  alt="Illustrative chart preview from an earlier build, with Restore, Open as new chart, and Close preview actions; history selection highlighting differs"
 />
+
+This screenshot illustrates the preview actions in an earlier build. It
+predates single-selection highlighting: the UI highlights only the previewed
+history group, not both groups as shown. The live group retains its **Current**
+label.
 
 While a preview is active:
 
@@ -135,9 +156,9 @@ respects.
 **Restore** rewrites the entity back to the selected version. Two things are
 worth knowing:
 
-- **History stays append-only.** A restore is itself recorded as a new version,
-  so restoring never destroys the states you moved away from — you can always
-  restore forward again.
+- **Restore appends a version.** Restoring does not itself delete the states
+  you moved away from. Returning to one of those states depends on its history
+  still being available; retention and permanent deletion can remove it.
 - **A dashboard restore may be partial.** If the version referenced charts that
   have since been deleted, the layout is restored without them and Superset
   tells you how many were not reattached.
