@@ -602,6 +602,10 @@ export default function transformProps(
         legendOrientation,
         showLegend,
         theme,
+        false, // zoomable — Pie charts do not use the zoom control
+        undefined, // legendState — not tracked per-item in Pie
+        undefined, // padding — Pie passes width instead
+        width, // horizontalLegendWidth: truncate long category names in Top/Bottom legends
       ),
       data: legendData,
     },

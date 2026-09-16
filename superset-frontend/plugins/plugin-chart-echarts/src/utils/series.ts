@@ -802,6 +802,15 @@ export function getLegendProps(
   zoomable = false,
   legendState?: LegendState,
   padding?: LegendPaddingType,
+  /**
+   * When provided, horizontal (Top/Bottom) legend items will be truncated at
+   * this pixel width and a smart tooltip will appear above truncated items.
+   * Callers that do not need per-item truncation (most charts) should omit
+   * this parameter so the legend remains unstyled, matching the original
+   * behavior.  Pie passes the chart width here because its category names can
+   * be arbitrarily long.
+   */
+  horizontalLegendWidth?: number,
 ): LegendComponentOption {
   const legend: LegendComponentOption = {
     orient: [LegendOrientation.Top, LegendOrientation.Bottom].includes(
@@ -858,6 +867,18 @@ export function getLegendProps(
     },
   });
 
+  // Shared truncation style for horizontal (Top/Bottom) legends.
+  // Only applied when the caller explicitly provides a width; omitting it
+  // preserves the original unstyled behavior for charts that do not need
+  // per-item truncation.
+  const horizontalTruncationStyle =
+    horizontalLegendWidth != null && horizontalLegendWidth > 0
+      ? {
+          textStyle: { overflow: 'truncate', width: horizontalLegendWidth },
+          tooltip: makeLegendTooltip(horizontalLegendWidth),
+        }
+      : {};
+
   switch (orientation) {
     case LegendOrientation.Left:
       legend.left = 0;
@@ -888,11 +909,7 @@ export function getLegendProps(
       if (type === LegendType.Plain) {
         legend.right = 0;
       }
-      legend.textStyle = {
-        overflow: 'truncate',
-        width: 150,
-      };
-      legend.tooltip = makeLegendTooltip(150);
+      Object.assign(legend, horizontalTruncationStyle);
       break;
     case LegendOrientation.Top:
       legend.top = 0;
@@ -900,11 +917,7 @@ export function getLegendProps(
       if (type === LegendType.Plain && padding?.left) {
         legend.left = padding.left;
       }
-      legend.textStyle = {
-        overflow: 'truncate',
-        width: 150,
-      };
-      legend.tooltip = makeLegendTooltip(150);
+      Object.assign(legend, horizontalTruncationStyle);
       break;
     default:
       legend.top = 0;
