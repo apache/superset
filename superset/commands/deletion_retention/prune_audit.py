@@ -454,8 +454,9 @@ def _repeats_an_earlier_block(
     # A raw-text named WINDOW clause: the one construct SQLAlchemy Core
     # cannot emit. ``groups_name`` is the literal alias every LAG column
     # below must qualify with, so the FROM clause and the WINDOW clause
-    # cannot drift apart.
-    window_spec: str = (
+    # stay on the same alias; the column names, however, are hardcoded in
+    # both places and must be kept in step by hand.
+    window_body: str = (
         f"{groups_name}.entity_type, {groups_name}.entity_uuid "
         f"ORDER BY {groups_name}.ts"
     )
@@ -470,7 +471,9 @@ def _repeats_an_earlier_block(
             ],
         )
         .select_from(groups)
-        .suffix_with(f"WINDOW w AS (PARTITION BY {window_spec})")
+        # Suffixes trail every other clause, so never add ORDER BY/LIMIT to
+        # this select: they would be emitted before WINDOW and fail to parse.
+        .suffix_with(f"WINDOW w AS (PARTITION BY {window_body})")
         .correlate(None)
         .subquery("preceding_groups")
     )
