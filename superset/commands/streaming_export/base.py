@@ -23,7 +23,7 @@ import io
 import logging
 import time
 from abc import abstractmethod
-from contextlib import closing, contextmanager
+from contextlib import contextmanager
 from decimal import Decimal
 from numbers import Real
 from typing import Any, Callable, Generator
@@ -218,15 +218,18 @@ class BaseStreamingCSVExportCommand(BaseCommand):
         delimiter = csv_export_config.get("sep", ",")
         decimal_separator = csv_export_config.get("decimal", ".")
 
-        # Apply SQL mutations (e.g. SQL_QUERY_MUTATOR config hook) before
-        # execution.  All non-streaming paths go through this — the streaming
-        # path was originally skipping it, which left trailing semicolons
-        # unstripped for engines like Trino that reject them.
-        sql = database.mutate_sql_based_on_config(sql)
-
         with db.session(future=True) as session:
             # Merge database to prevent DetachedInstanceError
             merged_database = session.merge(database)
+
+            # Apply SQL mutations (e.g. SQL_QUERY_MUTATOR config hook) before
+            # execution.  All non-streaming paths go through this — the streaming
+            # path was originally skipping it, which left trailing semicolons
+            # unstripped for engines like Trino that reject them.  Mutate using
+            # the merged database, not the original: a configured mutator can
+            # read database attributes, and the original instance may be
+            # detached from the session by the time this generator runs.
+            sql = merged_database.mutate_sql_based_on_config(sql)
 
             # Use get_raw_connection() instead of get_sqla_engine() directly.
             # This is critical for:
@@ -240,15 +243,15 @@ class BaseStreamingCSVExportCommand(BaseCommand):
             #    configured on the database.
             # 3. OAuth2 — get_raw_connection() wraps execution in
             #    check_for_oauth2() context.
-            with closing(
-                merged_database.get_raw_connection(catalog=catalog, schema=schema)
+            # get_raw_connection() is itself a context manager (it already
+            # closes the connection internally), so it must be entered
+            # directly — wrapping it in closing() skips __enter__ and leaves
+            # `conn` as the context-manager object instead of the DBAPI
+            # connection.
+            with merged_database.get_raw_connection(
+                catalog=catalog, schema=schema
             ) as conn:
                 cursor = conn.cursor()
-                # Set cursor.arraysize to control the batch size for fetchmany().
-                # This ensures DBAPI drivers (Trino, PostgreSQL, etc.) fetch
-                # rows in manageable chunks instead of buffering the entire
-                # result set client-side.
-                cursor.arraysize = limit
                 try:
                     cursor.execute(sql)
                     columns = (
