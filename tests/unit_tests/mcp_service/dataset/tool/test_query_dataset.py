@@ -20,6 +20,8 @@
 from __future__ import annotations
 
 import importlib
+import os
+import time
 from collections.abc import Generator
 from types import SimpleNamespace
 from typing import Any
@@ -63,6 +65,24 @@ def mock_auth() -> Generator[MagicMock, None, None]:
         mock_user.username = "admin"
         mock_get_user.return_value = mock_user
         yield mock_get_user
+
+
+@pytest.fixture
+def utc_timezone() -> Generator[None, None, None]:
+    """Pin TZ=UTC so relative ranges that straddle midnight are machine-independent."""
+    previous = os.environ.get("TZ")
+    os.environ["TZ"] = "UTC"
+    if hasattr(time, "tzset"):
+        time.tzset()
+    try:
+        yield
+    finally:
+        if previous is None:
+            os.environ.pop("TZ", None)
+        else:
+            os.environ["TZ"] = previous
+        if hasattr(time, "tzset"):
+            time.tzset()
 
 
 def _make_column(name: str, is_dttm: bool = False) -> MagicMock:
@@ -194,7 +214,7 @@ async def test_query_dataset_exposes_filters_to_jinja_macros(
     """The MCP query path populates the form data read by dataset Jinja macros.
 
     Uses the real QueryContextFactory so ``_apply_granularity`` strips the
-    TEMPORAL_RANGE filter; the hoist must then read cache_values.
+    TEMPORAL_RANGE filter; execute_tabular_query overlays the original range.
     """
     from flask import g
 
@@ -1537,6 +1557,7 @@ async def test_query_dataset_returns_engine_time_bounds(
     assert data["applied_filters"][0]["val"] == expression.strip()
 
 
+@pytest.mark.usefixtures("utc_timezone")
 @pytest.mark.parametrize("empty", [False, True])
 @pytest.mark.asyncio
 async def test_query_dataset_reexecutes_across_rollover(
