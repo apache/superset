@@ -80,7 +80,7 @@ def is_lock_contention_error(exc: BaseException | None) -> bool:
     if exc is None:
         return False
 
-    orig = getattr(exc, "orig", None)
+    orig: object = getattr(exc, "orig", None)
     if orig is None:
         if isinstance(exc, DBAPIError):
             # A wrapper whose driver error was not preserved carries no
@@ -89,23 +89,23 @@ def is_lock_contention_error(exc: BaseException | None) -> bool:
             # read. Unclassifiable is not retryable.
             return False
         # Not a wrapper: a raw driver exception is its own diagnostic.
-        diagnostic: BaseException = exc
+        diagnostic: object = exc
     else:
         diagnostic = orig
 
-    args = getattr(diagnostic, "args", None)
+    args: tuple[object, ...] | None = getattr(diagnostic, "args", None)
     if args and isinstance(args[0], int):
         # MySQL-family errno: structured and therefore decisive.
         return args[0] in _MYSQL_LOCK_CONTENTION
 
-    sqlstate = getattr(diagnostic, "pgcode", None) or getattr(
+    sqlstate: str | None = getattr(diagnostic, "pgcode", None) or getattr(
         diagnostic, "sqlstate", None
     )
     if sqlstate is not None:
         # PostgreSQL SQLSTATE: structured and therefore decisive.
         return sqlstate in _PG_LOCK_CONTENTION
 
-    text = str(diagnostic).lower()
+    text: str = str(diagnostic).lower()
     return any(phrase in text for phrase in _LOCK_CONTENTION_PHRASES)
 
 

@@ -187,10 +187,7 @@ def current_version_info(
             sa.func.max(
                 sa.case(
                     (
-                        sa.and_(
-                            ver_cls.end_transaction_id.is_(None),
-                            ver_cls.operation_type != OPERATION_DELETE,
-                        ),
+                        sa.and_(*_live_version_predicates(ver_cls)),
                         ver_cls.transaction_id,
                     )
                 )
@@ -222,6 +219,17 @@ def current_version_number(
         model_cls, entity_id, entity_uuid
     )
     return version_number
+
+
+def _live_version_predicates(
+    ver_cls: type[Any],
+) -> tuple[sa.ColumnElement[bool], sa.ColumnElement[bool]]:
+    """Share live-row eligibility between display and locked validator reads."""
+    # Continuum generates model classes with additional version columns.
+    return (
+        ver_cls.end_transaction_id.is_(None),
+        ver_cls.operation_type != OPERATION_DELETE,
+    )
 
 
 def current_live_transaction_id_locked(
@@ -274,10 +282,7 @@ def current_live_transaction_id_locked(
     return (
         db.session.query(ver_cls.transaction_id)
         .filter(identity_filter(ver_cls, entity_id, entity_uuid))
-        .filter(
-            ver_cls.end_transaction_id.is_(None),
-            ver_cls.operation_type != OPERATION_DELETE,
-        )
+        .filter(*_live_version_predicates(ver_cls))
         .order_by(ver_cls.transaction_id.desc())
         .limit(1)
         .with_for_update()

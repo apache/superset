@@ -181,6 +181,12 @@ def _contaminated_statement(phrase: str) -> tuple[str, dict[str, str]]:
     [
         _FakeLockDriverError(args=(1213, "Deadlock found when trying to get lock")),
         _FakeLockDriverError(args=(1205, "Lock wait timeout exceeded")),
+        _FakeLockDriverError(
+            args=(1213, "Deadlock found when trying to get lock"), sqlstate="40001"
+        ),
+        _FakeLockDriverError(
+            args=(1205, "Lock wait timeout exceeded"), sqlstate="HY000"
+        ),
         _FakeLockDriverError(pgcode="40001"),
         _FakeLockDriverError(pgcode="40P01"),
         _FakeLockDriverError(pgcode="55P03"),
@@ -230,6 +236,8 @@ def test_lock_phrase_in_sql_or_parameters_is_not_contention(
     unrelated failure — a chart named "deadlock analysis" — into a 409
     telling the client to retry a request that can never succeed.
     """
+    statement: str
+    params: dict[str, str]
     statement, params = _contaminated_statement(phrase)
     err: StatementError = wrapper_cls(
         statement,

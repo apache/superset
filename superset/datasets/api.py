@@ -113,6 +113,7 @@ from superset.versioning.api_helpers import (
     concurrency_token_from,
     current_entity_version_info,
     entity_concurrency_token,
+    EntityVersionInfo,
     get_version_endpoint,
     list_versions_endpoint,
     lock_entity_for_update,
@@ -576,13 +577,16 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     def _lock_contention_response(self) -> Response:
         """The shared retryable 409 for a conditional save losing a lock race.
 
-        The rollback is LOAD-BEARING for lock-wait-timeout: with
+        In the direct lock-acquisition and validator-read catches, the
+        rollback is LOAD-BEARING for lock-wait-timeout: with
         ``innodb_rollback_on_timeout`` OFF (the MySQL default) a 1205
         rolls back only the failing STATEMENT -- the transaction is still
         alive and still holds any entity row lock already acquired, and
         this rollback is what releases it. For a deadlock (1213) InnoDB
         already rolled the transaction back and this clears the aborted
-        session before responding.
+        session before responding. The decorated command-failure path
+        already rolls back before raising; this shared cleanup is a
+        harmless no-op on that path, not an additional required rollback.
         """
         db.session.rollback()  # pylint: disable=consider-using-transaction
         return self.response(
@@ -751,9 +755,9 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         # the live version, the command writes, and the two must not interleave
         # with another request's. Only a conditional save pays for the locks; an
         # unconditional PUT behaves exactly as it did before the guard existed.
-        # (On MySQL REPEATABLE READ the version read below is still a plain
-        # consistent read and can predate the lock; see the caveats on
-        # lock_entity_for_update.)
+        # The validator's transaction id uses a locking read. The displayed
+        # version number and lazy child reads can still observe an older
+        # MySQL REPEATABLE READ snapshot; see lock_entity_for_update.
         conditional: bool = is_conditional_write()
         if conditional:
             # Blocking here is the serialisation doing its job; LOSING the
@@ -767,7 +771,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             # the command's find_by_id re-read a stale row on MySQL
             # REPEATABLE READ (see lock_entity_for_update).
             try:
-                _locked_entity = lock_entity_for_update(SqlaTable, pk)
+                _locked_entity: SqlaTable | None = lock_entity_for_update(SqlaTable, pk)
             except OperationalError as ex:
                 if not is_lock_contention_error(ex):
                     raise
@@ -786,7 +790,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         # DatasetUpdateFailedError handler below via ``__cause__`` and
         # returns the same 409.)
         try:
-            old_info = current_entity_version_info(
+            old_info: EntityVersionInfo = current_entity_version_info(
                 SqlaTable, pk, lock_for_stale_check=conditional
             )
         except OperationalError as ex:

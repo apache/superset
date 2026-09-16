@@ -131,6 +131,8 @@ def current_entity_version_info(
         )
     if entity_uuid is None:
         return EntityVersionInfo()
+    version: int | None
+    transaction_id: int | None
     version, transaction_id = VersionDAO.current_version_info(
         model_cls, entity_id, entity_uuid
     )
@@ -245,10 +247,10 @@ def lock_entity_for_update(
     undoing the refresh.
 
     The refresh covers the entity row itself. Lazy-loaded child
-    collections (columns, metrics) are still plain consistent reads
-    afterwards, as is the version-info read behind the ``If-Match``
-    comparison -- on MySQL REPEATABLE READ both can still observe the
-    pre-lock snapshot.
+    collections (columns, metrics) and the displayed version number remain
+    plain consistent reads and can observe the pre-lock snapshot on MySQL
+    REPEATABLE READ. The conditional ``If-Match`` comparison instead uses
+    a locking read of the live transaction id.
 
     Postgres (READ COMMITTED) and SQLite are not exposed to the staleness,
     and the refresh is harmless there. (Version restore has the same

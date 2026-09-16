@@ -35,9 +35,12 @@ serialization failure for a locking read of a concurrently updated row
 instead of returning it -- a different, also-safe outcome.
 """
 
+from uuid import UUID
+
 import pytest
 import sqlalchemy as sa
 from sqlalchemy_continuum import version_class, versioning_manager
+from sqlalchemy_continuum.operation import Operation
 
 from superset import db
 from superset.daos.version import VersionDAO
@@ -46,6 +49,7 @@ from superset.utils.dates import naive_utcnow
 from superset.versioning.api_helpers import (
     concurrency_token_from,
     current_entity_version_info,
+    EntityVersionInfo,
 )
 from superset.versioning.baseline import CONTINUUM_BOOKKEEPING_COLUMNS
 from superset.versioning.etag import raise_for_stale_write, StaleEntityError
@@ -81,7 +85,7 @@ def _commit_competing_version_out_of_band(
         ).inserted_primary_key[0]
         content: dict[str, object]
         if template is None:
-            live = (
+            live: sa.RowMapping | None = (
                 conn.execute(
                     sa.select(ver_tbl).where(
                         ver_tbl.c.id == chart_id,
@@ -112,7 +116,7 @@ def _commit_competing_version_out_of_band(
                 },
                 transaction_id=new_tx,
                 end_transaction_id=None,
-                operation_type=1,
+                operation_type=Operation.UPDATE,
             )
         )
     return new_tx
@@ -122,15 +126,18 @@ def _commit_competing_version_out_of_band(
 class TestConditionalTokenLockingRead(SupersetTestCase):
     def _versioned_chart(self) -> tuple[Slice, str | None]:
         """A chart with at least one version row (a real committed save)."""
-        chart = db.session.query(Slice).filter(Slice.slice_name == "Boys").one()
-        original = chart.description
+        chart: Slice = db.session.query(Slice).filter(Slice.slice_name == "Boys").one()
+        # The example fixture stages INSERTs; commit them before the UPDATE
+        # so the version under test represents a separate committed save.
+        db.session.commit()
+        original: str | None = chart.description
         chart.description = "sc-120050 probe"
         db.session.commit()
         return chart, original
 
     def _restore(self, chart_id: int, original: str | None) -> None:
         db.session.rollback()
-        chart = db.session.get(Slice, chart_id)
+        chart: Slice | None = db.session.get(Slice, chart_id)
         assert chart is not None
         chart.description = original
         db.session.commit()
@@ -139,16 +146,20 @@ class TestConditionalTokenLockingRead(SupersetTestCase):
         """Without concurrent writers both reads name the same live row,
         and the locking clause executes on the real backend (the
         dialect-syntax half of the guard the unit pins cannot cover)."""
+        chart: Slice
+        original: str | None
         chart, original = self._versioned_chart()
         try:
-            plain = VersionDAO.current_live_transaction_id(Slice, chart.id, chart.uuid)
-            locked = VersionDAO.current_live_transaction_id_locked(
+            plain: int | None = VersionDAO.current_live_transaction_id(
+                Slice, chart.id, chart.uuid
+            )
+            locked: int | None = VersionDAO.current_live_transaction_id_locked(
                 Slice, chart.id, chart.uuid
             )
             assert plain is not None
             assert locked == plain
 
-            info = current_entity_version_info(
+            info: EntityVersionInfo = current_entity_version_info(
                 Slice, chart.id, chart.uuid, lock_for_stale_check=True
             )
             assert info.transaction_id == plain
@@ -165,6 +176,8 @@ class TestConditionalTokenLockingRead(SupersetTestCase):
         plain path does. This is also the branch where MySQL takes a gap
         lock (see current_live_transaction_id_locked's residual note).
         """
+        chart: Slice
+        original: str | None
         chart, original = self._versioned_chart()
         try:
             db.session.execute(
@@ -173,12 +186,12 @@ class TestConditionalTokenLockingRead(SupersetTestCase):
             )
             db.session.commit()
 
-            locked = VersionDAO.current_live_transaction_id_locked(
+            locked: int | None = VersionDAO.current_live_transaction_id_locked(
                 Slice, chart.id, chart.uuid
             )
             assert locked is None
 
-            info = current_entity_version_info(
+            info: EntityVersionInfo = current_entity_version_info(
                 Slice, chart.id, chart.uuid, lock_for_stale_check=True
             )
             assert info.version_uuid is None
@@ -221,9 +234,11 @@ class TestConditionalTokenLockingRead(SupersetTestCase):
         # v1 is committed BEFORE the read view opens: the fixture's rows
         # and this save must both be visible to the snapshot the test
         # then pins.
+        chart: Slice
+        original: str | None
         chart, original = self._versioned_chart()
         chart_id: int = chart.id
-        chart_uuid = chart.uuid
+        chart_uuid: UUID = chart.uuid
         try:
             self._force_repeatable_read()
             # Opening the read view: this first consistent read is what
@@ -232,7 +247,9 @@ class TestConditionalTokenLockingRead(SupersetTestCase):
                 Slice, chart_id, chart_uuid
             )
             assert v1 is not None
-            stale_info = current_entity_version_info(Slice, chart_id, chart_uuid)
+            stale_info: EntityVersionInfo = current_entity_version_info(
+                Slice, chart_id, chart_uuid
+            )
             stale_token: str | None = concurrency_token_from(stale_info)
             assert stale_token is not None
 
@@ -252,7 +269,7 @@ class TestConditionalTokenLockingRead(SupersetTestCase):
                 == v2
             )
 
-            fresh_info = current_entity_version_info(
+            fresh_info: EntityVersionInfo = current_entity_version_info(
                 Slice, chart_id, chart_uuid, lock_for_stale_check=True
             )
             fresh_token: str | None = concurrency_token_from(fresh_info)
@@ -281,12 +298,14 @@ class TestConditionalTokenLockingRead(SupersetTestCase):
         being accepted.
         """
         self._skip_unless_mysql()
+        chart: Slice
+        original: str | None
         chart, original = self._versioned_chart()
         chart_id: int = chart.id
-        chart_uuid = chart.uuid
+        chart_uuid: UUID = chart.uuid
         ver_tbl: sa.Table = version_class(Slice).__table__
         try:
-            template = (
+            template: sa.RowMapping | None = (
                 db.session.execute(
                     sa.select(ver_tbl).where(
                         ver_tbl.c.id == chart_id,
@@ -308,7 +327,9 @@ class TestConditionalTokenLockingRead(SupersetTestCase):
                 VersionDAO.current_live_transaction_id(Slice, chart_id, chart_uuid)
                 is None
             )
-            unversioned_info = current_entity_version_info(Slice, chart_id, chart_uuid)
+            unversioned_info: EntityVersionInfo = current_entity_version_info(
+                Slice, chart_id, chart_uuid
+            )
             unversioned_token: str | None = concurrency_token_from(unversioned_info)
             assert unversioned_token is not None
 
@@ -327,7 +348,7 @@ class TestConditionalTokenLockingRead(SupersetTestCase):
                 == first_tx
             )
 
-            fresh_info = current_entity_version_info(
+            fresh_info: EntityVersionInfo = current_entity_version_info(
                 Slice, chart_id, chart_uuid, lock_for_stale_check=True
             )
             fresh_token: str | None = concurrency_token_from(fresh_info)
