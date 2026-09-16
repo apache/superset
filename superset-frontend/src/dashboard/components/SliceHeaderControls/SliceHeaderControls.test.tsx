@@ -325,10 +325,10 @@ test('Should "export full CSV" for ag-grid table', async () => {
   };
   const props = createProps(VizType.TableAgGrid);
   renderWrapper(props);
-  openMenu();
+  await openMenu();
   expect(props.exportFullCSV).toHaveBeenCalledTimes(0);
-  userEvent.hover(screen.getByText('Download'));
-  userEvent.click(await screen.findByText('Export to full .CSV'));
+  await userEvent.hover(screen.getByText('Download'));
+  await userEvent.click(await screen.findByText('Export to full .CSV'));
   expect(props.exportFullCSV).toHaveBeenCalledTimes(1);
   expect(props.exportFullCSV).toHaveBeenCalledWith(371);
 });
@@ -376,10 +376,10 @@ test('Should "export full Excel" for ag-grid table', async () => {
   };
   const props = createProps(VizType.TableAgGrid);
   renderWrapper(props);
-  openMenu();
+  await openMenu();
   expect(props.exportFullXLSX).toHaveBeenCalledTimes(0);
-  userEvent.hover(screen.getByText('Download'));
-  userEvent.click(await screen.findByText('Export to full Excel'));
+  await userEvent.hover(screen.getByText('Download'));
+  await userEvent.click(await screen.findByText('Export to full Excel'));
   expect(props.exportFullXLSX).toHaveBeenCalledTimes(1);
   expect(props.exportFullXLSX).toHaveBeenCalledWith(371);
 });
