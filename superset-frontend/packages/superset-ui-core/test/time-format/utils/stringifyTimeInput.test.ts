@@ -79,6 +79,18 @@ test('does not treat a short non-year digit-only string as epoch milliseconds', 
   expect(stringifyTimeInput('999999999', format)).toBe('999999999');
 });
 
+test('does not let the engine legacy parser guess at a short digit-only string', () => {
+  // `new Date` resolves these through an implementation-specific parser that
+  // reads "202609" as the year 202609 and "5" as May of 2001, so they cannot
+  // be left to the Invalid Date fallback and must be returned as they came in.
+  expect(stringifyTimeInput('202609', format)).toBe('202609');
+  expect(stringifyTimeInput('5', format)).toBe('5');
+  expect(stringifyTimeInput('99', format)).toBe('99');
+  expect(stringifyTimeInput('123', format)).toBe('123');
+  expect(stringifyTimeInput('0', format)).toBe('0');
+  expect(stringifyTimeInput('-1', format)).toBe('-1');
+});
+
 test('treats a ten-digit integer string as epoch milliseconds', () => {
   expect(stringifyTimeInput('1000000000', format)).toBe(
     '1970-01-12T13:46:40.000Z',
