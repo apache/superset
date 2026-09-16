@@ -1303,20 +1303,20 @@ def test_update_chart_preview_normalizes_all_gantt_refs_before_url_and_query_pre
             "Owner",
             True,
         ),
-        ({}, "Start_Time", "No filter", True, "Owner", True),
+        ({}, "Start_Time", "Last 30 days", True, "Owner", True),
         ({"filters": []}, "Start_Time", "No filter", False, "Owner", True),
         (
             {"subcategories": False},
             "Start_Time",
-            "No filter",
+            "Last 30 days",
             True,
             "Owner",
             False,
         ),
-        ({"series": None}, "Start_Time", "No filter", True, None, False),
+        ({"series": None}, "Start_Time", "Last 30 days", True, None, False),
     ],
 )
-def test_cached_update_chart_preview_replaces_generated_temporal_binding(
+def test_cached_update_chart_preview_preserves_or_replaces_temporal_binding(
     overrides: dict[str, object],
     expected_subject: str,
     expected_range: str,
@@ -1414,7 +1414,10 @@ def test_cached_update_chart_preview_replaces_generated_temporal_binding(
     assert len(temporal) == 1
     assert temporal[0]["subject"] == expected_subject
     assert temporal[0]["comparator"] == expected_range
-    assert form_data["_mcp_dashboard_time_filter_subject"] == expected_subject
+    if {"temporal_column", "time_range", "filters"} & overrides.keys():
+        assert form_data["_mcp_dashboard_time_filter_subject"] == expected_subject
+    else:
+        assert "_mcp_dashboard_time_filter_subject" not in form_data
     assert (unrelated in form_data["adhoc_filters"]) is keeps_unrelated
     assert form_data.get("series") == expected_series
     assert form_data.get("subcategories", False) is expected_subcategories
@@ -2679,18 +2682,25 @@ def test_gantt_dataset_rebind_drops_saved_query_references() -> None:
         ({"filters": []}, "start_time", "No filter"),
     ],
 )
+@pytest.mark.parametrize("keep_marker", [False, True])
+@pytest.mark.parametrize("previous_subject", ["start_time", "end_time"])
 def test_gantt_partial_update_reconciles_native_temporal_filter(
-    overrides: dict[str, object], subject: str, comparator: str
+    overrides: dict[str, object],
+    subject: str,
+    comparator: str,
+    keep_marker: bool,
+    previous_subject: str,
 ) -> None:
     """Keep an omitted native time predicate without adding a second binding."""
     existing = map_gantt_config(
         _config(
-            temporal_column="end_time",
+            temporal_column=previous_subject,
             time_range="Last month",
             filters=[{"column": "project", "op": "=", "value": "Legacy"}],
         )
     )
-    existing.pop("_mcp_dashboard_time_filter_subject")
+    if not keep_marker:
+        existing.pop("_mcp_dashboard_time_filter_subject")
     for state in _gantt_partial_update_states(
         existing, _config(zoomable=True, **overrides)
     ):
@@ -2702,17 +2712,47 @@ def test_gantt_partial_update_reconciles_native_temporal_filter(
             if item["operator"] == "TEMPORAL_RANGE"
         ]
         assert len(temporal) == 1
-        assert temporal[0]["subject"] == subject
+        assert temporal[0]["subject"] == (subject if overrides else previous_subject)
         assert temporal[0]["comparator"] == comparator
         if overrides:
             assert state["_mcp_dashboard_time_filter_subject"] == subject
         else:
             assert "_mcp_dashboard_time_filter_subject" not in state
-            repeated = _gantt_partial_update_states(state, _config(zoomable=False))[0]
-            assert repeated["adhoc_filters"] == state["adhoc_filters"]
+            for repeated in _gantt_partial_update_states(
+                state, _config(zoomable=False)
+            ):
+                assert repeated["adhoc_filters"] == state["adhoc_filters"]
         assert any(item["subject"] == "project" for item in state["adhoc_filters"]) is (
             "filters" not in overrides
         )
+
+
+@pytest.mark.parametrize("set_in_explore", [False, True])
+def test_gantt_partial_update_preserves_active_range_on_marked_subject(
+    set_in_explore: bool,
+) -> None:
+    """A marked start column retains both MCP-set and Explore-edited ranges."""
+    time_range = "2024-06-01 : 2024-07-01"
+    existing = map_gantt_config(
+        _config(time_range="No filter" if set_in_explore else time_range)
+    )
+    marker = existing["_mcp_dashboard_time_filter_subject"]
+    temporal = next(
+        item
+        for item in existing["adhoc_filters"]
+        if item["operator"] == "TEMPORAL_RANGE"
+    )
+    assert temporal["subject"] == marker == "start_time"
+    if set_in_explore:
+        temporal["comparator"] = time_range
+
+    for state in _gantt_partial_update_states(existing, _config(show_legend=False)):
+        assert state["show_legend"] is False
+        assert state["adhoc_filters"] == existing["adhoc_filters"]
+        assert isinstance(validate_gantt_form_data(state), GanttChartConfig)
+        for repeated in _gantt_partial_update_states(state, _config(show_legend=True)):
+            assert repeated["adhoc_filters"] == existing["adhoc_filters"]
+            assert isinstance(validate_gantt_form_data(repeated), GanttChartConfig)
 
 
 @pytest.mark.parametrize(

@@ -727,28 +727,20 @@ def _preserve_gantt_adhoc_filters(
         return
 
     generated_filters = new_form_data.get("adhoc_filters", [])
-    previous_binding = previous_form_data.get(MCP_DASHBOARD_TIME_FILTER_SUBJECT)
-    # The marker identifies the mapper-owned temporal subject. Its comparator
-    # may be an active time range, so remove the prior binding regardless of
-    # comparator before adding the binding generated from the typed state.
-    # Native Gantt may also carry an unmarked "No filter" placeholder. It has
-    # no predicate to preserve; the new marked binding replaces that placeholder.
+    # The marker identifies a temporal subject, not ownership of its current
+    # comparator: Explore edits and earlier MCP updates may set an active range
+    # on that same subject. Only discard inactive placeholders here; reconcile
+    # active predicates below using the fields explicitly supplied by the caller.
     merged_filters = [
         filter_
         for filter_ in previous_filters
         if not (
             isinstance(filter_, dict)
             and filter_.get("operator") == FilterOperator.TEMPORAL_RANGE.value
-            and (
-                (previous_binding and filter_.get("subject") == previous_binding)
-                or (
-                    new_form_data.get("viz_type") == "gantt_chart"
-                    and new_form_data.get(MCP_DASHBOARD_TIME_FILTER_SUBJECT)
-                    and filter_.get("comparator") == NO_TIME_RANGE
-                    and filter_.get("expressionType") == "SIMPLE"
-                    and filter_.get("clause") == "WHERE"
-                )
-            )
+            and new_form_data.get(MCP_DASHBOARD_TIME_FILTER_SUBJECT)
+            and filter_.get("comparator") == NO_TIME_RANGE
+            and filter_.get("expressionType") == "SIMPLE"
+            and filter_.get("clause") == "WHERE"
         )
     ]
     native_temporal = [
