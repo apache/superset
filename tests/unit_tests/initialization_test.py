@@ -1155,3 +1155,77 @@ class TestRetentionBeatWarning:
         initializer._warn_if_retention_beat_missing()
 
         mock_logger.warning.assert_not_called()
+
+
+class TestSetDbDefaultIsolation:
+    """sc-120480: the isolation default must actually reach the engine."""
+
+    @staticmethod
+    def _run_against(engine: Any, database_uri: str) -> None:
+        """Invoke set_db_default_isolation with *engine* as db.engine.
+
+        The initializer is constructed bare (no Flask app boot) and wired
+        with just the attributes the method reads; ``db`` is patched at
+        the module the method lives in.
+        """
+        initializer = SupersetAppInitializer.__new__(SupersetAppInitializer)
+        initializer.config = {"SQLALCHEMY_ENGINE_OPTIONS": {}}
+        initializer._db_uri_cache = database_uri  # read-only property
+        app = MagicMock()
+        app.app_context.return_value.__enter__ = MagicMock()
+        app.app_context.return_value.__exit__ = MagicMock(return_value=False)
+        initializer.superset_app = app
+
+        db_mock = MagicMock()
+        db_mock.engine = engine
+        with patch("superset.initialization.db", db_mock):
+            initializer.set_db_default_isolation()
+
+    def test_mysql_default_isolation_reaches_the_engine(self) -> None:
+        """The engine itself must carry READ COMMITTED after the call.
+
+        A REAL SQLAlchemy engine, not a mock: ``execution_options()`` is
+        generative (returns a new engine, original untouched), so a
+        mock-level "was it called" assertion passes for the broken
+        generative form too. Asserting on the engine's stored execution
+        options is the control — reverting the fix back to the
+        generative call makes this test fail with no isolation_level
+        present.
+        """
+        from sqlalchemy import create_engine
+
+        engine = create_engine("sqlite://")
+        assert "isolation_level" not in engine.get_execution_options()
+
+        self._run_against(engine, "mysql://user@localhost/superset")
+
+        assert engine.get_execution_options().get("isolation_level") == "READ COMMITTED"
+
+    def test_explicit_config_isolation_is_respected(self) -> None:
+        """An operator-set isolation_level in SQLALCHEMY_ENGINE_OPTIONS wins."""
+        from sqlalchemy import create_engine
+
+        engine = create_engine("sqlite://")
+        initializer = SupersetAppInitializer.__new__(SupersetAppInitializer)
+        initializer.config = {
+            "SQLALCHEMY_ENGINE_OPTIONS": {"isolation_level": "REPEATABLE READ"}
+        }
+        initializer._db_uri_cache = "mysql://user@localhost/superset"
+        initializer.superset_app = MagicMock()
+
+        db_mock = MagicMock()
+        db_mock.engine = engine
+        with patch("superset.initialization.db", db_mock):
+            initializer.set_db_default_isolation()
+
+        # The engine-level default is not applied; the operator's
+        # engine-options value governs (flask-sqlalchemy passes it at
+        # engine creation).
+        assert "isolation_level" not in engine.get_execution_options()
+
+    def test_non_mysql_pg_backend_is_untouched(self) -> None:
+        from sqlalchemy import create_engine
+
+        engine = create_engine("sqlite://")
+        self._run_against(engine, "sqlite:///superset.db")
+        assert "isolation_level" not in engine.get_execution_options()
