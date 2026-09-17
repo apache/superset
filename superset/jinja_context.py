@@ -953,6 +953,7 @@ class BaseTemplateProcessor:
         database: "Database",
         query: "Query" | None = None,
         table: "SqlaTable" | None = None,
+        schema: str | None = None,
         extra_cache_keys: list[Any] | None = None,
         removed_filters: list[str] | None = None,
         applied_filters: list[str] | None = None,
@@ -960,7 +961,11 @@ class BaseTemplateProcessor:
     ) -> None:
         self._database = database
         self._query = query
-        self._schema = None
+        # A caller with no ``Query`` or ``SqlaTable`` to hand -- cost
+        # estimation, for one -- passes the schema directly, so that a macro
+        # resolving an unqualified table (``presto.latest_partition``) looks
+        # in the schema the query would actually run in.
+        self._schema = schema
         if query and query.schema:
             self._schema = query.schema
         elif table:

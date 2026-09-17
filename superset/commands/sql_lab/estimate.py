@@ -163,15 +163,15 @@ class QueryEstimationCommand(BaseCommand):
     ) -> list[dict[str, Any]]:
         self.validate()
 
-        # Access is already checked in validate() before any rendering.
-        #
         # Rendered whether or not `template_params` was supplied, the way
         # `validate()` above already jinja-processes for authorization and the
         # execution path does in `SqlQueryRenderImpl.render`. A query needs no
         # declared parameter to need rendering -- `get_time_filter()`,
         # `current_username()`, `url_param()` take none -- and SQL Lab posts an
         # empty `template_params` for an estimate, so those never rendered.
-        template_processor = get_template_processor(self._database)
+        template_processor = get_template_processor(
+            self._database, schema=self._schema or None
+        )
         try:
             sql = template_processor.process_template(
                 self._sql, **self._template_params
@@ -211,6 +211,21 @@ class QueryEstimationCommand(BaseCommand):
                 ),
                 status=400,
             )
+
+        # Re-authorize the exact SQL that will be estimated, the way the
+        # execution path does in `_validate_rendered_access`: the check in
+        # `validate()` authorizes a render of its own, and a template need not
+        # render the same way twice -- `{{ ['a', 'b'] | random }}` resolves
+        # independently each time. Passing the rendered SQL with no template
+        # params leaves nothing further to expand, so what is authorized is
+        # what is estimated.
+        security_manager.raise_for_access(
+            database=self._database,
+            sql=sql,
+            catalog=self._catalog,
+            schema=self._schema or None,
+            force_dataset_match=True,
+        )
 
         # Apply the same SQL security controls used by the execution path
         # (sql_lab.execute_sql_statements) so cost estimation cannot be used to
