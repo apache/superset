@@ -20,7 +20,7 @@ import logging
 from typing import Any, TypedDict
 
 from flask import current_app as app
-from flask_babel import gettext as __, ngettext
+from flask_babel import gettext as __
 from jinja2.exceptions import TemplateError
 
 from superset import is_feature_enabled, security_manager
@@ -36,7 +36,11 @@ from superset.exceptions import (
     SupersetGenericDBErrorException,
     SupersetTimeoutException,
 )
-from superset.jinja_context import get_template_processor
+from superset.jinja_context import (
+    get_template_processor,
+    PARAMETER_MISSING_ERR,
+    undefined_parameters_message,
+)
 from superset.models.core import Database
 from superset.sql.parse import SQLScript
 from superset.utils import core as utils, json
@@ -172,9 +176,20 @@ class QueryEstimationCommand(BaseCommand):
         template_processor = get_template_processor(
             self._database, schema=self._schema or None
         )
+        # Both calls sit inside the `TemplateError` catch, as they do in
+        # `SqlQueryRenderImpl.render`: `get_undefined_parameters` parses the
+        # rendered SQL with Jinja, so a parameter whose *value* carries
+        # malformed Jinja raises from there too, and reads the same to the
+        # caller as one raised while rendering.
         try:
             sql = template_processor.process_template(
                 self._sql, **self._template_params
+            )
+            # A parameter left unresolved makes the estimate describe a
+            # different query than the one Run would execute, so it is
+            # reported the way `SqlQueryRenderImpl._validate` reports it.
+            undefined_parameters = sorted(
+                template_processor.get_undefined_parameters(sql)
             )
         except TemplateError as ex:
             raise SupersetErrorException(
@@ -186,21 +201,12 @@ class QueryEstimationCommand(BaseCommand):
                 status=400,
             ) from ex
 
-        # Reported the same way the execution path reports it
-        # (`SqlQueryRenderImpl._validate`): a parameter left unresolved makes
-        # the estimate describe a different query than the one Run would
-        # execute, and in some positions it does not even parse.
-        if undefined_parameters := sorted(
-            template_processor.get_undefined_parameters(sql)
-        ):
+        if undefined_parameters:
             raise SupersetErrorException(
                 SupersetError(
-                    message=ngettext(
-                        "The parameter %(parameters)s in your query is undefined.",
-                        "The following parameters in your query are undefined: "
-                        "%(parameters)s.",
-                        len(undefined_parameters),
-                        parameters=utils.format_list(undefined_parameters),
+                    message=(
+                        f"{undefined_parameters_message(undefined_parameters)} "
+                        f"{str(PARAMETER_MISSING_ERR)}"
                     ),
                     error_type=SupersetErrorType.MISSING_TEMPLATE_PARAMS_ERROR,
                     level=ErrorLevel.ERROR,
@@ -212,13 +218,13 @@ class QueryEstimationCommand(BaseCommand):
                 status=400,
             )
 
-        # Re-authorize the exact SQL that will be estimated, the way the
-        # execution path does in `_validate_rendered_access`: the check in
-        # `validate()` authorizes a render of its own, and a template need not
-        # render the same way twice -- `{{ ['a', 'b'] | random }}` resolves
-        # independently each time. Passing the rendered SQL with no template
-        # params leaves nothing further to expand, so what is authorized is
-        # what is estimated.
+        # Re-authorize the rendered SQL, the way the execution path does in
+        # `_validate_rendered_access`: the check in `validate()` authorizes a
+        # render of its own, and a template need not render the same way twice
+        # -- `{{ ['a', 'b'] | random }}` resolves independently each time, so
+        # the first check can clear a table this estimate never touches, and
+        # miss the one it does. Passing no template params matches what that
+        # path passes.
         security_manager.raise_for_access(
             database=self._database,
             sql=sql,

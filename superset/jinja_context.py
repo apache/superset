@@ -20,13 +20,15 @@ from __future__ import annotations
 
 import logging
 import re
+from collections.abc import Collection
 from dataclasses import dataclass
 from datetime import datetime
 from functools import lru_cache, partial
 from typing import Any, Callable, cast, TYPE_CHECKING, TypedDict, Union
 
 from flask import current_app, g, has_request_context, request
-from flask_babel import gettext as _
+from flask_babel import gettext as _, lazy_gettext, ngettext
+from flask_babel.speaklater import LazyString
 from jinja2 import DebugUndefined, Environment, TemplateSyntaxError, UndefinedError
 from jinja2.exceptions import SecurityError
 from jinja2.meta import find_undeclared_variables
@@ -41,7 +43,6 @@ from superset.common.utils.time_range_utils import get_since_until_from_time_ran
 from superset.constants import LRU_CACHE_MAX_SIZE, NO_TIME_RANGE
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
-    SupersetParseError,
     SupersetSyntaxErrorException,
     SupersetTemplateException,
 )
@@ -53,6 +54,7 @@ from superset.utils.core import (
     AdhocFilterClause,
     convert_legacy_filters_into_adhoc,
     FilterOperator,
+    format_list,
     get_user_email,
     get_user_id,
     get_username,
@@ -945,6 +947,29 @@ class SupersetSandboxedEnvironment(SandboxedEnvironment):
         return super().is_safe_attribute(obj, attr, value)
 
 
+# Lazy on purpose: evaluated at import time, an eager constant would be
+# frozen in the default locale (see the same convention in views/core.py).
+# Callers ``str()`` it inside the request that reports it.
+PARAMETER_MISSING_ERR: LazyString = lazy_gettext(
+    "Please check your template parameters for syntax errors and make sure "
+    "they match across your SQL query and Set Parameters. Then, try running "
+    "your query again."
+)
+
+
+def undefined_parameters_message(undefined_parameters: Collection[str]) -> str:
+    """The reason both SQL Lab paths give for parameters left unresolved
+
+    Shared so the two reports, and their translations, cannot drift apart.
+    """
+    return ngettext(
+        "The parameter %(parameters)s in your query is undefined.",
+        "The following parameters in your query are undefined: %(parameters)s.",
+        len(undefined_parameters),
+        parameters=format_list(sorted(undefined_parameters)),
+    )
+
+
 class BaseTemplateProcessor:
     """
     Base class for database-specific jinja context
@@ -1017,18 +1042,14 @@ class BaseTemplateProcessor:
         the rendered SQL names what was left behind.
 
         SQL comments are stripped first, so a parameter the author commented
-        out is not reported as missing. SQL that no longer parses is read as
-        written instead: a parameter left in place is a common reason it does
-        not parse, and naming it is more use than the parser's own complaint
-        about the brace.
+        out is not reported as missing. Stripping them parses the SQL, so SQL
+        that does not parse raises ``SupersetParseError`` from here rather than
+        being reported as having no undefined parameter.
         """
-        try:
-            sql = SQLScript(sql, self._database.db_engine_spec.engine).format(
-                comments=False
-            )
-        except SupersetParseError:
-            pass
-        return find_undeclared_variables(self.env.parse(sql))
+        stripped = SQLScript(sql, self._database.db_engine_spec.engine).format(
+            comments=False
+        )
+        return find_undeclared_variables(self.env.parse(stripped))
 
     def process_template(self, sql: str, **kwargs: Any) -> str:
         """Processes a sql template
