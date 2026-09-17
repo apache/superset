@@ -692,3 +692,39 @@ def test_positional_and_pattern_schema_boundaries(
     """Malformed prefixes fail closed; prefix tails and pattern siblings classify."""
     with _with_schema({"properties": {"value": schema}}):
         assert mask_configuration("fake", {"value": value}) == {"value": expected}
+
+
+@pytest.mark.parametrize(
+    "field_schema, definitions",
+    [
+        ({"$ref": 123}, {}),
+        ({"$ref": "#/$defs/Credentials"}, {"Credentials": None}),
+    ],
+)
+def test_invalid_reference_shape_masks_only_affected_subtree(
+    field_schema: dict[str, Any], definitions: dict[str, Any]
+) -> None:
+    """Malformed references cannot reveal values or hide unrelated plain fields."""
+    schema: dict[str, Any] = {
+        "properties": {"credentials": field_schema},
+        "$defs": definitions,
+    }
+    with _with_schema(schema):
+        assert mask_configuration(
+            "fake",
+            {"credentials": {"token": "secret"}, "plain": "visible"},
+        ) == {"credentials": {"token": PASSWORD_MASK}, "plain": "visible"}
+
+
+def test_flatten_variants_rejects_excessive_union_nesting() -> None:
+    """The variant walker refuses schemas beyond its bounded recursion limit."""
+    schema: dict[str, Any] = {"type": "object"}
+    _: int
+    for _ in range(17):
+        schema = {"anyOf": [schema]}
+    with pytest.raises(masking._UnresolvableRefError):
+        masking._flatten_variants(schema, {})
+    with _with_schema(schema):
+        assert mask_configuration("fake", {"token": "secret"}) == {
+            "token": PASSWORD_MASK
+        }
