@@ -79,6 +79,7 @@ import {
   updateUrlWithUnmatchedFilters,
   RISON_UNMATCHED_DATAMASK_ID,
 } from '../util/risonFilters';
+import { selectIsDashboardVersionPreviewActive } from 'src/features/versionHistory/reducer';
 
 type NativeFilterConfigEntry = Partial<Filter> & { id: string };
 
@@ -233,6 +234,9 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   );
   useDashboardFilterSync(hydratedDashboardId === id ? id : undefined);
   const userId = useSelector((state: RootState) => state.user?.userId);
+  const isVersionPreviewActive = useSelector(
+    selectIsDashboardVersionPreviewActive,
+  );
   const pageTitle =
     (hydratedDashboardId === id ? liveDashboardTitle : undefined) ||
     dashboard_title;
@@ -291,6 +295,12 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
         }
       } else if (nativeFilterKeyValue) {
         dataMask = await getFilterValue(id, nativeFilterKeyValue);
+      } else if (getRisonFilterParam()) {
+        // A Rison ?f= filter in the URL encodes an explicit filter intent
+        // (e.g. from a shared link). Loading localStorage state on top would
+        // silently inject the viewer's saved selections (e.g. region=EMEA)
+        // and return narrower data than the URL encodes. Skip the fallback so
+        // the Rison filters below are applied to a clean dataMask.
       } else if (userId != null) {
         // Skip localStorage restore for unauthenticated/guest users: they have
         // no stable identity and reading localStorage here would share filter
@@ -535,9 +545,13 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     // guest-token sessions would leak selections between unrelated sessions.
     // Use == null (not !userId) so a valid userId of 0 is not treated as
     // anonymous.
+    // Also skip when a historical version preview is active: the dashboard
+    // rehydrates with the snapshot's filter defaults, and every other guard
+    // would pass, causing those defaults to overwrite the user's live mask.
     if (
       !id ||
       userId == null ||
+      isVersionPreviewActive ||
       hydratedDashboardId !== id ||
       !isDashboardHydrated.current
     )
@@ -564,7 +578,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     // the user's saved selection.
     if (Object.keys(nativeFilterMask).length === 0) return;
     saveDashboardFilters(id, userId, nativeFilterMask, nativeFilters);
-  }, [id, hydratedDashboardId, fullDataMask, nativeFilters, userId]);
+  }, [id, hydratedDashboardId, fullDataMask, nativeFilters, userId, isVersionPreviewActive]);
 
   if (error && !isNotFoundError) throw error; // caught in error boundary
 
