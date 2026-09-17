@@ -86,6 +86,7 @@ from superset.commands.dashboard.update import (
 )
 from superset.commands.database.exceptions import DatasetValidationError
 from superset.commands.distributed_lock.acquire import AcquireDistributedLock
+from superset.commands.distributed_lock.base import get_default_lock_ttl
 from superset.commands.distributed_lock.release import ReleaseDistributedLock
 from superset.commands.exceptions import TagForbiddenError
 from superset.commands.importers.exceptions import NoValidFilesFoundError
@@ -204,7 +205,6 @@ from superset.views.filters import (
 logger = logging.getLogger(__name__)
 
 SCREENSHOT_API_LOCK_NAMESPACE = "dashboard_screenshot_api"
-SCREENSHOT_API_LOCK_WAIT_SECONDS = 1.0
 SCREENSHOT_API_LOCK_RETRY_SECONDS = 0.05
 
 _DASHBOARD_PURGE_BINDING = SoftDeleteBinding(
@@ -2041,13 +2041,21 @@ class DashboardRestApi(
                 message=gettext("Screenshot cache is unavailable"),
             )
 
-        lock_deadline = time.monotonic() + SCREENSHOT_API_LOCK_WAIT_SECONDS
+        producer_lock_ttl = get_default_lock_ttl()
+        # A contender must be able to outwait a live producer's lease. In
+        # particular, Celery broker publication can legitimately exceed one
+        # second; timing out sooner would reject a caller just before the
+        # producer publishes the generation it should join.
+        lock_deadline = (
+            time.monotonic() + producer_lock_ttl + SCREENSHOT_API_LOCK_RETRY_SECONDS
+        )
         while True:
             lock_response: WerkzeugResponse | None = None
             try:
                 with DistributedLock(
                     namespace=SCREENSHOT_API_LOCK_NAMESPACE,
                     request_cache_key=request_cache_key,
+                    ttl_seconds=producer_lock_ttl,
                 ):
                     try:
                         cache_key, cached_payload = get_current_generation()
