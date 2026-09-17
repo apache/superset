@@ -21,7 +21,7 @@ in isolation: window intersection, scope resolution branching, entity-
 window merging, AV-012 summary headlines, ``changed_by`` projection,
 read-predicate fall-through, and the no-impact paths of
 ``_compute_impact``. The DB-touching helpers
-(``charts_attached_to_dashboard``, ``datasets_used_by_chart``,
+(``chart_attachment_windows_for_dashboard``, ``datasets_used_by_chart``,
 ``fetch_change_records``, ``apply_entity_name_denormalization``,
 ``check_entity_tombstones``, ``_lookup_entity_uuids``) are exercised
 by the integration suite in
@@ -32,10 +32,11 @@ from __future__ import annotations
 
 from datetime import datetime
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 import pytest
+from pytest_mock import MockerFixture
 
 from superset.versioning.activity import (
     ActivityParamsError,
@@ -44,8 +45,9 @@ from superset.versioning.activity import (
     Window,
 )
 from superset.versioning.activity.impact import (
-    _count_attached_charts_at,
-    batch_chart_counts,
+    _collect_attached_charts_at,
+    batch_chart_impacts,
+    ChartRef,
     collect_impact_pairs,
     impact_for_record,
 )
@@ -77,6 +79,216 @@ from superset.versioning.activity.windows import (
 )
 
 # ---- intersect_windows ---------------------------------------------------
+
+
+@pytest.fixture
+def decoration_lookups(mocker: MockerFixture) -> None:
+    """Isolate access-redaction tests from unrelated decoration lookups."""
+    mocker.patch(
+        "superset.versioning.activity.render.check_entity_tombstones",
+        return_value={("SqlaTable", 5): {"deleted": False, "deletion_state": None}},
+    )
+    mocker.patch(
+        "superset.versioning.activity.render._lookup_entity_uuids", return_value={}
+    )
+    mocker.patch(
+        "superset.versioning.activity.render.resolve_historical_entity_uuids",
+        return_value={},
+    )
+    mocker.patch(
+        "superset.versioning.activity.render.batch_chart_impacts", return_value={}
+    )
+    mocker.patch(
+        "superset.versioning.activity.render.impact_for_record",
+        return_value={"charts": 1},
+    )
+
+
+def _related_access_record() -> dict[str, Any]:
+    """Return a live related dataset change with protected detail."""
+    return {
+        "entity_kind": "dataset",
+        "entity_id": 5,
+        "transaction_id": 100,
+        "kind": "field",
+        "entity_name": "Sales",
+        "changed_by_id": 7,
+        "first_name": "Ada",
+        "last_name": "Lovelace",
+        "path": ["description"],
+        "from_value": "private old",
+        "to_value": "private new",
+    }
+
+
+@pytest.mark.usefixtures("decoration_lookups")
+@pytest.mark.parametrize("can_edit", [False, True])
+@pytest.mark.parametrize("restore", [False, True])
+def test_related_record_detail_requires_editorship(
+    mocker: MockerFixture, can_edit: bool, restore: bool
+) -> None:
+    """Withhold diff content and derived restore detail from related readers."""
+    mocker.patch(
+        "superset.versioning.activity.render.resolve_editorship",
+        return_value={("SqlaTable", 5): can_edit},
+    )
+    record: dict[str, Any] = _related_access_record()
+    if restore:
+        record.update(
+            kind="__meta__", action_kind="restore", to_value={"version_number": 37}
+        )
+    original: dict[str, Any] = record.copy()
+    records: list[dict[str, Any]] = [record]
+    apply_record_decoration(records, "Dashboard", 1)
+    assert len(records) == 1
+    assert record["entity_name"] == "Sales"
+    assert record["impact"] == {"charts": 1}
+    assert record["summary"] == (
+        "Dataset restored to version 37: Sales"
+        if can_edit and restore
+        else "Dataset updated: Sales"
+    )
+    if can_edit:
+        assert record["changed_by"] == {
+            "id": 7,
+            "first_name": "Ada",
+            "last_name": "Lovelace",
+        }
+        assert record["from_value"] == original["from_value"]
+        assert record["to_value"] == original["to_value"]
+        assert record["path"] == original["path"]
+    else:
+        assert record["changed_by"] is None
+        assert record["from_value"] is None
+        assert record["to_value"] is None
+        assert record["path"] is None
+        assert "37" not in record["summary"]
+
+
+@pytest.mark.usefixtures("decoration_lookups")
+@pytest.mark.parametrize(
+    "self_record, deleted", [(False, False), (True, False), (False, True)]
+)
+def test_editorship_redaction_preserves_self_and_tombstone_rules(
+    mocker: MockerFixture, self_record: bool, deleted: bool
+) -> None:
+    """Missing permissions deny detail without displacing self or tombstone rules."""
+    mocker.patch(
+        "superset.versioning.activity.render.resolve_editorship", return_value={}
+    )
+    if deleted:
+        mocker.patch(
+            "superset.versioning.activity.render.check_entity_tombstones",
+            return_value={
+                ("SqlaTable", 5): {"deleted": True, "deletion_state": "hard_deleted"}
+            },
+        )
+    record: dict[str, Any] = _related_access_record()
+    apply_record_decoration(
+        [record], "SqlaTable" if self_record else "Dashboard", 5 if self_record else 1
+    )
+    if self_record:
+        assert record["changed_by"]["id"] == 7
+        assert record["to_value"] == "private new"
+        assert record["path"] == ["description"]
+    else:
+        assert record["changed_by"] is None
+        assert record["from_value"] is None
+        assert record["to_value"] is None
+        assert record["path"] is None
+        assert record["impact"] == {"charts": 1}
+        assert record["entity_name"] == ("" if deleted else "Sales")
+        assert record["summary"] == (
+            "(deleted) Dataset" if deleted else "Dataset updated: Sales"
+        )
+
+
+@pytest.mark.usefixtures("decoration_lookups")
+@pytest.mark.parametrize("guest", [True, False])
+def test_related_editorship_guest_and_admin_short_circuit(
+    mocker: MockerFixture, guest: bool
+) -> None:
+    """Guests deny even matching editor subjects; admins allow without queries."""
+    manager: MagicMock = mocker.patch(
+        "superset.security_manager", new_callable=MagicMock
+    )
+    manager.is_guest_user.return_value = guest
+    manager.is_admin.return_value = True
+    manager.is_editor.return_value = True
+    loader: MagicMock = mocker.patch(
+        "superset.versioning.activity.visibility.load_live_model"
+    )
+    session: MagicMock = mocker.patch("superset.versioning.activity.visibility.db")
+    record: dict[str, Any] = _related_access_record()
+    apply_record_decoration([record], "Dashboard", 1)
+    assert (record["changed_by"] is None) is guest
+    assert (record["to_value"] is None) is guest
+    loader.assert_not_called()
+    session.session.scalars.assert_not_called()
+    manager.is_editor.assert_not_called()
+    if guest:
+        manager.is_admin.assert_not_called()
+
+
+@pytest.mark.usefixtures("decoration_lookups")
+def test_editorship_resolves_once_per_distinct_entity(mocker: MockerFixture) -> None:
+    """Repeated page records share one batched load and one predicate per entity."""
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.versioning.activity import render, visibility
+
+    manager: MagicMock = mocker.patch(
+        "superset.security_manager", new_callable=MagicMock
+    )
+    manager.is_guest_user.return_value = False
+    manager.is_admin.return_value = False
+    manager.is_editor.side_effect = [True, False]
+    entities: list[SqlaTable] = [SqlaTable(id=5), SqlaTable(id=6)]
+    session: MagicMock = mocker.patch("superset.versioning.activity.visibility.db")
+    session.session.scalars.return_value = entities
+    resolver: MagicMock = mocker.spy(render, "resolve_editorship")
+    eager_load: MagicMock = mocker.spy(visibility, "subqueryload")
+    records: list[dict[str, Any]] = [
+        {**_related_access_record(), "entity_id": 5 + index % 2} for index in range(100)
+    ]
+    apply_record_decoration(records, "Dashboard", 1)
+    resolver.assert_called_once_with({("SqlaTable", 5), ("SqlaTable", 6)})
+    assert manager.is_editor.call_count == 2
+    assert [call.args[0] for call in manager.is_editor.call_args_list] == entities
+    session.session.scalars.assert_called_once()
+    eager_load.assert_called_once_with(SqlaTable.editors)
+    session.session.no_autoflush.__enter__.assert_called_once()
+
+
+@pytest.mark.parametrize("failure", ["unwired", "missing", "predicate"])
+def test_editorship_resolver_fails_closed(mocker: MockerFixture, failure: str) -> None:
+    """Unresolvable kinds, absent rows, and predicate failures cannot grant detail."""
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.versioning.activity.visibility import resolve_editorship
+
+    manager: MagicMock = mocker.patch(
+        "superset.security_manager", new_callable=MagicMock
+    )
+    manager.is_guest_user.return_value = False
+    manager.is_admin.return_value = False
+    session: MagicMock = mocker.patch("superset.versioning.activity.visibility.db")
+    session.session.scalars.return_value = []
+    warning: MagicMock = mocker.patch(
+        "superset.versioning.activity.visibility.logger.warning"
+    )
+    if failure == "unwired":
+        mocker.patch(
+            "superset.versioning.activity.visibility.load_live_model",
+            side_effect=LookupError("unwired"),
+        )
+    elif failure == "predicate":
+        session.session.scalars.return_value = [SqlaTable(id=5)]
+        manager.is_editor.side_effect = RuntimeError("cannot authorize")
+    assert resolve_editorship({("SqlaTable", 5), ("Unknown", 9)}) == {
+        ("SqlaTable", 5): False,
+        ("Unknown", 9): False,
+    }
+    if failure != "missing":
+        warning.assert_called_once()
 
 
 @pytest.mark.parametrize(
@@ -219,7 +431,7 @@ def test_decoration_redacts_record_from_reused_entity_id() -> None:
             return_value={("Slice", 7, 20): historical_uuid},
         ),
         patch(
-            "superset.versioning.activity.render.batch_chart_counts", return_value={}
+            "superset.versioning.activity.render.batch_chart_impacts", return_value={}
         ),
     ):
         apply_record_decoration([record], "Dashboard", 1)
@@ -480,46 +692,131 @@ def test_changed_by_projects_only_display_fields() -> None:
 # ---- impact_for_record (pure, post-batch) -------------------------------
 
 
-def test_impact_for_record_dashboard_path_dataset_related_uses_count() -> None:
+def test_impact_for_record_dashboard_path_dataset_related_uses_charts() -> None:
     """The only path/related shape that carries impact: ``Dashboard`` →
-    ``SqlaTable``. The count comes from the pre-batched lookup."""
+    ``SqlaTable``. Count and names both come from the pre-batched lookup
+    (sc-119775: the tooltip needs the names, not just the count)."""
     record = {"entity_kind": "dataset", "entity_id": 5, "transaction_id": 100}
-    counts = {(5, 100): 3}
-    assert impact_for_record(record, "Dashboard", counts) == {"charts": 3}
+    charts: list[ChartRef] = [
+        {"id": 11, "name": "Alpha"},
+        {"id": 12, "name": "Beta"},
+        {"id": 13, "name": "Gamma"},
+    ]
+    assert impact_for_record(record, "Dashboard", {(5, 100): charts}) == {
+        "charts": 3,
+        "affected_charts": charts,
+    }
 
 
-def test_impact_for_record_missing_count_yields_none() -> None:
+def test_impact_for_record_missing_pair_yields_none() -> None:
     """A pair the batch query didn't return (no matching siblings)
     collapses to ``None`` rather than ``{"charts": 0}``."""
     record = {"entity_kind": "dataset", "entity_id": 5, "transaction_id": 100}
     assert impact_for_record(record, "Dashboard", {}) is None
 
 
-def test_impact_for_record_zero_count_yields_none() -> None:
-    """Explicit zero in the counts map is treated the same as missing —
-    no impact field on the wire."""
+def test_impact_for_record_empty_charts_yields_none() -> None:
+    """An explicit empty list in the impacts map is treated the same as
+    missing — no impact field on the wire."""
     record = {"entity_kind": "dataset", "entity_id": 5, "transaction_id": 100}
-    assert impact_for_record(record, "Dashboard", {(5, 100): 0}) is None
+    assert impact_for_record(record, "Dashboard", {(5, 100): []}) is None
 
 
 def test_impact_for_record_dashboard_path_chart_related_yields_none() -> None:
     """Dashboard → chart is a direct dependency; no further sibling
     layer to count."""
     record = {"entity_kind": "chart", "entity_id": 5, "transaction_id": 100}
-    assert impact_for_record(record, "Dashboard", {(5, 100): 999}) is None
+    charts: list[ChartRef] = [{"id": 9, "name": "X"}]
+    assert impact_for_record(record, "Dashboard", {(5, 100): charts}) is None
 
 
 def test_impact_for_record_chart_path_with_dataset_related_yields_none() -> None:
     """Chart → dataset: the chart is itself the only dependent of the
     dataset edit."""
     record = {"entity_kind": "dataset", "entity_id": 5, "transaction_id": 100}
-    assert impact_for_record(record, "Slice", {(5, 100): 999}) is None
+    charts: list[ChartRef] = [{"id": 9, "name": "X"}]
+    assert impact_for_record(record, "Slice", {(5, 100): charts}) is None
 
 
 def test_impact_for_record_dataset_path_yields_none() -> None:
     """Datasets have no transitive layer (AV-004)."""
     record = {"entity_kind": "dataset", "entity_id": 5, "transaction_id": 100}
-    assert impact_for_record(record, "SqlaTable", {(5, 100): 999}) is None
+    charts: list[ChartRef] = [{"id": 9, "name": "X"}]
+    assert impact_for_record(record, "SqlaTable", {(5, 100): charts}) is None
+
+
+def test_sorted_chart_refs_orders_case_insensitively_with_id_tiebreak() -> None:
+    """The wire order is deterministic: casefolded name, then id; empty
+    names sort first (they render as an Untitled fallback)."""
+    from superset.versioning.activity.impact import _sorted_chart_refs
+
+    refs = _sorted_chart_refs({(5, 100): {3: "Beta", 2: "Alpha", 1: "alpha", 4: ""}})
+    assert refs == {
+        (5, 100): [
+            {"id": 4, "name": ""},
+            {"id": 1, "name": "alpha"},
+            {"id": 2, "name": "Alpha"},
+            {"id": 3, "name": "Beta"},
+        ]
+    }
+
+
+def test_impact_for_record_caps_affected_charts_but_not_the_count() -> None:
+    """A dataset feeding very many charts must not balloon the record: the
+    named refs are capped while ``charts`` keeps the full count."""
+    from superset.versioning.activity.impact import IMPACT_AFFECTED_CHARTS_CAP
+
+    record = {"entity_kind": "dataset", "entity_id": 5, "transaction_id": 100}
+    charts: list[ChartRef] = [
+        {"id": i, "name": f"chart {i:03d}"}
+        for i in range(IMPACT_AFFECTED_CHARTS_CAP + 10)
+    ]
+    result = impact_for_record(record, "Dashboard", {(5, 100): charts})
+    assert result is not None
+    assert result["charts"] == IMPACT_AFFECTED_CHARTS_CAP + 10
+    assert len(result["affected_charts"]) == IMPACT_AFFECTED_CHARTS_CAP
+    assert result["affected_charts"] == charts[:IMPACT_AFFECTED_CHARTS_CAP]
+
+
+def test_related_record_impact_payload_carries_affected_charts() -> None:
+    """End-to-end through record decoration: a dashboard-path dataset
+    record's wire ``impact`` carries the affected chart names alongside
+    the count (sc-119775 — the rollup tooltip's data source)."""
+    record = {
+        "entity_kind": "dataset",
+        "entity_id": 5,
+        "transaction_id": 100,
+        "kind": "metric",
+        "entity_name": "Sales",
+        "changed_by_id": None,
+        "from_value": "a",
+        "to_value": "b",
+    }
+    charts: list[ChartRef] = [
+        {"id": 11, "name": "Alpha"},
+        {"id": 12, "name": "Beta"},
+    ]
+    with (
+        patch(
+            "superset.versioning.activity.render.check_entity_tombstones",
+            return_value={("SqlaTable", 5): {"deleted": False, "deletion_state": None}},
+        ),
+        patch(
+            "superset.versioning.activity.render._lookup_entity_uuids",
+            return_value={},
+        ),
+        patch(
+            "superset.versioning.activity.render.resolve_historical_entity_uuids",
+            return_value={},
+        ),
+        patch(
+            "superset.versioning.activity.render.batch_chart_impacts",
+            return_value={(5, 100): charts},
+        ),
+    ):
+        apply_record_decoration([record], "Dashboard", 1)
+
+    assert record["impact"] == {"charts": 2, "affected_charts": charts}
 
 
 # ---- collect_impact_pairs -----------------------------------------------
@@ -966,70 +1263,79 @@ def test_m2m_op_constants_match_continuum() -> None:
     assert M2M_OP_DELETE == Operation.DELETE
 
 
-# ---- _count_attached_charts_at (batch_chart_counts membership) -----------
+# ---- _collect_attached_charts_at (batch_chart_impacts membership) ---------
 
 
 def _slice_row(
-    slice_id: int, datasource_id: int, start: int, end: int | None
+    slice_id: int,
+    datasource_id: int,
+    start: int,
+    end: int | None,
+    name: str = "chart",
 ) -> dict[str, Any]:
-    """A chart→dataset parent-shadow row as batch_chart_counts fetches it."""
+    """A chart→dataset parent-shadow row as batch_chart_impacts fetches it."""
     return {
         "slice_id": slice_id,
+        "slice_name": name,
         "datasource_id": datasource_id,
         "slice_start": start,
         "slice_end": end,
     }
 
 
-def test_count_attached_charts_excludes_chart_removed_before_target() -> None:
-    """sc-119907: a chart attached@1 and removed@5 must NOT be counted for a
+def test_collect_attached_charts_excludes_chart_removed_before_target() -> None:
+    """sc-119907: a chart attached@1 and removed@5 must NOT be collected for a
     dataset rollup at target_tx=10. Its attachment window [1, 5) does not
     contain 10, even though its (never-closed) association shadow row would
     pass a naive end_transaction_id validity filter."""
     attach_windows = {7: [Window(1, 5)]}
     slice_rows = [_slice_row(7, 100, 1, None)]  # chart→dataset open the whole time
-    result = _count_attached_charts_at(attach_windows, slice_rows, {100: [10]})
-    assert result == {}  # zero-count pairs are omitted
+    result = _collect_attached_charts_at(attach_windows, slice_rows, {100: [10]})
+    assert result == {}  # pairs with no matching charts are omitted
 
 
-def test_count_attached_charts_counts_chart_inside_its_window() -> None:
-    """The same chart IS counted at a target inside its attachment window."""
+def test_collect_attached_charts_includes_chart_inside_its_window() -> None:
+    """The same chart IS collected at a target inside its attachment window,
+    carrying its name-at-transaction."""
     attach_windows = {7: [Window(1, 5)]}
-    slice_rows = [_slice_row(7, 100, 1, None)]
-    result = _count_attached_charts_at(attach_windows, slice_rows, {100: [3]})
-    assert result == {(100, 3): 1}
+    slice_rows = [_slice_row(7, 100, 1, None, name="Sales")]
+    result = _collect_attached_charts_at(attach_windows, slice_rows, {100: [3]})
+    assert result == {(100, 3): {7: "Sales"}}
 
 
-def test_count_attached_charts_requires_both_windows() -> None:
+def test_collect_attached_charts_requires_both_windows() -> None:
     """A chart attached at target_tx but not yet pointing at the dataset (its
-    chart→dataset window starts later) is not counted."""
+    chart→dataset window starts later) is not collected."""
     attach_windows = {7: [Window(1, None)]}
     slice_rows = [_slice_row(7, 100, 8, None)]  # points at dataset only from tx8
-    assert _count_attached_charts_at(attach_windows, slice_rows, {100: [3]}) == {}
+    assert _collect_attached_charts_at(attach_windows, slice_rows, {100: [3]}) == {}
 
 
-def test_count_attached_charts_dedupes_within_pair() -> None:
-    """Multiple parent-shadow rows for the same slice count the slice once."""
+def test_collect_attached_charts_dedupes_within_pair() -> None:
+    """Multiple parent-shadow rows for the same slice collect the slice once."""
     attach_windows = {7: [Window(1, None)]}
-    slice_rows = [_slice_row(7, 100, 1, 4), _slice_row(7, 100, 4, None)]
-    assert _count_attached_charts_at(attach_windows, slice_rows, {100: [5]}) == {
-        (100, 5): 1
+    slice_rows = [
+        _slice_row(7, 100, 1, 4, name="Sales"),
+        _slice_row(7, 100, 4, None, name="Sales"),
+    ]
+    assert _collect_attached_charts_at(attach_windows, slice_rows, {100: [5]}) == {
+        (100, 5): {7: "Sales"}
     }
 
 
-def test_count_attached_charts_ignores_slice_never_on_dashboard() -> None:
+def test_collect_attached_charts_ignores_slice_never_on_dashboard() -> None:
     """A slice pointing at the dataset but with no attachment window (never on
     this dashboard) does not contribute — guards the no-join fetch that may
     return slices from other dashboards sharing the dataset."""
     attach_windows: dict[int, list[Window]] = {}
     slice_rows = [_slice_row(7, 100, 1, None)]
-    assert _count_attached_charts_at(attach_windows, slice_rows, {100: [3]}) == {}
+    assert _collect_attached_charts_at(attach_windows, slice_rows, {100: [3]}) == {}
 
 
-# ---- batch_chart_counts bind-variable floor (sc-119907) ------------------
+# ---- batch_chart_impacts bind-variable floor (sc-119907) -----------------
 
 
-def test_batch_chart_counts_stays_under_sqlite_bind_floor(app_context: None) -> None:
+def test_batch_chart_impacts_stays_under_sqlite_bind_floor(app_context: None) -> None:
     """sc-119907: a wide dashboard (many member charts AND many requested
     datasets) must not build a slice-scan statement that exceeds SQLite's 999
     bind-variable floor. The member-id IN is chunked; the requested-dataset IN
@@ -1057,13 +1363,13 @@ def test_batch_chart_counts_stays_under_sqlite_bind_floor(app_context: None) -> 
 
     with (
         patch(
-            "superset.versioning.membership.charts_attached_to_dashboard",
+            "superset.versioning.membership.chart_attachment_windows_for_dashboard",
             return_value=member_windows,
         ),
         patch("superset.versioning.activity.impact.db") as mock_db,
     ):
         mock_db.session.connection.return_value.execute.side_effect = _fake_execute
-        batch_chart_counts(1, pairs)
+        batch_chart_impacts(1, pairs)
 
     assert captured, "expected at least one slice-scan statement"
     for stmt in captured:
