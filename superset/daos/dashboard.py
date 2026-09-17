@@ -252,9 +252,15 @@ class DashboardDAO(BaseDAO[Dashboard]):
     @staticmethod
     def get_charts_for_dashboard(id_or_slug: str) -> list[Slice]:
         dashboard = DashboardDAO.get_by_id_or_slug(id_or_slug)
+        # Materialise the chart collection before prefetching, and return this
+        # same list. The prefetch loads editors/viewers onto these instances;
+        # without a strong reference the weak identity map can discard them, so
+        # a later read of dashboard.slices would reload the charts with those
+        # relationships unloaded again and pay the per-chart queries we avoid.
+        charts = dashboard.slices
         # The caller narrows each chart by access, which reads these.
         DashboardDAO.prefetch_chart_access(dashboard)
-        return dashboard.slices
+        return charts
 
     @staticmethod
     def get_dashboard_changed_on(id_or_slug_or_dashboard: str | Dashboard) -> datetime:

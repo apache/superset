@@ -315,3 +315,40 @@ def test_prefetch_chart_access_skips_the_query_for_admins(
         )
 
     assert n == 0, f"prefetch issued {n} statements for an admin"
+
+
+def test_get_charts_for_dashboard_returns_the_prefetched_charts(
+    session: Session,
+) -> None:
+    """The charts endpoint must read editors/viewers without per-chart queries.
+
+    get_charts_for_dashboard looks the dashboard up with its slices unloaded,
+    so the prefetched charts and the returned collection have to be the same
+    instances. If the method reloaded dashboard.slices after prefetching, the
+    weak identity map could drop the prefetched charts and reading their
+    editors/viewers would fall back to a query per chart -- the 2N cost this is
+    meant to remove.
+    """
+    Dashboard.metadata.create_all(session.get_bind())
+
+    _make_dashboard("charts-endpoint", 3)
+    # Detach everything so the lookup returns a dashboard with slices unloaded,
+    # matching the real request path.
+    session.expunge_all()
+    dashboard = session.query(Dashboard).filter_by(slug="charts-endpoint").one()
+
+    with (
+        patch.object(security_manager, "is_admin", return_value=False),
+        patch.object(DashboardDAO, "get_by_id_or_slug", return_value=dashboard),
+    ):
+        charts = DashboardDAO.get_charts_for_dashboard("charts-endpoint")
+
+        def read_relationships() -> None:
+            for slc in charts:
+                assert [s.label for s in slc.editors] == ["editor-charts-endpoint"]
+                assert [s.label for s in slc.viewers] == ["viewer-charts-endpoint"]
+
+        n = _count_statements(session, read_relationships)
+
+    assert len(charts) == 3
+    assert n == 0, f"reading the returned charts issued {n} statements"
