@@ -19,6 +19,7 @@ from __future__ import annotations
 from collections.abc import Iterator
 
 import pytest
+from babel import Locale
 from flask import current_app
 from pytest_mock import MockerFixture
 
@@ -409,8 +410,6 @@ def test_hook_receives_the_configured_locale_identifier(
     also what the language picker shows, so handing the hook Babel's canonical
     form would miss every Traditional Chinese translation.
     """
-    from babel import Locale
-
     _enable(mocker)
     current_app.config["LANGUAGES"] = {
         "en": {"flag": "us", "name": "English"},
@@ -428,8 +427,6 @@ def test_unconfigured_locale_falls_back_to_the_canonical_form(
     mocker: MockerFixture,
 ) -> None:
     """Nothing in LANGUAGES resolves to it, so the canonical name is all there is."""
-    from babel import Locale
-
     _enable(mocker)
     current_app.config["LANGUAGES"] = MULTI_LANG
     mocker.patch.object(i18n, "get_locale", return_value=Locale.parse("zh_TW"))

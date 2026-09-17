@@ -112,6 +112,7 @@ export interface SliceHeaderControlsProps {
     // The name as rendered in the header: the localized value, or the panel's
     // own title override. Used for strings the viewer reads; slice_name stays
     // the canonical value for edits, filenames and extension payloads.
+    // Kept in step with the copy of this interface in ./types.ts.
     display_name?: string;
     slice_id: number;
     slice_description: string;
