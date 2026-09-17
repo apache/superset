@@ -290,7 +290,9 @@ def test_update_chart_accepts_semantic_view_datasource(
     from superset.semantic_layers.models import SemanticView
 
     find_by_id = mocker.patch("superset.commands.chart.update.ChartDAO.find_by_id")
-    find_by_id.return_value = mocker.MagicMock(id=1, tags=[], dashboards=[])
+    find_by_id.return_value = mocker.MagicMock(
+        is_managed_externally=False, id=1, tags=[], dashboards=[]
+    )
     mocker.patch("superset.commands.chart.update.security_manager.raise_for_editorship")
     mocker.patch(
         "superset.commands.chart.update.compute_subjects",
