@@ -162,8 +162,9 @@ export const useDatasetDrillInfo = (
           // the colliding regular dataset (sc-111089 review consensus).
           // The structure payload carries no changed_on/owners metadata —
           // those metadata-bar rows render their not-available state, an
-          // accepted degradation. Columns are narrowed to metadata needs;
-          // no drill flags are fabricated.
+          // accepted degradation. Columns are derived from semantic-view
+          // dimensions with groupby: true, making them drillable through
+          // ChartContextMenu; unavailable metadata is not fabricated.
           const structure = await fetchSemanticViewStructure(numericDatasetId);
           // Built as a partial Dataset (the declaration is typed, so
           // table_name/columns are genuinely checked): no id or
