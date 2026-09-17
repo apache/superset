@@ -66,8 +66,14 @@ def _authorize_theme_overwrite(existing: "Theme", user: Any | None) -> None:
     # `editors` from each theme's creator, but any theme created by a path
     # that bypasses `CreateThemeCommand` (or predates that backfill running)
     # can still have a creator who isn't in `editors`. Fall back to
-    # `created_by_fk` so that creator isn't locked out of their own theme.
-    is_original_creator = user is not None and existing.created_by_fk == user.id
+    # `created_by_fk` so that creator isn't locked out of their own theme --
+    # but only when `editors` is still empty. Once it's populated (whether
+    # by the backfill or an admin's own edit), an empty result from
+    # `is_editor()` is a deliberate revocation, not an unbackfilled gap, and
+    # this fallback must not un-revoke it.
+    is_original_creator = (
+        user is not None and existing.created_by_fk == user.id and not existing.editors
+    )
     if (
         user
         and not is_original_creator

@@ -222,6 +222,36 @@ def test_import_theme_original_creator_can_overwrite_without_explicit_editor(
 @patch("superset.utils.core.get_user")
 @patch("superset.security_manager")
 @patch("superset.db")
+def test_import_theme_revoked_creator_overwrite_denied(
+    mock_db, mock_security_manager, mock_get_user
+):
+    """Once `editors` has been populated and no longer includes the
+    original creator, that's a deliberate revocation, not an unbackfilled
+    gap -- the `created_by_fk` fallback must not let them back in."""
+    mock_security_manager.can_access.return_value = True
+    mock_security_manager.is_editor = Mock(return_value=False)
+    mock_security_manager.is_admin = Mock(return_value=False)
+
+    user = Mock()
+    user.id = 42
+    mock_get_user.return_value = user
+
+    existing = _mock_existing()
+    existing.created_by_fk = 42
+    existing.editors = [Mock()]  # populated, but doesn't include `user`
+    mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
+        existing
+    )
+
+    config = {"uuid": "some-uuid", "theme_name": "hostile", "json_data": "{}"}
+
+    with pytest.raises(ThemeImportError):
+        import_theme(config, overwrite=True)
+
+
+@patch("superset.utils.core.get_user")
+@patch("superset.security_manager")
+@patch("superset.db")
 def test_import_theme_non_creator_non_editor_overwrite_denied(
     mock_db, mock_security_manager, mock_get_user
 ):

@@ -189,6 +189,8 @@ class ThemeRestApi(BaseSupersetModelRestApi):
 
     def pre_get(self, data: dict[str, Any]) -> None:
         """Attach ``extra_editors``, matching the dashboard/chart GET response."""
+        if not app.config.get("EXTRA_EDITORS_RESOLVER"):
+            return
         if theme := ThemeDAO.find_by_id(data["id"]):
             attach_extra_editors(data[API_RESULT_RES_KEY], theme)
 
