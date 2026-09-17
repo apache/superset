@@ -1735,6 +1735,18 @@ class TestRolePermission(SupersetTestCase):
             ["Superset", "welcome"],
             ["SecurityApi", "login"],
             ["SecurityApi", "refresh"],
+            # One-time login tokens deliberately carry no route-level decorator,
+            # because both halves run before a session exists and so have nothing
+            # for @has_access / @protect to check. The mint POST is gated by
+            # LOGIN_TOKEN_IDENTITY_RESOLVER, which is the deployment's
+            # authentication boundary; the consume GET is gated by possession of
+            # a single-use, short-TTL token, and must be reachable by an iframe
+            # navigation carrying no credentials. Both return 404 unless the
+            # LOGIN_TOKEN feature flag is on *and* a resolver is configured, so
+            # the surface is closed by default. Contract pinned by
+            # tests/unit_tests/security/login_token_test.py.
+            ["SecurityRestApi", "login_token"],
+            ["SecurityRestApi", "login_with_token"],
             ["SupersetIndexView", "index"],
             ["SupersetIndexView", "patch_flask_locale"],
             ["DatabaseRestApi", "oauth2"],
