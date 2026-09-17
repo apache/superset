@@ -76,7 +76,7 @@ def _time_column_error(
     if time_col in valid_columns:
         return (
             f"time_column '{time_col}' on {kind} '{display_name}' is "
-            "not marked as a datetime column."
+            "not marked as a temporal column."
         )
     return f"Unknown time_column: '{time_col}' on {kind} '{display_name}'."
 
@@ -183,7 +183,7 @@ def _resolve_external_view(
             return SemanticLayerError.create(
                 error=(
                     f"time_range was provided but view '{display_name}' has "
-                    "no datetime dimension. Set time_column explicitly or "
+                    "no temporal dimension. Set time_column explicitly or "
                     "omit time_range."
                 ),
                 error_type="ValidationError",

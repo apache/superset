@@ -40,7 +40,7 @@ def test_explicit_temporal_column_preserves_other_metadata() -> None:
         )
     ]
     assert original[0]["data_type"] == "string"
-    assert hinted[0]["data_type"] == "datetime"
+    assert hinted[0]["data_type"] == "temporal"
     hinted[0]["data_type"] = "string"
     assert hinted == original
     assert [

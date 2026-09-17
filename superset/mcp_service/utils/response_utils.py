@@ -201,7 +201,7 @@ def format_data_columns(
             elif all(isinstance(v, (int, float)) for v in sample_values):
                 data_type = "numeric"
         if temporal_columns and col_name in temporal_columns:
-            data_type = "datetime"
+            data_type = "temporal"
 
         null_count = 0
         unique_vals: set[str] = set()

@@ -200,7 +200,7 @@ class GetTableRequest(BaseModel):
             "Optional time range string. Use Superset relative shorthands "
             "like 'Last 7 days', 'Last 30 days', 'Last year', 'Current "
             "week', 'previous calendar year', or an ISO-8601 range like "
-            "'2024-01-01 : 2024-12-31'. Requires a datetime dimension. "
+            "'2024-01-01 : 2024-12-31'. Requires a temporal dimension. "
             "Bracket shorthands like '[year]' or '[quarter]' are also "
             "accepted and normalized to the equivalent 'Last <unit>' form."
         ),
@@ -208,7 +208,7 @@ class GetTableRequest(BaseModel):
     time_column: str | None = Field(
         default=None,
         description=(
-            "Name of the datetime column/dimension to apply time_range to. "
+            "Name of the temporal column/dimension to apply time_range to. "
             "Inferred from the dataset's main_dttm_col when omitted."
         ),
     )

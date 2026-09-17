@@ -145,7 +145,7 @@ async def test_get_table_temporal_result_type(
     mcp_server: FastMCP,
     temporal_view: MagicMock,
 ) -> None:
-    """Grain-suffixed temporal results retain datetime metadata."""
+    """Grain-suffixed temporal results use the shared MCP temporal vocabulary."""
     with patch.object(
         get_table_module,
         "execute_tabular_query",
@@ -181,7 +181,7 @@ async def test_get_table_temporal_result_type(
                 .text
             )
     assert data["success"] is True
-    assert data["columns"][0]["data_type"] == "datetime"
+    assert data["columns"][0]["data_type"] == "temporal"
     assert data["columns"][1]["data_type"] == "string"
 
 
@@ -438,7 +438,7 @@ async def test_get_table_unknown_metric_validation_error(mcp_server: FastMCP) ->
 async def test_get_table_time_column_not_dttm_validation_error(
     mcp_server: FastMCP,
 ) -> None:
-    """get_table rejects a time_column that isn't marked as a datetime column."""
+    """get_table rejects a time_column that isn't marked as a temporal column."""
     mock_ds = _make_dataset(42)
 
     with patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=mock_ds):
@@ -457,7 +457,7 @@ async def test_get_table_time_column_not_dttm_validation_error(
 
     assert data["success"] is False
     assert data["error_type"] == "ValidationError"
-    assert "not marked as a datetime column" in data["message"]
+    assert "not marked as a temporal column" in data["message"]
 
 
 @pytest.mark.asyncio
@@ -485,7 +485,7 @@ async def test_get_table_external_view_access_denied(mcp_server: FastMCP) -> Non
 async def test_get_table_external_time_range_without_dttm_validation_error(
     mcp_server: FastMCP,
 ) -> None:
-    """get_table rejects time_range on a view with no datetime dimension.
+    """get_table rejects time_range on a view with no temporal dimension.
 
     Regression test: previously this silently dropped the time filter and
     ran an unfiltered query instead of erroring, which could return
@@ -512,7 +512,7 @@ async def test_get_table_external_time_range_without_dttm_validation_error(
 
     assert data["success"] is False
     assert data["error_type"] == "ValidationError"
-    assert "no datetime dimension" in data["message"]
+    assert "no temporal dimension" in data["message"]
 
 
 @pytest.mark.asyncio
@@ -717,8 +717,8 @@ async def test_get_table_builtin_time_range_without_configured_dttm_validation_e
 ) -> None:
     """get_table rejects time_range on a builtin dataset with no main_dttm_col.
 
-    Mirrors the external-view "no datetime dimension" case, but for the
-    builtin path where the datetime column is inferred from
+    Mirrors the external-view "no temporal dimension" case, but for the
+    builtin path where the temporal column is inferred from
     ``dataset.main_dttm_col`` instead of scanning columns.
     """
     mock_ds = _make_dataset(42)
