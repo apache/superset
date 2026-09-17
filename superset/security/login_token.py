@@ -156,7 +156,11 @@ def resolve_identity(  # pylint: disable=too-many-return-statements
         logger.error("LOGIN_TOKEN_IDENTITY_RESOLVER returned no username or email")
         return None
 
-    return userinfo
+    # The resolver is operator-supplied and typed Any, so the isinstance guard
+    # above narrows it only as far as a plain dict. Its keys are the resolver's
+    # contract, checked here to the extent that matters (a usable identifier);
+    # anything extra is ignored by auth_user_oauth.
+    return cast(LoginTokenUserInfo, userinfo)
 
 
 def mint(userinfo: LoginTokenUserInfo) -> tuple[str, datetime]:
