@@ -288,6 +288,73 @@ def test_table_only_bundle_does_not_need_semantic_feature(
     )
 
 
+@pytest.mark.parametrize("dataset_id", [None, True, False, "", "invalid", 1.5])
+def test_export_rejects_invalid_semantic_target_id_before_lookup(
+    app_context: None, monkeypatch: pytest.MonkeyPatch, dataset_id: Any
+) -> None:
+    """Invalid local IDs cannot reach a semantic lookup or mutate the target."""
+    query: Mock = Mock(side_effect=AssertionError("invalid ID reached lookup"))
+    monkeypatch.setattr(refs.db.session, "query", query)
+    target: dict[str, Any] = {
+        "datasourceType": "semantic_view",
+        "datasetId": dataset_id,
+    }
+    metadata: dict[str, Any] = {"native_filter_configuration": [{"targets": [target]}]}
+    before: dict[str, Any] = copy.deepcopy(metadata)
+    with pytest.raises(refs.SemanticReferenceError, match="requires a datasetId"):
+        refs.export_dashboard_references(metadata)
+    query.assert_not_called()
+    assert metadata == before
+
+
+def test_bundle_preflight_rejects_ambiguous_chart_before_lookup(
+    app_context: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Preflight itself rejects both identities, even without schema loading."""
+    query: Mock = Mock(side_effect=AssertionError("ambiguous chart reached lookup"))
+    monkeypatch.setattr(refs.db.session, "query", query)
+    config: dict[str, Any] = chart_config()
+    config["dataset_uuid"] = VIEW_UUID
+    with pytest.raises(
+        refs.SemanticReferenceError, match="Specify only one chart datasource reference"
+    ) as excinfo:
+        refs.resolve_bundle_references({"charts/chart.yaml": config})
+    assert isinstance(excinfo.value.__cause__, ValidationError)
+    query.assert_not_called()
+    assert config["dataset_uuid"] == config["datasource_ref"]["uuid"] == VIEW_UUID
+
+
+def test_chart_semantic_info_preserves_table_reference() -> None:
+    """A table UUID must not resolve through the colliding semantic UUID map."""
+    config: dict[str, Any] = {"dataset_uuid": VIEW_UUID}
+    semantic_info: dict[str, dict[str, Any]] = {
+        VIEW_UUID: {"datasource_id": 81, "datasource_type": "semantic_view"}
+    }
+    assert refs.chart_semantic_info(config, semantic_info) is None
+    assert config == {"dataset_uuid": VIEW_UUID}
+
+
+@pytest.mark.parametrize(
+    "control", ["native_filter_configuration", "chart_customization_config"]
+)
+def test_restore_mixed_targets_preserves_table_identity(control: str) -> None:
+    """Rebind a semantic target without changing a preceding same-UUID table."""
+    table: dict[str, Any] = {"datasetUuid": VIEW_UUID, "datasourceType": "table"}
+    semantic: dict[str, Any] = {
+        "datasourceRef": {"type": "semantic_view", "uuid": VIEW_UUID},
+        "column": {"name": "country"},
+    }
+    metadata: dict[str, Any] = {control: [{"targets": [table, semantic]}]}
+    refs.restore_dashboard_references(metadata, {VIEW_UUID: {"datasource_id": 81}})
+    assert table == {"datasetUuid": VIEW_UUID, "datasourceType": "table"}
+    assert semantic == {
+        "datasetId": 81,
+        "datasourceType": "semantic_view",
+        "column": {"name": "country"},
+    }
+    assert metadata[control][0]["targets"] == [table, semantic]
+
+
 @pytest.fixture
 def persisted_view(
     app_context: None, session: Session, monkeypatch: pytest.MonkeyPatch
