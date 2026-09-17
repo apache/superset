@@ -22,7 +22,7 @@ from typing import Annotated, Any, Literal, Union
 from unittest.mock import patch
 
 import pytest
-from pydantic import BaseModel, Field, SecretStr
+from pydantic import BaseModel, Field, SecretStr, StringConstraints
 
 from superset.constants import PASSWORD_MASK
 from superset.semantic_layers import masking
@@ -68,14 +68,14 @@ def _register(type_name: str = "demo") -> Any:
 
 def test_mask_replaces_secret_fields_and_keeps_plain_ones() -> None:
     """SecretStr fields mask; non-secret fields pass through untouched."""
-    config = {
+    config: dict[str, Any] = {
         "account": "acme",
         "auth": {"kind": "password", "password": "hunter2"},
         "token": "tok-123",
         "warehouses": ["small", "large"],
     }
     with _register():
-        masked = mask_configuration("demo", config)
+        masked: dict[str, Any] = mask_configuration("demo", config)
     assert masked == {
         "account": "acme",
         "auth": {"kind": "password", "password": PASSWORD_MASK},
@@ -86,12 +86,12 @@ def test_mask_replaces_secret_fields_and_keeps_plain_ones() -> None:
 
 def test_mask_covers_every_union_variant() -> None:
     """Secrets in a discriminated-union variant mask, incl. optional ones."""
-    config = {
+    config: dict[str, Any] = {
         "account": "acme",
         "auth": {"kind": "key", "private_key": "PEM...", "passphrase": "pp"},
     }
     with _register():
-        masked = mask_configuration("demo", config)
+        masked: dict[str, Any] = mask_configuration("demo", config)
     assert masked["auth"] == {
         "kind": "key",
         "private_key": PASSWORD_MASK,
@@ -101,21 +101,24 @@ def test_mask_covers_every_union_variant() -> None:
 
 def test_mask_leaves_null_secrets_null() -> None:
     """A secret that is not set stays visibly unset, not masked."""
-    config = {
+    config: dict[str, Any] = {
         "account": "acme",
         "auth": {"kind": "key", "private_key": "PEM...", "passphrase": None},
         "token": None,
     }
     with _register():
-        masked = mask_configuration("demo", config)
+        masked: dict[str, Any] = mask_configuration("demo", config)
     assert masked["token"] is None
     assert masked["auth"]["passphrase"] is None
 
 
 def test_mask_fails_closed_without_a_registered_provider() -> None:
     """No registered schema: every scalar masks (nothing can be vouched for)."""
-    config = {"account": "acme", "nested": {"password": "x", "port": 443}}
-    masked = mask_configuration("unknown-type", config)
+    config: dict[str, Any] = {
+        "account": "acme",
+        "nested": {"password": "x", "port": 443},
+    }
+    masked: dict[str, Any] = mask_configuration("unknown-type", config)
     assert masked == {
         "account": PASSWORD_MASK,
         "nested": {"password": PASSWORD_MASK, "port": PASSWORD_MASK},
@@ -125,13 +128,13 @@ def test_mask_fails_closed_without_a_registered_provider() -> None:
 def test_reveals_keys_the_schema_does_not_describe_but_masks_marked_secrets() -> None:
     """A key no schema property describes is revealed (matching #43474); a
     field the schema marks secret is still masked even alongside it."""
-    config = {
+    config: dict[str, Any] = {
         "account": "acme",
         "auth": {"kind": "password", "password": "x"},
         "legacy_field": "kept",
     }
     with _register():
-        masked = mask_configuration("demo", config)
+        masked: dict[str, Any] = mask_configuration("demo", config)
     assert masked["legacy_field"] == "kept"  # undescribed -> revealed
     assert masked["account"] == "acme"
     assert masked["auth"]["password"] == PASSWORD_MASK  # nested secret -> masked
@@ -151,7 +154,7 @@ def test_mask_object_reveals_a_dict_the_schema_does_not_type_as_an_object() -> N
     returning ``{}``; it now raises and fails closed at the ``_mask_value``
     boundary instead, leaving this branch for genuinely undescribed objects.
     """
-    value = {"nested": "kept"}
+    value: dict[str, Any] = {"nested": "kept"}
     assert _mask_object(value, {"type": "string"}, {}) == value
 
 
@@ -196,11 +199,13 @@ def test_mask_covers_a_secret_nested_in_only_one_union_variant() -> None:
         def get_configuration_schema(configuration: Any = None) -> Any:
             return DivergentConfig.model_json_schema()
 
-    value = {"endpoint": {"kind": "secret", "conn": {"host": "h", "password": "s3"}}}
+    value: dict[str, Any] = {
+        "endpoint": {"kind": "secret", "conn": {"host": "h", "password": "s3"}}
+    }
     with patch.dict(
         "superset.semantic_layers.registry.registry", {"divergent": DivergentType}
     ):
-        masked = mask_configuration("divergent", value)
+        masked: dict[str, Any] = mask_configuration("divergent", value)
     # host stays visible in both variants; the password (present only in the
     # secret variant) must be masked, not passed through via the plain branch.
     assert masked["endpoint"]["conn"]["host"] == "h"
@@ -209,12 +214,12 @@ def test_mask_covers_a_secret_nested_in_only_one_union_variant() -> None:
 
 def test_unmask_swaps_sentinels_from_the_stored_configuration() -> None:
     """Echoed masks restore stored secrets; edited fields keep new values."""
-    stored = {
+    stored: dict[str, Any] = {
         "account": "acme",
         "auth": {"kind": "password", "password": "hunter2"},
         "token": "tok-123",
     }
-    submitted = {
+    submitted: dict[str, Any] = {
         "account": "acme-renamed",  # edited plain field
         "auth": {"kind": "password", "password": PASSWORD_MASK},  # echoed
         "token": "tok-456",  # retyped secret
@@ -227,14 +232,16 @@ def test_unmask_swaps_sentinels_from_the_stored_configuration() -> None:
 
 
 def test_unmask_passes_an_orphan_mask_through() -> None:
-    """A mask with no stored counterpart is not invented; validation rejects it."""
-    submitted = {"auth": {"kind": "password", "password": PASSWORD_MASK}}
+    """A mask with no stored counterpart remains the submitted literal sentinel."""
+    submitted: dict[str, Any] = {
+        "auth": {"kind": "password", "password": PASSWORD_MASK}
+    }
     assert unmask_configuration({}, submitted) == submitted
 
 
 def test_unmask_handles_lists_pairwise() -> None:
-    stored = {"keys": ["k1", "k2"]}
-    submitted = {"keys": [PASSWORD_MASK, "new-k2", PASSWORD_MASK]}
+    stored: dict[str, Any] = {"keys": ["k1", "k2"]}
+    submitted: dict[str, Any] = {"keys": [PASSWORD_MASK, "new-k2", PASSWORD_MASK]}
     assert unmask_configuration(stored, submitted) == {
         "keys": ["k1", "new-k2", PASSWORD_MASK]
     }
@@ -242,14 +249,14 @@ def test_unmask_handles_lists_pairwise() -> None:
 
 def test_mask_then_unmask_round_trips_to_the_stored_configuration() -> None:
     """An untouched echo of a masked read must reproduce the stored config."""
-    stored = {
+    stored: dict[str, Any] = {
         "account": "acme",
         "auth": {"kind": "key", "private_key": "PEM...", "passphrase": "pp"},
         "token": "tok-123",
         "warehouses": ["small"],
     }
     with _register():
-        echoed = mask_configuration("demo", stored)
+        echoed: dict[str, Any] = mask_configuration("demo", stored)
     assert unmask_configuration(stored, echoed) == stored
 
 
@@ -257,8 +264,8 @@ class _FakeProvider:
     """A provider stand-in whose get_configuration_schema is caller-controlled."""
 
     def __init__(self, schema: Any = None, raises: bool = False) -> None:
-        self._schema = schema
-        self._raises = raises
+        self._schema: Any = schema
+        self._raises: bool = raises
 
     def get_configuration_schema(self, configuration: Any = None) -> Any:
         if self._raises:
@@ -275,26 +282,26 @@ def _with_schema(schema: Any) -> Any:
 
 def test_unresolvable_ref_masks_its_subtree() -> None:
     """A failed explicit reference masks its subtree, not unrelated fields."""
-    schema = {
+    schema: dict[str, Any] = {
         "type": "object",
         "properties": {"conn": {"$ref": "#/$defs/Missing"}},
         "$defs": {},
     }
     with _with_schema(schema):
-        masked = mask_configuration("fake", {"conn": {"host": "h"}})
+        masked: dict[str, Any] = mask_configuration("fake", {"conn": {"host": "h"}})
     assert masked["conn"] == {"host": PASSWORD_MASK}
 
 
 def test_untyped_array_is_revealed() -> None:
     """A list field whose schema declares no item type carries no marked
     secret, so it is revealed (matching #43474's reveal-unless-marked rule)."""
-    schema = {
+    schema: dict[str, Any] = {
         "type": "object",
         "properties": {"tags": {"type": "array"}},
         "$defs": {},
     }
     with _with_schema(schema):
-        masked = mask_configuration("fake", {"tags": ["a", "b"]})
+        masked: dict[str, Any] = mask_configuration("fake", {"tags": ["a", "b"]})
     assert masked["tags"] == ["a", "b"]
 
 
@@ -304,7 +311,9 @@ def test_mask_fails_closed_when_schema_generation_raises() -> None:
         "superset.semantic_layers.registry.registry",
         {"fake": _FakeProvider(raises=True)},
     ):
-        masked = mask_configuration("fake", {"account": "acme", "password": "x"})
+        masked: dict[str, Any] = mask_configuration(
+            "fake", {"account": "acme", "password": "x"}
+        )
     assert masked == {"account": PASSWORD_MASK, "password": PASSWORD_MASK}
 
 
@@ -340,12 +349,12 @@ def test_mask_covers_a_secret_list_in_only_one_union_variant() -> None:
         def get_configuration_schema(configuration: Any = None) -> Any:
             return DivergentListConfig.model_json_schema()
 
-    value = {"conn": {"kind": "plain", "items": ["x", "y"]}}
+    value: dict[str, Any] = {"conn": {"kind": "plain", "items": ["x", "y"]}}
     with patch.dict(
         "superset.semantic_layers.registry.registry",
         {"fake": DivergentListType},
     ):
-        masked = mask_configuration("fake", value)
+        masked: dict[str, Any] = mask_configuration("fake", value)
     # The list is a secret in the ListSecret variant, so it masks even though
     # the discriminator selects the plain variant.
     assert masked["conn"]["items"] == [PASSWORD_MASK, PASSWORD_MASK]
@@ -358,7 +367,9 @@ def test_non_dict_schema_masks_all() -> None:
         "superset.semantic_layers.registry.registry",
         {"fake": _FakeProvider(schema=None)},
     ):
-        masked = mask_configuration("fake", {"account": "acme", "password": "x"})
+        masked: dict[str, Any] = mask_configuration(
+            "fake", {"account": "acme", "password": "x"}
+        )
     assert masked == {"account": PASSWORD_MASK, "password": PASSWORD_MASK}
 
 
@@ -371,7 +382,7 @@ def test_additionalproperties_divergent_union_variants_mask_conservatively() -> 
     first (plain) variant would reveal the key; the second (secret) variant
     must still force a mask.
     """
-    schema = {
+    schema: dict[str, Any] = {
         "oneOf": [
             {
                 "type": "object",
@@ -387,7 +398,9 @@ def test_additionalproperties_divergent_union_variants_mask_conservatively() -> 
         "$defs": {},
     }
     with _with_schema(schema):
-        masked = mask_configuration("fake", {"kind": "plain", "extra": "sensitive"})
+        masked: dict[str, Any] = mask_configuration(
+            "fake", {"kind": "plain", "extra": "sensitive"}
+        )
     assert masked["kind"] == "plain"
     assert masked["extra"] == PASSWORD_MASK
 
@@ -505,3 +518,177 @@ def test_valid_secret_schema_does_not_warn(caplog: pytest.LogCaptureFixture) -> 
         masked: dict[str, Any] = mask_configuration("fake", {"password": "s"})
     assert masked == {"password": PASSWORD_MASK}
     assert not caplog.records
+
+
+@pytest.mark.parametrize("union", ["anyOf", "oneOf", "allOf"])
+@pytest.mark.parametrize("reverse", [False, True])
+def test_declared_property_honors_sibling_secret_extras(
+    union: str, reverse: bool
+) -> None:
+    """A declared plain property cannot override a sibling's secret map schema."""
+    variants: list[dict[str, Any]] = [
+        {"type": "object", "properties": {"token": {"type": "string"}}},
+        {"type": "object", "additionalProperties": {"writeOnly": True}},
+    ]
+    if reverse:
+        variants.reverse()
+    with _with_schema({"properties": {"conn": {union: variants}}}):
+        masked: dict[str, Any] = mask_configuration(
+            "fake", {"conn": {"token": "synthetic-secret"}}
+        )
+    assert masked["conn"]["token"] == PASSWORD_MASK
+
+
+@pytest.mark.parametrize("position", ["property", "list", "map"])
+def test_optional_discriminated_union_masks_nested_secrets(position: str) -> None:
+    class OptionalAuth(BaseModel):
+        auth: (
+            Annotated[Union[KeyAuth, PasswordAuth], Field(discriminator="kind")] | None
+        ) = None
+
+    schema: dict[str, Any] = OptionalAuth.model_json_schema()
+    auth: dict[str, Any] = {"kind": "password", "password": "synthetic-secret"}
+    expected: dict[str, Any] = {"kind": "password", "password": PASSWORD_MASK}
+    value: Any = auth
+    result: Any = expected
+    if position == "list":
+        schema["properties"]["auth"] = {"items": schema["properties"]["auth"]}
+        value, result = [auth], [expected]
+    elif position == "map":
+        schema["properties"]["auth"] = {
+            "additionalProperties": schema["properties"]["auth"]
+        }
+        value, result = {"primary": auth}, {"primary": expected}
+    with _with_schema(schema):
+        assert mask_configuration("fake", {"auth": value}) == {"auth": result}
+
+
+def test_nested_union_array_masks_secret_items() -> None:
+    schema: dict[str, Any] = {
+        "properties": {
+            "tokens": {"anyOf": [{"oneOf": [{"items": {"writeOnly": True}}]}]}
+        }
+    }
+    with _with_schema(schema):
+        assert mask_configuration("fake", {"tokens": ["secret"]}) == {
+            "tokens": [PASSWORD_MASK]
+        }
+
+
+@pytest.mark.parametrize("marker", [{"writeOnly": True}, {"format": "password"}])
+@pytest.mark.parametrize("nested", [False, True])
+def test_reference_sibling_secret_marker_is_preserved(
+    marker: dict[str, Any], nested: bool
+) -> None:
+    schema: dict[str, Any] = {
+        "$defs": {"Credentials": {"properties": {"blob": {"type": "string"}}}},
+        "properties": {"creds": {"$ref": "#/$defs/Credentials", **marker}},
+    }
+    value: dict[str, Any] = {"creds": {"blob": "secret"}}
+    expected: dict[str, Any] = {"creds": PASSWORD_MASK}
+    if nested:
+        schema["properties"] = {"nested": {"properties": schema["properties"]}}
+        value, expected = {"nested": value}, {"nested": expected}
+    with _with_schema(schema):
+        assert mask_configuration("fake", value) == expected
+
+
+@pytest.mark.parametrize("union", [None, "anyOf", "oneOf", "allOf"])
+def test_secret_object_marker_survives_union(union: str | None) -> None:
+    reference: dict[str, Any] = {"$ref": "#/$defs/SecretObject"}
+    schema: dict[str, Any] = {
+        "$defs": {
+            "SecretObject": {
+                "type": "object",
+                "writeOnly": True,
+                "properties": {"blob": {"type": "string"}},
+            }
+        },
+        "properties": {"creds": {union: [reference]} if union else reference},
+    }
+    with _with_schema(schema):
+        assert mask_configuration("fake", {"creds": {"blob": "secret"}}) == {
+            "creds": PASSWORD_MASK
+        }
+
+
+@pytest.mark.parametrize("subschema", [True, False, {"anyOf": [True]}])
+def test_unsupported_subschema_masks_only_affected_value(subschema: Any) -> None:
+    schema: dict[str, Any] = {"properties": {"creds": subschema}}
+    with _with_schema(schema):
+        assert mask_configuration("fake", {"creds": "secret", "plain": "visible"}) == {
+            "creds": PASSWORD_MASK,
+            "plain": "visible",
+        }
+
+
+@pytest.mark.parametrize("optional", [False, True])
+def test_tuple_secret_uses_positional_schema(optional: bool) -> None:
+    class TupleConfig(BaseModel):
+        pair: tuple[str, SecretStr]
+        optional_pair: tuple[str, SecretStr] | None = None
+
+    key: str = "optional_pair" if optional else "pair"
+    with _with_schema(TupleConfig.model_json_schema()):
+        assert mask_configuration("fake", {key: ["visible", "secret"]}) == {
+            key: ["visible", PASSWORD_MASK]
+        }
+
+
+def test_pattern_keyed_map_masks_marked_values() -> None:
+    class PatternConfig(BaseModel):
+        credentials: dict[Annotated[str, StringConstraints(pattern="^k_")], SecretStr]
+
+    with _with_schema(PatternConfig.model_json_schema()):
+        assert mask_configuration("fake", {"credentials": {"k_a": "secret"}}) == {
+            "credentials": {"k_a": PASSWORD_MASK}
+        }
+
+
+@pytest.mark.parametrize("schema", [{"anyOf": None}, {"properties": True}])
+def test_malformed_keyword_container_masks_affected_subtree(
+    schema: dict[str, Any],
+) -> None:
+    with _with_schema({"properties": {"creds": schema}}):
+        assert mask_configuration(
+            "fake", {"creds": {"token": "secret"}, "plain": "visible"}
+        ) == {"creds": {"token": PASSWORD_MASK}, "plain": "visible"}
+
+
+@pytest.mark.parametrize("marker", [{"writeOnly": True}, {"format": "password"}])
+def test_root_secret_preserves_configuration_mapping(marker: dict[str, Any]) -> None:
+    with _with_schema(marker):
+        assert mask_configuration("fake", {"token": "secret"}) == {
+            "token": PASSWORD_MASK
+        }
+
+
+@pytest.mark.parametrize(
+    ("schema", "value", "expected"),
+    [
+        (
+            {"prefixItems": {"0": {"writeOnly": True}}},
+            ["first", "second"],
+            [PASSWORD_MASK, PASSWORD_MASK],
+        ),
+        (
+            {"prefixItems": [{"type": "string"}], "items": {"format": "password"}},
+            ["visible", "first", "second"],
+            ["visible", PASSWORD_MASK, PASSWORD_MASK],
+        ),
+        (
+            {
+                "properties": {"host": {"type": "string"}},
+                "patternProperties": {"^token": {"writeOnly": True}},
+            },
+            {"host": "conservatively-masked"},
+            {"host": PASSWORD_MASK},
+        ),
+    ],
+)
+def test_positional_and_pattern_schema_boundaries(
+    schema: dict[str, Any], value: Any, expected: Any
+) -> None:
+    """Malformed prefixes fail closed; prefix tails and pattern siblings classify."""
+    with _with_schema({"properties": {"value": schema}}):
+        assert mask_configuration("fake", {"value": value}) == {"value": expected}

@@ -60,7 +60,7 @@ def _unmask_configuration(
     which restores masked values recursively so nested/union secrets survive
     the round-trip too, not just top-level ones."""
     try:
-        existing_configuration = (
+        existing_configuration: dict[str, Any] = (
             json.loads(existing_raw_configuration) if existing_raw_configuration else {}
         )
     except (TypeError, ValueError):
