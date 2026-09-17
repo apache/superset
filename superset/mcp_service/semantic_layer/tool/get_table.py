@@ -326,16 +326,19 @@ async def _run_get_table_query(
             error_type="ValidationError",
         )
 
+    required_dimensions: set[str] = set(request.dimensions) | {
+        query_filter.col for query_filter in request.filters
+    }
     if (
         not is_builtin
         and resolved.view is not None
         and request.metrics
-        and request.dimensions
+        and required_dimensions
     ):
         compatible: set[str] = set(
             resolved.view.get_compatible_dimensions(request.metrics, [])
         )
-        incompatible: list[str] = sorted(set(request.dimensions) - compatible)
+        incompatible: list[str] = sorted(required_dimensions - compatible)
         if incompatible:
             return SemanticLayerError.create(
                 error=(
