@@ -36,6 +36,7 @@ from superset.mcp_service.dashboard.constants import (
     GRID_COLUMN_COUNT,
     GRID_DEFAULT_CHART_WIDTH,
 )
+from superset.mcp_service.dashboard.layout_validation import rebuild_parent_chains
 from superset.mcp_service.dashboard.schemas import (
     AddChartToDashboardRequest,
     AddChartToDashboardResponse,
@@ -523,6 +524,14 @@ def add_chart_to_existing_dashboard(  # noqa: C901 — complexity is structural 
 
             # Ensure proper layout structure
             _ensure_layout_structure(current_layout, row_key, parent_id)
+
+            # The new nodes' parents were extended from the target
+            # container's own (possibly already-truncated) parents chain;
+            # rebuild every reachable component's parents from the actual
+            # children edges so filter-scope derivation sees a correct tree
+            # regardless of what the stored layout carried beforehand. See
+            # superset.dashboards.filter_scope.get_chart_ids_in_scope.
+            current_layout = rebuild_parent_chains(current_layout)
 
         # Update the dashboard
         with event_logger.log_context(action="mcp.add_chart_to_dashboard.db_write"):

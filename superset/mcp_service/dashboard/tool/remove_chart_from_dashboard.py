@@ -35,7 +35,10 @@ from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.commands.exceptions import CommandException, ForbiddenError
 from superset.extensions import event_logger
-from superset.mcp_service.dashboard.layout_validation import normalize_chart_id
+from superset.mcp_service.dashboard.layout_validation import (
+    normalize_chart_id,
+    rebuild_parent_chains,
+)
 from superset.mcp_service.dashboard.schemas import (
     DashboardInfo,
     RemoveChartFromDashboardRequest,
@@ -330,6 +333,14 @@ def remove_chart_from_dashboard(  # noqa: C901 — complexity is structural (lay
             chart_in_slices = len(remaining_slices) != len(dashboard.slices)
 
             removed_keys = _remove_chart_from_layout(current_layout, request.chart_id)
+
+            # Rebuild every remaining component's parents from the actual
+            # children edges. This is a no-op when the stored layout was
+            # already correct, and self-heals any pre-existing truncation
+            # (e.g. from a layout written before this repair existed) so
+            # filter-scope derivation sees a correct tree. See
+            # superset.dashboards.filter_scope.get_chart_ids_in_scope.
+            current_layout = rebuild_parent_chains(current_layout)
 
             if not removed_keys and not chart_in_slices:
                 return RemoveChartFromDashboardResponse(
