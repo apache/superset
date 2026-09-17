@@ -865,6 +865,59 @@ class TestResponseSizeGuardMiddleware:
             assert len(value) < 300
 
     @pytest.mark.asyncio
+    async def test_minimal_response_bounds_structured_error_object(self) -> None:
+        """``error`` is a nested model, not a string, in every real response.
+
+        ``update_chart`` returns ``GenerateChartResponse``, whose ``error`` is
+        a ``ChartGenerationError`` -- so once the ToolResult payload is parsed
+        it reaches the guard as a dict carrying unbounded ``query_info`` and
+        ``validation_errors``. Treating ``error`` as a string would bound only
+        a shape the tools never emit and leave the real one to blow the limit.
+        """
+        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+
+        context = MagicMock()
+        context.message.name = "update_chart"
+        context.message.arguments = {"request": {"identifier": 7}}
+
+        large_response = {
+            "chart": {"id": 7, "uuid": "abc", "slice_name": "Chart"},
+            "success": False,
+            "error": {
+                "error_type": "execution",
+                "message": "Query failed",
+                "error": "Query failed",
+                "details": "D" * 40000,
+                "validation_errors": [
+                    {"field": f"f_{i}", "message": "M" * 200} for i in range(200)
+                ],
+                "query_info": {"sql": "S" * 40000},
+            },
+        }
+        call_next = AsyncMock(return_value=large_response)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+            patch(
+                "superset.mcp_service.middleware.estimate_response_tokens",
+                side_effect=[600, 600],
+            ),
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        assert isinstance(result, dict)
+        assert estimate_token_count(utils_json.dumps(result)) <= 500
+
+        # The error still identifies itself -- only the unbounded context goes.
+        assert result["error"]["error_type"] == "execution"
+        assert result["error"]["message"] == "Query failed"
+        assert "query_info" not in result["error"]
+        assert "validation_errors" not in result["error"]
+        assert len(result["error"]["details"]) < 300
+        assert "[truncated]" in result["error"]["details"]
+
+    @pytest.mark.asyncio
     async def test_minimal_response_keeps_unsaved_state_flag(self) -> None:
         """Shrinking must not drop the preview-vs-persisted signal.
 

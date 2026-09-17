@@ -80,6 +80,14 @@ _METRIC_TOOL_NAME_RE = re.compile(r"[A-Za-z0-9_][A-Za-z0-9_.\-]{0,127}")
 # stays bounded no matter how large the fields were in the original payload.
 _MINIMAL_FIELD_CHARS = 200
 
+# Identifying fields kept when a structured ``error`` has to be reduced to fit
+# (see ``_clip_error``). Everything else on ``MCPBaseError`` and its subclasses
+# is an unbounded container -- ``validation_errors``, ``dataset_context``,
+# ``query_info``, ``suggestions`` -- any of which can dwarf the write
+# confirmation it is riding on. ``error`` mirrors ``message`` as a
+# backward-compatible alias, so both are kept.
+_MINIMAL_ERROR_FIELDS = ("error_type", "error", "message", "error_code", "details")
+
 
 def _sanitize_error_for_logging(error: Exception) -> str:
     """Sanitize error messages to prevent information disclosure in logs."""
@@ -1561,11 +1569,18 @@ class ResponseSizeGuardMiddleware(Middleware):
           persisted write, and shrinking must not be what drops it;
         - those scalars (``slice_name``, ``url``) are themselves free-form
           strings, so they are clipped;
-        - ``error`` and ``explore_url`` are free-form strings the reduction
-          above does not reach, so they are clipped too.
+        - ``explore_url`` is a free-form string the reduction above does not
+          reach, so it is clipped too;
+        - ``error`` is not a string at all in the shapes the tools return --
+          it is a nested error model that arrives here as a dict -- so it gets
+          the same identifying-scalars treatment as ``chart`` rather than a
+          plain clip (see ``_clip_error``).
 
-        Clipping every unbounded field is what makes the result bounded by
-        construction: identifying scalars plus fixed-text notes. A failed
+        The remaining keys are bounded already: ``success`` and
+        ``_response_truncated`` are booleans, ``schema_version`` and
+        ``api_version`` are short fixed constants, and ``_truncation_notes``
+        is fixed text. Reducing every unbounded field is what makes the result
+        bounded by construction: identifying scalars plus fixed-text notes. A failed
         measurement counts as "too big" so the payload is degraded rather
         than optimistically returned, and the chart identity is never dropped
         just because the estimator errored -- surfacing which chart was
@@ -1595,12 +1610,13 @@ class ResponseSizeGuardMiddleware(Middleware):
                 "Chart details omitted entirely to fit the size limit."
             )
 
-        for key in ("error", "explore_url"):
-            clipped = _clip_string(minimal.get(key))
-            if clipped is not minimal.get(key):
+        for key, clip in (("error", _clip_error), ("explore_url", _clip_string)):
+            current = minimal.get(key)
+            clipped = clip(current)
+            if clipped is not current:
                 minimal[key] = clipped
                 minimal["_truncation_notes"].append(
-                    f"'{key}' was clipped to fit the size limit."
+                    f"'{key}' was reduced to fit the size limit."
                 )
 
         if not _fits(minimal, self.token_limit):
@@ -1778,6 +1794,29 @@ def _clip_string(value: Any, max_chars: int = _MINIMAL_FIELD_CHARS) -> Any:
     if isinstance(value, str) and len(value) > max_chars:
         return value[:max_chars] + "... [truncated]"
     return value
+
+
+def _clip_error(value: Any) -> Any:
+    """Bound an ``error`` field of either shape it can arrive in.
+
+    Tool responses type ``error`` as a nested model (``ChartGenerationError``),
+    which reaches this middleware as a dict once the ToolResult payload is
+    parsed -- so bounding only the plain-string shape would leave the shape the
+    tools actually return untouched, and a large ``query_info`` or
+    ``validation_errors`` would still push the confirmation over the limit.
+    A dict is reduced to clipped identifying scalars; a string is clipped.
+
+    Returns the original object unchanged (identity, not just equality) when
+    nothing needed bounding, so callers can detect whether anything changed.
+    """
+    if isinstance(value, dict):
+        reduced = {
+            key: _clip_string(value[key])
+            for key in _MINIMAL_ERROR_FIELDS
+            if key in value
+        }
+        return value if reduced == value else reduced
+    return _clip_string(value)
 
 
 def _fits(payload: Any, token_limit: int) -> bool:
