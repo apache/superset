@@ -22,6 +22,7 @@ Unit tests for MCP service token utilities.
 from typing import Any, List
 from unittest.mock import patch
 
+import pytest
 from pydantic import BaseModel
 
 from superset.mcp_service.utils import token_utils
@@ -912,12 +913,27 @@ class TestTruncateStringFieldResponse:
         assert isinstance(result, dict)
         assert "LIMIT 10" not in result["sql"]
         assert result["sql"].endswith("DO NOT EXECUTE")
-        # An unterminated /* -- a `--` line comment would leave the truncated
-        # statement perfectly runnable, which is the hazard being prevented.
-        assert "/*" in result["sql"]
-        assert "*/" not in result["sql"]
+        # An unterminated quote. A `--` comment would leave the statement
+        # runnable, and an unterminated `/*` is not fatal in SQLite, which
+        # treats a block comment as closed at end of input.
+        assert result["sql"].count("'") == 1
         # The marker is inside the measured budget, not appended after it.
         assert estimate_response_tokens(result) <= 500
+
+    def test_truncated_sql_is_rejected_by_every_dialect(self) -> None:
+        """The marker must be a tokenizer error, not just a warning label."""
+        import sqlglot
+
+        columns = ", ".join(f"col_{i}" for i in range(2000))
+        sql = " ".join(["SELECT", columns, "FROM big_table", "WHERE tenant_id = 7"])
+        result, was_truncated, _ = truncate_string_field_response(
+            {"chart_id": 1, "sql": sql}, 500, "sql"
+        )
+        assert was_truncated is True
+        assert isinstance(result, dict)
+        for dialect in ("sqlite", "mysql", "postgres", "trino", "bigquery"):
+            with pytest.raises(Exception):  # noqa: B017, PT011
+                sqlglot.parse_one(result["sql"], dialect=dialect)
 
     def test_under_limit_sql_is_returned_verbatim(self) -> None:
         """A response that already fits is passed through untouched."""

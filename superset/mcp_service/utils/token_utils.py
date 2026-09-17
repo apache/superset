@@ -516,12 +516,15 @@ STRING_FIELD_TRUNCATION_TOOLS: Dict[str, str] = {
 # a SQL statement cut before its WHERE/LIMIT clause still executes, and would
 # scan far more data than the original.
 #
-# The SQL marker is an *unterminated* block comment. A `--` line comment would
-# not do -- it leaves the prefix perfectly runnable, which is the whole hazard.
-# An unterminated /* is a parse error in every dialect, so the truncated
-# statement cannot execute by accident, while the text stays readable.
+# The SQL marker is an *unterminated string literal*. Comment-based markers
+# were tried and rejected: a `--` line comment leaves the prefix perfectly
+# runnable, and an unterminated `/*` is not universally fatal either --
+# SQLite treats a block comment as terminated at end of input and executes
+# the statement anyway. An unterminated quote is a tokenizer error in every
+# dialect, so the truncated statement cannot run by accident while the text
+# stays readable.
 _STRING_FIELD_TRUNCATION_MARKERS: Dict[str, str] = {
-    "sql": "\n/* SQL TRUNCATED -- INCOMPLETE STATEMENT, DO NOT EXECUTE",
+    "sql": "\n'SQL TRUNCATED -- INCOMPLETE STATEMENT, DO NOT EXECUTE",
 }
 
 # Data field names used by the three query tools (in priority order).
