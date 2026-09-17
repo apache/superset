@@ -312,3 +312,10 @@ pre-commit run eslint            # Frontend linting
 ---
 
 **LLM Note**: This codebase is actively modernizing toward full TypeScript and type safety. Always run `pre-commit run` to validate changes. Follow the ongoing refactors section to avoid deprecated patterns.
+
+## Active Technologies
+- TypeScript (React 17-style functional components, Node 24 toolchain); Python 3.11+ + Redux chart store (`state.charts`), `@superset-ui/core/components` (`CodeSyntaxHighlighter`, `Loading`), `@apache-superset/core` (translation, theme, `Alert`), `src/components` `CopyToClipboard`; backend `QueryObjectValidationError` + `_get_query` result-type handler (sc-104912-semantic-view-show-sql)
+- N/A — no persisted change; displays data already carried on the chart-data response (sc-104912-semantic-view-show-sql)
+
+## Recent Changes
+- sc-104912-semantic-view-show-sql: Added TypeScript (React 17-style functional components, Node 24 toolchain); Python 3.11+ + Redux chart store (`state.charts`), `@superset-ui/core/components` (`CodeSyntaxHighlighter`, `Loading`), `@apache-superset/core` (translation, theme, `Alert`), `src/components` `CopyToClipboard`; backend `QueryObjectValidationError` + `_get_query` result-type handler
