@@ -677,6 +677,32 @@ describe('PropertiesModal', () => {
     });
   });
 
+  test('fetches system themes so they are assignable to a dashboard (#37289)', async () => {
+    mockedIsFeatureEnabled.mockReturnValue(false);
+    const props = createProps();
+    render(<PropertiesModal {...props} />, {
+      useRedux: true,
+    });
+
+    expect(
+      await screen.findByTestId('dashboard-edit-properties-form'),
+    ).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(
+        fetchMock.callHistory.calls(/\/api\/v1\/theme\/\?q=/).length,
+      ).toBeGreaterThan(0);
+    });
+
+    const themeCalls = fetchMock.callHistory.calls(/\/api\/v1\/theme\/\?q=/);
+    const requestedUrl = themeCalls[themeCalls.length - 1].url;
+    // THEME_DEFAULT/THEME_DARK are stored as Theme rows with is_system=true
+    // (see SeedSystemThemesCommand); they must remain assignable to a
+    // dashboard, so the fetch must not filter them out via an is_system
+    // filter (the column may still be requested/displayed).
+    expect(requestedUrl).not.toContain('col:is_system');
+  });
+
   test('Empty "Certified by" should clear "Certification details"', async () => {
     const props = createProps();
     const noCertifiedByProps = {
