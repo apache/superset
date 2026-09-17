@@ -664,6 +664,84 @@ async def test_get_table_builtin_time_range_without_configured_dttm_validation_e
     assert "no temporal column is configured" in data["message"]
 
 
+@pytest.mark.parametrize("dimensions", [[], ["country_name"]])
+@pytest.mark.asyncio
+async def test_get_table_rejects_incompatible_ordering_dimension(
+    mcp_server: FastMCP, dimensions: list[str]
+) -> None:
+    """Ordering by an unselected dimension still requires a compatible join."""
+    view: MagicMock = _make_view()
+    view.columns.append(_make_column("product_name"))
+    view.get_compatible_dimensions.return_value = ["country_name"]
+    with (
+        patch(
+            "superset.daos.semantic_layer.SemanticViewDAO.find_by_id", return_value=view
+        ),
+        patch.object(get_table_module, "execute_tabular_query") as execute,
+        patch.object(get_table_module, "_build_query_dict") as build,
+    ):
+        async with Client(mcp_server) as client:
+            result: Any = await client.call_tool(
+                "get_table",
+                {
+                    "request": {
+                        "view_id": 5,
+                        "metrics": ["bookings"],
+                        "dimensions": dimensions,
+                        "order_by": ["product_name"],
+                    }
+                },
+            )
+        data: dict[str, Any] = json.loads(result.content[0].text)
+    assert data["success"] is False
+    assert data["error_type"] == "ValidationError"
+    assert "product_name" in data["error"]
+    view.get_compatible_dimensions.assert_called_once_with(["bookings"], [])
+    build.assert_not_called()
+    execute.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "order_by", [["country_name"], ["bookings"], ["country_name", "bookings"]]
+)
+@pytest.mark.asyncio
+async def test_get_table_preserves_compatible_and_metric_ordering(
+    mcp_server: FastMCP, order_by: list[str]
+) -> None:
+    """Metric ordering is not mistaken for a required join dimension."""
+    view: MagicMock = _make_view()
+    view.get_compatible_dimensions.return_value = ["country_name"]
+    with (
+        patch(
+            "superset.daos.semantic_layer.SemanticViewDAO.find_by_id", return_value=view
+        ),
+        patch.object(
+            get_table_module,
+            "execute_tabular_query",
+            return_value={"queries": [{"data": [], "colnames": []}]},
+        ) as execute,
+    ):
+        async with Client(mcp_server) as client:
+            result: Any = await client.call_tool(
+                "get_table",
+                {
+                    "request": {
+                        "view_id": 5,
+                        "metrics": ["bookings"],
+                        "order_by": order_by,
+                    }
+                },
+            )
+        data: dict[str, Any] = json.loads(result.content[0].text)
+    assert data["success"] is True
+    execute.assert_called_once()
+    assert [name for name, _ in execute.call_args.args[2]["orderby"]] == order_by
+    if "country_name" in order_by:
+        view.get_compatible_dimensions.assert_called_once_with(["bookings"], [])
+    else:
+        view.get_compatible_dimensions.assert_not_called()
+
+
 class TestGetTableTimeRangeValidation:
     """GetTableRequest.time_range rejects values get_since_until() would
     otherwise silently resolve to an unbounded, full-table range.

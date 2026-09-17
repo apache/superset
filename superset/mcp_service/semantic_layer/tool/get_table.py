@@ -326,9 +326,11 @@ async def _run_get_table_query(
             error_type="ValidationError",
         )
 
-    required_dimensions: set[str] = set(request.dimensions) | {
-        query_filter.col for query_filter in request.filters
-    }
+    required_dimensions: set[str] = (
+        set(request.dimensions)
+        | {query_filter.col for query_filter in request.filters}
+        | (set(request.order_by) & resolved.valid_columns)
+    )
     if (
         not is_builtin
         and resolved.view is not None
