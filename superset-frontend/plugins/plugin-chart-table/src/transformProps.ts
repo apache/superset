@@ -393,7 +393,10 @@ const getComparisonColFormatter = (
     formatter = getNumberFormatter(currentColNumberFormat || PERCENT_3_POINT);
   } else if (currentColNumberFormat || hasCurrency) {
     const currency = resolveDetectedCurrency(
-      currentColConfig.currencyFormat || savedCurrency,
+      // fallback to the parent's currency if not set, mirroring the number format
+      currentColConfig.currencyFormat ||
+        parentCol.config?.currencyFormat ||
+        savedCurrency,
       detectedCurrency,
       currencyCodeColumn,
       colnames,

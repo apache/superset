@@ -115,3 +115,49 @@ test('does not invent a currency on time comparison columns when nothing was det
 
   expect(getColumn(props, '# metric_1').formatter?.(20)).not.toContain('£');
 });
+
+/**
+ * The currency lives only on the parent metric's own column_config - there is no
+ * dataset-level currency to fall back on. The comparison column overrides just
+ * the number format, which is enough to make getComparisonColFormatter rebuild
+ * the formatter. The number format already falls back to the parent column, so
+ * the currency has to as well, otherwise the rebuild silently drops it.
+ */
+const buildParentOnlyCurrencyProps = (): TableChartProps => ({
+  ...testData.comparisonWithConfig,
+  rawFormData: {
+    ...testData.comparisonWithConfig.rawFormData,
+    metrics: ['metric_1'],
+    percent_metrics: [],
+    column_config: {
+      metric_1: { currencyFormat: AUTO_CURRENCY },
+      '# metric_1': { d3NumberFormat: ',.1f' },
+    },
+  },
+  datasource: {
+    ...testData.comparisonWithConfig.datasource,
+    columnFormats: {},
+    currencyFormats: {},
+    currencyCodeColumn: 'currency_code',
+    verboseMap: { metric_1: 'Metric 1' },
+  },
+  queriesData: [
+    {
+      ...testData.comparisonWithConfig.queriesData[0],
+      data: [{ metric_1: 100, 'metric_1__1 year ago': 80 }],
+      colnames: ['metric_1', 'metric_1__1 year ago'],
+      coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
+      detected_currency: 'GBP',
+    },
+    testData.comparisonWithConfig.queriesData[1],
+  ],
+});
+
+test('keeps the parent column currency on a time comparison column that only overrides the number format', () => {
+  const props = buildParentOnlyCurrencyProps();
+
+  // The parent resolves AUTO today; the comparison column must not lose it just
+  // because it carries its own d3NumberFormat.
+  expect(getColumn(props, 'Main metric_1').formatter?.(100)).toContain('£');
+  expect(getColumn(props, '# metric_1').formatter?.(20)).toContain('£');
+});

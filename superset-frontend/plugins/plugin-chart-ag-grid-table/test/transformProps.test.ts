@@ -581,3 +581,49 @@ test('leaves AUTO currency unresolved on time comparison columns when the curren
   expect(comparisonCol).toBeDefined();
   expect(comparisonCol!.formatter?.(20)).not.toContain('£');
 });
+
+test('keeps the parent column currency on a time comparison column that only overrides the number format', () => {
+  const props = createMockChartProps({
+    rawFormData: {
+      viz_type: 'ag_grid_table',
+      datasource: '1__table',
+      query_mode: QueryMode.Aggregate,
+      metrics: ['metric_1'],
+      percent_metrics: [],
+      table_timestamp_format: '',
+      time_compare: ['1 year ago'],
+      comparison_type: 'values',
+      // currency only on the parent metric; the comparison column overrides just
+      // the number format, which is enough to trigger a formatter rebuild
+      column_config: {
+        metric_1: { currencyFormat: AUTO_CURRENCY },
+        '# metric_1': { d3NumberFormat: ',.1f' },
+      },
+    } as unknown as TableChartProps['rawFormData'],
+    queriesData: [
+      {
+        data: [{ metric_1: 100, 'metric_1__1 year ago': 80 }],
+        colnames: ['metric_1', 'metric_1__1 year ago'],
+        coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
+        rowcount: 1,
+        applied_filters: [],
+        rejected_filters: [],
+        detected_currency: 'GBP',
+      } as unknown as TableChartProps['queriesData'][number],
+    ],
+    datasource: {
+      columns: [],
+      metrics: [],
+      columnFormats: {},
+      // no dataset-level currency to fall back on
+      currencyFormats: {},
+      currencyCodeColumn: 'currency_code',
+      verboseMap: {},
+    } as unknown as TableChartProps['datasource'],
+  });
+
+  const { columns } = transformProps(props);
+  const comparisonCol = columns.find(c => c.key === '# metric_1');
+  expect(comparisonCol).toBeDefined();
+  expect(comparisonCol!.formatter?.(20)).toContain('£');
+});
