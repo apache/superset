@@ -163,7 +163,13 @@ test('folder drag handle is a separate element from the collapse toggle', async 
 
 test('folder drag payload excludes columns filtered out by compatibleDimensions', () => {
   setup(mockData, {
-    explore: { compatibleDimensions: [columns[0].column_name] },
+    explore: {
+      compatibility: {
+        status: 'verified',
+        metrics: [],
+        dimensions: [columns[0].column_name],
+      },
+    },
   });
 
   const folderHeaderCalls = mockUseDraggable.mock.calls.filter(
@@ -184,7 +190,13 @@ test('folder drag payload excludes columns filtered out by compatibleDimensions'
 
 test('folder header is not draggable when every item is filtered out', () => {
   setup(mockData, {
-    explore: { compatibleDimensions: ['non-existent-column'] },
+    explore: {
+      compatibility: {
+        status: 'verified',
+        metrics: [],
+        dimensions: ['non-existent-column'],
+      },
+    },
   });
 
   const folderHeaderCalls = mockUseDraggable.mock.calls.filter(
