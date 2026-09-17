@@ -108,14 +108,21 @@ def get_ttl_seconds() -> int:
     return ttl if ttl > 0 else DEFAULT_LOGIN_TOKEN_TTL_SECONDS
 
 
-def resolve_identity(request: Request, **kwargs: Any) -> LoginTokenUserInfo | None:
+# Each rejection below is a distinct failure with its own diagnostic — an
+# unconfigured resolver is normal and silent, a misconfigured or misbehaving one
+# is logged. Merging the branches to satisfy the return-count limit would lose
+# that distinction, which is the only signal an operator gets.
+def resolve_identity(  # pylint: disable=too-many-return-statements
+    request: Request, **kwargs: Any
+) -> LoginTokenUserInfo | None:
     """Run the operator-supplied resolver against an inbound mint request.
 
     The resolver is the whole authentication boundary for minting: it decides
     what counts as proof of identity (an OIDC id token, an existing session, a
-    credential checked against an internal service). A resolver that raises is
-    treated as a rejection rather than a server error, so a failing validation
-    can never be mistaken for a successful one.
+    credential checked against an internal service). A resolver that raises, or
+    returns something other than a mapping, is treated as a rejection rather
+    than a server error, so a failing validation can never be mistaken for a
+    successful one.
     """
     resolver = current_app.config.get("LOGIN_TOKEN_IDENTITY_RESOLVER")
     if resolver is None:
@@ -132,6 +139,15 @@ def resolve_identity(request: Request, **kwargs: Any) -> LoginTokenUserInfo | No
         return None
 
     if not userinfo:
+        return None
+
+    if not isinstance(userinfo, dict):
+        # A truthy non-mapping would otherwise raise on the ``.get`` below and
+        # surface as a 500, contradicting the rejection contract above.
+        logger.error(
+            "LOGIN_TOKEN_IDENTITY_RESOLVER returned %s, expected a mapping",
+            type(userinfo).__name__,
+        )
         return None
 
     if not (userinfo.get("username") or userinfo.get("email")):
@@ -152,8 +168,11 @@ def mint(userinfo: LoginTokenUserInfo) -> tuple[str, datetime]:
     token = uuid4()
     expires_on = datetime.now() + timedelta(seconds=get_ttl_seconds())
 
-    # An explicit key plus an expiry requires purging expired entries first,
-    # otherwise a stale row occupying the same key fails the unique constraint.
+    # Opportunistic GC rather than collision avoidance: a fresh uuid4 cannot
+    # collide, but with a TTL measured in seconds these rows turn over quickly,
+    # and the scheduled prune job runs far less often than tokens are minted.
+    # Minting is not a hot path, so one indexed DELETE here is cheap insurance
+    # against the table filling with dead entries between prunes.
     KeyValueDAO.delete_expired_entries(LOGIN_TOKEN_RESOURCE)
     KeyValueDAO.create_entry(
         resource=LOGIN_TOKEN_RESOURCE,

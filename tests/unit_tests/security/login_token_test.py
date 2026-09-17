@@ -107,6 +107,11 @@ def test_get_ttl_seconds_falls_back(app_context: None) -> None:
         (lambda request, **kwargs: None, "resolver declined"),
         (lambda request, **kwargs: {}, "resolver returned an empty dict"),
         (lambda request, **kwargs: {"first_name": "Jane"}, "no username or email"),
+        # A truthy non-mapping must reject rather than raise on `.get` and
+        # surface as a 500 — the contract is rejection, never a server error.
+        (lambda request, **kwargs: "jdoe", "resolver returned a string"),
+        (lambda request, **kwargs: ["jdoe"], "resolver returned a list"),
+        (lambda request, **kwargs: object(), "resolver returned an opaque object"),
     ],
 )
 def test_resolve_identity_rejections(
