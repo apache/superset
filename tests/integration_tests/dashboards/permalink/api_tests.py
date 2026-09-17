@@ -14,26 +14,27 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
-from typing import Iterator
-from unittest.mock import patch
+from collections.abc import Iterator
+from unittest.mock import patch  # noqa: F401
 from uuid import uuid3
 
 import pytest
-from flask_appbuilder.security.sqla.models import User
-from sqlalchemy.orm import Session
+from flask_appbuilder.security.sqla.models import User  # noqa: F401
+from sqlalchemy.orm import Session  # noqa: F401
 
 from superset import db
-from superset.dashboards.commands.exceptions import DashboardAccessDeniedError
+from superset.commands.dashboard.exceptions import (
+    DashboardAccessDeniedError,  # noqa: F401
+)
 from superset.key_value.models import KeyValueEntry
 from superset.key_value.types import KeyValueResource
 from superset.key_value.utils import decode_permalink_id
 from superset.models.dashboard import Dashboard
 from tests.integration_tests.fixtures.world_bank_dashboard import (
-    load_world_bank_dashboard_with_slices,
-    load_world_bank_data,
+    load_world_bank_dashboard_with_slices,  # noqa: F401
+    load_world_bank_data,  # noqa: F401
 )
-from tests.integration_tests.test_app import app
+from tests.integration_tests.test_app import app  # noqa: F401
 
 STATE = {
     "dataMask": {"FILTER_1": "foo"},
@@ -42,11 +43,9 @@ STATE = {
 
 
 @pytest.fixture
-def dashboard_id(load_world_bank_dashboard_with_slices) -> int:
-    with app.app_context() as ctx:
-        session: Session = ctx.app.appbuilder.get_session
-        dashboard = session.query(Dashboard).filter_by(slug="world_health").one()
-        return dashboard.id
+def dashboard_id(load_world_bank_dashboard_with_slices) -> int:  # noqa: F811
+    dashboard = db.session.query(Dashboard).filter_by(slug="world_health").one()
+    return dashboard.id
 
 
 @pytest.fixture
@@ -66,7 +65,7 @@ def permalink_salt() -> Iterator[str]:
 
 
 def test_post(
-    test_client, login_as_admin, dashboard_id: int, permalink_salt: str
+    dashboard_id: int, permalink_salt: str, test_client, login_as_admin
 ) -> None:
     resp = test_client.post(f"api/v1/dashboard/{dashboard_id}/permalink", json=STATE)
     assert resp.status_code == 201
@@ -93,21 +92,22 @@ def test_post_access_denied(test_client, login_as, dashboard_id: int):
     assert resp.status_code == 404
 
 
-def test_post_invalid_schema(test_client, login_as_admin, dashboard_id: int):
+def test_post_invalid_schema(dashboard_id: int, test_client, login_as_admin):
     resp = test_client.post(
         f"api/v1/dashboard/{dashboard_id}/permalink", json={"foo": "bar"}
     )
     assert resp.status_code == 400
 
 
-def test_get(test_client, login_as_admin, dashboard_id: int, permalink_salt: str):
+def test_get(dashboard_id: int, permalink_salt: str, test_client, login_as_admin):
     key = test_client.post(
         f"api/v1/dashboard/{dashboard_id}/permalink", json=STATE
     ).json["key"]
     resp = test_client.get(f"api/v1/dashboard/permalink/{key}")
     assert resp.status_code == 200
     result = resp.json
-    assert result["dashboardId"] == str(dashboard_id)
+    dashboard_uuid = result["dashboardId"]
+    assert Dashboard.get(dashboard_uuid).id == dashboard_id
     assert result["state"] == STATE
     id_ = decode_permalink_id(key, permalink_salt)
     db.session.query(KeyValueEntry).filter_by(id=id_).delete()

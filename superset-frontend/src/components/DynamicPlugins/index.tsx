@@ -16,15 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useContext, useEffect, useReducer } from 'react';
+import { useContext, useEffect, useReducer, createContext, FC } from 'react';
+
 import {
   ChartMetadata,
   defineSharedModules,
+  isFeatureEnabled,
+  FeatureFlag,
   getChartMetadataRegistry,
   logging,
   makeApi,
 } from '@superset-ui/core';
-import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { omitBy } from 'lodash';
 
 const metadataRegistry = getChartMetadataRegistry();
@@ -57,7 +59,7 @@ const dummyPluginContext: PluginContextType = {
  * It is highly recommended to use the usePluginContext hook instead.
  * @see usePluginContext
  */
-export const PluginContext = React.createContext(dummyPluginContext);
+export const PluginContext = createContext(dummyPluginContext);
 
 /**
  * The plugin context provides info about what dynamic plugins are available.
@@ -162,7 +164,7 @@ const sharedModules = {
   '@superset-ui/core': () => import('@superset-ui/core'),
 };
 
-export const DynamicPluginProvider: React.FC = ({ children }) => {
+export const DynamicPluginProvider: FC = ({ children }) => {
   const [pluginState, dispatch] = useReducer(
     pluginContextReducer,
     dummyPluginContext,
@@ -171,7 +173,7 @@ export const DynamicPluginProvider: React.FC = ({ children }) => {
       ...getRegistryData(),
       // eslint-disable-next-line @typescript-eslint/no-use-before-define
       fetchAll,
-      loading: isFeatureEnabled(FeatureFlag.DYNAMIC_PLUGINS),
+      loading: isFeatureEnabled(FeatureFlag.DynamicPlugins),
       // TODO: Write fetchByKeys
     }),
   );
@@ -209,7 +211,7 @@ export const DynamicPluginProvider: React.FC = ({ children }) => {
   }
 
   useEffect(() => {
-    if (isFeatureEnabled(FeatureFlag.DYNAMIC_PLUGINS)) {
+    if (isFeatureEnabled(FeatureFlag.DynamicPlugins)) {
       fetchAll();
     }
     const registryListener = () => {

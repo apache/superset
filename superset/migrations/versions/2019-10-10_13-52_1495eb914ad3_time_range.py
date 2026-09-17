@@ -21,7 +21,7 @@ Revises: 258b5280a45e
 Create Date: 2019-10-10 13:52:54.544475
 
 """
-import json
+
 import logging
 
 from alembic import op
@@ -30,6 +30,7 @@ from sqlalchemy.ext.declarative import declarative_base
 
 from superset import db
 from superset.legacy import update_time_range
+from superset.utils import json
 
 # revision identifiers, used by Alembic.
 revision = "1495eb914ad3"
@@ -69,7 +70,6 @@ def downgrade():
             form_data = json.loads(slc.params)
 
             if "time_range" in form_data:
-
                 # Note defaults and relative dates are not compatible with since/until
                 # and thus the time range is persisted.
                 try:

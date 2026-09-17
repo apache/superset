@@ -1,10 +1,10 @@
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
-# regarding coperatoryright ownership.  The ASF licenses this file
+# regarding copyright ownership.  The ASF licenses this file
 # to you under the Apache License, Version 2.0 (the
 # "License"); you may not use this file except in compliance
-# with the License.  You may obtain a coperatory of the License at
+# with the License.  You may obtain a copy of the License at
 #
 #   http://www.apache.org/licenses/LICENSE-2.0
 #
@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import ipaddress
-from typing import Any, List
+from typing import Any
 
 from sqlalchemy import Column
 
@@ -65,7 +65,7 @@ def cidr_func(req: AdvancedDataTypeRequest) -> AdvancedDataTypeResponse:
             break
         else:
             resp["display_value"] = ", ".join(
-                map(
+                map(  # noqa: C417
                     lambda x: f"{x['start']} - {x['end']}"
                     if isinstance(x, dict)
                     else str(x),
@@ -76,8 +76,8 @@ def cidr_func(req: AdvancedDataTypeRequest) -> AdvancedDataTypeResponse:
 
 
 # Make this return a single clause
-def cidr_translate_filter_func(
-    col: Column, operator: FilterOperator, values: List[Any]
+def cidr_translate_filter_func(  # noqa: C901
+    col: Column, operator: FilterOperator, values: list[Any]
 ) -> Any:
     """
     Convert a passed in column, FilterOperator and

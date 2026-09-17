@@ -18,7 +18,7 @@
  */
 
 import PropTypes from 'prop-types';
-import React from 'react';
+import { PureComponent } from 'react';
 import { mount } from 'enzyme';
 import { reactify } from '@superset-ui/core';
 import { RenderFuncType } from '../../../src/chart/components/reactify';
@@ -51,7 +51,7 @@ describe('reactify(renderFn)', () => {
     componentWillUnmount: willUnmountCb,
   });
 
-  class TestComponent extends React.PureComponent<{}, { content: string }> {
+  class TestComponent extends PureComponent<{}, { content: string }> {
     constructor(props = {}) {
       super(props);
       this.state = { content: 'abc' };
@@ -70,7 +70,7 @@ describe('reactify(renderFn)', () => {
     }
   }
 
-  class AnotherTestComponent extends React.PureComponent<{}, {}> {
+  class AnotherTestComponent extends PureComponent<{}, {}> {
     render() {
       return <TheChartWithWillUnmountHook id="another_test" />;
     }

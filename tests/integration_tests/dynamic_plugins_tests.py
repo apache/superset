@@ -14,8 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from .base_tests import SupersetTestCase
-from .conftest import with_feature_flags
+from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.conftest import with_feature_flags
+from tests.integration_tests.constants import ADMIN_USERNAME
 
 
 class TestDynamicPlugins(SupersetTestCase):
@@ -24,17 +25,17 @@ class TestDynamicPlugins(SupersetTestCase):
         """
         Dynamic Plugins: Responds not found when disabled
         """
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         uri = "/dynamic-plugins/api"
         rv = self.client.get(uri)
-        self.assertEqual(rv.status_code, 404)
+        assert rv.status_code == 404
 
     @with_feature_flags(DYNAMIC_PLUGINS=True)
     def test_dynamic_plugins_enabled(self):
         """
         Dynamic Plugins: Responds successfully when enabled
         """
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         uri = "/dynamic-plugins/api"
         rv = self.client.get(uri)
-        self.assertEqual(rv.status_code, 200)
+        assert rv.status_code == 200

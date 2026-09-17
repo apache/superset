@@ -17,17 +17,14 @@
  * under the License.
  */
 import sinon from 'sinon';
-import { SupersetClient } from '@superset-ui/core';
+import { SupersetClient, isFeatureEnabled } from '@superset-ui/core';
 import { waitFor } from '@testing-library/react';
 
 import {
-  removeSliceFromDashboard,
   SAVE_DASHBOARD_STARTED,
   saveDashboardRequest,
   SET_OVERRIDE_CONFIRM,
 } from 'src/dashboard/actions/dashboardState';
-import { REMOVE_FILTER } from 'src/dashboard/actions/dashboardFilters';
-import * as featureFlags from 'src/featureFlags';
 import { UPDATE_COMPONENTS_PARENTS_LIST } from 'src/dashboard/actions/dashboardLayout';
 import {
   DASHBOARD_GRID_ID,
@@ -40,6 +37,11 @@ import {
 } from 'spec/fixtures/mockSliceEntities';
 import { emptyFilters } from 'spec/fixtures/mockDashboardFilters';
 import mockDashboardData from 'spec/fixtures/mockDashboardData';
+
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  isFeatureEnabled: jest.fn(),
+}));
 
 describe('dashboardState actions', () => {
   const mockState = {
@@ -59,6 +61,7 @@ describe('dashboardState actions', () => {
       present: mockDashboardData.positions,
       future: {},
     },
+    charts: {},
   };
   const newDashboardData = mockDashboardData;
 
@@ -134,22 +137,22 @@ describe('dashboardState actions', () => {
       const thunk = saveDashboardRequest(newDashboardData, 1, 'save_dash');
       thunk(dispatch, getState);
       expect(postStub.callCount).toBe(1);
-      const { postPayload } = postStub.getCall(0).args[0];
-      expect(postPayload.data.positions[DASHBOARD_GRID_ID].parents).toBe(
-        mockParentsList,
-      );
+      const { jsonPayload } = postStub.getCall(0).args[0];
+      const parsedJsonMetadata = JSON.parse(jsonPayload.json_metadata);
+      expect(
+        parsedJsonMetadata.positions[DASHBOARD_GRID_ID].parents,
+      ).toStrictEqual(mockParentsList);
     });
 
     describe('FeatureFlag.CONFIRM_DASHBOARD_DIFF', () => {
-      let isFeatureEnabledMock;
       beforeEach(() => {
-        isFeatureEnabledMock = jest
-          .spyOn(featureFlags, 'isFeatureEnabled')
-          .mockImplementation(feature => feature === 'CONFIRM_DASHBOARD_DIFF');
+        isFeatureEnabled.mockImplementation(
+          feature => feature === 'CONFIRM_DASHBOARD_DIFF',
+        );
       });
 
       afterEach(() => {
-        isFeatureEnabledMock.mockRestore();
+        isFeatureEnabled.mockRestore();
       });
 
       it('dispatches SET_OVERRIDE_CONFIRM when an inspect value has diff', async () => {
@@ -191,15 +194,5 @@ describe('dashboardState actions', () => {
         expect(body).toBe(JSON.stringify(confirmedDashboardData));
       });
     });
-  });
-
-  it('should dispatch removeFilter if a removed slice is a filter_box', () => {
-    const { getState, dispatch } = setup(mockState);
-    const thunk = removeSliceFromDashboard(filterId);
-    thunk(dispatch, getState);
-
-    const removeFilter = dispatch.getCall(0).args[0];
-    removeFilter(dispatch, getState);
-    expect(dispatch.getCall(3).args[0].type).toBe(REMOVE_FILTER);
   });
 });

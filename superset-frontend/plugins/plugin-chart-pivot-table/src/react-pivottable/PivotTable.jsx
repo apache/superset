@@ -17,10 +17,10 @@
  * under the License.
  */
 
-import React from 'react';
+import { PureComponent } from 'react';
 import { TableRenderer } from './TableRenderers';
 
-class PivotTable extends React.PureComponent {
+class PivotTable extends PureComponent {
   render() {
     return <TableRenderer {...this.props} />;
   }

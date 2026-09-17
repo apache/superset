@@ -16,88 +16,98 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { shallow } from 'enzyme';
-import sinon from 'sinon';
+import { fireEvent, getByRole, render } from 'spec/helpers/testing-library';
 
 import EditableTable from 'src/components/EditableTitle';
 
-describe('EditableTitle', () => {
-  const callback = sinon.spy();
-  const mockProps = {
-    title: 'my title',
-    canEdit: true,
-    onSaveTitle: callback,
-  };
-  const mockEvent = {
-    target: {
-      value: 'new title',
-    },
-  };
-  let editableWrapper = shallow(<EditableTable {...mockProps} />);
-  const notEditableWrapper = shallow(
-    <EditableTable title="my title" onSaveTitle={callback} />,
+const mockEvent = {
+  target: {
+    value: 'new title',
+  },
+};
+const mockProps = {
+  title: 'my title',
+  canEdit: true,
+  onSaveTitle: jest.fn(),
+};
+
+test('should render title', () => {
+  const { getByRole } = render(<EditableTable {...mockProps} />);
+  expect(getByRole('button')).toBeInTheDocument();
+  expect(getByRole('button')).toHaveValue(mockProps.title);
+});
+test('should not render an input if it is not editable', () => {
+  const { queryByRole } = render(
+    <EditableTable title="my title" onSaveTitle={jest.fn()} />,
   );
-  it('is valid', () => {
-    expect(React.isValidElement(<EditableTable {...mockProps} />)).toBe(true);
+  expect(queryByRole('button')).not.toBeInTheDocument();
+});
+
+describe('should handle click', () => {
+  test('should change title', () => {
+    const { getByRole, container } = render(<EditableTable {...mockProps} />);
+    fireEvent.click(getByRole('button'));
+    expect(container.querySelector('input')?.getAttribute('type')).toEqual(
+      'text',
+    );
   });
-  it('should render title', () => {
-    const titleElement = editableWrapper.find('input');
-    expect(titleElement.props().value).toBe('my title');
-    expect(titleElement.props().type).toBe('button');
+});
+
+describe('should handle change', () => {
+  test('should change title', () => {
+    const { getByTestId, container } = render(
+      <EditableTable {...mockProps} editing />,
+    );
+    fireEvent.change(getByTestId('editable-title-input'), mockEvent);
+    expect(container.querySelector('input')).toHaveValue('new title');
   });
-  it('should not render an input if it is not editable', () => {
-    expect(notEditableWrapper.find('input')).not.toExist();
+});
+
+describe('should handle blur', () => {
+  const setup = (overrides: Partial<typeof mockProps> = {}) => {
+    const selectors = render(<EditableTable {...mockProps} {...overrides} />);
+    fireEvent.click(selectors.getByRole('button'));
+    return selectors;
+  };
+
+  test('default input type should be text', () => {
+    const { container } = setup();
+    expect(container.querySelector('input')?.getAttribute('type')).toEqual(
+      'text',
+    );
   });
 
-  describe('should handle click', () => {
-    it('should change title', () => {
-      editableWrapper.find('input').simulate('click');
-      expect(editableWrapper.find('input').props().type).toBe('text');
-    });
+  test('should trigger callback', () => {
+    const callback = jest.fn();
+    const { getByTestId, container } = setup({ onSaveTitle: callback });
+    fireEvent.change(getByTestId('editable-title-input'), mockEvent);
+    fireEvent.blur(getByTestId('editable-title-input'));
+    expect(callback).toHaveBeenCalledTimes(1);
+    expect(callback).toHaveBeenCalledWith('new title');
+    expect(container.querySelector('input')?.getAttribute('type')).toEqual(
+      'button',
+    );
   });
 
-  describe('should handle change', () => {
-    afterEach(() => {
-      editableWrapper = shallow(<EditableTable {...mockProps} />);
-    });
-    it('should change title', () => {
-      editableWrapper.find('input').simulate('change', mockEvent);
-      expect(editableWrapper.find('input').props().value).toBe('new title');
-    });
+  test('should not trigger callback', () => {
+    const callback = jest.fn();
+    const { getByTestId, container } = setup({ onSaveTitle: callback });
+    fireEvent.blur(getByTestId('editable-title-input'));
+    expect(container.querySelector('input')?.getAttribute('type')).toEqual(
+      'button',
+    );
+    // no change
+    expect(callback).not.toHaveBeenCalled();
   });
 
-  describe('should handle blur', () => {
-    beforeEach(() => {
-      editableWrapper.find('input').simulate('click');
-    });
-    afterEach(() => {
-      callback.resetHistory();
-      editableWrapper = shallow(<EditableTable {...mockProps} />);
-    });
-
-    it('default input type should be text', () => {
-      expect(editableWrapper.find('input').props().type).toBe('text');
-    });
-
-    it('should trigger callback', () => {
-      editableWrapper.find('input').simulate('change', mockEvent);
-      editableWrapper.find('input').simulate('blur');
-      expect(editableWrapper.find('input').props().type).toBe('button');
-      expect(callback.callCount).toBe(1);
-      expect(callback.getCall(0).args[0]).toBe('new title');
-    });
-    it('should not trigger callback', () => {
-      editableWrapper.find('input').simulate('blur');
-      expect(editableWrapper.find('input').props().type).toBe('button');
-      // no change
-      expect(callback.callCount).toBe(0);
-    });
-    it('should not save empty title', () => {
-      editableWrapper.find('input').simulate('blur');
-      expect(editableWrapper.find('input').props().type).toBe('button');
-      expect(editableWrapper.find('input').props().value).toBe('my title');
-      expect(callback.callCount).toBe(0);
-    });
+  test('should not save empty title', () => {
+    const callback = jest.fn();
+    const { getByTestId, container } = setup({ onSaveTitle: callback });
+    fireEvent.blur(getByTestId('editable-title-input'));
+    expect(container.querySelector('input')?.getAttribute('type')).toEqual(
+      'button',
+    );
+    expect(getByRole(container, 'button')).toHaveValue(mockProps.title);
+    expect(callback).not.toHaveBeenCalled();
   });
 });

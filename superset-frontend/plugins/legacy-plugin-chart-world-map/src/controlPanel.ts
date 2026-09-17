@@ -21,13 +21,11 @@ import {
   ControlPanelConfig,
   formatSelectOptions,
   getStandardizedControls,
-  sections,
 } from '@superset-ui/chart-controls';
 import { ColorBy } from './utils';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,
@@ -56,18 +54,7 @@ const config: ControlPanelConfig = {
         ['metric'],
         ['adhoc_filters'],
         ['row_limit'],
-        [
-          {
-            name: 'sort_by_metric',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Sort by metric'),
-              description: t(
-                'Whether to sort results by the selected metric in descending order.',
-              ),
-            },
-          },
-        ],
+        ['sort_by_metric'],
       ],
     },
     {
@@ -114,10 +101,10 @@ const config: ControlPanelConfig = {
             config: {
               type: 'RadioButtonControl',
               label: t('Color by'),
-              default: ColorBy.metric,
+              default: ColorBy.Metric,
               options: [
-                [ColorBy.metric, t('Metric')],
-                [ColorBy.country, t('Country')],
+                [ColorBy.Metric, t('Metric')],
+                [ColorBy.Country, t('Country')],
               ],
               description: t(
                 'Choose whether a country should be shaded by the metric, or assigned a color based on a categorical color palette',
@@ -128,6 +115,11 @@ const config: ControlPanelConfig = {
         ['linear_color_scheme'],
         ['color_scheme'],
       ],
+    },
+    {
+      label: t('Chart Options'),
+      expanded: true,
+      controlSetRows: [['y_axis_format'], ['currency_format']],
     },
   ],
   controlOverrides: {
@@ -145,12 +137,12 @@ const config: ControlPanelConfig = {
     linear_color_scheme: {
       label: t('Country Color Scheme'),
       visibility: ({ controls }) =>
-        Boolean(controls?.color_by.value === ColorBy.metric),
+        Boolean(controls?.color_by.value === ColorBy.Metric),
     },
     color_scheme: {
       label: t('Country Color Scheme'),
       visibility: ({ controls }) =>
-        Boolean(controls?.color_by.value === ColorBy.country),
+        Boolean(controls?.color_by.value === ColorBy.Country),
     },
   },
   formDataOverrides: formData => ({

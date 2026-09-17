@@ -17,6 +17,7 @@
   under the License.
 #}
 {% import 'appbuilder/general/lib.html' as lib %}
+{% import "superset/macros.html" as macros %}
 
 <div class="list-search-container">
     <form id="filter_form" class="form-search" method="get">
@@ -44,7 +45,7 @@
     </form>
 </div>
 
-<script>
+<script nonce="{{ macros.get_nonce() }}">
     (function($) {
         function checkSearchButton() {
             var hasFilter = $('.filters tr').length;

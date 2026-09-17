@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint-disable camelcase */
-import React, {
+import {
   Dispatch,
   SetStateAction,
   useCallback,
@@ -41,14 +41,17 @@ import Button from 'src/components/Button';
 import { Select } from 'src/components';
 
 import { Form, FormItem } from 'src/components/Form';
+import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 import { SQLEditor } from 'src/components/AsyncAceEditor';
-import { EmptyStateSmall } from 'src/components/EmptyState';
+import { EmptyState } from 'src/components/EmptyState';
+import { getColumnKeywords } from 'src/explore/controlUtils/getColumnKeywords';
 import { StyledColumnOption } from 'src/explore/components/optionRenderers';
 import {
   POPOVER_INITIAL_HEIGHT,
-  UNRESIZABLE_POPOVER_WIDTH,
+  POPOVER_INITIAL_WIDTH,
 } from 'src/explore/constants';
 import { ExplorePageState } from 'src/explore/types';
+import useResizeButton from './useResizeButton';
 
 const StyledSelect = styled(Select)`
   .metric-option {
@@ -62,16 +65,18 @@ const StyledSelect = styled(Select)`
   }
 `;
 
-interface ColumnSelectPopoverProps {
+export interface ColumnSelectPopoverProps {
   columns: ColumnMeta[];
   editedColumn?: ColumnMeta | AdhocColumn;
   onChange: (column: ColumnMeta | AdhocColumn) => void;
   onClose: () => void;
+  hasCustomLabel: boolean;
   setLabel: (title: string) => void;
   getCurrentTab: (tab: string) => void;
   label: string;
   isTemporal?: boolean;
   setDatasetModal?: Dispatch<SetStateAction<boolean>>;
+  disabledTabs?: Set<string>;
 }
 
 const getInitialColumnValues = (
@@ -92,13 +97,15 @@ const getInitialColumnValues = (
 const ColumnSelectPopover = ({
   columns,
   editedColumn,
+  getCurrentTab,
+  hasCustomLabel,
+  isTemporal,
+  label,
   onChange,
   onClose,
   setDatasetModal,
   setLabel,
-  getCurrentTab,
-  label,
-  isTemporal,
+  disabledTabs = new Set<'saved' | 'simple' | 'sqlExpression'>(),
 }: ColumnSelectPopoverProps) => {
   const datasourceType = useSelector<ExplorePageState, string | undefined>(
     state => state.explore.datasource.type,
@@ -116,6 +123,12 @@ const ColumnSelectPopover = ({
   const [selectedSimpleColumn, setSelectedSimpleColumn] = useState<
     ColumnMeta | undefined
   >(initialSimpleColumn);
+  const [selectedTab, setSelectedTab] = useState<string | null>(null);
+
+  const [resizeButton, width, height] = useResizeButton(
+    POPOVER_INITIAL_WIDTH,
+    POPOVER_INITIAL_HEIGHT,
+  );
 
   const sqlEditorRef = useRef(null);
 
@@ -176,13 +189,40 @@ const ColumnSelectPopover = ({
 
   const defaultActiveTabKey = initialAdhocColumn
     ? 'sqlExpression'
-    : initialSimpleColumn || calculatedColumns.length === 0
-    ? 'simple'
-    : 'saved';
+    : selectedCalculatedColumn
+      ? 'saved'
+      : 'simple';
 
   useEffect(() => {
     getCurrentTab(defaultActiveTabKey);
-  }, [defaultActiveTabKey, getCurrentTab]);
+    setSelectedTab(defaultActiveTabKey);
+  }, [defaultActiveTabKey, getCurrentTab, setSelectedTab]);
+
+  useEffect(() => {
+    /* if the adhoc column is not set (because it was never edited) but the
+     * tab is selected and the label has changed, then we need to set the
+     * adhoc column manually */
+    if (
+      adhocColumn === undefined &&
+      selectedTab === 'sqlExpression' &&
+      hasCustomLabel
+    ) {
+      const sqlExpression =
+        selectedSimpleColumn?.column_name ||
+        selectedCalculatedColumn?.expression ||
+        '';
+      setAdhocColumn({ label, sqlExpression, expressionType: 'SQL' });
+    }
+  }, [
+    adhocColumn,
+    defaultActiveTabKey,
+    hasCustomLabel,
+    getCurrentTab,
+    label,
+    selectedCalculatedColumn,
+    selectedSimpleColumn,
+    selectedTab,
+  ]);
 
   const onSave = useCallback(() => {
     if (adhocColumn && adhocColumn.label !== label) {
@@ -219,6 +259,7 @@ const ColumnSelectPopover = ({
   const onTabChange = useCallback(
     tab => {
       getCurrentTab(tab);
+      setSelectedTab(tab);
       // @ts-ignore
       sqlEditorRef.current?.editor.focus();
     },
@@ -248,6 +289,10 @@ const ColumnSelectPopover = ({
 
   const savedExpressionsLabel = t('Saved expressions');
   const simpleColumnsLabel = t('Column');
+  const keywords = useMemo(
+    () => sqlKeywords.concat(getColumnKeywords(columns)),
+    [columns],
+  );
 
   return (
     <Form layout="vertical" id="metrics-edit-popover">
@@ -258,11 +303,15 @@ const ColumnSelectPopover = ({
         className="adhoc-metric-edit-tabs"
         allowOverflow
         css={css`
-          height: ${POPOVER_INITIAL_HEIGHT}px;
-          width: ${UNRESIZABLE_POPOVER_WIDTH}px;
+          height: ${height}px;
+          width: ${width}px;
         `}
       >
-        <Tabs.TabPane key="saved" tab={t('Saved')}>
+        <Tabs.TabPane
+          key="saved"
+          tab={t('Saved')}
+          disabled={disabledTabs.has('saved')}
+        >
           {calculatedColumns.length > 0 ? (
             <FormItem label={savedExpressionsLabel}>
               <StyledSelect
@@ -285,8 +334,9 @@ const ColumnSelectPopover = ({
               />
             </FormItem>
           ) : datasourceType === DatasourceType.Table ? (
-            <EmptyStateSmall
+            <EmptyState
               image="empty.svg"
+              size="small"
               title={
                 isTemporal
                   ? t('No temporal columns found')
@@ -303,8 +353,9 @@ const ColumnSelectPopover = ({
               }
             />
           ) : (
-            <EmptyStateSmall
+            <EmptyState
               image="empty.svg"
+              size="small"
               title={
                 isTemporal
                   ? t('No temporal columns found')
@@ -338,10 +389,15 @@ const ColumnSelectPopover = ({
             />
           )}
         </Tabs.TabPane>
-        <Tabs.TabPane key="simple" tab={t('Simple')}>
+        <Tabs.TabPane
+          key="simple"
+          tab={t('Simple')}
+          disabled={disabledTabs.has('simple')}
+        >
           {isTemporal && simpleColumns.length === 0 ? (
-            <EmptyStateSmall
+            <EmptyState
               image="empty.svg"
+              size="small"
               title={t('No temporal columns found')}
               description={
                 datasourceType === DatasourceType.Table ? (
@@ -382,7 +438,11 @@ const ColumnSelectPopover = ({
           )}
         </Tabs.TabPane>
 
-        <Tabs.TabPane key="sqlExpression" tab={t('Custom SQL')}>
+        <Tabs.TabPane
+          key="sqlExpression"
+          tab={t('Custom SQL')}
+          disabled={disabledTabs.has('sqlExpression')}
+        >
           <SQLEditor
             value={
               adhocColumn?.sqlExpression ||
@@ -393,13 +453,14 @@ const ColumnSelectPopover = ({
             showLoadingForImport
             onChange={onSqlExpressionChange}
             width="100%"
-            height={`${POPOVER_INITIAL_HEIGHT - 80}px`}
+            height={`${height - 80}px`}
             showGutter={false}
             editorProps={{ $blockScrolling: true }}
             enableLiveAutocompletion
             className="filter-sql-editor"
             wrapEnabled
             ref={sqlEditorRef}
+            keywords={keywords}
           />
         </Tabs.TabPane>
       </Tabs>
@@ -417,6 +478,7 @@ const ColumnSelectPopover = ({
         >
           {t('Save')}
         </Button>
+        {resizeButton}
       </div>
     </Form>
   );

@@ -16,22 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useMemo } from 'react';
-import { PlusSquareOutlined, MinusSquareOutlined } from '@ant-design/icons';
+import { useCallback, useMemo } from 'react';
+import { MinusSquareOutlined, PlusSquareOutlined } from '@ant-design/icons';
 import {
   AdhocMetric,
+  BinaryQueryObjectFilterClause,
+  CurrencyFormatter,
   DataRecordValue,
+  FeatureFlag,
   getColumnLabel,
   getNumberFormatter,
+  getSelectedText,
+  isAdhocColumn,
+  isFeatureEnabled,
   isPhysicalColumn,
   NumberFormatter,
   styled,
-  useTheme,
-  isAdhocColumn,
-  BinaryQueryObjectFilterClause,
   t,
+  useTheme,
 } from '@superset-ui/core';
-import { PivotTable, sortAs, aggregatorTemplates } from './react-pivottable';
+import { aggregatorTemplates, PivotTable, sortAs } from './react-pivottable';
 import {
   FilterType,
   MetricsLayoutEnum,
@@ -52,11 +56,11 @@ const Styles = styled.div<PivotTableStylesProps>`
 
 const PivotTableWrapper = styled.div`
   height: 100%;
-  max-width: fit-content;
+  max-width: inherit;
   overflow: auto;
 `;
 
-const METRIC_KEY = t('metric');
+const METRIC_KEY = t('Metric');
 const vals = ['value'];
 
 const StyledPlusSquareOutlined = styled(PlusSquareOutlined)`
@@ -134,43 +138,69 @@ export default function PivotTableChart(props: PivotTableProps) {
     rowSubtotalPosition,
     colSubtotalPosition,
     colTotals,
+    colSubTotals,
     rowTotals,
+    rowSubTotals,
     valueFormat,
+    currencyFormat,
     emitCrossFilters,
     setDataMask,
     selectedFilters,
     verboseMap,
     columnFormats,
+    currencyFormats,
     metricsLayout,
     metricColorFormatters,
     dateFormatters,
     onContextMenu,
     timeGrainSqla,
+    allowRenderHtml,
   } = props;
 
   const theme = useTheme();
   const defaultFormatter = useMemo(
-    () => getNumberFormatter(valueFormat),
-    [valueFormat],
+    () =>
+      currencyFormat?.symbol
+        ? new CurrencyFormatter({
+            currency: currencyFormat,
+            d3Format: valueFormat,
+          })
+        : getNumberFormatter(valueFormat),
+    [valueFormat, currencyFormat],
   );
-  const columnFormatsArray = useMemo(
-    () => Object.entries(columnFormats),
-    [columnFormats],
+  const customFormatsArray = useMemo(
+    () =>
+      Array.from(
+        new Set([
+          ...Object.keys(columnFormats || {}),
+          ...Object.keys(currencyFormats || {}),
+        ]),
+      ).map(metricName => [
+        metricName,
+        columnFormats[metricName] || valueFormat,
+        currencyFormats[metricName] || currencyFormat,
+      ]),
+    [columnFormats, currencyFormat, currencyFormats, valueFormat],
   );
-  const hasCustomMetricFormatters = columnFormatsArray.length > 0;
+  const hasCustomMetricFormatters = customFormatsArray.length > 0;
   const metricFormatters = useMemo(
     () =>
       hasCustomMetricFormatters
         ? {
             [METRIC_KEY]: Object.fromEntries(
-              columnFormatsArray.map(([metric, format]) => [
+              customFormatsArray.map(([metric, d3Format, currency]) => [
                 metric,
-                getNumberFormatter(format),
+                currency
+                  ? new CurrencyFormatter({
+                      currency,
+                      d3Format,
+                    })
+                  : getNumberFormatter(d3Format),
               ]),
             ),
           }
         : undefined,
-    [columnFormatsArray, hasCustomMetricFormatters],
+    [customFormatsArray, hasCustomMetricFormatters],
   );
 
   const metricNames = useMemo(
@@ -279,6 +309,70 @@ export default function PivotTableChart(props: PivotTableProps) {
     [groupbyColumnsRaw, groupbyRowsRaw, setDataMask],
   );
 
+  const getCrossFilterDataMask = useCallback(
+    (value: { [key: string]: string }) => {
+      const isActiveFilterValue = (key: string, val: DataRecordValue) =>
+        !!selectedFilters && selectedFilters[key]?.includes(val);
+
+      if (!value) {
+        return undefined;
+      }
+
+      const [key, val] = Object.entries(value)[0];
+      let values = { ...selectedFilters };
+      if (isActiveFilterValue(key, val)) {
+        values = {};
+      } else {
+        values = { [key]: [val] };
+      }
+
+      const filterKeys = Object.keys(values);
+      const groupby = [...groupbyRowsRaw, ...groupbyColumnsRaw];
+      return {
+        dataMask: {
+          extraFormData: {
+            filters:
+              filterKeys.length === 0
+                ? undefined
+                : filterKeys.map(key => {
+                    const val = values?.[key];
+                    const col =
+                      groupby.find(item => {
+                        if (isPhysicalColumn(item)) {
+                          return item === key;
+                        }
+                        if (isAdhocColumn(item)) {
+                          return item.label === key;
+                        }
+                        return false;
+                      }) ?? '';
+                    if (val === null || val === undefined)
+                      return {
+                        col,
+                        op: 'IS NULL' as const,
+                      };
+                    return {
+                      col,
+                      op: 'IN' as const,
+                      val: val as (string | number | boolean)[],
+                    };
+                  }),
+          },
+          filterState: {
+            value:
+              values && Object.keys(values).length
+                ? Object.values(values)
+                : null,
+            selectedFilters:
+              values && Object.keys(values).length ? values : null,
+          },
+        },
+        isCurrentValueSelected: isActiveFilterValue(key, val),
+      };
+    },
+    [groupbyColumnsRaw, groupbyRowsRaw, selectedFilters],
+  );
+
   const toggleFilter = useCallback(
     (
       e: MouseEvent,
@@ -289,6 +383,11 @@ export default function PivotTableChart(props: PivotTableProps) {
       isGrandTotal: boolean,
     ) => {
       if (isSubtotal || isGrandTotal || !emitCrossFilters) {
+        return;
+      }
+
+      // allow selecting text in a cell
+      if (getSelectedText()) {
         return;
       }
 
@@ -336,8 +435,13 @@ export default function PivotTableChart(props: PivotTableProps) {
       clickRowHeaderCallback: toggleFilter,
       clickColumnHeaderCallback: toggleFilter,
       colTotals,
+      colSubTotals,
       rowTotals,
-      highlightHeaderCellsOnHover: emitCrossFilters,
+      rowSubTotals,
+      highlightHeaderCellsOnHover:
+        emitCrossFilters ||
+        isFeatureEnabled(FeatureFlag.DrillBy) ||
+        isFeatureEnabled(FeatureFlag.DrillToDetail),
       highlightedHeaderCells: selectedFilters,
       omittedHighlightHeaderGroups: [METRIC_KEY],
       cellColorFormatters: { [METRIC_KEY]: metricColorFormatters },
@@ -345,10 +449,12 @@ export default function PivotTableChart(props: PivotTableProps) {
     }),
     [
       colTotals,
+      colSubTotals,
       dateFormatters,
       emitCrossFilters,
       metricColorFormatters,
       rowTotals,
+      rowSubTotals,
       selectedFilters,
       toggleFilter,
     ],
@@ -369,18 +475,19 @@ export default function PivotTableChart(props: PivotTableProps) {
       e: MouseEvent,
       colKey: (string | number | boolean)[] | undefined,
       rowKey: (string | number | boolean)[] | undefined,
+      dataPoint: { [key: string]: string },
     ) => {
       if (onContextMenu) {
         e.preventDefault();
         e.stopPropagation();
-        const filters: BinaryQueryObjectFilterClause[] = [];
+        const drillToDetailFilters: BinaryQueryObjectFilterClause[] = [];
         if (colKey && colKey.length > 1) {
           colKey.forEach((val, i) => {
             const col = cols[i];
             const formatter = dateFormatters[col];
             const formattedVal = formatter?.(val as number) || String(val);
             if (i > 0) {
-              filters.push({
+              drillToDetailFilters.push({
                 col,
                 op: '==',
                 val,
@@ -395,7 +502,7 @@ export default function PivotTableChart(props: PivotTableProps) {
             const col = rows[i];
             const formatter = dateFormatters[col];
             const formattedVal = formatter?.(val as number) || String(val);
-            filters.push({
+            drillToDetailFilters.push({
               col,
               op: '==',
               val,
@@ -404,10 +511,30 @@ export default function PivotTableChart(props: PivotTableProps) {
             });
           });
         }
-        onContextMenu(e.clientX, e.clientY, filters);
+        onContextMenu(e.clientX, e.clientY, {
+          drillToDetail: drillToDetailFilters,
+          crossFilter: getCrossFilterDataMask(dataPoint),
+          drillBy: dataPoint && {
+            filters: [
+              {
+                col: Object.keys(dataPoint)[0],
+                op: '==',
+                val: Object.values(dataPoint)[0],
+              },
+            ],
+            groupbyFieldName: rowKey ? 'groupbyRows' : 'groupbyColumns',
+          },
+        });
       }
     },
-    [cols, dateFormatters, onContextMenu, rows, timeGrainSqla],
+    [
+      cols,
+      dateFormatters,
+      getCrossFilterDataMask,
+      onContextMenu,
+      rows,
+      timeGrainSqla,
+    ],
   );
 
   return (
@@ -429,6 +556,7 @@ export default function PivotTableChart(props: PivotTableProps) {
           subtotalOptions={subtotalOptions}
           namesMapping={verboseMap}
           onContextMenu={handleContextMenu}
+          allowRenderHtml={allowRenderHtml}
         />
       </PivotTableWrapper>
     </Styles>

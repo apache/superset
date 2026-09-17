@@ -17,7 +17,7 @@
 
 from parameterized import parameterized
 
-from superset.databases.commands.test_connection import get_log_connection_action
+from superset.commands.database.test_connection import get_log_connection_action
 from superset.databases.ssh_tunnel.models import SSHTunnel
 
 

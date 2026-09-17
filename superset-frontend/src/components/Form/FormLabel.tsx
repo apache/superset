@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactNode } from 'react';
+import { ReactNode } from 'react';
 import { styled } from '@superset-ui/core';
 
 export type FormLabelProps = {
@@ -27,14 +27,12 @@ export type FormLabelProps = {
 };
 
 const Label = styled.label`
-  text-transform: uppercase;
   font-size: ${({ theme }) => theme.typography.sizes.s}px;
   color: ${({ theme }) => theme.colors.grayscale.base};
   margin-bottom: ${({ theme }) => theme.gridUnit}px;
 `;
 
 const RequiredLabel = styled.label`
-  text-transform: uppercase;
   font-size: ${({ theme }) => theme.typography.sizes.s}px;
   color: ${({ theme }) => theme.colors.grayscale.base};
   margin-bottom: ${({ theme }) => theme.gridUnit}px;

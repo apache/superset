@@ -22,11 +22,15 @@ from typing import TYPE_CHECKING
 
 from flask import current_app
 
+from superset import security_manager
+from superset.tasks.exceptions import ExecutorNotFoundError
 from superset.tasks.types import ExecutorType
 from superset.tasks.utils import get_current_user, get_executor
+from superset.utils.core import override_user
 from superset.utils.hashing import md5_sha_from_str
 
 if TYPE_CHECKING:
+    from superset.connectors.sqla.models import BaseDatasource, SqlaTable
     from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice
 
@@ -49,13 +53,54 @@ def _adjust_string_for_executor(
     return unique_string
 
 
-def get_dashboard_digest(dashboard: Dashboard) -> str:
-    config = current_app.config
-    executor_type, executor = get_executor(
-        executor_types=config["THUMBNAIL_EXECUTE_AS"],
-        model=dashboard,
-        current_user=get_current_user(),
+def _adjust_string_with_rls(
+    unique_string: str,
+    datasources: list[SqlaTable | None] | set[BaseDatasource],
+    executor: str,
+) -> str:
+    """
+    Add the RLS filters to the unique string based on current executor.
+    """
+    user = (
+        security_manager.find_user(executor)
+        or security_manager.get_current_guest_user_if_guest()
     )
+
+    if user:
+        stringified_rls = ""
+        with override_user(user):
+            for datasource in datasources:
+                if (
+                    datasource
+                    and hasattr(datasource, "is_rls_supported")
+                    and datasource.is_rls_supported
+                ):
+                    rls_filters = datasource.get_sqla_row_level_filters()
+
+                    if len(rls_filters) > 0:
+                        stringified_rls += (
+                            f"{str(datasource.id)}\t"
+                            + "\t".join([str(f) for f in rls_filters])
+                            + "\n"
+                        )
+
+        if stringified_rls:
+            unique_string = f"{unique_string}\n{stringified_rls}"
+
+    return unique_string
+
+
+def get_dashboard_digest(dashboard: Dashboard) -> str | None:
+    config = current_app.config
+    try:
+        executor_type, executor = get_executor(
+            executors=config["THUMBNAIL_EXECUTORS"],
+            model=dashboard,
+            current_user=get_current_user(),
+        )
+    except ExecutorNotFoundError:
+        return None
+
     if func := config["THUMBNAIL_DASHBOARD_DIGEST_FUNC"]:
         return func(dashboard, executor_type, executor)
 
@@ -65,19 +110,29 @@ def get_dashboard_digest(dashboard: Dashboard) -> str:
     )
 
     unique_string = _adjust_string_for_executor(unique_string, executor_type, executor)
+    unique_string = _adjust_string_with_rls(
+        unique_string, dashboard.datasources, executor
+    )
+
     return md5_sha_from_str(unique_string)
 
 
-def get_chart_digest(chart: Slice) -> str:
+def get_chart_digest(chart: Slice) -> str | None:
     config = current_app.config
-    executor_type, executor = get_executor(
-        executor_types=config["THUMBNAIL_EXECUTE_AS"],
-        model=chart,
-        current_user=get_current_user(),
-    )
+    try:
+        executor_type, executor = get_executor(
+            executors=config["THUMBNAIL_EXECUTORS"],
+            model=chart,
+            current_user=get_current_user(),
+        )
+    except ExecutorNotFoundError:
+        return None
+
     if func := config["THUMBNAIL_CHART_DIGEST_FUNC"]:
         return func(chart, executor_type, executor)
 
     unique_string = f"{chart.params or ''}.{executor}"
     unique_string = _adjust_string_for_executor(unique_string, executor_type, executor)
+    unique_string = _adjust_string_with_rls(unique_string, [chart.datasource], executor)
+
     return md5_sha_from_str(unique_string)

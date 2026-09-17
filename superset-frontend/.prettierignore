@@ -21,7 +21,10 @@ tmp/
 node_modules/
 tsconfig.json
 lerna.json
-CHANGELOG.md
+CHANGELOG/
 *.geojson
 *-topo.json
 storybook-static/
+*.snap
+
+/.nx/workspace-data

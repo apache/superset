@@ -17,7 +17,6 @@
  * under the License.
  */
 import PropTypes from 'prop-types';
-import React from 'react';
 import { t } from '@superset-ui/core';
 
 const propTypes = {

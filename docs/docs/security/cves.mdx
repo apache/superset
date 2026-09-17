@@ -1,0 +1,109 @@
+---
+title: CVEs fixed by release
+sidebar_position: 2
+---
+#### Version 4.1.0
+
+| CVE            | Title                                                                              | Affected |
+|:---------------|:-----------------------------------------------------------------------------------|---------:|
+| CVE-2024-53947 | Improper SQL authorisation, parse for specific postgres functions                  |  < 4.1.0 |
+| CVE-2024-53948 | Error verbosity exposes metadata in analytics databases                            |  < 4.1.0 |
+| CVE-2024-53949 | Lower privilege users are able to create Role when FAB_ADD_SECURITY_API is enabled |  < 4.1.0 |
+| CVE-2024-55633 | SQLLab Improper readonly query validation allows unauthorized write access         |  < 4.1.0 |
+
+#### Version 4.0.2
+
+| CVE            | Title                       | Affected |
+|:---------------|:----------------------------|---------:|
+| CVE-2024-39887 | Improper SQL authorization  |  < 4.0.1 |
+
+#### Version 3.1.3, 4.0.1
+
+| CVE            | Title                       |                    Affected |
+|:---------------|:----------------------------|----------------------------:|
+| CVE-2024-34693 | Server arbitrary file read  |  < 3.1.3, >= 4.0.0, < 4.0.1 |
+
+#### Version 3.1.2
+
+| CVE            | Title                                                   | Affected |
+|:---------------|:--------------------------------------------------------|---------:|
+| CVE-2024-28148 | Incorrect datasource authorization on explore REST API  |  < 3.1.2 |
+
+#### Version 3.0.4, 3.1.1
+
+| CVE            | Title                                                                        |                    Affected |
+|:---------------|:-----------------------------------------------------------------------------|----------------------------:|
+| CVE-2024-27315 | Improper error handling on alerts                                            |  < 3.0.4, >= 3.1.0, < 3.1.1 |
+| CVE-2024-24773 | Improper validation of SQL statements allows for unauthorized access to data |  < 3.0.4, >= 3.1.0, < 3.1.1 |
+| CVE-2024-24772 | Improper Neutralisation of custom SQL on embedded context                    |  < 3.0.4, >= 3.1.0, < 3.1.1 |
+| CVE-2024-24779 | Improper data authorization when creating a new dataset                      |  < 3.0.4, >= 3.1.0, < 3.1.1 |
+| CVE-2024-26016 | Improper authorization validation on dashboards and charts import            |  < 3.0.4, >= 3.1.0, < 3.1.1 |
+
+#### Version 3.0.3
+
+| CVE            | Title                                         | Affected |
+|:---------------|:----------------------------------------------|---------:|
+| CVE-2023-49657 | Stored XSS in Dashboard Title and Chart Title |  < 3.0.3 |
+
+#### Version 3.0.2, 2.1.3
+
+| CVE            | Title                                                       |                   Affected |
+|:---------------|:------------------------------------------------------------|---------------------------:|
+| CVE-2023-46104 | Allows for uncontrolled resource consumption via a ZIP bomb | < 2.1.3, >= 3.0.0, < 3.0.2 |
+| CVE-2023-49736 | SQL Injection on where_in JINJA macro                       | < 2.1.3, >= 3.0.0, < 3.0.2 |
+| CVE-2023-49734 | Privilege Escalation Vulnerability                          | < 2.1.3, >= 3.0.0, < 3.0.2 |
+
+#### Version 3.0.0
+
+| CVE            | Title                                                                   | Affected |
+|:---------------|:------------------------------------------------------------------------|---------:|
+| CVE-2023-42502 | Open Redirect Vulnerability                                             |  < 3.0.0 |
+| CVE-2023-42505 | Sensitive information disclosure on db connection details               |  < 3.0.0 |
+
+#### Version 2.1.3
+
+| CVE            | Title                                                                   | Affected |
+|:---------------|:------------------------------------------------------------------------|---------:|
+| CVE-2023-42504 | Lack of rate limiting allows for possible denial of service             |  < 2.1.3 |
+
+#### Version 2.1.2
+
+| CVE            | Title                                                                   | Affected |
+|:---------------|:------------------------------------------------------------------------|---------:|
+| CVE-2023-40610 | Privilege escalation with default examples database                     |  < 2.1.2 |
+| CVE-2023-42501 | Unnecessary read permissions within the Gamma role                      |  < 2.1.2 |
+| CVE-2023-43701 | Stored XSS on API endpoint                                              |  < 2.1.2 |
+
+#### Version 2.1.1
+
+| CVE            | Title                                                                   | Affected |
+|:---------------|:------------------------------------------------------------------------|---------:|
+| CVE-2023-36387 | Improper API permission for low privilege users                         |  < 2.1.1 |
+| CVE-2023-36388 | Improper API permission for low privilege users allows for SSRF         |  < 2.1.1 |
+| CVE-2023-27523 | Improper data permission validation on Jinja templated queries          |  < 2.1.1 |
+| CVE-2023-27526 | Improper Authorization check on import charts                           |  < 2.1.1 |
+| CVE-2023-39264 | Stack traces enabled by default                                         |  < 2.1.1 |
+| CVE-2023-39265 | Possible Unauthorized Registration of SQLite Database Connections       |  < 2.1.1 |
+| CVE-2023-37941 | Metadata db write access can lead to remote code execution              |  < 2.1.1 |
+| CVE-2023-32672 | SQL parser edge case bypasses data access authorization                 |  < 2.1.1 |
+
+#### Version 2.1.0
+
+| CVE            | Title                                                                   | Affected |
+|:---------------|:------------------------------------------------------------------------|---------:|
+| CVE-2023-25504 | Possible SSRF on import datasets                                        |  < 2.1.0 |
+| CVE-2023-27524 | Session validation vulnerability when using provided default SECRET_KEY |  < 2.1.0 |
+| CVE-2023-27525 | Incorrect default permissions for Gamma role                            |  < 2.1.0 |
+| CVE-2023-30776 | Database connection password leak                                       |  < 2.1.0 |
+
+#### Version 2.0.1
+
+| CVE            | Title                                                       |          Affected  |
+|:---------------|:------------------------------------------------------------|------------------: |
+| CVE-2022-41703 | SQL injection vulnerability in adhoc clauses                | < 2.0.1 or < 1.5.2 |
+| CVE-2022-43717 | Cross-Site Scripting on dashboards                          | < 2.0.1 or < 1.5.2 |
+| CVE-2022-43718 | Cross-Site Scripting vulnerability on upload forms          | < 2.0.1 or < 1.5.2 |
+| CVE-2022-43719 | Cross Site Request Forgery (CSRF) on accept, request access | < 2.0.1 or < 1.5.2 |
+| CVE-2022-43720 | Improper rendering of user input                            | < 2.0.1 or < 1.5.2 |
+| CVE-2022-43721 | Open Redirect Vulnerability                                 | < 2.0.1 or < 1.5.2 |
+| CVE-2022-45438 | Dashboard metadata information leak                         | < 2.0.1 or < 1.5.2 |

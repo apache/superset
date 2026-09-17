@@ -16,18 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable no-unused-expressions */
-import React from 'react';
-import sinon from 'sinon';
-import { shallow } from 'enzyme';
 
-import { AGGREGATES } from 'src/explore/constants';
-import { LabelsContainer } from 'src/explore/components/controls/OptionControls';
-import { supersetTheme } from '@superset-ui/core';
+import { screen, render, selectOption } from 'spec/helpers/testing-library';
+import userEvent from '@testing-library/user-event';
 import MetricsControl from 'src/explore/components/controls/MetricControl/MetricsControl';
 import AdhocMetric, {
   EXPRESSION_TYPES,
 } from 'src/explore/components/controls/MetricControl/AdhocMetric';
+import { AGGREGATES } from 'src/explore/constants';
 
 const defaultProps = {
   name: 'metrics',
@@ -47,131 +43,140 @@ const defaultProps = {
 };
 
 function setup(overrides) {
-  const onChange = sinon.spy();
+  const onChange = jest.fn();
   const props = {
     onChange,
-    theme: supersetTheme,
     ...defaultProps,
     ...overrides,
   };
-  const wrapper = shallow(<MetricsControl {...props} />);
-  const component = wrapper.shallow();
-  return { wrapper, component, onChange };
+  render(<MetricsControl {...props} />, { useDnd: true });
+  return { onChange };
 }
 
-const valueColumn = { type: 'DOUBLE', column_name: 'value' };
+const valueColumn = { type: 'double', column_name: 'value' };
 
 const sumValueAdhocMetric = new AdhocMetric({
+  expressionType: EXPRESSION_TYPES.SIMPLE,
   column: valueColumn,
   aggregate: AGGREGATES.SUM,
   label: 'SUM(value)',
 });
 
-// TODO: rewrite the tests to RTL
-describe.skip('MetricsControl', () => {
-  it('renders Select', () => {
-    const { component } = setup();
-    expect(component.find(LabelsContainer)).toExist();
+test('renders the LabelsContainer', () => {
+  setup();
+  expect(screen.getByText('Metrics')).toBeInTheDocument();
+});
+
+test('coerces Adhoc Metrics from form data into instances of the AdhocMetric class and leaves saved metrics', () => {
+  setup({
+    value: [sumValueAdhocMetric],
   });
 
-  describe('constructor', () => {
-    it('coerces Adhoc Metrics from form data into instances of the AdhocMetric class and leaves saved metrics', () => {
-      const { component } = setup({
-        value: [
-          {
-            expressionType: EXPRESSION_TYPES.SIMPLE,
-            column: { type: 'double', column_name: 'value' },
-            aggregate: AGGREGATES.SUM,
-            label: 'SUM(value)',
-            optionName: 'blahblahblah',
-          },
-        ],
-      });
+  const adhocMetric = screen.getByText('SUM(value)');
+  expect(adhocMetric).toBeInTheDocument();
+});
 
-      const adhocMetric = component.state('value')[0];
-      expect(adhocMetric instanceof AdhocMetric).toBe(true);
-      expect(adhocMetric.optionName.length).toBeGreaterThan(10);
-      expect(component.state('value')).toEqual([
+test('handles creating a new metric', async () => {
+  const { onChange } = setup();
+
+  userEvent.click(screen.getByText(/add metric/i));
+  await selectOption('sum__value', /select saved metrics/i);
+  userEvent.click(screen.getByRole('button', { name: /save/i }));
+  expect(onChange).toHaveBeenCalledWith(['sum__value']);
+});
+
+test('accepts an edited metric from an AdhocMetricEditPopover', async () => {
+  const { onChange } = setup({
+    value: [sumValueAdhocMetric],
+  });
+
+  const metricLabel = screen.getByText('SUM(value)');
+  userEvent.click(metricLabel);
+
+  await screen.findByText('aggregate');
+  selectOption('AVG', /select aggregate options/i);
+
+  await screen.findByText('AVG(value)');
+
+  userEvent.click(screen.getByRole('button', { name: /save/i }));
+
+  expect(onChange).toHaveBeenCalledWith([
+    expect.objectContaining({
+      aggregate: AGGREGATES.AVG,
+      label: 'AVG(value)',
+    }),
+  ]);
+});
+
+test('removes metrics if savedMetrics changes', async () => {
+  setup({
+    value: [sumValueAdhocMetric],
+  });
+
+  expect(screen.getByText('SUM(value)')).toBeInTheDocument();
+  userEvent.click(screen.getByText('SUM(value)'));
+
+  const savedTab = screen.getByRole('tab', { name: /saved/i });
+  userEvent.click(savedTab);
+  await selectOption('avg__value', /select saved metrics/i);
+
+  const simpleTab = screen.getByRole('tab', { name: /simple/i });
+  userEvent.click(simpleTab);
+  await screen.findByText('aggregate');
+
+  expect(screen.queryByText('SUM')).not.toBeInTheDocument();
+  expect(screen.queryByText('value')).not.toBeInTheDocument();
+});
+
+test('does not remove custom SQL metric if savedMetrics changes', async () => {
+  const { rerender } = render(
+    <MetricsControl
+      value={[
         {
-          expressionType: EXPRESSION_TYPES.SIMPLE,
-          column: { type: 'double', column_name: 'value' },
-          aggregate: AGGREGATES.SUM,
-          label: 'SUM(value)',
-          hasCustomLabel: false,
-          optionName: 'blahblahblah',
-          sqlExpression: null,
+          expressionType: EXPRESSION_TYPES.SQL,
+          sqlExpression: 'COUNT(*)',
+          label: 'old label',
+          hasCustomLabel: true,
         },
-      ]);
-    });
+      ]}
+      columns={[
+        { type: 'VARCHAR(255)', column_name: 'source' },
+        { type: 'VARCHAR(255)', column_name: 'target' },
+        { type: 'DOUBLE', column_name: 'value' },
+      ]}
+      savedMetrics={[
+        { metric_name: 'sum__value', expression: 'SUM(energy_usage.value)' },
+        { metric_name: 'avg__value', expression: 'AVG(energy_usage.value)' },
+      ]}
+    />,
+    { useDnd: true },
+  );
+
+  expect(screen.getByText('old label')).toBeInTheDocument();
+
+  // Simulate removing columns
+  rerender(
+    <MetricsControl
+      value={[
+        {
+          expressionType: EXPRESSION_TYPES.SQL,
+          sqlExpression: 'COUNT(*)',
+          label: 'old label',
+          hasCustomLabel: true,
+        },
+      ]}
+      columns={[]}
+      savedMetrics={[]}
+    />,
+  );
+
+  expect(screen.getByText('old label')).toBeInTheDocument();
+});
+
+test('does not fail if no columns or savedMetrics are passed', () => {
+  setup({
+    savedMetrics: null,
+    columns: null,
   });
-
-  describe('onChange', () => {
-    it('handles creating a new metric', () => {
-      const { component, onChange } = setup();
-      component.instance().onNewMetric({
-        metric_name: 'sum__value',
-        expression: 'SUM(energy_usage.value)',
-      });
-      expect(onChange.lastCall.args).toEqual([['sum__value']]);
-    });
-  });
-
-  describe('onMetricEdit', () => {
-    it('accepts an edited metric from an AdhocMetricEditPopover', () => {
-      const { component, onChange } = setup({
-        value: [sumValueAdhocMetric],
-      });
-
-      const editedMetric = sumValueAdhocMetric.duplicateWith({
-        aggregate: AGGREGATES.AVG,
-      });
-      component.instance().onMetricEdit(editedMetric, sumValueAdhocMetric);
-
-      expect(onChange.lastCall.args).toEqual([[editedMetric]]);
-    });
-  });
-
-  describe('option filter', () => {
-    it('Removes metrics if savedMetrics changes', () => {
-      const { props, component, onChange } = setup({
-        value: [
-          {
-            expressionType: EXPRESSION_TYPES.SIMPLE,
-            column: { type: 'double', column_name: 'value' },
-            aggregate: AGGREGATES.SUM,
-            label: 'SUM(value)',
-            optionName: 'blahblahblah',
-          },
-        ],
-      });
-      expect(component.state('value')).toHaveLength(1);
-
-      component.setProps({ ...props, columns: [] });
-      expect(onChange.lastCall.args).toEqual([[]]);
-    });
-
-    it('Does not remove custom sql metric if savedMetrics changes', () => {
-      const { props, component, onChange } = setup({
-        value: [
-          {
-            expressionType: EXPRESSION_TYPES.SQL,
-            sqlExpression: 'COUNT(*)',
-            label: 'old label',
-            hasCustomLabel: true,
-          },
-        ],
-      });
-      expect(component.state('value')).toHaveLength(1);
-
-      component.setProps({ ...props, columns: [] });
-      expect(onChange.calledOnce).toEqual(false);
-    });
-    it('Does not fail if no columns or savedMetrics are passed', () => {
-      const { component } = setup({
-        savedMetrics: null,
-        columns: null,
-      });
-      expect(component.exists('.metrics-select')).toEqual(true);
-    });
-  });
+  expect(screen.getByText(/add metric/i)).toBeInTheDocument();
 });

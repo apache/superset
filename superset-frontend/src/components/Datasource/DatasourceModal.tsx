@@ -16,17 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FunctionComponent, useState, useRef } from 'react';
+import {
+  FunctionComponent,
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+} from 'react';
+import { useSelector } from 'react-redux';
 import Alert from 'src/components/Alert';
 import Button from 'src/components/Button';
-import { styled, t, SupersetClient } from '@superset-ui/core';
+import {
+  isDefined,
+  styled,
+  SupersetClient,
+  getClientErrorObject,
+  t,
+  SupersetError,
+} from '@superset-ui/core';
 
 import Modal from 'src/components/Modal';
 import AsyncEsmComponent from 'src/components/AsyncEsmComponent';
-import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
-
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
+import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import withToasts from 'src/components/MessageToasts/withToasts';
+import { DatasetObject } from '../../features/datasets/types';
+import Checkbox from '../Checkbox';
 
 const DatasourceEditor = AsyncEsmComponent(() => import('./DatasourceEditor'));
 
@@ -53,14 +67,17 @@ const StyledDatasourceModal = styled(Modal)`
 
 interface DatasourceModalProps {
   addSuccessToast: (msg: string) => void;
-  datasource: any;
+  addDangerToast: (msg: string) => void;
+  datasource: DatasetObject;
   onChange: () => {};
   onDatasourceSave: (datasource: object, errors?: Array<any>) => {};
   onHide: () => {};
   show: boolean;
 }
 
-function buildExtraJsonObject(item: Record<string, unknown>) {
+function buildExtraJsonObject(
+  item: DatasetObject['metrics'][0] | DatasetObject['columns'][0],
+) {
   const certification =
     item?.certified_by || item?.certification_details
       ? {
@@ -82,69 +99,136 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
   show,
 }) => {
   const [currentDatasource, setCurrentDatasource] = useState(datasource);
+  const syncColumnsRef = useRef(false);
+  const [confirmModal, setConfirmModal] = useState<any>(null);
+  const currencies = useSelector<
+    {
+      common: {
+        currencies: string[];
+      };
+    },
+    string[]
+  >(state => state.common?.currencies);
   const [errors, setErrors] = useState<any[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const dialog = useRef<any>(null);
   const [modal, contextHolder] = Modal.useModal();
-
-  const onConfirmSave = () => {
+  const buildPayload = (datasource: Record<string, any>) => ({
+    table_name: datasource.table_name,
+    database_id: datasource.database?.id,
+    sql: datasource.sql,
+    filter_select_enabled: datasource.filter_select_enabled,
+    fetch_values_predicate: datasource.fetch_values_predicate,
+    schema:
+      datasource.tableSelector?.schema ||
+      datasource.databaseSelector?.schema ||
+      datasource.schema,
+    description: datasource.description,
+    main_dttm_col: datasource.main_dttm_col,
+    normalize_columns: datasource.normalize_columns,
+    always_filter_main_dttm: datasource.always_filter_main_dttm,
+    offset: datasource.offset,
+    default_endpoint: datasource.default_endpoint,
+    cache_timeout:
+      datasource.cache_timeout === '' ? null : datasource.cache_timeout,
+    is_sqllab_view: datasource.is_sqllab_view,
+    template_params: datasource.template_params,
+    extra: datasource.extra,
+    is_managed_externally: datasource.is_managed_externally,
+    external_url: datasource.external_url,
+    metrics: datasource?.metrics?.map((metric: DatasetObject['metrics'][0]) => {
+      const metricBody: any = {
+        expression: metric.expression,
+        description: metric.description,
+        metric_name: metric.metric_name,
+        metric_type: metric.metric_type,
+        d3format: metric.d3format || null,
+        currency: !isDefined(metric.currency)
+          ? null
+          : JSON.stringify(metric.currency),
+        verbose_name: metric.verbose_name,
+        warning_text: metric.warning_text,
+        uuid: metric.uuid,
+        extra: buildExtraJsonObject(metric),
+      };
+      if (!Number.isNaN(Number(metric.id))) {
+        metricBody.id = metric.id;
+      }
+      return metricBody;
+    }),
+    columns: datasource?.columns?.map(
+      (column: DatasetObject['columns'][0]) => ({
+        id: typeof column.id === 'number' ? column.id : undefined,
+        column_name: column.column_name,
+        type: column.type,
+        advanced_data_type: column.advanced_data_type,
+        verbose_name: column.verbose_name,
+        description: column.description,
+        expression: column.expression,
+        filterable: column.filterable,
+        groupby: column.groupby,
+        is_active: column.is_active,
+        is_dttm: column.is_dttm,
+        python_date_format: column.python_date_format || null,
+        uuid: column.uuid,
+        extra: buildExtraJsonObject(column),
+      }),
+    ),
+    owners: datasource.owners.map(
+      (o: Record<string, number>) => o.value || o.id,
+    ),
+  });
+  const onConfirmSave = async () => {
     // Pull out extra fields into the extra object
-    const schema =
-      currentDatasource.tableSelector?.schema ||
-      currentDatasource.databaseSelector?.schema ||
-      currentDatasource.schema;
-
     setIsSaving(true);
-    SupersetClient.post({
-      endpoint: '/datasource/save/',
-      postPayload: {
-        data: {
-          ...currentDatasource,
-          schema,
-          metrics: currentDatasource?.metrics?.map(
-            (metric: Record<string, unknown>) => ({
-              ...metric,
-              extra: buildExtraJsonObject(metric),
-            }),
-          ),
-          columns: currentDatasource?.columns?.map(
-            (column: Record<string, unknown>) => ({
-              ...column,
-              extra: buildExtraJsonObject(column),
-            }),
-          ),
-          type: currentDatasource.type || currentDatasource.datasource_type,
-          owners: currentDatasource.owners.map(
-            (o: Record<string, number>) => o.value || o.id,
-          ),
-        },
-      },
-    })
-      .then(({ json }) => {
-        addSuccessToast(t('The dataset has been saved'));
-        onDatasourceSave({
-          ...json,
-          owners: currentDatasource.owners,
-        });
-        onHide();
-      })
-      .catch(response => {
-        setIsSaving(false);
-        getClientErrorObject(response).then(({ error }) => {
-          modal.error({
-            title: t('Error'),
-            content: error || t('An error has occurred'),
-            okButtonProps: { danger: true, className: 'btn-danger' },
-          });
-        });
+    try {
+      await SupersetClient.put({
+        endpoint: `/api/v1/dataset/${currentDatasource.id}?override_columns=${syncColumnsRef.current}`,
+        jsonPayload: buildPayload(currentDatasource),
       });
+
+      const { json } = await SupersetClient.get({
+        endpoint: `/api/v1/dataset/${currentDatasource?.id}`,
+      });
+      addSuccessToast(t('The dataset has been saved'));
+      // eslint-disable-next-line no-param-reassign
+      json.result.type = 'table';
+      onDatasourceSave({
+        ...json.result,
+        owners: currentDatasource.owners,
+      });
+      onHide();
+    } catch (response) {
+      setIsSaving(false);
+      const error = await getClientErrorObject(response);
+      let errorResponse: SupersetError | undefined;
+      let errorText: string | undefined;
+      // sip-40 error response
+      if (error?.errors?.length) {
+        errorResponse = error.errors[0];
+      } else if (typeof error.error === 'string') {
+        // backward compatible with old error messages
+        errorText = error.error;
+      }
+      modal.error({
+        title: t('Error saving dataset'),
+        okButtonProps: { danger: true, className: 'btn-danger' },
+        content: (
+          <ErrorMessageWithStackTrace
+            error={errorResponse}
+            source="crud"
+            fallback={errorText}
+          />
+        ),
+      });
+    }
   };
 
-  const onDatasourceChange = (data: Record<string, any>, err: Array<any>) => {
+  const onDatasourceChange = (data: DatasetObject, err: Array<any>) => {
     setCurrentDatasource({
       ...data,
-      metrics: data?.metrics.map((metric: Record<string, unknown>) => ({
+      metrics: data?.metrics.map((metric: DatasetObject['metrics'][0]) => ({
         ...metric,
         is_certified: metric?.certified_by || metric?.certification_details,
       })),
@@ -152,39 +236,83 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
     setErrors(err);
   };
 
-  const renderSaveDialog = () => (
-    <div>
-      <Alert
-        css={theme => ({
-          marginTop: theme.gridUnit * 4,
-          marginBottom: theme.gridUnit * 4,
-        })}
-        type="warning"
-        showIcon
-        message={t(`The dataset configuration exposed here
+  const getSaveDialog = useCallback(
+    () => (
+      <div>
+        <Alert
+          css={theme => ({
+            marginTop: theme.gridUnit * 4,
+            marginBottom: theme.gridUnit * 4,
+          })}
+          type="warning"
+          showIcon={false}
+          message={t(`The dataset configuration exposed here
                 affects all the charts using this dataset.
                 Be mindful that changing settings
                 here may affect other charts
                 in undesirable ways.`)}
-      />
-      {t('Are you sure you want to save and apply changes?')}
-    </div>
+        />
+        {datasource.sql !== currentDatasource.sql && (
+          <>
+            <Alert
+              css={theme => ({
+                marginTop: theme.gridUnit * 4,
+                marginBottom: theme.gridUnit * 4,
+              })}
+              type="info"
+              showIcon={false}
+              message={t(`The dataset columns will be automatically synced
+              based on the changes in your SQL query. If your changes don't
+              impact the column definitions, you might want to skip this step.`)}
+            />
+            <Checkbox
+              checked={syncColumnsRef.current}
+              onChange={() => {
+                syncColumnsRef.current = !syncColumnsRef.current;
+                if (confirmModal) {
+                  confirmModal.update({
+                    content: getSaveDialog(),
+                  });
+                }
+              }}
+            />
+            <span className="m-l-5">{t('Automatically sync columns')}</span>
+            <br />
+            <br />
+          </>
+        )}
+        {t('Are you sure you want to save and apply changes?')}
+      </div>
+    ),
+    [currentDatasource.sql, datasource.sql, confirmModal],
   );
 
+  useEffect(() => {
+    if (confirmModal) {
+      confirmModal.update({
+        content: getSaveDialog(),
+      });
+    }
+  }, [confirmModal, getSaveDialog]);
+
+  useEffect(() => {
+    if (datasource.sql !== currentDatasource.sql) {
+      syncColumnsRef.current = true;
+    }
+  }, [datasource.sql, currentDatasource.sql]);
+
   const onClickSave = () => {
-    dialog.current = modal.confirm({
+    const modalInstance = modal.confirm({
       title: t('Confirm save'),
-      content: renderSaveDialog(),
+      content: getSaveDialog(),
       onOk: onConfirmSave,
       icon: null,
       okText: t('OK'),
       cancelText: t('Cancel'),
     });
+    setConfirmModal(modalInstance);
+    dialog.current = modalInstance;
   };
-
-  const showLegacyDatasourceEditor = !isFeatureEnabled(
-    FeatureFlag.DISABLE_LEGACY_DATASOURCE_EDITOR,
-  );
 
   return (
     <StyledDatasourceModal
@@ -199,20 +327,6 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       maskClosable={!isEditing}
       footer={
         <>
-          {showLegacyDatasourceEditor && (
-            <Button
-              buttonSize="small"
-              buttonStyle="default"
-              data-test="datasource-modal-legacy-edit"
-              className="m-r-5"
-              onClick={() => {
-                window.location.href =
-                  currentDatasource.edit_url || currentDatasource.url;
-              }}
-            >
-              {t('Use legacy datasource editor')}
-            </Button>
-          )}
           <Button
             data-test="datasource-modal-cancel"
             buttonSize="small"
@@ -251,6 +365,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
         datasource={currentDatasource}
         onChange={onDatasourceChange}
         setIsEditing={setIsEditing}
+        currencies={currencies}
       />
       {contextHolder}
     </StyledDatasourceModal>

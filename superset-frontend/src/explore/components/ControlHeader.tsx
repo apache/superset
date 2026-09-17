@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FC, ReactNode, useMemo, useRef } from 'react';
+import { FC, ReactNode, useMemo, useRef } from 'react';
 import { t, css, useTheme, SupersetTheme } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { Tooltip } from 'src/components/Tooltip';
@@ -79,8 +79,8 @@ const ControlHeader: FC<ControlHeaderProps> = ({
       return 'unset';
     }
 
-    return colors.alert.base;
-  }, [colors.error.base, colors.alert.base, validationErrors.length]);
+    return colors.warning.base;
+  }, [colors.error.base, colors.warning.base, validationErrors.length]);
 
   if (!label) {
     return null;
@@ -134,12 +134,10 @@ const ControlHeader: FC<ControlHeaderProps> = ({
     <div className="ControlHeader" data-test={`${name}-header`}>
       <div className="pull-left">
         <FormLabel
-          css={(theme: SupersetTheme) =>
-            css`
-              margin-bottom: ${theme.gridUnit * 0.5}px;
-              position: relative;
-            `
-          }
+          css={(theme: SupersetTheme) => css`
+            margin-bottom: ${theme.gridUnit * 0.5}px;
+            position: relative;
+          `}
         >
           {leftNode && <span>{leftNode}</span>}
           <span
@@ -153,7 +151,10 @@ const ControlHeader: FC<ControlHeaderProps> = ({
           {warning && (
             <span>
               <Tooltip id="error-tooltip" placement="top" title={warning}>
-                <Icons.AlertSolid iconColor={colors.alert.base} iconSize="s" />
+                <Icons.AlertSolid
+                  iconColor={colors.warning.base}
+                  iconSize="s"
+                />
               </Tooltip>{' '}
             </span>
           )}
@@ -173,7 +174,7 @@ const ControlHeader: FC<ControlHeaderProps> = ({
               >
                 <Icons.ExclamationCircleOutlined
                   css={css`
-                    ${iconStyles}
+                    ${iconStyles};
                     color: ${labelColor};
                   `}
                 />

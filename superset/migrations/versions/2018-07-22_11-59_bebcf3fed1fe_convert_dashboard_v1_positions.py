@@ -24,7 +24,6 @@ Create Date: 2018-07-22 11:59:07.025119
 
 # revision identifiers, used by Alembic.
 import collections
-import json
 import sys
 import uuid
 from functools import reduce
@@ -35,6 +34,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
 from superset import db
+from superset.utils import json
 
 revision = "bebcf3fed1fe"
 down_revision = "fc480c87706c"
@@ -120,7 +120,7 @@ def generate_id():
     return uuid.uuid4().hex[:8]
 
 
-def has_overlap(positions, xAxis=True):
+def has_overlap(positions, xAxis=True):  # noqa: N803
     sorted_positions = (
         sorted(positions[:], key=lambda pos: pos["col"])
         if xAxis
@@ -173,7 +173,7 @@ def get_header_component(title):
 def get_row_container():
     return {
         "type": ROW_TYPE,
-        "id": "DASHBOARD_ROW_TYPE-{}".format(generate_id()),
+        "id": f"DASHBOARD_ROW_TYPE-{generate_id()}",
         "children": [],
         "meta": {"background": BACKGROUND_TRANSPARENT},
     }
@@ -182,7 +182,7 @@ def get_row_container():
 def get_col_container():
     return {
         "type": COLUMN_TYPE,
-        "id": "DASHBOARD_COLUMN_TYPE-{}".format(generate_id()),
+        "id": f"DASHBOARD_COLUMN_TYPE-{generate_id()}",
         "children": [],
         "meta": {"background": BACKGROUND_TRANSPARENT},
     }
@@ -193,29 +193,28 @@ def get_chart_holder(position):
     size_y = position["size_y"]
     slice_id = position["slice_id"]
     slice_name = position.get("slice_name")
-    code = position.get("code")
 
     width = max(GRID_MIN_COLUMN_COUNT, int(round(size_x / GRID_RATIO)))
     height = max(
         GRID_MIN_ROW_UNITS, int(round(((size_y / GRID_RATIO) * 100) / ROW_HEIGHT))
     )
-    if code is not None:
+    if (code := position.get("code")) is not None:
         markdown_content = " "  # white-space markdown
         if len(code):
             markdown_content = code
         elif slice_name.strip():
-            markdown_content = "##### {}".format(slice_name)
+            markdown_content = f"##### {slice_name}"
 
         return {
             "type": MARKDOWN_TYPE,
-            "id": "DASHBOARD_MARKDOWN_TYPE-{}".format(generate_id()),
+            "id": f"DASHBOARD_MARKDOWN_TYPE-{generate_id()}",
             "children": [],
             "meta": {"width": width, "height": height, "code": markdown_content},
         }
 
     return {
         "type": CHART_TYPE,
-        "id": "DASHBOARD_CHART_TYPE-{}".format(generate_id()),
+        "id": f"DASHBOARD_CHART_TYPE-{generate_id()}",
         "children": [],
         "meta": {"width": width, "height": height, "chartId": int(slice_id)},
     }
@@ -226,14 +225,14 @@ def get_children_max(children, attr, root):
 
 
 def get_children_sum(children, attr, root):
-    return reduce((lambda sum, childId: sum + root[childId]["meta"][attr]), children, 0)
+    return reduce((lambda sum, childId: sum + root[childId]["meta"][attr]), children, 0)  # noqa: N803
 
 
 # find column that: width > 2 and
 # each row has at least 1 chart can reduce width
 def get_wide_column_ids(children, root):
     return list(
-        filter(lambda childId: can_reduce_column_width(root[childId], root), children)
+        filter(lambda childId: can_reduce_column_width(root[childId], root), children)  # noqa: N803
     )
 
 
@@ -249,12 +248,12 @@ def can_reduce_column_width(column_component, root):
         column_component["type"] == COLUMN_TYPE
         and column_component["meta"]["width"] > GRID_MIN_COLUMN_COUNT
         and all(
-            [
+            [  # noqa: C419
                 is_wide_leaf_component(root[childId])
                 or (
                     root[childId]["type"] == ROW_TYPE
                     and all(
-                        [
+                        [  # noqa: C419
                             is_wide_leaf_component(root[id])
                             for id in root[childId]["children"]
                         ]
@@ -269,7 +268,7 @@ def can_reduce_column_width(column_component, root):
 def reduce_row_width(row_component, root):
     wide_leaf_component_ids = list(
         filter(
-            lambda childId: is_wide_leaf_component(root[childId]),
+            lambda childId: is_wide_leaf_component(root[childId]),  # noqa: N803
             row_component["children"],
         )
     )
@@ -293,7 +292,7 @@ def reduce_component_width(component):
     return component["meta"]["width"]
 
 
-def convert(positions, level, parent, root):
+def convert(positions, level, parent, root):  # noqa: C901
     if len(positions) == 0:
         return
 
@@ -425,7 +424,7 @@ def convert(positions, level, parent, root):
         )
 
 
-def convert_to_layout(positions):
+def convert_to_layout(positions):  # noqa: C901
     root = get_empty_layout()
 
     convert(positions, 0, root[DASHBOARD_GRID_ID], root)
@@ -445,7 +444,7 @@ def convert_to_layout(positions):
                 while current_width > GRID_COLUMN_COUNT and len(
                     list(
                         filter(
-                            lambda childId: is_wide_leaf_component(root[childId]),
+                            lambda childId: is_wide_leaf_component(root[childId]),  # noqa: N803
                             item["children"],
                         )
                     )
@@ -464,15 +463,15 @@ def convert_to_layout(positions):
                         # need 2nd loop since same column may reduce multiple times
                         while idx < len(col_ids) and current_width > GRID_COLUMN_COUNT:
                             current_column = col_ids[idx]
-                            for childId in root[current_column]["children"]:
+                            for childId in root[current_column]["children"]:  # noqa: N806
                                 if root[childId]["type"] == ROW_TYPE:
                                     root[childId]["meta"]["width"] = reduce_row_width(
                                         root[childId], root
                                     )
                                 else:
-                                    root[childId]["meta"][
-                                        "width"
-                                    ] = reduce_component_width(root[childId])
+                                    root[childId]["meta"]["width"] = (
+                                        reduce_component_width(root[childId])
+                                    )
 
                             root[current_column]["meta"]["width"] = get_children_max(
                                 root[current_column]["children"], "width", root
@@ -585,10 +584,10 @@ def upgrade():
 
     dashboards = session.query(Dashboard).all()
     for i, dashboard in enumerate(dashboards):
-        print("scanning dashboard ({}/{}) >>>>".format(i + 1, len(dashboards)))
+        print(f"scanning dashboard ({i + 1}/{len(dashboards)}) >>>>")
         position_json = json.loads(dashboard.position_json or "[]")
         if not is_v2_dash(position_json):
-            print("Converting dashboard... dash_id: {}".format(dashboard.id))
+            print(f"Converting dashboard... dash_id: {dashboard.id}")
             position_dict = {}
             positions = []
             slices = dashboard.slices
@@ -648,10 +647,9 @@ def upgrade():
 
             sorted_by_key = collections.OrderedDict(sorted(v2_layout.items()))
             dashboard.position_json = json.dumps(sorted_by_key, indent=2)
-            session.merge(dashboard)
             session.commit()
         else:
-            print("Skip converted dash_id: {}".format(dashboard.id))
+            print(f"Skip converted dash_id: {dashboard.id}")
 
     session.close()
 

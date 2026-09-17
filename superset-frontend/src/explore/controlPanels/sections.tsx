@@ -16,9 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { t } from '@superset-ui/core';
-import { ControlPanelSectionConfig } from '@superset-ui/chart-controls';
+import {
+  ControlPanelSectionConfig,
+  ControlSubSectionHeader,
+} from '@superset-ui/chart-controls';
 
 export const datasourceAndVizType: ControlPanelSectionConfig = {
   controlSetRows: [
@@ -122,7 +124,11 @@ export const NVD3TimeSeries: ControlPanelSectionConfig[] = [
         'of query results',
     ),
     controlSetRows: [
-      [<div className="section-header">{t('Rolling window')}</div>],
+      [
+        <ControlSubSectionHeader>
+          {t('Rolling window')}
+        </ControlSubSectionHeader>,
+      ],
       [
         {
           name: 'rolling_type',
@@ -171,7 +177,11 @@ export const NVD3TimeSeries: ControlPanelSectionConfig[] = [
           },
         },
       ],
-      [<div className="section-header">{t('Time comparison')}</div>],
+      [
+        <ControlSubSectionHeader>
+          {t('Time comparison')}
+        </ControlSubSectionHeader>,
+      ],
       [
         {
           name: 'time_compare',
@@ -220,7 +230,7 @@ export const NVD3TimeSeries: ControlPanelSectionConfig[] = [
           },
         },
       ],
-      [<div className="section-header">{t('Resample')}</div>],
+      [<ControlSubSectionHeader>{t('Resample')}</ControlSubSectionHeader>],
       [
         {
           name: 'resample_rule',

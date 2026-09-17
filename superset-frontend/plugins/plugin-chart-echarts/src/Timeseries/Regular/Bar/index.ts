@@ -16,19 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  AnnotationType,
-  Behavior,
-  ChartMetadata,
-  ChartPlugin,
-  hasGenericChartAxes,
-  t,
-} from '@superset-ui/core';
+import { AnnotationType, Behavior, t } from '@superset-ui/core';
 import {
   EchartsTimeseriesChartProps,
   EchartsTimeseriesFormData,
   EchartsTimeseriesSeriesType,
 } from '../../types';
+import { EchartsChartPlugin } from '../../../types';
 import buildQuery from '../../buildQuery';
 import controlPanel from './controlPanel';
 import transformProps from '../../transformProps';
@@ -46,7 +40,7 @@ const barTransformProps = (chartProps: EchartsTimeseriesChartProps) =>
     },
   });
 
-export default class EchartsTimeseriesBarChartPlugin extends ChartPlugin<
+export default class EchartsTimeseriesBarChartPlugin extends EchartsChartPlugin<
   EchartsTimeseriesFormData,
   EchartsTimeseriesChartProps
 > {
@@ -55,15 +49,17 @@ export default class EchartsTimeseriesBarChartPlugin extends ChartPlugin<
       buildQuery,
       controlPanel,
       loadChart: () => import('../../EchartsTimeseries'),
-      metadata: new ChartMetadata({
-        behaviors: [Behavior.INTERACTIVE_CHART, Behavior.DRILL_TO_DETAIL],
+      metadata: {
+        behaviors: [
+          Behavior.InteractiveChart,
+          Behavior.DrillToDetail,
+          Behavior.DrillBy,
+        ],
         category: t('Evolution'),
         credits: ['https://echarts.apache.org'],
-        description: hasGenericChartAxes
-          ? t('Bar Charts are used to show metrics as a series of bars.')
-          : t(
-              'Time-series Bar Charts are used to show the changes in a metric over time as a series of bars.',
-            ),
+        description: t(
+          'Bar Charts are used to show metrics as a series of bars.',
+        ),
         exampleGallery: [
           { url: example1 },
           { url: example2 },
@@ -75,21 +71,19 @@ export default class EchartsTimeseriesBarChartPlugin extends ChartPlugin<
           AnnotationType.Interval,
           AnnotationType.Timeseries,
         ],
-        name: hasGenericChartAxes ? t('Bar Chart') : t('Time-series Bar Chart'),
+        name: t('Bar Chart'),
         tags: [
           t('ECharts'),
           t('Predictive'),
           t('Advanced-Analytics'),
-          t('Aesthetic'),
           t('Time'),
           t('Transformable'),
           t('Stacked'),
-          t('Vertical'),
           t('Bar'),
-          t('Popular'),
+          t('Featured'),
         ],
         thumbnail,
-      }),
+      },
       transformProps: barTransformProps,
     });
   }

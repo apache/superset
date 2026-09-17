@@ -20,6 +20,7 @@ import {
   DatasourceType,
   supersetTheme,
   TimeGranularity,
+  VizType,
 } from '@superset-ui/core';
 import transformProps from '../../src/BigNumber/BigNumberWithTrendline/transformProps';
 import {
@@ -40,7 +41,7 @@ const formData = {
   timeGrainSqla: TimeGranularity.QUARTER,
   granularitySqla: 'ds',
   compareSuffix: 'over last quarter',
-  viz_type: 'big_number',
+  viz_type: VizType.BigNumber,
   yAxisFormat: '.3s',
   datasource: 'test_datasource',
 };
@@ -59,7 +60,7 @@ const rawFormData: BigNumberWithTrendlineFormData = {
   time_grain_sqla: TimeGranularity.QUARTER,
   granularity_sqla: 'ds',
   compare_suffix: 'over last quarter',
-  viz_type: 'big_number',
+  viz_type: VizType.BigNumber,
   y_axis_format: '.3s',
 };
 
@@ -156,6 +157,31 @@ describe('BigNumberWithTrendline', () => {
       // @ts-ignore
       expect(transformed.headerFormatter(transformed.bigNumber)).toStrictEqual(
         '1.23',
+      );
+    });
+
+    it('should format with datasource currency', () => {
+      const propsWithDatasource = {
+        ...props,
+        datasource: {
+          ...props.datasource,
+          currencyFormats: {
+            value: { symbol: 'USD', symbolPosition: 'prefix' },
+          },
+          metrics: [
+            {
+              label: 'value',
+              metric_name: 'value',
+              d3format: '.2f',
+              currency: { symbol: 'USD', symbolPosition: 'prefix' },
+            },
+          ],
+        },
+      };
+      const transformed = transformProps(propsWithDatasource);
+      // @ts-ignore
+      expect(transformed.headerFormatter(transformed.bigNumber)).toStrictEqual(
+        '$ 1.23',
       );
     });
   });

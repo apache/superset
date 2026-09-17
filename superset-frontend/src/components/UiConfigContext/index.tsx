@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, FC } from 'react';
+
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
 
@@ -39,19 +40,20 @@ export const UiConfigContext = createContext<UiConfigType>({
 
 export const useUiConfig = () => useContext(UiConfigContext);
 
-export const EmbeddedUiConfigProvider: React.FC<EmbeddedUiConfigProviderProps> =
-  ({ children }) => {
-    const config = getUrlParam(URL_PARAMS.uiConfig) || 0;
-    const [embeddedConfig] = useState({
-      hideTitle: (config & 1) !== 0,
-      hideTab: (config & 2) !== 0,
-      hideNav: (config & 4) !== 0,
-      hideChartControls: (config & 8) !== 0,
-    });
+export const EmbeddedUiConfigProvider: FC<EmbeddedUiConfigProviderProps> = ({
+  children,
+}) => {
+  const config = getUrlParam(URL_PARAMS.uiConfig) || 0;
+  const [embeddedConfig] = useState({
+    hideTitle: (config & 1) !== 0,
+    hideTab: (config & 2) !== 0,
+    hideNav: (config & 4) !== 0,
+    hideChartControls: (config & 8) !== 0,
+  });
 
-    return (
-      <UiConfigContext.Provider value={embeddedConfig}>
-        {children}
-      </UiConfigContext.Provider>
-    );
-  };
+  return (
+    <UiConfigContext.Provider value={embeddedConfig}>
+      {children}
+    </UiConfigContext.Provider>
+  );
+};

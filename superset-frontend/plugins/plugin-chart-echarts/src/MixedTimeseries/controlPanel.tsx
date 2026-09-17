@@ -16,13 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { ensureIsArray, hasGenericChartAxes, t } from '@superset-ui/core';
+import { ensureIsArray, t } from '@superset-ui/core';
 import { cloneDeep } from 'lodash';
 import {
   ControlPanelConfig,
   ControlPanelSectionConfig,
   ControlSetRow,
+  ControlSubSectionHeader,
   CustomControlItem,
   getStandardizedControls,
   sections,
@@ -31,7 +31,14 @@ import {
 
 import { DEFAULT_FORM_DATA } from './types';
 import { EchartsTimeseriesSeriesType } from '../Timeseries/types';
-import { legendSection, richTooltipSection } from '../controls';
+import {
+  legendSection,
+  minorTicks,
+  richTooltipSection,
+  truncateXAxis,
+  xAxisBounds,
+  xAxisLabelRotation,
+} from '../controls';
 
 const {
   area,
@@ -48,7 +55,6 @@ const {
   truncateYAxis,
   yAxisBounds,
   zoomable,
-  xAxisLabelRotation,
   yAxisIndex,
 } = DEFAULT_FORM_DATA;
 
@@ -128,7 +134,7 @@ function createCustomizeSection(
   controlSuffix: string,
 ): ControlSetRow[] {
   return [
-    [<div className="section-header">{label}</div>],
+    [<ControlSubSectionHeader>{label}</ControlSubSectionHeader>],
     [
       {
         name: `seriesType${controlSuffix}`,
@@ -277,14 +283,11 @@ function createAdvancedAnalyticsSection(
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.genericTime,
-    hasGenericChartAxes
-      ? {
-          label: t('Shared query fields'),
-          expanded: true,
-          controlSetRows: [['x_axis'], ['time_grain_sqla']],
-        }
-      : null,
+    {
+      label: t('Shared query fields'),
+      expanded: true,
+      controlSetRows: [['x_axis'], ['time_grain_sqla']],
+    },
     createQuerySection(t('Query A'), ''),
     createAdvancedAnalyticsSection(t('Advanced analytics Query A'), ''),
     createQuerySection(t('Query B'), '_b'),
@@ -296,6 +299,7 @@ const config: ControlPanelConfig = {
       expanded: true,
       controlSetRows: [
         ['color_scheme'],
+        ['time_shift_color'],
         ...createCustomizeSection(t('Query A'), ''),
         ...createCustomizeSection(t('Query B'), 'B'),
         [
@@ -310,32 +314,14 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        [minorTicks],
         ...legendSection,
-        [<div className="section-header">{t('X Axis')}</div>],
+        [<ControlSubSectionHeader>{t('X Axis')}</ControlSubSectionHeader>],
         ['x_axis_time_format'],
-        [
-          {
-            name: 'xAxisLabelRotation',
-            config: {
-              type: 'SelectControl',
-              freeForm: true,
-              clearable: false,
-              label: t('Rotate x axis label'),
-              choices: [
-                [0, '0°'],
-                [45, '45°'],
-              ],
-              default: xAxisLabelRotation,
-              renderTrigger: true,
-              description: t(
-                'Input field supports custom rotation. e.g. 30 for 30°',
-              ),
-            },
-          },
-        ],
+        [xAxisLabelRotation],
         ...richTooltipSection,
         // eslint-disable-next-line react/jsx-key
-        [<div className="section-header">{t('Y Axis')}</div>],
+        [<ControlSubSectionHeader>{t('Y Axis')}</ControlSubSectionHeader>],
         [
           {
             name: 'minorSplitLine',
@@ -348,6 +334,8 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        [truncateXAxis],
+        [xAxisBounds],
         [
           {
             name: 'truncateYAxis',
@@ -367,11 +355,11 @@ const config: ControlPanelConfig = {
             name: 'y_axis_bounds',
             config: {
               type: 'BoundsControl',
-              label: t('Y Axis Bounds'),
+              label: t('Primary y-axis Bounds'),
               renderTrigger: true,
               default: yAxisBounds,
               description: t(
-                'Bounds for the Y-axis. When left empty, the bounds are ' +
+                'Bounds for the primary Y-axis. When left empty, the bounds are ' +
                   'dynamically defined based on the min/max of the data. Note that ' +
                   "this feature will only expand the axis range. It won't " +
                   "narrow the data's extent.",
@@ -388,6 +376,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        ['currency_format'],
         [
           {
             name: 'logAxis',
@@ -402,10 +391,36 @@ const config: ControlPanelConfig = {
         ],
         [
           {
+            name: 'y_axis_bounds_secondary',
+            config: {
+              type: 'BoundsControl',
+              label: t('Secondary y-axis Bounds'),
+              renderTrigger: true,
+              default: yAxisBounds,
+              description: t(
+                `Bounds for the secondary Y-axis. Only works when Independent Y-axis
+                bounds are enabled. When left empty, the bounds are dynamically defined
+                based on the min/max of the data. Note that this feature will only expand
+                the axis range. It won't narrow the data's extent.`,
+              ),
+            },
+          },
+        ],
+        [
+          {
             name: `y_axis_format_secondary`,
             config: {
               ...sharedControls.y_axis_format,
               label: t('Secondary y-axis format'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'currency_format_secondary',
+            config: {
+              ...sharedControls.currency_format,
+              label: t('Secondary currency format'),
             },
           },
         ],

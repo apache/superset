@@ -22,55 +22,48 @@
 #
 import logging
 import os
-from datetime import timedelta
-from typing import Optional
+import sys
 
-from cachelib.file import FileSystemCache
 from celery.schedules import crontab
+from flask_caching.backends.filesystemcache import FileSystemCache
 
 logger = logging.getLogger()
 
+DATABASE_DIALECT = os.getenv("DATABASE_DIALECT")
+DATABASE_USER = os.getenv("DATABASE_USER")
+DATABASE_PASSWORD = os.getenv("DATABASE_PASSWORD")
+DATABASE_HOST = os.getenv("DATABASE_HOST")
+DATABASE_PORT = os.getenv("DATABASE_PORT")
+DATABASE_DB = os.getenv("DATABASE_DB")
 
-def get_env_variable(var_name: str, default: Optional[str] = None) -> str:
-    """Get the environment variable or raise exception."""
-    try:
-        return os.environ[var_name]
-    except KeyError:
-        if default is not None:
-            return default
-        else:
-            error_msg = "The environment variable {} was missing, abort...".format(
-                var_name
-            )
-            raise EnvironmentError(error_msg)
-
-
-DATABASE_DIALECT = get_env_variable("DATABASE_DIALECT")
-DATABASE_USER = get_env_variable("DATABASE_USER")
-DATABASE_PASSWORD = get_env_variable("DATABASE_PASSWORD")
-DATABASE_HOST = get_env_variable("DATABASE_HOST")
-DATABASE_PORT = get_env_variable("DATABASE_PORT")
-DATABASE_DB = get_env_variable("DATABASE_DB")
+EXAMPLES_USER = os.getenv("EXAMPLES_USER")
+EXAMPLES_PASSWORD = os.getenv("EXAMPLES_PASSWORD")
+EXAMPLES_HOST = os.getenv("EXAMPLES_HOST")
+EXAMPLES_PORT = os.getenv("EXAMPLES_PORT")
+EXAMPLES_DB = os.getenv("EXAMPLES_DB")
 
 # The SQLAlchemy connection string.
-SQLALCHEMY_DATABASE_URI = "%s://%s:%s@%s:%s/%s" % (
-    DATABASE_DIALECT,
-    DATABASE_USER,
-    DATABASE_PASSWORD,
-    DATABASE_HOST,
-    DATABASE_PORT,
-    DATABASE_DB,
+SQLALCHEMY_DATABASE_URI = (
+    f"{DATABASE_DIALECT}://"
+    f"{DATABASE_USER}:{DATABASE_PASSWORD}@"
+    f"{DATABASE_HOST}:{DATABASE_PORT}/{DATABASE_DB}"
 )
 
-REDIS_HOST = get_env_variable("REDIS_HOST")
-REDIS_PORT = get_env_variable("REDIS_PORT")
-REDIS_CELERY_DB = get_env_variable("REDIS_CELERY_DB", "0")
-REDIS_RESULTS_DB = get_env_variable("REDIS_RESULTS_DB", "1")
+SQLALCHEMY_EXAMPLES_URI = (
+    f"{DATABASE_DIALECT}://"
+    f"{EXAMPLES_USER}:{EXAMPLES_PASSWORD}@"
+    f"{EXAMPLES_HOST}:{EXAMPLES_PORT}/{EXAMPLES_DB}"
+)
+
+REDIS_HOST = os.getenv("REDIS_HOST", "redis")
+REDIS_PORT = os.getenv("REDIS_PORT", "6379")
+REDIS_CELERY_DB = os.getenv("REDIS_CELERY_DB", "0")
+REDIS_RESULTS_DB = os.getenv("REDIS_RESULTS_DB", "1")
 
 RESULTS_BACKEND = FileSystemCache("/app/superset_home/sqllab")
 
 CACHE_CONFIG = {
-    "CACHE_TYPE": "redis",
+    "CACHE_TYPE": "RedisCache",
     "CACHE_DEFAULT_TIMEOUT": 300,
     "CACHE_KEY_PREFIX": "superset_",
     "CACHE_REDIS_HOST": REDIS_HOST,
@@ -80,9 +73,14 @@ CACHE_CONFIG = {
 DATA_CACHE_CONFIG = CACHE_CONFIG
 
 
-class CeleryConfig(object):
+class CeleryConfig:
     broker_url = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_CELERY_DB}"
-    imports = ("superset.sql_lab",)
+    imports = (
+        "superset.sql_lab",
+        "superset.tasks.scheduler",
+        "superset.tasks.thumbnails",
+        "superset.tasks.cache",
+    )
     result_backend = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_RESULTS_DB}"
     worker_prefetch_multiplier = 1
     task_acks_late = False
@@ -102,11 +100,25 @@ CELERY_CONFIG = CeleryConfig
 
 FEATURE_FLAGS = {"ALERT_REPORTS": True}
 ALERT_REPORTS_NOTIFICATION_DRY_RUN = True
-WEBDRIVER_BASEURL = "http://superset:8088/"
+WEBDRIVER_BASEURL = "http://superset:8088/"  # When using docker compose baseurl should be http://superset_app:8088/  # noqa: E501
 # The base URL for the email report hyperlinks.
 WEBDRIVER_BASEURL_USER_FRIENDLY = WEBDRIVER_BASEURL
-
 SQLLAB_CTAS_NO_LIMIT = True
+
+log_level_text = os.getenv("SUPERSET_LOG_LEVEL", "INFO")
+LOG_LEVEL = getattr(logging, log_level_text.upper(), logging.INFO)
+
+if os.getenv("CYPRESS_CONFIG") == "true":
+    # When running the service as a cypress backend, we need to import the config
+    # located @ tests/integration_tests/superset_test_config.py
+    base_dir = os.path.dirname(__file__)
+    module_folder = os.path.abspath(
+        os.path.join(base_dir, "../../tests/integration_tests/")
+    )
+    sys.path.insert(0, module_folder)
+    from superset_test_config import *  # noqa
+
+    sys.path.pop(0)
 
 #
 # Optionally import superset_config_docker.py (which will have been included on

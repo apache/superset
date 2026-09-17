@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React, { ReactNode } from 'react';
+import { ReactNode } from 'react';
 import { t } from '@superset-ui/core';
 import Button from 'src/components/Button';
 
@@ -42,7 +42,7 @@ export const RunQueryButton = ({
 }: RunQueryButtonProps) =>
   loading ? (
     <Button onClick={onStop} buttonStyle="warning" disabled={!canStopQuery}>
-      <i className="fa fa-stop-circle-o" /> {t('Stop')}
+      <i className="fa fa-stop" /> {t('Stop')}
     </Button>
   ) : (
     <Button

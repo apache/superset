@@ -1,0 +1,109 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+slice_name: Mixed
+description: null
+certified_by: null
+certification_details: null
+viz_type: mixed_timeseries
+params:
+  datasource: 22__table
+  viz_type: mixed_timeseries
+  x_axis: order_date
+  time_grain_sqla: P1M
+  metrics:
+    - expressionType: SIMPLE
+      column:
+        advanced_data_type: null
+        certification_details: null
+        certified_by: null
+        column_name: sales
+        description: null
+        expression: null
+        filterable: true
+        groupby: true
+        id: 734
+        is_certified: false
+        is_dttm: false
+        python_date_format: null
+        type: DOUBLE PRECISION
+        type_generic: 0
+        verbose_name: null
+        warning_markdown: null
+      aggregate: SUM
+      sqlExpression: null
+      datasourceWarning: false
+      hasCustomLabel: false
+      label: SUM(sales)
+      optionName: metric_b9hph4jr9i_nayy40sodwl
+  groupby: []
+  adhoc_filters:
+    - clause: WHERE
+      subject: order_date
+      operator: TEMPORAL_RANGE
+      comparator: No filter
+      expressionType: SIMPLE
+  order_desc: true
+  row_limit: 10000
+  truncate_metric: true
+  comparison_type: values
+  metrics_b:
+    - count
+  groupby_b: []
+  adhoc_filters_b:
+    - clause: WHERE
+      subject: order_date
+      operator: TEMPORAL_RANGE
+      comparator: No filter
+      expressionType: SIMPLE
+  order_desc_b: true
+  row_limit_b: 10000
+  truncate_metric_b: true
+  comparison_type_b: values
+  annotation_layers: []
+  x_axis_title_margin: 15
+  y_axis_title_margin: 15
+  y_axis_title_position: Left
+  color_scheme: supersetColors
+  seriesType: echarts_timeseries_line
+  opacity: 0.2
+  markerSize: 6
+  yAxisIndex: 1
+  seriesTypeB: echarts_timeseries_bar
+  opacityB: 0.2
+  markerSizeB: 6
+  yAxisIndexB: 0
+  show_legend: true
+  legendType: scroll
+  legendOrientation: top
+  x_axis_time_format: smart_date
+  rich_tooltip: true
+  tooltipTimeFormat: smart_date
+  truncateXAxis: true
+  y_axis_bounds:
+    - null
+    - null
+  y_axis_format: SMART_NUMBER
+  y_axis_bounds_secondary:
+    - null
+    - null
+  y_axis_format_secondary: SMART_NUMBER
+  extra_form_data: {}
+  dashboards: []
+cache_timeout: null
+uuid: bb394e7b-0cfc-47ba-b067-541964545752
+version: 1.0.0
+dataset_uuid: e8623bb9-5e00-f531-506a-19607f5f8005

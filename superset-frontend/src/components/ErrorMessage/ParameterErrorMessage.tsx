@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { ReactNode } from 'react';
 import { t, tn } from '@superset-ui/core';
 import levenshtein from 'js-levenshtein';
 
@@ -101,24 +101,19 @@ function ParameterErrorMessage({
         <br />
         {extra.issue_codes.length > 0 &&
           extra.issue_codes
-            .map<React.ReactNode>(issueCode => <IssueCode {...issueCode} />)
+            .map<ReactNode>(issueCode => <IssueCode {...issueCode} />)
             .reduce((prev, curr) => [prev, <br />, curr])}
       </p>
     </>
   );
 
-  const copyText = `${message}
-${triggerMessage}
-${extra.issue_codes.map(issueCode => issueCode.message).join('\n')}`;
-
   return (
     <ErrorAlert
-      title={t('Parameter error')}
-      subtitle={subtitle}
-      level={level}
-      source={source}
-      copyText={copyText}
-      body={body}
+      errorType={t('Parameter error')}
+      type={level}
+      message={message}
+      description={subtitle}
+      descriptionDetails={body}
     />
   );
 }

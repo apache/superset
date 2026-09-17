@@ -25,7 +25,6 @@ import {
 import { CHART_TYPE } from './componentTypes';
 import { DASHBOARD_FILTER_SCOPE_GLOBAL } from '../reducers/dashboardFilters';
 
-let allFilterBoxChartIds = [];
 let activeFilters = {};
 let appliedFilterValuesByChart = {};
 let allComponents = {};
@@ -33,13 +32,6 @@ let allComponents = {};
 // output: { [id_column]: { values, scope } }
 export function getActiveFilters() {
   return activeFilters;
-}
-
-// currently filter_box is a chart,
-// when selecting filter scopes, they have to be out pulled out in a few places.
-// after we make filter_box a dashboard build-in component, will not need this check anymore.
-export function isFilterBox(chartId) {
-  return allFilterBoxChartIds.includes(chartId);
 }
 
 // this function is to find all filter values applied to a chart,
@@ -61,10 +53,10 @@ export function getAppliedFilterValues(chartId, filters) {
   return appliedFilterValuesByChart[chartId];
 }
 
-// Legacy - getChartIdsInFilterBoxScope is used only by
-// components and functions related to filter box
-// Please use src/dashboard/util/getChartIdsInFilterScope instead
-export function getChartIdsInFilterBoxScope({ filterScope }) {
+/**
+ * @deprecated Please use src/dashboard/util/getChartIdsInFilterScope instead
+ */
+export function getChartIdsInFilterScope({ filterScope }) {
   function traverse(chartIds = [], component = {}, immuneChartIds = []) {
     if (!component) {
       return;
@@ -99,10 +91,6 @@ export function getChartIdsInFilterBoxScope({ filterScope }) {
 // values: array of selected values
 // scope: array of chartIds that applicable to the filter field.
 export function buildActiveFilters({ dashboardFilters = {}, components = {} }) {
-  allFilterBoxChartIds = Object.values(dashboardFilters).map(
-    filter => filter.chartId,
-  );
-
   // clear cache
   if (!isEmpty(components)) {
     allComponents = components;
@@ -119,7 +107,7 @@ export function buildActiveFilters({ dashboardFilters = {}, components = {} }) {
           : columns[column] !== undefined
       ) {
         // remove filter itself
-        const scope = getChartIdsInFilterBoxScope({
+        const scope = getChartIdsInFilterScope({
           filterScope: scopes[column],
         }).filter(id => chartId !== id);
 

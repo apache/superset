@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { QueryState } from '@superset-ui/core';
 import sqlLabReducer from 'src/SqlLab/reducers/sqlLab';
 import * as actions from 'src/SqlLab/actions/sqlLab';
-import { now } from 'src/utils/dates';
 import { table, initialState as mockState } from '../fixtures';
 
 const initialState = mockState.sqlLab;
@@ -74,6 +74,25 @@ describe('sqlLabReducer', () => {
       expect(newState.queryEditors).toHaveLength(
         initialState.queryEditors.length,
       );
+    });
+    it('should select the latest query editor when tabHistory is empty', () => {
+      const currentQE = newState.queryEditors[0];
+      newState = {
+        ...initialState,
+        tabHistory: [initialState.queryEditors[0]],
+      };
+      const action = {
+        type: actions.REMOVE_QUERY_EDITOR,
+        queryEditor: currentQE,
+      };
+      newState = sqlLabReducer(newState, action);
+      expect(newState.queryEditors).toHaveLength(
+        initialState.queryEditors.length - 1,
+      );
+      expect(newState.queryEditors.map(qe => qe.id)).not.toContainEqual(
+        currentQE.id,
+      );
+      expect(newState.tabHistory).toEqual([initialState.queryEditors[2].id]);
     });
     it('should remove a query editor including unsaved changes', () => {
       expect(newState.queryEditors).toHaveLength(
@@ -209,15 +228,61 @@ describe('sqlLabReducer', () => {
       newState = sqlLabReducer(newState, action);
       expect(newState.unsavedQueryEditor.sql).toBe(expectedSql);
       const interceptedAction = {
-        type: actions.QUERY_EDITOR_SET_FUNCTION_NAMES,
+        type: actions.QUERY_EDITOR_PERSIST_HEIGHT,
         queryEditor: newState.queryEditors[0],
-        functionNames: ['func1', 'func2'],
+        northPercent: 46,
+        southPercent: 54,
       };
       newState = sqlLabReducer(newState, interceptedAction);
       expect(newState.unsavedQueryEditor.sql).toBe(expectedSql);
-      expect(newState.queryEditors[0].functionNames).toBe(
-        interceptedAction.functionNames,
+      expect(newState.queryEditors[0].northPercent).toBe(
+        interceptedAction.northPercent,
       );
+    });
+    it('should migrate query editor by new query editor id', () => {
+      const index = newState.queryEditors.findIndex(({ id }) => id === qe.id);
+      const newQueryEditor = {
+        ...qe,
+        id: 'updatedNewId',
+        schema: 'updatedSchema',
+      };
+      const action = {
+        type: actions.MIGRATE_QUERY_EDITOR,
+        oldQueryEditor: qe,
+        newQueryEditor,
+      };
+      newState = sqlLabReducer(newState, action);
+      expect(newState.queryEditors[index].id).toEqual('updatedNewId');
+      expect(newState.queryEditors[index]).toEqual(newQueryEditor);
+    });
+    it('should migrate tab history by new query editor id', () => {
+      expect(newState.tabHistory).toContain(qe.id);
+      const action = {
+        type: actions.MIGRATE_TAB_HISTORY,
+        oldId: qe.id,
+        newId: 'updatedNewId',
+      };
+      newState = sqlLabReducer(newState, action);
+
+      expect(newState.tabHistory).toContain('updatedNewId');
+      expect(newState.tabHistory).not.toContain(qe.id);
+    });
+    it('should clear the destroyed query editors', () => {
+      const expectedQEId = '1233289';
+      const action = {
+        type: actions.CLEAR_DESTROYED_QUERY_EDITOR,
+        queryEditorId: expectedQEId,
+      };
+      newState = sqlLabReducer(
+        {
+          ...newState,
+          destroyedQueryEditors: {
+            [expectedQEId]: Date.now(),
+          },
+        },
+        action,
+      );
+      expect(newState.destroyedQueryEditors).toEqual({});
     });
   });
   describe('Tables', () => {
@@ -248,6 +313,38 @@ describe('sqlLabReducer', () => {
       expect(newState.tables).toHaveLength(1);
       expect(newState.tables[0].extra).toBe(true);
     });
+    it('should overwrite table ID be ignored when the existing table is already initialized', () => {
+      const action = {
+        type: actions.MERGE_TABLE,
+        table: newTable,
+      };
+      newState = sqlLabReducer(newState, action);
+      expect(newState.tables).toHaveLength(1);
+      // Merging the initialized remote id
+      const remoteId = 1;
+      const syncAction = {
+        type: actions.MERGE_TABLE,
+        table: {
+          ...newTable,
+          id: remoteId,
+          initialized: true,
+        },
+      };
+      newState = sqlLabReducer(newState, syncAction);
+      expect(newState.tables).toHaveLength(1);
+      expect(newState.tables[0].initialized).toBe(true);
+      expect(newState.tables[0].id).toBe(remoteId);
+      const overwriteAction = {
+        type: actions.MERGE_TABLE,
+        table: {
+          id: 'rnd_new_id',
+          ...newTable,
+        },
+      };
+      newState = sqlLabReducer(newState, overwriteAction);
+      expect(newState.tables).toHaveLength(1);
+      expect(newState.tables[0].id).toBe(remoteId);
+    });
     it('should expand and collapse a table', () => {
       const collapseTableAction = {
         type: actions.COLLAPSE_TABLE,
@@ -272,6 +369,8 @@ describe('sqlLabReducer', () => {
     });
   });
   describe('Run Query', () => {
+    const DENORMALIZED_CHANGED_ON = '2023-06-26T07:53:05.439';
+    const CHANGED_ON_TIMESTAMP = 1687765985439;
     let newState;
     let query;
     beforeEach(() => {
@@ -279,7 +378,8 @@ describe('sqlLabReducer', () => {
       query = {
         id: 'abcd',
         progress: 0,
-        startDttm: now(),
+        changed_on: DENORMALIZED_CHANGED_ON,
+        startDttm: CHANGED_ON_TIMESTAMP,
         state: 'running',
         cached: false,
         sqlEditorId: 'dfsadfs',
@@ -291,7 +391,8 @@ describe('sqlLabReducer', () => {
         query: {
           id: 'abcd',
           progress: 0,
-          startDttm: now(),
+          changed_on: DENORMALIZED_CHANGED_ON,
+          startDttm: CHANGED_ON_TIMESTAMP,
           state: 'running',
           cached: false,
           sqlEditorId: 'dfsadfs',
@@ -327,8 +428,92 @@ describe('sqlLabReducer', () => {
       newState = sqlLabReducer(newState, removeQueryAction);
       expect(Object.keys(newState.queries)).toHaveLength(0);
     });
+    it('should refresh queries when polling returns new results', () => {
+      const startDttmInStr = '1693433503447.166992';
+      const endDttmInStr = '1693433503500.23132';
+      newState = sqlLabReducer(
+        {
+          ...newState,
+          queries: { abcd: {} },
+        },
+        actions.refreshQueries({
+          abcd: {
+            ...query,
+            startDttm: startDttmInStr,
+            endDttm: endDttmInStr,
+          },
+        }),
+      );
+      expect(newState.queries.abcd.changed_on).toBe(DENORMALIZED_CHANGED_ON);
+      expect(newState.queries.abcd.startDttm).toBe(Number(startDttmInStr));
+      expect(newState.queries.abcd.endDttm).toBe(Number(endDttmInStr));
+      expect(newState.queriesLastUpdate).toBe(CHANGED_ON_TIMESTAMP);
+    });
+    it('should skip refreshing queries when polling contains existing results', () => {
+      const completedQuery = {
+        ...query,
+        extra: {
+          columns: [],
+          progress: null,
+        },
+      };
+      newState = sqlLabReducer(
+        {
+          ...newState,
+          queries: { abcd: query, def: completedQuery },
+        },
+        actions.refreshQueries({
+          abcd: {
+            ...query,
+          },
+          def: {
+            ...completedQuery,
+            extra: {
+              columns: [],
+              progress: null,
+            },
+          },
+        }),
+      );
+      expect(newState.queries.abcd).toBe(query);
+      expect(newState.queries.def).toBe(completedQuery);
+    });
     it('should refresh queries when polling returns empty', () => {
       newState = sqlLabReducer(newState, actions.refreshQueries({}));
+    });
+  });
+  describe('CLEAR_INACTIVE_QUERIES', () => {
+    let newState;
+    let query;
+    beforeEach(() => {
+      query = {
+        id: 'abcd',
+        changed_on: Date.now(),
+        startDttm: Date.now(),
+        state: QueryState.Fetching,
+        progress: 100,
+        resultsKey: 'fa3dccc4-c549-4fbf-93c8-b4fb5a6fb8b7',
+        cached: false,
+      };
+    });
+    it('updates queries that have already been completed', () => {
+      newState = sqlLabReducer(
+        {
+          ...newState,
+          queries: {
+            abcd: {
+              ...query,
+              results: {
+                query_id: 1234,
+                status: QueryState.Success,
+                data: [],
+              },
+            },
+          },
+        },
+        actions.clearInactiveQueries(Date.now()),
+      );
+      expect(newState.queries.abcd.state).toBe(QueryState.Success);
     });
   });
 });

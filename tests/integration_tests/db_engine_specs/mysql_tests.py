@@ -50,7 +50,7 @@ class TestMySQLEngineSpecsDbEngineSpec(TestDbEngineSpec):
                 original, mysql.dialect()
             )
             self.assertEqual(actual, expected)
- 
+
     # NGLS - BEGIN #
     # def test_extract_error_message(self):
     #     from MySQLdb._exceptions import OperationalError

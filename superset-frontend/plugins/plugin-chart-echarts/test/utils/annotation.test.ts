@@ -17,7 +17,6 @@
  * under the License.
  */
 import {
-  AnnotationData,
   AnnotationLayer,
   AnnotationOpacity,
   AnnotationSourceType,
@@ -128,22 +127,7 @@ describe('extractAnnotationLabels', () => {
         showLabel: true,
       },
     ];
-    const results: AnnotationData = {
-      'My Interval': {
-        columns: ['col'],
-        records: [{ col: 1 }],
-      },
-      'My Line': [
-        { key: 'Line 1', values: [] },
-        { key: 'Line 2', values: [] },
-      ],
-    };
-
-    expect(extractAnnotationLabels(layers, results)).toEqual([
-      'My Formula',
-      'Line 1',
-      'Line 2',
-    ]);
+    expect(extractAnnotationLabels(layers)).toEqual(['My Formula', 'My Line']);
   });
 });
 
@@ -162,7 +146,7 @@ describe('evalFormula', () => {
       { __timestamp: 10 },
     ];
 
-    expect(evalFormula(layer, data, '__timestamp', AxisType.time)).toEqual([
+    expect(evalFormula(layer, data, '__timestamp', AxisType.Time)).toEqual([
       [0, 1],
       [10, 11],
     ]);
@@ -179,7 +163,7 @@ describe('evalFormula', () => {
         { ...layer, value: 'y  = x* 2   -1' },
         data,
         '__timestamp',
-        AxisType.time,
+        AxisType.Time,
       ),
     ).toEqual([
       [0, -1],
@@ -195,7 +179,7 @@ describe('evalFormula', () => {
         { ...layer, value: 'y = 1000' },
         data,
         'gender',
-        AxisType.category,
+        AxisType.Category,
       ),
     ).toEqual([
       ['boy', 1000],

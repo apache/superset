@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { render, act } from 'spec/helpers/testing-library';
 import AnchorLink from 'src/dashboard/components/AnchorLink';
 
@@ -56,7 +55,7 @@ describe('AnchorLink', () => {
       { useRedux: true },
     );
     expect(container.querySelector(`#${props.id}`)).toBeInTheDocument();
-    expect(queryByRole('button')).toBe(null);
+    expect(queryByRole('button')).not.toBeInTheDocument();
   });
 
   it('should render short link button', () => {

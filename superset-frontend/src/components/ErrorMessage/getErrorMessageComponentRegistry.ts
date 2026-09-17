@@ -26,7 +26,7 @@ class ErrorMessageComponentRegistry extends Registry<
   constructor() {
     super({
       name: 'ErrorMessageComponent',
-      overwritePolicy: OverwritePolicy.ALLOW,
+      overwritePolicy: OverwritePolicy.Allow,
     });
   }
 }

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, ChartMetadata, ChartPlugin, Behavior } from '@superset-ui/core';
+import { t, Behavior } from '@superset-ui/core';
 import controlPanel from './controlPanel';
 import transformProps from './transformProps';
 import buildQuery from './buildQuery';
@@ -26,8 +26,9 @@ import {
   BigNumberWithTrendlineChartProps,
   BigNumberWithTrendlineFormData,
 } from '../types';
+import { EchartsChartPlugin } from '../../types';
 
-const metadata = new ChartMetadata({
+const metadata = {
   category: t('KPI'),
   description: t(
     'Showcases a single number accompanied by a simple line chart, to call attention to an important metric along with its change over time or other dimension.',
@@ -36,19 +37,17 @@ const metadata = new ChartMetadata({
   name: t('Big Number with Trendline'),
   tags: [
     t('Advanced-Analytics'),
-    t('Formattable'),
     t('Line'),
     t('Percentages'),
-    t('Popular'),
+    t('Featured'),
     t('Report'),
-    t('Description'),
     t('Trend'),
   ],
   thumbnail,
-  behaviors: [Behavior.DRILL_TO_DETAIL],
-});
+  behaviors: [Behavior.DrillToDetail],
+};
 
-export default class BigNumberWithTrendlineChartPlugin extends ChartPlugin<
+export default class BigNumberWithTrendlineChartPlugin extends EchartsChartPlugin<
   BigNumberWithTrendlineFormData,
   BigNumberWithTrendlineChartProps
 > {

@@ -35,6 +35,7 @@
 
 {% block head_js %}
   {{ super() }}
+  {% include "head_custom_extra.html" %}
   {{ js_bundle("theme") }}
 {% endblock %}
 

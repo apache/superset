@@ -17,18 +17,16 @@
  * under the License.
  */
 import { useEffect, useState } from 'react';
-import shortid from 'shortid';
-import { BroadcastChannel } from 'broadcast-channel';
+import { nanoid } from 'nanoid';
+import {
+  StrictBroadcastChannel,
+  TabIdChannelMessage,
+} from './strictBroadcastChannel';
 
-interface TabIdChannelMessage {
-  type: 'REQUESTING_TAB_ID' | 'TAB_ID_DENIED';
-  tabId: string;
-}
+const TAB_ID_CHANNEL_NAME = 'tab_id_channel';
 
-// TODO: We are using broadcast-channel to support Safari.
-// The native BroadcastChannel API will be supported in Safari version 15.4.
-// After that, we should remove this dependency and use the native API.
-const channel = new BroadcastChannel<TabIdChannelMessage>('tab_id_channel');
+const channel: StrictBroadcastChannel<TabIdChannelMessage> =
+  new BroadcastChannel(TAB_ID_CHANNEL_NAME);
 
 export function useTabId() {
   const [tabId, setTabId] = useState<string>();
@@ -43,22 +41,35 @@ export function useTabId() {
   useEffect(() => {
     if (!isStorageAvailable()) {
       if (!tabId) {
-        setTabId(shortid.generate());
+        setTabId(nanoid());
       }
       return;
     }
 
     const updateTabId = () => {
-      const lastTabId = window.localStorage.getItem('last_tab_id');
+      let lastTabId;
+      try {
+        lastTabId = window.localStorage.getItem('last_tab_id');
+      } catch (error) {
+        // continue regardless of error
+      }
       const newTabId = String(
         lastTabId ? Number.parseInt(lastTabId, 10) + 1 : 1,
       );
-      window.sessionStorage.setItem('tab_id', newTabId);
-      window.localStorage.setItem('last_tab_id', newTabId);
+      try {
+        window.sessionStorage.setItem('tab_id', newTabId);
+        window.localStorage.setItem('last_tab_id', newTabId);
+      } catch (error) {
+        // continue regardless of error
+      }
       setTabId(newTabId);
     };
-
-    const storedTabId = window.sessionStorage.getItem('tab_id');
+    let storedTabId;
+    try {
+      storedTabId = window.sessionStorage.getItem('tab_id');
+    } catch (error) {
+      // continue regardless of error
+    }
     if (storedTabId) {
       channel.postMessage({
         type: 'REQUESTING_TAB_ID',
@@ -70,14 +81,14 @@ export function useTabId() {
     }
 
     channel.onmessage = messageEvent => {
-      if (messageEvent.tabId === tabId) {
-        if (messageEvent.type === 'REQUESTING_TAB_ID') {
+      if (messageEvent.data.tabId === tabId) {
+        if (messageEvent.data.type === 'REQUESTING_TAB_ID') {
           const message: TabIdChannelMessage = {
             type: 'TAB_ID_DENIED',
-            tabId: messageEvent.tabId,
+            tabId: messageEvent.data.tabId,
           };
           channel.postMessage(message);
-        } else if (messageEvent.type === 'TAB_ID_DENIED') {
+        } else if (messageEvent.data.type === 'TAB_ID_DENIED') {
           updateTabId();
         }
       }

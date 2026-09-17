@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { supersetTheme } from '@superset-ui/core';
@@ -31,12 +30,12 @@ test('should render', () => {
 
 test('should render a title when visible', () => {
   render(<Popover title="Popover title" visible />);
-  expect(screen.getByText('Popover title')).toBeTruthy();
+  expect(screen.getByText('Popover title')).toBeInTheDocument();
 });
 
 test('should render some content when visible', () => {
   render(<Popover content="Content sample" visible />);
-  expect(screen.getByText('Content sample')).toBeTruthy();
+  expect(screen.getByText('Content sample')).toBeInTheDocument();
 });
 
 test('it should not render a title or content when not visible', () => {
@@ -45,6 +44,11 @@ test('it should not render a title or content when not visible', () => {
   const title = screen.queryByText('Popover title');
   expect(content).not.toBeInTheDocument();
   expect(title).not.toBeInTheDocument();
+});
+
+test('it should render content when not visible but forceRender=true', () => {
+  render(<Popover content="Content sample" forceRender />);
+  expect(screen.getByText('Content sample')).toBeInTheDocument();
 });
 
 test('renders with icon child', async () => {

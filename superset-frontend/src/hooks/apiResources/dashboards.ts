@@ -31,6 +31,7 @@ export const useDashboard = (idOrSlug: string | number) =>
         (dashboard.json_metadata && JSON.parse(dashboard.json_metadata)) || {},
       position_data:
         dashboard.position_json && JSON.parse(dashboard.position_json),
+      owners: dashboard.owners || [],
     }),
   );
 

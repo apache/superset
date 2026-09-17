@@ -17,10 +17,10 @@
  * under the License.
  */
 import { useEffect, useState } from 'react';
-import { NO_TIME_RANGE } from '@superset-ui/core';
-import { fetchTimeRange } from 'src/explore/components/controls/DateFilterControl';
+import { NO_TIME_RANGE, fetchTimeRange } from '@superset-ui/core';
 import { Operators } from 'src/explore/constants';
-import AdhocFilter, { EXPRESSION_TYPES } from '../AdhocFilter';
+import AdhocFilter from '../AdhocFilter';
+import { ExpressionTypes } from '../types';
 
 interface Results {
   actualTimeRange?: string;
@@ -32,13 +32,13 @@ export const useGetTimeRangeLabel = (adhocFilter: AdhocFilter): Results => {
 
   useEffect(() => {
     if (
-      adhocFilter.operator !== Operators.TEMPORAL_RANGE ||
-      adhocFilter.expressionType !== EXPRESSION_TYPES.SIMPLE
+      adhocFilter.operator !== Operators.TemporalRange ||
+      adhocFilter.expressionType !== ExpressionTypes.Simple
     ) {
       setActualTimeRange({});
     }
     if (
-      adhocFilter.operator === Operators.TEMPORAL_RANGE &&
+      adhocFilter.operator === Operators.TemporalRange &&
       adhocFilter.comparator === NO_TIME_RANGE
     ) {
       setActualTimeRange({
@@ -48,8 +48,8 @@ export const useGetTimeRangeLabel = (adhocFilter: AdhocFilter): Results => {
     }
 
     if (
-      adhocFilter.operator === Operators.TEMPORAL_RANGE &&
-      adhocFilter.expressionType === EXPRESSION_TYPES.SIMPLE &&
+      adhocFilter.operator === Operators.TemporalRange &&
+      adhocFilter.expressionType === ExpressionTypes.Simple &&
       adhocFilter.comparator !== NO_TIME_RANGE &&
       actualTimeRange.title !== adhocFilter.comparator
     ) {

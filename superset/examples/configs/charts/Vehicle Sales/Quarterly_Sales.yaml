@@ -1,0 +1,86 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+slice_name: Quarterly Sales
+viz_type: echarts_timeseries_bar
+params:
+  adhoc_filters: []
+  annotation_layers: []
+  bottom_margin: auto
+  color_scheme: supersetColors
+  comparison_type: null
+  datasource: 23__table
+  granularity_sqla: order_date
+  groupby: []
+  label_colors:
+    Classic Cars: "#5AC189"
+    Motorcycles: "#666666"
+    Planes: "#FCC700"
+    QuantityOrdered: "#454E7C"
+    SUM(Sales): "#1FA8C9"
+    Ships: "#A868B7"
+    Trains: "#3CCCCB"
+    Trucks and Buses: "#E04355"
+    Vintage Cars: "#FF7F44"
+  left_margin: auto
+  line_interpolation: linear
+  metrics:
+    - aggregate: SUM
+      column:
+        column_name: sales
+        description: null
+        expression: null
+        filterable: true
+        groupby: true
+        id: 917
+        is_dttm: false
+        optionName: _col_Sales
+        python_date_format: null
+        type: DOUBLE PRECISION
+        verbose_name: null
+      expressionType: SIMPLE
+      hasCustomLabel: false
+      isNew: false
+      label: SUM(Sales)
+      optionName: metric_tjn8bh6y44_7o4etwsqhal
+      sqlExpression: null
+  order_desc: true
+  queryFields:
+    groupby: groupby
+    metrics: metrics
+  rich_tooltip: true
+  rolling_type: null
+  row_limit: 10000
+  show_brush: auto
+  show_legend: false
+  slice_id: 668
+  time_compare: null
+  time_grain_sqla: P3M
+  time_range: No filter
+  url_params: {}
+  viz_type: echarts_timeseries_bar
+  x_axis_format: "%m/%d/%Y"
+  x_axis_label: Quarter starting
+  x_ticks_layout: auto
+  y_axis_bounds:
+    - null
+    - null
+  y_axis_format: null
+  y_axis_label: Total Sales
+cache_timeout: null
+uuid: 692aca26-a526-85db-c94c-411c91cc1077
+version: 1.0.0
+dataset_uuid: e8623bb9-5e00-f531-506a-19607f5f8005

@@ -16,14 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { PureComponent } from 'react';
 import PropTypes from 'prop-types';
 import cx from 'classnames';
 import { css, styled } from '@superset-ui/core';
 
 import PopoverDropdown from 'src/components/PopoverDropdown';
 import EditableTitle from 'src/components/EditableTitle';
-import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
+import { Draggable } from 'src/dashboard/components/dnd/DragDroppable';
 import DragHandle from 'src/dashboard/components/dnd/DragHandle';
 import AnchorLink from 'src/dashboard/components/AnchorLink';
 import HoverMenu from 'src/dashboard/components/menu/HoverMenu';
@@ -47,6 +47,7 @@ const propTypes = {
   parentComponent: componentShape.isRequired,
   index: PropTypes.number.isRequired,
   editMode: PropTypes.bool.isRequired,
+  embeddedMode: PropTypes.bool.isRequired,
 
   // redux
   handleComponentDrop: PropTypes.func.isRequired,
@@ -114,7 +115,7 @@ const HeaderStyles = styled.div`
   `}
 `;
 
-class Header extends React.PureComponent {
+class Header extends PureComponent {
   constructor(props) {
     super(props);
     this.state = {
@@ -166,6 +167,7 @@ class Header extends React.PureComponent {
       index,
       handleComponentDrop,
       editMode,
+      embeddedMode,
     } = this.props;
 
     const headerStyle = headerStyleOptions.find(
@@ -178,7 +180,7 @@ class Header extends React.PureComponent {
     );
 
     return (
-      <DragDroppable
+      <Draggable
         component={component}
         parentComponent={parentComponent}
         orientation="row"
@@ -188,7 +190,7 @@ class Header extends React.PureComponent {
         disableDragDrop={isFocused}
         editMode={editMode}
       >
-        {({ dropIndicatorProps, dragSourceRef }) => (
+        {({ dragSourceRef }) => (
           <div ref={dragSourceRef}>
             {editMode &&
               depth <= 2 && ( // drag handle looks bad when nested
@@ -234,16 +236,14 @@ class Header extends React.PureComponent {
                   onSaveTitle={this.handleChangeText}
                   showTooltip={false}
                 />
-                {!editMode && (
+                {!editMode && !embeddedMode && (
                   <AnchorLink id={component.id} dashboardId={dashboardId} />
                 )}
               </HeaderStyles>
             </WithPopoverMenu>
-
-            {dropIndicatorProps && <div {...dropIndicatorProps} />}
           </div>
         )}
-      </DragDroppable>
+      </Draggable>
     );
   }
 }

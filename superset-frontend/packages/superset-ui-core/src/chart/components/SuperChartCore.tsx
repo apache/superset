@@ -18,7 +18,7 @@
  */
 
 /* eslint-disable react/jsx-sort-default-props */
-import * as React from 'react';
+import { PureComponent } from 'react';
 import { t } from '@superset-ui/core';
 import { createSelector } from 'reselect';
 import getChartComponentRegistry from '../registries/ChartComponentRegistrySingleton';
@@ -78,7 +78,7 @@ export type Props = {
   onRenderFailure?: HandlerFunction;
 };
 
-export default class SuperChartCore extends React.PureComponent<Props, {}> {
+export default class SuperChartCore extends PureComponent<Props, {}> {
   /**
    * The HTML element that wraps all chart content
    */
@@ -95,15 +95,17 @@ export default class SuperChartCore extends React.PureComponent<Props, {}> {
    * is changed.
    */
   processChartProps = createSelector(
-    (input: {
-      chartProps: ChartProps;
-      preTransformProps?: PreTransformProps;
-      transformProps?: TransformProps;
-      postTransformProps?: PostTransformProps;
-    }) => input.chartProps,
-    input => input.preTransformProps,
-    input => input.transformProps,
-    input => input.postTransformProps,
+    [
+      (input: {
+        chartProps: ChartProps;
+        preTransformProps?: PreTransformProps;
+        transformProps?: TransformProps;
+        postTransformProps?: PostTransformProps;
+      }) => input.chartProps,
+      input => input.preTransformProps,
+      input => input.transformProps,
+      input => input.postTransformProps,
+    ],
     (chartProps, pre = IDENTITY, transform = IDENTITY, post = IDENTITY) =>
       post(transform(pre(chartProps))),
   );
@@ -117,9 +119,11 @@ export default class SuperChartCore extends React.PureComponent<Props, {}> {
    * is changed.
    */
   private createLoadableRenderer = createSelector(
-    (input: { chartType: string; overrideTransformProps?: TransformProps }) =>
-      input.chartType,
-    input => input.overrideTransformProps,
+    [
+      (input: { chartType: string; overrideTransformProps?: TransformProps }) =>
+        input.chartType,
+      input => input.overrideTransformProps,
+    ],
     (chartType, overrideTransformProps) => {
       if (chartType) {
         const Renderer = createLoadableRenderer({

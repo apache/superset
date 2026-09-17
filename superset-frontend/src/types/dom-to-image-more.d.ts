@@ -18,21 +18,24 @@
  */
 
 declare module 'dom-to-image-more' {
+  /* NGLS - BEGIN */
   export interface Options {
-    filter?: ((node: Node) => boolean) | undefined;
-    bgcolor?: string | undefined;
-    width?: number | undefined;
-    height?: number | undefined;
-    style?: {} | undefined;
-    quality?: number | undefined;
-    imagePlaceholder?: string | undefined;
-    cacheBust?: boolean | undefined;
+    filter?: (node: Node) => boolean;
+    bgcolor?: string;
+    width?: number;
+    height?: number;
+    style?: Record<string, string>;
+    quality?: number;
+    imagePlaceholder?: string;
+    cacheBust?: boolean;
   }
 
-  class DomToImageMore {
-    static toJpeg(node: Node, options?: Options): Promise<string>;
-    static toCanvas(node: Node, options?: Options): Promise<any>;
+  interface DomToImageMore {
+    toJpeg(node: Node, options?: Options): Promise<string>;
+    toCanvas(node: Node, options?: Options): Promise<HTMLCanvasElement>;
   }
 
-  export default DomToImageMore;
+  const domToImage: DomToImageMore;
+  export default domToImage;
+  /* NGLS - END */
 }

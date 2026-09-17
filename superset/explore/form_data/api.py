@@ -20,18 +20,18 @@ from flask import request, Response
 from flask_appbuilder.api import expose, protect, safe
 from marshmallow import ValidationError
 
-from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
-from superset.explore.form_data.commands.create import CreateFormDataCommand
-from superset.explore.form_data.commands.delete import DeleteFormDataCommand
-from superset.explore.form_data.commands.get import GetFormDataCommand
-from superset.explore.form_data.commands.parameters import CommandParameters
-from superset.explore.form_data.commands.update import UpdateFormDataCommand
-from superset.explore.form_data.schemas import FormDataPostSchema, FormDataPutSchema
-from superset.extensions import event_logger
-from superset.temporary_cache.commands.exceptions import (
+from superset.commands.explore.form_data.create import CreateFormDataCommand
+from superset.commands.explore.form_data.delete import DeleteFormDataCommand
+from superset.commands.explore.form_data.get import GetFormDataCommand
+from superset.commands.explore.form_data.parameters import CommandParameters
+from superset.commands.explore.form_data.update import UpdateFormDataCommand
+from superset.commands.temporary_cache.exceptions import (
     TemporaryCacheAccessDeniedError,
     TemporaryCacheResourceNotFoundError,
 )
+from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
+from superset.explore.form_data.schemas import FormDataPostSchema, FormDataPutSchema
+from superset.extensions import event_logger
 from superset.views.base_api import BaseSupersetApi, requires_json, statsd_metrics
 
 logger = logging.getLogger(__name__)
@@ -47,7 +47,7 @@ class ExploreFormDataRestApi(BaseSupersetApi):
     openapi_spec_tag = "Explore Form Data"
     openapi_spec_component_schemas = (FormDataPostSchema, FormDataPutSchema)
 
-    @expose("/form_data", methods=["POST"])
+    @expose("/form_data", methods=("POST",))
     @protect()
     @safe
     @statsd_metrics
@@ -57,11 +57,10 @@ class ExploreFormDataRestApi(BaseSupersetApi):
     )
     @requires_json
     def post(self) -> Response:
-        """Stores a new form_data.
+        """Create a new form_data.
         ---
         post:
-          description: >-
-            Stores a new form_data.
+          summary: Create a new form_data
           parameters:
           - in: query
             schema:
@@ -112,7 +111,7 @@ class ExploreFormDataRestApi(BaseSupersetApi):
         except TemporaryCacheResourceNotFoundError as ex:
             return self.response(404, message=str(ex))
 
-    @expose("/form_data/<string:key>", methods=["PUT"])
+    @expose("/form_data/<string:key>", methods=("PUT",))
     @protect()
     @safe
     @statsd_metrics
@@ -122,11 +121,10 @@ class ExploreFormDataRestApi(BaseSupersetApi):
     )
     @requires_json
     def put(self, key: str) -> Response:
-        """Updates an existing form_data.
+        """Update an existing form_data.
         ---
         put:
-          description: >-
-            Updates an existing form_data.
+          summary: Update an existing form_data
           parameters:
           - in: path
             schema:
@@ -186,7 +184,7 @@ class ExploreFormDataRestApi(BaseSupersetApi):
         except TemporaryCacheResourceNotFoundError as ex:
             return self.response(404, message=str(ex))
 
-    @expose("/form_data/<string:key>", methods=["GET"])
+    @expose("/form_data/<string:key>", methods=("GET",))
     @protect()
     @safe
     @statsd_metrics
@@ -195,11 +193,10 @@ class ExploreFormDataRestApi(BaseSupersetApi):
         log_to_statsd=True,
     )
     def get(self, key: str) -> Response:
-        """Retrives a form_data.
+        """Get a form_data.
         ---
         get:
-          description: >-
-            Retrives a form_data.
+          summary: Get a form_data
           parameters:
           - in: path
             schema:
@@ -238,7 +235,7 @@ class ExploreFormDataRestApi(BaseSupersetApi):
         except TemporaryCacheResourceNotFoundError as ex:
             return self.response(404, message=str(ex))
 
-    @expose("/form_data/<string:key>", methods=["DELETE"])
+    @expose("/form_data/<string:key>", methods=("DELETE",))
     @protect()
     @safe
     @statsd_metrics
@@ -247,11 +244,10 @@ class ExploreFormDataRestApi(BaseSupersetApi):
         log_to_statsd=True,
     )
     def delete(self, key: str) -> Response:
-        """Deletes a form_data.
+        """Delete a form_data.
         ---
         delete:
-          description: >-
-            Deletes a form_data.
+          summary: Delete a form_data
           parameters:
           - in: path
             schema:

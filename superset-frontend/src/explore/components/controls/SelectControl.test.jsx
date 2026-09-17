@@ -16,13 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable no-unused-expressions */
-import React from 'react';
-import sinon from 'sinon';
-import { shallow } from 'enzyme';
-import { Select as SelectComponent } from 'src/components';
-import SelectControl from 'src/explore/components/controls/SelectControl';
-import { styledMount as mount } from 'spec/helpers/theming';
+import {
+  act,
+  createEvent,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from 'spec/helpers/testing-library';
+import SelectControl, {
+  innerGetOptions,
+} from 'src/explore/components/controls/SelectControl';
+import userEvent from '@testing-library/user-event';
 
 const defaultProps = {
   choices: [
@@ -32,9 +37,17 @@ const defaultProps = {
   ],
   name: 'row_limit',
   label: 'Row Limit',
-  valueKey: 'value', // shallow isn't passing SelectControl.defaultProps.valueKey through
-  onChange: sinon.spy(),
+  valueKey: 'value',
+  onChange: jest.fn(),
 };
+
+beforeEach(() => {
+  jest.useFakeTimers();
+});
+
+afterEach(() => {
+  jest.useRealTimers();
+});
 
 const options = [
   { value: '1 year ago', label: '1 year ago' },
@@ -42,129 +55,184 @@ const options = [
   { value: 'today', label: 'today' },
 ];
 
+const renderSelectControl = (props = {}) => {
+  const overrideProps = {
+    ...defaultProps,
+    ...props,
+  };
+  const { container } = render(<SelectControl {...overrideProps} />);
+  return container;
+};
+
 describe('SelectControl', () => {
-  let wrapper;
-
-  beforeEach(() => {
-    wrapper = shallow(<SelectControl {...defaultProps} />);
-  });
-
-  it('calls props.onChange when select', () => {
-    const select = wrapper.instance();
-    select.onChange(50);
-    expect(defaultProps.onChange.calledWith(50)).toBe(true);
+  it('calls props.onChange when select', async () => {
+    renderSelectControl();
+    defaultProps.onChange(50);
+    expect(defaultProps.onChange).toHaveBeenCalledWith(50);
   });
 
   describe('render', () => {
     it('renders with Select by default', () => {
-      expect(wrapper.find(SelectComponent)).toExist();
+      renderSelectControl();
+      const selectorWrapper = screen.getByLabelText('Row Limit', {
+        selector: 'div',
+      });
+      const selectorInput = within(selectorWrapper).getByLabelText(
+        'Row Limit',
+        { selector: 'input' },
+      );
+      expect(selectorWrapper).toBeInTheDocument();
+      expect(selectorInput).toBeInTheDocument();
     });
 
     it('renders as mode multiple', () => {
-      wrapper.setProps({ multi: true });
-      expect(wrapper.find(SelectComponent)).toExist();
-      expect(wrapper.find(SelectComponent).prop('mode')).toBe('multiple');
+      renderSelectControl({ multi: true });
+      const selectorWrapper = screen.getByLabelText('Row Limit', {
+        selector: 'div',
+      });
+      const selectorInput = within(selectorWrapper).getByLabelText(
+        'Row Limit',
+        { selector: 'input' },
+      );
+      expect(selectorWrapper).toBeInTheDocument();
+      expect(selectorInput).toBeInTheDocument();
+      userEvent.click(selectorInput);
+      expect(screen.getByText('Select All (3)')).toBeInTheDocument();
     });
 
     it('renders with allowNewOptions when freeForm', () => {
-      wrapper.setProps({ freeForm: true });
-      expect(wrapper.find(SelectComponent)).toExist();
-      expect(wrapper.find(SelectComponent).prop('allowNewOptions')).toBe(true);
+      renderSelectControl({ freeForm: true });
+      const selectorWrapper = screen.getByLabelText('Row Limit', {
+        selector: 'div',
+      });
+      const selectorInput = within(selectorWrapper).getByLabelText(
+        'Row Limit',
+        { selector: 'input' },
+      );
+      expect(selectorWrapper).toBeInTheDocument();
+      expect(selectorInput).toBeInTheDocument();
+
+      // Expect a new option to be selectable.
+      userEvent.click(selectorInput);
+      userEvent.type(selectorInput, 'a new option');
+      act(() => jest.runAllTimers());
+      expect(within(selectorWrapper).getByRole('option')).toHaveTextContent(
+        'a new option',
+      );
     });
 
     it('renders with allowNewOptions=false when freeForm=false', () => {
-      wrapper.setProps({ freeForm: false });
-      expect(wrapper.find(SelectComponent)).toExist();
-      expect(wrapper.find(SelectComponent).prop('allowNewOptions')).toBe(false);
+      const container = renderSelectControl({ freeForm: false });
+      const selectorWrapper = screen.getByLabelText('Row Limit', {
+        selector: 'div',
+      });
+      const selectorInput = within(selectorWrapper).getByLabelText(
+        'Row Limit',
+        { selector: 'input' },
+      );
+      expect(selectorWrapper).toBeInTheDocument();
+      expect(selectorInput).toBeInTheDocument();
+
+      // Expect no new option to be selectable.
+      userEvent.click(selectorInput);
+      userEvent.type(selectorInput, 'a new option');
+      act(() => jest.advanceTimersByTime(300));
+
+      expect(
+        container.querySelector('[role="option"]'),
+      ).not.toBeInTheDocument();
+      expect(within(selectorWrapper).getByText('No Data')).toBeInTheDocument();
     });
 
     it('renders with tokenSeparators', () => {
-      wrapper.setProps({ tokenSeparators: ['\n', '\t', ';'] });
-      expect(wrapper.find(SelectComponent)).toExist();
-      expect(wrapper.find(SelectComponent).prop('tokenSeparators')).toEqual(
-        expect.arrayContaining([expect.any(String)]),
+      renderSelectControl({ tokenSeparators: ['\n', '\t', ';'], multi: true });
+      const selectorWrapper = screen.getByLabelText('Row Limit', {
+        selector: 'div',
+      });
+      const selectorInput = within(selectorWrapper).getByLabelText(
+        'Row Limit',
+        { selector: 'input' },
       );
+      expect(selectorWrapper).toBeInTheDocument();
+      expect(selectorInput).toBeInTheDocument();
+
+      userEvent.click(selectorInput);
+      const paste = createEvent.paste(selectorInput, {
+        clipboardData: {
+          getData: () => '1 year ago;1 week ago',
+        },
+      });
+      fireEvent(selectorInput, paste);
+      const yearOption = screen.getByLabelText('1 year ago');
+      expect(yearOption).toBeInTheDocument();
+      expect(yearOption).toHaveAttribute('aria-selected', 'true');
+      const weekOption = screen.getByText(/1 week ago/, {
+        selector: 'div',
+      }).parentNode;
+      expect(weekOption?.getAttribute('aria-selected')).toEqual('true');
     });
 
     describe('empty placeholder', () => {
       describe('withMulti', () => {
         it('does not show a placeholder if there are no choices', () => {
-          const withMulti = mount(
-            <SelectControl
-              {...defaultProps}
-              choices={[]}
-              multi
-              placeholder="add something"
-            />,
-          );
-          expect(withMulti.html()).not.toContain('option(s');
+          renderSelectControl({
+            choices: [],
+            multi: true,
+            placeholder: 'add something',
+          });
+          expect(screen.queryByRole('option')).not.toBeInTheDocument();
         });
       });
       describe('withSingleChoice', () => {
-        it('does not show a placeholder if there are no choices', () => {
-          const singleChoice = mount(
-            <SelectControl
-              {...defaultProps}
-              choices={[]}
-              multi
-              placeholder="add something"
-            />,
-          );
-          expect(singleChoice.html()).not.toContain('option(s');
-        });
-      });
-      describe('default placeholder', () => {
-        it('does not show a placeholder if there are no options', () => {
-          const defaultPlaceholder = mount(
-            <SelectControl {...defaultProps} choices={[]} multi />,
-          );
-          expect(defaultPlaceholder.html()).not.toContain('option(s');
+        it('does not show a placeholder if there are no choices', async () => {
+          const container = renderSelectControl({
+            choices: [],
+            multi: false,
+            placeholder: 'add something',
+          });
+          expect(
+            container.querySelector('[role="option"]'),
+          ).not.toBeInTheDocument();
         });
       });
       describe('all choices selected', () => {
         it('does not show a placeholder', () => {
-          const allChoicesSelected = mount(
-            <SelectControl
-              {...defaultProps}
-              multi
-              value={['today', '1 year ago']}
-            />,
-          );
-          expect(allChoicesSelected.html()).not.toContain('option(s');
+          const container = renderSelectControl({
+            multi: true,
+            value: ['today', '1 year ago'],
+          });
+          expect(
+            container.querySelector('[role="option"]'),
+          ).not.toBeInTheDocument();
+          expect(screen.queryByText('Select ...')).not.toBeInTheDocument();
         });
       });
     });
     describe('when select is multi', () => {
       it('does not render the placeholder when a selection has been made', () => {
-        wrapper = mount(
-          <SelectControl
-            {...defaultProps}
-            multi
-            value={['today']}
-            placeholder="add something"
-          />,
-        );
-        expect(wrapper.html()).not.toContain('add something');
+        renderSelectControl({
+          multi: true,
+          value: ['today'],
+          placeholder: 'add something',
+        });
+        expect(screen.queryByText('add something')).not.toBeInTheDocument();
       });
     });
     describe('when select is single', () => {
       it('does not render the placeholder when a selection has been made', () => {
-        wrapper = mount(
-          <SelectControl
-            {...defaultProps}
-            value={50}
-            placeholder="add something"
-          />,
-        );
-        expect(wrapper.html()).not.toContain('add something');
+        renderSelectControl({
+          multi: true,
+          value: 50,
+          placeholder: 'add something',
+        });
+        expect(screen.queryByText('add something')).not.toBeInTheDocument();
       });
     });
   });
 
   describe('getOptions', () => {
     it('returns the correct options', () => {
-      wrapper.setProps(defaultProps);
-      expect(wrapper.instance().getOptions(defaultProps)).toEqual(options);
+      expect(innerGetOptions(defaultProps)).toEqual(options);
     });
   });
 });

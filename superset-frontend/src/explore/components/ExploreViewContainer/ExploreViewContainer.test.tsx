@@ -16,13 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import fetchMock from 'fetch-mock';
 import {
   getChartControlPanelRegistry,
   getChartMetadataRegistry,
   ChartMetadata,
+  VizType,
 } from '@superset-ui/core';
+import { QUERY_MODE_REQUISITES } from 'src/explore/constants';
 import { MemoryRouter, Route } from 'react-router-dom';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
@@ -32,7 +33,7 @@ const reduxState = {
   explore: {
     controls: {
       datasource: { value: '1__table' },
-      viz_type: { value: 'table' },
+      viz_type: { value: VizType.Table },
     },
     datasource: {
       id: 1,
@@ -78,10 +79,13 @@ const reduxState = {
 const KEY = 'aWrs7w29sd';
 const SEARCH = `?form_data_key=${KEY}&dataset_id=1`;
 
-jest.mock('react-resize-detector', () => ({
-  __esModule: true,
-  useResizeDetector: () => ({ height: 100, width: 100 }),
-}));
+jest.mock(
+  'src/explore/components/ExploreChartPanel/useResizeDetectorByObserver',
+  () => ({
+    __esModule: true,
+    default: () => ({ height: 100, width: 100 }),
+  }),
+);
 
 jest.mock('lodash/debounce', () => ({
   __esModule: true,
@@ -91,15 +95,22 @@ jest.mock('lodash/debounce', () => ({
 fetchMock.post('glob:*/api/v1/explore/form_data*', { key: KEY });
 fetchMock.put('glob:*/api/v1/explore/form_data*', { key: KEY });
 fetchMock.get('glob:*/api/v1/explore/form_data*', {});
-fetchMock.get('glob:*/favstar/slice*', { count: 0 });
+fetchMock.get('glob:*/api/v1/chart/favorite_status*', {
+  result: [{ value: true }],
+});
+fetchMock.get('glob:*/api/v1/chart/*', {
+  result: {},
+});
 
 const defaultPath = '/explore/';
 const renderWithRouter = ({
   search = '',
   overridePathname,
+  initialState = reduxState,
 }: {
   search?: string;
   overridePathname?: string;
+  initialState?: object;
 } = {}) => {
   const path = overridePathname ?? defaultPath;
   Object.defineProperty(window, 'location', {
@@ -113,7 +124,7 @@ const renderWithRouter = ({
         <ExploreViewContainer />
       </Route>
     </MemoryRouter>,
-    { useRedux: true, initialState: reduxState },
+    { useRedux: true, useDnd: true, initialState },
   );
 };
 
@@ -139,6 +150,16 @@ test('generates a new form_data param when none is available', async () => {
     expect.stringMatching('datasource_id'),
   );
   replaceState.mockRestore();
+});
+
+test('renders chart in standalone mode', () => {
+  const { queryByTestId } = renderWithRouter({
+    initialState: {
+      ...reduxState,
+      explore: { ...reduxState.explore, standalone: true },
+    },
+  });
+  expect(queryByTestId('standalone-app')).toBeInTheDocument();
 });
 
 test('generates a different form_data param when one is provided and is mounting', async () => {
@@ -201,4 +222,76 @@ test('preserves unknown parameters', async () => {
     expect.stringMatching(unknownParam),
   );
   replaceState.mockRestore();
+});
+
+test('retains query mode requirements when query_mode is enabled', async () => {
+  const customState = {
+    ...reduxState,
+    explore: {
+      ...reduxState.explore,
+      controls: {
+        ...reduxState.explore.controls,
+        query_mode: { value: 'raw' },
+        optional_key1: { value: 'value1' },
+        all_columns: { value: ['all_columns'] },
+        groupby: { value: ['groupby'] },
+      },
+      hiddenFormData: {
+        all_columns: ['all_columns'],
+        groupby: ['groupby'],
+        optional_key1: 'value1',
+      },
+    },
+  };
+
+  await waitFor(() => renderWithRouter({ initialState: customState }));
+
+  const formDataEndpointCalls = fetchMock.calls(/api\/v1\/explore\/form_data/);
+  expect(formDataEndpointCalls.length).toBeGreaterThan(0);
+  const lastCall = formDataEndpointCalls[formDataEndpointCalls.length - 1];
+
+  const body = JSON.parse(lastCall[1]?.body as string);
+  const formData = JSON.parse(body.form_data);
+
+  const queryModeFields = Object.keys(
+    customState.explore.hiddenFormData,
+  ).filter(key => QUERY_MODE_REQUISITES.has(key));
+
+  queryModeFields.forEach(key => {
+    expect(formData[key]).toBeDefined();
+  });
+  expect(formData.optional_key1).toBeUndefined();
+});
+
+test('does omit hiddenFormData when query_mode is not enabled', async () => {
+  const customState = {
+    ...reduxState,
+    explore: {
+      ...reduxState.explore,
+      controls: {
+        ...reduxState.explore.controls,
+        optional_key1: { value: 'value1' },
+        all_columns: { value: ['all_columns'] },
+        groupby: { value: ['groupby'] },
+      },
+      hiddenFormData: {
+        all_columns: ['all_columns'],
+        groupby: ['groupby'],
+        optional_key1: 'value1',
+      },
+    },
+  };
+
+  await waitFor(() => renderWithRouter({ initialState: customState }));
+
+  const formDataEndpointCalls = fetchMock.calls(/api\/v1\/explore\/form_data/);
+  expect(formDataEndpointCalls.length).toBeGreaterThan(0);
+  const lastCall = formDataEndpointCalls[formDataEndpointCalls.length - 1];
+
+  const body = JSON.parse(lastCall[1]?.body as string);
+  const formData = JSON.parse(body.form_data);
+
+  Object.keys(customState.explore.hiddenFormData).forEach(key => {
+    expect(formData[key]).toBeUndefined();
+  });
 });

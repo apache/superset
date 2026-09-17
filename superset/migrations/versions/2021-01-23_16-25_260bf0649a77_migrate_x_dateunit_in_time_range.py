@@ -26,19 +26,19 @@ Create Date: 2021-01-23 16:25:14.496774
 revision = "260bf0649a77"
 down_revision = "c878781977c6"
 
-import json
-import re
+import re  # noqa: E402
 
-import sqlalchemy as sa
-from alembic import op
-from sqlalchemy import Column, Integer, or_, Text
-from sqlalchemy.dialects.mysql.base import MySQLDialect
-from sqlalchemy.dialects.sqlite.base import SQLiteDialect
-from sqlalchemy.exc import OperationalError
-from sqlalchemy.ext.declarative import declarative_base
+import sqlalchemy as sa  # noqa: E402
+from alembic import op  # noqa: E402
+from sqlalchemy import Column, Integer, or_, Text  # noqa: E402
+from sqlalchemy.dialects.mysql.base import MySQLDialect  # noqa: E402
+from sqlalchemy.dialects.sqlite.base import SQLiteDialect  # noqa: E402
+from sqlalchemy.exc import OperationalError  # noqa: E402
+from sqlalchemy.ext.declarative import declarative_base  # noqa: E402
 
-from superset import db
-from superset.utils.date_parser import DateRangeMigration
+from superset import db  # noqa: E402
+from superset.utils import json  # noqa: E402
+from superset.utils.date_parser import DateRangeMigration  # noqa: E402
 
 Base = declarative_base()
 

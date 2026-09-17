@@ -24,7 +24,6 @@ const StyledItem = styled(Form.Item)`
     .ant-form-item-label {
       padding-bottom: ${theme.gridUnit}px;
       & > label {
-        text-transform: uppercase;
         font-size: ${theme.typography.sizes.s}px;
         color: ${theme.colors.grayscale.base};
 

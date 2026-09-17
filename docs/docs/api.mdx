@@ -1,11 +1,10 @@
 ---
 title: API
 hide_title: true
-sidebar_position: 9
+sidebar_position: 10
 ---
 
-import { Buffer } from 'buffer';
-global.Buffer = Buffer;
+import { Buffer } from 'buffer/index.js';
 import SwaggerUI from 'swagger-ui-react';
 import openapi from '/resources/openapi.json';
 import 'swagger-ui-react/swagger-ui.css';
@@ -15,7 +14,7 @@ import { Alert } from 'antd';
 
 Superset's public **REST API** follows the
 [OpenAPI specification](https://swagger.io/specification/), and is
-documented here. The docs bellow are generated using
+documented here. The docs below are generated using
 [Swagger React UI](https://www.npmjs.com/package/swagger-ui-react).
 
 <Alert

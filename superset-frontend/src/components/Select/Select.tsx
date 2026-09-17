@@ -16,23 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
+import {
   forwardRef,
+  FocusEvent,
   ReactElement,
   RefObject,
   useEffect,
   useMemo,
   useState,
   useCallback,
+  ClipboardEvent,
 } from 'react';
+
 import {
   ensureIsArray,
   formatNumber,
   NumberFormats,
   t,
+  usePrevious,
 } from '@superset-ui/core';
 import AntdSelect, { LabeledValue as AntdLabeledValue } from 'antd/lib/select';
-import { isEqual } from 'lodash';
+import { debounce, isEqual, uniq } from 'lodash';
+import { FAST_DEBOUNCE } from 'src/constants';
 import {
   getValue,
   hasOption,
@@ -47,8 +52,12 @@ import {
   selectAllOption,
   mapValues,
   mapOptions,
+  hasCustomLabels,
+  getOption,
+  isObject,
+  isEqual as utilsIsEqual,
 } from './utils';
-import { SelectOptionsType, SelectProps } from './types';
+import { RawValue, SelectOptionsType, SelectProps } from './types';
 import {
   StyledCheckOutlined,
   StyledContainer,
@@ -67,8 +76,6 @@ import { customTagRender } from './CustomTag';
 /**
  * This component is a customized version of the Antdesign 4.X Select component
  * https://ant.design/components/select/.
- * The aim of the component was to combine all the instances of select components throughout the
- * project under one and to remove the react-select component entirely.
  * This Select component provides an API that is tested against all the different use cases of Superset.
  * It limits and overrides the existing Antdesign API in order to keep their usage to the minimum
  * and to enforce simplification and standardization.
@@ -83,7 +90,9 @@ const Select = forwardRef(
     {
       allowClear,
       allowNewOptions = false,
+      allowSelectAll = true,
       ariaLabel,
+      autoClearSearchValue = false,
       filterOption = true,
       header = null,
       headerPosition = 'top',
@@ -94,15 +103,19 @@ const Select = forwardRef(
       mode = 'single',
       name,
       notFoundContent,
+      onBlur,
       onChange,
       onClear,
       onDropdownVisibleChange,
+      onDeselect,
+      onSearch,
+      onSelect,
       optionFilterProps = ['label', 'value'],
       options,
       placeholder = t('Select ...'),
       showSearch = true,
       sortComparator = DEFAULT_SORT_COMPARATOR,
-      tokenSeparators,
+      tokenSeparators = TOKEN_SEPARATORS,
       value,
       getPopupContainer,
       oneLine,
@@ -120,6 +133,13 @@ const Select = forwardRef(
     const [maxTagCount, setMaxTagCount] = useState(
       propsMaxTagCount ?? MAX_TAG_COUNT,
     );
+    const [onChangeCount, setOnChangeCount] = useState(0);
+    const previousChangeCount = usePrevious(onChangeCount, 0);
+
+    const fireOnChange = useCallback(
+      () => setOnChangeCount(onChangeCount + 1),
+      [onChangeCount],
+    );
 
     useEffect(() => {
       if (oneLine) {
@@ -127,11 +147,7 @@ const Select = forwardRef(
       }
     }, [isDropdownVisible, oneLine]);
 
-    const mappedMode = isSingleMode
-      ? undefined
-      : allowNewOptions
-      ? 'tags'
-      : 'multiple';
+    const mappedMode = isSingleMode ? undefined : 'multiple';
 
     const { Option } = AntdSelect;
 
@@ -153,8 +169,7 @@ const Select = forwardRef(
     );
 
     const initialOptions = useMemo(
-      () =>
-        options && Array.isArray(options) ? options.slice() : EMPTY_OPTIONS,
+      () => (Array.isArray(options) ? options.slice() : EMPTY_OPTIONS),
       [options],
     );
     const initialOptionsSorted = useMemo(
@@ -167,8 +182,18 @@ const Select = forwardRef(
 
     // add selected values to options list if they are not in it
     const fullSelectOptions = useMemo(() => {
+      // check to see if selectOptions are grouped
+      let groupedOptions: SelectOptionsType;
+      if (selectOptions.some(opt => opt.options)) {
+        groupedOptions = selectOptions.reduce(
+          (acc, group) => [...acc, ...group.options],
+          [] as SelectOptionsType,
+        );
+      }
       const missingValues: SelectOptionsType = ensureIsArray(selectValue)
-        .filter(opt => !hasOption(getValue(opt), selectOptions))
+        .filter(
+          opt => !hasOption(getValue(opt), groupedOptions || selectOptions),
+        )
         .map(opt =>
           isLabeledValue(opt) ? opt : { value: opt, label: String(opt) },
         );
@@ -195,10 +220,17 @@ const Select = forwardRef(
     const selectAllEnabled = useMemo(
       () =>
         !isSingleMode &&
+        allowSelectAll &&
         selectOptions.length > 0 &&
         enabledOptions.length > 1 &&
         !inputValue,
-      [isSingleMode, selectOptions.length, enabledOptions.length, inputValue],
+      [
+        isSingleMode,
+        allowSelectAll,
+        selectOptions.length,
+        enabledOptions.length,
+        inputValue,
+      ],
     );
 
     const selectAllMode = useMemo(
@@ -206,11 +238,18 @@ const Select = forwardRef(
       [selectValue, selectAllEligible],
     );
 
-    const handleOnSelect = (
-      selectedItem: string | number | AntdLabeledValue | undefined,
-    ) => {
+    const handleOnSelect: SelectProps['onSelect'] = (selectedItem, option) => {
       if (isSingleMode) {
+        // on select is fired in single value mode if the same value is selected
+        const valueChanged = !utilsIsEqual(
+          selectedItem,
+          selectValue as RawValue | AntdLabeledValue,
+          'value',
+        );
         setSelectValue(selectedItem);
+        if (valueChanged) {
+          fireOnChange();
+        }
       } else {
         setSelectValue(previousState => {
           const array = ensureIsArray(previousState);
@@ -242,27 +281,31 @@ const Select = forwardRef(
           }
           return previousState;
         });
+        fireOnChange();
       }
-      setInputValue('');
+      onSelect?.(selectedItem, option);
     };
 
     const clear = () => {
-      setSelectValue(
-        fullSelectOptions
-          .filter(
-            option => option.disabled && hasOption(option.value, selectValue),
-          )
-          .map(option =>
-            labelInValue
-              ? { label: option.label, value: option.value }
-              : option.value,
-          ),
-      );
+      if (isSingleMode) {
+        setSelectValue(undefined);
+      } else {
+        setSelectValue(
+          fullSelectOptions
+            .filter(
+              option => option.disabled && hasOption(option.value, selectValue),
+            )
+            .map(option =>
+              labelInValue
+                ? { label: option.label, value: option.value }
+                : option.value,
+            ),
+        );
+      }
+      fireOnChange();
     };
 
-    const handleOnDeselect = (
-      value: string | number | AntdLabeledValue | undefined,
-    ) => {
+    const handleOnDeselect: SelectProps['onDeselect'] = (value, option) => {
       if (Array.isArray(selectValue)) {
         if (getValue(value) === getValue(SELECT_ALL_VALUE)) {
           clear();
@@ -272,23 +315,30 @@ const Select = forwardRef(
             element => getValue(element) !== getValue(value),
           );
           // if this was not a new item, deselect select all option
-          if (
-            selectAllMode &&
-            selectOptions.some(opt => opt.value === getValue(value))
-          ) {
+          if (selectAllMode && !option.isNewOption) {
             array = array.filter(
               element => getValue(element) !== SELECT_ALL_VALUE,
             );
           }
           setSelectValue(array);
+
+          // removes new option
+          if (option.isNewOption) {
+            setSelectOptions(
+              fullSelectOptions.filter(
+                option => getValue(option.value) !== getValue(value),
+              ),
+            );
+          }
         }
       }
-      setInputValue('');
+      fireOnChange();
+      onDeselect?.(value, option);
     };
 
-    const handleOnSearch = (search: string) => {
+    const handleOnSearch = debounce((search: string) => {
       const searchValue = search.trim();
-      if (allowNewOptions && isSingleMode) {
+      if (allowNewOptions) {
         const newOption = searchValue &&
           !hasOption(searchValue, fullSelectOptions, true) && {
             label: searchValue,
@@ -303,8 +353,11 @@ const Select = forwardRef(
           : cleanSelectOptions;
         setSelectOptions(newOptions);
       }
-      setInputValue(search);
-    };
+      setInputValue(searchValue);
+      onSearch?.(searchValue);
+    }, FAST_DEBOUNCE);
+
+    useEffect(() => () => handleOnSearch.cancel(), [handleOnSearch]);
 
     const handleFilterOption = (search: string, option: AntdLabeledValue) =>
       handleFilterOptionHelper(search, option, optionFilterProps, filterOption);
@@ -360,26 +413,16 @@ const Select = forwardRef(
     useEffect(() => {
       // if all values are selected, add select all to value
       if (
-        !isSingleMode &&
-        ensureIsArray(value).length === selectAllEligible.length &&
-        selectOptions.length > 0
+        selectAllEnabled &&
+        ensureIsArray(value).length === selectAllEligible.length
       ) {
         setSelectValue(
           labelInValue
             ? ([...ensureIsArray(value), selectAllOption] as AntdLabeledValue[])
-            : ([
-                ...ensureIsArray(value),
-                SELECT_ALL_VALUE,
-              ] as AntdLabeledValue[]),
+            : ([...ensureIsArray(value), SELECT_ALL_VALUE] as RawValue[]),
         );
       }
-    }, [
-      value,
-      isSingleMode,
-      labelInValue,
-      selectAllEligible.length,
-      selectOptions.length,
-    ]);
+    }, [labelInValue, selectAllEligible.length, selectAllEnabled, value]);
 
     useEffect(() => {
       const checkSelectAll = ensureIsArray(selectValue).some(
@@ -391,8 +434,15 @@ const Select = forwardRef(
         );
         optionsToSelect.push(labelInValue ? selectAllOption : SELECT_ALL_VALUE);
         setSelectValue(optionsToSelect);
+        fireOnChange();
       }
-    }, [selectValue, selectAllMode, labelInValue, selectAllEligible]);
+    }, [
+      selectValue,
+      selectAllMode,
+      labelInValue,
+      selectAllEligible,
+      fireOnChange,
+    ]);
 
     const selectAllLabel = useMemo(
       () => () =>
@@ -404,47 +454,152 @@ const Select = forwardRef(
       [selectAllEligible],
     );
 
-    const handleOnChange = (values: any, options: any) => {
-      // intercept onChange call to handle the select all case
-      // if the "select all" option is selected, we want to send all options to the onChange,
-      // otherwise we want to remove
-      let newValues = values;
-      let newOptions = options;
-      if (!isSingleMode) {
-        if (
-          ensureIsArray(newValues).some(
-            val => getValue(val) === SELECT_ALL_VALUE,
-          )
-        ) {
-          // send all options to onchange if all are not currently there
-          if (!selectAllMode) {
-            newValues = mapValues(selectAllEligible, labelInValue);
-            newOptions = mapOptions(selectAllEligible);
-          } else {
-            newValues = ensureIsArray(values).filter(
-              (val: any) => getValue(val) !== SELECT_ALL_VALUE,
-            );
-          }
-        } else if (
-          ensureIsArray(values).length === selectAllEligible.length &&
-          selectAllMode
-        ) {
-          const array = selectAllEligible.filter(
-            option => hasOption(option.value, selectValue) && option.disabled,
-          );
-          newValues = mapValues(array, labelInValue);
-          newOptions = mapOptions(array);
-        }
-      }
-      onChange?.(newValues, newOptions);
+    const handleOnBlur = (event: FocusEvent<HTMLElement>) => {
+      setInputValue('');
+      onBlur?.(event);
     };
 
-    const customMaxTagPlaceholder = () => {
+    const handleOnChange = useCallback(
+      (values: any, options: any) => {
+        // intercept onChange call to handle the select all case
+        // if the "select all" option is selected, we want to send all options to the onChange,
+        // otherwise we want to remove
+        let newValues = values;
+        let newOptions = options;
+        if (!isSingleMode) {
+          if (
+            ensureIsArray(newValues).some(
+              val => getValue(val) === SELECT_ALL_VALUE,
+            )
+          ) {
+            // send all options to onchange if all are not currently there
+            if (!selectAllMode) {
+              newValues = mapValues(selectAllEligible, labelInValue);
+              newOptions = mapOptions(selectAllEligible);
+            } else {
+              newValues = ensureIsArray(values).filter(
+                (val: any) => getValue(val) !== SELECT_ALL_VALUE,
+              );
+            }
+          } else if (
+            ensureIsArray(values).length === selectAllEligible.length &&
+            selectAllMode
+          ) {
+            const array = selectAllEligible.filter(
+              option => hasOption(option.value, selectValue) && option.disabled,
+            );
+            newValues = mapValues(array, labelInValue);
+            newOptions = mapOptions(array);
+          }
+        }
+        onChange?.(newValues, newOptions);
+      },
+      [
+        isSingleMode,
+        labelInValue,
+        onChange,
+        selectAllEligible,
+        selectAllMode,
+        selectValue,
+      ],
+    );
+
+    useEffect(() => {
+      if (onChangeCount !== previousChangeCount) {
+        const array = ensureIsArray(selectValue);
+        const set = new Set(array.map(getValue));
+        const options = mapOptions(
+          fullSelectOptions.filter(opt => set.has(opt.value)),
+        );
+        if (isSingleMode) {
+          handleOnChange(selectValue, selectValue ? options[0] : undefined);
+        } else {
+          handleOnChange(array, options);
+        }
+      }
+    }, [
+      fullSelectOptions,
+      handleOnChange,
+      isSingleMode,
+      onChange,
+      onChangeCount,
+      previousChangeCount,
+      selectValue,
+    ]);
+
+    const shouldRenderChildrenOptions = useMemo(
+      () => selectAllEnabled || hasCustomLabels(options),
+      [selectAllEnabled, options],
+    );
+
+    const omittedCount = useMemo(() => {
       const num_selected = ensureIsArray(selectValue).length;
       const num_shown = maxTagCount as number;
-      return selectAllMode
-        ? `+ ${num_selected - num_shown - 1} ...`
-        : `+ ${num_selected - num_shown} ...`;
+      return num_selected - num_shown - (selectAllMode ? 1 : 0);
+    }, [maxTagCount, selectAllMode, selectValue]);
+
+    const customMaxTagPlaceholder = () =>
+      `+ ${omittedCount > 0 ? omittedCount : 1} ...`;
+
+    // We can't remove the + tag so when Select All
+    // is the only item omitted, we subtract one from maxTagCount
+    let actualMaxTagCount = maxTagCount;
+    if (
+      actualMaxTagCount !== 'responsive' &&
+      omittedCount === 0 &&
+      selectAllMode
+    ) {
+      actualMaxTagCount -= 1;
+    }
+
+    const getPastedTextValue = useCallback(
+      (text: string) => {
+        const option = getOption(text, fullSelectOptions, true);
+        if (!option && !allowNewOptions) {
+          return undefined;
+        }
+        if (labelInValue) {
+          const value: AntdLabeledValue = {
+            label: text,
+            value: text,
+          };
+          if (option) {
+            value.label = isObject(option) ? option.label : option;
+            value.value = isObject(option) ? option.value! : option;
+          }
+          return value;
+        }
+        return option ? (isObject(option) ? option.value! : option) : text;
+      },
+      [allowNewOptions, fullSelectOptions, labelInValue],
+    );
+
+    const onPaste = (e: ClipboardEvent<HTMLInputElement>) => {
+      const pastedText = e.clipboardData.getData('text');
+      if (isSingleMode) {
+        const value = getPastedTextValue(pastedText);
+        if (value) {
+          setSelectValue(value);
+        }
+      } else {
+        const token = tokenSeparators.find(token => pastedText.includes(token));
+        const array = token ? uniq(pastedText.split(token)) : [pastedText];
+        const values = array
+          .map(item => getPastedTextValue(item))
+          .filter(item => item !== undefined);
+        if (labelInValue) {
+          setSelectValue(previous => [
+            ...((previous || []) as AntdLabeledValue[]),
+            ...(values as AntdLabeledValue[]),
+          ]);
+        } else {
+          setSelectValue(previous => [
+            ...((previous || []) as string[]),
+            ...(values as string[]),
+          ]);
+        }
+      }
+      fireOnChange();
     };
 
     return (
@@ -453,8 +608,10 @@ const Select = forwardRef(
           <StyledHeader headerPosition={headerPosition}>{header}</StyledHeader>
         )}
         <StyledSelect
+          id={name}
           allowClear={!isLoading && allowClear}
-          aria-label={ariaLabel || name}
+          aria-label={ariaLabel}
+          autoClearSearchValue={autoClearSearchValue}
           dropdownRender={dropdownRender}
           filterOption={handleFilterOption}
           filterSort={sortComparatorWithSearch}
@@ -463,21 +620,23 @@ const Select = forwardRef(
           }
           headerPosition={headerPosition}
           labelInValue={labelInValue}
-          maxTagCount={maxTagCount}
+          maxTagCount={actualMaxTagCount}
           maxTagPlaceholder={customMaxTagPlaceholder}
           mode={mappedMode}
           notFoundContent={isLoading ? t('Loading...') : notFoundContent}
+          onBlur={handleOnBlur}
           onDeselect={handleOnDeselect}
           onDropdownVisibleChange={handleOnDropdownVisibleChange}
+          // @ts-ignore
+          onPaste={onPaste}
           onPopupScroll={undefined}
           onSearch={shouldShowSearch ? handleOnSearch : undefined}
           onSelect={handleOnSelect}
           onClear={handleClear}
-          onChange={handleOnChange}
           placeholder={placeholder}
           showSearch={shouldShowSearch}
           showArrow
-          tokenSeparators={tokenSeparators || TOKEN_SEPARATORS}
+          tokenSeparators={tokenSeparators}
           value={selectValue}
           suffixIcon={getSuffixIcon(
             isLoading,
@@ -491,6 +650,7 @@ const Select = forwardRef(
               <StyledCheckOutlined iconSize="m" aria-label="check" />
             )
           }
+          options={shouldRenderChildrenOptions ? undefined : fullSelectOptions}
           oneLine={oneLine}
           tagRender={customTagRender}
           {...props}
@@ -506,7 +666,8 @@ const Select = forwardRef(
               {selectAllLabel()}
             </Option>
           )}
-          {renderSelectOptions(fullSelectOptions)}
+          {shouldRenderChildrenOptions &&
+            renderSelectOptions(fullSelectOptions)}
         </StyledSelect>
       </StyledContainer>
     );

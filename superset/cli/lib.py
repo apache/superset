@@ -26,10 +26,10 @@ feature_flags = config.DEFAULT_FEATURE_FLAGS.copy()
 feature_flags.update(config.FEATURE_FLAGS)
 feature_flags_func = config.GET_FEATURE_FLAGS_FUNC
 if feature_flags_func:
-    # pylint: disable=not-callable
     try:
+        # pylint: disable=not-callable
         feature_flags = feature_flags_func(feature_flags)
-    except Exception:  # pylint: disable=broad-except
+    except Exception:  # pylint: disable=broad-except  # noqa: S110
         # bypass any feature flags that depend on context
         # that's not available
         pass

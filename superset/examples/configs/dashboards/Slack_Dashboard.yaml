@@ -251,7 +251,7 @@ metadata:
     superset_stage_alerts: "#A38F79"
     contributing: "#8FD3E4"
     graduation: "#A1A6BD"
-    embedd-dashboards: "#ACE1C4"
+    embedded-dashboards: "#ACE1C4"
     helm-k8-deployment: "#FEC0A1"
     visualization_plugins: "#B2B2B2"
     community-feedback: "#EFA1AA"

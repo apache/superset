@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React, { ComponentType } from 'react';
+import { lazy, ComponentType } from 'react';
 import { JsonObject } from '@superset-ui/core';
 
 export interface RegistryMetadata {
@@ -78,6 +78,6 @@ export const registrySetComponent =
     registry[key] = {
       key,
       metadata: item.metadata,
-      Component: React.lazy(item.loadComponent),
+      Component: lazy(item.loadComponent),
     };
   };

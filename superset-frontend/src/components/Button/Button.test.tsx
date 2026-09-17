@@ -16,10 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
-import React from 'react';
-import { ReactWrapper } from 'enzyme';
-import { styledMount as mount } from 'spec/helpers/theming';
+import { fireEvent, render } from 'spec/helpers/testing-library';
 import Button from '.';
 import {
   ButtonGallery,
@@ -27,36 +24,26 @@ import {
   STYLES as buttonStyles,
 } from './Button.stories';
 
-describe('Button', () => {
-  let wrapper: ReactWrapper;
+test('works with an onClick handler', () => {
+  const mockAction = jest.fn();
+  const { getByRole } = render(<Button onClick={mockAction} />);
+  fireEvent.click(getByRole('button'));
+  expect(mockAction).toHaveBeenCalled();
+});
 
-  // test the basic component
-  it('renders the base component', () => {
-    expect(React.isValidElement(<Button />)).toBe(true);
-  });
+test('does not handle onClicks when disabled', () => {
+  const mockAction = jest.fn();
+  const { getByRole } = render(<Button onClick={mockAction} disabled />);
+  fireEvent.click(getByRole('button'));
+  expect(mockAction).toHaveBeenCalledTimes(0);
+});
 
-  it('works with an onClick handler', () => {
-    const mockAction = jest.fn();
-    wrapper = mount(<Button onClick={mockAction} />);
-    wrapper.find('Button').first().simulate('click');
-    expect(mockAction).toHaveBeenCalled();
-  });
+// test stories from the storybook!
+test('All the sorybook gallery variants mount', () => {
+  const { getAllByRole } = render(<ButtonGallery />);
+  const permutationCount =
+    Object.values(buttonStyles.options).filter(o => o).length *
+    Object.values(buttonSizes.options).length;
 
-  it('does not handle onClicks when disabled', () => {
-    const mockAction = jest.fn();
-    wrapper = mount(<Button onClick={mockAction} disabled />);
-    wrapper.find('Button').first().simulate('click');
-    expect(mockAction).toHaveBeenCalledTimes(0);
-  });
-
-  // test stories from the storybook!
-  it('All the sorybook gallery variants mount', () => {
-    wrapper = mount(<ButtonGallery />);
-
-    const permutationCount =
-      Object.values(buttonStyles.options).filter(o => o).length *
-      Object.values(buttonSizes.options).length;
-
-    expect(wrapper.find(Button).length).toEqual(permutationCount);
-  });
+  expect(getAllByRole('button')).toHaveLength(permutationCount);
 });

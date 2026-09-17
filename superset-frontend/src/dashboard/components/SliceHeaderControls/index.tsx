@@ -16,66 +16,47 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
+import {
   MouseEvent,
   Key,
-  ReactChild,
+  KeyboardEvent,
   useState,
-  useCallback,
+  useRef,
+  RefObject,
 } from 'react';
-import {
-  Link,
-  RouteComponentProps,
-  useHistory,
-  withRouter,
-} from 'react-router-dom';
-import moment from 'moment';
+
+import { RouteComponentProps, useHistory } from 'react-router-dom';
+import { extendedDayjs } from 'src/utils/dates';
 import {
   Behavior,
   css,
+  isFeatureEnabled,
+  FeatureFlag,
   getChartMetadataRegistry,
-  QueryFormData,
   styled,
   t,
-  useTheme,
+  VizType,
+  BinaryQueryObjectFilterClause,
+  QueryFormData,
 } from '@superset-ui/core';
+import { useSelector } from 'react-redux';
 import { Menu } from 'src/components/Menu';
 import { NoAnimationDropdown } from 'src/components/Dropdown';
 import ShareMenuItems from 'src/dashboard/components/menu/ShareMenuItems';
 import downloadAsImage from 'src/utils/downloadAsImage';
-import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
-import CrossFilterScopingModal from 'src/dashboard/components/CrossFilterScopingModal/CrossFilterScopingModal';
 import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
 import ModalTrigger from 'src/components/ModalTrigger';
-import Button from 'src/components/Button';
 import ViewQueryModal from 'src/explore/components/controls/ViewQueryModal';
 import { ResultsPaneOnDashboard } from 'src/explore/components/DataTablesPane';
-import Modal from 'src/components/Modal';
 import { DrillDetailMenuItems } from 'src/components/Chart/DrillDetail';
 import { LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE } from 'src/logger/LogUtils';
-/* NGLS - BEGIN */
-import CustomCSVModal from 'src/explore/components/controls/CustomCSVModal';
-/* NGLS - END */
-
-const MENU_KEYS = {
-  CROSS_FILTER_SCOPING: 'cross_filter_scoping',
-  DOWNLOAD_AS_IMAGE: 'download_as_image',
-  EXPLORE_CHART: 'explore_chart',
-  EXPORT_CSV: 'export_csv',
-  EXPORT_FULL_CSV: 'export_full_csv',
-  /* NGLS - BEGIN */
-  EXPORT_PDF: 'export_pdf',
-  EXPORT_CUSTOM_CSV: 'export_custom_csv',
-  /* NGLS - END */
-  FORCE_REFRESH: 'force_refresh',
-  FULLSCREEN: 'fullscreen',
-  TOGGLE_CHART_DESCRIPTION: 'toggle_chart_description',
-  VIEW_QUERY: 'view_query',
-  VIEW_RESULTS: 'view_results',
-  DRILL_TO_DETAIL: 'drill_to_detail',
-};
+import { MenuKeys, RootState } from 'src/dashboard/types';
+import DrillDetailModal from 'src/components/Chart/DrillDetail/DrillDetailModal';
+import { usePermissions } from 'src/hooks/usePermissions';
+import { useCrossFiltersScopingModal } from '../nativeFilters/FilterBar/CrossFilters/ScopingModal/useCrossFiltersScopingModal';
+import { ViewResultsModalTrigger } from './ViewResultsModalTrigger';
 
 // TODO: replace 3 dots with an icon
 const VerticalDotsContainer = styled.div`
@@ -130,6 +111,7 @@ export interface SliceHeaderControlsProps {
     datasource: string;
   };
 
+  defaultOpen?: boolean;
   componentId: string;
   dashboardId: number;
   chartStatus: string;
@@ -149,9 +131,11 @@ export interface SliceHeaderControlsProps {
   exportCSV?: (sliceId: number) => void;
   /* NGLS - BEGIN */
   exportPDF?: (sliceId: number) => void;
-  exportCustomCSV?: (sliceId: number) => void;
   /* NGLS - END */
+  exportPivotCSV?: (sliceId: number) => void;
   exportFullCSV?: (sliceId: number) => void;
+  exportXLSX?: (sliceId: number) => void;
+  exportFullXLSX?: (sliceId: number) => void;
   handleToggleFullSize: () => void;
 
   addDangerToast: (message: string) => void;
@@ -160,16 +144,11 @@ export interface SliceHeaderControlsProps {
   supersetCanExplore?: boolean;
   supersetCanShare?: boolean;
   supersetCanCSV?: boolean;
-  sliceCanEdit?: boolean;
 
   crossFiltersEnabled?: boolean;
 }
 type SliceHeaderControlsPropsWithRouter = SliceHeaderControlsProps &
   RouteComponentProps;
-interface State {
-  showControls: boolean;
-  showCrossFilterScopingModal: boolean;
-}
 
 const dropdownIconsStyles = css`
   &&.anticon > .anticon:first-child {
@@ -178,437 +157,429 @@ const dropdownIconsStyles = css`
   }
 `;
 
-const ViewResultsModalTrigger = ({
-  exploreUrl,
-  triggerNode,
-  modalTitle,
-  modalBody,
-}: {
-  exploreUrl: string;
-  triggerNode: ReactChild;
-  modalTitle: ReactChild;
-  modalBody: ReactChild;
-}) => {
-  const [showModal, setShowModal] = useState(false);
-  const openModal = useCallback(() => setShowModal(true), []);
-  const closeModal = useCallback(() => setShowModal(false), []);
-  const history = useHistory();
-  const exploreChart = () => history.push(exploreUrl);
-  const theme = useTheme();
-
-  return (
-    <>
-      <span
-        data-test="span-modal-trigger"
-        onClick={openModal}
-        role="button"
-        tabIndex={0}
-      >
-        {triggerNode}
-      </span>
-      {(() => (
-        <Modal
-          css={css`
-            .ant-modal-body {
-              display: flex;
-              flex-direction: column;
-            }
-          `}
-          show={showModal}
-          onHide={closeModal}
-          title={modalTitle}
-          footer={
-            <>
-              <Button
-                buttonStyle="secondary"
-                buttonSize="small"
-                onClick={exploreChart}
-              >
-                {t('Edit chart')}
-              </Button>
-              <Button
-                buttonStyle="primary"
-                buttonSize="small"
-                onClick={closeModal}
-              >
-                {t('Close')}
-              </Button>
-            </>
-          }
-          responsive
-          resizable
-          resizableConfig={{
-            minHeight: theme.gridUnit * 128,
-            minWidth: theme.gridUnit * 128,
-            defaultSize: {
-              width: 'auto',
-              height: '75vh',
-            },
-          }}
-          draggable
-          destroyOnClose
-        >
-          {modalBody}
-        </Modal>
-      ))()}
-    </>
+const SliceHeaderControls = (
+  props: SliceHeaderControlsPropsWithRouter | SliceHeaderControlsProps,
+) => {
+  const [drillModalIsOpen, setDrillModalIsOpen] = useState(false);
+  const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
+  // setting openKeys undefined falls back to uncontrolled behaviour
+  const [openKeys, setOpenKeys] = useState<string[] | undefined>(undefined);
+  const [openScopingModal, scopingModal] = useCrossFiltersScopingModal(
+    props.slice.slice_id,
   );
-};
+  const history = useHistory();
 
-class SliceHeaderControls extends React.PureComponent<
-  SliceHeaderControlsPropsWithRouter,
-  State
-> {
-  constructor(props: SliceHeaderControlsPropsWithRouter) {
-    super(props);
-    this.toggleControls = this.toggleControls.bind(this);
-    this.refreshChart = this.refreshChart.bind(this);
-    this.handleMenuClick = this.handleMenuClick.bind(this);
+  const queryMenuRef: RefObject<any> = useRef(null);
+  const resultsMenuRef: RefObject<any> = useRef(null);
 
-    this.state = {
-      showControls: false,
-      showCrossFilterScopingModal: false,
-    };
-  }
+  const [modalFilters, setFilters] = useState<BinaryQueryObjectFilterClause[]>(
+    [],
+  );
 
-  refreshChart() {
-    if (this.props.updatedDttm) {
-      this.props.forceRefresh(
-        this.props.slice.slice_id,
-        this.props.dashboardId,
-      );
+  const canEditCrossFilters =
+    useSelector<RootState, boolean>(
+      ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
+    ) &&
+    getChartMetadataRegistry()
+      .get(props.slice.viz_type)
+      ?.behaviors?.includes(Behavior.InteractiveChart);
+  const canExplore = props.supersetCanExplore;
+  const { canDrillToDetail, canViewQuery, canViewTable } = usePermissions();
+  const refreshChart = () => {
+    if (props.updatedDttm) {
+      props.forceRefresh(props.slice.slice_id, props.dashboardId);
     }
-  }
+  };
 
-  toggleControls() {
-    this.setState(prevState => ({
-      showControls: !prevState.showControls,
-    }));
-  }
-
-  handleMenuClick({
+  const handleMenuClick = ({
     key,
     domEvent,
   }: {
     key: Key;
-    domEvent: MouseEvent<HTMLElement>;
-  }) {
+    domEvent: MouseEvent<HTMLElement> | KeyboardEvent<HTMLElement>;
+  }) => {
     switch (key) {
-      case MENU_KEYS.FORCE_REFRESH:
-        this.refreshChart();
-        this.props.addSuccessToast(t('Data refreshed'));
+      case MenuKeys.ForceRefresh:
+        refreshChart();
+        props.addSuccessToast(t('Data refreshed'));
         break;
-      case MENU_KEYS.CROSS_FILTER_SCOPING:
-        this.setState({ showCrossFilterScopingModal: true });
-        break;
-      case MENU_KEYS.TOGGLE_CHART_DESCRIPTION:
+      case MenuKeys.ToggleChartDescription:
         // eslint-disable-next-line no-unused-expressions
-        this.props.toggleExpandSlice?.(this.props.slice.slice_id);
+        props.toggleExpandSlice?.(props.slice.slice_id);
         break;
-      case MENU_KEYS.EXPLORE_CHART:
+      case MenuKeys.ExploreChart:
         // eslint-disable-next-line no-unused-expressions
-        this.props.logExploreChart?.(this.props.slice.slice_id);
+        props.logExploreChart?.(props.slice.slice_id);
+        if (domEvent.metaKey || domEvent.ctrlKey) {
+          domEvent.preventDefault();
+          window.open(props.exploreUrl, '_blank');
+        } else {
+          history.push(props.exploreUrl);
+        }
         break;
-      case MENU_KEYS.EXPORT_CSV:
+      case MenuKeys.ExportCsv:
         // eslint-disable-next-line no-unused-expressions
-        this.props.exportCSV?.(this.props.slice.slice_id);
+        props.exportCSV?.(props.slice.slice_id);
         break;
       /* NGLS - BEGIN */
-      case MENU_KEYS.EXPORT_PDF:
+      case MenuKeys.ExportPdf:
         // eslint-disable-next-line no-unused-expressions
-        this.props.exportPDF?.(this.props.slice.slice_id);
+        props.exportPDF?.(props.slice.slice_id);
         break;
       /* NGLS - END */
-      case MENU_KEYS.FULLSCREEN:
-        this.props.handleToggleFullSize();
-        break;
-      case MENU_KEYS.EXPORT_FULL_CSV:
+      case MenuKeys.ExportPivotCsv:
         // eslint-disable-next-line no-unused-expressions
-        this.props.exportFullCSV?.(this.props.slice.slice_id);
+        props.exportPivotCSV?.(props.slice.slice_id);
         break;
-      case MENU_KEYS.DOWNLOAD_AS_IMAGE: {
+      case MenuKeys.Fullscreen:
+        props.handleToggleFullSize();
+        break;
+      case MenuKeys.ExportFullCsv:
+        // eslint-disable-next-line no-unused-expressions
+        props.exportFullCSV?.(props.slice.slice_id);
+        break;
+      case MenuKeys.ExportFullXlsx:
+        // eslint-disable-next-line no-unused-expressions
+        props.exportFullXLSX?.(props.slice.slice_id);
+        break;
+      case MenuKeys.ExportXlsx:
+        // eslint-disable-next-line no-unused-expressions
+        props.exportXLSX?.(props.slice.slice_id);
+        break;
+      case MenuKeys.DownloadAsImage: {
         // menu closes with a delay, we need to hide it manually,
         // so that we don't capture it on the screenshot
         const menu = document.querySelector(
           '.ant-dropdown:not(.ant-dropdown-hidden)',
         ) as HTMLElement;
-        menu.style.visibility = 'hidden';
+        if (menu) {
+          menu.style.visibility = 'hidden';
+        }
         downloadAsImage(
-          getScreenshotNodeSelector(this.props.slice.slice_id),
-          this.props.slice.slice_name,
+          getScreenshotNodeSelector(props.slice.slice_id),
+          props.slice.slice_name,
           true,
           // @ts-ignore
         )(domEvent).then(() => {
-          menu.style.visibility = 'visible';
+          if (menu) {
+            menu.style.visibility = 'visible';
+          }
         });
-        this.props.logEvent?.(LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE, {
-          chartId: this.props.slice.slice_id,
+        props.logEvent?.(LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE, {
+          chartId: props.slice.slice_id,
         });
+        break;
+      }
+      case MenuKeys.CrossFilterScoping: {
+        openScopingModal();
+        break;
+      }
+      case MenuKeys.ViewResults: {
+        if (resultsMenuRef.current && !resultsMenuRef.current.showModal) {
+          resultsMenuRef.current.open(domEvent);
+        }
+        break;
+      }
+      case MenuKeys.DrillToDetail: {
+        setDrillModalIsOpen(!drillModalIsOpen);
+        break;
+      }
+      case MenuKeys.ViewQuery: {
+        if (queryMenuRef.current && !queryMenuRef.current.showModal) {
+          queryMenuRef.current.open(domEvent);
+        }
         break;
       }
       default:
         break;
     }
+  };
+
+  const {
+    componentId,
+    dashboardId,
+    slice,
+    isFullSize,
+    cachedDttm = [],
+    updatedDttm = null,
+    addSuccessToast = () => {},
+    addDangerToast = () => {},
+    supersetCanShare = false,
+    isCached = [],
+  } = props;
+  const isTable = slice.viz_type === VizType.Table;
+  const isPivotTable = slice.viz_type === VizType.PivotTable;
+  const cachedWhen = (cachedDttm || []).map(itemCachedDttm =>
+    extendedDayjs.utc(itemCachedDttm).fromNow(),
+  );
+  const updatedWhen = updatedDttm
+    ? extendedDayjs.utc(updatedDttm).fromNow()
+    : '';
+  const getCachedTitle = (itemCached: boolean) => {
+    if (itemCached) {
+      return t('Cached %s', cachedWhen);
+    }
+    if (updatedWhen) {
+      return t('Fetched %s', updatedWhen);
+    }
+    return '';
+  };
+  const refreshTooltipData = [...new Set(isCached.map(getCachedTitle) || '')];
+  // If all queries have same cache time we can unit them to one
+  const refreshTooltip = refreshTooltipData.map((item, index) => (
+    <div key={`tooltip-${index}`}>
+      {refreshTooltipData.length > 1
+        ? t('Query %s: %s', index + 1, item)
+        : item}
+    </div>
+  ));
+  const fullscreenLabel = isFullSize
+    ? t('Exit fullscreen')
+    : t('Enter fullscreen');
+
+  // @z-index-below-dashboard-header (100) - 1 = 99 for !isFullSize and 101 for isFullSize
+  const dropdownOverlayStyle = {
+    zIndex: isFullSize ? 101 : 99,
+    animationDuration: '0s',
+  };
+
+  // controlled/uncontrolled behaviour for submenus
+  const openKeysProps: Record<string, string[]> = {};
+  if (openKeys) {
+    openKeysProps.openKeys = openKeys;
   }
 
-  render() {
-    const {
-      componentId,
-      dashboardId,
-      slice,
-      isFullSize,
-      cachedDttm = [],
-      updatedDttm = null,
-      addSuccessToast = () => {},
-      addDangerToast = () => {},
-      supersetCanShare = false,
-      isCached = [],
-      crossFiltersEnabled,
-    } = this.props;
-    const crossFilterItems = getChartMetadataRegistry().items;
-    const isTable = slice.viz_type === 'table';
-    const isCrossFilter = Object.entries(crossFilterItems)
-      // @ts-ignore
-      .filter(([, { value }]) =>
-        value.behaviors?.includes(Behavior.INTERACTIVE_CHART),
-      )
-      .find(([key]) => key === slice.viz_type);
-
-    const cachedWhen = (cachedDttm || []).map(itemCachedDttm =>
-      moment.utc(itemCachedDttm).fromNow(),
-    );
-    const updatedWhen = updatedDttm ? moment.utc(updatedDttm).fromNow() : '';
-    const getCachedTitle = (itemCached: boolean) => {
-      if (itemCached) {
-        return t('Cached %s', cachedWhen);
-      }
-      if (updatedWhen) {
-        return t('Fetched %s', updatedWhen);
-      }
-      return '';
-    };
-    const refreshTooltipData = [...new Set(isCached.map(getCachedTitle) || '')];
-    // If all queries have same cache time we can unit them to one
-    const refreshTooltip = refreshTooltipData.map((item, index) => (
-      <div key={`tooltip-${index}`}>
-        {refreshTooltipData.length > 1
-          ? t('Query %s: %s', index + 1, item)
-          : item}
-      </div>
-    ));
-    const fullscreenLabel = isFullSize
-      ? t('Exit fullscreen')
-      : t('Enter fullscreen');
-
-    const menu = (
-      <Menu
-        onClick={this.handleMenuClick}
-        selectable={false}
-        data-test={`slice_${slice.slice_id}-menu`}
+  const menu = (
+    <Menu
+      onClick={handleMenuClick}
+      selectable={false}
+      data-test={`slice_${slice.slice_id}-menu`}
+      selectedKeys={selectedKeys}
+      onSelect={({ selectedKeys: keys }) => setSelectedKeys(keys)}
+      openKeys={openKeys}
+      id={`slice_${slice.slice_id}-menu`}
+      // submenus must be rendered for handleDropdownNavigation
+      forceSubMenuRender
+      {...openKeysProps}
+    >
+      <Menu.Item
+        key={MenuKeys.ForceRefresh}
+        disabled={props.chartStatus === 'loading'}
+        style={{ height: 'auto', lineHeight: 'initial' }}
+        data-test="refresh-chart-menu-item"
       >
-        <Menu.Item
-          key={MENU_KEYS.FORCE_REFRESH}
-          disabled={this.props.chartStatus === 'loading'}
-          style={{ height: 'auto', lineHeight: 'initial' }}
-          data-test="refresh-chart-menu-item"
-        >
-          {t('Force refresh')}
-          <RefreshTooltip data-test="dashboard-slice-refresh-tooltip">
-            {refreshTooltip}
-          </RefreshTooltip>
+        {t('Force refresh')}
+        <RefreshTooltip data-test="dashboard-slice-refresh-tooltip">
+          {refreshTooltip}
+        </RefreshTooltip>
+      </Menu.Item>
+
+      <Menu.Item key={MenuKeys.Fullscreen}>{fullscreenLabel}</Menu.Item>
+
+      <Menu.Divider />
+
+      {slice.description && (
+        <Menu.Item key={MenuKeys.ToggleChartDescription}>
+          {props.isDescriptionExpanded
+            ? t('Hide chart description')
+            : t('Show chart description')}
         </Menu.Item>
+      )}
 
-        <Menu.Item key={MENU_KEYS.FULLSCREEN}>{fullscreenLabel}</Menu.Item>
+      {canExplore && (
+        <Menu.Item
+          key={MenuKeys.ExploreChart}
+          data-test-edit-chart-name={slice.slice_name}
+        >
+          <Tooltip title={getSliceHeaderTooltip(props.slice.slice_name)}>
+            {t('Edit chart')}
+          </Tooltip>
+        </Menu.Item>
+      )}
 
-        <Menu.Divider />
+      {canEditCrossFilters && (
+        <Menu.Item key={MenuKeys.CrossFilterScoping}>
+          {t('Cross-filtering scoping')}
+        </Menu.Item>
+      )}
 
-        {slice.description && (
-          <Menu.Item key={MENU_KEYS.TOGGLE_CHART_DESCRIPTION}>
-            {this.props.isDescriptionExpanded
-              ? t('Hide chart description')
-              : t('Show chart description')}
+      {(canExplore || canEditCrossFilters) && <Menu.Divider />}
+
+      {(canExplore || canViewQuery) && (
+        <Menu.Item key={MenuKeys.ViewQuery}>
+          <ModalTrigger
+            triggerNode={
+              <div data-test="view-query-menu-item">{t('View query')}</div>
+            }
+            modalTitle={t('View query')}
+            modalBody={<ViewQueryModal latestQueryFormData={props.formData} />}
+            draggable
+            resizable
+            responsive
+            ref={queryMenuRef}
+          />
+        </Menu.Item>
+      )}
+
+      {(canExplore || canViewTable) && (
+        <Menu.Item key={MenuKeys.ViewResults}>
+          <ViewResultsModalTrigger
+            canExplore={props.supersetCanExplore}
+            exploreUrl={props.exploreUrl}
+            triggerNode={
+              <div data-test="view-query-menu-item">{t('View as table')}</div>
+            }
+            modalRef={resultsMenuRef}
+            modalTitle={t('Chart Data: %s', slice.slice_name)}
+            modalBody={
+              <ResultsPaneOnDashboard
+                queryFormData={props.formData}
+                queryForce={false}
+                dataSize={20}
+                isRequest
+                isVisible
+                canDownload={!!props.supersetCanCSV}
+              />
+            }
+          />
+        </Menu.Item>
+      )}
+
+      {isFeatureEnabled(FeatureFlag.DrillToDetail) && canDrillToDetail && (
+        <DrillDetailMenuItems
+          setFilters={setFilters}
+          filters={modalFilters}
+          formData={props.formData}
+          key={MenuKeys.DrillToDetail}
+          setShowModal={setDrillModalIsOpen}
+        />
+      )}
+
+      {(slice.description || canExplore) && <Menu.Divider />}
+
+      {supersetCanShare && (
+        <ShareMenuItems
+          dashboardId={dashboardId}
+          dashboardComponentId={componentId}
+          copyMenuItemTitle={t('Copy permalink to clipboard')}
+          emailMenuItemTitle={t('Share chart by email')}
+          emailSubject={t('Superset chart')}
+          emailBody={t('Check out this chart: ')}
+          addSuccessToast={addSuccessToast}
+          addDangerToast={addDangerToast}
+          setOpenKeys={setOpenKeys}
+          title={t('Share')}
+          key={MenuKeys.Share}
+        />
+      )}
+
+      {props.supersetCanCSV && (
+        <Menu.SubMenu title={t('Download')} key={MenuKeys.Download}>
+          <Menu.Item
+            key={MenuKeys.ExportCsv}
+            icon={<Icons.FileOutlined css={dropdownIconsStyles} />}
+          >
+            {t('Export to .CSV')}
           </Menu.Item>
-        )}
-
-        {this.props.supersetCanExplore && (
-          <Menu.Item key={MENU_KEYS.EXPLORE_CHART}>
-            <Link to={this.props.exploreUrl}>
-              <Tooltip
-                title={getSliceHeaderTooltip(this.props.slice.slice_name)}
-              >
-                {t('Edit chart')}
-              </Tooltip>
-            </Link>
-          </Menu.Item>
-        )}
-
-        {this.props.supersetCanExplore && (
-          <Menu.Item key={MENU_KEYS.VIEW_QUERY}>
-            <ModalTrigger
-              triggerNode={
-                <span data-test="view-query-menu-item">{t('View query')}</span>
-              }
-              modalTitle={t('View query')}
-              modalBody={
-                <ViewQueryModal latestQueryFormData={this.props.formData} />
-              }
-              draggable
-              resizable
-              responsive
-            />
-          </Menu.Item>
-        )}
-
-        {this.props.supersetCanExplore && (
-          <Menu.Item key={MENU_KEYS.VIEW_RESULTS}>
-            <ViewResultsModalTrigger
-              exploreUrl={this.props.exploreUrl}
-              triggerNode={
-                <span data-test="view-query-menu-item">
-                  {t('View as table')}
-                </span>
-              }
-              modalTitle={t('Chart Data: %s', slice.slice_name)}
-              modalBody={
-                <ResultsPaneOnDashboard
-                  queryFormData={this.props.formData}
-                  queryForce={false}
-                  dataSize={20}
-                  isRequest
-                  isVisible
-                />
-              }
-            />
-          </Menu.Item>
-        )}
-
-        {isFeatureEnabled(FeatureFlag.DRILL_TO_DETAIL) &&
-          this.props.supersetCanExplore && (
-            <DrillDetailMenuItems
-              chartId={slice.slice_id}
-              formData={this.props.formData}
-            />
+          {isPivotTable && (
+            <Menu.Item
+              key={MenuKeys.ExportPivotCsv}
+              icon={<Icons.FileOutlined css={dropdownIconsStyles} />}
+            >
+              {t('Export to Pivoted .CSV')}
+            </Menu.Item>
           )}
+          <Menu.Item
+            key={MenuKeys.ExportXlsx}
+            icon={<Icons.FileOutlined css={dropdownIconsStyles} />}
+          >
+            {t('Export to Excel')}
+          </Menu.Item>
 
-        {(slice.description || this.props.supersetCanExplore) && (
-          <Menu.Divider />
-        )}
-
-        {isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) &&
-          isCrossFilter &&
-          crossFiltersEnabled && (
-            <>
-              <Menu.Item key={MENU_KEYS.CROSS_FILTER_SCOPING}>
-                {t('Cross-filter scoping')}
-              </Menu.Item>
-              <Menu.Divider />
-            </>
-          )}
-
-        {supersetCanShare && (
-          <Menu.SubMenu title={t('Share')}>
-            <ShareMenuItems
-              dashboardId={dashboardId}
-              dashboardComponentId={componentId}
-              copyMenuItemTitle={t('Copy permalink to clipboard')}
-              emailMenuItemTitle={t('Share chart by email')}
-              emailSubject={t('Superset chart')}
-              emailBody={t('Check out this chart: ')}
-              addSuccessToast={addSuccessToast}
-              addDangerToast={addDangerToast}
-            />
-          </Menu.SubMenu>
-        )}
-
-        {this.props.slice.viz_type !== 'filter_box' &&
-          this.props.supersetCanCSV && (
-            <Menu.SubMenu title={t('Download')}>
-              <Menu.Item
-                key={MENU_KEYS.DOWNLOAD_AS_IMAGE}
-                icon={<Icons.FileImageOutlined css={dropdownIconsStyles} />}
-              >
-                {t('Download as image')}
-              </Menu.Item>
-
-              <Menu.Item
-                key={MENU_KEYS.EXPORT_CSV}
-                icon={<Icons.FileOutlined css={dropdownIconsStyles} />}
-              >
-                {t('Export to CSV')}
-              </Menu.Item>
-
-              {this.props.slice.viz_type !== 'filter_box' &&
-                isFeatureEnabled(FeatureFlag.ALLOW_FULL_CSV_EXPORT) &&
-                this.props.supersetCanCSV &&
-                isTable && (
-                  <Menu.Item
-                    key={MENU_KEYS.EXPORT_FULL_CSV}
-                    icon={<Icons.FileOutlined css={dropdownIconsStyles} />}
-                  >
-                    {t('Export to full CSV')}
-                  </Menu.Item>
-                )}
-
-              {/* NGLS - BEGIN */}
-              <Menu.Item
-                key={MENU_KEYS.EXPORT_PDF}
-                icon={<Icons.FileOutlined css={dropdownIconsStyles} />}
-              >
-                {t('Export to PDF')}
-              </Menu.Item>
-              {slice?.slice_name === 'Discrepancy details - table' ? (
+          {isFeatureEnabled(FeatureFlag.AllowFullCsvExport) &&
+            props.supersetCanCSV &&
+            isTable && (
+              <>
                 <Menu.Item
-                  key={MENU_KEYS.EXPORT_CUSTOM_CSV}
+                  key={MenuKeys.ExportFullCsv}
                   icon={<Icons.FileOutlined css={dropdownIconsStyles} />}
                 >
-                  <CustomCSVModal
-                    latestQueryFormData={this.props.formData}
-                    triggerNode={
-                      <span data-test="view-query-menu-item">
-                        {t('Export discrepancy')}
-                      </span>
-                    }
-                    modalTitle={t(slice?.slice_name)}
-                  />
+                  {t('Export to full .CSV')}
                 </Menu.Item>
-              ) : null}
-              {/* NGLS - END */}
-            </Menu.SubMenu>
-          )}
-      </Menu>
-    );
+                <Menu.Item
+                  key={MenuKeys.ExportFullXlsx}
+                  icon={<Icons.FileOutlined css={dropdownIconsStyles} />}
+                >
+                  {t('Export to full Excel')}
+                </Menu.Item>
+              </>
+            )}
 
-    return (
-      <>
-        <CrossFilterScopingModal
-          chartId={slice.slice_id}
-          isOpen={this.state.showCrossFilterScopingModal}
-          onClose={() => this.setState({ showCrossFilterScopingModal: false })}
-        />
-        {isFullSize && (
-          <Icons.FullscreenExitOutlined
-            style={{ fontSize: 22 }}
-            onClick={() => {
-              this.props.handleToggleFullSize();
-            }}
-          />
-        )}
-        <NoAnimationDropdown
-          overlay={menu}
-          trigger={['click']}
-          placement="bottomRight"
-        >
-          <span
-            id={`slice_${slice.slice_id}-controls`}
-            role="button"
-            aria-label="More Options"
+          <Menu.Item
+            key={MenuKeys.DownloadAsImage}
+            icon={<Icons.FileImageOutlined css={dropdownIconsStyles} />}
           >
-            <VerticalDotsTrigger />
-          </span>
-        </NoAnimationDropdown>
-      </>
-    );
-  }
-}
+            {t('Download as image')}
+          </Menu.Item>
 
-export default withRouter(SliceHeaderControls);
+          {/* NGLS - BEGIN */}
+          <Menu.Item
+            key={MenuKeys.ExportPdf}
+            icon={<Icons.FileImageOutlined css={dropdownIconsStyles} />}
+          >
+            {t('Export to PDF')}
+          </Menu.Item>
+          {/* NGLS - END */}
+        </Menu.SubMenu>
+      )}
+    </Menu>
+  );
+
+  return (
+    <>
+      {isFullSize && (
+        <Icons.FullscreenExitOutlined
+          style={{ fontSize: 22 }}
+          onClick={() => {
+            props.handleToggleFullSize();
+          }}
+        />
+      )}
+      <NoAnimationDropdown
+        dropdownRender={() => menu}
+        overlayStyle={dropdownOverlayStyle}
+        trigger={['click']}
+        placement="bottomRight"
+        autoFocus
+        forceRender
+      >
+        <span
+          css={() => css`
+            display: flex;
+            align-items: center;
+          `}
+          id={`slice_${slice.slice_id}-controls`}
+          role="button"
+          aria-label="More Options"
+          aria-haspopup="true"
+          tabIndex={0}
+        >
+          <VerticalDotsTrigger />
+        </span>
+      </NoAnimationDropdown>
+      <DrillDetailModal
+        formData={props.formData}
+        initialFilters={[]}
+        onHideModal={() => {
+          setDrillModalIsOpen(false);
+        }}
+        chartId={slice.slice_id}
+        showModal={drillModalIsOpen}
+      />
+
+      {canEditCrossFilters && scopingModal}
+    </>
+  );
+};
+
+export default SliceHeaderControls;

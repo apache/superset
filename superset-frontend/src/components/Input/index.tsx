@@ -16,20 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled } from '@superset-ui/core';
-import { Input as AntdInput, InputNumber as AntdInputNumber } from 'antd';
 
-export const Input = styled(AntdInput)`
-  border: 1px solid ${({ theme }) => theme.colors.secondary.light3};
-  border-radius: ${({ theme }) => theme.borderRadius}px;
-`;
+import { Input as AntdInput, InputNumber as AntdInputNumber } from 'antd-v5';
 
-export const InputNumber = styled(AntdInputNumber)`
-  border: 1px solid ${({ theme }) => theme.colors.secondary.light3};
-  border-radius: ${({ theme }) => theme.borderRadius}px;
-`;
+export const Input = AntdInput;
 
-export const TextArea = styled(AntdInput.TextArea)`
-  border: 1px solid ${({ theme }) => theme.colors.secondary.light3};
-  border-radius: ${({ theme }) => theme.borderRadius}px;
-`;
+export const InputNumber = AntdInputNumber;
+
+export const { TextArea } = AntdInput;

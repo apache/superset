@@ -64,7 +64,6 @@ import {
   UseSortByOptions,
   UseSortByState,
 } from 'react-table';
-import { ColumnSizer } from 'react-virtualized';
 
 declare module 'react-table' {
   type ColumnSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';

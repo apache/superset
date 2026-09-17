@@ -15,10 +15,11 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from sqlalchemy import types
 
+from superset.constants import TimeGrain
 from superset.db_engine_specs.base import LimitMethod
 from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
 
@@ -32,20 +33,20 @@ class HanaEngineSpec(PostgresBaseEngineSpec):
 
     _time_grain_expressions = {
         None: "{col}",
-        "PT1S": "TO_TIMESTAMP(SUBSTRING(TO_TIMESTAMP({col}),0,20))",
-        "PT1M": "TO_TIMESTAMP(SUBSTRING(TO_TIMESTAMP({col}),0,17) || '00')",
-        "PT1H": "TO_TIMESTAMP(SUBSTRING(TO_TIMESTAMP({col}),0,14) || '00:00')",
-        "P1D": "TO_DATE({col})",
-        "P1M": "TO_DATE(SUBSTRING(TO_DATE({col}),0,7)||'-01')",
-        "P3M": "TO_DATE(SUBSTRING( \
+        TimeGrain.SECOND: "TO_TIMESTAMP(SUBSTRING(TO_TIMESTAMP({col}),0,20))",
+        TimeGrain.MINUTE: "TO_TIMESTAMP(SUBSTRING(TO_TIMESTAMP({col}),0,17) || '00')",
+        TimeGrain.HOUR: "TO_TIMESTAMP(SUBSTRING(TO_TIMESTAMP({col}),0,14) || '00:00')",
+        TimeGrain.DAY: "TO_DATE({col})",
+        TimeGrain.MONTH: "TO_DATE(SUBSTRING(TO_DATE({col}),0,7)||'-01')",
+        TimeGrain.QUARTER: "TO_DATE(SUBSTRING( \
                    TO_DATE({col}), 0, 5)|| LPAD(CAST((CAST(SUBSTRING(QUARTER( \
                    TO_DATE({col}), 1), 7, 1) as int)-1)*3 +1 as text),2,'0') ||'-01')",
-        "P1Y": "TO_DATE(YEAR({col})||'-01-01')",
+        TimeGrain.YEAR: "TO_DATE(YEAR({col})||'-01-01')",
     }
 
     @classmethod
     def convert_dttm(
-        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+        cls, target_type: str, dttm: datetime, db_extra: Optional[dict[str, Any]] = None
     ) -> Optional[str]:
         sqla_type = cls.get_sqla_column_type(target_type)
 

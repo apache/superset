@@ -17,11 +17,20 @@
  * under the License.
  */
 const zlib = require('zlib');
+const { ZSTDDecompress } = require('simple-zstd');
 
+const yargs = require('yargs');
 // eslint-disable-next-line import/no-extraneous-dependencies
-const parsedArgs = require('yargs').argv;
+const parsedArgs = yargs.argv;
 
-const { supersetPort = 8088, superset: supersetUrl = null } = parsedArgs;
+const parsedEnvArg = () => {
+  let envArgs = {};
+  if (parsedArgs.env) {
+    envArgs = yargs(parsedArgs.env).argv;
+  }
+  return { ...process.env, ...envArgs };
+};
+const { supersetPort = 8088, superset: supersetUrl = null } = parsedEnvArg();
 const backend = (supersetUrl || `http://localhost:${supersetPort}`).replace(
   '//+$/',
   '',
@@ -119,6 +128,8 @@ function processHTML(proxyResponse, response) {
     uncompress = zlib.createBrotliDecompress();
   } else if (responseEncoding === 'deflate') {
     uncompress = zlib.createInflate();
+  } else if (responseEncoding === 'zstd') {
+    uncompress = ZSTDDecompress();
   }
   if (uncompress) {
     originalResponse.pipe(uncompress);

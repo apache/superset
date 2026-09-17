@@ -32,7 +32,7 @@ describe('extractTimegrain', () => {
     ).toEqual('P1D');
   });
 
-  it('should extract filter box time grain from form data', () => {
+  it('should extract filter time grain from form data', () => {
     expect(
       extractTimegrain({
         ...baseFormData,

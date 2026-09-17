@@ -18,7 +18,7 @@
  */
 import parseCookie from 'src/utils/parseCookie';
 import rison from 'rison';
-import shortid from 'shortid';
+import { nanoid } from 'nanoid';
 
 export default function handleResourceExport(
   resource: string,
@@ -26,7 +26,7 @@ export default function handleResourceExport(
   done: () => void,
   interval = 200,
 ): void {
-  const token = shortid.generate();
+  const token = nanoid();
   const url = `/api/v1/${resource}/export/?q=${rison.encode(
     ids,
   )}&token=${token}`;

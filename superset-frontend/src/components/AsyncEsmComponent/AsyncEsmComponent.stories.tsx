@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import AsyncEsmComponent, { PlaceholderProps } from '.';
 
 export default {
@@ -40,12 +39,4 @@ export const InteractiveEsmComponent = (args: PlaceholderProps) => (
 
 InteractiveEsmComponent.args = {
   bold: true,
-};
-
-InteractiveEsmComponent.story = {
-  parameters: {
-    knobs: {
-      disable: true,
-    },
-  },
 };

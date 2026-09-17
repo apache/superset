@@ -23,8 +23,11 @@
  * @param b Second row object to compare
  * @returns number
  */
-export const alphabeticalSort = (key: string, a: object, b: object): number =>
-  a?.[key]?.localeCompare?.(b?.[key]);
+export const alphabeticalSort = (
+  key: string,
+  a: Record<PropertyKey, string>,
+  b: Record<PropertyKey, string>,
+): number => a?.[key]?.localeCompare?.(b?.[key]);
 
 /**
  * @param key The name of the row's attribute used to compare values for numerical sorting
@@ -32,5 +35,8 @@ export const alphabeticalSort = (key: string, a: object, b: object): number =>
  * @param b Second row object to compare
  * @returns number
  */
-export const numericalSort = (key: string, a: object, b: object): number =>
-  a?.[key] - b?.[key];
+export const numericalSort = (
+  key: string,
+  a: Record<PropertyKey, number>,
+  b: Record<PropertyKey, number>,
+): number => a?.[key] - b?.[key];

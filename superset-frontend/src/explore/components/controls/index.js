@@ -34,18 +34,25 @@ import SpatialControl from './SpatialControl';
 import TextAreaControl from './TextAreaControl';
 import TextControl from './TextControl';
 import TimeSeriesColumnControl from './TimeSeriesColumnControl';
+import TimeOffsetControl from './TimeOffsetControl';
 import ViewportControl from './ViewportControl';
 import VizTypeControl from './VizTypeControl';
 import MetricsControl from './MetricControl/MetricsControl';
 import AdhocFilterControl from './FilterControl/AdhocFilterControl';
-import FilterBoxItemControl from './FilterBoxItemControl';
 import ConditionalFormattingControl from './ConditionalFormattingControl';
+import ContourControl from './ContourControl';
 import DndColumnSelectControl, {
   DndColumnSelect,
   DndFilterSelect,
   DndMetricSelect,
 } from './DndColumnSelectControl';
 import XAxisSortControl from './XAxisSortControl';
+import CurrencyControl from './CurrencyControl';
+import ColumnConfigControl from './ColumnConfigControl';
+import { ComparisonRangeLabel } from './ComparisonRangeLabel';
+import LayerConfigsControl from './LayerConfigsControl/LayerConfigsControl';
+import MapViewControl from './MapViewControl/MapViewControl';
+import ZoomConfigControl from './ZoomConfigControl/ZoomConfigControl';
 
 const controlMap = {
   AnnotationLayerControl,
@@ -54,6 +61,8 @@ const controlMap = {
   CollectionControl,
   ColorPickerControl,
   ColorSchemeControl,
+  ColumnConfigControl,
+  CurrencyControl,
   DatasourceControl,
   DateFilterControl,
   DndColumnSelectControl,
@@ -62,6 +71,8 @@ const controlMap = {
   DndMetricSelect,
   FixedOrMetricControl,
   HiddenControl,
+  LayerConfigsControl,
+  MapViewControl,
   SelectAsyncControl,
   SelectControl,
   SliderControl,
@@ -73,9 +84,12 @@ const controlMap = {
   VizTypeControl,
   MetricsControl,
   AdhocFilterControl,
-  FilterBoxItemControl,
   ConditionalFormattingControl,
   XAxisSortControl,
+  ContourControl,
+  ComparisonRangeLabel,
+  TimeOffsetControl,
+  ZoomConfigControl,
   ...sharedControlComponents,
 };
 export default controlMap;

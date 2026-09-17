@@ -17,18 +17,16 @@
  * under the License.
  */
 import {
-  applyMiddleware,
-  combineReducers,
-  compose,
-  createStore,
-  Store,
-} from 'redux';
+  configureStore,
+  ConfigureStoreOptions,
+  StoreEnhancer,
+} from '@reduxjs/toolkit';
 import thunk from 'redux-thunk';
+import { api } from 'src/hooks/apiResources/queryApi';
 import messageToastReducer from 'src/components/MessageToasts/reducers';
-import { initEnhancer } from 'src/reduxUtils';
 import charts from 'src/components/Chart/chartReducer';
 import dataMask from 'src/dataMask/reducer';
-import reports from 'src/reports/reducers/reports';
+import reports from 'src/features/reports/ReportModal/reducer';
 import dashboardInfo from 'src/dashboard/reducers/dashboardInfo';
 import dashboardState from 'src/dashboard/reducers/dashboardState';
 import dashboardFilters from 'src/dashboard/reducers/dashboardFilters';
@@ -40,12 +38,16 @@ import logger from 'src/middleware/loggerMiddleware';
 import saveModal from 'src/explore/reducers/saveModalReducer';
 import explore from 'src/explore/reducers/exploreReducer';
 import exploreDatasources from 'src/explore/reducers/datasourcesReducer';
+
+import { persistSqlLabStateEnhancer } from 'src/SqlLab/middlewares/persistSqlLabStateEnhancer';
+import sqlLabReducer from 'src/SqlLab/reducers/sqlLab';
+import getInitialState from 'src/SqlLab/reducers/getInitialState';
 import { DatasourcesState } from 'src/dashboard/types';
 import {
   DatasourcesActionPayload,
   DatasourcesAction,
 } from 'src/dashboard/actions/datasources';
-import shortid from 'shortid';
+import { nanoid } from 'nanoid';
 import {
   BootstrapUser,
   UndefinedUser,
@@ -72,7 +74,7 @@ export type UserLoadedAction = {
   user: UserWithPermissionsAndRoles;
 };
 
-const userReducer = (
+export const userReducer = (
   user = bootstrapData.user || {},
   action: UserLoadedAction,
 ): BootstrapUser | UndefinedUser => {
@@ -82,6 +84,22 @@ const userReducer = (
   return user;
 };
 
+const getMiddleware: ConfigureStoreOptions['middleware'] =
+  getDefaultMiddleware =>
+    process.env.REDUX_DEFAULT_MIDDLEWARE
+      ? getDefaultMiddleware({
+          immutableCheck: {
+            warnAfter: 200,
+          },
+          serializableCheck: {
+            // Ignores AbortController instances
+            ignoredActionPaths: [/queryController/g],
+            ignoredPaths: [/queryController/g],
+            warnAfter: 200,
+          },
+        }).concat(logger, api.middleware)
+      : [thunk, logger, api.middleware];
+
 // TODO: This reducer is a combination of the Dashboard and Explore reducers.
 // The correct way of handling this is to unify the actions and reducers from both
 // modules in shared files. This involves a big refactor to unify the parameter types
@@ -90,7 +108,7 @@ const CombinedDatasourceReducers = (
   datasources: DatasourcesState | undefined | { [key: string]: Dataset },
   action: DatasourcesActionPayload | AnyDatasourcesAction | HydrateExplore,
 ) => {
-  if (action.type === DatasourcesAction.SET_DATASOURCES) {
+  if (action.type === DatasourcesAction.SetDatasources) {
     return dashboardDatasources(
       datasources as DatasourcesState | undefined,
       action as DatasourcesActionPayload,
@@ -102,12 +120,13 @@ const CombinedDatasourceReducers = (
   );
 };
 
-// exported for tests
-export const rootReducer = combineReducers({
+const reducers = {
+  sqlLab: sqlLabReducer,
+  localStorageUsageInKilobytes: noopReducer(0),
   messageToasts: messageToastReducer,
   common: noopReducer(bootstrapData.common),
   user: userReducer,
-  impressionId: noopReducer(shortid.generate()),
+  impressionId: noopReducer(nanoid()),
   charts,
   datasources: CombinedDatasourceReducers,
   dashboardInfo,
@@ -120,28 +139,37 @@ export const rootReducer = combineReducers({
   reports,
   saveModal,
   explore,
-});
+};
 
-export const store: Store = createStore(
-  rootReducer,
-  {},
-  compose(applyMiddleware(thunk, logger), initEnhancer(false)),
-);
-
-/* In some cases the jinja template injects two seperate React apps into basic.html
+/* In some cases the jinja template injects two separate React apps into basic.html
  * One for the top navigation Menu and one for the application below the Menu
  * The first app to connect to the Redux debugger wins which is the menu blocking
  * the application from being able to connect to the redux debugger.
  * setupStore with disableDebugger true enables the menu.tsx component to avoid connecting
  * to redux debugger so the application can connect to redux debugger
  */
-export function setupStore(disableDegugger = false): Store {
-  return createStore(
-    rootReducer,
-    {},
-    compose(
-      applyMiddleware(thunk, logger),
-      initEnhancer(false, undefined, disableDegugger),
-    ),
-  );
+export function setupStore({
+  disableDebugger = false,
+  initialState = getInitialState(bootstrapData),
+  rootReducers = reducers,
+  ...overrides
+}: {
+  disableDebugger?: boolean;
+  initialState?: ConfigureStoreOptions['preloadedState'];
+  rootReducers?: ConfigureStoreOptions['reducer'];
+} & Partial<ConfigureStoreOptions> = {}) {
+  return configureStore({
+    preloadedState: initialState,
+    reducer: {
+      [api.reducerPath]: api.reducer,
+      ...rootReducers,
+    },
+    middleware: getMiddleware,
+    devTools: process.env.WEBPACK_MODE === 'development' && !disableDebugger,
+    enhancers: [persistSqlLabStateEnhancer as StoreEnhancer],
+    ...overrides,
+  });
 }
+
+export const store = setupStore();
+export type RootState = ReturnType<typeof store.getState>;

@@ -14,11 +14,18 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import unittest.mock as mock
 from textwrap import dedent
+
+import numpy as np
+import pandas as pd
+from sqlalchemy.types import NVARCHAR
 
 from superset.db_engine_specs.redshift import RedshiftEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.sql_parse import Table
 from tests.integration_tests.db_engine_specs.base_tests import TestDbEngineSpec
+from tests.integration_tests.test_app import app
 
 
 class TestRedshiftDbEngineSpec(TestDbEngineSpec):
@@ -183,3 +190,57 @@ psql: error: could not connect to server: Operation timed out
                 },
             )
         ]
+
+    def test_df_to_sql_no_dtype(self):
+        mock_database = mock.MagicMock()
+        mock_database.get_df.return_value.empty = False
+        table_name = "foobar"
+        data = [
+            ("foo", "bar", pd.NA, None),
+            ("foo", "bar", pd.NA, True),
+            ("foo", "bar", pd.NA, None),
+        ]
+        numpy_dtype = [
+            ("id", "object"),
+            ("value", "object"),
+            ("num", "object"),
+            ("bool", "object"),
+        ]
+        column_names = ["id", "value", "num", "bool"]
+
+        test_array = np.array(data, dtype=numpy_dtype)
+
+        df = pd.DataFrame(test_array, columns=column_names)
+        df.to_sql = mock.MagicMock()
+
+        with app.app_context():
+            RedshiftEngineSpec.df_to_sql(
+                mock_database, Table(table=table_name), df, to_sql_kwargs={}
+            )
+
+        assert df.to_sql.call_args[1]["dtype"] == {}
+
+    def test_df_to_sql_with_string_dtype(self):
+        mock_database = mock.MagicMock()
+        mock_database.get_df.return_value.empty = False
+        table_name = "foobar"
+        data = [
+            ("foo", "bar", pd.NA, None),
+            ("foo", "bar", pd.NA, True),
+            ("foo", "bar", pd.NA, None),
+        ]
+        column_names = ["id", "value", "num", "bool"]
+
+        df = pd.DataFrame(data, columns=column_names)
+        df = df.astype(dtype={"value": "string"})
+        df.to_sql = mock.MagicMock()
+
+        with app.app_context():
+            RedshiftEngineSpec.df_to_sql(
+                mock_database, Table(table=table_name), df, to_sql_kwargs={}
+            )
+
+        # varchar string length should be 65535
+        dtype = df.to_sql.call_args[1]["dtype"]
+        assert isinstance(dtype["value"], NVARCHAR)
+        assert dtype["value"].length == 65535

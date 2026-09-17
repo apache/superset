@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { Key } from 'react';
 import cx from 'classnames';
 import { styled, useTheme } from '@superset-ui/core';
 import { AntdDropdown } from 'src/components';
@@ -29,7 +29,7 @@ export interface OptionProps {
   className?: string;
 }
 
-export type OnChangeHandler = (key: React.Key) => void;
+export type OnChangeHandler = (key: Key) => void;
 export type RenderElementHandler = (option: OptionProps) => JSX.Element;
 
 export interface PopoverDropdownProps {
@@ -42,11 +42,11 @@ export interface PopoverDropdownProps {
 }
 
 interface HandleSelectProps {
-  key: React.Key;
+  key: Key;
 }
 
 const MenuItem = styled(Menu.Item)`
-  &.ant-menu-item {
+  &.antd5-menu-item {
     height: auto;
     line-height: 1.4;
 
@@ -70,7 +70,7 @@ const MenuItem = styled(Menu.Item)`
     }
   }
 
-  &.ant-menu-item-selected {
+  &.antd5-menu-item-selected {
     color: unset;
   }
 `;

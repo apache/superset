@@ -41,16 +41,16 @@ import {
   SequentialScheme,
   legacyValidateInteger,
   ComparisonType,
-  isAdhocColumn,
-  isPhysicalColumn,
   ensureIsArray,
   isDefined,
-  hasGenericChartAxes,
   NO_TIME_RANGE,
+  validateMaxValue,
 } from '@superset-ui/core';
 
 import {
   formatSelectOptions,
+  displayTimeRelatedControls,
+  getColorControlsProps,
   D3_FORMAT_OPTIONS,
   D3_FORMAT_DOCS,
   D3_TIME_FORMAT_OPTIONS,
@@ -58,11 +58,10 @@ import {
   DEFAULT_TIME_FORMAT,
   DEFAULT_NUMBER_FORMAT,
 } from '../utils';
-import { TIME_FILTER_LABELS } from '../constants';
+import { DEFAULT_MAX_ROW, TIME_FILTER_LABELS } from '../constants';
 import {
   SharedControlConfig,
   Dataset,
-  ColumnMeta,
   ControlState,
   ControlPanelState,
 } from '../types';
@@ -84,8 +83,6 @@ import {
   dndAdhocMetricControl2,
   dndXAxisControl,
 } from './dndControls';
-
-export { withDndFallback } from './dndControls';
 
 const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
 const sequentialSchemeRegistry = getSequentialSchemeRegistry();
@@ -146,9 +143,7 @@ const linear_color_scheme: SharedControlConfig<'ColorSchemeControl'> = {
   renderTrigger: true,
   schemes: () => sequentialSchemeRegistry.getMap(),
   isLinear: true,
-  mapStateToProps: state => ({
-    dashboardId: state?.form_data?.dashboardId,
-  }),
+  mapStateToProps: state => getColorControlsProps(state),
 };
 
 const granularity: SharedControlConfig<'SelectControl'> = {
@@ -198,32 +193,14 @@ const time_grain_sqla: SharedControlConfig<'SelectControl'> = {
       : 'P1D';
   },
   description: t(
-    'The time granularity for the visualization. This ' +
-      'applies a date transformation to alter ' +
-      'your time column and defines a new time granularity. ' +
-      'The options here are defined on a per database ' +
-      'engine basis in the Superset source code.',
+    'Select a time grain for the visualization. The ' +
+      'grain is the time interval represented by a ' +
+      'single point on the chart.',
   ),
   mapStateToProps: ({ datasource }) => ({
     choices: (datasource as Dataset)?.time_grain_sqla || [],
   }),
-  visibility: ({ controls }) => {
-    if (!hasGenericChartAxes) {
-      return true;
-    }
-
-    const xAxis = controls?.x_axis;
-    const xAxisValue = xAxis?.value;
-    if (isAdhocColumn(xAxisValue)) {
-      return true;
-    }
-    if (isPhysicalColumn(xAxisValue)) {
-      return !!(xAxis?.options ?? []).find(
-        (col: ColumnMeta) => col?.column_name === xAxisValue,
-      )?.is_dttm;
-    }
-    return false;
-  },
+  visibility: displayTimeRelatedControls,
 };
 
 const time_range: SharedControlConfig<'DateFilterControl'> = {
@@ -232,7 +209,7 @@ const time_range: SharedControlConfig<'DateFilterControl'> = {
   label: TIME_FILTER_LABELS.time_range,
   default: NO_TIME_RANGE, // this value is an empty filter constant so shouldn't translate it.
   description: t(
-    'The time range for the visualization. All relative times, e.g. "Last month", ' +
+    'This control filters the whole chart based on the selected time range. All relative times, e.g. "Last month", ' +
       '"Last 7 days", "now", etc. are evaluated on the server using the server\'s ' +
       'local time (sans timezone). All tooltips and placeholder times are expressed ' +
       'in UTC (sans timezone). The timestamps are then evaluated by the database ' +
@@ -245,17 +222,26 @@ const row_limit: SharedControlConfig<'SelectControl'> = {
   type: 'SelectControl',
   freeForm: true,
   label: t('Row limit'),
-  validators: [legacyValidateInteger],
+  clearable: false,
+  mapStateToProps: state => ({ maxValue: state?.common?.conf?.SQL_MAX_ROW }),
+  validators: [
+    legacyValidateInteger,
+    (v, state) => validateMaxValue(v, state?.maxValue || DEFAULT_MAX_ROW),
+  ],
   default: 10000,
   choices: formatSelectOptions(ROW_LIMIT_OPTIONS),
-  description: t('Limits the number of rows that get displayed.'),
+  description: t(
+    'Limits the number of the rows that are computed in the query that is the source of the data used for this chart.',
+  ),
 };
 
 const order_desc: SharedControlConfig<'CheckboxControl'> = {
   type: 'CheckboxControl',
   label: t('Sort Descending'),
   default: true,
-  description: t('Whether to sort descending or ascending'),
+  description: t(
+    'If enabled, this control sorts the results/values descending, otherwise it sorts the results ascending.',
+  ),
   visibility: ({ controls }) =>
     Boolean(
       controls?.timeseries_limit_metric.value &&
@@ -317,6 +303,12 @@ const y_axis_format: SharedControlConfig<'SelectControl', SelectDefaultOption> =
     },
   };
 
+const currency_format: SharedControlConfig<'CurrencyControl'> = {
+  type: 'CurrencyControl',
+  label: t('Currency format'),
+  renderTrigger: true,
+};
+
 const x_axis_time_format: SharedControlConfig<
   'SelectControl',
   SelectDefaultOption
@@ -340,9 +332,21 @@ const color_scheme: SharedControlConfig<'ColorSchemeControl'> = {
   choices: () => categoricalSchemeRegistry.keys().map(s => [s, s]),
   description: t('The color scheme for rendering chart'),
   schemes: () => categoricalSchemeRegistry.getMap(),
-  mapStateToProps: state => ({
-    dashboardId: state?.form_data?.dashboardId,
-  }),
+  mapStateToProps: state => getColorControlsProps(state),
+};
+
+const time_shift_color: SharedControlConfig<'CheckboxControl'> = {
+  type: 'CheckboxControl',
+  label: t('Match time shift color with original series'),
+  default: true,
+  renderTrigger: true,
+  description: t(
+    'When unchecked, colors from the selected color scheme will be used for time shifted series',
+  ),
+  visibility: ({ controls }) =>
+    Boolean(
+      controls?.time_compare?.value && !isEmpty(controls?.time_compare?.value),
+    ),
 };
 
 const truncate_metric: SharedControlConfig<'CheckboxControl'> = {
@@ -367,6 +371,14 @@ const temporal_columns_lookup: SharedControlConfig<'HiddenControl'> = {
         .filter(option => option.is_dttm)
         .map(option => [option.column_name ?? option.name, option.is_dttm]),
     ),
+};
+
+const sort_by_metric: SharedControlConfig<'CheckboxControl'> = {
+  type: 'CheckboxControl',
+  label: t('Sort by metric'),
+  description: t(
+    'Whether to sort results by the selected metric in descending order.',
+  ),
 };
 
 export default {
@@ -398,6 +410,7 @@ export default {
   x_axis_time_format,
   adhoc_filters: dndAdhocFilterControl,
   color_scheme,
+  time_shift_color,
   series_columns: dndColumnsControl,
   series_limit,
   series_limit_metric: dndSortByControl,
@@ -406,4 +419,6 @@ export default {
   x_axis: dndXAxisControl,
   show_empty_columns,
   temporal_columns_lookup,
+  currency_format,
+  sort_by_metric,
 };

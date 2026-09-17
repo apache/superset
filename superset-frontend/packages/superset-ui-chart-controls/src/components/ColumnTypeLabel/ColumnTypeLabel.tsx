@@ -17,7 +17,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactNode } from 'react';
+import { ReactNode } from 'react';
 import { css, GenericDataType, styled, t } from '@superset-ui/core';
 import { ClockCircleOutlined, QuestionOutlined } from '@ant-design/icons';
 // TODO: move all icons to superset-ui/core
@@ -44,6 +44,8 @@ const TypeIconWrapper = styled.div`
     && svg {
       margin-right: 0;
       margin-left: 0;
+      width: 100%;
+      height: 100%;
     }
   `};
 `;
@@ -55,13 +57,13 @@ export function ColumnTypeLabel({ type }: ColumnTypeLabelProps) {
 
   if (type === '' || type === 'expression') {
     typeIcon = <FunctionSvg aria-label={t('function type icon')} />;
-  } else if (type === GenericDataType.STRING) {
+  } else if (type === GenericDataType.String) {
     typeIcon = <StringSvg aria-label={t('string type icon')} />;
-  } else if (type === GenericDataType.NUMERIC) {
+  } else if (type === GenericDataType.Numeric) {
     typeIcon = <NumSvg aria-label={t('numeric type icon')} />;
-  } else if (type === GenericDataType.BOOLEAN) {
+  } else if (type === GenericDataType.Boolean) {
     typeIcon = <BooleanSvg aria-label={t('boolean type icon')} />;
-  } else if (type === GenericDataType.TEMPORAL) {
+  } else if (type === GenericDataType.Temporal) {
     typeIcon = <ClockCircleOutlined aria-label={t('temporal type icon')} />;
   }
 

@@ -170,7 +170,7 @@ export function getAllControlsState(
   state: ControlPanelState | null,
   formData: QueryFormData,
 ) {
-  const controlsState = {};
+  const controlsState: Record<string, ControlState<any> | null> = {};
   getSectionsToRender(vizType, datasourceType).forEach(section =>
     section.controlSetRows.forEach(fieldsetRow =>
       fieldsetRow.forEach((field: CustomControlItem) => {

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, ChartMetadata, ChartPlugin, Behavior } from '@superset-ui/core';
+import { Behavior, ChartMetadata, ChartPlugin, t } from '@superset-ui/core';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
 import example1 from './images/Table.jpg';
@@ -31,7 +31,11 @@ export { default as __hack__ } from './types';
 export * from './types';
 
 const metadata = new ChartMetadata({
-  behaviors: [Behavior.INTERACTIVE_CHART, Behavior.DRILL_TO_DETAIL],
+  behaviors: [
+    Behavior.InteractiveChart,
+    Behavior.DrillToDetail,
+    Behavior.DrillBy,
+  ],
   category: t('Table'),
   canBeAnnotationTypes: ['EVENT', 'INTERVAL'],
   description: t(
@@ -42,13 +46,11 @@ const metadata = new ChartMetadata({
   tags: [
     t('Additive'),
     t('Business'),
-    t('Formattable'),
     t('Pattern'),
-    t('Popular'),
+    t('Featured'),
     t('Report'),
     t('Sequential'),
     t('Tabular'),
-    t('Description'),
   ],
   thumbnail,
 });

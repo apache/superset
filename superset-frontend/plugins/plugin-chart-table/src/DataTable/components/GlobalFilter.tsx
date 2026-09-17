@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ComponentType, ChangeEventHandler } from 'react';
+import { memo, ComponentType, ChangeEventHandler } from 'react';
 import { Row, FilterValue } from 'react-table';
 import useAsyncState from '../utils/useAsyncState';
 
@@ -49,7 +49,7 @@ function DefaultSearchInput({ count, value, onChange }: SearchInputProps) {
   );
 }
 
-export default (React.memo as <T>(fn: T) => T)(function GlobalFilter<
+export default (memo as <T>(fn: T) => T)(function GlobalFilter<
   D extends object,
 >({
   preGlobalFilteredRows,

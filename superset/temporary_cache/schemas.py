@@ -23,7 +23,7 @@ class TemporaryCachePostSchema(Schema):
     value = fields.String(
         required=True,
         allow_none=False,
-        description="Any type of JSON supported text.",
+        metadata={"description": "Any type of JSON supported text."},
         validate=validate_json,
     )
 
@@ -32,6 +32,6 @@ class TemporaryCachePutSchema(Schema):
     value = fields.String(
         required=True,
         allow_none=False,
-        description="Any type of JSON supported text.",
+        metadata={"description": "Any type of JSON supported text."},
         validate=validate_json,
     )

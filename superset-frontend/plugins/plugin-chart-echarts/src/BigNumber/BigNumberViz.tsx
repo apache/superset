@@ -16,11 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { MouseEvent } from 'react';
+import { PureComponent, MouseEvent } from 'react';
 import {
   t,
   getNumberFormatter,
-  smartDateVerboseFormatter,
+  getTimeFormatter,
+  SMART_DATE_VERBOSE_ID,
   computeMaxFontSize,
   BRAND_COLOR,
   styled,
@@ -41,11 +42,11 @@ const PROPORTION = {
   TRENDLINE: 0.3,
 };
 
-class BigNumberVis extends React.PureComponent<BigNumberVizProps> {
+class BigNumberVis extends PureComponent<BigNumberVizProps> {
   static defaultProps = {
     className: '',
     headerFormatter: defaultNumberFormatter,
-    formatTime: smartDateVerboseFormatter,
+    formatTime: getTimeFormatter(SMART_DATE_VERBOSE_ID),
     headerFontSize: PROPORTION.HEADER,
     kickerFontSize: PROPORTION.KICKER,
     mainColor: BRAND_COLOR,
@@ -97,6 +98,7 @@ class BigNumberVis extends React.PureComponent<BigNumberVizProps> {
       !formatTime ||
       !showTimestamp ||
       typeof timestamp === 'string' ||
+      typeof timestamp === 'bigint' ||
       typeof timestamp === 'boolean'
     )
       return null;
@@ -119,7 +121,7 @@ class BigNumberVis extends React.PureComponent<BigNumberVizProps> {
         className="kicker"
         style={{
           fontSize,
-          height: maxHeight,
+          height: 'auto',
         }}
       >
         {text}
@@ -128,15 +130,34 @@ class BigNumberVis extends React.PureComponent<BigNumberVizProps> {
   }
 
   renderHeader(maxHeight: number) {
-    const { bigNumber, headerFormatter, width } = this.props;
+    const { bigNumber, headerFormatter, width, colorThresholdFormatters } =
+      this.props;
     // @ts-ignore
     const text = bigNumber === null ? t('No data') : headerFormatter(bigNumber);
+
+    const hasThresholdColorFormatter =
+      Array.isArray(colorThresholdFormatters) &&
+      colorThresholdFormatters.length > 0;
+
+    let numberColor;
+    if (hasThresholdColorFormatter) {
+      colorThresholdFormatters!.forEach(formatter => {
+        const formatterResult = bigNumber
+          ? formatter.getColorFromValue(bigNumber as number)
+          : false;
+        if (formatterResult) {
+          numberColor = formatterResult;
+        }
+      });
+    } else {
+      numberColor = 'black';
+    }
 
     const container = this.createTemporaryContainer();
     document.body.append(container);
     const fontSize = computeMaxFontSize({
       text,
-      maxWidth: width - 8, // Decrease 8px for more precise font size
+      maxWidth: width * 0.9, // reduced it's max width
       maxHeight,
       className: 'header-line',
       container,
@@ -154,8 +175,11 @@ class BigNumberVis extends React.PureComponent<BigNumberVizProps> {
       <div
         className="header-line"
         style={{
+          display: 'flex',
+          alignItems: 'center',
           fontSize,
-          height: maxHeight,
+          height: 'auto',
+          color: numberColor,
         }}
         onContextMenu={onContextMenu}
       >
@@ -183,7 +207,7 @@ class BigNumberVis extends React.PureComponent<BigNumberVizProps> {
       document.body.append(container);
       fontSize = computeMaxFontSize({
         text,
-        maxWidth: width,
+        maxWidth: width * 0.9, // max width reduced
         maxHeight,
         className: 'subheader-line',
         container,
@@ -220,8 +244,8 @@ class BigNumberVis extends React.PureComponent<BigNumberVizProps> {
           const { data } = eventParams;
           if (data) {
             const pointerEvent = eventParams.event.event;
-            const filters: BinaryQueryObjectFilterClause[] = [];
-            filters.push({
+            const drillToDetailFilters: BinaryQueryObjectFilterClause[] = [];
+            drillToDetailFilters.push({
               col: this.props.formData?.granularitySqla,
               grain: this.props.formData?.timeGrainSqla,
               op: '==',
@@ -231,7 +255,7 @@ class BigNumberVis extends React.PureComponent<BigNumberVizProps> {
             this.props.onContextMenu(
               pointerEvent.clientX,
               pointerEvent.clientY,
-              filters,
+              { drillToDetail: drillToDetailFilters },
             );
           }
         }
@@ -334,6 +358,8 @@ export default styled(BigNumberVis)`
     .header-line {
       position: relative;
       line-height: 1em;
+      white-space: nowrap;
+      margin-bottom:${theme.gridUnit * 2}px;
       span {
         position: absolute;
         bottom: 0;

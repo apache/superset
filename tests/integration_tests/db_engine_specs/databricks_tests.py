@@ -33,10 +33,10 @@ class TestDatabricksDbEngineSpec(TestDbEngineSpec):
         assert get_engine_spec("databricks", "pyhive").engine == "databricks"
 
     def test_extras_without_ssl(self):
-        db = mock.Mock()
-        db.extra = default_db_extra
-        db.server_cert = None
-        extras = DatabricksNativeEngineSpec.get_extra_params(db)
+        database = mock.Mock()
+        database.extra = default_db_extra
+        database.server_cert = None
+        extras = DatabricksNativeEngineSpec.get_extra_params(database)
         assert extras == {
             "engine_params": {
                 "connect_args": {
@@ -50,12 +50,12 @@ class TestDatabricksDbEngineSpec(TestDbEngineSpec):
         }
 
     def test_extras_with_ssl_custom(self):
-        db = mock.Mock()
-        db.extra = default_db_extra.replace(
+        database = mock.Mock()
+        database.extra = default_db_extra.replace(
             '"engine_params": {}',
             '"engine_params": {"connect_args": {"ssl": "1"}}',
         )
-        db.server_cert = ssl_certificate
-        extras = DatabricksNativeEngineSpec.get_extra_params(db)
+        database.server_cert = ssl_certificate
+        extras = DatabricksNativeEngineSpec.get_extra_params(database)
         connect_args = extras["engine_params"]["connect_args"]
         assert connect_args["ssl"] == "1"

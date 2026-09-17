@@ -17,17 +17,136 @@
  * under the License.
  */
 
-import React from 'react';
-import * as AntdIcons from '@ant-design/icons/lib/icons';
+// NOTE: Targeted import (as opposed to `import *`) is important here for proper tree-shaking
+import {
+  AlignCenterOutlined,
+  AlignLeftOutlined,
+  AlignRightOutlined,
+  ApartmentOutlined,
+  ArrowRightOutlined,
+  BarChartOutlined,
+  BellOutlined,
+  BookOutlined,
+  CaretDownOutlined,
+  CalendarOutlined,
+  CaretUpOutlined,
+  CheckOutlined,
+  CheckSquareOutlined,
+  CloseOutlined,
+  ColumnWidthOutlined,
+  CommentOutlined,
+  ConsoleSqlOutlined,
+  CopyOutlined,
+  DashboardOutlined,
+  DatabaseOutlined,
+  DeleteFilled,
+  DownSquareOutlined,
+  DownOutlined,
+  DownloadOutlined,
+  EditOutlined,
+  ExclamationCircleOutlined,
+  EyeOutlined,
+  EyeInvisibleOutlined,
+  FallOutlined,
+  FileImageOutlined,
+  FileOutlined,
+  FireOutlined,
+  FullscreenExitOutlined,
+  FullscreenOutlined,
+  FundProjectionScreenOutlined,
+  InfoCircleOutlined,
+  InsertRowBelowOutlined,
+  LineChartOutlined,
+  LoadingOutlined,
+  MonitorOutlined,
+  PicCenterOutlined,
+  PlusCircleOutlined,
+  PlusOutlined,
+  ReloadOutlined,
+  RightOutlined,
+  SaveOutlined,
+  SearchOutlined,
+  SettingOutlined,
+  StopOutlined,
+  SyncOutlined,
+  TagsOutlined,
+  UnlockOutlined,
+  UpOutlined,
+  UserOutlined,
+  VerticalLeftOutlined,
+  VerticalRightOutlined,
+} from '@ant-design/icons';
 import { StyledIcon } from './Icon';
 import IconType from './IconType';
+
+const AntdIcons = {
+  AlignCenterOutlined,
+  AlignLeftOutlined,
+  AlignRightOutlined,
+  ApartmentOutlined,
+  ArrowRightOutlined,
+  BarChartOutlined,
+  BellOutlined,
+  BookOutlined,
+  CaretDownOutlined,
+  CalendarOutlined,
+  CaretUpOutlined,
+  CheckOutlined,
+  CheckSquareOutlined,
+  CloseOutlined,
+  ColumnWidthOutlined,
+  CommentOutlined,
+  ConsoleSqlOutlined,
+  CopyOutlined,
+  DashboardOutlined,
+  DatabaseOutlined,
+  DeleteFilled,
+  DownSquareOutlined,
+  DownOutlined,
+  DownloadOutlined,
+  EditOutlined,
+  ExclamationCircleOutlined,
+  EyeOutlined,
+  EyeInvisibleOutlined,
+  FallOutlined,
+  FileImageOutlined,
+  FileOutlined,
+  FireOutlined,
+  FullscreenExitOutlined,
+  FullscreenOutlined,
+  FundProjectionScreenOutlined,
+  InfoCircleOutlined,
+  InsertRowBelowOutlined,
+  LineChartOutlined,
+  LoadingOutlined,
+  MonitorOutlined,
+  PicCenterOutlined,
+  PlusCircleOutlined,
+  PlusOutlined,
+  ReloadOutlined,
+  RightOutlined,
+  SaveOutlined,
+  SearchOutlined,
+  SettingOutlined,
+  StopOutlined,
+  SyncOutlined,
+  TagsOutlined,
+  UnlockOutlined,
+  UpOutlined,
+  UserOutlined,
+  VerticalLeftOutlined,
+  VerticalRightOutlined,
+};
 
 const AntdEnhancedIcons = Object.keys(AntdIcons)
   .filter(k => !k.includes('TwoTone'))
   .map(k => ({
-    [k]: (props: IconType) => (
-      <StyledIcon component={AntdIcons[k]} {...props} />
-    ),
+    [k]: (props: IconType) => {
+      const whatRole = props?.onClick ? 'button' : 'img';
+      // @ts-ignore TODO(hainenber): fix the type compatiblity between
+      // StyledIcon component prop and AntdIcon values
+      return <StyledIcon component={AntdIcons[k]} role={whatRole} {...props} />;
+    },
   }))
   .reduce((l, r) => ({ ...l, ...r }));
 

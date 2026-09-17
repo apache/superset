@@ -16,7 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { testQueryResponse, testQueryResults } from '@superset-ui/core';
+import {
+  GenericDataType,
+  testQueryResponse,
+  testQueryResults,
+} from '@superset-ui/core';
 import {
   Dataset,
   getTemporalColumns,
@@ -54,9 +58,10 @@ test('get temporal columns from a QueryResponse', () => {
   expect(getTemporalColumns(testQueryResponse)).toEqual({
     temporalColumns: [
       {
-        name: 'Column 2',
-        type: 'TIMESTAMP',
+        column_name: 'Column 2',
         is_dttm: true,
+        type: 'TIMESTAMP',
+        type_generic: GenericDataType.Temporal,
       },
     ],
     defaultTemporalColumn: 'Column 2',

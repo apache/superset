@@ -16,27 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { hasGenericChartAxes, smartDateFormatter, t } from '@superset-ui/core';
+import { SMART_DATE_ID, t } from '@superset-ui/core';
 import {
   ControlPanelConfig,
+  ControlSubSectionHeader,
   D3_FORMAT_DOCS,
   D3_TIME_FORMAT_OPTIONS,
   getStandardizedControls,
-  sections,
   temporalColumnMixin,
 } from '@superset-ui/chart-controls';
-import React from 'react';
 import { headerFontSize, subheaderFontSize } from '../sharedControls';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.genericTime,
     {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
-        [hasGenericChartAxes ? 'x_axis' : null],
-        [hasGenericChartAxes ? 'time_grain_sqla' : null],
+        ['x_axis'],
+        ['time_grain_sqla'],
         ['metric'],
         ['adhoc_filters'],
       ],
@@ -135,6 +133,7 @@ const config: ControlPanelConfig = {
         [headerFontSize],
         [subheaderFontSize],
         ['y_axis_format'],
+        ['currency_format'],
         [
           {
             name: 'time_format',
@@ -145,7 +144,7 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               choices: D3_TIME_FORMAT_OPTIONS,
               description: D3_FORMAT_DOCS,
-              default: smartDateFormatter.id,
+              default: SMART_DATE_ID,
             },
           },
         ],
@@ -170,7 +169,11 @@ const config: ControlPanelConfig = {
       expanded: false,
       controlSetRows: [
         // eslint-disable-next-line react/jsx-key
-        [<div className="section-header">{t('Rolling Window')}</div>],
+        [
+          <ControlSubSectionHeader>
+            {t('Rolling Window')}
+          </ControlSubSectionHeader>,
+        ],
         [
           {
             name: 'rolling_type',
@@ -223,7 +226,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        [<div className="section-header">{t('Resample')}</div>],
+        [<ControlSubSectionHeader>{t('Resample')}</ControlSubSectionHeader>],
         [
           {
             name: 'resample_rule',
@@ -276,7 +279,7 @@ const config: ControlPanelConfig = {
       label: t('Number format'),
     },
     x_axis: {
-      label: t('TEMPORAL X-AXIS'),
+      label: t('Temporal X-Axis'),
       ...temporalColumnMixin,
     },
   },

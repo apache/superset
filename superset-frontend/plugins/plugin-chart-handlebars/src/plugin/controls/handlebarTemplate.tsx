@@ -22,7 +22,6 @@ import {
   sharedControls,
 } from '@superset-ui/chart-controls';
 import { t, validateNonEmpty } from '@superset-ui/core';
-import React from 'react';
 import { CodeEditor } from '../../components/CodeEditor/CodeEditor';
 import { ControlHeader } from '../../components/ControlHeader/controlHeader';
 import { debounceFunc } from '../../consts';
@@ -66,6 +65,7 @@ export const handlebarsTemplateControlSetItem: ControlSetItem = {
 </ul>`,
     isInt: false,
     renderTrigger: true,
+    valueKey: null,
 
     validators: [validateNonEmpty],
     mapStateToProps: ({ controls }) => ({

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Behavior, ChartMetadata, ChartPlugin, t } from '@superset-ui/core';
+import { Behavior, t } from '@superset-ui/core';
 import buildQuery from './buildQuery';
 import controlPanel from './controlPanel';
 import transformProps from './transformProps';
@@ -26,8 +26,9 @@ import example2 from './images/Pie2.jpg';
 import example3 from './images/Pie3.jpg';
 import example4 from './images/Pie4.jpg';
 import { EchartsPieChartProps, EchartsPieFormData } from './types';
+import { EchartsChartPlugin } from '../types';
 
-export default class EchartsPieChartPlugin extends ChartPlugin<
+export default class EchartsPieChartPlugin extends EchartsChartPlugin<
   EchartsPieFormData,
   EchartsPieChartProps
 > {
@@ -46,8 +47,12 @@ export default class EchartsPieChartPlugin extends ChartPlugin<
       buildQuery,
       controlPanel,
       loadChart: () => import('./EchartsPie'),
-      metadata: new ChartMetadata({
-        behaviors: [Behavior.INTERACTIVE_CHART, Behavior.DRILL_TO_DETAIL],
+      metadata: {
+        behaviors: [
+          Behavior.InteractiveChart,
+          Behavior.DrillToDetail,
+          Behavior.DrillBy,
+        ],
         category: t('Part of a Whole'),
         credits: ['https://echarts.apache.org'],
         description:
@@ -62,17 +67,17 @@ export default class EchartsPieChartPlugin extends ChartPlugin<
         ],
         name: t('Pie Chart'),
         tags: [
-          t('Aesthetic'),
           t('Categorical'),
           t('Circular'),
           t('Comparison'),
           t('Percentages'),
-          t('Popular'),
+          t('Featured'),
           t('Proportional'),
           t('ECharts'),
+          t('Nightingale'),
         ],
         thumbnail,
-      }),
+      },
       transformProps,
     });
   }

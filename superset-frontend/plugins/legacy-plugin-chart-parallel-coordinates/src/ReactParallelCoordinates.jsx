@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { styled, reactify, addAlpha } from '@superset-ui/core';
 import PropTypes from 'prop-types';
 import Component from './ParallelCoordinates';
@@ -106,7 +105,7 @@ export default styled(ParallelCoordinates)`
       height: 18px;
       margin: 0px;
     }
-    .parcoords .row:nth-child(odd) {
+    .parcoords .row:nth-of-type(odd) {
       background: ${addAlpha(theme.colors.grayscale.dark2, 0.05)};
     }
     .parcoords .header {

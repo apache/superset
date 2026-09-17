@@ -29,7 +29,7 @@ export const columns = [
     is_dttm: false,
     python_date_format: null,
     type: 'DOUBLE',
-    type_generic: GenericDataType.NUMERIC,
+    type_generic: GenericDataType.Numeric,
     verbose_name: null,
   },
   {
@@ -43,7 +43,7 @@ export const columns = [
     is_dttm: false,
     python_date_format: null,
     type: 'VARCHAR',
-    type_generic: GenericDataType.STRING,
+    type_generic: GenericDataType.String,
     verbose_name: null,
   },
   {
@@ -56,7 +56,7 @@ export const columns = [
     is_dttm: false,
     python_date_format: null,
     type: 'INT',
-    type_generic: GenericDataType.NUMERIC,
+    type_generic: GenericDataType.Numeric,
     verbose_name: null,
   },
 ];

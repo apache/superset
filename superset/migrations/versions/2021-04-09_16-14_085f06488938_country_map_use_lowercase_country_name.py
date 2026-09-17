@@ -21,13 +21,13 @@ Revises: 134cea61c5e7
 Create Date: 2021-04-09 16:14:19.040884
 
 """
-import json
 
 from alembic import op
 from sqlalchemy import Column, Integer, String, Text
 from sqlalchemy.ext.declarative import declarative_base
 
 from superset import db
+from superset.utils import json
 
 # revision identifiers, used by Alembic.
 revision = "085f06488938"
@@ -57,7 +57,7 @@ def upgrade():
             if params.get("select_country"):
                 params["select_country"] = params["select_country"].lower()
                 slc.params = json.dumps(params, sort_keys=True)
-        except Exception:
+        except Exception:  # noqa: S110
             pass
 
     session.commit()
@@ -78,7 +78,7 @@ def downgrade():
                 country = params["select_country"].lower()
                 params["select_country"] = country[0].upper() + country[1:]
                 slc.params = json.dumps(params, sort_keys=True)
-        except Exception:
+        except Exception:  # noqa: S110
             pass
 
     session.commit()

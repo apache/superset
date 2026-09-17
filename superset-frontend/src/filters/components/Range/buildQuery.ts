@@ -20,7 +20,6 @@ import {
   buildQueryContext,
   GenericDataType,
   QueryFormData,
-  t,
 } from '@superset-ui/core';
 
 /**
@@ -51,22 +50,22 @@ export default function buildQuery(formData: QueryFormData) {
           column: {
             column_name: column,
             id: 1,
-            type_generic: GenericDataType.NUMERIC,
+            type_generic: GenericDataType.Numeric,
           },
           expressionType: 'SIMPLE',
           hasCustomLabel: true,
-          label: t('min'),
+          label: 'min',
         },
         {
           aggregate: 'MAX',
           column: {
             column_name: column,
             id: 2,
-            type_generic: GenericDataType.NUMERIC,
+            type_generic: GenericDataType.Numeric,
           },
           expressionType: 'SIMPLE',
           hasCustomLabel: true,
-          label: t('max'),
+          label: 'max',
         },
       ],
     },

@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import { Store } from 'redux';
@@ -25,7 +24,6 @@ import { render, fireEvent, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { initialState, defaultQueryEditor } from 'src/SqlLab/fixtures';
 import QueryLimitSelect, {
-  LIMIT_DROPDOWN,
   QueryLimitSelectProps,
   convertToNumWithSpaces,
 } from 'src/SqlLab/components/QueryLimitSelect';
@@ -33,9 +31,6 @@ import QueryLimitSelect, {
 const middlewares = [thunk];
 const mockStore = configureStore(middlewares);
 
-jest.mock('src/components/DeprecatedSelect', () => () => (
-  <div data-test="mock-deprecated-select" />
-));
 jest.mock('src/components/Select/Select', () => () => (
   <div data-test="mock-deprecated-select-select" />
 ));
@@ -106,13 +101,67 @@ describe('QueryLimitSelect', () => {
   });
 
   it('renders dropdown select', async () => {
-    const { baseElement, getByRole } = setup({}, mockStore(initialState));
+    const { baseElement, getAllByRole, getByRole } = setup(
+      { maxRow: 50000 },
+      mockStore(initialState),
+    );
     const dropdown = baseElement.getElementsByClassName(
       'ant-dropdown-trigger',
     )[0];
 
     userEvent.click(dropdown);
     await waitFor(() => expect(getByRole('menu')).toBeInTheDocument());
+
+    const expectedLabels = [10, 100, 1000, 10000, 50000].map(i =>
+      convertToNumWithSpaces(i),
+    );
+    const actualLabels = getAllByRole('menuitem').map(elem =>
+      elem.textContent?.trim(),
+    );
+
+    expect(actualLabels).toEqual(expectedLabels);
+  });
+
+  it('renders dropdown select correctly when maxRow is less than 10', async () => {
+    const { baseElement, getAllByRole, getByRole } = setup(
+      { maxRow: 5 },
+      mockStore(initialState),
+    );
+    const dropdown = baseElement.getElementsByClassName(
+      'ant-dropdown-trigger',
+    )[0];
+
+    userEvent.click(dropdown);
+    await waitFor(() => expect(getByRole('menu')).toBeInTheDocument());
+
+    const expectedLabels = [5].map(i => convertToNumWithSpaces(i));
+    const actualLabels = getAllByRole('menuitem').map(elem =>
+      elem.textContent?.trim(),
+    );
+
+    expect(actualLabels).toEqual(expectedLabels);
+  });
+
+  it('renders dropdown select correctly when maxRow is a multiple of 10', async () => {
+    const { baseElement, getAllByRole, getByRole } = setup(
+      { maxRow: 10000 },
+      mockStore(initialState),
+    );
+    const dropdown = baseElement.getElementsByClassName(
+      'ant-dropdown-trigger',
+    )[0];
+
+    userEvent.click(dropdown);
+    await waitFor(() => expect(getByRole('menu')).toBeInTheDocument());
+
+    const expectedLabels = [10, 100, 1000, 10000].map(i =>
+      convertToNumWithSpaces(i),
+    );
+    const actualLabels = getAllByRole('menuitem').map(elem =>
+      elem.textContent?.trim(),
+    );
+
+    expect(actualLabels).toEqual(expectedLabels);
   });
 
   it('dispatches QUERY_EDITOR_SET_QUERY_LIMIT action on dropdown menu click', async () => {
@@ -133,7 +182,7 @@ describe('QueryLimitSelect', () => {
       expect(store.getActions()).toEqual([
         {
           type: 'QUERY_EDITOR_SET_QUERY_LIMIT',
-          queryLimit: LIMIT_DROPDOWN[expectedIndex],
+          queryLimit: 100,
           queryEditor: {
             id: defaultQueryEditor.id,
           },

@@ -15,29 +15,23 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from typing import Iterator
-
-import pytest
-from sqlalchemy.orm.session import Session
-
 
 def test_create_ssh_tunnel():
-    from superset.databases.dao import DatabaseDAO
-    from superset.databases.ssh_tunnel.dao import SSHTunnelDAO
+    from superset.daos.database import SSHTunnelDAO
     from superset.databases.ssh_tunnel.models import SSHTunnel
     from superset.models.core import Database
 
-    db = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
+    database = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
 
-    properties = {
-        "database_id": db.id,
-        "server_address": "123.132.123.1",
-        "server_port": "3005",
-        "username": "foo",
-        "password": "bar",
-    }
-
-    result = SSHTunnelDAO.create(properties)
+    result = SSHTunnelDAO.create(
+        attributes={
+            "database_id": database.id,
+            "server_address": "123.132.123.1",
+            "server_port": "3005",
+            "username": "foo",
+            "password": "bar",
+        },
+    )
 
     assert result is not None
     assert isinstance(result, SSHTunnel)

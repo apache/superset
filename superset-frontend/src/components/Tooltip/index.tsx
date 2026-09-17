@@ -16,38 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { useTheme, css } from '@superset-ui/core';
-import { Tooltip as AntdTooltip } from 'antd';
-import {
-  TooltipProps,
-  TooltipPlacement as AntdTooltipPlacement,
-} from 'antd/lib/tooltip';
-import { Global } from '@emotion/react';
+import { supersetTheme } from '@superset-ui/core';
+import { Tooltip as AntdTooltip } from 'antd-v5';
+import { TooltipProps, TooltipPlacement } from 'antd-v5/lib/tooltip';
 
-export type TooltipPlacement = AntdTooltipPlacement;
+export { TooltipProps, TooltipPlacement };
 
-export const Tooltip = (props: TooltipProps) => {
-  const theme = useTheme();
-  return (
-    <>
-      {/* Safari hack to hide browser default tooltips */}
-      <Global
-        styles={css`
-          .ant-tooltip-open {
-            display: inline-block;
-            &::after {
-              content: '';
-              display: block;
-            }
-          }
-        `}
-      />
-      <AntdTooltip
-        overlayStyle={{ fontSize: theme.typography.sizes.s, lineHeight: '1.6' }}
-        color={`${theme.colors.grayscale.dark2}e6`}
-        {...props}
-      />
-    </>
-  );
-};
+export const Tooltip = ({ overlayStyle, ...props }: TooltipProps) => (
+  <>
+    <AntdTooltip
+      styles={{
+        body: { overflow: 'hidden', textOverflow: 'ellipsis' },
+        root: overlayStyle ?? {},
+      }}
+      color={`${supersetTheme.colors.grayscale.dark2}e6`}
+      {...props}
+    />
+  </>
+);

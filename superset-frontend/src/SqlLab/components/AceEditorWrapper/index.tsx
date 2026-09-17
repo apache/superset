@@ -16,36 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useEffect, useRef } from 'react';
-import { useDispatch } from 'react-redux';
-import { css, styled } from '@superset-ui/core';
+import { useState, useEffect, useRef } from 'react';
+import type { IAceEditor } from 'react-ace/lib/types';
+import { shallowEqual, useDispatch, useSelector } from 'react-redux';
+import { css, styled, usePrevious, useTheme } from '@superset-ui/core';
+import { Global } from '@emotion/react';
 
-import { usePrevious } from 'src/hooks/usePrevious';
-import { areArraysShallowEqual } from 'src/reduxUtils';
-import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
-import {
-  queryEditorSetSelectedText,
-  queryEditorSetFunctionNames,
-  addTable,
-} from 'src/SqlLab/actions/sqlLab';
-import {
-  SCHEMA_AUTOCOMPLETE_SCORE,
-  TABLE_AUTOCOMPLETE_SCORE,
-  COLUMN_AUTOCOMPLETE_SCORE,
-  SQL_FUNCTIONS_AUTOCOMPLETE_SCORE,
-} from 'src/SqlLab/constants';
-import {
-  Editor,
-  AceCompleterKeyword,
-  FullSQLEditor as AceEditor,
-} from 'src/components/AsyncAceEditor';
+import { SQL_EDITOR_LEFTBAR_WIDTH } from 'src/SqlLab/constants';
+import { queryEditorSetSelectedText } from 'src/SqlLab/actions/sqlLab';
+import { FullSQLEditor as AceEditor } from 'src/components/AsyncAceEditor';
+import type { KeyboardShortcut } from 'src/SqlLab/components/KeyboardShortcutButton';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
+import { SqlLabRootState, type CursorPosition } from 'src/SqlLab/types';
+import { useAnnotations } from './useAnnotations';
+import { useKeywords } from './useKeywords';
 
 type HotKey = {
-  key: string;
-  descr: string;
+  key: KeyboardShortcut;
+  descr?: string;
   name: string;
-  func: () => void;
+  func: (aceEditor: IAceEditor) => void;
 };
 
 type AceEditorWrapperProps = {
@@ -53,8 +43,7 @@ type AceEditorWrapperProps = {
   onBlur: (sql: string) => void;
   onChange: (sql: string) => void;
   queryEditorId: string;
-  database: any;
-  extendedTables?: Array<{ name: string; columns: any[] }>;
+  onCursorPositionChange: (position: CursorPosition) => void;
   height: string;
   hotkeys: HotKey[];
 };
@@ -64,52 +53,45 @@ const StyledAceEditor = styled(AceEditor)`
     && {
       // double class is better than !important
       border: 1px solid ${theme.colors.grayscale.light2};
-      font-feature-settings: 'liga' off, 'calt' off;
-      // Fira Code causes problem with Ace under Firefox
-      font-family: 'Menlo', 'Consolas', 'Courier New', 'Ubuntu Mono',
-        'source-code-pro', 'Lucida Console', monospace;
-
-      &.ace_autocomplete {
-        // Use !important because Ace Editor applies extra CSS at the last second
-        // when opening the autocomplete.
-        width: ${theme.gridUnit * 130}px !important;
-      }
-
-      .ace_scroller {
-        background-color: ${theme.colors.grayscale.light4};
-      }
+      font-feature-settings:
+        'liga' off,
+        'calt' off;
     }
   `}
 `;
+
 const AceEditorWrapper = ({
   autocomplete,
   onBlur = () => {},
   onChange = () => {},
   queryEditorId,
-  database,
-  extendedTables = [],
+  onCursorPositionChange,
   height,
   hotkeys,
 }: AceEditorWrapperProps) => {
   const dispatch = useDispatch();
-
   const queryEditor = useQueryEditor(queryEditorId, [
     'id',
     'dbId',
     'sql',
-    'functionNames',
-    'schemaOptions',
-    'tableOptions',
-    'validationResult',
+    'catalog',
     'schema',
+    'templateParams',
   ]);
-  const currentSql = queryEditor.sql ?? '';
-  const functionNames = queryEditor.functionNames ?? [];
-  const schemas = queryEditor.schemaOptions ?? [];
-  const tables = queryEditor.tableOptions ?? [];
+  // Prevent a maximum update depth exceeded error
+  // by skipping access the unsaved query editor state
+  const cursorPosition = useSelector<SqlLabRootState, CursorPosition>(
+    ({ sqlLab: { queryEditors } }) => {
+      const { cursorPosition } = {
+        ...queryEditors.find(({ id }) => id === queryEditorId),
+      };
+      return cursorPosition ?? { row: 0, column: 0 };
+    },
+    shallowEqual,
+  );
 
+  const currentSql = queryEditor.sql ?? '';
   const [sql, setSql] = useState(currentSql);
-  const [words, setWords] = useState<AceCompleterKeyword[]>([]);
 
   // The editor changeSelection is called multiple times in a row,
   // faster than React reconciliation process, so the selected text
@@ -120,26 +102,9 @@ const AceEditorWrapper = ({
   useEffect(() => {
     // Making sure no text is selected from previous mount
     dispatch(queryEditorSetSelectedText(queryEditor, null));
-    if (queryEditor.dbId) {
-      dispatch(queryEditorSetFunctionNames(queryEditor, queryEditor.dbId));
-    }
-    setAutoCompleter();
   }, []);
 
-  const prevTables = usePrevious(tables) ?? [];
-  const prevSchemas = usePrevious(schemas) ?? [];
-  const prevExtendedTables = usePrevious(extendedTables) ?? [];
   const prevSql = usePrevious(currentSql);
-
-  useEffect(() => {
-    if (
-      !areArraysShallowEqual(tables, prevTables) ||
-      !areArraysShallowEqual(schemas, prevSchemas) ||
-      !areArraysShallowEqual(extendedTables, prevExtendedTables)
-    ) {
-      setAutoCompleter();
-    }
-  }, [tables, schemas, extendedTables]);
 
   useEffect(() => {
     if (currentSql !== prevSql) {
@@ -186,114 +151,80 @@ const AceEditorWrapper = ({
 
       currentSelectionCache.current = selectedText;
     });
+
+    editor.selection.on('changeCursor', () => {
+      const cursor = editor.getCursorPosition();
+      onCursorPositionChange(cursor);
+    });
+
+    const { row, column } = cursorPosition;
+    editor.moveCursorToPosition({ row, column });
+    editor.focus();
+    editor.scrollToLine(row, true, true);
   };
 
   const onChangeText = (text: string) => {
-    setSql(text);
-    onChange(text);
-  };
-
-  const setAutoCompleter = () => {
-    // Loading schema, table and column names as auto-completable words
-    const schemaWords = schemas.map(s => ({
-      name: s.label,
-      value: s.value,
-      score: SCHEMA_AUTOCOMPLETE_SCORE,
-      meta: 'schema',
-    }));
-    const columns = {};
-
-    const tableWords = tables.map(t => {
-      const tableName = t.value;
-      const extendedTable = extendedTables.find(et => et.name === tableName);
-      const cols = extendedTable?.columns || [];
-      cols.forEach(col => {
-        columns[col.name] = null; // using an object as a unique set
-      });
-
-      return {
-        name: t.label,
-        value: tableName,
-        score: TABLE_AUTOCOMPLETE_SCORE,
-        meta: 'table',
-      };
-    });
-
-    const columnWords = Object.keys(columns).map(col => ({
-      name: col,
-      value: col,
-      score: COLUMN_AUTOCOMPLETE_SCORE,
-      meta: 'column',
-    }));
-
-    const functionWords = functionNames.map(func => ({
-      name: func,
-      value: func,
-      score: SQL_FUNCTIONS_AUTOCOMPLETE_SCORE,
-      meta: 'function',
-    }));
-
-    const completer = {
-      insertMatch: (editor: Editor, data: any) => {
-        if (data.meta === 'table') {
-          dispatch(
-            addTable(queryEditor, database, data.value, queryEditor.schema),
-          );
-        }
-
-        let { caption } = data;
-        if (data.meta === 'table' && caption.includes(' ')) {
-          caption = `"${caption}"`;
-        }
-
-        // executing https://github.com/thlorenz/brace/blob/3a00c5d59777f9d826841178e1eb36694177f5e6/ext/language_tools.js#L1448
-        editor.completer.insertMatch(
-          `${caption}${['function', 'schema'].includes(data.meta) ? '' : ' '}`,
-        );
-      },
-    };
-
-    const words = schemaWords
-      .concat(tableWords)
-      .concat(columnWords)
-      .concat(functionWords)
-      .concat(sqlKeywords)
-      .map(word => ({
-        ...word,
-        completer,
-      }));
-
-    setWords(words);
-  };
-
-  const getAceAnnotations = () => {
-    const { validationResult } = queryEditor;
-    const resultIsReady = validationResult?.completed;
-    if (resultIsReady && validationResult?.errors?.length) {
-      const errors = validationResult.errors.map((err: any) => ({
-        type: 'error',
-        row: err.line_number - 1,
-        column: err.start_column - 1,
-        text: err.message,
-      }));
-      return errors;
+    if (text !== sql) {
+      setSql(text);
+      onChange(text);
     }
-    return [];
   };
+
+  const { data: annotations } = useAnnotations({
+    dbId: queryEditor.dbId,
+    catalog: queryEditor.catalog,
+    schema: queryEditor.schema,
+    sql: currentSql,
+    templateParams: queryEditor.templateParams,
+  });
+
+  const keywords = useKeywords(
+    {
+      queryEditorId,
+      dbId: queryEditor.dbId,
+      catalog: queryEditor.catalog,
+      schema: queryEditor.schema,
+    },
+    !autocomplete,
+  );
+  const theme = useTheme();
 
   return (
-    <StyledAceEditor
-      keywords={words}
-      onLoad={onEditorLoad}
-      onBlur={onBlurSql}
-      height={height}
-      onChange={onChangeText}
-      width="100%"
-      editorProps={{ $blockScrolling: true }}
-      enableLiveAutocompletion={autocomplete}
-      value={sql}
-      annotations={getAceAnnotations()}
-    />
+    <>
+      <Global
+        styles={css`
+          .ace_text-layer {
+            width: 100% !important;
+          }
+
+          .ace_autocomplete {
+            // Use !important because Ace Editor applies extra CSS at the last second
+            // when opening the autocomplete.
+            width: ${theme.gridUnit * 130}px !important;
+          }
+
+          .ace_tooltip {
+            max-width: ${SQL_EDITOR_LEFTBAR_WIDTH}px;
+          }
+
+          .ace_scroller {
+            background-color: ${theme.colors.grayscale.light4};
+          }
+        `}
+      />
+      <StyledAceEditor
+        keywords={keywords}
+        onLoad={onEditorLoad}
+        onBlur={onBlurSql}
+        height={height}
+        onChange={onChangeText}
+        width="100%"
+        editorProps={{ $blockScrolling: true }}
+        enableLiveAutocompletion={autocomplete}
+        value={sql}
+        annotations={annotations}
+      />
+    </>
   );
 };
 

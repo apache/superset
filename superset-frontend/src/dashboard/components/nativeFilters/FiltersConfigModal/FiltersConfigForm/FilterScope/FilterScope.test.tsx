@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { Provider } from 'react-redux';
 import {
   render,
@@ -35,6 +34,7 @@ describe('FilterScope', () => {
   const save = jest.fn();
   let form: FormInstance<NativeFiltersForm>;
   const mockedProps = {
+    expanded: false,
     filterId: 'DefaultFilterId',
     dependencies: [],
     setErroredFilters: jest.fn(),
@@ -47,6 +47,7 @@ describe('FilterScope', () => {
     activeFilterPanelKeys: `DefaultFilterId-${FilterPanels.configuration.key}`,
     isActive: true,
     validateDependencies: jest.fn(),
+    onModifyFilter: jest.fn(),
   };
 
   const MockModal = ({ scope }: { scope?: object }) => {
@@ -81,8 +82,7 @@ describe('FilterScope', () => {
   it('select tree values with 1 excluded', async () => {
     render(<MockModal />);
     fireEvent.click(screen.getByText('Scoping'));
-    fireEvent.click(screen.getByLabelText('Apply to specific panels'));
-    expect(screen.getByRole('tree')).not.toBe(null);
+    expect(screen.getByRole('tree')).toBeInTheDocument();
     fireEvent.click(getTreeSwitcher(2));
     fireEvent.click(screen.getByText('CHART_ID2'));
     await waitFor(() =>
@@ -98,8 +98,7 @@ describe('FilterScope', () => {
   it('select 1 value only', async () => {
     render(<MockModal />);
     fireEvent.click(screen.getByText('Scoping'));
-    fireEvent.click(screen.getByLabelText('Apply to specific panels'));
-    expect(screen.getByRole('tree')).not.toBe(null);
+    expect(screen.getByRole('tree')).toBeInTheDocument();
     fireEvent.click(getTreeSwitcher(2));
     fireEvent.click(screen.getByText('CHART_ID2'));
     fireEvent.click(screen.getByText('tab1'));
@@ -123,13 +122,12 @@ describe('FilterScope', () => {
       />,
     );
     fireEvent.click(screen.getByText('Scoping'));
-    fireEvent.click(screen.getByLabelText('Apply to specific panels'));
 
     await waitFor(() => {
       expect(screen.getByRole('tree')).toBeInTheDocument();
       expect(
         document.querySelectorAll('.ant-tree-checkbox-checked').length,
-      ).toBe(1);
+      ).toBe(4);
     });
   });
 });

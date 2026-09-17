@@ -20,6 +20,7 @@
 import {
   NumberFormatterRegistry,
   getNumberFormatterRegistry,
+  setD3Format,
   getNumberFormatter,
   formatNumber,
 } from '@superset-ui/core';
@@ -53,6 +54,25 @@ describe('NumberFormatterRegistrySingleton', () => {
     });
     it('falls back to the default formatter if the format is undefined', () => {
       expect(formatNumber(undefined, 1000)).toEqual('1k');
+    });
+  });
+  describe('setD3Format()', () => {
+    it('sets a specific FormatLocaleDefinition', () => {
+      setD3Format({
+        decimal: ';',
+        thousands: '-',
+        currency: ['€', ''],
+        grouping: [2],
+      });
+      const formatter = getNumberFormatter('$,.2f');
+      expect(formatter.format(12345.67)).toEqual('€1-23-45;67');
+    });
+    it('falls back to default value for unspecified locale format parameters', () => {
+      setD3Format({
+        currency: ['€', ''],
+      });
+      const formatter = getNumberFormatter('$,.1f');
+      expect(formatter.format(12345.67)).toEqual('€12,345.7');
     });
   });
 });

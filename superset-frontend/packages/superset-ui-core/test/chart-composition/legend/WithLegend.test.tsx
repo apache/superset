@@ -17,7 +17,6 @@
  * under the License.
  */
 
-import React from 'react';
 import { mount, shallow } from 'enzyme';
 import { triggerResizeObserver } from 'resize-observer-polyfill';
 import { promiseTimeout, WithLegend } from '@superset-ui/core';
@@ -25,7 +24,8 @@ import { promiseTimeout, WithLegend } from '@superset-ui/core';
 let renderChart = jest.fn();
 let renderLegend = jest.fn();
 
-describe('WithLegend', () => {
+// TODO: rewrite to rtl
+describe.skip('WithLegend', () => {
   beforeEach(() => {
     renderChart = jest.fn(() => <div className="chart" />);
     renderLegend = jest.fn(() => <div className="legend" />);

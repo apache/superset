@@ -1,0 +1,75 @@
+name: Docs Testing
+
+on:
+  pull_request:
+    paths:
+      - "docs/**"
+      - ".github/workflows/superset-docs-verify.yml"
+    types: [synchronize, opened, reopened, ready_for_review]
+
+# cancel previous workflow jobs for PRs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  linkinator:
+    # See docs here: https://github.com/marketplace/actions/linkinator
+    name: Link Checking
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Do not bump this linkinator-action version without opening
+      # an ASF Infra ticket to allow the new verison first!
+      - uses: JustinBeckwith/linkinator-action@v1.11.0
+        continue-on-error: true # This will make the job advisory (non-blocking, no red X)
+        with:
+          paths: "**/*.md, **/*.mdx, !superset-frontend/CHANGELOG.md"
+          linksToSkip: >-
+            ^https://github.com/apache/(superset|incubator-superset)/(pull|issue)/\d+,
+            http://localhost:8088/,
+            http://127.0.0.1:3000/,
+            http://localhost:9001/,
+            https://charts.bitnami.com/bitnami,
+            https://www.li.me/,
+            https://www.fanatics.com/,
+            https://tails.com/gb/,
+            https://www.techaudit.info/,
+            https://avetilearning.com/,
+            https://www.udemy.com/,
+            https://trustmedis.com/,
+            http://theiconic.com.au/,
+            https://dev.mysql.com/doc/refman/5.7/en/innodb-limits.html,
+            ^https://img\.shields\.io/.*,
+            https://vkusvill.ru/
+            https://www.linkedin.com/in/mark-thomas-b16751158/
+            https://theiconic.com.au/
+            https://wattbewerb.de/
+            https://timbr.ai/
+            https://opensource.org/license/apache-2-0
+            https://www.plaidcloud.com/
+  build-deploy:
+    name: Build & Deploy
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: docs
+    steps:
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          submodules: recursive
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: yarn install
+        run: |
+          yarn install --check-cache
+      - name: yarn typecheck
+        run: |
+          yarn typecheck
+      - name: yarn build
+        run: |
+          yarn build

@@ -43,13 +43,16 @@ def resample(
         raise InvalidPostProcessingError(_("Resample operation requires DatetimeIndex"))
     if method not in RESAMPLE_METHOD:
         raise InvalidPostProcessingError(
-            _("Resample method should in ") + ", ".join(RESAMPLE_METHOD) + "."
+            _("Resample method should be in ") + ", ".join(RESAMPLE_METHOD) + "."
         )
 
     if method == "asfreq" and fill_value is not None:
         _df = df.resample(rule).asfreq(fill_value=fill_value)
+        _df = _df.fillna(fill_value)
     elif method == "linear":
         _df = df.resample(rule).interpolate()
     else:
         _df = getattr(df.resample(rule), method)()
+        if method in ("ffill", "bfill"):
+            _df = _df.fillna(method=method)
     return _df

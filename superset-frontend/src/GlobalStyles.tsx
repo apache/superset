@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { css } from '@superset-ui/core';
 import { Global } from '@emotion/react';
 import { mix } from 'polished';
+import 'react-js-cron/dist/styles.css';
 
 export const GlobalStyles = () => (
   <Global
@@ -34,37 +34,83 @@ export const GlobalStyles = () => (
       th {
         font-weight: ${theme.typography.weights.bold};
       }
-      // TODO: Remove when on Ant Design 5.
+      // CSS hack to resolve the issue caused by the invisible echart tooltip on
+      // https://github.com/apache/superset/issues/30058
+      .echarts-tooltip[style*='visibility: hidden'] {
+        display: none !important;
+      }
+      // Ant Design is applying inline z-index styles causing troubles
+      // TODO: Remove z-indexes when Ant Design is fully upgraded to v5
+      // Prefer vanilla Ant Design z-indexes that should work out of the box
+      .ant-popover,
+      .antd5-dropdown,
+      .ant-dropdown,
+      .ant-select-dropdown,
+      .antd5-modal-wrap,
+      .antd5-modal-mask,
+      .antd5-picker-dropdown {
+        z-index: ${theme.zIndex.max} !important;
+      }
+
+      // TODO: Remove when buttons have been upgraded to Ant Design 5.
       // Check src/components/Modal for more info.
-      .modal-functions-ok-button {
-        border-radius: ${theme.borderRadius}px;
-        background: ${theme.colors.primary.base};
-        border: none;
-        text-transform: uppercase;
-        color: ${theme.colors.grayscale.light5};
-        line-height: 1.5715;
-        font-size: ${theme.typography.sizes.s}px;
-        font-weight: ${theme.typography.weights.bold};
-        &:hover {
-          background: ${theme.colors.primary.dark1};
+      .ant-modal-confirm {
+        button {
+          border: none;
+          border-radius: ${theme.borderRadius}px;
+          line-height: 1.5715;
+          font-size: ${theme.typography.sizes.s}px;
+          font-weight: ${theme.typography.weights.bold};
+        }
+        .ant-btn-primary:not(.btn-danger) {
+          background: ${theme.colors.primary.base};
+          color: ${theme.colors.grayscale.light5};
+          &:hover {
+            background: ${theme.colors.primary.dark1};
+          }
+        }
+        .ant-btn-default:not(.btn-danger) {
+          background: ${theme.colors.primary.light4};
+          color: ${theme.colors.primary.dark1};
+          &:hover {
+            background: ${mix(
+              0.1,
+              theme.colors.primary.base,
+              theme.colors.primary.light4,
+            )};
+          }
         }
       }
-      .modal-functions-cancel-button {
-        border-radius: ${theme.borderRadius}px;
-        background: ${theme.colors.primary.light4};
-        border: none;
-        text-transform: uppercase;
-        color: ${theme.colors.primary.dark1};
-        line-height: 1.5715;
-        font-size: ${theme.typography.sizes.s}px;
-        font-weight: ${theme.typography.weights.bold};
-        &:hover {
-          background: ${mix(
-            0.1,
-            theme.colors.primary.base,
-            theme.colors.primary.light4,
-          )};
+      .column-config-popover {
+        & .antd5-input-number {
+          width: 100%;
         }
+        && .btn-group svg {
+          line-height: 0;
+          top: 0;
+        }
+        & .btn-group > .btn {
+          padding: 5px 10px 6px;
+        }
+        && .ant-tabs {
+          margin-top: ${theme.gridUnit * -3}px;
+        }
+        & .ant-tabs-nav {
+          margin-left: ${theme.gridUnit * -4}px;
+          margin-right: ${theme.gridUnit * -4}px;
+          margin-bottom: ${theme.gridUnit * 2}px;
+        }
+        && .ant-tabs-tab {
+          flex: 1;
+          margin-right: 0;
+        }
+      }
+      .ant-dropdown-menu-sub .antd5-menu.antd5-menu-vertical {
+        box-shadow: none;
+      }
+      .ant-dropdown-menu-submenu-title,
+      .ant-dropdown-menu-item {
+        line-height: 1.5em !important;
       }
     `}
   />

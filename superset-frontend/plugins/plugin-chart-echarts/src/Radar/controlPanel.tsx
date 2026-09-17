@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import {
   ChartDataResponseResult,
   GenericDataType,
@@ -26,11 +25,11 @@ import {
 } from '@superset-ui/core';
 import {
   ControlPanelConfig,
+  ControlSubSectionHeader,
   D3_FORMAT_DOCS,
   D3_NUMBER_FORMAT_DESCRIPTION_VALUES_TEXT,
   D3_FORMAT_OPTIONS,
   D3_TIME_FORMAT_OPTIONS,
-  sections,
   sharedControls,
   ControlFormItemSpec,
   getStandardizedControls,
@@ -57,9 +56,24 @@ const radarMetricMaxValue: { name: string; config: ControlFormItemSpec } = {
   },
 };
 
+const radarMetricMinValue: { name: string; config: ControlFormItemSpec } = {
+  name: 'radarMetricMinValue',
+  config: {
+    controlType: 'InputNumber',
+    label: t('Min'),
+    description: t(
+      'The minimum value of metrics. It is an optional configuration. If not set, it will be the minimum value of the data',
+    ),
+    defaultValue: '0',
+    width: 120,
+    placeholder: t('auto'),
+    debounceDelay: 400,
+    validators: [validateNumber],
+  },
+};
+
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,
@@ -85,7 +99,7 @@ const config: ControlPanelConfig = {
       controlSetRows: [
         ['color_scheme'],
         ...legendSection,
-        [<div className="section-header">{t('Labels')}</div>],
+        [<ControlSubSectionHeader>{t('Labels')}</ControlSubSectionHeader>],
         [
           {
             name: 'show_labels',
@@ -156,7 +170,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        [<div className="section-header">{t('Radar')}</div>],
+        [<ControlSubSectionHeader>{t('Radar')}</ControlSubSectionHeader>],
         [
           {
             name: 'column_config',
@@ -166,7 +180,9 @@ const config: ControlPanelConfig = {
               description: t('Further customize how to display each metric'),
               renderTrigger: true,
               configFormLayout: {
-                [GenericDataType.NUMERIC]: [[radarMetricMaxValue]],
+                [GenericDataType.Numeric]: [
+                  [radarMetricMinValue, radarMetricMaxValue],
+                ],
               },
               shouldMapStateToProps() {
                 return true;
@@ -181,11 +197,17 @@ const config: ControlPanelConfig = {
                   }
                   return value.label;
                 });
+                const { colnames: _colnames, coltypes: _coltypes } =
+                  chart?.queriesResponse?.[0] ?? {};
+                const colnames: string[] = _colnames || [];
+                const coltypes: GenericDataType[] = _coltypes || [];
+
                 return {
                   queryResponse: chart?.queriesResponse?.[0] as
                     | ChartDataResponseResult
                     | undefined,
                   appliedColumnNames: metricColumn,
+                  columnsPropsObject: { colnames, coltypes },
                 };
               },
             },

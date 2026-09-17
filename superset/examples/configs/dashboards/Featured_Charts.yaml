@@ -1,0 +1,490 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+dashboard_title: Featured Charts
+description: null
+css: ""
+slug: null
+certified_by: ""
+certification_details: ""
+published: false
+uuid: 9992d759-90d7-4d2a-b34d-373a8aaa9889
+position:
+  CHART-2Z41H9ulKK:
+    children: []
+    id: CHART-2Z41H9ulKK
+    meta:
+      chartId: 107
+      height: 50
+      sliceName: Big Number with Trendline
+      uuid: 281656a3-3d8d-4423-8b58-b050d59fadd9
+      width: 4
+    parents:
+      - ROOT_ID
+      - GRID_ID
+      - ROW-UvMsszSUji
+    type: CHART
+  CHART-33vjmwrGX1:
+    children: []
+    id: CHART-33vjmwrGX1
+    meta:
+      chartId: 127
+      height: 50
+      sliceName: Sunburst
+      uuid: 47b26af7-19e0-4ca1-9cf6-b74b2f1f7e3c
+      width: 4
+    parents:
+      - ROOT_ID
+      - GRID_ID
+      - ROW-3XARWMYOfz
+    type: CHART
+  CHART-3tEC_8e-uS:
+    children: []
+    id: CHART-3tEC_8e-uS
+    meta:
+      chartId: 109
+      height: 50
+      sliceName: Table
+      uuid: d0e7b367-f16f-4d7a-adde-7c7f455fa9bc
+      width: 4
+    parents:
+      - ROOT_ID
+      - GRID_ID
+      - ROW-3XARWMYOfz
+    type: CHART
+  CHART-4Zm6Q1VGY5:
+    children: []
+    id: CHART-4Zm6Q1VGY5
+    meta:
+      chartId: 125
+      height: 50
+      sliceName: Mixed
+      uuid: bb394e7b-0cfc-47ba-b067-541964545752
+      width: 4
+    parents:
+      - ROOT_ID
+      - GRID_ID
+      - ROW-UxgGmS9gb3
+    type: CHART
+  CHART-4iGGk_pxEN:
+    children: []
+    id: CHART-4iGGk_pxEN
+    meta:
+      chartId: 108
+      height: 50
+      sliceName: Big Number
+      uuid: 5adc2abe-bfa3-4091-9838-4a470031208c
+      width: 4
+    parents:
+      - ROOT_ID
+      - GRID_ID
+      - ROW-LIWnqpnIk5
+    type: CHART
+  CHART-A4qrvR24Ne:
+    children: []
+    id: CHART-A4qrvR24Ne
+    meta:
+      chartId: 128
+      height: 50
+      sliceName: Tree
+      uuid: 57e7f05e-0c9a-4313-8a33-e6d0999824af
+      width: 4
+    parents:
+      - ROOT_ID
+      - GRID_ID
+      - ROW-3XARWMYOfz
+    type: CHART
+  CHART-AFzv0kyWG_:
+    children: []
+    id: CHART-AFzv0kyWG_
+    meta:
+      chartId: 115
+      height: 50
+      sliceName: Pie
+      uuid: 02ed54c5-dc22-468c-9edf-729b5401b182
+      width: 4
+    parents:
+      - ROOT_ID
+      - GRID_ID
+      - ROW-UxgGmS9gb3
+    type: CHART
+  CHART-CR0-igYucm:
+    children: []
+    id: CHART-CR0-igYucm
+    meta:
+      chartId: 118
+      height: 50
+      sliceName: Heatmap
+      uuid: c99dbe37-50da-4067-837c-3a8e5b68aafd
+      width: 4
+    parents:
+      - ROOT_ID
+      - GRID_ID
+      - ROW-cUv-aKn4Yt
+    type: CHART
+  CHART-DqaJJ8Fse6:
+    children: []
+    id: CHART-DqaJJ8Fse6
+    meta:
+      chartId: 9
+      height: 50
+      sliceName: Treemap
+      uuid: 36367ecc-e09a-4c9f-80df-5dbaf97f741f
+      width: 4
+    parents:
+      - ROOT_ID
+      - GRID_ID
+      - ROW-ux6j1ePT8I
+    type: CHART
+  CHART-EpsTnvUMuW:
+    children: []
+    id: CHART-EpsTnvUMuW
+    meta:
+      chartId: 111
+      height: 50
+      sliceName: Line
+      uuid: 79567e46-97f6-4cd2-8e98-4cd211389743
+      width: 4
+    parents:
+      - ROOT_ID
+      - GRID_ID
+      - ROW-cUv-aKn4Yt
+    type: CHART
+  CHART-Es5rxmzfgG:
+    children: []
+    id: CHART-Es5rxmzfgG
+    meta:
+      chartId: 113
+      height: 50
+      sliceName: Bar
+      uuid: 7a37f7d8-6deb-4fd3-a150-01b0ff532dbd
+      width: 4
+    parents:
+      - ROOT_ID
+      - GRID_ID
+      - ROW-LIWnqpnIk5
+    type: CHART
+  CHART-FVeZR4VUUl:
+    children: []
+    id: CHART-FVeZR4VUUl
+    meta:
+      chartId: 120
+      height: 50
+      sliceName: Box Plot
+      uuid: cc8eea37-f890-4816-8df0-b1354d7cd553
+      width: 4
+    parents:
+      - ROOT_ID
+      - GRID_ID
+      - ROW-UvMsszSUji
+    type: CHART
+  CHART-GoiTIYEOOF:
+    children: []
+    id: CHART-GoiTIYEOOF
+    meta:
+      chartId: 121
+      height: 50
+      sliceName: Bubble
+      uuid: c2014499-6800-43f0-908f-a2633db3ade7
+      width: 4
+    parents:
+      - ROOT_ID
+      - GRID_ID
+      - ROW-UvMsszSUji
+    type: CHART
+  CHART-KE7lk61Tbt:
+    children: []
+    id: CHART-KE7lk61Tbt
+    meta:
+      chartId: 119
+      height: 50
+      sliceName: Word Cloud
+      uuid: d3967f7d-58ea-43fe-9961-7e061affdb1c
+      width: 4
+    parents:
+      - ROOT_ID
+      - GRID_ID
+      - ROW-ux6j1ePT8I
+    type: CHART
+  CHART-SjTqfJNmup:
+    children: []
+    id: CHART-SjTqfJNmup
+    meta:
+      chartId: 124
+      height: 50
+      sliceName: Graph
+      uuid: be39bc2e-00c0-498b-96bf-858fe2361a89
+      width: 4
+    parents:
+      - ROOT_ID
+      - GRID_ID
+      - ROW-W7YILGiS0-
+    type: CHART
+  CHART-XwFZukVv8E:
+    children: []
+    id: CHART-XwFZukVv8E
+    meta:
+      chartId: 117
+      height: 50
+      sliceName: Waterfall
+      uuid: 97c77c60-0613-4066-aec7-a9c6a75ad8d8
+      width: 4
+    parents:
+      - ROOT_ID
+      - GRID_ID
+      - ROW-ux6j1ePT8I
+    type: CHART
+  CHART-Z3IKOwHAnY:
+    children: []
+    id: CHART-Z3IKOwHAnY
+    meta:
+      chartId: 112
+      height: 50
+      sliceName: Area
+      uuid: 946cccb5-2101-44f5-98f8-501789a333cd
+      width: 4
+    parents:
+      - ROOT_ID
+      - GRID_ID
+      - ROW-LIWnqpnIk5
+    type: CHART
+  CHART-gfrGP3BD76:
+    children: []
+    id: CHART-gfrGP3BD76
+    meta:
+      chartId: 122
+      height: 50
+      sliceName: Funnel
+      uuid: 7b90545c-1aac-447d-9175-a49f508f699d
+      width: 4
+    parents:
+      - ROOT_ID
+      - GRID_ID
+      - ROW-W7YILGiS0-
+    type: CHART
+  CHART-Yi0u5d9otw:
+    children: []
+    id: CHART-Yi0u5d9otw
+    meta:
+      chartId: 359
+      height: 50
+      sliceName: Sankey
+      uuid: fead4d46-ecb9-4fd9-8b9c-420629269c02
+      width: 4
+    parents:
+      - ROOT_ID
+      - GRID_ID
+      - ROW-Jq9auQfs6-
+    type: CHART
+  CHART-j2o9aZo4HY:
+    children: []
+    id: CHART-j2o9aZo4HY
+    meta:
+      chartId: 114
+      height: 50
+      sliceName: Scatter Plot
+      uuid: 5b629855-f912-4e28-8444-56b9db83e5b3
+      width: 4
+    parents:
+      - ROOT_ID
+      - GRID_ID
+      - ROW-Jq9auQfs6-
+    type: CHART
+  CHART-jC2_mEgWeL:
+    children: []
+    id: CHART-jC2_mEgWeL
+    meta:
+      chartId: 123
+      height: 50
+      sliceName: Gauge
+      uuid: 57ccf0f1-d28a-4127-9581-7153c5a15b62
+      width: 4
+    parents:
+      - ROOT_ID
+      - GRID_ID
+      - ROW-W7YILGiS0-
+    type: CHART
+  CHART-jzyy9Sa3pS:
+    children: []
+    id: CHART-jzyy9Sa3pS
+    meta:
+      chartId: 110
+      height: 50
+      sliceName: Pivot Table
+      uuid: fcf2a0cf-0079-4f59-854f-d28297b07bf0
+      width: 4
+    parents:
+      - ROOT_ID
+      - GRID_ID
+      - ROW-UxgGmS9gb3
+    type: CHART
+  CHART-qZh51tuuRH:
+    children: []
+    id: CHART-qZh51tuuRH
+    meta:
+      chartId: 126
+      height: 50
+      sliceName: Radar
+      uuid: 1be00870-89b8-4ba0-a451-1fe56ef89581
+      width: 4
+    parents:
+      - ROOT_ID
+      - GRID_ID
+      - ROW-Jq9auQfs6-
+    type: CHART
+  CHART-t5t_tQe43g:
+    children: []
+    id: CHART-t5t_tQe43g
+    meta:
+      chartId: 130
+      height: 50
+      sliceName: Histogram
+      uuid: 2a89c19d-d0d2-4f5e-9007-e0fb65440e80
+      width: 4
+    parents:
+      - ROOT_ID
+      - GRID_ID
+      - ROW-cUv-aKn4Yt
+    type: CHART
+  DASHBOARD_VERSION_KEY: v2
+  GRID_ID:
+    children:
+      - ROW-LIWnqpnIk5
+      - ROW-UvMsszSUji
+      - ROW-W7YILGiS0-
+      - ROW-cUv-aKn4Yt
+      - ROW-UxgGmS9gb3
+      - ROW-Jq9auQfs6-
+      - ROW-3XARWMYOfz
+      - ROW-ux6j1ePT8I
+    id: GRID_ID
+    parents:
+      - ROOT_ID
+    type: GRID
+  HEADER_ID:
+    id: HEADER_ID
+    meta:
+      text: Featured charts
+    type: HEADER
+  ROOT_ID:
+    children:
+      - GRID_ID
+    id: ROOT_ID
+    type: ROOT
+  ROW-3XARWMYOfz:
+    children:
+      - CHART-33vjmwrGX1
+      - CHART-3tEC_8e-uS
+      - CHART-A4qrvR24Ne
+    id: ROW-3XARWMYOfz
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    parents:
+      - ROOT_ID
+      - GRID_ID
+    type: ROW
+  ROW-Jq9auQfs6-:
+    children:
+      - CHART-qZh51tuuRH
+      - CHART-j2o9aZo4HY
+      - CHART-Yi0u5d9otw
+    id: ROW-Jq9auQfs6-
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    parents:
+      - ROOT_ID
+      - GRID_ID
+    type: ROW
+  ROW-LIWnqpnIk5:
+    children:
+      - CHART-Z3IKOwHAnY
+      - CHART-Es5rxmzfgG
+      - CHART-4iGGk_pxEN
+    id: ROW-LIWnqpnIk5
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    parents:
+      - ROOT_ID
+      - GRID_ID
+    type: ROW
+  ROW-UvMsszSUji:
+    children:
+      - CHART-2Z41H9ulKK
+      - CHART-FVeZR4VUUl
+      - CHART-GoiTIYEOOF
+    id: ROW-UvMsszSUji
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    parents:
+      - ROOT_ID
+      - GRID_ID
+    type: ROW
+  ROW-UxgGmS9gb3:
+    children:
+      - CHART-4Zm6Q1VGY5
+      - CHART-AFzv0kyWG_
+      - CHART-jzyy9Sa3pS
+    id: ROW-UxgGmS9gb3
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    parents:
+      - ROOT_ID
+      - GRID_ID
+    type: ROW
+  ROW-W7YILGiS0-:
+    children:
+      - CHART-gfrGP3BD76
+      - CHART-jC2_mEgWeL
+      - CHART-SjTqfJNmup
+    id: ROW-W7YILGiS0-
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    parents:
+      - ROOT_ID
+      - GRID_ID
+    type: ROW
+  ROW-cUv-aKn4Yt:
+    children:
+      - CHART-CR0-igYucm
+      - CHART-t5t_tQe43g
+      - CHART-EpsTnvUMuW
+    id: ROW-cUv-aKn4Yt
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    parents:
+      - ROOT_ID
+      - GRID_ID
+    type: ROW
+  ROW-ux6j1ePT8I:
+    children:
+      - CHART-DqaJJ8Fse6
+      - CHART-XwFZukVv8E
+      - CHART-KE7lk61Tbt
+    id: ROW-ux6j1ePT8I
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    parents:
+      - ROOT_ID
+      - GRID_ID
+    type: ROW
+metadata:
+  color_scheme: supersetAndPresetColors
+  refresh_frequency: 0
+  expanded_slices: {}
+  label_colors: {}
+  timed_refresh_immune_slices: []
+  cross_filters_enabled: true
+version: 1.0.0

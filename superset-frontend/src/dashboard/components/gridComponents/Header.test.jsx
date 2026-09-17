@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { Provider } from 'react-redux';
 import { styledMount as mount } from 'spec/helpers/theming';
 import sinon from 'sinon';
@@ -27,7 +26,7 @@ import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButto
 import EditableTitle from 'src/components/EditableTitle';
 import HoverMenu from 'src/dashboard/components/menu/HoverMenu';
 import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
-import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
+import { Draggable } from 'src/dashboard/components/dnd/DragDroppable';
 import Header from 'src/dashboard/components/gridComponents/Header';
 import newComponentFactory from 'src/dashboard/util/newComponentFactory';
 import {
@@ -46,6 +45,7 @@ describe('Header', () => {
     parentComponent: newComponentFactory(DASHBOARD_GRID_TYPE),
     index: 0,
     editMode: false,
+    embeddedMode: false,
     filters: {},
     handleComponentDrop() {},
     deleteComponent() {},
@@ -65,9 +65,9 @@ describe('Header', () => {
     return wrapper;
   }
 
-  it('should render a DragDroppable', () => {
+  it('should render a Draggable', () => {
     const wrapper = setup();
-    expect(wrapper.find(DragDroppable)).toExist();
+    expect(wrapper.find(Draggable)).toExist();
   });
 
   it('should render a WithPopoverMenu', () => {
@@ -118,5 +118,20 @@ describe('Header', () => {
     wrapper.find(DeleteComponentButton).simulate('click');
 
     expect(deleteComponent.callCount).toBe(1);
+  });
+
+  it('should render the AnchorLink in view mode', () => {
+    const wrapper = setup();
+    expect(wrapper.find('AnchorLink')).toExist();
+  });
+
+  it('should not render the AnchorLink in edit mode', () => {
+    const wrapper = setup({ editMode: true });
+    expect(wrapper.find('AnchorLink')).not.toExist();
+  });
+
+  it('should not render the AnchorLink in embedded mode', () => {
+    const wrapper = setup({ embeddedMode: true });
+    expect(wrapper.find('AnchorLink')).not.toExist();
   });
 });

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { PureComponent } from 'react';
 import PropTypes from 'prop-types';
 import { css, isEqualArray, t } from '@superset-ui/core';
 import Select from 'src/components/Select/Select';
@@ -31,11 +31,14 @@ const propTypes = {
   disabled: PropTypes.bool,
   freeForm: PropTypes.bool,
   isLoading: PropTypes.bool,
+  mode: PropTypes.string,
   multi: PropTypes.bool,
   isMulti: PropTypes.bool,
   name: PropTypes.string.isRequired,
   onChange: PropTypes.func,
   onFocus: PropTypes.func,
+  onSelect: PropTypes.func,
+  onDeselect: PropTypes.func,
   value: PropTypes.oneOfType([
     PropTypes.string,
     PropTypes.number,
@@ -84,7 +87,40 @@ const defaultProps = {
   valueKey: 'value',
 };
 
-export default class SelectControl extends React.PureComponent {
+export const innerGetOptions = props => {
+  const { choices, optionRenderer, valueKey } = props;
+  let options = [];
+  if (props.options) {
+    options = props.options.map(o => ({
+      ...o,
+      value: o[valueKey],
+      label: o.label || o[valueKey],
+      customLabel: optionRenderer ? optionRenderer(o) : undefined,
+    }));
+  } else if (choices) {
+    // Accepts different formats of input
+    options = choices.map(c => {
+      if (Array.isArray(c)) {
+        const [value, label] = c.length > 1 ? c : [c[0], c[0]];
+        return {
+          value,
+          label,
+        };
+      }
+      if (Object.is(c)) {
+        return {
+          ...c,
+          value: c[valueKey],
+          label: c.label || c[valueKey],
+        };
+      }
+      return { value: c, label: c };
+    });
+  }
+  return options;
+};
+
+export default class SelectControl extends PureComponent {
   constructor(props) {
     super(props);
     this.state = {
@@ -124,36 +160,7 @@ export default class SelectControl extends React.PureComponent {
   }
 
   getOptions(props) {
-    const { choices, optionRenderer, valueKey } = props;
-    let options = [];
-    if (props.options) {
-      options = props.options.map(o => ({
-        ...o,
-        value: o[valueKey],
-        label: o.label || o[valueKey],
-        customLabel: optionRenderer ? optionRenderer(o) : undefined,
-      }));
-    } else if (choices) {
-      // Accepts different formats of input
-      options = choices.map(c => {
-        if (Array.isArray(c)) {
-          const [value, label] = c.length > 1 ? c : [c[0], c[0]];
-          return {
-            value,
-            label,
-          };
-        }
-        if (Object.is(c)) {
-          return {
-            ...c,
-            value: c[valueKey],
-            label: c.label || c[valueKey],
-          };
-        }
-        return { value: c, label: c };
-      });
-    }
-    return options;
+    return innerGetOptions(props);
   }
 
   handleFilterOptions(text, option) {
@@ -174,12 +181,14 @@ export default class SelectControl extends React.PureComponent {
       label,
       multi,
       name,
-      placeholder,
-      onFocus,
-      showHeader,
-      value,
-      tokenSeparators,
       notFoundContent,
+      onFocus,
+      onSelect,
+      onDeselect,
+      placeholder,
+      showHeader,
+      tokenSeparators,
+      value,
       // ControlHeader props
       description,
       renderTrigger,
@@ -210,7 +219,7 @@ export default class SelectControl extends React.PureComponent {
 
     const getValue = () => {
       const currentValue =
-        value ||
+        value ??
         (this.props.default !== undefined ? this.props.default : undefined);
 
       // safety check - the value is intended to be undefined but null was used
@@ -236,10 +245,12 @@ export default class SelectControl extends React.PureComponent {
           : true,
       header: showHeader && <ControlHeader {...headerProps} />,
       loading: isLoading,
-      mode: isMulti || multi ? 'multiple' : 'single',
+      mode: this.props.mode || (isMulti || multi ? 'multiple' : 'single'),
       name: `select-${name}`,
       onChange: this.onChange,
       onFocus,
+      onSelect,
+      onDeselect,
       options: this.state.options,
       placeholder,
       sortComparator: this.props.sortComparator,

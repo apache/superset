@@ -16,11 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useRef } from 'react';
 import { useSelector } from 'react-redux';
-import { css, SupersetTheme, useTheme } from '@superset-ui/core';
+import { css, SupersetTheme, useTheme, useTruncation } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
-import { useTruncation } from 'src/hooks/useTruncation';
 import { RootState } from 'src/dashboard/types';
 import { Row, FilterName, InternalRow } from './Styles';
 import { FilterCardRowProps } from './types';
@@ -32,8 +30,7 @@ export const NameRow = ({
   hidePopover,
 }: FilterCardRowProps & { hidePopover: () => void }) => {
   const theme = useTheme();
-  const filterNameRef = useRef<HTMLElement>(null);
-  const [elementsTruncated] = useTruncation(filterNameRef);
+  const [filterNameRef, , elementsTruncated] = useTruncation();
   const dashboardId = useSelector<RootState, number>(
     ({ dashboardInfo }) => dashboardInfo.id,
   );
@@ -44,20 +41,16 @@ export const NameRow = ({
 
   return (
     <Row
-      css={(theme: SupersetTheme) =>
-        css`
-          margin-bottom: ${theme.gridUnit * 3}px;
-          justify-content: space-between;
-        `
-      }
+      css={(theme: SupersetTheme) => css`
+        margin-bottom: ${theme.gridUnit * 3}px;
+        justify-content: space-between;
+      `}
     >
       <InternalRow>
         <Icons.FilterSmall
-          css={(theme: SupersetTheme) =>
-            css`
-              margin-right: ${theme.gridUnit}px;
-            `
-          }
+          css={(theme: SupersetTheme) => css`
+            margin-right: ${theme.gridUnit}px;
+          `}
         />
         <TooltipWithTruncation title={elementsTruncated ? filter.name : null}>
           <FilterName ref={filterNameRef}>{filter.name}</FilterName>
@@ -69,7 +62,13 @@ export const NameRow = ({
           onClick={hidePopover}
           initialFilterId={filter.id}
         >
-          <Icons.Edit iconSize="l" iconColor={theme.colors.grayscale.light1} />
+          <Icons.Edit
+            iconSize="l"
+            iconColor={theme.colors.grayscale.light1}
+            css={() => css`
+              cursor: pointer;
+            `}
+          />
         </FilterConfigurationLink>
       )}
     </Row>

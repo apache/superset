@@ -27,7 +27,7 @@ export default class RangeFilterPlugin extends ChartPlugin {
     const metadata = new ChartMetadata({
       name: t('Range filter'),
       description: t('Range filter plugin using AntD'),
-      behaviors: [Behavior.INTERACTIVE_CHART, Behavior.NATIVE_FILTER],
+      behaviors: [Behavior.InteractiveChart, Behavior.NativeFilter],
       tags: [t('Experimental')],
       thumbnail,
     });

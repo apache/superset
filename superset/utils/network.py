@@ -32,10 +32,10 @@ def is_port_open(host: str, port: int) -> bool:
         s = socket.socket(af, socket.SOCK_STREAM)
         try:
             s.settimeout(PORT_TIMEOUT)
-            s.connect((sockaddr))
+            s.connect(sockaddr)
             s.shutdown(socket.SHUT_RDWR)
             return True
-        except socket.error as _:
+        except OSError as _:
             continue
         finally:
             s.close()
@@ -63,7 +63,7 @@ def is_host_up(host: str) -> bool:
     param = "-n" if platform.system().lower() == "windows" else "-c"
     command = ["ping", param, "1", host]
     try:
-        output = subprocess.call(command, timeout=PING_TIMEOUT)
+        output = subprocess.call(command, timeout=PING_TIMEOUT)  # noqa: S603
     except subprocess.TimeoutExpired:
         return False
 

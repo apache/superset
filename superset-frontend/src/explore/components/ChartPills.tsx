@@ -16,17 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { forwardRef, RefObject } from 'react';
+import { forwardRef, RefObject } from 'react';
 import { css, QueryData, SupersetTheme } from '@superset-ui/core';
 import RowCountLabel from 'src/explore/components/RowCountLabel';
 import CachedLabel from 'src/components/CachedLabel';
 import Timer from 'src/components/Timer';
+import { Type } from 'src/components/Label';
 
-enum CHART_STATUS_MAP {
-  failed = 'danger',
-  loading = 'warning',
-  success = 'success',
-}
+const CHART_STATUS_MAP = {
+  failed: 'danger' as Type,
+  loading: 'warning' as Type,
+  success: 'success' as Type,
+};
 
 export type ChartPillsProps = {
   queriesResponse: QueryData[];
@@ -65,7 +66,7 @@ export const ChartPills = forwardRef(
         >
           {!isLoading && firstQueryResponse && (
             <RowCountLabel
-              rowcount={Number(firstQueryResponse.rowcount) || 0}
+              rowcount={Number(firstQueryResponse.sql_rowcount) || 0}
               limit={Number(rowLimit) || 0}
             />
           )}

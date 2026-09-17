@@ -33,7 +33,6 @@ const metadata = new ChartMetadata({
   name: t('World Map'),
   tags: [
     t('2D'),
-    t('Aesthetic'),
     t('Comparison'),
     t('Intensity'),
     t('Legacy'),
@@ -41,11 +40,15 @@ const metadata = new ChartMetadata({
     t('Multi-Layers'),
     t('Multi-Variables'),
     t('Scatter'),
-    t('Popular'),
+    t('Featured'),
   ],
   thumbnail,
   useLegacyApi: true,
-  behaviors: [Behavior.DRILL_TO_DETAIL],
+  behaviors: [
+    Behavior.InteractiveChart,
+    Behavior.DrillToDetail,
+    Behavior.DrillBy,
+  ],
 });
 
 export default class WorldMapChartPlugin extends ChartPlugin {

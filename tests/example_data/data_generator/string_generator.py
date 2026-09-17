@@ -28,6 +28,6 @@ class StringGenerator:
         self._max_length = max_length
 
     def generate(self) -> str:
-        rv_string_length = randint(self._min_length, self._max_length)
-        randomized_letters = choices(self._seed_letters, k=rv_string_length)
+        rv_string_length = randint(self._min_length, self._max_length)  # noqa: S311
+        randomized_letters = choices(self._seed_letters, k=rv_string_length)  # noqa: S311
         return "".join(randomized_letters)

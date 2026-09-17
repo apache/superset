@@ -22,7 +22,7 @@ import pytest
 from sqlalchemy import column
 
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
-from tests.unit_tests.fixtures.common import dttm
+from tests.unit_tests.fixtures.common import dttm  # noqa: F401
 
 
 @pytest.mark.parametrize(
@@ -35,9 +35,11 @@ from tests.unit_tests.fixtures.common import dttm
     ],
 )
 def test_convert_dttm(
-    target_type: str, expected_result: Optional[str], dttm: datetime
+    target_type: str,
+    expected_result: Optional[str],
+    dttm: datetime,  # noqa: F811
 ) -> None:
-    from superset.db_engine_specs.druid import DruidEngineSpec as spec
+    from superset.db_engine_specs.druid import DruidEngineSpec as spec  # noqa: N813
 
     assert_convert_dttm(spec, target_type, expected_result, dttm)
 
@@ -49,11 +51,11 @@ def test_convert_dttm(
         ("PT5M", "TIME_FLOOR(CAST({col} AS TIMESTAMP), 'PT5M')"),
         (
             "P1W/1970-01-03T00:00:00Z",
-            "TIME_SHIFT(TIME_FLOOR(TIME_SHIFT(CAST(col AS TIMESTAMP), 'P1D', 1), 'P1W'), 'P1D', 5)",
+            "TIME_SHIFT(TIME_FLOOR(TIME_SHIFT(CAST(col AS TIMESTAMP), 'P1D', 1), 'P1W'), 'P1D', 5)",  # noqa: E501
         ),
         (
             "1969-12-28T00:00:00Z/P1W",
-            "TIME_SHIFT(TIME_FLOOR(TIME_SHIFT(CAST(col AS TIMESTAMP), 'P1D', 1), 'P1W'), 'P1D', -1)",
+            "TIME_SHIFT(TIME_FLOOR(TIME_SHIFT(CAST(col AS TIMESTAMP), 'P1D', 1), 'P1W'), 'P1D', -1)",  # noqa: E501
         ),
     ],
 )
@@ -74,10 +76,10 @@ def test_extras_without_ssl() -> None:
     from superset.db_engine_specs.druid import DruidEngineSpec
     from tests.integration_tests.fixtures.database import default_db_extra
 
-    db = mock.Mock()
-    db.extra = default_db_extra
-    db.server_cert = None
-    extras = DruidEngineSpec.get_extra_params(db)
+    database = mock.Mock()
+    database.extra = default_db_extra
+    database.server_cert = None
+    extras = DruidEngineSpec.get_extra_params(database)
     assert "connect_args" not in extras["engine_params"]
 
 
@@ -86,10 +88,10 @@ def test_extras_with_ssl() -> None:
     from tests.integration_tests.fixtures.certificates import ssl_certificate
     from tests.integration_tests.fixtures.database import default_db_extra
 
-    db = mock.Mock()
-    db.extra = default_db_extra
-    db.server_cert = ssl_certificate
-    extras = DruidEngineSpec.get_extra_params(db)
+    database = mock.Mock()
+    database.extra = default_db_extra
+    database.server_cert = ssl_certificate
+    extras = DruidEngineSpec.get_extra_params(database)
     connect_args = extras["engine_params"]["connect_args"]
     assert connect_args["scheme"] == "https"
     assert "ssl_verify_cert" in connect_args

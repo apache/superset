@@ -36,10 +36,11 @@ describe('defineSavedMetrics', () => {
       ],
       type: DatasourceType.Table,
       main_dttm_col: 'test',
-      time_grain_sqla: 'P1D',
+      time_grain_sqla: [],
       columns: [],
       verbose_map: {},
-      column_format: {},
+      column_formats: {},
+      currency_formats: {},
       datasource_name: 'my_datasource',
       description: 'this is my datasource',
     };
@@ -53,7 +54,7 @@ describe('defineSavedMetrics', () => {
     expect(defineSavedMetrics({ ...dataset, metrics: undefined })).toEqual([]);
   });
 
-  it('returns default saved metrics if souce is a Query', () => {
+  it('returns default saved metrics if source is a Query', () => {
     expect(defineSavedMetrics(testQuery as QueryResponse)).toEqual(
       DEFAULT_METRICS,
     );

@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import contextlib
 import logging
 from abc import ABC, abstractmethod
 from typing import Any
@@ -23,12 +24,13 @@ from apispec.exceptions import DuplicateComponentNameError
 from flask import request, Response
 from marshmallow import ValidationError
 
-from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
-from superset.temporary_cache.commands.exceptions import (
+from superset.commands.temporary_cache.exceptions import (
     TemporaryCacheAccessDeniedError,
     TemporaryCacheResourceNotFoundError,
 )
-from superset.temporary_cache.commands.parameters import CommandParameters
+from superset.commands.temporary_cache.parameters import CommandParameters
+from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
+from superset.key_value.types import JsonKeyValueCodec
 from superset.temporary_cache.schemas import (
     TemporaryCachePostSchema,
     TemporaryCachePutSchema,
@@ -36,6 +38,8 @@ from superset.temporary_cache.schemas import (
 from superset.views.base_api import BaseSupersetApi, requires_json
 
 logger = logging.getLogger(__name__)
+
+CODEC = JsonKeyValueCodec()
 
 
 class TemporaryCacheRestApi(BaseSupersetApi, ABC):
@@ -51,7 +55,7 @@ class TemporaryCacheRestApi(BaseSupersetApi, ABC):
     allow_browser_login = True
 
     def add_apispec_components(self, api_spec: APISpec) -> None:
-        try:
+        with contextlib.suppress(DuplicateComponentNameError):
             api_spec.components.schema(
                 TemporaryCachePostSchema.__name__,
                 schema=TemporaryCachePostSchema,
@@ -60,8 +64,6 @@ class TemporaryCacheRestApi(BaseSupersetApi, ABC):
                 TemporaryCachePutSchema.__name__,
                 schema=TemporaryCachePutSchema,
             )
-        except DuplicateComponentNameError:
-            pass
         super().add_apispec_components(api_spec)
 
     @requires_json
@@ -69,7 +71,12 @@ class TemporaryCacheRestApi(BaseSupersetApi, ABC):
         try:
             item = self.add_model_schema.load(request.json)
             tab_id = request.args.get("tab_id")
-            args = CommandParameters(resource_id=pk, value=item["value"], tab_id=tab_id)
+            args = CommandParameters(
+                resource_id=pk,
+                value=item["value"],
+                tab_id=tab_id,
+                codec=CODEC,
+            )
             key = self.get_create_command()(args).run()
             return self.response(201, key=key)
         except ValidationError as ex:
@@ -89,6 +96,7 @@ class TemporaryCacheRestApi(BaseSupersetApi, ABC):
                 key=key,
                 value=item["value"],
                 tab_id=tab_id,
+                codec=CODEC,
             )
             key = self.get_update_command()(args).run()
             return self.response(200, key=key)
@@ -101,7 +109,7 @@ class TemporaryCacheRestApi(BaseSupersetApi, ABC):
 
     def get(self, pk: int, key: str) -> Response:
         try:
-            args = CommandParameters(resource_id=pk, key=key)
+            args = CommandParameters(resource_id=pk, key=key, codec=CODEC)
             value = self.get_get_command()(args).run()
             if not value:
                 return self.response_404()
@@ -124,17 +132,13 @@ class TemporaryCacheRestApi(BaseSupersetApi, ABC):
             return self.response(404, message=str(ex))
 
     @abstractmethod
-    def get_create_command(self) -> Any:
-        ...
+    def get_create_command(self) -> Any: ...
 
     @abstractmethod
-    def get_update_command(self) -> Any:
-        ...
+    def get_update_command(self) -> Any: ...
 
     @abstractmethod
-    def get_get_command(self) -> Any:
-        ...
+    def get_get_command(self) -> Any: ...
 
     @abstractmethod
-    def get_delete_command(self) -> Any:
-        ...
+    def get_delete_command(self) -> Any: ...

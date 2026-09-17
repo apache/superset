@@ -51,12 +51,7 @@ function traverse({
 
     return {
       ...chartNode,
-      children: filterFields.map(filterField => ({
-        value: `${currentNode.meta.chartId}:${filterField}`,
-        label: `${chartNode.label}`,
-        type: 'filter_box',
-        showCheckbox: false,
-      })),
+      children: [],
     };
   }
 

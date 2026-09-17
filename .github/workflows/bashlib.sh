@@ -31,19 +31,6 @@ say() {
   fi
 }
 
-# default command to run when the `run` input is empty
-default-setup-command() {
-  apt-get-install
-  pip-upgrade
-}
-
-apt-get-install() {
-  say "::group::apt-get install dependencies"
-  sudo apt-get update && sudo apt-get install --yes \
-    libsasl2-dev
-  say "::endgroup::"
-}
-
 pip-upgrade() {
   say "::group::Upgrade pip"
   pip install --upgrade pip
@@ -102,6 +89,8 @@ EOF
 setup-mysql() {
   say "::group::Initialize database"
   mysql -h 127.0.0.1 -P 13306 -u root --password=root <<-EOF
+    SET GLOBAL transaction_isolation='READ-COMMITTED';
+    SET GLOBAL TRANSACTION ISOLATION LEVEL READ COMMITTED;
     DROP DATABASE IF EXISTS superset;
     CREATE DATABASE superset DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci;
     DROP DATABASE IF EXISTS sqllab_test_db;
@@ -128,9 +117,17 @@ testdata() {
   say "::endgroup::"
 }
 
-codecov() {
-  say "::group::Upload code coverage"
-  bash ".github/workflows/codecov.sh" "$@"
+celery-worker() {
+  cd "$GITHUB_WORKSPACE"
+  say "::group::Start Celery worker"
+  # must specify PYTHONPATH to make `tests.superset_test_config` importable
+  export PYTHONPATH="$GITHUB_WORKSPACE"
+  celery \
+    --app=superset.tasks.celery_app:app \
+    worker \
+      --concurrency=2 \
+      --detach \
+      --optimization=fair
   say "::endgroup::"
 }
 
@@ -146,33 +143,10 @@ cypress-install() {
   cache-save cypress
 }
 
-# Run Cypress and upload coverage reports
-cypress-run() {
+cypress-run-all() {
+  local USE_DASHBOARD=$1
   cd "$GITHUB_WORKSPACE/superset-frontend/cypress-base"
 
-  local page=$1
-  local group=${2:-Default}
-  local cypress="./node_modules/.bin/cypress run"
-  local browser=${CYPRESS_BROWSER:-chrome}
-
-  export TERM="xterm"
-
-  say "::group::Run Cypress for [$page]"
-  if [[ -z $CYPRESS_KEY ]]; then
-    $cypress --spec "cypress/integration/$page" --browser "$browser"
-  else
-    export CYPRESS_RECORD_KEY=$(echo $CYPRESS_KEY | base64 --decode)
-    # additional flags for Cypress dashboard recording
-    $cypress --spec "cypress/integration/$page" --browser "$browser" \
-      --record --group "$group" --tag "${GITHUB_REPOSITORY},${GITHUB_EVENT_NAME}" \
-      --parallel --ci-build-id "${GITHUB_SHA:0:8}-${NONCE}"
-  fi
-
-  # don't add quotes to $record because we do want word splitting
-  say "::endgroup::"
-}
-
-cypress-run-all() {
   # Start Flask and run it in background
   # --no-debugger means disable the interactive debugger on the 500 page
   # so errors can print to stderr.
@@ -183,32 +157,21 @@ cypress-run-all() {
   nohup flask run --no-debugger -p $port >"$flasklog" 2>&1 </dev/null &
   local flaskProcessId=$!
 
-  cypress-run "*/**/*"
+  USE_DASHBOARD_FLAG=''
+  if [ "$USE_DASHBOARD" = "true" ]; then
+    USE_DASHBOARD_FLAG='--use-dashboard'
+  fi
+
+  # UNCOMMENT the next few commands to monitor memory usage
+  # monitor_memory &  # Start memory monitoring in the background
+  # memoryMonitorPid=$!
+  python ../../scripts/cypress_run.py --parallelism $PARALLELISM --parallelism-id $PARALLEL_ID --group $PARALLEL_ID --retries 5 $USE_DASHBOARD_FLAG
+  # kill $memoryMonitorPid
 
   # After job is done, print out Flask log for debugging
-  say "::group::Flask log for default run"
+  echo "::group::Flask log for default run"
   cat "$flasklog"
-  say "::endgroup::"
-
-  # Rerun SQL Lab tests with backend persist disabled
-  export SUPERSET_CONFIG=tests.integration_tests.superset_test_config_sqllab_backend_persist_off
-
-  # Restart Flask with new configs
-  kill $flaskProcessId
-  nohup flask run --no-debugger -p $port >"$flasklog" 2>&1 </dev/null &
-  local flaskProcessId=$!
-
-  cypress-run "sqllab/*" "Backend persist"
-
-  # Upload code coverage separately so each page can have separate flags
-  # -c will clean existing coverage reports, -F means add flags
-  # || true to prevent CI failure on codecov upload
-  codecov -c -F "cypress" || true
-
-  say "::group::Flask log for backend persist"
-  cat "$flasklog"
-  say "::endgroup::"
-
+  echo "::endgroup::"
   # make sure the program exits
   kill $flaskProcessId
 }
@@ -217,6 +180,21 @@ eyes-storybook-dependencies() {
   say "::group::install eyes-storyook dependencies"
   sudo apt-get update -y && sudo apt-get -y install gconf-service ca-certificates libxshmfence-dev fonts-liberation libappindicator3-1 libasound2 libatk-bridge2.0-0 libatk1.0-0 libc6 libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgbm1 libgcc1 libgconf-2-4 libglib2.0-0 libgdk-pixbuf2.0-0 libgtk-3-0 libnspr4 libnss3 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 lsb-release xdg-utils libappindicator1
   say "::endgroup::"
+}
+
+monitor_memory() {
+  # This is a small utility to monitor memory usage. Useful for debugging memory in GHA.
+  # To use wrap your command as follows
+  #
+  # monitor_memory &  # Start memory monitoring in the background
+  # memoryMonitorPid=$!
+  # YOUR_COMMAND_HERE
+  # kill $memoryMonitorPid
+  while true; do
+    echo "$(date) - Top 5 memory-consuming processes:"
+    ps -eo pid,comm,%mem --sort=-%mem | head -n 6  # First line is the header, next 5 are top processes
+    sleep 2
+  done
 }
 
 cypress-run-applitools() {
@@ -232,9 +210,7 @@ cypress-run-applitools() {
   nohup flask run --no-debugger -p $port >"$flasklog" 2>&1 </dev/null &
   local flaskProcessId=$!
 
-  $cypress --spec "cypress/integration/*/**/*.applitools.test.ts" --browser "$browser" --headless --config ignoreTestFiles="[]"
-
-  codecov -c -F "cypress" || true
+  $cypress --spec "cypress/applitools/**/*" --browser "$browser" --headless
 
   say "::group::Flask log for default run"
   cat "$flasklog"

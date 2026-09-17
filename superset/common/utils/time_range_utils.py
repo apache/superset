@@ -17,19 +17,19 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, cast, Dict, Optional, Tuple
+from typing import Any, cast
 
 from superset import app
 from superset.common.query_object import QueryObject
-from superset.utils.core import FilterOperator, get_xaxis_label
+from superset.utils.core import FilterOperator
 from superset.utils.date_parser import get_since_until
 
 
 def get_since_until_from_time_range(
-    time_range: Optional[str] = None,
-    time_shift: Optional[str] = None,
-    extras: Optional[Dict[str, Any]] = None,
-) -> Tuple[Optional[datetime], Optional[datetime]]:
+    time_range: str | None = None,
+    time_shift: str | None = None,
+    extras: dict[str, Any] | None = None,
+) -> tuple[datetime | None, datetime | None]:
     return get_since_until(
         relative_start=(extras or {}).get(
             "relative_start", app.config["DEFAULT_RELATIVE_START_TIME"]
@@ -39,17 +39,20 @@ def get_since_until_from_time_range(
         ),
         time_range=time_range,
         time_shift=time_shift,
+        instant_time_comparison_range=(extras or {}).get(
+            "instant_time_comparison_range"
+        ),
     )
 
 
 # pylint: disable=invalid-name
 def get_since_until_from_query_object(
     query_object: QueryObject,
-) -> Tuple[Optional[datetime], Optional[datetime]]:
+) -> tuple[datetime | None, datetime | None]:
     """
     this function will return since and until by tuple if
     1) the time_range is in the query object.
-    2) the xaxis column is in the columns field
+    2) the x-axis column is in the columns field
        and its corresponding `temporal_range` filter is in the adhoc filters.
     :param query_object: a valid query object
     :return: since and until by tuple
@@ -63,10 +66,8 @@ def get_since_until_from_query_object(
 
     time_range = None
     for flt in query_object.filter:
-        if (
-            flt.get("op") == FilterOperator.TEMPORAL_RANGE.value
-            and flt.get("col") == get_xaxis_label(query_object.columns)
-            and isinstance(flt.get("val"), str)
+        if flt.get("op") == FilterOperator.TEMPORAL_RANGE.value and isinstance(
+            flt.get("val"), str
         ):
             time_range = cast(str, flt.get("val"))
 

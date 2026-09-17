@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { ReactNode, CSSProperties, PureComponent } from 'react';
 import cx from 'classnames';
 import { addAlpha, css, styled } from '@superset-ui/core';
 
@@ -25,9 +25,9 @@ type ShouldFocusContainer = HTMLDivElement & {
 };
 
 interface WithPopoverMenuProps {
-  children: React.ReactNode;
+  children: ReactNode;
   disableClick: Boolean;
-  menuItems: React.ReactNode[];
+  menuItems: ReactNode[];
   onChangeFocus: (focus: Boolean) => void;
   isFocused: Boolean;
   // Event argument is left as "any" because of the clash. In defaultProps it seems
@@ -35,7 +35,7 @@ interface WithPopoverMenuProps {
   // derive that type is EventListenerOrEventListenerObject.
   shouldFocus: (event: any, container: ShouldFocusContainer) => Boolean;
   editMode: Boolean;
-  style: React.CSSProperties;
+  style: CSSProperties;
 }
 
 interface WithPopoverMenuState {
@@ -103,7 +103,7 @@ const PopoverMenuStyles = styled.div`
   `}
 `;
 
-export default class WithPopoverMenu extends React.PureComponent<
+export default class WithPopoverMenu extends PureComponent<
   WithPopoverMenuProps,
   WithPopoverMenuState
 > {
@@ -115,10 +115,12 @@ export default class WithPopoverMenu extends React.PureComponent<
     onChangeFocus: null,
     menuItems: [],
     isFocused: false,
-    shouldFocus: (event: any, container: ShouldFocusContainer) =>
-      container?.contains(event.target) ||
-      event.target.id === 'menu-item' ||
-      event.target.parentNode?.id === 'menu-item',
+    shouldFocus: (event: any, container: ShouldFocusContainer) => {
+      if (container?.contains(event.target)) return true;
+      if (event.target.id === 'menu-item') return true;
+      if (event.target.parentNode?.id === 'menu-item') return true;
+      return false;
+    },
     style: null,
   };
 
@@ -156,6 +158,9 @@ export default class WithPopoverMenu extends React.PureComponent<
     if (!this.props.editMode) {
       return;
     }
+
+    event.stopPropagation();
+
     const {
       onChangeFocus,
       shouldFocus: shouldFocusFunc,
@@ -201,7 +206,7 @@ export default class WithPopoverMenu extends React.PureComponent<
         {children}
         {editMode && isFocused && (menuItems?.length ?? 0) > 0 && (
           <PopoverMenuStyles>
-            {menuItems.map((node: React.ReactNode, i: Number) => (
+            {menuItems.map((node: ReactNode, i: Number) => (
               <div className="menu-item" key={`menu-item-${i}`}>
                 {node}
               </div>

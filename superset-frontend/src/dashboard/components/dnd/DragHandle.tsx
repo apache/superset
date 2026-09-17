@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { LegacyRef } from 'react';
+import { LegacyRef } from 'react';
 import { css, styled } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 

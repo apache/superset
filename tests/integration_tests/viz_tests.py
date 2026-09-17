@@ -15,20 +15,17 @@
 # specific language governing permissions and limitations
 # under the License.
 # isort:skip_file
-from datetime import date, datetime, timezone
+from datetime import datetime
 import logging
-from math import nan
 from unittest.mock import Mock, patch
-from typing import Any, Dict, List, Set
 
 import numpy as np
 import pandas as pd
 import pytest
 
-import tests.integration_tests.test_app
+import tests.integration_tests.test_app  # noqa: F401
 import superset.viz as viz
 from superset import app
-from superset.constants import NULL_STRING
 from superset.exceptions import QueryObjectValidationError, SpatialException
 from superset.utils.core import DTTM_ALIAS
 
@@ -42,11 +39,11 @@ class TestBaseViz(SupersetTestCase):
     def test_constructor_exception_no_datasource(self):
         form_data = {}
         datasource = None
-        with self.assertRaises(Exception):
+        with self.assertRaises(Exception):  # noqa: B017, PT027
             viz.BaseViz(datasource, form_data)
 
     def test_process_metrics(self):
-        # test TableViz metrics in correct order
+        # test TimeTableViz metrics in correct order
         form_data = {
             "url_params": {},
             "row_limit": 500,
@@ -56,7 +53,7 @@ class TestBaseViz(SupersetTestCase):
             "granularity_sqla": "year",
             "page_length": 0,
             "all_columns": [],
-            "viz_type": "table",
+            "viz_type": "time_table",
             "since": "2014-01-01",
             "until": "2014-01-02",
             "metrics": ["sum__SP_POP_TOTL", "SUM(SE_PRM_NENR_MA)", "SUM(SP_URB_TOTL)"],
@@ -83,8 +80,8 @@ class TestBaseViz(SupersetTestCase):
             "SUM(SP_URB_TOTL)",
             "count",
         ]
-        self.assertEqual(test_viz.metric_labels, expect_metric_labels)
-        self.assertEqual(test_viz.all_metrics, expect_metric_labels)
+        assert test_viz.metric_labels == expect_metric_labels
+        assert test_viz.all_metrics == expect_metric_labels
 
     def test_get_df_returns_empty_df(self):
         form_data = {"dummy": 123}
@@ -92,8 +89,8 @@ class TestBaseViz(SupersetTestCase):
         datasource = self.get_datasource_mock()
         test_viz = viz.BaseViz(datasource, form_data)
         result = test_viz.get_df(query_obj)
-        self.assertEqual(type(result), pd.DataFrame)
-        self.assertTrue(result.empty)
+        assert isinstance(result, pd.DataFrame)
+        assert result.empty
 
     def test_get_df_handles_dttm_col(self):
         form_data = {"dummy": 123}
@@ -118,7 +115,7 @@ class TestBaseViz(SupersetTestCase):
         datasource.get_column = Mock(return_value=mock_dttm_col)
         mock_dttm_col.python_date_format = "epoch_ms"
         result = test_viz.get_df(query_obj)
-        import logging
+        import logging  # noqa: F401
 
         logger.info(result)
         pd.testing.assert_series_equal(
@@ -149,468 +146,33 @@ class TestBaseViz(SupersetTestCase):
         datasource = self.get_datasource_mock()
         datasource.cache_timeout = 0
         test_viz = viz.BaseViz(datasource, form_data={})
-        self.assertEqual(0, test_viz.cache_timeout)
+        assert 0 == test_viz.cache_timeout
 
         datasource.cache_timeout = 156
         test_viz = viz.BaseViz(datasource, form_data={})
-        self.assertEqual(156, test_viz.cache_timeout)
+        assert 156 == test_viz.cache_timeout
 
         datasource.cache_timeout = None
         datasource.database.cache_timeout = 0
-        self.assertEqual(0, test_viz.cache_timeout)
+        assert 0 == test_viz.cache_timeout
 
         datasource.database.cache_timeout = 1666
-        self.assertEqual(1666, test_viz.cache_timeout)
+        assert 1666 == test_viz.cache_timeout
 
         datasource.database.cache_timeout = None
         test_viz = viz.BaseViz(datasource, form_data={})
-        self.assertEqual(
-            app.config["DATA_CACHE_CONFIG"]["CACHE_DEFAULT_TIMEOUT"],
-            test_viz.cache_timeout,
+        assert (
+            app.config["DATA_CACHE_CONFIG"]["CACHE_DEFAULT_TIMEOUT"]
+            == test_viz.cache_timeout
         )
 
         data_cache_timeout = app.config["DATA_CACHE_CONFIG"]["CACHE_DEFAULT_TIMEOUT"]
         app.config["DATA_CACHE_CONFIG"]["CACHE_DEFAULT_TIMEOUT"] = None
         datasource.database.cache_timeout = None
         test_viz = viz.BaseViz(datasource, form_data={})
-        self.assertEqual(app.config["CACHE_DEFAULT_TIMEOUT"], test_viz.cache_timeout)
+        assert app.config["CACHE_DEFAULT_TIMEOUT"] == test_viz.cache_timeout
         # restore DATA_CACHE_CONFIG timeout
         app.config["DATA_CACHE_CONFIG"]["CACHE_DEFAULT_TIMEOUT"] = data_cache_timeout
-
-
-class TestTableViz(SupersetTestCase):
-    def test_get_data_applies_percentage(self):
-        form_data = {
-            "groupby": ["groupA", "groupB"],
-            "metrics": [
-                {
-                    "expressionType": "SIMPLE",
-                    "aggregate": "SUM",
-                    "label": "SUM(value1)",
-                    "column": {"column_name": "value1", "type": "DOUBLE"},
-                },
-                "count",
-                "avg__C",
-            ],
-            "percent_metrics": [
-                {
-                    "expressionType": "SIMPLE",
-                    "aggregate": "SUM",
-                    "label": "SUM(value1)",
-                    "column": {"column_name": "value1", "type": "DOUBLE"},
-                },
-                "avg__B",
-            ],
-        }
-        datasource = self.get_datasource_mock()
-
-        df = pd.DataFrame(
-            {
-                "SUM(value1)": [15, 20, 25, 40],
-                "avg__B": [10, 20, 5, 15],
-                "avg__C": [11, 22, 33, 44],
-                "count": [6, 7, 8, 9],
-                "groupA": ["A", "B", "C", "C"],
-                "groupB": ["x", "x", "y", "z"],
-            }
-        )
-
-        test_viz = viz.TableViz(datasource, form_data)
-        data = test_viz.get_data(df)
-        # Check method correctly transforms data and computes percents
-        self.assertEqual(
-            [
-                "groupA",
-                "groupB",
-                "SUM(value1)",
-                "count",
-                "avg__C",
-                "%SUM(value1)",
-                "%avg__B",
-            ],
-            list(data["columns"]),
-        )
-        expected = [
-            {
-                "groupA": "A",
-                "groupB": "x",
-                "SUM(value1)": 15,
-                "count": 6,
-                "avg__C": 11,
-                "%SUM(value1)": 0.15,
-                "%avg__B": 0.2,
-            },
-            {
-                "groupA": "B",
-                "groupB": "x",
-                "SUM(value1)": 20,
-                "count": 7,
-                "avg__C": 22,
-                "%SUM(value1)": 0.2,
-                "%avg__B": 0.4,
-            },
-            {
-                "groupA": "C",
-                "groupB": "y",
-                "SUM(value1)": 25,
-                "count": 8,
-                "avg__C": 33,
-                "%SUM(value1)": 0.25,
-                "%avg__B": 0.1,
-            },
-            {
-                "groupA": "C",
-                "groupB": "z",
-                "SUM(value1)": 40,
-                "count": 9,
-                "avg__C": 44,
-                "%SUM(value1)": 0.4,
-                "%avg__B": 0.3,
-            },
-        ]
-        self.assertEqual(expected, data["records"])
-
-    def test_parse_adhoc_filters(self):
-        form_data = {
-            "metrics": [
-                {
-                    "expressionType": "SIMPLE",
-                    "aggregate": "SUM",
-                    "label": "SUM(value1)",
-                    "column": {"column_name": "value1", "type": "DOUBLE"},
-                }
-            ],
-            "adhoc_filters": [
-                {
-                    "expressionType": "SIMPLE",
-                    "clause": "WHERE",
-                    "subject": "value2",
-                    "operator": ">",
-                    "comparator": "100",
-                },
-                {
-                    "expressionType": "SQL",
-                    "clause": "HAVING",
-                    "sqlExpression": "SUM(value1) > 5",
-                },
-                {
-                    "expressionType": "SQL",
-                    "clause": "WHERE",
-                    "sqlExpression": "value3 in ('North America')",
-                },
-            ],
-        }
-        datasource = self.get_datasource_mock()
-        test_viz = viz.TableViz(datasource, form_data)
-        query_obj = test_viz.query_obj()
-        self.assertEqual(
-            [{"col": "value2", "val": "100", "op": ">"}], query_obj["filter"]
-        )
-        self.assertEqual("(value3 in ('North America'))", query_obj["extras"]["where"])
-        self.assertEqual("(SUM(value1) > 5)", query_obj["extras"]["having"])
-
-    def test_adhoc_filters_overwrite_legacy_filters(self):
-        form_data = {
-            "metrics": [
-                {
-                    "expressionType": "SIMPLE",
-                    "aggregate": "SUM",
-                    "label": "SUM(value1)",
-                    "column": {"column_name": "value1", "type": "DOUBLE"},
-                }
-            ],
-            "adhoc_filters": [
-                {
-                    "expressionType": "SIMPLE",
-                    "clause": "WHERE",
-                    "subject": "value2",
-                    "operator": ">",
-                    "comparator": "100",
-                },
-                {
-                    "expressionType": "SQL",
-                    "clause": "WHERE",
-                    "sqlExpression": "value3 in ('North America')",
-                },
-            ],
-            "having": "SUM(value1) > 5",
-        }
-        datasource = self.get_datasource_mock()
-        test_viz = viz.TableViz(datasource, form_data)
-        query_obj = test_viz.query_obj()
-        self.assertEqual(
-            [{"col": "value2", "val": "100", "op": ">"}], query_obj["filter"]
-        )
-        self.assertEqual("(value3 in ('North America'))", query_obj["extras"]["where"])
-        self.assertEqual("", query_obj["extras"]["having"])
-
-    def test_query_obj_merges_percent_metrics(self):
-        datasource = self.get_datasource_mock()
-        form_data = {
-            "metrics": ["sum__A", "count", "avg__C"],
-            "percent_metrics": ["sum__A", "avg__B", "max__Y"],
-        }
-        test_viz = viz.TableViz(datasource, form_data)
-        query_obj = test_viz.query_obj()
-        self.assertEqual(
-            ["sum__A", "count", "avg__C", "avg__B", "max__Y"], query_obj["metrics"]
-        )
-
-    def test_query_obj_throws_columns_and_metrics(self):
-        datasource = self.get_datasource_mock()
-        form_data = {"all_columns": ["A", "B"], "metrics": ["x", "y"]}
-        with self.assertRaises(Exception):
-            test_viz = viz.TableViz(datasource, form_data)
-            test_viz.query_obj()
-        del form_data["metrics"]
-        form_data["groupby"] = ["B", "C"]
-        with self.assertRaises(Exception):
-            test_viz = viz.TableViz(datasource, form_data)
-            test_viz.query_obj()
-
-    @patch("superset.viz.BaseViz.query_obj")
-    def test_query_obj_merges_all_columns(self, super_query_obj):
-        datasource = self.get_datasource_mock()
-        form_data = {
-            "all_columns": ["colA", "colB", "colC"],
-            "order_by_cols": ['["colA", "colB"]', '["colC"]'],
-        }
-        super_query_obj.return_value = {
-            "columns": ["colD", "colC"],
-            "groupby": ["colA", "colB"],
-        }
-        test_viz = viz.TableViz(datasource, form_data)
-        query_obj = test_viz.query_obj()
-        self.assertEqual(form_data["all_columns"], query_obj["columns"])
-        self.assertEqual([], query_obj["groupby"])
-        self.assertEqual([["colA", "colB"], ["colC"]], query_obj["orderby"])
-
-    def test_query_obj_uses_sortby(self):
-        datasource = self.get_datasource_mock()
-        form_data = {
-            "metrics": ["colA", "colB"],
-            "order_desc": False,
-        }
-
-        def run_test(metric):
-            form_data["timeseries_limit_metric"] = metric
-            test_viz = viz.TableViz(datasource, form_data)
-            query_obj = test_viz.query_obj()
-            self.assertEqual(["colA", "colB", metric], query_obj["metrics"])
-            self.assertEqual([(metric, True)], query_obj["orderby"])
-
-        run_test("simple_metric")
-        run_test(
-            {
-                "label": "adhoc_metric",
-                "expressionType": "SIMPLE",
-                "aggregate": "SUM",
-                "column": {
-                    "column_name": "sort_column",
-                },
-            }
-        )
-
-    def test_should_be_timeseries_raises_when_no_granularity(self):
-        datasource = self.get_datasource_mock()
-        form_data = {"include_time": True}
-        with self.assertRaises(Exception):
-            test_viz = viz.TableViz(datasource, form_data)
-            test_viz.should_be_timeseries()
-
-    def test_adhoc_metric_with_sortby(self):
-        metrics = [
-            {
-                "expressionType": "SIMPLE",
-                "aggregate": "SUM",
-                "label": "sum_value",
-                "column": {"column_name": "value1", "type": "DOUBLE"},
-            }
-        ]
-        form_data = {
-            "metrics": metrics,
-            "timeseries_limit_metric": {
-                "expressionType": "SIMPLE",
-                "aggregate": "SUM",
-                "label": "SUM(value1)",
-                "column": {"column_name": "value1", "type": "DOUBLE"},
-            },
-            "order_desc": False,
-        }
-
-        df = pd.DataFrame({"SUM(value1)": [15], "sum_value": [15]})
-        datasource = self.get_datasource_mock()
-        test_viz = viz.TableViz(datasource, form_data)
-        data = test_viz.get_data(df)
-        self.assertEqual(["sum_value"], data["columns"])
-
-
-class TestDistBarViz(SupersetTestCase):
-    def test_groupby_nulls(self):
-        form_data = {
-            "metrics": ["votes"],
-            "adhoc_filters": [],
-            "groupby": ["toppings"],
-            "columns": [],
-            "order_desc": True,
-        }
-        datasource = self.get_datasource_mock()
-        df = pd.DataFrame(
-            {
-                "toppings": ["cheese", "pepperoni", "anchovies", None],
-                "votes": [3, 5, 1, 2],
-            }
-        )
-        test_viz = viz.DistributionBarViz(datasource, form_data)
-        data = test_viz.get_data(df)[0]
-        self.assertEqual("votes", data["key"])
-        expected_values = [
-            {"x": "pepperoni", "y": 5},
-            {"x": "cheese", "y": 3},
-            {"x": NULL_STRING, "y": 2},
-            {"x": "anchovies", "y": 1},
-        ]
-        self.assertEqual(expected_values, data["values"])
-
-    def test_groupby_nans(self):
-        form_data = {
-            "metrics": ["count"],
-            "adhoc_filters": [],
-            "groupby": ["beds"],
-            "columns": [],
-            "order_desc": True,
-        }
-        datasource = self.get_datasource_mock()
-        df = pd.DataFrame({"beds": [0, 1, nan, 2], "count": [30, 42, 3, 29]})
-        test_viz = viz.DistributionBarViz(datasource, form_data)
-        data = test_viz.get_data(df)[0]
-        self.assertEqual("count", data["key"])
-        expected_values = [
-            {"x": "1.0", "y": 42},
-            {"x": "0.0", "y": 30},
-            {"x": "2.0", "y": 29},
-            {"x": NULL_STRING, "y": 3},
-        ]
-
-        self.assertEqual(expected_values, data["values"])
-
-    def test_column_nulls(self):
-        form_data = {
-            "metrics": ["votes"],
-            "adhoc_filters": [],
-            "groupby": ["toppings"],
-            "columns": ["role"],
-            "order_desc": True,
-        }
-        datasource = self.get_datasource_mock()
-        df = pd.DataFrame(
-            {
-                "toppings": ["cheese", "pepperoni", "cheese", "pepperoni"],
-                "role": ["engineer", "engineer", None, None],
-                "votes": [3, 5, 1, 2],
-            }
-        )
-        test_viz = viz.DistributionBarViz(datasource, form_data)
-        data = test_viz.get_data(df)
-        expected = [
-            {
-                "key": NULL_STRING,
-                "values": [{"x": "pepperoni", "y": 2}, {"x": "cheese", "y": 1}],
-            },
-            {
-                "key": "engineer",
-                "values": [{"x": "pepperoni", "y": 5}, {"x": "cheese", "y": 3}],
-            },
-        ]
-        self.assertEqual(expected, data)
-
-    def test_column_metrics_in_order(self):
-        form_data = {
-            "metrics": ["z_column", "votes", "a_column"],
-            "adhoc_filters": [],
-            "groupby": ["toppings"],
-            "columns": [],
-            "order_desc": True,
-        }
-        datasource = self.get_datasource_mock()
-        df = pd.DataFrame(
-            {
-                "toppings": ["cheese", "pepperoni", "cheese", "pepperoni"],
-                "role": ["engineer", "engineer", None, None],
-                "votes": [3, 5, 1, 2],
-                "a_column": [3, 5, 1, 2],
-                "z_column": [3, 5, 1, 2],
-            }
-        )
-        test_viz = viz.DistributionBarViz(datasource, form_data)
-        data = test_viz.get_data(df)
-
-        expected = [
-            {
-                "key": "z_column",
-                "values": [{"x": "pepperoni", "y": 3.5}, {"x": "cheese", "y": 2.0}],
-            },
-            {
-                "key": "votes",
-                "values": [{"x": "pepperoni", "y": 3.5}, {"x": "cheese", "y": 2.0}],
-            },
-            {
-                "key": "a_column",
-                "values": [{"x": "pepperoni", "y": 3.5}, {"x": "cheese", "y": 2.0}],
-            },
-        ]
-
-        self.assertEqual(expected, data)
-
-    def test_column_metrics_in_order_with_breakdowns(self):
-        form_data = {
-            "metrics": ["z_column", "votes", "a_column"],
-            "adhoc_filters": [],
-            "groupby": ["toppings"],
-            "columns": ["role"],
-            "order_desc": True,
-        }
-        datasource = self.get_datasource_mock()
-        df = pd.DataFrame(
-            {
-                "toppings": ["cheese", "pepperoni", "cheese", "pepperoni"],
-                "role": ["engineer", "engineer", None, None],
-                "votes": [3, 5, 1, 2],
-                "a_column": [3, 5, 1, 2],
-                "z_column": [3, 5, 1, 2],
-            }
-        )
-        test_viz = viz.DistributionBarViz(datasource, form_data)
-        data = test_viz.get_data(df)
-
-        expected = [
-            {
-                "key": f"z_column, {NULL_STRING}",
-                "values": [{"x": "pepperoni", "y": 2}, {"x": "cheese", "y": 1}],
-            },
-            {
-                "key": "z_column, engineer",
-                "values": [{"x": "pepperoni", "y": 5}, {"x": "cheese", "y": 3}],
-            },
-            {
-                "key": f"votes, {NULL_STRING}",
-                "values": [{"x": "pepperoni", "y": 2}, {"x": "cheese", "y": 1}],
-            },
-            {
-                "key": "votes, engineer",
-                "values": [{"x": "pepperoni", "y": 5}, {"x": "cheese", "y": 3}],
-            },
-            {
-                "key": f"a_column, {NULL_STRING}",
-                "values": [{"x": "pepperoni", "y": 2}, {"x": "cheese", "y": 1}],
-            },
-            {
-                "key": "a_column, engineer",
-                "values": [{"x": "pepperoni", "y": 5}, {"x": "cheese", "y": 3}],
-            },
-        ]
-
-        self.assertEqual(expected, data)
 
 
 class TestPairedTTest(SupersetTestCase):
@@ -630,7 +192,7 @@ class TestPairedTTest(SupersetTestCase):
         raw["metric2"] = [10, 20, 30, 40, 50, 60, 70, 80, 90]
         raw["metric3"] = [100, 200, 300, 400, 500, 600, 700, 800, 900]
         df = pd.DataFrame(raw)
-        pairedTTestViz = viz.viz_types["paired_ttest"](datasource, form_data)
+        pairedTTestViz = viz.viz_types["paired_ttest"](datasource, form_data)  # noqa: N806
         data = pairedTTestViz.get_data(df)
         # Check method correctly transforms data
         expected = {
@@ -713,7 +275,7 @@ class TestPairedTTest(SupersetTestCase):
                 },
             ],
         }
-        self.assertEqual(data, expected)
+        assert data == expected
 
     def test_get_data_empty_null_keys(self):
         form_data = {"groupby": [], "metrics": [""]}
@@ -725,7 +287,7 @@ class TestPairedTTest(SupersetTestCase):
         raw[None] = [10, 20, 30]
 
         df = pd.DataFrame(raw)
-        pairedTTestViz = viz.viz_types["paired_ttest"](datasource, form_data)
+        pairedTTestViz = viz.viz_types["paired_ttest"](datasource, form_data)  # noqa: N806
         data = pairedTTestViz.get_data(df)
         # Check method correctly transforms data
         expected = {
@@ -740,10 +302,10 @@ class TestPairedTTest(SupersetTestCase):
                 }
             ],
         }
-        self.assertEqual(data, expected)
+        assert data == expected
 
         form_data = {"groupby": [], "metrics": [None]}
-        with self.assertRaises(ValueError):
+        with self.assertRaises(ValueError):  # noqa: PT027
             viz.viz_types["paired_ttest"](datasource, form_data)
 
 
@@ -755,10 +317,10 @@ class TestPartitionViz(SupersetTestCase):
         test_viz = viz.PartitionViz(datasource, form_data)
         super_query_obj.return_value = {}
         query_obj = test_viz.query_obj()
-        self.assertFalse(query_obj["is_timeseries"])
+        assert not query_obj["is_timeseries"]
         test_viz.form_data["time_series_option"] = "agg_sum"
         query_obj = test_viz.query_obj()
-        self.assertTrue(query_obj["is_timeseries"])
+        assert query_obj["is_timeseries"]
 
     def test_levels_for_computes_levels(self):
         raw = {}
@@ -774,37 +336,37 @@ class TestPartitionViz(SupersetTestCase):
         time_op = "agg_sum"
         test_viz = viz.PartitionViz(Mock(), {})
         levels = test_viz.levels_for(time_op, groups, df)
-        self.assertEqual(4, len(levels))
+        assert 4 == len(levels)
         expected = {DTTM_ALIAS: 1800, "metric1": 45, "metric2": 450, "metric3": 4500}
-        self.assertEqual(expected, levels[0].to_dict())
+        assert expected == levels[0].to_dict()
         expected = {
             DTTM_ALIAS: {"a1": 600, "b1": 600, "c1": 600},
             "metric1": {"a1": 6, "b1": 15, "c1": 24},
             "metric2": {"a1": 60, "b1": 150, "c1": 240},
             "metric3": {"a1": 600, "b1": 1500, "c1": 2400},
         }
-        self.assertEqual(expected, levels[1].to_dict())
-        self.assertEqual(["groupA", "groupB"], levels[2].index.names)
-        self.assertEqual(["groupA", "groupB", "groupC"], levels[3].index.names)
+        assert expected == levels[1].to_dict()
+        assert ["groupA", "groupB"] == levels[2].index.names
+        assert ["groupA", "groupB", "groupC"] == levels[3].index.names
         time_op = "agg_mean"
         levels = test_viz.levels_for(time_op, groups, df)
-        self.assertEqual(4, len(levels))
+        assert 4 == len(levels)
         expected = {
             DTTM_ALIAS: 200.0,
             "metric1": 5.0,
             "metric2": 50.0,
             "metric3": 500.0,
         }
-        self.assertEqual(expected, levels[0].to_dict())
+        assert expected == levels[0].to_dict()
         expected = {
             DTTM_ALIAS: {"a1": 200, "c1": 200, "b1": 200},
             "metric1": {"a1": 2, "b1": 5, "c1": 8},
             "metric2": {"a1": 20, "b1": 50, "c1": 80},
             "metric3": {"a1": 200, "b1": 500, "c1": 800},
         }
-        self.assertEqual(expected, levels[1].to_dict())
-        self.assertEqual(["groupA", "groupB"], levels[2].index.names)
-        self.assertEqual(["groupA", "groupB", "groupC"], levels[3].index.names)
+        assert expected == levels[1].to_dict()
+        assert ["groupA", "groupB"] == levels[2].index.names
+        assert ["groupA", "groupB", "groupC"] == levels[3].index.names
 
     def test_levels_for_diff_computes_difference(self):
         raw = {}
@@ -821,15 +383,15 @@ class TestPartitionViz(SupersetTestCase):
         time_op = "point_diff"
         levels = test_viz.levels_for_diff(time_op, groups, df)
         expected = {"metric1": 6, "metric2": 60, "metric3": 600}
-        self.assertEqual(expected, levels[0].to_dict())
+        assert expected == levels[0].to_dict()
         expected = {
             "metric1": {"a1": 2, "b1": 2, "c1": 2},
             "metric2": {"a1": 20, "b1": 20, "c1": 20},
             "metric3": {"a1": 200, "b1": 200, "c1": 200},
         }
-        self.assertEqual(expected, levels[1].to_dict())
-        self.assertEqual(4, len(levels))
-        self.assertEqual(["groupA", "groupB", "groupC"], levels[3].index.names)
+        assert expected == levels[1].to_dict()
+        assert 4 == len(levels)
+        assert ["groupA", "groupB", "groupC"] == levels[3].index.names
 
     def test_levels_for_time_calls_process_data_and_drops_cols(self):
         raw = {}
@@ -849,16 +411,16 @@ class TestPartitionViz(SupersetTestCase):
 
         test_viz.process_data = Mock(side_effect=return_args)
         levels = test_viz.levels_for_time(groups, df)
-        self.assertEqual(4, len(levels))
+        assert 4 == len(levels)
         cols = [DTTM_ALIAS, "metric1", "metric2", "metric3"]
-        self.assertEqual(sorted(cols), sorted(levels[0].columns.tolist()))
+        assert sorted(cols) == sorted(levels[0].columns.tolist())
         cols += ["groupA"]
-        self.assertEqual(sorted(cols), sorted(levels[1].columns.tolist()))
+        assert sorted(cols) == sorted(levels[1].columns.tolist())
         cols += ["groupB"]
-        self.assertEqual(sorted(cols), sorted(levels[2].columns.tolist()))
+        assert sorted(cols) == sorted(levels[2].columns.tolist())
         cols += ["groupC"]
-        self.assertEqual(sorted(cols), sorted(levels[3].columns.tolist()))
-        self.assertEqual(4, len(test_viz.process_data.mock_calls))
+        assert sorted(cols) == sorted(levels[3].columns.tolist())
+        assert 4 == len(test_viz.process_data.mock_calls)
 
     def test_nest_values_returns_hierarchy(self):
         raw = {}
@@ -873,12 +435,33 @@ class TestPartitionViz(SupersetTestCase):
         groups = ["groupA", "groupB", "groupC"]
         levels = test_viz.levels_for("agg_sum", groups, df)
         nest = test_viz.nest_values(levels)
-        self.assertEqual(3, len(nest))
+        assert 3 == len(nest)
         for i in range(0, 3):
-            self.assertEqual("metric" + str(i + 1), nest[i]["name"])
-        self.assertEqual(3, len(nest[0]["children"]))
-        self.assertEqual(1, len(nest[0]["children"][0]["children"]))
-        self.assertEqual(1, len(nest[0]["children"][0]["children"][0]["children"]))
+            assert "metric" + str(i + 1) == nest[i]["name"]
+        assert 3 == len(nest[0]["children"])
+        assert 1 == len(nest[0]["children"][0]["children"])
+        assert 1 == len(nest[0]["children"][0]["children"][0]["children"])
+
+    def test_nest_values_returns_hierarchy_when_more_dimensions(self):
+        raw = {}
+        raw["category"] = ["a", "a", "a"]
+        raw["subcategory"] = ["a.2", "a.1", "a.2"]
+        raw["sub_subcategory"] = ["a.2.1", "a.1.1", "a.2.2"]
+        raw["metric1"] = [5, 10, 15]
+        raw["metric2"] = [50, 100, 150]
+        raw["metric3"] = [500, 1000, 1500]
+        df = pd.DataFrame(raw)
+        test_viz = viz.PartitionViz(Mock(), {})
+        groups = ["category", "subcategory", "sub_subcategory"]
+        levels = test_viz.levels_for("agg_sum", groups, df)
+        nest = test_viz.nest_values(levels)
+        assert 3 == len(nest)
+        for i in range(0, 3):
+            assert "metric" + str(i + 1) == nest[i]["name"]
+        assert 1 == len(nest[0]["children"])
+        assert 2 == len(nest[0]["children"][0]["children"])
+        assert 1 == len(nest[0]["children"][0]["children"][0]["children"])
+        assert 2 == len(nest[0]["children"][0]["children"][1]["children"])
 
     def test_nest_procs_returns_hierarchy(self):
         raw = {}
@@ -895,21 +478,21 @@ class TestPartitionViz(SupersetTestCase):
         metrics = ["metric1", "metric2", "metric3"]
         procs = {}
         for i in range(0, 4):
-            df_drop = df.drop(groups[i:], 1)
+            df_drop = df.drop(groups[i:], axis=1)
             pivot = df_drop.pivot_table(
                 index=DTTM_ALIAS, columns=groups[:i], values=metrics
             )
             procs[i] = pivot
         nest = test_viz.nest_procs(procs)
-        self.assertEqual(3, len(nest))
+        assert 3 == len(nest)
         for i in range(0, 3):
-            self.assertEqual("metric" + str(i + 1), nest[i]["name"])
-            self.assertEqual(None, nest[i].get("val"))
-        self.assertEqual(3, len(nest[0]["children"]))
-        self.assertEqual(3, len(nest[0]["children"][0]["children"]))
-        self.assertEqual(1, len(nest[0]["children"][0]["children"][0]["children"]))
-        self.assertEqual(
-            1, len(nest[0]["children"][0]["children"][0]["children"][0]["children"])
+            assert "metric" + str(i + 1) == nest[i]["name"]
+            assert None is nest[i].get("val")
+        assert 3 == len(nest[0]["children"])
+        assert 3 == len(nest[0]["children"][0]["children"])
+        assert 1 == len(nest[0]["children"][0]["children"][0]["children"])
+        assert 1 == len(
+            nest[0]["children"][0]["children"][0]["children"][0]["children"]
         )
 
     def test_get_data_calls_correct_method(self):
@@ -923,40 +506,40 @@ class TestPartitionViz(SupersetTestCase):
         raw["metric3"] = [100, 200, 300, 400, 500, 600, 700, 800, 900]
         df = pd.DataFrame(raw)
         test_viz = viz.PartitionViz(Mock(), {})
-        with self.assertRaises(ValueError):
+        with self.assertRaises(ValueError):  # noqa: PT027
             test_viz.get_data(df)
         test_viz.levels_for = Mock(return_value=1)
         test_viz.nest_values = Mock(return_value=1)
         test_viz.form_data["groupby"] = ["groups"]
         test_viz.form_data["time_series_option"] = "not_time"
         test_viz.get_data(df)
-        self.assertEqual("agg_sum", test_viz.levels_for.mock_calls[0][1][0])
+        assert "agg_sum" == test_viz.levels_for.mock_calls[0][1][0]
         test_viz.form_data["time_series_option"] = "agg_sum"
         test_viz.get_data(df)
-        self.assertEqual("agg_sum", test_viz.levels_for.mock_calls[1][1][0])
+        assert "agg_sum" == test_viz.levels_for.mock_calls[1][1][0]
         test_viz.form_data["time_series_option"] = "agg_mean"
         test_viz.get_data(df)
-        self.assertEqual("agg_mean", test_viz.levels_for.mock_calls[2][1][0])
+        assert "agg_mean" == test_viz.levels_for.mock_calls[2][1][0]
         test_viz.form_data["time_series_option"] = "point_diff"
         test_viz.levels_for_diff = Mock(return_value=1)
         test_viz.get_data(df)
-        self.assertEqual("point_diff", test_viz.levels_for_diff.mock_calls[0][1][0])
+        assert "point_diff" == test_viz.levels_for_diff.mock_calls[0][1][0]
         test_viz.form_data["time_series_option"] = "point_percent"
         test_viz.get_data(df)
-        self.assertEqual("point_percent", test_viz.levels_for_diff.mock_calls[1][1][0])
+        assert "point_percent" == test_viz.levels_for_diff.mock_calls[1][1][0]
         test_viz.form_data["time_series_option"] = "point_factor"
         test_viz.get_data(df)
-        self.assertEqual("point_factor", test_viz.levels_for_diff.mock_calls[2][1][0])
+        assert "point_factor" == test_viz.levels_for_diff.mock_calls[2][1][0]
         test_viz.levels_for_time = Mock(return_value=1)
         test_viz.nest_procs = Mock(return_value=1)
         test_viz.form_data["time_series_option"] = "adv_anal"
         test_viz.get_data(df)
-        self.assertEqual(1, len(test_viz.levels_for_time.mock_calls))
-        self.assertEqual(1, len(test_viz.nest_procs.mock_calls))
+        assert 1 == len(test_viz.levels_for_time.mock_calls)
+        assert 1 == len(test_viz.nest_procs.mock_calls)
         test_viz.form_data["time_series_option"] = "time_series"
         test_viz.get_data(df)
-        self.assertEqual("agg_sum", test_viz.levels_for.mock_calls[3][1][0])
-        self.assertEqual(7, len(test_viz.nest_values.mock_calls))
+        assert "agg_sum" == test_viz.levels_for.mock_calls[3][1][0]
+        assert 7 == len(test_viz.nest_values.mock_calls)
 
 
 class TestRoseVis(SupersetTestCase):
@@ -992,7 +575,7 @@ class TestRoseVis(SupersetTestCase):
                 {"time": t3, "value": 9, "key": ("c1",), "name": ("c1",)},
             ],
         }
-        self.assertEqual(expected, res)
+        assert expected == res
 
 
 class TestTimeSeriesTableViz(SupersetTestCase):
@@ -1009,13 +592,13 @@ class TestTimeSeriesTableViz(SupersetTestCase):
         test_viz = viz.TimeTableViz(datasource, form_data)
         data = test_viz.get_data(df)
         # Check method correctly transforms data
-        self.assertEqual(set(["count", "sum__A"]), set(data["columns"]))
+        assert {"count", "sum__A"} == set(data["columns"])
         time_format = "%Y-%m-%d %H:%M:%S"
         expected = {
             t1.strftime(time_format): {"sum__A": 15, "count": 6},
             t2.strftime(time_format): {"sum__A": 20, "count": 7},
         }
-        self.assertEqual(expected, data["records"])
+        assert expected == data["records"]
 
     def test_get_data_group_by(self):
         form_data = {"metrics": ["sum__A"], "groupby": ["groupby1"]}
@@ -1030,13 +613,13 @@ class TestTimeSeriesTableViz(SupersetTestCase):
         test_viz = viz.TimeTableViz(datasource, form_data)
         data = test_viz.get_data(df)
         # Check method correctly transforms data
-        self.assertEqual(set(["a1", "a2", "a3"]), set(data["columns"]))
+        assert {"a1", "a2", "a3"} == set(data["columns"])
         time_format = "%Y-%m-%d %H:%M:%S"
         expected = {
             t1.strftime(time_format): {"a1": 15, "a2": 20, "a3": 25},
             t2.strftime(time_format): {"a1": 30, "a2": 35, "a3": 40},
         }
-        self.assertEqual(expected, data["records"])
+        assert expected == data["records"]
 
     @patch("superset.viz.BaseViz.query_obj")
     def test_query_obj_throws_metrics_and_groupby(self, super_query_obj):
@@ -1044,11 +627,11 @@ class TestTimeSeriesTableViz(SupersetTestCase):
         form_data = {"groupby": ["a"]}
         super_query_obj.return_value = {}
         test_viz = viz.TimeTableViz(datasource, form_data)
-        with self.assertRaises(Exception):
+        with self.assertRaises(Exception):  # noqa: B017, PT027
             test_viz.query_obj()
         form_data["metrics"] = ["x", "y"]
         test_viz = viz.TimeTableViz(datasource, form_data)
-        with self.assertRaises(Exception):
+        with self.assertRaises(Exception):  # noqa: B017, PT027
             test_viz.query_obj()
 
     def test_query_obj_order_by(self):
@@ -1056,7 +639,7 @@ class TestTimeSeriesTableViz(SupersetTestCase):
             self.get_datasource_mock(), {"metrics": ["sum__A", "count"], "groupby": []}
         )
         query_obj = test_viz.query_obj()
-        self.assertEqual(query_obj["orderby"], [("sum__A", False)])
+        assert query_obj["orderby"] == [("sum__A", False)]
 
 
 class TestBaseDeckGLViz(SupersetTestCase):
@@ -1103,10 +686,10 @@ class TestBaseDeckGLViz(SupersetTestCase):
         datasource = self.get_datasource_mock()
         test_viz_deckgl = viz.BaseDeckGLViz(datasource, form_data)
 
-        with self.assertRaises(NotImplementedError) as context:
+        with self.assertRaises(NotImplementedError) as context:  # noqa: PT027
             test_viz_deckgl.get_properties(mock_d)
 
-        self.assertTrue("" in str(context.exception))
+        assert "" in str(context.exception)
 
     def test_process_spatial_query_obj(self):
         form_data = load_fixture("deck_path_form_data.json")
@@ -1115,10 +698,10 @@ class TestBaseDeckGLViz(SupersetTestCase):
         mock_gb = []
         test_viz_deckgl = viz.BaseDeckGLViz(datasource, form_data)
 
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(ValueError) as context:  # noqa: PT027
             test_viz_deckgl.process_spatial_query_obj(mock_key, mock_gb)
 
-        self.assertTrue("Bad spatial key" in str(context.exception))
+        assert "Bad spatial key" in str(context.exception)
 
         test_form_data = {
             "latlong_key": {"type": "latlong", "lonCol": "lon", "latCol": "lat"},
@@ -1154,24 +737,24 @@ class TestBaseDeckGLViz(SupersetTestCase):
         viz_instance = viz.BaseDeckGLViz(datasource, form_data)
 
         coord = viz_instance.parse_coordinates("1.23, 3.21")
-        self.assertEqual(coord, (1.23, 3.21))
+        assert coord == (1.23, 3.21)
 
         coord = viz_instance.parse_coordinates("1.23 3.21")
-        self.assertEqual(coord, (1.23, 3.21))
+        assert coord == (1.23, 3.21)
 
-        self.assertEqual(viz_instance.parse_coordinates(None), None)
+        assert viz_instance.parse_coordinates(None) is None
 
-        self.assertEqual(viz_instance.parse_coordinates(""), None)
+        assert viz_instance.parse_coordinates("") is None
 
     def test_parse_coordinates_raises(self):
         form_data = load_fixture("deck_path_form_data.json")
         datasource = self.get_datasource_mock()
         test_viz_deckgl = viz.BaseDeckGLViz(datasource, form_data)
 
-        with self.assertRaises(SpatialException):
+        with self.assertRaises(SpatialException):  # noqa: PT027
             test_viz_deckgl.parse_coordinates("NULL")
 
-        with self.assertRaises(SpatialException):
+        with self.assertRaises(SpatialException):  # noqa: PT027
             test_viz_deckgl.parse_coordinates("fldkjsalkj,fdlaskjfjadlksj")
 
     def test_filter_nulls(self):
@@ -1269,7 +852,7 @@ class TestTimeSeriesViz(SupersetTestCase):
                 "key": ("Real Madrid C.F.\U0001f1fa\U0001f1f8\U0001f1ec\U0001f1e7",),
             },
         ]
-        self.assertEqual(expected, viz_data)
+        assert expected == viz_data
 
     def test_process_data_resample(self):
         datasource = self.get_datasource_mock()
@@ -1283,15 +866,10 @@ class TestTimeSeriesViz(SupersetTestCase):
             }
         )
 
-        self.assertEqual(
-            viz.NVD3TimeSeriesViz(
-                datasource,
-                {"metrics": ["y"], "resample_method": "sum", "resample_rule": "1D"},
-            )
-            .process_data(df)["y"]
-            .tolist(),
-            [1.0, 2.0, 0.0, 0.0, 5.0, 0.0, 7.0],
-        )
+        assert viz.NVD3TimeSeriesViz(
+            datasource,
+            {"metrics": ["y"], "resample_method": "sum", "resample_rule": "1D"},
+        ).process_data(df)["y"].tolist() == [1.0, 2.0, 0.0, 0.0, 5.0, 0.0, 7.0]
 
         np.testing.assert_equal(
             viz.NVD3TimeSeriesViz(
@@ -1311,48 +889,33 @@ class TestTimeSeriesViz(SupersetTestCase):
             ),
             data={"y": [1.0, 2.0, 3.0, 4.0]},
         )
-        self.assertEqual(
-            viz.BigNumberViz(
-                datasource,
-                {
-                    "metrics": ["y"],
-                    "rolling_type": "cumsum",
-                    "rolling_periods": 0,
-                    "min_periods": 0,
-                },
-            )
-            .apply_rolling(df)["y"]
-            .tolist(),
-            [1.0, 3.0, 6.0, 10.0],
-        )
-        self.assertEqual(
-            viz.BigNumberViz(
-                datasource,
-                {
-                    "metrics": ["y"],
-                    "rolling_type": "sum",
-                    "rolling_periods": 2,
-                    "min_periods": 0,
-                },
-            )
-            .apply_rolling(df)["y"]
-            .tolist(),
-            [1.0, 3.0, 5.0, 7.0],
-        )
-        self.assertEqual(
-            viz.BigNumberViz(
-                datasource,
-                {
-                    "metrics": ["y"],
-                    "rolling_type": "mean",
-                    "rolling_periods": 10,
-                    "min_periods": 0,
-                },
-            )
-            .apply_rolling(df)["y"]
-            .tolist(),
-            [1.0, 1.5, 2.0, 2.5],
-        )
+        assert viz.NVD3TimeSeriesViz(
+            datasource,
+            {
+                "metrics": ["y"],
+                "rolling_type": "cumsum",
+                "rolling_periods": 0,
+                "min_periods": 0,
+            },
+        ).apply_rolling(df)["y"].tolist() == [1.0, 3.0, 6.0, 10.0]
+        assert viz.NVD3TimeSeriesViz(
+            datasource,
+            {
+                "metrics": ["y"],
+                "rolling_type": "sum",
+                "rolling_periods": 2,
+                "min_periods": 0,
+            },
+        ).apply_rolling(df)["y"].tolist() == [1.0, 3.0, 5.0, 7.0]
+        assert viz.NVD3TimeSeriesViz(
+            datasource,
+            {
+                "metrics": ["y"],
+                "rolling_type": "mean",
+                "rolling_periods": 10,
+                "min_periods": 0,
+            },
+        ).apply_rolling(df)["y"].tolist() == [1.0, 1.5, 2.0, 2.5]
 
     def test_apply_rolling_without_data(self):
         datasource = self.get_datasource_mock()
@@ -1362,7 +925,7 @@ class TestTimeSeriesViz(SupersetTestCase):
             ),
             data={"y": [1.0, 2.0, 3.0, 4.0]},
         )
-        test_viz = viz.BigNumberViz(
+        test_viz = viz.NVD3TimeSeriesViz(
             datasource,
             {
                 "metrics": ["y"],
@@ -1373,168 +936,3 @@ class TestTimeSeriesViz(SupersetTestCase):
         )
         with pytest.raises(QueryObjectValidationError):
             test_viz.apply_rolling(df)
-
-
-class TestBigNumberViz(SupersetTestCase):
-    def test_get_data(self):
-        datasource = self.get_datasource_mock()
-        df = pd.DataFrame(
-            data={
-                DTTM_ALIAS: pd.to_datetime(
-                    ["2019-01-01", "2019-01-02", "2019-01-05", "2019-01-07"]
-                ),
-                "y": [1.0, 2.0, 3.0, 4.0],
-            }
-        )
-        data = viz.BigNumberViz(datasource, {"metrics": ["y"]}).get_data(df)
-        self.assertEqual(data[2], {DTTM_ALIAS: pd.Timestamp("2019-01-05"), "y": 3})
-
-    def test_get_data_with_none(self):
-        datasource = self.get_datasource_mock()
-        df = pd.DataFrame(
-            data={
-                DTTM_ALIAS: pd.to_datetime(
-                    ["2019-01-01", "2019-01-02", "2019-01-05", "2019-01-07"]
-                ),
-                "y": [1.0, 2.0, None, 4.0],
-            }
-        )
-        data = viz.BigNumberViz(datasource, {"metrics": ["y"]}).get_data(df)
-        assert np.isnan(data[2]["y"])
-
-
-class TestPivotTableViz(SupersetTestCase):
-    df = pd.DataFrame(
-        data={
-            "intcol": [1, 2, 3, None],
-            "floatcol": [0.1, 0.2, 0.3, None],
-            "strcol": ["a", "b", "c", None],
-        }
-    )
-
-    def test_get_aggfunc_numeric(self):
-        # is a sum function
-        func = viz.PivotTableViz.get_aggfunc("intcol", self.df, {})
-        assert hasattr(func, "__call__")
-        assert func(self.df["intcol"]) == 6
-
-        assert (
-            viz.PivotTableViz.get_aggfunc("intcol", self.df, {"pandas_aggfunc": "min"})
-            == "min"
-        )
-        assert (
-            viz.PivotTableViz.get_aggfunc(
-                "floatcol", self.df, {"pandas_aggfunc": "max"}
-            )
-            == "max"
-        )
-
-    def test_get_aggfunc_non_numeric(self):
-        assert viz.PivotTableViz.get_aggfunc("strcol", self.df, {}) == "max"
-        assert (
-            viz.PivotTableViz.get_aggfunc("strcol", self.df, {"pandas_aggfunc": "sum"})
-            == "max"
-        )
-        assert (
-            viz.PivotTableViz.get_aggfunc("strcol", self.df, {"pandas_aggfunc": "min"})
-            == "min"
-        )
-
-    def test_format_datetime_from_pd_timestamp(self):
-        tstamp = pd.Timestamp(datetime(2020, 9, 3, tzinfo=timezone.utc))
-        assert (
-            viz.PivotTableViz._format_datetime(tstamp) == "__timestamp:1599091200000.0"
-        )
-
-    def test_format_datetime_from_datetime(self):
-        tstamp = datetime(2020, 9, 3, tzinfo=timezone.utc)
-        assert (
-            viz.PivotTableViz._format_datetime(tstamp) == "__timestamp:1599091200000.0"
-        )
-
-    def test_format_datetime_from_date(self):
-        tstamp = date(2020, 9, 3)
-        assert (
-            viz.PivotTableViz._format_datetime(tstamp) == "__timestamp:1599091200000.0"
-        )
-
-    def test_format_datetime_from_string(self):
-        tstamp = "2020-09-03T00:00:00"
-        assert (
-            viz.PivotTableViz._format_datetime(tstamp) == "__timestamp:1599091200000.0"
-        )
-
-    def test_format_datetime_from_invalid_string(self):
-        tstamp = "abracadabra"
-        assert viz.PivotTableViz._format_datetime(tstamp) == tstamp
-
-    def test_format_datetime_from_int(self):
-        assert viz.PivotTableViz._format_datetime(123) == 123
-        assert viz.PivotTableViz._format_datetime(123.0) == 123.0
-
-
-class TestFilterBoxViz(SupersetTestCase):
-    def test_get_data(self):
-        form_data = {
-            "filter_configs": [
-                {"column": "value1", "metric": "metric1"},
-                {"column": "value2", "metric": "metric2", "asc": True},
-                {"column": "value3"},
-                {"column": "value4", "asc": True},
-                {"column": "value5"},
-                {"column": "value6"},
-            ],
-        }
-        datasource = self.get_datasource_mock()
-        test_viz = viz.FilterBoxViz(datasource, form_data)
-        test_viz.dataframes = {
-            "value1": pd.DataFrame(
-                data=[
-                    {"value1": "v1", "metric1": 1},
-                    {"value1": "v2", "metric1": 2},
-                ]
-            ),
-            "value2": pd.DataFrame(
-                data=[
-                    {"value2": "v3", "metric2": 3},
-                    {"value2": "v4", "metric2": 4},
-                ]
-            ),
-            "value3": pd.DataFrame(
-                data=[
-                    {"value3": "v5"},
-                    {"value3": "v6"},
-                ]
-            ),
-            "value4": pd.DataFrame(
-                data=[
-                    {"value4": "v7"},
-                    {"value4": "v8"},
-                ]
-            ),
-            "value5": pd.DataFrame(),
-        }
-
-        df = pd.DataFrame()
-        data = test_viz.get_data(df)
-        expected = {
-            "value1": [
-                {"id": "v2", "text": "v2", "metric": 2},
-                {"id": "v1", "text": "v1", "metric": 1},
-            ],
-            "value2": [
-                {"id": "v3", "text": "v3", "metric": 3},
-                {"id": "v4", "text": "v4", "metric": 4},
-            ],
-            "value3": [
-                {"id": "v6", "text": "v6"},
-                {"id": "v5", "text": "v5"},
-            ],
-            "value4": [
-                {"id": "v7", "text": "v7"},
-                {"id": "v8", "text": "v8"},
-            ],
-            "value5": [],
-            "value6": [],
-        }
-        self.assertEqual(expected, data)

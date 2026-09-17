@@ -16,11 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
-import { supersetTheme } from '@superset-ui/core';
-import { hexToRgb } from 'src/utils/colorUtils';
+import { supersetTheme, hexToRgb } from '@superset-ui/core';
 import Collapse, { CollapseProps } from '.';
 
 function renderCollapse(props?: CollapseProps) {

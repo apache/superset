@@ -28,13 +28,13 @@ Superset 2.0 is a big step forward. This release cleans up many legacy code path
 
 ## Developer Experience
 
-- Addition of a statsd guage metric for Slack and email notifications for increased visibility into errors around alerts / reports ([#20158](https://github.com/apache/superset/pull/20158))
+- Addition of a statsd gauge metric for Slack and email notifications for increased visibility into errors around alerts / reports ([#20158](https://github.com/apache/superset/pull/20158))
 
 - Helm chart now supports resource limits and requests for each component ([#20052](https://github.com/apache/superset/pull/20052))
 
-- New Github workflow to test Storybook Netlify instance nightly ([#19852](https://github.com/apache/superset/pull/19852))
+- New GitHub workflow to test Storybook Netlify instance nightly ([#19852](https://github.com/apache/superset/pull/19852))
 
-- Minimum requirement for Superset is now Python 3.8 ([#19017](https://github.com/apache/superset/pull/19017)
+- Minimum requirement for Superset is now Python 3.8 ([#19017](https://github.com/apache/superset/pull/19017))
 
 ## Features
 

@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import List, Optional
+from typing import Optional
 
 from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
@@ -29,7 +29,7 @@ class InsertChartMixin:
     def insert_chart(
         self,
         slice_name: str,
-        owners: List[int],
+        owners: list[int],
         datasource_id: int,
         created_by=None,
         datasource_type: str = "table",
@@ -40,7 +40,7 @@ class InsertChartMixin:
         certified_by: Optional[str] = None,
         certification_details: Optional[str] = None,
     ) -> Slice:
-        obj_owners = list()
+        obj_owners = list()  # noqa: C408
         for owner in owners:
             user = db.session.query(security_manager.user_model).get(owner)
             obj_owners.append(user)

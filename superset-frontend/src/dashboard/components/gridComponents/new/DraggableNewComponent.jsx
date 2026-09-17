@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { PureComponent } from 'react';
 import PropTypes from 'prop-types';
 import cx from 'classnames';
 import { css, styled } from '@superset-ui/core';
 
-import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
+import { DragDroppable } from 'src/dashboard/components/dnd/DragDroppable';
 import { NEW_COMPONENTS_SOURCE_ID } from 'src/dashboard/util/constants';
 import { NEW_COMPONENT_SOURCE_TYPE } from 'src/dashboard/util/componentTypes';
 
@@ -83,7 +83,7 @@ const NewComponentPlaceholder = styled.div`
   `}
 `;
 
-export default class DraggableNewComponent extends React.PureComponent {
+export default class DraggableNewComponent extends PureComponent {
   render() {
     const { label, id, type, className, meta } = this.props;
     return (

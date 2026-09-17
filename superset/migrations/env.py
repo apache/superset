@@ -15,8 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+import time
 from logging.config import fileConfig
-from typing import List
 
 from alembic import context
 from alembic.operations.ops import MigrationScript
@@ -42,7 +42,9 @@ if "sqlite" in DATABASE_URI:
         "SQLite Database support for metadata databases will \
         be removed in a future version of Superset."
     )
-config.set_main_option("sqlalchemy.url", DATABASE_URI)
+# Escape % chars in the database URI to avoid interpolation errors in ConfigParser
+escaped_uri = DATABASE_URI.replace("%", "%%")
+config.set_main_option("sqlalchemy.url", escaped_uri)
 target_metadata = Base.metadata  # pylint: disable=no-member
 
 
@@ -50,6 +52,13 @@ target_metadata = Base.metadata  # pylint: disable=no-member
 # can be acquired:
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
+
+
+def print_duration(start_time: float) -> None:
+    logger.info(
+        "Migration scripts completed. Duration: %s",
+        time.strftime("%H:%M:%S", time.gmtime(time.time() - start_time)),
+    )
 
 
 def run_migrations_offline() -> None:
@@ -64,11 +73,15 @@ def run_migrations_offline() -> None:
     script output.
 
     """
+    start_time = time.time()
+    logger.info("Starting the migration scripts.")
+
     url = config.get_main_option("sqlalchemy.url")
     context.configure(url=url)
 
     with context.begin_transaction():
         context.run_migrations()
+    print_duration(start_time)
 
 
 def run_migrations_online() -> None:
@@ -79,11 +92,14 @@ def run_migrations_online() -> None:
 
     """
 
+    start_time = time.time()
+    logger.info("Starting the migration scripts.")
+
     # this callback is used to prevent an auto-migration from being generated
     # when there are no changes to the schema
     # reference: https://alembic.sqlalchemy.org/en/latest/cookbook.html
     def process_revision_directives(  # pylint: disable=redefined-outer-name, unused-argument
-        context: MigrationContext, revision: str, directives: List[MigrationScript]
+        context: MigrationContext, revision: str, directives: list[MigrationScript]
     ) -> None:
         if getattr(config.cmd_opts, "autogenerate", False):
             script = directives[0]
@@ -101,8 +117,7 @@ def run_migrations_online() -> None:
     kwargs = {}
     if engine.name in ("sqlite", "mysql"):
         kwargs = {"transaction_per_migration": True, "transactional_ddl": True}
-    configure_args = current_app.extensions["migrate"].configure_args
-    if configure_args:
+    if configure_args := current_app.extensions["migrate"].configure_args:
         kwargs.update(configure_args)
 
     context.configure(
@@ -110,12 +125,13 @@ def run_migrations_online() -> None:
         target_metadata=target_metadata,
         # compare_type=True,
         process_revision_directives=process_revision_directives,
-        **kwargs
+        **kwargs,
     )
 
     try:
         with context.begin_transaction():
             context.run_migrations()
+        print_duration(start_time)
     finally:
         connection.close()
 

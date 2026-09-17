@@ -43,7 +43,7 @@ describe('isValidChild', () => {
     // every unique parent > child relationship is tested, but because this
     // test representation WILL result in duplicates, we hash each test
     // to keep track of which we've run
-    const didTest = {};
+    const didTest: Record<string, boolean> = {};
     const validExamples = [
       [ROOT, GRID, CHART], // chart is valid because it is wrapped in a row
       [ROOT, GRID, MARKDOWN], // markdown is valid because it is wrapped in a row

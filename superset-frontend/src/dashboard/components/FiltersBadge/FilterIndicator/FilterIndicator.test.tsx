@@ -17,9 +17,8 @@
  * under the License.
  */
 import userEvent from '@testing-library/user-event';
-import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
-import { Indicator } from 'src/dashboard/components/FiltersBadge/selectors';
+import { Indicator } from 'src/dashboard/components/nativeFilters/selectors';
 import FilterIndicator from '.';
 
 const createProps = () => ({
@@ -52,9 +51,9 @@ test('Should call "onClick"', () => {
   const props = createProps();
   render(<FilterIndicator {...props} />);
 
-  expect(props.onClick).toBeCalledTimes(0);
+  expect(props.onClick).toHaveBeenCalledTimes(0);
   userEvent.click(screen.getByRole('button', { name: 'Vaccine Approach' }));
-  expect(props.onClick).toBeCalledTimes(1);
+  expect(props.onClick).toHaveBeenCalledTimes(1);
 });
 
 test('Should render "value"', () => {

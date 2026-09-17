@@ -1,0 +1,44 @@
+name: Check python dependencies
+
+on:
+  push:
+    branches:
+      - "master"
+      - "[0-9].[0-9]*"
+  pull_request:
+    types: [synchronize, opened, reopened, ready_for_review]
+
+# cancel previous workflow jobs for PRs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  check-python-deps:
+    runs-on: ubuntu-22.04
+    steps:
+
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          submodules: recursive
+          depth: 1
+
+      - name: Setup Python
+        if: steps.check.outputs.python
+        uses: ./.github/actions/setup-backend/
+
+      - name: Run uv
+        if: steps.check.outputs.python
+        run: ./scripts/uv-pip-compile.sh
+
+      - name: Check for uncommitted changes
+        run: |
+          if [[ -n "$(git diff)" ]]; then
+            echo "ERROR: The pinned dependencies are not up-to-date."
+            echo "Please run './scripts/uv-pip-compile.sh' and commit the changes."
+            exit 1
+          else
+            echo "Pinned dependencies are up-to-date."
+          fi

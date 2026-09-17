@@ -16,17 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { ensureIsInt, t, validateNonEmpty } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   ControlPanelsContainerProps,
+  ControlSubSectionHeader,
   D3_FORMAT_DOCS,
   D3_NUMBER_FORMAT_DESCRIPTION_VALUES_TEXT,
   D3_FORMAT_OPTIONS,
   D3_TIME_FORMAT_OPTIONS,
-  sections,
   getStandardizedControls,
+  sharedControls,
 } from '@superset-ui/chart-controls';
 import { DEFAULT_FORM_DATA } from './types';
 import { legendSection } from '../controls';
@@ -40,11 +40,11 @@ const {
   outerRadius,
   numberFormat,
   showLabels,
+  roseType,
 } = DEFAULT_FORM_DATA;
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,
@@ -57,12 +57,8 @@ const config: ControlPanelConfig = {
           {
             name: 'sort_by_metric',
             config: {
+              ...sharedControls.sort_by_metric,
               default: true,
-              type: 'CheckboxControl',
-              label: t('Sort by metric'),
-              description: t(
-                'Whether to sort results by the selected metric in descending order.',
-              ),
             },
           },
         ],
@@ -88,9 +84,26 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        [
+          {
+            name: 'roseType',
+            config: {
+              type: 'SelectControl',
+              label: t('Rose Type'),
+              default: roseType,
+              renderTrigger: true,
+              choices: [
+                ['area', t('Area')],
+                ['radius', t('Radius')],
+                [null, t('None')],
+              ],
+              description: t('Whether to show as Nightingale chart.'),
+            },
+          },
+        ],
         ...legendSection,
         // eslint-disable-next-line react/jsx-key
-        [<div className="section-header">{t('Labels')}</div>],
+        [<ControlSubSectionHeader>{t('Labels')}</ControlSubSectionHeader>],
         [
           {
             name: 'label_type',
@@ -106,8 +119,29 @@ const config: ControlPanelConfig = {
                 ['key_value', t('Category and Value')],
                 ['key_percent', t('Category and Percentage')],
                 ['key_value_percent', t('Category, Value and Percentage')],
+                ['value_percent', t('Value and Percentage')],
+                ['template', t('Template')],
               ],
               description: t('What should be shown on the label?'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'label_template',
+            config: {
+              type: 'TextControl',
+              label: t('Label Template'),
+              renderTrigger: true,
+              description: t(
+                'Format data labels. ' +
+                  'Use variables: {name}, {value}, {percent}. ' +
+                  '\\n represents a new line. ' +
+                  'ECharts compatibility:\n' +
+                  '{a} (series), {b} (name), {c} (value), {d} (percentage)',
+              ),
+              visibility: ({ controls }: ControlPanelsContainerProps) =>
+                controls?.label_type?.value === 'template',
             },
           },
         ],
@@ -126,6 +160,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        ['currency_format'],
         [
           {
             name: 'date_format',
@@ -195,7 +230,7 @@ const config: ControlPanelConfig = {
           },
         ],
         // eslint-disable-next-line react/jsx-key
-        [<div className="section-header">{t('Pie shape')}</div>],
+        [<ControlSubSectionHeader>{t('Pie shape')}</ControlSubSectionHeader>],
         [
           {
             name: 'outerRadius',

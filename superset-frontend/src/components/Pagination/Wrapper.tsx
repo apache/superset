@@ -17,7 +17,6 @@
  * under the License.
  */
 
-import React from 'react';
 import { styled } from '@superset-ui/core';
 import { Next } from './Next';
 import { Prev } from './Prev';

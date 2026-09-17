@@ -16,11 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo } from 'react';
-import ReactMarkdown from 'react-markdown';
+import { useEffect, useMemo, useState } from 'react';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
-import rehypeRaw from 'rehype-raw';
-import { merge } from 'lodash';
+import remarkGfm from 'remark-gfm';
+import { mergeWith } from 'lodash';
 import { FeatureFlag, isFeatureEnabled } from '../utils';
 
 interface SafeMarkdownProps {
@@ -29,29 +28,59 @@ interface SafeMarkdownProps {
   htmlSchemaOverrides?: typeof defaultSchema;
 }
 
+export function getOverrideHtmlSchema(
+  originalSchema: typeof defaultSchema,
+  htmlSchemaOverrides: SafeMarkdownProps['htmlSchemaOverrides'],
+) {
+  return mergeWith(originalSchema, htmlSchemaOverrides, (objValue, srcValue) =>
+    Array.isArray(objValue) ? objValue.concat(srcValue) : undefined,
+  );
+}
+
 function SafeMarkdown({
   source,
   htmlSanitization = true,
   htmlSchemaOverrides = {},
 }: SafeMarkdownProps) {
-  const displayHtml = isFeatureEnabled(FeatureFlag.DISPLAY_MARKDOWN_HTML);
-  const escapeHtml = isFeatureEnabled(FeatureFlag.ESCAPE_MARKDOWN_HTML);
+  const escapeHtml = isFeatureEnabled(FeatureFlag.EscapeMarkdownHtml);
+  const [rehypeRawPlugin, setRehypeRawPlugin] = useState<any>(null);
+  const [ReactMarkdown, setReactMarkdown] = useState<any>(null);
+  useEffect(() => {
+    Promise.all([import('rehype-raw'), import('react-markdown')]).then(
+      ([rehypeRaw, ReactMarkdown]) => {
+        setRehypeRawPlugin(() => rehypeRaw.default);
+        setReactMarkdown(() => ReactMarkdown.default);
+      },
+    );
+  }, []);
 
   const rehypePlugins = useMemo(() => {
     const rehypePlugins: any = [];
-    if (displayHtml && !escapeHtml) {
-      rehypePlugins.push(rehypeRaw);
+    if (!escapeHtml && rehypeRawPlugin) {
+      rehypePlugins.push(rehypeRawPlugin);
       if (htmlSanitization) {
-        const schema = merge(defaultSchema, htmlSchemaOverrides);
+        const schema = getOverrideHtmlSchema(
+          defaultSchema,
+          htmlSchemaOverrides,
+        );
         rehypePlugins.push([rehypeSanitize, schema]);
       }
     }
     return rehypePlugins;
-  }, [displayHtml, escapeHtml, htmlSanitization, htmlSchemaOverrides]);
+  }, [escapeHtml, htmlSanitization, htmlSchemaOverrides, rehypeRawPlugin]);
+
+  if (!ReactMarkdown || !rehypeRawPlugin) {
+    return null;
+  }
 
   // React Markdown escapes HTML by default
   return (
-    <ReactMarkdown rehypePlugins={rehypePlugins} skipHtml={!displayHtml}>
+    <ReactMarkdown
+      rehypePlugins={rehypePlugins}
+      remarkPlugins={[remarkGfm]}
+      skipHtml={false}
+      transformLinkUri={null}
+    >
       {source}
     </ReactMarkdown>
   );

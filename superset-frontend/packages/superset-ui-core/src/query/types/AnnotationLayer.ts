@@ -158,31 +158,9 @@ export function isTableAnnotationLayer(
   return layer.sourceType === AnnotationSourceType.Table;
 }
 
-export type RecordAnnotationResult = {
-  columns: string[];
-  records: DataRecord[];
+export type AnnotationResult = {
+  records?: DataRecord[];
 };
-
-export type TimeseriesAnnotationResult = {
-  key: string;
-  values: { x: string | number; y?: number }[];
-}[];
-
-export type AnnotationResult =
-  | RecordAnnotationResult
-  | TimeseriesAnnotationResult;
-
-export function isTimeseriesAnnotationResult(
-  result: AnnotationResult,
-): result is TimeseriesAnnotationResult {
-  return Array.isArray(result);
-}
-
-export function isRecordAnnotationResult(
-  result: any,
-): result is RecordAnnotationResult {
-  return Array.isArray(result?.columns) && Array.isArray(result?.records);
-}
 
 export type AnnotationData = { [key: string]: AnnotationResult };
 

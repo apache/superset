@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import contextlib
 from typing import Callable, ContextManager
 
 import pytest
@@ -42,20 +43,16 @@ def force_async_run(allow_run_async: bool):
 def non_async_example_db(app_context):
     gen = force_async_run(False)
     yield next(gen)
-    try:
+    with contextlib.suppress(StopIteration):
         next(gen)
-    except StopIteration:
-        pass
 
 
 @pytest.fixture
 def async_example_db(app_context):
     gen = force_async_run(True)
     yield next(gen)
-    try:
+    with contextlib.suppress(StopIteration):
         next(gen)
-    except StopIteration:
-        pass
 
 
 @pytest.fixture

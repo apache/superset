@@ -14,37 +14,36 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 from collections import Counter
 from typing import Any
 
-from flask import current_app, redirect, request
+from flask import redirect, request
 from flask_appbuilder import expose, permission_name
 from flask_appbuilder.api import rison
 from flask_appbuilder.security.decorators import has_access, has_access_api
 from flask_babel import _
 from marshmallow import ValidationError
-from sqlalchemy.exc import NoSuchTableError
-from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy.exc import NoResultFound, NoSuchTableError
 
 from superset import db, event_logger, security_manager
-from superset.commands.utils import populate_owners
-from superset.connectors.sqla.models import SqlaTable
-from superset.connectors.sqla.utils import get_physical_table_metadata
-from superset.datasets.commands.exceptions import (
+from superset.commands.dataset.exceptions import (
     DatasetForbiddenError,
     DatasetNotFoundError,
 )
-from superset.datasource.dao import DatasourceDAO
+from superset.commands.utils import populate_owner_list
+from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.utils import get_physical_table_metadata
+from superset.daos.datasource import DatasourceDAO
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.models.core import Database
+from superset.sql_parse import Table
 from superset.superset_typing import FlaskResponse
+from superset.utils import json
 from superset.utils.core import DatasourceType
-from superset.utils.urls import is_safe_url
 from superset.views.base import (
     api,
     BaseSupersetView,
-    handle_api_exception,
+    deprecated,
     json_error_response,
 )
 from superset.views.datasource.schemas import (
@@ -55,13 +54,14 @@ from superset.views.datasource.schemas import (
     SamplesRequestSchema,
 )
 from superset.views.datasource.utils import get_samples
+from superset.views.error_handling import handle_api_exception
 from superset.views.utils import sanitize_datasource_data
 
 
 class Datasource(BaseSupersetView):
     """Datasource-related views"""
 
-    @expose("/save/", methods=["POST"])
+    @expose("/save/", methods=("POST",))
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.save",
         log_to_statsd=False,
@@ -69,31 +69,22 @@ class Datasource(BaseSupersetView):
     @has_access_api
     @api
     @handle_api_exception
+    @deprecated(new_target="/api/v1/dataset/<int:pk>")
     def save(self) -> FlaskResponse:
         data = request.form.get("data")
         if not isinstance(data, str):
             return json_error_response(_("Request missing data field."), status=500)
 
         datasource_dict = json.loads(data)
+        normalize_columns = datasource_dict.get("normalize_columns", False)
+        always_filter_main_dttm = datasource_dict.get("always_filter_main_dttm", False)
+        datasource_dict["normalize_columns"] = normalize_columns
+        datasource_dict["always_filter_main_dttm"] = always_filter_main_dttm
         datasource_id = datasource_dict.get("id")
         datasource_type = datasource_dict.get("type")
         database_id = datasource_dict["database"].get("id")
-        default_endpoint = datasource_dict["default_endpoint"]
-        if (
-            default_endpoint
-            and not is_safe_url(default_endpoint)
-            and current_app.config["PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET"]
-        ):
-            return json_error_response(
-                _(
-                    "The submitted URL is not considered safe,"
-                    " only use URLs with the same domain as Superset."
-                ),
-                status=400,
-            )
-
         orm_datasource = DatasourceDAO.get_datasource(
-            db.session, DatasourceType(datasource_type), datasource_id
+            DatasourceType(datasource_type), datasource_id
         )
         orm_datasource.database_id = database_id
 
@@ -104,7 +95,7 @@ class Datasource(BaseSupersetView):
             except SupersetSecurityException as ex:
                 raise DatasetForbiddenError() from ex
 
-        datasource_dict["owners"] = populate_owners(
+        datasource_dict["owners"] = populate_owner_list(
             datasource_dict["owners"], default_to_user=False
         )
 
@@ -125,7 +116,7 @@ class Datasource(BaseSupersetView):
             )
         orm_datasource.update_from_object(datasource_dict)
         data = orm_datasource.data
-        db.session.commit()
+        db.session.commit()  # pylint: disable=consider-using-transaction
 
         return self.json_response(sanitize_datasource_data(data))
 
@@ -133,9 +124,10 @@ class Datasource(BaseSupersetView):
     @has_access_api
     @api
     @handle_api_exception
+    @deprecated(new_target="/api/v1/dataset/<int:pk>")
     def get(self, datasource_type: str, datasource_id: int) -> FlaskResponse:
         datasource = DatasourceDAO.get_datasource(
-            db.session, DatasourceType(datasource_type), datasource_id
+            DatasourceType(datasource_type), datasource_id
         )
         return self.json_response(sanitize_datasource_data(datasource.data))
 
@@ -148,7 +140,6 @@ class Datasource(BaseSupersetView):
     ) -> FlaskResponse:
         """Gets column info from the source system"""
         datasource = DatasourceDAO.get_datasource(
-            db.session,
             DatasourceType(datasource_type),
             datasource_id,
         )
@@ -173,8 +164,8 @@ class Datasource(BaseSupersetView):
             return json_error_response(str(err), status=400)
 
         datasource = SqlaTable.get_datasource_by_name(
-            session=db.session,
             database_name=params["database_name"],
+            catalog=params.get("catalog_name"),
             schema=params["schema_name"],
             datasource_name=params["table_name"],
         )
@@ -191,14 +182,14 @@ class Datasource(BaseSupersetView):
                 )
                 external_metadata = get_physical_table_metadata(
                     database=database,
-                    table_name=params["table_name"],
-                    schema_name=params["schema_name"],
+                    table=Table(params["table_name"], params["schema_name"]),
+                    normalize_columns=params.get("normalize_columns") or False,
                 )
         except (NoResultFound, NoSuchTableError) as ex:
             raise DatasetNotFoundError() from ex
         return self.json_response(external_metadata)
 
-    @expose("/samples", methods=["POST"])
+    @expose("/samples", methods=("POST",))
     @has_access_api
     @api
     @handle_api_exception
@@ -230,7 +221,7 @@ class DatasetEditor(BaseSupersetView):
     def root(self) -> FlaskResponse:
         return super().render_app_template()
 
-    @expose("/<pk>", methods=["GET"])
+    @expose("/<pk>", methods=("GET",))
     @has_access
     @permission_name("read")
     # pylint: disable=unused-argument

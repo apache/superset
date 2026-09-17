@@ -38,7 +38,7 @@ class AvailableDomainsRestApi(BaseSupersetApi):
     openapi_spec_tag = "Available Domains"
     openapi_spec_component_schemas = (AvailableDomainsSchema,)
 
-    @expose("/", methods=["GET"])
+    @expose("/", methods=("GET",))
     @protect()
     @safe
     @statsd_metrics
@@ -48,13 +48,12 @@ class AvailableDomainsRestApi(BaseSupersetApi):
     )
     def get(self) -> Response:
         """
-        Returns the list of available Superset Webserver domains (if any)
+        Get the list of available Superset Webserver domains (if any)
         defined in config. This enables charts embedded in other apps to
         leverage domain sharding if appropriately configured.
         ---
         get:
-          description: >-
-            Get all available domains
+          summary: Get all available domains
           responses:
             200:
               description: a list of available domains

@@ -21,6 +21,7 @@ Revises: e866bd2d4976
 Create Date: 2018-03-06 12:24:30.896293
 
 """
+
 import sqlalchemy as sa
 from alembic import op
 
@@ -30,7 +31,6 @@ down_revision = "e866bd2d4976"
 
 
 def upgrade():
-
     op.add_column(
         "dbs",
         sa.Column(

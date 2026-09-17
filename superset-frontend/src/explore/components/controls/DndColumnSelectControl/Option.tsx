@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback } from 'react';
+import { useCallback } from 'react';
 import { styled, t, useTheme } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import {

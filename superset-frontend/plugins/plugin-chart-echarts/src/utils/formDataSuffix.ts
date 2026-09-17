@@ -29,7 +29,7 @@ export const retainFormDataSuffix = (
    * > removeFormDataSuffix(fd, '_b')
    * { metrics: ['zee'], limit: 100, ... }
    * */
-  const newFormData = {};
+  const newFormData: Record<string, any> = {};
 
   Object.entries(formData)
     .sort(([a], [b]) => {
@@ -63,7 +63,7 @@ export const removeFormDataSuffix = (
    * > removeUnusedFormData(fd, '_b')
    * { metrics: ['foo', 'bar'], limit: 100, ... }
    * */
-  const newFormData = {};
+  const newFormData: Record<string, any> = {};
   Object.entries(formData).forEach(([key, value]) => {
     if (!key.endsWith(controlSuffix)) {
       newFormData[key] = value;

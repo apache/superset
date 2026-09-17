@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import ProgressBar, { ProgressBarProps } from '.';
 
 export default {
@@ -25,37 +24,61 @@ export default {
 };
 
 export const InteractiveProgressBar = (args: ProgressBarProps) => (
-  <ProgressBar {...args} />
+  <ProgressBar {...args} type="line" />
 );
 
-InteractiveProgressBar.args = {
+export const InteractiveProgressCircle = (args: ProgressBarProps) => (
+  <ProgressBar {...args} type="circle" />
+);
+
+export const InteractiveProgressDashboard = (args: ProgressBarProps) => (
+  <ProgressBar {...args} type="dashboard" />
+);
+
+const commonArgs = {
   striped: true,
   percent: 90,
   showInfo: true,
-  status: 'normal',
   strokeColor: '#FF0000',
   trailColor: '#000',
   strokeLinecap: 'round',
   type: 'line',
 };
 
-InteractiveProgressBar.argTypes = {
-  status: {
-    control: {
-      type: 'select',
-      options: ['normal', 'success', 'exception', 'active'],
-    },
-  },
+const commonArgTypes = {
   strokeLinecap: {
     control: {
       type: 'select',
-      options: ['round', 'square'],
     },
+    options: ['round', 'butt', 'square'],
   },
   type: {
     control: {
       type: 'select',
-      options: ['line', 'circle', 'dashboard'],
     },
+    options: ['line', 'circle', 'dashboard'],
   },
 };
+
+InteractiveProgressBar.args = {
+  ...commonArgs,
+  status: 'normal',
+};
+
+InteractiveProgressBar.argTypes = {
+  ...commonArgTypes,
+  status: {
+    control: {
+      type: 'select',
+    },
+    options: ['normal', 'success', 'exception', 'active'],
+  },
+};
+
+InteractiveProgressCircle.args = commonArgs;
+
+InteractiveProgressCircle.argTypes = commonArgTypes;
+
+InteractiveProgressDashboard.args = commonArgs;
+
+InteractiveProgressDashboard.argTypes = commonArgTypes;

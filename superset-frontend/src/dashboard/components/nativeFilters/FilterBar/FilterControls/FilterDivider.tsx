@@ -17,12 +17,15 @@
  * under the License.
  */
 
-import { css, useTheme } from '@superset-ui/core';
-import React from 'react';
+import {
+  css,
+  useTheme,
+  useCSSTextTruncation,
+  truncationCSS,
+} from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { Tooltip } from 'src/components/Tooltip';
 import { FilterBarOrientation } from 'src/dashboard/types';
-import { useCSSTextTruncation, truncationCSS } from 'src/hooks/useTruncation';
 import { FilterDividerProps } from './types';
 
 const VerticalDivider = ({ title, description }: FilterDividerProps) => (
@@ -143,10 +146,10 @@ const HorizontalOverflowDivider = ({
 const FilterDivider = ({
   title,
   description,
-  orientation = FilterBarOrientation.VERTICAL,
+  orientation = FilterBarOrientation.Vertical,
   overflow = false,
 }: FilterDividerProps) => {
-  if (orientation === FilterBarOrientation.HORIZONTAL) {
+  if (orientation === FilterBarOrientation.Horizontal) {
     if (overflow) {
       return (
         <HorizontalOverflowDivider title={title} description={description} />

@@ -16,43 +16,69 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { shallow } from 'enzyme';
-import { Tooltip } from '../../src/components/Tooltip';
-import { InfoTooltipWithTrigger } from '../../src';
+import '@testing-library/jest-dom';
+import { fireEvent, render } from '@testing-library/react';
+import { ThemeProvider, supersetTheme } from '@superset-ui/core';
+import { InfoTooltipWithTrigger, InfoTooltipWithTriggerProps } from '../../src';
 
-describe('InfoTooltipWithTrigger', () => {
-  it('renders a tooltip', () => {
-    const wrapper = shallow(
-      <InfoTooltipWithTrigger label="test" tooltip="this is a test" />,
-    );
-    expect(wrapper.find(Tooltip)).toHaveLength(1);
-  });
+jest.mock('../../src/components/Tooltip', () => ({
+  Tooltip: ({ children }: { children: React.ReactNode }) => (
+    <div data-test="mock-tooltip">{children}</div>
+  ),
+}));
 
-  it('renders an info icon', () => {
-    const wrapper = shallow(<InfoTooltipWithTrigger />);
-    expect(wrapper.find('.fa-info-circle')).toHaveLength(1);
-  });
+const defaultProps = {};
 
-  it('responds to keypresses', () => {
-    const clickHandler = jest.fn();
-    const wrapper = shallow(
-      <InfoTooltipWithTrigger
-        label="test"
-        tooltip="this is a test"
-        onClick={clickHandler}
-      />,
-    );
-    wrapper.find('.fa-info-circle').simulate('keypress', { key: 'Tab' });
-    expect(clickHandler).toHaveBeenCalledTimes(0);
-    wrapper.find('.fa-info-circle').simulate('keypress', { key: 'Enter' });
-    expect(clickHandler).toHaveBeenCalledTimes(1);
-    wrapper.find('.fa-info-circle').simulate('keypress', { key: ' ' });
-    expect(clickHandler).toHaveBeenCalledTimes(2);
-  });
+const setup = (props: Partial<InfoTooltipWithTriggerProps> = {}) =>
+  render(
+    <ThemeProvider theme={supersetTheme}>
+      <InfoTooltipWithTrigger {...defaultProps} {...props} />
+    </ThemeProvider>,
+  );
 
-  it('has a bsStyle', () => {
-    const wrapper = shallow(<InfoTooltipWithTrigger bsStyle="something" />);
-    expect(wrapper.find('.text-something')).toHaveLength(1);
+test('renders a tooltip', () => {
+  const { getAllByTestId } = setup({
+    label: 'test',
+    tooltip: 'this is a test',
   });
+  expect(getAllByTestId('mock-tooltip').length).toEqual(1);
+});
+
+test('renders an info icon', () => {
+  const { container } = setup();
+  expect(container.getElementsByClassName('fa-info-circle')).toHaveLength(1);
+});
+
+test('responds to keypresses', () => {
+  const clickHandler = jest.fn();
+  const { getByRole } = setup({
+    label: 'test',
+    tooltip: 'this is a test',
+    onClick: clickHandler,
+  });
+  fireEvent.keyPress(getByRole('button'), {
+    key: 'Tab',
+    code: 9,
+    charCode: 9,
+  });
+  expect(clickHandler).toHaveBeenCalledTimes(0);
+  fireEvent.keyPress(getByRole('button'), {
+    key: 'Enter',
+    code: 13,
+    charCode: 13,
+  });
+  expect(clickHandler).toHaveBeenCalledTimes(1);
+  fireEvent.keyPress(getByRole('button'), {
+    key: ' ',
+    code: 32,
+    charCode: 32,
+  });
+  expect(clickHandler).toHaveBeenCalledTimes(2);
+});
+
+test('has a bsStyle', () => {
+  const { container } = setup({
+    bsStyle: 'something',
+  });
+  expect(container.getElementsByClassName('text-something')).toHaveLength(1);
 });

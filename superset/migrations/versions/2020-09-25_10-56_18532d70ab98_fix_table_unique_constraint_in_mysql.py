@@ -26,11 +26,11 @@ Create Date: 2020-09-25 10:56:13.711182
 revision = "18532d70ab98"
 down_revision = "3fbbc6e8d654"
 
-from alembic import op
-from sqlalchemy.dialects.mysql.base import MySQLDialect
-from sqlalchemy.engine.reflection import Inspector
+from alembic import op  # noqa: E402
+from sqlalchemy.dialects.mysql.base import MySQLDialect  # noqa: E402
+from sqlalchemy.engine.reflection import Inspector  # noqa: E402
 
-from superset.utils.core import generic_find_uq_constraint_name
+from superset.utils.core import generic_find_uq_constraint_name  # noqa: E402
 
 
 def upgrade():

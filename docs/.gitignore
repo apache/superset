@@ -18,3 +18,8 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+docs/.zshrc
+
+# Gets copied from the root of the project at build time (yarn start / yarn build)
+docs/intro.md

@@ -16,9 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useMemo, useState } from 'react';
-import { useSelector } from 'react-redux';
-import { css, styled, t, useTheme } from '@superset-ui/core';
+import { useCallback, useMemo, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import {
+  css,
+  isFeatureEnabled,
+  FeatureFlag,
+  styled,
+  t,
+  useTheme,
+  VizType,
+} from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { Menu } from 'src/components/Menu';
 import ModalTrigger from 'src/components/ModalTrigger';
@@ -28,12 +36,16 @@ import { exportChart, getChartKey } from 'src/explore/exploreUtils';
 import downloadAsImage from 'src/utils/downloadAsImage';
 import { getChartPermalink } from 'src/utils/urlUtils';
 import copyTextToClipboard from 'src/utils/copy';
-import HeaderReportDropDown from 'src/components/ReportModal/HeaderReportDropdown';
-import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
+import HeaderReportDropDown from 'src/features/reports/ReportModal/HeaderReportDropdown';
+import { logEvent } from 'src/logger/actions';
+import {
+  LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE,
+  LOG_ACTIONS_CHART_DOWNLOAD_AS_JSON,
+  LOG_ACTIONS_CHART_DOWNLOAD_AS_CSV,
+  LOG_ACTIONS_CHART_DOWNLOAD_AS_CSV_PIVOTED,
+  LOG_ACTIONS_CHART_DOWNLOAD_AS_XLS,
+} from 'src/logger/LogUtils';
 import ViewQueryModal from '../controls/ViewQueryModal';
-/* NGLS - BEGIN */
-import CustomCSVModal from '../controls/CustomCSVModal';
-/* NGLS - END */
 import EmbedCodeContent from '../EmbedCodeContent';
 import DashboardsSubMenu from './DashboardsSubMenu';
 
@@ -47,7 +59,6 @@ const MENU_KEYS = {
   EXPORT_TO_XLSX: 'export_to_xlsx',
   /* NGLS - BEGIN */
   EXPORT_TO_PDF: 'export_to_pdf',
-  EXPORT_TO_CUSTOM_CSV: 'export_to_custom_csv',
   /* NGLS - END */
   DOWNLOAD_AS_IMAGE: 'download_as_image',
   SHARE_SUBMENU: 'share_submenu',
@@ -63,7 +74,7 @@ const MENU_KEYS = {
   RUN_IN_SQL_LAB: 'run_in_sql_lab',
 };
 
-const VIZ_TYPES_PIVOTABLE = ['pivot_table', 'pivot_table_v2'];
+const VIZ_TYPES_PIVOTABLE = [VizType.PivotTable];
 
 export const MenuItemWithCheckboxContainer = styled.div`
   ${({ theme }) => css`
@@ -89,7 +100,7 @@ export const MenuTrigger = styled(Button)`
     padding: 0;
     border: 1px solid ${theme.colors.primary.dark2};
 
-    &.ant-btn > span.anticon {
+    &.antd5-btn > span.anticon {
       line-height: 0;
       transition: inherit;
     }
@@ -115,12 +126,13 @@ export const useExploreAdditionalActionsMenu = (
   onOpenPropertiesModal,
   ownState,
   dashboards,
+  ...rest
 ) => {
   const theme = useTheme();
   const { addDangerToast, addSuccessToast } = useToasts();
+  const dispatch = useDispatch();
   const [showReportSubMenu, setShowReportSubMenu] = useState(null);
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
-  const [openSubmenus, setOpenSubmenus] = useState([]);
   const chart = useSelector(
     state => state.charts?.[getChartKey(state.explore)],
   );
@@ -129,8 +141,7 @@ export const useExploreAdditionalActionsMenu = (
 
   /* NGLS - BEGIN */
   if (slice?.slice_name) {
-    // eslint-disable-next-line no-param-reassign
-    latestQueryFormData.chart_name = slice.slice_name;
+    latestQueryFormData.report_name = slice.slice_name;
   }
   /* NGLS - END */
 
@@ -172,22 +183,26 @@ export const useExploreAdditionalActionsMenu = (
 
   const exportJson = useCallback(
     () =>
-      exportChart({
-        formData: latestQueryFormData,
-        resultType: 'results',
-        resultFormat: 'json',
-      }),
-    [latestQueryFormData],
+      canDownloadCSV
+        ? exportChart({
+            formData: latestQueryFormData,
+            resultType: 'results',
+            resultFormat: 'json',
+          })
+        : null,
+    [canDownloadCSV, latestQueryFormData],
   );
 
   const exportExcel = useCallback(
     () =>
-      exportChart({
-        formData: latestQueryFormData,
-        resultType: 'results',
-        resultFormat: 'xlsx',
-      }),
-    [latestQueryFormData],
+      canDownloadCSV
+        ? exportChart({
+            formData: latestQueryFormData,
+            resultType: 'results',
+            resultFormat: 'xlsx',
+          })
+        : null,
+    [canDownloadCSV, latestQueryFormData],
   );
 
   /* NGLS - BEGIN */
@@ -224,28 +239,42 @@ export const useExploreAdditionalActionsMenu = (
         case MENU_KEYS.EXPORT_TO_CSV:
           exportCSV();
           setIsDropdownVisible(false);
-          setOpenSubmenus([]);
+          dispatch(
+            logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_CSV, {
+              chartId: slice?.slice_id,
+              chartName: slice?.slice_name,
+            }),
+          );
           break;
-        /* NGLS - BEGIN */
-        case MENU_KEYS.EXPORT_TO_CUSTOM_CSV:
-          setIsDropdownVisible(false);
-          setOpenSubmenus([]);
-          break;
-        /* NGLS - END */
         case MENU_KEYS.EXPORT_TO_CSV_PIVOTED:
           exportCSVPivoted();
           setIsDropdownVisible(false);
-          setOpenSubmenus([]);
+          dispatch(
+            logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_CSV_PIVOTED, {
+              chartId: slice?.slice_id,
+              chartName: slice?.slice_name,
+            }),
+          );
           break;
         case MENU_KEYS.EXPORT_TO_JSON:
           exportJson();
           setIsDropdownVisible(false);
-          setOpenSubmenus([]);
+          dispatch(
+            logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_JSON, {
+              chartId: slice?.slice_id,
+              chartName: slice?.slice_name,
+            }),
+          );
           break;
         case MENU_KEYS.EXPORT_TO_XLSX:
           exportExcel();
           setIsDropdownVisible(false);
-          setOpenSubmenus([]);
+          dispatch(
+            logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_XLS, {
+              chartId: slice?.slice_id,
+              chartName: slice?.slice_name,
+            }),
+          );
           break;
         /* NGLS - BEGIN */
         case MENU_KEYS.EXPORT_TO_PDF:
@@ -262,27 +291,29 @@ export const useExploreAdditionalActionsMenu = (
             true,
           )(domEvent);
           setIsDropdownVisible(false);
-          setOpenSubmenus([]);
+          dispatch(
+            logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE, {
+              chartId: slice?.slice_id,
+              chartName: slice?.slice_name,
+            }),
+          );
           break;
         case MENU_KEYS.COPY_PERMALINK:
           copyLink();
           setIsDropdownVisible(false);
-          setOpenSubmenus([]);
           break;
         case MENU_KEYS.EMBED_CODE:
           setIsDropdownVisible(false);
-          setOpenSubmenus([]);
           break;
         case MENU_KEYS.SHARE_BY_EMAIL:
           shareByEmail();
           setIsDropdownVisible(false);
-          setOpenSubmenus([]);
           break;
         case MENU_KEYS.VIEW_QUERY:
           setIsDropdownVisible(false);
           break;
         case MENU_KEYS.RUN_IN_SQL_LAB:
-          onOpenInEditor(latestQueryFormData);
+          onOpenInEditor(latestQueryFormData, domEvent.metaKey);
           setIsDropdownVisible(false);
           break;
         default:
@@ -307,12 +338,7 @@ export const useExploreAdditionalActionsMenu = (
 
   const menu = useMemo(
     () => (
-      <Menu
-        onClick={handleMenuClick}
-        selectable={false}
-        openKeys={openSubmenus}
-        onOpenChange={setOpenSubmenus}
-      >
+      <Menu onClick={handleMenuClick} selectable={false} {...rest}>
         <>
           {slice && (
             <Menu.Item key={MENU_KEYS.EDIT_PROPERTIES}>
@@ -320,7 +346,7 @@ export const useExploreAdditionalActionsMenu = (
             </Menu.Item>
           )}
           <Menu.SubMenu
-            title={t('Dashboards added to')}
+            title={t('On dashboards')}
             key={MENU_KEYS.DASHBOARDS_ADDED_TO}
           >
             <DashboardsSubMenu
@@ -331,12 +357,6 @@ export const useExploreAdditionalActionsMenu = (
           <Menu.Divider />
         </>
         <Menu.SubMenu title={t('Download')} key={MENU_KEYS.DOWNLOAD_SUBMENU}>
-          <Menu.Item
-            key={MENU_KEYS.DOWNLOAD_AS_IMAGE}
-            icon={<Icons.FileImageOutlined css={iconReset} />}
-          >
-            {t('Download as image')}
-          </Menu.Item>
           {VIZ_TYPES_PIVOTABLE.includes(latestQueryFormData.viz_type) ? (
             <>
               <Menu.Item
@@ -344,14 +364,14 @@ export const useExploreAdditionalActionsMenu = (
                 icon={<Icons.FileOutlined css={iconReset} />}
                 disabled={!canDownloadCSV}
               >
-                {t('Export to original CSV')}
+                {t('Export to original .CSV')}
               </Menu.Item>
               <Menu.Item
                 key={MENU_KEYS.EXPORT_TO_CSV_PIVOTED}
                 icon={<Icons.FileOutlined css={iconReset} />}
                 disabled={!canDownloadCSV}
               >
-                {t('Export to pivoted CSV')}
+                {t('Export to pivoted .CSV')}
               </Menu.Item>
             </>
           ) : (
@@ -360,20 +380,28 @@ export const useExploreAdditionalActionsMenu = (
               icon={<Icons.FileOutlined css={iconReset} />}
               disabled={!canDownloadCSV}
             >
-              {t('Export to CSV')}
+              {t('Export to .CSV')}
             </Menu.Item>
           )}
           <Menu.Item
-            key={MENU_KEYS.EXPORT_TO_XLSX}
-            icon={<Icons.FileOutlined css={iconReset} />}
-          >
-            {t('Export to Excel')}
-          </Menu.Item>
-          <Menu.Item
             key={MENU_KEYS.EXPORT_TO_JSON}
             icon={<Icons.FileOutlined css={iconReset} />}
+            disabled={!canDownloadCSV}
           >
-            {t('Export to JSON')}
+            {t('Export to .JSON')}
+          </Menu.Item>
+          <Menu.Item
+            key={MENU_KEYS.DOWNLOAD_AS_IMAGE}
+            icon={<Icons.FileImageOutlined css={iconReset} />}
+          >
+            {t('Download as image')}
+          </Menu.Item>
+          <Menu.Item
+            key={MENU_KEYS.EXPORT_TO_XLSX}
+            icon={<Icons.FileOutlined css={iconReset} />}
+            disabled={!canDownloadCSV}
+          >
+            {t('Export to Excel')}
           </Menu.Item>
           {/* NGLS - BEGIN */}
           <Menu.Item
@@ -382,22 +410,6 @@ export const useExploreAdditionalActionsMenu = (
           >
             {t('Export to PDF')}
           </Menu.Item>
-          {slice?.slice_name === 'Discrepancy details - table' ? (
-            <Menu.Item
-              key={MENU_KEYS.EXPORT_CUSTOM_CSV}
-              icon={<Icons.FileOutlined css={iconReset} />}
-            >
-              <CustomCSVModal
-                latestQueryFormData={latestQueryFormData}
-                triggerNode={
-                  <span data-test="view-query-menu-item">
-                    {t('Export custom CSV')}
-                  </span>
-                }
-                modalTitle={t(slice?.slice_name)}
-              />
-            </Menu.Item>
-          ) : null}
           {/* NGLS - END */}
         </Menu.SubMenu>
         <Menu.SubMenu title={t('Share')} key={MENU_KEYS.SHARE_SUBMENU}>
@@ -407,11 +419,11 @@ export const useExploreAdditionalActionsMenu = (
           <Menu.Item key={MENU_KEYS.SHARE_BY_EMAIL}>
             {t('Share chart by email')}
           </Menu.Item>
-          {isFeatureEnabled(FeatureFlag.EMBEDDABLE_CHARTS) ? (
+          {isFeatureEnabled(FeatureFlag.EmbeddableCharts) ? (
             <Menu.Item key={MENU_KEYS.EMBED_CODE}>
               <ModalTrigger
                 triggerNode={
-                  <span data-test="embed-code-button">{t('Embed code')}</span>
+                  <div data-test="embed-code-button">{t('Embed code')}</div>
                 }
                 modalTitle={t('Embed code')}
                 modalBody={
@@ -456,7 +468,7 @@ export const useExploreAdditionalActionsMenu = (
         <Menu.Item key={MENU_KEYS.VIEW_QUERY}>
           <ModalTrigger
             triggerNode={
-              <span data-test="view-query-menu-item">{t('View query')}</span>
+              <div data-test="view-query-menu-item">{t('View query')}</div>
             }
             modalTitle={t('View query')}
             modalBody={
@@ -482,7 +494,6 @@ export const useExploreAdditionalActionsMenu = (
       handleMenuClick,
       isDropdownVisible,
       latestQueryFormData,
-      openSubmenus,
       showReportSubMenu,
       slice,
       theme.gridUnit,

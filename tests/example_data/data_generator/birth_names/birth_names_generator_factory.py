@@ -30,8 +30,7 @@ class BirthNamesGeneratorFactory(ABC):
     __factory: BirthNamesGeneratorFactory
 
     @abstractmethod
-    def _make(self) -> BirthNamesGenerator:
-        ...
+    def _make(self) -> BirthNamesGenerator: ...
 
     @classmethod
     def make(cls) -> BirthNamesGenerator:

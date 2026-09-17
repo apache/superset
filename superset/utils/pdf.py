@@ -1,4 +1,3 @@
-# NGLS - EXCLUSIVE #
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -15,10 +14,15 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Dict
 
+import logging
+from io import BytesIO
+
+# NGLS - BEGIN #
+from typing import Any
 import pandas as pd
 import pdfkit
+from typing import Any, Dict
 
 css = """
 <style>
@@ -31,12 +35,45 @@ css = """
     }
 </style>
 """
+# NGLS - END #
+
+logger = logging.getLogger(__name__)
+try:
+    from PIL import Image
+except ModuleNotFoundError:
+    logger.info("No PIL installation found")
 
 
+def build_pdf_from_screenshots(snapshots: list[bytes]) -> bytes:
+    # NGLS - BEGIN #
+    # deferred import to avoid a circular import chain via reports/models -> models/dashboard -> connectors/sqla/models
+    from superset.commands.report.exceptions import ReportSchedulePdfFailedError
+    # NGLS - END #
+    images = []
+
+    for snap in snapshots:
+        img = Image.open(BytesIO(snap))
+        if img.mode == "RGBA":
+            img = img.convert("RGB")
+        images.append(img)
+    logger.info("building pdf")
+    try:
+        new_pdf = BytesIO()
+        images[0].save(new_pdf, "PDF", save_all=True, append_images=images[1:])
+        new_pdf.seek(0)
+    except Exception as ex:
+        raise ReportSchedulePdfFailedError(
+            f"Failed converting screenshots to pdf {str(ex)}"
+        ) from ex
+
+    return new_pdf.read()
+
+# NGLS - BEGIN #
 def df_to_pdf(df: pd.DataFrame, options: Dict = None, title: str = None) -> Any:
     title_header = f"<h2>{title}</h2>" if title else ""
     # convert the pandas dataframe to html
-    html = df.to_html(index=False, justify="left")
+    html = df.to_html(index=False, justify="left", escape=False)
     # convert html to pdf
-    output = pdfkit.from_string(css + title_header + html, False, options=options)
+    output = pdfkit.from_string(css + title_header + html, False, options=options or {})
     return output
+# NGLS - END #

@@ -26,10 +26,10 @@ Create Date: 2021-12-02 12:03:20.691171
 revision = "abe27eaf93db"
 down_revision = "0ca9e5f1dacd"
 
-import sqlalchemy as sa
-from alembic import op
-from sqlalchemy import String
-from sqlalchemy.sql import column, table
+import sqlalchemy as sa  # noqa: E402
+from alembic import op  # noqa: E402
+from sqlalchemy import String  # noqa: E402
+from sqlalchemy.sql import column, table  # noqa: E402
 
 report_schedule = table("report_schedule", column("extra", String))
 

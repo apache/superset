@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -17,8 +16,9 @@
 # under the License.
 from superset.reports.models import ReportRecipients
 from superset.reports.notifications.base import BaseNotification, NotificationContent
-from superset.reports.notifications.email import EmailNotification
-from superset.reports.notifications.slack import SlackNotification
+from superset.reports.notifications.email import EmailNotification  # noqa: F401
+from superset.reports.notifications.slack import SlackNotification  # noqa: F401
+from superset.reports.notifications.slackv2 import SlackV2Notification  # noqa: F401
 
 
 def create_notification(
@@ -31,4 +31,6 @@ def create_notification(
     for plugin in BaseNotification.plugins:
         if plugin.type == recipient.type:
             return plugin(recipient, notification_content)
-    raise Exception("Recipient type not supported")
+    raise Exception(  # pylint: disable=broad-exception-raised
+        "Recipient type not supported"
+    )

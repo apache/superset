@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { ReactNode } from 'react';
 import { t, tn } from '@superset-ui/core';
 
 import { ErrorMessageComponentProps } from './types';
@@ -62,7 +62,7 @@ function TimeoutErrorMessage({
         {t('This may be triggered by:')}
         <br />
         {extra.issue_codes
-          .map<React.ReactNode>(issueCode => <IssueCode {...issueCode} />)
+          .map<ReactNode>(issueCode => <IssueCode {...issueCode} />)
           .reduce((prev, curr) => [prev, <br />, curr])}
       </p>
       {isVisualization && extra.owners && (
@@ -88,19 +88,12 @@ function TimeoutErrorMessage({
     </>
   );
 
-  const copyText = t('%(subtitle)s\nThis may be triggered by:\n %(issue)s', {
-    subtitle,
-    issue: extra.issue_codes.map(issueCode => issueCode.message).join('\n'),
-  });
-
   return (
     <ErrorAlert
-      title={t('Timeout error')}
-      subtitle={subtitle}
-      level={level}
-      source={source}
-      copyText={copyText}
-      body={body}
+      errorType={t('Timeout error')}
+      message={subtitle}
+      type={level}
+      descriptionDetails={body}
     />
   );
 }

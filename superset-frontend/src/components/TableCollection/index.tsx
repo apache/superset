@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { memo } from 'react';
 import cx from 'classnames';
 import { TableInstance } from 'react-table';
 import { styled } from '@superset-ui/core';
@@ -203,7 +203,7 @@ export const Table = styled.table`
 
 Table.displayName = 'table';
 
-export default React.memo(
+export default memo(
   ({
     getTableProps,
     getTableBodyProps,
@@ -295,7 +295,6 @@ export default React.memo(
                   const isWrapText = columnsForWrapText?.includes(
                     cell.column.Header as string,
                   );
-
                   return (
                     <td
                       data-test="table-row-cell"

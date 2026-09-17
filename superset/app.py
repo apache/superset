@@ -17,6 +17,7 @@
 
 import logging
 import os
+from typing import Optional
 
 from flask import Flask
 
@@ -25,12 +26,14 @@ from superset.initialization import SupersetAppInitializer
 logger = logging.getLogger(__name__)
 
 
-def create_app() -> Flask:
+def create_app(superset_config_module: Optional[str] = None) -> Flask:
     app = SupersetApp(__name__)
 
     try:
         # Allow user to override our config completely
-        config_module = os.environ.get("SUPERSET_CONFIG", "superset.config")
+        config_module = superset_config_module or os.environ.get(
+            "SUPERSET_CONFIG", "superset.config"
+        )
         app.config.from_object(config_module)
 
         app_initializer = app.config.get("APP_INITIALIZER", SupersetAppInitializer)(app)
@@ -39,9 +42,9 @@ def create_app() -> Flask:
         return app
 
     # Make sure that bootstrap errors ALWAYS get logged
-    except Exception as ex:
+    except Exception:
         logger.exception("Failed to create app")
-        raise ex
+        raise
 
 
 class SupersetApp(Flask):

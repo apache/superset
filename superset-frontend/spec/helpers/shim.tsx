@@ -16,14 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { AriaAttributes } from 'react';
 import 'core-js/stable';
 import 'regenerator-runtime/runtime';
 import 'abortcontroller-polyfill/dist/abortcontroller-polyfill-only';
 import 'jest-enzyme';
 import jQuery from 'jquery';
-import { configure } from 'enzyme';
-import Adapter from 'enzyme-adapter-react-16';
+import Enzyme from 'enzyme';
+import Adapter from '@wojtekmaj/enzyme-adapter-react-17';
 // https://jestjs.io/docs/jest-object#jestmockmodulename-factory-options
 // in order to mock modules in test case, so avoid absolute import module
 import { configure as configureTranslation } from '../../packages/superset-ui-core/src/translation';
@@ -33,29 +33,30 @@ import { ResizeObserver } from './ResizeObserver';
 import setupSupersetClient from './setupSupersetClient';
 import CacheStorage from './CacheStorage';
 
-configure({ adapter: new Adapter() });
+Enzyme.configure({ adapter: new Adapter() });
 
 const exposedProperties = ['window', 'navigator', 'document'];
 
 const { defaultView } = document;
 if (defaultView != null) {
   Object.keys(defaultView).forEach(property => {
-    if (typeof global[property] === 'undefined') {
+    if (typeof global[property as keyof typeof global] === 'undefined') {
       exposedProperties.push(property);
-      global[property] = defaultView[property];
+      // @ts-ignore due to string-type index signature doesn't apply for `typeof globalThis`.
+      global[property] = defaultView[property as keyof typeof defaultView];
     }
   });
 }
 
 const g = global as any;
-g.window = g.window || {};
-g.window.location = { href: 'about:blank' };
-g.window.performance = { now: () => new Date().getTime() };
-g.window.Worker = Worker;
-g.window.IntersectionObserver = IntersectionObserver;
-g.window.ResizeObserver = ResizeObserver;
-g.window.featureFlags = {};
-g.URL.createObjectURL = () => '';
+g.window ??= Object.create(window);
+g.window.location ??= { href: 'about:blank' };
+g.window.performance ??= { now: () => new Date().getTime() };
+g.window.Worker ??= Worker;
+g.window.IntersectionObserver ??= IntersectionObserver;
+g.window.ResizeObserver ??= ResizeObserver;
+g.window.featureFlags ??= {};
+g.URL.createObjectURL ??= () => '';
 g.caches = new CacheStorage();
 
 Object.defineProperty(window, 'matchMedia', {
@@ -101,7 +102,7 @@ jest.mock('src/components/Icons/Icon', () => ({
   }: {
     fileName: string;
     role: string;
-    'aria-label': React.AriaAttributes['aria-label'];
+    'aria-label': AriaAttributes['aria-label'];
   }) => (
     <span
       role={role ?? 'img'}
@@ -115,7 +116,7 @@ jest.mock('src/components/Icons/Icon', () => ({
     ...rest
   }: {
     role: string;
-    'aria-label': React.AriaAttributes['aria-label'];
+    'aria-label': AriaAttributes['aria-label'];
   }) => <span role={role ?? 'img'} aria-label={ariaLabel} {...rest} />,
 }));
 

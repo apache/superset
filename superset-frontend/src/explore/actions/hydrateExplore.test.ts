@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import { VizType } from '@superset-ui/core';
 import { hydrateExplore, HYDRATE_EXPLORE } from './hydrateExplore';
 import { exploreInitialData } from '../fixtures';
 
@@ -49,14 +50,14 @@ test('creates hydrate action from initial data', () => {
               datasource: '8__table',
               slice_id: 371,
               url_params: undefined,
-              viz_type: 'table',
+              viz_type: VizType.Table,
             },
             sliceFormData: {
               cache_timeout: undefined,
               datasource: '8__table',
               slice_id: 371,
               url_params: undefined,
-              viz_type: 'table',
+              viz_type: VizType.Table,
             },
             queryController: null,
             queriesResponse: null,
@@ -122,14 +123,14 @@ test('creates hydrate action with existing state', () => {
               datasource: '8__table',
               slice_id: 371,
               url_params: undefined,
-              viz_type: 'table',
+              viz_type: VizType.Table,
             },
             sliceFormData: {
               cache_timeout: undefined,
               datasource: '8__table',
               slice_id: 371,
               url_params: undefined,
-              viz_type: 'table',
+              viz_type: VizType.Table,
             },
             queryController: null,
             queriesResponse: null,

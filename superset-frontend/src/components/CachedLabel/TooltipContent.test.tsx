@@ -17,9 +17,8 @@
  * under the License.
  */
 
-import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
-import moment from 'moment';
+import { extendedDayjs } from 'src/utils/dates';
 import { TooltipContent } from './TooltipContent';
 
 test('Rendering TooltipContent correctly - no timestep', () => {
@@ -32,7 +31,7 @@ test('Rendering TooltipContent correctly - no timestep', () => {
 test('Rendering TooltipContent correctly - with timestep', () => {
   render(<TooltipContent cachedTimestamp="01-01-2000" />);
   expect(screen.getByTestId('tooltip-content')?.textContent).toBe(
-    `Loaded data cached ${moment
+    `Loaded data cached ${extendedDayjs
       .utc('01-01-2000')
       .fromNow()}. Click to force-refresh`,
   );

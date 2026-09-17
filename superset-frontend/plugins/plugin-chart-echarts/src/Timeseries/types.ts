@@ -16,13 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { OptionName } from 'echarts/types/src/util/types';
+import type { OptionName } from 'echarts/types/src/util/types';
 import {
   AnnotationLayer,
   AxisType,
   ContributionType,
-  QueryFormColumn,
   QueryFormData,
+  QueryFormMetric,
   TimeFormatter,
   TimeGranularity,
 } from '@superset-ui/core';
@@ -37,8 +37,8 @@ import {
 } from '../types';
 
 export enum OrientationType {
-  vertical = 'vertical',
-  horizontal = 'horizontal',
+  Vertical = 'vertical',
+  Horizontal = 'horizontal',
 }
 
 export enum EchartsTimeseriesSeriesType {
@@ -55,6 +55,7 @@ export type EchartsTimeseriesFormData = QueryFormData & {
   annotationLayers: AnnotationLayer[];
   area: boolean;
   colorScheme?: string;
+  timeShiftColor?: boolean;
   contributionMode?: ContributionType;
   forecastEnabled: boolean;
   forecastPeriods: number;
@@ -65,22 +66,29 @@ export type EchartsTimeseriesFormData = QueryFormData & {
   logAxis: boolean;
   markerEnabled: boolean;
   markerSize: number;
+  metrics: QueryFormMetric[];
   minorSplitLine: boolean;
+  minorTicks: boolean;
   opacity: number;
   orderDesc: boolean;
   rowLimit: number;
   seriesType: EchartsTimeseriesSeriesType;
   stack: StackType;
+  timeCompare?: string[];
   tooltipTimeFormat?: string;
+  showTooltipTotal?: boolean;
+  showTooltipPercentage?: boolean;
+  truncateXAxis: boolean;
   truncateYAxis: boolean;
   yAxisFormat?: string;
+  xAxisForceCategorical?: boolean;
   xAxisTimeFormat?: string;
   timeGrainSqla?: TimeGranularity;
+  xAxisBounds: [number | undefined | null, number | undefined | null];
   yAxisBounds: [number | undefined | null, number | undefined | null];
   zoomable: boolean;
   richTooltip: boolean;
   xAxisLabelRotation: number;
-  groupby: QueryFormColumn[];
   showValue: boolean;
   onlyTotal: boolean;
   showExtraControls: boolean;
@@ -104,4 +112,5 @@ export type TimeseriesChartTransformedProps =
         label: string;
         type: AxisType;
       };
+      onFocusedSeries: (series: string | null) => void;
     };

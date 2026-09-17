@@ -17,17 +17,20 @@
  * under the License.
  */
 
-import moment from 'moment';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
 import {
   getTimeFormatter,
   getTimeFormatterForGranularity,
-  smartDateFormatter,
+  SMART_DATE_ID,
   TimeGranularity,
 } from '@superset-ui/core';
 
+dayjs.extend(utc);
+
 export const parseMetricValue = (metricValue: number | string | null) => {
   if (typeof metricValue === 'string') {
-    const dateObject = moment.utc(metricValue, moment.ISO_8601, true);
+    const dateObject = dayjs.utc(metricValue, undefined, true);
     if (dateObject.isValid()) {
       return dateObject.valueOf();
     }
@@ -41,6 +44,6 @@ export const getDateFormatter = (
   granularity?: TimeGranularity,
   fallbackFormat?: string | null,
 ) =>
-  timeFormat === smartDateFormatter.id
+  timeFormat === SMART_DATE_ID
     ? getTimeFormatterForGranularity(granularity)
     : getTimeFormatter(timeFormat ?? fallbackFormat);

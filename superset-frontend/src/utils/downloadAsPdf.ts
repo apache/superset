@@ -1,4 +1,3 @@
-/* NGLS - EXCLUSIVE */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -18,12 +17,15 @@
  * under the License.
  */
 import { SyntheticEvent } from 'react';
+import { kebabCase } from 'lodash';
+/* NGLS - BEGIN */
 import domToImage from 'dom-to-image-more';
-import kebabCase from 'lodash/kebabCase';
 import { jsPDF } from 'jspdf';
 import { t } from '@superset-ui/core';
+/* NGLS - END */
 import { addWarningToast } from 'src/components/MessageToasts/actions';
 
+/* NGLS - BEGIN */
 const MARGIN_PT = 10;
 
 /**
@@ -35,6 +37,7 @@ const MARGIN_PT = 10;
 const generateFileStem = (description: string, date = new Date()) =>
   `${kebabCase(description)}-${date.toISOString().replace(/[: ]/g, '-')}`;
 
+/* NGLS - BEGIN */
 /**
  * Generate and save the PDF file
  *
@@ -140,6 +143,7 @@ const generatePdf = (canvas: HTMLCanvasElement, filename: string) => {
 
   return pdf.save(filename);
 };
+/* NGLS - END */
 
 /**
  * Create an event handler for turning an element into an image
@@ -165,7 +169,7 @@ export default function downloadAsPdf(
         t('PDF download failed, please refresh and try again.'),
       );
     }
-
+    /* NGLS - BEGIN */
     // Mapbox controls are loaded from different origin, causing CORS error
     // See https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/toDataURL#exceptions
     const filter = (node: Element) => {
@@ -184,11 +188,12 @@ export default function downloadAsPdf(
         bgcolor: 'white',
         filter,
       })
-      .then(canvas =>
-        generatePdf(canvas, `${generateFileStem(description)}.pdf`),
-      )
-      .catch(e => {
+      .then((canvas: HTMLCanvasElement) => {
+        generatePdf(canvas, `${generateFileStem(description)}.pdf`);
+      })
+      .catch((e: unknown) => {
         console.error('Creating PDF failed', e);
       });
+    /* NGLS - END */
   };
 }

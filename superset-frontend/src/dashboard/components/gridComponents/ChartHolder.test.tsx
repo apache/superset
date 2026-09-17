@@ -17,7 +17,6 @@
  * under the License.
  */
 
-import React from 'react';
 import { combineReducers, createStore, applyMiddleware, compose } from 'redux';
 import { Provider } from 'react-redux';
 import thunk from 'redux-thunk';
@@ -118,7 +117,7 @@ describe('ChartHolder', () => {
         'Make sure that the controls are configured properly and the datasource contains data for the selected time range',
       ),
     ).not.toBeInTheDocument(); // description should display only in Explore view
-    expect(screen.getByAltText('empty')).toBeVisible();
+    expect(screen.getByRole('img', { name: 'empty' })).toBeVisible();
   });
 
   it('should render anchor link when not editing', async () => {

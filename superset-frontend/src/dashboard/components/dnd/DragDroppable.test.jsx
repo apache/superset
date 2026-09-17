@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import {
   styledMount as mount,
   styledShallow as shallow,
@@ -24,7 +23,11 @@ import {
 import sinon from 'sinon';
 
 import newComponentFactory from 'src/dashboard/util/newComponentFactory';
-import { CHART_TYPE, ROW_TYPE } from 'src/dashboard/util/componentTypes';
+import {
+  CHART_TYPE,
+  ROW_TYPE,
+  TAB_TYPE,
+} from 'src/dashboard/util/componentTypes';
 import { UnwrappedDragDroppable as DragDroppable } from 'src/dashboard/components/dnd/DragDroppable';
 
 describe('DragDroppable', () => {
@@ -62,6 +65,16 @@ describe('DragDroppable', () => {
     const childrenSpy = sinon.spy();
     setup({ children: childrenSpy });
     expect(childrenSpy.callCount).toBe(1);
+  });
+
+  it('should call onDropIndicatorChange when isDraggingOver changes', () => {
+    const onDropIndicatorChange = sinon.spy();
+    const wrapper = setup({
+      onDropIndicatorChange,
+      component: newComponentFactory(TAB_TYPE),
+    });
+    wrapper.setProps({ isDraggingOver: true });
+    expect(onDropIndicatorChange.callCount).toBe(1);
   });
 
   it('should call its child function with "dragSourceRef" if editMode=true', () => {

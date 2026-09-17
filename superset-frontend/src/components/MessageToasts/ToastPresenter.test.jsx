@@ -16,36 +16,33 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { shallow } from 'enzyme';
-import Toast from 'src/components/MessageToasts/Toast';
+import { fireEvent, render, waitFor } from 'spec/helpers/testing-library';
+
 import ToastPresenter from 'src/components/MessageToasts/ToastPresenter';
 import mockMessageToasts from './mockMessageToasts';
 
-describe('ToastPresenter', () => {
-  const props = {
-    toasts: mockMessageToasts,
-    removeToast() {},
-  };
+const props = {
+  toasts: mockMessageToasts,
+  removeToast() {},
+};
 
-  function setup(overrideProps) {
-    const wrapper = shallow(<ToastPresenter {...props} {...overrideProps} />);
-    return wrapper;
-  }
+function setup(overrideProps) {
+  return render(<ToastPresenter {...props} {...overrideProps} />);
+}
 
-  it('should render a div with id toast-presenter', () => {
-    const wrapper = setup();
-    expect(wrapper.find('#toast-presenter')).toExist();
-  });
+test('should render a div with id toast-presenter', () => {
+  const { container } = setup();
+  expect(container.querySelector('#toast-presenter')).toBeInTheDocument();
+});
 
-  it('should render a Toast for each toast object', () => {
-    const wrapper = setup();
-    expect(wrapper.find(Toast)).toHaveLength(props.toasts.length);
-  });
+test('should render a Toast for each toast object', () => {
+  const { getAllByRole } = setup();
+  expect(getAllByRole('alert')).toHaveLength(props.toasts.length);
+});
 
-  it('should pass removeToast to the Toast component', () => {
-    const removeToast = () => {};
-    const wrapper = setup({ removeToast });
-    expect(wrapper.find(Toast).first().prop('onCloseToast')).toBe(removeToast);
-  });
+test('should pass removeToast to the Toast component', async () => {
+  const removeToast = jest.fn();
+  const { getAllByTestId } = setup({ removeToast });
+  fireEvent.click(getAllByTestId('close-button')[0]);
+  await waitFor(() => expect(removeToast).toHaveBeenCalledTimes(1));
 });
