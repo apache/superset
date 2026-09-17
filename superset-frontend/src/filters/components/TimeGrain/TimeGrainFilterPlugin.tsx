@@ -22,7 +22,14 @@ import {
   ExtraFormData,
   TimeGranularity,
 } from '@superset-ui/core';
-import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { ReactReduxContext } from 'react-redux';
 import {
   FormItem,
@@ -101,14 +108,15 @@ export default function PluginFilterTimegrain(
   }
 
   const options = useMemo(() => {
-    const allOptions = (data || [])
-      .map((row: { name: string; duration: string }) => {
+    const allOptions = (data || []).map(
+      (row: { name: string; duration: string }) => {
         const { name, duration } = row;
         return {
           label: name,
           value: duration,
         };
-      });
+      },
+    );
 
     const allowlist =
       dashboardTimeGrainAllowlist?.length > 0
@@ -120,8 +128,15 @@ export default function PluginFilterTimegrain(
     }
 
     const allowedSet = new Set(allowlist);
-    return allOptions.filter(option => allowedSet.has(option.value) || value.includes(option.value));
-  }, [data, dashboardTimeGrainAllowlist, formData.timeGrains, JSON.stringify(value)]);
+    return allOptions.filter(
+      option => allowedSet.has(option.value) || value.includes(option.value),
+    );
+  }, [
+    data,
+    dashboardTimeGrainAllowlist,
+    formData.timeGrains,
+    JSON.stringify(value),
+  ]);
 
   const validValue = useMemo(() => {
     if (options.length === 0) return [];
