@@ -57,14 +57,11 @@ def generate_cache_key(values_dict: dict[str, Any], key_prefix: str = "") -> str
 def oversized_data_cache_value(cache_key: str, cache_value: Any) -> bool:
     """Whether ``cache_value`` exceeds ``DATA_CACHE_MAX_VALUE_SIZE``.
 
-    Centralizes the size guard so any DATA-cache writer -- including those that
-    store raw (non-``QueryCacheManager``) payloads and therefore cannot use
-    :func:`set_and_log_cache`, which wraps the value -- can skip oversized
-    entries and keep a single large result from flooding the cache backend
-    (e.g. Redis/Memcached). Returns ``False`` (never blocks) when the cap is
-    disabled (``DATA_CACHE_MAX_VALUE_SIZE`` is ``None``), so no serialization
-    overhead is incurred in that case. Emits the same warning and
-    ``skip_cache_value_too_large`` stat as the wrapped path when it trips.
+    Shared size guard so DATA-cache writers that store raw
+    (non-``QueryCacheManager``) payloads -- and so can't use
+    :func:`set_and_log_cache`, which wraps the value -- can also skip oversized
+    entries that would flood the cache backend. Returns ``False`` (never blocks)
+    when the cap is disabled (``None``), avoiding serialization overhead.
     """
     max_value_size = app.config.get("DATA_CACHE_MAX_VALUE_SIZE")
     if max_value_size is None:
@@ -88,11 +85,8 @@ def set_data_cache_if_within_size(
 ) -> bool:
     """Write to the DATA cache unless the value exceeds the size cap.
 
-    A thin, shape-preserving wrapper around ``data_cache.set`` for writers that
-    store raw payloads outside the ``QueryCacheManager`` result contract (and so
-    cannot use :func:`set_and_log_cache`, which wraps the value in a dict).
-    Applying the same :func:`oversized_data_cache_value` guard here keeps a
-    single oversized entry from flooding the cache backend on those paths too.
+    Wraps ``data_cache.set`` for writers that store raw payloads outside the
+    ``QueryCacheManager`` contract (and so can't use :func:`set_and_log_cache`).
 
     :returns: whether the value was persisted.
     """
@@ -138,10 +132,8 @@ def set_and_log_cache(
         )
         value = {**cache_value, "dttm": dttm}
 
-        # Skip caching results that are too large to protect the cache backend
-        # (e.g. Redis/Memcached) from being flooded by huge result sets. The chart
-        # still renders; the value is simply not cached, causing a re-query on the
-        # next load instead of a cache hit.
+        # Skip oversized results to protect the cache backend; the chart still
+        # renders and simply re-queries on the next load.
         if oversized_data_cache_value(cache_key, value):
             return False
 

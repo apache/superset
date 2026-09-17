@@ -1023,8 +1023,7 @@ class SQLExecutor:
             "total_execution_time_ms": result.total_execution_time_ms,
         }
 
-        # Guard against flooding the cache backend with an oversized result;
-        # mirrors the cap enforced by set_and_log_cache on the chart-data path.
+        # Apply the same size cap as the chart-data path.
         from superset.utils.cache import set_data_cache_if_within_size
 
         set_data_cache_if_within_size(cache_key, cached_data, timeout=timeout)

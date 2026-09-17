@@ -446,26 +446,18 @@ class QueryContextProcessor:
 
     def _annotation_cache_context(self, query_obj: QueryObject) -> dict[str, Any]:
         """
-        Cache-key material binding cached annotation data to the *security
-        scope* that produced it, rather than to the individual requesting user.
+        Cache-key material binding annotation data to its security *scope* so
+        users with the same access share a cache entry and users with a
+        different scope -- or no access -- never read each other's data.
 
-        Annotation payloads are fetched under the requesting user's security
-        context and stored on the same cache entry as the dataframe. Binding the
-        raw user id fanned the same (potentially large) result out to one cache
-        copy per user. Instead bind only the inputs that actually determine
-        which annotation data a user can see, so users who share that scope
-        share a cache entry while users with a different scope -- or no access
-        -- never read each other's data:
+        Annotation payloads are fetched under the requesting user's permissions
+        and stored on the same cache entry as the dataframe, so the key binds
+        the inputs that determine what a user may see:
 
-        * NATIVE layers expose global annotation records gated solely by the
-          ``can_read`` permission on ``Annotation``; a single access flag
-          captures the only user-dependent dimension.
-        * Chart-backed (``line``/``table``) layers run a query against the
-          referenced chart's datasource. Bind both whether the user can access
-          that datasource (its access check otherwise only runs on a cache miss,
-          not on a hit) and the annotation chart's own data cache key, which
-          already folds in the datasource's RLS clauses and any per-user
-          Jinja/virtual-dataset RLS predicates.
+        * NATIVE layers: the ``can_read`` permission on ``Annotation``, the only
+          user-dependent dimension of these global records.
+        * Chart-backed (``line``/``table``) layers: see
+          :meth:`_annotation_source_scope`.
         """
         context: dict[str, Any] = {}
 
@@ -492,13 +484,10 @@ class QueryContextProcessor:
         Access and data-identity cache-key material for one chart-backed
         annotation layer.
 
-        ``access`` distinguishes users who may fetch the referenced chart's data
-        from those who may not, so a denied user never reads an authorized
-        user's cached annotation payload. ``data_key`` is the annotation chart's
-        own query cache key, which captures the datasource version, RLS clauses,
-        and any per-user Jinja/virtual-dataset RLS material -- everything that
-        makes the fetched annotation data differ between users. Users who match
-        on both dedupe onto a single cache entry.
+        ``access`` keeps a user denied the referenced chart's datasource from
+        reading an authorized user's cached payload. ``data_key`` is the
+        annotation chart's own query cache key, capturing the datasource
+        version, RLS clauses, and per-user Jinja/virtual-dataset RLS material.
         """
         chart = ChartDAO.find_by_id(layer_value) if layer_value is not None else None
         datasource = chart.datasource if chart else None
@@ -507,10 +496,8 @@ class QueryContextProcessor:
 
         try:
             access = security_manager.can_access_datasource(datasource)
-            # The annotation chart's own query cache key already captures the
-            # datasource version, RLS clauses, and any per-user Jinja /
-            # virtual-dataset RLS material. Fall back to the RLS-clause identity
-            # only when the chart has no saved query context to key on.
+            # Fall back to the RLS-clause identity when the chart has no saved
+            # query context to key on.
             annotation_query_context = chart.get_query_context()
             data_key: Any = (
                 [
@@ -521,14 +508,10 @@ class QueryContextProcessor:
                 else security_manager.get_rls_cache_key(datasource)
             )
         except SupersetException:
-            # Only the annotation fetch's own failure mode is swallowed here:
-            # ``get_viz_annotation_data`` surfaces exactly these
-            # ``SupersetException``-family errors (access, RLS, query build) and
-            # marks the result FAILED so nothing is persisted. Because key
-            # derivation fails on the same inputs, a fallback key is never used
-            # to store real data; it only needs to avoid silently deduping this
-            # scope onto a successfully-derived one, so it fails closed. Any
-            # other (unexpected) error propagates rather than weakening the key.
+            # The annotation fetch raises these same errors and persists
+            # nothing, so a fallback key never stores real data; fail closed so
+            # this scope can't silently dedupe onto a successfully-derived one.
+            # Other errors propagate rather than weakening the key.
             logger.warning(
                 "Could not derive annotation cache key for chart %s; "
                 "falling back to a fail-closed scope",
