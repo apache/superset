@@ -110,6 +110,7 @@ from superset.exceptions import (
     SupersetParseError,
     SupersetSecurityException,
     SupersetSyntaxErrorException,
+    SupersetTemplateException,
 )
 from superset.extensions import feature_flag_manager
 from superset.jinja_context import BaseTemplateProcessor
@@ -3706,12 +3707,17 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         msg=str(ex),
                     )
                 ) from ex
-            except (TemplateError, SupersetSyntaxErrorException) as ex:
-                # Extract error message from different exception types
+            except (
+                TemplateError,
+                SupersetSyntaxErrorException,
+                SupersetTemplateException,
+            ) as ex:
                 if isinstance(ex, TemplateError):
                     error_msg = ex.message
-                else:  # SupersetSyntaxErrorException
+                elif isinstance(ex, SupersetSyntaxErrorException):
                     error_msg = str(ex.errors[0].message if ex.errors else ex)
+                else:  # SupersetTemplateException
+                    error_msg = str(ex)
 
                 raise QueryObjectValidationError(
                     _(
@@ -4561,7 +4567,33 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         type_ = column_spec.sqla_type if column_spec else None
         if expression := tbl_column.expression:
             if template_processor:
-                expression = template_processor.process_template(expression)
+                try:
+                    expression = template_processor.process_template(expression)
+                except UndefinedError as ex:
+                    raise QueryObjectValidationError(
+                        _(
+                            "Calculated column template error: %(msg)s",
+                            msg=str(ex),
+                        )
+                    ) from ex
+                except (
+                    TemplateError,
+                    SupersetSyntaxErrorException,
+                    SupersetTemplateException,
+                ) as ex:
+                    if isinstance(ex, TemplateError):
+                        error_msg = ex.message
+                    elif isinstance(ex, SupersetSyntaxErrorException):
+                        error_msg = str(ex.errors[0].message if ex.errors else ex)
+                    else:  # SupersetTemplateException
+                        error_msg = str(ex)
+                    raise QueryObjectValidationError(
+                        _(
+                            "Error while rendering calculated column "
+                            "expression: %(msg)s",
+                            msg=error_msg,
+                        )
+                    ) from ex
                 if expression != tbl_column.expression:
                     # Re-check the rendered expression before embedding it.
                     expression = validate_rendered_expression(
