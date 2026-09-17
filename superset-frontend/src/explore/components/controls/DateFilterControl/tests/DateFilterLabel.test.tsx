@@ -163,21 +163,19 @@ test('DateFilter popover shifts into the viewport', async () => {
   });
 });
 
-test('DateFilter popover should attach to parent node when overflowing in filter bar', () => {
+test('DateFilter popover should attach to document.body when overflowing in filter bar', () => {
   render(setup({ ...defaultProps, isOverflowingFilterBar: true }));
 
   userEvent.click(screen.getByText(NO_TIME_RANGE));
 
   const popover = document.querySelector<HTMLElement>('.time-range-popover');
-  const trigger = screen.getByTestId(DateFilterTestKey.PopoverOverlay);
-
-  expect(popover?.parentElement).toBe(trigger.parentElement);
+  expect(popover?.parentElement).toBe(document.body);
   expect(popover).toHaveStyle({
     width: 'min(600px, calc(100vw - 32px))',
   });
 });
 
-test('DateFilter should properly handle isOverflowingFilterBar prop changes', () => {
+test('DateFilter popover should stay attached to document.body on isOverflowingFilterBar prop changes', () => {
   const { rerender } = render(
     setup({ ...defaultProps, isOverflowingFilterBar: false }),
   );
@@ -189,15 +187,12 @@ test('DateFilter should properly handle isOverflowingFilterBar prop changes', ()
 
   userEvent.click(screen.getByText('Cancel'));
 
-  // When overflowing, popover should attach to parent node
+  // When overflowing, popover should still attach to document.body
   rerender(setup({ ...defaultProps, isOverflowingFilterBar: true }));
   userEvent.click(screen.getByText(NO_TIME_RANGE));
 
   const popoverAfterRerender = document.querySelector('.time-range-popover');
-  const trigger = screen.getByTestId(DateFilterTestKey.PopoverOverlay);
-
-  expect(popoverAfterRerender?.parentElement).toBe(trigger.parentElement);
-  expect(popoverAfterRerender?.parentElement).not.toBe(document.body);
+  expect(popoverAfterRerender?.parentElement).toBe(document.body);
 });
 
 test('hovering the description icon does not show the date range tooltip', async () => {
