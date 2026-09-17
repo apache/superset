@@ -30,7 +30,7 @@ from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.commands.dashboard.exceptions import DashboardNotFoundError
 from superset.commands.exceptions import CommandException, ForbiddenError
-from superset.exceptions import SupersetSecurityException
+from superset.exceptions import SupersetSecurityException, SupersetTemplateException
 from superset.explore.permalink.types import ExplorePermalinkValue
 from superset.extensions import event_logger
 from superset.mcp_service.chart.chart_helpers import (
@@ -103,10 +103,24 @@ def _get_explore_permalink(
 
     try:
         value = GetExplorePermalinkCommand(permalink_key).run()
-    except ForbiddenError:
+    except (ForbiddenError, SupersetSecurityException):
+        # Tables raise ForbiddenError subclasses; SQL Lab queries go through
+        # security_manager.raise_for_access, which raises
+        # SupersetSecurityException.
         return ChartError(
             error="You do not have access to the chart or dataset in this permalink.",
             error_type="PermalinkAccessDenied",
+        )
+    except SupersetTemplateException as ex:
+        # The access check renders a SQL Lab query's Jinja to find its tables;
+        # a broken template means access cannot be checked at all.
+        logger.warning("Failed to render explore permalink query: %s", ex)
+        return ChartError(
+            error=(
+                "The SQL Lab query behind this permalink has a template error, "
+                "so access to it could not be checked."
+            ),
+            error_type="InvalidPermalink",
         )
     except (CommandException, SQLAlchemyError, ValidationError, ValueError) as ex:
         # ValidationError: the permalink's datasource no longer exists or has an
@@ -172,7 +186,12 @@ def _permalink_datasource(
             datasource_type,
         )
         return None, str(datasource_type)
-    return datasource.datasource_name, str(datasource_type)
+    # A SQL Lab query labels itself with ``name``; datasets use
+    # ``datasource_name``.
+    name = getattr(datasource, "datasource_name", None) or getattr(
+        datasource, "name", None
+    )
+    return name, str(datasource_type)
 
 
 def _build_permalink_chart_info(
@@ -180,15 +199,15 @@ def _build_permalink_chart_info(
 ) -> ChartInfo:
     """Build a ChartInfo from a permalink that is not tied to a saved chart."""
     datasource_name, datasource_type = _permalink_datasource(permalink)
-    return ChartInfo(
-        viz_type=form_data.get("viz_type"),
+    result = ChartInfo(
         datasource_name=datasource_name,
         datasource_type=datasource_type,
-        filters=extract_filters_from_form_data(form_data),
         form_data=form_data,
         permalink_key=permalink_key,
         is_permalink_state=True,
     )
+    _update_fields_from_form_data(result)
+    return result
 
 
 async def _validate_chart_dataset_access(

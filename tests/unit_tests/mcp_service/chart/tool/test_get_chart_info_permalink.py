@@ -169,13 +169,31 @@ async def test_permalink_without_saved_chart(mcp_server: FastMCP) -> None:
 
 
 @pytest.mark.asyncio
+async def test_permalink_without_saved_chart_reports_display_name(
+    mcp_server: FastMCP,
+) -> None:
+    """Same viz_type-derived fields as a permalink merged into a saved chart."""
+    with patch(_COMMAND, _command_returning(_permalink(chart_id=None))):
+        data = await _call(
+            mcp_server,
+            permalink_key="abc123",
+            select_columns=["viz_type", "chart_type_display_name"],
+        )
+
+    assert data["viz_type"] == "pie"
+    assert data["chart_type_display_name"] == "Pie Chart"
+
+
+@pytest.mark.asyncio
 async def test_permalink_without_saved_chart_names_its_datasource(
     mcp_server: FastMCP,
 ) -> None:
     """form_data only carries "<id>__<type>", so the name comes from the ids
     the permalink stores."""
-    dataset = MagicMock()
-    dataset.datasource_name = "orders"
+    from superset.connectors.sqla.models import SqlaTable
+
+    # A real model, not a mock: a mock answers to any attribute name.
+    dataset = SqlaTable(table_name="orders")
     with (
         patch(_COMMAND, _command_returning(_permalink(chart_id=None))),
         patch(
@@ -192,6 +210,37 @@ async def test_permalink_without_saved_chart_names_its_datasource(
     assert data["datasource_name"] == "orders"
     assert data["datasource_type"] == "table"
     assert get_datasource.call_args.kwargs["database_id_or_uuid"] == 7
+
+
+@pytest.mark.asyncio
+async def test_permalink_without_saved_chart_names_its_sql_lab_query(
+    mcp_server: FastMCP,
+) -> None:
+    """Explore opened from SQL Lab results stores a "<id>__query" datasource.
+
+    ``Query`` exposes its label as ``name`` and has no ``datasource_name``.
+    """
+    from superset.models.sql_lab import Query
+
+    permalink = _permalink(chart_id=None, datasource="5__query")
+    permalink.update(datasourceId=5, datasourceType="query", datasource="5__query")
+    with (
+        patch(_COMMAND, _command_returning(permalink)),
+        patch(
+            "superset.daos.datasource.DatasourceDAO.get_datasource",
+            return_value=Query(tab_name="Untitled Query"),
+        ) as get_datasource,
+    ):
+        data = await _call(
+            mcp_server,
+            permalink_key="abc123",
+            select_columns=["viz_type", "datasource_name", "datasource_type"],
+        )
+
+    assert data["viz_type"] == "pie"
+    assert data["datasource_name"].startswith("sqllab_untitled_query_")
+    assert data["datasource_type"] == "query"
+    assert get_datasource.call_args.kwargs["database_id_or_uuid"] == 5
 
 
 @pytest.mark.asyncio
@@ -302,6 +351,43 @@ async def test_permalink_access_denied(mcp_server: FastMCP) -> None:
         data = await _call(mcp_server, permalink_key="abc123")
 
     assert data["error_type"] == "PermalinkAccessDenied"
+
+
+@pytest.mark.asyncio
+async def test_permalink_query_access_denied(mcp_server: FastMCP) -> None:
+    """SQL Lab queries are checked by raise_for_access, which raises
+    SupersetSecurityException rather than a ForbiddenError."""
+    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+    from superset.exceptions import SupersetSecurityException
+
+    command = MagicMock()
+    command.return_value.run.side_effect = SupersetSecurityException(
+        SupersetError(
+            message="denied",
+            error_type=SupersetErrorType.QUERY_SECURITY_ACCESS_ERROR,
+            level=ErrorLevel.ERROR,
+        )
+    )
+    with patch(_COMMAND, command):
+        data = await _call(mcp_server, permalink_key="abc123")
+
+    assert data["error_type"] == "PermalinkAccessDenied"
+
+
+@pytest.mark.asyncio
+async def test_permalink_query_with_template_error(mcp_server: FastMCP) -> None:
+    from superset.exceptions import SupersetTemplateException
+
+    command = MagicMock()
+    command.return_value.run.side_effect = SupersetTemplateException(
+        "unexpected '}' in {{ secret }}"
+    )
+    with patch(_COMMAND, command):
+        data = await _call(mcp_server, permalink_key="abc123")
+
+    assert data["error_type"] == "InvalidPermalink"
+    assert "template error" in data["error"]
+    assert "secret" not in data["error"]
 
 
 @pytest.mark.asyncio
