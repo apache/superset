@@ -1859,11 +1859,11 @@ class SqlaTable(
         template_processor: BaseTemplateProcessor | None = None,
     ) -> TextClause:
         fetch_values_predicate = self.fetch_values_predicate
-        if template_processor:
-            fetch_values_predicate = template_processor.process_template(
-                fetch_values_predicate
-            )
         try:
+            if template_processor:
+                fetch_values_predicate = template_processor.process_template(
+                    fetch_values_predicate
+                )
             # Re-validate the rendered predicate with the same parser policy
             # as stored column and metric expressions before embedding it.
             validate_stored_expression(

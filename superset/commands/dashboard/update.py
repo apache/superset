@@ -38,6 +38,7 @@ from superset.commands.dashboard.exceptions import (
 )
 from superset.commands.utils import (
     compute_subjects,
+    raise_if_managed_externally,
     update_tags,
     validate_tags,
 )
@@ -57,6 +58,20 @@ logger = logging.getLogger(__name__)
 
 
 class UpdateDashboardCommand(UpdateMixin, BaseCommand):
+    #: Ordinary edits of an externally managed dashboard are refused
+    #: server-side (see ``raise_if_managed_externally``).
+    #: ``UpdateDashboardColorsConfigCommand`` flips this off so background
+    #: colors sync keeps working while a dashboard is merely viewed -- but
+    #: only for derived color values; its validate() override refuses
+    #: changes to the authoritative inputs.
+    _refuses_externally_managed: bool = True
+
+    #: Superset-local fields not owned by the external source of truth: the
+    #: publish toggle is local visibility state (which authorized viewers
+    #: see the dashboard), not dashboard content, so an update touching
+    #: ONLY these fields passes the managed-externally gate.
+    _MANAGED_LOCAL_ONLY_FIELDS: frozenset[str] = frozenset({"published"})
+
     def __init__(self, model_id: int, data: dict[str, Any]):
         self._model_id = model_id
         self._properties = data.copy()
@@ -121,6 +136,12 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
             security_manager.raise_for_editorship(self._model)
         except SupersetSecurityException as ex:
             raise DashboardForbiddenError() from ex
+
+        if self._refuses_externally_managed and not (
+            self._properties
+            and set(self._properties) <= self._MANAGED_LOCAL_ONLY_FIELDS
+        ):
+            raise_if_managed_externally(self._model, DashboardForbiddenError)
 
         # Validate slug uniqueness
         if not DashboardDAO.validate_update_slug_uniqueness(self._model_id, slug):
@@ -286,17 +307,62 @@ class UpdateDashboardChartCustomizationsCommand(UpdateDashboardCommand):
 
 
 class UpdateDashboardColorsConfigCommand(UpdateDashboardCommand):
+    # The blanket gate is skipped so background colors sync (fired while a
+    # dashboard is merely viewed) keeps working for externally managed
+    # dashboards -- but only for the DERIVED color values. The authoritative
+    # inputs are the dashboard's real content, owned by the external source
+    # of truth; validate() refuses a payload that would change them.
+    _refuses_externally_managed = False
+
+    #: json_metadata keys a colors-config save may NOT change on an
+    #: externally managed dashboard. The other accepted keys
+    #: (color_scheme_domain, shared_label_colors, map_label_colors) are
+    #: derived from these plus chart state (see
+    #: DashboardDAO.update_colors_config).
+    _AUTHORITATIVE_COLOR_KEYS: tuple[str, ...] = ("color_scheme", "label_colors")
+
     def __init__(
         self, model_id: int, data: dict[str, Any], mark_updated: bool = True
     ) -> None:
         super().__init__(model_id, data)
         self._mark_updated = mark_updated
 
+    def validate(self) -> None:
+        super().validate()
+        assert self._model
+        if self._model.is_managed_externally and self._changes_authoritative_colors():
+            raise DashboardForbiddenError()
+
+    def _changes_authoritative_colors(self) -> bool:
+        """Whether the payload changes the EFFECTIVE authoritative colors.
+
+        Compared by effective state, not raw metadata bytes: an absent
+        key, an explicit null, and an empty value ("" / {}) all encode
+        the same authoritative color state — none. The background colors
+        sync always sends ``label_colors`` (as ``{}`` when nothing is
+        set) while a dashboard is merely VIEWED, so refusing
+        empty-vs-absent would 403 every view of a managed dashboard
+        whose metadata lacks the key. The DAO may still write the empty
+        key into stored metadata — that changes export bytes, not color
+        state, and the next external sync owns the bytes anyway.
+        """
+        assert self._model
+        metadata = json.loads(self._model.json_metadata or "{}")
+
+        def effective(value: Any) -> Any:
+            return None if value in (None, "", {}) else value
+
+        return any(
+            key in self._properties
+            and effective(self._properties[key]) != effective(metadata.get(key))
+            for key in self._AUTHORITATIVE_COLOR_KEYS
+        )
+
     @transaction(
         on_error=partial(on_error, reraise=DashboardColorsConfigUpdateFailedError)
     )
     def run(self) -> Model:
-        super().validate()
+        self.validate()
         assert self._model
 
         original_changed_on = self._model.changed_on
