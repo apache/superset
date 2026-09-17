@@ -267,7 +267,7 @@ class TestSqlLab(SupersetTestCase):
         for endpoint in ("/sqllab/", "/sqllab/history/"):
             resp = self.client.get(endpoint)
             # Redirects to the main page
-            assert 302 == resp.status_code
+            assert 403 == resp.status_code
 
     def test_sql_json_schema_access(self):
         examples_db = get_example_database()
