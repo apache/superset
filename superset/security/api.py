@@ -337,6 +337,7 @@ class SecurityRestApi(BaseSupersetApi):
     @expose("/login-token/", methods=("GET",))
     @event_logger.log_this
     @statsd_metrics
+    @safe
     @transaction()
     def login_with_token(self) -> Response:
         """Consume a one-time login token and establish a session.
