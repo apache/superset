@@ -514,10 +514,14 @@ STRING_FIELD_TRUNCATION_TOOLS: Dict[str, str] = {
 # In-band markers appended to a bisected string field, keyed by field name.
 # Only needed where a truncated prefix stays valid input for some other tool:
 # a SQL statement cut before its WHERE/LIMIT clause still executes, and would
-# scan far more data than the original. The marker makes the prefix a syntax
-# error so it cannot be run by accident, while staying readable.
+# scan far more data than the original.
+#
+# The SQL marker is an *unterminated* block comment. A `--` line comment would
+# not do -- it leaves the prefix perfectly runnable, which is the whole hazard.
+# An unterminated /* is a parse error in every dialect, so the truncated
+# statement cannot execute by accident, while the text stays readable.
 _STRING_FIELD_TRUNCATION_MARKERS: Dict[str, str] = {
-    "sql": "\n-- ... [SQL TRUNCATED -- INCOMPLETE STATEMENT, DO NOT EXECUTE]",
+    "sql": "\n/* SQL TRUNCATED -- INCOMPLETE STATEMENT, DO NOT EXECUTE",
 }
 
 # Data field names used by the three query tools (in priority order).

@@ -26,6 +26,7 @@ from pydantic import BaseModel
 
 from superset.mcp_service.utils import token_utils
 from superset.mcp_service.utils.token_utils import (
+    _bisect_string_length,
     _MAX_DICT_KEYS,
     _replace_collections_with_summaries,
     _summarize_large_dicts,
@@ -910,12 +911,16 @@ class TestTruncateStringFieldResponse:
         assert was_truncated is True
         assert isinstance(result, dict)
         assert "LIMIT 10" not in result["sql"]
-        assert result["sql"].endswith("DO NOT EXECUTE]")
+        assert result["sql"].endswith("DO NOT EXECUTE")
+        # An unterminated /* -- a `--` line comment would leave the truncated
+        # statement perfectly runnable, which is the hazard being prevented.
+        assert "/*" in result["sql"]
+        assert "*/" not in result["sql"]
         # The marker is inside the measured budget, not appended after it.
         assert estimate_response_tokens(result) <= 500
 
-    def test_untruncated_sql_gets_no_marker(self) -> None:
-        """The marker must only appear when the statement was actually cut."""
+    def test_under_limit_sql_is_returned_verbatim(self) -> None:
+        """A response that already fits is passed through untouched."""
         response = {"chart_id": 1, "sql": "SELECT 1 FROM t LIMIT 10"}
         result, was_truncated, _ = truncate_string_field_response(
             response, 25000, "sql"
@@ -923,6 +928,18 @@ class TestTruncateStringFieldResponse:
         assert was_truncated is False
         assert isinstance(result, dict)
         assert result["sql"] == "SELECT 1 FROM t LIMIT 10"
+
+    def test_bisect_does_not_mark_a_value_it_did_not_cut(self) -> None:
+        """The marker is appended only when the prefix is actually shorter.
+
+        Exercised directly on _bisect_string_length: the public entry point
+        only calls it once the payload is already over budget, so the
+        "nothing was cut" branch is not reachable through it.
+        """
+        data: dict[str, Any] = {"sql": "SELECT 1"}
+        kept = _bisect_string_length(data, "sql", "SELECT 1", 25000, suffix="/* CUT")
+        assert kept == len("SELECT 1")
+        assert data["sql"] == "SELECT 1"
 
     def test_no_lever_fallback_note_is_actionable(self) -> None:
         """format_size_limit_error's get_chart_sql suggestion is real advice,

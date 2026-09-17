@@ -803,6 +803,40 @@ class TestResponseSizeGuardMiddleware:
         assert "committed" not in note
 
     @pytest.mark.asyncio
+    async def test_opaque_tool_result_is_blocked_not_returned_as_dict(
+        self,
+    ) -> None:
+        """An info tool's unparseable ToolResult must not degrade to a dict.
+
+        truncate_oversized_response would model_dump() the ToolResult wrapper
+        itself and the middleware would hand FastMCP a plain dict, failing in
+        to_mcp_result(). Declining to truncate surfaces the normal size-limit
+        error instead.
+        """
+        from fastmcp.tools.tool import ToolResult
+        from mcp.types import TextContent
+
+        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+
+        context = MagicMock()
+        context.message.name = "get_dashboard_info"
+        context.message.arguments = {}
+
+        opaque = ToolResult(content=[TextContent(type="text", text="<html>" * 500)])
+        call_next = AsyncMock(return_value=opaque)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+            patch(
+                "superset.mcp_service.middleware.estimate_response_tokens",
+                return_value=600,
+            ),
+            pytest.raises(ToolError),
+        ):
+            await middleware.on_call_tool(context, call_next)
+
+    @pytest.mark.asyncio
     async def test_committed_write_fallback_rewraps_unparseable_tool_result(
         self,
     ) -> None:

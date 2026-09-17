@@ -1223,6 +1223,17 @@ class ResponseSizeGuardMiddleware(Middleware):
         """
         # Unwrap ToolResult so truncation operates on the real payload
         extracted = self._extract_payload_from_tool_result(response)
+        if extracted is None and isinstance(response, ToolResult):
+            # A ToolResult whose payload can't be parsed is opaque: truncating
+            # it would model_dump() the wrapper itself and hand FastMCP a
+            # plain dict, which then fails in to_mcp_result(). Decline instead
+            # and let the caller fall through to its own fallback.
+            logger.warning(
+                "Cannot truncate %s: ToolResult payload is not a JSON object",
+                tool_name,
+            )
+            return None
+
         if extracted is not None:
             truncation_target = extracted
         else:
@@ -1306,6 +1317,17 @@ class ResponseSizeGuardMiddleware(Middleware):
         Returns the truncated response if successful, None otherwise.
         """
         extracted = self._extract_payload_from_tool_result(response)
+        if extracted is None and isinstance(response, ToolResult):
+            # A ToolResult whose payload can't be parsed is opaque: truncating
+            # it would model_dump() the wrapper itself and hand FastMCP a
+            # plain dict, which then fails in to_mcp_result(). Decline instead
+            # and let the caller fall through to its own fallback.
+            logger.warning(
+                "Cannot truncate %s: ToolResult payload is not a JSON object",
+                tool_name,
+            )
+            return None
+
         truncation_target = extracted if extracted is not None else response
 
         try:
@@ -1378,6 +1400,17 @@ class ResponseSizeGuardMiddleware(Middleware):
         Returns the truncated response if successful, None otherwise.
         """
         extracted = self._extract_payload_from_tool_result(response)
+        if extracted is None and isinstance(response, ToolResult):
+            # A ToolResult whose payload can't be parsed is opaque: truncating
+            # it would model_dump() the wrapper itself and hand FastMCP a
+            # plain dict, which then fails in to_mcp_result(). Decline instead
+            # and let the caller fall through to its own fallback.
+            logger.warning(
+                "Cannot truncate %s: ToolResult payload is not a JSON object",
+                tool_name,
+            )
+            return None
+
         truncation_target = extracted if extracted is not None else response
 
         try:
