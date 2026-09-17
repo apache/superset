@@ -23,6 +23,7 @@ chart configuration.
 """
 
 import logging
+from typing import Any
 
 from fastmcp import Context
 from superset_core.mcp.decorators import tool, ToolAnnotations
@@ -37,11 +38,21 @@ from superset.mcp_service.chart.chart_utils import (
     map_config_to_form_data,
 )
 from superset.mcp_service.chart.compile import validate_and_compile
+from superset.mcp_service.chart.datasource_resolver import (
+    ChartDatasource,
+    resolve_semantic_view,
+    validate_semantic_view_config,
+    validate_semantic_view_form_data,
+    view_not_found_error,
+)
 from superset.mcp_service.chart.schemas import (
     GenerateExploreLinkRequest,
 )
 from superset.mcp_service.chart.validation.dataset_validator import DatasetValidator
-from superset.mcp_service.common.error_schemas import ChartGenerationError
+from superset.mcp_service.common.error_schemas import (
+    ChartGenerationError,
+    DatasetContext,
+)
 from superset.mcp_service.explore.schemas import GenerateExploreLinkResponse
 from superset.mcp_service.utils.url_utils import (
     extract_permalink_key_from_url,
@@ -62,7 +73,7 @@ logger = logging.getLogger(__name__)
         openWorldHint=False,
     ),
 )
-async def generate_explore_link(
+async def generate_explore_link(  # noqa: C901
     request: GenerateExploreLinkRequest, ctx: Context
 ) -> GenerateExploreLinkResponse:
     """Generate explore URL for interactive visualization.
@@ -80,6 +91,10 @@ async def generate_explore_link(
     - Use numeric dataset ID or UUID (NOT schema.table_name format)
     - When config is provided, MUST include chart_type (e.g. 'xy' or 'table')
     - Omit config entirely to return a default explore URL for the dataset
+    - To open a semantic view (semantic layer) pass view_id instead of
+      dataset_id (exactly one of the two). Semantic-view charts may only use
+      the view's saved metrics ({"name": "<metric>", "saved_metric": true})
+      and saved dimensions; ad-hoc aggregates and SQL expressions are rejected.
 
     Example usage:
     ```json
@@ -97,6 +112,19 @@ async def generate_explore_link(
     Or with no config to simply open the dataset in Explore:
     ```json
     {"dataset_id": 123}
+    ```
+
+    Or a semantic view (saved metric + saved dimension):
+    ```json
+    {
+        "view_id": 1,
+        "config": {
+            "chart_type": "xy",
+            "x": {"name": "metric_time"},
+            "y": [{"name": "revenue", "saved_metric": true}],
+            "kind": "line"
+        }
+    }
     ```
 
     Better UX because:
@@ -121,6 +149,10 @@ async def generate_explore_link(
     )
 
     try:
+        if request.view_id is not None:
+            return await _generate_for_semantic_view(request, ctx)
+        assert request.dataset_id is not None
+
         await ctx.report_progress(1, 4, "Validating dataset exists")
         with event_logger.log_context(action="mcp.generate_explore_link.dataset_check"):
             dataset = None
@@ -367,3 +399,99 @@ async def generate_explore_link(
             ),
             success=False,
         )
+
+
+async def _generate_for_semantic_view(
+    request: GenerateExploreLinkRequest, ctx: Context
+) -> GenerateExploreLinkResponse:
+    """Explore link for a semantic view target (``request.view_id``)."""
+    assert request.view_id is not None
+    await ctx.report_progress(1, 4, "Resolving semantic view")
+    target: ChartDatasource | None = resolve_semantic_view(request.view_id)
+    if target is None:
+        await ctx.warning("Semantic view not found: view_id=%s" % (request.view_id,))
+        return GenerateExploreLinkResponse(
+            url="",
+            form_data={},
+            permalink_key=None,
+            form_data_key=None,
+            chart_type_label=None,
+            error=view_not_found_error(request.view_id),
+            success=False,
+        )
+
+    base_url: str = get_superset_base_url()
+    if request.config is None:
+        await ctx.report_progress(4, 4, "URL generation complete")
+        return GenerateExploreLinkResponse(
+            url=f"{base_url}{target.explore_url_path}",
+            form_data={},
+            permalink_key=None,
+            form_data_key=None,
+            chart_type_label=None,
+            error=None,
+            success=True,
+        )
+
+    await ctx.report_progress(2, 4, "Validating configuration against the view")
+    is_valid: bool
+    error: ChartGenerationError | None
+    _context: DatasetContext
+    is_valid, error, _context = validate_semantic_view_config(request.config, target)
+    if not is_valid:
+        await ctx.warning(
+            "Semantic view chart validation failed: %s"
+            % (error.model_dump() if error else None,)
+        )
+        return GenerateExploreLinkResponse(
+            url="",
+            form_data={},
+            permalink_key=None,
+            form_data_key=None,
+            chart_type_label=None,
+            error=error,
+            success=False,
+        )
+
+    await ctx.report_progress(3, 4, "Converting configuration to form data")
+    # No dataset id here: the plugins' dataset-backed temporal checks fall back
+    # to their permissive defaults, and the view's own validation ran above.
+    form_data: dict[str, Any] = map_config_to_form_data(request.config, dataset_id=None)
+    form_data.pop("_mcp_warnings", None)
+    form_data["datasource"] = target.form_data_datasource
+    error = validate_semantic_view_form_data(form_data, target)
+    if error is not None:
+        return GenerateExploreLinkResponse(
+            url="",
+            form_data={},
+            permalink_key=None,
+            form_data_key=None,
+            chart_type_label=None,
+            error=error,
+            success=False,
+        )
+
+    await ctx.report_progress(4, 4, "Generating explore URL")
+    url: str = generate_url(
+        target.id, form_data, datasource_type=target.datasource_type.value
+    )
+    permalink_key: str | None = extract_permalink_key_from_url(url)
+    form_data_key: str | None = (
+        extract_form_data_key_from_url(url) if not permalink_key else None
+    )
+    await ctx.info(
+        "Explore link generated for semantic view %s (%s)" % (target.id, target.name)
+    )
+    return GenerateExploreLinkResponse(
+        url=url,
+        form_data=form_data,
+        permalink_key=permalink_key,
+        form_data_key=form_data_key,
+        chart_type_label=(
+            get_table_chart_type_label(form_data.get("viz_type"))
+            if request.config.chart_type == "table"
+            else None
+        ),
+        error=None,
+        success=True,
+    )
