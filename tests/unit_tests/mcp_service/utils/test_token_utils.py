@@ -939,7 +939,16 @@ class TestTruncateStringFieldResponse:
             truncated = " ".join(["SELECT a, b FROM t", tail, marker])
             with pytest.raises(sqlite3.Error):
                 connection.execute(truncated)
-            for dialect in ("sqlite", "mysql", "postgres", "trino", "bigquery"):
+            for dialect in (
+                "sqlite",
+                "mysql",
+                "postgres",
+                "duckdb",
+                "snowflake",
+                "bigquery",
+                "trino",
+                "tsql",
+            ):
                 with pytest.raises(Exception):  # noqa: B017, PT011
                     sqlglot.parse_one(truncated, dialect=dialect)
         connection.close()

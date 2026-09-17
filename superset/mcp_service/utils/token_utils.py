@@ -517,15 +517,24 @@ STRING_FIELD_TRUNCATION_TOOLS: Dict[str, str] = {
 # scan far more data than the original.
 #
 # The SQL marker has to survive whatever lexical state the cut landed in,
-# since the bisect point is arbitrary. It closes an open block comment
-# (``*/``) and then opens an unterminated string literal, after a newline
-# that ends any open line comment. Simpler markers were tried and rejected:
-# a ``--`` comment leaves the prefix perfectly runnable; a bare unterminated
-# ``/*`` is not fatal in SQLite, which closes block comments at end of
-# input; and a bare unterminated quote is swallowed whole when the cut lands
-# inside a block comment. Verified against sqlite3 and against sqlglot for
-# sqlite/mysql/postgres/duckdb/snowflake/bigquery/trino/mssql, for cuts
-# landing in normal, line-comment, block-comment and string-literal state.
+# since the bisect point is arbitrary. Every part of it is load-bearing for
+# a different state, so do not trim it:
+#   - the leading newline ends an open line comment;
+#   - ``*/`` closes an open block comment (and is itself a syntax error when
+#     there is none to close);
+#   - ``'`` opens an unterminated string literal;
+#   - the trailing ``SQL TRUNCATED ...`` words are what make the *mid-string*
+#     case fail. There the quote closes the in-progress literal instead of
+#     opening one, so rejection rests entirely on those leftover bare
+#     identifiers being invalid after an expression.
+#
+# Simpler markers were tried and rejected: a ``--`` comment leaves the prefix
+# perfectly runnable; a bare unterminated ``/*`` is not fatal in SQLite, which
+# closes block comments at end of input; and a bare unterminated quote is
+# swallowed whole when the cut lands inside a block comment. Verified against
+# sqlite3 and against sqlglot for cuts landing in normal, line-comment,
+# block-comment and string-literal state (see the unit test for the dialects
+# actually guarded).
 #
 # This is defense in depth. ``_response_truncated`` / ``_truncation_notes``
 # remain the authoritative signal that the SQL is partial.
