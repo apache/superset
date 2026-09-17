@@ -516,15 +516,21 @@ STRING_FIELD_TRUNCATION_TOOLS: Dict[str, str] = {
 # a SQL statement cut before its WHERE/LIMIT clause still executes, and would
 # scan far more data than the original.
 #
-# The SQL marker is an *unterminated string literal*. Comment-based markers
-# were tried and rejected: a `--` line comment leaves the prefix perfectly
-# runnable, and an unterminated `/*` is not universally fatal either --
-# SQLite treats a block comment as terminated at end of input and executes
-# the statement anyway. An unterminated quote is a tokenizer error in every
-# dialect, so the truncated statement cannot run by accident while the text
-# stays readable.
+# The SQL marker has to survive whatever lexical state the cut landed in,
+# since the bisect point is arbitrary. It closes an open block comment
+# (``*/``) and then opens an unterminated string literal, after a newline
+# that ends any open line comment. Simpler markers were tried and rejected:
+# a ``--`` comment leaves the prefix perfectly runnable; a bare unterminated
+# ``/*`` is not fatal in SQLite, which closes block comments at end of
+# input; and a bare unterminated quote is swallowed whole when the cut lands
+# inside a block comment. Verified against sqlite3 and against sqlglot for
+# sqlite/mysql/postgres/duckdb/snowflake/bigquery/trino/mssql, for cuts
+# landing in normal, line-comment, block-comment and string-literal state.
+#
+# This is defense in depth. ``_response_truncated`` / ``_truncation_notes``
+# remain the authoritative signal that the SQL is partial.
 _STRING_FIELD_TRUNCATION_MARKERS: Dict[str, str] = {
-    "sql": "\n'SQL TRUNCATED -- INCOMPLETE STATEMENT, DO NOT EXECUTE",
+    "sql": "\n*/\n'SQL TRUNCATED -- INCOMPLETE STATEMENT, DO NOT EXECUTE",
 }
 
 # Data field names used by the three query tools (in priority order).

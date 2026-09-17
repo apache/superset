@@ -30,6 +30,7 @@ from superset.mcp_service.utils.token_utils import (
     _bisect_string_length,
     _MAX_DICT_KEYS,
     _replace_collections_with_summaries,
+    _STRING_FIELD_TRUNCATION_MARKERS,
     _summarize_large_dicts,
     _truncate_lists,
     _truncate_strings,
@@ -913,17 +914,38 @@ class TestTruncateStringFieldResponse:
         assert isinstance(result, dict)
         assert "LIMIT 10" not in result["sql"]
         assert result["sql"].endswith("DO NOT EXECUTE")
-        # An unterminated quote. A `--` comment would leave the statement
-        # runnable, and an unterminated `/*` is not fatal in SQLite, which
-        # treats a block comment as closed at end of input.
         assert result["sql"].count("'") == 1
         # The marker is inside the measured budget, not appended after it.
         assert estimate_response_tokens(result) <= 500
 
-    def test_truncated_sql_is_rejected_by_every_dialect(self) -> None:
-        """The marker must be a tokenizer error, not just a warning label."""
+    def test_truncated_sql_is_rejected_whatever_the_cut_landed_in(self) -> None:
+        """The marker must defeat every lexical state the bisect can end in.
+
+        The cut point is arbitrary, so it can land mid-comment or mid-string.
+        A bare unterminated quote is swallowed by an open block comment, and a
+        bare unterminated /* is not fatal in SQLite -- both leave the
+        truncated statement runnable. Checked against a real engine (sqlite3)
+        as well as the parser, since sqlglot rejects markers that SQLite
+        happily executes.
+        """
+        import sqlite3
+
         import sqlglot
 
+        marker = _STRING_FIELD_TRUNCATION_MARKERS["sql"]
+        connection = sqlite3.connect(":memory:")
+        connection.execute("CREATE TABLE t (a, b)")
+        for tail in ("", " /* note aaa", " -- note", " WHERE b = 'xy"):
+            truncated = " ".join(["SELECT a, b FROM t", tail, marker])
+            with pytest.raises(sqlite3.Error):
+                connection.execute(truncated)
+            for dialect in ("sqlite", "mysql", "postgres", "trino", "bigquery"):
+                with pytest.raises(Exception):  # noqa: B017, PT011
+                    sqlglot.parse_one(truncated, dialect=dialect)
+        connection.close()
+
+    def test_truncated_sql_carries_the_marker(self) -> None:
+        """The real truncation path must actually attach the marker."""
         columns = ", ".join(f"col_{i}" for i in range(2000))
         sql = " ".join(["SELECT", columns, "FROM big_table", "WHERE tenant_id = 7"])
         result, was_truncated, _ = truncate_string_field_response(
@@ -931,9 +953,7 @@ class TestTruncateStringFieldResponse:
         )
         assert was_truncated is True
         assert isinstance(result, dict)
-        for dialect in ("sqlite", "mysql", "postgres", "trino", "bigquery"):
-            with pytest.raises(Exception):  # noqa: B017, PT011
-                sqlglot.parse_one(result["sql"], dialect=dialect)
+        assert result["sql"].endswith(_STRING_FIELD_TRUNCATION_MARKERS["sql"])
 
     def test_under_limit_sql_is_returned_verbatim(self) -> None:
         """A response that already fits is passed through untouched."""
