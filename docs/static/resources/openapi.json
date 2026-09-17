@@ -205,9 +205,29 @@
       },
       "ActivityImpact": {
         "properties": {
+          "affected_charts": {
+            "description": "The affected sibling charts (id + name), sorted by name \u2014 the detail behind the ``charts`` count, rendered as the rollup entry's hover tooltip. Capped at 50 entries per record; ``charts`` always carries the full count.",
+            "items": {
+              "$ref": "#/components/schemas/ActivityImpactChart"
+            },
+            "type": "array"
+          },
           "charts": {
             "description": "Number of sibling charts on the path entity affected by the same related-record change at this transaction.",
             "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "ActivityImpactChart": {
+        "properties": {
+          "id": {
+            "description": "Chart id.",
+            "type": "integer"
+          },
+          "name": {
+            "description": "Chart name at the change's transaction \u2014 it may differ from the live name if the chart was renamed since.",
+            "type": "string"
           }
         },
         "type": "object"
@@ -1464,9 +1484,14 @@
             "minimum": 0.0,
             "type": "number"
           },
-          "monthly_seasonality": {
-            "description": "Should monthly seasonality be applied. An integer value will specify Fourier order of seasonality, `None` will automatically detect seasonality.",
+          "daily_seasonality": {
+            "description": "Should daily seasonality be applied. An integer value will specify Fourier order of seasonality, `None` will automatically detect seasonality.",
             "example": false
+          },
+          "index": {
+            "description": "Name of the column holding the x-axis data. Defaults to `__timestamp`.",
+            "example": "__timestamp",
+            "type": "string"
           },
           "periods": {
             "description": "Time periods (in units of `time_grain`) to predict into the future",
@@ -2701,31 +2726,20 @@
       },
       "ChartDataSortOptionsSchema": {
         "properties": {
-          "aggregates": {
-            "description": "The keys are the name of the aggregate column to be created, and the values specify the details of how to apply the aggregation. If an operator requires additional options, these can be passed here to be unpacked in the operator call. The following numpy operators are supported: average, argmin, argmax, cumsum, cumprod, max, mean, median, nansum, nanmin, nanmax, nanmean, nanmedian, min, percentile, prod, product, std, sum, var. Any options required by the operator can be passed to the `options` object.\n\nIn the example, a new column `first_quantile` is created based on values in the column `my_col` using the `percentile` operator with the `q=0.25` parameter.",
-            "example": {
-              "first_quantile": {
-                "column": "my_col",
-                "operator": "percentile",
-                "options": {
-                  "q": 0.25
-                }
-              }
-            },
-            "type": "object"
+          "ascending": {
+            "description": "Sort ascending (the default) or descending. A list of booleans may be given to set the direction per entry in `by`.",
+            "example": true
           },
-          "columns": {
-            "description": "columns by by which to sort. The key specifies the column name, value specifies if sorting in ascending order.",
-            "example": {
-              "country": true,
-              "gender": false
-            },
-            "type": "object"
+          "by": {
+            "description": "Name, or list of names, of the columns to sort by. Ignored when `is_sort_index` is set.",
+            "example": "country"
+          },
+          "is_sort_index": {
+            "description": "Whether to sort by the index rather than by column values.",
+            "example": true,
+            "type": "boolean"
           }
         },
-        "required": [
-          "columns"
-        ],
         "type": "object"
       },
       "ChartDataTiming": {
@@ -6079,6 +6093,10 @@
             "description": "Chart count",
             "type": "integer"
           },
+          "restricted_count": {
+            "description": "Charts the current user cannot access",
+            "type": "integer"
+          },
           "result": {
             "description": "A list of dashboards",
             "items": {
@@ -6110,6 +6128,10 @@
         "properties": {
           "count": {
             "description": "Dashboard count",
+            "type": "integer"
+          },
+          "restricted_count": {
+            "description": "Dashboards the current user cannot access",
             "type": "integer"
           },
           "result": {
@@ -13013,6 +13035,12 @@
           "created_by": {
             "$ref": "#/components/schemas/ThemeRestApi.get.User1"
           },
+          "editors": {
+            "items": {
+              "$ref": "#/components/schemas/ThemeRestApi.get.Subject"
+            },
+            "type": "array"
+          },
           "id": {
             "type": "integer"
           },
@@ -13040,6 +13068,25 @@
             "type": "string"
           }
         },
+        "type": "object"
+      },
+      "ThemeRestApi.get.Subject": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "label": {
+            "maxLength": 255,
+            "type": "string"
+          },
+          "type": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "label",
+          "type"
+        ],
         "type": "object"
       },
       "ThemeRestApi.get.User": {
@@ -13101,6 +13148,12 @@
             "nullable": true,
             "type": "string"
           },
+          "editors": {
+            "items": {
+              "$ref": "#/components/schemas/ThemeRestApi.get_list.Subject"
+            },
+            "type": "array"
+          },
           "id": {
             "type": "integer"
           },
@@ -13128,6 +13181,25 @@
             "type": "string"
           }
         },
+        "type": "object"
+      },
+      "ThemeRestApi.get_list.Subject": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "label": {
+            "maxLength": 255,
+            "type": "string"
+          },
+          "type": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "label",
+          "type"
+        ],
         "type": "object"
       },
       "ThemeRestApi.get_list.User": {
@@ -13172,6 +13244,13 @@
       },
       "ThemeRestApi.post": {
         "properties": {
+          "editors": {
+            "items": {
+              "description": "A list of subject IDs (users, roles, or groups) that are allowed to edit this theme.",
+              "type": "integer"
+            },
+            "type": "array"
+          },
           "json_data": {
             "type": "string"
           },
@@ -13187,6 +13266,13 @@
       },
       "ThemeRestApi.put": {
         "properties": {
+          "editors": {
+            "items": {
+              "description": "A list of subject IDs (users, roles, or groups) that are allowed to edit this theme.",
+              "type": "integer"
+            },
+            "type": "array"
+          },
           "json_data": {
             "type": "string"
           },
@@ -14117,6 +14203,17 @@
           }
         },
         "type": "object"
+      },
+      "get_related_objects_ids_schema": {
+        "example": [
+          1,
+          2,
+          3
+        ],
+        "items": {
+          "type": "integer"
+        },
+        "type": "array"
       },
       "get_related_schema": {
         "properties": {
@@ -19983,6 +20080,10 @@
               "application/json": {
                 "schema": {
                   "properties": {
+                    "names": {
+                      "description": "A map of native filter id to that filter's human-readable label, for the filter ids present in `value`. Cross-referenced from the dashboard's native filter configuration, since the cached `value` itself has no notion of a filter's label.",
+                      "type": "object"
+                    },
                     "value": {
                       "description": "The stored value",
                       "type": "string"
@@ -23657,6 +23758,60 @@
           }
         ],
         "summary": "Get related fields data",
+        "tags": [
+          "Datasets"
+        ]
+      }
+    },
+    "/api/v1/dataset/related_objects/": {
+      "get": {
+        "description": "Aggregates the charts built on any of the requested datasets and the dashboards those charts appear on. Each chart and dashboard is listed once even if it depends on several of the datasets. Requested datasets the user cannot see are ignored; the response is 404 only when none of them are visible.",
+        "parameters": [
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_related_objects_ids_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DatasetRelatedObjectsResponse"
+                }
+              }
+            },
+            "description": "Query result"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Get charts and dashboards associated to multiple datasets",
         "tags": [
           "Datasets"
         ]
@@ -34740,6 +34895,9 @@
           },
           "401": {
             "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
           },
           "404": {
             "$ref": "#/components/responses/404"
