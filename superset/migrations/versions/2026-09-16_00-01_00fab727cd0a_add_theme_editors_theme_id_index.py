@@ -17,7 +17,7 @@
 """add theme_editors.theme_id index
 
 Revision ID: 00fab727cd0a
-Revises: 0e8bab8c31a3
+Revises: 60f94cd6cd11
 Create Date: 2026-09-16 00:01:00.000000
 
 """
@@ -26,7 +26,7 @@ from superset.migrations.shared.utils import create_index, drop_index
 
 # revision identifiers, used by Alembic.
 revision = "00fab727cd0a"
-down_revision = "0e8bab8c31a3"
+down_revision = "60f94cd6cd11"
 
 TABLE_NAME = "theme_editors"
 INDEX_NAME = "ix_theme_editors_theme_id"
