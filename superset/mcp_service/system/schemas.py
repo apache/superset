@@ -31,6 +31,7 @@ from typing import Annotated, Any, List
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
+from superset.mcp_service.utils.permissions_utils import get_user_role_names
 from superset.subjects.types import SubjectType
 
 # Shape-only check, not RFC validation: just enough to catch "local@domain.tld"
@@ -158,42 +159,12 @@ class UserInfo(BaseModel):
     )
 
 
-def _role_names(user: Any) -> list[str]:
-    """Return the names of every role the user holds, direct or through a group.
-
-    ``User.roles`` only holds directly assigned roles, so a user whose access
-    comes from a group would otherwise look role-less — while the security
-    manager, which reads both, lets them through. Group roles are appended
-    after the direct ones, each name kept once.
-    """
-    names: list[str] = []
-
-    def add(roles: Any) -> None:
-        for role in roles or []:
-            name = getattr(role, "name", None)
-            if name is not None and name not in names:
-                names.append(name)
-
-    try:
-        add(getattr(user, "roles", None))
-    except TypeError:
-        return []
-    try:
-        for group in getattr(user, "groups", None) or []:
-            add(getattr(group, "roles", None))
-    except TypeError:
-        # Group roles are additive: a user object without a usable ``groups``
-        # relationship still reports the roles assigned to it directly.
-        pass
-    return names
-
-
 def serialize_user_object(user: Any) -> UserInfo | None:
     """Serialize a user ORM object to UserInfo, extracting role names as strings."""
     if not user:
         return None
 
-    user_roles = _role_names(user)
+    user_roles = get_user_role_names(user)
 
     return UserInfo(
         id=getattr(user, "id", None),

@@ -1,0 +1,153 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+"""Unit tests for get_user_role_names."""
+
+from types import SimpleNamespace
+from typing import Any
+
+import pytest
+from sqlalchemy.orm import Session
+from sqlalchemy.orm.exc import DetachedInstanceError
+
+from superset.mcp_service.utils.permissions_utils import get_user_role_names
+
+
+def _role(name: Any) -> SimpleNamespace:
+    return SimpleNamespace(name=name)
+
+
+def _group(*roles: Any) -> SimpleNamespace:
+    return SimpleNamespace(roles=list(roles))
+
+
+def _user(roles: Any = (), groups: Any = ()) -> SimpleNamespace:
+    return SimpleNamespace(roles=list(roles), groups=groups)
+
+
+class _DetachedRole:
+    @property
+    def name(self) -> str:
+        raise DetachedInstanceError()
+
+
+class _UserWithDetachedGroups:
+    roles = [_role("Admin")]
+
+    @property
+    def groups(self) -> list[Any]:
+        raise DetachedInstanceError()
+
+
+def test_direct_roles() -> None:
+    assert get_user_role_names(_user([_role("Admin"), _role("Alpha")])) == [
+        "Admin",
+        "Alpha",
+    ]
+
+
+def test_roles_granted_only_through_groups() -> None:
+    user = _user(groups=[_group(_role("editor"), _role("sql_lab"))])
+
+    assert get_user_role_names(user) == ["editor", "sql_lab"]
+
+
+def test_direct_roles_come_first_and_names_are_kept_once() -> None:
+    user = _user(
+        roles=[_role("Admin")],
+        groups=[_group(_role("Admin"), _role("editor")), _group(_role("editor"))],
+    )
+
+    assert get_user_role_names(user) == ["Admin", "editor"]
+
+
+def test_user_without_roles_or_groups() -> None:
+    assert get_user_role_names(SimpleNamespace()) == []
+
+
+def test_non_iterable_roles() -> None:
+    assert get_user_role_names(SimpleNamespace(roles=42)) == []
+
+
+def test_non_iterable_groups_keep_direct_roles() -> None:
+    assert get_user_role_names(_user([_role("Admin")], groups=object())) == ["Admin"]
+
+
+def test_detached_groups_keep_direct_roles() -> None:
+    assert get_user_role_names(_UserWithDetachedGroups()) == ["Admin"]
+
+
+def test_unreadable_role_names_are_skipped() -> None:
+    user = _user(
+        roles=[_role("Admin"), _DetachedRole(), _role(None), SimpleNamespace()],
+        groups=[_group(_DetachedRole(), _role("editor"))],
+    )
+
+    assert get_user_role_names(user) == ["Admin", "editor"]
+
+
+def _persisted_user(session: Session) -> Any:
+    from flask_appbuilder.security.sqla.models import Group, Role, User
+
+    User.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+    editor = Role(name="editor")
+    user = User(
+        first_name="Ana",
+        last_name="Lyst",
+        username="analyst",
+        email="analyst@example.com",
+        active=True,
+        roles=[Role(name="Gamma"), editor],
+        groups=[Group(name="analysts", roles=[editor, Role(name="sql_lab")])],
+    )
+    session.add(user)
+    session.flush()
+    return user
+
+
+def test_matches_security_manager_roles(app_context: None, session: Session) -> None:
+    """The reported names are the roles RBAC evaluates, each once."""
+    from superset import security_manager
+
+    user = _persisted_user(session)
+
+    names = get_user_role_names(user)
+
+    assert names == ["Gamma", "editor", "sql_lab"]
+    assert set(names) == {role.name for role in security_manager.get_user_roles(user)}
+
+
+def test_detached_user_keeps_roles_loaded_before_detaching(
+    app_context: None, session: Session
+) -> None:
+    user = _persisted_user(session)
+    session.expire(user, ["groups"])
+    session.expunge(user)
+    with pytest.raises(DetachedInstanceError):
+        _ = user.groups
+
+    assert get_user_role_names(user) == ["Gamma", "editor"]
+
+
+def test_detached_user_with_nothing_loaded(app_context: None, session: Session) -> None:
+    user = _persisted_user(session)
+    session.expire(user)
+    session.expunge(user)
+    with pytest.raises(DetachedInstanceError):
+        _ = user.roles
+
+    assert get_user_role_names(user) == []
