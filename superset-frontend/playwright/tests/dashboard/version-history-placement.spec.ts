@@ -41,7 +41,8 @@ for (const width of [1920, 1280]) {
       // remains enabled, and the history component and its APIs are unmocked.
       // Context-local storage survives reload without affecting other tests.
       await page.addInitScript(() => {
-        let flags: Record<string, boolean> = {};
+        // Bootstrap assigns the server flags only while this value is falsy.
+        let flags: Record<string, boolean> | undefined;
         Object.defineProperty(window, 'featureFlags', {
           configurable: true,
           get: () => flags,
@@ -128,7 +129,8 @@ for (const width of [1920, 1280]) {
           const panelBox = await panel.boundingBox();
           if (!headerBox || !panelBox) return false;
           return (
-            panelBox.y >= headerBox.y + headerBox.height - 1 &&
+            Math.abs(panelBox.y - headerBox.y - headerBox.height) <= 1 &&
+            panelBox.y + panelBox.height >= 999 &&
             panelBox.y + panelBox.height <= 1001 &&
             panelBox.x >= 0 &&
             panelBox.x + panelBox.width <= width + 1
@@ -142,6 +144,41 @@ for (const width of [1920, 1280]) {
       await expect(page.getByTestId('header-actions-menu')).toBeVisible();
       await expect(panel).toBeVisible();
       await page.keyboard.press('Escape');
+
+      // Exercise a tall content cell without creating unrelated chart data.
+      // In the narrow layout the absolute host must span that entire cell
+      // for its child to remain sticky after the global navigation is gone.
+      const content = page.getByTestId('dashboard-content-wrapper');
+      const originalMinHeight = await content.evaluate(element => {
+        const original = element.style.minHeight;
+        element.style.minHeight = '2400px';
+        return original;
+      });
+      await expect
+        .poll(() => page.evaluate(() => document.documentElement.scrollHeight))
+        .toBeGreaterThanOrEqual(2400);
+      for (const scrollY of [0, 240, 0]) {
+        await page.evaluate(y => window.scrollTo(0, y), scrollY);
+        await expect
+          .poll(() => page.evaluate(() => window.scrollY))
+          .toBe(scrollY);
+        await expect
+          .poll(async () => {
+            const headerBox = await header.boundingBox();
+            const panelBox = await panel.boundingBox();
+            if (!headerBox || !panelBox) return false;
+            return (
+              Math.abs(panelBox.y - headerBox.y - headerBox.height) <= 1 &&
+              Math.abs(panelBox.y + panelBox.height - 1000) <= 1 &&
+              panelBox.x >= 0 &&
+              panelBox.x + panelBox.width <= width + 1
+            );
+          })
+          .toBe(true);
+      }
+      await content.evaluate((element, minHeight) => {
+        element.style.minHeight = minHeight;
+      }, originalMinHeight);
       await page.getByRole('button', { name: 'Close version history' }).click();
       await expect(panel).toHaveCount(0);
       await expect(column).toHaveCount(1);

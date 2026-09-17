@@ -88,6 +88,7 @@ import {
 import { selectCanRestoreDashboard } from 'src/features/versionHistory/canRestoreDashboard';
 import { selectIsDashboardVersionPreviewActive } from 'src/features/versionHistory/reducer';
 import { StickyTabsOffsetContext } from 'src/dashboard/components/gridComponents/TabsRenderer';
+import { isEmbedded } from 'src/dashboard/util/isEmbedded';
 import { getRootLevelTabsComponent, shouldFocusTabs } from './utils';
 import DashboardContainer from './DashboardContainer';
 import { useNativeFilters } from './state';
@@ -109,6 +110,12 @@ const FiltersPanel = styled.div<{ width: number; hidden: boolean }>`
   grid-row: 1 / span 2;
   z-index: 11;
   width: ${({ width }) => width}px;
+  /* In an embed the bar inside this column is bounded to its content so the
+     action buttons stay reachable, which leaves its own border ending partway
+     down. This column always spans the full grid, so the separator lives here
+     instead of on the bar. */
+  ${({ theme }) =>
+    isEmbedded() && `border-right: 1px solid ${theme.colorSplit};`}
   ${({ hidden }) => hidden && `display: none;`}
 `;
 
@@ -120,14 +127,18 @@ const StickyPanel = styled.div<{ width: number }>`
 `;
 
 // @z-index-above-dashboard-popovers (99) + 1 = 100
-const StyledHeader = styled.div<{ filterBarWidth: number }>`
-  ${({ theme, filterBarWidth }) => css`
+const StyledHeader = styled.div`
+  ${({ theme }) => css`
     grid-column: 2;
     grid-row: 1;
     position: sticky;
     top: 0;
     z-index: 99;
-    max-width: calc(100vw - ${filterBarWidth}px);
+    /* The grid track already knows how wide this column is. Capping against
+       100vw measured the viewport including the scrollbar gutter, so the
+       header could run past the visible edge. */
+    min-width: 0;
+    max-width: 100%;
 
     /* Mobile consumption mode: let the dashboard title scroll away and keep
        only the tab bar sticky. A pinned title would sit underneath the
@@ -202,11 +213,8 @@ const VersionHistoryColumn = styled.div<{
     grid-column: 3;
     grid-row: 2;
     position: sticky;
-    /* Sticks directly below the header once the page scrolls, but is SIZED
-       from the header's rendered bottom, which also accounts for a still-
-       visible global nav above it. Sizing from the header height alone
-       overflows the viewport by the nav's height while the page is
-       unscrolled — exactly the short-dashboard case this column sits in. */
+    /* The visible header bottom includes any global navigation that has not
+       scrolled away. Re-measuring it keeps the panel at the viewport bottom. */
     top: ${topOffset}px;
     align-self: start;
     height: calc(100vh - ${bottomOffset}px);
@@ -227,6 +235,7 @@ const VersionHistoryColumn = styled.div<{
       right: 0;
       bottom: 0;
       height: auto;
+      align-self: stretch;
       z-index: 98;
       box-shadow: ${theme.boxShadow};
       /* The same empty-in-place contract also suppresses the overlay's
@@ -240,7 +249,7 @@ const VersionHistoryColumn = styled.div<{
       & > aside {
         position: sticky;
         top: ${topOffset}px;
-        height: calc(100vh - ${topOffset}px);
+        height: calc(100vh - ${bottomOffset}px);
       }
     }
   `}
@@ -621,18 +630,21 @@ const DashboardBuilder = () => {
     isReport;
 
   const [barTopOffset, setBarTopOffset] = useState(0);
-  // The header's rendered BOTTOM, not just its height: a still-visible global
-  // navigation above it means the content below starts lower than the header
-  // alone accounts for. Sizing the history column from this keeps its open
-  // panel inside the viewport (sc-120489 review).
+  // The visible bottom includes global navigation until it scrolls away.
   const [barBottomOffset, setBarBottomOffset] = useState(0);
-  const [currentFilterBarWidth, setCurrentFilterBarWidth] = useState(
-    CLOSED_FILTER_BAR_WIDTH,
-  );
 
   useEffect(() => {
     setBarTopOffset(headerRef.current?.getBoundingClientRect()?.height || 0);
-    setBarBottomOffset(headerRef.current?.getBoundingClientRect()?.bottom || 0);
+    const measureHistory =
+      isFeatureEnabled(FeatureFlag.VersionHistory) && !isEmbedded();
+    const updateBottomOffset = () => {
+      if (!measureHistory) return;
+      const headerRect = headerRef.current?.getBoundingClientRect();
+      setBarBottomOffset(
+        Math.max(headerRect?.height || 0, headerRect?.bottom || 0),
+      );
+    };
+    updateBottomOffset();
 
     let observer: ResizeObserver;
     if (global.hasOwnProperty('ResizeObserver') && headerRef.current) {
@@ -640,17 +652,25 @@ const DashboardBuilder = () => {
         setBarTopOffset(
           current => entries?.[0]?.contentRect?.height || current,
         );
-        setBarBottomOffset(
-          current =>
-            headerRef.current?.getBoundingClientRect()?.bottom || current,
-        );
+        updateBottomOffset();
       });
 
       observer.observe(headerRef.current);
     }
 
+    // Capture also observes the content scrollport used by the chat shell.
+    if (measureHistory) {
+      window.addEventListener('scroll', updateBottomOffset, {
+        capture: true,
+        passive: true,
+      });
+      window.addEventListener('resize', updateBottomOffset);
+    }
+
     return () => {
       observer?.disconnect();
+      window.removeEventListener('scroll', updateBottomOffset, true);
+      window.removeEventListener('resize', updateBottomOffset);
     };
   }, []);
 
@@ -838,9 +858,6 @@ const DashboardBuilder = () => {
       const filterBarWidth = dashboardFiltersOpen
         ? adjustedWidth
         : CLOSED_FILTER_BAR_WIDTH;
-      if (filterBarWidth !== currentFilterBarWidth) {
-        setCurrentFilterBarWidth(filterBarWidth);
-      }
       return (
         <FiltersPanel
           width={filterBarWidth}
@@ -894,10 +911,6 @@ const DashboardBuilder = () => {
 
   const isVerticalFilterBarVisible =
     showFilterBar && filterBarOrientation === FilterBarOrientation.Vertical;
-  const headerFilterBarWidth = isVerticalFilterBarVisible
-    ? currentFilterBarWidth
-    : 0;
-
   return (
     <DashboardWrapper>
       {isVerticalFilterBarVisible && (
@@ -911,11 +924,7 @@ const DashboardBuilder = () => {
           {renderChild}
         </ResizableSidebar>
       )}
-      <StyledHeader
-        data-test="dashboard-header-wrapper"
-        ref={headerRef}
-        filterBarWidth={headerFilterBarWidth}
-      >
+      <StyledHeader data-test="dashboard-header-wrapper" ref={headerRef}>
         {headerContent}
         <Droppable
           data-test="top-level-tabs"
@@ -1046,7 +1055,9 @@ const DashboardBuilder = () => {
           </StyledDashboardContent>
         </DashboardContentWrapper>
       </StyledContent>
-      {isFeatureEnabled(FeatureFlag.VersionHistory) && (
+      {/* Guests have no version history to show; keep its viewport-sized host
+          out of embedded documents so it cannot affect iframe sizing. */}
+      {isFeatureEnabled(FeatureFlag.VersionHistory) && !isEmbedded() && (
         <VersionHistoryColumn
           data-test="dashboard-version-history-column"
           topOffset={barTopOffset}

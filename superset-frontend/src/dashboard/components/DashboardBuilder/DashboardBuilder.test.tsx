@@ -55,6 +55,7 @@ import {
   DASHBOARD_GRID_TYPE,
   DASHBOARD_ROOT_TYPE,
 } from 'src/dashboard/util/componentTypes';
+import { isEmbedded } from 'src/dashboard/util/isEmbedded';
 import * as useNativeFiltersModule from './state';
 
 fetchMock.get('glob:*/csstemplateasyncmodelview/api/read', {});
@@ -152,6 +153,9 @@ jest.mock('src/dashboard/components/Header/HeadlessAutoRefresh', () => {
 jest.mock('src/hooks/useIsMobile', () => ({
   ...jest.requireActual('src/hooks/useIsMobile'),
   useIsMobile: jest.fn().mockReturnValue(false),
+}));
+jest.mock('src/dashboard/util/isEmbedded', () => ({
+  isEmbedded: jest.fn(() => false),
 }));
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
@@ -274,6 +278,7 @@ describe('DashboardBuilder', () => {
       expect(column).toHaveStyleRule('position', 'absolute', narrow);
       expect(column).toHaveStyleRule('grid-column', '2', narrow);
       expect(column).toHaveStyleRule('right', '0', narrow);
+      expect(column).toHaveStyleRule('align-self', 'stretch', narrow);
       expect(column).toHaveStyleRule('z-index', '98', narrow);
       expect(column).not.toHaveStyleRule('position', 'fixed', narrow);
       // The panel itself sticks below the measured header height while the
@@ -282,6 +287,78 @@ describe('DashboardBuilder', () => {
         ...narrow,
         target: 'aside',
       });
+    } finally {
+      rectSpy.mockRestore();
+      window.featureFlags = {};
+    }
+  });
+
+  test('resizes history below the visible header as the navigation scrolls away', async () => {
+    window.featureFlags = { [FeatureFlag.VersionHistory]: true };
+    const addListenerSpy = jest.spyOn(window, 'addEventListener');
+    const removeListenerSpy = jest.spyOn(window, 'removeEventListener');
+    let headerTop = 64;
+    const rectSpy = jest
+      .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
+      .mockImplementation(function measure(this: HTMLElement) {
+        return this.dataset.test === 'dashboard-header-wrapper'
+          ? new DOMRect(0, headerTop, 1000, 120)
+          : new DOMRect();
+      });
+    try {
+      const { findByTestId, unmount } = setup();
+      const column = await findByTestId('dashboard-version-history-column');
+      expect(column).toHaveStyleRule('height', 'calc(100vh - 184px)');
+      headerTop = 0;
+      fireEvent.scroll(column);
+      expect(column).toHaveStyleRule('height', 'calc(100vh - 120px)');
+      expect(column).toHaveStyleRule('height', 'calc(100vh - 120px)', {
+        media: `(max-width: ${supersetTheme.screenXLMax}px)`,
+        target: 'aside',
+      });
+      headerTop = -200;
+      fireEvent.scroll(column);
+      expect(column).toHaveStyleRule('height', 'calc(100vh - 120px)');
+      headerTop = 64;
+      fireEvent.scroll(window);
+      expect(column).toHaveStyleRule('height', 'calc(100vh - 184px)');
+      expect(column).toHaveStyleRule('height', 'calc(100vh - 184px)', {
+        media: `(max-width: ${supersetTheme.screenXLMax}px)`,
+        target: 'aside',
+      });
+      const scrollListener = addListenerSpy.mock.calls.find(
+        ([type, , options]) =>
+          type === 'scroll' &&
+          typeof options === 'object' &&
+          options.capture &&
+          options.passive,
+      )?.[1];
+      expect(scrollListener).toBeDefined();
+      unmount();
+      expect(removeListenerSpy).toHaveBeenCalledWith(
+        'scroll',
+        scrollListener,
+        true,
+      );
+      expect(removeListenerSpy).toHaveBeenCalledWith('resize', scrollListener);
+    } finally {
+      rectSpy.mockRestore();
+      addListenerSpy.mockRestore();
+      removeListenerSpy.mockRestore();
+      window.featureFlags = {};
+    }
+  });
+
+  test('does not measure history on scroll when its flag is off', async () => {
+    window.featureFlags = { [FeatureFlag.VersionHistory]: false };
+    const rectSpy = jest.spyOn(HTMLElement.prototype, 'getBoundingClientRect');
+    try {
+      const { findByTestId, unmount } = setup();
+      await findByTestId('dashboard-header-wrapper');
+      rectSpy.mockClear();
+      fireEvent.scroll(window);
+      expect(rectSpy).not.toHaveBeenCalled();
+      unmount();
     } finally {
       rectSpy.mockRestore();
       window.featureFlags = {};
@@ -583,7 +660,7 @@ describe('DashboardBuilder', () => {
     expect(filterbar).toHaveStyleRule('width', `${expectedValue}px`);
   });
 
-  test('should set header max width based on open filter bar width', () => {
+  test('header is bounded by its grid track with an open filter bar', () => {
     const expectedValue = 320;
     const setter = jest.fn();
     (useStoredSidebarWidth as jest.Mock).mockImplementation(() => [
@@ -603,15 +680,17 @@ describe('DashboardBuilder', () => {
 
     const { getByTestId } = setup();
 
-    expect(getByTestId('dashboard-header-wrapper')).toHaveStyleRule(
-      'max-width',
-      `calc(100vw - ${expectedValue}px)`,
-    );
+    // Sized from the grid track, not the viewport: `100vw` includes the
+    // scrollbar gutter, so capping against it pushed the header past the
+    // visible edge whenever a scrollbar took up space.
+    const header = getByTestId('dashboard-header-wrapper');
+    expect(header).toHaveStyleRule('max-width', '100%');
+    expect(header).toHaveStyleRule('min-width', '0');
 
     nativeFiltersSpy.mockRestore();
   });
 
-  test('should use closed filter bar width when the panel is collapsed', () => {
+  test('header is bounded by its grid track with a collapsed filter bar', () => {
     const setter = jest.fn();
     (useStoredSidebarWidth as jest.Mock).mockImplementation(() => [
       OPEN_FILTER_BAR_WIDTH,
@@ -630,15 +709,14 @@ describe('DashboardBuilder', () => {
 
     const { getByTestId } = setup();
 
-    expect(getByTestId('dashboard-header-wrapper')).toHaveStyleRule(
-      'max-width',
-      `calc(100vw - ${CLOSED_FILTER_BAR_WIDTH}px)`,
-    );
+    const header = getByTestId('dashboard-header-wrapper');
+    expect(header).toHaveStyleRule('max-width', '100%');
+    expect(header).toHaveStyleRule('min-width', '0');
 
     nativeFiltersSpy.mockRestore();
   });
 
-  test('should not constrain header width when filter bar is hidden', () => {
+  test('header is bounded by its grid track with no filter bar', () => {
     const setter = jest.fn();
     (useStoredSidebarWidth as jest.Mock).mockImplementation(() => [
       OPEN_FILTER_BAR_WIDTH,
@@ -657,10 +735,9 @@ describe('DashboardBuilder', () => {
 
     const { getByTestId } = setup();
 
-    expect(getByTestId('dashboard-header-wrapper')).toHaveStyleRule(
-      'max-width',
-      'calc(100vw - 0px)',
-    );
+    const header = getByTestId('dashboard-header-wrapper');
+    expect(header).toHaveStyleRule('max-width', '100%');
+    expect(header).toHaveStyleRule('min-width', '0');
 
     nativeFiltersSpy.mockRestore();
   });
@@ -1168,4 +1245,76 @@ test('withholds the empty-state edit action while previewing a version', async (
   expect(
     queryByRole('button', { name: 'Edit the dashboard' }),
   ).not.toBeInTheDocument();
+});
+
+// Renders with the vertical filter bar open so the embed-only branches have
+// a panel and a column to act on.
+const renderForEmbedChecks = () => {
+  (useStoredSidebarWidth as jest.Mock).mockImplementation(() => [
+    100,
+    jest.fn(),
+  ]);
+  (fetchFaveStar as jest.Mock).mockReturnValue({ type: 'mock-action' });
+  (setActiveTab as jest.Mock).mockReturnValue({ type: 'mock-action' });
+  return render(<DashboardBuilder />, {
+    useRedux: true,
+    store: storeWithState({
+      ...mockState,
+      dashboardLayout: undoableDashboardLayout,
+    }),
+    useDnd: true,
+    useRouter: true,
+    useTheme: true,
+  });
+};
+
+test('mounts the version history column outside an embed', async () => {
+  window.featureFlags = { [FeatureFlag.VersionHistory]: true };
+
+  const { findByTestId } = renderForEmbedChecks();
+
+  expect(
+    await findByTestId('mock-dashboard-version-history'),
+  ).toBeInTheDocument();
+  window.featureFlags = {};
+});
+
+test('does not mount the version history column in an embed', () => {
+  // Sized from 100vh, which inside an iframe pins the document to the frame
+  // and reintroduces the host resize loop; guests have no history to show.
+  window.featureFlags = { [FeatureFlag.VersionHistory]: true };
+  (isEmbedded as jest.Mock).mockReturnValue(true);
+
+  const { queryByTestId } = renderForEmbedChecks();
+
+  expect(
+    queryByTestId('mock-dashboard-version-history'),
+  ).not.toBeInTheDocument();
+  (isEmbedded as jest.Mock).mockReturnValue(false);
+  window.featureFlags = {};
+});
+
+test('filters panel carries the column separator in an embed', () => {
+  // The bounded bar ends at its content, so the full-height panel draws the
+  // separator instead.
+  (isEmbedded as jest.Mock).mockReturnValue(true);
+  const nativeFiltersSpy = jest
+    .spyOn(useNativeFiltersModule, 'useNativeFilters')
+    .mockReturnValue({
+      showDashboard: true,
+      missingInitialFilters: [],
+      dashboardFiltersOpen: true,
+      toggleDashboardFiltersOpen: jest.fn(),
+      nativeFiltersEnabled: true,
+      hasFilters: true,
+    });
+
+  const { getByTestId } = renderForEmbedChecks();
+
+  expect(getByTestId('dashboard-filters-panel')).toHaveStyleRule(
+    'border-right',
+    `1px solid ${supersetTheme.colorSplit}`,
+  );
+  nativeFiltersSpy.mockRestore();
+  (isEmbedded as jest.Mock).mockReturnValue(false);
 });
