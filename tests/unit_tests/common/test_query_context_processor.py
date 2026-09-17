@@ -30,7 +30,11 @@ from superset.common.query_context_processor import (
     normalize_contribution_totals,
     QueryContextProcessor,
 )
-from superset.exceptions import CacheLoadError, QueryObjectValidationError
+from superset.exceptions import (
+    CacheLoadError,
+    QueryObjectValidationError,
+    SupersetException,
+)
 from superset.utils.core import GenericDataType
 from superset.utils.date_parser import get_past_or_future
 
@@ -115,17 +119,23 @@ def processor(mock_query_context):
     return processor
 
 
-def test_annotation_cache_key_binds_annotation_data_to_requesting_user(processor):
-    """The annotation cache key must differ per requesting user."""
+def test_annotation_cache_key_binds_native_annotation_read_scope(processor):
+    """The annotation cache key for NATIVE layers must differ when the
+    requester's ``can_read`` (Annotation) access differs -- not who they are."""
     query_obj = MagicMock()
     query_obj.annotation_layers = [{"sourceType": "NATIVE", "name": "a", "value": 1}]
-    with (
-        patch(
-            "superset.common.query_context_processor.get_user_id",
-            side_effect=[1, 2],
-        ),
-        patch("superset.common.query_context_processor.security_manager"),
-    ):
+    # ``security_manager`` autodetects as an async spec under a bare
+    # ``patch()`` (its real object trips ``unittest.mock``'s coroutine
+    # inference), which would silently turn every attribute access into an
+    # ``AsyncMock`` returning a fresh unawaited coroutine per call -- always
+    # unequal to itself and never equal to a configured return value. Forcing
+    # ``new_callable=MagicMock`` keeps these synchronous, as the real object
+    # is.
+    with patch(
+        "superset.common.query_context_processor.security_manager",
+        new_callable=MagicMock,
+    ) as security_manager:
+        security_manager.can_access.side_effect = [True, False]
         processor.annotation_cache_key(query_obj)
         processor.annotation_cache_key(query_obj)
     contexts = [
@@ -134,23 +144,119 @@ def test_annotation_cache_key_binds_annotation_data_to_requesting_user(processor
     assert contexts[0] != contexts[1]
 
 
-def test_query_cache_key_does_not_bind_requesting_user(processor):
-    """The dataframe cache key must stay shared across viewers of the same
-    chart, even when the query has annotation layers — only the separate
-    annotation cache key (see above) is user-scoped."""
+def test_annotation_cache_key_shares_across_same_access_scope(processor):
+    """Two requesters with identical access scope must produce the same
+    annotation cache key -- the actual sharing/efficiency fix, not just
+    per-user isolation."""
     query_obj = MagicMock()
     query_obj.annotation_layers = [{"sourceType": "NATIVE", "name": "a", "value": 1}]
-    with (
-        patch(
-            "superset.common.query_context_processor.get_user_id",
-            side_effect=[1, 2],
-        ),
-        patch("superset.common.query_context_processor.security_manager"),
+    with patch(
+        "superset.common.query_context_processor.security_manager",
+        new_callable=MagicMock,
+    ) as security_manager:
+        security_manager.can_access.return_value = True
+        processor.annotation_cache_key(query_obj)
+        processor.annotation_cache_key(query_obj)
+    contexts = [
+        call.kwargs["annotation_context"] for call in query_obj.cache_key.call_args_list
+    ]
+    assert contexts[0] == contexts[1]
+
+
+def test_query_cache_key_does_not_bind_annotation_scope(processor):
+    """The dataframe cache key must stay shared across viewers of the same
+    chart, even when the query has annotation layers — only the separate
+    annotation cache key (see above) carries access-scope material."""
+    query_obj = MagicMock()
+    query_obj.annotation_layers = [{"sourceType": "NATIVE", "name": "a", "value": 1}]
+    with patch(
+        "superset.common.query_context_processor.security_manager",
+        new_callable=MagicMock,
     ):
         processor.query_cache_key(query_obj)
         processor.query_cache_key(query_obj)
     for call in query_obj.cache_key.call_args_list:
         assert "annotation_context" not in call.kwargs
+
+
+def test_annotation_source_scope_binds_datasource_access(processor):
+    """A chart-backed annotation layer's scope must differ when the
+    requester's access to the referenced datasource differs."""
+    mock_chart = MagicMock()
+    mock_chart.get_query_context.return_value = None
+    with (
+        patch(
+            "superset.common.query_context_processor.ChartDAO.find_by_id",
+            return_value=mock_chart,
+        ),
+        patch(
+            "superset.common.query_context_processor.security_manager",
+            new_callable=MagicMock,
+        ) as security_manager,
+    ):
+        security_manager.can_access_datasource.side_effect = [True, False]
+        security_manager.get_rls_cache_key.return_value = []
+        scope_a = processor._annotation_source_scope(1)
+        scope_b = processor._annotation_source_scope(1)
+    assert scope_a != scope_b
+    assert scope_a["access"] is True
+    assert scope_b["access"] is False
+
+
+def test_annotation_source_scope_reuses_referenced_chart_cache_key(processor):
+    """When the referenced chart has a saved query context, its own cache
+    key(s) -- covering RLS and per-user Jinja/virtual-dataset material -- are
+    reused rather than re-derived."""
+    mock_chart = MagicMock()
+    mock_query_object = MagicMock()
+    mock_query_context = MagicMock()
+    mock_query_context.queries = [mock_query_object]
+    mock_query_context.query_cache_key.return_value = "referenced-chart-key"
+    mock_chart.get_query_context.return_value = mock_query_context
+    with (
+        patch(
+            "superset.common.query_context_processor.ChartDAO.find_by_id",
+            return_value=mock_chart,
+        ),
+        patch(
+            "superset.common.query_context_processor.security_manager",
+            new_callable=MagicMock,
+        ) as security_manager,
+    ):
+        security_manager.can_access_datasource.return_value = True
+        scope = processor._annotation_source_scope(1)
+    assert scope == {"access": True, "data_key": ["referenced-chart-key"]}
+    mock_query_context.query_cache_key.assert_called_once_with(mock_query_object)
+
+
+def test_annotation_source_scope_fails_closed_on_superset_exception(processor):
+    """A lookup failure must fail closed rather than silently deduping onto a
+    successfully-derived scope."""
+    mock_chart = MagicMock()
+    mock_chart.get_query_context.side_effect = SupersetException("boom")
+    with (
+        patch(
+            "superset.common.query_context_processor.ChartDAO.find_by_id",
+            return_value=mock_chart,
+        ),
+        patch(
+            "superset.common.query_context_processor.security_manager",
+            new_callable=MagicMock,
+        ) as security_manager,
+    ):
+        security_manager.can_access_datasource.return_value = True
+        security_manager.get_rls_cache_key.return_value = []
+        scope = processor._annotation_source_scope(1)
+    assert scope == {"access": False, "data_key": []}
+
+
+def test_annotation_source_scope_none_when_chart_missing(processor):
+    with patch(
+        "superset.common.query_context_processor.ChartDAO.find_by_id",
+        return_value=None,
+    ):
+        scope = processor._annotation_source_scope(999)
+    assert scope == {"access": None, "data_key": None}
 
 
 def test_get_data_table_like(processor, mock_query_context):
