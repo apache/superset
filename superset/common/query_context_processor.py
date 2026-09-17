@@ -43,6 +43,7 @@ from superset.constants import CACHE_DISABLED_TIMEOUT, CacheRegion
 from superset.daos.annotation_layer import AnnotationLayerDAO
 from superset.daos.chart import ChartDAO
 from superset.exceptions import (
+    CacheLoadError,
     QueryObjectValidationError,
     SupersetException,
 )
@@ -254,6 +255,7 @@ class QueryContextProcessor:
             query_obj.validate()
 
         cache_key = self.query_cache_key(query_obj)
+        annotation_key = self.annotation_cache_key(query_obj)
         timeout = self.get_cache_timeout()
         force_query = (
             self._resolve_forced_query(query_obj, cache_key)
@@ -304,7 +306,6 @@ class QueryContextProcessor:
                     )
 
                 query_result = self.get_query_result(query_obj)
-                annotation_data = self.get_annotation_data(query_obj)
             except QueryObjectValidationError as ex:
                 cache.error_message = str(ex)
                 cache.status = QueryStatus.FAILED
@@ -317,7 +318,6 @@ class QueryContextProcessor:
                 cache.set_query_result(
                     key=cache_key,
                     query_result=query_result,
-                    annotation_data=annotation_data,
                     force_query=force_query,
                     timeout=self.get_cache_timeout(),
                     datasource_uid=self._qc_datasource.uid,
@@ -327,6 +327,26 @@ class QueryContextProcessor:
                 # this forced refresh ran, so a follow-up request carrying the same
                 # nonce reads the freshly-cached result instead of recomputing it.
                 self._mark_force_executed(query_obj, cache_key, cache.result_persisted)
+
+        # Annotation data is fetched per requesting user (and, for chart-backed
+        # layers, scoped by the referenced chart datasource's RLS), so it is
+        # resolved and cached under its own entry — independent of whether the
+        # (shareable) dataframe above was a hit or a miss — rather than forcing
+        # every viewer of the same chart onto their own full dataframe copy.
+        annotation_data: dict[str, Any] = {}
+        if query_obj and annotation_key and cache.status != QueryStatus.FAILED:
+            try:
+                annotation_data = self._get_annotation_data_cached(
+                    query_obj=query_obj,
+                    cache_key=annotation_key,
+                    force_query=force_query,
+                    force_cached=force_cached,
+                    timeout=self.get_cache_timeout(),
+                    datasource_uid=self._qc_datasource.uid,
+                )
+            except QueryObjectValidationError as ex:
+                cache.error_message = str(ex)
+                cache.status = QueryStatus.FAILED
 
         payload_assembly_start_ns = time.perf_counter_ns()
         # the N-dimensional DataFrame has converted into flat DataFrame
@@ -397,7 +417,7 @@ class QueryContextProcessor:
             "applied_template_filters": cache.applied_template_filters,
             "applied_filter_columns": cache.applied_filter_columns,
             "rejected_filter_columns": cache.rejected_filter_columns,
-            "annotation_data": cache.annotation_data,
+            "annotation_data": annotation_data,
             "error": cache.error_message,
             "is_cached": cache.is_cached,
             "query": cache.query,
@@ -423,14 +443,14 @@ class QueryContextProcessor:
     def query_cache_key(self, query_obj: QueryObject, **kwargs: Any) -> str | None:
         """
         Returns a QueryObject cache key for objects in self.queries
+
+        This key covers the dataframe alone. It intentionally does not bind
+        the requesting user's identity, so distinct viewers of the same chart
+        share one cache entry. See :meth:`annotation_cache_key` for the
+        separate, user-scoped key covering annotation-layer data.
         """
         datasource = self._qc_datasource
         extra_cache_keys = datasource.get_extra_cache_keys(query_obj.to_dict())
-
-        # Annotation data is cached on the same entry as the dataframe, so the
-        # key must also bind the annotation sources' security context.
-        if query_obj and query_obj.annotation_layers:
-            kwargs["annotation_context"] = self._annotation_cache_context(query_obj)
 
         cache_key = (
             query_obj.cache_key(
@@ -445,15 +465,30 @@ class QueryContextProcessor:
         )
         return cache_key
 
+    def annotation_cache_key(self, query_obj: QueryObject) -> str | None:
+        """
+        Cache key for this query's annotation-layer payload, or ``None`` when
+        the query has no annotation layers.
+
+        Annotation payloads are fetched per requesting user and, for
+        chart-backed layers, scoped by the RLS clauses of the referenced
+        chart's datasource — a stricter security requirement than the
+        dataframe itself has. Keying them separately from
+        :meth:`query_cache_key` keeps that per-user scoping from forcing every
+        distinct viewer of an annotated chart onto their own full copy of the
+        (potentially much larger) shared dataframe.
+        """
+        if not query_obj or not query_obj.annotation_layers:
+            return None
+        return self.query_cache_key(
+            query_obj, annotation_context=self._annotation_cache_context(query_obj)
+        )
+
     def _annotation_cache_context(self, query_obj: QueryObject) -> dict[str, Any]:
         """
         Cache-key material binding cached annotation data to its security
-        context.
-
-        Annotation payloads are fetched per requesting user and stored on the
-        same cache entry as the dataframe, so the key also binds the requesting
-        user and, for chart-backed layers, the RLS clauses of the referenced
-        chart's datasource.
+        context: the requesting user and, for chart-backed layers, the RLS
+        clauses of the referenced chart's datasource.
         """
         source_rls: dict[str, list[str] | None] = {}
         for layer in query_obj.annotation_layers:
@@ -470,6 +505,49 @@ class QueryContextProcessor:
                 else None
             )
         return {"user_id": get_user_id(), "source_rls": source_rls}
+
+    def _get_annotation_data_cached(
+        self,
+        query_obj: QueryObject,
+        cache_key: str,
+        force_query: bool,
+        force_cached: bool | None,
+        timeout: int | None,
+        datasource_uid: str | None,
+    ) -> dict[str, Any]:
+        """
+        Fetch this query's annotation-layer payload, cached under its own
+        (user/RLS-scoped) entry, separate from the shared dataframe cache.
+        """
+        if not force_query:
+            try:
+                cached_value = cache_manager.data_cache.get(cache_key)
+            except Exception as ex:  # noqa: BLE001  pylint: disable=broad-except
+                logger.warning(
+                    "Error reading annotation cache: %s",
+                    error_msg_from_exception(ex),
+                )
+                cached_value = None
+            if cached_value is not None:
+                current_app.config["STATS_LOGGER"].incr("loading_from_cache")
+                return cached_value.get("annotation_data", {})
+
+        if force_cached:
+            logger.warning(
+                "force_cached (annotation data): value not found for key %s",
+                cache_key,
+            )
+            raise CacheLoadError("Error loading annotation data from cache")
+
+        annotation_data = self.get_annotation_data(query_obj)
+        set_and_log_cache(
+            cache_manager.data_cache,
+            cache_key,
+            {"annotation_data": annotation_data},
+            timeout,
+            datasource_uid,
+        )
+        return annotation_data
 
     def get_query_result(self, query_object: QueryObject) -> QueryResult:
         """
