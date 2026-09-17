@@ -17,7 +17,7 @@
 
 from datetime import datetime, timedelta
 from io import BytesIO
-from zipfile import ZipFile
+from zipfile import ZIP_DEFLATED, ZipFile
 
 from superset.utils.core import create_zip, write_zip_entry
 
@@ -58,3 +58,28 @@ def test_write_zip_entry_preserves_contents_and_permissions() -> None:
 
     assert info.date_time != DOS_EPOCH
     assert info.external_attr >> 16 == 0o600
+
+
+def test_write_zip_entry_honors_the_bundle_compression_settings() -> None:
+    """
+    A pre-built ZipInfo bypasses the settings zipfile copies onto entries it
+    creates itself, so the helper has to forward both of them.
+    """
+    payload = b"superset " * 2000
+
+    def build(compresslevel: int) -> bytes:
+        buf = BytesIO()
+        with ZipFile(
+            buf, "w", compression=ZIP_DEFLATED, compresslevel=compresslevel
+        ) as bundle:
+            write_zip_entry(bundle, "data.csv", payload)
+        return buf.getvalue()
+
+    fastest, smallest = build(1), build(9)
+
+    with ZipFile(BytesIO(smallest)) as bundle:
+        info = bundle.getinfo("data.csv")
+        assert info.compress_type == ZIP_DEFLATED
+        assert bundle.read("data.csv") == payload
+
+    assert len(smallest) < len(fastest)
