@@ -27,6 +27,7 @@ import pytest
 
 if TYPE_CHECKING:
     from fastmcp import FastMCP
+    from fastmcp.client.client import CallToolResult
 
 from superset.mcp_service.auth import CLASS_PERMISSION_ATTR, METHOD_PERMISSION_ATTR
 from superset.mcp_service.chart.schemas import (
@@ -1231,9 +1232,10 @@ class TestGetChartSqlTool:
             patch.object(_get_chart_sql_mod, "_sql_from_form_data") as form_data,
         ):
             async with Client(mcp_server) as client:
-                result: Any = await client.call_tool(
+                result: CallToolResult = await client.call_tool(
                     "get_chart_sql", {"request": {"identifier": 10}}
                 )
+            assert result.structured_content is not None
             data: dict[str, Any] = result.structured_content.get(
                 "result", result.structured_content
             )
@@ -1247,6 +1249,83 @@ class TestGetChartSqlTool:
         resolve.assert_not_called()
         saved.assert_not_called()
         form_data.assert_not_called()
+
+    @pytest.mark.parametrize("datasource_type", ["semantic_view", "table"])
+    @pytest.mark.parametrize("combined_datasource", [False, True])
+    @pytest.mark.parametrize("guest", [False, True])
+    @pytest.mark.asyncio
+    async def test_saved_chart_with_cached_datasource(
+        self,
+        mcp_server: "FastMCP",
+        datasource_type: str,
+        combined_datasource: bool,
+        guest: bool,
+    ) -> None:
+        """Resolve edited datasources while preserving table and guest behavior."""
+        from fastmcp import Client
+
+        from superset import security_manager
+        from superset.mcp_service.chart.chart_utils import DatasetValidationResult
+        from superset.utils import json
+
+        chart: Mock = Mock(
+            id=10,
+            datasource_id=1,
+            datasource_type="table",
+            slice_name="Sales",
+            viz_type="table",
+        )
+        cached_data: dict[str, str | int] = (
+            {"datasource": f"2__{datasource_type}"}
+            if combined_datasource
+            else {"datasource_id": 2, "datasource_type": datasource_type}
+        )
+        with (
+            patch.object(security_manager, "is_guest_user", return_value=guest),
+            patch.object(
+                _get_chart_sql_mod, "_find_chart_by_identifier", return_value=chart
+            ) as find,
+            patch.object(
+                _get_chart_sql_mod,
+                "validate_chart_dataset",
+                return_value=DatasetValidationResult(
+                    is_valid=True, dataset_id=1, dataset_name="sales", warnings=[]
+                ),
+            ),
+            patch.object(
+                _get_chart_sql_mod,
+                "_get_cached_form_data",
+                return_value=json.dumps(cached_data),
+            ) as cache,
+            patch.object(_get_chart_sql_mod, "_sql_from_saved_query_context") as saved,
+            patch.object(
+                _get_chart_sql_mod,
+                "_sql_from_form_data",
+                return_value=ChartSql(sql="SELECT 1", language="sql"),
+            ) as build,
+        ):
+            async with Client(mcp_server) as client:
+                result: CallToolResult = await client.call_tool(
+                    "get_chart_sql",
+                    {"request": {"identifier": 10, "form_data_key": "edited-key"}},
+                )
+            assert result.structured_content is not None
+            data: dict[str, Any] = result.structured_content.get(
+                "result", result.structured_content
+            )
+        saved.assert_not_called()
+        if guest:
+            assert data["error_type"] == "Forbidden"
+            find.assert_not_called()
+            cache.assert_not_called()
+            build.assert_not_called()
+        elif datasource_type == "semantic_view":
+            assert data["error_type"] == "Unsupported"
+            assert data.get("sql") is None
+            build.assert_not_called()
+        else:
+            assert data["sql"] == "SELECT 1"
+            build.assert_called_once_with(cached_data, chart, None)
 
     @pytest.mark.parametrize(
         "cached_data",
@@ -1276,9 +1355,10 @@ class TestGetChartSqlTool:
             patch.object(_get_chart_sql_mod, "_sql_from_saved_query_context") as saved,
         ):
             async with Client(mcp_server) as client:
-                result: Any = await client.call_tool(
+                result: CallToolResult = await client.call_tool(
                     "get_chart_sql", {"request": {"form_data_key": "semantic-key"}}
                 )
+            assert result.structured_content is not None
             data: dict[str, Any] = result.structured_content.get(
                 "result", result.structured_content
             )

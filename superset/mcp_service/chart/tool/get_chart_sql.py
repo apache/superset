@@ -557,6 +557,13 @@ async def _sql_from_chart_form_data(
 ) -> ChartSql | ChartError:
     """Build saved-chart fallback SQL with its existing error response mapping."""
     try:
+        datasource_type: str
+        _, datasource_type = resolve_form_data_datasource(form_data, chart)
+        if datasource_type == "semantic_view":
+            return ChartError(
+                error=_SEMANTIC_VIEW_SQL_UNSUPPORTED,
+                error_type="Unsupported",
+            )
         return _sql_from_form_data(form_data, chart, extra_form_data)
     except (SupersetException, CommandException, ValueError) as e:
         await ctx.warning("Failed to build SQL from form_data: %s" % str(e))
