@@ -35,6 +35,10 @@ from superset.commands.base import BaseCommand
 from superset.commands.dashboard.permalink.create import CreateDashboardPermalinkCommand
 from superset.commands.exceptions import CommandException, UpdateFailedError
 from superset.commands.report.alert import AlertCommand
+from superset.commands.report.chart_data import (
+    ChartDataRequestError,
+    request_chart_data,
+)
 from superset.commands.report.exceptions import (
     ReportScheduleAlertGracePeriodError,
     ReportScheduleClientErrorsException,
@@ -997,7 +1001,7 @@ class BaseReportState:
                 raise URLError(response.getcode())
         return content or None
 
-    def _get_data(self, result_format: ChartDataResultFormat) -> bytes:
+    def _get_data(self, result_format: ChartDataResultFormat) -> bytes:  # noqa: C901
         """
         Fetch tabular chart data (CSV or Excel) as raw bytes.
 
@@ -1035,50 +1039,56 @@ class BaseReportState:
             self._update_query_context(failed_error)
             db.session.refresh(self._report_schedule.chart)
 
+        def get_timeout() -> float | None:
+            """Cap every request by the available data-generation budget."""
+            return self._phase_timeout(
+                "data_generation",
+                requested_seconds=app.config["ALERT_REPORTS_CSV_REQUEST_TIMEOUT"],
+                reserve_seconds=(
+                    self._report_execution_context.post_capture_reserve_seconds
+                    if self._report_execution_context
+                    else 0.0
+                ),
+            )
+
         try:
             if self._report_schedule.chart.query_context is None:
                 url = self._get_url(result_format=result_format)
-                data = get_chart_csv_data(
-                    chart_url=url,
-                    auth_cookies=auth_cookies,
-                    timeout=self._phase_timeout(
-                        "data_generation",
-                        requested_seconds=app.config[
-                            "ALERT_REPORTS_CSV_REQUEST_TIMEOUT"
-                        ],
-                        reserve_seconds=(
-                            self._report_execution_context.post_capture_reserve_seconds
-                            if self._report_execution_context
-                            else 0.0
-                        ),
-                    ),
-                )
+                endpoint = "/api/v1/chart/{id}/data/"
+
+                def fetch(timeout: float | None) -> bytes | None:
+                    """Fetch the legacy export without exposing its URL in logs."""
+                    return get_chart_csv_data(
+                        chart_url=url, auth_cookies=auth_cookies, timeout=timeout
+                    )
             else:
                 request_payload = self._get_chart_data_request_payload(result_format)
                 url = get_url_path("ChartDataRestApi.data")
-                data = self._post_chart_data(
-                    chart_url=url,
-                    auth_cookies=auth_cookies,
-                    request_payload=request_payload,
-                    timeout=self._phase_timeout(
-                        "data_generation",
-                        requested_seconds=app.config[
-                            "ALERT_REPORTS_CSV_REQUEST_TIMEOUT"
-                        ],
-                        reserve_seconds=(
-                            self._report_execution_context.post_capture_reserve_seconds
-                            if self._report_execution_context
-                            else 0.0
-                        ),
-                    ),
-                )
+                endpoint = "/api/v1/chart/data"
+
+                def fetch(timeout: float | None) -> bytes | None:
+                    """Use the saved query context's existing POST export path."""
+                    return self._post_chart_data(
+                        chart_url=url,
+                        auth_cookies=auth_cookies,
+                        request_payload=request_payload,
+                        timeout=timeout,
+                    )
+
+            data = request_chart_data(
+                fetch,
+                get_timeout,
+                retry=app.config["ALERT_REPORTS_CSV_REQUEST_RETRY"],
+                endpoint=endpoint,
+                log_context=self._log_context,
+            )
             elapsed_seconds: float = (
                 datetime.now(timezone.utc).replace(tzinfo=None) - start_time
             ).total_seconds()
             logger.info(
                 "%s data generation from %s as user %s took %.2fs - execution_id: %s",
                 label,
-                url,
+                endpoint,
                 username,
                 elapsed_seconds,
                 self._execution_id,
@@ -1096,6 +1106,10 @@ class BaseReportState:
             if self._report_schedule.type == ReportScheduleType.REPORT:
                 raise
             raise timeout_error() from ex
+        except ChartDataRequestError as ex:
+            if ex.category == "timeout":
+                raise timeout_error() from ex
+            raise failed_error(str(ex)) from ex
         except ReportExecutionBudgetExceededError:
             raise
         except Exception as ex:
@@ -1337,6 +1351,7 @@ class BaseReportState:
         recipient: ReportRecipients,
     ) -> None:
         """Send one notification, upgrading Slack v1 recipients when required."""
+        self._assert_rendered_delivery_allowed(notification_content)
         notification = create_notification(recipient, notification_content)
         if app.config["ALERT_REPORTS_NOTIFICATION_DRY_RUN"]:
             logger.info(
@@ -1361,6 +1376,37 @@ class BaseReportState:
 
         notification.send()
 
+    def _assert_rendered_delivery_allowed(
+        self,
+        notification_content: NotificationContent,
+    ) -> None:
+        """Enforce fail-closed capture provenance before rendered delivery."""
+
+        if not (notification_content.pdf or notification_content.screenshots):
+            return
+
+        report_context = getattr(self, "_report_execution_context", None)
+        rejection_reasons = (
+            report_context.capture_rejection_reasons
+            if report_context is not None
+            else ("missing_capture_context",)
+        )
+        if report_context is not None and not report_context.capture_was_rejected:
+            return
+
+        logger.error(
+            "report_delivery_blocked %s terminal_reason=capture_rejected "
+            "rejection_reasons=%s",
+            report_context.log_context
+            if report_context is not None
+            else self._log_context,
+            ",".join(rejection_reasons),
+        )
+        raise ReportScheduleScreenshotFailedError(
+            "Rendered report delivery blocked because capture validation "
+            "did not produce an accepted artifact"
+        )
+
     def _send(
         self,
         notification_content: NotificationContent,
@@ -1375,6 +1421,7 @@ class BaseReportState:
         upgraded_delivery_failed = False
         self._slack_v1_upgrade.reset()
         report_context = getattr(self, "_report_execution_context", None)
+        self._assert_rendered_delivery_allowed(notification_content)
         for recipient in recipients:
             try:
                 log_report_delivery_phase(
@@ -1845,9 +1892,9 @@ class ReportNotTriggeredErrorState(BaseReportState):
                     second_error_message = str(second_ex)
                 finally:
                     try:
-                        self.update_report_schedule_and_log(
-                            ReportState.ERROR,
-                            error_message=second_error_message,
+                        # Notification bookkeeping is not another execution outcome.
+                        self.create_log(
+                            second_error_message,
                             include_execution_warnings=False,
                         )
                     except ReportScheduleUnexpectedError:
@@ -2050,8 +2097,9 @@ class ReportSuccessState(BaseReportState):
                     second_error_message = str(second_ex)
                 finally:
                     try:
-                        self.update_report_schedule_and_log(
-                            ReportState.ERROR, error_message=second_error_message
+                        # Preserve the grace-period marker without another terminal log.
+                        self.create_log(
+                            second_error_message, include_execution_warnings=False
                         )
                     except ReportScheduleUnexpectedError:
                         # Logging failed again; log it but don't hide first_ex

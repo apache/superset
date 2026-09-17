@@ -87,6 +87,8 @@ import {
 } from 'src/dashboard/constants';
 import { selectCanRestoreDashboard } from 'src/features/versionHistory/canRestoreDashboard';
 import { selectIsDashboardVersionPreviewActive } from 'src/features/versionHistory/reducer';
+import { StickyTabsOffsetContext } from 'src/dashboard/components/gridComponents/TabsRenderer';
+import { isEmbedded } from 'src/dashboard/util/isEmbedded';
 import { getRootLevelTabsComponent, shouldFocusTabs } from './utils';
 import DashboardContainer from './DashboardContainer';
 import { useNativeFilters } from './state';
@@ -108,6 +110,12 @@ const FiltersPanel = styled.div<{ width: number; hidden: boolean }>`
   grid-row: 1 / span 2;
   z-index: 11;
   width: ${({ width }) => width}px;
+  /* In an embed the bar inside this column is bounded to its content so the
+     action buttons stay reachable, which leaves its own border ending partway
+     down. This column always spans the full grid, so the separator lives here
+     instead of on the bar. */
+  ${({ theme }) =>
+    isEmbedded() && `border-right: 1px solid ${theme.colorSplit};`}
   ${({ hidden }) => hidden && `display: none;`}
 `;
 
@@ -119,14 +127,18 @@ const StickyPanel = styled.div<{ width: number }>`
 `;
 
 // @z-index-above-dashboard-popovers (99) + 1 = 100
-const StyledHeader = styled.div<{ filterBarWidth: number }>`
-  ${({ theme, filterBarWidth }) => css`
+const StyledHeader = styled.div`
+  ${({ theme }) => css`
     grid-column: 2;
     grid-row: 1;
     position: sticky;
     top: 0;
     z-index: 99;
-    max-width: calc(100vw - ${filterBarWidth}px);
+    /* The grid track already knows how wide this column is. Capping against
+       100vw measured the viewport including the scrollbar gutter, so the
+       header could run past the visible edge. */
+    min-width: 0;
+    max-width: 100%;
 
     /* Mobile consumption mode: let the dashboard title scroll away and keep
        only the tab bar sticky. A pinned title would sit underneath the
@@ -165,19 +177,48 @@ const StyledContent = styled.div<{
 }>`
   grid-column: 2;
   grid-row: 2;
-  /* @z-index-above-dashboard-header (100) + 1 = 101 */
-  ${({ fullSizeChartId }) => fullSizeChartId && `z-index: 101;`}
+  /* @z-index-above-dashboard-header (100) + 2 = 102: a maximized chart
+     must also cover the version-history overlay (101) so the two stack the
+     same way on both sides of the overlay breakpoint. */
+  ${({ fullSizeChartId }) => fullSizeChartId && `z-index: 102;`}
 `;
 
 // Sticks alongside the page scroll so the panel stays fully visible.
+// Below the XXL breakpoint the dashboard grid's min-content width plus the
+// panel exceed the viewport (the content column cannot shrink), which would
+// push the panel past the page's right edge and clip its own controls
+// (sc-119737). Mirror the Explore panel host in spirit — Explore anchors
+// absolutely inside its relatively-positioned container, but the dashboard
+// page owns the scroll, so this pins to the viewport instead. While open at
+// these widths the overlay covers the page's right edge (including the top
+// navbar while scrolled to the top) — accepted: it is a closable surface.
 const VersionHistoryColumn = styled.div`
-  grid-column: 3;
-  grid-row: 1 / span 2;
-  position: sticky;
-  top: 0;
-  align-self: start;
-  height: 100vh;
-  z-index: 99;
+  ${({ theme }) => css`
+    grid-column: 3;
+    grid-row: 1 / span 2;
+    position: sticky;
+    top: 0;
+    align-self: start;
+    height: 100vh;
+    z-index: 99;
+    @media (max-width: ${theme.screenXLMax}px) {
+      /* @z-index-above-dashboard-header (100) + 1 = 101 */
+      position: fixed;
+      right: 0;
+      bottom: 0;
+      height: auto;
+      z-index: 101;
+      box-shadow: ${theme.boxShadow};
+      /* Load-bearing contract with DashboardVersionHistory's closed state:
+         it must render nothing in place (its restore modal portals out of
+         the column), so the column stays :empty and this zero-width fixed
+         box paints no stray shadow at the viewport edge. Pinned by the
+         closed-state test in DashboardVersionHistory.test.tsx. */
+      &:empty {
+        box-shadow: none;
+      }
+    }
+  `}
 `;
 
 const DashboardContentWrapper = styled.div`
@@ -461,8 +502,9 @@ const DashboardBuilder = () => {
   // always get the desktop layout -- matching the pre-existing behavior the
   // docs already promise for embedded dashboards.
   const standaloneMode = getUrlParam(URL_PARAMS.standalone);
+  const isMobileViewport = useIsMobile();
   const isNotMobile =
-    !useIsMobile() || standaloneMode !== DashboardStandaloneMode.None;
+    !isMobileViewport || standaloneMode !== DashboardStandaloneMode.None;
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
   // Reset the drawer's open state when leaving mobile mode so it doesn't
@@ -554,9 +596,6 @@ const DashboardBuilder = () => {
     isReport;
 
   const [barTopOffset, setBarTopOffset] = useState(0);
-  const [currentFilterBarWidth, setCurrentFilterBarWidth] = useState(
-    CLOSED_FILTER_BAR_WIDTH,
-  );
 
   useEffect(() => {
     setBarTopOffset(headerRef.current?.getBoundingClientRect()?.height || 0);
@@ -745,14 +784,22 @@ const DashboardBuilder = () => {
     ? theme.sizeUnit * 4
     : theme.sizeUnit * 8;
 
+  // Tab bars nested in the grid pin just below the sticky header while the
+  // page scrolls. Not in the mobile viewport, where the header scrolls away
+  // and the mobile styling pins tab bars on its own; not in report mode,
+  // whose tiled screenshots scroll the page and would capture a pinned bar
+  // in every tile; and not while a chart is maximized, which sits inside its
+  // own stacking context and must not be covered by a pinned bar.
+  // (TabsRenderer itself opts out while editing, since drop targets rely on
+  // document flow.)
+  const stickyTabsOffset =
+    isMobileViewport || isReport || fullSizeChartId ? undefined : barTopOffset;
+
   const renderChild = useCallback(
     (adjustedWidth: number) => {
       const filterBarWidth = dashboardFiltersOpen
         ? adjustedWidth
         : CLOSED_FILTER_BAR_WIDTH;
-      if (filterBarWidth !== currentFilterBarWidth) {
-        setCurrentFilterBarWidth(filterBarWidth);
-      }
       return (
         <FiltersPanel
           width={filterBarWidth}
@@ -806,10 +853,6 @@ const DashboardBuilder = () => {
 
   const isVerticalFilterBarVisible =
     showFilterBar && filterBarOrientation === FilterBarOrientation.Vertical;
-  const headerFilterBarWidth = isVerticalFilterBarVisible
-    ? currentFilterBarWidth
-    : 0;
-
   return (
     <DashboardWrapper>
       {isVerticalFilterBarVisible && (
@@ -823,11 +866,7 @@ const DashboardBuilder = () => {
           {renderChild}
         </ResizableSidebar>
       )}
-      <StyledHeader
-        data-test="dashboard-header-wrapper"
-        ref={headerRef}
-        filterBarWidth={headerFilterBarWidth}
-      >
+      <StyledHeader data-test="dashboard-header-wrapper" ref={headerRef}>
         {headerContent}
         <Droppable
           data-test="top-level-tabs"
@@ -947,7 +986,9 @@ const DashboardBuilder = () => {
                   />
                 </div>
               ) : (
-                <DashboardContainer topLevelTabs={topLevelTabs} />
+                <StickyTabsOffsetContext.Provider value={stickyTabsOffset}>
+                  <DashboardContainer topLevelTabs={topLevelTabs} />
+                </StickyTabsOffsetContext.Provider>
               )
             ) : (
               <Loading />
@@ -956,7 +997,9 @@ const DashboardBuilder = () => {
           </StyledDashboardContent>
         </DashboardContentWrapper>
       </StyledContent>
-      {isFeatureEnabled(FeatureFlag.VersionHistory) && (
+      {/* Sized from `100vh`, which in an embed pins the document to the iframe
+          height, and guests have no version history to show. */}
+      {isFeatureEnabled(FeatureFlag.VersionHistory) && !isEmbedded() && (
         <VersionHistoryColumn>
           <Suspense fallback={null}>
             <DashboardVersionHistory />

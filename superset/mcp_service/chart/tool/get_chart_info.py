@@ -20,7 +20,7 @@ MCP tool: get_chart_info
 """
 
 import logging
-from typing import Any
+from typing import Any, cast
 
 from fastmcp import Context
 from sqlalchemy.orm import subqueryload
@@ -150,6 +150,33 @@ async def _attach_dashboard_filters(
     return None
 
 
+def _attach_active_filters(result: ChartInfo, extra_form_data: dict[str, Any]) -> None:
+    """Surface the user's live dashboard filters (forwarded as extra_form_data)
+    under result.filters, so a metadata caller reports the chart as it is currently
+    viewed rather than as the full unfiltered dataset. Column-based and adhoc
+    filters go to active_filters and a time-range filter to active_time_range. No
+    query is run; the values are echoed for awareness."""
+    active: list[dict[str, Any]] = [
+        clause
+        for clause in (extra_form_data.get("filters") or [])
+        if isinstance(clause, dict)
+    ]
+    active += [
+        clause
+        for clause in (extra_form_data.get("adhoc_filters") or [])
+        if isinstance(clause, dict)
+    ]
+    time_range = extra_form_data.get("time_range")
+    if not active and not time_range:
+        return
+    if result.filters is None:
+        result.filters = ChartFiltersInfo()
+    if active:
+        result.filters.active_filters = active
+    if time_range:
+        result.filters.active_time_range = time_range
+
+
 def _apply_unsaved_state_override(result: ChartInfo, form_data_key: str) -> None:
     """Override a ChartInfo's form_data with cached unsaved state."""
     from superset.utils import json as utils_json
@@ -204,9 +231,9 @@ def _apply_unsaved_state_override(result: ChartInfo, form_data_key: str) -> None
         openWorldHint=False,
     ),
 )
-async def get_chart_info(
+async def get_chart_info(  # noqa: C901
     request: GetChartInfoRequest, ctx: Context
-) -> dict[str, Any] | ChartError:
+) -> ChartInfo | ChartError:
     """Get chart metadata by ID or UUID.
 
     IMPORTANT FOR LLM CLIENTS:
@@ -274,9 +301,14 @@ async def get_chart_info(
                 return result
             if not can_view_data_model_metadata:
                 result = redact_chart_data_model_fields(result)
-            return result.model_dump(
-                mode="json",
-                context={"select_columns": request.select_columns},
+            if request.extra_form_data:
+                _attach_active_filters(result, request.extra_form_data)
+            return cast(
+                ChartInfo,
+                result.model_dump(
+                    mode="json",
+                    context={"select_columns": request.select_columns},
+                ),
             )
 
     # At this point identifier must be set (validator ensures at least one
@@ -334,9 +366,15 @@ async def get_chart_info(
             if error is not None:
                 return error
 
-        return result.model_dump(
-            mode="json",
-            context={"select_columns": request.select_columns},
+        if request.extra_form_data:
+            _attach_active_filters(result, request.extra_form_data)
+
+        return cast(
+            ChartInfo,
+            result.model_dump(
+                mode="json",
+                context={"select_columns": request.select_columns},
+            ),
         )
     else:
         await ctx.warning("Chart retrieval failed: error=%s" % (str(result),))

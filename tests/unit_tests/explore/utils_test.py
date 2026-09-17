@@ -31,7 +31,9 @@ from superset.commands.exceptions import (
     DatasourceNotFoundValidationError,
     QueryNotFoundValidationError,
 )
+from superset.common.db_query_status import QueryStatus
 from superset.exceptions import SupersetSecurityException, SupersetTemplateException
+from superset.extensions import appbuilder
 from superset.utils.core import DatasourceType, override_user
 
 dataset_find_by_id = "superset.daos.dataset.DatasetDAO.find_by_id"
@@ -385,3 +387,118 @@ def test_query_no_access(mocker: MockerFixture, client) -> None:
             datasource_id=1,
             datasource_type=DatasourceType.QUERY,
         )
+
+
+def test_unsaved_query_explore_allows_the_query_author(
+    mocker: MockerFixture, client
+) -> None:
+    """
+    Regression for #39296: clicking "Create Chart" straight from a SQL Lab
+    query (no "Save dataset" step first) sends ``DatasourceType.QUERY`` into
+    ``CreateFormDataCommand``, which is the command backing that button (see
+    ``superset/commands/explore/form_data/create.py``). That command calls
+    this exact ``check_access`` function with ``chart_id=None``.
+
+    Unlike the TABLE path (``check_access`` -> ``can_access_datasource`` ->
+    ``raise_for_access(datasource=...)``), which grants access to a
+    dataset's *owners* via ``is_editor`` regardless of catalog/schema/table
+    permissions, the QUERY path had no equivalent "you authored this"
+    bypass: ``raise_for_access``'s ``query=`` branch
+    (``superset/security/manager.py``) only ever checked catalog/schema/
+    table-level ``datasource_access``, and never looked at ``Query.user_id``
+    at all. So a user who just ran this exact query in SQL Lab themselves
+    (and therefore has execution rights on the connection) but lacks that
+    dataset-level permission was denied here, even though the identical
+    underlying data becomes explorable to them the moment it's saved as a
+    dataset, since ``populate_owners()`` (``superset/commands/utils.py``)
+    would make them an owner at that point. That inconsistency, not a
+    missing owner field, was the crux of #39296.
+
+    This test sets the query's ``user_id`` to match the current user (i.e.
+    the user IS the query's own author) and asserts access is granted.
+    ``raise_for_access`` now grants a bypass for query authorship,
+    mirroring the ``is_editor`` bypass the TABLE path already had.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.explore.utils import check_access as check_chart_access
+    from superset.models.sql_lab import Query
+
+    current_user = User(id=1)
+
+    database = mocker.MagicMock()
+    database.get_default_catalog.return_value = None
+    database.get_default_schema_for_query.return_value = "public"
+    mocker.patch(
+        query_find_by_id,
+        return_value=Query(
+            database=database,
+            sql="select * from foo",
+            user_id=current_user.id,
+            # The authorship bypass only covers a query that actually
+            # succeeded -- see raise_for_access in
+            # superset/security/manager.py.
+            status=QueryStatus.SUCCESS,
+        ),
+    )
+    mocker.patch(query_datasources_by_name, return_value=[SqlaTable()])
+    mocker.patch(is_admin, return_value=False)
+    mocker.patch(is_editor, return_value=False)
+    # No catalog/schema/dataset-level datasource_access grant of any kind:
+    # the only thing that should let this through is query authorship.
+    mocker.patch(can_access, return_value=False)
+
+    with override_user(current_user):
+        # A user exploring a query they themselves just ran in SQL Lab
+        # should not be denied for lack of an unrelated dataset grant.
+        check_chart_access(
+            datasource_id=1,
+            chart_id=None,
+            datasource_type=DatasourceType.QUERY,
+        )
+
+
+def test_query_authorship_bypass_does_not_cover_chart_data_fetch(
+    mocker: MockerFixture,
+) -> None:
+    """
+    The authorship bypass above is deliberately opt-in
+    (``allow_query_authorship_bypass``) and only set by the one-time
+    explore/create-chart transition (``check_query_access`` above). A
+    query-backed chart's *data*, fetched on every dashboard/chart view or
+    export via ``QueryContextProcessor.raise_for_access`` (see
+    ``superset/common/query_context_processor.py``), calls
+    ``raise_for_access(query=...)`` without that flag, and must keep going
+    through the regular catalog/schema/datasource_access checks on every
+    call -- authorship alone does not track whether the author still holds
+    that access.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.models.sql_lab import Query
+    from superset.security.manager import SupersetSecurityManager
+
+    sm = SupersetSecurityManager(appbuilder)
+    current_user = User(id=1)
+
+    database = mocker.MagicMock()
+    database.get_default_catalog.return_value = None
+    database.get_default_schema_for_query.return_value = "public"
+    query = Query(
+        database=database,
+        sql="select * from foo",
+        user_id=current_user.id,
+        status=QueryStatus.SUCCESS,
+    )
+
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    mocker.patch.object(sm, "is_admin", return_value=False)
+    mocker.patch.object(sm, "is_editor", return_value=False)
+    mocker.patch.object(sm, "can_access", return_value=False)
+    mocker.patch(query_datasources_by_name, return_value=[SqlaTable()])
+
+    with override_user(current_user):
+        # Same query, same author, same SUCCESS status as the explore-path
+        # bypass test above -- but with no allow_query_authorship_bypass
+        # (the chart-data/export call shape), so it must still be denied.
+        with raises(SupersetSecurityException):
+            sm.raise_for_access(query=query)

@@ -21,6 +21,7 @@ import type { ReactElement } from 'react';
 import '@testing-library/jest-dom';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { supersetTheme, ThemeProvider } from '@apache-superset/core/theme';
+import { getTimeFormatter } from '@superset-ui/core';
 import { TableRenderer } from '../../src/react-pivottable/TableRenderers';
 import {
   aggregatorTemplates,
@@ -687,6 +688,44 @@ test('TableRenderer coerces numeric timestamp strings to numbers for row header 
 
   expect(screen.getByText('row:1700000000000')).toBeInTheDocument();
   expect(screen.getByText('row:red')).toBeInTheDocument();
+});
+
+test('TableRenderer passes four-digit year strings through to column header date formatters uncoerced', () => {
+  const data = [
+    { shape: '2017', color: 'blue', value: 1 },
+    { shape: '1700000000000', color: 'blue', value: 2 },
+  ];
+  const props = buildDefaultProps({
+    data,
+    rows: ['color'],
+    cols: ['shape'],
+    tableOptions: { dateFormatters: { shape: getTimeFormatter('%Y') } },
+  });
+  renderWithTheme(<TableRenderer {...props} />);
+
+  // "2017" is the ISO year-only form and must render as that year, not as
+  // 2.017 seconds past the epoch; a stringified epoch still coerces.
+  expect(screen.getByText('2017')).toBeInTheDocument();
+  expect(screen.getByText('2023')).toBeInTheDocument();
+  expect(screen.queryByText('1970')).not.toBeInTheDocument();
+});
+
+test('TableRenderer passes four-digit year strings through to row header date formatters uncoerced', () => {
+  const data = [
+    { color: '2017', shape: 'circle', value: 1 },
+    { color: '1700000000000', shape: 'circle', value: 2 },
+  ];
+  const props = buildDefaultProps({
+    data,
+    rows: ['color'],
+    cols: ['shape'],
+    tableOptions: { dateFormatters: { color: getTimeFormatter('%Y') } },
+  });
+  renderWithTheme(<TableRenderer {...props} />);
+
+  expect(screen.getByText('2017')).toBeInTheDocument();
+  expect(screen.getByText('2023')).toBeInTheDocument();
+  expect(screen.queryByText('1970')).not.toBeInTheDocument();
 });
 
 test('TableRenderer applies cellColorFormatters background and contrast color to column headers', () => {

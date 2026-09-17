@@ -23,12 +23,13 @@
 /**
  * Build packages/plugins filtered by globs
  */
-process.env.PATH = `./node_modules/.bin:${process.env.PATH}`;
 
-const { spawnSync } = require('child_process');
-const fastGlob = require('fast-glob');
-const yargs = require('yargs');
-const { hideBin } = require('yargs/helpers');
+import { spawnSync } from 'node:child_process';
+import fastGlob from 'fast-glob';
+import yargs from 'yargs';
+import { hideBin } from 'yargs/helpers';
+
+process.env.PATH = `./node_modules/.bin:${process.env.PATH}`;
 
 const { globs } = yargs(hideBin(process.argv)).parse();
 const glob = globs?.length > 1 ? `{${globs.join(',')}}` : globs?.[0] || '*';

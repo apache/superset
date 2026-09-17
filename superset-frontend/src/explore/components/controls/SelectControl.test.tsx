@@ -56,6 +56,11 @@ afterEach(() => {
   jest.useRealTimers();
 });
 
+// user-event's default `delay` between simulated events relies on real
+// timers; this file uses `jest.useFakeTimers()`, so disable the delay to
+// avoid interactions hanging until the fake clock is advanced.
+const user = userEvent.setup({ delay: null });
+
 const options = [
   { value: '1 year ago', label: '1 year ago' },
   { value: '1 week ago', label: '1 week ago' },
@@ -93,7 +98,7 @@ describe('SelectControl', () => {
       expect(selectorInput).toBeInTheDocument();
     });
 
-    test('renders as mode multiple', () => {
+    test('renders as mode multiple', async () => {
       renderSelectControl({ multi: true });
       const selectorInput = screen.getByLabelText('Row Limit', {
         selector: 'input',
@@ -103,11 +108,11 @@ describe('SelectControl', () => {
       ) as HTMLElement;
       expect(selectorWrapper).toBeInTheDocument();
       expect(selectorInput).toBeInTheDocument();
-      userEvent.click(selectorInput);
+      await user.click(selectorInput);
       expect(screen.getByText('Select all (3)')).toBeInTheDocument();
     });
 
-    test('renders with allowNewOptions when freeForm', () => {
+    test('renders with allowNewOptions when freeForm', async () => {
       renderSelectControl({ freeForm: true });
       const selectorInput = screen.getByLabelText('Row Limit', {
         selector: 'input',
@@ -119,15 +124,15 @@ describe('SelectControl', () => {
       expect(selectorInput).toBeInTheDocument();
 
       // Expect a new option to be selectable.
-      userEvent.click(selectorInput);
-      userEvent.type(selectorInput, 'a new option');
+      await user.click(selectorInput);
+      await user.type(selectorInput, 'a new option');
       act(() => jest.runAllTimers());
       // antd v6 renders the dropdown options in a portal outside the
       // .ant-select wrapper, so query the whole document.
       expect(screen.getByRole('option')).toHaveTextContent('a new option');
     });
 
-    test('renders with allowNewOptions=false when freeForm=false', () => {
+    test('renders with allowNewOptions=false when freeForm=false', async () => {
       const container = renderSelectControl({ freeForm: false });
       const selectorInput = screen.getByLabelText('Row Limit', {
         selector: 'input',
@@ -139,8 +144,8 @@ describe('SelectControl', () => {
       expect(selectorInput).toBeInTheDocument();
 
       // Expect no new option to be selectable.
-      userEvent.click(selectorInput);
-      userEvent.type(selectorInput, 'a new option');
+      await user.click(selectorInput);
+      await user.type(selectorInput, 'a new option');
       act(() => jest.advanceTimersByTime(300));
 
       expect(
@@ -153,7 +158,7 @@ describe('SelectControl', () => {
       ).toBeInTheDocument();
     });
 
-    test('renders with tokenSeparators', () => {
+    test('renders with tokenSeparators', async () => {
       renderSelectControl({ tokenSeparators: ['\n', '\t', ';'], multi: true });
       const selectorInput = screen.getByLabelText('Row Limit', {
         selector: 'input',
@@ -164,7 +169,7 @@ describe('SelectControl', () => {
       expect(selectorWrapper).toBeInTheDocument();
       expect(selectorInput).toBeInTheDocument();
 
-      userEvent.click(selectorInput);
+      await user.click(selectorInput);
       const paste = createEvent.paste(selectorInput, {
         clipboardData: {
           getData: () => '1 year ago;1 week ago',
@@ -500,10 +505,10 @@ test('selecting a string "none" option round-trips through onChange', async () =
   const selectorInput = screen.getByLabelText('Legend Position', {
     selector: 'input',
   });
-  userEvent.click(selectorInput);
+  await user.click(selectorInput);
   act(() => jest.runAllTimers());
 
-  userEvent.click(screen.getByRole('option', { name: 'None' }));
+  await user.click(screen.getByRole('option', { name: 'None' }));
   act(() => jest.runAllTimers());
 
   expect(onChange).toHaveBeenCalledWith('none', expect.anything());

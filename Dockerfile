@@ -105,6 +105,30 @@ RUN if [ "${BUILD_TRANSLATIONS}" = "true" ]; then \
 
 
 ######################################################################
+# superset-websocket builds the realtime WebSocket (Node) server that
+# ships in the official image, launched via docker/entrypoints/run-websocket.sh
+######################################################################
+FROM node:24-trixie-slim AS superset-websocket
+
+# Harden `npm ci` against transient npm-registry network blips (e.g. ECONNRESET).
+ENV npm_config_fetch_retries=5 \
+    npm_config_fetch_retry_mintimeout=20000 \
+    npm_config_fetch_retry_maxtimeout=120000 \
+    npm_config_fetch_timeout=600000
+
+WORKDIR /app/superset-websocket
+
+# Install against the lockfile first (cached until it changes), then bundle the
+# TypeScript server into a single self-contained CJS file (esbuild inlines every
+# dependency), so the runtime image needs only the Node binary and dist/ — no
+# node_modules to ship.
+COPY superset-websocket/package.json superset-websocket/package-lock.json ./
+RUN --mount=type=cache,target=/root/.npm npm ci
+COPY superset-websocket/ ./
+RUN npm run build
+
+
+######################################################################
 # Base python layer
 ######################################################################
 FROM python:${PY_VER} AS python-base
@@ -207,9 +231,44 @@ RUN /app/docker/apt-install.sh \
 # The database file will be created at runtime when examples are loaded from Parquet files
 RUN mkdir -p /app/data && chown -R superset:superset /app/data
 
-# Copy compiled things from previous stages
+# --- Realtime WebSocket server (part of the official image) ---------------
+# The realtime transport (superset-websocket) is a Node service, bundled by
+# esbuild into a single self-contained file. Copy the Node runtime plus that
+# bundle so every image built from this stage can launch it via an alternate
+# entrypoint (docker/entrypoints/run-websocket.sh) rather than needing a separate
+# image. This lives here rather than in a single downstream stage so the lean and
+# dev images both ship it — docker-compose-non-dev.yml runs the websocket service
+# from the dev target.
+RUN /app/docker/apt-install.sh libstdc++6
+COPY --from=superset-websocket /usr/local/bin/node /usr/local/bin/node
+COPY --from=superset-websocket --chown=superset:superset \
+    /app/superset-websocket/dist /app/superset-websocket/dist
+
+HEALTHCHECK CMD /app/docker/docker-healthcheck.sh
+CMD ["/app/docker/entrypoints/run-server.sh"]
+EXPOSE ${SUPERSET_PORT}
+
+######################################################################
+# Final lean image...
+######################################################################
+FROM python-common AS lean
+
+# Install Python dependencies using docker/pip-install.sh.
+# Requirements are installed *before* the application source is copied
+# below so that source-only changes don't bust this (slow, network-bound)
+# cache layer or defeat --cache-from.
+COPY requirements/base.txt requirements/
+
+# Copy superset-core package needed for editable install in base.txt
+COPY superset-core superset-core
+
+RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
+    /app/docker/pip-install.sh --requires-build-essential -r requirements/base.txt
+
+# Copy compiled frontend assets and application source now that
+# dependencies have been resolved and cached above.
 COPY --from=superset-node /app/superset/static/assets superset/static/assets
-# Copy service.worker.js optionall as it doesn't exist when DEV_MODE=true
+# Copy service.worker.js optionally as it doesn't exist when DEV_MODE=true
 COPY --from=superset-node /app/superset/static/service-worker.j[s] superset/static/service-worker.js
 
 # TODO, when the next version comes out, use --exclude superset/translations
@@ -221,27 +280,49 @@ RUN rm superset/translations/*/*/*.po
 COPY --from=superset-node /app/superset/translations superset/translations
 COPY --from=python-translation-compiler /app/translations_mo superset/translations
 
-HEALTHCHECK CMD /app/docker/docker-healthcheck.sh
-CMD ["/app/docker/entrypoints/run-server.sh"]
-EXPOSE ${SUPERSET_PORT}
-
-######################################################################
-# Final lean image...
-######################################################################
-FROM python-common AS lean
-
-# Install Python dependencies using docker/pip-install.sh
-COPY requirements/base.txt requirements/
-
-# Copy superset-core package needed for editable install in base.txt
-COPY superset-core superset-core
-
+# Install the superset package itself. --no-deps because its dependencies
+# were already installed from requirements/base.txt above, so this layer
+# stays fast even though the source copy above changes on every edit.
 RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
-    /app/docker/pip-install.sh --requires-build-essential -r requirements/base.txt
-# Install the superset package
-RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
-    uv pip install -e .
+    uv pip install -e . --no-deps
 RUN python -m compileall /app/superset
+
+USER superset
+
+######################################################################
+# Batteries-included default image: lean + common drivers, MCP and a
+# headless Chromium. This is the image published under the plain tags
+# (latest, master, <version>); the minimal image ships as `lean`.
+######################################################################
+FROM lean AS superset
+USER root
+
+# mysqlclient needs the MySQL client dev headers + pkg-config to build.
+# python-common already installs the libs for postgres/sasl/ldap, so only
+# the MySQL bits are added here — the minimal `lean` stage stays untouched.
+RUN /app/docker/apt-install.sh \
+    pkg-config \
+    default-libmysqlclient-dev
+
+# Bundle the common metadata/analytics drivers (postgres, mysql) and the
+# MCP server dependencies (fastmcp) so the default image is usable without
+# layering extra packages. Routed through pip-install.sh because mysqlclient
+# is a source dist that needs a C compiler to build; the helper installs
+# build-essential just for the build and purges it afterward (the lean base
+# ships no compiler). The mysql client lib installed above stays, so the
+# compiled extension can link against it at runtime.
+RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
+    /app/docker/pip-install.sh --requires-build-essential .[postgres,mysql,fastmcp]
+
+# Bundle Playwright + a headless Chromium so Alerts & Reports and thumbnail
+# generation work out of the box. Installed directly (rather than via the
+# INCLUDE_CHROMIUM build arg on python-common) because this stage builds
+# FROM lean, which is already past that arg. Chromium ships for both
+# linux/amd64 and linux/arm64, so this works on multi-platform builds.
+RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
+    uv pip install playwright \
+    && playwright install-deps \
+    && playwright install chromium
 
 USER superset
 
@@ -256,22 +337,46 @@ RUN /app/docker/apt-install.sh \
     pkg-config \
     default-libmysqlclient-dev
 
-# Copy development requirements and install them
+# Copy development requirements and install them *before* the application
+# source is copied below, so source-only edits don't bust this cache layer.
 COPY requirements/*.txt requirements/
 
 # Copy local packages needed for editable installs in development.txt
 COPY superset-core superset-core
 COPY superset-extensions-cli superset-extensions-cli
 
-# Install Python dependencies using docker/pip-install.sh
+# requirements/development.txt is generated by `uv pip compile` and embeds
+# `-e .` (an editable install of this same package) as its first line. That
+# self-reference needs the full superset/ source tree, which hasn't been
+# copied in yet at this point, so it's stripped here; the real editable
+# install of `.` runs below, once the source is present.
 RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
-    /app/docker/pip-install.sh --requires-build-essential -r requirements/development.txt
-# Install the superset package
-RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
-    uv pip install -e .
+    grep -vxF -- "-e ." requirements/development.txt > requirements/development-deps.txt && \
+    /app/docker/pip-install.sh --requires-build-essential -r requirements/development-deps.txt
 
-RUN uv pip install .[postgres]
-RUN python -m compileall /app/superset
+# Copy compiled frontend assets and application source now that
+# dependencies have been resolved and cached above.
+COPY --from=superset-node /app/superset/static/assets superset/static/assets
+# Copy service.worker.js optionally as it doesn't exist when DEV_MODE=true
+COPY --from=superset-node /app/superset/static/service-worker.j[s] superset/static/service-worker.js
+
+# TODO, when the next version comes out, use --exclude superset/translations
+COPY superset superset
+# TODO in the meantime, remove the .po files
+RUN rm superset/translations/*/*/*.po
+
+# Merging translations from backend and frontend stages
+COPY --from=superset-node /app/superset/translations superset/translations
+COPY --from=python-translation-compiler /app/translations_mo superset/translations
+
+# Install the superset package together with its postgres extra, using the
+# same uv cache mount as the requirements install above. --no-deps because
+# all dependencies (including the postgres extra's psycopg2-binary) are
+# already installed from requirements/development.txt above.
+# NOTE: source is bind-mounted over /app/superset in DEV_MODE, so a
+# compileall pass here would be wasted work; unlike `lean`, `dev` skips it.
+RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
+    uv pip install -e .[postgres] --no-deps
 
 USER superset
 

@@ -32,8 +32,6 @@ import {
   Behavior,
   DataMask,
   DatasourceType,
-  isFeatureEnabled,
-  FeatureFlag,
   getChartMetadataRegistry,
   JsonObject,
   QueryFormData,
@@ -46,10 +44,10 @@ import { styled, SupersetTheme } from '@apache-superset/core/theme';
 import { useTheme } from '@emotion/react';
 import { useDispatch, useSelector, shallowEqual } from 'react-redux';
 import { isEqual, isEqualWith } from 'lodash-es';
-import { getChartDataRequest } from 'src/components/Chart/chartAction';
+import { requestChartDataResolved } from 'src/components/Chart/chartAction';
 import { ErrorAlert, ErrorMessageWithStackTrace } from 'src/components';
 import { Loading, Constants, Flex } from '@superset-ui/core/components';
-import { waitForAsyncData } from 'src/middleware/asyncEvent';
+import { useAsyncModeOverride } from 'src/utils/asyncMode';
 import { FilterBarOrientation, RootState } from 'src/dashboard/types';
 import {
   onFiltersRefreshSuccess,
@@ -150,6 +148,9 @@ const FilterValue: FC<FilterValueProps> = ({
   const dashboardId = useSelector<RootState, number>(
     state => state.dashboardInfo.id,
   );
+  // Per-dashboard async override so filter requests honor the same policy
+  // (force on/off) as the dashboard's charts.
+  const asyncModeOverride = useAsyncModeOverride();
 
   const [error, setError] = useState<ClientErrorObject>();
   const [formData, setFormData] = useState<Partial<QueryFormData>>({
@@ -278,42 +279,16 @@ const FilterValue: FC<FilterValueProps> = ({
         return;
       }
       setIsRefreshing(true);
-      getChartDataRequest({
+      requestChartDataResolved({
         formData: newFormData,
         force: shouldRefresh,
         ownState: filterOwnState,
+        requestParams: { async_mode_override: asyncModeOverride },
       })
-        .then(({ response, json }) => {
-          if (isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) {
-            // deal with getChartDataRequest transforming the response data
-            const result = 'result' in json ? json.result[0] : json;
-            if (response.status === 200) {
-              setState([result as ChartDataResponseResult]);
-              setError(undefined);
-              handleFilterLoadFinish();
-            } else if (response.status === 202) {
-              waitForAsyncData(result as Parameters<typeof waitForAsyncData>[0])
-                .then((asyncResult: ChartDataResponseResult[]) => {
-                  setState(asyncResult);
-                  setError(undefined);
-                  handleFilterLoadFinish();
-                })
-                .catch((error: Response) => {
-                  getClientErrorObject(error).then(clientErrorObject => {
-                    setError(clientErrorObject);
-                    handleFilterLoadFinish();
-                  });
-                });
-            } else {
-              throw new Error(
-                `Received unexpected response status (${response.status}) while fetching chart data`,
-              );
-            }
-          } else {
-            setState(json.result as ChartDataResponseResult[]);
-            setError(undefined);
-            handleFilterLoadFinish();
-          }
+        .then(queriesResponse => {
+          setState(queriesResponse as ChartDataResponseResult[]);
+          setError(undefined);
+          handleFilterLoadFinish();
         })
         .catch((error: Response) => {
           getClientErrorObject(error).then(clientErrorObject => {
@@ -336,6 +311,7 @@ const FilterValue: FC<FilterValueProps> = ({
     setHasDepsFilterValue,
     transitiveParentIds,
     parentDefaultToFirstItem,
+    asyncModeOverride,
   ]);
 
   useEffect(() => {
