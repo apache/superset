@@ -511,6 +511,15 @@ STRING_FIELD_TRUNCATION_TOOLS: Dict[str, str] = {
     "get_chart_sql": "sql",
 }
 
+# In-band markers appended to a bisected string field, keyed by field name.
+# Only needed where a truncated prefix stays valid input for some other tool:
+# a SQL statement cut before its WHERE/LIMIT clause still executes, and would
+# scan far more data than the original. The marker makes the prefix a syntax
+# error so it cannot be run by accident, while staying readable.
+_STRING_FIELD_TRUNCATION_MARKERS: Dict[str, str] = {
+    "sql": "\n-- ... [SQL TRUNCATED -- INCOMPLETE STATEMENT, DO NOT EXECUTE]",
+}
+
 # Data field names used by the three query tools (in priority order).
 # ``rows`` is used by execute_sql; ``data`` by query_dataset and get_chart_data.
 _DATA_ROW_FIELDS = ("rows", "data")
@@ -598,11 +607,23 @@ def _truncate_lists(data: Dict[str, Any], notes: List[str], max_items: int) -> b
 
 
 def _summarize_large_dicts(
-    data: Dict[str, Any], notes: List[str], max_keys: int = _MAX_DICT_KEYS
+    data: Dict[str, Any],
+    notes: List[str],
+    max_keys: int = _MAX_DICT_KEYS,
+    protected_keys: frozenset[str] = frozenset(),
 ) -> bool:
-    """Replace large dict fields with key summaries. Returns True if any changed."""
+    """Replace large dict fields with key summaries. Returns True if any changed.
+
+    ``protected_keys`` are left untouched. A committed-write tool's
+    identifying field (e.g. ``chart``) is a dict that can easily exceed
+    ``max_keys``, and replacing it with a ``_truncated`` marker would
+    destroy the write confirmation this phase runs *before* Phase 5 gets a
+    chance to protect it.
+    """
     changed = False
     for key, value in data.items():
+        if key in protected_keys:
+            continue
         if isinstance(value, dict) and len(value) > max_keys:
             keys_list = list(value.keys())[:max_keys]
             data[key] = {
@@ -674,9 +695,12 @@ def truncate_oversized_response(
         response: The tool response (Pydantic model, dict, or other).
         token_limit: Maximum estimated tokens allowed.
         max_list_items: Maximum items to keep in list fields during Phase 2.
-        protected_keys: Top-level keys Phase 5 must never clear, even if the
-            response is still over budget afterward. Used for committed-write
-            tools so their identifying field (e.g. ``chart``) always survives.
+        protected_keys: Top-level keys the destructive phases (4 and 5) must
+            never summarize or clear, even if the response is still over
+            budget afterward. Used for committed-write tools so their
+            identifying field (e.g. ``chart``) always survives. Callers that
+            pass this must be prepared for the returned response to still
+            exceed ``token_limit``.
 
     Returns:
         A tuple of (possibly-truncated response, was_truncated, list of notes).
@@ -711,7 +735,7 @@ def truncate_oversized_response(
 
     # Phase 4: Aggressively reduce lists and summarize large dicts
     was_truncated |= _truncate_lists(data, notes, max_items=10)
-    was_truncated |= _summarize_large_dicts(data, notes)
+    was_truncated |= _summarize_large_dicts(data, notes, protected_keys=protected_keys)
     if _is_under_limit(data, token_limit):
         return data, was_truncated, notes
 
@@ -761,18 +785,22 @@ def _bisect_string_length(
     field: str,
     original_value: str,
     token_limit: int,
+    suffix: str = "",
 ) -> int:
     """Binary-search for the largest string prefix that keeps data under limit.
 
     Mutates ``data[field]`` during the search and leaves it at the final
-    kept length on return.
+    kept length on return. ``suffix`` is an in-band marker appended to every
+    candidate prefix, so it is accounted for by the search rather than
+    pushing the payload back over the limit afterward. It is only appended
+    when the value is actually shortened.
     """
     from superset.utils import json as utils_json
 
     lo, hi = 0, len(original_value)
     while lo < hi:
         mid = (lo + hi + 1) // 2
-        data[field] = original_value[:mid]
+        data[field] = original_value[:mid] + suffix
         if estimate_token_count(utils_json.dumps(data)) <= token_limit:
             lo = mid
         else:
@@ -782,7 +810,9 @@ def _bisect_string_length(
     if kept == 0 and original_value:
         kept = 1
 
-    data[field] = original_value[:kept]
+    data[field] = (
+        original_value[:kept] + suffix if kept < len(original_value) else original_value
+    )
     return kept
 
 
@@ -910,6 +940,7 @@ def _truncate_named_string_field(
     token_limit: int,
     advice: str,
     label: str | None = None,
+    suffix_marker: str = "",
 ) -> list[str] | None:
     """Try to bisect a scalar string field down to fit the limit.
 
@@ -923,6 +954,10 @@ def _truncate_named_string_field(
         label: Human-readable name for the field used in the note text
             (defaults to ``field`` itself, e.g. ``"CSV content"`` reads
             better than ``"Field 'csv_data'"``).
+        suffix_marker: In-band marker appended to the kept prefix. Needed
+            for fields whose truncated form is still *syntactically valid*
+            and so could be acted on unnoticed -- a SQL statement cut before
+            its WHERE/LIMIT clause still runs, just unfiltered and unbounded.
 
     Returns the truncation notes on success, or ``None`` if nothing could
     be trimmed, in which case ``data`` is left unmodified.
@@ -939,10 +974,13 @@ def _truncate_named_string_field(
         f"{label} truncated: kept {original_len:,} of {original_len:,} "
         f"characters (limit ~{token_limit:,} tokens). {advice}"
     )
+
     data["_response_truncated"] = True
     data["_truncation_notes"] = [placeholder_note]
 
-    kept_len = _bisect_string_length(data, field, value, token_limit)
+    kept_len = _bisect_string_length(
+        data, field, value, token_limit, suffix=suffix_marker
+    )
     if kept_len < original_len:
         notes = [
             f"{label} truncated: kept {kept_len:,} of {original_len:,} "
@@ -1058,7 +1096,13 @@ def truncate_string_field_response(
         f"The '{field}' field has no size-reduction parameter to adjust; "
         "it was truncated to fit the response size limit."
     )
-    notes = _truncate_named_string_field(data, field, token_limit, advice)
+    notes = _truncate_named_string_field(
+        data,
+        field,
+        token_limit,
+        advice,
+        suffix_marker=_STRING_FIELD_TRUNCATION_MARKERS.get(field, ""),
+    )
     return data, notes is not None, notes or []
 
 

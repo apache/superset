@@ -796,7 +796,51 @@ class TestResponseSizeGuardMiddleware:
         assert result["success"] is True
         assert result["chart"]["id"] == 7
         assert result.get("_response_truncated") is True
-        assert "already committed successfully" in result["_truncation_notes"][0]
+        # The note must not claim the write "committed" -- update_chart
+        # defaults to generate_preview=True, which persists nothing.
+        note = result["_truncation_notes"][0]
+        assert "was not rolled back by this size limit" in note
+        assert "committed" not in note
+
+    @pytest.mark.asyncio
+    async def test_committed_write_fallback_rewraps_unparseable_tool_result(
+        self,
+    ) -> None:
+        """An unparseable ToolResult must still come back as a ToolResult.
+
+        Returning a bare dict here would fail in FastMCP's
+        ``to_mcp_result()``, surfacing the completed write as an internal
+        error -- exactly what this fallback exists to prevent.
+        """
+        from fastmcp.tools.tool import ToolResult
+        from mcp.types import TextContent
+
+        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+
+        context = MagicMock()
+        context.message.name = "update_chart"
+        context.message.arguments = {"identifier": 7}
+
+        # Not valid JSON, so _extract_payload_from_tool_result returns None.
+        unparseable = ToolResult(
+            content=[TextContent(type="text", text="<not json>" * 500)]
+        )
+        call_next = AsyncMock(return_value=unparseable)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+            patch(
+                "superset.mcp_service.middleware.estimate_response_tokens",
+                side_effect=[600, 600],
+            ),
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        assert isinstance(result, ToolResult)
+        payload = utils_json.loads(result.content[0].text)
+        assert payload["success"] is True
+        assert payload["_response_truncated"] is True
 
     @pytest.mark.asyncio
     async def test_truncates_get_chart_sql_by_bisecting_sql_field(self) -> None:

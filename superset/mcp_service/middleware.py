@@ -1450,8 +1450,7 @@ class ResponseSizeGuardMiddleware(Middleware):
         path must never raise -- it keeps only what confirms the write
         succeeded and drops everything else.
         """
-        extracted = self._extract_payload_from_tool_result(response)
-        if extracted is not None:
+        if (extracted := self._extract_payload_from_tool_result(response)) is not None:
             payload = extracted
         elif isinstance(response, dict):
             payload = response
@@ -1459,8 +1458,9 @@ class ResponseSizeGuardMiddleware(Middleware):
             payload = {}
         truncation_notes = [
             f"Response for {tool_name} exceeded the size limit even after "
-            "truncation; non-essential fields were dropped. The underlying "
-            "write already committed successfully."
+            "truncation; non-essential fields were dropped. The tool call "
+            "itself completed and was not rolled back by this size limit -- "
+            "re-read the chart to see its full state."
         ]
         minimal = {
             "chart": payload.get("chart"),
@@ -1472,6 +1472,7 @@ class ResponseSizeGuardMiddleware(Middleware):
             "_response_truncated": True,
             "_truncation_notes": truncation_notes,
         }
+        self._shrink_minimal_response(minimal)
         logger.warning(
             "Response for %s could not fit under the size limit after full "
             "truncation (~%d tokens, limit %d); returning a minimal write "
@@ -1499,9 +1500,47 @@ class ResponseSizeGuardMiddleware(Middleware):
         except Exception as log_error:  # noqa: BLE001
             logger.warning("Failed to log truncation event: %s", log_error)
 
-        if extracted is not None:
+        # Rewrap whenever the tool returned a ToolResult, including the case
+        # where its payload could not be parsed: returning a bare dict there
+        # would blow up in FastMCP's ``result.to_mcp_result()`` and surface
+        # the completed write as an internal error after all.
+        if isinstance(response, ToolResult):
             return self._rewrap_as_tool_result(minimal, response)
         return minimal
+
+    def _shrink_minimal_response(self, minimal: dict[str, Any]) -> None:
+        """Force ``minimal`` under the token limit, degrading ``chart`` in place.
+
+        ``chart`` is copied from the *untruncated* payload, so when it is
+        itself the oversized field the "minimal" response is not actually
+        small. Reduce it to identifying scalars, which is bounded by
+        construction, rather than handing back something the transport will
+        reject.
+
+        Only one measurement is taken, and a failed measurement counts as
+        "too big": the reduced form is small enough that there is nothing to
+        re-check, and the chart identity is never dropped just because the
+        estimator errored -- surfacing which chart was written is the whole
+        point of this fallback.
+        """
+        if _fits(minimal, self.token_limit):
+            return
+
+        chart = minimal.get("chart")
+        if isinstance(chart, dict):
+            minimal["chart"] = {
+                key: chart[key]
+                for key in ("id", "uuid", "slice_name", "url")
+                if key in chart
+            }
+            minimal["_truncation_notes"].append(
+                "Chart details reduced to identifying fields only."
+            )
+        else:
+            minimal["chart"] = None
+            minimal["_truncation_notes"].append(
+                "Chart details omitted entirely to fit the size limit."
+            )
 
     def _handle_oversized_response(
         self,
@@ -1659,6 +1698,18 @@ class ResponseSizeGuardMiddleware(Middleware):
             )
 
         return response
+
+
+def _fits(payload: Any, token_limit: int) -> bool:
+    """Best-effort check that ``payload`` estimates under ``token_limit``.
+
+    Treats an estimation failure as "does not fit" so callers degrade the
+    payload further rather than optimistically returning something oversized.
+    """
+    try:
+        return estimate_response_tokens(payload) <= token_limit
+    except Exception:  # noqa: BLE001
+        return False
 
 
 def _safe_int_config(config: dict[str, Any], key: str, default: int) -> int:

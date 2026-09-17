@@ -26,6 +26,7 @@ from pydantic import BaseModel
 
 from superset.mcp_service.utils import token_utils
 from superset.mcp_service.utils.token_utils import (
+    _MAX_DICT_KEYS,
     _replace_collections_with_summaries,
     _summarize_large_dicts,
     _truncate_lists,
@@ -823,6 +824,45 @@ class TestTruncateOversizedResponse:
         assert result["form_data"] == {}
         assert not any("'chart'" in n for n in notes)
 
+    def test_protected_key_survives_large_dict_summarization(self) -> None:
+        """A protected dict with many keys must survive Phase 4, not just Phase 5.
+
+        Regression test: ChartInfo serializes to more than _MAX_DICT_KEYS
+        fields, so Phase 4's dict summarizer would replace the whole 'chart'
+        field with a {_truncated, _message} marker -- destroying the write
+        confirmation before Phase 5 ever got the chance to protect it.
+        """
+        chart = {"id": 42, "slice_name": "Q1 Revenue"}
+        chart.update({f"field_{i}": f"value_{i}" for i in range(_MAX_DICT_KEYS + 5)})
+        assert len(chart) > _MAX_DICT_KEYS
+        response: dict[str, Any] = {
+            "chart": chart,
+            "form_data": {f"key_{i}": [f"v_{j}" for j in range(50)] for i in range(10)},
+        }
+        result, was_truncated, notes = truncate_oversized_response(
+            response, 200, protected_keys=frozenset({"chart"})
+        )
+        assert was_truncated is True
+        assert isinstance(result, dict)
+        assert result["chart"]["id"] == 42
+        assert result["chart"]["slice_name"] == "Q1 Revenue"
+        assert "_truncated" not in result["chart"]
+        assert not any("'chart'" in n for n in notes)
+
+    def test_unprotected_large_dict_is_still_summarized(self) -> None:
+        """Protecting one key must not disable Phase 4 for the others."""
+        response: dict[str, Any] = {
+            "chart": {"id": 42},
+            "form_data": {f"key_{i}": f"value_{i}" for i in range(_MAX_DICT_KEYS + 5)},
+        }
+        result, was_truncated, notes = truncate_oversized_response(
+            response, 50, protected_keys=frozenset({"chart"})
+        )
+        assert was_truncated is True
+        assert isinstance(result, dict)
+        assert result["chart"] == {"id": 42}
+        assert any("form_data" in n for n in notes)
+
 
 class TestTruncateStringFieldResponse:
     """Test truncate_string_field_response (used for get_chart_sql)."""
@@ -853,6 +893,36 @@ class TestTruncateStringFieldResponse:
         assert result["_response_truncated"] is True
         assert estimate_response_tokens(result) <= 500
         assert any("sql" in n for n in notes)
+
+    def test_truncated_sql_is_marked_unexecutable(self) -> None:
+        """A bisected SQL prefix must not be silently runnable.
+
+        Cutting a statement before its WHERE/LIMIT clause leaves valid SQL
+        that scans far more data than the original, so the kept prefix
+        carries an in-band marker that makes it a syntax error.
+        """
+        columns = ", ".join(f"col_{i}" for i in range(2000))
+        sql = " ".join(
+            ["SELECT", columns, "FROM big_table", "WHERE tenant_id = 7", "LIMIT 10"]
+        )
+        response: dict[str, Any] = {"chart_id": 1, "sql": sql}
+        result, was_truncated, _ = truncate_string_field_response(response, 500, "sql")
+        assert was_truncated is True
+        assert isinstance(result, dict)
+        assert "LIMIT 10" not in result["sql"]
+        assert result["sql"].endswith("DO NOT EXECUTE]")
+        # The marker is inside the measured budget, not appended after it.
+        assert estimate_response_tokens(result) <= 500
+
+    def test_untruncated_sql_gets_no_marker(self) -> None:
+        """The marker must only appear when the statement was actually cut."""
+        response = {"chart_id": 1, "sql": "SELECT 1 FROM t LIMIT 10"}
+        result, was_truncated, _ = truncate_string_field_response(
+            response, 25000, "sql"
+        )
+        assert was_truncated is False
+        assert isinstance(result, dict)
+        assert result["sql"] == "SELECT 1 FROM t LIMIT 10"
 
     def test_no_lever_fallback_note_is_actionable(self) -> None:
         """format_size_limit_error's get_chart_sql suggestion is real advice,
