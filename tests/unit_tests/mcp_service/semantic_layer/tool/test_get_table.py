@@ -228,6 +228,45 @@ def test_get_table_unsupported_time_grain(temporal_view: MagicMock) -> None:
     )
 
 
+@pytest.mark.asyncio
+async def test_get_table_grain_alias_hint_for_other_temporal_column(
+    mcp_server: FastMCP, temporal_view: MagicMock
+) -> None:
+    """A selected column's grains do not erase another column's alias hint."""
+    temporal_view.columns.append(_make_column("signup_date", True))
+    temporal_view.get_time_grains.return_value.append(
+        {"duration": "P1Y", "name": "Year"}
+    )
+    temporal_view.implementation.get_dimensions.return_value.append(
+        Dimension(
+            id="signup_date__Year",
+            name="signup_date",
+            type=pa.timestamp("us"),
+            grain=Grains.YEAR,
+        )
+    )
+    with patch.object(get_table_module, "execute_tabular_query") as execute:
+        async with Client(mcp_server) as client:
+            result: Any = await client.call_tool(
+                "get_table",
+                {
+                    "request": {
+                        "view_id": 5,
+                        "metrics": ["bookings"],
+                        "dimensions": ["metric_time", "signup_date__Year"],
+                        "time_grain": "P1D",
+                        "time_column": "metric_time",
+                    }
+                },
+            )
+        data: dict[str, Any] = json.loads(result.content[0].text)
+    assert data["success"] is False
+    assert data["error_type"] == "ValidationError"
+    assert "dimension 'signup_date'" in data["error"]
+    assert "time_grain='P1Y'" in data["error"]
+    execute.assert_not_called()
+
+
 def test_get_table_grain_alias_hint(temporal_view: MagicMock) -> None:
     """A grain-suffixed unknown dimension suggests the base and time_grain."""
     request: GetTableRequest = GetTableRequest(

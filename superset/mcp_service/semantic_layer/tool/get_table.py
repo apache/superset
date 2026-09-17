@@ -212,15 +212,15 @@ def _resolve_external_view(
                 )
             grain_column = selected[0]
         # The mapper chooses variants by dimension name, not the view-wide union.
-        valid_grains = {
+        column_grains: dict[str, str] = {
             dimension.grain.representation: dimension.grain.name
             for dimension in view.implementation.get_dimensions()
             if dimension.name == grain_column and dimension.grain is not None
         }
-        if request.time_grain not in valid_grains:
+        if request.time_grain not in column_grains:
             choices: str = ", ".join(
                 f"{duration} ({name})"
-                for duration, name in sorted(valid_grains.items())
+                for duration, name in sorted(column_grains.items())
             )
             return SemanticLayerError.create(
                 error=f"Unsupported time_grain '{request.time_grain}' on view "
