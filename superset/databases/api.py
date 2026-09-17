@@ -131,6 +131,7 @@ from superset.utils.core import (
     get_username,
     parse_js_uri_path_item,
     send_export_zip,
+    write_zip_entry,
 )
 from superset.utils.decorators import transaction
 from superset.utils.oauth2 import decode_oauth2_state
@@ -1565,8 +1566,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 for file_name, file_content in ExportDatabasesCommand(
                     requested_ids
                 ).run():
-                    with bundle.open(f"{root}/{file_name}", "w") as fp:
-                        fp.write(file_content().encode())
+                    write_zip_entry(
+                        bundle, f"{root}/{file_name}", file_content().encode()
+                    )
             except DatabaseNotFoundError:
                 return self.response_404()
         buf.seek(0)
