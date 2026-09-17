@@ -18,7 +18,7 @@
 
 The Phase A relationship walks (``datasets_used_by_chart``,
 ``batch_datasets_used_by_charts``; the dashboard-membership walk
-``charts_attached_to_dashboard`` lives in
+``chart_attachment_windows_for_dashboard`` lives in
 :mod:`superset.versioning.membership`),
 the Phase B change-record fetch (``fetch_change_records`` /
 ``_select_change_rows_for_kinds``), the name-denormalization helpers
