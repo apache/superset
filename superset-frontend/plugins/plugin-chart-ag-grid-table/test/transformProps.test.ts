@@ -512,3 +512,72 @@ test('retains saved percentage rules with automatic bounds when server paginatio
     result.columnColorFormatters.map(formatter => formatter.column),
   ).toEqual(['metric_a', 'metric_b']);
 });
+
+const AUTO_CURRENCY = { symbol: 'AUTO', symbolPosition: 'prefix' as const };
+
+/**
+ * Time Comparison enabled on a metric whose currency is set to "Auto-detect",
+ * with the dataset's currency code column deliberately absent from the query
+ * result, so AUTO can only resolve via the backend-supplied detected_currency.
+ */
+const createAutoCurrencyComparisonProps = (
+  colnames: string[] = ['metric_1', 'metric_1__1 year ago'],
+) =>
+  createMockChartProps({
+    rawFormData: {
+      viz_type: 'ag_grid_table',
+      datasource: '1__table',
+      query_mode: QueryMode.Aggregate,
+      metrics: ['metric_1'],
+      percent_metrics: [],
+      table_timestamp_format: '',
+      time_compare: ['1 year ago'],
+      comparison_type: 'values',
+      column_config: {
+        metric_1: { currencyFormat: AUTO_CURRENCY },
+        '# metric_1': { d3NumberFormat: ',.1f' },
+        '△ metric_1': { d3NumberFormat: ',.1f' },
+      },
+    } as unknown as TableChartProps['rawFormData'],
+    queriesData: [
+      {
+        data: [{ metric_1: 100, 'metric_1__1 year ago': 80 }],
+        colnames,
+        coltypes: colnames.map(() => GenericDataType.Numeric),
+        rowcount: 1,
+        applied_filters: [],
+        rejected_filters: [],
+        detected_currency: 'GBP',
+      } as unknown as TableChartProps['queriesData'][number],
+    ],
+    datasource: {
+      columns: [],
+      metrics: [],
+      columnFormats: {},
+      currencyFormats: { metric_1: AUTO_CURRENCY },
+      currencyCodeColumn: 'currency_code',
+      verboseMap: {},
+    } as unknown as TableChartProps['datasource'],
+  });
+
+test('resolves AUTO currency on time comparison columns when the currency code column is not in the query result', () => {
+  const { columns } = transformProps(createAutoCurrencyComparisonProps());
+
+  const comparisonCol = columns.find(c => c.key === '# metric_1');
+  expect(comparisonCol).toBeDefined();
+  expect(comparisonCol!.formatter?.(20)).toContain('£');
+});
+
+test('leaves AUTO currency unresolved on time comparison columns when the currency code column is in the query result', () => {
+  const { columns } = transformProps(
+    createAutoCurrencyComparisonProps([
+      'metric_1',
+      'metric_1__1 year ago',
+      'currency_code',
+    ]),
+  );
+
+  const comparisonCol = columns.find(c => c.key === '# metric_1');
+  expect(comparisonCol).toBeDefined();
+  expect(comparisonCol!.formatter?.(20)).not.toContain('£');
+});
