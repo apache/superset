@@ -121,7 +121,7 @@ def test_resolve_identity_rejections(
     original = current_app.config.get("LOGIN_TOKEN_IDENTITY_RESOLVER")
     try:
         _set_resolver(resolver)
-        assert login_token.resolve_identity(object()) is None, reason  # type: ignore[arg-type]
+        assert login_token.resolve_identity(object()) is None, reason
     finally:
         _set_resolver(original)
 
@@ -141,7 +141,7 @@ def test_resolve_identity_treats_a_raising_resolver_as_rejection(
 
     try:
         _set_resolver(boom)
-        assert login_token.resolve_identity(object()) is None  # type: ignore[arg-type]
+        assert login_token.resolve_identity(object()) is None
     finally:
         _set_resolver(original)
 
@@ -151,9 +151,7 @@ def test_resolve_identity_accepts_email_only(app_context: None) -> None:
     original = current_app.config.get("LOGIN_TOKEN_IDENTITY_RESOLVER")
     try:
         _set_resolver(lambda request, **kwargs: {"email": "jdoe@example.com"})
-        assert login_token.resolve_identity(object()) == {  # type: ignore[arg-type]
-            "email": "jdoe@example.com"
-        }
+        assert login_token.resolve_identity(object()) == {"email": "jdoe@example.com"}
     finally:
         _set_resolver(original)
 
