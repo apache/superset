@@ -48,6 +48,7 @@ from superset.extensions import cache_manager
 from superset.semantic_layers.mapper import SUPPORTED_FILTER_OPERATORS
 from superset.superset_typing import FlaskResponse
 from superset.utils import json
+from superset.utils.cache import set_data_cache_if_within_size
 from superset.utils.core import (
     apply_max_row_limit,
     DatasourceType,
@@ -281,7 +282,7 @@ class DatasourceRestApi(BaseSupersetApi):
             # Every distinct search term is its own key, so a few users typing
             # would otherwise pin one entry per keystroke for the full timeout.
             timeout = min(timeout, SEARCH_CACHE_TIMEOUT)
-        cache_manager.data_cache.set(cache_key, payload, timeout=timeout)
+        set_data_cache_if_within_size(cache_key, payload, timeout=timeout)
         logger.debug(
             "column-values cache MISS: uid=%s col=%s", datasource.uid, column_name
         )
@@ -575,7 +576,7 @@ class DatasourceRestApi(BaseSupersetApi):
         timeout = datasource.cache_timeout or app.config.get(
             "CACHE_DEFAULT_TIMEOUT", 300
         )
-        cache_manager.data_cache.set(cache_key, result, timeout=timeout)
+        set_data_cache_if_within_size(cache_key, result, timeout=timeout)
 
         return self.response(200, result=result)
 
