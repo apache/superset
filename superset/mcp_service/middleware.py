@@ -74,6 +74,12 @@ _mcp_call_id_var: ContextVar[str | None] = ContextVar("mcp_call_id", default=Non
 # tools) while rejecting StatsD metadata characters and unbounded lengths.
 _METRIC_TOOL_NAME_RE = re.compile(r"[A-Za-z0-9_][A-Za-z0-9_.\-]{0,127}")
 
+# Character cap for the free-form string fields kept in a minimal committed-write
+# confirmation (see ``_shrink_minimal_response``). Generous enough to keep a
+# chart name or a short error readable, small enough that the whole confirmation
+# stays bounded no matter how large the fields were in the original payload.
+_MINIMAL_FIELD_CHARS = 200
+
 
 def _sanitize_error_for_logging(error: Exception) -> str:
     """Sanitize error messages to prevent information disclosure in logs."""
@@ -1542,19 +1548,33 @@ class ResponseSizeGuardMiddleware(Middleware):
         return minimal
 
     def _shrink_minimal_response(self, minimal: dict[str, Any]) -> None:
-        """Force ``minimal`` under the token limit, degrading ``chart`` in place.
+        """Force ``minimal`` under the token limit, degrading fields in place.
 
-        ``chart`` is copied from the *untruncated* payload, so when it is
-        itself the oversized field the "minimal" response is not actually
-        small. Reduce it to identifying scalars, which is bounded by
-        construction, rather than handing back something the transport will
-        reject.
+        Every value here is copied from the *untruncated* payload, so a
+        "minimal" response is only actually small once each unbounded field
+        has been cut down:
 
-        Only one measurement is taken, and a failed measurement counts as
-        "too big": the reduced form is small enough that there is nothing to
-        re-check, and the chart identity is never dropped just because the
-        estimator errored -- surfacing which chart was written is the whole
-        point of this fallback.
+        - ``chart`` is reduced to identifying scalars, which include
+          ``is_unsaved_state``: update_chart defaults to
+          ``generate_preview=True`` and then persists nothing, so that flag is
+          the caller's only in-band way to tell a cached preview from a
+          persisted write, and shrinking must not be what drops it;
+        - those scalars (``slice_name``, ``url``) are themselves free-form
+          strings, so they are clipped;
+        - ``error`` and ``explore_url`` are free-form strings the reduction
+          above does not reach, so they are clipped too.
+
+        Clipping every unbounded field is what makes the result bounded by
+        construction: identifying scalars plus fixed-text notes. A failed
+        measurement counts as "too big" so the payload is degraded rather
+        than optimistically returned, and the chart identity is never dropped
+        just because the estimator errored -- surfacing which chart was
+        written is the whole point of this fallback.
+
+        With an extremely small ``token_limit`` even the fully clipped form
+        can exceed it. Returning it anyway is deliberate: this path exists so
+        a completed write is never reported as a failure, and there is
+        nothing further to give up without losing that confirmation.
         """
         if _fits(minimal, self.token_limit):
             return
@@ -1562,8 +1582,8 @@ class ResponseSizeGuardMiddleware(Middleware):
         chart = minimal.get("chart")
         if isinstance(chart, dict):
             minimal["chart"] = {
-                key: chart[key]
-                for key in ("id", "uuid", "slice_name", "url")
+                key: _clip_string(chart[key])
+                for key in ("id", "uuid", "slice_name", "url", "is_unsaved_state")
                 if key in chart
             }
             minimal["_truncation_notes"].append(
@@ -1573,6 +1593,22 @@ class ResponseSizeGuardMiddleware(Middleware):
             minimal["chart"] = None
             minimal["_truncation_notes"].append(
                 "Chart details omitted entirely to fit the size limit."
+            )
+
+        for key in ("error", "explore_url"):
+            clipped = _clip_string(minimal.get(key))
+            if clipped is not minimal.get(key):
+                minimal[key] = clipped
+                minimal["_truncation_notes"].append(
+                    f"'{key}' was clipped to fit the size limit."
+                )
+
+        if not _fits(minimal, self.token_limit):
+            logger.warning(
+                "Minimal write confirmation still estimates over the token "
+                "limit (%d) after full reduction; returning it anyway rather "
+                "than reporting a completed write as a failure.",
+                self.token_limit,
             )
 
     def _handle_oversized_response(
@@ -1731,6 +1767,17 @@ class ResponseSizeGuardMiddleware(Middleware):
             )
 
         return response
+
+
+def _clip_string(value: Any, max_chars: int = _MINIMAL_FIELD_CHARS) -> Any:
+    """Clip an over-long string, returning non-strings and short strings as-is.
+
+    Returning the original object unchanged (identity, not just equality) lets
+    callers detect whether anything was actually clipped.
+    """
+    if isinstance(value, str) and len(value) > max_chars:
+        return value[:max_chars] + "... [truncated]"
+    return value
 
 
 def _fits(payload: Any, token_limit: int) -> bool:

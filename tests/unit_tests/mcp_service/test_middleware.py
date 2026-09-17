@@ -803,6 +803,110 @@ class TestResponseSizeGuardMiddleware:
         assert "committed" not in note
 
     @pytest.mark.asyncio
+    async def test_minimal_response_is_bounded_by_every_unbounded_field(
+        self,
+    ) -> None:
+        """The minimal confirmation must be small whichever field was huge.
+
+        Reducing ``chart`` to identifying fields is not by itself enough:
+        ``error``, ``explore_url`` and the identifying ``slice_name``/``url``
+        scalars are all free-form strings copied verbatim from the
+        untruncated payload, so any one of them can keep the "minimal"
+        response far over budget.
+        """
+        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+
+        context = MagicMock()
+        context.message.name = "update_chart"
+        context.message.arguments = {"identifier": 7}
+
+        # Each of these fields survives the chart-to-identifying-fields
+        # reduction, so each one alone must still be cut down.
+        large_response = {
+            "chart": {
+                "id": 7,
+                "uuid": "abc",
+                "slice_name": "N" * 40000,
+                "url": "/explore/?slice_id=7",
+                "query_context": "Q" * 40000,
+            },
+            "success": True,
+            "error": "E" * 40000,
+            "explore_url": "http://host/explore/?form_data_key=" + "k" * 40000,
+        }
+        call_next = AsyncMock(return_value=large_response)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+            # Force every truncation phase to report "still over budget" so
+            # the minimal-response fallback is the path under test.
+            patch(
+                "superset.mcp_service.middleware.estimate_response_tokens",
+                side_effect=[600, 600],
+            ),
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        # The write confirmation survives: the caller still learns what was
+        # written, which is the entire point of this fallback.
+        assert isinstance(result, dict)
+        assert result["success"] is True
+        assert result["chart"]["id"] == 7
+        assert result["chart"]["uuid"] == "abc"
+
+        # ...but nothing unbounded rides along with it.
+        assert estimate_token_count(utils_json.dumps(result)) <= 500
+        for value in (
+            result["chart"]["slice_name"],
+            result["error"],
+            result["explore_url"],
+        ):
+            assert len(value) < 300
+
+    @pytest.mark.asyncio
+    async def test_minimal_response_keeps_unsaved_state_flag(self) -> None:
+        """Shrinking must not drop the preview-vs-persisted signal.
+
+        update_chart defaults to ``generate_preview=True``, which caches an
+        unsaved preview and persists nothing; ``chart.is_unsaved_state`` is
+        how the caller tells that apart from a persisted write. Reducing the
+        chart to identifying fields must keep it, or the size guard turns a
+        preview into something indistinguishable from a committed update.
+        """
+        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+
+        context = MagicMock()
+        context.message.name = "update_chart"
+        context.message.arguments = {"request": {"identifier": 7}}
+
+        large_response = {
+            "chart": {
+                "id": 7,
+                "slice_name": "Preview",
+                "url": "/explore/?form_data_key=abc",
+                "is_unsaved_state": True,
+                "form_data": {f"key_{i}": "v" * 200 for i in range(200)},
+            },
+            "success": True,
+            "error": None,
+        }
+        call_next = AsyncMock(return_value=large_response)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+            patch(
+                "superset.mcp_service.middleware.estimate_response_tokens",
+                side_effect=[600, 600],
+            ),
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        assert isinstance(result, dict)
+        assert result["chart"]["is_unsaved_state"] is True
+
+    @pytest.mark.asyncio
     async def test_opaque_tool_result_is_blocked_not_returned_as_dict(
         self,
     ) -> None:
