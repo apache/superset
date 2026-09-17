@@ -770,6 +770,11 @@ class TestChartApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
                 }
             )
 
+            # Drop the admin session before impersonating gamma: logging in as
+            # the temporary user does not replace an already-authenticated
+            # session, so the admin would otherwise leak into these checks.
+            self.logout()
+
             # Without the view's datasource_access perm, a non-owner cannot
             # list/open the chart.
             with self.temporary_user(gamma, login=True):
@@ -777,15 +782,15 @@ class TestChartApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
                 assert rv.status_code == 200
                 assert json.loads(rv.data.decode("utf-8"))["count"] == 0
 
-            # Database access alone must not grant the semantic-view chart
-            # (the table branch is datasource_type-guarded, so the view's
-            # auto-increment id can never ride along on the table/database
-            # join).
+            # all_database_access short-circuits the chart filter just like
+            # all_datasource_access: a user who can access every database sees
+            # every chart, including semantic-view charts that have no database
+            # of their own.
             perm = ("all_database_access", "all_database_access")
             with self.temporary_user(gamma, extra_pvms=[perm], login=True):
                 rv = self.client.get(uri, "get_list")
                 assert rv.status_code == 200
-                assert json.loads(rv.data.decode("utf-8"))["count"] == 0
+                assert json.loads(rv.data.decode("utf-8"))["count"] == 1
 
             # With the view's datasource_access perm, a non-owner can
             # list and retrieve the chart.
