@@ -331,7 +331,9 @@ def import_tag(
                 # Ensure the association with the object
                 tagged_object = (
                     db_session.query(TaggedObject)
-                    .filter_by(object_id=object_id, object_type=object_type, tag_id=tag.id)
+                    .filter_by(
+                        object_id=object_id, object_type=object_type, tag_id=tag.id
+                    )
                     .first()
                 )
                 if not tagged_object:
