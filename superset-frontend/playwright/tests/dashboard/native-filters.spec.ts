@@ -40,12 +40,14 @@
  *     avoids. They are a deliberate scope reduction, not relocated coverage.
  */
 
-import type { Page } from '@playwright/test';
 import { testWithAssets, expect } from '../../helpers/fixtures';
-import { apiPost, apiPut } from '../../helpers/api/requests';
-import { apiPostDashboard } from '../../helpers/api/dashboard';
+import { waitForPost } from '../../helpers/api/intercepts';
 import { DashboardPage } from '../../pages/DashboardPage';
-import { Button, Select } from '../../components/core';
+import {
+  buildFilterJsonMetadata,
+  buildSelectFilter,
+  createDashboardWithCharts,
+} from './dashboard-test-helpers';
 
 const DATASET_NAME = 'wb_health_population';
 const REGION_COLUMN = 'region';
@@ -57,351 +59,209 @@ const COUNTRY_CODE_COLUMN = 'country_code';
 const NORTH_AMERICA = 'North America';
 const NORTH_AMERICA_COUNTRIES = ['Bermuda', 'Canada', 'United States'];
 
-interface FilterConfig {
-  id: string;
-  name: string;
-  column: string;
-  cascadeParentIds?: string[];
-  defaultToFirstItem?: boolean;
-  defaultValue?: string;
-}
-
-async function findDatasetIdByName(page: Page, name: string): Promise<number> {
-  const rison = `(filters:!((col:table_name,opr:eq,value:'${name}')))`;
-  const resp = await page.request.get(`api/v1/dataset/?q=${rison}`);
-  const body = await resp.json();
-  if (!body.result?.length) {
-    throw new Error(`Dataset ${name} not found`);
-  }
-  return body.result[0].id;
-}
-
-function nativeFilterId(): string {
-  return `NATIVE_FILTER-${Math.random().toString(36).slice(2, 10)}`;
-}
-
-function buildFilter(datasetId: number, config: FilterConfig) {
-  const filterState = config.defaultValue
-    ? { value: [config.defaultValue] }
-    : {};
-  const extraFormData = config.defaultValue
-    ? {
-        filters: [
-          {
-            col: config.column,
-            op: 'IN',
-            val: [config.defaultValue],
-          },
-        ],
-      }
-    : {};
-  return {
-    id: config.id,
-    name: config.name,
-    filterType: 'filter_select',
-    type: 'NATIVE_FILTER',
-    targets: [{ datasetId, column: { name: config.column } }],
-    controlValues: {
-      multiSelect: false,
-      enableEmptyFilter: false,
-      defaultToFirstItem: config.defaultToFirstItem ?? false,
-      inverseSelection: false,
-      searchAllOptions: false,
-    },
-    defaultDataMask: { filterState, extraFormData },
-    cascadeParentIds: config.cascadeParentIds ?? [],
-    scope: { rootPath: ['ROOT_ID'], excluded: [] },
-    chartsInScope: [],
-  };
-}
-
-interface BuiltDashboard {
-  dashboardId: number;
-  chartId: number;
-}
-
-/**
- * Create a single-chart dashboard on the cascade dataset with the given native
- * filters, link the chart, and return the ids. The chart is a raw table over
- * the supplied columns so filtered rows are directly observable.
- */
-async function buildFilterDashboard(
-  page: Page,
-  testAssets: { trackChart: (id: number) => void; trackDashboard: (id: number) => void },
-  options: {
-    datasetId: number;
-    filters: FilterConfig[];
-    chartColumns?: string[];
-    viz?: 'table' | 'big_number_total';
-  },
-): Promise<BuiltDashboard> {
-  const { datasetId, filters } = options;
-  const viz = options.viz ?? 'table';
-  const chartColumns = options.chartColumns ?? [COUNTRY_COLUMN, REGION_COLUMN];
-
-  const chartParams =
-    viz === 'big_number_total'
-      ? {
-          datasource: `${datasetId}__table`,
-          viz_type: 'big_number_total',
-          metric: 'count',
-          adhoc_filters: [],
-        }
-      : {
-          datasource: `${datasetId}__table`,
-          viz_type: 'table',
-          query_mode: 'raw',
-          all_columns: chartColumns,
-          row_limit: 1000,
-        };
-
-  const chartResp = await apiPost(page, 'api/v1/chart/', {
-    slice_name: `native_filters_${Date.now()}`,
-    viz_type: viz,
-    datasource_id: datasetId,
-    datasource_type: 'table',
-    params: JSON.stringify(chartParams),
-  });
-  expect(chartResp.ok()).toBe(true);
-  const chart = await chartResp.json();
-  const chartId: number = chart.id ?? chart.result?.id;
-  testAssets.trackChart(chartId);
-
-  const chartLayoutKey = `CHART-${chartId}`;
-  const positionJson = {
-    DASHBOARD_VERSION_KEY: 'v2',
-    ROOT_ID: { type: 'ROOT', id: 'ROOT_ID', children: ['GRID_ID'] },
-    GRID_ID: {
-      type: 'GRID',
-      id: 'GRID_ID',
-      children: ['ROW-1'],
-      parents: ['ROOT_ID'],
-    },
-    'ROW-1': {
-      type: 'ROW',
-      id: 'ROW-1',
-      children: [chartLayoutKey],
-      parents: ['ROOT_ID', 'GRID_ID'],
-      meta: { background: 'BACKGROUND_TRANSPARENT' },
-    },
-    [chartLayoutKey]: {
-      type: 'CHART',
-      id: chartLayoutKey,
-      children: [],
-      parents: ['ROOT_ID', 'GRID_ID', 'ROW-1'],
-      meta: { chartId, width: 8, height: 50, sliceName: 'native_filters' },
-    },
-  };
-
-  const nativeFilters = filters.map(f => ({
-    ...buildFilter(datasetId, f),
-    chartsInScope: [chartId],
-  }));
-
-  const jsonMetadata = {
-    native_filter_configuration: nativeFilters,
-    chart_configuration: {},
-    cross_filters_enabled: false,
-    global_chart_configuration: {
-      scope: { rootPath: ['ROOT_ID'], excluded: [] },
-      chartsInScope: [chartId],
-    },
-  };
-
-  const dashResp = await apiPostDashboard(page, {
-    dashboard_title: `native_filters_${Date.now()}`,
-    published: true,
-    position_json: JSON.stringify(positionJson),
-    json_metadata: JSON.stringify(jsonMetadata),
-  });
-  expect(dashResp.ok()).toBe(true);
-  const dashBody = await dashResp.json();
-  const dashboardId: number = dashBody.result?.id ?? dashBody.id;
-  testAssets.trackDashboard(dashboardId);
-
-  const linkResp = await apiPut(page, `api/v1/chart/${chartId}`, {
-    dashboards: [dashboardId],
-  });
-  expect(linkResp.ok()).toBe(true);
-
-  return { dashboardId, chartId };
-}
-
-/** Select component wrapping the Nth native filter (0-based) in the filter bar. */
-function filterSelect(page: Page, index: number): Select {
-  return new Select(
-    page,
-    page.locator('[data-test="form-item-value"]').nth(index),
-  );
-}
-
-/**
- * Options inside the currently-open antd select dropdown, as a read-only
- * locator. The Select component drives interactions (open/select); this is used
- * only to assert on the visible option set, which Select does not expose.
- */
-function openDropdownOptions(page: Page) {
-  return page.locator(
-    '.ant-select-dropdown:not(.ant-select-dropdown-hidden) .ant-select-item-option-content',
-  );
-}
-
-/** Apply button in the filter bar. */
-function applyButton(page: Page): Button {
-  return new Button(
-    page,
-    page
-      .locator(
-        '[data-test="filter-bar__apply-button"], [data-test="filterbar-action-buttons"] button[type="submit"]',
-      )
-      .first(),
-  );
-}
-
 testWithAssets(
   'dependent filter narrows its options to the selected parent',
-  async ({ page, testAssets }) => {
-    const datasetId = await findDatasetIdByName(page, DATASET_NAME);
-    const parentId = nativeFilterId();
-    const childId = nativeFilterId();
-    const { dashboardId } = await buildFilterDashboard(page, testAssets, {
-      datasetId,
-      filters: [
-        { id: parentId, name: 'Region', column: REGION_COLUMN },
-        {
-          id: childId,
-          name: 'Country',
-          column: COUNTRY_COLUMN,
-          cascadeParentIds: [parentId],
+  async ({ page, testAssets }, testInfo) => {
+    const { dashboardId } = await createDashboardWithCharts(
+      page,
+      testAssets,
+      testInfo,
+      {
+        datasetName: DATASET_NAME,
+        chartNamePrefix: 'native_filters',
+        dashboardTitlePrefix: 'native_filters',
+        chartSpecs: [
+          {
+            viz_type: 'table',
+            params: {
+              query_mode: 'raw',
+              all_columns: [COUNTRY_COLUMN, REGION_COLUMN],
+              row_limit: 1000,
+            },
+          },
+        ],
+        buildJsonMetadata: ({ charts, datasetId }) => {
+          const chartsInScope = charts.map(chart => chart.id);
+          const region = buildSelectFilter({
+            datasetId,
+            column: REGION_COLUMN,
+            chartsInScope,
+            name: 'Region',
+          });
+          const country = buildSelectFilter({
+            datasetId,
+            column: COUNTRY_COLUMN,
+            chartsInScope,
+            name: 'Country',
+            cascadeParentIds: [region.id],
+          });
+          return buildFilterJsonMetadata({
+            chartsInScope,
+            nativeFilters: [region, country],
+          });
         },
-      ],
-    });
+      },
+    );
 
     const dashboardPage = new DashboardPage(page);
     await dashboardPage.gotoById(dashboardId);
     await dashboardPage.waitForLoad();
     await dashboardPage.waitForChartsToLoad();
+    const filterBar = await dashboardPage.waitForFilterBar();
 
-    // Select the North America region in the parent filter.
-    const regionFilter = filterSelect(page, 0);
-    await regionFilter.open();
-    await regionFilter.clickOption(NORTH_AMERICA);
-    await regionFilter.close();
-    await applyButton(page).click();
+    await filterBar.selectOption(NORTH_AMERICA, 0);
+    await filterBar.apply();
     await dashboardPage.waitForChartsToLoad();
 
     // Opening the child filter must show only the parent-scoped countries.
-    await filterSelect(page, 1).open();
-    await expect(openDropdownOptions(page).first()).toBeVisible();
-    const optionTexts = (
-      await openDropdownOptions(page).allTextContents()
-    ).map(t => t.trim());
+    const countrySelect = filterBar.getFilterSelect(1);
+    await countrySelect.open();
+    const optionTexts = await countrySelect.getVisibleOptionTexts();
+    await countrySelect.close();
     expect(new Set(optionTexts)).toEqual(new Set(NORTH_AMERICA_COUNTRIES));
   },
 );
 
 testWithAssets(
   'dependent filter auto-selects the first item when its parent changes',
-  async ({ page, testAssets }) => {
-    const datasetId = await findDatasetIdByName(page, DATASET_NAME);
-    const parentId = nativeFilterId();
-    const childId = nativeFilterId();
-    const { dashboardId } = await buildFilterDashboard(page, testAssets, {
-      datasetId,
-      filters: [
-        { id: parentId, name: 'Region', column: REGION_COLUMN },
-        {
-          id: childId,
-          name: 'Country',
-          column: COUNTRY_COLUMN,
-          cascadeParentIds: [parentId],
-          defaultToFirstItem: true,
+  async ({ page, testAssets }, testInfo) => {
+    const { dashboardId } = await createDashboardWithCharts(
+      page,
+      testAssets,
+      testInfo,
+      {
+        datasetName: DATASET_NAME,
+        chartNamePrefix: 'native_filters',
+        dashboardTitlePrefix: 'native_filters',
+        chartSpecs: [
+          {
+            viz_type: 'table',
+            params: {
+              query_mode: 'raw',
+              all_columns: [COUNTRY_COLUMN, REGION_COLUMN],
+              row_limit: 1000,
+            },
+          },
+        ],
+        buildJsonMetadata: ({ charts, datasetId }) => {
+          const chartsInScope = charts.map(chart => chart.id);
+          const region = buildSelectFilter({
+            datasetId,
+            column: REGION_COLUMN,
+            chartsInScope,
+            name: 'Region',
+          });
+          const country = buildSelectFilter({
+            datasetId,
+            column: COUNTRY_COLUMN,
+            chartsInScope,
+            name: 'Country',
+            cascadeParentIds: [region.id],
+            defaultToFirstItem: true,
+          });
+          return buildFilterJsonMetadata({
+            chartsInScope,
+            nativeFilters: [region, country],
+          });
         },
-      ],
-    });
+      },
+    );
 
     const dashboardPage = new DashboardPage(page);
     await dashboardPage.gotoById(dashboardId);
     await dashboardPage.waitForLoad();
     await dashboardPage.waitForChartsToLoad();
+    const filterBar = await dashboardPage.waitForFilterBar();
 
-    const regionFilter = filterSelect(page, 0);
-    await regionFilter.open();
-    await regionFilter.clickOption(NORTH_AMERICA);
-    await regionFilter.close();
-    await applyButton(page).click();
+    await filterBar.selectOption(NORTH_AMERICA, 0);
+    await filterBar.apply();
     await dashboardPage.waitForChartsToLoad();
 
     // The dependent country filter resolves to the first scoped option.
-    await expect(
-      page.locator('[data-test="form-item-value"]').nth(1),
-    ).toContainText(NORTH_AMERICA_COUNTRIES[0]);
+    await expect(filterBar.getValueLocator(1)).toContainText(
+      NORTH_AMERICA_COUNTRIES[0],
+    );
   },
 );
 
 testWithAssets(
   'filter depending on two parents narrows by both selections',
-  async ({ page, testAssets }) => {
-    const datasetId = await findDatasetIdByName(page, DATASET_NAME);
-    const regionId = nativeFilterId();
-    const countryId = nativeFilterId();
-    const codeId = nativeFilterId();
-    const { dashboardId } = await buildFilterDashboard(page, testAssets, {
-      datasetId,
-      chartColumns: [COUNTRY_CODE_COLUMN, COUNTRY_COLUMN, REGION_COLUMN],
-      filters: [
-        { id: regionId, name: 'Region', column: REGION_COLUMN },
-        {
-          id: countryId,
-          name: 'Country',
-          column: COUNTRY_COLUMN,
-          cascadeParentIds: [regionId],
+  async ({ page, testAssets }, testInfo) => {
+    const { dashboardId } = await createDashboardWithCharts(
+      page,
+      testAssets,
+      testInfo,
+      {
+        datasetName: DATASET_NAME,
+        chartNamePrefix: 'native_filters',
+        dashboardTitlePrefix: 'native_filters',
+        chartSpecs: [
+          {
+            viz_type: 'table',
+            params: {
+              query_mode: 'raw',
+              all_columns: [COUNTRY_CODE_COLUMN, COUNTRY_COLUMN, REGION_COLUMN],
+              row_limit: 1000,
+            },
+          },
+        ],
+        buildJsonMetadata: ({ charts, datasetId }) => {
+          const chartsInScope = charts.map(chart => chart.id);
+          const region = buildSelectFilter({
+            datasetId,
+            column: REGION_COLUMN,
+            chartsInScope,
+            name: 'Region',
+          });
+          const country = buildSelectFilter({
+            datasetId,
+            column: COUNTRY_COLUMN,
+            chartsInScope,
+            name: 'Country',
+            cascadeParentIds: [region.id],
+          });
+          const code = buildSelectFilter({
+            datasetId,
+            column: COUNTRY_CODE_COLUMN,
+            chartsInScope,
+            name: 'Country Code',
+            cascadeParentIds: [region.id, country.id],
+          });
+          return buildFilterJsonMetadata({
+            chartsInScope,
+            nativeFilters: [region, country, code],
+          });
         },
-        {
-          id: codeId,
-          name: 'Country Code',
-          column: COUNTRY_CODE_COLUMN,
-          cascadeParentIds: [regionId, countryId],
-        },
-      ],
-    });
+      },
+    );
 
     const dashboardPage = new DashboardPage(page);
     await dashboardPage.gotoById(dashboardId);
     await dashboardPage.waitForLoad();
     await dashboardPage.waitForChartsToLoad();
+    const filterBar = await dashboardPage.waitForFilterBar();
 
     // With only the region chosen, the country-code filter spans every North
     // America country code.
-    const regionFilter = filterSelect(page, 0);
-    await regionFilter.open();
-    await regionFilter.clickOption(NORTH_AMERICA);
-    await regionFilter.close();
-    await applyButton(page).click();
+    await filterBar.selectOption(NORTH_AMERICA, 0);
+    await filterBar.apply();
     await dashboardPage.waitForChartsToLoad();
 
-    await filterSelect(page, 2).open();
-    await expect(openDropdownOptions(page).first()).toBeVisible();
-    const regionScopedCodes = (
-      await openDropdownOptions(page).allTextContents()
-    ).map(t => t.trim());
+    const codeSelect = filterBar.getFilterSelect(2);
+    await codeSelect.open();
+    const regionScopedCodes = await codeSelect.getVisibleOptionTexts();
+    await codeSelect.close();
     // 3 North America countries => 3 country codes.
     expect(regionScopedCodes).toHaveLength(NORTH_AMERICA_COUNTRIES.length);
-    await page.keyboard.press('Escape');
 
     // Adding a country selection narrows the country-code filter further.
-    const countryFilter = filterSelect(page, 1);
-    await countryFilter.open();
-    await countryFilter.clickOption('Canada');
-    await countryFilter.close();
-    await applyButton(page).click();
+    await filterBar.selectOption('Canada', 1);
+    await filterBar.apply();
     await dashboardPage.waitForChartsToLoad();
 
-    await filterSelect(page, 2).open();
-    await expect(openDropdownOptions(page).first()).toBeVisible();
-    const countryScopedCodes = (
-      await openDropdownOptions(page).allTextContents()
-    ).map(t => t.trim());
+    await codeSelect.open();
+    const countryScopedCodes = await codeSelect.getVisibleOptionTexts();
+    await codeSelect.close();
     expect(countryScopedCodes.length).toBeLessThan(regionScopedCodes.length);
     expect(countryScopedCodes).toHaveLength(1);
   },
@@ -409,41 +269,55 @@ testWithAssets(
 
 testWithAssets(
   'applying a value filter re-queries the target chart',
-  async ({ page, testAssets }) => {
-    const datasetId = await findDatasetIdByName(page, DATASET_NAME);
-    const regionId = nativeFilterId();
-    const { dashboardId } = await buildFilterDashboard(page, testAssets, {
-      datasetId,
-      viz: 'big_number_total',
-      filters: [{ id: regionId, name: 'Region', column: REGION_COLUMN }],
-    });
+  async ({ page, testAssets }, testInfo) => {
+    const { dashboardId } = await createDashboardWithCharts(
+      page,
+      testAssets,
+      testInfo,
+      {
+        datasetName: DATASET_NAME,
+        chartNamePrefix: 'native_filters',
+        dashboardTitlePrefix: 'native_filters',
+        chartSpecs: [
+          {
+            viz_type: 'big_number_total',
+            params: { metric: 'count', adhoc_filters: [] },
+          },
+        ],
+        buildJsonMetadata: ({ charts, datasetId }) => {
+          const chartsInScope = charts.map(chart => chart.id);
+          const region = buildSelectFilter({
+            datasetId,
+            column: REGION_COLUMN,
+            chartsInScope,
+            name: 'Region',
+          });
+          return buildFilterJsonMetadata({
+            chartsInScope,
+            nativeFilters: [region],
+          });
+        },
+      },
+    );
 
     const dashboardPage = new DashboardPage(page);
 
     // Capture the unfiltered total from the initial chart data response.
-    const initialDataPromise = page.waitForResponse(
-      r =>
-        r.url().includes('/api/v1/chart/data') &&
-        r.request().method() === 'POST',
-    );
+    const initialDataPromise = waitForPost(page, '/api/v1/chart/data');
     await dashboardPage.gotoById(dashboardId);
     await dashboardPage.waitForLoad();
     const initialData = await (await initialDataPromise).json();
-    const totalCount = Object.values(initialData.result[0].data[0])[0] as number;
+    const totalCount = Object.values(
+      initialData.result[0].data[0],
+    )[0] as number;
     expect(totalCount).toBeGreaterThan(0);
 
     // Apply the region filter and capture the re-queried total.
-    const regionFilter = filterSelect(page, 0);
-    await regionFilter.open();
-    await regionFilter.clickOption(NORTH_AMERICA);
-    await regionFilter.close();
+    const filterBar = await dashboardPage.waitForFilterBar();
+    await filterBar.selectOption(NORTH_AMERICA, 0);
 
-    const filteredDataPromise = page.waitForResponse(
-      r =>
-        r.url().includes('/api/v1/chart/data') &&
-        r.request().method() === 'POST',
-    );
-    await applyButton(page).click();
+    const filteredDataPromise = waitForPost(page, '/api/v1/chart/data');
+    await filterBar.apply();
     const filteredData = await (await filteredDataPromise).json();
     const filteredCount = Object.values(
       filteredData.result[0].data[0],
@@ -457,30 +331,50 @@ testWithAssets(
 
 testWithAssets(
   'default filter value is respected after a reload',
-  async ({ page, testAssets }) => {
-    const datasetId = await findDatasetIdByName(page, DATASET_NAME);
-    const regionId = nativeFilterId();
-    const { dashboardId } = await buildFilterDashboard(page, testAssets, {
-      datasetId,
-      filters: [
-        {
-          id: regionId,
-          name: 'Region',
-          column: REGION_COLUMN,
-          defaultValue: NORTH_AMERICA,
+  async ({ page, testAssets }, testInfo) => {
+    const { dashboardId } = await createDashboardWithCharts(
+      page,
+      testAssets,
+      testInfo,
+      {
+        datasetName: DATASET_NAME,
+        chartNamePrefix: 'native_filters',
+        dashboardTitlePrefix: 'native_filters',
+        chartSpecs: [
+          {
+            viz_type: 'table',
+            params: {
+              query_mode: 'raw',
+              all_columns: [COUNTRY_COLUMN, REGION_COLUMN],
+              row_limit: 1000,
+            },
+          },
+        ],
+        buildJsonMetadata: ({ charts, datasetId }) => {
+          const chartsInScope = charts.map(chart => chart.id);
+          const region = buildSelectFilter({
+            datasetId,
+            column: REGION_COLUMN,
+            chartsInScope,
+            name: 'Region',
+            defaultValue: NORTH_AMERICA,
+          });
+          return buildFilterJsonMetadata({
+            chartsInScope,
+            nativeFilters: [region],
+          });
         },
-      ],
-    });
+      },
+    );
 
     const dashboardPage = new DashboardPage(page);
     await dashboardPage.gotoById(dashboardId);
     await dashboardPage.waitForLoad();
     await dashboardPage.waitForChartsToLoad();
+    const filterBar = await dashboardPage.waitForFilterBar();
 
     // The default value pre-populates the filter bar.
-    await expect(
-      page.locator('[data-test="form-item-value"]').first(),
-    ).toContainText(NORTH_AMERICA);
+    await expect(filterBar.getValueLocator(0)).toContainText(NORTH_AMERICA);
 
     // Only North America rows render in the target chart.
     const chart = page.locator('[data-test="grid-content"]');
@@ -491,11 +385,7 @@ testWithAssets(
     await page.reload();
     await dashboardPage.waitForLoad();
     await dashboardPage.waitForChartsToLoad();
-    await expect(
-      page.locator('[data-test="form-item-value"]').first(),
-    ).toContainText(NORTH_AMERICA);
-    await expect(page.locator('[data-test="grid-content"]')).not.toContainText(
-      'South America',
-    );
+    await expect(filterBar.getValueLocator(0)).toContainText(NORTH_AMERICA);
+    await expect(chart).not.toContainText('South America');
   },
 );
