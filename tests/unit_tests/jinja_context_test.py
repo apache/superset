@@ -52,6 +52,7 @@ from superset.jinja_context import (
 )
 from superset.models.core import Database
 from superset.models.slice import Slice
+from superset.models.sql_lab import Query
 from superset.utils import json
 from tests.unit_tests.conftest import with_feature_flags
 
@@ -3623,3 +3624,28 @@ def test_get_undefined_parameters_when_processing_is_disabled() -> None:
     processor = get_template_processor(database=database)
 
     assert processor.get_undefined_parameters("SELECT '{{ ds }}' AS d") == set()
+
+
+@with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)
+def test_template_processor_takes_a_schema_without_a_query() -> None:
+    """
+    Test that a caller with no ``Query`` or ``SqlaTable`` can still set the schema.
+
+    The schema decides where a macro resolving an unqualified table looks, and
+    a caller such as cost estimation has neither object to carry it.
+    """
+    database = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
+
+    assert get_template_processor(database=database)._schema is None
+    assert (
+        get_template_processor(database=database, schema="not_default")._schema
+        == "not_default"
+    )
+    # A query still decides it when there is one.
+    query = Query(schema="from_the_query")
+    assert (
+        get_template_processor(
+            database=database, query=query, schema="not_default"
+        )._schema
+        == "from_the_query"
+    )

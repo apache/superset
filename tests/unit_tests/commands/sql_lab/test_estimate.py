@@ -731,3 +731,130 @@ def test_run_leaves_a_genuine_syntax_error_alone(
         command.run()
 
     assert exc_info.value.error.error_type == SupersetErrorType.INVALID_SQL_ERROR
+
+
+# ---------------------------------------------------------------------------
+# What is authorized is what is estimated
+# ---------------------------------------------------------------------------
+
+
+@patch("superset.commands.sql_lab.estimate.app")
+@patch("superset.commands.sql_lab.estimate.get_template_processor")
+@patch("superset.commands.sql_lab.estimate.security_manager", new_callable=MagicMock)
+@patch("superset.commands.sql_lab.estimate.DatabaseDAO")
+def test_run_reauthorizes_the_rendered_sql(
+    mock_dao: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_get_template_processor: MagicMock,
+    mock_app: MagicMock,
+) -> None:
+    """``validate()`` authorizes a render of its own, and a template need not
+    render the same way twice. The SQL that will be estimated is authorized as
+    a literal, as ``_validate_rendered_access`` does on the execution path."""
+    mock_app.config = {
+        "DISALLOWED_SQL_FUNCTIONS": {},
+        "DISALLOWED_SQL_TABLES": {},
+        "SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT": 10,
+        "QUERY_COST_FORMATTERS_BY_ENGINE": {},
+    }
+    mock_database = MagicMock()
+    mock_database.db_engine_spec.engine = "postgresql"
+    mock_database.allow_dml = False
+    mock_database.db_engine_spec.query_cost_formatter.return_value = [{"Cost": "1"}]
+    mock_dao.find_by_id.return_value = mock_database
+    mock_security_manager.raise_for_access.return_value = None
+    processor = mock_get_template_processor.return_value
+    processor.process_template.return_value = "SELECT * FROM allowed_ds"
+    processor.get_undefined_parameters.return_value = set()
+
+    sql = "SELECT * FROM {{ ['allowed_ds', 'secret_tbl'] | random }}"
+    command = QueryEstimationCommand(_make_params(sql=sql, schema="public"))
+
+    assert command.run() == [{"Cost": "1"}]
+
+    first, second = mock_security_manager.raise_for_access.call_args_list
+    # The first check is the unrendered source, as before.
+    assert first.kwargs["sql"] == sql
+    # The second is the literal SQL that goes on to be estimated, with no
+    # template params left to expand it differently.
+    assert second.kwargs["sql"] == "SELECT * FROM allowed_ds"
+    assert "template_params" not in second.kwargs
+    assert second.kwargs["force_dataset_match"] is True
+    assert (
+        mock_database.db_engine_spec.estimate_query_cost.call_args.args[3]
+        == "SELECT * FROM allowed_ds"
+    )
+
+
+@patch("superset.commands.sql_lab.estimate.app")
+@patch("superset.commands.sql_lab.estimate.get_template_processor")
+@patch("superset.commands.sql_lab.estimate.security_manager", new_callable=MagicMock)
+@patch("superset.commands.sql_lab.estimate.DatabaseDAO")
+def test_run_refuses_rendered_sql_the_caller_cannot_access(
+    mock_dao: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_get_template_processor: MagicMock,
+    mock_app: MagicMock,
+) -> None:
+    """A template that renders to a table the caller cannot read is refused
+    even though the unrendered source passed the first check."""
+    mock_app.config = {"DISALLOWED_SQL_FUNCTIONS": {}, "DISALLOWED_SQL_TABLES": {}}
+    mock_database = MagicMock()
+    mock_database.db_engine_spec.engine = "postgresql"
+    mock_database.allow_dml = False
+    mock_dao.find_by_id.return_value = mock_database
+    mock_security_manager.raise_for_access.side_effect = [
+        None,
+        SupersetSecurityException(
+            SupersetError(
+                message="Kaboom",
+                error_type=SupersetErrorType.QUERY_SECURITY_ACCESS_ERROR,
+                level=ErrorLevel.ERROR,
+            )
+        ),
+    ]
+    processor = mock_get_template_processor.return_value
+    processor.process_template.return_value = "SELECT * FROM secret_tbl"
+    processor.get_undefined_parameters.return_value = set()
+
+    command = QueryEstimationCommand(_make_params(sql="SELECT * FROM {{ tbl }}"))
+    with pytest.raises(SupersetSecurityException):
+        command.run()
+
+    mock_database.db_engine_spec.estimate_query_cost.assert_not_called()
+
+
+@patch("superset.commands.sql_lab.estimate.app")
+@patch("superset.commands.sql_lab.estimate.get_template_processor")
+@patch("superset.commands.sql_lab.estimate.security_manager", new_callable=MagicMock)
+@patch("superset.commands.sql_lab.estimate.DatabaseDAO")
+def test_run_gives_the_processor_the_requested_schema(
+    mock_dao: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_get_template_processor: MagicMock,
+    mock_app: MagicMock,
+) -> None:
+    """The execution path builds its processor from the query, which carries the
+    selected schema. There is no query here, so the schema is passed directly --
+    without it a macro resolving an unqualified table (``latest_partition``)
+    would look in the default schema and estimate different SQL than Run."""
+    mock_app.config = {
+        "DISALLOWED_SQL_FUNCTIONS": {},
+        "DISALLOWED_SQL_TABLES": {},
+        "SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT": 10,
+        "QUERY_COST_FORMATTERS_BY_ENGINE": {},
+    }
+    mock_database = MagicMock()
+    mock_database.db_engine_spec.engine = "presto"
+    mock_database.allow_dml = False
+    mock_database.db_engine_spec.query_cost_formatter.return_value = []
+    mock_dao.find_by_id.return_value = mock_database
+    mock_security_manager.raise_for_access.return_value = None
+    processor = mock_get_template_processor.return_value
+    processor.process_template.return_value = "SELECT 1"
+    processor.get_undefined_parameters.return_value = set()
+
+    command = QueryEstimationCommand(_make_params(sql="SELECT 1", schema="not_default"))
+    command.run()
+
+    assert mock_get_template_processor.call_args.kwargs["schema"] == "not_default"
