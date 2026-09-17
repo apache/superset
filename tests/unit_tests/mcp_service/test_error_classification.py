@@ -31,6 +31,7 @@ exception through FastMCP's wrapping first. These tests do, end to end.
 """
 
 from typing import Any
+from unittest.mock import patch
 
 import pytest
 from fastmcp import FastMCP
@@ -52,10 +53,12 @@ from superset.exceptions import (
 from superset.mcp_service.auth import MCPPermissionDeniedError
 from superset.mcp_service.constants import CONNECTION_ERROR_TYPES
 from superset.mcp_service.middleware import (
+    _datasource_error_is_user_error,
     _datasource_error_reason,
     _FASTMCP_WRAPPED_ERROR_PREFIX,
     _GENERIC_DATASOURCE_REASON,
     _is_datasource_error,
+    _is_user_error,
     _unwrap_fastmcp_wrapped_error,
     _unwrap_tool_error,
     GlobalErrorHandlerMiddleware,
@@ -110,6 +113,28 @@ def _build_server() -> FastMCP:
     def untyped_datasource(unused: int = 1) -> str:
         """Datasource failure carrying no recognised SupersetErrorType."""
         raise DatabaseNotFound("Database backing this chart is gone")
+
+    @mcp.tool
+    def unreachable_datasource(unused: int = 1) -> str:
+        """The analytics database cannot be reached."""
+        raise SupersetErrorException(
+            SupersetError(
+                message="could not connect to host",
+                error_type=SupersetErrorType.CONNECTION_HOST_DOWN_ERROR,
+                level=ErrorLevel.ERROR,
+            )
+        )
+
+    @mcp.tool
+    def bad_sql(unused: int = 1) -> str:
+        """The caller's own SQL is malformed."""
+        raise SupersetErrorException(
+            SupersetError(
+                message="syntax error at or near SELEC",
+                error_type=SupersetErrorType.SYNTAX_ERROR,
+                level=ErrorLevel.ERROR,
+            )
+        )
 
     @mcp.tool
     def needs_id(id: int) -> str:  # noqa: A002
@@ -365,6 +390,10 @@ class TestPerClassClientFacingErrors:
         assert "Validation error" not in message
         assert "inputSchema" not in message
         assert "Internal error" not in message
+        # Anchor on the *fixed* shape. A bare `in` check also passes on the
+        # unfixed code, where FastMCP's wrapper message merely contains the
+        # denial text -- the assertion above would give false confidence.
+        assert _FASTMCP_WRAPPED_ERROR_PREFIX not in message
 
     @pytest.mark.asyncio
     async def test_non_rbac_authorization_failure_also_says_permission_denied(
@@ -428,6 +457,11 @@ class TestPerClassClientFacingErrors:
         ]
 
         assert len(set(messages)) == len(messages)
+        # Distinctness alone is not the property under test: the unfixed code
+        # also produced four distinct strings, just four *unclassified* ones.
+        # None may still carry FastMCP's wrapper.
+        for message in messages:
+            assert _FASTMCP_WRAPPED_ERROR_PREFIX not in message
 
 
 class TestNoNewDisclosure:
@@ -450,3 +484,104 @@ class TestNoNewDisclosure:
 
         assert LEAKED_PATH not in message
         assert "mcp_service" not in message
+
+
+class TestDatasourceErrorSeverity:
+    """A datasource failure's severity must follow what actually broke.
+
+    ``_is_user_error`` keys on ``SupersetException.status``, and a *bare*
+    ``SupersetErrorException`` — the shape Superset raises for most datasource
+    failures — inherits ``status = 500``. Without an override, a dropped table
+    logs at ERROR with a traceback and pages through ``MCP_ERROR_HOOK``.
+    """
+
+    @pytest.mark.parametrize(
+        "error_type",
+        [
+            SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
+            SupersetErrorType.COLUMN_DOES_NOT_EXIST_ERROR,
+            SupersetErrorType.SCHEMA_DOES_NOT_EXIST_ERROR,
+        ],
+    )
+    def test_missing_object_is_a_user_error_despite_status_500(
+        self, error_type: SupersetErrorType
+    ) -> None:
+        error = SupersetErrorException(
+            SupersetError(message="gone", error_type=error_type, level=ErrorLevel.ERROR)
+        )
+
+        # The status this would otherwise be judged by.
+        assert error.status == 500
+        assert _is_user_error(error) is False
+        # ...but a renamed table is routine MCP traffic, not a page.
+        assert _datasource_error_is_user_error(error) is True
+
+    def test_connection_failure_stays_a_system_error(self) -> None:
+        """An unreachable database is an operational problem worth paging on."""
+        for error_type in CONNECTION_ERROR_TYPES:
+            error = SupersetErrorException(
+                SupersetError(
+                    message="unreachable",
+                    error_type=error_type,
+                    level=ErrorLevel.ERROR,
+                )
+            )
+
+            assert _datasource_error_is_user_error(error) is False, error_type
+
+    def test_non_datasource_error_keeps_status_based_judgement(self) -> None:
+        assert _datasource_error_is_user_error(ValueError("bad page")) is None
+        assert _datasource_error_is_user_error(SupersetException("other")) is None
+
+    @pytest.mark.asyncio
+    async def test_missing_table_logs_warning_and_does_not_fire_error_hook(
+        self,
+    ) -> None:
+        """End to end: the dropped-table shape must not page on-call."""
+        hook_calls: list[Any] = []
+
+        with (
+            patch(
+                "superset.mcp_service.middleware._invoke_error_hook",
+                side_effect=lambda *a, **k: hook_calls.append(a),
+            ),
+            patch("superset.mcp_service.middleware.logger") as mock_logger,
+        ):
+            await _call("dead_table")
+
+        assert hook_calls == []
+        mock_logger.warning.assert_called()
+        mock_logger.error.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_connection_failure_logs_error_and_fires_error_hook(self) -> None:
+        """End to end: an unreachable datasource still reaches the tracker."""
+        hook_calls: list[Any] = []
+
+        with (
+            patch(
+                "superset.mcp_service.middleware._invoke_error_hook",
+                side_effect=lambda *a, **k: hook_calls.append(a),
+            ),
+            patch("superset.mcp_service.middleware.logger") as mock_logger,
+        ):
+            await _call("unreachable_datasource")
+
+        assert len(hook_calls) == 1
+        mock_logger.error.assert_called()
+
+
+class TestQuerySyntaxErrors:
+    """A malformed query is the caller's problem, not the datasource's."""
+
+    @pytest.mark.asyncio
+    async def test_syntax_error_blames_the_query_not_the_datasource(self) -> None:
+        """For a SQL-authoring tool the query text *is* an argument, so
+        "arguments were valid" would steer an agent away from the one thing
+        it can fix."""
+        message = await _call("bad_sql")
+
+        assert "Query error in bad_sql" in message
+        assert SupersetErrorType.SYNTAX_ERROR.value in message
+        assert "Fix the query itself" in message
+        assert "arguments were valid" not in message

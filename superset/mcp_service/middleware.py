@@ -282,6 +282,21 @@ _DATASOURCE_ERROR_TYPES = (
 # client-facing message and must stay a closed, non-sensitive vocabulary.
 _GENERIC_DATASOURCE_REASON = "DATASOURCE_QUERY_FAILED"
 
+# Reasons where the *query* is at fault, not the datasource. For a
+# SQL-authoring tool the query text is itself an argument, so telling the
+# caller "your arguments were valid" would steer an agent away from fixing
+# its own malformed SQL.
+_QUERY_SYNTAX_REASONS = frozenset(
+    {
+        SupersetErrorType.INVALID_SQL_ERROR.value,
+        SupersetErrorType.SYNTAX_ERROR.value,
+    }
+)
+
+# Reasons that mean the connection to the analytics database is unhealthy —
+# an operational problem worth paging on, unlike a missing table.
+_CONNECTION_REASONS = frozenset(t.value for t in CONNECTION_ERROR_TYPES)
+
 
 def _datasource_error_reason(error: Exception) -> str | None:
     """Return the enumerated reason for a datasource failure, if any.
@@ -319,6 +334,30 @@ def _is_datasource_error(error: Exception) -> bool:
         isinstance(error, _DATASOURCE_ERROR_EXCEPTIONS)
         or _datasource_error_reason(error) is not None
     )
+
+
+def _datasource_error_is_user_error(error: Exception) -> bool | None:
+    """Severity for a datasource failure; ``None`` if it is not one.
+
+    :func:`_is_user_error` keys on ``SupersetException.status``, but Superset
+    raises a *bare* ``SupersetErrorException`` for most datasource failures,
+    and that does not override ``SupersetException.status = 500``. A dropped
+    table therefore logs at ERROR with a traceback and fires
+    ``MCP_ERROR_HOOK``, paging on what is routine MCP traffic — an agent
+    pointing at a chart whose table was renamed.
+
+    Classify by what actually failed instead of by an inherited default: an
+    unreachable or misconfigured *connection* is an operational problem worth
+    paging on; a missing table, column, or schema is not.
+
+    Returns ``None`` when no recognised reason is available, leaving the
+    existing status-based judgement in place — the exception classes matched
+    by :data:`_DATASOURCE_ERROR_EXCEPTIONS` set a deliberate 4xx status.
+    """
+    reason = _datasource_error_reason(error)
+    if reason is None:
+        return None
+    return reason not in _CONNECTION_REASONS
 
 
 # Errors caused by the LLM/user — expected in normal MCP operation.
@@ -1134,6 +1173,12 @@ class GlobalErrorHandlerMiddleware(Middleware):
         # system errors (unexpected) → ERROR
         sanitized_error = _sanitize_error_for_logging(error)
         is_user = _is_user_error(error)
+        # A datasource failure's severity follows what actually broke, not the
+        # 500 status a bare SupersetErrorException inherits. See
+        # _datasource_error_is_user_error.
+        datasource_is_user = _datasource_error_is_user_error(error)
+        if datasource_is_user is not None:
+            is_user = datasource_is_user
         log_fn = logger.warning if is_user else logger.error
         log_fn(
             "MCP tool call failed: tool=%s, user_id=%s, "
@@ -1255,13 +1300,22 @@ class GlobalErrorHandlerMiddleware(Middleware):
                 f"{_sanitize_error_for_logging(error)}"
             ) from error
         elif _is_datasource_error(error):
-            # The query behind the tool failed. The tool name and arguments
-            # were fine, so the caller must NOT be told to re-check the tool
-            # schema — that advice fits an argument error and sends them
-            # down the wrong path for a dropped table or a dead connection.
-            # Only the enumerated SupersetErrorType is echoed; raw driver
-            # output could carry SQL or connection details.
+            # The query behind the tool failed. The caller must NOT be told to
+            # re-check the tool schema — that advice fits an argument error and
+            # sends them down the wrong path for a dropped table or a dead
+            # connection. Only the enumerated SupersetErrorType is echoed; raw
+            # driver output could carry SQL or connection details.
             reason = _datasource_error_reason(error) or _GENERIC_DATASOURCE_REASON
+            if reason in _QUERY_SYNTAX_REASONS:
+                # The datasource is fine; the query is malformed. For a
+                # SQL-authoring tool that query is the caller's own argument,
+                # so blaming the datasource would steer an agent away from
+                # the one thing it can actually fix.
+                raise ToolError(
+                    f"Query error in {tool_name}: the datasource rejected the "
+                    f"query as invalid ({reason}). Fix the query itself — the "
+                    f"datasource is reachable."
+                ) from error
             raise ToolError(
                 f"Datasource error in {tool_name}: the query against the "
                 f"underlying datasource failed ({reason}). The tool name and "
