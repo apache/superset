@@ -19,8 +19,8 @@
 
 /**
  * Global Async Queries (GAQ): the pipeline works for each of its consumers --
- * a single chart, the cache-hit shortcut that bypasses it, many charts at
- * once, and native filter value lookups.
+ * a cold first load, a forced refresh, the cache-hit shortcut that bypasses the
+ * cycle entirely, many charts at once, and native filter value lookups.
  *
  * Failure and edge-case behavior lives in global-async-query-resilience.spec.ts.
  * SQL Lab's smoke check lives in tests/sqllab/, which needs the
@@ -38,10 +38,13 @@ import { extractIdFromResponse } from '../../helpers/api/assertions';
 import { TIMEOUT } from '../../utils/constants';
 import {
   BIG_NUMBER_COUNT_SPEC,
+  bigNumberValueLocator,
+  createDashboardWithCharts,
   setupDashboardWithBigNumberCharts,
   setupDashboardWithSelectFilter,
   trackGaqSignals,
 } from './dashboard-test-helpers';
+import { DashboardPage } from '../../pages/DashboardPage';
 import { isFeatureEnabled } from '../../helpers/featureFlags';
 
 testWithAssets.beforeEach(async ({ page }) => {
@@ -93,6 +96,97 @@ testWithAssets(
       expect(
         signals.submitStatusesFor(chart.id),
         'the client should re-issue chart-data once the tasks finish and be served 200 from the warmed cache',
+      ).toEqual([202, 200]);
+    }).toPass({ timeout: TIMEOUT.CHART_RENDER });
+  },
+);
+
+testWithAssets(
+  'a cold first load resolves through the GAQ cycle with no manual refresh',
+  async ({ page, testAssets }) => {
+    testWithAssets.setTimeout(TIMEOUT.SLOW_TEST);
+
+    const examplesDb = await getDatabaseByName(page, 'examples');
+    if (!examplesDb) {
+      throw new Error('examples database not found');
+    }
+
+    // The test above forces a refresh, because a fresh chart over a shared
+    // physical table can collide with a query another suite already cached and
+    // a forced request takes the async path regardless of cache state. That
+    // leaves the unforced first load -- the one a real user gets -- unasserted.
+    //
+    // Same fix as the native-filter test below: a per-run SQL comment keeps the
+    // query text, and so its cache key, unique. This load is therefore
+    // guaranteed cold, and the async cycle can be asserted on the initial
+    // render itself rather than on a refresh that follows it.
+    const uniqueSuffix = `${Date.now()}_${testWithAssets.info().parallelIndex}`;
+    const datasetResp = await apiPostVirtualDataset(page, {
+      database: examplesDb.id,
+      schema: '',
+      table_name: `gaq_cold_first_load_${uniqueSuffix}`,
+      sql: `SELECT name FROM birth_names /* run:${uniqueSuffix} */`,
+      editors: [],
+    });
+    expect(datasetResp.ok()).toBe(true);
+    const datasetId = await extractIdFromResponse(datasetResp);
+    testAssets.trackDataset(datasetId);
+
+    const { dashboardId, charts } = await createDashboardWithCharts(
+      page,
+      testAssets,
+      testWithAssets.info(),
+      {
+        datasetId,
+        chartNamePrefix: 'gaq_cold_first_load',
+        chartSpecs: [
+          {
+            viz_type: 'big_number_total',
+            // An adhoc metric, not the saved `count` the physical example
+            // datasets ship with: a dataset created through the API carries no
+            // metrics at all, so a saved-metric reference would not resolve.
+            params: {
+              metric: {
+                expressionType: 'SIMPLE',
+                column: { column_name: 'name' },
+                aggregate: 'COUNT',
+                label: 'COUNT(name)',
+              },
+            },
+          },
+        ],
+      },
+    );
+    const [chart] = charts;
+    const dashboard = new DashboardPage(page);
+    const value = bigNumberValueLocator(dashboard, chart.id);
+
+    // Track before navigating: the request under test is the one the first page
+    // load fires, so there is no later point at which to start listening.
+    const signals = trackGaqSignals(page);
+
+    await dashboard.gotoById(dashboardId);
+    await dashboard.waitForLoad({ timeout: TIMEOUT.SLOW_TEST });
+
+    // The regression this guards: the chart resolves on the first load. An async
+    // handoff that never completes leaves a spinner here and the user has to
+    // refresh to get a number -- which the forced-refresh test cannot catch,
+    // because refreshing is the very thing it does.
+    await expect(value).toBeVisible({ timeout: TIMEOUT.CHART_RENDER });
+    await expect(value).toHaveText(/\d/);
+
+    await expect(() => {
+      expect(
+        signals.submitStatusFor(chart.id),
+        'a cold first load should be accepted (202) onto the async path',
+      ).toBe(202);
+      expect(
+        signals.sawTaskStatusPoll,
+        'the client should have polled /api/v1/task/status_changes while the task ran',
+      ).toBe(true);
+      expect(
+        signals.submitStatusesFor(chart.id),
+        'the first load alone should complete the round trip -- 202, then 200 from the warmed cache -- without any user-initiated refresh',
       ).toEqual([202, 200]);
     }).toPass({ timeout: TIMEOUT.CHART_RENDER });
   },
