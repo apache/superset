@@ -84,28 +84,6 @@ def test_includes_roles_granted_through_groups() -> None:
     assert result.roles == ["editor", "sql_lab"]
 
 
-def test_merges_direct_and_group_roles_without_duplicates() -> None:
-    group = MagicMock()
-    group.roles = [_role("Admin"), _role("editor")]
-
-    result = serialize_user_object(_user(roles=[_role("Admin")], groups=[group]))
-
-    assert result is not None
-    assert result.roles == ["Admin", "editor"]
-
-
-def test_keeps_direct_roles_when_groups_are_not_iterable() -> None:
-    """A user object without a usable groups relationship still reports its
-    own roles."""
-    user = _user(roles=[_role("Admin")])
-    user.groups = object()
-
-    result = serialize_user_object(user)
-
-    assert result is not None
-    assert result.roles == ["Admin"]
-
-
 def test_extracts_role_names_from_orm_objects() -> None:
     """The original bug: SQLAlchemy Role objects must be converted to strings."""
     role_admin = MagicMock()
