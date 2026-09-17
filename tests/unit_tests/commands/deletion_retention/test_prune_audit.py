@@ -532,13 +532,7 @@ def test_repeat_dispatch_uses_metadata_server_version(
     )
 
 
-@pytest.mark.parametrize(
-    "scope_entities",
-    [None, [("chart", "shared"), ("dashboard", "shared")], []],
-)
-def test_repeat_paths_isolate_entity_types_and_agree(
-    scope_entities: list[tuple[str, str | None]] | None,
-) -> None:
+def test_repeat_paths_isolate_entity_types_and_agree() -> None:
     """Keep each type's first block when UUIDs collide, in both query paths."""
     engine: sa.Engine = sa.create_engine("sqlite://")
     metadata: sa.MetaData = sa.MetaData()
@@ -553,7 +547,7 @@ def test_repeat_paths_isolate_entity_types_and_agree(
             "trigger": "scheduled",
             "actor": "system",
             "created_on": datetime(2026, 1, day),
-            "reason": "same",
+            "reason": "same" if entity_type == "chart" else "other",
         }
         for id_, entity_type, day in zip(
             ids, ["chart", "dashboard", "chart"], [1, 2, 3], strict=True
@@ -571,11 +565,63 @@ def test_repeat_paths_isolate_entity_types_and_agree(
                 assert set(
                     connection.scalars(
                         sa.select(table.c.id).where(
-                            table.c.id.in_(ids if scope_entities != [] else []),
                             predicate(table, datetime(2026, 2, 1)),
                         )
                     )
-                ) == ({ids[2]} if scope_entities != [] else set())
+                ) == {ids[2]}
+    finally:
+        engine.dispose()
+
+
+@pytest.mark.parametrize(
+    ("scope_entities", "expected_indices"),
+    [
+        (None, [2, 3, 5]),
+        ([("chart", "shared"), ("dashboard", "shared")], [2, 3]),
+        ([("chart", "shared")], [2]),
+        ([], []),
+    ],
+)
+def test_window_repeat_predicate_applies_entity_scope(
+    scope_entities: list[tuple[str, str | None]] | None,
+    expected_indices: list[int],
+) -> None:
+    """Apply type/UUID scope inside the predicate, without an outer ID filter."""
+    engine: sa.Engine = sa.create_engine("sqlite://")
+    metadata: sa.MetaData = sa.MetaData()
+    table: sa.Table = prune_audit.PurgeAuditLog.__table__.to_metadata(metadata)
+    ids: list[UUID] = [uuid4() for _ in range(6)]
+    rows: list[dict[str, Any]] = [
+        {
+            "id": id_,
+            "entity_type": entity_type,
+            "entity_uuid": entity_uuid,
+            "status": STATUS_BLOCKED,
+            "trigger": "scheduled",
+            "actor": "system",
+            "created_on": datetime(2026, 1, day),
+            "reason": "same" if entity_type == "chart" else "other",
+        }
+        for id_, entity_type, entity_uuid, day in zip(
+            ids,
+            ["chart", "dashboard", "chart", "dashboard", "chart", "chart"],
+            ["shared", "shared", "shared", "shared", "outside", "outside"],
+            [1, 2, 3, 4, 1, 3],
+            strict=True,
+        )
+    ]
+    try:
+        metadata.create_all(engine)
+        with engine.begin() as connection:
+            connection.execute(sa.insert(table), rows)
+            query: sa.sql.Select = sa.select(table.c.id).where(
+                prune_audit._window_repeats_an_earlier_block(
+                    table, datetime(2026, 2, 1), scope_entities=scope_entities
+                )
+            )
+            assert set(connection.scalars(query)) == {
+                ids[index] for index in expected_indices
+            }
     finally:
         engine.dispose()
 
