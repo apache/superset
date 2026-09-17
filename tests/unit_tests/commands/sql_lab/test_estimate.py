@@ -33,6 +33,7 @@ from superset.exceptions import (
     SupersetParseError,
     SupersetSecurityException,
 )
+from tests.unit_tests.conftest import with_feature_flags  # noqa: E402
 
 
 def _make_params(**kwargs: object) -> EstimateQueryCostType:
@@ -201,7 +202,12 @@ def _make_command_with_db(
 
 @patch("superset.commands.sql_lab.estimate.app")
 def test_apply_sql_security_blocks_dml_when_not_allowed(mock_app: MagicMock) -> None:
-    mock_app.config = {"DISALLOWED_SQL_FUNCTIONS": {}, "DISALLOWED_SQL_TABLES": {}}
+    mock_app.config = {
+        "DISALLOWED_SQL_FUNCTIONS": {},
+        "DISALLOWED_SQL_TABLES": {},
+        "SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT": 10,
+        "QUERY_COST_FORMATTERS_BY_ENGINE": {},
+    }
     from superset.exceptions import SupersetDMLNotAllowedException
 
     command = _make_command_with_db("INSERT INTO t VALUES (1)", allow_dml=False)
@@ -211,7 +217,12 @@ def test_apply_sql_security_blocks_dml_when_not_allowed(mock_app: MagicMock) -> 
 
 @patch("superset.commands.sql_lab.estimate.app")
 def test_apply_sql_security_allows_dml_when_enabled(mock_app: MagicMock) -> None:
-    mock_app.config = {"DISALLOWED_SQL_FUNCTIONS": {}, "DISALLOWED_SQL_TABLES": {}}
+    mock_app.config = {
+        "DISALLOWED_SQL_FUNCTIONS": {},
+        "DISALLOWED_SQL_TABLES": {},
+        "SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT": 10,
+        "QUERY_COST_FORMATTERS_BY_ENGINE": {},
+    }
     command = _make_command_with_db("INSERT INTO t VALUES (1)", allow_dml=True)
     # No exception; SQL returned unchanged (RLS disabled by default).
     assert command._apply_sql_security("INSERT INTO t VALUES (1)")
@@ -284,7 +295,12 @@ def test_apply_sql_security_blocks_disallowed_function(mock_app: MagicMock) -> N
 @patch("superset.commands.sql_lab.estimate.app")
 def test_apply_sql_security_allows_benign_select(mock_app: MagicMock) -> None:
     """A benign statement passes through unchanged (no false positives)."""
-    mock_app.config = {"DISALLOWED_SQL_FUNCTIONS": {}, "DISALLOWED_SQL_TABLES": {}}
+    mock_app.config = {
+        "DISALLOWED_SQL_FUNCTIONS": {},
+        "DISALLOWED_SQL_TABLES": {},
+        "SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT": 10,
+        "QUERY_COST_FORMATTERS_BY_ENGINE": {},
+    }
     command = _make_command_with_db("SELECT 1", allow_dml=False)
     # No disallowed content, no mutation, RLS disabled -> returned unchanged.
     assert command._apply_sql_security("SELECT 1") == "SELECT 1"
@@ -300,7 +316,12 @@ def test_apply_sql_security_injects_rls_when_enabled(
 ) -> None:
     """With RLS_IN_SQLLAB enabled, RLS predicates are applied per statement so
     the estimate reflects the constrained query the user could actually run."""
-    mock_app.config = {"DISALLOWED_SQL_FUNCTIONS": {}, "DISALLOWED_SQL_TABLES": {}}
+    mock_app.config = {
+        "DISALLOWED_SQL_FUNCTIONS": {},
+        "DISALLOWED_SQL_TABLES": {},
+        "SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT": 10,
+        "QUERY_COST_FORMATTERS_BY_ENGINE": {},
+    }
     command = _make_command_with_db("SELECT * FROM t", allow_dml=False)
 
     result = command._apply_sql_security("SELECT * FROM t")
@@ -328,7 +349,12 @@ def test_apply_sql_security_resolves_default_schema_for_rls(
     ``""``/``None`` would let unqualified tables dodge RLS predicates that the
     real query enforces, defeating the security parity goal of this command.
     """
-    mock_app.config = {"DISALLOWED_SQL_FUNCTIONS": {}, "DISALLOWED_SQL_TABLES": {}}
+    mock_app.config = {
+        "DISALLOWED_SQL_FUNCTIONS": {},
+        "DISALLOWED_SQL_TABLES": {},
+        "SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT": 10,
+        "QUERY_COST_FORMATTERS_BY_ENGINE": {},
+    }
     command = _make_command_with_db("SELECT * FROM t", allow_dml=False)
     database = cast(MagicMock, command._database)
     # Caller passed nothing: schema is "" and catalog is None.
@@ -366,7 +392,12 @@ def test_apply_sql_security_respects_explicit_catalog_schema(
     ``resolve_query_default_schema`` is still invoked so the engine's per-query
     security gate runs even when a schema is pinned (parity with the executor,
     which calls it unconditionally)."""
-    mock_app.config = {"DISALLOWED_SQL_FUNCTIONS": {}, "DISALLOWED_SQL_TABLES": {}}
+    mock_app.config = {
+        "DISALLOWED_SQL_FUNCTIONS": {},
+        "DISALLOWED_SQL_TABLES": {},
+        "SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT": 10,
+        "QUERY_COST_FORMATTERS_BY_ENGINE": {},
+    }
     command = _make_command_with_db("SELECT * FROM t", allow_dml=False)
     database = cast(MagicMock, command._database)
     command._catalog = "my_catalog"
@@ -398,7 +429,12 @@ def test_apply_sql_security_propagates_engine_schema_gate(
     ``search_path`` check that rejects ``SET search_path = ...``) is enforced on
     the estimate path too, rather than being silently bypassed.
     """
-    mock_app.config = {"DISALLOWED_SQL_FUNCTIONS": {}, "DISALLOWED_SQL_TABLES": {}}
+    mock_app.config = {
+        "DISALLOWED_SQL_FUNCTIONS": {},
+        "DISALLOWED_SQL_TABLES": {},
+        "SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT": 10,
+        "QUERY_COST_FORMATTERS_BY_ENGINE": {},
+    }
     command = _make_command_with_db(
         "SET search_path = secret; SELECT * FROM t", allow_dml=True
     )
@@ -664,6 +700,11 @@ def test_run_estimates_a_template_its_parameters_fully_bind(
     mock_get_template_processor.return_value.process_template.assert_called_once_with(
         "SELECT '{{ ds }}'", ds="2026-08-20"
     )
+    # What reaches the engine is the rendered SQL, not the template.
+    assert (
+        mock_database.db_engine_spec.estimate_query_cost.call_args.args[3]
+        == "SELECT '2026-08-20'"
+    )
 
 
 @patch("superset.commands.sql_lab.estimate.app")
@@ -680,7 +721,12 @@ def test_run_reports_an_unprovided_parameter_as_missing(
     raising, and in a position like a string literal the leftover still parses.
     Estimating it would describe a query the user cannot run, so it gets the
     same typed response the execution path gives it."""
-    mock_app.config = {"DISALLOWED_SQL_FUNCTIONS": {}, "DISALLOWED_SQL_TABLES": {}}
+    mock_app.config = {
+        "DISALLOWED_SQL_FUNCTIONS": {},
+        "DISALLOWED_SQL_TABLES": {},
+        "SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT": 10,
+        "QUERY_COST_FORMATTERS_BY_ENGINE": {},
+    }
     mock_database = MagicMock()
     mock_database.db_engine_spec.engine = "postgresql"
     mock_database.allow_dml = False
@@ -697,7 +743,9 @@ def test_run_reports_an_unprovided_parameter_as_missing(
     error = exc_info.value.error
     assert exc_info.value.status == 400
     assert error.error_type == SupersetErrorType.MISSING_TEMPLATE_PARAMS_ERROR
-    assert error.message == 'The parameter "ds" in your query is undefined.'
+    assert error.message.startswith('The parameter "ds" in your query is undefined.')
+    # The execution path's suggestion travels with it.
+    assert "Set Parameters" in error.message
     assert error.extra["undefined_parameters"] == ["ds"]
     assert error.extra["issue_codes"][0]["code"] == 1006
     # Nothing was estimated.
@@ -716,7 +764,12 @@ def test_run_leaves_a_genuine_syntax_error_alone(
 ) -> None:
     """SQL that fails to parse with nothing undefined in it keeps the parser's
     own error -- the query really is malformed."""
-    mock_app.config = {"DISALLOWED_SQL_FUNCTIONS": {}, "DISALLOWED_SQL_TABLES": {}}
+    mock_app.config = {
+        "DISALLOWED_SQL_FUNCTIONS": {},
+        "DISALLOWED_SQL_TABLES": {},
+        "SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT": 10,
+        "QUERY_COST_FORMATTERS_BY_ENGINE": {},
+    }
     mock_database = MagicMock()
     mock_database.db_engine_spec.engine = "postgresql"
     mock_database.allow_dml = False
@@ -798,7 +851,12 @@ def test_run_refuses_rendered_sql_the_caller_cannot_access(
 ) -> None:
     """A template that renders to a table the caller cannot read is refused
     even though the unrendered source passed the first check."""
-    mock_app.config = {"DISALLOWED_SQL_FUNCTIONS": {}, "DISALLOWED_SQL_TABLES": {}}
+    mock_app.config = {
+        "DISALLOWED_SQL_FUNCTIONS": {},
+        "DISALLOWED_SQL_TABLES": {},
+        "SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT": 10,
+        "QUERY_COST_FORMATTERS_BY_ENGINE": {},
+    }
     mock_database = MagicMock()
     mock_database.db_engine_spec.engine = "postgresql"
     mock_database.allow_dml = False
@@ -858,3 +916,55 @@ def test_run_gives_the_processor_the_requested_schema(
     command.run()
 
     assert mock_get_template_processor.call_args.kwargs["schema"] == "not_default"
+
+
+# ---------------------------------------------------------------------------
+# The command's own error handling, with a real template processor
+# ---------------------------------------------------------------------------
+
+
+@with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)
+@patch("superset.commands.sql_lab.estimate.app")
+@patch("superset.commands.sql_lab.estimate.security_manager", new_callable=MagicMock)
+@patch("superset.commands.sql_lab.estimate.DatabaseDAO")
+def test_run_reports_malformed_jinja_in_a_parameter_value(
+    mock_dao: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_app: MagicMock,
+) -> None:
+    """A parameter *value* carrying malformed Jinja survives rendering and is
+    only rejected when the rendered SQL is parsed again to look for undefined
+    parameters. That parse raises a raw jinja2 error, which has to reach the
+    caller as a 400 rather than escaping as a 500 -- as it does on the
+    execution path, where the same check sits inside ``render``'s catch.
+
+    Deliberately built on a real template processor: with the processor mocked
+    the command never runs the code that raises, so the handling around it
+    cannot be exercised."""
+    mock_app.config = {
+        "DISALLOWED_SQL_FUNCTIONS": {},
+        "DISALLOWED_SQL_TABLES": {},
+        "SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT": 10,
+        "QUERY_COST_FORMATTERS_BY_ENGINE": {},
+    }
+    mock_database = MagicMock()
+    mock_database.backend = "postgresql"
+    mock_database.db_engine_spec.engine = "postgresql"
+    mock_database.allow_dml = False
+    mock_dao.find_by_id.return_value = mock_database
+    mock_security_manager.raise_for_access.return_value = None
+
+    command = QueryEstimationCommand(
+        _make_params(
+            sql="SELECT {{ x }} AS d",
+            # Valid SQL once rendered -- a string literal -- so the parse that
+            # strips comments succeeds and the Jinja parse is what raises.
+            template_params={"x": "'{% for %}'"},
+        )
+    )
+    with pytest.raises(SupersetErrorException) as exc_info:
+        command.run()
+
+    assert exc_info.value.status == 400
+    assert exc_info.value.error.error_type == SupersetErrorType.GENERIC_COMMAND_ERROR
+    mock_database.db_engine_spec.estimate_query_cost.assert_not_called()
