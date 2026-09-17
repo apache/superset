@@ -36,11 +36,15 @@ from __future__ import annotations
 import uuid as uuid_lib
 from contextlib import contextmanager, ExitStack
 from types import SimpleNamespace
-from typing import cast, Iterator
+from typing import cast, Iterator, TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
 import pytest
 from sqlalchemy.orm.session import Session
+
+if TYPE_CHECKING:
+    from superset.models.dashboard import Dashboard
+    from superset.security.manager import SupersetSecurityManager
 
 VIEW_PERM = "[test_layer].[test_view](id:1)"
 VIEW2_PERM = "[test_layer].[test_view_2](id:2)"
@@ -429,10 +433,83 @@ def test_gate_denies_dashboard_of_unresolvable_datasources(
 def test_gate_still_allows_empty_dashboard(
     access_fixtures: SimpleNamespace, app_context: None
 ) -> None:
-    """A dashboard with no charts stays accessible (pinned behaviour)."""
+    """A PUBLISHED dashboard with no charts stays accessible.
+
+    Chart-less dashboards can still carry markdown content, and published
+    is the signal that content is meant to be shared; the fixture is
+    published, so this pins the fallback's allow half (sc-120032)."""
     sm = _gate_sm()
     with _gate_patches(sm, granted_perms=set()):
         sm.raise_for_access(dashboard=access_fixtures.empty_dashboard)
+
+
+def test_gate_denies_unpublished_empty_dashboard(
+    access_fixtures: SimpleNamespace, app_context: None
+) -> None:
+    """sc-120032: an UNPUBLISHED chart-less dashboard is editor-only.
+
+    Previously any authenticated user could read it by URL even though it
+    appeared in no list (the list filter's fallback was already
+    published-only); markdown-only dashboards made that a content leak."""
+    # pylint: disable=import-outside-toplevel
+    from superset.exceptions import SupersetSecurityException
+    from superset.models.dashboard import Dashboard
+
+    unpublished_empty: Dashboard = Dashboard(
+        dashboard_title="unpublished empty",
+        slug="unpublished-empty",
+        published=False,
+        slices=[],
+    )
+    access_fixtures.session.add(unpublished_empty)
+    access_fixtures.session.flush()
+
+    sm: SupersetSecurityManager = _gate_sm()
+    with (
+        _gate_patches(sm, granted_perms=set()),
+        pytest.raises(SupersetSecurityException),
+    ):
+        sm.raise_for_access(dashboard=unpublished_empty)
+
+
+def test_gate_allows_published_table_dashboard_for_entitled_user(
+    access_fixtures: SimpleNamespace, app_context: None
+) -> None:
+    """Publication admits a datasource-entitled reader with no viewer subjects."""
+    sm: SupersetSecurityManager = _gate_sm()
+    with _gate_patches(sm, granted_perms={TABLE_PERM}):
+        sm.raise_for_access(dashboard=access_fixtures.regular_dashboard)
+
+
+def test_gate_denies_unpublished_dashboard_despite_datasource_grant(
+    access_fixtures: SimpleNamespace, app_context: None
+) -> None:
+    """sc-120031: an unpublished no-viewers dashboard denies datasource holders.
+
+    With viewers empty, a datasource-entitled non-editor used to be
+    admitted to an UNPUBLISHED dashboard through the fallback — so
+    removing the last viewer subject silently WIDENED access (the viewer
+    branch is published-gated but the fallback was not). The fallback now
+    requires published, matching the list filter's fallback branch."""
+    # pylint: disable=import-outside-toplevel
+    from superset.exceptions import SupersetSecurityException
+    from superset.models.dashboard import Dashboard
+
+    unpublished_regular: Dashboard = Dashboard(
+        dashboard_title="unpublished regular",
+        slug="unpublished-regular",
+        published=False,
+        slices=[access_fixtures.table_slice],
+    )
+    access_fixtures.session.add(unpublished_regular)
+    access_fixtures.session.flush()
+
+    sm: SupersetSecurityManager = _gate_sm()
+    with (
+        _gate_patches(sm, granted_perms={TABLE_PERM}),
+        pytest.raises(SupersetSecurityException),
+    ):
+        sm.raise_for_access(dashboard=unpublished_regular)
 
 
 def test_gate_denies_dashboard_with_datasource_less_chart(
@@ -666,7 +743,7 @@ def test_membership_recognizes_semantic_view_member(
 ) -> None:
     """A member semantic view is recognized — the table-shaped
     ``Dashboard.datasources`` set made this vacuously false."""
-    dashboard = access_fixtures.semantic_dashboard
+    dashboard: Dashboard = access_fixtures.semantic_dashboard
     assert dashboard.has_member_datasource(access_fixtures.view) is True
 
 
@@ -675,7 +752,7 @@ def test_membership_rejects_colliding_non_member_table(
 ) -> None:
     """A table sharing the member view's numeric id but NOT on the dashboard
     is no member — a bare id-set test could have said true."""
-    dashboard = access_fixtures.semantic_dashboard
+    dashboard: Dashboard = access_fixtures.semantic_dashboard
     assert dashboard.has_member_datasource(access_fixtures.table) is False
 
 
@@ -683,7 +760,7 @@ def test_membership_recognizes_table_member(
     access_fixtures: SimpleNamespace,
 ) -> None:
     """Table membership keeps working through the same pair comparison."""
-    dashboard = access_fixtures.regular_dashboard
+    dashboard: Dashboard = access_fixtures.regular_dashboard
     assert dashboard.has_member_datasource(access_fixtures.table) is True
 
 
@@ -692,7 +769,7 @@ def test_membership_rejects_colliding_non_member_view(
 ) -> None:
     """The mirror collision: the semantic view sharing the member table's id
     is no member of the table dashboard."""
-    dashboard = access_fixtures.regular_dashboard
+    dashboard: Dashboard = access_fixtures.regular_dashboard
     assert dashboard.has_member_datasource(access_fixtures.view) is False
 
 
@@ -704,7 +781,7 @@ def test_drill_via_dashboard_access_recognizes_semantic_member(
     (``supports_drill_to_detail``) is separate and still denies semantic
     views today; this pins the membership primitive for the day a provider
     enables drill."""
-    sm = _gate_sm()
+    sm: SupersetSecurityManager = _gate_sm()
     with (
         patch(
             "superset.is_feature_enabled",
@@ -723,7 +800,7 @@ def test_drill_via_dashboard_access_rejects_colliding_non_member(
 ) -> None:
     """The colliding table is not drillable via the semantic dashboard — the
     replaced id-set membership test would have matched its bare id."""
-    sm = _gate_sm()
+    sm: SupersetSecurityManager = _gate_sm()
     with (
         patch(
             "superset.is_feature_enabled",
@@ -742,7 +819,7 @@ def test_has_drill_access_drill_to_detail_semantic_member(
 ) -> None:
     """Drill to Detail's dashboard-membership leg recognizes a member
     semantic view (no slice context in the form data)."""
-    sm = _gate_sm()
+    sm: SupersetSecurityManager = _gate_sm()
     assert sm.has_drill_access(
         {}, access_fixtures.semantic_dashboard, access_fixtures.view
     )
@@ -752,7 +829,7 @@ def test_has_drill_access_rejects_colliding_non_member(
     access_fixtures: SimpleNamespace, app_context: None
 ) -> None:
     """And the colliding non-member table stays rejected on the same leg."""
-    sm = _gate_sm()
+    sm: SupersetSecurityManager = _gate_sm()
     assert not sm.has_drill_access(
         {}, access_fixtures.semantic_dashboard, access_fixtures.table
     )
@@ -775,8 +852,8 @@ def test_guest_allowlist_denies_semantic_member_chart(
     # pylint: disable=import-outside-toplevel
     from superset.exceptions import SupersetSecurityException
 
-    sm = _gate_sm()
-    guest = MagicMock()
+    sm: SupersetSecurityManager = _gate_sm()
+    guest: MagicMock = MagicMock()
     guest.guest_token = {"datasets": [1]}
     with (
         patch(
@@ -805,8 +882,8 @@ def test_guest_allowlist_allows_table_member_chart(
     """Companion control: the very same token admits the table-backed member
     chart whose dataset id it names — the denial above is the type gap, not
     a broken allowlist."""
-    sm = _gate_sm()
-    guest = MagicMock()
+    sm: SupersetSecurityManager = _gate_sm()
+    guest: MagicMock = MagicMock()
     guest.guest_token = {"datasets": [1]}
     with (
         patch(

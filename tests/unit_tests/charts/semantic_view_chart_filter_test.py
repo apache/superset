@@ -38,14 +38,20 @@ from __future__ import annotations
 
 import uuid as uuid_lib
 from types import SimpleNamespace
+from typing import TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
 import pytest
 from sqlalchemy.orm.session import Session
 
-VIEW_PERM = "[test_layer].[test_view](id:1)"
-VIEW2_PERM = "[test_layer].[test_view_2](id:2)"
-TABLE_PERM = "[examples].[birth_names](id:1)"
+if TYPE_CHECKING:
+    from sqlalchemy.engine import Connection, Engine
+    from sqlalchemy.orm.query import Query as ORMQuery
+
+
+VIEW_PERM: str = "[test_layer].[test_view](id:1)"
+VIEW2_PERM: str = "[test_layer].[test_view_2](id:2)"
+TABLE_PERM: str = "[examples].[birth_names](id:1)"
 
 
 @pytest.fixture
@@ -68,10 +74,10 @@ def chart_fixtures(session: Session) -> SimpleNamespace:
     from superset.models.sql_lab import Query, SavedQuery
     from superset.semantic_layers.models import SemanticLayer, SemanticView
 
-    engine = session.get_bind()
+    engine: Engine | Connection = session.get_bind()
     Dashboard.metadata.create_all(engine)  # pylint: disable=no-member
 
-    layer = SemanticLayer(
+    layer: SemanticLayer = SemanticLayer(
         uuid=uuid_lib.uuid4(),
         name="test_layer",
         type="test",
@@ -81,10 +87,10 @@ def chart_fixtures(session: Session) -> SimpleNamespace:
     session.flush()
     # An insert listener stamps the computed perm on flush (overwriting any
     # fixture-supplied value); tests granting the layer perm must use it.
-    layer_perm = layer.perm
+    layer_perm: str | None = layer.perm
     assert layer_perm
 
-    view = SemanticView(
+    view: SemanticView = SemanticView(
         id=1,
         uuid=uuid_lib.uuid4(),
         name="test_view",
@@ -96,7 +102,7 @@ def chart_fixtures(session: Session) -> SimpleNamespace:
     # the entitled-visibility test uses it so it discriminates the type-aware
     # join from the old unconstrained join, which happened to match view 1
     # only via its id collision with the table below.
-    view2 = SemanticView(
+    view2: SemanticView = SemanticView(
         id=2,
         uuid=uuid_lib.uuid4(),
         name="test_view_2",
@@ -104,11 +110,13 @@ def chart_fixtures(session: Session) -> SimpleNamespace:
         configuration="{}",
         perm=VIEW2_PERM,
     )
-    database = Database(id=10, database_name="examples", sqlalchemy_uri="sqlite://")
+    database: Database = Database(
+        id=10, database_name="examples", sqlalchemy_uri="sqlite://"
+    )
     session.add_all([view, view2, database])
     session.flush()
 
-    table = SqlaTable(
+    table: SqlaTable = SqlaTable(
         id=1,  # same numeric id as the semantic view, on purpose
         table_name="birth_names",
         database_id=database.id,
@@ -117,8 +125,8 @@ def chart_fixtures(session: Session) -> SimpleNamespace:
     session.add(table)
     session.flush()
 
-    saved_query = SavedQuery(id=77, sql="select 1", label="a saved query")
-    query = Query(
+    saved_query: SavedQuery = SavedQuery(id=77, sql="select 1", label="a saved query")
+    query: Query = Query(
         id=78,
         client_id="abc1234567",
         database_id=database.id,
@@ -127,21 +135,21 @@ def chart_fixtures(session: Session) -> SimpleNamespace:
     session.add_all([saved_query, query])
     session.flush()
 
-    semantic_slice = Slice(
+    semantic_slice: Slice = Slice(
         slice_name="semantic chart",
         datasource_id=view.id,
         datasource_type="semantic_view",
         datasource_name="test_view",
         viz_type="table",
     )
-    semantic_slice_2 = Slice(
+    semantic_slice_2: Slice = Slice(
         slice_name="semantic chart 2",
         datasource_id=view2.id,
         datasource_type="semantic_view",
         datasource_name="test_view_2",
         viz_type="table",
     )
-    table_slice = Slice(
+    table_slice: Slice = Slice(
         slice_name="table chart",
         datasource_id=table.id,
         datasource_type="table",
@@ -158,7 +166,7 @@ def chart_fixtures(session: Session) -> SimpleNamespace:
     # source model carries no perm) and an unknown-type chart keep NULL perm
     # columns, and a chart with no datasource reference must never be
     # listed by the fallback nor error.
-    query_perm = query.perm
+    query_perm: str | None = query.perm
     assert query_perm
     session.execute(
         Slice.__table__.insert(),
@@ -206,7 +214,7 @@ def chart_fixtures(session: Session) -> SimpleNamespace:
     )
 
 
-ALL_CHART_NAMES = {
+ALL_CHART_NAMES: set[str] = {
     "semantic chart",
     "semantic chart 2",
     "table chart",
@@ -237,7 +245,7 @@ def _apply_chart_filter(
         "schema_access": schema_perms or set(),
         "catalog_access": catalog_perms or set(),
     }
-    sm = MagicMock()
+    sm: MagicMock = MagicMock()
     sm.is_admin.return_value = False
     sm.can_access_all_datasources.return_value = all_datasources
     sm.get_accessible_databases.return_value = accessible_databases
@@ -252,8 +260,8 @@ def _apply_chart_filter(
         ),
         patch("superset.charts.filters.get_user_id", return_value=None),
     ):
-        flt = ChartFilter.__new__(ChartFilter)
-        query = flt.apply(db.session.query(Slice), None)
+        flt: ChartFilter = ChartFilter.__new__(ChartFilter)
+        query: ORMQuery = flt.apply(db.session.query(Slice), None)
         return {slc.slice_name for slc in query.all()}
 
 
@@ -261,7 +269,9 @@ def test_list_hides_everything_without_grants(
     chart_fixtures: SimpleNamespace, app_context: None
 ) -> None:
     """No grants: the dataset-access fallback yields no charts of any type."""
-    names = _apply_chart_filter(datasource_perms=set(), accessible_databases=[])
+    names: set[str] = _apply_chart_filter(
+        datasource_perms=set(), accessible_databases=[]
+    )
     assert names == set()
 
 
@@ -273,7 +283,9 @@ def test_list_shows_semantic_chart_to_entitled_user(
     it). Uses the NON-colliding view (id 2, no table with that id) so the
     assertion discriminates: under the old unconstrained join this chart had
     no SqlaTable row to survive through at all."""
-    names = _apply_chart_filter(datasource_perms={VIEW2_PERM}, accessible_databases=[])
+    names: set[str] = _apply_chart_filter(
+        datasource_perms={VIEW2_PERM}, accessible_databases=[]
+    )
     assert names == {"semantic chart 2"}
 
 
@@ -282,7 +294,9 @@ def test_list_entitled_visibility_survives_id_collision(
 ) -> None:
     """The colliding view (shares id 1 with a table) is also listed for its
     grant holder — the type constraint must not lose entitled visibility."""
-    names = _apply_chart_filter(datasource_perms={VIEW_PERM}, accessible_databases=[])
+    names: set[str] = _apply_chart_filter(
+        datasource_perms={VIEW_PERM}, accessible_databases=[]
+    )
     assert names == {"semantic chart"}
 
 
@@ -290,7 +304,9 @@ def test_list_table_grant_matches_only_table_chart(
     chart_fixtures: SimpleNamespace, app_context: None
 ) -> None:
     """A table grant lists the table's chart and nothing else."""
-    names = _apply_chart_filter(datasource_perms={TABLE_PERM}, accessible_databases=[])
+    names: set[str] = _apply_chart_filter(
+        datasource_perms={TABLE_PERM}, accessible_databases=[]
+    )
     assert names == {"table chart"}
 
 
@@ -301,7 +317,9 @@ def test_list_database_grant_does_not_leak_colliding_semantic_chart(
     table share numeric id 1. Database-level access to that table's database
     must list only the table's chart — the type-less join used to bind the
     semantic-view chart to the colliding table and leak it."""
-    names = _apply_chart_filter(datasource_perms=set(), accessible_databases=[10])
+    names: set[str] = _apply_chart_filter(
+        datasource_perms=set(), accessible_databases=[10]
+    )
     assert names == {"table chart"}
 
 
@@ -311,7 +329,7 @@ def test_list_layer_grant_lists_all_layer_charts(
     """sc-119501 mirror (FR-002): a datasource_access grant on the PARENT
     LAYER surfaces every chart built on the layer's views, matching the
     dashboard list and both object gates."""
-    names = _apply_chart_filter(
+    names: set[str] = _apply_chart_filter(
         datasource_perms={chart_fixtures.layer_perm}, accessible_databases=[]
     )
     assert names == {"semantic chart", "semantic chart 2"}
@@ -322,7 +340,7 @@ def test_list_wrong_layer_grant_lists_nothing(
 ) -> None:
     """A grant on some OTHER layer's perm matches none of this layer's
     charts — the layer clause matches the exact parent perm only."""
-    names = _apply_chart_filter(
+    names: set[str] = _apply_chart_filter(
         datasource_perms={"[other_layer](id:ffffffff)"}, accessible_databases=[]
     )
     assert names == set()
@@ -334,7 +352,7 @@ def test_list_query_chart_participates_uniformly(
     """Uniform participation (clarify Q2): any perm-carrying datasource type
     is listed when its denormalized perm matches a held grant — no per-type
     allowlist. A ``query``-typed chart is the non-semantic witness."""
-    names = _apply_chart_filter(
+    names: set[str] = _apply_chart_filter(
         datasource_perms={chart_fixtures.query_perm}, accessible_databases=[]
     )
     assert names == {"query chart"}
@@ -346,7 +364,7 @@ def test_list_all_datasource_access_lists_everything(
     """all_datasource_access holders get the unfiltered query — ``apply``
     returns before the fallback ever runs — so every chart is listed,
     including NULL-perm rows the fallback itself can never match."""
-    names = _apply_chart_filter(
+    names: set[str] = _apply_chart_filter(
         datasource_perms=set(), accessible_databases=[], all_datasources=True
     )
     assert names == ALL_CHART_NAMES

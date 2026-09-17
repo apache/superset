@@ -20,6 +20,7 @@ from flask import current_app
 from flask_babel import lazy_gettext as _
 from sqlalchemy import and_, or_
 from sqlalchemy.orm.query import Query
+from sqlalchemy.sql.elements import ColumnElement
 
 from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
@@ -172,7 +173,7 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
             filters.append(Dashboard.id.in_(viewer_query))
 
         # (C) No-viewer fallback: dashboards with no viewers → dataset-based access
-        layer_grant_clause = semantic_layer_grant_clause()
+        layer_grant_clause: "ColumnElement[bool]" = semantic_layer_grant_clause()
         # Note: for ordinary users a dashboard with no charts is never yielded
         # here (every access predicate is NULL-false after the outer joins)
         # even though the object gate allows opening it — a deliberate,

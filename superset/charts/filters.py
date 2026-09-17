@@ -21,6 +21,7 @@ from flask_babel import lazy_gettext as _
 from sqlalchemy import and_, or_
 from sqlalchemy.orm import aliased
 from sqlalchemy.orm.query import Query
+from sqlalchemy.sql.elements import ColumnElement
 
 from superset import db, security_manager
 from superset.connectors.sqla import models
@@ -155,7 +156,7 @@ class ChartFilter(BaseFilter):  # pylint: disable=too-few-public-methods
             filters.append(Slice.id.in_(viewer_query))
 
         # (C) No-viewer fallback: charts with no viewers → dataset-based access
-        layer_grant_clause = semantic_layer_grant_clause()
+        layer_grant_clause: "ColumnElement[bool]" = semantic_layer_grant_clause()
         chart_has_viewers = Slice.viewers.any()
         table_alias = aliased(SqlaTable)
         no_viewer_query = (

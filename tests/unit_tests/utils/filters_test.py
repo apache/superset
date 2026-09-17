@@ -19,7 +19,7 @@ from types import SimpleNamespace
 
 from pytest_mock import MockerFixture
 from sqlalchemy import create_engine
-from sqlalchemy.sql.elements import False_
+from sqlalchemy.sql.elements import ColumnElement, False_
 
 from superset.extensions import security_manager
 from superset.utils.filters import (
@@ -78,7 +78,9 @@ def test_get_dataset_access_filters_extra_clauses(mocker: MockerFixture) -> None
         side_effect=[{"[db].[t](id:1)"}, set(), set()],
     )
 
-    clause = get_dataset_access_filters(SqlaTable, column("x") == 1)
+    clause: "ColumnElement[bool]" = get_dataset_access_filters(
+        SqlaTable, column("x") == 1
+    )
     assert " OR x = :x_1" in str(clause)
 
 
