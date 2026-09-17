@@ -44,6 +44,12 @@ holds one of these permissions, upgrading will either:
 - **Migrate it to a verified live successor** (e.g. `can_explore_json` ->
   `can_read` on Chart), preserving the role's effective access.
 
+`can_copy_dash` is the exception to this rule. Although its live successor,
+`Dashboard.can_write`, is broader than the historical permission, the current
+dashboard-copy endpoint is itself authorized by `Dashboard.can_write`. It is
+therefore migrated rather than deleted so existing access to dashboard
+copying is preserved.
+
 If a custom role in your deployment relies on one of the deleted
 permissions, re-grant the appropriate live permission to it manually after
 upgrading. See the two migrations' docstrings (`superset/migrations/versions/
