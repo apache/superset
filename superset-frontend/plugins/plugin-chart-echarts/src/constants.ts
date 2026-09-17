@@ -37,11 +37,11 @@ export const TIMESERIES_CONSTANTS = {
   gridOffsetBottom: 20,
   gridOffsetBottomZoomable: 80,
   legendRightTopOffset: 30,
-  // Gap reserved between the legend (whose rightmost content is its own
-  // All/Inv selector buttons) and the zoomable toolbox's dataZoom icons in
-  // the same top-right corner. The toolbox needs ~43px (2 default-size
-  // icons + gap, right-anchored at 5px); this adds real safety margin so
-  // the two don't visually collide (#37286).
+  // Width reserved at the chart's right edge so a top-oriented legend (whose
+  // rightmost content is its own All/Inv selector buttons) clears the zoomable
+  // toolbox, which occupies the same corner. The toolbox's dataZoom icons
+  // render from ~67px to ~20px in from the right edge, so the previous 55px
+  // put the legend on top of them (#37286).
   legendTopRightOffset: 90,
   zoomBottom: 30,
   toolboxTop: 0,

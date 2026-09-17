@@ -1055,9 +1055,10 @@ describe('getLegendProps', () => {
     });
   });
 
-  // #37286: the reserved gap must clear both the zoomable toolbox's dataZoom
-  // icons and the legend's own All/Inv selector buttons, which render flush
-  // against this offset. A too-small gap makes them visually overlap.
+  // #37286: a top-oriented legend shares the top-right corner with the
+  // zoomable toolbox, whose dataZoom icons reach ~67px in from the chart's
+  // right edge. Reserving less than that overlays the legend's All/Inv
+  // selector buttons on the zoom controls.
   test('should reserve enough width to keep the legend selector clear of the zoomable toolbox', () => {
     const { right } = getLegendProps(
       LegendType.Scroll,
@@ -1066,9 +1067,8 @@ describe('getLegendProps', () => {
       theme,
       true,
     );
-    const TOOLBOX_FOOTPRINT = 43; // 2 default-size toolbox icons + gap, right-anchored at 5px
-    const MIN_SAFETY_MARGIN = 30;
-    expect(right).toBeGreaterThanOrEqual(TOOLBOX_FOOTPRINT + MIN_SAFETY_MARGIN);
+    const TOOLBOX_ICONS_RIGHT_FOOTPRINT = 67;
+    expect(right).toBeGreaterThan(TOOLBOX_ICONS_RIGHT_FOOTPRINT);
   });
 
   test('should return the correct props for plain type with left orientation', () => {
