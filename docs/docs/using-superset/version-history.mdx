@@ -117,6 +117,14 @@ title, CSS, metadata, and layout applied over it — the copy endpoint accepts
 only those fields, so properties such as description, slug, certification, and
 theme come from the dashboard as it stands today, not from the version.
 
+When copying a dashboard **and its charts**, archived chart slots in the copy
+become placeholders saying "This archived chart was not copied." Their layout
+positions and sizes are preserved, but they do not link to the archived original.
+Restoring that original chart later therefore does not attach it to the copy.
+Live charts are still cloned. The source dashboard is unchanged, and ordinary
+dashboard saves and chart restores keep their existing reattachment behavior.
+This rule does not change copying a dashboard without copying its charts.
+
 ## What gets recorded
 
 Versions capture the entity's own saved state — a chart's name, visualization

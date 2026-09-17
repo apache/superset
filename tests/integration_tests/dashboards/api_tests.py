@@ -2236,7 +2236,8 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         )
         assert rv.status_code == 200, rv.data
 
-        model: Dashboard = db.session.query(Dashboard).get(dashboard_id)
+        model: Dashboard | None = db.session.query(Dashboard).get(dashboard_id)
+        assert model is not None
         stored: dict[str, Any] = json.loads(model.position_json)
         node: dict[str, Any] = stored["CHART-gone"]
         # The dangling CHART node is now a markdown placeholder, node id,
@@ -2304,7 +2305,8 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         # The raw-field reconcile did not run: metadata positions supersede it.
         raw_reconcile.assert_not_called()
 
-        model: Dashboard = db.session.query(Dashboard).get(dashboard_id)
+        model: Dashboard | None = db.session.query(Dashboard).get(dashboard_id)
+        assert model is not None
         stored: dict[str, Any] = json.loads(model.position_json)
         # The stored layout is the METADATA one (reconciled by set_dash_metadata),
         # not the raw field.
@@ -2350,7 +2352,8 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         )
         assert rv.status_code == 200, rv.data
 
-        model: Dashboard = db.session.query(Dashboard).get(dashboard_id)
+        model: Dashboard | None = db.session.query(Dashboard).get(dashboard_id)
+        assert model is not None
         stored: dict[str, Any] = json.loads(model.position_json)
         assert stored["CHART-raw"]["type"] == "MARKDOWN", stored
 
@@ -2410,7 +2413,8 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         assert b"CHART-bad" in rv.data
 
         db.session.expire_all()
-        model: Dashboard = db.session.query(Dashboard).get(dashboard_id)
+        model: Dashboard | None = db.session.query(Dashboard).get(dashboard_id)
+        assert model is not None
         assert {s.id for s in model.slices} == {chart_id}
 
         db.session.delete(model)
@@ -2435,7 +2439,8 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
                 "put",
             )
             assert rv.status_code == 200, (payload, rv.data)
-            model: Dashboard = db.session.query(Dashboard).get(dashboard_id)
+            model: Dashboard | None = db.session.query(Dashboard).get(dashboard_id)
+            assert model is not None
             assert json.loads(model.position_json) == json.loads(payload)
             db.session.delete(model)
             db.session.commit()

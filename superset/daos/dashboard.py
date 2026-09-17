@@ -87,6 +87,7 @@ _SET_DASH_METADATA_SPECIAL_KEYS = {
 # User-facing text persisted into a dangling tile's ``position_json`` slot.
 # A plain literal, not ``gettext``: see ``_repair_dangling_chart_nodes``.
 MISSING_CHART_PLACEHOLDER: str = "This chart no longer exists."
+ARCHIVED_CHART_COPY_PLACEHOLDER: str = "This archived chart was not copied."
 
 
 def _layout_chart_id(node: Any) -> int | None:
@@ -131,6 +132,30 @@ def _layout_chart_id(node: Any) -> int | None:
     return None
 
 
+def _chart_slot_placeholder(node: dict[str, Any], message: str) -> dict[str, Any]:
+    """Preserve slot geometry and tree placement without retaining a chart link."""
+    meta: dict[str, Any] = node.get("meta") or {}
+    return {
+        **node,
+        "type": "MARKDOWN",
+        "meta": {
+            "width": meta.get("width"),
+            "height": meta.get("height"),
+            "code": message,
+        },
+    }
+
+
+def _replace_archived_copy_slots(positions: object, archived_ids: set[int]) -> None:
+    """Replace archived member slots only in the copy-with-charts layout."""
+    if isinstance(positions, dict):
+        for key, node in positions.items():
+            if _layout_chart_id(node) in archived_ids:
+                positions[key] = _chart_slot_placeholder(
+                    node, ARCHIVED_CHART_COPY_PLACEHOLDER
+                )
+
+
 def _repair_dangling_chart_nodes(
     positions: dict[str, Any],
     valid_chart_ids: set[int],
@@ -168,16 +193,7 @@ def _repair_dangling_chart_nodes(
     for key, node in positions.items():
         chart_id: int | None = _layout_chart_id(node)
         if chart_id is not None and chart_id not in valid_chart_ids:
-            meta: dict[str, Any] = node.get("meta") or {}
-            positions[key] = {
-                **node,
-                "type": "MARKDOWN",
-                "meta": {
-                    "width": meta.get("width"),
-                    "height": meta.get("height"),
-                    "code": MISSING_CHART_PLACEHOLDER,
-                },
-            }
+            positions[key] = _chart_slot_placeholder(node, MISSING_CHART_PLACEHOLDER)
             repaired += 1
     if repaired:
         logger.info(
@@ -701,6 +717,21 @@ class DashboardDAO(BaseDAO[Dashboard]):
         metadata = json.loads(data["json_metadata"])
         old_to_new_slice_ids: dict[int, int] = {}
         if data.get("duplicate_slices"):
+            # Copy-with-charts deliberately does not share archived originals.
+            # Query their IDs independently of the relationship's load state:
+            # a fresh collection hides them; an already-loaded one may not.
+            with skip_visibility_filter(db.session, Slice):
+                archived_ids: set[int] = set(
+                    db.session.scalars(
+                        select(Slice.id)
+                        .join(Slice.dashboards)
+                        .where(
+                            Dashboard.id == original_dash.id,
+                            Slice.deleted_at.is_not(None),
+                        )
+                    )
+                )
+            _replace_archived_copy_slots(metadata.get("positions"), archived_ids)
             # Reconcile before cloning (sc-115325, reviewer finding in #44028):
             # a chart hard-deleted while a member has no clone, so remapping
             # its layout ID would write None and fail strict save validation.
@@ -711,6 +742,8 @@ class DashboardDAO(BaseDAO[Dashboard]):
             reconcile_position_json(metadata.get("positions"), original_dash.id)
             # Duplicating slices as well, mapping old ids to new ones
             for slc in original_dash.slices:
+                if slc.id in archived_ids:
+                    continue
                 new_slice = slc.clone()
                 # ``Slice.clone()`` carries over no subjects, so both
                 # collections start empty on the new chart.
