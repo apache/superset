@@ -101,7 +101,7 @@ test('shows the stop message and a re-run affordance when the query was stopped'
   expect(screen.getByText('Updating chart was stopped')).toBeInTheDocument();
 
   const rerun = screen.getByText('click here');
+  expect(rerun.tagName).toBe('BUTTON');
   fireEvent.click(rerun);
-  fireEvent.keyDown(rerun, { key: 'Enter' });
-  expect(onQuery).toHaveBeenCalledTimes(2);
+  expect(onQuery).toHaveBeenCalledTimes(1);
 });

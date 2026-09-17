@@ -203,6 +203,11 @@ const DescriptionTooltip = ({ description }: { description: string }) => (
     >
       <Icons.InfoCircleOutlined
         className="text-muted"
+        // Deliberate role="button" override on this tooltip-trigger icon
+        // (no click handler; BaseIconComponent would otherwise auto-compute
+        // role="img" since there's no onClick) — matches the same pattern
+        // used by DescriptionToolTip/DeckglLayerVisibilityTooltip.
+        // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
         role="button"
         css={theme => ({
           paddingLeft: `${theme.sizeUnit}px`,
@@ -640,7 +645,7 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
 
       {loading && (
         <div style={{ textAlign: 'center', marginTop: 8 }}>
-          <Loading position="inline" />
+          <Loading position="inline" size="s" muted />
         </div>
       )}
     </div>

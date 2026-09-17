@@ -46,7 +46,9 @@ import {
  */
 export class EChartOptionsParseError extends Error {
   public readonly errorType:
-    'parse_error' | 'security_error' | 'validation_error';
+    | 'parse_error'
+    | 'security_error'
+    | 'validation_error';
 
   public readonly validationErrors: string[];
 
@@ -55,7 +57,9 @@ export class EChartOptionsParseError extends Error {
   constructor(
     message: string,
     errorType:
-      'parse_error' | 'security_error' | 'validation_error' = 'parse_error',
+      | 'parse_error'
+      | 'security_error'
+      | 'validation_error' = 'parse_error',
     validationErrors: string[] = [],
     location?: { line: number; column: number },
   ) {

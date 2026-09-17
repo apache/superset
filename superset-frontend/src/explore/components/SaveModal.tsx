@@ -52,10 +52,7 @@ import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { Alert } from '@apache-superset/core/components';
 import { Radio } from '@superset-ui/core/components/Radio';
 import { GRID_COLUMN_COUNT } from 'src/dashboard/util/constants';
-import {
-  canUserEditDashboard,
-  isUserAdmin,
-} from 'src/dashboard/util/permissionUtils';
+import { canUserEditDashboard } from 'src/dashboard/util/permissionUtils';
 import { setSaveChartModalVisibility } from 'src/explore/actions/saveModalActions';
 import {
   SaveActionType,
@@ -68,7 +65,7 @@ import {
   updateChartState,
 } from 'src/dashboard/actions/dashboardState';
 import { Dashboard } from 'src/types/Dashboard';
-import getBootstrapData from 'src/utils/getBootstrapData';
+import { canOverwriteSlice as canOverwriteSliceFor } from 'src/explore/exploreUtils/canOverwriteSlice';
 import { TabNode, TabTreeNode } from '../types';
 import { CHART_WIDTH, CHART_HEIGHT } from 'src/dashboard/constants';
 
@@ -228,38 +225,11 @@ const SaveModal = ({
   const history = useHistory();
   const theme = useTheme();
 
-  const isCurrentUserOwner = useCallback((): boolean => {
-    const userId = user?.userId;
-    if (userId === undefined) {
-      return false;
-    }
-    // The Slice type declares `owners` as `number[]`, but the explore
-    // bootstrap payload can carry owners as API `Owner` objects (`{ id }`)
-    // instead, so normalize to the numeric id before comparing.
-    return Boolean(
-      slice?.owners?.some((owner: number | { id?: number }) =>
-        typeof owner === 'number' ? owner === userId : owner?.id === userId,
-      ),
-    );
-  }, [slice, user]);
-
-  const canOverwriteSlice = useCallback((): boolean => {
-    const userSubjects = getBootstrapData()?.common?.user_subjects ?? [];
-    const canEditSlice = Boolean(
-      slice?.editors?.some((editor: { id: number } | number) =>
-        userSubjects.includes(typeof editor === 'number' ? editor : editor.id),
-      ),
-    );
-
-    return (
-      !!slice &&
-      (can_overwrite ||
-        isUserAdmin(user) ||
-        canEditSlice ||
-        isCurrentUserOwner()) &&
-      !slice?.is_managed_externally
-    );
-  }, [can_overwrite, slice, user, isCurrentUserOwner]);
+  const canOverwriteSlice = useCallback(
+    (): boolean =>
+      canOverwriteSliceFor({ slice, user, canOverwrite: can_overwrite }),
+    [can_overwrite, slice, user],
+  );
 
   const [newSliceName, setNewSliceName] = useState<string | undefined>(
     sliceName,
@@ -371,7 +341,10 @@ const SaveModal = ({
       if (dashboardId) {
         try {
           const result = (await loadDashboard(dashboardId)) as Dashboard;
-          if (canUserEditDashboard(result, user)) {
+          if (
+            canUserEditDashboard(result, user) &&
+            !result.is_managed_externally
+          ) {
             setDashboard({ label: result.dashboard_title, value: result.id });
             await loadTabs(dashboardId);
           }
@@ -392,7 +365,11 @@ const SaveModal = ({
             for (const { id } of metadataDashboards) {
               // eslint-disable-next-line no-await-in-loop
               const result = await loadDashboard(id).catch(() => null);
-              if (result && canUserEditDashboard(result, user)) {
+              if (
+                result &&
+                canUserEditDashboard(result, user) &&
+                !result.is_managed_externally
+              ) {
                 editable = result as Dashboard;
                 break;
               }
@@ -503,6 +480,17 @@ const SaveModal = ({
       };
 
       try {
+        // Persist the form data before any datasource conversion. Saving a
+        // Query as a dataset rewrites form_data through changeDatasource, so
+        // re-applying this render's Query-backed copy afterwards would undo
+        // that conversion right before createSlice reads the store, making
+        // the chart API receive datasource_type="query". Dashboard assignment
+        // does not travel through form_data -- create/updateSlice receive it
+        // as an explicit argument.
+        const formData = form_data || {};
+        delete formData.url_params;
+        actions.setFormData({ ...formData });
+
         if (datasource?.type === DatasourceType.Query) {
           const { schema, sql, database } = datasource;
           const { templateParams } = datasource;
@@ -521,9 +509,6 @@ const SaveModal = ({
         if (slice && action === 'overwrite') {
           sliceDashboards = await actions.getSliceDashboards(slice);
         }
-
-        const formData = form_data || {};
-        delete formData.url_params;
 
         let dashboardResult: DashboardGetResponse | null = null;
         let selectedTabId: string | undefined;
@@ -545,7 +530,6 @@ const SaveModal = ({
             sliceDashboards = sliceDashboards.includes(dashboardResult.id)
               ? sliceDashboards
               : [...sliceDashboards, dashboardResult.id];
-            formData.dashboards = sliceDashboards;
             if (
               action === ChartStatusType.saveas &&
               selectedTab?.value !== 'OUT_OF_TAB'
@@ -554,9 +538,6 @@ const SaveModal = ({
             }
           }
         }
-
-        // Sets the form data
-        actions.setFormData({ ...formData });
 
         //  Update or create slice
         let value: { id: number };
@@ -670,6 +651,11 @@ const SaveModal = ({
             col: 'id',
             opr: 'is_editable',
             value: true,
+          },
+          {
+            col: 'is_managed_externally',
+            opr: 'eq',
+            value: false,
           },
         ],
         page,

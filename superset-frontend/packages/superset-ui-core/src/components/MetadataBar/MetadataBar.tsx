@@ -89,6 +89,7 @@ const StyledItem = styled.div<{
     & .metadata-text {
       color: ${theme.colorTextSecondary};
       min-width: ${TEXT_MIN_WIDTH}px;
+      max-width: ${TEXT_MAX_WIDTH}px;
       overflow: hidden;
       text-overflow: ${collapsed ? 'unset' : 'ellipsis'};
       white-space: nowrap;

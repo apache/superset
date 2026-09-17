@@ -27,6 +27,10 @@ export const Container = styled.div`
     width: 100%;
 
     .three-dots-menu {
+      appearance: none;
+      border: none;
+      background: none;
+      font: inherit;
       align-self: center;
       margin-left: ${theme.sizeUnit}px;
       cursor: pointer;
@@ -122,6 +126,12 @@ export const MenuContainer = styled.div`
     padding: ${theme.sizeUnit}px 0;
 
     .menu-item {
+      appearance: none;
+      border: none;
+      background: none;
+      font: inherit;
+      width: 100%;
+      text-align: left;
       padding: ${theme.sizeUnit * 2}px ${theme.sizeUnit * 4}px;
       cursor: pointer;
       display: flex;
@@ -174,6 +184,7 @@ export const PaginationContainer = styled.div`
     color: ${theme.colorTextBase};
     transform: translateY(-${theme.sizeUnit}px);
     background: ${theme.colorBgBase};
+    flex-shrink: 0;
   `}
 `;
 
@@ -343,6 +354,7 @@ export const StyledChartContainer = styled.div<{
     .dropdown-controls-container {
       display: flex;
       justify-content: flex-end;
+      flex-shrink: 0;
     }
 
     .time-comparison-dropdown {

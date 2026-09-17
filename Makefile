@@ -95,7 +95,7 @@ py-format: pre-commit
 	pre-commit run black --all-files
 
 js-format:
-	cd superset-frontend; npm run prettier
+	cd superset-frontend; npm run format
 
 flask-app:
 	flask run -p 8088 --reload --debugger

@@ -32,8 +32,9 @@ import {
   ExtraFormDataOverride,
   ExtraFormDataAppend,
 } from '@superset-ui/core';
-import { LayoutItem } from 'src/dashboard/types';
 import extractUrlParams from 'src/dashboard/util/extractUrlParams';
+import { getChartLayoutItemMap } from 'src/dashboard/util/getChartIdsInFilterScope';
+import type { ChartLayoutItems } from 'src/dashboard/util/getChartIdsInFilterScope';
 import { isIterable } from 'src/utils/types';
 import { TAB_TYPE } from '../../util/componentTypes';
 import getBootstrapData from '../../../utils/getBootstrapData';
@@ -173,19 +174,24 @@ export function nativeFilterGate(behaviors: Behavior[]): boolean {
 }
 
 export const findTabsWithChartsInScope = (
-  chartLayoutItems: LayoutItem[],
+  chartLayoutItems: ChartLayoutItems,
   chartsInScope: number[],
-) =>
-  new Set<string>(
-    chartsInScope
-      .map(chartId =>
-        chartLayoutItems
-          .find(item => item?.meta?.chartId === chartId)
-          ?.parents?.filter(parent => parent.startsWith(`${TAB_TYPE}-`)),
-      )
-      .filter(id => id !== undefined)
-      .flat() as string[],
-  );
+) => {
+  const chartLayoutItemMap = getChartLayoutItemMap(chartLayoutItems);
+  const tabsInScope = new Set<string>();
+
+  chartsInScope.forEach(chartId => {
+    chartLayoutItemMap.get(chartId)?.forEach(layoutItem => {
+      layoutItem.parents?.forEach(parent => {
+        if (parent.startsWith(`${TAB_TYPE}-`)) {
+          tabsInScope.add(parent);
+        }
+      });
+    });
+  });
+
+  return tabsInScope;
+};
 
 export const getFilterValueForDisplay = (
   value?: string[] | null | string | number | object,

@@ -68,11 +68,13 @@ Visualization plugins allow you to add custom chart types to Superset. They are 
 ### Creating a simple Hello World viz plugin
 
 1. **Install the Superset Yeoman generator**:
+
 ```bash
 npm install -g @superset-ui/generator-superset
 ```
 
 2. **Create a new plugin**:
+
 ```bash
 mkdir superset-plugin-chart-hello-world
 cd superset-plugin-chart-hello-world
@@ -80,19 +82,22 @@ yo @superset-ui/superset
 ```
 
 3. **Follow the prompts**:
+
 - Package name: `superset-plugin-chart-hello-world`
 - Chart type: Choose your preferred type
 - Include storybook: Yes (recommended for development)
 
 4. **Develop your plugin**:
-The generator creates a complete plugin structure with TypeScript, React components, and build configuration.
+   The generator creates a complete plugin structure with TypeScript, React components, and build configuration.
 
 5. **Test your plugin locally**:
+
 ```bash
 npm run dev
 ```
 
 6. **Link to your local Superset**:
+
 ```bash
 npm link
 # In your Superset frontend directory:
@@ -100,7 +105,7 @@ npm link superset-plugin-chart-hello-world
 ```
 
 7. **Import and register in Superset**:
-Edit `superset-frontend/src/visualizations/presets/MainPreset.ts` to include your plugin.
+   Edit `superset-frontend/src/visualizations/presets/MainPreset.ts` to include your plugin.
 
 ## Testing
 
@@ -121,7 +126,7 @@ pytest --cov=superset
 # Run only unit tests
 pytest tests/unit_tests
 
-# Run only integration tests  
+# Run only integration tests
 pytest tests/integration_tests
 ```
 
@@ -234,6 +239,7 @@ For debugging the Flask backend:
 #### Using VS Code
 
 1. Add to `.vscode/launch.json`:
+
 ```json
 {
   "version": "0.2.0",
@@ -261,9 +267,9 @@ For debugging the Flask backend:
 To debug Flask running in a POD inside a kubernetes cluster, you'll need to make sure the pod runs as root and is granted the `SYS_PTRACE` capability. These settings should not be used in production environments.
 
 ```yaml
-  securityContext:
-    capabilities:
-      add: ["SYS_PTRACE"]
+securityContext:
+  capabilities:
+    add: ['SYS_PTRACE']
 ```
 
 See [set capabilities for a container](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-capabilities-for-a-container) for more details.
@@ -349,7 +355,7 @@ uses Claude AI to generate draft translations for any missing entries. All
 AI-generated strings are marked `#, fuzzy` and tagged with an attribution
 comment so that human reviewers know they need to be checked.
 
-Note that `#, fuzzy` marks a translation as *needing review*, not as *withheld*:
+Note that `#, fuzzy` marks a translation as _needing review_, not as _withheld_:
 both the frontend and backend builds serve fuzzy entries (see [Applying
 translations](#applying-translations) above), so an AI-generated string is shown
 in the UI as soon as it is built and deployed. Reviewers should verify each
@@ -395,6 +401,7 @@ python scripts/translations/backfill_po.py --lang fr --limit 20 --dry-run
 ```
 
 Output shows each string, its translation, and a context tag:
+
 - No tag — 3+ reference languages available (high confidence)
 - `[ctx:N]` — only N other languages have this string (lower confidence)
 - `[ctx:0]` — no other language has this string yet; English alone used
@@ -407,15 +414,15 @@ python scripts/translations/backfill_po.py --lang fr
 
 Options:
 
-| Flag | Default | Description |
-|------|---------|-------------|
-| `--lang LANG` | required | ISO language code (`fr`, `de`, `ja`, …) |
-| `--batch-size N` | 50 | Strings per Claude request |
-| `--limit N` | unlimited | Stop after N entries |
-| `--min-context N` | 0 | Skip entries with fewer than N reference translations |
-| `--model MODEL` | `claude-sonnet-4-6` | Claude model to use |
-| `--dry-run` | off | Print without writing |
-| `--no-fuzzy` | off | Don't mark entries as fuzzy |
+| Flag              | Default             | Description                                           |
+| ----------------- | ------------------- | ----------------------------------------------------- |
+| `--lang LANG`     | required            | ISO language code (`fr`, `de`, `ja`, …)               |
+| `--batch-size N`  | 50                  | Strings per Claude request                            |
+| `--limit N`       | unlimited           | Stop after N entries                                  |
+| `--min-context N` | 0                   | Skip entries with fewer than N reference translations |
+| `--model MODEL`   | `claude-sonnet-4-6` | Claude model to use                                   |
+| `--dry-run`       | off                 | Print without writing                                 |
+| `--no-fuzzy`      | off                 | Don't mark entries as fuzzy                           |
 
 Use `--min-context 2` to skip strings that have fewer than 2 reference
 translations in other languages. Those strings are more likely to be ambiguous
@@ -488,8 +495,8 @@ npm run check:custom-rules
 # Run tsc (typescript) checks
 npm run type
 
-# Format with Prettier
-npm run prettier
+# Format with Oxfmt
+npm run format
 ```
 
 #### Architecture
@@ -519,6 +526,7 @@ The linting system consists of two components:
 **"Plugin 'basic-custom-plugin' not found" Error**
 
 Ensure you're using the explicit config:
+
 ```bash
 npx oxlint --config oxlint.json
 ```
@@ -526,6 +534,7 @@ npx oxlint --config oxlint.json
 **Custom Rules Not Running**
 
 Verify the AST parsing dependencies are installed:
+
 ```bash
 npm ls @babel/parser @babel/traverse glob
 ```
@@ -544,6 +553,7 @@ For every PR, an ephemeral environment is automatically deployed for testing.
 Access pattern: `https://pr-{PR_NUMBER}.superset.apache.org`
 
 Features:
+
 - Automatically deployed on PR creation/update
 - Includes sample data
 - Destroyed when PR is closed
@@ -573,6 +583,7 @@ docker compose up
 **Frontend**: Webpack dev server provides hot module replacement automatically.
 
 **Backend**: Use Flask debug mode:
+
 ```bash
 FLASK_ENV=development superset run -p 8088 --with-threads --reload
 ```
@@ -580,12 +591,14 @@ FLASK_ENV=development superset run -p 8088 --with-threads --reload
 ### Performance Profiling
 
 For Python profiling:
+
 ```python
 # In superset_config.py
 PROFILING = True
 ```
 
 For React profiling:
+
 - Use React DevTools Profiler
 - Enable performance marks in Chrome DevTools
 
@@ -683,6 +696,7 @@ To do this, you'll need to:
   ```
 
 Note that:
+
 - for changes that affect the worker logic, you'll have to restart the `celery worker` process for the changes to be reflected.
 - The message queue used is a `sqlite` database using the `SQLAlchemy` experimental broker. Ok for testing, but not recommended in production
 - In some cases, you may want to create a context that is more aligned to your production environment, and use the similar broker as well as results backend configuration

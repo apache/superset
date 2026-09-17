@@ -22,7 +22,10 @@ sidebar_label: EmptyState
     under the License.
 -->
 
-import { StoryWithControls, ComponentGallery } from '../../../../src/components/StorybookWrapper';
+import {
+  StoryWithControls,
+  ComponentGallery,
+} from '../../../../src/components/StorybookWrapper';
 
 # EmptyState
 
@@ -32,8 +35,23 @@ The EmptyState component from Superset's UI library.
 
 <ComponentGallery
   component="EmptyState"
-  sizes={["medium"]}
-  styles={["chart.svg","document.svg","empty-charts.svg","empty-dashboard.svg","empty-dataset.svg","empty-query.svg","empty-table.svg","empty.svg","empty_sql_chart.svg","filter-results.svg","filter.svg","star-circle.svg","union.svg","vector.svg"]}
+  sizes={['medium']}
+  styles={[
+    'chart.svg',
+    'document.svg',
+    'empty-charts.svg',
+    'empty-dashboard.svg',
+    'empty-dataset.svg',
+    'empty-query.svg',
+    'empty-table.svg',
+    'empty.svg',
+    'empty_sql_chart.svg',
+    'filter-results.svg',
+    'filter.svg',
+    'star-circle.svg',
+    'union.svg',
+    'vector.svg',
+  ]}
   sizeProp="size"
   styleProp="image"
 />
@@ -43,65 +61,61 @@ The EmptyState component from Superset's UI library.
 <StoryWithControls
   component="EmptyState"
   props={{
-  size: "medium",
-  title: "No Data Available",
-  description: "There is no data to display at this time.",
-  image: "empty.svg",
-  buttonText: ""
-}}
+    size: 'medium',
+    title: 'No Data Available',
+    description: 'There is no data to display at this time.',
+    image: 'empty.svg',
+    buttonText: '',
+  }}
   controls={[
-  {
-    name: "size",
-    label: "Size",
-    type: "select",
-    options: [
-      "small",
-      "medium",
-      "large"
-    ],
-    description: "Size of the empty state component."
-  },
-  {
-    name: "title",
-    label: "Title",
-    type: "text",
-    description: "Main title text."
-  },
-  {
-    name: "description",
-    label: "Description",
-    type: "text",
-    description: "Description text below the title."
-  },
-  {
-    name: "image",
-    label: "Image",
-    type: "select",
-    options: [
-      "chart.svg",
-      "document.svg",
-      "empty-charts.svg",
-      "empty-dashboard.svg",
-      "empty-dataset.svg",
-      "empty-query.svg",
-      "empty-table.svg",
-      "empty.svg",
-      "empty_sql_chart.svg",
-      "filter-results.svg",
-      "filter.svg",
-      "star-circle.svg",
-      "union.svg",
-      "vector.svg"
-    ],
-    description: "Predefined image to display."
-  },
-  {
-    name: "buttonText",
-    label: "Button Text",
-    type: "text",
-    description: "Text for optional action button."
-  }
-]}
+    {
+      name: 'size',
+      label: 'Size',
+      type: 'select',
+      options: ['small', 'medium', 'large'],
+      description: 'Size of the empty state component.',
+    },
+    {
+      name: 'title',
+      label: 'Title',
+      type: 'text',
+      description: 'Main title text.',
+    },
+    {
+      name: 'description',
+      label: 'Description',
+      type: 'text',
+      description: 'Description text below the title.',
+    },
+    {
+      name: 'image',
+      label: 'Image',
+      type: 'select',
+      options: [
+        'chart.svg',
+        'document.svg',
+        'empty-charts.svg',
+        'empty-dashboard.svg',
+        'empty-dataset.svg',
+        'empty-query.svg',
+        'empty-table.svg',
+        'empty.svg',
+        'empty_sql_chart.svg',
+        'filter-results.svg',
+        'filter.svg',
+        'star-circle.svg',
+        'union.svg',
+        'vector.svg',
+      ],
+      description: 'Predefined image to display.',
+    },
+    {
+      name: 'buttonText',
+      label: 'Button Text',
+      type: 'text',
+      description: 'Text for optional action button.',
+    },
+  ]}
 />
 
 ## Try It
@@ -125,13 +139,13 @@ function Demo() {
 
 ## Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `size` | `string` | `"medium"` | Size of the empty state component. |
-| `title` | `string` | `"No Data Available"` | Main title text. |
-| `description` | `string` | `"There is no data to display at this time."` | Description text below the title. |
-| `image` | `string` | `"empty.svg"` | Predefined image to display. |
-| `buttonText` | `string` | `""` | Text for optional action button. |
+| Prop          | Type     | Default                                       | Description                        |
+| ------------- | -------- | --------------------------------------------- | ---------------------------------- |
+| `size`        | `string` | `"medium"`                                    | Size of the empty state component. |
+| `title`       | `string` | `"No Data Available"`                         | Main title text.                   |
+| `description` | `string` | `"There is no data to display at this time."` | Description text below the title.  |
+| `image`       | `string` | `"empty.svg"`                                 | Predefined image to display.       |
+| `buttonText`  | `string` | `""`                                          | Text for optional action button.   |
 
 ## Import
 

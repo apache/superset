@@ -16,9 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
+import { isEqual } from 'lodash-es';
 import { t } from '@apache-superset/core/translation';
-import { Spin, Select, Form } from 'antd';
+import { FormItem, Select } from '@superset-ui/core/components';
+import { Spin } from '@superset-ui/core/components/Spin';
 import { withJsonFormsControlProps } from '@jsonforms/react';
 import type {
   JsonSchema,
@@ -68,6 +70,18 @@ const passwordEntry = {
 };
 
 /**
+ * Value equality for default/const backfill guards. Reference equality is
+ * not enough: an object or array default (e.g. ``default: []``) gets a new
+ * identity from JSON Forms on every change cycle, so a reference comparison
+ * would call ``handleChange`` forever ("Maximum update depth exceeded").
+ * Deep equality (rather than serialized comparison) keeps the guard
+ * insensitive to object key order.
+ */
+function valuesEqual(a: unknown, b: unknown): boolean {
+  return a === b || isEqual(a, b);
+}
+
+/**
  * Renderer for `const` properties (e.g. Pydantic discriminator fields).
  * Renders nothing visually but ensures the const value is set in form data,
  * so discriminated unions resolve correctly on the backend.
@@ -75,7 +89,7 @@ const passwordEntry = {
 function ConstControl({ data, handleChange, path, schema }: ControlProps) {
   const constValue = (schema as Record<string, unknown>).const;
   useEffect(() => {
-    if (constValue !== undefined && data !== constValue) {
+    if (constValue !== undefined && !valuesEqual(data, constValue)) {
       handleChange(path, constValue);
     }
   }, [constValue, data, handleChange, path]);
@@ -111,7 +125,7 @@ function ReadOnlyControl({
     (schema as Record<string, unknown>).const ??
     (schema as Record<string, unknown>).default;
   useEffect(() => {
-    if (defaultValue !== undefined && data !== defaultValue) {
+    if (defaultValue !== undefined && !valuesEqual(data, defaultValue)) {
       handleChange(path, defaultValue);
     }
   }, [defaultValue, data, handleChange, path]);
@@ -172,10 +186,10 @@ export function areDependenciesSatisfied(
  * refreshed with dynamic values from the backend.
  *
  * Enum-typed fields (e.g. the Snowflake ``schema`` dropdown) get an explicit
- * Antd Select so the ``loading``/``disabled`` props work natively — wrapping
+ * wrapped Select so the ``loading``/``disabled`` props work natively — wrapping
  * TextControl with ``inputProps.suffix`` doesn't reach the underlying Select.
  */
-function DynamicFieldControl(props: ControlProps) {
+export function DynamicFieldControl(props: ControlProps) {
   const { refreshingSchema, formData: cfgData } = props.config ?? {};
   const schema = props.schema as Record<string, unknown>;
   const deps = schema?.['x-dependsOn'];
@@ -191,41 +205,45 @@ function DynamicFieldControl(props: ControlProps) {
   const enumValues = Array.isArray(schema.enum)
     ? (schema.enum as unknown[])
     : undefined;
-
-  if (enumValues && enumValues.length > 0) {
-    // Honour ``x-enumNames`` when present so labels can differ from values
-    // (e.g. MetricFlow's mode picker maps "full" / "cube" to human strings).
-    const enumNames = Array.isArray(schema['x-enumNames'])
-      ? (schema['x-enumNames'] as unknown[])
-      : undefined;
-    // The backend returns these as a set, so order is undefined. Sort by
-    // label so the dropdown is stable and alphabetised.
-    const options = enumValues
-      .map((value, index) => ({
+  // Honour ``x-enumNames`` when present so labels can differ from values
+  // (e.g. MetricFlow's mode picker maps "full" / "cube" to human strings).
+  const enumNames = Array.isArray(schema['x-enumNames'])
+    ? (schema['x-enumNames'] as unknown[])
+    : undefined;
+  // Memoized so a re-render without an enum change (every host-form
+  // keystroke passes a fresh ``config`` to all controls) does not rebuild
+  // the full option list. No manual sort: the wrapped Select alphabetises
+  // options by label itself, so the backend's undefined set order is fine.
+  const options = useMemo(
+    () =>
+      (enumValues ?? []).map((value, index) => ({
         value: value as string | number,
         label:
           enumNames?.[index] !== undefined
             ? String(enumNames[index])
             : String(value),
-      }))
-      .sort((a, b) => a.label.localeCompare(b.label));
+      })),
+    [enumValues, enumNames],
+  );
+
+  if (enumValues && enumValues.length > 0) {
     const tooltip = (props.uischema?.options as Record<string, unknown>)
       ?.tooltip as string | undefined;
     const placeholder = (props.uischema?.options as Record<string, unknown>)
       ?.placeholderText as string | undefined;
     return (
-      <Form.Item label={props.label} tooltip={tooltip}>
+      <FormItem label={props.label} tooltip={tooltip}>
         <Select
+          ariaLabel={props.label || undefined}
           value={(props.data as string | number | undefined) ?? undefined}
           onChange={value => props.handleChange(props.path, value)}
           options={options}
-          style={{ width: '100%' }}
           disabled={!props.enabled || refreshing}
           loading={refreshing}
           allowClear
           placeholder={refreshing ? t('Loading...') : placeholder}
         />
-      </Form.Item>
+      </FormItem>
     );
   }
 
@@ -263,7 +281,7 @@ const dynamicFieldEntry = {
 
 /**
  * Renderer for fields that carry an ``x-enumNames`` array alongside their
- * ``enum`` values.  Renders as an Antd Select showing human-readable labels
+ * ``enum`` values.  Renders as a wrapped Select showing human-readable labels
  * (from ``x-enumNames``) while storing the underlying enum values in form
  * data.  Used for MetricFlow's integer-ID fields (account, project,
  * environment) where the backend provides both IDs and display names.
@@ -271,25 +289,31 @@ const dynamicFieldEntry = {
 function EnumNamesControl(props: ControlProps) {
   const { refreshingSchema } = props.config ?? {};
   const schema = props.schema as Record<string, unknown>;
-  const enumValues = (schema.enum as unknown[]) ?? [];
+  // ``?? undefined`` (not a fresh fallback array) keeps the memo deps
+  // stable across renders; fallbacks live inside the memo.
+  const enumValues = (schema.enum as unknown[] | undefined) ?? undefined;
   const enumNames =
-    (schema['x-enumNames'] as string[]) ?? enumValues.map(String);
+    (schema['x-enumNames'] as string[] | undefined) ?? undefined;
 
-  const options = enumValues.map((value, index) => ({
-    value,
-    label: enumNames[index] ?? String(value),
-  }));
+  const options = useMemo(
+    () =>
+      (enumValues ?? []).map((value, index) => ({
+        value: value as string | number,
+        label: enumNames?.[index] ?? String(value),
+      })),
+    [enumValues, enumNames],
+  );
 
   const tooltip = (props.uischema?.options as Record<string, unknown>)
     ?.tooltip as string | undefined;
 
   return (
-    <Form.Item label={props.label} tooltip={tooltip}>
+    <FormItem label={props.label} tooltip={tooltip}>
       <Select
-        value={props.data ?? null}
+        ariaLabel={props.label || undefined}
+        value={props.data ?? undefined}
         onChange={value => props.handleChange(props.path, value)}
         options={options}
-        style={{ width: '100%' }}
         disabled={!props.enabled}
         allowClear
         loading={!!refreshingSchema}
@@ -298,7 +322,7 @@ function EnumNamesControl(props: ControlProps) {
             ?.placeholderText as string | undefined
         }
       />
-    </Form.Item>
+    </FormItem>
   );
 }
 const EnumNamesRenderer = withJsonFormsControlProps(EnumNamesControl);
@@ -322,7 +346,7 @@ export const enumNamesEntry = {
 
 /**
  * Renderer for ``{type: 'array', items: {enum: [...]}}`` schemas.  Renders
- * a single Antd Select with ``mode="multiple"`` (tag-style multi-select),
+ * a single wrapped Select with ``mode="multiple"`` (tag-style multi-select),
  * matching the natural expectation of a "pick several from a list" control.
  *
  * Without this, the default ``PrimitiveArrayControl`` from the upstream
@@ -342,14 +366,26 @@ export function MultiEnumControl(props: ControlProps) {
     (arraySchema.items as Record<string, unknown>) ??
     ({} as Record<string, unknown>);
 
-  const enumValues = (itemsSchema.enum as unknown[]) ?? [];
-  const enumNames =
-    (itemsSchema['x-enumNames'] as string[]) ?? enumValues.map(String);
+  // No fallback allocations out here: a fresh ``[]`` per render would give
+  // the memo new deps every time. Fallbacks live inside the memo.
+  const enumValues = Array.isArray(itemsSchema.enum)
+    ? (itemsSchema.enum as unknown[])
+    : undefined;
+  const enumNames = Array.isArray(itemsSchema['x-enumNames'])
+    ? (itemsSchema['x-enumNames'] as string[])
+    : undefined;
 
-  const options = enumValues.map((value, index) => ({
-    value: value as string | number,
-    label: enumNames[index] ?? String(value),
-  }));
+  // Memoized: the host form passes a fresh ``config`` to every control on
+  // each change, so without the memo a catalog of N options is rebuilt on
+  // every one of the user's M selections (O(N·M)).
+  const options = useMemo(
+    () =>
+      (enumValues ?? []).map((value, index) => ({
+        value: value as string | number,
+        label: enumNames?.[index] ?? String(value),
+      })),
+    [enumValues, enumNames],
+  );
 
   const value = Array.isArray(props.data) ? (props.data as unknown[]) : [];
 
@@ -357,23 +393,26 @@ export function MultiEnumControl(props: ControlProps) {
     ?.tooltip as string | undefined;
 
   return (
-    <Form.Item label={props.label} tooltip={tooltip}>
+    <FormItem label={props.label} tooltip={tooltip}>
       <Select
+        ariaLabel={props.label || undefined}
         mode="multiple"
         value={value as (string | number)[]}
         onChange={next => props.handleChange(props.path, next)}
         options={options}
-        style={{ width: '100%' }}
         disabled={!props.enabled}
         loading={!!refreshingSchema}
         allowClear
-        optionFilterProp="label"
+        // Stability fix only: the wrapped Select's bulk select-all/clear
+        // affordance is out of scope for this control (sc-107832).
+        allowSelectAll={false}
+        optionFilterProps={['label']}
         placeholder={
           (props.uischema?.options as Record<string, unknown>)
             ?.placeholderText as string | undefined
         }
       />
-    </Form.Item>
+    </FormItem>
   );
 }
 const MultiEnumRenderer = withJsonFormsControlProps(MultiEnumControl);
@@ -406,6 +445,33 @@ export const renderers = [
   multiEnumEntry,
   dynamicFieldEntry,
 ];
+
+/**
+ * Serializes a value with object keys sorted, so two structurally equal
+ * schemas compare equal regardless of the backend's JSON property order.
+ * Array order is deliberately significant: ``x-propertyOrder`` and enum
+ * ordering can be meaningful, so only key order is canonicalized.
+ */
+export function stableSerialize(value: unknown): string {
+  return (
+    JSON.stringify(value, (_key, val) =>
+      val && typeof val === 'object' && !Array.isArray(val)
+        ? Object.keys(val as Record<string, unknown>)
+            .sort()
+            // Null-prototype accumulator: a plain object would treat a
+            // ``__proto__`` key as a prototype assignment and silently drop
+            // it from the output, hiding a genuine schema difference.
+            .reduce(
+              (acc: Record<string, unknown>, k) => {
+                acc[k] = (val as Record<string, unknown>)[k];
+                return acc;
+              },
+              Object.create(null) as Record<string, unknown>,
+            )
+        : val,
+    ) ?? ''
+  );
+}
 
 /**
  * Removes empty `enum` arrays from schema properties. The JSON Schema spec

@@ -33,43 +33,40 @@ The InfoTooltip component from Superset's UI library.
 <StoryWithControls
   component="InfoTooltip"
   props={{
-  tooltip: "This is the text that will display!"
-}}
+    tooltip: 'This is the text that will display!',
+  }}
   controls={[
-  {
-    name: "tooltip",
-    label: "Tooltip",
-    type: "text"
-  },
-  {
-    name: "placement",
-    label: "Placement",
-    type: "select",
-    options: [
-      "bottom",
-      "left",
-      "right",
-      "top",
-      "topLeft",
-      "topRight",
-      "bottomLeft",
-      "bottomRight",
-      "leftTop",
-      "leftBottom",
-      "rightTop",
-      "rightBottom"
-    ]
-  },
-  {
-    name: "trigger",
-    label: "Trigger",
-    type: "select",
-    options: [
-      "hover",
-      "click"
-    ]
-  }
-]}
+    {
+      name: 'tooltip',
+      label: 'Tooltip',
+      type: 'text',
+    },
+    {
+      name: 'placement',
+      label: 'Placement',
+      type: 'select',
+      options: [
+        'bottom',
+        'left',
+        'right',
+        'top',
+        'topLeft',
+        'topRight',
+        'bottomLeft',
+        'bottomRight',
+        'leftTop',
+        'leftBottom',
+        'rightTop',
+        'rightBottom',
+      ],
+    },
+    {
+      name: 'trigger',
+      label: 'Trigger',
+      type: 'select',
+      options: ['hover', 'click'],
+    },
+  ]}
 />
 
 ## Try It
@@ -78,19 +75,15 @@ Edit the code below to experiment with the component:
 
 ```tsx live
 function Demo() {
-  return (
-    <InfoTooltip
-      tooltip="This is the text that will display!"
-    />
-  );
+  return <InfoTooltip tooltip="This is the text that will display!" />;
 }
 ```
 
 ## Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `tooltip` | `string` | `"This is the text that will display!"` | - |
+| Prop      | Type     | Default                                 | Description |
+| --------- | -------- | --------------------------------------- | ----------- |
+| `tooltip` | `string` | `"This is the text that will display!"` | -           |
 
 ## Import
 

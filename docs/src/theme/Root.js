@@ -21,10 +21,27 @@ import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 
 // File extensions to track as downloads
 const DOWNLOAD_EXTENSIONS = [
-  'pdf', 'zip', 'tar', 'gz', 'tgz', 'bz2',
-  'exe', 'dmg', 'pkg', 'deb', 'rpm',
-  'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx',
-  'csv', 'json', 'yaml', 'yml',
+  'pdf',
+  'zip',
+  'tar',
+  'gz',
+  'tgz',
+  'bz2',
+  'exe',
+  'dmg',
+  'pkg',
+  'deb',
+  'rpm',
+  'doc',
+  'docx',
+  'xls',
+  'xlsx',
+  'ppt',
+  'pptx',
+  'csv',
+  'json',
+  'yaml',
+  'yml',
 ];
 
 // Scroll depth milestones to track
@@ -38,7 +55,9 @@ export default function Root({ children }) {
     const { matomoUrl, matomoSiteId } = customFields;
 
     if (typeof window !== 'undefined') {
-      const devMode = ['localhost', '127.0.0.1', '::1', '0.0.0.0'].includes(window.location.hostname);
+      const devMode = ['localhost', '127.0.0.1', '::1', '0.0.0.0'].includes(
+        window.location.hostname,
+      );
 
       // Initialize the _paq array
       window._paq = window._paq || [];
@@ -50,7 +69,10 @@ export default function Root({ children }) {
       window._paq.push(['setSiteId', matomoSiteId]);
 
       // Track downloads with custom extensions
-      window._paq.push(['setDownloadExtensions', DOWNLOAD_EXTENSIONS.join('|')]);
+      window._paq.push([
+        'setDownloadExtensions',
+        DOWNLOAD_EXTENSIONS.join('|'),
+      ]);
 
       // Now load the matomo.js script
       const script = document.createElement('script');
@@ -69,7 +91,11 @@ export default function Root({ children }) {
       // Helper to track site search
       const trackSiteSearch = (keyword, category, resultsCount) => {
         if (devMode) {
-          console.log('Matomo trackSiteSearch:', { keyword, category, resultsCount });
+          console.log('Matomo trackSiteSearch:', {
+            keyword,
+            category,
+            resultsCount,
+          });
         }
         window._paq.push(['trackSiteSearch', keyword, category, resultsCount]);
       };
@@ -82,9 +108,8 @@ export default function Root({ children }) {
         window._paq.push(['trackPageView']);
       };
 
-
       // Track external link clicks using domain as category (vendor-agnostic)
-      const handleLinkClick = (event) => {
+      const handleLinkClick = event => {
         const link = event.target.closest('a');
         if (!link) return;
 
@@ -106,20 +131,22 @@ export default function Root({ children }) {
 
       // Track Algolia search queries
       const setupAlgoliaTracking = () => {
-        const observer = new MutationObserver((mutations) => {
-          mutations.forEach((mutation) => {
-            mutation.addedNodes.forEach((node) => {
+        const observer = new MutationObserver(mutations => {
+          mutations.forEach(mutation => {
+            mutation.addedNodes.forEach(node => {
               if (node.nodeType === Node.ELEMENT_NODE) {
-                const searchInput = node.querySelector?.('.DocSearch-Input') ||
-                                   (node.classList?.contains('DocSearch-Input') ? node : null);
+                const searchInput =
+                  node.querySelector?.('.DocSearch-Input') ||
+                  (node.classList?.contains('DocSearch-Input') ? node : null);
                 if (searchInput) {
                   let debounceTimer;
-                  searchInput.addEventListener('input', (e) => {
+                  searchInput.addEventListener('input', e => {
                     clearTimeout(debounceTimer);
                     debounceTimer = setTimeout(() => {
                       const query = e.target.value.trim();
                       if (query.length >= 3) {
-                        const results = document.querySelectorAll('.DocSearch-Hit');
+                        const results =
+                          document.querySelectorAll('.DocSearch-Hit');
                         trackSiteSearch(query, 'Documentation', results.length);
                       }
                     }, 1000);
@@ -135,21 +162,26 @@ export default function Root({ children }) {
       };
 
       // Track video plays
-      const handleVideoPlay = (event) => {
+      const handleVideoPlay = event => {
         if (event.target.tagName === 'VIDEO') {
-          const videoSrc = event.target.currentSrc || event.target.src || 'unknown';
+          const videoSrc =
+            event.target.currentSrc || event.target.src || 'unknown';
           trackEvent('Video', 'Play', videoSrc);
         }
       };
 
       // Track CTA button clicks
-      const handleCTAClick = (event) => {
-        const button = event.target.closest('.get-started-button, .default-button-theme');
+      const handleCTAClick = event => {
+        const button = event.target.closest(
+          '.get-started-button, .default-button-theme',
+        );
         if (button) {
           const buttonText = button.textContent?.trim() || 'Unknown';
           const clickedLink = event.target.closest?.('a');
           const href =
-            clickedLink?.getAttribute('href') || button.getAttribute('href') || '';
+            clickedLink?.getAttribute('href') ||
+            button.getAttribute('href') ||
+            '';
           trackEvent('CTA', 'Click', `${buttonText} - ${href}`);
         }
       };
@@ -158,15 +190,23 @@ export default function Root({ children }) {
       let scrollMilestonesReached = new Set();
       const handleScroll = () => {
         const scrollTop = window.scrollY;
-        const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+        const docHeight =
+          document.documentElement.scrollHeight - window.innerHeight;
         if (docHeight <= 0) return;
 
         const scrollPercent = Math.round((scrollTop / docHeight) * 100);
 
         SCROLL_MILESTONES.forEach(milestone => {
-          if (scrollPercent >= milestone && !scrollMilestonesReached.has(milestone)) {
+          if (
+            scrollPercent >= milestone &&
+            !scrollMilestonesReached.has(milestone)
+          ) {
             scrollMilestonesReached.add(milestone);
-            trackEvent('Scroll Depth', `${milestone}%`, window.location.pathname);
+            trackEvent(
+              'Scroll Depth',
+              `${milestone}%`,
+              window.location.pathname,
+            );
           }
         });
       };
@@ -178,9 +218,13 @@ export default function Root({ children }) {
 
       // Track 404 pages
       const track404 = () => {
-        const is404 = document.querySelector('.theme-doc-404') ||
-                      document.title.toLowerCase().includes('not found') ||
-                      document.querySelector('h1')?.textContent?.toLowerCase().includes('not found');
+        const is404 =
+          document.querySelector('.theme-doc-404') ||
+          document.title.toLowerCase().includes('not found') ||
+          document
+            .querySelector('h1')
+            ?.textContent?.toLowerCase()
+            .includes('not found');
         if (is404) {
           trackEvent('Error', '404', window.location.pathname);
           if (devMode) {
@@ -190,19 +234,27 @@ export default function Root({ children }) {
       };
 
       // Track copy-to-clipboard events on code blocks
-      const handleCopy = (event) => {
+      const handleCopy = event => {
         const codeBlock = event.target.closest('pre, code, .prism-code');
         if (codeBlock) {
           const codeText = window.getSelection()?.toString() || '';
-          const codeSnippet = codeText.substring(0, 100) + (codeText.length > 100 ? '...' : '');
-          trackEvent('Code', 'Copy', `${window.location.pathname}: ${codeSnippet}`);
+          const codeSnippet =
+            codeText.substring(0, 100) + (codeText.length > 100 ? '...' : '');
+          trackEvent(
+            'Code',
+            'Copy',
+            `${window.location.pathname}: ${codeSnippet}`,
+          );
         }
       };
 
       // Track color mode preference (as event, no admin config needed)
       const trackColorMode = () => {
-        const colorMode = document.documentElement.getAttribute('data-theme') ||
-                         (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        const colorMode =
+          document.documentElement.getAttribute('data-theme') ||
+          (window.matchMedia('(prefers-color-scheme: dark)').matches
+            ? 'dark'
+            : 'light');
         trackEvent('User Preference', 'Color Mode', colorMode);
       };
 
@@ -289,11 +341,14 @@ export default function Root({ children }) {
       window.addEventListener('scroll', handleScroll, { passive: true });
 
       // Watch for color mode changes
-      const colorModeObserver = new MutationObserver((mutations) => {
-        mutations.forEach((mutation) => {
+      const colorModeObserver = new MutationObserver(mutations => {
+        mutations.forEach(mutation => {
           if (mutation.attributeName === 'data-theme') {
-            trackEvent('User Preference', 'Color Mode Change',
-              document.documentElement.getAttribute('data-theme'));
+            trackEvent(
+              'User Preference',
+              'Color Mode Change',
+              document.documentElement.getAttribute('data-theme'),
+            );
           }
         });
       });

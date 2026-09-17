@@ -20,14 +20,13 @@
 import {
   ReactNode,
   MouseEvent,
-  SyntheticEvent,
   useState,
   useCallback,
   useRef,
   useMemo,
   useEffect,
 } from 'react';
-import { safeHtmlSpan, handleKeyboardActivation } from '@superset-ui/core';
+import { safeHtmlSpan } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import { supersetTheme } from '@apache-superset/core/theme';
 import PropTypes from 'prop-types';
@@ -44,6 +43,22 @@ import {
 } from '@superset-ui/chart-controls';
 import { PivotData, flatKey } from './utilities';
 import { Styles } from './Styles';
+
+/**
+ * Pivot keys are stringified on their way through `PivotData`, so a temporal
+ * header holding an epoch timestamp arrives as e.g. "1700000000000". Coerce
+ * such numeric strings back to numbers so temporal formatters (which expect
+ * an epoch) render correctly. Only a digit-only string of at least 10 digits
+ * is long enough to plausibly be an epoch in milliseconds; shorter ones are
+ * date keys or plain integers - "2017" is the ISO 8601 year-only form and
+ * "20260903" a YYYYMMDD key - and coercing either would render it as a moment
+ * near 1970. Those are passed through as strings, which the shared
+ * `stringifyTimeInput` in core resolves or returns untouched.
+ */
+const toDateFormatterInput = (value: unknown): unknown =>
+  typeof value === 'string' && /^-?\d{10,}$/.test(value.trim())
+    ? Number(value)
+    : value;
 
 type ClickCallback = (
   e: MouseEvent,
@@ -155,10 +170,7 @@ function displayCell(value: unknown, allowRenderHtml?: boolean): ReactNode {
 function displayHeaderCell(
   needToggle: boolean,
   ArrowIcon: ReactNode,
-  // `SyntheticEvent` (rather than `MouseEvent`) so this callback can also be
-  // used as the keyboard-activation handler via `handleKeyboardActivation`,
-  // which invokes it with a `KeyboardEvent`.
-  onArrowClick: ((e: SyntheticEvent) => void) | null,
+  onArrowClick: ((e: MouseEvent<HTMLButtonElement>) => void) | null,
   value: unknown,
   namesMapping: Record<string, string>,
   allowRenderHtml?: boolean,
@@ -171,17 +183,13 @@ function displayHeaderCell(
       : parsedLabel;
   return needToggle ? (
     <span className="toggle-wrapper">
-      <span
-        role="button"
-        tabIndex={0}
+      <button
+        type="button"
         className="toggle"
         onClick={onArrowClick || undefined}
-        onKeyDown={
-          onArrowClick ? handleKeyboardActivation(onArrowClick) : undefined
-        }
       >
         {ArrowIcon}
-      </span>
+      </button>
       <span className="toggle-val">{labelContent}</span>
     </span>
   ) : (
@@ -468,7 +476,7 @@ export function TableRenderer(props: TableRendererProps) {
   );
 
   const toggleRowKey = useCallback(
-    (flatRowKey: string) => (e: SyntheticEvent) => {
+    (flatRowKey: string) => (e: MouseEvent<HTMLButtonElement>) => {
       e.stopPropagation();
       setCollapsedRows(state => ({
         ...state,
@@ -479,7 +487,7 @@ export function TableRenderer(props: TableRendererProps) {
   );
 
   const toggleColKey = useCallback(
-    (flatColKey: string) => (e: SyntheticEvent) => {
+    (flatColKey: string) => (e: MouseEvent<HTMLButtonElement>) => {
       e.stopPropagation();
       setCollapsedCols(state => ({
         ...state,
@@ -997,15 +1005,9 @@ export function TableRenderer(props: TableRendererProps) {
               />
             );
           };
-          // Coerce numeric timestamp strings to numbers so temporal formatters
-          // (which typically expect an epoch) render correctly.
           const rawHeaderCellValue = colKey[attrIdx];
           const headerCellFormatterValue =
-            typeof rawHeaderCellValue === 'string' &&
-            rawHeaderCellValue.trim() !== '' &&
-            Number.isFinite(Number(rawHeaderCellValue))
-              ? Number(rawHeaderCellValue)
-              : rawHeaderCellValue;
+            toDateFormatterInput(rawHeaderCellValue);
           const headerCellFormattedValue =
             dateFormatters?.[attrName]?.(headerCellFormatterValue) ??
             rawHeaderCellValue;
@@ -1044,9 +1046,9 @@ export function TableRenderer(props: TableRendererProps) {
                 namesMapping,
                 settingsAllowRenderHtml,
               )}
-              <span
-                role="button"
-                tabIndex={0}
+              <button
+                type="button"
+                className="sort-icon-btn"
                 // Prevents event bubbling to avoid conflict with column header click handlers
                 // Ensures sort operation executes without triggering cross-filtration
                 onClick={e => {
@@ -1060,7 +1062,7 @@ export function TableRenderer(props: TableRendererProps) {
                 }
               >
                 {visibleSortIcon && getSortIcon(i)}
-              </span>
+              </button>
             </th>,
           );
         } else if (attrIdx === colKey.length) {
@@ -1271,14 +1273,7 @@ export function TableRenderer(props: TableRendererProps) {
             ? toggleRowKey(flatRowKeySlice)
             : null;
 
-          // Coerce numeric timestamp strings to numbers so temporal formatters
-          // (which typically expect an epoch) render correctly.
-          const headerFormatterValue =
-            typeof r === 'string' &&
-            r.trim() !== '' &&
-            Number.isFinite(Number(r))
-              ? Number(r)
-              : r;
+          const headerFormatterValue = toDateFormatterInput(r);
           const headerCellFormattedValue =
             dateFormatters?.[settingsRowAttrs[i]]?.(headerFormatterValue) ?? r;
           const isActiveHeader = valueCellClassName.includes('active');

@@ -187,7 +187,6 @@ const SSHTunnelForm = ({
                 errorMessage={sshErrors?.password}
                 isValidating={isValidating}
                 data-test="ssh-tunnel-password-input"
-                role="textbox"
               />
             </StyledDiv>
           </Col>
@@ -240,7 +239,6 @@ const SSHTunnelForm = ({
                   errorMessage={sshErrors?.private_key_password}
                   isValidating={isValidating}
                   data-test="ssh-tunnel-private_key_password-input"
-                  role="textbox"
                 />
               </StyledDiv>
             </Col>

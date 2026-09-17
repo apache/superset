@@ -27,9 +27,11 @@ import {
   VizType,
 } from '@superset-ui/core';
 import { QUERY_MODE_REQUISITES } from 'src/explore/constants';
-import { Router, Route } from 'react-router-dom';
+import { MemoryRouter, Route, Router } from 'react-router-dom';
+import type { RouteComponentProps } from 'react-router-dom';
 import { createMemoryHistory } from 'history';
 import {
+  act,
   render,
   screen,
   userEvent,
@@ -140,15 +142,20 @@ jest.mock('../ControlPanelsContainer', () => ({
     onQuery,
     buttonErrorMessage,
     errorMessage,
+    chartIsStale,
   }: {
     onQuery: () => void;
     buttonErrorMessage?: ReactNode;
     errorMessage?: ReactNode;
+    chartIsStale?: boolean;
   }) => {
     const message = buttonErrorMessage ?? errorMessage;
 
     return (
-      <div data-test="control-panels-container">
+      <div
+        data-test="control-panels-container"
+        data-stale={String(!!chartIsStale)}
+      >
         <button type="button" onClick={onQuery}>
           Update chart
         </button>
@@ -260,7 +267,6 @@ test('generates a new form_data param when none is available', async () => {
     new ChartMetadata({
       name: 'fake table',
       thumbnail: '.png',
-      useLegacyApi: false,
     }),
   );
   const history = createMemoryHistory({ initialEntries: [defaultPath] });
@@ -327,13 +333,192 @@ test('reuses the same form_data param when updating', async () => {
   getChartControlPanelRegistry().remove('table');
 });
 
+test('pushes a history entry when the chart changed, so Back undoes it', async () => {
+  getChartControlPanelRegistry().registerValue('table', {
+    controlPanelSections: [],
+  });
+  const initialState = {
+    ...reduxState,
+    explore: {
+      ...reduxState.explore,
+      form_data: {
+        datasource: '1__table',
+        viz_type: VizType.Table,
+        metrics: [],
+      },
+      controls: { ...reduxState.explore.controls, row_limit: { value: 100 } },
+    },
+  };
+  const store = createStore(initialState, reducerIndex);
+  const history = createMemoryHistory({
+    initialEntries: [`${defaultPath}${SEARCH}`],
+  });
+  const pushSpy = jest.spyOn(history, 'push');
+  renderWithRouter({
+    search: SEARCH,
+    history,
+    initialState,
+    store: store as Store,
+  });
+  // the entry Back should return to
+  await waitFor(() =>
+    expect(history.location.state).toEqual(
+      expect.objectContaining({ row_limit: 100 }),
+    ),
+  );
+  act(() => {
+    store.dispatch(exploreActions.setControlValue('row_limit', 200));
+  });
+  await userEvent.click(screen.getByText('Update chart'));
+  await waitFor(() =>
+    expect(pushSpy).toHaveBeenCalledWith(
+      expect.stringMatching('form_data_key'),
+      // the chart id is stamped on, the controls don't produce one
+      expect.objectContaining({ row_limit: 200, slice_id: 1 }),
+    ),
+  );
+  pushSpy.mockRestore();
+  getChartControlPanelRegistry().remove('table');
+});
+
+const renderWithMemoryRouter = ({
+  initialState,
+  store,
+}: {
+  initialState: object;
+  store: Store;
+}) => {
+  // MemoryRouter builds the history react-router itself ships, the one Explore
+  // sees at runtime - the top-level `history` package is a different major
+  let routerHistory: RouteComponentProps['history'] | undefined;
+  const result = render(
+    <MemoryRouter initialEntries={[`${defaultPath}${SEARCH}`]}>
+      <Route
+        render={({ history }) => {
+          routerHistory ??= history;
+          return <ExploreViewContainer />;
+        }}
+      />
+    </MemoryRouter>,
+    { useRedux: true, useDnd: true, initialState, store },
+  );
+  return {
+    ...result,
+    routerHistory: routerHistory as RouteComponentProps['history'],
+  };
+};
+
+test('restores the state of a popped entry without leaving the chart stale', async () => {
+  getChartControlPanelRegistry().registerValue('table', {
+    controlPanelSections: [
+      { label: 'Options', expanded: true, controlSetRows: [['row_limit']] },
+    ],
+  });
+  const initialState = {
+    ...reduxState,
+    explore: {
+      ...reduxState.explore,
+      form_data: {
+        datasource: '1__table',
+        viz_type: VizType.Table,
+        metrics: [],
+      },
+      controls: { ...reduxState.explore.controls, row_limit: { value: 100 } },
+    },
+  };
+  const store = createStore(initialState, reducerIndex);
+  const { routerHistory } = renderWithMemoryRouter({
+    initialState,
+    store: store as Store,
+  });
+  await waitFor(() =>
+    expect(routerHistory.location.state).toEqual(
+      expect.objectContaining({ row_limit: 100 }),
+    ),
+  );
+  act(() => {
+    store.dispatch(exploreActions.setControlValue('row_limit', 200));
+  });
+  expect(screen.getByTestId('control-panels-container')).toHaveAttribute(
+    'data-stale',
+    'true',
+  );
+  await userEvent.click(screen.getByText('Update chart'));
+  await waitFor(() =>
+    expect(routerHistory.location.state).toEqual(
+      expect.objectContaining({ row_limit: 200 }),
+    ),
+  );
+
+  act(() => {
+    routerHistory.goBack();
+  });
+  await waitFor(() =>
+    expect(screen.getByTestId('control-panels-container')).toHaveAttribute(
+      'data-stale',
+      'false',
+    ),
+  );
+  getChartControlPanelRegistry().remove('table');
+});
+
+test('doesnt push an entry for the state a popped entry restored', async () => {
+  getChartControlPanelRegistry().registerValue('table', {
+    controlPanelSections: [
+      { label: 'Options', expanded: true, controlSetRows: [['y_axis_format']] },
+    ],
+  });
+  const initialState = {
+    ...reduxState,
+    explore: {
+      ...reduxState.explore,
+      form_data: {
+        datasource: '1__table',
+        viz_type: VizType.Table,
+        metrics: [],
+      },
+      controls: {
+        ...reduxState.explore.controls,
+        y_axis_format: { value: ',d', renderTrigger: true },
+      },
+    },
+  };
+  const store = createStore(initialState, reducerIndex);
+  const { routerHistory } = renderWithMemoryRouter({
+    initialState,
+    store: store as Store,
+  });
+  await waitFor(() =>
+    expect(routerHistory.location.state).toEqual(
+      expect.objectContaining({ y_axis_format: ',d' }),
+    ),
+  );
+  const pushSpy = jest.spyOn(routerHistory, 'push');
+  // a render-trigger change gets its own entry
+  act(() => {
+    store.dispatch(exploreActions.setControlValue('y_axis_format', '.2f'));
+  });
+  await waitFor(() => expect(pushSpy).toHaveBeenCalledTimes(1));
+
+  act(() => {
+    routerHistory.goBack();
+  });
+  await waitFor(() =>
+    expect(routerHistory.location.state).toEqual(
+      expect.objectContaining({ y_axis_format: ',d' }),
+    ),
+  );
+  expect(pushSpy).toHaveBeenCalledTimes(1);
+  pushSpy.mockRestore();
+  getChartControlPanelRegistry().remove('table');
+});
+
 test('doesnt call replace when pathname is not /explore', async () => {
   getChartMetadataRegistry().registerValue(
     'table',
     new ChartMetadata({
       name: 'fake table',
       thumbnail: '.png',
-      useLegacyApi: false,
     }),
   );
   const history = createMemoryHistory({ initialEntries: ['/dashboard'] });
@@ -655,6 +840,8 @@ test('automatic axis title margin adjustment sets X axis margin to 30 when title
       expect(setControlValueSpy).toHaveBeenCalledWith(
         'x_axis_title_margin',
         30,
+        undefined,
+        { programmatic: true },
       );
     });
   } finally {
@@ -700,6 +887,8 @@ test('automatic axis title margin adjustment sets Y axis margin to 30 when title
       expect(setControlValueSpy).toHaveBeenCalledWith(
         'y_axis_title_margin',
         30,
+        undefined,
+        { programmatic: true },
       );
     });
   } finally {
@@ -740,7 +929,12 @@ test('automatic axis title margin adjustment resets X axis margin to 0 when titl
     store.dispatch(exploreActions.setControlValue('x_axis_title', ''));
 
     await waitFor(() => {
-      expect(setControlValueSpy).toHaveBeenCalledWith('x_axis_title_margin', 0);
+      expect(setControlValueSpy).toHaveBeenCalledWith(
+        'x_axis_title_margin',
+        0,
+        undefined,
+        { programmatic: true },
+      );
     });
   } finally {
     getChartControlPanelRegistry().remove('table');
@@ -780,7 +974,12 @@ test('automatic axis title margin adjustment resets Y axis margin to 0 when titl
     store.dispatch(exploreActions.setControlValue('y_axis_title', ''));
 
     await waitFor(() => {
-      expect(setControlValueSpy).toHaveBeenCalledWith('y_axis_title_margin', 0);
+      expect(setControlValueSpy).toHaveBeenCalledWith(
+        'y_axis_title_margin',
+        0,
+        undefined,
+        { programmatic: true },
+      );
     });
   } finally {
     getChartControlPanelRegistry().remove('table');
@@ -880,7 +1079,12 @@ test('automatic axis title margin adjustment changes X axis margin when title is
     });
 
     // Should call setControlValue since margin is less than 30
-    expect(setControlValueSpy).toHaveBeenCalledWith('x_axis_title_margin', 30);
+    expect(setControlValueSpy).toHaveBeenCalledWith(
+      'x_axis_title_margin',
+      30,
+      undefined,
+      { programmatic: true },
+    );
   } finally {
     getChartControlPanelRegistry().remove('table');
     jest.restoreAllMocks();
@@ -979,7 +1183,12 @@ test('automatic axis title margin adjustment changes Y axis margin when title is
     });
 
     // Should call setControlValue since margin is less than 30
-    expect(setControlValueSpy).toHaveBeenCalledWith('y_axis_title_margin', 30);
+    expect(setControlValueSpy).toHaveBeenCalledWith(
+      'y_axis_title_margin',
+      30,
+      undefined,
+      { programmatic: true },
+    );
   } finally {
     getChartControlPanelRegistry().remove('table');
     jest.restoreAllMocks();
@@ -1028,10 +1237,14 @@ test('automatic axis title margin adjustment handles both X and Y axis titles be
       expect(setControlValueSpy).toHaveBeenCalledWith(
         'x_axis_title_margin',
         30,
+        undefined,
+        { programmatic: true },
       );
       expect(setControlValueSpy).toHaveBeenCalledWith(
         'y_axis_title_margin',
         30,
+        undefined,
+        { programmatic: true },
       );
     });
   } finally {

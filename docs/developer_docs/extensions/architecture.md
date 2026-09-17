@@ -177,14 +177,14 @@ plugins: [
       '@apache-superset/core': { singleton: true, import: false },
     },
   }),
-]
+];
 ```
 
 This configuration does several important things:
 
 **`exposes`** - Declares which modules are available to the host application. Superset always loads extensions by requesting the `./index` module from the remote container — this is a fixed convention, not a configurable value. Extensions must expose exactly `'./index': './src/index.tsx'` and place all API registrations (views, commands, menus, editors, event listeners) in that file. The module is executed as a side effect when the extension loads, so any call to `views.registerView`, `commands.registerCommand`, etc. made at the top level of `index.tsx` will run automatically.
 
-**`shared`** - Prevents duplication of common libraries like React and Ant Design, and, for `@apache-superset/core`, is the mechanism that gives each extension an isolated context (see below). The `singleton: true` setting ensures only one *logical* instance of each library exists — for `react`/`react-dom`/`antd` that means the host's actual instance is reused; for `@apache-superset/core` it means the extension's container defers to whatever module the host's loader supplies for it at init time, which is not the same object for every extension (see [Runtime Resolution](#runtime-resolution)).
+**`shared`** - Prevents duplication of common libraries like React and Ant Design, and, for `@apache-superset/core`, is the mechanism that gives each extension an isolated context (see below). The `singleton: true` setting ensures only one _logical_ instance of each library exists — for `react`/`react-dom`/`antd` that means the host's actual instance is reused; for `@apache-superset/core` it means the extension's container defers to whatever module the host's loader supplies for it at init time, which is not the same object for every extension (see [Runtime Resolution](#runtime-resolution)).
 
 ### Runtime Resolution
 

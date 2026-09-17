@@ -30,7 +30,12 @@ import {
   buildSingleRowDashboardLayout,
 } from '../../helpers/api/dashboard';
 import { getDatasetByName } from '../../helpers/api/dataset';
+import { extractIdFromResponse } from '../../helpers/api/assertions';
 import { DashboardPage } from '../../pages/DashboardPage';
+import {
+  buildFilterJsonMetadata,
+  buildSelectFilter,
+} from './dashboard-test-helpers';
 
 // Record video regardless of pass/fail (before/after clips).
 testWithAssets.use({ video: 'on' });
@@ -72,8 +77,7 @@ testWithAssets(
       params: JSON.stringify(chartParams),
     });
     expect(chartResp.ok()).toBe(true);
-    const chart = await chartResp.json();
-    const chartId: number = chart.id ?? chart.result?.id;
+    const chartId = await extractIdFromResponse(chartResp);
     testAssets.trackChart(chartId);
 
     const positionJson = buildSingleRowDashboardLayout([
@@ -86,33 +90,21 @@ testWithAssets(
     ]);
 
     // 2. json_metadata: one dashboard filter + one Display Control.
-    const filterId = `NATIVE_FILTER-${Math.random().toString(36).slice(2, 10)}`;
     const customizationId = `CHART_CUSTOMIZATION-${Math.random()
       .toString(36)
       .slice(2, 10)}`;
 
-    const jsonMetadata = {
-      native_filter_configuration: [
-        {
-          id: filterId,
-          name: 'Gender',
-          filterType: 'filter_select',
-          type: 'NATIVE_FILTER',
-          targets: [{ datasetId, column: { name: FILTER_COLUMN } }],
-          controlValues: {
-            multiSelect: false,
-            enableEmptyFilter: false,
-            defaultToFirstItem: false,
-            inverseSelection: false,
-            searchAllOptions: false,
-          },
-          defaultDataMask: { filterState: {}, extraFormData: {} },
-          cascadeParentIds: [],
-          scope: { rootPath: ['ROOT_ID'], excluded: [] },
+    const jsonMetadata = buildFilterJsonMetadata({
+      chartsInScope: [chartId],
+      nativeFilters: [
+        buildSelectFilter({
+          datasetId,
+          column: FILTER_COLUMN,
           chartsInScope: [chartId],
-        },
+          name: 'Gender',
+        }),
       ],
-      chart_customization_config: [
+      chartCustomizations: [
         {
           id: customizationId,
           type: 'CHART_CUSTOMIZATION',
@@ -127,13 +119,7 @@ testWithAssets(
           removed: false,
         },
       ],
-      chart_configuration: {},
-      cross_filters_enabled: false,
-      global_chart_configuration: {
-        scope: { rootPath: ['ROOT_ID'], excluded: [] },
-        chartsInScope: [chartId],
-      },
-    };
+    });
 
     const dashResp = await apiPostDashboard(page, {
       dashboard_title: `display_control_repro_${Date.now()}`,
@@ -142,8 +128,7 @@ testWithAssets(
       json_metadata: JSON.stringify(jsonMetadata),
     });
     expect(dashResp.ok()).toBe(true);
-    const dashBody = await dashResp.json();
-    const dashboardId: number = dashBody.result?.id ?? dashBody.id;
+    const dashboardId = await extractIdFromResponse(dashResp);
     testAssets.trackDashboard(dashboardId);
 
     const linkResp = await apiPut(page, `api/v1/chart/${chartId}`, {
@@ -155,55 +140,50 @@ testWithAssets(
     const dashboardPage = new DashboardPage(page);
     await dashboardPage.gotoById(dashboardId);
     await dashboardPage.waitForLoad({ timeout: 30000 });
-    await dashboardPage.waitForChartsToLoad({ timeout: 8000 }).catch(() => {});
+
+    /**
+     * Best-effort settle after each mutation. Every assertion below targets the
+     * filter bar rather than chart content, so a chart that is still querying
+     * must not fail the test — but giving charts a chance to finish keeps the
+     * bar from being re-rendered underneath the assertions.
+     */
+    const settleCharts = () =>
+      dashboardPage.waitForChartsToLoad({ timeout: 8000 }).catch(() => {});
+
+    await settleCharts();
+    const filterBar = await dashboardPage.waitForFilterBar();
 
     // Both the Gender filter and the Time grain Display Control should render.
     await expect(dashboardPage.getDisplayControlsHeader()).toBeVisible();
     await expect(dashboardPage.getDisplayControl('Time grain')).toBeVisible();
-    // eslint-disable-next-line no-console
-    console.log('STEP 1: Display control "Time grain" is present in the bar.');
     await shot('01-initial-bar');
 
     // 4. Open the filters config modal via the settings gear.
-    const modal = await dashboardPage.openNativeFiltersConfigModal();
+    const modal = await filterBar.openNativeFiltersConfigModal();
     await shot('02-modal-open');
 
     // 5. Delete the "Time grain" Display Control in the modal sidebar.
     await modal.removeDisplayControl('Time grain');
     await expect(modal.getRemovedMarker()).toBeVisible();
-    // eslint-disable-next-line no-console
-    console.log('STEP 2: Display control marked (Removed) in modal.');
     await shot('03-modal-removed');
 
     // 6. Save the modal.
     await modal.clickSave();
     await modal.waitForHidden({ timeout: 20000 });
-    await dashboardPage.waitForChartsToLoad({ timeout: 8000 }).catch(() => {});
+    await settleCharts();
     await shot('04-after-save');
 
-    const goneAfterSave = await dashboardPage
-      .getDisplayControl('Time grain')
-      .isVisible()
-      .catch(() => false);
-    // eslint-disable-next-line no-console
-    console.log(
-      `STEP 3: After save, "Time grain" visible in bar = ${goneAfterSave}`,
-    );
-
     // 7. Click Apply Filters.
-    await dashboardPage.applyFiltersIfEnabled();
-    await dashboardPage.waitForChartsToLoad({ timeout: 8000 }).catch(() => {});
+    await filterBar.applyIfEnabled();
+    await settleCharts();
+    /**
+     * Hold before asserting. The bug this guards against is the control coming
+     * *back*, and `toHaveCount(0)` passes the instant it is absent — so without
+     * a pause the assertion can sample the gap before the re-render and pass on
+     * a dashboard that is about to fail. The wait is the reappearance window.
+     */
     await page.waitForTimeout(1500);
     await shot('05-after-apply');
-
-    const reappeared = await dashboardPage
-      .getDisplayControl('Time grain')
-      .isVisible()
-      .catch(() => false);
-    // eslint-disable-next-line no-console
-    console.log(
-      `STEP 4: After Apply Filters, "Time grain" reappeared = ${reappeared}`,
-    );
 
     // The deleted Display Control must stay gone.
     await expect(

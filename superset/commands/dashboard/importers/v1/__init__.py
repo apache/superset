@@ -49,6 +49,7 @@ from superset.extensions import feature_flag_manager
 from superset.migrations.shared.native_filters import migrate_dashboard
 from superset.models.dashboard import Dashboard, dashboard_slices
 from superset.models.slice import Slice
+from superset.subjects.utils import get_default_viewers_for_current_user
 from superset.themes.schemas import ImportV1ThemeSchema
 from superset.utils.decorators import transaction
 
@@ -157,11 +158,19 @@ class ImportDashboardsCommand(ImportModelsCommand):
             ):
                 config["database_id"] = database_ids[config["database_uuid"]]
                 dataset = import_dataset(config, overwrite=overwrite_assets)
-                dataset_info[str(dataset.uuid)] = {
+                # Key on the bundle's own uuid, which is what the bundle's
+                # charts reference. An import that resolves onto an existing
+                # dataset by physical identity returns a row whose uuid
+                # differs, and keying on that would strand those charts.
+                dataset_info[str(config["uuid"])] = {
                     "datasource_id": dataset.id,
                     "datasource_type": dataset.datasource_type,
                     "datasource_name": dataset.table_name,
                 }
+
+        # Resolve the creator's default viewers once for the whole bundle
+        # rather than once per chart/dashboard (a membership query each).
+        default_viewers = get_default_viewers_for_current_user()
 
         # import charts with the correct parent ref
         charts = []
@@ -175,7 +184,11 @@ class ImportDashboardsCommand(ImportModelsCommand):
                 dataset_dict = dataset_info[config["dataset_uuid"]]
                 config = update_chart_config_dataset(config, dataset_dict)
 
-                chart = import_chart(config, overwrite=overwrite_assets)
+                chart = import_chart(
+                    config,
+                    overwrite=overwrite_assets,
+                    default_viewers=default_viewers,
+                )
                 charts.append(chart)
                 chart_ids[str(chart.uuid)] = chart.id
 
@@ -221,7 +234,9 @@ class ImportDashboardsCommand(ImportModelsCommand):
                     # Theme not found, set to None for graceful fallback
                     config["theme_id"] = None
                     del config["theme_uuid"]
-                dashboard = import_dashboard(config, overwrite=overwrite)
+                dashboard = import_dashboard(
+                    config, overwrite=overwrite, default_viewers=default_viewers
+                )
                 dashboards.append(dashboard)
 
                 # Resolve the dashboard's chart membership from the imported

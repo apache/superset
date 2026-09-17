@@ -80,6 +80,7 @@ export const publicControls = [
   // advanced analytics - resample
   'resample_rule', // via sections.advancedAnalytics
   'resample_method', // via sections.advancedAnalytics
+  'resample_fill_time_range', // via sections.advancedAnalytics
   // dashboard context
   'dashboardId', // preserve dashboard context when changing viz type
 ];
@@ -167,7 +168,8 @@ export class StandardizedFormData {
     controlsState: Record<string, unknown>,
   ): void {
     const control = controlsState?.time_compare as
-      { value?: unknown; choices?: unknown } | undefined;
+      | { value?: unknown; choices?: unknown }
+      | undefined;
     if (!control || !Array.isArray(control.value)) {
       return;
     }

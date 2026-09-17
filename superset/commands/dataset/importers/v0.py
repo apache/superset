@@ -298,7 +298,7 @@ class ImportDatasetsCommand(BaseCommand):
         for file_name, content in self.contents.items():
             try:
                 config = yaml.safe_load(content)
-            except yaml.parser.ParserError as ex:
+            except yaml.YAMLError as ex:
                 logger.exception("Invalid YAML file")
                 raise IncorrectVersionError(
                     f"{file_name} is not a valid YAML file"

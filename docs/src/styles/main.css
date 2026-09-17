@@ -280,7 +280,9 @@ a > span > svg {
 .footer__social-links a {
   display: inline-flex;
   align-items: center;
-  transition: opacity 0.2s, transform 0.2s;
+  transition:
+    opacity 0.2s,
+    transform 0.2s;
 }
 
 .footer__social-links a:hover {

@@ -34,6 +34,7 @@ from typing import Any
 from uuid import uuid4
 
 import pytest
+from werkzeug.test import TestResponse
 
 from superset.connectors.sqla.models import SqlaTable
 from superset.extensions import db
@@ -123,12 +124,14 @@ class TestDashboardActivityView(SupersetTestCase):
         rv = self._activity(str(dashboard.uuid), since="yesterday")
         assert rv.status_code == 400
 
-    def test_activity_allows_read_non_owner(self) -> None:
-        """Activity is a read endpoint: a non-owner with read access (Alpha,
-        which carries broad read + datasource access) can read a dashboard's
-        activity stream — ``raise_for_access(dashboard=)`` does not reject —
-        so the endpoint returns 200. Visibility of *related* rows is filtered
-        separately, inside the activity layer."""
+    def test_activity_denies_write_capable_non_editor(self) -> None:
+        """sc-120001: activity is EDIT-gated.
+
+        A non-editor with broad read +
+        datasource access (Alpha) is refused — the endpoint enforces
+        object-level editorship (``raise_for_editorship``), matching the
+        UI's edit-gated menu, not the read gate. Visibility filtering of
+        *related* rows (AV-008) still applies for editors."""
         _persist_fixture_state()
         dashboard = _get_birth_names_dashboard()
         assert dashboard is not None
@@ -136,7 +139,7 @@ class TestDashboardActivityView(SupersetTestCase):
 
         self.login(ALPHA_USERNAME)
         rv = self._activity(dashboard_uuid)
-        assert rv.status_code == 200
+        assert rv.status_code == 403
 
     def test_visibility_filter_silently_drops_inaccessible_related(self) -> None:
         """AV-008 security control: a related record whose entity the caller
@@ -199,6 +202,88 @@ class TestDashboardActivityView(SupersetTestCase):
             db.session.commit()
 
     # ---- 200 happy paths ----
+
+    def test_related_dataset_detail_requires_dataset_editorship(self) -> None:
+        """A dashboard editor gains dataset detail only after dataset editorship."""
+        from superset import security_manager
+        from superset.subjects.models import Subject
+        from superset.subjects.utils import get_user_subject
+        from superset.utils.core import override_user
+
+        _persist_fixture_state()
+        dashboard: Dashboard = _get_birth_names_dashboard()
+        dataset: SqlaTable = _get_birth_names_dataset()
+        dashboard_id: int = dashboard.id
+        dataset_id: int = dataset.id
+        dashboard_uuid: str = str(dashboard.uuid)
+        dataset_uuid: str = str(dataset.uuid)
+        original_dashboard_editors: list[Subject] = list(dashboard.editors)
+        original_dataset_editors: list[Subject] = list(dataset.editors)
+        original_description: str | None = dataset.description
+        reader_subject: Subject | None = get_user_subject(
+            self.get_user(ALPHA_USERNAME).id
+        )
+        admin_subject: Subject | None = get_user_subject(
+            self.get_user(ADMIN_USERNAME).id
+        )
+        assert reader_subject is not None
+        assert admin_subject is not None
+        marker: str = f"redaction detail {uuid4().hex}"
+        try:
+            dashboard.editors = [reader_subject]
+            dataset.editors = [admin_subject]
+            db.session.commit()
+            with override_user(self.get_user(ADMIN_USERNAME)):
+                dataset.description = marker
+                db.session.commit()
+
+            self.login(ALPHA_USERNAME)
+            with override_user(self.get_user(ALPHA_USERNAME)):
+                assert security_manager.is_editor(dashboard)
+                assert not security_manager.is_editor(dataset)
+            response: TestResponse = self._activity(dashboard_uuid, include="related")
+            assert response.status_code == 200
+            body: dict[str, Any] = _json.loads(response.data)
+            related: list[dict[str, Any]] = [
+                record
+                for record in body["result"]
+                if record["entity_kind"] == "dataset"
+                and record["entity_uuid"] == dataset_uuid
+            ]
+            assert related
+            record: dict[str, Any]
+            for record in related:
+                assert record["entity_name"]
+                assert record["summary"]
+                assert record["changed_by"] is None
+                assert record["from_value"] is None
+                assert record["to_value"] is None
+                assert record["path"] is None
+
+            dataset.editors = [admin_subject, reader_subject]
+            db.session.commit()
+            response = self._activity(dashboard_uuid, include="related")
+            assert response.status_code == 200
+            body = _json.loads(response.data)
+            detailed: list[dict[str, Any]] = [
+                record
+                for record in body["result"]
+                if record["entity_kind"] == "dataset"
+                and record["entity_uuid"] == dataset_uuid
+                and record["to_value"] == marker
+            ]
+            assert detailed
+            assert detailed[0]["path"] is not None
+            assert detailed[0]["from_value"] == original_description
+            assert detailed[0]["changed_by"] is not None
+        finally:
+            db.session.rollback()
+            dashboard = db.session.query(Dashboard).filter_by(id=dashboard_id).one()
+            dataset = db.session.query(SqlaTable).filter_by(id=dataset_id).one()
+            dashboard.editors = original_dashboard_editors
+            dataset.editors = original_dataset_editors
+            dataset.description = original_description
+            db.session.commit()
 
     def test_activity_returns_200_with_envelope_shape(self) -> None:
         """Smoke test: the endpoint returns the documented envelope shape
@@ -510,12 +595,6 @@ class TestDashboardActivityView(SupersetTestCase):
             f"got {result[('SqlaTable', dataset.id)]}"
         )
 
-    @pytest.mark.skip(
-        reason="Depends on the retention prune (_prune_old_versions_impl), which "
-        "was extracted to sc-111099-version-history-retention. This test "
-        "exercises activity-view + retention together and runs once both PRs "
-        "merge; un-skip then."
-    )
     def test_activity_excludes_records_after_retention_prune(self) -> None:
         """T051 / AV-010: retention bounds the activity feed. After
         ``_prune_old_versions_impl`` drops shadow / change-record rows
@@ -523,12 +602,17 @@ class TestDashboardActivityView(SupersetTestCase):
         retention cutoff, the activity stream stops surfacing them.
 
         Test pattern: capture the highest ``version_transaction.id``
-        before our edits, edit a chart (creating a new transaction),
-        backdate that transaction's ``issued_at`` past the retention
-        cutoff, run the prune, and assert the chart-edit no longer
-        appears in the activity stream."""
+        before our edits, then edit a chart TWICE. The second edit closes
+        the first edit's shadow row (``end_transaction_id`` set), leaving
+        the first transaction genuinely prunable; the second transaction
+        anchors the chart's live row and is preserved by the prune's
+        keep-live guard regardless of age — an entity's current state is
+        never dropped, however old. Backdate both transactions past the
+        retention cutoff, run the prune, and assert the closed one is
+        removed while the activity stream keeps working with a smaller
+        count."""
         # pylint: disable=import-outside-toplevel
-        from datetime import datetime, timedelta
+        from datetime import datetime, timedelta, timezone
 
         import sqlalchemy as sa
         from sqlalchemy_continuum import versioning_manager
@@ -557,12 +641,33 @@ class TestDashboardActivityView(SupersetTestCase):
             or 0
         )
 
+        def max_tx_id() -> int:
+            return (
+                db.session.connection()
+                .execute(sa.select(sa.func.max(tx_table.c.id)))
+                .scalar()
+                or 0
+            )
+
         try:
+            # Two separate commits → two transactions; the second edit
+            # closes the first row (see docstring for the keep-live guard).
             chart.slice_name = f"{original_name} (retention test)"
             db.session.commit()
+            closed_tx_id = max_tx_id()
+            chart = db.session.query(Slice).filter(Slice.id == chart_id).one()
+            chart.slice_name = f"{original_name} (retention test 2)"
+            db.session.commit()
+            live_tx_id = max_tx_id()
+            assert closed_tx_id > max_tx_before
+            assert live_tx_id > closed_tx_id
 
             # Backdate the new transactions to before the 30-day cutoff.
-            old_timestamp = datetime.utcnow() - timedelta(days=60)
+            # Naive-UTC to match issued_at (Continuum stores it tz-naive);
+            # utcnow() is deprecated on 3.12+.
+            old_timestamp = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(
+                days=60
+            )
             db.session.connection().execute(
                 sa.update(tx_table)
                 .where(tx_table.c.id > max_tx_before)
@@ -584,6 +689,29 @@ class TestDashboardActivityView(SupersetTestCase):
             stats = _prune_old_versions_impl(retention_days=30)
             assert stats.get("pruned_transactions", 0) >= 1, (
                 f"Prune should have removed our backdated tx; stats={stats}"
+            )
+
+            # Membership, not just counts: on this persistent DB a leftover
+            # old transaction from a prior run could satisfy the count
+            # assertions while OUR backdated tx survived. Pin the exact
+            # claim — the closed transaction is gone, and the one anchoring
+            # the chart's live row is retained despite being equally old
+            # (the keep-live guard, asserted rather than narrated).
+            surviving = {
+                row[0]
+                for row in db.session.connection().execute(
+                    sa.select(tx_table.c.id).where(
+                        tx_table.c.id.in_([closed_tx_id, live_tx_id])
+                    )
+                )
+            }
+            assert closed_tx_id not in surviving, (
+                f"Closed tx {closed_tx_id} should have been pruned; "
+                f"surviving={surviving}"
+            )
+            assert live_tx_id in surviving, (
+                f"Live-anchoring tx {live_tx_id} must survive the prune "
+                f"regardless of age; surviving={surviving}"
             )
 
             # After the prune, the activity endpoint still works and the
@@ -656,14 +784,11 @@ class TestDashboardActivityView(SupersetTestCase):
         overlap = page0_keys & page1_keys
         assert not overlap, f"page=0 and page=1 returned overlapping records: {overlap}"
 
-    @pytest.mark.skip(
-        reason="Restore endpoint ships in a later PR; re-enable when restore "
-        "lands. The activity layer's restore-event rendering is unit-tested."
-    )
     def test_activity_surfaces_dashboard_restore_event(self) -> None:
         """T044 / AV-015: restoring a dashboard to a prior version surfaces
         a synthetic ``kind='__meta__'`` headline record (path
-        ``['__meta__', 'restore']``, ``to_value`` carrying the restored-to
+        ``['__meta__']`` — the verb rides in ``action_kind``, never in the
+        path — with ``to_value`` carrying the restored-to
         version_uuid) in the dashboard's own activity stream
         (``source='self'``). The headline is emitted by the restore
         command via the listener's ACTION_META_KEY (PR #40988 feedback);
@@ -882,16 +1007,16 @@ class TestChartActivityView(SupersetTestCase):
         rv = self._activity(str(chart.uuid), include="upstream")
         assert rv.status_code == 400
 
-    def test_chart_activity_allows_read_non_owner(self) -> None:
-        """Same shape as the dashboard endpoint: a read-access non-owner
-        (Alpha) can read a chart's activity, so ``raise_for_access(chart=)``
-        does not reject and the endpoint returns 200."""
+    def test_chart_activity_denies_write_capable_non_editor(self) -> None:
+        """The chart activity endpoint refuses a write-capable non-editor.
+
+        Same edit gate as the dashboard endpoint (sc-120001)."""
         _persist_fixture_state()
         chart = self._get_birth_names_chart()
         assert chart is not None
         self.login(ALPHA_USERNAME)
         rv = self._activity(str(chart.uuid))
-        assert rv.status_code == 200
+        assert rv.status_code == 403
 
     # ---- 200 happy paths ----
 
@@ -1083,15 +1208,16 @@ class TestDatasetActivityView(SupersetTestCase):
         rv = self._activity(str(dataset.uuid), include="upstream")
         assert rv.status_code == 400
 
-    def test_dataset_activity_allows_read_non_owner(self) -> None:
-        """A read-access non-owner (Alpha) can read a dataset's activity
-        stream, so the read endpoint returns 200."""
+    def test_dataset_activity_denies_write_capable_non_editor(self) -> None:
+        """The dataset activity endpoint refuses a write-capable non-editor.
+
+        It shares the same edit gate (sc-120001)."""
         _persist_fixture_state()
         dataset = _get_birth_names_dataset()
         assert dataset is not None
         self.login(ALPHA_USERNAME)
         rv = self._activity(str(dataset.uuid))
-        assert rv.status_code == 200
+        assert rv.status_code == 403
 
     # ---- 200 happy paths ----
 

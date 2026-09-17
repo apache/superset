@@ -19,12 +19,19 @@
 
 import pytest
 
+from superset.extensions import feature_flag_manager
 from superset.mcp_service.chart.tool.get_chart_type_schema import (
     _CHART_EXAMPLES,
     _CHART_TYPE_ADAPTERS,
     _get_chart_type_schema_impl as _call_schema,
     VALID_CHART_TYPES,
 )
+
+
+@pytest.fixture(autouse=True)
+def enable_all_feature_flags(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Exercise every registered adapter, including host-gated chart types."""
+    monkeypatch.setattr(feature_flag_manager, "is_feature_enabled", lambda _: True)
 
 
 class TestGetChartTypeSchema:
@@ -44,10 +51,17 @@ class TestGetChartTypeSchema:
         assert "y" in props
         assert "kind" in props
 
-    def test_table_schema_has_columns(self) -> None:
+    def test_table_schema_has_columns_and_column_config(self) -> None:
         result = _call_schema("table")
         props = result["schema"]["properties"]
         assert "columns" in props
+        assert "column_config" in props
+        description = props["column_config"]["description"]
+        assert "columnWidth" in description
+        assert "d3NumberFormat" in description
+        assert "d3TimeFormat" in description
+        column_config_schema = result["schema"]["$defs"]["TableColumnConfig"]
+        assert column_config_schema["additionalProperties"] is False
 
     def test_pie_schema_has_dimension_metric(self) -> None:
         result = _call_schema("pie")
@@ -59,6 +73,35 @@ class TestGetChartTypeSchema:
         result = _call_schema("big_number")
         props = result["schema"]["properties"]
         assert "metric" in props
+
+    def test_gauge_uses_public_identity_and_full_control_schema(self) -> None:
+        result = _call_schema("gauge")
+        assert result["chart_type"] == "gauge"
+        props = result["schema"]["properties"]
+        assert {
+            "metric",
+            "groupby",
+            "sort_by_metric",
+            "min_val",
+            "max_val",
+            "color_scheme",
+            "number_format",
+            "currency_format",
+            "value_formatter",
+            "start_angle",
+            "end_angle",
+            "show_pointer",
+            "show_progress",
+            "intervals",
+            "interval_color_indices",
+            "time_range",
+            "granularity_sqla",
+        } <= set(props)
+        assert all(example["chart_type"] == "gauge" for example in result["examples"])
+
+    def test_native_gauge_alias_returns_public_schema_identity(self) -> None:
+        result = _call_schema("gauge_chart")
+        assert result["chart_type"] == "gauge"
 
     def test_include_examples_false_omits_examples(self) -> None:
         result = _call_schema("xy", include_examples=False)

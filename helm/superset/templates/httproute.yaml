@@ -80,4 +80,16 @@ spec:
             type: PathPrefix
             value: {{ .Values.supersetWebsockets.ingress.path }}
     {{- end }}
+    {{- if and .Values.supersetMcp.enabled .Values.supersetMcp.httproute.enabled }}
+    - backendRefs:
+        - group: ''
+          kind: Service
+          name: {{ $fullName }}-mcp
+          port: {{ .Values.supersetMcp.service.port }}
+          weight: 1
+      matches:
+        - path:
+            type: PathPrefix
+            value: {{ .Values.supersetMcp.httproute.path }}
+    {{- end }}
 {{- end }}

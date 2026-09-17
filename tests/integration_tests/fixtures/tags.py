@@ -18,20 +18,27 @@
 import pytest
 
 from superset import db
-from superset.tags.core import clear_sqla_event_listeners, register_sqla_event_listeners
+from superset.tags.core import register_sqla_event_listeners
 from superset.tags.models import Tag
 from tests.integration_tests.test_app import app
 
 
 @pytest.fixture
 def with_tagging_system_feature():
-    is_enabled = app.config["DEFAULT_FEATURE_FLAGS"]["TAGGING_SYSTEM"]
-    if not is_enabled:
-        app.config["DEFAULT_FEATURE_FLAGS"]["TAGGING_SYSTEM"] = True
-        register_sqla_event_listeners()
+    was_enabled = app.config["DEFAULT_FEATURE_FLAGS"]["TAGGING_SYSTEM"]
+    app.config["DEFAULT_FEATURE_FLAGS"]["TAGGING_SYSTEM"] = True
+    # Idempotent: SQLAlchemy keys listeners by (target, event, fn), so
+    # re-registering on top of the app-startup registration is a no-op. Calling
+    # it keeps these tests independent of whether startup registration ran (it
+    # is skipped when the metadata DB is behind on migrations).
+    register_sqla_event_listeners()
+    try:
         yield
-        app.config["DEFAULT_FEATURE_FLAGS"]["TAGGING_SYSTEM"] = False
-        clear_sqla_event_listeners()
+    finally:
+        # Only the flag is restored. The listeners are shared app-level state
+        # that startup registered unconditionally, and they check the flag when
+        # they fire, so unregistering here would break every later test.
+        app.config["DEFAULT_FEATURE_FLAGS"]["TAGGING_SYSTEM"] = was_enabled
 
 
 @pytest.fixture

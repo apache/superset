@@ -72,42 +72,50 @@ export interface SSLConfiguration {
   };
 }
 
+export interface KnownIncompatibility {
+  dependency: string;  // e.g. "SQLAlchemy 2.0"
+  reason?: string;
+  tracking_url?: string;  // upstream issue/PR tracking a fix, if one exists
+  since?: string;  // ISO date this was last confirmed still broken
+}
+
 export interface CompatibleDatabase {
   name: string;
   description?: string;
   logo?: string;
   homepage_url?: string;
-  categories?: string[];  // Category classifications (e.g., ["TRADITIONAL_RDBMS", "OPEN_SOURCE"])
+  categories?: string[]; // Category classifications (e.g., ["TRADITIONAL_RDBMS", "OPEN_SOURCE"])
   pypi_packages?: string[];
   connection_string?: string;
   parameters?: Record<string, string>;
   connection_examples?: ConnectionExample[];
   notes?: string;
   docs_url?: string;
+  known_incompatibilities?: KnownIncompatibility[];
 }
 
 export interface CustomError {
-  error_type: string;           // e.g., "CONNECTION_INVALID_USERNAME_ERROR"
-  message_template: string;     // e.g., 'The username "%(username)s" does not exist.'
-  regex_pattern?: string;       // The regex pattern that matches this error (optional, for reference)
-  regex_name?: string;          // The name of the regex constant (e.g., "CONNECTION_INVALID_USERNAME_REGEX")
-  invalid_fields?: string[];    // Fields that are invalid, e.g., ["username", "password"]
-  issue_codes?: number[];       // Related issue codes from ISSUE_CODES mapping
-  category?: string;            // Error category: "Authentication", "Connection", "Query", etc.
-  description?: string;         // Human-readable short description of the error type
+  error_type: string; // e.g., "CONNECTION_INVALID_USERNAME_ERROR"
+  message_template: string; // e.g., 'The username "%(username)s" does not exist.'
+  regex_pattern?: string; // The regex pattern that matches this error (optional, for reference)
+  regex_name?: string; // The name of the regex constant (e.g., "CONNECTION_INVALID_USERNAME_REGEX")
+  invalid_fields?: string[]; // Fields that are invalid, e.g., ["username", "password"]
+  issue_codes?: number[]; // Related issue codes from ISSUE_CODES mapping
+  category?: string; // Error category: "Authentication", "Connection", "Query", etc.
+  description?: string; // Human-readable short description of the error type
 }
 
 export interface DatabaseDocumentation {
   description?: string;
   logo?: string;
   homepage_url?: string;
-  categories?: string[];  // Category classifications (e.g., ["TRADITIONAL_RDBMS", "OPEN_SOURCE"])
+  categories?: string[]; // Category classifications (e.g., ["TRADITIONAL_RDBMS", "OPEN_SOURCE"])
   pypi_packages?: string[];
   connection_string?: string;
   default_port?: number;
   parameters?: Record<string, string>;
   notes?: string;
-  limitations?: string[];  // Known limitations or caveats
+  limitations?: string[]; // Known limitations or caveats
   connection_examples?: ConnectionExample[];
   host_examples?: HostExample[];
   drivers?: Driver[];
@@ -122,7 +130,8 @@ export interface DatabaseDocumentation {
   sqlalchemy_docs_url?: string;
   advanced_features?: Record<string, string>;
   compatible_databases?: CompatibleDatabase[];
-  custom_errors?: CustomError[];  // Database-specific error messages and troubleshooting info
+  custom_errors?: CustomError[]; // Database-specific error messages and troubleshooting info
+  known_incompatibilities?: KnownIncompatibility[]; // Unresolved incompatibilities with a Superset dependency
 }
 
 export interface TimeGrains {

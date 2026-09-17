@@ -45,6 +45,7 @@ import {
   ContextMenuFilters,
   DataRecordFilters,
 } from '@superset-ui/core';
+import type { Hooks } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
 import { t } from '@apache-superset/core/translation';
 import { useTheme } from '@apache-superset/core/theme';
@@ -56,6 +57,9 @@ import type { Dispatch } from 'redux';
 import ChartContextMenu, {
   ChartContextMenuRef,
 } from './ChartContextMenu/ChartContextMenu';
+import { handleChartDataResponse } from './chartAction';
+import { AsyncModeOverride, resolveAsyncMode } from 'src/utils/asyncMode';
+import { getTabId } from 'src/hooks/useTabId';
 
 // Types for filter values
 type FilterValue = string | number | boolean | null | undefined;
@@ -139,10 +143,19 @@ export interface ChartRendererProps {
   cacheBusterProp?: string;
   onChartStateChange?: (chartState: AgGridChartState) => void;
   suppressLoadingSpinner?: boolean;
+  asyncModeOverride?: AsyncModeOverride;
 }
 
+// Async resolution is injected for self-contained chart components in
+// superset-ui-core (e.g. StatefulChart), which read these off `Hooks` and cannot
+// import app-level async-event middleware themselves.
+type AsyncChartHooks = Pick<
+  Hooks,
+  'handleAsyncChartData' | 'resolveAsyncMode' | 'getTabId'
+>;
+
 // Hooks interface
-interface ChartHooks {
+interface ChartHooks extends AsyncChartHooks {
   onAddFilter: (
     col: string,
     vals: FilterValue[],
@@ -205,6 +218,7 @@ function ChartRendererComponent({
     source,
     emitCrossFilters,
     onChartStateChange,
+    asyncModeOverride,
   } = restProps;
 
   const theme = useTheme();
@@ -385,6 +399,19 @@ function ChartRendererComponent({
       setDataMask: setDataMaskCallback,
       onLegendScroll: handleLegendScroll,
       onChartStateChange,
+      // Lets self-contained chart components in superset-ui-core (e.g.
+      // StatefulChart) resolve async (202) chart-data responses without
+      // depending on app-level async-event middleware.
+      handleAsyncChartData: handleChartDataResponse,
+      // Shares the async opt-in policy (feature flag + deployment default, plus
+      // the per-dashboard `async_mode` override) with those self-contained
+      // producers so they don't always run synchronously and honor the
+      // dashboard override like the Redux chart path.
+      resolveAsyncMode: () => resolveAsyncMode(asyncModeOverride),
+      // Lets those producers send this tab's id on an async request so the
+      // backend ref-counts the tab (per-tab cancel/detach), matching the Redux
+      // chart path (see chartAction.ts).
+      getTabId: () => getTabId(),
     }),
     [
       handleAddFilter,
@@ -398,6 +425,7 @@ function ChartRendererComponent({
       onFilterMenuOpen,
       setDataMaskCallback,
       showContextMenu,
+      asyncModeOverride,
     ],
   );
 
@@ -486,10 +514,18 @@ function ChartRendererComponent({
     Object.keys(ownState.agGridFilterModel).length > 0;
 
   const currentFormDataExtended = currentFormData as JsonObject;
-  const bypassNoResult = !(
-    currentFormDataExtended?.server_pagination &&
-    (hasSearchText || hasAgGridFilters)
-  );
+  // Some charts fetch their own data and issue no top-level query (e.g. deck.gl
+  // Multiple Layers, which renders its sub-layer charts), so an empty response
+  // is expected and shouldn't trigger the no-results state. Honor the chart's
+  // own enableNoResults metadata (defaults to true).
+  const chartEnableNoResults =
+    getChartMetadataRegistry().get(vizType)?.enableNoResults ?? true;
+  const bypassNoResult =
+    chartEnableNoResults &&
+    !(
+      currentFormDataExtended?.server_pagination &&
+      (hasSearchText || hasAgGridFilters)
+    );
 
   return (
     <>

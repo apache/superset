@@ -98,8 +98,6 @@ interface ShowDropIndicatorsResult {
 
 interface CloseIconWithDropIndicatorProps {
   showDropIndicators: ShowDropIndicatorsResult;
-  role?: string;
-  tabIndex?: number;
 }
 
 const CloseIconWithDropIndicator = (
@@ -481,9 +479,9 @@ const Tabs = (props: TabsProps): ReactElement => {
           </>
         ),
         closeIcon: (
+          // rc-tabs already wraps closeIcon content in its own
+          // <button role="tab" aria-label="remove">.
           <CloseIconWithDropIndicator
-            role="button"
-            tabIndex={tabIndex}
             showDropIndicators={showDropIndicators(tabIndex)}
           />
         ),

@@ -33,7 +33,6 @@ from superset.mcp_service.common.pagination_schemas import (
     PaginatedListRequest,
     PaginatedResponse,
 )
-from superset.mcp_service.utils import sanitize_for_llm_context
 from superset.utils import json as json_utils
 
 DEFAULT_LAYER_COLUMNS = ["id", "name", "descr"]
@@ -145,80 +144,43 @@ class AnnotationLayerError(BaseModel):
         )
 
 
-def _sanitize_annotation_layer_for_llm_context(
-    info: AnnotationLayerInfo,
-) -> AnnotationLayerInfo:
-    payload = info.model_dump(mode="python")
-    for field_name in ("name", "descr"):
-        payload[field_name] = sanitize_for_llm_context(
-            payload.get(field_name), field_path=(field_name,)
-        )
-    return AnnotationLayerInfo.model_validate(payload)
-
-
-def _sanitize_annotation_json_metadata(raw: Any) -> str | None:
-    """Canonicalize and sanitize the json_metadata blob before LLM exposure.
-
-    Serializing to a canonical JSON string first prevents dict-key injection:
-    keys are rendered as quoted string literals inside the wrapped value rather
-    than being able to escape the delimiter context.
-    """
+def _serialize_annotation_json_metadata(raw: Any) -> str | None:
+    """Preserve stored JSON text while normalizing non-string model values."""
     if raw is None:
         return None
     if isinstance(raw, str):
-        try:
-            canonical: str = json_utils.dumps(json_utils.loads(raw))
-        except (ValueError, TypeError):
-            canonical = raw
+        canonical = raw
     else:
         try:
             canonical = json_utils.dumps(raw)
         except (ValueError, TypeError):
             canonical = str(raw)
-    return sanitize_for_llm_context(
-        canonical,
-        field_path=("json_metadata",),
-        excluded_field_names=frozenset(),
-    )
-
-
-def _sanitize_annotation_for_llm_context(info: AnnotationInfo) -> AnnotationInfo:
-    payload = info.model_dump(mode="python")
-    for field_name in ("short_descr", "long_descr"):
-        payload[field_name] = sanitize_for_llm_context(
-            payload.get(field_name), field_path=(field_name,)
-        )
-    payload["json_metadata"] = _sanitize_annotation_json_metadata(
-        payload.get("json_metadata")
-    )
-    return AnnotationInfo.model_validate(payload)
+    return canonical
 
 
 def serialize_annotation_layer(obj: Any) -> AnnotationLayerInfo | None:
     if not obj:
         return None
-    return _sanitize_annotation_layer_for_llm_context(
-        AnnotationLayerInfo(
-            id=getattr(obj, "id", None),
-            name=getattr(obj, "name", None),
-            descr=getattr(obj, "descr", None),
-            changed_on=getattr(obj, "changed_on", None),
-            created_on=getattr(obj, "created_on", None),
-        )
+    return AnnotationLayerInfo(
+        id=getattr(obj, "id", None),
+        name=getattr(obj, "name", None),
+        descr=getattr(obj, "descr", None),
+        changed_on=getattr(obj, "changed_on", None),
+        created_on=getattr(obj, "created_on", None),
     )
 
 
 def serialize_annotation(obj: Any) -> AnnotationInfo | None:
     if not obj:
         return None
-    return _sanitize_annotation_for_llm_context(
-        AnnotationInfo(
-            id=getattr(obj, "id", None),
-            short_descr=getattr(obj, "short_descr", None),
-            long_descr=getattr(obj, "long_descr", None),
-            start_dttm=getattr(obj, "start_dttm", None),
-            end_dttm=getattr(obj, "end_dttm", None),
-            json_metadata=getattr(obj, "json_metadata", None),
-            layer_id=getattr(obj, "layer_id", None),
-        )
+    return AnnotationInfo(
+        id=getattr(obj, "id", None),
+        short_descr=getattr(obj, "short_descr", None),
+        long_descr=getattr(obj, "long_descr", None),
+        start_dttm=getattr(obj, "start_dttm", None),
+        end_dttm=getattr(obj, "end_dttm", None),
+        json_metadata=_serialize_annotation_json_metadata(
+            getattr(obj, "json_metadata", None)
+        ),
+        layer_id=getattr(obj, "layer_id", None),
     )

@@ -19,6 +19,71 @@
 import { render, screen, userEvent, waitFor } from '@superset-ui/core/spec';
 import { DeleteModal } from '.';
 
+test.each([
+  [false, 'Delete'],
+  [true, 'Archive'],
+])(
+  'preserves the default label when recoverable is %s',
+  (recoverable, label) => {
+    render(
+      <DeleteModal
+        title="Confirm action"
+        description="Confirm this change."
+        onConfirm={jest.fn()}
+        onHide={jest.fn()}
+        open
+        recoverable={recoverable}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: label })).toBeInTheDocument();
+  },
+);
+
+test('a custom label preserves the typed-confirmation gate', async () => {
+  const onConfirm = jest.fn();
+  render(
+    <DeleteModal
+      title="Confirm action"
+      description="Confirm this change."
+      onConfirm={onConfirm}
+      onHide={jest.fn()}
+      open
+      primaryButtonName="Remove"
+    />,
+  );
+
+  const button = screen.getByRole('button', { name: 'Remove' });
+  expect(button).toBeDisabled();
+  await userEvent.type(
+    screen.getByLabelText('Type "DELETE" to confirm'),
+    'DELETE',
+  );
+  expect(button).toBeEnabled();
+  await userEvent.click(button);
+  expect(onConfirm).toHaveBeenCalledTimes(1);
+});
+
+test('explicit label and style override recoverable defaults without adding the gate', () => {
+  render(
+    <DeleteModal
+      title="Confirm action"
+      description="Confirm this change."
+      onConfirm={jest.fn()}
+      onHide={jest.fn()}
+      open
+      recoverable
+      primaryButtonName="Retire"
+      primaryButtonStyle="danger"
+    />,
+  );
+
+  const button = screen.getByRole('button', { name: 'Retire' });
+  expect(button).toHaveClass('ant-btn-dangerous');
+  expect(button).toBeEnabled();
+  expect(screen.queryByTestId('delete-modal-input')).not.toBeInTheDocument();
+});
+
 test('Must display title and content', () => {
   const props = {
     title: <div data-test="test-title">Title</div>,
@@ -62,17 +127,62 @@ test('Calling "onHide"', async () => {
   expect(props.onConfirm).toHaveBeenCalledTimes(0);
 
   // type "del" in the input
-  userEvent.type(screen.getByTestId('delete-modal-input'), 'del');
+  await userEvent.type(screen.getByTestId('delete-modal-input'), 'del');
   expect(screen.getByTestId('delete-modal-input')).toHaveValue('del');
 
   // close the modal
   expect(screen.getByTestId('close-modal-btn')).toBeInTheDocument();
-  userEvent.click(screen.getByTestId('close-modal-btn'));
+  await userEvent.click(screen.getByTestId('close-modal-btn'));
   expect(props.onHide).toHaveBeenCalledTimes(1);
   expect(props.onConfirm).toHaveBeenCalledTimes(0);
 
   // confirm input has been cleared
   expect(screen.getByTestId('delete-modal-input')).toHaveValue('');
+});
+
+test('cancelling re-arms the type-to-confirm gate, not just the text', async () => {
+  const props = {
+    title: <div data-test="test-title">Title</div>,
+    description: <div data-test="test-description">Description</div>,
+    onConfirm: jest.fn(),
+    onHide: jest.fn(),
+    open: true,
+  };
+  render(<DeleteModal {...props} />);
+
+  // Arm the gate.
+  await userEvent.type(screen.getByTestId('delete-modal-input'), 'DELETE');
+  expect(screen.getByRole('button', { name: 'Delete' })).toBeEnabled();
+
+  // Cancel. Clearing only the text would leave the button enabled over an
+  // empty input the next time the modal is used.
+  await userEvent.click(screen.getByTestId('close-modal-btn'));
+  expect(props.onHide).toHaveBeenCalledTimes(1);
+  expect(screen.getByTestId('delete-modal-input')).toHaveValue('');
+  expect(screen.getByRole('button', { name: 'Delete' })).toBeDisabled();
+
+  // And confirming without re-typing must not fire.
+  await userEvent.click(screen.getByRole('button', { name: 'Delete' }));
+  expect(props.onConfirm).toHaveBeenCalledTimes(0);
+});
+
+test('Recoverable (soft-delete) mode drops the type-to-confirm input and confirms immediately', async () => {
+  const props = {
+    title: <div data-test="test-title">Title</div>,
+    description: <div data-test="test-description">Description</div>,
+    onConfirm: jest.fn(),
+    onHide: jest.fn(),
+    open: true,
+    recoverable: true,
+  };
+  render(<DeleteModal {...props} />);
+
+  // No "type DELETE to confirm" input in recoverable mode.
+  expect(screen.queryByTestId('delete-modal-input')).not.toBeInTheDocument();
+
+  // The primary action is labelled "Archive" and fires straight away.
+  await userEvent.click(screen.getByText('Archive'));
+  expect(props.onConfirm).toHaveBeenCalledTimes(1);
 });
 
 test('Calling "onConfirm" only after typing "delete" in the input', async () => {
@@ -90,7 +200,10 @@ test('Calling "onConfirm" only after typing "delete" in the input', async () => 
   expect(props.onConfirm).toHaveBeenCalledTimes(0);
 
   // do not execute "onConfirm" if you have not typed "delete"
-  await userEvent.click(screen.getByText('Delete'));
+  // The Delete button is disabled (pointer-events: none) at this point, so
+  // opt out of user-event's pointer events check to confirm clicking it
+  // while disabled has no effect.
+  await userEvent.click(screen.getByText('Delete'), { pointerEventsCheck: 0 });
   expect(props.onConfirm).toHaveBeenCalledTimes(0);
 
   // execute "onConfirm" if you have typed "delete"
@@ -100,4 +213,62 @@ test('Calling "onConfirm" only after typing "delete" in the input', async () => 
 
   // confirm input has been cleared
   expect(screen.getByTestId('delete-modal-input')).toHaveValue('');
+});
+
+test('external disable keeps the destructive action unavailable after confirmation', async () => {
+  const onConfirm = jest.fn();
+  render(
+    <DeleteModal
+      title="Delete permanently?"
+      description="This cannot be undone."
+      onConfirm={onConfirm}
+      onHide={jest.fn()}
+      open
+      disablePrimaryButton
+    />,
+  );
+
+  await userEvent.type(screen.getByTestId('delete-modal-input'), 'DELETE');
+
+  expect(screen.getByRole('button', { name: 'Delete' })).toBeDisabled();
+  await userEvent.click(screen.getByRole('button', { name: 'Delete' }));
+  expect(onConfirm).not.toHaveBeenCalled();
+});
+
+test('loading disables the destructive action and exposes busy state', async () => {
+  render(
+    <DeleteModal
+      title="Delete permanently?"
+      description="Checking dependencies"
+      onConfirm={jest.fn()}
+      onHide={jest.fn()}
+      open
+      loading
+    />,
+  );
+
+  await userEvent.type(screen.getByTestId('delete-modal-input'), 'DELETE');
+
+  expect(screen.getByTestId('modal-confirm-button')).toBeDisabled();
+  expect(screen.getByTestId('antd-modal')).toHaveAttribute('aria-busy', 'true');
+});
+
+test('confirmation reset key clears and re-arms type-to-confirm', async () => {
+  const props = {
+    title: 'Delete permanently?',
+    description: 'This cannot be undone.',
+    onConfirm: jest.fn(),
+    onHide: jest.fn(),
+    open: true,
+  };
+  const { rerender } = render(
+    <DeleteModal {...props} confirmationResetKey="initial" />,
+  );
+  await userEvent.type(screen.getByTestId('delete-modal-input'), 'DELETE');
+  expect(screen.getByRole('button', { name: 'Delete' })).toBeEnabled();
+
+  rerender(<DeleteModal {...props} confirmationResetKey="impact-changed" />);
+
+  expect(screen.getByTestId('delete-modal-input')).toHaveValue('');
+  expect(screen.getByRole('button', { name: 'Delete' })).toBeDisabled();
 });

@@ -75,3 +75,33 @@ def test_import_from_dict_skips_check_without_user(mocker: MockerFixture) -> Non
 
     can_access.assert_not_called()
     imported.assert_called_once()
+
+
+def test_validate_parser_error_raises_incorrect_version_error() -> None:
+    """
+    A YAML file malformed in a way that raises ``yaml.parser.ParserError``
+    (an unterminated flow sequence) is reported as an invalid version.
+    """
+    from superset.commands.dataset.importers import v0
+    from superset.commands.importers.exceptions import IncorrectVersionError
+
+    command = v0.ImportDatasetsCommand({"broken.yaml": "[1, 2"})
+
+    with pytest.raises(IncorrectVersionError):
+        command.validate()
+
+
+def test_validate_scanner_error_raises_incorrect_version_error() -> None:
+    """
+    A YAML file malformed in a way that raises ``yaml.scanner.ScannerError``
+    (an unterminated quoted string) is a sibling of ``ParserError`` under
+    ``yaml.YAMLError`` and must also be reported as an invalid version rather
+    than propagating as a raw, uncaught exception.
+    """
+    from superset.commands.dataset.importers import v0
+    from superset.commands.importers.exceptions import IncorrectVersionError
+
+    command = v0.ImportDatasetsCommand({"broken.yaml": 'key: "unterminated string'})
+
+    with pytest.raises(IncorrectVersionError):
+        command.validate()

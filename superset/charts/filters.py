@@ -40,7 +40,7 @@ from superset.utils.filters import (
 )
 from superset.views.base import BaseFilter
 from superset.views.base_api import BaseFavoriteFilter
-from superset.views.filters import BaseDeletedStateFilter
+from superset.views.filters import BaseDeletedRecencyFilter, BaseDeletedStateFilter
 
 
 class ChartAllTextFilter(BaseFilter):  # pylint: disable=too-few-public-methods
@@ -275,37 +275,26 @@ class ChartOwnedCreatedFavoredByMeFilter(BaseFilter):  # pylint: disable=too-few
         )
 
 
+class ChartDeletedRecencyFilter(  # pylint: disable=too-few-public-methods
+    BaseDeletedRecencyFilter
+):
+    """Archive time-range preset: rows archived within the last N days."""
+
+    arg_name = "chart_deleted_recency"
+
+
 class ChartDeletedStateFilter(  # pylint: disable=too-few-public-methods
     BaseDeletedStateFilter
 ):
     """Rison filter for the GET list that exposes soft-deleted charts.
 
-    Soft-deleted rows are additionally scoped to the **restore audience**: only
-    the chart's editors (or admins) may enumerate them. This mirrors
-    ``RestoreChartCommand``'s ``raise_for_editorship`` check, so a read-access
-    non-editor (who can see the chart via datasource access) cannot list
-    soft-deleted charts they could never restore. Live rows are unaffected —
-    they keep their normal ``ChartFilter`` visibility.
+    Restore-audience scoping (only editors and admins may enumerate
+    soft-deleted rows) is applied by ``BaseDeletedStateFilter``, and the
+    base's rule must stay the only implementation: stacking a second,
+    semantically identical editors predicate here would mean a future
+    audience change lands in one copy and charts silently enforce the
+    intersection of old and new.
     """
 
     arg_name = "chart_deleted_state"
     model = Slice
-
-    def apply(self, query: Query, value: Any) -> Query:
-        query = super().apply(query, value)
-        normalized = self._normalize(value)
-        if normalized not in {"include", "only"} or security_manager.is_admin():
-            return query
-
-        # Non-admins may only see soft-deleted charts they can edit. ``any()``
-        # emits an EXISTS subquery so it composes with the base access filter
-        # without producing duplicate rows from a join.
-        editable = Slice.editors.any(
-            subject_relation_exists_for_current_user(chart_editors)
-        )
-        if normalized == "only":
-            # ``super().apply`` already restricted to ``deleted_at IS NOT NULL``.
-            return query.filter(editable)
-        # ``include``: keep all live rows (normal access) and add only the
-        # soft-deleted rows this user can edit.
-        return query.filter(or_(Slice.deleted_at.is_(None), editable))

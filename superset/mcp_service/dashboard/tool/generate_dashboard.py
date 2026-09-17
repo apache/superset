@@ -191,6 +191,8 @@ def _generate_title_from_charts(chart_objects: List[Any]) -> str:
         title="Create dashboard",
         readOnlyHint=False,
         destructiveHint=False,
+        idempotentHint=False,
+        openWorldHint=False,
     ),
 )
 def generate_dashboard(  # noqa: C901
@@ -347,11 +349,17 @@ def generate_dashboard(  # noqa: C901
                     .first()
                 )
                 if current_user:
-                    from superset.subjects.utils import get_user_subject
+                    from superset.subjects.utils import (
+                        get_default_viewers_for_new_asset,
+                        get_user_subject,
+                    )
 
                     subj = get_user_subject(current_user.id)
                     if subj:
                         dashboard.editors = [subj]
+                    dashboard.viewers = get_default_viewers_for_new_asset(
+                        current_user.id
+                    )
 
                 fresh_charts = (
                     db.session.query(Slice)

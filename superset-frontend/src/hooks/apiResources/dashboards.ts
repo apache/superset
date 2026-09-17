@@ -23,7 +23,7 @@ import { Chart } from 'src/types/Chart';
 import { Currency } from '@superset-ui/core';
 import { useApiV1Resource, useTransformedResource } from './apiResources';
 
-const DASHBOARD_GET_COLUMNS = [
+export const DASHBOARD_GET_COLUMNS = [
   'id',
   'slug',
   'url',

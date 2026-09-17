@@ -46,7 +46,10 @@ interface TimeoutError {
 }
 
 type ErrorType =
-  SupersetClientResponse | TimeoutError | { response: Response } | string;
+  | SupersetClientResponse
+  | TimeoutError
+  | { response: Response }
+  | string;
 
 type ErrorTextSource = 'dashboard' | 'chart' | 'query' | 'dataset' | 'database';
 
@@ -116,6 +119,20 @@ export function retrieveErrorMessage(
   return statusError || parseStringResponse(str);
 }
 
+function getFirstValidationError(message: JsonObject): string | undefined {
+  const [firstError] = Object.values(message);
+
+  if (typeof firstError === 'string') {
+    return firstError;
+  }
+
+  if (Array.isArray(firstError)) {
+    return firstError.find((item): item is string => typeof item === 'string');
+  }
+
+  return undefined;
+}
+
 export function parseErrorJson(responseJson: JsonObject): ClientErrorObject {
   let error = { ...responseJson };
   // Backwards compatibility for old error renderers with the new error object
@@ -123,13 +140,12 @@ export function parseErrorJson(responseJson: JsonObject): ClientErrorObject {
     error.error = error.description = error.errors[0].message;
     error.link = error.errors[0]?.extra?.link;
   }
-  // Marshmallow field validation returns the error message in the format
-  // of { message: { field1: [msg1, msg2], field2: [msg], } }
+  // Marshmallow field validation returns arrays for string messages, but
+  // serializes lazy translation messages as strings instead.
   if (!error.error && error.message) {
     if (typeof error.message === 'object') {
       error.error =
-        Object.values(error.message as Record<string, string[]>)[0]?.[0] ||
-        t('Invalid input');
+        getFirstValidationError(error.message) || t('Invalid input');
     }
     if (typeof error.message === 'string') {
       if (checkForHtml(error.message)) {
@@ -159,7 +175,10 @@ export function parseErrorJson(responseJson: JsonObject): ClientErrorObject {
 
 export function getClientErrorObject(
   response:
-    SupersetClientResponse | TimeoutError | { response: Response } | string,
+    | SupersetClientResponse
+    | TimeoutError
+    | { response: Response }
+    | string,
 ): Promise<ClientErrorObject> {
   // takes a SupersetClientResponse as input, attempts to read response as Json
   // if possible, and returns a Promise that resolves to a plain object with

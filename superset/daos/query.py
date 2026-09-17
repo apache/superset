@@ -28,6 +28,7 @@ from superset.queries.filters import QueryFilter
 from superset.queries.saved_queries.filters import SavedQueryFilter
 from superset.utils.core import get_user_id
 from superset.utils.dates import now_as_float
+from superset.utils.decorators import transaction
 
 logger = logging.getLogger(__name__)
 
@@ -59,6 +60,7 @@ class QueryDAO(BaseDAO[Query]):
         )
 
     @staticmethod
+    @transaction()
     def stop_query(client_id: str) -> None:
         query = (
             db.session.query(Query)
@@ -81,6 +83,11 @@ class QueryDAO(BaseDAO[Query]):
         if not sql_lab.cancel_query(query):
             raise SupersetCancelQueryException("Could not cancel query")
 
+        # cancel_query() may have staged an early-cancel flag on query.extra
+        # without committing it (see its docstring/comments); the
+        # @transaction decorator commits it together with status=STOPPED
+        # below in one transaction, closing the window where another
+        # request could observe the flag set but the status still RUNNING.
         query.status = QueryStatus.STOPPED
         query.end_time = now_as_float()
 

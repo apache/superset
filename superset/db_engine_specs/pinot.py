@@ -113,6 +113,9 @@ class PinotEngineSpec(BaseEngineSpec):
     ) -> str:
         # Pinot driver infers TIMESTAMP column as LONG, so make the quick fix.
         # When the Pinot driver fix this bug, current method could be removed.
+        #
+        # TODO: remove this override once startreedata/pinot-dbapi#224 is
+        # merged and released, and pinotdb is bumped past that version.
         if isinstance(sqla_column_type, types.TIMESTAMP):
             return sqla_column_type.compile().upper()
 

@@ -20,7 +20,7 @@ MCP tool: get_chart_info
 """
 
 import logging
-from typing import Any
+from typing import Any, cast
 
 from fastmcp import Context
 from sqlalchemy.orm import subqueryload
@@ -36,13 +36,11 @@ from superset.mcp_service.chart.chart_helpers import (
 )
 from superset.mcp_service.chart.chart_utils import validate_chart_dataset
 from superset.mcp_service.chart.schemas import (
-    CHART_FORM_DATA_EXCLUDED_FIELD_NAMES,
     ChartError,
     ChartFiltersInfo,
     ChartInfo,
     extract_filters_from_form_data,
     GetChartInfoRequest,
-    sanitize_chart_info_for_llm_context,
     serialize_chart_object,
 )
 from superset.mcp_service.mcp_core import ModelGetInfoCore
@@ -50,7 +48,6 @@ from superset.mcp_service.privacy import (
     redact_chart_data_model_fields,
     user_can_view_data_model_metadata,
 )
-from superset.mcp_service.utils import sanitize_for_llm_context
 
 logger = logging.getLogger(__name__)
 
@@ -78,23 +75,15 @@ def _build_unsaved_chart_info(form_data_key: str) -> ChartInfo | ChartError:
             error="Cached form_data is not a valid JSON object.",
             error_type="ParseError",
         )
-    return sanitize_chart_info_for_llm_context(
-        ChartInfo(
-            viz_type=form_data.get("viz_type"),
-            datasource_name=form_data.get("datasource_name"),
-            datasource_type=form_data.get("datasource_type"),
-            filters=extract_filters_from_form_data(form_data),
-            form_data=form_data,
-            form_data_key=form_data_key,
-            is_unsaved_state=True,
-        )
+    return ChartInfo(
+        viz_type=form_data.get("viz_type"),
+        datasource_name=form_data.get("datasource_name"),
+        datasource_type=form_data.get("datasource_type"),
+        filters=extract_filters_from_form_data(form_data),
+        form_data=form_data,
+        form_data_key=form_data_key,
+        is_unsaved_state=True,
     )
-
-
-FORM_DATA_OVERRIDE_EXCLUDED_FIELD_NAMES = (
-    CHART_FORM_DATA_EXCLUDED_FIELD_NAMES
-    | frozenset({"cache_key", "database", "database_name", "schema"})
-)
 
 
 async def _validate_chart_dataset_access(
@@ -116,7 +105,7 @@ async def _validate_chart_dataset_access(
     chart = ChartDAO.find_by_id(result.id)
     if not chart:
         return None
-    validation_result = validate_chart_dataset(chart, check_access=True)
+    validation_result = validate_chart_dataset(chart.datasource_id, check_access=True)
     if not validation_result.is_valid:
         await ctx.warning(
             "Chart found but dataset is not accessible: %s" % (validation_result.error,)
@@ -159,6 +148,33 @@ async def _attach_dashboard_filters(
             else:
                 result.filters.dashboard_filters = dashboard_filters
     return None
+
+
+def _attach_active_filters(result: ChartInfo, extra_form_data: dict[str, Any]) -> None:
+    """Surface the user's live dashboard filters (forwarded as extra_form_data)
+    under result.filters, so a metadata caller reports the chart as it is currently
+    viewed rather than as the full unfiltered dataset. Column-based and adhoc
+    filters go to active_filters and a time-range filter to active_time_range. No
+    query is run; the values are echoed for awareness."""
+    active: list[dict[str, Any]] = [
+        clause
+        for clause in (extra_form_data.get("filters") or [])
+        if isinstance(clause, dict)
+    ]
+    active += [
+        clause
+        for clause in (extra_form_data.get("adhoc_filters") or [])
+        if isinstance(clause, dict)
+    ]
+    time_range = extra_form_data.get("time_range")
+    if not active and not time_range:
+        return
+    if result.filters is None:
+        result.filters = ChartFiltersInfo()
+    if active:
+        result.filters.active_filters = active
+    if time_range:
+        result.filters.active_time_range = time_range
 
 
 def _apply_unsaved_state_override(result: ChartInfo, form_data_key: str) -> None:
@@ -204,23 +220,6 @@ def _apply_unsaved_state_override(result: ChartInfo, form_data_key: str) -> None
             "The cache may have expired. Using saved chart configuration."
         )
 
-    payload = result.model_dump(mode="python")
-    if payload.get("filters") is not None:
-        payload["filters"] = sanitize_for_llm_context(
-            payload["filters"],
-            field_path=("filters",),
-            excluded_field_names=frozenset(),
-        )
-    if payload.get("form_data") is not None:
-        payload["form_data"] = sanitize_for_llm_context(
-            payload["form_data"],
-            field_path=("form_data",),
-            excluded_field_names=FORM_DATA_OVERRIDE_EXCLUDED_FIELD_NAMES,
-        )
-    sanitized = ChartInfo.model_validate(payload)
-    result.filters = sanitized.filters
-    result.form_data = sanitized.form_data
-
 
 @tool(
     tags=["discovery"],
@@ -229,11 +228,12 @@ def _apply_unsaved_state_override(result: ChartInfo, form_data_key: str) -> None
         title="Get chart info",
         readOnlyHint=True,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
-async def get_chart_info(
+async def get_chart_info(  # noqa: C901
     request: GetChartInfoRequest, ctx: Context
-) -> dict[str, Any] | ChartError:
+) -> ChartInfo | ChartError:
     """Get chart metadata by ID or UUID.
 
     IMPORTANT FOR LLM CLIENTS:
@@ -301,9 +301,14 @@ async def get_chart_info(
                 return result
             if not can_view_data_model_metadata:
                 result = redact_chart_data_model_fields(result)
-            return result.model_dump(
-                mode="json",
-                context={"select_columns": request.select_columns},
+            if request.extra_form_data:
+                _attach_active_filters(result, request.extra_form_data)
+            return cast(
+                ChartInfo,
+                result.model_dump(
+                    mode="json",
+                    context={"select_columns": request.select_columns},
+                ),
             )
 
     # At this point identifier must be set (validator ensures at least one
@@ -361,9 +366,15 @@ async def get_chart_info(
             if error is not None:
                 return error
 
-        return result.model_dump(
-            mode="json",
-            context={"select_columns": request.select_columns},
+        if request.extra_form_data:
+            _attach_active_filters(result, request.extra_form_data)
+
+        return cast(
+            ChartInfo,
+            result.model_dump(
+                mode="json",
+                context={"select_columns": request.select_columns},
+            ),
         )
     else:
         await ctx.warning("Chart retrieval failed: error=%s" % (str(result),))

@@ -38,6 +38,10 @@ from superset.mcp_service.chart.chart_utils import (
     generate_chart_name,
     generate_explore_link,
     map_config_to_form_data,
+    merge_chart_form_data,
+    merge_interactive_pivot_ui_config,
+    merge_table_column_config,
+    validate_gantt_form_data,
 )
 from superset.mcp_service.chart.compile import validate_and_compile
 from superset.mcp_service.chart.preview_utils import (
@@ -49,6 +53,10 @@ from superset.mcp_service.chart.schemas import (
     ChartError,
     PerformanceMetadata,
     UpdateChartPreviewRequest,
+    UpdateChartPreviewResponse,
+)
+from superset.mcp_service.chart.validation.dataset_validator import (
+    GanttSemanticNormalizationError,
 )
 from superset.mcp_service.utils.oauth2_utils import (
     build_oauth2_redirect_message,
@@ -110,11 +118,13 @@ def _get_previous_form_data(form_data_key: str) -> dict[str, Any] | None:
         title="Update chart preview",
         readOnlyHint=False,
         destructiveHint=False,
+        idempotentHint=False,
+        openWorldHint=False,
     ),
 )
 def update_chart_preview(  # noqa: C901
     request: UpdateChartPreviewRequest, ctx: Context
-) -> Dict[str, Any]:
+) -> UpdateChartPreviewResponse:
     """Update cached chart preview without saving.
 
     IMPORTANT:
@@ -166,6 +176,24 @@ def update_chart_preview(  # noqa: C901
                 }
 
         with event_logger.log_context(action="mcp.update_chart_preview.form_data"):
+            from superset.mcp_service.chart.validation.dataset_validator import (
+                build_dataset_context_from_orm,
+                DatasetValidator,
+                NORMALIZATION_EXCEPTIONS,
+            )
+
+            try:
+                config = DatasetValidator.normalize_column_names(
+                    config,
+                    request.dataset_id,
+                    dataset_context=build_dataset_context_from_orm(dataset),
+                )
+            except NORMALIZATION_EXCEPTIONS as ex:
+                logger.warning(
+                    "Column normalization failed for preview dataset %s: %s",
+                    request.dataset_id,
+                    ex,
+                )
             # Map the new config to form_data format
             # Pass dataset_id to enable column type checking
             new_form_data = map_config_to_form_data(
@@ -180,12 +208,37 @@ def update_chart_preview(  # noqa: C901
                 if previous_form_data is None:
                     warnings.append(INVALID_FORM_DATA_KEY_WARNING)
 
-            # Preserve adhoc filters from the previous cached form_data
-            # when the new config doesn't explicitly specify filters
-            if getattr(config, "filters", None) is None and previous_form_data:
-                old_adhoc_filters = previous_form_data.get("adhoc_filters")
-                if old_adhoc_filters:
-                    new_form_data["adhoc_filters"] = old_adhoc_filters
+            if previous_form_data:
+                merge_table_column_config(previous_form_data, new_form_data)
+                merge_interactive_pivot_ui_config(previous_form_data, new_form_data)
+                previous_datasource = str(
+                    previous_form_data.get("datasource")
+                    or previous_form_data.get("datasource_id")
+                    or ""
+                ).split("__", 1)[0]
+                dataset_rebind = bool(
+                    previous_datasource
+                ) and previous_datasource != str(dataset.id)
+                new_form_data = merge_chart_form_data(
+                    previous_form_data,
+                    new_form_data,
+                    config,
+                    dataset_rebind=dataset_rebind,
+                )
+
+            merged_gantt_config = validate_gantt_form_data(
+                new_form_data,
+                request.dataset_id,
+                dataset_context=(
+                    build_dataset_context_from_orm(dataset)
+                    if new_form_data.get("viz_type") == "gantt_chart"
+                    else None
+                ),
+            )
+            if merged_gantt_config is not None:
+                # Compile the final cached state rather than the pre-merge
+                # request, so preserved native fields cannot bypass semantics.
+                config = merged_gantt_config
 
             # Tier-1 schema validation against the dataset (no DB roundtrip).
             # Runs AFTER the filter merge so filter columns are also validated.
@@ -217,7 +270,10 @@ def update_chart_preview(  # noqa: C901
                 }
 
             compile_result = validate_and_compile(
-                config, new_form_data, dataset, run_compile_check=False
+                config,
+                new_form_data,
+                dataset,
+                run_compile_check=config.chart_type == "gauge",
             )
             if not compile_result.success:
                 logger.warning(
@@ -319,7 +375,7 @@ def update_chart_preview(  # noqa: C901
                 logger.warning("Preview generation failed: %s", e)
 
         # Return enhanced data
-        result = {
+        result: UpdateChartPreviewResponse = {
             "chart": {
                 "id": None,
                 "slice_name": chart_name,
@@ -336,6 +392,7 @@ def update_chart_preview(  # noqa: C901
             "semantics": semantics.model_dump() if semantics else None,
             "explore_url": explore_url,
             "form_data_key": new_form_data_key,
+            "form_data": new_form_data,
             "previous_form_data_key": request.form_data_key,  # For reference
             "warnings": warnings,
             "api_endpoints": {},  # No API endpoints for unsaved charts
@@ -356,6 +413,8 @@ def update_chart_preview(  # noqa: C901
             "chart": None,
             "error": build_oauth2_redirect_message(ex),
             "success": False,
+            "schema_version": "2.0",
+            "api_version": "v1",
         }
     except OAuth2Error:
         logger.warning(
@@ -365,6 +424,32 @@ def update_chart_preview(  # noqa: C901
             "chart": None,
             "error": OAUTH2_CONFIG_ERROR_MESSAGE,
             "success": False,
+            "schema_version": "2.0",
+            "api_version": "v1",
+        }
+    except GanttSemanticNormalizationError as ex:
+        execution_time = int((time.time() - start_time) * 1000)
+        return {
+            "chart": None,
+            "error": {
+                "error_type": "gantt_semantic_validation_error",
+                "message": "Gantt chart column roles are invalid",
+                "details": str(ex),
+                "suggestions": [
+                    "Use different physical columns for start_time and end_time",
+                    "Use different physical columns for category and series",
+                    "Use exact dataset column casing when names differ only by case",
+                ],
+                "error_code": "GANTT_SEMANTIC_VALIDATION_ERROR",
+            },
+            "performance": {
+                "query_duration_ms": execution_time,
+                "cache_status": "error",
+                "optimization_suggestions": [],
+            },
+            "success": False,
+            "schema_version": "2.0",
+            "api_version": "v1",
         }
     except (
         SupersetException,

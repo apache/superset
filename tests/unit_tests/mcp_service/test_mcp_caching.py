@@ -19,7 +19,26 @@
 
 from unittest.mock import MagicMock, patch
 
-from superset.mcp_service.caching import _build_caching_settings
+import pytest
+
+from superset.mcp_service.caching import (
+    _build_caching_settings,
+    _version_cache_prefix,
+    MCP_RESPONSE_CACHE_NAMESPACE,
+)
+
+
+def test_version_cache_prefix_appends_response_contract_namespace() -> None:
+    assert _version_cache_prefix("mcp_cache_") == (
+        f"mcp_cache_{MCP_RESPONSE_CACHE_NAMESPACE}"
+    )
+
+
+def test_version_cache_prefix_preserves_callable_partitioning() -> None:
+    prefix = _version_cache_prefix(lambda: "tenant_7_")
+
+    assert callable(prefix)
+    assert prefix() == f"tenant_7_{MCP_RESPONSE_CACHE_NAMESPACE}"
 
 
 def test_build_caching_settings_empty_config():
@@ -89,7 +108,11 @@ def test_create_response_caching_middleware_falls_back_to_memory_when_no_prefix(
     """Caching middleware uses in-memory store when CACHE_KEY_PREFIX is not set."""
     mock_flask_app = MagicMock()
     mock_configs = {
-        "MCP_CACHE_CONFIG": {"enabled": True, "list_tools_ttl": 300},
+        "MCP_CACHE_CONFIG": {
+            "enabled": True,
+            "dangerously_share_cache_across_principals": True,
+            "list_tools_ttl": 300,
+        },
         "MCP_STORE_CONFIG": {"enabled": True},  # Store enabled but no CACHE_KEY_PREFIX
     }
     mock_flask_app.config.get.side_effect = lambda key, default=None: mock_configs.get(
@@ -124,7 +147,11 @@ def test_create_response_caching_middleware_uses_memory_store_when_store_disable
     """Caching middleware uses in-memory store when MCP_STORE_CONFIG is disabled."""
     mock_flask_app = MagicMock()
     mock_configs = {
-        "MCP_CACHE_CONFIG": {"enabled": True, "list_tools_ttl": 300},
+        "MCP_CACHE_CONFIG": {
+            "enabled": True,
+            "dangerously_share_cache_across_principals": True,
+            "list_tools_ttl": 300,
+        },
         "MCP_STORE_CONFIG": {"enabled": False},
     }
     mock_flask_app.config.get.side_effect = lambda key, default=None: mock_configs.get(
@@ -160,6 +187,7 @@ def test_create_response_caching_middleware_creates_middleware():
     mock_flask_app = MagicMock()
     mock_flask_app.config.get.return_value = {
         "enabled": True,
+        "dangerously_share_cache_across_principals": True,
         "CACHE_KEY_PREFIX": "mcp_cache_v1_",
         "list_tools_ttl": 300,
     }
@@ -174,7 +202,7 @@ def test_create_response_caching_middleware_creates_middleware():
         with patch("flask.has_app_context", return_value=True):
             with patch(
                 "superset.mcp_service.caching.get_mcp_store", return_value=mock_store
-            ):
+            ) as mock_get_store:
                 with patch(
                     "fastmcp.server.middleware.caching.ResponseCachingMiddleware",
                     return_value=mock_middleware,
@@ -186,8 +214,70 @@ def test_create_response_caching_middleware_creates_middleware():
                     result = create_response_caching_middleware()
 
                     assert result is mock_middleware
+                    mock_get_store.assert_called_once_with(
+                        prefix=f"mcp_cache_v1_{MCP_RESPONSE_CACHE_NAMESPACE}"
+                    )
                     # Verify middleware was created with store and settings
                     mock_middleware_class.assert_called_once()
                     call_kwargs = mock_middleware_class.call_args[1]
                     assert call_kwargs["cache_storage"] is mock_store
                     assert call_kwargs["list_tools_settings"] == {"ttl": 300}
+
+
+def test_create_response_caching_middleware_fails_closed_without_principal_optin():
+    """Enabling the cache without the explicit cross-principal opt-in is refused.
+
+    The cache key contains no principal and hits are served before any
+    authorization runs, so a shared cache would replay one principal's
+    responses to another (see create_response_caching_middleware).
+    """
+    mock_flask_app = MagicMock()
+    mock_configs = {
+        "MCP_CACHE_CONFIG": {"enabled": True, "call_tool_ttl": 3600},
+        "MCP_STORE_CONFIG": {"enabled": False},
+    }
+    mock_flask_app.config.get.side_effect = lambda key, default=None: mock_configs.get(
+        key, default
+    )
+
+    with patch(
+        "superset.mcp_service.flask_singleton.get_flask_app",
+        return_value=mock_flask_app,
+    ):
+        with patch("flask.has_app_context", return_value=True):
+            from superset.mcp_service.caching import (
+                create_response_caching_middleware,
+            )
+
+            assert create_response_caching_middleware() is None
+
+
+@pytest.mark.asyncio
+async def test_excluded_tools_covers_every_mutating_tool():
+    """Every registered tool without readOnlyHint=True must be listed in
+    MCP_CACHE_CONFIG["excluded_tools"].
+
+    Caching is keyed on tool name + arguments and served ahead of
+    per-request auth/RBAC, so a mutating tool left off this list can
+    silently replay a stale create/update/delete result to a caller who
+    repeats an identical call expecting it to actually run again. This
+    list is maintained by hand (FastMCP's caching middleware only accepts
+    a static exclusion list); this test is what keeps it complete as new
+    tools are added, by failing with the specific tool name(s) missing.
+    """
+    from superset.mcp_service.app import mcp
+    from superset.mcp_service.mcp_config import MCP_CACHE_CONFIG
+
+    tools = await mcp.list_tools()
+    mutating_tool_names = {
+        tool.name
+        for tool in tools
+        if tool.annotations is None or tool.annotations.readOnlyHint is not True
+    }
+
+    excluded = set(MCP_CACHE_CONFIG["excluded_tools"])
+    missing = mutating_tool_names - excluded
+    assert not missing, (
+        f"These mutating tools are cacheable because they're missing from "
+        f"MCP_CACHE_CONFIG['excluded_tools']: {sorted(missing)}"
+    )

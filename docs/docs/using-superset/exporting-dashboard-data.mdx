@@ -32,8 +32,13 @@ Notes on the generated workbook:
   Excel's 31-character limit; the chart id keeps names unique).
 - Charts nested in tabs are included.
 - Data reflects the dashboard's active filter state at the time of export.
-- A chart with no saved query context is skipped and listed in the email; open
-  the chart in Explore and re-save it to include it next time.
+- A chart with no saved query context (charts only store one once they've been
+  re-saved in Explore) still exports when it is a `table`, `big_number`,
+  `big_number_total` or `pie`, by rebuilding the query from the chart's saved
+  form data. Charts of other types — and charts relying on post-processing the
+  rebuild can't reproduce — are skipped and listed in the email; open the chart
+  in Explore and re-save it to include it next time, or configure
+  `EXCEL_EXPORT_QUERY_CONTEXT_BUILDER`.
 - Row counts per sheet are capped the same way as the chart-level CSV/Excel
   export (`ROW_LIMIT`, bounded by `SQL_MAX_ROW`), and never exceed Excel's
   per-sheet maximum.
@@ -67,13 +72,14 @@ will not register.
 
 ## Configuration keys
 
-| Key | Default | Description |
-| --- | --- | --- |
-| `EXCEL_EXPORT_S3_BUCKET` | `None` | Destination bucket. Required; `501` if unset. |
-| `EXCEL_EXPORT_S3_KEY_PREFIX` | `"dashboard-exports/"` | Key prefix: `{prefix}{dashboard_id}/{job_id}.xlsx`. |
-| `EXCEL_EXPORT_LINK_TTL_SECONDS` | `86400` | Lifetime of the pre-signed download URL (24h). |
-| `EXCEL_EXPORT_S3_CLIENT_KWARGS` | `{}` | Extra kwargs for `boto3.client("s3", ...)` — e.g. `region_name`, or `endpoint_url` for MinIO/LocalStack. |
-| `EXCEL_EXPORT_TABLE_VIZ_TYPES` | `None` | Viz types kept tabular in **Export Images to Excel** mode; every other type is embedded as an image. `None` uses the built-in default (`table`, `pivot_table`, `pivot_table_v2`). |
+| Key                             | Default                | Description                                                                                                                                                                       |
+| ------------------------------- | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `EXCEL_EXPORT_S3_BUCKET`        | `None`                 | Destination bucket. Required; `501` if unset.                                                                                                                                     |
+| `EXCEL_EXPORT_S3_KEY_PREFIX`    | `"dashboard-exports/"` | Key prefix: `{prefix}{dashboard_id}/{job_id}.xlsx`.                                                                                                                               |
+| `EXCEL_EXPORT_LINK_TTL_SECONDS` | `86400`                | Lifetime of the pre-signed download URL (24h).                                                                                                                                    |
+| `EXCEL_EXPORT_S3_CLIENT_KWARGS` | `{}`                   | Extra kwargs for `boto3.client("s3", ...)` — e.g. `region_name`, or `endpoint_url` for MinIO/LocalStack.                                                                          |
+| `EXCEL_EXPORT_TABLE_VIZ_TYPES`  | `None`                 | Viz types kept tabular in **Export Images to Excel** mode; every other type is embedded as an image. `None` uses the built-in default (`table`, `pivot_table`, `pivot_table_v2`). |
+| `EXCEL_EXPORT_QUERY_CONTEXT_BUILDER` | `None`            | Optional `Callable[[form_data_dict], dict \| None]` to build a query context for a chart missing a saved one, tried before the built-in form-data rebuild. Point it at a service that runs the chart's real frontend `buildQuery` to faithfully export viz types the built-in rebuild can't handle. Must return `None` when it can't build faithfully, so the export falls back. |
 
 Credentials and region resolve through the standard boto3 chain (environment
 variables, shared config, or instance role) unless overridden via
