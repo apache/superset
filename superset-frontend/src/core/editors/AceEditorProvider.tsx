@@ -277,6 +277,58 @@ const AceEditorProvider = forwardRef<EditorHandle, EditorProps>(
       new Map(),
     );
 
+    // Ace emits one session change event per cursor while several cursors are
+    // active: a two-cursor keystroke produces an intermediate document value
+    // (first cursor applied) followed by the final one. Each emission is a
+    // candidate React state update; when React renders with an intermediate
+    // value while the editor already holds the final one, react-ace's
+    // componentDidUpdate sees getValue() !== props.value and calls
+    // editor.setValue() mid-keystroke, collapsing the multi-selection and
+    // moving a cursor to the document end. Buffer the latest value and flush
+    // once per task so only the final document value reaches the consumer.
+    const pendingValueRef = useRef<string | null>(null);
+    const flushScheduledRef = useRef(false);
+    const onChangeRef = useRef(onChange);
+
+    useEffect(() => {
+      onChangeRef.current = onChange;
+    }, [onChange]);
+
+    const flushPendingValue = useCallback(() => {
+      flushScheduledRef.current = false;
+      const pending = pendingValueRef.current;
+      pendingValueRef.current = null;
+      if (pending !== null) {
+        onChangeRef.current(pending);
+      }
+    }, []);
+
+    useEffect(
+      () => () => {
+        // A keystroke can be in flight when the editor unmounts (tab switch);
+        // deliver its value rather than dropping it silently.
+        if (flushScheduledRef.current) {
+          if (typeof queueMicrotask === 'function') {
+            queueMicrotask(flushPendingValue);
+          } else {
+            flushPendingValue();
+          }
+        }
+      },
+      [flushPendingValue],
+    );
+
+    const handleChange = useCallback(
+      (nextValue: string) => {
+        pendingValueRef.current = nextValue;
+        if (!flushScheduledRef.current) {
+          flushScheduledRef.current = true;
+          queueMicrotask(flushPendingValue);
+        }
+      },
+      [flushPendingValue],
+    );
+
     // Use refs to store latest callbacks to avoid stale closures in event listeners
     const onCursorPositionChangeRef = useRef(onCursorPositionChange);
     const onSelectionChangeRef = useRef(onSelectionChange);
@@ -382,7 +434,7 @@ const AceEditorProvider = forwardRef<EditorHandle, EditorProps>(
         name={id}
         mode={language}
         value={value}
-        onChange={onChange}
+        onChange={handleChange}
         onBlur={handleBlur}
         onLoad={onEditorLoad}
         height={height}
