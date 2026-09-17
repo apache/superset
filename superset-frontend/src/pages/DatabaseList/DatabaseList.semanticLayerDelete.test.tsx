@@ -69,7 +69,14 @@ const mockUser = {
   userId: 1,
   firstName: 'Admin',
   lastName: 'User',
-  roles: { Admin: [['can_write', 'Database']] },
+  roles: {
+    Admin: [
+      ['can_read', 'Database'],
+      ['can_write', 'Database'],
+      ['can_read', 'SemanticLayer'],
+      ['can_write', 'SemanticLayer'],
+    ],
+  },
   permissions: {},
   isActive: true,
   email: 'admin@example.com',
@@ -114,10 +121,10 @@ const setupMocks = ({
   fetchMock.delete(DELETE_ROUTE, {});
 };
 
-const renderDatabaseList = () => {
+const renderDatabaseList = (user = mockUser) => {
   const store = configureStore({
     reducer: {
-      user: (state = mockUser) => state,
+      user: (state = user) => state,
       common: (
         state = {
           conf: {
@@ -134,7 +141,7 @@ const renderDatabaseList = () => {
       getDefaultMiddleware({ serializableCheck: false, immutableCheck: false }),
   });
 
-  return render(<DatabaseList user={mockUser} />, {
+  return render(<DatabaseList user={user} />, {
     store,
     useQueryParams: true,
     useRouter: true,
@@ -422,4 +429,38 @@ test('confirming the modal deletes the semantic layer', async () => {
   await waitFor(() => {
     expect(fetchMock.callHistory.calls(DELETE_ROUTE)).toHaveLength(1);
   });
+});
+
+test('database write does not offer edit or delete for semantic layers', async () => {
+  setupMocks({ dependents: [] });
+  renderDatabaseList({
+    ...mockUser,
+    roles: {
+      Admin: [
+        ['can_read', 'Database'],
+        ['can_write', 'Database'],
+        ['can_read', 'SemanticLayer'],
+      ],
+    },
+  });
+  await screen.findByText('Demo Semantic Layer');
+  expect(screen.queryByTestId('Delete')).not.toBeInTheDocument();
+  expect(screen.queryByTestId('Edit')).not.toBeInTheDocument();
+});
+
+test('layer-only writer gets layer actions without requesting Database info', async () => {
+  setupMocks({ dependents: [] });
+  renderDatabaseList({
+    ...mockUser,
+    roles: {
+      Admin: [
+        ['can_read', 'SemanticLayer'],
+        ['can_write', 'SemanticLayer'],
+      ],
+    },
+  });
+  await screen.findByTestId('Delete');
+  expect(
+    fetchMock.callHistory.calls('glob:*/api/v1/database/_info*'),
+  ).toHaveLength(0);
 });

@@ -26,7 +26,7 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import lazy_gettext as t, ngettext
 from marshmallow import ValidationError
 from pydantic import ValidationError as PydanticValidationError
-from sqlalchemy.orm import load_only
+from sqlalchemy.orm import load_only, Query
 
 from superset import db, event_logger, is_feature_enabled, security_manager
 from superset.commands.semantic_layer.create import (
@@ -75,6 +75,7 @@ from superset.utils import json
 from superset.views.base_api import (
     BaseSupersetApi,
     BaseSupersetModelRestApi,
+    protect_read,
     requires_json,
     statsd_metrics,
 )
@@ -1007,7 +1008,7 @@ class SemanticLayerRestApi(BaseSupersetApi):
             return self.response_422(message=str(ex))
 
     @expose("/connections/", methods=("GET",))
-    @protect()
+    @protect_read("Database", "SemanticLayer")
     @safe
     @statsd_metrics
     @rison(get_list_schema)
@@ -1032,6 +1033,8 @@ class SemanticLayerRestApi(BaseSupersetApi):
               description: Combined list of databases and semantic layers
             401:
               $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
             500:
               $ref: '#/components/responses/500'
         """
@@ -1084,10 +1087,12 @@ class SemanticLayerRestApi(BaseSupersetApi):
         source_type: str,
         name_filter: str | None,
     ) -> list[tuple[str, Any]]:
-        """Fetch database and semantic layer items based on filters."""
+        """Fetch permitted sources using the same FAB identity as the route gate."""
         db_items: list[tuple[str, Database]] = []
-        if source_type in ("all", "database"):
-            db_q = db.session.query(Database).options(
+        if source_type in ("all", "database") and security_manager.has_access(
+            "can_read", "Database"
+        ):
+            db_q: Query[Database] = db.session.query(Database).options(
                 load_only(
                     Database.id,
                     Database.uuid,
@@ -1116,7 +1121,9 @@ class SemanticLayerRestApi(BaseSupersetApi):
             db_items = [("database", obj) for obj in db_q.all()]
 
         sl_items: list[tuple[str, SemanticLayer]] = []
-        if source_type in ("all", "semantic_layer"):
+        if source_type in ("all", "semantic_layer") and security_manager.has_access(
+            "can_read", "SemanticLayer"
+        ):
             sl_q = db.session.query(SemanticLayer).options(
                 load_only(
                     SemanticLayer.uuid,

@@ -21,7 +21,9 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
+from flask.testing import FlaskClient
 from pytest_mock import MockerFixture
+from werkzeug.test import TestResponse
 
 from superset.commands.semantic_layer.exceptions import (
     SemanticLayerCreateFailedError,
@@ -1563,12 +1565,12 @@ def _connections_db_query_mock(mocker: MockerFixture) -> MagicMock:
     Returns the mock database query so a test can assert whether the access
     filter was applied to it.
     """
-    mock_db_session = mocker.patch("superset.semantic_layers.api.db.session")
-    db_query = MagicMock()
+    mock_db_session: MagicMock = mocker.patch("superset.semantic_layers.api.db.session")
+    db_query: MagicMock = MagicMock()
     db_query.options.return_value = db_query
     db_query.filter.return_value = db_query
     db_query.all.return_value = []
-    sl_query = MagicMock()
+    sl_query: MagicMock = MagicMock()
     sl_query.options.return_value = sl_query
     sl_query.filter.return_value = sl_query
     sl_query.all.return_value = []
@@ -1579,7 +1581,7 @@ def _connections_db_query_mock(mocker: MockerFixture) -> MagicMock:
 
 @SEMANTIC_LAYERS_APP
 def test_connections_all_access_user_sees_all_databases(
-    client: Any,
+    client: FlaskClient,
     full_api_access: None,
     mocker: MockerFixture,
 ) -> None:
@@ -1592,9 +1594,9 @@ def test_connections_all_access_user_sees_all_databases(
         "superset.databases.filters.security_manager.can_access_all_databases",
         return_value=True,
     )
-    db_query = _connections_db_query_mock(mocker)
+    db_query: MagicMock = _connections_db_query_mock(mocker)
 
-    response = client.get("/api/v1/semantic_layer/connections/")
+    response: TestResponse = client.get("/api/v1/semantic_layer/connections/")
 
     assert response.status_code == 200
     # No access predicate for a full-access caller (the default empty
@@ -1605,7 +1607,7 @@ def test_connections_all_access_user_sees_all_databases(
 
 @SEMANTIC_LAYERS_APP
 def test_connections_limited_user_access_filters_databases(
-    client: Any,
+    client: FlaskClient,
     full_api_access: None,
     mocker: MockerFixture,
 ) -> None:
@@ -1620,7 +1622,7 @@ def test_connections_limited_user_access_filters_databases(
         "superset.databases.filters.security_manager.can_access_all_databases",
         return_value=False,
     )
-    perm_lookup = mocker.patch(
+    perm_lookup: MagicMock = mocker.patch(
         "superset.databases.filters.security_manager.user_view_menu_names",
         return_value={"[example].(id:1)"},
     )
@@ -1628,9 +1630,9 @@ def test_connections_limited_user_access_filters_databases(
         "superset.databases.filters.can_access_databases",
         return_value=set(),
     )
-    db_query = _connections_db_query_mock(mocker)
+    db_query: MagicMock = _connections_db_query_mock(mocker)
 
-    response = client.get("/api/v1/semantic_layer/connections/")
+    response: TestResponse = client.get("/api/v1/semantic_layer/connections/")
 
     assert response.status_code == 200
     db_query.filter.assert_called_once()

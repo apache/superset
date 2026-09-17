@@ -59,6 +59,7 @@ import { getUrlParam } from 'src/utils/urlUtils';
 import { ensureAppRoot } from 'src/utils/navigationUtils';
 import { URL_PARAMS } from 'src/constants';
 import { Icons } from '@superset-ui/core/components/Icons';
+import { findPermission } from 'src/utils/findPermission';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import handleResourceExport from 'src/utils/export';
 import { ExtensionConfigs } from 'src/features/home/types';
@@ -214,6 +215,24 @@ function DatabaseList({
   const theme = useTheme();
   const showSemanticLayers = isFeatureEnabled(SEMANTIC_LAYERS_FLAG);
 
+  const fullUser = useSelector<
+    { user: UserWithPermissionsAndRoles },
+    UserWithPermissionsAndRoles
+  >(state => state.user);
+  const canReadDatabase = findPermission(
+    'can_read',
+    'Database',
+    fullUser.roles,
+  );
+  const canReadLayer = findPermission(
+    'can_read',
+    'SemanticLayer',
+    fullUser.roles,
+  );
+  const canWriteLayer =
+    showSemanticLayers &&
+    findPermission('can_write', 'SemanticLayer', fullUser.roles);
+
   // Standard database list view resource (used when SL flag is OFF)
   const {
     state: {
@@ -228,6 +247,7 @@ function DatabaseList({
     'database',
     databaseLabelLower(),
     addDangerToast,
+    !showSemanticLayers || canReadDatabase,
   );
 
   // Combined endpoint state (used when SL flag is ON)
@@ -311,9 +331,6 @@ function DatabaseList({
   const fetchData = showSemanticLayers ? combinedFetchData : dbFetchData;
   const refreshData = showSemanticLayers ? combinedRefreshData : dbRefreshData;
 
-  const fullUser = useSelector<any, UserWithPermissionsAndRoles>(
-    state => state.user,
-  );
   const shouldSyncPermsInAsyncMode = useSelector<any, boolean>(
     state => state.common?.conf.SYNC_DB_PERMISSIONS_IN_ASYNC_MODE,
   );
@@ -552,7 +569,7 @@ function DatabaseList({
     name: databasesLabel(),
   };
 
-  if (canCreate) {
+  if (canCreate || canWriteLayer) {
     const openDatabaseModal = () =>
       handleDatabaseEditModal({ modalOpen: true });
 
@@ -565,18 +582,26 @@ function DatabaseList({
             <Dropdown
               menu={{
                 items: [
-                  {
-                    key: 'database',
-                    label: t('Database'),
-                    onClick: openDatabaseModal,
-                  },
-                  {
-                    key: 'semantic-layer',
-                    label: t('Semantic Layer'),
-                    onClick: () => {
-                      setSemanticLayerModalOpen(true);
-                    },
-                  },
+                  ...(canCreate
+                    ? [
+                        {
+                          key: 'database',
+                          label: t('Database'),
+                          onClick: openDatabaseModal,
+                        },
+                      ]
+                    : []),
+                  ...(canWriteLayer
+                    ? [
+                        {
+                          key: 'semantic-layer',
+                          label: t('Semantic Layer'),
+                          onClick: () => {
+                            setSemanticLayerModalOpen(true);
+                          },
+                        },
+                      ]
+                    : []),
                 ],
               }}
               trigger={['click']}
@@ -798,13 +823,13 @@ function DatabaseList({
           const isSemanticLayer = original.source_type === 'semantic_layer';
 
           if (isSemanticLayer) {
-            if (!canEdit && !canDelete) return null;
+            if (!canWriteLayer) return null;
             const isLoadingDependents =
               slDeletePreview?.status === 'loading' &&
               slDeletePreview.item.uuid === original.uuid;
             return (
               <div className="actions">
-                {canDelete && (
+                {canWriteLayer && (
                   <ActionButton
                     label={t('Delete')}
                     tooltip={
@@ -824,7 +849,7 @@ function DatabaseList({
                     onClick={() => openSemanticLayerDeleteModal(original)}
                   />
                 )}
-                {canEdit && (
+                {canWriteLayer && (
                   <ActionButton
                     label={t('Edit')}
                     tooltip={t('Edit')}
@@ -894,7 +919,7 @@ function DatabaseList({
         },
         Header: t('Actions'),
         id: 'actions',
-        hidden: !canEdit && !canDelete,
+        hidden: !canEdit && !canDelete && !canWriteLayer,
         disableSortBy: true,
       },
       {
@@ -918,6 +943,7 @@ function DatabaseList({
       handleDatabasePermSync,
       openDatabaseDeleteModal,
       openSemanticLayerDeleteModal,
+      canWriteLayer,
       slDeletePreview,
     ],
   );
@@ -942,8 +968,12 @@ function DatabaseList({
         operator: FilterOperator.Equals,
         unfilteredLabel: t('All'),
         selects: [
-          { label: t('Database'), value: 'database' },
-          { label: t('Semantic Layer'), value: 'semantic_layer' },
+          ...(canReadDatabase
+            ? [{ label: t('Database'), value: 'database' }]
+            : []),
+          ...(canReadLayer
+            ? [{ label: t('Semantic Layer'), value: 'semantic_layer' }]
+            : []),
         ],
       });
     }
@@ -1008,7 +1038,7 @@ function DatabaseList({
     }
 
     return baseFilters;
-  }, [showSemanticLayers]);
+  }, [showSemanticLayers, canReadDatabase, canReadLayer]);
 
   return (
     <>
