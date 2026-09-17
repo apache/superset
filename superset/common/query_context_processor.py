@@ -45,6 +45,7 @@ from superset.daos.chart import ChartDAO
 from superset.exceptions import (
     QueryObjectValidationError,
     SupersetException,
+    SupersetSecurityException,
 )
 from superset.explorables.base import Explorable
 from superset.extensions import cache_manager, security_manager
@@ -484,10 +485,10 @@ class QueryContextProcessor:
         Access and data-identity cache-key material for one chart-backed
         annotation layer.
 
-        ``access`` keeps a user denied the referenced chart's datasource from
-        reading an authorized user's cached payload. ``data_key`` is the
-        annotation chart's own query cache key, capturing the datasource
-        version, RLS clauses, and per-user Jinja/virtual-dataset RLS material.
+        ``access`` keeps a user denied the referenced chart from reading an
+        authorized user's cached payload. ``data_key`` is the annotation chart's
+        own query cache key, capturing the datasource version, RLS clauses, and
+        per-user Jinja/virtual-dataset RLS material.
         """
         chart = ChartDAO.find_by_id(layer_value) if layer_value is not None else None
         datasource = chart.datasource if chart else None
@@ -495,18 +496,33 @@ class QueryContextProcessor:
             return {"access": None, "data_key": None}
 
         try:
-            access = security_manager.can_access_datasource(datasource)
-            # Fall back to the RLS-clause identity when the chart has no saved
-            # query context to key on.
             annotation_query_context = chart.get_query_context()
-            data_key: Any = (
-                [
-                    annotation_query_context.query_cache_key(query_object)
-                    for query_object in annotation_query_context.queries
-                ]
-                if annotation_query_context is not None
-                else security_manager.get_rls_cache_key(datasource)
-            )
+            if annotation_query_context is None:
+                # No saved query context to key on: the fetch itself fails for
+                # every user, so fall back to the datasource's access + RLS
+                # identity.
+                return {
+                    "access": security_manager.can_access_datasource(datasource),
+                    "data_key": security_manager.get_rls_cache_key(datasource),
+                }
+            # Bind the *same* authorization the fetch performs, not just
+            # ``can_access_datasource``: get_viz_annotation_data validates the
+            # annotation chart's query context, whose access check also honors
+            # promiscuous-chart-access (VIEWER_PROMISCUOUS_MODE) and guest-token
+            # scopes -- branches ``can_access_datasource`` skips. Keying on the
+            # narrower check would let a promiscuous-granted viewer collapse onto
+            # a truly-denied user's entry and read their cached payload.
+            try:
+                security_manager.raise_for_access(
+                    query_context=annotation_query_context
+                )
+                access: Any = True
+            except SupersetSecurityException:
+                access = False
+            data_key: Any = [
+                annotation_query_context.query_cache_key(query_object)
+                for query_object in annotation_query_context.queries
+            ]
         except SupersetException:
             # The annotation fetch raises these same errors and persists
             # nothing, so a fallback key never stores real data; fail closed so
