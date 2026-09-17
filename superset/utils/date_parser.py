@@ -458,9 +458,14 @@ def handle_scope_and_unit(scope: str, delta: str, unit: str, relative_base: str)
         raise ValueError(f"Invalid scope: {scope}")
 
 
+# Shared by _shorthand_unit_pattern below and the "this|last|next|prior <unit>"
+# regex in get_since_until()'s time_range_lookup -- kept as one constant so the
+# two can't drift out of sync the way this alternation once did (it was missing
+# "hour" in one of the two, which is what caused this file's sub-day bug).
+_RELATIVE_UNIT_PATTERN = r"(second|minute|hour|day|week|month|quarter|year)"
+
 _shorthand_unit_pattern = re.compile(
-    r"^(?:Last|Next)\s{1,5}(?:[0-9]+\s{0,5})?"
-    r"(second|minute|hour|day|week|month|quarter|year)s?$",
+    r"^(?:Last|Next)\s{1,5}(?:[0-9]+\s{0,5})?" + _RELATIVE_UNIT_PATTERN + r"s?$",
     re.IGNORECASE,
 )
 
@@ -648,7 +653,8 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
             (
                 r"^(this|last|next|prior)\s{1,5}"
                 r"([0-9]+)?\s{0,5}"
-                r"(second|minute|hour|day|week|month|quarter|year)s?$",  # Matches "next 5 days" or "last 2 weeks" # noqa: E501
+                + _RELATIVE_UNIT_PATTERN
+                + r"s?$",  # Matches "next 5 days" or "last 2 weeks" # noqa: E501
                 lambda scope, delta, unit: handle_scope_and_unit(
                     scope, delta, unit, get_relative_base(unit, relative_start)
                 ),
