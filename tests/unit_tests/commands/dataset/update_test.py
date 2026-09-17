@@ -59,7 +59,9 @@ def test_update_dataset_forbidden(mocker: MockerFixture) -> None:
     Test try updating a dataset without permission raises a `DatasetForbiddenError`.
     """
     mock_dataset_dao = mocker.patch("superset.commands.dataset.update.DatasetDAO")
-    mock_dataset_dao.find_by_id.return_value = mocker.MagicMock()
+    mock_dataset_dao.find_by_id.return_value = mocker.MagicMock(
+        is_managed_externally=False
+    )
 
     mocker.patch(
         "superset.commands.dataset.update.security_manager.raise_for_editorship",
@@ -86,7 +88,7 @@ def test_update_dataset_sql_authorized_schema(mocker: MockerFixture) -> None:
     mock_database.get_default_catalog.return_value = "catalog"
     mock_database.allow_multi_catalog = False
 
-    mock_dataset = mocker.MagicMock()
+    mock_dataset = mocker.MagicMock(is_managed_externally=False)
     mock_dataset.database = mock_database
     mock_dataset.catalog = "catalog"
     mock_dataset.schema = "public"
@@ -131,7 +133,7 @@ def test_update_dataset_sql_unauthorized_schema(mocker: MockerFixture) -> None:
     mock_database.get_default_catalog.return_value = "catalog"
     mock_database.allow_multi_catalog = False
 
-    mock_dataset = mocker.MagicMock()
+    mock_dataset = mocker.MagicMock(is_managed_externally=False)
     mock_dataset.database = mock_database
     mock_dataset.catalog = "catalog"
     mock_dataset.schema = "public"
@@ -194,7 +196,7 @@ def test_update_dataset_database_id_change_checks_new_database_access(
     mock_new_database.get_default_catalog.return_value = "catalog"
     mock_new_database.allow_multi_catalog = False
 
-    mock_dataset = mocker.MagicMock()
+    mock_dataset = mocker.MagicMock(is_managed_externally=False)
     mock_dataset.database = mock_current_database
     mock_dataset.catalog = "catalog"
     mock_dataset.schema = "public"
@@ -250,7 +252,7 @@ def test_update_dataset_database_id_change_allowed_with_access(
     mock_new_database.get_default_catalog.return_value = "catalog"
     mock_new_database.allow_multi_catalog = False
 
-    mock_dataset = mocker.MagicMock()
+    mock_dataset = mocker.MagicMock(is_managed_externally=False)
     mock_dataset.database = mock_current_database
     mock_dataset.catalog = "catalog"
     mock_dataset.schema = "public"
@@ -298,7 +300,7 @@ def test_update_dataset_physical_repoint_requires_table_access(
     mock_database.get_default_catalog.return_value = "catalog"
     mock_database.allow_multi_catalog = False
 
-    mock_dataset = mocker.MagicMock()
+    mock_dataset = mocker.MagicMock(is_managed_externally=False)
     mock_dataset.database = mock_database
     mock_dataset.catalog = "catalog"
     mock_dataset.schema = "public"
@@ -380,7 +382,7 @@ def test_update_dataset_validation_errors(
     mock_database.id = 1
     mock_database.get_default_catalog.return_value = "catalog"
     mock_database.allow_multi_catalog = False
-    mock_dataset = mocker.MagicMock()
+    mock_dataset = mocker.MagicMock(is_managed_externally=False)
     mock_dataset.database = mock_database
     mock_dataset.catalog = "catalog"
     mock_dataset_dao.find_by_id.return_value = mock_dataset
@@ -450,7 +452,7 @@ def test_update_dataset_rejects_malicious_expression(
     mock_database.backend = "sqlite"
     mock_database.allow_multi_catalog = False
     mock_database.get_default_catalog.return_value = "catalog"
-    mock_dataset = mocker.MagicMock()
+    mock_dataset = mocker.MagicMock(is_managed_externally=False)
     mock_dataset.database = mock_database
     mock_dataset.catalog = "catalog"
     mock_dataset.schema = None
@@ -499,7 +501,7 @@ def test_update_dataset_accepts_benign_expression(mocker: MockerFixture) -> None
     mock_database.backend = "sqlite"
     mock_database.allow_multi_catalog = False
     mock_database.get_default_catalog.return_value = "catalog"
-    mock_dataset = mocker.MagicMock()
+    mock_dataset = mocker.MagicMock(is_managed_externally=False)
     mock_dataset.database = mock_database
     mock_dataset.catalog = "catalog"
     mock_dataset.schema = None
@@ -540,7 +542,7 @@ def test_update_dataset_accepts_jinja_expression(mocker: MockerFixture) -> None:
     mock_database.backend = "sqlite"
     mock_database.allow_multi_catalog = False
     mock_database.get_default_catalog.return_value = "catalog"
-    mock_dataset = mocker.MagicMock()
+    mock_dataset = mocker.MagicMock(is_managed_externally=False)
     mock_dataset.database = mock_database
     mock_dataset.catalog = "catalog"
     mock_dataset.schema = None
@@ -1301,7 +1303,7 @@ def test_update_dataset_rejects_malicious_fetch_values_predicate(
     mock_database.backend = "sqlite"
     mock_database.allow_multi_catalog = False
     mock_database.get_default_catalog.return_value = "catalog"
-    mock_dataset = mocker.MagicMock()
+    mock_dataset = mocker.MagicMock(is_managed_externally=False)
     mock_dataset.database = mock_database
     mock_dataset.catalog = "catalog"
     mock_dataset.schema = None
