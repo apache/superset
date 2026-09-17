@@ -76,9 +76,10 @@ from superset.migrations.shared.security_converge import (  # noqa: E402
 #   can_save_dash -- PR #24353, `@deprecated()` with no `new_target`.
 #   can_profile -- PR #26462, explicit full feature removal (the Profile page
 #     was deleted as unmaintained).
-#   can_override_role_permissions -- PR #23714, `@deprecated()` with no
-#     `new_target`; the PR body states it was "not called from client side
-#     code at all."
+#   can_override_role_permissions -- PR #23714 added `@deprecated()` with no
+#     `new_target` (the PR body states it was "not called from client side
+#     code at all"); the endpoint itself was actually deleted later, in
+#     PR #24266.
 #   can_testconn, can_sqllab_viz, can_import_dashboards, can_add_slices --
 #     each does have a technically-live `@deprecated(new_target=...)`
 #     successor (Database/Dataset/Chart/Dashboard `can_write` respectively),

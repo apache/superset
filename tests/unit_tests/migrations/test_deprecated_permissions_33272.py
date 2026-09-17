@@ -118,6 +118,27 @@ def test_pvm_list_and_pvm_map_are_disjoint() -> None:
     assert not any(pvm.permission in all_new_pvms_permissions for pvm in PVM_LIST)
 
 
+def test_can_copy_dash_is_the_only_write_level_rename() -> None:
+    """
+    ``can_copy_dash`` is the one deliberate exception to "no rename resurrects
+    a dead permission as a broader can_write grant" (see the file docstring
+    and the inline comment on its ``PVM_MAP`` entry): its live successor,
+    Dashboard.can_write, is a genuine 1:1 match for the still-live
+    ``copy_dash`` REST route, not accidental broadening. Every other
+    can_write-level rename previously found this way (can_testconn,
+    can_sqllab_viz, can_import_dashboards, can_add_slices) was moved to the
+    delete migration instead. This pins that policy: it fails if a future
+    edit reintroduces one of those, or adds a new one, without an equally
+    deliberate exception.
+    """
+    write_renames = {
+        old_pvm
+        for old_pvm, successors in PVM_MAP.items()
+        if any(successor.permission == "can_write" for successor in successors)
+    }
+    assert write_renames == {Pvm("Superset", "can_copy_dash")}
+
+
 def test_delete_migration_real_pvm_list_removes_deprecated_pvm_only(
     session: Session,
 ) -> None:
