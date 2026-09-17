@@ -933,6 +933,15 @@ class UpdateDatasetRequest(BaseModel):
             raise ValueError("dataset_id must be an integer ID or UUID string")
         return value
 
+    @field_validator("cache_timeout", mode="before")
+    @classmethod
+    def reject_bool_cache_timeout(cls, value: object) -> object:
+        """bool is a subclass of int, so cache_timeout=true would set a
+        one-second timeout; reject it outright."""
+        if isinstance(value, bool):
+            raise ValueError("cache_timeout must be an integer or null")
+        return value
+
     def updates(self) -> Dict[str, Any]:
         """Return only the dataset properties explicitly provided by the caller.
 

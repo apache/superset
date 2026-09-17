@@ -70,6 +70,61 @@ def _rollback() -> None:
         logger.warning("Database rollback failed during restore_dataset error handling")
 
 
+async def _deny_restore(
+    dataset: Any, identifier: int | str, ctx: Context
+) -> RestoreDatasetResponse | None:
+    """Return an error response unless the caller may restore ``dataset``.
+
+    ``_find_dataset_for_restore`` bypasses the RBAC base filter, so without
+    this gate iterating identifiers would disclose the existence and exact
+    name of datasets the caller cannot see (the web API answers 404 for
+    those). A dataset outside the caller's RBAC scope reads as not found; a
+    visible one the caller cannot edit gets a permission error naming only
+    its id.
+    """
+    from superset import security_manager
+    from superset.exceptions import SupersetSecurityException
+
+    try:
+        try:
+            security_manager.raise_for_editorship(dataset)
+        except SupersetSecurityException:
+            from superset.daos.dataset import DatasetDAO
+
+            visible = DatasetDAO.find_by_id_or_uuid(
+                str(identifier), skip_visibility_filter=True
+            )
+            if visible is None:
+                display_id = str(identifier)[:200]
+                return RestoreDatasetResponse(
+                    success=False,
+                    error=f"No dataset found with identifier: {display_id}.",
+                    error_type="NotFound",
+                )
+            await ctx.warning(
+                "Permission denied restoring dataset id=%s" % (dataset.id,)
+            )
+            return RestoreDatasetResponse(
+                success=False,
+                permission_denied=True,
+                error=(
+                    f"You do not have permission to restore dataset "
+                    f"id={dataset.id}. Ask the user to restore it or grant "
+                    "access; do not retry."
+                ),
+                error_type="Forbidden",
+            )
+    except SQLAlchemyError:
+        _rollback()
+        logger.exception("Editorship check failed during restore_dataset")
+        return RestoreDatasetResponse(
+            success=False,
+            error="Dataset lookup failed due to a database error.",
+            error_type="LookupFailed",
+        )
+    return None
+
+
 @tool(
     tags=["mutate"],
     class_permission_name="Dataset",
@@ -124,6 +179,13 @@ async def restore_dataset(
         return RestoreDatasetResponse(success=False, error=msg, error_type="NotFound")
 
     dataset_id = dataset.id
+
+    # The lookup above deliberately bypasses the RBAC base filter, so enforce
+    # the restore audience *before* composing any response that embeds the
+    # dataset's name.
+    if (denied := await _deny_restore(dataset, request.identifier, ctx)) is not None:
+        return denied
+
     # Table names are user-controlled and must remain exact in response text.
     dataset_name = dataset.table_name
 

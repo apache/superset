@@ -151,8 +151,12 @@ async def delete_dataset(
         try:
             from superset.commands.dataset.delete import DeleteDatasetCommand
 
+            command = DeleteDatasetCommand([dataset_id])
+            # Check editorship before counting dependents, so a caller who may
+            # not delete the dataset triggers no relationship queries.
+            command.validate()
             chart_count, dashboard_count = _count_affected_objects(dataset_id)
-            DeleteDatasetCommand([dataset_id]).run()
+            command.run()
 
             soft_deleted = _routes_to_soft_delete()
             if soft_deleted:
