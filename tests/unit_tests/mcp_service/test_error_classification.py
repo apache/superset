@@ -36,18 +36,27 @@ import pytest
 from fastmcp import FastMCP
 from fastmcp.client import Client
 from fastmcp.exceptions import ToolError
+from sqlalchemy.exc import IntegrityError, OperationalError
 
 from superset.commands.exceptions import ForbiddenError
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
+    DatabaseNotFound,
+    QueryObjectValidationError,
     SupersetErrorException,
+    SupersetErrorsException,
     SupersetException,
     SupersetSecurityException,
+    SupersetTimeoutException,
 )
 from superset.mcp_service.auth import MCPPermissionDeniedError
+from superset.mcp_service.constants import CONNECTION_ERROR_TYPES
 from superset.mcp_service.middleware import (
     _datasource_error_reason,
+    _FASTMCP_WRAPPED_ERROR_PREFIX,
+    _GENERIC_DATASOURCE_REASON,
     _is_datasource_error,
+    _unwrap_fastmcp_wrapped_error,
     _unwrap_tool_error,
     GlobalErrorHandlerMiddleware,
     ToolResultCompatibilityMiddleware,
@@ -96,6 +105,11 @@ def _build_server() -> FastMCP:
     def dead_table(unused: int = 1) -> str:
         """Well-formed call whose datasource is gone."""
         raise _dead_table_error()
+
+    @mcp.tool
+    def untyped_datasource(unused: int = 1) -> str:
+        """Datasource failure carrying no recognised SupersetErrorType."""
+        raise DatabaseNotFound("Database backing this chart is gone")
 
     @mcp.tool
     def needs_id(id: int) -> str:  # noqa: A002
@@ -157,22 +171,38 @@ class TestFastMCPWrappingPrecondition:
         assert len(seen) == 1
         assert isinstance(seen[0], ToolError)
         assert isinstance(seen[0].__cause__, PermissionError)
+        # _unwrap_tool_error keys off this prefix to tell FastMCP's wrapper
+        # apart from a ToolError tool code chained off another exception.
+        assert str(seen[0]).startswith(_FASTMCP_WRAPPED_ERROR_PREFIX)
 
 
 class TestUnwrapToolError:
-    """``_unwrap_tool_error`` must recover the cause without eating
-    deliberately raised ToolErrors."""
+    """``_unwrap_tool_error`` classifies by the underlying failure.
 
-    def test_returns_cause_of_wrapped_error(self) -> None:
+    Used for log severity, metrics, and error-tracker capture only — never to
+    pick client-facing text — so it unwraps any chained ToolError, including
+    GlobalErrorHandlerMiddleware's own re-raise, which LoggingMiddleware (the
+    outer middleware) is what actually sees.
+    """
+
+    def test_returns_cause_of_fastmcp_wrapped_error(self) -> None:
         cause = MCPPermissionDeniedError(permission_name="can_read", view_name="Chart")
         wrapped = ToolError("Error calling tool 'list_charts': denied")
         wrapped.__cause__ = cause
 
         assert _unwrap_tool_error(wrapped) is cause
 
-    def test_passes_through_deliberate_tool_error(self) -> None:
-        """A ToolError raised by tool code has no cause and is already
-        formatted for MCP, so it must survive untouched."""
+    def test_returns_cause_of_our_own_handlers_reraise(self) -> None:
+        """GlobalErrorHandlerMiddleware re-raises a classified message chained
+        off the same cause, with no FastMCP prefix. LoggingMiddleware must
+        still attribute the failure to OperationalError, not to ToolError."""
+        cause = OperationalError("db error", {}, Exception())
+        reraised = ToolError("Database error in execute_sql")
+        reraised.__cause__ = cause
+
+        assert _unwrap_tool_error(reraised) is cause
+
+    def test_passes_through_unchained_tool_error(self) -> None:
         deliberate = ToolError("'search_tools' cannot be called via the proxy")
 
         assert _unwrap_tool_error(deliberate) is deliberate
@@ -181,6 +211,41 @@ class TestUnwrapToolError:
         error = ValueError("page must be positive")
 
         assert _unwrap_tool_error(error) is error
+
+
+class TestUnwrapFastMCPWrappedError:
+    """``_unwrap_fastmcp_wrapped_error`` decides client-facing text, so it
+    must recover FastMCP's cause without eating a tool-authored message."""
+
+    def test_returns_cause_of_fastmcp_wrapped_error(self) -> None:
+        cause = MCPPermissionDeniedError(permission_name="can_read", view_name="Chart")
+        wrapped = ToolError("Error calling tool 'list_charts': denied")
+        wrapped.__cause__ = cause
+
+        assert _unwrap_fastmcp_wrapped_error(wrapped) is cause
+
+    def test_passes_through_deliberate_tool_error(self) -> None:
+        """A ToolError raised by tool code is already formatted for MCP, so
+        it must survive untouched."""
+        deliberate = ToolError("'search_tools' cannot be called via the proxy")
+
+        assert _unwrap_fastmcp_wrapped_error(deliberate) is deliberate
+
+    def test_passes_through_deliberate_tool_error_chained_off_a_cause(
+        self,
+    ) -> None:
+        """``raise ToolError(...) from exc`` in tool code is legitimate. Its
+        author-written message must not be discarded in favour of cause-based
+        handling just because a cause is attached."""
+        deliberate = ToolError("dataset is missing a time column")
+        deliberate.__cause__ = ValueError("no granularity")
+
+        assert _unwrap_fastmcp_wrapped_error(deliberate) is deliberate
+
+    def test_passes_through_unwrapped_exception(self) -> None:
+        error = ValueError("page must be positive")
+
+        assert _unwrap_fastmcp_wrapped_error(error) is error
 
 
 class TestDatasourceErrorClassification:
@@ -210,6 +275,70 @@ class TestDatasourceErrorClassification:
 
     def test_unrelated_superset_exception_is_not_a_datasource_error(self) -> None:
         assert _is_datasource_error(SupersetException("something else")) is False
+
+    def test_connection_failures_are_datasource_errors(self) -> None:
+        """Every canonical connection error type classifies, so an
+        unreachable database is never reported as an internal error."""
+        for error_type in CONNECTION_ERROR_TYPES:
+            error = SupersetErrorException(
+                SupersetError(
+                    message="cannot connect",
+                    error_type=error_type,
+                    level=ErrorLevel.ERROR,
+                )
+            )
+
+            assert _is_datasource_error(error) is True, error_type
+            assert _datasource_error_reason(error) == error_type.value
+
+    def test_metastore_failure_is_not_a_datasource_error(self) -> None:
+        """SQLAlchemyError also covers Superset's own metadata database. A
+        metastore failure must not be reported as a failed datasource query
+        with the caller told their arguments were valid."""
+        error = IntegrityError("INSERT INTO logs", {}, Exception("duplicate key"))
+
+        assert _is_datasource_error(error) is False
+
+    def test_generic_backend_timeout_is_not_a_datasource_error(self) -> None:
+        """SigalrmTimeout/TimerTimeout raise SupersetTimeoutException with
+        BACKEND_TIMEOUT_ERROR; that is not a datasource outage."""
+        error = SupersetTimeoutException(
+            error_type=SupersetErrorType.BACKEND_TIMEOUT_ERROR,
+            message="Process timed out",
+            level=ErrorLevel.ERROR,
+        )
+
+        assert _is_datasource_error(error) is False
+
+    def test_query_object_validation_error_is_not_a_datasource_error(self) -> None:
+        """Raised for missing/invalid query fields and invalid result types —
+        a caller or configuration problem, not a broken datasource."""
+        error = QueryObjectValidationError("Invalid result type: bogus")
+
+        assert _is_datasource_error(error) is False
+
+    def test_reason_scans_every_error_in_a_multi_error_exception(self) -> None:
+        """A datasource error reported alongside others keeps its specific
+        reason instead of falling back to the generic sentinel."""
+        error = SupersetErrorsException(
+            [
+                SupersetError(
+                    message="first",
+                    error_type=SupersetErrorType.GENERIC_COMMAND_ERROR,
+                    level=ErrorLevel.ERROR,
+                ),
+                SupersetError(
+                    message="second",
+                    error_type=SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
+                    level=ErrorLevel.ERROR,
+                ),
+            ]
+        )
+
+        assert (
+            _datasource_error_reason(error)
+            == SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR.value
+        )
 
     def test_reason_is_none_for_unlisted_error_type(self) -> None:
         error = SupersetErrorException(
@@ -269,6 +398,17 @@ class TestPerClassClientFacingErrors:
         assert "arguments were valid" in message
         assert "Permission denied" not in message
         assert "Validation error" not in message
+
+    @pytest.mark.asyncio
+    async def test_untyped_datasource_failure_uses_the_generic_sentinel(self) -> None:
+        """The reason is part of the client-facing message, so it stays a
+        closed vocabulary — never the Python exception class name."""
+        message = await _call("untyped_datasource")
+
+        assert "Datasource error in untyped_datasource" in message
+        assert _GENERIC_DATASOURCE_REASON in message
+        assert "DatabaseNotFound" not in message
+        assert "Exception" not in message
 
     @pytest.mark.asyncio
     async def test_internal_error_is_opaque_and_carries_an_error_id(self) -> None:

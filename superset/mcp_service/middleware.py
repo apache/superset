@@ -30,7 +30,7 @@ from fastmcp.server.middleware.middleware import CallNext
 from fastmcp.tools.tool import Tool, ToolResult
 from flask import g
 from pydantic import ValidationError
-from sqlalchemy.exc import OperationalError, SQLAlchemyError, TimeoutError
+from sqlalchemy.exc import OperationalError, TimeoutError
 from starlette.exceptions import HTTPException
 
 from superset.commands.exceptions import (
@@ -42,14 +42,10 @@ from superset.errors import SupersetErrorType
 from superset.exceptions import (
     ColumnNotFoundException,
     DatabaseNotFound,
-    QueryObjectValidationError,
     SupersetErrorsException,
     SupersetException,
     SupersetGenericDBErrorException,
-    SupersetParseError,
     SupersetSecurityException,
-    SupersetTimeoutException,
-    SupersetVizException,
 )
 from superset.extensions import event_logger, stats_logger_manager
 from superset.mcp_service.auth import (
@@ -61,6 +57,7 @@ from superset.mcp_service.auth import (
     MCPPermissionDeniedError,
 )
 from superset.mcp_service.constants import (
+    CONNECTION_ERROR_TYPES,
     DEFAULT_MAX_LIST_ITEMS,
     DEFAULT_TOKEN_LIMIT,
     DEFAULT_WARN_THRESHOLD_PCT,
@@ -177,8 +174,33 @@ def _invoke_error_hook(error: Exception, hook_context: dict[str, Any]) -> None:
         logger.warning("MCP_ERROR_HOOK raised an exception: %s", hook_error)
 
 
+# The prefix FastMCP puts on every ToolError it wraps a tool exception in.
+# Pinned by a guard test so an upstream change surfaces as a clear failure
+# rather than silently reinstating the undifferentiated-error bug.
+_FASTMCP_WRAPPED_ERROR_PREFIX = "Error calling tool "
+
+
 def _unwrap_tool_error(error: Exception) -> Exception:
-    """Return the original exception behind FastMCP's ``ToolError`` wrapper.
+    """Return the exception a ``ToolError`` was raised from, if any.
+
+    A tool failure is wrapped twice on its way out: FastMCP wraps whatever the
+    tool body raised, and :class:`GlobalErrorHandlerMiddleware` re-raises its
+    classified message as a fresh ``ToolError`` chained off the same cause.
+    Either way the real failure is the ``__cause__``.
+
+    This is for *classification only* — log severity, metrics, and
+    error-tracker capture — where attributing a failure to the wrapper rather
+    than to ``OperationalError`` or ``MCPPermissionDeniedError`` loses the
+    distinction that matters. It does not decide client-facing text; use
+    :func:`_unwrap_fastmcp_wrapped_error` for that.
+    """
+    if isinstance(error, ToolError) and isinstance(error.__cause__, Exception):
+        return error.__cause__
+    return error
+
+
+def _unwrap_fastmcp_wrapped_error(error: Exception) -> Exception:
+    """Return the original exception behind *FastMCP's* ``ToolError`` wrapper.
 
     FastMCP catches every non-``FastMCPError`` raised inside a tool body and
     re-raises it as ``ToolError(f"Error calling tool {name!r}: {e}") from e``
@@ -189,56 +211,76 @@ def _unwrap_tool_error(error: Exception) -> Exception:
     ``__cause__``. Classifying the wrapper instead of the cause collapses
     every distinct failure into one undifferentiated message.
 
-    A ``ToolError`` raised deliberately by tool code is re-raised by FastMCP
-    untouched and therefore carries no ``__cause__``; it is already formatted
-    for MCP and is returned as-is.
+    A ``ToolError`` raised deliberately by tool code is already formatted for
+    MCP and is returned as-is. Tool code may legitimately chain one off
+    another exception (``raise ToolError(...) from exc``), so ``__cause__``
+    alone does not identify FastMCP's wrapper — the message prefix is
+    required as well, otherwise a tool-authored message would be discarded
+    and replaced by cause-based handling.
     """
-    if isinstance(error, ToolError) and error.__cause__ is not None:
-        cause = error.__cause__
-        if isinstance(cause, Exception):
-            return cause
+    if (
+        isinstance(error, ToolError)
+        and isinstance(error.__cause__, Exception)
+        and str(error).startswith(_FASTMCP_WRAPPED_ERROR_PREFIX)
+    ):
+        return error.__cause__
     return error
 
 
 # Exception classes that mean "the query behind this tool failed", not "the
 # caller used the tool wrong". The tool name and arguments were valid; the
 # datasource, table, column, or connection it reads is broken or gone.
+#
+# Deliberately narrow: only classes that are datasource-scoped *by definition*
+# and that do not reliably carry a recognisable ``SupersetErrorType``. Broader
+# classes are matched by error type instead (see _DATASOURCE_ERROR_TYPES),
+# because the class alone does not establish that the datasource is at fault:
+#
+# - ``SQLAlchemyError`` also covers metadata-database IntegrityError /
+#   ProgrammingError raised while a tool reads Superset's own metastore.
+# - ``SupersetTimeoutException`` is the generic timeout class; SigalrmTimeout
+#   and TimerTimeout raise it with BACKEND_TIMEOUT_ERROR.
+# - ``QueryObjectValidationError`` is raised for missing/invalid query fields
+#   and invalid result types, which are caller or configuration problems.
+#
+# Misclassifying any of those would tell the caller their arguments were valid
+# and blame a datasource that is in fact healthy.
 _DATASOURCE_ERROR_EXCEPTIONS = (
     ColumnNotFoundException,
     DatabaseNotFound,
-    QueryObjectValidationError,
     SupersetGenericDBErrorException,
-    SupersetParseError,
-    SupersetTimeoutException,
-    SupersetVizException,
-    SQLAlchemyError,
 )
 
 # ``SupersetError.error_type`` values in the DB-engine, viz, and SQL Lab
 # families. Superset raises a bare ``SupersetErrorException`` for many of
-# these, so the exception class alone is not enough to classify them.
-_DATASOURCE_ERROR_TYPES = frozenset(
-    {
-        SupersetErrorType.COLUMN_DOES_NOT_EXIST_ERROR,
-        SupersetErrorType.CONNECTION_DATABASE_TIMEOUT,
-        SupersetErrorType.CONNECTION_HOST_DOWN_ERROR,
-        SupersetErrorType.CONNECTION_PORT_CLOSED_ERROR,
-        SupersetErrorType.CONNECTION_UNKNOWN_DATABASE_ERROR,
-        SupersetErrorType.DATABASE_NOT_FOUND_ERROR,
-        SupersetErrorType.FAILED_FETCHING_DATASOURCE_INFO_ERROR,
-        SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
-        SupersetErrorType.INVALID_SQL_ERROR,
-        SupersetErrorType.OBJECT_DOES_NOT_EXIST_ERROR,
-        SupersetErrorType.RESULTS_BACKEND_ERROR,
-        SupersetErrorType.SCHEMA_DOES_NOT_EXIST_ERROR,
-        SupersetErrorType.SQLLAB_TIMEOUT_ERROR,
-        SupersetErrorType.SYNTAX_ERROR,
-        SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
-        SupersetErrorType.TABLE_NOT_FOUND_ERROR,
-        SupersetErrorType.UNKNOWN_DATASOURCE_TYPE_ERROR,
-        SupersetErrorType.VIZ_GET_DF_ERROR,
-    }
+# these, so the exception class alone is not enough to classify them. The
+# connection half comes from the shared CONNECTION_ERROR_TYPES set so this
+# cannot drift out of sync with chart compilation's view of the same thing.
+_DATASOURCE_ERROR_TYPES = (
+    frozenset(
+        {
+            SupersetErrorType.COLUMN_DOES_NOT_EXIST_ERROR,
+            SupersetErrorType.DATABASE_NOT_FOUND_ERROR,
+            SupersetErrorType.FAILED_FETCHING_DATASOURCE_INFO_ERROR,
+            SupersetErrorType.INVALID_SQL_ERROR,
+            SupersetErrorType.OBJECT_DOES_NOT_EXIST_ERROR,
+            SupersetErrorType.RESULTS_BACKEND_ERROR,
+            SupersetErrorType.SCHEMA_DOES_NOT_EXIST_ERROR,
+            SupersetErrorType.SQLLAB_TIMEOUT_ERROR,
+            SupersetErrorType.SYNTAX_ERROR,
+            SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
+            SupersetErrorType.TABLE_NOT_FOUND_ERROR,
+            SupersetErrorType.UNKNOWN_DATASOURCE_TYPE_ERROR,
+            SupersetErrorType.VIZ_GET_DF_ERROR,
+        }
+    )
+    | CONNECTION_ERROR_TYPES
 )
+
+# Surfaced when a datasource failure carries no recognised SupersetErrorType.
+# A fixed sentinel, never a Python class name: the reason is part of the
+# client-facing message and must stay a closed, non-sensitive vocabulary.
+_GENERIC_DATASOURCE_REASON = "DATASOURCE_QUERY_FAILED"
 
 
 def _datasource_error_reason(error: Exception) -> str | None:
@@ -251,17 +293,20 @@ def _datasource_error_reason(error: Exception) -> str | None:
     errors = getattr(error, "errors", None)
     single_error = getattr(error, "error", None)
     if isinstance(error, SupersetErrorsException) and errors:
-        # SupersetErrorsException carries a list of SupersetError.
-        error_type = getattr(errors[0], "error_type", None)
+        # SupersetErrorsException carries a list of SupersetError. Scan all of
+        # them, not just the first: a datasource failure reported alongside
+        # other errors would otherwise lose its specific reason.
+        candidates = [getattr(err, "error_type", None) for err in errors]
     elif single_error is not None:
         # SupersetErrorException carries a single SupersetError.
-        error_type = getattr(single_error, "error_type", None)
+        candidates = [getattr(single_error, "error_type", None)]
     else:
         # Plain SupersetException exposes error_type directly.
-        error_type = getattr(error, "error_type", None)
-    if error_type not in _DATASOURCE_ERROR_TYPES:
-        return None
-    return str(getattr(error_type, "value", error_type))
+        candidates = [getattr(error, "error_type", None)]
+    for error_type in candidates:
+        if error_type in _DATASOURCE_ERROR_TYPES:
+            return str(getattr(error_type, "value", error_type))
+    return None
 
 
 def _is_datasource_error(error: Exception) -> bool:
@@ -1076,7 +1121,7 @@ class GlobalErrorHandlerMiddleware(Middleware):
         log severity, error-tracker capture, and the client-facing text — is
         therefore made on the unwrapped cause. See :func:`_unwrap_tool_error`.
         """
-        error = _unwrap_tool_error(wrapped_error)
+        error = _unwrap_fastmcp_wrapped_error(wrapped_error)
 
         # Extract user context for logging
         user_id = None
@@ -1216,7 +1261,7 @@ class GlobalErrorHandlerMiddleware(Middleware):
             # down the wrong path for a dropped table or a dead connection.
             # Only the enumerated SupersetErrorType is echoed; raw driver
             # output could carry SQL or connection details.
-            reason = _datasource_error_reason(error) or type(error).__name__
+            reason = _datasource_error_reason(error) or _GENERIC_DATASOURCE_REASON
             raise ToolError(
                 f"Datasource error in {tool_name}: the query against the "
                 f"underlying datasource failed ({reason}). The tool name and "
