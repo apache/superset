@@ -33,6 +33,7 @@ INDEX_NAME = "ix_theme_editors_theme_id"
 
 
 def upgrade() -> None:
+    """Add an index on theme_editors.theme_id."""
     # theme_editors' only index is the UNIQUE(subject_id, theme_id) constraint
     # from its creation (#42404), which leads with subject_id -- most engines
     # can't use a composite index to serve a lookup filtered on its trailing
@@ -42,4 +43,5 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    """Drop the theme_editors.theme_id index."""
     drop_index(TABLE_NAME, INDEX_NAME)
