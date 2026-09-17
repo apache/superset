@@ -20,15 +20,17 @@ from __future__ import annotations
 
 import logging
 import re
+from collections.abc import Collection
 from dataclasses import dataclass
 from datetime import datetime
 from functools import lru_cache, partial
 from typing import Any, Callable, cast, TYPE_CHECKING, TypedDict, Union
 
 from flask import current_app, g, has_request_context, request
-from flask_babel import gettext as _
+from flask_babel import gettext as _, ngettext
 from jinja2 import DebugUndefined, Environment, TemplateSyntaxError, UndefinedError
 from jinja2.exceptions import SecurityError
+from jinja2.meta import find_undeclared_variables
 from jinja2.sandbox import SandboxedEnvironment
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.sql.expression import bindparam
@@ -44,13 +46,14 @@ from superset.exceptions import (
     SupersetTemplateException,
 )
 from superset.extensions import feature_flag_manager
-from superset.sql.parse import Table
+from superset.sql.parse import SQLScript, Table
 from superset.superset_typing import Column, QueryObjectDict
 from superset.utils import json
 from superset.utils.core import (
     AdhocFilterClause,
     convert_legacy_filters_into_adhoc,
     FilterOperator,
+    format_list,
     get_user_email,
     get_user_id,
     get_username,
@@ -938,6 +941,26 @@ class SupersetSandboxedEnvironment(SandboxedEnvironment):
         return super().is_safe_attribute(obj, attr, value)
 
 
+PARAMETER_MISSING_ERR = _(
+    "Please check your template parameters for syntax errors and make sure "
+    "they match across your SQL query and Set Parameters. Then, try running "
+    "your query again."
+)
+
+
+def undefined_parameters_message(undefined_parameters: Collection[str]) -> str:
+    """The reason both SQL Lab paths give for parameters left unresolved
+
+    Shared so the two reports, and their translations, cannot drift apart.
+    """
+    return ngettext(
+        "The parameter %(parameters)s in your query is undefined.",
+        "The following parameters in your query are undefined: %(parameters)s.",
+        len(undefined_parameters),
+        parameters=format_list(sorted(undefined_parameters)),
+    )
+
+
 class BaseTemplateProcessor:
     """
     Base class for database-specific jinja context
@@ -951,6 +974,7 @@ class BaseTemplateProcessor:
         database: "Database",
         query: "Query" | None = None,
         table: "SqlaTable" | None = None,
+        schema: str | None = None,
         extra_cache_keys: list[Any] | None = None,
         removed_filters: list[str] | None = None,
         applied_filters: list[str] | None = None,
@@ -958,7 +982,11 @@ class BaseTemplateProcessor:
     ) -> None:
         self._database = database
         self._query = query
-        self._schema = None
+        # A caller with no ``Query`` or ``SqlaTable`` to hand -- cost
+        # estimation, for one -- passes the schema directly, so that a macro
+        # resolving an unqualified table (``presto.latest_partition``) looks
+        # in the schema the query would actually run in.
+        self._schema = schema
         if query and query.schema:
             self._schema = query.schema
         elif table:
@@ -996,6 +1024,23 @@ class BaseTemplateProcessor:
         """
         kwargs.update(self._context)
         return validate_template_context(self.engine, kwargs)
+
+    def get_undefined_parameters(self, sql: str) -> set[str]:
+        """The template references ``process_template`` was unable to resolve
+
+        An unprovided parameter is left in place by ``DebugUndefined`` rather
+        than raising, so rendered SQL can still carry ``{{ name }}``. Parsing
+        the rendered SQL names what was left behind.
+
+        SQL comments are stripped first, so a parameter the author commented
+        out is not reported as missing. Stripping them parses the SQL, so SQL
+        that does not parse raises ``SupersetParseError`` from here rather than
+        being reported as having no undefined parameter.
+        """
+        stripped = SQLScript(sql, self._database.db_engine_spec.engine).format(
+            comments=False
+        )
+        return find_undeclared_variables(self.env.parse(stripped))
 
     def process_template(self, sql: str, **kwargs: Any) -> str:
         """Processes a sql template
@@ -1133,6 +1178,12 @@ class JinjaTemplateProcessor(BaseTemplateProcessor):
 
 
 class NoOpTemplateProcessor(BaseTemplateProcessor):
+    def get_undefined_parameters(self, sql: str) -> set[str]:
+        """
+        Nothing is ever expanded, so nothing can be left undefined
+        """
+        return set()
+
     def process_template(self, sql: str, **kwargs: Any) -> str:
         """
         Makes processing a template a noop
