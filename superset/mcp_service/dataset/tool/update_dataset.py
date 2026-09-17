@@ -82,6 +82,12 @@ async def update_dataset(  # noqa: C901
     fail until they are updated. ``warnings`` reports problems that did not
     undo the update, e.g. a column re-sync that failed after the SQL was saved.
 
+    ``main_dttm_col`` must name one of the dataset's columns. Without a column
+    re-sync, an unknown name rejects the whole call. With a re-sync, the name
+    can only be checked once the new SQL is saved and its columns are known:
+    if it is not among them, the rest of the update stays saved and
+    ``warnings`` says that ``main_dttm_col`` was not changed.
+
     Workflow:
     1. Call get_dataset_info to inspect the dataset
     2. Call this tool with the dataset ID and only the properties to change
@@ -197,12 +203,25 @@ async def update_dataset(  # noqa: C901
         columns_synced = False
         if sync_columns:
             try:
+                refresh = RefreshDatasetCommand(dataset_id)
                 with event_logger.log_context(action="mcp.update_dataset.sync_columns"):
-                    dataset = RefreshDatasetCommand(dataset_id).run()
-                columns_after = _column_names(dataset)
-                added_columns = sorted(columns_after - columns_before)
-                removed_columns = sorted(columns_before - columns_after)
-                columns_synced = True
+                    dataset = refresh.run()
+                if refresh.metadata_refreshed:
+                    columns_after = _column_names(dataset)
+                    added_columns = sorted(columns_after - columns_before)
+                    removed_columns = sorted(columns_before - columns_after)
+                    columns_synced = True
+                else:
+                    # The command skips the refresh, without raising, when
+                    # the SQL cannot be rendered outside a query (e.g. Jinja
+                    # that needs filter values).
+                    warnings.append(
+                        "The update was saved, but the columns were not "
+                        "re-synced: the dataset's SQL could not be rendered "
+                        "without query context (for example Jinja that "
+                        "depends on filters). The column list may not match "
+                        "the dataset's SQL."
+                    )
             except (SupersetException, SQLAlchemyError) as ex:
                 await ctx.warning(
                     "Dataset column sync failed: %s: %s" % (type(ex).__name__, ex)
@@ -225,11 +244,23 @@ async def update_dataset(  # noqa: C901
                     "a column of the dataset after the update."
                 )
             else:
-                with event_logger.log_context(action="mcp.update_dataset.update"):
-                    dataset = UpdateDatasetCommand(
-                        dataset_id, {"main_dttm_col": pending_dttm_col}
-                    ).run()
-                updated_properties = sorted({*updated_properties, "main_dttm_col"})
+                try:
+                    with event_logger.log_context(action="mcp.update_dataset.update"):
+                        dataset = UpdateDatasetCommand(
+                            dataset_id, {"main_dttm_col": pending_dttm_col}
+                        ).run()
+                    updated_properties = sorted({*updated_properties, "main_dttm_col"})
+                except (SupersetException, SQLAlchemyError) as ex:
+                    # The earlier update and the column re-sync are already
+                    # committed, so this is a partial success, not a failure.
+                    await ctx.warning(
+                        "Setting main_dttm_col failed: %s: %s" % (type(ex).__name__, ex)
+                    )
+                    warnings.append(
+                        f"main_dttm_col was not changed to '{pending_dttm_col}' "
+                        f"({_sync_error_message(ex)}); the rest of the update "
+                        "was saved."
+                    )
         elif (
             columns_synced
             and dataset.main_dttm_col

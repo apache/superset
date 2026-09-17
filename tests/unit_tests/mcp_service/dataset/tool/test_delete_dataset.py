@@ -32,6 +32,7 @@ from superset.mcp_service.app import mcp
 _RESOLVE = "superset.mcp_service.dataset.tool.delete_dataset.resolve_dataset"
 _COUNT = "superset.mcp_service.dataset.tool.delete_dataset._count_affected_objects"
 _RUN = "superset.commands.dataset.delete.DeleteDatasetCommand.run"
+_VALIDATE = "superset.commands.dataset.delete.DeleteDatasetCommand.validate"
 _FLAG = "superset.mcp_service.dataset.tool.delete_dataset.is_feature_enabled"
 
 
@@ -45,11 +46,15 @@ def mcp_server() -> object:
 def mock_auth() -> Iterator[Mock]:
     """Authenticate every tool call as a mock admin user."""
     with patch("superset.mcp_service.auth.get_user_from_request") as mock_get_user:
-        mock_user = Mock()
-        mock_user.id = 1
-        mock_user.username = "admin"
-        mock_get_user.return_value = mock_user
-        yield mock_get_user
+        # The tool validates the command (lookup + editorship) before counting
+        # dependents; default it to a pass so tests that patch run() alone keep
+        # working. The permission test re-patches it to raise.
+        with patch(_VALIDATE):
+            mock_user = Mock()
+            mock_user.id = 1
+            mock_user.username = "admin"
+            mock_get_user.return_value = mock_user
+            yield mock_get_user
 
 
 def _mock_dataset(dataset_id: int = 10, table_name: str = "orders") -> Mock:
@@ -232,18 +237,21 @@ async def test_delete_dataset_permission_denied(
     from superset.commands.dataset.exceptions import DatasetForbiddenError
 
     mock_resolve.return_value = _mock_dataset(dataset_id=10, table_name="orders")
-    mock_run.side_effect = DatasetForbiddenError()
 
-    async with Client(mcp_server) as client:
-        result = await client.call_tool(
-            "delete_dataset", {"request": {"identifier": 10}}
-        )
+    with patch(_VALIDATE, side_effect=DatasetForbiddenError()):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "delete_dataset", {"request": {"identifier": 10}}
+            )
 
     content = result.structured_content
     assert content["success"] is False
     assert content["permission_denied"] is True
     assert content["error_type"] == "Forbidden"
     assert "permission" in (content["error"] or "").lower()
+    # Editorship is checked before dependents are counted or anything runs.
+    mock_count.assert_not_called()
+    mock_run.assert_not_called()
 
 
 @patch(_COUNT, return_value=(0, 0))

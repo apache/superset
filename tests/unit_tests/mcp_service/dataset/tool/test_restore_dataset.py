@@ -23,6 +23,7 @@ autouse mock_auth fixture, matching the other dataset tool test files.
 
 from collections.abc import Iterator
 from datetime import datetime
+from typing import Any
 from unittest.mock import Mock, patch
 from uuid import UUID
 
@@ -45,11 +46,15 @@ def mcp_server() -> object:
 @pytest.fixture(autouse=True)
 def mock_auth() -> Iterator[Mock]:
     with patch("superset.mcp_service.auth.get_user_from_request") as mock_get_user:
-        mock_user = Mock()
-        mock_user.id = 1
-        mock_user.username = "admin"
-        mock_get_user.return_value = mock_user
-        yield mock_get_user
+        # The tool's editorship gate calls the real security manager; default
+        # it to a no-op (caller is an editor) so unrelated tests keep passing.
+        # The disclosure tests below re-patch it to raise.
+        with patch("superset.security_manager.raise_for_editorship"):
+            mock_user = Mock()
+            mock_user.id = 1
+            mock_user.username = "admin"
+            mock_get_user.return_value = mock_user
+            yield mock_get_user
 
 
 def _mock_dataset(
@@ -266,3 +271,107 @@ async def test_restore_dataset_rejects_boolean_identifier(mcp_server: object) ->
     async with Client(mcp_server) as client:
         with pytest.raises(ToolError):
             await client.call_tool("restore_dataset", {"request": {"identifier": True}})
+
+
+def _forbidden() -> Exception:
+    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+    from superset.exceptions import SupersetSecurityException
+
+    return SupersetSecurityException(
+        SupersetError(
+            message="forbidden",
+            error_type=SupersetErrorType.MISSING_OWNERSHIP_ERROR,
+            level=ErrorLevel.ERROR,
+        )
+    )
+
+
+@pytest.mark.parametrize("deleted", [True, False])
+@patch(_FIND)
+@pytest.mark.asyncio
+async def test_restore_dataset_inaccessible_dataset_reads_as_not_found(
+    mock_find: Mock, mcp_server: object, deleted: bool
+) -> None:
+    """A dataset outside the caller's RBAC scope must not leak its existence or
+    name, whether it is in trash or not: the unfiltered restore lookup finds
+    it, the base-filtered re-lookup does not.
+
+    The mock keys on the ``skip_base_filter`` kwarg rather than call order, so
+    a re-lookup that wrongly keeps ``skip_base_filter=True`` is caught."""
+
+    def _find_side_effect(*args: Any, **kwargs: Any) -> Any | None:
+        if kwargs.get("skip_base_filter"):
+            return _mock_dataset(table_name="secret_orders", deleted=deleted)
+        return None
+
+    from superset.commands.dataset.exceptions import DatasetForbiddenError
+
+    mock_find.side_effect = _find_side_effect
+    command = Mock()
+    # What the real command does for a non-editor.
+    command.return_value.run.side_effect = DatasetForbiddenError()
+    with (
+        patch(
+            "superset.security_manager.raise_for_editorship",
+            side_effect=_forbidden(),
+        ),
+        patch(_COMMAND, command),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "restore_dataset", {"request": {"identifier": 10}}
+            )
+
+    content = result.structured_content
+    assert content["success"] is False
+    assert content["error_type"] == "NotFound"
+    assert "secret_orders" not in (content["error"] or "")
+    command.assert_not_called()
+
+
+@patch(_FIND)
+@pytest.mark.asyncio
+async def test_restore_dataset_visible_non_editor_gets_nameless_forbidden(
+    mock_find: Mock, mcp_server: object
+) -> None:
+    """A caller who can see the dataset but cannot edit it gets a permission
+    error naming the id only, never the table name."""
+    dataset = _mock_dataset(table_name="secret_orders")
+    mock_find.side_effect = [dataset, dataset]
+    with patch(
+        "superset.security_manager.raise_for_editorship", side_effect=_forbidden()
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "restore_dataset", {"request": {"identifier": 10}}
+            )
+
+    content = result.structured_content
+    assert content["success"] is False
+    assert content["permission_denied"] is True
+    assert content["error_type"] == "Forbidden"
+    assert "secret_orders" not in (content["error"] or "")
+    assert "10" in (content["error"] or "")
+
+
+@patch(_FIND)
+@pytest.mark.asyncio
+async def test_restore_dataset_editorship_check_db_error_is_structured(
+    mock_find: Mock, mcp_server: object
+) -> None:
+    from sqlalchemy.exc import OperationalError
+
+    mock_find.return_value = _mock_dataset()
+    with patch(
+        "superset.security_manager.raise_for_editorship",
+        side_effect=OperationalError("SELECT ...", {}, Exception("down")),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "restore_dataset", {"request": {"identifier": 10}}
+            )
+
+    content = result.structured_content
+    assert content["success"] is False
+    assert content["error_type"] == "LookupFailed"
+    assert "down" not in (content["error"] or "")

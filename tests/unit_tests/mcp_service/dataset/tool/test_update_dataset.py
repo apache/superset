@@ -99,6 +99,7 @@ def make_dataset(
 def command_returning(dataset: MagicMock) -> MagicMock:
     command = MagicMock()
     command.run.return_value = dataset
+    command.metadata_refreshed = True
     return command
 
 
@@ -152,6 +153,12 @@ def test_request_rejects_boolean_dataset_id() -> None:
 def test_request_rejects_cache_timeout_below_minus_one() -> None:
     with pytest.raises(ValidationError):
         UpdateDatasetRequest(dataset_id=1, cache_timeout=-2)
+
+
+def test_request_rejects_boolean_cache_timeout() -> None:
+    """cache_timeout=true would otherwise coerce to a one-second timeout."""
+    with pytest.raises(ValidationError, match="cache_timeout must be"):
+        UpdateDatasetRequest(dataset_id=1, cache_timeout=True)
 
 
 def test_request_updates_keeps_explicit_nulls() -> None:
@@ -477,3 +484,64 @@ async def test_update_dataset_forbidden_from_command(mcp_server: FastMCP) -> Non
         data = await call_update(mcp_server, dataset_id=1, description="x")
 
     assert data["permission_denied"] is True
+
+
+@pytest.mark.asyncio
+async def test_update_dataset_skipped_refresh_is_a_warning(
+    mcp_server: FastMCP,
+) -> None:
+    """RefreshDatasetCommand skips, without raising, SQL it cannot render
+    outside a query; the response must not claim the columns were synced."""
+    dataset = make_dataset(columns=["a"])
+    refresh = command_returning(dataset)
+    refresh.metadata_refreshed = False
+    with (
+        patch(_FIND, return_value=dataset),
+        patch(_UPDATE, return_value=command_returning(dataset)) as update_cls,
+        patch(_REFRESH, return_value=refresh),
+    ):
+        data = await call_update(
+            mcp_server,
+            dataset_id=1,
+            sql="SELECT a, ds FROM t WHERE ds > '{{ from_dttm }}'",
+            main_dttm_col="ds",
+        )
+
+    assert data["error"] is None
+    assert data["updated_properties"] == ["sql"]
+    assert data["columns_synced"] is False
+    assert data["added_columns"] == []
+    assert data["removed_columns"] == []
+    assert "not re-synced" in data["warnings"][0]
+    assert "main_dttm_col was not changed" in data["warnings"][1]
+    assert update_cls.call_count == 1
+
+
+@pytest.mark.asyncio
+async def test_update_dataset_main_dttm_col_update_failure_is_partial(
+    mcp_server: FastMCP,
+) -> None:
+    """The SQL and the column re-sync are committed before main_dttm_col is
+    set, so a failure there is reported next to the saved changes."""
+    from superset.commands.dataset.exceptions import DatasetUpdateFailedError
+
+    dataset = make_dataset(columns=["a"])
+    refreshed = make_dataset(columns=["a", "ds"])
+    failing = MagicMock()
+    failing.run.side_effect = DatasetUpdateFailedError()
+    with (
+        patch(_FIND, return_value=dataset),
+        patch(_UPDATE, side_effect=[command_returning(refreshed), failing]),
+        patch(_REFRESH, return_value=command_returning(refreshed)),
+    ):
+        data = await call_update(
+            mcp_server, dataset_id=1, sql="SELECT a, ds FROM t", main_dttm_col="ds"
+        )
+
+    assert data["error"] is None
+    assert data["updated_properties"] == ["sql"]
+    assert data["columns_synced"] is True
+    assert data["added_columns"] == ["ds"]
+    assert len(data["warnings"]) == 1
+    assert "main_dttm_col was not changed to 'ds'" in data["warnings"][0]
+    assert "rest of the update was saved" in data["warnings"][0]
