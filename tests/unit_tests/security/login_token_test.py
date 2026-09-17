@@ -200,3 +200,28 @@ def test_token_carries_no_identity_data(app_context: None, kv_table: Session) ->
 
     for value in ("jdoe", "jdoe@example.com", "Jane", "Doe", "Gamma"):
         assert value not in token
+
+
+def test_consume_burn_survives_a_later_failure(
+    app_context: None, kv_table: Session
+) -> None:
+    """The deletion must not be undone if provisioning fails afterwards.
+
+    ``@transaction()`` does not nest, so the whole consume endpoint shares one
+    unit of work: an exception escaping after ``consume`` would roll the delete
+    back and make a token that has already been handed out redeemable again. The
+    endpoint therefore catches provisioning failures rather than propagating
+    them. This pins the invariant at the storage level -- once consumed, the
+    entry is gone even if the caller then errors and the session is rolled back.
+    """
+    token, _ = login_token.mint(USERINFO)
+    kv_table.commit()
+
+    assert login_token.consume(token) == USERINFO
+    kv_table.commit()
+
+    # Simulate a caller that fails after consuming and rolls back.
+    kv_table.rollback()
+
+    assert kv_table.query(KeyValueEntry).count() == 0
+    assert login_token.consume(token) is None

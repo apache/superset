@@ -380,7 +380,18 @@ class SecurityRestApi(BaseSupersetApi):
         if not token or (userinfo := login_token_utils.consume(token)) is None:
             return self.response_401()
 
-        user = self.appbuilder.sm.auth_user_oauth(userinfo)
+        # ``consume`` has deleted the entry, but ``@transaction()`` does not nest
+        # and only commits when this handler returns normally. An exception
+        # escaping from here would roll the deletion back and resurrect a token
+        # that has already been handed out, so provisioning failures are caught
+        # and reported as a denial: the burn stays durable and a spent token is
+        # never redeemable a second time.
+        try:
+            user = self.appbuilder.sm.auth_user_oauth(userinfo)
+        except Exception:  # pylint: disable=broad-except
+            logger.exception("Provisioning failed for a one-time login token")
+            user = None
+
         if user is None:
             # Provisioning declined the identity: the user is deactivated, or
             # AUTH_USER_REGISTRATION is off and they have no account yet.
