@@ -23,6 +23,8 @@ invariants) is covered by
 
 from __future__ import annotations
 
+import sqlite3
+from collections.abc import Callable
 from contextlib import contextmanager
 from datetime import datetime
 from decimal import Decimal
@@ -171,7 +173,7 @@ def test_unset_batch_size_falls_back_to_the_module_default_silently() -> None:
     assert resolved == (prune_audit.BATCH_SIZE, None)
 
 
-@pytest.mark.parametrize("value", [1, 50, 100, 500])
+@pytest.mark.parametrize("value", [1, 50, 100])
 def test_batch_size_accepts_integers_within_the_cap(value: int) -> None:
     """A non-boolean int in [1, cap] is used as-is."""
     with patch.dict(current_app.config, {prune_audit.BATCH_SIZE_KEY: value}):
@@ -184,7 +186,8 @@ def test_batch_size_accepts_integers_within_the_cap(value: int) -> None:
         None,  # explicit None is a present, invalid value — not absence
         0,
         -10,
-        501,
+        101,
+        500,
         True,
         False,
         2.5,
@@ -462,7 +465,7 @@ def test_repeat_history_scope_is_only_present_for_locked_rechecks(dialect: Any) 
 
 
 def test_maximum_literal_scope_executes_with_sqlite_bind_budget() -> None:
-    """Account for repeated positional scope binds at the 500-id ceiling."""
+    """Account for repeated positional scope binds at the 100-id ceiling."""
     engine: sa.Engine = sa.create_engine("sqlite://")
     metadata: sa.MetaData = sa.MetaData()
     table: sa.Table = prune_audit.PurgeAuditLog.__table__.to_metadata(metadata)
@@ -479,15 +482,160 @@ def test_maximum_literal_scope_executes_with_sqlite_bind_budget() -> None:
     compiled: sa.sql.compiler.Compiled = query.compile(
         dialect=sqlite.dialect(), compile_kwargs={"render_postcompile": True}
     )
-    assert 1500 < len(compiled.params) < 1550
+    assert 300 < len(compiled.params) < 350
     assert compiled.positiontup is not None
-    assert 3500 < len(compiled.positiontup) < 3550
+    assert 700 < len(compiled.positiontup) < 750
     try:
         metadata.create_all(engine)
         with engine.connect() as connection:
             assert list(connection.scalars(query)) == []
     finally:
         engine.dispose()
+
+
+@pytest.mark.parametrize(
+    ("backend", "version", "uses_window"),
+    [
+        ("mysql", (5, 7, 44), False),
+        ("mysql", (8, 0, 36), True),
+        ("mysql", (8, 4, 0), True),
+        ("postgresql", (17, 0), True),
+        ("sqlite", (3, 45, 0), True),
+    ],
+)
+@pytest.mark.parametrize("initialized", [True, False])
+def test_repeat_dispatch_uses_metadata_server_version(
+    backend: str,
+    version: tuple[int, ...],
+    uses_window: bool,
+    initialized: bool,
+) -> None:
+    """Route compatible MySQL servers by version, including first connection."""
+    dialect: sa.engine.Dialect = mysql.dialect()
+    dialect.name = backend
+    dialect.server_version_info = version if initialized else None
+    connected_dialect: sa.engine.Dialect = mysql.dialect()
+    connected_dialect.name = backend
+    connected_dialect.server_version_info = version
+    table: sa.Table = prune_audit.PurgeAuditLog.__table__
+    mock_db: MagicMock
+    with patch.object(prune_audit, "db") as mock_db:
+        mock_db.session.get_bind.return_value.dialect = dialect
+        mock_db.session.connection.return_value.dialect = connected_dialect
+        query: sa.sql.Select = sa.select(table.c.id).where(
+            prune_audit._repeats_an_earlier_block(table, datetime(2026, 2, 1))
+        )
+        sql: str = str(query.compile(dialect=mysql.dialect())).lower()
+    assert ("lag(" in sql) is uses_window
+    assert mock_db.session.connection.call_count == (
+        1 if backend == "mysql" and not initialized else 0
+    )
+
+
+@pytest.mark.parametrize(
+    "scope_entities",
+    [None, [("chart", "shared"), ("dashboard", "shared")], []],
+)
+def test_repeat_paths_isolate_entity_types_and_agree(
+    scope_entities: list[tuple[str, str | None]] | None,
+) -> None:
+    """Keep each type's first block when UUIDs collide, in both query paths."""
+    engine: sa.Engine = sa.create_engine("sqlite://")
+    metadata: sa.MetaData = sa.MetaData()
+    table: sa.Table = prune_audit.PurgeAuditLog.__table__.to_metadata(metadata)
+    ids: list[UUID] = [uuid4() for _ in range(3)]
+    rows: list[dict[str, Any]] = [
+        {
+            "id": id_,
+            "entity_type": entity_type,
+            "entity_uuid": "shared",
+            "status": STATUS_BLOCKED,
+            "trigger": "scheduled",
+            "actor": "system",
+            "created_on": datetime(2026, 1, day),
+            "reason": "same",
+        }
+        for id_, entity_type, day in zip(
+            ids, ["chart", "dashboard", "chart"], [1, 2, 3], strict=True
+        )
+    ]
+    try:
+        metadata.create_all(engine)
+        with engine.begin() as connection:
+            connection.execute(sa.insert(table), rows)
+            predicate: Callable[..., sa.ColumnElement[bool]]
+            for predicate in (
+                prune_audit._window_repeats_an_earlier_block,
+                prune_audit._legacy_repeats_an_earlier_block,
+            ):
+                assert set(
+                    connection.scalars(
+                        sa.select(table.c.id).where(
+                            table.c.id.in_(ids if scope_entities != [] else []),
+                            predicate(table, datetime(2026, 2, 1)),
+                        )
+                    )
+                ) == ({ids[2]} if scope_entities != [] else set())
+    finally:
+        engine.dispose()
+
+
+def test_evidence_drain_skips_scope_lookup_but_rechecks_under_lock() -> None:
+    """Exercise category dispatch without an unused evidence scope query."""
+    table: sa.Table = prune_audit.PurgeAuditLog.__table__
+    row_id: UUID = uuid4()
+    events: MagicMock = MagicMock()
+    mock_db: MagicMock
+    lock: MagicMock
+    with (
+        patch.dict(
+            current_app.config,
+            {OPERATIONAL_RETENTION_KEY: None, EVIDENCE_RETENTION_KEY: 180},
+        ),
+        patch.object(prune_audit, "db") as mock_db,
+        patch.object(prune_audit, "acquire_coordination_lock") as lock,
+    ):
+        events.attach_mock(mock_db.session.execute, "execute")
+        events.attach_mock(mock_db.session.rollback, "rollback")
+        events.attach_mock(lock, "lock")
+        events.attach_mock(mock_db.session.commit, "commit")
+
+        def execute(statement: sa.sql.Executable) -> Any:
+            """Return candidates while allowing the redundant query to execute."""
+            if mock_db.session.execute.call_count == 1:
+                return []  # No duplicate candidates.
+            if str(statement).startswith("DELETE"):
+                return MagicMock(rowcount=1)
+            if str(statement).startswith("SELECT DISTINCT"):
+                return [("chart", "shared")]
+            return [(row_id,)]
+
+        mock_db.session.execute.side_effect = execute
+        result: PruneRunResult = prune_audit.run_prune()
+    assert result.evidence_expired == 1
+    assert [event[0] for event in events.mock_calls] == [
+        "execute",
+        "execute",
+        "rollback",
+        "lock",
+        "execute",
+        "execute",
+        "commit",
+    ]
+    recheck: sa.sql.Select = mock_db.session.execute.call_args_list[2].args[0]
+    sql: str = str(
+        recheck.compile(
+            dialect=postgresql.dialect(), compile_kwargs={"literal_binds": True}
+        )
+    )
+    assert "SELECT DISTINCT" not in sql
+    assert "EXISTS" in sql
+    assert "pending" in sql
+    assert "blocked" in sql
+    assert table.c.id.name in sql
+    delete_sql: str = str(mock_db.session.execute.call_args_list[3].args[0])
+    assert delete_sql.startswith("DELETE FROM purge_audit_log")
+    assert "SELECT" not in delete_sql
 
 
 def test_repeat_query_uses_lag_without_ctes() -> None:
@@ -526,8 +674,7 @@ def test_delete_batch_forwards_bounded_entity_scope_to_the_locked_recheck(
         patch.object(prune_audit, "acquire_coordination_lock"),
     ):
         mock_db.session.execute.side_effect = [
-            [(value,) for value in ids],
-            scope_entities,
+            [(value, *pair) for value, pair in zip(ids, scope_entities, strict=True)],
             [],
         ]
         assert prune_audit._delete_batch(
@@ -543,12 +690,14 @@ def test_delete_batch_forwards_bounded_entity_scope_to_the_locked_recheck(
     mock_db.session.rollback.assert_called_once()
 
 
-def test_delete_batch_reads_entity_scope_only_after_the_fresh_snapshot_lock() -> None:
-    """Pin discovery, fresh-snapshot scope lookup, SQL re-check and deletion order."""
+def test_delete_batch_carries_scope_but_rechecks_on_the_fresh_snapshot() -> None:
+    """Pin unlocked identity discovery, fresh SQL re-check and deletion order."""
     table: sa.Table = prune_audit.PurgeAuditLog.__table__
     ids: list[UUID] = [uuid4(), uuid4()]
     pairs: list[tuple[str, str | None]] = [("chart", "entity"), ("chart", None)]
-    discovery: sa.sql.Select = sa.select(table.c.id).limit(2)
+    discovery: sa.sql.Select = sa.select(
+        table.c.id, table.c.entity_type, table.c.entity_uuid
+    ).limit(2)
     select_candidates: MagicMock = MagicMock(return_value=discovery)
     recheck_predicates: MagicMock = MagicMock(return_value=[])
     events: MagicMock = MagicMock()
@@ -563,8 +712,7 @@ def test_delete_batch_reads_entity_scope_only_after_the_fresh_snapshot_lock() ->
         events.attach_mock(lock, "lock")
         events.attach_mock(mock_db.session.commit, "commit")
         mock_db.session.execute.side_effect = [
-            [(id_,) for id_ in ids],
-            pairs,
+            [(id_, *pair) for id_, pair in zip(ids, pairs, strict=True)],
             [(ids[0],)],
             MagicMock(rowcount=1),
         ]
@@ -578,28 +726,15 @@ def test_delete_batch_reads_entity_scope_only_after_the_fresh_snapshot_lock() ->
         "lock",
         "execute",
         "execute",
-        "execute",
         "commit",
     ]
     lock.assert_called_once_with(mock_db.session)
     select_candidates.assert_called_once_with(2)
     recheck_predicates.assert_called_once_with(table, scope_entities=pairs)
     assert mock_db.session.execute.call_args_list[0].args[0] is discovery
-    scope_select: sa.sql.Select = mock_db.session.execute.call_args_list[1].args[0]
-    scope_sql: str = str(
-        scope_select.compile(
-            dialect=postgresql.dialect(),
-            compile_kwargs={"literal_binds": True},
-        )
-    )
-    assert scope_sql.startswith(
-        "SELECT DISTINCT purge_audit_log.entity_type, purge_audit_log.entity_uuid"
-    )
-    assert "WHERE purge_audit_log.id IN" in scope_sql
-    assert all(str(id_) in scope_sql for id_ in ids)
-    assert str(mock_db.session.execute.call_args_list[2].args[0]).startswith("SELECT")
+    assert str(mock_db.session.execute.call_args_list[1].args[0]).startswith("SELECT")
     delete_sql: str = str(
-        mock_db.session.execute.call_args_list[3]
+        mock_db.session.execute.call_args_list[2]
         .args[0]
         .compile(
             dialect=postgresql.dialect(),
@@ -612,74 +747,13 @@ def test_delete_batch_reads_entity_scope_only_after_the_fresh_snapshot_lock() ->
     assert "SELECT" not in delete_sql
 
 
-def test_delete_batch_skips_the_locked_scope_lookup_when_the_category_opts_out() -> (
-    None
-):
-    """Take one fewer statement under the lock for a scope-free category.
-
-    The counterpart to
-    ``test_delete_batch_reads_entity_scope_only_after_the_fresh_snapshot_lock``:
-    with ``needs_entity_scope=False`` the scope SELECT is not issued at all,
-    and ``scope_entities`` is absent from the re-check call rather than passed
-    empty -- so a predicate builder that does need a scope raises instead of
-    silently binding an unscoped history.
-    """
-    table: sa.Table = prune_audit.PurgeAuditLog.__table__
-    ids: list[UUID] = [uuid4(), uuid4()]
-    select_candidates: MagicMock = MagicMock()
-    recheck_predicates: MagicMock = MagicMock(return_value=[])
-    events: MagicMock = MagicMock()
-    mock_db: MagicMock
-    lock: MagicMock
-    with (
-        patch.object(prune_audit, "db") as mock_db,
-        patch.object(prune_audit, "acquire_coordination_lock") as lock,
-    ):
-        events.attach_mock(mock_db.session.execute, "execute")
-        events.attach_mock(mock_db.session.rollback, "rollback")
-        events.attach_mock(lock, "lock")
-        events.attach_mock(mock_db.session.commit, "commit")
-        mock_db.session.execute.side_effect = [
-            [(id_,) for id_ in ids],
-            [(ids[0],)],
-            MagicMock(rowcount=1),
-        ]
-        assert prune_audit._delete_batch(
-            select_candidates, recheck_predicates, 2, needs_entity_scope=False
-        ) == (2, 1)
-    # Re-check then delete: exactly one fewer execute between the lock and the
-    # commit than the scoped path takes.
-    assert [event[0] for event in events.mock_calls] == [
-        "execute",
-        "rollback",
-        "lock",
-        "execute",
-        "execute",
-        "commit",
-    ]
-    recheck_predicates.assert_called_once_with(table)
-    assert "scope_entities" not in recheck_predicates.call_args.kwargs
-    assert str(mock_db.session.execute.call_args_list[1].args[0]).startswith("SELECT")
-
-
-def test_only_the_evidence_category_opts_out_of_the_locked_scope_lookup() -> None:
-    """Wire the opt-out to the one category whose predicates take no scope."""
-    mock_delete: MagicMock
-    with patch.dict(current_app.config, {EVIDENCE_RETENTION_KEY: 3650}):
-        with patch.object(
-            prune_audit, "_delete_batch", return_value=(0, 0)
-        ) as mock_delete:
-            prune_audit.run_prune()
-    assert [
-        (call.args[1].func, call.kwargs["needs_entity_scope"])
-        for call in mock_delete.call_args_list
-    ] == [
-        (prune_audit._duplicate_predicates, True),
-        (prune_audit._operational_predicates, True),
-        (prune_audit._evidence_predicates, False),
-    ]
-
-
+@pytest.mark.parametrize(
+    "predicate",
+    [
+        prune_audit._window_repeats_an_earlier_block,
+        prune_audit._legacy_repeats_an_earlier_block,
+    ],
+)
 @pytest.mark.parametrize(
     ("scope_entities", "has_repeat"),
     [
@@ -691,8 +765,9 @@ def test_only_the_evidence_category_opts_out_of_the_locked_scope_lookup() -> Non
 def test_window_repeat_predicate_executes_on_sqlite(
     scope_entities: list[tuple[str, str | None]],
     has_repeat: bool,
+    predicate: Callable[[sa.FromClause, datetime], sa.ColumnElement[bool]],
 ) -> None:
-    """Preserve mixed-reason ties and force rows in SQLite window execution."""
+    """Both direct implementations preserve mixed-reason ties and force rows."""
     engine: sa.Engine = sa.create_engine("sqlite://")
     metadata: sa.MetaData = sa.MetaData()
     table: sa.Table = prune_audit.PurgeAuditLog.__table__.to_metadata(metadata)
@@ -723,11 +798,261 @@ def test_window_repeat_predicate_executes_on_sqlite(
             assert set(
                 connection.scalars(
                     sa.select(table.c.id).where(
-                        prune_audit._repeats_an_earlier_block(
-                            table, datetime(2026, 2, 1), scope_entities=scope_entities
-                        )
+                        table.c.entity_type.in_([t for t, _ in scope_entities]),
+                        table.c.entity_uuid.in_(
+                            [u for _, u in scope_entities if u is not None]
+                        ),
+                        predicate(table, datetime(2026, 2, 1)),
                     )
                 )
             ) == ({ids[1]} if has_repeat else set())
     finally:
         engine.dispose()
+
+
+def test_r2_unknown_mysql_version_falls_back() -> None:
+    """An unknown version after connecting must use the conservative query."""
+    dialect: sa.engine.Dialect = mysql.dialect()
+    dialect.server_version_info = None
+    mock_db: MagicMock
+    with patch.object(prune_audit, "db") as mock_db:
+        mock_db.session.get_bind.return_value.dialect = dialect
+        mock_db.session.connection.return_value.dialect = dialect
+        expression: sa.ColumnElement[bool] = prune_audit._repeats_an_earlier_block(
+            prune_audit.PurgeAuditLog.__table__, datetime(2026, 2, 1)
+        )
+    assert "lag(" not in str(expression).lower()
+
+
+@pytest.mark.parametrize("scheme", ["mysql", "mariadb"])
+@pytest.mark.parametrize(
+    ("banner", "window"),
+    [
+        ("5.5.5-10.6.12-MariaDB-0+deb11u1", True),
+        ("11.4.2-MariaDB", True),
+        ("10.1.48-MariaDB", False),
+    ],
+)
+def test_r2_mariadb_uses_normalized_version(
+    scheme: str,
+    banner: str,
+    window: bool,
+) -> None:
+    """Exercise SQLAlchemy's real banner parser, not guessed version tuples."""
+    from sqlalchemy.dialects.mysql.mariadb import MariaDBDialect
+
+    dialect: Any = mysql.dialect() if scheme == "mysql" else MariaDBDialect()
+    dialect._parse_server_version(banner)
+    mock_db: MagicMock
+    with patch.object(prune_audit, "db") as mock_db:
+        mock_db.session.get_bind.return_value.dialect = dialect
+        expression: sa.ColumnElement[bool] = prune_audit._repeats_an_earlier_block(
+            prune_audit.PurgeAuditLog.__table__, datetime(2026, 2, 1)
+        )
+    assert ("lag(" in str(expression).lower()) is window
+
+
+@pytest.mark.parametrize(
+    ("status", "day"),
+    [
+        (STATUS_CONFIRMED, 2),
+        (STATUS_FAILED, 2),
+        (STATUS_PENDING, 2),
+        (STATUS_BLOCKED, 31),
+    ],
+)
+def test_r2_repeat_helpers_preserve_ineligible_candidates(
+    status: str,
+    day: int,
+) -> None:
+    """Both standalone predicates preserve non-blocked and future candidates."""
+    engine: sa.Engine = sa.create_engine("sqlite://")
+    metadata: sa.MetaData = sa.MetaData()
+    table: sa.Table = prune_audit.PurgeAuditLog.__table__.to_metadata(metadata)
+    ids: list[UUID] = [uuid4(), uuid4()]
+    try:
+        metadata.create_all(engine)
+        with engine.begin() as connection:
+            connection.execute(
+                sa.insert(table),
+                [
+                    {
+                        "id": ids[0],
+                        "entity_type": "chart",
+                        "entity_uuid": "same",
+                        "status": STATUS_BLOCKED,
+                        "trigger": "scheduled",
+                        "actor": "system",
+                        "created_on": datetime(2026, 1, 1),
+                        "reason": "same",
+                    },
+                    {
+                        "id": ids[1],
+                        "entity_type": "chart",
+                        "entity_uuid": "same",
+                        "status": status,
+                        "trigger": "scheduled",
+                        "actor": "system",
+                        "created_on": datetime(2026, 1, day),
+                        "reason": "same",
+                    },
+                ],
+            )
+            predicate: Callable[..., sa.ColumnElement[bool]]
+            for predicate in (
+                prune_audit._window_repeats_an_earlier_block,
+                prune_audit._legacy_repeats_an_earlier_block,
+            ):
+                assert (
+                    list(
+                        connection.scalars(
+                            sa.select(table.c.id).where(
+                                table.c.id == ids[1],
+                                predicate(table, datetime(2026, 1, 15)),
+                            )
+                        )
+                    )
+                    == []
+                )
+    finally:
+        engine.dispose()
+
+
+def test_r2_discovery_carries_immutable_scope() -> None:
+    """All discovery selects carry identity with each hint."""
+    now: datetime = datetime(2026, 2, 1)
+    query: sa.sql.Select
+    for query in (
+        prune_audit._duplicate_candidates(now, 1),
+        prune_audit._operational_candidates(now, now, 1),
+        prune_audit._evidence_candidates(now, now, 1),
+    ):
+        assert list(query.selected_columns.keys()) == [
+            "id",
+            "entity_type",
+            "entity_uuid",
+        ]
+
+
+def test_r2_no_scope_round_trip_after_lock() -> None:
+    """The locked phase only rechecks candidacy, not immutable hint identity."""
+    row_id: UUID = uuid4()
+    mock_db: MagicMock
+    recheck: MagicMock = MagicMock(return_value=[])
+    with (
+        patch.object(prune_audit, "db") as mock_db,
+        patch.object(prune_audit, "acquire_coordination_lock"),
+    ):
+
+        def execute(statement: sa.sql.Executable) -> list[tuple[Any, ...]]:
+            """Allow both implementations to complete before checking calls."""
+            if mock_db.session.execute.call_count == 1:
+                return [(row_id, "chart", "same")]
+            if str(statement).startswith("SELECT DISTINCT"):
+                return [("chart", "same")]
+            return []
+
+        mock_db.session.execute.side_effect = execute
+        assert prune_audit._delete_batch(MagicMock(), recheck) == (1, 0)
+    assert mock_db.session.execute.call_count == 2
+    recheck.assert_called_once_with(
+        prune_audit.PurgeAuditLog.__table__, scope_entities=[("chart", "same")]
+    )
+
+
+@pytest.mark.parametrize("operational", [False, True])
+def test_r2_maximum_batch_fits_legacy_sqlite_limit(operational: bool) -> None:
+    """Actually execute with SQLite's historical 999-variable ceiling."""
+    engine: sa.Engine = sa.create_engine("sqlite://")
+    metadata: sa.MetaData = sa.MetaData()
+    table: sa.Table = prune_audit.PurgeAuditLog.__table__.to_metadata(metadata)
+    ids: list[UUID] = [uuid4() for _ in range(prune_audit.MAX_BATCH_SIZE)]
+    pairs: list[tuple[str, str | None]] = [
+        (f"type-{i}", f"uuid-{i}") for i in range(len(ids))
+    ]
+    now: datetime = datetime(2026, 2, 1)
+    predicates: list[sa.ColumnElement[bool]] = (
+        prune_audit._operational_predicates(table, now, now, pairs)
+        if operational
+        else prune_audit._duplicate_predicates(table, now, pairs)
+    )
+    query: sa.sql.Select = sa.select(table.c.id).where(table.c.id.in_(ids), *predicates)
+    try:
+        metadata.create_all(engine)
+        with engine.connect() as connection:
+            raw: Any = connection.connection.driver_connection
+            raw.setlimit(sqlite3.SQLITE_LIMIT_VARIABLE_NUMBER, 999)
+            assert list(connection.scalars(query)) == []
+    finally:
+        engine.dispose()
+
+
+def test_r2_run_and_batch_are_observable(caplog: pytest.LogCaptureFixture) -> None:
+    """Name the plan once per run and distinguish discovered from removed."""
+    with (
+        caplog.at_level("INFO", logger=prune_audit.__name__),
+        patch.object(prune_audit, "_delete_batch", return_value=(1, 0)),
+        patch.dict(current_app.config, {OPERATIONAL_RETENTION_KEY: 90}),
+    ):
+        prune_audit.run_prune()
+    assert "repeat_path=window" in caplog.text
+    assert caplog.text.count("repeat_path=") == 1
+    assert "discovered=1 removed=0" in caplog.text
+
+
+@pytest.mark.parametrize(
+    ("factory", "predicate_name", "has_cutoff", "uses_scope"),
+    [
+        (prune_audit._DuplicateRecheck, "_duplicate_predicates", False, True),
+        (prune_audit._OperationalRecheck, "_operational_predicates", True, True),
+        (prune_audit._EvidenceRecheck, "_evidence_predicates", True, False),
+    ],
+)
+def test_recheck_adapters_forward_candidacy_inputs(
+    factory: Callable[..., prune_audit._RecheckPredicates],
+    predicate_name: str,
+    has_cutoff: bool,
+    uses_scope: bool,
+) -> None:
+    """Each adapter forwards the clock, cutoff and applicable scope unchanged."""
+    now: datetime = datetime(2026, 2, 1)
+    cutoff: datetime = datetime(2025, 11, 1)
+    adapter: prune_audit._RecheckPredicates = (
+        factory(now, cutoff) if has_cutoff else factory(now)
+    )
+    table: sa.Table = prune_audit.PurgeAuditLog.__table__
+    scope: list[tuple[str, str | None]] = [("dashboard", "one")]
+    expected: list[sa.ColumnElement[bool]] = [sa.true()]
+    predicate: MagicMock
+    with patch.object(prune_audit, predicate_name, return_value=expected) as predicate:
+        assert adapter(table, scope_entities=scope) is expected
+    args: tuple[sa.Table, datetime] | tuple[sa.Table, datetime, datetime] = (
+        (table, now, cutoff) if has_cutoff else (table, now)
+    )
+    if uses_scope:
+        predicate.assert_called_once_with(*args, scope_entities=scope)
+    else:
+        predicate.assert_called_once_with(*args)
+
+
+def test_r2_legacy_recheck_omits_unused_scope_binds() -> None:
+    """The correlated plan is already bounded by candidate IDs."""
+    table: sa.Table = prune_audit.PurgeAuditLog.__table__
+    dialect: sa.engine.Dialect = mysql.dialect()
+    dialect.server_version_info = (5, 7, 44)
+    ids: list[UUID] = [uuid4() for _ in range(100)]
+    pairs: list[tuple[str, str | None]] = [
+        (f"type-{i}", f"uuid-{i}") for i in range(100)
+    ]
+    mock_db: MagicMock
+    with patch.object(prune_audit, "db") as mock_db:
+        mock_db.session.get_bind.return_value.dialect = dialect
+        query: sa.sql.Select = sa.select(table.c.id).where(
+            table.c.id.in_(ids),
+            *prune_audit._duplicate_predicates(table, datetime(2026, 2, 1), pairs),
+        )
+    compiled: sa.sql.compiler.Compiled = query.compile(
+        dialect=mysql.dialect(), compile_kwargs={"render_postcompile": True}
+    )
+    assert compiled.positiontup is not None
+    assert len(compiled.positiontup) < 150

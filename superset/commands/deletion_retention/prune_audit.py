@@ -88,15 +88,17 @@ pending or recovered row committed before the lock is honoured (a row it turned
 into a survivor fails the re-check and is not deleted). The re-check is a SELECT
 rather than a correlated ``WHERE`` on the DELETE because MySQL rejects a DELETE
 whose subquery reads the target table (ERROR 1093); the DELETE names only the
-literal surviving ids. The repeat check computes timestamp groups for the
-batch's entities in uncorrelated window tables; the other guards use
-correlated index probes. Lock-hold depends on the batch's entity histories,
+literal surviving ids. On window-capable servers the repeat check computes
+timestamp groups for the batch's entities in uncorrelated window tables.
+Older or unknown MySQL-family versions use correlated predecessor probes;
+the other guards also use correlated probes. Lock-hold depends on the plan
+and the batch's entity histories,
 not a fixed time bound, which the batch-size setting trades against drain speed.
 
 Audit creation/recovery and every pruning batch's DELETE take the same
-singleton database write lock. The lock is held through commit, so an audit row
-committed after the lock is acquired cannot land in the streak a batch just
-pruned. The expensive candidate discovery runs before the lock, so it does not
+singleton database write lock. It serializes creation and recovery, not in-place
+finalization: pending-aware candidacy guards protect against that concurrent change.
+The expensive candidate discovery runs before the lock, so it does not
 extend the lock-hold. Automatic pruning still ships disabled by default so
 operators explicitly choose their retention policy.
 """
@@ -108,7 +110,7 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from functools import partial
-from typing import Any, Literal, NamedTuple, TypeAlias
+from typing import Any, Literal, NamedTuple, Protocol, TypeAlias
 
 import sqlalchemy as sa
 from flask import current_app
@@ -153,17 +155,15 @@ _STREAK_BREAKING_STATUSES: frozenset[str] = frozenset(
 #: The coordination lock is held for the whole locked re-check of a batch, and
 #: that re-check's cost scales with candidates × the candidate entities'
 #: history depth, so the batch size is the operator's lever on writer wait
-#: (see config.py for the measured trade-off).
+#: (see config.py for the capacity and compatibility limits).
 BATCH_SIZE: int = 50
-#: Upper bound on the configurable batch size — a conservative cross-dialect
-#: ceiling, not a derived limit. The locked re-check and the literal-id DELETE
-#: bind every id of the batch in one ``IN`` list. The re-check also binds at
-#: most 500 entity UUIDs and 500 entity types: ~1,500 distinct values plus
-#: scalars. Positional dialects repeat the scope lists in three derived tables,
-#: requiring ~3,500 placeholders plus scalars. SQLite development/test builds
-#: need the larger variable budget (32,766 by default from SQLite 3.32.0),
-#: rather than the legacy 999 default; custom build/runtime limits can differ.
-MAX_BATCH_SIZE: int = 500
+#: The window path uses at most seven positional binds per candidate (id plus
+#: two scope lists repeated in three derived tables), plus fewer than 50 scalar
+#: binds.
+#: A 100-row ceiling keeps both rechecks below SQLite's historical 999-variable
+#: limit without changing the window-query plan. Custom SQLite limits
+#: below 750 require a smaller configured batch.
+MAX_BATCH_SIZE: int = 100
 BATCH_SIZE_KEY: str = "PURGE_AUDIT_PRUNING_BATCH_SIZE"
 #: Sentinel distinguishing an absent config key from an explicit ``None``.
 _ABSENT: object = object()
@@ -347,7 +347,90 @@ def _in_current_streak(target: sa.FromClause, now: datetime) -> sa.ColumnElement
     return sa.or_(boundary.is_(None), target.c.created_on > boundary)
 
 
+def _repeat_path() -> Literal["legacy", "window"]:
+    """Select a query using initialized, vendor-normalized server capabilities."""
+    dialect: sa.engine.Dialect = db.session.get_bind().dialect
+    if dialect.name not in {"mysql", "mariadb"}:
+        return "window"
+    if dialect.server_version_info is None:
+        dialect = db.session.connection().dialect
+    version: tuple[int, ...] | None = dialect.server_version_info
+    if getattr(dialect, "is_mariadb", False):
+        version = getattr(dialect, "_mariadb_normalized_version_info", None)
+        return "window" if version is not None and version >= (10, 2) else "legacy"
+    return "window" if version is not None and version >= (8, 0) else "legacy"
+
+
 def _repeats_an_earlier_block(
+    table: sa.FromClause,
+    now: datetime,
+    scope_entities: Sequence[tuple[str, str | None]] | None = None,
+) -> sa.ColumnElement[bool]:
+    """Select the repeat query supported by the metadata server.
+
+    MySQL before 8.0 and MariaDB before 10.2 need the correlated query.
+    Unknown server versions use that conservative path. The dialect's
+    server version is initialized on connection, not inferred from its name.
+    Discovery initializes it before the coordination-locked re-check.
+    """
+    if _repeat_path() == "legacy":
+        # Correlated probes already use candidate identity; literal scope lists
+        # only optimize the window path. The locked re-check bounds candidates
+        # by ID; unlocked discovery still scans eligible history.
+        return _legacy_repeats_an_earlier_block(table, now)
+    return _window_repeats_an_earlier_block(table, now, scope_entities)
+
+
+def _legacy_repeats_an_earlier_block(
+    table: sa.FromClause,
+    now: datetime,
+) -> sa.ColumnElement[bool]:
+    """Use predecessor probes for older or unknown MySQL-family versions.
+
+    This compatibility path retains correlated probes rather than the window
+    optimization; its cost depends on each candidate's entity history.
+    """
+    earlier: sa.FromClause = table.alias("earlier_block")
+    between: sa.FromClause = table.alias("reason_change")
+    reason_changed_between: sa.ColumnElement[bool] = sa.exists(
+        sa.select(sa.literal(1))
+        .select_from(between)
+        .where(
+            between.c.status == STATUS_BLOCKED,
+            between.c.entity_type == table.c.entity_type,
+            between.c.entity_uuid == table.c.entity_uuid,
+            between.c.created_on >= earlier.c.created_on,
+            between.c.created_on <= table.c.created_on,
+            between.c.reason.is_distinct_from(table.c.reason),
+        )
+        .correlate(table, earlier)
+    )
+    repeats: sa.ColumnElement[bool] = sa.exists(
+        sa.select(sa.literal(1))
+        .select_from(earlier)
+        .where(
+            earlier.c.status == STATUS_BLOCKED,
+            earlier.c.entity_type == table.c.entity_type,
+            earlier.c.entity_uuid == table.c.entity_uuid,
+            _in_current_streak(earlier, now),
+            earlier.c.created_on < table.c.created_on,
+            earlier.c.reason.is_not_distinct_from(table.c.reason),
+            sa.not_(reason_changed_between),
+        )
+        .correlate(table)
+    )
+    # These candidate gates also exist at call sites. Keep them here so the
+    # legacy and window predicates agree in isolation, including under NOT.
+    return sa.and_(
+        table.c.status == STATUS_BLOCKED,
+        table.c.entity_uuid.is_not(None),
+        table.c.created_on <= now,
+        table.c.trigger != TRIGGER_FORCE,
+        repeats,
+    )
+
+
+def _window_repeats_an_earlier_block(
     table: sa.FromClause,
     now: datetime,
     scope_entities: Sequence[tuple[str, str | None]] | None = None,
@@ -378,7 +461,9 @@ def _repeats_an_earlier_block(
     P is the immediately preceding distinct blocked timestamp. A row repeats
     only when P is in the current streak and both timestamp groups contain
     solely its reason (including all-NULL groups). LAG over timestamp groups
-    supplies P and its reason counts without a group self-join.
+    supplies P and its reason counts without a group self-join. The sc-120493
+    PostgreSQL round-1 plan materialized a groups CTE and joined on entity
+    alone before filtering ranks, comparing 36 million row pairs.
 
     All five ``LAG`` columns share one SQL-level named ``WINDOW w`` (a raw
     text fragment: SQLAlchemy Core has no construct for a named ``WINDOW``
@@ -389,7 +474,10 @@ def _repeats_an_earlier_block(
     roughly five sequential passes over the batch's timestamp groups. A named
     window is the SQL-level way to say "this is the same window" so MySQL
     evaluates it once; PostgreSQL and SQLite (>= 3.25) accept the same syntax
-    unchanged (sc-120950).
+    unchanged. Only servers routed here run this clause: the MySQL<8 and
+    MariaDB<10.2 fallback in :func:`_legacy_repeats_an_earlier_block` never
+    reaches it.
+
     An equality join back to a *second* instance of the timestamp-groups
     derived table (fetching P's aggregates via
     ``(entity_type, entity_uuid, ts = prev_ts)`` instead of four more ``LAG``
@@ -402,11 +490,11 @@ def _repeats_an_earlier_block(
     structure already measured safe on PostgreSQL (sc-120493): only the
     ``LAG`` columns' SQL text changes.
 
-    Keep the repeat-id query uncorrelated: sc-120493 measurements in
-    lock-hold-evidence/REPORT.md, Variant 2, showed MySQL repeatedly executing
+    Keep the repeat-id query uncorrelated: the sc-120493 Variant 2
+    measurements showed MySQL repeatedly executing
     per-row predecessor scalars. During re-check, scope blocked rows, timestamp
     groups and boundaries with literal entity-type and UUID lists from the
-    fresh locked lookup. Their cross-product may include extra entity histories,
+    unlocked discovery. Their cross-product may include extra entity histories,
     but candidacy remains restricted to the discovered ids and checked in SQL.
     """
     source: sa.Table = PurgeAuditLog.__table__
@@ -434,7 +522,7 @@ def _repeats_an_earlier_block(
         .correlate(None)
         .subquery("blocked_rows")
     )
-    groups_name = "blocked_timestamp_groups"
+    groups_name: str = "blocked_timestamp_groups"
     groups: sa.Subquery = (
         sa.select(
             source.c.entity_type,
@@ -564,7 +652,7 @@ def _repeats_an_earlier_block(
     return table.c.id.in_(repeat_ids)
 
 
-def _preceded_by_unresolved_attempt(table: sa.Table) -> sa.ColumnElement[bool]:
+def _preceded_by_unresolved_attempt(table: sa.FromClause) -> sa.ColumnElement[bool]:
     """Whether an unresolved (``pending``) attempt precedes this row.
 
     A ``pending`` row is the only thing that can insert a streak boundary
@@ -616,7 +704,7 @@ def _duplicate_candidates(now: datetime, limit: int) -> sa.sql.Select:
     """
     table: sa.Table = PurgeAuditLog.__table__
     return (
-        sa.select(table.c.id)
+        sa.select(table.c.id, table.c.entity_type, table.c.entity_uuid)
         .where(*_duplicate_predicates(table, now))
         .order_by(table.c.created_on)
         .limit(limit)
@@ -633,9 +721,9 @@ def _duplicate_predicates(
     One list, used by BOTH the unlocked discovery select
     (:func:`_duplicate_candidates`) and the coordination-locked re-check
     delete (:func:`_delete_batch`), so the two can never drift — the locked
-    delete re-verifies exactly what discovery selected. The repeat check is an
-    uncorrelated IN over histories scoped by literal entity-type and UUID
-    lists; boundary and pending checks remain correlated index probes.
+    delete re-verifies exactly what discovery selected. The window repeat check
+    is an uncorrelated IN over histories scoped by literal entity-type and UUID
+    lists; the legacy repeat, boundary and pending checks use correlated probes.
     """
     return [
         table.c.status == STATUS_BLOCKED,
@@ -678,7 +766,7 @@ def _operational_candidates(
     """
     table: sa.Table = PurgeAuditLog.__table__
     return (
-        sa.select(table.c.id)
+        sa.select(table.c.id, table.c.entity_type, table.c.entity_uuid)
         .where(*_operational_predicates(table, now, cutoff))
         # Oldest first, so a budget-truncated run makes progress on the
         # rows closest to expiry. (Blocked rows never outlive the boundary
@@ -699,9 +787,9 @@ def _operational_predicates(
 
     One list, shared by the unlocked discovery select
     (:func:`_operational_candidates`) and the coordination-locked re-check
-    delete, so the two cannot drift. Repeats use an uncorrelated IN scoped by
-    the batch's literal entity-type and UUID lists; other guards retain
-    correlated index probes.
+    delete, so the two cannot drift. Window repeats use an uncorrelated IN scoped
+    by the batch's literal entity-type and UUID lists; legacy repeats and other
+    guards retain correlated probes.
     """
     is_survivor: sa.ColumnElement[bool] = sa.and_(
         _in_current_streak(table, now),
@@ -751,7 +839,7 @@ def _evidence_candidates(now: datetime, cutoff: datetime, limit: int) -> sa.sql.
     """
     table: sa.Table = PurgeAuditLog.__table__
     return (
-        sa.select(table.c.id)
+        sa.select(table.c.id, table.c.entity_type, table.c.entity_uuid)
         .where(*_evidence_predicates(table, now, cutoff))
         .order_by(table.c.created_on)
         .limit(limit)
@@ -769,12 +857,6 @@ def _evidence_predicates(
     (:func:`_evidence_candidates`) and the coordination-locked re-check
     delete. The boundary-recession guard is a correlated ``EXISTS``, so a
     bounded id set resolves per-entity via index.
-
-    Takes no ``scope_entities``: unlike the duplicate and operational
-    categories this one never invokes :func:`_repeats_an_earlier_block`, the
-    only predicate that binds a literal entity scope. Its category is
-    therefore declared ``needs_entity_scope=False`` so :func:`_delete_batch`
-    skips the scope SELECT under the lock entirely.
     """
     older: sa.FromClause = table.alias("older_blocked")
     # ``pending`` counts alongside ``blocked``: the purge path finalizes a
@@ -803,10 +885,76 @@ def _evidence_predicates(
     ]
 
 
+class _RecheckPredicates(Protocol):
+    """A locked candidacy check with an optional history-query optimization."""
+
+    def __call__(
+        self,
+        table: sa.FromClause,
+        *,
+        scope_entities: Sequence[tuple[str, str | None]] | None = None,
+    ) -> list[sa.ColumnElement[bool]]:
+        """Build the same candidacy predicates used for discovery."""
+        ...
+
+
+@dataclass(frozen=True)
+class _DuplicateRecheck:
+    """Bind the duplicate clock without erasing the callable's signature."""
+
+    now: datetime
+
+    def __call__(
+        self,
+        table: sa.FromClause,
+        *,
+        scope_entities: Sequence[tuple[str, str | None]] | None = None,
+    ) -> list[sa.ColumnElement[bool]]:
+        """Delegate to discovery's predicate with type-checked arguments."""
+        return _duplicate_predicates(table, self.now, scope_entities=scope_entities)
+
+
+@dataclass(frozen=True)
+class _OperationalRecheck:
+    """Bind the operational window while retaining argument checking."""
+
+    now: datetime
+    cutoff: datetime
+
+    def __call__(
+        self,
+        table: sa.FromClause,
+        *,
+        scope_entities: Sequence[tuple[str, str | None]] | None = None,
+    ) -> list[sa.ColumnElement[bool]]:
+        """Delegate to discovery's predicate with type-checked arguments."""
+        return _operational_predicates(
+            table, self.now, self.cutoff, scope_entities=scope_entities
+        )
+
+
+@dataclass(frozen=True)
+class _EvidenceRecheck:
+    """Adapt the scope-independent evidence predicate to the shared seam."""
+
+    now: datetime
+    cutoff: datetime
+
+    def __call__(
+        self,
+        table: sa.FromClause,
+        *,
+        scope_entities: Sequence[tuple[str, str | None]] | None = None,
+    ) -> list[sa.ColumnElement[bool]]:
+        """Ignore history scope: evidence uses correlated boundary probes."""
+        return _evidence_predicates(table, self.now, self.cutoff)
+
+
 def _delete_batch(
     select_candidates: Callable[[int], sa.sql.Select],
-    recheck_predicates: Callable[..., list[sa.ColumnElement[bool]]],
+    recheck_predicates: _RecheckPredicates,
     batch_size: int = BATCH_SIZE,
+    *,
     needs_entity_scope: bool = True,
 ) -> tuple[int, int]:
     """Discover a candidate batch UNLOCKED, then delete it under the lock.
@@ -826,7 +974,7 @@ def _delete_batch(
     candidacy predicates read ``purge_audit_log``; the DELETE then names only
     the literal surviving-id list. Both statements are scoped to the batch's
     ids, with repeat groups scoped by literal entity-type and UUID lists read
-    under the lock before the re-check. Its cost
+    during unlocked discovery. Its cost
     depends on batch size, history depth and the optimizer's access plan;
     entity scoping does not guarantee index seeks or a lock-hold time bound
     (sc-120493). When discovery finds nothing, no lock is taken at all.
@@ -859,9 +1007,8 @@ def _delete_batch(
     table: sa.Table = PurgeAuditLog.__table__
     # Unlocked discovery: the expensive age-unbounded scan runs WITHOUT the
     # coordination lock and only yields a ≤batch_size id hint.
-    ids: list[Any] = [
-        row[0] for row in db.session.execute(select_candidates(batch_size))
-    ]
+    hints: list[Any] = list(db.session.execute(select_candidates(batch_size)))
+    ids: list[Any] = [row[0] for row in hints]
     if not ids:
         return 0, 0
     # End the discovery transaction BEFORE taking the lock. Discovery is a
@@ -873,36 +1020,23 @@ def _delete_batch(
     # (sc-118200 / the MySQL-RR stale-read class). Rolling back drops that
     # snapshot (discovery wrote nothing) so the re-check opens a FRESH snapshot
     # after the lock is held.
-    db.session.rollback()  # pylint: disable=consider-using-transaction
-    acquire_coordination_lock(db.session)
     # Scoping only: entity_type/entity_uuid are immutable facts about the hint
-    # ids, not a candidacy decision. Read them under the lock on the fresh
-    # snapshot; the SQL re-check below re-verifies every predicate (sc-118200).
+    # ids, not a candidacy decision. Carry discovery's pairs across the lock.
+    # Concurrent deletions can widen this scope, never exclude a live candidate;
+    # the fresh locked SQL re-check still verifies every candidacy predicate.
     # Literal values expose column statistics to the planner; a scope subquery
     # or JOIN caused severe cardinality underestimates and nested loops
-    # (sc-120493). DISTINCT pairs are bounded by len(ids) <= MAX_BATCH_SIZE.
-    #
-    # Read only for the categories whose predicates consume it -- the ones
-    # carrying the uncorrelated repeat check, which binds the scope as literal
-    # lists. The evidence category's guards are all correlated per-row probes,
-    # so for it this SELECT would be dead work on exactly the locked path this
-    # batching exists to keep short. The kwarg is therefore omitted rather than
-    # passed empty, so a predicate builder that needs a scope can never silently
-    # receive an absent one.
-    scope_kwargs: dict[str, Any] = {}
+    # (sc-120493). Pairs are bounded by len(ids) <= MAX_BATCH_SIZE.
+    scope_entities: list[tuple[str, str | None]] | None = None
     if needs_entity_scope:
-        scope_kwargs["scope_entities"] = [
-            (row[0], row[1])
-            for row in db.session.execute(
-                sa.select(table.c.entity_type, table.c.entity_uuid)
-                .where(table.c.id.in_(ids))
-                .distinct()
-            )
-        ]
+        scope_entities = list(dict.fromkeys((row[1], row[2]) for row in hints))
+    db.session.rollback()  # pylint: disable=consider-using-transaction
+    acquire_coordination_lock(db.session)
     # Locked re-check as a SELECT, then a literal-id DELETE. With the lock held
-    # no writer can commit, and the re-check's fresh post-lock snapshot sees
+    # no creation/recovery writer can commit; in-place finalization is guarded
+    # by the unresolved-attempt predicates. The fresh post-lock snapshot sees
     # current committed state; it re-applies the SAME candidacy predicates
-    # scoped to the ≤500 ids, so a row a concurrent write turned into a survivor
+    # scoped to the batch's ids, so a row a concurrent write turned into a survivor
     # in the discovery→lock window is filtered out (a stale hint only ever
     # deletes fewer rows, never wrong ones). The re-check is a SELECT — not a
     # correlated WHERE on the DELETE — because MySQL rejects a DELETE whose
@@ -915,7 +1049,7 @@ def _delete_batch(
         for row in db.session.execute(
             sa.select(table.c.id).where(
                 table.c.id.in_(ids),
-                *recheck_predicates(table, **scope_kwargs),
+                *recheck_predicates(table, scope_entities=scope_entities),
             )
         )
     ]
@@ -944,21 +1078,16 @@ class _Category(NamedTuple):
     """One delete category: how to discover candidates and how to re-check them.
 
     ``select_candidates`` is the unlocked discovery select (LIMIT-bounded);
-    ``recheck_predicates`` supplies the SAME candidacy for the
-    coordination-locked, id-scoped re-check delete. Both are built from
+    ``recheck_predicates`` accepts discovered entity pairs as scope_entities when
+    ``needs_entity_scope`` is true, and supplies the SAME candidacy
+    for the coordination-locked, id-scoped re-check delete. Both are built from
     one shared predicate list per category, so discovery and the locked gate
     cannot drift.
-
-    ``needs_entity_scope`` declares whether ``recheck_predicates`` consumes a
-    ``scope_entities`` kwarg -- the fresh entity pairs whose types and UUIDs it
-    binds as literal lists. Only the categories carrying the uncorrelated
-    repeat check do; declaring it false keeps that extra SELECT off the locked
-    path for the categories that would ignore its result.
     """
 
     name: _CategoryName
     select_candidates: Callable[[int], sa.sql.Select]
-    recheck_predicates: Callable[..., list[sa.ColumnElement[bool]]]
+    recheck_predicates: _RecheckPredicates
     needs_entity_scope: bool = True
 
 
@@ -992,6 +1121,12 @@ def _drain(
             category.recheck_predicates,
             batch_size,
             needs_entity_scope=category.needs_entity_scope,
+        )
+        logger.info(
+            "prune_audit: category=%s discovered=%s removed=%s",
+            category.name,
+            discovered,
+            batch_removed,
         )
         removed += batch_removed
         allowance -= 1
@@ -1038,6 +1173,7 @@ def run_prune() -> PruneRunResult:
         return result
 
     operational: ResolvedWindow = resolve_operational_retention_days()
+    logger.info("prune_audit: repeat_path=%s", _repeat_path())
     evidence: ResolvedWindow = resolve_evidence_retention_days()
     result.invalid_config_keys = [
         window.invalid_key
@@ -1049,7 +1185,7 @@ def run_prune() -> PruneRunResult:
         _Category(
             "blocked_duplicates",
             partial(_duplicate_candidates, now),
-            partial(_duplicate_predicates, now=now),
+            _DuplicateRecheck(now),
         )
     ]
     if operational.days is not None:
@@ -1058,7 +1194,7 @@ def run_prune() -> PruneRunResult:
             _Category(
                 "operational_expired",
                 partial(_operational_candidates, now, operational_cutoff),
-                partial(_operational_predicates, now=now, cutoff=operational_cutoff),
+                _OperationalRecheck(now, operational_cutoff),
             )
         )
     if evidence.days is not None:
@@ -1067,7 +1203,7 @@ def run_prune() -> PruneRunResult:
             _Category(
                 "evidence_expired",
                 partial(_evidence_candidates, now, evidence_cutoff),
-                partial(_evidence_predicates, now=now, cutoff=evidence_cutoff),
+                _EvidenceRecheck(now, evidence_cutoff),
                 needs_entity_scope=False,
             )
         )
