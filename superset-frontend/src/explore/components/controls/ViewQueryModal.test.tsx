@@ -25,6 +25,7 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
+import { SupersetClient } from '@superset-ui/core';
 import * as chartAction from 'src/components/Chart/chartAction';
 import type { ChartDataRequestResponse } from 'src/components/Chart/chartAction';
 import ViewQueryModal, { getSemanticReportState } from './ViewQueryModal';
@@ -45,6 +46,10 @@ const mockChartDataResponse: ChartDataRequestResponse = {
 };
 
 const chartDataEndpoint = 'glob:*/api/v1/chart/data*';
+
+beforeAll(() => {
+  SupersetClient.configure({ csrfToken: 'test-csrf-token' });
+});
 
 afterEach(() => {
   jest.restoreAllMocks();

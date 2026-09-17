@@ -17,10 +17,12 @@
  * under the License.
  */
 import { FC, Fragment, useCallback, useEffect, useState } from 'react';
+import { useSelector } from 'react-redux';
 
 import { omit } from 'lodash-es';
 import { t } from '@apache-superset/core/translation';
 import {
+  ClientErrorObject,
   DatasourceKey,
   DatasourceType,
   ensureIsArray,
@@ -29,13 +31,13 @@ import {
   QueryFormData,
 } from '@superset-ui/core';
 import { Alert } from '@apache-superset/core/components';
-import { styled } from '@apache-superset/core/theme';
+import { styled, type SupersetTheme } from '@apache-superset/core/theme';
 import { Loading } from '@superset-ui/core/components';
 import { SupportedLanguage } from '@superset-ui/core/components/CodeSyntaxHighlighter';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import ViewQuery from 'src/explore/components/controls/ViewQuery';
 import type { ChartState } from 'src/explore/types';
-import { useAppSelector } from 'src/views/store';
+import type { RootState } from 'src/views/store';
 import SemanticRequestView from './SemanticRequestView';
 
 interface Props {
@@ -64,14 +66,15 @@ const ViewQueryModalContainer = styled.div`
   height: 100%;
   display: flex;
   flex-direction: column;
-  gap: ${({ theme }) => theme.sizeUnit * 4}px;
+  gap: ${({ theme }: { theme: SupersetTheme }) => theme.sizeUnit * 4}px;
 `;
 
 const ViewQueryModal: FC<Props> = ({ latestQueryFormData, ownState }) => {
   const isSemanticView =
     new DatasourceKey(latestQueryFormData.datasource).type ===
     DatasourceType.SemanticView;
-  const queriesResponse = useAppSelector<
+  const queriesResponse = useSelector<
+    RootState,
     ChartState['queriesResponse'] | undefined
   >(
     state => state.charts?.[latestQueryFormData.slice_id ?? 0]?.queriesResponse,
@@ -100,15 +103,17 @@ const ViewQueryModal: FC<Props> = ({ latestQueryFormData, ownState }) => {
           setError(null);
         })
         .catch(response => {
-          getClientErrorObject(response).then(({ error, message }) => {
-            setError(
-              error ||
-                message ||
-                response.statusText ||
-                t('Sorry, An error occurred'),
-            );
-            setIsLoading(false);
-          });
+          getClientErrorObject(response).then(
+            ({ error, message }: ClientErrorObject) => {
+              setError(
+                error ||
+                  message ||
+                  response.statusText ||
+                  t('Sorry, An error occurred'),
+              );
+              setIsLoading(false);
+            },
+          );
         });
     },
     [latestQueryFormData, ownState],

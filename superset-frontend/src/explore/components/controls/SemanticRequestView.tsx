@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t } from '@apache-superset/core/translation';
-import { styled } from '@apache-superset/core/theme';
+import { styled, type SupersetTheme } from '@apache-superset/core/theme';
 import { Button } from '@superset-ui/core/components';
 import CodeSyntaxHighlighter, {
   SupportedLanguage,
@@ -35,7 +35,7 @@ export const REQUEST_KIND_LANGUAGES: ReadonlyMap<string, SupportedLanguage> =
   ]);
 
 const RequestTextContainer = styled.div`
-  max-height: ${({ theme }) => theme.sizeUnit * 80}px;
+  max-height: ${({ theme }: { theme: SupersetTheme }) => theme.sizeUnit * 80}px;
   overflow: auto;
 `;
 
