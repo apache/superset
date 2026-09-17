@@ -69,7 +69,7 @@ from __future__ import annotations
 import logging
 import re
 from datetime import datetime, timezone
-from typing import Annotated, Any, Dict, List, Literal, TYPE_CHECKING
+from typing import Annotated, Any, cast, Dict, List, Literal, TYPE_CHECKING
 
 from pydantic import (
     AliasChoices,
@@ -82,7 +82,10 @@ from pydantic import (
 )
 
 if TYPE_CHECKING:
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.models.core import Database
     from superset.models.dashboard import Dashboard
+    from superset.semantic_layers.models import SemanticLayer, SemanticView
 
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
 from superset.exceptions import SupersetSecurityException
@@ -2316,7 +2319,8 @@ class DashboardDatasets(BaseModel):
         0,
         description=(
             "Number of datasets used by the dashboard that the current user "
-            "cannot access (excluded from 'datasets')"
+            "cannot access or whose metadata could not be loaded "
+            "(excluded from 'datasets')"
         ),
     )
     datasets: List[DashboardDatasetSummary] = Field(
@@ -2326,7 +2330,7 @@ class DashboardDatasets(BaseModel):
 
 
 def _serialize_dashboard_dataset(
-    datasource: Any,
+    datasource: SqlaTable | SemanticView,
     chart_count: int,
     datasource_type: Literal["table", "semantic_view"] = "table",
 ) -> DashboardDatasetSummary:
@@ -2353,7 +2357,9 @@ def _serialize_dashboard_dataset(
     ]
 
     is_view: bool = datasource_type == DatasourceType.SEMANTIC_VIEW
-    layer: Any = getattr(datasource, "semantic_layer", None) if is_view else None
+    layer: SemanticLayer | None = (
+        getattr(datasource, "semantic_layer", None) if is_view else None
+    )
     layer_info: DashboardDatasetSemanticLayerInfo | None = (
         DashboardDatasetSemanticLayerInfo(
             uuid=str(layer.uuid) if getattr(layer, "uuid", None) else None,
@@ -2362,7 +2368,9 @@ def _serialize_dashboard_dataset(
         if layer is not None
         else None
     )
-    database = None if is_view else getattr(datasource, "database", None)
+    database: Database | None = (
+        None if is_view else getattr(datasource, "database", None)
+    )
     database_info = (
         DashboardDatasetDatabaseInfo(
             id=getattr(database, "id", None),
@@ -2393,7 +2401,9 @@ def _serialize_dashboard_dataset(
     )
 
 
-def _has_dashboard_dataset_access(datasource: Any, datasource_type: str) -> bool:
+def _has_dashboard_dataset_access(
+    datasource: SqlaTable | SemanticView, datasource_type: str
+) -> bool:
     """Use view permissions separately from BaseDatasource-only table checks.
 
     security_manager.can_access_datasource expects a BaseDatasource; semantic
@@ -2403,14 +2413,16 @@ def _has_dashboard_dataset_access(datasource: Any, datasource_type: str) -> bool
     from superset.mcp_service.auth import has_dataset_access
 
     if datasource_type != DatasourceType.SEMANTIC_VIEW:
-        return has_dataset_access(datasource)
+        return has_dataset_access(cast("SqlaTable", datasource))
     try:
         datasource.raise_for_access()
         return True
     except SupersetSecurityException:
         return False
-    except Exception as exc:
-        logger.warning("Error checking semantic view access: %s", exc)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning(
+            "Error checking semantic view access for id=%s: %s", datasource.id, exc
+        )
         return False
 
 
@@ -2421,7 +2433,8 @@ def dashboard_datasets_serializer(dashboard: "Dashboard") -> DashboardDatasets:
     ``Dashboard.datasets_trimmed_for_slices``) but keeps the full column and
     metric lists (capped) since native-filter configuration regularly needs
     columns that no chart references. Datasets the current user cannot
-    access are excluded and only counted.
+    access, or whose semantic provider metadata cannot be loaded, are excluded
+    and only counted. Provider failures are logged.
     Each entry identifies its datasource_type and display name, with
     semantic_layer metadata for views and database metadata for tables.
     """
@@ -2445,7 +2458,7 @@ def dashboard_datasets_serializer(dashboard: "Dashboard") -> DashboardDatasets:
         relationship_name: str = (
             "semantic_view" if kind == "semantic_view" else "datasource"
         )
-        datasource = next(
+        datasource: SqlaTable | SemanticView | None = next(
             (
                 getattr(slc, relationship_name, None)
                 for slc in slices
@@ -2458,7 +2471,20 @@ def dashboard_datasets_serializer(dashboard: "Dashboard") -> DashboardDatasets:
         if not _has_dashboard_dataset_access(datasource, kind):
             inaccessible_count += 1
             continue
-        datasets.append(_serialize_dashboard_dataset(datasource, len(slices), kind))
+        try:
+            summary: DashboardDatasetSummary = _serialize_dashboard_dataset(
+                datasource, len(slices), kind
+            )
+        except Exception as exc:  # noqa: BLE001
+            if kind != "semantic_view":
+                raise
+            # Provider discovery can fail independently of other datasources.
+            logger.warning(
+                "Could not serialize semantic view id=%s: %s", datasource.id, exc
+            )
+            inaccessible_count += 1
+            continue
+        datasets.append(summary)
 
     datasets.sort(key=lambda dataset: dataset.id or 0)
 

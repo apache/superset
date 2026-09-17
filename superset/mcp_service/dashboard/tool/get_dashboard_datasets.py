@@ -75,8 +75,9 @@ async def get_dashboard_datasets(
     columns and metrics are available before configuring native filters or
     analyzing a dashboard's data model.
 
-    Datasets the current user cannot access are excluded from the response
-    and reported via inaccessible_dataset_count. Column and metric lists are
+    Datasets the current user cannot access, or whose semantic provider metadata
+    cannot be loaded, are excluded and reported via inaccessible_dataset_count.
+    Provider failures are logged. Column and metric lists are
     capped per dataset; when truncated, columns_truncated/metrics_truncated
     are set and total counts are reported.
 
@@ -109,16 +110,20 @@ async def get_dashboard_datasets(
         from superset.daos.dashboard import DashboardDAO
         from superset.models.dashboard import Dashboard
         from superset.models.slice import Slice
+        from superset.semantic_layers.models import SemanticView
 
         # Eager load slices and each slice's dataset columns/metrics/database to
         # avoid N+1 queries: the serializer groups slices by datasource and reads
-        # columns, metrics, and database off every dataset.
+        # columns, metrics, and database off every dataset. Semantic views need
+        # their layer for access checks and the serialized layer identity.
         slice_dataset = subqueryload(Dashboard.slices).subqueryload(Slice.table)
         eager_options = [
             slice_dataset.subqueryload(SqlaTable.columns),
             slice_dataset.subqueryload(SqlaTable.metrics),
             slice_dataset.joinedload(SqlaTable.database),
-            subqueryload(Dashboard.slices).subqueryload(Slice.semantic_view),
+            subqueryload(Dashboard.slices)
+            .subqueryload(Slice.semantic_view)
+            .joinedload(SemanticView.semantic_layer),
         ]
 
         with event_logger.log_context(action="mcp.get_dashboard_datasets.lookup"):
