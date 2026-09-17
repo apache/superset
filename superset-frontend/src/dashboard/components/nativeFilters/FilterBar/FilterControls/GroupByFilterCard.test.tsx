@@ -21,15 +21,22 @@ import {
   type ChartCustomization,
 } from '@superset-ui/core';
 import { LabeledValue } from '@superset-ui/core/components';
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
 import GroupByFilterCard, {
+  applyColumnAllowlist,
   createLabelSortComparator,
 } from './GroupByFilterCard';
 
 jest.mock('src/utils/cachedSupersetGet', () => ({
-  // Never resolves, pinning the card in its column-loading state.
+  // Never resolves by default, pinning the card in its column-loading state.
+  // Individual tests override this with `mockImplementationOnce`.
   cachedSupersetGet: jest.fn(() => new Promise(() => {})),
 }));
+
+const mockedCachedSupersetGet = cachedSupersetGet as jest.MockedFunction<
+  typeof cachedSupersetGet
+>;
 
 const apple: LabeledValue = { value: 'a', label: 'Apple' };
 const banana: LabeledValue = { value: 'b', label: 'Banana' };
@@ -52,6 +59,33 @@ test('preserves source order when sortAscending is unset', () => {
   expect(compare(banana, apple)).toBe(0);
 });
 
+const columnOptions = [
+  { label: 'Country', value: 'country' },
+  { label: 'State', value: 'state' },
+  { label: 'City', value: 'city' },
+];
+
+test('returns all options when the allowlist is unset (backwards compatible)', () => {
+  expect(applyColumnAllowlist(columnOptions, undefined)).toEqual(columnOptions);
+});
+
+test('returns all options when the allowlist is empty (no restriction)', () => {
+  expect(applyColumnAllowlist(columnOptions, [])).toEqual(columnOptions);
+});
+
+test('keeps only allowlisted columns and preserves their order', () => {
+  expect(applyColumnAllowlist(columnOptions, ['city', 'country'])).toEqual([
+    { label: 'Country', value: 'country' },
+    { label: 'City', value: 'city' },
+  ]);
+});
+
+test('ignores allowlist entries that are not real columns', () => {
+  expect(
+    applyColumnAllowlist(columnOptions, ['state', 'does_not_exist']),
+  ).toEqual([{ label: 'State', value: 'state' }]);
+});
+
 const groupByCustomization: ChartCustomization = {
   id: 'groupby-1',
   name: 'Group By',
@@ -62,6 +96,73 @@ const groupByCustomization: ChartCustomization = {
   controlValues: {},
   defaultDataMask: {},
 };
+
+const datasetResponse = {
+  json: {
+    result: {
+      table_name: 'cleaned_sales_data',
+      columns: [
+        { column_name: 'country', verbose_name: 'Country', filterable: true },
+        { column_name: 'state', verbose_name: 'State', filterable: true },
+        { column_name: 'city', verbose_name: 'City', filterable: true },
+      ],
+    },
+  },
+};
+
+test('only offers allowlisted columns to viewers', async () => {
+  mockedCachedSupersetGet.mockImplementationOnce(
+    () =>
+      Promise.resolve(datasetResponse) as unknown as ReturnType<
+        typeof cachedSupersetGet
+      >,
+  );
+
+  render(
+    <GroupByFilterCard
+      customizationItem={{
+        ...groupByCustomization,
+        controlValues: { columnsAllowlist: ['country', 'city'] },
+      }}
+    />,
+    {
+      useRedux: true,
+      initialState: {
+        dataMask: {},
+        nativeFilters: { filters: {} },
+      },
+    },
+  );
+
+  userEvent.click(await screen.findByRole('combobox'));
+
+  expect(await screen.findByText('Country')).toBeInTheDocument();
+  expect(screen.getByText('City')).toBeInTheDocument();
+  expect(screen.queryByText('State')).not.toBeInTheDocument();
+});
+
+test('offers every groupable column when no allowlist is configured', async () => {
+  mockedCachedSupersetGet.mockImplementationOnce(
+    () =>
+      Promise.resolve(datasetResponse) as unknown as ReturnType<
+        typeof cachedSupersetGet
+      >,
+  );
+
+  render(<GroupByFilterCard customizationItem={groupByCustomization} />, {
+    useRedux: true,
+    initialState: {
+      dataMask: {},
+      nativeFilters: { filters: {} },
+    },
+  });
+
+  userEvent.click(await screen.findByRole('combobox'));
+
+  expect(await screen.findByText('Country')).toBeInTheDocument();
+  expect(screen.getByText('State')).toBeInTheDocument();
+  expect(screen.getByText('City')).toBeInTheDocument();
+});
 
 test('renders the column-loading spinner small and muted', async () => {
   render(<GroupByFilterCard customizationItem={groupByCustomization} />, {
