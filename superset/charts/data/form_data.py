@@ -31,15 +31,47 @@ def set_form_data(form_data: dict[str, Any]) -> None:
     g.form_data = form_data
 
 
+def _as_form_data_dict(value: Any) -> dict[str, Any]:
+    return value if isinstance(value, dict) else {}
+
+
+def _as_query_list(value: Any) -> list[Any]:
+    if isinstance(value, (list, tuple)):
+        return list(value)
+    return []
+
+
 def _serialize_query(
     query: QueryObject,
     form_data: dict[str, Any],
-) -> dict[str, Any]:
-    """Serialize query fields consumed by the Jinja form-data fallback."""
-    query_data = dict(query.to_dict())
-    query_data["filters"] = query.filter
-    if query.time_range is not None:
-        query_data["time_range"] = query.time_range
+    time_range: str | None = None,
+) -> dict[str, Any] | None:
+    """Serialize query fields consumed by the Jinja form-data fallback.
+
+    Incomplete stubs (unit-test doubles without ``to_dict``) are skipped so
+    callers can still publish datasource context for Jinja without requiring a
+    full ``QueryObject``.
+
+    ``time_range`` is an optional overlay for callers that deliberately leave
+    ``QueryObject.time_range`` unset (tabular queries, so relative ranges keep
+    ``from_dttm``/``to_dttm`` in the cache key). Chart and async callers omit
+    it so ``get_time_filter()`` matches the chart-data API: a TEMPORAL_RANGE
+    filter alone is not a published time range.
+    """
+    to_dict = getattr(query, "to_dict", None)
+    if not callable(to_dict):
+        return None
+
+    query_data = dict(to_dict())
+    filters = getattr(query, "filter", None)
+    query_data["filters"] = filters
+    resolved = time_range
+    if resolved is None:
+        obj_range = getattr(query, "time_range", None)
+        if isinstance(obj_range, str):
+            resolved = obj_range
+    if resolved is not None:
+        query_data["time_range"] = resolved
     if url_params := form_data.get("url_params"):
         query_data["url_params"] = url_params
     return query_data
@@ -47,17 +79,21 @@ def _serialize_query(
 
 def set_query_context_form_data(
     query_context: QueryContext,
-    datasource_id: int,
+    datasource_id: int | str,
     datasource_type: str,
+    time_range: str | None = None,
 ) -> None:
     """Expose a programmatically-created query like a chart data API request."""
-    form_data = query_context.form_data or {}
+    form_data = _as_form_data_dict(getattr(query_context, "form_data", None))
+    queries = _as_query_list(getattr(query_context, "queries", None))
+    serialized: list[dict[str, Any]] = []
+    for query in queries:
+        if (payload := _serialize_query(query, form_data, time_range)) is not None:
+            serialized.append(payload)
     set_form_data(
         {
             "datasource": {"id": datasource_id, "type": datasource_type},
-            "queries": [
-                _serialize_query(query, form_data) for query in query_context.queries
-            ],
+            "queries": serialized,
             "form_data": form_data,
         }
     )

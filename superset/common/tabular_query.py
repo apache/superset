@@ -387,6 +387,11 @@ def build_query_dict(
         query_dict["row_offset"] = offset
     if time_column:
         query_dict["granularity"] = time_column
+    # Do not set QueryObject.time_range here. Relative ranges must keep
+    # from_dttm/to_dttm in the cache key so day rollovers re-execute.
+    # Jinja get_time_filter() still sees the range because
+    # execute_tabular_query passes it (or a TEMPORAL_RANGE filter on this
+    # dict) into set_query_context_form_data as an explicit overlay.
     if time_grain:
         query_dict["extras"] = {"time_grain_sqla": time_grain}
     if order:
@@ -395,6 +400,28 @@ def build_query_dict(
         # direction to every column.
         query_dict["orderby"] = [(name, not descending) for name, descending in order]
     return query_dict
+
+
+def _time_range_from_filters(filters: Any) -> str | None:
+    """Read a TEMPORAL_RANGE clause from the pre-factory query dict.
+
+    Do not reconstruct ``>=`` / ``<`` comparisons. ``get_table`` sets
+    granularity from ``time_column`` even when no ``time_range`` is given,
+    and ``GetTableFilter.op`` is a free string, so a comparison on that
+    column is not a published time range.
+    """
+    if not isinstance(filters, list):
+        return None
+    for flt in filters:
+        if not isinstance(flt, dict):
+            continue
+        op = flt.get("op")
+        if isinstance(op, FilterOperator):
+            op = op.value
+        val = flt.get("val")
+        if op == FilterOperator.TEMPORAL_RANGE.value and isinstance(val, str):
+            return val
+    return None
 
 
 def execute_tabular_query(
@@ -406,6 +433,7 @@ def execute_tabular_query(
     use_cache: bool = True,
     force: bool = False,
     cache_timeout: int | None = None,
+    time_range: str | None = None,
 ) -> dict[str, Any]:
     """Execute via the standard pipeline and return the command payload.
 
@@ -428,8 +456,15 @@ def execute_tabular_query(
     )
     # Without this, Jinja macros such as {{ current_username() }} cannot see
     # the query context and virtual datasets render differently than they do
-    # through the chart data API.
-    set_query_context_form_data(query_context, datasource_id, datasource_type)
+    # through the chart data API. Pass the range explicitly: tabular queries
+    # omit QueryObject.time_range so rollovers re-execute, and the shared
+    # serializer must not invent a range from filters (chart / async parity).
+    set_query_context_form_data(
+        query_context,
+        datasource_id,
+        datasource_type,
+        time_range=time_range or _time_range_from_filters(query_dict.get("filters")),
+    )
 
     command = ChartDataCommand(query_context)
     command.validate()
