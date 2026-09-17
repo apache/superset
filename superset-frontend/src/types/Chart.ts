@@ -37,7 +37,7 @@ export interface Chart {
   slice_name: string;
   // Name resolved for the viewer's locale (read-only). Mirrors slice_name
   // when translation is off or no translation exists.
-  localized_name?: string;
+  localized_name?: string | null;
   creator: string;
   changed_on: string;
   changed_on_delta_humanized?: string;
@@ -73,7 +73,7 @@ export type Slice = {
   slice_id: number;
   uuid?: string;
   slice_name: string;
-  localized_name?: string;
+  localized_name?: string | null;
   changed_on?: string;
   description: string | null;
   cache_timeout: number | null;

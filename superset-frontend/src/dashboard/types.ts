@@ -168,10 +168,10 @@ export type DashboardState = {
   // Display-only localized dashboard title (read-only; canonical title is in
   // the header layout meta). Mirrors the canonical title when translation is
   // off or no translation exists, so it is never a signal that one was found.
-  localizedTitle?: string;
+  localizedTitle?: string | null;
   // The canonical title `localizedTitle` was resolved for; the translation is
   // only displayed while the live title still matches it.
-  localizedTitleFor?: string;
+  localizedTitleFor?: string | null;
   colorNamespace?: string;
   isStarred?: boolean;
   lastRefreshTime?: number;
@@ -358,7 +358,7 @@ export type EmbeddedDashboard = {
 export type Slice = {
   slice_id: number;
   slice_name: string;
-  localized_name?: string;
+  localized_name?: string | null;
   description: string;
   description_markdown: string;
   form_data: any;

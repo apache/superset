@@ -285,7 +285,9 @@ class DashboardGetResponseSchema(Schema):
         metadata={"description": dashboard_title_description}
     )
     localized_title = fields.String(
-        dump_only=True, metadata={"description": localized_title_description}
+        dump_only=True,
+        allow_none=True,
+        metadata={"description": localized_title_description},
     )
     thumbnail_url = fields.String(allow_none=True)
     published = fields.Boolean()

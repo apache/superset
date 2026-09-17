@@ -78,7 +78,7 @@ export interface HydrateChartData {
   slice_id: number;
   slice_url: string;
   slice_name: string;
-  localized_name?: string;
+  localized_name?: string | null;
   form_data: JsonObject;
   description: string;
   description_markeddown: string;

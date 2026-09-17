@@ -119,7 +119,7 @@ export interface Dashboard {
   // sends it when the column is selected, mirroring dashboard_title when
   // translation is off or no translation exists -- so it is a display value,
   // not a signal that a translation was found.
-  localized_title?: string;
+  localized_title?: string | null;
   id: number;
   published: boolean;
   url: string;

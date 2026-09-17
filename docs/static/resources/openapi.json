@@ -2757,6 +2757,7 @@
           },
           "localized_name": {
             "description": "The chart name resolved for the viewer's locale (read-only). Falls back to slice_name when no translation applies.",
+            "nullable": true,
             "readOnly": true,
             "type": "string"
           },
@@ -2874,6 +2875,7 @@
             "type": "boolean"
           },
           "localized_name": {
+            "nullable": true,
             "readOnly": true,
             "type": "string"
           },
@@ -4076,6 +4078,7 @@
           },
           "localized_title": {
             "description": "The dashboard title resolved for the viewer's locale (read-only). Falls back to dashboard_title when no translation applies.",
+            "nullable": true,
             "readOnly": true,
             "type": "string"
           },
@@ -11266,6 +11269,7 @@
           },
           "localized_name": {
             "description": "The slice name resolved for the viewer's locale (read-only). Falls back to slice_name when no translation applies.",
+            "nullable": true,
             "readOnly": true,
             "type": "string"
           },

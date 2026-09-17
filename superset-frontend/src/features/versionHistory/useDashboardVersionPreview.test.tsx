@@ -738,3 +738,27 @@ test('a save landing during the theme fetch does not strand the preview', async 
   });
   await waitFor(() => expect(mockedHydrateDashboard).toHaveBeenCalledTimes(2));
 });
+
+test('a preview drops the live translation, which belongs to the live title', async () => {
+  // The live localized_title was resolved for 'Live dashboard'. Carrying it
+  // into a preview of 'Snapshot title' would render the live name over
+  // historical content -- and with the feature off it mirrors the live
+  // canonical title, so the same mismatch happens with no hook configured.
+  mockedFetchHydration.mockResolvedValue({
+    dashboard: { ...liveDashboard, localized_title: 'Tableau en direct' },
+    charts: [],
+  } as never);
+  const store = makePreviewStore();
+  renderPreviewHook(store);
+
+  act(() => {
+    store.setState({
+      versionHistory: versionHistoryState({ preview: previewOf('v1') }),
+    });
+  });
+
+  await waitFor(() => expect(mockedHydrateDashboard).toHaveBeenCalledTimes(1));
+  const previewed = mockedHydrateDashboard.mock.calls[0][0].dashboard;
+  expect(previewed.dashboard_title).toBe('Snapshot title');
+  expect(previewed.localized_title).toBeUndefined();
+});

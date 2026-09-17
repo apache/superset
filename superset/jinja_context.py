@@ -1117,10 +1117,12 @@ class JinjaTemplateProcessor(BaseTemplateProcessor):
             # resolve alike still share a cache entry.
             return extra_cache.cache_key_wrapper(i18n_macro(default_text))
 
-        # Registered only when a deployment has not already bound this name
-        # through JINJA_CONTEXT_ADDONS: the macro is new, so an existing addon
-        # called ``i18n`` has to keep working across the upgrade.
-        if "i18n" not in self._context:
+        # Yields to JINJA_CONTEXT_ADDONS only. The macro is new, so an addon
+        # bound to this name predates it and has to keep working across the
+        # upgrade. Testing the whole context instead would also let a dataset
+        # template_param called ``i18n`` -- merged into the same dict before
+        # this runs -- unbind the macro and leave a non-callable in its place.
+        if "i18n" not in context_addons():
             self._context["i18n"] = partial(safe_proxy, i18n_with_cache_key)
 
         # The `metric` filter needs the env and full context to expand other

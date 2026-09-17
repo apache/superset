@@ -61,11 +61,7 @@ from superset.tasks.thumbnails import cache_dashboard_thumbnail
 from superset.tasks.utils import get_current_user
 from superset.thumbnails.digest import get_dashboard_digest
 from superset.utils import core as utils, json
-from superset.utils.i18n import (
-    is_asset_translation_enabled,
-    translate,
-    translate_many,
-)
+from superset.utils.i18n import translate
 
 metadata = Model.metadata  # pylint: disable=no-member
 logger = logging.getLogger(__name__)
@@ -349,27 +345,18 @@ class Dashboard(CoreDashboard, SoftDeleteMixin, AuditMixinNullable, ImportExport
         positions = self.position_json
         if positions:
             positions = json.loads(positions)
-        # Resolve every chart name in one shot; the per-slice ``localized_name``
-        # lookups below then read from the request memo instead of hitting the
-        # translation hook once per chart. Gated so a disabled deployment does
-        # not pay for the extra pass over the slices.
-        if is_asset_translation_enabled():
-            translate_many(
-                (slc.slice_name for slc in self.slices),
-                model_name="Slice",
-                field_name="slice_name",
-            )
         return {
             "id": self.id,
             "metadata": self.params_dict,
             "certified_by": self.certified_by,
             "certification_details": self.certification_details,
             "css": self.css,
-            # ``dashboard_title`` stays canonical: the layout header seeds
-            # ``meta.text`` from it and persists it on save. The localized value
-            # is exposed separately for display only.
+            # Canonical only. Callers feed this dict back through the update
+            # path, which assigns every key onto the model, so a read-only
+            # derived value cannot live here. The REST response carries the
+            # localized title instead, dumped from the model by
+            # DashboardGetResponseSchema.
             "dashboard_title": self.dashboard_title,
-            "localized_title": self.localized_title,
             "published": self.published,
             "slug": self.slug,
             "slices": [slc.data for slc in self.slices],

@@ -3457,3 +3457,21 @@ def test_jinja_context_addon_keeps_the_i18n_name(mocker: MockerFixture) -> None:
     processor = get_template_processor(database=database)
 
     assert processor.process_template("{{ i18n('Sales') }}") == "addon:Sales"
+
+
+def test_template_param_does_not_unbind_the_i18n_macro(mocker: MockerFixture) -> None:
+    """A dataset template_param must not displace a core macro.
+
+    ``template_params`` are merged into the same context dict before the macros
+    are registered, so guarding on the whole context would leave a non-callable
+    bound to the name and break ``{{ i18n(...) }}`` for that query.
+    """
+    mocker.patch(
+        "superset.jinja_context.i18n_macro",
+        side_effect=lambda text: f"translated:{text}",
+    )
+    database = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
+    processor = get_template_processor(database=database)
+    processor.set_context(i18n="a template param, not a function")
+
+    assert processor.process_template("{{ i18n('Sales') }}") == "translated:Sales"

@@ -391,6 +391,12 @@ export function useDashboardVersionPreview(uuid: string | undefined) {
           {
             ...dashboard,
             dashboard_title: snapshot.dashboard_title,
+            // No translation was resolved for the historical title, and the
+            // live one belongs to a different title entirely -- keeping it
+            // would render the live name over historical content, which
+            // happens with the feature off too since localized_title then
+            // mirrors the live canonical title.
+            localized_title: undefined,
             css: snapshot.css ?? '',
             metadata: snapshot.json_metadata
               ? JSON.parse(snapshot.json_metadata)

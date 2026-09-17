@@ -279,7 +279,9 @@ class ChartEntityResponseSchema(Schema):
     id = fields.Integer(metadata={"description": id_description})
     slice_name = fields.String(metadata={"description": slice_name_description})
     localized_name = fields.String(
-        dump_only=True, metadata={"description": localized_name_description}
+        dump_only=True,
+        allow_none=True,
+        metadata={"description": localized_name_description},
     )
     cache_timeout = fields.Integer(metadata={"description": cache_timeout_description})
     changed_on = fields.DateTime(metadata={"description": changed_on_description})
@@ -2075,7 +2077,7 @@ class ChartGetResponseSchema(Schema):
     description = fields.String()
     params = fields.String()
     slice_name = fields.String()
-    localized_name = fields.String(dump_only=True)
+    localized_name = fields.String(dump_only=True, allow_none=True)
     thumbnail_url = fields.String()
     viz_type = fields.String()
     query_context = fields.String()
