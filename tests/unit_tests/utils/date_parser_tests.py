@@ -433,6 +433,37 @@ def test_get_since_until_sub_day_shorthand() -> None:
         assert result == expected
 
 
+def test_get_since_until_sub_day_next_with_explicit_relative_bounds() -> None:
+    """
+    superset.common.utils.time_range_utils.get_since_until_from_time_range(),
+    the production wrapper around this function, always passes explicit
+    `relative_start`/`relative_end` -- defaulting to `DEFAULT_RELATIVE_START_TIME`
+    / `DEFAULT_RELATIVE_END_TIME`, both "today" out of the box -- rather than
+    relying on `get_since_until()`'s own internal default. An explicit override
+    always wins over `get_default_bound_for_shorthand()`, so a sub-day
+    "Next <unit>" resolves with `since` pinned to literal midnight instead of
+    `now`; pin that this still produces a correctly-ordered range.
+    """
+    with freezegun.freeze_time("2026-09-14 17:16:40"):
+        kwargs = {"relative_start": "today", "relative_end": "today"}
+
+        result = get_since_until("Next second", **kwargs)
+        expected = (datetime(2026, 9, 14, 0, 0), datetime(2026, 9, 14, 0, 0, 1))
+        assert result == expected
+
+        result = get_since_until("Next minute", **kwargs)
+        expected = (datetime(2026, 9, 14, 0, 0), datetime(2026, 9, 14, 0, 1))
+        assert result == expected
+
+        result = get_since_until("Next hour", **kwargs)
+        expected = (datetime(2026, 9, 14, 0, 0), datetime(2026, 9, 14, 1, 0))
+        assert result == expected
+
+        result = get_since_until("Next 2 hours", **kwargs)
+        expected = (datetime(2026, 9, 14, 0, 0), datetime(2026, 9, 14, 2, 0))
+        assert result == expected
+
+
 @patch("superset.utils.date_parser.parse_human_datetime", mock_parse_human_datetime)
 def test_datetime_eval() -> None:
     result = datetime_eval("datetime('now')")
