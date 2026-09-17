@@ -767,9 +767,15 @@ def _get_table_chart_totals_metrics(
 class MigrateTableChart(MigrateViz):
     source_viz_type = "table"
     target_viz_type = "ag-grid-table"
-    # allow_rearrange_columns/allow_render_html/header_groups are kept as-is:
-    # v2 reads them under the same names (see rename_keys below), so nothing
-    # to remove. (allow_rearrange_columns still gets a value materialized in
+    # Table V2 is still `IN DEVELOPMENT`, gated behind AG_GRID_TABLE_ENABLED.
+    # Without this, importing any `table` chart (e.g. `load_examples` on a
+    # fresh install with the flag at its default False) would silently turn
+    # it into an ag-grid-table chart the frontend can't render at all: "Item
+    # with key ag-grid-table is not registered."
+    requires_feature_flag = "AG_GRID_TABLE_ENABLED"
+    # allow_rearrange_columns/allow_render_html/header_groups are kept as-is: v2 reads them
+    # under the same names (see rename_keys below), so nothing to remove.
+    # (allow_rearrange_columns still gets a value materialized in
     # _pre_action below when the source chart omits the key.)
     remove_keys: set[str] = set()
     rename_keys: dict[str, str] = {}  # no renames needed; names match 1:1
