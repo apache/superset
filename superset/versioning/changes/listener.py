@@ -43,6 +43,7 @@ produce zero change records by design.
 from __future__ import annotations
 
 import logging
+from time import perf_counter
 from typing import Any
 
 import sqlalchemy as sa
@@ -66,7 +67,7 @@ from superset.versioning.diff import (
     ChangeRecord,
     fold_dashboard_layout_with_chart_changes,
 )
-from superset.versioning.metrics import incr_capture_error
+from superset.versioning.metrics import emit_capture_timing, incr_capture_error
 
 logger = logging.getLogger(__name__)
 
@@ -186,23 +187,21 @@ def build_action_headline(
 _REGISTERED_SENTINEL = "_versioning_change_listener_registered"
 
 
-def _capture_dirty_entity_initial_state(
-    session: Session,
+def _uncaptured_identity(
     obj: Any,
     initial_states: dict[tuple[str, int], tuple[Any, dict[str, Any]]],
-) -> None:
-    """Retain one dirty entity's first database state for this transaction."""
-    entity_kind = ENTITY_KIND_BY_CLASS_NAME.get(type(obj).__name__)
+) -> tuple[str, int] | None:
+    """Return the entity identity only when its pre-state needs a read."""
+    entity_kind: str | None = ENTITY_KIND_BY_CLASS_NAME.get(type(obj).__name__)
     if entity_kind is None:
-        return
-    entity_id = getattr(obj, "id", None)
+        return None
+    entity_id: int | None = getattr(obj, "id", None)
     if entity_id is None:
-        return
-    key = (entity_kind, entity_id)
+        return None
+    key: tuple[str, int] = (entity_kind, entity_id)
     if key in initial_states:
-        return
-    if (pre_state := capture_initial_state(session, obj)) is not None:
-        initial_states[key] = (obj, pre_state)
+        return None
+    return key
 
 
 def _build_scalar_buffer(
@@ -438,7 +437,124 @@ def _persist_buffered_records(
         incr_capture_error("bulk_insert")
 
 
-def register_change_record_listener() -> None:  # noqa: C901
+def finalize_change_records(session: Session) -> None:
+    """Build and persist the transaction's change records at commit time.
+
+    Module-level (rather than a closure inside the registration function)
+    so the capture write path can be exercised directly by unit tests
+    against an isolated session; it depends only on the session and the
+    module helpers, never on the registered entity classes.
+    """
+    if session.in_nested_transaction() or session.info.get(_FINALIZING_KEY):
+        return
+
+    session.info[_FINALIZING_KEY] = True
+    # Measures the FINALIZE stage only: the timer starts after the flush,
+    # which excludes the transaction's own write cost but also excludes
+    # capture_initial_states' per-entity pre-state SELECTs (those are timed
+    # as their own ``capture_initial_states`` stage in before_flush) — and
+    # runs through every capture step and early return. Every commit on the
+    # session emits a sample, including commits touching no versioned
+    # entity, because the whole-listener overhead is exactly what the
+    # kill-switch removes; a flush that raises emits nothing.
+    start: float | None = None
+    try:
+        session.flush()
+        start = perf_counter()
+        initial_states: dict[tuple[str, int], tuple[Any, dict[str, Any]]] = (
+            session.info.get(_INITIAL_STATES_KEY, {})
+        )
+        buffer: dict[tuple[str, int], list[ChangeRecord]] = _build_scalar_buffer(
+            initial_states
+        )
+
+        try:
+            tx_id: int | None = _current_transaction_id(session)
+        except Exception:  # pylint: disable=broad-except
+            logger.exception("version_changes: transaction lookup failed")
+            incr_capture_error("transaction_lookup")
+            return
+        if tx_id is None:
+            return
+
+        _stamp_action_kind_on_transaction(session, tx_id)
+        _append_child_records_to_buffer(session, tx_id, buffer)
+        _inject_action_meta_record(session, buffer)
+
+        if buffer:
+            _persist_buffered_records(session, tx_id, buffer)
+    finally:
+        session.info.pop(_FINALIZING_KEY, None)
+        if start is not None:
+            emit_capture_timing("finalize", (perf_counter() - start) * 1000.0)
+
+
+def _capture_initial_states(
+    session: Session, versioned_classes: tuple[type, ...]
+) -> None:
+    """Retain dirty versioned entities' pre-flush states for the final diff.
+
+    Timed as its own metric stage. The per-entity pre-state SELECTs issued
+    here are the capture cost that scales with the number of dirty versioned
+    entities — on a bulk edit plausibly the dominant cost the kill-switch
+    removes — and they run before the flush, outside ``finalize``'s timer. A
+    sample is emitted only when at least one pre-state read was attempted,
+    including failed reads that return no state,
+    so the many unrelated autoflushes do not flood the series with empty
+    samples; together with ``finalize`` the two stages cover the whole
+    listener. Module-level (not the registered closure) so it is
+    unit-testable without ``db.session``.
+    """
+    initial_states: dict[tuple[str, int], tuple[Any, dict[str, Any]]] = (
+        session.info.setdefault(_INITIAL_STATES_KEY, {})
+    )
+    start: float = perf_counter()
+    attempted: bool = False
+    obj: Any
+    try:
+        for obj in list(session.dirty):
+            if isinstance(obj, versioned_classes):
+                try:
+                    key: tuple[str, int] | None = _uncaptured_identity(
+                        obj, initial_states
+                    )
+                except Exception:  # pylint: disable=broad-except
+                    logger.exception("version_changes: identity lookup failed")
+                    incr_capture_error("capture_initial_states")
+                    continue
+                if key is None:
+                    continue
+                try:
+                    # Deduplication precedes the marker: retained entities
+                    # need no read, while failed reads still cost time.
+                    attempted = True
+                    pre_state: dict[str, Any] | None = capture_initial_state(
+                        session, obj
+                    )
+                    if pre_state is not None:
+                        initial_states[key] = (obj, pre_state)
+                except Exception:  # pylint: disable=broad-except
+                    logger.exception(
+                        "version_changes: initial-state capture failed for %s id=%s",
+                        key[0],
+                        key[1],
+                    )
+                    incr_capture_error("capture_initial_states")
+                    continue
+    except Exception:  # pylint: disable=broad-except
+        # Twin of the transaction-lookup guard in finalize: a versioning bug
+        # must never break a user's save, including when dirty iteration or
+        # eligibility checking fails before the per-entity capture handler.
+        logger.exception("version_changes: initial-state capture failed")
+        incr_capture_error("capture_initial_states")
+    finally:
+        if attempted:
+            emit_capture_timing(
+                "capture_initial_states", (perf_counter() - start) * 1000.0
+            )
+
+
+def register_change_record_listener() -> None:
     """Attach transaction-scoped version-change listeners.
 
     Registered from :class:`superset.initialization.SupersetAppInitializer`
@@ -461,37 +577,7 @@ def register_change_record_listener() -> None:  # noqa: C901
     def capture_initial_states(
         session: Session, _flush_context: Any, _instances: Any
     ) -> None:
-        initial_states: dict[tuple[str, int], tuple[Any, dict[str, Any]]] = (
-            session.info.setdefault(_INITIAL_STATES_KEY, {})
-        )
-        for obj in list(session.dirty):
-            if isinstance(obj, versioned_classes):
-                _capture_dirty_entity_initial_state(session, obj, initial_states)
-
-    def finalize_change_records(session: Session) -> None:
-        if session.in_nested_transaction() or session.info.get(_FINALIZING_KEY):
-            return
-
-        session.info[_FINALIZING_KEY] = True
-        try:
-            session.flush()
-            initial_states: dict[tuple[str, int], tuple[Any, dict[str, Any]]] = (
-                session.info.get(_INITIAL_STATES_KEY, {})
-            )
-            buffer = _build_scalar_buffer(initial_states)
-
-            tx_id = _current_transaction_id(session)
-            if tx_id is None:
-                return
-
-            _stamp_action_kind_on_transaction(session, tx_id)
-            _append_child_records_to_buffer(session, tx_id, buffer)
-            _inject_action_meta_record(session, buffer)
-
-            if buffer:
-                _persist_buffered_records(session, tx_id, buffer)
-        finally:
-            session.info.pop(_FINALIZING_KEY, None)
+        _capture_initial_states(session, versioned_classes)
 
     event.listen(db.session, "before_flush", capture_initial_states)
     event.listen(db.session, "before_commit", finalize_change_records)

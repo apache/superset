@@ -17291,3 +17291,7 @@ msgstr ""
 
 msgid "Preview this version"
 msgstr ""
+
+#: superset/datasets/api.py
+msgid "Another save is in progress for this dataset. Retry the same request."
+msgstr ""

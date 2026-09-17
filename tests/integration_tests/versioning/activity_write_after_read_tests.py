@@ -25,6 +25,10 @@ from __future__ import annotations
 
 from typing import Any
 
+from flask_appbuilder.security.sqla.models import User
+from sqlalchemy import event
+from sqlalchemy.engine import Connection, ExecutionContext
+
 from superset.extensions import db
 from superset.models.slice import Slice
 from superset.utils.core import override_user
@@ -32,7 +36,7 @@ from superset.versioning.activity.orchestrator import get_activity
 from tests.integration_tests.base_tests import SupersetTestCase
 
 
-def _admin_user() -> "Any":
+def _admin_user() -> User:
     # pylint: disable=import-outside-toplevel
     from superset import security_manager
 
@@ -68,9 +72,38 @@ class TestActivityReadThenWrite(SupersetTestCase):
             # history (its own INSERT), so the streaming fetch executes.
             slc.slice_name = "sc120955_read_then_write_edited"
             db.session.commit()
+            streamed_cursors: list[str | None] = []
+
+            def observe_change_select(
+                connection: Connection,
+                cursor: Any,
+                statement: str,
+                parameters: Any,
+                context: ExecutionContext,
+                executemany: bool,
+            ) -> None:
+                """Observe the change SELECT even if streaming is removed."""
+                if statement.lstrip().upper().startswith("SELECT") and (
+                    "version_changes" in statement
+                ):
+                    streamed_cursors.append(getattr(cursor, "name", None))
+
             records: list[dict[str, Any]]
-            with override_user(_admin_user()):
-                records, _, _ = get_activity(Slice, slc.uuid, resolved_entity=slc)
+            event.listen(db.engine, "before_cursor_execute", observe_change_select)
+            try:
+                with override_user(_admin_user()):
+                    records, _, _ = get_activity(Slice, slc.uuid, resolved_entity=slc)
+            finally:
+                event.remove(db.engine, "before_cursor_execute", observe_change_select)
+            assert records is not None
+            assert streamed_cursors, "The activity read must execute its change SELECT"
+            if db.engine.dialect.name == "postgresql":
+                assert all(streamed_cursors), "Activity SELECTs must use named cursors"
+            assert (
+                not db.session.connection()
+                .get_execution_options()
+                .get("stream_results", False)
+            )
             assert any(
                 record["kind"] != "__creation__"
                 and record["entity_uuid"] == str(slc.uuid)
