@@ -382,7 +382,7 @@ def _inherited_state_invalid_keys(
 
 def _chart_datasource_type(chart: Slice) -> str:
     """Return the persisted source family without inferring it from the ID."""
-    value: str = chart.datasource_type
+    value: object = getattr(chart, "datasource_type", DatasourceType.TABLE.value)
     if not isinstance(value, str):
         return DatasourceType.TABLE.value
     if value not in (DatasourceType.TABLE.value, DatasourceType.SEMANTIC_VIEW.value):
@@ -409,7 +409,10 @@ def _rebind_target(
     return (
         target_id,
         target_type,
-        (target_id != chart.datasource_id or target_type != current_type),
+        (
+            target_id != getattr(chart, "datasource_id", None)
+            or target_type != current_type
+        ),
     )
 
 

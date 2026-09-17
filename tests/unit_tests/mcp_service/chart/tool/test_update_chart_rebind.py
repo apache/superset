@@ -254,6 +254,24 @@ def test_unknown_persisted_source_does_not_fall_back_to_table() -> None:
         )
 
 
+@pytest.mark.parametrize("semantic", [False, True])
+def test_rebind_accepts_legacy_chart_double_without_source_attributes(
+    semantic: bool,
+) -> None:
+    """Missing legacy attributes must not mask chart validation errors."""
+    chart: Mock = Mock(spec=[])
+    request: UpdateChartRequest = (
+        UpdateChartRequest(identifier=12, view_id=3)
+        if semantic
+        else UpdateChartRequest(identifier=12, dataset_id=3)
+    )
+    assert _rebind_target(request, chart) == (
+        3,
+        "semantic_view" if semantic else "table",
+        True,
+    )
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize("visible", [True, False])
 @pytest.mark.parametrize(
