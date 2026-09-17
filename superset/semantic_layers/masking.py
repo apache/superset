@@ -88,7 +88,12 @@ def _resolve_ref(schema: JsonSchema, defs: dict[str, JsonSchema]) -> JsonSchema:
     while "$ref" in schema:
         if not isinstance(schema["$ref"], str) or not isinstance(defs, dict):
             raise _UnresolvableRefError
-        ref_name: str = schema["$ref"].rsplit("/", 1)[-1]
+        reference: str = schema["$ref"]
+        if not reference.startswith("#/$defs/"):
+            raise _UnresolvableRefError
+        ref_name: str = reference.removeprefix("#/$defs/")
+        if not ref_name or "/" in ref_name:
+            raise _UnresolvableRefError
         if ref_name in seen or ref_name not in defs:
             raise _UnresolvableRefError
         seen.add(ref_name)

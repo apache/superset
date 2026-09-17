@@ -33,6 +33,7 @@ from superset.commands.semantic_layer.exceptions import (
     SemanticViewNotFoundError,
     SemanticViewUpdateFailedError,
 )
+from superset.commands.semantic_layer.utils import validate_configuration
 from superset.commands.utils import current_user_can_modify_object
 from superset.daos.semantic_layer import SemanticLayerDAO, SemanticViewDAO
 from superset.exceptions import SupersetSecurityException
@@ -159,4 +160,4 @@ class UpdateSemanticLayerCommand(BaseCommand):
         if configuration := self._properties.get("configuration"):
             sl_type = self._model.type
             cls = registry[sl_type]
-            cls.from_configuration(configuration)
+            validate_configuration(cls, configuration)

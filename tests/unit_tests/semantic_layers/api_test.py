@@ -16,12 +16,16 @@
 # under the License.
 
 import inspect
+import logging
 import uuid as uuid_lib
-from typing import Any
+from typing import Annotated, Any, Literal
 from unittest.mock import MagicMock, patch
 
 import pytest
+from flask.testing import FlaskClient
+from pydantic import BaseModel, Field, model_validator, SecretStr
 from pytest_mock import MockerFixture
+from werkzeug.test import TestResponse
 
 from superset.commands.semantic_layer.exceptions import (
     SemanticLayerCreateFailedError,
@@ -2763,3 +2767,97 @@ def test_semantic_layer_runtime_schema_flag_off_unwrapped() -> None:
 
     assert response == ("404", 404)
     api.response_404.assert_called_once()
+
+
+@SEMANTIC_LAYERS_APP
+@pytest.mark.parametrize("operation", ["create", "update"])
+@pytest.mark.parametrize("failure", ["discriminator", "custom_validator"])
+def test_layer_validation_does_not_expose_secrets(
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+    caplog: pytest.LogCaptureFixture,
+    operation: str,
+    failure: str,
+) -> None:
+    """Real command validation cannot log submitted or restored credentials."""
+    secret: str = uuid_lib.uuid4().hex
+
+    class PasswordAuth(BaseModel):
+        kind: Literal["password"]
+        password: SecretStr
+
+    class KeyAuth(BaseModel):
+        kind: Literal["key"]
+        key: SecretStr
+
+    class Configuration(BaseModel):
+        auth: Annotated[PasswordAuth | KeyAuth, Field(discriminator="kind")]
+
+        @model_validator(mode="before")
+        @classmethod
+        def reject_custom_value(cls, value: Any) -> Any:
+            if failure == "custom_validator":
+                raise ValueError(f"Invalid credential: {value['auth']['password']}")
+            return value
+
+    layer: MagicMock = MagicMock()
+    layer.configure_mock(
+        type="validation_test",
+        uuid=uuid_lib.uuid4(),
+        configuration='{"auth": {"kind": "password", "password": "' + secret + '"}}',
+    )
+    dao: MagicMock = mocker.patch(
+        f"superset.commands.semantic_layer.{operation}.SemanticLayerDAO"
+    )
+    dao.configure_mock(
+        **{
+            "find_by_uuid.return_value": layer,
+            "validate_uniqueness.return_value": True,
+            "validate_update_uniqueness.return_value": True,
+        }
+    )
+    mocker.patch(
+        f"superset.commands.semantic_layer.{operation}.current_user_can_modify_object",
+        return_value=True,
+    )
+    provider: MagicMock = MagicMock()
+    provider.from_configuration.configure_mock(side_effect=Configuration.model_validate)
+    mocker.patch.dict(
+        f"superset.commands.semantic_layer.{operation}.registry",
+        {"validation_test": provider},
+    )
+    payload: dict[str, Any] = {
+        "name": "Validation test",
+        "configuration": {
+            "auth": {
+                "kind": "invalid" if failure == "discriminator" else "password",
+                "password": PASSWORD_MASK if operation == "update" else secret,
+            }
+        },
+    }
+    caplog.clear()
+    response: TestResponse
+    if operation == "update":
+        response = client.put(f"/api/v1/semantic_layer/{layer.uuid}", json=payload)
+    else:
+        payload["type"] = "validation_test"
+        response = client.post("/api/v1/semantic_layer/", json=payload)
+
+    assert provider.from_configuration.call_args.args[0]["auth"]["password"] == secret
+    assert response.status_code == 422
+    assert secret not in response.get_data(as_text=True)
+    assert secret not in caplog.text
+    formatter: logging.Formatter = logging.Formatter()
+    record: logging.LogRecord
+    for record in caplog.records:
+        assert secret not in formatter.format(record)
+        assert secret not in str(record.args)
+    expected_detail: str = (
+        "auth: union_tag_invalid"
+        if failure == "discriminator"
+        else "<root>: value_error"
+    )
+    assert response.json == {"message": f"Invalid configuration: {expected_detail}"}
+    dao.create.assert_not_called()
+    dao.update.assert_not_called()

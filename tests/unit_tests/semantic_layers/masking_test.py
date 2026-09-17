@@ -698,6 +698,10 @@ def test_positional_and_pattern_schema_boundaries(
     "field_schema, definitions",
     [
         ({"$ref": 123}, {}),
+        ({"$ref": "#/$defs/"}, {"": {}}),
+        ({"$ref": "#/$defs/A/properties/token"}, {"token": {"type": "string"}}),
+        ({"$ref": "https://provider.example/schema/token"}, {"token": {}}),
+        ({"$ref": "#/definitions/token"}, {"token": {}}),
         ({"$ref": "#/$defs/Credentials"}, {"Credentials": None}),
     ],
 )
