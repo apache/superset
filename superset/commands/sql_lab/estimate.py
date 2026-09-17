@@ -20,7 +20,7 @@ import logging
 from typing import Any, TypedDict
 
 from flask import current_app as app
-from flask_babel import gettext as __
+from flask_babel import gettext as __, ngettext
 from jinja2.exceptions import TemplateError
 
 from superset import is_feature_enabled, security_manager
@@ -34,7 +34,6 @@ from superset.exceptions import (
     SupersetDMLNotAllowedException,
     SupersetErrorException,
     SupersetGenericDBErrorException,
-    SupersetParseError,
     SupersetTimeoutException,
 )
 from superset.jinja_context import get_template_processor
@@ -187,28 +186,37 @@ class QueryEstimationCommand(BaseCommand):
                 status=400,
             ) from ex
 
+        # Reported the same way the execution path reports it
+        # (`SqlQueryRenderImpl._validate`): a parameter left unresolved makes
+        # the estimate describe a different query than the one Run would
+        # execute, and in some positions it does not even parse.
+        if undefined_parameters := sorted(
+            template_processor.get_undefined_parameters(sql)
+        ):
+            raise SupersetErrorException(
+                SupersetError(
+                    message=ngettext(
+                        "The parameter %(parameters)s in your query is undefined.",
+                        "The following parameters in your query are undefined: "
+                        "%(parameters)s.",
+                        len(undefined_parameters),
+                        parameters=utils.format_list(undefined_parameters),
+                    ),
+                    error_type=SupersetErrorType.MISSING_TEMPLATE_PARAMS_ERROR,
+                    level=ErrorLevel.ERROR,
+                    extra={
+                        "undefined_parameters": undefined_parameters,
+                        "template_parameters": self._template_params,
+                    },
+                ),
+                status=400,
+            )
+
         # Apply the same SQL security controls used by the execution path
         # (sql_lab.execute_sql_statements) so cost estimation cannot be used to
         # probe disallowed functions/tables, bypass the DML guard, or confirm
         # the existence of rows hidden by row-level security.
-        try:
-            sql = self._apply_sql_security(sql)
-        except SupersetParseError as ex:
-            # An unprovided parameter is left in place by `DebugUndefined`
-            # rather than raising, and in some positions the leftover then
-            # fails to parse. Reported as written, that reads as a typo in the
-            # SQL; name the actual cause instead.
-            if template_processor.has_template(sql):
-                raise SupersetParseError(
-                    sql,
-                    self._database.db_engine_spec.engine,
-                    message=__(
-                        "The query has template parameters that were not "
-                        "provided, so its cost cannot be estimated. Provide "
-                        "them, or replace them with literal values."
-                    ),
-                ) from ex
-            raise
+        sql = self._apply_sql_security(sql)
 
         timeout = app.config["SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT"]
         timeout_msg = f"The estimation exceeded the {timeout} seconds timeout."

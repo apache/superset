@@ -22,7 +22,6 @@ from typing import Any, Callable, TYPE_CHECKING
 from flask_babel import gettext as __, lazy_gettext as _, ngettext
 from flask_babel.speaklater import LazyString
 from jinja2 import TemplateError
-from jinja2.meta import find_undeclared_variables
 
 from superset import is_feature_enabled
 from superset.commands.sql_lab.execute import SqlQueryRender
@@ -76,17 +75,6 @@ class SqlQueryRenderImpl(SqlQueryRender):
                 return query_model.sql.strip().strip(";")
             raise
 
-    def _strip_sql_comments(
-        self,
-        execution_context: SqlJsonExecutionContext,
-        sql: str,
-    ) -> str:
-        from superset.sql.parse import SQLScript
-
-        engine = execution_context.query.database.db_engine_spec.engine
-        script = SQLScript(sql, engine)
-        return script.format(comments=False)
-
     def _validate(
         self,
         execution_context: SqlJsonExecutionContext,
@@ -94,12 +82,9 @@ class SqlQueryRenderImpl(SqlQueryRender):
         sql_template_processor: BaseTemplateProcessor,
     ) -> None:
         if is_feature_enabled("ENABLE_TEMPLATE_PROCESSING"):
-            sql_for_validation = self._strip_sql_comments(
-                execution_context,
-                rendered_query,
+            undefined_parameters = sql_template_processor.get_undefined_parameters(
+                rendered_query
             )
-            syntax_tree = sql_template_processor.env.parse(sql_for_validation)
-            undefined_parameters = find_undeclared_variables(syntax_tree)
             if undefined_parameters:
                 self._raise_undefined_parameter_exception(
                     execution_context, undefined_parameters
