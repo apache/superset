@@ -552,9 +552,14 @@ def _window_repeats_an_earlier_block(
         sa.select(
             groups,
             *[
-                sa.literal_column(f"lag({groups_name}.{name}) OVER w").label(
-                    f"prev_{name}"
-                )
+                # Raw text carries no type, so copy the grouped column's own
+                # type across. Without it every prev_* lands as NullType and a
+                # later comparison against a Python value would bind it with no
+                # type processor. Types never reach the emitted SQL, which stays
+                # byte-identical on PostgreSQL, MySQL and SQLite.
+                sa.literal_column(
+                    f"lag({groups_name}.{name}) OVER w", type_=groups.c[name].type
+                ).label(f"prev_{name}")
                 for name in ("ts", "n", "n_coded", "min_reason", "max_reason")
             ],
         )
