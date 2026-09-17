@@ -118,7 +118,7 @@ def test_connection_drop_with_no_code_is_not_missing_table() -> None:
 # ---------------------------------------------------------------------------
 
 
-def _op_error(orig: object) -> OperationalError:
+def _op_error(orig: BaseException | None) -> OperationalError:
     err: OperationalError = OperationalError("stmt", None, Exception("boom"))
     err.orig = orig
     return err
@@ -302,7 +302,7 @@ def test_raw_driver_error_is_classified_on_itself() -> None:
         None,
     ],
 )
-def test_lock_contention_negative(orig: object) -> None:
+def test_lock_contention_negative(orig: BaseException | None) -> None:
     assert is_lock_contention_error(_op_error(orig)) is False
 
 

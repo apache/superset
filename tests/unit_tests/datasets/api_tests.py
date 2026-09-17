@@ -508,7 +508,7 @@ def test_put_dataset_maps_lock_contention_to_retryable_409(
     """
     dataset: SqlaTable = _create_dataset("test_put_lock_contention")
     deadlock: OperationalError = OperationalError("stmt", None, Exception())
-    deadlock.orig = type("Orig", (), {"args": (1213, "Deadlock found")})()
+    deadlock.orig = Exception(1213, "Deadlock found")
 
     with patch(
         "superset.datasets.api.current_entity_version_info",
@@ -547,7 +547,7 @@ def test_put_dataset_maps_entity_lock_contention_to_retryable_409(
     """
     dataset: SqlaTable = _create_dataset("test_put_entity_lock_contention")
     timeout: OperationalError = OperationalError("stmt", None, Exception())
-    timeout.orig = type("Orig", (), {"args": (1205, "Lock wait timeout exceeded")})()
+    timeout.orig = Exception(1205, "Lock wait timeout exceeded")
 
     with (
         patch(f"superset.datasets.api.{lock_point}", side_effect=timeout),
