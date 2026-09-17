@@ -1068,7 +1068,10 @@ describe('getLegendProps', () => {
       true,
     );
     const TOOLBOX_ICONS_RIGHT_FOOTPRINT = 67;
-    expect(right).toBeGreaterThan(TOOLBOX_ICONS_RIGHT_FOOTPRINT);
+    const SAFETY_MARGIN = 15;
+    expect(right).toBeGreaterThan(
+      TOOLBOX_ICONS_RIGHT_FOOTPRINT + SAFETY_MARGIN,
+    );
   });
 
   test('should return the correct props for plain type with left orientation', () => {
