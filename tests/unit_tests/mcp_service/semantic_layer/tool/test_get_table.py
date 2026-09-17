@@ -25,8 +25,10 @@ from types import ModuleType
 from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 
+import pyarrow as pa
 import pytest
 from fastmcp import Client, FastMCP
+from superset_core.semantic_layers.types import Dimension, Grains
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
@@ -114,11 +116,23 @@ def _make_view(view_id: int = 5) -> MagicMock:
 def temporal_view() -> Generator[MagicMock, None, None]:
     """Resolve a view with a temporal dimension and three queryable grains."""
     view: MagicMock = _make_view()
-    view.columns = [_make_column("metric_time", True), _make_column("country_name")]
+    view.columns = [
+        _make_column("metric_time", True),
+        _make_column("country_name"),
+    ]
     view.get_time_grains.return_value = [
         {"duration": "P1D", "name": "Day"},
         {"duration": "P1W", "name": "Week"},
         {"duration": "P1M", "name": "Month"},
+    ]
+    view.implementation.get_dimensions.return_value = [
+        Dimension(
+            id=f"metric_time__{grain.name}",
+            name="metric_time",
+            type=pa.timestamp("us"),
+            grain=grain,
+        )
+        for grain in (Grains.DAY, Grains.WEEK, Grains.MONTH)
     ]
     with patch(
         "superset.daos.semantic_layer.SemanticViewDAO.find_by_id", return_value=view
@@ -248,6 +262,14 @@ def test_get_table_grain_requires_time_column(
 def test_get_table_grain_explicit_time_column(temporal_view: MagicMock) -> None:
     """An explicit temporal column disambiguates the requested grain."""
     temporal_view.columns.append(_make_column("other_time", True))
+    temporal_view.implementation.get_dimensions.return_value.append(
+        Dimension(
+            id="other_time__month",
+            name="other_time",
+            type=pa.timestamp("us"),
+            grain=Grains.MONTH,
+        )
+    )
     result: Any = get_table_module._resolve_external_view(
         GetTableRequest(
             view_id=5,
@@ -852,3 +874,74 @@ async def test_get_table_rejects_open_ended_range_before_execution(
                     },
                 )
     execute.assert_not_called()
+
+
+@pytest.mark.parametrize("explicit_column", [False, True])
+def test_grain_is_validated_for_selected_column(
+    temporal_view: MagicMock,
+    explicit_column: bool,
+) -> None:
+    """A grain supported by another temporal column is not silently substituted."""
+    temporal_view.columns.append(_make_column("signup_date", True))
+    temporal_view.implementation.get_dimensions.return_value.extend(
+        [
+            Dimension(
+                id="signup_date__day",
+                name="signup_date",
+                type=pa.timestamp("us"),
+                grain=Grains.DAY,
+            ),
+            Dimension(
+                id="signup_date__year",
+                name="signup_date",
+                type=pa.timestamp("us"),
+                grain=Grains.YEAR,
+            ),
+        ]
+    )
+    result: Any = get_table_module._resolve_external_view(
+        GetTableRequest(
+            view_id=5,
+            dimensions=["signup_date"],
+            time_grain="P1M",
+            time_column="signup_date" if explicit_column else None,
+        )
+    )
+    assert isinstance(result, SemanticLayerError)
+    assert result.error_type == "ValidationError"
+    assert "signup_date" in result.error
+    assert "P1D (Day)" in result.error
+    assert "P1Y (Year)" in result.error
+    assert "P1M (Month)" not in result.error
+
+
+def test_time_range_uses_the_selected_grain_axis(temporal_view: MagicMock) -> None:
+    """The filter granularity and BASE_AXIS refer to the same selected dimension."""
+    temporal_view.columns.append(_make_column("signup_date", True))
+    temporal_view.implementation.get_dimensions.return_value.append(
+        Dimension(
+            id="signup_date__month",
+            name="signup_date",
+            type=pa.timestamp("us"),
+            grain=Grains.MONTH,
+        )
+    )
+    request: GetTableRequest = GetTableRequest(
+        view_id=5,
+        dimensions=["signup_date"],
+        time_grain="P1M",
+        time_range="2024-01-01 : 2024-03-01",
+    )
+    resolved: Any = get_table_module._resolve_external_view(request)
+    assert not isinstance(resolved, SemanticLayerError)
+    query: dict[str, Any] = get_table_module._build_query_dict(
+        request,
+        resolved.time_col,
+        resolved.grain_column,
+    )
+    assert query["granularity"] == "signup_date"
+    assert query["columns"][0]["sqlExpression"] == query["granularity"]
+    assert query["columns"][0]["timeGrain"] == "P1M"
+    assert query["filters"] == [
+        {"col": "signup_date", "op": "TEMPORAL_RANGE", "val": request.time_range}
+    ]

@@ -194,6 +194,7 @@ def _resolve_external_view(
             error_type="ValidationError",
         )
 
+    duration: str | None
     valid_grains: dict[str, str] = {
         duration: grain["name"]
         for grain in view.get_time_grains()
@@ -201,16 +202,6 @@ def _resolve_external_view(
     }
     grain_column: str | None = request.time_column
     if request.time_grain:
-        if request.time_grain not in valid_grains:
-            choices: str = ", ".join(
-                f"{duration} ({name})"
-                for duration, name in sorted(valid_grains.items())
-            )
-            return SemanticLayerError.create(
-                error=f"Unsupported time_grain '{request.time_grain}' on view "
-                f"'{display_name}'. Queryable grains: {choices or 'none'}.",
-                error_type="ValidationError",
-            )
         selected: list[str] = sorted(set(request.dimensions) & valid_dttm_columns)
         if grain_column is None:
             if len(selected) != 1:
@@ -220,6 +211,25 @@ def _resolve_external_view(
                     error_type="ValidationError",
                 )
             grain_column = selected[0]
+        # The mapper chooses variants by dimension name, not the view-wide union.
+        valid_grains = {
+            dimension.grain.representation: dimension.grain.name
+            for dimension in view.implementation.get_dimensions()
+            if dimension.name == grain_column and dimension.grain is not None
+        }
+        if request.time_grain not in valid_grains:
+            choices: str = ", ".join(
+                f"{duration} ({name})"
+                for duration, name in sorted(valid_grains.items())
+            )
+            return SemanticLayerError.create(
+                error=f"Unsupported time_grain '{request.time_grain}' on view "
+                f"'{display_name}', column '{grain_column}'. "
+                f"Queryable grains: {choices or 'none'}.",
+                error_type="ValidationError",
+            )
+        # time_column controls both filtering and the grain axis in the mapper.
+        time_col = grain_column
 
     return _ResolvedDatasource(
         display_name,
@@ -258,8 +268,11 @@ def _validate_request_names(
         # cannot resolve.
         metrics_full_list_hint="call list_metrics for the full list",
     )
+    base: str
+    separator: str
+    suffix: str
     for dimension in request.dimensions:
-        base, _, suffix = dimension.rpartition("__")
+        base, separator, suffix = dimension.rpartition("__")
         if dimension not in valid_columns and base in valid_columns:
             for duration, name in (valid_grains or {}).items():
                 if suffix.casefold() == name.casefold():
