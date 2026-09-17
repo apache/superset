@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from functools import partial
 from typing import Any, Optional
 
 from marshmallow import Schema
@@ -52,8 +51,21 @@ from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import SavedQuery
 from superset.queries.saved_queries.schemas import ImportV1SavedQuerySchema
+from superset.semantic_layers.import_export import (
+    chart_semantic_info,
+    resolve_bundle_references,
+    restore_dashboard_references,
+    SemanticReferenceError,
+)
 from superset.subjects.utils import get_default_viewers_for_current_user
 from superset.utils.decorators import on_error, transaction
+
+
+def _on_import_error(ex: Exception) -> None:
+    """Keep dependency validation actionable after the transaction rolls back."""
+    if isinstance(ex, SemanticReferenceError):
+        raise ex
+    on_error(ex, catches=(Exception,), reraise=ImportFailedError)
 
 
 class ImportAssetsCommand(BaseCommand):
@@ -103,6 +115,7 @@ class ImportAssetsCommand(BaseCommand):
         overwrite: bool = True,
     ) -> None:
         contents = {} if contents is None else contents
+        semantic_info: dict[str, dict[str, Any]] = resolve_bundle_references(configs)
         # import databases first
         database_ids: dict[str, int] = {}
         dataset_info: dict[str, dict[str, Any]] = {}
@@ -153,7 +166,11 @@ class ImportAssetsCommand(BaseCommand):
         charts = []
         for file_name, config in configs.items():
             if file_name.startswith("charts/"):
-                dataset_dict = dataset_info[config["dataset_uuid"]]
+                dataset_dict: dict[str, Any] | None = chart_semantic_info(
+                    config, semantic_info
+                )
+                if dataset_dict is None:
+                    dataset_dict = dataset_info[config["dataset_uuid"]]
                 config = update_chart_config_dataset(config, dataset_dict)
                 chart = import_chart(
                     config, overwrite=overwrite, default_viewers=default_viewers
@@ -171,6 +188,9 @@ class ImportAssetsCommand(BaseCommand):
         # import dashboards
         for file_name, config in configs.items():
             if file_name.startswith("dashboards/"):
+                restore_dashboard_references(
+                    config.get("metadata") or {}, semantic_info
+                )
                 config = update_id_refs(config, chart_ids, dataset_info)
                 dashboard = import_dashboard(
                     config, overwrite=overwrite, default_viewers=default_viewers
@@ -229,13 +249,7 @@ class ImportAssetsCommand(BaseCommand):
             if chart.viz_type == "filter_box":
                 db.session.delete(chart)
 
-    @transaction(
-        on_error=partial(
-            on_error,
-            catches=(Exception,),
-            reraise=ImportFailedError,
-        )
-    )
+    @transaction(on_error=_on_import_error)
     def run(self) -> None:
         self.validate()
         self._import(self._configs, self.sparse, self.contents, self.overwrite)

@@ -29,6 +29,7 @@ from marshmallow import (
     Schema,
     validate,
     validates,
+    validates_schema,
     ValidationError,
 )
 from marshmallow.validate import Length, NoneOf, Range
@@ -37,6 +38,7 @@ from marshmallow_union import Union
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.chart_data_timing import CHART_DATA_TIMING_VERSION
 from superset.db_engine_specs.base import builtin_time_grains
+from superset.semantic_layers.bundle_schemas import SemanticViewReferenceSchema
 from superset.subjects.schemas import SubjectResponseSchema
 from superset.tags.models import TagType
 from superset.utils import pandas_postprocessing, schema as utils
@@ -2015,11 +2017,22 @@ class ImportV1ChartSchema(Schema):
     cache_timeout = fields.Integer(allow_none=True)
     uuid = fields.UUID(required=True)
     version = fields.String(required=True)
-    dataset_uuid = fields.UUID(required=True)
+    dataset_uuid: fields.UUID = fields.UUID()
+    datasource_ref: fields.Nested = fields.Nested(SemanticViewReferenceSchema)
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True, validate=utils.validate_external_url)
     tags = fields.List(fields.String(), allow_none=True)
     extra = fields.Dict(allow_none=True, load_only=True)
+
+    @validates_schema
+    def validate_datasource_reference(
+        self, data: dict[str, Any], **kwargs: Any
+    ) -> None:
+        """Require exactly one legacy table or typed semantic reference."""
+        if ("dataset_uuid" in data) == ("datasource_ref" in data):
+            raise ValidationError(
+                "Specify exactly one of dataset_uuid and datasource_ref."
+            )
 
 
 class ChartCacheWarmUpRequestSchema(Schema):

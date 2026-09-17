@@ -49,6 +49,11 @@ from superset.extensions import feature_flag_manager
 from superset.migrations.shared.native_filters import migrate_dashboard
 from superset.models.dashboard import Dashboard, dashboard_slices
 from superset.models.slice import Slice
+from superset.semantic_layers.import_export import (
+    chart_semantic_info,
+    resolve_bundle_references,
+    restore_dashboard_references,
+)
 from superset.subjects.utils import get_default_viewers_for_current_user
 from superset.themes.schemas import ImportV1ThemeSchema
 from superset.utils.decorators import transaction
@@ -105,6 +110,7 @@ class ImportDashboardsCommand(ImportModelsCommand):
         **kwargs: Any,
     ) -> None:
         contents = {} if contents is None else contents
+        semantic_info: dict[str, dict[str, Any]] = resolve_bundle_references(configs)
         # discover charts, datasets, and themes associated with dashboards
         chart_uuids: set[str] = set()
         dataset_uuids: set[str] = set()
@@ -121,7 +127,11 @@ class ImportDashboardsCommand(ImportModelsCommand):
 
         # discover datasets associated with charts
         for file_name, config in configs.items():
-            if file_name.startswith("charts/") and config["uuid"] in chart_uuids:
+            if (
+                file_name.startswith("charts/")
+                and config["uuid"] in chart_uuids
+                and "dataset_uuid" in config
+            ):
                 dataset_uuids.add(config["dataset_uuid"])
 
         # discover databases associated with datasets
@@ -176,12 +186,15 @@ class ImportDashboardsCommand(ImportModelsCommand):
         charts = []
         chart_ids: dict[str, int] = {}
         for file_name, config in configs.items():
-            if (
-                file_name.startswith("charts/")
-                and config["dataset_uuid"] in dataset_info
+            if file_name.startswith("charts/") and (
+                "datasource_ref" in config or config.get("dataset_uuid") in dataset_info
             ):
                 # update datasource id, type, and name
-                dataset_dict = dataset_info[config["dataset_uuid"]]
+                dataset_dict: dict[str, Any] | None = chart_semantic_info(
+                    config, semantic_info
+                )
+                if dataset_dict is None:
+                    dataset_dict = dataset_info[config["dataset_uuid"]]
                 config = update_chart_config_dataset(config, dataset_dict)
 
                 chart = import_chart(
@@ -225,6 +238,9 @@ class ImportDashboardsCommand(ImportModelsCommand):
         dashboards: list[Dashboard] = []
         for file_name, config in configs.items():
             if file_name.startswith("dashboards/"):
+                restore_dashboard_references(
+                    config.get("metadata") or {}, semantic_info
+                )
                 config = update_id_refs(config, chart_ids, dataset_info)
                 # Handle theme UUID to ID mapping
                 if "theme_uuid" in config and config["theme_uuid"] in theme_ids:
