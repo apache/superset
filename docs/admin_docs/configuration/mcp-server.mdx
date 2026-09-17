@@ -100,9 +100,14 @@ browser receipt or application. Without a backend, an identifiable principal,
 or a successful publish, it is `false`; the created `dashboard_url` remains
 the fallback. An open dashboard resolves matching notifications through the
 existing dashboard permalink API and applies the returned filters without a
-reload. A “Filters applied from chat” toast offers **Undo** for eight seconds,
-restoring the affected filters' previous selections. Filters not present in the
-notification's permalink keep their existing selections in the open dashboard.
+reload. A “Filters applied from chat” toast offers **Undo**, restoring the
+affected filters' previous selections. The toast carries an action, so it has
+no auto-dismiss timer and stays up until Undo or its close button is used,
+which keeps the action reachable for keyboard and assistive-technology users.
+Undo restores only the filters whose current state still matches what the
+notification applied, so a selection edited in the meantime is kept. Filters
+not present in the notification's permalink keep their existing selections in
+the open dashboard.
 
 Reconnect deliberately does not fetch or replay filter state: there is no
 latest-per-user permalink lookup, and replaying a previously received permalink

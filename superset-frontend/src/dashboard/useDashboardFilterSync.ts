@@ -78,8 +78,9 @@ export default function useDashboardFilterSync(dashboardId?: number) {
           });
           const applied = store.getState().dataMask;
           let undone = false;
+          // No duration override: an actionable toast has no auto-dismiss
+          // timer, so it stays up until Undo or the close button is used.
           const toast = addSuccessToast(t('Filters applied from chat'), {
-            duration: 8000,
             action: {
               label: t('Undo'),
               onClick: () => {
