@@ -69,6 +69,7 @@ class _ResolvedDatasource:
     valid_metrics: set[str]
     warnings: list[str] = field(default_factory=list)
     view: "SemanticView | None" = None
+    temporal_columns: set[str] = field(default_factory=set)
 
 
 def _time_column_error(
@@ -185,7 +186,13 @@ def _resolve_external_view(
         )
 
     return _ResolvedDatasource(
-        display_name, time_col, valid_columns, valid_metrics, warnings, view=view
+        display_name,
+        time_col,
+        valid_columns,
+        valid_metrics,
+        warnings,
+        view=view,
+        temporal_columns=valid_dttm_columns,
     )
 
 
@@ -328,7 +335,14 @@ async def _run_get_table_query(
 
     required_dimensions: set[str] = (
         set(request.dimensions)
-        | {query_filter.col for query_filter in request.filters}
+        | {
+            query_filter.col
+            for query_filter in request.filters
+            if not (
+                query_filter.op == "TEMPORAL_RANGE"
+                and query_filter.col in resolved.temporal_columns
+            )
+        }
         | (set(request.order_by) & resolved.valid_columns)
     )
     if (

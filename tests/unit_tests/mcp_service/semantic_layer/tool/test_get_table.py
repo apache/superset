@@ -742,6 +742,84 @@ async def test_get_table_preserves_compatible_and_metric_ordering(
         view.get_compatible_dimensions.assert_not_called()
 
 
+@pytest.mark.parametrize("longhand", [False, True])
+@pytest.mark.asyncio
+async def test_temporal_filter_spellings_delegate_to_execution(
+    mcp_server: FastMCP, longhand: bool
+) -> None:
+    """Both temporal spellings execute even when discovery excludes the axis."""
+    view: MagicMock = _make_view()
+    view.columns.append(_make_column("order_ts", True))
+    view.get_compatible_dimensions.return_value = ["country_name"]
+    request: dict[str, Any] = {"view_id": 5, "metrics": ["bookings"]}
+    temporal_filter: dict[str, str] = {
+        "col": "order_ts",
+        "op": "TEMPORAL_RANGE",
+        "val": "2024-01-01 : 2024-03-01",
+    }
+    if longhand:
+        request["filters"] = [temporal_filter]
+    else:
+        request.update(time_column="order_ts", time_range=temporal_filter["val"])
+    with (
+        patch(
+            "superset.daos.semantic_layer.SemanticViewDAO.find_by_id", return_value=view
+        ),
+        patch.object(
+            get_table_module,
+            "execute_tabular_query",
+            return_value={"queries": [{"data": [], "colnames": []}]},
+        ) as execute,
+    ):
+        async with Client(mcp_server) as client:
+            result: Any = await client.call_tool("get_table", {"request": request})
+        data: dict[str, Any] = json.loads(result.content[0].text)
+    assert data["success"] is True
+    execute.assert_called_once()
+    assert execute.call_args.args[2]["filters"] == [temporal_filter]
+    view.get_compatible_dimensions.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "usage", ["ordinary_filter", "groupby", "ordering", "non_temporal_column"]
+)
+@pytest.mark.asyncio
+async def test_temporal_exemption_does_not_bypass_other_compatibility(
+    mcp_server: FastMCP, usage: str
+) -> None:
+    """The exemption applies only to temporal-only filters on temporal columns."""
+    view: MagicMock = _make_view()
+    view.columns.append(_make_column("order_ts", True))
+    view.get_compatible_dimensions.return_value = []
+    column: str = "country_name" if usage == "non_temporal_column" else "order_ts"
+    request: dict[str, Any] = {
+        "view_id": 5,
+        "metrics": ["bookings"],
+        "filters": [
+            {"col": column, "op": "TEMPORAL_RANGE", "val": "2024-01-01 : 2024-03-01"}
+        ],
+    }
+    if usage == "ordinary_filter":
+        request["filters"].append({"col": column, "op": "==", "val": "2024-02-01"})
+    elif usage == "groupby":
+        request["dimensions"] = [column]
+    elif usage == "ordering":
+        request["order_by"] = [column]
+    with (
+        patch(
+            "superset.daos.semantic_layer.SemanticViewDAO.find_by_id", return_value=view
+        ),
+        patch.object(get_table_module, "execute_tabular_query") as execute,
+    ):
+        async with Client(mcp_server) as client:
+            result: Any = await client.call_tool("get_table", {"request": request})
+        data: dict[str, Any] = json.loads(result.content[0].text)
+    assert data["success"] is False
+    assert data["error_type"] == "ValidationError"
+    assert column in data["error"]
+    execute.assert_not_called()
+
+
 class TestGetTableTimeRangeValidation:
     """GetTableRequest.time_range rejects values get_since_until() would
     otherwise silently resolve to an unbounded, full-table range.
