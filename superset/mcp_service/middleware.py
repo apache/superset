@@ -54,12 +54,15 @@ from superset.mcp_service.constants import (
     DEFAULT_WARN_THRESHOLD_PCT,
 )
 from superset.mcp_service.utils.token_utils import (
+    COMMITTED_WRITE_TOOLS,
     DATA_QUERY_TOOLS,
     estimate_response_tokens,
     format_size_limit_error,
     INFO_TOOLS,
+    STRING_FIELD_TRUNCATION_TOOLS,
     truncate_oversized_response,
     truncate_query_result,
+    truncate_string_field_response,
 )
 from superset.utils.core import get_user_id
 
@@ -1203,6 +1206,7 @@ class ResponseSizeGuardMiddleware(Middleware):
         tool_name: str,
         response: Any,
         estimated_tokens: int,
+        protected_keys: frozenset[str] = frozenset(),
     ) -> Any | None:
         """Attempt to dynamically truncate an info tool response to fit the limit.
 
@@ -1212,6 +1216,10 @@ class ResponseSizeGuardMiddleware(Middleware):
         every tool return value), the actual data lives inside
         ``content[0].text`` as a JSON string.  We parse that string, run the
         truncation phases on the resulting dict, then re-wrap the result.
+
+        ``protected_keys`` is forwarded to ``truncate_oversized_response`` so
+        callers (e.g. committed-write tools) can keep an identifying field
+        intact even through the final "clear everything" phase.
         """
         # Unwrap ToolResult so truncation operates on the real payload
         extracted = self._extract_payload_from_tool_result(response)
@@ -1230,6 +1238,7 @@ class ResponseSizeGuardMiddleware(Middleware):
                 truncation_target,
                 self.token_limit,
                 max_list_items=self.max_list_items,
+                protected_keys=protected_keys,
             )
         except (MemoryError, RecursionError) as trunc_error:
             logger.warning(
@@ -1357,6 +1366,143 @@ class ResponseSizeGuardMiddleware(Middleware):
 
         return truncated
 
+    def _try_truncate_string_field_response(
+        self,
+        tool_name: str,
+        response: Any,
+        estimated_tokens: int,
+        field: str,
+    ) -> Any | None:
+        """Attempt to truncate a response by bisecting one oversized string field.
+
+        Returns the truncated response if successful, None otherwise.
+        """
+        extracted = self._extract_payload_from_tool_result(response)
+        truncation_target = extracted if extracted is not None else response
+
+        try:
+            truncated, was_truncated, notes = truncate_string_field_response(
+                truncation_target, self.token_limit, field
+            )
+        except Exception as trunc_error:  # noqa: BLE001
+            logger.warning(
+                "String field truncation failed for %s due to %s: %s",
+                tool_name,
+                type(trunc_error).__name__,
+                trunc_error,
+            )
+            return None
+
+        if not was_truncated:
+            return None
+
+        truncated_tokens = estimate_response_tokens(truncated)
+        if truncated_tokens > self.token_limit:
+            return None
+
+        logger.warning(
+            "Response for %s truncated from ~%d to ~%d tokens (limit: %d). %s",
+            tool_name,
+            estimated_tokens,
+            truncated_tokens,
+            self.token_limit,
+            "; ".join(notes),
+        )
+
+        try:
+            user_id = get_user_id()
+            event_logger.log(
+                user_id=user_id,
+                action="mcp_response_truncated",
+                dashboard_id=None,
+                duration_ms=None,
+                slice_id=None,
+                referrer=None,
+                curated_payload={
+                    "tool": tool_name,
+                    "original_tokens": estimated_tokens,
+                    "truncated_tokens": truncated_tokens,
+                    "token_limit": self.token_limit,
+                    "truncation_notes": notes,
+                },
+            )
+        except Exception as log_error:  # noqa: BLE001
+            logger.warning("Failed to log truncation event: %s", log_error)
+
+        if extracted is not None and isinstance(truncated, dict):
+            return self._rewrap_as_tool_result(truncated, response)
+
+        return truncated
+
+    def _minimal_committed_write_response(
+        self,
+        tool_name: str,
+        response: Any,
+        estimated_tokens: int,
+    ) -> Any:
+        """Build a guaranteed-small success response for a committed write.
+
+        Last-resort fallback for COMMITTED_WRITE_TOOLS: reached only when
+        even the nuclear phase of ``truncate_oversized_response`` can't bring
+        the response under budget (in practice this should not happen, since
+        the protected identifying field alone is tiny). The underlying
+        mutation already committed by the time this middleware runs, so this
+        path must never raise -- it keeps only what confirms the write
+        succeeded and drops everything else.
+        """
+        extracted = self._extract_payload_from_tool_result(response)
+        if extracted is not None:
+            payload = extracted
+        elif isinstance(response, dict):
+            payload = response
+        else:
+            payload = {}
+        truncation_notes = [
+            f"Response for {tool_name} exceeded the size limit even after "
+            "truncation; non-essential fields were dropped. The underlying "
+            "write already committed successfully."
+        ]
+        minimal = {
+            "chart": payload.get("chart"),
+            "error": payload.get("error"),
+            "success": payload.get("success", True),
+            "explore_url": payload.get("explore_url"),
+            "schema_version": payload.get("schema_version"),
+            "api_version": payload.get("api_version"),
+            "_response_truncated": True,
+            "_truncation_notes": truncation_notes,
+        }
+        logger.warning(
+            "Response for %s could not fit under the size limit after full "
+            "truncation (~%d tokens, limit %d); returning a minimal write "
+            "confirmation instead of blocking a completed write.",
+            tool_name,
+            estimated_tokens,
+            self.token_limit,
+        )
+        try:
+            user_id = get_user_id()
+            event_logger.log(
+                user_id=user_id,
+                action="mcp_response_truncated",
+                dashboard_id=None,
+                duration_ms=None,
+                slice_id=None,
+                referrer=None,
+                curated_payload={
+                    "tool": tool_name,
+                    "original_tokens": estimated_tokens,
+                    "token_limit": self.token_limit,
+                    "truncation_notes": truncation_notes,
+                },
+            )
+        except Exception as log_error:  # noqa: BLE001
+            logger.warning("Failed to log truncation event: %s", log_error)
+
+        if extracted is not None:
+            return self._rewrap_as_tool_result(minimal, response)
+        return minimal
+
     def _handle_oversized_response(
         self,
         tool_name: str,
@@ -1366,20 +1512,32 @@ class ResponseSizeGuardMiddleware(Middleware):
     ) -> Any:
         """Attempt truncation for known tool categories; block everything else.
 
-        For info tools (``INFO_TOOLS``) and data-query tools
-        (``DATA_QUERY_TOOLS``), tries dynamic truncation first and returns
-        the truncated result if successful.  Falls through to a hard
-        ``ToolError`` for all other tools, or when truncation cannot reduce
-        the response to fit the limit.
+        For info tools (``INFO_TOOLS``), committed-write tools
+        (``COMMITTED_WRITE_TOOLS``), data-query tools (``DATA_QUERY_TOOLS``),
+        and single-string-field tools (``STRING_FIELD_TRUNCATION_TOOLS``),
+        tries dynamic truncation first and returns the truncated result if
+        successful. Falls through to a hard ``ToolError`` for all other
+        tools, or when truncation cannot reduce the response to fit the
+        limit -- except for COMMITTED_WRITE_TOOLS, whose transaction already
+        committed, so they degrade to a minimal success response instead of
+        ever raising (see ``_minimal_committed_write_response``).
 
         Raises:
             ToolError: When the response exceeds the limit and cannot be
-                truncated.
+                truncated (never for COMMITTED_WRITE_TOOLS).
         """
-        # Info tools: field-level truncation (strings, lists, dicts).
-        if tool_name in INFO_TOOLS:
+        # Info tools and committed-write tools: field-level truncation
+        # (strings, lists, dicts). Committed-write tools protect their
+        # identifying field ('chart') so write confirmation survives even
+        # the most aggressive truncation phase.
+        if tool_name in INFO_TOOLS or tool_name in COMMITTED_WRITE_TOOLS:
+            protected_keys = (
+                frozenset({"chart"})
+                if tool_name in COMMITTED_WRITE_TOOLS
+                else frozenset()
+            )
             truncated = self._try_truncate_info_response(
-                tool_name, response, estimated_tokens
+                tool_name, response, estimated_tokens, protected_keys=protected_keys
             )
             if truncated is not None:
                 return truncated
@@ -1391,6 +1549,25 @@ class ResponseSizeGuardMiddleware(Middleware):
             )
             if truncated is not None:
                 return truncated
+
+        # Tools whose payload is dominated by one large string field with no
+        # size-reduction lever (e.g. get_chart_sql's rendered SQL).
+        if tool_name in STRING_FIELD_TRUNCATION_TOOLS:
+            truncated = self._try_truncate_string_field_response(
+                tool_name,
+                response,
+                estimated_tokens,
+                STRING_FIELD_TRUNCATION_TOOLS[tool_name],
+            )
+            if truncated is not None:
+                return truncated
+
+        if tool_name in COMMITTED_WRITE_TOOLS:
+            # The mutation already committed -- never report it as a failed
+            # call, no matter how badly truncation underperformed.
+            return self._minimal_committed_write_response(
+                tool_name, response, estimated_tokens
+            )
 
         # Log the blocked response (user-caused: requested too much data)
         logger.warning(

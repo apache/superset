@@ -436,6 +436,14 @@ def _get_tool_specific_suggestions(
                 "(e.g., limit=100) — this overrides any SQL LIMIT clause"
             )
 
+    elif tool_name == "get_chart_sql":
+        suggestions.append(
+            "get_chart_sql has no size-reduction parameter — the rendered SQL "
+            "itself is too large to return even after truncation. Simplify "
+            "the chart's configuration (fewer columns, metrics, or filters) "
+            "to shorten the generated query."
+        )
+
     elif tool_name in ("get_chart_info", "get_dashboard_info", "get_dataset_info"):
         suggestions.append(
             f"For {tool_name}, use 'select_columns' to fetch only specific metadata "
@@ -480,6 +488,28 @@ DATA_QUERY_TOOLS = frozenset(
         "get_chart_data",
     }
 )
+
+# Mutating tools whose transaction commits (via @transaction) before this
+# middleware ever inspects the response -- by the time an oversized response
+# is detected, the write already happened. Raising ToolError here would
+# report a completed write as a failure, and a retrying MCP client would
+# replay the mutation. These are truncated with the same field-level phases
+# as INFO_TOOLS (see ``_handle_oversized_response``), with the tool's
+# identifying field protected from the final "clear everything" phase so the
+# caller can always confirm what was written.
+COMMITTED_WRITE_TOOLS = frozenset(
+    {
+        "update_chart",
+    }
+)
+
+# Tools whose oversized response is dominated by a single large string field
+# with no row/page/limit parameter the caller could add to shrink it (e.g.
+# get_chart_sql's rendered SQL). Maps tool name to the field to bisect; see
+# ``truncate_string_field_response``.
+STRING_FIELD_TRUNCATION_TOOLS: Dict[str, str] = {
+    "get_chart_sql": "sql",
+}
 
 # Data field names used by the three query tools (in priority order).
 # ``rows`` is used by execute_sql; ``data`` by query_dataset and get_chart_data.
@@ -587,14 +617,22 @@ def _summarize_large_dicts(
     return changed
 
 
-def _replace_collections_with_summaries(data: Dict[str, Any], notes: List[str]) -> bool:
+def _replace_collections_with_summaries(
+    data: Dict[str, Any],
+    notes: List[str],
+    protected_keys: frozenset[str] = frozenset(),
+) -> bool:
     """Replace all non-empty list/dict fields with empty/minimal values.
 
     Lists are emptied (preserving the list type) rather than replaced with
-    marker objects to avoid breaking typed list contracts.
+    marker objects to avoid breaking typed list contracts. ``protected_keys``
+    are left untouched -- used to keep a write tool's identifying field
+    (e.g. ``chart``) intact even under this last-resort phase.
     """
     changed = False
     for key, value in list(data.items()):
+        if key in protected_keys:
+            continue
         if not isinstance(value, (list, dict)) or not value:
             continue
         count = len(value)
@@ -620,6 +658,7 @@ def truncate_oversized_response(
     token_limit: int,
     # Configurable via MCP_RESPONSE_SIZE_CONFIG["max_list_items"]
     max_list_items: int = DEFAULT_MAX_LIST_ITEMS,
+    protected_keys: frozenset[str] = frozenset(),
 ) -> tuple[ToolResponse, bool, list[str]]:
     """
     Dynamically truncate large fields in a response to fit within the token limit.
@@ -635,6 +674,9 @@ def truncate_oversized_response(
         response: The tool response (Pydantic model, dict, or other).
         token_limit: Maximum estimated tokens allowed.
         max_list_items: Maximum items to keep in list fields during Phase 2.
+        protected_keys: Top-level keys Phase 5 must never clear, even if the
+            response is still over budget afterward. Used for committed-write
+            tools so their identifying field (e.g. ``chart``) always survives.
 
     Returns:
         A tuple of (possibly-truncated response, was_truncated, list of notes).
@@ -674,7 +716,9 @@ def truncate_oversized_response(
         return data, was_truncated, notes
 
     # Phase 5: Nuclear — replace all collections with empty values
-    was_truncated |= _replace_collections_with_summaries(data, notes)
+    was_truncated |= _replace_collections_with_summaries(
+        data, notes, protected_keys=protected_keys
+    )
 
     return data, was_truncated, notes
 
@@ -860,40 +904,48 @@ def _truncate_chart_query_results(
     return data["_truncation_notes"]
 
 
-def _truncate_csv_data_field(
+def _truncate_named_string_field(
     data: Dict[str, Any],
+    field: str,
     token_limit: int,
     advice: str,
+    label: str | None = None,
 ) -> list[str] | None:
-    """Try to bisect the scalar ``csv_data`` field down to fit the limit.
+    """Try to bisect a scalar string field down to fit the limit.
 
-    Used when there are no rows to trim — e.g. a CSV export where ``data``
-    is empty and the actual payload lives in ``csv_data``. ``excel_data``
-    is base64-encoded binary and is intentionally left alone: cutting it
-    would produce a corrupt file, so oversized Excel exports still fall
-    through to the hard size-limit error.
+    Used when there are no rows to trim and the payload lives in one named
+    string field instead — a CSV export's ``csv_data``, or a rendered-SQL
+    tool's ``sql`` field. Preserves as much of the field as fits rather than
+    cutting it to a fixed length, so a response that is only marginally over
+    budget keeps nearly all of its content.
+
+    Args:
+        label: Human-readable name for the field used in the note text
+            (defaults to ``field`` itself, e.g. ``"CSV content"`` reads
+            better than ``"Field 'csv_data'"``).
 
     Returns the truncation notes on success, or ``None`` if nothing could
     be trimmed, in which case ``data`` is left unmodified.
     """
-    csv_data = data.get("csv_data")
-    if not isinstance(csv_data, str) or not csv_data:
+    value = data.get(field)
+    if not isinstance(value, str) or not value:
         return None
 
-    original_len = len(csv_data)
+    label = label or f"Field '{field}'"
+    original_len = len(value)
     # Same reservation trick as ``_truncate_rows_field``, keyed on the
     # character count rather than a row count.
     placeholder_note = (
-        f"CSV content truncated: kept {original_len:,} of {original_len:,} "
+        f"{label} truncated: kept {original_len:,} of {original_len:,} "
         f"characters (limit ~{token_limit:,} tokens). {advice}"
     )
     data["_response_truncated"] = True
     data["_truncation_notes"] = [placeholder_note]
 
-    kept_len = _bisect_string_length(data, "csv_data", csv_data, token_limit)
+    kept_len = _bisect_string_length(data, field, value, token_limit)
     if kept_len < original_len:
         notes = [
-            f"CSV content truncated: kept {kept_len:,} of {original_len:,} "
+            f"{label} truncated: kept {kept_len:,} of {original_len:,} "
             f"characters (limit ~{token_limit:,} tokens). {advice}"
         ]
         data["_truncation_notes"] = notes
@@ -962,8 +1014,51 @@ def truncate_query_result(
     if notes is None:
         notes = _truncate_rows_field(data, row_field, token_limit, advice)
     if notes is None:
-        notes = _truncate_csv_data_field(data, token_limit, advice)
+        notes = _truncate_named_string_field(
+            data, "csv_data", token_limit, advice, label="CSV content"
+        )
 
+    return data, notes is not None, notes or []
+
+
+def truncate_string_field_response(
+    response: ToolResponse,
+    token_limit: int,
+    field: str,
+) -> tuple[ToolResponse, bool, list[str]]:
+    """Truncate a response whose bulk is one string field with no size lever.
+
+    Used for tools like ``get_chart_sql`` where the oversized payload is
+    dominated by a single string (the rendered SQL) and there is no
+    ``limit``/``row_limit``/``page_size`` parameter the caller could add to
+    shrink it. Bisects that field to the largest prefix that keeps the
+    response under budget, preserving as much content as possible.
+
+    Args:
+        response: The tool response containing the oversized string field.
+        token_limit: Maximum estimated tokens allowed.
+        field: Name of the string field to truncate.
+
+    Returns:
+        A tuple of (possibly-truncated response, was_truncated, list of notes).
+    """
+    from superset.utils import json as utils_json
+
+    if hasattr(response, "model_dump"):
+        data = response.model_dump()
+    elif isinstance(response, dict):
+        data = dict(response)
+    else:
+        return response, False, []
+
+    if estimate_token_count(utils_json.dumps(data)) <= token_limit:
+        return data, False, []
+
+    advice = (
+        f"The '{field}' field has no size-reduction parameter to adjust; "
+        "it was truncated to fit the response size limit."
+    )
+    notes = _truncate_named_string_field(data, field, token_limit, advice)
     return data, notes is not None, notes or []
 
 

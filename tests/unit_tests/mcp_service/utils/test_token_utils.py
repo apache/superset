@@ -32,6 +32,7 @@ from superset.mcp_service.utils.token_utils import (
     _truncate_strings,
     _truncate_strings_recursive,
     CHARS_PER_TOKEN,
+    COMMITTED_WRITE_TOOLS,
     estimate_response_tokens,
     estimate_token_count,
     extract_query_params,
@@ -39,8 +40,10 @@ from superset.mcp_service.utils.token_utils import (
     generate_size_reduction_suggestions,
     get_response_size_bytes,
     INFO_TOOLS,
+    STRING_FIELD_TRUNCATION_TOOLS,
     truncate_oversized_response,
     truncate_query_result,
+    truncate_string_field_response,
 )
 
 
@@ -441,6 +444,27 @@ class TestInfoToolsSet:
         assert "generate_chart" not in INFO_TOOLS
 
 
+class TestCommittedWriteToolsSet:
+    """Test the COMMITTED_WRITE_TOOLS constant."""
+
+    def test_contains_update_chart(self) -> None:
+        """update_chart commits before the size guard runs and must be
+        truncation-eligible instead of hard-blocked."""
+        assert "update_chart" in COMMITTED_WRITE_TOOLS
+
+    def test_does_not_contain_read_only_tools(self) -> None:
+        assert "get_chart_info" not in COMMITTED_WRITE_TOOLS
+        assert "list_charts" not in COMMITTED_WRITE_TOOLS
+        assert "execute_sql" not in COMMITTED_WRITE_TOOLS
+
+
+class TestStringFieldTruncationToolsMap:
+    """Test the STRING_FIELD_TRUNCATION_TOOLS constant."""
+
+    def test_get_chart_sql_maps_to_sql_field(self) -> None:
+        assert STRING_FIELD_TRUNCATION_TOOLS["get_chart_sql"] == "sql"
+
+
 class TestTruncateStrings:
     """Test _truncate_strings helper."""
 
@@ -610,6 +634,26 @@ class TestReplaceCollectionsWithSummaries:
         assert data["empty"] == []
         assert len(notes) == 2
 
+    def test_protected_keys_are_left_untouched(self) -> None:
+        """A protected key must survive even this nuclear phase.
+
+        Used so a committed-write tool's identifying field (e.g. 'chart')
+        always reaches the caller, even if every other phase failed to
+        bring the response under budget.
+        """
+        data: dict[str, Any] = {
+            "chart": {"id": 42, "url": "http://x"},
+            "form_data": {"a": 1},
+        }
+        notes: list[str] = []
+        changed = _replace_collections_with_summaries(
+            data, notes, protected_keys=frozenset({"chart"})
+        )
+        assert changed is True
+        assert data["chart"] == {"id": 42, "url": "http://x"}
+        assert data["form_data"] == {}
+        assert len(notes) == 1
+
 
 class TestTruncateOversizedResponse:
     """Test truncate_oversized_response function."""
@@ -750,6 +794,85 @@ class TestTruncateOversizedResponse:
         assert isinstance(result, dict)
         assert len(result["charts"]) == 5
         assert any("form_data" in n for n in notes)
+
+    def test_protected_keys_survive_nuclear_phase(self) -> None:
+        """A protected key must still be present after Phase 5 clears everything.
+
+        Regression test for update_chart: even when every other field is
+        oversized enough to reach Phase 5, the 'chart' field (the caller's
+        only way to confirm what was written) must not be wiped out.
+        """
+        response: dict[str, Any] = {
+            "id": 1,
+            "chart": {"id": 42, "slice_name": "Q1 Revenue", "url": "http://x"},
+            # Few enough top-level keys (<=20) to dodge Phase 4's dict
+            # summarization, and nested (not top-level) lists to dodge Phase
+            # 2/4's list truncation, so this can only shrink under Phase 5.
+            "form_data": {f"key_{i}": [f"v_{j}" for j in range(50)] for i in range(10)},
+        }
+        result, was_truncated, notes = truncate_oversized_response(
+            response, 200, protected_keys=frozenset({"chart"})
+        )
+        assert was_truncated is True
+        assert isinstance(result, dict)
+        assert result["chart"] == {
+            "id": 42,
+            "slice_name": "Q1 Revenue",
+            "url": "http://x",
+        }
+        assert result["form_data"] == {}
+        assert not any("'chart'" in n for n in notes)
+
+
+class TestTruncateStringFieldResponse:
+    """Test truncate_string_field_response (used for get_chart_sql)."""
+
+    def test_no_truncation_needed(self) -> None:
+        response = {"chart_id": 1, "sql": "SELECT 1"}
+        result, was_truncated, notes = truncate_string_field_response(
+            response, 25000, "sql"
+        )
+        assert was_truncated is False
+        assert notes == []
+        assert result == response
+
+    def test_bisects_sql_field_to_fit(self) -> None:
+        """A response just over budget should keep as much SQL as fits."""
+        response: dict[str, Any] = {
+            "chart_id": 1,
+            "chart_name": "Big Chart",
+            "sql": "SELECT " + ", ".join(f"col_{i}" for i in range(2000)),
+            "language": "sql",
+        }
+        result, was_truncated, notes = truncate_string_field_response(
+            response, 500, "sql"
+        )
+        assert was_truncated is True
+        assert isinstance(result, dict)
+        assert 0 < len(result["sql"]) < len(response["sql"])
+        assert result["_response_truncated"] is True
+        assert estimate_response_tokens(result) <= 500
+        assert any("sql" in n for n in notes)
+
+    def test_no_lever_fallback_note_is_actionable(self) -> None:
+        """format_size_limit_error's get_chart_sql suggestion is real advice,
+        not the unactionable 'Reduction needed: ~0%' the field alone gave."""
+        message = format_size_limit_error(
+            tool_name="get_chart_sql",
+            params={},
+            estimated_tokens=20400,
+            token_limit=20000,
+        )
+        assert "no size-reduction parameter" in message
+
+    def test_returns_unchanged_when_field_missing(self) -> None:
+        """A ChartError response (no 'sql' field) has nothing to bisect."""
+        response = {"error": "x" * 10000, "error_type": "NotFound"}
+        result, was_truncated, notes = truncate_string_field_response(
+            response, 100, "sql"
+        )
+        assert was_truncated is False
+        assert notes == []
 
 
 class TestTruncateQueryResult:
