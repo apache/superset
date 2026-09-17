@@ -4641,6 +4641,63 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         mock_cache_task.delay.assert_not_called()
 
     @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
+    @with_config({"DISTRIBUTED_LOCK_DEFAULT_TTL": 30})
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    @patch("superset.dashboards.api.cache_dashboard_screenshot")
+    @patch("superset.dashboards.api.DashboardScreenshot.store_cache_payload")
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.get_current_api_generation_cache_key"
+    )
+    @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
+    def test_producer_lock_contention_waits_beyond_one_second_for_publication(
+        self,
+        mock_get_from_cache_key,
+        mock_current_cache_key,
+        mock_store_cache_payload,
+        mock_cache_task,
+    ):
+        self.login(ADMIN_USERNAME)
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+        scope = f"dashboard:{dashboard.id}"
+        mock_current_cache_key.side_effect = [
+            "old-cache-key",
+            "old-cache-key",
+            "new-cache-key",
+        ]
+        mock_get_from_cache_key.side_effect = [
+            ScreenshotCachePayload(image=b"old image", scope=scope),
+            ScreenshotCachePayload(image=b"old image", scope=scope),
+            ScreenshotCachePayload(status=StatusValues.PENDING, scope=scope),
+        ]
+
+        @contextmanager
+        def lock_is_held(**_kwargs: object) -> Iterator[None]:
+            raise LockAlreadyHeldException("producer active")
+            yield
+
+        with (
+            patch("superset.dashboards.api.DistributedLock", lock_is_held),
+            patch(
+                "superset.dashboards.api.time.monotonic",
+                side_effect=[10.0, 11.1],
+            ),
+            patch("superset.dashboards.api.time.sleep") as mock_sleep,
+        ):
+            response = self._cache_screenshot(dashboard.id, force=True)
+
+        assert response.status_code == 200
+        assert response.json["cache_key"] == "new-cache-key"
+        assert response.json["task_status"] == "Pending"
+        mock_sleep.assert_called_once()
+        mock_store_cache_payload.assert_not_called()
+        mock_cache_task.delay.assert_not_called()
+
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
+    @with_config({"DISTRIBUTED_LOCK_DEFAULT_TTL": 30})
     @pytest.mark.usefixtures("create_dashboard_with_tag")
     @patch("superset.dashboards.api.cache_dashboard_screenshot")
     @patch("superset.dashboards.api.DashboardScreenshot.store_cache_payload")
@@ -4674,7 +4731,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
 
         with (
             patch("superset.dashboards.api.DistributedLock", lock_is_held),
-            patch("superset.dashboards.api.time.monotonic", side_effect=[10.0, 11.0]),
+            patch("superset.dashboards.api.time.monotonic", side_effect=[10.0, 40.1]),
             patch("superset.dashboards.api.time.sleep") as mock_sleep,
         ):
             response = self._cache_screenshot(dashboard.id, force=True)
