@@ -315,6 +315,54 @@ test.each([false, true])(
   },
 );
 
+test.each([false, true])(
+  'A populated TABS component registers its active tab (editMode=%s)',
+  editMode => {
+    // Positive control for the childless guard. Every other `setActiveTab`
+    // assertion here covers an empty container, so nothing pins down the
+    // ordinary path: a container that mounts with children must still register
+    // its first tab. Without this, a guard that is too broad -- suppressing
+    // registration for populated containers too -- would leave the suite green
+    // while breaking every tabbed dashboard.
+    const props = createProps();
+    props.editMode = editMode;
+
+    render(<Tabs {...props} />, {
+      useRedux: true,
+      useDnd: true,
+    });
+
+    expect(props.setActiveTab.mock.calls).toEqual([['TAB-AsMaxdYL_t']]);
+  },
+);
+
+test('An empty TABS component contributes nothing alongside a populated one', () => {
+  // The reported payload held real tab ids *and* a null together, because the
+  // dashboard mixed populated containers with an empty one. Rendering an empty
+  // container next to a populated one reproduces that composition: the real
+  // container must still register, and the empty one must add nothing, so the
+  // ids collected across the layout contain no unresolved entry.
+  const populated = createProps();
+  const empty = createProps();
+  empty.id = 'TABS-empty';
+  empty.component = {
+    ...empty.component,
+    id: 'TABS-empty',
+    children: [],
+  };
+
+  render(<Tabs {...populated} />, { useRedux: true, useDnd: true });
+  render(<Tabs {...empty} />, { useRedux: true, useDnd: true });
+
+  const registeredIds = [
+    ...populated.setActiveTab.mock.calls,
+    ...empty.setActiveTab.mock.calls,
+  ].map(([tabId]) => tabId);
+
+  expect(registeredIds).toEqual(['TAB-AsMaxdYL_t']);
+  expect(registeredIds).not.toContain(undefined);
+});
+
 test('activeTabs hydrated from a permalink selects the matching tab content', () => {
   // Regression guard for #36132: when a dashboard is opened via a
   // permalink/anchor (including embedded dashboards), the permalink state is
