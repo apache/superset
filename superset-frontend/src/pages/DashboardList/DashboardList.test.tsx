@@ -320,6 +320,9 @@ test('renders the localized dashboard title, falling back to dashboard_title', a
   // Served from a response of its own: the shared mock is asserted against by
   // canonical title elsewhere in this suite.
   const [translated, untranslated] = mockDashboards;
+  // Reset every route rather than replacing just this one: re-registering under
+  // the same name throws, and removing it first puts the replacement behind the
+  // helper's catch-all glob, which then answers the request instead.
   fetchMock.removeRoutes();
   fetchMock.get(
     API_ENDPOINTS.DASHBOARDS,
