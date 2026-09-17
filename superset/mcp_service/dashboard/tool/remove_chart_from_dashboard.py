@@ -334,14 +334,6 @@ def remove_chart_from_dashboard(  # noqa: C901 — complexity is structural (lay
 
             removed_keys = _remove_chart_from_layout(current_layout, request.chart_id)
 
-            # Rebuild every remaining component's parents from the actual
-            # children edges. This is a no-op when the stored layout was
-            # already correct, and self-heals any pre-existing truncation
-            # (e.g. from a layout written before this repair existed) so
-            # filter-scope derivation sees a correct tree. See
-            # superset.dashboards.filter_scope.get_chart_ids_in_scope.
-            current_layout = rebuild_parent_chains(current_layout)
-
             if not removed_keys and not chart_in_slices:
                 return RemoveChartFromDashboardResponse(
                     dashboard=None,
@@ -352,6 +344,14 @@ def remove_chart_from_dashboard(  # noqa: C901 — complexity is structural (lay
                         "see which charts the dashboard contains."
                     ),
                 )
+
+            # Rebuild every remaining component's parents from the actual
+            # children edges. This is a no-op when the stored layout was
+            # already correct, and self-heals any pre-existing truncation
+            # (e.g. from a layout written before this repair existed) so
+            # filter-scope derivation sees a correct tree. See
+            # superset.dashboards.filter_scope.get_chart_ids_in_scope.
+            current_layout = rebuild_parent_chains(current_layout)
 
         # Update the dashboard
         with event_logger.log_context(

@@ -207,9 +207,11 @@ def generate_dashboard(  # noqa: C901
       Never use this tool as a fallback when add_chart_to_existing_dashboard fails.
     - All charts must exist and be accessible to current user
     - Layout: by default, charts are arranged in an auto-generated 2-column
-      grid. When ``position_json`` is supplied, that explicit layout is
-      written verbatim and the auto-generated grid is skipped — use this to
-      compose custom rows, header bands, or MARKDOWN/HEADER components.
+      grid. When ``position_json`` is supplied, that explicit layout is used
+      instead and the auto-generated grid is skipped — use this to compose
+      custom rows, header bands, or MARKDOWN/HEADER components. Each
+      component's ``parents`` is recomputed from its ``children`` edges
+      before saving, so an omitted or incomplete ``parents`` array is fine.
 
     Returns:
     - Dashboard ID and URL
@@ -265,19 +267,19 @@ def generate_dashboard(  # noqa: C901
                     )
 
         # Create dashboard layout with chart objects.
-        # If the caller provided an explicit position_json, use it verbatim;
-        # otherwise auto-generate a packed-grid layout from the chart ids.
+        # If the caller provided an explicit position_json, use its
+        # children/meta as given; otherwise auto-generate a packed-grid
+        # layout from the chart ids (which already carries correct parents).
         with event_logger.log_context(action="mcp.generate_dashboard.layout"):
             if request.position_json:
-                layout = request.position_json
+                # A caller-supplied layout may carry only an immediate
+                # parent (or omit `parents` altogether); rebuild the full
+                # ancestor chains so server-side filter-scope derivation
+                # sees the same tree the frontend would after hydration.
+                # See superset.dashboards.filter_scope.get_chart_ids_in_scope.
+                layout = rebuild_parent_chains(request.position_json)
             else:
                 layout = _create_dashboard_layout(chart_objects)
-            # A caller-supplied layout may carry only an immediate parent (or
-            # omit `parents` altogether); rebuild the full ancestor chains so
-            # server-side filter-scope derivation sees the same tree the
-            # frontend would after hydration. See
-            # superset.dashboards.filter_scope.get_chart_ids_in_scope.
-            layout = rebuild_parent_chains(layout)
 
         # Resolve dashboard title: use provided title or derive from chart names
         dashboard_title = (
