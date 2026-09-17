@@ -225,7 +225,7 @@ def _verify_child_history_complete(entity: Any, target_tx: int) -> None:
 
 def _child_state_provable_at(rows: list[Any], target_tx: int) -> bool:
     """Whether *rows* (one child's surviving SAME-PARENT shadow rows,
-    tx-ordered) prove the child's state at *target_tx*.
+    in any order) prove the child's state at *target_tx*.
 
     Interval semantics: a row is valid over ``[transaction_id,
     end_transaction_id)`` (open end = unbounded). A covering interval
@@ -267,7 +267,8 @@ def _child_state_provable_at(rows: list[Any], target_tx: int) -> bool:
             return True
     at_or_before: list[Any] = [row for row in rows if row.transaction_id <= target_tx]
     if not at_or_before:
-        return rows[0].operation_type == OPERATION_INSERT
+        earliest: Any = min(rows, key=lambda row: row.transaction_id)
+        return earliest.operation_type == OPERATION_INSERT
     last: Any = max(at_or_before, key=lambda row: row.transaction_id)
     return last.operation_type == OPERATION_DELETE
 

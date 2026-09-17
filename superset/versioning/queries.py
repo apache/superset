@@ -505,8 +505,6 @@ def get_version(
     into :func:`resolve_version` to eliminate a second redundant
     lookup on the same request.
     """
-    # pylint: disable=import-outside-toplevel
-
     if entity is None:
         entity = find_active_by_uuid(model_cls, entity_uuid)
         if entity is None:
@@ -635,7 +633,7 @@ def _fetch_version_row_and_children(
         row: sa.engine.RowMapping | None = conn.execute(stmt).mappings().first()
         if row is None:
             return None, [], []
-        target_tx = row["transaction_id"]
+        target_tx: int = row["transaction_id"]
         columns: list[dict[str, Any]] = shadow_rows_valid_at(
             conn, version_class(TableColumn).__table__, "table_id", entity_id, target_tx
         )

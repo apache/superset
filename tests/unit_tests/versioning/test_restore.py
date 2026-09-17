@@ -154,6 +154,28 @@ _DELETE: int = OPERATION_DELETE
 
 
 @pytest.mark.parametrize(
+    ("rows", "expected"),
+    [
+        ([_Row(25, None, _DELETE), _Row(20, 25, _INSERT)], True),
+        (
+            [_Row(30, None, _INSERT), _Row(20, 25, _UPDATE), _Row(25, 30, _DELETE)],
+            False,
+        ),
+    ],
+    ids=["earliest-insert-proves-birth", "later-insert-does-not-prove-birth"],
+)
+def test_born_after_proof_uses_earliest_transaction(
+    rows: list[_Row], expected: bool
+) -> None:
+    """Unsorted input must use tx 20, not the first returned row, as evidence.
+
+    The explicit verdicts are independent of query ordering: INSERT@20 proves
+    birth after target 10; UPDATE@20 leaves the original birth unknown.
+    """
+    assert _child_state_provable_at(rows, 10) is expected
+
+
+@pytest.mark.parametrize(
     ("rows", "target_tx", "expected", "case"),
     [
         # A surviving closed terminal DELETE proves absence
