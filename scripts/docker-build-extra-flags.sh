@@ -34,21 +34,28 @@
 # Python version. Those presets also point buildx at a matching cache tag so
 # local and CI builds can pull cache layers for the same base image they build.
 #
-# Usage: docker-build-extra-flags.sh <build_preset> [image_tag]
+# Usage: docker-build-extra-flags.sh <build_preset> [image_tag] [release]
 
 set -euo pipefail
 
 BUILD_PRESET="${1:?usage: docker-build-extra-flags.sh <build_preset> [image_tag]}"
 IMAGE_TAG="${2:-}"
+BUILD_MODE="${3:-ci}"
 DEFAULT_PY_VER="$(sed -n 's/^ARG PY_VER=//p' Dockerfile | head -n 1)"
 if [ -z "$DEFAULT_PY_VER" ]; then
   echo "Could not determine the default PY_VER from Dockerfile" >&2
   exit 1
 fi
 
-EXTRA_FLAGS="--build-arg INCLUDE_CHROMIUM=false"
+EXTRA_FLAGS=""
+if [ "$BUILD_MODE" = "ci" ]; then
+  EXTRA_FLAGS="--build-arg INCLUDE_CHROMIUM=false"
+elif [ "$BUILD_MODE" != "release" ]; then
+  echo "Unknown Docker build mode: $BUILD_MODE" >&2
+  exit 1
+fi
 if [ -n "$IMAGE_TAG" ]; then
-  EXTRA_FLAGS="$EXTRA_FLAGS --tag $IMAGE_TAG"
+  EXTRA_FLAGS="${EXTRA_FLAGS:+$EXTRA_FLAGS }--tag $IMAGE_TAG"
 fi
 case "$BUILD_PRESET" in
   py311)
@@ -64,7 +71,7 @@ case "$BUILD_PRESET" in
     if [ "$BUILD_PRESET" != "superset" ]; then
       CACHE_REF="${CACHE_REF}-${BUILD_PRESET}"
     fi
-    EXTRA_FLAGS="--build-arg PY_VER=$DEFAULT_PY_VER $EXTRA_FLAGS"
+    EXTRA_FLAGS="--build-arg PY_VER=$DEFAULT_PY_VER${EXTRA_FLAGS:+ $EXTRA_FLAGS}"
     ;;
 esac
 

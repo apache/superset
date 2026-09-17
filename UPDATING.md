@@ -96,8 +96,10 @@ realtime WebSocket server is bundled in the `superset`, `lean`, and `dev` images
 and can be launched with `/app/docker/entrypoints/run-websocket.sh`. Helm init
 containers use the main Superset image for dependency checks.
 
-Release branch pushes no longer publish Docker Hub images or cache layers; they
-validate the Docker build locally. Official release tags (`X.Y.Z`, `latest`, and
+After this policy is cherry-picked into each active release branch, its pushes
+will validate the Docker build locally instead of publishing Docker Hub images
+or cache layers. Until then, those branches retain their previous publishing
+behavior. Official release tags (`X.Y.Z`, `latest`, and
 their preset variants) are published only by the release workflow after release
 manager sign-off. The scheduled release-image refresh workflow was removed, so
 official release tag digests are not overwritten outside release publishing.

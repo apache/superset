@@ -112,7 +112,8 @@ jobs:
           else
             git checkout "${GITHUB_EVENT_RELEASE_TAG_NAME}"
           fi
-          EXTRA_FLAGS="$(bash "$RUNNER_TEMP/docker-build-extra-flags.sh" "$BUILD_PRESET")"
+          # Preserve the checked-out release Dockerfile's browser default.
+          EXTRA_FLAGS="$(bash "$RUNNER_TEMP/docker-build-extra-flags.sh" "$BUILD_PRESET" "" release)"
 
           DOCKERHUB_TOKEN= supersetbot docker \
             --push \

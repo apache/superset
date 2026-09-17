@@ -13,12 +13,6 @@ permissions:
   contents: read
   pull-requests: read
 
-concurrency:
-  # Queue publishing runs so a later push with no Docker changes cannot
-  # cancel an active master image publish midway through its matrix.
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref || github.run_id }}
-  cancel-in-progress: false
-
 jobs:
   changes:
     runs-on: ubuntu-26.04
@@ -162,10 +156,14 @@ jobs:
           }
           assert_release_tag() {
             local preset="$1" expected="$2" extra_flags command
-            extra_flags="$(scripts/docker-build-extra-flags.sh "$preset")"
+            extra_flags="$(scripts/docker-build-extra-flags.sh "$preset" "" release)"
             command="$(docker_command "$preset" "$extra_flags" --context release --context-ref 6.1.0)"
             if ! grep -Eq -- "-t apache/superset:${expected}([[:space:]]|$)" <<<"$command"; then
               echo "::error::preset '$preset' expected release tag apache/superset:$expected (full command: $command)"
+              exit 1
+            fi
+            if grep -Fq -- "--build-arg INCLUDE_CHROMIUM=" <<<"$command"; then
+              echo "::error::preset '$preset' overrides the release Dockerfile's Chromium default (full command: $command)"
               exit 1
             fi
           }
@@ -223,6 +221,11 @@ jobs:
       matrix:
         build_preset: ${{fromJson(needs.setup_matrix.outputs.matrix_config)}}
       fail-fast: false
+    # Apply concurrency after change detection. A docs-only push has no
+    # docker-build job and cannot replace a pending publisher.
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.build_preset }}
+      cancel-in-progress: false
     env:
       DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
       DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
