@@ -21,6 +21,11 @@ import { logging } from '@apache-superset/core/utils';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { batch } from 'react-redux';
 import { store } from '../views/store';
+import {
+  DASHBOARD_GRID_CLASS,
+  FILTER_BAR_BOUNDED_CLASS,
+  FILTER_BAR_SCROLL_CLASS,
+} from 'src/dashboard/util/embeddedLayout';
 import { getDashboardPermalink as getDashboardPermalinkUtil } from '../utils/urlUtils';
 import { DashboardChartStates } from '../dashboard/types/chartState';
 import { hasStatefulCharts } from '../dashboard/util/chartStateConverter';
@@ -46,10 +51,60 @@ type EmbeddedSupersetApi = {
   setDataMask: ({ dataMask }: { dataMask: DataMaskStateWithId }) => void;
 };
 
-const getScrollSize = (): Size => ({
-  width: document.body.scrollWidth,
-  height: document.body.scrollHeight,
-});
+const isDashboardHydrated = () => Boolean(store?.getState()?.dashboardInfo?.id);
+
+// Hosts size the iframe from this value, so it has to describe the content and
+// not the frame the host already set. Lift the fill-the-frame constraints, read,
+// restore, all in one synchronous task. The styles are set inline so they win
+// the cascade outright: a rule that silently loses it turns this back into a
+// measurement of the frame.
+const getScrollSize = (): Size => {
+  const root = document.documentElement;
+  const { body } = document;
+  const app = document.getElementById('app');
+
+  // Before the grid is mounted only the chrome has height. Reporting that
+  // would let the host shrink the frame so far that charts never render.
+  const grid = document.querySelector(`#app .${DASHBOARD_GRID_CLASS}`);
+  if (!isDashboardHydrated() || !grid) {
+    return { width: body.scrollWidth, height: root.clientHeight };
+  }
+
+  // The bounded filter bar is capped to the frame as well, so the cap comes off
+  // too or a tall filter list reports as frame-high.
+  const bar = document.querySelector<HTMLElement>(
+    `.${FILTER_BAR_BOUNDED_CLASS}`,
+  );
+  const scroller = bar?.querySelector<HTMLElement>(
+    `.${FILTER_BAR_SCROLL_CLASS}`,
+  );
+  const filled = [root, body, ...(app ? [app] : [])];
+  const previous = {
+    heights: filled.map(el => [el.style.height, el.style.minHeight]),
+    barMaxHeight: bar?.style.maxHeight,
+    // Without the cap the list stops overflowing and the browser clamps this.
+    scrollTop: scroller?.scrollTop,
+  };
+
+  filled.forEach(el => {
+    el.style.height = 'auto';
+    el.style.minHeight = '0';
+  });
+  if (bar) bar.style.maxHeight = 'none';
+  try {
+    return { width: body.scrollWidth, height: body.scrollHeight };
+  } finally {
+    filled.forEach((el, i) => {
+      [el.style.height, el.style.minHeight] = previous.heights[i];
+    });
+    if (bar && previous.barMaxHeight !== undefined) {
+      bar.style.maxHeight = previous.barMaxHeight;
+    }
+    if (scroller && previous.scrollTop !== undefined) {
+      scroller.scrollTop = previous.scrollTop;
+    }
+  }
+};
 
 const getDashboardPermalink = async ({
   anchor,
@@ -86,8 +141,6 @@ const getDashboardPermalink = async ({
 const getActiveTabs = () => store?.getState()?.dashboardState?.activeTabs || [];
 
 const getDataMask = () => store?.getState()?.dataMask || {};
-
-const isDashboardHydrated = () => Boolean(store?.getState()?.dashboardInfo?.id);
 
 const applyDataMask = (dataMask: DataMaskStateWithId) => {
   // The dashboard's own data mask holds an entry for every native filter and
