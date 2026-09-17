@@ -95,7 +95,9 @@ def _make_dataset(dataset_id: int = 1) -> MagicMock:
 
 
 def _make_view(view_id: int = 5) -> MagicMock:
-    view = MagicMock()
+    view: MagicMock = MagicMock(
+        implementation=MagicMock(selection_identity_version=None)
+    )
     view.id = view_id
     view.name = f"view_{view_id}"
     view.raise_for_access = MagicMock(return_value=None)
@@ -233,7 +235,8 @@ async def test_list_metrics_external_includes_verbose_name(
     mcp_server: FastMCP,
 ) -> None:
     """External metrics include verbose_name, matching the builtin path."""
-    mock_view = _make_view(5)
+    mock_view: MagicMock = _make_view(5)
+    mock_view.implementation.selection_identity_version = "cube-member-id-v1"
     mock_view.metrics[0].verbose_name = "Bookings Count"
 
     with patch.object(list_metrics_module, "SemanticViewDAO") as mock_view_dao:
@@ -248,6 +251,7 @@ async def test_list_metrics_external_includes_verbose_name(
 
     metrics = {m["name"]: m for m in data["metrics"]}
     assert metrics["bookings"]["verbose_name"] == "Bookings Count"
+    assert metrics["bookings"]["semantic_selection_version"] == "cube-member-id-v1"
 
 
 @pytest.mark.asyncio

@@ -751,6 +751,7 @@ class DatasourceRestApi(BaseSupersetApi):
             time_range=payload["time_range"],
             time_grain=payload["time_grain"],
             grain_column=grain_column,
+            semantic_selection_version=payload.get("semantic_selection_version"),
             rewrite_one_sided_time_range=(
                 resolved.explorable.type == DatasourceType.SEMANTIC_VIEW.value
             ),

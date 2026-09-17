@@ -328,6 +328,8 @@ To explore metrics across all data sources (built-in datasets + external semanti
    }}) -> returns tabular results
    - Use "dataset_id" when list_metrics returned source="builtin"
    - Use "view_id" when list_metrics returned source="external"
+   - For external views, select current member IDs and pass semantic_selection_version
+     from list_metrics when non-null. Never infer a version or upgrade saved title keys.
 
 To progressively refine a query (compatible dimensions/metrics):
 - get_compatible_dimensions(request={{

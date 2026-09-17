@@ -88,6 +88,11 @@ class MockSemanticView:
         self.metrics = metrics
         self.features = features
 
+    selection_identity_version: str | None = None
+
+    def validate_selection_version(self, version: object) -> None:
+        return None
+
     def uid(self) -> str:
         return "mock_semantic_view"
 

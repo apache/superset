@@ -30,6 +30,7 @@ import {
   type NativeFilterTarget,
   NativeFilterType,
   ChartCustomizationType,
+  DatasourceType,
 } from '@superset-ui/core';
 import { HYDRATE_DASHBOARD } from 'src/dashboard/actions/hydrate';
 
@@ -214,4 +215,61 @@ test('HYDRATE_DASHBOARD handles chart_customization_config that is entirely null
     k.startsWith('CHART_CUSTOMIZATION'),
   );
   expect(customizationKeys).toHaveLength(0);
+});
+
+test('restored native and customization values cannot inherit a versioned default marker', () => {
+  const target = {
+    datasetId: 7,
+    datasourceType: DatasourceType.SemanticView,
+    column: { name: 'Orders.status' },
+    semantic_selection_version: 'cube-member-id-v1',
+  };
+  const defaultDataMask = {
+    filterState: { value: ['current'] },
+    extraFormData: {
+      semantic_selection_sources: [
+        { datasource: '7__semantic_view', version: 'cube-member-id-v1' },
+      ],
+    },
+  };
+  const filter: Filter = {
+    ...createFilter('NATIVE_FILTER-identity'),
+    targets: [target],
+    defaultDataMask,
+  };
+  const customization: ChartCustomization = {
+    id: 'CHART_CUSTOMIZATION-identity',
+    type: ChartCustomizationType.ChartCustomization,
+    name: 'Group',
+    filterType: 'chart_customization_dynamic_groupby',
+    targets: [target],
+    defaultDataMask,
+    controlValues: {},
+    scope: { rootPath: [], excluded: [] },
+  };
+  const loaded: DataMaskStateWithId = {
+    [filter.id]: { id: filter.id, filterState: { value: ['old title'] } },
+    [customization.id]: {
+      id: customization.id,
+      filterState: { value: ['old title'] },
+    },
+  };
+  const result = reducer({}, {
+    type: HYDRATE_DASHBOARD,
+    data: {
+      dataMask: loaded,
+      dashboardInfo: {
+        metadata: {
+          native_filter_configuration: [filter],
+          chart_customization_config: [customization],
+        },
+      },
+    },
+  } as Parameters<typeof reducer>[1]);
+  for (const id of [filter.id, customization.id]) {
+    expect(result[id].filterState?.value).toEqual(['old title']);
+    expect(
+      result[id].extraFormData?.semantic_selection_sources,
+    ).toBeUndefined();
+  }
 });

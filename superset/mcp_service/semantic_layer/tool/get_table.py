@@ -220,6 +220,7 @@ def _build_query_dict(
         dimensions=request.dimensions,
         filters=[{"col": f.col, "op": f.op, "val": f.val} for f in request.filters],
         time_range=request.time_range,
+        semantic_selection_version=request.semantic_selection_version,
         limit=request.row_limit,
         order=[(name, request.order_desc) for name in request.order_by],
         order_desc=request.order_desc,
@@ -414,7 +415,10 @@ async def get_table(
 
     Workflow:
     1. list_metrics -> discover metrics and their compatible_dimensions
-    2. get_table -> query with chosen metrics and dimensions
+    2. Explicitly select current member IDs from that discovery response.
+    3. get_table -> query with those IDs and, for a versioned external view,
+       its semantic_selection_version from list_metrics. Never upgrade old
+       saved title keys automatically, even if a title looks like an ID.
 
     Example (built-in):
     ```json
@@ -427,12 +431,13 @@ async def get_table(
     }
     ```
 
-    Example (external):
+    Example (versioned external view; use the discovered version and IDs):
     ```json
     {
         "view_id": 5,
-        "metrics": ["bookings"],
-        "dimensions": ["listing__country_name"],
+        "metrics": ["Orders.bookings"],
+        "dimensions": ["Orders.country"],
+        "semantic_selection_version": "cube-member-id-v1",
         "row_limit": 100
     }
     ```

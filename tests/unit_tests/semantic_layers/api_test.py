@@ -2469,7 +2469,9 @@ def test_get_semantic_view_structure(
     mock_metric.definition = "SIMPLE"
     mock_metric.description = "Order count"
 
-    mock_view = MagicMock()
+    mock_view: MagicMock = MagicMock(
+        implementation=MagicMock(selection_identity_version="cube-member-id-v1")
+    )
     mock_view.name = "orders"
     mock_view.description = "All orders"
     mock_view.cache_timeout = 600
@@ -2486,6 +2488,7 @@ def test_get_semantic_view_structure(
     assert response.status_code == 200
     result = response.json["result"]
     assert result["name"] == "orders"
+    assert result["semantic_selection_version"] == "cube-member-id-v1"
     # The edit modal has no detail route to hydrate from, so these must ride
     # along with the structure or a saved description cannot be read back.
     assert result["description"] == "All orders"
@@ -2571,7 +2574,9 @@ def test_get_semantic_view_structure_no_grain(
     mock_dim.description = None
     mock_dim.grain = None
 
-    mock_view = MagicMock()
+    mock_view: MagicMock = MagicMock(
+        implementation=MagicMock(selection_identity_version=None)
+    )
     mock_view.name = "customers"
     mock_view.description = None
     mock_view.cache_timeout = None
@@ -2589,6 +2594,7 @@ def test_get_semantic_view_structure_no_grain(
     result = response.json["result"]
     assert result["dimensions"][0]["grain"] is None
     assert result["metrics"] == []
+    assert result["semantic_selection_version"] is None
     # An unset description must come back as null, not be omitted: the modal
     # distinguishes "cleared" from "absent" when hydrating.
     assert result["description"] is None

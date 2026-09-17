@@ -50,6 +50,7 @@ import {
   memo,
 } from 'react';
 import rison from 'rison';
+import { Alert } from '@apache-superset/core/components';
 import {
   PluginFilterSelectCustomizeProps,
   SelectFilterOperatorType,
@@ -58,6 +59,7 @@ import { useSelector } from 'react-redux';
 import { requestChartDataResolved } from 'src/components/Chart/chartAction';
 import {
   Constants,
+  Button,
   FormItem,
   type FormInstance,
   Collapse,
@@ -567,8 +569,17 @@ const FiltersConfigForm = (
 
   newFormData.extra_form_data = dependenciesDefaultValues;
 
+  const selectionsReset =
+    !!formFilter?.semantic_selection_version &&
+    formFilter.semantic_selection_version !==
+      (filterToEdit ?? customizationToEdit)?.targets?.[0]
+        ?.semantic_selection_version;
   const [hasDefaultValue, isRequired, defaultValueTooltip, setHasDefaultValue] =
-    useDefaultValue(formFilter, filterToEdit, customizationToEdit);
+    useDefaultValue(
+      formFilter,
+      selectionsReset ? undefined : filterToEdit,
+      selectionsReset ? undefined : customizationToEdit,
+    );
 
   const showDataset =
     !datasetId || datasetDetails || formFilter?.dataset?.label;
@@ -701,10 +712,11 @@ const FiltersConfigForm = (
   const defaultToFirstItem = formFilter?.controlValues?.defaultToFirstItem;
 
   const initialDefaultValue =
+    !selectionsReset &&
     itemTypeField ===
-    (isChartCustomization
-      ? customizationToEdit?.filterType
-      : filterToEdit?.filterType)
+      (isChartCustomization
+        ? customizationToEdit?.filterType
+        : filterToEdit?.filterType)
       ? isChartCustomization
         ? customizationToEdit?.defaultDataMask
         : filterToEdit?.defaultDataMask
@@ -743,6 +755,7 @@ const FiltersConfigForm = (
           .then((response: JsonResponse) => {
             const {
               name: svName,
+              semantic_selection_version,
               dimensions = [],
               metrics: svMetrics = [],
             } = response.json?.result ?? {};
@@ -767,6 +780,7 @@ const FiltersConfigForm = (
             );
             setMetrics(mappedMetrics);
             setDatasetDetails({
+              semantic_selection_version,
               columns,
               metrics: mappedMetrics,
               datasource_type: DatasourceType.SemanticView,
@@ -954,6 +968,48 @@ const FiltersConfigForm = (
           forceRender: true,
           children: (
             <>
+              <FormItem
+                hidden
+                name={['filters', filterId, 'semantic_selection_version']}
+                initialValue={
+                  (filterToEdit ?? customizationToEdit)?.targets?.[0]
+                    ?.semantic_selection_version
+                }
+              />
+              {datasetDetails?.semantic_selection_version &&
+                formFilter?.semantic_selection_version !==
+                  datasetDetails.semantic_selection_version && (
+                  <Alert
+                    type="warning"
+                    message={t('Choose current semantic filter fields')}
+                    description={t(
+                      'Start field selection using current member IDs. This clears any existing field selections, pre-filters, sorting, defaults and dependencies. Saved display titles cannot be recovered automatically.',
+                    )}
+                    action={
+                      <Button
+                        onClick={() => {
+                          setNativeFilterFieldValues(form, filterId, {
+                            semantic_selection_version:
+                              datasetDetails.semantic_selection_version,
+                            column: undefined,
+                            adhoc_filters: [],
+                            granularity_sqla: undefined,
+                            sortMetric: null,
+                            defaultDataMask: {},
+                            dependencies: [],
+                            defaultValue: undefined,
+                            controlValues: {},
+                          });
+                          setHasDefaultValue(false);
+                          forceUpdate();
+                          formChanged();
+                        }}
+                      >
+                        {t('Start field selection')}
+                      </Button>
+                    }
+                  />
+                )}
               <StyledSettings>
                 <StyledContainer>
                   <StyledFormItem
@@ -1166,6 +1222,7 @@ const FiltersConfigForm = (
                                 datasourceType: newDatasourceType,
                                 defaultDataMask: null,
                                 column: null,
+                                semantic_selection_version: undefined,
                               });
                             }
                             forceUpdate();

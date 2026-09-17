@@ -453,6 +453,41 @@ substitution is deliberately not blanked so the broken link is visible rather th
 silently truncated. Use `{datasource_id}` (still supported) to identify the dataset
 to your access-request system, and resolve the name there.
 
+### Semantic member selection versions
+
+Semantic providers can declare `selection_identity_version` when changing their
+member identity encoding. Cube's stable-member-ID adapter requires
+`cube-member-id-v1`. Deploy the compatible core library, host, frontend and Cube
+adapter together; do not roll back to title-keyed code after saving ID-based charts.
+
+Saved Cube selections without this version are rejected, even when a saved title
+happens to equal a member ID. No historical title mapping is recovered. Open each
+chart in Explore, choose **Start field selection**, reselect its metrics,
+dimensions, filters and sorting, then save. Reset also clears field-dependent
+formatting; it does not overwrite the saved chart until Save is chosen. Native
+filters and chart customizations have a separate reset in their configuration
+form that clears fields, pre-filters, sorting, defaults and dependencies.
+
+Dashboard filters retain their own saved generation. Old filter state and
+unversioned external member overrides cannot borrow a chart's version. Recreate
+old dashboard permalink/filter state after reselection. Cross-view overlays are
+rejected unless their source identity matches the receiving semantic view;
+matching display titles are not proof of matching members.
+
+The marker is a compatibility contract, not an authorization credential. API
+clients must rebuild their selections from current member IDs before supplying
+`extras.semantic_selection_version` on each query. Providers without a required
+version retain their existing behavior. No metadata-database migration or
+automatic rewrite of saved charts is performed.
+
+Programmatic clients must explicitly select current member IDs. Chart-data API
+queries send `extras.semantic_selection_version`; name-based datasource queries
+and MCP `get_table` requests send top-level `semantic_selection_version`.
+Discover the value from datasource metadata (or each external metric returned by
+MCP `list_metrics`). The server never adds a missing marker from metadata.
+Explore query controls remain unavailable until explicit field initialization,
+so legacy filter subjects cannot trigger value suggestions before reselection.
+
 ### MCP tool results preserve stored string values
 
 Structured MCP tool results no longer add `<UNTRUSTED-CONTENT>` wrappers or

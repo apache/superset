@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Preset } from '@superset-ui/core';
+import { Preset, DatasourceType } from '@superset-ui/core';
 import fetchMock from 'fetch-mock';
 import chartQueries from 'spec/fixtures/mockChartQueries';
 import { dashboardLayout } from 'spec/fixtures/mockDashboardLayout';
@@ -1120,4 +1120,51 @@ test('toggles "Filter has default value" to show and hide the Default Value cont
   await waitFor(() => {
     expect(screen.queryByText(/^default value$/i)).not.toBeInTheDocument();
   });
+});
+
+test('semantic filter reset clears saved defaults before member reselection', async () => {
+  fetchMock.get('glob:*/api/v1/semantic_view/987/structure', {
+    result: {
+      name: 'Orders',
+      semantic_selection_version: 'cube-member-id-v1',
+      dimensions: [{ name: 'Orders.status', type: 'string' }],
+      metrics: [],
+    },
+  });
+  const filter = {
+    ...buildNativeFilter('NATIVE_FILTER-identity', 'Legacy', []),
+    targets: [
+      {
+        datasetId: 987,
+        datasourceType: DatasourceType.SemanticView,
+        column: { name: 'Orders.status' },
+      },
+    ],
+    defaultDataMask: {
+      filterState: { value: ['old default'] },
+      extraFormData: {
+        filters: [
+          { col: 'Orders.status', op: 'IN' as const, val: ['old default'] },
+        ],
+      },
+    },
+  };
+  const state = {
+    ...defaultState(),
+    dashboardInfo: { metadata: { native_filter_configuration: [filter] } },
+    dashboardLayout,
+  };
+  defaultRender(state, { ...props, createNewOnOpen: false });
+  await userEvent.click(
+    await screen.findByRole('button', { name: 'Start field selection' }),
+  );
+  await waitFor(() =>
+    expect(
+      screen.queryByText('Choose current semantic filter fields'),
+    ).not.toBeInTheDocument(),
+  );
+  expect(getCheckbox(DEFAULT_VALUE_REGEX)).not.toBeChecked();
+  expect(screen.queryByText('old default')).not.toBeInTheDocument();
+  await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
+  expect(await screen.findByText(COLUMN_REQUIRED_REGEX)).toBeInTheDocument();
 });

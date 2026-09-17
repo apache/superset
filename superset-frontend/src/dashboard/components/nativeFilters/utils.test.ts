@@ -24,6 +24,7 @@ import {
   nativeFilterGate,
   findTabsWithChartsInScope,
   getFormData,
+  mergeExtraFormData,
 } from './utils';
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
@@ -135,3 +136,30 @@ test('getFormData should include persisted time_grains for time grain filters', 
 
   expect((formData as any).time_grains).toEqual(['PT1H', 'P1D', 'P1W']);
 });
+
+test.each([false, true])(
+  'merging current and legacy member filters remains unversioned in either order (%s)',
+  reverse => {
+    const legacy = {
+      filters: [{ col: 'Orders.b', op: 'IN' as const, val: ['x'] }],
+    };
+    const current = {
+      ...legacy,
+      semantic_selection_sources: [
+        { datasource: '7__semantic_view', version: 'cube-member-id-v1' },
+      ],
+    };
+    const merged = reverse
+      ? mergeExtraFormData(current, legacy)
+      : mergeExtraFormData(legacy, current);
+    expect(merged.filters).toHaveLength(2);
+    expect(merged.semantic_selection_sources).toContainEqual({
+      datasource: '',
+      version: null,
+    });
+    expect(merged.semantic_selection_sources).toContainEqual({
+      datasource: '7__semantic_view',
+      version: 'cube-member-id-v1',
+    });
+  },
+);
