@@ -1757,6 +1757,56 @@ def test_semantic_layer_rename_cascades_to_view_perms(app: Any) -> None:
         db.session.rollback()
 
 
+def test_semantic_layer_rename_cascades_to_slice_perms(app: Any) -> None:
+    """Renaming a layer updates dependent charts' denormalized perm.
+
+    The chart-list access filter matches no-viewer semantic-view charts on
+    ``Slice.perm`` (mirroring ``set_related_perm``), so a layer rename that
+    rewrites the view perms must also rewrite the perm of charts pinned to
+    those views or the charts lose list visibility for entitled users.
+    """
+    from superset.extensions import db
+    from superset.models.slice import Slice
+    from superset.utils.core import DatasourceType
+
+    layer = SemanticLayer()
+    layer.name = "Old Slice Layer"
+    layer.uuid = uuid.UUID("dddd1111-2222-3333-4444-555566667777")
+    layer.type = "test"
+
+    view = SemanticView()
+    view.name = "Slice View"
+    view.semantic_layer_uuid = layer.uuid
+
+    db.session.add(layer)
+    db.session.add(view)
+    db.session.flush()
+
+    chart = Slice(
+        slice_name="On cascade view",
+        datasource_type=DatasourceType.SEMANTIC_VIEW,
+        datasource_id=view.id,
+        datasource_name="Slice View",
+        viz_type="table",
+        params="{}",
+    )
+    db.session.add(chart)
+    db.session.flush()
+
+    assert chart.perm == view.perm
+
+    try:
+        layer.name = "New Slice Layer"
+        db.session.flush()
+
+        # Cascade update is via raw SQL, so refresh the ORM objects
+        db.session.refresh(view)
+        db.session.refresh(chart)
+        assert chart.perm == f"[New Slice Layer].[Slice View](id:{view.id})"
+    finally:
+        db.session.rollback()
+
+
 # =============================================================================
 # build_semantic_view_query dual perm tests
 # =============================================================================

@@ -36,6 +36,7 @@ from superset.commands.chart.exceptions import (
 from superset.commands.exceptions import DatasourceTypeInvalidError
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
+from superset.semantic_layers.models import SemanticView
 from superset.utils import json
 
 
@@ -132,8 +133,6 @@ def test_create_chart_accepts_semantic_view_datasource(
     is a first-class resolvable datasource (Slice resolves it through the
     type-guarded ``semantic_view`` relationship), so the non-table guard
     must explicitly allow it (apache/superset#44167)."""
-    from superset.semantic_layers.models import SemanticView
-
     _base_mocks(mocker)
     datasource = mocker.MagicMock(spec=SemanticView)
     datasource.name = "my_semantic_view"

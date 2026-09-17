@@ -26,6 +26,7 @@ from superset.commands.chart.update import UpdateChartCommand
 from superset.commands.exceptions import DatasourceTypeInvalidError
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
+from superset.semantic_layers.models import SemanticView
 from superset.utils import json
 
 
@@ -310,8 +311,6 @@ def test_update_chart_accepts_semantic_view_datasource(
     view is a first-class resolvable datasource (Slice resolves it through
     the type-guarded ``semantic_view`` relationship), so the non-table guard
     must explicitly allow it (apache/superset#44167)."""
-    from superset.semantic_layers.models import SemanticView
-
     find_by_id = mocker.patch("superset.commands.chart.update.ChartDAO.find_by_id")
     find_by_id.return_value = mocker.MagicMock(
         is_managed_externally=False, id=1, tags=[], dashboards=[]
