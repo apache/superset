@@ -70,7 +70,7 @@ type SliceHeaderProps = SliceHeaderControlsProps & {
   sliceName?: string;
   // Display-only localized name. Shown when not editing; editing always
   // operates on the canonical sliceName.
-  localizedName?: string;
+  localizedName?: string | null;
   filters: object;
   handleToggleFullSize: () => void;
   formData: object;

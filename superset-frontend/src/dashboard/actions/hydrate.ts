@@ -81,7 +81,7 @@ export interface HydrateChartData {
   slice_id: number;
   slice_url: string;
   slice_name: string;
-  localized_name?: string;
+  localized_name?: string | null;
   /** Withheld by the API for charts whose datasource the viewer cannot access. */
   form_data?: JsonObject;
   description: string;
