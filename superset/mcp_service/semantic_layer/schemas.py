@@ -90,8 +90,9 @@ class MetricInfo(BaseModel):
 
 
 # Measured with 40 dimensions per metric: 20x40 = 42,336 tokens;
-# 10x40 = 21,186; 8x40 = 16,956 (18,284 fallback), against a 25,000 limit.
-EMBEDDED_DIMENSIONS_MAX_PAGE_SIZE = 8
+# 10x40 = 21,186; 8x40 = 16,956 (18,284 fallback), against the default 25,000 limit.
+# The fixed page cap is not a guarantee for every payload or operator token limit.
+EMBEDDED_DIMENSIONS_MAX_PAGE_SIZE: int = 8
 
 
 class ListMetricsRequest(BaseModel):
@@ -133,7 +134,9 @@ class ListMetricsRequest(BaseModel):
                 "Embedded compatible dimensions require "
                 f"page_size <= {EMBEDDED_DIMENSIONS_MAX_PAGE_SIZE}: each external "
                 "metric's dimension list can consume roughly 1–2k tokens or more, "
-                "and the MCP response guard rejects responses above ~25k tokens. "
+                "and the MCP response guard uses "
+                "MCP_RESPONSE_SIZE_CONFIG['token_limit'] (~25k by default). "
+                "This fixed page cap does not guarantee that every response fits. "
                 "Reduce page_size or use include_compatible_dimensions=false "
                 "and get_compatible_dimensions for the chosen metric."
             )

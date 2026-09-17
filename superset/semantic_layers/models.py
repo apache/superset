@@ -789,8 +789,8 @@ class SemanticView(AuditMixinNullable, Model):
 
         Translates string names to semantic-layer objects, delegates to the
         view implementation, and translates the result back to names.
-        Collapse grain variants into sorted unique names (sc-120963), also
-        bounding the shared list_metrics projection (sc-120960).
+        Collapse grain variants into sorted unique names, also bounding
+        the shared list_metrics projection.
         """
         metric_map = {m.name: m for m in self.implementation.get_metrics()}
         dim_map = {d.name: d for d in self.implementation.get_dimensions()}

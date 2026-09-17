@@ -30,12 +30,18 @@ import pyarrow as pa
 import pytest
 from fastmcp import Client, FastMCP
 from fastmcp.exceptions import ToolError
+from pydantic import ValidationError
 from superset_core.semantic_layers.types import Dimension, Grains
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 from superset.mcp_service.app import mcp
 from superset.mcp_service.constants import DEFAULT_TOKEN_LIMIT
+from superset.mcp_service.middleware import (
+    create_response_size_guard_middleware,
+    ResponseSizeGuardMiddleware,
+)
+from superset.mcp_service.semantic_layer.schemas import ListMetricsRequest
 from superset.mcp_service.utils.token_utils import estimate_response_tokens
 from superset.semantic_layers.models import SemanticView
 from superset.utils import json
@@ -194,6 +200,7 @@ async def test_list_metrics_embedded_page_token_bound(
     assert data["success"] is True
     assert len(data["metrics"]) == data["page_size"] == 8
     assert data["total_count"] == 60
+    metric: dict[str, Any]
     for metric in data["metrics"]:
         assert len(metric["compatible_dimensions"]) == 40
         assert len({dim["name"] for dim in metric["compatible_dimensions"]}) == 40
@@ -216,6 +223,32 @@ async def test_list_metrics_embedded_page_over_cap_rejected(
                     }
                 },
             )
+
+
+@pytest.mark.parametrize("token_limit", [10000, 50000])
+def test_embedding_cap_is_independent_of_configured_token_limit(
+    token_limit: int,
+) -> None:
+    """The guard honors overrides without changing the fixed embedding cap."""
+    app: MagicMock = MagicMock()
+    app.config = {"MCP_RESPONSE_SIZE_CONFIG": {"token_limit": token_limit}}
+    with patch("superset.mcp_service.flask_singleton.get_flask_app", return_value=app):
+        guard: ResponseSizeGuardMiddleware | None = (
+            create_response_size_guard_middleware()
+        )
+    assert guard is not None
+    assert guard.token_limit == token_limit
+    assert (
+        ListMetricsRequest(include_compatible_dimensions=True, page_size=8).page_size
+        == 8
+    )
+    with pytest.raises(ValidationError) as error:
+        ListMetricsRequest(include_compatible_dimensions=True, page_size=9)
+    message: str = str(error.value)
+    assert "MCP_RESPONSE_SIZE_CONFIG['token_limit']" in message
+    assert "25k by default" in message
+    assert "page_size <= 8" in message
+    assert "get_compatible_dimensions" in message
 
 
 def _access_denied_exc(message: str = "Access denied") -> SupersetSecurityException:

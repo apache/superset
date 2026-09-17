@@ -317,8 +317,9 @@ with 'search'.
 
 To explore metrics across all data sources (built-in datasets + external semantic views):
 1. list_metrics(request={{"search": "<keyword>"}})
-   -> returns metrics with dataset_id/view_id and compatible_dimensions inline
-2. get_table(request={{
+   -> returns metrics with dataset_id/view_id; dimensions are not embedded by default
+2. get_compatible_dimensions -> discover dimensions for the chosen metrics
+3. get_table(request={{
      "dataset_id": <id>,          # OR "view_id": <id> for external semantic views
      "metrics": ["revenue"],
      "dimensions": ["region"],
