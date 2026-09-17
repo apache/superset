@@ -154,8 +154,8 @@ interface SelectFilterOptions {
 
 /**
  * Builds one `filter_select` native filter for a dashboard's `json_metadata`.
- * The filter id is generated here because no test needs to know it — filters are
- * addressed through the filter bar UI, not by id.
+ * The filter id is generated here; most specs address filters through the filter
+ * bar UI, and a spec that needs the id reads it off the returned config.
  */
 export function buildSelectFilter(
   options: SelectFilterOptions,
@@ -266,6 +266,15 @@ interface CreateDashboardWithChartsOptions {
   buildLayout?: (
     charts: readonly DashboardLayoutChart[],
   ) => DashboardPositionJson;
+  /**
+   * Dashboard `json_metadata` (e.g. native filters via
+   * `buildFilterJsonMetadata`); omitted when not provided. Receives the created
+   * charts and the resolved dataset id so filters can target both.
+   */
+  buildJsonMetadata?: (context: {
+    charts: readonly DashboardLayoutChart[];
+    datasetId: number;
+  }) => Record<string, unknown>;
 }
 
 /**
@@ -322,13 +331,13 @@ export async function createDashboardWithCharts(
     ? options.buildLayout(charts)
     : buildSingleRowDashboardLayout(charts);
   const chartIds = charts.map(chart => chart.id);
-  const dashResp = await apiPostDashboard(page, {
-    dashboard_title: `${options.dashboardTitlePrefix ?? options.chartNamePrefix}_${uniqueSuffix}`,
-    published: true,
-    position_json: JSON.stringify(positionJson),
-    ...(options.selectFilter && {
-      json_metadata: JSON.stringify(
-        buildFilterJsonMetadata({
+  // Two ways to supply dashboard metadata: `buildJsonMetadata` is the general
+  // escape hatch, `selectFilter` the shorthand for the common single-select
+  // case. If a caller passes both, the explicit callback wins.
+  const jsonMetadata =
+    options.buildJsonMetadata?.({ charts, datasetId }) ??
+    (options.selectFilter
+      ? buildFilterJsonMetadata({
           chartsInScope: chartIds,
           nativeFilters: [
             buildSelectFilter({
@@ -338,9 +347,13 @@ export async function createDashboardWithCharts(
               name: options.selectFilter.name,
             }),
           ],
-        }),
-      ),
-    }),
+        })
+      : undefined);
+  const dashResp = await apiPostDashboard(page, {
+    dashboard_title: `${options.dashboardTitlePrefix ?? options.chartNamePrefix}_${uniqueSuffix}`,
+    published: true,
+    position_json: JSON.stringify(positionJson),
+    ...(jsonMetadata && { json_metadata: JSON.stringify(jsonMetadata) }),
   });
   expect(dashResp.ok()).toBe(true);
   const dashboardId = await extractIdFromResponse(dashResp);
