@@ -128,6 +128,7 @@ Dashboard Management:
 - get_dashboard_info: Resolve a dashboard by ID/UUID/slug or shared /dashboard/p/<key>/ permalink, including its active-tab and filter state
 - get_dashboard_layout: Get parsed tabs and chart positions by dashboard identifier or shared permalink, including the permalink's active-tab and filter context
 - get_dashboard_datasets: List the datasets used by a dashboard's charts, with columns and metrics (context for configuring native filters)
+- get_dashboard_data: Get bounded, filter-aware data across a dashboard's charts in one call (compact per-chart columns, sample rows, and row counts, selected in layout order) for analytical questions about a whole dashboard
 - generate_dashboard: Create a dashboard from chart IDs (requires write access)
 - update_dashboard: Update an existing dashboard's title/description/slug/published/layout/theme/CSS (requires write access; editorship-checked per-instance)
 - duplicate_dashboard: Duplicate an existing dashboard, optionally deep-copying its charts (requires write access)
@@ -416,6 +417,9 @@ Chart Types You Can CREATE with generate_chart/generate_explore_link:
    whisker_type: tukey | min_max | percentile)
 - chart_type="waterfall": Waterfall chart of cumulative increases/decreases
   (x_axis + metric required; optional single breakdown column, show_total)
+- chart_type="gantt": Gantt task intervals over time
+  (temporal start_time + end_time and category required; optional series,
+   tooltip columns/metrics, ordering, time range, and subcategories)
 
 Time grain for temporal x-axis (time_grain parameter):
 - PT1H (hourly), P1D (daily), P1W (weekly), P1M (monthly), P1Y (yearly)
@@ -425,7 +429,7 @@ Each chart returned by list_charts / get_chart_info includes a
 chart_type_display_name field with a human-readable name when available.
 This field is populated for chart types known to the MCP registry
 (xy, pie, table, pivot_table, big_number, mixed_timeseries, handlebars,
-histogram, box_plot, waterfall, and interactive_pivot). Availability gates
+histogram, box_plot, waterfall, gantt, and interactive_pivot). Availability gates
 creation and schema discovery, not display names for existing charts.
 For all other viz_types (Funnel, Gauge, Heatmap, etc.) it will be null —
 use the raw viz_type field instead when referring to those chart types.
@@ -802,6 +806,7 @@ from superset.mcp_service.dashboard.tool import (  # noqa: F401, E402
     delete_dashboard,
     duplicate_dashboard,
     generate_dashboard,
+    get_dashboard_data,
     get_dashboard_datasets,
     get_dashboard_info,
     get_dashboard_layout,
