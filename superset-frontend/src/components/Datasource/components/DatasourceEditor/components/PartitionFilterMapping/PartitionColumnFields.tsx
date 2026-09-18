@@ -21,6 +21,7 @@ import { t } from '@apache-superset/core/translation';
 import { css, useTheme } from '@apache-superset/core/theme';
 import { Alert } from '@apache-superset/core/components';
 import {
+  Divider,
   Flex,
   Icons,
   InfoTooltip,
@@ -125,12 +126,41 @@ export default function PartitionColumnFields({
           {mappedColumn ? (
             <>
               <Flex align="center" gap={theme.sizeUnit}>
-                <Label>{mappedColumn}</Label>
-                {isImplicit && (
+                {isImplicit ? (
                   <>
-                    <Typography.Text type="secondary">
-                      {t('Default datetime column')}
-                    </Typography.Text>
+                    {/* Two segments in one outlined box: the mapped column and
+                        the reason it is set. Only the implicit case has a second
+                        value to show, so the divider treatment is reserved for
+                        it -- an explicit mapping keeps the plain single pill. */}
+                    <Flex
+                      align="center"
+                      data-test="mapped-column-default"
+                      css={css`
+                        border: 1px solid ${theme.colorBorderSecondary};
+                        border-radius: ${theme.borderRadius}px;
+                        overflow: hidden;
+                        & > .ant-typography {
+                          padding: ${theme.sizeUnit / 2}px
+                            ${theme.sizeUnit * 2}px;
+                        }
+                        & .ant-divider {
+                          height: ${theme.sizeUnit * 4}px;
+                          margin: 0;
+                        }
+                      `}
+                    >
+                      <Typography.Text
+                        css={css`
+                          font-family: ${theme.fontFamilyCode};
+                        `}
+                      >
+                        {mappedColumn}
+                      </Typography.Text>
+                      <Divider type="vertical" />
+                      <Typography.Text type="secondary">
+                        {t('Default datetime column')}
+                      </Typography.Text>
+                    </Flex>
                     <Tooltip
                       title={t(
                         'Set from the default datetime column above, so re-pointing that column moves the mapping with it.',
@@ -142,6 +172,8 @@ export default function PartitionColumnFields({
                       />
                     </Tooltip>
                   </>
+                ) : (
+                  <Label>{mappedColumn}</Label>
                 )}
               </Flex>
               <Typography.Text type="secondary">
