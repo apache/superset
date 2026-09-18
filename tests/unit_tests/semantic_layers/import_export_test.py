@@ -33,6 +33,7 @@ from sqlalchemy.orm import Session
 
 from superset import security_manager
 from superset.charts.schemas import ImportV1ChartSchema
+from superset.commands.chart.export import ExportChartsCommand
 from superset.commands.exceptions import CommandInvalidError, ImportFailedError
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
@@ -366,7 +367,16 @@ def persisted_view(
         "is_feature_enabled",
         lambda flag: flag == "SEMANTIC_LAYERS",
     )
-    monkeypatch.setattr(security_manager, "can_access", lambda *args: True)
+    monkeypatch.setattr(
+        security_manager,
+        "can_access",
+        lambda permission, resource: (permission, resource)
+        in {
+            ("datasource_access", "view-grant"),
+            ("can_write", "Chart"),
+            ("can_write", "Dashboard"),
+        },
+    )
     monkeypatch.setattr(security_manager, "can_access_all_datasources", lambda: False)
     monkeypatch.setattr(security_manager, "semantic_view_after_insert", Mock())
     monkeypatch.setattr(security_manager, "semantic_layer_after_insert", Mock())
@@ -398,6 +408,22 @@ def persisted_view(
     return model
 
 
+def test_persisted_view_grant_does_not_authorize_another_view(
+    persisted_view: SemanticView,
+) -> None:
+    """The persisted fixture allows A but rejects B and its parent layer."""
+    assert refs.export_view_reference(persisted_view)["uuid"] == VIEW_UUID
+    denied: SemanticView = SemanticView(
+        name="denied view",
+        uuid=UUID("bff213f2-40c4-4da1-95c2-cea73731b713"),
+        perm="denied-view-grant",
+        semantic_layer=persisted_view.semantic_layer,
+    )
+    with pytest.raises(refs.SemanticReferenceError, match="missing or inaccessible"):
+        refs.export_view_reference(denied)
+    assert not security_manager.can_access("wrong_permission", "view-grant")
+
+
 @pytest.mark.parametrize(
     "module_name,command_name",
     [
@@ -414,8 +440,6 @@ def test_import_persists_semantic_identity_not_same_id_table(
     command_name: str,
 ) -> None:
     """Real chart writer, ORM relationship, exporter and schema roundtrip."""
-    from superset.commands.chart.export import ExportChartsCommand
-
     module: ModuleType = importlib.import_module(module_name)
     importer: Any = getattr(module, command_name)
     monkeypatch.setattr(module, "get_default_viewers_for_current_user", lambda: [])
@@ -640,8 +664,6 @@ def test_export_rejects_unavailable_dependencies(
     view: SemanticView, monkeypatch: pytest.MonkeyPatch, failure: str, kind: str
 ) -> None:
     """A reference export must not bypass the view grant or feature/provider gate."""
-    from superset.commands.chart.export import ExportChartsCommand
-
     chart: Slice = Slice(
         id=91,
         uuid=UUID(CHART_UUID),
