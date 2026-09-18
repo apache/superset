@@ -52,6 +52,17 @@ behavior explicitly:
 SQLALCHEMY_ENGINE_OPTIONS = {"isolation_level": "REPEATABLE READ"}
 ```
 
+### MCP metric discovery defaults and embedded dimensions
+
+`list_metrics` defaults to 25 metrics per page and does not embed compatible
+dimensions. Clients needing those dimensions should call `get_compatible_dimensions`
+for the chosen metrics, or explicitly request `include_compatible_dimensions=true`
+with `page_size` at most 8 for every scope, including built-in `dataset_id`
+requests. Non-embedded requests retain the 500-metric ceiling.
+This fixed embedding cap is independent of the operator's
+`MCP_RESPONSE_SIZE_CONFIG['token_limit']` (25,000 by default); it does not guarantee
+that every payload fits a configured response limit.
+
 ### Default Docker image is now batteries-included; the minimal image moves to `-lean`
 
 The default `apache/superset` Docker image (the plain tags: `latest`, `master`,
