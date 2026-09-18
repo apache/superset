@@ -42,12 +42,14 @@ jobs:
           persist-credentials: false
       - name: Check for file changes
         id: check
-        uses: ./.github/actions/change-detector/
+        uses: $/.github/actions/change-detector/
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-  # NOTE: Required Playwright tests are in superset-e2e.yml (E2E / playwright-tests)
-  # This workflow contains only experimental tests that run in shadow mode
+  # NOTE: Required Playwright tests are in superset-e2e.yml (E2E / playwright-tests),
+  # including Embedded — it moved out of this workflow because embedding is a
+  # required feature, not an experimental one. This workflow now contains
+  # only experimental and mobile tests, which run in shadow mode.
   playwright-tests-experimental:
     needs: changes
     if: needs.changes.outputs.python == 'true' || needs.changes.outputs.frontend == 'true'
@@ -107,13 +109,25 @@ jobs:
           submodules: recursive
       # -------------------------------------------------------
       - name: Setup Python
-        uses: ./.github/actions/setup-backend/
+        uses: $/.github/actions/setup-backend/
       - name: Setup postgres
-        uses: ./.github/actions/cached-dependencies
+        # cached-dependencies is a submodule (not a plain directory), and
+        # the $/ self-repository syntax resolves action files directly from
+        # the repository without performing a real (submodule-aware)
+        # checkout, so it can't see into a submodule's link. Keep this one
+        # on the workspace-relative ./ form, consistent with every other
+        # workflow in the repo that references this action.
+        uses: ./.github/actions/cached-dependencies # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here
         with:
           run: setup-postgres
       - name: Import test data
-        uses: ./.github/actions/cached-dependencies
+        # cached-dependencies is a submodule (not a plain directory), and
+        # the $/ self-repository syntax resolves action files directly from
+        # the repository without performing a real (submodule-aware)
+        # checkout, so it can't see into a submodule's link. Keep this one
+        # on the workspace-relative ./ form, consistent with every other
+        # workflow in the repo that references this action.
+        uses: ./.github/actions/cached-dependencies # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here
         with:
           run: playwright_testdata
       - name: Setup Node.js
@@ -123,48 +137,59 @@ jobs:
           cache: "npm"
           cache-dependency-path: "superset-frontend/package-lock.json"
       - name: Install npm dependencies
-        uses: ./.github/actions/cached-dependencies
+        # cached-dependencies is a submodule (not a plain directory), and
+        # the $/ self-repository syntax resolves action files directly from
+        # the repository without performing a real (submodule-aware)
+        # checkout, so it can't see into a submodule's link. Keep this one
+        # on the workspace-relative ./ form, consistent with every other
+        # workflow in the repo that references this action.
+        uses: ./.github/actions/cached-dependencies # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here
         with:
           run: npm-install
       - name: Build javascript packages
-        uses: ./.github/actions/cached-dependencies
+        # cached-dependencies is a submodule (not a plain directory), and
+        # the $/ self-repository syntax resolves action files directly from
+        # the repository without performing a real (submodule-aware)
+        # checkout, so it can't see into a submodule's link. Keep this one
+        # on the workspace-relative ./ form, consistent with every other
+        # workflow in the repo that references this action.
+        uses: ./.github/actions/cached-dependencies # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here
         with:
           run: build-instrumented-assets
-      - name: Build embedded SDK
-        uses: ./.github/actions/cached-dependencies
-        with:
-          run: build-embedded-sdk
       - name: Install Playwright
-        uses: ./.github/actions/cached-dependencies
+        # the $/ self-repository syntax resolves action files directly from
+        # the repository without performing a real (submodule-aware)
+        # checkout, so it can't see into a submodule's gitlink. Keep this one
+        # on the workspace-relative ./ form, consistent with every other
+        # workflow in the repo that references this action.
+        uses: ./.github/actions/cached-dependencies # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here
         with:
           run: playwright-install
       - name: Run Playwright (Experimental Tests)
-        uses: ./.github/actions/cached-dependencies
+        # cached-dependencies is a submodule (not a plain directory), and
+        # the $/ self-repository syntax resolves action files directly from
+        # the repository without performing a real (submodule-aware)
+        # checkout, so it can't see into a submodule's link. Keep this one
+        # on the workspace-relative ./ form, consistent with every other
+        # workflow in the repo that references this action.
+        uses: ./.github/actions/cached-dependencies # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here
         env:
           NODE_OPTIONS: "--max-old-space-size=4096"
         with:
           run: playwright-run "${{ matrix.app_root }}" experimental/
-      - name: Run Playwright (Embedded Tests)
-        uses: ./.github/actions/cached-dependencies
-        env:
-          NODE_OPTIONS: "--max-old-space-size=4096"
-          # Scope embedded-only env vars to this step. Setting them at the job
-          # level enabled the EMBEDDED_SUPERSET feature flag inside Flask for
-          # the preceding "Required Tests" and "Experimental Tests" steps too,
-          # which loads extra handlers and destabilizes the werkzeug dev
-          # server under the 2-worker Playwright load. Required Tests should
-          # match master's Flask configuration.
-          SUPERSET_FEATURE_EMBEDDED_SUPERSET: "true"
-          INCLUDE_EMBEDDED: "true"
-        with:
-          run: playwright-run "${{ matrix.app_root }}" embedded
       - name: Run Playwright (Mobile Tests)
-        uses: ./.github/actions/cached-dependencies
+        # cached-dependencies is a submodule (not a plain directory), and
+        # the $/ self-repository syntax resolves action files directly from
+        # the repository without performing a real (submodule-aware)
+        # checkout, so it can't see into a submodule's link. Keep this one
+        # on the workspace-relative ./ form, consistent with every other
+        # workflow in the repo that references this action.
+        uses: ./.github/actions/cached-dependencies # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here
         env:
           NODE_OPTIONS: "--max-old-space-size=4096"
-          # Scoped to this step for the same reason as the embedded flags
-          # above: the mobile consumption mode should not alter Flask's
-          # configuration for the required desktop test steps.
+          # Scoped to this step: setting feature flags at the job level would
+          # alter Flask's configuration for the preceding Experimental step
+          # too — the mobile consumption mode should not do that.
           SUPERSET_FEATURE_MOBILE_CONSUMPTION_MODE: "true"
           INCLUDE_MOBILE: "true"
         with:

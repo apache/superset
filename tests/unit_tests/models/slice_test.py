@@ -296,7 +296,7 @@ def test_set_related_perm_unknown_datasource_type_fails_closed_and_warns(
     updated to an unknown type has its denormalized perm columns cleared, so it
     loses access rather than resolving under the stale perm — and logs a
     warning."""
-    target = Slice(
+    target: Slice = Slice(
         slice_name="unknown-type chart",
         datasource_id=3,
         # ``druid`` is used precisely because it is no longer a registered
@@ -325,7 +325,7 @@ def test_set_related_perm_unknown_type_without_datasource_id_fails_closed() -> N
     """The datasource-type lookup runs before the ``datasource_id`` guard, so an
     unknown-type slice with no ``datasource_id`` still fails closed — its perm
     columns are cleared — rather than raising KeyError."""
-    target = Slice(slice_name="orphan chart", datasource_type="druid")
+    target: Slice = Slice(slice_name="orphan chart", datasource_type="druid")
     # Pre-set the perms so the assertion proves the clearing branch ran, not
     # that they were merely never set.
     target.perm = "[db].[table](id:1)"
@@ -343,18 +343,19 @@ def test_set_related_perm_known_type_denormalizes_perms_from_datasource() -> Non
     """A known ``datasource_type`` still copies the datasource's perm columns
     onto the chart — the common path must keep working after the ``.get()``
     guard."""
-    target = Slice(
+    target: Slice = Slice(
         slice_name="table chart",
         datasource_id=5,
         datasource_type="table",
     )
-    ds = MagicMock()
+    ds: MagicMock = MagicMock()
     ds.perm = "[db].[table](id:5)"
     ds.catalog_perm = "[db].[catalog]"
     ds.schema_perm = "[db].[schema]"
 
+    mock_db: MagicMock
     with patch("superset.models.slice.db") as mock_db:
-        query = mock_db.session.query.return_value
+        query: MagicMock = mock_db.session.query.return_value
         query.filter_by.return_value.first.return_value = ds
         set_related_perm(MagicMock(), MagicMock(), target)
 

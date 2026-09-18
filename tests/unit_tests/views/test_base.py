@@ -76,6 +76,57 @@ def test_common_bootstrap_payload_handles_none_locale(
     mock_cached.assert_called_once_with(1, None)
 
 
+def test_common_bootstrap_payload_masks_websocket_without_realtime_permission(
+    app_context: None,
+) -> None:
+    from superset.views.base import common_bootstrap_payload
+
+    cached = {
+        "conf": {
+            "WEBSOCKET_ENABLE": True,
+            "WEBSOCKET_URL": "ws://localhost:8080/",
+        }
+    }
+    with (
+        patch(
+            "superset.views.base.cached_common_bootstrap_data",
+            return_value=cached,
+        ),
+        patch(
+            "superset.views.base.can_access_realtime_notifications",
+            return_value=False,
+        ),
+        patch("superset.views.base.utils.get_user_id", return_value=None),
+        patch("superset.views.base.get_locale", return_value=None),
+    ):
+        result = common_bootstrap_payload()
+
+    assert result["conf"]["WEBSOCKET_ENABLE"] is False
+    assert cached["conf"]["WEBSOCKET_ENABLE"] is True
+
+
+def test_common_bootstrap_payload_exposes_websocket_with_realtime_permission(
+    app_context: None,
+) -> None:
+    from superset.views.base import common_bootstrap_payload
+
+    with (
+        patch(
+            "superset.views.base.cached_common_bootstrap_data",
+            return_value={"conf": {"WEBSOCKET_ENABLE": True}},
+        ),
+        patch(
+            "superset.views.base.can_access_realtime_notifications",
+            return_value=True,
+        ),
+        patch("superset.views.base.utils.get_user_id", return_value=1),
+        patch("superset.views.base.get_locale", return_value=None),
+    ):
+        result = common_bootstrap_payload()
+
+    assert result["conf"]["WEBSOCKET_ENABLE"] is True
+
+
 def test_default_map_renderer_is_exposed_to_frontend_config() -> None:
     from superset.views.base import FRONTEND_CONF_KEYS
 

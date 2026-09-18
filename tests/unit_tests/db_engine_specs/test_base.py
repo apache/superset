@@ -89,6 +89,13 @@ def test_get_text_clause_with_colon() -> None:
     assert text_clause.text == "SELECT foo FROM tbl WHERE foo = '123\\:456')"
 
 
+def test_normalize_custom_sql_metric_is_identity_by_default() -> None:
+    """Unconfigured engines preserve custom metric SQL exactly."""
+    expression: str = "DATE_TRUNC('QUARTER', created_at) /* keep */"
+
+    assert BaseEngineSpec.normalize_custom_sql_metric(expression) == expression
+
+
 def test_validate_db_uri(mocker: MockerFixture) -> None:
     """
     Ensures that the `validate_database_uri` method invokes the validator correctly
@@ -289,6 +296,24 @@ def test_get_default_catalog(mocker: MockerFixture) -> None:
     """
     database = mocker.MagicMock()
     assert BaseEngineSpec.get_default_catalog(database) is None
+
+
+def test_get_catalog_from_engine_params_url_database() -> None:
+    """
+    Test that `get_catalog_from_engine_params` returns the URL's database by default.
+    """
+    url = make_url("postgresql://user:pw@host/my_db")
+    assert BaseEngineSpec.get_catalog_from_engine_params(url, {}) == "my_db"
+
+
+def test_get_catalog_from_engine_params_no_database() -> None:
+    """
+    Test that `get_catalog_from_engine_params` returns `None` when the URL has no
+    database, regardless of `connect_args` -- the base implementation ignores them.
+    """
+    url = make_url("postgresql://user:pw@host/")
+    connect_args = {"database": "ignored"}
+    assert BaseEngineSpec.get_catalog_from_engine_params(url, connect_args) is None
 
 
 def test_prepare_identifier_returns_name_unchanged() -> None:

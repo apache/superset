@@ -145,3 +145,51 @@ The following URL parameters can be passed through the `urlParams` option in `da
 - **Row-level security** — pass `rls` rules in the guest token request to restrict which rows are visible to the embedded user.
 - **Allowed domains** — restrict which host origins can embed a dashboard by setting **Allowed Domains** per-dashboard in the _Embed_ settings modal. Superset checks the request's `Referer` header against this list before serving the embedded view; an empty list allows any origin, so configure this explicitly for production.
 - **Redacted errors** — API responses to a guest token report a generic `An error occurred while fetching the data.` instead of the underlying error, since engine errors quote catalog, schema, table and column names. Errors Superset raises itself — access denials, timeouts, payload validation — keep their message, and the full error is always available in the server logs.
+
+
+## Guest-token request-header size diagnostics
+
+A successful guest-token mint does not guarantee the token can pass through your
+deployment's proxies. Limits apply to the **encoded JWT bytes plus header
+overhead**, not the number of RLS rules or identifiers. A proxy can reject the
+subsequent authentication request before it reaches Superset, including an HTTP
+400 HTML response instead of JSON. A 400 alone does not establish a size problem.
+
+Operators can set a deployment-specific diagnostic budget in `superset_config.py`:
+
+```python
+# Example only: choose a budget for your complete proxy path.
+GUEST_TOKEN_HEADER_MAX_BYTES = 16 * 1024
+```
+
+The default is `None` (no budget warnings). Positive integer budgets count UTF-8
+bytes of `GUEST_TOKEN_HEADER_NAME`, `: `, the encoded token, and `\r\n`
+(four framing bytes). Only sizes **strictly greater** than the budget warn;
+equality does not. This is consistent diagnostic accounting, not a prediction of
+every proxy's wire-level accounting, HTTP/2 compression, or total-header limits.
+Leave a safety margin and validate your actual deployment, including custom
+header names. Zero, negative, non-integral, or non-numeric values (including strings and
+booleans) disable budget warnings, as do values above JavaScript's maximum safe
+integer (2^53 − 1). Whole-number floats are accepted. Convert environment-variable
+strings to integers in deployment configuration to enable the budget.
+
+Issuance audit metadata includes `token_bytes`, `header_bytes`,
+`header_budget_bytes`, and `header_budget_exceeded`. Issuance remains HTTP 200
+with the same token and response shape. The embedded bootstrap exposes the budget
+and configured header name; reload the iframe after changing deployment config.
+The embedded client measures initial and refreshed tokens and warns in the
+developer console with sizes only. Initial authentication failures get a targeted
+suggestion only when the request's token exceeds the budget and the failure has
+no status or HTTP 400/431/494; other statuses and ambiguous in-flight
+refreshes use the generic error. Refresh warnings do not restart authentication.
+These diagnostics do not record JWTs, decoded claims, RLS SQL, or request headers.
+
+[AWS Application Load Balancer quotas](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-limits.html)
+list a non-adjustable 16 K single-header limit. Increasing a Superset diagnostic
+budget does not increase that limit or add large-token support.
+
+To reduce payload size, replace large inline RLS ID lists with a compact
+entitlements-table subquery where supported by your database. Keep the same
+tenant/user restrictions, derive identity from your trusted token-issuing
+backend, and verify equivalent row access and query performance before rollout.
+Do not remove RLS or broaden entitlements to make a token smaller.

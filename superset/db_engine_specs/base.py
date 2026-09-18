@@ -407,6 +407,19 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     _date_trunc_functions: dict[str, str] = {}
     _time_grain_expressions: dict[str | None, str] = {}
+
+    # Whether the output of ``normalize_custom_sql_metric`` may be embedded in
+    # generated SQL verbatim (after line comments are converted to block
+    # comments) instead of being re-rendered by ``sanitize_clause``. Specs that
+    # override ``normalize_custom_sql_metric`` with a source-preserving
+    # normalizer set this so re-rendering cannot undo the normalization.
+    preserves_custom_sql_metric_source = False
+
+    @classmethod
+    def normalize_custom_sql_metric(cls, expression: str) -> str:
+        """Return custom metric SQL in the engine's canonical form."""
+        return expression
+
     _default_column_type_mappings: tuple[ColumnTypeMapping, ...] = (
         (
             re.compile(r"^string", re.IGNORECASE),
@@ -1086,6 +1099,27 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         Return the schema configured in a SQLALchemy URI and connection arguments, if any.
         """  # noqa: E501
         return None
+
+    @classmethod
+    def get_catalog_from_engine_params(  # pylint: disable=unused-argument
+        cls,
+        sqlalchemy_uri: URL,
+        connect_args: dict[str, Any],
+    ) -> str | None:
+        """
+        Return the catalog/database configured in a SQLAlchemy URI or connection
+        arguments, if statically determinable.
+
+        Used to recognize when a SQL statement's leading, catalog-like qualifier is
+        a redundant restatement of the connection's own database rather than a
+        request for a genuinely different one -- relevant for engines that don't
+        otherwise model catalogs (``supports_catalog`` is False) but whose
+        connection is nonetheless scoped to a single database. The default
+        implementation reads the URL's own database segment; engine specs whose
+        connection strings can encode the database elsewhere (e.g. inside an
+        opaque connection-string query parameter) should override this.
+        """
+        return sqlalchemy_uri.database or None
 
     @classmethod
     def get_default_schema_for_query(
