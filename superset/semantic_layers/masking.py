@@ -329,10 +329,12 @@ def _mask_value(
         if isinstance(value, list):
             return _mask_list(value, schema, defs, layer_type)
         return value
-    except (_UnresolvableRefError, TypeError, AttributeError):
+    except (_UnresolvableRefError, TypeError, AttributeError) as ex:
         logger.warning(
-            "Masking semantic layer type %s subtree: malformed or unresolved schema",
+            "Masking semantic layer type %s subtree: "
+            "malformed or unresolved schema (%s)",
             layer_type,
+            type(ex).__name__,
         )
         return _mask_all(value)
 

@@ -18,12 +18,15 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from pydantic import ValidationError
 from superset_core.semantic_layers.layer import SemanticLayer
 
 from superset.commands.semantic_layer.exceptions import SemanticLayerInvalidError
+
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 def validate_configuration(
@@ -42,7 +45,12 @@ def validate_configuration(
             )
         )
         raise SemanticLayerInvalidError(f"Invalid configuration: {details}") from None
-    except Exception:  # pylint: disable=broad-except
+    except Exception as ex:  # pylint: disable=broad-except
         # A provider may interpolate the restored credential into a
         # non-pydantic error; never let one reach an exc_info log sink.
+        logger.warning(
+            "Semantic layer provider %s rejected configuration: %s",
+            getattr(layer_class, "__name__", "unknown"),
+            type(ex).__name__,
+        )
         raise SemanticLayerInvalidError("Provider rejected the configuration") from None

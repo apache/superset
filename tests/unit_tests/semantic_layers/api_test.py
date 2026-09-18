@@ -2831,6 +2831,7 @@ def test_layer_validation_does_not_expose_secrets(
             raise RuntimeError(f"bad {configuration}")
         return Configuration.model_validate(configuration)
 
+    provider.__name__ = "ValidationTestProvider"
     provider.from_configuration.configure_mock(side_effect=validate_provider)
     mocker.patch.dict(
         f"superset.commands.semantic_layer.{operation}.registry",
@@ -2857,6 +2858,11 @@ def test_layer_validation_does_not_expose_secrets(
     assert response.status_code == 422
     assert secret not in response.get_data(as_text=True)
     assert secret not in caplog.text
+    if failure == "provider_runtime":
+        assert "ValidationTestProvider" in caplog.text
+        assert "RuntimeError" in caplog.text
+        assert "bad " not in caplog.text
+        assert all(record.exc_info is None for record in caplog.records)
     formatter: logging.Formatter = logging.Formatter()
     record: logging.LogRecord
     for record in caplog.records:

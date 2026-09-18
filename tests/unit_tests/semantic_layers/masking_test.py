@@ -24,6 +24,7 @@ from unittest.mock import patch
 
 import pytest
 from pydantic import BaseModel, Field, SecretStr, StringConstraints
+from pytest_mock import MockerFixture
 
 from superset.constants import PASSWORD_MASK
 from superset.semantic_layers import masking
@@ -299,6 +300,7 @@ def test_malformed_schema_warning_never_includes_values(
     ) == {"password": PASSWORD_MASK}
     assert "test-provider" in caplog.text
     assert "malformed or unresolved schema" in caplog.text
+    assert "TypeError" in caplog.text
     assert "CONFIG-SECRET" not in caplog.text
     assert all(record.exc_info is None for record in caplog.records)
 
@@ -846,3 +848,23 @@ def test_short_masked_list_reference_uses_secret_wildcard() -> None:
         {"host": "b", "password": PASSWORD_MASK},
     ]
     assert unmask_configuration(stored, submitted, submitted[:1]) == stored
+
+
+@pytest.mark.parametrize("error_class", [TypeError, AttributeError])
+def test_masking_diagnostic_excludes_exception_message(
+    mocker: MockerFixture,
+    caplog: pytest.LogCaptureFixture,
+    error_class: type[Exception],
+) -> None:
+    """Only the exception class and provider identifier reach warning logs."""
+    mocker.patch.object(
+        masking, "_is_secret_schema", side_effect=error_class("EXCEPTION-SECRET")
+    )
+    assert masking._mask_value(
+        {"password": "VALUE-SECRET"}, {}, {}, "test-provider"
+    ) == {"password": PASSWORD_MASK}
+    assert error_class.__name__ in caplog.text
+    assert "test-provider" in caplog.text
+    assert "EXCEPTION-SECRET" not in caplog.text
+    assert "VALUE-SECRET" not in caplog.text
+    assert all(record.exc_info is None for record in caplog.records)
