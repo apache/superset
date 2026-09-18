@@ -898,7 +898,9 @@ describe('extractShowValueIndexes', () => {
 
     expect(Object.prototype.hasOwnProperty.call(result, '__proto__')).toBe(true);
     expect(Object.prototype.hasOwnProperty.call(result, 'constructor')).toBe(true);
-    expect(result['__proto__']).toEqual([0, 0]);
+    expect(
+      Object.getOwnPropertyDescriptor(result, '__proto__')?.value,
+    ).toEqual([0, 0]);
     expect(result['constructor']).toEqual([1, 1]);
   });
 });
