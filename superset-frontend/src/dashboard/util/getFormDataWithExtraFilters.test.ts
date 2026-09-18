@@ -18,10 +18,13 @@
  */
 import getFormDataWithExtraFilters, {
   CachedFormDataWithExtraControls,
+  getCustomizationSelectionSources,
   GetFormDataWithExtraFiltersArguments,
 } from 'src/dashboard/util/charts/getFormDataWithExtraFilters';
 import {
   ChartCustomizationType,
+  DataMask,
+  SemanticSelectionSource,
   DatasourceType,
   buildQueryObject,
   QueryFormData,
@@ -48,6 +51,125 @@ function createChartCustomization(
     ...overrides,
   };
 }
+
+const semanticCustomization = createChartCustomization({
+  targets: [
+    {
+      datasetId: 7,
+      datasourceType: DatasourceType.SemanticView,
+      semantic_selection_version: 'cube-member-id-v1',
+    },
+  ],
+});
+const semanticTargetSource = {
+  datasource: '7__semantic_view',
+  version: 'cube-member-id-v1',
+};
+const unknownSelectionSource = { datasource: '', version: null };
+const selectedMask: DataMask = { filterState: { value: ['country'] } };
+const certifiedMask: DataMask = {
+  ...selectedMask,
+  extraFormData: { semantic_selection_sources: [semanticTargetSource] },
+};
+
+test.each<{
+  name: string;
+  customization?: ChartCustomizationItem;
+  mask?: DataMask;
+  groupByApplied: boolean;
+  expected: SemanticSelectionSource[];
+}>([
+  {
+    name: 'unapplied group-by',
+    customization: semanticCustomization,
+    mask: certifiedMask,
+    groupByApplied: false,
+    expected: [],
+  },
+  {
+    name: 'applied certified group-by',
+    customization: semanticCustomization,
+    mask: certifiedMask,
+    groupByApplied: true,
+    expected: [semanticTargetSource, semanticTargetSource],
+  },
+  {
+    name: 'uncertified selected group-by',
+    customization: semanticCustomization,
+    mask: selectedMask,
+    groupByApplied: true,
+    expected: [semanticTargetSource, unknownSelectionSource],
+  },
+  ...[
+    'chart_customization_timegrain',
+    'chart_customization_deckgl_layer_visibility',
+  ].map(filterType => ({
+    name: `presentation-only ${filterType}`,
+    customization: { ...semanticCustomization, filterType },
+    mask: selectedMask,
+    groupByApplied: false,
+    expected: [],
+  })),
+  {
+    name: 'presentation control with member overrides',
+    customization: {
+      ...semanticCustomization,
+      filterType: 'chart_customization_timegrain',
+    },
+    mask: { extraFormData: { granularity_sqla: 'country' } },
+    groupByApplied: false,
+    expected: [semanticTargetSource, unknownSelectionSource],
+  },
+  {
+    name: 'idle ordinary control',
+    customization: { ...semanticCustomization, filterType: 'ordinary' },
+    mask: {},
+    groupByApplied: false,
+    expected: [],
+  },
+  {
+    name: 'selected ordinary control without provenance',
+    customization: { ...semanticCustomization, filterType: 'ordinary' },
+    mask: selectedMask,
+    groupByApplied: false,
+    expected: [semanticTargetSource, unknownSelectionSource],
+  },
+  {
+    name: 'legacy table target',
+    customization: createChartCustomization(),
+    mask: selectedMask,
+    groupByApplied: true,
+    expected: [
+      { datasource: '3__table', version: null },
+      unknownSelectionSource,
+    ],
+  },
+  {
+    name: 'missing customization and idle mask',
+    groupByApplied: false,
+    expected: [],
+  },
+  {
+    name: 'missing target identity',
+    customization: createChartCustomization({ targets: [] }),
+    mask: selectedMask,
+    groupByApplied: true,
+    expected: [unknownSelectionSource, unknownSelectionSource],
+  },
+  {
+    name: 'applied group-by without selected value',
+    customization: semanticCustomization,
+    groupByApplied: true,
+    expected: [semanticTargetSource],
+  },
+])(
+  'customization provenance: $name',
+  ({ customization, mask, groupByApplied, expected }) => {
+    expect(
+      getCustomizationSelectionSources({ customization, mask, groupByApplied }),
+    ).toEqual(expected);
+  },
+);
 
 const expectGroupBy = (
   result: CachedFormDataWithExtraControls,

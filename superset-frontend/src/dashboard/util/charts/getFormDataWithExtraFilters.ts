@@ -28,6 +28,7 @@ import {
   ChartCustomization,
   getSemanticSelectionSources,
   QueryFormColumn,
+  SemanticSelectionSource,
 } from '@superset-ui/core';
 import {
   ChartConfiguration,
@@ -46,6 +47,55 @@ import {
 } from './chartTypeLimitations';
 import getEffectiveExtraFilters from './getEffectiveExtraFilters';
 import { getAllActiveFilters } from '../activeAllDashboardFilters';
+
+/** Return provenance only for customizations that contribute member selections. */
+export function getCustomizationSelectionSources({
+  customization,
+  mask,
+  groupByApplied,
+}: {
+  customization?: ChartCustomization;
+  mask?: DataMask;
+  groupByApplied: boolean;
+}): SemanticSelectionSource[] {
+  if (
+    customization?.filterType === ChartCustomizationPlugins.DynamicGroupBy &&
+    !groupByApplied
+  )
+    return [];
+  const target = customization?.targets?.[0];
+  const memberOverrides = getSemanticSelectionSources({
+    ...mask?.extraFormData,
+    semantic_selection_sources: undefined,
+  });
+  if (
+    (customization?.filterType === ChartCustomizationPlugins.TimeGrain ||
+      customization?.filterType ===
+        ChartCustomizationPlugins.DeckglLayerVisibility) &&
+    memberOverrides.length === 0
+  )
+    return [];
+  if (
+    customization?.filterType !== ChartCustomizationPlugins.DynamicGroupBy &&
+    memberOverrides.length === 0 &&
+    mask?.filterState?.value == null
+  )
+    return [];
+  const sources = getSemanticSelectionSources(mask?.extraFormData);
+  return [
+    {
+      datasource: target?.datasetId
+        ? `${target.datasetId}__${target.datasourceType || 'table'}`
+        : '',
+      version: target?.semantic_selection_version ?? null,
+    },
+    ...(sources.length
+      ? sources
+      : mask?.filterState?.value != null
+        ? [{ datasource: '', version: null }]
+        : []),
+  ];
+}
 
 interface CachedFormData {
   extra_form_data?: JsonObject;
@@ -607,52 +657,15 @@ export default function getFormDataWithExtraFilters({
     ...(chart.form_data?.semantic_selection_version && {
       semantic_selection_sources: [
         ...(chart.form_data.semantic_selection_sources ?? []),
-        ...customizationIds.flatMap(id => {
-          const customization = chartCustomizationItems?.find(
-            item => item.id === id,
-          );
-          if (
-            customization?.filterType ===
-              ChartCustomizationPlugins.DynamicGroupBy &&
-            !appliedGroupByIds.has(id)
-          )
-            return [];
-          const target = customization?.targets?.[0];
-          const mask = dataMask[id];
-          const memberOverrides = getSemanticSelectionSources({
-            ...mask?.extraFormData,
-            semantic_selection_sources: undefined,
-          });
-          if (
-            (customization?.filterType ===
-              ChartCustomizationPlugins.TimeGrain ||
-              customization?.filterType ===
-                ChartCustomizationPlugins.DeckglLayerVisibility) &&
-            memberOverrides.length === 0
-          )
-            return [];
-          if (
-            customization?.filterType !==
-              ChartCustomizationPlugins.DynamicGroupBy &&
-            memberOverrides.length === 0 &&
-            mask?.filterState?.value == null
-          )
-            return [];
-          const sources = getSemanticSelectionSources(mask?.extraFormData);
-          return [
-            {
-              datasource: target?.datasetId
-                ? `${target.datasetId}__${target.datasourceType || 'table'}`
-                : '',
-              version: target?.semantic_selection_version ?? null,
-            },
-            ...(sources.length
-              ? sources
-              : mask?.filterState?.value != null
-                ? [{ datasource: '', version: null }]
-                : []),
-          ];
-        }),
+        ...customizationIds.flatMap(id =>
+          getCustomizationSelectionSources({
+            customization: chartCustomizationItems?.find(
+              item => item.id === id,
+            ),
+            mask: dataMask[id],
+            groupByApplied: appliedGroupByIds.has(id),
+          }),
+        ),
       ],
     }),
     ...(layerFilterScope && { layer_filter_scope: layerFilterScope }),

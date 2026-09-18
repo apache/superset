@@ -132,36 +132,42 @@ describe('ControlPanelsContainer', () => {
   test.each([undefined, 21])(
     'new and saved semantic selections expose explicit field initialization (slice=%s)',
     async sliceId => {
-      getChartControlPanelRegistry().registerValue('line', defaultTableConfig);
-      mockIsFeatureEnabled.mockImplementation(
-        featureFlag => featureFlag === FeatureFlag.Matrixify,
-      );
-      const props = getDefaultProps();
-      const resetSemanticSelections = jest.fn();
-      props.actions = { setControlValue: jest.fn(), resetSemanticSelections };
-      props.exploreState = {
-        ...defaultState,
-        datasource: { semantic_selection_version: 'cube-member-id-v1' },
-      } as ControlPanelsContainerProps['exploreState'];
-      props.form_data = {
-        ...props.form_data,
-        datasource: '7__semantic_view',
-        slice_id: sliceId,
-        viz_type: 'line',
-        matrixify_enable: true,
-        matrixify_mode_rows: 'metrics',
-        semantic_selection_version: undefined,
-      };
-      render(<ControlPanelsContainer {...props} />, { useRedux: true });
-      expect(screen.queryByText('Query')).not.toBeInTheDocument();
-      expect(
-        screen.queryByRole('tab', { name: /matrixify/i }),
-      ).not.toBeInTheDocument();
-      await userEvent.click(
-        screen.getByRole('button', { name: 'Start field selection' }),
-      );
-      expect(resetSemanticSelections).toHaveBeenCalledWith(sliceId);
-      getChartControlPanelRegistry().remove('line');
+      const registry = getChartControlPanelRegistry();
+      const previous = registry.get('line');
+      registry.registerValue('line', defaultTableConfig);
+      try {
+        mockIsFeatureEnabled.mockImplementation(
+          featureFlag => featureFlag === FeatureFlag.Matrixify,
+        );
+        const props = getDefaultProps();
+        const resetSemanticSelections = jest.fn();
+        props.actions = { setControlValue: jest.fn(), resetSemanticSelections };
+        props.exploreState = {
+          ...defaultState,
+          datasource: { semantic_selection_version: 'cube-member-id-v1' },
+        } as ControlPanelsContainerProps['exploreState'];
+        props.form_data = {
+          ...props.form_data,
+          datasource: '7__semantic_view',
+          slice_id: sliceId,
+          viz_type: 'line',
+          matrixify_enable: true,
+          matrixify_mode_rows: 'metrics',
+          semantic_selection_version: undefined,
+        };
+        render(<ControlPanelsContainer {...props} />, { useRedux: true });
+        expect(screen.queryByText('Query')).not.toBeInTheDocument();
+        expect(
+          screen.queryByRole('tab', { name: /matrixify/i }),
+        ).not.toBeInTheDocument();
+        await userEvent.click(
+          screen.getByRole('button', { name: 'Start field selection' }),
+        );
+        expect(resetSemanticSelections).toHaveBeenCalledWith(sliceId);
+      } finally {
+        if (previous) registry.registerValue('line', previous);
+        else registry.remove('line');
+      }
     },
   );
 
