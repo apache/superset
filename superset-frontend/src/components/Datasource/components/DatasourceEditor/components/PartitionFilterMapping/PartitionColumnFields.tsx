@@ -112,7 +112,13 @@ export default function PartitionColumnFields({
 
       {partitionColumn && (
         <Flex vertical gap={theme.sizeUnit} data-test="maps-to-partition">
-          <Flex align="center" gap={theme.sizeUnit}>
+          <Flex
+            align="center"
+            gap={theme.sizeUnit}
+            css={css`
+              padding-top: ${theme.sizeUnit * 3}px;
+            `}
+          >
             <Typography.Text type="secondary">
               {t('Maps to partition')}
             </Typography.Text>
