@@ -34,6 +34,32 @@ jest.mock('@superset-ui/chart-controls', () => {
 // eslint-disable-next-line import/first
 import controlPanel from '../../src/Candlestick/controlPanel';
 
+type VisibilityControl = {
+  name: string;
+  config: { visibility: (props: ControlPanelsContainerProps) => boolean };
+};
+
+const getControl = (controlName: string) => {
+  for (const section of controlPanel.controlPanelSections) {
+    if (!section?.controlSetRows) {
+      continue;
+    }
+    for (const row of section.controlSetRows) {
+      for (const control of row) {
+        if (
+          typeof control === 'object' &&
+          control !== null &&
+          'name' in control &&
+          control.name === controlName
+        ) {
+          return control;
+        }
+      }
+    }
+  }
+  return null;
+};
+
 test('formDataOverrides consumes four metrics for open, close, high, and low', () => {
   mockPopAllMetrics.mockReturnValueOnce([
     'openMetric',
@@ -98,32 +124,6 @@ test('exposes a series style control for candlestick and OHLC', () => {
   ]);
 });
 
-type VisibilityControl = {
-  name: string;
-  config: { visibility: (props: ControlPanelsContainerProps) => boolean };
-};
-
-const getControl = (controlName: string) => {
-  for (const section of controlPanel.controlPanelSections) {
-    if (!section?.controlSetRows) {
-      continue;
-    }
-    for (const row of section.controlSetRows) {
-      for (const control of row) {
-        if (
-          typeof control === 'object' &&
-          control !== null &&
-          'name' in control &&
-          control.name === controlName
-        ) {
-          return control;
-        }
-      }
-    }
-  }
-  return null;
-};
-
 test('shows series name only when the default candlestick series is used', () => {
   const seriesNameControl = getControl(
     'candlestick_series_name',
@@ -179,22 +179,33 @@ test('shows color scheme when a series dimension is set or direction coloring is
   ).toBe(true);
 });
 
-test('shows color by direction for a single series setup', () => {
+test('shows color by direction and increase/decrease colors only without a Series dimension', () => {
   const colorByDirection = getControl(
     'color_by_direction',
   ) as VisibilityControl | null;
-  expect(colorByDirection).not.toBeNull();
+  const increaseColor = getControl(
+    'increase_color',
+  ) as VisibilityControl | null;
+  const decreaseColor = getControl(
+    'decrease_color',
+  ) as VisibilityControl | null;
   expect(colorByDirection?.config.visibility).toBeDefined();
-  expect(
-    colorByDirection!.config.visibility({
-      controls: {},
-    } as unknown as ControlPanelsContainerProps),
-  ).toBe(true);
-  expect(
-    colorByDirection!.config.visibility({
-      controls: { series: { value: 'symbol' } },
-    } as unknown as ControlPanelsContainerProps),
-  ).toBe(true);
+  expect(increaseColor?.config.visibility).toBeDefined();
+  expect(decreaseColor?.config.visibility).toBeDefined();
+
+  const noSeries = {
+    controls: { series: { value: null } },
+  } as unknown as ControlPanelsContainerProps;
+  const withSeries = {
+    controls: { series: { value: 'symbol' } },
+  } as unknown as ControlPanelsContainerProps;
+
+  expect(colorByDirection!.config.visibility(noSeries)).toBe(true);
+  expect(increaseColor!.config.visibility(noSeries)).toBe(true);
+  expect(decreaseColor!.config.visibility(noSeries)).toBe(true);
+  expect(colorByDirection!.config.visibility(withSeries)).toBe(false);
+  expect(increaseColor!.config.visibility(withSeries)).toBe(false);
+  expect(decreaseColor!.config.visibility(withSeries)).toBe(false);
 });
 
 test('hides increase and decrease colors when color by direction is off', () => {

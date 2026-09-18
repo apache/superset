@@ -49,16 +49,15 @@ function hasSeriesDimension({
   return ensureIsArray(controls?.series?.value).length > 0;
 }
 
-function isSingleSeriesSetup({
-  controls,
-}: ControlPanelsContainerProps): boolean {
-  return ensureIsArray(controls?.series?.value).length <= 1;
+function showColorByDirection(props: ControlPanelsContainerProps): boolean {
+  return !hasSeriesDimension(props);
 }
 
-function showDirectionColors({
-  controls,
-}: ControlPanelsContainerProps): boolean {
-  return controls?.color_by_direction?.value !== false;
+function showDirectionColors(props: ControlPanelsContainerProps): boolean {
+  return (
+    showColorByDirection(props) &&
+    props.controls?.color_by_direction?.value !== false
+  );
 }
 
 function showColorScheme(props: ControlPanelsContainerProps): boolean {
@@ -199,7 +198,7 @@ const config: ControlPanelConfig = {
               label: t('Color by direction'),
               default: true,
               renderTrigger: true,
-              visibility: isSingleSeriesSetup,
+              visibility: showColorByDirection,
               description: t(
                 'When enabled, increasing candles use the increase color and decreasing candles use the decrease color. Turn off to use one series color, with a filled body for increases and a hollow body for decreases.',
               ),
