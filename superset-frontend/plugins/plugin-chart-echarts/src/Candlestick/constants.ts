@@ -40,7 +40,6 @@ export const CANDLESTICK_SERIES_NAME = t('Candlestick');
 
 export const DEFAULT_SERIES_STYLE: CandlestickSeriesStyle = 'candlestick';
 export const OHLC_TICK_WIDTH_RATIO = 0.35;
-export const HOLLOW_CANDLE_FILL = 'rgba(0,0,0,0)';
 
 export const DEFAULT_INCREASE_COLOR = { r: 90, g: 193, b: 137, a: 1 };
 export const DEFAULT_DECREASE_COLOR = { r: 224, g: 67, b: 85, a: 1 };

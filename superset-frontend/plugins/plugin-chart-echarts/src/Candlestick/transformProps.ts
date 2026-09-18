@@ -48,7 +48,6 @@ import {
   DEFAULT_FORM_DATA,
   DEFAULT_INCREASE_COLOR,
   DIRECTION_LABELS,
-  HOLLOW_CANDLE_FILL,
   OHLC_LABELS,
   OHLC_TICK_WIDTH_RATIO,
 } from './constants';
@@ -145,10 +144,10 @@ function getDirectionItemStyle(increaseHex: string, decreaseHex: string) {
   };
 }
 
-function getSeriesItemStyle(seriesColor: string) {
+function getSeriesItemStyle(seriesColor: string, hollowFill: string) {
   return {
     color: seriesColor,
-    color0: HOLLOW_CANDLE_FILL,
+    color0: hollowFill,
     borderColor: seriesColor,
     borderColor0: seriesColor,
   };
@@ -527,7 +526,7 @@ export default function transformProps(
         type: 'candlestick',
         data: ohlcData.map(toCandlestickDatum),
         itemStyle: useSeriesColors
-          ? getSeriesItemStyle(seriesColor)
+          ? getSeriesItemStyle(seriesColor, theme.colorBgContainer)
           : getDirectionItemStyle(increaseHex, decreaseHex),
       };
     });

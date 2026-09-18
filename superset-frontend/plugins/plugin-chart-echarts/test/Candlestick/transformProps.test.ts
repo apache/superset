@@ -24,10 +24,7 @@ import {
   EchartsCandlestickChartProps,
 } from '../../src/Candlestick/types';
 import transformProps from '../../src/Candlestick/transformProps';
-import {
-  CANDLESTICK_SERIES_NAME,
-  HOLLOW_CANDLE_FILL,
-} from '../../src/Candlestick/constants';
+import { CANDLESTICK_SERIES_NAME } from '../../src/Candlestick/constants';
 import { NULL_STRING } from '../../src/constants';
 
 const data = [
@@ -287,7 +284,7 @@ test('uses filled and hollow series coloring when color by direction is off', ()
     expect.objectContaining({
       itemStyle: {
         color: seriesColor,
-        color0: HOLLOW_CANDLE_FILL,
+        color0: supersetTheme.colorBgContainer,
         borderColor: seriesColor,
         borderColor0: seriesColor,
       },
@@ -318,7 +315,7 @@ test('uses filled and hollow coloring for a single Series value when color by di
       name: 'AAPL',
       itemStyle: {
         color: appleColor,
-        color0: HOLLOW_CANDLE_FILL,
+        color0: supersetTheme.colorBgContainer,
         borderColor: appleColor,
         borderColor0: appleColor,
       },
@@ -359,7 +356,7 @@ test('uses a unique series color with hollow decreasing candles when split by se
       name: 'AAPL',
       itemStyle: {
         color: appleColor,
-        color0: HOLLOW_CANDLE_FILL,
+        color0: supersetTheme.colorBgContainer,
         borderColor: appleColor,
         borderColor0: appleColor,
       },
@@ -370,7 +367,7 @@ test('uses a unique series color with hollow decreasing candles when split by se
       name: 'GOOG',
       itemStyle: {
         color: googleColor,
-        color0: HOLLOW_CANDLE_FILL,
+        color0: supersetTheme.colorBgContainer,
         borderColor: googleColor,
         borderColor0: googleColor,
       },
