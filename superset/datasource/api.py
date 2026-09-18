@@ -55,7 +55,7 @@ from superset.utils.core import (
     parse_boolean_string,
     SqlExpressionType,
 )
-from superset.views.base_api import BaseSupersetApi, statsd_metrics
+from superset.views.base_api import BaseSupersetApi, protect_read, statsd_metrics
 
 logger = logging.getLogger(__name__)
 
@@ -901,7 +901,7 @@ class DatasourceRestApi(BaseSupersetApi):
             return self.response_400(message=str(ex))
 
     @expose("/", methods=("GET",))
-    @protect()
+    @protect_read("Dataset", "SemanticView")
     @safe
     @statsd_metrics
     @rison(get_list_schema)
