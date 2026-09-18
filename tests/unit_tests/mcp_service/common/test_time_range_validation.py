@@ -25,6 +25,8 @@ here instead of reaching that function.
 
 from __future__ import annotations
 
+from datetime import datetime
+
 import pytest
 from freezegun import freeze_time
 
@@ -103,10 +105,14 @@ class TestValidateTimeRangePassthrough:
 class TestValidateTimeRangeSubDayLast:
     """Sub-day ``Last ...`` values are rewritten to an explicit DATEADD range.
 
-    get_since_until() pairs a sub-day since-expression (resolved against
-    ``now``) with a default until of ``today`` (midnight), so since lands
-    after until and it raises "From date cannot be larger than to date".
-    Anchoring both ends on ``now`` fixes that.
+    get_since_until() itself now resolves a sub-day ``Last ...`` value
+    directly -- it used to pair the since-expression (resolved against
+    ``now``) with a default until of ``today`` (midnight), so since landed
+    after until and it raised "From date cannot be larger than to date".
+    The rewrite here predates that fix and is kept anyway: it guarantees
+    callers always get the same explicit, anchor-independent DATEADD form
+    for a sub-day ``Last``, rather than depending on however
+    get_since_until() happens to pick its default bound today.
     """
 
     @pytest.mark.parametrize(
@@ -132,10 +138,13 @@ class TestValidateTimeRangeSubDayLast:
     )
     @freeze_time("2026-08-05 12:00:00")
     def test_sub_day_last_normalizes(self, value: str, expected: str) -> None:
-        # Freeze away from midnight so the raw parser's since > today premise
-        # remains deterministic for every sub-day case.
-        with pytest.raises(ValueError, match="From date cannot be larger"):
-            get_since_until(time_range=value)
+        # get_since_until() now resolves the raw value on its own (the
+        # since > until mismatch this rewrite worked around was fixed at
+        # the source); pin that the rewrite's explicit DATEADD form stays
+        # equivalent to what the raw value already resolves to.
+        raw_since, raw_until = get_since_until(time_range=value)
+        assert raw_since is not None
+        assert raw_until is not None
 
         result = validate_time_range(value)
         assert result == expected
@@ -143,6 +152,7 @@ class TestValidateTimeRangeSubDayLast:
         assert since is not None
         assert until is not None
         assert since < until
+        assert (since, until) == (raw_since, raw_until)
 
     @pytest.mark.parametrize(
         "value",
@@ -178,13 +188,14 @@ class TestValidateTimeRangeSubDayLast:
 
     def test_next_sub_day_passes_through_unchanged(self) -> None:
         """ "Next <sub-day unit>" doesn't hit the since/until mismatch --
-        get_since_until() pairs it with a "today" (midnight) since, which
-        is always <= the "now"-based until -- so it needs no normalization."""
-        assert validate_time_range("Next hour") == "Next hour"
-        since, until = get_since_until(time_range="Next hour")
-        assert since is not None
-        assert until is not None
-        assert since < until
+        get_since_until() anchors both the "now"-based since and the
+        "next"-computed until on the same instant, so since <= until always
+        holds -- so it needs no normalization."""
+        with freeze_time("2026-08-05 12:00:00"):
+            assert validate_time_range("Next hour") == "Next hour"
+            since, until = get_since_until(time_range="Next hour")
+            assert since == datetime(2026, 8, 5, 12, 0, 0)
+            assert until == datetime(2026, 8, 5, 13, 0, 0)
 
 
 class TestValidateTimeRangeBracketShorthand:
