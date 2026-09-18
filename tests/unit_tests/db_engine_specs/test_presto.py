@@ -47,7 +47,7 @@ from tests.unit_tests.db_engine_specs.utils import (
 
 
 def test_dialect_loads_under_installed_sqlalchemy(mocker: MockerFixture) -> None:
-    """Load the real dialect without connecting; PyHive 0.6.5 fails on SQLAlchemy 2."""
+    """Pin presto:// entry point resolution and the pyformat paramstyle, without I/O."""
     socket = mocker.patch("socket.socket", side_effect=AssertionError("Network I/O"))
     engine = create_engine("presto://user@localhost:8080/hive/default")
     try:
