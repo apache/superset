@@ -28,6 +28,7 @@ import {
 import ChartRenderer, {
   ChartRendererProps,
 } from 'src/components/Chart/ChartRenderer';
+import getBootstrapData from 'src/utils/getBootstrapData';
 import { ChartSource } from 'src/types/ChartSource';
 import type { Dispatch } from 'redux';
 
@@ -449,9 +450,13 @@ test('threads the per-dashboard async_mode override into resolveAsyncMode for se
   // dashboard override so `force_on`/`force_off` win over the deployment default,
   // matching the Redux chart path. GAQ must be on for the override to matter.
   const previousFlags = window.featureFlags;
+  const config = getBootstrapData().common.conf;
+  const previousInfrastructure = config.GLOBAL_TASK_FRAMEWORK_ENABLED;
+  config.GLOBAL_TASK_FRAMEWORK_ENABLED = true;
   window.featureFlags = {
     ...previousFlags,
     [FeatureFlag.GlobalAsyncQueries]: true,
+    [FeatureFlag.GlobalTaskFramework]: true,
   } as FeatureFlagMap;
   try {
     const { getByTestId, rerender } = render(
@@ -468,6 +473,7 @@ test('threads the per-dashboard async_mode override into resolveAsyncMode for se
     );
   } finally {
     window.featureFlags = previousFlags;
+    config.GLOBAL_TASK_FRAMEWORK_ENABLED = previousInfrastructure;
   }
 });
 
@@ -483,3 +489,35 @@ test('does not render chart during loading when last data has errors', () => {
   const { queryByTestId } = render(<ChartRenderer {...props} />);
   expect(queryByTestId('mock-super-chart')).not.toBeInTheDocument();
 });
+
+test.each([
+  [false, false],
+  [false, true],
+  [true, false],
+  [true, true],
+])(
+  'self-contained async charts require infrastructure=%s and GTF=%s',
+  (configured, enabled) => {
+    const config = getBootstrapData().common.conf;
+    const previousInfrastructure = config.GLOBAL_TASK_FRAMEWORK_ENABLED;
+    const previousFlags = window.featureFlags;
+    config.GLOBAL_TASK_FRAMEWORK_ENABLED = configured;
+    window.featureFlags = {
+      ...previousFlags,
+      [FeatureFlag.GlobalAsyncQueries]: true,
+      [FeatureFlag.GlobalTaskFramework]: enabled,
+    } as FeatureFlagMap;
+    try {
+      const { getByTestId } = render(
+        <ChartRenderer {...requiredProps} asyncModeOverride="force_on" />,
+      );
+      expect(getByTestId('mock-super-chart')).toHaveAttribute(
+        'data-async-mode',
+        String(configured && enabled),
+      );
+    } finally {
+      config.GLOBAL_TASK_FRAMEWORK_ENABLED = previousInfrastructure;
+      window.featureFlags = previousFlags;
+    }
+  },
+);

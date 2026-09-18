@@ -40,6 +40,7 @@ import {
 } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
 import getBootstrapData from 'src/utils/getBootstrapData';
+import type { FrontendConfig } from 'src/types/bootstrapTypes';
 import { getTabId } from 'src/hooks/useTabId';
 import {
   connectRealtime,
@@ -80,13 +81,14 @@ export type AsyncJob = {
   tab_id?: string | null;
 };
 
-type AppConfig = {
-  WEBSOCKET_ENABLE?: boolean;
-  WEBSOCKET_URL?: string;
-  GLOBAL_ASYNC_QUERIES_POLLING_DELAY?: number;
-  GLOBAL_ASYNC_QUERIES_POLLING_MAX_DELAY?: number;
-  GLOBAL_ASYNC_QUERIES_POLLING_STALE_TIMEOUT?: number;
-};
+type AppConfig = Pick<
+  FrontendConfig,
+  | 'WEBSOCKET_ENABLE'
+  | 'WEBSOCKET_URL'
+  | 'GLOBAL_ASYNC_QUERIES_POLLING_DELAY'
+  | 'GLOBAL_ASYNC_QUERIES_POLLING_MAX_DELAY'
+  | 'GLOBAL_ASYNC_QUERIES_POLLING_STALE_TIMEOUT'
+>;
 
 type Waiter = {
   taskIds: string[];
