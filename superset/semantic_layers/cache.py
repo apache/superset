@@ -342,6 +342,8 @@ class SemanticCacheService:
             logger.warning("Semantic cache lookup failed unexpectedly", exc_info=True)
             self._increment("lookup_failure")
             return None, False
+        if lookup_result.fence_rejections:
+            self._increment("fence_reject")
         for candidate in lookup_result.candidates:
             try:
                 transformed: SemanticResult = transform_result(

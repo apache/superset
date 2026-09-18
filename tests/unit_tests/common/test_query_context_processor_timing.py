@@ -303,7 +303,7 @@ def test_dataframe_payload_result_resolves_force_and_timeout_onto_query_object(
     """Datasources with their own caching (semantic containment) read the
     force decision and timeout from the query object, so the processor must
     hand them the values it resolved for the result cache."""
-    cache = MagicMock()
+    cache: MagicMock = MagicMock()
     cache.is_loaded = True
     cache.is_cached = True
     cache.df = pd.DataFrame({"col1": [1]})
@@ -322,8 +322,8 @@ def test_dataframe_payload_result_resolves_force_and_timeout_onto_query_object(
     cache.bq_memory_limited_row_count = 0
     cache_manager.get.return_value = cache
 
-    processor = _processor()
-    query_obj = _query_obj()
+    processor: QueryContextProcessor = _processor()
+    query_obj: MagicMock = _query_obj()
     query_obj.force_query = False
     query_obj.cache_timeout = None
     with (

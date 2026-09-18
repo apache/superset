@@ -106,7 +106,7 @@ test('displays color scheme options when only "other" group is registered', asyn
     getCategoricalSchemeRegistry().registerValue(scheme.id, scheme),
   );
   setup();
-  userEvent.click(
+  await userEvent.click(
     screen.getByLabelText('Select color scheme', { selector: 'input' }),
   );
   await waitFor(() => {
@@ -133,7 +133,7 @@ test('displays color scheme options', async () => {
     getCategoricalSchemeRegistry().registerValue(scheme.id, scheme),
   );
   setup();
-  userEvent.click(
+  await userEvent.click(
     screen.getByLabelText('Select color scheme', { selector: 'input' }),
   );
   await waitFor(() => {
@@ -190,7 +190,7 @@ test('should show tooltip on hover when text overflows', async () => {
     setup();
 
     // Open the dropdown
-    userEvent.click(
+    await userEvent.click(
       screen.getByLabelText('Select color scheme', { selector: 'input' }),
     );
 
@@ -199,7 +199,7 @@ test('should show tooltip on hover when text overflows', async () => {
     expect(d3Category10).toBeInTheDocument();
 
     // Hover over the color scheme label - this should trigger tooltip due to overflow
-    userEvent.hover(d3Category10);
+    await userEvent.hover(d3Category10);
 
     // The real component should now show the tooltip because scrollWidth > offsetWidth
     await waitFor(() => {
@@ -209,7 +209,7 @@ test('should show tooltip on hover when text overflows', async () => {
     });
 
     // Test mouseout behavior - tooltip should hide
-    userEvent.unhover(d3Category10);
+    await userEvent.unhover(d3Category10);
 
     await waitFor(() => {
       // Tooltip should be hidden after mouseout
@@ -253,7 +253,7 @@ test('should handle tooltip content verification for color schemes', async () =>
   setup();
 
   // Open dropdown and verify our test scheme appears
-  userEvent.click(
+  await userEvent.click(
     screen.getByLabelText('Select color scheme', { selector: 'input' }),
   );
 
@@ -265,7 +265,7 @@ test('should handle tooltip content verification for color schemes', async () =>
   expect(testOption).toBeInTheDocument();
 
   // Test hover behavior
-  userEvent.hover(testColorScheme);
+  await userEvent.hover(testColorScheme);
 
   // The tooltip behavior is controlled by text overflow conditions
   // We're verifying the basic hover infrastructure works
@@ -293,10 +293,10 @@ test('should support search functionality for color schemes', async () => {
   const selectInput = screen.getByLabelText('Select color scheme', {
     selector: 'input',
   });
-  userEvent.click(selectInput);
+  await userEvent.click(selectInput);
 
   // Type search term
-  userEvent.type(selectInput, 'lyftColors');
+  await userEvent.type(selectInput, 'lyftColors');
 
   // Verify the search result appears
   await waitFor(() => {
@@ -316,12 +316,12 @@ test('should NOT show tooltip for search results (original Cypress contract)', a
   const selectInput = screen.getByLabelText('Select color scheme', {
     selector: 'input',
   });
-  userEvent.click(selectInput);
-  userEvent.type(selectInput, 'lyftColors');
+  await userEvent.click(selectInput);
+  await userEvent.type(selectInput, 'lyftColors');
 
   // Find the search result and hover (matching original Cypress)
   const lyftColorOption = await screen.findByTestId('lyftColors');
-  userEvent.hover(lyftColorOption);
+  await userEvent.hover(lyftColorOption);
 
   // Original Cypress contract: search results should NOT show tooltips
   await waitFor(() => {

@@ -884,7 +884,7 @@ def test_initialize_disables_on_value_discarding_backend() -> None:
     so containment would pay for coordination without ever serving a hit."""
 
     class _WrappedBackend:
-        cache = NullCache()
+        cache: NullCache = NullCache()
 
     for backend in (NullCache(), _WrappedBackend()):
         state: SemanticCacheState = initialize_semantic_cache(
@@ -910,7 +910,7 @@ def test_initialize_disables_on_replica_read_backend() -> None:
             pass
 
     class _WrappedBackend:
-        cache = _StubSentinelBackend()
+        cache: _StubSentinelBackend = _StubSentinelBackend()
 
     for backend in (_StubSentinelBackend(), _WrappedBackend()):
         state: SemanticCacheState = initialize_semantic_cache(
@@ -925,3 +925,32 @@ def test_initialize_disables_on_replica_read_backend() -> None:
         assert state.effective is False
         assert state.disabled_reason is SemanticCacheDisabledReason.UNSUPPORTED_BACKEND
         assert state.requested is True
+
+
+def test_fence_rejection_counts_miss_and_executes_provider() -> None:
+    repository: MagicMock = MagicMock(spec=SemanticCacheRepository)
+    repository.lookup.return_value = SemanticCacheLookupResult(
+        candidates=(),
+        missing_value_keys=frozenset({"stale"}),
+        fence_rejections=1,
+    )
+    metrics: MagicMock = MagicMock()
+    service: SemanticCacheService = SemanticCacheService(
+        SemanticCacheState.enabled(),
+        repository,
+        metrics=metrics,
+    )
+    provider: MagicMock = MagicMock(return_value=build_semantic_result())
+    outcome: SemanticCacheOutcome = service.execute(
+        build_view_meta(),
+        build_semantic_query(),
+        provider,
+        capabilities=ContainmentCapabilities(),
+    )
+    assert not outcome.cache_hit
+    provider.assert_called_once()
+    repository.prune_missing.assert_called_once_with(
+        build_view_meta(), frozenset({"stale"})
+    )
+    metrics.incr.assert_any_call("semantic_cache.containment.fence_reject")
+    metrics.incr.assert_any_call("semantic_cache.containment.miss")

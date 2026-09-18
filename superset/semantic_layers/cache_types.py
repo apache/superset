@@ -103,6 +103,15 @@ class CachedEntry:
     # TTL the value was stored with, so the bucket that indexes it can be kept
     # alive at least as long; None means the backend default.
     timeout: int | None = None
+    write_nonce: str = ""
+
+
+@dataclass(frozen=True)
+class CachedValue:
+    """Result paired with the nonce of its publishing descriptor."""
+
+    write_nonce: str
+    result: SemanticResult
 
 
 @dataclass(frozen=True)
@@ -120,3 +129,4 @@ class SemanticCacheLookupResult:
 
     candidates: tuple[CachedResultCandidate, ...]
     missing_value_keys: frozenset[str]
+    fence_rejections: int = 0

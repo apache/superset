@@ -33,6 +33,8 @@ from superset.semantic_layers.cache_host import (
     _execution_context,
     build_cache_configuration,
 )
+from superset.semantic_layers.cache_policy import ContainmentCapabilities
+from superset.semantic_layers.cache_repository import ViewMeta
 
 
 def _context(
@@ -206,11 +208,15 @@ def test_cache_configuration_prefers_resolved_timeout() -> None:
     datasource: MagicMock = _datasource()
     datasource.cache_timeout = 3600
 
-    configuration = build_cache_configuration(datasource, cache_timeout=60)
+    configuration: tuple[ViewMeta, ContainmentCapabilities] | None = (
+        build_cache_configuration(datasource, cache_timeout=60)
+    )
     assert configuration is not None
     assert configuration[0].timeout == 60
 
-    fallback = build_cache_configuration(datasource)
+    fallback: tuple[ViewMeta, ContainmentCapabilities] | None = (
+        build_cache_configuration(datasource)
+    )
     assert fallback is not None
     assert fallback[0].timeout == 3600
 

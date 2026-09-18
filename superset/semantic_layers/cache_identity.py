@@ -39,7 +39,7 @@ from superset.utils import json
 
 # Prefixes every bucket and value key. Bump it whenever the pickled shape of
 # ``cache_types.CachedEntry`` or the canonical query material changes.
-IDENTITY_FORMAT_VERSION: str = "v3"
+IDENTITY_FORMAT_VERSION: str = "v4"
 _SENSITIVE_KEY_PARTS: tuple[str, ...] = (
     "credential",
     "password",

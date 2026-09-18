@@ -62,6 +62,7 @@ from superset.semantic_layers.cache_repository import (
     SemanticCacheRepository,
     ViewMeta,
 )
+from superset.semantic_layers.cache_types import CachedValue
 from superset.semantic_layers.mapper import (
     get_results,
     ValidatedQueryObject,
@@ -516,9 +517,7 @@ def test_missing_exact_value_falls_back_to_rollup_candidate(
     get_results(_query(datasource))
 
     value_keys: list[str] = [
-        key
-        for key, value in data_cache.store.items()
-        if isinstance(value, SemanticResult)
+        key for key, value in data_cache.store.items() if isinstance(value, CachedValue)
     ]
     assert value_keys
     data_cache.delete(value_keys[0])
@@ -781,8 +780,8 @@ def test_none_results_are_normalized_before_store(
 
     first: QueryResult = get_results(_query(datasource))
     for value in data_cache.store.values():
-        if isinstance(value, SemanticResult):
-            assert value.results is not None
+        if isinstance(value, CachedValue):
+            assert value.result.results is not None
     second: QueryResult = get_results(_query(datasource))
 
     assert first.df.empty
@@ -802,10 +801,10 @@ def test_poisoned_none_entry_degrades_to_miss(
 
     # Simulate an entry stored by a build that predates normalization.
     for key, value in data_cache.store.items():
-        if isinstance(value, SemanticResult):
-            data_cache.store[key] = SemanticResult(
-                requests=value.requests,
-                results=None,
+        if isinstance(value, CachedValue):
+            data_cache.store[key] = CachedValue(
+                value.write_nonce,
+                SemanticResult(requests=value.result.requests, results=None),
             )
 
     provider.get_table.return_value = _result([("GB", "London", 20.0)])
@@ -853,7 +852,7 @@ def test_resolved_timeout_bounds_stored_containment_values(
 ) -> None:
     """Stored values expire on the request's resolved timeout (chart or custom),
     not on the datasource default, so a chart's own retention contract holds."""
-    set_spy = mocker.spy(data_cache, "set")
+    set_spy: MagicMock = mocker.spy(data_cache, "set")
     provider.get_table.return_value = _result([("GB", "London", 10.0)])
 
     get_results(_query(datasource, cache_timeout=15))

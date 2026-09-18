@@ -19,7 +19,7 @@ from collections.abc import Callable, Iterator
 from contextvars import Token
 from dataclasses import fields, replace
 from typing import Any, cast
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 from flask_caching.backends.rediscache import RedisCache
@@ -49,6 +49,7 @@ from superset.semantic_layers.cache_repository import (
     SemanticCacheWriteFence,
     ViewMeta,
 )
+from superset.semantic_layers.cache_types import CachedValue
 from tests.unit_tests.semantic_layers.conftest import (
     build_semantic_query,
     build_semantic_result,
@@ -361,8 +362,8 @@ def test_store_retains_only_newest_bounded_descriptors() -> None:
     )
     assert len(descriptor_list) == MAX_SEMANTIC_CACHE_DESCRIPTORS_PER_BUCKET
     assert min(entry.timestamp for entry in descriptor_list) == 1.0
-    result_values: list[SemanticResult] = [
-        value for value in backend.values.values() if isinstance(value, SemanticResult)
+    result_values: list[CachedValue] = [
+        value for value in backend.values.values() if isinstance(value, CachedValue)
     ]
     assert len(result_values) == MAX_SEMANTIC_CACHE_DESCRIPTORS_PER_BUCKET
 
@@ -466,9 +467,7 @@ def test_lookup_skips_missing_value_and_prunes_its_exact_descriptor() -> None:
     query: SemanticQuery = build_semantic_query()
     repository.store(build_view_meta(), query, build_semantic_result())
     value_key: str = next(
-        key
-        for key, value in backend.values.items()
-        if isinstance(value, SemanticResult)
+        key for key, value in backend.values.items() if isinstance(value, CachedValue)
     )
     backend.delete(value_key)
     coordinator.keys.clear()
@@ -495,9 +494,7 @@ def test_prune_rechecks_same_key_value_registered_after_lookup() -> None:
     query: SemanticQuery = build_semantic_query()
     repository.store(build_view_meta(), query, build_semantic_result())
     value_key: str = next(
-        key
-        for key, value in backend.values.items()
-        if isinstance(value, SemanticResult)
+        key for key, value in backend.values.items() if isinstance(value, CachedValue)
     )
     backend.delete(value_key)
     lookup_result: SemanticCacheLookupResult = repository.lookup(
@@ -718,8 +715,9 @@ def test_cached_entry_shape_is_pinned_to_the_identity_version() -> None:
         "value_key",
         "timestamp",
         "timeout",
+        "write_nonce",
     )
-    assert IDENTITY_FORMAT_VERSION == "v3"
+    assert IDENTITY_FORMAT_VERSION == "v4"
 
 
 def test_store_surfaces_existence_check_failure_as_store_error() -> None:
@@ -817,3 +815,101 @@ def test_store_dedupe_requires_the_registered_ttl_to_cover_this_request() -> Non
         long_lived, replace(query, limit=7), build_semantic_result(), replace=False
     )
     assert len(coordinator.keys) == 3
+
+
+@pytest.mark.parametrize("contained", [False, True])
+def test_split_store_stale_overwrite_is_a_miss_and_pruned(contained: bool) -> None:
+    """A pause after the lease check cannot turn an old payload into a hit."""
+    leases: _FencedRedis = _FencedRedis()
+    coordination: RedisCacheBackend = object.__new__(RedisCacheBackend)
+    coordination._cache = leases
+    owners: Iterator[str] = iter(["old", "new", "prune"])
+    coordinator: SemanticCacheCoordinator = SemanticCacheCoordinator(
+        coordination,
+        SemanticCacheCoordinationSettings(0, 10),
+        token_factory=lambda: next(owners),
+    )
+
+    class PausingBackend(_Backend):
+        before_value_set: Callable[[], None] | None = None
+
+        def set(self, key: str, value: object, timeout: int | None = None) -> bool:
+            if key.startswith("semantic-cache:value:") and self.before_value_set:
+                callback: Callable[[], None] = self.before_value_set
+                self.before_value_set = None
+                callback()
+            return super().set(key, value, timeout)
+
+    backend: PausingBackend = PausingBackend()
+    repository: SemanticCacheRepository = SemanticCacheRepository(backend, coordinator)
+    meta: ViewMeta = build_view_meta()
+    query: SemanticQuery = build_semantic_query()
+    requested: SemanticQuery = replace(query, limit=1) if contained else query
+    fresh: SemanticResult = replace(build_semantic_result(), requests=["fresh"])
+
+    def takeover() -> None:
+        lease_key: str = next(iter(leases.values))
+        leases.delete(lease_key)  # Whole-process stall lets A's lease expire.
+        assert repository.store(meta, query, fresh)
+        assert repository.lookup(meta, requested, ContainmentCapabilities()).candidates
+
+    backend.before_value_set = takeover
+    with pytest.raises(SemanticCacheStoreError):  # Old owner cannot release B's lease.
+        repository.store(meta, query, build_semantic_result())
+    lookup: SemanticCacheLookupResult = repository.lookup(
+        meta, requested, ContainmentCapabilities()
+    )
+    assert lookup.candidates == ()
+    assert len(lookup.missing_value_keys) == 1
+    repository.prune_missing(meta, lookup.missing_value_keys)
+    assert backend.values[repository._bucket_key(meta)] == []
+    assert all(key in backend.values for key in lookup.missing_value_keys)
+
+
+@pytest.mark.parametrize(
+    "damage", ["bare", "mismatch", "missing_nonce", "empty_descriptor", "bad_result"]
+)
+def test_fence_rejects_invalid_pairs_and_store_repairs(damage: str) -> None:
+    backend: _Backend = _Backend()
+    repository: SemanticCacheRepository = SemanticCacheRepository(
+        backend, _Coordinator()
+    )
+    meta: ViewMeta = build_view_meta()
+    query: SemanticQuery = build_semantic_query()
+    repository.store(meta, query, build_semantic_result())
+    bucket: str = repository._bucket_key(meta)
+    entry: CachedEntry = cast(list[CachedEntry], backend.values[bucket])[0]
+    value: CachedValue = cast(CachedValue, backend.values[entry.value_key])
+    if damage == "bare":
+        backend.values[entry.value_key] = value.result
+    elif damage == "mismatch":
+        backend.values[entry.value_key] = replace(value, write_nonce="other")
+    elif damage == "missing_nonce":
+        del value.__dict__["write_nonce"]
+    elif damage == "empty_descriptor":
+        backend.values[bucket] = [replace(entry, write_nonce="")]
+    else:
+        value.__dict__["result"] = None
+    lookup: SemanticCacheLookupResult = repository.lookup(
+        meta, query, ContainmentCapabilities()
+    )
+    assert lookup.candidates == ()
+    assert lookup.fence_rejections == 1
+    assert lookup.missing_value_keys == frozenset({entry.value_key})
+    assert repository.store(meta, query, build_semantic_result(), replace=False)
+    repaired: CachedEntry = cast(list[CachedEntry], backend.values[bucket])[0]
+    assert repaired.write_nonce != entry.write_nonce
+    repository.prune_missing(meta, lookup.missing_value_keys)
+    assert repository.lookup(meta, query, ContainmentCapabilities()).candidates
+
+
+def test_legacy_identity_namespace_cannot_supply_a_hit() -> None:
+    backend: _Backend = _Backend()
+    repository: SemanticCacheRepository = SemanticCacheRepository(
+        backend, _Coordinator()
+    )
+    meta: ViewMeta = build_view_meta()
+    query: SemanticQuery = build_semantic_query()
+    with patch("superset.semantic_layers.cache_identity.IDENTITY_FORMAT_VERSION", "v3"):
+        repository.store(meta, query, build_semantic_result())
+    assert repository.lookup(meta, query, ContainmentCapabilities()).candidates == ()

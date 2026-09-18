@@ -24,7 +24,8 @@ from contextvars import ContextVar
 from dataclasses import dataclass, fields
 from math import ceil
 from time import time
-from typing import cast, Protocol, TYPE_CHECKING
+from typing import cast, Protocol, TYPE_CHECKING, TypeGuard
+from uuid import uuid4
 
 if TYPE_CHECKING:
     from superset.coordination.cache_backend import RedisCommandsMixin
@@ -42,6 +43,7 @@ from superset.semantic_layers.cache_policy import rank_reuse_decisions
 from superset.semantic_layers.cache_types import (
     CachedEntry as CachedEntry,
     CachedResultCandidate as CachedResultCandidate,
+    CachedValue,
     ContainmentCapabilities,
     ReuseDecision,
     SemanticCacheLookupResult as SemanticCacheLookupResult,
@@ -178,7 +180,8 @@ class SemanticCacheRepository:
             if persisted is None:
                 # Non-Redis or separate-client stores cannot atomically check
                 # the lease and SET. Recheck immediately before this best-effort
-                # write; a lease takeover between the two calls remains possible.
+                # write. Readers reject mismatched descriptor/value nonces if a
+                # lease takeover allows a stale SET to land.
                 persisted = self._backend.set(key, value, timeout=timeout)
         except SemanticCacheBackendError as ex:
             raise error_type("Semantic cache backend set failed") from ex
@@ -266,6 +269,7 @@ class SemanticCacheRepository:
             value_key=value_key,
             timestamp=now,
             timeout=meta.timeout,
+            write_nonce=uuid4().hex,
         )
 
         def register() -> None:
@@ -293,7 +297,12 @@ class SemanticCacheRepository:
                 self._bucket_timeout(bounded, meta.timeout, now),
                 SemanticCacheStoreError,
             )
-            self._set(value_key, result, meta.timeout, SemanticCacheStoreError)
+            self._set(
+                value_key,
+                CachedValue(descriptor.write_nonce, result),
+                meta.timeout,
+                SemanticCacheStoreError,
+            )
             for evicted_value_key in evicted_value_keys:
                 self._delete(evicted_value_key, SemanticCacheStoreError)
 
@@ -331,9 +340,22 @@ class SemanticCacheRepository:
             self._get(bucket_key, SemanticCacheStoreError)
         )
         return any(
-            entry.value_key == value_key and self._serves(entry, meta, now)
+            entry.value_key == value_key
+            and self._serves(entry, meta, now)
+            and self._has(value_key, SemanticCacheStoreError)
+            and self._matches(self._get(value_key, SemanticCacheStoreError), entry)
             for entry in entries
-        ) and self._has(value_key, SemanticCacheStoreError)
+        )
+
+    @staticmethod
+    def _matches(value: object, entry: CachedEntry) -> TypeGuard[CachedValue]:
+        """Never serve or deduplicate an unfenced or mismatched publication."""
+        return (
+            isinstance(value, CachedValue)
+            and bool(entry.write_nonce)
+            and entry.write_nonce == getattr(value, "write_nonce", None)
+            and isinstance(getattr(value, "result", None), SemanticResult)
+        )
 
     def lookup(
         self,
@@ -354,16 +376,19 @@ class SemanticCacheRepository:
         )
         candidates: list[CachedResultCandidate] = []
         missing_value_keys: set[str] = set()
+        fence_rejections: int = 0
         for decision, entry in ranked:
             value: object | None = self._get(entry.value_key, SemanticCacheLookupError)
-            if not isinstance(value, SemanticResult):
+            if not self._matches(value, entry):
                 missing_value_keys.add(entry.value_key)
+                fence_rejections += int(value is not None)
                 continue
-            candidates.append(CachedResultCandidate(entry, value, decision))
+            candidates.append(CachedResultCandidate(entry, value.result, decision))
             break
         return SemanticCacheLookupResult(
             candidates=tuple(candidates),
             missing_value_keys=frozenset(missing_value_keys),
+            fence_rejections=fence_rejections,
         )
 
     def prune_missing(
@@ -371,7 +396,7 @@ class SemanticCacheRepository:
         meta: ViewMeta,
         missing_value_keys: frozenset[str],
     ) -> None:
-        """Identity-safely remove descriptors whose values remain absent."""
+        """Recheck and prune invalid descriptors without deleting payloads."""
         if not missing_value_keys:
             return
         bucket_key: str = self._bucket_key(meta)
@@ -385,7 +410,9 @@ class SemanticCacheRepository:
                 entry
                 for entry in entries
                 if entry.value_key not in missing_value_keys
-                or self._get(entry.value_key, SemanticCacheLookupError) is not None
+                or self._matches(
+                    self._get(entry.value_key, SemanticCacheLookupError), entry
+                )
             ]
             self._set(
                 bucket_key,

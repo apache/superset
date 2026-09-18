@@ -391,7 +391,8 @@ Track `semantic_cache.containment.enabled`, `semantic_cache.containment.hit`,
 `semantic_cache.containment.miss`, `semantic_cache.containment.bypass`,
 `semantic_cache.containment.store_skipped`, `semantic_cache.containment.store_failure`,
 `semantic_cache.containment.lookup_failure`, `semantic_cache.containment.transform_failure`,
-`semantic_cache.containment.prune_failure`, `semantic_cache.containment.coordination_failure`,
+`semantic_cache.containment.prune_failure`, `semantic_cache.containment.fence_reject`,
+`semantic_cache.containment.coordination_failure`,
 `semantic_cache.containment.unsupported`, and `semantic_cache.containment.invalid_configuration`.
 Alert on the `semantic_cache.containment.store_failure`,
 `semantic_cache.containment.lookup_failure`, `semantic_cache.containment.transform_failure`,
@@ -404,8 +405,23 @@ Separate lease/value clients use a non-atomic immediate ownership recheck before
 The atomic Lua fence is a same-client optimisation for explicitly injected clients.
 Default application initialization constructs a private coordination client, so
 ordinary deployments do not exercise that optimisation even when both caches
-point at the same Redis server. The non-atomic recheck path is the production
-path to validate under concurrent forced refreshes and narrowed time ranges.
+point at the same Redis server. Reader-side fencing protects this split-store
+path: each store writes a fresh nonce into both the descriptor and a result
+envelope. Exact-key and containment lookups accept only matching nonempty nonces.
+A stale SET after lease takeover can overwrite a payload, but a mismatched pair
+is rejected rather than served. The lookup may use another valid candidate or
+execute the provider. `semantic_cache.containment.fence_reject` counts lookups
+that rejected at least one invalid publication (not ordinary expired values).
+
+Maintenance rechecks the current descriptor and payload under the mutation lease
+before pruning. A concurrently repaired matching pair is retained. Rejection
+pruning never deletes payloads, which expire according to their own TTL. This
+fence can trade cache hits for misses under a stalled writer; it is not a
+cross-store transaction or a promise of linearizable refreshes. Store deduplication
+also requires a matching pair, so an invalid payload cannot suppress its repair.
+The cache identity format is `v4`; pre-fence `v3` entries are not reused.
+Validate the split-store path under concurrent forced refreshes, whole-process
+pauses exceeding the lease, and narrowed time ranges.
 Define deployment-specific rollback thresholds before the
 canary; recommended triggers are any provider-result mismatch, sustained provider
 error regression, coordination failures above 1% of cache mutations, or lookup and
