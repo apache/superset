@@ -30,11 +30,7 @@ from superset.common.query_context_processor import (
     normalize_contribution_totals,
     QueryContextProcessor,
 )
-from superset.exceptions import (
-    CacheLoadError,
-    QueryObjectValidationError,
-    SupersetException,
-)
+from superset.exceptions import CacheLoadError, QueryObjectValidationError
 from superset.utils.core import GenericDataType
 from superset.utils.date_parser import get_past_or_future
 
@@ -144,23 +140,28 @@ def test_annotation_cache_key_binds_native_annotation_read_scope(processor):
     assert contexts[0] != contexts[1]
 
 
-def test_annotation_cache_key_shares_across_same_access_scope(processor):
-    """Two requesters with identical access scope must produce the same
-    annotation cache key -- the actual sharing/efficiency fix, not just
-    per-user isolation."""
-    query_obj = MagicMock()
-    query_obj.annotation_layers = [{"sourceType": "NATIVE", "name": "a", "value": 1}]
+def test_annotation_cache_key_shares_across_same_access_scope():
+    """Two distinct requesters (separate processor/query-object instances,
+    standing in for two different requests) with identical access scope must
+    produce identical annotation-context material. Reusing a single
+    processor/query_obj across both calls (as this test previously did)
+    would pass trivially regardless of whether the key is scope-based or
+    identity-based, since nothing about "who's asking" would ever vary."""
+    layer = {"sourceType": "NATIVE", "name": "a", "value": 1}
+    processor_a = QueryContextProcessor(MagicMock())
+    processor_b = QueryContextProcessor(MagicMock())
+    query_obj_a = MagicMock(annotation_layers=[layer])
+    query_obj_b = MagicMock(annotation_layers=[layer])
+
     with patch(
         "superset.common.query_context_processor.security_manager",
         new_callable=MagicMock,
     ) as security_manager:
         security_manager.can_access.return_value = True
-        processor.annotation_cache_key(query_obj)
-        processor.annotation_cache_key(query_obj)
-    contexts = [
-        call.kwargs["annotation_context"] for call in query_obj.cache_key.call_args_list
-    ]
-    assert contexts[0] == contexts[1]
+        context_a = processor_a._annotation_cache_context(query_obj_a)
+        context_b = processor_b._annotation_cache_context(query_obj_b)
+
+    assert context_a == context_b
 
 
 def test_query_cache_key_does_not_bind_annotation_scope(processor):
@@ -179,21 +180,29 @@ def test_query_cache_key_does_not_bind_annotation_scope(processor):
         assert "annotation_context" not in call.kwargs
 
 
-def test_annotation_source_scope_binds_datasource_access(processor):
+@pytest.fixture
+def mock_annotation_chart():
+    """A found chart, wired as the referenced chart for
+    ``_annotation_source_scope`` tests -- factors out the repeated
+    ``ChartDAO.find_by_id`` patch those tests all need."""
+    chart = MagicMock()
+    with patch(
+        "superset.common.query_context_processor.ChartDAO.find_by_id",
+        return_value=chart,
+    ):
+        yield chart
+
+
+def test_annotation_source_scope_binds_datasource_access(
+    processor, mock_annotation_chart
+):
     """A chart-backed annotation layer's scope must differ when the
     requester's access to the referenced datasource differs."""
-    mock_chart = MagicMock()
-    mock_chart.get_query_context.return_value = None
-    with (
-        patch(
-            "superset.common.query_context_processor.ChartDAO.find_by_id",
-            return_value=mock_chart,
-        ),
-        patch(
-            "superset.common.query_context_processor.security_manager",
-            new_callable=MagicMock,
-        ) as security_manager,
-    ):
+    mock_annotation_chart.get_query_context.return_value = None
+    with patch(
+        "superset.common.query_context_processor.security_manager",
+        new_callable=MagicMock,
+    ) as security_manager:
         security_manager.can_access_datasource.side_effect = [True, False]
         security_manager.get_rls_cache_key.return_value = []
         scope_a = processor._annotation_source_scope(1)
@@ -203,51 +212,60 @@ def test_annotation_source_scope_binds_datasource_access(processor):
     assert scope_b["access"] is False
 
 
-def test_annotation_source_scope_reuses_referenced_chart_cache_key(processor):
+def test_annotation_source_scope_reuses_referenced_chart_cache_key(
+    processor, mock_annotation_chart
+):
     """When the referenced chart has a saved query context, its own cache
     key(s) -- covering RLS and per-user Jinja/virtual-dataset material -- are
     reused rather than re-derived."""
-    mock_chart = MagicMock()
     mock_query_object = MagicMock()
     mock_query_context = MagicMock()
     mock_query_context.queries = [mock_query_object]
     mock_query_context.query_cache_key.return_value = "referenced-chart-key"
-    mock_chart.get_query_context.return_value = mock_query_context
-    with (
-        patch(
-            "superset.common.query_context_processor.ChartDAO.find_by_id",
-            return_value=mock_chart,
-        ),
-        patch(
-            "superset.common.query_context_processor.security_manager",
-            new_callable=MagicMock,
-        ) as security_manager,
-    ):
+    mock_annotation_chart.get_query_context.return_value = mock_query_context
+    with patch(
+        "superset.common.query_context_processor.security_manager",
+        new_callable=MagicMock,
+    ) as security_manager:
         security_manager.can_access_datasource.return_value = True
         scope = processor._annotation_source_scope(1)
     assert scope == {"access": True, "data_key": ["referenced-chart-key"]}
     mock_query_context.query_cache_key.assert_called_once_with(mock_query_object)
 
 
-def test_annotation_source_scope_fails_closed_on_superset_exception(processor):
+def test_annotation_source_scope_fails_closed_on_any_derivation_error(
+    processor, mock_annotation_chart
+):
     """A lookup failure must fail closed rather than silently deduping onto a
-    successfully-derived scope."""
-    mock_chart = MagicMock()
-    mock_chart.get_query_context.side_effect = SupersetException("boom")
-    with (
-        patch(
-            "superset.common.query_context_processor.ChartDAO.find_by_id",
-            return_value=mock_chart,
-        ),
-        patch(
-            "superset.common.query_context_processor.security_manager",
-            new_callable=MagicMock,
-        ) as security_manager,
-    ):
+    successfully-derived scope -- and not just for SupersetException: the RLS
+    lookup is a real DB query and get_extra_cache_keys() renders Jinja for
+    virtual datasets, so a driver or template error is just as likely as a
+    SupersetException here, and must not 500 the whole chart-data request."""
+    mock_annotation_chart.get_query_context.side_effect = RuntimeError("db boom")
+    with patch(
+        "superset.common.query_context_processor.security_manager",
+        new_callable=MagicMock,
+    ) as security_manager:
         security_manager.can_access_datasource.return_value = True
         security_manager.get_rls_cache_key.return_value = []
         scope = processor._annotation_source_scope(1)
     assert scope == {"access": False, "data_key": []}
+
+
+def test_annotation_source_scope_fallback_lookup_also_fails_closed(
+    processor, mock_annotation_chart
+):
+    """If the fallback's own RLS lookup fails too (e.g. the same DB outage
+    that failed the primary derivation), that must not escape either."""
+    mock_annotation_chart.get_query_context.side_effect = RuntimeError("db boom")
+    with patch(
+        "superset.common.query_context_processor.security_manager",
+        new_callable=MagicMock,
+    ) as security_manager:
+        security_manager.can_access_datasource.return_value = True
+        security_manager.get_rls_cache_key.side_effect = RuntimeError("still down")
+        scope = processor._annotation_source_scope(1)
+    assert scope == {"access": False, "data_key": None}
 
 
 def test_annotation_source_scope_none_when_chart_missing(processor):
