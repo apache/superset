@@ -35,6 +35,7 @@ from superset.exceptions import SupersetSecurityException
 from superset.mcp_service.app import mcp
 from superset.mcp_service.semantic_layer.schemas import (
     GetTableRequest,
+    GetTableResponse,
     SemanticLayerError,
 )
 from superset.utils import json
@@ -183,6 +184,81 @@ async def test_get_table_temporal_result_type(
     assert data["success"] is True
     assert data["columns"][0]["data_type"] == "temporal"
     assert data["columns"][1]["data_type"] == "string"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("result_column", "value", "expected_type"),
+    [
+        ("date__label", "September", "string"),
+        ("date_count", 12, "numeric"),
+        ("date", "2024-09-01", "temporal"),
+        ("date__Month", "2024-09-01", "temporal"),
+        ("date__P1M", "2024-09-01", "temporal"),
+        ("date__", "September", "string"),
+        ("date__Year", "2024", "string"),
+    ],
+)
+async def test_get_table_temporal_result_requires_known_variant(
+    mcp_server: FastMCP,
+    temporal_view: MagicMock,
+    result_column: str,
+    value: str | int,
+    expected_type: str,
+) -> None:
+    """Only exact temporal names and their declared grains override result typing."""
+    temporal_view.columns = [
+        _make_column("date", True),
+        _make_column("date__label"),
+        _make_column("date__"),
+        _make_column("date__Year"),
+        _make_column("other_date", True),
+    ]
+    temporal_view.metrics = [_make_metric("date_count")]
+    temporal_view.implementation.get_dimensions.return_value = [
+        Dimension(
+            id="date_month", name="date", type=pa.timestamp("us"), grain=Grains.MONTH
+        ),
+        Dimension(
+            id="other_year",
+            name="other_date",
+            type=pa.timestamp("us"),
+            grain=Grains.YEAR,
+        ),
+    ]
+    with patch.object(
+        get_table_module,
+        "execute_tabular_query",
+        return_value={
+            "queries": [{"data": [{result_column: value}], "colnames": [result_column]}]
+        },
+    ):
+        async with Client(mcp_server) as client:
+            response: GetTableResponse = GetTableResponse.model_validate_json(
+                (
+                    await client.call_tool(
+                        "get_table",
+                        {
+                            "request": {
+                                "view_id": 5,
+                                "metrics": ["date_count"],
+                                "dimensions": [
+                                    "date",
+                                    "date__label",
+                                    "date__",
+                                    "date__Year",
+                                ],
+                                "time_column": "date",
+                                "time_grain": "P1M",
+                            }
+                        },
+                    )
+                )
+                .content[0]
+                .text
+            )
+    assert response.success is True
+    assert response.columns[0].data_type == expected_type
 
 
 def _access_denied_exc(message: str = "Access denied") -> SupersetSecurityException:

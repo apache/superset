@@ -311,6 +311,26 @@ def _build_query_dict(
     )
 
 
+def _is_temporal_result_column(
+    column: str,
+    temporal_columns: set[str],
+    valid_grains: dict[str, dict[str, str]],
+) -> bool:
+    """Match temporal identities or a declared grain suffix on the same column."""
+    if column in temporal_columns:
+        return True
+    base: str
+    separator: str
+    suffix: str
+    base, separator, suffix = column.rpartition("__")
+    if base not in temporal_columns or not suffix:
+        return False
+    return any(
+        suffix.casefold() in (duration.casefold(), name.casefold())
+        for duration, name in valid_grains.get(base, {}).items()
+    )
+
+
 def _build_response(
     request: GetTableRequest,
     is_builtin: bool,
@@ -319,6 +339,7 @@ def _build_response(
     query_duration_ms: int,
     warnings: list[str],
     temporal_columns: set[str] | None = None,
+    valid_grains: dict[str, dict[str, str]] | None = None,
 ) -> GetTableResponse:
     """Format the query result into a GetTableResponse."""
     data = query_result.get("data", [])
@@ -353,9 +374,8 @@ def _build_response(
     result_temporal_columns: set[str] = {
         name
         for name in raw_columns
-        if any(
-            name == base or name.startswith(f"{base}__")
-            for base in temporal_columns or set()
+        if _is_temporal_result_column(
+            name, temporal_columns or set(), valid_grains or {}
         )
     }
     columns_meta = format_data_columns(
@@ -452,6 +472,7 @@ async def _run_get_table_query(
         query_duration_ms,
         resolved.warnings,
         resolved.temporal_columns,
+        resolved.valid_grains,
     )
 
     await ctx.info(
