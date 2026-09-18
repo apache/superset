@@ -127,7 +127,7 @@ test('should add dimension filters to every query-specific adhoc filter collecti
     matrixify_mode_columns: 'disabled',
     matrixify_dimension_rows: {
       dimension: 'country',
-      values: ['USA'],
+      values: ['USA', 'Canada'],
     },
     adhoc_filters: [
       {
@@ -155,26 +155,37 @@ test('should add dimension filters to every query-specific adhoc filter collecti
   const grid = generateMatrixifyGrid(formDataWithMultipleQueries);
 
   expect(grid).not.toBeNull();
-  const cell = grid!.cells[0][0]!;
+  const usaCell = grid!.cells[0][0]!;
+  const canadaCell = grid!.cells[1][0]!;
 
-  // The dimension filter is added to the primary and every query-specific
-  // collection, including one that started empty (`adhoc_filters_c`).
-  ['adhoc_filters', 'adhoc_filters_b', 'adhoc_filters_c'].forEach(key => {
-    expect(cell.formData[key]).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          subject: 'country',
-          comparator: 'USA',
-        }),
-      ]),
-    );
+  // Each cell's dimension filter is added to the primary and every
+  // query-specific collection, including one that started empty
+  // (`adhoc_filters_c`) — and cells don't leak each other's filters, which
+  // would happen if the fan-out mutated a shared array reference instead of
+  // writing a fresh array per cell.
+  [
+    { cell: usaCell, country: 'USA', other: 'Canada' },
+    { cell: canadaCell, country: 'Canada', other: 'USA' },
+  ].forEach(({ cell, country, other }) => {
+    ['adhoc_filters', 'adhoc_filters_b', 'adhoc_filters_c'].forEach(key => {
+      expect(cell.formData[key]).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ subject: 'country', comparator: country }),
+        ]),
+      );
+      expect(cell.formData[key]).not.toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ subject: 'country', comparator: other }),
+        ]),
+      );
+    });
   });
 
   // Pre-existing filters on each collection are preserved.
-  expect(cell.formData.adhoc_filters).toEqual(
+  expect(usaCell.formData.adhoc_filters).toEqual(
     expect.arrayContaining([expect.objectContaining({ subject: 'year' })]),
   );
-  expect(cell.formData.adhoc_filters_b).toEqual(
+  expect(usaCell.formData.adhoc_filters_b).toEqual(
     expect.arrayContaining([
       expect.objectContaining({
         subject: 'region',
@@ -183,8 +194,14 @@ test('should add dimension filters to every query-specific adhoc filter collecti
     ]),
   );
 
+  // The base formData's collections are untouched by either cell's fan-out.
+  expect(formDataWithMultipleQueries.adhoc_filters_b).toEqual([
+    expect.objectContaining({ subject: 'region', comparator: 'North America' }),
+  ]);
+  expect(formDataWithMultipleQueries.adhoc_filters_c).toEqual([]);
+
   // Fields that merely look similar (`filters_b`) are left untouched.
-  expect(cell.formData.filters_b).toEqual(
+  expect(usaCell.formData.filters_b).toEqual(
     formDataWithMultipleQueries.filters_b,
   );
 });
