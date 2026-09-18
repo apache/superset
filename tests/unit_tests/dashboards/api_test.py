@@ -233,6 +233,21 @@ def test_export_bundle_is_refused_for_guest_users(
     assert response.status_code == 403
 
 
+def test_export_as_example_is_refused_for_guest_users(
+    session: Session,
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """``export_as_example`` carries ``@permission_name("export")``, so the same
+    guest grant reaches it, and it emits dataset YAML plus Parquet rows."""
+    mocker.patch.object(security_manager, "is_guest_user", return_value=True)
+
+    response = client.get("/api/v1/dashboard/1/export_as_example/")
+
+    assert response.status_code == 403
+
+
 def test_export_bundle_is_not_refused_for_regular_users(
     session: Session,
     client: Any,
