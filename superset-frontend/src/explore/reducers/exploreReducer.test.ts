@@ -183,6 +183,7 @@ test('SET_FIELD_VALUE clears the custom-shift date error when time_compare leave
 test('explicit semantic reset removes stale fields and stash and persists only new generation', () => {
   const datasource = {
     id: 7,
+    uid: 'cube:Orders',
     type: DatasourceType.SemanticView,
     semantic_selection_version: 'cube-member-id-v1',
     columns: [],
@@ -194,7 +195,8 @@ test('explicit semantic reset removes stale fields and stash and persists only n
     description: null,
   } as Dataset;
   getChartControlPanelRegistry().registerValue('identity-test', {
-    controlPanelSections: [sections.datasourceAndVizType],
+    // Exercise Explore's default section, without injecting the shared section.
+    controlPanelSections: [],
   });
   const initial: ExploreState = {
     datasource,
