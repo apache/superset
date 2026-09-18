@@ -56,11 +56,12 @@ from superset.commands.semantic_layer.update import (
     UpdateSemanticLayerCommand,
     UpdateSemanticViewCommand,
 )
-from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, PASSWORD_MASK
+from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
 from superset.daos.semantic_layer import SemanticLayerDAO
 from superset.datasets.schemas import get_delete_ids_schema
 from superset.exceptions import SupersetSecurityException
 from superset.models.core import Database
+from superset.semantic_layers.masking import mask_configuration
 from superset.semantic_layers.models import SemanticLayer, SemanticView
 from superset.semantic_layers.registry import registry
 from superset.semantic_layers.schemas import (
@@ -82,45 +83,17 @@ logger = logging.getLogger(__name__)
 
 
 def _mask_configuration(layer: SemanticLayer, config: dict[str, Any]) -> dict[str, Any]:
+    """Redact configuration values the connector marks secret, at any depth.
+
+    Delegates to :func:`superset.semantic_layers.masking.mask_configuration`,
+    which walks the connector's published ``get_configuration_schema`` and
+    masks every ``writeOnly`` / ``SecretStr`` field it finds --- including
+    ones nested inside objects, discriminated unions, and lists. This extends
+    the original top-level-only masking (#43474) to close the nested/union
+    secret leak its flat scan missed, and fails closed (masks everything) when
+    the schema is unavailable.
     """
-    Redact configuration values the connector's schema marks as write-only.
-
-    A connector publishes its configuration shape via ``get_configuration_schema``;
-    a property with ``"writeOnly": true`` (the standard JSON Schema way of
-    marking a field that's set but never echoed back, e.g. a password or API
-    key) is replaced with ``PASSWORD_MASK`` here rather than returned in the
-    clear.
-    """
-    schema: dict[str, Any] | None = None
-    if cls := registry.get(layer.type):
-        try:
-            schema = cls.get_configuration_schema()
-        except Exception:  # pylint: disable=broad-except
-            schema = None
-
-    if schema is None:
-        # Either the type isn't registered or its schema couldn't load, so we
-        # can't tell which fields are secret. Fail closed: mask every truthy
-        # value rather than risk echoing a credential back in the clear.
-        logger.warning(
-            "Could not determine the configuration schema for semantic layer "
-            "type %s; masking all configuration values.",
-            layer.type,
-        )
-        return {key: PASSWORD_MASK if value else value for key, value in config.items()}
-
-    secret_keys = {
-        key
-        for key, prop in schema.get("properties", {}).items()
-        if isinstance(prop, dict) and prop.get("writeOnly")
-    }
-    if not secret_keys:
-        return config
-
-    return {
-        key: PASSWORD_MASK if key in secret_keys and value else value
-        for key, value in config.items()
-    }
+    return mask_configuration(layer.type, config)
 
 
 def _serialize_layer(layer: SemanticLayer) -> dict[str, Any]:

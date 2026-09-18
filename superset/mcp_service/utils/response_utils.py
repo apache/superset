@@ -353,8 +353,14 @@ def format_data_columns(  # noqa: C901
     data: list[dict[str, Any]],
     raw_columns: list[str],
     coltypes: list[int | GenericDataType] | None = None,
+    *,
+    temporal_columns: set[str] | None = None,
 ) -> list[DataColumn]:
-    """Build coltype-aware metadata under one shared iterative work budget."""
+    """Build coltype-aware metadata under one shared iterative work budget.
+
+    Explicit temporal column names override both the authoritative coltypes and
+    sample-based inference; omitting them preserves the resolved type.
+    """
     # Local import breaks the chart.schemas ↔ response_utils circular dependency.
     from superset.mcp_service.chart.schemas import DataColumn  # noqa: PLC0415
 
@@ -402,6 +408,8 @@ def format_data_columns(  # noqa: C901
                 type(value) in {int, float, Decimal} for value in sample_values
             ):
                 data_type = "numeric"
+        if temporal_columns and col_name in temporal_columns:
+            data_type = "temporal"
 
         columns_meta.append(
             DataColumn(
