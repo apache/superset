@@ -781,43 +781,53 @@ async def test_temporal_filter_spellings_delegate_to_execution(
 
 
 @pytest.mark.parametrize(
-    "usage", ["ordinary_filter", "groupby", "ordering", "non_temporal_column"]
+    "usage", ["ordinary_filter", "groupby", "ordering", "temporal_range"]
 )
+@pytest.mark.parametrize("temporal", [False, True])
 @pytest.mark.asyncio
-async def test_temporal_exemption_does_not_bypass_other_compatibility(
-    mcp_server: FastMCP, usage: str
+async def test_temporal_column_identity_controls_compatibility_exemption(
+    mcp_server: FastMCP, usage: str, temporal: bool
 ) -> None:
-    """The exemption applies only to temporal-only filters on temporal columns."""
+    """An undiscovered time axis remains usable; ordinary columns are rejected."""
     view: MagicMock = _make_view()
     view.columns.append(_make_column("order_ts", True))
     view.get_compatible_dimensions.return_value = []
-    column: str = "country_name" if usage == "non_temporal_column" else "order_ts"
+    column: str = "order_ts" if temporal else "country_name"
     request: dict[str, Any] = {
         "view_id": 5,
         "metrics": ["bookings"],
-        "filters": [
-            {"col": column, "op": "TEMPORAL_RANGE", "val": "2024-01-01 : 2024-03-01"}
-        ],
     }
     if usage == "ordinary_filter":
-        request["filters"].append({"col": column, "op": "==", "val": "2024-02-01"})
+        request["filters"] = [{"col": column, "op": "==", "val": "2024-02-01"}]
     elif usage == "groupby":
         request["dimensions"] = [column]
     elif usage == "ordering":
         request["order_by"] = [column]
+    else:
+        request["filters"] = [
+            {"col": column, "op": "TEMPORAL_RANGE", "val": "2024-01-01 : 2024-03-01"}
+        ]
     with (
         patch(
             "superset.daos.semantic_layer.SemanticViewDAO.find_by_id", return_value=view
         ),
-        patch.object(get_table_module, "execute_tabular_query") as execute,
+        patch.object(
+            get_table_module,
+            "execute_tabular_query",
+            return_value={"queries": [{"data": [], "colnames": []}]},
+        ) as execute,
     ):
         async with Client(mcp_server) as client:
             result: Any = await client.call_tool("get_table", {"request": request})
         data: dict[str, Any] = json.loads(result.content[0].text)
-    assert data["success"] is False
-    assert data["error_type"] == "ValidationError"
-    assert column in data["error"]
-    execute.assert_not_called()
+    assert data["success"] is temporal
+    if temporal:
+        execute.assert_called_once()
+        view.get_compatible_dimensions.assert_not_called()
+    else:
+        assert data["error_type"] == "ValidationError"
+        assert column in data["error"]
+        execute.assert_not_called()
 
 
 class TestGetTableTimeRangeValidation:
