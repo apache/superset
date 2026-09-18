@@ -1648,6 +1648,8 @@ class DashboardRestApi(
               $ref: '#/components/responses/400'
             401:
               $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
             422:
@@ -1655,6 +1657,11 @@ class DashboardRestApi(
             500:
               $ref: '#/components/responses/500'
         """
+        # A bundle carries dataset SQL and database metadata the embedded view
+        # never exposes, and no guest flow consumes this endpoint.
+        if security_manager.is_guest_user():
+            return self.response_403()
+
         requested_ids = kwargs["rison"]
 
         timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
