@@ -31,11 +31,15 @@ import {
 } from '@superset-ui/core/components';
 import { usePartitionMappingPreview } from './usePartitionMappingPreview';
 import {
+  IDENTITY_TRANSFORM,
   partitionRowState,
   previewOperatorFor,
   sampleValuesFor,
 } from './utils';
-import type { PartitionMappingColumn, PartitionMappingDatasource } from './types';
+import type {
+  PartitionMappingColumn,
+  PartitionMappingDatasource,
+} from './types';
 
 interface PartitionMappingSectionProps {
   /** Injected by Field when `passItemToControl` is set. */
@@ -144,7 +148,9 @@ export default function PartitionMappingSection({
     >
       <Flex align="center" gap={theme.sizeUnit}>
         <Icons.FilterOutlined />
-        <Typography.Text strong>{t('Partition filter mapping')}</Typography.Text>
+        <Typography.Text strong>
+          {t('Partition filter mapping')}
+        </Typography.Text>
       </Flex>
       <Typography.Text type="secondary">
         {isTemporal
@@ -178,7 +184,16 @@ export default function PartitionMappingSection({
         </Flex>
         <Input
           value={transform}
-          onChange={event => onChange?.(event.target.value || null)}
+          onChange={event => {
+            const next = event.target.value || null;
+            onChange?.(next);
+            // Monotonicity is a property of the expression, so editing the
+            // transform re-opens the question. The identity `:value` provably
+            // preserves ordering and stays auto-declared; anything else is the
+            // owner's to declare, and editing away from `:value` must not leave
+            // a stale auto-check behind.
+            onMonotonicChange(columnName, next === IDENTITY_TRANSFORM);
+          }}
           placeholder="unix_timestamp(:value)"
           aria-label={t('Value transform')}
           data-test="partition-value-transform"
@@ -189,14 +204,18 @@ export default function PartitionMappingSection({
         <Typography.Text type="secondary">
           {isTemporal
             ? t('Use :value for the filter bound.')
-            : t('Required for non-temporal columns. Use :value for each value.')}
+            : t(
+                'Required for non-temporal columns. Use :value for each value.',
+              )}
         </Typography.Text>
       </Flex>
 
       <Flex align="center" gap={theme.sizeUnit}>
         <Checkbox
           checked={isMonotonic}
-          onChange={event => onMonotonicChange(columnName, event.target.checked)}
+          onChange={event =>
+            onMonotonicChange(columnName, event.target.checked)
+          }
           data-test="partition-transform-is-monotonic"
         >
           {t('Transform preserves ordering')}
@@ -229,7 +248,10 @@ export default function PartitionMappingSection({
           <Flex justify="space-between" align="center">
             <Typography.Text type="secondary">{t('PREVIEW')}</Typography.Text>
             <Flex align="center" gap={theme.sizeUnit}>
-              <Icons.CheckOutlined iconColor={theme.colorSuccess} iconSize="s" />
+              <Icons.CheckOutlined
+                iconColor={theme.colorSuccess}
+                iconSize="s"
+              />
               <Typography.Text type="success">{t('Valid')}</Typography.Text>
             </Flex>
           </Flex>
