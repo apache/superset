@@ -23,12 +23,14 @@ metric and dimension names, returning tabular results.
 
 import logging
 import time
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from typing import Any
 
 from fastmcp import Context
 from sqlalchemy.exc import SQLAlchemyError
 from superset_core.mcp.decorators import tool, ToolAnnotations
+from superset_core.semantic_layers.types import Dimension
 
 from superset.commands.exceptions import CommandException
 from superset.common.tabular_query import (
@@ -66,7 +68,7 @@ class _ResolvedDatasource:
     valid_metrics: set[str]
     warnings: list[str] = field(default_factory=list)
     grain_column: str | None = None
-    valid_grains: dict[str, str] | None = None
+    valid_grains: dict[str, dict[str, str]] | None = None
     temporal_columns: set[str] = field(default_factory=set)
 
 
@@ -143,6 +145,18 @@ def _resolve_builtin_dataset(
     )
 
 
+def _grains_by_column(dimensions: Iterable[Dimension]) -> dict[str, dict[str, str]]:
+    """Index queryable grains by the column whose variants declare them."""
+    grains: dict[str, dict[str, str]] = {}
+    dimension: Dimension
+    for dimension in dimensions:
+        if dimension.grain is not None:
+            grains.setdefault(dimension.name, {})[dimension.grain.representation] = (
+                dimension.grain.name
+            )
+    return grains
+
+
 def _resolve_external_view(
     request: GetTableRequest,
 ) -> _ResolvedDatasource | SemanticLayerError:
@@ -194,12 +208,9 @@ def _resolve_external_view(
             error_type="ValidationError",
         )
 
-    duration: str | None
-    valid_grains: dict[str, str] = {
-        duration: grain["name"]
-        for grain in view.get_time_grains()
-        if (duration := grain["duration"]) is not None
-    }
+    valid_grains: dict[str, dict[str, str]] = _grains_by_column(
+        view.implementation.get_dimensions()
+    )
     grain_column: str | None = request.time_column
     if request.time_grain:
         selected: list[str] = sorted(set(request.dimensions) & valid_dttm_columns)
@@ -212,11 +223,7 @@ def _resolve_external_view(
                 )
             grain_column = selected[0]
         # The mapper chooses variants by dimension name, not the view-wide union.
-        column_grains: dict[str, str] = {
-            dimension.grain.representation: dimension.grain.name
-            for dimension in view.implementation.get_dimensions()
-            if dimension.name == grain_column and dimension.grain is not None
-        }
+        column_grains: dict[str, str] = valid_grains.get(grain_column, {})
         if request.time_grain not in column_grains:
             choices: str = ", ".join(
                 f"{duration} ({name})"
@@ -253,7 +260,7 @@ def _validate_request_names(
     request: GetTableRequest,
     valid_columns: set[str],
     valid_metrics: set[str],
-    valid_grains: dict[str, str] | None = None,
+    valid_grains: dict[str, dict[str, str]] | None = None,
 ) -> list[str]:
     """Validate requested dimensions, metrics, filters, and order_by names."""
     errors: list[str] = validate_query_names(
@@ -274,7 +281,7 @@ def _validate_request_names(
     for dimension in request.dimensions:
         base, separator, suffix = dimension.rpartition("__")
         if dimension not in valid_columns and base in valid_columns:
-            for duration, name in (valid_grains or {}).items():
+            for duration, name in (valid_grains or {}).get(base, {}).items():
                 if suffix.casefold() == name.casefold():
                     errors.append(
                         f"For '{dimension}', request dimension '{base}' and pass "

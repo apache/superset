@@ -267,6 +267,71 @@ async def test_get_table_grain_alias_hint_for_other_temporal_column(
     execute.assert_not_called()
 
 
+def test_get_table_grain_hints_match_each_columns_validation(
+    temporal_view: MagicMock,
+) -> None:
+    """A grain advertised for metric_time must not be suggested for signup_date."""
+    from superset.mcp_service.semantic_layer.tool.get_table import _ResolvedDatasource
+
+    temporal_view.columns.append(_make_column("signup_date", True))
+    temporal_view.get_time_grains.return_value = [
+        {"duration": "P1D", "name": "Day"},
+        {"duration": "P1M", "name": "Month"},
+    ]
+    temporal_view.implementation.get_dimensions.return_value = [
+        Dimension(
+            "metric_time_day", "metric_time", pa.timestamp("us"), grain=Grains.DAY
+        ),
+        Dimension(
+            "metric_time_month", "metric_time", pa.timestamp("us"), grain=Grains.MONTH
+        ),
+        Dimension(
+            "signup_date_day", "signup_date", pa.timestamp("us"), grain=Grains.DAY
+        ),
+    ]
+    request: GetTableRequest = GetTableRequest(
+        view_id=5, dimensions=["signup_date__Month"]
+    )
+    resolved: _ResolvedDatasource | SemanticLayerError = (
+        get_table_module._resolve_external_view(request)
+    )
+    assert not isinstance(resolved, SemanticLayerError)
+    errors: list[str] = get_table_module._validate_request_names(
+        request, resolved.valid_columns, resolved.valid_metrics, resolved.valid_grains
+    )
+    assert any("Unknown dimension" in error for error in errors)
+    assert not any("time_grain='P1M'" in error for error in errors)
+    errors = get_table_module._validate_request_names(
+        GetTableRequest(
+            view_id=5, dimensions=["signup_date__Day", "metric_time__Month"]
+        ),
+        resolved.valid_columns,
+        resolved.valid_metrics,
+        resolved.valid_grains,
+    )
+    assert any(
+        "dimension 'signup_date'" in error and "time_grain='P1D'" in error
+        for error in errors
+    )
+    assert any(
+        "dimension 'metric_time'" in error and "time_grain='P1M'" in error
+        for error in errors
+    )
+    accepted: _ResolvedDatasource | SemanticLayerError = (
+        get_table_module._resolve_external_view(
+            GetTableRequest(view_id=5, dimensions=["signup_date"], time_grain="P1D")
+        )
+    )
+    assert not isinstance(accepted, SemanticLayerError)
+    rejected: _ResolvedDatasource | SemanticLayerError = (
+        get_table_module._resolve_external_view(
+            GetTableRequest(view_id=5, dimensions=["signup_date"], time_grain="P1M")
+        )
+    )
+    assert isinstance(rejected, SemanticLayerError)
+    assert "Queryable grains: P1D (Day)" in rejected.error
+
+
 def test_get_table_grain_alias_hint(temporal_view: MagicMock) -> None:
     """A grain-suffixed unknown dimension suggests the base and time_grain."""
     request: GetTableRequest = GetTableRequest(
