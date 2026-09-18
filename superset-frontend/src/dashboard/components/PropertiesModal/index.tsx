@@ -505,16 +505,11 @@ const PropertiesModal = ({
         setIsLoading(false);
       }
 
-      // Fetch themes (excluding system themes)
+      // Fetch all assignable themes, including the system default/dark
+      // themes (THEME_DEFAULT/THEME_DARK), so they can be pinned to a
+      // dashboard like any custom theme.
       const themeQuery = rison.encode({
         columns: ['id', 'theme_name', 'is_system', 'json_data'],
-        filters: [
-          {
-            col: 'is_system',
-            opr: 'eq',
-            value: false,
-          },
-        ],
       });
       SupersetClient.get({ endpoint: `/api/v1/theme/?q=${themeQuery}` })
         .then(({ json }) => {
@@ -609,10 +604,9 @@ const PropertiesModal = ({
         name: t('General information'),
         validator: () => {
           const errors = [];
-          const values = form.getFieldsValue();
+          const title = form.getFieldValue('title');
 
-          // Check validation - only add if title is empty
-          if (!values.title || values.title.trim().length === 0) {
+          if (!title || title.trim().length === 0) {
             errors.push(t('Dashboard name is required'));
           }
 
