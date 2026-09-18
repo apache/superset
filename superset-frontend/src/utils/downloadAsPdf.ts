@@ -21,9 +21,12 @@ import domToPdf from 'dom-to-pdf';
 import { kebabCase } from 'lodash-es';
 import { t } from '@apache-superset/core/translation';
 import { logging } from '@apache-superset/core/utils';
-import { addWarningToast } from 'src/components/MessageToasts/actions';
 import getBootstrapData from 'src/utils/getBootstrapData';
-import { forceLoadAllCharts, restoreVirtualization } from './downloadUtils';
+import {
+  dispatchWarningToast,
+  forceLoadAllCharts,
+  restoreVirtualization,
+} from './downloadUtils';
 
 const pdfCompressionLevel = getBootstrapData().common.pdf_compression_level;
 
@@ -56,7 +59,7 @@ export default function downloadAsPdf(
       : event.currentTarget.closest(selector);
 
     if (!elementToPrint) {
-      return addWarningToast(
+      return dispatchWarningToast(
         t('PDF download failed, please refresh and try again.'),
       );
     }
