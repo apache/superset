@@ -1051,3 +1051,55 @@ test('partition mapping UI is withheld on an engine that does not support it', a
   ).toBeInTheDocument();
   expect(screen.queryByTestId('partition-tag')).not.toBeInTheDocument();
 });
+
+test('the partition column section is shown when the engine supports it', async () => {
+  // The "Partition column" / "Maps to partition" block in Default Column
+  // Settings is a second render site that must honour the same engine gate as
+  // the per-column tag above.
+  (isFeatureEnabled as jest.Mock).mockImplementation(
+    flag => flag === FeatureFlag.PartitionFilterMapping,
+  );
+
+  const testProps = createProps();
+  await asyncRender({
+    ...testProps,
+    datasource: {
+      ...testProps.datasource,
+      supports_partition_filter_mapping: true,
+    },
+  });
+
+  await userEvent.click(screen.getByTestId('collection-tab-Columns'));
+
+  expect(
+    await screen.findByTestId('partition-column-fields'),
+  ).toBeInTheDocument();
+});
+
+test('the partition column section is hidden on an engine that does not support it', async () => {
+  // Regression: this block was previously gated on the feature flag alone, so
+  // it showed on non-partition-directory engines (e.g. Postgres) even though
+  // the per-column tag was correctly hidden.
+  (isFeatureEnabled as jest.Mock).mockImplementation(
+    flag => flag === FeatureFlag.PartitionFilterMapping,
+  );
+
+  const testProps = createProps();
+  await asyncRender({
+    ...testProps,
+    datasource: {
+      ...testProps.datasource,
+      supports_partition_filter_mapping: false,
+    },
+  });
+
+  await userEvent.click(screen.getByTestId('collection-tab-Columns'));
+
+  // Wait for the columns tab to render before asserting the section is absent.
+  expect(
+    await screen.findByPlaceholderText('Search columns by name'),
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByTestId('partition-column-fields'),
+  ).not.toBeInTheDocument();
+});

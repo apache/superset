@@ -111,6 +111,7 @@ import {
   clearUnmappedTransformsAcrossMove,
   defaultTransformFor,
   nextMappedColumnOverride,
+  partitionFilterMappingEnabled,
   partitionMappingErrors,
 } from './components/PartitionFilterMapping/utils';
 import {
@@ -683,10 +684,7 @@ function ColumnCollectionTable({
     />
   );
 
-  const partitionMappingEnabled =
-    isFeatureEnabled(FeatureFlag.PartitionFilterMapping) &&
-    Boolean(datasource) &&
-    Boolean(datasource?.supports_partition_filter_mapping);
+  const partitionMappingEnabled = partitionFilterMappingEnabled(datasource);
   const partitionColumn = partitionMappingEnabled
     ? datasource?.partition_column
     : null;
@@ -1254,7 +1252,7 @@ function DatasourceEditor({
       // that is a blocking error with no way out -- the partition-column
       // dropdown is physical-only, so reopening such a dataset and changing
       // nothing but its description left Save permanently disabled.
-      if (isFeatureEnabled(FeatureFlag.PartitionFilterMapping)) {
+      if (partitionFilterMappingEnabled(datasource)) {
         validationErrors = validationErrors.concat(
           partitionMappingErrors(datasource, [
             ...databaseColumns,
@@ -2166,7 +2164,7 @@ function DatasourceEditor({
               data-test="currency-code-column-select"
             />
           </Flex>
-          {isFeatureEnabled(FeatureFlag.PartitionFilterMapping) && (
+          {partitionFilterMappingEnabled(datasource) && (
             <PartitionColumnFields
               datasource={datasource}
               columns={databaseColumns}

@@ -53,6 +53,7 @@ export interface PartitionMappingDatasource {
     /** The transform `evaluable` is a verdict about. */
     evaluated_transform?: string | null;
   } | null;
+  supports_partition_filter_mapping?: boolean;
 }
 
 /** Response shape of `POST /api/v1/dataset/<pk>/partition_mapping/preview/`. */
