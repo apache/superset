@@ -1619,7 +1619,9 @@ def parse_ssl_cert(certificate: str) -> Certificate:
     try:
         return load_pem_x509_certificate(certificate.encode("utf-8"), default_backend())
     except ValueError as ex:
-        raise CertificateException("Invalid certificate") from ex
+        # No explicit message: the exception's own default is translated at
+        # construction, whereas a literal here would bypass translation.
+        raise CertificateException() from ex
 
 
 def create_ssl_cert_file(certificate: str) -> str:
