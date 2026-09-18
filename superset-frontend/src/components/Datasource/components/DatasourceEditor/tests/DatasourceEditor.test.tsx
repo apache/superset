@@ -23,6 +23,7 @@ import {
   waitFor,
   userEvent,
   within,
+  selectOption,
 } from 'spec/helpers/testing-library';
 import {
   DatasourceType,
@@ -941,4 +942,42 @@ test('partition mapping UI is withheld on an engine that does not support it', a
     await screen.findByPlaceholderText('Search columns by name'),
   ).toBeInTheDocument();
   expect(screen.queryByTestId('partition-tag')).not.toBeInTheDocument();
+});
+
+test('designating a partition column leaves its filterable/groupby flags untouched', async () => {
+  // Hiding the partition column from Explore is a per-column decision the owner
+  // makes, not a side effect of the mapping. Selecting one must not toggle its
+  // `filterable`/`groupby` flags -- doing so would silently change behavior for
+  // datasets that already expose their partition column.
+  (isFeatureEnabled as jest.Mock).mockImplementation(
+    flag => flag === FeatureFlag.PartitionFilterMapping,
+  );
+
+  await asyncRender(createProps());
+  await userEvent.click(screen.getByTestId('collection-tab-Columns'));
+
+  // `gender` starts filterable + groupby (2 checked; it is not temporal), which
+  // is what makes it a probe for the side effect the old code introduced.
+  const checkedFlagsForGender = () => {
+    const row = screen
+      .getAllByRole('row')
+      .find(
+        candidate =>
+          within(candidate).queryByText('gender') &&
+          within(candidate).queryAllByRole('checkbox').length > 0,
+      );
+    if (!row) {
+      throw new Error('gender column row not found');
+    }
+    return within(row)
+      .getAllByRole('checkbox')
+      .filter(checkbox => (checkbox as HTMLInputElement).checked).length;
+  };
+
+  expect(checkedFlagsForGender()).toBe(2);
+
+  await selectOption('gender', 'Partition column');
+
+  // Still 2 -- the designation did not flip either flag.
+  expect(checkedFlagsForGender()).toBe(2);
 });

@@ -106,7 +106,6 @@ import {
 } from './components/PartitionFilterMapping';
 import {
   applyMappingMove,
-  applyPartitionColumnDefaults,
   defaultTransformFor,
   resolveMappedColumn,
 } from './components/PartitionFilterMapping/utils';
@@ -1319,11 +1318,11 @@ function DatasourceEditor({
           ? prev.partition_mapped_column
           : null,
       }));
-      if (columnName) {
-        setDatabaseColumns(prev =>
-          applyPartitionColumnDefaults(prev, columnName),
-        );
-      }
+      // Designating a partition column must not touch the column's own
+      // `filterable`/`groupby` flags: hiding it from Explore is a per-column
+      // decision the owner makes, not a side effect of the mapping, and
+      // toggling it here would silently change behavior for datasets that
+      // already expose their partition column.
     },
     [],
   );
