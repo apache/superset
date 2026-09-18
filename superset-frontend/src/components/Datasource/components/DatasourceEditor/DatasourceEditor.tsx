@@ -110,6 +110,7 @@ import {
   clearMappingTransforms,
   defaultTransformFor,
   nextMappedColumnOverride,
+  partitionFilterMappingEnabled,
   partitionMappingErrors,
 } from './components/PartitionFilterMapping/utils';
 import {
@@ -676,10 +677,7 @@ function ColumnCollectionTable({
     />
   );
 
-  const partitionMappingEnabled =
-    isFeatureEnabled(FeatureFlag.PartitionFilterMapping) &&
-    Boolean(datasource) &&
-    Boolean(datasource?.supports_partition_filter_mapping);
+  const partitionMappingEnabled = partitionFilterMappingEnabled(datasource);
   const partitionColumn = partitionMappingEnabled
     ? datasource?.partition_column
     : null;
@@ -1230,7 +1228,7 @@ function DatasourceEditor({
       // `datasource.columns`, because the two only meet in `onChangeInternal`
       // when the payload is assembled -- `datasource.columns` does not carry the
       // transform the owner just typed.
-      if (isFeatureEnabled(FeatureFlag.PartitionFilterMapping)) {
+      if (partitionFilterMappingEnabled(datasource)) {
         validationErrors = validationErrors.concat(
           partitionMappingErrors(datasource, databaseColumns).map(
             issue => issue.message,
@@ -1983,7 +1981,7 @@ function DatasourceEditor({
               data-test="currency-code-column-select"
             />
           </Flex>
-          {isFeatureEnabled(FeatureFlag.PartitionFilterMapping) && (
+          {partitionFilterMappingEnabled(datasource) && (
             <PartitionColumnFields
               datasource={datasource}
               columns={databaseColumns}

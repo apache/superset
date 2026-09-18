@@ -35,6 +35,7 @@ export interface PartitionMappingDatasource {
   partition_column?: string | null;
   partition_mapped_column?: string | null;
   partition_value_transform_default?: string | null;
+  supports_partition_filter_mapping?: boolean;
 }
 
 /** Response shape of `POST /api/v1/dataset/<pk>/partition_mapping/preview/`. */
