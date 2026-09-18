@@ -186,9 +186,13 @@ def _build_candidates(
         for c in categorical
         if c.data_type == "string" and 1 < c.unique_count <= 250
     }
+    has_coordinates = {"latitude", "longitude"} <= numeric_names
     if temporal and numeric:
-        return _candidates_temporal_numeric(numeric, row_count)
-    if {"latitude", "longitude"} <= numeric_names:
+        candidates = _candidates_temporal_numeric(numeric, row_count)
+        # Time-spatial data plots on a map as readily as on a time series,
+        # so the coordinates stay on offer instead of being shadowed.
+        return ["geographic points", *candidates] if has_coordinates else candidates
+    if has_coordinates:
         return ["geographic points", "table"]
     if numeric and categorical_names & {"country", "country_code"}:
         return ["world map", "bar chart", "table"]
