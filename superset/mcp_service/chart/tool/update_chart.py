@@ -45,6 +45,7 @@ from superset.mcp_service.chart.chart_utils import (
     merge_same_viz_form_data,
     merge_table_column_config,
     merge_update_form_data,
+    validate_gantt_form_data,
     validate_merged_bullet_form_data,
 )
 from superset.mcp_service.chart.compile import validate_and_compile
@@ -56,11 +57,15 @@ from superset.mcp_service.chart.schemas import (
     BulletChartConfig,
     ChartConfig,
     ColumnRef,
+    GanttChartConfig,
     GaugeChartConfig,
     GenerateChartResponse,
     PerformanceMetadata,
     TableChartConfig,
     UpdateChartRequest,
+)
+from superset.mcp_service.chart.validation.dataset_validator import (
+    GanttSemanticNormalizationError,
 )
 from superset.mcp_service.utils.oauth2_utils import (
     build_oauth2_redirect_message,
@@ -394,11 +399,11 @@ def _build_replacement_form_data(
     new_form_data.pop("_mcp_warnings", None)
     dataset_rebind = replacement_dataset_id is not None
     if replacement_dataset_id is not None and not isinstance(
-        parsed_config, GaugeChartConfig
+        parsed_config, (GanttChartConfig, GaugeChartConfig)
     ):
         # Drop only the inherited state the replacement dataset cannot
-        # resolve, then merge as a same-dataset update. Gauge keeps the
-        # stricter presentation-only rebind handled downstream.
+        # resolve, then merge as a same-dataset update. Gantt and Gauge keep the
+        # stricter rebind contracts handled downstream.
         invalid_keys = _inherited_state_invalid_keys(
             existing_form_data,
             new_form_data,
@@ -416,6 +421,16 @@ def _build_replacement_form_data(
     if isinstance(parsed_config, BulletChartConfig):
         merge_update_form_data(existing_form_data, new_form_data, parsed_config)
         merged = new_form_data
+    elif isinstance(parsed_config, GanttChartConfig):
+        # Gantt owns its complete merge contract inside merge_chart_form_data,
+        # including reconciling its single native time predicate. Re-running the
+        # generic update merges would restore the predicates it just resolved.
+        merged = _merge_replacement_config(
+            existing_form_data,
+            new_form_data,
+            parsed_config,
+            dataset_rebind=dataset_rebind,
+        )
     else:
         merged = _merge_replacement_config(
             existing_form_data,
@@ -634,6 +649,22 @@ def _validate_update_against_dataset(
             message="Merged Bullet chart configuration is invalid.",
             details=str(ex),
         )
+
+    try:
+        merged_gantt_config = validate_gantt_form_data(
+            form_data,
+            dataset.id,
+        )
+    except GanttSemanticNormalizationError as ex:
+        return _validation_error_response(
+            message="Gantt chart column roles are invalid",
+            details=str(ex),
+        )
+    if merged_gantt_config is not None:
+        # Validation must describe the state that will actually be queried or
+        # persisted, including any omitted series/subcategory values restored
+        # from the saved chart.
+        parsed_config = merged_gantt_config
 
     compile_result = validate_and_compile(
         parsed_config, form_data, dataset, run_compile_check=run_compile_check
@@ -923,6 +954,11 @@ async def update_chart(  # noqa: C901
                     request = request.model_copy(
                         update={"add_columns": validation_config.columns}
                     )
+            except GanttSemanticNormalizationError as ex:
+                return _validation_error_response(
+                    message="Gantt chart column roles are invalid",
+                    details=str(ex),
+                )
             except ValueError as e:
                 return _validation_error_response(
                     message="Chart references could not be canonicalized.",
@@ -1127,6 +1163,11 @@ async def update_chart(  # noqa: C901
         }
         return _bounded_update_response(result)
 
+    except GanttSemanticNormalizationError as ex:
+        return _validation_error_response(
+            message="Gantt chart column roles are invalid",
+            details=str(ex),
+        )
     except OAuth2RedirectError as ex:
         await ctx.warning(
             "Chart update requires OAuth authentication: identifier=%s"

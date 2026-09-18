@@ -969,6 +969,34 @@ class TestChartApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
         db.session.delete(user_alpha2)
         db.session.commit()
 
+    def test_update_chart_refuses_externally_managed(self) -> None:
+        """sc-120011: PUT on an externally managed chart is refused with 403.
+
+        Refused server-side even for an admin who could otherwise edit it:
+        the update would be overwritten on the next external sync, and the
+        browser-only gate can be bypassed by calling the endpoint
+        directly. Chart is the representative real-endpoint case; the
+        guard is the shared raise_if_managed_externally helper called by
+        all three update commands, pinned across chart/dashboard/dataset
+        by tests/unit_tests/commands/test_update_managed_externally.py.
+        """
+        admin = self.get_user("admin")
+        chart = self.insert_chart("external source of truth", [admin.id], 1)
+        chart.is_managed_externally = True
+        db.session.commit()
+
+        self.login(ADMIN_USERNAME)
+        try:
+            uri = f"api/v1/chart/{chart.id}"
+            rv = self.put_assert_metric(uri, {"slice_name": "changed"}, "put")
+            assert rv.status_code == 403
+
+            db.session.refresh(chart)
+            assert chart.slice_name == "external source of truth"
+        finally:
+            db.session.delete(chart)
+            db.session.commit()
+
     def test_update_chart_linked_with_not_owned_dashboard(self):
         """
         Chart API: Test update chart which is linked to not owned dashboard

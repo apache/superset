@@ -122,9 +122,39 @@ class ValidationPipeline:
             # Canonicalize against the same authorized schema used by
             # validation. Ambiguous case-insensitive matches must fail rather
             # than silently selecting one dataset field.
+            from .dataset_validator import GanttSemanticNormalizationError
+
             try:
                 normalized_request = ValidationPipeline._normalize_column_names(
                     request, dataset_context, typed_config=typed_config
+                )
+            except GanttSemanticNormalizationError as ex:
+                # A semantic conflict can be the downstream symptom of dataset
+                # metadata that collides only by case. Report that more specific
+                # diagnosis when dataset validation can name it.
+                _is_valid, dataset_error = ValidationPipeline._validate_dataset(
+                    typed_config, request.dataset_id, dataset_context
+                )
+                if dataset_error is not None:
+                    return ValidationResult(
+                        is_valid=False, request=request, error=dataset_error
+                    )
+                return ValidationResult(
+                    is_valid=False,
+                    request=request,
+                    error=ChartGenerationError(
+                        error_type="gantt_semantic_validation_error",
+                        message="Gantt chart column roles are invalid",
+                        details=str(ex),
+                        suggestions=[
+                            "Use different physical columns for start_time and "
+                            "end_time",
+                            "Use different physical columns for category and series",
+                            "Use exact dataset column casing when names differ only "
+                            "by case",
+                        ],
+                        error_code="GANTT_SEMANTIC_VALIDATION_ERROR",
+                    ),
                 )
             except ValueError as ex:
                 return ValidationResult(
@@ -268,7 +298,11 @@ class ValidationPipeline:
             A new request with normalized column names
         """
         try:
-            from .dataset_validator import DatasetValidator
+            from .dataset_validator import (
+                AmbiguousDatasetReferenceError,
+                DatasetValidator,
+                GanttSemanticNormalizationError,
+            )
 
             config = typed_config or request.config
             normalized_config = DatasetValidator.normalize_column_names(
@@ -283,7 +317,12 @@ class ValidationPipeline:
 
             return GenerateChartRequest.model_validate(request_dict)
 
-        except (ImportError, AttributeError, KeyError, TypeError) as e:
+        except (GanttSemanticNormalizationError, AmbiguousDatasetReferenceError):
+            # These name a real, actionable schema conflict rather than a
+            # transient normalization failure; callers map them to structured
+            # errors instead of silently querying an unresolved reference.
+            raise
+        except (ImportError, AttributeError, KeyError, ValueError, TypeError) as e:
             # If normalization fails, return the original request
             # Validation has already passed, so this is a non-critical failure
             logger.warning("Column name normalization failed: %s", e)

@@ -26,12 +26,14 @@ from typing import Any, Dict
 
 from pydantic import TypeAdapter
 from superset_core.mcp.decorators import tool, ToolAnnotations
+from typing_extensions import TypedDict
 
 from superset.extensions import event_logger
 from superset.mcp_service.chart.schemas import (
     BigNumberChartConfig,
     BoxPlotChartConfig,
     BulletChartConfig,
+    GanttChartConfig,
     GaugeChartConfig,
     HandlebarsChartConfig,
     HistogramChartConfig,
@@ -46,6 +48,17 @@ from superset.mcp_service.chart.schemas import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+class ChartTypeSchemaResponse(TypedDict, total=False):
+    """Output fields returned by ``get_chart_type_schema``."""
+
+    chart_type: str
+    schema: dict[str, Any]
+    examples: list[dict[str, Any]]
+    error: dict[str, Any]
+    valid_chart_types: list[str]
+
 
 # Module-level TypeAdapters — one per chart type, compiled once.
 _CHART_TYPE_ADAPTERS: Dict[str, TypeAdapter[Any]] = {
@@ -63,6 +76,7 @@ _CHART_TYPE_ADAPTERS: Dict[str, TypeAdapter[Any]] = {
     "histogram": TypeAdapter(HistogramChartConfig),
     "box_plot": TypeAdapter(BoxPlotChartConfig),
     "waterfall": TypeAdapter(WaterfallChartConfig),
+    "gantt": TypeAdapter(GanttChartConfig),
 }
 
 VALID_CHART_TYPES = sorted(_CHART_TYPE_ADAPTERS.keys())
@@ -230,6 +244,17 @@ _CHART_EXAMPLES: Dict[str, list[Dict[str, Any]]] = {
             "show_total": True,
         },
     ],
+    "gantt": [
+        {
+            "chart_type": "gantt",
+            "start_time": {"name": "start_time"},
+            "end_time": {"name": "end_time"},
+            "category": {"name": "task_name"},
+            "series": {"name": "owner"},
+            "tooltip_columns": [{"name": "project"}],
+            "order_by": [{"column": "start_time", "ascending": True}],
+        },
+    ],
     "gauge": [
         {
             "chart_type": "gauge",
@@ -249,7 +274,7 @@ _CHART_EXAMPLES: Dict[str, list[Dict[str, Any]]] = {
 def _get_chart_type_schema_impl(
     chart_type: str,
     include_examples: bool = True,
-) -> Dict[str, Any]:
+) -> ChartTypeSchemaResponse:
     """Pure logic for chart type schema lookup — no auth, no decorators."""
     from superset.mcp_service.chart.registry import get_registry
 
@@ -301,7 +326,7 @@ def _get_chart_type_schema_impl(
         }
 
     schema = adapter.json_schema()
-    result: Dict[str, Any] = {
+    result: ChartTypeSchemaResponse = {
         "chart_type": chart_type,
         "schema": schema,
     }
@@ -325,7 +350,7 @@ def _get_chart_type_schema_impl(
 def get_chart_type_schema(
     chart_type: str,
     include_examples: bool = True,
-) -> Dict[str, Any]:
+) -> ChartTypeSchemaResponse:
     """Get the full JSON Schema and examples for a specific chart type.
 
     Use this tool to discover the exact fields, types, and constraints
@@ -333,8 +358,8 @@ def get_chart_type_schema(
 
     Valid chart_type values depend on the host deployment. Core types are xy,
     table, pie, bullet, gauge, treemap_v2, pivot_table, mixed_timeseries,
-    handlebars, big_number, histogram, box_plot, and waterfall. Deployments that
-    enable an AG Grid
+    handlebars, big_number, histogram, box_plot, waterfall, and gantt.
+    Deployments that enable an AG Grid
     pivot extension also expose interactive_pivot.
 
     Returns the JSON Schema for the requested chart type, optionally

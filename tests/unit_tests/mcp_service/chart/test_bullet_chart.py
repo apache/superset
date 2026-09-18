@@ -711,7 +711,7 @@ def test_bullet_registry_schema_and_recommendation_metadata() -> None:
     assert "bullet chart" in candidates
     guidance = get_default_instructions()
     assert 'chart_type="bullet": Bullet Chart' in guidance
-    assert "waterfall, bullet, and interactive_pivot" in guidance
+    assert "waterfall, gantt, bullet, and interactive_pivot" in guidance
 
 
 def test_bullet_dataset_normalization_canonicalizes_every_reference() -> None:

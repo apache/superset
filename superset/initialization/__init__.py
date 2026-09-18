@@ -1426,7 +1426,15 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                 set_isolation_level_to,
             )
             with self.superset_app.app_context():
-                db.engine.execution_options(isolation_level=set_isolation_level_to)
+                # update_execution_options mutates the engine in place.
+                # Its generative sibling execution_options() returns a NEW
+                # engine and leaves this one untouched — using it here
+                # silently discarded the isolation default for years,
+                # leaving MySQL deployments on InnoDB's REPEATABLE READ
+                # while this method logged the opposite (sc-120480).
+                db.engine.update_execution_options(
+                    isolation_level=set_isolation_level_to
+                )
 
     def configure_auth_provider(self) -> None:
         machine_auth_provider_factory.init_app(self.superset_app)

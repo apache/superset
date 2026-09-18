@@ -1819,7 +1819,13 @@ def safe_exception_message(exception: BaseException, max_bytes: int = 2000) -> s
 
 
 def query_result_failure(result: Any) -> ChartError | None:
-    """Return an embedded failure or malformed-envelope error."""
+    """Return an embedded failure or malformed-envelope error.
+
+    ChartDataCommand can return an HTTP-successful envelope whose top level or
+    any query reports a failure. Every query is inspected before callers accept
+    data from the result. Successful statuses may carry informational messages,
+    so ``message`` alone is not treated as an error.
+    """
     _data, failure = query_result_data(result)
     return failure
 

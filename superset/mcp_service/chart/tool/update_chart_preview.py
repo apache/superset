@@ -23,7 +23,7 @@ import logging
 import time
 from collections.abc import Callable
 from functools import wraps
-from typing import Any, Dict
+from typing import Any, cast, Dict
 
 from fastmcp import Context
 from sqlalchemy.exc import SQLAlchemyError
@@ -45,6 +45,7 @@ from superset.mcp_service.chart.chart_utils import (
     merge_same_viz_form_data,
     merge_table_column_config,
     merge_update_form_data,
+    validate_gantt_form_data,
     validate_merged_bullet_form_data,
 )
 from superset.mcp_service.chart.compile import validate_and_compile
@@ -59,8 +60,13 @@ from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
     BulletChartConfig,
     ChartError,
+    GanttChartConfig,
     PerformanceMetadata,
     UpdateChartPreviewRequest,
+    UpdateChartPreviewResponse,
+)
+from superset.mcp_service.chart.validation.dataset_validator import (
+    GanttSemanticNormalizationError,
 )
 from superset.mcp_service.utils.oauth2_utils import (
     build_oauth2_redirect_message,
@@ -114,13 +120,20 @@ def _get_previous_form_data(form_data_key: str) -> dict[str, Any] | None:
 
 
 def _preflight_update_preview_result(
-    function: Callable[[UpdateChartPreviewRequest, Context], Dict[str, Any]],
-) -> Callable[[UpdateChartPreviewRequest, Context], Dict[str, Any]]:
+    function: Callable[
+        [UpdateChartPreviewRequest, Context], UpdateChartPreviewResponse
+    ],
+) -> Callable[[UpdateChartPreviewRequest, Context], UpdateChartPreviewResponse]:
     """Apply the final wire-size gate to every success and error return."""
 
     @wraps(function)
-    def wrapped(request: UpdateChartPreviewRequest, ctx: Context) -> Dict[str, Any]:
-        return preflight_update_preview_response(function(request, ctx))
+    def wrapped(
+        request: UpdateChartPreviewRequest, ctx: Context
+    ) -> UpdateChartPreviewResponse:
+        return cast(
+            UpdateChartPreviewResponse,
+            preflight_update_preview_response(dict(function(request, ctx))),
+        )
 
     return wrapped
 
@@ -140,7 +153,7 @@ def _preflight_update_preview_result(
 @_preflight_update_preview_result
 def update_chart_preview(  # noqa: C901
     request: UpdateChartPreviewRequest, ctx: Context
-) -> Dict[str, Any]:
+) -> UpdateChartPreviewResponse:
     """Update cached chart preview without saving.
 
     IMPORTANT:
@@ -205,6 +218,10 @@ def update_chart_preview(  # noqa: C901
                     request.dataset_id,
                     dataset_context=dataset_context,
                 )
+            except GanttSemanticNormalizationError:
+                # Gantt reports its own role conflict; the generic
+                # canonicalization message would lose that diagnosis.
+                raise
             except (AttributeError, KeyError, TypeError, ValueError) as ex:
                 return {
                     "chart": None,
@@ -247,6 +264,17 @@ def update_chart_preview(  # noqa: C901
                 ) and previous_datasource != str(dataset.id)
                 if isinstance(config, BulletChartConfig):
                     merge_update_form_data(previous_form_data, new_form_data, config)
+                elif isinstance(config, GanttChartConfig):
+                    # Gantt owns its complete merge contract inside
+                    # merge_chart_form_data, including reconciling its single
+                    # native time predicate. Re-running the generic update
+                    # merges would restore the predicates it just resolved.
+                    new_form_data = merge_chart_form_data(
+                        previous_form_data,
+                        new_form_data,
+                        config,
+                        dataset_rebind=dataset_rebind,
+                    )
                 else:
                     new_form_data = merge_chart_form_data(
                         previous_form_data,
@@ -266,6 +294,20 @@ def update_chart_preview(  # noqa: C901
                             and getattr(config, config_field, None) == []
                         ):
                             new_form_data.pop(form_data_field, None)
+
+            merged_gantt_config = validate_gantt_form_data(
+                new_form_data,
+                request.dataset_id,
+                dataset_context=(
+                    dataset_context
+                    if new_form_data.get("viz_type") == "gantt_chart"
+                    else None
+                ),
+            )
+            if merged_gantt_config is not None:
+                # Compile the final cached state rather than the pre-merge
+                # request, so preserved native fields cannot bypass semantics.
+                config = merged_gantt_config
 
             validation_config = config
             try:
@@ -396,7 +438,7 @@ def update_chart_preview(  # noqa: C901
                 logger.warning("Preview generation failed: %s", e)
 
         # Return enhanced data
-        result = {
+        result: UpdateChartPreviewResponse = {
             "chart": {
                 "id": None,
                 "slice_name": chart_name,
@@ -434,6 +476,8 @@ def update_chart_preview(  # noqa: C901
             "chart": None,
             "error": build_oauth2_redirect_message(ex),
             "success": False,
+            "schema_version": "2.0",
+            "api_version": "v1",
         }
     except OAuth2Error:
         logger.warning(
@@ -443,6 +487,32 @@ def update_chart_preview(  # noqa: C901
             "chart": None,
             "error": OAUTH2_CONFIG_ERROR_MESSAGE,
             "success": False,
+            "schema_version": "2.0",
+            "api_version": "v1",
+        }
+    except GanttSemanticNormalizationError as ex:
+        execution_time = int((time.time() - start_time) * 1000)
+        return {
+            "chart": None,
+            "error": {
+                "error_type": "gantt_semantic_validation_error",
+                "message": "Gantt chart column roles are invalid",
+                "details": str(ex),
+                "suggestions": [
+                    "Use different physical columns for start_time and end_time",
+                    "Use different physical columns for category and series",
+                    "Use exact dataset column casing when names differ only by case",
+                ],
+                "error_code": "GANTT_SEMANTIC_VALIDATION_ERROR",
+            },
+            "performance": {
+                "query_duration_ms": execution_time,
+                "cache_status": "error",
+                "optimization_suggestions": [],
+            },
+            "success": False,
+            "schema_version": "2.0",
+            "api_version": "v1",
         }
     except (
         SupersetException,

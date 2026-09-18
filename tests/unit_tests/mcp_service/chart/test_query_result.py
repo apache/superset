@@ -36,6 +36,7 @@ from dateutil import tz as dateutil_tz
 from dateutil.zoneinfo import get_zonefile_instance
 from pydantic import BaseModel
 
+from superset.common.db_query_status import QueryStatus
 from superset.mcp_service.chart import query_result as query_result_module
 from superset.mcp_service.chart.query_result import (
     _json_string_size,
@@ -50,6 +51,7 @@ from superset.mcp_service.chart.query_result import (
     MAX_QUERY_RESULT_TOTAL_ROWS,
     MAX_QUERY_RESULT_VALUE_BYTES,
     query_result_data,
+    query_result_failure,
     response_json_failure,
     safe_exception_message,
 )
@@ -2318,3 +2320,66 @@ def test_safe_exception_message_bounds_assertions_without_string_conversion() ->
     assert "[truncated]" in message
     assert "\ud800" not in message
     assert len(message.encode("utf-8")) <= 2000
+
+
+class UppercaseStatus(Enum):
+    FAILED = "FAILED"
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"error": "top-level error", "queries": []},
+        {"error_message": "top-level error message", "queries": []},
+        {"status": "ERROR", "message": "top-level status failure"},
+        {"status": "timed out", "message": "top-level timeout"},
+        {"success": False, "message": "top-level unsuccessful payload"},
+        {"message": "standalone top-level failure"},
+        {"queries": [{"status": "Failed", "message": "query failed"}]},
+        {
+            "queries": [
+                {"status": "success", "data": [{"value": 1}]},
+                {"status": QueryStatus.FAILED, "error_message": "second failed"},
+            ]
+        },
+        {"queries": [{"status": UppercaseStatus.FAILED, "message": "enum failed"}]},
+    ],
+)
+def test_query_result_failure_detects_failure_envelopes(payload):
+    failure = query_result_failure(payload)
+
+    assert failure is not None
+    assert failure.error_type == "QueryError"
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        # A top-level informational message alongside a well-formed envelope.
+        {
+            "status": "success",
+            "message": "served from cache",
+            "queries": [{"data": []}],
+        },
+        {
+            "queries": [
+                {"status": QueryStatus.SUCCESS, "message": "no rows", "data": []}
+            ]
+        },
+        {"queries": [{"status": "running", "message": "in progress", "data": []}]},
+        {"queries": [{"message": "informational", "data": []}]},
+        {"queries": [{"data": []}]},
+    ],
+)
+def test_query_result_failure_allows_valid_and_informational_envelopes(payload):
+    assert query_result_failure(payload) is None
+
+
+def test_query_result_failure_rejects_envelope_without_a_query() -> None:
+    """An empty queries array is a malformed envelope, not a success."""
+    failure = query_result_failure(
+        {"status": "success", "message": "served from cache", "queries": []}
+    )
+
+    assert failure is not None
+    assert failure.error_type == "MalformedQueryResult"
