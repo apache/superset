@@ -200,8 +200,9 @@ def get_results(query_object: QueryObject) -> QueryResult:
         # shape: a cached table result would satisfy a row-count lookup (and
         # vice versa) and break server-side pagination. Containment reuse is
         # only defined over tabular results, so row-count dispatches bypass
-        # the cache entirely.
-        cacheable=not query_object.is_rowcount,
+        # the cache entirely. Nonzero row offsets cannot be reused either;
+        # storing those pages would only evict usable first-page descriptors.
+        cacheable=not query_object.is_rowcount and not query_object.row_offset,
         cache_timeout=query_object.cache_timeout,
     )
     main_result: SemanticResult = main_outcome.result
@@ -245,7 +246,7 @@ def get_results(query_object: QueryObject) -> QueryResult:
             dispatcher,
             offset_query,
             force=query_object.force_query,
-            cacheable=not query_object.is_rowcount,
+            cacheable=not query_object.is_rowcount and not query_object.row_offset,
             cache_timeout=query_object.cache_timeout,
         )
         cache_hits.append(outcome.cache_hit)

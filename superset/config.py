@@ -716,7 +716,10 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Enable semantic layers and show semantic views alongside datasets
     # @lifecycle: development
     "SEMANTIC_LAYERS": False,
-    # Enable Superset-owned containment caching for opted-in semantic providers
+    # Enable Superset-owned containment caching for opted-in semantic providers.
+    # Requires shared DATA_CACHE_CONFIG and Redis-backed
+    # DISTRIBUTED_COORDINATION_CONFIG.
+    # @docs: https://superset.apache.org/admin-docs/configuration/cache/#semantic-containment-cache
     # @lifecycle: development
     "SEMANTIC_LAYER_CONTAINMENT_CACHE": False,
     # Enables advanced data type support

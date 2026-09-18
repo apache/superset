@@ -877,6 +877,35 @@ def test_sum_rollup_preserves_all_null_group() -> None:
     }
 
 
+@pytest.mark.parametrize("multiple_dimensions", [False, True])
+def test_categorical_rollup_contains_only_observed_groups(
+    multiple_dimensions: bool,
+) -> None:
+    """Dictionary dimensions must not fabricate category combinations."""
+    city: Dimension = replace(COUNTRY, id="city", name="City")
+    frame: pd.DataFrame = pd.DataFrame(
+        {
+            "Country": pd.Categorical(["GB", "GB"], categories=["GB", "US"]),
+            "City": pd.Categorical(["London", "London"], categories=["London", "NY"]),
+            "Revenue": [2.0, 3.0],
+        }
+    )
+    query: SemanticQuery = SemanticQuery(
+        metrics=[REVENUE_METRIC],
+        dimensions=[COUNTRY, city] if multiple_dimensions else [COUNTRY],
+    )
+    transformed: SemanticResult = cache_transform.transform_result(
+        _semantic_result(frame),
+        query,
+        ReuseDecision(ReuseMode.ROLLUP, frozenset()),
+        ContainmentCapabilities(),
+    )
+    expected: dict[str, list[str] | list[float]] = {"Country": ["GB"], "Revenue": [5.0]}
+    if multiple_dimensions:
+        expected["City"] = ["London"]
+    assert transformed.results.to_pydict() == expected
+
+
 def test_dimensionless_rollup_aggregates_all_rows() -> None:
     query: SemanticQuery = SemanticQuery(
         metrics=[REVENUE_METRIC],

@@ -21,6 +21,7 @@ import { QueryData, VizType } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import { css, SupersetTheme } from '@apache-superset/core/theme';
 import {
+  Button,
   CachedLabel,
   type LabelType,
   Timer,
@@ -125,7 +126,13 @@ export const ChartPills = forwardRef(
               />
             )}
           {!isLoading && semanticCacheStatus === 'MIXED' && (
-            <span>{t('Mixed cache')}</span>
+            <Button
+              buttonStyle="link"
+              buttonSize="small"
+              onClick={refreshCachedQuery}
+            >
+              {t('Mixed cache')}
+            </Button>
           )}
           <Timer
             startTime={chartUpdateStartTime}

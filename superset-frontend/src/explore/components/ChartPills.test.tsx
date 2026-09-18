@@ -17,11 +17,12 @@
  * under the License.
  */
 
-import { render, screen } from 'spec/helpers/testing-library';
+import { fireEvent, render, screen } from 'spec/helpers/testing-library';
 import type { QueryData } from '@superset-ui/core';
 import { ChartPills } from './ChartPills';
 
 jest.mock('@superset-ui/core/components', () => ({
+  Button: jest.requireActual('@superset-ui/core/components/Button').Button,
   CachedLabel: ({ cacheSource }: { cacheSource?: string }) => (
     <span data-test="cached-label">
       {cacheSource === 'semantic' ? 'Semantic cache' : 'Ordinary cache'}
@@ -100,6 +101,7 @@ test('does not claim a cache hit for mixed semantic provenance', () => {
 test.each(['MISS', undefined] as const)(
   'aggregates a data HIT and a row-count %s as mixed provenance',
   countStatus => {
+    const refresh = jest.fn();
     render(
       <ChartPills
         queriesResponse={[
@@ -108,12 +110,14 @@ test.each(['MISS', undefined] as const)(
         ]}
         formData={{ viz_type: 'table', server_pagination: true }}
         chartUpdateStartTime={0}
-        refreshCachedQuery={jest.fn()}
+        refreshCachedQuery={refresh}
         hideRowCount
       />,
     );
     expect(screen.getByText('Mixed cache')).toBeInTheDocument();
     expect(screen.queryByText('Semantic cache')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Mixed cache' }));
+    expect(refresh).toHaveBeenCalledTimes(1);
   },
 );
 

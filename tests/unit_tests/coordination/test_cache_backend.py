@@ -31,6 +31,24 @@ from pytest_mock import MockerFixture
 from redis.exceptions import ConnectionError as RedisConnectionError
 
 
+@pytest.mark.parametrize("force_master_ip", [None, "127.0.0.2"])
+def test_sentinel_omits_unset_force_master_ip(force_master_ip: str | None) -> None:
+    """Older supported redis-py clients must not receive an unknown None kwarg."""
+    from superset.coordination.cache_backend import RedisSentinelCacheBackend
+
+    with mock.patch("superset.coordination.cache_backend.Sentinel") as sentinel:
+        RedisSentinelCacheBackend(
+            sentinels=[("localhost", 26379)],
+            master="main",
+            force_master_ip=force_master_ip,
+        )
+    arguments: dict[str, Any] = sentinel.call_args.kwargs
+    if force_master_ip is None:
+        assert "force_master_ip" not in arguments
+    else:
+        assert arguments["force_master_ip"] == force_master_ip
+
+
 def test_compare_owner_and_set_uses_two_keys_and_preserves_rejection() -> None:
     """A rejected lease comparison must never be reported as a successful SET."""
     from superset.coordination.cache_backend import RedisCacheBackend

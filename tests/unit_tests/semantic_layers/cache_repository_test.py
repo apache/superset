@@ -560,8 +560,9 @@ def test_bucket_outlives_longest_lived_value_across_request_timeouts() -> None:
 @pytest.mark.parametrize(
     ("timeouts", "expected"),
     [
-        ((None, None), None),
-        ((None, 300), 300),
+        ((None, None), 0),
+        ((None, 300), 0),
+        ((300, None), 0),
         ((300, 0), 0),
     ],
 )
@@ -569,8 +570,7 @@ def test_bucket_timeout_follows_backend_conventions(
     timeouts: tuple[int | None, ...],
     expected: int | None,
 ) -> None:
-    """``0`` is never-expire and wins; ``None`` is the backend default and
-    yields only to an explicit TTL."""
+    """Unknown default TTLs cannot be shortened by an explicit bucket TTL."""
     backend: _Backend = _Backend()
     repository: SemanticCacheRepository = SemanticCacheRepository(
         backend,

@@ -744,6 +744,25 @@ def test_rowcount_dispatch_bypasses_cache_both_directions(
     assert repeated.df["revenue"].tolist() == [10.0]
 
 
+def test_offset_pages_bypass_cache_without_evicting_first_page(
+    data_cache: _InMemoryCache,
+    provider: MagicMock,
+    datasource: MagicMock,
+) -> None:
+    """Unreusable pagination offsets neither read nor seed containment entries."""
+    provider.get_table.return_value = _result([("GB", "London", 10.0)])
+    get_results(_query(datasource))
+    stored: dict[str, object] = dict(data_cache.store)
+    page: ValidatedQueryObject = _query(datasource)
+    page.row_offset = 10
+    first: QueryResult = get_results(page)
+    second: QueryResult = get_results(page)
+    assert first.semantic_cache_status == second.semantic_cache_status == "MISS"
+    assert provider.get_table.call_count == 3
+    assert data_cache.store == stored
+    assert get_results(_query(datasource)).semantic_cache_status == "HIT"
+
+
 def test_none_results_are_normalized_before_store(
     data_cache: _InMemoryCache,
     provider: MagicMock,
