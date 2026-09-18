@@ -179,17 +179,22 @@ test('shows color scheme when a series dimension is set or direction coloring is
   ).toBe(true);
 });
 
-test('shows color by direction and increase/decrease colors only without a Series dimension', () => {
-  const colorByDirection = getControl(
-    'color_by_direction',
-  ) as VisibilityControl | null;
+test('keeps color by direction visible when a series dimension is set', () => {
+  const colorByDirection = getControl('color_by_direction') as {
+    name: string;
+    config: { visibility?: (props: ControlPanelsContainerProps) => boolean };
+  } | null;
+  expect(colorByDirection).not.toBeNull();
+  expect(colorByDirection?.config.visibility).toBeUndefined();
+});
+
+test('shows increase and decrease colors when color by direction is on, even with a series dimension', () => {
   const increaseColor = getControl(
     'increase_color',
   ) as VisibilityControl | null;
   const decreaseColor = getControl(
     'decrease_color',
   ) as VisibilityControl | null;
-  expect(colorByDirection?.config.visibility).toBeDefined();
   expect(increaseColor?.config.visibility).toBeDefined();
   expect(decreaseColor?.config.visibility).toBeDefined();
 
@@ -200,12 +205,10 @@ test('shows color by direction and increase/decrease colors only without a Serie
     controls: { series: { value: 'symbol' } },
   } as unknown as ControlPanelsContainerProps;
 
-  expect(colorByDirection!.config.visibility(noSeries)).toBe(true);
   expect(increaseColor!.config.visibility(noSeries)).toBe(true);
   expect(decreaseColor!.config.visibility(noSeries)).toBe(true);
-  expect(colorByDirection!.config.visibility(withSeries)).toBe(false);
-  expect(increaseColor!.config.visibility(withSeries)).toBe(false);
-  expect(decreaseColor!.config.visibility(withSeries)).toBe(false);
+  expect(increaseColor!.config.visibility(withSeries)).toBe(true);
+  expect(decreaseColor!.config.visibility(withSeries)).toBe(true);
 });
 
 test('hides increase and decrease colors when color by direction is off', () => {
