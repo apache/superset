@@ -50,6 +50,7 @@ describe('useResultsPane query data reuse', () => {
       queriesResponse: [
         {
           colnames: ['genre'],
+          collabels: ['Genre'],
           coltypes: [1],
           data: [{ genre: 'Action' }, { genre: 'Horror' }],
           rowcount: 2,
@@ -59,7 +60,8 @@ describe('useResultsPane query data reuse', () => {
 
     render(<ResultsPaneOnDashboard {...props} />, { useRedux: true });
 
-    expect(await screen.findByText('Action')).toBeVisible();
+    expect(await screen.findByText('Genre')).toBeVisible();
+    expect(screen.getByText('Action')).toBeVisible();
     expect(screen.getByText('Horror')).toBeVisible();
     expect(mockedGetChartDataRequest).not.toHaveBeenCalled();
   });
@@ -70,6 +72,7 @@ describe('useResultsPane query data reuse', () => {
         result: [
           {
             colnames: ['genre'],
+            collabels: ['Genre'],
             coltypes: [1],
             data: [{ genre: 'Drama' }],
             rowcount: 1,
@@ -81,7 +84,8 @@ describe('useResultsPane query data reuse', () => {
 
     render(<ResultsPaneOnDashboard {...props} />, { useRedux: true });
 
-    expect(await screen.findByText('Drama')).toBeVisible();
+    expect(await screen.findByText('Genre')).toBeVisible();
+    expect(screen.getByText('Drama')).toBeVisible();
     expect(mockedGetChartDataRequest).toHaveBeenCalledTimes(1);
   });
 

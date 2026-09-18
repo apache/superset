@@ -27,14 +27,16 @@ import {
 } from 'spec/helpers/testing-library';
 import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridReact';
 import { useResultsTableView } from './useResultsTableView';
+import { QueryData } from '@superset-ui/core';
 
 beforeAll(() => {
   setupAGGridModules();
 });
 
-const MOCK_CHART_DATA_RESULT = [
+const MOCK_CHART_DATA_RESULT: QueryData[] = [
   {
     colnames: ['name', 'sum__num'],
+    collabels: ['Name', 'Sum'],
     coltypes: [1, 0],
     data: [
       {
@@ -57,6 +59,7 @@ const MOCK_CHART_DATA_RESULT = [
   },
   {
     colnames: ['gender', 'year', 'count'],
+    collabels: ['Gender', 'Year', 'Count'],
     coltypes: [1, 0, 0],
     data: [
       {
@@ -79,8 +82,8 @@ test('Displays results table for 1 query', () => {
   );
   render(result.current, { useRedux: true });
   expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
-  expect(screen.getByText('name')).toBeInTheDocument();
-  expect(screen.getByText('sum__num')).toBeInTheDocument();
+  expect(screen.getByText('Name')).toBeInTheDocument();
+  expect(screen.getByText('Sum')).toBeInTheDocument();
   expect(screen.getByText('Michael')).toBeInTheDocument();
 });
 
@@ -100,7 +103,7 @@ test('Displays results for 2 queries', async () => {
   userEvent.click(screen.getByText('Results 2'));
 
   await waitFor(() => {
-    expect(screen.getByText('gender')).toBeInTheDocument();
+    expect(screen.getByText('Gender')).toBeInTheDocument();
   });
   expect(screen.getByText('boy')).toBeInTheDocument();
 });

@@ -68,6 +68,7 @@ export const SamplesPane = ({
   const [rowLimit, setRowLimit] = useState(DEFAULT_ROW_LIMIT);
   const [data, setData] = useState<Record<string, any>[][]>([]);
   const [colnames, setColnames] = useState<string[]>([]);
+  const [collabels, setCollabels] = useState<string[]>([]);
   const [coltypes, setColtypes] = useState<GenericDataType[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [rowcount, setRowCount] = useState<number>(0);
@@ -113,6 +114,7 @@ export const SamplesPane = ({
           setData(rows);
           setColnames(ensureIsArray(response?.colnames));
           setColtypes(ensureIsArray(response?.coltypes));
+          setCollabels(ensureIsArray(response?.collabels));
           // Fall back to the rows actually returned rather than to zero: the
           // controls only render when there are rows, and a hardcoded 0 would
           // label a populated table as "0 rows".
@@ -126,6 +128,7 @@ export const SamplesPane = ({
         .catch(error => {
           setData([]);
           setColnames([]);
+          setCollabels([]);
           setColtypes([]);
           setResponseError(`${error.name}: ${error.message}`);
         })
@@ -135,7 +138,7 @@ export const SamplesPane = ({
     }
   }, [datasource, queryFormData, isRequest, queryForce, rowLimit]);
 
-  const columns = useGridColumns(colnames, coltypes, data);
+  const columns = useGridColumns(colnames, coltypes, collabels, data);
   const keywordFilter = useKeywordFilter(filterText);
   // Samples aren't capped by a chart's row_limit, just this pane's own
   // page-size selector, so RowCountLabel's default "chart" wording is wrong here.
