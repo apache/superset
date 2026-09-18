@@ -36,6 +36,7 @@ from superset.semantic_layers.cache_repository import (
     SemanticCacheCoordinationError,
     SemanticCacheLookupResult,
     SemanticCacheRepository,
+    SemanticCacheStoreError,
 )
 from tests.unit_tests.semantic_layers.conftest import (
     build_semantic_query,
@@ -261,6 +262,25 @@ def test_coordination_metric_failure_does_not_replace_typed_failure() -> None:
         coordinator.mutate("bucket", MagicMock())
 
     metric.assert_called_once_with(SEMANTIC_CACHE_COORDINATION_FAILURE_METRIC)
+
+
+def test_mutation_failure_is_logged_before_release_failure(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Lease cleanup failure must not hide the original mutation in the logs."""
+    backend: MagicMock = MagicMock()
+    backend.acquire_owner_token.return_value = True
+    backend.release_owner_token.return_value = False
+    failure: SemanticCacheStoreError = SemanticCacheStoreError("payload write failed")
+    operation: MagicMock = MagicMock(side_effect=failure)
+    coordinator: SemanticCacheCoordinator = SemanticCacheCoordinator(
+        backend, SemanticCacheCoordinationSettings(0.0, 10)
+    )
+    with pytest.raises(SemanticCacheCoordinationError, match="ownership was lost"):
+        coordinator.mutate("bucket", operation)
+    assert "Semantic cache mutation failed before lease release" in caplog.text
+    assert "payload write failed" in caplog.text
+    backend.release_owner_token.assert_called_once()
 
 
 @pytest.mark.parametrize(
