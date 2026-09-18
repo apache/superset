@@ -21,6 +21,7 @@ from io import BytesIO
 from time import sleep
 from unittest.mock import ANY, patch
 from zipfile import is_zipfile, ZipFile
+from werkzeug.test import TestResponse
 
 from tests.integration_tests.insert_chart_mixin import InsertChartMixin
 
@@ -30,9 +31,11 @@ import yaml
 
 from freezegun import freeze_time
 from sqlalchemy import and_
+from sqlalchemy.engine.reflection import Inspector
 from superset import db, security_manager  # noqa: F401
 from superset.commands.dashboard.permalink.create import CreateDashboardPermalinkCommand
 from superset.exceptions import LockAlreadyHeldException
+from superset.daos.dashboard import DashboardDAO
 from superset.models.dashboard import Dashboard
 from superset.models.core import FavStar, FavStarClassName
 from superset.reports.models import ReportSchedule, ReportScheduleType
@@ -1952,6 +1955,144 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         assert str(model.uuid) == str(data["uuid"])
         db.session.delete(model)
         db.session.commit()
+
+    def test_create_dashboard_slug_held_by_soft_deleted(self) -> None:
+        """sc-107581: a slug held by a soft-deleted dashboard is actionable.
+
+        Whether a soft-deleted dashboard still reserves its slug depends on
+        the schema, not the code: migration 9e1f3b8c4d2a gives PostgreSQL and
+        MySQL 8.0+ a partial unique index scoped to live rows (deleted rows
+        release the slug, so the second create SUCCEEDS), while SQLite,
+        MariaDB, and MySQL < 8 keep a full unique constraint (the insert
+        collides at flush). This test introspects which schema it is running
+        against; on a SQLite database that has neither (built by
+        ``create_all`` from the model, which no longer declares the column
+        unique), it creates the full unique index in-test to exercise the
+        collision path the way a migration-built database would.
+
+        In the collision case the response must be a 422 naming the deleted
+        holder's uuid and the restore endpoint instead of the old opaque
+        IntegrityError 422.
+        """
+        from sqlalchemy import inspect as sa_inspect
+        from sqlalchemy import text
+
+        from superset.models.helpers import skip_visibility_filter
+
+        insp: Inspector = sa_inspect(db.engine)
+        slug_reserved_by_deleted: bool = any(
+            uc["column_names"] == ["slug"]
+            for uc in insp.get_unique_constraints("dashboards")
+        ) or any(
+            ix.get("unique")
+            and ix["column_names"] == ["slug"]
+            and ix["name"] != "ix_dashboards_active_slug"
+            for ix in insp.get_indexes("dashboards")
+        )
+        test_index: str | None = None
+        if not slug_reserved_by_deleted and db.engine.dialect.name == "sqlite":
+            test_index = "uq_test_sc107581_dashboards_slug"
+            with db.engine.connect() as conn:
+                conn.execute(
+                    text(f"CREATE UNIQUE INDEX {test_index} ON dashboards (slug)")
+                )
+            slug_reserved_by_deleted = True
+
+        self.login(ADMIN_USERNAME)
+        uri: str = "api/v1/dashboard/"
+        try:
+            first: TestResponse = self.post_assert_metric(
+                uri, {"dashboard_title": "held", "slug": "sc107581-held"}, "post"
+            )
+            assert first.status_code == 201
+            first_id: int = json.loads(first.data.decode("utf-8"))["id"]
+            holder: Dashboard = db.session.query(Dashboard).get(first_id)
+            holder_uuid: str = str(holder.uuid)
+            DashboardDAO.soft_delete([holder])
+            db.session.commit()
+
+            rv: TestResponse = self.post_assert_metric(
+                uri, {"dashboard_title": "reclaim", "slug": "sc107581-held"}, "post"
+            )
+
+            if slug_reserved_by_deleted:
+                assert rv.status_code == 422
+                body: str = rv.data.decode("utf-8")
+                assert holder_uuid in body
+                assert f"/api/v1/dashboard/{holder_uuid}/restore" in body
+            else:
+                # Partial-index schema: the deleted row released the slug.
+                assert rv.status_code == 201
+        finally:
+            db.session.rollback()
+            with skip_visibility_filter(db.session, Dashboard):
+                rows: list[Dashboard] = (
+                    db.session.query(Dashboard)
+                    .filter(Dashboard.slug == "sc107581-held")
+                    .all()
+                )
+            row: Dashboard
+            for row in rows:
+                db.session.delete(row)
+            db.session.commit()
+            if test_index:
+                with db.engine.connect() as conn:
+                    conn.execute(text(f"DROP INDEX {test_index}"))
+
+    def test_create_dashboard_uuid_collision_is_not_slug_guidance(self) -> None:
+        """Do not advise restoring an archived slug holder for a UUID collision."""
+        from superset.models.helpers import skip_visibility_filter
+
+        # UUIDMixin declares uuid with unique=True, so create_all also creates
+        # UUID uniqueness on SQLite; no test-created index is needed here.
+        self.login(ADMIN_USERNAME)
+        uri: str = "api/v1/dashboard/"
+        archived_slug: str = "sc107581-uuid-archived"
+        live_slug: str = "sc107581-uuid-live"
+        try:
+            first: TestResponse = self.post_assert_metric(
+                uri,
+                {"dashboard_title": "archived uuid test", "slug": archived_slug},
+                "post",
+            )
+            assert first.status_code == 201
+            first_id: int = json.loads(first.data.decode("utf-8"))["id"]
+            holder: Dashboard = db.session.query(Dashboard).filter_by(id=first_id).one()
+            holder_uuid: str = str(holder.uuid)
+            DashboardDAO.soft_delete([holder])
+            db.session.commit()
+            live: TestResponse = self.post_assert_metric(
+                uri, {"dashboard_title": "live uuid test", "slug": live_slug}, "post"
+            )
+            assert live.status_code == 201
+            live_uuid: str = json.loads(live.data.decode("utf-8"))["uuid"]
+            response: TestResponse = self.post_assert_metric(
+                uri,
+                {
+                    "dashboard_title": "conflicting uuid",
+                    "slug": archived_slug,
+                    "uuid": live_uuid,
+                },
+                "post",
+            )
+            assert response.status_code == 422
+            body: str = response.data.decode("utf-8")
+            assert "restore" not in body.lower()
+            assert holder_uuid not in body
+            assert archived_slug not in body
+            assert json.loads(body)["message"] == "Dashboards could not be created."
+        finally:
+            db.session.rollback()
+            with skip_visibility_filter(db.session, Dashboard):
+                rows: list[Dashboard] = (
+                    db.session.query(Dashboard)
+                    .filter(Dashboard.slug.in_([archived_slug, live_slug]))
+                    .all()
+                )
+            row: Dashboard
+            for row in rows:
+                db.session.delete(row)
+            db.session.commit()
 
     def test_create_dashboard_via_api_links_charts_from_positions(self):
         """Regression for #32966: creating a dashboard through the REST API with a

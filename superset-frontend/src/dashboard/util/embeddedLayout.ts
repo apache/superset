@@ -18,16 +18,15 @@
  */
 
 /**
- * Jest configuration for @storybook/test-runner
- *
- * This extends the default test-runner config with custom timeouts
- * to handle slow story rendering in CI environments.
+ * Class names the embedded API measures the page by. Class names rather than
+ * `data-test`, which the production build strips.
  */
-const { getJestConfig } = require('@storybook/test-runner');
-const testRunnerConfig = getJestConfig();
 
-module.exports = {
-  ...testRunnerConfig,
-  // Increase timeout from default 15s to 60s for CI environments
-  testTimeout: 60000,
-};
+/** The dashboard grid: once it is mounted, the layout has its full height. */
+export const DASHBOARD_GRID_CLASS = 'dashboard-grid';
+
+/** The vertical filter bar when bounded to its content inside an embed. */
+export const FILTER_BAR_BOUNDED_CLASS = 'filter-bar-bounded';
+
+/** The only scrolling part of the bounded filter bar. */
+export const FILTER_BAR_SCROLL_CLASS = 'filter-bar-scroll';

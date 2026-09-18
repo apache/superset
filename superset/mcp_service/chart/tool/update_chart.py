@@ -44,18 +44,23 @@ from superset.mcp_service.chart.chart_utils import (
     merge_interactive_pivot_ui_config,
     merge_table_column_config,
     resolve_treemap_update_config,
+    validate_gantt_form_data,
 )
 from superset.mcp_service.chart.compile import validate_and_compile
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
     ChartConfig,
     ColumnRef,
+    GanttChartConfig,
     GaugeChartConfig,
     GenerateChartResponse,
     PerformanceMetadata,
     TableChartConfig,
     TreemapChartConfig,
     UpdateChartRequest,
+)
+from superset.mcp_service.chart.validation.dataset_validator import (
+    GanttSemanticNormalizationError,
 )
 from superset.mcp_service.utils.oauth2_utils import (
     build_oauth2_redirect_message,
@@ -372,11 +377,11 @@ def _build_replacement_form_data(
     new_form_data.pop("_mcp_warnings", None)
     dataset_rebind = replacement_dataset_id is not None
     if replacement_dataset_id is not None and not isinstance(
-        parsed_config, (GaugeChartConfig, TreemapChartConfig)
+        parsed_config, (GanttChartConfig, GaugeChartConfig, TreemapChartConfig)
     ):
         # Drop only the inherited state the replacement dataset cannot
-        # resolve, then merge as a same-dataset update. Gauge keeps the
-        # stricter presentation-only rebind handled downstream.
+        # resolve, then merge as a same-dataset update. Gantt and Gauge keep the
+        # stricter rebind contracts handled downstream.
         invalid_keys = _inherited_state_invalid_keys(
             existing_form_data,
             new_form_data,
@@ -581,6 +586,22 @@ def _validate_update_against_dataset(
                 "api_version": "v1",
             }
         )
+
+    try:
+        merged_gantt_config = validate_gantt_form_data(
+            form_data,
+            dataset.id,
+        )
+    except GanttSemanticNormalizationError as ex:
+        return _validation_error_response(
+            message="Gantt chart column roles are invalid",
+            details=str(ex),
+        )
+    if merged_gantt_config is not None:
+        # Validation must describe the state that will actually be queried or
+        # persisted, including any omitted series/subcategory values restored
+        # from the saved chart.
+        parsed_config = merged_gantt_config
 
     compile_result = validate_and_compile(
         parsed_config, form_data, dataset, run_compile_check=run_compile_check
@@ -889,6 +910,11 @@ async def update_chart(  # noqa: C901
                     request = request.model_copy(
                         update={"add_columns": validation_config.columns}
                     )
+            except GanttSemanticNormalizationError as ex:
+                return _validation_error_response(
+                    message="Gantt chart column roles are invalid",
+                    details=str(ex),
+                )
             except NORMALIZATION_EXCEPTIONS as e:
                 logger.warning(
                     "Column normalization failed for chart %s: %s", chart.id, e
@@ -1091,6 +1117,11 @@ async def update_chart(  # noqa: C901
         }
         return GenerateChartResponse.model_validate(result)
 
+    except GanttSemanticNormalizationError as ex:
+        return _validation_error_response(
+            message="Gantt chart column roles are invalid",
+            details=str(ex),
+        )
     except OAuth2RedirectError as ex:
         await ctx.warning(
             "Chart update requires OAuth authentication: identifier=%s"
