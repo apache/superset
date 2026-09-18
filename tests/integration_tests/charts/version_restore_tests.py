@@ -194,6 +194,7 @@ class TestChartRestoreApi(SupersetTestCase):
         assert chart is not None
         chart_id = chart.id
         chart_uuid = chart.uuid
+        assert chart_uuid is not None
 
         # Edit + commit so there is a version whose value equals the *current*
         # live value — that version is the restore target.
@@ -255,6 +256,7 @@ class TestChartRestoreApi(SupersetTestCase):
         assert chart is not None
         chart_id = chart.id
         chart_uuid = chart.uuid
+        assert chart_uuid is not None
 
         chart.slice_name = "Boys v1"
         db.session.commit()
@@ -300,6 +302,7 @@ class TestChartRestoreApi(SupersetTestCase):
         assert chart is not None
         chart_id = chart.id
         chart_uuid = chart.uuid
+        assert chart_uuid is not None
 
         chart.slice_name = "Boys v1"
         db.session.commit()
