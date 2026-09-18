@@ -16,11 +16,32 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import type {
   PartitionMappingColumn,
   PartitionMappingDatasource,
   PartitionRowState,
 } from './types';
+
+/**
+ * Whether the dataset editor should offer partition filter mapping at all.
+ *
+ * The single source of truth for the gate, so every place that shows partition
+ * mapping UI stays in lockstep: it needs the feature flag on, a datasource to
+ * read, and an engine that advertises support (`supports_partition_filter_mapping`,
+ * true only for partition-directory engines like Hive/Impala/Spark). This lived
+ * inline at one call site and was missed at another, which showed the section on
+ * engines that do not support it -- hence one predicate both sites share.
+ */
+export function partitionFilterMappingEnabled(
+  datasource: PartitionMappingDatasource | undefined,
+): boolean {
+  return (
+    isFeatureEnabled(FeatureFlag.PartitionFilterMapping) &&
+    Boolean(datasource) &&
+    Boolean(datasource?.supports_partition_filter_mapping)
+  );
+}
 
 /**
  * The bare `:value` placeholder, i.e. the identity transform.
