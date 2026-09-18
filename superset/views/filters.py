@@ -374,6 +374,17 @@ class SoftDeleteApiMixin:
     ``pre_get_list`` behaviour in the inheritance chain still runs.
     When the request has not opted into soft-deleted visibility, the
     augmentation is a no-op.
+
+    Concrete restore routes may delegate to ``_restore_soft_deleted`` after
+    binding ``restore_command_cls``, the not-found/forbidden/restore-failed
+    exception tuples, and ``soft_delete_logger``. ``restore_conflict_errors``
+    optionally identifies expected conflicts that return 422 without logging.
+
+    Chart/dashboard purge routes may bind ``purge_binding`` and
+    ``purge_failed_errors`` to use ``_purge_soft_deleted`` with the shared
+    not-found/forbidden tuples and logger. Dataset purge remains concrete:
+    it validates a request body and a confirmed impact token. List augmentation
+    alone does not require restore or purge bindings.
     """
 
     # Concrete subclasses bind these via FAB's ModelRestApi machinery.

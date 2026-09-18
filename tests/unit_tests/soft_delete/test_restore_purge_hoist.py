@@ -24,6 +24,7 @@ import re
 from collections.abc import Callable
 from importlib import import_module
 from pathlib import Path
+from types import ModuleType
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -174,10 +175,12 @@ def test_command_response_mapping(
     api.response_422 = MagicMock()
     api.soft_delete_logger = MagicMock()
     command: MagicMock = MagicMock()
+    exceptions: ModuleType = import_module(f"superset.commands.{entity}.exceptions")
+    failure_kind: str = "Restore" if action == "restore" else "Delete"
     error_types: dict[str, type[Exception]] = {
-        "not_found": api.soft_delete_not_found_errors[0],
-        "forbidden": api.soft_delete_forbidden_errors[0],
-        "failed": getattr(api, f"{action}_failed_errors")[0],
+        "not_found": getattr(exceptions, f"{entity.title()}NotFoundError"),
+        "forbidden": getattr(exceptions, f"{entity.title()}ForbiddenError"),
+        "failed": getattr(exceptions, f"{entity.title()}{failure_kind}FailedError"),
         "unexpected": RuntimeError,
     }
     error: Exception | None = error_types[outcome]() if outcome != "success" else None
@@ -226,10 +229,40 @@ def test_restore_conflict_is_not_logged(
     api: Any = object.__new__(api_classes[entity])
     api.response_422 = MagicMock()
     api.soft_delete_logger = MagicMock()
-    error: Exception = api.restore_conflict_errors[0]()
+    exceptions: ModuleType = import_module(f"superset.commands.{entity}.exceptions")
+    conflict_name: str = {
+        "dashboard": "DashboardSlugConflictError",
+        "dataset": "DatasetLogicalDuplicateError",
+    }[entity]
+    error: Exception = getattr(exceptions, conflict_name)()
     with patch.object(type(api), "restore_command_cls") as command:
         command.return_value.run.side_effect = error
         result: Any = inspect.unwrap(type(api).restore)(api, "entity-uuid")
     assert result is api.response_422.return_value
     api.response_422.assert_called_once_with(message=str(error))
     api.soft_delete_logger.error.assert_not_called()
+
+
+@pytest.mark.parametrize("entity,action", ROUTES)
+def test_concrete_command_bindings(
+    api_classes: dict[str, type[Any]], entity: str, action: str
+) -> None:
+    """Pin command identities without deriving expectations from API bindings."""
+    api_class: type[Any] = api_classes[entity]
+    if action == "restore":
+        commands: ModuleType = import_module(f"superset.commands.{entity}.restore")
+        assert api_class.restore_command_cls is getattr(
+            commands, f"Restore{entity.title()}Command"
+        )
+    else:
+        from superset.commands.purge import SoftDeleteBinding
+
+        daos: ModuleType = import_module(f"superset.daos.{entity}")
+        exceptions: ModuleType = import_module(f"superset.commands.{entity}.exceptions")
+        expected: SoftDeleteBinding = SoftDeleteBinding(
+            dao=getattr(daos, f"{entity.title()}DAO"),
+            not_found=getattr(exceptions, f"{entity.title()}NotFoundError"),
+            forbidden=getattr(exceptions, f"{entity.title()}ForbiddenError"),
+            delete_failed=getattr(exceptions, f"{entity.title()}DeleteFailedError"),
+        )
+        assert api_class.purge_binding == expected
