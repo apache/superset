@@ -354,7 +354,7 @@
     "unzipper": "^0.12.5",
     "wait-on": "^9.1.0",
     "webpack": "^5.110.3",
-    "webpack-bundle-analyzer": "^5.3.2",
+    "webpack-bundle-analyzer": "^5.3.3",
     "webpack-cli": "^7.2.3",
     "webpack-dev-server": "^6.0.0",
     "webpack-manifest-plugin": "^6.0.1",
