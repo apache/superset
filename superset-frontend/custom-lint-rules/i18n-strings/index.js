@@ -180,8 +180,8 @@ const plugin = {
 
           // Check for button-specific props
           if (parent.type === 'Property') {
-            const key =
-              /** @type {{ key: { name: string } }} */ (parent).key.name;
+            const key = /** @type {{ key: { name: string } }} */ (parent).key
+              .name;
             return [
               'primaryButtonName',
               'secondaryButtonName',
