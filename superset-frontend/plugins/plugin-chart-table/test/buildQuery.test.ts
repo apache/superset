@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { QueryMode, TimeGranularity, VizType } from '@superset-ui/core';
+import {
+  AdhocColumn,
+  QueryMode,
+  TimeGranularity,
+  VizType,
+} from '@superset-ui/core';
 import buildQueryCached, {
   buildQuery as buildQueryUncached,
 } from '../src/buildQuery';
@@ -49,6 +54,108 @@ const extraQueryFormData: TableChartFormData = {
     } as any,
   ],
 };
+test.each([TimeGranularity.DAY, TimeGranularity.MONTH])(
+  'preserves semantic temporal references with grain %s',
+  grain => {
+    const query = buildQueryUncached({
+      ...basicFormData,
+      datasource: '2__semantic_view',
+      metrics: ['average_order_value'],
+      groupby: ['metric_time'],
+      time_grain_sqla: grain,
+      temporal_columns_lookup: { metric_time: true },
+    }).queries[0];
+
+    expect(query.columns).toEqual([
+      {
+        timeGrain: grain,
+        columnType: 'BASE_AXIS',
+        sqlExpression: 'metric_time',
+        label: 'metric_time',
+        expressionType: 'SQL',
+        isColumnReference: true,
+      },
+    ]);
+    expect(query.metrics).toEqual(['average_order_value']);
+  },
+);
+
+test('preserves semantic reference when a filter overrides the chart grain', () => {
+  const query = buildQueryUncached({
+    ...basicFormData,
+    datasource: '2__semantic_view',
+    groupby: ['metric_time'],
+    time_grain_sqla: TimeGranularity.DAY,
+    extra_form_data: { time_grain_sqla: TimeGranularity.MONTH },
+    temporal_columns_lookup: { metric_time: true },
+  }).queries[0];
+
+  expect(query.columns).toEqual([
+    {
+      timeGrain: TimeGranularity.MONTH,
+      columnType: 'BASE_AXIS',
+      sqlExpression: 'metric_time',
+      label: 'metric_time',
+      expressionType: 'SQL',
+      isColumnReference: true,
+    },
+  ]);
+});
+
+test.each(['2__semantic_view', '11__table'])(
+  'retains raw temporal columns without a grain for %s',
+  datasource => {
+    const query = buildQueryUncached({
+      ...basicFormData,
+      datasource,
+      groupby: ['metric_time'],
+      temporal_columns_lookup: { metric_time: true },
+    }).queries[0];
+
+    expect(query.columns).toEqual(['metric_time']);
+  },
+);
+
+test.each([TimeGranularity.DAY, TimeGranularity.MONTH])(
+  'preserves ordinary dataset temporal SQL with grain %s',
+  grain => {
+    const query = buildQueryUncached({
+      ...basicFormData,
+      groupby: ['metric_time'],
+      time_grain_sqla: grain,
+      temporal_columns_lookup: { metric_time: true },
+    }).queries[0];
+
+    expect(query.columns).toEqual([
+      {
+        timeGrain: grain,
+        columnType: 'BASE_AXIS',
+        sqlExpression: 'metric_time',
+        label: 'metric_time',
+        expressionType: 'SQL',
+      },
+    ]);
+  },
+);
+
+test('does not mark a semantic SQL expression as a declared column reference', () => {
+  const expression: AdhocColumn = {
+    expressionType: 'SQL',
+    sqlExpression: 'metric_time + 1',
+    label: 'shifted_time',
+  };
+  const query = buildQueryUncached({
+    ...basicFormData,
+    datasource: '2__semantic_view',
+    groupby: [expression],
+    time_grain_sqla: TimeGranularity.DAY,
+    temporal_columns_lookup: { shifted_time: true, metric_time: true },
+  }).queries[0];
+
+  expect(query.columns).toEqual([expression]);
+  expect(query.columns?.[0]).not.toHaveProperty('isColumnReference');
+});
+
 describe('plugin-chart-table', () => {
   describe('buildQuery', () => {
     test('should add post-processing and ignore duplicate metrics', () => {

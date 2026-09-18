@@ -711,7 +711,7 @@ test('shows error indicator when controls have validation errors', async () => {
     'query-error-tooltip-trigger',
   );
 
-  userEvent.hover(errorIndicator);
+  await userEvent.hover(errorIndicator);
 
   const tooltip = await screen.findByRole('tooltip');
   expect(tooltip).toBeInTheDocument();
@@ -750,7 +750,7 @@ test('shows error indicator for multiple controls with validation errors', async
     'query-error-tooltip-trigger',
   );
 
-  userEvent.hover(errorIndicator);
+  await userEvent.hover(errorIndicator);
 
   const tooltip = await screen.findByRole('tooltip');
   expect(tooltip).toBeInTheDocument();
@@ -783,7 +783,7 @@ test('shows error indicator for control with multiple validation errors', async 
     'query-error-tooltip-trigger',
   );
 
-  userEvent.hover(errorIndicator);
+  await userEvent.hover(errorIndicator);
 
   const tooltip = await screen.findByRole('tooltip');
   expect(tooltip).toBeInTheDocument();
@@ -820,7 +820,7 @@ test('shows error indicator with function labels', async () => {
     'query-error-tooltip-trigger',
   );
 
-  userEvent.hover(errorIndicator);
+  await userEvent.hover(errorIndicator);
 
   const tooltip = await screen.findByRole('tooltip');
   expect(tooltip).toBeInTheDocument();
