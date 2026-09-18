@@ -100,6 +100,7 @@ def test_legacy_id_looking_title_rejected_before_cache_and_mapper(
         extras={"semantic_selection_version": version},
     )
     processor: QueryContextProcessor = QueryContextProcessor(MagicMock())
+    cache: MagicMock
     with patch(
         "superset.common.query_context_processor.QueryCacheManager.get"
     ) as cache:
@@ -150,7 +151,8 @@ def test_incompatible_overlay_reports_filter_scope_remediation() -> None:
         extras={"semantic_selection_version": "unverified-external-selections"},
     )
     with pytest.raises(
-        QueryObjectValidationError, match="remove this chart from its scope"
+        QueryObjectValidationError,
+        match="Dynamic group-by is unsupported.*remove this chart from its scope",
     ):
         query.validate()
 
@@ -186,6 +188,7 @@ def test_name_based_entrypoints_preserve_explicit_identity_version(
     if version is None:
         assert "semantic_selection_version" not in query_dict.get("extras", {})
         processor: QueryContextProcessor = QueryContextProcessor(MagicMock())
+        cache: MagicMock
         with patch(
             "superset.common.query_context_processor.QueryCacheManager.get"
         ) as cache:

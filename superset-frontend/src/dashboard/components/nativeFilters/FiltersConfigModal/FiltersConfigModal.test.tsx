@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Preset, DatasourceType } from '@superset-ui/core';
+import { Preset, DatasourceType, Filter } from '@superset-ui/core';
 import fetchMock from 'fetch-mock';
 import chartQueries from 'spec/fixtures/mockChartQueries';
 import { dashboardLayout } from 'spec/fixtures/mockDashboardLayout';
@@ -1122,7 +1122,7 @@ test('toggles "Filter has default value" to show and hide the Default Value cont
   });
 });
 
-test('semantic filter reset clears saved defaults before member reselection', async () => {
+test('semantic filter reset requires reselection and survives save and reopen', async () => {
   fetchMock.get('glob:*/api/v1/semantic_view/987/structure', {
     result: {
       name: 'Orders',
@@ -1154,7 +1154,17 @@ test('semantic filter reset clears saved defaults before member reselection', as
     dashboardInfo: { metadata: { native_filter_configuration: [filter] } },
     dashboardLayout,
   };
-  defaultRender(state, { ...props, createNewOnOpen: false });
+  const onSave = jest
+    .fn<
+      ReturnType<FiltersConfigModalProps['onSave']>,
+      Parameters<FiltersConfigModalProps['onSave']>
+    >()
+    .mockResolvedValue(undefined);
+  const { unmount } = defaultRender(state, {
+    ...props,
+    onSave,
+    createNewOnOpen: false,
+  });
   await userEvent.click(
     await screen.findByRole('button', { name: 'Start field selection' }),
   );
@@ -1167,4 +1177,43 @@ test('semantic filter reset clears saved defaults before member reselection', as
   expect(screen.queryByText('old default')).not.toBeInTheDocument();
   await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
   expect(await screen.findByText(COLUMN_REQUIRED_REGEX)).toBeInTheDocument();
+  expect(onSave).not.toHaveBeenCalled();
+
+  // This ID also spelled the legacy title; only explicit reselection certifies it.
+  await userEvent.click(
+    screen.getByRole('combobox', { name: 'Column select' }),
+  );
+  await userEvent.click(await screen.findByText('Orders.status'));
+  // Column validation clears the previous save error asynchronously.
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: SAVE_REGEX })).toBeEnabled(),
+  );
+  await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
+  await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+  const changes = onSave.mock.calls[0][0].filterChanges;
+  expect(changes?.modified).toHaveLength(1);
+  const saved = changes?.modified[0];
+  const reopened: Filter = JSON.parse(JSON.stringify(saved));
+  expect(reopened.targets).toEqual([
+    {
+      datasetId: 987,
+      datasourceType: DatasourceType.SemanticView,
+      column: { name: 'Orders.status' },
+      semantic_selection_version: 'cube-member-id-v1',
+    },
+  ]);
+  expect(reopened.defaultDataMask.filterState?.value).toBeUndefined();
+  expect(reopened.defaultDataMask.extraFormData?.filters).toBeUndefined();
+
+  unmount();
+  const reopenedState = {
+    ...state,
+    dashboardInfo: { metadata: { native_filter_configuration: [reopened] } },
+  };
+  defaultRender(reopenedState, { ...props, createNewOnOpen: false });
+  expect(await screen.findByText('Orders.status')).toBeInTheDocument();
+  expect(
+    screen.queryByRole('button', { name: 'Start field selection' }),
+  ).not.toBeInTheDocument();
+  expect(screen.queryByText('old default')).not.toBeInTheDocument();
 });

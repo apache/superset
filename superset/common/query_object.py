@@ -420,8 +420,10 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                         raise QueryObjectValidationError(
                             _(
                                 "A dashboard filter or display control has "
-                                "incompatible semantic selections. Reset and "
-                                "reselect its fields or "
+                                "incompatible semantic selections. Dynamic group-by "
+                                "is unsupported on versioned semantic views; remove "
+                                "this chart from that control's scope. For other "
+                                "filters or controls, reset and reselect fields or "
                                 "saved values. If it targets another semantic view, "
                                 "remove this chart from its scope."
                             )

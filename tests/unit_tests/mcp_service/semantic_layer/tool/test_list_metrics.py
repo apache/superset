@@ -236,7 +236,9 @@ async def test_list_metrics_external_includes_verbose_name(
 ) -> None:
     """External metrics include verbose_name, matching the builtin path."""
     mock_view: MagicMock = _make_view(5)
-    mock_view.implementation.selection_identity_version = "cube-member-id-v1"
+    mock_view.implementation.configure_mock(
+        selection_identity_version="cube-member-id-v1"
+    )
     mock_view.metrics[0].verbose_name = "Bookings Count"
 
     with patch.object(list_metrics_module, "SemanticViewDAO") as mock_view_dao:

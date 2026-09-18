@@ -114,7 +114,8 @@ import {
   setNativeFilterFieldValues,
   shouldShowTimeRangePicker,
   useForceUpdate,
-  mapSemanticTypeToGenericDataType,
+  fetchSemanticViewStructure,
+  semanticViewDimensionsToColumns,
   doesChartMatchFilterDatasource,
 } from './utils';
 import {
@@ -749,50 +750,41 @@ const FiltersConfigForm = (
   useEffect(() => {
     if (datasetId) {
       if (datasourceType === DatasourceType.SemanticView) {
-        cachedSupersetGet({
-          endpoint: `/api/v1/semantic_view/${datasetId}/structure`,
-        })
-          .then((response: JsonResponse) => {
-            const {
+        fetchSemanticViewStructure(datasetId)
+          .then(
+            ({
               name: svName,
+              dimensions,
+              metrics: svMetrics,
               semantic_selection_version,
-              dimensions = [],
-              metrics: svMetrics = [],
-            } = response.json?.result ?? {};
-            const columns = dimensions.map(
-              (dim: { name: string; type: string }) => {
-                const mappedType = mapSemanticTypeToGenericDataType(dim.type);
-                return {
-                  column_name: dim.name,
-                  type: dim.type,
-                  is_dttm: mappedType === GenericDataType.Temporal,
-                  filterable: true,
-                  type_generic: mappedType,
-                };
-              },
-            );
-            const mappedMetrics = svMetrics.map(
-              (m: { name: string; definition: string }) => ({
-                metric_name: m.name,
-                expression: m.definition,
-                verbose_name: null,
-              }),
-            );
-            setMetrics(mappedMetrics);
-            setDatasetDetails({
-              semantic_selection_version,
-              columns,
-              metrics: mappedMetrics,
-              datasource_type: DatasourceType.SemanticView,
-              type: DatasourceType.SemanticView,
-              filter_select: true,
-              filter_select_enabled: true,
-              time_grain_sqla: [],
-              main_dttm_col: null,
-              id: datasetId,
-              table_name: svName,
-            });
-          })
+            }) => {
+              const columns = semanticViewDimensionsToColumns(dimensions);
+              // The /structure wire carries no metric uuid, and this state's
+              // consumers key on metric_name/verbose_name without reading
+              // uuid — so the cast is narrowed to exactly that one absent
+              // property; every other field stays compiler-checked.
+              const mappedMetrics = svMetrics.map(
+                (m: { name: string; definition: string }) => ({
+                  metric_name: m.name,
+                  expression: m.definition,
+                }),
+              ) as Omit<Metric, 'uuid'>[] as Metric[];
+              setMetrics(mappedMetrics);
+              setDatasetDetails({
+                semantic_selection_version,
+                columns,
+                metrics: mappedMetrics,
+                datasource_type: DatasourceType.SemanticView,
+                type: DatasourceType.SemanticView,
+                filter_select: true,
+                filter_select_enabled: true,
+                time_grain_sqla: [],
+                main_dttm_col: null,
+                id: datasetId,
+                table_name: svName,
+              });
+            },
+          )
           .catch((response: SupersetApiError) => {
             addDangerToast(response.message);
           });

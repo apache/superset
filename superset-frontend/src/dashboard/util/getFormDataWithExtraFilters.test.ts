@@ -598,7 +598,7 @@ test('chart customization does not match across datasource ID spaces', () => {
 });
 
 test.each([false, true])(
-  'restored customization retains its own selection generation (current=%s)',
+  'dynamic group-by card mask stays unsupported even with a versioned target (current=%s)',
   current => {
     const customizationId = 'CHART_CUSTOMIZATION-identity';
     const result = getFormDataWithExtraFilters({
@@ -618,16 +618,10 @@ test.each([false, true])(
         [customizationId]: {
           id: customizationId,
           filterState: { value: ['Orders.status'] },
-          extraFormData: current
-            ? {
-                semantic_selection_sources: [
-                  {
-                    datasource: '3__semantic_view',
-                    version: 'cube-member-id-v1',
-                  },
-                ],
-              }
-            : {},
+          // Match GroupByFilterCard's emission: it never certifies sources.
+          extraFormData: {
+            custom_form_data: { groupby: ['Orders.status'] },
+          },
         },
       },
       chartCustomizationItems: [
@@ -637,19 +631,22 @@ test.each([false, true])(
             {
               datasetId: 3,
               datasourceType: DatasourceType.SemanticView,
-              semantic_selection_version: 'cube-member-id-v1',
+              semantic_selection_version: current
+                ? 'cube-member-id-v1'
+                : undefined,
             },
           ],
         }),
       ],
     });
+    expectGroupBy(result, ['Orders.status']);
     expect(
       buildQueryObject({
         ...result,
         datasource: '3__semantic_view',
         viz_type: 'table',
       } as QueryFormData).extras?.semantic_selection_version,
-    ).toEqual(current ? 'cube-member-id-v1' : 'unverified-external-selections');
+    ).toEqual('unverified-external-selections');
   },
 );
 
