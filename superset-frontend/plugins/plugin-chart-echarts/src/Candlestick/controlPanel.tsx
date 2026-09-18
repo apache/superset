@@ -50,9 +50,8 @@ function hasSeriesDimension({
 }
 
 function showColorByDirection(props: ControlPanelsContainerProps): boolean {
-  return !hasSeriesDimension(props);
+  return true;
 }
-
 function showDirectionColors(props: ControlPanelsContainerProps): boolean {
   return (
     showColorByDirection(props) &&
