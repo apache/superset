@@ -92,7 +92,11 @@ from superset.mcp_service.chart.tool.update_chart import (
     update_chart,
 )
 from superset.mcp_service.chart.tool.update_chart_preview import update_chart_preview
-from superset.mcp_service.chart.validation.dataset_validator import DatasetValidator
+from superset.mcp_service.chart.validation.dataset_validator import (
+    AmbiguousDatasetReferenceError,
+    DatasetValidator,
+)
+from superset.mcp_service.chart.validation.pipeline import ValidationPipeline
 from superset.mcp_service.common.error_schemas import DatasetContext
 from superset.utils.json import json_int_dttm_ser
 
@@ -838,7 +842,9 @@ def test_bullet_exact_case_type_and_role_resolution_is_order_independent(
     assert normalized.order_by[0].column == "revenue"
 
     ambiguous = BulletChartConfig(metric={"name": "REVENUE", "aggregate": "SUM"})
-    with pytest.raises(ValueError, match="Ambiguous"):
+    with pytest.raises(
+        AmbiguousDatasetReferenceError, match="Bullet metric column reference"
+    ):
         plugin.normalize_column_refs(ambiguous, context)
 
 
@@ -3505,7 +3511,9 @@ def test_bullet_exact_case_dimensions_survive_normalization_and_query() -> None:
     )
     assert model.dimensions == ["Region", "region"]
     assert model.metric_field == "REGION"
-    with pytest.raises(ValueError, match="Ambiguous Bullet dimension"):
+    with pytest.raises(
+        AmbiguousDatasetReferenceError, match="Bullet dimension reference 'rEgIoN'"
+    ):
         plugin.normalize_column_refs(
             BulletChartConfig(metric=_simple_metric(), dimensions=[{"name": "rEgIoN"}]),
             context,
@@ -3516,6 +3524,67 @@ def test_bullet_exact_case_dimensions_survive_normalization_and_query() -> None:
             dimensions=[{"name": "Region"}, {"name": "region"}],
             order_by=[{"column": "REGION"}],
         )
+
+
+@pytest.mark.parametrize(
+    "ambiguous_config,role",
+    [
+        ({"dimensions": [{"name": "rEgIoN"}]}, "dimension"),
+        (
+            {"filters": [{"column": "rEgIoN", "operator": "=", "value": "North"}]},
+            "filter column",
+        ),
+        ({"temporal_column": "oRdErEd_At"}, "temporal column"),
+    ],
+)
+def test_validation_pipeline_fails_closed_on_ambiguous_bullet_reference(
+    ambiguous_config: dict[str, Any], role: str
+) -> None:
+    """The pipeline must propagate Bullet ambiguity, not warn and carry on.
+
+    ``_normalize_column_names`` re-raises only named normalization errors and
+    downgrades every other ``ValueError`` to a warning, returning the original
+    request. A bare ``ValueError`` here would leave the unresolved reference in
+    place, which is exactly the silent field selection the canonicalization
+    exists to prevent.
+    """
+    context = DatasetContext(
+        id=7,
+        table_name="sales",
+        schema=None,
+        database_name="main",
+        available_columns=[
+            {"name": "Revenue", "type": "NUMERIC", "is_numeric": True},
+            {"name": "Region", "type": "VARCHAR"},
+            {"name": "region", "type": "VARCHAR"},
+            {"name": "Ordered_At", "type": "TIMESTAMP", "is_temporal": True},
+            {"name": "ordered_at", "type": "TIMESTAMP", "is_temporal": True},
+        ],
+        available_metrics=[],
+    )
+    request = GenerateChartRequest.model_validate(
+        {
+            "dataset_id": 7,
+            "config": {
+                "chart_type": "bullet",
+                "metric": {"name": "Revenue", "aggregate": "SUM"},
+                **ambiguous_config,
+            },
+        }
+    )
+
+    with pytest.raises(AmbiguousDatasetReferenceError) as excinfo:
+        ValidationPipeline._normalize_column_names(
+            request, context, typed_config=request.config
+        )
+
+    error = excinfo.value
+    assert error.reference_kind == f"Bullet {role}"
+    assert len(error.matches) > 1
+    assert "differ only by case" in str(error)
+    # Callers that predate the named exception catch ValueError; the subclass
+    # keeps them working while making the pipeline re-raise.
+    assert isinstance(error, ValueError)
 
 
 @pytest.mark.parametrize("scale", ["linear", "log", None])

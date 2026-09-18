@@ -33,6 +33,7 @@ from superset.mcp_service.chart.schemas import (
     resolve_bullet_order_target,
 )
 from superset.mcp_service.chart.validation.dataset_validator import (
+    AmbiguousDatasetReferenceError,
     DatasetValidator,
     is_numeric_column,
     resolve_dataset_column,
@@ -55,10 +56,11 @@ def _canonical_reference(
         candidate for candidate in candidates if candidate.casefold() == name.casefold()
     ]
     if len(matches) > 1:
-        raise ValueError(
-            f"Ambiguous Bullet {role} {name!r}; exact-case matches are: "
-            f"{', '.join(matches)}"
-        )
+        # AmbiguousDatasetReferenceError subclasses ValueError, so existing
+        # ValueError handlers keep working, while the validation pipeline
+        # re-raises it instead of downgrading it to a warning and proceeding
+        # with the unresolved reference.
+        raise AmbiguousDatasetReferenceError(name, matches, f"Bullet {role}")
     return matches[0] if matches else name
 
 
