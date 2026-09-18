@@ -1111,3 +1111,17 @@ def test_world_map_folding_still_rejects_unknown_values() -> None:
     result = result_for("world_map")
     result["queries"][0]["data"][0][form["entity"]] = "Cürãçaoland"
     assert isinstance(normalize_chart_query_result(result, form), ChartError)
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [("cca2", "Áo"), ("cca2", "Bỉ"), ("cioc", "Mön")],
+)
+def test_world_map_code_fields_reject_accented_labels(field: str, value: str) -> None:
+    """Short ISO codes never fold, so a label cannot become another country."""
+    form = {**form_for("world_map"), "country_fieldtype": field}
+    result = result_for("world_map")
+    result["queries"][0]["data"][0][form["entity"]] = value
+    failure = normalize_chart_query_result(result, form)
+    assert isinstance(failure, ChartError)
+    assert "unrecognized" in failure.error

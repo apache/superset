@@ -321,11 +321,14 @@ def _geographic_row_identifier(
         field = form_data.get("country_fieldtype")
         if field not in {"name", "cca2", "cca3", "cioc"}:
             raise ValueError("Choose country_format name, cca2, cca3, or cioc")
-        # The bundled aliases are unaccented ASCII, so folding only lets
-        # accented spellings reach their country; a collision still raises.
+        # Fold diacritics for country names only, so localized spellings such
+        # as "Curaçao" reach their country. The ISO code fields are too short
+        # to fold safely: an accented label like "Áo" would fold onto an
+        # unrelated country's code and resolve silently to the wrong country.
         return resolve_geographic_value(
             row.get(entity or ""),
             _world_country_entries(field),
+            fold_diacritics=field == "name",
         )
     spatial = form_data.get("spatial")
     if not isinstance(spatial, Mapping) or spatial.get("type") != "latlong":
