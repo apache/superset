@@ -134,6 +134,11 @@ def temporal_view() -> Generator[MagicMock, None, None]:
             grain=grain,
         )
         for grain in (Grains.DAY, Grains.WEEK, Grains.MONTH)
+    ] + [
+        # Production get_dimensions() also returns the unaggregated variant
+        # and every non-temporal dimension, both with grain=None.
+        Dimension(id="metric_time", name="metric_time", type=pa.timestamp("us")),
+        Dimension(id="country_name", name="country_name", type=pa.string()),
     ]
     with patch(
         "superset.daos.semantic_layer.SemanticViewDAO.find_by_id", return_value=view
