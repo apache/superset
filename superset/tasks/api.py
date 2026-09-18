@@ -25,7 +25,6 @@ from flask_appbuilder.api import expose, protect, safe
 from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 
-from superset import is_feature_enabled
 from superset.commands.tasks.cancel import CancelTaskCommand
 from superset.commands.tasks.exceptions import (
     TaskAbortFailedError,
@@ -62,10 +61,7 @@ class TaskRestApi(BaseSupersetModelRestApi):
     @before_request
     def ensure_task_framework_enabled(self) -> Response | None:
         """Gate every task endpoint, including polling and cancellation."""
-        if not (
-            current_app.config["GLOBAL_TASK_FRAMEWORK_ENABLED"]
-            and is_feature_enabled("GLOBAL_TASK_FRAMEWORK")
-        ):
+        if not current_app.config["GLOBAL_TASK_FRAMEWORK_ENABLED"]:
             return self.response_404()
         return None
 

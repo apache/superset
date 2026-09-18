@@ -130,3 +130,7 @@ def _null_cm():
 def enable_task_infrastructure(app: Flask, monkeypatch: pytest.MonkeyPatch) -> None:
     """Test submission transactions with task infrastructure installed."""
     monkeypatch.setitem(app.config, "GLOBAL_TASK_FRAMEWORK_ENABLED", True)
+    monkeypatch.setattr(
+        "superset.extensions.feature_flag_manager.is_feature_enabled",
+        lambda feature: False,
+    )

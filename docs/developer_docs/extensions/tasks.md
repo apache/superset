@@ -28,26 +28,31 @@ The Global Task Framework (GTF) provides a unified way to manage background task
 
 ## Enabling GTF
 
-GTF is disabled by default. Install its infrastructure with the process-wide
-`GLOBAL_TASK_FRAMEWORK_ENABLED` setting and enable the `GLOBAL_TASK_FRAMEWORK`
-runtime feature flag in `superset_config.py`:
+Task services are disabled by default. Enable the process-wide deployment setting
+in `superset_config.py`; the feature flag below is optional and only shows the UI:
 
 ```python
 GLOBAL_TASK_FRAMEWORK_ENABLED = True
 FEATURE_FLAGS = {
-    "GLOBAL_TASK_FRAMEWORK": True,
+    "GLOBAL_TASK_FRAMEWORK": True,  # optional Tasks menu/page/list
 }
 ```
 
-When GTF is disabled:
+With config-off, task APIs/MCP tools are unavailable, the Tasks UI is hidden and
+calling/scheduling `@task` raises `GlobalTaskFrameworkDisabledError`. With config-on,
+admission, APIs (including polling/cancellation) and MCP work regardless of the
+`GLOBAL_TASK_FRAMEWORK` UI flag, subject to existing permissions/subscriber filters.
+The flag is neither an execution kill switch nor a security authorization control.
 
-- The Task List UI menu item is hidden
-- The `/api/v1/task/*` endpoints return 404
-- Calling or scheduling a `@task`-decorated function raises `GlobalTaskFrameworkDisabledError`
+`GLOBAL_ASYNC_QUERIES` separately enables async chart eligibility when config is on.
+It does not require the UI flag and does not control generic task services.
+The stock flag manager derives GTF-on from GAQ-on; custom resolvers can keep the UI
+hidden while allowing async charts.
 
-:::note Future Migration
-When GTF is considered stable, it will replace legacy Celery tasks for built-in features like thumbnails and alerts & reports. Enabling this flag prepares your deployment for that migration.
-:::
+Use matching config across web, worker, MCP and permission provisioning processes,
+run normal migrations and `superset init`, then restart. Do not infer config from
+feature flags. Before disabling infrastructure, stop submissions and drain tasks
+with config-on, then change config and restart. Hiding the UI needs no drain.
 
 ## Quick Start
 

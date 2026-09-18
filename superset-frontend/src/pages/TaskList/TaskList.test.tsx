@@ -29,6 +29,7 @@ import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 import { TaskStatus, TaskScope } from 'src/features/tasks/types';
 import TaskList from 'src/pages/TaskList';
 import getBootstrapData from 'src/utils/getBootstrapData';
+import { resolveAsyncMode } from 'src/utils/asyncMode';
 
 // Set up window.featureFlags before importing TaskList
 window.featureFlags = { GLOBAL_TASK_FRAMEWORK: true };
@@ -340,4 +341,20 @@ test('hides the task list when deployment infrastructure is off even with its fl
   renderTaskList();
   expect(screen.getByText('Feature Not Enabled')).toBeInTheDocument();
   expect(fetchMock.callHistory.calls(/task\/\?q/)).toHaveLength(0);
+});
+
+test('custom GAQ-on/GTF-off flags allow async charts while hiding the Tasks UI', () => {
+  const previousFlags = window.featureFlags;
+  window.featureFlags = {
+    GLOBAL_TASK_FRAMEWORK: false,
+    GLOBAL_ASYNC_QUERIES: true,
+  };
+  try {
+    renderTaskList();
+    expect(screen.getByText('Feature Not Enabled')).toBeInTheDocument();
+    expect(fetchMock.callHistory.calls(/task\/\?q/)).toHaveLength(0);
+    expect(resolveAsyncMode('force_on')).toBe(true);
+  } finally {
+    window.featureFlags = previousFlags;
+  }
 });

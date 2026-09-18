@@ -26,7 +26,7 @@ from marshmallow import ValidationError
 from sqlalchemy.exc import IntegrityError
 from superset_core.tasks.types import TaskScope
 
-from superset import db, is_feature_enabled
+from superset import db
 from superset.commands.base import BaseCommand
 from superset.commands.tasks.exceptions import (
     GlobalTaskFrameworkDisabledError,
@@ -98,10 +98,7 @@ class SubmitTaskCommand(BaseCommand):
 
         :returns: Tuple of (Task, is_new) where is_new is True if task was created
         """
-        if not (
-            current_app.config["GLOBAL_TASK_FRAMEWORK_ENABLED"]
-            and is_feature_enabled("GLOBAL_TASK_FRAMEWORK")
-        ):
+        if not current_app.config["GLOBAL_TASK_FRAMEWORK_ENABLED"]:
             raise GlobalTaskFrameworkDisabledError()
 
         # Enforce the "must own its transaction" contract (see docstring). If a

@@ -216,7 +216,7 @@ SQL Lab Integration:
 Schema Discovery:
 - get_schema: Get schema metadata for chart/dataset/dashboard/database/report (columns, filters)
 
-Task Management (requires GLOBAL_TASK_FRAMEWORK_ENABLED and GLOBAL_TASK_FRAMEWORK):
+Task Management (requires GLOBAL_TASK_FRAMEWORK_ENABLED):
 - list_tasks: List background tasks with status filtering and pagination
 - get_task_info: Get task details by integer ID or UUID
 
@@ -994,7 +994,7 @@ def _apply_config_guards(flask_app: Any) -> set[str]:
     them from generated instructions.
 
     Task tools are installed by deployment configuration, not request flags.
-    Their invocation guards evaluate the runtime flag in the current context.
+    Invocation requires the same configuration and existing permissions.
     """
     removed: set[str] = set()
 

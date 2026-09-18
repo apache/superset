@@ -30,19 +30,22 @@ from superset.tasks.registry import TaskRegistry
 TEST_UUID = UUID("b8b61b7b-1cd3-4a31-a74a-0a95341afc06")
 
 
-class TestTaskDecoratorFeatureFlag:
-    """Tests for @task decorator feature flag behavior"""
+class TestTaskDecoratorDeploymentConfig:
+    """Tests for @task decorator deployment configuration behavior"""
 
     def setup_method(self):
         """Clear task registry before each test"""
         TaskRegistry._tasks.clear()
 
-    @patch("superset.tasks.decorators.is_feature_enabled", return_value=False)
-    def test_decorator_succeeds_when_gtf_disabled(self, mock_feature_flag):
+    def test_decorator_succeeds_when_gtf_disabled(
+        self, app: Flask, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Test that @task decorator can be applied even when GTF is disabled.
 
         This enables safe module imports during app startup or Celery autodiscovery.
         """
+
+        monkeypatch.setitem(app.config, "GLOBAL_TASK_FRAMEWORK_ENABLED", False)
 
         # Decoration should succeed - no error raised
         @task(name="test_gtf_disabled_decorator")
@@ -52,10 +55,13 @@ class TestTaskDecoratorFeatureFlag:
         assert isinstance(my_task, TaskWrapper)
         assert my_task.name == "test_gtf_disabled_decorator"
 
-    @patch("superset.tasks.decorators.is_feature_enabled", return_value=False)
-    def test_call_raises_error_when_gtf_disabled(self, mock_feature_flag):
+    def test_call_raises_error_when_gtf_disabled(
+        self, app: Flask, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Test that calling a task raises GlobalTaskFrameworkDisabledError
         when GTF is disabled."""
+
+        monkeypatch.setitem(app.config, "GLOBAL_TASK_FRAMEWORK_ENABLED", False)
 
         @task(name="test_gtf_disabled_call")
         def my_task() -> None:
@@ -64,10 +70,13 @@ class TestTaskDecoratorFeatureFlag:
         with pytest.raises(GlobalTaskFrameworkDisabledError):
             my_task()
 
-    @patch("superset.tasks.decorators.is_feature_enabled", return_value=False)
-    def test_schedule_raises_error_when_gtf_disabled(self, mock_feature_flag):
+    def test_schedule_raises_error_when_gtf_disabled(
+        self, app: Flask, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Test that scheduling a task raises GlobalTaskFrameworkDisabledError
         when GTF is disabled."""
+
+        monkeypatch.setitem(app.config, "GLOBAL_TASK_FRAMEWORK_ENABLED", False)
 
         @task(name="test_gtf_disabled_schedule")
         def my_task() -> None:
@@ -584,3 +593,7 @@ class TestTaskWrapperCall:
 def enable_task_infrastructure(app: Flask, monkeypatch: pytest.MonkeyPatch) -> None:
     """Exercise task behavior with deployment infrastructure installed."""
     monkeypatch.setitem(app.config, "GLOBAL_TASK_FRAMEWORK_ENABLED", True)
+    monkeypatch.setattr(
+        "superset.extensions.feature_flag_manager.is_feature_enabled",
+        lambda feature: False,
+    )

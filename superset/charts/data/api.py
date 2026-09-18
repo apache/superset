@@ -354,8 +354,8 @@ class ChartDataRestApi(ChartRestApi):
 
         Async is opt-in per request: the client sets ``async_mode`` (an absent flag
         is treated as synchronous, so programmatic API clients keep the synchronous
-        200 flow). It requires installed task infrastructure, effective
-        ``GLOBAL_TASK_FRAMEWORK`` and ``GLOBAL_ASYNC_QUERIES``, a full JSON
+        200 flow). It requires installed task infrastructure,
+        ``GLOBAL_ASYNC_QUERIES``, a full JSON
         payload, and caching (async delivery reads the result from the DATA cache).
 
         A ``NullCache`` DATA backend can never satisfy the read-back, so async is
@@ -389,7 +389,6 @@ class ChartDataRestApi(ChartRestApi):
         return (
             bool(json_body.get("async_mode"))
             and app.config["GLOBAL_TASK_FRAMEWORK_ENABLED"]
-            and is_feature_enabled("GLOBAL_TASK_FRAMEWORK")
             and is_feature_enabled("GLOBAL_ASYNC_QUERIES")
             and query_context.result_format == ChartDataResultFormat.JSON
             and query_context.result_type == ChartDataResultType.FULL

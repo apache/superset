@@ -112,10 +112,10 @@ test.each([false, true])(
   },
 );
 
-test('custom flags with GAQ on and GTF off cannot request async', () => {
+test('custom flags with GAQ on and GTF off still request async', () => {
   setDefault(true);
   mockFeatureEnabled.mockImplementation(
     f => f === FeatureFlag.GlobalAsyncQueries,
   );
-  expect(resolveAsyncMode('force_on')).toBe(false);
+  expect(resolveAsyncMode('force_on')).toBe(true);
 });

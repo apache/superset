@@ -112,7 +112,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
           <h3>{t('Feature Not Enabled')}</h3>
           <p>
             {t(
-              'The Global Task Framework is not enabled. Please contact your administrator to enable GLOBAL_TASK_FRAMEWORK_ENABLED and the GLOBAL_TASK_FRAMEWORK feature flag.',
+              'The Tasks UI is not enabled. It requires GLOBAL_TASK_FRAMEWORK_ENABLED and the GLOBAL_TASK_FRAMEWORK UI feature flag. Please contact your administrator.',
             )}
           </p>
         </Flex>

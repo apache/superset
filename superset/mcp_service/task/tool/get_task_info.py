@@ -25,7 +25,6 @@ from fastmcp.exceptions import ToolError
 from flask import current_app
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
-from superset import is_feature_enabled
 from superset.daos.tasks import TaskDAO
 from superset.extensions import event_logger
 from superset.mcp_service.mcp_core import ModelGetInfoCore
@@ -70,10 +69,7 @@ async def get_task_info(
     {"identifier": "a1b2c3d4-5678-90ab-cdef-1234567890ab"}
     ```
     """
-    if not (
-        current_app.config["GLOBAL_TASK_FRAMEWORK_ENABLED"]
-        and is_feature_enabled("GLOBAL_TASK_FRAMEWORK")
-    ):
+    if not current_app.config["GLOBAL_TASK_FRAMEWORK_ENABLED"]:
         raise ToolError("The Global Task Framework is not enabled.")
 
     await ctx.info("Retrieving task: identifier=%s" % (request.identifier,))

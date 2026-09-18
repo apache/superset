@@ -82,12 +82,12 @@ def test_task_registration(configured: bool, enabled: bool) -> None:
 @pytest.mark.parametrize("configured", [False, True])
 @pytest.mark.parametrize("enabled", [False, True])
 def test_task_api_and_page_gates(configured: bool, enabled: bool) -> None:
-    """The same runtime policy covers the entire API and direct page."""
+    """Task APIs use config; the Tasks page additionally requires its UI flag."""
     app = Flask(__name__)
     app.config["GLOBAL_TASK_FRAMEWORK_ENABLED"] = configured
     with (
         app.test_request_context(),
-        patch("superset.tasks.api.is_feature_enabled", return_value=enabled),
+        patch("superset.is_feature_enabled", return_value=enabled),
         patch("superset.views.tasks.is_feature_enabled", return_value=enabled),
         patch(
             "superset.views.tasks.BaseSupersetView.render_app_template",
@@ -95,24 +95,23 @@ def test_task_api_and_page_gates(configured: bool, enabled: bool) -> None:
         ) as render,
     ):
         response = TaskRestApi().ensure_task_framework_enabled()
+        assert (response is None) is configured
+        if not configured:
+            assert response.status_code == 404
         if configured and enabled:
-            assert response is None
             assert TaskModelView.list.__wrapped__(TaskModelView()) == "page"
         else:
-            assert response.status_code == 404
             with pytest.raises(NotFound):
                 TaskModelView.list.__wrapped__(TaskModelView())
             render.assert_not_called()
 
 
 @pytest.mark.parametrize("entrypoint", ["call", "schedule", "command", "manager"])
-@pytest.mark.parametrize(
-    "configured,enabled", [(False, False), (False, True), (True, False)]
-)
+@pytest.mark.parametrize("configured,enabled", [(False, False), (False, True)])
 def test_disabled_admission_has_no_side_effects(
     entrypoint: str, configured: bool, enabled: bool
 ) -> None:
-    """Wrapper and lower-level admission cannot bypass either prerequisite."""
+    """Wrapper and lower-level admission cannot bypass disabled infrastructure."""
     app = Flask(__name__)
     app.config["GLOBAL_TASK_FRAMEWORK_ENABLED"] = configured
 
@@ -130,10 +129,7 @@ def test_disabled_admission_has_no_side_effects(
     }
     with (
         app.test_request_context(),
-        patch("superset.tasks.decorators.is_feature_enabled", return_value=enabled),
-        patch(
-            "superset.commands.tasks.submit.is_feature_enabled", return_value=enabled
-        ),
+        patch("superset.is_feature_enabled", return_value=enabled),
         patch("superset.commands.tasks.submit.task_lock") as lock,
         pytest.raises(GlobalTaskFrameworkDisabledError),
     ):
@@ -147,7 +143,7 @@ def test_disabled_admission_has_no_side_effects(
 def test_async_requires_all_prerequisites(
     configured: bool, gtf: bool, gaq: bool
 ) -> None:
-    """A customized GAQ-on/GTF-off resolver must select sync, never 202."""
+    """Async eligibility is independent of the Tasks UI flag."""
     app = Flask(__name__)
     app.config["GLOBAL_TASK_FRAMEWORK_ENABLED"] = configured
     query = MagicMock(
@@ -167,8 +163,17 @@ def test_async_requires_all_prerequisites(
         ),
     ):
         assert ChartDataRestApi()._should_run_async({"async_mode": True}, query) is (
-            configured and gtf and gaq
+            configured and gaq
         )
+        if not (configured and gtf):
+            with (
+                patch(
+                    "superset.views.tasks.is_feature_enabled",
+                    side_effect=flags.__getitem__,
+                ),
+                pytest.raises(NotFound),
+            ):
+                TaskModelView.list.__wrapped__(TaskModelView())
 
 
 @pytest.mark.parametrize(
@@ -177,7 +182,7 @@ def test_async_requires_all_prerequisites(
 def test_task_api_runtime_flip_preserves_registration(
     app: Flask, client: FlaskClient, full_api_access: None
 ) -> None:
-    """All registered read/cancel endpoints share the runtime gate."""
+    """Config gates all endpoints; a disabled UI flag does not block polling/cancel."""
     paths = [
         ("get", "/api/v1/task/"),
         ("get", "/api/v1/task/_info"),
@@ -193,27 +198,48 @@ def test_task_api_runtime_flip_preserves_registration(
     for method, path in paths:
         adapter.match(path, method=method.upper())
     rules = tuple(str(rule) for rule in app.url_map.iter_rules())
-    with patch("superset.tasks.api.is_feature_enabled") as enabled:
-        for value in (False, True, False):
-            enabled.return_value = value
-            if value:
+    with (
+        patch("superset.is_feature_enabled", return_value=False),
+        patch(
+            "superset.daos.tasks.TaskDAO.get_statuses_changed_since",
+            return_value=({}, None),
+        ),
+        patch(
+            "superset.daos.tasks.TaskDAO.get_status",
+            return_value="success",
+        ),
+        patch.object(
+            TaskRestApi, "_execute_cancel", return_value=Response(status=200)
+        ) as cancel,
+    ):
+        for configured in (False, True, False):
+            app.config["GLOBAL_TASK_FRAMEWORK_ENABLED"] = configured
+            if configured:
                 assert client.get("/api/v1/task/_info").status_code == 200
+                assert client.get("/api/v1/task/status_changes").status_code == 200
+                assert client.get(paths[-3][1]).status_code == 200
+                assert client.post(paths[-1][1]).status_code == 200
+                cancel.assert_called_once()
             else:
                 for method, path in paths:
                     assert getattr(client, method)(path).status_code == 404
             assert tuple(str(rule) for rule in app.url_map.iter_rules()) == rules
+        app.config["GLOBAL_TASK_FRAMEWORK_ENABLED"] = True
 
 
 @pytest.mark.parametrize(
     "callback", ["IS_FEATURE_ENABLED_FUNC", "GET_FEATURE_FLAGS_FUNC"]
 )
-def test_stock_gaq_derivation_remains_unchanged(callback: str) -> None:
+@pytest.mark.parametrize("configured", [False, True])
+def test_stock_gaq_derivation_remains_unchanged(
+    callback: str, configured: bool
+) -> None:
     """Both standard callback hooks retain GAQ-implies-GTF resolution."""
     from superset.utils.feature_flag_manager import FeatureFlagManager
 
     app = Flask(__name__)
     app.config.from_object("superset.config")
-    app.config["GLOBAL_TASK_FRAMEWORK_ENABLED"] = False
+    app.config["GLOBAL_TASK_FRAMEWORK_ENABLED"] = configured
     if callback == "IS_FEATURE_ENABLED_FUNC":
         app.config[callback] = lambda name, default: name == "GLOBAL_ASYNC_QUERIES"
     else:
@@ -228,9 +254,26 @@ def test_stock_gaq_derivation_remains_unchanged(callback: str) -> None:
     assert manager.is_feature_enabled("GLOBAL_TASK_FRAMEWORK")
     assert manager.get_feature_flags()["GLOBAL_TASK_FRAMEWORK"]
 
+    with (
+        app.test_request_context(),
+        patch(
+            "superset.views.tasks.is_feature_enabled",
+            side_effect=manager.is_feature_enabled,
+        ),
+        patch(
+            "superset.views.tasks.BaseSupersetView.render_app_template",
+            return_value="page",
+        ),
+    ):
+        if configured:
+            assert TaskModelView.list.__wrapped__(TaskModelView()) == "page"
+        else:
+            with pytest.raises(NotFound):
+                TaskModelView.list.__wrapped__(TaskModelView())
 
-@pytest.mark.parametrize("configured,gtf", [(False, True), (True, False)])
-def test_chart_request_falls_back_to_sync(configured: bool, gtf: bool) -> None:
+
+@pytest.mark.parametrize("configured,gaq", [(False, True), (True, False)])
+def test_chart_request_falls_back_to_sync(configured: bool, gaq: bool) -> None:
     """Even an explicit async request cannot create an unresolvable 202."""
     app = Flask(__name__)
     app.config["GLOBAL_TASK_FRAMEWORK_ENABLED"] = configured
@@ -239,7 +282,7 @@ def test_chart_request_falls_back_to_sync(configured: bool, gtf: bool) -> None:
         app.test_request_context(json={"async_mode": True}),
         patch(
             "superset.charts.data.api.is_feature_enabled",
-            side_effect=lambda name: gtf if name == "GLOBAL_TASK_FRAMEWORK" else True,
+            side_effect=lambda name: gaq if name == "GLOBAL_ASYNC_QUERIES" else False,
         ),
         patch.object(api, "_create_query_context_from_form"),
         patch("superset.charts.data.api.ChartDataCommand") as command,
@@ -253,3 +296,33 @@ def test_chart_request_falls_back_to_sync(configured: bool, gtf: bool) -> None:
     command.return_value.validate.assert_called_once_with()
     run_async.assert_not_called()
     run_sync.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    "app", [{"GLOBAL_TASK_FRAMEWORK_ENABLED": True}], indirect=True
+)
+def test_task_services_retain_rbac_with_ui_off(
+    app: Flask, client: FlaskClient, full_api_access: None
+) -> None:
+    """An enabled service and hidden UI do not grant Task permissions."""
+    from superset import security_manager
+
+    with (
+        patch(
+            "superset.extensions.feature_flag_manager.is_feature_enabled",
+            return_value=False,
+        ),
+        patch.object(security_manager, "is_item_public", return_value=False),
+        patch.object(security_manager, "has_access", return_value=False),
+        patch("superset.daos.tasks.TaskDAO.get_statuses_changed_since") as statuses,
+        patch.object(TaskRestApi, "_execute_cancel") as cancel,
+    ):
+        assert client.get("/api/v1/task/status_changes").status_code == 403
+        assert (
+            client.post(
+                "/api/v1/task/00000000-0000-0000-0000-000000000001/cancel"
+            ).status_code
+            == 403
+        )
+    statuses.assert_not_called()
+    cancel.assert_not_called()

@@ -496,7 +496,7 @@ test.each([
   [true, false],
   [true, true],
 ])(
-  'self-contained async charts require infrastructure=%s and GTF=%s',
+  'self-contained async charts require infrastructure=%s regardless of GTF=%s',
   (configured, enabled) => {
     const config = getBootstrapData().common.conf;
     const previousInfrastructure = config.GLOBAL_TASK_FRAMEWORK_ENABLED;
@@ -513,7 +513,7 @@ test.each([
       );
       expect(getByTestId('mock-super-chart')).toHaveAttribute(
         'data-async-mode',
-        String(configured && enabled),
+        String(configured),
       );
     } finally {
       config.GLOBAL_TASK_FRAMEWORK_ENABLED = previousInfrastructure;

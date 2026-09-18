@@ -114,49 +114,68 @@ celery --app=superset.tasks.celery_app:app flower
 - [Blog: How to Set Up Global Async Queries (GAQ) in Apache Superset](https://medium.com/@ngigilevis/how-to-set-up-global-async-queries-gaq-in-apache-superset-a-complete-guide-9d2f4a047559)
   :::
 
-## Global Task Framework and asynchronous chart queries
+## Task infrastructure, Tasks UI and asynchronous chart queries
 
-`GLOBAL_TASK_FRAMEWORK_ENABLED` is a deployment setting, defaulting to `False`.
-It installs the Task API, Tasks page, TaskManager and task MCP tools. Set it
-explicitly in `superset_config.py` when using the Global Task Framework (GTF) or
-Global Async Queries (GAQ):
+These three controls have different responsibilities:
+
+1. **`GLOBAL_TASK_FRAMEWORK_ENABLED` deployment config** (default `False`)
+   installs task infrastructure and enables task services: admission, Task APIs
+   (including polling/cancellation), TaskManager and task MCP tools.
+2. **`GLOBAL_TASK_FRAMEWORK` feature flag** controls only Tasks UI visibility:
+   the menu, direct Tasks page and frontend Task List. It also requires the config.
+   It is not a task execution/API kill switch or a security authorization control.
+3. **`GLOBAL_ASYNC_QUERIES` feature flag** enables async chart eligibility when
+   the config is on. It does not require the Tasks UI flag. Turning GAQ off
+   selects synchronous chart execution; generic task services remain available.
+
+Existing authentication, Task permissions and subscriber filtering still apply.
+Async charts also require the existing request opt-in, result format/type, cache,
+subscriber identity and Task-read permission conditions. Ineligible requests
+follow the synchronous path.
+
+| Deployment config | Effective Tasks UI flag | GAQ flag | Task services | Tasks UI | Chart path eligible for async |
+|---|---|---|---|---|---|
+| Off | Any | Any | Unavailable | Hidden | No (sync) |
+| On | Off | Off | Available | Hidden | No (sync) |
+| On | On | Off | Available | Visible | No (sync) |
+| On | Off | On | Available | Hidden | Yes |
+| On | On | On | Available | Visible | Yes |
+
+All availability remains subject to existing permissions. The standard
+FeatureFlagManager automatically derives effective GTF-on from GAQ-on, so enabling
+GAQ also shows the Tasks UI when infrastructure is installed. That derivation is
+unchanged. A customized resolver can return GAQ-on/GTF-off: async charts still work
+but the Tasks UI stays hidden. API polling/cancellation and MCP remain available.
+
+### Configuration and migration
+
+Before this change, the GTF flag controlled task registration and admission.
+It controls only the UI after this change. Feature flags alone no longer install
+task infrastructure: deployments using tasks or GAQ must explicitly opt in:
 
 ```python
+# superset_config.py: process-wide, not request-specific
 GLOBAL_TASK_FRAMEWORK_ENABLED = True
 FEATURE_FLAGS = {
-    "GLOBAL_TASK_FRAMEWORK": True,
-    "GLOBAL_ASYNC_QUERIES": True,  # optional asynchronous chart queries
+    "GLOBAL_TASK_FRAMEWORK": True,  # optional Tasks UI
+    "GLOBAL_ASYNC_QUERIES": False,  # optional async charts
 }
 ```
 
-Use the same process-wide setting in web, Celery worker, MCP and permission
-provisioning processes. Changing it requires restarting those processes. Run
-normal database migrations and `superset init` with that configuration to provision
-permissions. Registration and permission definitions do not depend on request-time
-feature flags; existing Task permissions and subscription-based access still apply.
-Turning the setting off does not delete existing permission rows.
+There is no inference from static or dynamic feature flags. Use the same config
+in web, worker, MCP and permission-provisioning processes. Run normal migrations
+and `superset init` with that config, and restart all relevant processes. Existing
+permission names and role grants are unchanged. Flag changes do not register or
+unregister routes/tools or create/delete permissions; config-off does not delete
+existing permission rows. Browser entry points use bootstrap configuration and
+flags; reload to refresh that snapshot.
 
-The deployment setting is not inferred from static or dynamic feature flags.
-Runtime task admission, API access (including polling and cancellation), direct
-page access and MCP invocation require **both** the setting and the effective
-`GLOBAL_TASK_FRAMEWORK` flag. Dynamic flag callbacks are evaluated at access time;
-changing them does not register routes or recreate permission definitions. Browser
-entry points use the configuration and flags from their bootstrap data; reload the
-page to refresh that snapshot.
+### Safely shutting down task infrastructure
 
-GAQ additionally requires `GLOBAL_ASYNC_QUERIES`, usable caching, a subscriber
-identity and Task-read permission. If any prerequisite is unavailable, chart data
-requests follow the synchronous path instead of returning an unresolvable 202.
-With the standard feature-flag manager, GAQ implies effective GTF even if the raw
-GTF flag is false. Customized resolvers remain authoritative; a resolver returning
-GAQ true and GTF false cannot select asynchronous execution.
-
-### Disabling task access safely
-
-Stop new submissions and drain admitted work **before** disabling effective GTF
-or removing its infrastructure. Disabling the flag blocks all user-facing Task
-API operations, including polling and cancellation, and task MCP tools. It does
-not cancel admitted work: workers can finish it, but clients cannot observe task
-completion through the disabled API. Keep the deployment setting enabled on all
-processes during the drain. With the standard manager, leaving GAQ enabled also
-leaves effective GTF enabled; turning off only the raw GTF flag is insufficient.
+Hiding the Tasks UI needs no task drain: turning GTF off does not interrupt task
+services. To remove infrastructure instead, stop new submissions at all callers,
+drain admitted work, then disable `GLOBAL_TASK_FRAMEWORK_ENABLED` and restart the
+relevant processes consistently. Keep the config enabled during the drain so
+polling, cancellation and MCP remain available. Turning GAQ off stops new async
+chart eligibility but does not stop generic task producers. Admitted workers
+remain ungated and can finish their work.

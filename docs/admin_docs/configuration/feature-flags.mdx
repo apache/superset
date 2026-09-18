@@ -114,11 +114,18 @@ This documentation is auto-generated from the annotations in
 [config.py](https://github.com/apache/superset/blob/master/superset/config.py).
 
 
-## Task infrastructure versus runtime flags
+## Tasks UI and async chart flags
 
-`GLOBAL_TASK_FRAMEWORK` and `GLOBAL_ASYNC_QUERIES` require the separate deployment
-setting `GLOBAL_TASK_FRAMEWORK_ENABLED = True` (default: `False`). Feature flags
-alone do not install task APIs, views, or MCP tools. The deployment setting is
-process-wide and restart-required; the existing flags control runtime access.
-See [task setup and draining](./async-queries-celery.mdx#global-task-framework-and-asynchronous-chart-queries)
-before enabling or disabling these features.
+`GLOBAL_TASK_FRAMEWORK_ENABLED = True` (deployment config, default `False`) installs
+and enables task services independently of feature flags. It is process-wide and
+requires a restart; static/dynamic flags do not substitute for it.
+
+- `GLOBAL_TASK_FRAMEWORK` controls **only** the Tasks menu/page/list when config is
+  on. It does not block admission, execution, APIs, polling/cancellation or MCP.
+  It is not a security authorization control; existing permissions still apply.
+- `GLOBAL_ASYNC_QUERIES` controls async chart eligibility when config is on,
+  independently of the Tasks UI flag. GAQ-off leaves generic task services enabled.
+
+The standard flag manager still derives effective GTF-on from GAQ-on. A custom
+resolver returning GAQ-on/GTF-off allows async charts while hiding the Tasks UI.
+See [configuration, truth table and infrastructure shutdown](./async-queries-celery.mdx#task-infrastructure-tasks-ui-and-asynchronous-chart-queries).
