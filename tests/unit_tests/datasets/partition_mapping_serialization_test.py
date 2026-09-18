@@ -650,6 +650,16 @@ def test_the_summary_alias_and_the_property_agree(app: Flask) -> None:
         assert table.partition_filter_mapping is not None
 
 
+def test_the_engine_capability_flag_is_readable_over_the_api() -> None:
+    """
+    The editor gates the whole partition mapping UI on this; unexposed, it reads
+    back falsy and the feature never appears, even on an engine that supports it.
+    """
+    from superset.datasets.api import DatasetRestApi
+
+    assert "supports_partition_filter_mapping" in DatasetRestApi.show_columns
+
+
 def test_the_mapping_summary_is_gated_on_the_feature_flag(app: Flask) -> None:
     """
     With the flag off nothing is mirrored, so an "active" summary would have the
