@@ -150,7 +150,7 @@ def test_same_client_fence_rejects_paused_writer(takeover_at: str) -> None:
     """Fresh payload, descriptor and TTL survive an old writer resuming at SET."""
     client: _FencedRedis = _FencedRedis()
     coordination: RedisCacheBackend = object.__new__(RedisCacheBackend)
-    coordination._cache = client  # type: ignore[assignment]
+    coordination._cache = client
     values: RedisCache = RedisCache(host=client, key_prefix="data:")
     safe: SafeSemanticCacheBackend = SafeSemanticCacheBackend(values)
     tokens: Iterator[str] = iter(["stale", "fresh"])

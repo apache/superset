@@ -37,7 +37,10 @@ from superset.exceptions import (
     SupersetSyntaxErrorException,
     SupersetTemplateException,
 )
-from superset.jinja_context import get_template_processor
+from superset.jinja_context import (
+    get_template_processor,
+    UndefinedTemplateFunctionException,
+)
 from superset.models.core import Database
 from superset.sql_validators import get_validator_by_name
 from superset.sql_validators.base import BaseSQLValidator
@@ -110,6 +113,25 @@ class ValidateSQLCommand(BaseCommand):
                 extra={"errors": [err.message for err in ex.errors]},
             )
             raise ValidatorSQL400Error(ex.errors[0]) from ex
+        except UndefinedTemplateFunctionException as ex:
+            # The user referenced an undefined Jinja function (e.g. a dbt-style
+            # `ref(...)` macro Superset does not provide). This is a user input
+            # mistake, not a system fault, so log at WARNING without a traceback
+            # (mirrors the SupersetSyntaxErrorException branch above and the SQL
+            # Lab execute path in SqlQueryRenderImpl.render). The client-facing
+            # response is unchanged from the generic template-exception branch.
+            logger.warning(
+                "Undefined template function during SQL validation: %s", str(ex)
+            )
+            superset_error = SupersetError(
+                message=__(
+                    "Template processing failed: %(ex)s",
+                    ex=str(ex),
+                ),
+                error_type=SupersetErrorType.GENERIC_COMMAND_ERROR,
+                level=ErrorLevel.ERROR,
+            )
+            raise ValidatorSQL400Error(superset_error) from ex
         except SupersetTemplateException as ex:
             # Internal template processing errors (e.g., recursion, unexpected failures)
             logger.error(

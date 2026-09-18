@@ -400,3 +400,46 @@ Rollback by disabling `SEMANTIC_LAYER_CONTAINMENT_CACHE` and restarting every we
 and worker process. Confirm worker convergence with an `enabled` gauge of zero for
 each process and normal provider-query success. Cache data need not be deleted for
 rollback because disabled processes do not read or write it.
+
+#### Declaring semantic view features
+
+A `SemanticView` advertises what its backend supports through the `features`
+frozenset. Declaration is opt-in: a view that declares nothing gets the most
+conservative behavior, so a new provider is safe by default.
+
+```python
+from superset_core.semantic_layers.view import SemanticView, SemanticViewFeature
+
+
+class MySemanticView(SemanticView):
+    features = frozenset(
+        {
+            # The backend accepts simple/custom-SQL column expressions built
+            # in Explore. Omit this member if it only accepts the view's own
+            # dimensions.
+            SemanticViewFeature.ADHOC_COLUMN_EXPRESSIONS,
+            SemanticViewFeature.GROUP_LIMIT,
+        }
+    )
+```
+
+The declared members are serialized to the Explore datasource payload as
+`semantic_view_features` (their stable string values). The provider's registry
+key is deliberately **not** sent: because the `@semantic_layer` decorator
+prefixes extension IDs, no stable bare key exists to publish, and behavior
+keyed off provider identity would not survive that prefixing.
+
+Explore translates `semantic_view_features` exactly once, in the
+datasource-to-picker-capabilities adapter
+(`superset-frontend/src/explore/components/controls/DndColumnSelectControl/utils/pickerCapabilities.ts`),
+into a provider-neutral `ColumnPickerCapabilities` value. That adapter is the
+anti-corruption boundary between provider metadata and generic UI: picker
+components consume capabilities and must not read `semantic_view_features`, a
+registry key, or a user-editable display name. New provider-specific behavior
+belongs in a capability, not in a comparison inside a picker component.
+
+A view that does not declare `ADHOC_COLUMN_EXPRESSIONS` gets a Saved-only
+column picker: its dimensions are listed as Saved options and the Simple and
+Custom SQL modes are visible but disabled, so users cannot build an expression
+the backend would reject. Unknown feature strings and payloads with no
+`semantic_view_features` field are ignored, preserving existing behavior.

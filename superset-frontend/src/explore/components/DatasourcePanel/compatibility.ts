@@ -19,7 +19,10 @@
 import { useSelector } from 'react-redux';
 import { Metric } from '@superset-ui/core';
 import { ColumnMeta } from '@superset-ui/chart-controls';
-import { ExplorePageState } from 'src/explore/types';
+import {
+  selectCompatibleDimensionNames,
+  selectCompatibleMetricNames,
+} from 'src/explore/selectors/compatibility';
 import { DndItemType } from '../DndItemType';
 import { DndItemValue } from './types';
 
@@ -56,11 +59,12 @@ export function useDatasourceCompatibility(): {
   compatibleMetrics: CompatibleNames;
   compatibleDimensions: CompatibleNames;
 } {
-  const compatibleMetrics = useSelector<ExplorePageState, CompatibleNames>(
-    state => state.explore.compatibleMetrics,
-  );
-  const compatibleDimensions = useSelector<ExplorePageState, CompatibleNames>(
-    state => state.explore.compatibleDimensions,
-  );
+  // Sourced from the discriminated CompatibilityResult rather than the two
+  // flat `state.explore.compatible*` fields it replaced: the selectors return
+  // null unless the latest request is 'verified', so an in-flight or failed
+  // request leaves filtering inactive instead of applying a stale list. The
+  // return shape is unchanged, so folder-level drag sources are unaffected.
+  const compatibleMetrics = useSelector(selectCompatibleMetricNames);
+  const compatibleDimensions = useSelector(selectCompatibleDimensionNames);
   return { compatibleMetrics, compatibleDimensions };
 }

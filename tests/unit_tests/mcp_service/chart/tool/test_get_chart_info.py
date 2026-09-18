@@ -27,6 +27,7 @@ from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 from fastmcp import Client
+from jsonschema import validate
 
 from superset.commands.dashboard.exceptions import DashboardNotFoundError
 from superset.mcp_service.app import mcp
@@ -667,9 +668,13 @@ class TestGetChartInfoPrivacy:
         assert "form_data" not in result
         assert "datasource_name" not in result
 
+        tool = await mcp_server.get_tool("get_chart_info")
+        assert tool.output_schema is not None
+        validate(instance=response.structured_content, schema=tool.output_schema)
+
     @pytest.mark.asyncio
-    async def test_unsaved_chart_error_returned_unchanged(self) -> None:
-        """ChartError results should not be serialized as success dictionaries."""
+    async def test_unsaved_chart_error_matches_output_schema(self, mcp_server) -> None:
+        """The protocol error payload conforms to the advertised union branch."""
         error = ChartError(error="Missing cached chart data", error_type="NotFound")
 
         with (
@@ -689,13 +694,23 @@ class TestGetChartInfoPrivacy:
                 "_build_unsaved_chart_info",
                 return_value=error,
             ),
+            patch("superset.mcp_service.auth.check_tool_permission", return_value=True),
         ):
-            result = await get_chart_info_module.get_chart_info(
-                request=GetChartInfoRequest(form_data_key="missing-key"),
-                ctx=SimpleNamespace(info=AsyncMock()),
-            )
+            async with Client(mcp_server) as client:
+                response = await client.call_tool(
+                    "get_chart_info",
+                    {
+                        "request": GetChartInfoRequest(
+                            form_data_key="missing-key"
+                        ).model_dump()
+                    },
+                )
 
-        assert result is error
+        assert response.structured_content["error"] == "Missing cached chart data"
+        assert response.structured_content["error_type"] == "NotFound"
+        tool = await mcp_server.get_tool("get_chart_info")
+        assert tool.output_schema is not None
+        validate(instance=response.structured_content, schema=tool.output_schema)
 
     @pytest.mark.asyncio
     async def test_unsaved_chart_surfaces_active_filters(self) -> None:
