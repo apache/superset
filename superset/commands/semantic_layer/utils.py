@@ -42,3 +42,7 @@ def validate_configuration(
             )
         )
         raise SemanticLayerInvalidError(f"Invalid configuration: {details}") from None
+    except Exception:  # pylint: disable=broad-except
+        # A provider may interpolate the restored credential into a
+        # non-pydantic error; never let one reach an exc_info log sink.
+        raise SemanticLayerInvalidError("Provider rejected the configuration") from None

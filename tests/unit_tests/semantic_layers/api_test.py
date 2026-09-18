@@ -2771,7 +2771,9 @@ def test_semantic_layer_runtime_schema_flag_off_unwrapped() -> None:
 
 @SEMANTIC_LAYERS_APP
 @pytest.mark.parametrize("operation", ["create", "update"])
-@pytest.mark.parametrize("failure", ["discriminator", "custom_validator"])
+@pytest.mark.parametrize(
+    "failure", ["discriminator", "custom_validator", "provider_runtime"]
+)
 def test_layer_validation_does_not_expose_secrets(
     client: FlaskClient,
     full_api_access: None,
@@ -2822,7 +2824,14 @@ def test_layer_validation_does_not_expose_secrets(
         return_value=True,
     )
     provider: MagicMock = MagicMock()
-    provider.from_configuration.configure_mock(side_effect=Configuration.model_validate)
+
+    def validate_provider(configuration: dict[str, Any]) -> Configuration:
+        """Model a provider exposing configuration in a non-Pydantic exception."""
+        if failure == "provider_runtime":
+            raise RuntimeError(f"bad {configuration}")
+        return Configuration.model_validate(configuration)
+
+    provider.from_configuration.configure_mock(side_effect=validate_provider)
     mocker.patch.dict(
         f"superset.commands.semantic_layer.{operation}.registry",
         {"validation_test": provider},
@@ -2858,6 +2867,23 @@ def test_layer_validation_does_not_expose_secrets(
         if failure == "discriminator"
         else "<root>: value_error"
     )
-    assert response.json == {"message": f"Invalid configuration: {expected_detail}"}
+    expected_message: str = (
+        "Provider rejected the configuration"
+        if failure == "provider_runtime"
+        else f"Invalid configuration: {expected_detail}"
+    )
+    assert response.json == {"message": expected_message}
+    if failure == "provider_runtime":
+        from superset.commands.semantic_layer.exceptions import (
+            SemanticLayerInvalidError,
+        )
+        from superset.commands.semantic_layer.utils import validate_configuration
+
+        with pytest.raises(SemanticLayerInvalidError) as exc_info:
+            validate_configuration(
+                provider, provider.from_configuration.call_args.args[0]
+            )
+        assert exc_info.value.__cause__ is None
+        assert exc_info.value.__suppress_context__ is True
     dao.create.assert_not_called()
     dao.update.assert_not_called()
