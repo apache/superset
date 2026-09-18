@@ -416,6 +416,66 @@ def test_startup_validation_accepts_absent_and_valid_allowlists() -> None:
     assert parse_dataset_role_allowlist({"Readers": [str(FIRST)]}) == {
         "Readers": {FIRST}
     }
+    # UUID objects and the other ordinary collection types an operator may write
+    # in superset_config.py are accepted without stringly-typed coercion.
+    assert parse_dataset_role_allowlist({"Readers": (FIRST,)}) == {"Readers": {FIRST}}
+    assert parse_dataset_role_allowlist({"Readers": {str(FIRST)}}) == {
+        "Readers": {FIRST}
+    }
+
+
+@pytest.mark.parametrize(
+    "entry",
+    [
+        1,
+        True,
+        None,
+        b"00000000-0000-0000-0000-000000000001",
+        ["00000000-0000-0000-0000-000000000001"],
+    ],
+)
+def test_startup_validation_rejects_non_string_entries(entry: object) -> None:
+    """A non-UUID entry must fail loudly, never coerce to a never-matching UUID.
+
+    Coercing through ``str()`` would turn a numeric dataset ID or a stray bool
+    into a valid-looking UUID that silently narrows the operator's scope.
+    """
+    from superset.mcp_service.dataset_scope import parse_dataset_role_allowlist
+
+    with pytest.raises(MCPDatasetScopeError, match="must be dataset UUID strings"):
+        parse_dataset_role_allowlist({"Readers": [entry]})
+
+
+def test_startup_validation_names_the_offending_role_and_entry() -> None:
+    """The operator needs the bad line, not just the setting name."""
+    from superset.mcp_service.dataset_scope import parse_dataset_role_allowlist
+
+    with pytest.raises(MCPDatasetScopeError) as excinfo:
+        parse_dataset_role_allowlist({"Ops": [str(FIRST)], "Finance": ["not-a-uuid"]})
+    message = str(excinfo.value)
+    assert "Finance" in message
+    assert "not-a-uuid" in message
+    assert "Ops" not in message
+
+
+def test_startup_validation_rejects_non_string_role_keys() -> None:
+    """Roles are matched by name, so a non-string key can never match."""
+    from superset.mcp_service.dataset_scope import parse_dataset_role_allowlist
+
+    with pytest.raises(MCPDatasetScopeError, match="keys must be role names"):
+        parse_dataset_role_allowlist({7: [str(FIRST)]})
+
+
+def test_public_tools_are_documented_as_exempt_from_the_scope() -> None:
+    """Scope runs in mcp_auth_hook, so protect=False tools are never gated.
+
+    Guards the docs claim that every *authenticated* tool refuses: if a future
+    unprotected tool could reach dataset rows, this list must be revisited.
+    """
+    from superset.mcp_service.app import ALLOWED_UNPROTECTED
+
+    assert ALLOWED_UNPROTECTED == frozenset({"generate_bug_report"})
+    assert not ALLOWED_UNPROTECTED & SCOPED_TOOLS
 
 
 @pytest.mark.parametrize("opr", ["is_null", "is_not_null"])
