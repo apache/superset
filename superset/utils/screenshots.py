@@ -203,9 +203,13 @@ class ScreenshotCachePayload:
         """Check if a COMPUTING status is stale (task likely failed or stuck)."""
         return self.is_in_progress_stale()
 
-    def is_in_progress_stale(self) -> bool:
+    def is_in_progress_stale(self, max_age_seconds: float | None = None) -> bool:
         """Check if a pending or computing request has exceeded its lease."""
-        computing_ttl = app.config["THUMBNAIL_COMPUTING_CACHE_TTL"]
+        computing_ttl = (
+            max_age_seconds
+            if max_age_seconds is not None
+            else app.config["THUMBNAIL_COMPUTING_CACHE_TTL"]
+        )
         return (
             datetime.now() - datetime.fromisoformat(self.get_timestamp())
         ).total_seconds() >= computing_ttl
@@ -221,19 +225,31 @@ class ScreenshotCachePayload:
         return self.status == StatusValues.UPDATED
 
     def should_enqueue_task(
-        self, force: bool = False, expected_scope: str | None = None
+        self,
+        force: bool = False,
+        expected_scope: str | None = None,
+        force_retry_after_seconds: float | None = None,
     ) -> bool:
         """Return whether an API producer should enqueue a new generation.
 
-        Fresh pending/computing state is already accepted work, so even forced
-        callers observe it instead of producing another generation. A stale
-        in-progress state remains retryable through the existing lease TTL.
+        Fresh pending/computing state is already accepted work for ordinary
+        callers. An explicit forced request may replace it after an optional
+        coalescing window, which lets simultaneous forced requests share one
+        generation while still allowing prompt recovery if a producer died before
+        broker publication. A stale in-progress state remains retryable without
+        force.
         """
 
         if expected_scope is not None and self._scope != expected_scope:
             return True
         if self.is_in_progress():
-            return self.is_in_progress_stale()
+            return self.is_in_progress_stale() or (
+                force
+                and (
+                    force_retry_after_seconds is None
+                    or self.is_in_progress_stale(force_retry_after_seconds)
+                )
+            )
         return self.should_trigger_task(force, expected_scope)
 
     def should_trigger_task(

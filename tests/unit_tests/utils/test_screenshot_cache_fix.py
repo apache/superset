@@ -357,7 +357,7 @@ class TestShouldTriggerTask:
         assert payload_computing.should_trigger_task(force=True) is True
 
     @patch("superset.utils.screenshots.app")
-    def test_fresh_in_progress_request_is_not_enqueued_again(
+    def test_fresh_in_progress_request_respects_force(
         self, mock_app: MagicMock
     ) -> None:
         mock_app.config = {"THUMBNAIL_COMPUTING_CACHE_TTL": 300}
@@ -367,8 +367,56 @@ class TestShouldTriggerTask:
 
             assert (
                 payload.should_enqueue_task(
+                    force=False,
+                    expected_scope="dashboard:5",
+                )
+                is False
+            )
+            assert (
+                payload.should_enqueue_task(
                     force=True,
                     expected_scope="dashboard:5",
+                )
+                is True
+            )
+
+    @patch("superset.utils.screenshots.app")
+    def test_forced_in_progress_request_respects_coalescing_window(
+        self, mock_app: MagicMock
+    ) -> None:
+        mock_app.config = {"THUMBNAIL_COMPUTING_CACHE_TTL": 300}
+        for status in (StatusValues.PENDING, StatusValues.COMPUTING):
+            fresh_payload = ScreenshotCachePayload(
+                status=status,
+                scope="dashboard:5",
+            )
+            older_payload = ScreenshotCachePayload(
+                status=status,
+                timestamp=(datetime.now() - timedelta(seconds=2)).isoformat(),
+                scope="dashboard:5",
+            )
+
+            assert (
+                fresh_payload.should_enqueue_task(
+                    force=True,
+                    expected_scope="dashboard:5",
+                    force_retry_after_seconds=1,
+                )
+                is False
+            )
+            assert (
+                older_payload.should_enqueue_task(
+                    force=True,
+                    expected_scope="dashboard:5",
+                    force_retry_after_seconds=1,
+                )
+                is True
+            )
+            assert (
+                older_payload.should_enqueue_task(
+                    force=False,
+                    expected_scope="dashboard:5",
+                    force_retry_after_seconds=1,
                 )
                 is False
             )
