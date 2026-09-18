@@ -819,3 +819,30 @@ def test_whole_secret_list_reference_is_wildcard() -> None:
     assert unmask_configuration(
         [{"x": "secret"}], [{"x": PASSWORD_MASK}], [PASSWORD_MASK]
     ) == [{"x": "secret"}]
+
+
+@pytest.mark.parametrize(
+    "visible, changed", [(1, True), (True, 1), (0, False), (1, 1.0)]
+)
+def test_masked_list_identity_rejects_equal_values_of_different_types(
+    visible: int | bool | float, changed: int | bool | float
+) -> None:
+    """Python equality must not rebind credentials to a different JSON identity."""
+    stored: list[dict[str, Any]] = [{"identity": visible, "password": "secret"}]
+    reference: list[dict[str, Any]] = [{"identity": visible, "password": PASSWORD_MASK}]
+    submitted: list[dict[str, Any]] = [{"identity": changed, "password": PASSWORD_MASK}]
+    with pytest.raises(MaskedListUpdateError, match="visible fields cannot change"):
+        unmask_configuration(stored, submitted, reference)
+
+
+def test_short_masked_list_reference_uses_secret_wildcard() -> None:
+    """Missing reference entries follow the recursive secret-wildcard fallback."""
+    stored: list[dict[str, str]] = [
+        {"host": "a", "password": "secret-a"},
+        {"host": "b", "password": "secret-b"},
+    ]
+    submitted: list[dict[str, str]] = [
+        {"host": "a", "password": PASSWORD_MASK},
+        {"host": "b", "password": PASSWORD_MASK},
+    ]
+    assert unmask_configuration(stored, submitted, submitted[:1]) == stored

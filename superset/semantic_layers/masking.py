@@ -457,6 +457,7 @@ def unmask_configuration(
                 )
             if any(
                 _contains_mask(item)
+                and index < len(reference_list)
                 and not _matches_visible_values(reference_list[index], item)
                 for index, item in enumerate(submitted)
             ):
