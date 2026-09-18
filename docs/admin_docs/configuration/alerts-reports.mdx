@@ -478,6 +478,18 @@ There are many reasons that reports might not be working. Try these steps to che
 
 ### Blank PDF or PNG captures
 
+Final screenshot bytes are validated independently of the capture implementation.
+PDF delivery requires evidence that the exact PDF was assembled from validated
+images during this execution. Capture rejection remains sticky for the execution;
+substituting another attachment cannot clear it. Detection is a heuristic, not a
+guarantee that every chart contains correct data. Sparse text and solid-colour
+charts are not rejected solely for their low whole-page pixel density.
+
+Chart error and empty states are terminal for readiness, but a rendered error is
+not successful chart data. Logs distinguish `rendered_holders`, `empty_holders`,
+`error_holders` and `semantic_success`; `report_semantic_status` warns when a
+completed capture includes terminal chart errors.
+
 Playwright report captures are checked for blank image content as well as chart
 readiness. Captures detected as blank where chart content is expected are retried
 up to three total attempts, within the execution deadline. If they remain blank,
@@ -505,7 +517,27 @@ captured during the stability window. Successful checks emit
 `report_capture_readiness_stable`; a timeout emits
 `report_capture_readiness_changed` and stops capture and delivery.
 
-### Confirm feature flag is enabled and you have sufficient permissions
+### Whole-execution retries
+
+Enable `ALERT_REPORTS_RETRY` and select **Enable Retries** in each alert or report's
+error-handling settings. This does not opt existing schedules in automatically.
+The default allows three additional attempts, with exponential delays starting at
+60 seconds and capped by `ALERT_REPORTS_RETRY_MAX_DELAY_SECONDS`. Screenshot-tile
+retries are separate from these whole-execution attempts.
+
+Each retry gets a fresh browser context and re-evaluates an alert's condition; if
+the condition no longer fires, it finishes without sending the alert. Duplicate
+or obsolete retry messages cannot claim the same execution window. The worker
+logs `report_retry_discarded` or `report_execution_not_claimed` when admission fails.
+
+Whole-execution retry applies before notification delivery starts. A delivery
+failure is not replayed, since a provider may have accepted the notification
+before returning an error. It is not an exactly-once delivery guarantee, nor a
+guarantee of recovery after a worker hard kill. Optional retry/final-failure
+notifications are text-only and omit raw provider diagnostics. Rejected PDF/PNG
+attachments are never attached to those notifications.
+
+### Feature flag and permissions checks
 
 If you don't see "Alerts & Reports" under the _Manage_ section of the Settings dropdown in the Superset UI, you need to enable the `ALERT_REPORTS` feature flag (see above). Enable another feature flag and check to see that it took effect, to verify that your config file is getting loaded.
 
