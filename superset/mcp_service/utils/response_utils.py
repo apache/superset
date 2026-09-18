@@ -399,8 +399,19 @@ def format_data_columns(
     data: list[dict[str, Any]],
     raw_columns: list[str],
     coltypes: list[int | GenericDataType] | None = None,
+    *,
+    temporal_columns: set[str] | None = None,
 ) -> list[DataColumn]:
-    """Build bounded, coltype-aware metadata with value-semantic statistics."""
+    """Build bounded, coltype-aware metadata with value-semantic statistics.
+
+    Caps null_count/unique_count computation at STATS_ROW_CAP rows to avoid
+    O(rows*cols) overhead on large result sets. When the result exceeds the
+    cap, those counts are marked as sampled/approximate via ``statistics``
+    instead of being reported as exact full-dataset totals.
+    Authoritative ``coltypes`` take precedence over sample-based type
+    inference, and explicit temporal column names override both; omitting
+    both preserves the existing inference behavior.
+    """
     # Local import breaks the chart.schemas ↔ response_utils circular dependency.
     from superset.mcp_service.chart.schemas import DataColumn  # noqa: PLC0415
 
@@ -432,6 +443,8 @@ def format_data_columns(
                 data_type = "boolean"
             elif all(type(value) in (int, float, Decimal) for value in sample_values):
                 data_type = "numeric"
+        if temporal_columns and col_name in temporal_columns:
+            data_type = "temporal"
 
         columns.append(
             DataColumn(
