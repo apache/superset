@@ -190,10 +190,13 @@ def _build_candidates(
     if temporal and numeric:
         candidates = _candidates_temporal_numeric(numeric, row_count)
         # Time-spatial data plots on a map as readily as on a time series,
-        # so the coordinates stay on offer instead of being shadowed. Under the
-        # recommendation cap this costs the trailing "multi-line chart", the
-        # closest variant of the "line chart" that survives, so the suggestions
-        # still span every distinct shape the dataset supports.
+        # so the coordinates stay on offer instead of being shadowed. When the
+        # row count is high enough to offer lines and the chart is not already
+        # a line chart, the recommendation cap pays for the map by dropping the
+        # trailing "multi-line chart", the closest variant of the "line chart"
+        # that survives, so the suggestions still span every distinct shape the
+        # dataset supports. Below that row threshold, and on a chart whose line
+        # category is already filtered out, nothing is displaced.
         return ["geographic points", *candidates] if has_coordinates else candidates
     if has_coordinates:
         return ["geographic points", "table"]
