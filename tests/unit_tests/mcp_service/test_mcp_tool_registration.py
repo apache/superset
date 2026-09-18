@@ -35,6 +35,7 @@ _FFM_PATH = "superset.extensions.feature_flag_manager"
 # field assertion rejects missing or fully unconstrained output schemas.
 EXPECTED_TOOL_OUTPUT_FIELDS = {
     "add_chart_to_existing_dashboard": "dashboard_url",
+    "apply_dashboard_filters": "permalink_key",
     "create_dataset": "table_name",
     "create_theme": "theme_name",
     "create_virtual_dataset": "dataset_name",
@@ -119,6 +120,7 @@ EXPECTED_TOP_LEVEL_OUTPUT_FIELDS = {
 
 MUTATING_TOOLS = {
     "add_chart_to_existing_dashboard",
+    "apply_dashboard_filters",
     "create_dataset",
     "create_theme",
     "create_virtual_dataset",
