@@ -215,7 +215,7 @@ def test_connections_authentication_paths(
     [{"FEATURE_FLAGS": {"SEMANTIC_LAYERS": enabled}} for enabled in (False, True)],
     indirect=True,
 )
-@pytest.mark.parametrize("view", ["Dataset", "SemanticView"])
+@pytest.mark.parametrize("view", ["Dataset", "SemanticView", "Datasource"])
 def test_combined_discovery_requires_source_read_and_semantic_flag(
     client: FlaskClient, mocker: MockerFixture, view: str
 ) -> None:
@@ -245,7 +245,7 @@ def test_combined_discovery_requires_source_read_and_semantic_flag(
     )
     command.return_value.run.return_value = {"count": 0, "result": []}
     response: TestResponse = client.get("/api/v1/datasource/")
-    if (
+    if view == "Datasource" or (
         view == "SemanticView"
         and not current_app.config["FEATURE_FLAGS"]["SEMANTIC_LAYERS"]
     ):
@@ -336,3 +336,67 @@ def test_connections_without_session_or_bearer_returns_401(
     response: TestResponse = client.get("/api/v1/semantic_layer/connections/")
     assert response.status_code == 401
     fetch.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "app", [{"FEATURE_FLAGS": {"SEMANTIC_LAYERS": True}}], indirect=True
+)
+def test_connections_combines_read_grants_from_separate_roles(
+    client: FlaskClient, session: Session, mocker: MockerFixture
+) -> None:
+    """Real FAB permission lookup combines grants across non-Admin roles."""
+    from flask import g
+    from flask_appbuilder.security.sqla.models import (
+        Permission,
+        PermissionView,
+        Role,
+        User,
+        ViewMenu,
+    )
+
+    from superset.semantic_layers.models import SemanticLayer
+
+    User.metadata.create_all(session.get_bind())
+    read: Permission = Permission(name="can_read")
+    database_role: Role = Role(
+        name="database_reader",
+        permissions=[
+            PermissionView(permission=read, view_menu=ViewMenu(name="Database"))
+        ],
+    )
+    layer_role: Role = Role(
+        name="layer_reader",
+        permissions=[
+            PermissionView(permission=read, view_menu=ViewMenu(name="SemanticLayer"))
+        ],
+    )
+    user: User = User(
+        username="split_reader",
+        first_name="Split",
+        last_name="Reader",
+        email="split@example.test",
+        active=True,
+        roles=[database_role, layer_role],
+    )
+    session.add(user)
+    session.flush()
+    mocker.patch("flask_login.utils._get_user", return_value=user)
+    g.user = user
+    mocker.patch.object(security_manager, "is_item_public", return_value=False)
+    mocker.patch.object(security_manager, "can_access_all_databases", return_value=True)
+    mocker.patch.object(
+        security_manager, "can_access_all_datasources", return_value=True
+    )
+    query: MagicMock = MagicMock()
+    query.return_value.options.return_value.all.return_value = []
+    query.return_value.options.return_value.filter.return_value.all.return_value = []
+    mocker.patch(
+        "superset.semantic_layers.api.db",
+        SimpleNamespace(session=SimpleNamespace(query=query)),
+    )
+    response: TestResponse = client.get("/api/v1/semantic_layer/connections/")
+    assert response.status_code == 200
+    assert response.json == {"count": 0, "result": []}
+    assert {call.args[0] for call in query.call_args_list} == {Database, SemanticLayer}
+    assert query.call_count == 2
+    session.rollback()

@@ -534,7 +534,12 @@ function DatabaseList({
     },
   ];
 
-  const hasFileUploadEnabled = () => {
+  useEffect(() => {
+    if (!canReadDatabase) {
+      setAllowUploads(false);
+      return undefined;
+    }
+    let active = true;
     const payload = {
       filters: [
         { col: 'allow_file_upload', opr: 'upload_is_enabled', value: true },
@@ -542,18 +547,27 @@ function DatabaseList({
     };
     SupersetClient.get({
       endpoint: `/api/v1/database/?q=${rison.encode(payload)}`,
-    }).then(({ json }: Record<string, any>) => {
-      // There might be some existing Gsheets and Clickhouse DBs
-      // with allow_file_upload set as True which is not possible from now on
-      const allowedDatabasesWithFileUpload =
-        json?.result?.filter(
-          (database: any) => database?.engine_information?.supports_file_upload,
-        ) || [];
-      setAllowUploads(allowedDatabasesWithFileUpload?.length >= 1);
-    });
-  };
-
-  useEffect(() => hasFileUploadEnabled(), [databaseModalOpen]);
+    })
+      .then(({ json }) => {
+        // Older GSheets and ClickHouse configurations may allow uploads even
+        // though their engines do not support them.
+        if (active) {
+          setAllowUploads(
+            json?.result?.some(
+              (database: {
+                engine_information?: { supports_file_upload?: boolean };
+              }) => database.engine_information?.supports_file_upload,
+            ) ?? false,
+          );
+        }
+      })
+      .catch(() => {
+        if (active) setAllowUploads(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [databaseModalOpen, canReadDatabase]);
 
   const filteredDropDown = uploadDropdownMenu.reduce((prev, cur) => {
     // eslint-disable-next-line no-param-reassign
