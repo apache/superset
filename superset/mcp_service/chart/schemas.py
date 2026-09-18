@@ -1413,7 +1413,16 @@ class TreemapChartUpdateConfig(BaseChartConfig):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    chart_type: Literal["treemap_v2"] = "treemap_v2"
+    # Required even though every other field is optional: this partial model
+    # sits beside the discriminated ``ChartConfig`` union in the update
+    # requests. With a defaulted discriminator any config that failed the
+    # discriminated branch — including one that simply omitted
+    # ``chart_type`` — would fall through to this model and silently rewrite
+    # an existing chart of another type into a Treemap.
+    chart_type: Literal["treemap_v2"] = Field(
+        ...,
+        description="Chart type discriminator; must be 'treemap_v2'",
+    )
     groupby: List[ColumnRef] | None = Field(
         None,
         min_length=1,
@@ -1511,6 +1520,10 @@ class TreemapChartUpdateConfig(BaseChartConfig):
 class TreemapChartConfig(TreemapChartUpdateConfig):
     """Complete Treemap configuration required for generation and compilation."""
 
+    # Restored to a default here: this model is only ever reached through the
+    # discriminated union, which already requires the key in client payloads,
+    # and internal call sites construct it directly.
+    chart_type: Literal["treemap_v2"] = "treemap_v2"
     groupby: List[ColumnRef] = Field(
         ...,
         min_length=1,

@@ -25,6 +25,7 @@ from typing import Any
 from superset.mcp_service.chart.query_result import (
     metric_result_label,
     normalize_chart_query_result,
+    treemap_hierarchy_labels,
 )
 from superset.mcp_service.chart.schemas import ChartError, VegaLitePreview
 
@@ -77,9 +78,11 @@ def treemap_ascii(
         return checked
     label = metric_result_label(form_data["metric"])
     assert label is not None
+    hierarchy = treemap_hierarchy_labels(form_data)
+    assert hierarchy is not None
     lines = [f"Treemap hierarchy | {label}"]
     for row in data[:_MAX_ROWS]:
-        path = " > ".join(str(row[column]) for column in form_data["groupby"])
+        path = " > ".join(str(row[column]) for column in hierarchy)
         lines.append(f"{path} | {row[label]}")
     if len(data) > _MAX_ROWS:
         lines.append(f"Showing {_MAX_ROWS} of {len(data)} rows")
@@ -127,7 +130,8 @@ def treemap_vega_lite(  # noqa: C901
             ),
             error_type="UnsupportedTreemapPreview",
         )
-    hierarchy = form_data["groupby"]
+    hierarchy = treemap_hierarchy_labels(form_data)
+    assert hierarchy is not None
     if len(hierarchy) > 20 or not math.isfinite(sum(float(row[label]) for row in data)):
         return ChartError(
             error="Treemap preview requires at most 20 levels and a finite total.",

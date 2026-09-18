@@ -21,7 +21,7 @@ import math
 from collections.abc import Mapping
 from decimal import Decimal
 from numbers import Real
-from typing import Any
+from typing import Any, cast
 
 from superset.mcp_service.chart.schemas import ChartError
 
@@ -233,6 +233,42 @@ def validate_gauge_query_result(
     return normalized if isinstance(normalized, ChartError) else None
 
 
+def column_result_label(column: Any) -> str | None:
+    """Resolve the query-result key using frontend ``getColumnLabel`` rules.
+
+    Explore's ``DndColumnSelect`` stores adhoc Custom SQL entries as objects,
+    so ``groupby`` on a saved chart may hold either a physical column name or
+    an adhoc column whose output key is its label (or raw SQL expression).
+    """
+    if isinstance(column, str):
+        return column or None
+    if not isinstance(column, Mapping):
+        return None
+    for key in ("label", "sqlExpression"):
+        value = column.get(key)
+        if isinstance(value, str) and value:
+            return value
+    return None
+
+
+def treemap_hierarchy_labels(form_data: Mapping[str, Any]) -> list[str] | None:
+    """Map a Treemap ``groupby`` onto the result keys its rows are keyed by.
+
+    Returns ``None`` when the hierarchy is absent, empty, contains an
+    unresolvable entry, or would collapse onto duplicate output labels.
+    """
+    hierarchy = form_data.get("groupby")
+    if not isinstance(hierarchy, list) or not hierarchy:
+        return None
+    labels = [column_result_label(column) for column in hierarchy]
+    if any(label is None for label in labels):
+        return None
+    resolved = cast(list[str], labels)
+    if len(set(resolved)) != len(resolved):
+        return None
+    return resolved
+
+
 def normalize_chart_query_result(result: Any, form_data: Mapping[str, Any]) -> Any:
     """Validate chart-specific result contracts before consumers use rows."""
     if form_data.get("viz_type") != "treemap_v2":
@@ -240,15 +276,8 @@ def normalize_chart_query_result(result: Any, form_data: Mapping[str, Any]) -> A
     if failure := query_result_failure(result):
         return failure
     label = metric_result_label(form_data.get("metric"))
-    hierarchy = form_data.get("groupby")
-    if (
-        not label
-        or not isinstance(hierarchy, list)
-        or not hierarchy
-        or not all(isinstance(column, str) and column for column in hierarchy)
-        or len(set(hierarchy)) != len(hierarchy)
-        or label in hierarchy
-    ):
+    hierarchy = treemap_hierarchy_labels(form_data)
+    if not label or hierarchy is None or label in hierarchy:
         return ChartError(
             error=(
                 "Treemap requires unique hierarchy columns and a distinct metric label."

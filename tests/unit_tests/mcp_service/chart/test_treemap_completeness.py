@@ -17,6 +17,7 @@
 
 """Treemap regressions spanning native requests, query output and update semantics."""
 
+import re
 from contextlib import nullcontext
 from copy import deepcopy
 from decimal import Decimal
@@ -1172,3 +1173,201 @@ def test_resolution_validation_error_is_caught_value_error() -> None:
     with pytest.raises(ValidationError) as caught:
         resolve_treemap_update_config(request.config, {})
     assert isinstance(caught.value, ValueError)
+
+
+# --- Node-free equivalents of the scenegraph render assertion -----------------
+#
+# ``test_vega_scenegraph_renders_nested_metric_geometry`` only runs where Node
+# with vega/vega-lite is installed, so the checks below reproduce the parts a
+# compile would catch — unresolvable ``datum`` references and unknown Vega
+# expression functions — using nothing but the standard library.
+
+_DATUM_REFERENCE = re.compile(r"datum\.([A-Za-z_$][A-Za-z0-9_$]*)")
+_FUNCTION_CALL = re.compile(r"\b([A-Za-z_$][A-Za-z0-9_$]*)\s*\(")
+# Vega expression functions the Treemap specification is allowed to emit.
+_ALLOWED_VEGA_FUNCTIONS = frozenset({"format", "if", "isValid", "join"})
+
+
+def _expression_strings(node: Any) -> list[str]:
+    """Collect every Vega expression embedded in a Vega-Lite specification."""
+    found: list[str] = []
+    if isinstance(node, dict):
+        for key, value in node.items():
+            if key in ("filter", "calculate", "expr") and isinstance(value, str):
+                found.append(value)
+            else:
+                found.extend(_expression_strings(value))
+    elif isinstance(node, list):
+        for item in node:
+            found.extend(_expression_strings(item))
+    return found
+
+
+def _resolvable_fields(layer: dict[str, Any], data_keys: set[str]) -> set[str]:
+    """Return data keys plus every field the layer's transforms derive."""
+    derived = {
+        transform["as"]
+        for transform in layer.get("transform", [])
+        if isinstance(transform.get("as"), str)
+    }
+    return data_keys | derived
+
+
+@pytest.mark.parametrize("number_format", [None, ",.1f"])
+@pytest.mark.parametrize("show_labels", [False, True])
+def test_vega_spec_field_references_all_resolve(
+    number_format: str | None, show_labels: bool
+) -> None:
+    """Every encoding and expression field must exist in the data or a transform."""
+    spec = treemap_vega_lite(
+        ROWS,
+        {
+            **FORM_DATA,
+            "currency_format": None,
+            "show_labels": show_labels,
+            "number_format": number_format,
+        },
+    )
+    assert not isinstance(spec, ChartError)
+    specification = spec.specification
+    data_keys = set(specification["data"]["values"][0])
+    assert specification["$schema"].startswith(
+        "https://vega.github.io/schema/vega-lite"
+    )
+    layers = specification["layer"]
+    assert layers
+
+    for layer in layers:
+        resolvable = _resolvable_fields(layer, data_keys)
+        for channel in layer["encoding"].values():
+            channels = channel if isinstance(channel, list) else [channel]
+            for definition in channels:
+                field = definition.get("field")
+                if field is not None:
+                    assert field in resolvable, f"unknown encoding field {field!r}"
+        for expression in _expression_strings(layer):
+            for reference in _DATUM_REFERENCE.findall(expression):
+                assert reference in resolvable, (
+                    f"expression {expression!r} references unknown field {reference!r}"
+                )
+            unknown = set(_FUNCTION_CALL.findall(expression)) - _ALLOWED_VEGA_FUNCTIONS
+            assert not unknown, f"expression {expression!r} calls {sorted(unknown)}"
+
+
+def test_vega_spec_field_reference_check_catches_a_bad_calculate() -> None:
+    """The Node-free check must fail on the typo class it exists to catch."""
+    spec = treemap_vega_lite(ROWS, {**FORM_DATA, "currency_format": None})
+    assert not isinstance(spec, ChartError)
+    layer = deepcopy(spec.specification["layer"][0])
+    layer.setdefault("transform", []).append(
+        {"calculate": "format(datum.valeu, ',.1f')", "as": "typo"}
+    )
+    data_keys = set(spec.specification["data"]["values"][0])
+    resolvable = _resolvable_fields(layer, data_keys)
+    references = {
+        reference
+        for expression in _expression_strings(layer)
+        for reference in _DATUM_REFERENCE.findall(expression)
+    }
+    assert references - resolvable == {"valeu"}
+
+
+# --- Update-union discriminator ----------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "config",
+    [
+        {"row_limit": 50},
+        {"groupby": ["region"], "metric": "revenue"},
+        {"color_scheme": "supersetColors"},
+    ],
+)
+def test_update_request_rejects_config_without_discriminator(
+    config: dict[str, Any],
+) -> None:
+    """A config omitting chart_type must not fall through to the Treemap model."""
+    with pytest.raises(ValidationError):
+        UpdateChartRequest.model_validate({"identifier": 1, "config": config})
+    with pytest.raises(ValidationError):
+        UpdateChartPreviewRequest.model_validate({"dataset_id": 7, "config": config})
+
+
+def test_update_request_still_accepts_partial_treemap_with_discriminator() -> None:
+    """Partial Treemap updates remain valid when the discriminator is present."""
+    request = UpdateChartRequest.model_validate(
+        {"identifier": 1, "config": {"chart_type": "treemap_v2", "row_limit": 50}}
+    )
+    assert request.config is not None
+    assert request.config.chart_type == "treemap_v2"
+    assert request.config.groupby is None
+    assert request.config.metric is None
+    assert "row_limit" in request.config.model_fields_set
+
+
+# --- Adhoc Custom SQL hierarchy columns --------------------------------------
+
+ADHOC_COLUMN: dict[str, Any] = {
+    "label": "Region Bucket",
+    "sqlExpression": "CASE WHEN region = 'West' THEN 'W' ELSE 'O' END",
+    "expressionType": "SQL",
+    "hasCustomLabel": True,
+}
+ADHOC_FORM_DATA: dict[str, Any] = {
+    **FORM_DATA,
+    "currency_format": None,
+    "groupby": ["region", ADHOC_COLUMN],
+}
+ADHOC_ROWS = [
+    {"region": "West", "Region Bucket": "W", "revenue": 30},
+    {"region": "East", "Region Bucket": "O", "revenue": 60},
+]
+
+
+def test_adhoc_hierarchy_column_is_normalized_to_its_output_label() -> None:
+    """Saved Treemaps using Explore's Custom SQL columns must not be rejected."""
+    result = {"queries": [{"data": ADHOC_ROWS}]}
+    assert normalize_chart_query_result(result, ADHOC_FORM_DATA) is result
+
+
+def test_adhoc_hierarchy_column_without_label_falls_back_to_sql() -> None:
+    """An unlabelled adhoc column is keyed by its raw SQL, matching getColumnLabel."""
+    form_data = {
+        **ADHOC_FORM_DATA,
+        "groupby": [
+            "region",
+            {"sqlExpression": "lower(city)", "expressionType": "SQL"},
+        ],
+    }
+    rows = [{"region": "West", "lower(city)": "sf", "revenue": 30}]
+    result = {"queries": [{"data": rows}]}
+    assert normalize_chart_query_result(result, form_data) is result
+
+
+def test_adhoc_hierarchy_previews_render_with_resolved_labels() -> None:
+    """Preview formats index rows by output label rather than the adhoc object."""
+    ascii_preview = treemap_ascii(ADHOC_ROWS, ADHOC_FORM_DATA)
+    assert not isinstance(ascii_preview, ChartError)
+    assert "West > W" in ascii_preview
+    vega = treemap_vega_lite(ADHOC_ROWS, ADHOC_FORM_DATA)
+    assert not isinstance(vega, ChartError)
+    assert vega.specification["usermeta"]["hierarchy"] == ["region", "Region Bucket"]
+
+
+@pytest.mark.parametrize(
+    "groupby",
+    [
+        ["region", {"expressionType": "SQL"}],
+        ["region", {"label": "region"}],
+        ["region", 7],
+    ],
+)
+def test_unresolvable_or_duplicate_hierarchy_columns_stay_rejected(
+    groupby: list[Any],
+) -> None:
+    """Normalization must not weaken the unique-resolvable-hierarchy contract."""
+    failure = normalize_chart_query_result(
+        {"queries": [{"data": ADHOC_ROWS}]}, {**ADHOC_FORM_DATA, "groupby": groupby}
+    )
+    assert isinstance(failure, ChartError)
+    assert failure.error_type == "InvalidTreemapFormData"
