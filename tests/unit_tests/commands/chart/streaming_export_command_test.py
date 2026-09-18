@@ -16,12 +16,18 @@
 # under the License.
 """Unit tests for Chart Streaming CSV Export Command."""
 
+from types import SimpleNamespace
+from typing import Any
+
 import pytest
+from flask import g
+from flask_login import current_user
 from pytest_mock import MockerFixture
 
 from superset.commands.chart.data.streaming_export_command import (
     StreamingCSVExportCommand,
 )
+from superset.utils.core import get_user_id, get_username
 
 
 def _setup_chart_mocks(
@@ -378,3 +384,58 @@ def test_streaming_export_mutation_does_not_double_apply(
     datasource.database.mutate_sql_based_on_config.assert_called_once_with(
         "SELECT * FROM test /* mutated */", is_split=True
     )
+
+
+def test_streaming_export_keeps_acting_user_after_request_context_ends(
+    app: Any,
+    mocker: MockerFixture,
+) -> None:
+    """
+    Flask-AppBuilder's ``before_request`` sets ``g.user = current_user``, a
+    Flask-Login ``LocalProxy`` that resolves to ``None`` outside a request
+    context. Werkzeug iterates a streaming response body *after* the request
+    context is popped, so copying that proxy into the generator's fresh app
+    context yields a user-less ``g``: ``Database._get_sqla_engine`` then sees
+    ``hasattr(g.user, "id") is False`` and builds the engine with
+    ``access_token=None``, silently dropping the per-user OAuth2 token.
+    """
+    _mock_db, query_context, datasource = _setup_chart_mocks(mocker)
+
+    result_proxy = mocker.MagicMock()
+    result_proxy.keys.return_value = ["id"]
+    result_proxy.fetchmany.side_effect = [[(1,)], []]
+
+    connection = mocker.MagicMock()
+    connection.execution_options.return_value.execute.return_value = result_proxy
+    connection.__enter__.return_value = connection
+    connection.__exit__.return_value = None
+    engine = mocker.MagicMock()
+    engine.connect.return_value = connection
+
+    # Record the acting user at the moment the engine is acquired -- the point
+    # where the real Database._get_sqla_engine resolves the OAuth2 access token.
+    seen: list[tuple[str | None, int | None]] = []
+
+    def fake_get_sqla_engine(*args: Any, **kwargs: Any) -> Any:
+        seen.append((get_username(), get_user_id()))
+        cm = mocker.MagicMock()
+        cm.__enter__.return_value = engine
+        cm.__exit__.return_value = None
+        return cm
+
+    datasource.database.get_sqla_engine.side_effect = fake_get_sqla_engine
+
+    user = SimpleNamespace(id=42, username="alice")
+
+    with app.test_request_context("/"):
+        g._login_user = user
+        g.user = current_user  # exactly what Flask-AppBuilder's before_request does
+        assert (get_username(), get_user_id()) == ("alice", 42)
+
+        command = StreamingCSVExportCommand(query_context, chunk_size=10)
+        csv_generator_callable = command.run()
+
+    # The request context is gone by the time the body is streamed.
+    list(csv_generator_callable())
+
+    assert seen == [("alice", 42)]
