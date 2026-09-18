@@ -217,9 +217,9 @@ SUBJECT_PERMISSIONS = {"editor", "viewer", "admin"}
 
 
 class FolderSubjectPostSchema(Schema):
-    """Payload to add a user to a folder."""
+    """Payload to add a subject to a folder."""
 
-    user_id = fields.Integer(required=True)
+    subject_id = fields.Integer(required=True)
     permission = fields.String(
         required=True,
         validate=validate.OneOf(sorted(SUBJECT_PERMISSIONS)),
@@ -238,5 +238,6 @@ class FolderSubjectPutSchema(Schema):
 class FolderSubjectSchema(Schema):
     """A user (editor/viewer) in responses."""
 
+    subject_id = fields.Integer()
     user_id = fields.Integer()
     permission = fields.String()

@@ -34,7 +34,7 @@ from superset.daos.base import BaseDAO
 from superset.extensions import db
 from superset.folders.constants import ASSET_TYPE_CONFIGS, asset_types_for_folder_type
 from superset.subjects.models import Subject
-from superset.subjects.utils import get_user_subject, get_user_subject_ids_subquery
+from superset.subjects.utils import get_or_create_user_subject, get_user_subject, get_user_subject_ids_subquery
 from superset.folders.models import (
     Folder,
     folder_editors,
@@ -170,6 +170,10 @@ class FolderDAO(BaseDAO[Folder]):
         def included(kind: str) -> bool:
             return requested is None or kind in requested
 
+        from superset.folders.utils import folder_permissions_enabled
+
+        _perms_on = folder_permissions_enabled()
+
         selects = []
 
         # --- Folders (subfolders / top-level) ---
@@ -202,35 +206,42 @@ class FolderDAO(BaseDAO[Folder]):
                 fq = fq.where(Folder.changed_on >= modified_start)
             if modified_end:
                 fq = fq.where(Folder.changed_on <= modified_end)
-            # Hide other users' private folders from everyone (including admins)
-            if user_id:
-                subject_ids_sq = get_user_subject_ids_subquery(user_id)
-                own_private_ids = (
-                    select(folder_editors.c.folder_id).where(
-                        folder_editors.c.subject_id.in_(subject_ids_sq)
-                    )
-                )
-                fq = fq.where(
-                    or_(
-                        Folder.is_private.is_(False),
-                        Folder.id.in_(own_private_ids),
-                    )
-                )
-            # Access filter: non-admins see member folders + implicit folders
-            if not is_admin and user_id:
-                from superset.folders.utils import user_accessible_folder_ids
 
-                member_folder_ids = user_accessible_folder_ids(user_id)
-                implicit_ids = cls.folders_with_accessible_assets(user_id, folder_type)
-                if implicit_ids:
-                    fq = fq.where(
-                        or_(
-                            Folder.id.in_(member_folder_ids),
-                            Folder.id.in_(list(implicit_ids)),
+            if not _perms_on:
+                # Permissions OFF: hide Only Me folders entirely
+                fq = fq.where(Folder.is_only_me.is_(False))
+            else:
+                # Hide other users' private folders from everyone (including admins)
+                if user_id:
+                    subject_ids_sq = get_user_subject_ids_subquery(user_id)
+                    own_private_ids = (
+                        select(folder_editors.c.folder_id).where(
+                            folder_editors.c.subject_id.in_(subject_ids_sq)
                         )
                     )
-                else:
-                    fq = fq.where(Folder.id.in_(member_folder_ids))
+                    fq = fq.where(
+                        or_(
+                            Folder.is_private.is_(False),
+                            Folder.id.in_(own_private_ids),
+                        )
+                    )
+                # Access filter: non-admins see member folders + implicit folders
+                if not is_admin and user_id:
+                    from superset.folders.utils import user_accessible_folder_ids
+
+                    member_folder_ids = user_accessible_folder_ids(user_id)
+                    implicit_ids = cls.folders_with_accessible_assets(
+                        user_id, folder_type
+                    )
+                    if implicit_ids:
+                        fq = fq.where(
+                            or_(
+                                Folder.id.in_(member_folder_ids),
+                                Folder.id.in_(list(implicit_ids)),
+                            )
+                        )
+                    else:
+                        fq = fq.where(Folder.id.in_(member_folder_ids))
             if editors:
                 editor_subject_ids = select(Subject.id).where(
                     Subject.user_id.in_(editors)
@@ -341,7 +352,7 @@ class FolderDAO(BaseDAO[Folder]):
                     TaggedObject.tag_id.in_(tags),
                 )
                 aq = aq.where(model.id.in_(tagged))
-            if editors:
+            if _perms_on and editors:
                 fk_col_filter = getattr(
                     FolderObject, ASSET_TYPE_CONFIGS[name].fk_column
                 )
@@ -357,7 +368,7 @@ class FolderDAO(BaseDAO[Folder]):
                     fk_col_filter.isnot(None),
                 )
                 aq = aq.where(model.id.in_(editor_asset_ids))
-            if viewers:
+            if _perms_on and viewers:
                 fk_col_filter = getattr(
                     FolderObject, ASSET_TYPE_CONFIGS[name].fk_column
                 )
@@ -377,31 +388,34 @@ class FolderDAO(BaseDAO[Folder]):
             # Access filter: non-admins only see assets they can access
             if not is_admin and user_id:
                 from superset.utils.filters import get_dataset_access_filters
+                from superset.subjects.models import Subject
 
                 access_conditions = []
 
-                # 1. User is an editor of the asset
-                from superset.subjects.models import Subject
-
+                # 1. User is an editor or viewer of the asset (always enforced)
                 access_conditions.append(
-                    model.editors.any(Subject.user_id == user_id)
-                )
-
-                # 2. User has folder membership for the asset
-                from superset.folders.utils import user_accessible_folder_ids
-
-                user_folder_ids = user_accessible_folder_ids(user_id)
-                folder_accessible = (
-                    select(fk_col)
-                    .select_from(FolderObject)
-                    .where(
-                        fk_col.isnot(None),
-                        FolderObject.folder_id.in_(user_folder_ids),
+                    or_(
+                        model.editors.any(Subject.user_id == user_id),
+                        model.viewers.any(Subject.user_id == user_id),
                     )
                 )
-                access_conditions.append(model.id.in_(folder_accessible))
 
-                # 3. Chart: user has datasource access
+                if _perms_on:
+                    # 2. User has folder membership for the asset
+                    from superset.folders.utils import user_accessible_folder_ids
+
+                    user_folder_ids = user_accessible_folder_ids(user_id)
+                    folder_accessible = (
+                        select(fk_col)
+                        .select_from(FolderObject)
+                        .where(
+                            fk_col.isnot(None),
+                            FolderObject.folder_id.in_(user_folder_ids),
+                        )
+                    )
+                    access_conditions.append(model.id.in_(folder_accessible))
+
+                # 3. Chart: user has datasource access (always enforced)
                 can_access_all = security_manager.can_access_all_datasources()
                 if name == "chart" and not can_access_all:
                     ds_accessible = (
@@ -418,7 +432,7 @@ class FolderDAO(BaseDAO[Folder]):
                     )
                     access_conditions.append(model.id.in_(ds_accessible))
 
-                # 4. Dashboard: published + user has datasource access
+                # 4. Dashboard: published + user has datasource access (always enforced)
                 if name == "dashboard":
                     if can_access_all:
                         access_conditions.append(Dashboard.published.is_(True))
@@ -441,7 +455,8 @@ class FolderDAO(BaseDAO[Folder]):
                         )
                         access_conditions.append(model.id.in_(published_accessible))
 
-                aq = aq.where(or_(*access_conditions))
+                if access_conditions:
+                    aq = aq.where(or_(*access_conditions))
             selects.append(aq)
 
         if not selects:
@@ -463,16 +478,19 @@ class FolderDAO(BaseDAO[Folder]):
         # Sort priority at root: Only Me (0) → pinned (1-3) → unpinned (4)
         pin_order = (literal(4) + literal(0)).label("pin_order")
         if folder_id is None and user_id:
-            only_me_order = (
-                select(literal(0) + literal(0))
-                .where(
-                    unioned.c.item_type == "folder",
-                    Folder.id == unioned.c.item_id,
-                    Folder.is_private.is_(True),
+            only_me_order = None
+            if _perms_on:
+                # "Only Me" folder always first
+                only_me_order = (
+                    select(literal(0) + literal(0))
+                    .where(
+                        unioned.c.item_type == "folder",
+                        Folder.id == unioned.c.item_id,
+                        Folder.is_only_me.is_(True),
+                    )
+                    .correlate(unioned)
+                    .scalar_subquery()
                 )
-                .correlate(unioned)
-                .scalar_subquery()
-            )
             pin_position = (
                 select(FolderPin.position)
                 .where(
@@ -600,6 +618,11 @@ class FolderDAO(BaseDAO[Folder]):
         When ``archive_items`` is False (default), assets linked to the folder
         become unfoldered. When True, the assets themselves are also deleted.
         """
+        from superset.folders.utils import folder_permissions_enabled
+
+        if folder_permissions_enabled() and folder.is_only_me:
+            raise ValueError("Cannot delete an Only Me folder")
+
         for child in list(folder.children):
             child.parent_id = folder.parent_id
             child.name = cls.resolve_name_conflict(
@@ -619,6 +642,12 @@ class FolderDAO(BaseDAO[Folder]):
                         if asset:
                             db.session.delete(asset)
                         break
+        else:
+            # Detach assets so they become unfoldered (visible at root).
+            db.session.query(FolderObject).filter(
+                FolderObject.folder_id == folder.id
+            ).delete(synchronize_session=False)
+            db.session.flush()
 
         db.session.delete(folder)
 
@@ -753,35 +782,41 @@ class FolderDAO(BaseDAO[Folder]):
     # Private / "Only Me" folders
     # ------------------------------------------------------------------ #
     @classmethod
-    def get_or_create_only_me_folder(cls, user_id: int) -> Folder:
-        """Return the user's 'Only Me' folder, creating it if it doesn't exist."""
+    def get_or_create_only_me_folder(cls, user_id: int) -> Folder | None:
+        """Return the user's 'Only Me' folder, creating it if it doesn't exist.
+
+        Returns None when FOLDER_PERMISSIONS is disabled.
+        """
+        from superset.folders.utils import folder_permissions_enabled
+
+        if not folder_permissions_enabled():
+            return None
+
         from superset.utils import json as json_utils
 
-        subject = get_user_subject(user_id)
+        subject = get_or_create_user_subject(user_id)
         subject_id = subject.id if subject else None
 
-        folder = (
+        existing = (
             db.session.query(Folder)
             .join(folder_editors, folder_editors.c.folder_id == Folder.id)
             .filter(
                 folder_editors.c.subject_id == subject_id,
-                Folder.is_private.is_(True),
-                Folder.parent_id.is_(None),
+                Folder.is_only_me.is_(True),
             )
-            .all()
+            .first()
         )
-        for f in folder:
-            extra = json_utils.loads(f.extra) if f.extra else {}
-            if extra.get("only_me"):
-                return f
+        if existing:
+            return existing
 
         new_folder = cls.create(
             attributes={
                 "name": "Only Me",
                 "is_private": True,
+                "is_only_me": True,
                 "parent_id": None,
                 "folder_type": "analytics",
-                "extra": json_utils.dumps({"only_me": True, "inherits_permissions": False}),
+                "extra": json_utils.dumps({"inherits_permissions": False}),
             }
         )
         db.session.flush()
@@ -841,6 +876,11 @@ class FolderDAO(BaseDAO[Folder]):
     # ------------------------------------------------------------------ #
     @classmethod
     def get_subjects(cls, folder_id: int) -> list[dict[str, Any]]:
+        from superset.folders.utils import folder_permissions_enabled
+
+        if not folder_permissions_enabled():
+            return []
+
         from superset import security_manager
         from superset.subjects.models import Subject
 
@@ -890,6 +930,7 @@ class FolderDAO(BaseDAO[Folder]):
             is_admin = _is_admin(user)
             subjects.append(
                 {
+                    "subject_id": subj.id if subj else None,
                     "user_id": subj.user_id if subj else None,
                     "permission": "admin" if is_admin else "editor",
                     "email": user.email if user else None,
@@ -903,6 +944,7 @@ class FolderDAO(BaseDAO[Folder]):
             is_admin = _is_admin(user)
             subjects.append(
                 {
+                    "subject_id": subj.id if subj else None,
                     "user_id": subj.user_id if subj else None,
                     "permission": "admin" if is_admin else "viewer",
                     "email": user.email if user else None,
@@ -913,14 +955,14 @@ class FolderDAO(BaseDAO[Folder]):
         return subjects
 
     @classmethod
-    def add_subject(cls, folder_id: int, user_id: int, permission: str) -> None:
-        from flask_appbuilder.security.sqla.models import User
+    def add_subject(cls, folder_id: int, subject_id: int, permission: str) -> None:
+        from superset.folders.utils import folder_permissions_enabled
 
-        if not db.session.get(User, user_id):
-            raise ValueError(f"User {user_id} does not exist")
+        if not folder_permissions_enabled():
+            return
 
-        subject = get_user_subject(user_id)
-        subject_id = subject.id if subject else None
+        if not db.session.get(Subject, subject_id):
+            raise ValueError(f"Subject {subject_id} does not exist")
 
         existing = (
             db.session.execute(
@@ -941,7 +983,9 @@ class FolderDAO(BaseDAO[Folder]):
             ).first()
         )
         if existing:
-            raise ValueError(f"User {user_id} is already a member of this folder")
+            raise ValueError(
+                f"Subject {subject_id} is already a member of this folder"
+            )
 
         if permission == "editor":
             db.session.execute(
@@ -954,9 +998,11 @@ class FolderDAO(BaseDAO[Folder]):
         db.session.flush()
 
     @classmethod
-    def update_subject(cls, folder_id: int, user_id: int, permission: str) -> None:
-        subject = get_user_subject(user_id)
-        subject_id = subject.id if subject else None
+    def update_subject(cls, folder_id: int, subject_id: int, permission: str) -> None:
+        from superset.folders.utils import folder_permissions_enabled
+
+        if not folder_permissions_enabled():
+            return
 
         existing = (
             db.session.execute(
@@ -977,7 +1023,9 @@ class FolderDAO(BaseDAO[Folder]):
             ).first()
         )
         if not existing:
-            raise ValueError(f"User {user_id} is not a member of this folder")
+            raise ValueError(
+                f"Subject {subject_id} is not a member of this folder"
+            )
         db.session.execute(
             folder_editors.delete().where(
                 and_(
@@ -994,7 +1042,7 @@ class FolderDAO(BaseDAO[Folder]):
                 )
             )
         )
-        cls.add_subject(folder_id, user_id, permission)
+        cls.add_subject(folder_id, subject_id, permission)
 
     @classmethod
     def folders_with_accessible_assets(cls, user_id: int, folder_type: str) -> set[int]:
@@ -1006,6 +1054,11 @@ class FolderDAO(BaseDAO[Folder]):
         folder visibility should only show folders with assets the user owns,
         since those are the only assets the gate allows through.
         """
+        from superset.folders.utils import folder_permissions_enabled
+
+        if not folder_permissions_enabled():
+            return set()
+
         folder_ids: set[int] = set()
 
         for name in asset_types_for_folder_type(folder_type):
@@ -1052,10 +1105,7 @@ class FolderDAO(BaseDAO[Folder]):
         return folder_ids
 
     @classmethod
-    def remove_subject(cls, folder_id: int, user_id: int) -> None:
-        subject = get_user_subject(user_id)
-        subject_id = subject.id if subject else None
-
+    def remove_subject(cls, folder_id: int, subject_id: int) -> None:
         db.session.execute(
             folder_editors.delete().where(
                 and_(

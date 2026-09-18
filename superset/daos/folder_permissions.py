@@ -32,6 +32,7 @@ from superset.folders.models import (
     folder_viewers,
     FolderObject,
 )
+from superset.folders.utils import folder_permissions_enabled
 
 
 class FolderPermissionDAO:
@@ -43,6 +44,8 @@ class FolderPermissionDAO:
     @staticmethod
     def get_subjects(folder_id: int) -> list[dict[str, Any]]:
         """Get all editors and viewers for a folder."""
+        if not folder_permissions_enabled():
+            return []
         subjects: list[dict[str, Any]] = []
 
         editors = db.session.execute(
@@ -68,6 +71,8 @@ class FolderPermissionDAO:
     # ------------------------------------------------------------------ #
     @staticmethod
     def add_editor(folder_id: int, user_id: int) -> None:
+        if not folder_permissions_enabled():
+            return
         subject = get_user_subject(user_id)
         subject_id = subject.id if subject else None
         if subject_id is None:
@@ -79,6 +84,8 @@ class FolderPermissionDAO:
 
     @staticmethod
     def add_viewer(folder_id: int, user_id: int) -> None:
+        if not folder_permissions_enabled():
+            return
         subject = get_user_subject(user_id)
         subject_id = subject.id if subject else None
         if subject_id is None:
@@ -90,6 +97,8 @@ class FolderPermissionDAO:
 
     @staticmethod
     def remove_editor(folder_id: int, user_id: int) -> None:
+        if not folder_permissions_enabled():
+            return
         subject = get_user_subject(user_id)
         subject_id = subject.id if subject else None
         if subject_id is None:
@@ -106,6 +115,8 @@ class FolderPermissionDAO:
 
     @staticmethod
     def remove_viewer(folder_id: int, user_id: int) -> None:
+        if not folder_permissions_enabled():
+            return
         subject = get_user_subject(user_id)
         subject_id = subject.id if subject else None
         if subject_id is None:
@@ -125,6 +136,8 @@ class FolderPermissionDAO:
         folder_id: int, user_id: int, permission: str
     ) -> None:
         """Move a user between editors and viewers."""
+        if not folder_permissions_enabled():
+            return
         if permission not in ("editor", "viewer"):
             raise ValueError(
                 f"Invalid permission: {permission!r}. Must be 'editor' or 'viewer'."
@@ -155,6 +168,8 @@ class FolderPermissionDAO:
         Sets extra.inherits_permissions = true on the child.
         Skips private folders — their permissions are owner-only.
         """
+        if not folder_permissions_enabled():
+            return
         child = db.session.query(Folder).get(child_folder_id)
         if child and child.is_private:
             return
@@ -211,6 +226,8 @@ class FolderPermissionDAO:
         Called when a folder's permissions change. Only affects descendants
         where extra.inherits_permissions = true.
         """
+        if not folder_permissions_enabled():
+            return
 
         folder = db.session.query(Folder).get(folder_id)
         if not folder:
@@ -267,6 +284,8 @@ class FolderPermissionDAO:
     @staticmethod
     def mark_permissions_explicit(folder_id: int) -> None:
         """Mark a folder as having explicitly set permissions (no longer inheriting)."""
+        if not folder_permissions_enabled():
+            return
 
         if folder := db.session.query(Folder).get(folder_id):
             extra = json_utils.loads(folder.extra) if folder.extra else {}
@@ -280,6 +299,8 @@ class FolderPermissionDAO:
     @staticmethod
     def user_has_folder_access(user_id: int, folder_id: int) -> bool:
         """Check if a user has viewer or editor access to a folder."""
+        if not folder_permissions_enabled():
+            return False
         subject = get_user_subject(user_id)
         if not subject:
             return False
@@ -309,6 +330,8 @@ class FolderPermissionDAO:
     @staticmethod
     def user_is_folder_editor(user_id: int, folder_id: int) -> bool:
         """Check if a user is an editor of a specific folder."""
+        if not folder_permissions_enabled():
+            return False
         subject = get_user_subject(user_id)
         if not subject:
             return False
@@ -327,6 +350,8 @@ class FolderPermissionDAO:
     @staticmethod
     def user_has_any_folder_access(user_id: int) -> bool:
         """Check if user has any folder-level access (editor or viewer)."""
+        if not folder_permissions_enabled():
+            return False
         subject = get_user_subject(user_id)
         if not subject:
             return False
@@ -345,6 +370,8 @@ class FolderPermissionDAO:
     @staticmethod
     def user_has_any_folder_editor_access(user_id: int) -> bool:
         """Check if user is an editor on any folder."""
+        if not folder_permissions_enabled():
+            return False
         subject = get_user_subject(user_id)
         if not subject:
             return False
@@ -357,6 +384,8 @@ class FolderPermissionDAO:
     @staticmethod
     def _check_folder_object_access(user_id: int, filter_condition: Any) -> bool:
         """Check if a matching FolderObject is in an accessible folder."""
+        if not folder_permissions_enabled():
+            return False
         fo = db.session.query(FolderObject).filter(filter_condition).first()
         return bool(
             fo and FolderPermissionDAO.user_has_folder_access(user_id, fo.folder_id)
@@ -375,6 +404,8 @@ class FolderPermissionDAO:
         1. Dashboard/chart is directly in a folder the user has access to
         2. Datasource is used by a chart in a folder the user has access to
         """
+        if not folder_permissions_enabled():
+            return False
         check = FolderPermissionDAO._check_folder_object_access
 
         if dashboard_id and check(user_id, FolderObject.dashboard_id == dashboard_id):
@@ -382,6 +413,21 @@ class FolderPermissionDAO:
 
         if chart_id and check(user_id, FolderObject.chart_id == chart_id):
             return True
+
+        # Transitive: chart is on a dashboard that's in the user's folder.
+        # This grants view access to charts rendered within a foldered dashboard
+        # (e.g. during dashboard serialization) without a global datasource leak.
+        if chart_id:
+            from superset.models.dashboard import dashboard_slices
+
+            dash_ids = (
+                db.session.query(dashboard_slices.c.dashboard_id)
+                .filter(dashboard_slices.c.slice_id == chart_id)
+                .all()
+            )
+            for row in dash_ids:
+                if check(user_id, FolderObject.dashboard_id == row[0]):
+                    return True
 
         if datasource_id:
             from superset.models.slice import Slice as SliceModel
@@ -408,6 +454,8 @@ class FolderPermissionDAO:
         Grants access when a dashboard in the user's folder contains a chart
         that uses this datasource, even if the chart itself is not in any folder.
         """
+        if not folder_permissions_enabled():
+            return False
         from superset.models.dashboard import dashboard_slices
         from superset.models.slice import Slice as SliceModel
 
@@ -438,6 +486,8 @@ class FolderPermissionDAO:
         chart_id: int | None = None,
     ) -> bool:
         """Check if user is a folder editor for an asset."""
+        if not folder_permissions_enabled():
+            return False
         if dashboard_id:
             fo = (
                 db.session.query(FolderObject)
@@ -467,6 +517,8 @@ class FolderPermissionDAO:
 
         Used to populate the `extra_owners` field in API responses.
         """
+        if not folder_permissions_enabled():
+            return []
         from superset.folders.utils import get_folder_editor_users
 
         if dashboard_id:

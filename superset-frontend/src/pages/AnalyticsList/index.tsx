@@ -124,6 +124,9 @@ interface FetchConfig {
 }
 
 const PAGE_SIZE = 25;
+const folderPermsEnabled = isFeatureEnabled(
+  'FOLDER_PERMISSIONS' as FeatureFlag,
+);
 const FOLDER_TYPE = 'analytics';
 
 const Actions = styled.div`
@@ -223,6 +226,12 @@ function AnalyticsList({
   const { folderUuid } = useParams<{ folderUuid?: string }>();
   const theme = useTheme();
   const currentUserId = useSelector<any, number>(state => state.user?.userId);
+  const userRoles = useSelector<any, Record<string, unknown[]>>(
+    state => state.user?.roles ?? {},
+  );
+  const canManageFolders = Object.keys(userRoles).some(role =>
+    ['Admin', 'Alpha', 'Gamma'].includes(role),
+  );
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<ContentItem[]>([]);
   const [count, setCount] = useState(0);
@@ -1093,7 +1102,7 @@ function AnalyticsList({
             const canEdit = original.user_permission === 'editor';
             return (
               <Actions className="actions">
-                {canEdit && !original.is_private && (
+                {folderPermsEnabled && canEdit && !original.is_private && (
                   <Tooltip title={t('Manage permissions')} placement="bottom">
                     <span
                       role="button"
@@ -1117,7 +1126,8 @@ function AnalyticsList({
                     </span>
                   </Tooltip>
                 )}
-                {canEdit &&
+                {folderPermsEnabled &&
+                  canEdit &&
                   original.parent_uuid &&
                   original.inherits_permissions === false && (
                     <Tooltip
@@ -1462,7 +1472,7 @@ function AnalyticsList({
                   label: t('Dashboard'),
                   onClick: () => window.location.assign('/dashboard/new'),
                 },
-                ...(canEditCurrentFolder
+                ...(canEditCurrentFolder && canManageFolders
                   ? [
                       {
                         key: 'folder',

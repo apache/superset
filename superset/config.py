@@ -696,6 +696,9 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Enable the folder-based analytics view (replaces Charts/Dashboards nav)
     # @lifecycle: development
     "FOLDERS": False,
+    # Enable permission layer on folders (editors/viewers, private, "Only Me")
+    # @lifecycle: development
+    "FOLDER_PERMISSIONS": False,
     # Enable support for date range timeshifts (e.g., "2015-01-03 : 2015-01-04")
     # in addition to relative timeshifts (e.g., "1 day ago")
     # @lifecycle: development

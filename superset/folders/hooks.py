@@ -86,33 +86,31 @@ def folder_raise_for_access_bypass(**kwargs: Any) -> bool:
         return has_access
 
     query_context = kwargs.get("query_context")
-    form_data = (
-        query_context.form_data
-        if query_context
-        and hasattr(query_context, "form_data")
-        and query_context.form_data
-        else {}
-    )
 
-    from flask import request as flask_request
+    chart_ids = {_safe_int(chart.id)} if chart else set()
+    dashboard_ids = {_safe_int(dashboard.id)} if dashboard else set()
 
-    chart_ids = {
-        _safe_int(v)
-        for v in [
-            chart.id if chart else None,
-            form_data.get("slice_id"),
-            flask_request.args.get("slice_id"),
-        ]
-    } - {None}
+    if query_context and hasattr(query_context, "form_data") and query_context.form_data:
+        form_data = query_context.form_data
+        if slice_id := _safe_int(form_data.get("slice_id")):
+            # Verify the query_context's datasource belongs to this chart.
+            # Prevents a crafted request from using an accessible chart's
+            # slice_id to bypass access checks on an unrelated datasource.
+            from superset.models.slice import Slice as SliceModel
 
-    dashboard_ids = {
-        _safe_int(v)
-        for v in [
-            dashboard.id if dashboard else None,
-            form_data.get("dashboardId"),
-            flask_request.args.get("dashboard_id"),
-        ]
-    } - {None}
+            chart_obj = db.session.get(SliceModel, slice_id)
+            if (
+                chart_obj
+                and hasattr(query_context, "datasource")
+                and query_context.datasource
+                and chart_obj.datasource_id == query_context.datasource.id
+            ):
+                chart_ids.add(slice_id)
+        if dash_id := _safe_int(form_data.get("dashboardId")):
+            dashboard_ids.add(dash_id)
+
+    chart_ids.discard(None)
+    dashboard_ids.discard(None)
 
     # Check folder access for any collected ID
     for chart_id in chart_ids:
@@ -132,10 +130,9 @@ def folder_raise_for_access_bypass(**kwargs: Any) -> bool:
     return False
 
 
-def folder_extra_owners(resource: Any) -> list[Any]:
-    """Return folder editors as additional owners."""
-    from superset.folders.models import FolderObject
-    from superset.folders.utils import get_folder_editor_users
+def folder_extra_owners(resource: Any) -> list[int]:
+    """Return folder editor subject IDs as additional editors."""
+    from superset.folders.models import FolderObject, folder_editors
 
     tablename = resource.__tablename__
     if tablename == "slices":
@@ -150,13 +147,10 @@ def folder_extra_owners(resource: Any) -> list[Any]:
         return []
 
     return [
-        {
-            "id": u.id,
-            "first_name": u.first_name,
-            "last_name": u.last_name,
-            "username": u.username,
-        }
-        for u in get_folder_editor_users(fo.folder_id)
+        row.subject_id
+        for row in db.session.execute(
+            folder_editors.select().where(folder_editors.c.folder_id == fo.folder_id)
+        ).fetchall()
     ]
 
 

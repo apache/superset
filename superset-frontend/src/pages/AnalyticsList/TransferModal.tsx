@@ -554,6 +554,14 @@ export default function TransferModal({
               },
             }),
           );
+        } else if (targetApiUuid) {
+          // Moving back to root — remove from the target folder
+          const q = rison.encode([{ type: item.type, id: item.id }]);
+          calls.push(
+            SupersetClient.delete({
+              endpoint: `/api/v1/folders/${targetApiUuid}/assets?q=${q}`,
+            }),
+          );
         }
       }
 

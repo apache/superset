@@ -69,7 +69,7 @@ from superset.folders.schemas import (
     FolderSubjectPostSchema,
     FolderSubjectPutSchema,
 )
-from superset.folders.utils import can_manage_folders
+from superset.folders.utils import can_manage_folders, folder_permissions_enabled
 from superset.utils import json as json_utils
 from superset.subjects.utils import get_user_subject_ids_subquery
 from superset.utils.core import get_user_id
@@ -100,6 +100,12 @@ def _get_user_permission(
     folder: Folder, implicit_folder_ids: set[int] | None = None
 ) -> str | None:
     """Return the current user's permission level for this folder."""
+    from superset.folders.utils import folder_permissions_enabled
+
+    if not folder_permissions_enabled():
+        user = getattr(g, "user", None) if hasattr(g, "user") else None
+        return "editor" if can_manage_folders(user) else None
+
     if security_manager.is_admin():
         return "editor"
     user_id = get_user_id()
@@ -165,14 +171,14 @@ def serialize_folder(
         "editors": [
             {"id": s.id, "label": s.label, "type": s.type, "user_id": s.user_id}
             for s in (folder.editors or [])
-        ],
+        ] if folder_permissions_enabled() else [],
         "viewers": [
             {"id": s.id, "label": s.label, "type": s.type, "user_id": s.user_id}
             for s in (folder.viewers or [])
-        ],
+        ] if folder_permissions_enabled() else [],
         "user_permission": _get_user_permission(folder, implicit_folder_ids),
         "inherits_permissions": _get_inherits_permissions(folder),
-        "is_only_me": _is_only_me(folder),
+        "is_only_me": folder.is_only_me,
         "owners": [],
     }
 
@@ -385,8 +391,13 @@ class FolderRestApi(BaseSupersetApi):
         """Raise FolderForbiddenError if user cannot view the folder.
 
         Allows explicit members (editors/viewers) and implicit access
-        (users who own at least one asset inside the folder).
+        (users who can access at least one asset inside the folder).
+        When FOLDER_PERMISSIONS is disabled, access is unrestricted.
         """
+        from superset.folders.utils import folder_permissions_enabled
+
+        if not folder_permissions_enabled():
+            return
         if security_manager.is_admin():
             return
         user_id = get_user_id()
@@ -394,6 +405,7 @@ class FolderRestApi(BaseSupersetApi):
             raise FolderForbiddenError()
         if FolderPermissionDAO.user_has_folder_access(user_id, folder.id):
             return
+        # Check implicit access — user can access at least one asset in folder
         implicit_ids = FolderDAO.folders_with_accessible_assets(
             user_id, folder.folder_type
         )
@@ -403,6 +415,13 @@ class FolderRestApi(BaseSupersetApi):
     @staticmethod
     def _raise_for_folder_edit(folder: Folder) -> None:
         """Raise FolderForbiddenError if user cannot edit the folder."""
+        from superset.folders.utils import folder_permissions_enabled
+
+        if not folder_permissions_enabled():
+            user = getattr(g, "user", None) if hasattr(g, "user") else None
+            if not can_manage_folders(user):
+                raise FolderForbiddenError()
+            return
 
         if security_manager.is_admin():
             return
@@ -411,6 +430,36 @@ class FolderRestApi(BaseSupersetApi):
             user_id, folder.id
         ):
             raise FolderForbiddenError()
+
+    @staticmethod
+    def _cleanup_only_me_assets() -> None:
+        """Unassign assets from Only Me folders when permissions are disabled.
+
+        Best-effort: if the cleanup fails the request continues normally.
+        Only Me folders are already hidden from queries, so assets just stay
+        linked until the next request retries.
+        """
+        from superset.folders.models import FolderObject
+
+        try:
+            only_me_ids = [
+                f.id
+                for f in db.session.query(Folder.id)
+                .filter(Folder.is_only_me.is_(True))
+                .all()
+            ]
+            if not only_me_ids:
+                return
+            count = (
+                db.session.query(FolderObject)
+                .filter(FolderObject.folder_id.in_(only_me_ids))
+                .delete(synchronize_session=False)
+            )
+            if count:
+                db.session.commit()
+        except Exception:
+            logger.exception("Failed to clean up Only Me folder assets")
+            db.session.rollback()
 
     @expose("/", methods=("GET",))
     @protect()
@@ -444,68 +493,77 @@ class FolderRestApi(BaseSupersetApi):
             500:
               $ref: '#/components/responses/500'
         """
+        from superset.folders.utils import folder_permissions_enabled
+
         folder_type = request.args.get("folder_type")
         folders = FolderDAO.get_folders(folder_type=folder_type)
+
+        _perms_on = folder_permissions_enabled()
 
         # Non-admins see explicit member folders + implicit access folders
         # Private folders are only visible to their own members
         implicit_folder_ids: set[int] = set()
         user_id = get_user_id()
-        if not security_manager.is_admin():
-            if user_id:
-                # Batch query instead of N+1 per-folder checks
-                all_folder_ids = [f.id for f in folders]
-                subject_ids_sq = get_user_subject_ids_subquery(user_id)
-                editor_ids = (
-                    {
-                        r[0]
-                        for r in db.session.query(folder_editors.c.folder_id)
-                        .filter(
-                            folder_editors.c.subject_id.in_(subject_ids_sq),
-                            folder_editors.c.folder_id.in_(all_folder_ids),
-                        )
-                        .all()
-                    }
-                    if all_folder_ids
-                    else set()
-                )
-                viewer_ids = (
-                    {
-                        r[0]
-                        for r in db.session.query(folder_viewers.c.folder_id)
-                        .filter(
-                            folder_viewers.c.subject_id.in_(subject_ids_sq),
-                            folder_viewers.c.folder_id.in_(all_folder_ids),
-                        )
-                        .all()
-                    }
-                    if all_folder_ids
-                    else set()
-                )
-                member_ids = editor_ids | viewer_ids
-                implicit_folder_ids = (
-                    FolderDAO.folders_with_accessible_assets(
-                        user_id, folder_type or "analytics"
+
+        if not _perms_on:
+            # Permissions OFF: hide Only Me folders, show everything else
+            folders = [f for f in folders if not f.is_only_me]
+        else:
+            if not security_manager.is_admin():
+                if user_id:
+                    # Batch query instead of N+1 per-folder checks
+                    all_folder_ids = [f.id for f in folders]
+                    subject_ids_sq = get_user_subject_ids_subquery(user_id)
+                    editor_ids = (
+                        {
+                            r[0]
+                            for r in db.session.query(folder_editors.c.folder_id)
+                            .filter(
+                                folder_editors.c.subject_id.in_(subject_ids_sq),
+                                folder_editors.c.folder_id.in_(all_folder_ids),
+                            )
+                            .all()
+                        }
+                        if all_folder_ids
+                        else set()
                     )
-                    - member_ids
-                )
-                visible_ids = member_ids | implicit_folder_ids
-                folders = [f for f in folders if f.id in visible_ids]
-            else:
-                folders = []
-        # Hide other users' private folders (even for admins)
-        if user_id:
-            own_subject_ids_sq = get_user_subject_ids_subquery(user_id)
-            own_editor_ids = {
-                r[0]
-                for r in db.session.query(folder_editors.c.folder_id)
-                .filter(folder_editors.c.subject_id.in_(own_subject_ids_sq))
-                .all()
-            }
-            folders = [
-                f for f in folders
-                if not f.is_private or f.id in own_editor_ids
-            ]
+                    viewer_ids = (
+                        {
+                            r[0]
+                            for r in db.session.query(folder_viewers.c.folder_id)
+                            .filter(
+                                folder_viewers.c.subject_id.in_(subject_ids_sq),
+                                folder_viewers.c.folder_id.in_(all_folder_ids),
+                            )
+                            .all()
+                        }
+                        if all_folder_ids
+                        else set()
+                    )
+                    member_ids = editor_ids | viewer_ids
+                    implicit_folder_ids = (
+                        FolderDAO.folders_with_accessible_assets(
+                            user_id, folder_type or DEFAULT_FOLDER_TYPE
+                        )
+                        - member_ids
+                    )
+                    visible_ids = member_ids | implicit_folder_ids
+                    folders = [f for f in folders if f.id in visible_ids]
+                else:
+                    folders = []
+            # Hide other users' private folders (even for admins)
+            if user_id:
+                own_subject_ids_sq = get_user_subject_ids_subquery(user_id)
+                own_editor_ids = {
+                    r[0]
+                    for r in db.session.query(folder_editors.c.folder_id)
+                    .filter(folder_editors.c.subject_id.in_(own_subject_ids_sq))
+                    .all()
+                }
+                folders = [
+                    f for f in folders
+                    if not f.is_private or f.id in own_editor_ids
+                ]
 
         # Precompute counts to avoid N+1 queries
         folder_ids = [f.id for f in folders]
@@ -583,18 +641,26 @@ class FolderRestApi(BaseSupersetApi):
             500:
               $ref: '#/components/responses/500'
         """
-        folder_type = request.args.get("folder_type", DEFAULT_FOLDER_TYPE)
+        from superset.folders.utils import folder_permissions_enabled
 
-        # Lazy-create the "Only Me" folder for eligible users
+        folder_type = request.args.get("folder_type", DEFAULT_FOLDER_TYPE)
         user_id = get_user_id()
-        if user_id and can_manage_folders(g.user):
-            FolderDAO.get_or_create_only_me_folder(user_id)
+
+        _perms_on = folder_permissions_enabled()
+
+        if _perms_on:
+            # Materialise the user's "Only Me" folder on first view of the root.
+            if user_id and hasattr(g, "user") and can_manage_folders(g.user):
+                FolderDAO.get_or_create_only_me_folder(user_id)
+        else:
+            # Permissions OFF: unassign assets from Only Me folders (lazy cleanup)
+            self._cleanup_only_me_assets()
 
         parsed = _parse_rison_args(kwargs.get("rison", {}))
         rows, count = FolderDAO.get_contents(None, folder_type, **parsed)
         # Compute implicit folder IDs for user_permission serialization
         implicit_ids: set[int] = set()
-        if not security_manager.is_admin():
+        if _perms_on and not security_manager.is_admin():
             user_id = get_user_id()
             if user_id:
                 implicit_ids = FolderDAO.folders_with_accessible_assets(
@@ -653,6 +719,10 @@ class FolderRestApi(BaseSupersetApi):
         folder = FolderDAO.get_by_uuid(folder_uuid)
         if not folder:
             return self.response_404()
+        from superset.folders.utils import folder_permissions_enabled
+
+        if not folder_permissions_enabled() and folder.is_only_me:
+            return self.response_404()
         try:
             self._raise_for_folder_access(folder)
         except FolderForbiddenError:
@@ -703,6 +773,10 @@ class FolderRestApi(BaseSupersetApi):
         """
         folder = FolderDAO.get_by_uuid(folder_uuid)
         if not folder:
+            return self.response_404()
+        from superset.folders.utils import folder_permissions_enabled
+
+        if not folder_permissions_enabled() and folder.is_only_me:
             return self.response_404()
         try:
             self._raise_for_folder_access(folder)
@@ -1273,6 +1347,11 @@ class FolderRestApi(BaseSupersetApi):
             404:
               $ref: '#/components/responses/404'
         """
+        from superset.folders.utils import folder_permissions_enabled
+
+        if not folder_permissions_enabled():
+            return self.response_404()
+
         folder = FolderDAO.get_by_uuid(folder_uuid)
         if not folder:
             return self.response_404()
@@ -1318,6 +1397,11 @@ class FolderRestApi(BaseSupersetApi):
             404:
               $ref: '#/components/responses/404'
         """
+        from superset.folders.utils import folder_permissions_enabled
+
+        if not folder_permissions_enabled():
+            return self.response_404()
+
         folder = FolderDAO.get_by_uuid(folder_uuid)
         if not folder:
             return self.response_404()
@@ -1331,25 +1415,39 @@ class FolderRestApi(BaseSupersetApi):
             data = FolderSubjectPostSchema().load(request.json)
         except ValidationError as ex:
             return self.response(400, message=ex.messages)
+        from superset.subjects.models import Subject
+
+        target_subject = db.session.get(Subject, data["subject_id"])
+        if not target_subject:
+            return self.response(422, message="Subject not found")
+        if target_subject.user_id:
+            target_user = db.session.get(User, target_subject.user_id)
+            if target_user:
+                admin_role = security_manager.find_role("Admin")
+                if admin_role and admin_role in target_user.roles:
+                    return self.response(
+                        422,
+                        message="Admin users already have full access to all folders",
+                    )
         try:
             permission = (
                 "editor" if data["permission"] == "admin" else data["permission"]
             )
-            FolderDAO.add_subject(folder.id, data["user_id"], permission)
+            FolderDAO.add_subject(folder.id, data["subject_id"], permission)
         except ValueError as ex:
             return self.response(422, message=str(ex))
         FolderPermissionDAO.mark_permissions_explicit(folder.id)
         FolderPermissionDAO.push_down_permissions(folder.id)
         return self.response(201, message="OK")
 
-    @expose("/<folder_uuid>/subjects/<int:user_id>", methods=("PUT",))
+    @expose("/<folder_uuid>/subjects/<int:subject_id>", methods=("PUT",))
     @protect()
     @safe
     @permission_name("write")
     @statsd_metrics
     @requires_json
     @transaction()
-    def put_subject(self, folder_uuid: str, user_id: int) -> Response:
+    def put_subject(self, folder_uuid: str, subject_id: int) -> Response:
         """Update a subject's permission level.
         ---
         put:
@@ -1361,7 +1459,7 @@ class FolderRestApi(BaseSupersetApi):
             schema:
               type: string
           - in: path
-            name: user_id
+            name: subject_id
             required: true
             schema:
               type: integer
@@ -1379,6 +1477,11 @@ class FolderRestApi(BaseSupersetApi):
             404:
               $ref: '#/components/responses/404'
         """
+        from superset.folders.utils import folder_permissions_enabled
+
+        if not folder_permissions_enabled():
+            return self.response_404()
+
         folder = FolderDAO.get_by_uuid(folder_uuid)
         if not folder:
             return self.response_404()
@@ -1389,25 +1492,34 @@ class FolderRestApi(BaseSupersetApi):
         except FolderForbiddenError:
             return self.response_403()
         current_user_id = get_user_id()
-        if user_id == current_user_id:
-            return self.response(422, message="You cannot change your own permission")
+        if current_user_id:
+            from superset.subjects.utils import get_user_subject
+
+            current_subject = get_user_subject(current_user_id)
+            if current_subject and subject_id == current_subject.id:
+                return self.response(
+                    422, message="You cannot change your own permission"
+                )
         try:
             data = FolderSubjectPutSchema().load(request.json)
         except ValidationError as ex:
             return self.response(400, message=ex.messages)
         permission = "editor" if data["permission"] == "admin" else data["permission"]
-        FolderDAO.update_subject(folder.id, user_id, permission)
+        try:
+            FolderDAO.update_subject(folder.id, subject_id, permission)
+        except ValueError as ex:
+            return self.response(422, message=str(ex))
         FolderPermissionDAO.mark_permissions_explicit(folder.id)
         FolderPermissionDAO.push_down_permissions(folder.id)
         return self.response(200, message="OK")
 
-    @expose("/<folder_uuid>/subjects/<int:user_id>", methods=("DELETE",))
+    @expose("/<folder_uuid>/subjects/<int:subject_id>", methods=("DELETE",))
     @protect()
     @safe
     @permission_name("write")
     @statsd_metrics
     @transaction()
-    def delete_subject(self, folder_uuid: str, user_id: int) -> Response:
+    def delete_subject(self, folder_uuid: str, subject_id: int) -> Response:
         """Remove a subject from a folder.
         ---
         delete:
@@ -1419,7 +1531,7 @@ class FolderRestApi(BaseSupersetApi):
             schema:
               type: string
           - in: path
-            name: user_id
+            name: subject_id
             required: true
             schema:
               type: integer
@@ -1429,6 +1541,11 @@ class FolderRestApi(BaseSupersetApi):
             404:
               $ref: '#/components/responses/404'
         """
+        from superset.folders.utils import folder_permissions_enabled
+
+        if not folder_permissions_enabled():
+            return self.response_404()
+
         folder = FolderDAO.get_by_uuid(folder_uuid)
         if not folder:
             return self.response_404()
@@ -1439,11 +1556,24 @@ class FolderRestApi(BaseSupersetApi):
         except FolderForbiddenError:
             return self.response_403()
         current_user_id = get_user_id()
-        if user_id == current_user_id:
-            return self.response(422, message="You cannot remove your own access")
-        if not FolderPermissionDAO.user_has_folder_access(user_id, folder.id):
+        if current_user_id:
+            from superset.subjects.utils import get_user_subject
+
+            current_subject = get_user_subject(current_user_id)
+            if current_subject and subject_id == current_subject.id:
+                return self.response(
+                    422, message="You cannot remove your own access"
+                )
+        from superset.subjects.models import Subject as SubjectModel
+
+        target_subject = db.session.get(SubjectModel, subject_id)
+        if not target_subject or not target_subject.user_id:
             return self.response_404()
-        FolderDAO.remove_subject(folder.id, user_id)
+        if not FolderPermissionDAO.user_has_folder_access(
+            target_subject.user_id, folder.id
+        ):
+            return self.response_404()
+        FolderDAO.remove_subject(folder.id, subject_id)
         FolderPermissionDAO.mark_permissions_explicit(folder.id)
         FolderPermissionDAO.push_down_permissions(folder.id)
         return self.response(200, message="OK")
@@ -1490,6 +1620,11 @@ class FolderRestApi(BaseSupersetApi):
             404:
               $ref: '#/components/responses/404'
         """
+        from superset.folders.utils import folder_permissions_enabled
+
+        if not folder_permissions_enabled():
+            return self.response_404()
+
         folder = FolderDAO.get_by_uuid(folder_uuid)
         if not folder:
             return self.response_404()
@@ -1521,13 +1656,17 @@ class FolderRestApi(BaseSupersetApi):
         )
 
         admin_role = security_manager.find_role("Admin")
+        from superset.subjects.utils import get_or_create_user_subject
+
         return self.response(
             200,
             result=[
                 {
                     "id": u.id,
+                    "subject_id": get_or_create_user_subject(u.id).id,
                     "email": u.email,
                     "is_admin": admin_role in u.roles if admin_role else False,
+                    "role": u.roles[0].name if u.roles else None,
                 }
                 for u in users
             ],

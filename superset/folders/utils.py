@@ -11,6 +11,13 @@ from superset.subjects.utils import get_user_subject_ids_subquery
 FOLDER_MANAGEMENT_ROLES = {"Admin", "Alpha", "Gamma"}
 
 
+def folder_permissions_enabled() -> bool:
+    """Return True when the FOLDER_PERMISSIONS feature flag is active."""
+    from superset.extensions import feature_flag_manager
+
+    return feature_flag_manager.is_feature_enabled("FOLDER_PERMISSIONS")
+
+
 def can_manage_folders(user: Any) -> bool:
     """Check if user can create, delete, and manage folders.
 

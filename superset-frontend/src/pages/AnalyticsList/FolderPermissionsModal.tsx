@@ -41,6 +41,7 @@ type Permission = 'editor' | 'viewer' | 'admin';
 
 interface Subject {
   user_id: number;
+  subject_id: number;
   permission: Permission;
   email?: string;
   is_admin?: boolean;
@@ -49,6 +50,7 @@ interface Subject {
 interface LocalSubject {
   key: string;
   user_id: number;
+  subject_id: number;
   permission: Permission;
   label: string;
   isCurrentUser: boolean;
@@ -87,6 +89,22 @@ const ModalContent = styled.div`
   `}
 `;
 
+const UserOptionContainer = styled.div`
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+const UserOptionDetail = styled.span`
+  ${({ theme }) => css`
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: ${theme.fontSizeSM}px;
+    color: ${theme.colorTextSecondary};
+    line-height: 1.6;
+    display: block;
+  `}
+`;
+
 function getUserLabel(u: { email?: string | null }): string {
   return u.email || t('N/A');
 }
@@ -116,13 +134,15 @@ export default function FolderPermissionsModal({
         endpoint: `/api/v1/folders/${folderUuid}/subjects`,
       });
       const subjects = (json.result as Subject[]) || [];
-      const enriched: LocalSubject[] = subjects.map(s => ({
-        key: String(s.user_id),
+      const nonAdminSubjects = subjects.filter(s => !s.is_admin);
+      const enriched: LocalSubject[] = nonAdminSubjects.map(s => ({
+        key: String(s.subject_id),
         user_id: s.user_id,
-        permission: s.is_admin ? 'admin' : s.permission,
+        subject_id: s.subject_id,
+        permission: s.permission,
         label: getUserLabel(s),
         isCurrentUser: s.user_id === currentUserId,
-        isAdmin: !!s.is_admin,
+        isAdmin: false,
       }));
       setServerSubjects(enriched);
       setLocalSubjects(enriched);
@@ -143,23 +163,27 @@ export default function FolderPermissionsModal({
   const handleAddUser = useCallback(
     (selected: SelectValue) => {
       if (!selected || typeof selected !== 'object') return;
-      const item = selected as { value: number; label: string };
+      const item = selected as {
+        value: number;
+        label: string;
+        subject_id: number;
+      };
       const userId = Number(item.value);
+      const subjectId = Number(item.subject_id);
       if (!userId || Number.isNaN(userId)) return;
-      const isAdmin = adminIdsRef.current.has(userId);
+      if (adminIdsRef.current.has(userId)) return;
       setLocalSubjects(prev => {
         if (prev.some(s => s.user_id === userId)) return prev;
         return [
           ...prev,
           {
-            key: String(userId),
+            key: String(subjectId),
             user_id: userId,
-            permission: isAdmin
-              ? ('admin' as Permission)
-              : ('viewer' as Permission),
+            subject_id: subjectId,
+            permission: 'viewer' as Permission,
             label: String(item.label),
             isCurrentUser: userId === currentUserId,
-            isAdmin,
+            isAdmin: false,
           },
         ];
       });
@@ -189,41 +213,41 @@ export default function FolderPermissionsModal({
     setSaving(true);
     try {
       const serverMap = new Map(
-        serverSubjects.map(s => [s.user_id, s.permission]),
+        serverSubjects.map(s => [s.subject_id, s.permission]),
       );
       const localMap = new Map(
-        localSubjects.map(s => [s.user_id, s.permission]),
+        localSubjects.map(s => [s.subject_id, s.permission]),
       );
 
       const calls: Promise<unknown>[] = [];
 
-      for (const [userId, permission] of localMap) {
-        if (!serverMap.has(userId)) {
+      for (const [subjectId, permission] of localMap) {
+        if (!serverMap.has(subjectId)) {
           calls.push(
             SupersetClient.post({
               endpoint: `/api/v1/folders/${folderUuid}/subjects`,
-              jsonPayload: { user_id: userId, permission },
+              jsonPayload: { subject_id: subjectId, permission },
             }),
           );
         }
       }
 
-      for (const [userId] of serverMap) {
-        if (!localMap.has(userId)) {
+      for (const [subjectId] of serverMap) {
+        if (!localMap.has(subjectId)) {
           calls.push(
             SupersetClient.delete({
-              endpoint: `/api/v1/folders/${folderUuid}/subjects/${userId}`,
+              endpoint: `/api/v1/folders/${folderUuid}/subjects/${subjectId}`,
             }),
           );
         }
       }
 
-      for (const [userId, permission] of localMap) {
-        const serverPerm = serverMap.get(userId);
+      for (const [subjectId, permission] of localMap) {
+        const serverPerm = serverMap.get(subjectId);
         if (serverPerm && serverPerm !== permission) {
           calls.push(
             SupersetClient.put({
-              endpoint: `/api/v1/folders/${folderUuid}/subjects/${userId}`,
+              endpoint: `/api/v1/folders/${folderUuid}/subjects/${subjectId}`,
               jsonPayload: { permission },
             }),
           );
@@ -255,9 +279,11 @@ export default function FolderPermissionsModal({
   const hasChanges = useMemo(() => {
     if (serverSubjects.length !== localSubjects.length) return true;
     const serverMap = new Map(
-      serverSubjects.map(s => [s.user_id, s.permission]),
+      serverSubjects.map(s => [s.subject_id, s.permission]),
     );
-    return localSubjects.some(s => serverMap.get(s.user_id) !== s.permission);
+    return localSubjects.some(
+      s => serverMap.get(s.subject_id) !== s.permission,
+    );
   }, [serverSubjects, localSubjects]);
 
   const fetchAvailableUsers = useCallback(
@@ -280,9 +306,19 @@ export default function FolderPermissionsModal({
       });
       return {
         data: results.map(
-          (u: { id: number; email: string; is_admin?: boolean }) => ({
+          (u: {
+            id: number;
+            email: string;
+            subject_id: number;
+            is_admin?: boolean;
+            role?: string | null;
+          }) => ({
             value: u.id,
             label: getUserLabel(u),
+            subject_id: u.subject_id,
+            role: u.role ?? null,
+            is_admin: !!u.is_admin,
+            disabled: !!u.is_admin,
           }),
         ),
         totalCount: json?.count ?? 0,
@@ -320,15 +356,7 @@ export default function FolderPermissionsModal({
         key: 'permission',
         width: 130,
         render: (permission: Permission, record: LocalSubject) =>
-          record.isAdmin ? (
-            <Tooltip
-              title={t(
-                'This user is an admin and has full access to all folders',
-              )}
-            >
-              <Typography.Text type="secondary">{t('Admin')}</Typography.Text>
-            </Tooltip>
-          ) : record.isCurrentUser ? (
+          record.isCurrentUser ? (
             <Tooltip
               title={t("You can't change your own permission")}
             >
@@ -356,7 +384,7 @@ export default function FolderPermissionsModal({
         key: 'actions',
         width: 40,
         render: (_: unknown, record: LocalSubject) =>
-          record.isCurrentUser || record.isAdmin ? null : (
+          record.isCurrentUser ? null : (
             <Icons.DeleteOutlined
               iconSize="m"
               role="button"
@@ -408,7 +436,44 @@ export default function FolderPermissionsModal({
             getPopupContainer={trigger =>
               trigger.closest('.ant-modal-content') || document.body
             }
+            optionRender={option => {
+              const data = option.data as {
+                role?: string | null;
+                is_admin?: boolean;
+              };
+              return data.is_admin ? (
+                <Tooltip
+                  title={t(
+                    'Workspace Admins already have full access to all folders',
+                  )}
+                >
+                  <UserOptionContainer>
+                    <span>{option.label}</span>
+                    <UserOptionDetail>
+                      {data.role ?? t('Admin')}
+                    </UserOptionDetail>
+                  </UserOptionContainer>
+                </Tooltip>
+              ) : (
+                <UserOptionContainer>
+                  <span>{option.label}</span>
+                  <UserOptionDetail>
+                    {data.role ?? t('User')}
+                  </UserOptionDetail>
+                </UserOptionContainer>
+              );
+            }}
           />
+          <Typography.Text
+            type="secondary"
+            style={{
+              display: 'block',
+              marginTop: theme.sizeUnit,
+              fontSize: theme.fontSizeXS,
+            }}
+          >
+            {t('Workspace Admins already have full access to all folders.')}
+          </Typography.Text>
         </div>
 
         <div>

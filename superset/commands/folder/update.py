@@ -70,6 +70,7 @@ class UpdateFolderCommand(BaseCommand):
             FolderPermissionDAO.copy_permissions_to_subfolder(
                 self._new_parent_id, folder.id
             )
+            FolderPermissionDAO.push_down_permissions(folder.id)
             from superset.folders.models import FolderPin
 
             db.session.query(FolderPin).filter(

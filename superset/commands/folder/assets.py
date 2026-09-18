@@ -80,6 +80,8 @@ def _validate_folder_assets(
                         security_manager.raise_for_access(chart=asset_obj)
                 except Exception as ex:
                     raise FolderForbiddenError() from ex
+                if not security_manager.is_editor(asset_obj):
+                    raise FolderForbiddenError()
 
     if exceptions:
         raise FolderInvalidError(exceptions=exceptions)
