@@ -2887,3 +2887,126 @@ def test_layer_validation_does_not_expose_secrets(
         assert exc_info.value.__suppress_context__ is True
     dao.create.assert_not_called()
     dao.update.assert_not_called()
+
+
+@SEMANTIC_LAYERS_APP
+@pytest.mark.parametrize(
+    "configuration",
+    [
+        {},
+        {
+            "accounts": [
+                {"host": "b", "password": PASSWORD_MASK},
+                {"host": "a", "password": PASSWORD_MASK},
+            ]
+        },
+    ],
+)
+def test_put_rejects_empty_or_reordered_masked_configuration(
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+    configuration: dict[str, Any],
+) -> None:
+    """Invalid configuration edits return 422 before persisting any credentials."""
+    layer: MagicMock = MagicMock()
+    layer.configure_mock(
+        type="test_provider",
+        uuid=uuid_lib.uuid4(),
+        configuration='{"accounts":[{"host":"a","password":"SECRET-A"},{"host":"b","password":"SECRET-B"}]}',
+    )
+    dao: MagicMock = mocker.patch(
+        "superset.commands.semantic_layer.update.SemanticLayerDAO"
+    )
+    dao.find_by_uuid.return_value = layer
+    mocker.patch(
+        "superset.commands.semantic_layer.update.current_user_can_modify_object",
+        return_value=True,
+    )
+    provider: MagicMock = MagicMock()
+    provider.get_configuration_schema.return_value = {
+        "properties": {
+            "accounts": {
+                "type": "array",
+                "items": {
+                    "properties": {
+                        "host": {"type": "string"},
+                        "password": {"writeOnly": True},
+                    }
+                },
+            }
+        }
+    }
+    provider.from_configuration.side_effect = ValueError("credentials required")
+    mocker.patch.dict(
+        "superset.commands.semantic_layer.update.registry", {"test_provider": provider}
+    )
+    response: TestResponse = client.put(
+        f"/api/v1/semantic_layer/{layer.uuid}", json={"configuration": configuration}
+    )
+    assert response.status_code == 422
+    assert "SECRET-" not in response.get_data(as_text=True)
+    if configuration:
+        assert "Submit explicit credentials" in response.json["message"]
+        provider.from_configuration.assert_not_called()
+    else:
+        provider.from_configuration.assert_called_once_with({})
+    dao.update.assert_not_called()
+
+
+@SEMANTIC_LAYERS_APP
+@pytest.mark.parametrize("guess", ["wrong-guess", "stored-token"])
+def test_put_masked_list_secret_replacements_are_not_an_equality_oracle(
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+    guess: str,
+) -> None:
+    """Wrong and right guesses both replace secrets, without an identity signal."""
+    layer: MagicMock = MagicMock()
+    layer.configure_mock(
+        type="oracle_test",
+        uuid=uuid_lib.uuid4(),
+        configuration='{"accounts":[{"host":"a","password":"stored-password","token":"stored-token"}]}',
+    )
+    dao: MagicMock = mocker.patch(
+        "superset.commands.semantic_layer.update.SemanticLayerDAO"
+    )
+    dao.find_by_uuid.return_value = layer
+    dao.update.return_value = layer
+    mocker.patch(
+        "superset.commands.semantic_layer.update.current_user_can_modify_object",
+        return_value=True,
+    )
+    provider: MagicMock = MagicMock()
+    provider.get_configuration_schema.return_value = {
+        "properties": {
+            "accounts": {
+                "type": "array",
+                "items": {
+                    "properties": {
+                        "host": {"type": "string"},
+                        "password": {"writeOnly": True},
+                        "token": {"writeOnly": True},
+                    }
+                },
+            }
+        }
+    }
+    mocker.patch.dict(
+        "superset.commands.semantic_layer.update.registry", {"oracle_test": provider}
+    )
+    response: TestResponse = client.put(
+        f"/api/v1/semantic_layer/{layer.uuid}",
+        json={
+            "configuration": {
+                "accounts": [{"host": "a", "password": PASSWORD_MASK, "token": guess}]
+            }
+        },
+    )
+    assert response.status_code == 200
+    assert response.json == {"result": {"uuid": str(layer.uuid)}}
+    provider.from_configuration.assert_called_once_with(
+        {"accounts": [{"host": "a", "password": "stored-password", "token": guess}]}
+    )
+    dao.update.assert_called_once()

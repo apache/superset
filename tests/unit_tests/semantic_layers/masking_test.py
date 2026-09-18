@@ -18,6 +18,7 @@
 
 from __future__ import annotations
 
+from copy import deepcopy
 from typing import Annotated, Any, Literal, Union
 from unittest.mock import patch
 
@@ -31,6 +32,7 @@ from superset.semantic_layers.masking import (
     _mask_all,
     _mask_object,
     mask_configuration,
+    MaskedListUpdateError,
     unmask_configuration,
 )
 
@@ -239,12 +241,66 @@ def test_unmask_passes_an_orphan_mask_through() -> None:
     assert unmask_configuration({}, submitted) == submitted
 
 
-def test_unmask_handles_lists_pairwise() -> None:
-    stored: dict[str, Any] = {"keys": ["k1", "k2"]}
-    submitted: dict[str, Any] = {"keys": [PASSWORD_MASK, "new-k2", PASSWORD_MASK]}
-    assert unmask_configuration(stored, submitted) == {
-        "keys": ["k1", "new-k2", PASSWORD_MASK]
-    }
+def test_unmask_rejects_masked_list_length_changes() -> None:
+    """Adding entries cannot silently relocate an existing secret."""
+    with pytest.raises(MaskedListUpdateError, match="Masked list length"):
+        unmask_configuration(["k1", "k2"], [PASSWORD_MASK, "new-k2", PASSWORD_MASK])
+
+
+@pytest.mark.parametrize("mode", ["reordered", "removed", "edited"])
+def test_unmask_rejects_unsafe_masked_lists(mode: str) -> None:
+    """Visible entries must identify the same single stored item at its index."""
+    stored: list[dict[str, str]] = [
+        {"host": "a", "password": "secret-a"},
+        {"host": "b", "password": "secret-b"},
+    ]
+    submitted: list[dict[str, str]] = [
+        {"host": "a", "password": PASSWORD_MASK},
+        {"host": "b", "password": PASSWORD_MASK},
+    ]
+    reference: list[dict[str, str]] = deepcopy(submitted)
+    if mode == "reordered":
+        submitted.reverse()
+    elif mode == "removed":
+        submitted.pop()
+    else:
+        submitted[0]["host"] = "new-host"
+    with pytest.raises(MaskedListUpdateError, match="Submit explicit credentials"):
+        unmask_configuration(stored, submitted, reference)
+
+
+def test_unmask_preserves_identifiable_list_and_accepts_explicit_replacement() -> None:
+    """Safe echoes and explicit replacements remain available without guessed keys."""
+    stored: list[dict[str, Any]] = [
+        {"host": "a", "auth": {"password": "secret-a"}},
+        {"host": "b", "auth": {"password": "secret-b"}},
+    ]
+    submitted: list[dict[str, Any]] = [
+        {"host": "a", "auth": {"password": PASSWORD_MASK}},
+        {"host": "b", "auth": {"password": PASSWORD_MASK}},
+    ]
+    assert unmask_configuration(stored, submitted) == stored
+    assert unmask_configuration(stored, list(reversed(stored))) == list(
+        reversed(stored)
+    )
+    assert unmask_configuration(["only-secret"], [PASSWORD_MASK]) == ["only-secret"]
+    assert unmask_configuration(["a", "b"], [PASSWORD_MASK, PASSWORD_MASK]) == [
+        "a",
+        "b",
+    ]
+
+
+def test_malformed_schema_warning_never_includes_values(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Schema failure diagnostics contain no provider input or traceback."""
+    assert masking._mask_value(
+        {"password": "CONFIG-SECRET"}, {"anyOf": 4}, {}, "test-provider"
+    ) == {"password": PASSWORD_MASK}
+    assert "test-provider" in caplog.text
+    assert "malformed or unresolved schema" in caplog.text
+    assert "CONFIG-SECRET" not in caplog.text
+    assert all(record.exc_info is None for record in caplog.records)
 
 
 def test_mask_then_unmask_round_trips_to_the_stored_configuration() -> None:
@@ -732,3 +788,34 @@ def test_flatten_variants_rejects_excessive_union_nesting() -> None:
         assert mask_configuration("fake", {"token": "secret"}) == {
             "token": PASSWORD_MASK
         }
+
+
+@pytest.mark.parametrize("mode", ["echo", "length", "value", "type"])
+def test_masked_entry_nested_list_identity(mode: str) -> None:
+    """Nested visible lists affect identity; masked values never do."""
+    stored: list[dict[str, Any]] = [{"tags": ["a", "b"], "password": "secret"}]
+    reference: list[dict[str, Any]] = [{"tags": ["a", "b"], "password": PASSWORD_MASK}]
+    submitted: list[dict[str, Any]] = deepcopy(reference)
+    if mode == "length":
+        submitted[0]["tags"].append("c")
+    elif mode == "value":
+        submitted[0]["tags"][0] = "c"
+    elif mode == "type":
+        submitted[0]["tags"] = {"0": "a"}
+    if mode == "echo":
+        assert unmask_configuration(stored, submitted, reference) == stored
+    else:
+        with pytest.raises(MaskedListUpdateError):
+            unmask_configuration(stored, submitted, reference)
+
+
+def test_whole_secret_list_reference_is_wildcard() -> None:
+    """A whole-array or whole-object secret marker does not compare private values."""
+    assert unmask_configuration(
+        [{"password": "secret", "pin": "1234"}],
+        [{"password": PASSWORD_MASK, "pin": "wrong"}],
+        PASSWORD_MASK,
+    ) == [{"password": "secret", "pin": "wrong"}]
+    assert unmask_configuration(
+        [{"x": "secret"}], [{"x": PASSWORD_MASK}], [PASSWORD_MASK]
+    ) == [{"x": "secret"}]
