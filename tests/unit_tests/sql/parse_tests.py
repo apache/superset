@@ -6442,3 +6442,21 @@ def test_has_aggregate(expression: str, expected: bool) -> None:
     function sqlglot can't model.
     """
     assert has_aggregate(expression) is expected
+
+
+@pytest.mark.parametrize(
+    "expression,expected",
+    [
+        ("SUM(x)", True),
+        ("a + b", False),
+        (")(", False),
+        ("MY_CUSTOM_AGG(x)", False),
+    ],
+)
+def test_has_aggregate_fail_closed(expression: str, expected: bool) -> None:
+    """
+    With ``fail_open=False`` an expression that can't be parsed, or that uses a
+    function sqlglot can't model, is not reported as an aggregate -- for callers
+    that grant something to aggregates and must not grant it on a guess.
+    """
+    assert has_aggregate(expression, fail_open=False) is expected

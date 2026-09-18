@@ -116,6 +116,7 @@ def mocks() -> Iterator[dict[str, Any]]:
 def _run(
     job_id: str = "job-1",
     mode: str = "data",
+    lock_token: str | None = "tok",  # noqa: S107
 ) -> None:
     from superset.tasks.export_dashboard_excel import export_dashboard_excel
 
@@ -125,6 +126,7 @@ def _run(
         active_data_mask={},
         job_id=job_id,
         mode=mode,
+        lock_token=lock_token,
     )
 
 
@@ -852,9 +854,12 @@ def test_inflight_lock_released_on_success(mocks: dict[str, Any]) -> None:
     _run()
 
     # The distributed lock is released for this user+dashboard when the task
-    # settles (namespace + params match what the API acquired).
+    # settles (namespace + params match what the API acquired), and only if the
+    # API's acquisition still owns it.
     mocks["ReleaseDistributedLock"].assert_called_once_with(
-        "excel_export", {"user_id": 2, "dashboard_id": 1}
+        "excel_export",
+        {"user_id": 2, "dashboard_id": 1},
+        token="tok",  # noqa: S106
     )
     mocks["ReleaseDistributedLock"].return_value.run.assert_called_once_with()
 
@@ -871,6 +876,24 @@ def test_inflight_lock_released_on_failure(mocks: dict[str, Any]) -> None:
 
     # The lock is freed in ``finally`` even when the export fails.
     mocks["ReleaseDistributedLock"].assert_called_once_with(
-        "excel_export", {"user_id": 2, "dashboard_id": 1}
+        "excel_export",
+        {"user_id": 2, "dashboard_id": 1},
+        token="tok",  # noqa: S106
     )
     mocks["ReleaseDistributedLock"].return_value.run.assert_called_once_with()
+
+
+def test_inflight_lock_released_unconditionally_without_a_token(
+    mocks: dict[str, Any],
+) -> None:
+    """A task enqueued before the token was threaded through still releases."""
+    mocks["get_charts_in_layout_order"].return_value = [_chart(10, "Good")]
+    mocks["ChartDataCommand"].return_value.run.return_value = {
+        "queries": [{"colnames": ["a"], "data": [{"a": 1}]}]
+    }
+
+    _run(lock_token=None)
+
+    mocks["ReleaseDistributedLock"].assert_called_once_with(
+        "excel_export", {"user_id": 2, "dashboard_id": 1}, token=None
+    )

@@ -1835,22 +1835,26 @@ class DashboardRestApi(
         # Allow one export per user and dashboard across web and worker processes.
         # The TTL releases the lock if normal cleanup fails.
         lock_params = export_lock_params(g.user.id, dashboard.id)
+        acquire_lock = AcquireDistributedLock(
+            EXPORT_LOCK_NAMESPACE,
+            lock_params,
+            ttl_seconds=EXPORT_LOCK_TTL_SECONDS,
+        )
         try:
-            AcquireDistributedLock(
-                EXPORT_LOCK_NAMESPACE,
-                lock_params,
-                ttl_seconds=EXPORT_LOCK_TTL_SECONDS,
-            ).run()
+            acquire_lock.run()
         except LockAlreadyHeldException:
             return self.response(
                 202,
                 message="An Excel export for this dashboard is already in progress.",
             )
+        # Every release is checked against this acquisition's token, so an export
+        # that outlives the TTL cannot delete the lock of whoever acquired next.
+        lock_token = acquire_lock.token
 
         job_id = str(uuid.uuid4())
         if queued:
             return self._export_xlsx_queued(
-                dashboard, active_data_mask, mode, job_id, lock_params
+                dashboard, active_data_mask, mode, job_id, lock_params, lock_token
             )
 
         # Plan after locking because query-context resolution can be expensive.
@@ -1873,12 +1877,15 @@ class DashboardRestApi(
                 active_data_mask,
                 job_id,
                 lock_params,
+                lock_token,
                 plan.query_contexts,
             )
         finally:
             if not lock_delegated:
                 try:
-                    ReleaseDistributedLock(EXPORT_LOCK_NAMESPACE, lock_params).run()
+                    ReleaseDistributedLock(
+                        EXPORT_LOCK_NAMESPACE, lock_params, token=lock_token
+                    ).run()
                 except Exception:  # pylint: disable=broad-except
                     # The TTL is the fallback if release fails.
                     logger.exception(
@@ -1893,6 +1900,7 @@ class DashboardRestApi(
         mode: str,
         job_id: str,
         lock_params: dict[str, int],
+        lock_token: str,
     ) -> WerkzeugResponse:
         """Queue an export for upload and email delivery."""
         try:
@@ -1903,12 +1911,15 @@ class DashboardRestApi(
                     "active_data_mask": active_data_mask,
                     "job_id": job_id,
                     "mode": mode,
+                    "lock_token": lock_token,
                 },
                 task_id=job_id,
             )
         except Exception:
             # No task will release the lock if enqueueing fails.
-            ReleaseDistributedLock(EXPORT_LOCK_NAMESPACE, lock_params).run()
+            ReleaseDistributedLock(
+                EXPORT_LOCK_NAMESPACE, lock_params, token=lock_token
+            ).run()
             raise
         return self.response(202, job_id=job_id)
 
@@ -1918,6 +1929,7 @@ class DashboardRestApi(
         active_data_mask: dict[str, Any],
         job_id: str,
         lock_params: dict[str, int],
+        lock_token: str,
         query_contexts: ResolvedQueryContexts,
     ) -> WerkzeugResponse:
         """Build a planned data export and return it in the response."""
@@ -1937,8 +1949,11 @@ class DashboardRestApi(
                 g.user,
                 query_contexts=query_contexts,
             )
+            # A dashboard may be untitled; fall back the same way the task does.
             filename = get_filename(
-                dashboard.dashboard_title, dashboard.id, skip_id=False
+                dashboard.dashboard_title or f"Dashboard {dashboard.id}",
+                dashboard.id,
+                skip_id=False,
             )
             response = send_file(
                 tmp_path,
@@ -1956,7 +1971,9 @@ class DashboardRestApi(
             raise
         finally:
             try:
-                ReleaseDistributedLock(EXPORT_LOCK_NAMESPACE, lock_params).run()
+                ReleaseDistributedLock(
+                    EXPORT_LOCK_NAMESPACE, lock_params, token=lock_token
+                ).run()
             except Exception:  # pylint: disable=broad-except
                 # The TTL is the fallback if release fails.
                 logger.exception(

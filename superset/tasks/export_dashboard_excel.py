@@ -80,6 +80,7 @@ def export_dashboard_excel(
     active_data_mask: dict[str, Any],
     job_id: str,
     mode: str = EXPORT_MODE_DATA,
+    lock_token: str | None = None,
 ) -> None:
     """
     Export a dashboard's charts to an ``.xlsx`` and email a download link.
@@ -90,6 +91,10 @@ def export_dashboard_excel(
     :param job_id: Correlation id, also the Celery task id and S3 object name
     :param mode: ``"data"`` streams every chart's tabular result; ``"images"``
         embeds non-table charts as rendered images and keeps tables tabular
+    :param lock_token: The API's in-flight lock acquisition token, matched on
+        release so a task that outlives the TTL cannot free a later holder's
+        lock. ``None`` releases unconditionally, for tasks enqueued before the
+        token was threaded through.
     """
     # pylint: disable=import-outside-toplevel
     from superset.models.dashboard import Dashboard
@@ -159,6 +164,7 @@ def export_dashboard_excel(
             ReleaseDistributedLock(
                 EXPORT_LOCK_NAMESPACE,
                 export_lock_params(user_id, dashboard_id),
+                token=lock_token,
             ).run()
         except Exception:  # pylint: disable=broad-except
             # The TTL is the fallback if release fails.

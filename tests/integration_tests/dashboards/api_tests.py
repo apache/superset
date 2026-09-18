@@ -3622,6 +3622,9 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         _, kwargs = mock_task.apply_async.call_args
         assert kwargs["task_id"] == job_id
         assert kwargs["kwargs"]["dashboard_id"] == dashboard.id
+        # The task releases the lock, so it needs this acquisition's token to
+        # release only while it still owns it.
+        assert kwargs["kwargs"]["lock_token"] == mock_acquire.return_value.token
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @with_config({"EXCEL_EXPORT_S3_BUCKET": "exports"})
@@ -3790,6 +3793,33 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @with_config({"EXCEL_EXPORT_S3_BUCKET": None})
     @patch("superset.dashboards.api.build_workbook")
+    def test_export_xlsx_sync_names_an_untitled_dashboard(self, mock_build):
+        """Dashboard API: a dashboard is allowed to have no title, so the direct
+        download names it the way the queued path does instead of failing on the
+        missing title once the workbook is already built."""
+        mock_build.side_effect = self._write_stub_workbook
+        self.login(ADMIN_USERNAME)
+        dashboard = db.session.query(Dashboard).filter_by(slug="world_health").first()
+        title = dashboard.dashboard_title
+        dashboard.dashboard_title = None
+        db.session.commit()
+
+        try:
+            rv = self.client.post(
+                f"api/v1/dashboard/{dashboard.id}/export_xlsx/",
+                json={"active_data_mask": {}},
+                buffered=True,
+            )
+
+            assert rv.status_code == 200
+            assert f"Dashboard_{dashboard.id}" in rv.headers["Content-Disposition"]
+        finally:
+            dashboard.dashboard_title = title
+            db.session.commit()
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @with_config({"EXCEL_EXPORT_S3_BUCKET": None})
+    @patch("superset.dashboards.api.build_workbook")
     def test_export_xlsx_sync_builds_with_the_same_inputs_as_the_task(self, mock_build):
         """Dashboard API: the synchronous path hands the shared builder the same
         dashboard, filter state and mode the Celery task would, so both paths
@@ -3944,6 +3974,10 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         assert rv.status_code == 200
         mock_acquire.return_value.run.assert_called_once()
         mock_release.return_value.run.assert_called_once()
+        # Releasing on this acquisition's token keeps an export that outlived the
+        # lock's TTL from deleting the lock of whoever acquired next.
+        _, kwargs = mock_release.call_args
+        assert kwargs["token"] == mock_acquire.return_value.token
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @with_config({"EXCEL_EXPORT_S3_BUCKET": None})

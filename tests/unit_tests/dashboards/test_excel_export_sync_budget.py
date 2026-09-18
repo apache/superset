@@ -30,13 +30,28 @@ from superset.utils import json
 MODULE = "superset.dashboards.excel_export.sync_budget"
 
 
-def _chart(chart_id: int, *queries: dict[str, Any]) -> mock.MagicMock:
+def _saved_metric(name: str, expression: str) -> mock.MagicMock:
+    """A metric saved on a dataset."""
+    metric = mock.MagicMock()
+    metric.metric_name = name
+    metric.expression = expression
+    return metric
+
+
+def _chart(
+    chart_id: int,
+    *queries: dict[str, Any],
+    saved_metrics: tuple[tuple[str, str], ...] = (),
+    engine: str = "base",
+) -> mock.MagicMock:
     """A chart whose saved query context holds ``queries``."""
     chart = mock.MagicMock()
     chart.id = chart_id
     chart.slice_name = f"Chart {chart_id}"
     chart.viz_type = "table"
     chart.query_context = json.dumps({"queries": list(queries)})
+    chart.datasource.metrics = [_saved_metric(*metric) for metric in saved_metrics]
+    chart.datasource.database.backend = engine
     return chart
 
 
@@ -86,8 +101,9 @@ def test_plan_counts_every_query_of_a_multi_query_chart(
 @pytest.mark.parametrize(
     "query",
     [
-        {"row_limit": "1000"},  # not an integer
-        {"row_limit": -5},
+        {"row_limit": -5},  # below the schema's minimum
+        {"row_limit": "many"},  # not a number
+        {"row_limit": [100]},  # not a scalar
     ],
 )
 def test_plan_row_total_is_indeterminate_without_a_finite_row_limit(
@@ -102,6 +118,17 @@ def test_plan_row_total_is_indeterminate_without_a_finite_row_limit(
     assert plan.fits_row_budget is False
 
 
+@pytest.mark.parametrize("row_limit", ["1000", 1000.0])
+def test_plan_reads_a_row_limit_the_query_schema_accepts(
+    charts: mock.MagicMock, row_limit: Any
+) -> None:
+    # `ChartDataQueryContextSchema` coerces these to 1000 and runs the export, so
+    # planning has to size them instead of refusing the whole dashboard.
+    charts.return_value = [_chart(10, {"row_limit": row_limit})]
+
+    assert plan_inline_export(mock.MagicMock()).requested_rows == 1000
+
+
 @pytest.mark.parametrize("query", [{}, {"row_limit": 0}, {"row_limit": None}])
 def test_plan_uses_default_when_row_limit_is_omitted(
     charts: mock.MagicMock, query: dict[str, Any]
@@ -112,22 +139,108 @@ def test_plan_uses_default_when_row_limit_is_omitted(
     assert plan_inline_export(mock.MagicMock()).requested_rows == 350
 
 
+@pytest.mark.parametrize(
+    "metric",
+    [
+        pytest.param("count", id="saved metric"),
+        pytest.param(
+            {
+                "expressionType": "SIMPLE",
+                "aggregate": "SUM",
+                "column": {"column_name": "amount"},
+            },
+            id="simple adhoc metric",
+        ),
+        pytest.param(
+            {"expressionType": "SQL", "sqlExpression": "SUM(amount)"},
+            id="custom SQL metric that aggregates",
+        ),
+    ],
+)
 def test_plan_counts_aggregate_only_queries_as_one_row(
-    charts: mock.MagicMock,
+    charts: mock.MagicMock, metric: Any
 ) -> None:
     charts.return_value = [
         _chart(
             chart_id,
             {
                 "columns": [],
-                "metrics": ["count"],
+                "metrics": [metric],
                 "granularity": "order_date",
             },
+            saved_metrics=(("count", "COUNT(*)"),),
         )
         for chart_id in (10, 20, 30)
     ]
 
     assert plan_inline_export(mock.MagicMock()).requested_rows == 3
+
+
+@pytest.mark.parametrize(
+    "metric",
+    [
+        pytest.param("amount", id="saved metric that does not aggregate"),
+        pytest.param("unknown", id="metric missing from the dataset"),
+        pytest.param(
+            {"expressionType": "SQL", "sqlExpression": "amount"},
+            id="custom SQL metric that does not aggregate",
+        ),
+        pytest.param(
+            {"expressionType": "SQL", "sqlExpression": "{{ my_macro() }}"},
+            id="custom SQL metric that cannot be parsed",
+        ),
+        pytest.param(
+            {"expressionType": "SIMPLE"}, id="simple metric with no aggregate"
+        ),
+    ],
+)
+def test_plan_charges_the_row_limit_for_metrics_that_may_not_aggregate(
+    charts: mock.MagicMock, metric: Any
+) -> None:
+    # A metric is only worth one row if it provably collapses the rows it reads:
+    # `SELECT amount FROM t LIMIT 50000` returns 50,000 rows, not one.
+    charts.return_value = [
+        _chart(
+            10,
+            {"columns": [], "metrics": [metric], "row_limit": 50_000},
+            saved_metrics=(("count", "COUNT(*)"), ("amount", "amount")),
+        )
+    ]
+
+    assert plan_inline_export(mock.MagicMock()).requested_rows == 50_000
+
+
+def test_plan_charges_the_row_limit_when_one_metric_may_not_aggregate(
+    charts: mock.MagicMock,
+) -> None:
+    charts.return_value = [
+        _chart(
+            10,
+            {
+                "columns": [],
+                "metrics": [
+                    "count",
+                    {"expressionType": "SQL", "sqlExpression": "amount"},
+                ],
+                "row_limit": 50_000,
+            },
+            saved_metrics=(("count", "COUNT(*)"),),
+        )
+    ]
+
+    assert plan_inline_export(mock.MagicMock()).requested_rows == 50_000
+
+
+def test_plan_charges_the_row_limit_when_the_dataset_cannot_be_read(
+    charts: mock.MagicMock,
+) -> None:
+    # Without the dataset the saved metric's SQL is unknown, so it is not proven
+    # to aggregate and the query keeps its row limit.
+    chart = _chart(10, {"columns": [], "metrics": ["count"], "row_limit": 50_000})
+    type(chart).datasource = mock.PropertyMock(side_effect=RuntimeError("no dataset"))
+    charts.return_value = [chart]
+
+    assert plan_inline_export(mock.MagicMock()).requested_rows == 50_000
 
 
 def test_plan_does_not_treat_timeseries_as_single_row(
