@@ -843,33 +843,81 @@ test('uses an axis-triggered tooltip', () => {
   );
 });
 
-test('tooltip heading uses increase or decrease based on open vs close', () => {
+test('tooltip keeps the date as the heading and labels the price series with direction', () => {
   const props = buildProps({
     increase_label: 'Up',
     decrease_label: 'Down',
   });
-  expect(
-    getTooltipHtml(props, [
+  const increaseHtml = getTooltipHtml(props, [
+    {
+      dataIndex: 0,
+      name: '2017-10-24',
+      seriesType: 'candlestick',
+      seriesName: CANDLESTICK_SERIES_NAME,
+      value: [20, 34, 10, 38],
+      data: [20, 34, 10, 38],
+    },
+  ]);
+  expect(increaseHtml).toContain('2017-10-24');
+  expect(increaseHtml).toContain(`${CANDLESTICK_SERIES_NAME} (Up)`);
+  const decreaseHtml = getTooltipHtml(props, [
+    {
+      dataIndex: 3,
+      name: '2017-10-27',
+      seriesType: 'candlestick',
+      seriesName: CANDLESTICK_SERIES_NAME,
+      value: [38, 15, 5, 42],
+      data: [38, 15, 5, 42],
+    },
+  ]);
+  expect(decreaseHtml).toContain('2017-10-27');
+  expect(decreaseHtml).toContain(`${CANDLESTICK_SERIES_NAME} (Down)`);
+});
+
+test('tooltip includes the custom series name when no series dimension is set', () => {
+  const tooltipHtml = getTooltipHtml(
+    buildProps({ candlestick_series_name: 'OHLC' }),
+    [
       {
         dataIndex: 0,
         name: '2017-10-24',
         seriesType: 'candlestick',
+        seriesName: 'OHLC',
         value: [20, 34, 10, 38],
         data: [20, 34, 10, 38],
       },
-    ]),
-  ).toContain('Up');
-  expect(
-    getTooltipHtml(props, [
+    ],
+  );
+  expect(tooltipHtml).toContain('OHLC (Increase)');
+});
+
+test('tooltip includes the series name when a series dimension has a single value', () => {
+  const tooltipHtml = getTooltipHtml(
+    transform(
+      [
+        {
+          date: '2017-10-24',
+          symbol: 'AAPL',
+          open: 20,
+          close: 34,
+          low: 10,
+          high: 38,
+        },
+      ],
+      { series: 'symbol' },
+    ),
+    [
       {
-        dataIndex: 3,
-        name: '2017-10-27',
+        dataIndex: 0,
+        name: '2017-10-24',
         seriesType: 'candlestick',
-        value: [38, 15, 5, 42],
-        data: [38, 15, 5, 42],
+        seriesName: 'AAPL',
+        value: [20, 34, 10, 38],
+        data: [20, 34, 10, 38],
       },
-    ]),
-  ).toContain('Down');
+    ],
+  );
+  expect(tooltipHtml).toContain('AAPL (Increase)');
 });
 
 test('tooltip includes moving-average line values', () => {
@@ -898,13 +946,14 @@ test('tooltip reads OHLC from custom-series 5-tuples', () => {
       dataIndex: 0,
       name: '2017-10-24',
       seriesType: 'custom',
+      seriesName: CANDLESTICK_SERIES_NAME,
       value: [0, 20, 34, 10, 38],
       data: [0, 20, 34, 10, 38],
     },
   ]);
   expect(tooltipHtml).toContain('20');
   expect(tooltipHtml).toContain('34');
-  expect(tooltipHtml).toContain('Increase');
+  expect(tooltipHtml).toContain(`${CANDLESTICK_SERIES_NAME} (Increase)`);
 });
 
 test('tooltip lists every candlestick and moving average on the hovered date', () => {

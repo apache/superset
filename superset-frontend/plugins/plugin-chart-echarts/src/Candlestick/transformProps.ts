@@ -31,6 +31,7 @@ import {
   tooltipHtml,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
+import { t } from '@apache-superset/core/translation';
 import type { CustomSeriesOption, CustomSeriesRenderItem } from 'echarts';
 import type { CandlestickSeriesOption, LineSeriesOption } from 'echarts/charts';
 import type { EChartsCoreOption } from 'echarts/core';
@@ -267,17 +268,14 @@ function formatTooltip({
   title,
   increaseLabel,
   decreaseLabel,
-  showSeriesName,
 }: {
   params: CallbackDataParams[];
   numberFormatter: NumberFormatter | CurrencyFormatter;
   title: string;
   increaseLabel: string;
   decreaseLabel: string;
-  showSeriesName: boolean;
 }) {
   const rows: string[][] = [];
-  let heading = title;
   const candles = params.flatMap(item => {
     const ohlc = extractOhlc(item.value ?? item.data);
     return ohlc ? [{ item, ohlc }] : [];
@@ -286,14 +284,8 @@ function formatTooltip({
   candles.forEach(({ item, ohlc }) => {
     const [open, close] = ohlc;
     const direction = close >= open ? increaseLabel : decreaseLabel;
-    if (showSeriesName) {
-      const seriesLabel = String(item.seriesName ?? '');
-      if (seriesLabel) {
-        rows.push([`${seriesLabel} (${direction})`]);
-      }
-    } else {
-      heading = title ? `${title} (${direction})` : direction;
-    }
+    const seriesLabel = String(item.seriesName ?? '');
+    rows.push([seriesLabel ? `${seriesLabel} (${direction})` : direction]);
     appendOhlcRows(rows, ohlc, numberFormatter);
   });
 
@@ -310,7 +302,7 @@ function formatTooltip({
   if (!rows.length) {
     return '';
   }
-  return tooltipHtml(rows, heading);
+  return tooltipHtml(rows, title);
 }
 
 export default function transformProps(
@@ -687,7 +679,6 @@ export default function transformProps(
           title,
           increaseLabel: upLabel,
           decreaseLabel: downLabel,
-          showSeriesName: seriesNames.length > 1,
         });
       },
     },
@@ -698,8 +689,8 @@ export default function transformProps(
         dataZoom: {
           yAxisIndex: false,
           title: {
-            zoom: 'zoom area',
-            back: 'restore zoom',
+            zoom: t('zoom area'),
+            back: t('restore zoom'),
           },
         },
       },
