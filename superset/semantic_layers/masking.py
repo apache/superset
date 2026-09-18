@@ -71,6 +71,7 @@ from superset.semantic_layers.registry import registry
 logger: logging.Logger = logging.getLogger(__name__)
 
 _UNION_KEYS: tuple[str, ...] = ("anyOf", "oneOf", "allOf")
+_MAX_SCHEMA_DEPTH: int = 16
 
 JsonSchema = dict[str, Any]
 
@@ -121,7 +122,7 @@ def _is_secret_schema(
     credential kinds) count as secret when any branch does: a field that
     may hold a secret must always be masked.
     """
-    if _depth > 16:
+    if _depth > _MAX_SCHEMA_DEPTH:
         return True  # pathological schema: fail closed
     schema = _resolve_ref(schema, defs)
     if schema.get("format") == "password" or schema.get("writeOnly") is True:
@@ -194,7 +195,7 @@ def _flatten_variants(
     depth: int = 0,
 ) -> list[JsonSchema]:
     """Collect classifications through every level of nested union wrappers."""
-    if depth > 16:
+    if depth > _MAX_SCHEMA_DEPTH:
         raise _UnresolvableRefError
     schema = _resolve_ref(schema, defs)
     variants: list[JsonSchema] = [schema]
