@@ -829,7 +829,10 @@ def test_get_oauth2_token_native(
     """
     Test `get_oauth2_token` for Native engine.
     """
-    requests = mocker.patch("superset.db_engine_specs.base.requests")
+    mock_get_requester = mocker.patch(
+        "superset.db_engine_specs.base.get_ssrf_safe_requester"
+    )
+    requests = mock_get_requester.return_value
     requests.post().json.return_value = {
         "access_token": "access-token",
         "expires_in": 3600,
@@ -857,6 +860,7 @@ def test_get_oauth2_token_native(
             "grant_type": "authorization_code",
         },
         timeout=30.0,
+        allow_redirects=False,
     )
 
 
@@ -867,7 +871,10 @@ def test_get_oauth2_token_python(
     """
     Test `get_oauth2_token` for Python Connector engine.
     """
-    requests = mocker.patch("superset.db_engine_specs.base.requests")
+    mock_get_requester = mocker.patch(
+        "superset.db_engine_specs.base.get_ssrf_safe_requester"
+    )
+    requests = mock_get_requester.return_value
     requests.post().json.return_value = {
         "access_token": "access-token",
         "expires_in": 3600,
@@ -895,6 +902,7 @@ def test_get_oauth2_token_python(
             "grant_type": "authorization_code",
         },
         timeout=30.0,
+        allow_redirects=False,
     )
 
 
@@ -905,7 +913,10 @@ def test_get_oauth2_fresh_token_native(
     """
     Test `get_oauth2_fresh_token` for Native engine.
     """
-    requests = mocker.patch("superset.db_engine_specs.base.requests")
+    mock_get_requester = mocker.patch(
+        "superset.db_engine_specs.base.get_ssrf_safe_requester"
+    )
+    requests = mock_get_requester.return_value
     requests.post().json.return_value = {
         "access_token": "new-access-token",
         "expires_in": 3600,
@@ -932,6 +943,7 @@ def test_get_oauth2_fresh_token_native(
             "grant_type": "refresh_token",
         },
         timeout=30.0,
+        allow_redirects=False,
     )
 
 
@@ -989,6 +1001,10 @@ def test_get_oauth2_authorization_uri_derives_from_workspace_host(
     database = mocker.MagicMock()
     database.url_object.host = host
     mocker.patch("superset.db.session.get", return_value=database)
+    # is_safe_host does live DNS resolution; whether these fixture hosts
+    # happen to resolve depends on real-world DNS state outside test
+    # control, so pin it rather than relying on that.
+    mocker.patch("superset.db_engine_specs.base.is_safe_host", return_value=True)
 
     url = spec.get_oauth2_authorization_uri(
         _unresolved_oauth2_config(), _oauth2_state()
@@ -1064,7 +1080,10 @@ def test_get_oauth2_fresh_token_python(
     """
     Test `get_oauth2_fresh_token` for Python Connector engine.
     """
-    requests = mocker.patch("superset.db_engine_specs.base.requests")
+    mock_get_requester = mocker.patch(
+        "superset.db_engine_specs.base.get_ssrf_safe_requester"
+    )
+    requests = mock_get_requester.return_value
     requests.post().json.return_value = {
         "access_token": "new-access-token",
         "expires_in": 3600,
@@ -1091,6 +1110,7 @@ def test_get_oauth2_fresh_token_python(
             "grant_type": "refresh_token",
         },
         timeout=30.0,
+        allow_redirects=False,
     )
 
 
