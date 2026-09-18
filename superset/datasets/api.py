@@ -863,6 +863,8 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             response = self.response_403()
         except DatasetInvalidError as ex:
             response = self.response_422(message=ex.normalized_messages())
+        except DatasetSoftDeletedTwinExistsError as ex:
+            response = self.response_422(message=str(ex))
         except DatasetRefreshFailedError as ex:
             logger.exception(
                 "Error refreshing dataset during update %s: %s",
@@ -881,11 +883,10 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             # handler above: the token is not proven stale.
             if conditional and is_lock_contention_error(ex.__cause__):
                 return self._lock_contention_response()
-            logger.error(
+            logger.exception(
                 "Error updating model %s: %s",
                 self.__class__.__name__,
                 str(ex),
-                exc_info=True,
             )
             response = self.response_422(message=str(ex))
         return response

@@ -1241,6 +1241,38 @@ def test_semantic_view_get_compatible_dimensions(
 # =============================================================================
 
 
+def test_semantic_view_compatible_dimensions_collapse_grains(
+    mock_implementation: MagicMock,
+) -> None:
+    """Return sorted unique names regardless of grain-variant encounter order."""
+    variants: list[Dimension] = [
+        Dimension(
+            id="orders.created_at",
+            name="created_at",
+            type=pa.timestamp("us"),
+            definition="orders.created_at",
+            grain=grain,
+        )
+        for grain in (Grains.DAY, Grains.MONTH, Grains.YEAR)
+    ]
+    category: Dimension = Dimension(
+        id="category", name="category", type=pa.utf8(), definition="category"
+    )
+    view: SemanticView = SemanticView()
+    mock_implementation.get_dimensions.return_value = set(variants + [category])
+    mock_implementation.get_compatible_dimensions.side_effect = [
+        set(variants + [category]),
+        set([category] + list(reversed(variants))),
+    ]
+    with patch.object(
+        SemanticView,
+        "implementation",
+        new_callable=lambda: property(lambda s: mock_implementation),
+    ):
+        assert view.get_compatible_dimensions([], []) == ["category", "created_at"]
+        assert view.get_compatible_dimensions([], []) == ["category", "created_at"]
+
+
 def test_semantic_layer_get_perm() -> None:
     """Test SemanticLayer.get_perm() format."""
     layer = SemanticLayer()
