@@ -1286,11 +1286,26 @@ def _big_number_queries(
     form_data: dict[str, Any], query: dict[str, Any]
 ) -> list[dict[str, Any]]:
     """Mirror Big Number with Trendline's one/two-query contract."""
-    explicit_x_axis = _frontend_x_axis_column(form_data)
+    # Saved/native Big Number payloads can carry the temporal binding as a
+    # ``{"column_name": ...}`` mapping, which the strict frontend predicate does
+    # not recognize; keep grouping by it rather than falling back to a total.
+    frontend_x_axis = _frontend_x_axis_column(form_data)
+    explicit_x_axis = frontend_x_axis or _x_axis_column(form_data)
     time_column = _as_list(explicit_x_axis)
     x_axis_label = _x_axis_label(form_data, frontend_strict=True)
     query["columns"] = time_column
-    if not time_column:
+    if time_column and frontend_x_axis is None:
+        # A native ``{"column_name": ...}`` axis groups by its temporal column
+        # but is not rewritten by normalize_time_column, so drop the legacy
+        # granularity binding here rather than bucketing the same dimension
+        # twice.
+        query.pop("granularity", None)
+        extras = query.get("extras")
+        if isinstance(extras, dict):
+            extras.pop("time_grain_sqla", None)
+            if not extras:
+                query.pop("extras", None)
+    elif not time_column:
         query["is_timeseries"] = True
     metric_labels = [_label(value, metric=True) for value in query.get("metrics") or []]
     post_processing: list[dict[str, Any]] = []
@@ -1582,6 +1597,11 @@ def build_query_objects_from_form_data(  # noqa: C901
             query["orderby"] = []
         elif form_data.get("metric") is not None:
             query["orderby"] = [[form_data["metric"], False]]
+    elif effective_viz in {"bubble", "bubble_v2"}:
+        # Bubble groups by its entity column; x/y/size already alias to metrics.
+        query["columns"] = _deduplicate_fields(
+            [*_as_list(form_data.get("entity")), *list(query.get("columns") or [])]
+        )
     elif effective_viz == "ag-grid-pivot-table":
         query["columns"] = _temporalized_columns(
             form_data, _as_list(form_data.get("groupby"))
@@ -1598,6 +1618,12 @@ def build_query_objects_from_form_data(  # noqa: C901
     secondary = secondary_form_data or retain_mixed_timeseries_secondary_form_data(
         form_data
     )
+    # Query A's saved ordering references metrics query B may not select, so the
+    # secondary series orders by ``orderby_b`` or not at all.
+    if (orderby_b := form_data.get("orderby_b")) is not None:
+        secondary["orderby"] = orderby_b
+    elif "orderby_b" not in form_data:
+        secondary.pop("orderby", None)
     query_b = _base_query_object(
         secondary,
         row_limit=row_limit,

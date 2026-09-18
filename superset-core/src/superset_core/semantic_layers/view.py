@@ -35,6 +35,7 @@ class SemanticViewFeature(enum.Enum):
     Custom features supported by semantic layers.
     """
 
+    ADHOC_COLUMN_EXPRESSIONS = "ADHOC_COLUMN_EXPRESSIONS"
     ADHOC_EXPRESSIONS_IN_ORDERBY = "ADHOC_EXPRESSIONS_IN_ORDERBY"
     GROUP_LIMIT = "GROUP_LIMIT"
     GROUP_OTHERS = "GROUP_OTHERS"
@@ -45,7 +46,10 @@ class SemanticView(ABC):
     Abstract base class for semantic views.
     """
 
-    features: frozenset[SemanticViewFeature]
+    # Defaults to no optional features: providers opt in by overriding, and
+    # consumers can rely on the attribute existing and degrade to the
+    # conservative (Saved-only) picker for views that declare nothing.
+    features: frozenset[SemanticViewFeature] = frozenset()
 
     # Implementations must expose a display name for the view.
     # Declared here as a type annotation (not abstract) so that existing

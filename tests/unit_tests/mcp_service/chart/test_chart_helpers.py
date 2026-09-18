@@ -17,6 +17,8 @@
 
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from superset.mcp_service.chart.chart_helpers import (
     _deck_gl_null_filters,
     _is_metric_ref,
@@ -29,6 +31,7 @@ from superset.mcp_service.chart.chart_helpers import (
     merge_extra_form_data_filters_into_query,
     merge_form_data_filters_into_query,
     prepare_form_data_for_query,
+    resolve_big_number_columns,
     resolve_deck_gl_columns,
     resolve_metrics,
     resolve_metrics_and_groupby,
@@ -1080,3 +1083,376 @@ def test_resolve_metrics_and_groupby_non_singular_viz_type_uses_standard_resolut
     )
     assert metrics == ["count"]
     assert groupby == ["region"]
+
+
+@pytest.mark.parametrize(
+    ("form_data", "expected_columns"),
+    [
+        (
+            {
+                "viz_type": "big_number",
+                "granularity_sqla": "event_time",
+                "metric": "count",
+            },
+            ["event_time"],
+        ),
+        (
+            {
+                "viz_type": "big_number",
+                "x_axis": "recorded_at",
+                "granularity_sqla": "event_time",
+                "metric": "count",
+            },
+            ["recorded_at"],
+        ),
+        (
+            {
+                "viz_type": "big_number",
+                "x_axis": {"column_name": "created_at"},
+                "granularity_sqla": "event_time",
+                "metric": "count",
+            },
+            ["created_at"],
+        ),
+        (
+            {
+                "viz_type": "big_number",
+                "x_axis": {
+                    "expressionType": "SQL",
+                    "sqlExpression": "DATE_TRUNC('day', event_time)",
+                    "label": "event_day",
+                },
+                "granularity_sqla": "event_time",
+                "metric": "count",
+            },
+            [
+                {
+                    "expressionType": "SQL",
+                    "sqlExpression": "DATE_TRUNC('day', event_time)",
+                    "label": "event_day",
+                }
+            ],
+        ),
+    ],
+)
+def test_big_number_trendline_resolves_supported_time_column_aliases(
+    form_data, expected_columns
+):
+    assert resolve_big_number_columns(form_data) == expected_columns
+
+
+def test_big_number_total_does_not_add_temporal_dimension(monkeypatch):
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda datasource_id, datasource_type: "base",
+    )
+    query = build_query_dicts_from_form_data(
+        {
+            "viz_type": "big_number_total",
+            "granularity_sqla": "event_time",
+            "metric": "count",
+        },
+        1,
+        "table",
+    )[0]
+
+    assert query["columns"] == []
+    assert query["metrics"] == ["count"]
+
+
+def test_big_number_trendline_query_preserves_time_filter_and_aggregation(
+    monkeypatch,
+):
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda datasource_id, datasource_type: "base",
+    )
+    query = build_query_dicts_from_form_data(
+        {
+            "viz_type": "big_number",
+            "granularity_sqla": "event_time",
+            "metric": "count",
+            "aggregation": "raw",
+            "time_range": "Last week",
+            "adhoc_filters": [
+                {
+                    "clause": "WHERE",
+                    "expressionType": "SIMPLE",
+                    "subject": "region",
+                    "operator": "==",
+                    "comparator": "EMEA",
+                }
+            ],
+        },
+        1,
+        "table",
+    )[0]
+
+    assert query["metrics"] == ["count"]
+    assert query["filters"] == [{"col": "region", "op": "==", "val": "EMEA"}]
+    assert query["time_range"] == "Last week"
+    # The trendline keeps its temporal dimension through the legacy granularity
+    # binding rather than a groupby column, matching buildQuery.
+    assert query["granularity"] == "event_time"
+    assert query["is_timeseries"] is True
+
+
+@pytest.mark.parametrize(
+    ("form_data", "expected_queries"),
+    [
+        (
+            {
+                "viz_type": "echarts_timeseries_line",
+                "x_axis": "event_time",
+                "groupby": ["region"],
+                "metrics": ["count"],
+            },
+            [
+                {
+                    "columns": [
+                        {
+                            "columnType": "BASE_AXIS",
+                            "sqlExpression": "event_time",
+                            "label": "event_time",
+                            "expressionType": "SQL",
+                            "isColumnReference": True,
+                        },
+                        "region",
+                    ],
+                    "metrics": ["count"],
+                    "filters": [],
+                    "series_columns": ["region"],
+                    "orderby": [["count", False]],
+                    "post_processing": [
+                        {
+                            "operation": "pivot",
+                            "options": {
+                                "index": ["event_time"],
+                                "columns": ["region"],
+                                "aggregates": {"count": {"operator": "mean"}},
+                                "drop_missing_columns": True,
+                            },
+                        },
+                        {"operation": "flatten"},
+                    ],
+                    "time_offsets": [],
+                    "time_compare_full_range": False,
+                }
+            ],
+        ),
+        (
+            {
+                "viz_type": "table",
+                "query_mode": "aggregate",
+                "groupby": ["region"],
+                "columns": ["stale_raw_column"],
+                "metrics": ["count"],
+            },
+            [
+                {
+                    "columns": ["region"],
+                    "metrics": ["count"],
+                    "filters": [],
+                    "orderby": [["count", False]],
+                    "time_offsets": [],
+                }
+            ],
+        ),
+        (
+            {"viz_type": "pie", "groupby": ["region"], "metric": "count"},
+            [
+                {
+                    "columns": ["region"],
+                    "metrics": ["count"],
+                    "filters": [],
+                    "post_processing": [
+                        {
+                            "operation": "contribution",
+                            "options": {
+                                "columns": ["count"],
+                                "rename_columns": ["count__contribution"],
+                            },
+                        }
+                    ],
+                }
+            ],
+        ),
+        (
+            {
+                "viz_type": "pivot_table_v2",
+                "groupby": ["region", "product"],
+                "metrics": ["count"],
+            },
+            [
+                {
+                    "columns": [],
+                    "metrics": ["count"],
+                    "filters": [],
+                    "orderby": [["count", False]],
+                    "grouping_sets": [[]],
+                }
+            ],
+        ),
+        (
+            {
+                "viz_type": "mixed_timeseries",
+                "x_axis": "event_time",
+                "groupby": ["region"],
+                "metrics": ["count"],
+                "groupby_b": ["product"],
+                "metrics_b": ["sum_sales"],
+            },
+            [
+                {
+                    "columns": [
+                        {
+                            "columnType": "BASE_AXIS",
+                            "sqlExpression": "event_time",
+                            "label": "event_time",
+                            "expressionType": "SQL",
+                            "isColumnReference": True,
+                        },
+                        "region",
+                    ],
+                    "metrics": ["count"],
+                    "filters": [],
+                    "series_columns": ["region"],
+                    "orderby": [["count", False]],
+                    "post_processing": [
+                        {
+                            "operation": "pivot",
+                            "options": {
+                                "index": ["event_time"],
+                                "columns": ["region"],
+                                "aggregates": {"count": {"operator": "mean"}},
+                                "drop_missing_columns": True,
+                            },
+                        },
+                        {"operation": "flatten"},
+                    ],
+                    "time_offsets": [],
+                },
+                {
+                    "columns": [
+                        {
+                            "columnType": "BASE_AXIS",
+                            "sqlExpression": "event_time",
+                            "label": "event_time",
+                            "expressionType": "SQL",
+                            "isColumnReference": True,
+                        },
+                        "product",
+                    ],
+                    "metrics": ["sum_sales"],
+                    "filters": [],
+                    "series_columns": ["product"],
+                    "orderby": [["sum_sales", False]],
+                    "post_processing": [
+                        {
+                            "operation": "pivot",
+                            "options": {
+                                "index": ["event_time"],
+                                "columns": ["product"],
+                                "aggregates": {"sum_sales": {"operator": "mean"}},
+                                "drop_missing_columns": True,
+                            },
+                        },
+                        {"operation": "flatten"},
+                    ],
+                    "time_offsets": [],
+                },
+            ],
+        ),
+        (
+            {
+                "viz_type": "handlebars",
+                "query_mode": "raw",
+                "all_columns": ["region", "product"],
+            },
+            [
+                {
+                    "columns": ["region", "product"],
+                    "metrics": [],
+                    "filters": [],
+                }
+            ],
+        ),
+        (
+            {
+                "viz_type": "bubble",
+                "entity": "country",
+                "x": "sum_sales",
+                "y": "count",
+                "size": "avg_price",
+            },
+            [
+                {
+                    "columns": ["country"],
+                    "metrics": ["sum_sales", "count", "avg_price"],
+                    "filters": [],
+                }
+            ],
+        ),
+    ],
+)
+def test_shared_query_builder_preserves_pre_gantt_chart_contracts(
+    monkeypatch, form_data, expected_queries
+):
+    """Adding the Gantt branch must not alter established chart query shapes."""
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda datasource_id, datasource_type: "base",
+    )
+
+    assert (
+        build_query_dicts_from_form_data(dict(form_data), 1, "table")
+        == expected_queries
+    )
+
+
+def test_shared_query_builder_preserves_explicit_orderby() -> None:
+    """Keep explicit saved ordering through the shared preview/compile builder."""
+    form_data = {
+        "viz_type": "pie",
+        "groupby": ["region"],
+        "metrics": ["count"],
+        "orderby": [["count", True]],
+        "sort_by_metric": True,
+    }
+    with patch(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        return_value="base",
+    ):
+        query = build_query_dicts_from_form_data(form_data, 1, "table")[0]
+    assert query["orderby"] == [["count", True]]
+
+
+@pytest.mark.parametrize("secondary_orderby", [None, [["sum_sales", False]]])
+def test_shared_query_builder_keeps_mixed_timeseries_ordering_per_query(
+    secondary_orderby: list[list[str | bool]] | None,
+) -> None:
+    """Primary-only ordering must not leak into the secondary series query."""
+    form_data = {
+        "viz_type": "mixed_timeseries",
+        "x_axis": "event_time",
+        "groupby": ["region"],
+        "metrics": ["count"],
+        "orderby": [["count", True]],
+        "groupby_b": ["product"],
+        "metrics_b": ["sum_sales"],
+    }
+    if secondary_orderby is not None:
+        form_data["orderby_b"] = secondary_orderby
+    with patch(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        return_value="base",
+    ):
+        primary, secondary = build_query_dicts_from_form_data(form_data, 1, "table")
+
+    assert primary["metrics"] == ["count"]
+    assert primary["orderby"] == [["count", True]]
+    assert secondary["metrics"] == ["sum_sales"]
+    # Query B never inherits query A's ordering: it uses orderby_b when given,
+    # and otherwise falls back to its own metric.
+    assert secondary["orderby"] == (secondary_orderby or [["sum_sales", False]])
+    assert form_data["orderby"] == [["count", True]]

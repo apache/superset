@@ -383,7 +383,15 @@ async def test_update_chart_preview_mcp_entry_preflights_dict_response(
     )
 
     def response(error: str) -> dict[str, Any]:
-        return {"chart": None, "error": error, "success": False}
+        # Mirror the exact OAuth failure payload the tool returns, including its
+        # response versions, so the byte boundary stays production-accurate.
+        return {
+            "chart": None,
+            "error": error,
+            "success": False,
+            "schema_version": "2.0",
+            "api_version": "v1",
+        }
 
     empty_size = len(UpdateChartPreviewResponse(response("")).model_dump_json())
     error = "x" * (query_result_module.MAX_QUERY_RESULT_VALUE_BYTES - empty_size)

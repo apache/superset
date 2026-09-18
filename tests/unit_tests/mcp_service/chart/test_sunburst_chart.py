@@ -65,6 +65,8 @@ from superset.mcp_service.chart.schemas import (
     ChartConfig,
     ChartError,
     ColumnRef,
+    GanttChartConfig,
+    GanttSortByConfig,
     GaugeChartConfig,
     GenerateChartRequest,
     GenerateExploreLinkRequest,
@@ -423,6 +425,18 @@ def _registered_query_role_matrix() -> list[ChartConfig]:
             x_axis=ColumnRef(name="order_date"),
             metric=metric,
             breakdown=ColumnRef(name="region"),
+        ),
+        GanttChartConfig(
+            start_time=ColumnRef(name="order_date"),
+            end_time=ColumnRef(name="ship_date"),
+            category=ColumnRef(name="region"),
+            # Gantt preserves omitted roles by contract, so the adversarial
+            # matrix supplies each one explicitly.
+            series=ColumnRef(name="country"),
+            tooltip_columns=[ColumnRef(name="status")],
+            tooltip_metrics=["SavedSales"],
+            order_by=[GanttSortByConfig(column="order_date", ascending=True)],
+            row_limit=1000,
         ),
         _config(),
     ]
@@ -1104,10 +1118,17 @@ def test_registered_same_viz_role_registry_is_complete_across_update_products(
         key: [f"stale_{key}"] if key in list_roles else f"stale_{key}"
         for key in role_keys
     }
+    # Gantt's typed schema rejects unmodeled native controls, so its mapper owns
+    # the complete control surface instead of inheriting unknown saved keys.
+    preserves_native_controls = not isinstance(config, GanttChartConfig)
     existing = {
         "viz_type": mapped["viz_type"],
         **stale_roles,
-        "native_plugin_control": {"enabled": True},
+        **(
+            {"native_plugin_control": {"enabled": True}}
+            if preserves_native_controls
+            else {}
+        ),
     }
     chart = Mock(
         id=19,
@@ -1136,7 +1157,8 @@ def test_registered_same_viz_role_registry_is_complete_across_update_products(
     assert isinstance(preview, dict)
     saved = json.loads(immediate["params"])
     for state in (cached_overlay, saved, preview):
-        assert state["native_plugin_control"] == {"enabled": True}
+        if preserves_native_controls:
+            assert state["native_plugin_control"] == {"enabled": True}
         assert {key: state[key] for key in role_keys if key in state} == {
             key: mapped[key] for key in role_keys if key in mapped
         }

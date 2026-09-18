@@ -29,6 +29,7 @@ To add a new chart type:
 
 from superset.mcp_service.chart.plugins.big_number import BigNumberChartPlugin
 from superset.mcp_service.chart.plugins.box_plot import BoxPlotChartPlugin
+from superset.mcp_service.chart.plugins.gantt import GanttChartPlugin
 from superset.mcp_service.chart.plugins.gauge import GaugeChartPlugin
 from superset.mcp_service.chart.plugins.handlebars import HandlebarsChartPlugin
 from superset.mcp_service.chart.plugins.histogram import HistogramChartPlugin
@@ -62,10 +63,12 @@ register(BigNumberChartPlugin())
 register(HistogramChartPlugin())
 register(BoxPlotChartPlugin())
 register(WaterfallChartPlugin())
+register(GanttChartPlugin())
 
 __all__ = [
     "BigNumberChartPlugin",
     "BoxPlotChartPlugin",
+    "GanttChartPlugin",
     "GaugeChartPlugin",
     "HandlebarsChartPlugin",
     "HistogramChartPlugin",

@@ -48,6 +48,10 @@ _NUMERIC_TYPE_PATTERN = re.compile(
 )
 
 
+class GanttSemanticNormalizationError(ValueError):
+    """A Gantt canonicalization result violates its typed semantic contract."""
+
+
 def resolve_exact_first_casefold(
     reference: str,
     candidates: Iterable[_T],
@@ -194,6 +198,28 @@ class AmbiguousDatasetReferenceError(ValueError):
         )
 
 
+def resolve_dataset_reference(
+    name: str, candidates: Iterable[str], reference_kind: str
+) -> str | None:
+    """Resolve a dataset reference deterministically.
+
+    Exact spelling wins regardless of metadata order. A single case-insensitive
+    match is canonicalized, while multiple case-insensitive matches require the
+    caller to provide exact casing.
+    """
+    candidate_names = list(candidates)
+    if name in candidate_names:
+        return name
+    matches = [
+        candidate
+        for candidate in candidate_names
+        if candidate.casefold() == name.casefold()
+    ]
+    if len(matches) > 1:
+        raise AmbiguousDatasetReferenceError(name, matches, reference_kind)
+    return matches[0] if matches else None
+
+
 class DatasetValidator:
     """Validates chart configuration against dataset schema."""
 
@@ -207,17 +233,23 @@ class DatasetValidator:
 
     @staticmethod
     def _ambiguous_reference_error(
-        reference: str, matches: list[str]
+        reference: str, matches: list[str], reference_kind: str | None = None
     ) -> ChartGenerationError:
         """Build the common actionable error for ambiguous metadata names."""
         joined = ", ".join(repr(name) for name in matches)
+        details = (
+            "The case-insensitive reference matches multiple candidates: "
+            f"{joined}. Use the exact dataset spelling."
+        )
+        if reference_kind:
+            details += (
+                f" Reference {reference!r} is ambiguous; use the exact "
+                f"{reference_kind} name."
+            )
         return ChartGenerationError(
             error_type="ambiguous_dataset_reference",
             message=f"Dataset reference {reference!r} is ambiguous",
-            details=(
-                "The case-insensitive reference matches multiple candidates: "
-                f"{joined}. Use the exact dataset spelling."
-            ),
+            details=details,
             suggestions=[f"Use the exact name {name!r}" for name in matches[:10]],
             error_code="AMBIGUOUS_DATASET_REFERENCE",
         )
@@ -433,6 +465,25 @@ class DatasetValidator:
         )
 
     @staticmethod
+    def _build_ambiguous_reference_error(
+        error: AmbiguousDatasetReferenceError,
+    ) -> ChartGenerationError:
+        """Build an actionable validation error for case-colliding metadata."""
+        return ChartGenerationError(
+            error_type="ambiguous_dataset_reference",
+            message=(
+                f"{error.reference_kind.capitalize()} reference "
+                f"'{error.name}' is ambiguous"
+            ),
+            details=str(error),
+            suggestions=[
+                f"Use one exact name: {', '.join(error.matches)}",
+                "Use get_dataset_info to inspect exact dataset casing",
+            ],
+            error_code="AMBIGUOUS_DATASET_REFERENCE",
+        )
+
+    @staticmethod
     def _build_saved_metric_hint_error(
         refs: List[ColumnRef],
     ) -> ChartGenerationError:
@@ -549,7 +600,11 @@ class DatasetValidator:
             )
             if len(folded_matches) <= 1:
                 continue
-            return DatasetValidator._ambiguous_reference_error(ref.name, folded_matches)
+            return DatasetValidator._ambiguous_reference_error(
+                ref.name,
+                folded_matches,
+                "saved metric" if ref.saved_metric else "physical column",
+            )
         return None
 
     @staticmethod
@@ -559,9 +614,10 @@ class DatasetValidator:
         """
         Get the canonical column name from the dataset.
 
-        Performs case-insensitive matching and returns the actual column name
-        as stored in the dataset. This ensures column names in form_data match
-        exactly with what the frontend expects.
+        Exact spelling wins; a unique case-insensitive match returns the actual
+        physical column name as stored in the dataset. For backward-compatible
+        generic callers, saved metrics are a fallback when no column matches.
+        Ambiguous spellings fail within either namespace.
 
         Args:
             column_name: The column name to normalize

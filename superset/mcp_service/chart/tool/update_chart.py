@@ -42,9 +42,11 @@ from superset.mcp_service.chart.chart_utils import (
     generate_chart_name,
     map_config_to_form_data,
     merge_form_data_for_update,
+    merge_gantt_ui_config,
     merge_interactive_pivot_ui_config,
     merge_table_column_config,
     scrub_dataset_bound_form_data,
+    validate_gantt_form_data,
 )
 from superset.mcp_service.chart.compile import validate_and_compile
 from superset.mcp_service.chart.response_preflight import (
@@ -54,12 +56,16 @@ from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
     ChartError,
     ColumnRef,
+    GanttChartConfig,
     GenerateChartResponse,
     PerformanceMetadata,
     TableChartConfig,
     UpdateChartRequest,
 )
 from superset.mcp_service.chart.sunburst import normalize_sunburst_form_data_references
+from superset.mcp_service.chart.validation.dataset_validator import (
+    GanttSemanticNormalizationError,
+)
 from superset.mcp_service.utils.oauth2_utils import (
     build_oauth2_redirect_message,
     OAUTH2_CONFIG_ERROR_MESSAGE,
@@ -222,7 +228,11 @@ def _merge_replacement_config(
         parsed_config,
         dataset_rebind=dataset_rebind,
     )
-    if getattr(parsed_config, "filters", None) == []:
+    if getattr(parsed_config, "filters", None) == [] and not isinstance(
+        parsed_config, GanttChartConfig
+    ):
+        # Gantt keeps its mapper-generated time binding through an explicit
+        # filter clear; the shared merge already replaced its filter list.
         merged.pop("adhoc_filters", None)
     return merged
 
@@ -296,6 +306,7 @@ def _build_update_payload(  # noqa: C901
         if not dataset_rebind:
             merge_table_column_config(existing_form_data, new_form_data)
             merge_interactive_pivot_ui_config(existing_form_data, new_form_data)
+            merge_gantt_ui_config(existing_form_data, new_form_data)
         # Apply the same bounded registry used by preview updates. Cross-viz
         # changes cannot inherit source query roles; same-viz Sunburst updates
         # additionally preserve explicitly omitted native presentation state.
@@ -415,6 +426,7 @@ def _build_preview_form_data(
         if not dataset_rebind:
             merge_table_column_config(existing_form_data, new_form_data)
             merge_interactive_pivot_ui_config(existing_form_data, new_form_data)
+            merge_gantt_ui_config(existing_form_data, new_form_data)
         # In the preview, an explicit filters list, including [], replaces saved
         # filters. An omitted filters field preserves them through the shallow merge.
         merged = _merge_replacement_config(
@@ -527,6 +539,22 @@ def _validate_update_against_dataset(
             )
             form_data.clear()
             form_data.update(normalized_form_data)
+
+    try:
+        merged_gantt_config = validate_gantt_form_data(
+            form_data,
+            dataset.id,
+        )
+    except GanttSemanticNormalizationError as ex:
+        return _validation_error_response(
+            message="Gantt chart column roles are invalid",
+            details=str(ex),
+        )
+    if merged_gantt_config is not None:
+        # Validation must describe the state that will actually be queried or
+        # persisted, including any omitted series/subcategory values restored
+        # from the saved chart.
+        parsed_config = merged_gantt_config
 
     compile_result = validate_and_compile(
         parsed_config, form_data, dataset, run_compile_check=run_compile_check
@@ -824,6 +852,11 @@ async def update_chart(  # noqa: C901
                     request = request.model_copy(
                         update={"add_columns": validation_config.columns}
                     )
+            except GanttSemanticNormalizationError as ex:
+                return _validation_error_response(
+                    message="Gantt chart column roles are invalid",
+                    details=str(ex),
+                )
             except NORMALIZATION_EXCEPTIONS as e:
                 logger.warning(
                     "Column normalization failed for chart %s: %s", chart.id, e
@@ -1047,6 +1080,11 @@ async def update_chart(  # noqa: C901
         }
         return _finalize_response(result)
 
+    except GanttSemanticNormalizationError as ex:
+        return _validation_error_response(
+            message="Gantt chart column roles are invalid",
+            details=str(ex),
+        )
     except OAuth2RedirectError as ex:
         await ctx.warning(
             "Chart update requires OAuth authentication: identifier=%s"

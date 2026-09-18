@@ -21,7 +21,7 @@ MCP tool: update_chart_preview
 
 import logging
 import time
-from typing import Any, Dict
+from typing import Any, cast, Dict
 
 from fastmcp import Context
 from sqlalchemy.exc import SQLAlchemyError
@@ -43,9 +43,11 @@ from superset.mcp_service.chart.chart_utils import (
     generate_explore_link,
     map_config_to_form_data,
     merge_form_data_for_update,
+    merge_gantt_ui_config,
     merge_interactive_pivot_ui_config,
     merge_table_column_config,
     scrub_dataset_bound_form_data,
+    validate_gantt_form_data,
 )
 from superset.mcp_service.chart.compile import validate_and_compile
 from superset.mcp_service.chart.preview_utils import (
@@ -58,10 +60,15 @@ from superset.mcp_service.chart.response_preflight import (
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
     ChartError,
+    GanttChartConfig,
     PerformanceMetadata,
     UpdateChartPreviewRequest,
+    UpdateChartPreviewResponse,
 )
 from superset.mcp_service.chart.sunburst import normalize_sunburst_form_data_references
+from superset.mcp_service.chart.validation.dataset_validator import (
+    GanttSemanticNormalizationError,
+)
 from superset.mcp_service.utils.oauth2_utils import (
     build_oauth2_redirect_message,
     OAUTH2_CONFIG_ERROR_MESSAGE,
@@ -71,9 +78,11 @@ from superset.utils import json as utils_json
 logger = logging.getLogger(__name__)
 
 
-def _finalize_response(response: Dict[str, Any]) -> Dict[str, Any]:
+def _finalize_response(response: Dict[str, Any]) -> UpdateChartPreviewResponse:
     """Preflight every public update-preview response."""
-    return finalize_update_chart_preview_response(response)
+    return cast(
+        UpdateChartPreviewResponse, finalize_update_chart_preview_response(response)
+    )
 
 
 INVALID_FORM_DATA_KEY_WARNING = (
@@ -152,7 +161,7 @@ def _get_previous_form_data(form_data_key: str) -> dict[str, Any] | None:
 )
 def update_chart_preview(  # noqa: C901
     request: UpdateChartPreviewRequest, ctx: Context
-) -> Dict[str, Any]:
+) -> UpdateChartPreviewResponse:
     """Update cached chart preview without saving.
 
     IMPORTANT:
@@ -274,13 +283,18 @@ def update_chart_preview(  # noqa: C901
                 else:
                     merge_table_column_config(previous_form_data, new_form_data)
                     merge_interactive_pivot_ui_config(previous_form_data, new_form_data)
+                    merge_gantt_ui_config(previous_form_data, new_form_data)
                 new_form_data = merge_form_data_for_update(
                     previous_form_data,
                     new_form_data,
                     config,
                     dataset_rebind=dataset_rebind,
                 )
-                if getattr(config, "filters", None) == []:
+                if getattr(config, "filters", None) == [] and not isinstance(
+                    config, GanttChartConfig
+                ):
+                    # Gantt keeps its mapper-generated time binding through an
+                    # explicit filter clear.
                     new_form_data.pop("adhoc_filters", None)
 
             # This tool owns an unsaved cache entry, not a chart update target.
@@ -290,6 +304,20 @@ def update_chart_preview(  # noqa: C901
                 new_form_data,
                 datasource_id=dataset.id,
             )
+
+            merged_gantt_config = validate_gantt_form_data(
+                new_form_data,
+                request.dataset_id,
+                dataset_context=(
+                    dataset_context
+                    if new_form_data.get("viz_type") == "gantt_chart"
+                    else None
+                ),
+            )
+            if merged_gantt_config is not None:
+                # Compile the final cached state rather than the pre-merge
+                # request, so preserved native fields cannot bypass semantics.
+                config = merged_gantt_config
 
             if (
                 new_form_data.get("viz_type") == "sunburst_v2"
@@ -392,7 +420,7 @@ def update_chart_preview(  # noqa: C901
                 logger.warning("Preview generation failed: %s", e)
 
         # Return enhanced data
-        result = {
+        result: Dict[str, Any] = {
             "chart": {
                 "id": None,
                 "slice_name": chart_name,
@@ -431,6 +459,8 @@ def update_chart_preview(  # noqa: C901
                 "chart": None,
                 "error": build_oauth2_redirect_message(ex),
                 "success": False,
+                "schema_version": "2.0",
+                "api_version": "v1",
             }
         )
     except OAuth2Error:
@@ -441,6 +471,33 @@ def update_chart_preview(  # noqa: C901
             {
                 "chart": None,
                 "error": OAUTH2_CONFIG_ERROR_MESSAGE,
+                "success": False,
+                "schema_version": "2.0",
+                "api_version": "v1",
+            }
+        )
+    except GanttSemanticNormalizationError as ex:
+        execution_time = int((time.time() - start_time) * 1000)
+        return _finalize_response(
+            {
+                "chart": None,
+                "error": {
+                    "error_type": "gantt_semantic_validation_error",
+                    "message": "Gantt chart column roles are invalid",
+                    "details": str(ex),
+                    "suggestions": [
+                        "Use different physical columns for start_time and end_time",
+                        "Use different physical columns for category and series",
+                        "Use exact dataset column casing when names differ only "
+                        "by case",
+                    ],
+                    "error_code": "GANTT_SEMANTIC_VALIDATION_ERROR",
+                },
+                "performance": {
+                    "query_duration_ms": execution_time,
+                    "cache_status": "error",
+                    "optimization_suggestions": [],
+                },
                 "success": False,
             }
         )
