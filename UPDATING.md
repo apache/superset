@@ -24,6 +24,10 @@ assists people when migrating to a new version.
 
 ## Next
 
+- The `presto` extra requires PyHive 0.7.0 or later. PyHive 0.6.5 cannot load
+  its Presto dialect under SQLAlchemy 2 because it imports `sqlalchemy.databases`.
+  Upgrade existing installations with `pip install "pyhive[presto]>=0.7.0"`.
+
 - `superset deletion-retention force-purge` now exits **1** when the target is
   blocked by a deletion rule or is not found (the messages are unchanged), so a
   scripted compliance erasure cannot mistake a refusal for a completed purge.
@@ -97,6 +101,19 @@ Resample projections remain capped by `MAX_RESAMPLE_ROWS` (default
 `1_000_000`). That cap now also covers calendar frequencies (month, quarter,
 year, …) that previously skipped the check because they have no fixed
 `Timedelta`.
+
+### Dashboard read fallback requires a published dashboard
+
+The object-read gate's datasource-based fallback — including the admit for dashboards with no charts — now applies to **published** dashboards only. For the datasource branch this matches the list filter's fallback, which was already published-only; for the no-charts admit the list filter still never yields chart-less dashboards to ordinary users, a deliberate pre-existing asymmetry that this change narrows but does not remove (the object gate admits opening a published chart-less dashboard; the list filter does not surface it). Previously an *unpublished* dashboard with an empty viewers list was readable by any authenticated user who could access one member datasource (or by every authenticated user, when it had no charts — including markdown-only dashboards), even though it appeared in no default list; and removing the last viewer subject from a dashboard silently widened access, because the viewer branch is published-gated while the fallback was not. Owners (folded into editors by the subjects model), editors — including resolver-granted editors — and admins are unaffected: they are admitted before the fallback regardless of published state.
+
+Everything consuming the gate inherits the tightening — including **alert and report execution**, not only schedule creation/validation. An already-scheduled report against an *unpublished, no-viewers* dashboard whose execution principal is a datasource-entitled non-editor will fail on its next run after upgrade.
+
+Before upgrading, audit report schedules targeting unpublished dashboards. For each one, first identify the principal the report actually runs as: that is decided by `ALERT_REPORTS_EXECUTORS`, not by who owns the schedule. Then apply one of:
+
+- **Publish the dashboard** (and confirm the execution principal keeps the read access the gate still requires — viewer membership when the dashboard has viewers, or access to a member datasource when it does not). For the unpublished, no-viewers, datasource-entitled case above, publishing alone supplies the missing prerequisite.
+- **Grant the execution principal dashboard editorship**, where that privilege is appropriate — editors are admitted ahead of the fallback regardless of published state.
+
+Adding the principal to the dashboard's **viewers is not a remedy on its own**: the viewer branch is itself published-gated, so a viewer of an unpublished dashboard is still refused. Re-owning the schedule is not a reliable substitute either — with a `FixedExecutor` (a service or selenium account) the resolved user does not follow schedule ownership at all, and the ownership-sensitive executor types have their own creator/modifier/editor selection rules.
 
 ### Tagging is on by default
 
@@ -333,6 +350,40 @@ unknown impact as zero. Chart and dashboard purge endpoints are unchanged.
 
 - The dashboard datasource-based visibility fallback now fails closed: a dashboard whose member charts’ datasources cannot be resolved (deleted datasource rows, missing `datasource_id`, or unsupported datasource types) is no longer accessible to users without explicit editor/viewer rights, and a dashboard composed of semantic-view charts now requires `datasource_access` on (at least one of) its semantic views or their parent semantic layer — previously any authenticated user could open such a dashboard’s shell. Because the fallback now considers every member chart rather than only table-backed ones, a user holding `datasource_access` on any single member datasource — including a semantic view or its parent layer — can open a mixed dashboard that previously denied them. Dashboards with no charts remain accessible, and dashboards with explicit viewers are unaffected. Conversely, holders of `all_datasource_access` now see every published no-viewer dashboard in the dashboard list — including chart-less ones previously hidden by the inner joins — matching what the object-level gate already allowed them to open.
 - Version restore (`POST /api/v1/{chart,dashboard,dataset}/<uuid>/versions/<version_uuid>/restore`) now refuses an **externally managed** entity (`is_managed_externally = True`) with HTTP 403, enforcing server-side what the docs already promised. Previously the refusal existed only in the browser, so an otherwise-authorized editor could restore such an entity by calling the endpoint directly and have the restore overwritten on the next external sync. Soft-delete recovery is deliberately unaffected — it changes visibility, not content.
+### Themes support per-theme editors
+
+Themes now carry a list of **editors** (users, roles, or groups). A new
+`theme_editors` junction table is created by the migration
+`f7e8d9c0b1a2_add_theme_editors_table`. On upgrade, each existing non-system
+theme's creator is backfilled as an editor so authors keep edit access (an
+empty editors list means admin-only). System themes are left with no editors
+and remain admin-only to edit.
+
+Behavioral changes:
+
+- **[BREAKING] Editing and deleting a theme is tightened to editors or
+  Admins.** Previously any principal with `can_write` on `Theme` (which the
+  built-in **Alpha** role holds, since `Theme` is in
+  `GAMMA_READ_ONLY_MODEL_VIEWS`) could edit or delete any non-system theme.
+  Editing and deleting now require the caller to be an editor of that theme;
+  non-editors receive a `403`. Admins bypass the check and remain able to
+  edit or delete any theme. A non-editor cannot add themselves to a theme's
+  editors via `PUT`.
+- **Theme creation is unchanged** and still requires `can_write` on `Theme`.
+  The creator is automatically added as an editor, and creation now flows
+  through a new `CreateThemeCommand`.
+- **System themes remain protected** and the system-default/dark theme
+  administration endpoints continue to require an admin plus
+  `ENABLE_UI_THEME_ADMINISTRATION`.
+- **Importing over an existing theme requires editorship** of that theme
+  (admins bypass); importing new themes still only requires `can_write`.
+- Editor subject IDs are intentionally not part of a theme's export, so they
+  are not portable across deployments.
+
+New config key `SUBJECTS_RELATED_TYPES_THEMES` (default `None`, inheriting the
+global `SUBJECTS_RELATED_TYPES`) controls which subject types appear in the
+theme editor picker.
+
 - With version history enabled, the first save through the chart editor of a chart created by an older Superset version, an import, or the API may record a one-time settings-migration entry alongside the user's change. On a chart opened normally in Explore nearly all of it is suppressed from the readable history (apache/superset#43350) — the legacy-time rewrite into `adhoc_filters` happens during control initialization and is suppressed with the rest — so what can still record is what the save itself adds (`dashboards`, `query_context`) plus one narrow edge: a legacy key the rewrite removes (such as `granularity_sqla`) can record its removal while its modern replacement stays suppressed. When Explore is opened from a dashboard, via a shared `form_data_key` link, or with a `viz_type` URL parameter, that suppression evidence is deliberately not collected (fail-open), so a first save from those entry points can record the broader set of automatic rewrites. Subsequent saves of the same chart are unaffected. This can recur once per pre-existing chart after an upgrade.
 - The purge audit log can now be pruned automatically. The new
   `deletion_retention.prune_purge_audit` Celery beat task (daily, 03:30, in the
