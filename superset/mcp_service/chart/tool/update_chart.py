@@ -1123,9 +1123,9 @@ async def update_chart(  # noqa: C901
                 if validation_error is not None:
                     return validation_error
             elif rebind_id is not None:
-                # Dataset-only rebind: verify the target dataset exists before
-                # writing. Skip compile check — there is no new chart config to
-                # execute against the new dataset.
+                # Validate a source-only rebind before writing. The target
+                # validator determines whether retained state needs compilation,
+                # including when rebinding a semantic view to a table.
                 with event_logger.log_context(action="mcp.update_chart.validation"):
                     validation_error = _validate_update_against_target(
                         None,
