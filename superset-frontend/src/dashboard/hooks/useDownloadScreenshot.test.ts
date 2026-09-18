@@ -62,6 +62,9 @@ const RETRY_INTERVAL = 3000;
 const DASHBOARD_ID = 123;
 const CACHE_KEY = 'test-cache-key';
 
+let createObjectURLDescriptor: PropertyDescriptor | undefined;
+let revokeObjectURLDescriptor: PropertyDescriptor | undefined;
+
 const mockPostSuccess = (taskTimeoutSeconds?: number) =>
   (SupersetClient.post as jest.Mock).mockResolvedValue({
     json: {
@@ -108,10 +111,39 @@ const triggerDownload = async () => {
 };
 
 beforeEach(() => {
+  createObjectURLDescriptor = Object.getOwnPropertyDescriptor(
+    window.URL,
+    'createObjectURL',
+  );
+  revokeObjectURLDescriptor = Object.getOwnPropertyDescriptor(
+    window.URL,
+    'revokeObjectURL',
+  );
   jest.clearAllMocks();
   // Default: GET hangs so microtask chains don't throw on undefined in tests
   // that only care about POST behavior.
   (SupersetClient.get as jest.Mock).mockReturnValue(new Promise(() => {}));
+});
+
+afterEach(() => {
+  if (createObjectURLDescriptor) {
+    Object.defineProperty(
+      window.URL,
+      'createObjectURL',
+      createObjectURLDescriptor,
+    );
+  } else {
+    Reflect.deleteProperty(window.URL, 'createObjectURL');
+  }
+  if (revokeObjectURLDescriptor) {
+    Object.defineProperty(
+      window.URL,
+      'revokeObjectURL',
+      revokeObjectURLDescriptor,
+    );
+  } else {
+    Reflect.deleteProperty(window.URL, 'revokeObjectURL');
+  }
 });
 
 test('downloadScreenshot calls API with force=true to ensure fresh screenshots', async () => {
