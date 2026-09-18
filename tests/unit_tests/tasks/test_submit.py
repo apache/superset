@@ -20,7 +20,7 @@ from contextlib import contextmanager
 from unittest import mock
 
 import pytest
-from flask import g
+from flask import Flask, g
 from pytest_mock import MockerFixture
 from sqlalchemy.exc import IntegrityError
 
@@ -124,3 +124,9 @@ def test_create_race_joins_winner_on_unique_violation(
 @contextmanager
 def _null_cm():
     yield
+
+
+@pytest.fixture(autouse=True)
+def enable_task_infrastructure(app: Flask, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test submission transactions with task infrastructure installed."""
+    monkeypatch.setitem(app.config, "GLOBAL_TASK_FRAMEWORK_ENABLED", True)

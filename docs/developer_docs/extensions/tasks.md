@@ -28,9 +28,12 @@ The Global Task Framework (GTF) provides a unified way to manage background task
 
 ## Enabling GTF
 
-GTF is disabled by default and must be enabled via the `GLOBAL_TASK_FRAMEWORK` feature flag in your `superset_config.py`:
+GTF is disabled by default. Install its infrastructure with the process-wide
+`GLOBAL_TASK_FRAMEWORK_ENABLED` setting and enable the `GLOBAL_TASK_FRAMEWORK`
+runtime feature flag in `superset_config.py`:
 
 ```python
+GLOBAL_TASK_FRAMEWORK_ENABLED = True
 FEATURE_FLAGS = {
     "GLOBAL_TASK_FRAMEWORK": True,
 }

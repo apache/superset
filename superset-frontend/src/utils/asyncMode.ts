@@ -44,17 +44,26 @@ export const selectAsyncModeOverride = (
 export const useAsyncModeOverride = (): AsyncModeOverride | undefined =>
   useSelector(selectAsyncModeOverride);
 
+/** Require installed task infrastructure and both effective runtime flags. */
+export function isGlobalAsyncQueriesEnabled(): boolean {
+  return Boolean(
+    getBootstrapData().common.conf.GLOBAL_TASK_FRAMEWORK_ENABLED &&
+    isFeatureEnabled(FeatureFlag.GlobalTaskFramework) &&
+    isFeatureEnabled(FeatureFlag.GlobalAsyncQueries),
+  );
+}
+
 /**
  * Resolve whether the UI should request asynchronous chart-data execution.
  *
  * Async is opt-in per request (the server treats an absent flag as synchronous).
  * The frontend resolves the flag it sends via a policy chain:
  *   per-dashboard override → deployment default (`GLOBAL_ASYNC_QUERIES_DEFAULT`)
- *   → the `GLOBAL_ASYNC_QUERIES` feature-flag gate.
- * Async is never requested when the feature flag is off.
+ *   → task infrastructure and effective GTF/GAQ feature-flag gates.
+ * Async is never requested when any prerequisite is off.
  */
 export function resolveAsyncMode(override?: AsyncModeOverride): boolean {
-  if (!isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) {
+  if (!isGlobalAsyncQueriesEnabled()) {
     return false;
   }
   if (override === 'force_on') {

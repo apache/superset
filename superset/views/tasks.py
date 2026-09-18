@@ -14,8 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from flask import abort, current_app
 from flask_appbuilder import expose, has_access
 
+from superset import is_feature_enabled
 from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP
 from superset.superset_typing import FlaskResponse
 from superset.views.base import BaseSupersetView
@@ -29,4 +31,9 @@ class TaskModelView(BaseSupersetView):
     @expose("/list/")
     @has_access
     def list(self) -> FlaskResponse:
+        if not (
+            current_app.config["GLOBAL_TASK_FRAMEWORK_ENABLED"]
+            and is_feature_enabled("GLOBAL_TASK_FRAMEWORK")
+        ):
+            abort(404)
         return super().render_app_template()

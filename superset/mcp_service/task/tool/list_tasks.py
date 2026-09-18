@@ -20,8 +20,11 @@
 import logging
 
 from fastmcp import Context
+from fastmcp.exceptions import ToolError
+from flask import current_app
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
+from superset import is_feature_enabled
 from superset.daos.tasks import TaskDAO
 from superset.extensions import event_logger
 from superset.mcp_service.mcp_core import ModelListCore
@@ -70,6 +73,12 @@ async def list_tasks(
     Common status values: pending, in_progress, success, failure, aborted
     Common scope values: private, shared, system
     """
+    if not (
+        current_app.config["GLOBAL_TASK_FRAMEWORK_ENABLED"]
+        and is_feature_enabled("GLOBAL_TASK_FRAMEWORK")
+    ):
+        raise ToolError("The Global Task Framework is not enabled.")
+
     if ctx is None:
         raise RuntimeError("FastMCP context is required for list_tasks")
 

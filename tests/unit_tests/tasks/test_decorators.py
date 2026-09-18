@@ -20,6 +20,7 @@ from unittest.mock import MagicMock, patch
 from uuid import UUID
 
 import pytest
+from flask import Flask
 from superset_core.tasks.types import TaskOptions, TaskScope
 
 from superset.commands.tasks.exceptions import GlobalTaskFrameworkDisabledError
@@ -577,3 +578,9 @@ class TestTaskWrapperCall:
         # Should work without task_key (generates random UUID)
         private_task(123)
         mock_submit_run_with_info.assert_called_once()
+
+
+@pytest.fixture(autouse=True)
+def enable_task_infrastructure(app: Flask, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Exercise task behavior with deployment infrastructure installed."""
+    monkeypatch.setitem(app.config, "GLOBAL_TASK_FRAMEWORK_ENABLED", True)

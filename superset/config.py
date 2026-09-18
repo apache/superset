@@ -806,8 +806,9 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Requires `cost_estimate_enabled: true` in database `extra` attribute.
     # @lifecycle: testing
     "ESTIMATE_QUERY_COST": False,
-    # Enable async queries for dashboards and Explore via WebSocket.
-    # Requires Redis 5.0+ and Celery workers.
+    # Enable async chart queries for dashboards and Explore.
+    # Requires GLOBAL_TASK_FRAMEWORK_ENABLED=True, effective GLOBAL_TASK_FRAMEWORK,
+    # Redis and Celery workers.
     # @lifecycle: testing
     # @docs: https://superset.apache.org/docs/contributing/misc#async-chart-queries
     "GLOBAL_ASYNC_QUERIES": False,
@@ -833,7 +834,8 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # @lifecycle: testing
     "AWS_DATABASE_IAM_AUTH": False,
     # Global Task Framework - unified task management with progress tracking,
-    # cancellation, and deduplication.
+    # cancellation, and deduplication. Requires GLOBAL_TASK_FRAMEWORK_ENABLED=True.
+    # @lifecycle: testing
     "GLOBAL_TASK_FRAMEWORK": False,
     # Use analogous colors in charts
     # @lifecycle: testing
@@ -2973,6 +2975,11 @@ SQLA_TABLE_MUTATOR = lambda table: table  # noqa: E731
 
 
 # Global async query config options.
+# Install task infrastructure independently of request-time feature flags.
+# Requires a restart and the same value in web, worker, MCP and provisioning
+# processes. Runtime access also requires the GLOBAL_TASK_FRAMEWORK flag.
+GLOBAL_TASK_FRAMEWORK_ENABLED = False
+
 # Requires the GLOBAL_ASYNC_QUERIES feature flag to be enabled. Async chart-data
 # queries run on the Global Task Framework (one task per QueryObject) over
 # DISTRIBUTED_COORDINATION_CONFIG; the client polls /api/v1/task/status_changes at

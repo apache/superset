@@ -112,3 +112,13 @@ When adding a new feature flag to `superset/config.py`, include the following an
 
 This documentation is auto-generated from the annotations in
 [config.py](https://github.com/apache/superset/blob/master/superset/config.py).
+
+
+## Task infrastructure versus runtime flags
+
+`GLOBAL_TASK_FRAMEWORK` and `GLOBAL_ASYNC_QUERIES` require the separate deployment
+setting `GLOBAL_TASK_FRAMEWORK_ENABLED = True` (default: `False`). Feature flags
+alone do not install task APIs, views, or MCP tools. The deployment setting is
+process-wide and restart-required; the existing flags control runtime access.
+See [task setup and draining](./async-queries-celery.mdx#global-task-framework-and-asynchronous-chart-queries)
+before enabling or disabling these features.

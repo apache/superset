@@ -216,7 +216,7 @@ SQL Lab Integration:
 Schema Discovery:
 - get_schema: Get schema metadata for chart/dataset/dashboard/database/report (columns, filters)
 
-Task Management (requires GLOBAL_TASK_FRAMEWORK feature flag):
+Task Management (requires GLOBAL_TASK_FRAMEWORK_ENABLED and GLOBAL_TASK_FRAMEWORK):
 - list_tasks: List background tasks with status filtering and pagination
 - get_task_info: Get task details by integer ID or UUID
 
@@ -993,18 +993,14 @@ def _apply_config_guards(flask_app: Any) -> set[str]:
     Returns the set of tool names that were removed so that callers can exclude
     them from generated instructions.
 
-    - Task tools: mirrors TaskRestApi conditional registration which checks
-      the GLOBAL_TASK_FRAMEWORK feature flag via feature_flag_manager so that
-      all Superset enablement paths (DEFAULT_FEATURE_FLAGS, GET_FEATURE_FLAGS_FUNC,
-      IS_FEATURE_ENABLED_FUNC, etc.) are respected.
+    Task tools are installed by deployment configuration, not request flags.
+    Their invocation guards evaluate the runtime flag in the current context.
     """
     removed: set[str] = set()
 
-    from superset.extensions import feature_flag_manager  # noqa: PLC0415
-
-    if not feature_flag_manager.is_feature_enabled("GLOBAL_TASK_FRAMEWORK"):
+    if not flask_app.config["GLOBAL_TASK_FRAMEWORK_ENABLED"]:
         for tool_name in ("list_tasks", "get_task_info"):
-            _remove_tool_quietly(tool_name, "GLOBAL_TASK_FRAMEWORK not enabled")
+            _remove_tool_quietly(tool_name, "GLOBAL_TASK_FRAMEWORK_ENABLED is false")
             removed.add(tool_name)
 
     return removed

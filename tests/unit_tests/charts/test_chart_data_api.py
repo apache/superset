@@ -1357,3 +1357,9 @@ def test_create_query_context_from_form_converts_value_error_to_400() -> None:
             api._create_query_context_from_form({})
 
     assert message in str(excinfo.value)
+
+
+@pytest.fixture(autouse=True)
+def enable_task_infrastructure(app: Flask, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Exercise task behavior with deployment infrastructure installed."""
+    monkeypatch.setitem(app.config, "GLOBAL_TASK_FRAMEWORK_ENABLED", True)

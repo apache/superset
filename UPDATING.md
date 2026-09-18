@@ -24,6 +24,25 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Task infrastructure requires explicit deployment configuration
+
+GTF and GAQ deployments must set `GLOBAL_TASK_FRAMEWORK_ENABLED = True` in
+`superset_config.py`; the new process-wide default is `False`. There is no fallback
+from static or dynamic feature flags. Keep the existing `GLOBAL_TASK_FRAMEWORK`
+and `GLOBAL_ASYNC_QUERIES` flags as runtime controls. Configure web, worker, MCP
+and permission provisioning processes consistently, run normal migrations and
+`superset init`, and restart all relevant processes. Task permission names and
+existing role grants are unchanged; request-time flag changes do not alter their
+registration. With infrastructure disabled, GAQ requests fall back to synchronous
+execution and task APIs/pages/tools are unavailable.
+
+Stop new task submissions and drain work before disabling effective GTF: all
+user-facing task operations, including polling and cancellation, are gated.
+Workers may finish admitted work, but clients cannot observe it through a disabled
+Task API. The standard flag manager still derives effective GTF from GAQ, so
+turning off only the raw GTF flag while GAQ remains on does not disable GTF.
+See the async query configuration documentation for rollout and drain guidance.
+
 - The `presto` extra requires PyHive 0.7.0 or later. PyHive 0.6.5 cannot load
   its Presto dialect under SQLAlchemy 2 because it imports `sqlalchemy.databases`.
   Upgrade existing installations with `pip install "pyhive[presto]>=0.7.0"`.

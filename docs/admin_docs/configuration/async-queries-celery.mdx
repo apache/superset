@@ -113,3 +113,50 @@ celery --app=superset.tasks.celery_app:app flower
 
 - [Blog: How to Set Up Global Async Queries (GAQ) in Apache Superset](https://medium.com/@ngigilevis/how-to-set-up-global-async-queries-gaq-in-apache-superset-a-complete-guide-9d2f4a047559)
   :::
+
+## Global Task Framework and asynchronous chart queries
+
+`GLOBAL_TASK_FRAMEWORK_ENABLED` is a deployment setting, defaulting to `False`.
+It installs the Task API, Tasks page, TaskManager and task MCP tools. Set it
+explicitly in `superset_config.py` when using the Global Task Framework (GTF) or
+Global Async Queries (GAQ):
+
+```python
+GLOBAL_TASK_FRAMEWORK_ENABLED = True
+FEATURE_FLAGS = {
+    "GLOBAL_TASK_FRAMEWORK": True,
+    "GLOBAL_ASYNC_QUERIES": True,  # optional asynchronous chart queries
+}
+```
+
+Use the same process-wide setting in web, Celery worker, MCP and permission
+provisioning processes. Changing it requires restarting those processes. Run
+normal database migrations and `superset init` with that configuration to provision
+permissions. Registration and permission definitions do not depend on request-time
+feature flags; existing Task permissions and subscription-based access still apply.
+Turning the setting off does not delete existing permission rows.
+
+The deployment setting is not inferred from static or dynamic feature flags.
+Runtime task admission, API access (including polling and cancellation), direct
+page access and MCP invocation require **both** the setting and the effective
+`GLOBAL_TASK_FRAMEWORK` flag. Dynamic flag callbacks are evaluated at access time;
+changing them does not register routes or recreate permission definitions. Browser
+entry points use the configuration and flags from their bootstrap data; reload the
+page to refresh that snapshot.
+
+GAQ additionally requires `GLOBAL_ASYNC_QUERIES`, usable caching, a subscriber
+identity and Task-read permission. If any prerequisite is unavailable, chart data
+requests follow the synchronous path instead of returning an unresolvable 202.
+With the standard feature-flag manager, GAQ implies effective GTF even if the raw
+GTF flag is false. Customized resolvers remain authoritative; a resolver returning
+GAQ true and GTF false cannot select asynchronous execution.
+
+### Disabling task access safely
+
+Stop new submissions and drain admitted work **before** disabling effective GTF
+or removing its infrastructure. Disabling the flag blocks all user-facing Task
+API operations, including polling and cancellation, and task MCP tools. It does
+not cancel admitted work: workers can finish it, but clients cannot observe task
+completion through the disabled API. Keep the deployment setting enabled on all
+processes during the drain. With the standard manager, leaving GAQ enabled also
+leaves effective GTF enabled; turning off only the raw GTF flag is insufficient.

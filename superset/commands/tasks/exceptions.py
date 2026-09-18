@@ -107,7 +107,8 @@ class GlobalTaskFrameworkDisabledError(CommandException):
 
     message = _(
         "The Global Task Framework is not enabled. "
-        "Set GLOBAL_TASK_FRAMEWORK=True in your feature flags to use @task. "
+        "Set GLOBAL_TASK_FRAMEWORK_ENABLED=True in your deployment configuration "
+        "and enable the GLOBAL_TASK_FRAMEWORK feature flag to use @task. "
         "See https://superset.apache.org/docs/configuration/async-queries-celery "
         "for configuration details."
     )

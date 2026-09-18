@@ -317,7 +317,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             appbuilder.add_api(ExtensionsRestApi)
             appbuilder.add_api(ExtensionStorageRestApi)
 
-        if feature_flag_manager.is_feature_enabled("GLOBAL_TASK_FRAMEWORK"):
+        if self.config["GLOBAL_TASK_FRAMEWORK_ENABLED"]:
             from superset.tasks.api import TaskRestApi
 
             appbuilder.add_api(TaskRestApi)
@@ -460,17 +460,17 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             ),
         )
 
-        appbuilder.add_view(
-            TaskModelView,
-            "Tasks",
-            label=_("Tasks"),
-            icon="fa-clock-o",
-            category="Manage",
-            category_label=_("Manage"),
-            menu_cond=lambda: feature_flag_manager.is_feature_enabled(
-                "GLOBAL_TASK_FRAMEWORK"
-            ),
-        )
+        if self.config["GLOBAL_TASK_FRAMEWORK_ENABLED"]:
+            appbuilder.add_view(
+                TaskModelView,
+                "Tasks",
+                label=_("Tasks"),
+                icon="fa-clock-o",
+                category="Manage",
+                category_label=_("Manage"),
+                menu_cond=lambda: self.config["GLOBAL_TASK_FRAMEWORK_ENABLED"]
+                and feature_flag_manager.is_feature_enabled("GLOBAL_TASK_FRAMEWORK"),
+            )
 
         #
         # Setup views with no menu
@@ -1667,7 +1667,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
     def configure_task_manager(self) -> None:
         """Initialize the TaskManager for GTF realtime notifications."""
-        if feature_flag_manager.is_feature_enabled("GLOBAL_TASK_FRAMEWORK"):
+        if self.config["GLOBAL_TASK_FRAMEWORK_ENABLED"]:
             from superset.tasks.manager import TaskManager
 
             TaskManager.init_app(self.superset_app)

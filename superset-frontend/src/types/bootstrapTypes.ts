@@ -162,7 +162,7 @@ export interface BootstrapThemeDataConfig {
 export interface CommonBootstrapData {
   application_root: string;
   static_assets_prefix: string;
-  conf: JsonObject;
+  conf: JsonObject & { GLOBAL_TASK_FRAMEWORK_ENABLED?: boolean };
   locale: Locale;
   feature_flags: FeatureFlagMap;
   language_pack: LanguagePack;
