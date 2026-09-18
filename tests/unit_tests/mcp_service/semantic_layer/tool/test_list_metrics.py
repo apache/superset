@@ -629,6 +629,38 @@ async def test_list_metrics_page_size_over_max_rejected(mcp_server: FastMCP) -> 
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("page_size", [9, 25, 500])
+async def test_builtin_embedded_metrics_keep_normal_page_ceiling(
+    mcp_server: FastMCP, page_size: int
+) -> None:
+    """Built-in-only discovery is not subject to the external embedding cap."""
+    mock_ds: MagicMock = _make_dataset(42)
+    with _patched_dataset_lookup(mock_ds):
+        async with Client(mcp_server) as client:
+            result: Any = await client.call_tool(
+                "list_metrics",
+                {
+                    "request": {
+                        "dataset_id": 42,
+                        "page_size": page_size,
+                        "include_compatible_dimensions": True,
+                    }
+                },
+            )
+    data: dict[str, Any] = json.loads(result.content[0].text)
+    assert data["success"] is True
+    assert data["page_size"] == page_size
+    assert data["metrics"][0]["compatible_dimensions"]
+
+
+@pytest.mark.parametrize("scope", [{}, {"view_id": 42}])
+def test_external_embedded_metrics_retain_page_ceiling(scope: dict[str, int]) -> None:
+    """Unscoped and view-scoped requests can carry external dimensions."""
+    with pytest.raises(ValidationError, match="page_size <= 8"):
+        ListMetricsRequest(**scope, include_compatible_dimensions=True, page_size=9)
+
+
+@pytest.mark.asyncio
 async def test_list_metrics_page_size_at_max_accepted(mcp_server: FastMCP) -> None:
     """page_size == 500 (the max) is accepted and echoed back."""
     mock_ds: MagicMock = _make_dataset(42)
