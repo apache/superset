@@ -1246,7 +1246,8 @@ multiple physical tables; this configuration selects registered dataset objects,
 not their underlying SQL dependencies. It does not restrict the Superset UI/API.
 
 Description search adds one text predicate to an existing catalog substring
-scan, without joins or additional queries, and replaces the `uuid` predicate
-that could never match. It is not an indexed full-text search: large catalogs
-and long descriptions can increase scan time. Benchmark with your metadata
-database and catalog size when tuning discovery latency.
+scan, without joins or additional queries, and replaces the `uuid` substring
+predicate, whose behavior varied by database. It is not an indexed
+full-text search: large catalogs and long descriptions can increase scan time.
+Benchmark with your metadata database and catalog size when tuning discovery
+latency.
