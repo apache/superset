@@ -32,7 +32,10 @@ from superset.commands.chart.exceptions import (
     DashboardsForbiddenError,
     DashboardsNotFoundValidationError,
 )
-from superset.commands.chart.utils import validate_query_context_datasource
+from superset.commands.chart.utils import (
+    touch_dashboards,
+    validate_query_context_datasource,
+)
 from superset.commands.exceptions import DatasourceTypeInvalidError
 from superset.commands.utils import get_datasource_by_id, populate_subjects
 from superset.daos.chart import ChartDAO
@@ -62,6 +65,9 @@ class CreateChartCommand(CreateMixin, BaseCommand):
         self._properties["last_saved_at"] = datetime.now()
         self._properties["last_saved_by"] = g.user
         chart = ChartDAO.create(attributes=self._properties)
+        # Touch attached dashboards to bump changed_on/changed_by (resolves #44305).
+        # Ensures adding a chart updates the dashboard's last modified state.
+        touch_dashboards(self._properties.get("dashboards"))
         if after_create := current_app.config.get("AFTER_ASSET_CREATE"):
             after_create(chart, "chart")
         return chart

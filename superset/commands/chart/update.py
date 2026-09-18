@@ -34,7 +34,10 @@ from superset.commands.chart.exceptions import (
     DashboardsNotFoundValidationError,
     DatasourceTypeUpdateRequiredValidationError,
 )
-from superset.commands.chart.utils import validate_query_context_datasource
+from superset.commands.chart.utils import (
+    touch_dashboards,
+    validate_query_context_datasource,
+)
 from superset.commands.exceptions import DatasourceTypeInvalidError
 from superset.commands.utils import (
     compute_subjects,
@@ -98,6 +101,17 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
                 self._model.params,
                 self._properties["params"],
             )
+
+        if "dashboards" in self._properties:
+            # Touch newly associated dashboards so their audit metadata reflects
+            # the addition of this chart (resolves #44305).
+            existing_dash_ids = {d.id for d in self._model.dashboards}
+            new_dashboards = [
+                d
+                for d in self._properties["dashboards"]
+                if d.id not in existing_dash_ids
+            ]
+            touch_dashboards(new_dashboards)
 
         return ChartDAO.update(self._model, self._properties)
 
