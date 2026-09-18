@@ -17279,3 +17279,25 @@ msgstr ""
 
 msgid "Show all"
 msgstr ""
+
+msgid "Imported"
+msgstr ""
+
+msgid "Original version"
+msgstr ""
+
+msgid "Starting version"
+msgstr ""
+
+msgid "Preview this version"
+msgstr ""
+
+#, python-format
+msgid ""
+"Slug %(slug)s belongs to the soft-deleted dashboard %(uuid)s. Restore it"
+" via POST /api/v1/dashboard/%(uuid)s/restore, or use a different slug."
+msgstr ""
+
+#: superset/datasets/api.py
+msgid "Another save is in progress for this dataset. Retry the same request."
+msgstr ""

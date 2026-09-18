@@ -131,11 +131,21 @@ def _insert_baseline_row(
     baseline_issued_at = naive_utcnow()
     baseline_user_id = row.get("changed_by_fk") or row.get("created_by_fk")
     tx_table = versioning_manager.transaction_cls.__table__
+    # ``action_kind='baseline'`` marks this transaction as writer-minted:
+    # it is what lets the activity view's synthetic creation row label a
+    # pre-tracking baseline "Original version" instead of "Created"
+    # (sc-120488) — both are op=0 rows; only the transaction provenance
+    # differs. Deferred import: changes.listener sits on the other side
+    # of the init graph.
+    # pylint: disable=import-outside-toplevel
+    from superset.versioning.changes import ACTION_KIND_BASELINE
+
     result = conn.execute(
         tx_table.insert().values(
             issued_at=baseline_issued_at,
             user_id=baseline_user_id,
             remote_addr=None,
+            action_kind=ACTION_KIND_BASELINE,
         )
     )
     tx_id = result.inserted_primary_key[0]
