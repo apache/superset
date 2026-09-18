@@ -31,6 +31,8 @@ import {
   TitleFormData,
 } from '../types';
 
+export type CandlestickSeriesStyle = 'candlestick' | 'ohlc';
+
 export type EchartsCandlestickFormData = QueryFormData &
   LegendFormData &
   TitleFormData & {
@@ -40,7 +42,11 @@ export type EchartsCandlestickFormData = QueryFormData &
     high: QueryFormMetric;
     low: QueryFormMetric;
     series?: QueryFormColumn | QueryFormColumn[];
+    seriesStyle: CandlestickSeriesStyle;
     candlestickSeriesName?: string;
+    colorScheme?: string;
+    sliceId?: number;
+    colorByDirection: boolean;
     increaseColor: RgbaColor;
     decreaseColor: RgbaColor;
     increaseLabel?: string;

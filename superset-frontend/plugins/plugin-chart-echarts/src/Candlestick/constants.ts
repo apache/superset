@@ -22,7 +22,7 @@ import {
   DEFAULT_TITLE_FORM_DATA,
 } from '../constants';
 import { defaultXAxis } from '../defaults';
-import { EchartsCandlestickFormData } from './types';
+import { CandlestickSeriesStyle, EchartsCandlestickFormData } from './types';
 
 export const OHLC_LABELS = {
   OPEN: t('Open'),
@@ -38,6 +38,10 @@ export const DIRECTION_LABELS = {
 
 export const CANDLESTICK_SERIES_NAME = t('Candlestick');
 
+export const DEFAULT_SERIES_STYLE: CandlestickSeriesStyle = 'candlestick';
+export const OHLC_TICK_WIDTH_RATIO = 0.35;
+export const HOLLOW_CANDLE_FILL = 'rgba(0,0,0,0)';
+
 export const DEFAULT_INCREASE_COLOR = { r: 90, g: 193, b: 137, a: 1 };
 export const DEFAULT_DECREASE_COLOR = { r: 224, g: 67, b: 85, a: 1 };
 
@@ -45,6 +49,8 @@ export const DEFAULT_FORM_DATA: Partial<EchartsCandlestickFormData> = {
   ...DEFAULT_LEGEND_FORM_DATA,
   ...DEFAULT_TITLE_FORM_DATA,
   candlestickSeriesName: CANDLESTICK_SERIES_NAME,
+  seriesStyle: DEFAULT_SERIES_STYLE,
+  colorByDirection: true,
   increaseColor: DEFAULT_INCREASE_COLOR,
   decreaseColor: DEFAULT_DECREASE_COLOR,
   showXAxis: true,

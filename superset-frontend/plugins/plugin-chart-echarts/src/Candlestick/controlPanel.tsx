@@ -39,8 +39,34 @@ import {
   CANDLESTICK_SERIES_NAME,
   DEFAULT_DECREASE_COLOR,
   DEFAULT_INCREASE_COLOR,
+  DEFAULT_SERIES_STYLE,
 } from './constants';
 import { MOVING_AVERAGE_PERIODS } from './utils';
+
+function hasSeriesDimension({
+  controls,
+}: ControlPanelsContainerProps): boolean {
+  return ensureIsArray(controls?.series?.value).length > 0;
+}
+
+function isSingleSeriesSetup({
+  controls,
+}: ControlPanelsContainerProps): boolean {
+  return ensureIsArray(controls?.series?.value).length <= 1;
+}
+
+function showDirectionColors({
+  controls,
+}: ControlPanelsContainerProps): boolean {
+  return controls?.color_by_direction?.value !== false;
+}
+
+function showColorScheme(props: ControlPanelsContainerProps): boolean {
+  return (
+    hasSeriesDimension(props) ||
+    props.controls?.color_by_direction?.value === false
+  );
+}
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -107,6 +133,25 @@ const config: ControlPanelConfig = {
         ['zoomable'],
         [
           {
+            name: 'series_style',
+            config: {
+              type: 'SelectControl',
+              label: t('Series style'),
+              renderTrigger: true,
+              default: DEFAULT_SERIES_STYLE,
+              clearable: false,
+              choices: [
+                ['candlestick', t('Candlestick')],
+                ['ohlc', t('OHLC')],
+              ],
+              description: t(
+                'Candlestick draws a filled body between open and close. OHLC draws ticks for open and close on a high-low stem.',
+              ),
+            },
+          },
+        ],
+        [
+          {
             name: 'candlestick_series_name',
             config: {
               type: 'TextControl',
@@ -116,8 +161,8 @@ const config: ControlPanelConfig = {
               description: t(
                 'Name used for the candlestick series in the legend and tooltip when no series dimension is set.',
               ),
-              visibility: ({ controls }: ControlPanelsContainerProps) =>
-                ensureIsArray(controls?.series?.value).length === 0,
+              visibility: (props: ControlPanelsContainerProps) =>
+                !hasSeriesDimension(props),
             },
           },
         ],
@@ -148,12 +193,37 @@ const config: ControlPanelConfig = {
         ],
         [
           {
+            name: 'color_by_direction',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Color by direction'),
+              default: true,
+              renderTrigger: true,
+              visibility: isSingleSeriesSetup,
+              description: t(
+                'When enabled, increasing candles use the increase color and decreasing candles use the decrease color. Turn off to use one series color, with a filled body for increases and a hollow body for decreases.',
+              ),
+            },
+          },
+        ],
+        [
+          {
+            name: 'color_scheme',
+            config: {
+              ...sharedControls.color_scheme,
+              visibility: showColorScheme,
+            },
+          },
+        ],
+        [
+          {
             name: 'increase_color',
             config: {
               label: t('Increase color'),
               type: 'ColorPickerControl',
               default: DEFAULT_INCREASE_COLOR,
               renderTrigger: true,
+              visibility: showDirectionColors,
               description: t(
                 'Color used when the close value is greater than or equal to the open value.',
               ),
@@ -179,6 +249,7 @@ const config: ControlPanelConfig = {
               type: 'ColorPickerControl',
               default: DEFAULT_DECREASE_COLOR,
               renderTrigger: true,
+              visibility: showDirectionColors,
               description: t(
                 'Color used when the close value is less than the open value.',
               ),

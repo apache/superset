@@ -18,6 +18,7 @@
  */
 import {
   AxisType,
+  CategoricalColorNamespace,
   CurrencyFormatter,
   DataRecord,
   ensureIsArray,
@@ -30,8 +31,9 @@ import {
   tooltipHtml,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
-import type { EChartsCoreOption } from 'echarts/core';
+import type { CustomSeriesOption, CustomSeriesRenderItem } from 'echarts';
 import type { CandlestickSeriesOption, LineSeriesOption } from 'echarts/charts';
+import type { EChartsCoreOption } from 'echarts/core';
 import type { CallbackDataParams } from 'echarts/types/src/util/types';
 import {
   CandlestickChartTransformedProps,
@@ -46,7 +48,9 @@ import {
   DEFAULT_FORM_DATA,
   DEFAULT_INCREASE_COLOR,
   DIRECTION_LABELS,
+  HOLLOW_CANDLE_FILL,
   OHLC_LABELS,
+  OHLC_TICK_WIDTH_RATIO,
 } from './constants';
 import { defaultGrid, defaultYAxis } from '../defaults';
 import { getDefaultTooltip } from '../utils/tooltip';
@@ -112,18 +116,112 @@ function getOhlc(
   return [open, close, low, high];
 }
 
-function toCandlestickDatum(
-  datum: DataRecord | undefined,
-  openLabel: string,
-  closeLabel: string,
-  lowLabel: string,
-  highLabel: string,
-): CandlestickDatum {
-  if (!datum) {
+function toCandlestickDatum(ohlc: OhlcValue | null): CandlestickDatum {
+  return ohlc ?? [];
+}
+
+function toOhlcBarDatum(
+  ohlc: OhlcValue | null,
+  categoryIndex: number,
+  color: string,
+) {
+  if (!ohlc) {
     return [];
   }
-  return getOhlc(datum, openLabel, closeLabel, lowLabel, highLabel) ?? [];
+  return {
+    value: [categoryIndex, ...ohlc],
+    itemStyle: {
+      color,
+    },
+  };
 }
+
+function getDirectionItemStyle(increaseHex: string, decreaseHex: string) {
+  return {
+    color: increaseHex,
+    color0: decreaseHex,
+    borderColor: increaseHex,
+    borderColor0: decreaseHex,
+  };
+}
+
+function getSeriesItemStyle(seriesColor: string) {
+  return {
+    color: seriesColor,
+    color0: HOLLOW_CANDLE_FILL,
+    borderColor: seriesColor,
+    borderColor0: seriesColor,
+  };
+}
+
+const renderOhlcItem: CustomSeriesRenderItem = (_params, item) => {
+  const x = toNumber(item.value(0));
+  const open = toNumber(item.value(1));
+  const close = toNumber(item.value(2));
+  const low = toNumber(item.value(3));
+  const high = toNumber(item.value(4));
+  if (
+    x === null ||
+    open === null ||
+    close === null ||
+    low === null ||
+    high === null
+  ) {
+    return null;
+  }
+
+  const openPoint = item.coord([x, open]);
+  const closePoint = item.coord([x, close]);
+  const lowPoint = item.coord([x, low]);
+  const highPoint = item.coord([x, high]);
+  const categorySize = item.size?.([1, 0]);
+  const categoryWidth = Array.isArray(categorySize)
+    ? categorySize[0]
+    : categorySize;
+  if (categoryWidth == null || !Number.isFinite(categoryWidth)) {
+    return null;
+  }
+  const halfWidth = categoryWidth * OHLC_TICK_WIDTH_RATIO;
+  const style = item.style({
+    stroke: item.visual('color'),
+  });
+
+  return {
+    type: 'group',
+    children: [
+      {
+        type: 'line',
+        shape: {
+          x1: lowPoint[0],
+          y1: lowPoint[1],
+          x2: highPoint[0],
+          y2: highPoint[1],
+        },
+        style,
+      },
+      {
+        type: 'line',
+        shape: {
+          x1: openPoint[0],
+          y1: openPoint[1],
+          x2: openPoint[0] - halfWidth,
+          y2: openPoint[1],
+        },
+        style,
+      },
+      {
+        type: 'line',
+        shape: {
+          x1: closePoint[0],
+          y1: closePoint[1],
+          x2: closePoint[0] + halfWidth,
+          y2: closePoint[1],
+        },
+        style,
+      },
+    ],
+  };
+};
 
 function extractOhlc(value: unknown): OhlcValue | null {
   if (!Array.isArray(value)) {
@@ -269,6 +367,10 @@ export default function transformProps(
     legendSort,
     zoomable,
     movingAverages,
+    seriesStyle,
+    colorScheme,
+    sliceId,
+    colorByDirection,
   }: EchartsCandlestickFormData = { ...DEFAULT_FORM_DATA, ...formData };
 
   const xAxisName = xAxis ? getColumnLabel(xAxis) : '';
@@ -305,6 +407,7 @@ export default function transformProps(
     decreaseColor.g,
     decreaseColor.b,
   );
+  const colorScale = CategoricalColorNamespace.getScale(colorScheme);
   const upLabel = increaseLabel || DIRECTION_LABELS.INCREASE;
   const downLabel = decreaseLabel || DIRECTION_LABELS.DECREASE;
 
@@ -360,6 +463,8 @@ export default function transformProps(
     seriesNames.push(defaultSeriesLabel);
   }
 
+  const useSeriesColors = seriesNames.length > 1 || colorByDirection === false;
+
   const recordsBySeriesAndX = new Map<LookupKey, Map<LookupKey, DataRecord>>();
   data.forEach(datum => {
     const xKey = toLookupKey(getOwnValue(datum, xAxisName));
@@ -374,46 +479,78 @@ export default function transformProps(
     byX.set(xKey, datum);
   });
 
-  const candlestickSeries: CandlestickSeriesOption[] = seriesKeys.map(
-    (key, index) => ({
-      name: seriesNames[index],
-      type: 'candlestick',
-      data: xKeys.map(xKey =>
-        toCandlestickDatum(
-          recordsBySeriesAndX.get(key)?.get(xKey),
-          openLabel,
-          closeLabel,
-          lowLabel,
-          highLabel,
-        ),
-      ),
-      itemStyle: {
-        color: increaseHex,
-        color0: decreaseHex,
-        borderColor: increaseHex,
-        borderColor0: decreaseHex,
-      },
+  const ohlcBySeries: (OhlcValue | null)[][] = seriesKeys.map(key =>
+    xKeys.map(xKey => {
+      const datum = recordsBySeriesAndX.get(key)?.get(xKey);
+      return datum
+        ? getOhlc(datum, openLabel, closeLabel, lowLabel, highLabel)
+        : null;
     }),
   );
 
+  const priceSeries: (CandlestickSeriesOption | CustomSeriesOption)[] =
+    ohlcBySeries.map((ohlcData, index) => {
+      const name = seriesNames[index];
+      const seriesColor = useSeriesColors
+        ? colorScale(name, sliceId)
+        : increaseHex;
+      if (seriesStyle === 'ohlc') {
+        return {
+          name,
+          type: 'custom',
+          renderItem: renderOhlcItem,
+          dimensions: ['-', 'open', 'close', 'low', 'high'],
+          encode: {
+            x: 0,
+            y: [1, 2, 3, 4],
+            tooltip: [1, 2, 3, 4],
+          },
+          itemStyle: {
+            color: seriesColor,
+          },
+          data: ohlcData.map((ohlc, categoryIndex) => {
+            if (!ohlc) {
+              return [];
+            }
+            const [openValue, closeValue] = ohlc;
+            const color = useSeriesColors
+              ? seriesColor
+              : closeValue >= openValue
+                ? increaseHex
+                : decreaseHex;
+            return toOhlcBarDatum(ohlc, categoryIndex, color);
+          }),
+        };
+      }
+      return {
+        name,
+        type: 'candlestick',
+        data: ohlcData.map(toCandlestickDatum),
+        itemStyle: useSeriesColors
+          ? getSeriesItemStyle(seriesColor)
+          : getDirectionItemStyle(increaseHex, decreaseHex),
+      };
+    });
+
   const periods = parseMovingAveragePeriods(movingAverages);
   const qualifyMaNames = seriesNames.length > 1;
-  const movingAverageSeries: LineSeriesOption[] = candlestickSeries.flatMap(
-    candle => {
-      const closes = (candle.data ?? []).map(item =>
-        Array.isArray(item) && Number.isFinite(Number(item[1]))
-          ? Number(item[1])
-          : null,
-      );
-      const seriesLabel = qualifyMaNames ? String(candle.name) : undefined;
+  const movingAverageSeries: LineSeriesOption[] = ohlcBySeries.flatMap(
+    (ohlcData, index) => {
+      const closes = ohlcData.map(ohlc => ohlc?.[1] ?? null);
+      const seriesLabel = qualifyMaNames ? seriesNames[index] : undefined;
+      const seriesColor = useSeriesColors
+        ? colorScale(seriesNames[index], sliceId)
+        : undefined;
       return periods.map(period => ({
         name: movingAverageName(period, seriesLabel),
         type: 'line' as const,
         data: calculateMA(closes, period),
         smooth: true,
         showSymbol: false,
+        itemStyle: seriesColor ? { color: seriesColor } : undefined,
         lineStyle: {
           opacity: MA_LINE_OPACITY,
+          ...(seriesColor ? { color: seriesColor } : {}),
         },
       }));
     },
@@ -555,7 +692,7 @@ export default function transformProps(
         });
       },
     },
-    series: [...candlestickSeries, ...movingAverageSeries],
+    series: [...priceSeries, ...movingAverageSeries],
     toolbox: {
       show: zoomable,
       feature: {

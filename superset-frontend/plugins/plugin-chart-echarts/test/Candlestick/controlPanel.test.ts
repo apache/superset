@@ -82,6 +82,22 @@ test('overrides series to a single optional dimension', () => {
   );
 });
 
+test('exposes a series style control for candlestick and OHLC', () => {
+  const seriesStyleControl = getControl('series_style') as {
+    name: string;
+    config: {
+      default: string;
+      choices: [string, string][];
+    };
+  } | null;
+  expect(seriesStyleControl).not.toBeNull();
+  expect(seriesStyleControl?.config.default).toBe('candlestick');
+  expect(seriesStyleControl?.config.choices).toEqual([
+    ['candlestick', 'Candlestick'],
+    ['ohlc', 'OHLC'],
+  ]);
+});
+
 type VisibilityControl = {
   name: string;
   config: { visibility: (props: ControlPanelsContainerProps) => boolean };
@@ -135,6 +151,65 @@ test('shows series name only when the default candlestick series is used', () =>
   expect(
     visibility({
       controls: { series: { value: 'symbol' } },
+    } as unknown as ControlPanelsContainerProps),
+  ).toBe(false);
+});
+
+test('shows color scheme when a series dimension is set or direction coloring is off', () => {
+  const colorScheme = getControl('color_scheme') as VisibilityControl | null;
+  expect(colorScheme?.config.visibility).toBeDefined();
+
+  expect(
+    colorScheme!.config.visibility({
+      controls: { series: { value: null } },
+    } as unknown as ControlPanelsContainerProps),
+  ).toBe(false);
+  expect(
+    colorScheme!.config.visibility({
+      controls: { series: { value: 'symbol' } },
+    } as unknown as ControlPanelsContainerProps),
+  ).toBe(true);
+  expect(
+    colorScheme!.config.visibility({
+      controls: {
+        series: { value: null },
+        color_by_direction: { value: false },
+      },
+    } as unknown as ControlPanelsContainerProps),
+  ).toBe(true);
+});
+
+test('shows color by direction for a single series setup', () => {
+  const colorByDirection = getControl(
+    'color_by_direction',
+  ) as VisibilityControl | null;
+  expect(colorByDirection).not.toBeNull();
+  expect(colorByDirection?.config.visibility).toBeDefined();
+  expect(
+    colorByDirection!.config.visibility({
+      controls: {},
+    } as unknown as ControlPanelsContainerProps),
+  ).toBe(true);
+  expect(
+    colorByDirection!.config.visibility({
+      controls: { series: { value: 'symbol' } },
+    } as unknown as ControlPanelsContainerProps),
+  ).toBe(true);
+});
+
+test('hides increase and decrease colors when color by direction is off', () => {
+  const increaseColor = getControl(
+    'increase_color',
+  ) as VisibilityControl | null;
+  expect(increaseColor?.config.visibility).toBeDefined();
+  expect(
+    increaseColor!.config.visibility({
+      controls: { color_by_direction: { value: true } },
+    } as unknown as ControlPanelsContainerProps),
+  ).toBe(true);
+  expect(
+    increaseColor!.config.visibility({
+      controls: { color_by_direction: { value: false } },
     } as unknown as ControlPanelsContainerProps),
   ).toBe(false);
 });

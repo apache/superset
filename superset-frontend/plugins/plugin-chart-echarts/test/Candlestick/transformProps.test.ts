@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps } from '@superset-ui/core';
+import { CategoricalColorNamespace, ChartProps } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { supersetTheme } from '@apache-superset/core/theme';
 import {
@@ -24,7 +24,10 @@ import {
   EchartsCandlestickChartProps,
 } from '../../src/Candlestick/types';
 import transformProps from '../../src/Candlestick/transformProps';
-import { CANDLESTICK_SERIES_NAME } from '../../src/Candlestick/constants';
+import {
+  CANDLESTICK_SERIES_NAME,
+  HOLLOW_CANDLE_FILL,
+} from '../../src/Candlestick/constants';
 import { NULL_STRING } from '../../src/constants';
 
 const data = [
@@ -60,7 +63,12 @@ const buildProps = (extraFormData: Record<string, unknown> = {}) =>
 
 const extractSeries = (props: CandlestickChartTransformedProps) => {
   const { series } = props.echartOptions as {
-    series: { name: string; data: unknown[] }[];
+    series: {
+      name: string;
+      type?: string;
+      data: unknown[];
+      renderItem?: (...args: unknown[]) => unknown;
+    }[];
   };
   return series;
 };
@@ -132,12 +140,81 @@ test('maps rows to ECharts candlestick [open, close, low, high] values', () => {
   const series = extractSeries(buildProps());
   expect(series).toHaveLength(1);
   expect(series[0].name).toBe(CANDLESTICK_SERIES_NAME);
+  expect(series[0].type).toBe('candlestick');
   expect(series[0].data).toEqual([
     [20, 34, 10, 38],
     [40, 35, 30, 50],
     [31, 38, 33, 44],
     [38, 15, 5, 42],
   ]);
+});
+
+test('renders OHLC bars as a custom series with ticks on a high-low stem', () => {
+  const series = extractSeries(buildProps({ series_style: 'ohlc' }));
+  expect(series[0].type).toBe('custom');
+  expect(series[0].data).toEqual([
+    {
+      value: [0, 20, 34, 10, 38],
+      itemStyle: { color: '#5ac189' },
+    },
+    {
+      value: [1, 40, 35, 30, 50],
+      itemStyle: { color: '#e04355' },
+    },
+    {
+      value: [2, 31, 38, 33, 44],
+      itemStyle: { color: '#5ac189' },
+    },
+    {
+      value: [3, 38, 15, 5, 42],
+      itemStyle: { color: '#e04355' },
+    },
+  ]);
+});
+
+test('draws OHLC open tick left, close tick right, and a high-low stem', () => {
+  const { renderItem } = extractSeries(buildProps({ series_style: 'ohlc' }))[0];
+  expect(renderItem).toBeDefined();
+  const graphic = renderItem!(
+    {},
+    {
+      value: (dim: number) => [0, 20, 34, 10, 38][dim],
+      coord: ([x, y]: number[]) => [x * 10, 200 - y],
+      size: () => [20, 0],
+      visual: () => '#5ac189',
+      style: (extra: Record<string, unknown>) => extra,
+    },
+  ) as {
+    type: string;
+    children: { type: string; shape: Record<string, number> }[];
+  };
+  expect(graphic.type).toBe('group');
+  expect(graphic.children).toEqual([
+    {
+      type: 'line',
+      shape: { x1: 0, y1: 190, x2: 0, y2: 162 },
+      style: { stroke: '#5ac189' },
+    },
+    {
+      type: 'line',
+      shape: { x1: 0, y1: 180, x2: -7, y2: 180 },
+      style: { stroke: '#5ac189' },
+    },
+    {
+      type: 'line',
+      shape: { x1: 0, y1: 166, x2: 7, y2: 166 },
+      style: { stroke: '#5ac189' },
+    },
+  ]);
+});
+
+test('keeps moving averages on the close price in OHLC style', () => {
+  const series = extractSeries(
+    buildProps({ series_style: 'ohlc', moving_averages: [2] }),
+  );
+  expect(series[0].type).toBe('custom');
+  expect(series[1].name).toBe('MA2');
+  expect(series[1].data).toEqual(['-', 34.5, 36.5, 26.5]);
 });
 
 test('uses x-axis values as category labels', () => {
@@ -162,6 +239,184 @@ test('applies increase and decrease colors', () => {
       },
     }),
   );
+});
+
+test('keeps increase and decrease colors when Series has a single value', () => {
+  const series = extractSeries(
+    transform(
+      [
+        {
+          date: '2017-10-24',
+          symbol: 'AAPL',
+          open: 20,
+          close: 34,
+          low: 10,
+          high: 38,
+        },
+        {
+          date: '2017-10-25',
+          symbol: 'AAPL',
+          open: 40,
+          close: 35,
+          low: 30,
+          high: 50,
+        },
+      ],
+      { series: 'symbol' },
+    ),
+  );
+  expect(series).toHaveLength(1);
+  expect(series[0]).toEqual(
+    expect.objectContaining({
+      name: 'AAPL',
+      itemStyle: {
+        color: '#5ac189',
+        color0: '#e04355',
+        borderColor: '#5ac189',
+        borderColor0: '#e04355',
+      },
+    }),
+  );
+});
+
+test('uses filled and hollow series coloring when color by direction is off', () => {
+  const colorScale = CategoricalColorNamespace.getScale('bnbColors');
+  const series = extractSeries(buildProps({ color_by_direction: false }));
+  const seriesColor = colorScale(CANDLESTICK_SERIES_NAME);
+  expect(series[0]).toEqual(
+    expect.objectContaining({
+      itemStyle: {
+        color: seriesColor,
+        color0: HOLLOW_CANDLE_FILL,
+        borderColor: seriesColor,
+        borderColor0: seriesColor,
+      },
+    }),
+  );
+});
+
+test('uses filled and hollow coloring for a single Series value when color by direction is off', () => {
+  const colorScale = CategoricalColorNamespace.getScale('bnbColors');
+  const series = extractSeries(
+    transform(
+      [
+        {
+          date: '2017-10-24',
+          symbol: 'AAPL',
+          open: 20,
+          close: 34,
+          low: 10,
+          high: 38,
+        },
+      ],
+      { series: 'symbol', color_by_direction: false },
+    ),
+  );
+  const appleColor = colorScale('AAPL');
+  expect(series[0]).toEqual(
+    expect.objectContaining({
+      name: 'AAPL',
+      itemStyle: {
+        color: appleColor,
+        color0: HOLLOW_CANDLE_FILL,
+        borderColor: appleColor,
+        borderColor0: appleColor,
+      },
+    }),
+  );
+});
+
+test('uses a unique series color with hollow decreasing candles when split by series', () => {
+  const colorScale = CategoricalColorNamespace.getScale('bnbColors');
+  const series = extractSeries(
+    transform(
+      [
+        {
+          date: '2017-10-24',
+          symbol: 'AAPL',
+          open: 20,
+          close: 34,
+          low: 10,
+          high: 38,
+        },
+        {
+          date: '2017-10-24',
+          symbol: 'GOOG',
+          open: 40,
+          close: 35,
+          low: 30,
+          high: 50,
+        },
+      ],
+      { series: 'symbol' },
+    ),
+  );
+  const appleColor = colorScale('AAPL');
+  const googleColor = colorScale('GOOG');
+  expect(appleColor).not.toBe(googleColor);
+  expect(series[0]).toEqual(
+    expect.objectContaining({
+      name: 'AAPL',
+      itemStyle: {
+        color: appleColor,
+        color0: HOLLOW_CANDLE_FILL,
+        borderColor: appleColor,
+        borderColor0: appleColor,
+      },
+    }),
+  );
+  expect(series[1]).toEqual(
+    expect.objectContaining({
+      name: 'GOOG',
+      itemStyle: {
+        color: googleColor,
+        color0: HOLLOW_CANDLE_FILL,
+        borderColor: googleColor,
+        borderColor0: googleColor,
+      },
+    }),
+  );
+});
+
+test('uses a unique series color for every OHLC bar when split by series', () => {
+  const colorScale = CategoricalColorNamespace.getScale('bnbColors');
+  const series = extractSeries(
+    transform(
+      [
+        {
+          date: '2017-10-24',
+          symbol: 'AAPL',
+          open: 20,
+          close: 34,
+          low: 10,
+          high: 38,
+        },
+        {
+          date: '2017-10-24',
+          symbol: 'GOOG',
+          open: 40,
+          close: 35,
+          low: 30,
+          high: 50,
+        },
+      ],
+      { series: 'symbol', series_style: 'ohlc' },
+    ),
+  );
+  const appleColor = colorScale('AAPL');
+  expect(series[0].data).toEqual([
+    {
+      value: [0, 20, 34, 10, 38],
+      itemStyle: { color: appleColor },
+    },
+  ]);
+  expect(series[1].data).toEqual([
+    {
+      value: [0, 40, 35, 30, 50],
+      itemStyle: { color: colorScale('GOOG') },
+    },
+  ]);
+  expect(series[0].data[0]).not.toEqual(series[1].data[0]);
 });
 
 test('hides axes when showXAxis or showYAxis is false', () => {
@@ -536,6 +791,25 @@ test('drops incomplete OHLC rows', () => {
   expect(series[0].data).toEqual([[20, 34, 10, 38], []]);
 });
 
+test('keeps category alignment with empty OHLC bars', () => {
+  const series = extractSeries(
+    transform(
+      [
+        { date: '2017-10-24', open: 20, close: 34, low: 10, high: 38 },
+        { date: '2017-10-25', open: 40, close: 35, low: 30 },
+      ],
+      { series_style: 'ohlc' },
+    ),
+  );
+  expect(series[0].data).toEqual([
+    {
+      value: [0, 20, 34, 10, 38],
+      itemStyle: { color: '#5ac189' },
+    },
+    [],
+  ]);
+});
+
 test('returns no points for empty query data', () => {
   const props = transform([]);
   expect((props.echartOptions.xAxis as { data: string[] }).data).toEqual([]);
@@ -619,6 +893,21 @@ test('tooltip includes moving-average line values', () => {
   ]);
   expect(tooltipHtml).toContain('MA2');
   expect(tooltipHtml).toContain('34.5');
+});
+
+test('tooltip reads OHLC from custom-series 5-tuples', () => {
+  const tooltipHtml = getTooltipHtml(buildProps({ series_style: 'ohlc' }), [
+    {
+      dataIndex: 0,
+      name: '2017-10-24',
+      seriesType: 'custom',
+      value: [0, 20, 34, 10, 38],
+      data: [0, 20, 34, 10, 38],
+    },
+  ]);
+  expect(tooltipHtml).toContain('20');
+  expect(tooltipHtml).toContain('34');
+  expect(tooltipHtml).toContain('Increase');
 });
 
 test('tooltip lists every candlestick and moving average on the hovered date', () => {
