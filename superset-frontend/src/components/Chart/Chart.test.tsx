@@ -18,8 +18,11 @@
  */
 import { render, screen, fireEvent } from 'spec/helpers/testing-library';
 import '@testing-library/jest-dom';
+import { DatasourceType } from '@superset-ui/core';
 import { PLACEHOLDER_DATASOURCE } from 'src/dashboard/constants';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
+import { DatasourcesAction } from 'src/dashboard/actions/datasources';
+import datasourcesReducer from 'src/dashboard/reducers/datasources';
 import Chart from './Chart';
 import type { Actions } from './Chart';
 
@@ -104,4 +107,60 @@ test('shows the stop message and a re-run affordance when the query was stopped'
   expect(rerun.tagName).toBe('BUTTON');
   fireEvent.click(rerun);
   expect(onQuery).toHaveBeenCalledTimes(1);
+});
+
+test('shows a message-only semantic API error while datasource metadata is loading', () => {
+  render(
+    <Chart
+      {...baseProps}
+      formData={{ datasource: '1__semantic_view', viz_type: 'table' }}
+      chartStatus="failed"
+      chartAlert="Semantic result contains a non-finite number"
+      datasource={PLACEHOLDER_DATASOURCE}
+      datasetsStatus={ResourceStatus.Loading}
+      queriesResponse={[
+        { message: 'Semantic result contains a non-finite number' },
+      ]}
+    />,
+  );
+
+  expect(
+    screen.getByText('Semantic result contains a non-finite number'),
+  ).toBeInTheDocument();
+  expect(screen.queryByRole('status')).not.toBeInTheDocument();
+});
+
+test('shows a semantic error after the dashboard supplies the real datasource', () => {
+  const datasources = datasourcesReducer(undefined, {
+    type: DatasourcesAction.SetDatasources,
+    datasources: [
+      {
+        ...PLACEHOLDER_DATASOURCE,
+        id: 1,
+        uid: '1__semantic_view',
+        type: DatasourceType.SemanticView,
+        name: 'Orders View',
+      },
+    ],
+  });
+  const datasource = datasources['1__semantic_view'] || PLACEHOLDER_DATASOURCE;
+  expect(datasource).not.toBe(PLACEHOLDER_DATASOURCE);
+  render(
+    <Chart
+      {...baseProps}
+      formData={{ datasource: '1__semantic_view', viz_type: 'table' }}
+      chartStatus="failed"
+      chartAlert="Semantic result contains a non-finite number"
+      datasource={datasource}
+      datasetsStatus={ResourceStatus.Complete}
+      queriesResponse={[
+        { message: 'Semantic result contains a non-finite number' },
+      ]}
+    />,
+  );
+
+  expect(
+    screen.getByText('Semantic result contains a non-finite number'),
+  ).toBeInTheDocument();
+  expect(screen.queryByRole('status')).not.toBeInTheDocument();
 });

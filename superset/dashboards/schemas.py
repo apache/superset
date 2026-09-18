@@ -339,6 +339,10 @@ class DatabaseSchema(Schema):
 
 
 class DashboardDatasetSchema(Schema):
+    supports_drill_to_detail: fields.Bool = fields.Bool()
+    supports_samples: fields.Bool = fields.Bool()
+    parent: fields.Dict = fields.Dict()
+    semantic_view_features: fields.List = fields.List(fields.Str())
     id = fields.Int()
     uid = fields.Str()
     column_formats = fields.Dict()
