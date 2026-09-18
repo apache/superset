@@ -158,8 +158,8 @@ class TestUpdateDashboard:
     async def test_update_layout_repairs_truncated_tabs_parents(
         self, mock_session: Mock, mock_get: Mock, mcp_server: object
     ) -> None:
-        """Regression test for SC-121314: a replacement TABS layout whose
-        ``parents`` hold only the immediate parent is persisted with full
+        """A replacement TABS layout whose ``parents`` hold only the
+        immediate parent is persisted with full
         ancestor chains from ``ROOT_ID``, so
         ``superset.dashboards.filter_scope`` derives non-empty
         ``chartsInScope`` for dashboard-wide native filters on read."""

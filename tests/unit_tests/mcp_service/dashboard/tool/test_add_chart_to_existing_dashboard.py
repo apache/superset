@@ -309,8 +309,8 @@ async def test_successful_add_repairs_truncated_parents(
     mock_update_cmd_cls: Mock,
     mcp_server: object,
 ) -> None:
-    """Regression test for SC-121314: a chart added into an existing TABS
-    dashboard whose stored layout already carries truncated ``parents``
+    """A chart added into an existing TABS dashboard whose stored layout
+    already carries truncated ``parents``
     (only the immediate parent, as an earlier MCP write may have persisted)
     gets the full ancestor chain from ``ROOT_ID`` — both for the new chart
     and for the rest of the layout, which is repaired as a side effect."""

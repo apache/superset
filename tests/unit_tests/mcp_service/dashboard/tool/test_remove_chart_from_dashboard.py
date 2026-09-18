@@ -513,10 +513,9 @@ async def test_removal_repairs_truncated_parents_on_surviving_charts(
     mock_update_cmd_cls: Mock,
     mcp_server: object,
 ) -> None:
-    """Regression test for SC-121314: removing a chart also repairs any
-    pre-existing truncated ``parents`` on the charts that remain, so a
-    dashboard written before this fix self-heals the next time the MCP
-    touches its layout."""
+    """Removing a chart also repairs any pre-existing truncated ``parents``
+    on the charts that remain, so a dashboard written before this fix
+    self-heals the next time the MCP touches its layout."""
     truncated_layout = _tabbed_layout()
     # CHART-bbb (chart 20, survives the removal of chart 10) carries only
     # its immediate parent, as an earlier MCP write may have persisted.

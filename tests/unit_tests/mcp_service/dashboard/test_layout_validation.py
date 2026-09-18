@@ -405,8 +405,8 @@ def test_accepts_tabs_without_consuming_depth() -> None:
 def _tabs_layout_with_truncated_parents() -> dict[str, Any]:
     """A TABS-nested layout as an MCP write path might persist it.
 
-    Mirrors the story's repro: each component's ``parents`` holds only its
-    immediate parent instead of the full ancestor chain from ``ROOT_ID``.
+    Each component's ``parents`` holds only its immediate parent instead of
+    the full ancestor chain from ``ROOT_ID``.
     """
     return {
         "DASHBOARD_VERSION_KEY": "v2",

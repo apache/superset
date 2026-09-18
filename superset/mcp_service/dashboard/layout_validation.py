@@ -337,11 +337,15 @@ def rebuild_parent_chains(layout: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(root, dict):
         return layout
 
+    root_children = root.get("children")
+    if not isinstance(root_children, list):
+        root_children = []
+
     rebuilt = dict(layout)
     visited: set[str] = {_ROOT_ID}
     stack: list[tuple[str, list[str]]] = [
         (child_id, [_ROOT_ID])
-        for child_id in reversed(root.get("children") or [])
+        for child_id in reversed(root_children)
         if isinstance(child_id, str)
     ]
     while stack:

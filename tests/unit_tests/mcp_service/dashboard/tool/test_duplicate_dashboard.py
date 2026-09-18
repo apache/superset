@@ -250,11 +250,10 @@ async def test_duplicate_repairs_truncated_source_parents(
     mock_find_by_id: Mock,
     mcp_server: object,
 ) -> None:
-    """Regression test for SC-121314: a source dashboard whose stored
-    ``parents`` are truncated (e.g. from before this repair existed, or from
-    a non-MCP writer) is copied with full ancestor chains rebuilt from
-    ``ROOT_ID``, so the duplicate doesn't inherit empty native-filter
-    ``chartsInScope``."""
+    """A source dashboard whose stored ``parents`` are truncated (e.g. from
+    before this repair existed, or from a non-MCP writer) is copied with full
+    ancestor chains rebuilt from ``ROOT_ID``, so the duplicate doesn't inherit
+    empty native-filter ``chartsInScope``."""
     truncated_positions = {
         "DASHBOARD_VERSION_KEY": "v2",
         "ROOT_ID": {"children": ["GRID_ID"], "id": "ROOT_ID", "type": "ROOT"},
