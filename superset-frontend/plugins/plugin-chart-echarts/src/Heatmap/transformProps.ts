@@ -266,10 +266,14 @@ export default function transformProps(
     metricLabel,
     xAxisColumnName,
   );
+  // Unlike the X-axis (often a temporal column that already arrives from
+  // the backend in a natural, e.g. chronological, order), the Y-axis
+  // groupby dimension has no such natural ordering to fall back on, so
+  // default it to ascending sort when the user hasn't chosen one.
   const sortedYAxisValues = sortAxisValues(
     yAxisValues,
     data,
-    sortYAxis,
+    sortYAxis ?? 'alpha_asc',
     metricLabel,
     yAxisColumnName,
   );
