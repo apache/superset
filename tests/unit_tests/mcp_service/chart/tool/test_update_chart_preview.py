@@ -20,6 +20,7 @@ Unit tests for update_chart_preview MCP tool
 """
 
 import importlib
+from contextlib import nullcontext
 from typing import Any
 from unittest.mock import Mock, patch
 
@@ -28,12 +29,16 @@ from fastmcp import Client
 
 from superset.extensions import feature_flag_manager
 from superset.mcp_service.app import mcp
-from superset.mcp_service.chart.chart_utils import map_big_number_config
+from superset.mcp_service.chart.chart_utils import (
+    map_big_number_config,
+    preserve_previous_adhoc_filters,
+)
 from superset.mcp_service.chart.schemas import (
     AxisConfig,
     BigNumberChartConfig,
     ColumnRef,
     FilterConfig,
+    GaugeChartConfig,
     InteractivePivotChartConfig,
     LegendConfig,
     TableChartConfig,
@@ -84,8 +89,137 @@ def _mock_dataset(id: int = 1) -> Mock:
     return dataset
 
 
+@patch.object(
+    update_chart_preview_module,
+    "event_logger",
+    new=Mock(log_context=lambda **kwargs: nullcontext()),
+)
+@patch.object(update_chart_preview_module, "validate_and_compile")
+@patch.object(update_chart_preview_module, "has_dataset_access", return_value=True)
+@patch("superset.daos.dataset.DatasetDAO.find_by_id")
+@patch.object(update_chart_preview_module, "analyze_chart_semantics")
+@patch.object(update_chart_preview_module, "analyze_chart_capabilities")
+@patch.object(update_chart_preview_module, "generate_explore_link")
+@patch.object(update_chart_preview_module, "_get_previous_form_data")
+@patch.object(update_chart_preview_module, "_find_dataset")
+def test_cached_gauge_update_preserves_controls_and_compiles(
+    mock_find_dataset,
+    mock_get_previous_form_data,
+    mock_generate_explore_link,
+    mock_capabilities,
+    mock_semantics,
+    mock_find_by_id,
+    unused_access_mock,
+    mock_validate_and_compile,
+    mock_auth,
+) -> None:
+    """Cached Gauge iteration preserves omissions and validates runtime output."""
+    mock_find_dataset.return_value = _mock_dataset(id=3)
+    mock_find_by_id.return_value = _mock_dataset(id=3)
+    mock_get_previous_form_data.return_value = {
+        "viz_type": "gauge_chart",
+        "datasource": "3__table",
+        "metric": "old_sla",
+        "groupby": ["team"],
+        "font_size": 19,
+        "number_format": ",.1f",
+        "show_pointer": False,
+        "_mcp_dashboard_time_filter_subject": "event_time",
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "expressionType": "SIMPLE",
+                "subject": "event_time",
+                "operator": "TEMPORAL_RANGE",
+                "comparator": "No filter",
+            },
+            {
+                "clause": "WHERE",
+                "expressionType": "SIMPLE",
+                "subject": "event_time",
+                "operator": "TEMPORAL_RANGE",
+                "comparator": "Last week",
+            },
+        ],
+    }
+    cached_filters = mock_get_previous_form_data.return_value["adhoc_filters"]
+    cached_filters.insert(0, dict(cached_filters[0]))
+    mock_generate_explore_link.return_value = (
+        "http://localhost:8088/explore/?form_data_key=new_key"
+    )
+    mock_capabilities.return_value = None
+    mock_semantics.return_value = None
+    mock_validate_and_compile.return_value = Mock(success=True, warnings=[])
+    request = UpdateChartPreviewRequest(
+        form_data_key="old_key",
+        dataset_id=3,
+        config=GaugeChartConfig(
+            chart_type="gauge",
+            metric={"name": "new_sla", "saved_metric": True},
+            max_val=120,
+            temporal_column=None,
+        ),
+    )
+
+    result = update_chart_preview_module.update_chart_preview(
+        request=request, ctx=Mock()
+    )
+
+    assert result["success"] is True, result
+    generated = mock_generate_explore_link.call_args.args[1]
+    assert generated["metric"] == "new_sla"
+    assert generated["groupby"] == ["team"]
+    assert generated["font_size"] == 19
+    assert generated["show_pointer"] is False
+    assert generated["max_val"] == 120
+    assert result["form_data"] == generated
+    assert mock_validate_and_compile.call_args.kwargs["run_compile_check"] is True
+
+    assert [
+        f["comparator"]
+        for f in generated["adhoc_filters"]
+        if f["operator"] == "TEMPORAL_RANGE"
+    ] == ["Last week"]
+
+
 class TestUpdateChartPreview:
     """Tests for update_chart_preview MCP tool."""
+
+    @pytest.mark.parametrize("redirect", [False, True])
+    def test_oauth_errors_include_response_versions(
+        self, redirect: bool, mock_auth: Mock
+    ) -> None:
+        """OAuth error branches retain the common response contract."""
+        from superset.exceptions import OAuth2Error, OAuth2RedirectError
+
+        error = (
+            OAuth2RedirectError(
+                "https://example.com/oauth",
+                "tab-1",
+                "https://example.com/redirect",
+            )
+            if redirect
+            else OAuth2Error("token refresh failed")
+        )
+        request = UpdateChartPreviewRequest(
+            dataset_id=1,
+            config=TableChartConfig(
+                chart_type="table",
+                columns=[ColumnRef(name="country")],
+            ),
+        )
+
+        with patch.object(
+            update_chart_preview_module, "_find_dataset", side_effect=error
+        ):
+            result = update_chart_preview_module.update_chart_preview(
+                request=request,
+                ctx=Mock(),
+            )
+
+        assert result["success"] is False
+        assert result["schema_version"] == "2.0"
+        assert result["api_version"] == "v1"
 
     @pytest.mark.asyncio
     async def test_update_chart_preview_request_structure(self):
@@ -616,7 +750,7 @@ class TestUpdateChartPreview:
             ]
         }
 
-        update_chart_preview_module._preserve_previous_adhoc_filters(
+        preserve_previous_adhoc_filters(
             new_form_data,
             previous_form_data,
         )
@@ -649,12 +783,31 @@ class TestUpdateChartPreview:
             "subject": "ds",
         }
 
-        update_chart_preview_module._preserve_previous_adhoc_filters(
+        preserve_previous_adhoc_filters(
             new_form_data,
             {"adhoc_filters": [cached_temporal_filter]},
         )
 
         assert new_form_data["adhoc_filters"] == [cached_temporal_filter]
+
+    def test_preserves_filters_with_distinct_comparators(self) -> None:
+        """Filters that differ only by value are not deduplicated."""
+        previous_filter = {
+            "clause": "WHERE",
+            "comparator": 2020,
+            "expressionType": "SIMPLE",
+            "operator": ">",
+            "subject": "year",
+        }
+        generated_filter = {**previous_filter, "comparator": 2021}
+        new_form_data = {"adhoc_filters": [generated_filter]}
+
+        preserve_previous_adhoc_filters(
+            new_form_data,
+            {"adhoc_filters": [previous_filter]},
+        )
+
+        assert new_form_data["adhoc_filters"] == [previous_filter, generated_filter]
 
     def test_replaces_cached_temporal_filter_when_column_changes(self) -> None:
         """A newly selected temporal column replaces the cached binding."""
@@ -682,7 +835,7 @@ class TestUpdateChartPreview:
         new_form_data: dict[str, Any] = {"adhoc_filters": [new_temporal_filter]}
         new_form_data["_mcp_dashboard_time_filter_subject"] = "created_at"
 
-        update_chart_preview_module._preserve_previous_adhoc_filters(
+        preserve_previous_adhoc_filters(
             new_form_data,
             {
                 "adhoc_filters": [region_filter, previous_temporal_filter],
@@ -713,7 +866,7 @@ class TestUpdateChartPreview:
             "_mcp_dashboard_time_filter_subject": "created_at",
         }
 
-        update_chart_preview_module._preserve_previous_adhoc_filters(
+        preserve_previous_adhoc_filters(
             new_form_data,
             {
                 "adhoc_filters": [previous_binding],
@@ -748,7 +901,7 @@ class TestUpdateChartPreview:
             previous_form_data = map_big_number_config(config, dataset_id=42)
             new_form_data = map_big_number_config(rebound_config, dataset_id=42)
 
-        update_chart_preview_module._preserve_previous_adhoc_filters(
+        preserve_previous_adhoc_filters(
             new_form_data,
             previous_form_data,
         )
@@ -777,7 +930,7 @@ class TestUpdateChartPreview:
         }
         new_form_data: dict[str, Any] = {}
 
-        update_chart_preview_module._preserve_previous_adhoc_filters(
+        preserve_previous_adhoc_filters(
             new_form_data,
             {
                 "adhoc_filters": [region_filter, previous_temporal_filter],
@@ -805,7 +958,7 @@ class TestUpdateChartPreview:
         }
 
         new_form_data: dict[str, Any] = {}
-        update_chart_preview_module._preserve_previous_adhoc_filters(
+        preserve_previous_adhoc_filters(
             new_form_data,
             {
                 "adhoc_filters": [generated_binding, user_filter],
@@ -843,7 +996,7 @@ class TestUpdateChartPreview:
             "_mcp_dashboard_time_filter_subject": "created_at",
         }
 
-        update_chart_preview_module._preserve_previous_adhoc_filters(
+        preserve_previous_adhoc_filters(
             new_form_data,
             {
                 "adhoc_filters": [previous_binding, unrelated_filter],
@@ -1245,9 +1398,9 @@ class TestUpdateChartPreviewValidation:
                 "update_chart_preview", {"request": request.model_dump()}
             )
 
-            assert result.data["success"] is False
-            assert result.data["chart"] is None
-            error = result.data["error"]
+            assert result.structured_content["success"] is False
+            assert result.structured_content["chart"] is None
+            error = result.structured_content["error"]
             assert isinstance(error, dict)
             assert error["error_code"] == "CHART_VALIDATION_FAILED"
             assert "sum_boys" in error["suggestions"]
@@ -1285,9 +1438,45 @@ class TestUpdateChartPreviewValidation:
                 "update_chart_preview", {"request": request.model_dump()}
             )
 
-            assert result.data["success"] is False
-            assert result.data["chart"] is None
-            error = result.data["error"]
+            assert result.structured_content["success"] is False
+            assert result.structured_content["chart"] is None
+            error = result.structured_content["error"]
             assert isinstance(error, dict)
             assert error["error_type"] == "DatasetNotAccessible"
             mock_create_form_data.assert_not_called()
+
+
+@pytest.mark.parametrize("allowed", [True, False])
+def test_previous_form_data_uses_existing_explore_access_gate(allowed: bool) -> None:
+    """Cached config retrieval retains Explore's resource-access check."""
+    from superset.commands.dataset.exceptions import DatasetAccessDeniedError
+    from superset.utils.core import DatasourceType
+
+    cached_form_data = '{"viz_type": "gantt_chart", "category": "task"}'
+    state = {
+        "owner": None,
+        "datasource_id": 7,
+        "datasource_type": "table",
+        "chart_id": 12,
+        "form_data": cached_form_data,
+    }
+    with (
+        patch(
+            "superset.commands.explore.form_data.get.app",
+            Mock(config={"EXPLORE_FORM_DATA_CACHE_CONFIG": {}}),
+        ),
+        patch("superset.commands.explore.form_data.get.cache_manager") as cache_manager,
+        patch(
+            "superset.commands.explore.form_data.utils.explore_check_access",
+            side_effect=None if allowed else DatasetAccessDeniedError(),
+        ) as check_access,
+    ):
+        cache_manager.explore_form_data_cache.get.return_value = state
+
+        result = update_chart_preview_module._get_previous_form_data("cached-key")
+
+    cache_manager.explore_form_data_cache.get.assert_called_once_with("cached-key")
+    check_access.assert_called_once_with(7, 12, DatasourceType.TABLE)
+    assert result == (
+        {"viz_type": "gantt_chart", "category": "task"} if allowed else None
+    )

@@ -162,8 +162,8 @@ test('renders extra checkboxes when type is time series', async () => {
   expect(
     screen.queryByRole('button', { name: 'Hide Line' }),
   ).not.toBeInTheDocument();
-  userEvent.click(screen.getAllByText('Formula')[0]);
-  userEvent.click(screen.getByText('Time series'));
+  await userEvent.click(screen.getAllByText('Formula')[0]);
+  await userEvent.click(screen.getByText('Time series'));
   expect(
     await screen.findByRole('button', { name: 'Show Markers' }),
   ).toBeInTheDocument();
@@ -183,8 +183,8 @@ test('enables apply and ok buttons', async () => {
   expect(nameInput).toBeInTheDocument();
   expect(formulaInput).toBeInTheDocument();
 
-  userEvent.type(nameInput, 'Name');
-  userEvent.type(formulaInput, '2x');
+  await userEvent.type(nameInput, 'Name');
+  await userEvent.type(formulaInput, '2x');
 
   await waitFor(() => {
     expect(screen.getByRole('button', { name: 'Apply' })).toBeEnabled();
@@ -195,7 +195,7 @@ test('enables apply and ok buttons', async () => {
 test('triggers addAnnotationLayer when apply button is clicked', async () => {
   const addAnnotationLayer = jest.fn();
   await waitForRender({ name: 'Test', value: '2x', addAnnotationLayer });
-  userEvent.click(screen.getByRole('button', { name: 'Apply' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Apply' }));
   expect(addAnnotationLayer).toHaveBeenCalled();
 });
 
@@ -203,7 +203,7 @@ test('triggers addAnnotationLayer and close when ok button is clicked', async ()
   const addAnnotationLayer = jest.fn();
   const close = jest.fn();
   await waitForRender({ name: 'Test', value: '2x', addAnnotationLayer, close });
-  userEvent.click(screen.getByRole('button', { name: 'Confirm' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Confirm' }));
   expect(addAnnotationLayer).toHaveBeenCalled();
   expect(close).toHaveBeenCalled();
 });
@@ -211,7 +211,7 @@ test('triggers addAnnotationLayer and close when ok button is clicked', async ()
 test('triggers close when cancel button is clicked', async () => {
   const close = jest.fn();
   await waitForRender({ close });
-  userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
   expect(close).toHaveBeenCalled();
 });
 
@@ -224,7 +224,7 @@ test('triggers removeAnnotationLayer and close when remove button is clicked', a
     removeAnnotationLayer,
     close,
   });
-  userEvent.click(screen.getByRole('button', { name: 'Remove' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Remove' }));
   expect(removeAnnotationLayer).toHaveBeenCalled();
   expect(close).toHaveBeenCalled();
 });
@@ -233,12 +233,12 @@ test('fetches Superset annotation layer options', async () => {
   await waitForRender({
     annotationType: ANNOTATION_TYPES_METADATA.EVENT.value,
   });
-  userEvent.click(
+  await userEvent.click(
     screen.getByRole('combobox', { name: 'Annotation source type' }),
   );
-  userEvent.click(screen.getByText('Superset annotation'));
+  await userEvent.click(screen.getByText('Superset annotation'));
   expect(await screen.findByText('Annotation layer')).toBeInTheDocument();
-  userEvent.click(
+  await userEvent.click(
     screen.getByRole('combobox', { name: 'Annotation layer value' }),
   );
   expect(await screen.findByText('Chart A')).toBeInTheDocument();
@@ -249,12 +249,12 @@ test('fetches chart options', async () => {
   await waitForRender({
     annotationType: ANNOTATION_TYPES_METADATA.EVENT.value,
   });
-  userEvent.click(
+  await userEvent.click(
     screen.getByRole('combobox', { name: 'Annotation source type' }),
   );
-  userEvent.click(screen.getByText('Table'));
+  await userEvent.click(screen.getByText('Table'));
   expect(await screen.findByText('Chart')).toBeInTheDocument();
-  userEvent.click(
+  await userEvent.click(
     screen.getByRole('combobox', { name: 'Annotation layer value' }),
   );
   expect(await screen.findByText('Chart A')).toBeInTheDocument();
@@ -276,7 +276,7 @@ test('hides the Superset annotation source without annotation read access', asyn
     annotationType: ANNOTATION_TYPES_METADATA.EVENT.value,
     canReadAnnotation: false,
   });
-  userEvent.click(
+  await userEvent.click(
     screen.getByRole('combobox', { name: 'Annotation source type' }),
   );
   expect(await screen.findByText('Table')).toBeInTheDocument();
@@ -310,7 +310,7 @@ test('keeps a saved native layer intact without annotation read access', async (
   ).toBeInTheDocument();
 
   // The saved reference is still valid: re-applying preserves it as is.
-  userEvent.click(screen.getByRole('button', { name: 'Apply' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Apply' }));
   expect(addAnnotationLayer).toHaveBeenCalledWith(
     expect.objectContaining({
       sourceType: 'NATIVE',
@@ -354,10 +354,10 @@ test('lets a saved native layer switch to a permitted source', async () => {
     canReadAnnotation: false,
   });
 
-  userEvent.click(
+  await userEvent.click(
     screen.getByRole('combobox', { name: 'Annotation source type' }),
   );
-  userEvent.click(await screen.findByText('Table'));
+  await userEvent.click(await screen.findByText('Table'));
 
   // The chart selector takes over, enabled.
   expect(await screen.findByText('Chart')).toBeInTheDocument();
@@ -367,7 +367,7 @@ test('lets a saved native layer switch to a permitted source', async () => {
 
   // Reopen the source dropdown: it re-renders from the new options, and the
   // native option is gone for good.
-  userEvent.click(
+  await userEvent.click(
     screen.getByRole('combobox', { name: 'Annotation source type' }),
   );
   await waitFor(() =>
@@ -448,7 +448,7 @@ test('renders slice configuration for a chart that has no generated query contex
     expect(await screen.findByText(/title column/i)).toBeInTheDocument();
 
     // The column options come from the saved `params` form data.
-    userEvent.click(
+    await userEvent.click(
       screen.getByRole('combobox', { name: 'Annotation layer time column' }),
     );
     expect(await screen.findByTitle('country')).toBeInTheDocument();
@@ -726,51 +726,51 @@ test('Disable apply button if formula is incorrect', async () => {
   const applyButton = screen.getByRole('button', { name: 'Apply' });
   const okButton = screen.getByRole('button', { name: 'Confirm' });
 
-  userEvent.type(formulaInput, 'x+1');
+  await userEvent.type(formulaInput, 'x+1');
   expect(formulaInput).toHaveValue('x+1');
   await waitFor(() => {
     expect(okButton).toBeEnabled();
     expect(applyButton).toBeEnabled();
   });
 
-  userEvent.clear(formulaInput);
+  await userEvent.clear(formulaInput);
   await waitFor(() => {
     expect(formulaInput).toHaveValue('');
   });
-  userEvent.type(formulaInput, 'y = x*2+1');
+  await userEvent.type(formulaInput, 'y = x*2+1');
   expect(formulaInput).toHaveValue('y = x*2+1');
   await waitFor(() => {
     expect(okButton).toBeEnabled();
     expect(applyButton).toBeEnabled();
   });
 
-  userEvent.clear(formulaInput);
+  await userEvent.clear(formulaInput);
   await waitFor(() => {
     expect(formulaInput).toHaveValue('');
   });
-  userEvent.type(formulaInput, 'y+1');
+  await userEvent.type(formulaInput, 'y+1');
   expect(formulaInput).toHaveValue('y+1');
   await waitFor(() => {
     expect(okButton).toBeDisabled();
     expect(applyButton).toBeDisabled();
   });
 
-  userEvent.clear(formulaInput);
+  await userEvent.clear(formulaInput);
   await waitFor(() => {
     expect(formulaInput).toHaveValue('');
   });
-  userEvent.type(formulaInput, 'x+');
+  await userEvent.type(formulaInput, 'x+');
   expect(formulaInput).toHaveValue('x+');
   await waitFor(() => {
     expect(okButton).toBeDisabled();
     expect(applyButton).toBeDisabled();
   });
 
-  userEvent.clear(formulaInput);
+  await userEvent.clear(formulaInput);
   await waitFor(() => {
     expect(formulaInput).toHaveValue('');
   });
-  userEvent.type(formulaInput, 'y = z+1');
+  await userEvent.type(formulaInput, 'y = z+1');
   expect(formulaInput).toHaveValue('y = z+1');
   await waitFor(() => {
     expect(okButton).toBeDisabled();

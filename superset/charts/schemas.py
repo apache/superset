@@ -48,6 +48,7 @@ from superset.utils.core import (
     PostProcessingBoxplotWhiskerType,
     PostProcessingContributionOrientation,
 )
+from superset.utils.pandas_postprocessing.utils import PROPHET_TIME_GRAIN_MAP
 
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
@@ -71,6 +72,27 @@ def get_time_grain_choices() -> Any:
         }.keys()
         if i
     ]
+
+
+def validate_time_grain_sqla(value: Any) -> None:
+    """Ensure the time grain is supported by the configured engine specs."""
+    choices = get_time_grain_choices()
+    validate.OneOf(
+        choices=choices,
+        error=_("Must be one of: {choices}."),
+    )(value)
+
+
+def get_prophet_time_grain_choices() -> list[str]:
+    """Get the time grains Prophet forecasting can actually resolve.
+
+    Deliberately narrower than :func:`get_time_grain_choices`: ``prophet()``
+    resolves a grain through the static ``PROPHET_TIME_GRAIN_MAP``, so an
+    operator-configured ``TIME_GRAIN_ADDONS`` key has no pandas frequency to
+    resolve to. Advertising one here would document a forecast the API
+    cannot serve.
+    """
+    return list(PROPHET_TIME_GRAIN_MAP)
 
 
 # Fallback upper bound for the number of Prophet forecast periods when the
@@ -329,7 +351,7 @@ class ChartPostSchema(Schema):
     uuid = fields.UUID(allow_none=True)
 
 
-class ChartPutSchema(Schema):
+class ChartPutSchema(utils.DiscardIsManagedExternallyMixin, Schema):
     """
     Schema to update or patch a chart
     """
@@ -385,7 +407,6 @@ class ChartPutSchema(Schema):
     certification_details = fields.String(
         metadata={"description": certification_details_description}, allow_none=True
     )
-    is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True, validate=utils.validate_external_url)
     tags = fields.List(fields.Integer(metadata={"description": tags_description}))
     uuid = fields.UUID(allow_none=True)
@@ -738,15 +759,28 @@ class ChartDataSortOptionsSchema(ChartDataPostProcessingOperationOptionsSchema):
     Sort operation config.
     """
 
-    columns = fields.Dict(
+    is_sort_index = fields.Boolean(
         metadata={
-            "description": "columns by by which to sort. The key specifies the column "
-            "name, value specifies if sorting in ascending order.",
-            "example": {"country": True, "gender": False},
+            "description": "Whether to sort by the index rather than by column values.",
+            "example": True,
         },
-        required=True,
     )
-    aggregates = ChartDataAggregateConfigField()
+    by = fields.Raw(
+        # TODO: add correct union type once supported by Marshmallow
+        metadata={
+            "description": "Name, or list of names, of the columns to sort by. "
+            "Ignored when `is_sort_index` is set.",
+            "example": "country",
+        },
+    )
+    ascending = fields.Raw(
+        # TODO: add correct union type once supported by Marshmallow
+        metadata={
+            "description": "Sort ascending (the default) or descending. A list of "
+            "booleans may be given to set the direction per entry in `by`.",
+            "example": True,
+        },
+    )
 
 
 class ChartDataContributionOptionsSchema(ChartDataPostProcessingOperationOptionsSchema):
@@ -778,7 +812,7 @@ class ChartDataProphetOptionsSchema(ChartDataPostProcessingOperationOptionsSchem
             "[ISO 8601](https://en.wikipedia.org/wiki/ISO_8601#Durations) durations.",
             "example": "P1D",
         },
-        validate=validate.OneOf(choices=get_time_grain_choices()),
+        validate=validate.OneOf(choices=get_prophet_time_grain_choices()),
         required=True,
     )
     periods = fields.Integer(
@@ -826,13 +860,20 @@ class ChartDataProphetOptionsSchema(ChartDataPostProcessingOperationOptionsSchem
             "example": False,
         },
     )
-    monthly_seasonality = fields.Raw(
+    daily_seasonality = fields.Raw(
         # TODO: add correct union type once supported by Marshmallow
         metadata={
-            "description": "Should monthly seasonality be applied. "
+            "description": "Should daily seasonality be applied. "
             "An integer value will specify Fourier order of seasonality, `None` will "
             "automatically detect seasonality.",
             "example": False,
+        },
+    )
+    index = fields.String(
+        metadata={
+            "description": "Name of the column holding the x-axis data. Defaults to "
+            "`__timestamp`.",
+            "example": "__timestamp",
         },
     )
 
@@ -1167,7 +1208,7 @@ class ChartDataExtrasSchema(Schema):
             "[ISO 8601](https://en.wikipedia.org/wiki/ISO_8601#Durations) durations.",
             "example": "P1D",
         },
-        validate=validate.OneOf(choices=get_time_grain_choices()),
+        validate=validate_time_grain_sqla,
         allow_none=True,
     )
     instant_time_comparison_range = fields.String(

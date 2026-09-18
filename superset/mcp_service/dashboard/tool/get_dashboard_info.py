@@ -24,7 +24,7 @@ about a specific dashboard.
 
 import logging
 from datetime import datetime, timezone
-from typing import Any
+from typing import cast
 
 from fastmcp import Context
 from sqlalchemy.orm import subqueryload
@@ -105,7 +105,7 @@ def _lookup_dashboard(
 )
 async def get_dashboard_info(
     request: GetDashboardInfoRequest, ctx: Context
-) -> dict[str, Any] | DashboardError:
+) -> DashboardInfo | DashboardError:
     """
     Get dashboard metadata by ID, UUID, slug, or dashboard permalink.
 
@@ -249,9 +249,12 @@ async def get_dashboard_info(
             ):
                 effective_select_columns.append("filter_state")
 
-            return result.model_dump(
-                mode="json",
-                context={"select_columns": effective_select_columns},
+            return cast(
+                DashboardInfo,
+                result.model_dump(
+                    mode="json",
+                    context={"select_columns": effective_select_columns},
+                ),
             )
         else:
             await ctx.warning(
