@@ -36,6 +36,7 @@ from superset.mcp_service.utils.token_utils import (
     _truncate_strings,
     _truncate_strings_recursive,
     CHARS_PER_TOKEN,
+    COMMITTED_WRITE_SPECS,
     COMMITTED_WRITE_TOOLS,
     estimate_response_tokens,
     estimate_token_count,
@@ -457,15 +458,59 @@ class TestCommittedWriteToolsSet:
         assert "update_chart" in COMMITTED_WRITE_TOOLS
 
     def test_does_not_contain_read_only_tools(self) -> None:
+        """Read-only tools commit nothing, so an oversized response is safe
+        to hard-block: there is no completed write for a retry to replay."""
         assert "get_chart_info" not in COMMITTED_WRITE_TOOLS
         assert "list_charts" not in COMMITTED_WRITE_TOOLS
         assert "execute_sql" not in COMMITTED_WRITE_TOOLS
+
+    def test_contains_update_dashboard(self) -> None:
+        """update_dashboard commits (db.session.commit(), before it builds
+        UpdateDashboardResponse) just as update_chart does, so it satisfies
+        the same invariant and must get the same protection -- otherwise an
+        oversized response hard-errors after the dashboard was already
+        written, and a retrying client replays the mutation."""
+        assert "update_dashboard" in COMMITTED_WRITE_TOOLS
+
+    def test_identifying_fields_are_per_tool(self) -> None:
+        """The protected field cannot be a single hardcoded name.
+
+        Protecting 'chart' on a dashboard response would protect nothing:
+        the field that carries the write confirmation differs per tool, so
+        each spec names its own.
+        """
+        assert COMMITTED_WRITE_SPECS["update_chart"].identifying_fields == frozenset(
+            {"chart"}
+        )
+        assert COMMITTED_WRITE_SPECS[
+            "update_dashboard"
+        ].identifying_fields == frozenset({"dashboard"})
+        assert COMMITTED_WRITE_SPECS[
+            "update_dataset_metric"
+        ].identifying_fields == frozenset({"metric"})
+
+    def test_scalar_identity_tools_protect_nothing(self) -> None:
+        """No truncation phase drops a top-level scalar, so a response whose
+        identity is scalars needs no protected field at all -- delete_chart's
+        deleted_id survives even the nuclear phase untouched."""
+        assert COMMITTED_WRITE_SPECS["delete_chart"].identifying_fields == frozenset()
+        assert COMMITTED_WRITE_SPECS["create_dataset"].identifying_fields == frozenset()
+
+    def test_reports_success_tracks_the_response_model(self) -> None:
+        """Consulted only when the payload is unparseable, to decide whether
+        synthesizing ``success`` confirms the write or invents a field the
+        schema never declares. GenerateChartResponse has one;
+        UpdateDashboardResponse does not."""
+        assert COMMITTED_WRITE_SPECS["update_chart"].reports_success is True
+        assert COMMITTED_WRITE_SPECS["update_dashboard"].reports_success is False
 
 
 class TestStringFieldTruncationToolsMap:
     """Test the STRING_FIELD_TRUNCATION_TOOLS constant."""
 
     def test_get_chart_sql_maps_to_sql_field(self) -> None:
+        """The map names the field to bisect: get_chart_sql's payload is
+        dominated by ``sql``, which is what truncation has to cut down."""
         assert STRING_FIELD_TRUNCATION_TOOLS["get_chart_sql"] == "sql"
 
 

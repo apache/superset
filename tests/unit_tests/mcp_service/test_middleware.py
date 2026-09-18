@@ -803,6 +803,144 @@ class TestResponseSizeGuardMiddleware:
         assert "committed" not in note
 
     @pytest.mark.asyncio
+    async def test_update_dashboard_committed_write_is_not_hard_blocked(
+        self,
+    ) -> None:
+        """A committed update_dashboard write must never surface as ToolError.
+
+        update_dashboard commits (``db.session.commit()``) before it builds
+        UpdateDashboardResponse, so by the time the size guard runs the
+        dashboard is already written -- the same invariant that puts
+        update_chart on this path. Hard-blocking here would report a
+        completed write as a failure and let a retrying client replay it.
+        """
+        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+
+        context = MagicMock()
+        context.message.name = "update_dashboard"
+        context.message.arguments = {"identifier": 42}
+
+        dashboard_state = {"dashboard_title": "Original"}
+
+        async def call_next_committing_write(_ctx: Any) -> dict[str, Any]:
+            # Mirrors the real tool: the commit happens here, before the
+            # middleware ever sees the (oversized) response.
+            dashboard_state["dashboard_title"] = "Q1 Revenue"
+            return {
+                "dashboard": {
+                    "id": 42,
+                    "uuid": "dash-uuid",
+                    "dashboard_title": "Q1 Revenue",
+                    "url": "/superset/dashboard/42/",
+                },
+                "dashboard_url": "/superset/dashboard/42/",
+                "changed_fields": ["dashboard_title"],
+                "error": None,
+                "position_json": {f"key_{i}": f"value_{i}" for i in range(200)},
+            }
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+        ):
+            result = await middleware.on_call_tool(context, call_next_committing_write)
+
+        assert dashboard_state["dashboard_title"] == "Q1 Revenue"
+        assert isinstance(result, dict)
+        assert result["dashboard"]["id"] == 42
+        assert result.get("_response_truncated") is True
+
+    @pytest.mark.asyncio
+    async def test_update_dashboard_identifying_field_survives_nuclear_phase(
+        self,
+    ) -> None:
+        """The protected field must follow the tool, not a hardcoded 'chart'.
+
+        Phase 5 empties every unprotected dict, so protecting 'chart' on a
+        dashboard response would protect nothing and clear the very field
+        that says which dashboard was written.
+        """
+        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+
+        context = MagicMock()
+        context.message.name = "update_dashboard"
+        context.message.arguments = {"identifier": 7}
+
+        large_response: dict[str, Any] = {
+            "dashboard": {
+                "id": 7,
+                "uuid": "dash-uuid",
+                "dashboard_title": "Wide Dashboard",
+            },
+            "dashboard_url": "/superset/dashboard/7/",
+            "changed_fields": ["css"],
+            "error": None,
+        }
+        # Dicts small enough to escape Phase 4's summarizer (<= 20 keys) and
+        # strings short enough to escape the Phase 1/3 clippers, but together
+        # far over budget -- so truncation has to reach Phase 5, the only
+        # phase that would empty the 'dashboard' dict.
+        for index in range(6):
+            large_response[f"filter_scope_{index}"] = {
+                f"key_{i}": "v" * 100 for i in range(20)
+            }
+        call_next = AsyncMock(return_value=large_response)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        assert isinstance(result, dict)
+        # The write confirmation survived the destructive phases intact.
+        assert result["dashboard"]["id"] == 7
+        assert result["dashboard"]["dashboard_title"] == "Wide Dashboard"
+
+    @pytest.mark.asyncio
+    async def test_minimal_response_adds_no_fields_the_schema_lacks(
+        self,
+    ) -> None:
+        """The minimal confirmation must not invent chart-shaped fields.
+
+        UpdateDashboardResponse declares no ``chart``, ``explore_url`` or
+        ``success``; synthesizing them would hand the caller a payload its
+        own output schema does not describe.
+        """
+        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+
+        context = MagicMock()
+        context.message.name = "update_dashboard"
+        context.message.arguments = {"identifier": 7}
+
+        large_response = {
+            "dashboard": {"id": 7, "dashboard_title": "D" * 40000},
+            "dashboard_url": "/superset/dashboard/7/",
+            "changed_fields": ["css"],
+            "error": None,
+        }
+        call_next = AsyncMock(return_value=large_response)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+            # Force the minimal-response fallback to be the path under test.
+            patch(
+                "superset.mcp_service.middleware.estimate_response_tokens",
+                side_effect=[600, 600],
+            ),
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        assert isinstance(result, dict)
+        for absent in ("chart", "explore_url", "success"):
+            assert absent not in result
+        # ...while still confirming which dashboard was written, bounded.
+        assert result["dashboard"]["id"] == 7
+        assert estimate_token_count(utils_json.dumps(result)) <= 500
+        assert "re-read the dashboard" in result["_truncation_notes"][0]
+
+    @pytest.mark.asyncio
     async def test_minimal_response_is_bounded_by_every_unbounded_field(
         self,
     ) -> None:

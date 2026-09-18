@@ -46,7 +46,7 @@ that risk.
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, NamedTuple, Union
 
 from pydantic import BaseModel
 from typing_extensions import TypeAlias
@@ -489,19 +489,91 @@ DATA_QUERY_TOOLS = frozenset(
     }
 )
 
-# Mutating tools whose transaction commits (via @transaction) before this
-# middleware ever inspects the response -- by the time an oversized response
-# is detected, the write already happened. Raising ToolError here would
-# report a completed write as a failure, and a retrying MCP client would
-# replay the mutation. These are truncated with the same field-level phases
-# as INFO_TOOLS (see ``_handle_oversized_response``), with the tool's
-# identifying field protected from the final "clear everything" phase so the
-# caller can always confirm what was written.
-COMMITTED_WRITE_TOOLS = frozenset(
-    {
-        "update_chart",
-    }
-)
+
+class CommittedWriteSpec(NamedTuple):
+    """Per-tool facts the size guard needs to confirm a committed write.
+
+    ``resource`` is the noun used in the truncation note that tells the
+    caller what to re-read.
+
+    ``identifying_fields`` are the top-level keys that carry the write
+    confirmation *as a list or dict*, and so have to be protected from the
+    destructive truncation phases. Only containers need naming here: phases 4
+    and 5 summarize dicts and empty collections, and nothing in
+    ``truncate_oversized_response`` ever drops a top-level scalar (phase 1
+    only clips long strings). A response whose identity is scalars -- e.g.
+    ``delete_chart``'s ``deleted_id``, ``create_dataset``'s ``id`` and
+    ``table_name`` -- therefore needs no protection and correctly maps to an
+    empty set.
+
+    ``reports_success`` records whether the tool's response model actually
+    has a ``success`` field. It is consulted only when the payload could not
+    be parsed at all, to decide whether synthesizing ``success: True`` would
+    confirm the write or invent a field the schema does not have.
+
+    ``TestCommittedWriteSpecsMatchToolSchemas`` checks every entry against the
+    registered output schemas, so this table cannot drift from the models.
+    """
+
+    resource: str
+    identifying_fields: frozenset[str]
+    reports_success: bool
+
+
+def _spec(
+    resource: str,
+    *identifying_fields: str,
+    reports_success: bool = False,
+) -> CommittedWriteSpec:
+    """Build a ``CommittedWriteSpec`` with the field set spelled inline."""
+    return CommittedWriteSpec(
+        resource=resource,
+        identifying_fields=frozenset(identifying_fields),
+        reports_success=reports_success,
+    )
+
+
+# Mutating tools whose transaction commits (via @transaction, or an explicit
+# ``db.session.commit()``) before this middleware ever inspects the response --
+# by the time an oversized response is detected, the write already happened.
+# Raising ToolError here would report a completed write as a failure, and a
+# retrying MCP client would replay the mutation. These are truncated with the
+# same field-level phases as INFO_TOOLS (see ``_handle_oversized_response``),
+# with the tool's identifying fields protected from the final "clear
+# everything" phase so the caller can always confirm what was written.
+#
+# This is every mutating MCP tool except three, each excluded for a reason
+# that is about the invariant above rather than about response size:
+#   - ``execute_sql`` commits against the *analytics* database, not Superset
+#     metadata, and already degrades gracefully via DATA_QUERY_TOOLS row
+#     truncation rather than reaching the hard-error path;
+#   - ``generate_explore_link`` and ``update_chart_preview`` persist nothing
+#     to the metadata database -- they only cache a form_data key -- so a
+#     retry re-caches rather than replaying a mutation.
+COMMITTED_WRITE_SPECS: Dict[str, CommittedWriteSpec] = {
+    "add_chart_to_existing_dashboard": _spec("dashboard", "dashboard"),
+    "create_dataset": _spec("dataset"),
+    "create_theme": _spec("theme", reports_success=True),
+    "create_virtual_dataset": _spec("dataset"),
+    "delete_chart": _spec("chart", reports_success=True),
+    "delete_dashboard": _spec("dashboard", reports_success=True),
+    "duplicate_dashboard": _spec("dashboard", "dashboard"),
+    "generate_chart": _spec("chart", "chart", reports_success=True),
+    "generate_dashboard": _spec("dashboard", "dashboard"),
+    "manage_dashboard_certification": _spec("dashboard"),
+    "manage_dashboard_owners": _spec("dashboard"),
+    "manage_dashboard_roles": _spec("dashboard"),
+    "manage_native_filters": _spec("dashboard"),
+    "remove_chart_from_dashboard": _spec("dashboard", "dashboard"),
+    "restore_chart": _spec("chart", reports_success=True),
+    "restore_dashboard": _spec("dashboard", reports_success=True),
+    "save_sql_query": _spec("saved query"),
+    "update_chart": _spec("chart", "chart", reports_success=True),
+    "update_dashboard": _spec("dashboard", "dashboard"),
+    "update_dataset_metric": _spec("dataset", "metric"),
+}
+
+COMMITTED_WRITE_TOOLS = frozenset(COMMITTED_WRITE_SPECS)
 
 # Tools whose oversized response is dominated by a single large string field
 # with no row/page/limit parameter the caller could add to shrink it (e.g.

@@ -54,7 +54,9 @@ from superset.mcp_service.constants import (
     DEFAULT_WARN_THRESHOLD_PCT,
 )
 from superset.mcp_service.utils.token_utils import (
+    COMMITTED_WRITE_SPECS,
     COMMITTED_WRITE_TOOLS,
+    CommittedWriteSpec,
     DATA_QUERY_TOOLS,
     estimate_response_tokens,
     format_size_limit_error,
@@ -87,6 +89,26 @@ _MINIMAL_FIELD_CHARS = 200
 # confirmation it is riding on. ``error`` mirrors ``message`` as a
 # backward-compatible alias, so both are kept.
 _MINIMAL_ERROR_FIELDS = ("error_type", "error", "message", "error_code", "details")
+
+# Scalar fields kept when a committed write's identifying object (a nested
+# ``chart``/``dashboard``/``metric`` dict) has to be reduced to fit. These are
+# the names across the info models that answer "what was written" --
+# everything else on them is either unbounded or irrelevant to that question.
+# ``is_unsaved_state`` is here because update_chart defaults to
+# ``generate_preview=True`` and then persists nothing, so it is the caller's
+# only in-band way to tell a cached preview from a persisted write.
+_MINIMAL_IDENTITY_FIELDS = (
+    "id",
+    "uuid",
+    "url",
+    "slice_name",
+    "dashboard_title",
+    "metric_name",
+    "table_name",
+    "dataset_name",
+    "label",
+    "is_unsaved_state",
+)
 
 
 def _sanitize_error_for_logging(error: Exception) -> str:
@@ -1492,11 +1514,12 @@ class ResponseSizeGuardMiddleware(Middleware):
         Last-resort fallback for COMMITTED_WRITE_TOOLS: reached only when
         even the nuclear phase of ``truncate_oversized_response`` can't bring
         the response under budget (in practice this should not happen, since
-        the protected identifying field alone is tiny). The underlying
+        the protected identifying fields alone are tiny). The underlying
         mutation already committed by the time this middleware runs, so this
         path must never raise -- it keeps only what confirms the write
         succeeded and drops everything else.
         """
+        spec = COMMITTED_WRITE_SPECS[tool_name]
         if (extracted := self._extract_payload_from_tool_result(response)) is not None:
             payload = extracted
         elif isinstance(response, dict):
@@ -1507,19 +1530,12 @@ class ResponseSizeGuardMiddleware(Middleware):
             f"Response for {tool_name} exceeded the size limit even after "
             "truncation; non-essential fields were dropped. The tool call "
             "itself completed and was not rolled back by this size limit -- "
-            "re-read the chart to see its full state."
+            f"re-read the {spec.resource} to see its full state."
         ]
-        minimal = {
-            "chart": payload.get("chart"),
-            "error": payload.get("error"),
-            "success": payload.get("success", True),
-            "explore_url": payload.get("explore_url"),
-            "schema_version": payload.get("schema_version"),
-            "api_version": payload.get("api_version"),
-            "_response_truncated": True,
-            "_truncation_notes": truncation_notes,
-        }
-        self._shrink_minimal_response(minimal)
+        minimal = self._select_confirmation_fields(payload, spec)
+        minimal["_response_truncated"] = True
+        minimal["_truncation_notes"] = truncation_notes
+        self._shrink_minimal_response(minimal, spec)
         logger.warning(
             "Response for %s could not fit under the size limit after full "
             "truncation (~%d tokens, limit %d); returning a minimal write "
@@ -1555,36 +1571,71 @@ class ResponseSizeGuardMiddleware(Middleware):
             return self._rewrap_as_tool_result(minimal, response)
         return minimal
 
-    def _shrink_minimal_response(self, minimal: dict[str, Any]) -> None:
+    @staticmethod
+    def _select_confirmation_fields(
+        payload: dict[str, Any], spec: CommittedWriteSpec
+    ) -> dict[str, Any]:
+        """Keep only the payload keys that confirm the write happened.
+
+        Selecting from the payload's *own* keys rather than a fixed list is
+        what makes this work for every committed-write tool. A dashboard
+        response has no ``chart``, ``explore_url`` or ``success`` to copy, and
+        synthesizing them would put fields on the response that its model
+        never declares. Conversely, the fields worth keeping differ per tool
+        (``explore_url`` for charts, ``dashboard_url`` for dashboards,
+        ``changed_fields`` for patches) and are all already-bounded scalars,
+        so "every scalar the tool returned" names them without a per-tool
+        list.
+
+        Containers other than the identifying fields are dropped outright:
+        they are precisely what pushed the response over the limit, and none
+        of them answers "what was written".
+        """
+        minimal: dict[str, Any] = {
+            key: value
+            for key, value in payload.items()
+            if key in spec.identifying_fields
+            or key == "error"
+            or not isinstance(value, (list, dict))
+        }
+        if spec.reports_success:
+            # An unparseable payload yields nothing to copy, but a tool whose
+            # schema has ``success`` must still say the write succeeded.
+            minimal.setdefault("success", True)
+        return minimal
+
+    def _shrink_minimal_response(
+        self, minimal: dict[str, Any], spec: CommittedWriteSpec
+    ) -> None:
         """Force ``minimal`` under the token limit, degrading fields in place.
 
         Every value here is copied from the *untruncated* payload, so a
         "minimal" response is only actually small once each unbounded field
         has been cut down:
 
-        - ``chart`` is reduced to identifying scalars, which include
-          ``is_unsaved_state``: update_chart defaults to
+        - each identifying field is a nested object (``chart``, ``dashboard``,
+          ``metric``) that is reduced to identifying scalars -- including
+          ``is_unsaved_state``, since update_chart defaults to
           ``generate_preview=True`` and then persists nothing, so that flag is
           the caller's only in-band way to tell a cached preview from a
           persisted write, and shrinking must not be what drops it;
-        - those scalars (``slice_name``, ``url``) are themselves free-form
-          strings, so they are clipped;
-        - ``explore_url`` is a free-form string the reduction above does not
-          reach, so it is clipped too;
-        - ``error`` is not a string at all in the shapes the tools return --
-          it is a nested error model that arrives here as a dict -- so it gets
-          the same identifying-scalars treatment as ``chart`` rather than a
-          plain clip (see ``_clip_error``).
+        - those scalars (``slice_name``, ``dashboard_title``, ``url``) are
+          themselves free-form strings, so they are clipped;
+        - the remaining top-level values are scalars by construction (see
+          ``_select_confirmation_fields``), but a scalar can still be a
+          free-form string -- ``explore_url``, ``dashboard_url``, ``message``
+          -- so every one of them is clipped too;
+        - ``error`` is not a string at all in most of the shapes the tools
+          return -- it is often a nested error model that arrives here as a
+          dict -- so it gets the same identifying-scalars treatment as the
+          identifying fields rather than a plain clip (see ``_clip_error``).
 
-        The remaining keys are bounded already: ``success`` and
-        ``_response_truncated`` are booleans, ``schema_version`` and
-        ``api_version`` are short fixed constants, and ``_truncation_notes``
-        is fixed text. Reducing every unbounded field is what makes the result
-        bounded by construction: identifying scalars plus fixed-text notes. A failed
+        Reducing every unbounded field is what makes the result bounded by
+        construction: identifying scalars plus fixed-text notes. A failed
         measurement counts as "too big" so the payload is degraded rather
-        than optimistically returned, and the chart identity is never dropped
-        just because the estimator errored -- surfacing which chart was
-        written is the whole point of this fallback.
+        than optimistically returned, and the written object's identity is
+        never dropped just because the estimator errored -- surfacing what
+        was written is the whole point of this fallback.
 
         With an extremely small ``token_limit`` even the fully clipped form
         can exceed it. Returning it anyway is deliberate: this path exists so
@@ -1594,25 +1645,30 @@ class ResponseSizeGuardMiddleware(Middleware):
         if _fits(minimal, self.token_limit):
             return
 
-        chart = minimal.get("chart")
-        if isinstance(chart, dict):
-            minimal["chart"] = {
-                key: _clip_string(chart[key])
-                for key in ("id", "uuid", "slice_name", "url", "is_unsaved_state")
-                if key in chart
-            }
-            minimal["_truncation_notes"].append(
-                "Chart details reduced to identifying fields only."
-            )
-        else:
-            minimal["chart"] = None
-            minimal["_truncation_notes"].append(
-                "Chart details omitted entirely to fit the size limit."
-            )
+        for field in sorted(spec.identifying_fields):
+            if field not in minimal:
+                continue
+            value = minimal[field]
+            if isinstance(value, dict):
+                minimal[field] = {
+                    key: _clip_string(value[key])
+                    for key in _MINIMAL_IDENTITY_FIELDS
+                    if key in value
+                }
+                minimal["_truncation_notes"].append(
+                    f"'{field}' reduced to identifying fields only."
+                )
+            elif isinstance(value, list):
+                minimal[field] = []
+                minimal["_truncation_notes"].append(
+                    f"'{field}' list cleared to fit the size limit."
+                )
 
-        for key, clip in (("error", _clip_error), ("explore_url", _clip_string)):
-            current = minimal.get(key)
-            clipped = clip(current)
+        for key in list(minimal):
+            if key in spec.identifying_fields or key.startswith("_"):
+                continue
+            current = minimal[key]
+            clipped = _clip_error(current) if key == "error" else _clip_string(current)
             if clipped is not current:
                 minimal[key] = clipped
                 minimal["_truncation_notes"].append(
@@ -1651,15 +1707,13 @@ class ResponseSizeGuardMiddleware(Middleware):
                 truncated (never for COMMITTED_WRITE_TOOLS).
         """
         # Info tools and committed-write tools: field-level truncation
-        # (strings, lists, dicts). Committed-write tools protect their
-        # identifying field ('chart') so write confirmation survives even
-        # the most aggressive truncation phase.
+        # (strings, lists, dicts). Committed-write tools protect their own
+        # identifying fields -- 'chart', 'dashboard', 'metric', or none at
+        # all where the identity is top-level scalars the phases never drop
+        # -- so write confirmation survives even the most aggressive phase.
         if tool_name in INFO_TOOLS or tool_name in COMMITTED_WRITE_TOOLS:
-            protected_keys = (
-                frozenset({"chart"})
-                if tool_name in COMMITTED_WRITE_TOOLS
-                else frozenset()
-            )
+            spec = COMMITTED_WRITE_SPECS.get(tool_name)
+            protected_keys = spec.identifying_fields if spec else frozenset()
             truncated = self._try_truncate_info_response(
                 tool_name, response, estimated_tokens, protected_keys=protected_keys
             )
