@@ -58,6 +58,8 @@ export enum LocalStorageKeys {
   DashboardEditorShowOnlyMyCharts = 'dashboard__editor_show_only_my_charts',
   CommonResizableSidebarWidths = 'common__resizable_sidebar_widths',
   ChatState = 'chat__state',
+  SqllabLeftbarState = 'sqllab__leftbar_state',
+  SqllabLeftbarViewSettings = 'sqllab__leftbar_view_settings',
 }
 
 export type LocalStorageValues = {
@@ -80,6 +82,8 @@ export type LocalStorageValues = {
   dashboard__editor_show_only_my_charts: boolean;
   common__resizable_sidebar_widths: Record<string, number>;
   chat__state: { open: boolean; mode: string };
+  sqllab__leftbar_state: { activeViewId: string; contentCollapsed: boolean };
+  sqllab__leftbar_view_settings: { order: string[]; hidden: string[] };
 };
 
 /*
