@@ -26,7 +26,11 @@ import {
   type DashboardLayoutChart,
   type DashboardPositionJson,
 } from '../../helpers/api/dashboard';
-import { getDatasetByName } from '../../helpers/api/dataset';
+import {
+  apiPostVirtualDataset,
+  getDatasetByName,
+} from '../../helpers/api/dataset';
+import { getDatabaseByName } from '../../helpers/api/database';
 import { extractIdFromResponse } from '../../helpers/api/assertions';
 import { DashboardPage } from '../../pages/DashboardPage';
 import { GAQ } from '../../utils/constants';
@@ -572,4 +576,47 @@ export async function setupDashboardWithSelectFilter(
     filterBar: new DashboardFilterBar(page),
     value: bigNumberValueLocator(dashboard, chart.id),
   };
+}
+
+/**
+ * A virtual dataset whose query text is unique to this run.
+ *
+ * Chart and filter-value results are cached by query text, so a dataset over a
+ * shared physical table is cache-cold the first time it runs and a cache hit
+ * every time after -- and a test that means to exercise the async pipeline
+ * quietly stops doing so. The per-run SQL comment keeps the cache key unique,
+ * which is what lets a spec assert the async cycle on a first, unforced load.
+ *
+ * The dataset is registered for fixture cleanup.
+ *
+ * @param options.namePrefix - Prefix for the dataset name; the run suffix is appended.
+ * @param options.select - SELECT to wrap (default: `SELECT name FROM birth_names`).
+ * @returns The new dataset's id, and the suffix, for callers that name other
+ *   per-run objects consistently with it.
+ */
+export async function createCacheColdVirtualDataset(
+  page: Page,
+  testAssets: TestAssets,
+  testInfo: TestInfo,
+  options: { namePrefix: string; select?: string },
+): Promise<{ datasetId: number; uniqueSuffix: string }> {
+  const examplesDb = await getDatabaseByName(page, 'examples');
+  if (!examplesDb) {
+    throw new Error('examples database not found');
+  }
+
+  const uniqueSuffix = `${Date.now()}_${testInfo.parallelIndex}`;
+  const select = options.select ?? 'SELECT name FROM birth_names';
+  const datasetResp = await apiPostVirtualDataset(page, {
+    database: examplesDb.id,
+    schema: '',
+    table_name: `${options.namePrefix}_${uniqueSuffix}`,
+    sql: `${select} /* run:${uniqueSuffix} */`,
+    editors: [],
+  });
+  expect(datasetResp.ok()).toBe(true);
+  const datasetId = await extractIdFromResponse(datasetResp);
+  testAssets.trackDataset(datasetId);
+
+  return { datasetId, uniqueSuffix };
 }
