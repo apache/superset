@@ -25,6 +25,7 @@ from uuid import UUID
 import pytest
 from pytest_mock import MockerFixture
 
+from superset.connectors.sqla.models import SqlaTable
 from superset.mcp_service.chart.chart_utils import DatasetValidationResult
 from superset.mcp_service.chart.compile import CompileResult
 from superset.mcp_service.chart.datasource_resolver import ChartDatasource
@@ -360,3 +361,73 @@ async def test_uuid_rebind_entrypoint_preserves_identity_and_denial(
         assert response.error is not None
         assert response.error.error_type == "view_not_found"
         preview.assert_not_called()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("preview_mode", [False, True])
+async def test_table_source_only_rebind_retains_filters_in_both_modes(
+    mocker: MockerFixture, preview_mode: bool
+) -> None:
+    """A table-only rebind preserves retained filters without validating new roles."""
+    chart: Mock = _chart()
+    chart.uuid = None
+    form_data: dict[str, Any] = json.loads(chart.params)
+    form_data["adhoc_filters"] = [
+        {
+            "expressionType": "SIMPLE",
+            "subject": "legacy_dim",
+            "operator": "==",
+            "comparator": "value",
+            "clause": "WHERE",
+        }
+    ]
+    chart.params = json.dumps(form_data)
+    target: SqlaTable = SqlaTable(id=9, table_name="replacement")
+    mocker.patch.object(
+        update_chart_module, "find_chart_by_identifier", return_value=chart
+    )
+    mocker.patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=target)
+    mocker.patch(
+        "superset.mcp_service.auth.check_chart_data_access",
+        return_value=DatasetValidationResult(True, 3, "Original", []),
+    )
+    mocker.patch(
+        "superset.mcp_service.auth.get_user_from_request",
+        return_value=Mock(id=1, username="admin", roles=[], groups=[]),
+    )
+    mocker.patch("superset.utils.log.DBEventLogger.log")
+    preview: MagicMock = mocker.patch.object(
+        update_chart_module,
+        "_create_preview_url",
+        return_value=("http://localhost/explore/?form_data_key=key", "key", []),
+    )
+    write: MagicMock = mocker.patch("superset.commands.chart.update.UpdateChartCommand")
+    write.return_value.run.return_value = chart
+    ctx: MagicMock = MagicMock(
+        info=AsyncMock(),
+        debug=AsyncMock(),
+        warning=AsyncMock(),
+        error=AsyncMock(),
+        report_progress=AsyncMock(),
+    )
+    response: GenerateChartResponse = await update_chart_module.update_chart(
+        UpdateChartRequest(
+            identifier=12,
+            dataset_id=9,
+            generate_preview=preview_mode,
+            preview_formats=[],
+        ),
+        ctx=ctx,
+    )
+    assert response.success, response.error
+    if preview_mode:
+        assert preview.call_args.args[1]["adhoc_filters"] == form_data["adhoc_filters"]
+        assert preview.call_args.args[1]["datasource"] == "9__table"
+        write.assert_not_called()
+    else:
+        assert write.call_args.args[1] == {
+            "datasource_id": 9,
+            "datasource_type": "table",
+        }
+        preview.assert_not_called()
+    assert json.loads(chart.params) == form_data

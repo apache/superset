@@ -25,22 +25,37 @@ from pytest_mock import MockerFixture
 
 from superset.commands.chart.exceptions import ChartDataQueryFailedError
 from superset.commands.explore.form_data.parameters import CommandParameters
+from superset.daos.exceptions import DatasourceNotFound
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import SupersetSecurityException
 from superset.mcp_service.chart.compile import _compile_chart, CompileResult
 from superset.mcp_service.chart.preview_utils import generate_preview_from_form_data
 from superset.mcp_service.chart.schemas import (
+    ChartError,
+    ChartPreview,
     ColumnRef,
     GenerateChartRequest,
     GenerateChartResponse,
+    GetChartPreviewRequest,
+    URLPreview,
     XYChartConfig,
 )
 from superset.mcp_service.chart.tool.generate_chart import generate_chart
+from superset.mcp_service.chart.tool.get_chart_preview import (
+    _get_chart_preview_internal,
+)
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("save_chart", [False, True])
+@pytest.mark.parametrize(
+    "save_chart,generate_preview", [(False, True), (True, False), (True, True)]
+)
 @pytest.mark.parametrize("compile_success", [False, True])
 async def test_generate_view_never_looks_up_colliding_table(
-    mocker: MockerFixture, save_chart: bool, compile_success: bool
+    mocker: MockerFixture,
+    save_chart: bool,
+    generate_preview: bool,
+    compile_success: bool,
 ) -> None:
     """Pass saved metric names and the selected family to every output boundary."""
     view: Mock = Mock(id=1)
@@ -80,8 +95,19 @@ async def test_generate_view_never_looks_up_colliding_table(
         viz_type="echarts_timeseries_bar",
         uuid=UUID("60bbdebe-f30c-4699-88dc-cbe7355fb4c1"),
         datasource_id=1,
+        datasource_type="semantic_view",
     )
     create.return_value.run.return_value = chart
+    mocker.patch(
+        "superset.mcp_service.chart.tool.get_chart_preview.find_chart_by_identifier",
+        return_value=chart,
+    )
+    mocker.patch(
+        "superset.mcp_service.chart.tool.get_chart_preview.PreviewFormatGenerator.generate",
+        return_value=URLPreview(
+            preview_url="http://localhost/explore/?slice_id=91", width=800, height=600
+        ),
+    )
     mocker.patch("superset.extensions.db.session.refresh")
     mocker.patch(
         "superset.mcp_service.chart.schemas.serialize_chart_object", return_value=None
@@ -96,7 +122,7 @@ async def test_generate_view_never_looks_up_colliding_table(
     request: GenerateChartRequest = GenerateChartRequest(
         view_id=1,
         save_chart=save_chart,
-        generate_preview=not save_chart,
+        generate_preview=generate_preview,
         config=XYChartConfig(
             chart_type="xy",
             kind="bar",
@@ -117,8 +143,12 @@ async def test_generate_view_never_looks_up_colliding_table(
     assert compile_query.call_args.kwargs["datasource_type"] == "semantic_view"
     assert compile_query.call_args.args[1] == 1
     table_lookup.assert_not_called()
-    view.raise_for_access.assert_called_once()
+    assert view.raise_for_access.call_count == (
+        2 if save_chart and generate_preview else 1
+    )
     if save_chart:
+        if generate_preview:
+            assert "url" in response.previews
         properties: dict[str, Any] = create.call_args.args[0]
         assert properties["datasource_id"] == 1
         assert properties["datasource_type"] == "semantic_view"
@@ -196,3 +226,70 @@ def test_semantic_compile_failure_does_not_classify_using_colliding_table(
     )
     assert not result.success
     table.assert_not_called()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("access", ["allowed", "denied", "missing"])
+async def test_saved_view_preview_authorizes_its_own_source(
+    mocker: MockerFixture, access: str
+) -> None:
+    """Missing or denied views never borrow a colliding table's preview access."""
+    chart: Mock = Mock(
+        id=91,
+        slice_name="Revenue",
+        viz_type="table",
+        datasource_id=1,
+        datasource_type="semantic_view",
+        params="{}",
+    )
+    view: Mock = Mock(id=1)
+    view.name = "Revenue view"
+    if access == "denied":
+        view.raise_for_access.side_effect = SupersetSecurityException(
+            SupersetError(
+                message="denied",
+                level=ErrorLevel.ERROR,
+                error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+            )
+        )
+    lookup: MagicMock = mocker.patch(
+        "superset.daos.datasource.DatasourceDAO.get_datasource",
+        return_value=view,
+        side_effect=DatasourceNotFound() if access == "missing" else None,
+    )
+    table: MagicMock = mocker.patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    table.side_effect = AssertionError("Must not read the colliding table")
+    mocker.patch(
+        "superset.mcp_service.chart.tool.get_chart_preview.find_chart_by_identifier",
+        return_value=chart,
+    )
+    mocker.patch("superset.extensions.db.session.refresh")
+    mocker.patch("superset.utils.log.DBEventLogger.log")
+    render: MagicMock = mocker.patch(
+        "superset.mcp_service.chart.tool.get_chart_preview.PreviewFormatGenerator.generate",
+        return_value=URLPreview(
+            preview_url="http://localhost/explore/?slice_id=91", width=800, height=600
+        ),
+    )
+    ctx: MagicMock = MagicMock(
+        info=AsyncMock(),
+        debug=AsyncMock(),
+        warning=AsyncMock(),
+        error=AsyncMock(),
+        report_progress=AsyncMock(),
+    )
+    result: ChartPreview | ChartError = await _get_chart_preview_internal(
+        GetChartPreviewRequest(identifier=91, format="url"), ctx
+    )
+    lookup.assert_called_once()
+    table.assert_not_called()
+    if access == "allowed":
+        assert isinstance(result, ChartPreview)
+        render.assert_called_once()
+    else:
+        assert isinstance(result, ChartError)
+        assert result.error_type == "DatasetNotAccessible"
+        assert result.error == "Semantic view not found: 1."
+        render.assert_not_called()
+    if access != "missing":
+        view.raise_for_access.assert_called_once()

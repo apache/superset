@@ -1164,12 +1164,15 @@ async def update_chart(  # noqa: C901
                 if validation_error is not None:
                     return validation_error
             elif rebind_id is not None:
-                # Dataset-only rebind: verify the target dataset exists before
-                # caching. Skip compile check — no new config to execute.
+                # Table-only rebinds preserve legacy existence-only validation.
+                # Semantic transitions must validate the retained query roles.
                 with event_logger.log_context(action="mcp.update_chart.validation"):
                     validation_error = _validate_update_against_target(
                         None,
-                        preview_or_error,
+                        preview_or_error
+                        if DatasourceType.SEMANTIC_VIEW.value
+                        in (rebind_type, _chart_datasource_type(chart))
+                        else {},
                         chart,
                         rebind_id,
                         rebind_type,
