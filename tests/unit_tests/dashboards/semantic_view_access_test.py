@@ -36,11 +36,14 @@ from __future__ import annotations
 import uuid as uuid_lib
 from contextlib import contextmanager, ExitStack
 from types import SimpleNamespace
-from typing import Iterator
+from typing import Iterator, TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
 import pytest
 from sqlalchemy.orm.session import Session
+
+if TYPE_CHECKING:
+    from superset.security.manager import SupersetSecurityManager
 
 VIEW_PERM = "[test_layer].[test_view](id:1)"
 VIEW2_PERM = "[test_layer].[test_view_2](id:2)"
@@ -429,10 +432,83 @@ def test_gate_denies_dashboard_of_unresolvable_datasources(
 def test_gate_still_allows_empty_dashboard(
     access_fixtures: SimpleNamespace, app_context: None
 ) -> None:
-    """A dashboard with no charts stays accessible (pinned behaviour)."""
+    """A PUBLISHED dashboard with no charts stays accessible.
+
+    Chart-less dashboards can still carry markdown content, and published
+    is the signal that content is meant to be shared; the fixture is
+    published, so this pins the fallback's allow half (sc-120032)."""
     sm = _gate_sm()
     with _gate_patches(sm, granted_perms=set()):
         sm.raise_for_access(dashboard=access_fixtures.empty_dashboard)
+
+
+def test_gate_denies_unpublished_empty_dashboard(
+    access_fixtures: SimpleNamespace, app_context: None
+) -> None:
+    """sc-120032: an UNPUBLISHED chart-less dashboard is editor-only.
+
+    Previously any authenticated user could read it by URL even though it
+    appeared in no list (the list filter's fallback was already
+    published-only); markdown-only dashboards made that a content leak."""
+    # pylint: disable=import-outside-toplevel
+    from superset.exceptions import SupersetSecurityException
+    from superset.models.dashboard import Dashboard
+
+    unpublished_empty: Dashboard = Dashboard(
+        dashboard_title="unpublished empty",
+        slug="unpublished-empty",
+        published=False,
+        slices=[],
+    )
+    access_fixtures.session.add(unpublished_empty)
+    access_fixtures.session.flush()
+
+    sm: SupersetSecurityManager = _gate_sm()
+    with (
+        _gate_patches(sm, granted_perms=set()),
+        pytest.raises(SupersetSecurityException),
+    ):
+        sm.raise_for_access(dashboard=unpublished_empty)
+
+
+def test_gate_allows_published_table_dashboard_for_entitled_user(
+    access_fixtures: SimpleNamespace, app_context: None
+) -> None:
+    """Publication admits a datasource-entitled reader with no viewer subjects."""
+    sm: SupersetSecurityManager = _gate_sm()
+    with _gate_patches(sm, granted_perms={TABLE_PERM}):
+        sm.raise_for_access(dashboard=access_fixtures.regular_dashboard)
+
+
+def test_gate_denies_unpublished_dashboard_despite_datasource_grant(
+    access_fixtures: SimpleNamespace, app_context: None
+) -> None:
+    """sc-120031: an unpublished no-viewers dashboard denies datasource holders.
+
+    With viewers empty, a datasource-entitled non-editor used to be
+    admitted to an UNPUBLISHED dashboard through the fallback — so
+    removing the last viewer subject silently WIDENED access (the viewer
+    branch is published-gated but the fallback was not). The fallback now
+    requires published, matching the list filter's fallback branch."""
+    # pylint: disable=import-outside-toplevel
+    from superset.exceptions import SupersetSecurityException
+    from superset.models.dashboard import Dashboard
+
+    unpublished_regular: Dashboard = Dashboard(
+        dashboard_title="unpublished regular",
+        slug="unpublished-regular",
+        published=False,
+        slices=[access_fixtures.table_slice],
+    )
+    access_fixtures.session.add(unpublished_regular)
+    access_fixtures.session.flush()
+
+    sm: SupersetSecurityManager = _gate_sm()
+    with (
+        _gate_patches(sm, granted_perms={TABLE_PERM}),
+        pytest.raises(SupersetSecurityException),
+    ):
+        sm.raise_for_access(dashboard=unpublished_regular)
 
 
 def test_gate_denies_dashboard_with_datasource_less_chart(
