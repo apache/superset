@@ -24,6 +24,14 @@ assists people when migrating to a new version.
 
 ## Next
 
+- The `/register/` self-registration page and the login page's "Register" button
+  are only served for the auth types that support self-registration
+  (`AUTH_DB`, and `AUTH_OAUTH` for the page), and only when
+  `AUTH_USER_REGISTRATION` is enabled. LDAP, SAML and `AUTH_REMOTE_USER`
+  deployments have to set `AUTH_USER_REGISTRATION = True` so Flask-AppBuilder
+  provisions users on first login, which used to publish a public registration
+  form that Flask-AppBuilder has no handler for (submitting it returned a 404).
+  First-login provisioning is unchanged.
 - `superset deletion-retention force-purge` now exits **1** when the target is
   blocked by a deletion rule or is not found (the messages are unchanged), so a
   scripted compliance erasure cannot mistake a refusal for a completed purge.
