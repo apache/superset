@@ -27,6 +27,7 @@ from superset_core.semantic_layers.types import (
     Dimension,
     Filter,
     FilterValues,
+    Grains,
     GroupLimit,
     Metric,
     Operator,
@@ -208,6 +209,43 @@ def test_escaped_pattern_requires_proven_provider_semantics() -> None:
             pattern_semantics=cache_policy.PatternSemantics.sql_like(escape="\\"),
         )
         is True
+    )
+
+
+@pytest.mark.parametrize("cached_value,new_value", [(1, True), (True, 1)])
+def test_equal_boolean_and_integer_filters_are_not_contained(
+    cached_value: int | bool, new_value: int | bool
+) -> None:
+    """Dataclass equality must not bypass the typed implication check."""
+    cached: Filter = where(COUNTRY, Operator.EQUALS, cached_value)
+    requested: Filter = where(COUNTRY, Operator.EQUALS, new_value)
+    query: SemanticQuery
+    entry: CachedEntry
+    query, entry = _candidate(
+        cached_filters=frozenset({cached}), query_filters={requested}
+    )
+    assert not cache_policy.implies(requested, cached)
+    assert (
+        cache_policy.select_reuse(
+            query, entry, ContainmentCapabilities(comparisons=True)
+        )
+        is None
+    )
+
+
+def test_raw_filter_cannot_target_a_shared_grained_output_name() -> None:
+    """Even a raw variant cannot filter an output also representing bucket starts."""
+    grained: Dimension = replace(COUNTRY, grain=Grains.MONTH)
+    query: SemanticQuery
+    entry: CachedEntry
+    query, entry = _candidate(query_filters={where(COUNTRY, Operator.EQUALS, "GB")})
+    query = replace(query, dimensions=[COUNTRY, grained])
+    entry = replace(entry, dimensions=frozenset({COUNTRY, grained}))
+    assert (
+        cache_policy.select_reuse(
+            query, entry, ContainmentCapabilities(comparisons=True)
+        )
+        is None
     )
 
 

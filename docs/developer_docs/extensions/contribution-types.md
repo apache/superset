@@ -338,6 +338,15 @@ provably identical across principals and tenants; containment is bypassed for a
 that variation is invisible to the provider. Declare only filter capabilities
 whose provider semantics exactly match Superset's post-processing semantics.
 
+`comparisons=True` assumes binary (codepoint) string ordering and equality;
+`pattern_escape` assumes case-sensitive SQL LIKE. Providers using case-insensitive
+collations must not opt into these capabilities. These declarations apply to
+every string dimension exposed by the provider, not just the queried example.
+
+Narrowing a time range on a grained axis always requires a provider round-trip:
+leftover WHERE filters cannot be applied to cached bucket starts, including when
+the filter names the raw column of that axis.
+
 Operators enable both `SEMANTIC_LAYERS` and the development feature flag
 `SEMANTIC_LAYER_CONTAINMENT_CACHE`, and configure two backends:
 
@@ -389,8 +398,12 @@ counters, and unexpected `semantic_cache.containment.unsupported` or
 `semantic_cache.containment.invalid_configuration` at startup.
 Coordination socket/connect timeouts derive from `SEMANTIC_CACHE_COORDINATION_WAIT_SECONDS`
 (with a 1 ms minimum for zero wait); these bound individual I/O calls, not the whole request.
-Separate lease/value clients use a non-atomic immediate ownership recheck before writing;
-an atomic Lua fence is used only when both stores share the exact Redis client.
+Separate lease/value clients use a non-atomic immediate ownership recheck before writing.
+The atomic Lua fence is a same-client optimisation for explicitly injected clients.
+Default application initialization constructs a private coordination client, so
+ordinary deployments do not exercise that optimisation even when both caches
+point at the same Redis server. The non-atomic recheck path is the production
+path to validate under concurrent forced refreshes and narrowed time ranges.
 Define deployment-specific rollback thresholds before the
 canary; recommended triggers are any provider-result mismatch, sustained provider
 error regression, coordination failures above 1% of cache mutations, or lookup and

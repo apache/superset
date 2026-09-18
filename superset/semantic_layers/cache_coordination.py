@@ -161,6 +161,9 @@ class SemanticCacheCoordinator:
         renewal_thread.start()
         try:
             operation()
+        except Exception:  # pylint: disable=broad-exception-caught
+            logger.exception("Semantic cache mutation failed before lease release")
+            raise
         finally:
             renewal_stopped.set()
             renewal_thread.join()

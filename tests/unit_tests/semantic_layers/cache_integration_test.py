@@ -21,7 +21,8 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable
-from datetime import datetime
+from dataclasses import replace
+from datetime import date, datetime
 from unittest.mock import MagicMock
 
 import pandas as pd
@@ -38,7 +39,11 @@ from superset_core.semantic_layers.layer import (
 from superset_core.semantic_layers.types import (
     AggregationType,
     Dimension,
+    Filter,
+    Grains,
     Metric,
+    Operator,
+    PredicateType,
     SemanticQuery,
     SemanticRequest,
     SemanticResult,
@@ -62,6 +67,104 @@ from superset.semantic_layers.mapper import (
     ValidatedQueryObject,
 )
 from superset.utils.core import QueryObjectFilterClause
+from tests.unit_tests.semantic_layers.conftest import build_view_meta
+
+
+@pytest.mark.parametrize("narrow_start", [False, True])
+@pytest.mark.parametrize(
+    "grained_axis,grained_filter", [(True, True), (True, False), (False, False)]
+)
+def test_partial_month_ranges_bypass_grained_containment(
+    narrow_start: bool, grained_axis: bool, grained_filter: bool
+) -> None:
+    """Raw WHERE bounds cannot be applied to cached monthly bucket starts."""
+    raw: Dimension = Dimension("date", "date", pa.date32())
+    axis: Dimension = replace(raw, grain=Grains.MONTH) if grained_axis else raw
+    filter_column: Dimension = axis if grained_filter else raw
+    metric: Metric = Metric(
+        "revenue",
+        "revenue",
+        pa.float64(),
+        "SUM(revenue)",
+        aggregation=AggregationType.SUM,
+    )
+    start: date = date(2024, 1, 1)
+    stop: date = date(2024, 4, 1)
+    query: SemanticQuery = SemanticQuery(
+        dimensions=[axis],
+        metrics=[metric],
+        filters={
+            Filter(
+                PredicateType.WHERE,
+                filter_column,
+                Operator.GREATER_THAN_OR_EQUAL,
+                start,
+            ),
+            Filter(PredicateType.WHERE, filter_column, Operator.LESS_THAN, stop),
+        },
+    )
+    narrowed: SemanticQuery = replace(
+        query,
+        filters={
+            Filter(
+                PredicateType.WHERE,
+                filter_column,
+                Operator.GREATER_THAN_OR_EQUAL,
+                date(2024, 1, 15) if narrow_start else start,
+            ),
+            Filter(
+                PredicateType.WHERE,
+                filter_column,
+                Operator.LESS_THAN,
+                stop if narrow_start else date(2024, 3, 15),
+            ),
+        },
+    )
+    dates: list[date] = [date(2024, 1, 1), date(2024, 2, 1), date(2024, 3, 1)]
+    totals: list[float] = [100.0, 200.0, 300.0]
+    expected_dates: list[date] = dates
+    expected_totals: list[float] = (
+        [40.0, 200.0, 300.0] if narrow_start else [100.0, 200.0, 120.0]
+    )
+    if not grained_axis:
+        dates = [
+            date(2024, 1, 1),
+            date(2024, 1, 20),
+            date(2024, 2, 1),
+            date(2024, 3, 1),
+            date(2024, 3, 20),
+        ]
+        totals = [60.0, 40.0, 200.0, 120.0, 180.0]
+        expected_dates = dates[1:] if narrow_start else dates[:-1]
+        expected_totals = totals[1:] if narrow_start else totals[:-1]
+    broad: SemanticResult = SemanticResult(
+        requests=[], results=pa.table({"date": dates, "revenue": totals})
+    )
+    expected: SemanticResult = SemanticResult(
+        requests=[],
+        results=pa.table({"date": expected_dates, "revenue": expected_totals}),
+    )
+    repository: SemanticCacheRepository = SemanticCacheRepository(
+        _InMemoryCache(), _ImmediateCoordinator()
+    )
+    service: SemanticCacheService = SemanticCacheService(
+        SemanticCacheState.enabled(), repository
+    )
+    meta: ViewMeta = build_view_meta()
+    capabilities: ContainmentCapabilities = ContainmentCapabilities(comparisons=True)
+    assert not service.execute(
+        meta, query, lambda _: broad, capabilities=capabilities
+    ).cache_hit
+    provider: MagicMock = MagicMock(return_value=expected)
+    outcome: SemanticCacheOutcome = service.execute(
+        meta, narrowed, provider, capabilities=capabilities
+    )
+    assert outcome.cache_hit is not grained_axis
+    assert outcome.result.results.to_pydict() == expected.results.to_pydict()
+    if grained_axis:
+        provider.assert_called_once_with(narrowed)
+    else:
+        provider.assert_not_called()
 
 
 class _InMemoryCache:

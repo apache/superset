@@ -175,14 +175,22 @@ def implies(
     cached_op: Operator = cached_filter.operator
     new_value: object = new_filter.value
     cached_value: object = cached_filter.value
-    if new_op is cached_op and new_value == cached_value:
+    if (
+        new_op is cached_op
+        and _comparable(new_value, cached_value)
+        and new_value == cached_value
+    ):
         return True
     if cached_op is Operator.IS_NULL:
         return False
     if cached_op is Operator.IS_NOT_NULL:
         return new_op is not Operator.IS_NULL
     if cached_op is Operator.EQUALS:
-        return new_op is Operator.EQUALS and new_value == cached_value
+        return (
+            new_op is Operator.EQUALS
+            and _comparable(new_value, cached_value)
+            and new_value == cached_value
+        )
     if cached_op is Operator.IN:
         return _implies_membership(new_filter, cached_value)
     if cached_op in _RANGE_OPERATORS:
@@ -220,6 +228,11 @@ def _strict_filters(filters: frozenset[Filter]) -> frozenset[Filter]:
     )
 
 
+def _same_filter(left: Filter, right: Filter) -> bool:
+    """Require compatible literal types even when dataclass equality matches."""
+    return left == right and _comparable(left.value, right.value)
+
+
 def _filter_decision(
     query: SemanticQuery,
     entry: CachedEntry,
@@ -235,7 +248,10 @@ def _filter_decision(
     requested_where: frozenset[Filter] = requested - requested_strict
     cached_where: frozenset[Filter] = cached - cached_strict
     for cached_filter in cached_where:
-        if cached_filter in requested_where:
+        if any(
+            _same_filter(cached_filter, requested_filter)
+            for requested_filter in requested_where
+        ):
             continue
         if not any(
             _supports_filter(requested_filter, capabilities)
@@ -249,9 +265,21 @@ def _filter_decision(
         ):
             return None
 
-    leftovers: frozenset[Filter] = requested_where - cached_where
+    leftovers: frozenset[Filter] = frozenset(
+        filter_
+        for filter_ in requested_where
+        if not any(
+            _same_filter(filter_, cached_filter) for cached_filter in cached_where
+        )
+    )
+    # Cached time axes contain bucket starts, not the raw values used by WHERE.
+    grained_columns: set[str] = {
+        dimension.name for dimension in entry.dimensions if dimension.grain is not None
+    }
     if any(
         not isinstance(leftover.column, Dimension)
+        or leftover.column.grain is not None
+        or leftover.column.name in grained_columns
         or leftover.column not in entry.dimensions
         or not _supports_filter(leftover, capabilities)
         for leftover in leftovers
