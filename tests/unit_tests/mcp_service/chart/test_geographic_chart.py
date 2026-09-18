@@ -1080,3 +1080,34 @@ def test_decimal_geographic_metric_rejects_non_json_numbers(value: object) -> No
     assert isinstance(
         normalize_chart_query_result(result, form_for("world_map")), ChartError
     )
+
+
+@pytest.mark.parametrize("value", ["Curaçao", "Åland Islands", "Réunion", "Curacao"])
+def test_world_map_accepts_accented_country_names(value: str) -> None:
+    """Accented spellings resolve to their unaccented bundled alias."""
+    form = {**form_for("world_map"), "country_fieldtype": "name"}
+    result = result_for("world_map")
+    result["queries"][0]["data"][0][form["entity"]] = value
+    assert not isinstance(normalize_chart_query_result(result, form), ChartError)
+
+
+def test_world_map_accented_and_plain_names_resolve_alike() -> None:
+    """Both spellings reach one country, so the pair is a duplicate, not a miss."""
+    form = {**form_for("world_map"), "country_fieldtype": "name"}
+    result = result_for("world_map")
+    row = result["queries"][0]["data"][0]
+    result["queries"][0]["data"] = [
+        {**row, form["entity"]: "Curaçao"},
+        {**row, form["entity"]: "Curacao"},
+    ]
+    failure = normalize_chart_query_result(result, form)
+    assert isinstance(failure, ChartError)
+    assert "CUW" in failure.error
+
+
+def test_world_map_folding_still_rejects_unknown_values() -> None:
+    """Folding widens accepted spellings without inventing a country."""
+    form = {**form_for("world_map"), "country_fieldtype": "name"}
+    result = result_for("world_map")
+    result["queries"][0]["data"][0][form["entity"]] = "Cürãçaoland"
+    assert isinstance(normalize_chart_query_result(result, form), ChartError)
