@@ -867,6 +867,40 @@ describe('extractShowValueIndexes', () => {
       groupB: [2, 2], // series index 2 is top of groupB for both data points
     });
   });
+
+  test('should safely handle stack groups with prototype property names like __proto__ or constructor', () => {
+    const result = extractShowValueIndexes(
+      [
+        {
+          id: 'proto-series',
+          name: 'proto-series',
+          data: [
+            ['Jan', 10],
+            ['Feb', 20],
+          ],
+        },
+        {
+          id: 'ctor-series',
+          name: 'ctor-series',
+          data: [
+            ['Jan', 30],
+            ['Feb', 40],
+          ],
+        },
+      ],
+      {
+        stack: true,
+        onlyTotal: true,
+        isHorizontal: false,
+        seriesStackIds: ['__proto__', 'constructor'],
+      },
+    );
+
+    expect(Object.prototype.hasOwnProperty.call(result, '__proto__')).toBe(true);
+    expect(Object.prototype.hasOwnProperty.call(result, 'constructor')).toBe(true);
+    expect(result['__proto__']).toEqual([0, 0]);
+    expect(result['constructor']).toEqual([1, 1]);
+  });
 });
 
 describe('formatSeriesName', () => {

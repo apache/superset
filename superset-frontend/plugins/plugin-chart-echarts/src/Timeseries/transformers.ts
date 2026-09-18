@@ -475,14 +475,30 @@ export function transformSeries(
         const resolvedStackGroup = stackGroup ?? DEFAULT_STACK_GROUP;
         const stackShowValueIndexes = Array.isArray(showValueIndexes)
           ? showValueIndexes
-          : (showValueIndexes[resolvedStackGroup] ??
-            showValueIndexes[DEFAULT_STACK_GROUP] ??
-            []);
+          : (Object.prototype.hasOwnProperty.call(
+                showValueIndexes,
+                resolvedStackGroup,
+              ) && Array.isArray(showValueIndexes[resolvedStackGroup])
+            ? showValueIndexes[resolvedStackGroup]
+            : Object.prototype.hasOwnProperty.call(
+                  showValueIndexes,
+                  DEFAULT_STACK_GROUP,
+                ) && Array.isArray(showValueIndexes[DEFAULT_STACK_GROUP])
+              ? showValueIndexes[DEFAULT_STACK_GROUP]
+              : []);
         const resolvedTotalStackedValues = Array.isArray(totalStackedValues)
           ? totalStackedValues
-          : (totalStackedValues[resolvedStackGroup] ??
-            totalStackedValues[DEFAULT_STACK_GROUP] ??
-            []);
+          : (Object.prototype.hasOwnProperty.call(
+                totalStackedValues,
+                resolvedStackGroup,
+              ) && Array.isArray(totalStackedValues[resolvedStackGroup])
+            ? totalStackedValues[resolvedStackGroup]
+            : Object.prototype.hasOwnProperty.call(
+                  totalStackedValues,
+                  DEFAULT_STACK_GROUP,
+                ) && Array.isArray(totalStackedValues[DEFAULT_STACK_GROUP])
+              ? totalStackedValues[DEFAULT_STACK_GROUP]
+              : []);
         if (!onlyTotal) {
           if (
             numericValue >=

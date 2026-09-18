@@ -928,6 +928,128 @@ describe('Does transformProps transform series correctly', () => {
     expect(westLabels).toContain('300');
     expect(westLabels).toContain('');
   });
+
+  test('should fallback gracefully when stackDimension is stale (not in groupby)', () => {
+    const staleFormData: Partial<EchartsTimeseriesFormData> = {
+      viz_type: 'my_viz',
+      colorScheme: 'bnbColors',
+      datasource: '3__table',
+      granularity_sqla: 'ds',
+      metrics: ['sales', 'profit'],
+      groupby: ['dept'],
+      stackDimension: 'removed_dimension', // stale: not in groupby
+      stack: StackControlsValue.Stack,
+      onlyTotal: true,
+      showValue: true,
+    };
+
+    const staleQueriesData: ChartDataResponseResult[] = [
+      createTestQueryData(
+        [
+          {
+            __timestamp: BASE_TIMESTAMP,
+            'sales, HR': 10,
+            'profit, Sales': 20,
+          },
+        ],
+        {
+          colnames: ['__timestamp', 'sales, HR', 'profit, Sales'],
+          coltypes: [
+            GenericDataType.Temporal,
+            GenericDataType.Numeric,
+            GenericDataType.Numeric,
+          ],
+          label_map: {
+            'sales, HR': ['sales', 'HR'],
+            'profit, Sales': ['profit', 'Sales'],
+          },
+        },
+      ),
+    ];
+
+    const chartProps = createTestChartProps({
+      formData: staleFormData,
+      queriesData: staleQueriesData,
+    });
+
+    // Should not throw or mis-index into metrics label as stack
+    expect(() => transformProps(chartProps)).not.toThrow();
+  });
+
+  test('should safely handle dimension values matching prototype properties (__proto__, constructor)', () => {
+    const protoFormData: Partial<EchartsTimeseriesFormData> = {
+      viz_type: 'my_viz',
+      colorScheme: 'bnbColors',
+      datasource: '3__table',
+      granularity_sqla: 'ds',
+      metrics: ['sales', 'profit'],
+      groupby: ['category', 'region'],
+      stackDimension: 'category',
+      stack: StackControlsValue.Stack,
+      onlyTotal: true,
+      showValue: true,
+    };
+
+    const protoQueriesData: ChartDataResponseResult[] = [
+      createTestQueryData(
+        [
+          {
+            __timestamp: BASE_TIMESTAMP,
+            'sales, __proto__, East': 50,
+            'profit, constructor, East': 60,
+          },
+        ],
+        {
+          colnames: [
+            '__timestamp',
+            'sales, __proto__, East',
+            'profit, constructor, East',
+          ],
+          coltypes: [
+            GenericDataType.Temporal,
+            GenericDataType.Numeric,
+            GenericDataType.Numeric,
+          ],
+          label_map: {
+            'sales, __proto__, East': ['sales', '__proto__', 'East'],
+            'profit, constructor, East': ['profit', 'constructor', 'East'],
+          },
+        },
+      ),
+    ];
+
+    const chartProps = createTestChartProps({
+      formData: protoFormData,
+      queriesData: protoQueriesData,
+    });
+
+    const transformedSeries = transformProps(chartProps).echartOptions
+      .series as seriesType[];
+
+    expect(transformedSeries).toHaveLength(2);
+    const protoSeries = transformedSeries.find(s => s.name?.includes('__proto__'));
+    const ctorSeries = transformedSeries.find(s => s.name?.includes('constructor'));
+
+    expect(protoSeries).toBeDefined();
+    expect(ctorSeries).toBeDefined();
+
+    expect(protoSeries!.stack).toBe('__proto__');
+    expect(ctorSeries!.stack).toBe('constructor');
+
+    const protoLabel = protoSeries!.label.formatter({
+      value: protoSeries!.data[0],
+      dataIndex: 0,
+      seriesIndex: transformedSeries.indexOf(protoSeries!),
+    });
+    expect(protoLabel).toBe('50');
+
+    const ctorLabel = ctorSeries!.label.formatter({
+      value: ctorSeries!.data[0],
+      dataIndex: 0,
+      seriesIndex: transformedSeries.indexOf(ctorSeries!),
+    });
+    expect(ctorLabel).toBe('60');
+  });
 });
 
 describe('legend sorting', () => {
