@@ -36,6 +36,7 @@ from superset.utils.webdriver import (
     check_playwright_availability,
     PLAYWRIGHT_AVAILABLE,
     PLAYWRIGHT_INSTALL_MESSAGE,
+    PlaywrightError,
     WebDriverPlaywright,
 )
 
@@ -279,6 +280,36 @@ class TestWebDriverPlaywrightFallback:
         driver = WebDriverPlaywright("chrome")
         with pytest.raises(RuntimeError, match="Playwright is required"):
             driver.get_screenshot("http://example.com", "test-element", mock_user)
+
+    @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
+    @patch("superset.utils.webdriver._browser_manager")
+    @patch("superset.utils.webdriver.app")
+    def test_get_screenshot_surfaces_the_browser_launch_error(
+        self, mock_app, mock_browser_manager
+    ):
+        """Chromium is installed but refuses to start, here because the worker
+        runs as root without --no-sandbox. Every launch failure used to be
+        reported as a missing dependency, sending operators after a reinstall
+        that fixes nothing, so Playwright's own error is passed through instead
+        (#44244). A missing browser binary takes the same path: Playwright names
+        the expected path and the install command in its message, which is more
+        than Superset can say about it."""
+        mock_app.config = {
+            "WEBDRIVER_OPTION_ARGS": [],
+            "SCREENSHOT_LOCATE_WAIT": 10,
+            "SCREENSHOT_LOAD_WAIT": 10,
+        }
+        mock_browser_manager.get_browser.side_effect = PlaywrightError(
+            "BrowserType.launch: Running as root without --no-sandbox is not supported."
+        )
+
+        driver = WebDriverPlaywright("chrome")
+        with pytest.raises(RuntimeError) as excinfo:
+            driver.get_screenshot("http://example.com", "test-element")
+
+        message = str(excinfo.value)
+        assert "Running as root without --no-sandbox" in message
+        assert PLAYWRIGHT_INSTALL_MESSAGE not in message
 
     @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
     @patch("superset.utils.webdriver._browser_manager")
