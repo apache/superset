@@ -17,7 +17,12 @@
  * under the License.
  */
 import { t } from '@apache-superset/core/translation';
-import { ensureIsArray, validateNonEmpty } from '@superset-ui/core';
+import {
+  ensureIsArray,
+  getColumnLabel,
+  QueryFormColumn,
+  validateNonEmpty,
+} from '@superset-ui/core';
 import {
   ControlPanelConfig,
   ControlPanelsContainerProps,
@@ -49,13 +54,56 @@ function hasSeriesDimension({
   return ensureIsArray(controls?.series?.value).length > 0;
 }
 
+function getSeriesColumnLabel(
+  props: ControlPanelsContainerProps,
+): string | undefined {
+  const [series] = ensureIsArray(props.controls?.series?.value);
+  if (series == null) {
+    return undefined;
+  }
+  return getColumnLabel(series as QueryFormColumn);
+}
+
+function countUniqueSeriesValues(
+  props: ControlPanelsContainerProps,
+): number | undefined {
+  const seriesColumn = getSeriesColumnLabel(props);
+  if (!seriesColumn) {
+    return undefined;
+  }
+  const rows = (
+    props as {
+      chart?: { queriesResponse?: { data?: Record<string, unknown>[] }[] };
+    }
+  ).chart?.queriesResponse?.[0]?.data;
+  if (!rows) {
+    return undefined;
+  }
+  return new Set(
+    rows.map(row =>
+      row[seriesColumn] == null ? null : String(row[seriesColumn]),
+    ),
+  ).size;
+}
+
+function hasMultipleSeries(props: ControlPanelsContainerProps): boolean {
+  return (countUniqueSeriesValues(props) ?? 0) > 1;
+}
+
+function showColorByDirection(props: ControlPanelsContainerProps): boolean {
+  return !hasMultipleSeries(props);
+}
+
 function showDirectionColors(props: ControlPanelsContainerProps): boolean {
-  return props.controls?.color_by_direction?.value !== false;
+  return (
+    showColorByDirection(props) &&
+    props.controls?.color_by_direction?.value !== false
+  );
 }
 
 function showColorScheme(props: ControlPanelsContainerProps): boolean {
   return (
-    hasSeriesDimension(props) ||
+    hasMultipleSeries(props) ||
     props.controls?.color_by_direction?.value === false
   );
 }
@@ -191,6 +239,7 @@ const config: ControlPanelConfig = {
               label: t('Color by direction'),
               default: true,
               renderTrigger: true,
+              visibility: showColorByDirection,
               description: t(
                 'When enabled, increasing candles use the increase color and decreasing candles use the decrease color. Turn off to use one series color, with a filled body for increases and a hollow body for decreases.',
               ),
