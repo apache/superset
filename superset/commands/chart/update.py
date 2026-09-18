@@ -212,7 +212,7 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
                 # A type-only change still selects a different datasource namespace.
                 effective_id: int | None = (
                     datasource_id
-                    if datasource_id is not None
+                    if "datasource_id" in self._properties
                     else self._model.datasource_id
                 )
                 if effective_id is None:

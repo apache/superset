@@ -35,7 +35,9 @@ from superset.utils import json
 
 
 @pytest.mark.parametrize("datasource_type", ["table", "semantic_view"])
-@pytest.mark.parametrize("outcome", ["allowed", "denied", "missing", "no_id"])
+@pytest.mark.parametrize(
+    "outcome", ["allowed", "denied", "missing", "no_id", "null_id"]
+)
 def test_type_only_update_checks_retained_datasource(
     mocker: MockerFixture, datasource_type: str, outcome: str
 ) -> None:
@@ -67,9 +69,13 @@ def test_type_only_update_checks_retained_datasource(
         side_effect=_access_exc() if outcome == "denied" else None,
     )
     command: UpdateChartCommand = UpdateChartCommand(
-        1, {"datasource_type": datasource_type}
+        1,
+        {
+            "datasource_type": datasource_type,
+            **({"datasource_id": None} if outcome == "null_id" else {}),
+        },
     )
-    if outcome in {"missing", "no_id"}:
+    if outcome in {"missing", "no_id", "null_id"}:
         error: pytest.ExceptionInfo[ChartInvalidError]
         with pytest.raises(ChartInvalidError) as error:
             command.validate()
@@ -84,7 +90,7 @@ def test_type_only_update_checks_retained_datasource(
     else:
         command.validate()
         assert command._properties["datasource_name"] == "semantic name"
-    if outcome == "no_id":
+    if outcome in {"no_id", "null_id"}:
         lookup.assert_not_called()
     else:
         lookup.assert_called_once_with(42, datasource_type)
