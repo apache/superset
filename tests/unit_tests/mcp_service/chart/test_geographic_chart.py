@@ -1125,3 +1125,22 @@ def test_world_map_code_fields_reject_accented_labels(field: str, value: str) ->
     failure = normalize_chart_query_result(result, form)
     assert isinstance(failure, ChartError)
     assert "unrecognized" in failure.error
+
+
+@pytest.mark.parametrize(
+    "value,country",
+    [("Mön", "uk"), ("Cá", "usa")],
+)
+def test_region_code_formats_reject_accented_labels(value: str, country: str) -> None:
+    """Short region codes never fold, so a label cannot become another region."""
+    for format_ in ("abbreviation", "iso_3166_2"):
+        with pytest.raises(ValueError, match="unrecognized"):
+            resolve_region(value, country, format_)
+
+
+def test_region_names_still_fold_diacritics() -> None:
+    """Romanized spellings keep reaching the accented names in the geometry."""
+    assert resolve_region("Hokkaido", "japan", "name") == "JP-01"
+    assert resolve_region("Hokkaidō", "japan", "name") == "JP-01"
+    assert resolve_region("Kochi", "japan", "name") == "JP-39"
+    assert resolve_region("Kōchi", "japan", "name") == "JP-39"

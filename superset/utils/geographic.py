@@ -73,7 +73,13 @@ def resolve_region(value: object, country: str, region_format: str) -> str:
         for code, name in REGIONS[country]
     ]
     try:
-        return resolve_geographic_value(value, entries)
+        # Fold diacritics for region names only, so romanized spellings such as
+        # "Kochi" reach Japan's "Kōchi". The abbreviation and iso_3166_2 fields
+        # are too short to fold safely: an accented label like "Cá" would fold
+        # onto an unrelated region's code and resolve silently to that region.
+        return resolve_geographic_value(
+            value, entries, fold_diacritics=region_format == "name"
+        )
     except ValueError as exc:
         raise ValueError(
             f"{exc}; country={country}, region_format={region_format}. Correct "
