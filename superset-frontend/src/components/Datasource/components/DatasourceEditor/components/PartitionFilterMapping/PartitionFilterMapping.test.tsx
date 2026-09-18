@@ -281,6 +281,68 @@ test('the ordering checkbox reports back which column it belongs to', async () =
   expect(onMonotonicChange).toHaveBeenCalledWith('event_time', true);
 });
 
+test('editing the transform to the bare :value auto-declares it monotonic', () => {
+  // The identity transform provably preserves ordering, so typing it back in
+  // re-checks the box rather than leaving the owner to assert what cannot be
+  // false.
+  fetchMock.post(PREVIEW_URL, { result: { valid: true } });
+  const onMonotonicChange = jest.fn();
+
+  render(
+    <PartitionMappingSection
+      item={{ column_name: 'event_time', is_dttm: true }}
+      value="unix_timestamp(:value)"
+      datasource={{
+        id: 1,
+        main_dttm_col: 'event_time',
+        partition_column: 'dt_epoch',
+      }}
+      onMoveMappingHere={jest.fn()}
+      onRemoveMapping={jest.fn()}
+      onMonotonicChange={onMonotonicChange}
+    />,
+  );
+
+  fireEvent.change(screen.getByLabelText('Value transform'), {
+    target: { value: ':value' },
+  });
+
+  expect(onMonotonicChange).toHaveBeenCalledWith('event_time', true);
+});
+
+test('editing the transform away from :value clears the monotonic auto-check', () => {
+  // Monotonicity is a property of the expression, so once the transform is no
+  // longer the identity the prior auto-check must not linger on it.
+  fetchMock.post(PREVIEW_URL, { result: { valid: true } });
+  const onMonotonicChange = jest.fn();
+
+  render(
+    <PartitionMappingSection
+      item={{
+        column_name: 'event_time',
+        is_dttm: true,
+        partition_value_transform: ':value',
+        partition_transform_is_monotonic: true,
+      }}
+      value=":value"
+      datasource={{
+        id: 1,
+        main_dttm_col: 'event_time',
+        partition_column: 'dt_epoch',
+      }}
+      onMoveMappingHere={jest.fn()}
+      onRemoveMapping={jest.fn()}
+      onMonotonicChange={onMonotonicChange}
+    />,
+  );
+
+  fireEvent.change(screen.getByLabelText('Value transform'), {
+    target: { value: 'unix_timestamp(:value)' },
+  });
+
+  expect(onMonotonicChange).toHaveBeenCalledWith('event_time', false);
+});
+
 test('a non-temporal mapped column marks the transform required', () => {
   render(
     <PartitionMappingSection

@@ -35,6 +35,16 @@ import type {
 const JINJA_PATTERN = /\{\{|\{%|\{#/;
 
 /**
+ * The bare `:value` placeholder, i.e. the identity transform.
+ *
+ * It mirrors the filter bound unchanged, so it parses on every engine and is
+ * provably order-preserving -- editing nothing cannot make it non-monotonic.
+ * That is what lets it be both the universal pre-fill and the one transform the
+ * UI may auto-declare monotonic without asking.
+ */
+export const IDENTITY_TRANSFORM = ':value';
+
+/**
  * The column whose filters are mirrored.
  *
  * `partition_mapped_column` is an explicit override; `null` means "follow the
@@ -260,18 +270,24 @@ export function partitionRowState(
 /**
  * The transform to pre-fill when a column becomes the mapped one.
  *
- * Only temporal columns get one, and only when the engine supplies it:
- * `unix_timestamp(:value)` is Hive-family syntax and would not parse on
- * Postgres or BigQuery, so a wrong default is worse than none.
+ * A temporal column on an engine that advertises its own syntax gets that:
+ * `unix_timestamp(:value)` is Hive-family and would not parse on Postgres or
+ * BigQuery, so the engine default only applies where the engine supplies it.
+ * Every other case -- a non-temporal column, or a temporal one on an engine
+ * with no default -- falls back to the bare `:value` identity transform rather
+ * than an empty field. `:value` is a valid, working starting point (the mapped
+ * and partition columns often share a shape, so mirroring the bound unchanged
+ * is exactly right) and it is far easier for the owner to edit than to write
+ * from nothing.
  */
 export function defaultTransformFor(
   datasource: PartitionMappingDatasource,
   column: PartitionMappingColumn | undefined,
 ): string {
-  if (!column?.is_dttm) {
-    return '';
+  if (column?.is_dttm && datasource.partition_value_transform_default) {
+    return datasource.partition_value_transform_default;
   }
-  return datasource.partition_value_transform_default || '';
+  return IDENTITY_TRANSFORM;
 }
 
 /**
@@ -387,11 +403,18 @@ export function applyMappingMove<T extends PartitionMappingColumn>(
   nextTransform: string,
 ): T[] {
   const next = columns.find(column => column.column_name === nextColumnName);
+  const nextValue = next?.partition_value_transform || nextTransform || null;
   return withMappingOn(
     columns,
     nextColumnName,
-    next?.partition_value_transform || nextTransform || null,
-    Boolean(next?.partition_transform_is_monotonic),
+    nextValue,
+    // A fresh pre-fill of the identity `:value` may declare monotonicity for
+    // the owner, because that placeholder provably preserves ordering. Any
+    // other pre-fill (an engine default) is the owner's to declare, so leave
+    // whatever the column already carried.
+    nextValue === IDENTITY_TRANSFORM
+      ? true
+      : Boolean(next?.partition_transform_is_monotonic),
   );
 }
 
@@ -399,16 +422,15 @@ export function applyMappingMove<T extends PartitionMappingColumn>(
  * Columns updated for a mapping following the default datetime column.
  *
  * With no override the mapped column *is* `main_dttm_col`, so re-pointing that
- * column moves the mapping. What does *not* move is the value transform: it
- * states how one particular column relates to the partition column, and the
- * owner wrote it about the column they were looking at. Re-asserting it on a
- * different column turns mirroring on with an expression nobody checked against
- * it, and the rows it prunes are wrong without anything saying so.
+ * column moves the mapping whole rather than orphaning it: the transform and its
+ * ordering declaration travel to the new column, and the old column is left
+ * holding nothing that could come back to life if the default datetime column
+ * ever pointed at it again.
  *
- * So the mapping arrives inert on its new column, and the editor's existing
- * warning says a transform is still needed. The old column is left holding
- * nothing either -- a transform waiting there would come back to life the next
- * time the default datetime column pointed at it.
+ * A destination this list has no row for -- a calculated column, whose row never
+ * renders the transform editor -- carries nothing, and the mapping goes inert
+ * and says so. Writing a live transform onto a column the owner cannot see is
+ * the very thing this is here to prevent.
  */
 export function applyImplicitMappingMove<T extends PartitionMappingColumn>(
   columns: T[],
@@ -420,7 +442,15 @@ export function applyImplicitMappingMove<T extends PartitionMappingColumn>(
   if (previousColumnName === nextColumnName) {
     return columns;
   }
-  return clearMappingTransforms(columns);
+  const previous = columns.find(
+    column => column.column_name === previousColumnName,
+  );
+  return withMappingOn(
+    columns,
+    nextColumnName,
+    previous?.partition_value_transform ?? null,
+    Boolean(previous?.partition_transform_is_monotonic),
+  );
 }
 
 /**
@@ -442,25 +472,6 @@ export function nextMappedColumnOverride(
     return null;
   }
   return previousOverride ?? null;
-}
-
-/**
- * Columns updated for a newly designated partition column.
- *
- * The partition key is technical, so it defaults out of Explore's dimension and
- * filter pickers. Only the defaults are set -- an owner who wants the raw
- * column exposed can toggle it back, and clearing the partition column later
- * does not undo their choice.
- */
-export function applyPartitionColumnDefaults<T extends PartitionMappingColumn>(
-  columns: T[],
-  partitionColumnName: string,
-): T[] {
-  return columns.map(column =>
-    column.column_name === partitionColumnName
-      ? { ...column, filterable: false, groupby: false }
-      : column,
-  );
 }
 
 /**

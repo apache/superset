@@ -32,6 +32,7 @@ import {
 import { useDebouncedCommit } from './useDebouncedCommit';
 import { usePartitionMappingPreview } from './usePartitionMappingPreview';
 import {
+  IDENTITY_TRANSFORM,
   partitionRowState,
   previewOperatorFor,
   sampleValuesFor,
@@ -201,7 +202,16 @@ export default function PartitionMappingSection({
         </Flex>
         <Input
           value={transform}
-          onChange={event => onTransformChange(event.target.value)}
+          onChange={event => {
+            const next = event.target.value;
+            onTransformChange(next);
+            // Monotonicity is a property of the expression, so editing the
+            // transform re-opens the question. The identity `:value` provably
+            // preserves ordering and stays auto-declared; anything else is the
+            // owner's to declare, and editing away from `:value` must not leave
+            // a stale auto-check behind.
+            onMonotonicChange(columnName, next === IDENTITY_TRANSFORM);
+          }}
           // The commit is debounced and DatasourceModal's `buildPayload` reads
           // committed state only, so a finished edit has to be pushed out from
           // here: clicking Save blurs this input before the click lands.
