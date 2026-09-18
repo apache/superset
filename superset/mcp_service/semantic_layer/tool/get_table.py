@@ -536,8 +536,9 @@ async def get_table(
     relative expression. Additional filters can further constrain the range.
 
     Workflow:
-    1. list_metrics -> discover metrics and their compatible_dimensions
-    2. get_table -> query with chosen metrics and dimensions
+    1. list_metrics -> discover metrics
+    2. get_compatible_dimensions -> discover dimensions for the chosen metrics
+    3. get_table -> query with chosen metrics and dimensions
 
     Example (built-in):
     ```json
