@@ -149,6 +149,7 @@ def large_metric_catalog() -> Generator[MagicMock, None, None]:
     dataset: MagicMock = _make_dataset(1)
     dataset.metrics = [_make_metric(f"builtin_{i}") for i in range(20)]
     dataset.columns = [_make_column(f"column_{i}") for i in range(30)]
+    view_dao: MagicMock
     with _patched_dataset_search([dataset]) as (_, view_dao, _):
         view_dao.find_accessible.return_value = [view]
         view_dao.find_by_id.return_value = view
@@ -242,6 +243,7 @@ def test_embedding_cap_is_independent_of_configured_token_limit(
         ListMetricsRequest(include_compatible_dimensions=True, page_size=8).page_size
         == 8
     )
+    error: pytest.ExceptionInfo[ValidationError]
     with pytest.raises(ValidationError) as error:
         ListMetricsRequest(include_compatible_dimensions=True, page_size=9)
     message: str = str(error.value)
@@ -630,27 +632,72 @@ async def test_list_metrics_page_size_over_max_rejected(mcp_server: FastMCP) -> 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("page_size", [9, 25, 500])
-async def test_builtin_embedded_metrics_keep_normal_page_ceiling(
+async def test_builtin_embedded_metrics_reject_oversized_pages(
     mcp_server: FastMCP, page_size: int
 ) -> None:
-    """Built-in-only discovery is not subject to the external embedding cap."""
+    """Dataset scoping must not bypass the embedded page cap."""
     mock_ds: MagicMock = _make_dataset(42)
     with _patched_dataset_lookup(mock_ds):
         async with Client(mcp_server) as client:
-            result: Any = await client.call_tool(
-                "list_metrics",
-                {
-                    "request": {
-                        "dataset_id": 42,
-                        "page_size": page_size,
-                        "include_compatible_dimensions": True,
-                    }
-                },
-            )
-    data: dict[str, Any] = json.loads(result.content[0].text)
-    assert data["success"] is True
-    assert data["page_size"] == page_size
-    assert data["metrics"][0]["compatible_dimensions"]
+            with pytest.raises(ToolError, match="page_size <= 8"):
+                await client.call_tool(
+                    "list_metrics",
+                    {
+                        "request": {
+                            "dataset_id": 42,
+                            "page_size": page_size,
+                            "include_compatible_dimensions": True,
+                        }
+                    },
+                )
+
+
+@pytest.mark.asyncio
+async def test_builtin_embedded_metrics_realistic_token_bound(
+    mcp_server: FastMCP,
+) -> None:
+    """Twenty metrics with thirty columns require bounded, lossless pages."""
+    dataset: MagicMock = _make_dataset(42)
+    dataset.metrics = [_make_metric(f"builtin_{i}") for i in range(20)]
+    dataset.columns = [_make_column(f"column_{i}") for i in range(30)]
+    names: list[str] = []
+    page: int
+    metric: dict[str, Any]
+    with _patched_dataset_lookup(dataset):
+        async with Client(mcp_server) as client:
+            with pytest.raises(ToolError, match="page_size <= 8"):
+                await client.call_tool(
+                    "list_metrics",
+                    {
+                        "request": {
+                            "dataset_id": 42,
+                            "include_compatible_dimensions": True,
+                        }
+                    },
+                )
+            for page in (1, 2, 3):
+                result: Any = await client.call_tool(
+                    "list_metrics",
+                    {
+                        "request": {
+                            "dataset_id": 42,
+                            "include_compatible_dimensions": True,
+                            "page_size": 8,
+                            "page": page,
+                        }
+                    },
+                )
+                data: dict[str, Any] = json.loads(result.content[0].text)
+                assert data["success"] is True
+                assert data["total_count"] == 20
+                assert data["total_pages"] == 3
+                assert data["page_size"] == 8
+                assert len(data["metrics"]) == (4 if page == 3 else 8)
+                assert estimate_response_tokens(data) < DEFAULT_TOKEN_LIMIT
+                for metric in data["metrics"]:
+                    assert len(metric["compatible_dimensions"]) == 30
+                    names.append(metric["name"])
+    assert len(names) == len(set(names)) == 20
 
 
 @pytest.mark.parametrize("scope", [{}, {"view_id": 42}])

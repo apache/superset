@@ -115,8 +115,7 @@ class ListMetricsRequest(BaseModel):
         description=(
             "Embed compatible dimensions only when explicitly requested. "
             "Use get_compatible_dimensions for the full per-metric list. "
-            "When True, set page_size to at most 8 unless scoped to a built-in "
-            "dataset with dataset_id."
+            "When True, set page_size to at most 8, including built-in datasets."
         ),
     )
     page: int = Field(default=1, ge=1, description="1-based page number.")
@@ -129,12 +128,11 @@ class ListMetricsRequest(BaseModel):
         """Reject embedded pages that risk exceeding the MCP response guard."""
         if (
             self.include_compatible_dimensions
-            and self.dataset_id is None
             and self.page_size > EMBEDDED_DIMENSIONS_MAX_PAGE_SIZE
         ):
             raise ValueError(
                 "Embedded compatible dimensions require "
-                f"page_size <= {EMBEDDED_DIMENSIONS_MAX_PAGE_SIZE}: each external "
+                f"page_size <= {EMBEDDED_DIMENSIONS_MAX_PAGE_SIZE}: each "
                 "metric's dimension list can consume roughly 1–2k tokens or more, "
                 "and the MCP response guard uses "
                 "MCP_RESPONSE_SIZE_CONFIG['token_limit'] (~25k by default). "
