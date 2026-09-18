@@ -89,10 +89,10 @@ def download_path(job_id: UUID) -> str:
     polling frontend, which resolves it against its own origin (the one host
     the user is provably reachable at)."""
     path = DOWNLOAD_PATH.format(job_id=job_id)
-    app_root = current_app.config.get("APPLICATION_ROOT") or "/"
-    if app_root != "/" and not path.startswith(app_root):
-        path = app_root.rstrip("/") + path
-    return path
+    app_root = (current_app.config.get("APPLICATION_ROOT") or "/").rstrip("/")
+    # Prepend unconditionally: a ``startswith`` guard would drop a root that
+    # merely prefixes the API path, e.g. ``APPLICATION_ROOT="/api"``.
+    return f"{app_root}{path}" if app_root else path
 
 
 def build_download_url(job_id: UUID) -> str:
