@@ -594,13 +594,14 @@ const FiltersConfigForm = (
   );
 
   const hasPreFilter =
-    !!formFilter?.adhoc_filters ||
+    !!formFilter?.adhoc_filters?.length ||
     !!formFilter?.time_range ||
-    !!filterToEdit?.adhoc_filters?.length ||
-    !!filterToEdit?.time_range;
+    (!selectionsReset &&
+      (!!filterToEdit?.adhoc_filters?.length || !!filterToEdit?.time_range));
 
   const hasTimeGrainPreFilter = !!(
-    formFilterWithTimeGrains?.time_grains?.length || savedTimeGrains?.length
+    formFilterWithTimeGrains?.time_grains?.length ||
+    (!selectionsReset && savedTimeGrains?.length)
   );
 
   const hasEnableSingleValue =
@@ -985,6 +986,10 @@ const FiltersConfigForm = (
                               datasetDetails.semantic_selection_version,
                             column: undefined,
                             adhoc_filters: [],
+                            time_range: undefined,
+                            time_grains: [],
+                            preFilter: false,
+                            preFilterTimegrain: false,
                             granularity_sqla: undefined,
                             sortMetric: null,
                             defaultDataMask: {},
@@ -1298,6 +1303,7 @@ const FiltersConfigForm = (
                                     name={['filters', filterId, 'preFilter']}
                                   >
                                     <CollapsibleControl
+                                      key={`pre-filter-${selectionsReset}`}
                                       initialValue={hasPreFilter}
                                       title={t('Pre-filter available values')}
                                       tooltip={t(`Add filter clauses to control the filter's source query,
@@ -1380,7 +1386,8 @@ const FiltersConfigForm = (
                                             </StyledLabel>
                                           }
                                           initialValue={
-                                            filterToEdit?.time_range ||
+                                            (!selectionsReset &&
+                                              filterToEdit?.time_range) ||
                                             t('No filter')
                                           }
                                           required={!hasAdhoc}
@@ -1427,6 +1434,7 @@ const FiltersConfigForm = (
                                       ]}
                                     >
                                       <CollapsibleControl
+                                        key={`time-grain-filter-${selectionsReset}`}
                                         initialValue={hasTimeGrainPreFilter}
                                         title={t('Pre-filter available values')}
                                         tooltip={t(
@@ -1450,7 +1458,11 @@ const FiltersConfigForm = (
                                             filterId,
                                             'time_grains',
                                           ]}
-                                          initialValue={savedTimeGrains}
+                                          initialValue={
+                                            selectionsReset
+                                              ? undefined
+                                              : savedTimeGrains
+                                          }
                                           {...getFiltersConfigModalTestId(
                                             'time-grain-allowlist',
                                           )}

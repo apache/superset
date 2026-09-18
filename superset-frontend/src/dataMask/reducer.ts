@@ -77,6 +77,16 @@ export interface HydrateDataMaskAction {
   };
 }
 
+function getRestoredSelectionEvidence(
+  mask: DataMask | undefined,
+  version: string | undefined,
+): Partial<DataMask> {
+  // A restored value must not inherit the default's identity evidence.
+  return version && mask?.filterState && !mask.extraFormData
+    ? { extraFormData: {} }
+    : {};
+}
+
 function isChartCustomizationItem(item: unknown): item is ChartCustomization {
   return (
     typeof item === 'object' &&
@@ -162,12 +172,10 @@ function fillNativeFilters(
       ...getInitialDataMask(filter.id), // take initial data
       ...filter.defaultDataMask, // if something new came from BE - take it
       ...loaded,
-      // A restored value must not inherit the default's identity evidence.
-      ...(filter.targets?.[0]?.semantic_selection_version &&
-      loaded?.filterState &&
-      !loaded.extraFormData
-        ? { extraFormData: {} }
-        : {}),
+      ...getRestoredSelectionEvidence(
+        loaded,
+        filter.targets?.[0]?.semantic_selection_version,
+      ),
       ...(shouldRestoreDefault
         ? {
             filterState: filter.defaultDataMask?.filterState,
@@ -331,11 +339,10 @@ const dataMaskReducer = produce(
             ...getInitialDataMask(customizationFilterId),
             ...item.defaultDataMask,
             ...dataMask[customizationFilterId],
-            ...(item.targets?.[0]?.semantic_selection_version &&
-            dataMask[customizationFilterId]?.filterState &&
-            !dataMask[customizationFilterId]?.extraFormData
-              ? { extraFormData: {} }
-              : {}),
+            ...getRestoredSelectionEvidence(
+              dataMask[customizationFilterId],
+              item.targets?.[0]?.semantic_selection_version,
+            ),
           };
 
           if (

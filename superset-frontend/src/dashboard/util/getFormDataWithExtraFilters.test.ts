@@ -906,3 +906,65 @@ test.each([
     ).toBe('cube-member-id-v1');
   },
 );
+
+test.each([[42], ['Orders.count'], ['']])(
+  'a non-contributing customization does not add provenance: %j',
+  ignoredValue => {
+    const currentId = 'CHART_CUSTOMIZATION-current';
+    const ignoredId = 'CHART_CUSTOMIZATION-ignored';
+    const result = getFormDataWithExtraFilters({
+      ...mockArgs,
+      filters: {},
+      chart: {
+        ...mockChart,
+        form_data: {
+          ...mockChart.form_data,
+          datasource: '3__semantic_view',
+          viz_type: 'table',
+          metrics: ['Orders.count'],
+          semantic_selection_version: 'cube-member-id-v1',
+        },
+      },
+      dataMask: {
+        [currentId]: {
+          id: currentId,
+          filterState: { value: ['Orders.status'] },
+        },
+        [ignoredId]: { id: ignoredId, filterState: { value: [ignoredValue] } },
+      },
+      chartCustomizationItems: [
+        createChartCustomization({
+          id: currentId,
+          targets: [
+            {
+              datasetId: 3,
+              datasourceType: DatasourceType.SemanticView,
+              semantic_selection_version: 'cube-member-id-v1',
+            },
+          ],
+        }),
+        createChartCustomization({
+          id: ignoredId,
+          targets: [
+            { datasetId: 3, datasourceType: DatasourceType.SemanticView },
+          ],
+        }),
+      ],
+    });
+    expectGroupBy(result, ['Orders.status']);
+    expect(result).toMatchObject({
+      semantic_selection_sources: [
+        { datasource: '3__semantic_view', version: 'cube-member-id-v1' },
+        { datasource: '', version: null },
+      ],
+    });
+    // Actual dynamic-groupby masks still lack identity evidence.
+    expect(
+      buildQueryObject({
+        ...result,
+        datasource: '3__semantic_view',
+        viz_type: 'table',
+      } as QueryFormData).extras?.semantic_selection_version,
+    ).toBe('unverified-external-selections');
+  },
+);

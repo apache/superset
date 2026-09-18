@@ -372,14 +372,7 @@ function getMatchingGroupByCustomizations(
   });
 }
 
-function processGroupByCustomizations(
-  chartCustomizationItems: ChartCustomization[],
-  chart: ChartQueryPayload,
-  groupByState: Record<
-    string,
-    { selectedValues: string[]; hasInteracted: boolean }
-  >,
-): {
+type GroupByFormData = {
   groupby?: string[];
   x_axis?: string;
   series?: string;
@@ -388,9 +381,18 @@ function processGroupByCustomizations(
   source?: string;
   target?: string;
   groupbyColumns?: string[];
-} {
+};
+
+function processGroupByCustomizations(
+  chartCustomizationItems: ChartCustomization[],
+  chart: ChartQueryPayload,
+  groupByState: Record<
+    string,
+    { selectedValues: string[]; hasInteracted: boolean }
+  >,
+): { formData: GroupByFormData; appliedIds: Set<string> } {
   if (!chartCustomizationItems || chartCustomizationItems.length === 0) {
-    return {};
+    return { formData: {}, appliedIds: new Set() };
   }
 
   const matchingCustomizations = getMatchingGroupByCustomizations(
@@ -400,7 +402,7 @@ function processGroupByCustomizations(
 
   const chartType = chart.form_data?.viz_type;
   if (isChartWithoutGroupBy(chartType) || chartType === 'chord') {
-    return {};
+    return { formData: {}, appliedIds: new Set() };
   }
 
   const existingColumns = buildExistingColumnsSet(chart);
@@ -409,6 +411,7 @@ function processGroupByCustomizations(
 
   const groupByColumns: string[] = [];
   let heatmapColumnAdded = false;
+  const contributions = new Map<string, string[]>();
 
   matchingCustomizations.forEach(item => {
     if (!item.targets?.[0]) return;
@@ -437,6 +440,7 @@ function processGroupByCustomizations(
       return;
     }
 
+    const previousLength = groupByColumns.length;
     if (isSingleColumnDimensionChart(chartType)) {
       if (!heatmapColumnAdded && nonConflictingColumns.length > 0) {
         const firstColumn = nonConflictingColumns[0];
@@ -455,16 +459,27 @@ function processGroupByCustomizations(
         }
       });
     }
+    contributions.set(item.id, groupByColumns.slice(previousLength));
   });
 
-  const groupByFormData = applyChartSpecificGroupBy(
+  const groupByFormData: GroupByFormData = applyChartSpecificGroupBy(
     chartType,
     groupByColumns,
     existingGroupBy,
     xAxisColumn,
   );
 
-  return groupByFormData;
+  const appliedColumns = new Set<string>(Object.values(groupByFormData).flat());
+  return {
+    formData: groupByFormData,
+    appliedIds: new Set(
+      [...contributions]
+        .filter(([, columns]) =>
+          columns.some(column => appliedColumns.has(column)),
+        )
+        .map(([id]) => id),
+    ),
+  };
 }
 
 // this function merge chart's formData with dashboard filters value,
@@ -619,24 +634,14 @@ export default function getFormDataWithExtraFilters({
       item => item.filterType === 'chart_customization_dynamic_groupby',
     ) || [];
 
-  const groupByFormData = processGroupByCustomizations(
-    groupByCustomizations,
-    chart,
-    groupByState,
-  );
+  const { formData: groupByFormData, appliedIds: appliedGroupByIds } =
+    processGroupByCustomizations(groupByCustomizations, chart, groupByState);
 
   const customizationExtraFormData =
     customizationIds.length > 0
       ? getExtraFormData(dataMask, customizationIds)
       : {};
 
-  const appliedGroupByIds = new Set(
-    Object.keys(groupByFormData).length
-      ? getMatchingGroupByCustomizations(groupByCustomizations, chart)
-          .filter(item => groupByState[item.id]?.selectedValues.length)
-          .map(item => item.id)
-      : [],
-  );
   const formData: CachedFormDataWithExtraControls = {
     ...chart.form_data,
     chart_id: chart.id,

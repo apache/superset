@@ -1140,6 +1140,8 @@ test('semantic filter reset requires reselection and survives save and reopen', 
         column: { name: 'Orders.status' },
       },
     ],
+    time_range: 'Last week',
+    time_grains: ['P1D'],
     defaultDataMask: {
       filterState: { value: ['old default'] },
       extraFormData: {
@@ -1173,6 +1175,7 @@ test('semantic filter reset requires reselection and survives save and reopen', 
       screen.queryByText('Choose current semantic filter fields'),
     ).not.toBeInTheDocument(),
   );
+  expect(getCheckbox(PRE_FILTER_REGEX)).not.toBeChecked();
   expect(getCheckbox(DEFAULT_VALUE_REGEX)).not.toBeChecked();
   expect(screen.queryByText('old default')).not.toBeInTheDocument();
   await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
@@ -1202,6 +1205,8 @@ test('semantic filter reset requires reselection and survives save and reopen', 
       semantic_selection_version: 'cube-member-id-v1',
     },
   ]);
+  expect(reopened.time_range).toBeUndefined();
+  expect(reopened.time_grains).toBeUndefined();
   expect(reopened.defaultDataMask.filterState?.value).toBeUndefined();
   expect(reopened.defaultDataMask.extraFormData?.filters).toBeUndefined();
 

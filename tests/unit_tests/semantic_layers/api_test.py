@@ -16,12 +16,16 @@
 # under the License.
 
 import inspect
+import logging
 import uuid as uuid_lib
-from typing import Any
+from typing import Annotated, Any, Literal
 from unittest.mock import MagicMock, patch
 
 import pytest
+from flask.testing import FlaskClient
+from pydantic import BaseModel, Field, model_validator, SecretStr
 from pytest_mock import MockerFixture
+from werkzeug.test import TestResponse
 
 from superset.commands.semantic_layer.exceptions import (
     SemanticLayerCreateFailedError,
@@ -1239,7 +1243,9 @@ def test_mask_configuration_no_write_only_properties(mocker: MockerFixture) -> N
     config = {"account": "test"}
     result = _mask_configuration(layer, config)
 
-    assert result is config
+    # The recursive masker returns a (defensively copied) equal mapping when
+    # nothing is marked secret, rather than the same object.
+    assert result == config
 
 
 def test_mask_configuration_no_registered_class(mocker: MockerFixture) -> None:
@@ -2767,3 +2773,252 @@ def test_semantic_layer_runtime_schema_flag_off_unwrapped() -> None:
 
     assert response == ("404", 404)
     api.response_404.assert_called_once()
+
+
+@SEMANTIC_LAYERS_APP
+@pytest.mark.parametrize("operation", ["create", "update"])
+@pytest.mark.parametrize(
+    "failure", ["discriminator", "custom_validator", "provider_runtime"]
+)
+def test_layer_validation_does_not_expose_secrets(
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+    caplog: pytest.LogCaptureFixture,
+    operation: str,
+    failure: str,
+) -> None:
+    """Real command validation cannot log submitted or restored credentials."""
+    secret: str = uuid_lib.uuid4().hex
+
+    class PasswordAuth(BaseModel):
+        kind: Literal["password"]
+        password: SecretStr
+
+    class KeyAuth(BaseModel):
+        kind: Literal["key"]
+        key: SecretStr
+
+    class Configuration(BaseModel):
+        auth: Annotated[PasswordAuth | KeyAuth, Field(discriminator="kind")]
+
+        @model_validator(mode="before")
+        @classmethod
+        def reject_custom_value(cls, value: Any) -> Any:
+            if failure == "custom_validator":
+                raise ValueError(f"Invalid credential: {value['auth']['password']}")
+            return value
+
+    layer: MagicMock = MagicMock()
+    layer.configure_mock(
+        type="validation_test",
+        uuid=uuid_lib.uuid4(),
+        configuration='{"auth": {"kind": "password", "password": "' + secret + '"}}',
+    )
+    dao: MagicMock = mocker.patch(
+        f"superset.commands.semantic_layer.{operation}.SemanticLayerDAO"
+    )
+    dao.configure_mock(
+        **{
+            "find_by_uuid.return_value": layer,
+            "validate_uniqueness.return_value": True,
+            "validate_update_uniqueness.return_value": True,
+        }
+    )
+    mocker.patch(
+        f"superset.commands.semantic_layer.{operation}.current_user_can_modify_object",
+        return_value=True,
+    )
+    provider: MagicMock = MagicMock()
+
+    def validate_provider(configuration: dict[str, Any]) -> Configuration:
+        """Model a provider exposing configuration in a non-Pydantic exception."""
+        if failure == "provider_runtime":
+            raise RuntimeError(f"bad {configuration}")
+        return Configuration.model_validate(configuration)
+
+    provider.__name__ = "ValidationTestProvider"
+    provider.from_configuration.configure_mock(side_effect=validate_provider)
+    mocker.patch.dict(
+        f"superset.commands.semantic_layer.{operation}.registry",
+        {"validation_test": provider},
+    )
+    payload: dict[str, Any] = {
+        "name": "Validation test",
+        "configuration": {
+            "auth": {
+                "kind": "invalid" if failure == "discriminator" else "password",
+                "password": PASSWORD_MASK if operation == "update" else secret,
+            }
+        },
+    }
+    caplog.clear()
+    response: TestResponse
+    if operation == "update":
+        response = client.put(f"/api/v1/semantic_layer/{layer.uuid}", json=payload)
+    else:
+        payload["type"] = "validation_test"
+        response = client.post("/api/v1/semantic_layer/", json=payload)
+
+    assert provider.from_configuration.call_args.args[0]["auth"]["password"] == secret
+    assert response.status_code == 422
+    assert secret not in response.get_data(as_text=True)
+    assert secret not in caplog.text
+    if failure == "provider_runtime":
+        assert "ValidationTestProvider" in caplog.text
+        assert "RuntimeError" in caplog.text
+        assert "bad " not in caplog.text
+        assert all(record.exc_info is None for record in caplog.records)
+    formatter: logging.Formatter = logging.Formatter()
+    record: logging.LogRecord
+    for record in caplog.records:
+        assert secret not in formatter.format(record)
+        assert secret not in str(record.args)
+    expected_detail: str = (
+        "auth: union_tag_invalid"
+        if failure == "discriminator"
+        else "<root>: value_error"
+    )
+    expected_message: str = (
+        "Provider rejected the configuration"
+        if failure == "provider_runtime"
+        else f"Invalid configuration: {expected_detail}"
+    )
+    assert response.json == {"message": expected_message}
+    if failure == "provider_runtime":
+        from superset.commands.semantic_layer.exceptions import (
+            SemanticLayerInvalidError,
+        )
+        from superset.commands.semantic_layer.utils import validate_configuration
+
+        with pytest.raises(SemanticLayerInvalidError) as exc_info:
+            validate_configuration(
+                provider, provider.from_configuration.call_args.args[0]
+            )
+        assert exc_info.value.__cause__ is None
+        assert exc_info.value.__suppress_context__ is True
+    dao.create.assert_not_called()
+    dao.update.assert_not_called()
+
+
+@SEMANTIC_LAYERS_APP
+@pytest.mark.parametrize(
+    "configuration",
+    [
+        {},
+        {
+            "accounts": [
+                {"host": "b", "password": PASSWORD_MASK},
+                {"host": "a", "password": PASSWORD_MASK},
+            ]
+        },
+    ],
+)
+def test_put_rejects_empty_or_reordered_masked_configuration(
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+    configuration: dict[str, Any],
+) -> None:
+    """Invalid configuration edits return 422 before persisting any credentials."""
+    layer: MagicMock = MagicMock()
+    layer.configure_mock(
+        type="test_provider",
+        uuid=uuid_lib.uuid4(),
+        configuration='{"accounts":[{"host":"a","password":"SECRET-A"},{"host":"b","password":"SECRET-B"}]}',
+    )
+    dao: MagicMock = mocker.patch(
+        "superset.commands.semantic_layer.update.SemanticLayerDAO"
+    )
+    dao.find_by_uuid.return_value = layer
+    mocker.patch(
+        "superset.commands.semantic_layer.update.current_user_can_modify_object",
+        return_value=True,
+    )
+    provider: MagicMock = MagicMock()
+    provider.get_configuration_schema.return_value = {
+        "properties": {
+            "accounts": {
+                "type": "array",
+                "items": {
+                    "properties": {
+                        "host": {"type": "string"},
+                        "password": {"writeOnly": True},
+                    }
+                },
+            }
+        }
+    }
+    provider.from_configuration.side_effect = ValueError("credentials required")
+    mocker.patch.dict(
+        "superset.commands.semantic_layer.update.registry", {"test_provider": provider}
+    )
+    response: TestResponse = client.put(
+        f"/api/v1/semantic_layer/{layer.uuid}", json={"configuration": configuration}
+    )
+    assert response.status_code == 422
+    assert "SECRET-" not in response.get_data(as_text=True)
+    if configuration:
+        assert "Submit explicit credentials" in response.json["message"]
+        provider.from_configuration.assert_not_called()
+    else:
+        provider.from_configuration.assert_called_once_with({})
+    dao.update.assert_not_called()
+
+
+@SEMANTIC_LAYERS_APP
+@pytest.mark.parametrize("guess", ["wrong-guess", "stored-token"])
+def test_put_masked_list_secret_replacements_are_not_an_equality_oracle(
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+    guess: str,
+) -> None:
+    """Wrong and right guesses both replace secrets, without an identity signal."""
+    layer: MagicMock = MagicMock()
+    layer.configure_mock(
+        type="oracle_test",
+        uuid=uuid_lib.uuid4(),
+        configuration='{"accounts":[{"host":"a","password":"stored-password","token":"stored-token"}]}',
+    )
+    dao: MagicMock = mocker.patch(
+        "superset.commands.semantic_layer.update.SemanticLayerDAO"
+    )
+    dao.find_by_uuid.return_value = layer
+    dao.update.return_value = layer
+    mocker.patch(
+        "superset.commands.semantic_layer.update.current_user_can_modify_object",
+        return_value=True,
+    )
+    provider: MagicMock = MagicMock()
+    provider.get_configuration_schema.return_value = {
+        "properties": {
+            "accounts": {
+                "type": "array",
+                "items": {
+                    "properties": {
+                        "host": {"type": "string"},
+                        "password": {"writeOnly": True},
+                        "token": {"writeOnly": True},
+                    }
+                },
+            }
+        }
+    }
+    mocker.patch.dict(
+        "superset.commands.semantic_layer.update.registry", {"oracle_test": provider}
+    )
+    response: TestResponse = client.put(
+        f"/api/v1/semantic_layer/{layer.uuid}",
+        json={
+            "configuration": {
+                "accounts": [{"host": "a", "password": PASSWORD_MASK, "token": guess}]
+            }
+        },
+    )
+    assert response.status_code == 200
+    assert response.json == {"result": {"uuid": str(layer.uuid)}}
+    provider.from_configuration.assert_called_once_with(
+        {"accounts": [{"host": "a", "password": "stored-password", "token": guess}]}
+    )
+    dao.update.assert_called_once()

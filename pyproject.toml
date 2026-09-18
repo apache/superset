@@ -256,7 +256,7 @@ parseable = ["sqlalchemy-parseable>=0.1.6,<0.2.0"]
 pinot = ["pinotdb>=5.0.0, <10.0.0"]
 playwright = ["playwright>=1.62.0, <2"]
 postgres = ["psycopg2-binary==2.9.12"]
-presto = ["pyhive[presto]>=0.6.5"]
+presto = ["pyhive[presto]>=0.7.0"]
 trino = ["trino>=0.339.0"]
 prophet = ["prophet>=1.4.0, <2"]
 # sqlalchemy-redshift cuts hard from SQLAlchemy 1.4-only (0.8.x) to 2.0-only
