@@ -1736,6 +1736,11 @@ class DashboardRestApi(
             500:
               $ref: '#/components/responses/500'
         """
+        # Same permission as the bundle export: an example bundle carries
+        # dataset YAML and Parquet rows the embedded view never exposes.
+        if security_manager.is_guest_user():
+            return self.response_403()
+
         # Get optional query params
         export_data = request.args.get("export_data", "true").lower() == "true"
         sample_rows = request.args.get("sample_rows", type=int)
