@@ -24,6 +24,7 @@ activity read being the production shape."""
 from __future__ import annotations
 
 from typing import Any
+from uuid import UUID
 
 from flask_appbuilder.security.sqla.models import User
 from sqlalchemy import event
@@ -67,6 +68,8 @@ class TestActivityReadThenWrite(SupersetTestCase):
         )
         db.session.add(slc)
         db.session.commit()
+        slc_uuid: UUID | None = slc.uuid
+        assert slc_uuid is not None
         try:
             # The read that used to poison the connection. The entity has
             # history (its own INSERT), so the streaming fetch executes.
@@ -92,7 +95,7 @@ class TestActivityReadThenWrite(SupersetTestCase):
             event.listen(db.engine, "before_cursor_execute", observe_change_select)
             try:
                 with override_user(_admin_user()):
-                    records, _, _ = get_activity(Slice, slc.uuid, resolved_entity=slc)
+                    records, _, _ = get_activity(Slice, slc_uuid, resolved_entity=slc)
             finally:
                 event.remove(db.engine, "before_cursor_execute", observe_change_select)
             assert records is not None

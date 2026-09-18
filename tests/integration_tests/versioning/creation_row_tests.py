@@ -22,6 +22,7 @@ imported)."""
 from __future__ import annotations
 
 from typing import Any
+from uuid import UUID
 
 import sqlalchemy as sa
 from sqlalchemy_continuum import version_class, versioning_manager
@@ -141,7 +142,9 @@ class TestActivityCreationRow(SupersetTestCase):
                 for record in records
             )
             assert all(record["action_kind"] is None for record in records)
-            records, _, _ = get_activity(Slice, created.uuid, resolved_entity=created)
+            created_uuid: UUID | None = created.uuid
+            assert created_uuid is not None
+            records, _, _ = get_activity(Slice, created_uuid, resolved_entity=created)
             assert _creation_records(records)[0]["creation_kind"] == "created"
         finally:
             db.session.rollback()
@@ -152,6 +155,8 @@ class TestActivityCreationRow(SupersetTestCase):
     def test_unstamped_historical_creation_stays_unknown(self) -> None:
         """New writer provenance must not relabel existing unstamped history."""
         slc: Slice = self._make_chart("sc120488_unstamped")
+        slc_uuid: UUID | None = slc.uuid
+        assert slc_uuid is not None
         shadow: sa.Table = version_class(Slice).__table__
         transactions: sa.Table = versioning_manager.transaction_cls.__table__
         try:
@@ -166,7 +171,7 @@ class TestActivityCreationRow(SupersetTestCase):
             )
             db.session.commit()
             records: list[dict[str, Any]]
-            records, _, _ = get_activity(Slice, slc.uuid, resolved_entity=slc)
+            records, _, _ = get_activity(Slice, slc_uuid, resolved_entity=slc)
             assert _creation_records(records)[0]["creation_kind"] == "unknown"
         finally:
             self._cleanup(slc)
@@ -185,12 +190,14 @@ class TestActivityCreationRow(SupersetTestCase):
 
     def test_new_chart_has_one_created_origin_row(self) -> None:
         slc: Slice = self._make_chart("sc120488_new_chart")
+        slc_uuid: UUID | None = slc.uuid
+        assert slc_uuid is not None
         records: list[dict[str, Any]]
         count: int
         truncated: bool
         try:
             records, count, truncated = get_activity(
-                Slice, slc.uuid, resolved_entity=slc
+                Slice, slc_uuid, resolved_entity=slc
             )
             assert not truncated
             creations: list[dict[str, Any]] = _creation_records(records)
@@ -202,7 +209,7 @@ class TestActivityCreationRow(SupersetTestCase):
             # Previewable/restorable: the version_uuid is the one the
             # /versions/ family resolves for the creation transaction.
             assert creation["version_uuid"] == str(
-                derive_version_uuid(slc.uuid, creation["transaction_id"])
+                derive_version_uuid(slc_uuid, creation["transaction_id"])
             )
             # The row is the OLDEST entry and the count includes it.
             assert records[-1] is creation
@@ -214,10 +221,12 @@ class TestActivityCreationRow(SupersetTestCase):
         dash: Dashboard = Dashboard(dashboard_title="sc120488_new_dash", slug=None)
         db.session.add(dash)
         db.session.commit()
+        dash_uuid: UUID | None = dash.uuid
+        assert dash_uuid is not None
         records: list[dict[str, Any]]
         count: int
         try:
-            records, count, _ = get_activity(Dashboard, dash.uuid, resolved_entity=dash)
+            records, count, _ = get_activity(Dashboard, dash_uuid, resolved_entity=dash)
             creations: list[dict[str, Any]] = _creation_records(records)
             assert len(creations) == 1
             assert creations[0]["creation_kind"] == "created"
@@ -230,6 +239,8 @@ class TestActivityCreationRow(SupersetTestCase):
         pre_tracking: its op=0 transaction carries the writer's
         action_kind='baseline' stamp."""
         slc: Slice = self._make_chart("sc120488_pre_tracking")
+        slc_uuid: UUID | None = slc.uuid
+        assert slc_uuid is not None
         records: list[dict[str, Any]]
         try:
             # Simulate an entity that predates versioning: no shadow rows.
@@ -244,7 +255,7 @@ class TestActivityCreationRow(SupersetTestCase):
             from superset.utils.core import override_user
 
             with override_user(_admin_user()):
-                records, _, _ = get_activity(Slice, slc.uuid, resolved_entity=slc)
+                records, _, _ = get_activity(Slice, slc_uuid, resolved_entity=slc)
             creations: list[dict[str, Any]] = _creation_records(records)
             assert len(creations) == 1
             assert creations[0]["creation_kind"] == "pre_tracking"
@@ -259,9 +270,11 @@ class TestActivityCreationRow(SupersetTestCase):
         command's stamp) classifies as imported."""
         db.session.info[ACTION_KIND_KEY] = ACTION_KIND_IMPORT
         slc: Slice = self._make_chart("sc120488_imported")
+        slc_uuid: UUID | None = slc.uuid
+        assert slc_uuid is not None
         records: list[dict[str, Any]]
         try:
-            records, _, _ = get_activity(Slice, slc.uuid, resolved_entity=slc)
+            records, _, _ = get_activity(Slice, slc_uuid, resolved_entity=slc)
             creations: list[dict[str, Any]] = _creation_records(records)
             assert len(creations) == 1
             assert creations[0]["creation_kind"] == "imported"
@@ -272,6 +285,8 @@ class TestActivityCreationRow(SupersetTestCase):
         """Retention pruned the op=0 row (sc-115615 baseline expiry): no
         synthetic row — the timeline just starts at the oldest survivor."""
         slc: Slice = self._make_chart("sc120488_pruned")
+        slc_uuid: UUID | None = slc.uuid
+        assert slc_uuid is not None
         records: list[dict[str, Any]]
         count: int
         try:
@@ -289,7 +304,7 @@ class TestActivityCreationRow(SupersetTestCase):
             from superset.utils.core import override_user
 
             with override_user(_admin_user()):
-                records, count, _ = get_activity(Slice, slc.uuid, resolved_entity=slc)
+                records, count, _ = get_activity(Slice, slc_uuid, resolved_entity=slc)
             assert not _creation_records(records)
             assert count == len(records)
         finally:
@@ -297,10 +312,12 @@ class TestActivityCreationRow(SupersetTestCase):
 
     def test_include_related_never_synthesizes(self) -> None:
         slc: Slice = self._make_chart("sc120488_related_only")
+        slc_uuid: UUID | None = slc.uuid
+        assert slc_uuid is not None
         records: list[dict[str, Any]]
         try:
             records, _, _ = get_activity(
-                Slice, slc.uuid, resolved_entity=slc, include="related"
+                Slice, slc_uuid, resolved_entity=slc, include="related"
             )
             assert not _creation_records(records)
         finally:
