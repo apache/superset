@@ -944,6 +944,58 @@ test('partition mapping UI is withheld on an engine that does not support it', a
   expect(screen.queryByTestId('partition-tag')).not.toBeInTheDocument();
 });
 
+test('the partition column section is shown when the engine supports it', async () => {
+  // The "Partition column" / "Maps to partition" block in Default Column
+  // Settings is a second render site that must honour the same engine gate as
+  // the per-column tag above.
+  (isFeatureEnabled as jest.Mock).mockImplementation(
+    flag => flag === FeatureFlag.PartitionFilterMapping,
+  );
+
+  const testProps = createProps();
+  await asyncRender({
+    ...testProps,
+    datasource: {
+      ...testProps.datasource,
+      supports_partition_filter_mapping: true,
+    },
+  });
+
+  await userEvent.click(screen.getByTestId('collection-tab-Columns'));
+
+  expect(
+    await screen.findByTestId('partition-column-fields'),
+  ).toBeInTheDocument();
+});
+
+test('the partition column section is hidden on an engine that does not support it', async () => {
+  // Regression: this block was previously gated on the feature flag alone, so
+  // it showed on non-partition-directory engines (e.g. Postgres) even though
+  // the per-column tag was correctly hidden.
+  (isFeatureEnabled as jest.Mock).mockImplementation(
+    flag => flag === FeatureFlag.PartitionFilterMapping,
+  );
+
+  const testProps = createProps();
+  await asyncRender({
+    ...testProps,
+    datasource: {
+      ...testProps.datasource,
+      supports_partition_filter_mapping: false,
+    },
+  });
+
+  await userEvent.click(screen.getByTestId('collection-tab-Columns'));
+
+  // Wait for the columns tab to render before asserting the section is absent.
+  expect(
+    await screen.findByPlaceholderText('Search columns by name'),
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByTestId('partition-column-fields'),
+  ).not.toBeInTheDocument();
+});
+
 test('designating a partition column leaves its filterable/groupby flags untouched', async () => {
   // Hiding the partition column from Explore is a per-column decision the owner
   // makes, not a side effect of the mapping. Selecting one must not toggle its
@@ -953,7 +1005,16 @@ test('designating a partition column leaves its filterable/groupby flags untouch
     flag => flag === FeatureFlag.PartitionFilterMapping,
   );
 
-  await asyncRender(createProps());
+  const testProps = createProps();
+  await asyncRender({
+    ...testProps,
+    // The "Partition column" select only renders on an engine that supports the
+    // feature, so the probe needs the capability flag set.
+    datasource: {
+      ...testProps.datasource,
+      supports_partition_filter_mapping: true,
+    },
+  });
   await userEvent.click(screen.getByTestId('collection-tab-Columns'));
 
   // `gender` starts filterable + groupby (2 checked; it is not temporal), which
