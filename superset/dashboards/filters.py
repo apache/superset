@@ -221,7 +221,7 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
                     Dashboard.published.is_(True),
                     ~dashboard_has_viewers,
                    or_(
-                    ~Dashboard.slices.any(),
+                    Slice.id.is_(None),
                     get_dataset_access_filters(
                         Slice,
                         security_manager.can_access_all_datasources(),
