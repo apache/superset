@@ -316,6 +316,7 @@ def test_bundle_preflight_rejects_ambiguous_chart_before_lookup(
     monkeypatch.setattr(refs.db.session, "query", query)
     config: dict[str, Any] = chart_config()
     config["dataset_uuid"] = VIEW_UUID
+    excinfo: pytest.ExceptionInfo[refs.SemanticReferenceError]
     with pytest.raises(
         refs.SemanticReferenceError, match="Specify only one chart datasource reference"
     ) as excinfo:
@@ -652,6 +653,7 @@ def test_public_command_preserves_clear_dependency_error(
     command._configs = {"charts/chart.yaml": chart_config()}
     monkeypatch.setattr(command, "validate", lambda: None)
     monkeypatch.setattr(security_manager, "can_access", lambda *args: False)
+    error: pytest.ExceptionInfo[CommandInvalidError]
     with pytest.raises(CommandInvalidError, match="missing or inaccessible") as error:
         command.run()
     assert error.value.status == 422
