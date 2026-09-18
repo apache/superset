@@ -106,9 +106,7 @@ export default function PartitionColumnFields({
         data-test="partition-column-select"
       />
       <Typography.Text type="secondary">
-        {t(
-          "Column used for partition pruning on this table. Selecting one hides it from Explore's dimension and filter pickers by default.",
-        )}
+        {t('Column used for partition pruning on this table.')}
       </Typography.Text>
 
       {partitionColumn && (
