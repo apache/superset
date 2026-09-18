@@ -254,6 +254,18 @@
             "description": "User who produced the change, or ``null`` when the saving user no longer exists in ``ab_user``.",
             "nullable": true
           },
+          "creation_kind": {
+            "description": "Set only on the synthetic starting-version record (``kind == \"__creation__\"``): how the entity came to exist. ``\"pre_tracking\"`` \u2014 a retroactive baseline for an entity that predates versioning; ``\"created\"`` \u2014 a creation with tracking on; ``\"imported\"`` \u2014 an import, attributed to the importing user; ``\"unknown\"`` \u2014 an unstamped starting version whose creation provenance cannot be established. Machine values: display copy is owned by the client.",
+            "enum": [
+              "pre_tracking",
+              "created",
+              "imported",
+              "unknown",
+              null
+            ],
+            "nullable": true,
+            "type": "string"
+          },
           "entity_deleted": {
             "description": "True iff the source entity is hard-deleted (no live row by ``entity_id``). False for live and soft-deleted entities.",
             "type": "boolean"
@@ -324,7 +336,8 @@
               "time_range",
               "color_palette",
               "field",
-              "__meta__"
+              "__meta__",
+              "__creation__"
             ],
             "type": "string"
           },
@@ -24112,7 +24125,7 @@
             }
           },
           {
-            "description": "Optional optimistic-concurrency guard. Pass the ``ETag`` returned by a prior read of this dataset; the update is rejected with 412 if the dataset has changed since.",
+            "description": "Optional optimistic-concurrency guard. Pass the ``ETag`` returned by a prior read of this dataset; the update is rejected with 412 if the dataset has changed since, or with a retryable 409 if a concurrent save won a lock race (see those responses for which action each calls for).",
             "in": "header",
             "name": "If-Match",
             "schema": {
@@ -24194,6 +24207,21 @@
           "404": {
             "$ref": "#/components/responses/404"
           },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "A concurrent save on this dataset won a database lock race, so this conditional request could not be applied. The client's ``If-Match`` token is NOT proven stale: unlike a 412, the correct action is to retry the SAME request (with backoff; a few attempts, then surface the conflict) rather than refetch the entity for a new token."
+          },
           "412": {
             "content": {
               "application/json": {
@@ -24207,7 +24235,7 @@
                 }
               }
             },
-            "description": "The dataset changed since the version identified by the request's ``If-Match`` header; the update was not applied."
+            "description": "The dataset changed since the version identified by the request's ``If-Match`` header; the update was not applied. The token is stale: refetch the entity to pick up the current version before retrying \u2014 retrying the same request unchanged will fail again (contrast the retryable 409 above)."
           },
           "422": {
             "$ref": "#/components/responses/422"

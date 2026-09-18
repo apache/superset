@@ -74,7 +74,7 @@ from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.orm.query import Query as SqlaQuery
 from sqlalchemy.sql import exists
 
-from superset.constants import RouteMethod
+from superset.constants import EMPTY_FILTER_SQL_EXPRESSION, RouteMethod
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     DatasetInvalidPermissionEvaluationException,
@@ -1225,14 +1225,15 @@ def _orderby_modified(
     return False
 
 
-# The frontend emits ``{expressionType: "SQL", sqlExpression: "1 = 0"}`` when
-# a native Select filter has "Filter value is required" enabled and no value
-# has been selected yet (superset-frontend/src/filters/utils.ts).  After
+# The frontend emits ``{expressionType: "SQL", sqlExpression: <predicate>}``
+# when a native Select filter has "Filter value is required" enabled and no
+# value has been selected yet (superset-frontend/src/filters/utils.ts).  After
 # ``_sanitize_clause`` wraps it in parentheses the resulting ``extras.where``
 # clause is ``(1 = 0)``.  This is safe — it returns zero rows — and must be
 # allowed so that embedded charts are not rejected before the user picks a
-# filter value.
-_EMPTY_FILTER_SENTINEL = "1 = 0"
+# filter value.  It aliases the shared constant every producer of the
+# predicate reads, so the allow-list cannot drift away from what they emit.
+_EMPTY_FILTER_SENTINEL = EMPTY_FILTER_SQL_EXPRESSION
 
 
 def _split_extras_clauses(composed: str) -> list[str]:
@@ -2324,11 +2325,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return True
 
     def can_drill_dataset_via_dashboard_access(
-        self, dataset: "BaseDatasource", dashboard: "Dashboard"
+        self, datasource: "BaseDatasource | Explorable", dashboard: "Dashboard"
     ) -> bool:
         """
         Return True if an embedded user or viewer (in promiscuous mode) can
-        drill a dataset via dashboard access.
+        drill a dashboard member datasource via dashboard access.
         """
         from superset import is_feature_enabled
 
@@ -2344,7 +2345,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 and self.is_viewer(dashboard)
                 and dashboard.published
             )
-        ) and dataset.id in {dataset.id for dataset in dashboard.datasources}:
+        ) and dashboard.has_member_datasource(datasource):
             return True
 
         return False
@@ -2397,7 +2398,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         if (
             form_data.get("slice_id") is None
             and form_data.get("chart_id") is None
-            and datasource in dashboard.datasources
+            and dashboard.has_member_datasource(datasource)
         ):
             return True
 
