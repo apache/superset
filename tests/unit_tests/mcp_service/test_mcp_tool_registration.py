@@ -400,10 +400,12 @@ def test_mcp_packages_discoverable_by_setuptools():
 
 def _make_flask_app_mock(
     disabled_tools: set[str],
+    task_infrastructure: bool = True,
 ) -> MagicMock:
     """Return a minimal Flask app mock with MCP config set to safe defaults."""
     _config: dict[str, object] = {
         "MCP_DISABLED_TOOLS": disabled_tools,
+        "GLOBAL_TASK_FRAMEWORK_ENABLED": task_infrastructure,
     }
     flask_app = MagicMock()
     flask_app.config.get.side_effect = lambda key, default=None: _config.get(
@@ -563,14 +565,10 @@ def test_no_disabled_tools_returns_full_instructions() -> None:
 def test_task_tools_removed_when_global_task_framework_disabled(
     gtf_ffm: MagicMock,
 ) -> None:
-    """Task tools removed when GLOBAL_TASK_FRAMEWORK=False.
+    """Task tools are removed by deployment config, regardless of flags."""
+    gtf_ffm.is_feature_enabled.return_value = True
 
-    Uses feature_flag_manager.is_feature_enabled(), mirroring TaskRestApi
-    conditional registration in initialization/__init__.py.
-    """
-    gtf_ffm.is_feature_enabled.return_value = False
-
-    flask_app = _make_flask_app_mock(set())
+    flask_app = _make_flask_app_mock(set(), task_infrastructure=False)
 
     with (
         patch("superset.mcp_service.flask_singleton.app", flask_app),
@@ -588,8 +586,8 @@ def test_config_guard_tools_excluded_from_instructions(
 ) -> None:
     """Config-guard removed tools must be passed to get_default_instructions so
     the instructions never advertise tools that are disabled by config flags."""
-    gtf_ffm.is_feature_enabled.return_value = False
-    flask_app = _make_flask_app_mock(set())
+    gtf_ffm.is_feature_enabled.return_value = True
+    flask_app = _make_flask_app_mock(set(), task_infrastructure=False)
 
     captured: list[str] = []
 
@@ -642,3 +640,18 @@ def test_instructions_generated_after_disabled_tools_removed() -> None:
     # get_default_instructions must have been called with the disabled set
     assert len(captured) == 1
     assert "execute_sql" in captured[0]
+
+
+@pytest.mark.parametrize("configured", [False, True])
+@pytest.mark.parametrize("enabled", [False, True])
+def test_task_tool_installation_ignores_runtime_flags(
+    configured: bool, enabled: bool, gtf_ffm: MagicMock
+) -> None:
+    """MCP installation uses only deployment configuration."""
+    from superset.mcp_service.app import _apply_config_guards
+
+    gtf_ffm.is_feature_enabled.return_value = enabled
+    with patch.object(mcp.local_provider, "remove_tool"):
+        removed = _apply_config_guards(_make_flask_app_mock(set(), configured))
+    assert removed == (set() if configured else {"list_tasks", "get_task_info"})
+    gtf_ffm.is_feature_enabled.assert_not_called()

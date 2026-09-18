@@ -159,10 +159,20 @@ export interface BootstrapThemeDataConfig {
   enableUiThemeAdministration?: boolean;
 }
 
+/** Public deployment settings shared by bootstrap consumers. */
+export type FrontendConfig = JsonObject & {
+  GLOBAL_TASK_FRAMEWORK_ENABLED?: boolean;
+  WEBSOCKET_ENABLE?: boolean;
+  WEBSOCKET_URL?: string;
+  GLOBAL_ASYNC_QUERIES_POLLING_DELAY?: number;
+  GLOBAL_ASYNC_QUERIES_POLLING_MAX_DELAY?: number;
+  GLOBAL_ASYNC_QUERIES_POLLING_STALE_TIMEOUT?: number;
+};
+
 export interface CommonBootstrapData {
   application_root: string;
   static_assets_prefix: string;
-  conf: JsonObject;
+  conf: FrontendConfig;
   locale: Locale;
   feature_flags: FeatureFlagMap;
   language_pack: LanguagePack;

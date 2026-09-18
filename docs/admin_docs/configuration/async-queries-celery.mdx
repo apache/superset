@@ -113,3 +113,69 @@ celery --app=superset.tasks.celery_app:app flower
 
 - [Blog: How to Set Up Global Async Queries (GAQ) in Apache Superset](https://medium.com/@ngigilevis/how-to-set-up-global-async-queries-gaq-in-apache-superset-a-complete-guide-9d2f4a047559)
   :::
+
+## Task infrastructure, Tasks UI and asynchronous chart queries
+
+These three controls have different responsibilities:
+
+1. **`GLOBAL_TASK_FRAMEWORK_ENABLED` deployment config** (default `False`)
+   installs task infrastructure and enables task services: admission, Task APIs
+   (including polling/cancellation), TaskManager and task MCP tools.
+2. **`GLOBAL_TASK_FRAMEWORK` feature flag** controls only Tasks UI visibility:
+   the menu, direct Tasks page and frontend Task List. It also requires the config.
+   It is not a task execution/API kill switch or a security authorization control.
+3. **`GLOBAL_ASYNC_QUERIES` feature flag** enables async chart eligibility when
+   the config is on. It does not require the Tasks UI flag. Turning GAQ off
+   selects synchronous chart execution; generic task services remain available.
+
+Existing authentication, Task permissions and subscriber filtering still apply.
+Async charts also require the existing request opt-in, result format/type, cache,
+subscriber identity and Task-read permission conditions. Ineligible requests
+follow the synchronous path.
+
+| Deployment config | Effective Tasks UI flag | GAQ flag | Task services | Tasks UI | Chart path eligible for async |
+|---|---|---|---|---|---|
+| Off | Any | Any | Unavailable | Hidden | No (sync) |
+| On | Off | Off | Available | Hidden | No (sync) |
+| On | On | Off | Available | Visible | No (sync) |
+| On | Off | On | Available | Hidden | Yes |
+| On | On | On | Available | Visible | Yes |
+
+All availability remains subject to existing permissions. The standard
+FeatureFlagManager automatically derives effective GTF-on from GAQ-on, so enabling
+GAQ also shows the Tasks UI when infrastructure is installed. That derivation is
+unchanged. A customized resolver can return GAQ-on/GTF-off: async charts still work
+but the Tasks UI stays hidden. API polling/cancellation and MCP remain available.
+
+### Configuration and migration
+
+Before this change, the GTF flag controlled task registration and admission.
+It controls only the UI after this change. Feature flags alone no longer install
+task infrastructure: deployments using tasks or GAQ must explicitly opt in:
+
+```python
+# superset_config.py: process-wide, not request-specific
+GLOBAL_TASK_FRAMEWORK_ENABLED = True
+FEATURE_FLAGS = {
+    "GLOBAL_TASK_FRAMEWORK": True,  # optional Tasks UI
+    "GLOBAL_ASYNC_QUERIES": False,  # optional async charts
+}
+```
+
+There is no inference from static or dynamic feature flags. Use the same config
+in web, worker, MCP and permission-provisioning processes. Run normal migrations
+and `superset init` with that config, and restart all relevant processes. Existing
+permission names and role grants are unchanged. Flag changes do not register or
+unregister routes/tools or create/delete permissions; config-off does not delete
+existing permission rows. Browser entry points use bootstrap configuration and
+flags; reload to refresh that snapshot.
+
+### Safely shutting down task infrastructure
+
+Hiding the Tasks UI needs no task drain: turning GTF off does not interrupt task
+services. To remove infrastructure instead, stop new submissions at all callers,
+drain admitted work, then disable `GLOBAL_TASK_FRAMEWORK_ENABLED` and restart the
+relevant processes consistently. Keep the config enabled during the drain so
+polling, cancellation and MCP remain available. Turning GAQ off stops new async
+chart eligibility but does not stop generic task producers. Admitted workers
+remain ungated and can finish their work.

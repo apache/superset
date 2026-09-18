@@ -206,8 +206,14 @@
         "name": "GLOBAL_ASYNC_QUERIES",
         "default": false,
         "lifecycle": "testing",
-        "description": "Enable async queries for dashboards and Explore via WebSocket. Requires Redis 5.0+ and Celery workers.",
+        "description": "Enable async chart queries for dashboards and Explore. Requires GLOBAL_TASK_FRAMEWORK_ENABLED=True, Redis and Celery workers. Does not require the GLOBAL_TASK_FRAMEWORK UI flag.",
         "docs": "https://superset.apache.org/docs/contributing/misc#async-chart-queries"
+      },
+      {
+        "name": "GLOBAL_TASK_FRAMEWORK",
+        "default": false,
+        "lifecycle": "testing",
+        "description": "Show the Tasks UI (menu and page). Requires GLOBAL_TASK_FRAMEWORK_ENABLED=True. Does not gate task services, APIs, MCP tools or task execution."
       },
       {
         "name": "IMPERSONATE_WITH_EMAIL_PREFIX",

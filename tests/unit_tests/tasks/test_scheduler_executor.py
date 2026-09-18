@@ -183,3 +183,35 @@ def test_persist_celery_task_id_is_noop_without_an_id() -> None:
 
     task.update_framework_private.assert_not_called()
     db.session.commit.assert_not_called()
+
+
+def test_admitted_worker_finishes_after_runtime_flag_is_disabled() -> None:
+    """Admission flags do not interrupt the worker's terminal transition."""
+    from superset.tasks.scheduler import _execute_task_body
+
+    native = uuid4()
+    task = MagicMock(uuid=native, status=TaskStatus.PENDING.value, properties_dict={})
+    ctx = MagicMock()
+    ctx.aborting_in_flight = False
+    executor = MagicMock(__module__=__name__, __name__="admitted_task")
+    with (
+        patch("superset.is_feature_enabled", return_value=False),
+        patch("superset.tasks.scheduler.TaskContext", return_value=ctx),
+        patch(
+            "superset.tasks.scheduler.TaskRegistry.get_executor", return_value=executor
+        ),
+        patch(
+            "superset.tasks.scheduler.TaskDAO.find_one_or_none",
+            return_value=MagicMock(status=TaskStatus.SUCCESS.value),
+        ),
+        patch(
+            "superset.commands.tasks.internal_update.InternalStatusTransitionCommand"
+        ) as transition,
+        patch("superset.tasks.scheduler.TaskManager") as manager,
+    ):
+        transition.return_value.run.return_value = True
+        result = _execute_task_body(task, native, "admitted_task", (), {}, MagicMock())
+    executor.assert_called_once_with()
+    assert result["status"] == TaskStatus.SUCCESS.value
+    assert TaskStatus.SUCCESS in _requested_statuses(transition)
+    manager.publish_completion.assert_called_once_with(native, TaskStatus.SUCCESS.value)

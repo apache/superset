@@ -31,9 +31,9 @@ from typing import (
     TypeVar,
 )
 
+from flask import current_app
 from superset_core.tasks.types import TaskOptions, TaskScope, TaskStatus
 
-from superset import is_feature_enabled
 from superset.commands.tasks.exceptions import GlobalTaskFrameworkDisabledError
 from superset.tasks.ambient_context import use_context
 from superset.tasks.constants import TERMINAL_STATES
@@ -316,13 +316,13 @@ class TaskWrapper(Generic[P]):
         Returns the Task entity in terminal state (SUCCESS, FAILURE, etc.).
 
         Raises:
-            GlobalTaskFrameworkDisabledError: If GTF feature flag is not enabled
+            GlobalTaskFrameworkDisabledError: If task infrastructure is disabled
             ValueError: If task validation fails
             TimeoutError: If timeout expires while waiting for existing task
         """
         from superset.commands.tasks.submit import SubmitTaskCommand
 
-        if not is_feature_enabled("GLOBAL_TASK_FRAMEWORK"):
+        if not current_app.config["GLOBAL_TASK_FRAMEWORK_ENABLED"]:
             raise GlobalTaskFrameworkDisabledError()
 
         # Extract and merge options (decorator defaults + call-time overrides)
@@ -716,7 +716,7 @@ class TaskWrapper(Generic[P]):
             Task model representing the scheduled task (PENDING status)
 
         Raises:
-            GlobalTaskFrameworkDisabledError: If GTF feature flag is not enabled
+            GlobalTaskFrameworkDisabledError: If task infrastructure is disabled
             ValueError: If task is SHARED scope but no task_key is provided
 
         Usage:
@@ -738,7 +738,7 @@ class TaskWrapper(Generic[P]):
         Note: Unlike direct calls (__call__), this schedules async execution.
         The function returns immediately with the Task model in PENDING status.
         """
-        if not is_feature_enabled("GLOBAL_TASK_FRAMEWORK"):
+        if not current_app.config["GLOBAL_TASK_FRAMEWORK_ENABLED"]:
             raise GlobalTaskFrameworkDisabledError()
 
         # Extract and merge options (decorator defaults + call-time overrides)

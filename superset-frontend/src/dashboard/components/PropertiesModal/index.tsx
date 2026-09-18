@@ -57,7 +57,10 @@ import {
 } from 'src/dashboard/actions/dashboardState';
 import { dashboardInfoChanged } from 'src/dashboard/actions/dashboardInfo';
 import { areObjectsEqual } from 'src/reduxUtils';
-import { AsyncModeOverride } from 'src/utils/asyncMode';
+import {
+  AsyncModeOverride,
+  isGlobalAsyncQueriesEnabled,
+} from 'src/utils/asyncMode';
 import { StandardModal, useModalValidation } from 'src/components/Modal';
 import { validateRefreshFrequency } from '../RefreshFrequency';
 import {
@@ -856,7 +859,7 @@ const PropertiesModal = ({
                 />
               ),
             },
-            ...(isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)
+            ...(isGlobalAsyncQueriesEnabled()
               ? [
                   {
                     key: 'async',

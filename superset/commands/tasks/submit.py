@@ -29,6 +29,7 @@ from superset_core.tasks.types import TaskScope
 from superset import db
 from superset.commands.base import BaseCommand
 from superset.commands.tasks.exceptions import (
+    GlobalTaskFrameworkDisabledError,
     TaskCreateFailedError,
     TaskCyclicDependencyError,
     TaskInvalidError,
@@ -97,6 +98,9 @@ class SubmitTaskCommand(BaseCommand):
 
         :returns: Tuple of (Task, is_new) where is_new is True if task was created
         """
+        if not current_app.config["GLOBAL_TASK_FRAMEWORK_ENABLED"]:
+            raise GlobalTaskFrameworkDisabledError()
+
         # Enforce the "must own its transaction" contract (see docstring). If a
         # caller has already opened a transaction, ``_create_or_join``'s
         # ``@transaction`` would be reentrant and defer its commit past the lock

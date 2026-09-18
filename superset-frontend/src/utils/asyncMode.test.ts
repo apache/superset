@@ -35,7 +35,12 @@ const mockBootstrap = getBootstrapData as jest.Mock;
 
 const setDefault = (value: boolean | undefined) =>
   mockBootstrap.mockReturnValue({
-    common: { conf: { GLOBAL_ASYNC_QUERIES_DEFAULT: value } },
+    common: {
+      conf: {
+        GLOBAL_ASYNC_QUERIES_DEFAULT: value,
+        GLOBAL_TASK_FRAMEWORK_ENABLED: true,
+      },
+    },
   });
 
 afterEach(() => jest.clearAllMocks());
@@ -51,7 +56,9 @@ test('never async when the feature flag is off', () => {
 
 test('falls back to the deployment default when no override', () => {
   mockFeatureEnabled.mockImplementation(
-    f => f === FeatureFlag.GlobalAsyncQueries,
+    f =>
+      f === FeatureFlag.GlobalAsyncQueries ||
+      f === FeatureFlag.GlobalTaskFramework,
   );
   setDefault(true);
   expect(resolveAsyncMode()).toBe(true);
@@ -62,7 +69,9 @@ test('falls back to the deployment default when no override', () => {
 
 test('defaults to async when the deployment default is unset', () => {
   mockFeatureEnabled.mockImplementation(
-    f => f === FeatureFlag.GlobalAsyncQueries,
+    f =>
+      f === FeatureFlag.GlobalAsyncQueries ||
+      f === FeatureFlag.GlobalTaskFramework,
   );
   setDefault(undefined);
   expect(resolveAsyncMode()).toBe(true);
@@ -82,10 +91,31 @@ test('reads the per-dashboard override off dashboard state', () => {
 
 test('per-dashboard override wins over the default', () => {
   mockFeatureEnabled.mockImplementation(
-    f => f === FeatureFlag.GlobalAsyncQueries,
+    f =>
+      f === FeatureFlag.GlobalAsyncQueries ||
+      f === FeatureFlag.GlobalTaskFramework,
   );
   setDefault(false);
   expect(resolveAsyncMode('force_on')).toBe(true);
   setDefault(true);
   expect(resolveAsyncMode('force_off')).toBe(false);
+});
+
+test.each([false, true])(
+  'deployment config %s gates async regardless of override',
+  enabled => {
+    mockFeatureEnabled.mockReturnValue(true);
+    mockBootstrap.mockReturnValue({
+      common: { conf: { GLOBAL_TASK_FRAMEWORK_ENABLED: enabled } },
+    });
+    expect(resolveAsyncMode('force_on')).toBe(enabled);
+  },
+);
+
+test('custom flags with GAQ on and GTF off still request async', () => {
+  setDefault(true);
+  mockFeatureEnabled.mockImplementation(
+    f => f === FeatureFlag.GlobalAsyncQueries,
+  );
+  expect(resolveAsyncMode('force_on')).toBe(true);
 });

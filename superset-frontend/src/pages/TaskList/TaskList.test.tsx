@@ -28,14 +28,15 @@ import { QueryParamProvider } from 'use-query-params';
 import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 import { TaskStatus, TaskScope } from 'src/features/tasks/types';
 import TaskList from 'src/pages/TaskList';
+import getBootstrapData from 'src/utils/getBootstrapData';
+import { resolveAsyncMode } from 'src/utils/asyncMode';
 
 // Set up window.featureFlags before importing TaskList
 window.featureFlags = { GLOBAL_TASK_FRAMEWORK: true };
 
 // Mock getBootstrapData before importing components that use it
-jest.mock('src/utils/getBootstrapData', () => ({
-  __esModule: true,
-  default: () => ({
+jest.mock('src/utils/getBootstrapData', () => {
+  const bootstrap = {
     user: {
       userId: 1,
       firstName: 'admin',
@@ -44,10 +45,11 @@ jest.mock('src/utils/getBootstrapData', () => ({
     },
     common: {
       feature_flags: { GLOBAL_TASK_FRAMEWORK: true },
-      conf: {},
+      conf: { GLOBAL_TASK_FRAMEWORK_ENABLED: true },
     },
-  }),
-}));
+  };
+  return { __esModule: true, default: () => bootstrap };
+});
 
 const tasksInfoEndpoint = 'glob:*/api/v1/task/_info*';
 const tasksCreatedByEndpoint = 'glob:*/api/v1/task/related/created_by*';
@@ -200,6 +202,7 @@ const renderTaskList = (props = {}, userProp = mockUser) =>
   );
 
 beforeEach(() => {
+  getBootstrapData().common.conf.GLOBAL_TASK_FRAMEWORK_ENABLED = true;
   fetchMock.clearHistory();
 });
 
@@ -331,4 +334,27 @@ test('displays empty state when no tasks', async () => {
   fetchMock.modifyRoute(tasksEndpoint, {
     response: { result: mockTasks, count: 3 },
   });
+});
+
+test('hides the task list when deployment infrastructure is off even with its flag on', () => {
+  getBootstrapData().common.conf.GLOBAL_TASK_FRAMEWORK_ENABLED = false;
+  renderTaskList();
+  expect(screen.getByText('Feature Not Enabled')).toBeInTheDocument();
+  expect(fetchMock.callHistory.calls(/task\/\?q/)).toHaveLength(0);
+});
+
+test('custom GAQ-on/GTF-off flags allow async charts while hiding the Tasks UI', () => {
+  const previousFlags = window.featureFlags;
+  window.featureFlags = {
+    GLOBAL_TASK_FRAMEWORK: false,
+    GLOBAL_ASYNC_QUERIES: true,
+  };
+  try {
+    renderTaskList();
+    expect(screen.getByText('Feature Not Enabled')).toBeInTheDocument();
+    expect(fetchMock.callHistory.calls(/task\/\?q/)).toHaveLength(0);
+    expect(resolveAsyncMode('force_on')).toBe(true);
+  } finally {
+    window.featureFlags = previousFlags;
+  }
 });

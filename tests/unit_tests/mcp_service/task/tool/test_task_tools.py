@@ -23,6 +23,7 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from fastmcp import Client
+from flask import Flask
 from pydantic import ValidationError
 
 from superset.mcp_service.app import mcp
@@ -275,3 +276,43 @@ async def test_list_tasks_non_admin_sees_only_subscribed(mock_list, mcp_server):
     assert data["tasks"][0]["id"] == 42
     # TaskDAO.list was called exactly once — base_filter is applied inside
     assert mock_list.call_count == 1
+
+
+@pytest.fixture(autouse=True)
+def enable_task_infrastructure(app: Flask, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Exercise task behavior with deployment infrastructure installed."""
+    monkeypatch.setitem(app.config, "GLOBAL_TASK_FRAMEWORK_ENABLED", True)
+    monkeypatch.setattr(
+        "superset.extensions.feature_flag_manager.is_feature_enabled",
+        lambda feature: False,
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("tool_name", ["list_tasks", "get_task_info"])
+@pytest.mark.parametrize("configured,enabled", [(False, True), (False, False)])
+async def test_task_tool_runtime_gate(
+    tool_name: str,
+    configured: bool,
+    enabled: bool,
+    app: Flask,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Disabled deployment configuration blocks invocation before any DAO query."""
+    from fastmcp.exceptions import ToolError
+
+    monkeypatch.setitem(app.config, "GLOBAL_TASK_FRAMEWORK_ENABLED", configured)
+    with (
+        patch(
+            "superset.extensions.feature_flag_manager.is_feature_enabled",
+            return_value=enabled,
+        ),
+        patch(f"superset.mcp_service.task.tool.{tool_name}.TaskDAO") as dao,
+        pytest.raises(ToolError, match="Global Task Framework is not enabled"),
+    ):
+        async with Client(mcp) as client:
+            await client.call_tool(
+                tool_name,
+                {"request": {"identifier": 1}} if tool_name == "get_task_info" else {},
+            )
+    dao.assert_not_called()
