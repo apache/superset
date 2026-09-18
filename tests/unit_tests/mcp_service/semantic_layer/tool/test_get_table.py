@@ -25,12 +25,19 @@ from types import ModuleType
 from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 
+import pyarrow as pa
 import pytest
 from fastmcp import Client, FastMCP
+from superset_core.semantic_layers.types import Dimension, Grains
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 from superset.mcp_service.app import mcp
+from superset.mcp_service.semantic_layer.schemas import (
+    GetTableRequest,
+    GetTableResponse,
+    SemanticLayerError,
+)
 from superset.utils import json
 
 get_table_module: ModuleType = importlib.import_module(
@@ -106,6 +113,160 @@ def _make_view(view_id: int = 5) -> MagicMock:
     return view
 
 
+@pytest.fixture
+def temporal_view() -> Generator[MagicMock, None, None]:
+    """Resolve a view with a temporal dimension and three queryable grains."""
+    view: MagicMock = _make_view()
+    view.get_compatible_dimensions.return_value = ["country_name"]
+    view.columns = [
+        _make_column("metric_time", True),
+        _make_column("country_name"),
+    ]
+    view.implementation.get_dimensions.return_value = [
+        Dimension(
+            id=f"metric_time__{grain.name}",
+            name="metric_time",
+            type=pa.timestamp("us"),
+            grain=grain,
+        )
+        for grain in (Grains.DAY, Grains.WEEK, Grains.MONTH)
+    ] + [
+        # Production get_dimensions() also returns the unaggregated variant
+        # and every non-temporal dimension, both with grain=None.
+        Dimension(id="metric_time", name="metric_time", type=pa.timestamp("us")),
+        Dimension(id="country_name", name="country_name", type=pa.string()),
+    ]
+    with patch(
+        "superset.daos.semantic_layer.SemanticViewDAO.find_by_id", return_value=view
+    ):
+        yield view
+
+
+@pytest.mark.asyncio
+async def test_get_table_temporal_result_type(
+    mcp_server: FastMCP,
+    temporal_view: MagicMock,
+) -> None:
+    """Grain-suffixed temporal results use the shared MCP temporal vocabulary."""
+    with patch.object(
+        get_table_module,
+        "execute_tabular_query",
+        return_value={
+            "queries": [
+                {
+                    "data": [
+                        {
+                            "metric_time__day": "2024-09-01T00:00:00Z",
+                            "country_name": "Canada",
+                        }
+                    ],
+                    "colnames": ["metric_time__day", "country_name"],
+                }
+            ]
+        },
+    ):
+        async with Client(mcp_server) as client:
+            data: dict[str, Any] = json.loads(
+                (
+                    await client.call_tool(
+                        "get_table",
+                        {
+                            "request": {
+                                "view_id": 5,
+                                "metrics": ["bookings"],
+                                "dimensions": ["metric_time", "country_name"],
+                            }
+                        },
+                    )
+                )
+                .content[0]
+                .text
+            )
+    assert data["success"] is True
+    assert data["columns"][0]["data_type"] == "temporal"
+    assert data["columns"][1]["data_type"] == "string"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("result_column", "value", "expected_type"),
+    [
+        ("date__label", "September", "string"),
+        ("date_count", 12, "numeric"),
+        ("date", "2024-09-01", "temporal"),
+        ("date__Month", "2024-09-01", "temporal"),
+        ("date__P1M", "2024-09-01", "temporal"),
+        ("date__", "September", "string"),
+        ("date__Year", "2024", "string"),
+    ],
+)
+async def test_get_table_temporal_result_requires_known_variant(
+    mcp_server: FastMCP,
+    temporal_view: MagicMock,
+    result_column: str,
+    value: str | int,
+    expected_type: str,
+) -> None:
+    """Only exact temporal names and their declared grains override result typing."""
+    temporal_view.columns = [
+        _make_column("date", True),
+        _make_column("date__label"),
+        _make_column("date__"),
+        _make_column("date__Year"),
+        _make_column("other_date", True),
+    ]
+    temporal_view.metrics = [_make_metric("date_count")]
+    temporal_view.get_compatible_dimensions.return_value = [
+        "date__label",
+        "date__",
+        "date__Year",
+    ]
+    temporal_view.implementation.get_dimensions.return_value = [
+        Dimension(
+            id="date_month", name="date", type=pa.timestamp("us"), grain=Grains.MONTH
+        ),
+        Dimension(
+            id="other_year",
+            name="other_date",
+            type=pa.timestamp("us"),
+            grain=Grains.YEAR,
+        ),
+    ]
+    with patch.object(
+        get_table_module,
+        "execute_tabular_query",
+        return_value={
+            "queries": [{"data": [{result_column: value}], "colnames": [result_column]}]
+        },
+    ):
+        async with Client(mcp_server) as client:
+            response: GetTableResponse = GetTableResponse.model_validate_json(
+                (
+                    await client.call_tool(
+                        "get_table",
+                        {
+                            "request": {
+                                "view_id": 5,
+                                "metrics": ["date_count"],
+                                "dimensions": [
+                                    "date",
+                                    "date__label",
+                                    "date__",
+                                    "date__Year",
+                                ],
+                                "time_column": "date",
+                                "time_grain": "P1M",
+                            }
+                        },
+                    )
+                )
+                .content[0]
+                .text
+            )
+    assert response.success is True
+    assert response.columns[0].data_type == expected_type
+
+
 def _access_denied_exc(message: str = "Access denied") -> SupersetSecurityException:
     return SupersetSecurityException(
         SupersetError(
@@ -114,6 +275,200 @@ def _access_denied_exc(message: str = "Access denied") -> SupersetSecurityExcept
             level=ErrorLevel.ERROR,
         )
     )
+
+
+@pytest.mark.parametrize("grain", ["P1M", "month", " Month "])
+def test_get_table_time_grain_query(grain: str, temporal_view: MagicMock) -> None:
+    """Duration and name forms reach the existing BASE_AXIS query builder."""
+    request: GetTableRequest = GetTableRequest(
+        view_id=5, metrics=["bookings"], dimensions=["metric_time"], time_grain=grain
+    )
+    resolved: Any = get_table_module._resolve_external_view(request)
+    assert not isinstance(resolved, SemanticLayerError)
+    query: dict[str, Any] = get_table_module._build_query_dict(
+        request, resolved.time_col, resolved.grain_column
+    )
+    assert query["extras"]["time_grain_sqla"] == "P1M"
+    assert query["columns"][0] == {
+        "label": "metric_time",
+        "sqlExpression": "metric_time",
+        "isColumnReference": True,
+        "columnType": "BASE_AXIS",
+        "timeGrain": "P1M",
+    }
+
+
+def test_get_table_unsupported_time_grain(temporal_view: MagicMock) -> None:
+    """Unsupported grains list this view's queryable durations and names."""
+    result: Any = get_table_module._resolve_external_view(
+        GetTableRequest(view_id=5, dimensions=["metric_time"], time_grain="PT1H")
+    )
+    assert isinstance(result, SemanticLayerError)
+    assert result.error_type == "ValidationError"
+    assert all(
+        choice in result.error for choice in ("P1D (Day)", "P1W (Week)", "P1M (Month)")
+    )
+
+
+@pytest.mark.asyncio
+async def test_get_table_grain_alias_hint_for_other_temporal_column(
+    mcp_server: FastMCP, temporal_view: MagicMock
+) -> None:
+    """A selected column's grains do not erase another column's alias hint."""
+    temporal_view.columns.append(_make_column("signup_date", True))
+    temporal_view.implementation.get_dimensions.return_value.append(
+        Dimension(
+            id="signup_date__Year",
+            name="signup_date",
+            type=pa.timestamp("us"),
+            grain=Grains.YEAR,
+        )
+    )
+    with patch.object(get_table_module, "execute_tabular_query") as execute:
+        async with Client(mcp_server) as client:
+            result: Any = await client.call_tool(
+                "get_table",
+                {
+                    "request": {
+                        "view_id": 5,
+                        "metrics": ["bookings"],
+                        "dimensions": ["metric_time", "signup_date__Year"],
+                        "time_grain": "P1D",
+                        "time_column": "metric_time",
+                    }
+                },
+            )
+        data: dict[str, Any] = json.loads(result.content[0].text)
+    assert data["success"] is False
+    assert data["error_type"] == "ValidationError"
+    assert "dimension 'signup_date'" in data["error"]
+    assert "time_grain='P1Y'" in data["error"]
+    execute.assert_not_called()
+
+
+def test_get_table_grain_hints_match_each_columns_validation(
+    temporal_view: MagicMock,
+) -> None:
+    """A grain advertised for metric_time must not be suggested for signup_date."""
+    from superset.mcp_service.semantic_layer.tool.get_table import _ResolvedDatasource
+
+    temporal_view.columns.append(_make_column("signup_date", True))
+    temporal_view.implementation.get_dimensions.return_value = [
+        Dimension(
+            "metric_time_day", "metric_time", pa.timestamp("us"), grain=Grains.DAY
+        ),
+        Dimension(
+            "metric_time_month", "metric_time", pa.timestamp("us"), grain=Grains.MONTH
+        ),
+        Dimension(
+            "signup_date_day", "signup_date", pa.timestamp("us"), grain=Grains.DAY
+        ),
+    ]
+    request: GetTableRequest = GetTableRequest(
+        view_id=5, dimensions=["signup_date__Month"]
+    )
+    resolved: _ResolvedDatasource | SemanticLayerError = (
+        get_table_module._resolve_external_view(request)
+    )
+    assert not isinstance(resolved, SemanticLayerError)
+    errors: list[str] = get_table_module._validate_request_names(
+        request, resolved.valid_columns, resolved.valid_metrics, resolved.valid_grains
+    )
+    assert any("Unknown dimension" in error for error in errors)
+    assert not any("time_grain='P1M'" in error for error in errors)
+    errors = get_table_module._validate_request_names(
+        GetTableRequest(
+            view_id=5, dimensions=["signup_date__Day", "metric_time__Month"]
+        ),
+        resolved.valid_columns,
+        resolved.valid_metrics,
+        resolved.valid_grains,
+    )
+    assert any(
+        "dimension 'signup_date'" in error and "time_grain='P1D'" in error
+        for error in errors
+    )
+    assert any(
+        "dimension 'metric_time'" in error and "time_grain='P1M'" in error
+        for error in errors
+    )
+    accepted: _ResolvedDatasource | SemanticLayerError = (
+        get_table_module._resolve_external_view(
+            GetTableRequest(view_id=5, dimensions=["signup_date"], time_grain="P1D")
+        )
+    )
+    assert not isinstance(accepted, SemanticLayerError)
+    rejected: _ResolvedDatasource | SemanticLayerError = (
+        get_table_module._resolve_external_view(
+            GetTableRequest(view_id=5, dimensions=["signup_date"], time_grain="P1M")
+        )
+    )
+    assert isinstance(rejected, SemanticLayerError)
+    assert "Queryable grains: P1D (Day)" in rejected.error
+
+
+def test_get_table_grain_alias_hint(temporal_view: MagicMock) -> None:
+    """A grain-suffixed unknown dimension suggests the base and time_grain."""
+    request: GetTableRequest = GetTableRequest(
+        view_id=5, dimensions=["metric_time__month"]
+    )
+    resolved: Any = get_table_module._resolve_external_view(request)
+    errors: list[str] = get_table_module._validate_request_names(
+        request, resolved.valid_columns, resolved.valid_metrics, resolved.valid_grains
+    )
+    assert any("Unknown dimension" in error for error in errors)
+    assert any(
+        "time_grain='P1M'" in error and "'metric_time'" in error for error in errors
+    )
+
+
+@pytest.mark.parametrize("dimensions", [[], ["metric_time", "other_time"]])
+def test_get_table_grain_requires_time_column(
+    temporal_view: MagicMock,
+    dimensions: list[str],
+) -> None:
+    """Absent or ambiguous temporal selections require an explicit column."""
+    temporal_view.columns.append(_make_column("other_time", True))
+    result: Any = get_table_module._resolve_external_view(
+        GetTableRequest(view_id=5, dimensions=dimensions, time_grain="P1M")
+    )
+    assert isinstance(result, SemanticLayerError)
+    assert result.error_type == "ValidationError"
+    assert "Set time_column" in result.error
+    assert all(name in result.error for name in dimensions)
+
+
+def test_get_table_grain_explicit_time_column(temporal_view: MagicMock) -> None:
+    """An explicit temporal column disambiguates the requested grain."""
+    temporal_view.columns.append(_make_column("other_time", True))
+    temporal_view.implementation.get_dimensions.return_value.append(
+        Dimension(
+            id="other_time__month",
+            name="other_time",
+            type=pa.timestamp("us"),
+            grain=Grains.MONTH,
+        )
+    )
+    result: Any = get_table_module._resolve_external_view(
+        GetTableRequest(
+            view_id=5,
+            dimensions=["metric_time", "other_time"],
+            time_column="other_time",
+            time_grain="P1M",
+        )
+    )
+    assert not isinstance(result, SemanticLayerError)
+    assert result.grain_column == "other_time"
+
+
+def test_get_table_builtin_grain_rejected() -> None:
+    """Built-in datasets reject the unsupported grain parameter explicitly."""
+    result: Any = get_table_module._resolve_builtin_dataset(
+        GetTableRequest(dataset_id=42, time_grain="month")
+    )
+    assert isinstance(result, SemanticLayerError)
+    assert result.error_type == "ValidationError"
+    assert "semantic views only" in result.error
 
 
 @pytest.mark.asyncio
@@ -359,7 +714,7 @@ async def test_get_table_unknown_metric_validation_error(mcp_server: FastMCP) ->
 async def test_get_table_time_column_not_dttm_validation_error(
     mcp_server: FastMCP,
 ) -> None:
-    """get_table rejects a time_column that isn't marked as a datetime column."""
+    """get_table rejects a time_column that isn't marked as a temporal column."""
     mock_ds = _make_dataset(42)
 
     with patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=mock_ds):
@@ -378,7 +733,7 @@ async def test_get_table_time_column_not_dttm_validation_error(
 
     assert data["success"] is False
     assert data["error_type"] == "ValidationError"
-    assert "not marked as a datetime column" in data["message"]
+    assert "not marked as a temporal column" in data["message"]
 
 
 @pytest.mark.asyncio
@@ -406,7 +761,7 @@ async def test_get_table_external_view_access_denied(mcp_server: FastMCP) -> Non
 async def test_get_table_external_time_range_without_dttm_validation_error(
     mcp_server: FastMCP,
 ) -> None:
-    """get_table rejects time_range on a view with no datetime dimension.
+    """get_table rejects time_range on a view with no temporal dimension.
 
     Regression test: previously this silently dropped the time filter and
     ran an unfiltered query instead of erroring, which could return
@@ -433,7 +788,7 @@ async def test_get_table_external_time_range_without_dttm_validation_error(
 
     assert data["success"] is False
     assert data["error_type"] == "ValidationError"
-    assert "no datetime dimension" in data["message"]
+    assert "no temporal dimension" in data["message"]
 
 
 @pytest.mark.asyncio
@@ -638,8 +993,8 @@ async def test_get_table_builtin_time_range_without_configured_dttm_validation_e
 ) -> None:
     """get_table rejects time_range on a builtin dataset with no main_dttm_col.
 
-    Mirrors the external-view "no datetime dimension" case, but for the
-    builtin path where the datetime column is inferred from
+    Mirrors the external-view "no temporal dimension" case, but for the
+    builtin path where the temporal column is inferred from
     ``dataset.main_dttm_col`` instead of scanning columns.
     """
     mock_ds = _make_dataset(42)
@@ -1075,4 +1430,75 @@ async def test_get_table_compatible_filter_without_groupby(mcp_server: FastMCP) 
     execute.assert_called_once()
     assert execute.call_args.args[2]["filters"] == [
         {"col": "country_name", "op": "==", "val": "GB"}
+    ]
+
+
+@pytest.mark.parametrize("explicit_column", [False, True])
+def test_grain_is_validated_for_selected_column(
+    temporal_view: MagicMock,
+    explicit_column: bool,
+) -> None:
+    """A grain supported by another temporal column is not silently substituted."""
+    temporal_view.columns.append(_make_column("signup_date", True))
+    temporal_view.implementation.get_dimensions.return_value.extend(
+        [
+            Dimension(
+                id="signup_date__day",
+                name="signup_date",
+                type=pa.timestamp("us"),
+                grain=Grains.DAY,
+            ),
+            Dimension(
+                id="signup_date__year",
+                name="signup_date",
+                type=pa.timestamp("us"),
+                grain=Grains.YEAR,
+            ),
+        ]
+    )
+    result: Any = get_table_module._resolve_external_view(
+        GetTableRequest(
+            view_id=5,
+            dimensions=["signup_date"],
+            time_grain="P1M",
+            time_column="signup_date" if explicit_column else None,
+        )
+    )
+    assert isinstance(result, SemanticLayerError)
+    assert result.error_type == "ValidationError"
+    assert "signup_date" in result.error
+    assert "P1D (Day)" in result.error
+    assert "P1Y (Year)" in result.error
+    assert "P1M (Month)" not in result.error
+
+
+def test_time_range_uses_the_selected_grain_axis(temporal_view: MagicMock) -> None:
+    """The filter granularity and BASE_AXIS refer to the same selected dimension."""
+    temporal_view.columns.append(_make_column("signup_date", True))
+    temporal_view.implementation.get_dimensions.return_value.append(
+        Dimension(
+            id="signup_date__month",
+            name="signup_date",
+            type=pa.timestamp("us"),
+            grain=Grains.MONTH,
+        )
+    )
+    request: GetTableRequest = GetTableRequest(
+        view_id=5,
+        dimensions=["signup_date"],
+        time_grain="P1M",
+        time_range="2024-01-01 : 2024-03-01",
+    )
+    resolved: Any = get_table_module._resolve_external_view(request)
+    assert not isinstance(resolved, SemanticLayerError)
+    query: dict[str, Any] = get_table_module._build_query_dict(
+        request,
+        resolved.time_col,
+        resolved.grain_column,
+    )
+    assert query["granularity"] == "signup_date"
+    assert query["columns"][0]["sqlExpression"] == query["granularity"]
+    assert query["columns"][0]["timeGrain"] == "P1M"
+    assert query["filters"] == [
+        {"col": "signup_date", "op": "TEMPORAL_RANGE", "val": request.time_range}
     ]

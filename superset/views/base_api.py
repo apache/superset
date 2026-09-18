@@ -48,7 +48,7 @@ from superset.schemas import error_payload_content
 from superset.sql_lab import Query as SqllabQuery
 from superset.superset_typing import FlaskResponse
 from superset.utils.core import get_user_id, time_function
-from superset.views.error_handling import handle_api_exception
+from superset.views.error_handling import handle_api_exception, json_error_response
 
 logger = logging.getLogger(__name__)
 get_related_schema = {
@@ -90,12 +90,24 @@ class DistincResponseSchema(Schema):
 
 def requires_json(f: Callable[..., Any]) -> Callable[..., Any]:
     """
-    Require JSON-like formatted request to the REST API
+    Require JSON-like formatted request to the REST API.
+
+    Returns the structured 400 RESPONSE directly instead of raising:
+    most call sites stack FAB's ``@safe`` outside this decorator, and
+    ``safe`` converts any non-``BadRequest`` exception — including a
+    status-400 ``SupersetErrorException`` — into a generic 500 "Fatal
+    error" before the app-level error handler can render it (sc-120966:
+    every body-less POST to such an endpoint 500'd). Building the
+    response with the same serializer the app handler uses keeps the
+    error envelope byte-identical for the call sites without ``@safe``.
     """
 
     def wraps(self: BaseSupersetModelRestApi, *args: Any, **kwargs: Any) -> Response:
         if not request.is_json:
-            raise InvalidPayloadFormatError(message="Request is not JSON")
+            ex: InvalidPayloadFormatError = InvalidPayloadFormatError(
+                message="Request is not JSON"
+            )
+            return json_error_response([ex.error], status=ex.status)
         return f(self, *args, **kwargs)
 
     return functools.update_wrapper(wraps, f)
