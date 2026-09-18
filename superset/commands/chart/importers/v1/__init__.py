@@ -36,7 +36,7 @@ from superset.databases.schemas import ImportV1DatabaseSchema
 from superset.datasets.schemas import ImportV1DatasetSchema
 from superset.extensions import feature_flag_manager
 from superset.semantic_layers.import_export import (
-    chart_semantic_info,
+    consume_chart_semantic_reference,
     resolve_bundle_references,
 )
 from superset.subjects.utils import get_default_viewers_for_current_user
@@ -112,7 +112,7 @@ class ImportChartsCommand(ImportModelsCommand):
                     continue
 
                 # update datasource id, type, and name
-                dataset_dict: dict[str, Any] | None = chart_semantic_info(
+                dataset_dict: dict[str, Any] | None = consume_chart_semantic_reference(
                     config, semantic_info
                 )
                 if dataset_dict is None:

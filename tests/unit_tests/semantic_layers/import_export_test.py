@@ -326,14 +326,30 @@ def test_bundle_preflight_rejects_ambiguous_chart_before_lookup(
     assert config["dataset_uuid"] == config["datasource_ref"]["uuid"] == VIEW_UUID
 
 
-def test_chart_semantic_info_preserves_table_reference() -> None:
+def test_consume_chart_semantic_reference_preserves_table_reference() -> None:
     """A table UUID must not resolve through the colliding semantic UUID map."""
     config: dict[str, Any] = {"dataset_uuid": VIEW_UUID}
     semantic_info: dict[str, dict[str, Any]] = {
         VIEW_UUID: {"datasource_id": 81, "datasource_type": "semantic_view"}
     }
-    assert refs.chart_semantic_info(config, semantic_info) is None
+    assert refs.consume_chart_semantic_reference(config, semantic_info) is None
     assert config == {"dataset_uuid": VIEW_UUID}
+
+
+def test_consume_chart_semantic_reference_preserves_unrelated_config() -> None:
+    """Consume only the archive identity, leaving chart fields for the writer."""
+    config: dict[str, Any] = chart_config()
+    expected: dict[str, Any] = copy.deepcopy(config)
+    expected.pop("datasource_ref")
+    destination: dict[str, Any] = {
+        "datasource_id": 81,
+        "datasource_type": "semantic_view",
+    }
+    assert (
+        refs.consume_chart_semantic_reference(config, {VIEW_UUID: destination})
+        == destination
+    )
+    assert config == expected
 
 
 @pytest.mark.parametrize(

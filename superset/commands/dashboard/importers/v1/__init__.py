@@ -50,7 +50,7 @@ from superset.migrations.shared.native_filters import migrate_dashboard
 from superset.models.dashboard import Dashboard, dashboard_slices
 from superset.models.slice import Slice
 from superset.semantic_layers.import_export import (
-    chart_semantic_info,
+    consume_chart_semantic_reference,
     resolve_bundle_references,
     restore_dashboard_references,
 )
@@ -190,7 +190,7 @@ class ImportDashboardsCommand(ImportModelsCommand):
                 "datasource_ref" in config or config.get("dataset_uuid") in dataset_info
             ):
                 # update datasource id, type, and name
-                dataset_dict: dict[str, Any] | None = chart_semantic_info(
+                dataset_dict: dict[str, Any] | None = consume_chart_semantic_reference(
                     config, semantic_info
                 )
                 if dataset_dict is None:

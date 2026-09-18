@@ -216,10 +216,10 @@ def resolve_bundle_references(
     return result
 
 
-def chart_semantic_info(
+def consume_chart_semantic_reference(
     config: dict[str, Any], semantic_info: dict[str, dict[str, Any]]
 ) -> dict[str, Any] | None:
-    """Keep the semantic namespace separate from legacy table UUID maps."""
+    """Remove a prevalidated semantic reference and return its destination info."""
     if "datasource_ref" not in config:
         return None
     return semantic_info[reference_uuid(config.pop("datasource_ref"))]

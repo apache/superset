@@ -52,7 +52,7 @@ from superset.models.slice import Slice
 from superset.models.sql_lab import SavedQuery
 from superset.queries.saved_queries.schemas import ImportV1SavedQuerySchema
 from superset.semantic_layers.import_export import (
-    chart_semantic_info,
+    consume_chart_semantic_reference,
     resolve_bundle_references,
     restore_dashboard_references,
     SemanticReferenceError,
@@ -166,7 +166,7 @@ class ImportAssetsCommand(BaseCommand):
         charts = []
         for file_name, config in configs.items():
             if file_name.startswith("charts/"):
-                dataset_dict: dict[str, Any] | None = chart_semantic_info(
+                dataset_dict: dict[str, Any] | None = consume_chart_semantic_reference(
                     config, semantic_info
                 )
                 if dataset_dict is None:
