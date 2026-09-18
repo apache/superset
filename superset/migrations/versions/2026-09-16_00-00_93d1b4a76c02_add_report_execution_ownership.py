@@ -18,14 +18,14 @@
 """Add report execution ownership fencing.
 
 Revision ID: 93d1b4a76c02
-Revises: e2f3a1b9c640
+Revises: 60f94cd6cd11
 """
 
 import sqlalchemy as sa
 from alembic import op
 
 revision = "93d1b4a76c02"
-down_revision = "e2f3a1b9c640"
+down_revision = "60f94cd6cd11"
 
 
 def upgrade() -> None:
