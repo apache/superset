@@ -515,11 +515,11 @@ def add_chart_to_existing_dashboard(  # noqa: C901 — complexity is structural 
             # Ensure proper layout structure
             _ensure_layout_structure(current_layout, row_key, parent_id)
 
-            # The new nodes' parents were extended from the target
-            # container's own (possibly already-truncated) parents chain;
-            # rebuild every reachable component's parents from the actual
-            # children edges so filter-scope derivation sees a correct tree
-            # regardless of what the stored layout carried beforehand. See
+            # The new row/column/chart nodes were added with empty
+            # ``parents`` (see ``_add_chart_to_layout``); rebuild every
+            # reachable component's parents from the actual children edges
+            # so filter-scope derivation sees a correct tree, regardless of
+            # what the stored layout carried beforehand. See
             # superset.dashboards.filter_scope.get_chart_ids_in_scope.
             current_layout = rebuild_parent_chains(current_layout)
 
