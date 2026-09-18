@@ -77,7 +77,7 @@ test('Should render', async () => {
     useRedux: true,
   });
   expect(container.children).toHaveLength(1);
-  userEvent.type(screen.getByRole('combobox'), 'column_name');
+  await userEvent.type(screen.getByRole('combobox'), 'column_name');
   await waitFor(() => {
     expect(
       screen.getByRole('option', {
@@ -128,7 +128,7 @@ test('Should filter results', async () => {
     useRedux: true,
   });
   expect(container.children).toHaveLength(1);
-  userEvent.type(screen.getByRole('combobox'), 'column_name');
+  await userEvent.type(screen.getByRole('combobox'), 'column_name');
   await waitFor(() => {
     expect(
       screen.getByRole('option', {
