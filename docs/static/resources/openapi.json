@@ -3891,6 +3891,9 @@
           "params": {
             "type": "string"
           },
+          "parent": {
+            "type": "object"
+          },
           "perm": {
             "type": "string"
           },
@@ -3900,8 +3903,20 @@
           "select_star": {
             "type": "string"
           },
+          "semantic_view_features": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "sql": {
             "type": "string"
+          },
+          "supports_drill_to_detail": {
+            "type": "boolean"
+          },
+          "supports_samples": {
+            "type": "boolean"
           },
           "table_name": {
             "type": "string"
