@@ -32,13 +32,11 @@
  * it is served synchronously and needs only the flag.
  */
 import { testWithAssets, expect } from '../../helpers/fixtures';
-import { apiPostVirtualDataset } from '../../helpers/api/dataset';
-import { getDatabaseByName } from '../../helpers/api/database';
-import { extractIdFromResponse } from '../../helpers/api/assertions';
 import { TIMEOUT } from '../../utils/constants';
 import {
   BIG_NUMBER_COUNT_SPEC,
   bigNumberValueLocator,
+  createCacheColdVirtualDataset,
   createDashboardWithCharts,
   setupDashboardWithBigNumberCharts,
   setupDashboardWithSelectFilter,
@@ -106,31 +104,19 @@ testWithAssets(
   async ({ page, testAssets }) => {
     testWithAssets.setTimeout(TIMEOUT.SLOW_TEST);
 
-    const examplesDb = await getDatabaseByName(page, 'examples');
-    if (!examplesDb) {
-      throw new Error('examples database not found');
-    }
-
     // The test above forces a refresh, because a fresh chart over a shared
     // physical table can collide with a query another suite already cached and
     // a forced request takes the async path regardless of cache state. That
     // leaves the unforced first load -- the one a real user gets -- unasserted.
     //
-    // Same fix as the native-filter test below: a per-run SQL comment keeps the
-    // query text, and so its cache key, unique. This load is therefore
-    // guaranteed cold, and the async cycle can be asserted on the initial
-    // render itself rather than on a refresh that follows it.
-    const uniqueSuffix = `${Date.now()}_${testWithAssets.info().parallelIndex}`;
-    const datasetResp = await apiPostVirtualDataset(page, {
-      database: examplesDb.id,
-      schema: '',
-      table_name: `gaq_cold_first_load_${uniqueSuffix}`,
-      sql: `SELECT name FROM birth_names /* run:${uniqueSuffix} */`,
-      editors: [],
-    });
-    expect(datasetResp.ok()).toBe(true);
-    const datasetId = await extractIdFromResponse(datasetResp);
-    testAssets.trackDataset(datasetId);
+    // A cache-cold dataset removes the need to force anything, so the async
+    // cycle can be asserted on the initial render itself.
+    const { datasetId } = await createCacheColdVirtualDataset(
+      page,
+      testAssets,
+      testWithAssets.info(),
+      { namePrefix: 'gaq_cold_first_load' },
+    );
 
     const { dashboardId, charts } = await createDashboardWithCharts(
       page,
@@ -344,26 +330,15 @@ testWithAssets(
   async ({ page, testAssets }) => {
     testWithAssets.setTimeout(TIMEOUT.SLOW_TEST);
 
-    const examplesDb = await getDatabaseByName(page, 'examples');
-    if (!examplesDb) {
-      throw new Error('examples database not found');
-    }
-
     // A filter's value query depends only on dataset/column, not on anything
-    // per-run, so pointing at the physical table would make this cache-cold
-    // once and a cache hit on every later run. The per-run SQL comment keeps
-    // the query text -- and so its cache key -- unique.
-    const uniqueSuffix = `${Date.now()}_${testWithAssets.info().parallelIndex}`;
-    const datasetResp = await apiPostVirtualDataset(page, {
-      database: examplesDb.id,
-      schema: '',
-      table_name: `gaq_tc8_filter_dropdown_${uniqueSuffix}`,
-      sql: `SELECT name FROM birth_names /* run:${uniqueSuffix} */`,
-      editors: [],
-    });
-    expect(datasetResp.ok()).toBe(true);
-    const datasetId = await extractIdFromResponse(datasetResp);
-    testAssets.trackDataset(datasetId);
+    // per-run, so a physical table would be cache-cold once and a cache hit on
+    // every later run -- and this test would stop exercising the pipeline.
+    const { datasetId } = await createCacheColdVirtualDataset(
+      page,
+      testAssets,
+      testWithAssets.info(),
+      { namePrefix: 'gaq_tc8_filter_dropdown' },
+    );
 
     const { dashboardId, dashboard, filterBar } =
       await setupDashboardWithSelectFilter(
@@ -406,7 +381,7 @@ testWithAssets(
     }).toPass({ timeout: TIMEOUT.CHART_RENDER });
 
     // Separately: those already-fetched options actually render.
-    const filterSelect = filterBar.getFilterValueSelect();
+    const filterSelect = filterBar.getFilterSelect();
     await filterSelect.open();
 
     await expect(filterSelect.options.first()).toBeVisible({

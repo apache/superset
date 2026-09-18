@@ -26,7 +26,11 @@ import {
   type DashboardLayoutChart,
   type DashboardPositionJson,
 } from '../../helpers/api/dashboard';
-import { getDatasetByName } from '../../helpers/api/dataset';
+import {
+  apiPostVirtualDataset,
+  getDatasetByName,
+} from '../../helpers/api/dataset';
+import { getDatabaseByName } from '../../helpers/api/database';
 import { extractIdFromResponse } from '../../helpers/api/assertions';
 import { DashboardPage } from '../../pages/DashboardPage';
 import { GAQ } from '../../utils/constants';
@@ -280,6 +284,19 @@ interface CreateDashboardWithChartsOptions {
    * accumulating, so a rapid swap is unambiguously a swap.
    */
   selectFilter?: { column: string; name?: string };
+  /** Custom dashboard layout; defaults to placing every chart in one row. */
+  buildLayout?: (
+    charts: readonly DashboardLayoutChart[],
+  ) => DashboardPositionJson;
+  /**
+   * Dashboard `json_metadata` (e.g. native filters via
+   * `buildFilterJsonMetadata`); omitted when not provided. Receives the created
+   * charts and the resolved dataset id so filters can target both.
+   */
+  buildJsonMetadata?: (context: {
+    charts: readonly DashboardLayoutChart[];
+    datasetId: number;
+  }) => Record<string, unknown>;
 }
 
 /**
@@ -332,16 +349,17 @@ export async function createDashboardWithCharts(
     charts.push({ id: chartId, sliceName, width: options.chartWidth });
   }
 
-  // Lay all charts out in a single row.
-  const positionJson = buildSingleRowDashboardLayout(charts);
+  const positionJson = options.buildLayout
+    ? options.buildLayout(charts)
+    : buildSingleRowDashboardLayout(charts);
   const chartIds = charts.map(chart => chart.id);
-  const dashResp = await apiPostDashboard(page, {
-    dashboard_title: `${options.dashboardTitlePrefix ?? options.chartNamePrefix}_${uniqueSuffix}`,
-    published: true,
-    position_json: JSON.stringify(positionJson),
-    ...(options.selectFilter && {
-      json_metadata: JSON.stringify(
-        buildFilterJsonMetadata({
+  // Two ways to supply dashboard metadata: `buildJsonMetadata` is the general
+  // escape hatch, `selectFilter` the shorthand for the common single-select
+  // case. If a caller passes both, the explicit callback wins.
+  const jsonMetadata =
+    options.buildJsonMetadata?.({ charts, datasetId }) ??
+    (options.selectFilter
+      ? buildFilterJsonMetadata({
           chartsInScope: chartIds,
           nativeFilters: [
             buildSelectFilter({
@@ -351,9 +369,13 @@ export async function createDashboardWithCharts(
               name: options.selectFilter.name,
             }),
           ],
-        }),
-      ),
-    }),
+        })
+      : undefined);
+  const dashResp = await apiPostDashboard(page, {
+    dashboard_title: `${options.dashboardTitlePrefix ?? options.chartNamePrefix}_${uniqueSuffix}`,
+    published: true,
+    position_json: JSON.stringify(positionJson),
+    ...(jsonMetadata && { json_metadata: JSON.stringify(jsonMetadata) }),
   });
   expect(dashResp.ok()).toBe(true);
   const dashboardId = await extractIdFromResponse(dashResp);
@@ -572,4 +594,47 @@ export async function setupDashboardWithSelectFilter(
     filterBar: new DashboardFilterBar(page),
     value: bigNumberValueLocator(dashboard, chart.id),
   };
+}
+
+/**
+ * A virtual dataset whose query text is unique to this run.
+ *
+ * Chart and filter-value results are cached by query text, so a dataset over a
+ * shared physical table is cache-cold the first time it runs and a cache hit
+ * every time after -- and a test that means to exercise the async pipeline
+ * quietly stops doing so. The per-run SQL comment keeps the cache key unique,
+ * which is what lets a spec assert the async cycle on a first, unforced load.
+ *
+ * The dataset is registered for fixture cleanup.
+ *
+ * @param options.namePrefix - Prefix for the dataset name; the run suffix is appended.
+ * @param options.select - SELECT to wrap (default: `SELECT name FROM birth_names`).
+ * @returns The new dataset's id, and the suffix, for callers that name other
+ *   per-run objects consistently with it.
+ */
+export async function createCacheColdVirtualDataset(
+  page: Page,
+  testAssets: TestAssets,
+  testInfo: TestInfo,
+  options: { namePrefix: string; select?: string },
+): Promise<{ datasetId: number; uniqueSuffix: string }> {
+  const examplesDb = await getDatabaseByName(page, 'examples');
+  if (!examplesDb) {
+    throw new Error('examples database not found');
+  }
+
+  const uniqueSuffix = `${Date.now()}_${testInfo.parallelIndex}`;
+  const select = options.select ?? 'SELECT name FROM birth_names';
+  const datasetResp = await apiPostVirtualDataset(page, {
+    database: examplesDb.id,
+    schema: '',
+    table_name: `${options.namePrefix}_${uniqueSuffix}`,
+    sql: `${select} /* run:${uniqueSuffix} */`,
+    editors: [],
+  });
+  expect(datasetResp.ok()).toBe(true);
+  const datasetId = await extractIdFromResponse(datasetResp);
+  testAssets.trackDataset(datasetId);
+
+  return { datasetId, uniqueSuffix };
 }

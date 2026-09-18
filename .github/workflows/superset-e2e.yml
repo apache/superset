@@ -364,6 +364,23 @@ jobs:
           SUPERSET_FEATURE_SOFT_DELETE: "true"
         with:
           run: playwright-run "${{ matrix.app_root }}" recently-archived/
+      - name: Run Playwright (Embedded Tests)
+        # cached-dependencies is a submodule (not a plain directory), and
+        # the $/ self-repository syntax resolves action files directly from
+        # the repository without performing a real (submodule-aware)
+        # checkout, so it can't see into a submodule's link. Keep this one
+        # on the workspace-relative ./ form, consistent with every other
+        # workflow in the repo that references this action.
+        uses: ./.github/actions/cached-dependencies # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
+          # Scoped to this step for the same reason as Soft-delete above:
+          # embedding is a real, required feature, so its Playwright coverage
+          # now gates merges instead of running only in shadow mode.
+          SUPERSET_FEATURE_EMBEDDED_SUPERSET: "true"
+          INCLUDE_EMBEDDED: "true"
+        with:
+          run: playwright-run "${{ matrix.app_root }}" embedded
       - name: Set safe app root
         if: failure()
         id: set-safe-app-root

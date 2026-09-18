@@ -29,9 +29,13 @@
  * Requires only the `GLOBAL_ASYNC_QUERIES` feature flag; no Redis/Celery,
  * since nothing here should reach GAQ's pipeline at all.
  *
- * Lives in tests/sqllab/ rather than alongside the other GAQ specs so it runs
- * under the `chromium-sqllab` project: SQL Lab's tab state is server-side per
- * user and needs sequential execution.
+ * Lives in tests/sqllab/ because it is a SQL Lab test, but it does NOT run
+ * under the `chromium-sqllab` project -- that project's `testIgnore` excludes
+ * it deliberately. It needs GLOBAL_ASYNC_QUERIES on, which only the workflow's
+ * GAQ step provides, so it runs under `chromium-gaq` alongside the dashboard
+ * GAQ specs (see the workflow's `playwright-run-gaq` invocation). Without that
+ * exclusion it would sit in the ordinary SQL Lab run and skip itself on every
+ * execution, reporting coverage it never had.
  */
 import { test, expect } from '../../helpers/fixtures/testAssets';
 import { SqlLabPage } from '../../pages/SqlLabPage';
@@ -40,21 +44,17 @@ import { GAQ, TIMEOUT } from '../../utils/constants';
 import { isFeatureEnabled } from '../../helpers/featureFlags';
 
 let sqlLabPage: SqlLabPage;
+let sawTaskStatusPoll = false;
 
 test.beforeEach(async ({ page }) => {
   test.setTimeout(TIMEOUT.SLOW_TEST);
   sqlLabPage = new SqlLabPage(page);
-  await sqlLabPage.gotoAndReady();
-  test.skip(
-    !(await isFeatureEnabled(page, 'GLOBAL_ASYNC_QUERIES')),
-    'GLOBAL_ASYNC_QUERIES is not enabled on this instance',
-  );
-});
 
-test('runs a simple SELECT normally with GLOBAL_ASYNC_QUERIES enabled, never touching the GAQ task-status endpoint', async ({
-  page,
-}) => {
-  let sawTaskStatusPoll = false;
+  // Attached before the first navigation, not inside the test body: loading the
+  // SQL Lab bundle is itself part of what must not reach GAQ's pipeline. A
+  // listener registered after `gotoAndReady()` cannot see that traffic, so the
+  // never-polls assertion below would hold no matter what the page load did.
+  sawTaskStatusPoll = false;
   page.on('response', response => {
     if (
       response.request().method() === 'GET' &&
@@ -64,6 +64,14 @@ test('runs a simple SELECT normally with GLOBAL_ASYNC_QUERIES enabled, never tou
     }
   });
 
+  await sqlLabPage.gotoAndReady();
+  test.skip(
+    !(await isFeatureEnabled(page, 'GLOBAL_ASYNC_QUERIES')),
+    'GLOBAL_ASYNC_QUERIES is not enabled on this instance',
+  );
+});
+
+test('runs a simple SELECT normally with GLOBAL_ASYNC_QUERIES enabled, never touching the GAQ task-status endpoint', async () => {
   const response = await sqlLabPage.executeQuery('SELECT 1 AS test_col');
   expectStatus(response, 200);
 
