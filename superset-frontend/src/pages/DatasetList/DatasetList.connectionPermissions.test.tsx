@@ -20,6 +20,7 @@ import fetchMock from 'fetch-mock';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {
+  API_ENDPOINTS,
   setupMocks,
   renderDatasetList,
   mockAdminUser,
@@ -28,7 +29,7 @@ import {
 beforeEach(() => {
   setupMocks();
   window.featureFlags = { SEMANTIC_LAYERS: true } as never;
-  fetchMock.get('glob:*/api/v1/semantic_layer/?*', { result: [], count: 0 });
+  fetchMock.get(API_ENDPOINTS.SEMANTIC_LAYERS, { result: [], count: 0 });
 });
 
 afterEach(() => {
@@ -58,12 +59,12 @@ test.each([false, true])(
     await userEvent.click(filter!);
     await waitFor(() =>
       expect(
-        fetchMock.callHistory.calls('glob:*/api/v1/dataset/related/database*')
+        fetchMock.callHistory.calls(API_ENDPOINTS.DATASET_RELATED_DATABASE)
           .length,
       ).toBeGreaterThan(0),
     );
     expect(
-      fetchMock.callHistory.calls('glob:*/api/v1/semantic_layer/?*').length > 0,
+      fetchMock.callHistory.calls(API_ENDPOINTS.SEMANTIC_LAYERS).length > 0,
     ).toBe(canReadLayer);
   },
 );

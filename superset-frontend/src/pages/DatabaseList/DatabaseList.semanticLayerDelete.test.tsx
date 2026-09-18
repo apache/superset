@@ -94,14 +94,16 @@ const setupMocks = ({
   dependents,
   dependentsError = false,
   rows = [semanticLayerRow],
+  permissions = ['can_read', 'can_write', 'can_export'],
 }: {
   dependents: { id: number; table_name: string }[];
   dependentsError?: boolean;
   rows?: (typeof semanticLayerRow)[];
+  permissions?: string[];
 }) => {
   fetchMock.clearHistory().removeRoutes();
   fetchMock.get('glob:*/api/v1/database/_info*', {
-    permissions: ['can_read', 'can_write', 'can_export'],
+    permissions,
   });
   fetchMock.get('glob:*/api/v1/database/?q=*', { result: [], count: 0 });
   fetchMock.get('glob:*/api/v1/database/related/*', { result: [], count: 0 });
@@ -463,4 +465,32 @@ test('layer-only writer gets layer actions without requesting Database info', as
   expect(
     fetchMock.callHistory.calls('glob:*/api/v1/database/_info*'),
   ).toHaveLength(0);
+});
+
+test('export-only database reader sees the Export action column', async () => {
+  const databaseRow = {
+    ...semanticLayerRow,
+    source_type: 'database',
+    id: 42,
+    database_name: 'Export database',
+  };
+  setupMocks({
+    dependents: [],
+    rows: [databaseRow],
+    permissions: ['can_read', 'can_export'],
+  });
+  renderDatabaseList({
+    ...mockUser,
+    roles: {
+      Admin: [
+        ['can_read', 'Database'],
+        ['can_export', 'Database'],
+        ['can_read', 'SemanticLayer'],
+      ],
+    },
+  });
+  await screen.findByText('Export database');
+  expect(await screen.findByTestId('database-export')).toBeInTheDocument();
+  expect(screen.queryByTestId('database-edit')).not.toBeInTheDocument();
+  expect(screen.queryByTestId('database-delete')).not.toBeInTheDocument();
 });

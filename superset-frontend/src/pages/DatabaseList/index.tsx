@@ -829,35 +829,31 @@ function DatabaseList({
               slDeletePreview.item.uuid === original.uuid;
             return (
               <div className="actions">
-                {canWriteLayer && (
-                  <ActionButton
-                    label={t('Delete')}
-                    tooltip={
-                      isLoadingDependents
-                        ? t('Loading dependent semantic views')
-                        : t('Delete')
-                    }
-                    placement="bottom"
-                    icon={
-                      isLoadingDependents ? (
-                        <Icons.LoadingOutlined iconSize="l" spin />
-                      ) : (
-                        <Icons.DeleteOutlined iconSize="l" />
-                      )
-                    }
-                    disabled={isLoadingDependents}
-                    onClick={() => openSemanticLayerDeleteModal(original)}
-                  />
-                )}
-                {canWriteLayer && (
-                  <ActionButton
-                    label={t('Edit')}
-                    tooltip={t('Edit')}
-                    placement="bottom"
-                    icon={<Icons.EditOutlined iconSize="l" />}
-                    onClick={() => setSlCurrentlyEditing(original.uuid ?? null)}
-                  />
-                )}
+                <ActionButton
+                  label={t('Delete')}
+                  tooltip={
+                    isLoadingDependents
+                      ? t('Loading dependent semantic views')
+                      : t('Delete')
+                  }
+                  placement="bottom"
+                  icon={
+                    isLoadingDependents ? (
+                      <Icons.LoadingOutlined iconSize="l" spin />
+                    ) : (
+                      <Icons.DeleteOutlined iconSize="l" />
+                    )
+                  }
+                  disabled={isLoadingDependents}
+                  onClick={() => openSemanticLayerDeleteModal(original)}
+                />
+                <ActionButton
+                  label={t('Edit')}
+                  tooltip={t('Edit')}
+                  placement="bottom"
+                  icon={<Icons.EditOutlined iconSize="l" />}
+                  onClick={() => setSlCurrentlyEditing(original.uuid ?? null)}
+                />
               </div>
             );
           }
@@ -919,7 +915,7 @@ function DatabaseList({
         },
         Header: t('Actions'),
         id: 'actions',
-        hidden: !canEdit && !canDelete && !canWriteLayer,
+        hidden: !canEdit && !canDelete && !canExport && !canWriteLayer,
         disableSortBy: true,
       },
       {
