@@ -303,7 +303,7 @@ export async function getErrorText(
       error,
     );
   }
-  if (status === 403) {
+  if (status === 403 && error === getErrorFromStatusCode(status)) {
     errorText = t('You do not have permission to edit this %s', source);
   }
   return errorText;

@@ -385,6 +385,14 @@ test('getErrorText for a non-JSON 403 response', async () => {
   expect(await getErrorText(supersetForbidden, 'dashboard')).toEqual(
     'You do not have permission to edit this dashboard',
   );
+
+  const specificForbidden = new Response(
+    JSON.stringify({ message: "You don't have the rights to create a chart" }),
+    { status: 403, statusText: 'FORBIDDEN' },
+  );
+  expect(await getErrorText(specificForbidden, 'chart')).toEqual(
+    "Sorry, there was an error saving this chart: You don't have the rights to create a chart",
+  );
 });
 
 test('selectClientErrorMessage applies consistent precedence', () => {
