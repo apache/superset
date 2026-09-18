@@ -27,6 +27,7 @@ from flask import g
 from superset.connectors.sqla.models import BaseDatasource, SqlaTable
 from superset.dashboards.api import DashboardRestApi
 from superset.dashboards.schemas import DashboardDatasetSchema
+from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.security.guest_token import GuestToken, GuestUser
@@ -271,10 +272,14 @@ def test_dashboard_datasets_isolate_semantic_provider_failure(
     assert caplog.records[-1].exc_info is None
 
 
-def test_dashboard_table_serialization_omits_absent_semantic_fields() -> None:
-    """Adding optional capability fields must not change legacy table payloads."""
-    table: SqlaTable = SqlaTable(id=2, table_name="orders")
-    payload: dict[str, Any] = {"id": 2, "uid": "2__table", "type": "table"}
+def test_dashboard_table_serialization_includes_capabilities_and_parent() -> None:
+    """Real table payloads expose their capabilities and database parent."""
+    database: Database = Database(
+        id=1, database_name="Warehouse", sqlalchemy_uri="sqlite://"
+    )
+    table: SqlaTable = SqlaTable(id=2, table_name="orders", database=database)
+    chart: Slice = Slice(datasource_id=2, datasource_type="table", params="{}")
+    payload: dict[str, Any] = table.data_for_slices([chart])
     api: DashboardRestApi = DashboardRestApi()
     with (
         patch(
@@ -286,7 +291,51 @@ def test_dashboard_table_serialization_omits_absent_semantic_fields() -> None:
             return_value=False,
         ),
     ):
-        assert api._serialize_dashboard_dataset(table, payload) == payload
+        serialized: dict[str, Any] = api._serialize_dashboard_dataset(table, payload)
+    assert set(serialized) == {
+        "id",
+        "uid",
+        "column_formats",
+        "database",
+        "parent",
+        "default_endpoint",
+        "filter_select",
+        "filter_select_enabled",
+        "name",
+        "datasource_name",
+        "table_name",
+        "type",
+        "schema",
+        "offset",
+        "cache_timeout",
+        "params",
+        "perm",
+        "edit_url",
+        "sql",
+        "columns",
+        "metrics",
+        "order_by_choices",
+        "verbose_map",
+        "select_star",
+        "supports_samples",
+        "supports_drill_to_detail",
+        "granularity_sqla",
+        "time_grain_sqla",
+        "main_dttm_col",
+        "currency_code_column",
+        "fetch_values_predicate",
+        "template_params",
+        "is_sqllab_view",
+        "health_check_message",
+        "always_filter_main_dttm",
+        "normalize_columns",
+        "column_types",
+        "column_names",
+    }
+    assert serialized["parent"] == {"name": "Warehouse"}
+    assert serialized["database"]["name"] == "Warehouse"
+    assert serialized["supports_samples"] is True
+    assert serialized["supports_drill_to_detail"] is True
 
 
 def test_dashboard_table_serialization_failure_is_not_suppressed() -> None:

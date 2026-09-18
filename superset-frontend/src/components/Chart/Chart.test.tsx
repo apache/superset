@@ -21,8 +21,6 @@ import '@testing-library/jest-dom';
 import { DatasourceType } from '@superset-ui/core';
 import { PLACEHOLDER_DATASOURCE } from 'src/dashboard/constants';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
-import { DatasourcesAction } from 'src/dashboard/actions/datasources';
-import datasourcesReducer from 'src/dashboard/reducers/datasources';
 import Chart from './Chart';
 import type { Actions } from './Chart';
 
@@ -133,30 +131,24 @@ test('shows a message-only semantic API error while datasource metadata is loadi
   ).not.toBeInTheDocument();
 });
 
-test('shows a semantic error after the dashboard supplies the real datasource', () => {
-  const datasources = datasourcesReducer(undefined, {
-    type: DatasourcesAction.SetDatasources,
-    datasources: [
-      {
-        ...PLACEHOLDER_DATASOURCE,
-        id: 1,
-        uid: '1__semantic_view',
-        type: DatasourceType.SemanticView,
-        name: 'Orders View',
-      },
-    ],
-  });
-  const datasource = datasources['1__semantic_view'] || PLACEHOLDER_DATASOURCE;
-  expect(datasource).not.toBe(PLACEHOLDER_DATASOURCE);
+test('prefers the semantic API error over a stale alert after datasource metadata loads', () => {
   render(
     <Chart
       {...baseProps}
       formData={{ datasource: '1__semantic_view', viz_type: 'table' }}
       chartStatus="failed"
-      chartAlert="Semantic result contains a non-finite number"
-      datasource={datasource}
+      chartAlert="Stale client-side rendering error"
+      datasource={{
+        ...PLACEHOLDER_DATASOURCE,
+        id: 1,
+        uid: '1__semantic_view',
+        type: DatasourceType.SemanticView,
+        name: 'Orders View',
+      }}
       datasetsStatus={ResourceStatus.Complete}
-      queriesResponse={[{}]}
+      queriesResponse={[
+        { message: 'Semantic result contains a non-finite number' },
+      ]}
     />,
   );
 
@@ -164,4 +156,7 @@ test('shows a semantic error after the dashboard supplies the real datasource', 
     screen.getByText('Semantic result contains a non-finite number'),
   ).toBeInTheDocument();
   expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  expect(
+    screen.queryByText('Stale client-side rendering error'),
+  ).not.toBeInTheDocument();
 });
