@@ -17,6 +17,7 @@
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
+import pytest
 
 from superset.common.chart_data_timing import QueryDataResult, QueryTiming
 from superset.common.db_query_status import QueryStatus
@@ -61,6 +62,40 @@ def _processor() -> QueryContextProcessor:
     processor._qc_datasource.column_names = ["col1"]
     processor._qc_datasource.data = {}
     return processor
+
+
+@pytest.mark.parametrize(
+    ("timeout", "force", "expected_force"),
+    [(-1, False, True), (60, True, True), (60, False, False)],
+)
+def test_contribution_totals_receive_resolved_cache_policy(
+    timeout: int, force: bool, expected_force: bool
+) -> None:
+    """Direct totals dispatch honors the same disabled/forced cache policy."""
+    processor: QueryContextProcessor = _processor()
+    main: MagicMock = _query_obj()
+    main.post_processing = [{"operation": "contribution", "options": {}}]
+    totals: MagicMock = _query_obj()
+    context: MagicMock = MagicMock()
+    context.queries = [main, totals]
+    context.get_query_result.return_value.df = pd.DataFrame({"revenue": [5.0]})
+    processor._query_context = context
+
+    def execute(query: MagicMock) -> MagicMock:
+        assert query is totals
+        assert query.cache_timeout == timeout
+        assert query.force_query is expected_force
+        return context.get_query_result.return_value
+
+    context.get_query_result.side_effect = execute
+    with (
+        patch.object(processor, "get_cache_timeout", return_value=timeout),
+        patch.object(processor, "query_cache_key", return_value="totals-key"),
+        patch.object(processor, "_resolve_forced_query", return_value=force),
+    ):
+        processor.ensure_totals_available([0], 1)
+    context.get_query_result.assert_called_once_with(totals)
+    assert main.post_processing[0]["options"]["contribution_totals"] == {"revenue": 5.0}
 
 
 def test_public_projection_is_explicit_and_versioned() -> None:

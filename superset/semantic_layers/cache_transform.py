@@ -165,9 +165,9 @@ def _rollup(frame: pd.DataFrame, query: SemanticQuery) -> pd.DataFrame:
             raise ValueError(f"Metric {metric.id} is not safely roll-up compatible")
         aggregations[metric.name] = _ROLLUP_AGGREGATIONS[metric.aggregation]
     if dimension_names:
-        return frame.groupby(dimension_names, as_index=False, dropna=False).agg(
-            aggregations
-        )
+        return frame.groupby(
+            dimension_names, as_index=False, dropna=False, observed=True
+        ).agg(aggregations)
     return frame.agg(aggregations).to_frame().T
 
 

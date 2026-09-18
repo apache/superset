@@ -353,7 +353,11 @@ class RedisSentinelCacheBackend(RedisCommandsMixin, RedisSentinelCache):
         # Initialize Sentinel without SSL parameters
         self._sentinel = Sentinel(
             sentinels,
-            force_master_ip=force_master_ip,
+            **(
+                {"force_master_ip": force_master_ip}
+                if force_master_ip is not None
+                else {}
+            ),
             # See the matching comment in RedisCacheBackend.__init__: pin the
             # pre-redis-py-8 defaults (no socket timeout, RESP2) explicitly
             # for the sentinel-node connections too, so this bump doesn't

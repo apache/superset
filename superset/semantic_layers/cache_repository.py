@@ -409,20 +409,15 @@ class SemanticCacheRepository:
         the bucket with the latest request's timeout would let a short-lived
         store expire the index out from under longer-lived values, orphaning
         them until their own TTL. ``0`` follows the backend's never-expire
-        convention and wins outright; ``None`` (backend default) is used only
-        when no entry carries an explicit TTL, because its length is unknown
-        here.
+        convention. An unknown backend-default TTL (``None``) also requires
+        an unbounded index so an explicit shorter TTL cannot orphan its value.
         """
         timeouts: list[int | None] = [entry.timeout for entry in entries]
         if not timeouts:
             return fallback
-        if any(timeout == 0 for timeout in timeouts):
+        if any(timeout is None or timeout <= 0 for timeout in timeouts):
             return 0
         remaining: list[float] = [
-            entry.timestamp + entry.timeout - now
-            for entry in entries
-            if entry.timeout is not None and entry.timeout > 0
+            entry.timestamp + (entry.timeout or 0) - now for entry in entries
         ]
-        if not remaining:
-            return None
         return max(1, ceil(max(remaining)))
