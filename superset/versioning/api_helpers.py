@@ -94,12 +94,26 @@ def current_entity_version_info(
     model_cls: type[Model],
     entity_id: int | None,
     entity_uuid: UUID | None = None,
+    *,
+    lock_for_stale_check: bool = False,
 ) -> EntityVersionInfo:
     """Resolve the live version number, transaction id, and version uuid.
 
     Returns an empty (all-``None``) record and issues *no* queries when
     capture is disabled. When *entity_uuid* is not supplied it is resolved
     with a single ``SELECT uuid`` rather than loading the whole entity row.
+
+    With ``lock_for_stale_check`` the live ``transaction_id`` — the input
+    to the ``If-Match`` token — is read under an exclusive row lock so it
+    reflects committed state even on MySQL REPEATABLE READ, where a plain
+    read is served from the request's pre-lock snapshot (see
+    :func:`~superset.versioning.queries.current_live_transaction_id_locked`
+    for the mechanism, lock-strength rationale, and residuals). Only
+    conditional writes should pay for the lock. The displayed version
+    *number* still comes from a plain aggregate read: a concurrently
+    committed row can leave it one behind in response metadata, but the
+    guard itself never consults it. The entity-uuid resolution also stays
+    a plain read: the uuid is immutable for the life of the row.
     """
     if entity_id is None or not _capture_enabled():
         return EntityVersionInfo()
@@ -117,9 +131,15 @@ def current_entity_version_info(
         )
     if entity_uuid is None:
         return EntityVersionInfo()
+    version: int | None
+    transaction_id: int | None
     version, transaction_id = VersionDAO.current_version_info(
         model_cls, entity_id, entity_uuid
     )
+    if lock_for_stale_check:
+        transaction_id = VersionDAO.current_live_transaction_id_locked(
+            model_cls, entity_id, entity_uuid
+        )
     version_uuid = (
         VersionDAO.derive_version_uuid(entity_uuid, transaction_id)
         if transaction_id is not None
@@ -227,10 +247,10 @@ def lock_entity_for_update(
     undoing the refresh.
 
     The refresh covers the entity row itself. Lazy-loaded child
-    collections (columns, metrics) are still plain consistent reads
-    afterwards, as is the version-info read behind the ``If-Match``
-    comparison -- on MySQL REPEATABLE READ both can still observe the
-    pre-lock snapshot.
+    collections (columns, metrics) and the displayed version number remain
+    plain consistent reads and can observe the pre-lock snapshot on MySQL
+    REPEATABLE READ. The conditional ``If-Match`` comparison instead uses
+    a locking read of the live transaction id.
 
     Postgres (READ COMMITTED) and SQLite are not exposed to the staleness,
     and the refresh is harmless there. (Version restore has the same
@@ -462,12 +482,24 @@ def restore_version_endpoint(
     except ValueError:
         return api.response_400(message="Invalid version UUID")
 
+    # pylint: disable=import-outside-toplevel
+    # Deferred: restore.py pulls the model/versioning graph (same
+    # bootstrap-cycle rationale as this module's other local imports).
+    from superset.versioning.restore import PrunedChildHistoryError
+
     try:
         result = command_cls(entity_uuid, version_uuid).run()
     except command_cls.not_found_exc:
         return api.response_404()
     except command_cls.forbidden_exc:
         return api.response_403()
+    except PrunedChildHistoryError as ex:
+        # Fail-closed refusal (sc-120012): needed child history was
+        # pruned by retention; the entity was left unchanged. The
+        # exception's message is user-facing. Passes through the
+        # command's @transaction untouched (on_error re-raises
+        # non-SQLAlchemy exceptions as-is).
+        return api.response_422(message=str(ex))
     except command_cls.failed_exc as ex:
         logger.exception("Error restoring %s version", model_cls.__name__)
         return api.response_422(message=str(ex))
