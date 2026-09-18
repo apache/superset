@@ -31,6 +31,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from superset.mcp_service.app import mcp
 from superset.mcp_service.chart.chart_helpers import build_query_dicts_from_form_data
 from superset.mcp_service.chart.chart_utils import (
+    analyze_chart_capabilities,
     map_config_to_form_data,
     merge_chart_form_data,
 )
@@ -304,6 +305,28 @@ def test_invalid_values_and_geometry_preview(kind: str) -> None:
     preview = _generate_vega_lite_preview_from_data([row], form)
     assert isinstance(preview, ChartError)
     assert preview.error_type == "UnsupportedGeographicPreview"
+
+
+@pytest.mark.parametrize("kind", KINDS)
+def test_advertised_preview_formats_can_actually_be_produced(kind: str) -> None:
+    """Capabilities must not offer a Vega-Lite preview the generator rejects."""
+    form = form_for(kind)
+    row = result_for(kind)["queries"][0]["data"][0]
+    capabilities = analyze_chart_capabilities(form["viz_type"], config_for(kind))
+
+    assert "vega_lite" not in capabilities.optimal_formats
+    assert isinstance(_generate_vega_lite_preview_from_data([row], form), ChartError)
+
+    # A non-geographic interactive type still advertises what it can produce.
+    scatter_form = {"viz_type": "echarts_timeseries_scatter", "x_axis": "x"}
+    scatter_capabilities = analyze_chart_capabilities(
+        scatter_form["viz_type"], config_for(kind)
+    )
+    assert "vega_lite" in scatter_capabilities.optimal_formats
+    assert not isinstance(
+        _generate_vega_lite_preview_from_data([{"x": "a", "y": 1}], scatter_form),
+        ChartError,
+    )
 
 
 def test_alias_collisions_fail_instead_of_losing_aggregates() -> None:

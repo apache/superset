@@ -35,6 +35,7 @@ if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
 
 from superset.constants import NO_TIME_RANGE
+from superset.mcp_service.chart.query_result import GEOGRAPHIC_VIZ_TYPES
 from superset.mcp_service.chart.schemas import (
     BigNumberChartConfig,
     BoxPlotChartConfig,
@@ -2259,7 +2260,13 @@ def analyze_chart_capabilities(viz_type: str | None, config: Any) -> ChartCapabi
     # Determine optimal formats
     optimal_formats = ["url"]  # Always include static image
     if supports_interaction:
-        optimal_formats.extend(["interactive", "vega_lite"])
+        optimal_formats.append("interactive")
+    # Only advertise Vega-Lite where a spec can actually be produced. Geographic
+    # viz types are rejected by the Vega-Lite preview generator because their
+    # geometry cannot be expressed in a Vega-Lite spec, so advertising the
+    # format for them would guarantee a failed preview request.
+    if supports_interaction and viz_type not in GEOGRAPHIC_VIZ_TYPES:
+        optimal_formats.append("vega_lite")
     optimal_formats.extend(["ascii", "table"])
 
     # Classify data types
