@@ -121,11 +121,6 @@ def temporal_view() -> Generator[MagicMock, None, None]:
         _make_column("metric_time", True),
         _make_column("country_name"),
     ]
-    view.get_time_grains.return_value = [
-        {"duration": "P1D", "name": "Day"},
-        {"duration": "P1W", "name": "Week"},
-        {"duration": "P1M", "name": "Month"},
-    ]
     view.implementation.get_dimensions.return_value = [
         Dimension(
             id=f"metric_time__{grain.name}",
@@ -315,9 +310,6 @@ async def test_get_table_grain_alias_hint_for_other_temporal_column(
 ) -> None:
     """A selected column's grains do not erase another column's alias hint."""
     temporal_view.columns.append(_make_column("signup_date", True))
-    temporal_view.get_time_grains.return_value.append(
-        {"duration": "P1Y", "name": "Year"}
-    )
     temporal_view.implementation.get_dimensions.return_value.append(
         Dimension(
             id="signup_date__Year",
@@ -355,10 +347,6 @@ def test_get_table_grain_hints_match_each_columns_validation(
     from superset.mcp_service.semantic_layer.tool.get_table import _ResolvedDatasource
 
     temporal_view.columns.append(_make_column("signup_date", True))
-    temporal_view.get_time_grains.return_value = [
-        {"duration": "P1D", "name": "Day"},
-        {"duration": "P1M", "name": "Month"},
-    ]
     temporal_view.implementation.get_dimensions.return_value = [
         Dimension(
             "metric_time_day", "metric_time", pa.timestamp("us"), grain=Grains.DAY
