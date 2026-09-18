@@ -809,7 +809,7 @@ _DECK_TIMESERIES_VIZ_TYPES: frozenset[str] = frozenset(
 )
 
 
-def build_query_dicts_from_form_data(
+def build_query_dicts_from_form_data(  # noqa: C901
     form_data: dict[str, Any],
     datasource_id: Any,
     datasource_type: str,
