@@ -52,7 +52,9 @@ SESSION_LOGIN_AT_KEY = "_login_at"
 
 # Health checks are deliberately independent of authentication and the metadata
 # database, so they must not resolve ``current_user`` or perform session checks.
-_HEALTH_CHECK_PATHS = frozenset({"/health", "/healthcheck", "/ping"})
+# Every probe rule registered by ``health()`` in ``superset/views/health.py``
+# resolves to this single endpoint.
+_HEALTH_CHECK_ENDPOINT = "health.health"
 
 
 def _utcnow() -> datetime:
@@ -114,8 +116,10 @@ def enforce_session_validity() -> Optional[Response]:
     """
     # Do this before touching current_user: it is a LocalProxy whose resolution
     # may query the metadata DB. Probes do not need session invalidation
-    # enforcement.
-    if has_request_context() and request.path in _HEALTH_CHECK_PATHS:
+    # enforcement. Flask matches the URL in ``RequestContext.push()``, before
+    # ``preprocess_request()`` runs the ``before_request`` funcs, so
+    # ``request.endpoint`` is already resolved here.
+    if has_request_context() and request.endpoint == _HEALTH_CHECK_ENDPOINT:
         return None
 
     try:
