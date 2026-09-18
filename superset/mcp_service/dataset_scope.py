@@ -60,6 +60,12 @@ OUT_OF_SCOPE_ERROR = (
 # through SQL, cached results, screenshots, or external semantic sources without
 # a registered dataset identity. Refuse them rather than guess at their lineage.
 #
+# Enforcement runs inside ``mcp_auth_hook``, so the tools in app.py's
+# ``ALLOWED_UNPROTECTED`` (``generate_bug_report``) are never gated here. That is
+# intentional: they are public precisely so diagnostics survive broken auth, and
+# they read no dataset rows. Any future unprotected tool that can reach dataset
+# data would need its own gate.
+#
 # This deliberately gates execution only, not ``tools/list`` visibility. Tool
 # listings are assembled by the tool-search transform, which synthesizes its own
 # meta tools; filtering that listing on this set would hide the very tools a
@@ -134,16 +140,47 @@ def parse_dataset_role_allowlist(config: Any) -> dict[str, set[UUID]] | None:
             f"{CONFIG_KEY} must map role names to lists of dataset UUIDs."
         )
     normalized: dict[str, set[UUID]] = {}
-    try:
-        for role, identifiers in config.items():
-            if not isinstance(role, str) or not isinstance(identifiers, (list, tuple)):
-                raise ValueError("Expected role names and UUID lists")
-            normalized[role] = {UUID(str(identifier)) for identifier in identifiers}
-    except (ValueError, TypeError, AttributeError) as ex:
-        raise MCPDatasetScopeError(
-            f"{CONFIG_KEY} contains an entry that is not a list of dataset UUIDs."
-        ) from ex
+    for role, identifiers in config.items():
+        if not isinstance(role, str):
+            raise MCPDatasetScopeError(
+                f"{CONFIG_KEY} keys must be role names; got {role!r} "
+                f"({type(role).__name__})."
+            )
+        if not isinstance(identifiers, (list, tuple, set, frozenset)):
+            raise MCPDatasetScopeError(
+                f"{CONFIG_KEY}[{role!r}] must be a list of dataset UUIDs; got "
+                f"{type(identifiers).__name__}."
+            )
+        normalized[role] = {
+            _coerce_dataset_uuid(role, identifier) for identifier in identifiers
+        }
     return normalized
+
+
+def _coerce_dataset_uuid(role: str, identifier: Any) -> UUID:
+    """Convert one allowlist entry to a UUID, naming the bad entry on failure.
+
+    Only ``UUID`` and ``str`` are accepted. Coercing arbitrary types through
+    ``str()`` would let a value whose repr happens to parse — or a type the
+    operator did not intend, such as an int dataset ID — load as a valid-looking
+    UUID that can never match a dataset, silently narrowing the intended scope
+    instead of reporting the typo.
+    """
+    if isinstance(identifier, UUID):
+        return identifier
+    if not isinstance(identifier, str):
+        raise MCPDatasetScopeError(
+            f"{CONFIG_KEY}[{role!r}] entries must be dataset UUID strings; got "
+            f"{identifier!r} ({type(identifier).__name__}). Dataset names and "
+            "numeric IDs are not accepted."
+        )
+    try:
+        return UUID(identifier)
+    except ValueError as ex:
+        raise MCPDatasetScopeError(
+            f"{CONFIG_KEY}[{role!r}] contains {identifier!r}, which is not a "
+            "valid dataset UUID."
+        ) from ex
 
 
 def get_dataset_scope() -> frozenset[UUID] | None:
