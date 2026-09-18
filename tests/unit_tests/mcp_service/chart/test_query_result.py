@@ -261,6 +261,45 @@ def test_query_result_failure_rejects_arbitrary_status_enum_without_hooks():
 @pytest.mark.parametrize(
     "payload",
     [
+        {
+            "status": "success",
+            "message": "served from cache",
+            "queries": [{"status": "success", "data": []}],
+        },
+        {
+            "queries": [
+                {"status": QueryStatus.SUCCESS, "message": "no rows", "data": []}
+            ]
+        },
+        {"queries": [{"status": "running", "message": "in progress", "data": []}]},
+        {"queries": [{"message": "informational", "data": []}]},
+        {"queries": [{"data": []}]},
+    ],
+)
+def test_query_result_failure_allows_valid_and_informational_envelopes(payload):
+    """Successful statuses may carry a message; ``message`` alone is no failure."""
+    assert query_result_failure(payload) is None
+
+
+def test_query_result_failure_rejects_envelope_without_any_query():
+    """Envelope shape is validated as strictly as embedded failures.
+
+    ``query_result_failure`` is a strict envelope validator, not only an
+    embedded-failure detector. Every caller reads data from at least one query,
+    so a success status carrying no query payload fails closed instead of being
+    reported as failure-free.
+    """
+    failure = query_result_failure(
+        {"status": "success", "message": "served from cache", "queries": []}
+    )
+
+    assert failure is not None
+    assert failure.error_type == "InvalidQueryResult"
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
         None,
         [],
         {},

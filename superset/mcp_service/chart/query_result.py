@@ -1428,7 +1428,18 @@ def validate_query_result_envelope(  # noqa: C901
 
 
 def query_result_failure(result: Any) -> ChartError | None:
-    """Return an embedded failure or malformed-envelope error."""
+    """Return a structured failure embedded in a ChartDataCommand payload.
+
+    ChartDataCommand can return an HTTP-successful envelope whose top level or
+    any query reports a failure. Every query is inspected before callers accept
+    data from the result. Successful statuses may carry informational messages,
+    so ``message`` alone is not treated as an error.
+
+    Envelope shape is validated just as strictly as embedded failures: an
+    envelope carrying no query payload is rejected as malformed rather than
+    reported as failure-free, because every caller reads data from at least one
+    query.
+    """
     return validate_query_result_envelope(result)
 
 
