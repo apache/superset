@@ -51,8 +51,9 @@ def test_connections_independent_read_permissions(
     mocker.patch.object(
         security_manager,
         "has_access",
-        side_effect=lambda permission, view: permission == "can_read"
-        and view in grants,
+        side_effect=lambda permission, view: (
+            permission == "can_read" and view in grants
+        ),
     )
     query: MagicMock = mocker.patch("superset.semantic_layers.api.db.session.query")
     query.return_value.options.return_value.all.return_value = []
@@ -116,9 +117,9 @@ def test_connections_database_scope_and_admin_dynamic_filter(
     mocker.patch.object(
         security_manager,
         "user_view_menu_names",
-        side_effect=lambda permission: permissions.get(permission, set())
-        if permission == grant_kind
-        else set(),
+        side_effect=lambda permission: (
+            permissions.get(permission, set()) if permission == grant_kind else set()
+        ),
     )
     mocker.patch.dict(
         current_app.config,
@@ -164,14 +165,16 @@ def test_connections_authentication_paths(
     mocker.patch.object(
         security_manager,
         "is_item_public",
-        side_effect=lambda permission, view: mode == "public"
-        and view == "SemanticLayer",
+        side_effect=lambda permission, view: (
+            mode == "public" and view == "SemanticLayer"
+        ),
     )
     mocker.patch.object(
         security_manager,
         "has_access",
-        side_effect=lambda permission, view: mode != "authenticated_no_grant"
-        and view == "SemanticLayer",
+        side_effect=lambda permission, view: (
+            mode != "authenticated_no_grant" and view == "SemanticLayer"
+        ),
     )
     mocker.patch(
         "superset.views.base_api.current_user",

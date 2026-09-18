@@ -14,10 +14,13 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
-from flask_babel import lazy_gettext as _
+from flask_babel import gettext as __, lazy_gettext as _
 from marshmallow.validate import ValidationError
+
+if TYPE_CHECKING:
+    from superset.models.dashboard import Dashboard
 
 from superset.commands.exceptions import (
     CommandException,
@@ -42,6 +45,25 @@ class DashboardSlugExistsValidationError(ValidationError):
 
 class DashboardInvalidError(CommandInvalidError):
     message = _("Dashboard parameters are invalid.")
+
+
+class DashboardSlugReservedValidationError(ValidationError):
+    """The slug is held by a soft-deleted dashboard (full-constraint dialects)."""
+
+    def __init__(self, slug: str, holder: "Dashboard") -> None:
+        super().__init__(
+            [
+                __(
+                    "Slug %(slug)s belongs to the soft-deleted dashboard "
+                    "%(uuid)s. Restore it via POST "
+                    "/api/v1/dashboard/%(uuid)s/restore, or use a different "
+                    "slug.",
+                    slug=slug,
+                    uuid=holder.uuid,
+                )
+            ],
+            field_name="slug",
+        )
 
 
 class DashboardNotFoundError(ObjectNotFoundError):

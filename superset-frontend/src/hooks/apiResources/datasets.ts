@@ -19,6 +19,7 @@
  */
 import {
   Column,
+  DatasourceType,
   Metric,
   ensureIsArray,
   getExtensionsRegistry,
@@ -31,6 +32,10 @@ import {
   cachedSupersetGet,
   supersetGetCache,
 } from 'src/utils/cachedSupersetGet';
+import {
+  fetchSemanticViewStructure,
+  semanticViewDimensionsToColumns,
+} from 'src/utils/semanticViewStructure';
 import { Resource, ResourceStatus } from './apiResources';
 
 /**
@@ -40,6 +45,26 @@ export const getDatasetId = (datasetId: string | number): number =>
   typeof datasetId === 'string'
     ? Number(datasetId.split('__')[0])
     : Number(datasetId);
+
+/**
+ * Extract the datasource type from an `<id>__<type>` datasource string.
+ * Semantic views and regular datasets have independent numeric-id
+ * sequences, so the type is load-bearing: resolving by id alone reads
+ * whatever regular dataset shares the number (sc-111089). Absent or
+ * unrecognized suffixes fall back to a regular dataset, preserving
+ * legacy behaviour.
+ */
+export const getDatasourceTypeFromDatasourceId = (
+  datasetId: string | number,
+): DatasourceType => {
+  if (typeof datasetId !== 'string') {
+    return DatasourceType.Table;
+  }
+  const suffix = datasetId.split('__')[1];
+  return suffix === DatasourceType.SemanticView
+    ? DatasourceType.SemanticView
+    : DatasourceType.Table;
+};
 
 /**
  * Helper function to create verbose_map from a dataset
@@ -125,10 +150,47 @@ export const useDatasetDrillInfo = (
         const loadDrillByOptionsExtension = getExtensionsRegistry().get(
           'load.drillby.options',
         );
-        let result;
+        let result: Dataset | undefined;
         let labelSource;
 
-        if (loadDrillByOptionsExtension && formData) {
+        if (
+          getDatasourceTypeFromDatasourceId(datasetId) ===
+          DatasourceType.SemanticView
+        ) {
+          // Semantic views short-circuit BEFORE the extension check: the
+          // extension receives only the numeric id, which would resolve
+          // the colliding regular dataset (sc-111089 review consensus).
+          // The structure payload carries no changed_on/owners metadata —
+          // those metadata-bar rows render their not-available state, an
+          // accepted degradation. Columns are derived from semantic-view
+          // dimensions with groupby: true, making them drillable through
+          // ChartContextMenu; unavailable metadata is not fabricated.
+          const structure = await fetchSemanticViewStructure(numericDatasetId);
+          // Built as a partial Dataset (the declaration is typed, so
+          // table_name/columns are genuinely checked): no id or
+          // datasource_type is fabricated, and verbose_name is omitted rather
+          // than null — consumers only falsy-check it. The metrics are the one
+          // narrowing: the structure payload carries no uuid or full metric
+          // metadata, so each is asserted to Metric with only the fields
+          // consumers read (metric_name for verbose_map; expression for
+          // parity). Fabricating a uuid would be worse than the assertion.
+          result = {
+            table_name: structure.name,
+            columns: semanticViewDimensionsToColumns(structure.dimensions),
+            metrics: structure.metrics.map(
+              metric =>
+                ({
+                  metric_name: metric.name,
+                  expression: metric.definition,
+                }) as Metric,
+            ),
+          };
+          // The structure payload is the only label source for a semantic
+          // view -- there is no drill_info endpoint behind it -- so it is
+          // also the verbose_map source, as it was before labelSource was
+          // split out from result.
+          labelSource = result;
+        } else if (loadDrillByOptionsExtension && formData) {
           const response = await loadDrillByOptionsExtension(
             numericDatasetId,
             formData,
