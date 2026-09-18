@@ -89,3 +89,67 @@ test('typed state codes render real boundary paths and cross-filter original val
     json.mockRestore();
   }
 });
+
+test('an ISO selection is recognised as selected and toggles the filter off', () => {
+  const loader = d3 as unknown as {
+    json: (
+      url: string,
+      callback: (error: Error | null, data: unknown) => void,
+    ) => void;
+  };
+  const json = jest
+    .spyOn(loader, 'json')
+    .mockImplementation((_url, callback) => {
+      callback(null, usa);
+    });
+  const setDataMask = jest.fn();
+  try {
+    const props = transformProps(
+      new ChartProps({
+        theme: supersetTheme,
+        width: 800,
+        height: 600,
+        formData: {
+          entity: 'state',
+          metric: 'sales',
+          select_country: 'usa',
+          region_format: 'abbreviation',
+          linear_color_scheme: 'schemeBlues',
+        },
+        queriesData: [{ data: [{ state: 'CA', sales: 10 }] }],
+        datasource: { currencyFormats: {}, columnFormats: {} },
+        hooks: { setDataMask },
+        // the chart keys its own cross-filter state by rendered ISO code
+        filterState: { selectedValues: ['US-CA'] },
+        emitCrossFilters: true,
+      }),
+    );
+    const { container } = render(<ReactCountryMap {...props} />);
+    const regions = container.querySelectorAll<SVGPathElement>('path.region');
+    const california = [...regions].find(
+      path =>
+        (d3.select(path).datum() as RegionFeature).properties.ISO === 'US-CA',
+    );
+    expect(california).toBeDefined();
+    // recognised as selected, so it is the only fully opaque region
+    expect(california?.style.fillOpacity).toBe('1');
+    const other = [...regions].find(
+      path =>
+        (d3.select(path).datum() as RegionFeature).properties.ISO !== 'US-CA',
+    );
+    expect(other?.style.fillOpacity).toBe('0.3');
+    if (california) {
+      fireEvent.mouseDown(california);
+      fireEvent.click(california);
+    }
+    // clicking an already-selected region clears the filter
+    expect(setDataMask).toHaveBeenCalledWith(
+      expect.objectContaining({
+        extraFormData: { filters: [] },
+        filterState: expect.objectContaining({ selectedValues: null }),
+      }),
+    );
+  } finally {
+    json.mockRestore();
+  }
+});
