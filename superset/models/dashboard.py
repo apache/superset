@@ -366,15 +366,18 @@ class Dashboard(CoreDashboard, SoftDeleteMixin, AuditMixinNullable, ImportExport
                     payload: dict[str, Any] = dict(
                         datasource.data_for_slices(list(slices))
                     )
-                except Exception:  # noqa: BLE001
+                except Exception as ex:  # noqa: BLE001
                     if not isinstance(datasource, SemanticView):
                         raise
                     # Provider discovery must not hide other charts' metadata.
+                    # Providers have no shared operational exception contract.
                     # Exception details may contain credentials or provider URLs.
                     logger.warning(
-                        "Could not serialize semantic view id=%s layer_uuid=%s",
+                        "Could not serialize semantic view id=%s "
+                        "layer_uuid=%s error=%s",
                         datasource.id,
                         datasource.semantic_layer_uuid,
+                        type(ex).__name__,
                     )
                     continue
                 result.append((datasource, payload))

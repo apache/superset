@@ -134,7 +134,7 @@ def test_dashboard_semantic_dataset_serialization_preserves_access_narrowing(
         assert "database" not in payload
 
 
-@pytest.mark.parametrize("error_type", [ValueError, RuntimeError])
+@pytest.mark.parametrize("error_type", [ValueError, RuntimeError, AttributeError])
 def test_dashboard_datasets_isolate_semantic_provider_failure(
     semantic_view: SemanticView,
     error_type: type[Exception],
@@ -162,7 +162,10 @@ def test_dashboard_datasets_isolate_semantic_provider_failure(
     assert "semantic view" in caplog.text
     assert f"id={semantic_view.id}" in caplog.text
     assert str(semantic_view.semantic_layer_uuid) in caplog.text
+    assert error_type.__name__ in caplog.text
     assert "secret-provider-url" not in caplog.text
+    assert caplog.records[-1].levelname == "WARNING"
+    assert caplog.records[-1].exc_info is None
 
 
 def test_dashboard_table_serialization_omits_absent_semantic_fields() -> None:
