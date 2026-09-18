@@ -1208,6 +1208,14 @@ class TestGetChartSqlTool:
             mock_get_user.return_value = mock_user
             yield mock_get_user
 
+    @pytest.fixture(autouse=True)
+    def mock_db_refresh(self):
+        """The Mock chart objects used below aren't real ORM instances, so
+        the real db.session.refresh() (added to eagerly reload the chart
+        after lookup) can't operate on them. Stub out just that method."""
+        with patch.object(_get_chart_sql_mod.db.session, "refresh"):
+            yield
+
     @pytest.fixture
     def mcp_server(self):
         from superset.mcp_service.app import mcp
