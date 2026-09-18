@@ -37,9 +37,9 @@
     "jwt-decode": "^4.0.0"
   },
   "devDependencies": {
-    "@babel/cli": "^8.0.1",
-    "@babel/core": "^8.0.1",
-    "@babel/preset-env": "^8.0.1",
+    "@babel/cli": "^8.0.5",
+    "@babel/core": "^8.0.5",
+    "@babel/preset-env": "^8.0.5",
     "@babel/preset-typescript": "^8.0.1",
     "@types/node": "^26.5.1",
     "babel-loader": "^10.1.1",
