@@ -386,6 +386,8 @@ def test_reconcile_position_json_handles_edge_and_malformed_nodes(
         (7.0, 7),  # integral float (JSON round-trip / import)
         ("7", 7),  # digit string (legacy data)
         (" 7 ", 7),  # whitespace-padded digit string
+        ("²", None),  # a digit that int() cannot parse
+        ("٧", 7),  # decimal Unicode digits are valid integers
         (7.5, None),  # fractional float is not an id
         ("7a", None),  # non-digit string
         ("-1", None),  # sign is not a digit; no Slice has a negative id

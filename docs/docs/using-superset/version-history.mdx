@@ -125,6 +125,11 @@ Live charts are still cloned. The source dashboard is unchanged, and ordinary
 dashboard saves and chart restores keep their existing reattachment behavior.
 This rule does not change copying a dashboard without copying its charts.
 
+Copying with charts refuses a layout slot that still references a live chart
+removed from the dashboard's membership. The error identifies the slot and the
+membership mismatch; no partial copy is saved. Repair the source layout before
+retrying. Malformed chart references also return a validation error (HTTP 422).
+
 ## What gets recorded
 
 Versions capture the entity's own saved state — a chart's name, visualization

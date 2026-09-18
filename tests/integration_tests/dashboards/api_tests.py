@@ -26,6 +26,7 @@ from werkzeug.test import TestResponse
 from tests.integration_tests.insert_chart_mixin import InsertChartMixin
 
 from typing import Any
+from parameterized import parameterized
 
 from flask_appbuilder.security.sqla.models import User
 
@@ -4213,6 +4214,84 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         assert data["count"] == len(expected_models)
         db.session.delete(dashboard)
         db.session.commit()
+
+    @parameterized.expand(
+        [
+            ("malformed", True),
+            ("malformed", False),
+            ("unicode_digit", True),
+            ("nonmember", True),
+        ]
+    )
+    def test_copy_dashboard_layout_error_returns_422_without_writes(
+        self, failure: str, duplicate_slices: bool
+    ) -> None:
+        """Refuse invalid copies accurately and roll back any cloned assets."""
+        from superset.connectors.sqla.models import SqlaTable
+
+        admin: User = self.get_user(ADMIN_USERNAME)
+        dashboard: Dashboard = self.insert_dashboard(
+            "copy-error-source", None, [admin.id]
+        )
+        dataset_id: int = (
+            db.session.query(SqlaTable.id).order_by(SqlaTable.id).first()[0]
+        )
+        member: Slice = self.insert_chart("copy-error-member", [admin.id], dataset_id)
+        other: Slice = self.insert_chart("copy-error-other", [admin.id], dataset_id)
+        dashboard.slices = [member, other]
+        bad_id: int | str | None = other.id if failure == "nonmember" else None
+        if failure == "unicode_digit":
+            bad_id = "²"
+        positions: dict[str, Any] = {
+            "CHART-member": {
+                "id": "CHART-member",
+                "type": "CHART",
+                "meta": {"chartId": member.id, "width": 4, "height": 50},
+            },
+            "CHART-bad": {
+                "id": "CHART-bad",
+                "type": "CHART",
+                "meta": {"chartId": bad_id, "width": 4, "height": 50},
+            },
+        }
+        dashboard.position_json = json.dumps(positions)
+        db.session.commit()
+        if failure == "nonmember":
+            # Chart Properties can remove membership without rewriting layout.
+            other.dashboards.remove(dashboard)
+            db.session.commit()
+        source_layout: str = dashboard.position_json
+        source_members: set[int] = {chart.id for chart in dashboard.slices}
+        chart_count: int = db.session.query(Slice).count()
+        dashboard_count: int = db.session.query(Dashboard).count()
+        self.login(ADMIN_USERNAME)
+        try:
+            response: TestResponse = self.client.post(
+                f"/api/v1/dashboard/{dashboard.id}/copy/",
+                json={
+                    "dashboard_title": "copy-error-result",
+                    "duplicate_slices": duplicate_slices,
+                    "json_metadata": json.dumps({"positions": positions}),
+                },
+            )
+            assert response.status_code == 422, response.data
+            assert b"CHART-bad" in response.data
+            if failure == "nonmember":
+                assert b"outside the dashboard's membership" in response.data
+                assert b"without a usable chartId" not in response.data
+            else:
+                assert b"without a usable chartId" in response.data
+            db.session.expire_all()
+            assert dashboard.position_json == source_layout
+            assert {chart.id for chart in dashboard.slices} == source_members
+            assert db.session.query(Slice).count() == chart_count
+            assert db.session.query(Dashboard).count() == dashboard_count
+        finally:
+            db.session.rollback()
+            db.session.delete(dashboard)
+            db.session.delete(member)
+            db.session.delete(other)
+            db.session.commit()
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_copy_dashboard(self):

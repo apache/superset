@@ -127,7 +127,7 @@ def _layout_chart_id(node: Any) -> int | None:
         return chart_id
     if isinstance(chart_id, float) and chart_id.is_integer():
         return int(chart_id)
-    if isinstance(chart_id, str) and chart_id.strip().isdigit():
+    if isinstance(chart_id, str) and chart_id.strip().isdecimal():
         return int(chart_id.strip())
     return None
 
@@ -755,10 +755,22 @@ class DashboardDAO(BaseDAO[Dashboard]):
                 old_to_new_slice_ids[slc.id] = new_slice.id
 
             # update chartId of layout entities
-            for value in metadata["positions"].values():
+            slot: str
+            value: Any
+            for slot, value in metadata["positions"].items():
                 old_id: int | None = _layout_chart_id(value)
                 if old_id is not None:
                     new_id: int | None = old_to_new_slice_ids.get(old_id)
+                    if new_id is None:
+                        raise DashboardLayoutInvalidError(
+                            exceptions=[
+                                ValidationError(
+                                    f"Cannot copy CHART slot {slot}: its chart is "
+                                    "outside the dashboard's membership.",
+                                    field_name="json_metadata",
+                                )
+                            ]
+                        )
                     value["meta"]["chartId"] = new_id
         else:
             dash.slices = original_dash.slices
