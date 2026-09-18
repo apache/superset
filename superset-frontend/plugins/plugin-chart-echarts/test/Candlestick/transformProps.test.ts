@@ -431,13 +431,62 @@ test('reserves bottom legend space on the bottom grid edge', () => {
     legend_orientation: 'bottom',
     show_x_axis: false,
     show_y_axis: false,
-    x_axis_title_margin: 0,
-    y_axis_title_margin: 0,
+    x_axis_title: 'Date',
+    y_axis_title: 'Price',
   });
   const grid = echartOptions.grid as { left: number; bottom: number };
   // sizeUnit * 3 (hidden X axis) + default bottom legend margin (20)
   expect(grid.bottom).toBe(32);
   expect(grid.left).toBe(8);
+});
+
+test('does not reserve title margins when axis titles are empty', () => {
+  const { echartOptions } = buildProps({ show_legend: false });
+  const grid = echartOptions.grid as {
+    top: number;
+    bottom: number;
+    left: number;
+    right: number;
+  };
+  expect(grid.top).toBe(20);
+  expect(grid.bottom).toBe(20);
+  expect(grid.left).toBe(20);
+  expect(grid.right).toBe(20);
+});
+
+test('adds x-axis title margin to the bottom when the title is visible', () => {
+  const { echartOptions } = buildProps({
+    show_legend: false,
+    x_axis_title: 'Date',
+    x_axis_title_margin: 40,
+  });
+  const grid = echartOptions.grid as { bottom: number; left: number };
+  expect(grid.bottom).toBe(60);
+  expect(grid.left).toBe(20);
+});
+
+test('adds y-axis title margin to the top when the title position is Top', () => {
+  const { echartOptions } = buildProps({
+    show_legend: false,
+    y_axis_title: 'Price',
+    y_axis_title_margin: 50,
+    y_axis_title_position: 'Top',
+  });
+  const grid = echartOptions.grid as { top: number; left: number };
+  expect(grid.top).toBe(70);
+  expect(grid.left).toBe(20);
+});
+
+test('adds y-axis title margin to the left when the title position is Left', () => {
+  const { echartOptions } = buildProps({
+    show_legend: false,
+    y_axis_title: 'Price',
+    y_axis_title_margin: 50,
+    y_axis_title_position: 'Left',
+  });
+  const grid = echartOptions.grid as { top: number; left: number };
+  expect(grid.top).toBe(20);
+  expect(grid.left).toBe(70);
 });
 
 test('splits data into multiple series when a series dimension is set', () => {

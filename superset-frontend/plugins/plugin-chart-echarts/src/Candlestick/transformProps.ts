@@ -589,19 +589,38 @@ export default function transformProps(
       ]
     : [];
 
+  const xAxisTitleMarginPx = convertInteger(xAxisTitleMargin);
+  const yAxisTitleMarginPx = convertInteger(yAxisTitleMargin);
+  const addXAxisTitleOffset =
+    Boolean(showXAxis && xAxisTitle) && xAxisTitleMarginPx !== 0;
+  const addYAxisTitleOffset =
+    Boolean(showYAxis && yAxisTitle) && yAxisTitleMarginPx !== 0;
+  const xAxisTitleOffset = addXAxisTitleOffset ? xAxisTitleMarginPx : 0;
+  const yAxisTitleTopOffset = !addYAxisTitleOffset
+    ? 0
+    : yAxisTitlePosition === 'Top'
+      ? yAxisTitleMarginPx
+      : yAxisTitlePosition === 'Left'
+        ? 0
+        : TIMESERIES_CONSTANTS.yAxisLabelTopOffset;
+  const yAxisTitleLeftOffset =
+    addYAxisTitleOffset && yAxisTitlePosition === 'Left'
+      ? yAxisTitleMarginPx
+      : 0;
+
   const echartOptions: EChartsCoreOption = {
     grid: {
       ...defaultGrid,
-      top: theme.sizeUnit * 5 + legendPadding.top,
+      top: theme.sizeUnit * 5 + legendPadding.top + yAxisTitleTopOffset,
       bottom:
         theme.sizeUnit * (showXAxis ? 5 : 3) +
         legendPadding.bottom +
-        convertInteger(xAxisTitleMargin) +
+        xAxisTitleOffset +
         (zoomable ? TIMESERIES_CONSTANTS.gridOffsetBottomZoomable : 0),
       left:
         theme.sizeUnit * (showYAxis ? 5 : 2) +
         legendPadding.left +
-        convertInteger(yAxisTitleMargin),
+        yAxisTitleLeftOffset,
       right: theme.sizeUnit * 5 + legendPadding.right,
     },
     legend: {
