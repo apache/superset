@@ -952,30 +952,30 @@ const DashboardBuilder = () => {
             />
           </Suspense>
         )}
-        {!editMode &&
-          !topLevelTabs &&
-          dashboardLayout[DASHBOARD_GRID_ID]?.children?.length === 0 && (
-            <EmptyState
-              title={t('There are no charts added to this dashboard')}
-              size="large"
-              description={
-                canEnterEditMode &&
-                t(
-                  'Go to the edit mode to configure the dashboard and add charts',
-                )
-              }
-              buttonText={canEnterEditMode && t('Edit the dashboard')}
-              buttonAction={() => {
-                dispatch(setEditMode(true));
-                dispatch(clearDashboardHistory());
-              }}
-              image="dashboard.svg"
-            />
-          )}
         <DashboardContentWrapper
           data-test="dashboard-content-wrapper"
           className={cx('dashboard', editMode && 'dashboard--editing')}
         >
+          {!editMode &&
+            !topLevelTabs &&
+            dashboardLayout[DASHBOARD_GRID_ID]?.children?.length === 0 && (
+              <EmptyState
+                title={t('There are no charts added to this dashboard')}
+                size="large"
+                description={
+                  canEnterEditMode &&
+                  t(
+                    'Go to the edit mode to configure the dashboard and add charts',
+                  )
+                }
+                buttonText={canEnterEditMode && t('Edit the dashboard')}
+                buttonAction={() => {
+                  dispatch(setEditMode(true));
+                  dispatch(clearDashboardHistory());
+                }}
+                image="dashboard.svg"
+              />
+            )}
           <StyledDashboardContent
             className="dashboard-content"
             editMode={editMode}
