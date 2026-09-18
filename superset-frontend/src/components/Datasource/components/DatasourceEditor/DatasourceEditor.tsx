@@ -218,6 +218,9 @@ interface DatasourceObject {
   partition_mapped_column?: string | null;
   // Engine-supplied pre-fill for a temporal column's value transform. Read-only.
   partition_value_transform_default?: string | null;
+  // Whether the engine's tables are partition-directory laid out. Gates whether
+  // the partition filter mapping UI is offered at all. Engine-supplied, read-only.
+  supports_partition_filter_mapping?: boolean;
   template_params?: string;
   spatials?: SpatialConfig[];
   all_cols?: string[];
@@ -616,7 +619,9 @@ function ColumnCollectionTable({
   expandedColumnName,
 }: ColumnCollectionTableProps): JSX.Element {
   const partitionMappingEnabled =
-    isFeatureEnabled(FeatureFlag.PartitionFilterMapping) && Boolean(datasource);
+    isFeatureEnabled(FeatureFlag.PartitionFilterMapping) &&
+    Boolean(datasource) &&
+    Boolean(datasource?.supports_partition_filter_mapping);
   const partitionColumn = partitionMappingEnabled
     ? datasource?.partition_column
     : null;

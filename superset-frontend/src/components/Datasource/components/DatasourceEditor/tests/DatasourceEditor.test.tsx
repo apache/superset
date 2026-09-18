@@ -24,7 +24,11 @@ import {
   userEvent,
   within,
 } from 'spec/helpers/testing-library';
-import { DatasourceType, isFeatureEnabled } from '@superset-ui/core';
+import {
+  DatasourceType,
+  FeatureFlag,
+  isFeatureEnabled,
+} from '@superset-ui/core';
 import * as getBootstrapData from 'src/utils/getBootstrapData';
 import {
   createProps,
@@ -887,4 +891,54 @@ test('DatasourceEditor source pins getSQLLabUrl/openOnSqlLab to the makeUrl + op
   expect(src).toMatch(
     /import \{ makeUrl, openInNewTab \} from 'src\/utils\/navigationUtils';/,
   );
+});
+
+test('partition mapping UI is offered when the engine supports it', async () => {
+  // The feature flag alone is not enough: mirroring a filter onto a partition
+  // column only prunes work on partition-directory engines, so the engine has
+  // to advertise the capability before the editor surfaces it.
+  (isFeatureEnabled as jest.Mock).mockImplementation(
+    flag => flag === FeatureFlag.PartitionFilterMapping,
+  );
+
+  const testProps = createProps();
+  await asyncRender({
+    ...testProps,
+    datasource: {
+      ...testProps.datasource,
+      partition_column: 'ds',
+      supports_partition_filter_mapping: true,
+    },
+  });
+
+  await userEvent.click(screen.getByTestId('collection-tab-Columns'));
+
+  expect(await screen.findByTestId('partition-tag')).toBeInTheDocument();
+});
+
+test('partition mapping UI is withheld on an engine that does not support it', async () => {
+  // Same flag, same partition column, but an engine whose tables are not
+  // partition-directory laid out: the dropdown would map to nothing, so it is
+  // never offered even though the flag is on.
+  (isFeatureEnabled as jest.Mock).mockImplementation(
+    flag => flag === FeatureFlag.PartitionFilterMapping,
+  );
+
+  const testProps = createProps();
+  await asyncRender({
+    ...testProps,
+    datasource: {
+      ...testProps.datasource,
+      partition_column: 'ds',
+      supports_partition_filter_mapping: false,
+    },
+  });
+
+  await userEvent.click(screen.getByTestId('collection-tab-Columns'));
+
+  // Wait for the columns tab to render before asserting the tag is absent.
+  expect(
+    await screen.findByPlaceholderText('Search columns by name'),
+  ).toBeInTheDocument();
+  expect(screen.queryByTestId('partition-tag')).not.toBeInTheDocument();
 });

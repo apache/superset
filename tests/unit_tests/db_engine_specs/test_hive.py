@@ -298,3 +298,25 @@ def test_the_partition_transform_default_is_not_inherited_by_presto() -> None:
     from superset.db_engine_specs.presto import PrestoEngineSpec
 
     assert PrestoEngineSpec.partition_value_transform_default is None
+
+
+def test_hive_supports_partition_filter_mapping() -> None:
+    """
+    Hive tables are partition-directory laid out, so the editor offers the
+    mapping. Spark SQL inherits from Hive and shares the layout.
+    """
+    from superset.db_engine_specs.hive import HiveEngineSpec
+    from superset.db_engine_specs.spark import SparkEngineSpec
+
+    assert HiveEngineSpec.supports_partition_filter_mapping is True
+    assert SparkEngineSpec.supports_partition_filter_mapping is True
+
+
+def test_partition_filter_mapping_is_not_inherited_by_presto() -> None:
+    """
+    HiveEngineSpec extends PrestoEngineSpec, so pin that the capability did not
+    travel up: Presto/Trino tables are not partition-directory laid out.
+    """
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+
+    assert PrestoEngineSpec.supports_partition_filter_mapping is False
