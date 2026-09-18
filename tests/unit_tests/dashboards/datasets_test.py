@@ -17,19 +17,118 @@
 
 """Dashboard datasource payload regression tests."""
 
+from collections.abc import Iterator
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, PropertyMock
 
 import pytest
+from flask import g
 
 from superset.connectors.sqla.models import BaseDatasource, SqlaTable
 from superset.dashboards.api import DashboardRestApi
+from superset.dashboards.schemas import DashboardDatasetSchema
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
+from superset.security.guest_token import GuestToken, GuestUser
 from superset.semantic_layers.models import SemanticView
 
 # Reuse the semantic model fixtures without shadowing imported fixture functions.
 pytest_plugins: list[str] = ["tests.unit_tests.semantic_layers.models_test"]
+
+
+@pytest.fixture(autouse=True)
+def datasource_access() -> Iterator[None]:
+    """Default metadata fixtures to an authorized principal."""
+    with patch(
+        "superset.models.dashboard.security_manager.can_access_all_datasources",
+        return_value=True,
+    ):
+        yield
+
+
+def test_inaccessible_semantic_dataset_never_discovers_provider(
+    semantic_view: SemanticView,
+) -> None:
+    """Dashboard access alone must not instantiate a credentialed provider."""
+    chart: Slice = Slice(
+        datasource_id=semantic_view.id, datasource_type="semantic_view"
+    )
+    chart.semantic_view = semantic_view
+    dashboard: Dashboard = Dashboard(slices=[chart])
+    provider: MagicMock = MagicMock()
+    implementation: PropertyMock
+    with (
+        patch(
+            "superset.models.dashboard.security_manager.can_access_all_datasources",
+            return_value=False,
+        ),
+        patch(
+            "superset.models.dashboard.security_manager.can_access",
+            return_value=False,
+        ),
+        patch(
+            "superset.models.dashboard.security_manager.is_editor",
+            return_value=False,
+        ),
+        patch.object(
+            SemanticView,
+            "implementation",
+            new_callable=PropertyMock,
+            return_value=provider,
+        ) as implementation,
+        patch(
+            "superset.dashboards.schemas.security_manager.is_guest_user",
+            return_value=False,
+        ),
+    ):
+        datasets: list[tuple[BaseDatasource | SemanticView, dict[str, Any]]] = (
+            dashboard.datasets_trimmed_for_slices()
+        )
+        assert len(datasets) == 1
+        payload: dict[str, Any] = DashboardRestApi()._serialize_dashboard_dataset(
+            *datasets[0]
+        )
+    implementation.assert_not_called()
+    assert provider.mock_calls == []
+    assert payload["uid"] == "1__semantic_view"
+    assert payload["name"] == "Orders View"
+    assert "columns" not in payload
+    assert "metrics" not in payload
+    assert "parent" not in payload
+    assert "semantic_view_features" not in payload
+
+
+def test_guest_token_semantic_payload_hides_provider_metadata() -> None:
+    """A real guest principal gets the same connection redaction as tables."""
+    token: GuestToken = {
+        "iat": 0,
+        "exp": 1,
+        "user": {"username": "embedded-guest"},
+        "resources": [],
+        "rls_rules": [],
+    }
+    guest: GuestUser = GuestUser(token, roles=[])
+    with (
+        patch.object(g, "user", guest, create=True),
+        patch("superset.is_feature_enabled", return_value=True),
+    ):
+        payload: dict[str, Any] = DashboardDatasetSchema().dump(
+            {
+                "id": 1,
+                "uid": "1__semantic_view",
+                "type": "semantic_view",
+                "name": "Orders View",
+                "database": {"name": "Warehouse"},
+                "parent": {"name": "Secret layer name"},
+                "semantic_view_features": ["provider-feature"],
+            }
+        )
+    assert payload == {
+        "id": 1,
+        "uid": "1__semantic_view",
+        "type": "semantic_view",
+        "name": "Orders View",
+    }
 
 
 def test_dashboard_datasets_include_semantic_view(semantic_view: SemanticView) -> None:
@@ -108,15 +207,19 @@ def test_dashboard_semantic_dataset_serialization_preserves_access_narrowing(
             *dashboard.datasets_trimmed_for_slices()[0]
         )
 
-    can_access_datasource.assert_called_once_with(semantic_view)
+    can_access_datasource.assert_any_call(semantic_view)
     assert payload["id"] == semantic_view.id
     assert payload["uid"] == "1__semantic_view"
     assert payload["type"] == "semantic_view"
     assert payload["name"] == "Orders View"
     assert payload["supports_drill_to_detail"] is False
     assert payload["supports_samples"] is False
-    assert payload["parent"] == {"name": "Test Layer"}
-    assert payload["semantic_view_features"] == []
+    if is_guest or not can_access:
+        assert "parent" not in payload
+        assert "semantic_view_features" not in payload
+    else:
+        assert payload["parent"] == {"name": "Test Layer"}
+        assert payload["semantic_view_features"] == []
     if can_access:
         assert {column["column_name"] for column in payload["columns"]} == {
             "order_date",

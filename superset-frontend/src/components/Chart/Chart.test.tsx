@@ -115,7 +115,7 @@ test('shows a message-only semantic API error while datasource metadata is loadi
       {...baseProps}
       formData={{ datasource: '1__semantic_view', viz_type: 'table' }}
       chartStatus="failed"
-      chartAlert="Semantic result contains a non-finite number"
+      chartAlert="Stale client-side rendering error"
       datasource={PLACEHOLDER_DATASOURCE}
       datasetsStatus={ResourceStatus.Loading}
       queriesResponse={[
@@ -128,6 +128,9 @@ test('shows a message-only semantic API error while datasource metadata is loadi
     screen.getByText('Semantic result contains a non-finite number'),
   ).toBeInTheDocument();
   expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  expect(
+    screen.queryByText('Stale client-side rendering error'),
+  ).not.toBeInTheDocument();
 });
 
 test('shows a semantic error after the dashboard supplies the real datasource', () => {
@@ -153,9 +156,7 @@ test('shows a semantic error after the dashboard supplies the real datasource', 
       chartAlert="Semantic result contains a non-finite number"
       datasource={datasource}
       datasetsStatus={ResourceStatus.Complete}
-      queriesResponse={[
-        { message: 'Semantic result contains a non-finite number' },
-      ]}
+      queriesResponse={[{}]}
     />,
   );
 

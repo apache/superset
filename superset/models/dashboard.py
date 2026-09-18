@@ -361,6 +361,26 @@ class Dashboard(CoreDashboard, SoftDeleteMixin, AuditMixinNullable, ImportExport
             datasource: Datasource | None = next(iter(slices)).resolved_datasource
 
             if isinstance(datasource, (BaseDatasource, SemanticView)):
+                if isinstance(
+                    datasource, SemanticView
+                ) and not security_manager.can_access_datasource(datasource):
+                    # Keep the dashboard lookup identity without instantiating
+                    # a provider or discovering metadata with stored credentials.
+                    result.append(
+                        (
+                            datasource,
+                            {
+                                "id": datasource.id,
+                                "type": datasource.type,
+                                "name": datasource.name,
+                                "supports_samples": datasource.supports_samples,
+                                "supports_drill_to_detail": (
+                                    datasource.supports_drill_to_detail
+                                ),
+                            },
+                        )
+                    )
+                    continue
                 # Filter out unneeded fields from the datasource payload
                 try:
                     payload: dict[str, Any] = dict(

@@ -385,6 +385,8 @@ class DashboardDatasetSchema(Schema):
     def post_dump(self, serialized: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         if security_manager.is_guest_user():
             serialized.pop("database", None)
+            serialized.pop("parent", None)
+            serialized.pop("semantic_view_features", None)
             serialized.pop("editors", None)
             # Guest users should never receive fields that expose internal
             # connection or query details.

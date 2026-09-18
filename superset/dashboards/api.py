@@ -288,6 +288,8 @@ DASHBOARD_DATASET_INACCESSIBLE_FIELDS = (
     "perm",
     "edit_url",
     "database",
+    "parent",
+    "semantic_view_features",
     "columns",
     "column_names",
     "column_types",
