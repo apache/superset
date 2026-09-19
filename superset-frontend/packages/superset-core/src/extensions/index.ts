@@ -49,6 +49,27 @@ import { Extension } from '../common';
 import { ExtensionStorage } from '../storage';
 
 /**
+ * Global, host-level UI surfaces available to an extension, independent of
+ * any specific view or panel it has registered.
+ */
+export interface ExtensionWindow {
+  /**
+   * Show a transient informational toast to the current user.
+   */
+  showInformationMessage(message: string): void;
+
+  /**
+   * Show a transient warning toast to the current user.
+   */
+  showWarningMessage(message: string): void;
+
+  /**
+   * Show a transient error toast to the current user.
+   */
+  showErrorMessage(message: string): void;
+}
+
+/**
  * Context object providing extension-specific resources.
  *
  * This context is only available during extension execution.
@@ -65,6 +86,12 @@ export interface ExtensionContext {
    * All keys are automatically namespaced to prevent collisions.
    */
   storage: ExtensionStorage;
+
+  /**
+   * Global, host-level UI surfaces (e.g. toast notifications) not scoped to
+   * any single view or panel.
+   */
+  window: ExtensionWindow;
 }
 
 /**
