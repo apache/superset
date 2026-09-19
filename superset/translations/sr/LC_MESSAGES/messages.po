@@ -1193,6 +1193,11 @@ msgstr "Извештај са називом \"%(name)s\" већ постоји"
 msgid "A reusable dataset will be saved with your chart."
 msgstr "Скуп података за поновну употребу биће сачуван уз ваш графикон."
 
+msgid ""
+"A semantic view's provider query is produced when the chart runs and "
+"returned with its data."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
 "A set of parameters that become available in the query using Jinja "
@@ -11871,6 +11876,9 @@ msgstr ""
 "На ову контролну таблу тренутно нису додати никакви вишеслојни deck.gl "
 "графикони."
 
+msgid "No provider query is available for this run."
+msgstr ""
+
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
 msgid "No records found"
@@ -18044,6 +18052,9 @@ msgstr "Примарна метрика се користи за дефинис�
 # de, es, fa, ja, lv, mi, nl, ru, sk, sl, uk]
 msgid "The provided table was not found in the provided database"
 msgstr "Наведена табела није пронађена у наведеној бази података"
+
+msgid "The provider query will be available after the chart runs."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "The query associated with the results was deleted."

@@ -1001,6 +1001,11 @@ msgid "A reusable dataset will be saved with your chart."
 msgstr "Un jeu de données réutilisable sera enregistré avec votre graphique."
 
 msgid ""
+"A semantic view's provider query is produced when the chart runs and "
+"returned with its data."
+msgstr ""
+
+msgid ""
 "A set of parameters that become available in the query using Jinja "
 "templating syntax"
 msgstr ""
@@ -9693,6 +9698,9 @@ msgstr ""
 "Aucun graphique deck.gl multi-couches n'est actuellement ajouté à ce "
 "tableau de bord."
 
+msgid "No provider query is available for this run."
+msgstr ""
+
 msgid "No records found"
 msgstr "Aucun enregistrement n'a été trouvé"
 
@@ -14853,6 +14861,9 @@ msgstr ""
 
 msgid "The provided table was not found in the provided database"
 msgstr "La table est introuvable dans la base de données."
+
+msgid "The provider query will be available after the chart runs."
+msgstr ""
 
 msgid "The query associated with the results was deleted."
 msgstr "La requête associée aux résutlats a été supprimée."

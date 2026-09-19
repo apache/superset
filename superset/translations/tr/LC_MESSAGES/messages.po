@@ -1004,6 +1004,11 @@ msgid "A reusable dataset will be saved with your chart."
 msgstr "Yeniden kullanılabilir bir veri kümesi, grafiğinizle kurtarılacaktır."
 
 msgid ""
+"A semantic view's provider query is produced when the chart runs and "
+"returned with its data."
+msgstr ""
+
+msgid ""
 "A set of parameters that become available in the query using Jinja "
 "templating syntax"
 msgstr "Jinja'yı kullanarak sorguda mevcut olan bir dizi parametre, sözel sözcüm"
@@ -10064,6 +10069,9 @@ msgstr "Sonuç bulunamadı"
 msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr "Bu panoya şu anda hiçbir çok katmanlı deck.gl grafiği eklenmemiş."
 
+msgid "No provider query is available for this run."
+msgstr ""
+
 msgid "No records found"
 msgstr "Hiçbir kayıt bulunamadı"
 
@@ -15360,6 +15368,9 @@ msgstr "İlk metrik, ark segment boyutlarını tanımlamak için kullanılır"
 
 msgid "The provided table was not found in the provided database"
 msgstr "Verilen masa, sağlanan veritabanında bulunamadı"
+
+msgid "The provider query will be available after the chart runs."
+msgstr ""
 
 msgid "The query associated with the results was deleted."
 msgstr "Sonuçlarla ilgili sorgu silindi."

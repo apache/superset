@@ -1375,6 +1375,11 @@ msgstr "데이터셋 %(name)s 은 이미 존재합니다"
 msgid "A reusable dataset will be saved with your chart."
 msgstr "재사용 가능한 데이터셋이 차트와 함께 저장됩니다."
 
+msgid ""
+"A semantic view's provider query is produced when the chart runs and "
+"returned with its data."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -14964,6 +14969,9 @@ msgstr "검색 결과"
 msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr "현재 이 대시보드에 추가된 다중 레이어 deck.gl 차트가 없습니다."
 
+msgid "No provider query is available for this run."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ro, ru, sk, sl, sr,
 # sr_Latn, tr, uk, zh, zh_TW]
@@ -22892,6 +22900,9 @@ msgstr "기본 지표는 호 세그먼트의 크기를 정의하는 데 사용�
 #, fuzzy
 msgid "The provided table was not found in the provided database"
 msgstr "제공된 데이터베이스에서 제공된 테이블을 찾을 수 없습니다"
+
+msgid "The provider query will be available after the chart runs."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,

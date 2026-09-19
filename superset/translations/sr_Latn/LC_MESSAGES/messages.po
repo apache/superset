@@ -1193,6 +1193,11 @@ msgstr "Izveštaj sa nazivom \"%(name)s\" već postoji"
 msgid "A reusable dataset will be saved with your chart."
 msgstr "Skup podataka za ponovnu upotrebu biće sačuvan uz vaš grafikon."
 
+msgid ""
+"A semantic view's provider query is produced when the chart runs and "
+"returned with its data."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
 "A set of parameters that become available in the query using Jinja "
@@ -11880,6 +11885,9 @@ msgstr ""
 "Na ovu kontrolnu tablu trenutno nisu dodati nikakvi višeslojni deck.gl "
 "grafikoni."
 
+msgid "No provider query is available for this run."
+msgstr ""
+
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
 msgid "No records found"
@@ -18054,6 +18062,9 @@ msgstr "Primarna metrika se koristi za definisanje veličina segmenata luka"
 # de, es, fa, ja, lv, mi, nl, ru, sk, sl, uk]
 msgid "The provided table was not found in the provided database"
 msgstr "Navedena tabela nije pronađena u navedenoj bazi podataka"
+
+msgid "The provider query will be available after the chart runs."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "The query associated with the results was deleted."
