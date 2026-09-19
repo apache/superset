@@ -23,7 +23,7 @@ import json  # noqa: TID251  -- standalone tool, not part of the superset packag
 import threading
 import time
 from collections.abc import Iterator
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
 
@@ -32,6 +32,7 @@ import pytest
 from automation.orchestrator import dispatch as ops
 from automation.orchestrator.api import (
     AmbiguousWriteError,
+    ApiError,
     AuthenticationError,
     CircuitBreaker,
     Devin,
@@ -625,28 +626,88 @@ def test_metrics_dont_break_existing_functionality(fake: tuple[Fake, str]) -> No
     assert gh.circuit_breaker.state == "closed"
 
 
-def _script_claim(state: Fake, taken: bool = False) -> None:
+OLD = "2000-01-01T00:00:00Z"
+
+
+def _script_claim(
+    state: Fake,
+    taken: bool = False,
+    ambiguous: bool = False,
+    held_date: str | None = None,
+) -> None:
+    """Script the GitHub calls behind ``claim_issue``.
+
+    ``taken`` makes the ref already exist (422). ``ambiguous`` makes the
+    create POST land but reply 500. ``held_date`` scripts the commit the
+    existing ref points at (a foreign claim with that committer date).
+    """
     state.script["/repos/o/r"] = [(200, {"default_branch": "master"})] * 5
-    state.script["/repos/o/r/git/ref/heads/master"] = [
-        (200, {"object": {"sha": "abc"}})
+    state.script["/repos/o/r/branches/master"] = [
+        (200, {"commit": {"sha": "base", "commit": {"tree": {"sha": "tree"}}}})
     ] * 5
-    if taken:
+    state.script["/repos/o/r/git/commits"] = [
+        (201, {"sha": "mine"}),
+        (201, {"sha": "takeover"}),
+    ]
+    if ambiguous:
+        state.script["/repos/o/r/git/refs"] = [(500, {})]
+        state.script["/repos/o/r/git/ref/devin/claims/issue-5"] = [
+            (200, {"object": {"sha": "mine"}})
+        ]
+    elif taken:
         state.script["/repos/o/r/git/refs"] = [
             (422, {"message": "Reference already exists"})
         ]
+        state.script["/repos/o/r/git/ref/devin/claims/issue-5"] = [
+            (200, {"object": {"sha": "theirs"}})
+        ]
+        state.script["/repos/o/r/git/ref/devin/claims/issue-9"] = [
+            (200, {"object": {"sha": "theirs"}})
+        ]
+        for n in (5, 9):
+            state.script[f"/repos/o/r/git/ref/devin/claims/issue-{n}"] = [
+                (200, {"object": {"sha": "theirs"}})
+            ]
+        state.script["/repos/o/r/git/commits/theirs"] = [
+            (200, {"sha": "theirs", "committer": {"date": held_date or _now()}})
+        ] * 2
     else:
         state.script["/repos/o/r/git/refs"] = [(201, {"ref": "refs/x"})]
+
+
+def _now() -> str:
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def test_claim_issue_is_atomic_ref_lock(fake: tuple[Fake, str]) -> None:
     state, base = fake
     gh = gh_client(base)
     _script_claim(state)
-    assert ops.claim_issue(gh, 5) is True
+    assert ops.claim_issue(gh, 5, "me") is True
     _script_claim(state, taken=True)
-    assert ops.claim_issue(gh, 5) is False
+    assert ops.claim_issue(gh, 5, "me") is False
     ops.release_issue(gh, 5)
     assert ("DELETE", "/repos/o/r/git/refs/devin/claims/issue-5") in state.calls
+
+
+def test_claim_issue_resolves_ambiguous_create(fake: tuple[Fake, str]) -> None:
+    state, base = fake
+    _script_claim(state, ambiguous=True)
+    # The POST replied 500 but the ref now points at our commit: we own it.
+    assert ops.claim_issue(gh_client(base), 5, "me") is True
+
+
+def test_claim_issue_reaps_stale_claim(fake: tuple[Fake, str]) -> None:
+    state, base = fake
+    _script_claim(state, taken=True, held_date=OLD)
+    state.script["/repos/o/r/git/refs/devin/claims/issue-5"] = [(200, {})]
+    assert ops.claim_issue(gh_client(base), 5, "me") is True
+    assert ("PATCH", "/repos/o/r/git/refs/devin/claims/issue-5") in state.calls
+
+    # Another dispatcher moved the ref first: the fast-forward is rejected.
+    _script_claim(state, taken=True, held_date=OLD)
+    state.script["/repos/o/r/git/refs/devin/claims/issue-5"] = [(422, {})]
+    assert ops.claim_issue(gh_client(base), 5, "me") is False
 
 
 def test_dispatch_skips_issue_claimed_by_other_dispatcher(
@@ -678,6 +739,74 @@ def test_dispatch_claims_then_releases(fake: tuple[Fake, str]) -> None:
     paths = [c[1] for c in state.calls]
     assert paths.index("/repos/o/r/git/refs") < paths.index("/sessions", 3)
     assert ("DELETE", "/repos/o/r/git/refs/devin/claims/issue-9") in state.calls
+
+
+def test_delete_branch_treats_404_as_success(fake: tuple[Fake, str]) -> None:
+    state, base = fake
+    state.script["/repos/o/r/git/refs/heads/b"] = [(404, {})]
+    gh_client(base).delete_branch("b")  # already gone: no error
+
+
+def test_malformed_retry_after_still_retries(fake: tuple[Fake, str]) -> None:
+    state, base = fake
+    gh = gh_client(base)
+    state.script["/x"] = [(429, {}), (200, {"ok": True})]
+    original = state.reply
+
+    def reply(method: str, path: str) -> tuple[int, Any, dict[str, str]]:
+        status, body, headers = original(method, path)
+        if status == 429:
+            headers = {"Retry-After": "not-a-date"}
+        return status, body, headers
+
+    state.reply = reply  # type: ignore[method-assign]
+    assert gh.get_json("x") == {"ok": True}
+
+
+def test_circuit_trip_metric_counts_openings_not_blocked_calls(
+    fake: tuple[Fake, str],
+) -> None:
+    state, base = fake
+    gh = gh_client(base)
+    gh.policy = RetryPolicy(
+        max_attempts=1, initial=0.01, max_sleep=0.05, budget_seconds=5, timeout=1
+    )
+    gh.circuit_breaker = CircuitBreaker(failure_threshold=2, recovery_timeout=60)
+    state.script["/x"] = [(500, {})] * 2
+    for _ in range(2):
+        with pytest.raises(TransientError):
+            gh.get_json("x")
+    assert gh.metrics.circuit_breaker_trips == 1
+    for _ in range(3):
+        with pytest.raises(ApiError):
+            gh.get_json("x")
+    assert gh.metrics.circuit_breaker_trips == 1
+    assert gh.metrics.circuit_breaker_blocked == 3
+
+
+def test_request_clamps_socket_timeout_and_sleep_to_deadline(
+    fake: tuple[Fake, str],
+) -> None:
+    state, base = fake
+    gh = gh_client(base)
+    gh.policy = RetryPolicy(
+        max_attempts=10, initial=5, max_sleep=50, budget_seconds=900, timeout=60
+    )
+    seen: list[float] = []
+    real = gh.session.request
+
+    def spy(method: str, url: str, **kw: Any) -> Any:
+        seen.append(kw["timeout"])
+        return real(method, url, **kw)
+
+    gh.session.request = spy  # type: ignore[method-assign,assignment]
+    state.script["/x"] = [(500, {})] * 20
+    start = time.monotonic()
+    with pytest.raises(TransientError):
+        gh.get_json("x", budget_seconds=1.5)
+    assert time.monotonic() - start < 4
+    # Socket timeouts never exceed the remaining budget (floored at MIN_TIMEOUT).
+    assert all(t <= 1.5 for t in seen)
 
 
 def test_watch_session_retry_budget_bounded_by_deadline(

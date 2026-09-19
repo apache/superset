@@ -25,6 +25,7 @@ import logging
 import random
 import re
 import time
+import uuid
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
@@ -91,20 +92,63 @@ def attempted_issues(
     return seen
 
 
+CLAIM_TTL = timedelta(minutes=30)
+
+
 def claim_ref(issue: int) -> str:
     return f"devin/claims/issue-{issue}"
 
 
-def claim_issue(gh: GitHub, issue: int) -> bool:
-    """Take the per-issue dispatch lock (a git ref) or report it is held.
+def _claim_message(owner: str) -> str:
+    return f"devin-claim {owner}"
+
+
+def _commit_date(commit: dict[str, Any]) -> datetime:
+    raw = str(commit["committer"]["date"]).replace("Z", "+00:00")
+    return datetime.fromisoformat(raw)
+
+
+def claim_issue(gh: GitHub, issue: int, owner: str, ttl: timedelta = CLAIM_TTL) -> bool:
+    """Take the per-issue dispatch lock or report that someone else holds it.
 
     The Devin API has no idempotency key, so the list-then-create in
-    :func:`ensure_session` is not atomic across dispatchers. Ref creation
-    is atomic on GitHub, so the winner of this claim is the only caller
-    allowed to create a session for ``issue``; the loser skips the issue
-    and picks up the winner's session on the next sweep.
+    :func:`ensure_session` is not atomic across dispatchers. The lock is the
+    git ref ``refs/devin/claims/issue-N`` pointing at a dangling commit whose
+    message carries ``owner`` and whose committer date is the claim time:
+
+    * creation is atomic (GitHub answers 422 if the ref exists);
+    * an ambiguous create is resolved by reading the ref back and checking
+      whether the commit it points at is ours;
+    * a claim older than ``ttl`` is stale (the holder died before releasing)
+      and is taken over with a non-force ref update, which GitHub only
+      accepts as a fast-forward -- i.e. only if nobody else moved it first.
     """
-    return gh.create_ref(claim_ref(issue), gh.default_branch_sha())
+    ref = claim_ref(issue)
+    base = gh.default_branch_commit()
+    tree = str(base["commit"]["tree"]["sha"])
+    mine = str(gh.create_commit(_claim_message(owner), tree, [])["sha"])
+    try:
+        if gh.create_ref(ref, mine):
+            return True
+    except AmbiguousWriteError as exc:
+        log.warning("[Issue #%d] claim ambiguous: %s. Probing", issue, exc)
+    current = gh.get_ref(ref)
+    if current is None:
+        return False
+    if str(current["object"]["sha"]) == mine:
+        return True
+    held = gh.get_commit(str(current["object"]["sha"]))
+    if datetime.now(timezone.utc) - _commit_date(held) < ttl:
+        return False
+    log.warning("[Issue #%d] reaping stale claim %s", issue, held["sha"])
+    takeover = str(
+        gh.create_commit(_claim_message(owner), tree, [str(held["sha"])])["sha"]
+    )
+    try:
+        return gh.fast_forward_ref(ref, takeover)
+    except AmbiguousWriteError:
+        after = gh.get_ref(ref)
+        return after is not None and str(after["object"]["sha"]) == takeover
 
 
 def release_issue(gh: GitHub, issue: int) -> None:
@@ -305,6 +349,7 @@ def dispatch(
     dry_run: bool = False,
 ) -> list[Outcome]:
     """Select eligible issues (newest first, up to ``cap``) and dispatch them."""
+    owner = uuid.uuid4().hex
     issues = sorted(gh.open_issues(label), key=lambda i: -int(i["number"]))
     prs = gh.pulls("all")
     done = attempted_issues(prs, devin.list_sessions(tag))
@@ -350,7 +395,7 @@ def dispatch(
             if dry_run:
                 outcomes.append(Outcome(n, "dispatched", "dry-run"))
                 dispatched += 1
-            elif not claim_issue(gh, n):
+            elif not claim_issue(gh, n, owner):
                 outcomes.append(Outcome(n, "skipped", "claimed by another dispatcher"))
                 continue
             else:
