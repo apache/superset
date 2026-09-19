@@ -328,7 +328,7 @@ def resolve_partition_mapping(datasource: SqlaTable) -> PartitionMapping | None:
     if not _transform_is_usable(transform, datasource.database.backend):
         return None
 
-    if _has_active_advanced_data_type(mapped_column):
+    if has_active_advanced_data_type(mapped_column):
         # `translate_filter` builds its own predicate shape from *translated*
         # values, so the `(operator, value)` pair the operator matrix reasons
         # about does not exist and mirroring would apply the wrong values.
@@ -361,7 +361,14 @@ def _transform_is_usable(transform: str | None, engine: str) -> bool:
     return is_parseable(transform, engine)
 
 
-def _has_active_advanced_data_type(column: TableColumn) -> bool:
+def has_active_advanced_data_type(column: TableColumn) -> bool:
+    """
+    Whether the column's advanced data type is configured and switched on.
+
+    Such a column is never mirrored: ``translate_filter`` builds its own
+    predicate shape from translated values, so the ``(operator, value)`` pair
+    the operator matrix reasons about does not exist.
+    """
     advanced_data_type = getattr(column, "advanced_data_type", None)
     if not advanced_data_type:
         return False
