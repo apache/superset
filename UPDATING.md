@@ -418,6 +418,8 @@ theme editor picker.
   equivalent correlated predecessor probes instead of window tables. That
   legacy plan may be slower on deep histories; measure the selected path and
   writer wait on the target backend rather than reusing timings from another plan.
+  Dispatch trusts the dialect's `SELECT VERSION()` banner: a proxy advertising
+  MySQL 8.x in front of MySQL 5.7 selects `LAG` and fails at runtime.
   Ten batches are shared across all categories per run, so the removal upper
   bound is **500 at the default or 1,000 at the ceiling**, and can be lower
   when rechecks reject candidates or categories use short batches. The default

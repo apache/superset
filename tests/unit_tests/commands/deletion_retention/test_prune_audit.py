@@ -532,26 +532,60 @@ def test_repeat_dispatch_uses_metadata_server_version(
     )
 
 
-def test_repeat_paths_isolate_entity_types_and_agree() -> None:
-    """Keep each type's first block when UUIDs collide, in both query paths."""
+@pytest.mark.parametrize(
+    ("history", "repeat_indices"),
+    [
+        pytest.param(
+            [
+                ("chart", STATUS_BLOCKED, 1, "same"),
+                ("dashboard", STATUS_BLOCKED, 2, "other"),
+                ("chart", STATUS_BLOCKED, 3, "same"),
+            ],
+            [2],
+            id="partition-reason-isolation",
+        ),
+        pytest.param(
+            [
+                ("dashboard", STATUS_CONFIRMED, 1, None),
+                ("chart", STATUS_BLOCKED, 5, "same"),
+                ("chart", STATUS_CONFIRMED, 6, None),
+                ("chart", STATUS_BLOCKED, 7, "same"),
+                ("chart", STATUS_BLOCKED, 8, "same"),
+            ],
+            [4],
+            id="boundary-join-isolation",
+        ),
+        pytest.param(
+            [
+                ("dashboard", STATUS_BLOCKED, 1, "same"),
+                ("chart", STATUS_BLOCKED, 2, "same"),
+                ("chart", STATUS_BLOCKED, 3, "same"),
+            ],
+            [2],
+            id="predecessor-type-isolation",
+        ),
+    ],
+)
+def test_repeat_paths_isolate_entity_types_and_agree(
+    history: list[tuple[str, str, int, str | None]], repeat_indices: list[int]
+) -> None:
+    """Keep per-type streak survivors despite shared UUIDs and foreign boundaries."""
     engine: sa.Engine = sa.create_engine("sqlite://")
     metadata: sa.MetaData = sa.MetaData()
     table: sa.Table = prune_audit.PurgeAuditLog.__table__.to_metadata(metadata)
-    ids: list[UUID] = [uuid4() for _ in range(3)]
+    ids: list[UUID] = [uuid4() for _ in history]
     rows: list[dict[str, Any]] = [
         {
             "id": id_,
             "entity_type": entity_type,
             "entity_uuid": "shared",
-            "status": STATUS_BLOCKED,
+            "status": status,
             "trigger": "scheduled",
             "actor": "system",
             "created_on": datetime(2026, 1, day),
-            "reason": "same" if entity_type == "chart" else "other",
+            "reason": reason,
         }
-        for id_, entity_type, day in zip(
-            ids, ["chart", "dashboard", "chart"], [1, 2, 3], strict=True
-        )
+        for id_, (entity_type, status, day, reason) in zip(ids, history, strict=True)
     ]
     try:
         metadata.create_all(engine)
@@ -568,7 +602,7 @@ def test_repeat_paths_isolate_entity_types_and_agree() -> None:
                             predicate(table, datetime(2026, 2, 1)),
                         )
                     )
-                ) == {ids[2]}
+                ) == {ids[index] for index in repeat_indices}
     finally:
         engine.dispose()
 
