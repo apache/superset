@@ -66,6 +66,27 @@ def _validate_context(entity: MagicMock) -> Iterator[None]:
         yield
 
 
+@contextmanager
+def _locking_query(result_entity: MagicMock) -> Iterator[None]:
+    """Stub the FOR UPDATE row-lock read in ``_do_restore``.
+
+    Before dispatching to the restore engine, ``_do_restore`` reloads the
+    entity with a pessimistic-locking query that binds ``entity.id`` as a
+    SQL parameter. The mocked entity carries a ``MagicMock`` id that cannot
+    bind, so the tests would die on a ``ProgrammingError`` before ever
+    reaching the patched ``restore_version``. The locking query's own SQL is
+    exercised end-to-end in ``test_restore_version_concurrency.py``; here it
+    just needs to hand back *result_entity* so the pipeline continues.
+    """
+    with patch("superset.commands.version_restore.db.session.query") as mock_query:
+        lock_read = mock_query.return_value.populate_existing()
+        lock_read = lock_read.enable_eagerloads()
+        lock_read = lock_read.filter_by()
+        lock_read = lock_read.with_for_update()
+        lock_read.one_or_none.return_value = result_entity
+        yield
+
+
 @pytest.mark.parametrize("command_cls", _COMMAND_CLASSES)
 def test_validate_refuses_externally_managed_entity(
     command_cls: type[BaseRestoreVersionCommand], app_context: None
@@ -114,6 +135,7 @@ def test_registry_lookup_error_maps_to_failed_exc(
     lookup = LookupError("No restore relations registered for 'Widget'")
     with (
         _validate_context(entity),
+        _locking_query(entity),
         patch(
             "superset.commands.version_restore.resolve_version",
             return_value=(0, 123),
@@ -138,6 +160,7 @@ def test_other_exceptions_still_pass_through_untranslated(
     entity = MagicMock(is_managed_externally=False)
     with (
         _validate_context(entity),
+        _locking_query(entity),
         patch(
             "superset.commands.version_restore.resolve_version",
             return_value=(0, 123),
