@@ -162,7 +162,11 @@ from superset.tasks.thumbnails import (
 )
 from superset.tasks.utils import get_current_user
 from superset.utils import json
-from superset.utils.core import parse_boolean_string, send_export_zip
+from superset.utils.core import (
+    parse_boolean_string,
+    send_export_zip,
+    write_zip_entry,
+)
 from superset.utils.file import get_filename
 from superset.utils.pdf import build_pdf_from_screenshots
 from superset.utils.screenshots import (
@@ -1627,8 +1631,9 @@ class DashboardRestApi(
                 for file_name, file_content in ExportDashboardsCommand(
                     requested_ids
                 ).run():
-                    with bundle.open(f"{root}/{file_name}", "w") as fp:
-                        fp.write(file_content().encode())
+                    write_zip_entry(
+                        bundle, f"{root}/{file_name}", file_content().encode()
+                    )
             except DashboardNotFoundError:
                 return self.response_404()
         buf.seek(0)
