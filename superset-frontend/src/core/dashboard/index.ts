@@ -17,11 +17,32 @@
  * under the License.
  */
 import { dashboard as dashboardApi } from '@apache-superset/core';
-import { isNativeFilter } from '@superset-ui/core';
-import type { DataMask, Divider, Filter } from '@superset-ui/core';
+import { isNativeFilter, makeApi, SupersetClient } from '@superset-ui/core';
+import type {
+  DataMask,
+  Divider,
+  Filter,
+  JsonObject,
+  QueryFormData,
+} from '@superset-ui/core';
+import { omit } from 'lodash-es';
 import { updateComponents } from 'src/dashboard/actions/dashboardLayout';
-import { dashboardInfoChanged } from 'src/dashboard/actions/dashboardInfo';
-import { updateDataMask } from 'src/dataMask/actions';
+import {
+  dashboardInfoChanged,
+  nativeFiltersConfigChanged,
+} from 'src/dashboard/actions/dashboardInfo';
+import { SET_NATIVE_FILTERS_CONFIG_COMPLETE } from 'src/dashboard/actions/nativeFilters';
+import type { SaveFilterChangesType } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/types';
+import {
+  updateDataMask,
+  setDataMaskForFilterChangesComplete,
+} from 'src/dataMask/actions';
+import {
+  setChartFormData,
+  triggerQuery,
+} from 'src/components/Chart/chartAction';
+import { applyDefaultFormData } from 'src/explore/store';
+import extractUrlParams from 'src/dashboard/util/extractUrlParams';
 import { store, RootState } from 'src/views/store';
 import { navigation } from '../navigation';
 
@@ -110,6 +131,91 @@ const updateFilters: typeof dashboardApi.updateFilters = async (
   });
 };
 
+const saveFilters: typeof dashboardApi.saveFilters = async (
+  updates: dashboardApi.FilterConfigUpdate[],
+  deletedFilterIds: string[] = [],
+) => {
+  const dashboardId = requireDashboardId();
+  const { filters: currentFilters } = getState().nativeFilters;
+
+  const modified = updates.map(
+    ({ filterId, name, targets, defaultDataMask }) => {
+      const existing = currentFilters[filterId];
+      if (!existing) {
+        throw new Error(`Filter "${filterId}" not found on this dashboard`);
+      }
+      return {
+        ...existing,
+        ...(name !== undefined && { name }),
+        ...(targets !== undefined && { targets }),
+        ...(defaultDataMask !== undefined && { defaultDataMask }),
+      };
+    },
+  ) as SaveFilterChangesType['modified'];
+
+  if (modified.length === 0 && deletedFilterIds.length === 0) {
+    return;
+  }
+
+  const filterChanges: SaveFilterChangesType = {
+    modified,
+    deleted: deletedFilterIds,
+    reordered: [],
+  };
+
+  const putFilters = makeApi<SaveFilterChangesType, { result: Filter[] }>({
+    method: 'PUT',
+    endpoint: `/api/v1/dashboard/${dashboardId}/filters`,
+  });
+  const response = await putFilters(filterChanges);
+  // chartsInScope/tabsInScope are derived from the live layout, not this
+  // save's payload, so keep whatever calculateScopes already computed for
+  // this session instead of overwriting them with the server's copy.
+  const savedFilters = response.result.map(
+    filter => omit(filter, ['chartsInScope', 'tabsInScope']) as Filter,
+  );
+
+  store.dispatch({
+    type: SET_NATIVE_FILTERS_CONFIG_COMPLETE,
+    filterChanges: savedFilters,
+    deletedIds: deletedFilterIds,
+  });
+  store.dispatch(nativeFiltersConfigChanged(savedFilters));
+  store.dispatch(
+    setDataMaskForFilterChangesComplete(filterChanges, currentFilters),
+  );
+};
+
+const refreshChart: typeof dashboardApi.refreshChart = async (
+  chartId: number,
+) => {
+  const dashboardId = requireDashboardId();
+  if (!getState().charts[chartId]) {
+    throw new Error(`Chart ${chartId} is not on the current dashboard`);
+  }
+
+  const { json } = await SupersetClient.get({
+    endpoint: `/api/v1/dashboard/${dashboardId}/charts`,
+  });
+  const chartEntity = (
+    json?.result as { id: number; form_data?: JsonObject }[]
+  )?.find(({ id }) => id === chartId);
+  if (!chartEntity?.form_data) {
+    throw new Error(`Could not load chart ${chartId}'s current configuration`);
+  }
+
+  const formData = applyDefaultFormData({
+    ...chartEntity.form_data,
+    url_params: {
+      ...(chartEntity.form_data.url_params as JsonObject),
+      ...extractUrlParams('regular'),
+    },
+  } as Parameters<typeof applyDefaultFormData>[0]) as QueryFormData;
+
+  store.dispatch(setChartFormData(formData, chartId));
+  store.dispatch(triggerQuery(true, chartId));
+};
+
 export const dashboard: typeof dashboardApi = {
   getDashboardId,
   getLayout,
@@ -118,4 +224,6 @@ export const dashboard: typeof dashboardApi = {
   setCss,
   getFilters,
   updateFilters,
+  saveFilters,
+  refreshChart,
 };
