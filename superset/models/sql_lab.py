@@ -382,7 +382,34 @@ class Query(
         return ""
 
     def get_extra_cache_keys(self, query_obj: QueryObjectDict) -> list[Hashable]:
-        return []
+        """
+        Include the RLS predicates that apply to this ad-hoc query's
+        underlying tables in the cache key, mirroring what
+        ``SqlaTable.get_extra_cache_keys`` already does for virtual datasets.
+
+        ``is_rls_supported`` is ``False`` for a SQL Lab query (it has no RLS
+        rules of its own to look up via ``get_rls_cache_key``), which left
+        ``security_manager.get_rls_cache_key()`` contributing nothing here.
+        Without this, two viewers of the same not-yet-saved query-backed
+        chart (e.g. via a shared Explore permalink) with different RLS on
+        the tables the query references would collide on the same cache
+        entry, regardless of their own access.
+        """
+        if not self.sql:
+            return []
+        from superset.utils.rls import (  # pylint: disable=import-outside-toplevel
+            collect_rls_predicates_for_sql,
+        )
+
+        default_schema = self.database.get_default_schema(self.catalog)
+        return list(
+            collect_rls_predicates_for_sql(
+                self.sql,
+                self.database,
+                self.catalog,
+                self.schema or default_schema or "",
+            )
+        )
 
     def get_time_grains(self) -> list[TimeGrainDict]:
         """

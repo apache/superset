@@ -25,6 +25,7 @@ import rison
 
 from superset import db, security_manager
 from superset.connectors.sqla.models import RowLevelSecurityFilter, SqlaTable
+from superset.models.sql_lab import Query
 from superset.subjects.models import Subject
 from superset.subjects.types import SubjectType
 from superset.security.guest_token import (
@@ -32,6 +33,7 @@ from superset.security.guest_token import (
     GuestUser,
 )
 from superset.utils import json
+from superset.utils.core import shortid
 from flask_babel import lazy_gettext as _  # noqa: F401
 from flask_appbuilder.models.sqla import filters
 from tests.integration_tests.base_tests import SupersetTestCase
@@ -993,6 +995,114 @@ def test_rls_filter_applies_to_virtual_dataset_with_join():
         # Cleanup
         db.session.delete(virtual_dataset)
         db.session.commit()
+
+
+@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices", "rls_filters")
+def test_rls_filter_applies_to_sqllab_adhoc_query():
+    """
+    Regression test for GH #33346: creating a chart directly from a SQL Lab
+    query -- without first saving it as a dataset -- must not bypass RLS.
+
+    "Create Chart" in SQL Lab builds an Explore request against a
+    ``<query_id>__query`` datasource, which the backend resolves to a
+    ``superset.models.sql_lab.Query`` row (see
+    ``DatasourceDAO.sources[DatasourceType.QUERY]``), not a ``SqlaTable``.
+    ``Query.is_rls_supported`` is (deliberately) ``False``, since a raw SQL
+    Lab query has no RLS rules of its own -- but that must not be confused
+    with the underlying-table RLS rewrite that ``get_from_clause`` applies
+    to any raw-SQL-backed datasource (virtual dataset *or* ad-hoc Query)
+    via ``apply_rls``/``get_predicates_for_table``. This test builds the
+    chart SQL for a ``Query`` the same way ``get_query_str_extended`` /
+    ``ChartDataCommand`` would, and asserts the RLS predicate on the
+    underlying physical table (``birth_names``) still ends up in it.
+    """
+    physical_table = _get_table(name="birth_names")
+
+    # An ad-hoc SQL Lab query, never saved as a dataset -- this is exactly
+    # what backs the `<query_id>__query` datasource used by "Create Chart".
+    ad_hoc_query = Query(
+        client_id=shortid()[:10],
+        database=physical_table.database,
+        sql="SELECT * FROM birth_names",
+        schema=physical_table.schema,
+        catalog=physical_table.catalog,
+        user_id=_get_user(username="gamma").id,
+    )
+
+    try:
+        # Restricted user: RLS predicates from the underlying birth_names
+        # table must be injected into the ad-hoc query's chart SQL.
+        g.user = _get_user(username="gamma")
+        sql = ad_hoc_query.get_query_str(QUERY_OBJ)
+        sql_lower = sql.lower()
+        assert "name like 'a%" in sql_lower or "name like 'q%" in sql_lower, (
+            f"RLS name filters not found in SQL Lab ad-hoc query chart SQL: {sql}"
+        )
+        assert "gender = 'boy'" in sql_lower, (
+            f"RLS gender filter not found in SQL Lab ad-hoc query chart SQL: {sql}"
+        )
+
+        # Unrestricted user: no RLS predicates should be added.
+        g.user = _get_user(username="admin")
+        sql = ad_hoc_query.get_query_str(QUERY_OBJ)
+        assert not NAMES_A_REGEX.search(sql)
+        assert not NAMES_B_REGEX.search(sql)
+        assert not NAMES_Q_REGEX.search(sql)
+        assert not BASE_FILTER_REGEX.search(sql)
+    finally:
+        db.session.rollback()
+
+
+@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices", "rls_filters")
+def test_rls_filter_in_sqllab_adhoc_query_cache_key():
+    """
+    Regression test for a cache-key gap adjacent to GH #33346.
+
+    A chart built from a SQL Lab ad-hoc query can never be *saved* as a
+    Slice (``CreateChartCommand.validate()`` rejects any
+    ``datasource_type != TABLE``), but it can be viewed by more than one
+    user via a shared Explore permalink, since ``check_query_access``
+    grants non-authors the same catalog/schema/``datasource_access`` checks
+    as any other datasource. If query-result caching is enabled (as
+    Superset's docs recommend via ``DATA_CACHE_CONFIG``/Redis for
+    production), two viewers with different RLS on the query's underlying
+    tables must not collide on the same cache entry.
+
+    ``SqlaTable.get_extra_cache_keys()`` already includes RLS predicates
+    from the underlying tables of a *virtual* dataset in its cache key via
+    ``collect_rls_predicates_for_sql()``. ``Query.get_extra_cache_keys()``
+    must do the same for ad-hoc SQL Lab queries.
+    """
+    physical_table = _get_table(name="birth_names")
+
+    ad_hoc_query = Query(
+        client_id=shortid()[:10],
+        database=physical_table.database,
+        sql="SELECT * FROM birth_names",
+        schema=physical_table.schema,
+        catalog=physical_table.catalog,
+        user_id=_get_user(username="admin").id,
+    )
+
+    try:
+        g.user = _get_user(username="gamma")
+        gamma_keys = ad_hoc_query.get_extra_cache_keys({})
+
+        g.user = _get_user(username="admin")
+        admin_keys = ad_hoc_query.get_extra_cache_keys({})
+
+        assert gamma_keys, (
+            "Expected the RLS-restricted viewer's extra cache keys to be "
+            "non-empty (predicates on birth_names should show up here)."
+        )
+        assert gamma_keys != admin_keys, (
+            f"Query.get_extra_cache_keys() must differ between an "
+            f"RLS-restricted viewer ({gamma_keys!r}) and an unrestricted "
+            f"one ({admin_keys!r}), or a cache hit from one viewer could "
+            f"be served to the other regardless of their own RLS."
+        )
+    finally:
+        db.session.rollback()
 
 
 # ===========================================================================
