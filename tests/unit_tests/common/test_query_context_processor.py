@@ -30,7 +30,8 @@ from superset.common.query_context_processor import (
     normalize_contribution_totals,
     QueryContextProcessor,
 )
-from superset.exceptions import QueryObjectValidationError
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import QueryObjectValidationError, SupersetSecurityException
 from superset.utils.core import GenericDataType
 from superset.utils.date_parser import get_past_or_future
 
@@ -115,22 +116,160 @@ def processor(mock_query_context):
     return processor
 
 
-def test_query_cache_key_binds_annotation_data_to_requesting_user(processor):
-    """The cache key for annotated queries must differ per requesting user."""
-    query_obj = MagicMock()
-    query_obj.annotation_layers = [{"sourceType": "NATIVE", "name": "a", "value": 1}]
-    with (
-        patch(
-            "superset.common.query_context_processor.get_user_id",
-            side_effect=[1, 2],
-        ),
-        patch("superset.common.query_context_processor.security_manager"),
-    ):
-        processor.query_cache_key(query_obj)
-        processor.query_cache_key(query_obj)
-    contexts = [
+def _annotation_contexts(query_obj: MagicMock) -> list[Any]:
+    return [
         call.kwargs["annotation_context"] for call in query_obj.cache_key.call_args_list
     ]
+
+
+def _access_denied() -> SupersetSecurityException:
+    return SupersetSecurityException(
+        SupersetError(
+            error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+            message="denied",
+            level=ErrorLevel.ERROR,
+        )
+    )
+
+
+def test_annotation_cache_key_dedupes_native_layer_across_users(processor):
+    """Two users who can both read annotations share one cache entry.
+
+    NATIVE annotation records are global, so the key binds only the
+    ``can_read`` annotation permission, not the requesting user id -- avoiding
+    a per-user copy of the (potentially large) cached result.
+    """
+    query_obj = MagicMock()
+    query_obj.annotation_layers = [{"sourceType": "NATIVE", "name": "a", "value": 1}]
+    with patch("superset.common.query_context_processor.security_manager") as sm:
+        sm.can_access = MagicMock(return_value=True)
+        processor.query_cache_key(query_obj)
+        processor.query_cache_key(query_obj)
+    contexts = _annotation_contexts(query_obj)
+    assert contexts[0] == contexts[1] == {"annotation_read": True}
+
+
+def test_annotation_cache_key_separates_native_layer_by_permission(processor):
+    """A user who cannot read annotations must not share the cache entry of a
+    user who can, preserving the annotation read gate from the fetch path."""
+    query_obj = MagicMock()
+    query_obj.annotation_layers = [{"sourceType": "NATIVE", "name": "a", "value": 1}]
+    with patch("superset.common.query_context_processor.security_manager") as sm:
+        sm.can_access = MagicMock(side_effect=[True, False])
+        processor.query_cache_key(query_obj)
+        processor.query_cache_key(query_obj)
+    contexts = _annotation_contexts(query_obj)
+    assert contexts[0] != contexts[1]
+
+
+def test_annotation_cache_key_dedupes_chart_layer_for_shared_scope(processor):
+    """Chart-backed layers dedupe when access and the referenced chart's data
+    cache key (RLS/Jinja scope) match across users."""
+    query_obj = MagicMock()
+    query_obj.annotation_layers = [{"sourceType": "line", "name": "a", "value": 7}]
+    chart = MagicMock()
+    chart.get_query_context.return_value.queries = [MagicMock()]
+    chart.get_query_context.return_value.query_cache_key.return_value = "ak"
+    with (
+        patch("superset.common.query_context_processor.security_manager") as sm,
+        patch(
+            "superset.common.query_context_processor.ChartDAO.find_by_id",
+            return_value=chart,
+        ),
+    ):
+        sm.raise_for_access = MagicMock(return_value=None)
+        processor.query_cache_key(query_obj)
+        processor.query_cache_key(query_obj)
+    contexts = _annotation_contexts(query_obj)
+    assert contexts[0] == contexts[1]
+    assert contexts[0]["source_scope"]["7"] == {"access": True, "data_key": ["ak"]}
+
+
+def test_annotation_cache_key_separates_chart_layer_by_rls(processor):
+    """Users whose annotation-source RLS differs get distinct cache keys, since
+    the referenced chart's own cache key differs (preserves RLS correctness)."""
+    query_obj = MagicMock()
+    query_obj.annotation_layers = [{"sourceType": "line", "name": "a", "value": 7}]
+    chart = MagicMock()
+    chart.get_query_context.return_value.queries = [MagicMock()]
+    chart.get_query_context.return_value.query_cache_key.side_effect = ["ak1", "ak2"]
+    with (
+        patch("superset.common.query_context_processor.security_manager") as sm,
+        patch(
+            "superset.common.query_context_processor.ChartDAO.find_by_id",
+            return_value=chart,
+        ),
+    ):
+        sm.raise_for_access = MagicMock(return_value=None)
+        processor.query_cache_key(query_obj)
+        processor.query_cache_key(query_obj)
+    contexts = _annotation_contexts(query_obj)
+    # Assert the concrete scope so this fails on the pre-fix key shape (which has
+    # no ``source_scope``) rather than passing merely because two MagicMock RLS
+    # objects happen to differ.
+    assert contexts[0]["source_scope"]["7"] == {"access": True, "data_key": ["ak1"]}
+    assert contexts[1]["source_scope"]["7"] == {"access": True, "data_key": ["ak2"]}
+    assert contexts[0] != contexts[1]
+
+
+def test_annotation_cache_key_separates_chart_layer_by_access(processor):
+    """A user denied access to the annotation-referenced chart must not read the
+    cache entry of a user who has access."""
+    query_obj = MagicMock()
+    query_obj.annotation_layers = [{"sourceType": "line", "name": "a", "value": 7}]
+    chart = MagicMock()
+    chart.get_query_context.return_value.queries = [MagicMock()]
+    chart.get_query_context.return_value.query_cache_key.return_value = "ak"
+    with (
+        patch("superset.common.query_context_processor.security_manager") as sm,
+        patch(
+            "superset.common.query_context_processor.ChartDAO.find_by_id",
+            return_value=chart,
+        ),
+    ):
+        sm.raise_for_access = MagicMock(side_effect=[None, _access_denied()])
+        processor.query_cache_key(query_obj)
+        processor.query_cache_key(query_obj)
+    contexts = _annotation_contexts(query_obj)
+    # Assert the concrete scope so this fails on the pre-fix key shape (which has
+    # no ``source_scope``) and genuinely guards the access dimension.
+    assert contexts[0]["source_scope"]["7"] == {"access": True, "data_key": ["ak"]}
+    assert contexts[1]["source_scope"]["7"] == {"access": False, "data_key": ["ak"]}
+
+
+def test_annotation_cache_key_promiscuous_viewer_not_collapsed_with_denied(processor):
+    """A promiscuous-mode chart viewer must not share a denied user's entry.
+
+    Under ``ENABLE_VIEWERS`` + ``VIEWER_PROMISCUOUS_MODE`` the annotation fetch
+    grants a chart viewer access through ``has_promiscuous_chart_access()`` --
+    an OR-branch of ``raise_for_access`` that ``can_access_datasource`` skips.
+    Both users are denied at the datasource level, so keying on
+    ``can_access_datasource`` alone would collapse the promiscuous viewer (real
+    gate allows) onto the truly-denied user and serve them the cached payload.
+    Binding the real ``raise_for_access`` gate keeps the keys distinct.
+    """
+    query_obj = MagicMock()
+    query_obj.annotation_layers = [{"sourceType": "line", "name": "a", "value": 7}]
+    chart = MagicMock()
+    chart.get_query_context.return_value.queries = [MagicMock()]
+    chart.get_query_context.return_value.query_cache_key.return_value = "ak"
+    with (
+        patch("superset.common.query_context_processor.security_manager") as sm,
+        patch(
+            "superset.common.query_context_processor.ChartDAO.find_by_id",
+            return_value=chart,
+        ),
+    ):
+        # Datasource-level access is denied for both; the pre-fix logic would key
+        # both on can_access_datasource=False and collapse them.
+        sm.can_access_datasource = MagicMock(return_value=False)
+        # Real fetch gate: promiscuous viewer passes, denied user raises.
+        sm.raise_for_access = MagicMock(side_effect=[None, _access_denied()])
+        processor.query_cache_key(query_obj)  # promiscuous viewer
+        processor.query_cache_key(query_obj)  # denied user
+    contexts = _annotation_contexts(query_obj)
+    assert contexts[0]["source_scope"]["7"] == {"access": True, "data_key": ["ak"]}
+    assert contexts[1]["source_scope"]["7"] == {"access": False, "data_key": ["ak"]}
     assert contexts[0] != contexts[1]
 
 

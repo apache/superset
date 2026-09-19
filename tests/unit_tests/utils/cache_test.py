@@ -412,3 +412,66 @@ def test_set_and_log_cache_set_failure_logs(mocker: MockerFixture) -> None:
 
     mock_logger.warning.assert_called_once_with("Could not cache key %s", "my_key")
     mock_logger.exception.assert_called_once_with(boom)
+
+
+def test_set_data_cache_if_within_size_stores_raw_value(mocker: MockerFixture) -> None:
+    """Under the cap the wrapper writes the raw value through unchanged -- no
+    ``dict``-wrapping like set_and_log_cache -- and reports it persisted."""
+    from superset.utils.cache import set_data_cache_if_within_size
+
+    _patch_config(mocker, DATA_CACHE_MAX_VALUE_SIZE=10 * 1024 * 1024)
+    cache_manager = mocker.patch("superset.utils.cache.cache_manager")
+    cache_manager.data_cache.set.return_value = True
+    payload = {"records": [1, 2, 3]}
+
+    assert set_data_cache_if_within_size("k", payload, timeout=42) is True
+
+    cache_manager.data_cache.set.assert_called_once_with("k", payload, timeout=42)
+    # The value is passed through byte-identically (same object, not wrapped).
+    assert cache_manager.data_cache.set.call_args.args[1] is payload
+
+
+def test_set_data_cache_if_within_size_skips_oversized(mocker: MockerFixture) -> None:
+    """Over the cap the wrapper skips the write, counts the skip stat, and
+    reports the value was not persisted."""
+    from superset.utils.cache import set_data_cache_if_within_size
+
+    config = _patch_config(mocker, DATA_CACHE_MAX_VALUE_SIZE=10)
+    cache_manager = mocker.patch("superset.utils.cache.cache_manager")
+
+    assert set_data_cache_if_within_size("k", {"records": "x" * 1000}) is False
+
+    cache_manager.data_cache.set.assert_not_called()
+    config["STATS_LOGGER"].incr.assert_called_once_with("skip_cache_value_too_large")
+
+
+def test_set_data_cache_if_within_size_disabled_no_serialization(
+    mocker: MockerFixture,
+) -> None:
+    """With the cap disabled (``None``) the guard never serializes the value."""
+    from superset.utils.cache import set_data_cache_if_within_size
+
+    _patch_config(mocker, DATA_CACHE_MAX_VALUE_SIZE=None)
+    cache_manager = mocker.patch("superset.utils.cache.cache_manager")
+    cache_manager.data_cache.set.return_value = True
+    mock_dumps = mocker.patch("superset.utils.cache.pickle.dumps")
+
+    assert set_data_cache_if_within_size("k", {"records": [1]}) is True
+
+    mock_dumps.assert_not_called()
+    cache_manager.data_cache.set.assert_called_once()
+
+
+def test_oversized_data_cache_value(mocker: MockerFixture) -> None:
+    """oversized_data_cache_value returns True only when the serialized value
+    exceeds the cap, and False (never blocking) when the cap is disabled."""
+    from superset.utils.cache import oversized_data_cache_value
+
+    _patch_config(mocker, DATA_CACHE_MAX_VALUE_SIZE=10)
+    assert oversized_data_cache_value("k", {"records": "x" * 1000}) is True
+
+    _patch_config(mocker, DATA_CACHE_MAX_VALUE_SIZE=10 * 1024 * 1024)
+    assert oversized_data_cache_value("k", {"records": "x" * 1000}) is False
+
+    _patch_config(mocker, DATA_CACHE_MAX_VALUE_SIZE=None)
+    assert oversized_data_cache_value("k", {"records": "x" * 1000}) is False

@@ -45,6 +45,7 @@ from superset.daos.chart import ChartDAO
 from superset.exceptions import (
     QueryObjectValidationError,
     SupersetException,
+    SupersetSecurityException,
 )
 from superset.explorables.base import Explorable
 from superset.extensions import cache_manager, security_manager
@@ -60,7 +61,6 @@ from superset.utils.core import (
     get_column_name,
     get_column_names_from_columns,
     get_column_names_from_metrics,
-    get_user_id,
     is_adhoc_column,
     is_adhoc_metric,
 )
@@ -428,7 +428,7 @@ class QueryContextProcessor:
         extra_cache_keys = datasource.get_extra_cache_keys(query_obj.to_dict())
 
         # Annotation data is cached on the same entry as the dataframe, so the
-        # key must also bind the annotation sources' security context.
+        # key must also bind the annotation sources' security scope.
         if query_obj and query_obj.annotation_layers:
             kwargs["annotation_context"] = self._annotation_cache_context(query_obj)
 
@@ -447,29 +447,98 @@ class QueryContextProcessor:
 
     def _annotation_cache_context(self, query_obj: QueryObject) -> dict[str, Any]:
         """
-        Cache-key material binding cached annotation data to its security
-        context.
+        Cache-key material binding annotation data to its security *scope* so
+        users with the same access share a cache entry and users with a
+        different scope -- or no access -- never read each other's data.
 
-        Annotation payloads are fetched per requesting user and stored on the
-        same cache entry as the dataframe, so the key also binds the requesting
-        user and, for chart-backed layers, the RLS clauses of the referenced
-        chart's datasource.
+        Annotation payloads are fetched under the requesting user's permissions
+        and stored on the same cache entry as the dataframe, so the key binds
+        the inputs that determine what a user may see:
+
+        * NATIVE layers: the ``can_read`` permission on ``Annotation``, the only
+          user-dependent dimension of these global records.
+        * Chart-backed (``line``/``table``) layers: see
+          :meth:`_annotation_source_scope`.
         """
-        source_rls: dict[str, list[str] | None] = {}
+        context: dict[str, Any] = {}
+
+        if any(
+            layer.get("sourceType") == "NATIVE" for layer in query_obj.annotation_layers
+        ):
+            context["annotation_read"] = security_manager.can_access(
+                "can_read", "Annotation"
+            )
+
+        source_scope: dict[str, Any] = {}
         for layer in query_obj.annotation_layers:
             if layer.get("sourceType") not in ("line", "table"):
                 continue
             layer_value = layer.get("value")
-            chart = (
-                ChartDAO.find_by_id(layer_value) if layer_value is not None else None
+            source_scope[str(layer_value)] = self._annotation_source_scope(layer_value)
+        if source_scope:
+            context["source_scope"] = source_scope
+
+        return context
+
+    def _annotation_source_scope(self, layer_value: Any) -> dict[str, Any]:
+        """
+        Access and data-identity cache-key material for one chart-backed
+        annotation layer.
+
+        ``access`` keeps a user denied the referenced chart from reading an
+        authorized user's cached payload. ``data_key`` is the annotation chart's
+        own query cache key, capturing the datasource version, RLS clauses, and
+        per-user Jinja/virtual-dataset RLS material.
+        """
+        chart = ChartDAO.find_by_id(layer_value) if layer_value is not None else None
+        datasource = chart.datasource if chart else None
+        if chart is None or datasource is None:
+            return {"access": None, "data_key": None}
+
+        try:
+            annotation_query_context = chart.get_query_context()
+            if annotation_query_context is None:
+                # No saved query context to key on: the fetch itself fails for
+                # every user, so fall back to the datasource's access + RLS
+                # identity.
+                return {
+                    "access": security_manager.can_access_datasource(datasource),
+                    "data_key": security_manager.get_rls_cache_key(datasource),
+                }
+            # Bind the *same* authorization the fetch performs, not just
+            # ``can_access_datasource``: get_viz_annotation_data validates the
+            # annotation chart's query context, whose access check also honors
+            # promiscuous-chart-access (VIEWER_PROMISCUOUS_MODE) and guest-token
+            # scopes -- branches ``can_access_datasource`` skips. Keying on the
+            # narrower check would let a promiscuous-granted viewer collapse onto
+            # a truly-denied user's entry and read their cached payload.
+            try:
+                security_manager.raise_for_access(
+                    query_context=annotation_query_context
+                )
+                access: Any = True
+            except SupersetSecurityException:
+                access = False
+            data_key: Any = [
+                annotation_query_context.query_cache_key(query_object)
+                for query_object in annotation_query_context.queries
+            ]
+        except SupersetException:
+            # The annotation fetch raises these same errors and persists
+            # nothing, so a fallback key never stores real data; fail closed so
+            # this scope can't silently dedupe onto a successfully-derived one.
+            # Other errors propagate rather than weakening the key.
+            logger.warning(
+                "Could not derive annotation cache key for chart %s; "
+                "falling back to a fail-closed scope",
+                layer_value,
+                exc_info=True,
             )
-            annotation_datasource = chart.datasource if chart else None
-            source_rls[str(layer.get("value"))] = (
-                security_manager.get_rls_cache_key(annotation_datasource)
-                if annotation_datasource
-                else None
-            )
-        return {"user_id": get_user_id(), "source_rls": source_rls}
+            return {
+                "access": False,
+                "data_key": security_manager.get_rls_cache_key(datasource),
+            }
+        return {"access": access, "data_key": data_key}
 
     def get_query_result(self, query_object: QueryObject) -> QueryResult:
         """

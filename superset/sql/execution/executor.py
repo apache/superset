@@ -1023,11 +1023,10 @@ class SQLExecutor:
             "total_execution_time_ms": result.total_execution_time_ms,
         }
 
-        cache_manager.data_cache.set(
-            cache_key,
-            cached_data,
-            timeout=timeout,
-        )
+        # Apply the same size cap as the chart-data path.
+        from superset.utils.cache import set_data_cache_if_within_size
+
+        set_data_cache_if_within_size(cache_key, cached_data, timeout=timeout)
 
     def _connection_carries_user_identity(self) -> bool:
         """
