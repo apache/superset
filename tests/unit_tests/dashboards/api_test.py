@@ -215,3 +215,48 @@ def test_put_repairs_a_stored_layout_that_cannot_be_walked(
     assert json.loads(
         db.session.query(Dashboard).get(dashboard_id).position_json
     ) == json.loads(repaired)
+
+
+def test_export_bundle_is_refused_for_guest_users(
+    session: Session,
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """Enabling Excel export for embedded guests means granting ``can_export``
+    on Dashboard, which also authorizes this endpoint. The bundle carries
+    dataset SQL and database metadata the embedded view never exposes."""
+    mocker.patch.object(security_manager, "is_guest_user", return_value=True)
+
+    response = client.get("/api/v1/dashboard/export/?q=!(1)")
+
+    assert response.status_code == 403
+
+
+def test_export_as_example_is_refused_for_guest_users(
+    session: Session,
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """``export_as_example`` carries ``@permission_name("export")``, so the same
+    guest grant reaches it, and it emits dataset YAML plus Parquet rows."""
+    mocker.patch.object(security_manager, "is_guest_user", return_value=True)
+
+    response = client.get("/api/v1/dashboard/1/export_as_example/")
+
+    assert response.status_code == 403
+
+
+def test_export_bundle_is_not_refused_for_regular_users(
+    session: Session,
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    # 404 for the missing id, but the guest guard must not be what stops it.
+    mocker.patch.object(security_manager, "is_guest_user", return_value=False)
+
+    response = client.get("/api/v1/dashboard/export/?q=!(1)")
+
+    assert response.status_code != 403
