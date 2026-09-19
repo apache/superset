@@ -60,6 +60,7 @@ class Fake:
         self.calls: list[tuple[str, str]] = []
         self.comments: list[dict[str, Any]] = []
         self.sessions: list[dict[str, Any]] = []
+        self.last_payload: dict[str, Any] = {}
 
     def reply(self, method: str, path: str) -> tuple[int, Any, dict[str, str]]:
         self.calls.append((method, path))
@@ -102,6 +103,7 @@ def fake() -> Iterator[tuple[Fake, str]]:
                 state.sessions.append(
                     {"session_id": "devin-1", "status": "running", **payload}
                 )
+            state.last_payload = payload if isinstance(payload, dict) else {}
             status, body, headers = state.reply(self.command, path)
             data = body if isinstance(body, bytes) else json.dumps(body).encode()
             self.send_response(status)
@@ -629,98 +631,202 @@ def test_metrics_dont_break_existing_functionality(fake: tuple[Fake, str]) -> No
 OLD = "2000-01-01T00:00:00Z"
 
 
-def _script_claim(
-    state: Fake,
-    taken: bool = False,
-    ambiguous: bool = False,
-    held_date: str | None = None,
-) -> None:
-    """Script the GitHub calls behind ``claim_issue``.
-
-    ``taken`` makes the ref already exist (422). ``ambiguous`` makes the
-    create POST land but reply 500. ``held_date`` scripts the commit the
-    existing ref points at (a foreign claim with that committer date).
-    """
-    state.script["/repos/o/r"] = [(200, {"default_branch": "master"})] * 5
-    state.script["/repos/o/r/branches/master"] = [
-        (200, {"commit": {"sha": "base", "commit": {"tree": {"sha": "tree"}}}})
-    ] * 5
-    state.script["/repos/o/r/git/commits"] = [
-        (201, {"sha": "mine"}),
-        (201, {"sha": "takeover"}),
-    ]
-    if ambiguous:
-        state.script["/repos/o/r/git/refs"] = [(500, {})]
-        state.script["/repos/o/r/git/ref/devin/claims/issue-5"] = [
-            (200, {"object": {"sha": "mine"}})
-        ]
-    elif taken:
-        state.script["/repos/o/r/git/refs"] = [
-            (422, {"message": "Reference already exists"})
-        ]
-        state.script["/repos/o/r/git/ref/devin/claims/issue-5"] = [
-            (200, {"object": {"sha": "theirs"}})
-        ]
-        state.script["/repos/o/r/git/ref/devin/claims/issue-9"] = [
-            (200, {"object": {"sha": "theirs"}})
-        ]
-        for n in (5, 9):
-            state.script[f"/repos/o/r/git/ref/devin/claims/issue-{n}"] = [
-                (200, {"object": {"sha": "theirs"}})
-            ]
-        state.script["/repos/o/r/git/commits/theirs"] = [
-            (200, {"sha": "theirs", "committer": {"date": held_date or _now()}})
-        ] * 2
-    else:
-        state.script["/repos/o/r/git/refs"] = [(201, {"ref": "refs/x"})]
-
-
 def _now() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-def test_claim_issue_is_atomic_ref_lock(fake: tuple[Fake, str]) -> None:
-    state, base = fake
-    gh = gh_client(base)
-    _script_claim(state)
-    assert ops.claim_issue(gh, 5, "me") == "mine"
-    _script_claim(state, taken=True)
-    assert ops.claim_issue(gh, 5, "me") is None
-    state.script["/repos/o/r/git/ref/devin/claims/issue-5"] = [
-        (200, {"object": {"sha": "mine"}})
-    ]
-    ops.release_issue(gh, 5, "mine")
-    assert ("DELETE", "/repos/o/r/git/refs/devin/claims/issue-5") in state.calls
+class GitData:
+    """In-memory model of GitHub's git-data API with its atomicity rules.
+
+    Commits are stored by sha; ref create fails with 422 when the ref exists
+    and a non-force ref update fails with 422 unless it is a fast-forward.
+    ``lose_next_write`` makes the next write land but answer 500, which the
+    client reports as :class:`AmbiguousWriteError`.
+    """
+
+    def __init__(self, state: Fake) -> None:
+        self.state = state
+        self.commits: dict[str, dict[str, Any]] = {}
+        self.refs: dict[str, str] = {}
+        self.lose_next_write = False
+        self.inner = state.reply
+        state.reply = self.reply  # type: ignore[method-assign]
+
+    def add_commit(
+        self, sha: str, message: str, parents: list[str], date: str | None = None
+    ) -> str:
+        self.commits[sha] = {
+            "sha": sha,
+            "message": message,
+            "parents": [{"sha": p} for p in parents],
+            "tree": {"sha": "tree"},
+            "committer": {"date": date or _now()},
+        }
+        return sha
+
+    def _is_ancestor(self, old: str, new: str) -> bool:
+        while True:
+            if old == new:
+                return True
+            parents = self.commits[new]["parents"]
+            if not parents:
+                return False
+            new = parents[0]["sha"]
+
+    def _maybe_lose(self, ok: tuple[int, Any, dict[str, str]]) -> Any:
+        if self.lose_next_write:
+            self.lose_next_write = False
+            return 500, {"message": "boom"}, {}
+        return ok
+
+    def reply(self, method: str, path: str) -> tuple[int, Any, dict[str, str]]:
+        if not path.startswith("/repos/o/r/git/"):
+            return self._repo(method, path)
+        self.state.calls.append((method, path))
+        payload = self.state.last_payload
+        if path == "/repos/o/r/git/commits" and method == "POST":
+            sha = f"c{len(self.commits)}"
+            self.add_commit(
+                sha, payload["message"], [str(p) for p in payload["parents"]]
+            )
+            return self._maybe_lose((201, self.commits[sha], {}))
+        if path.startswith("/repos/o/r/git/commits/") and method == "GET":
+            return 200, self.commits[path.rsplit("/", 1)[1]], {}
+        if path == "/repos/o/r/git/refs" and method == "POST":
+            ref = str(payload["ref"]).removeprefix("refs/")
+            if ref in self.refs:
+                return 422, {"message": "Reference already exists"}, {}
+            self.refs[ref] = str(payload["sha"])
+            return self._maybe_lose((201, {"ref": ref}, {}))
+        if path.startswith("/repos/o/r/git/ref/") and method == "GET":
+            ref = path.removeprefix("/repos/o/r/git/ref/")
+            if ref not in self.refs:
+                return 404, {}, {}
+            return 200, {"ref": ref, "object": {"sha": self.refs[ref]}}, {}
+        return self._update_ref(method, path.removeprefix("/repos/o/r/git/refs/"))
+
+    def _update_ref(self, method: str, ref: str) -> tuple[int, Any, dict[str, str]]:
+        if method == "PATCH":
+            sha = str(self.state.last_payload["sha"])
+            if ref not in self.refs or not self._is_ancestor(self.refs[ref], sha):
+                return 422, {"message": "Update is not a fast forward"}, {}
+            self.refs[ref] = sha
+            return self._maybe_lose((200, {"ref": ref}, {}))
+        return (204, b"", {}) if self.refs.pop(ref, None) else (404, {}, {})
+
+    def _repo(self, method: str, path: str) -> tuple[int, Any, dict[str, str]]:
+        if path == "/repos/o/r" and method == "GET":
+            self.state.calls.append((method, path))
+            return 200, {"default_branch": "master"}, {}
+        if path == "/repos/o/r/branches/master":
+            self.state.calls.append((method, path))
+            return (
+                200,
+                {"commit": {"sha": "base", "commit": {"tree": {"sha": "t"}}}},
+                {},
+            )
+        return self.inner(method, path)
+
+    def head(self, issue: int) -> dict[str, Any] | None:
+        sha = self.refs.get(ops.claim_ref(issue))
+        return self.commits[sha] if sha else None
 
 
-def test_claim_issue_resolves_ambiguous_create(fake: tuple[Fake, str]) -> None:
-    state, base = fake
-    _script_claim(state, ambiguous=True)
-    # The POST replied 500 but the ref now points at our commit: we own it.
-    assert ops.claim_issue(gh_client(base), 5, "me") == "mine"
+@pytest.fixture
+def git(fake: tuple[Fake, str]) -> GitData:
+    return GitData(fake[0])
 
 
-def test_claim_issue_reaps_stale_claim(fake: tuple[Fake, str]) -> None:
-    state, base = fake
-    _script_claim(state, taken=True, held_date=OLD)
-    state.script["/repos/o/r/git/refs/devin/claims/issue-5"] = [(200, {})]
-    assert ops.claim_issue(gh_client(base), 5, "me") == "takeover"
-    assert ("PATCH", "/repos/o/r/git/refs/devin/claims/issue-5") in state.calls
+def test_claim_issue_is_atomic_ref_lock(fake: tuple[Fake, str], git: GitData) -> None:
+    gh = gh_client(fake[1])
+    token = ops.claim_issue(gh, 5, "me")
+    assert token is not None
+    assert git.refs[ops.claim_ref(5)] == token
+    # Held by a live claim: a second dispatcher is turned away.
+    assert ops.claim_issue(gh, 5, "other") is None
+    ops.release_issue(gh, 5, token)
+    assert git.head(5) == git.commits[git.refs[ops.claim_ref(5)]]
+    assert git.head(5)["message"] == ops.RELEASE_MESSAGE  # type: ignore[index]
+    # A released lock is claimable again, and the ref is never deleted.
+    assert ops.claim_issue(gh, 5, "other") is not None
+    assert ("DELETE", "/repos/o/r/git/refs/devin/claims/issue-5") not in fake[0].calls
 
-    # Another dispatcher moved the ref first: the fast-forward is rejected.
-    _script_claim(state, taken=True, held_date=OLD)
-    state.script["/repos/o/r/git/refs/devin/claims/issue-5"] = [(422, {})]
-    assert ops.claim_issue(gh_client(base), 5, "me") is None
 
-
-def test_dispatch_skips_issue_claimed_by_other_dispatcher(
-    fake: tuple[Fake, str],
+def test_claim_issue_resolves_ambiguous_create(
+    fake: tuple[Fake, str], git: GitData
 ) -> None:
-    state, base = fake
+    git.lose_next_write = True  # commit lands, reply lost -> retried by probe
+    gh = gh_client(fake[1])
+    # First lost write is the claim commit POST (ambiguous -> propagates).
+    with pytest.raises(AmbiguousWriteError):
+        ops.claim_issue(gh, 5, "me")
+    git.lose_next_write = False
+    # Now make the ref create itself ambiguous: the ref lands, reply is 500.
+    orig = git.reply
+
+    def lose_ref_create(method: str, path: str) -> tuple[int, Any, dict[str, str]]:
+        if path == "/repos/o/r/git/refs" and method == "POST":
+            git.lose_next_write = True
+        return orig(method, path)
+
+    fake[0].reply = lose_ref_create  # type: ignore[method-assign]
+    token = ops.claim_issue(gh, 5, "me")
+    assert token is not None
+    assert git.refs[ops.claim_ref(5)] == token
+
+
+def test_claim_issue_reaps_stale_claim(fake: tuple[Fake, str], git: GitData) -> None:
+    gh = gh_client(fake[1])
+    stale = git.add_commit("stale", "devin-claim dead", [], date=OLD)
+    git.refs[ops.claim_ref(5)] = stale
+    token = ops.claim_issue(gh, 5, "me")
+    assert token is not None
+    assert git.refs[ops.claim_ref(5)] == token
+    assert git.commits[token]["parents"] == [{"sha": stale}]
+
+    # Two reapers race: the second fast-forward is rejected (not a descendant).
+    git.refs[ops.claim_ref(6)] = git.add_commit("stale6", "devin-claim dead", [], OLD)
+    orig = git.reply
+
+    def steal_first(method: str, path: str) -> tuple[int, Any, dict[str, str]]:
+        if method == "PATCH":
+            fake[0].reply = orig  # type: ignore[method-assign]
+            git.refs[ops.claim_ref(6)] = git.add_commit(
+                "rival", "devin-claim r", ["stale6"]
+            )
+        return orig(method, path)
+
+    fake[0].reply = steal_first  # type: ignore[method-assign]
+    assert ops.claim_issue(gh, 6, "me") is None
+    assert git.refs[ops.claim_ref(6)] == "rival"
+
+
+def test_release_cannot_clobber_successor(fake: tuple[Fake, str], git: GitData) -> None:
+    """An expired holder's release is a no-op once someone else took over."""
+    gh = gh_client(fake[1])
+    mine = git.add_commit("mine", "devin-claim me", [], date=OLD)
+    git.refs[ops.claim_ref(5)] = mine
+    successor = ops.claim_issue(gh, 5, "other")
+    assert successor is not None
+    ops.release_issue(gh, 5, mine)
+    assert git.refs[ops.claim_ref(5)] == successor
+
+
+def _dispatch_scripts(state: Fake, session_replies: int = 2) -> None:
     issue = {"number": 9, "title": "t", "html_url": "u", "labels": []}
     state.script["/repos/o/r/issues"] = [(200, [issue])]
     state.script["/repos/o/r/pulls"] = [(200, [])]
-    _script_claim(state, taken=True)
+    state.script["/sessions"] = [
+        (200, {"items": [], "has_next_page": False})
+    ] * session_replies
+
+
+def test_dispatch_skips_issue_claimed_by_other_dispatcher(
+    fake: tuple[Fake, str], git: GitData
+) -> None:
+    state, base = fake
+    _dispatch_scripts(state)
+    git.refs[ops.claim_ref(9)] = git.add_commit("theirs", "devin-claim x", [])
     outcomes = ops.dispatch(gh_client(base), devin_client(base), fix_prompt="p")
     assert [(o.status, o.detail) for o in outcomes] == [
         ("skipped", "claimed by another dispatcher")
@@ -728,44 +834,65 @@ def test_dispatch_skips_issue_claimed_by_other_dispatcher(
     assert ("POST", "/sessions") not in state.calls
 
 
-def test_dispatch_claims_then_releases(fake: tuple[Fake, str]) -> None:
+def test_dispatch_claims_then_releases(fake: tuple[Fake, str], git: GitData) -> None:
     state, base = fake
-    issue = {"number": 9, "title": "t", "html_url": "u", "labels": []}
-    state.script["/repos/o/r/issues"] = [(200, [issue])]
-    state.script["/repos/o/r/pulls"] = [(200, [])]
-    state.script["/sessions"] = [(200, {"items": [], "has_next_page": False})] * 2 + [
+    _dispatch_scripts(state)
+    state.script["/sessions"].append(
         (201, {"session_id": "devin-1", "status": "running"})
-    ]
-    _script_claim(state)
-    state.script["/repos/o/r/git/ref/devin/claims/issue-9"] = [
-        (200, {"object": {"sha": "mine"}})
-    ] * 2
+    )
     outcomes = ops.dispatch(gh_client(base), devin_client(base), fix_prompt="p")
     assert outcomes[0].status == "dispatched"
     paths = [c[1] for c in state.calls]
     assert paths.index("/repos/o/r/git/refs") < paths.index("/sessions", 3)
-    assert ("DELETE", "/repos/o/r/git/refs/devin/claims/issue-9") in state.calls
+    head = git.head(9)
+    assert head is not None
+    assert head["message"] == ops.RELEASE_MESSAGE
 
 
 def test_dispatch_skips_and_keeps_ref_when_claim_lost(
-    fake: tuple[Fake, str],
+    fake: tuple[Fake, str], git: GitData
 ) -> None:
-    """A holder that outlives its lease must not POST nor delete the successor's ref."""
+    """A holder that loses its lease must neither POST nor release the successor."""
     state, base = fake
-    issue = {"number": 9, "title": "t", "html_url": "u", "labels": []}
-    state.script["/repos/o/r/issues"] = [(200, [issue])]
-    state.script["/repos/o/r/pulls"] = [(200, [])]
-    state.script["/sessions"] = [(200, {"items": [], "has_next_page": False})] * 2
-    _script_claim(state)
-    state.script["/repos/o/r/git/ref/devin/claims/issue-9"] = [
-        (200, {"object": {"sha": "someone-else"}})
-    ] * 2
+    _dispatch_scripts(state)
+    orig = git.reply
+
+    def takeover_before_post(method: str, path: str) -> tuple[int, Any, dict[str, str]]:
+        if path == "/sessions" and method == "GET" and git.head(9) is not None:
+            fake[0].reply = orig  # type: ignore[method-assign]
+            held = git.refs[ops.claim_ref(9)]
+            git.refs[ops.claim_ref(9)] = git.add_commit(
+                "rival", "devin-claim r", [held]
+            )
+        return orig(method, path)
+
+    fake[0].reply = takeover_before_post  # type: ignore[method-assign]
     outcomes = ops.dispatch(gh_client(base), devin_client(base), fix_prompt="p")
     assert [(o.status, o.detail) for o in outcomes] == [
         ("skipped", "claim lost mid-dispatch")
     ]
     assert ("POST", "/sessions") not in state.calls
-    assert ("DELETE", "/repos/o/r/git/refs/devin/claims/issue-9") not in state.calls
+    assert git.refs[ops.claim_ref(9)] == "rival"
+
+
+def test_ensure_session_final_probe_finds_landed_session(
+    fake: tuple[Fake, str],
+) -> None:
+    """Both POSTs answer 500 but the first landed: the last probe must find it."""
+    state, base = fake
+    devin = devin_client(base)
+    devin.policy = RetryPolicy(
+        max_attempts=1, initial=0.01, max_sleep=0.05, budget_seconds=5, timeout=1
+    )
+    landed = {"session_id": "devin-1", "status": "running", "title": "T"}
+    state.script["/sessions"] = [
+        (200, {"items": [], "has_next_page": False}),
+        (500, {}),
+        (200, {"items": [], "has_next_page": False}),
+        (500, {}),
+        (200, {"items": [landed], "has_next_page": False}),
+    ]
+    assert ops.ensure_session(devin, {"title": "T"}, "tag") == landed
 
 
 def test_client_errors_do_not_trip_circuit_breaker(fake: tuple[Fake, str]) -> None:

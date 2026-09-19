@@ -100,6 +100,9 @@ def claim_ref(issue: int) -> str:
     return f"devin/claims/issue-{issue}"
 
 
+RELEASE_MESSAGE = "devin-release"
+
+
 def _claim_message(owner: str) -> str:
     return f"devin-claim {owner}"
 
@@ -118,23 +121,22 @@ def claim_issue(
 ) -> str | None:
     """Take the per-issue dispatch lock; return the claim's commit sha, or ``None``.
 
-    The sha is the ownership token: :func:`holds_claim` checks it right
-    before the non-idempotent session POST and :func:`release_issue` only
-    deletes the ref while it still points at it, so a holder that outlived
-    ``ttl`` can neither create a duplicate session nor drop a successor's
-    claim.
-
     The Devin API has no idempotency key, so the list-then-create in
     :func:`ensure_session` is not atomic across dispatchers. The lock is the
-    git ref ``refs/devin/claims/issue-N`` pointing at a dangling commit whose
-    message carries ``owner`` and whose committer date is the claim time:
+    git ref ``refs/devin/claims/issue-N``; the commit it points at is the
+    lock's state, and the ref only ever moves forward along one chain:
 
-    * creation is atomic (GitHub answers 422 if the ref exists);
-    * an ambiguous create is resolved by reading the ref back and checking
-      whether the commit it points at is ours;
-    * a claim older than ``ttl`` is stale (the holder died before releasing)
-      and is taken over with a non-force ref update, which GitHub only
-      accepts as a fast-forward -- i.e. only if nobody else moved it first.
+    * a *claim* commit (message ``devin-claim <owner>``, committer date =
+      claim time) means held; the sha is the holder's ownership token;
+    * a *release* commit (:data:`RELEASE_MESSAGE`) means free.
+
+    Every transition is atomic on GitHub: the first claim is a ref create
+    (422 if it exists); every later one is a non-force update to a child
+    commit of the state being replaced, which GitHub accepts only as a
+    fast-forward -- i.e. only if that state is still current. A holder that
+    outlived ``ttl`` therefore cannot release or steal a successor's claim,
+    and :func:`holds_claim` re-reads the token right before the session
+    POST. An ambiguous write is resolved by reading the ref back.
     """
     ref = claim_ref(issue)
     base = gh.default_branch_commit()
@@ -151,18 +153,24 @@ def claim_issue(
     if str(current["object"]["sha"]) == mine:
         return mine
     held = gh.get_commit(str(current["object"]["sha"]))
-    if datetime.now(timezone.utc) - _commit_date(held) < ttl:
+    if str(held.get("message", "")) == RELEASE_MESSAGE:
+        pass
+    elif datetime.now(timezone.utc) - _commit_date(held) < ttl:
         return None
-    log.warning("[Issue #%d] reaping stale claim %s", issue, held["sha"])
+    else:
+        log.warning("[Issue #%d] reaping stale claim %s", issue, held["sha"])
     takeover = str(
         gh.create_commit(_claim_message(owner), tree, [str(held["sha"])])["sha"]
     )
+    return takeover if _advance(gh, issue, takeover) else None
+
+
+def _advance(gh: GitHub, issue: int, sha: str) -> bool:
+    """Fast-forward the claim ref to ``sha``; ``False`` if someone moved it first."""
     try:
-        if gh.fast_forward_ref(ref, takeover):
-            return takeover
-        return None
+        return gh.fast_forward_ref(claim_ref(issue), sha)
     except AmbiguousWriteError:
-        return takeover if holds_claim(gh, issue, takeover) else None
+        return holds_claim(gh, issue, sha)
 
 
 def holds_claim(gh: GitHub, issue: int, token: str) -> bool:
@@ -171,9 +179,16 @@ def holds_claim(gh: GitHub, issue: int, token: str) -> bool:
 
 
 def release_issue(gh: GitHub, issue: int, token: str) -> None:
-    """Drop the claim unless another dispatcher has already taken it over."""
-    if holds_claim(gh, issue, token):
-        gh.delete_ref(claim_ref(issue))
+    """Mark the claim free, unless another dispatcher already took it over.
+
+    The release commit is a child of ``token``, so the fast-forward only
+    lands while the ref still points at our claim: there is no window in
+    which an expired holder can clobber a successor.
+    """
+    tree = str(gh.get_commit(token)["tree"]["sha"])
+    release = str(gh.create_commit(RELEASE_MESSAGE, tree, [token])["sha"])
+    if not _advance(gh, issue, release):
+        log.info("[Issue #%d] claim already taken over; not released", issue)
 
 
 def ensure_session(
@@ -203,6 +218,10 @@ def ensure_session(
         except AmbiguousWriteError as exc:
             log.warning("%s: %s. Re-probing (attempt %d/2)", title, exc, attempt)
             time.sleep(devin.policy.initial)
+    for s in devin.list_sessions(tag):
+        session = Session.from_dict(s) if isinstance(s, dict) else s
+        if session.title == title and session.owns_issue():
+            return s
     raise ApiError(f"{title}: session creation ambiguous after re-probe")
 
 
