@@ -21,6 +21,8 @@ import { RefObject, ReactNode, useCallback, memo } from 'react';
 import { styled } from '@apache-superset/core/theme';
 import cx from 'classnames';
 
+import { HOVER_MENU_Z_INDEX } from 'src/dashboard/constants';
+
 interface HoverMenuProps {
   position?: 'left' | 'top';
   innerRef?: RefObject<HTMLDivElement> | null;
@@ -32,7 +34,7 @@ const HoverStyleOverrides = styled.div`
   .hover-menu {
     opacity: 0;
     position: absolute;
-    z-index: 11; /* one more than DragDroppable */
+    z-index: ${HOVER_MENU_Z_INDEX};
     font-size: ${({ theme }) => theme.fontSize};
   }
 

@@ -65,11 +65,20 @@ jest.mock('src/dashboard/components/dnd/DragDroppable', () => ({
   Droppable: ({
     children,
     depth,
+    style,
+    className,
   }: {
     children: (args: object) => React.ReactNode;
     depth: number;
+    style?: React.CSSProperties;
+    className?: string;
   }) => (
-    <div data-test="mock-droppable" data-depth={depth}>
+    <div
+      data-test="mock-droppable"
+      data-depth={depth}
+      className={className}
+      style={style}
+    >
       {children({})}
     </div>
   ),
@@ -267,6 +276,24 @@ test('should increment the depth of its children', () => {
     'data-depth',
     `${props.depth + 1}`,
   );
+});
+
+test('row droptarget height tracks the row instead of staying pinned to a stale measured height (regression for #37644)', () => {
+  const { container, rerender } = setup({ editMode: true });
+  const getDroptargetHeight = () =>
+    container.querySelector<HTMLElement>('.empty-droptarget--vertical')?.style
+      .height;
+
+  // The droptarget stretches to the row via CSS (height: 100%) rather than
+  // a pixel value measured from the row's tallest chart, so it can never be
+  // left pinned to a chart's prior (larger) height after a resize.
+  expect(getDroptargetHeight()).toBe('100%');
+
+  // Something (e.g. hovering the row's own HoverMenu while resizing)
+  // causes Row to re-render after the tallest chart in the row shrinks.
+  rerender(<Row {...props} editMode component={{ ...props.component }} />);
+
+  expect(getDroptargetHeight()).toBe('100%');
 });
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
