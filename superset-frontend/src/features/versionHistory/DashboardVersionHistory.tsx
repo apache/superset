@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
+import { useAppDispatch } from 'src/views/store';
 import { useDebounceValue } from 'src/hooks/useDebounceValue';
 import { t } from '@apache-superset/core/translation';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
@@ -51,7 +52,7 @@ import { groupHeadline } from './display';
 import VersionHistoryPanel from './VersionHistoryPanel';
 
 export default function DashboardVersionHistory() {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const { addDangerToast } = useToasts();
   const uuid = useSelector<RootState, string | undefined>(
     state => state.dashboardInfo?.uuid,
