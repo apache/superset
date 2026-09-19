@@ -609,11 +609,24 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             initialize_core_api_dependencies,
         )
         from superset.core.mcp.core_mcp_injection import (
-            initialize_core_mcp_dependencies,
+            initialize_core_mcp_decorators,
+            initialize_core_mcp_host_tools,
         )
 
         initialize_core_api_dependencies()
-        initialize_core_mcp_dependencies()
+
+        # The MCP decorators (@tool/@prompt) must be registered in every process:
+        # extensions can apply them at import time, and the abstract versions raise
+        # NotImplementedError until they are swapped for the concrete ones. This is
+        # cheap and does not import the MCP service app.
+        initialize_core_mcp_decorators()
+
+        # Registering the MCP host tools imports the MCP service app, which has a
+        # real per-process memory cost. Only processes that serve MCP (the web app
+        # and the standalone MCP service) need it, so deployments can disable it for
+        # processes that never serve MCP -- e.g. Celery workers -- to avoid the cost.
+        if self.config.get("CORE_MCP_HOST_TOOLS_ENABLED", True):
+            initialize_core_mcp_host_tools()
 
     def init_all_dependencies_and_extensions(self) -> None:
         """
