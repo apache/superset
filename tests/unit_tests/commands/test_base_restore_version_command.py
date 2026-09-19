@@ -53,7 +53,15 @@ def _validate_context(entity: MagicMock) -> Iterator[None]:
     is_managed_externally guard: capture is on, the entity is found, and the
     editorship check passes. What varies between tests is only the entity's
     ``is_managed_externally`` value.
+
+    The mock entity also carries a real integer ``id``, and the locking
+    re-read ``run()`` performs after ``validate()`` is stubbed to hand the
+    entity back: a bare MagicMock id cannot bind into the FOR UPDATE query
+    (``sqlite3.ProgrammingError``), which the transaction wrapper would
+    translate into ``failed_exc`` before the patched ``resolve_version`` /
+    ``restore_version`` seams are ever reached.
     """
+    entity.id = 1
     with (
         patch("superset.commands.version_restore.capture_enabled", return_value=True),
         patch(
@@ -61,8 +69,15 @@ def _validate_context(entity: MagicMock) -> Iterator[None]:
             return_value=entity,
         ),
         patch("superset.commands.version_restore.security_manager") as mock_sec,
+        patch("superset.commands.version_restore.db") as mock_db,
     ):
         mock_sec.raise_for_editorship = MagicMock(return_value=None)
+        query = mock_db.session.query.return_value
+        query.populate_existing.return_value = query
+        query.enable_eagerloads.return_value = query
+        query.filter_by.return_value = query
+        query.with_for_update.return_value = query
+        query.one_or_none.return_value = entity
         yield
 
 
