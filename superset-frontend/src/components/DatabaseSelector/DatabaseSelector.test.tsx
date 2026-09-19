@@ -246,7 +246,7 @@ test('Should database select display options', async () => {
     name: 'Select database or type to search databases',
   });
   expect(select).toBeInTheDocument();
-  userEvent.click(select);
+  await userEvent.click(select);
   expect(await screen.findByText('test-mysql')).toBeInTheDocument();
 });
 
@@ -264,7 +264,7 @@ test('should display options in order of the api response', async () => {
     name: 'Select database or type to search databases',
   });
   expect(select).toBeInTheDocument();
-  userEvent.click(select);
+  await userEvent.click(select);
   const options = await screen.findAllByRole('option');
 
   expect(options[0]).toHaveTextContent(
