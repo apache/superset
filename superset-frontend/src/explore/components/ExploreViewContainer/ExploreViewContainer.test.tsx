@@ -27,6 +27,8 @@ import {
   VizType,
 } from '@superset-ui/core';
 import { QUERY_MODE_REQUISITES } from 'src/explore/constants';
+import { URL_PARAMS } from 'src/constants';
+import { getUrlParam } from 'src/utils/urlUtils';
 import { MemoryRouter, Route, Router } from 'react-router-dom';
 import type { RouteComponentProps } from 'react-router-dom';
 import { createMemoryHistory } from 'history';
@@ -117,10 +119,13 @@ jest.mock('../ExploreChartPanel', () => ({
     standalone,
     onQuery,
   }: {
-    standalone?: boolean;
+    standalone?: number;
     onQuery?: () => void;
   }) => {
     const { useEffect, useRef } = jest.requireActual('react');
+    const { ExploreStandaloneMode } = jest.requireActual(
+      'src/explore/constants',
+    );
     const hasQueried = useRef(false);
 
     useEffect(() => {
@@ -130,9 +135,17 @@ jest.mock('../ExploreChartPanel', () => ({
       }
     }, [onQuery]);
 
-    return (
-      <div data-test={standalone ? 'standalone-app' : 'explore-chart-panel'} />
-    );
+    // Distinct markers per mode so a test can tell mode 2 from mode 0: both
+    // render the editor, and asserting only the absence of `standalone-app`
+    // would pass for either.
+    const marker =
+      standalone === ExploreStandaloneMode.HideNav
+        ? 'standalone-app'
+        : standalone === ExploreStandaloneMode.HideNavShowControls
+          ? 'explore-chart-panel-hide-nav'
+          : 'explore-chart-panel';
+
+    return <div data-test={marker} />;
   },
 }));
 
@@ -285,14 +298,58 @@ test('generates a new form_data param when none is available', async () => {
   replaceSpy.mockRestore();
 });
 
-test('renders chart in standalone mode', () => {
-  const { queryByTestId } = renderWithRouter({
-    initialState: {
-      ...reduxState,
-      explore: { ...reduxState.explore, standalone: true },
+// Mirrors production: hydrateExplore seeds `explore.standalone` from
+// getUrlParam(URL_PARAMS.standalone), so it holds the coerced numeric mode ('true'
+// arrives as 1) or null. Deriving it from the same search string here keeps the
+// fixture honest instead of hardcoding a boolean the app never stores.
+const standaloneState = (search: string) => ({
+  search,
+  initialState: {
+    ...reduxState,
+    explore: {
+      ...reduxState.explore,
+      standalone: getUrlParam(URL_PARAMS.standalone, search),
     },
-  });
+  },
+});
+
+test('renders chart in standalone mode', () => {
+  const { queryByTestId } = renderWithRouter(standaloneState('?standalone=1'));
   expect(queryByTestId('standalone-app')).toBeInTheDocument();
+});
+
+test('preserves legacy standalone=true as chart-only mode', () => {
+  // Backwards compatibility for links created before numeric modes existed.
+  // `standalone` is declared a number param, so getUrlParam maps 'true' to 1;
+  // the backend also still treats 'true' as standalone. Old bookmarks, embeds
+  // and report URLs must keep rendering chart-only rather than the full editor.
+  const { queryByTestId } = renderWithRouter(
+    standaloneState('?standalone=true'),
+  );
+  expect(queryByTestId('standalone-app')).toBeInTheDocument();
+});
+
+test('renders chart-only for report captures (standalone=3)', () => {
+  // ChartStandaloneMode.REPORT. Report and thumbnail captures must stay
+  // chart-only; 3 is also what the backend's truthiness check accepts, so this
+  // doubles as coverage for any value it allows that is not the mode 2 opt-in.
+  const { queryByTestId } = renderWithRouter(standaloneState('?standalone=3'));
+  expect(queryByTestId('standalone-app')).toBeInTheDocument();
+});
+
+test('renders full editor in standalone=2 mode (hide nav, show controls)', () => {
+  const { queryByTestId } = renderWithRouter(standaloneState('?standalone=2'));
+  expect(queryByTestId('standalone-app')).not.toBeInTheDocument();
+  // Positive assertion on the mode-2 marker: without it this test would also
+  // pass for mode 0, since both render the editor.
+  expect(queryByTestId('explore-chart-panel-hide-nav')).toBeInTheDocument();
+});
+
+test('renders the normal editor when standalone is absent', () => {
+  const { queryByTestId } = renderWithRouter({ search: '' });
+  expect(queryByTestId('explore-chart-panel')).toBeInTheDocument();
+  expect(queryByTestId('standalone-app')).not.toBeInTheDocument();
+  expect(queryByTestId('explore-chart-panel-hide-nav')).not.toBeInTheDocument();
 });
 
 test('generates a form_data param with datasource_id when mounting with existing key', async () => {
