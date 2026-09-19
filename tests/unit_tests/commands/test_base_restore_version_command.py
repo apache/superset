@@ -97,3 +97,55 @@ def test_validate_returns_entity_when_not_managed_externally(
 
     with _validate_context(entity):
         assert cmd.validate() is entity
+
+
+@pytest.mark.parametrize("command_cls", _COMMAND_CLASSES)
+def test_registry_lookup_error_maps_to_failed_exc(
+    command_cls: type[BaseRestoreVersionCommand],
+) -> None:
+    """The engine's fail-closed registry LookupError maps to failed_exc.
+
+    ``restore_version`` raises LookupError for a model missing from
+    ``_RESTORE_RELATIONS``; without ``catches`` widened past the
+    SQLAlchemyError default that surfaced as a raw 500 instead of the
+    intended fail-closed 422 (sc-115326).
+    """
+    entity = MagicMock(is_managed_externally=False)
+    lookup = LookupError("No restore relations registered for 'Widget'")
+    with (
+        _validate_context(entity),
+        patch(
+            "superset.commands.version_restore.resolve_version",
+            return_value=(0, 123),
+        ),
+        patch(
+            "superset.commands.version_restore.restore_version",
+            side_effect=lookup,
+        ),
+    ):
+        with pytest.raises(command_cls.failed_exc) as excinfo:
+            command_cls(uuid4(), uuid4()).run()
+
+    assert excinfo.value.__cause__ is lookup
+
+
+@pytest.mark.parametrize("command_cls", _COMMAND_CLASSES)
+def test_other_exceptions_still_pass_through_untranslated(
+    command_cls: type[BaseRestoreVersionCommand],
+) -> None:
+    """The catches tuple stays narrow: an arbitrary non-SQLAlchemy error
+    propagates as itself — the endpoint maps such types explicitly."""
+    entity = MagicMock(is_managed_externally=False)
+    with (
+        _validate_context(entity),
+        patch(
+            "superset.commands.version_restore.resolve_version",
+            return_value=(0, 123),
+        ),
+        patch(
+            "superset.commands.version_restore.restore_version",
+            side_effect=RuntimeError("boom"),
+        ),
+    ):
+        with pytest.raises(RuntimeError):
+            command_cls(uuid4(), uuid4()).run()
