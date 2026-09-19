@@ -48,6 +48,7 @@ Example output:
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json  # noqa: TID251 - standalone script, don't depend on superset.utils
 import sys
 from dataclasses import dataclass
@@ -103,7 +104,10 @@ def check_pypi_package(package_name: str, timeout: float = 5.0) -> bool:
     if base_name in _pypi_cache:
         return _pypi_cache[base_name]
 
-    url = f"https://pypi.org/pypi/{base_name}/json"
+    import urllib.parse
+
+    safe_base_name = urllib.parse.quote(base_name, safe="")
+    url = f"https://pypi.org/pypi/{safe_base_name}/json"
     try:
         req = urllib.request.Request(  # noqa: S310
             url, headers={"User-Agent": "superset-lint/1.0"}
@@ -240,7 +244,7 @@ def get_all_engine_specs_ast() -> list[dict[str, Any]]:  # noqa: C901
 
         filepath = os.path.join(db_engine_specs_dir, filename)
         try:
-            with open(filepath) as f:
+            with open(filepath, encoding="utf-8") as f:
                 content = f.read()
 
             tree = ast.parse(content)
@@ -272,10 +276,17 @@ def get_all_engine_specs_ast() -> list[dict[str, Any]]:  # noqa: C901
                     if isinstance(item, ast.Assign):
                         for target in item.targets:
                             if isinstance(target, ast.Name) and target.id == "engine":
-                                # Check if engine value is non-empty string
                                 if isinstance(item.value, ast.Constant):
                                     has_non_empty_engine = bool(item.value.value)
                                 break
+                    elif isinstance(item, ast.AnnAssign):
+                        if (
+                            isinstance(item.target, ast.Name)
+                            and item.target.id == "engine"
+                        ):
+                            if isinstance(item.value, ast.Constant):
+                                has_non_empty_engine = bool(item.value.value)
+                            break
 
                 # Skip true base classes (no engine or empty engine attribute)
                 if node.name.endswith("BaseEngineSpec") and not has_non_empty_engine:
@@ -292,12 +303,25 @@ def get_all_engine_specs_ast() -> list[dict[str, Any]]:  # noqa: C901
                                 if target.id == "engine_name":
                                     if isinstance(item.value, ast.Constant):
                                         engine_name = item.value.value
-                                elif target.id == "metadata":
+                                elif target.id == "metadata" and item.value is not None:
                                     try:
                                         metadata = _eval_ast_dict(item.value)
                                     except Exception:
                                         # Mark as unparseable
                                         metadata = {"_unparseable": True}
+                    elif isinstance(item, ast.AnnAssign):
+                        if isinstance(item.target, ast.Name):
+                            if item.target.id == "engine_name":
+                                if isinstance(item.value, ast.Constant):
+                                    engine_name = item.value.value
+                            elif (
+                                item.target.id == "metadata" and item.value is not None
+                            ):
+                                try:
+                                    metadata = _eval_ast_dict(item.value)
+                                except Exception:
+                                    # Mark as unparseable
+                                    metadata = {"_unparseable": True}
 
                 specs.append(
                     {
@@ -337,12 +361,16 @@ def _eval_ast_value(node: Any) -> Any:  # noqa: C901
 
     if isinstance(node, ast.Constant):
         return node.value
-    elif isinstance(node, ast.Str):  # Python 3.7 compat
+    elif hasattr(ast, "Str") and isinstance(node, ast.Str):  # Python <3.8 compat
         return node.s
-    elif isinstance(node, ast.Num):  # Python 3.7 compat
+    elif hasattr(ast, "Num") and isinstance(node, ast.Num):  # Python <3.8 compat
         return node.n
     elif isinstance(node, ast.List):
         return [_eval_ast_value(e) for e in node.elts]
+    elif isinstance(node, ast.Tuple):
+        return tuple(_eval_ast_value(e) for e in node.elts)
+    elif isinstance(node, ast.Set):
+        return {_eval_ast_value(e) for e in node.elts}
     elif isinstance(node, ast.Dict):
         return _eval_ast_dict(node)
     elif isinstance(node, ast.Name):
@@ -363,8 +391,10 @@ def _eval_ast_value(node: Any) -> Any:  # noqa: C901
     elif isinstance(node, ast.JoinedStr):
         # f-strings - just return placeholder
         return "<f-string>"
-    elif isinstance(node, ast.Tuple):
-        return tuple(_eval_ast_value(e) for e in node.elts)
+    elif isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.USub):
+        operand = _eval_ast_value(node.operand)
+        if isinstance(operand, (int, float)):
+            return -operand
     return None
 
 
@@ -605,11 +635,18 @@ def generate_markdown_report(reports: list[MetadataReport]) -> str:
             "",
         ]
     )
-
     return "\n".join(lines)
 
 
-def main() -> int:
+def main() -> int:  # noqa: C901
+    """Main entry point."""
+    if hasattr(sys.stdout, "reconfigure"):
+        with contextlib.suppress(Exception):
+            sys.stdout.reconfigure(encoding="utf-8")
+    if hasattr(sys.stderr, "reconfigure"):
+        with contextlib.suppress(Exception):
+            sys.stderr.reconfigure(encoding="utf-8")
+
     parser = argparse.ArgumentParser(
         description="Lint DB engine spec metadata for completeness"
     )
@@ -673,7 +710,7 @@ def main() -> int:
     # Write to file or stdout
     if output_text:
         if args.output:
-            with open(args.output, "w") as f:
+            with open(args.output, "w", encoding="utf-8") as f:
                 f.write(output_text)
             print(f"Report written to {args.output}", file=sys.stderr)
         else:
