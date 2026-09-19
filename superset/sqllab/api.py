@@ -584,12 +584,19 @@ class SqlLabRestApi(BaseSupersetApi):
             execution_context = SqlJsonExecutionContext(request.json)
             command = self._create_sql_json_command(execution_context, log_params)
             command_result: CommandResult = command.run()
+            payload = command_result["payload"]
 
             # Schedule the async GTF task AFTER the command's transaction commits:
             # scheduling acquires its own lock/transaction and must not run inside
-            # an outer @transaction (see ExecuteSqlCommand.submit_async).
+            # an outer @transaction (see ExecuteSqlCommand.submit_async). The task
+            # descriptor it returns (task_id/cursor/tab_id) is surfaced in the 202
+            # so the client can settle the query via the task.status push (with the
+            # /query/updated_since poll as backstop).
             if command_result["status"] == SqlJsonExecutionStatus.QUERY_IS_RUNNING:
-                command.submit_async()
+                if async_job := command.submit_async():
+                    parsed = json.loads(payload)
+                    parsed["async_job"] = async_job
+                    payload = json.dumps(parsed)
 
             response_status = (
                 202
@@ -597,7 +604,7 @@ class SqlLabRestApi(BaseSupersetApi):
                 else 200
             )
             # return the execution result without special encoding
-            return json_success(command_result["payload"], response_status)
+            return json_success(payload, response_status)
         except SqlLabException as ex:
             payload = {"errors": [ex.to_dict()]}
 

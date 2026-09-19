@@ -14,55 +14,79 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+"""Unit tests for the reusable per-tab task subscription policy."""
+
+from typing import Any, Iterator
+from unittest.mock import patch
 
 import pytest
-from flask import current_app
 
-from superset.tasks.subscription import get_request_tab_id, principal_channel
-
-
-def test_principal_channel_derivation() -> None:
-    assert principal_channel(5, None) == "user:5"
-    assert principal_channel(None, "guest:abc") == "guest:abc"
-    assert principal_channel(None, None) is None
+from superset.tasks.subscription import PerTabConsumerPolicy
 
 
-def test_get_request_tab_id_from_json_body() -> None:
-    with current_app.test_request_context(
-        "/api/v1/chart/data", json={"tab_id": "tab-7"}
+class _FakeTask:
+    """A minimal stand-in exposing ``properties_dict`` for the policy to read."""
+
+    def __init__(self, consumers: list[str] | None = None) -> None:
+        self.properties_dict: dict[str, Any] = {
+            "private": {"subscription": {"consumers": list(consumers or [])}}
+        }
+
+
+@pytest.fixture
+def policy() -> Iterator[PerTabConsumerPolicy]:
+    """A policy whose ``merge_subscription_state`` write mutates the fake in place."""
+
+    def _merge(task: _FakeTask, updates: dict[str, Any]) -> None:
+        task.properties_dict["private"]["subscription"]["consumers"] = updates[
+            "consumers"
+        ]
+
+    with patch(
+        "superset.daos.tasks.TaskDAO.merge_subscription_state", side_effect=_merge
     ):
-        assert get_request_tab_id() == "tab-7"
+        yield PerTabConsumerPolicy()
 
 
-def test_get_request_tab_id_from_query_arg() -> None:
-    with current_app.test_request_context("/api/v1/chart/data?tab_id=tab-7"):
-        assert get_request_tab_id() == "tab-7"
+def test_on_subscribe_records_tab(policy: PerTabConsumerPolicy) -> None:
+    task = _FakeTask()
+    policy.on_subscribe(task, principal="user:1", client_ref="tabA")
+    assert policy.routing_channels(task) == ["user:1:tabA"]
 
 
-def test_get_request_tab_id_none_outside_request_context() -> None:
-    assert get_request_tab_id() is None
+def test_on_subscribe_is_idempotent(policy: PerTabConsumerPolicy) -> None:
+    task = _FakeTask(["user:1:tabA"])
+    policy.on_subscribe(task, principal="user:1", client_ref="tabA")
+    assert policy.routing_channels(task) == ["user:1:tabA"]
 
 
-@pytest.mark.parametrize(
-    "value",
-    [
-        "",  # empty
-        "a" * 65,  # too long
-        "tab id",  # space
-        "tab/../etc",  # path traversal chars
-        "tab:evil",  # colon (would split a routing key)
-        "tab\nid",  # newline
-        "táb",  # non-ascii
-    ],
-)
-def test_get_request_tab_id_rejects_invalid(value: str) -> None:
-    # An out-of-bound/ill-formed tab id is dropped (falls back to principal-grain),
-    # never flowing into routing keys, private props, channels, logs, or URLs.
-    with current_app.test_request_context("/api/v1/chart/data", json={"tab_id": value}):
-        assert get_request_tab_id() is None
+def test_on_subscribe_without_tab_is_noop(policy: PerTabConsumerPolicy) -> None:
+    task = _FakeTask()
+    policy.on_subscribe(task, principal="user:1", client_ref=None)
+    assert policy.routing_channels(task) is None
 
 
-def test_get_request_tab_id_accepts_full_allowed_charset() -> None:
-    value = "Ab9_-" * 12  # 60 chars, within the 64 cap
-    with current_app.test_request_context("/api/v1/chart/data", json={"tab_id": value}):
-        assert get_request_tab_id() == value
+def test_on_unsubscribe_keeps_task_while_a_tab_remains(
+    policy: PerTabConsumerPolicy,
+) -> None:
+    task = _FakeTask(["user:1:tabA", "user:1:tabB"])
+    # tabA leaves but tabB is still watching → do not unsubscribe the principal.
+    assert policy.on_unsubscribe(task, principal="user:1", client_ref="tabA") is False
+    assert policy.routing_channels(task) == ["user:1:tabB"]
+
+
+def test_on_unsubscribe_last_tab_unsubscribes_principal(
+    policy: PerTabConsumerPolicy,
+) -> None:
+    task = _FakeTask(["user:1:tabA"])
+    assert policy.on_unsubscribe(task, principal="user:1", client_ref="tabA") is True
+    assert policy.routing_channels(task) is None
+
+
+def test_on_unsubscribe_without_tab_drops_all_principal_entries(
+    policy: PerTabConsumerPolicy,
+) -> None:
+    task = _FakeTask(["user:1:tabA", "user:1:tabB", "user:2:tabC"])
+    # Principal-grain unsubscribe drops every tab of user:1 but leaves user:2.
+    assert policy.on_unsubscribe(task, principal="user:1", client_ref=None) is True
+    assert policy.routing_channels(task) == ["user:2:tabC"]

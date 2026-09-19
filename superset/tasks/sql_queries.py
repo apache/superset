@@ -49,6 +49,7 @@ from superset.common.db_query_status import QueryStatus
 from superset.tasks.ambient_context import get_context
 from superset.tasks.decorators import task
 from superset.tasks.query_cancel import cancel_chart_query
+from superset.tasks.subscription import PerTabConsumerPolicy
 from superset.utils.core import override_user
 from superset.utils.dates import now_as_float
 
@@ -99,7 +100,11 @@ def _mirror_terminal_status(query: "Query", ctx: "TaskContext") -> None:
     db.session.commit()
 
 
-@task(name=SQL_LAB_TASK, scope=TaskScope.PRIVATE)
+@task(
+    name=SQL_LAB_TASK,
+    scope=TaskScope.PRIVATE,
+    subscription_policy=PerTabConsumerPolicy(),
+)
 def run_sql_lab_query(
     query_id: int,
     rendered_query: str,

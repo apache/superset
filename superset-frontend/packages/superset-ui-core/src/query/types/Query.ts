@@ -356,6 +356,10 @@ export type Query = {
   type: DatasourceType;
   columns: QueryColumn[];
   runAsync?: boolean;
+  // The GTF task uuid an async SQL Lab query runs under, captured from the
+  // execute 202 (async_job.task_id). Used to settle the query immediately on its
+  // terminal `task.status` websocket push.
+  taskId?: string;
 };
 
 export type QueryResults = {

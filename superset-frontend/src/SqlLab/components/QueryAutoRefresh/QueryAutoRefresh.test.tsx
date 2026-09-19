@@ -33,9 +33,30 @@ import QueryAutoRefresh, {
   shouldCheckForQueries,
   QUERY_UPDATE_FREQ,
 } from 'src/SqlLab/components/QueryAutoRefresh';
+import { subscribeRealtime } from 'src/middleware/realtime';
+import { TASK_STATUS_TOPIC } from 'src/middleware/asyncEvent';
 import { successfulQuery, runningQuery } from 'src/SqlLab/fixtures';
 import { QueryDictionary } from 'src/SqlLab/types';
 import mockDatabases from 'spec/fixtures/mockDatabases';
+
+// The realtime transport is a pure accelerator; mock it so a `task.status`
+// message can be emitted deterministically without a real socket.
+jest.mock('src/middleware/realtime', () => ({
+  subscribeRealtime: jest.fn(() => jest.fn()),
+  connectRealtime: jest.fn(),
+  subscribeRealtimeOpen: jest.fn(() => jest.fn()),
+  subscribeRealtimeState: jest.fn(() => jest.fn()),
+}));
+
+const subscribeRealtimeMock = subscribeRealtime as jest.Mock;
+
+// Return the `task.status` handler the component registered after render.
+const getTaskStatusHandler = (): ((payload: unknown) => void) => {
+  const call = subscribeRealtimeMock.mock.calls
+    .filter(([topic]) => topic === TASK_STATUS_TOPIC)
+    .pop();
+  return call?.[1] as (payload: unknown) => void;
+};
 
 const middlewares = [thunk];
 const mockStore = configureStore(middlewares);
@@ -54,6 +75,7 @@ describe('QueryAutoRefresh', () => {
 
   beforeEach(() => {
     jest.useFakeTimers({ advanceTimers: true });
+    subscribeRealtimeMock.mockClear();
   });
 
   afterEach(() => {
@@ -275,5 +297,65 @@ describe('QueryAutoRefresh', () => {
         }),
       ),
     );
+  });
+
+  test('refreshes immediately on a terminal task.status for a tracked query', async () => {
+    const store = mockStore({ sqlLab: { ...mockState } });
+    const trackedQueries: QueryDictionary = {
+      [runningQuery.id]: { ...runningQuery, taskId: 'task-abc' },
+    };
+
+    fetchMock.get(refreshApi, {
+      result: [{ id: runningQuery.id, status: 'success' }],
+    });
+
+    render(
+      <QueryAutoRefresh
+        queries={trackedQueries}
+        queriesLastUpdate={queriesLastUpdate}
+      />,
+      { useRedux: true, store },
+    );
+
+    await act(async () => {
+      getTaskStatusHandler()({ task_id: 'task-abc', status: 'success' });
+    });
+
+    // The immediate refresh fires without advancing the 2s poll interval.
+    await waitFor(() =>
+      expect(fetchMock.callHistory.calls(refreshApi)).toHaveLength(1),
+    );
+    await waitFor(() =>
+      expect(store.getActions()).toContainEqual(
+        expect.objectContaining({ type: REFRESH_QUERIES }),
+      ),
+    );
+  });
+
+  test('ignores a task.status for an untracked task id', async () => {
+    const store = mockStore({ sqlLab: { ...mockState } });
+    const trackedQueries: QueryDictionary = {
+      [runningQuery.id]: { ...runningQuery, taskId: 'task-abc' },
+    };
+
+    fetchMock.get(refreshApi, {
+      result: [{ id: runningQuery.id, status: 'success' }],
+    });
+
+    render(
+      <QueryAutoRefresh
+        queries={trackedQueries}
+        queriesLastUpdate={queriesLastUpdate}
+      />,
+      { useRedux: true, store },
+    );
+
+    await act(async () => {
+      getTaskStatusHandler()({ task_id: 'other-task', status: 'success' });
+    });
+
+    // No accelerated refresh; the untracked message is dropped (the 2s poll
+    // remains the backstop and is not advanced here).
+    expect(fetchMock.callHistory.calls(refreshApi)).toHaveLength(0);
   });
 });

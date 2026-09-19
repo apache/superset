@@ -56,7 +56,9 @@ const STATUS_CHANGES_URL = '/api/v1/task/status_changes';
 
 // Terminal GTF task statuses (mirror superset_core.tasks.types.TaskStatus).
 const STATUS_SUCCESS = 'success';
-const TERMINAL_STATUSES = new Set([
+// Exported so other realtime consumers (e.g. SQL Lab's QueryAutoRefresh) settle on
+// the same terminal set rather than re-declaring it.
+export const TERMINAL_STATUSES = new Set([
   STATUS_SUCCESS,
   'failure',
   'aborted',
@@ -169,8 +171,9 @@ const stopIfStale = (generation: number): boolean => {
 // GTF task-status topic emitted by superset-websocket after it fans out backend
 // task-status events (see superset/tasks/manager.py TOPIC_TASK_STATUS). Delivery
 // is scoped server-side to this principal's (or tab's) routing key, so a message
-// that reaches this browser is always its own.
-const TASK_STATUS_TOPIC = 'task.status';
+// that reaches this browser is always its own. Exported so other realtime
+// consumers (e.g. SQL Lab's QueryAutoRefresh) subscribe to the same topic.
+export const TASK_STATUS_TOPIC = 'task.status';
 
 const fetchStatusChanges = makeApi<
   { cursor?: string | null; task_type: string },

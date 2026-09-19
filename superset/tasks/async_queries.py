@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import logging
 from contextlib import contextmanager
-from typing import Any, cast, Iterator, TYPE_CHECKING
+from typing import Any, Iterator, TYPE_CHECKING
 from uuid import UUID
 
 from flask import current_app
@@ -42,11 +42,8 @@ from superset.tasks.query_cancel import (
     capture_cancel_id,
     capture_cancel_query_id,
 )
-from superset.tasks.subscription import get_request_tab_id, TaskSubscriptionPolicy
-from superset.tasks.utils import (
-    floored_status_cursor,
-    SUBSCRIPTION_PRIVATE_NAMESPACE,
-)
+from superset.tasks.subscription import get_request_tab_id, PerTabConsumerPolicy
+from superset.tasks.utils import floored_status_cursor
 from superset.utils.core import override_user
 
 if TYPE_CHECKING:
@@ -68,12 +65,8 @@ logger = logging.getLogger(__name__)
 CHART_QUERY_TASK = "superset.query_object_v1"
 CACHE_KEY_PAYLOAD_KEY = "cache_key"
 
-# Key under ``private["task"]`` holding the chart-data consumer list (see
-# ``ChartQueryConsumerPolicy``).
-CONSUMERS_PRIVATE_KEY = "consumers"
 
-
-class ChartQueryConsumerPolicy(TaskSubscriptionPolicy):
+class ChartQueryConsumerPolicy(PerTabConsumerPolicy):
     """Ref-count the browser tabs watching a shared chart-data task.
 
     A chart-data task is ``SHARED`` and deduplicated across every request for the
@@ -81,77 +74,11 @@ class ChartQueryConsumerPolicy(TaskSubscriptionPolicy):
     single principal with a single subscriber row. Treating either tab's cancel
     (an explicit cancel, or the navigate-away teardown that cancels unwaited
     tasks) as *the* principal leaving would abort the shared task and kill the
-    other tab's still-pending query.
-
-    This policy keeps a list of ``"<principal>:<tab_id>"`` entries in the task's
-    ``private["subscription"]`` namespace (policy-owned, debug-gated). On
-    subscribe it adds the calling tab; on unsubscribe it removes the calling tab
-    and reports whether the principal has any tab left, so the framework aborts
-    the task only once the principal's last tab is gone. Both hooks run under the
-    submit/cancel lock, so the read-modify-write on the list is race-free against
-    other submits/cancels; the executor, which does not hold that lock, writes
-    the task's properties while it runs, so the list is written through
-    ``TaskDAO.merge_subscription_state`` (a row-locked merge) and the executor's
-    whole-blob writes preserve this namespace rather than replacing it with their
-    pickup-time snapshot. Otherwise a tab joining mid-execution would be dropped
-    and the other tab's detach would abort work it still awaits.
-
-    A request without a ``tab_id`` (a non-interactive or legacy caller) is a
-    no-op on subscribe and proceeds (principal-grain) on unsubscribe; in practice
-    the chart-data client always supplies a stable per-tab id.
+    other tab's still-pending query. The generic per-tab consumer ref-counting
+    that prevents this (and routes ``task.status`` to exactly the watching tabs)
+    lives in :class:`~superset.tasks.subscription.PerTabConsumerPolicy`; chart-data
+    uses it unchanged.
     """
-
-    @staticmethod
-    def _consumers(task: "CoreTask") -> list[str]:
-        private = task.properties_dict.get("private") or {}
-        subscription = private.get(SUBSCRIPTION_PRIVATE_NAMESPACE) or {}
-        consumers = subscription.get(CONSUMERS_PRIVATE_KEY) or []
-        return [entry for entry in consumers if isinstance(entry, str)]
-
-    @staticmethod
-    def _write_consumers(task: "CoreTask", consumers: list[str]) -> None:
-        from superset.daos.tasks import TaskDAO
-
-        TaskDAO.merge_subscription_state(
-            cast("Task", task), {CONSUMERS_PRIVATE_KEY: consumers}
-        )
-
-    def on_subscribe(
-        self, task: "CoreTask", *, principal: str, client_ref: str | None
-    ) -> None:
-        if client_ref is None:
-            return
-        entry = f"{principal}:{client_ref}"
-        if entry not in (consumers := self._consumers(task)):
-            self._write_consumers(task, [*consumers, entry])
-
-    def on_unsubscribe(
-        self, task: "CoreTask", *, principal: str, client_ref: str | None
-    ) -> bool:
-        consumers = self._consumers(task)
-        prefix = f"{principal}:"
-        if client_ref is None:
-            # Principal-grain unsubscribe (no tab id): the whole principal is
-            # leaving, so drop ALL of its recorded tab entries. Otherwise a later
-            # status transition would still route to this principal's tab
-            # channels (via routing_channels) after it unsubscribed.
-            remaining = [c for c in consumers if not c.startswith(prefix)]
-        else:
-            entry = f"{principal}:{client_ref}"
-            remaining = [c for c in consumers if c != entry]
-        if remaining != consumers:
-            self._write_consumers(task, remaining)
-        # Proceed to unsubscribe the principal only once it has no tab left on
-        # this task; a surviving tab of the same principal keeps it subscribed.
-        return not any(c.startswith(prefix) for c in remaining)
-
-    def routing_channels(self, task: "CoreTask") -> list[str] | None:
-        # The consumer entries are exactly the per-tab realtime routing keys
-        # (`"<principal>:<tab_id>"`), so a task-status message reaches only the
-        # tabs watching this task. Empty -> None so a chart task with no recorded
-        # tab (all detached, or a no-tab caller) falls back to principal-grain
-        # fanout instead of dropping it.
-        return self._consumers(task) or None
 
 
 def _resolve_user(user_id: int | None, guest_token: "GuestToken | None") -> User:

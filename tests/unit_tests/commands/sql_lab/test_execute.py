@@ -239,7 +239,9 @@ def test_prepare_async_requires_gtf(mock_flag: MagicMock, mock_db: MagicMock) ->
 
 
 def test_submit_async_schedules_task_keyed_by_client_id() -> None:
-    """submit_async schedules the GTF task keyed by the browser client_id."""
+    """submit_async schedules the GTF task keyed by the browser client_id and
+    returns the async_job descriptor (task uuid + pre-task cursor; tab_id when the
+    request advertised one)."""
     ctx = MagicMock()
     ctx.select_as_cta = False
     ctx.expand_data = False
@@ -249,11 +251,42 @@ def test_submit_async_schedules_task_keyed_by_client_id() -> None:
     command._pending_async = True
     command._rendered_query = "SELECT 1"
     schedule = patch("superset.tasks.sql_queries.run_sql_lab_query.schedule").start()
+    schedule.return_value.uuid = "task-uuid-9"
     patch(f"{_EXEC}.get_username", return_value="admin").start()
+    # A tab id advertised on the request is echoed into the descriptor.
+    patch(
+        "superset.tasks.subscription.get_request_tab_id", return_value="tab-42"
+    ).start()
     try:
-        command.submit_async()
+        async_job = command.submit_async()
         schedule.assert_called_once()
         assert schedule.call_args.kwargs["options"].task_key == "abc123"
+        assert async_job is not None
+        assert async_job["task_id"] == "task-uuid-9"
+        assert async_job["cursor"]  # ISO-8601 pre-task poll cursor
+        assert async_job["tab_id"] == "tab-42"
+    finally:
+        patch.stopall()
+
+
+def test_submit_async_omits_tab_id_when_absent() -> None:
+    """With no tab id on the request, the async_job descriptor omits tab_id."""
+    ctx = MagicMock()
+    ctx.select_as_cta = False
+    ctx.expand_data = False
+    ctx.query.id = 7
+    ctx.query.client_id = "abc123"
+    command = _make_command(execution_context=ctx)
+    command._pending_async = True
+    command._rendered_query = "SELECT 1"
+    schedule = patch("superset.tasks.sql_queries.run_sql_lab_query.schedule").start()
+    schedule.return_value.uuid = "task-uuid-9"
+    patch(f"{_EXEC}.get_username", return_value="admin").start()
+    patch("superset.tasks.subscription.get_request_tab_id", return_value=None).start()
+    try:
+        async_job = command.submit_async()
+        assert async_job is not None
+        assert "tab_id" not in async_job
     finally:
         patch.stopall()
 
@@ -262,7 +295,7 @@ def test_submit_async_noop_when_not_pending() -> None:
     """submit_async does nothing for a sync command."""
     command = _make_command()
     command._pending_async = False
-    command.submit_async()  # must not raise / schedule
+    assert command.submit_async() is None  # must not raise / schedule
 
 
 @patch(f"{_EXEC}.app")
