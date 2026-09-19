@@ -108,6 +108,67 @@ export declare function getCss(): string;
 export declare function setCss(css: string): Promise<void>;
 
 /**
+ * One filter definition update, as passed to {@link saveFilters}.
+ */
+export interface FilterConfigUpdate {
+  /**
+   * The filter's ID. Must be an existing filter on this dashboard —
+   * `saveFilters` does not create new ones. Use `getFilters()` to find
+   * filter IDs.
+   */
+  filterId: string;
+
+  /**
+   * The filter's new display name.
+   */
+  name?: string;
+
+  /**
+   * The filter's new target columns/charts.
+   */
+  targets?: unknown;
+
+  /**
+   * The filter's new default value — applied when the dashboard next loads
+   * or the filter is reset — in the same shape as a filter's
+   * `extraFormData`/`filterState`.
+   */
+  defaultDataMask?: {
+    extraFormData?: Record<string, unknown>;
+    filterState?: Record<string, unknown>;
+  };
+}
+
+/**
+ * Persists changes to the current dashboard's native filter *definitions* —
+ * as opposed to {@link updateFilters}, which only changes a filter's
+ * currently-applied value for this browser session. Changes saved here are
+ * visible to every future viewer of this dashboard, the same as saving
+ * through the Filter Bar's "Edit filters" UI.
+ *
+ * Does not create new filters or reorder existing ones — only edits or
+ * deletes filters that already exist on this dashboard.
+ *
+ * @param updates The filter definitions to update.
+ * @param deletedFilterIds IDs of filters to delete.
+ * @returns Promise that resolves once the changes have been saved and
+ * applied to this session.
+ * @throws If no dashboard is active, an update references a filter ID that
+ * doesn't exist on this dashboard, or the save fails.
+ *
+ * @example
+ * ```typescript
+ * await dashboard.saveFilters([
+ *   { filterId: 'NATIVE_FILTER-abc123', name: 'Region (EMEA)' },
+ * ]);
+ * ```
+ */
+export declare function saveFilters(
+  updates: FilterConfigUpdate[],
+  deletedFilterIds?: string[],
+): Promise<void>;
+
+/**
  * Represents one of the current dashboard's native filters, along with its
  * currently-applied value.
  */
@@ -195,3 +256,27 @@ export interface FilterValueUpdate {
 export declare function updateFilters(
   updates: FilterValueUpdate[],
 ): Promise<void>;
+
+/**
+ * Re-fetches the given chart's saved configuration from the server and
+ * re-runs its query with the dashboard's currently-applied filters,
+ * replacing whatever is currently rendered for it.
+ *
+ * Superset does not otherwise learn of a chart's configuration changing
+ * while its dashboard is open — e.g. a change made through the REST API by
+ * something other than this dashboard session — until the page is
+ * reloaded. This re-syncs a single chart without one.
+ *
+ * @param chartId The chart's ID. Use `getLayout()` to find chart IDs on
+ * this dashboard — each `CHART`-type node's `meta.chartId`.
+ * @returns Promise that resolves once the chart has been re-queried and
+ * re-rendered with its latest saved configuration.
+ * @throws If no dashboard is active, the chart isn't on this dashboard, or
+ * its configuration couldn't be retrieved.
+ *
+ * @example
+ * ```typescript
+ * await dashboard.refreshChart(123);
+ * ```
+ */
+export declare function refreshChart(chartId: number): Promise<void>;
