@@ -596,12 +596,36 @@ test('overlays MA lines of the close price', () => {
     35.666666666666664,
     29.333333333333332,
   ]);
+  const colorScale = CategoricalColorNamespace.getScale('bnbColors');
+  const ma2Color = colorScale('MA2');
   expect(series[1]).toEqual(
     expect.objectContaining({
       type: 'line',
       smooth: true,
       showSymbol: false,
-      lineStyle: { opacity: 0.5 },
+      itemStyle: { color: ma2Color },
+      lineStyle: { opacity: 0.5, color: ma2Color },
+    }),
+  );
+});
+
+test('keeps moving averages on the color scheme when candles use direction colors', () => {
+  const colorScale = CategoricalColorNamespace.getScale('bnbColors');
+  const ma2Color = colorScale('MA2');
+  const series = extractSeries(buildProps({ moving_averages: [2] }));
+  expect(series[0]).toEqual(
+    expect.objectContaining({
+      itemStyle: expect.objectContaining({
+        color: '#5ac189',
+        color0: '#e04355',
+      }),
+    }),
+  );
+  expect(series[1]).toEqual(
+    expect.objectContaining({
+      name: 'MA2',
+      itemStyle: { color: ma2Color },
+      lineStyle: { opacity: 0.5, color: ma2Color },
     }),
   );
 });

@@ -529,21 +529,22 @@ export default function transformProps(
     (ohlcData, index) => {
       const closes = ohlcData.map(ohlc => ohlc?.[1] ?? null);
       const seriesLabel = qualifyMaNames ? seriesNames[index] : undefined;
-      const seriesColor = useSeriesColors
-        ? colorScale(seriesNames[index], sliceId)
-        : undefined;
-      return periods.map(period => ({
-        name: movingAverageName(period, seriesLabel),
-        type: 'line' as const,
-        data: calculateMA(closes, period),
-        smooth: true,
-        showSymbol: false,
-        itemStyle: seriesColor ? { color: seriesColor } : undefined,
-        lineStyle: {
-          opacity: MA_LINE_OPACITY,
-          ...(seriesColor ? { color: seriesColor } : {}),
-        },
-      }));
+      return periods.map(period => {
+        const name = movingAverageName(period, seriesLabel);
+        const maColor = colorScale(name, sliceId);
+        return {
+          name,
+          type: 'line' as const,
+          data: calculateMA(closes, period),
+          smooth: true,
+          showSymbol: false,
+          itemStyle: { color: maColor },
+          lineStyle: {
+            opacity: MA_LINE_OPACITY,
+            color: maColor,
+          },
+        };
+      });
     },
   );
 
