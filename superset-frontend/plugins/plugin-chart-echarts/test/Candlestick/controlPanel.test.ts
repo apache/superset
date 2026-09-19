@@ -239,32 +239,6 @@ test('keeps color by direction when Series has a single value and hides it for m
   );
 });
 
-test('reuses series cardinality for every color-control visibility check on the same chart response', () => {
-  const colorByDirection = getControl(
-    'color_by_direction',
-  ) as VisibilityControl | null;
-  const increaseColor = getControl(
-    'increase_color',
-  ) as VisibilityControl | null;
-  const decreaseColor = getControl(
-    'decrease_color',
-  ) as VisibilityControl | null;
-  const colorScheme = getControl('color_scheme') as VisibilityControl | null;
-
-  expect(colorByDirection!.config.visibility(withMultipleSeriesValues)).toBe(
-    false,
-  );
-  expect(increaseColor!.config.visibility(withMultipleSeriesValues)).toBe(
-    false,
-  );
-  expect(decreaseColor!.config.visibility(withMultipleSeriesValues)).toBe(
-    false,
-  );
-  expect(colorScheme!.config.visibility(withMultipleSeriesValues)).toBe(true);
-  expect(colorByDirection!.config.visibility(withOneSeriesValue)).toBe(true);
-  expect(colorScheme!.config.visibility(withOneSeriesValue)).toBe(false);
-});
-
 test('hides increase and decrease colors when color by direction is off', () => {
   const increaseColor = getControl(
     'increase_color',

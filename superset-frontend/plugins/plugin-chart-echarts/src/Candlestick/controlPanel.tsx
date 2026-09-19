@@ -61,10 +61,6 @@ const uniqueSeriesCountByResponse = new WeakMap<
   ChartQueryResponse,
   Map<string, number>
 >();
-const hasMultipleSeriesByProps = new WeakMap<
-  ControlPanelsContainerProps,
-  boolean
->();
 
 function getSeriesColumnLabel(
   props: ControlPanelsContainerProps,
@@ -114,13 +110,7 @@ function countUniqueSeriesValues(
 }
 
 function hasMultipleSeries(props: ControlPanelsContainerProps): boolean {
-  const cached = hasMultipleSeriesByProps.get(props);
-  if (cached !== undefined) {
-    return cached;
-  }
-  const result = (countUniqueSeriesValues(props) ?? 0) > 1;
-  hasMultipleSeriesByProps.set(props, result);
-  return result;
+  return (countUniqueSeriesValues(props) ?? 0) > 1;
 }
 
 function showColorByDirection(props: ControlPanelsContainerProps): boolean {
