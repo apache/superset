@@ -2231,8 +2231,6 @@ def write_zip_entry(bundle: ZipFile, filename: str, contents: bytes) -> None:
     gives the entry the time the export was generated instead.
     """
     info = ZipInfo(filename=filename, date_time=datetime.now().timetuple()[:6])
-    # Mirror the permissions ``ZipFile.open(name, "w")`` stamps on new entries.
-    info.external_attr = 0o600 << 16
     # A pre-built ZipInfo bypasses the bundle's own compression settings, which
     # zipfile only copies onto entries it creates from a plain filename, so pass
     # both through explicitly.

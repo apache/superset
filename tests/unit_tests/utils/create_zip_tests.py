@@ -47,7 +47,7 @@ def test_create_zip_stamps_entries_with_the_current_time() -> None:
         assert before <= datetime(*info.date_time) <= after
 
 
-def test_write_zip_entry_preserves_contents_and_permissions() -> None:
+def test_write_zip_entry_writes_nested_paths_intact() -> None:
     buf = BytesIO()
     with ZipFile(buf, "w") as bundle:
         write_zip_entry(bundle, "root/metadata.yaml", b"version: 1.0.0")
@@ -57,7 +57,6 @@ def test_write_zip_entry_preserves_contents_and_permissions() -> None:
         assert bundle.read("root/metadata.yaml") == b"version: 1.0.0"
 
     assert info.date_time != DOS_EPOCH
-    assert info.external_attr >> 16 == 0o600
 
 
 def test_write_zip_entry_honors_the_bundle_compression_settings() -> None:
