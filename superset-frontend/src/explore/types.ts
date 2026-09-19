@@ -179,9 +179,10 @@ export interface ExplorePageState {
     hiddenFormData?: Partial<QueryFormData>;
     slice: Slice;
     controlsTransferred: string[];
-    // Bootstrap sends `is_standalone_mode()`, a boolean. The numeric mode is
-    // derived from the URL in ExploreViewContainer's mapStateToProps.
-    standalone: boolean;
+    // Set by hydrateExplore from getUrlParam(URL_PARAMS.standalone), so it is the
+    // coerced numeric mode (or null when absent/unparseable), not the backend's
+    // boolean `is_standalone_mode()`. See ExploreViewContainer's mapStateToProps.
+    standalone: number | null;
     force: boolean;
     common: JsonObject;
     compatibility?: CompatibilityResult;
