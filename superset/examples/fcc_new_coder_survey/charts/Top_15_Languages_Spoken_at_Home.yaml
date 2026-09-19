@@ -35,7 +35,7 @@ params:
   color_pn: true
   datasource: 42__table
   granularity_sqla: time_start
-  groupby:
+  columns:
   - lang_at_home
   metrics:
   - count
