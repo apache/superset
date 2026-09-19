@@ -57,10 +57,12 @@ from superset.utils.screenshot_utils import (
 WindowSize = tuple[int, int]
 logger = logging.getLogger(__name__)
 
-# Installation message for missing Playwright (Cypress doesn't work with DeckGL)
+# Installation hint for the one failure that carries no error of its own: the
+# Playwright import failed, so there is nothing to report but this. Launch
+# failures raise Playwright's own error instead, which already says whether the
+# browser binary is missing and which command installs it.
 PLAYWRIGHT_INSTALL_MESSAGE = (
-    "To complete the migration from Cypress "
-    "and enable WebGL/DeckGL screenshot support, install Playwright with: "
+    "Install Playwright and Chromium with: "
     "pip install playwright && playwright install chromium"
 )
 
@@ -767,9 +769,14 @@ class WebDriverPlaywright(WebDriverProxy):
         try:
             browser = _browser_manager.get_browser(browser_args)
         except Exception as ex:
+            logger.exception(
+                "Failed to launch the headless browser with args %s%s",
+                browser_args,
+                context_suffix,
+            )
             raise RuntimeError(
-                f"Playwright is required for screenshots. "
-                f"{PLAYWRIGHT_INSTALL_MESSAGE}{context_suffix}"
+                f"Failed to launch the headless browser for screenshots: "
+                f"{ex}{context_suffix}"
             ) from ex
         pixel_density = app.config["WEBDRIVER_WINDOW"].get("pixel_density", 1)
         viewport_height = self._window[1]
