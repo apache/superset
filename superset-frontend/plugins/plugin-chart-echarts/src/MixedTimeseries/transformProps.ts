@@ -200,6 +200,7 @@ export default function transformProps(
     minorTicks,
     gridlines,
     axisTicks,
+    valueAxisLabels,
     seriesType,
     seriesTypeB,
     showLegend,
@@ -873,6 +874,7 @@ export default function transformProps(
         splitLine: { show: gridlines },
         minorSplitLine: { show: minorSplitLine },
         axisLabel: {
+          show: valueAxisLabels,
           formatter: getYAxisFormatter(
             metrics,
             !!contributionMode,
@@ -897,6 +899,7 @@ export default function transformProps(
         splitLine: { show: false },
         minorSplitLine: { show: minorSplitLine },
         axisLabel: {
+          show: valueAxisLabels,
           formatter: getYAxisFormatter(
             metricsB,
             !!contributionMode,
