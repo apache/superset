@@ -100,8 +100,7 @@ const MATRIXIFY_INCOMPATIBLE_CHARTS = new Set([
 
 export type ControlPanelsContainerProps = {
   exploreState: ExplorePageState['explore'];
-  // Only setControlValue is used from actions in this component
-  actions: Pick<ExploreActions, 'setControlValue'>;
+  actions: Pick<ExploreActions, 'setControlValue' | 'resetSemanticSelections'>;
   datasource_type: DatasourceType;
   chart: ChartState;
   controls: Record<string, ControlState>;
@@ -844,8 +843,14 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
     props.errorMessage,
   ]);
 
+  const requiresSemanticReselection = Boolean(
+    props.exploreState.datasource?.semantic_selection_version &&
+    form_data.semantic_selection_version !==
+      props.exploreState.datasource.semantic_selection_version,
+  );
   const showCustomizeTab = customizeSections.length > 0;
   const showMatrixifyTab =
+    !requiresSemanticReselection &&
     isFeatureEnabled(FeatureFlag.Matrixify) &&
     !MATRIXIFY_INCOMPATIBLE_CHARTS.has(form_data.viz_type as VizType);
 
@@ -859,10 +864,12 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
 
   // Auto-switch to Matrixify tab when it's enabled
   useEffect(() => {
-    if (showMatrixifyTab && matrixifyIsEnabled) {
+    if (requiresSemanticReselection) {
+      setActiveTabKey(TABS_KEYS.DATA);
+    } else if (showMatrixifyTab && matrixifyIsEnabled) {
       setActiveTabKey(TABS_KEYS.MATRIXIFY);
     }
-  }, [showMatrixifyTab, matrixifyIsEnabled]);
+  }, [requiresSemanticReselection, showMatrixifyTab, matrixifyIsEnabled]);
 
   // Check if matrixify sections have validation errors
   const matrixifyHasErrors = useMemo(() => {
@@ -959,14 +966,29 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
               label: dataTabTitle,
               children: (
                 <>
+                  {requiresSemanticReselection && (
+                    <ExploreAlert
+                      title={t('Choose current semantic fields')}
+                      bodyText={t(
+                        'Start field selection using current member IDs. This clears any existing query and formatting settings. Saved display titles cannot be safely mapped to member IDs. The saved chart is unchanged until you save.',
+                      )}
+                      primaryButtonText={t('Start field selection')}
+                      primaryButtonAction={() =>
+                        actions.resetSemanticSelections(form_data.slice_id)
+                      }
+                      type="warning"
+                    />
+                  )}
                   {showDatasourceAlert && <DatasourceAlert />}
-                  <Collapse
-                    defaultActiveKey={expandedQuerySections}
-                    expandIconPosition="end"
-                    ghost
-                    bordered
-                    items={querySections.map(renderControlPanelSection)}
-                  />
+                  {!requiresSemanticReselection && (
+                    <Collapse
+                      defaultActiveKey={expandedQuerySections}
+                      expandIconPosition="end"
+                      ghost
+                      bordered
+                      items={querySections.map(renderControlPanelSection)}
+                    />
+                  )}
                 </>
               ),
             },

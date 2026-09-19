@@ -78,6 +78,7 @@ export default function MatrixifyDimensionControl(
     Array<{ label: string; value: any }>
   >([]);
   const [loadingValues, setLoadingValues] = useState(false);
+  const [suggestionsDisabled, setSuggestionsDisabled] = useState(false);
   const [topNError, setTopNError] = useState<string | null>(null);
   const [dimensionHovered, setDimensionHovered] = useState(false);
   const [valuesHovered, setValuesHovered] = useState(false);
@@ -115,6 +116,7 @@ export default function MatrixifyDimensionControl(
   // Load dimension values when dimension changes (members mode, or all mode with A-Z/Z-A sort)
   const isAllWithMetric = selectionMode === 'all' && allSortBy === 'metric';
   useEffect(() => {
+    setSuggestionsDisabled(false);
     if (
       !value?.dimension ||
       !datasource ||
@@ -149,6 +151,12 @@ export default function MatrixifyDimensionControl(
           signal,
           endpoint,
         });
+        if (signal.aborted) return;
+        if (json.suggestions_status === 'unavailable_versioned_view') {
+          setSuggestionsDisabled(true);
+          setValueOptions([]);
+          return;
+        }
         let values = json.result || [];
 
         // Sort alphabetically for 'all' mode
@@ -332,33 +340,42 @@ export default function MatrixifyDimensionControl(
         />
       </div>
 
-      {value?.dimension && selectionMode === 'members' && (
-        <div
-          onMouseEnter={() => setValuesHovered(true)}
-          onMouseLeave={() => setValuesHovered(false)}
-        >
-          <Select
-            ariaLabel={t('Select dimension values')}
-            value={value?.values || []}
-            header={
-              <ControlHeader
-                label={t('Dimension values')}
-                description={t('Select dimension values')}
-                renderTrigger={renderTrigger}
-                hovered={valuesHovered}
-              />
-            }
-            mode="multiple"
-            onChange={handleValuesChange}
-            options={valueOptions}
-            placeholder={t('Select values')}
-            loading={loadingValues}
-            allowClear
-            showSearch
-            notFoundContent={t('No results')}
-          />
-        </div>
-      )}
+      {value?.dimension &&
+        (selectionMode === 'members' || suggestionsDisabled) && (
+          <div
+            onMouseEnter={() => setValuesHovered(true)}
+            onMouseLeave={() => setValuesHovered(false)}
+          >
+            <Select
+              ariaLabel={t('Select dimension values')}
+              value={value?.values || []}
+              header={
+                <ControlHeader
+                  label={t('Dimension values')}
+                  description={t('Select dimension values')}
+                  renderTrigger={renderTrigger}
+                  hovered={valuesHovered}
+                />
+              }
+              mode="multiple"
+              allowNewOptions={suggestionsDisabled}
+              onChange={handleValuesChange}
+              options={valueOptions}
+              placeholder={
+                suggestionsDisabled ? t('Enter values') : t('Select values')
+              }
+              loading={loadingValues}
+              allowClear
+              showSearch
+              notFoundContent={t('No results')}
+            />
+            {suggestionsDisabled && (
+              <span>
+                {t('Suggestions are unavailable. Enter values manually.')}
+              </span>
+            )}
+          </div>
+        )}
 
       {value?.dimension && selectionMode === 'topn' && topNError && (
         <div css={theme => ({ color: theme.colorError })}>

@@ -16,11 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  waitFor,
+  userEvent,
+} from 'spec/helpers/testing-library';
 import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
-import { NativeFilterType } from '@superset-ui/core';
+import { NativeFilterType, DatasourceType } from '@superset-ui/core';
 import type { Filter } from '@superset-ui/core';
 import FilterValue from './FilterValue';
 
@@ -342,4 +347,37 @@ test('skips data fetch when cascade parent filters have no values selected', () 
   );
 
   expect(mockRequestChartData).not.toHaveBeenCalled();
+});
+
+test('legacy permalink values require an explicit reset before the plugin can emit current identity', async () => {
+  mockRequestChartData.mockResolvedValue([{ data: [] }]);
+  const onFilterSelectionChange = jest.fn();
+  const filter = {
+    ...createMockFilter({
+      targets: [
+        {
+          datasetId: 7,
+          datasourceType: DatasourceType.SemanticView,
+          column: { name: 'Orders.status' },
+          semantic_selection_version: 'cube-member-id-v1',
+        },
+      ],
+    }),
+    dataMask: { filterState: { value: ['Orders.status'] }, extraFormData: {} },
+  };
+  renderFilterValue({ filter, onFilterSelectionChange });
+  expect(screen.getByText('Reselect saved filter values')).toBeInTheDocument();
+  expect(screen.queryByTestId('mock-super-chart')).not.toBeInTheDocument();
+  await userEvent.click(
+    screen.getByRole('button', { name: 'Reset and reselect values' }),
+  );
+  expect(onFilterSelectionChange).toHaveBeenCalledWith(filter, {
+    filterState: {},
+    ownState: {},
+    extraFormData: {
+      semantic_selection_sources: [
+        { datasource: '7__semantic_view', version: 'cube-member-id-v1' },
+      ],
+    },
+  });
 });

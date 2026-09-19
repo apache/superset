@@ -18,9 +18,17 @@
  */
 import getFormDataWithExtraFilters, {
   CachedFormDataWithExtraControls,
+  getCustomizationSelectionSources,
   GetFormDataWithExtraFiltersArguments,
 } from 'src/dashboard/util/charts/getFormDataWithExtraFilters';
-import { ChartCustomizationType } from '@superset-ui/core';
+import {
+  ChartCustomizationType,
+  DataMask,
+  SemanticSelectionSource,
+  DatasourceType,
+  buildQueryObject,
+  QueryFormData,
+} from '@superset-ui/core';
 import { sliceId as chartId } from 'spec/fixtures/mockChartQueries';
 
 type ChartCustomizationItem = NonNullable<
@@ -43,6 +51,125 @@ function createChartCustomization(
     ...overrides,
   };
 }
+
+const semanticCustomization = createChartCustomization({
+  targets: [
+    {
+      datasetId: 7,
+      datasourceType: DatasourceType.SemanticView,
+      semantic_selection_version: 'cube-member-id-v1',
+    },
+  ],
+});
+const semanticTargetSource = {
+  datasource: '7__semantic_view',
+  version: 'cube-member-id-v1',
+};
+const unknownSelectionSource = { datasource: '', version: null };
+const selectedMask: DataMask = { filterState: { value: ['country'] } };
+const certifiedMask: DataMask = {
+  ...selectedMask,
+  extraFormData: { semantic_selection_sources: [semanticTargetSource] },
+};
+
+test.each<{
+  name: string;
+  customization?: ChartCustomizationItem;
+  mask?: DataMask;
+  groupByApplied: boolean;
+  expected: SemanticSelectionSource[];
+}>([
+  {
+    name: 'unapplied group-by',
+    customization: semanticCustomization,
+    mask: certifiedMask,
+    groupByApplied: false,
+    expected: [],
+  },
+  {
+    name: 'applied certified group-by',
+    customization: semanticCustomization,
+    mask: certifiedMask,
+    groupByApplied: true,
+    expected: [semanticTargetSource, semanticTargetSource],
+  },
+  {
+    name: 'uncertified selected group-by',
+    customization: semanticCustomization,
+    mask: selectedMask,
+    groupByApplied: true,
+    expected: [semanticTargetSource, unknownSelectionSource],
+  },
+  ...[
+    'chart_customization_timegrain',
+    'chart_customization_deckgl_layer_visibility',
+  ].map(filterType => ({
+    name: `presentation-only ${filterType}`,
+    customization: { ...semanticCustomization, filterType },
+    mask: selectedMask,
+    groupByApplied: false,
+    expected: [],
+  })),
+  {
+    name: 'presentation control with member overrides',
+    customization: {
+      ...semanticCustomization,
+      filterType: 'chart_customization_timegrain',
+    },
+    mask: { extraFormData: { granularity_sqla: 'country' } },
+    groupByApplied: false,
+    expected: [semanticTargetSource, unknownSelectionSource],
+  },
+  {
+    name: 'idle ordinary control',
+    customization: { ...semanticCustomization, filterType: 'ordinary' },
+    mask: {},
+    groupByApplied: false,
+    expected: [],
+  },
+  {
+    name: 'selected ordinary control without provenance',
+    customization: { ...semanticCustomization, filterType: 'ordinary' },
+    mask: selectedMask,
+    groupByApplied: false,
+    expected: [semanticTargetSource, unknownSelectionSource],
+  },
+  {
+    name: 'legacy table target',
+    customization: createChartCustomization(),
+    mask: selectedMask,
+    groupByApplied: true,
+    expected: [
+      { datasource: '3__table', version: null },
+      unknownSelectionSource,
+    ],
+  },
+  {
+    name: 'missing customization and idle mask',
+    groupByApplied: false,
+    expected: [],
+  },
+  {
+    name: 'missing target identity',
+    customization: createChartCustomization({ targets: [] }),
+    mask: selectedMask,
+    groupByApplied: true,
+    expected: [unknownSelectionSource, unknownSelectionSource],
+  },
+  {
+    name: 'applied group-by without selected value',
+    customization: semanticCustomization,
+    groupByApplied: true,
+    expected: [semanticTargetSource],
+  },
+])(
+  'customization provenance: $name',
+  ({ customization, mask, groupByApplied, expected }) => {
+    expect(
+      getCustomizationSelectionSources({ customization, mask, groupByApplied }),
+    ).toEqual(expected);
+  },
+);
 
 const expectGroupBy = (
   result: CachedFormDataWithExtraControls,
@@ -591,3 +718,253 @@ test('chart customization does not match across datasource ID spaces', () => {
   const result = getFormDataWithExtraFilters(args);
   expectGroupBy(result, ['original_column']);
 });
+
+test.each([false, true])(
+  'dynamic group-by card mask stays unsupported even with a versioned target (current=%s)',
+  current => {
+    const customizationId = 'CHART_CUSTOMIZATION-identity';
+    const result = getFormDataWithExtraFilters({
+      ...mockArgs,
+      filters: {},
+      chart: {
+        ...mockChart,
+        form_data: {
+          ...mockChart.form_data,
+          viz_type: 'table',
+          datasource: '3__semantic_view',
+          groupby: ['original_column'],
+          semantic_selection_version: 'cube-member-id-v1',
+        },
+      },
+      dataMask: {
+        [customizationId]: {
+          id: customizationId,
+          filterState: { value: ['Orders.status'] },
+          // Match GroupByFilterCard's emission: it never certifies sources.
+          extraFormData: {
+            custom_form_data: { groupby: ['Orders.status'] },
+          },
+        },
+      },
+      chartCustomizationItems: [
+        createChartCustomization({
+          id: customizationId,
+          targets: [
+            {
+              datasetId: 3,
+              datasourceType: DatasourceType.SemanticView,
+              semantic_selection_version: current
+                ? 'cube-member-id-v1'
+                : undefined,
+            },
+          ],
+        }),
+      ],
+    });
+    expectGroupBy(result, ['Orders.status']);
+    expect(
+      buildQueryObject({
+        ...result,
+        datasource: '3__semantic_view',
+        viz_type: 'table',
+      } as QueryFormData).extras?.semantic_selection_version,
+    ).toEqual('unverified-external-selections');
+  },
+);
+
+test('a foreign dynamic-groupby customization that does not apply cannot invalidate Cube selections', () => {
+  const customizationId = 'CHART_CUSTOMIZATION-foreign';
+  const result = getFormDataWithExtraFilters({
+    ...mockArgs,
+    filters: {},
+    chart: {
+      ...mockChart,
+      form_data: {
+        ...mockChart.form_data,
+        datasource: '3__semantic_view',
+        viz_type: 'table',
+        groupby: ['Orders.status'],
+        semantic_selection_version: 'cube-member-id-v1',
+      },
+    },
+    dataMask: {
+      [customizationId]: {
+        id: customizationId,
+        filterState: { value: ['status'] },
+        extraFormData: {},
+      },
+    },
+    chartCustomizationItems: [
+      createChartCustomization({
+        id: customizationId,
+        targets: [{ datasetId: 5, datasourceType: DatasourceType.Table }],
+      }),
+    ],
+  });
+  expectGroupBy(result, ['Orders.status']);
+  expect(
+    buildQueryObject({
+      ...result,
+      datasource: '3__semantic_view',
+      viz_type: 'table',
+    } as QueryFormData).extras?.semantic_selection_version,
+  ).toBe('cube-member-id-v1');
+});
+
+test.each([
+  'chart_customization_timegrain',
+  'chart_customization_deckgl_layer_visibility',
+])(
+  'non-member customization %s does not invalidate Cube identity',
+  filterType => {
+    const customizationId = 'CHART_CUSTOMIZATION-presentation';
+    const result = getFormDataWithExtraFilters({
+      ...mockArgs,
+      filters: {},
+      chart: {
+        ...mockChart,
+        form_data: {
+          ...mockChart.form_data,
+          datasource: '3__semantic_view',
+          viz_type: 'table',
+          semantic_selection_version: 'cube-member-id-v1',
+        },
+      },
+      dataMask: {
+        [customizationId]: {
+          id: customizationId,
+          filterState: { value: ['P1D'] },
+          extraFormData:
+            filterType === 'chart_customization_timegrain'
+              ? { time_grain_sqla: 'P1D' }
+              : { visible_deckgl_layers: [1, 2] },
+        },
+      },
+      chartCustomizationItems: [
+        createChartCustomization({
+          id: customizationId,
+          filterType,
+          targets: [],
+        }),
+      ],
+    });
+    expect(
+      buildQueryObject({
+        ...result,
+        datasource: '3__semantic_view',
+        viz_type: 'table',
+      } as QueryFormData).extras?.semantic_selection_version,
+    ).toBe('cube-member-id-v1');
+  },
+);
+
+test.each([
+  {
+    datasetId: 3,
+    datasourceType: DatasourceType.SemanticView,
+    value: undefined,
+  },
+  { datasetId: 5, datasourceType: DatasourceType.Table, value: undefined },
+  { datasetId: 3, datasourceType: DatasourceType.SemanticView, value: null },
+  { datasetId: 5, datasourceType: DatasourceType.Table, value: null },
+])(
+  'idle time-column customization does not invalidate Cube identity: %j',
+  ({ value, ...target }) => {
+    const customizationId = 'CHART_CUSTOMIZATION-idle-time-column';
+    const result = getFormDataWithExtraFilters({
+      ...mockArgs,
+      filters: {},
+      chart: {
+        ...mockChart,
+        form_data: {
+          ...mockChart.form_data,
+          datasource: '3__semantic_view',
+          semantic_selection_version: 'cube-member-id-v1',
+        },
+      },
+      dataMask: {
+        [customizationId]: {
+          id: customizationId,
+          filterState: { value },
+          extraFormData: {},
+        },
+      },
+      chartCustomizationItems: [
+        createChartCustomization({
+          id: customizationId,
+          filterType: 'chart_customization_timecolumn',
+          targets: [target],
+        }),
+      ],
+    });
+    expect(
+      buildQueryObject({
+        ...result,
+        datasource: '3__semantic_view',
+        viz_type: 'table',
+      } as QueryFormData).extras?.semantic_selection_version,
+    ).toBe('cube-member-id-v1');
+  },
+);
+
+test.each([[42], ['Orders.count'], ['']])(
+  'a non-contributing customization does not add provenance: %j',
+  ignoredValue => {
+    const currentId = 'CHART_CUSTOMIZATION-current';
+    const ignoredId = 'CHART_CUSTOMIZATION-ignored';
+    const result = getFormDataWithExtraFilters({
+      ...mockArgs,
+      filters: {},
+      chart: {
+        ...mockChart,
+        form_data: {
+          ...mockChart.form_data,
+          datasource: '3__semantic_view',
+          viz_type: 'table',
+          metrics: ['Orders.count'],
+          semantic_selection_version: 'cube-member-id-v1',
+        },
+      },
+      dataMask: {
+        [currentId]: {
+          id: currentId,
+          filterState: { value: ['Orders.status'] },
+        },
+        [ignoredId]: { id: ignoredId, filterState: { value: [ignoredValue] } },
+      },
+      chartCustomizationItems: [
+        createChartCustomization({
+          id: currentId,
+          targets: [
+            {
+              datasetId: 3,
+              datasourceType: DatasourceType.SemanticView,
+              semantic_selection_version: 'cube-member-id-v1',
+            },
+          ],
+        }),
+        createChartCustomization({
+          id: ignoredId,
+          targets: [
+            { datasetId: 3, datasourceType: DatasourceType.SemanticView },
+          ],
+        }),
+      ],
+    });
+    expectGroupBy(result, ['Orders.status']);
+    expect(result).toMatchObject({
+      semantic_selection_sources: [
+        { datasource: '3__semantic_view', version: 'cube-member-id-v1' },
+        { datasource: '', version: null },
+      ],
+    });
+    // Actual dynamic-groupby masks still lack identity evidence.
+    expect(
+      buildQueryObject({
+        ...result,
+        datasource: '3__semantic_view',
+        viz_type: 'table',
+      } as QueryFormData).extras?.semantic_selection_version,
+    ).toBe('unverified-external-selections');
+  },
+);

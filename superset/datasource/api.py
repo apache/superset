@@ -16,7 +16,7 @@
 # under the License.
 import hashlib
 import logging
-from typing import Any
+from typing import Any, cast
 
 from flask import current_app as app, make_response, request, Response
 from flask_appbuilder.api import expose, protect, rison, safe
@@ -141,6 +141,12 @@ class DatasourceRestApi(BaseSupersetApi):
                   schema:
                     type: object
                     properties:
+                      suggestions_status:
+                        type: string
+                        enum: [unavailable_versioned_view]
+                        description: >-
+                          Suggestions are disabled for versioned semantic views;
+                          enter values manually.
                       result:
                         type: array
                         items:
@@ -177,15 +183,36 @@ class DatasourceRestApi(BaseSupersetApi):
         except SupersetSecurityException as ex:
             return self.response(403, message=ex.message)
 
-        row_limit = apply_max_row_limit(app.config["FILTER_SELECT_ROW_LIMIT"])
-        denormalize_column = not datasource.normalize_columns
+        return self._column_values_response(datasource, datasource_type, column_name)
+
+    def _column_values_response(
+        self, datasource: BaseDatasource, datasource_type: str, column_name: str
+    ) -> FlaskResponse:
+        """Return suggestions for an authorized datasource, gating before cache."""
+        # This route cannot prove the provenance of saved dimension names.
+        # Gate before cache access as well as provider execution.
+        if datasource_type == DatasourceType.SEMANTIC_VIEW.value:
+            from superset.semantic_layers.models import SemanticView
+
+            if (
+                cast(SemanticView, datasource).implementation.selection_identity_version
+                is not None
+            ):
+                return self.response(
+                    200,
+                    result=[],
+                    suggestions_status="unavailable_versioned_view",
+                )
+
+        row_limit: int = apply_max_row_limit(app.config["FILTER_SELECT_ROW_LIMIT"])
+        denormalize_column: bool = not datasource.normalize_columns
         # Element-level operators (Contains any / Contains all) request the
         # distinct array *elements* rather than distinct whole arrays.
-        array_elements = parse_boolean_string(request.args.get("array_elements"))
+        array_elements: bool = parse_boolean_string(request.args.get("array_elements"))
         # Server-side search. Without it the client can only match against the
         # bounded first page, so a value beyond ``FILTER_SELECT_ROW_LIMIT`` is
         # unfindable on a high-cardinality column.
-        search = (request.args.get("q") or "").strip() or None
+        search: str | None = (request.args.get("q") or "").strip() or None
 
         # Cache distinct column-value results so a dashboard with many filters
         # backed by the same (often heavy) virtual dataset doesn't re-execute
@@ -208,8 +235,8 @@ class DatasourceRestApi(BaseSupersetApi):
         #   underlying SQL is edited.
         # - ``uid`` / ``col`` / ``limit`` / ``denorm`` — basic query-shape
         #   isolation so different inputs never collide.
-        force = parse_boolean_string(request.args.get("force"))
-        cache_key = (
+        force: bool = parse_boolean_string(request.args.get("force"))
+        cache_key: str = (
             "col_values:"
             + hashlib.sha256(
                 json.dumps(
@@ -228,6 +255,7 @@ class DatasourceRestApi(BaseSupersetApi):
             ).hexdigest()
         )
 
+        cached: list[Any] | None
         if (
             not force
             and (cached := cache_manager.data_cache.get(cache_key)) is not None
@@ -235,12 +263,12 @@ class DatasourceRestApi(BaseSupersetApi):
             logger.debug(
                 "column-values cache HIT: uid=%s col=%s", datasource.uid, column_name
             )
-            response = self.response(200, result=cached, limit=row_limit)
+            response: Response = self.response(200, result=cached, limit=row_limit)
             response.headers["X-Cache-Status"] = "HIT"
             return response
 
         try:
-            payload = datasource.values_for_column(
+            payload: list[Any] = datasource.values_for_column(
                 column_name=column_name,
                 limit=row_limit,
                 denormalize_column=denormalize_column,
@@ -263,7 +291,10 @@ class DatasourceRestApi(BaseSupersetApi):
         # Warn before caching very large payloads (high-cardinality columns)
         # so operators can spot cache-memory pressure before Redis OOMs.
         # Threshold is operator-tunable; defaults to 100k rows.
-        warn_threshold = app.config.get("FILTER_VALUES_CACHE_WARN_THRESHOLD", 100_000)
+        warn_threshold: int = app.config.get(
+            "FILTER_VALUES_CACHE_WARN_THRESHOLD", 100_000
+        )
+        payload_size: int
         if (payload_size := len(payload)) > warn_threshold:
             logger.warning(
                 "column-values payload exceeds cache-warn threshold: "
@@ -751,6 +782,7 @@ class DatasourceRestApi(BaseSupersetApi):
             time_range=payload["time_range"],
             time_grain=payload["time_grain"],
             grain_column=grain_column,
+            semantic_selection_version=payload.get("semantic_selection_version"),
             rewrite_one_sided_time_range=(
                 resolved.explorable.type == DatasourceType.SEMANTIC_VIEW.value
             ),
