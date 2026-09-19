@@ -166,6 +166,25 @@ const Tabs = (props: TabsProps): ReactElement => {
   const prevTabIds = usePrevious(props.component.children);
 
   useEffect(() => {
+    // `activeKey` is seeded from state once, so a container that mounted
+    // without children keeps an unresolved key even after it receives its
+    // first one. Resolve it here so the new tab is selected and registered
+    // rather than being skipped by the guard below.
+    const tabId = props.component.children[selectedTabIndex];
+    if (!activeKey && tabId) {
+      setActiveKey(tabId);
+    }
+  }, [activeKey, props.component.children, selectedTabIndex]);
+
+  useEffect(() => {
+    // A TABS component with no children resolves no tab id, so there is
+    // nothing to activate. Dispatching the unresolved id would register an
+    // `undefined` entry in dashboardState.activeTabs, which JSON.stringify
+    // coerces to `null` when the dashboard state is posted to the permalink
+    // endpoint.
+    if (!activeKey) {
+      return;
+    }
     if (prevActiveKey) {
       props.setActiveTab(activeKey, prevActiveKey);
     } else {
