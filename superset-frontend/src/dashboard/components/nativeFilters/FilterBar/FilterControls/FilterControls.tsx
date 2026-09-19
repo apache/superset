@@ -98,6 +98,8 @@ type FilterControlsProps = {
   chartCustomizationValues: (ChartCustomization | ChartCustomizationDivider)[];
   clearAllTriggers?: Record<string, boolean>;
   onClearAllComplete?: (filterId: string) => void;
+  cascadeClearTriggers?: Record<string, boolean>;
+  onCascadeClearComplete?: (filterId: string) => void;
   hideHeader?: boolean;
 };
 
@@ -158,6 +160,8 @@ const FilterControls: FC<FilterControlsProps> = ({
   chartCustomizationValues,
   clearAllTriggers,
   onClearAllComplete,
+  cascadeClearTriggers,
+  onCascadeClearComplete,
   hideHeader = false,
 }) => {
   const theme = useTheme();
@@ -193,6 +197,8 @@ const FilterControls: FC<FilterControlsProps> = ({
     onFilterSelectionChange,
     clearAllTriggers,
     onClearAllComplete,
+    cascadeClearTriggers,
+    onCascadeClearComplete,
   );
   const portalNodes = useMemo(
     () =>
