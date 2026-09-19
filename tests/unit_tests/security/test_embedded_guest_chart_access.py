@@ -59,6 +59,7 @@ def _sm_for_chart_access(is_guest: bool) -> MagicMock:
     sm.is_viewer.return_value = False
     sm.can_access_datasource.return_value = False
     sm.is_guest_user.return_value = is_guest
+    sm._promiscuous_viewer_inherits_chart.return_value = False
     sm._guest_token_allows_dataset.return_value = True
     return sm
 
