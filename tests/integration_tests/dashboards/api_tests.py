@@ -25,6 +25,11 @@ from werkzeug.test import TestResponse
 
 from tests.integration_tests.insert_chart_mixin import InsertChartMixin
 
+from typing import Any
+from parameterized import parameterized
+
+from flask_appbuilder.security.sqla.models import User
+
 import pytest
 import rison
 import yaml
@@ -35,7 +40,7 @@ from sqlalchemy.engine.reflection import Inspector
 from superset import db, security_manager  # noqa: F401
 from superset.commands.dashboard.permalink.create import CreateDashboardPermalinkCommand
 from superset.exceptions import LockAlreadyHeldException
-from superset.daos.dashboard import DashboardDAO
+from superset.daos.dashboard import DashboardDAO, reconcile_position_json
 from superset.models.dashboard import Dashboard
 from superset.models.core import FavStar, FavStarClassName
 from superset.reports.models import ReportSchedule, ReportScheduleType
@@ -2339,6 +2344,247 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         db.session.delete(model)
         db.session.commit()
 
+    def test_update_dashboard_reconciles_dangling_position_json(self) -> None:
+        """PUT: a raw ``position_json`` layout node referencing a chart absent
+        from every Slice row is persisted as a markdown placeholder (sc-115325).
+
+        Pins that ``UpdateDashboardCommand.run`` actually invokes
+        ``reconcile_position_json`` on the raw-``position_json`` path — the DAO
+        unit tests exercise the helper directly, so they would stay green if a
+        refactor dropped the ``run()`` call; only an end-to-end PUT proves the
+        wiring. No ``json_metadata`` is sent, so ``set_dash_metadata`` does not
+        run and this exercises the raw path in isolation.
+        """
+        admin: User = self.get_user("admin")
+        dashboard_id: int = self.insert_dashboard(
+            "dangle-recon", "dangle-recon", [admin.id]
+        ).id
+        self.login(ADMIN_USERNAME)
+        absent_chart_id: int = 999_999_999  # resolves to no Slice row
+        positions: dict[str, Any] = {
+            "ROOT_ID": {"id": "ROOT_ID", "type": "ROOT", "children": ["CHART-gone"]},
+            "CHART-gone": {
+                "id": "CHART-gone",
+                "type": "CHART",
+                "children": [],
+                "meta": {"chartId": absent_chart_id, "width": 4, "height": 50},
+            },
+        }
+        uri: str = f"api/v1/dashboard/{dashboard_id}"
+        rv: TestResponse = self.put_assert_metric(
+            uri, {"position_json": json.dumps(positions)}, "put"
+        )
+        assert rv.status_code == 200, rv.data
+
+        model: Dashboard | None = db.session.query(Dashboard).get(dashboard_id)
+        assert model is not None
+        stored: dict[str, Any] = json.loads(model.position_json)
+        node: dict[str, Any] = stored["CHART-gone"]
+        # The dangling CHART node is now a markdown placeholder, node id,
+        # children, and geometry preserved, chart reference dropped.
+        assert node["type"] == "MARKDOWN", node
+        assert node["id"] == "CHART-gone"
+        assert node["children"] == []
+        assert node["meta"]["code"] == "This chart no longer exists."
+        assert node["meta"]["width"] == 4
+        assert node["meta"]["height"] == 50
+        assert "chartId" not in node["meta"]
+        # The slot id is unchanged, so its parent's children stay valid.
+        assert stored["ROOT_ID"]["children"] == ["CHART-gone"]
+
+        db.session.delete(model)
+        db.session.commit()
+
+    def test_update_dashboard_json_metadata_positions_supersede_raw_position_json(
+        self,
+    ) -> None:
+        """PUT sending BOTH a raw ``position_json`` and ``json_metadata`` with
+        ``positions``: the metadata positions win (``set_dash_metadata``
+        reconciles and writes them), and the raw-field reconcile is skipped as
+        dead work rather than run and discarded (fitzee review on #44028). Pins
+        both the documented precedence and the skip.
+        """
+        admin: User = self.get_user("admin")
+        dashboard_id: int = self.insert_dashboard(
+            "precedence-recon", "precedence-recon", [admin.id]
+        ).id
+        self.login(ADMIN_USERNAME)
+        absent_chart_id: int = 999_999_998  # resolves to no Slice row
+        raw_positions: dict[str, Any] = {
+            "ROOT_ID": {"id": "ROOT_ID", "type": "ROOT", "children": ["CHART-raw"]},
+            "CHART-raw": {
+                "id": "CHART-raw",
+                "type": "CHART",
+                "children": [],
+                "meta": {"chartId": absent_chart_id, "width": 4, "height": 50},
+            },
+        }
+        metadata_positions: dict[str, Any] = {
+            "ROOT_ID": {"id": "ROOT_ID", "type": "ROOT", "children": ["CHART-meta"]},
+            "CHART-meta": {
+                "id": "CHART-meta",
+                "type": "CHART",
+                "children": [],
+                "meta": {"chartId": absent_chart_id, "width": 4, "height": 50},
+            },
+        }
+        uri: str = f"api/v1/dashboard/{dashboard_id}"
+        with patch(
+            "superset.commands.dashboard.update.reconcile_position_json",
+            wraps=reconcile_position_json,
+        ) as raw_reconcile:
+            rv: TestResponse = self.put_assert_metric(
+                uri,
+                {
+                    "position_json": json.dumps(raw_positions),
+                    "json_metadata": json.dumps({"positions": metadata_positions}),
+                },
+                "put",
+            )
+        assert rv.status_code == 200, rv.data
+        # The raw-field reconcile did not run: metadata positions supersede it.
+        raw_reconcile.assert_not_called()
+
+        model: Dashboard | None = db.session.query(Dashboard).get(dashboard_id)
+        assert model is not None
+        stored: dict[str, Any] = json.loads(model.position_json)
+        # The stored layout is the METADATA one (reconciled by set_dash_metadata),
+        # not the raw field.
+        assert "CHART-meta" in stored, stored
+        assert "CHART-raw" not in stored, stored
+        assert stored["CHART-meta"]["type"] == "MARKDOWN"
+
+        db.session.delete(model)
+        db.session.commit()
+
+    def test_update_dashboard_null_metadata_positions_reconciles_raw_field(
+        self,
+    ) -> None:
+        """PUT with ``json_metadata.positions: null`` alongside a raw
+        ``position_json``: ``set_dash_metadata`` skips a null ``positions``
+        entirely, so the precedence skip must NOT fire — the raw field is the
+        one being written and must be reconciled (codeant on #44028: a
+        presence-only test skipped it and persisted the dangling layout).
+        """
+        admin: User = self.get_user("admin")
+        dashboard_id: int = self.insert_dashboard(
+            "null-positions-recon", "null-positions-recon", [admin.id]
+        ).id
+        self.login(ADMIN_USERNAME)
+        absent_chart_id: int = 999_999_997
+        raw_positions: dict[str, Any] = {
+            "ROOT_ID": {"id": "ROOT_ID", "type": "ROOT", "children": ["CHART-raw"]},
+            "CHART-raw": {
+                "id": "CHART-raw",
+                "type": "CHART",
+                "children": [],
+                "meta": {"chartId": absent_chart_id, "width": 4, "height": 50},
+            },
+        }
+        uri: str = f"api/v1/dashboard/{dashboard_id}"
+        rv: TestResponse = self.put_assert_metric(
+            uri,
+            {
+                "position_json": json.dumps(raw_positions),
+                "json_metadata": json.dumps({"positions": None}),
+            },
+            "put",
+        )
+        assert rv.status_code == 200, rv.data
+
+        model: Dashboard | None = db.session.query(Dashboard).get(dashboard_id)
+        assert model is not None
+        stored: dict[str, Any] = json.loads(model.position_json)
+        assert stored["CHART-raw"]["type"] == "MARKDOWN", stored
+
+        db.session.delete(model)
+        db.session.commit()
+
+    def test_update_dashboard_rejects_a_malformed_chart_node_without_detaching(
+        self,
+    ) -> None:
+        """PUT whose ``json_metadata.positions`` carries a CHART node with no
+        usable ``chartId`` is refused with a 422 naming the slot, and the
+        dashboard's existing memberships are untouched — the wholesale
+        membership rebuild must not silently detach a chart because its node
+        was malformed (codeant on #44028).
+        """
+        admin: User = self.get_user("admin")
+        dashboard: Dashboard = self.insert_dashboard(
+            "malformed-node", "malformed-node", [admin.id]
+        )
+        from superset.connectors.sqla.models import SqlaTable
+
+        dataset_id: int = (
+            db.session.query(SqlaTable.id).order_by(SqlaTable.id).first()[0]
+        )
+        chart: Slice = self.insert_chart(
+            "malformed-node-member", [admin.id], dataset_id
+        )
+        dashboard.slices = [chart]
+        db.session.commit()
+        dashboard_id: int = dashboard.id
+        chart_id: int = chart.id
+        self.login(ADMIN_USERNAME)
+        positions: dict[str, Any] = {
+            "ROOT_ID": {
+                "id": "ROOT_ID",
+                "type": "ROOT",
+                "children": ["CHART-ok", "CHART-bad"],
+            },
+            "CHART-ok": {
+                "id": "CHART-ok",
+                "type": "CHART",
+                "children": [],
+                "meta": {"chartId": chart_id, "width": 4, "height": 50},
+            },
+            "CHART-bad": {
+                "id": "CHART-bad",
+                "type": "CHART",
+                "children": [],
+                "meta": {"chartId": [1], "width": 4, "height": 50},
+            },
+        }
+        uri: str = f"api/v1/dashboard/{dashboard_id}"
+        rv: TestResponse = self.put_assert_metric(
+            uri, {"json_metadata": json.dumps({"positions": positions})}, "put"
+        )
+        assert rv.status_code == 422, rv.data
+        assert b"CHART-bad" in rv.data
+
+        db.session.expire_all()
+        model: Dashboard | None = db.session.query(Dashboard).get(dashboard_id)
+        assert model is not None
+        assert {s.id for s in model.slices} == {chart_id}
+
+        db.session.delete(model)
+        db.session.delete(db.session.query(Slice).get(chart_id))
+        db.session.commit()
+
+    def test_update_dashboard_position_json_non_object_is_left_intact(self) -> None:
+        """A raw ``position_json`` that is valid JSON but not an object
+        (``"[]"``, ``"null"``, a scalar) must survive the PUT unchanged, not
+        500 (sc-115325 python-review: the reconcile guard and the tab-diff
+        guard both tolerate a non-dict layout). Exercises the whole command,
+        where tab-diff processing runs before reconciliation."""
+        admin: User = self.get_user("admin")
+        self.login(ADMIN_USERNAME)
+        for payload in ("[]", "null", "5", '"just a string"'):
+            dashboard_id: int = self.insert_dashboard(
+                f"nonobj-{payload!r}", None, [admin.id]
+            ).id
+            rv: TestResponse = self.put_assert_metric(
+                f"api/v1/dashboard/{dashboard_id}",
+                {"position_json": payload},
+                "put",
+            )
+            assert rv.status_code == 200, (payload, rv.data)
+            model: Dashboard | None = db.session.query(Dashboard).get(dashboard_id)
+            assert model is not None
+            assert json.loads(model.position_json) == json.loads(payload)
+            db.session.delete(model)
+            db.session.commit()
+
     def test_update_dashboard_preserves_unsent_json_metadata_fields(self):
         """
         Dashboard API: a PUT whose ``json_metadata`` omits a field must not
@@ -3968,6 +4214,84 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         assert data["count"] == len(expected_models)
         db.session.delete(dashboard)
         db.session.commit()
+
+    @parameterized.expand(
+        [
+            ("malformed", True),
+            ("malformed", False),
+            ("unicode_digit", True),
+            ("nonmember", True),
+        ]
+    )
+    def test_copy_dashboard_layout_error_returns_422_without_writes(
+        self, failure: str, duplicate_slices: bool
+    ) -> None:
+        """Refuse invalid copies accurately and roll back any cloned assets."""
+        from superset.connectors.sqla.models import SqlaTable
+
+        admin: User = self.get_user(ADMIN_USERNAME)
+        dashboard: Dashboard = self.insert_dashboard(
+            "copy-error-source", None, [admin.id]
+        )
+        dataset_id: int = (
+            db.session.query(SqlaTable.id).order_by(SqlaTable.id).first()[0]
+        )
+        member: Slice = self.insert_chart("copy-error-member", [admin.id], dataset_id)
+        other: Slice = self.insert_chart("copy-error-other", [admin.id], dataset_id)
+        dashboard.slices = [member, other]
+        bad_id: int | str | None = other.id if failure == "nonmember" else None
+        if failure == "unicode_digit":
+            bad_id = "²"
+        positions: dict[str, Any] = {
+            "CHART-member": {
+                "id": "CHART-member",
+                "type": "CHART",
+                "meta": {"chartId": member.id, "width": 4, "height": 50},
+            },
+            "CHART-bad": {
+                "id": "CHART-bad",
+                "type": "CHART",
+                "meta": {"chartId": bad_id, "width": 4, "height": 50},
+            },
+        }
+        dashboard.position_json = json.dumps(positions)
+        db.session.commit()
+        if failure == "nonmember":
+            # Chart Properties can remove membership without rewriting layout.
+            other.dashboards.remove(dashboard)
+            db.session.commit()
+        source_layout: str = dashboard.position_json
+        source_members: set[int] = {chart.id for chart in dashboard.slices}
+        chart_count: int = db.session.query(Slice).count()
+        dashboard_count: int = db.session.query(Dashboard).count()
+        self.login(ADMIN_USERNAME)
+        try:
+            response: TestResponse = self.client.post(
+                f"/api/v1/dashboard/{dashboard.id}/copy/",
+                json={
+                    "dashboard_title": "copy-error-result",
+                    "duplicate_slices": duplicate_slices,
+                    "json_metadata": json.dumps({"positions": positions}),
+                },
+            )
+            assert response.status_code == 422, response.data
+            assert b"CHART-bad" in response.data
+            if failure == "nonmember":
+                assert b"outside the dashboard's membership" in response.data
+                assert b"without a usable chartId" not in response.data
+            else:
+                assert b"without a usable chartId" in response.data
+            db.session.expire_all()
+            assert dashboard.position_json == source_layout
+            assert {chart.id for chart in dashboard.slices} == source_members
+            assert db.session.query(Slice).count() == chart_count
+            assert db.session.query(Dashboard).count() == dashboard_count
+        finally:
+            db.session.rollback()
+            db.session.delete(dashboard)
+            db.session.delete(member)
+            db.session.delete(other)
+            db.session.commit()
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_copy_dashboard(self):

@@ -47,6 +47,10 @@ class DashboardInvalidError(CommandInvalidError):
     message = _("Dashboard parameters are invalid.")
 
 
+class DashboardLayoutInvalidError(DashboardInvalidError):
+    """A malformed chart layout prevents rebuilding dashboard membership."""
+
+
 class DashboardSlugReservedValidationError(ValidationError):
     """The slug is held by a soft-deleted dashboard (full-constraint dialects)."""
 

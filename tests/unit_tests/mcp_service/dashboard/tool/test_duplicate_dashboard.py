@@ -34,11 +34,13 @@ Covers:
 
 import logging
 from collections.abc import Iterator
+from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from fastmcp import Client
 
+from superset.daos.dashboard import _reject_malformed_chart_nodes
 from superset.mcp_service.app import mcp
 from superset.utils import json
 
@@ -46,6 +48,53 @@ from superset.utils import json
 def _wrapped(value: str) -> str:
     """Return the clean MCP value expected in a response."""
     return value
+
+
+@patch("superset.commands.dashboard.copy.CopyDashboardCommand")
+@patch("superset.daos.dashboard.DashboardDAO.get_by_id_or_slug")
+@pytest.mark.asyncio
+async def test_malformed_chart_node_does_not_request_another_title(
+    mock_source: Mock, mock_command: Mock, mcp_server: object
+) -> None:
+    """The real DAO validation error must identify source layout, not title."""
+    mock_source.return_value = _mock_dashboard(id=1, slices=[_mock_chart(id=10)])
+
+    def reject_layout() -> None:
+        """Exercise the DAO's actual error type instead of manufacturing it."""
+        _reject_malformed_chart_nodes(
+            {"CHART-broken": {"type": "CHART", "meta": {"chartId": None}}}
+        )
+
+    mock_command.return_value.run.side_effect = reject_layout
+    async with Client(mcp_server) as client:
+        result: Any = await client.call_tool(
+            "duplicate_dashboard",
+            {"request": {"dashboard_id": 1, "dashboard_title": "Valid title"}},
+        )
+    content: dict[str, Any] = result.structured_content
+    assert content["dashboard"] is None
+    assert "layout" in content["error"]
+    assert "non-empty dashboard_title" not in content["error"]
+
+
+@patch("superset.commands.dashboard.copy.CopyDashboardCommand")
+@patch("superset.daos.dashboard.DashboardDAO.get_by_id_or_slug")
+@pytest.mark.asyncio
+async def test_invalid_copy_parameters_keep_title_guidance(
+    mock_source: Mock, mock_command: Mock, mcp_server: object
+) -> None:
+    """Non-layout command validation retains its existing title guidance."""
+    from superset.commands.dashboard.exceptions import DashboardInvalidError
+
+    mock_source.return_value = _mock_dashboard(id=1, slices=[_mock_chart(id=10)])
+    mock_command.return_value.run.side_effect = DashboardInvalidError()
+    async with Client(mcp_server) as client:
+        result: Any = await client.call_tool(
+            "duplicate_dashboard",
+            {"request": {"dashboard_id": 1, "dashboard_title": "Valid title"}},
+        )
+    content: dict[str, Any] = result.structured_content
+    assert "non-empty dashboard_title" in content["error"]
 
 
 logging.basicConfig(level=logging.DEBUG)

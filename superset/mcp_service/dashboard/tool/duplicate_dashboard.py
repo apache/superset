@@ -310,6 +310,7 @@ async def duplicate_dashboard(
         DashboardCopyError,
         DashboardForbiddenError,
         DashboardInvalidError,
+        DashboardLayoutInvalidError,
     )
 
     try:
@@ -387,6 +388,13 @@ async def duplicate_dashboard(
             error=(
                 f"You don't have permission to duplicate dashboard "
                 f"'{request.dashboard_id}'."
+            ),
+        )
+    except DashboardLayoutInvalidError:
+        return DuplicateDashboardResponse(
+            error=(
+                "The source dashboard layout contains invalid chart references. "
+                "Repair the source layout before duplicating the dashboard."
             ),
         )
     except DashboardInvalidError:
