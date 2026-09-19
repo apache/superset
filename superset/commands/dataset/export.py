@@ -64,7 +64,7 @@ class ExportDatasetsCommand(ExportModelsCommand):
                     payload[key] = json.loads(payload[key])
                 except json.JSONDecodeError:
                     logger.info("Unable to decode `%s` field: %s", key, payload[key])
-        for key in ("metrics", "columns"):
+        for key in ("metrics", "columns", "filters"):
             for attributes in payload.get(key, []):
                 if attributes.get("extra"):
                     try:
