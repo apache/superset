@@ -218,9 +218,13 @@ class BaseReportScheduleCommand(BaseCommand):
                 anchor_list: list[str] = json.loads(anchor)
                 if _invalid_tab_ids := set(anchor_list) - set(position_data.keys()):
                     invalid_tab_ids.update(_invalid_tab_ids)
-            except json.JSONDecodeError:
-                if anchor not in position_data:
-                    invalid_tab_ids.add(anchor)
+            except (json.JSONDecodeError, TypeError):
+                # A non-string anchor (e.g. a list or dict) can never be a valid
+                # tab-id key and is unhashable, so record its string form instead
+                # of hashing the raw value in the membership test or set.add.
+                anchor_id = anchor if isinstance(anchor, str) else str(anchor)
+                if not isinstance(anchor, str) or anchor not in position_data:
+                    invalid_tab_ids.add(anchor_id)
 
         if invalid_tab_ids:
             exceptions.append(
