@@ -375,18 +375,21 @@ class Dashboard(CoreDashboard, SoftDeleteMixin, AuditMixinNullable, ImportExport
     def datasets_trimmed_for_slices(
         self,
     ) -> list[tuple[BaseDatasource, dict[str, Any]]]:
-        slices_by_datasource: dict[int, set[Slice]] = defaultdict(set)
+        # Key by (datasource_type, datasource_id): SqlaTable and SemanticView
+        # have independent auto-increment id spaces, so grouping by the bare
+        # datasource_id would merge unrelated datasources with colliding ids.
+        slices_by_datasource: dict[tuple[str, int], set[Slice]] = defaultdict(set)
 
         for slc in self.slices:
-            slices_by_datasource[slc.datasource_id].add(slc)
+            slices_by_datasource[(slc.datasource_type, slc.datasource_id)].add(slc)
 
         result: list[tuple[BaseDatasource, dict[str, Any]]] = []
 
-        for _, slices in slices_by_datasource.items():
+        for _datasource_key, slices in slices_by_datasource.items():
             # Use the eagerly-loaded datasource from any slice in the group
             datasource = next(iter(slices)).datasource
 
-            if datasource:
+            if isinstance(datasource, BaseDatasource):
                 # Filter out unneeded fields from the datasource payload
                 result.append((datasource, datasource.data_for_slices(list(slices))))
 
