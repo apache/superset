@@ -6616,11 +6616,6 @@ def test_has_aggregate(expression: str, expected: bool) -> None:
     assert has_aggregate(expression) is expected
 
 
-# There is a merge conflict here: the HEAD branch is testing `folds_unquoted_object_names` parametrize,
-# and the incoming branch is testing `get_niladic_functions`.
-# To resolve, we need to include both working test functions, but not duplicate/conflict.
-# Below is a clean merge of both tests:
-
 @pytest.mark.parametrize(
     "engine,expected",
     [
