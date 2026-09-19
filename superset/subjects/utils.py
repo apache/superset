@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from flask_appbuilder.security.sqla.models import Group, Role, User
     from sqlalchemy.sql import CompoundSelect, Select
 
-from flask import has_app_context
+from flask import g, has_app_context, has_request_context
 from sqlalchemy import select, union_all
 
 from superset import db
@@ -206,7 +206,23 @@ def get_user_subject_ids(user_id: int) -> list[int]:
     1. The user's own USER-type subject
     2. ROLE-type subjects for all direct and group-derived roles the user has
     3. GROUP-type subjects for all groups the user belongs to
+
+    Memoised for the duration of the request, keyed by user id. Authorization
+    calls this once per object checked -- ``is_editor``/``is_viewer`` run it for
+    every chart on a dashboard. Nothing reads a user's subjects after changing
+    them within a single request, so the cached set cannot go stale in place.
     """
+    if not has_request_context():
+        return _query_user_subject_ids(user_id)
+    cache: dict[int, list[int]] = g.setdefault("_user_subject_ids", {})
+    if user_id not in cache:
+        cache[user_id] = _query_user_subject_ids(user_id)
+    # Copy: callers hand this list on, and one of them puts it in the bootstrap
+    # payload that COMMON_BOOTSTRAP_OVERRIDES_FUNC can edit.
+    return list(cache[user_id])
+
+
+def _query_user_subject_ids(user_id: int) -> list[int]:
     result = db.session.execute(get_user_subject_ids_subquery(user_id))
     return [row[0] for row in result]
 
