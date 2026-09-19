@@ -47,6 +47,7 @@ from superset.mcp_service.chart.schemas import (
     GanttChartConfig,
     GaugeChartConfig,
     HandlebarsChartConfig,
+    HeatmapChartConfig,
     HistogramChartConfig,
     MixedTimeseriesChartConfig,
     PieChartConfig,
@@ -1503,6 +1504,27 @@ def map_treemap_config(config: TreemapChartConfig) -> Dict[str, Any]:
     return form_data
 
 
+def map_heatmap_config(config: HeatmapChartConfig) -> Dict[str, Any]:
+    """Map heatmap config to Superset form_data (viz_type ``heatmap_v2``).
+
+    Matches the frontend Heatmap buildQuery contract: an ``x_axis`` column and
+    a single ``groupby`` Y column form the two axes, one ``metric`` colours
+    the cells, and ``normalize_across`` selects the rank-normalization range.
+    The Y axis is a single-select ``groupby`` (not a list).
+    """
+    form_data: Dict[str, Any] = {
+        "viz_type": "heatmap_v2",
+        "x_axis": config.x_axis.name,
+        "groupby": config.y_axis.name,
+        "metric": create_metric_object(config.metric),
+        "normalize_across": config.normalize_across,
+        "normalized": config.normalized,
+        "row_limit": config.row_limit,
+    }
+    _add_adhoc_filters(form_data, config.filters)
+    return form_data
+
+
 def map_histogram_config(config: "HistogramChartConfig") -> Dict[str, Any]:
     """Map histogram config to Superset form_data (viz_type histogram_v2).
 
@@ -2115,6 +2137,14 @@ def _treemap_chart_what(config: TreemapChartConfig) -> str:
     if dims:
         return f"{dims} by {metric_label}"
     return f"{metric_label}"
+
+
+def _heatmap_chart_what(config: HeatmapChartConfig) -> str:
+    """Build the 'what' portion for a heatmap chart name."""
+    metric_label = (
+        config.metric.label or config.metric.name or config.metric.sql_expression
+    )
+    return f"{config.x_axis.name} vs {config.y_axis.name} by {metric_label}"
 
 
 def _pivot_table_what(config: PivotTableChartConfig) -> str:
