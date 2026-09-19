@@ -683,10 +683,13 @@ def test_claim_issue_is_atomic_ref_lock(fake: tuple[Fake, str]) -> None:
     state, base = fake
     gh = gh_client(base)
     _script_claim(state)
-    assert ops.claim_issue(gh, 5, "me") is True
+    assert ops.claim_issue(gh, 5, "me") == "mine"
     _script_claim(state, taken=True)
-    assert ops.claim_issue(gh, 5, "me") is False
-    ops.release_issue(gh, 5)
+    assert ops.claim_issue(gh, 5, "me") is None
+    state.script["/repos/o/r/git/ref/devin/claims/issue-5"] = [
+        (200, {"object": {"sha": "mine"}})
+    ]
+    ops.release_issue(gh, 5, "mine")
     assert ("DELETE", "/repos/o/r/git/refs/devin/claims/issue-5") in state.calls
 
 
@@ -694,20 +697,20 @@ def test_claim_issue_resolves_ambiguous_create(fake: tuple[Fake, str]) -> None:
     state, base = fake
     _script_claim(state, ambiguous=True)
     # The POST replied 500 but the ref now points at our commit: we own it.
-    assert ops.claim_issue(gh_client(base), 5, "me") is True
+    assert ops.claim_issue(gh_client(base), 5, "me") == "mine"
 
 
 def test_claim_issue_reaps_stale_claim(fake: tuple[Fake, str]) -> None:
     state, base = fake
     _script_claim(state, taken=True, held_date=OLD)
     state.script["/repos/o/r/git/refs/devin/claims/issue-5"] = [(200, {})]
-    assert ops.claim_issue(gh_client(base), 5, "me") is True
+    assert ops.claim_issue(gh_client(base), 5, "me") == "takeover"
     assert ("PATCH", "/repos/o/r/git/refs/devin/claims/issue-5") in state.calls
 
     # Another dispatcher moved the ref first: the fast-forward is rejected.
     _script_claim(state, taken=True, held_date=OLD)
     state.script["/repos/o/r/git/refs/devin/claims/issue-5"] = [(422, {})]
-    assert ops.claim_issue(gh_client(base), 5, "me") is False
+    assert ops.claim_issue(gh_client(base), 5, "me") is None
 
 
 def test_dispatch_skips_issue_claimed_by_other_dispatcher(
@@ -734,11 +737,74 @@ def test_dispatch_claims_then_releases(fake: tuple[Fake, str]) -> None:
         (201, {"session_id": "devin-1", "status": "running"})
     ]
     _script_claim(state)
+    state.script["/repos/o/r/git/ref/devin/claims/issue-9"] = [
+        (200, {"object": {"sha": "mine"}})
+    ] * 2
     outcomes = ops.dispatch(gh_client(base), devin_client(base), fix_prompt="p")
     assert outcomes[0].status == "dispatched"
     paths = [c[1] for c in state.calls]
     assert paths.index("/repos/o/r/git/refs") < paths.index("/sessions", 3)
     assert ("DELETE", "/repos/o/r/git/refs/devin/claims/issue-9") in state.calls
+
+
+def test_dispatch_skips_and_keeps_ref_when_claim_lost(
+    fake: tuple[Fake, str],
+) -> None:
+    """A holder that outlives its lease must not POST nor delete the successor's ref."""
+    state, base = fake
+    issue = {"number": 9, "title": "t", "html_url": "u", "labels": []}
+    state.script["/repos/o/r/issues"] = [(200, [issue])]
+    state.script["/repos/o/r/pulls"] = [(200, [])]
+    state.script["/sessions"] = [(200, {"items": [], "has_next_page": False})] * 2
+    _script_claim(state)
+    state.script["/repos/o/r/git/ref/devin/claims/issue-9"] = [
+        (200, {"object": {"sha": "someone-else"}})
+    ] * 2
+    outcomes = ops.dispatch(gh_client(base), devin_client(base), fix_prompt="p")
+    assert [(o.status, o.detail) for o in outcomes] == [
+        ("skipped", "claim lost mid-dispatch")
+    ]
+    assert ("POST", "/sessions") not in state.calls
+    assert ("DELETE", "/repos/o/r/git/refs/devin/claims/issue-9") not in state.calls
+
+
+def test_client_errors_do_not_trip_circuit_breaker(fake: tuple[Fake, str]) -> None:
+    state, base = fake
+    gh = gh_client(base)
+    gh.circuit_breaker = CircuitBreaker(failure_threshold=2)
+    state.script["/repos/o/r/git/refs"] = [(422, {})] * 3
+    for _ in range(3):
+        assert gh.create_ref("devin/claims/issue-1", "abc") is False
+    assert gh.circuit_breaker.state == "closed"
+    assert gh.metrics.circuit_breaker_trips == 0
+    assert gh.metrics.failed_requests == 3
+
+
+def test_head_failures_are_retried(fake: tuple[Fake, str]) -> None:
+    gh = gh_client(fake[1])
+    with pytest.raises(TransientError):
+        gh._fail("HEAD", "boom", None, RuntimeError())
+
+
+def test_stale_branches_merged_wins_over_later_closed(
+    fake: tuple[Fake, str],
+) -> None:
+    state, base = fake
+    branch = "devin/nightly-fix-1"
+    state.script["/repos/o/r/pulls"] = [
+        (
+            200,
+            [
+                {"head": {"ref": branch}, "state": "closed", "merged_at": "x"},
+                {"head": {"ref": branch}, "state": "closed", "merged_at": None},
+            ],
+        )
+    ]
+    state.script["/repos/o/r/branches"] = [(200, [{"name": branch}])]
+    state.script[f"/repos/o/r/branches/{branch}"] = [
+        (200, {"commit": {"commit": {"committer": {"date": OLD}}}})
+    ]
+    assert ops.stale_branches(gh_client(base), timedelta(days=1)) == []
 
 
 def test_delete_branch_treats_404_as_success(fake: tuple[Fake, str]) -> None:

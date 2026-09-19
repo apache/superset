@@ -21,6 +21,7 @@ posted, and a failure for one issue is recorded and the loop moves on.
 
 from __future__ import annotations
 
+import functools
 import logging
 import random
 import re
@@ -108,8 +109,20 @@ def _commit_date(commit: dict[str, Any]) -> datetime:
     return datetime.fromisoformat(raw)
 
 
-def claim_issue(gh: GitHub, issue: int, owner: str, ttl: timedelta = CLAIM_TTL) -> bool:
-    """Take the per-issue dispatch lock or report that someone else holds it.
+class ClaimLostError(ApiError):
+    """The dispatch lock was taken over by another dispatcher mid-flight."""
+
+
+def claim_issue(
+    gh: GitHub, issue: int, owner: str, ttl: timedelta = CLAIM_TTL
+) -> str | None:
+    """Take the per-issue dispatch lock; return the claim's commit sha, or ``None``.
+
+    The sha is the ownership token: :func:`holds_claim` checks it right
+    before the non-idempotent session POST and :func:`release_issue` only
+    deletes the ref while it still points at it, so a holder that outlived
+    ``ttl`` can neither create a duplicate session nor drop a successor's
+    claim.
 
     The Devin API has no idempotency key, so the list-then-create in
     :func:`ensure_session` is not atomic across dispatchers. The lock is the
@@ -129,37 +142,52 @@ def claim_issue(gh: GitHub, issue: int, owner: str, ttl: timedelta = CLAIM_TTL) 
     mine = str(gh.create_commit(_claim_message(owner), tree, [])["sha"])
     try:
         if gh.create_ref(ref, mine):
-            return True
+            return mine
     except AmbiguousWriteError as exc:
         log.warning("[Issue #%d] claim ambiguous: %s. Probing", issue, exc)
     current = gh.get_ref(ref)
     if current is None:
-        return False
+        return None
     if str(current["object"]["sha"]) == mine:
-        return True
+        return mine
     held = gh.get_commit(str(current["object"]["sha"]))
     if datetime.now(timezone.utc) - _commit_date(held) < ttl:
-        return False
+        return None
     log.warning("[Issue #%d] reaping stale claim %s", issue, held["sha"])
     takeover = str(
         gh.create_commit(_claim_message(owner), tree, [str(held["sha"])])["sha"]
     )
     try:
-        return gh.fast_forward_ref(ref, takeover)
+        if gh.fast_forward_ref(ref, takeover):
+            return takeover
+        return None
     except AmbiguousWriteError:
-        after = gh.get_ref(ref)
-        return after is not None and str(after["object"]["sha"]) == takeover
+        return takeover if holds_claim(gh, issue, takeover) else None
 
 
-def release_issue(gh: GitHub, issue: int) -> None:
-    gh.delete_ref(claim_ref(issue))
+def holds_claim(gh: GitHub, issue: int, token: str) -> bool:
+    current = gh.get_ref(claim_ref(issue))
+    return current is not None and str(current["object"]["sha"]) == token
 
 
-def ensure_session(devin: Devin, payload: dict[str, Any], tag: str) -> dict[str, Any]:
+def release_issue(gh: GitHub, issue: int, token: str) -> None:
+    """Drop the claim unless another dispatcher has already taken it over."""
+    if holds_claim(gh, issue, token):
+        gh.delete_ref(claim_ref(issue))
+
+
+def ensure_session(
+    devin: Devin,
+    payload: dict[str, Any],
+    tag: str,
+    guard: Callable[[], bool] | None = None,
+) -> dict[str, Any]:
     """Create a session unless one with the same title still owns the issue.
 
     An ambiguous failure (5xx/timeout on the POST) is resolved by probing
-    again, so a request that landed is never duplicated.
+    again, so a request that landed is never duplicated. ``guard`` is
+    consulted immediately before the POST; if it reports the caller no
+    longer holds the dispatch lock, :class:`ClaimLostError` is raised.
     """
     title = payload["title"]
     for attempt in (1, 2):
@@ -168,6 +196,8 @@ def ensure_session(devin: Devin, payload: dict[str, Any], tag: str) -> dict[str,
             if session.title == title and session.owns_issue():
                 log.info("%s already has session %s", title, session_url(s))
                 return s
+        if guard is not None and not guard():
+            raise ClaimLostError(f"{title}: dispatch claim lost before creation")
         try:
             return devin.create_session(payload)
         except AmbiguousWriteError as exc:
@@ -285,6 +315,9 @@ def cleanup_branch(
     return branch
 
 
+_PR_STATE_RANK: dict[str, int] = {"": 0, "CLOSED": 1, "MERGED": 2, "OPEN": 3}
+
+
 def stale_branches(
     gh: GitHub, older_than: timedelta, *, delete: bool = False, force: bool = False
 ) -> list[tuple[str, str]]:
@@ -302,9 +335,9 @@ def stale_branches(
     prs: dict[str, str] = {}
     for pr in gh.pulls("all"):
         state = "MERGED" if pr.get("merged_at") else str(pr["state"]).upper()
-        prs[pr["head"]["ref"]] = (
-            state if prs.get(pr["head"]["ref"]) != "OPEN" else "OPEN"
-        )
+        ref = str(pr["head"]["ref"])
+        # A branch is protected by its strongest PR: OPEN beats MERGED beats CLOSED.
+        prs[ref] = max(prs.get(ref, ""), state, key=lambda x: _PR_STATE_RANK.get(x, 0))
     cutoff = datetime.now(timezone.utc) - older_than
     result: list[tuple[str, str]] = []
     for b in gh.paginate("branches"):
@@ -395,14 +428,23 @@ def dispatch(
             if dry_run:
                 outcomes.append(Outcome(n, "dispatched", "dry-run"))
                 dispatched += 1
-            elif not claim_issue(gh, n, owner):
+            elif (token := claim_issue(gh, n, owner)) is None:
                 outcomes.append(Outcome(n, "skipped", "claimed by another dispatcher"))
                 continue
             else:
                 try:
-                    s = ensure_session(devin, payload, tag)
+                    s = ensure_session(
+                        devin,
+                        payload,
+                        tag,
+                        functools.partial(holds_claim, gh, n, token),
+                    )
+                except ClaimLostError as exc:
+                    log.warning("[Issue #%d] %s", n, exc)
+                    outcomes.append(Outcome(n, "skipped", "claim lost mid-dispatch"))
+                    continue
                 finally:
-                    release_issue(gh, n)
+                    release_issue(gh, n, token)
                 url = session_url(s)
                 ensure_comment(gh, n, f"dispatch:{n}", f"Fix session dispatched: {url}")
                 dispatched += 1

@@ -52,7 +52,7 @@ from tenacity import (
 
 log = logging.getLogger("automation.api")
 
-IDEMPOTENT_METHODS = frozenset({"GET", "PUT", "DELETE"})
+IDEMPOTENT_METHODS = frozenset({"GET", "HEAD", "PUT", "DELETE"})
 MIN_TIMEOUT = 1.0
 RATE_LIMIT_MARKERS = ("rate limit", "abuse detection", "too many requests")
 
@@ -453,11 +453,15 @@ class BaseClient:
                 status,
                 _retry_after_seconds(resp.headers),
             )
-        self._record_failure()
         if status >= 500:
+            self._record_failure()
             if method in IDEMPOTENT_METHODS:
                 raise TransientError(f"{context} {snippet}", status)
             raise AmbiguousWriteError(f"{context} {snippet}", status)
+        # 4xx is the server answering about this request (missing resource,
+        # conflict, bad input); it says nothing about availability, so it
+        # counts as a failed request but never trips the breaker.
+        self.metrics.record_failure()
         if status == 404:
             raise ResourceNotFoundError(f"{context} {snippet}", status)
         if status == 401:
