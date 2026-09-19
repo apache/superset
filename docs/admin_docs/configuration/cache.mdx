@@ -7,6 +7,34 @@ version: 1
 
 # Caching
 
+## Semantic containment cache
+
+`SEMANTIC_LAYER_CONTAINMENT_CACHE` is experimental and default-off. Enabling
+the flag alone is insufficient: enable `SEMANTIC_LAYERS`, use a provider that
+explicitly delegates containment caching, and configure persistent shared
+`DATA_CACHE_CONFIG` plus Redis-backed `DISTRIBUTED_COORDINATION_CONFIG` on every
+web and worker process. The default `NullCache` data backend disables containment.
+
+See the [semantic containment setup and validation guide](/developer-docs/extensions/contribution-types#semantic-result-containment-caching)
+for the two-backend example, supported backends, timeout semantics, emitted
+metrics and concurrency limitations. Restart every web/worker process after
+configuration changes and verify the effective-state metric before a canary.
+The reader fence uses identity format `v4` and matches a per-write nonce in each
+descriptor/result pair. Existing `v3` entries become cold misses; they need no
+manual deletion. During a mixed-version rollout, old workers still use the old
+unfenced path, so finish the web/worker rollout before validating the fence.
+Monitor `semantic_cache.containment.fence_reject` alongside misses and coordination
+failures during forced-refresh testing: rejected pairs must fall back to another
+valid candidate or the provider, never serve the stale writer's mismatched value.
+Pruning removes invalid descriptors after rechecking the current pair and leaves
+payloads to their configured TTL. Preserve the validation hold until the
+split-store process-pause scenario and provider-result comparisons pass.
+
+To roll back, disable `SEMANTIC_LAYER_CONTAINMENT_CACHE`, restart every process,
+and confirm `semantic_cache.containment.enabled` is zero and provider queries
+continue. This best-effort cache's fallback behavior does not change the other
+cache backends' availability requirements below.
+
 :::note
 When a cache backend is configured, Superset expects it to remain available. Operations will
 fail if the configured backend becomes unavailable rather than silently degrading. This
