@@ -210,8 +210,142 @@ jobs:
             ${{ github.workspace }}/superset-frontend/test-results/
           name: playwright-experimental-artifact-${{ github.run_id }}-${{ github.job }}-${{ matrix.browser }}--${{ steps.set-safe-app-root.outputs.safe_app_root }}
 
+  # GAQ runs in its own job rather than as a step in playwright-tests-experimental
+  # above. A step with no explicit `if:` implicitly inherits `if: success()`, so
+  # when GAQ was a step after Experimental/Mobile in that job, a failure in
+  # either of those unrelated suites skipped GAQ entirely rather than failing it
+  # -- silently leaving that commit with zero GAQ coverage instead of a visible
+  # red check. A separate job can't share that fate: it either runs and reports
+  # for itself, or it doesn't start (e.g. the environment itself never came up),
+  # which is the only case where "no GAQ result" is actually the right outcome.
+  playwright-tests-gaq:
+    needs: changes
+    if: needs.changes.outputs.python == 'true' || needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 30
+    continue-on-error: true
+    permissions:
+      contents: read
+      pull-requests: read
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: ["chromium"]
+        app_root: ["", "/app/prefix"]
+    env:
+      SUPERSET_ENV: development
+      SUPERSET_CONFIG: tests.integration_tests.superset_test_config
+      SUPERSET__SQLALCHEMY_DATABASE_URI: postgresql+psycopg2://superset:superset@127.0.0.1:15432/superset
+      PYTHONPATH: ${{ github.workspace }}
+      REDIS_PORT: 16379
+      GITHUB_TOKEN: ${{ github.token }}
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: superset
+          POSTGRES_PASSWORD: superset
+        ports:
+          - 15432:5432
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 16379:6379
+    steps:
+      # -------------------------------------------------------
+      # Conditional checkout based on context (same as Cypress workflow)
+      - name: Checkout for push or pull_request event
+        if: github.event_name == 'push' || github.event_name == 'pull_request'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          submodules: recursive
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+      - name: Checkout using ref (workflow_dispatch)
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.ref != ''
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.inputs.ref }}
+          submodules: recursive
+      - name: Checkout using PR ID (workflow_dispatch)
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.pr_id != ''
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: refs/pull/${{ github.event.inputs.pr_id }}/merge
+          submodules: recursive
+      # -------------------------------------------------------
+      - name: Setup Python
+        uses: $/.github/actions/setup-backend/
+      - name: Setup postgres
+        uses: ./.github/actions/cached-dependencies
+        with:
+          run: setup-postgres
+      - name: Import test data
+        uses: ./.github/actions/cached-dependencies
+        with:
+          run: playwright_testdata
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: "./superset-frontend/.nvmrc"
+          cache: "npm"
+          cache-dependency-path: "superset-frontend/package-lock.json"
+      - name: Install npm dependencies
+        uses: ./.github/actions/cached-dependencies
+        with:
+          run: npm-install
+      - name: Build javascript packages
+        uses: ./.github/actions/cached-dependencies
+        with:
+          run: build-instrumented-assets
+      - name: Install Playwright
+        uses: ./.github/actions/cached-dependencies
+        with:
+          run: playwright-install
+      - name: Run Playwright (Global Async Queries Tests)
+        uses: ./.github/actions/cached-dependencies
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
+          # Scoped to this step for the same reason as the embedded and mobile
+          # flags in playwright-tests-experimental: GLOBAL_ASYNC_QUERIES changes
+          # chart-data behaviour for every spec sharing a server.
+          #
+          # This suite has its own job, and is not required, because unlike the
+          # other flag-gated suites it needs a Celery worker: submissions are
+          # handed to Celery, so without one the API returns 202 and no job ever
+          # executes. Putting a background worker and its startup window on the
+          # required path would let a GAQ flake block PRs that have nothing to
+          # do with async queries.
+          #
+          # `playwright-run-gaq` starts the worker and sets INCLUDE_GAQ, which
+          # is what makes the chromium-gaq project exist at all.
+          SUPERSET_FEATURE_GLOBAL_ASYNC_QUERIES: "true"
+        with:
+          run: >-
+            playwright-run-gaq "${{ matrix.app_root }}"
+            dashboard/global-async-query.spec.ts
+            dashboard/global-async-query-resilience.spec.ts
+            sqllab/global-async-query-sqllab.spec.ts
+      - name: Set safe app root
+        if: failure()
+        id: set-safe-app-root
+        run: |
+          APP_ROOT="${{ matrix.app_root }}"
+          SAFE_APP_ROOT=${APP_ROOT//\//_}
+          echo "safe_app_root=$SAFE_APP_ROOT" >> $GITHUB_OUTPUT
+      - name: Upload Playwright Artifacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        if: failure()
+        with:
+          path: |
+            ${{ github.workspace }}/superset-frontend/playwright-results/
+            ${{ github.workspace }}/superset-frontend/test-results/
+          name: playwright-gaq-artifact-${{ github.run_id }}-${{ github.job }}-${{ matrix.browser }}--${{ steps.set-safe-app-root.outputs.safe_app_root }}
+
   actions-timeline:
-    needs: playwright-tests-experimental
+    needs: [playwright-tests-experimental, playwright-tests-gaq]
     if: always()
     runs-on: ubuntu-slim
     permissions:
