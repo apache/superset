@@ -98,6 +98,7 @@ def create_mock_dataset(
     dataset.template_params = {}
     dataset.extra = {}
     dataset.uuid = f"test-dataset-uuid-{dataset_id}"
+    dataset.deleted_at = None
     dataset.columns = columns or []
     dataset.metrics = metrics or []
     return dataset

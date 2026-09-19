@@ -156,7 +156,10 @@ async def list_datasets(
 
     try:
         from superset.daos.dataset import DatasetDAO
-        from superset.datasets.filters import DatasetCertifiedFilter
+        from superset.datasets.filters import (
+            DatasetCertifiedFilter,
+            DatasetDeletedStateFilter,
+        )
         from superset.mcp_service.common.schema_discovery import (
             DATASET_SORTABLE_COLUMNS,
             get_all_column_names,
@@ -185,6 +188,7 @@ async def list_datasets(
             all_columns=all_columns,
             sortable_columns=DATASET_SORTABLE_COLUMNS,
             logger=logger,
+            deleted_state_filter=DatasetDeletedStateFilter,
         )
 
         with event_logger.log_context(action="mcp.list_datasets.query"):
@@ -205,6 +209,7 @@ async def list_datasets(
                 page_size=request.page_size,
                 created_by_me=request.created_by_me,
                 edited_by_me=request.edited_by_me,
+                deleted_state=request.deleted_state,
                 custom_filters=custom_filters,
             )
 
