@@ -70,15 +70,26 @@ export default function PartitionColumnFields({
     () =>
       columns.map(column => ({
         value: column.column_name,
-        label: column.column_name,
-        customLabel: (
+        // A rich `label` node is what this Select renders in both the open
+        // dropdown and the CLOSED/selected box (its `optionLabelProp` defaults
+        // to `label`), so the monospace name + type pill stays consistent
+        // across both. `value` remains the plain name so typed search still
+        // matches (`optionFilterProps` defaults to `['label', 'value']`). The
+        // previous `customLabel` field was ignored by this Select entirely.
+        label: (
           <Flex align="center" gap={theme.sizeUnit}>
-            <span>{column.column_name}</span>
+            <Typography.Text
+              css={css`
+                font-family: ${theme.fontFamilyCode};
+              `}
+            >
+              {column.column_name}
+            </Typography.Text>
             {column.type && <Label>{column.type}</Label>}
           </Flex>
         ),
       })),
-    [columns, theme.sizeUnit],
+    [columns, theme.sizeUnit, theme.fontFamilyCode],
   );
 
   const mappedColumn = resolveMappedColumn(datasource);
