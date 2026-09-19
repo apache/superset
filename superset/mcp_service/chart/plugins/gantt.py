@@ -44,6 +44,15 @@ class GanttChartPlugin(BaseChartPlugin):
     native_viz_types: ClassVar[Mapping[str, str]] = {
         "gantt_chart": "Gantt Chart",
     }
+    # Gantt binds its interval, task, and tooltip columns outside the shared
+    # groupby/metrics vocabulary, so a dataset rebind must scrub them too.
+    query_role_keys = BaseChartPlugin.query_role_keys | {
+        "start_time",
+        "end_time",
+        "y_axis",
+        "tooltip_columns",
+        "tooltip_metrics",
+    }
 
     def pre_validate(self, config: dict[str, Any]) -> ChartGenerationError | None:
         aliases = {
