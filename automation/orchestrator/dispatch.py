@@ -91,6 +91,26 @@ def attempted_issues(
     return seen
 
 
+def claim_ref(issue: int) -> str:
+    return f"devin/claims/issue-{issue}"
+
+
+def claim_issue(gh: GitHub, issue: int) -> bool:
+    """Take the per-issue dispatch lock (a git ref) or report it is held.
+
+    The Devin API has no idempotency key, so the list-then-create in
+    :func:`ensure_session` is not atomic across dispatchers. Ref creation
+    is atomic on GitHub, so the winner of this claim is the only caller
+    allowed to create a session for ``issue``; the loser skips the issue
+    and picks up the winner's session on the next sweep.
+    """
+    return gh.create_ref(claim_ref(issue), gh.default_branch_sha())
+
+
+def release_issue(gh: GitHub, issue: int) -> None:
+    gh.delete_ref(claim_ref(issue))
+
+
 def ensure_session(devin: Devin, payload: dict[str, Any], tag: str) -> dict[str, Any]:
     """Create a session unless one with the same title still owns the issue.
 
@@ -146,7 +166,10 @@ def watch_session(
     attempt = 0
     while True:
         attempt += 1
-        s = devin.get_session(session_id)
+        # Bound this poll's retry budget so API outages cannot overrun the
+        # watcher deadline; a poll that starts at the deadline still runs once.
+        remaining = max(deadline - time.monotonic(), 0.0)
+        s = devin.get_session(session_id, budget_seconds=remaining)
         # Handle both dict and Session objects
         if isinstance(s, dict):
             session = Session.from_dict(s)
@@ -173,7 +196,7 @@ def watch_session(
             )
         # Add jitter to polling to avoid thundering herd
         jittered_poll = poll * (0.5 + random.random() * 0.5)  # noqa: S311
-        sleep(jittered_poll)
+        sleep(min(jittered_poll, max(deadline - time.monotonic(), 0.0)))
 
 
 def branch_for_issue(gh: GitHub, issue: int) -> str | None:
@@ -327,8 +350,14 @@ def dispatch(
             if dry_run:
                 outcomes.append(Outcome(n, "dispatched", "dry-run"))
                 dispatched += 1
+            elif not claim_issue(gh, n):
+                outcomes.append(Outcome(n, "skipped", "claimed by another dispatcher"))
+                continue
             else:
-                s = ensure_session(devin, payload, tag)
+                try:
+                    s = ensure_session(devin, payload, tag)
+                finally:
+                    release_issue(gh, n)
                 url = session_url(s)
                 ensure_comment(gh, n, f"dispatch:{n}", f"Fix session dispatched: {url}")
                 dispatched += 1

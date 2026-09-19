@@ -81,7 +81,8 @@ def main(argv: list[str] | None = None) -> int:
     today = datetime.now(timezone.utc).date().isoformat()
 
     if args.cmd == "dispatch":
-        _require("GH_TOKEN", *([] if args.dry_run else ["DEVIN_API_KEY"]))
+        # Dry runs still list Devin sessions to compute "attempt exists".
+        _require("GH_TOKEN", "DEVIN_API_KEY")
         with open(args.prompt_file, encoding="utf-8") as fh:
             prompt = fh.read()
         outcomes = ops.dispatch(
@@ -100,7 +101,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.cmd == "watch-session":
         _require("GH_TOKEN", "DEVIN_API_KEY")
-        ok, detail = False, "watch aborted"
+        ok, detail, confirmed = False, "watch aborted", False
         try:
             ok, detail = ops.watch_session(
                 devin,
@@ -108,6 +109,7 @@ def main(argv: list[str] | None = None) -> int:
                 timeout=timedelta(minutes=args.timeout_minutes),
                 poll=args.poll_seconds,
             )
+            confirmed = True
         finally:
             verdict = "✅ PR opened" if ok else "❌ Failed"
             line = f"[Issue #{args.issue}] {verdict} - {detail}"
@@ -118,8 +120,16 @@ def main(argv: list[str] | None = None) -> int:
                 ops.ensure_comment(
                     gh, DASHBOARD_ISSUE, f"session:{args.session_id}", line
                 )
+            except Exception:
+                if confirmed:
+                    raise
+                # Reporting is best-effort; keep the original watch exception.
+                logging.getLogger("automation").exception("dashboard update failed")
             finally:
-                if not ok and not args.keep_branch:
+                # Only a confirmed failure (dead/finished-without-PR/timeout)
+                # justifies deleting the branch; an aborted watch may leave a
+                # session that is still pushing to it.
+                if confirmed and not ok and not args.keep_branch:
                     ops.cleanup_branch(gh, args.issue, force=True)
         return 0 if ok else 1
 

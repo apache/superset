@@ -472,23 +472,26 @@ class BaseClient:
         params: dict[str, Any] | None = None,
         json_body: Any = None,
         decode_json: bool = False,
+        budget_seconds: float | None = None,
     ) -> requests.Response:
         """Perform one logical request under the retry contract.
 
         With ``decode_json`` a 2xx reply whose body is not valid JSON is
         classified like a transport failure (retried for idempotent methods,
         :class:`AmbiguousWriteError` for writes) instead of escaping as a
-        bare decoding exception.
+        bare decoding exception. ``budget_seconds`` tightens the retry budget
+        for this call so a caller with its own deadline is not overrun.
         """
         method = method.upper()
         context = context or f"{method} {path}"
+        budget = self.policy.budget_seconds
+        if budget_seconds is not None:
+            budget = max(min(budget, budget_seconds), 0.0)
         retrying = Retrying(
             retry=retry_if_exception_type(TransientError),
             wait=_wait(self.policy),
-            stop=(
-                stop_after_attempt(self.policy.max_attempts)
-                | stop_after_delay(self.policy.budget_seconds)
-            ),
+            stop=stop_after_attempt(self.policy.max_attempts)
+            | stop_after_delay(budget),
             before_sleep=_log_retry(self.policy, self.metrics),
             reraise=True,
         )
@@ -555,6 +558,38 @@ class GitHub(BaseClient):
             context=f"delete branch {name}",
         )
 
+    def default_branch_sha(self) -> str:
+        branch = str(self.get_json(f"repos/{self.repo}")["default_branch"])
+        data = self.get_json(f"repos/{self.repo}/git/ref/heads/{branch}")
+        return str(data["object"]["sha"])
+
+    def create_ref(self, ref: str, sha: str) -> bool:
+        """Create ``refs/<ref>`` atomically; ``False`` if it already exists.
+
+        Ref creation is the one write GitHub rejects (422) when the name is
+        taken, which makes it usable as a distributed lock.
+        """
+        try:
+            self.request(
+                "POST",
+                f"repos/{self.repo}/git/refs",
+                context=f"create ref {ref}",
+                json_body={"ref": f"refs/{ref}", "sha": sha},
+            )
+        except ValidationError:
+            return False
+        return True
+
+    def delete_ref(self, ref: str) -> None:
+        try:
+            self.request(
+                "DELETE",
+                f"repos/{self.repo}/git/refs/{ref}",
+                context=f"delete ref {ref}",
+            )
+        except ResourceNotFoundError:
+            pass
+
     def comments(self, issue: int) -> list[dict[str, Any]]:
         return list(self.paginate(f"issues/{issue}/comments"))
 
@@ -601,8 +636,10 @@ class Devin(BaseClient):
             if not after:
                 return
 
-    def get_session(self, session_id: str) -> dict[str, Any]:
-        return self.get_json(f"sessions/{session_id}")
+    def get_session(
+        self, session_id: str, budget_seconds: float | None = None
+    ) -> dict[str, Any]:
+        return self.get_json(f"sessions/{session_id}", budget_seconds=budget_seconds)
 
     def create_session(self, payload: dict[str, Any]) -> dict[str, Any]:
         return self.request_json(

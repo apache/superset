@@ -623,3 +623,121 @@ def test_metrics_dont_break_existing_functionality(fake: tuple[Fake, str]) -> No
 
     # Verify circuit breaker is in default state
     assert gh.circuit_breaker.state == "closed"
+
+
+def _script_claim(state: Fake, taken: bool = False) -> None:
+    state.script["/repos/o/r"] = [(200, {"default_branch": "master"})] * 5
+    state.script["/repos/o/r/git/ref/heads/master"] = [
+        (200, {"object": {"sha": "abc"}})
+    ] * 5
+    if taken:
+        state.script["/repos/o/r/git/refs"] = [
+            (422, {"message": "Reference already exists"})
+        ]
+    else:
+        state.script["/repos/o/r/git/refs"] = [(201, {"ref": "refs/x"})]
+
+
+def test_claim_issue_is_atomic_ref_lock(fake: tuple[Fake, str]) -> None:
+    state, base = fake
+    gh = gh_client(base)
+    _script_claim(state)
+    assert ops.claim_issue(gh, 5) is True
+    _script_claim(state, taken=True)
+    assert ops.claim_issue(gh, 5) is False
+    ops.release_issue(gh, 5)
+    assert ("DELETE", "/repos/o/r/git/refs/devin/claims/issue-5") in state.calls
+
+
+def test_dispatch_skips_issue_claimed_by_other_dispatcher(
+    fake: tuple[Fake, str],
+) -> None:
+    state, base = fake
+    issue = {"number": 9, "title": "t", "html_url": "u", "labels": []}
+    state.script["/repos/o/r/issues"] = [(200, [issue])]
+    state.script["/repos/o/r/pulls"] = [(200, [])]
+    _script_claim(state, taken=True)
+    outcomes = ops.dispatch(gh_client(base), devin_client(base), fix_prompt="p")
+    assert [(o.status, o.detail) for o in outcomes] == [
+        ("skipped", "claimed by another dispatcher")
+    ]
+    assert ("POST", "/sessions") not in state.calls
+
+
+def test_dispatch_claims_then_releases(fake: tuple[Fake, str]) -> None:
+    state, base = fake
+    issue = {"number": 9, "title": "t", "html_url": "u", "labels": []}
+    state.script["/repos/o/r/issues"] = [(200, [issue])]
+    state.script["/repos/o/r/pulls"] = [(200, [])]
+    state.script["/sessions"] = [(200, {"items": [], "has_next_page": False})] * 2 + [
+        (201, {"session_id": "devin-1", "status": "running"})
+    ]
+    _script_claim(state)
+    outcomes = ops.dispatch(gh_client(base), devin_client(base), fix_prompt="p")
+    assert outcomes[0].status == "dispatched"
+    paths = [c[1] for c in state.calls]
+    assert paths.index("/repos/o/r/git/refs") < paths.index("/sessions", 3)
+    assert ("DELETE", "/repos/o/r/git/refs/devin/claims/issue-9") in state.calls
+
+
+def test_watch_session_retry_budget_bounded_by_deadline(
+    fake: tuple[Fake, str],
+) -> None:
+    state, base = fake
+    # Every poll fails; without a bounded budget this would retry for
+    # FAST.budget_seconds (5s) per poll instead of respecting the 0.3s watch.
+    state.script["/sessions/devin-1"] = [(500, {})] * 50
+    start = time.monotonic()
+    with pytest.raises(TransientError):
+        ops.watch_session(
+            devin_client(base),
+            "devin-1",
+            timeout=timedelta(seconds=0.3),
+            poll=0.01,
+            sleep=lambda _s: None,
+        )
+    assert time.monotonic() - start < 2
+
+
+def test_get_session_budget_is_capped_not_raised(fake: tuple[Fake, str]) -> None:
+    state, base = fake
+    state.script["/sessions/devin-1"] = [(500, {})] * 50
+    start = time.monotonic()
+    with pytest.raises(TransientError):
+        devin_client(base).get_session("devin-1", budget_seconds=0.0)
+    # A zero budget still makes exactly one attempt.
+    assert len([c for c in state.calls if c[1] == "/sessions/devin-1"]) == 1
+    assert time.monotonic() - start < 1
+
+
+def test_watch_main_skips_cleanup_when_watch_aborts(
+    fake: tuple[Fake, str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from automation.orchestrator import __main__ as cli
+
+    cleaned: list[int] = []
+    monkeypatch.setenv("GH_TOKEN", "x")
+    monkeypatch.setenv("DEVIN_API_KEY", "x")
+    monkeypatch.setattr(cli.ops, "cleanup_branch", lambda *a, **k: cleaned.append(1))
+    monkeypatch.setattr(cli.ops, "ensure_comment", lambda *a, **k: None)
+
+    def boom(*_: Any, **__: Any) -> tuple[bool, str]:
+        raise TransientError("api down")
+
+    monkeypatch.setattr(cli.ops, "watch_session", boom)
+    with pytest.raises(TransientError):
+        cli.main(["watch-session", "devin-1", "--issue", "1"])
+    assert cleaned == []
+
+    monkeypatch.setattr(cli.ops, "watch_session", lambda *a, **k: (False, "timeout"))
+    assert cli.main(["watch-session", "devin-1", "--issue", "1"]) == 1
+    assert cleaned == [1]
+
+
+def test_dispatch_dry_run_requires_devin_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    from automation.orchestrator import __main__ as cli
+
+    monkeypatch.setenv("GH_TOKEN", "x")
+    monkeypatch.delenv("DEVIN_API_KEY", raising=False)
+    with pytest.raises(SystemExit):
+        cli.main(["dispatch", "--dry-run", "--prompt-file", "/dev/null"])
