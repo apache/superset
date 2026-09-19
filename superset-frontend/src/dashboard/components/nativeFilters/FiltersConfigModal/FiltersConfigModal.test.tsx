@@ -532,6 +532,28 @@ test('deletes a filter including dependencies', async () => {
   );
 }, 30000);
 
+test('shows the dependency control on first render for a saved cascade filter', () => {
+  const nativeFilterConfig = [
+    buildNativeFilter('NATIVE_FILTER-1', 'state', ['NATIVE_FILTER-2']),
+    buildNativeFilter('NATIVE_FILTER-2', 'country', []),
+  ];
+  const state = {
+    ...defaultState(),
+    dashboardInfo: {
+      metadata: {
+        native_filter_configuration: nativeFilterConfig,
+      },
+    },
+    dashboardLayout,
+  };
+  defaultRender(state, { ...props, createNewOnOpen: false });
+
+  // No interaction: the dependency control and its saved parent must be
+  // visible as soon as the modal opens on a filter that already has a
+  // cascade parent, without waiting for a rerender.
+  expect(getCheckbox(DEPENDENCIES_REGEX)).toBeChecked();
+});
+
 const SORTABLE_ITEM_HEIGHT = 40;
 const SORTABLE_ITEM_WIDTH = 200;
 
