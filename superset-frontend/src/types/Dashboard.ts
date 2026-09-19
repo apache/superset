@@ -24,6 +24,9 @@ export interface Dashboard {
   slug?: string | null;
   url: string;
   dashboard_title: string;
+  // Title resolved for the viewer's locale (read-only). Mirrors
+  // dashboard_title when translation is off or no translation exists.
+  localized_title?: string | null;
   thumbnail_url: string | null;
   published: boolean;
   css?: string | null;
