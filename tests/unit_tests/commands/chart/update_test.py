@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from unittest.mock import Mock
+
 import pytest
 from pytest_mock import MockerFixture
 
@@ -23,11 +25,78 @@ from superset.commands.chart.exceptions import (
     DatasourceTypeUpdateRequiredValidationError,
 )
 from superset.commands.chart.update import UpdateChartCommand
-from superset.commands.exceptions import DatasourceTypeInvalidError
+from superset.commands.exceptions import (
+    DatasourceNotFoundValidationError,
+    DatasourceTypeInvalidError,
+)
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 from superset.semantic_layers.models import SemanticView
 from superset.utils import json
+
+
+@pytest.mark.parametrize("datasource_type", ["table", "semantic_view"])
+@pytest.mark.parametrize(
+    "outcome", ["allowed", "denied", "missing", "no_id", "null_id"]
+)
+def test_type_only_update_checks_retained_datasource(
+    mocker: MockerFixture, datasource_type: str, outcome: str
+) -> None:
+    """Changing only type must authorize the new kind at the stored ID."""
+    chart: Mock = Mock(
+        id=1,
+        datasource_id=None if outcome == "no_id" else 42,
+        datasource_type="table",
+        is_managed_externally=False,
+        tags=[],
+        dashboards=[],
+    )
+    mocker.patch(
+        "superset.commands.chart.update.ChartDAO.find_by_id", return_value=chart
+    )
+    mocker.patch("superset.commands.chart.update.security_manager.raise_for_editorship")
+    mocker.patch("superset.commands.chart.update.compute_subjects")
+    datasource: Mock = Mock()
+    datasource.name = "semantic name"
+    lookup: Mock = mocker.patch(
+        "superset.commands.chart.update.get_datasource_by_id",
+        return_value=datasource,
+        side_effect=DatasourceNotFoundValidationError()
+        if outcome == "missing"
+        else None,
+    )
+    access: Mock = mocker.patch(
+        "superset.commands.chart.update.security_manager.raise_for_access",
+        side_effect=_access_exc() if outcome == "denied" else None,
+    )
+    command: UpdateChartCommand = UpdateChartCommand(
+        1,
+        {
+            "datasource_type": datasource_type,
+            **({"datasource_id": None} if outcome == "null_id" else {}),
+        },
+    )
+    if outcome in {"missing", "no_id", "null_id"}:
+        error: pytest.ExceptionInfo[ChartInvalidError]
+        with pytest.raises(ChartInvalidError) as error:
+            command.validate()
+        assert any(
+            isinstance(exception, DatasourceNotFoundValidationError)
+            for exception in error.value._exceptions
+        )
+        access.assert_not_called()
+    elif outcome == "denied":
+        with pytest.raises(ChartForbiddenError):
+            command.validate()
+    else:
+        command.validate()
+        assert command._properties["datasource_name"] == "semantic name"
+    if outcome in {"no_id", "null_id"}:
+        lookup.assert_not_called()
+    else:
+        lookup.assert_called_once_with(42, datasource_type)
+    if outcome in {"allowed", "denied"}:
+        access.assert_called_once_with(datasource=datasource)
 
 
 def _editorship_exc() -> SupersetSecurityException:
@@ -180,6 +249,7 @@ def _query_context_payload(datasource: object) -> dict[str, object]:
     "datasource_type",
     [
         "table",
+        "semantic_view",
         "query",  # non-table datasource types must also be accepted when matching
     ],
 )
