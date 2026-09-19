@@ -3651,23 +3651,47 @@ def test_get_undefined_parameters_when_processing_is_disabled() -> None:
 
 
 @with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)
-def test_template_processor_resolves_a_table_against_a_given_schema() -> None:
+def test_template_processor_resolves_a_table_against_the_query_location() -> None:
     """
-    Test that a caller with no ``Query`` or ``SqlaTable`` can still set the schema.
+    Test that a macro resolving an unqualified table looks where the query runs.
 
-    The schema decides where a macro resolving an unqualified table looks, and
-    a caller such as cost estimation has neither object to carry it. A query
-    still decides it when there is one.
+    ``presto.latest_partition("events")`` has to read partition metadata from
+    the schema and catalog the query was written against; falling back to the
+    connection's defaults reads a different table on an engine where those
+    differ. Both come from the ``Query``, which every caller that has a
+    location to declare already builds.
     """
     database = MagicMock()
     database.db_engine_spec.latest_partition.return_value = (None, ["2026-01-01"])
 
-    def resolved_schema(**kwargs: Any) -> str | None:
+    def resolved(**kwargs: Any) -> tuple[str | None, str | None]:
         processor = PrestoTemplateProcessor(database=database, **kwargs)
         processor.latest_partition("events")
-        return database.db_engine_spec.latest_partition.call_args.kwargs["table"].schema
+        table = database.db_engine_spec.latest_partition.call_args.kwargs["table"]
+        return table.schema, table.catalog
 
-    assert resolved_schema() is None
-    assert resolved_schema(schema="not_default") == "not_default"
-    # An explicitly qualified table still wins over both.
-    assert resolved_schema(query=Query(schema="from_the_query")) == "from_the_query"
+    assert resolved() == (None, None)
+    assert resolved(query=Query(schema="sales", catalog="warehouse")) == (
+        "sales",
+        "warehouse",
+    )
+
+
+@with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)
+def test_template_processor_does_not_shadow_a_user_parameter() -> None:
+    """
+    Test that a dataset's own template parameters still reach the template.
+
+    ``template_params`` from a dataset are passed as keyword arguments
+    (``models.helpers``: ``template_kwargs.update(self.template_params_dict)``),
+    so every name this constructor claims for itself is a name a user can no
+    longer use. ``schema`` and ``catalog`` are the two most likely to collide.
+    """
+    database = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
+    user_template_params: dict[str, Any] = {"schema": "sales", "catalog": "warehouse"}
+    processor = get_template_processor(database=database, **user_template_params)
+
+    assert (
+        processor.process_template("SELECT * FROM {{ catalog }}.{{ schema }}.orders")
+        == "SELECT * FROM warehouse.sales.orders"
+    )

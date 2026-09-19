@@ -27,7 +27,10 @@ from functools import lru_cache, partial
 from typing import Any, Callable, cast, TYPE_CHECKING, TypedDict, Union
 
 from flask import current_app, g, has_request_context, request
-from flask_babel import gettext as _, lazy_gettext, ngettext
+# ``__`` is the lazy alias here because ``_`` is already bound to the eager
+# ``gettext`` used throughout this module. Both are extraction keywords
+# (``pybabel extract -k _ -k __``), which a bare ``lazy_gettext`` is not.
+from flask_babel import gettext as _, lazy_gettext as __, ngettext
 from flask_babel.speaklater import LazyString
 from jinja2 import DebugUndefined, Environment, TemplateSyntaxError, UndefinedError
 from jinja2.exceptions import SecurityError
@@ -950,7 +953,7 @@ class SupersetSandboxedEnvironment(SandboxedEnvironment):
 # Lazy on purpose: evaluated at import time, an eager constant would be
 # frozen in the default locale (see the same convention in views/core.py).
 # Callers ``str()`` it inside the request that reports it.
-PARAMETER_MISSING_ERR: LazyString = lazy_gettext(
+PARAMETER_MISSING_ERR: LazyString = __(
     "Please check your template parameters for syntax errors and make sure "
     "they match across your SQL query and Set Parameters. Then, try running "
     "your query again."
@@ -983,7 +986,6 @@ class BaseTemplateProcessor:
         database: "Database",
         query: "Query" | None = None,
         table: "SqlaTable" | None = None,
-        schema: str | None = None,
         extra_cache_keys: list[Any] | None = None,
         removed_filters: list[str] | None = None,
         applied_filters: list[str] | None = None,
@@ -991,15 +993,19 @@ class BaseTemplateProcessor:
     ) -> None:
         self._database = database
         self._query = query
-        # A caller with no ``Query`` or ``SqlaTable`` to hand -- cost
-        # estimation, for one -- passes the schema directly, so that a macro
-        # resolving an unqualified table (``presto.latest_partition``) looks
-        # in the schema the query would actually run in.
-        self._schema = schema
+        self._schema = None
+        self._catalog = None
         if query and query.schema:
             self._schema = query.schema
         elif table:
             self._schema = table.schema
+        # Same source as the schema: a macro resolving an unqualified table
+        # has to look in the catalog the query runs in, not the connection's
+        # default, on an engine where those differ.
+        if query and query.catalog:
+            self._catalog = query.catalog
+        elif table:
+            self._catalog = table.catalog
         self._table = table
         self._extra_cache_keys = extra_cache_keys
         self._applied_filters = applied_filters
@@ -1249,7 +1255,7 @@ class PrestoTemplateProcessor(JinjaTemplateProcessor):
 
         table_name, schema = self._schema_table(table_name, self._schema)
         return cast(PrestoEngineSpec, self._database.db_engine_spec).latest_partition(
-            database=self._database, table=Table(table_name, schema)
+            database=self._database, table=Table(table_name, schema, self._catalog)
         )[1]
 
     def latest_sub_partition(self, table_name: str, **kwargs: Any) -> Any:
@@ -1261,7 +1267,9 @@ class PrestoTemplateProcessor(JinjaTemplateProcessor):
         return cast(
             PrestoEngineSpec, self._database.db_engine_spec
         ).latest_sub_partition(
-            database=self._database, table=Table(table_name, schema), **kwargs
+            database=self._database,
+            table=Table(table_name, schema, self._catalog),
+            **kwargs,
         )
 
     latest_partition = first_latest_partition

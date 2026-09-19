@@ -20,7 +20,9 @@ from typing import cast
 from unittest.mock import MagicMock, patch
 
 import pytest
+from pytest_mock import MockerFixture
 
+from superset import security_manager
 from superset.commands.sql_lab.estimate import (
     EstimateQueryCostType,
     QueryEstimationCommand,
@@ -33,6 +35,7 @@ from superset.exceptions import (
     SupersetParseError,
     SupersetSecurityException,
 )
+from superset.models.core import Database
 from tests.unit_tests.conftest import with_feature_flags  # noqa: E402
 
 
@@ -828,9 +831,12 @@ def test_run_reauthorizes_the_rendered_sql(
     first, second = mock_security_manager.raise_for_access.call_args_list
     # The first check is the unrendered source, as before.
     assert first.kwargs["sql"] == sql
-    # The second is the literal SQL that goes on to be estimated, with no
-    # template params left to expand it differently.
-    assert second.kwargs["sql"] == "SELECT * FROM allowed_ds"
+    # The second pins the literal SQL that goes on to be estimated as
+    # `executed_sql`, which `raise_for_access` prefers over re-rendering
+    # `sql` with `template_params` -- the same handle the execution path
+    # uses in `_validate_rendered_access`.
+    assert second.kwargs["query"].executed_sql == "SELECT * FROM allowed_ds"
+    assert "sql" not in second.kwargs
     assert "template_params" not in second.kwargs
     assert second.kwargs["force_dataset_match"] is True
     assert (
@@ -886,16 +892,17 @@ def test_run_refuses_rendered_sql_the_caller_cannot_access(
 @patch("superset.commands.sql_lab.estimate.get_template_processor")
 @patch("superset.commands.sql_lab.estimate.security_manager", new_callable=MagicMock)
 @patch("superset.commands.sql_lab.estimate.DatabaseDAO")
-def test_run_gives_the_processor_the_requested_schema(
+def test_run_gives_the_processor_the_query_location(
     mock_dao: MagicMock,
     mock_security_manager: MagicMock,
     mock_get_template_processor: MagicMock,
     mock_app: MagicMock,
 ) -> None:
     """The execution path builds its processor from the query, which carries the
-    selected schema. There is no query here, so the schema is passed directly --
-    without it a macro resolving an unqualified table (``latest_partition``)
-    would look in the default schema and estimate different SQL than Run."""
+    selected schema and catalog. Nothing is persisted here, so an unpersisted
+    query carries them instead -- without it a macro resolving an unqualified
+    table (``latest_partition``) would read the connection's defaults and
+    estimate different SQL than Run."""
     mock_app.config = {
         "DISALLOWED_SQL_FUNCTIONS": {},
         "DISALLOWED_SQL_TABLES": {},
@@ -912,10 +919,14 @@ def test_run_gives_the_processor_the_requested_schema(
     processor.process_template.return_value = "SELECT 1"
     processor.get_undefined_parameters.return_value = set()
 
-    command = QueryEstimationCommand(_make_params(sql="SELECT 1", schema="not_default"))
+    command = QueryEstimationCommand(
+        _make_params(sql="SELECT 1", schema="not_default", catalog="not_default_cat")
+    )
     command.run()
 
-    assert mock_get_template_processor.call_args.kwargs["schema"] == "not_default"
+    query = mock_get_template_processor.call_args.kwargs["query"]
+    assert query.schema == "not_default"
+    assert query.catalog == "not_default_cat"
 
 
 # ---------------------------------------------------------------------------
@@ -968,3 +979,85 @@ def test_run_reports_malformed_jinja_in_a_parameter_value(
     assert exc_info.value.status == 400
     assert exc_info.value.error.error_type == SupersetErrorType.GENERIC_COMMAND_ERROR
     mock_database.db_engine_spec.estimate_query_cost.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# What is authorized is the rendered text, checked through the real gate
+# ---------------------------------------------------------------------------
+
+
+@with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)
+@patch("superset.commands.sql_lab.estimate.app")
+@patch("superset.commands.sql_lab.estimate.get_template_processor")
+@patch("superset.commands.sql_lab.estimate.DatabaseDAO")
+def test_run_refuses_a_render_the_caller_cannot_access(
+    mock_dao: MagicMock,
+    mock_get_template_processor: MagicMock,
+    mock_app: MagicMock,
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """A template whose render reaches a table the caller cannot read is refused.
+
+    ``security_manager`` is deliberately *not* mocked -- only the grants
+    underneath it are -- so the refusal comes from ``raise_for_access`` running
+    for real on the rendered text. The source authorizes cleanly against a
+    registered ``allowed_ds``; the render does not, and the estimate is the
+    render.
+
+    The call *shape* (pinned as ``executed_sql``, the handle
+    ``_validate_rendered_access`` uses) is asserted separately in
+    ``test_run_reauthorizes_the_rendered_sql``: pinning and passing ``sql=``
+    authorize the same text while no template params are supplied, so this
+    test cannot tell them apart and does not try to.
+    """
+    mock_app.config = {
+        "DISALLOWED_SQL_FUNCTIONS": {},
+        "DISALLOWED_SQL_TABLES": {},
+        "SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT": 10,
+        "QUERY_COST_FORMATTERS_BY_ENGINE": {},
+    }
+    database = Database(
+        id=1, database_name="my_database", sqlalchemy_uri="postgresql://u:p@h/db"
+    )
+    mock_dao.find_by_id.return_value = database
+
+    # No database/schema/catalog grant: access can only come from a dataset.
+    mocker.patch.object(security_manager, "can_access_database", return_value=False)
+    mocker.patch.object(security_manager, "can_access_catalog", return_value=False)
+    mocker.patch.object(security_manager, "can_access_schema", return_value=False)
+    mocker.patch.object(security_manager, "is_guest_user", return_value=False)
+    mocker.patch.object(security_manager, "is_editor", return_value=False)
+    mocker.patch.object(
+        security_manager,
+        "can_access",
+        side_effect=lambda perm, vm: perm == "datasource_access",
+    )
+    # `allowed_ds` is registered; `secret_tbl` is not, so it cannot resolve to
+    # a dataset the caller holds `datasource_access` on.
+    SqlaTable = mocker.patch(  # noqa: N806
+        "superset.connectors.sqla.models.SqlaTable"
+    )
+    SqlaTable.query_datasources_by_name.side_effect = (
+        lambda _database, table_name, catalog=None, schema=None: (
+            [mocker.Mock(perm="[my_database].[allowed_ds](id:1)")]
+            if table_name == "allowed_ds"
+            else []
+        )
+    )
+
+    processor = mock_get_template_processor.return_value
+    processor.process_template.return_value = "SELECT * FROM secret_tbl"
+    processor.get_undefined_parameters.return_value = set()
+
+    estimate_query_cost = mocker.patch.object(
+        database.db_engine_spec, "estimate_query_cost"
+    )
+
+    command = QueryEstimationCommand(
+        _make_params(sql="SELECT * FROM allowed_ds", schema="public")
+    )
+    with pytest.raises(SupersetSecurityException):
+        command.run()
+
+    estimate_query_cost.assert_not_called()

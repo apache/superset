@@ -23,7 +23,7 @@ from flask import current_app as app
 from flask_babel import gettext as __
 from jinja2.exceptions import TemplateError
 
-from superset import is_feature_enabled, security_manager
+from superset import db, is_feature_enabled, security_manager
 from superset.commands.base import BaseCommand
 from superset.daos.database import DatabaseDAO
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -42,6 +42,7 @@ from superset.jinja_context import (
     undefined_parameters_message,
 )
 from superset.models.core import Database
+from superset.models.sql_lab import Query
 from superset.sql.parse import SQLScript
 from superset.utils import core as utils, json
 from superset.utils.rls import apply_rls
@@ -173,9 +174,24 @@ class QueryEstimationCommand(BaseCommand):
         # declared parameter to need rendering -- `get_time_filter()`,
         # `current_username()`, `url_param()` take none -- and SQL Lab posts an
         # empty `template_params` for an estimate, so those never rendered.
-        template_processor = get_template_processor(
-            self._database, schema=self._schema or None
+        # The execution path builds its processor from the SQL Lab query and
+        # authorizes the rendered text through it (`_validate_rendered_access`).
+        # Nothing is persisted here, so an unpersisted query carries the same
+        # context: the selected schema and catalog for a macro resolving an
+        # unqualified table, and, once rendered, the literal SQL to authorize.
+        # Built the way `raise_for_access` builds one from a raw `sql=`; never
+        # added to the session, expunged if a backref did.
+        query = Query(
+            database=self._database,
+            sql=self._sql,
+            schema=self._schema or None,
+            catalog=self._catalog,
+            client_id=utils.shortid()[:10],
+            user_id=utils.get_user_id(),
         )
+        if query in db.session:
+            db.session.expunge(query)
+        template_processor = get_template_processor(self._database, query=query)
         # Both calls sit inside the `TemplateError` catch, as they do in
         # `SqlQueryRenderImpl.render`: `get_undefined_parameters` parses the
         # rendered SQL with Jinja, so a parameter whose *value* carries
@@ -218,20 +234,17 @@ class QueryEstimationCommand(BaseCommand):
                 status=400,
             )
 
-        # Re-authorize the rendered SQL, the way the execution path does in
-        # `_validate_rendered_access`: the check in `validate()` authorizes a
+        # Re-authorize the rendered SQL the way `_validate_rendered_access`
+        # does: pinned as `executed_sql`, which `raise_for_access` prefers over
+        # `sql` + `template_params`. The check in `validate()` authorized a
         # render of its own, and a template need not render the same way twice
-        # -- `{{ ['a', 'b'] | random }}` resolves independently each time, so
-        # the first check can clear a table this estimate never touches, and
-        # miss the one it does. Passing no template params matches what that
-        # path passes.
-        security_manager.raise_for_access(
-            database=self._database,
-            sql=sql,
-            catalog=self._catalog,
-            schema=self._schema or None,
-            force_dataset_match=True,
-        )
+        # -- `{{ ['a', 'b'] | random }}` resolves independently each time --
+        # so the first check can clear a table this estimate never touches and
+        # miss the one it does. `raise_for_access` still passes the pinned text
+        # through `process_jinja_sql` with no template params, exactly as it
+        # does for the execution path; fully rendered SQL comes back unchanged.
+        query.executed_sql = sql
+        security_manager.raise_for_access(query=query, force_dataset_match=True)
 
         # Apply the same SQL security controls used by the execution path
         # (sql_lab.execute_sql_statements) so cost estimation cannot be used to
