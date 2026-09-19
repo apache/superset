@@ -272,10 +272,10 @@ def dispatch(
                 outcomes.append(Outcome(n, "dispatched", "dry-run"))
             else:
                 s = ensure_session(devin, payload, tag)
+                dispatched += 1
                 url = session_url(s)
                 ensure_comment(gh, n, f"dispatch:{n}", f"Fix session dispatched: {url}")
                 outcomes.append(Outcome(n, "dispatched", url))
-            dispatched += 1
         except ApiError as exc:  # keep going with the next issue
             log.error("[Issue #%d] dispatch failed: %s", n, exc)
             outcomes.append(Outcome(n, "failed", str(exc)[:200]))
