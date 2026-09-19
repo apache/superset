@@ -138,6 +138,9 @@ export default function chartReducer(
     [actions.UPDATE_QUERY_FORM_DATA](state) {
       return { ...state, latestQueryFormData: action.value };
     },
+    [actions.SET_CHART_FORM_DATA](state) {
+      return { ...state, form_data: action.formData };
+    },
     [actions.ANNOTATION_QUERY_STARTED](state) {
       if (state.annotationQuery?.[action.annotation.name]) {
         state.annotationQuery[action.annotation.name].abort();
