@@ -27,6 +27,7 @@ from flask import current_app
 from flask_babel import gettext as _
 from jinja2.exceptions import TemplateError
 from pandas import DataFrame
+from superset_core.semantic_layers.view import SemanticView as SemanticViewABC
 
 from superset import feature_flag_manager
 from superset.common.chart_data import ChartDataResultType
@@ -407,10 +408,11 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         """Validate query object"""
         try:
             if self.datasource and self.datasource.type == "semantic_view":
+                implementation: SemanticViewABC = cast(
+                    "SemanticView", self.datasource
+                ).implementation
                 try:
-                    cast(
-                        "SemanticView", self.datasource
-                    ).implementation.validate_selection_version(
+                    implementation.validate_selection_version(
                         self.extras.get("semantic_selection_version")
                     )
                 except ValueError as ex:

@@ -18,7 +18,7 @@
 from __future__ import annotations
 
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, PropertyMock
 
 import pyarrow as pa
 import pytest
@@ -218,3 +218,76 @@ def test_name_based_version_coexists_with_time_grain_without_auto_upgrade() -> N
     assert build_query_dict(metrics=["Orders.b"], time_grain="P1D")["extras"] == {
         "time_grain_sqla": "P1D"
     }
+
+
+def test_malformed_configuration_is_not_a_selection_version_error() -> None:
+    datasource: MagicMock = MagicMock(type="semantic_view")
+    type(datasource).implementation = PropertyMock(
+        side_effect=json.JSONDecodeError("private configuration", "{", 1)
+    )
+    query: QueryObject = QueryObject(
+        datasource=datasource,
+        metrics=["Orders.b"],
+        extras={"semantic_selection_version": "cube-member-id-v1"},
+    )
+    with pytest.raises(json.JSONDecodeError):
+        query.validate()
+
+
+@pytest.mark.parametrize(
+    "datasource_type,version",
+    [
+        ("semantic_view", "cube-member-id-v1"),
+        ("semantic_view", None),
+        ("table", None),
+    ],
+)
+def test_column_suggestions_version_gate_precedes_cache(
+    datasource_type: str,
+    version: str | None,
+) -> None:
+    from inspect import unwrap
+    from types import MethodType
+
+    from flask import Flask
+
+    from superset.datasource.api import DatasourceRestApi
+
+    app: Flask = Flask(__name__)
+    app.config["FILTER_SELECT_ROW_LIMIT"] = 100
+    app.config["SQL_MAX_ROW"] = 1000
+    datasource: MagicMock = MagicMock(
+        type=datasource_type, uid="1", normalize_columns=False, changed_on="fixed"
+    )
+    datasource.implementation.selection_identity_version = version
+    api: MagicMock = MagicMock()
+    api._column_values_response = MethodType(
+        DatasourceRestApi._column_values_response, api
+    )
+    cache: MagicMock
+    with (
+        app.test_request_context(),
+        patch(
+            "superset.datasource.api.DatasourceDAO.get_datasource",
+            return_value=datasource,
+        ),
+        patch("superset.datasource.api.cache_manager") as cache,
+        patch(
+            "superset.datasource.api.security_manager.get_rls_cache_key",
+            return_value=[],
+        ),
+    ):
+        cache.data_cache.get.return_value = ["cached"]
+        unwrap(DatasourceRestApi.get_column_values)(api, datasource_type, 1, "Orders.b")
+    datasource.raise_for_access.assert_called_once()
+    if version:
+        cache.data_cache.get.assert_not_called()
+        datasource.values_for_column.assert_not_called()
+        api.response.assert_called_once_with(
+            200,
+            result=[],
+            suggestions_status="unavailable_versioned_view",
+        )
+    else:
+        cache.data_cache.get.assert_called_once()
+        assert api.response.call_args.kwargs["result"] == ["cached"]

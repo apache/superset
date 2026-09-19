@@ -1139,3 +1139,21 @@ def test_external_view_selection_version_is_validation_error(
     temporal_view.implementation.validate_selection_version.assert_called_once_with(
         version
     )
+
+
+def test_external_view_malformed_configuration_is_sanitized(
+    temporal_view: MagicMock,
+) -> None:
+    from unittest.mock import PropertyMock
+
+    from superset.utils import json
+
+    type(temporal_view).implementation = PropertyMock(
+        side_effect=json.JSONDecodeError("PRIVATE_CONFIG", "{", 1)
+    )
+    result: object = get_table_module._resolve_external_view(
+        GetTableRequest(view_id=5, metrics=["bookings"])
+    )
+    assert isinstance(result, SemanticLayerError)
+    assert result.error_type == "ConfigurationError"
+    assert result.error == "The semantic view configuration is invalid."

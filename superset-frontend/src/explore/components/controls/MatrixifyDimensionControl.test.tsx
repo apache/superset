@@ -549,3 +549,32 @@ test('should preserve values when other props change but mode stays the same', a
     topNValues: [],
   });
 });
+
+test('versioned suggestions preserve selections and allow manual entry', async () => {
+  (SupersetClient.get as jest.Mock).mockResolvedValue({
+    json: { result: [], suggestions_status: 'unavailable_versioned_view' },
+  });
+  const onChange = jest.fn();
+  render(
+    <MatrixifyDimensionControl
+      {...defaultProps}
+      onChange={onChange}
+      value={{ dimension: 'country', values: ['saved'] }}
+      selectionMode="members"
+    />,
+  );
+  expect(
+    await screen.findByText(
+      'Suggestions are unavailable. Enter values manually.',
+    ),
+  ).toBeInTheDocument();
+  expect(onChange).not.toHaveBeenCalled();
+  await userEvent.type(
+    screen.getByRole('combobox', { name: 'Select dimension values' }),
+    'manual',
+  );
+  await userEvent.click(await screen.findByTitle('manual'));
+  expect(onChange).toHaveBeenCalledWith(
+    expect.objectContaining({ values: ['saved', 'manual'] }),
+  );
+});

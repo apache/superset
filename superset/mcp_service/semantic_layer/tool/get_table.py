@@ -31,6 +31,7 @@ from fastmcp import Context
 from sqlalchemy.exc import SQLAlchemyError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 from superset_core.semantic_layers.types import Dimension
+from superset_core.semantic_layers.view import SemanticView as SemanticViewABC
 
 from superset.commands.exceptions import CommandException
 from superset.common.tabular_query import (
@@ -54,6 +55,7 @@ from superset.mcp_service.semantic_layer.schemas import (
 from superset.mcp_service.utils.cache_utils import get_cache_status_from_result
 from superset.mcp_service.utils.oauth2_utils import build_oauth2_redirect_message
 from superset.mcp_service.utils.response_utils import format_data_columns
+from superset.utils import json
 
 if TYPE_CHECKING:
     from superset.semantic_layers.models import SemanticView
@@ -187,9 +189,14 @@ def _resolve_external_view(
         )
 
     try:
-        view.implementation.validate_selection_version(
-            request.semantic_selection_version
+        implementation: SemanticViewABC = view.implementation
+    except json.JSONDecodeError:
+        return SemanticLayerError.create(
+            error="The semantic view configuration is invalid.",
+            error_type="ConfigurationError",
         )
+    try:
+        implementation.validate_selection_version(request.semantic_selection_version)
     except ValueError as ex:
         return SemanticLayerError.create(
             error=str(ex),
