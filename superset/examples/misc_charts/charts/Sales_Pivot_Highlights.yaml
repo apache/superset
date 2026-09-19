@@ -1,0 +1,49 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+cache_timeout: null
+certification_details: null
+certified_by: null
+dataset_uuid: e8623bb9-5e00-f531-506a-19607f5f8005
+description: Sales pivoted by product line and deal size with cell highlighting.
+params:
+  colTotals: true
+  combineMetric: false
+  conditional_formatting:
+  - colorScheme: '#59C189'
+    column: SUM(sales)
+    operator: None
+  groupbyColumns:
+  - deal_size
+  groupbyRows:
+  - product_line
+  metrics:
+  - aggregate: SUM
+    column:
+      column_name: sales
+    expressionType: SIMPLE
+    label: SUM(sales)
+    optionName: metric_sales_pivot2
+  metricsLayout: COLUMNS
+  rowOrder: key_a_to_z
+  row_limit: 10000
+  time_range: No filter
+  viz_type: pivot_table_v2
+query_context: null
+slice_name: Sales Pivot Highlights
+uuid: b71548cd-6209-4713-99a8-569167cd8f42
+version: 1.0.0
+viz_type: pivot_table_v2
