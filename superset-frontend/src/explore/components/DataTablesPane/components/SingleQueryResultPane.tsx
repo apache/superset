@@ -62,6 +62,8 @@ export const SingleQueryResultPane = ({
   onDownloadCSV,
   onDownloadXLSX,
   onReload,
+  onServerSort,
+  isLoading = false,
 }: SingleQueryResultPaneProp) => {
   const [filterText, setFilterText] = useState('');
   const { gridHeight, measuredRef } = useGridHeight();
@@ -84,7 +86,7 @@ export const SingleQueryResultPane = ({
         datasourceId={datasourceId}
         onInputChange={handleInputChange}
         filterText={filterText}
-        isLoading={false}
+        isLoading={isLoading}
         canDownload={canDownload}
         rowLimit={rowLimit}
         rowLimitOptions={rowLimitOptions}
@@ -104,6 +106,7 @@ export const SingleQueryResultPane = ({
             size={GridSize.Small}
             externalFilter={keywordFilter}
             showRowNumber
+            onServerSort={onServerSort}
           />
         </GridSizer>
       </GridContainer>
