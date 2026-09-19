@@ -714,9 +714,10 @@ def test_export_rejects_unavailable_dependencies(
     else:
         with pytest.raises(refs.SemanticReferenceError):
             refs.export_dashboard_references(metadata)
-    assert (
-        "datasourceRef" not in metadata["native_filter_configuration"][0]["targets"][0]
-    )
+        assert (
+            "datasourceRef"
+            not in metadata["native_filter_configuration"][0]["targets"][0]
+        )
 
 
 @pytest.mark.parametrize(
