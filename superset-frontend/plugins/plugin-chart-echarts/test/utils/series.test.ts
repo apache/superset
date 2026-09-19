@@ -1048,11 +1048,30 @@ describe('getLegendProps', () => {
     ).toEqual({
       show: true,
       top: 0,
-      right: 55,
+      right: 90,
       orient: 'horizontal',
       type: 'scroll',
       ...expectedThemeProps,
     });
+  });
+
+  // #37286: a top-oriented legend shares the top-right corner with the
+  // zoomable toolbox, whose dataZoom icons reach ~67px in from the chart's
+  // right edge. Reserving less than that overlays the legend's All/Inv
+  // selector buttons on the zoom controls.
+  test('should reserve enough width to keep the legend selector clear of the zoomable toolbox', () => {
+    const { right } = getLegendProps(
+      LegendType.Scroll,
+      LegendOrientation.Top,
+      true,
+      theme,
+      true,
+    );
+    const TOOLBOX_ICONS_RIGHT_FOOTPRINT = 67;
+    const SAFETY_MARGIN = 15;
+    expect(right).toBeGreaterThan(
+      TOOLBOX_ICONS_RIGHT_FOOTPRINT + SAFETY_MARGIN,
+    );
   });
 
   test('should return the correct props for plain type with left orientation', () => {
