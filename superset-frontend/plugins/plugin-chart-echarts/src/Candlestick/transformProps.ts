@@ -56,7 +56,6 @@ import { defaultGrid, defaultYAxis } from '../defaults';
 import { getDefaultTooltip } from '../utils/tooltip';
 import {
   extractGroupbyLabel,
-  getChartPadding,
   getColtypesMapping,
   getLegendProps,
 } from '../utils/series';
@@ -64,6 +63,7 @@ import { convertInteger } from '../utils/convertInteger';
 import { mergeCustomEChartOptions } from '../utils/mergeCustomEChartOptions';
 import { safeParseEChartOptions } from '../utils/safeEChartOptionsParser';
 import { TIMESERIES_CONSTANTS } from '../constants';
+import { getPadding } from '../Timeseries/transformers';
 import { LegendOrientation, LegendType, Refs } from '../types';
 import { resolveLegendLayout } from '../utils/legendLayout';
 import {
@@ -567,11 +567,6 @@ export default function transformProps(
     theme,
     type: legendType,
   });
-  const legendPadding = getChartPadding(
-    showLegend,
-    legendOrientation,
-    effectiveLegendMargin,
-  );
 
   const dataZoom = zoomable
     ? [
@@ -595,33 +590,22 @@ export default function transformProps(
     Boolean(showXAxis && xAxisTitle) && xAxisTitleMarginPx !== 0;
   const addYAxisTitleOffset =
     Boolean(showYAxis && yAxisTitle) && yAxisTitleMarginPx !== 0;
-  const xAxisTitleOffset = addXAxisTitleOffset ? xAxisTitleMarginPx : 0;
-  const yAxisTitleTopOffset = !addYAxisTitleOffset
-    ? 0
-    : yAxisTitlePosition === 'Top'
-      ? yAxisTitleMarginPx
-      : yAxisTitlePosition === 'Left'
-        ? 0
-        : TIMESERIES_CONSTANTS.yAxisLabelTopOffset;
-  const yAxisTitleLeftOffset =
-    addYAxisTitleOffset && yAxisTitlePosition === 'Left'
-      ? yAxisTitleMarginPx
-      : 0;
+  const chartPadding = getPadding(
+    showLegend,
+    legendOrientation,
+    addYAxisTitleOffset,
+    zoomable,
+    effectiveLegendMargin,
+    addXAxisTitleOffset,
+    yAxisTitlePosition,
+    addYAxisTitleOffset ? yAxisTitleMarginPx : 0,
+    addXAxisTitleOffset ? xAxisTitleMarginPx : 0,
+  );
 
   const echartOptions: EChartsCoreOption = {
     grid: {
       ...defaultGrid,
-      top: theme.sizeUnit * 5 + legendPadding.top + yAxisTitleTopOffset,
-      bottom:
-        theme.sizeUnit * (showXAxis ? 5 : 3) +
-        legendPadding.bottom +
-        xAxisTitleOffset +
-        (zoomable ? TIMESERIES_CONSTANTS.gridOffsetBottomZoomable : 0),
-      left:
-        theme.sizeUnit * (showYAxis ? 5 : 2) +
-        legendPadding.left +
-        yAxisTitleLeftOffset,
-      right: theme.sizeUnit * 5 + legendPadding.right,
+      ...chartPadding,
     },
     legend: {
       ...getLegendProps(

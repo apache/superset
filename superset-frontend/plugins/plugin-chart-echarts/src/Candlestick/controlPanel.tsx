@@ -54,6 +54,18 @@ function hasSeriesDimension({
   return ensureIsArray(controls?.series?.value).length > 0;
 }
 
+type QueryRow = Record<string, unknown>;
+type ChartQueryResponse = { data?: QueryRow[] };
+
+const uniqueSeriesCountByResponse = new WeakMap<
+  ChartQueryResponse,
+  Map<string, number>
+>();
+const hasMultipleSeriesByProps = new WeakMap<
+  ControlPanelsContainerProps,
+  boolean
+>();
+
 function getSeriesColumnLabel(
   props: ControlPanelsContainerProps,
 ): string | undefined {
@@ -64,6 +76,13 @@ function getSeriesColumnLabel(
   return getColumnLabel(series as QueryFormColumn);
 }
 
+function getChartQueryResponse(
+  props: ControlPanelsContainerProps,
+): ChartQueryResponse | undefined {
+  return (props as { chart?: { queriesResponse?: ChartQueryResponse[] } }).chart
+    ?.queriesResponse?.[0];
+}
+
 function countUniqueSeriesValues(
   props: ControlPanelsContainerProps,
 ): number | undefined {
@@ -71,23 +90,37 @@ function countUniqueSeriesValues(
   if (!seriesColumn) {
     return undefined;
   }
-  const rows = (
-    props as {
-      chart?: { queriesResponse?: { data?: Record<string, unknown>[] }[] };
-    }
-  ).chart?.queriesResponse?.[0]?.data;
-  if (!rows) {
+  const queryResponse = getChartQueryResponse(props);
+  const rows = queryResponse?.data;
+  if (!queryResponse || !rows) {
     return undefined;
   }
-  return new Set(
+  let cachedByColumn = uniqueSeriesCountByResponse.get(queryResponse);
+  if (!cachedByColumn) {
+    cachedByColumn = new Map<string, number>();
+    uniqueSeriesCountByResponse.set(queryResponse, cachedByColumn);
+  }
+  const cachedCount = cachedByColumn.get(seriesColumn);
+  if (cachedCount !== undefined) {
+    return cachedCount;
+  }
+  const count = new Set(
     rows.map(row =>
       row[seriesColumn] == null ? null : String(row[seriesColumn]),
     ),
   ).size;
+  cachedByColumn.set(seriesColumn, count);
+  return count;
 }
 
 function hasMultipleSeries(props: ControlPanelsContainerProps): boolean {
-  return (countUniqueSeriesValues(props) ?? 0) > 1;
+  const cached = hasMultipleSeriesByProps.get(props);
+  if (cached !== undefined) {
+    return cached;
+  }
+  const result = (countUniqueSeriesValues(props) ?? 0) > 1;
+  hasMultipleSeriesByProps.set(props, result);
+  return result;
 }
 
 function showColorByDirection(props: ControlPanelsContainerProps): boolean {

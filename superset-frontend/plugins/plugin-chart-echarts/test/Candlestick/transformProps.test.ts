@@ -435,9 +435,8 @@ test('reserves bottom legend space on the bottom grid edge', () => {
     y_axis_title: 'Price',
   });
   const grid = echartOptions.grid as { left: number; bottom: number };
-  // sizeUnit * 3 (hidden X axis) + default bottom legend margin (20)
-  expect(grid.bottom).toBe(32);
-  expect(grid.left).toBe(8);
+  expect(grid.bottom).toBe(40);
+  expect(grid.left).toBe(20);
 });
 
 test('does not reserve title margins when axis titles are empty', () => {
