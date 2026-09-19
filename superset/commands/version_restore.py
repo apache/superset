@@ -38,6 +38,8 @@ from functools import partial
 from typing import Any, ClassVar
 from uuid import UUID
 
+from sqlalchemy.exc import SQLAlchemyError
+
 from superset import security_manager
 from superset.commands.base import BaseCommand
 from superset.exceptions import SupersetSecurityException
@@ -81,7 +83,20 @@ class BaseRestoreVersionCommand(BaseCommand):
         # reference ``self.failed_exc`` — a per-subclass ClassVar that
         # isn't available when this method is defined on the base (same
         # pattern and rationale as ``BaseRestoreCommand.run``).
-        @transaction(on_error=partial(on_error, reraise=self.failed_exc))
+        # ``catches`` widens past the SQLAlchemyError default so the
+        # restore engine's fail-closed registry guard (``LookupError``
+        # for a model missing from ``_RESTORE_RELATIONS``) maps to
+        # ``failed_exc`` → 422 instead of a raw 500 (sc-115326). The
+        # tuple is deliberately this narrow: other non-SQLAlchemy
+        # exceptions must keep passing through untouched for the
+        # endpoint to map explicitly.
+        @transaction(
+            on_error=partial(
+                on_error,
+                catches=(SQLAlchemyError, LookupError),
+                reraise=self.failed_exc,
+            )
+        )
         def _perform() -> RestoreResult:
             return self._do_restore()
 

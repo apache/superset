@@ -59,7 +59,10 @@ from superset.versioning.activity.kinds import (
     Window,
 )
 from superset.versioning.activity.windows import row_within_any_window
-from superset.versioning.changes import version_changes_table
+from superset.versioning.changes import (
+    ACTION_KINDS,
+    version_changes_table,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -371,7 +374,11 @@ def _select_change_rows_for_kinds(
         # declared on the Continuum Table by ``VersionTransactionFactory``,
         # so ``tx_tbl.c.action_kind`` resolves cleanly here. See
         # the three change-record dimensions.
-        tx_tbl.c.action_kind,
+        # Internal provenance is not part of the public action vocabulary.
+        sa.case(
+            (tx_tbl.c.action_kind.in_(sorted(ACTION_KINDS)), tx_tbl.c.action_kind),
+            else_=None,
+        ).label("action_kind"),
         user_tbl.c.id.label("changed_by_id"),
         user_tbl.c.first_name,
         user_tbl.c.last_name,
@@ -418,10 +425,17 @@ def _select_change_rows_for_kinds(
                 vc.c.sequence.desc(),
                 vc.c.entity_id.desc(),
             )
+            # stream_results rides the STATEMENT, never the connection:
+            # ``Connection.execution_options`` mutates the session's
+            # connection in place, permanently flipping every later
+            # statement on the request into a server-side cursor — on
+            # PostgreSQL that wraps subsequent INSERTs/SAVEPOINTs in
+            # ``DECLARE ... CURSOR FOR`` and they fail with a syntax
+            # error (observed: Continuum's transaction insert and the
+            # DBEventLogger write after an activity read; sc-120955).
             result = (
                 db.session.connection()
-                .execution_options(stream_results=True)
-                .execute(stmt)
+                .execute(stmt.execution_options(stream_results=True))
                 .mappings()
             )
             ordinal = _merge_result_into_heap(
