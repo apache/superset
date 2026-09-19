@@ -831,10 +831,12 @@ const PropertiesModal = ({
                   customCss={customCss}
                   hasCustomLabelsColor={hasCustomLabelsColor}
                   showChartTimestamps={showChartTimestamps}
+                  jsonMetadata={jsonMetadata}
                   onThemeChange={handleThemeChange}
                   onColorSchemeChange={onColorSchemeChange}
                   onCustomCssChange={handleCustomCssChange}
                   onShowChartTimestampsChange={setShowChartTimestamps}
+                  onJsonMetadataChange={setJsonMetadata}
                   addDangerToast={addDangerToast}
                 />
               ),
