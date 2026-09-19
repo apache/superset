@@ -304,19 +304,21 @@ test('renders chart in standalone mode', () => {
   expect(queryByTestId('standalone-app')).toBeInTheDocument();
 });
 
-test('renders chart in standalone mode when the param is "true"', () => {
-  // Screenshots request `standalone=true` (ChartStandaloneMode.HIDE_NAV).
-  // Guards chart thumbnails against regressing to the full editor.
+test('preserves legacy standalone=true as chart-only mode', () => {
+  // Backwards compatibility for links created before numeric modes existed.
+  // `standalone` is declared a number param, so getUrlParam maps 'true' to 1;
+  // the backend also still treats 'true' as standalone. Old bookmarks, embeds
+  // and report URLs must keep rendering chart-only rather than the full editor.
   const { queryByTestId } = renderWithRouter(
     standaloneState('?standalone=true'),
   );
   expect(queryByTestId('standalone-app')).toBeInTheDocument();
 });
 
-test('renders chart for an unrecognized truthy standalone value', () => {
-  // The backend treats anything but absent/'false'/'0' as standalone, so a
-  // value it accepts must not leave the frontend rendering the full editor
-  // inside an already nav-less page.
+test('renders chart-only for report captures (standalone=3)', () => {
+  // ChartStandaloneMode.REPORT. Report and thumbnail captures must stay
+  // chart-only; 3 is also what the backend's truthiness check accepts, so this
+  // doubles as coverage for any value it allows that is not the mode 2 opt-in.
   const { queryByTestId } = renderWithRouter(standaloneState('?standalone=3'));
   expect(queryByTestId('standalone-app')).toBeInTheDocument();
 });

@@ -137,6 +137,29 @@ test('getDashboardUrlParams should exclude multiple parameters when provided', (
   locationSpy.mockRestore();
 });
 
+test.each([
+  // Legacy form. Links, bookmarks and report URLs created before numeric
+  // standalone modes existed carry `standalone=true`, and must keep resolving to
+  // HideNav (1) rather than null, which callers would read as "not standalone".
+  ['?standalone=true', 1],
+  ['?standalone=TRUE', 1],
+  ['?standalone=false', 0],
+  // Canonical numeric modes.
+  ['?standalone=0', 0],
+  ['?standalone=1', 1],
+  ['?standalone=2', 2],
+  // Report/thumbnail captures (ChartStandaloneMode.REPORT).
+  ['?standalone=3', 3],
+  // Absent or unparseable yields null so callers can apply their own default.
+  ['', null],
+  ['?standalone=banana', null],
+])(
+  'getUrlParam coerces %s to %p for the numeric standalone param',
+  (search, expected) => {
+    expect(getUrlParam(URL_PARAMS.standalone, search)).toBe(expected);
+  },
+);
+
 test('getUrlParam reads from window.location.search by default', () => {
   const locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
     ...window.location,
