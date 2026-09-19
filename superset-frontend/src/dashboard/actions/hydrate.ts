@@ -55,6 +55,7 @@ import getLocationHash from 'src/dashboard/util/getLocationHash';
 import newComponentFactory, {
   DashboardEntity,
 } from 'src/dashboard/util/newComponentFactory';
+import removeUnreachableComponents from 'src/dashboard/util/removeUnreachableComponents';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
@@ -133,11 +134,14 @@ export const hydrateDashboard =
     // new dash: position_json could be {} or null
     // getEmptyLayout() includes a version string entry plus BasicLayoutItem entries
     // which lack the `meta` field; layout is mutated below to add full LayoutItem entries
-    const layout = (
-      positionData && Object.keys(positionData).length > 0
+    // Detached components are dropped before anything indexes the layout: they
+    // never render, but a detached cycle crashes the filter scope modal, and a
+    // chart trapped in one is neither visible nor eligible for re-adding below.
+    const layout = removeUnreachableComponents(
+      (positionData && Object.keys(positionData).length > 0
         ? positionData
-        : getEmptyLayout()
-    ) as Record<string, LayoutItem | DashboardEntity>;
+        : getEmptyLayout()) as Record<string, LayoutItem | DashboardEntity>,
+    );
 
     // create a lookup to sync layout names with slice names
     const chartIdToLayoutId: Record<number, string> = {};
