@@ -28,6 +28,7 @@ import {
   ChartCustomization,
   getSemanticSelectionSources,
   QueryFormColumn,
+  QueryFormData,
   SemanticSelectionSource,
 } from '@superset-ui/core';
 import {
@@ -131,6 +132,14 @@ const cachedFormdataByChart: Record<
     dataMask: DataMask;
     extraControls: Record<string, string | boolean | null>;
     nativeFilters: PartialFilters;
+    chartSelectionInput: Partial<
+      Pick<
+        QueryFormData,
+        | 'datasource'
+        | 'semantic_selection_version'
+        | 'semantic_selection_sources'
+      >
+    >;
   }
 > = {};
 
@@ -504,6 +513,11 @@ export default function getFormDataWithExtraFilters({
   chartCustomization,
   activeFilters: passedActiveFilters,
 }: GetFormDataWithExtraFiltersArguments) {
+  const chartSelectionInput = {
+    datasource: chart.form_data?.datasource,
+    semantic_selection_version: chart.form_data?.semantic_selection_version,
+    semantic_selection_sources: chart.form_data?.semantic_selection_sources,
+  };
   const cachedFormData = cachedFormdataByChart[sliceId];
   const dataMaskEqual = areObjectsEqual(cachedFormData?.dataMask, dataMask, {
     ignoreUndefined: true,
@@ -515,6 +529,7 @@ export default function getFormDataWithExtraFilters({
   );
   if (
     cachedFiltersByChart[sliceId] === filters &&
+    isEqual(cachedFormData?.chartSelectionInput, chartSelectionInput) &&
     areObjectsEqual(cachedFormData?.own_color_scheme, ownColorScheme) &&
     areObjectsEqual(cachedFormData?.color_scheme, colorScheme) &&
     areObjectsEqual(cachedFormData?.color_namespace, colorNamespace, {
@@ -679,6 +694,7 @@ export default function getFormDataWithExtraFilters({
   cachedFiltersByChart[sliceId] = filters;
   cachedFormdataByChart[sliceId] = {
     ...formData,
+    chartSelectionInput,
     dataMask,
     extraControls,
     nativeFilters,

@@ -390,6 +390,8 @@ function ChartRendererComponent({
               extraFormData: {
                 ...dataMask.extraFormData,
                 semantic_selection_sources: [
+                  ...(dataMask.extraFormData?.semantic_selection_sources ?? []),
+                  ...(sourceForm.semantic_selection_sources ?? []),
                   {
                     datasource: sourceForm.datasource,
                     version: sourceForm.semantic_selection_version ?? null,

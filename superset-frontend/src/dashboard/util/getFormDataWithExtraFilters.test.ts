@@ -968,3 +968,36 @@ test.each([[42], ['Orders.count'], ['']])(
     ).toBe('unverified-external-selections');
   },
 );
+
+test.each([
+  { semantic_selection_version: 'next-version' },
+  {
+    semantic_selection_sources: [
+      { datasource: 'other__semantic_view', version: null },
+    ],
+  },
+  { datasource: '8__semantic_view' },
+])('cache invalidates when chart selection provenance changes: %p', change => {
+  const args = {
+    ...mockArgs,
+    filters: {},
+    chart: {
+      ...mockChart,
+      form_data: {
+        ...mockChart.form_data,
+        datasource: '7__semantic_view',
+        semantic_selection_version: 'cube-member-id-v1',
+        semantic_selection_sources: [],
+      },
+    },
+  };
+  const first = getFormDataWithExtraFilters(args);
+  const cached = getFormDataWithExtraFilters(args);
+  expect(getFormDataWithExtraFilters(args)).toBe(cached);
+  const changed = getFormDataWithExtraFilters({
+    ...args,
+    chart: { ...args.chart, form_data: { ...args.chart.form_data, ...change } },
+  });
+  expect(changed).not.toBe(first);
+  expect(changed).toEqual(expect.objectContaining(change));
+});

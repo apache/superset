@@ -229,6 +229,9 @@ async def get_compatible_metrics(
                 source="external",
                 view_id=view.id,
                 view_name=view.name,
+                semantic_selection_version=(
+                    view.implementation.selection_identity_version
+                ),
             )
             for name in compatible_names
         ]
