@@ -16,12 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { buildQueryContext, QueryFormOrderBy } from '@superset-ui/core';
+import {
+  buildQueryContext,
+  ensureIsArray,
+  QueryFormOrderBy,
+} from '@superset-ui/core';
 import { SankeyFormData } from './types';
 
 export default function buildQuery(formData: SankeyFormData) {
-  const { metric, sort_by_metric, source, target, row_limit } = formData;
-  const groupby = [source, target];
+  const {
+    metric,
+    sort_by_metric,
+    source,
+    target,
+    intermediate_levels,
+    row_limit,
+  } = formData;
+  const groupby = [source, ...ensureIsArray(intermediate_levels), target];
   const orderby: QueryFormOrderBy[] = [];
   const shouldApplyOrderBy =
     row_limit !== undefined && row_limit !== null && row_limit !== 0;
@@ -29,7 +40,7 @@ export default function buildQuery(formData: SankeyFormData) {
   if (sort_by_metric && metric) {
     orderby.push([metric, false]);
   }
-  [source, target].forEach(column => {
+  groupby.forEach(column => {
     if (column) {
       orderby.push([column, true]);
     }
