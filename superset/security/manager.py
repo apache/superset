@@ -2330,11 +2330,16 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         access to render that dashboard's charts and datasets, without explicit
         per-chart or per-datasource grants.
 
-        This is the case for an embedded guest with access to the dashboard, or a
-        viewer of a published dashboard when ``VIEWER_PROMISCUOUS_MODE`` is
-        enabled. It mirrors the inheritance the legacy dashboard-level RBAC
+        This is the case for an embedded guest with access to the dashboard, or
+        for an editor or viewer of the dashboard when ``VIEWER_PROMISCUOUS_MODE``
+        is enabled. It mirrors the inheritance the legacy dashboard-level RBAC
         provided: dashboard access flows down to the charts and datasets it
         contains.
+
+        The ``published`` requirement tracks the dashboard read gate in
+        :meth:`raise_for_access`: editors are admitted regardless of
+        publication state, viewers only for a published dashboard, so an
+        editor's own unpublished dashboard still renders its charts.
         """
         from superset import is_feature_enabled
 
@@ -2347,8 +2352,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             or (
                 is_feature_enabled("ENABLE_VIEWERS")
                 and current_app.config.get("VIEWER_PROMISCUOUS_MODE")
-                and self.is_viewer(dashboard)
-                and dashboard.published
+                and (
+                    self.is_editor(dashboard)
+                    or (self.is_viewer(dashboard) and dashboard.published)
+                )
             )
         )
 
@@ -2370,12 +2377,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     def _promiscuous_viewer_inherits_chart(self, chart: "Slice") -> bool:
         """Return True if the current user inherits access to ``chart`` as an
-        editor or viewer of a published dashboard the chart belongs to, under
+        editor or viewer of a dashboard the chart belongs to, under
         ``VIEWER_PROMISCUOUS_MODE``.
 
-        Embedded guests are deliberately excluded here: a guest's access is
-        scoped by its token (and its dataset allowlist) and is authorized
-        through the embedded path, not this promiscuous-viewer inheritance.
+        Applies to signed-in principals; an embedded guest is authorized
+        through the token-scoped embedded path, which enforces its dataset
+        allowlist.
         """
         from superset import is_feature_enabled
         from superset.subjects.utils import get_inherited_slice_ids_subquery
@@ -2400,13 +2407,13 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         self, datasource: "BaseDatasource | Explorable"
     ) -> bool:
         """Return True if the current user inherits access to ``datasource`` as
-        an editor or viewer of a published dashboard that uses it, under
+        an editor or viewer of a dashboard that uses it, under
         ``VIEWER_PROMISCUOUS_MODE``.
 
         This is the datasource-metadata and data-query counterpart of
-        :meth:`_promiscuous_viewer_inherits_chart`. Embedded guests are excluded
-        for the same reason; their datasource access flows through the strict,
-        request-bound dashboard path.
+        :meth:`_promiscuous_viewer_inherits_chart`, and applies to the same
+        signed-in principals; an embedded guest's datasource access flows
+        through the strict, request-bound dashboard path.
         """
         from superset import is_feature_enabled
         from superset.subjects.utils import get_inherited_datasource_ids_subquery
@@ -5106,8 +5113,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 # chart the request references may query that chart's datasource.
                 or self._has_promiscuous_chart_access(datasource, form_data)
                 # Dashboard-viewer promiscuous mode: a viewer or editor of a
-                # published dashboard that uses this datasource inherits access
-                # to it, independent of the request's ``form_data``. This is what
+                # dashboard that uses this datasource inherits access to it,
+                # independent of the request's ``form_data``. This is what
                 # lets ``GET /dashboard/<id>/datasets`` serve full metadata to a
                 # promiscuous viewer.
                 or self._promiscuous_viewer_inherits_datasource(datasource)
@@ -5215,8 +5222,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 return
 
             # Dashboard-viewer promiscuous mode: a viewer or editor of a
-            # published dashboard the chart belongs to inherits access to the
-            # chart itself, so its definition (``form_data``) can be served for
+            # dashboard the chart belongs to inherits access to the chart
+            # itself, so its definition (``form_data``) can be served for
             # rendering. This is datasource-type agnostic and covers charts
             # whose datasource cannot be resolved above.
             if self._promiscuous_viewer_inherits_chart(chart):

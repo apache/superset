@@ -89,27 +89,36 @@ def get_user_subject_ids_subquery(user_id: int) -> CompoundSelect:
 def get_inherited_slice_ids_subquery(user_id: int) -> CompoundSelect:
     """Return a Select of Slice IDs a user inherits access to via a dashboard.
 
-    A user who is an editor or viewer of a *published* dashboard inherits
-    access to every chart on that dashboard. This expresses the promiscuous
-    ``ENABLE_VIEWERS`` inheritance as SQL so it can back both per-object access
-    checks and (composed opt-in) list filters. The feature-flag gate is the
-    caller's responsibility — this builder is pure and never executed here.
+    An editor or viewer of a dashboard inherits access to every chart on it.
+    This expresses the promiscuous ``ENABLE_VIEWERS`` inheritance as SQL so it
+    can back both per-object access checks and (composed opt-in) list filters.
+    The feature-flag gate is the caller's responsibility — this builder is pure
+    and never executed here.
+
+    The ``published`` gate applies to the viewers leg only, tracking the
+    dashboard read gate in ``raise_for_access``: editors are admitted
+    regardless of publication state, viewers only for a published dashboard.
+    Gating editors too would strip ``form_data`` from every chart of an
+    unpublished dashboard its own editor can legitimately open.
     """
     subject_subquery = get_user_subject_ids_subquery(user_id)
 
-    def via(assoc: Any) -> Select:
-        return (
+    def via(assoc: Any, *, require_published: bool) -> Select:
+        stmt = (
             select(dashboard_slices.c.slice_id)
             .select_from(dashboard_slices)
             .join(Dashboard, Dashboard.id == dashboard_slices.c.dashboard_id)
             .join(assoc, assoc.c.dashboard_id == Dashboard.id)
-            .where(
-                Dashboard.published.is_(True),
-                assoc.c.subject_id.in_(subject_subquery),
-            )
+            .where(assoc.c.subject_id.in_(subject_subquery))
         )
+        if require_published:
+            stmt = stmt.where(Dashboard.published.is_(True))
+        return stmt
 
-    return union_all(via(dashboard_editors), via(dashboard_viewers))
+    return union_all(
+        via(dashboard_editors, require_published=False),
+        via(dashboard_viewers, require_published=True),
+    )
 
 
 def get_inherited_datasource_ids_subquery(user_id: int, datasource_type: str) -> Select:
