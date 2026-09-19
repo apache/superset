@@ -6860,7 +6860,7 @@
           },
           "offset": {
             "nullable": true,
-            "type": "integer"
+            "type": "number"
           },
           "schema": {
             "maxLength": 255,
