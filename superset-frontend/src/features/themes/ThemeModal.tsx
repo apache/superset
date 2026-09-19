@@ -64,6 +64,7 @@ import {
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { ThemeObject } from './types';
+import ThemeColorPickers from './ThemeColorPickers';
 
 type EditorAnnotation = editors.EditorAnnotation;
 
@@ -632,6 +633,15 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
               dataTest="theme-editors-select"
             />
           </Form.Item>
+
+          {!isReadOnly && (
+            <Form.Item label={t('Colors')}>
+              <ThemeColorPickers
+                jsonData={currentTheme?.json_data || ''}
+                onChange={onJsonDataChange}
+              />
+            </Form.Item>
+          )}
 
           <Form.Item label={t('JSON Configuration')} required={!isReadOnly}>
             <Alert
