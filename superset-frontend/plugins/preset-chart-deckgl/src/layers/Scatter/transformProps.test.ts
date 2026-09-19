@@ -301,3 +301,34 @@ test('Scatter transformProps should preserve extra properties from records', () 
     another_field: 123,
   });
 });
+
+test.each([91, -91, Number.NaN, Number.POSITIVE_INFINITY, '37.8', null])(
+  'typed geographic points reject invalid latitude %s',
+  latitude => {
+    const props = {
+      ...mockChartProps,
+      rawFormData: {
+        ...mockChartProps.rawFormData,
+        mcp_geographic: true,
+        point_radius_fixed: { type: 'fix', value: 1000 },
+      },
+      queriesData: [{ data: [{ LATITUDE: latitude, LONGITUDE: -122.4 }] }],
+    } as ChartProps;
+    expect(() => transformProps(props)).toThrow('Geographic coordinate');
+  },
+);
+
+test('typed geographic points preserve longitude-latitude ordering and metric radius', () => {
+  const props = {
+    ...mockChartProps,
+    rawFormData: {
+      ...mockChartProps.rawFormData,
+      mcp_geographic: true,
+      point_radius_fixed: { type: 'metric', value: 'population' },
+    },
+  } as ChartProps;
+  expect(transformProps(props).payload.data.features[0]).toMatchObject({
+    position: [-122.4, 37.8],
+    radius: 50000,
+  });
+});

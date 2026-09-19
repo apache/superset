@@ -23,6 +23,7 @@ import {
   getMetricLabel,
   getValueFormatter,
 } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import transformData from './transformData';
 
 export default function transformProps(chartProps: ChartProps) {
@@ -61,21 +62,29 @@ export default function transformProps(chartProps: ChartProps) {
   } = datasource;
   const { data: rawData, detected_currency: detectedCurrency } = queriesData[0];
 
+  if (formData.mcpGeographic && !Array.isArray(rawData)) {
+    throw new Error(
+      t('Expected geographic query data to be a list of records'),
+    );
+  }
+
   // The legacy explore_json endpoint joined country metadata server-side;
   // rows carrying both the entity and metric labels are v1 records that
   // still need that join, anything else is a pre-shaped legacy payload.
   const entityLabel = getColumnLabel(entity);
   const metricLabel = getMetricLabel(metric);
   const data =
-    Array.isArray(rawData) &&
-    rawData.length > 0 &&
-    entityLabel in rawData[0] &&
-    metricLabel in rawData[0]
-      ? transformData(rawData, {
+    formData.mcpGeographic ||
+    (Array.isArray(rawData) &&
+      rawData.length > 0 &&
+      entityLabel in rawData[0] &&
+      metricLabel in rawData[0])
+      ? transformData(rawData ?? [], {
           entity,
           metric,
           secondaryMetric,
           countryFieldtype,
+          strict: formData.mcpGeographic,
         })
       : rawData;
 

@@ -42,7 +42,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from superset.commands.exceptions import CommandException
 from superset.errors import SupersetErrorType
 from superset.mcp_service.chart.query_result import (
-    normalize_gauge_query_result,
+    normalize_chart_query_result,
     query_result_failure,
 )
 from superset.mcp_service.chart.schemas import ChartError
@@ -135,7 +135,9 @@ def _compile_chart(
         query_form_data["datasource_type"] = "table"
         query_context = build_query_context_from_form_data(
             query_form_data,
-            row_limit=min(10, int(form_data.get("row_limit") or 10))
+            row_limit=min(10000, max(1, int(form_data.get("row_limit") or 10000)))
+            if form_data.get("mcp_geographic")
+            else min(10, int(form_data.get("row_limit") or 10))
             if form_data.get("viz_type") == "gauge_chart"
             else 2,
             force=False,
@@ -156,22 +158,39 @@ def _compile_chart(
                 tier="compile",
                 error_obj=_build_compile_error(error_str),
             )
-        result = normalize_gauge_query_result(result, form_data)
+        result = normalize_chart_query_result(result, form_data)
         if isinstance(result, ChartError):
+            error_code = (
+                "INVALID_GEOGRAPHIC_RESULT"
+                if form_data.get("mcp_geographic")
+                else "INVALID_GAUGE_RESULT"
+            )
             return CompileResult(
                 success=False,
                 error=result.error,
-                error_code="INVALID_GAUGE_RESULT",
+                error_code=error_code,
                 tier="compile",
                 error_obj=ChartGenerationError(
                     error_type=result.error_type,
-                    message="Gauge metric query returned invalid values",
+                    message=(
+                        "Geographic query returned invalid values"
+                        if form_data.get("mcp_geographic")
+                        else "Gauge metric query returned invalid values"
+                    ),
                     details=result.error,
-                    suggestions=[
-                        "Use a numeric-producing metric",
-                        "Check the metric alias and SQL expression",
-                    ],
-                    error_code="INVALID_GAUGE_RESULT",
+                    suggestions=(
+                        [
+                            "Match country and value format to the source identifiers",
+                            "Correct source values or filter other geographies",
+                            "Use finite numeric metrics and valid latitude/longitude",
+                        ]
+                        if form_data.get("mcp_geographic")
+                        else [
+                            "Use a numeric-producing metric",
+                            "Check the metric alias and SQL expression",
+                        ]
+                    ),
+                    error_code=error_code,
                 ),
             )
         for query in result.get("queries", []):
