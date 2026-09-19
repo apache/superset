@@ -20,5 +20,5 @@ or a developer shell::
 
     python -m automation.orchestrator dispatch --dry-run
     python -m automation.orchestrator stale-branches [--delete]
-    python -m automation.orchestrator watch-session <session_id> --issue 14
+    python -m automation.orchestrator watch-session <session_id> --issue <issue_number>
 """
