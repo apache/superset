@@ -228,3 +228,138 @@ def test_no_time_grain_override_preserves_saved_axis_grain() -> None:
 
     assert query["columns"][0]["timeGrain"] == "P1D"
     assert query["extras"]["time_grain_sqla"] == "P1D"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "viz_type,query_count",
+    [
+        ("echarts_timeseries_bar", 1),
+        ("mixed_timeseries", 2),
+    ],
+)
+@pytest.mark.parametrize("grain,expected_rows", [(None, 25), ("P1M", 1), ("P1W", 5)])
+@pytest.mark.usefixtures("_no_datasource_engine_lookup")
+async def test_saved_chart_grain_acceptance(
+    mocker: MockerFixture,
+    app_context: None,
+    grain: str | None,
+    expected_rows: int,
+    viz_type: str,
+    query_count: int,
+) -> None:
+    """Execute single- and multi-query charts with real temporal aggregation."""
+    import importlib
+    from contextlib import nullcontext
+    from copy import deepcopy
+    from types import SimpleNamespace
+    from unittest.mock import AsyncMock
+
+    from sqlalchemy import text
+
+    from superset.mcp_service.chart.schemas import (
+        ChartData,
+        ChartSql,
+        GetChartDataRequest,
+    )
+    from superset.mcp_service.chart.tool.get_chart_sql import (
+        _sql_from_saved_query_context,
+    )
+    from superset.models.slice import Slice
+    from superset.utils import json
+
+    mocker.patch(f"{__name__}._START", datetime(2020, 6, 1))
+    table = _events_dataset(mocker)
+    table.id = 1
+    # Keep 25 June dates spanning all five weekly buckets, plus out-of-range rows.
+    with table.database.get_sqla_engine() as engine:
+        with engine.begin() as connection:
+            connection.execute(
+                text(
+                    "DELETE FROM events WHERE ts >= '2020-06-06' AND ts < '2020-06-11'"
+                )
+            )
+    mocker.patch(
+        "superset.common.query_context_factory.DatasourceDAO.get_datasource",
+        return_value=table,
+    )
+    mocker.patch("superset.common.query_context.QueryContext.raise_for_access")
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    query = _saved_query("P1D")
+    query["granularity"] = "ts"
+    non_axis = {"sqlExpression": "1", "label": "constant", "timeGrain": "P1D"}
+    query["columns"].append(deepcopy(non_axis))
+    chart = Slice(
+        id=1,
+        slice_name="Grain acceptance",
+        viz_type=viz_type,
+        datasource_id=1,
+        datasource_type="table",
+        table=table,
+        params=json.dumps({"viz_type": viz_type}),
+        query_context=json.dumps(
+            {
+                "datasource": {"id": 1, "type": "table"},
+                "queries": [deepcopy(query) for _ in range(query_count)],
+                "result_type": "full",
+                "result_format": "json",
+            }
+        ),
+    )
+    mocker.patch.object(module, "find_chart_by_identifier", return_value=chart)
+    mocker.patch.object(
+        module,
+        "validate_chart_dataset",
+        return_value=SimpleNamespace(is_valid=True, warnings=[]),
+    )
+    mocker.patch.object(
+        module,
+        "event_logger",
+        SimpleNamespace(log_context=lambda **kwargs: nullcontext()),
+    )
+    mocker.patch.object(module.guest_scope, "is_guest_read", return_value=False)
+    mocker.patch.object(module.guest_scope, "guest_dashboard_id", return_value=None)
+    extra = {"time_range": "2020-06-01 : 2020-07-01"}
+    if grain:
+        extra["time_grain_sqla"] = grain
+    merge_spy = mocker.spy(module, "merge_extra_form_data_filters_into_query")
+    response = await module.execute_chart_data(
+        GetChartDataRequest(
+            identifier=1,
+            extra_form_data=extra,
+            use_cache=False,
+            force_refresh=True,
+            limit=1000,
+        ),
+        AsyncMock(),
+    )
+    assert isinstance(response, ChartData), response
+    results = response.query_results or [response]
+    assert len(results) == query_count
+    counts = [result.row_count for result in results]
+    assert counts == [expected_rows] * query_count
+    assert [len(result.data) for result in results] == [expected_rows] * query_count
+    assert all(sum(row["ct"] for row in result.data) == 25 for result in results)
+    for call in merge_spy.call_args_list:
+        assert call.args[0]["columns"][1] == non_axis
+    if grain is None:
+        expected_dates = [
+            pd.Timestamp(2020, 6, day)
+            for day in range(1, 31)
+            if day not in range(6, 11)
+        ]
+        for result in results:
+            actual_dates = pd.to_datetime([row["ts"] for row in result.data])
+            assert sorted(actual_dates) == expected_dates
+    sql_response = _sql_from_saved_query_context(chart, extra)
+    assert isinstance(sql_response, ChartSql), sql_response
+    assert not sql_response.error
+    sql_counts = []
+    with table.database.get_sqla_engine() as engine:
+        with engine.connect() as connection:
+            for statement in sql_response.sql.split(";"):
+                if statement.strip():
+                    rows = connection.execute(text(statement)).fetchall()
+                    sql_counts.append(len(rows))
+                    assert sum(row.ct for row in rows) == 25
+    assert sql_counts == [expected_rows] * query_count
