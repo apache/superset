@@ -320,7 +320,7 @@ key is deliberately **not** sent: because the `@semantic_layer` decorator
 prefixes extension IDs, no stable bare key exists to publish, and behavior
 keyed off provider identity would not survive that prefixing.
 
-Explore translates `semantic_view_features` exactly once, in the
+For column pickers, Explore translates `semantic_view_features` exactly once, in the
 datasource-to-picker-capabilities adapter
 (`superset-frontend/src/explore/components/controls/DndColumnSelectControl/utils/pickerCapabilities.ts`),
 into a provider-neutral `ColumnPickerCapabilities` value. That adapter is the
@@ -334,3 +334,28 @@ column picker: its dimensions are listed as Saved options and the Simple and
 Custom SQL modes are visible but disabled, so users cannot build an expression
 the backend would reject. Unknown feature strings and payloads with no
 `semantic_view_features` field are ignored, preserving existing behavior.
+
+#### Server pagination
+
+A view may declare `SemanticViewFeature.ROW_OFFSET` when it supports
+non-negative row offsets together with a positive finite limit. This does not
+promise offset-without-limit support, stable ordering without a sort, or snapshot
+consistency across pages. Providers remain responsible for validating query
+shapes and must honor offsets or return a clear error, never silently repeat
+the first page.
+
+The Table chart reads this capability from `semantic_view_features`. For a
+semantic view with missing, empty, or unknown-only capabilities, **Server
+pagination** remains visible but disabled with an explanation. Ordinary SQL
+datasets keep their existing controls. Existing saved settings are preserved:
+an unsupported query continues to return the provider's actionable error until
+the author explicitly turns off server pagination and saves the chart. Opening
+a chart or switching datasources does not rewrite pagination settings. A saved
+enabled control offers a **Turn off server pagination** action beside the
+explanation.
+
+This is an optional UI capability, not a new permission or a host-wide query
+validator. Direct API callers continue to use provider-local enforcement.
+Providers must deploy against a compatible core version before importing the
+new enum member. Older providers remain valid with an empty feature set; their
+Table pagination controls stay disabled until they explicitly opt in.

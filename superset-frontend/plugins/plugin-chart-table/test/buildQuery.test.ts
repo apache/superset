@@ -734,3 +734,56 @@ describe('plugin-chart-table', () => {
     });
   });
 });
+
+test('preserves saved semantic pagination and ordering until an explicit edit', () => {
+  const saved: TableChartFormData = Object.freeze({
+    ...basicFormData,
+    datasource: '1__semantic_view',
+    query_mode: QueryMode.Aggregate,
+    metrics: ['count'],
+    groupby: ['category'],
+    server_pagination: true,
+    server_page_length: 2,
+    row_limit: 100,
+  });
+  const ownState = Object.freeze({
+    currentPage: 1,
+    pageSize: 2,
+    sortBy: [{ key: 'category', desc: false }],
+  });
+  const { queries } = buildQueryUncached(saved, { ownState });
+  expect(queries[0]).toMatchObject({
+    row_offset: 2,
+    row_limit: 2,
+    orderby: [['category', true]],
+  });
+  expect(queries[1]).toMatchObject({ is_rowcount: true, row_offset: 0 });
+  expect(saved.server_pagination).toBe(true);
+  expect(ownState.currentPage).toBe(1);
+
+  const edited = buildQueryUncached(
+    { ...saved, server_pagination: false },
+    { ownState },
+  );
+  expect(edited.queries[0].row_offset ?? 0).toBe(0);
+  expect(edited.queries).toHaveLength(1);
+  expect(saved.server_pagination).toBe(true);
+});
+
+test.each(['csv', 'xlsx'])(
+  'retains semantic %s download offset behavior',
+  resultFormat => {
+    const { queries } = buildQueryUncached(
+      {
+        ...basicFormData,
+        datasource: '1__semantic_view',
+        server_pagination: true,
+        server_page_length: 2,
+        row_limit: 100,
+        result_format: resultFormat,
+      },
+      { ownState: { currentPage: 1, pageSize: 2 } },
+    );
+    expect(queries[0]).toMatchObject({ row_offset: 0, row_limit: 100 });
+  },
+);
