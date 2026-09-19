@@ -127,7 +127,6 @@ from superset.utils.screenshots import (
     ChartScreenshot,
     DEFAULT_CHART_WINDOW_SIZE,
     ScreenshotCachePayload,
-    StatusValues,
 )
 from superset.utils.urls import get_url_path
 from superset.versioning.api_helpers import (
@@ -1210,9 +1209,20 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
                 task_status=cache_payload.get_status(),
             )
 
-        if cache_payload.should_trigger_task(force, expected_scope=f"chart:{chart.id}"):
+        if cache_payload.should_trigger_task(
+            force,
+            expected_scope=f"chart:{chart.id}",
+            check_updated_staleness=screenshot_obj.supports_updated_staleness,
+        ):
             logger.info("Triggering screenshot ASYNC")
-            screenshot_obj.cache.set(cache_key, ScreenshotCachePayload().to_dict())
+            # Mark the entry in-flight without discarding any retained image: a
+            # fresh empty payload here would 404 the image_url during the retry
+            # and, if the render fails again, permanently lose the last-good
+            # image. `computing()` keeps `_image`, refreshes the timestamp and
+            # flips status to COMPUTING, so the read path keeps serving the
+            # last-good image while the task runs.
+            cache_payload.computing()
+            screenshot_obj.cache.set(cache_key, cache_payload.to_dict())
             cache_chart_thumbnail.delay(
                 current_user=get_current_user(),
                 chart_id=chart.id,
@@ -1278,16 +1288,22 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             # serve its image under a different, merely-accessible `pk`.
             if cache_payload.get_scope() != f"chart:{chart.id}":
                 return self.response_404()
-            if cache_payload.status == StatusValues.UPDATED:
-                try:
-                    image = cache_payload.get_image()
-                except ScreenshotImageNotAvailableException:
-                    return self.response_404()
-                return Response(
-                    FileWrapper(image),
-                    mimetype="image/png",
-                    direct_passthrough=True,
-                )
+            # Serve whenever a valid image is present instead of gating on
+            # status == UPDATED. A failed forced refresh leaves the entry in an
+            # ERROR/COMPUTING backoff while still carrying the retained last-good
+            # image; requiring UPDATED here would 404 that image for up to a day.
+            # get_from_cache_key already rejects an invalid UPDATED image, and a
+            # retained non-UPDATED image passes the invalid-image check, so only
+            # genuinely valid bytes are served.
+            try:
+                image = cache_payload.get_image()
+            except ScreenshotImageNotAvailableException:
+                return self.response_404()
+            return Response(
+                FileWrapper(image),
+                mimetype="image/png",
+                direct_passthrough=True,
+            )
         return self.response_404()
 
     @expose("/<pk>/thumbnail/<digest>/", methods=("GET",))
@@ -1357,6 +1373,8 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             screenshot_obj.get_from_cache_key(cache_key) or ScreenshotCachePayload()
         )
 
+        # No check_updated_staleness here on purpose: this high-traffic card-list
+        # thumbnail path must never opt into updated-staleness recompute.
         if cache_payload.should_trigger_task():
             self.incr_stats("async", self.thumbnail.__name__)
             logger.info(
