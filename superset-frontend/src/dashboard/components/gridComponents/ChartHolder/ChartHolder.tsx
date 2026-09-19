@@ -33,6 +33,7 @@ import ResizableContainer from 'src/dashboard/components/resizable/ResizableCont
 import getChartAndLabelComponentIdFromPath from 'src/dashboard/util/getChartAndLabelComponentIdFromPath';
 import useFilterFocusHighlightStyles from 'src/dashboard/util/useFilterFocusHighlightStyles';
 import { AntdThemeProvider } from '@superset-ui/core/components';
+import ComponentThemeProvider from 'src/dashboard/components/ComponentThemeProvider';
 import { COLUMN_TYPE, ROW_TYPE } from 'src/dashboard/util/componentTypes';
 import {
   GRID_BASE_UNIT,
@@ -336,63 +337,65 @@ const ChartHolder = ({
             outlinedComponentId ? 'fade-in' : 'fade-out',
           )}
         >
-          <AntdThemeProvider
-            getPopupContainer={(triggerNode?: HTMLElement) => {
-              // Only the fullscreen element's subtree is painted, so popups
-              // have to be portaled into it rather than to document.body.
-              // Resolve it directly instead of matching a selector: the
-              // production build strips data-test attributes.
-              const fullscreenElement =
-                document.fullscreenElement as HTMLElement | null;
-              return triggerNode && fullscreenElement?.contains(triggerNode)
-                ? fullscreenElement
-                : document.body;
-            }}
-          >
-            {!editMode && (
-              <AnchorLink
-                id={component.id}
-                scrollIntoView={outlinedComponentId === component.id}
-              />
-            )}
-            {!!outlinedComponentId && (
-              <style>
-                {`label[for=${outlinedColumnName}] + .Select .Select__control {
+          <ComponentThemeProvider layoutId={component.id}>
+            <AntdThemeProvider
+              getPopupContainer={(triggerNode?: HTMLElement) => {
+                // Only the fullscreen element's subtree is painted, so popups
+                // have to be portaled into it rather than to document.body.
+                // Resolve it directly instead of matching a selector: the
+                // production build strips data-test attributes.
+                const fullscreenElement =
+                  document.fullscreenElement as HTMLElement | null;
+                return triggerNode && fullscreenElement?.contains(triggerNode)
+                  ? fullscreenElement
+                  : document.body;
+              }}
+            >
+              {!editMode && (
+                <AnchorLink
+                  id={component.id}
+                  scrollIntoView={outlinedComponentId === component.id}
+                />
+              )}
+              {!!outlinedComponentId && (
+                <style>
+                  {`label[for=${outlinedColumnName}] + .Select .Select__control {
                       border-color: ${theme.colorPrimary};
                       transition: border-color 1s ease-in-out;
                     }`}
-              </style>
-            )}
-            <Chart
-              componentId={component.id}
-              id={component.meta.chartId ?? 0}
-              dashboardId={dashboardId}
-              width={chartWidth}
-              height={chartHeight}
-              sliceName={
-                component.meta.sliceNameOverride ||
-                component.meta.sliceName ||
-                ''
-              }
-              updateSliceName={(_sliceId: number, name: string) =>
-                handleUpdateSliceName(name)
-              }
-              isComponentVisible={isComponentVisible}
-              handleToggleFullSize={handleToggleFullSize}
-              isFullSize={isFullSize}
-              setControlValue={handleExtraControl}
-              extraControls={extraControls}
-              isInView={isInView}
-              chartHolderRef={chartHolderRef}
-            />
-            {editMode && (
-              <HoverMenu position="top">
-                <div data-test="dashboard-delete-component-button">
-                  <DeleteComponentButton onDelete={handleDeleteComponent} />
-                </div>
-              </HoverMenu>
-            )}
-          </AntdThemeProvider>
+                </style>
+              )}
+              <Chart
+                componentId={component.id}
+                id={component.meta.chartId ?? 0}
+                dashboardId={dashboardId}
+                width={chartWidth}
+                height={chartHeight}
+                sliceName={
+                  component.meta.sliceNameOverride ||
+                  component.meta.sliceName ||
+                  ''
+                }
+                updateSliceName={(_sliceId: number, name: string) =>
+                  handleUpdateSliceName(name)
+                }
+                isComponentVisible={isComponentVisible}
+                handleToggleFullSize={handleToggleFullSize}
+                isFullSize={isFullSize}
+                setControlValue={handleExtraControl}
+                extraControls={extraControls}
+                isInView={isInView}
+                chartHolderRef={chartHolderRef}
+              />
+              {editMode && (
+                <HoverMenu position="top">
+                  <div data-test="dashboard-delete-component-button">
+                    <DeleteComponentButton onDelete={handleDeleteComponent} />
+                  </div>
+                </HoverMenu>
+              )}
+            </AntdThemeProvider>
+          </ComponentThemeProvider>
         </div>
       </ResizableContainer>
     ),
