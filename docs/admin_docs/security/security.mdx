@@ -143,17 +143,19 @@ dashboards, charts, and datasets. Subjects come in three types:
 
 Subjects are used throughout Superset to assign **editors** (who can modify a resource) and
 **viewers** (who can view it). For new resource-specific assignments, Superset defaults to
-**Users** and **Groups** in subject pickers. Groups are the recommended way to grant access to a
-set of people because they represent organizational membership, while roles remain focused on
-capability grants such as "can read dashboards" or "can write charts".
+**Users** and **Groups** in dashboard, chart, and alert/report subject pickers. The Row Level
+Security picker also includes **Roles** by default to preserve role-based RLS workflows. Groups
+are the recommended way to grant access to a set of people because they represent organizational
+membership, while roles remain focused on capability grants such as "can read dashboards" or
+"can write charts".
 
 Role subjects are still supported for backwards compatibility with features that previously used
 roles directly, including Row Level Security role assignments and `DASHBOARD_RBAC`. Existing role
 subject assignments continue to be enforced even when roles are not exposed in the default picker
-configuration. However, when an administrator edits a subject list, roles are not available as new
-dropdown values unless that picker has been configured to expose role subjects. Roles are not
-recommended for new subject assignments, because using roles for both permissions and resource
-membership couples two separate concerns.
+configuration. The RLS picker exposes roles by default; other subject pickers do not expose roles
+as new dropdown values unless configured to do so. Roles are not recommended for new
+resource-specific assignments, because using roles for both permissions and resource membership
+couples two separate concerns.
 
 Administrators can control which subject types are available in pickers with
 `SUBJECTS_RELATED_TYPES`. By default, this setting exposes only users and groups:
@@ -167,8 +169,8 @@ SUBJECTS_RELATED_TYPES = [
 ]
 ```
 
-Set `SUBJECTS_RELATED_TYPES = None` to expose all subject types, including roles. To expose roles
-only for a specific entity, set that entity's override:
+Set `SUBJECTS_RELATED_TYPES = None` to expose all subject types, including roles. The RLS picker
+has the following entity-specific default so role-based RLS rules remain selectable:
 
 ```python
 from superset.subjects.types import SubjectType
@@ -178,15 +180,15 @@ SUBJECTS_RELATED_TYPES = [
     SubjectType.GROUP,
 ]
 
-# Leave dashboard, chart, and alert/report overrides unset so they inherit
-# the users + groups default. Expose roles only in the RLS subject picker for
-# compatibility with existing role-based RLS workflows.
 SUBJECTS_RELATED_TYPES_RLS = [
     SubjectType.USER,
-    SubjectType.GROUP,
     SubjectType.ROLE,
+    SubjectType.GROUP,
 ]
 ```
+
+Dashboard, chart, and alert/report overrides remain `None` by default and inherit the global
+users-and-groups setting. Set an entity-specific override explicitly to customize its picker.
 
 Available per-entity overrides are:
 
