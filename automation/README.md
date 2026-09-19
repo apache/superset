@@ -179,7 +179,7 @@ export GH_TOKEN=... DEVIN_API_KEY=...
 
 python -m automation.orchestrator dispatch --prompt-file fix-prompt.md [--cap 30] [--dry-run]
 python -m automation.orchestrator watch-session <session_id> --issue <N> [--timeout-minutes 90]
-python -m automation.orchestrator stale-branches [--days 3] [--delete]
+python -m automation.orchestrator stale-branches [--days 3] [--delete] [--force]
 python -m pytest automation/tests                   # fake-API tests for all of the below
 ```
 
@@ -187,13 +187,111 @@ python -m pytest automation/tests                   # fake-API tests for all of 
 |---|---|
 | **429 / rate-limited 403** | Retried for every request with exponential backoff + full jitter (`tenacity`), honouring `Retry-After` / `X-RateLimit-Reset`; capped at 6 attempts / 120 s per wait / 15 min total (`RETRY_*` env vars). |
 | **5xx / timeouts** | Retried for reads. For writes (create session, comment) they raise `AmbiguousWriteError` and the caller **probes before writing again** — a POST that landed but whose reply was lost is found, not duplicated. |
-| **Other 4xx** | Fail immediately (`PermanentError`); never retried. |
+| **Other 4xx** | Fail immediately (`PermanentError`); never retried. Specific error types: `ResourceNotFoundError` (404), `AuthenticationError` (401), `ValidationError` (422). |
+| **Circuit Breaker** | Prevents cascading failures after repeated errors (default: 5 failures → open circuit for 60s). Configurable via env vars. |
+| **Metrics Collection** | Tracks request counts, success/failure rates, retries, rate limits, and circuit breaker trips. Access via `client.get_metrics()`. |
+| **Type Safety** | Uses `PullRequest` and `Session` dataclasses for type-safe API response handling. |
 | **Idempotency** | Sessions are keyed by title (`Fix <category> issue #N`), dashboard comments by a hidden `<!-- devin:key -->` marker and edited in place, issues by PR body / branch name. |
 | **Per-issue failure** | `dispatch` catches the error, records `❌ failed` for that issue in the dashboard table, and continues with the next one. Exit code 1 if anything failed. |
-| **Orchestrator timeout** | `watch-session` polls `GET /sessions/{id}` and stops after `--timeout-minutes` regardless of what the Devin UI says. |
+| **Orchestrator timeout** | `watch-session` polls `GET /sessions/{id}` with jittered intervals and stops after `--timeout-minutes` regardless of what the Devin UI says. |
 | **PR check** | A session only counts as success when the Devin API reports a pull request for it (`pull_requests[]`); `completed` + no PR is `❌ Failed - session finished but pull_request is null`. |
-| **Cleanup** | In a `finally`, `watch-session` posts the outcome to issue #18 and, on failure, deletes the `devin/nightly-fix-<N>-*` branch unless a PR (any state) references it. `stale-branches` finds leftovers older than `--days` with no open/merged PR. |
+| **Cleanup** | In a `finally`, `watch-session` posts the outcome to issue #18 and, on failure, deletes the `devin/nightly-fix-<N>-*` branch unless a PR (any state) references it. `stale-branches` finds leftovers older than `--days` with no open/merged PR. Safety checks require `--force` for actual deletion. |
 | **Logging** | Standard `logging` to stderr, every line carries the context: `[Issue #14] create session ...: HTTP 500 ... Attempt 2/6 failed, retrying in 3.2s`. Tokens are only ever sent as headers, never logged. |
+
+### New Features
+
+#### Circuit Breaker Pattern
+The orchestrator now includes a circuit breaker to prevent cascading failures:
+- Opens after 5 consecutive failures (configurable)
+- Stays open for 60 seconds by default (configurable)
+- Automatically transitions to half-open state after recovery timeout
+- Provides protection against repeated API failures
+
+#### Enhanced Error Types
+Specific error types for better error handling:
+- `ResourceNotFoundError` (404)
+- `AuthenticationError` (401)
+- `ValidationError` (422)
+- Existing: `TransientError`, `AmbiguousWriteError`, `PermanentError`
+
+#### Metrics Collection
+Built-in metrics for monitoring and observability:
+- Total requests
+- Successful requests
+- Failed requests
+- Retried requests
+- Rate-limited requests
+- Circuit breaker trips
+
+Access metrics via `client.get_metrics()` method.
+
+#### Type-Safe Data Classes
+Structured data classes for API responses:
+- `PullRequest`: Type-safe GitHub PR representation
+- `Session`: Type-safe Devin session representation with helper methods
+- Better IDE support and compile-time type checking
+
+#### Branch Cleanup Safety
+Enhanced branch cleanup with safety features:
+- `--dry-run` flag to preview deletions without executing
+- `--force` flag required for actual deletions (safety check)
+- Better logging of cleanup actions
+- Prevents accidental branch deletions
+
+### Configuration
+
+All retry and circuit breaker behavior is configurable via environment variables:
+
+```bash
+# Retry Policy
+RETRY_MAX_ATTEMPTS=6           # Maximum retry attempts per request
+RETRY_BASE_SECONDS=2           # Initial backoff in seconds
+RETRY_MAX_SLEEP=120            # Maximum sleep time between retries
+RETRY_BUDGET_SECONDS=900       # Total retry budget (15 minutes)
+HTTP_TIMEOUT=60                # Request timeout in seconds
+
+# Circuit Breaker
+CIRCUIT_BREAKER_THRESHOLD=5    # Failures before opening circuit
+CIRCUIT_BREAKER_TIMEOUT=60     # Recovery timeout in seconds
+```
+
+### Troubleshooting
+
+#### Circuit Breaker Issues
+If the circuit breaker is preventing requests:
+```bash
+# Check circuit breaker state in logs
+# Look for "Circuit breaker opened" messages
+# Wait for recovery timeout or restart the process
+```
+
+#### High Failure Rates
+If you see high failure rates in metrics:
+1. Check API rate limits (GitHub API has 5,000 requests/hour for authenticated requests)
+2. Verify credentials are valid
+3. Check network connectivity
+4. Review specific error types in logs
+
+#### Branch Cleanup Safety
+Branch cleanup now requires explicit confirmation:
+```bash
+# Preview what would be deleted
+python -m automation.orchestrator stale-branches --days 3 --delete
+
+# Actually delete with force flag
+python -m automation.orchestrator stale-branches --days 3 --delete --force
+```
+
+#### Metrics Monitoring
+To monitor system health:
+```python
+from automation.orchestrator.api import GitHub, RetryPolicy
+
+gh = GitHub("owner/repo", RetryPolicy())
+# ... make requests ...
+metrics = gh.get_metrics()
+print(f"Success rate: {metrics['successful_requests'] / metrics['total_requests']:.2%}")
+```
 
 ## Manually triggering a run
 

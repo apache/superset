@@ -66,6 +66,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     p.add_argument("--days", type=int, default=int(os.environ.get("STALE_DAYS", "3")))
     p.add_argument("--delete", action="store_true")
+    p.add_argument("--force", action="store_true", help="actually delete branches (safety check)")
 
     args = parser.parse_args(argv)
     logging.basicConfig(
@@ -113,14 +114,15 @@ def main(argv: list[str] | None = None) -> int:
             )
             ops.ensure_comment(gh, DASHBOARD_ISSUE, f"session:{args.session_id}", line)
             if not ok and not args.keep_branch:
-                ops.cleanup_branch(gh, args.issue)
+                ops.cleanup_branch(gh, args.issue, force=True)
         return 0 if ok else 1
 
     _require("GH_TOKEN")
     for name, reason in ops.stale_branches(
-        gh, timedelta(days=args.days), delete=args.delete
+        gh, timedelta(days=args.days), delete=args.delete, force=args.force
     ):
-        print(f"{name}\t{reason}\t{'deleted' if args.delete else 'stale'}")
+        action = "deleted" if args.delete and args.force else "would delete" if args.delete else "stale"
+        print(f"{name}\t{reason}\t{action}")
     return 0
 
 

@@ -22,6 +22,7 @@ posted, and a failure for one issue is recorded and the loop moves on.
 from __future__ import annotations
 
 import logging
+import random
 import re
 import time
 from collections.abc import Callable, Iterable
@@ -29,7 +30,17 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from .api import AmbiguousWriteError, ApiError, Devin, GitHub, session_url
+from .api import (
+    AmbiguousWriteError,
+    ApiError,
+    CircuitBreaker,
+    Devin,
+    GitHub,
+    Metrics,
+    PullRequest,
+    Session,
+    session_url,
+)
 
 log = logging.getLogger("automation.dispatch")
 
@@ -52,18 +63,26 @@ def marker(key: str) -> str:
 
 
 def attempted_issues(
-    prs: Iterable[dict[str, Any]], sessions: Iterable[dict[str, Any]]
+    prs: Iterable[dict[str, Any] | PullRequest], sessions: Iterable[dict[str, Any] | Session]
 ) -> set[int]:
     """Issue numbers that already have a PR, a fix branch, or a live session."""
     seen: set[int] = set()
     for pr in prs:
-        seen.update(int(n) for n in BODY_REF.findall(pr.get("body") or ""))
-        if m := BRANCH_ISSUE.search(pr["head"]["ref"]):
+        if isinstance(pr, PullRequest):
+            pr_data = {"body": pr.body, "head": {"ref": pr.head.get("ref", "")}}
+        else:
+            pr_data = pr
+        seen.update(int(n) for n in BODY_REF.findall(pr_data.get("body") or ""))
+        if m := BRANCH_ISSUE.search(pr_data["head"]["ref"]):
             seen.add(int(m.group(1)))
     for s in sessions:
-        if str(s.get("status") or s.get("status_enum") or "").lower() in DEAD_STATUSES:
+        if isinstance(s, Session):
+            session = s
+        else:
+            session = Session.from_dict(s)
+        if session.is_dead():
             continue
-        if m := re.search(r"#(\d+)", s.get("title") or ""):
+        if m := re.search(r"#(\d+)", session.title):
             seen.add(int(m.group(1)))
     return seen
 
@@ -77,11 +96,8 @@ def ensure_session(devin: Devin, payload: dict[str, Any], tag: str) -> dict[str,
     title = payload["title"]
     for attempt in (1, 2):
         for s in devin.list_sessions(tag):
-            if (
-                s.get("title") == title
-                and str(s.get("status") or s.get("status_enum") or "").lower()
-                not in DEAD_STATUSES
-            ):
+            session = Session.from_dict(s) if isinstance(s, dict) else s
+            if session.title == title and not session.is_dead():
                 log.info("%s already has session %s", title, session_url(s))
                 return s
         try:
@@ -127,35 +143,30 @@ def watch_session(
     while True:
         attempt += 1
         s = devin.get_session(session_id)
-        status = str(s.get("status") or s.get("status_enum") or "").lower()
-        pr = session_pr(s)
+        # Handle both dict and Session objects
+        if isinstance(s, dict):
+            session = Session.from_dict(s)
+        else:
+            session = s
+        pr = session.get_pr_url()
         log.info(
             "[Session %s] poll %d: status=%s pr=%s",
             session_id,
             attempt,
-            status,
+            session.status,
             bool(pr),
         )
         if pr:
             return True, pr
-        if status in DEAD_STATUSES:
-            return False, f"session {status}"
-        if status in FINISHED_STATUSES:
-            return False, f"session {status} but pull_request is null"
+        if session.is_dead():
+            return False, f"session {session.status}"
+        if session.is_finished():
+            return False, f"session {session.status} but pull_request is null"
         if time.monotonic() >= deadline:
-            return False, f"timeout reached after {timeout} (last status: {status})"
-        sleep(poll)
-
-
-def session_pr(session: dict[str, Any]) -> str | None:
-    """URL of the session's pull request, or None when it has not opened one."""
-    prs = list(session.get("pull_requests") or [])
-    if session.get("pull_request"):
-        prs.append(session["pull_request"])
-    for pr in prs:
-        if url := pr.get("pr_url") or pr.get("url"):
-            return str(url)
-    return None
+            return False, f"timeout reached after {timeout} (last status: {session.status})"
+        # Add jitter to polling to avoid thundering herd
+        jittered_poll = poll * (0.5 + random.random() * 0.5)
+        sleep(jittered_poll)
 
 
 def branch_for_issue(gh: GitHub, issue: int) -> str | None:
@@ -165,24 +176,55 @@ def branch_for_issue(gh: GitHub, issue: int) -> str | None:
     return None
 
 
-def cleanup_branch(gh: GitHub, issue: int, dry_run: bool = False) -> str | None:
-    """Delete the fix branch for ``issue`` unless a PR (any state) uses it."""
+def cleanup_branch(
+    gh: GitHub, issue: int, dry_run: bool = False, force: bool = False
+) -> str | None:
+    """Delete the fix branch for ``issue`` unless a PR (any state) uses it.
+
+    Args:
+        gh: GitHub client
+        issue: Issue number
+        dry_run: If True, only log what would be deleted
+        force: If True, skip safety checks and delete
+
+    Returns:
+        Branch name if deleted (or would be deleted in dry-run), None if not deleted
+    """
     branch = branch_for_issue(gh, issue)
     if not branch:
         return None
     if any(pr["head"]["ref"] == branch for pr in gh.pulls("all")):
         log.info("[Issue #%d] keeping %s: referenced by a PR", issue, branch)
         return None
-    if not dry_run:
-        gh.delete_branch(branch)
+    if dry_run:
+        log.info("[Issue #%d] would delete orphaned branch %s (dry-run)", issue, branch)
+        return branch
+    if not force:
+        log.warning(
+            "[Issue #%d] branch %s requires --force to delete (safety check)",
+            issue,
+            branch,
+        )
+        return None
+    gh.delete_branch(branch)
     log.info("[Issue #%d] deleted orphaned branch %s", issue, branch)
     return branch
 
 
 def stale_branches(
-    gh: GitHub, older_than: timedelta, *, delete: bool = False
+    gh: GitHub, older_than: timedelta, *, delete: bool = False, force: bool = False
 ) -> list[tuple[str, str]]:
-    """Fix branches with no open/merged PR and a last commit older than the cutoff."""
+    """Fix branches with no open/merged PR and a last commit older than the cutoff.
+
+    Args:
+        gh: GitHub client
+        older_than: Age threshold for stale branches
+        delete: If True, actually delete branches (dry-run otherwise)
+        force: If True, skip safety checks when deleting
+
+    Returns:
+        List of (branch_name, reason) tuples for branches that were or would be deleted
+    """
     prs: dict[str, str] = {}
     for pr in gh.pulls("all"):
         state = "MERGED" if pr.get("merged_at") else str(pr["state"]).upper()
@@ -201,15 +243,22 @@ def stale_branches(
         if committed > cutoff:
             continue
         reason = "pr-closed-unmerged" if name in prs else "no-pr"
-        if delete:
+        if delete and force:
             gh.delete_branch(name)
-        log.info(
-            "stale branch %s (%s, last commit %s)%s",
-            name,
-            reason,
-            committed.date(),
-            " deleted" if delete else "",
-        )
+            log.info(
+                "stale branch %s (%s, last commit %s) deleted",
+                name,
+                reason,
+                committed.date(),
+            )
+        else:
+            log.info(
+                "stale branch %s (%s, last commit %s)%s",
+                name,
+                reason,
+                committed.date(),
+                " would delete" if delete else " (dry-run)",
+            )
         result.append((name, reason))
     return result
 
@@ -270,11 +319,12 @@ def dispatch(
         try:
             if dry_run:
                 outcomes.append(Outcome(n, "dispatched", "dry-run"))
+                dispatched += 1
             else:
                 s = ensure_session(devin, payload, tag)
-                dispatched += 1
                 url = session_url(s)
                 ensure_comment(gh, n, f"dispatch:{n}", f"Fix session dispatched: {url}")
+                dispatched += 1
                 outcomes.append(Outcome(n, "dispatched", url))
         except ApiError as exc:  # keep going with the next issue
             log.error("[Issue #%d] dispatch failed: %s", n, exc)

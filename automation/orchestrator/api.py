@@ -82,13 +82,165 @@ class PermanentError(ApiError):
     """Client error that will not succeed on retry (401/404/422...)."""
 
 
-@dataclass(frozen=True)
+class ResourceNotFoundError(PermanentError):
+    """404 - resource not found"""
+
+
+class AuthenticationError(PermanentError):
+    """401 - authentication failed"""
+
+
+class ValidationError(PermanentError):
+    """422 - validation error"""
+
+
+@dataclass
+class CircuitBreaker:
+    """Circuit breaker to prevent cascading failures after repeated errors."""
+
+    failure_threshold: int = 5
+    recovery_timeout: float = 60.0
+    failure_count: int = 0
+    last_failure_time: float = 0.0
+    state: str = "closed"  # closed, open, half-open
+
+    def record_success(self) -> None:
+        """Reset failure count on success."""
+        self.failure_count = 0
+        self.state = "closed"
+
+    def record_failure(self) -> None:
+        """Record a failure and potentially open the circuit."""
+        self.failure_count += 1
+        self.last_failure_time = time.monotonic()
+        if self.failure_count >= self.failure_threshold:
+            self.state = "open"
+            log.warning(
+                "Circuit breaker opened after %d failures", self.failure_count
+            )
+
+    def allow_request(self) -> bool:
+        """Check if request should be allowed based on circuit state."""
+        if self.state == "closed":
+            return True
+        if self.state == "open":
+            if time.monotonic() - self.last_failure_time >= self.recovery_timeout:
+                self.state = "half-open"
+                log.info("Circuit breaker transitioning to half-open")
+                return True
+            return False
+        # half-open: allow one request to test
+        return True
+
+
+@dataclass
+class PullRequest:
+    """Type-safe representation of a GitHub pull request."""
+
+    number: int
+    body: str
+    head: dict[str, str]
+    state: str
+    merged_at: str | None = None
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "PullRequest":
+        """Create from API response."""
+        return cls(
+            number=int(data["number"]),
+            body=data.get("body") or "",
+            head=data["head"],
+            state=data["state"],
+            merged_at=data.get("merged_at"),
+        )
+
+
+@dataclass
+class Session:
+    """Type-safe representation of a Devin session."""
+
+    title: str
+    status: str
+    session_id: str
+    pull_request: dict[str, Any] | None = None
+    pull_requests: list[dict[str, Any]] | None = None
+    status_enum: str | None = None
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "Session":
+        """Create from API response."""
+        return cls(
+            title=data.get("title") or "",
+            status=str(data.get("status") or data.get("status_enum") or ""),
+            session_id=str(data.get("session_id") or data.get("id") or ""),
+            pull_request=data.get("pull_request"),
+            pull_requests=data.get("pull_requests"),
+            status_enum=data.get("status_enum"),
+        )
+
+    def is_dead(self) -> bool:
+        """Check if session is in a terminal failure state."""
+        status = (self.status_enum or self.status).lower()
+        return status in {"error", "terminated", "cancelled", "canceled"}
+
+    def is_finished(self) -> bool:
+        """Check if session is in a finished state."""
+        status = (self.status_enum or self.status).lower()
+        return status in {"finished", "completed", "blocked", "suspended"}
+
+    def get_pr_url(self) -> str | None:
+        """Extract PR URL from session data."""
+        prs = []
+        # Handle top-level pull_requests array (new format)
+        if self.pull_requests:
+            prs.extend(self.pull_requests)
+        # Handle nested pull_requests under pull_request (mixed format)
+        if self.pull_request:
+            if "pull_requests" in self.pull_request:
+                prs.extend(self.pull_request.get("pull_requests") or [])
+            else:
+                prs.append(self.pull_request)
+        for pr in prs:
+            if url := pr.get("pr_url") or pr.get("url"):
+                return str(url)
+        return None
+
+
+@dataclass
 class RetryPolicy:
-    max_attempts: int = int(os.environ.get("RETRY_MAX_ATTEMPTS", "6"))
-    initial: float = float(os.environ.get("RETRY_BASE_SECONDS", "2"))
-    max_sleep: float = float(os.environ.get("RETRY_MAX_SLEEP", "120"))
-    budget_seconds: float = float(os.environ.get("RETRY_BUDGET_SECONDS", "900"))
-    timeout: float = float(os.environ.get("HTTP_TIMEOUT", "60"))
+    max_attempts: int = field(default_factory=lambda: _parse_int_env("RETRY_MAX_ATTEMPTS", 6))
+    initial: float = field(default_factory=lambda: _parse_float_env("RETRY_BASE_SECONDS", 2.0))
+    max_sleep: float = field(default_factory=lambda: _parse_float_env("RETRY_MAX_SLEEP", 120.0))
+    budget_seconds: float = field(default_factory=lambda: _parse_float_env("RETRY_BUDGET_SECONDS", 900.0))
+    timeout: float = field(default_factory=lambda: _parse_float_env("HTTP_TIMEOUT", 60.0))
+
+
+def _parse_int_env(name: str, default: int) -> int:
+    """Parse integer environment variable with validation."""
+    value = os.environ.get(name, str(default))
+    try:
+        parsed = int(value)
+        if parsed <= 0:
+            log.warning("%s must be positive, using default %d", name, default)
+            return default
+        return parsed
+    except ValueError:
+        log.warning("Invalid %s value '%s', using default %d", name, value, default)
+        return default
+
+
+def _parse_float_env(name: str, default: float) -> float:
+    """Parse float environment variable with validation."""
+    value = os.environ.get(name, str(default))
+    try:
+        parsed = float(value)
+        if parsed <= 0:
+            log.warning("%s must be positive, using default %f", name, default)
+            return default
+        return parsed
+    except ValueError:
+        log.warning("Invalid %s value '%s', using default %f", name, value, default)
+        return default
 
 
 def _wait(policy: RetryPolicy) -> Callable[[RetryCallState], float]:
@@ -122,8 +274,9 @@ def _retry_after_seconds(headers: Any) -> float | None:
     return None
 
 
-def _log_retry(policy: RetryPolicy) -> Callable[[RetryCallState], None]:
+def _log_retry(policy: RetryPolicy, metrics: Metrics) -> Callable[[RetryCallState], None]:
     def before_sleep(state: RetryCallState) -> None:
+        metrics.record_retry()
         log.warning(
             "%s. Attempt %d/%d failed, retrying in %.1fs",
             state.outcome.exception() if state.outcome else "",
@@ -136,6 +289,53 @@ def _log_retry(policy: RetryPolicy) -> Callable[[RetryCallState], None]:
 
 
 @dataclass
+class Metrics:
+    """Simple metrics collection for monitoring."""
+
+    total_requests: int = 0
+    successful_requests: int = 0
+    failed_requests: int = 0
+    retried_requests: int = 0
+    rate_limited_requests: int = 0
+    circuit_breaker_trips: int = 0
+
+    def record_request(self) -> None:
+        """Record a request attempt."""
+        self.total_requests += 1
+
+    def record_success(self) -> None:
+        """Record a successful request."""
+        self.successful_requests += 1
+
+    def record_failure(self) -> None:
+        """Record a failed request."""
+        self.failed_requests += 1
+
+    def record_retry(self) -> None:
+        """Record a retried request."""
+        self.retried_requests += 1
+
+    def record_rate_limit(self) -> None:
+        """Record a rate-limited request."""
+        self.rate_limited_requests += 1
+
+    def record_circuit_breaker_trip(self) -> None:
+        """Record a circuit breaker trip."""
+        self.circuit_breaker_trips += 1
+
+    def get_summary(self) -> dict[str, int]:
+        """Get metrics summary as dict."""
+        return {
+            "total_requests": self.total_requests,
+            "successful_requests": self.successful_requests,
+            "failed_requests": self.failed_requests,
+            "retried_requests": self.retried_requests,
+            "rate_limited_requests": self.rate_limited_requests,
+            "circuit_breaker_trips": self.circuit_breaker_trips,
+        }
+
+
+@dataclass
 class BaseClient:
     """A ``requests`` session with the shared retry policy applied."""
 
@@ -144,6 +344,8 @@ class BaseClient:
     policy: RetryPolicy = field(default_factory=RetryPolicy)
     user_agent: str = "superset-automation-orchestrator"
     session: requests.Session = field(default_factory=requests.Session)
+    metrics: Metrics = field(default_factory=Metrics)
+    circuit_breaker: CircuitBreaker = field(default_factory=CircuitBreaker)
 
     def _headers(self) -> dict[str, str]:
         headers = {"User-Agent": self.user_agent, "Accept": "application/json"}
@@ -154,7 +356,11 @@ class BaseClient:
     def _classify(self, resp: requests.Response, method: str, context: str) -> None:
         status = resp.status_code
         if status < 400:
+            self.metrics.record_success()
+            self.circuit_breaker.record_success()
             return
+        self.metrics.record_failure()
+        self.circuit_breaker.record_failure()
         body = resp.text[:300]
         snippet = f"HTTP {status} {resp.reason}: {body}"
         if status == 429 or (
@@ -164,6 +370,7 @@ class BaseClient:
                 or any(m in body.lower() for m in RATE_LIMIT_MARKERS)
             )
         ):
+            self.metrics.record_rate_limit()
             raise TransientError(
                 f"{context} rate limited ({snippet})",
                 status,
@@ -173,6 +380,12 @@ class BaseClient:
             if method in IDEMPOTENT_METHODS:
                 raise TransientError(f"{context} {snippet}", status)
             raise AmbiguousWriteError(f"{context} {snippet}", status)
+        if status == 404:
+            raise ResourceNotFoundError(f"{context} {snippet}", status)
+        if status == 401:
+            raise AuthenticationError(f"{context} {snippet}", status)
+        if status == 422:
+            raise ValidationError(f"{context} {snippet}", status)
         raise PermanentError(f"{context} {snippet}", status)
 
     def _once(
@@ -183,6 +396,10 @@ class BaseClient:
         params: dict[str, Any] | None,
         json_body: Any,
     ) -> requests.Response:
+        if not self.circuit_breaker.allow_request():
+            self.metrics.record_circuit_breaker_trip()
+            raise ApiError("Circuit breaker is open, request blocked")
+        self.metrics.record_request()
         url = path if path.startswith("http") else f"{self.base_url}/{path.lstrip('/')}"
         try:
             resp = self.session.request(
@@ -194,6 +411,8 @@ class BaseClient:
                 timeout=self.policy.timeout,
             )
         except (requests.ConnectionError, requests.Timeout) as exc:
+            self.metrics.record_failure()
+            self.circuit_breaker.record_failure()
             reason = f"{context} {type(exc).__name__}"
             if method in IDEMPOTENT_METHODS:
                 raise TransientError(reason) from exc
@@ -220,13 +439,17 @@ class BaseClient:
                 stop_after_attempt(self.policy.max_attempts)
                 | stop_after_delay(self.policy.budget_seconds)
             ),
-            before_sleep=_log_retry(self.policy),
+            before_sleep=_log_retry(self.policy, self.metrics),
             reraise=True,
         )
         return retrying(self._once, method, path, context, params, json_body)
 
     def get_json(self, path: str, **kwargs: Any) -> Any:
         return self.request("GET", path, **kwargs).json()
+
+    def get_metrics(self) -> dict[str, int]:
+        """Get current metrics summary."""
+        return self.metrics.get_summary()
 
 
 class GitHub(BaseClient):
