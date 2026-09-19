@@ -338,9 +338,9 @@ interface ExploreRootState {
     can_overwrite: boolean;
     sliceName?: string;
     triggerRender: boolean;
-    // The bootstrap payload sends `is_standalone_mode()`, a boolean. The numeric
-    // mode is derived from the URL in mapStateToProps, not from here.
-    standalone: boolean;
+    // Seeded by hydrateExplore from getUrlParam(URL_PARAMS.standalone), so this is
+    // the coerced numeric mode, or null when the param is absent or unparseable.
+    standalone: number | null;
     force: boolean;
     form_data?: QueryFormData;
     saveAction?: SaveActionType | null;
@@ -1398,16 +1398,14 @@ function mapStateToProps(state: ExploreRootState) {
     form_data: patchedFormData,
     table_name: datasource.table_name,
     vizType: form_data.viz_type,
-    // Mode 2 is an explicit numeric opt-in read from the URL, since the
-    // bootstrap payload only carries a boolean (`is_standalone_mode`) and
-    // cannot distinguish mode 1 from mode 2. Everything else defers to that
-    // boolean, so the backend (which still treats any value other than
-    // absent/'false'/'0' as standalone) and the frontend cannot disagree:
-    // `standalone=3` or a non-numeric truthy value keeps rendering chart-only,
-    // as it did before granular modes existed.
+    // `explore.standalone` is the URL param coerced by getUrlParam (hydrateExplore
+    // sets it), so 'true' arrives as 1 and 'false' as 0. Mode 2 is the only value
+    // that keeps the editor; every other truthy mode renders chart-only, which is
+    // what any truthy `standalone` did before granular modes existed. Values
+    // getUrlParam cannot parse arrive as null and render normally, matching the
+    // pre-existing behaviour for unparseable params.
     standalone:
-      getUrlParam(URL_PARAMS.standalone) ===
-      ExploreStandaloneMode.HideNavShowControls
+      explore.standalone === ExploreStandaloneMode.HideNavShowControls
         ? ExploreStandaloneMode.HideNavShowControls
         : explore.standalone
           ? ExploreStandaloneMode.HideNav
