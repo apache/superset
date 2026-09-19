@@ -1,0 +1,500 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+import { t } from '@apache-superset/core/translation';
+import { NumberFormats } from '@superset-ui/core';
+import {
+  ControlPanelConfig,
+  ControlSubSectionHeader,
+  getStandardizedControls,
+  sharedControls,
+} from '@superset-ui/chart-controls';
+import {
+  headerFontSize,
+  subheaderFontSize,
+  subtitleFontSize,
+} from '../sharedControls';
+import {
+  COMPARISON_OFFSET_CHOICES,
+  DEFAULT_BIG_NUMBER_COLOR,
+  DEFAULT_BIG_NUMBER_LEFT,
+  DEFAULT_BIG_NUMBER_TOP,
+  DEFAULT_COMPARISON1_LABEL,
+  DEFAULT_COMPARISON1_OFFSET,
+  DEFAULT_COMPARISON2_LABEL,
+  DEFAULT_COMPARISON_GAP,
+  DEFAULT_COMPARISON2_OFFSET,
+  DEFAULT_COMPARISON_NEGATIVE_COLOR,
+  DEFAULT_COMPARISON_POSITIVE_COLOR,
+  DEFAULT_COMPARISON_TOP,
+  DEFAULT_COMPARISON_ZERO_COLOR,
+  DEFAULT_TITLE_COLOR,
+  DEFAULT_TITLE_FONT_SIZE,
+  DEFAULT_TITLE_LEFT,
+  DEFAULT_TITLE_TOP,
+} from './constants';
+
+const config: ControlPanelConfig = {
+  controlPanelSections: [
+    {
+      label: t('Query'),
+      expanded: true,
+      controlSetRows: [
+        [
+          {
+            name: 'granularity_sqla',
+            config: sharedControls.granularity_sqla,
+          },
+        ],
+        [
+          {
+            name: 'time_grain_sqla',
+            config: sharedControls.time_grain_sqla,
+          },
+        ],
+        ['metric'],
+        [
+          {
+            name: 'comparison1_mode',
+            config: {
+              type: 'SelectControl',
+              label: t('MoM comparison source'),
+              default: 'time_shift',
+              choices: [
+                ['time_shift', t('Time comparison (shift)')],
+                ['metric', t('Comparison value metric')],
+              ],
+              visibility: ({ controls }) =>
+                controls?.show_comparison1?.value === true,
+            },
+          },
+        ],
+        [
+          {
+            name: 'comparison1_column',
+            config: {
+              ...sharedControls.metric,
+              label: t('MoM comparison value'),
+              clearable: true,
+              // The comparison value is optional: do not inherit the
+              // required validator from the metric control. Hidden
+              // controls are still validated by Explore, so a required
+              // validator here blocks chart creation in time-shift mode.
+              validators: [],
+              description: t(
+                'Metric (or custom SQL expression) holding the MoM comparison value. This mode does not require a time range.',
+              ),
+              visibility: ({ controls }) =>
+                controls?.show_comparison1?.value === true &&
+                controls?.comparison1_mode?.value === 'metric',
+            },
+          },
+        ],
+        [
+          {
+            name: 'comparison1_offset',
+            config: {
+              type: 'SelectControl',
+              freeForm: true,
+              label: t('MoM time shift'),
+              renderTrigger: true,
+              default: DEFAULT_COMPARISON1_OFFSET,
+              choices: COMPARISON_OFFSET_CHOICES,
+              description: t(
+                'Relative time period to compare against, e.g. "1 month ago".',
+              ),
+              visibility: ({ controls }) =>
+                controls?.show_comparison1?.value === true &&
+                controls?.comparison1_mode?.value !== 'metric',
+            },
+          },
+        ],
+        [
+          {
+            name: 'comparison2_mode',
+            config: {
+              type: 'SelectControl',
+              label: t('YoY comparison source'),
+              default: 'time_shift',
+              choices: [
+                ['time_shift', t('Time comparison (shift)')],
+                ['metric', t('Comparison value metric')],
+              ],
+              visibility: ({ controls }) =>
+                controls?.show_comparison2?.value === true,
+            },
+          },
+        ],
+        [
+          {
+            name: 'comparison2_column',
+            config: {
+              ...sharedControls.metric,
+              label: t('YoY comparison value'),
+              clearable: true,
+              // See the MoM comparison value: the metric is optional.
+              validators: [],
+              description: t(
+                'Metric (or custom SQL expression) holding the YoY comparison value. This mode does not require a time range.',
+              ),
+              visibility: ({ controls }) =>
+                controls?.show_comparison2?.value === true &&
+                controls?.comparison2_mode?.value === 'metric',
+            },
+          },
+        ],
+        [
+          {
+            name: 'comparison2_offset',
+            config: {
+              type: 'SelectControl',
+              freeForm: true,
+              label: t('YoY time shift'),
+              renderTrigger: true,
+              default: DEFAULT_COMPARISON2_OFFSET,
+              choices: COMPARISON_OFFSET_CHOICES,
+              description: t(
+                'Relative time period to compare against, e.g. "1 year ago".',
+              ),
+              visibility: ({ controls }) =>
+                controls?.show_comparison2?.value === true &&
+                controls?.comparison2_mode?.value !== 'metric',
+            },
+          },
+        ],
+        ['adhoc_filters'],
+        [
+          {
+            name: 'row_limit',
+            config: sharedControls.row_limit,
+          },
+        ],
+      ],
+    },
+    {
+      label: t('Chart Options'),
+      expanded: true,
+      controlSetRows: [
+        [<ControlSubSectionHeader>{t('Title')}</ControlSubSectionHeader>],
+        [
+          {
+            name: 'header_text',
+            config: {
+              type: 'TextControl',
+              label: t('Title text'),
+              renderTrigger: true,
+              description: t(
+                'Text displayed above the big number. Leave empty to hide it.',
+              ),
+            },
+          },
+        ],
+        [
+          {
+            name: 'title_font_size',
+            config: {
+              ...subtitleFontSize.config,
+              label: t('Title font size'),
+              default: DEFAULT_TITLE_FONT_SIZE,
+            },
+          },
+        ],
+        [
+          {
+            name: 'title_color',
+            config: {
+              type: 'ColorPickerControl',
+              label: t('Title color'),
+              renderTrigger: true,
+              default: DEFAULT_TITLE_COLOR,
+            },
+          },
+        ],
+        [
+          {
+            name: 'title_left',
+            config: {
+              type: 'NumberControl',
+              label: t('Title left position'),
+              min: 0,
+              step: 1,
+              renderTrigger: true,
+              default: DEFAULT_TITLE_LEFT,
+              description: t('Horizontal offset in pixels from the left edge.'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'title_top',
+            config: {
+              type: 'NumberControl',
+              label: t('Title top position'),
+              min: 0,
+              step: 1,
+              renderTrigger: true,
+              default: DEFAULT_TITLE_TOP,
+              description: t('Vertical offset in pixels from the top edge.'),
+            },
+          },
+        ],
+        [
+          <ControlSubSectionHeader>
+            {t('Big Number')}
+          </ControlSubSectionHeader>,
+        ],
+        ['y_axis_format'],
+        ['currency_format'],
+        [
+          {
+            name: 'big_number_font_size',
+            config: {
+              ...headerFontSize.config,
+              label: t('Big number font size'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'big_number_color',
+            config: {
+              type: 'ColorPickerControl',
+              label: t('Big number color'),
+              renderTrigger: true,
+              default: DEFAULT_BIG_NUMBER_COLOR,
+            },
+          },
+        ],
+        [
+          {
+            name: 'big_number_left',
+            config: {
+              type: 'NumberControl',
+              label: t('Big number left position'),
+              min: 0,
+              step: 1,
+              renderTrigger: true,
+              default: DEFAULT_BIG_NUMBER_LEFT,
+              description: t('Horizontal offset in pixels from the left edge.'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'big_number_top',
+            config: {
+              type: 'NumberControl',
+              label: t('Gap from title'),
+              min: 0,
+              step: 1,
+              renderTrigger: true,
+              default: DEFAULT_BIG_NUMBER_TOP,
+              description: t('Vertical gap in pixels between the title and the big number.'),
+            },
+          },
+        ],
+        [
+          <ControlSubSectionHeader>
+            {t('MoM Comparison')}
+          </ControlSubSectionHeader>,
+        ],
+        [
+          {
+            name: 'show_comparison1',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show MoM comparison'),
+              renderTrigger: true,
+              default: true,
+            },
+          },
+        ],
+        [
+          {
+            name: 'comparison1_label',
+            config: {
+              type: 'TextControl',
+              label: t('MoM label'),
+              renderTrigger: true,
+              default: t(DEFAULT_COMPARISON1_LABEL),
+              visibility: ({ controls }) =>
+                controls?.show_comparison1?.value === true,
+            },
+          },
+        ],
+        [
+          {
+            name: 'comparison1_percent_difference_format',
+            config: {
+              ...sharedControls.y_axis_format,
+              label: t('MoM percent difference format'),
+              default: NumberFormats.PERCENT_2_POINT,
+              visibility: ({ controls }) =>
+                controls?.show_comparison1?.value === true,
+            },
+          },
+        ],
+        [
+          <ControlSubSectionHeader>
+            {t('YoY Comparison')}
+          </ControlSubSectionHeader>,
+        ],
+        [
+          {
+            name: 'show_comparison2',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show YoY comparison'),
+              renderTrigger: true,
+              default: true,
+            },
+          },
+        ],
+        [
+          {
+            name: 'comparison2_label',
+            config: {
+              type: 'TextControl',
+              label: t('YoY label'),
+              renderTrigger: true,
+              default: t(DEFAULT_COMPARISON2_LABEL),
+              visibility: ({ controls }) =>
+                controls?.show_comparison2?.value === true,
+            },
+          },
+        ],
+        [
+          {
+            name: 'comparison2_percent_difference_format',
+            config: {
+              ...sharedControls.y_axis_format,
+              label: t('YoY percent difference format'),
+              default: NumberFormats.PERCENT_2_POINT,
+              visibility: ({ controls }) =>
+                controls?.show_comparison2?.value === true,
+            },
+          },
+        ],
+        [
+          <ControlSubSectionHeader>
+            {t('Comparison Style')}
+          </ControlSubSectionHeader>,
+        ],
+        [
+          {
+            name: 'comparison_gap',
+            config: {
+              type: 'SliderControl',
+              label: t('Comparison spacing'),
+              min: 0,
+              max: 240,
+              step: 4,
+              default: DEFAULT_COMPARISON_GAP,
+              renderTrigger: true,
+              description: t('Horizontal spacing between MoM and YoY.'),
+              visibility: ({ controls }) =>
+                controls?.show_comparison1?.value === true &&
+                controls?.show_comparison2?.value === true,
+            },
+          },
+        ],
+        [
+          {
+            name: 'swap_comparison_order',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Swap MoM and YoY positions'),
+              default: false,
+              renderTrigger: true,
+              visibility: ({ controls }) =>
+                controls?.show_comparison1?.value === true &&
+                controls?.show_comparison2?.value === true,
+            },
+          },
+        ],
+        [
+          {
+            name: 'comparison_font_size',
+            config: {
+              ...subheaderFontSize.config,
+              label: t('Comparison font size'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'comparison_top',
+            config: {
+              type: 'NumberControl',
+              label: t('Gap from big number'),
+              min: 0,
+              step: 1,
+              renderTrigger: true,
+              default: DEFAULT_COMPARISON_TOP,
+              description: t('Vertical gap in pixels between the big number and the comparison rows.'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'comparison_positive_color',
+            config: {
+              type: 'ColorPickerControl',
+              label: t('Increase color'),
+              renderTrigger: true,
+              default: DEFAULT_COMPARISON_POSITIVE_COLOR,
+            },
+          },
+        ],
+        [
+          {
+            name: 'comparison_negative_color',
+            config: {
+              type: 'ColorPickerControl',
+              label: t('Decrease color'),
+              renderTrigger: true,
+              default: DEFAULT_COMPARISON_NEGATIVE_COLOR,
+            },
+          },
+        ],
+        [
+          {
+            name: 'comparison_zero_color',
+            config: {
+              type: 'ColorPickerControl',
+              label: t('No change color'),
+              renderTrigger: true,
+              default: DEFAULT_COMPARISON_ZERO_COLOR,
+            },
+          },
+        ],
+      ],
+    },
+  ],
+  controlOverrides: {
+    y_axis_format: {
+      label: t('Number format'),
+    },
+  },
+  formDataOverrides: formData => ({
+    ...formData,
+    metric: getStandardizedControls().shiftMetric(),
+  }),
+};
+
+export default config;
