@@ -116,6 +116,30 @@ permalink cannot be resolved, open `dashboard_url` from chat.
 
 ---
 
+## Semantic-view chart targets
+
+`generate_chart` and `generate_explore_link` require exactly one source selector:
+`dataset_id` for a table dataset, or `view_id` for a semantic view. View selectors
+accept UUIDs or legacy numeric IDs. The numeric ID spaces are independent: a
+dataset ID must not be reused as a view ID.
+
+Semantic configurations use saved metric names, for example
+`{"name": "revenue", "saved_metric": true}`, and dimensions published by the view.
+Ad-hoc aggregates and SQL expressions are rejected. Missing and inaccessible
+views return the same `view_not_found` error without exposing view metadata.
+
+`update_chart` accepts at most one replacement selector; omitting both retains
+the chart's source. Rebinding validates retained query roles, preserves the
+selected source family in previews and stored parameters, and clears stale
+query context. An incompatible retained configuration must be replaced with a
+configuration valid for the target.
+
+Saving semantic charts requires the host's semantic-view chart save/access
+support ([#44169](https://github.com/apache/superset/pull/44169)). MCP delegates
+writes to the existing chart commands and does not bypass that prerequisite or
+chart edit permissions. Link generation alone does not establish that a chart
+was saved or that a provider query executed successfully.
+
 ## Quick Start
 
 Get the MCP server running locally and connect an AI client in three steps.
