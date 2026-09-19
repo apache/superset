@@ -25151,6 +25151,13 @@
                         ]
                       },
                       "type": "array"
+                    },
+                    "suggestions_status": {
+                      "description": "Suggestions are disabled for versioned semantic views; enter values manually.",
+                      "enum": [
+                        "unavailable_versioned_view"
+                      ],
+                      "type": "string"
                     }
                   },
                   "type": "object"

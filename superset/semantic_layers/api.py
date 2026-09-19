@@ -26,7 +26,7 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import lazy_gettext as t, ngettext
 from marshmallow import ValidationError
 from pydantic import ValidationError as PydanticValidationError
-from sqlalchemy.orm import load_only
+from sqlalchemy.orm import load_only, Query
 
 from superset import db, event_logger, is_feature_enabled, security_manager
 from superset.commands.semantic_layer.create import (
@@ -58,6 +58,7 @@ from superset.commands.semantic_layer.update import (
 )
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
 from superset.daos.semantic_layer import SemanticLayerDAO
+from superset.databases.filters import DatabaseFilter
 from superset.datasets.schemas import get_delete_ids_schema
 from superset.exceptions import SupersetSecurityException
 from superset.models.core import Database
@@ -75,6 +76,7 @@ from superset.utils import json
 from superset.views.base_api import (
     BaseSupersetApi,
     BaseSupersetModelRestApi,
+    protect_read,
     requires_json,
     statsd_metrics,
 )
@@ -982,7 +984,7 @@ class SemanticLayerRestApi(BaseSupersetApi):
             return self.response_422(message=str(ex))
 
     @expose("/connections/", methods=("GET",))
-    @protect()
+    @protect_read("Database", "SemanticLayer")
     @safe
     @statsd_metrics
     @rison(get_list_schema)
@@ -1007,6 +1009,8 @@ class SemanticLayerRestApi(BaseSupersetApi):
               description: Combined list of databases and semantic layers
             401:
               $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
             500:
               $ref: '#/components/responses/500'
         """
@@ -1059,10 +1063,12 @@ class SemanticLayerRestApi(BaseSupersetApi):
         source_type: str,
         name_filter: str | None,
     ) -> list[tuple[str, Any]]:
-        """Fetch database and semantic layer items based on filters."""
+        """Fetch permitted sources using the same FAB identity as the route gate."""
         db_items: list[tuple[str, Database]] = []
-        if source_type in ("all", "database"):
-            db_q = db.session.query(Database).options(
+        if source_type in ("all", "database") and security_manager.has_access(
+            "can_read", "Database"
+        ):
+            db_q: Query[Database] = db.session.query(Database).options(
                 load_only(
                     Database.id,
                     Database.uuid,
@@ -1076,12 +1082,24 @@ class SemanticLayerRestApi(BaseSupersetApi):
                     Database.changed_by_fk,
                 )
             )
+            # Scope the database inventory exactly as DatabaseRestApi does via
+            # its ``base_filters`` (superset/databases/api.py): reaching this
+            # ``can_read``-gated endpoint must not expose databases the caller
+            # cannot access. The semantic-layer branch below is already
+            # access-filtered; this closes the same gap on the database branch.
+            # ``DatabaseFilter`` ignores its ``value`` argument (it reads
+            # ``security_manager``), so ``None`` matches DatabaseRestApi's
+            # ``lambda: []`` factory. It is ANDed with the name filter below, so
+            # the order is not load-bearing.
+            db_q = DatabaseFilter("id", SQLAInterface(Database)).apply(db_q, None)
             if name_filter:
                 db_q = db_q.filter(Database.database_name.ilike(f"%{name_filter}%"))
             db_items = [("database", obj) for obj in db_q.all()]
 
         sl_items: list[tuple[str, SemanticLayer]] = []
-        if source_type in ("all", "semantic_layer"):
+        if source_type in ("all", "semantic_layer") and security_manager.has_access(
+            "can_read", "SemanticLayer"
+        ):
             sl_q = db.session.query(SemanticLayer).options(
                 load_only(
                     SemanticLayer.uuid,
