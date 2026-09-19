@@ -1105,7 +1105,9 @@ describe('getLegendProps', () => {
     });
   });
 
-  test('should return the correct props for plain type with bottom orientation', () => {
+  test('should return the correct props for plain type with bottom orientation without horizontalLegendWidth', () => {
+    // Without horizontalLegendWidth, Top/Bottom do not apply truncation so that
+    // other chart types (Timeseries, Bar, etc.) are not affected.
     expect(
       getLegendProps(LegendType.Plain, LegendOrientation.Bottom, false, theme),
     ).toEqual({
@@ -1118,7 +1120,8 @@ describe('getLegendProps', () => {
     });
   });
 
-  test('should return the correct props for plain type with top orientation', () => {
+  test('should return the correct props for plain type with top orientation without horizontalLegendWidth', () => {
+    // Without horizontalLegendWidth, no truncation is applied.
     expect(
       getLegendProps(LegendType.Plain, LegendOrientation.Top, false, theme),
     ).toEqual({
@@ -1129,6 +1132,60 @@ describe('getLegendProps', () => {
       type: 'plain',
       ...expectedThemeProps,
     });
+  });
+
+  test('applies truncation and tooltip for bottom orientation when horizontalLegendWidth is provided', () => {
+    // Pie passes the chart width so long category names truncate cleanly.
+    const result = getLegendProps(
+      LegendType.Plain,
+      LegendOrientation.Bottom,
+      true,
+      theme,
+      false,
+      undefined,
+      undefined,
+      200,
+    );
+    expect(result).toEqual(
+      expect.objectContaining({
+        textStyle: { overflow: 'truncate', width: 200 },
+        tooltip: expect.any(Object),
+      }),
+    );
+  });
+
+  test('applies truncation and tooltip for top orientation when horizontalLegendWidth is provided', () => {
+    const result = getLegendProps(
+      LegendType.Scroll,
+      LegendOrientation.Top,
+      true,
+      theme,
+      false,
+      undefined,
+      undefined,
+      400,
+    );
+    expect(result).toEqual(
+      expect.objectContaining({
+        textStyle: { overflow: 'truncate', width: 400 },
+        tooltip: expect.any(Object),
+      }),
+    );
+  });
+
+  test('does not apply truncation when horizontalLegendWidth is 0', () => {
+    const result = getLegendProps(
+      LegendType.Plain,
+      LegendOrientation.Top,
+      true,
+      theme,
+      false,
+      undefined,
+      undefined,
+      0,
+    );
+    expect(result.textStyle).toBeUndefined();
+    expect(result.tooltip).toBeUndefined();
   });
 });
 
