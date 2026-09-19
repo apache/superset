@@ -70,6 +70,7 @@ class DashboardMixin:  # pylint: disable=too-few-public-methods
     label_columns = {
         "dashboard_link": _("Dashboard"),
         "dashboard_title": _("Title"),
+        # i18n: the short identifier in a dashboard's URL, not the animal
         "slug": _("Slug"),
         "charts": _("Charts"),
         "editors": _("Editors"),
