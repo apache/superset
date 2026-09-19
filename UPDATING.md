@@ -24,6 +24,15 @@ assists people when migrating to a new version.
 
 ## Next
 
+- Semantic-view chart and dashboard bundles use typed UUID references and require
+  a destination with support for this format and an already provisioned, accessible
+  view with the same UUID. They do not provision semantic layers/views or export
+  their configuration or credentials. Older readers cannot import these semantic
+  bundles. Export and import fail explicitly if a semantic dependency is missing,
+  inaccessible, feature-disabled or provider-unregistered; ordinary table bundles
+  retain their existing format. The examples loader rejects semantic bundles;
+  use the chart, dashboard or assets importer instead.
+
 - With `SEMANTIC_LAYERS` enabled, combined connection discovery honors `Database.can_read` and `SemanticLayer.can_read` independently. Each permitted source retains its normal row filters, including dynamic database filters for Admin. A source filter never includes rows or counts from a denied source; callers with neither read permission are denied. Feature-off database browsing is unchanged.
 - The combined datasource list (`GET /api/v1/datasource/`) accepts Dataset read without an additional Datasource read grant, regardless of `SEMANTIC_LAYERS`. With the flag enabled, SemanticView read independently permits semantic-view discovery. Existing row-level dataset/chart access remains enforced.
 - The `presto` extra requires PyHive 0.7.0 or later. PyHive 0.6.5 cannot load

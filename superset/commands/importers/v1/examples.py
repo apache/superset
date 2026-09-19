@@ -45,6 +45,10 @@ from superset.databases.schemas import ImportV1DatabaseSchema
 from superset.datasets.schemas import ImportV1DatasetSchema
 from superset.exceptions import QueryClauseValidationException
 from superset.models.core import Database
+from superset.semantic_layers.import_export import (
+    dashboard_targets,
+    SemanticReferenceError,
+)
 from superset.sql.parse import transpile_to_dialect
 from superset.subjects.utils import get_default_viewers_for_current_user
 from superset.utils.core import get_example_default_schema
@@ -128,6 +132,8 @@ class ImportExamplesCommand(ImportModelsCommand):
                 self.overwrite,
                 self.force_data,
             )
+        except SemanticReferenceError:
+            raise
         except Exception as ex:
             raise self.import_error() from ex
 
@@ -148,6 +154,19 @@ class ImportExamplesCommand(ImportModelsCommand):
         contents: Optional[dict[str, Any]] = None,
         force_data: bool = False,
     ) -> None:
+        for path, config in configs.items():
+            if (path.startswith("charts/") and "datasource_ref" in config) or (
+                path.startswith("dashboards/")
+                and any(
+                    "datasourceRef" in target
+                    or target.get("datasourceType") == "semantic_view"
+                    for target in dashboard_targets(config.get("metadata") or {})
+                )
+            ):
+                raise SemanticReferenceError(
+                    "Semantic references are not supported by the examples loader; "
+                    "use the chart, dashboard or assets importer."
+                )
         # import databases
         database_ids: dict[str, int] = {}
         for file_name, config in configs.items():
