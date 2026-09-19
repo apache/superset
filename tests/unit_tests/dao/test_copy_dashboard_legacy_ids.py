@@ -27,6 +27,7 @@ from superset import db
 from superset.commands.chart.restore import RestoreChartCommand
 from superset.connectors.sqla.models import Database, SqlaTable
 from superset.daos.dashboard import DashboardDAO
+from superset.mcp_service.dashboard.tool.duplicate_dashboard import _build_copy_payload
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils import json
@@ -81,9 +82,10 @@ def test_copy_normalizes_legacy_chart_ids(session: Session, legacy_form: str) ->
 
 @pytest.mark.parametrize("fresh_collection", [False, True])
 @pytest.mark.parametrize("duplicate_slices", [False, True])
+@pytest.mark.parametrize("mcp_payload", [False, True])
 @with_feature_flags(SOFT_DELETE=True)
 def test_copy_archived_slot_policy_and_restore(
-    session: Session, fresh_collection: bool, duplicate_slices: bool
+    session: Session, fresh_collection: bool, duplicate_slices: bool, mcp_payload: bool
 ) -> None:
     """Archived originals reattach to the source, never to a chart-cloning copy."""
     Dashboard.metadata.create_all(session.get_bind())
@@ -106,6 +108,7 @@ def test_copy_archived_slot_policy_and_restore(
     db.session.add(source)
     db.session.flush()
     positions: dict[str, Any] = {
+        "ROOT_ID": {"type": "ROOT", "children": ["ROW"]},
         "ROW": {"type": "ROW", "children": ["LIVE", "ARCHIVED"]},
         "LIVE": {"type": "CHART", "meta": {"chartId": live.id}},
         "ARCHIVED": {
@@ -129,6 +132,13 @@ def test_copy_archived_slot_policy_and_restore(
     db.session.flush()
     if fresh_collection:
         db.session.expire(source, ["slices"])
+    payload: dict[str, Any] = {
+        "dashboard_title": "copy",
+        "duplicate_slices": duplicate_slices,
+        "json_metadata": json.dumps({"positions": positions}),
+    }
+    if mcp_payload:
+        payload, _ = _build_copy_payload(source, "copy", duplicate_slices)
     with (
         patch("superset.daos.dashboard.security_manager.is_editor", return_value=True),
         patch("superset.daos.dashboard.g") as mock_g,
@@ -136,11 +146,7 @@ def test_copy_archived_slot_policy_and_restore(
         mock_g.user = None
         copied: Dashboard = DashboardDAO.copy_dashboard(
             source,
-            {
-                "dashboard_title": "copy",
-                "duplicate_slices": duplicate_slices,
-                "json_metadata": json.dumps({"positions": positions}),
-            },
+            payload,
         )
     copy_layout: str = copied.position_json
     node: dict[str, Any] = copied.position["ARCHIVED"]
@@ -148,7 +154,7 @@ def test_copy_archived_slot_policy_and_restore(
         assert node == {
             "id": "ARCHIVED",
             "type": "MARKDOWN",
-            "parents": ["ROOT", "ROW"],
+            "parents": ["ROOT_ID", "ROW"] if mcp_payload else ["ROOT", "ROW"],
             "children": [],
             "meta": {
                 "width": 6,
@@ -156,7 +162,7 @@ def test_copy_archived_slot_policy_and_restore(
                 "code": "This archived chart was not copied.",
             },
         }
-        assert copied.position["ROW"] == positions["ROW"]
+        assert copied.position["ROW"]["children"] == positions["ROW"]["children"]
         assert len(copied.slices) == 1
         assert copied.slices[0].id not in source_ids
         assert copied.position["LIVE"]["meta"]["chartId"] == copied.slices[0].id
@@ -164,6 +170,12 @@ def test_copy_archived_slot_policy_and_restore(
     else:
         assert node["type"] == "CHART"
         assert {chart.id for chart in copied.slices} == source_ids
+    if mcp_payload:
+        assert copied.position["ROW"]["parents"] == ["ROOT_ID"]
+        assert copied.position["LIVE"]["parents"] == ["ROOT_ID", "ROW"]
+        assert node["parents"] == ["ROOT_ID", "ROW"]
+    else:
+        assert copied.position["ROW"] == positions["ROW"]
     assert source.position_json == source_layout
     assert source.json_metadata == source_metadata
 

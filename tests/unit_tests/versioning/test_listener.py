@@ -27,7 +27,97 @@ from sqlalchemy.orm import Session, sessionmaker
 from superset.versioning.changes import listener
 from superset.versioning.diff import ChangeRecord
 
+
+@pytest.mark.parametrize(
+    "operation, declared, expected",
+    [
+        (0, None, "create"),
+        (1, None, None),
+        (2, None, None),
+        (0, "import", "import"),
+        (0, "clone", "clone"),
+        (0, "restore", "restore"),
+    ],
+)
+def test_transaction_provenance_uses_actual_insert_shadows(
+    lifecycle_session: Session,
+    monkeypatch: pytest.MonkeyPatch,
+    operation: int,
+    declared: str | None,
+    expected: str | None,
+) -> None:
+    """Only real inserts get a fallback stamp; command provenance wins."""
+    from types import SimpleNamespace
+
+    from sqlalchemy_continuum import versioning_manager
+
+    metadata: sa.MetaData = sa.MetaData()
+    transactions: sa.Table = sa.Table(
+        "provenance_transactions",
+        metadata,
+        sa.Column("id", sa.Integer, primary_key=True),
+        sa.Column("action_kind", sa.String(32)),
+    )
+    shadows: sa.Table = sa.Table(
+        "provenance_shadows",
+        metadata,
+        sa.Column("transaction_id", sa.Integer),
+        sa.Column("operation_type", sa.Integer),
+    )
+    metadata.create_all(lifecycle_session.connection())
+    lifecycle_session.execute(transactions.insert().values(id=1))
+    lifecycle_session.execute(
+        shadows.insert().values(transaction_id=1, operation_type=operation)
+    )
+    monkeypatch.setattr(
+        versioning_manager, "transaction_cls", SimpleNamespace(__table__=transactions)
+    )
+    if declared is not None:
+        lifecycle_session.info[listener.ACTION_KIND_KEY] = declared
+    listener._stamp_action_kind_on_transaction(lifecycle_session, 1, (shadows,))
+    assert lifecycle_session.scalar(sa.select(transactions.c.action_kind)) == expected
+    assert listener.ACTION_KIND_KEY not in lifecycle_session.info
+
+
 Base: Any = sa.orm.declarative_base()
+
+
+def test_provenance_lookup_failure_preserves_the_user_transaction(
+    lifecycle_session: Session,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A failed provenance SELECT rolls back its savepoint, not the save."""
+    from types import SimpleNamespace
+    from unittest.mock import Mock
+
+    from sqlalchemy_continuum import versioning_manager
+
+    metadata: sa.MetaData = sa.MetaData()
+    transactions: sa.Table = sa.Table(
+        "provenance_failure_transactions",
+        metadata,
+        sa.Column("id", sa.Integer, primary_key=True),
+        sa.Column("action_kind", sa.String(32)),
+    )
+    transactions.create(lifecycle_session.connection())
+    lifecycle_session.execute(transactions.insert().values(id=1))
+    missing: sa.Table = sa.Table(
+        "missing_provenance_shadow",
+        metadata,
+        sa.Column("transaction_id", sa.Integer),
+        sa.Column("operation_type", sa.Integer),
+    )
+    monkeypatch.setattr(
+        versioning_manager, "transaction_cls", SimpleNamespace(__table__=transactions)
+    )
+    metric: Mock = Mock()
+    monkeypatch.setattr(listener, "incr_capture_error", metric)
+    listener._stamp_action_kind_on_transaction(lifecycle_session, 1, (missing,))
+    metric.assert_called_once_with("action_kind_stamp")
+    assert lifecycle_session.scalar(sa.select(transactions.c.action_kind)) is None
+    lifecycle_session.add(LifecycleRow(value="save survives"))
+    lifecycle_session.commit()
+    assert lifecycle_session.scalar(sa.select(LifecycleRow.value)) == "save survives"
 
 
 class LifecycleRow(Base):
