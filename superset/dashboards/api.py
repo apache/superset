@@ -146,6 +146,7 @@ from superset.security.manager import (
     get_extra_editor_subject_ids,
     get_extra_editors_by_pk,
 )
+from superset.semantic_layers.models import SemanticView
 from superset.subjects.filters import (
     FilterRelatedSubjects,
     subject_type_filter,
@@ -287,6 +288,8 @@ DASHBOARD_DATASET_INACCESSIBLE_FIELDS = (
     "perm",
     "edit_url",
     "database",
+    "parent",
+    "semantic_view_features",
     "columns",
     "column_names",
     "column_types",
@@ -756,6 +759,10 @@ class DashboardRestApi(
     ) -> dict[str, Any]:
         """Dump a member dataset, narrowed when the caller cannot access it."""
         serialized = self.dashboard_dataset_schema.dump(payload)
+        if isinstance(datasource, SemanticView):
+            # Redux keys dashboard datasets by Slice.form_data["datasource"],
+            # whereas SemanticView.uid is the provider's independent identity.
+            serialized["uid"] = f"{datasource.id}__{datasource.type}"
         if not security_manager.can_access_datasource(datasource):
             for key in DASHBOARD_DATASET_INACCESSIBLE_FIELDS:
                 serialized.pop(key, None)
