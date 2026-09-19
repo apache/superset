@@ -37,6 +37,16 @@ export interface FieldProps<V> {
   compact?: boolean;
   inline?: boolean;
   errorMessage?: string | ReactElement;
+  /**
+   * The record the enclosing Fieldset is editing. Injected by Fieldset.
+   */
+  item?: Record<string, any>;
+  /**
+   * Pass `item` through to the control. Opt-in: a control that reads more of
+   * the record than its own field needs it, while handing an unrecognised
+   * `item` prop to TextControl or Select would do nothing good.
+   */
+  passItemToControl?: boolean;
 }
 
 export default function Field<V>({
@@ -50,6 +60,8 @@ export default function Field<V>({
   compact = false,
   inline = false,
   errorMessage,
+  item,
+  passItemToControl = false,
 }: FieldProps<V>) {
   const onControlChange = useCallback(
     (newValue: V) => {
@@ -89,6 +101,7 @@ export default function Field<V>({
         {infoTooltip}
       </FormLabel>
     ),
+    ...(passItemToControl ? { item } : {}),
   });
 
   return (

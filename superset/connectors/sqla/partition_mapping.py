@@ -138,6 +138,12 @@ MIRRORABLE_IF_MONOTONIC = {
 }
 
 
+#: Every operator that can be mirrored under *some* transform. The preview
+#: endpoint accepts these; whether a given one actually mirrors still depends on
+#: the monotonicity declaration.
+MIRRORABLE_OPERATORS = MIRRORABLE_ALWAYS | MIRRORABLE_IF_MONOTONIC
+
+
 def mirrorable_operators(is_monotonic: bool) -> set[FilterOperator]:
     """
     The operators whose predicates may be mirrored onto the partition column.
@@ -184,6 +190,11 @@ def parse_skeleton(transform: str) -> str:
     return VALUE_PLACEHOLDER_RE.sub(_PARSE_STANDIN, transform)
 
 
+#: Prefix the transform is wrapped in before parsing. Its length is subtracted
+#: from any reported column so positions refer to what the owner actually typed.
+_SELECT_PREFIX = "SELECT "
+
+
 def _parse_skeleton(transform: str, engine: str) -> SQLStatement | None:
     """
     Parse ``SELECT <transform>`` with the placeholder substituted out.
@@ -191,9 +202,55 @@ def _parse_skeleton(transform: str, engine: str) -> SQLStatement | None:
     Returns ``None`` when the transform does not parse.
     """
     try:
-        return SQLStatement(f"SELECT {parse_skeleton(transform)}", engine)
+        return SQLStatement(f"{_SELECT_PREFIX}{parse_skeleton(transform)}", engine)
     except SupersetParseError:
         return None
+
+
+def parse_error_detail(transform: str, engine: str) -> str | None:
+    """
+    Where the parser gave up on the transform.
+
+    Returns ``None`` when it parses, or when the parser offered no position.
+    Note that sqlglot parses unknown functions happily -- a misspelled function
+    name is not a parse error, it is an engine error, and surfaces only when the
+    transform is evaluated.
+
+    The parser's own ``highlight`` is deliberately dropped: it would name the
+    ``NULL`` we substituted for ``:value``, which is not a token the owner typed.
+    """
+    try:
+        SQLStatement(f"{_SELECT_PREFIX}{parse_skeleton(transform)}", engine)
+    except SupersetParseError as ex:
+        column = (ex.error.extra or {}).get("column")
+        if not isinstance(column, int):
+            return None
+        return str(
+            _(
+                "syntax error at position %(position)d.",
+                position=_position_in_transform(transform, column),
+            )
+        )
+    return None
+
+
+def _position_in_transform(transform: str, parsed_column: int) -> int:
+    """
+    Map a column in the parsed skeleton back to the transform as typed.
+
+    Two substitutions stand between them: the ``SELECT`` prefix, and every
+    ``:value`` that became a shorter ``NULL``. Without unwinding both, a
+    reported position drifts left by two characters per placeholder ahead of it
+    -- which is worst exactly where transforms usually break, at the end.
+    """
+    position = max(parsed_column - len(_SELECT_PREFIX), 0)
+    shift = len(":value") - len(_PARSE_STANDIN)
+    preceding = sum(
+        1
+        for index, match in enumerate(VALUE_PLACEHOLDER_RE.finditer(transform))
+        if match.start() - index * shift < position
+    )
+    return position + preceding * shift
 
 
 def is_parseable(transform: str | None, engine: str) -> bool:
@@ -346,6 +403,8 @@ def evaluate_transform(
     schema: str | None,
     transform: str,
     values: list[Any],
+    *,
+    errors: list[str] | None = None,
 ) -> list[Any] | None:
     """
     Evaluate ``transform`` against the engine once per distinct value.
@@ -358,6 +417,11 @@ def evaluate_transform(
     match the chart query as closely as the connection pool allows. It still
     runs in a *different* session, which is why transforms calling
     session-dependent functions are rejected at save time.
+
+    :param errors: optional sink for the engine's own account of a failure. The
+        query path passes nothing and stays silent; the editor's preview passes
+        a list so it can tell the owner *why* the transform did not evaluate --
+        a misspelled function is the common case and sqlglot parses it happily.
     """
     if not values:
         return None
@@ -374,7 +438,9 @@ def evaluate_transform(
     cache_key = _probe_cache_key(database, catalog, schema, transform, distinct)
     cached = _cache_get(cache_key)
     if cached is None:
-        cached = _run_probe(database, catalog, schema, transform, distinct)
+        cached = _run_probe(
+            database, catalog, schema, transform, distinct, errors=errors
+        )
         if cached is None:
             # Deliberately not cached: a transient engine blip would otherwise
             # keep the dataset pruning-free for the whole cache timeout.
@@ -393,6 +459,8 @@ def _run_probe(
     schema: str | None,
     transform: str,
     distinct: list[Any],
+    *,
+    errors: list[str] | None = None,
 ) -> list[Any] | None:
     try:
         sql = build_probe_sql(transform, distinct, _dialect_for(database))
@@ -413,11 +481,13 @@ def _run_probe(
             )
             return None
         return [row.iloc[index] for index in range(len(distinct))]
-    except Exception:  # pylint: disable=broad-except
+    except Exception as ex:  # pylint: disable=broad-except
         logger.warning(
             "Partition transform probe failed; queries will not prune",
             exc_info=True,
         )
+        if errors is not None:
+            errors.append(str(ex))
         return None
 
 
@@ -609,12 +679,21 @@ def validate_transform(
         ]
 
     if not is_parseable(transform, engine):
+        detail = parse_error_detail(cast(str, transform), engine)
         return [
             MappingValidationIssue(
                 field=field,
-                message=_(
-                    "The value transform could not be parsed. The mapping is "
-                    "saved but stays inactive until it does."
+                message=(
+                    _(
+                        "The value transform could not be parsed: %(detail)s "
+                        "The mapping is saved but stays inactive until it does.",
+                        detail=detail,
+                    )
+                    if detail
+                    else _(
+                        "The value transform could not be parsed. The mapping "
+                        "is saved but stays inactive until it does."
+                    )
                 ),
                 blocking=False,
             )
@@ -651,32 +730,47 @@ def validate_transform(
     return []
 
 
-def preview_partition_mapping(
+def preview_partition_mapping(  # pylint: disable=too-many-return-statements
     datasource: SqlaTable,
     *,
     mapped_column: str,
     value_transform: str | None,
-    sample_value: str,
+    sample_values: list[str],
+    operator: FilterOperator = FilterOperator.EQUALS,
+    is_monotonic: bool = False,
+    partition_column: str | None = None,
 ) -> dict[str, Any]:
     """
     Evaluate a candidate mapping and describe the predicate it would emit.
 
     Shares the evaluator -- and therefore the probe cache -- with the query
     path, so preview and runtime cannot drift and a previewed transform warms
-    the chart path for free.
+    the chart path for free. The predicate itself comes from
+    `build_mirrored_predicates`, the same builder the query path uses, so
+    operator shapes cannot drift either: what the panel shows is what a chart
+    would emit.
 
     Validation runs first and the engine second: a half-typed transform is by
     definition unparseable, so most of what a text input produces costs zero
     queries.
+
+    Every part of the mapping is taken from the request rather than the stored
+    dataset. The editor previews while the owner is still editing -- a mapping
+    that has to be saved before it can be checked is not a preview.
     """
-    partition_column = datasource.partition_column
+    partition_column = partition_column or datasource.partition_column
     if not partition_column:
-        return {"valid": False, "error": _("No partition column is set.")}
+        return {
+            "valid": False,
+            "reason": "unconfigured",
+            "error": _("No partition column is set."),
+        }
 
     column_names = {str(column.column_name) for column in datasource.columns}
     if mapped_column not in column_names:
         return {
             "valid": False,
+            "reason": "validation",
             "error": _("%(name)s is not a column on this dataset.", name=mapped_column),
         }
 
@@ -689,25 +783,92 @@ def preview_partition_mapping(
         transform=value_transform,
         engine=engine,
     ):
-        return {"valid": False, "error": str(issue.message)}
-
-    evaluated = evaluate_transform(
-        datasource.database,
-        datasource.catalog,
-        datasource.schema,
-        cast(str, value_transform),
-        [sample_value],
-    )
-    if evaluated is None:
         return {
             "valid": False,
-            "error": _("The transform could not be evaluated against the database."),
+            # The parse failure is the one an owner sees constantly, and it is
+            # the only one the mockup gives its own headline to.
+            "reason": (
+                "parse"
+                if issue.field == "partition_value_transform"
+                and not is_parseable(value_transform, engine)
+                else "validation"
+            ),
+            "error": str(issue.message),
+        }
+
+    mapping = PartitionMapping(
+        partition_column=str(partition_column),
+        mapped_column=mapped_column,
+        value_transform=cast(str, value_transform),
+        is_monotonic=is_monotonic,
+    )
+    sample_input = _render_sample_input(mapped_column, operator, sample_values)
+
+    if not mapping.mirrors(operator):
+        return {
+            "valid": False,
+            "reason": "operator",
+            "sample_input": sample_input,
+            "error": _(
+                "A %(operator)s filter is only mirrored when the transform "
+                "preserves ordering, which this one is not declared to do.",
+                operator=operator.value,
+            ),
+        }
+
+    value: Any = sample_values if operator == FilterOperator.IN else sample_values[0]
+    errors: list[str] = []
+    predicates = build_mirrored_predicates(
+        datasource, mapping, [(operator, value)], errors=errors
+    )
+    if not predicates:
+        return {
+            "valid": False,
+            "reason": "engine",
+            "sample_input": sample_input,
+            "error": (
+                _(
+                    "The transform could not be evaluated against the "
+                    "database: %(reason)s",
+                    reason=errors[0],
+                )
+                if errors
+                else _("The transform could not be evaluated against the database.")
+            ),
         }
 
     return {
         "valid": True,
-        "emitted_predicate": (f"{partition_column} >= {_render_literal(evaluated[0])}"),
+        "sample_input": sample_input,
+        "emitted_predicate": _render_predicate(datasource, predicates[0]),
     }
+
+
+def _render_sample_input(
+    mapped_column: str,
+    operator: FilterOperator,
+    values: list[str],
+) -> str:
+    """The filter being previewed, written the way an owner would read it."""
+    if operator == FilterOperator.IN:
+        rendered = ", ".join(_render_literal(value) for value in values)
+        return f"{mapped_column} IN ({rendered})"
+    return f"{mapped_column} {operator.value} {_render_literal(values[0])}"
+
+
+def _render_predicate(datasource: SqlaTable, predicate: ColumnElement[Any]) -> str:
+    """
+    Compile a mirrored predicate to the text a reader would see in View query.
+
+    Every value in it is a probed constant by this point, so ``literal_binds``
+    renders the same literals the chart query carries.
+    """
+    return str(
+        predicate.compile(
+            dialect=_dialect_for(datasource.database),
+            compile_kwargs={"literal_binds": True},
+        )
+    ).replace("\n", " ")
 
 
 def _render_literal(value: Any) -> str:
@@ -722,6 +883,8 @@ def build_mirrored_predicates(
     datasource: SqlaTable,
     mapping: PartitionMapping,
     requests: list[tuple[FilterOperator, Any]],
+    *,
+    errors: list[str] | None = None,
 ) -> list[ColumnElement[Any]]:
     """
     Turn collected ``(operator, value)`` mirror requests into predicates.
@@ -730,6 +893,8 @@ def build_mirrored_predicates(
     resolved in a single probe round trip -- one per chart query at most -- then
     emitted as a literal constant, so "View query" shows the reader an ordinary
     ``WHERE`` clause rather than an inline expression.
+
+    :param errors: optional sink; see `evaluate_transform`.
     """
     if not requests:
         return []
@@ -760,6 +925,7 @@ def build_mirrored_predicates(
         datasource.schema,
         mapping.value_transform,
         flat,
+        errors=errors,
     )
     if evaluated is None:
         return []

@@ -16,9 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export { default as DatasetUsageTab } from './DatasetUsageTab';
-export { default as DashboardLinksExternal } from './DashboardLinksExternal';
-export {
-  PartitionColumnFields,
-  PartitionMappingSection,
-} from './PartitionFilterMapping';
+export { default as PartitionColumnFields } from './PartitionColumnFields';
+export { default as PartitionMappingSection } from './PartitionMappingSection';
+export * from './utils';
+export * from './types';
