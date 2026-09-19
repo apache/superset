@@ -80,8 +80,20 @@ jobs:
             shift 2
             # Supersetbot adds its own --cache-to whenever DOCKERHUB_TOKEN is
             # present. Hide the token from Supersetbot so cache export is
-            # controlled only by docker-build-extra-flags.sh.
+            # controlled only by docker-build-extra-flags.sh, mirroring the
+            # docker-build job. assert_supersetbot_exports_cache_with_token
+            # below covers the unhidden case.
             DOCKERHUB_TOKEN= supersetbot docker \
+              --preset "$preset" \
+              --platform linux/amd64 \
+              "$@" \
+              --extra-flags "$extra_flags" \
+              --dry-run
+          }
+          docker_command_with_token() {
+            local preset="$1" extra_flags="$2"
+            shift 2
+            DOCKERHUB_TOKEN=dummy supersetbot docker \
               --preset "$preset" \
               --platform linux/amd64 \
               "$@" \
@@ -144,6 +156,30 @@ jobs:
               exit 1
             fi
           }
+          # The assertion above only proves our own helper stays quiet; it is
+          # the docker-build job blanking DOCKERHUB_TOKEN that stops Supersetbot
+          # from adding an implicit --cache-to of its own. Pin that Supersetbot
+          # behaviour here, so the reason the production guard exists cannot
+          # quietly disappear and leave validation builds exporting unreviewed
+          # layers to the shared registry cache.
+          assert_supersetbot_exports_cache_with_token() {
+            local preset="$1" extra_flags command
+            load_build_plan push refs/heads/7.0 7.0
+            extra_flags="$(PUBLISH_DOCKER_CACHE="" DOCKERHUB_TOKEN=dummy scripts/docker-build-extra-flags.sh "$preset" dummy-tag)"
+            command="$(GITHUB_REF=refs/heads/7.0 docker_command_with_token "$preset" "$extra_flags" --context "$BUILD_CONTEXT" --context-ref "$BUILD_CONTEXT_REF")"
+            if ! grep -Fq -- "--cache-to=type=registry" <<<"$command"; then
+              echo "::error::supersetbot no longer adds an implicit --cache-to when DOCKERHUB_TOKEN is set; the token-hiding guard in docker-build may be obsolete (full command: $command)"
+              exit 1
+            fi
+          }
+          assert_publish_guard() {
+            local event_name="$1" ref="$2" sha="$3" tip_sha="$4" expected="$5"
+            eval "$(bash scripts/docker-publish-guard.sh "$event_name" "$ref" "$sha" "$tip_sha")"
+            if [ "$PUBLISH" != "$expected" ]; then
+              echo "::error::publish guard for event=$event_name ref=$ref sha=$sha tip=$tip_sha expected PUBLISH=$expected, got $PUBLISH"
+              exit 1
+            fi
+          }
           assert_cache_push_for_master() {
             local preset="$1" expected="$2" extra_flags command
             load_build_plan push refs/heads/master master
@@ -170,6 +206,15 @@ jobs:
           assert_build_plan push refs/heads/master master push master --push "--platform linux/arm64 --platform linux/amd64" true
           assert_build_plan push refs/heads/7.0 7.0 push "" --load "--platform linux/amd64" ""
           assert_build_plan pull_request refs/pull/44250/merge "" pull_request "" --load "--platform linux/amd64" ""
+          # A master push publishes only while its commit is still the branch
+          # tip. The second case is the delayed-A/fast-B inversion: A's change
+          # detection lagged, B published first, and A must not roll the
+          # mutable master* tags back to the older digest.
+          assert_publish_guard push refs/heads/master aaaa111 aaaa111 true
+          assert_publish_guard push refs/heads/master aaaa111 bbbb222 false
+          assert_publish_guard push refs/heads/7.0 aaaa111 bbbb222 true
+          assert_publish_guard pull_request refs/pull/44250/merge aaaa111 bbbb222 true
+          assert_supersetbot_exports_cache_with_token superset
           for preset in superset dev lean; do
             assert_effective_py_ver "$preset" "3.11.14-slim-trixie"
             expected_cache="3.11.14-slim-trixie"
@@ -200,7 +245,7 @@ jobs:
           assert_release_tag lean "6.1.0-lean"
           assert_release_tag py311 "6.1.0-py311"
           assert_release_tag py312 "6.1.0-py312"
-          echo "Docker build command verified for Python versions, cache refs, cache export, master tags, and release tags"
+          echo "Docker build command verified for Python versions, cache refs, cache export, publish guard, master tags, and release tags"
 
   docker-build:
     name: docker-build
@@ -222,10 +267,14 @@ jobs:
         build_preset: ${{fromJson(needs.setup_matrix.outputs.matrix_config)}}
       fail-fast: false
     # Apply concurrency after change detection. A docs-only push has no
-    # docker-build job and cannot replace a pending publisher.
+    # docker-build job and cannot replace a pending publisher. Publishing
+    # pushes queue so a slower run cannot overwrite mutable tags, while
+    # superseded pull_request validation builds are cancelled as before --
+    # otherwise every new commit on a PR would wait behind the abandoned
+    # merge ref's build for up to the 60 minute job timeout.
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.build_preset }}
-      cancel-in-progress: false
+      cancel-in-progress: ${{ github.event_name == 'pull_request' }}
     env:
       DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
       DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -265,7 +314,44 @@ jobs:
       - name: Setup supersetbot
         uses: $/.github/actions/setup-supersetbot/
 
+      # Concurrency serializes the master matrix per preset, but it does not
+      # order the runs entering it: a run whose change detection lagged can
+      # acquire the lock after a newer commit already published, and would
+      # then move the mutable `master*` tags back to the older digest. Reject
+      # the stale SHA instead. Every later step is gated on the result,
+      # because a skipped build leaves no $IMAGE_TAG for them to act on.
+      - name: Guard against publishing a superseded master commit
+        id: publish_guard
+        shell: bash
+        run: |
+          set -euo pipefail
+          TIP_SHA=""
+          if [ "$GITHUB_EVENT_NAME" = "push" ] && [ "$GITHUB_REF" = "refs/heads/master" ]; then
+            # Public repo, so ls-remote needs no credentials; this keeps
+            # persist-credentials: false on the checkout above. Retried
+            # because a transient blip here would otherwise fail the job
+            # rather than let it publish from a possibly superseded commit.
+            for attempt in 1 2 3; do
+              if TIP_SHA="$(git ls-remote "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" refs/heads/master | cut -f1)" &&
+                [ -n "$TIP_SHA" ]; then
+                break
+              fi
+              if [ "$attempt" -eq 3 ]; then
+                echo "::error::could not read the master tip to validate $GITHUB_SHA"
+                exit 1
+              fi
+              echo "::warning::ls-remote attempt ${attempt} failed; retrying in 10s..."
+              sleep 10
+            done
+          fi
+          eval "$(bash scripts/docker-publish-guard.sh "$GITHUB_EVENT_NAME" "$GITHUB_REF" "$GITHUB_SHA" "$TIP_SHA")"
+          if [ "$PUBLISH" != "true" ]; then
+            echo "::notice::master advanced to ${TIP_SHA} while ${GITHUB_SHA} was queued; skipping this build"
+          fi
+          echo "publish=$PUBLISH" >> "$GITHUB_OUTPUT"
+
       - name: Build Docker Image
+        if: steps.publish_guard.outputs.publish == 'true'
         shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -315,7 +401,9 @@ jobs:
 
       # in the context of push (using multi-platform build), we need to pull the image locally
       - name: Docker pull
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        if: >-
+          steps.publish_guard.outputs.publish == 'true' &&
+          github.event_name == 'push' && github.ref == 'refs/heads/master'
         run: |
           for i in 1 2 3; do
             docker pull $IMAGE_TAG && break
@@ -323,6 +411,7 @@ jobs:
           done
 
       - name: Print docker stats
+        if: steps.publish_guard.outputs.publish == 'true'
         run: |
           echo "SHA: ${{ github.sha }}"
           echo "IMAGE: $IMAGE_TAG"
@@ -337,6 +426,7 @@ jobs:
       # chain, and is already on the ASF Infra GitHub Actions allowlist.
       - name: Scan built image for vulnerabilities
         if: >-
+          steps.publish_guard.outputs.publish == 'true' &&
           github.event_name == 'push' && github.ref == 'refs/heads/master' &&
           contains(fromJson('["superset", "lean"]'), matrix.build_preset)
         id: grype-scan
@@ -357,6 +447,7 @@ jobs:
 
       - name: Upload vulnerability scan results to GitHub Security tab
         if: >-
+          steps.publish_guard.outputs.publish == 'true' &&
           github.event_name == 'push' && github.ref == 'refs/heads/master' &&
           contains(fromJson('["superset", "lean"]'), matrix.build_preset) &&
           steps.grype-scan.outputs.sarif != ''
@@ -372,7 +463,9 @@ jobs:
           category: "docker-${{ matrix.build_preset }}"
 
       - name: WebSocket server smoke test
-        if: contains(fromJson('["superset", "lean", "dev"]'), matrix.build_preset)
+        if: >-
+          steps.publish_guard.outputs.publish == 'true' &&
+          contains(fromJson('["superset", "lean", "dev"]'), matrix.build_preset)
         shell: bash
         run: |
           # The realtime WebSocket server is bundled in the official image and
@@ -395,7 +488,9 @@ jobs:
           [ "$ok" = "1" ] || { echo "::error::websocket /health did not come up"; exit 1; }
 
       - name: docker-compose sanity check
-        if: matrix.build_preset == 'dev'
+        if: >-
+          steps.publish_guard.outputs.publish == 'true' &&
+          matrix.build_preset == 'dev'
         shell: bash
         env:
           BUILD_PRESET: ${{ matrix.build_preset }}
