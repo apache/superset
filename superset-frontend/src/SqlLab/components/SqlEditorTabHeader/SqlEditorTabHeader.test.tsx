@@ -330,7 +330,7 @@ test('does not leak tab-editing keystrokes from the rename input to the surround
     { useRedux: true, store },
   );
 
-  userEvent.click(screen.getByTestId('dropdown-trigger'));
+  await userEvent.click(screen.getByTestId('dropdown-trigger'));
   await waitFor(() =>
     expect(screen.getByTestId('rename-tab-menu-option')).toBeInTheDocument(),
   );

@@ -104,6 +104,13 @@ class TestActivityReadThenWrite(SupersetTestCase):
                 .get_execution_options()
                 .get("stream_results", False)
             )
+            assert any(
+                record["kind"] != "__creation__"
+                and record["entity_uuid"] == str(slc.uuid)
+                and record["path"] == ["slice_name"]
+                and record["to_value"] == "sc120955_read_then_write_edited"
+                for record in records
+            )
 
             # A write through the same session must still work — this is
             # what Continuum's transaction INSERT, SAVEPOINTs, and the
