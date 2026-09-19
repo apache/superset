@@ -842,7 +842,7 @@ pyhive==0.7.0
     # via apache-superset
 pyinstrument==5.1.3
     # via apache-superset
-pyjwt==2.13.0
+pyjwt==2.14.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
