@@ -38,7 +38,7 @@ import os
 import time
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, NoReturn
 
 import requests
 from tenacity import (
@@ -115,9 +115,7 @@ class CircuitBreaker:
         self.last_failure_time = time.monotonic()
         if self.failure_count >= self.failure_threshold:
             self.state = "open"
-            log.warning(
-                "Circuit breaker opened after %d failures", self.failure_count
-            )
+            log.warning("Circuit breaker opened after %d failures", self.failure_count)
 
     def allow_request(self) -> bool:
         """Check if request should be allowed based on circuit state."""
@@ -188,6 +186,18 @@ class Session:
         status = (self.status_enum or self.status).lower()
         return status in {"finished", "completed", "blocked", "suspended"}
 
+    def owns_issue(self) -> bool:
+        """True while the session is running or once it has delivered a PR.
+
+        A dead session, or a finished one without a pull request, counts as a
+        failed attempt and must not suppress a fresh dispatch.
+        """
+        if self.is_dead():
+            return False
+        if self.is_finished():
+            return self.get_pr_url() is not None
+        return True
+
     def get_pr_url(self) -> str | None:
         """Extract PR URL from session data."""
         prs = []
@@ -208,11 +218,21 @@ class Session:
 
 @dataclass
 class RetryPolicy:
-    max_attempts: int = field(default_factory=lambda: _parse_int_env("RETRY_MAX_ATTEMPTS", 6))
-    initial: float = field(default_factory=lambda: _parse_float_env("RETRY_BASE_SECONDS", 2.0))
-    max_sleep: float = field(default_factory=lambda: _parse_float_env("RETRY_MAX_SLEEP", 120.0))
-    budget_seconds: float = field(default_factory=lambda: _parse_float_env("RETRY_BUDGET_SECONDS", 900.0))
-    timeout: float = field(default_factory=lambda: _parse_float_env("HTTP_TIMEOUT", 60.0))
+    max_attempts: int = field(
+        default_factory=lambda: _parse_int_env("RETRY_MAX_ATTEMPTS", 6)
+    )
+    initial: float = field(
+        default_factory=lambda: _parse_float_env("RETRY_BASE_SECONDS", 2.0)
+    )
+    max_sleep: float = field(
+        default_factory=lambda: _parse_float_env("RETRY_MAX_SLEEP", 120.0)
+    )
+    budget_seconds: float = field(
+        default_factory=lambda: _parse_float_env("RETRY_BUDGET_SECONDS", 900.0)
+    )
+    timeout: float = field(
+        default_factory=lambda: _parse_float_env("HTTP_TIMEOUT", 60.0)
+    )
 
 
 def _parse_int_env(name: str, default: int) -> int:
@@ -274,7 +294,9 @@ def _retry_after_seconds(headers: Any) -> float | None:
     return None
 
 
-def _log_retry(policy: RetryPolicy, metrics: Metrics) -> Callable[[RetryCallState], None]:
+def _log_retry(
+    policy: RetryPolicy, metrics: Metrics
+) -> Callable[[RetryCallState], None]:
     def before_sleep(state: RetryCallState) -> None:
         metrics.record_retry()
         log.warning(
@@ -345,7 +367,12 @@ class BaseClient:
     user_agent: str = "superset-automation-orchestrator"
     session: requests.Session = field(default_factory=requests.Session)
     metrics: Metrics = field(default_factory=Metrics)
-    circuit_breaker: CircuitBreaker = field(default_factory=CircuitBreaker)
+    circuit_breaker: CircuitBreaker = field(
+        default_factory=lambda: CircuitBreaker(
+            failure_threshold=_parse_int_env("CIRCUIT_BREAKER_THRESHOLD", 5),
+            recovery_timeout=_parse_float_env("CIRCUIT_BREAKER_TIMEOUT", 60.0),
+        )
+    )
 
     def _headers(self) -> dict[str, str]:
         headers = {"User-Agent": self.user_agent, "Accept": "application/json"}
@@ -353,14 +380,30 @@ class BaseClient:
             headers["Authorization"] = f"Bearer {token}"
         return headers
 
-    def _classify(self, resp: requests.Response, method: str, context: str) -> None:
+    def _fail(
+        self, method: str, reason: str, status: int | None, cause: Exception
+    ) -> NoReturn:
+        """Record a failure and raise it as transient or ambiguous by method."""
+        self.metrics.record_failure()
+        self.circuit_breaker.record_failure()
+        if method in IDEMPOTENT_METHODS:
+            raise TransientError(reason, status) from cause
+        raise AmbiguousWriteError(reason, status) from cause
+
+    def _classify(
+        self, resp: requests.Response, method: str, context: str, decode_json: bool
+    ) -> None:
         status = resp.status_code
         if status < 400:
+            if decode_json:
+                try:
+                    resp.json()
+                except ValueError as exc:
+                    reason = f"{context} HTTP {status}: malformed JSON body"
+                    self._fail(method, reason, status, exc)
             self.metrics.record_success()
             self.circuit_breaker.record_success()
             return
-        self.metrics.record_failure()
-        self.circuit_breaker.record_failure()
         body = resp.text[:300]
         snippet = f"HTTP {status} {resp.reason}: {body}"
         if status == 429 or (
@@ -370,12 +413,16 @@ class BaseClient:
                 or any(m in body.lower() for m in RATE_LIMIT_MARKERS)
             )
         ):
+            # Throttling is handled by the retry budget; it says nothing about
+            # the availability of the service, so it must not trip the breaker.
             self.metrics.record_rate_limit()
             raise TransientError(
                 f"{context} rate limited ({snippet})",
                 status,
                 _retry_after_seconds(resp.headers),
             )
+        self.metrics.record_failure()
+        self.circuit_breaker.record_failure()
         if status >= 500:
             if method in IDEMPOTENT_METHODS:
                 raise TransientError(f"{context} {snippet}", status)
@@ -395,6 +442,7 @@ class BaseClient:
         context: str,
         params: dict[str, Any] | None,
         json_body: Any,
+        decode_json: bool,
     ) -> requests.Response:
         if not self.circuit_breaker.allow_request():
             self.metrics.record_circuit_breaker_trip()
@@ -411,13 +459,8 @@ class BaseClient:
                 timeout=self.policy.timeout,
             )
         except (requests.ConnectionError, requests.Timeout) as exc:
-            self.metrics.record_failure()
-            self.circuit_breaker.record_failure()
-            reason = f"{context} {type(exc).__name__}"
-            if method in IDEMPOTENT_METHODS:
-                raise TransientError(reason) from exc
-            raise AmbiguousWriteError(reason) from exc
-        self._classify(resp, method, context)
+            self._fail(method, f"{context} {type(exc).__name__}", None, exc)
+        self._classify(resp, method, context, decode_json)
         return resp
 
     def request(
@@ -428,8 +471,15 @@ class BaseClient:
         context: str = "",
         params: dict[str, Any] | None = None,
         json_body: Any = None,
+        decode_json: bool = False,
     ) -> requests.Response:
-        """Perform one logical request under the retry contract."""
+        """Perform one logical request under the retry contract.
+
+        With ``decode_json`` a 2xx reply whose body is not valid JSON is
+        classified like a transport failure (retried for idempotent methods,
+        :class:`AmbiguousWriteError` for writes) instead of escaping as a
+        bare decoding exception.
+        """
         method = method.upper()
         context = context or f"{method} {path}"
         retrying = Retrying(
@@ -442,10 +492,16 @@ class BaseClient:
             before_sleep=_log_retry(self.policy, self.metrics),
             reraise=True,
         )
-        return retrying(self._once, method, path, context, params, json_body)
+        return retrying(
+            self._once, method, path, context, params, json_body, decode_json
+        )
+
+    def request_json(self, method: str, path: str, **kwargs: Any) -> Any:
+        """Perform a request and return its decoded JSON body."""
+        return self.request(method, path, decode_json=True, **kwargs).json()
 
     def get_json(self, path: str, **kwargs: Any) -> Any:
-        return self.request("GET", path, **kwargs).json()
+        return self.request_json("GET", path, **kwargs)
 
     def get_metrics(self) -> dict[str, int]:
         """Get current metrics summary."""
@@ -473,7 +529,7 @@ class GitHub(BaseClient):
         params.setdefault("per_page", 100)
         url: str | None = f"repos/{self.repo}/{path}"
         while url:
-            resp = self.request("GET", url, params=params)
+            resp = self.request("GET", url, params=params, decode_json=True)
             yield from resp.json()
             url = resp.links.get("next", {}).get("url")
             params = {}
@@ -503,20 +559,20 @@ class GitHub(BaseClient):
         return list(self.paginate(f"issues/{issue}/comments"))
 
     def create_comment(self, issue: int, body: str) -> dict[str, Any]:
-        return self.request(
+        return self.request_json(
             "POST",
             f"repos/{self.repo}/issues/{issue}/comments",
             context=f"[Issue #{issue}] create comment",
             json_body={"body": body},
-        ).json()
+        )
 
     def update_comment(self, comment_id: int, body: str) -> dict[str, Any]:
-        return self.request(
+        return self.request_json(
             "PATCH",
             f"repos/{self.repo}/issues/comments/{comment_id}",
             context=f"update comment {comment_id}",
             json_body={"body": body},
-        ).json()
+        )
 
 
 class Devin(BaseClient):
@@ -549,12 +605,12 @@ class Devin(BaseClient):
         return self.get_json(f"sessions/{session_id}")
 
     def create_session(self, payload: dict[str, Any]) -> dict[str, Any]:
-        return self.request(
+        return self.request_json(
             "POST",
             "sessions",
             context=f"create session {payload.get('title', '')!r}",
             json_body=payload,
-        ).json()
+        )
 
 
 def session_url(session: dict[str, Any]) -> str:

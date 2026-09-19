@@ -76,7 +76,11 @@ class Fake:
             return 500, {"message": "boom"}, {}
         # Handle branch-specific endpoints
         if "branches/" in path and method == "GET":
-            return 200, {"commit": {"commit": {"committer": {"date": "2024-01-01T00:00:00Z"}}}}, {}
+            return (
+                200,
+                {"commit": {"commit": {"committer": {"date": "2024-01-01T00:00:00Z"}}}},
+                {},
+            )
         return 200, [], {}
 
 
@@ -98,7 +102,7 @@ def fake() -> Iterator[tuple[Fake, str]]:
                     {"session_id": "devin-1", "status": "running", **payload}
                 )
             status, body, headers = state.reply(self.command, path)
-            data = json.dumps(body).encode()
+            data = body if isinstance(body, bytes) else json.dumps(body).encode()
             self.send_response(status)
             self.send_header("Content-Type", "application/json")
             for k, v in headers.items():
@@ -287,6 +291,71 @@ def test_circuit_breaker_resets_on_success(fake: tuple[Fake, str]) -> None:
     assert cb.failure_count == 0
 
 
+def test_rate_limits_do_not_trip_circuit_breaker(fake: tuple[Fake, str]) -> None:
+    """Threshold-many 429s are absorbed by the retry budget, not the breaker."""
+    state, base = fake
+    gh = gh_client(base)
+    gh.policy = RetryPolicy(
+        max_attempts=6, initial=0.01, max_sleep=0.05, budget_seconds=5, timeout=1
+    )
+    gh.circuit_breaker = CircuitBreaker(failure_threshold=3)
+    state.script["/repos/o/r/x"] = [(429, {})] * 5 + [(200, {"ok": 1})]
+    state.script["/repos/o/r/y"] = [(200, {"ok": 2})]
+    assert gh.get_json("repos/o/r/x") == {"ok": 1}
+    assert gh.get_json("repos/o/r/y") == {"ok": 2}
+    assert gh.circuit_breaker.state == "closed"
+    assert gh.metrics.rate_limited_requests == 5
+    assert gh.metrics.circuit_breaker_trips == 0
+
+
+def test_circuit_breaker_reads_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("CIRCUIT_BREAKER_THRESHOLD", "2")
+    monkeypatch.setenv("CIRCUIT_BREAKER_TIMEOUT", "7.5")
+    gh = GitHub("o/r", FAST)
+    assert gh.circuit_breaker.failure_threshold == 2
+    assert gh.circuit_breaker.recovery_timeout == 7.5
+
+
+def test_malformed_json_read_is_retried(fake: tuple[Fake, str]) -> None:
+    state, base = fake
+    gh = gh_client(base)
+    state.script["/repos/o/r/x"] = [(200, b"{not json"), (200, {"ok": 1})]
+    assert gh.get_json("repos/o/r/x") == {"ok": 1}
+    assert gh.metrics.retried_requests == 1
+
+
+def test_malformed_json_write_is_ambiguous(fake: tuple[Fake, str]) -> None:
+    state, base = fake
+    state.script["/sessions"] = [(201, b'{"session_id": "devin-1')]
+    devin = devin_client(base)
+    with pytest.raises(AmbiguousWriteError):
+        devin.create_session({"title": "t"})
+    # ensure_session resolves the ambiguity by re-probing instead of aborting
+    state.script["/sessions"] = [(201, b'{"session_id": "devin-1')]
+    payload = {"title": "Fix x issue #9", "prompt": "p", "tags": ["auto-fix"]}
+    state.sessions.clear()
+    s = ops.ensure_session(devin, payload, "auto-fix")
+    assert s["title"] == payload["title"]
+    assert len(state.sessions) == 1
+
+
+def test_completed_session_without_pr_is_redispatched(fake: tuple[Fake, str]) -> None:
+    state, base = fake
+    failed = {"title": "Fix a issue #42", "status": "completed", "pull_requests": []}
+    with_pr = {
+        "title": "Fix a issue #43",
+        "status": "finished",
+        "pull_requests": [{"pr_url": "https://github.com/o/r/pull/1"}],
+    }
+    assert ops.attempted_issues([], [failed, with_pr]) == {43}
+
+    state.sessions.append({"session_id": "devin-old", **failed})
+    payload = {"title": failed["title"], "prompt": "p", "tags": ["auto-fix"]}
+    s = ops.ensure_session(devin_client(base), payload, "auto-fix")
+    assert s["session_id"] == "devin-1"
+    assert len(state.sessions) == 2
+
+
 def test_pull_request_dataclass(fake: tuple[Fake, str]) -> None:
     """Test PullRequest dataclass creation and methods."""
     data = {
@@ -425,6 +494,7 @@ def test_retry_policy_validation() -> None:
 
     # Test with invalid environment variables (should use defaults)
     import os
+
     os.environ["RETRY_MAX_ATTEMPTS"] = "invalid"
     os.environ["RETRY_BASE_SECONDS"] = "-5"
     policy2 = RetryPolicy()
@@ -448,7 +518,10 @@ def test_branch_cleanup_safety(fake: tuple[Fake, str]) -> None:
     # Test dry-run mode
     result = ops.cleanup_branch(gh_client(base), 5, dry_run=True)
     assert result == "devin/nightly-fix-5-broken"
-    assert ("DELETE", "/repos/o/r/git/refs/heads/devin/nightly-fix-5-broken") not in state.calls
+    assert (
+        "DELETE",
+        "/repos/o/r/git/refs/heads/devin/nightly-fix-5-broken",
+    ) not in state.calls
 
     # Test safety check (no force, no dry-run)
     result = ops.cleanup_branch(gh_client(base), 5, dry_run=False, force=False)
@@ -457,7 +530,10 @@ def test_branch_cleanup_safety(fake: tuple[Fake, str]) -> None:
     # Test force mode (required for actual deletion)
     result = ops.cleanup_branch(gh_client(base), 5, dry_run=False, force=True)
     assert result == "devin/nightly-fix-5-broken"
-    assert ("DELETE", "/repos/o/r/git/refs/heads/devin/nightly-fix-5-broken") in state.calls
+    assert (
+        "DELETE",
+        "/repos/o/r/git/refs/heads/devin/nightly-fix-5-broken",
+    ) in state.calls
 
 
 def test_attempted_issues_with_type_safe_objects(fake: tuple[Fake, str]) -> None:
@@ -468,7 +544,12 @@ def test_attempted_issues_with_type_safe_objects(fake: tuple[Fake, str]) -> None
     ]
     pr_objects = [
         PullRequest.from_dict(
-            {"number": 999, "body": "Fixes #3", "head": {"ref": "devin/nightly-fix-3-bar"}, "state": "open"}
+            {
+                "number": 999,
+                "body": "Fixes #3",
+                "head": {"ref": "devin/nightly-fix-3-bar"},
+                "state": "open",
+            }
         )
     ]
 
@@ -481,7 +562,9 @@ def test_attempted_issues_with_type_safe_objects(fake: tuple[Fake, str]) -> None
     ]
 
     # Test with mixed input
-    result = ops.attempted_issues(pr_dicts + pr_objects, session_dicts + session_objects)
+    result = ops.attempted_issues(
+        [*pr_dicts, *pr_objects], [*session_dicts, *session_objects]
+    )
     assert result == {1, 2, 3, 4, 6}  # 5 is dead, should be excluded
 
 
@@ -491,10 +574,18 @@ def test_backward_compatibility_existing_api(fake: tuple[Fake, str]) -> None:
 
     # Test that old-style dict inputs still work for attempted_issues
     pr_dicts = [
-        {"body": "Fixes #10", "head": {"ref": "devin/nightly-fix-10-test"}, "state": "open"}
+        {
+            "body": "Fixes #10",
+            "head": {"ref": "devin/nightly-fix-10-test"},
+            "state": "open",
+        }
     ]
     session_dicts = [
-        {"title": "Fix npm-advisories issue #10", "status": "running", "session_id": "devin-10"}
+        {
+            "title": "Fix npm-advisories issue #10",
+            "status": "running",
+            "session_id": "devin-10",
+        }
     ]
 
     result = ops.attempted_issues(pr_dicts, session_dicts)
@@ -508,7 +599,8 @@ def test_backward_compatibility_existing_api(fake: tuple[Fake, str]) -> None:
 
 def test_backward_compatibility_cli_arguments(fake: tuple[Fake, str]) -> None:
     """Test that CLI argument changes are backward compatible."""
-    # This test ensures that the new --force flag is optional and defaults to safe behavior
+    # This test ensures that the new --force flag is optional and defaults to
+    # safe behavior
     # The main test is that the old code paths still work without requiring the new flag
     # Actual CLI testing would require mocking sys.argv, which is complex
     # Instead, we verify the underlying functions maintain backward compatibility

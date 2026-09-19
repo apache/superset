@@ -33,10 +33,8 @@ from typing import Any
 from .api import (
     AmbiguousWriteError,
     ApiError,
-    CircuitBreaker,
     Devin,
     GitHub,
-    Metrics,
     PullRequest,
     Session,
     session_url,
@@ -63,24 +61,30 @@ def marker(key: str) -> str:
 
 
 def attempted_issues(
-    prs: Iterable[dict[str, Any] | PullRequest], sessions: Iterable[dict[str, Any] | Session]
+    prs: Iterable[dict[str, Any] | PullRequest],
+    sessions: Iterable[dict[str, Any] | Session],
 ) -> set[int]:
-    """Issue numbers that already have a PR, a fix branch, or a live session."""
+    """Issue numbers that already have a PR, a fix branch, or a session that owns them.
+
+    A session owns its issue while it is still running or once it has opened
+    a PR (see :meth:`Session.owns_issue`); failed attempts are ignored so the
+    issue is dispatched again on the next sweep.
+    """
     seen: set[int] = set()
     for pr in prs:
         if isinstance(pr, PullRequest):
-            pr_data = {"body": pr.body, "head": {"ref": pr.head.get("ref", "")}}
+            body, ref = pr.body, pr.head.get("ref", "")
         else:
-            pr_data = pr
-        seen.update(int(n) for n in BODY_REF.findall(pr_data.get("body") or ""))
-        if m := BRANCH_ISSUE.search(pr_data["head"]["ref"]):
+            body, ref = str(pr.get("body") or ""), str(pr["head"]["ref"])
+        seen.update(int(n) for n in BODY_REF.findall(body))
+        if m := BRANCH_ISSUE.search(ref):
             seen.add(int(m.group(1)))
     for s in sessions:
         if isinstance(s, Session):
             session = s
         else:
             session = Session.from_dict(s)
-        if session.is_dead():
+        if not session.owns_issue():
             continue
         if m := re.search(r"#(\d+)", session.title):
             seen.add(int(m.group(1)))
@@ -88,7 +92,7 @@ def attempted_issues(
 
 
 def ensure_session(devin: Devin, payload: dict[str, Any], tag: str) -> dict[str, Any]:
-    """Create a session unless one with the same title is already alive.
+    """Create a session unless one with the same title still owns the issue.
 
     An ambiguous failure (5xx/timeout on the POST) is resolved by probing
     again, so a request that landed is never duplicated.
@@ -97,7 +101,7 @@ def ensure_session(devin: Devin, payload: dict[str, Any], tag: str) -> dict[str,
     for attempt in (1, 2):
         for s in devin.list_sessions(tag):
             session = Session.from_dict(s) if isinstance(s, dict) else s
-            if session.title == title and not session.is_dead():
+            if session.title == title and session.owns_issue():
                 log.info("%s already has session %s", title, session_url(s))
                 return s
         try:
@@ -163,9 +167,12 @@ def watch_session(
         if session.is_finished():
             return False, f"session {session.status} but pull_request is null"
         if time.monotonic() >= deadline:
-            return False, f"timeout reached after {timeout} (last status: {session.status})"
+            return (
+                False,
+                f"timeout reached after {timeout} (last status: {session.status})",
+            )
         # Add jitter to polling to avoid thundering herd
-        jittered_poll = poll * (0.5 + random.random() * 0.5)
+        jittered_poll = poll * (0.5 + random.random() * 0.5)  # noqa: S311
         sleep(jittered_poll)
 
 
