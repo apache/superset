@@ -417,12 +417,15 @@ export function extractDataTotalValues(
         }
         const value = datum[curr] || 0;
         // Query results with integers beyond Number.MAX_SAFE_INTEGER are
-        // parsed as native BigInt (see
+        // parsed as native BigInt or decimal strings (see
         // packages/superset-ui-core/src/connection/callApi/parseResponse.ts).
-        // Normalize to Number before summing so BigInt and Number values
+        // Normalize to Number before summing so BigInt/string and Number values
         // can be combined without throwing (see #36401).
         const numericValue =
-          typeof value === 'bigint' ? Number(value) : (value as number);
+          typeof value === 'bigint' ||
+          (typeof value === 'string' && /^-?\d+$/.test(value))
+            ? Number(value)
+            : (value as number);
         return prev + numericValue;
       }, 0);
       totalStackedValues.push(values);
@@ -644,7 +647,18 @@ export function extractSeries(
     const normalized: DataRecord = {};
     Object.keys(datum).forEach(key => {
       const value = datum[key];
-      normalized[key] = typeof value === 'bigint' ? Number(value) : value;
+      // Skip bigint/string-integer normalization for the xAxis dimension.
+      // Normalizing xAxis to Number would corrupt categorical labels like
+      // '007' → 7, breaking axis matching/sorting.
+      if (key === xAxis && xAxisType === AxisType.Category) {
+        normalized[key] = value;
+        return;
+      }
+      normalized[key] =
+        typeof value === 'bigint' ||
+        (typeof value === 'string' && /^-?\d+$/.test(value))
+          ? Number(value)
+          : value;
     });
     normalized[xAxis] =
       datum[xAxis] === null && xAxisType === AxisType.Category
@@ -701,13 +715,14 @@ export function extractSeries(
           totalStackedValue !== undefined
         ) {
           // Query results with integers beyond Number.MAX_SAFE_INTEGER are
-          // parsed as native BigInt (see
+          // parsed as native BigInt or decimal strings (see
           // packages/superset-ui-core/src/connection/callApi/parseResponse.ts).
           // totalStackedValue is always a Number (extractDataTotalValues
-          // normalizes it), so dividing a raw BigInt datum value by it
+          // normalizes it), so dividing a raw BigInt/string datum value by it
           // throws; normalize to Number first (see #36401).
           const numericValue =
-            typeof value === 'bigint'
+            typeof value === 'bigint' ||
+            (typeof value === 'string' && /^-?\d+$/.test(value))
               ? Number(value)
               : ((value || 0) as number);
           value = numericValue / totalStackedValue;
