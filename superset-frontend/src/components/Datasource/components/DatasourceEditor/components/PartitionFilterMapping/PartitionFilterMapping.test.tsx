@@ -64,6 +64,23 @@ test('the mapped column shows as following the default datetime column', () => {
   ).toBeInTheDocument();
 });
 
+test('the selected partition column shows its name and type pill when closed', () => {
+  render(
+    <PartitionColumnFields
+      datasource={{ main_dttm_col: 'event_time', partition_column: 'dt_epoch' }}
+      columns={COLUMNS}
+      onPartitionColumnChange={jest.fn()}
+      onNavigateToColumn={jest.fn()}
+    />,
+  );
+
+  // The closed Select shows the rich label -- column name plus its type pill --
+  // not just the bare column name.
+  const select = screen.getByTestId('partition-column-select');
+  expect(within(select).getByText('dt_epoch')).toBeInTheDocument();
+  expect(within(select).getByText('BIGINT')).toBeInTheDocument();
+});
+
 test('a partition column with nothing mapped warns that queries will not prune', () => {
   // Wireframe 1g. Hiding the column from Explore without mirroring anything
   // onto it is strictly worse than no mapping, so it has to say so.
