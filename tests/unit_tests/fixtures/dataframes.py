@@ -171,6 +171,35 @@ prophet_df = DataFrame(
     }
 )
 
+anomaly_df = DataFrame(
+    {
+        "__timestamp": [datetime(2020, 1, i) for i in range(1, 21)],
+        "a": [
+            10,
+            11,
+            10,
+            12,
+            11,
+            10,
+            11,
+            10,
+            100,
+            11,
+            10,
+            12,
+            11,
+            10,
+            11,
+            10,
+            12,
+            11,
+            10,
+            11,
+        ],
+        "b": [5, 6, 5, 6, 5, 6, 5, 6, 5, 6, 5, 6, 5, 6, 5, 6, 5, 6, 5, 6],
+    }
+)
+
 single_metric_df = DataFrame(
     {
         "dttm": to_datetime(

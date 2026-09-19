@@ -26,6 +26,7 @@ import {
   QueryFormData,
 } from '@superset-ui/core';
 import {
+  anomalyDetectionOperator,
   contributionOperator,
   extractExtraMetrics,
   flattenOperator,
@@ -118,6 +119,7 @@ export default function buildQuery(formData: QueryFormData) {
           flattenOperator(formData, baseQueryObject),
           // todo: move prophet before flatten
           prophetOperator(formData, baseQueryObject),
+          anomalyDetectionOperator(formData, baseQueryObject),
         ],
       },
     ];

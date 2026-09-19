@@ -49,6 +49,8 @@ import {
   isPostProcessingRename,
   isPostProcessingFlatten,
   isPostProcessingRank,
+  isPostProcessingAnomalyDetection,
+  PostProcessingAnomalyDetection,
   ComparisonType,
   RollingType,
   TimeGranularity,
@@ -281,4 +283,20 @@ test('PostProcessingRank type guard', () => {
   expect(isPostProcessingRank(RANK_RULE)).toEqual(true);
   expect(isPostProcessingRank(AGGREGATE_RULE)).toEqual(false);
   expect(isPostProcessingRank(undefined)).toEqual(false);
+});
+
+const ANOMALY_DETECTION_RULE: PostProcessingAnomalyDetection = {
+  operation: 'anomaly_detection',
+  options: {
+    method: 'zscore',
+    index: '__timestamp',
+  },
+};
+
+test('PostProcessingAnomalyDetection type guard', () => {
+  expect(isPostProcessingAnomalyDetection(ANOMALY_DETECTION_RULE)).toEqual(
+    true,
+  );
+  expect(isPostProcessingAnomalyDetection(AGGREGATE_RULE)).toEqual(false);
+  expect(isPostProcessingAnomalyDetection(undefined)).toEqual(false);
 });
