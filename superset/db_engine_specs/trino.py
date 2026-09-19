@@ -28,6 +28,7 @@ from typing import Any, Callable, TYPE_CHECKING
 import requests
 from flask import copy_current_request_context, ctx, current_app as app, Flask, g
 from flask_babel import gettext as __
+from marshmallow import fields
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.exc import NoSuchTableError
@@ -38,6 +39,9 @@ from superset.common.db_query_status import QueryStatus
 from superset.constants import QUERY_CANCEL_KEY, QUERY_EARLY_CANCEL_KEY
 from superset.db_engine_specs.base import (
     BaseEngineSpec,
+    BasicParametersMixin,
+    BasicParametersSchema,
+    BasicParametersType,
     convert_inspector_columns,
     DatabaseCategory,
 )
@@ -69,11 +73,38 @@ except ImportError:
     HttpError = Exception
 
 
-class TrinoEngineSpec(PrestoBaseEngineSpec):
+class TrinoParametersSchema(BasicParametersSchema):
+    # For Trino the "database" component of the SQLAlchemy URI is the catalog:
+    #   trino://user[:password]@host:port/<catalog>[/schema]
+    # so relabel the generic "database" field accordingly for the dynamic form.
+    database = fields.String(
+        required=True,
+        metadata={"description": __("Catalog name")},
+    )
+
+
+class TrinoEngineSpec(BasicParametersMixin, PrestoBaseEngineSpec):
     engine = "trino"
     engine_name = "Trino"
     allows_alias_to_source_column = False
     supports_grouping_sets = True
+
+    # Dynamic connection ("new") form. Trino's SQLAlchemy dialect registers a
+    # single ``trino`` dialect whose reported ``driver`` is ``rest``, so
+    # ``default_driver`` must be ``rest`` for ``/api/v1/database/available/`` to
+    # advertise the form. The built URI stays driverless (``trino://...``)
+    # because ``trino+rest://`` is not a loadable SQLAlchemy plugin; see
+    # ``build_sqlalchemy_uri`` below.
+    default_driver = "rest"
+    parameters_schema = TrinoParametersSchema()
+    sqlalchemy_uri_placeholder = "trino://user:password@host:port/catalog[/schema]"
+
+    # The form's encryption toggle maps to Trino's http/https scheme. The Trino
+    # dialect ignores the URI scheme and reads ``http_scheme`` from
+    # ``connect_args`` instead, so the toggle is round-tripped through a
+    # ``protocol`` query parameter (via ``encryption_parameters``) and
+    # translated back into ``connect_args`` in ``adjust_engine_params``.
+    encryption_parameters = {"protocol": "https"}
 
     encrypted_extra_sensitive_fields = {
         **PrestoBaseEngineSpec.encrypted_extra_sensitive_fields,
@@ -181,6 +212,57 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
     # OAuth 2.0
     supports_oauth2 = True
     oauth2_token_request_type = "data"  # noqa: S105
+
+    @classmethod
+    def build_sqlalchemy_uri(
+        cls,
+        parameters: BasicParametersType,
+        encrypted_extra: dict[str, str] | None = None,
+    ) -> str:
+        """
+        Build the SQLAlchemy URI from the dynamic form parameters.
+
+        Mirrors ``BasicParametersMixin.build_sqlalchemy_uri`` but forces the
+        driverless ``trino`` scheme: ``default_driver`` is ``rest`` only so the
+        connection form is advertised, and ``trino+rest://`` is not a loadable
+        SQLAlchemy dialect.
+        """
+        # make a copy so that we don't update the original
+        query = parameters.get("query", {}).copy()
+        if parameters.get("encryption"):
+            query.update(cls.encryption_parameters)
+
+        return URL.create(
+            cls.engine,
+            username=parameters.get("username"),
+            password=parameters.get("password"),
+            host=parameters["host"],
+            port=parameters["port"],
+            database=parameters["database"],
+            query=query,
+        ).render_as_string(hide_password=False)
+
+    @classmethod
+    def adjust_engine_params(
+        cls,
+        uri: URL,
+        connect_args: dict[str, Any],
+        catalog: str | None = None,
+        schema: str | None = None,
+    ) -> tuple[URL, dict[str, Any]]:
+        # The dynamic form's encryption toggle is stored as a ``protocol`` query
+        # parameter (see ``encryption_parameters``). The Trino dialect reads the
+        # scheme from ``connect_args["http_scheme"]``, not from the URI, so
+        # translate it here and drop the parameter from the URI.
+        if protocol := uri.query.get("protocol"):
+            uri = uri.set(
+                query={
+                    key: value for key, value in uri.query.items() if key != "protocol"
+                }
+            )
+            connect_args.setdefault("http_scheme", protocol)
+
+        return super().adjust_engine_params(uri, connect_args, catalog, schema)
 
     @classmethod
     def needs_oauth2(cls, ex: Exception) -> bool:
