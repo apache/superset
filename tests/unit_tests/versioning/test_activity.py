@@ -30,20 +30,25 @@ by the integration suite in
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta
+from types import SimpleNamespace
 from typing import Any
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 import pytest
+import sqlalchemy as sa
+from flask_appbuilder import Model
 from pytest_mock import MockerFixture
 
 from superset.versioning.activity import (
     ActivityParamsError,
     EntityWindows,
+    orchestrator,
     parse_activity_query_params,
     Window,
 )
+from superset.versioning.activity.creation import _creation_kind_for
 from superset.versioning.activity.impact import (
     _collect_attached_charts_at,
     batch_chart_impacts,
@@ -77,6 +82,207 @@ from superset.versioning.activity.windows import (
     row_within_any_window,
     union_windows,
 )
+from superset.versioning.schemas import ActivityRecordSchema
+
+
+@pytest.mark.parametrize(
+    "stored_kind, public_kind",
+    [
+        ("create", None),
+        ("baseline", None),
+        (None, None),
+        ("clone", "clone"),
+        ("import", "import"),
+        ("restore", "restore"),
+    ],
+)
+def test_activity_query_exposes_only_public_action_kinds(
+    monkeypatch: pytest.MonkeyPatch,
+    stored_kind: str | None,
+    public_kind: str | None,
+) -> None:
+    """Execute the mixed-transaction edit query without a migrated metastore."""
+    from sqlalchemy_continuum import versioning_manager
+
+    import superset
+    from superset.versioning.activity import queries
+
+    metadata: sa.MetaData = sa.MetaData()
+    changes: sa.Table = queries.version_changes_table.to_metadata(metadata)
+    transactions: sa.Table = sa.Table(
+        "activity_transactions",
+        metadata,
+        sa.Column("id", sa.Integer, primary_key=True),
+        sa.Column("issued_at", sa.DateTime),
+        sa.Column("user_id", sa.Integer),
+        sa.Column("action_kind", sa.String(32)),
+    )
+    users: sa.Table = sa.Table(
+        "activity_users",
+        metadata,
+        sa.Column("id", sa.Integer, primary_key=True),
+        sa.Column("first_name", sa.String),
+        sa.Column("last_name", sa.String),
+    )
+    monkeypatch.setattr(queries, "version_changes_table", changes)
+    monkeypatch.setattr(
+        versioning_manager, "transaction_cls", SimpleNamespace(__table__=transactions)
+    )
+    monkeypatch.setattr(
+        superset,
+        "security_manager",
+        SimpleNamespace(user_model=SimpleNamespace(__table__=users)),
+    )
+    engine: sa.Engine = sa.create_engine("sqlite://")
+    connection: sa.Connection
+    try:
+        with engine.begin() as connection:
+            metadata.create_all(connection)
+            connection.execute(
+                transactions.insert().values(
+                    id=1, issued_at=datetime(2026, 9, 1), action_kind=stored_kind
+                )
+            )
+            # A create stamp can also cover an existing chart's edit in the
+            # same transaction. The reader must not expose that private stamp.
+            connection.execute(
+                changes.insert().values(
+                    id=1,
+                    transaction_id=1,
+                    entity_kind="chart",
+                    entity_id=7,
+                    sequence=0,
+                    kind="field",
+                    operation="replace",
+                    path=["slice_name"],
+                    from_value="Before",
+                    to_value="After",
+                )
+            )
+            monkeypatch.setattr(
+                queries,
+                "db",
+                SimpleNamespace(session=SimpleNamespace(connection=lambda: connection)),
+            )
+            records: list[dict[str, Any]]
+            truncated: bool
+            records, truncated = queries.fetch_change_records(
+                [("Slice", 7, [Window(0, None)])], None, None
+            )
+            assert not truncated
+            assert len(records) == 1
+            assert records[0]["to_value"] == "After"
+            assert records[0]["action_kind"] == public_kind
+    finally:
+        engine.dispose()
+
+
+# ---- synthetic starting version -----------------------------------------
+
+
+def test_creation_record_schema_accepts_synthetic_kind() -> None:
+    """The API schema accepts the synthetic record emitted by the stream."""
+    assert ActivityRecordSchema().load({"kind": "__creation__"}) == {
+        "kind": "__creation__"
+    }
+
+
+@pytest.mark.parametrize(
+    "action_kind, expected",
+    [
+        (None, "unknown"),
+        ("baseline", "pre_tracking"),
+        ("import", "imported"),
+        ("clone", "created"),
+        ("create", "created"),
+        ("unrecognized", "unknown"),
+    ],
+)
+def test_creation_origin_requires_provenance(
+    action_kind: str | None, expected: str
+) -> None:
+    """Unstamped baselines and genuine inserts cannot be distinguished."""
+    assert _creation_kind_for(action_kind) == expected
+
+
+def test_creation_schema_accepts_unknown_origin() -> None:
+    """The neutral classification remains a valid wire value."""
+    assert ActivityRecordSchema().load({"creation_kind": "unknown"}) == {
+        "creation_kind": "unknown"
+    }
+
+
+@pytest.mark.parametrize(
+    "truncated, since_offset, until_offset, query, expected",
+    [
+        (True, None, None, None, False),
+        (False, 1, None, None, False),
+        (False, 0, None, None, True),
+        (False, None, 0, None, False),
+        (False, None, 1, None, True),
+        (False, None, None, "absent-token", False),
+        (False, None, None, "Revenue", True),
+    ],
+    ids=[
+        "truncated",
+        "since-excluded",
+        "since-inclusive",
+        "until-exclusive",
+        "until-included",
+        "search-excluded",
+        "search-included",
+    ],
+)
+def test_creation_row_respects_stream_filters(
+    truncated: bool,
+    since_offset: int | None,
+    until_offset: int | None,
+    query: str | None,
+    expected: bool,
+) -> None:
+    """Each independent gate controls both the record and the total."""
+    timestamp: datetime = datetime(2026, 9, 1)
+    entity: SimpleNamespace = SimpleNamespace(id=1, uuid=uuid4())
+    creation: dict[str, Any] = {
+        "kind": "__creation__",
+        "issued_at": timestamp,
+        "entity_name": "Revenue",
+    }
+    records: list[dict[str, Any]]
+    count: int
+    was_truncated: bool
+    with (
+        patch.object(orchestrator, "first_tracked_tx", return_value=1),
+        patch.object(orchestrator, "resolve_scope", return_value=[("Slice", 1, [])]),
+        patch.object(
+            orchestrator, "fetch_change_records", return_value=([], truncated)
+        ),
+        patch.object(orchestrator, "filter_records_by_visibility", return_value=[]),
+        patch.object(orchestrator, "apply_entity_name_denormalization"),
+        patch.object(orchestrator, "mark_first_tracked_saves"),
+        patch.object(orchestrator, "apply_record_decoration"),
+        patch.object(orchestrator, "_emit_request_shape_attributes"),
+        patch(
+            "superset.versioning.activity.creation.build_creation_record",
+            return_value=creation,
+        ),
+    ):
+        records, count, was_truncated = orchestrator.get_activity(
+            Model,
+            entity.uuid,
+            resolved_entity=entity,
+            since=None
+            if since_offset is None
+            else timestamp + timedelta(seconds=since_offset),
+            until=None
+            if until_offset is None
+            else timestamp + timedelta(seconds=until_offset),
+            q=query,
+        )
+    assert records == ([creation] if expected else [])
+    assert count == int(expected)
+    assert was_truncated is truncated
+
 
 # ---- intersect_windows ---------------------------------------------------
 

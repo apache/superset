@@ -135,6 +135,7 @@ Dashboard Management:
 - add_chart_to_existing_dashboard: Add a chart to an existing dashboard (requires write access)
 - delete_dashboard: Delete a dashboard by ID/UUID/slug (requires editor rights — owner or Admin; destructive; does not delete its charts; soft-deletes to trash when the SOFT_DELETE feature flag is on, permanent otherwise)
 - manage_native_filters: Add, update, remove, or reorder native filters on a dashboard (requires write access; supports filter_select and filter_time)
+- apply_dashboard_filters: Apply values to a dashboard's existing native filters for the calling user and return a shareable permalink (read access; does NOT change the saved dashboard)
 - remove_chart_from_dashboard: Remove a chart from an existing dashboard (requires write access)
 - restore_dashboard: Restore a soft-deleted dashboard from trash by ID/UUID (requires editor rights — owner or Admin; only applies to dashboards trashed under the SOFT_DELETE feature flag)
 - manage_dashboard_owners: Add/remove dashboard owners by explicit operation (requires write access; rejects changes that would leave zero owners)
@@ -318,8 +319,9 @@ with 'search'.
 
 To explore metrics across all data sources (built-in datasets + external semantic views):
 1. list_metrics(request={{"search": "<keyword>"}})
-   -> returns metrics with dataset_id/view_id and compatible_dimensions inline
-2. get_table(request={{
+   -> returns metrics with dataset_id/view_id; dimensions are not embedded by default
+2. get_compatible_dimensions -> discover dimensions for the chosen metrics
+3. get_table(request={{
      "dataset_id": <id>,          # OR "view_id": <id> for external semantic views
      "metrics": ["revenue"],
      "dimensions": ["region"],
@@ -416,6 +418,9 @@ Chart Types You Can CREATE with generate_chart/generate_explore_link:
    whisker_type: tukey | min_max | percentile)
 - chart_type="waterfall": Waterfall chart of cumulative increases/decreases
   (x_axis + metric required; optional single breakdown column, show_total)
+- chart_type="gantt": Gantt task intervals over time
+  (temporal start_time + end_time and category required; optional series,
+   tooltip columns/metrics, ordering, time range, and subcategories)
 
 Time grain for temporal x-axis (time_grain parameter):
 - PT1H (hourly), P1D (daily), P1W (weekly), P1M (monthly), P1Y (yearly)
@@ -425,7 +430,7 @@ Each chart returned by list_charts / get_chart_info includes a
 chart_type_display_name field with a human-readable name when available.
 This field is populated for chart types known to the MCP registry
 (xy, pie, table, pivot_table, big_number, mixed_timeseries, handlebars,
-histogram, box_plot, waterfall, and interactive_pivot). Availability gates
+histogram, box_plot, waterfall, gantt, and interactive_pivot). Availability gates
 creation and schema discovery, not display names for existing charts.
 For all other viz_types (Funnel, Gauge, Heatmap, etc.) it will be null —
 use the raw viz_type field instead when referring to those chart types.
@@ -799,6 +804,7 @@ from superset.mcp_service.chart.tool import (  # noqa: F401, E402
 )
 from superset.mcp_service.dashboard.tool import (  # noqa: F401, E402
     add_chart_to_existing_dashboard,
+    apply_dashboard_filters,
     delete_dashboard,
     duplicate_dashboard,
     generate_dashboard,
