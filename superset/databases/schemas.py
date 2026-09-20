@@ -245,11 +245,21 @@ def encrypted_extra_validator(value: str | None) -> None:
     """
     if value:
         try:
-            json.loads(value)
+            encrypted_extra = json.loads(value)
         except json.JSONDecodeError as ex:
             raise ValidationError(
                 [_("Field cannot be decoded by JSON. %(msg)s", msg=str(ex))]
             ) from ex
+
+        if not isinstance(encrypted_extra, dict):
+            raise ValidationError(
+                [
+                    _(
+                        "Encrypted extra field must be a mapping"
+                        " from string keys to values."
+                    )
+                ]
+            )
 
 
 def masked_encrypted_extra_validator(value: str) -> None:
@@ -261,7 +271,7 @@ def masked_encrypted_extra_validator(value: str) -> None:
     encrypted_extra_validator(value)
 
 
-def extra_validator(value: str) -> str:
+def extra_validator(value: str) -> str:  # noqa: C901
     """
     Validate that extra is a valid JSON string, and that metadata_params
     keys are on the call signature for SQLAlchemy Metadata
@@ -273,6 +283,11 @@ def extra_validator(value: str) -> str:
             raise ValidationError(
                 [_("Field cannot be decoded by JSON. %(msg)s", msg=str(ex))]
             ) from ex
+
+        if not isinstance(extra_, dict):
+            raise ValidationError(
+                [_("Extra field must be a mapping from string keys to values.")]
+            )
 
         metadata_signature = inspect.signature(MetaData)
         for key in extra_.get("metadata_params", {}):

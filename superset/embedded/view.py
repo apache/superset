@@ -97,7 +97,12 @@ class EmbeddedView(BaseSupersetView):
 
         bootstrap_data = {
             "config": {
-                "GUEST_TOKEN_HEADER_NAME": current_app.config["GUEST_TOKEN_HEADER_NAME"]
+                "GUEST_TOKEN_HEADER_NAME": current_app.config[
+                    "GUEST_TOKEN_HEADER_NAME"
+                ],
+                "GUEST_TOKEN_HEADER_MAX_BYTES": current_app.config[
+                    "GUEST_TOKEN_HEADER_MAX_BYTES"
+                ],
             },
             "common": common_bootstrap_payload(),
             "embedded": {

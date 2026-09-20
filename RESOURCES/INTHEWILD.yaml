@@ -386,6 +386,11 @@ categories:
       url: https://riadvice.tn
       contributors: ["@riadvice"]
 
+    - name: Savantly
+      url: https://savantly.net/
+      logo: savantly.png
+      contributors: ["@jdbranham", "@Aleem89", "@savantwayne"]
+
     - name: ScopeAI
       url: https://www.getscopeai.com
       contributors: ["@iloveluce"]

@@ -37,4 +37,7 @@ export enum DndItemType {
 
   // an adhoc filter option
   FilterOption = 'filterOption',
+
+  // a folder of columns/metrics dragged from the DatasourcePanel
+  Folder = 'folder',
 }

@@ -22,12 +22,17 @@ from flask import current_app as app
 
 from superset import db, security_manager
 from superset.commands.database.exceptions import DatabaseInvalidError
-from superset.commands.database.utils import add_permissions
+from superset.commands.database.utils import (
+    add_permissions,
+    engine_params_changed,
+    ssh_tunnel_rebind_unsafe,
+    uri_identity_changed,
+)
 from superset.commands.exceptions import ImportFailedError
 from superset.constants import PASSWORD_MASK
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.databases.utils import make_url_safe
-from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
+from superset.db_engine_specs.exceptions import SupersetDBAPIError
 from superset.exceptions import (
     OAuth2RedirectError,
     SupersetSecurityException,
@@ -41,14 +46,19 @@ logger = logging.getLogger(__name__)
 
 def _connection_identity_changed(existing: Database, config: dict[str, Any]) -> bool:
     """Whether the import points the database at a different endpoint."""
-    try:
-        stored = make_url_safe(existing.sqlalchemy_uri)._replace(password=None)
-        incoming = make_url_safe(config["sqlalchemy_uri"])._replace(password=None)
-    except DatabaseInvalidError:
-        # An unparseable URI cannot be compared: treat it as a change so
-        # stored secrets never survive onto it.
+    if uri_identity_changed(existing.sqlalchemy_uri, config.get("sqlalchemy_uri")):
         return True
-    return stored != incoming
+
+    # The URI's host/port aren't the whole story: `extra.engine_params`
+    # (e.g. `connect_args.host`/`port`) is merged into the actual DBAPI
+    # connect kwargs and can override them. An import that opens a live
+    # connection (`add_permissions` -> `get_all_catalog_names`) with a
+    # rehydrated stored password must not do so against a destination this
+    # field silently redirected.
+    submitted_extra = config.get("extra")
+    if isinstance(submitted_extra, dict):
+        submitted_extra = json.dumps(submitted_extra)
+    return engine_params_changed(existing.extra, submitted_extra)
 
 
 def _refuse_stored_secret_reuse(existing: Database, config: dict[str, Any]) -> None:
@@ -77,33 +87,28 @@ def _refuse_stored_secret_reuse(existing: Database, config: dict[str, Any]) -> N
                 "connection to confirm the change."
             )
 
-    if ssh_tunnel := config.get("ssh_tunnel"):
-        existing_tunnel = existing.ssh_tunnel
-        if existing_tunnel and (
-            ssh_tunnel.get("server_address") != existing_tunnel.server_address
-            or ssh_tunnel.get("server_port") != existing_tunnel.server_port
-        ):
-            has_fresh_credential = any(
-                ssh_tunnel.get(field) not in (None, PASSWORD_MASK)
-                for field in ("password", "private_key")
-            )
-            # A passphrase-protected private key's stored passphrase is a
-            # secret in its own right: if the existing tunnel had one, a
-            # repoint that supplies a fresh private_key but leaves
-            # private_key_password masked/absent would keep the old
-            # passphrase attached to the new key rather than requiring the
-            # importer to confirm it too.
-            stale_private_key_password = (
-                existing_tunnel.private_key_password is not None
-                and ssh_tunnel.get("private_key_password") in (None, PASSWORD_MASK)
-            )
-            if not has_fresh_credential or stale_private_key_password:
-                raise ImportFailedError(
-                    f"Import would change the SSH tunnel endpoint of database "
-                    f"'{existing.database_name}' without providing new tunnel "
-                    "credentials. Re-enter the SSH tunnel credentials to "
-                    "confirm the change."
-                )
+    if ssh_tunnel_rebind_unsafe(existing.ssh_tunnel, config.get("ssh_tunnel")):
+        raise ImportFailedError(
+            f"Import would change the SSH tunnel endpoint of database "
+            f"'{existing.database_name}' without providing new tunnel "
+            "credentials. Re-enter the SSH tunnel credentials to "
+            "confirm the change."
+        )
+
+
+def _sync_permissions_best_effort(database: Database) -> None:
+    """
+    Sync catalog/schema permissions for ``database``, tolerating a transient
+    or OAuth2 failure rather than letting it fail the import.
+    """
+    try:
+        add_permissions(database)
+    except (SupersetDBAPIError, OAuth2RedirectError) as ex:
+        # ``add_permissions()`` calls ``get_all_catalog_names()`` outside of
+        # its own per-catalog error handling, so any DBAPI error mapped from
+        # that initial catalog discovery -- not just a connection failure --
+        # must be tolerated here too, or it fails the whole import.
+        logger.warning(ex.message)
 
 
 def import_database(  # noqa: C901
@@ -118,6 +123,15 @@ def import_database(  # noqa: C901
     existing = db.session.query(Database).filter_by(uuid=config["uuid"]).first()
     if existing:
         if not overwrite or not can_write:
+            if can_write:
+                # Chart/dataset/saved-query/dashboard bundles that reference
+                # an already-imported database reach this branch; without
+                # this, a schema added to the live connection since the
+                # database was first imported would never get a first-time
+                # grant through this path either. ``add_permissions()`` does
+                # a live, uncached metadata scan, so this can be slow for
+                # cross-catalog-enabled engines -- see its own comment.
+                _sync_permissions_best_effort(existing)
             return existing
         config["id"] = existing.id
         # Stored secrets must not be rebound to a different endpoint: without
@@ -194,9 +208,6 @@ def import_database(  # noqa: C901
             recursive=False,
         )
 
-    try:
-        add_permissions(database)
-    except (SupersetDBAPIConnectionError, OAuth2RedirectError) as ex:
-        logger.warning(ex.message)
+    _sync_permissions_best_effort(database)
 
     return database
