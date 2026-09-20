@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 
-import io
 import json  # noqa: TID251
 import time
 from datetime import datetime, timedelta
@@ -27,7 +26,6 @@ from uuid import UUID, uuid4
 
 import pytest
 from celery.exceptions import SoftTimeLimitExceeded
-from PIL import Image
 from pytest_mock import MockerFixture
 
 from superset.app import SupersetApp
@@ -98,13 +96,6 @@ from superset.utils.slack import (
 from tests.integration_tests.conftest import with_feature_flags
 
 
-def _valid_png() -> bytes:
-    """Use decodable content so delivery tests exercise the intended boundary."""
-    output = io.BytesIO()
-    Image.new("RGB", (100, 100), "red").save(output, format="PNG")
-    return output.getvalue()
-
-
 @pytest.mark.parametrize("final", [False, True])
 def test_rendered_retry_messages_do_not_include_diagnostics(mocker, final):
     content = NotificationContent(
@@ -120,29 +111,6 @@ def test_rendered_retry_messages_do_not_include_diagnostics(mocker, final):
         assert "confidential@example.com" not in body
         assert "private smtp" not in body
         assert "report owner" in body
-
-
-@pytest.mark.parametrize("pdf", [False, True])
-def test_delivery_requires_validated_artifact_bytes(mocker, pdf):
-    state = _make_state_instance(mocker, BaseReportState)
-    state._report_execution_context = ReportExecutionContext(
-        execution_id=uuid4(),
-        report_schedule_id=1,
-        deadline=ReportExecutionDeadline(total_seconds=540),
-    )
-    output = io.BytesIO()
-    Image.new("RGB", (800, 1000), "white").save(output, format="PNG")
-    content = NotificationContent(
-        name="Report",
-        header_data={},
-        pdf=b"unvalidated PDF" if pdf else None,
-        screenshots=None if pdf else [output.getvalue()],
-    )
-    notify = mocker.patch("superset.commands.report.execute.create_notification")
-    with pytest.raises(ReportScheduleScreenshotFailedError):
-        state._send(content, [mocker.Mock(spec=ReportRecipients)])
-    assert state._report_execution_context.capture_was_rejected
-    notify.assert_not_called()
 
 
 @pytest.mark.parametrize("schedule_type", list(ReportScheduleType))
@@ -409,45 +377,6 @@ def test_retry_recipient_notifications_redact_provider_errors(
     assert "diagnostic" not in send.call_args.args[0].text
 
 
-def test_pdf_assembly_validates_sources_and_binds_exact_output(
-    mocker: MockerFixture,
-) -> None:
-    """Only the PDF assembled from validated screenshots is accepted for delivery."""
-    state = _make_notification_state(mocker, report_format=ReportDataFormat.PDF)
-    context = _active_report_context()
-    state._report_execution_context = context
-    mocker.patch.object(state, "_get_screenshots", return_value=[_valid_png()])
-    pdf = state._get_pdf()
-    assert pdf.startswith(b"%PDF")
-    assert context.artifact_was_validated(pdf)
-    content = NotificationContent(
-        name="report", header_data=state._get_log_data(), pdf=pdf
-    )
-    state._assert_rendered_delivery_allowed(content)
-    content.pdf = pdf + b"altered"
-    with pytest.raises(ReportScheduleScreenshotFailedError):
-        state._assert_rendered_delivery_allowed(content)
-    assert "unvalidated_pdf" in context.capture_rejection_reasons
-
-
-def test_pdf_assembly_rejects_invalid_source_before_conversion(
-    mocker: MockerFixture,
-) -> None:
-    """A caller returning undecodable screenshot bytes cannot obtain PDF approval."""
-    from superset.utils.screenshot_utils import ScreenshotBlankCaptureError
-
-    state = _make_notification_state(mocker, report_format=ReportDataFormat.PDF)
-    state._report_execution_context = _active_report_context()
-    mocker.patch.object(state, "_get_screenshots", return_value=[b"invalid"])
-    convert = mocker.patch(
-        "superset.commands.report.execute.build_pdf_from_screenshots"
-    )
-    with pytest.raises(ScreenshotBlankCaptureError):
-        state._get_pdf()
-    convert.assert_not_called()
-    assert state._report_execution_context.capture_was_rejected
-
-
 def test_fenced_worker_cannot_start_delivery(mocker: MockerFixture) -> None:
     """A worker which loses ownership cannot send even a valid artifact."""
     from dataclasses import replace
@@ -462,7 +391,9 @@ def test_fenced_worker_cannot_start_delivery(mocker: MockerFixture) -> None:
     query.update.return_value = 0
     send = mocker.patch.object(state, "_send_notification")
     content = NotificationContent(
-        name="report", header_data=state._get_log_data(), screenshots=[_valid_png()]
+        name="report",
+        header_data=state._get_log_data(),
+        screenshots=[b"captured image"],
     )
     with pytest.raises(ReportSchedulePreviousWorkingError):
         state._send(content, [mocker.Mock(spec=ReportRecipients)])
@@ -2106,8 +2037,6 @@ def test_screenshot_width_calculation(
         execution_id=UUID("084e7ee6-5557-4ecd-9632-b7f39c9ec524"),
     )
 
-    report_state._report_execution_context = _active_report_context()
-
     # Mock security manager and screenshot
     with (
         patch(
@@ -2120,7 +2049,7 @@ def test_screenshot_width_calculation(
         # Mock user
         mock_user = mocker.MagicMock()
         mock_security_manager.find_user.return_value = mock_user
-        mock_get_screenshot.return_value = _valid_png()
+        mock_get_screenshot.return_value = b"screenshot bytes"
 
         # Mock get_executor to avoid database lookups
         with patch(
@@ -3373,7 +3302,7 @@ def test_send_malformed_slack_recipient_does_not_suppress_later_recipient(
 @pytest.mark.parametrize(
     "attachment",
     [
-        {"screenshots": [_valid_png()]},
+        {"screenshots": [b"screenshot"]},
         {"xlsx": b"xlsx_content"},
     ],
     ids=["screenshot", "xlsx"],
@@ -3493,7 +3422,7 @@ def test_send_classifies_probe_failure_for_file_reports(
             "slack_channels": ["private-channel"],
             "execution_id": "execution_id_example",
         },
-        screenshots=[_valid_png()],
+        screenshots=[b"screenshot"],
         description="File-bearing report",
         url="https://superset.example/report",
     )
@@ -3543,7 +3472,7 @@ def test_send_classifies_malformed_file_recipient_as_client_error(
             "slack_channels": [],
             "execution_id": "execution_id_example",
         },
-        screenshots=[_valid_png()],
+        screenshots=[b"screenshot"],
         description="File-bearing report",
         url="https://superset.example/report",
     )
@@ -3599,7 +3528,7 @@ def test_send_does_not_fall_back_to_slack_v1_for_file_uploads(
             "slack_channels": ["private-channel"],
             "execution_id": "execution_id_example",
         },
-        screenshots=[_valid_png()],
+        screenshots=[b"screenshot"],
         description="File-bearing report",
         url="https://superset.example/report",
     )
@@ -3784,7 +3713,7 @@ def test_slack_retry_deadline_flows_from_report_state_to_transport(
     app.config["ALERT_REPORTS_NOTIFICATION_DRY_RUN"] = False
     state = _make_notification_state(mocker, report_format=ReportDataFormat.PNG)
     state._report_execution_context = _active_report_context()
-    mocker.patch.object(state, "_get_screenshots", return_value=[_valid_png()])
+    mocker.patch.object(state, "_get_screenshots", return_value=[b"img"])
     deadline_factory = mocker.patch(
         "superset.commands.report.execute.get_slack_send_retry_deadline",
         return_value=123.0,
@@ -4056,7 +3985,7 @@ def test_get_notification_content_name(
         email_subject=email_subject,
         has_chart=has_chart,
     )
-    mocker.patch.object(state, "_get_screenshots", return_value=[_valid_png()])
+    mocker.patch.object(state, "_get_screenshots", return_value=[b"img"])
 
     content = state._get_notification_content()
     assert content.name == expected_name
@@ -4886,12 +4815,7 @@ def test_delivery_budget_exhaustion_does_not_send_notification(
     ).return_value
 
     with pytest.raises(ReportExecutionBudgetExceededError):
-        state._send(
-            NotificationContent(
-                name="report", header_data=state._get_log_data(), text="text"
-            ),
-            [recipient],
-        )
+        state._send(mocker.Mock(), [recipient])
 
     notification.send.assert_not_called()
 

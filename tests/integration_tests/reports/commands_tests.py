@@ -1406,7 +1406,6 @@ def test_email_dashboard_report_schedule_with_tab_anchor(
     """
     ExecuteReport Command: Test dashboard email report schedule with tab metadata
     """
-    _screenshot_mock.return_value = SCREENSHOT_FILE
     with freeze_time("2020-01-01T00:00:00Z"):
         with patch(
             "superset.extensions.stats_logger_manager.instance.gauge"
@@ -1463,7 +1462,6 @@ def test_email_dashboard_report_schedule_disabled_tabs(
     """
     ExecuteReport Command: Test dashboard email report schedule with tab metadata
     """
-    _screenshot_mock.return_value = SCREENSHOT_FILE
     with freeze_time("2020-01-01T00:00:00Z"):
         with patch(
             "superset.extensions.stats_logger_manager.instance.gauge"
@@ -3046,7 +3044,6 @@ def test_grace_period_error_flap(
     """
     ExecuteReport Command: Test alert grace period on error
     """
-    screenshot_mock.return_value = SCREENSHOT_FILE
     with freeze_time("2020-01-01T00:00:00Z"):
         with pytest.raises((AlertQueryError, AlertQueryInvalidTypeError)):
             AsyncExecuteReportScheduleCommand(

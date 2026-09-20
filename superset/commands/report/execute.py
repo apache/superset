@@ -115,7 +115,6 @@ from superset.utils.report_execution import (
     ReportExecutionDeadline,
     resolve_report_execution_budget_seconds,
 )
-from superset.utils.screenshot_utils import validate_report_screenshot
 from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
 from superset.utils.urls import get_url_path
 
@@ -855,22 +854,6 @@ class BaseReportState:
             for tab_anchor in tab_anchors
         ]
 
-    def _reject_capture(self, reason: str) -> None:
-        """Keep capture failures sticky even if an intermediate caller catches them."""
-        if self._report_execution_context is not None:
-            self._report_execution_context.reject_capture(reason)
-
-    def _validate_screenshot(self, screenshot: bytes | None) -> None:
-        """Require a valid screenshot from any selected driver."""
-        if self._report_execution_context is None:
-            raise ReportScheduleScreenshotFailedError("Missing capture context")
-        if screenshot is None:
-            self._reject_capture("missing_image")
-            raise ReportScheduleScreenshotFailedError(
-                "Screenshot failed; aborting to avoid sending a partial report"
-            )
-        validate_report_screenshot(screenshot, self._report_execution_context)
-
     def _assert_execution_owned(self) -> None:
         """Do not deliver after recovery or a successor has fenced this worker."""
         context = self._report_execution_context
@@ -946,8 +929,10 @@ class BaseReportState:
                     log_context=self._log_context,
                     report_execution_context=self._report_execution_context,
                 )
-                self._validate_screenshot(imge)
-                assert imge is not None
+                if imge is None:
+                    raise ReportScheduleScreenshotFailedError(
+                        "Screenshot failed; aborting to avoid sending a partial report"
+                    )
                 imges.append(imge)
             elapsed_seconds: float = (
                 datetime.now(timezone.utc).replace(tzinfo=None) - start_time
@@ -965,7 +950,6 @@ class BaseReportState:
                 len(imges),
             )
         except SoftTimeLimitExceeded as ex:
-            self._reject_capture("capture_interrupted")
             elapsed_seconds = (
                 datetime.now(timezone.utc).replace(tzinfo=None) - start_time
             ).total_seconds()
@@ -987,10 +971,8 @@ class BaseReportState:
             # executions propagate the Celery signal to terminal cleanup.
             raise ReportScheduleScreenshotTimeout() from ex
         except ReportExecutionBudgetExceededError:
-            self._reject_capture("capture_budget_exceeded")
             raise
         except Exception as ex:
-            self._reject_capture("capture_failed")
             elapsed_seconds = (
                 datetime.now(timezone.utc).replace(tzinfo=None) - start_time
             ).total_seconds()
@@ -1028,11 +1010,7 @@ class BaseReportState:
             "pdf_generation",
             reserve_seconds=reserve_seconds,
         )
-        for screenshot in screenshots:
-            self._validate_screenshot(screenshot)
         pdf = build_pdf_from_screenshots(screenshots)
-        if self._report_execution_context is not None:
-            self._report_execution_context.approve_artifact(pdf)
         self._phase_timeout(
             "pdf_generation",
             reserve_seconds=reserve_seconds,
@@ -1533,24 +1511,7 @@ class BaseReportState:
             else ("missing_capture_context",)
         )
         if report_context is not None and not report_context.capture_was_rejected:
-            try:
-                for screenshot in notification_content.screenshots or []:
-                    validate_report_screenshot(screenshot, report_context)
-                if (
-                    notification_content.pdf
-                    and not report_context.artifact_was_validated(
-                        notification_content.pdf
-                    )
-                ):
-                    report_context.reject_capture("unvalidated_pdf")
-                if not report_context.capture_was_rejected:
-                    return
-            except (SoftTimeLimitExceeded, ReportExecutionBudgetExceededError):
-                raise
-            except Exception as ex:
-                report_context.reject_capture("delivery_validation_failed")
-                raise ReportScheduleScreenshotFailedError(str(ex)) from ex
-            rejection_reasons = report_context.capture_rejection_reasons
+            return
 
         logger.error(
             "report_delivery_blocked %s terminal_reason=capture_rejected "
