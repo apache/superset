@@ -15,7 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from collections.abc import Callable, Iterator
 from datetime import date, datetime, time, timezone
+from itertools import permutations
 from typing import Any
 from unittest.mock import MagicMock
 from zoneinfo import ZoneInfo
@@ -42,6 +44,8 @@ from superset_core.semantic_layers.types import (
 )
 from superset_core.semantic_layers.view import SemanticView, SemanticViewFeature
 
+from superset.exceptions import QueryObjectValidationError
+from superset.semantic_layers import mapper
 from superset.semantic_layers.mapper import (
     _coerce_scalar_filter_value,
     _convert_query_object_filter,
@@ -71,6 +75,134 @@ from superset.utils.core import FilterOperator
 
 # Alias for convenience
 Feature = SemanticViewFeature
+
+
+class OrderedDimensions(set[Dimension]):
+    """Exercise every catalog order without violating the provider's set ABC."""
+
+    def __init__(self, dimensions: tuple[Dimension, ...]) -> None:
+        super().__init__(dimensions)
+        self._ordered: tuple[Dimension, ...] = dimensions
+
+    def __iter__(self) -> Iterator[Dimension]:
+        return iter(self._ordered)
+
+
+@pytest.mark.parametrize("ordering", list(permutations(range(4))))
+@pytest.mark.parametrize("entry", ["validation", "mapping"])
+def test_default_resolution_exhausts_catalog_orders(
+    mocker: MockerFixture, ordering: tuple[int, ...], entry: str
+) -> None:
+    """Every seed exercises all 24 orders, including both name-map entry paths."""
+    variants: tuple[Dimension, ...] = tuple(
+        Dimension(str(index), "event_time", pa.timestamp("us"), grain=grain)
+        for index, grain in enumerate((None, Grains.DAY, Grains.MONTH, Grains.YEAR))
+    )
+    raw: Dimension = variants[0]
+    datasource: MagicMock = mocker.Mock()
+    datasource.implementation = AbcOnlyView(
+        OrderedDimensions(tuple(variants[index] for index in ordering)), set()
+    )
+    datasource.fetch_values_predicate = None
+    query: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=datasource,
+        columns=["event_time"],
+        metrics=[],
+        extras={"time_grain_sqla": "P1M"},
+        filters=[{"col": "event_time", "op": "==", "val": "2026-01-20"}],
+        from_dttm=datetime(2026, 1, 15),
+        to_dttm=datetime(2026, 2, 1),
+        time_offsets=["1 month ago"],
+        orderby=[("event_time", True)],
+        series_columns=["event_time"],
+        series_limit=2,
+        inner_from_dttm=datetime(2025, 12, 15),
+        inner_to_dttm=datetime(2026, 1, 1),
+    )
+    # Inspect the real validation call's input without replacing its behavior.
+    if entry == "validation":
+        axis_spy: MagicMock = mocker.spy(mapper, "_get_grain_time_axis_column")
+        _validate_granularity(query)
+        assert axis_spy.call_args.args[1]["event_time"] is raw
+        return
+
+    queries: list[SemanticQuery] = map_query_object(query)
+    assert len(queries) == 2
+    for result, lower, upper in zip(
+        queries,
+        (datetime(2026, 1, 15), datetime(2025, 12, 15)),
+        (datetime(2026, 2, 1), datetime(2026, 1, 1)),
+        strict=True,
+    ):
+        assert result.dimensions == [variants[2]]
+        assert result.order == [(raw, OrderDirection.ASC)]
+        assert result.filters == {
+            Filter(PredicateType.WHERE, raw, Operator.EQUALS, datetime(2026, 1, 20)),
+            Filter(PredicateType.WHERE, raw, Operator.GREATER_THAN_OR_EQUAL, lower),
+            Filter(PredicateType.WHERE, raw, Operator.LESS_THAN, upper),
+        }
+        assert result.group_limit is not None
+        assert result.group_limit.dimensions == [raw]
+        assert result.group_limit.filters == {
+            Filter(PredicateType.WHERE, raw, Operator.EQUALS, datetime(2026, 1, 20)),
+            Filter(
+                PredicateType.WHERE,
+                raw,
+                Operator.GREATER_THAN_OR_EQUAL,
+                datetime(2025, 12, 15),
+            ),
+            Filter(PredicateType.WHERE, raw, Operator.LESS_THAN, datetime(2026, 1, 1)),
+        }
+
+
+@pytest.mark.parametrize("axis", [True, False])
+@pytest.mark.parametrize("ordering", [(0, 1), (1, 0)])
+def test_default_grouping_without_raw_uses_finest_grain(
+    mocker: MockerFixture, axis: bool, ordering: tuple[int, ...]
+) -> None:
+    """Neither default-axis nor non-axis grouping depends on catalog ordering."""
+    variants: tuple[Dimension, ...] = (
+        Dimension("hour", "event_time", pa.timestamp("us"), grain=Grains.HOUR),
+        Dimension("day", "event_time", pa.timestamp("us"), grain=Grains.DAY),
+    )
+    other: Dimension = Dimension("other", "other", pa.timestamp("us"))
+    datasource: MagicMock = mocker.Mock()
+    datasource.implementation = AbcOnlyView(
+        OrderedDimensions(tuple(variants[index] for index in ordering) + (other,)),
+        set(),
+    )
+    query: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=datasource,
+        columns=["event_time"],
+        metrics=[],
+        granularity="event_time" if axis else "other",
+    )
+    assert map_query_object(query)[0].dimensions == [variants[0]]
+
+
+@pytest.mark.parametrize("entry", ["validation", "mapping"])
+@pytest.mark.parametrize("grain", [None, Grains.MONTH])
+def test_ambiguous_grain_ids_are_rejected(
+    mocker: MockerFixture, entry: str, grain: Grain | None
+) -> None:
+    """A preferred raw variant must not hide an ambiguous non-default grain."""
+    datasource: MagicMock = mocker.Mock()
+    datasource.implementation = AbcOnlyView(
+        {
+            Dimension("a", "event_time", pa.timestamp("us"), grain=grain),
+            Dimension("b", "event_time", pa.timestamp("us"), grain=grain),
+            Dimension("raw", "event_time", pa.timestamp("us")),
+        },
+        set(),
+    )
+    query: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=datasource, columns=["event_time"], metrics=[]
+    )
+    entry_point: Callable[[ValidatedQueryObject], object] = (
+        validate_query_object if entry == "validation" else map_query_object
+    )
+    with pytest.raises(QueryObjectValidationError, match="ambiguous"):
+        entry_point(query)
 
 
 class MockSemanticView:
@@ -1232,8 +1364,8 @@ def test_map_query_object_falls_back_when_no_grain_variant_matches(
 
     order_date_dims = [d for d in result[0].dimensions if d.name == "order_date"]
     assert len(order_date_dims) == 1
-    # Deterministic fallback: alphabetically first grain name — "Day" < "Hour".
-    assert order_date_dims[0].grain == Grains.DAY
+    # Shared default preference chooses the finest known grain.
+    assert order_date_dims[0].grain == Grains.HOUR
 
 
 def test_map_query_object_falls_back_to_raw_when_no_grain_variant_matches(

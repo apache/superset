@@ -20,6 +20,7 @@
 from __future__ import annotations
 
 import uuid
+from itertools import permutations
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -27,6 +28,7 @@ import pyarrow as pa
 import pytest
 from superset_core.semantic_layers.types import (
     Dimension,
+    Grain,
     Grains,
     Metric,
     Operator,
@@ -36,6 +38,7 @@ from superset_core.semantic_layers.types import (
 )
 from superset_core.semantic_layers.view import SemanticViewFeature
 
+from superset.exceptions import QueryObjectValidationError
 from superset.semantic_layers.models import (
     ColumnMetadata,
     get_column_type,
@@ -48,6 +51,45 @@ from superset.utils.core import GenericDataType
 # =============================================================================
 # get_column_type tests
 # =============================================================================
+
+
+@pytest.mark.parametrize(
+    "grains, expected",
+    [
+        ((None, Grains.DAY, Grains.HOUR), None),
+        ((Grains.DAY, Grains.HOUR, Grains.MONTH), Grains.HOUR),
+        ((Grain("Custom B", "P5D"), Grain("Custom A", "P2D")), Grain("A", "P2D")),
+    ],
+)
+def test_column_metadata_default_is_order_independent(
+    grains: tuple[Grain | None, ...], expected: Grain | None
+) -> None:
+    """Metadata keeps the same raw/finest/custom choice across extraction."""
+    dimensions: tuple[Dimension, ...] = tuple(
+        Dimension(str(index), "event_time", pa.timestamp("us"), grain=grain)
+        for index, grain in enumerate(grains)
+    )
+    implementation: MagicMock = MagicMock()
+    view: SemanticView = SemanticView()
+    view.implementation = implementation
+    for ordering in permutations(dimensions):
+        implementation.get_dimensions.return_value = ordering
+        assert len(view._unique_dimensions) == 1
+        assert view._unique_dimensions[0].grain == expected
+
+
+def test_column_metadata_rejects_ambiguous_grain_ids() -> None:
+    """Metadata must not hide an ambiguity that prevents query mapping."""
+    implementation: MagicMock = MagicMock()
+    implementation.get_dimensions.return_value = {
+        Dimension("a", "event_time", pa.timestamp("us"), grain=Grains.MONTH),
+        Dimension("b", "event_time", pa.timestamp("us"), grain=Grains.MONTH),
+        Dimension("raw", "event_time", pa.timestamp("us")),
+    }
+    view: SemanticView = SemanticView()
+    view.implementation = implementation
+    with pytest.raises(QueryObjectValidationError, match="ambiguous"):
+        _columns: list[ColumnMetadata] = view.columns
 
 
 def test_get_column_type_temporal_date() -> None:

@@ -24,6 +24,15 @@ assists people when migrating to a new version.
 
 ## Next
 
+- With `SEMANTIC_LAYERS` enabled, same-name dimension variants use one default
+  preference for metadata, filters and grouping fallbacks: raw (no grain), then
+  second/minute/hour/day/week/month/quarter/year, then other grain representations
+  in lexical order. Explicit supported grouping grains remain honored; filters
+  and time bounds use the default independently of grouping. This can change
+  results that depended on arbitrary catalog ordering. Providers exposing
+  different IDs for the same name and grain must disambiguate their catalog;
+  such catalogs are rejected instead of silently selecting an ID.
+
 - With `SEMANTIC_LAYERS` enabled, combined connection discovery honors `Database.can_read` and `SemanticLayer.can_read` independently. Each permitted source retains its normal row filters, including dynamic database filters for Admin. A source filter never includes rows or counts from a denied source; callers with neither read permission are denied. Feature-off database browsing is unchanged.
 - The combined datasource list (`GET /api/v1/datasource/`) accepts Dataset read without an additional Datasource read grant, regardless of `SEMANTIC_LAYERS`. With the flag enabled, SemanticView read independently permits semantic-view discovery. Existing row-level dataset/chart access remains enforced.
 - The `presto` extra requires PyHive 0.7.0 or later. PyHive 0.6.5 cannot load
