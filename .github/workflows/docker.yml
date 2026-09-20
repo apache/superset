@@ -203,6 +203,35 @@ jobs:
               exit 1
             fi
           }
+          # tag-release.yml snapshots this helper from master, then checks out
+          # the release ref before running it, so the helper has to read the
+          # Dockerfile from the working tree rather than from wherever it
+          # lives. Simulate that ref swap against a synthetic older tree: a
+          # real release ref pins an older PY_VER and carries its own Chromium
+          # default, neither of which release mode may override.
+          assert_release_ref_swap() {
+            local snapshot release_tree flags
+            snapshot="$(mktemp -d)/docker-build-extra-flags.sh"
+            cp scripts/docker-build-extra-flags.sh "$snapshot"
+            release_tree="$(mktemp -d)"
+            printf 'ARG PY_VER=3.11.13-slim-bookworm\n' >"$release_tree/Dockerfile"
+            flags="$(cd "$release_tree" && bash "$snapshot" superset "" release)"
+            if ! grep -Fq -- "--build-arg PY_VER=3.11.13-slim-bookworm" <<<"$flags"; then
+              echo "::error::release build ignored the checked-out Dockerfile's PY_VER (flags: $flags)"
+              exit 1
+            fi
+            if grep -Fq -- "--build-arg INCLUDE_CHROMIUM=" <<<"$flags"; then
+              echo "::error::release build overrode the checked-out Dockerfile's Chromium default (flags: $flags)"
+              exit 1
+            fi
+            # The same tree in ci mode must still get the validation override,
+            # so the two modes cannot silently converge.
+            flags="$(cd "$release_tree" && bash "$snapshot" superset dummy-tag ci)"
+            if ! grep -Fq -- "--build-arg INCLUDE_CHROMIUM=false" <<<"$flags"; then
+              echo "::error::ci build lost the INCLUDE_CHROMIUM=false override (flags: $flags)"
+              exit 1
+            fi
+          }
           assert_build_plan push refs/heads/master master push master --push "--platform linux/arm64 --platform linux/amd64" true
           assert_build_plan push refs/heads/7.0 7.0 push "" --load "--platform linux/amd64" ""
           assert_build_plan pull_request refs/pull/44250/merge "" pull_request "" --load "--platform linux/amd64" ""
@@ -245,7 +274,8 @@ jobs:
           assert_release_tag lean "6.1.0-lean"
           assert_release_tag py311 "6.1.0-py311"
           assert_release_tag py312 "6.1.0-py312"
-          echo "Docker build command verified for Python versions, cache refs, cache export, publish guard, master tags, and release tags"
+          assert_release_ref_swap
+          echo "Docker build command verified for Python versions, cache refs, cache export, publish guard, master tags, release tags, and the release ref swap"
 
   docker-build:
     name: docker-build
