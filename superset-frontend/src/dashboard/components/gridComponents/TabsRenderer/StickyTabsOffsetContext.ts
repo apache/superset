@@ -16,18 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { createContext } from 'react';
 
 /**
- * Jest configuration for @storybook/test-runner
+ * Distance, in pixels, from the top of the viewport at which a tab bar
+ * rendered inside the dashboard grid should stick while the page scrolls.
  *
- * This extends the default test-runner config with custom timeouts
- * to handle slow story rendering in CI environments.
+ * The dashboard header (title plus top-level tabs) is itself sticky, so the
+ * first level of nested tabs pins just below it. Each level of nested tabs
+ * then adds its own tab bar height for the tabs it contains, so deeper tab
+ * bars stack beneath the ones above them instead of overlapping.
+ *
+ * `undefined` disables sticky tab bars, which is the case while editing
+ * (drag-and-drop targets are laid out in document flow) and in the mobile
+ * consumption experience, which pins tab bars through its own styling.
  */
-const { getJestConfig } = require('@storybook/test-runner');
-const testRunnerConfig = getJestConfig();
-
-module.exports = {
-  ...testRunnerConfig,
-  // Increase timeout from default 15s to 60s for CI environments
-  testTimeout: 60000,
-};
+export const StickyTabsOffsetContext = createContext<number | undefined>(
+  undefined,
+);

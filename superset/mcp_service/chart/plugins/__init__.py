@@ -29,6 +29,7 @@ To add a new chart type:
 
 from superset.mcp_service.chart.plugins.big_number import BigNumberChartPlugin
 from superset.mcp_service.chart.plugins.box_plot import BoxPlotChartPlugin
+from superset.mcp_service.chart.plugins.gantt import GanttChartPlugin
 from superset.mcp_service.chart.plugins.gauge import GaugeChartPlugin
 from superset.mcp_service.chart.plugins.handlebars import HandlebarsChartPlugin
 from superset.mcp_service.chart.plugins.histogram import HistogramChartPlugin
@@ -41,6 +42,7 @@ from superset.mcp_service.chart.plugins.mixed_timeseries import (
 from superset.mcp_service.chart.plugins.pie import PieChartPlugin
 from superset.mcp_service.chart.plugins.pivot_table import PivotTableChartPlugin
 from superset.mcp_service.chart.plugins.table import TableChartPlugin
+from superset.mcp_service.chart.plugins.treemap import TreemapChartPlugin
 from superset.mcp_service.chart.plugins.waterfall import WaterfallChartPlugin
 from superset.mcp_service.chart.plugins.xy import XYChartPlugin
 from superset.mcp_service.chart.registry import register
@@ -50,6 +52,7 @@ register(XYChartPlugin())
 register(TableChartPlugin())
 register(PieChartPlugin())
 register(GaugeChartPlugin())
+register(TreemapChartPlugin())
 register(PivotTableChartPlugin())
 register(InteractivePivotChartPlugin())
 register(MixedTimeseriesChartPlugin())
@@ -58,10 +61,12 @@ register(BigNumberChartPlugin())
 register(HistogramChartPlugin())
 register(BoxPlotChartPlugin())
 register(WaterfallChartPlugin())
+register(GanttChartPlugin())
 
 __all__ = [
     "BigNumberChartPlugin",
     "BoxPlotChartPlugin",
+    "GanttChartPlugin",
     "GaugeChartPlugin",
     "HandlebarsChartPlugin",
     "HistogramChartPlugin",
@@ -70,6 +75,7 @@ __all__ = [
     "PieChartPlugin",
     "PivotTableChartPlugin",
     "TableChartPlugin",
+    "TreemapChartPlugin",
     "WaterfallChartPlugin",
     "XYChartPlugin",
 ]

@@ -31,8 +31,10 @@ from superset.commands.semantic_layer.exceptions import (
     SemanticViewCreateFailedError,
     SemanticViewForbiddenError,
 )
+from superset.commands.semantic_layer.utils import validate_configuration
 from superset.commands.utils import current_user_can_modify_object
 from superset.daos.semantic_layer import SemanticLayerDAO, SemanticViewDAO
+from superset.exceptions import SupersetSecurityException
 from superset.semantic_layers.registry import registry
 from superset.utils import json
 from superset.utils.decorators import on_error, transaction
@@ -70,7 +72,7 @@ class CreateSemanticLayerCommand(BaseCommand):
 
         # Validate configuration against the plugin
         cls = registry[sl_type]
-        cls.from_configuration(self._properties["configuration"])
+        validate_configuration(cls, self._properties["configuration"])
 
 
 class CreateSemanticViewCommand(BaseCommand):
@@ -97,6 +99,10 @@ class CreateSemanticViewCommand(BaseCommand):
         layer = SemanticLayerDAO.find_by_uuid(layer_uuid)
         if not layer:
             raise SemanticLayerNotFoundError()
+        try:
+            layer.raise_for_access()
+        except SupersetSecurityException as ex:
+            raise SemanticViewForbiddenError() from ex
 
         if not current_user_can_modify_object(layer):
             raise SemanticViewForbiddenError()
