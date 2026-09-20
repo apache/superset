@@ -782,12 +782,11 @@ class TestResponseSizeGuardMiddleware:
         with (
             patch("superset.mcp_service.middleware.get_user_id", return_value=1),
             patch("superset.mcp_service.middleware.event_logger"),
-            # Force every truncation phase to report "still over budget" so
-            # _handle_oversized_response must reach the minimal-response
-            # fallback instead of the normal truncated-success path.
+            # Keep every estimate over budget, including both _fits checks,
+            # to exercise the minimal fallback and its full shrink path.
             patch(
                 "superset.mcp_service.middleware.estimate_response_tokens",
-                side_effect=[600, 600],
+                return_value=600,
             ),
         ):
             result = await middleware.on_call_tool(context, call_next)
@@ -801,6 +800,26 @@ class TestResponseSizeGuardMiddleware:
         note = result["_truncation_notes"][0]
         assert "was not rolled back by this size limit" in note
         assert "committed" not in note
+
+    def test_minimal_response_already_fits_without_shrinking(self) -> None:
+        """A minimal payload that fits must retain its fields without clipping."""
+        from superset.mcp_service.utils.token_utils import COMMITTED_WRITE_SPECS
+
+        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+        minimal = {
+            "chart": {"id": 7, "description": "Keep this non-identity field"},
+            "success": True,
+            "_response_truncated": True,
+            "_truncation_notes": ["Non-essential fields were dropped."],
+        }
+        original = utils_json.loads(utils_json.dumps(minimal))
+
+        assert estimate_token_count(utils_json.dumps(minimal)) <= 500
+        middleware._shrink_minimal_response(
+            minimal, COMMITTED_WRITE_SPECS["update_chart"]
+        )
+
+        assert minimal == original
 
     @pytest.mark.asyncio
     async def test_update_dashboard_committed_write_is_not_hard_blocked(
@@ -927,7 +946,7 @@ class TestResponseSizeGuardMiddleware:
             # Force the minimal-response fallback to be the path under test.
             patch(
                 "superset.mcp_service.middleware.estimate_response_tokens",
-                side_effect=[600, 600],
+                return_value=600,
             ),
         ):
             result = await middleware.on_call_tool(context, call_next)
@@ -977,11 +996,11 @@ class TestResponseSizeGuardMiddleware:
         with (
             patch("superset.mcp_service.middleware.get_user_id", return_value=1),
             patch("superset.mcp_service.middleware.event_logger"),
-            # Force every truncation phase to report "still over budget" so
-            # the minimal-response fallback is the path under test.
+            # Keep every estimate over budget, including both _fits checks,
+            # to exercise the minimal fallback and its full shrink path.
             patch(
                 "superset.mcp_service.middleware.estimate_response_tokens",
-                side_effect=[600, 600],
+                return_value=600,
             ),
         ):
             result = await middleware.on_call_tool(context, call_next)
@@ -1039,7 +1058,7 @@ class TestResponseSizeGuardMiddleware:
             patch("superset.mcp_service.middleware.event_logger"),
             patch(
                 "superset.mcp_service.middleware.estimate_response_tokens",
-                side_effect=[600, 600],
+                return_value=600,
             ),
         ):
             result = await middleware.on_call_tool(context, call_next)
@@ -1089,7 +1108,7 @@ class TestResponseSizeGuardMiddleware:
             patch("superset.mcp_service.middleware.event_logger"),
             patch(
                 "superset.mcp_service.middleware.estimate_response_tokens",
-                side_effect=[600, 600],
+                return_value=600,
             ),
         ):
             result = await middleware.on_call_tool(context, call_next)
@@ -1098,10 +1117,14 @@ class TestResponseSizeGuardMiddleware:
         assert result["chart"]["is_unsaved_state"] is True
 
     @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "tool_name", ["get_dashboard_info", "get_chart_sql", "execute_sql"]
+    )
     async def test_opaque_tool_result_is_blocked_not_returned_as_dict(
         self,
+        tool_name: str,
     ) -> None:
-        """An info tool's unparseable ToolResult must not degrade to a dict.
+        """An unparseable ToolResult must not degrade to a dict on any path.
 
         truncate_oversized_response would model_dump() the ToolResult wrapper
         itself and the middleware would hand FastMCP a plain dict, failing in
@@ -1114,7 +1137,7 @@ class TestResponseSizeGuardMiddleware:
         middleware = ResponseSizeGuardMiddleware(token_limit=500)
 
         context = MagicMock()
-        context.message.name = "get_dashboard_info"
+        context.message.name = tool_name
         context.message.arguments = {}
 
         opaque = ToolResult(content=[TextContent(type="text", text="<html>" * 500)])
@@ -1127,9 +1150,14 @@ class TestResponseSizeGuardMiddleware:
                 "superset.mcp_service.middleware.estimate_response_tokens",
                 return_value=600,
             ),
+            patch.object(
+                ToolResult, "model_dump", wraps=opaque.model_dump
+            ) as model_dump,
             pytest.raises(ToolError),
         ):
             await middleware.on_call_tool(context, call_next)
+
+        model_dump.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_committed_write_fallback_rewraps_unparseable_tool_result(
@@ -1161,7 +1189,7 @@ class TestResponseSizeGuardMiddleware:
             patch("superset.mcp_service.middleware.event_logger"),
             patch(
                 "superset.mcp_service.middleware.estimate_response_tokens",
-                side_effect=[600, 600],
+                return_value=600,
             ),
         ):
             result = await middleware.on_call_tool(context, call_next)

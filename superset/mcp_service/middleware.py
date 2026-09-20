@@ -1601,6 +1601,7 @@ class ResponseSizeGuardMiddleware(Middleware):
         if spec.reports_success:
             # An unparseable payload yields nothing to copy, but a tool whose
             # schema has ``success`` must still say the write succeeded.
+            # Assume a completed call succeeded if its payload cannot be parsed.
             minimal.setdefault("success", True)
         return minimal
 
