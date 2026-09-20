@@ -16,9 +16,45 @@ import {
   ControlPanelsContainerProps,
   ControlState,
   CustomControlItem,
+  sharedControls,
 } from '@superset-ui/chart-controls';
 import { QueryMode } from '@superset-ui/core';
 import config from '../src/controlPanel';
+
+test('Table temporal metadata distinguishes non-temporal from unknown columns', () => {
+  const item = config.controlPanelSections
+    .flatMap(section => section?.controlSetRows ?? [])
+    .flat()
+    .find(control =>
+      typeof control === 'string'
+        ? control === 'temporal_columns_lookup'
+        : control &&
+          'name' in control &&
+          control.name === 'temporal_columns_lookup',
+    );
+  const control =
+    typeof item === 'object' && item && 'config' in item
+      ? item.config
+      : sharedControls.temporal_columns_lookup;
+  const { initialValue } = control;
+  expect(typeof initialValue).toBe('function');
+  if (typeof initialValue !== 'function') {
+    throw new Error('Expected temporal lookup initializer');
+  }
+  const state = {
+    datasource: {
+      columns: [
+        { column_name: 'metric_time', is_dttm: true },
+        { column_name: 'country', is_dttm: false },
+        { column_name: 'unknown' },
+      ],
+    },
+  } as unknown as Parameters<typeof initialValue>[1];
+  expect(initialValue({} as ControlState, state)).toEqual({
+    metric_time: true,
+    country: false,
+  });
+});
 
 type VisibilityFn = (
   props: ControlPanelsContainerProps,
@@ -85,6 +121,14 @@ test('time_grain_sqla visibility should be case-insensitive', () => {
   expect(vis(mkProps(['orderdate']), controlState)).toBe(true);
   expect(vis(mkProps(['ORDERDATE']), controlState)).toBe(true);
   expect(vis(mkProps(['some_other_col']), controlState)).toBe(false);
+});
+
+test('time grain visibility follows axis removal and re-addition', () => {
+  const visible = getVisibility(config, 'time_grain_sqla');
+  expect(visible(mkProps(['ORDERDATE']))).toBe(true);
+  expect(visible(mkProps([]))).toBe(false);
+  expect(visible(mkProps(['some_other_col']))).toBe(false);
+  expect(visible(mkProps(['ORDERDATE']))).toBe(true);
 });
 
 test('time_grain_sqla is hidden in raw records mode', () => {

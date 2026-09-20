@@ -32,6 +32,172 @@ const basicFormData: TableChartFormData = {
   datasource: '11__table',
 };
 
+test('omits dormant grain only for known non-temporal selected columns', () => {
+  const query = buildQueryUncached({
+    ...basicFormData,
+    datasource: '2__semantic_view',
+    metrics: ['orders'],
+    groupby: ['country'],
+    temporal_columns_lookup: { country: false },
+    time_grain_sqla: TimeGranularity.DAY,
+  }).queries[0];
+  expect(query.columns).toEqual(['country']);
+  expect(query.extras).not.toHaveProperty('time_grain_sqla');
+});
+
+test.each<Partial<TableChartFormData>>([
+  { groupby: ['unknown'], temporal_columns_lookup: {} },
+  { groupby: ['unknown'] },
+  {
+    groupby: ['country', 'unknown'],
+    temporal_columns_lookup: { country: false },
+  },
+  {
+    groupby: [
+      { expressionType: 'SQL', sqlExpression: 'year(ds)', label: 'year' },
+    ],
+  },
+  { granularity_sqla: 'metric_time' },
+  {
+    groupby: ['metric_time', 'other_time'],
+    temporal_columns_lookup: { metric_time: true, other_time: true },
+  },
+  {
+    extra_form_data: { interactive_groupby: ['metric_time'] },
+    temporal_columns_lookup: { metric_time: true },
+  },
+  { datasource: '11__table' },
+  { query_mode: QueryMode.Raw },
+])(
+  'preserves grain for active, ambiguous or out-of-scope input %j',
+  overrides => {
+    const query = buildQueryUncached({
+      ...basicFormData,
+      datasource: '2__semantic_view',
+      metrics: ['orders'],
+      groupby: [],
+      time_grain_sqla: TimeGranularity.DAY,
+      ...overrides,
+    }).queries[0];
+    expect(query.extras?.time_grain_sqla).toBe(TimeGranularity.DAY);
+  },
+);
+
+test.each([
+  undefined,
+  null,
+  '',
+  'invalid',
+  'P2D',
+  'date',
+  'P1W/1970-01-04T00:00:00Z',
+])('does not normalize unrecognized or absent grain %s', grain => {
+  const form = {
+    ...basicFormData,
+    datasource: '2__semantic_view',
+    metrics: ['orders'],
+    groupby: [],
+    time_grain_sqla: grain,
+  } as unknown as TableChartFormData;
+  expect(buildQueryUncached(form).queries[0].extras?.time_grain_sqla).toBe(
+    grain,
+  );
+});
+
+test.each([TimeGranularity.DAY, TimeGranularity.MONTH, TimeGranularity.HOUR])(
+  'omits dormant semantic grain %s without changing the saved form',
+  grain => {
+    const form: TableChartFormData = {
+      ...basicFormData,
+      datasource: '2__semantic_view',
+      metrics: ['count_lifetime_orders'],
+      groupby: [],
+      time_grain_sqla: grain,
+      time_range: '2026-01-01 : 2026-02-01',
+      row_limit: 123,
+    };
+    const original = structuredClone(form);
+    Object.freeze(form.groupby);
+    Object.freeze(form.metrics);
+    Object.freeze(form);
+    const result = buildQueryUncached(form);
+
+    expect(result.queries[0].extras).not.toHaveProperty('time_grain_sqla');
+    expect(result.queries[0]).toMatchObject({
+      columns: [],
+      metrics: ['count_lifetime_orders'],
+      time_range: form.time_range,
+      row_limit: 123,
+    });
+    expect(form).toEqual(original);
+    expect(result.form_data).toEqual(original);
+  },
+);
+
+test('normalizes final dormant override in all semantic derived queries', () => {
+  const form: TableChartFormData = {
+    ...basicFormData,
+    datasource: '2__semantic_view',
+    groupby: [],
+    metrics: ['orders'],
+    percent_metrics: ['orders'],
+    percent_metric_calculation: 'all_records',
+    show_totals: true,
+    server_pagination: true,
+    server_page_length: 10,
+    row_limit: 50,
+    time_grain_sqla: TimeGranularity.DAY,
+    extra_form_data: Object.freeze({ time_grain_sqla: TimeGranularity.MONTH }),
+  };
+  const original = structuredClone(form);
+  Object.freeze(form);
+  const { queries } = buildQueryUncached(form);
+
+  expect(queries).toHaveLength(4);
+  queries.forEach(query => {
+    expect(query.extras).not.toHaveProperty('time_grain_sqla');
+  });
+  expect(queries[1].is_rowcount).toBe(true);
+  expect(form).toEqual(original);
+});
+
+test('normalizes totals independently of the active semantic main axis', () => {
+  const { queries } = buildQueryUncached({
+    ...basicFormData,
+    datasource: '2__semantic_view',
+    metrics: ['orders'],
+    groupby: ['metric_time'],
+    temporal_columns_lookup: { metric_time: true },
+    time_grain_sqla: TimeGranularity.MONTH,
+    show_totals: true,
+  });
+
+  expect(queries[0].extras?.time_grain_sqla).toBe(TimeGranularity.MONTH);
+  expect(queries[1].columns).toEqual([]);
+  expect(queries[1].extras).not.toHaveProperty('time_grain_sqla');
+});
+
+test('keeps the selected semantic grain through axis removal and re-addition', () => {
+  const form: TableChartFormData = {
+    ...basicFormData,
+    datasource: '2__semantic_view',
+    metrics: ['orders'],
+    groupby: ['metric_time'],
+    temporal_columns_lookup: { metric_time: true },
+    time_grain_sqla: TimeGranularity.MONTH,
+  };
+  expect(buildQueryUncached(form).queries[0].extras?.time_grain_sqla).toBe(
+    TimeGranularity.MONTH,
+  );
+  expect(
+    buildQueryUncached({ ...form, groupby: [] }).queries[0].extras,
+  ).not.toHaveProperty('time_grain_sqla');
+  expect(buildQueryUncached(form).queries[0].extras?.time_grain_sqla).toBe(
+    TimeGranularity.MONTH,
+  );
+  expect(form.time_grain_sqla).toBe(TimeGranularity.MONTH);
+});
+
 const extraQueryFormData: TableChartFormData = {
   ...basicFormData,
   time_grain_sqla: TimeGranularity.MONTH,

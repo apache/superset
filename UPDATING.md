@@ -24,6 +24,8 @@ assists people when migrating to a new version.
 
 ## Next
 
+- Semantic-view Table charts omit recognized dormant time grains from frontend-generated aggregate queries when no temporal axis is present. The saved grain and Time Grain control visibility are unchanged. Direct API payloads and saved chart-data GET requests that bypass frontend rebuilding retain strict validation; some old stored query contexts can therefore still fail. Deploy updated frontend assets with this change.
+
 - With `SEMANTIC_LAYERS` enabled, combined connection discovery honors `Database.can_read` and `SemanticLayer.can_read` independently. Each permitted source retains its normal row filters, including dynamic database filters for Admin. A source filter never includes rows or counts from a denied source; callers with neither read permission are denied. Feature-off database browsing is unchanged.
 - The combined datasource list (`GET /api/v1/datasource/`) accepts Dataset read without an additional Datasource read grant, regardless of `SEMANTIC_LAYERS`. With the flag enabled, SemanticView read independently permits semantic-view discovery. Existing row-level dataset/chart access remains enforced.
 - The `presto` extra requires PyHive 0.7.0 or later. PyHive 0.6.5 cannot load
