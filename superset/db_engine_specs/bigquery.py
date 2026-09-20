@@ -17,10 +17,12 @@
 
 from __future__ import annotations
 
+import hashlib
 import logging
 import re
 import sys
 import urllib
+from contextlib import closing
 from datetime import datetime
 from re import Pattern
 from typing import Any, Callable, TYPE_CHECKING, TypedDict
@@ -50,23 +52,31 @@ from superset.db_engine_specs.base import (
 )
 from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
 from superset.errors import SupersetError, SupersetErrorType
-from superset.exceptions import SupersetException
+from superset.exceptions import OAuth2RedirectError, SupersetException
 from superset.sql.parse import SQLScript, Table
 from superset.superset_typing import ResultSetColumnType
 from superset.utils import core as utils, json
 from superset.utils.hashing import hash_from_str
+from superset.utils.oauth2 import get_oauth2_access_token
 
 if TYPE_CHECKING:
     from sqlalchemy.sql.expression import Select
 
 logger = logging.getLogger(__name__)
 
+# Driver exceptions that mean the user's OAuth2 token is expired or revoked.
+_OAUTH2_DRIVER_EXCEPTIONS: tuple[type[Exception], ...] = ()
+
 try:
     import google.auth
+    from google.api_core.exceptions import Unauthorized
+    from google.auth.exceptions import RefreshError
     from google.cloud import bigquery
     from google.oauth2 import service_account
+    from google.oauth2.credentials import Credentials as OAuth2Credentials
 
     dependencies_installed = True
+    _OAUTH2_DRIVER_EXCEPTIONS = (RefreshError, Unauthorized)
 except ImportError:
     dependencies_installed = False
 
@@ -199,6 +209,28 @@ SYNTAX_ERROR_REGEX = re.compile(
 
 ma_plugin = MarshmallowPlugin()
 
+
+if dependencies_installed:
+
+    class _UserOAuth2Client(bigquery.Client):
+        """
+        BigQuery client bound to a user's personal OAuth2 access token.
+
+        ``Database._get_sqla_engine`` caches engines keyed on ``repr`` of the engine
+        kwargs. A plain ``bigquery.Client`` reprs with its memory address, which
+        would create (and cache) a new engine on every request. Repr'ing a digest
+        of the token instead yields one engine per user token, in line with the
+        Google Sheets spec, which puts the token in the URL.
+        """
+
+        def __init__(self, token: str, **kwargs: Any) -> None:
+            super().__init__(credentials=OAuth2Credentials(token=token), **kwargs)
+            self._token_fingerprint = hashlib.sha256(token.encode()).hexdigest()[:16]
+
+        def __repr__(self) -> str:
+            return f"<{type(self).__name__} {self._token_fingerprint}>"
+
+
 # Initial sample size for the progressive fetch in ``fetch_data``. Reading a
 # small first batch lets us measure the row size before deciding how many
 # more rows fit within ``BQ_FETCH_MAX_MB``.
@@ -274,6 +306,19 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
                     }
                 },
             },
+            {
+                "name": "User OAuth2",
+                "description": (
+                    "Each user authorizes Superset against their own Google "
+                    "account and queries run with their BigQuery IAM permissions. "
+                    "Enable 'Impersonate logged in user' on the connection and "
+                    "register a Google OAuth client under "
+                    "DATABASE_OAUTH2_CLIENTS['Google BigQuery'] in "
+                    "superset_config.py, or as oauth2_client_info in Secure Extra. "
+                    "Use a plain bigquery://{project_id} URI without service "
+                    "account credentials."
+                ),
+            },
         ],
         "notes": (
             "Create a Service Account via GCP console with access to "
@@ -296,10 +341,32 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
     supports_dynamic_schema = True
     supports_grouping_sets = True
 
+    # Per-user OAuth2 (SIP-85). When the database has "Impersonate logged in user"
+    # enabled and an OAuth2 client is configured, each user authorizes Superset
+    # against their own Google account and every query runs with their BigQuery
+    # IAM permissions instead of the shared service account or ADC. Operators
+    # can widen the scope (e.g. drive.readonly for external tables backed by
+    # Google Sheets) in `DATABASE_OAUTH2_CLIENTS`.
+    supports_oauth2 = True
+    oauth2_scope = "https://www.googleapis.com/auth/bigquery"
+    oauth2_authorization_request_uri = (  # pylint: disable=invalid-name
+        "https://accounts.google.com/o/oauth2/v2/auth"
+    )
+    oauth2_token_request_uri = "https://oauth2.googleapis.com/token"  # noqa: S105
+    # Google only returns a refresh token for offline access with an explicit
+    # consent prompt.
+    oauth2_additional_auth_uri_query_params = {
+        "access_type": "offline",
+        "include_granted_scopes": "false",
+        "prompt": "consent",
+    }
+    oauth2_exception = (OAuth2RedirectError, *_OAUTH2_DRIVER_EXCEPTIONS)
+
     # when editing the database, mask this field in `encrypted_extra`
     # pylint: disable=invalid-name
     encrypted_extra_sensitive_fields = {
         "$.credentials_info.private_key": "Service Account Private Key",
+        "$.oauth2_client_info.secret": "OAuth2 Client Secret",
     }
 
     """
@@ -706,12 +773,14 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
                 "project_id": engine.url.host,
             }
 
-        # Add credentials if they are set on the SQLAlchemy dialect.
-
+        # Add credentials if they are set on the SQLAlchemy dialect, or use the
+        # user's own OAuth2 token so uploads don't fall back to ADC.
         if creds := engine.dialect.credentials_info:
             to_gbq_kwargs["credentials"] = (
                 service_account.Credentials.from_service_account_info(creds)
             )
+        elif user_token := cls._get_oauth2_user_token(database):
+            to_gbq_kwargs["credentials"] = OAuth2Credentials(token=user_token)
 
         # Only pass through supported kwargs.
         supported_kwarg_keys = {"if_exists"}
@@ -737,6 +806,19 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
             )
 
         project: str | None = engine.url.host or None
+
+        if engine.url.query.get("user_supplied_client", "").lower() == "true":
+            # `impersonate_user` handed the dialect a client bound to the user's
+            # OAuth2 token, and the DBAPI keeps it on every connection (the
+            # dialect itself reads `connection.connection._client`). Never fall
+            # back to the service account or ADC for such a connection.
+            with closing(engine.raw_connection()) as raw_connection:
+                client = getattr(raw_connection.dbapi_connection, "_client", None)
+            if not isinstance(client, bigquery.Client):
+                raise SupersetDBAPIConnectionError(
+                    "The BigQuery connection has no user-supplied client."
+                )
+            return client
 
         if credentials_info := engine.dialect.credentials_info:
             credentials = service_account.Credentials.from_service_account_info(
@@ -972,6 +1054,111 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         from google.auth.exceptions import DefaultCredentialsError
 
         return {DefaultCredentialsError: SupersetDBAPIConnectionError}
+
+    @staticmethod
+    def update_params_from_encrypted_extra(
+        database: Database,
+        params: dict[str, Any],
+    ) -> None:
+        """
+        Forward the secure extra to the dialect without `oauth2_client_info`.
+
+        The OAuth2 client configuration is consumed by Superset itself
+        (``Database.get_oauth2_config``); sqlalchemy-bigquery rejects unknown
+        engine arguments.
+        """
+        BaseEngineSpec.update_params_from_encrypted_extra(database, params)
+        params.pop("oauth2_client_info", None)
+
+    @classmethod
+    def _get_oauth2_user_token(cls, database: Database) -> str | None:
+        """
+        Return the current user's OAuth2 access token for the database, if any.
+        """
+        if not database.impersonate_user or database.id is None:
+            return None
+        if not (g and hasattr(g, "user") and getattr(g.user, "id", None) is not None):
+            return None
+        oauth2_config = database.get_oauth2_config()
+        if oauth2_config is None:
+            return None
+        return get_oauth2_access_token(oauth2_config, database.id, g.user.id, cls)
+
+    @classmethod
+    def impersonate_user(
+        cls,
+        database: Database,
+        username: str | None,
+        user_token: str | None,
+        url: URL,
+        engine_kwargs: dict[str, Any],
+    ) -> tuple[URL, dict[str, Any]]:
+        """
+        Run the connection as the user, with their personal OAuth2 access token.
+
+        The token is wrapped in a ``bigquery.Client`` handed to sqlalchemy-bigquery
+        through ``connect_args["client"]`` together with ``user_supplied_client=true``
+        in the URL, which is the driver's documented way of bringing your own
+        credentials. BigQuery has no notion of a proxy user, so ``username`` is not
+        used.
+
+        Without a token, sqlalchemy-bigquery would silently fall back to the
+        service account or ADC, i.e. run the query as Superset rather than as the
+        user. When OAuth2 is configured the user is asked to authorize instead.
+        Background jobs (no user) and unsaved databases (test connection) cannot
+        complete the OAuth2 dance and keep the previous behaviour.
+        """
+        if not user_token:
+            if (
+                database.is_oauth2_enabled()
+                and database.id is not None
+                and g
+                and hasattr(g, "user")
+                and getattr(g.user, "id", None) is not None
+            ):
+                database.start_oauth2_dance()
+            return url, engine_kwargs
+
+        if not dependencies_installed:
+            raise SupersetException(
+                "Could not import libraries needed to connect to BigQuery."
+            )
+
+        client_kwargs: dict[str, Any] = {"project": url.host or None}
+        if location := url.query.get("location"):
+            client_kwargs["location"] = location
+
+        connect_args = engine_kwargs.setdefault("connect_args", {})
+        connect_args["client"] = _UserOAuth2Client(user_token, **client_kwargs)
+        return url.update_query_dict({"user_supplied_client": "true"}), engine_kwargs
+
+    @classmethod
+    def needs_oauth2(cls, ex: Exception) -> bool:
+        """
+        Check whether the exception means the user's OAuth2 token must be renewed.
+
+        google-auth raises ``RefreshError`` when a bare access token has expired
+        (there is no refresh token on the connection to renew it) and the API
+        returns ``Unauthorized`` when it was revoked. The BigQuery DBAPI wraps API
+        errors in its own ``DatabaseError`` (original in ``args[0]``) and
+        SQLAlchemy may wrap that again in a ``DBAPIError`` (original in ``orig``).
+        ``Forbidden`` is a genuine IAM denial for that user and must not trigger
+        re-authorization.
+        """
+        if not (g and hasattr(g, "user")):
+            return False
+
+        candidate: Any = ex
+        for _ in range(3):
+            if isinstance(candidate, cls.oauth2_exception):
+                return True
+            if (orig := getattr(candidate, "orig", None)) is not None:
+                candidate = orig
+            elif candidate.args and isinstance(candidate.args[0], Exception):
+                candidate = candidate.args[0]
+            else:
+                break
+        return False
 
     @classmethod
     def validate_parameters(
