@@ -55,8 +55,8 @@ import {
   shiftPointToOffset,
 } from './timeRange';
 
-const toCssColor = (color?: RGBColor, fallback?: string) =>
-  color ? `rgb(${color.r}, ${color.g}, ${color.b})` : fallback;
+const toCssColor = (color?: RGBColor, fallback?: string): string =>
+  color ? `rgb(${color.r}, ${color.g}, ${color.b})` : (fallback ?? '');
 
 const toNumber = (value: unknown): number | null => {
   if (value === null || value === undefined) return null;
@@ -163,6 +163,7 @@ export default function transformProps(
     height,
     queriesData,
     formData,
+    theme,
     datasource: {
       currencyFormats = {},
       columnFormats = {},
@@ -173,23 +174,21 @@ export default function transformProps(
   // Tolerate camelCase too (older form data / direct callers) by falling
   // back to the snake_case spelling when the camelCase key is absent.
   const formDataRecord = formData as unknown as Record<string, unknown>;
-  const pick = <T,>(key: string): T | undefined =>
+  const pick = <T>(key: string): T | undefined =>
     (formDataRecord[key] ?? formDataRecord[camelToSnake(key)]) as T | undefined;
   const metric = pick<string>('metric') ?? 'value';
   const yAxisFormat = pick<string>('yAxisFormat');
-  const currencyFormat = pick<Parameters<typeof getValueFormatter>[4]>(
-    'currencyFormat',
-  );
+  const currencyFormat =
+    pick<Parameters<typeof getValueFormatter>[4]>('currencyFormat');
   const headerText = pick<string>('headerText') ?? '';
   const titleFontSize =
     pick<number>('titleFontSize') ?? DEFAULT_TITLE_FONT_SIZE;
-  const titleColor = pick<RGBColor>('titleColor') ?? DEFAULT_TITLE_COLOR;
+  const titleColor = pick<RGBColor>('titleColor');
   const titleLeft = pick<number>('titleLeft') ?? DEFAULT_TITLE_LEFT;
   const titleTop = pick<number>('titleTop');
   const bigNumberFontSize =
     pick<number>('bigNumberFontSize') ?? DEFAULT_BIG_NUMBER_FONT_SIZE;
-  const bigNumberColor =
-    pick<RGBColor>('bigNumberColor') ?? DEFAULT_BIG_NUMBER_COLOR;
+  const bigNumberColor = pick<RGBColor>('bigNumberColor');
   const bigNumberLeft =
     pick<number>('bigNumberLeft') ?? DEFAULT_BIG_NUMBER_LEFT;
   const bigNumberTop = pick<number>('bigNumberTop');
@@ -220,17 +219,23 @@ export default function transformProps(
   const comparisonFontSize =
     pick<number>('comparisonFontSize') ?? DEFAULT_COMPARISON_FONT_SIZE;
   const comparisonTop = pick<number>('comparisonTop');
-  const comparisonPositiveColor =
-    pick<RGBColor>('comparisonPositiveColor') ??
-    DEFAULT_COMPARISON_POSITIVE_COLOR;
-  const comparisonNegativeColor =
-    pick<RGBColor>('comparisonNegativeColor') ??
-    DEFAULT_COMPARISON_NEGATIVE_COLOR;
-  const comparisonZeroColor =
-    pick<RGBColor>('comparisonZeroColor') ?? DEFAULT_COMPARISON_ZERO_COLOR;
+  const comparisonPositiveColor = pick<RGBColor>('comparisonPositiveColor');
+  const comparisonNegativeColor = pick<RGBColor>('comparisonNegativeColor');
+  const comparisonZeroColor = pick<RGBColor>('comparisonZeroColor');
   const percentDifferenceFormat =
     pick<string>('percentDifferenceFormat') ?? NumberFormats.PERCENT_2_POINT;
   const timeGrainSqla = pick<string>('timeGrainSqla');
+
+  const defaultTitleColor =
+    theme?.colorTextSecondary ?? toCssColor(DEFAULT_TITLE_COLOR);
+  const defaultBigNumberColor =
+    theme?.colorText ?? toCssColor(DEFAULT_BIG_NUMBER_COLOR);
+  const defaultComparisonPositiveColor =
+    theme?.colorSuccess ?? toCssColor(DEFAULT_COMPARISON_POSITIVE_COLOR);
+  const defaultComparisonNegativeColor =
+    theme?.colorError ?? toCssColor(DEFAULT_COMPARISON_NEGATIVE_COLOR);
+  const defaultComparisonZeroColor =
+    theme?.colorTextTertiary ?? toCssColor(DEFAULT_COMPARISON_ZERO_COLOR);
 
   const { data = [], detected_currency: detectedCurrency } =
     queriesData[0] || {};
@@ -388,7 +393,7 @@ export default function transformProps(
       style: {
         text: headerText,
         fontSize: titleFontSizePx,
-        fill: toCssColor(titleColor, '#666'),
+        fill: toCssColor(titleColor, defaultTitleColor),
       },
     });
   }
@@ -409,19 +414,19 @@ export default function transformProps(
       text: bigNumberText,
       fontSize: bigNumberFontSizePx,
       fontWeight: 'bold',
-      fill: toCssColor(bigNumberColor, '#333'),
+      fill: toCssColor(bigNumberColor, defaultBigNumberColor),
     },
   });
 
   const positiveColor = toCssColor(
     comparisonPositiveColor,
-    '#00b42a',
-  ) as string;
+    defaultComparisonPositiveColor,
+  );
   const negativeColor = toCssColor(
     comparisonNegativeColor,
-    '#f53f3f',
-  ) as string;
-  const zeroColor = toCssColor(comparisonZeroColor, '#666') as string;
+    defaultComparisonNegativeColor,
+  );
+  const zeroColor = toCssColor(comparisonZeroColor, defaultComparisonZeroColor);
   const comparisonLeft = 20;
   const comparisonGapPx = Math.max(0, Number(comparisonGap) || 0);
 

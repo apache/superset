@@ -237,14 +237,11 @@ describe('BigNumberYoyMom transformProps', () => {
 
   test('formats comparison values with the slot percent difference format', () => {
     const result = transformProps(
-      buildChartProps(
-        [{ 'SUM(sales)': 100, prev_month_sales: 80 }],
-        {
-          comparison1Mode: 'metric',
-          comparison1Column: 'prev_month_sales',
-          comparison1PercentDifferenceFormat: ',.3f',
-        },
-      ),
+      buildChartProps([{ 'SUM(sales)': 100, prev_month_sales: 80 }], {
+        comparison1Mode: 'metric',
+        comparison1Column: 'prev_month_sales',
+        comparison1PercentDifferenceFormat: ',.3f',
+      }),
     );
     const graphic = result.echartOptions.graphic as Record<string, any>[];
     // The slot's configured number format applies to comparison values.
@@ -304,13 +301,10 @@ describe('BigNumberYoyMom transformProps', () => {
 
   test('metric mode reads the comparison metric explicitly', () => {
     const result = transformProps(
-      buildChartProps(
-        [{ 'SUM(sales)': 100, prev_month_sales: 80 }],
-        {
-          comparison1Mode: 'metric',
-          comparison1Column: 'prev_month_sales',
-        },
-      ),
+      buildChartProps([{ 'SUM(sales)': 100, prev_month_sales: 80 }], {
+        comparison1Mode: 'metric',
+        comparison1Column: 'prev_month_sales',
+      }),
     );
     const graphic = result.echartOptions.graphic as Record<string, any>[];
     expect(graphic[2].style.text).toBe('MoM ↑80');
@@ -541,9 +535,7 @@ describe('BigNumberYoyMom transformProps', () => {
   });
 
   test('shows "—" when comparison offset is missing from the data', () => {
-    const result = transformProps(
-      buildChartProps([{ 'SUM(sales)': 100 }]),
-    );
+    const result = transformProps(buildChartProps([{ 'SUM(sales)': 100 }]));
     const graphic = result.echartOptions.graphic as Record<string, any>[];
     expect(graphic[2].style.text).toBe('MoM —');
     expect(graphic[2].style.fill).toBe('rgb(102, 102, 102)');
@@ -559,10 +551,10 @@ describe('BigNumberYoyMom transformProps', () => {
           timeGrainSqla: 'month',
         },
         [
-          { '报表时间': '2026-09-01', 'SUM(sales)': 3260 },
-          { '报表时间': '2026-08-01', 'SUM(sales)': 3243 },
-          { '报表时间': '2026-07-01', 'SUM(sales)': 3068 },
-          { '报表时间': '2026-01-01', 'SUM(sales)': 3169 },
+          { 报表时间: '2026-09-01', 'SUM(sales)': 3260 },
+          { 报表时间: '2026-08-01', 'SUM(sales)': 3243 },
+          { 报表时间: '2026-07-01', 'SUM(sales)': 3068 },
+          { 报表时间: '2026-01-01', 'SUM(sales)': 3169 },
         ],
       ),
     );
@@ -581,8 +573,8 @@ describe('BigNumberYoyMom transformProps', () => {
         [{ 'SUM(sales)': 100 }],
         { comparison1Offset: '1 month ago', timeGrainSqla: 'month' },
         [
-          { '报表时间': 1788220800000, 'SUM(sales)': 60 }, // 2026-09-01
-          { '报表时间': 1785542400000, 'SUM(sales)': 50 }, // 2026-08-01
+          { 报表时间: 1788220800000, 'SUM(sales)': 60 }, // 2026-09-01
+          { 报表时间: 1785542400000, 'SUM(sales)': 50 }, // 2026-08-01
         ],
       ),
     );
@@ -592,10 +584,9 @@ describe('BigNumberYoyMom transformProps', () => {
 
   test('falls back to the offset column when no point series is present', () => {
     const result = transformProps(
-      buildChartProps(
-        [{ 'SUM(sales)': 100, 'SUM(sales)__1 month ago': 90 }],
-        { comparison1Offset: '1 month ago' },
-      ),
+      buildChartProps([{ 'SUM(sales)': 100, 'SUM(sales)__1 month ago': 90 }], {
+        comparison1Offset: '1 month ago',
+      }),
     );
     const graphic = result.echartOptions.graphic as Record<string, any>[];
     expect(graphic[2].style.text).toBe('MoM ↑11.11%');

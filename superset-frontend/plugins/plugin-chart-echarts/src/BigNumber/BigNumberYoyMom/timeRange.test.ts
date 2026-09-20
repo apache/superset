@@ -115,6 +115,17 @@ describe('toEnclosedTimeRange', () => {
     );
   });
 
+  test('clamps relative month ranges at month end', () => {
+    const monthEnd = new Date(2026, 2, 31, 10, 30, 0);
+
+    expect(toEnclosedTimeRange('last month', monthEnd)).toBe(
+      '2026-02-28 00:00:00 : 2026-03-31 00:00:00',
+    );
+    expect(toEnclosedTimeRange('next month', monthEnd)).toBe(
+      '2026-03-31 00:00:00 : 2026-04-30 00:00:00',
+    );
+  });
+
   test('passes through ranges the backend resolves on its own', () => {
     expect(toEnclosedTimeRange('Last week', now)).toBe('Last week');
     expect(toEnclosedTimeRange('Next 30 days', now)).toBe('Next 30 days');

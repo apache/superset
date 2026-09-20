@@ -73,10 +73,9 @@ export type BigNumberYoyMomDatum = {
   [key: string]: number | string | null;
 };
 
-export type BigNumberYoyMomChartDataResponseResult =
-  ChartDataResponseResult & {
-    data: BigNumberYoyMomDatum[];
-  };
+export type BigNumberYoyMomChartDataResponseResult = ChartDataResponseResult & {
+  data: BigNumberYoyMomDatum[];
+};
 
 export type BigNumberYoyMomChartProps =
   BaseChartProps<BigNumberYoyMomFormData> & {

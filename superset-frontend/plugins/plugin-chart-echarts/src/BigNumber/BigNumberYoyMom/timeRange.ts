@@ -59,8 +59,31 @@ const startOfIsoWeek = (d: Date): Date => {
   return new Date(day.getFullYear(), day.getMonth(), day.getDate() - offset);
 };
 
-const addMonths = (d: Date, months: number): Date =>
-  new Date(d.getFullYear(), d.getMonth() + months, d.getDate());
+const addMonths = (d: Date, months: number): Date => {
+  const target = new Date(
+    d.getFullYear(),
+    d.getMonth() + months,
+    1,
+    d.getHours(),
+    d.getMinutes(),
+    d.getSeconds(),
+    d.getMilliseconds(),
+  );
+  const lastDay = new Date(
+    target.getFullYear(),
+    target.getMonth() + 1,
+    0,
+  ).getDate();
+  return new Date(
+    target.getFullYear(),
+    target.getMonth(),
+    Math.min(d.getDate(), lastDay),
+    d.getHours(),
+    d.getMinutes(),
+    d.getSeconds(),
+    d.getMilliseconds(),
+  );
+};
 
 const startOfQuarter = (d: Date): Date =>
   new Date(d.getFullYear(), Math.floor(d.getMonth() / 3) * 3, 1);
@@ -84,7 +107,7 @@ const shiftUnits = (d: Date, amount: number, unit: string): Date => {
     case 'quarter':
       return addMonths(d, amount * 3);
     case 'year':
-      return new Date(d.getFullYear() + amount, d.getMonth(), d.getDate());
+      return addMonths(d, amount * 12);
     default:
       return d;
   }
@@ -105,7 +128,8 @@ const HOUR_MS = 3_600_000;
 
 export type TimeOffset = { amount: number; unit: string };
 
-const OFFSET_RE = /^(\d+)\s+(second|minute|hour|day|week|month|quarter|year)s?\s+ago$/i;
+const OFFSET_RE =
+  /^(\d+)\s+(second|minute|hour|day|week|month|quarter|year)s?\s+ago$/i;
 
 const UNIT_DAYS: Record<string, number> = {
   second: 1 / 86_400,
@@ -134,7 +158,10 @@ export const offsetMaxRows = (offsets: (string | undefined)[]): number => {
   offsets.forEach(offset => {
     const parsed = parseTimeOffset(offset);
     if (parsed) {
-      maxDays = Math.max(maxDays, Math.ceil(parsed.amount * (UNIT_DAYS[parsed.unit] ?? 1)));
+      maxDays = Math.max(
+        maxDays,
+        Math.ceil(parsed.amount * (UNIT_DAYS[parsed.unit] ?? 1)),
+      );
     }
   });
   return Math.max(30, Math.min(2_000, maxDays + 1));
@@ -147,14 +174,17 @@ export const offsetMaxRows = (offsets: (string | undefined)[]): number => {
  */
 export const parseTimePointValue = (value: unknown): Date | null => {
   if (value === null || value === undefined || value === '') return null;
-  const numeric = typeof value === 'number' ? value : Number(String(value).trim());
+  const numeric =
+    typeof value === 'number' ? value : Number(String(value).trim());
   // Epoch milliseconds (>= 1e11 ≈ year 1973).
   if (Number.isFinite(numeric) && Math.abs(numeric) > 1e11) {
     const date = new Date(numeric);
     return Number.isNaN(date.getTime()) ? null : date;
   }
   const text = String(value).trim();
-  const match = text.match(/^(\d{4})\s*[-/年.]?\s*(\d{1,2})?\s*[-/月.]?\s*(\d{1,2})?\s*[日]?/);
+  const match = text.match(
+    /^(\d{4})\s*[-/年.]?\s*(\d{1,2})?\s*[-/月.]?\s*(\d{1,2})?\s*[日]?/,
+  );
   if (!match) return null;
   const year = parseInt(match[1], 10);
   const month = match[2] ? parseInt(match[2], 10) : 1;
@@ -168,14 +198,26 @@ export const parseTimePointValue = (value: unknown): Date | null => {
  * Aligns a date to the configured time grain so points from a full timestamp
  * column ("2026-09-01 10:30:00") can be matched against shifted points.
  */
-export const alignToTimeGrain = (date: Date, grain: string | undefined): Date => {
+export const alignToTimeGrain = (
+  date: Date,
+  grain: string | undefined,
+): Date => {
   if (grain === 'year') return new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
-  if (grain === 'month') return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1));
+  if (grain === 'month')
+    return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1));
   if (grain === 'week') {
     const isoOffset = (date.getUTCDay() + 6) % 7; // Monday = 0
-    return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() - isoOffset));
+    return new Date(
+      Date.UTC(
+        date.getUTCFullYear(),
+        date.getUTCMonth(),
+        date.getUTCDate() - isoOffset,
+      ),
+    );
   }
-  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+  return new Date(
+    Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()),
+  );
 };
 
 /**
@@ -201,8 +243,12 @@ export const shiftPointToOffset = (date: Date, offset: string): Date => {
   else if (unit === 'month') targetMonth -= amount;
   const targetYear = year + Math.floor(targetMonth / 12);
   const normalizedMonth = ((targetMonth % 12) + 12) % 12;
-  const lastDay = new Date(Date.UTC(targetYear, normalizedMonth + 1, 0)).getUTCDate();
-  return new Date(Date.UTC(targetYear, normalizedMonth, Math.min(day, lastDay)));
+  const lastDay = new Date(
+    Date.UTC(targetYear, normalizedMonth + 1, 0),
+  ).getUTCDate();
+  return new Date(
+    Date.UTC(targetYear, normalizedMonth, Math.min(day, lastDay)),
+  );
 };
 
 export const toEnclosedTimeRange = (

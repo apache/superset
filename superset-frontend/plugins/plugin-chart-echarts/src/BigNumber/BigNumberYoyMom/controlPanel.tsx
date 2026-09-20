@@ -253,11 +253,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        [
-          <ControlSubSectionHeader>
-            {t('Big Number')}
-          </ControlSubSectionHeader>,
-        ],
+        [<ControlSubSectionHeader>{t('Big Number')}</ControlSubSectionHeader>],
         ['y_axis_format'],
         ['currency_format'],
         [
@@ -304,7 +300,9 @@ const config: ControlPanelConfig = {
               step: 1,
               renderTrigger: true,
               default: DEFAULT_BIG_NUMBER_TOP,
-              description: t('Vertical gap in pixels between the title and the big number.'),
+              description: t(
+                'Vertical gap in pixels between the title and the big number.',
+              ),
             },
           },
         ],
@@ -446,7 +444,9 @@ const config: ControlPanelConfig = {
               step: 1,
               renderTrigger: true,
               default: DEFAULT_COMPARISON_TOP,
-              description: t('Vertical gap in pixels between the big number and the comparison rows.'),
+              description: t(
+                'Vertical gap in pixels between the big number and the comparison rows.',
+              ),
             },
           },
         ],

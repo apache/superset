@@ -118,7 +118,9 @@ describe('BigNumberYoyMom buildQuery', () => {
     expect(queryContext.queries).toHaveLength(2);
     expect(queryContext.queries[0].time_offsets).toEqual([]);
     expect(queryContext.queries[0].time_range).toBe('No filter');
-    expect(queryContext.queries[1].metrics).toEqual(expect.arrayContaining(['value']));
+    expect(queryContext.queries[1].metrics).toEqual(
+      expect.arrayContaining(['value']),
+    );
     expect(queryContext.queries[1].groupby).toEqual(['report_date']);
     expect(queryContext.queries[1].orderby).toEqual([['report_date', false]]);
     expect(queryContext.queries[1].time_offsets).toEqual([]);
@@ -141,7 +143,8 @@ describe('BigNumberYoyMom buildQuery', () => {
       time_range: 'No filter',
       granularity_sqla: {
         expressionType: 'SQL',
-        sqlExpression: "STR_TO_DATE(CONCAT(CAST(report_date AS CHAR),'01'),'%Y%m%d')",
+        sqlExpression:
+          "STR_TO_DATE(CONCAT(CAST(report_date AS CHAR),'01'),'%Y%m%d')",
         label: 'report_date_expr',
       } as unknown as string,
       comparison1_offset: '1 month ago',
@@ -208,11 +211,46 @@ describe('BigNumberYoyMom buildQuery', () => {
       time_range: 'No filter',
       comparison1_column: 'moom_value',
       comparison1_mode: 'metric',
-      comparison2_column: { expressionType: 'SQL', sqlExpression: 'SUM(x)', label: 'moom_value' },
+      comparison2_column: {
+        expressionType: 'SQL',
+        sqlExpression: 'SUM(x)',
+        label: 'moom_value',
+      },
       comparison2_mode: 'metric',
     });
     const metrics = queryContext.queries[0].metrics as unknown[];
-    expect(metrics.filter(m => String(m).includes('moom_value'))).toHaveLength(1);
+    expect(metrics.filter(m => String(m).includes('moom_value'))).toHaveLength(
+      1,
+    );
+  });
+
+  test('keeps distinct unlabeled custom SQL comparison metrics', () => {
+    const queryContext = buildQuery({
+      ...baseFormData,
+      time_range: 'No filter',
+      comparison1_mode: 'metric',
+      comparison1_column: {
+        expressionType: 'SQL',
+        sqlExpression: 'SUM(monthly_sales)',
+      },
+      comparison2_mode: 'metric',
+      comparison2_column: {
+        expressionType: 'SQL',
+        sqlExpression: 'SUM(yearly_sales)',
+      },
+    });
+
+    expect(queryContext.queries[0].metrics).toEqual([
+      'value',
+      {
+        expressionType: 'SQL',
+        sqlExpression: 'SUM(monthly_sales)',
+      },
+      {
+        expressionType: 'SQL',
+        sqlExpression: 'SUM(yearly_sales)',
+      },
+    ]);
   });
 
   test('downgrades an adhoc time column to a query column', () => {
@@ -220,14 +258,17 @@ describe('BigNumberYoyMom buildQuery', () => {
       ...baseFormData,
       granularity_sqla: {
         expressionType: 'SQL',
-        sqlExpression: "STR_TO_DATE(CONCAT(CAST(report_date AS CHAR),'01'),'%Y%m%d')",
+        sqlExpression:
+          "STR_TO_DATE(CONCAT(CAST(report_date AS CHAR),'01'),'%Y%m%d')",
         label: 'report_date_expr',
       } as unknown as string,
     });
     expect(queryContext.queries[0].granularity).toBeUndefined();
     expect(queryContext.queries[0].columns).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ sqlExpression: expect.stringContaining('STR_TO_DATE') }),
+        expect.objectContaining({
+          sqlExpression: expect.stringContaining('STR_TO_DATE'),
+        }),
       ]),
     );
   });

@@ -19,6 +19,7 @@
 import {
   buildQueryContext,
   ensureIsArray,
+  getMetricLabel,
   QueryFormColumn,
   QueryFormData,
   QueryFormMetric,
@@ -58,9 +59,7 @@ export default function buildQuery(formData: QueryFormData) {
     // path falls back to the main value for such slots.
     const mainMetrics = ensureIsArray(baseQueryObject.metrics);
     const metricLabel = (metric: QueryFormMetric): string =>
-      typeof metric === 'string'
-        ? metric
-        : metric.label ?? metric.expressionType ?? '';
+      getMetricLabel(metric);
     const mainLabels = new Set(mainMetrics.map(metricLabel));
     const comparisonMetrics = ensureIsArray([
       metricMode1 ? formDataYoyMom.comparison1_column : null,
@@ -69,7 +68,10 @@ export default function buildQuery(formData: QueryFormData) {
     const uniqueComparisonMetrics: QueryFormMetric[] = [];
     comparisonMetrics.forEach(metric => {
       const label = metricLabel(metric);
-      if (!mainLabels.has(label) && !uniqueComparisonMetrics.some(m => metricLabel(m) === label)) {
+      if (
+        !mainLabels.has(label) &&
+        !uniqueComparisonMetrics.some(m => metricLabel(m) === label)
+      ) {
         uniqueComparisonMetrics.push(metric);
       }
     });
@@ -80,16 +82,14 @@ export default function buildQuery(formData: QueryFormData) {
     // the value stays available in the result (like the x-axis of the
     // BigNumber with Trendline chart) and no time filtering is applied.
     const timeColumn = formDataYoyMom.granularity_sqla;
-    const isAdhocTimeColumn =
-      !!timeColumn && typeof timeColumn !== 'string';
+    const isAdhocTimeColumn = !!timeColumn && typeof timeColumn !== 'string';
 
     // Open-ended ranges ("No filter") have no current period to shift, so the
     // backend time offsets are unavailable. With a time column present, split
     // the query into a main value query plus a point series query (the metric
     // grouped by the time column, newest first); the render path matches each
     // comparison slot by shifting the newest point by its offset.
-    const pointSeries =
-      timeOffsets.length > 0 && !hasTimeRange && !!timeColumn;
+    const pointSeries = timeOffsets.length > 0 && !hasTimeRange && !!timeColumn;
 
     // A time comparison requires an enclosed (start and end) time range on
     // the backend. Expand open-ended ranges (e.g. "Previous week") into
