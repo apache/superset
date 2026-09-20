@@ -205,6 +205,66 @@ def persist_owned_report_execution_terminal_error(
         # this boundary. Roll back again so a failed terminal flush cannot leave
         # the scoped session unusable for the retry.
         db.session.rollback()  # pylint: disable=consider-using-transaction
+        if report_context is not None and report_context.execution_claimed:
+            schedule = (
+                db.session.query(ReportSchedule)
+                .filter_by(id=report_schedule_id)
+                .one_or_none()
+            )
+            if schedule is None:
+                return False
+            matched = (
+                db.session.query(ReportSchedule)
+                .filter(
+                    ReportSchedule.id == report_schedule_id,
+                    ReportSchedule.execution_owner == str(execution_id),
+                    ReportSchedule.last_state == ReportState.WORKING,
+                )
+                .update(
+                    {
+                        ReportSchedule.last_state: ReportState.ERROR,
+                        ReportSchedule.last_eval_dttm: datetime.utcnow(),
+                    },
+                    synchronize_session="fetch",
+                )
+            )
+            if matched != 1:
+                db.session.rollback()  # pylint: disable=consider-using-transaction
+                return False
+            # The claim is durable even if the WORKING log was rolled back.
+            # create_log promotes that log when present and creates it otherwise.
+            state = BaseReportState(
+                schedule,
+                schedule.execution_window,
+                execution_id,
+                report_context,
+            )
+            state.create_log(error_message, log_state=ReportState.ERROR)
+            logger.error(
+                "report_execution_terminal %s state=Error terminal_reason=%s",
+                report_context.log_context,
+                terminal_reason,
+            )
+            # Persist first; notification failure must not undo terminalization.
+            # Timeout cleanup must not start another network operation.
+            if terminal_reason not in (
+                "SoftTimeLimitExceeded",
+                "ReportExecutionBudgetExceededError",
+            ):
+                try:
+                    if not state.is_in_error_grace_period():
+                        state.send_error(
+                            f"Error occurred for {schedule.type}: {schedule.name}",
+                            error_message,
+                        )
+                        state.create_log(
+                            REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER,
+                            log_state=ReportState.ERROR,
+                        )
+                except Exception:  # noqa: BLE001
+                    db.session.rollback()  # pylint: disable=consider-using-transaction
+                    logger.exception("Failed fallback error notification")
+            return True
         working_log = (
             db.session.query(ReportExecutionLog)
             .filter(
@@ -818,16 +878,22 @@ class BaseReportState:
             return
         with db.session.no_autoflush:
             owned = (
-                db.session.query(ReportSchedule.id)
+                db.session.query(ReportSchedule)
                 .filter(
                     ReportSchedule.id == self._report_schedule.id,
                     ReportSchedule.execution_owner == str(self._execution_id),
                 )
-                .with_for_update()
-                .first()
+                .update(
+                    {ReportSchedule.execution_owner: str(self._execution_id)},
+                    synchronize_session=False,
+                )
             )
-        if owned is None:
+        if owned != 1:
+            db.session.rollback()  # pylint: disable=consider-using-transaction
             raise ReportSchedulePreviousWorkingError()
+        # A CAS UPDATE also locks the row. Release it before network I/O,
+        # including any pending state changes protected by this ownership check.
+        db.session.commit()  # pylint: disable=consider-using-transaction
 
     def _get_screenshots(self) -> list[bytes]:
         """
@@ -2323,7 +2389,7 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
     def run(self) -> None:  # noqa: C901
         monotonic_started_at = time.monotonic()
         report_execution_context: ReportExecutionContext | None = None
-        owns_report_working_state = False
+        owns_working_state = False
         try:
             self.validate()
             if not self._model:
@@ -2349,10 +2415,6 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
                 # recovery, not the owner that created the active row. Its state
                 # handler may terminalize a stale execution, but the command
                 # boundary must never infer ownership from a replayed UUID.
-                owns_report_working_state = (
-                    self._model.type == ReportScheduleType.REPORT
-                    and self._model.last_state != ReportState.WORKING
-                )
                 total_seconds = resolve_report_execution_budget_seconds(
                     app.config,
                     working_timeout=self._model.working_timeout,
@@ -2456,6 +2518,7 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
                             self._model.id,
                         )
                         return
+                    owns_working_state = True
                     if report_execution_context is not None:
                         report_execution_context = replace(
                             report_execution_context, execution_claimed=True
@@ -2478,11 +2541,7 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
                 self._execution_id,
             )
         except (CommandException, SoftTimeLimitExceeded) as ex:
-            if (
-                self._model
-                and self._model.type == ReportScheduleType.REPORT
-                and owns_report_working_state
-            ):
+            if self._model and owns_working_state:
                 persist_owned_report_execution_terminal_error(
                     self._model.id,
                     self._execution_id,
@@ -2492,11 +2551,7 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
                 )
             raise
         except Exception as ex:
-            if (
-                self._model
-                and self._model.type == ReportScheduleType.REPORT
-                and owns_report_working_state
-            ):
+            if self._model and owns_working_state:
                 persist_owned_report_execution_terminal_error(
                     self._model.id,
                     self._execution_id,

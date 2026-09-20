@@ -105,6 +105,8 @@ def test_error_template_sanitizes_html() -> None:
     assert "<img" not in email_body
     assert "<script>" not in email_body
     assert "onerror=alert(1)" not in email_body
+    assert "DB error near" not in email_body
+    assert "Contact the report owner for error details." in email_body
 
 
 def test_cta_link_included_by_default() -> None:
@@ -207,7 +209,8 @@ def test_error_template_cta_link_respects_include_cta() -> None:
         ._get_content()
         .body
     )
-    assert "Report generation failed" in email_body
+    assert "Contact the report owner for error details." in email_body
+    assert "Report generation failed" not in email_body
     assert "Explore in Superset" not in email_body
     assert "http://example.com/superset/dashboard/1/" not in email_body
 

@@ -490,6 +490,14 @@ not successful chart data. Logs distinguish `rendered_holders`, `empty_holders`,
 `error_holders` and `semantic_success`; `report_semantic_status` warns when a
 completed capture includes terminal chart errors.
 
+This is not a guarantee that every delivered image contains useful data. A solid
+dark background, a title-only image, or a legitimate "No data" label may pass the
+visual heuristic. Recognized terminal chart errors are delivered with a warning,
+not treated as capture rejection. Operators requiring all charts to contain data
+must not treat this policy as that guarantee. The strict invariant is that an
+artifact **classified as invalid** cannot be delivered; undetected rendering
+failures remain possible.
+
 Playwright report captures are checked for blank image content as well as chart
 readiness. Captures detected as blank where chart content is expected are retried
 up to three total attempts, within the execution deadline. If they remain blank,

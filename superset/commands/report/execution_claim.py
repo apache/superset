@@ -16,12 +16,16 @@
 # under the License.
 """Atomic admission for scheduled report executions and their retries."""
 
+import logging
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
+from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import Session
 
 from superset.reports.models import ReportSchedule, ReportState
+
+logger = logging.getLogger(__name__)
 
 
 def normalize_window(value: datetime | None) -> datetime | None:
@@ -41,6 +45,48 @@ class ExecutionClaim:
 
 
 def claim_execution(
+    session: Session,
+    schedule_id: int,
+    execution_id: str,
+    window: datetime,
+    *,
+    is_retry: bool,
+    expected_owner: str | None,
+    retries_enabled: bool,
+    stale_retry_seconds: float,
+) -> ExecutionClaim | None:
+    """Claim work, treating database serialization losers as unclaimed."""
+    try:
+        return _claim_execution(
+            session,
+            schedule_id,
+            execution_id,
+            window,
+            is_retry=is_retry,
+            expected_owner=expected_owner,
+            retries_enabled=retries_enabled,
+            stale_retry_seconds=stale_retry_seconds,
+        )
+    except DBAPIError as ex:
+        session.rollback()  # pylint: disable=consider-using-transaction
+        # PostgreSQL REPEATABLE READ can raise instead of returning zero rows
+        # when another claimant updates the snapshot we observed.
+        sqlstate = getattr(ex.orig, "sqlstate", None) or getattr(
+            ex.orig, "pgcode", None
+        )
+        if sqlstate not in {"40001", "40P01"}:
+            raise
+        logger.info(
+            "report_execution_claim_conflict schedule_id=%s "
+            "execution_id=%s sqlstate=%s",
+            schedule_id,
+            execution_id,
+            sqlstate,
+        )
+        return None
+
+
+def _claim_execution(
     session: Session,
     schedule_id: int,
     execution_id: str,

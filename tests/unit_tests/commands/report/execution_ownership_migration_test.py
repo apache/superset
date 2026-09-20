@@ -24,6 +24,16 @@ import pytest
 import sqlalchemy as sa
 from alembic.migration import MigrationContext
 from alembic.operations import Operations
+from alembic.script import ScriptDirectory
+
+
+def test_execution_ownership_migration_is_in_single_resolvable_chain() -> None:
+    """Resolve actual migration files so a phantom parent cannot pass CI."""
+    directory = Path(__file__).resolve().parents[4] / "superset/migrations"
+    scripts = ScriptDirectory(str(directory))
+    revisions = {revision.revision for revision in scripts.walk_revisions()}
+    assert "93d1b4a76c02" in revisions
+    assert len(scripts.get_heads()) == 1
 
 
 @pytest.mark.parametrize("partial_upgrade", [False, True])

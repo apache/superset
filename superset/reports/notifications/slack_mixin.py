@@ -129,7 +129,7 @@ Error: %(text)s
     """,
             name=name,
             description=description,
-            text=text,
+            text=__("Contact the report owner for error details."),
         )
 
     def _get_body(self, content: NotificationContent) -> str:

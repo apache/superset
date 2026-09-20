@@ -32,11 +32,23 @@ Pause scheduling and drain in-flight executions and queued retry tasks before
 upgrading workers together: older workers do not participate in execution fencing.
 Retries queued by the old task signature are discarded rather than replayed without
 ownership evidence. Restart scheduling after migration and worker replacement.
+Mixed-version workers are not supported for this transition: old workers cannot
+consume the new retry task signature. Drain queued retries as well as active jobs
+before replacement. New workers log `report_retry_discarded` with
+`reason=missing_execution_owner` and increment
+`reports.execute.legacy_retry_discarded` for legacy retry tasks. Rerun any affected
+schedule after the upgrade; discarded retries are not automatically replayed.
 
 With `ALERT_REPORTS_RETRY` enabled, alerts can opt into retries as reports do.
 Retries re-evaluate alert conditions. Whole-execution retries stop once delivery
 has started because a failed send may already have reached a recipient. Retry
 notifications no longer include raw provider diagnostics; consult execution logs.
+This redaction also applies to ordinary, non-retry failure notifications.
+
+Ownership is rechecked in a short committed transaction before each recipient.
+No schedule-row lock is held during SMTP/Slack I/O. Recovery can fence subsequent
+sends, but cannot recall a notification already in flight; delivery is not atomic
+with database ownership and exactly-once delivery is not guaranteed.
 
 - With `SEMANTIC_LAYERS` enabled, combined connection discovery honors `Database.can_read` and `SemanticLayer.can_read` independently. Each permitted source retains its normal row filters, including dynamic database filters for Admin. A source filter never includes rows or counts from a denied source; callers with neither read permission are denied. Feature-off database browsing is unchanged.
 - The combined datasource list (`GET /api/v1/datasource/`) accepts Dataset read without an additional Datasource read grant, regardless of `SEMANTIC_LAYERS`. With the flag enabled, SemanticView read independently permits semantic-view discovery. Existing row-level dataset/chart access remains enforced.

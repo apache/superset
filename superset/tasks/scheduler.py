@@ -140,6 +140,16 @@ def execute(
     stats_logger: BaseStatsLogger = current_app.config["STATS_LOGGER"]
     stats_logger.incr("reports.execute")
 
+    if scheduled_dttm_iso is not None and not expected_owner:
+        stats_logger.incr("reports.execute.legacy_retry_discarded")
+        logger.warning(
+            "report_retry_discarded report_schedule_id=%s execution_id=%s "
+            "reason=missing_execution_owner action=rerun_after_worker_upgrade",
+            report_schedule_id,
+            self.request.id,
+        )
+        return
+
     task_id = None
     try:
         task_id = execute.request.id

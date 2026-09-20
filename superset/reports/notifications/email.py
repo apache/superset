@@ -148,12 +148,8 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
         return parseaddr(current_app.config["SMTP_MAIL_FROM"])[1].split("@")[1]
 
     def _error_template(self, text: str) -> str:
-        # The error text is derived from exception messages that can embed
-        # data-controlled content (e.g. crafted table/column names in a DB
-        # error). Strip all HTML before interpolating it into the email body,
-        # matching the sanitization applied to the normal content path.
-        # pylint: disable=no-member
-        safe_text = nh3.clean(text, tags=set(), attributes={})
+        # Diagnostics remain in execution history, not outbound notifications.
+        safe_text = __("Contact the report owner for error details.")
         if self._content.include_cta:
             return __(
                 """

@@ -68,7 +68,10 @@ from superset.commands.report.execute import (
     BaseReportState,
 )
 from superset.commands.report.log_prune import AsyncPruneReportScheduleLogCommand
-from superset.daos.report import ReportScheduleDAO
+from superset.daos.report import (
+    REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER,
+    ReportScheduleDAO,
+)
 from superset.exceptions import SupersetException
 from superset.key_value.models import KeyValueEntry
 from superset.models.core import Database
@@ -2851,7 +2854,11 @@ def test_readiness_timeout_retries_terminal_persistence_and_allows_next_schedule
     db.session.refresh(create_report_email_chart)
     timed_out_log = (
         db.session.query(ReportExecutionLog)
-        .filter(ReportExecutionLog.uuid == UUID(TEST_ID))
+        .filter(
+            ReportExecutionLog.uuid == UUID(TEST_ID),
+            ReportExecutionLog.error_message
+            != REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER,
+        )
         .one()
     )
     assert timed_out_log.state == ReportState.ERROR
@@ -2861,7 +2868,7 @@ def test_readiness_timeout_retries_terminal_persistence_and_allows_next_schedule
     # MySQL's metadata schema can store these values with one-second precision.
     assert timed_out_log.end_dttm >= timed_out_log.start_dttm
     assert create_report_email_chart.last_state == ReportState.ERROR
-    email_mock.assert_not_called()
+    email_mock.assert_called_once()
     assert any(
         "report_execution_terminal" in record.message
         and TEST_ID in record.message

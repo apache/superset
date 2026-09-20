@@ -459,7 +459,7 @@ def test_fenced_worker_cannot_start_delivery(mocker: MockerFixture) -> None:
     query = mocker.patch(
         "superset.commands.report.execute.db.session.query"
     ).return_value.filter.return_value
-    query.with_for_update.return_value.first.return_value = None
+    query.update.return_value = 0
     send = mocker.patch.object(state, "_send_notification")
     content = NotificationContent(
         name="report", header_data=state._get_log_data(), screenshots=[_valid_png()]
@@ -467,6 +467,119 @@ def test_fenced_worker_cannot_start_delivery(mocker: MockerFixture) -> None:
     with pytest.raises(ReportSchedulePreviousWorkingError):
         state._send(content, [mocker.Mock(spec=ReportRecipients)])
     send.assert_not_called()
+
+
+def test_delivery_releases_ownership_lock_before_transport(
+    mocker: MockerFixture,
+) -> None:
+    """The CAS transaction must finish before each recipient's network I/O."""
+    from dataclasses import replace
+
+    state = _make_notification_state(mocker)
+    state._report_execution_context = replace(
+        _active_report_context(), execution_claimed=True
+    )
+    session = mocker.patch("superset.commands.report.execute.db.session")
+    session.query.return_value.filter.return_value.update.return_value = 1
+    events = []
+    session.commit.side_effect = lambda: events.append("commit")
+    mocker.patch.object(
+        state, "_send_notification", side_effect=lambda *_: events.append("send")
+    )
+    content = NotificationContent(
+        name="report", text="failure", header_data=state._get_log_data()
+    )
+    state._send(content, [mocker.Mock(spec=ReportRecipients) for _ in range(2)])
+    assert events == ["commit", "send", "commit", "send"]
+    session.query.return_value.filter.return_value.with_for_update.assert_not_called()
+
+
+@pytest.mark.parametrize("schedule_type", list(ReportScheduleType))
+@pytest.mark.parametrize("lost_owner", [False, True])
+def test_claimed_execution_fallback_without_working_log(
+    mocker: MockerFixture, schedule_type: ReportScheduleType, lost_owner: bool
+) -> None:
+    """A rolled-back log cannot leave a durable owned claim in WORKING."""
+    from dataclasses import replace
+
+    context = replace(_active_report_context(), execution_claimed=True)
+    schedule = mocker.Mock(spec=ReportSchedule)
+    schedule.type = schedule_type
+    schedule.execution_window = datetime.utcnow()
+    session = mocker.patch("superset.commands.report.execute.db.session")
+    session.query.return_value.filter_by.return_value.one_or_none.return_value = (
+        schedule
+    )
+    session.query.return_value.filter.return_value.update.return_value = (
+        0 if lost_owner else 1
+    )
+    state = mocker.patch(
+        "superset.commands.report.execute.BaseReportState"
+    ).return_value
+    state.is_in_error_grace_period.return_value = False
+    assert persist_owned_report_execution_terminal_error(
+        11, context.execution_id, "failure", "RuntimeError", context
+    ) is (not lost_owner)
+    if lost_owner:
+        state.create_log.assert_not_called()
+        state.send_error.assert_not_called()
+    else:
+        assert state.create_log.call_args_list[0] == mocker.call(
+            "failure", log_state=ReportState.ERROR
+        )
+        state.send_error.assert_called_once()
+
+
+@pytest.mark.parametrize("schedule_type", list(ReportScheduleType))
+@pytest.mark.parametrize(
+    "error",
+    [
+        RuntimeError("escaped"),
+        SoftTimeLimitExceeded(),
+        ReportScheduleStateNotFoundError(),
+    ],
+)
+def test_command_terminalizes_claimed_alert_and_report_on_escape(
+    mocker: MockerFixture, schedule_type: ReportScheduleType, error: Exception
+) -> None:
+    """Both schedule types must reach the fallback after committing a claim."""
+    from superset.commands.report.execution_claim import ExecutionClaim
+
+    command = AsyncExecuteReportScheduleCommand(str(uuid4()), 11, datetime.utcnow())
+    command._model = ReportSchedule(
+        id=11,
+        name="fallback",
+        type=schedule_type,
+        crontab="* * * * *",
+        last_state=ReportState.NOOP,
+        working_timeout=600,
+    )
+    mocker.patch.object(command, "validate")
+    mocker.patch(
+        "superset.commands.report.execute.get_executor", return_value=(None, "admin")
+    )
+    mocker.patch(
+        "superset.commands.report.execute.security_manager.find_user", return_value=None
+    )
+    mocker.patch(
+        "superset.commands.report.execute.claim_execution",
+        return_value=ExecutionClaim(ReportState.NOOP),
+    )
+    mocker.patch(
+        "superset.commands.report.execute.ReportScheduleStateMachine"
+    ).return_value.run.side_effect = error
+    persist = mocker.patch(
+        "superset.commands.report.execute.persist_owned_report_execution_terminal_error"
+    )
+    expected_error = (
+        ReportScheduleUnexpectedError
+        if isinstance(error, RuntimeError)
+        else type(error)
+    )
+    with pytest.raises(expected_error):
+        command.run()
+    persist.assert_called_once()
+    assert persist.call_args.args[4].execution_claimed
 
 
 def test_match_slack_channel_rejects_ambiguous_casefolded_names() -> None:
