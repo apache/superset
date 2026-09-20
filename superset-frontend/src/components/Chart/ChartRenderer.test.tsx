@@ -501,7 +501,7 @@ test('does not render chart during loading when last data has errors', () => {
   expect(queryByTestId('mock-super-chart')).not.toBeInTheDocument();
 });
 
-test('chart mask updates preserve incoming selection provenance', () => {
+test('chart mask updates preserve incoming and query selection provenance', () => {
   const updateDataMask = jest.fn();
   render(
     <ChartRenderer
@@ -510,6 +510,9 @@ test('chart mask updates preserve incoming selection provenance', () => {
         datasource: '7__semantic_view',
         viz_type: 'table',
         semantic_selection_version: 'cube-member-id-v1',
+        semantic_selection_sources: [
+          { datasource: 'query__semantic_view', version: null },
+        ],
       }}
       actions={
         { ...mockActions, updateDataMask } as ChartRendererProps['actions']
@@ -523,6 +526,7 @@ test('chart mask updates preserve incoming selection provenance', () => {
       extraFormData: expect.objectContaining({
         semantic_selection_sources: [
           { datasource: 'foreign__semantic_view', version: null },
+          { datasource: 'query__semantic_view', version: null },
           { datasource: '7__semantic_view', version: 'cube-member-id-v1' },
         ],
       }),
