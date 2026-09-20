@@ -48,6 +48,8 @@ import {
 } from 'src/views/CRUD/utils';
 import { Switch } from '@superset-ui/core/components/Switch';
 import getBootstrapData from 'src/utils/getBootstrapData';
+import { redirect } from 'src/utils/navigationUtils';
+import { RoutePaths } from 'src/views/routePaths';
 import { TableTab } from 'src/views/CRUD/types';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import { userHasPermission } from 'src/dashboard/util/permissionUtils';
@@ -448,4 +450,17 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
   );
 }
 
-export default withToasts(Welcome);
+function WelcomePage(props: WelcomeProps) {
+  const hasUserId = Boolean(props.user?.userId);
+
+  useEffect(() => {
+    if (!hasUserId) {
+      // SPA navigation can bypass the welcome view's server-side login check.
+      redirect(RoutePaths.HOME);
+    }
+  }, [hasUserId]);
+
+  return hasUserId ? <Welcome {...props} /> : null;
+}
+
+export default withToasts(WelcomePage);
