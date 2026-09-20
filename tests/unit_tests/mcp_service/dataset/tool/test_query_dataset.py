@@ -436,6 +436,58 @@ async def test_query_dataset_time_range_no_temporal_column(mcp_server: FastMCP) 
 
 
 @pytest.mark.asyncio
+async def test_query_dataset_reversed_time_range(mcp_server: FastMCP) -> None:
+    """A reversed explicit time_range (since > until) resolves to a clean
+    ValidationError rather than a generic UnexpectedError.
+
+    An explicit ``"<start> : <end>"`` range where start > end passes the
+    pydantic-level validate_time_range guard unchanged (by design) and reaches
+    the real get_since_until(), which raises
+    ``ValueError("From date cannot be larger than to date")``. The tool must
+    surface that as an actionable ValidationError, not swallow it into the
+    catch-all UnexpectedError arm.
+    """
+    dataset = _make_dataset(main_dttm_col="order_date")
+    reversed_range = "2024-01-01T00:00:00 : 2020-01-01T00:00:00"
+
+    def create_with_real_parser(**kwargs):
+        # Exercise the real parser on the reversed range exactly as the query
+        # pipeline would, letting its genuine ValueError propagate.
+        for query in kwargs.get("queries", []):
+            for filt in query.get("filters", []):
+                if filt.get("op") == "TEMPORAL_RANGE":
+                    get_since_until(time_range=filt["val"])
+        return MagicMock()
+
+    with (
+        patch.object(
+            query_dataset_module,
+            "resolve_dataset",
+            return_value=dataset,
+        ),
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory.create",
+            side_effect=create_with_real_parser,
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "query_dataset",
+                {
+                    "request": {
+                        "dataset_id": 1,
+                        "metrics": ["count"],
+                        "time_range": reversed_range,
+                    }
+                },
+            )
+
+    data = json.loads(result.content[0].text)
+    assert data["error_type"] == "ValidationError"
+    assert "From date cannot be larger than to date" in data["error"]
+
+
+@pytest.mark.asyncio
 async def test_query_dataset_with_filters(mcp_server: FastMCP) -> None:
     """User-provided filters are passed through to the query."""
     dataset = _make_dataset()
