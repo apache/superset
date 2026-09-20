@@ -94,6 +94,16 @@ from superset.utils.slack import (
 from tests.integration_tests.conftest import with_feature_flags
 
 
+def test_match_slack_channel_rejects_ambiguous_casefolded_names() -> None:
+    channels: list[SlackChannel] = [
+        {"id": "C1", "name": "Private-Channel", "is_private": True},
+        {"id": "C2", "name": "private-channel", "is_private": True},
+    ]
+
+    with pytest.raises(NotificationParamException, match="ambiguous"):
+        _match_slack_channel("PRIVATE-CHANNEL", channels)
+
+
 def _valid_png() -> bytes:
     """Use decodable content so delivery tests exercise the intended boundary."""
     output = io.BytesIO()
@@ -161,16 +171,6 @@ def test_pdf_assembly_rejects_invalid_source_before_conversion(
         state._get_pdf()
     convert.assert_not_called()
     assert state._report_execution_context.capture_was_rejected
-
-
-def test_match_slack_channel_rejects_ambiguous_casefolded_names() -> None:
-    channels: list[SlackChannel] = [
-        {"id": "C1", "name": "Private-Channel", "is_private": True},
-        {"id": "C2", "name": "private-channel", "is_private": True},
-    ]
-
-    with pytest.raises(NotificationParamException, match="ambiguous"):
-        _match_slack_channel("PRIVATE-CHANNEL", channels)
 
 
 def _make_mock_editors(mocker: MockerFixture, user_ids: list[int]) -> list[Mock]:

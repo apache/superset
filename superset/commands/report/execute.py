@@ -760,22 +760,6 @@ class BaseReportState:
             for tab_anchor in tab_anchors
         ]
 
-    def _reject_capture(self, reason: str) -> None:
-        """Keep capture failures sticky even if an intermediate caller catches them."""
-        if self._report_execution_context is not None:
-            self._report_execution_context.reject_capture(reason)
-
-    def _validate_screenshot(self, screenshot: bytes | None) -> None:
-        """Require a valid screenshot from any selected driver."""
-        if self._report_execution_context is None:
-            raise ReportScheduleScreenshotFailedError("Missing capture context")
-        if screenshot is None:
-            self._reject_capture("missing_image")
-            raise ReportScheduleScreenshotFailedError(
-                "Screenshot failed; aborting to avoid sending a partial report"
-            )
-        validate_report_screenshot(screenshot, self._report_execution_context)
-
     def _get_screenshots(self) -> list[bytes]:
         """
         Get chart or dashboard screenshots
@@ -893,6 +877,22 @@ class BaseReportState:
         if not imges:
             raise ReportScheduleScreenshotFailedError()
         return imges
+
+    def _reject_capture(self, reason: str) -> None:
+        """Keep capture failures sticky even if an intermediate caller catches them."""
+        if self._report_execution_context is not None:
+            self._report_execution_context.reject_capture(reason)
+
+    def _validate_screenshot(self, screenshot: bytes | None) -> None:
+        """Require a valid screenshot from any selected driver."""
+        if self._report_execution_context is None:
+            raise ReportScheduleScreenshotFailedError("Missing capture context")
+        if screenshot is None:
+            self._reject_capture("missing_image")
+            raise ReportScheduleScreenshotFailedError(
+                "Screenshot failed; aborting to avoid sending a partial report"
+            )
+        validate_report_screenshot(screenshot, self._report_execution_context)
 
     def _get_pdf(self) -> bytes:
         """

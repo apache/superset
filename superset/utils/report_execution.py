@@ -195,14 +195,15 @@ class ReportExecutionContext:
     capture_reserve_seconds: float = 0.0
     delivery_reserve_seconds: float = 0.0
     cleanup_reserve_seconds: float = 0.0
-    _validated_artifacts: set[str] = field(
-        default_factory=set,
+    _capture_rejection_reasons: list[str] = field(
+        default_factory=list,
         init=False,
         compare=False,
         repr=False,
     )
-    _capture_rejection_reasons: list[str] = field(
-        default_factory=list,
+
+    _validated_artifacts: set[str] = field(
+        default_factory=set,
         init=False,
         compare=False,
         repr=False,
