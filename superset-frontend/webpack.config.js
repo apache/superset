@@ -61,14 +61,14 @@ const ROOT_DIR = path.resolve(__dirname, '..');
 // any url prefix.
 const MINI_CSS_EXTRACT_PUBLICPATH = './';
 
-const generateWebpackConfigWithCustomInputs = (env, args) => {
+const generateWebpackConfigWithCustomInputs = (env = {}, args = {}) => {
   const {
     devserverPort: cliPort,
     devserverHost: cliHost,
     measure = false,
     nameChunks = false,
   } = env;
-  const { mode } = args;
+  const { mode = 'development' } = args;
 
   // Precedence: CLI args > env vars > defaults
   const devserverPort = cliPort || process.env.WEBPACK_DEVSERVER_PORT || 9000;
