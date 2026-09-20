@@ -58,9 +58,12 @@ WebSocket server is bundled in the `superset`, `lean`, and `dev` images and can
 be started with `/app/docker/entrypoints/run-websocket.sh`. Helm init containers
 use the main Superset image for dependency checks.
 
-The unpublished `ci` and `showtime` Docker targets share an entrypoint that runs container
+The `ci` and `showtime` Docker targets share an entrypoint that runs container
 initialization before starting the server and stops if initialization exits with
-a nonzero status. `SERVER_THREADS_AMOUNT` defaults to `8` when unset or empty, while an
+a nonzero status. Neither is part of the published preset matrix above: `ci`
+images stay on the CI runner, while `showtime` images are published by Showtime
+under the `pr-<PR>-<sha>-ci` tags described below.
+`SERVER_THREADS_AMOUNT` defaults to `8` when unset or empty, while an
 explicit value is preserved. The server then replaces the entrypoint process so
 it receives signals directly and its exit status becomes the container status.
 

@@ -41,14 +41,22 @@ CACHE_REF_CONSUMERS = (
     ".github/workflows/frontend-bundle-size-nightly.yml",
 )
 
-# Suffixes docker-build-extra-flags.sh appends to isolate matrix targets from
-# the shared `superset` cache ref.
-PRESET_SUFFIXES = ("-dev", "-lean")
-
+# Suffix `scripts/docker-build-extra-flags.sh` appends to isolate a matrix
+# target from the shared `superset` cache ref. Matched generically rather than
+# against a list of known presets, so adding a preset there cannot leave this
+# check stale; the invariant being enforced is the base Python version, not
+# which presets exist.
 CACHE_REF_PATTERN = re.compile(r"apache/superset-cache:([^\s\"']+)")
+PRESET_SUFFIX_PATTERN = r"(?:-[a-z0-9]+)?"
 
 
 def _dockerfile_py_ver() -> str:
+    """Returns the Dockerfile's default ``ARG PY_VER``, the tag's source of truth.
+
+    Mirrors the ``DEFAULT_PY_VER`` extraction in
+    ``scripts/docker-build-extra-flags.sh``, which is what makes the exported
+    cache tag track the Dockerfile in the first place.
+    """
     for line in (REPO_ROOT / "Dockerfile").read_text().splitlines():
         if line.startswith("ARG PY_VER="):
             return line.removeprefix("ARG PY_VER=").strip()
@@ -57,17 +65,24 @@ def _dockerfile_py_ver() -> str:
 
 @pytest.mark.parametrize("relative_path", CACHE_REF_CONSUMERS)
 def test_cache_ref_matches_dockerfile_py_ver(relative_path: str) -> None:
+    """Every hard-coded cache tag pulls the base image the Dockerfile declares.
+
+    Fails when a ``PY_VER`` bump moves the tag
+    ``scripts/docker-build-extra-flags.sh`` exports to without updating the
+    files that import it, which would otherwise leave them pulling a tag
+    nothing writes any more.
+    """
     path = REPO_ROOT / relative_path
     assert path.exists(), f"{relative_path} moved; update CACHE_REF_CONSUMERS"
 
     py_ver = _dockerfile_py_ver()
-    allowed = {py_ver} | {f"{py_ver}{suffix}" for suffix in PRESET_SUFFIXES}
+    allowed = re.compile(rf"^{re.escape(py_ver)}{PRESET_SUFFIX_PATTERN}$")
 
     refs = CACHE_REF_PATTERN.findall(path.read_text())
     assert refs, f"{relative_path} no longer references apache/superset-cache"
 
     for ref in refs:
-        assert ref in allowed, (
+        assert allowed.match(ref), (
             f"{relative_path} pulls apache/superset-cache:{ref}, but "
             f"scripts/docker-build-extra-flags.sh exports to "
             f"apache/superset-cache:{py_ver} (from the Dockerfile's "
