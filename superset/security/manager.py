@@ -897,7 +897,8 @@ def _any_row_expanding_result_type(query_context: "QueryContext") -> bool:
     """
     return any(
         _effective_result_type(
-            getattr(query, "result_type", None), query_context.result_type
+            getattr(query, "result_type", None),
+            getattr(query_context, "result_type", None),
         )
         in _ROW_EXPANDING_RESULT_TYPES
         for query in query_context.queries
@@ -1805,7 +1806,8 @@ def _result_type_modified(
 
     for index, query in enumerate(query_context.queries):
         requested = _effective_result_type(
-            getattr(query, "result_type", None), query_context.result_type
+            getattr(query, "result_type", None),
+            getattr(query_context, "result_type", None),
         )
         if requested not in _ROW_EXPANDING_RESULT_TYPES:
             continue
