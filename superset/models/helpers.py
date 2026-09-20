@@ -5392,7 +5392,17 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 # than the raw `val`: it is the value the real predicate uses.
                 # `TEMPORAL_RANGE` is collected in its own branch below, where
                 # the range has been resolved into a pair of bounds.
-                if col_obj is not None and op != utils.FilterOperator.TEMPORAL_RANGE:
+                #
+                # A grain makes the real predicate compare the *truncated*
+                # column, so the raw value no longer describes the rows it
+                # matches: drill-to-detail sends `==` on a bucket start, which
+                # every row in the bucket satisfies once truncated. Mirroring it
+                # raw would keep only the bucket's first instant.
+                if (
+                    col_obj is not None
+                    and op != utils.FilterOperator.TEMPORAL_RANGE
+                    and not filter_grain
+                ):
                     self._collect_partition_mirror_filter(
                         partition_mapping,
                         partition_mirror,
@@ -5678,13 +5688,21 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         )
                         if _temporal_filter is not None:
                             target_clause_list.append(_temporal_filter)
-                            self._collect_partition_mirror_range(
-                                partition_mapping,
-                                partition_mirror,
-                                col_obj.column_name,
-                                _since,
-                                _until,
-                            )
+                            # A grained range truncates the column before
+                            # comparing, so a row in the final partial bucket
+                            # satisfies `DATE_TRUNC(...) < until` while the raw
+                            # upper bound excludes it. Which direction a grain
+                            # rounds is not knowable here -- "week ending
+                            # Saturday" rounds forward, and TIME_GRAIN_ADDONS
+                            # are arbitrary SQL -- so neither bound is safe.
+                            if not flt_grain:
+                                self._collect_partition_mirror_range(
+                                    partition_mapping,
+                                    partition_mirror,
+                                    col_obj.column_name,
+                                    _since,
+                                    _until,
+                                )
                     else:
                         raise QueryObjectValidationError(
                             _("Invalid filter operation type: %(op)s", op=op)

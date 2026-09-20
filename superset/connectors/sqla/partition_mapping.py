@@ -714,7 +714,16 @@ def build_mirrored_predicates(
             predicates.append(
                 db_engine_spec.handle_comparison_filter(sqla_col, operator, chunk[0])
             )
-    return predicates
+    if not predicates:
+        return []
+
+    # A comparison against a NULL partition value is NULL, so a row parked in a
+    # NULL partition is dropped by the mirror even when the real filter matches
+    # it -- Hive and Impala's default partition, or a transform that returns
+    # NULL for an input it cannot convert. The mirror only has to be no
+    # narrower than the filter it stands in for, so admitting NULL partitions
+    # keeps those rows. Engines still prune; they read one extra partition.
+    return [sa.or_(sa.and_(*predicates), sqla_col.is_(None))]
 
 
 _LOWER_BOUND_OPS = {
