@@ -27,6 +27,7 @@ from flask import Flask
 
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.connectors.sqla.partition_mapping import (
+    _probe_cache_key,
     contains_jinja,
     contains_value_placeholder,
     evaluate_transform,
@@ -749,3 +750,25 @@ def test_a_null_monotonic_flag_reads_as_not_declared(app: Flask) -> None:
     assert mapping.is_monotonic is False
     assert not mapping.mirrors(FilterOperator.TEMPORAL_RANGE)
     assert mapping.mirrors(FilterOperator.EQUALS)
+
+
+def test_probe_cache_key_tracks_the_connection(app: Flask) -> None:
+    """
+    The probe asks a specific database to evaluate the transform, so the answer
+    belongs to that connection. ``database.id`` survives an edit to the URI or
+    to ``extra`` (a session timezone, say), which would otherwise serve values
+    computed against the old environment for the whole cache timeout -- and a
+    wrong transformed bound prunes away rows the real filter keeps.
+    """
+    database = Database(database_name="probe_db", sqlalchemy_uri="sqlite://")
+    database.id = 1
+
+    with app.app_context():
+        before = _probe_cache_key(database, None, None, "lower(:value)", ["US"])
+        database.sqlalchemy_uri = "postgresql://host/db"
+        after_uri = _probe_cache_key(database, None, None, "lower(:value)", ["US"])
+        database.extra = '{"engine_params": {"connect_args": {"timezone": "UTC"}}}'
+        after_extra = _probe_cache_key(database, None, None, "lower(:value)", ["US"])
+
+    assert before != after_uri
+    assert after_uri != after_extra

@@ -439,6 +439,15 @@ def _probe_cache_key(
         [
             database.id,
             database.backend,
+            # The probe asks this connection to evaluate the transform, so the
+            # answer belongs to it. `id` outlives an edit to the URI or to
+            # `extra` (a session timezone, say), which would otherwise serve
+            # values computed against the old environment until the entry
+            # expires. `changed_on` covers the edits that do not show up here,
+            # such as a rotated password, without putting a secret in the key.
+            database.sqlalchemy_uri,
+            database.extra,
+            str(database.changed_on),
             catalog,
             schema,
             transform,
