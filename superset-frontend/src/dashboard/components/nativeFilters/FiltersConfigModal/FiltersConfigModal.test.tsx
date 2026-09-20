@@ -173,7 +173,10 @@ const FILTER_SETTINGS_REGEX = /^filter settings$/i;
 const DEFAULT_VALUE_REGEX = /^filter has default value$/i;
 const MULTIPLE_REGEX = /^can select multiple values$/i;
 const FILTER_REQUIRED_REGEX = /^filter value is required/i;
-const DEPENDENCIES_REGEX = /^values are dependent on other filters$/i;
+// No trailing `$`: like the other tooltip-bearing checkboxes below, the
+// accessible name includes the trailing info icon (e.g. "... other filters
+// info-circle"), so an exact-end anchor would never match.
+const DEPENDENCIES_REGEX = /^values are dependent on other filters/i;
 const FIRST_VALUE_REGEX = /^select first filter value by default/i;
 const INVERSE_SELECTION_REGEX = /^inverse selection/i;
 const SEARCH_ALL_REGEX = /^dynamically search all filter values/i;
