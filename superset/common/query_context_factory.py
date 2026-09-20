@@ -275,6 +275,39 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
             query_object.granularity = main_dttm_col
             return
 
+        if (
+            not x_axis
+            and query_object.granularity is None
+            and query_object.is_timeseries
+        ):
+            # A chart saved before the x-axis control existed keeps its time
+            # column in ``form_data`` under the legacy ``granularity_sqla`` key
+            # and never wrote it into the stored query object. The paths that
+            # rebuild a query from form data resolve that key
+            # (``extractExtras.ts`` for Explore, ``form_data_query_context`` for
+            # the Excel export and MCP tools), but anything that replays the
+            # stored ``query_context`` verbatim reaches the
+            # ``not granularity and is_timeseries`` guard in ``models/helpers``
+            # and fails with "Datetime column not provided as part table
+            # configuration". Resolving the legacy key here, and only then the
+            # dataset's main datetime column, gives both kinds of consumer the
+            # same time subject. Candidates are matched against the dataset's
+            # temporal columns so one that has since been dropped, or is no
+            # longer temporal, is ignored.
+            candidates = (
+                (form_data or {}).get("granularity_sqla"),
+                (form_data or {}).get("granularity"),
+                getattr(datasource, "main_dttm_col", None),
+            )
+            query_object.granularity = next(
+                (
+                    candidate
+                    for candidate in candidates
+                    if candidate in temporal_columns
+                ),
+                None,
+            )
+
         if granularity := query_object.granularity:
             filter_to_remove = None
             if is_adhoc_column(x_axis):  # type: ignore

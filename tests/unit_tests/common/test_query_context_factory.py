@@ -542,6 +542,137 @@ class TestQueryContextFactory:
         assert query_object.granularity is None
         assert query_object.filter == [temporal_filter]
 
+    def test_apply_granularity_falls_back_to_legacy_granularity_sqla(self) -> None:
+        """A timeseries query with no granularity adopts the legacy time column."""
+        query_object = Mock(spec=QueryObject)
+        query_object.granularity = None
+        query_object.is_timeseries = True
+        query_object.columns = ["ds"]
+        query_object.post_processing = []
+        query_object.filter = []
+
+        datasource = Mock()
+        datasource.main_dttm_col = "other_dttm"
+        datasource.columns = [
+            {"column_name": "ds", "is_dttm": True},
+            {"column_name": "other_dttm", "is_dttm": True},
+        ]
+
+        self.factory._apply_granularity(
+            query_object,
+            {"granularity_sqla": "ds"},
+            datasource,
+        )
+
+        assert query_object.granularity == "ds"
+
+    def test_apply_granularity_falls_back_to_main_dttm_col(self) -> None:
+        """Without a legacy time column the dataset's main one is used."""
+        query_object = Mock(spec=QueryObject)
+        query_object.granularity = None
+        query_object.is_timeseries = True
+        query_object.columns = ["ds"]
+        query_object.post_processing = []
+        query_object.filter = []
+
+        datasource = Mock()
+        datasource.main_dttm_col = "ds"
+        datasource.columns = [{"column_name": "ds", "is_dttm": True}]
+
+        self.factory._apply_granularity(query_object, {}, datasource)
+
+        assert query_object.granularity == "ds"
+
+    def test_apply_granularity_ignores_stale_legacy_granularity_sqla(self) -> None:
+        """A legacy time column the dataset no longer exposes is not adopted."""
+        query_object = Mock(spec=QueryObject)
+        query_object.granularity = None
+        query_object.is_timeseries = True
+        query_object.columns = ["ds"]
+        query_object.post_processing = []
+        query_object.filter = []
+
+        datasource = Mock()
+        datasource.main_dttm_col = "ds"
+        datasource.columns = [{"column_name": "ds", "is_dttm": True}]
+
+        self.factory._apply_granularity(
+            query_object,
+            {"granularity_sqla": "dropped_col"},
+            datasource,
+        )
+
+        assert query_object.granularity == "ds"
+
+    def test_apply_granularity_keeps_explicit_granularity(self) -> None:
+        """An overridden Time Column wins over the legacy form data key."""
+        query_object = Mock(spec=QueryObject)
+        query_object.granularity = "P1D"
+        query_object.is_timeseries = True
+        query_object.columns = ["ds"]
+        query_object.post_processing = []
+        query_object.filter = []
+
+        datasource = Mock()
+        datasource.main_dttm_col = "ds"
+        datasource.columns = [{"column_name": "ds", "is_dttm": True}]
+
+        self.factory._apply_granularity(
+            query_object,
+            {"granularity_sqla": "ds"},
+            datasource,
+        )
+
+        assert query_object.granularity == "P1D"
+
+    def test_apply_granularity_fallback_skipped_for_non_timeseries(self) -> None:
+        """A non timeseries query needs no granularity, so none is inferred."""
+        query_object = Mock(spec=QueryObject)
+        query_object.granularity = None
+        query_object.is_timeseries = False
+        query_object.columns = ["ds"]
+        query_object.post_processing = []
+        query_object.filter = []
+
+        datasource = Mock()
+        datasource.main_dttm_col = "ds"
+        datasource.columns = [{"column_name": "ds", "is_dttm": True}]
+
+        self.factory._apply_granularity(
+            query_object,
+            {"granularity_sqla": "ds"},
+            datasource,
+        )
+
+        assert query_object.granularity is None
+
+    def test_apply_granularity_fallback_skipped_for_x_axis_query(self) -> None:
+        """An x-axis query keeps its own time subject and its columns."""
+        query_object = Mock(spec=QueryObject)
+        query_object.granularity = None
+        query_object.is_timeseries = True
+        query_object.from_dttm = None
+        query_object.to_dttm = None
+        query_object.columns = ["event_end"]
+        query_object.post_processing = []
+        query_object.filter = []
+
+        datasource = Mock()
+        datasource.main_dttm_col = "ds"
+        datasource.columns = [
+            {"column_name": "ds", "is_dttm": True},
+            {"column_name": "event_end", "is_dttm": True},
+        ]
+
+        self.factory._apply_granularity(
+            query_object,
+            {"x_axis": "event_end", "granularity_sqla": "ds"},
+            datasource,
+        )
+
+        assert query_object.granularity is None
+        assert query_object.columns == ["event_end"]
+
     def test_apply_granularity_x_axis_not_temporal(self):
         """Test _apply_granularity when x_axis is not a temporal column"""
         query_object = Mock(spec=QueryObject)
