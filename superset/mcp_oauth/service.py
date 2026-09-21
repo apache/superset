@@ -45,6 +45,7 @@ from superset.mcp_oauth.models import (
     utcnow,
 )
 from superset.utils import json
+from superset.utils.decorators import transaction
 
 AUTHORIZATION_CODE = "authorization_code"
 REFRESH_TOKEN = "refresh_token"  # noqa: S105
@@ -252,6 +253,7 @@ def _parse_scope(raw: Any) -> list[str]:
     return [scope for scope in raw.split(" ") if scope]
 
 
+@transaction()
 def register_client(metadata: Any) -> dict[str, Any]:  # noqa: C901
     """Dynamic client registration (RFC 7591); returns the registration response."""
     if not isinstance(metadata, dict):
@@ -307,7 +309,6 @@ def register_client(metadata: Any) -> dict[str, Any]:  # noqa: C901
         scope=" ".join(requested_scopes) or None,
     )
     db.session.add(client)
-    db.session.commit()
 
     response: dict[str, Any] = {
         "client_id": client_id,
@@ -397,6 +398,7 @@ def parse_authorization_request(  # noqa: C901
     )
 
 
+@transaction()
 def create_authorization_code(auth_request: AuthorizationRequest, user: Any) -> str:
     """Issue a one-time code for an approved request."""
     code = secrets.token_urlsafe(32)
@@ -413,7 +415,6 @@ def create_authorization_code(auth_request: AuthorizationRequest, user: Any) -> 
             expires_at=utcnow() + timedelta(seconds=ttl),
         )
     )
-    db.session.commit()
     return code
 
 
@@ -462,6 +463,7 @@ def _active_user(user_id: int) -> Any | None:
     return user if user is not None and user.active else None
 
 
+@transaction()
 def _issue_tokens(
     client: MCPOAuthClient,
     user: Any,
@@ -506,7 +508,6 @@ def _issue_tokens(
         )
         response["refresh_token"] = refresh_token
 
-    db.session.commit()
     return response
 
 
@@ -538,7 +539,10 @@ def exchange_authorization_code(
         .filter_by(code_hash=code_hash)
         .delete(synchronize_session=False)
     )
-    db.session.commit()
+    # Committed here rather than through @transaction: every check below
+    # raises, and a unit of work would roll the burn back with them — leaving
+    # a code that failed PKCE usable for another attempt.
+    db.session.commit()  # pylint: disable=consider-using-transaction
     if deleted != 1:
         raise OAuthError("invalid_grant", "Invalid authorization code")
 
@@ -562,11 +566,11 @@ def exchange_authorization_code(
     return _issue_tokens(client, user, str(resource), str(scope), family_id=None)
 
 
+@transaction()
 def _revoke_family(family_id: Any) -> None:
     db.session.query(MCPOAuthRefreshToken).filter_by(family_id=family_id).update(
         {"revoked": True}, synchronize_session=False
     )
-    db.session.commit()
 
 
 def refresh_access_token(
