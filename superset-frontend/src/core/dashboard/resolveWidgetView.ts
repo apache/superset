@@ -17,6 +17,7 @@
  * under the License.
  */
 import type { ReactElement } from 'react';
+import { DASHBOARD_WIDGETS_LOCATION } from '@apache-superset/widgets/registry';
 import { resolveView, views } from 'src/core/views';
 
 /**
@@ -27,8 +28,11 @@ import { resolveView, views } from 'src/core/views';
  * The root's own type (`grid`) is deliberately not among them — it is not
  * a Widget, and `WidgetView` resolves its renderer directly
  * rather than through this location.
+ *
+ * It lives in the widgets package because an embedded page resolves the same
+ * location when it loads an extension's widget (see `extensionHost`).
  */
-export const DASHBOARD_WIDGETS_LOCATION = 'dashboard.widgets';
+export { DASHBOARD_WIDGETS_LOCATION };
 
 /**
  * Resolves a node's registered view, scoped to

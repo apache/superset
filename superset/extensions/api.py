@@ -14,11 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import functools
 import mimetypes
 from io import BytesIO
-from typing import Any
+from typing import Any, Callable, cast, TypeVar
 
-from flask import send_file
+from flask import current_app, send_file
 from flask.wrappers import Response
 from flask_appbuilder.api import BaseApi, expose, protect, safe
 
@@ -26,6 +27,34 @@ from superset.extensions.utils import (
     build_extension_data,
     get_extensions,
 )
+
+F = TypeVar("F", bound=Callable[..., Response])
+
+
+def protect_unless_assets_public() -> Callable[[F], F]:
+    """
+    ``@protect()``, unless the deployment publishes extension frontend bundles.
+
+    A page embedding an extension's widget loads that extension's chunks with
+    plain ``<script>`` tags, which carry neither a cross-origin session cookie
+    nor the guest token, so the route has to be reachable unauthenticated for
+    that to work at all. ``EMBEDDED_EXTENSION_ASSETS_PUBLIC`` is the operator's
+    decision to allow it; with the default it stays protected exactly as
+    before.
+    """
+
+    def decorator(func: F) -> F:
+        protected = protect()(func)
+
+        @functools.wraps(protected)
+        def wrapper(self: Any, *args: Any, **kwargs: Any) -> Response:
+            if current_app.config["EMBEDDED_EXTENSION_ASSETS_PUBLIC"]:
+                return func(self, *args, **kwargs)
+            return protected(self, *args, **kwargs)
+
+        return cast(F, wrapper)
+
+    return decorator
 
 
 class ExtensionsRestApi(BaseApi):
@@ -115,7 +144,7 @@ class ExtensionsRestApi(BaseApi):
 
         return self.response(200, **response)
 
-    @protect()
+    @protect_unless_assets_public()
     @safe
     @expose("/<publisher>/<name>", methods=("GET",))
     def get(self, publisher: str, name: str, **kwargs: Any) -> Response:
@@ -167,7 +196,7 @@ class ExtensionsRestApi(BaseApi):
         extension_data = build_extension_data(extension)
         return self.response(200, result=extension_data)
 
-    @protect()
+    @protect_unless_assets_public()
     @safe
     @expose("/<publisher>/<name>/<path:file>", methods=("GET",))
     def content(self, publisher: str, name: str, file: str) -> Response:
