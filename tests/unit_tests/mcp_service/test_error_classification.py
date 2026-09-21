@@ -47,6 +47,7 @@ from superset.exceptions import (
     SupersetErrorException,
     SupersetErrorsException,
     SupersetException,
+    SupersetGenericDBErrorException,
     SupersetSecurityException,
     SupersetTimeoutException,
 )
@@ -124,6 +125,11 @@ def _build_server() -> FastMCP:
                 level=ErrorLevel.ERROR,
             )
         )
+
+    @mcp.tool
+    def malformed_column(unused: int = 1) -> str:
+        """Engine reports a bad adhoc column via the GENERIC_DB_ENGINE catch-all."""
+        raise SupersetGenericDBErrorException("bad adhoc column expression")
 
     @mcp.tool
     def bad_sql(unused: int = 1) -> str:
@@ -517,7 +523,11 @@ class TestDatasourceErrorSeverity:
         assert _datasource_error_is_user_error(error) is True
 
     def test_connection_failure_stays_a_system_error(self) -> None:
-        """An unreachable database is an operational problem worth paging on."""
+        """An unreachable database is an operational problem worth paging on.
+
+        Genuine connection failures arrive as a *bare* ``SupersetErrorException``,
+        which inherits ``status = 500`` — the shape the escalation applies to.
+        """
         for error_type in CONNECTION_ERROR_TYPES:
             error = SupersetErrorException(
                 SupersetError(
@@ -527,7 +537,42 @@ class TestDatasourceErrorSeverity:
                 )
             )
 
+            assert error.status == 500
             assert _datasource_error_is_user_error(error) is False, error_type
+
+    def test_sub_500_exceptions_are_never_escalated(self) -> None:
+        """The override only de-escalates.
+
+        A sub-500 status is a deliberate judgement by the exception class that
+        the caller is at fault. Escalating it would re-create the very
+        false-paging this function exists to remove — just for a different
+        error type.
+        """
+        # GENERIC_DB_ENGINE_ERROR is in CONNECTION_ERROR_TYPES (the catch-all
+        # for engines without specific CONNECTION_* regexes), but engines also
+        # report a malformed adhoc column through it, carried by a status-400
+        # exception. Reachable via generate_chart -> _compile_chart.
+        malformed_column = SupersetGenericDBErrorException("bad adhoc column")
+
+        assert malformed_column.status == 400
+        assert _is_user_error(malformed_column) is True
+        assert _datasource_error_is_user_error(malformed_column) is True
+
+    def test_security_exception_with_connection_reason_is_not_escalated(
+        self,
+    ) -> None:
+        """A 403 denial must not page just because its reason happens to be a
+        connection error type; the client is correctly told access was denied."""
+        denial = SupersetSecurityException(
+            SupersetError(
+                message="denied",
+                error_type=SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
+                level=ErrorLevel.ERROR,
+            )
+        )
+
+        assert denial.status == 403
+        assert _datasource_error_is_user_error(denial) is True
 
     def test_non_datasource_error_keeps_status_based_judgement(self) -> None:
         assert _datasource_error_is_user_error(ValueError("bad page")) is None
@@ -569,6 +614,23 @@ class TestDatasourceErrorSeverity:
 
         assert len(hook_calls) == 1
         mock_logger.error.assert_called()
+
+    @pytest.mark.asyncio
+    async def test_malformed_adhoc_column_does_not_fire_error_hook(self) -> None:
+        """End to end: a status-400 engine error is the caller's problem."""
+        hook_calls: list[Any] = []
+
+        with (
+            patch(
+                "superset.mcp_service.middleware._invoke_error_hook",
+                side_effect=lambda *a, **k: hook_calls.append(a),
+            ),
+            patch("superset.mcp_service.middleware.logger") as mock_logger,
+        ):
+            await _call("malformed_column")
+
+        assert hook_calls == []
+        mock_logger.error.assert_not_called()
 
 
 class TestQuerySyntaxErrors:

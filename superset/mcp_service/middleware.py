@@ -350,13 +350,25 @@ def _datasource_error_is_user_error(error: Exception) -> bool | None:
     unreachable or misconfigured *connection* is an operational problem worth
     paging on; a missing table, column, or schema is not.
 
+    This only ever *de-escalates*. A sub-500 status is a deliberate judgement
+    by the exception class that the caller is at fault, and is never
+    overridden — otherwise the connection half of the allow-list would page
+    on exactly the errors this function exists to stop paging on. The
+    catch-all ``GENERIC_DB_ENGINE_ERROR`` makes that concrete: engines
+    without specific ``CONNECTION_*`` regexes (BigQuery, Snowflake, Athena,
+    Databricks, Trino) report a malformed adhoc column through it, carried by
+    a status-400 ``SupersetGenericDBErrorException``. Genuine connection
+    failures arrive as a bare status-500 ``SupersetErrorException`` and still
+    page.
+
     Returns ``None`` when no recognised reason is available, leaving the
-    existing status-based judgement in place — the exception classes matched
-    by :data:`_DATASOURCE_ERROR_EXCEPTIONS` set a deliberate 4xx status.
+    existing status-based judgement in place.
     """
     reason = _datasource_error_reason(error)
     if reason is None:
         return None
+    if getattr(error, "status", 500) < 500:
+        return True
     return reason not in _CONNECTION_REASONS
 
 
@@ -1158,7 +1170,8 @@ class GlobalErrorHandlerMiddleware(Middleware):
         the exception as received would funnel an RBAC denial, a dead table,
         and an internal bug into the same message. Every decision below —
         log severity, error-tracker capture, and the client-facing text — is
-        therefore made on the unwrapped cause. See :func:`_unwrap_tool_error`.
+        therefore made on the unwrapped cause. See
+        :func:`_unwrap_fastmcp_wrapped_error`.
         """
         error = _unwrap_fastmcp_wrapped_error(wrapped_error)
 
@@ -1235,8 +1248,9 @@ class GlobalErrorHandlerMiddleware(Middleware):
 
         # Handle specific error types with appropriate responses
         if isinstance(error, ToolError):
-            # A ToolError that survived _unwrap_tool_error was raised
-            # deliberately by tool code and is already formatted for MCP.
+            # A ToolError that survived _unwrap_fastmcp_wrapped_error was
+            # raised deliberately by tool code (it carries no cause, or no
+            # FastMCP wrapper prefix) and is already formatted for MCP.
             raise error
         elif isinstance(error, ValidationError):
             # Pydantic validation errors
