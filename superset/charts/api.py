@@ -1215,14 +1215,18 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             check_updated_staleness=screenshot_obj.supports_updated_staleness,
         ):
             logger.info("Triggering screenshot ASYNC")
-            # Mark the entry in-flight without discarding any retained image: a
-            # fresh empty payload here would 404 the image_url during the retry
-            # and, if the render fails again, permanently lose the last-good
-            # image. `computing()` keeps `_image`, refreshes the timestamp and
-            # flips status to COMPUTING, so the read path keeps serving the
-            # last-good image while the task runs.
-            cache_payload.computing()
-            screenshot_obj.cache.set(cache_key, cache_payload.to_dict())
+            # Do not pre-write the cache entry here (mirroring the dashboard
+            # on-demand endpoint). The worker's compute_and_cache re-reads this
+            # same cache key and re-runs should_trigger_task(force=..., ...); a
+            # force-less request (`force` is None when omitted) that pre-wrote a
+            # fresh COMPUTING entry would make that re-check see a non-stale
+            # COMPUTING entry, skip the render, and the screenshot would never be
+            # computed -- churning COMPUTING every THUMBNAIL_COMPUTING_CACHE_TTL
+            # forever. Leaving the entry untouched also preserves any retained
+            # last-good image: the read path keeps serving it while the refresh
+            # runs, and the worker flips the entry to COMPUTING without
+            # discarding the image (and back to ERROR, still retaining it, if the
+            # render fails again).
             cache_chart_thumbnail.delay(
                 current_user=get_current_user(),
                 chart_id=chart.id,
@@ -1292,9 +1296,10 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             # status == UPDATED. A failed forced refresh leaves the entry in an
             # ERROR/COMPUTING backoff while still carrying the retained last-good
             # image; requiring UPDATED here would 404 that image for up to a day.
-            # get_from_cache_key already rejects an invalid UPDATED image, and a
-            # retained non-UPDATED image passes the invalid-image check, so only
-            # genuinely valid bytes are served.
+            # get_from_cache_key validates whatever image is present regardless of
+            # status (see ScreenshotCachePayload.get_invalid_image_reason), so a
+            # corrupt/blank retained image is rejected as a cache miss and only
+            # genuinely valid bytes reach this point.
             try:
                 image = cache_payload.get_image()
             except ScreenshotImageNotAvailableException:

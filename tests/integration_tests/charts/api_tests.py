@@ -1326,16 +1326,69 @@ class TestChartApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
     @patch("superset.charts.api.cache_chart_thumbnail")
     @patch("superset.charts.api.ChartScreenshot.cache")
     @patch("superset.charts.api.ChartScreenshot.get_from_cache_key")
+    def test_cache_screenshot_forceless_leaves_worker_able_to_render(
+        self, mock_get_from_cache_key, mock_cache, mock_cache_task
+    ):
+        """Regression: a force-less ``cache_screenshot`` that triggers a render
+        must not leave the cache in a state that makes the worker skip. The worker
+        (``cache_chart_thumbnail`` -> ``compute_and_cache``) re-reads the same
+        cache key and re-runs ``should_trigger_task(force=False,
+        check_updated_staleness=False)``. If the endpoint pre-wrote a fresh
+        COMPUTING entry, that re-check would see a non-stale COMPUTING entry, skip
+        the render, and the screenshot would never be computed -- churning
+        COMPUTING every ``THUMBNAIL_COMPUTING_CACHE_TTL`` forever. ``force`` is
+        None when omitted (no schema default), so this is the ordinary caller."""
+        self.login(ADMIN_USERNAME)
+
+        chart = (
+            db.session.query(Slice)
+            .filter_by(slice_name="Girl Name Cloud")
+            .one_or_none()
+        )
+        # First render: cache miss -> a fresh PENDING payload triggers the task.
+        mock_get_from_cache_key.return_value = None
+
+        rv = self.client.get(
+            f"api/v1/chart/{chart.id}/cache_screenshot/?q={rison.dumps({})}"
+        )
+
+        assert rv.status_code == 202
+        mock_cache_task.delay.assert_called_once()
+        # Force is falsy (omitted), so the worker relies on its own re-check.
+        assert mock_cache_task.delay.call_args.kwargs["force"] in (None, False)
+
+        # Whatever (if anything) the endpoint persisted, the worker will re-read
+        # it; otherwise it re-reads the still-empty cache (a fresh PENDING). Its
+        # own force-less gate MUST still fire, or the screenshot never renders.
+        if mock_cache.set.called:
+            worker_view = ScreenshotCachePayload.from_dict(
+                mock_cache.set.call_args[0][1]
+            )
+        else:
+            worker_view = ScreenshotCachePayload()
+        assert worker_view.should_trigger_task(
+            force=False,
+            expected_scope=f"chart:{chart.id}",
+            check_updated_staleness=False,
+        ), "endpoint left the cache in a state that makes the worker skip render"
+
+    @with_feature_flags(THUMBNAILS=True)
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @patch("superset.charts.api.cache_chart_thumbnail")
+    @patch("superset.charts.api.ChartScreenshot.cache")
+    @patch("superset.charts.api.ChartScreenshot.get_from_cache_key")
     def test_cache_screenshot_retry_preserves_retained_image(
         self, mock_get_from_cache_key, mock_cache, mock_cache_task
     ):
-        """A forced on-demand ``cache_screenshot`` that re-triggers a render
-        after a prior failure must not wipe the last-good image. The retained
-        ERROR entry still carries valid bytes; the endpoint marks it COMPUTING
-        (keeping the image and refreshing the timestamp) instead of pre-writing
-        an empty PENDING payload. This keeps the read path serving the last-good
-        image while the retry runs -- and if the render fails again ``error()``
-        still retains it -- rather than 404-ing ``image_url`` until success."""
+        """A force-less on-demand ``cache_screenshot`` that re-triggers a render
+        after a prior failure (an ERROR entry past its TTL, still carrying the
+        last-good image) must (a) not wipe that image and (b) leave the entry
+        triggerable so the worker actually re-renders. The endpoint leaves the
+        entry untouched (mirroring the dashboard endpoint): the read path keeps
+        serving the retained image while the worker -- which itself flips the
+        entry to COMPUTING without discarding the image -- runs the retry."""
+        from datetime import datetime, timedelta
+
         self.login(ADMIN_USERNAME)
 
         chart = (
@@ -1344,29 +1397,41 @@ class TestChartApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
             .one_or_none()
         )
         # A retained, valid, correctly-scoped image whose entry is in ERROR
-        # backoff (the state left behind by a failed prior render).
+        # backoff and 2 days old, past the 1-day THUMBNAIL_ERROR_CACHE_TTL, so a
+        # force-less request re-triggers via the expired-ERROR branch.
+        stale_timestamp = (datetime.now() - timedelta(days=2)).isoformat()
         payload = ScreenshotCachePayload(
             b"fake image data",
             scope=f"chart:{chart.id}",
+            timestamp=stale_timestamp,
         )
         payload.status = StatusValues.ERROR
         mock_get_from_cache_key.return_value = payload
 
         rv = self.client.get(
-            f"api/v1/chart/{chart.id}/cache_screenshot/"
-            f"?q={rison.dumps({'force': True})}"
+            f"api/v1/chart/{chart.id}/cache_screenshot/?q={rison.dumps({})}"
         )
 
         # Trigger fires: the task is enqueued and the endpoint returns 202.
         assert rv.status_code == 202
         mock_cache_task.delay.assert_called_once()
 
-        # The pre-write must preserve the retained image and only flip the entry
-        # to COMPUTING -- NOT discard it with a fresh empty PENDING payload.
-        mock_cache.set.assert_called_once()
-        written_payload = mock_cache.set.call_args[0][1]
-        assert written_payload["status"] == StatusValues.COMPUTING.value
-        assert written_payload["image"] is not None
+        # The endpoint must not overwrite the entry with an imageless payload.
+        # It leaves it untouched, so the worker re-reads the retained image and
+        # its force-less gate still fires (expired ERROR).
+        if mock_cache.set.called:
+            worker_view = ScreenshotCachePayload.from_dict(
+                mock_cache.set.call_args[0][1]
+            )
+        else:
+            worker_view = payload
+        assert worker_view.get_invalid_image_reason() is None
+        assert worker_view.get_image().read() == b"fake image data"
+        assert worker_view.should_trigger_task(
+            force=False,
+            expected_scope=f"chart:{chart.id}",
+            check_updated_staleness=False,
+        ), "endpoint left the cache in a state that makes the worker skip render"
 
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_get_deck_layers(self):
