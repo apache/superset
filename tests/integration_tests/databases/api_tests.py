@@ -1152,6 +1152,51 @@ class TestDatabaseApi(SupersetTestCase):
                 table = Table(table_name, metadata)
                 table.drop(engine, checkfirst=True)
 
+    @with_config(
+        {
+            "DATABASE_OAUTH2_CLIENTS": {
+                "Google BigQuery": {"id": "test-client", "secret": "test-secret"}
+            }
+        }
+    )
+    @mock.patch(
+        "google.auth.default", side_effect=AssertionError("ADC must not be used")
+    )
+    def test_create_bigquery_database_with_oauth2(
+        self, default_credentials: Mock
+    ) -> None:
+        """Create an OAuth2-only connection before the user has authorized Google."""
+        self.login(ADMIN_USERNAME)
+        database_name = "test-bigquery-oauth2-create"
+        try:
+            rv = self.client.post(
+                "api/v1/database/",
+                json={
+                    "database_name": database_name,
+                    "configuration_method": "dynamic_form",
+                    "engine": "bigquery",
+                    "parameters": {"project_id": "my-project"},
+                    "impersonate_user": True,
+                },
+            )
+            assert rv.status_code == 201, rv.get_json()
+            database = (
+                db.session.query(Database).filter_by(database_name=database_name).one()
+            )
+            assert make_url_safe(database.sqlalchemy_uri_decrypted).host == "my-project"
+            assert database.impersonate_user is True
+            assert database.parameters["project_id"] == "my-project"
+            default_credentials.assert_not_called()
+        finally:
+            database = (
+                db.session.query(Database)
+                .filter_by(database_name=database_name)
+                .one_or_none()
+            )
+            if database:
+                db.session.delete(database)
+                db.session.commit()
+
     def test_create_database_invalid_configuration_method(self):
         """
         Database API: Test create with an invalid configuration method.
@@ -3632,6 +3677,10 @@ class TestDatabaseApi(SupersetTestCase):
                     "name": "Google BigQuery",
                     "parameters": {
                         "properties": {
+                            "project_id": {
+                                "description": "Google Cloud project ID.",
+                                "type": "string",
+                            },
                             "credentials_info": {
                                 "description": (
                                     "Contents of BigQuery JSON credentials."
@@ -3649,7 +3698,7 @@ class TestDatabaseApi(SupersetTestCase):
                         "supports_file_upload": True,
                         "supports_dynamic_catalog": True,
                         "disable_ssh_tunneling": True,
-                        "supports_oauth2": False,
+                        "supports_oauth2": True,
                         "supports_offset": True,
                         "supports_schemas": True,
                         "identifier_quote": {
@@ -3658,7 +3707,7 @@ class TestDatabaseApi(SupersetTestCase):
                             "escape_by_doubling": False,
                         },
                     },
-                    "supports_oauth2": False,
+                    "supports_oauth2": True,
                 },
                 {
                     "available_drivers": ["psycopg2"],

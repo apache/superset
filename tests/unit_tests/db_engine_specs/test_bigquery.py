@@ -185,7 +185,11 @@ def test_get_parameters_from_uri_serializable() -> None:
         "bigquery://dbt-tutorial-347100/",
         {"access_token": "TOP_SECRET"},
     )
-    assert parameters == {"access_token": "TOP_SECRET", "query": {}}
+    assert parameters == {
+        "access_token": "TOP_SECRET",
+        "project_id": "dbt-tutorial-347100",
+        "query": {},
+    }
     assert json.loads(json.dumps(parameters)) == parameters
 
 
@@ -1236,6 +1240,7 @@ def test_impersonate_user_with_access_token(mocker: MockerFixture) -> None:
     client_init.assert_called_once_with(
         project="my-project",
         location="EU",
+        default_query_job_config=None,
         credentials=mock.sentinel.credentials,
     )
     assert engine_kwargs["connect_args"]["existing"] is True
@@ -1298,62 +1303,69 @@ def test_impersonate_user_without_token_and_without_oauth2(
     database.start_oauth2_dance.assert_not_called()
 
 
+@pytest.mark.parametrize("database_id", [None, 1])
 def test_impersonate_user_without_token_starts_oauth2_dance(
     mocker: MockerFixture,
+    database_id: int | None,
 ) -> None:
     """
     With OAuth2 configured, a missing token must not silently fall back to the
     shared credentials; the user is asked to authorize instead.
     """
     from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+    from superset.exceptions import OAuth2RedirectError
 
     g = mocker.patch("superset.db_engine_specs.bigquery.g")
     g.user.id = 1
     database = mocker.MagicMock()
-    database.id = 1
+    database.id = database_id
     database.is_oauth2_enabled.return_value = True
-
-    BigQueryEngineSpec.impersonate_user(
-        database,
-        username="alice",
-        user_token=None,
-        url=make_url("bigquery://my-project"),
-        engine_kwargs={},
+    database.start_oauth2_dance.side_effect = OAuth2RedirectError(
+        "url", "tab_id", "redirect_uri"
     )
+
+    with pytest.raises(OAuth2RedirectError):
+        BigQueryEngineSpec.impersonate_user(
+            database,
+            username="alice",
+            user_token=None,
+            url=make_url("bigquery://my-project"),
+            engine_kwargs={},
+        )
 
     database.start_oauth2_dance.assert_called_once_with()
 
 
-@pytest.mark.parametrize("unsaved", [True, False])
+@pytest.mark.parametrize("database_id", [None, 1])
+@pytest.mark.parametrize("anonymous", [True, False])
 def test_impersonate_user_without_token_and_without_user(
     mocker: MockerFixture,
-    unsaved: bool,
+    database_id: int | None,
+    anonymous: bool,
 ) -> None:
     """
-    Background jobs (no user) and unsaved databases (test connection) cannot
-    complete the OAuth2 dance, so they keep the previous behaviour.
+    OAuth2 connections fail closed without a user, including background jobs.
     """
     from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+    from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
 
     g = mocker.patch("superset.db_engine_specs.bigquery.g")
-    if unsaved:
-        g.user.id = 1
+    if anonymous:
+        g.user.id = None
     else:
         del g.user
     database = mocker.MagicMock()
-    database.id = None if unsaved else 1
+    database.id = database_id
     database.is_oauth2_enabled.return_value = True
 
-    url, engine_kwargs = BigQueryEngineSpec.impersonate_user(
-        database,
-        username="alice",
-        user_token=None,
-        url=make_url("bigquery://my-project"),
-        engine_kwargs={},
-    )
-
-    assert url == make_url("bigquery://my-project")
-    assert engine_kwargs == {}
+    with pytest.raises(SupersetDBAPIConnectionError, match="authenticated user"):
+        BigQueryEngineSpec.impersonate_user(
+            database,
+            username=None,
+            user_token=None,
+            url=make_url("bigquery://my-project"),
+            engine_kwargs={},
+        )
     database.start_oauth2_dance.assert_not_called()
 
 
@@ -1408,30 +1420,54 @@ def test_get_client_user_supplied_client_missing(mocker: MockerFixture) -> None:
     get_default_credentials.assert_not_called()
 
 
-def test_needs_oauth2_with_refresh_error(mocker: MockerFixture) -> None:
+@pytest.mark.parametrize("method", ["_call_api", "load_table_from_dataframe"])
+@pytest.mark.parametrize("error_type", ["refresh", "unauthorized"])
+def test_needs_oauth2_with_user_client_error(
+    mocker: MockerFixture, method: str, error_type: str
+) -> None:
     """
-    google-auth raises `RefreshError` when a bare access token has expired.
+    User-client authentication failures are recognized through driver wrappers.
     """
+    from google.api_core.exceptions import Unauthorized
     from google.auth.exceptions import RefreshError
+    from google.cloud import bigquery
+    from google.cloud.bigquery.dbapi.exceptions import DatabaseError
+    from sqlalchemy.exc import DBAPIError
 
-    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+    from superset.db_engine_specs.bigquery import (
+        _UserOAuth2Client,
+        _UserOAuth2Error,
+        BigQueryEngineSpec,
+    )
 
     g = mocker.patch("superset.db_engine_specs.bigquery.g")
     g.user = mocker.MagicMock()
 
-    ex = RefreshError(
-        "The credentials do not contain the necessary fields need to refresh "
-        "the access token."
+    error = (
+        RefreshError("expired") if error_type == "refresh" else Unauthorized("revoked")
     )
-    assert BigQueryEngineSpec.needs_oauth2(ex) is True
+    mocker.patch.object(bigquery.Client, method, side_effect=error)
+    client = _UserOAuth2Client("access-token", project="my-project")
+    with pytest.raises(_UserOAuth2Error) as exc_info:
+        getattr(client, method)()
+    assert exc_info.value.__cause__ is error
+    assert BigQueryEngineSpec.needs_oauth2(exc_info.value) is True
+    wrapped = DatabaseError(exc_info.value)
+    assert BigQueryEngineSpec.needs_oauth2(wrapped) is True
+    assert (
+        BigQueryEngineSpec.needs_oauth2(
+            DBAPIError.instance("SELECT 1", {}, wrapped, DatabaseError)
+        )
+        is True
+    )
 
 
-def test_needs_oauth2_with_wrapped_unauthorized(mocker: MockerFixture) -> None:
+def test_needs_oauth2_ignores_shared_credential_errors(mocker: MockerFixture) -> None:
     """
-    The BigQuery DBAPI wraps API errors in its own `DatabaseError`, and
-    SQLAlchemy may wrap that again; a 401 must be found through both layers.
+    Service-account/ADC errors must not redirect a user into OAuth2.
     """
     from google.api_core.exceptions import Unauthorized
+    from google.auth.exceptions import RefreshError
     from google.cloud.bigquery.dbapi.exceptions import DatabaseError
     from sqlalchemy.exc import DBAPIError
 
@@ -1440,11 +1476,12 @@ def test_needs_oauth2_with_wrapped_unauthorized(mocker: MockerFixture) -> None:
     g = mocker.patch("superset.db_engine_specs.bigquery.g")
     g.user = mocker.MagicMock()
 
-    dbapi_error = DatabaseError(Unauthorized("Request had invalid credentials."))
-    assert BigQueryEngineSpec.needs_oauth2(dbapi_error) is True
-
-    wrapped = DBAPIError.instance("SELECT 1", {}, dbapi_error, DatabaseError)
-    assert BigQueryEngineSpec.needs_oauth2(wrapped) is True
+    for error in (RefreshError("expired"), Unauthorized("revoked")):
+        assert BigQueryEngineSpec.needs_oauth2(error) is False
+        dbapi_error = DatabaseError(error)
+        assert BigQueryEngineSpec.needs_oauth2(dbapi_error) is False
+        wrapped = DBAPIError.instance("SELECT 1", {}, dbapi_error, DatabaseError)
+        assert BigQueryEngineSpec.needs_oauth2(wrapped) is False
 
 
 def test_needs_oauth2_with_forbidden(mocker: MockerFixture) -> None:
@@ -1501,28 +1538,32 @@ def test_update_params_from_encrypted_extra_strips_oauth2_client_info(
     assert params == {"credentials_info": {"project_id": "my-project"}}
 
 
-def test_df_to_sql_uses_oauth2_token(mocker: MockerFixture) -> None:
+@pytest.mark.parametrize("service_credentials", [None, {"project_id": "old-project"}])
+def test_df_to_sql_uses_oauth2_token(
+    mocker: MockerFixture, service_credentials: dict[str, str] | None
+) -> None:
     """
     Uploads to a per-user OAuth2 connection run as the user, not as ADC.
     """
+    from google.cloud import bigquery
+
     from superset.db_engine_specs.bigquery import BigQueryEngineSpec
 
     mocker.patch("superset.db_engine_specs.bigquery.can_upload", True)
     to_gbq = mocker.patch("superset.db_engine_specs.bigquery.pandas_gbq.to_gbq")
-    credentials = mocker.patch(
-        "superset.db_engine_specs.bigquery.OAuth2Credentials",
-        return_value=mock.sentinel.credentials,
-    )
     get_token = mocker.patch(
-        "superset.db_engine_specs.bigquery.get_oauth2_access_token",
-        return_value="access-token",
+        "superset.models.core.get_oauth2_access_token",
     )
-    g = mocker.patch("superset.db_engine_specs.bigquery.g")
-    g.user.id = 7
+    create_credentials = mocker.patch(
+        "superset.db_engine_specs.bigquery.service_account.Credentials."
+        "from_service_account_info"
+    )
+    user_client = mock.MagicMock(spec=bigquery.Client)
 
     engine = mock.MagicMock()
     engine.url = make_url("bigquery://my-project?user_supplied_client=true")
-    engine.dialect.credentials_info = None
+    engine.dialect.credentials_info = service_credentials
+    engine.raw_connection.return_value.dbapi_connection._client = user_client
     mocker.patch.object(
         BigQueryEngineSpec, "get_engine"
     ).return_value.__enter__ = mock.Mock(return_value=engine)
@@ -1539,12 +1580,151 @@ def test_df_to_sql_uses_oauth2_token(mocker: MockerFixture) -> None:
         {"if_exists": "replace"},
     )
 
-    get_token.assert_called_once_with({"id": "XXX"}, 3, 7, BigQueryEngineSpec)
-    credentials.assert_called_once_with(token="access-token")  # noqa: S106
+    get_token.assert_not_called()
+    create_credentials.assert_not_called()
     to_gbq.assert_called_once_with(
         df,
         destination_table="dataset.tbl",
         project_id="my-project",
-        credentials=mock.sentinel.credentials,
+        bigquery_client=user_client,
         if_exists="replace",
     )
+
+
+@pytest.mark.parametrize(
+    "encrypted_extra", [None, {}, {"oauth2_client_info": {"id": "client"}}]
+)
+def test_oauth2_parameters_round_trip(encrypted_extra: dict[str, Any] | None) -> None:
+    """OAuth2-only connections can be created and edited without service credentials."""
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    parameters = BigQueryEngineSpec.parameters_schema.load(
+        {"project_id": "my-project", "query": {"location": "EU"}}
+    )
+    uri = BigQueryEngineSpec.build_sqlalchemy_uri(parameters, encrypted_extra)
+    assert make_url(uri) == make_url("bigquery://my-project/?location=EU")
+    assert BigQueryEngineSpec.get_parameters_from_uri(uri, encrypted_extra) == {
+        **(encrypted_extra or {}),
+        "project_id": "my-project",
+        "query": {"location": "EU"},
+    }
+
+
+@pytest.mark.parametrize("as_string", [True, False])
+def test_service_account_parameters_remain_supported(as_string: bool) -> None:
+    """Existing service-account setup still derives its project from the JSON key."""
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    credentials = {"project_id": "service-project"}
+    encrypted_extra = {
+        "credentials_info": json.dumps(credentials) if as_string else credentials
+    }
+    assert (
+        make_url(BigQueryEngineSpec.build_sqlalchemy_uri({}, encrypted_extra)).host
+        == "service-project"
+    )
+    assert (
+        make_url(
+            BigQueryEngineSpec.build_sqlalchemy_uri(
+                {"project_id": "explicit-project"}, encrypted_extra
+            )
+        ).host
+        == "explicit-project"
+    )
+
+
+@pytest.mark.parametrize(
+    "encrypted_extra",
+    [
+        pytest.param(None),
+        pytest.param({}),
+        pytest.param({"oauth2_client_info": {}}),
+        pytest.param({"credentials_info": None}),
+    ],
+)
+def test_bigquery_requires_project(encrypted_extra: dict[str, Any] | None) -> None:
+    """Missing project information is a validation error, not an attribute error."""
+    from marshmallow import ValidationError
+
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    with pytest.raises(ValidationError, match="project ID"):
+        BigQueryEngineSpec.build_sqlalchemy_uri({}, encrypted_extra)
+
+
+def test_oauth2_client_preserves_query_configuration(mocker: MockerFixture) -> None:
+    """Impersonation preserves cost limits, dataset, location and query billing."""
+    from sqlalchemy import create_engine
+
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    adc = mocker.patch("google.auth.default", side_effect=AssertionError("ADC used"))
+    url, kwargs = BigQueryEngineSpec.impersonate_user(
+        mock.Mock(),
+        username="alice",
+        user_token="access-token",  # noqa: S106
+        url=make_url(
+            "bigquery://data-project/dataset?location=EU&maximum_bytes_billed=1234&use_query_cache=false"
+        ),
+        engine_kwargs={"billing_project_id": "billing-project"},
+    )
+    engine = create_engine(url, **kwargs)
+    client = BigQueryEngineSpec._get_client(engine, mock.Mock())
+    assert client is kwargs["connect_args"]["client"]
+    assert client.project == "billing-project"
+    assert client.location == "EU"
+    config = client.default_query_job_config
+    assert config.maximum_bytes_billed == 1234
+    assert config.use_query_cache is False
+    assert str(config.default_dataset) == "data-project.dataset"
+    assert [(prop.key, prop.value) for prop in config.connection_properties] == [
+        ("dataset_project_id", "data-project")
+    ]
+    adc.assert_not_called()
+    engine.dispose()
+
+
+@pytest.mark.parametrize("method", ["_call_api", "load_table_from_dataframe"])
+def test_oauth2_client_preserves_iam_errors(mocker: MockerFixture, method: str) -> None:
+    """A denied IAM permission remains an ordinary Forbidden error."""
+    from google.api_core.exceptions import Forbidden
+    from google.cloud import bigquery
+
+    from superset.db_engine_specs.bigquery import _UserOAuth2Client
+
+    error = Forbidden("Access denied")
+    mocker.patch.object(bigquery.Client, method, side_effect=error)
+    client = _UserOAuth2Client("access-token", project="my-project")
+    with pytest.raises(Forbidden) as exc_info:
+        getattr(client, method)()
+    assert exc_info.value is error
+
+
+@pytest.mark.parametrize("has_credentials", [True, False])
+def test_df_to_sql_preserves_shared_credentials(
+    mocker: MockerFixture, has_credentials: bool
+) -> None:
+    """Uploads without user impersonation retain the service-account/ADC path."""
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    mocker.patch("superset.db_engine_specs.bigquery.can_upload", True)
+    to_gbq = mocker.patch("superset.db_engine_specs.bigquery.pandas_gbq.to_gbq")
+    credentials = mocker.patch(
+        "superset.db_engine_specs.bigquery.service_account.Credentials.from_service_account_info",
+        return_value=mock.sentinel.credentials,
+    )
+    engine = mock.MagicMock()
+    engine.url = make_url("bigquery://my-project")
+    engine.dialect.credentials_info = (
+        {"project_id": "my-project"} if has_credentials else None
+    )
+    mocker.patch.object(
+        BigQueryEngineSpec, "get_engine"
+    ).return_value.__enter__.return_value = engine
+    df = mock.Mock()
+    BigQueryEngineSpec.df_to_sql(mock.Mock(), Table("tbl", "dataset"), df, {})
+    expected = {"credentials": mock.sentinel.credentials} if has_credentials else {}
+    to_gbq.assert_called_once_with(
+        df, destination_table="dataset.tbl", project_id="my-project", **expected
+    )
+    assert credentials.call_count == int(has_credentials)

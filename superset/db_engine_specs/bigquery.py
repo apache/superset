@@ -57,7 +57,6 @@ from superset.sql.parse import SQLScript, Table
 from superset.superset_typing import ResultSetColumnType
 from superset.utils import core as utils, json
 from superset.utils.hashing import hash_from_str
-from superset.utils.oauth2 import get_oauth2_access_token
 
 if TYPE_CHECKING:
     from sqlalchemy.sql.expression import Select
@@ -210,6 +209,10 @@ SYNTAX_ERROR_REGEX = re.compile(
 ma_plugin = MarshmallowPlugin()
 
 
+class _UserOAuth2Error(Exception):
+    """Authentication failed on a client using a user's OAuth2 token."""
+
+
 if dependencies_installed:
 
     class _UserOAuth2Client(bigquery.Client):
@@ -230,6 +233,20 @@ if dependencies_installed:
         def __repr__(self) -> str:
             return f"<{type(self).__name__} {self._token_fingerprint}>"
 
+        def _call_api(self, *args: Any, **kwargs: Any) -> Any:
+            """Distinguish user-token failures from service-account/ADC failures."""
+            try:
+                return super()._call_api(*args, **kwargs)
+            except _OAUTH2_DRIVER_EXCEPTIONS as ex:
+                raise _UserOAuth2Error(str(ex)) from ex
+
+        def load_table_from_dataframe(self, *args: Any, **kwargs: Any) -> Any:
+            """Handle authentication failures from the separate upload transport."""
+            try:
+                return super().load_table_from_dataframe(*args, **kwargs)
+            except _OAUTH2_DRIVER_EXCEPTIONS as ex:
+                raise _UserOAuth2Error(str(ex)) from ex
+
 
 # Initial sample size for the progressive fetch in ``fetch_data``. Reading a
 # small first batch lets us measure the row size before deciding how many
@@ -238,6 +255,10 @@ _BQ_INITIAL_SAMPLE_ROWS = 1000
 
 
 class BigQueryParametersSchema(Schema):
+    project_id = fields.String(
+        required=False,
+        metadata={"description": "Google Cloud project ID."},
+    )
     credentials_info = EncryptedString(
         required=False,
         metadata={"description": "Contents of BigQuery JSON credentials."},
@@ -245,7 +266,8 @@ class BigQueryParametersSchema(Schema):
     query = fields.Dict(required=False)
 
 
-class BigQueryParametersType(TypedDict):
+class BigQueryParametersType(TypedDict, total=False):
+    project_id: str
     credentials_info: dict[str, Any]
     query: dict[str, Any]
 
@@ -360,7 +382,7 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         "include_granted_scopes": "false",
         "prompt": "consent",
     }
-    oauth2_exception = (OAuth2RedirectError, *_OAUTH2_DRIVER_EXCEPTIONS)
+    oauth2_exception = (OAuth2RedirectError, _UserOAuth2Error)
 
     # when editing the database, mask this field in `encrypted_extra`
     # pylint: disable=invalid-name
@@ -773,14 +795,14 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
                 "project_id": engine.url.host,
             }
 
-        # Add credentials if they are set on the SQLAlchemy dialect, or use the
-        # user's own OAuth2 token so uploads don't fall back to ADC.
-        if creds := engine.dialect.credentials_info:
-            to_gbq_kwargs["credentials"] = (
-                service_account.Credentials.from_service_account_info(creds)
-            )
-        elif user_token := cls._get_oauth2_user_token(database):
-            to_gbq_kwargs["credentials"] = OAuth2Credentials(token=user_token)
+            # Reuse the engine's authenticated client, even when the connection
+            # retains service-account credentials from an earlier configuration.
+            if engine.url.query.get("user_supplied_client", "").lower() == "true":
+                to_gbq_kwargs["bigquery_client"] = cls._get_client(engine, database)
+            elif creds := engine.dialect.credentials_info:
+                to_gbq_kwargs["credentials"] = (
+                    service_account.Credentials.from_service_account_info(creds)
+                )
 
         # Only pass through supported kwargs.
         supported_kwarg_keys = {"if_exists"}
@@ -1019,18 +1041,18 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         query = parameters.get("query", {})
         query_params = urllib.parse.urlencode(query)
 
-        if encrypted_extra:
-            credentials_info = encrypted_extra.get("credentials_info")
+        project_id = parameters.get("project_id")
+        if not project_id and encrypted_extra:
+            credentials_info = encrypted_extra.get("credentials_info", {})
             if isinstance(credentials_info, str):
                 credentials_info = json.loads(credentials_info)
-            project_id = credentials_info.get("project_id")
-        if not encrypted_extra:
-            raise ValidationError("Missing service credentials")
+            if isinstance(credentials_info, dict):
+                project_id = credentials_info.get("project_id")
 
         if project_id:
             return f"{cls.default_driver}://{project_id}/?{query_params}"
 
-        raise ValidationError("Invalid service credentials")
+        raise ValidationError("A project ID or valid service credentials are required")
 
     @classmethod
     def get_parameters_from_uri(
@@ -1040,13 +1062,13 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
     ) -> Any:
         value = make_url_safe(uri)
 
-        # Building parameters from encrypted_extra and uri
-        if encrypted_extra:
-            # ``value.query`` needs to be explicitly converted into a dict (from an
-            # ``immutabledict``) so that it can be JSON serialized
-            return {**encrypted_extra, "query": dict(value.query)}
-
-        raise ValidationError("Invalid service credentials")
+        # The URI carries the project for OAuth2 and ADC connections, which do
+        # not require service-account credentials in encrypted_extra.
+        return {
+            **(encrypted_extra or {}),
+            "project_id": value.host,
+            "query": dict(value.query),
+        }
 
     @classmethod
     def get_dbapi_exception_mapping(cls) -> dict[type[Exception], type[Exception]]:
@@ -1071,20 +1093,6 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         params.pop("oauth2_client_info", None)
 
     @classmethod
-    def _get_oauth2_user_token(cls, database: Database) -> str | None:
-        """
-        Return the current user's OAuth2 access token for the database, if any.
-        """
-        if not database.impersonate_user or database.id is None:
-            return None
-        if not (g and hasattr(g, "user") and getattr(g.user, "id", None) is not None):
-            return None
-        oauth2_config = database.get_oauth2_config()
-        if oauth2_config is None:
-            return None
-        return get_oauth2_access_token(oauth2_config, database.id, g.user.id, cls)
-
-    @classmethod
     def impersonate_user(
         cls,
         database: Database,
@@ -1105,18 +1113,18 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         Without a token, sqlalchemy-bigquery would silently fall back to the
         service account or ADC, i.e. run the query as Superset rather than as the
         user. When OAuth2 is configured the user is asked to authorize instead.
-        Background jobs (no user) and unsaved databases (test connection) cannot
-        complete the OAuth2 dance and keep the previous behaviour.
+        OAuth2 databases without an authenticated user fail closed. Unsaved
+        databases also request authorization so the create command can save
+        them without first connecting with shared credentials.
         """
         if not user_token:
-            if (
-                database.is_oauth2_enabled()
-                and database.id is not None
-                and g
-                and hasattr(g, "user")
-                and getattr(g.user, "id", None) is not None
-            ):
-                database.start_oauth2_dance()
+            if database.is_oauth2_enabled():
+                if g and getattr(getattr(g, "user", None), "id", None) is not None:
+                    database.start_oauth2_dance()
+                raise SupersetDBAPIConnectionError(
+                    "BigQuery OAuth2 requires an authenticated user and a personal "
+                    "access token. Shared credentials cannot be used."
+                )
             return url, engine_kwargs
 
         if not dependencies_installed:
@@ -1124,28 +1132,43 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
                 "Could not import libraries needed to connect to BigQuery."
             )
 
-        client_kwargs: dict[str, Any] = {"project": url.host or None}
-        if location := url.query.get("location"):
-            client_kwargs["location"] = location
+        # A user-supplied client bypasses the dialect's client factory. Preserve
+        # its billing project, default dataset and query options (including cost
+        # limits) when constructing the authenticated client ourselves.
+        from sqlalchemy_bigquery import BigQueryDialect  # noqa: PLC0415
+        from sqlalchemy_bigquery.parse_url import parse_url  # noqa: PLC0415
+
+        if not url.host:
+            raise SupersetDBAPIConnectionError("BigQuery OAuth2 requires a project ID.")
+        url = url.update_query_dict({"user_supplied_client": "true"})
+        dialect = BigQueryDialect(
+            billing_project_id=engine_kwargs.get("billing_project_id"),
+            location=engine_kwargs.get("location"),
+        )
+        dialect.create_connect_args(url)
+        client_kwargs: dict[str, Any] = {
+            "project": dialect.billing_project_id,
+            "location": dialect.location,
+            "default_query_job_config": dialect.create_job_config(parse_url(url)[6]),
+        }
 
         connect_args = engine_kwargs.setdefault("connect_args", {})
         connect_args["client"] = _UserOAuth2Client(user_token, **client_kwargs)
-        return url.update_query_dict({"user_supplied_client": "true"}), engine_kwargs
+        return url, engine_kwargs
 
     @classmethod
     def needs_oauth2(cls, ex: Exception) -> bool:
         """
         Check whether the exception means the user's OAuth2 token must be renewed.
 
-        google-auth raises ``RefreshError`` when a bare access token has expired
-        (there is no refresh token on the connection to renew it) and the API
-        returns ``Unauthorized`` when it was revoked. The BigQuery DBAPI wraps API
-        errors in its own ``DatabaseError`` (original in ``args[0]``) and
-        SQLAlchemy may wrap that again in a ``DBAPIError`` (original in ``orig``).
+        Only errors marked by the user-supplied client trigger re-authorization;
+        the same Google errors from service-account or ADC clients do not.
+        The BigQuery DBAPI and SQLAlchemy can wrap the error in ``args[0]`` or
+        ``orig``, respectively.
         ``Forbidden`` is a genuine IAM denial for that user and must not trigger
         re-authorization.
         """
-        if not (g and hasattr(g, "user")):
+        if not (g and getattr(getattr(g, "user", None), "id", None) is not None):
             return False
 
         candidate: Any = ex
