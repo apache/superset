@@ -102,5 +102,10 @@
     { "path": "./plugins/plugin-chart-table" },
     { "path": "./plugins/plugin-chart-word-cloud" }
   ],
-  "exclude": []
+  "exclude": [
+    // A standalone Vite app with its own tsconfig, toolchain and
+    // node_modules: `./packages/**/*` would otherwise pull it into this
+    // program, where `vite`, its plugins and `?raw` imports do not resolve.
+    "./packages/superset-widgets/example"
+  ]
 }
