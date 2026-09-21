@@ -163,7 +163,7 @@ test('the delete confirmation says the delete is blocked, not that it will break
   ).not.toBeInTheDocument();
 });
 
-test('the delete action stays disabled while datasets block deletion', async () => {
+test('the delete controls stay disabled while datasets block deletion', async () => {
   setupMocks({ datasets: [dataset(1, 'qa_orders')] });
   renderDatabaseList();
 
@@ -173,10 +173,9 @@ test('the delete action stays disabled while datasets block deletion', async () 
   );
   const deleteButton = within(dialog).getByTestId('modal-confirm-button');
 
-  await userEvent.type(confirmationInput, 'DELETE');
-
+  expect(confirmationInput).toBeDisabled();
   expect(deleteButton).toBeDisabled();
-  await userEvent.type(confirmationInput, '{enter}');
+  await userEvent.click(deleteButton);
   expect(
     fetchMock.callHistory.calls(
       new RegExp(`/api/v1/database/${DATABASE_ID}$`),
@@ -185,6 +184,21 @@ test('the delete action stays disabled while datasets block deletion', async () 
       },
     ),
   ).toHaveLength(0);
+});
+
+test('the blocked copy explains how to permanently remove archived datasets', async () => {
+  // Archived datasets still count against the backend delete guard, but do not
+  // appear in the normal dataset list.
+  setupMocks({ datasets: [], datasetCount: 1 });
+  renderDatabaseList();
+
+  const dialog = await openDeleteModal();
+
+  expect(
+    within(dialog).getByText(
+      /open Recently archived and select Delete permanently/i,
+    ),
+  ).toBeInTheDocument();
 });
 
 test('a single dataset dependent is announced in the singular', async () => {
@@ -213,6 +227,9 @@ test('a connection with no datasets keeps the existing dependents copy', async (
     within(dialog).queryByText('Affected Datasets'),
   ).not.toBeInTheDocument();
 
+  expect(
+    within(dialog).getByLabelText('Type "DELETE" to confirm'),
+  ).toBeEnabled();
   await userEvent.type(
     within(dialog).getByLabelText('Type "DELETE" to confirm'),
     'DELETE',

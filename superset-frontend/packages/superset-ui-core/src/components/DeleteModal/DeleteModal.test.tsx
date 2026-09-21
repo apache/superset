@@ -215,7 +215,7 @@ test('Calling "onConfirm" only after typing "delete" in the input', async () => 
   expect(screen.getByTestId('delete-modal-input')).toHaveValue('');
 });
 
-test('external disable keeps the destructive action unavailable after confirmation', async () => {
+test('external disable makes the confirmation controls unavailable', async () => {
   const onConfirm = jest.fn();
   render(
     <DeleteModal
@@ -228,8 +228,7 @@ test('external disable keeps the destructive action unavailable after confirmati
     />,
   );
 
-  await userEvent.type(screen.getByTestId('delete-modal-input'), 'DELETE');
-
+  expect(screen.getByTestId('delete-modal-input')).toBeDisabled();
   expect(screen.getByRole('button', { name: 'Delete' })).toBeDisabled();
   await userEvent.click(screen.getByRole('button', { name: 'Delete' }));
   expect(onConfirm).not.toHaveBeenCalled();
@@ -247,8 +246,7 @@ test('loading disables the destructive action and exposes busy state', async () 
     />,
   );
 
-  await userEvent.type(screen.getByTestId('delete-modal-input'), 'DELETE');
-
+  expect(screen.getByTestId('delete-modal-input')).toBeDisabled();
   expect(screen.getByTestId('modal-confirm-button')).toBeDisabled();
   expect(screen.getByTestId('antd-modal')).toHaveAttribute('aria-busy', 'true');
 });

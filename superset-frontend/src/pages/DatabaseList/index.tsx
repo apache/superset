@@ -1208,10 +1208,13 @@ function DatabaseList({
                   {t('The %s', databaseLabelLower())}{' '}
                   <b>{databaseCurrentlyDeleting.database_name}</b>{' '}
                   {tn(
-                    'cannot be deleted because %s dataset is still attached to it. Delete or move that dataset first.',
-                    'cannot be deleted because %s datasets are still attached to it. Delete or move those datasets first.',
+                    'cannot be deleted because %s dataset is still attached to it.',
+                    'cannot be deleted because %s datasets are still attached to it.',
                     databaseCurrentlyDeleting.datasets.count,
                     databaseCurrentlyDeleting.datasets.count,
+                  )}{' '}
+                  {t(
+                    'Delete or move active datasets. To remove archived datasets, open Recently archived and select Delete permanently.',
                   )}
                 </p>
               ) : (
