@@ -163,6 +163,30 @@ test('the delete confirmation says the delete is blocked, not that it will break
   ).not.toBeInTheDocument();
 });
 
+test('the delete action stays disabled while datasets block deletion', async () => {
+  setupMocks({ datasets: [dataset(1, 'qa_orders')] });
+  renderDatabaseList();
+
+  const dialog = await openDeleteModal();
+  const confirmationInput = within(dialog).getByLabelText(
+    'Type "DELETE" to confirm',
+  );
+  const deleteButton = within(dialog).getByTestId('modal-confirm-button');
+
+  await userEvent.type(confirmationInput, 'DELETE');
+
+  expect(deleteButton).toBeDisabled();
+  await userEvent.type(confirmationInput, '{enter}');
+  expect(
+    fetchMock.callHistory.calls(
+      new RegExp(`/api/v1/database/${DATABASE_ID}$`),
+      {
+        method: 'DELETE',
+      },
+    ),
+  ).toHaveLength(0);
+});
+
 test('a single dataset dependent is announced in the singular', async () => {
   setupMocks({ datasets: [dataset(1, 'qa_orders')] });
   renderDatabaseList();
@@ -188,6 +212,12 @@ test('a connection with no datasets keeps the existing dependents copy', async (
   expect(
     within(dialog).queryByText('Affected Datasets'),
   ).not.toBeInTheDocument();
+
+  await userEvent.type(
+    within(dialog).getByLabelText('Type "DELETE" to confirm'),
+    'DELETE',
+  );
+  expect(within(dialog).getByTestId('modal-confirm-button')).toBeEnabled();
 });
 
 test('datasets the user cannot access are counted but not named', async () => {

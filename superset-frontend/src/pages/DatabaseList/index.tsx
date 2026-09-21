@@ -1327,6 +1327,7 @@ function DatabaseList({
           }}
           onHide={() => setDatabaseCurrentlyDeleting(null)}
           open
+          disablePrimaryButton={databaseCurrentlyDeleting.datasets.count >= 1}
           title={
             <ModalTitleWithIcon
               icon={<Icons.DeleteOutlined />}
