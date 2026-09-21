@@ -129,6 +129,7 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
             metadata_carries_positions: bool = (
                 isinstance(metadata, dict) and metadata.get("positions") is not None
             )
+            position_json: str | None
             if (
                 position_json := self._properties.get("position_json")
             ) and not metadata_carries_positions:

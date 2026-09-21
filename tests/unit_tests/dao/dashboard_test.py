@@ -177,6 +177,7 @@ def test_set_dash_metadata_updates_refresh_frequency_when_present(
 
 
 def _chart_node(node_id: str, chart_id: Any, width: int, height: int) -> dict[str, Any]:
+    """Build a chart layout node with the supplied identity and dimensions."""
     return {
         "type": "CHART",
         "id": node_id,

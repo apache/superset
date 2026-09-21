@@ -269,6 +269,7 @@ def reconcile_position_json(positions: object, dashboard_id: int | None = None) 
     # untouched (the caller re-serializes it unchanged) rather than raising.
     if not isinstance(positions, dict):
         return 0
+    chart_id: int | None
     chart_ids: set[int] = {
         chart_id
         for node in positions.values()
@@ -548,6 +549,7 @@ class DashboardDAO(BaseDAO[Dashboard]):
             # failed the save too, but with a 500 from the bad ``IN`` value).
             _reject_malformed_chart_nodes(positions)
             # find slices in the position data
+            chart_id: int | None
             slice_ids = [
                 chart_id
                 for value in positions.values()
