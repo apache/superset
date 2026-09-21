@@ -352,3 +352,41 @@ def test_get_charts_for_dashboard_returns_the_prefetched_charts(
 
     assert len(charts) == 3
     assert n == 0, f"reading the returned charts issued {n} statements"
+
+
+def test_prefetch_before_the_main_get_access_loop_reads_no_extra_sql(
+    session: Session,
+) -> None:
+    """The dashboard GET narrows ``charts`` with the same per-slice access check.
+
+    ``DashboardApi.get`` prefetches, then keeps only the slices the caller can
+    access by reading each one's editors and viewers (superset/dashboards/api.py).
+    The /charts test above protects ``get_charts_for_dashboard``; this protects
+    the main GET call site, which relies on the prefetch running before the loop.
+    If that call were removed or moved after serialization the loop would fall
+    back to two lazy loads per chart -- the 2N cost the prefetch removes.
+    """
+    Dashboard.metadata.create_all(session.get_bind())
+
+    _make_dashboard("main-get", 3)
+    # Detach everything so the dashboard comes back with its slices unloaded,
+    # matching the request path.
+    session.expunge_all()
+    dashboard = session.query(Dashboard).filter_by(slug="main-get").one()
+
+    with patch.object(security_manager, "is_admin", return_value=False):
+        # ``schema.dump(dash)`` reads ``Dashboard.charts`` and materializes the
+        # slices before the prefetch runs; hold the same instances so the loop
+        # below reads their relationships rather than reloading the collection.
+        slices = list(dashboard.slices)
+        DashboardDAO.prefetch_chart_access(dashboard)
+
+        def narrow_like_the_get() -> None:
+            # Mirror the api.py loop: read editors/viewers per slice.
+            for slc in slices:
+                assert [s.label for s in slc.editors] == ["editor-main-get"]
+                assert [s.label for s in slc.viewers] == ["viewer-main-get"]
+
+        n = _count_statements(session, narrow_like_the_get)
+
+    assert n == 0, f"the GET access loop issued {n} statements after the prefetch"
