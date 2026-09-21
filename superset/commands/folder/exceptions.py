@@ -51,6 +51,15 @@ class FolderDeleteFailedError(DeleteFailedError):
     message = _("Folder could not be deleted.")
 
 
+class FolderRestoreFailedError(CommandException):
+    message = _("Folder could not be restored.")
+
+
+class FolderNotDeletedError(CommandException):
+    status = 409
+    message = _("Folder is not deleted.")
+
+
 class FolderNameUniquenessValidationError(ValidationError):
     """A sibling folder of the same type already uses this name."""
 

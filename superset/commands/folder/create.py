@@ -55,7 +55,8 @@ class CreateFolderCommand(BaseCommand):
                 "description": self._properties.get("description"),
                 "parent_id": self._parent.id if self._parent else None,
                 "folder_type": self._properties["folder_type"],
-                "is_private": self._properties.get("is_private", False),
+                "is_private": self._properties.get("is_private", False)
+                or (self._parent.is_private if self._parent else False),
             }
         )
         db.session.flush()
@@ -72,10 +73,10 @@ class CreateFolderCommand(BaseCommand):
                 user_subject = get_or_create_user_subject(g.user.id)
                 if user_subject:
                     FolderDAO.add_subject(folder.id, user_subject.id, "editor")
-        if self._parent:
-            FolderPermissionDAO.copy_permissions_to_subfolder(
-                self._parent.id, folder.id
-            )
+            if self._parent:
+                FolderPermissionDAO.copy_permissions_to_subfolder(
+                    self._parent.id, folder.id
+                )
         return folder
 
     def validate(self) -> None:
@@ -93,13 +94,21 @@ class CreateFolderCommand(BaseCommand):
             elif self._parent.folder_type != folder_type:
                 exceptions.append(FolderParentTypeMismatchValidationError())
             elif not security_manager.is_admin():
-                from superset.utils.core import get_user_id
+                from superset.folders.utils import folder_permissions_enabled
 
-                user_id = get_user_id()
-                if not FolderPermissionDAO.user_is_folder_editor(
-                    user_id, self._parent.id
-                ):
-                    raise FolderForbiddenError()
+                if folder_permissions_enabled():
+                    from superset.utils.core import get_user_id
+
+                    user_id = get_user_id()
+                    if not FolderPermissionDAO.user_is_folder_editor(
+                        user_id, self._parent.id
+                    ):
+                        raise FolderForbiddenError()
+                else:
+                    from superset.folders.utils import can_manage_folders
+
+                    if not can_manage_folders(g.user):
+                        raise FolderForbiddenError()
 
         parent_id = self._parent.id if self._parent else None
         if not FolderDAO.validate_name_uniqueness(name, parent_id, folder_type):

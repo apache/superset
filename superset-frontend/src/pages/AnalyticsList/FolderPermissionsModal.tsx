@@ -134,6 +134,8 @@ export default function FolderPermissionsModal({
         endpoint: `/api/v1/folders/${folderUuid}/subjects`,
       });
       const subjects = (json.result as Subject[]) || [];
+      // Filter out admins — they have implicit full access and are not
+      // governed by the folder's permission list.
       const nonAdminSubjects = subjects.filter(s => !s.is_admin);
       const enriched: LocalSubject[] = nonAdminSubjects.map(s => ({
         key: String(s.subject_id),

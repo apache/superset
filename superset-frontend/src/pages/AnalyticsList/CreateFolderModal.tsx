@@ -17,7 +17,12 @@
  * under the License.
  */
 import { useCallback, useEffect, useState } from 'react';
-import { SupersetClient, getClientErrorObject } from '@superset-ui/core';
+import {
+  SupersetClient,
+  getClientErrorObject,
+  isFeatureEnabled,
+  FeatureFlag,
+} from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import { Checkbox, Input } from '@superset-ui/core/components';
 import { StandardModal } from 'src/components/Modal';
@@ -54,6 +59,7 @@ export default function CreateFolderModal({
       setName('');
       setDescription('');
       setNameError('');
+      setIsPrivate(false);
     }
   }, [show]);
 
@@ -88,6 +94,7 @@ export default function CreateFolderModal({
   }, [
     name,
     description,
+    isPrivate,
     parentFolderUuid,
     addSuccessToast,
     addDangerToast,
@@ -127,14 +134,15 @@ export default function CreateFolderModal({
             rows={3}
           />
         </ModalFormField>
-        {!parentFolderUuid && (
-          <Checkbox
-            checked={isPrivate}
-            onChange={e => setIsPrivate(e.target.checked)}
-          >
-            {t('Private folder')}
-          </Checkbox>
-        )}
+        {!parentFolderUuid &&
+          isFeatureEnabled('FOLDER_PERMISSIONS' as FeatureFlag) && (
+            <Checkbox
+              checked={isPrivate}
+              onChange={e => setIsPrivate(e.target.checked)}
+            >
+              {t('Private folder')}
+            </Checkbox>
+          )}
       </ModalContent>
     </StandardModal>
   );

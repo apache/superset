@@ -349,39 +349,51 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category="Data",
             category_label=_("Data"),
         )
-        if feature_flag_manager.is_feature_enabled("FOLDERS"):
-            from superset.folders.api import FolderRestApi
-            from superset.views.folders import FolderView
+        from superset.folders.api import FolderRestApi
+        from superset.views.folders import FolderView
 
-            appbuilder.add_api(FolderRestApi)
-            appbuilder.add_view_no_menu(FolderView)
+        appbuilder.add_api(FolderRestApi)
+        appbuilder.add_view_no_menu(FolderView)
 
-            appbuilder.add_link(
-                "Analytics",
-                label=_("Analytics"),
-                href="/analytics/",
-                icon="fa-folder-open",
-                category="",
-                category_icon="",
-            )
+        appbuilder.add_link(
+            "Analytics",
+            label=_("Analytics"),
+            href="/analytics/",
+            icon="fa-folder-open",
+            category="",
+            category_icon="",
+            cond=lambda: feature_flag_manager.is_feature_enabled("FOLDERS"),
+        )
 
-        if not feature_flag_manager.is_feature_enabled("FOLDERS"):
-            appbuilder.add_view(
-                DashboardModelView,
-                "Dashboards",
-                label=_("Dashboards"),
-                icon="fa-dashboard",
-                category="",
-                category_icon="",
-            )
-            appbuilder.add_view(
-                SliceModelView,
-                "Charts",
-                label=_("Charts"),
-                icon="fa-bar-chart",
-                category="",
-                category_icon="",
-            )
+        appbuilder.add_view(
+            DashboardModelView,
+            "Dashboards",
+            label=_("Dashboards"),
+            icon="fa-dashboard",
+            category="",
+            category_icon="",
+            menu_cond=lambda: not feature_flag_manager.is_feature_enabled("FOLDERS"),
+        )
+        appbuilder.add_view(
+            SliceModelView,
+            "Charts",
+            label=_("Charts"),
+            icon="fa-bar-chart",
+            category="",
+            category_icon="",
+            menu_cond=lambda: not feature_flag_manager.is_feature_enabled("FOLDERS"),
+        )
+
+        @self.superset_app.before_request
+        def _gate_folder_list_routes():  # type: ignore[no-untyped-def]
+            from flask import abort, request as flask_request
+
+            path = flask_request.path.rstrip("/")
+            folders_on = feature_flag_manager.is_feature_enabled("FOLDERS")
+            if folders_on and path in ("/chart/list", "/dashboard/list"):
+                abort(404)
+            if not folders_on and path.startswith("/analytics"):
+                abort(404)
 
         appbuilder.add_link(
             "Datasets",

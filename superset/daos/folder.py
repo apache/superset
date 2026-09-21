@@ -617,19 +617,34 @@ class FolderDAO(BaseDAO[Folder]):
 
         When ``archive_items`` is False (default), assets linked to the folder
         become unfoldered. When True, the assets themselves are also deleted.
+
+        When the ``SOFT_DELETE`` feature flag is enabled the folder (and its
+        children when ``archive_items`` is True) are soft-deleted instead of
+        permanently removed.  Permissions and asset links are preserved so
+        that a future restore can bring everything back.
         """
         from superset.folders.utils import folder_permissions_enabled
 
         if folder_permissions_enabled() and folder.is_only_me:
             raise ValueError("Cannot delete an Only Me folder")
 
+        from superset import is_feature_enabled
+
+        soft = is_feature_enabled("SOFT_DELETE")
+
+        if soft:
+            cls._soft_delete_folder(folder, archive_items)
+        else:
+            cls._hard_delete_folder(folder, archive_items)
+
+    @classmethod
+    def _hard_delete_folder(cls, folder: Folder, archive_items: bool = False) -> None:
+        grandparent = folder.parent
         for child in list(folder.children):
-            child.parent_id = folder.parent_id
+            child.parent = grandparent
             child.name = cls.resolve_name_conflict(
                 child.name, folder.parent_id, folder.folder_type, exclude_id=child.id
             )
-        # Clear the in-memory collection so db.session.delete(folder) below
-        # doesn't re-null the children's parent_id.
         folder.children.clear()
         db.session.flush()
 
@@ -642,14 +657,90 @@ class FolderDAO(BaseDAO[Folder]):
                         if asset:
                             db.session.delete(asset)
                         break
+
+        db.session.delete(folder)
+
+    @classmethod
+    def _soft_delete_folder(cls, folder: Folder, archive_items: bool = False) -> None:
+        from superset.models.helpers import SoftDeleteMixin
+
+        if archive_items:
+            folders_to_delete: list[Folder] = []
+            stack = [folder]
+            while stack:
+                current = stack.pop()
+                folders_to_delete.append(current)
+                stack.extend(current.children)
+
+            for f in folders_to_delete:
+                for link in list(f.objects):
+                    for _name, config in ASSET_TYPE_CONFIGS.items():
+                        asset_id = getattr(link, config.fk_column)
+                        if asset_id is not None:
+                            asset = db.session.get(config.model, asset_id)
+                            if asset and isinstance(asset, SoftDeleteMixin):
+                                asset.soft_delete()
+                            elif asset:
+                                db.session.delete(asset)
+                            break
+
+            for f in folders_to_delete:
+                f.soft_delete()
         else:
-            # Detach assets so they become unfoldered (visible at root).
+            grandparent = folder.parent
+            for child in list(folder.children):
+                child.parent = grandparent
+                child.name = cls.resolve_name_conflict(
+                    child.name,
+                    folder.parent_id,
+                    folder.folder_type,
+                    exclude_id=child.id,
+                )
+            folder.children.clear()
             db.session.query(FolderObject).filter(
                 FolderObject.folder_id == folder.id
             ).delete(synchronize_session=False)
             db.session.flush()
+            folder.soft_delete()
 
-        db.session.delete(folder)
+    @classmethod
+    def restore_folder(cls, folder: Folder) -> None:
+        """Restore a soft-deleted folder and all its soft-deleted descendants.
+
+        Asset links and permissions were preserved during soft-delete, so
+        restoring the folder tree makes everything visible again.
+        Soft-deleted assets linked to the folders are also restored.
+        """
+        from superset.models.helpers import skip_visibility_filter, SoftDeleteMixin
+
+        folders_to_restore: list[Folder] = []
+        stack = [folder]
+        while stack:
+            current = stack.pop()
+            if current.deleted_at is not None:
+                folders_to_restore.append(current)
+            stack.extend(current.children)
+
+        for f in folders_to_restore:
+            for link in list(f.objects):
+                for _name, config in ASSET_TYPE_CONFIGS.items():
+                    asset_id = getattr(link, config.fk_column)
+                    if asset_id is not None:
+                        with skip_visibility_filter(db.session, config.model):
+                            asset = db.session.get(config.model, asset_id)
+                        if (
+                            asset
+                            and isinstance(asset, SoftDeleteMixin)
+                            and asset.deleted_at is not None
+                        ):
+                            asset.restore()
+                        break
+
+        for f in folders_to_restore:
+            f.name = cls.resolve_name_conflict(
+                f.name, f.parent_id, f.folder_type, exclude_id=f.id
+            )
+            f.restore()
 
     @classmethod
     def assign_assets(cls, folder: Folder, assets: list[dict[str, Any]]) -> None:
@@ -825,6 +916,35 @@ class FolderDAO(BaseDAO[Folder]):
         )
         db.session.flush()
         return new_folder
+
+    @classmethod
+    def handle_user_deactivation(cls, user_id: int, email: str) -> None:
+        """Handle folder cleanup when a user is removed from the workspace.
+
+        Makes the user's Only Me folder visible to admins by:
+        - Renaming it to "Only Me (<email>)"
+        - Setting is_private = False so admins can see and manage it
+        """
+        from superset.folders.utils import folder_permissions_enabled
+
+        if not folder_permissions_enabled():
+            return
+        subject = get_user_subject(user_id)
+        subject_id = subject.id if subject else None
+
+        folder = (
+            db.session.query(Folder)
+            .join(folder_editors, folder_editors.c.folder_id == Folder.id)
+            .filter(
+                folder_editors.c.subject_id == subject_id,
+                Folder.is_only_me.is_(True),
+            )
+            .first()
+        )
+        if folder:
+            folder.name = f"Only Me ({email})"
+            folder.is_private = False
+            db.session.flush()
 
     # ------------------------------------------------------------------ #
     # Pins
@@ -1068,9 +1188,14 @@ class FolderDAO(BaseDAO[Folder]):
 
             from superset.subjects.models import Subject
 
-            owned_assets = (
+            accessible_assets = (
                 select(model.id)
-                .where(model.editors.any(Subject.user_id == user_id))
+                .where(
+                    or_(
+                        model.editors.any(Subject.user_id == user_id),
+                        model.viewers.any(Subject.user_id == user_id),
+                    )
+                )
                 .subquery()
             )
             rows = (
@@ -1078,7 +1203,7 @@ class FolderDAO(BaseDAO[Folder]):
                 .join(Folder, Folder.id == FolderObject.folder_id)
                 .filter(
                     fk_col.isnot(None),
-                    fk_col.in_(select(owned_assets.c.id)),
+                    fk_col.in_(select(accessible_assets.c.id)),
                     Folder.folder_type == folder_type,
                 )
                 .distinct()

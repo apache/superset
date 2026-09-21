@@ -65,24 +65,27 @@ class UpdateFolderCommand(BaseCommand):
 
         folder = FolderDAO.update(self._model, attributes)
 
-        # When moving to a new parent: copy permissions and remove root pins
-        if self._parent_changed and self._new_parent_id is not None:
-            FolderPermissionDAO.copy_permissions_to_subfolder(
-                self._new_parent_id, folder.id
-            )
-            FolderPermissionDAO.push_down_permissions(folder.id)
-            from superset.folders.models import FolderPin
+        from superset import is_feature_enabled
 
-            db.session.query(FolderPin).filter(
-                FolderPin.folder_id == folder.id,
-            ).delete()
+        if is_feature_enabled("FOLDER_PERMISSIONS"):
+            # When moving to a new parent: copy permissions and remove root pins
+            if self._parent_changed and self._new_parent_id is not None:
+                FolderPermissionDAO.copy_permissions_to_subfolder(
+                    self._new_parent_id, folder.id
+                )
+                FolderPermissionDAO.push_down_permissions(folder.id)
+                from superset.folders.models import FolderPin
 
-        # Sync permissions from parent when requested
-        if self._properties.get("sync_permissions") and folder.parent_id:
-            FolderPermissionDAO.copy_permissions_to_subfolder(
-                folder.parent_id, folder.id
-            )
-            FolderPermissionDAO.push_down_permissions(folder.id)
+                db.session.query(FolderPin).filter(
+                    FolderPin.folder_id == folder.id,
+                ).delete()
+
+            # Sync permissions from parent when requested
+            if self._properties.get("sync_permissions") and folder.parent_id:
+                FolderPermissionDAO.copy_permissions_to_subfolder(
+                    folder.parent_id, folder.id
+                )
+                FolderPermissionDAO.push_down_permissions(folder.id)
 
         return folder
 
@@ -102,31 +105,52 @@ class UpdateFolderCommand(BaseCommand):
                 exceptions.append(FolderParentTypeMismatchValidationError())
             elif FolderDAO.is_descendant(parent, self._model):  # type: ignore[arg-type]
                 exceptions.append(FolderCycleValidationError())
-            elif not security_manager.is_admin():
-                user_id = get_user_id()
-                if not user_id or not FolderPermissionDAO.user_is_folder_editor(user_id, parent.id):
-                    raise FolderForbiddenError()
+            elif security_manager.is_admin() and not parent.is_private:
+                pass
+            else:
+                from superset.folders.utils import folder_permissions_enabled
+
+                if folder_permissions_enabled():
+                    user_id = get_user_id()
+                    if not user_id or not FolderPermissionDAO.user_is_folder_editor(user_id, parent.id):
+                        raise FolderForbiddenError()
+                else:
+                    from flask import g
+
+                    from superset.folders.utils import can_manage_folders
+
+                    if not can_manage_folders(g.user):
+                        raise FolderForbiddenError()
         new_parent_id = parent.id if parent else None
         self._new_parent_id = new_parent_id
         return new_parent_id
 
     def validate(self) -> None:
-        from superset.utils import json as json_utils
-
         self._model = FolderDAO.find_by_id_or_uuid(self._id)
         if not self._model:
             raise FolderNotFoundError()
 
-        if not security_manager.is_admin():
-            user_id = get_user_id()
-            if not user_id or not FolderPermissionDAO.user_is_folder_editor(
-                user_id, self._model.id
-            ):
-                raise FolderForbiddenError()
+        if security_manager.is_admin() and not self._model.is_private:
+            pass
+        else:
+            from superset.folders.utils import folder_permissions_enabled
+
+            if folder_permissions_enabled():
+                user_id = get_user_id()
+                if not user_id or not FolderPermissionDAO.user_is_folder_editor(
+                    user_id, self._model.id
+                ):
+                    raise FolderForbiddenError()
+            else:
+                from flask import g
+
+                from superset.folders.utils import can_manage_folders
+
+                if not can_manage_folders(g.user):
+                    raise FolderForbiddenError()
 
         # "Only Me" folder: reject name/parent changes (sync_permissions is allowed)
-        extra = json_utils.loads(self._model.extra) if self._model.extra else {}
-        if extra.get("only_me"):
+        if self._model.is_only_me:
             if "name" in self._properties or "parent_uuid" in self._properties:
                 raise FolderForbiddenError()
 

@@ -5017,32 +5017,64 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         # Folder gate: if an asset is in a folder, non-members are blocked
         # even if Superset's standard checks granted access above.
-        if is_feature_enabled("FOLDERS") and (dashboard or chart):
-            if not self.is_admin():
+        if (
+            is_feature_enabled("FOLDERS")
+            and is_feature_enabled("FOLDER_PERMISSIONS")
+            and (dashboard or chart)
+        ):
+            # Embedded charts arrive as query_context — resolve the chart from
+            # form_data so guest users can't bypass the folder gate.
+            if not chart and self.is_guest_user():
+                qc = kwargs.get("query_context")
+                if qc and getattr(qc, "form_data", None):
+                    slice_id = qc.form_data.get("slice_id")
+                    if slice_id:
+                        from superset.models.slice import Slice
+
+                        chart = self.session.get(Slice, int(slice_id))
+
+            if not dashboard and not chart:
+                pass  # nothing to gate
+            elif self.is_admin():
+                pass  # admin bypass (private folder enforcement is at the API layer)
+            else:
                 user_id = get_user_id()
-                asset = dashboard or chart
-                if user_id and not self.is_editor(asset):
-                    from superset.folders.models import FolderObject
+                if user_id:
+                    asset = dashboard or chart
+                    if self.is_editor(asset) or self.is_viewer(asset):
+                        pass  # asset editors/viewers always have access
+                    else:
+                        from superset.folders.models import Folder, FolderObject
 
-                    fo_filter = (
-                        FolderObject.dashboard_id == dashboard.id
-                        if dashboard
-                        else FolderObject.chart_id == chart.id
-                    )
-                    fo = self.session.query(FolderObject).filter(fo_filter).first()
-                    if fo:
-                        from superset.daos.folder_permissions import FolderPermissionDAO
+                        fk_col = FolderObject.dashboard_id if dashboard else FolderObject.chart_id
+                        fo = self.session.query(FolderObject).filter(fk_col == asset.id).first()
+                        if fo:
+                            folder = self.session.get(Folder, fo.folder_id)
+                            if folder:
+                                from superset.daos.folder_permissions import FolderPermissionDAO
 
-                        if not FolderPermissionDAO.user_has_folder_access(
-                            user_id, fo.folder_id
-                        ):
-                            raise SupersetSecurityException(
-                                SupersetError(
-                                    error_type=SupersetErrorType.DASHBOARD_SECURITY_ACCESS_ERROR,
-                                    message="Access denied — this asset is in a folder you don't have access to.",
-                                    level=ErrorLevel.WARNING,
-                                )
-                            )
+                                if not FolderPermissionDAO.user_has_folder_access(
+                                    user_id, folder.id
+                                ):
+                                    error_type = (
+                                        SupersetErrorType.DASHBOARD_SECURITY_ACCESS_ERROR
+                                        if dashboard
+                                        else SupersetErrorType.CHART_SECURITY_ACCESS_ERROR
+                                    )
+                                    message = (
+                                        "Access denied — this asset is in a private folder "
+                                        "and can only be accessed by its owner."
+                                        if folder.is_private
+                                        else "Access denied — you don't have access to the "
+                                        "folder containing this asset."
+                                    )
+                                    raise SupersetSecurityException(
+                                        SupersetError(
+                                            error_type=error_type,
+                                            message=message,
+                                            level=ErrorLevel.WARNING,
+                                        )
+                                    )
 
     def get_user_by_username(self, username: str) -> Optional[User]:
         """

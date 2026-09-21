@@ -25,7 +25,12 @@ import {
   useRef,
   useState,
 } from 'react';
-import { SupersetClient, getNumberFormatter } from '@superset-ui/core';
+import {
+  SupersetClient,
+  getNumberFormatter,
+  isFeatureEnabled,
+  FeatureFlag,
+} from '@superset-ui/core';
 import { styled, css, useTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import rison from 'rison';
@@ -296,9 +301,7 @@ export default function TransferModal({
         setLeftPage(0);
         const folders = (
           (foldersRes.json.result as FolderOption[]) || []
-        ).filter(
-          f => f.uuid !== currentFolderUuid && f.user_permission !== 'implicit',
-        );
+        ).filter(f => f.uuid !== currentFolderUuid);
         setAllFolders(folders);
         if (preSelectedKeys?.length) {
           setLeftSelected(new Set(preSelectedKeys));
@@ -605,6 +608,12 @@ export default function TransferModal({
       return;
     }
 
+    // Skip all permission-related confirmations when permissions are OFF
+    if (!isFeatureEnabled('FOLDER_PERMISSIONS' as FeatureFlag)) {
+      handleDone();
+      return;
+    }
+
     // Check if crossing the Only Me boundary
     const targetFolder = allFolders.find(f => f.uuid === targetUuid);
     const targetIsPrivate = targetFolder?.is_private ?? false;
@@ -626,6 +635,18 @@ export default function TransferModal({
     // Moving between subfolders inside Only Me — no confirmation
     if (currentFolderIsPrivate && targetIsPrivate) {
       handleDone();
+      return;
+    }
+
+    // Moving INTO a private folder from a non-private source
+    if (!currentFolderIsPrivate && targetIsPrivate) {
+      showConfirm({
+        title: t('Move to private folder?'),
+        body: t('Only you will be able to see %s.', movedItemNames),
+        confirmText: t('Move'),
+        onConfirm: handleDone,
+        icon: null,
+      });
       return;
     }
 
@@ -761,7 +782,9 @@ export default function TransferModal({
       }
     }
 
-    const eligible = allFolders.filter(f => !excluded.has(f.uuid));
+    const eligible = allFolders.filter(
+      f => !excluded.has(f.uuid) && f.user_permission === 'editor',
+    );
 
     // Build tree from flat list
     type TreeNode = {

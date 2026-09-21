@@ -20,59 +20,42 @@ from functools import partial
 
 from superset import security_manager
 from superset.commands.base import BaseCommand
-from superset.utils.core import get_user_id
+from superset.extensions import db
+from superset.models.helpers import skip_visibility_filter
 from superset.utils.decorators import on_error, transaction
 
 from superset.commands.folder.exceptions import (
-    FolderDeleteFailedError,
     FolderForbiddenError,
+    FolderNotDeletedError,
     FolderNotFoundError,
+    FolderRestoreFailedError,
 )
 from superset.daos.folder import FolderDAO
 from superset.folders.models import Folder
-from superset.daos.folder_permissions import FolderPermissionDAO
 
 
-class DeleteFolderCommand(BaseCommand):
-    def __init__(self, folder_id_or_uuid: str, archive_items: bool = False):
+class RestoreFolderCommand(BaseCommand):
+    def __init__(self, folder_id_or_uuid: str):
         self._id = folder_id_or_uuid
-        self._archive_items = archive_items
         self._model: Folder | None = None
 
-    @transaction(on_error=partial(on_error, reraise=FolderDeleteFailedError))
-    def run(self) -> None:
+    @transaction(on_error=partial(on_error, reraise=FolderRestoreFailedError))
+    def run(self) -> Folder:
         self.validate()
         assert self._model
-        FolderDAO.delete_folder(self._model, self._archive_items)
+        with skip_visibility_filter(db.session, Folder):
+            FolderDAO.restore_folder(self._model)
+        return self._model
 
     def validate(self) -> None:
-        from superset.utils import json as json_utils
+        with skip_visibility_filter(db.session, Folder):
+            self._model = FolderDAO.find_by_id_or_uuid(self._id)
 
-        self._model = FolderDAO.find_by_id_or_uuid(self._id)
         if not self._model:
             raise FolderNotFoundError()
 
-        from superset.folders.utils import folder_permissions_enabled
+        if self._model.deleted_at is None:
+            raise FolderNotDeletedError()
 
-        _perms_on = folder_permissions_enabled()
-
-        # "Only Me" folder cannot be deleted
-        if _perms_on and self._model.is_only_me:
+        if not security_manager.is_admin():
             raise FolderForbiddenError()
-
-        if security_manager.is_admin() and not self._model.is_private:
-            return
-        if not security_manager.is_admin() or self._model.is_private:
-            if _perms_on:
-                user_id = get_user_id()
-                if not user_id or not FolderPermissionDAO.user_is_folder_editor(
-                    user_id, self._model.id
-                ):
-                    raise FolderForbiddenError()
-            else:
-                from flask import g
-
-                from superset.folders.utils import can_manage_folders
-
-                if not can_manage_folders(g.user):
-                    raise FolderForbiddenError()

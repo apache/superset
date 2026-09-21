@@ -107,10 +107,40 @@ def folder_raise_for_access_bypass(**kwargs: Any) -> bool:
             ):
                 chart_ids.add(slice_id)
         if dash_id := _safe_int(form_data.get("dashboardId")):
-            dashboard_ids.add(dash_id)
+            # Verify the dashboard contains a chart using this datasource.
+            from superset.models.dashboard import dashboard_slices
+            from superset.models.slice import Slice as SliceModel2
+
+            has_matching_chart = (
+                (
+                    db.session.query(dashboard_slices.c.slice_id)
+                    .join(SliceModel2, SliceModel2.id == dashboard_slices.c.slice_id)
+                    .filter(
+                        dashboard_slices.c.dashboard_id == dash_id,
+                        SliceModel2.datasource_id == query_context.datasource.id,
+                    )
+                    .first()
+                )
+                if (hasattr(query_context, "datasource") and query_context.datasource)
+                else None
+            )
+            if has_matching_chart:
+                dashboard_ids.add(dash_id)
 
     chart_ids.discard(None)
     dashboard_ids.discard(None)
+
+    # Check private folder gate for ALL collected IDs (including form_data).
+    for cid in chart_ids:
+        if is_asset_in_private_folder(chart_id=cid):
+            return FolderPermissionDAO.user_has_folder_access_for_asset(
+                user_id=user_id, chart_id=cid
+            )
+    for did in dashboard_ids:
+        if is_asset_in_private_folder(dashboard_id=did):
+            return FolderPermissionDAO.user_has_folder_access_for_asset(
+                user_id=user_id, dashboard_id=did
+            )
 
     # Check folder access for any collected ID
     for chart_id in chart_ids:
@@ -156,34 +186,28 @@ def folder_extra_owners(resource: Any) -> list[int]:
 
 def after_asset_create(asset: Any, asset_type: str) -> None:
     """Auto-assign newly created charts/dashboards to the user's 'Only Me' folder."""
-    import logging
+    from superset.folders.utils import folder_permissions_enabled
 
-    logger = logging.getLogger(__name__)
-    logger.info("[after_asset_create] called with asset_type=%s, asset_id=%s", asset_type, asset.id)
+    if not folder_permissions_enabled():
+        return
 
     from superset.daos.folder import FolderDAO
     from superset.folders.utils import can_manage_folders
 
     user_id = get_user_id()
-    logger.info("[after_asset_create] user_id=%s", user_id)
     if not user_id:
-        logger.info("[after_asset_create] no user_id, returning")
         return
 
     from flask import g
 
     if not hasattr(g, "user"):
-        logger.info("[after_asset_create] no g.user, returning")
         return
     if not can_manage_folders(g.user):
-        logger.info("[after_asset_create] user cannot manage folders, roles=%s", [r.name for r in g.user.roles])
         return
 
-    logger.info("[after_asset_create] creating/getting Only Me folder")
     folder = FolderDAO.get_or_create_only_me_folder(user_id)
-    logger.info("[after_asset_create] assigning asset to folder %s", folder.id)
-    FolderDAO.assign_assets(folder, [{"type": asset_type, "id": asset.id}])
-    logger.info("[after_asset_create] done")
+    if folder:
+        FolderDAO.assign_assets(folder, [{"type": asset_type, "id": asset.id}])
 
 
 def folder_export_fields(model: Any, asset_type: str) -> dict[str, Any]:
@@ -218,10 +242,13 @@ def folder_export_fields(model: Any, asset_type: str) -> dict[str, Any]:
     # Walk the ancestry rather than checking the leaf alone: a folder nested
     # under a private one is only reachable by that folder's members. The same
     # pass collects each node's description so it survives the round trip.
+    from superset.folders.utils import folder_permissions_enabled
+
+    perms_on = folder_permissions_enabled()
     nodes: list[dict[str, Any]] = []
     for entry in path:
         ancestor = FolderDAO.get_by_uuid(entry["uuid"])
-        if ancestor is not None and ancestor.is_private:
+        if perms_on and ancestor is not None and ancestor.is_private:
             return {}
         nodes.append(
             {
@@ -263,6 +290,8 @@ def folder_import_handler(
             Folder.name == name,
             Folder.folder_type == DEFAULT_FOLDER_TYPE,
             Folder.parent_id == (parent.id if parent else None),
+            Folder.is_private.is_(False),
+            Folder.is_only_me.is_(False),
         )
         folder = query.first()
         if folder is None:

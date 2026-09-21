@@ -47,12 +47,24 @@ def _validate_folder_assets(
     if not model:
         raise FolderNotFoundError()
 
-    if not security_manager.is_admin():
-        user_id = get_user_id()
-        if not user_id or not FolderPermissionDAO.user_is_folder_editor(
-            user_id, model.id
-        ):
-            raise FolderForbiddenError()
+    if security_manager.is_admin():
+        pass
+    else:
+        from superset.folders.utils import folder_permissions_enabled
+
+        if folder_permissions_enabled():
+            user_id = get_user_id()
+            if not user_id or not FolderPermissionDAO.user_is_folder_editor(
+                user_id, model.id
+            ):
+                raise FolderForbiddenError()
+        else:
+            from flask import g
+
+            from superset.folders.utils import can_manage_folders
+
+            if not can_manage_folders(g.user):
+                raise FolderForbiddenError()
 
     exceptions: list[ValidationError] = []
     allowed = set(asset_types_for_folder_type(model.folder_type))

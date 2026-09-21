@@ -45,12 +45,16 @@ from superset.commands.folder.exceptions import (
     FolderDeleteFailedError,
     FolderForbiddenError,
     FolderInvalidError,
+    FolderNotDeletedError,
     FolderNotFoundError,
+    FolderRestoreFailedError,
     FolderUpdateFailedError,
 )
+from superset.commands.folder.restore import RestoreFolderCommand
 from superset.commands.folder.update import UpdateFolderCommand
 from superset.daos.folder import FolderDAO, ResolvedAsset
 from superset.daos.folder_permissions import FolderPermissionDAO
+from superset.exceptions import SupersetSecurityException
 from superset.extensions import db, event_logger
 from superset.folders.constants import ASSET_TYPE_CONFIGS, DEFAULT_FOLDER_TYPE
 from superset.folders.models import Folder, folder_editors, folder_viewers
@@ -242,6 +246,7 @@ def serialize_asset(asset_type: str, asset: Any) -> dict[str, Any]:
         "id": asset.id,
         "uuid": str(asset.uuid) if getattr(asset, "uuid", None) else None,
         "name": getattr(asset, config.title_attr, None),
+        "description": getattr(asset, "description", None),
         "url": getattr(asset, "url", None),
         "changed_on": getattr(asset, "changed_on", None),
         "changed_on_humanized": getattr(asset, "changed_on_humanized", None),
@@ -398,7 +403,7 @@ class FolderRestApi(BaseSupersetApi):
 
         if not folder_permissions_enabled():
             return
-        if security_manager.is_admin():
+        if security_manager.is_admin() and not folder.is_private:
             return
         user_id = get_user_id()
         if not user_id:
@@ -423,7 +428,7 @@ class FolderRestApi(BaseSupersetApi):
                 raise FolderForbiddenError()
             return
 
-        if security_manager.is_admin():
+        if security_manager.is_admin() and not folder.is_private:
             return
         user_id = get_user_id()
         if not user_id or not FolderPermissionDAO.user_is_folder_editor(
@@ -727,7 +732,18 @@ class FolderRestApi(BaseSupersetApi):
             self._raise_for_folder_access(folder)
         except FolderForbiddenError:
             return self.response_403()
-        return self.response(200, result=serialize_folder(folder))
+        # Compute implicit status for accurate user_permission serialization
+        implicit_ids: set[int] = set()
+        user_id = get_user_id()
+        if (
+            user_id
+            and not security_manager.is_admin()
+            and not FolderPermissionDAO.user_has_folder_access(user_id, folder.id)
+        ):
+            implicit_ids = {folder.id}
+        return self.response(
+            200, result=serialize_folder(folder, implicit_folder_ids=implicit_ids)
+        )
 
     @expose("/<string:folder_uuid>/assets", methods=("GET",))
     @protect()
@@ -986,6 +1002,44 @@ class FolderRestApi(BaseSupersetApi):
         except FolderDeleteFailedError as ex:
             return self.response_422(message=str(ex))
 
+    @expose("/<string:folder_uuid>/restore", methods=("POST",))
+    @protect()
+    @safe
+    @permission_name("write")
+    @statsd_metrics
+    def restore(self, folder_uuid: str) -> Response:
+        """Restore a soft-deleted folder and its descendants.
+        ---
+        post:
+          summary: Restore a soft-deleted folder
+          parameters:
+          - in: path
+            name: folder_uuid
+            required: true
+            schema:
+              type: string
+          responses:
+            200:
+              description: The folder was restored
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            409:
+              description: Folder is not deleted
+        """
+        try:
+            folder = RestoreFolderCommand(folder_uuid).run()
+            return self.response(200, message="OK", uuid=str(folder.uuid))
+        except FolderNotFoundError:
+            return self.response_404()
+        except FolderForbiddenError:
+            return self.response_403()
+        except FolderNotDeletedError:
+            return self.response(409, message="Folder is not deleted")
+        except FolderRestoreFailedError as ex:
+            return self.response_422(message=str(ex))
+
     @expose("/<string:folder_uuid>/assets", methods=("PUT",))
     @protect()
     @safe
@@ -1208,6 +1262,15 @@ class FolderRestApi(BaseSupersetApi):
             DashboardNotFoundError,
         )
         from superset.daos.dashboard import DashboardDAO
+        from superset.models.dashboard import Dashboard
+
+        dashboard = db.session.get(Dashboard, dashboard_id)
+        if not dashboard:
+            return self.response_404()
+        try:
+            security_manager.raise_for_access(dashboard=dashboard)
+        except SupersetSecurityException:
+            return self.response_403()
 
         try:
             slices = DashboardDAO.get_charts_for_dashboard(str(dashboard_id))
@@ -1323,6 +1386,45 @@ class FolderRestApi(BaseSupersetApi):
         return self.response_404()
 
     # ------------------------------------------------------------------ #
+    # Only Me folder
+    # ------------------------------------------------------------------ #
+    @expose("/only-me", methods=("POST",))
+    @protect()
+    @safe
+    @permission_name("write")
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.only_me",
+        log_to_statsd=False,
+    )
+    @transaction()
+    def only_me(self) -> Response:
+        """Create or return the current user's Only Me folder.
+        ---
+        post:
+          summary: Ensure the Only Me folder exists
+          responses:
+            200:
+              description: The Only Me folder
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/FolderResponseSchema'
+            403:
+              $ref: '#/components/responses/403'
+        """
+        if not folder_permissions_enabled():
+            return self.response_404()
+
+        user_id = get_user_id()
+        if not user_id or not can_manage_folders(g.user):
+            return self.response_403()
+        folder = FolderDAO.get_or_create_only_me_folder(user_id)
+        if not folder:
+            return self.response_404()
+        return self.response(200, result=serialize_folder(folder))
+
+    # ------------------------------------------------------------------ #
     # Subjects (permissions)
     # ------------------------------------------------------------------ #
     @expose("/<folder_uuid>/subjects", methods=("GET",))
@@ -1356,7 +1458,13 @@ class FolderRestApi(BaseSupersetApi):
         if not folder:
             return self.response_404()
         # Explicit members only — implicit access users cannot see permissions
-        if not security_manager.is_admin():
+        if security_manager.is_admin() and folder.is_private:
+            user_id = get_user_id()
+            if not user_id or not FolderPermissionDAO.user_has_folder_access(
+                user_id, folder.id
+            ):
+                return self.response_403()
+        elif not security_manager.is_admin():
             user_id = get_user_id()
             if not user_id or not FolderPermissionDAO.user_has_folder_access(
                 user_id, folder.id
@@ -1696,6 +1804,13 @@ class FolderRestApi(BaseSupersetApi):
         folder = db.session.get(Folder, fo.folder_id)
         if not folder:
             return self.response(200, result=None)
+
+        if folder.is_private:
+            user_id = get_user_id()
+            if not user_id or not FolderPermissionDAO.user_has_folder_access(
+                user_id, folder.id
+            ):
+                return self.response(200, result=None)
 
         return self.response(
             200,

@@ -109,6 +109,7 @@ interface Crumb {
   name: string;
   user_permission?: 'editor' | 'viewer' | 'implicit' | null;
   is_only_me?: boolean;
+  is_private?: boolean;
 }
 
 interface SortColumn {
@@ -287,7 +288,7 @@ function AnalyticsList({
         if (currentFolder) {
           await SupersetClient.delete({
             endpoint: `/api/v1/folders/${currentFolder}/assets?q=${encodeURIComponent(
-              JSON.stringify([{ type: move.assetType, id: move.assetId }]),
+              rison.encode([{ type: move.assetType, id: move.assetId }]),
             )}`,
           });
         }
@@ -565,12 +566,14 @@ function AnalyticsList({
             parent_uuid: string | null;
             user_permission?: 'editor' | 'viewer' | 'implicit' | null;
             is_only_me?: boolean;
+            is_private?: boolean;
           };
           crumbs.unshift({
             uuid: folder.uuid,
             name: folder.name,
             user_permission: folder.user_permission,
             is_only_me: folder.is_only_me,
+            is_private: folder.is_private,
           });
           uuid = folder.parent_uuid;
         }
@@ -810,7 +813,9 @@ function AnalyticsList({
             return null;
           }
           const pinIcon =
-            isAtRoot && (isPinned(original) || original.is_only_me) ? (
+            isAtRoot &&
+            (isPinned(original) ||
+              (folderPermsEnabled && original.is_only_me)) ? (
               <PushpinOutlined
                 style={{ fontSize: 12, color: theme.colorPrimary }}
               />
@@ -886,6 +891,9 @@ function AnalyticsList({
                       />
                     )}
                     {highlightName(original.name)}
+                    {original.description && (
+                      <InfoTooltip tooltip={original.description} />
+                    )}
                     {original.is_private && (
                       <span
                         css={{
@@ -1058,24 +1066,28 @@ function AnalyticsList({
           );
         },
       },
-      {
-        accessor: 'editors',
-        Header: t('Editors'),
-        id: 'editors',
-        disableSortBy: true,
-        Cell: ({ row: { original } }: CellProps<ContentItem>) => (
-          <SubjectPile subjects={original.editors || []} />
-        ),
-      },
-      {
-        accessor: 'viewers',
-        Header: t('Viewers'),
-        id: 'viewers',
-        disableSortBy: true,
-        Cell: ({ row: { original } }: CellProps<ContentItem>) => (
-          <SubjectPile subjects={original.viewers || []} />
-        ),
-      },
+      ...(folderPermsEnabled
+        ? [
+            {
+              accessor: 'editors',
+              Header: t('Editors'),
+              id: 'editors',
+              disableSortBy: true,
+              Cell: ({ row: { original } }: CellProps<ContentItem>) => (
+                <SubjectPile subjects={original.editors || []} />
+              ),
+            },
+            {
+              accessor: 'viewers',
+              Header: t('Viewers'),
+              id: 'viewers',
+              disableSortBy: true,
+              Cell: ({ row: { original } }: CellProps<ContentItem>) => (
+                <SubjectPile subjects={original.viewers || []} />
+              ),
+            },
+          ]
+        : []),
       {
         accessor: 'changed_on',
         Header: t('Last modified'),
@@ -1170,8 +1182,9 @@ function AnalyticsList({
             );
           }
           // chart / dashboard rows: mirror the CRUD lists' row actions.
+          // Subject.id is the subject row, not the user, so match on user_id.
           const isAssetEditor = original.editors?.some(
-            o => o.user_id === currentUserId,
+            e => e.user_id === currentUserId,
           );
           const canEditAsset = canEditCurrentFolder || isAssetEditor;
           return (
@@ -1273,42 +1286,46 @@ function AnalyticsList({
           { label: t('Dashboard'), value: 'dashboard' },
         ],
       },
-      {
-        Header: t('Editor'),
-        key: 'editors',
-        id: 'editors',
-        input: 'select',
-        operator: FilterOperator.RelationManyMany,
-        unfilteredLabel: t('All'),
-        fetchSelects: createFetchRelated(
-          'chart',
-          'editors',
-          createErrorHandler(errMsg =>
-            addDangerToast(
-              t('An error occurred while fetching editors: %s', errMsg),
-            ),
-          ),
-        ),
-        paginate: true,
-      },
-      {
-        Header: t('Viewer'),
-        key: 'viewers',
-        id: 'viewers',
-        input: 'select',
-        operator: FilterOperator.RelationManyMany,
-        unfilteredLabel: t('All'),
-        fetchSelects: createFetchRelated(
-          'chart',
-          'viewers',
-          createErrorHandler(errMsg =>
-            addDangerToast(
-              t('An error occurred while fetching viewers: %s', errMsg),
-            ),
-          ),
-        ),
-        paginate: true,
-      },
+      ...(folderPermsEnabled
+        ? [
+            {
+              Header: t('Editor'),
+              key: 'editors',
+              id: 'editors',
+              input: 'select' as const,
+              operator: FilterOperator.RelationManyMany,
+              unfilteredLabel: t('All'),
+              fetchSelects: createFetchRelated(
+                'chart',
+                'editors',
+                createErrorHandler(errMsg =>
+                  addDangerToast(
+                    t('An error occurred while fetching editors: %s', errMsg),
+                  ),
+                ),
+              ),
+              paginate: true,
+            },
+            {
+              Header: t('Viewer'),
+              key: 'viewers',
+              id: 'viewers',
+              input: 'select' as const,
+              operator: FilterOperator.RelationManyMany,
+              unfilteredLabel: t('All'),
+              fetchSelects: createFetchRelated(
+                'chart',
+                'viewers',
+                createErrorHandler(errMsg =>
+                  addDangerToast(
+                    t('An error occurred while fetching viewers: %s', errMsg),
+                  ),
+                ),
+              ),
+              paginate: true,
+            },
+          ]
+        : []),
       {
         Header: t('Last modified'),
         key: 'changed_on',
@@ -1532,7 +1549,7 @@ function AnalyticsList({
           addSuccessToast={addSuccessToast}
         />
       )}
-      {folderToManagePerms && (
+      {folderPermsEnabled && folderToManagePerms && (
         <FolderPermissionsModal
           folderUuid={folderToManagePerms.uuid ?? ''}
           folderName={folderToManagePerms.name}
@@ -1551,7 +1568,9 @@ function AnalyticsList({
         <TransferModal
           currentFolderUuid={currentFolder.uuid}
           currentFolderName={currentFolder.name}
-          currentFolderIsPrivate={breadcrumb.some(c => c.is_only_me)}
+          currentFolderIsPrivate={breadcrumb.some(
+            c => c.is_only_me || c.is_private,
+          )}
           preSelectedKeys={
             moveTarget ? [`${moveTarget.type}-${moveTarget.id}`] : []
           }
@@ -1726,25 +1745,27 @@ function AnalyticsList({
                     <BreadcrumbWrap>
                       <FolderBreadcrumb items={breadcrumbItems} />
                     </BreadcrumbWrap>
-                    {currentFolder.is_only_me && (
-                      <Alert
-                        type="success"
-                        showIcon
-                        message={
-                          <>
-                            <span style={{ fontWeight: 800 }}>
-                              {t("Only you can see what's in this folder.")}
-                            </span>{' '}
-                            {t(
-                              'New charts and dashboards land here by default. Move them out to share. Permissions then inherit from the destination folder.',
-                            )}
-                          </>
-                        }
-                        css={{
+                    {folderPermsEnabled && currentFolder.is_only_me && (
+                      <div
+                        style={{
                           marginBottom: theme.sizeUnit * 2,
-                          padding: `${theme.sizeUnit * 4}px ${theme.sizeUnit * 4}px`,
                         }}
-                      />
+                      >
+                        <Alert
+                          type="success"
+                          showIcon
+                          message={
+                            <>
+                              <span style={{ fontWeight: 800 }}>
+                                {t("Only you can see what's in this folder.")}
+                              </span>{' '}
+                              {t(
+                                'New charts and dashboards land here by default. Move them out to share. Permissions then inherit from the destination folder.',
+                              )}
+                            </>
+                          }
+                        />
+                      </div>
                     )}
                   </>
                 )
