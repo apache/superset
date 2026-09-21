@@ -17,21 +17,28 @@
  * under the License.
  */
 import { FC, Fragment, useCallback, useEffect, useState } from 'react';
+import { useSelector } from 'react-redux';
 
 import { omit } from 'lodash-es';
 import { t } from '@apache-superset/core/translation';
 import {
+  ClientErrorObject,
+  DatasourceKey,
+  DatasourceType,
   ensureIsArray,
   getClientErrorObject,
   JsonObject,
   QueryFormData,
 } from '@superset-ui/core';
 import { Alert } from '@apache-superset/core/components';
-import { styled } from '@apache-superset/core/theme';
+import { styled, type SupersetTheme } from '@apache-superset/core/theme';
 import { Loading } from '@superset-ui/core/components';
 import { SupportedLanguage } from '@superset-ui/core/components/CodeSyntaxHighlighter';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import ViewQuery from 'src/explore/components/controls/ViewQuery';
+import type { ChartState } from 'src/explore/types';
+import type { RootState } from 'src/views/store';
+import SemanticRequestView from './SemanticRequestView';
 
 interface Props {
   latestQueryFormData: QueryFormData;
@@ -44,14 +51,34 @@ type Result = {
   error?: string;
 };
 
+export function getSemanticReportState(
+  queriesResponse: readonly { query?: string }[] | null | undefined,
+): 'has-requests' | 'none-reported' | 'not-run' {
+  if (!queriesResponse?.length) {
+    return 'not-run';
+  }
+  return queriesResponse.some(entry => entry.query)
+    ? 'has-requests'
+    : 'none-reported';
+}
+
 const ViewQueryModalContainer = styled.div`
   height: 100%;
   display: flex;
   flex-direction: column;
-  gap: ${({ theme }) => theme.sizeUnit * 4}px;
+  gap: ${({ theme }: { theme: SupersetTheme }) => theme.sizeUnit * 4}px;
 `;
 
 const ViewQueryModal: FC<Props> = ({ latestQueryFormData, ownState }) => {
+  const isSemanticView =
+    new DatasourceKey(latestQueryFormData.datasource).type ===
+    DatasourceType.SemanticView;
+  const queriesResponse = useSelector<
+    RootState,
+    ChartState['queriesResponse'] | undefined
+  >(
+    state => state.charts?.[latestQueryFormData.slice_id ?? 0]?.queriesResponse,
+  );
   const [result, setResult] = useState<Result[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -76,22 +103,51 @@ const ViewQueryModal: FC<Props> = ({ latestQueryFormData, ownState }) => {
           setError(null);
         })
         .catch(response => {
-          getClientErrorObject(response).then(({ error, message }) => {
-            setError(
-              error ||
-                message ||
-                response.statusText ||
-                t('Sorry, An error occurred'),
-            );
-            setIsLoading(false);
-          });
+          getClientErrorObject(response).then(
+            ({ error, message }: ClientErrorObject) => {
+              setError(
+                error ||
+                  message ||
+                  response.statusText ||
+                  t('Sorry, An error occurred'),
+              );
+              setIsLoading(false);
+            },
+          );
         });
     },
     [latestQueryFormData, ownState],
   );
   useEffect(() => {
-    loadChartData('query');
-  }, [loadChartData]);
+    if (!isSemanticView) {
+      loadChartData('query');
+    }
+  }, [isSemanticView, loadChartData]);
+
+  if (isSemanticView) {
+    const reportState = getSemanticReportState(queriesResponse);
+    const noRequestMessage = t('No provider query is available for this run.');
+    return (
+      <ViewQueryModalContainer>
+        {reportState === 'not-run' ? (
+          <Alert
+            type="info"
+            message={t(
+              'The provider query will be available after the chart runs.',
+            )}
+          />
+        ) : (
+          queriesResponse?.map((entry, index) =>
+            entry.query ? (
+              <SemanticRequestView key={index} requestText={entry.query} />
+            ) : (
+              <Alert key={index} type="info" message={noRequestMessage} />
+            ),
+          )
+        )}
+      </ViewQueryModalContainer>
+    );
+  }
 
   if (isLoading) {
     return <Loading />;

@@ -984,6 +984,11 @@ msgid "A reusable dataset will be saved with your chart."
 msgstr "Ein wiederverwendbarer Datensatz wird mit Ihrem Diagramm gespeichert."
 
 msgid ""
+"A semantic view's provider query is produced when the chart runs and "
+"returned with its data."
+msgstr ""
+
+msgid ""
 "A set of parameters that become available in the query using Jinja "
 "templating syntax"
 msgstr ""
@@ -9499,6 +9504,9 @@ msgstr ""
 "Derzeit sind keine mehrschichtigen Deck.gl-Diagramme zu diesem Dashboard "
 "hinzugefügt."
 
+msgid "No provider query is available for this run."
+msgstr ""
+
 msgid "No records found"
 msgstr "Keine Einträge gefunden"
 
@@ -14535,6 +14543,9 @@ msgstr "Die primäre Metrik wird verwendet, um die Bogensegmentgrößen zu defin
 
 msgid "The provided table was not found in the provided database"
 msgstr "Die angegebene Tabelle wurde in der angegebenen Datenbank nicht gefunden"
+
+msgid "The provider query will be available after the chart runs."
+msgstr ""
 
 msgid "The query associated with the results was deleted."
 msgstr "Die den Ergebnissen zugeordnete Abfrage wurde gelöscht."
