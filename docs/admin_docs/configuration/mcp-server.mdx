@@ -1058,6 +1058,15 @@ can adjust the SQL comparisons. Use the applied filters and datasource settings
 as well when explaining such queries. `query_dataset.applied_filters` retains the
 original expressions so callers can compare the requested and resolved ranges.
 
+### Overriding a saved chart's time grain
+
+Pass `extra_form_data={"time_grain_sqla": "P1M"}` to `get_chart_data` or
+`get_chart_sql` to aggregate a saved chart by month instead of its saved grain.
+For Generic Chart Axes charts, both MCP overrides and dashboard time-grain
+filters update the `BASE_AXIS` column's `timeGrain`, regardless of its position
+in the query's `columns` list. Other columns are left untouched. Queries without
+a `BASE_AXIS` column continue to use `extras.time_grain_sqla`.
+
 ### Reading applied dashboard filters
 
 When answering about a filtered dashboard, call `get_dashboard_info` with the

@@ -29,6 +29,7 @@ import logging
 from typing import Any, TYPE_CHECKING
 from urllib.parse import parse_qs, urlparse
 
+from superset.common.utils.time_grain_utils import apply_time_grain_to_base_axis
 from superset.constants import EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS
 from superset.utils.core import ExtraFiltersReasonType
 
@@ -334,6 +335,8 @@ def merge_form_data_filters_into_query(
         ):
             if key in QUERY_CONTEXT_EXTRA_FORM_DATA_EXTRAS_KEYS:
                 query["extras"] = {**(query.get("extras") or {}), key: form_data[key]}
+                if key == "time_grain_sqla":
+                    apply_time_grain_to_base_axis(query, form_data[key])
             else:
                 query[key] = form_data[key]
 
