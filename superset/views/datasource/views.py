@@ -122,24 +122,23 @@ class Datasource(BaseSupersetView):
             raise DatasetForbiddenError() from ex
 
         # The request may repoint the dataset to a different database and/or a
-        # different table/schema/catalog. update_from_object (below) replaces
-        # rather than merges, so the target is whatever the request supplies --
-        # read it with a plain ``.get`` and no fallback, so that an omitted key
-        # reads as a change here exactly as it lands as None there.
+        # different table/schema/catalog. ``update_from_object`` (below)
+        # replaces rather than merges, so an omitted key lands as None -- read
+        # the target with a plain ``.get`` so it reads as a change here too.
         database_changed = database_id != orm_datasource.database_id
+        # ``BaseDatasource.data`` emits an empty schema/catalog as None, so
+        # normalising here keeps a plain round-trip from reading as a repoint.
         requested_table = Table(
             datasource_dict.get("table_name"),
-            datasource_dict.get("schema"),
-            datasource_dict.get("catalog"),
+            datasource_dict.get("schema") or None,
+            datasource_dict.get("catalog") or None,
         )
         # Compared field by field: ``Table.__eq__`` compares the dotted
-        # rendering, which would conflate distinct targets. ``BaseDatasource
-        # .data`` emits an empty schema/catalog as None, so both sides are
-        # normalised and a plain round-trip does not read as a repoint.
+        # rendering, which would conflate distinct targets.
         table_changed = (
             requested_table.table,
-            requested_table.schema or None,
-            requested_table.catalog or None,
+            requested_table.schema,
+            requested_table.catalog,
         ) != (
             orm_datasource.table_name,
             orm_datasource.schema or None,
@@ -153,19 +152,18 @@ class Datasource(BaseSupersetView):
         else:
             target_database = orm_datasource.database
 
-        # A repoint -- to a new database or, within the same database, to a
-        # different table -- must be authorised against the target table, as on
+        # A repoint -- to another database or, within the same database, to
+        # another table -- must be authorised against the target table, as on
         # the create path; editorship of the dataset alone is not sufficient.
         # As in ``UpdateDatasetCommand._validate_dataset_source``, the table
-        # check is skipped while the resulting dataset is virtual (``table_name``
-        # is a label there, not a pointer). Dropping the SQL binds that label to
-        # a real table, though, so a virtual-to-physical conversion is checked
-        # even when the label itself is unchanged -- otherwise the label could
-        # be renamed under the skip and then converted. A database repoint is
-        # checked either way.
-        is_virtual = bool(datasource_dict.get("sql"))
-        became_physical = not is_virtual and bool(orm_datasource.sql)
-        if database_changed or (table_changed and not is_virtual) or became_physical:
+        # check is skipped while the result is virtual (``table_name`` is a
+        # label there, not a pointer). Dropping the SQL binds that label to a
+        # real table, so a virtual-to-physical conversion is a repoint too,
+        # even when the label itself is unchanged.
+        stays_virtual = bool(datasource_dict.get("sql"))
+        if database_changed or (
+            not stays_virtual and (table_changed or orm_datasource.is_virtual)
+        ):
             try:
                 security_manager.raise_for_access(
                     database=target_database,
