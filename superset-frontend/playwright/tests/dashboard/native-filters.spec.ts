@@ -40,8 +40,9 @@
  *     avoids. They are a deliberate scope reduction, not relocated coverage.
  */
 
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 import { testWithAssets, expect } from '../../helpers/fixtures';
+import { TIMEOUT } from '../../utils/constants';
 import { DashboardPage } from '../../pages/DashboardPage';
 import {
   buildFilterJsonMetadata,
@@ -75,6 +76,16 @@ function waitForChartDataResponse(page: Page, sliceId: number) {
       response.url().includes('/api/v1/chart/data') &&
       sliceIdFromChartDataUrl(response.url()) === sliceId,
   );
+}
+
+/**
+ * The value a big-number chart is showing, parsed from its rendered header.
+ * Resolves to NaN while nothing numeric is rendered (e.g. mid re-render) so
+ * numeric matchers keep polling instead of passing on an empty string.
+ */
+async function readRenderedNumber(header: Locator): Promise<number> {
+  const digits = (await header.allTextContents()).join('').replace(/\D/g, '');
+  return digits ? Number(digits) : NaN;
 }
 
 testWithAssets(
@@ -299,7 +310,9 @@ testWithAssets(
         chartSpecs: [
           {
             viz_type: 'big_number_total',
-            params: { metric: 'count', adhoc_filters: [] },
+            // Plain integer format so the rendered total parses back exactly
+            // (the SMART_NUMBER default abbreviates, e.g. "11.3k").
+            params: { metric: 'count', adhoc_filters: [], y_axis_format: ',d' },
           },
         ],
         buildJsonMetadata: ({ charts: metadataCharts, datasetId }) => {
@@ -320,17 +333,26 @@ testWithAssets(
     const targetChartId = charts[0].id;
 
     const dashboardPage = new DashboardPage(page);
+    const renderedTotal = dashboardPage
+      .getChart(targetChartId)
+      .locator('.superset-legacy-chart-big-number .header-line');
 
-    // Capture the unfiltered total from the initial chart data response.
+    // Wait for the target chart's initial chart-data POST, then read the total
+    // off the rendered big number rather than the response body. The body only
+    // carries `result[0].data` on a synchronous 200; with GLOBAL_ASYNC_QUERIES
+    // enabled a cold-cache query answers 202 with a job payload and the data
+    // arrives out of band, so the rendered value is what proves the data
+    // landed in either mode (same 200/202 handling as dashboard-load.spec.ts).
     // Scoped to the target chart's slice id: the Region filter's own options
     // request fires on the same `gotoById` load and hits the same endpoint.
     const initialDataPromise = waitForChartDataResponse(page, targetChartId);
     await dashboardPage.gotoById(dashboardId);
     await dashboardPage.waitForLoad();
-    const initialData = await (await initialDataPromise).json();
-    const totalCount = Object.values(
-      initialData.result[0].data[0],
-    )[0] as number;
+    expect([200, 202]).toContain((await initialDataPromise).status());
+    await expect(renderedTotal).toHaveText(/\d/, {
+      timeout: TIMEOUT.CHART_RENDER,
+    });
+    const totalCount = await readRenderedNumber(renderedTotal);
     expect(totalCount).toBeGreaterThan(0);
 
     // Apply the region filter and capture the re-queried total.
@@ -339,14 +361,18 @@ testWithAssets(
 
     const filteredDataPromise = waitForChartDataResponse(page, targetChartId);
     await filterBar.apply();
-    const filteredData = await (await filteredDataPromise).json();
-    const filteredCount = Object.values(
-      filteredData.result[0].data[0],
-    )[0] as number;
+    expect([200, 202]).toContain((await filteredDataPromise).status());
 
     // The filter round-tripped to the backend: North America is a strict subset.
-    expect(filteredCount).toBeGreaterThan(0);
-    expect(filteredCount).toBeLessThan(totalCount);
+    // Polled because the chart keeps showing the previous total until the
+    // re-queried data renders.
+    await expect
+      .poll(() => readRenderedNumber(renderedTotal), {
+        timeout: TIMEOUT.CHART_RENDER,
+        message: 'filtered big number should render a smaller total',
+      })
+      .toBeLessThan(totalCount);
+    expect(await readRenderedNumber(renderedTotal)).toBeGreaterThan(0);
   },
 );
 
