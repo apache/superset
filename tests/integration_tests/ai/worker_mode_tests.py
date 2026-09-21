@@ -32,8 +32,10 @@ import threading
 from typing import Any
 
 import pytest
+from pytest_mock import MockerFixture
 
 from superset import db
+from superset.coordination.cache_backend import RedisCacheBackend
 from superset.models.ai import AIChatFeedback, AIChatMessage, AIChatThread
 from tests.integration_tests.base_tests import SupersetTestCase
 
@@ -51,13 +53,23 @@ REDIS_CONFIG = {
 def _redis_available() -> bool:
     """Whether a Redis we can use for streams is reachable."""
     try:
-        from superset.async_events.cache_backend import RedisCacheBackend
-
         backend = RedisCacheBackend.from_config(REDIS_CONFIG)
         backend.xadd("ai-probe", {"data": "{}"}, "*", 5)
         return True
     except Exception:  # pylint: disable=broad-except
         return False
+
+
+@pytest.mark.parametrize("available", [True, False])
+def test_redis_probe_checks_the_backend(mocker: MockerFixture, available: bool) -> None:
+    """Missing imports must not masquerade as an unavailable Redis server."""
+    write = mocker.patch.object(
+        RedisCacheBackend,
+        "xadd",
+        side_effect=None if available else ConnectionError("Redis unavailable"),
+    )
+    assert _redis_available() is available
+    write.assert_called_once_with("ai-probe", {"data": "{}"}, "*", 5)
 
 
 class TestAIWorkerMode(SupersetTestCase):
