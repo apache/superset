@@ -17,8 +17,20 @@
 
 from __future__ import annotations
 
+import re
+from typing import Any, TYPE_CHECKING
+
 from superset.db_engine_specs.base import DatabaseCategory
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
+
+if TYPE_CHECKING:
+    from superset.models.core import Database
+
+# Whitespace and SQL comments ahead of the first keyword of a statement
+LEADING_COMMENTS_REGEX = re.compile(
+    r"^(?:\s+|--[^\n]*(?:\n|$)|/\*.*?\*/)+",
+    re.DOTALL,
+)
 
 
 class CloudflareD1EngineSpec(SqliteEngineSpec):
@@ -28,10 +40,8 @@ class CloudflareD1EngineSpec(SqliteEngineSpec):
     engine_name = "Cloudflare D1"
     default_driver = "d1"
 
-    # The DBAPI in sqlalchemy-cloudflare-d1 only reports column names when the
-    # statement text starts with SELECT, PRAGMA or WITH, so a query with a
-    # leading comment returns rows without a cursor description
-    allows_sql_comments = False
+    # The driver sends the API token to the host named by ``base_url``
+    disallow_uri_query_params = {"httpx": {"base_url"}}
 
     metadata = {
         "description": "Cloudflare D1 is a serverless SQLite database.",
@@ -59,3 +69,23 @@ class CloudflareD1EngineSpec(SqliteEngineSpec):
             "retired dbapi-d1 package."
         ),
     }
+
+    @classmethod
+    def execute(
+        cls,
+        cursor: Any,
+        query: str,
+        database: Database,
+        **kwargs: Any,
+    ) -> None:
+        """
+        Drop comments ahead of the statement before it reaches the driver.
+
+        The DBAPI in sqlalchemy-cloudflare-d1 only reports column names when the
+        statement text starts with SELECT, PRAGMA or WITH. A query with a leading
+        comment, typed by a user or added by ``SQL_QUERY_MUTATOR``, comes back as
+        rows without a cursor description. Every query path goes through here:
+        SQL Lab, datasets made from SQL, charts and alerts.
+        """
+        stripped = LEADING_COMMENTS_REGEX.sub("", query, count=1)
+        super().execute(cursor, stripped or query, database, **kwargs)

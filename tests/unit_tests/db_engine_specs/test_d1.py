@@ -18,7 +18,9 @@
 from __future__ import annotations
 
 import pytest
+from pytest_mock import MockerFixture
 from sqlalchemy import types
+from sqlalchemy.engine.url import make_url
 
 from superset.utils.core import GenericDataType
 from tests.unit_tests.db_engine_specs.utils import assert_column_spec
@@ -55,28 +57,64 @@ def test_get_column_spec(
 
 
 @pytest.mark.parametrize(
-    "sql",
+    "sql,expected",
     [
-        "-- top customers\nSELECT * FROM orders",
-        "/* top customers */ SELECT * FROM orders",
+        ("SELECT * FROM orders", "SELECT * FROM orders"),
+        ("-- top customers\nSELECT * FROM orders", "SELECT * FROM orders"),
+        ("/* top customers */ SELECT * FROM orders", "SELECT * FROM orders"),
+        (
+            "  -- one\n/* two\n   lines */\n-- three\nWITH t AS (SELECT 1) SELECT 2",
+            "WITH t AS (SELECT 1) SELECT 2",
+        ),
+        ("SELECT 1 -- trailing", "SELECT 1 -- trailing"),
+        (
+            "SELECT '-- not a comment' /* kept */",
+            "SELECT '-- not a comment' /* kept */",
+        ),
+        ("-- only a comment", "-- only a comment"),
     ],
 )
-def test_leading_comment_is_stripped(sql: str) -> None:
+def test_execute_drops_leading_comments(
+    mocker: MockerFixture,
+    sql: str,
+    expected: str,
+) -> None:
     """
-    Test that a comment ahead of a query is dropped before execution.
+    Test that comments ahead of a statement never reach the driver.
 
     The DBAPI only reports column names when the statement text starts with
     ``SELECT``, ``PRAGMA`` or ``WITH``, so a leading comment would return rows
-    without a cursor description.
+    without a cursor description. Comments elsewhere are left alone.
     """
     from superset.db_engine_specs.d1 import CloudflareD1EngineSpec as spec  # noqa: N813
-    from superset.sql.parse import SQLScript
 
-    [statement] = SQLScript(sql, engine=spec.engine).statements
-    formatted = statement.format(comments=spec.allows_sql_comments)
+    cursor = mocker.MagicMock()
 
-    assert formatted.startswith("SELECT")
-    assert "top customers" not in formatted
+    spec.execute(cursor, sql, mocker.MagicMock())
+
+    cursor.execute.assert_called_once_with(expected)
+
+
+@pytest.mark.parametrize(
+    "sqlalchemy_uri,error",
+    [
+        ("d1+httpx://account:token@database", False),
+        ("d1+httpx://account:token@database?base_url=https://elsewhere.example", True),
+    ],
+)
+def test_validate_database_uri(sqlalchemy_uri: str, error: bool) -> None:
+    """
+    Test that ``base_url`` is refused in the URI, because the driver sends the
+    API token to the host it names.
+    """
+    from superset.db_engine_specs.d1 import CloudflareD1EngineSpec as spec  # noqa: N813
+
+    url = make_url(sqlalchemy_uri)
+    if error:
+        with pytest.raises(ValueError, match="base_url"):
+            spec.validate_database_uri(url)
+        return
+    spec.validate_database_uri(url)
 
 
 def test_metadata_points_at_sqlalchemy_d1() -> None:
