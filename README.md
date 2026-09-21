@@ -201,9 +201,7 @@ Try out Superset's [quickstart](https://superset.apache.org/docs/quickstart/) gu
 
 ## Contributor Guide
 
-Interested in contributing? Check out
-[Developer Guide](https://superset.apache.org/developer-docs/)
-our Developer Guide for resources and a detailed setup guide.
+Interested in contributing? Check out our [Developer Guide](https://superset.apache.org/developer-docs/) for resources and a detailed setup guide.
 
 ## Resources
 
