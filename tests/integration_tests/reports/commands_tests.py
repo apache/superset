@@ -395,8 +395,10 @@ def create_report_csv_no_query_context_executor_not_chart_editor(get_user):
         name="report_csv_no_query_context_executor_not_chart_editor",
         editors=_subjects_for_users([alpha]),
     )
-    report_schedule.created_by = alpha
-    db.session.commit()
+    # ``insert_report_schedule`` flushes under ``override_user(editors[0])``, so
+    # AuditMixin already stamps ``created_by`` as alpha, which is what EDITOR
+    # executor resolution reads back.
+    assert report_schedule.created_by == alpha
     yield report_schedule
 
     # Restore the shared chart: this fixture narrows its editors, which changes
@@ -1263,16 +1265,20 @@ def test_csv_report_query_context_backfill_allows_non_chart_editor_executor(
     create_report_csv_no_query_context_executor_not_chart_editor,
 ):
     """
-    ExecuteReport Command: a CSV report on a chart with no stored query context
-    is backfilled by the executor, which is not necessarily a chart editor.
+    A CSV report on a chart with no stored query context is backfilled by the
+    report executor, which is not necessarily an editor of the chart.
 
     ``get_executor`` resolves the executor against the ``ReportSchedule``, so it
     reflects report editorship, not chart editorship. The CSV path reaches
     ``/api/v1/chart/<pk>/data/``, which 400s while ``query_context`` is NULL, and
     recovers only because the Explore screenshot issues a query-context-only
     ``PUT``. Requiring chart edit rights on that ``PUT`` would therefore break
-    CSV and Excel reports, so this asserts the backfill stays permitted for an
-    executor with chart access but no chart editorship.
+    CSV and Excel reports.
+
+    This drives the executor resolution and that ``PUT`` directly rather than
+    running ``AsyncExecuteReportScheduleCommand``: the full report path mocks
+    out the screenshot, which is the only thing that issues the ``PUT``, so it
+    would pass no matter what this gate does.
     """
     report_schedule = create_report_csv_no_query_context_executor_not_chart_editor
     chart = report_schedule.chart
