@@ -4450,6 +4450,154 @@ def test_should_build_execution_context(
     model.type = schedule_type
     model.report_format = report_format
     assert _should_build_execution_context(model) is True
+    from superset.commands.report.execute import _uses_report_capture_contract
+
+    assert _uses_report_capture_contract(model) is (
+        schedule_type == ReportScheduleType.REPORT
+        or (
+            attach_flag
+            and report_format in (ReportDataFormat.PNG, ReportDataFormat.PDF)
+        )
+    )
+
+
+@pytest.mark.parametrize("working_timeout", [7200, None])
+@pytest.mark.parametrize("kill", [False, True])
+def test_alert_deadline_preserves_schedule_timeout(
+    app: SupersetApp, working_timeout: int | None, kill: bool
+) -> None:
+    """Long-running alerts are not capped by the report-only global budget."""
+    from superset.commands.report.execute import _execution_budget_seconds
+
+    app.config["ALERT_REPORTS_EXECUTION_BUDGET_SECONDS"] = 3600
+    app.config["ALERT_REPORTS_WORKING_TIME_OUT_KILL"] = kill
+    app.config["ALERT_REPORTS_WORKING_SOFT_TIME_OUT_LAG"] = 10
+    model = ReportSchedule(
+        type=ReportScheduleType.ALERT, working_timeout=working_timeout
+    )
+    assert _execution_budget_seconds(model) == (
+        7210 if kill and working_timeout else float("inf")
+    )
+
+
+def test_send_error_restricts_diagnostics_to_editors(mocker: MockerFixture) -> None:
+    """Configured recipients must not receive the diagnostic editor-only notice."""
+    state = _make_state_instance(mocker, BaseReportState)
+    state._report_schedule.editors = _make_mock_editors(mocker, [1])
+    state._report_schedule.recipients = [mocker.Mock(spec=ReportRecipients)]
+    mocker.patch.object(
+        state, "_get_log_data", return_value=_make_notification_header()
+    )
+    mocker.patch.object(state, "_get_url", return_value="https://example.com")
+    send = mocker.patch.object(state, "_send")
+    state.send_error("failure", "useful diagnostic")
+    content, recipients = send.call_args.args
+    assert content.is_editor_error
+    assert content.text == "useful diagnostic"
+    assert [
+        json.loads(recipient.recipient_config_json)["target"]
+        for recipient in recipients
+    ] == ["user1@example.com"]
+
+
+@pytest.mark.parametrize(
+    "report_format",
+    [
+        ReportDataFormat.CSV,
+        ReportDataFormat.XLSX,
+        ReportDataFormat.TEXT,
+        ReportDataFormat.PNG,
+    ],
+)
+@pytest.mark.parametrize("unlimited", [False, True])
+def test_alert_bootstrap_retains_original_capture_contract(
+    mocker: MockerFixture, report_format: ReportDataFormat, unlimited: bool
+) -> None:
+    """Ownership context must not enable strict capture for data-only alerts."""
+    from dataclasses import replace
+    from math import isfinite
+
+    state = BaseReportState(create_report_schedule(mocker), datetime.utcnow(), uuid4())
+    state._report_schedule.type = ReportScheduleType.ALERT
+    state._report_schedule.report_format = report_format
+    state._report_execution_context = _active_report_context()
+    if unlimited:
+        state._report_execution_context = replace(
+            state._report_execution_context,
+            deadline=ReportExecutionDeadline(total_seconds=float("inf")),
+        )
+    mocker.patch(
+        "superset.commands.report.execute.feature_flag_manager.is_feature_enabled",
+        return_value=True,
+    )
+    mocker.patch(
+        "superset.commands.report.execute.resolve_executor_user",
+        return_value=(mocker.Mock(), "executor"),
+    )
+    mocker.patch.object(state, "_get_url", return_value="https://example.com/chart")
+    screenshot = mocker.patch(
+        "superset.commands.report.execute.ChartScreenshot"
+    ).return_value.get_screenshot
+    screenshot.return_value = b"discarded capture"
+    assert state._get_screenshots() == [b"discarded capture"]
+    capture_context = screenshot.call_args.kwargs["report_execution_context"]
+    if report_format == ReportDataFormat.PNG:
+        assert capture_context is not None
+        assert isfinite(capture_context.deadline.total_seconds)
+        assert (
+            capture_context.deadline.total_seconds
+            <= state._report_execution_context.deadline.total_seconds
+        )
+        capture_context.reject_capture("test rejection")
+        assert state._report_execution_context.capture_was_rejected
+    else:
+        assert capture_context is None
+
+
+@pytest.mark.parametrize("global_enabled,opt_in", [(False, True), (True, False)])
+def test_disabled_retry_command_calls_fenced_cancellation(
+    mocker: MockerFixture, global_enabled: bool, opt_in: bool
+) -> None:
+    """The task boundary releases a matching disabled retry before returning."""
+    window = datetime(2026, 9, 15)
+    command = AsyncExecuteReportScheduleCommand(
+        str(uuid4()), 11, window, is_retry=True, expected_owner="owner"
+    )
+    command._model = ReportSchedule(
+        id=11,
+        retry_on_failure=opt_in,
+        last_state=ReportState.RETRYING,
+        retry_scheduled_dttm=window,
+    )
+    mocker.patch.object(command, "validate")
+    mocker.patch(
+        "superset.commands.report.execute.feature_flag_manager.is_feature_enabled",
+        return_value=global_enabled,
+    )
+    cancel = mocker.patch(
+        "superset.commands.report.execute.cancel_disabled_retry", return_value=True
+    )
+    machine = mocker.patch(
+        "superset.commands.report.execute.ReportScheduleStateMachine"
+    )
+    command.run()
+    cancel.assert_called_once_with(
+        mocker.ANY, 11, window, "owner", retries_enabled=global_enabled
+    )
+    machine.assert_not_called()
+
+
+def test_working_timeout_handles_missing_log_timestamp(mocker: MockerFixture) -> None:
+    """A legacy in-flight log may not have an end timestamp."""
+    state = _make_state_instance(mocker, BaseReportState)
+    state._report_schedule.execution_owner = None
+    state._report_schedule.last_eval_dttm = datetime.utcnow()
+    log = mocker.Mock(end_dttm=None)
+    mocker.patch(
+        "superset.commands.report.execute.ReportScheduleDAO.find_last_entered_working_log",
+        return_value=log,
+    )
+    assert state.is_on_working_timeout() is False
 
 
 def test_create_log_success_commits(mocker: MockerFixture) -> None:

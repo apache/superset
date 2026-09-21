@@ -30,8 +30,10 @@ Run `superset db upgrade` before starting workers with this version. The migrati
 adds nullable `execution_owner` and `execution_window` columns to `report_schedule`.
 Pause scheduling and drain in-flight executions and queued retry tasks before
 upgrading workers together: older workers do not participate in execution fencing.
-Retries queued by the old task signature are discarded rather than replayed without
-ownership evidence. Restart scheduling after migration and worker replacement.
+Two-argument retries without ownership evidence are discarded. Older one-argument
+retry messages cannot be distinguished from fresh cron tasks and must be drained;
+they are not reliably discarded by the new workers. Restart scheduling after
+migration and worker replacement.
 Mixed-version workers are not supported for this transition: old workers cannot
 consume the new retry task signature. Drain queued retries as well as active jobs
 before replacement. New workers log `report_retry_discarded` with
@@ -49,7 +51,8 @@ With `ALERT_REPORTS_RETRY` enabled, alerts can opt into retries as reports do.
 Retries re-evaluate alert conditions. Whole-execution retries stop once delivery
 has started because a failed send may already have reached a recipient. Retry
 notifications no longer include raw provider diagnostics; consult execution logs.
-This redaction also applies to ordinary, non-retry failure notifications.
+Ordinary editor-only error emails retain HTML-sanitized diagnostics. Notifications
+to configured recipients, including retry/final-failure notices, remain redacted.
 
 Ownership is rechecked in a short committed transaction before each recipient.
 No schedule-row lock is held during SMTP/Slack I/O. Recovery can fence subsequent

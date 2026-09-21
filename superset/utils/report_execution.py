@@ -21,6 +21,7 @@ from __future__ import annotations
 import logging
 import time
 from collections.abc import Callable, Mapping
+from copy import copy
 from dataclasses import dataclass, field
 from typing import Any
 from uuid import UUID
@@ -213,6 +214,19 @@ class ReportExecutionContext:
                 "Report execution phase reserves must total less than the "
                 "execution budget"
             )
+
+    def with_deadline(
+        self, deadline: ReportExecutionDeadline
+    ) -> "ReportExecutionContext":
+        """Share execution state while bounding a phase with a separate deadline.
+
+        dataclasses.replace resets init=False fields, including sticky capture
+        rejection. A shallow copy must retain those shared mutable containers.
+        """
+        context = copy(self)
+        object.__setattr__(context, "deadline", deadline)
+        context.__post_init__()
+        return context
 
     @property
     def log_context(self) -> str:

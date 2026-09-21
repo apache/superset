@@ -30,8 +30,17 @@ import sqlalchemy as sa
 from pytest_mock import MockerFixture
 from sqlalchemy.orm import sessionmaker
 
-from superset.commands.report.execution_claim import claim_execution, normalize_window
+from superset.commands.report.execution_claim import (
+    cancel_disabled_retry,
+    claim_execution,
+    normalize_window,
+)
 from superset.reports.models import ReportSchedule, ReportScheduleType, ReportState
+
+
+def utc_now() -> datetime:
+    """Match the metadata database's naive UTC timestamp representation."""
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
 @pytest.fixture(params=["sqlite", "postgres"])
@@ -99,7 +108,7 @@ def claim(session, window, *, retry=False, owner=None):
 
 @pytest.mark.parametrize("retry", [False, True])
 def test_competing_workers_have_one_winner(sessions, retry):
-    window = datetime.utcnow().replace(microsecond=0)
+    window = utc_now().replace(microsecond=0)
     owner = str(uuid4())
     if retry:
         with sessions() as session:
@@ -136,7 +145,7 @@ def test_competing_workers_have_one_winner(sessions, retry):
 
 
 def test_retry_window_and_owner_fence_replays(sessions):
-    window = datetime.utcnow().replace(microsecond=0)
+    window = utc_now().replace(microsecond=0)
     with sessions() as session:
         assert claim(session, window) is not None
         schedule = session.query(ReportSchedule).one()
@@ -159,7 +168,7 @@ def test_retry_window_and_owner_fence_replays(sessions):
 
 
 def test_alert_can_claim_a_retry(sessions):
-    window = datetime.utcnow()
+    window = utc_now()
     with sessions() as session:
         session.query(ReportSchedule).update(
             {
@@ -203,7 +212,7 @@ def test_recovery_can_fence_worker_during_transport(
             execution_claimed=True,
             deadline=ReportExecutionDeadline(total_seconds=60),
         )
-        state = BaseReportState(schedule, datetime.utcnow(), execution_id, context)
+        state = BaseReportState(schedule, utc_now(), execution_id, context)
         mocker.patch("superset.commands.report.execute.db.session", session)
 
         def recover(*_args: Any) -> None:
@@ -267,7 +276,7 @@ def test_terminal_fallback_persists_without_working_log(
             session,
             1,
             str(execution_id),
-            datetime.utcnow(),
+            utc_now(),
             is_retry=False,
             expected_owner=None,
             retries_enabled=True,
@@ -316,7 +325,88 @@ def test_claim_database_conflict_rolls_back(
     session = Mock()
     if sqlstate == "08006":
         with pytest.raises(OperationalError):
-            claim(session, datetime.utcnow())
+            claim(session, utc_now())
     else:
-        assert claim(session, datetime.utcnow()) is None
+        assert claim(session, utc_now()) is None
     session.rollback.assert_called_once()
+
+
+@pytest.mark.parametrize("global_enabled,opt_in", [(False, True), (True, False)])
+@pytest.mark.parametrize("stale", [False, True])
+def test_cancel_disabled_retry_fences_owner_and_releases_next_window(
+    sessions: sessionmaker, global_enabled: bool, opt_in: bool, stale: bool
+) -> None:
+    """Disabling retries must not suspend cron or allow an old owner to cancel."""
+    window = utc_now().replace(microsecond=0)
+    with sessions() as session:
+        schedule = session.query(ReportSchedule).one()
+        schedule.last_state = ReportState.RETRYING
+        schedule.execution_owner = "owner"
+        schedule.execution_window = window
+        schedule.retry_scheduled_dttm = window
+        schedule.retry_on_failure = opt_in
+        schedule.retry_attempt = 2
+        session.commit()
+        assert cancel_disabled_retry(
+            session,
+            1,
+            window,
+            "old-owner" if stale else "owner",
+            retries_enabled=global_enabled,
+        ) is (not stale)
+        session.expire_all()
+        assert schedule.last_state == (
+            ReportState.RETRYING if stale else ReportState.ERROR
+        )
+        if not stale:
+            assert schedule.retry_attempt == 0
+            assert schedule.retry_scheduled_dttm is None
+            assert claim(session, window) is None
+            assert claim(session, window + timedelta(minutes=5)) is not None
+
+
+def test_cancel_retry_cannot_cancel_new_window_or_reenabled_schedule(
+    sessions: sessionmaker,
+) -> None:
+    """Cancellation must recheck opt-in and the window in its UPDATE predicate."""
+    window = utc_now().replace(microsecond=0)
+    with sessions() as session:
+        schedule = session.query(ReportSchedule).one()
+        schedule.last_state = ReportState.RETRYING
+        schedule.execution_owner = "owner"
+        schedule.execution_window = window
+        schedule.retry_scheduled_dttm = window
+        session.commit()
+        assert not cancel_disabled_retry(
+            session, 1, window, "owner", retries_enabled=True
+        )
+        assert not cancel_disabled_retry(
+            session, 1, window - timedelta(minutes=5), "owner", retries_enabled=False
+        )
+
+
+@pytest.mark.parametrize("age,eligible", [(3599, False), (3601, True)])
+def test_stale_retry_recovers_at_max_delay(
+    sessions: sessionmaker, age: int, eligible: bool
+) -> None:
+    """Admission must not add the execution budget to the retry recovery delay."""
+    now = utc_now().replace(microsecond=0)
+    with sessions() as session:
+        schedule = session.query(ReportSchedule).one()
+        schedule.last_state = ReportState.RETRYING
+        schedule.execution_owner = "owner"
+        schedule.execution_window = now - timedelta(hours=2)
+        schedule.retry_scheduled_dttm = schedule.execution_window
+        schedule.last_eval_dttm = now - timedelta(seconds=age)
+        session.commit()
+        result = claim_execution(
+            session,
+            1,
+            str(uuid4()),
+            now,
+            is_retry=False,
+            expected_owner=None,
+            retries_enabled=True,
+            stale_retry_seconds=3600,
+        )
+        assert (result is not None) is eligible

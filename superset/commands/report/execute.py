@@ -63,6 +63,7 @@ from superset.commands.report.exceptions import (
     ReportScheduleXlsxTimeout,
 )
 from superset.commands.report.execution_claim import (
+    cancel_disabled_retry,
     claim_execution,
     ExecutionClaim,
     normalize_window,
@@ -153,6 +154,47 @@ def _should_build_execution_context(model: ReportSchedule) -> bool:
     return model.type in (ReportScheduleType.REPORT, ReportScheduleType.ALERT)
 
 
+def _uses_report_capture_contract(model: ReportSchedule) -> bool:
+    """Keep ownership separate from the existing rendered-alert capture policy."""
+    return model.type == ReportScheduleType.REPORT or (
+        model.report_format in (ReportDataFormat.PNG, ReportDataFormat.PDF)
+        and feature_flag_manager.is_feature_enabled("ALERTS_ATTACH_REPORTS")
+    )
+
+
+def _execution_budget_seconds(model: ReportSchedule) -> float:
+    """Preserve alert Celery limits rather than applying the global report budget."""
+    if model.type == ReportScheduleType.REPORT:
+        return resolve_report_execution_budget_seconds(
+            app.config, working_timeout=model.working_timeout
+        )
+    return float(
+        get_report_task_timeout_options(
+            is_report=False, working_timeout=model.working_timeout, config=app.config
+        ).get("soft_time_limit", float("inf"))
+    )
+
+
+def _capture_execution_context(
+    model: ReportSchedule, context: ReportExecutionContext | None
+) -> ReportExecutionContext | None:
+    """Keep data-only alerts lenient and bound rendered alerts' browser phase."""
+    if not _uses_report_capture_contract(model):
+        return None
+    if context and model.type == ReportScheduleType.ALERT:
+        # An unlimited alert must never pass infinity to Playwright. Browser
+        # work has its own budget without counting time spent on the alert query.
+        return context.with_deadline(
+            ReportExecutionDeadline(
+                total_seconds=min(
+                    context.deadline.available_seconds("screenshot_capture"),
+                    resolve_report_execution_budget_seconds(app.config),
+                )
+            )
+        )
+    return context
+
+
 def log_report_delivery_phase(
     report_context: ReportExecutionContext | None,
     recipient_type: ReportRecipientType | None,
@@ -222,7 +264,9 @@ def persist_owned_report_execution_terminal_error(
                 .update(
                     {
                         ReportSchedule.last_state: ReportState.ERROR,
-                        ReportSchedule.last_eval_dttm: datetime.utcnow(),
+                        ReportSchedule.last_eval_dttm: datetime.now(
+                            timezone.utc
+                        ).replace(tzinfo=None),
                     },
                     synchronize_session="fetch",
                 )
@@ -247,8 +291,8 @@ def persist_owned_report_execution_terminal_error(
             # Persist first; notification failure must not undo terminalization.
             # Timeout cleanup must not start another network operation.
             if terminal_reason not in (
-                "SoftTimeLimitExceeded",
-                "ReportExecutionBudgetExceededError",
+                SoftTimeLimitExceeded.__name__,
+                ReportExecutionBudgetExceededError.__name__,
             ):
                 try:
                     if not state.is_in_error_grace_period():
@@ -889,6 +933,10 @@ class BaseReportState:
 
         user, _ = resolve_executor_user(self._report_schedule)
 
+        capture_context = _capture_execution_context(
+            self._report_schedule, self._report_execution_context
+        )
+
         max_width = app.config["ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH"]
 
         if self._report_schedule.chart:
@@ -929,7 +977,7 @@ class BaseReportState:
                 imge = screenshot.get_screenshot(
                     user=user,
                     log_context=self._log_context,
-                    report_execution_context=self._report_execution_context,
+                    report_execution_context=capture_context,
                 )
                 if imge is None:
                     raise ReportScheduleScreenshotFailedError(
@@ -1623,6 +1671,7 @@ class BaseReportState:
         notification_content = NotificationContent(
             name=sanitize_title(name),
             text=message,
+            is_editor_error=True,
             header_data=header_data,
             url=url,
             # NULL (rows predating the include_cta column) is treated as True
@@ -1900,7 +1949,7 @@ class BaseReportState:
             )
         return (
             working_timeout is not None
-            and self._report_schedule.last_eval_dttm is not None
+            and entered_at is not None
             and datetime.now(timezone.utc).replace(tzinfo=None)
             - timedelta(seconds=working_timeout)
             > entered_at
@@ -2358,13 +2407,30 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
             if not self._model:
                 raise ReportScheduleExecuteUnexpectedError()
 
+            retries_enabled = feature_flag_manager.is_feature_enabled(
+                "ALERT_REPORTS_RETRY"
+            )
             if self._is_retry and (
-                not feature_flag_manager.is_feature_enabled("ALERT_REPORTS_RETRY")
+                not retries_enabled
                 or not self._model.retry_on_failure
                 or self._model.last_state != ReportState.RETRYING
                 or normalize_window(self._model.retry_scheduled_dttm)
                 != normalize_window(self._scheduled_dttm)
             ):
+                if not retries_enabled or not self._model.retry_on_failure:
+                    cancelled = cancel_disabled_retry(
+                        db.session,
+                        self._model.id,
+                        self._scheduled_dttm,
+                        self._expected_owner,
+                        retries_enabled=retries_enabled,
+                    )
+                    if cancelled:
+                        logger.info(
+                            "report_retry_cancelled report_schedule_id=%s "
+                            "reason=retries_disabled",
+                            self._model_id,
+                        )
                 logger.info(
                     "report_retry_discarded report_schedule_id=%s execution_id=%s",
                     self._model_id,
@@ -2378,10 +2444,7 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
                 # recovery, not the owner that created the active row. Its state
                 # handler may terminalize a stale execution, but the command
                 # boundary must never infer ownership from a replayed UUID.
-                total_seconds = resolve_report_execution_budget_seconds(
-                    app.config,
-                    working_timeout=self._model.working_timeout,
-                )
+                total_seconds = _execution_budget_seconds(self._model)
                 deadline = ReportExecutionDeadline(
                     total_seconds=total_seconds,
                     started_at=monotonic_started_at,
@@ -2402,13 +2465,19 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
                     deadline=deadline,
                     capture_reserve_seconds=float(
                         app.config["ALERT_REPORTS_EXECUTION_CAPTURE_RESERVE_SECONDS"]
-                    ),
+                    )
+                    if self._model.type == ReportScheduleType.REPORT
+                    else 0.0,
                     delivery_reserve_seconds=float(
                         app.config["ALERT_REPORTS_EXECUTION_DELIVERY_RESERVE_SECONDS"]
-                    ),
+                    )
+                    if self._model.type == ReportScheduleType.REPORT
+                    else 0.0,
                     cleanup_reserve_seconds=float(
                         app.config["ALERT_REPORTS_EXECUTION_CLEANUP_RESERVE_SECONDS"]
-                    ),
+                    )
+                    if self._model.type == ReportScheduleType.REPORT
+                    else 0.0,
                 )
                 logger.info(
                     "report_execution_start %s total_budget_seconds=%.2f "
@@ -2466,13 +2535,8 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
                         retries_enabled=feature_flag_manager.is_feature_enabled(
                             "ALERT_REPORTS_RETRY"
                         ),
-                        stale_retry_seconds=(
-                            app.config.get(
-                                "ALERT_REPORTS_RETRY_MAX_DELAY_SECONDS", 3600
-                            )
-                            + resolve_report_execution_budget_seconds(
-                                app.config, working_timeout=self._model.working_timeout
-                            )
+                        stale_retry_seconds=app.config.get(
+                            "ALERT_REPORTS_RETRY_MAX_DELAY_SECONDS", 3600
                         ),
                     )
                     if execution_claim is None:

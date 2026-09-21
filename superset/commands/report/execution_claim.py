@@ -44,6 +44,42 @@ class ExecutionClaim:
     initial_state: str | None
 
 
+def cancel_disabled_retry(
+    session: Session,
+    schedule_id: int,
+    window: datetime,
+    expected_owner: str | None,
+    *,
+    retries_enabled: bool,
+) -> bool:
+    """Release a disabled retry only when the queued owner's window still matches."""
+    if not expected_owner:
+        return False
+    query = session.query(ReportSchedule).filter(
+        ReportSchedule.id == schedule_id,
+        ReportSchedule.last_state == ReportState.RETRYING,
+        ReportSchedule.execution_owner == expected_owner,
+        ReportSchedule.execution_window == normalize_window(window),
+        ReportSchedule.retry_scheduled_dttm == normalize_window(window),
+    )
+    if retries_enabled:
+        query = query.filter(~ReportSchedule.retry_on_failure)
+    matched = query.update(
+        {
+            ReportSchedule.last_state: ReportState.ERROR,
+            ReportSchedule.last_eval_dttm: datetime.now(timezone.utc).replace(
+                tzinfo=None
+            ),
+            ReportSchedule.retry_attempt: 0,
+            ReportSchedule.retry_scheduled_dttm: None,
+        },
+        synchronize_session=False,
+    )
+    # Retain owner/window to fence stale replays of the cancelled execution.
+    session.commit()  # pylint: disable=consider-using-transaction
+    return matched == 1
+
+
 def claim_execution(
     session: Session,
     schedule_id: int,

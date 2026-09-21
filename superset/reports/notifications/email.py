@@ -148,8 +148,12 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
         return parseaddr(current_app.config["SMTP_MAIL_FROM"])[1].split("@")[1]
 
     def _error_template(self, text: str) -> str:
-        # Diagnostics remain in execution history, not outbound notifications.
-        safe_text = __("Contact the report owner for error details.")
+        # Only send_error's editor-only email may include sanitized diagnostics.
+        safe_text = (
+            nh3.clean(text, tags=set(), attributes={})
+            if self._content.is_editor_error
+            else __("Contact the report owner for error details.")
+        )
         if self._content.include_cta:
             return __(
                 """
