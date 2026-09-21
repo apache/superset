@@ -179,7 +179,11 @@ test('moving the mapping pre-fills the new column when we have a default', () =>
     { column_name: 'event_time', is_dttm: true },
   ];
 
-  const moved = applyMappingMove(columns, 'event_time', 'unix_timestamp(:value)');
+  const moved = applyMappingMove(
+    columns,
+    'event_time',
+    'unix_timestamp(:value)',
+  );
 
   expect(moved[0].partition_value_transform).toBe('unix_timestamp(:value)');
 });
@@ -229,7 +233,9 @@ test('designating a partition column takes it out of the Explore pickers', () =>
 });
 
 test('only temporal columns get a pre-filled transform', () => {
-  const datasource = { partition_value_transform_default: 'unix_timestamp(:value)' };
+  const datasource = {
+    partition_value_transform_default: 'unix_timestamp(:value)',
+  };
 
   expect(defaultTransformFor(datasource, COLUMNS[0])).toBe(
     'unix_timestamp(:value)',
@@ -265,9 +271,9 @@ test('a range is only previewed when the transform preserves ordering', () => {
 test('a non-temporal column previews the IN shape a category filter produces', () => {
   expect(previewOperatorFor({ column_name: 'country' })).toBe('IN');
   expect(sampleValuesFor({ column_name: 'country' })).toEqual(['US', 'CA']);
-  expect(sampleValuesFor({ column_name: 'event_time', is_dttm: true })).toEqual([
-    '2026-01-15 00:00:00',
-  ]);
+  expect(sampleValuesFor({ column_name: 'event_time', is_dttm: true })).toEqual(
+    ['2026-01-15 00:00:00'],
+  );
 });
 
 test('"map a column" suggests a temporal column over whatever sorts first', () => {
@@ -292,5 +298,7 @@ test('with no temporal column it falls back to the first non-partition one', () 
 });
 
 test('a dataset of nothing but the partition column suggests nothing', () => {
-  expect(suggestedMappedColumn([{ column_name: 'dt_epoch' }], 'dt_epoch')).toBeNull();
+  expect(
+    suggestedMappedColumn([{ column_name: 'dt_epoch' }], 'dt_epoch'),
+  ).toBeNull();
 });

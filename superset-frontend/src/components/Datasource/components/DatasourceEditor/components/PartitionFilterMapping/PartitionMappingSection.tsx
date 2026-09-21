@@ -35,7 +35,10 @@ import {
   previewOperatorFor,
   sampleValuesFor,
 } from './utils';
-import type { PartitionMappingColumn, PartitionMappingDatasource } from './types';
+import type {
+  PartitionMappingColumn,
+  PartitionMappingDatasource,
+} from './types';
 
 interface PartitionMappingSectionProps {
   /** Injected by Field when `passItemToControl` is set. */
@@ -144,7 +147,9 @@ export default function PartitionMappingSection({
     >
       <Flex align="center" gap={theme.sizeUnit}>
         <Icons.FilterOutlined />
-        <Typography.Text strong>{t('Partition filter mapping')}</Typography.Text>
+        <Typography.Text strong>
+          {t('Partition filter mapping')}
+        </Typography.Text>
       </Flex>
       <Typography.Text type="secondary">
         {isTemporal
@@ -179,7 +184,7 @@ export default function PartitionMappingSection({
         <Input
           value={transform}
           onChange={event => onChange?.(event.target.value || null)}
-          placeholder="unix_timestamp(:value)"
+          placeholder={t('unix_timestamp(:value)')}
           aria-label={t('Value transform')}
           data-test="partition-value-transform"
           css={css`
@@ -189,14 +194,18 @@ export default function PartitionMappingSection({
         <Typography.Text type="secondary">
           {isTemporal
             ? t('Use :value for the filter bound.')
-            : t('Required for non-temporal columns. Use :value for each value.')}
+            : t(
+                'Required for non-temporal columns. Use :value for each value.',
+              )}
         </Typography.Text>
       </Flex>
 
       <Flex align="center" gap={theme.sizeUnit}>
         <Checkbox
           checked={isMonotonic}
-          onChange={event => onMonotonicChange(columnName, event.target.checked)}
+          onChange={event =>
+            onMonotonicChange(columnName, event.target.checked)
+          }
           data-test="partition-transform-is-monotonic"
         >
           {t('Transform preserves ordering')}
@@ -229,7 +238,10 @@ export default function PartitionMappingSection({
           <Flex justify="space-between" align="center">
             <Typography.Text type="secondary">{t('PREVIEW')}</Typography.Text>
             <Flex align="center" gap={theme.sizeUnit}>
-              <Icons.CheckOutlined iconColor={theme.colorSuccess} iconSize="s" />
+              <Icons.CheckOutlined
+                iconColor={theme.colorSuccess}
+                iconSize="s"
+              />
               <Typography.Text type="success">{t('Valid')}</Typography.Text>
             </Flex>
           </Flex>
