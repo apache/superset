@@ -2632,16 +2632,14 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                           </div>
                           <div className="input-container">
                             <Input
-                              placeholder={t(
-                                'e.g. {title} or ACME Corp',
-                              )}
+                              placeholder={t('e.g. {title} or ACME Corp')}
                               value={
                                 currentAlert?.extra?.dashboard?.pdf_header
                                   ?.left ?? ''
                               }
-                              onChange={(
-                                e: ChangeEvent<HTMLInputElement>,
-                              ) => updatePdfHeaderState('left', e.target.value)}
+                              onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                                updatePdfHeaderState('left', e.target.value)
+                              }
                             />
                           </div>
                         </StyledInputContainer>
@@ -2651,16 +2649,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                           </div>
                           <div className="input-container">
                             <Input
-                              placeholder={t(
-                                'e.g. {title}',
-                              )}
+                              placeholder={t('e.g. {title}')}
                               value={
                                 currentAlert?.extra?.dashboard?.pdf_header
                                   ?.center ?? ''
                               }
-                              onChange={(
-                                e: ChangeEvent<HTMLInputElement>,
-                              ) =>
+                              onChange={(e: ChangeEvent<HTMLInputElement>) =>
                                 updatePdfHeaderState('center', e.target.value)
                               }
                             />
@@ -2672,16 +2666,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                           </div>
                           <div className="input-container">
                             <Input
-                              placeholder={t(
-                                'e.g. Apache Superset | {date}',
-                              )}
+                              placeholder={t('e.g. Apache Superset | {date}')}
                               value={
                                 currentAlert?.extra?.dashboard?.pdf_header
                                   ?.right ?? ''
                               }
-                              onChange={(
-                                e: ChangeEvent<HTMLInputElement>,
-                              ) =>
+                              onChange={(e: ChangeEvent<HTMLInputElement>) =>
                                 updatePdfHeaderState('right', e.target.value)
                               }
                             />
@@ -2698,9 +2688,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                                 currentAlert?.extra?.dashboard?.pdf_footer
                                   ?.left ?? ''
                               }
-                              onChange={(
-                                e: ChangeEvent<HTMLInputElement>,
-                              ) => updatePdfFooterState('left', e.target.value)}
+                              onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                                updatePdfFooterState('left', e.target.value)
+                              }
                             />
                           </div>
                         </StyledInputContainer>
@@ -2717,9 +2707,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                                 currentAlert?.extra?.dashboard?.pdf_footer
                                   ?.center ?? ''
                               }
-                              onChange={(
-                                e: ChangeEvent<HTMLInputElement>,
-                              ) =>
+                              onChange={(e: ChangeEvent<HTMLInputElement>) =>
                                 updatePdfFooterState('center', e.target.value)
                               }
                             />

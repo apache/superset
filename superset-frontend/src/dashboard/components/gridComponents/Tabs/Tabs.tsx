@@ -509,7 +509,9 @@ const Tabs = (props: TabsProps): ReactElement => {
             isComponentVisible={
               // In print mode all tabs must render their content regardless
               // of which tab is currently selected.
-              isPrintMode ? true : selectedTabIndex === tabIndex && isCurrentTabVisible
+              isPrintMode
+                ? true
+                : selectedTabIndex === tabIndex && isCurrentTabVisible
             }
           />
         ) : undefined,

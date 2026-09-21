@@ -97,9 +97,7 @@ export const PRINT_FONT_SIZE_LARGE = 'large' as const;
  * landscape mode (full-document) uses page.pdf(landscape=True) instead and
  * does not need any extra CSS.
  */
-export function getPrintOrientationCSS(
-  orientation: PrintOrientation,
-): string {
+export function getPrintOrientationCSS(orientation: PrintOrientation): string {
   if (orientation !== 'auto') {
     return '';
   }

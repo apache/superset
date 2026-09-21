@@ -600,12 +600,16 @@ const DashboardBuilder = () => {
   const isPrintMode = getUrlParam(URL_PARAMS.print) === 1;
   const rawFontSize = getUrlParam(URL_PARAMS.printFontSize);
   const printFontSize: PrintFontSize =
-    rawFontSize === 'small' || rawFontSize === 'medium' || rawFontSize === 'large'
+    rawFontSize === 'small' ||
+    rawFontSize === 'medium' ||
+    rawFontSize === 'large'
       ? rawFontSize
       : PRINT_FONT_SIZE_SMALL;
   const rawLayout = getUrlParam(URL_PARAMS.printLayout);
   const printLayout: PrintLayout =
-    rawLayout === '1col' || rawLayout === '2col' ? rawLayout : PRINT_LAYOUT_1COL;
+    rawLayout === '1col' || rawLayout === '2col'
+      ? rawLayout
+      : PRINT_LAYOUT_1COL;
   const rawOrientation = getUrlParam(URL_PARAMS.printOrientation);
   const printOrientation: PrintOrientation =
     rawOrientation === 'landscape' ||
