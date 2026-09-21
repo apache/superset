@@ -180,6 +180,12 @@ def test_prune_task_is_registered_in_the_default_daily_schedule() -> None:
     assert entry["task"] == "ai.prune_conversations"
     assert entry["schedule"].minute == {30}
     assert entry["schedule"].hour == {3}
+    assert (
+        config.CeleryConfig.beat_schedule["deletion_retention.prune_purge_audit"][
+            "task"
+        ]
+        == "deletion_retention.prune_purge_audit"
+    )
 
 
 def test_create_for_user_records_the_owner_and_assigns_an_identifier(

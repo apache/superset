@@ -25,6 +25,7 @@ from superset.commands.importers.v1.utils import (
     apply_extra_import_fields,
     find_existing_for_import,
 )
+from superset.extensions import feature_flag_manager
 from superset.migrations.shared.migrate_viz import processors
 from superset.migrations.shared.migrate_viz.base import MigrateViz
 from superset.models.slice import Slice
@@ -252,7 +253,16 @@ def migrate_chart(config: dict[str, Any]) -> dict[str, Any]:
     if config["viz_type"] not in migrators:
         return output
 
-    migrator = migrators[config["viz_type"]](output["params"])
+    migrator_class = migrators[config["viz_type"]]
+    required_flag = migrator_class.requires_feature_flag
+    # Importing a chart isn't itself an opt-in to a target viz type that's
+    # still gated off by default (see MigrateViz.requires_feature_flag) --
+    # leave the chart as its original viz_type rather than silently handing
+    # back one the frontend may not have registered.
+    if required_flag and not feature_flag_manager.is_feature_enabled(required_flag):
+        return output
+
+    migrator = migrator_class(output["params"])
     # pylint: disable=protected-access
     migrator._pre_action()
     migrator._migrate()
