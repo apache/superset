@@ -130,6 +130,34 @@ def test_mcp_runner_isolates_request_state(app_context: None) -> None:
     assert g.user is original_user
 
 
+@pytest.mark.parametrize("reloaded_id", [None, 1, 2])
+def test_pinned_user_is_reloaded_without_switching_principals(
+    app_context: None, reloaded_id: int | None
+) -> None:
+    """A missing or renamed principal cannot fall back to the configured Admin."""
+    from flask import current_app
+    from flask_appbuilder.security.sqla.models import User
+
+    from superset.mcp_service.auth import get_user_from_request, mcp_user_context
+
+    pinned = User(id=1, username="requester")
+    reloaded = User(id=reloaded_id, username="requester") if reloaded_id else None
+    with (
+        patch.dict(current_app.config, {"MCP_DEV_USERNAME": "admin"}),
+        patch(
+            "superset.mcp_service.auth.load_user_with_relationships",
+            return_value=reloaded,
+        ) as load_user,
+        mcp_user_context(pinned),
+    ):
+        if reloaded_id == pinned.id:
+            assert get_user_from_request() is reloaded
+        else:
+            with pytest.raises(ValueError, match="no longer available"):
+                get_user_from_request()
+    load_user.assert_called_once_with(username="requester")
+
+
 def test_mcp_runner_times_out_stalled_worker(app_context: None) -> None:
     from flask import current_app, g
 

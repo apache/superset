@@ -283,6 +283,117 @@ class TestAIToolsEndToEnd(SupersetTestCase):
             invocation = self.registry.invoke(_call(name, **{key: 999_999}))
             assert invocation.is_error, name
 
+    def test_authoring_tools_persist_as_the_requesting_user(self) -> None:
+        """Real MCP calls save all three assets as the caller, not the dev user."""
+        from unittest.mock import patch
+        from uuid import uuid4
+
+        from flask import current_app, g
+
+        from superset.connectors.sqla.models import SqlaTable
+        from superset.models.dashboard import Dashboard
+        from superset.models.slice import Slice
+
+        self.logout()
+        self.login("alpha")
+        user_id = g.user.id
+        assert g.user.username == "alpha"
+        database = get_main_database()
+        database_id = database.id
+        db.session.commit()
+        name = f"ai_authoring_{uuid4().hex}"
+        denied_name = f"{name}_denied"
+        asset_names = (
+            (Dashboard, Dashboard.dashboard_title),
+            (Slice, Slice.slice_name),
+            (SqlaTable, SqlaTable.table_name),
+        )
+        config = {
+            "chart_type": "big_number",
+            "metric": {"name": "amount", "aggregate": "SUM"},
+        }
+
+        with patch.dict(current_app.config, {"MCP_DEV_USERNAME": "admin"}):
+            try:
+                dataset_result = self._invoke(
+                    "create_virtual_dataset",
+                    database_id=database_id,
+                    dataset_name=name,
+                    sql="SELECT 1 AS amount",
+                )
+                dataset_id = dataset_result.display["dataset_id"]
+                dataset = db.session.query(SqlaTable).filter_by(id=dataset_id).one()
+                assert dataset.table_name == name
+                assert dataset.database_id == database_id
+                assert [column.column_name for column in dataset.columns] == ["amount"]
+
+                chart_result = self._invoke(
+                    "generate_chart",
+                    dataset_id=dataset_id,
+                    config=config,
+                    chart_name=name,
+                    save_chart=True,
+                )
+                chart_id = chart_result.display["chart_id"]
+                chart = db.session.query(Slice).filter_by(id=chart_id).one()
+                assert chart.slice_name == name
+                assert chart.datasource_id == dataset_id
+                assert chart.last_saved_by_fk == user_id
+
+                dashboard_result = self._invoke(
+                    "generate_dashboard", chart_ids=[chart_id], dashboard_title=name
+                )
+                dashboard_id = dashboard_result.display["dashboard_id"]
+                dashboard = db.session.query(Dashboard).filter_by(id=dashboard_id).one()
+                assert dashboard.dashboard_title == name
+                assert [item.id for item in dashboard.slices] == [chart_id]
+                for asset in (dataset, chart, dashboard):
+                    assert asset.created_by_fk == user_id
+                    assert {editor.user_id for editor in asset.editors} == {user_id}
+
+                # The configured dev Admin must not grant an unprivileged caller
+                # authoring access to the assets just created by Alpha.
+                self.logout()
+                self.login("gamma")
+                assert g.user.username == "gamma"
+                for call in (
+                    _call(
+                        "create_virtual_dataset",
+                        database_id=database_id,
+                        dataset_name=denied_name,
+                        sql="SELECT 1 AS amount",
+                    ),
+                    _call(
+                        "generate_chart",
+                        dataset_id=dataset_id,
+                        config=config,
+                        chart_name=denied_name,
+                        save_chart=True,
+                    ),
+                    _call(
+                        "generate_dashboard",
+                        chart_ids=[chart_id],
+                        dashboard_title=denied_name,
+                    ),
+                ):
+                    assert self.registry.invoke(call).is_error, call.name
+                for model, column in asset_names:
+                    assert (
+                        db.session.query(model).filter(column == denied_name).count()
+                        == 0
+                    )
+            finally:
+                db.session.rollback()
+                for model, column in asset_names:
+                    assets = (
+                        db.session.query(model)
+                        .filter(column.in_((name, denied_name)))
+                        .all()
+                    )
+                    for asset in assets:
+                        db.session.delete(asset)
+                db.session.commit()
+
     # ------------------------------------------------------------------
     # configurability
     # ------------------------------------------------------------------

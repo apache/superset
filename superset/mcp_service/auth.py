@@ -853,6 +853,13 @@ def get_user_from_request() -> MCPUser:
 
     # Priority 3: trusted in-process principal
     if (pinned_user := _mcp_user_override_var.get()) is not None:
+        if isinstance(pinned_user, User):
+            # Each tool owns a session; never attach the caller's ORM instance
+            # to an asset created in that different session.
+            user = load_user_with_relationships(username=pinned_user.username)
+            if user is None or user.id != pinned_user.id:
+                raise ValueError("The authenticated user is no longer available.")
+            return user
         return pinned_user
 
     # Priority 4: Configured dev username for development/single-user deployments
