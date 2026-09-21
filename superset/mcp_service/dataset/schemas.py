@@ -23,6 +23,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from typing import Annotated, Any, Dict, List, Literal
+from uuid import UUID
 
 from pydantic import (
     AliasChoices,
@@ -72,6 +73,7 @@ class DatasetFilter(ColumnOperator):
     """
 
     col: Literal[  # pyright: ignore[reportIncompatibleVariableOverride]
+        "uuid",
         "table_name",
         "schema",
         "database_name",
@@ -93,6 +95,31 @@ class DatasetFilter(ColumnOperator):
     value: str | int | float | bool | List[str | int | float | bool] = Field(
         ..., description="Value to filter by (type depends on col and opr)"
     )
+
+    @model_validator(mode="after")
+    def uuid_values_must_be_uuids(self) -> "DatasetFilter":
+        """Reject malformed UUIDs before they reach the database.
+
+        ``uuid`` is a binary column, so an unparseable value fails deep in the
+        driver as a system-class error — paging operators over what is really a
+        caller mistake, such as a truncated UUID.
+        """
+        if self.col != "uuid" or self.opr in {
+            ColumnOperatorEnum.is_null,
+            ColumnOperatorEnum.is_not_null,
+        }:
+            # Null checks ignore the value, which get_schema advertises for uuid
+            # and callers must still supply because the field is required.
+            return self
+        values = self.value if isinstance(self.value, list) else [self.value]
+        for value in values:
+            try:
+                UUID(str(value))
+            except (ValueError, AttributeError, TypeError) as ex:
+                raise ValueError(
+                    f"Filter value for 'uuid' must be a UUID, got {value!r}."
+                ) from ex
+        return self
 
 
 class TableColumnInfo(BaseModel):
