@@ -15,12 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime
-from typing import Optional
+from typing import Any, Optional
 
 import pytest
 from pytest_mock import MockerFixture
 
 from superset.constants import TimeGrain
+from superset.utils import json
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
 from tests.unit_tests.fixtures.common import dttm  # noqa: F401
 
@@ -127,37 +128,87 @@ def test_engine_metadata() -> None:
 
 
 @pytest.mark.parametrize(
-    "uri,schema,expected",
+    "connect_args,schema,expected",
     [
+        ({"foo": "bar"}, "dbtwo", {"foo": "bar", "database": "dbtwo"}),
+        ({"foo": "bar"}, None, {"foo": "bar"}),
         (
-            "mongodb://user:pass@host:27017/dbone?mode=superset",
+            {"database": "dbone", "authSource": "dbone"},
             "dbtwo",
-            "mongodb://user:pass@host:27017/dbtwo?mode=superset",
-        ),
-        (
-            "mongodb://user:pass@host:27017/dbone?mode=superset",
-            None,
-            "mongodb://user:pass@host:27017/dbone?mode=superset",
-        ),
-        (
-            "mongodb+srv://user:pass@host/dbone?mode=superset",
-            "dbtwo",
-            "mongodb+srv://user:pass@host/dbtwo?mode=superset",
+            {"database": "dbtwo", "authSource": "dbone"},
         ),
     ],
 )
-def test_adjust_engine_params(uri: str, schema: Optional[str], expected: str) -> None:
-    """The selected schema replaces the database in the connection URI."""
+def test_adjust_engine_params(
+    connect_args: dict[str, Any],
+    schema: Optional[str],
+    expected: dict[str, Any],
+) -> None:
+    """
+    The selected schema is applied through the ``database`` connect argument and
+    the URI is left untouched, since its database is the default ``authSource``.
+    """
     from sqlalchemy.engine.url import make_url
 
     from superset.db_engine_specs.mongodb import MongoDBEngineSpec
 
-    adjusted, connect_args = MongoDBEngineSpec.adjust_engine_params(
-        make_url(uri), {"foo": "bar"}, schema=schema
+    uri = "mongodb://user:pass@host:27017/dbone?mode=superset"
+    original = dict(connect_args)
+
+    adjusted, new_connect_args = MongoDBEngineSpec.adjust_engine_params(
+        make_url(uri), connect_args, schema=schema
     )
 
-    assert adjusted.render_as_string(hide_password=False) == expected
-    assert connect_args == {"foo": "bar"}
+    assert adjusted.render_as_string(hide_password=False) == uri
+    assert new_connect_args == expected
+    assert connect_args == original
+
+
+@pytest.mark.parametrize(
+    "uri,connect_args,expected_auth_source",
+    [
+        ("mongodb://user:pass@host:27017/dbone?mode=superset", {}, "dbone"),
+        (
+            "mongodb://user:pass@host:27017/dbone?mode=superset&authSource=admin",
+            {},
+            "admin",
+        ),
+        (
+            "mongodb://user:pass@host:27017/dbone?mode=superset",
+            {"database": "dbone", "authSource": "dbone"},
+            "dbone",
+        ),
+    ],
+)
+def test_adjust_engine_params_driver(
+    uri: str,
+    connect_args: dict[str, Any],
+    expected_auth_source: str,
+) -> None:
+    """
+    With the real driver, selecting ``dbtwo`` queries ``dbtwo`` while keeping the
+    original authentication database.
+    """
+    pytest.importorskip("pymongosql")
+
+    from sqlalchemy import create_engine
+    from sqlalchemy.engine.url import make_url
+
+    from superset.db_engine_specs.mongodb import MongoDBEngineSpec
+
+    adjusted, new_connect_args = MongoDBEngineSpec.adjust_engine_params(
+        make_url(uri), connect_args, schema="dbtwo"
+    )
+    engine = create_engine(
+        adjusted, connect_args={**new_connect_args, "connect": False}
+    )
+    connection = engine.raw_connection().driver_connection
+    try:
+        credentials = connection.client.options.pool_options._credentials
+        assert connection.database_name == "dbtwo"
+        assert credentials.source == expected_auth_source
+    finally:
+        connection.close()
 
 
 def test_get_schema_from_engine_params() -> None:
@@ -177,6 +228,13 @@ def test_get_schema_from_engine_params() -> None:
         )
         is None
     )
+    assert (
+        MongoDBEngineSpec.get_schema_from_engine_params(
+            make_url("mongodb://user:pass@host:27017/dbone?mode=superset"),
+            {"database": "dbtwo"},
+        )
+        == "dbtwo"
+    )
 
 
 def test_get_default_schema() -> None:
@@ -189,6 +247,11 @@ def test_get_default_schema() -> None:
     )
 
     assert MongoDBEngineSpec.get_default_schema(database, None) == "dbone"
+
+    database.extra = json.dumps(
+        {"engine_params": {"connect_args": {"database": "dbtwo"}}}
+    )
+    assert MongoDBEngineSpec.get_default_schema(database, None) == "dbtwo"
 
 
 def test_select_star_does_not_qualify_collection(mocker: MockerFixture) -> None:

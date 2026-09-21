@@ -45,10 +45,11 @@ class MongoDBEngineSpec(BaseEngineSpec):
     engine_name = "MongoDB"
     force_column_alias_quotes = False
 
-    # A MongoDB database is exposed as a SQLAlchemy schema. PyMongoSQL always runs a
-    # query against the database in the connection URI and treats the whole FROM
-    # reference as the collection name, so the schema is selected by swapping the
-    # database in the URI rather than by qualifying the collection.
+    # A MongoDB database is exposed as a SQLAlchemy schema. PyMongoSQL treats the
+    # whole FROM reference as the collection name, so the schema is selected through
+    # the driver's ``database`` connect argument rather than by qualifying the
+    # collection. The URI database is left untouched because MongoDB also uses it as
+    # the default ``authSource``.
     supports_dynamic_schema = True
 
     metadata = {
@@ -131,7 +132,7 @@ class MongoDBEngineSpec(BaseEngineSpec):
         )
 
         if schema:
-            uri = uri.set(database=schema)
+            new_connect_args = {**new_connect_args, "database": schema}
 
         return uri, new_connect_args
 
@@ -141,7 +142,8 @@ class MongoDBEngineSpec(BaseEngineSpec):
         sqlalchemy_uri: URL,
         connect_args: dict[str, Any],
     ) -> Optional[str]:
-        return sqlalchemy_uri.database or None
+        # PyMongoSQL gives the ``database`` connect argument precedence over the URI.
+        return connect_args.get("database") or sqlalchemy_uri.database or None
 
     @classmethod
     def get_default_schema(
@@ -150,7 +152,7 @@ class MongoDBEngineSpec(BaseEngineSpec):
         catalog: Optional[str],
     ) -> Optional[str]:
         return cls.get_schema_from_engine_params(
-            make_url_safe(database.sqlalchemy_uri), {}
+            make_url_safe(database.sqlalchemy_uri), database.connect_args
         )
 
     @classmethod
