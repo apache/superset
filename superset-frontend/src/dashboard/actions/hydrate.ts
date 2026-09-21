@@ -134,9 +134,8 @@ export const hydrateDashboard =
     // new dash: position_json could be {} or null
     // getEmptyLayout() includes a version string entry plus BasicLayoutItem entries
     // which lack the `meta` field; layout is mutated below to add full LayoutItem entries
-    // Detached components are dropped before anything indexes the layout: they
-    // never render, but a detached cycle crashes the filter scope modal, and a
-    // chart trapped in one is neither visible nor eligible for re-adding below.
+    // Repaired before anything indexes the layout: a detached cycle crashes the
+    // filter scope modal, and a chart trapped in one would never render.
     const layout = removeUnreachableComponents(
       (positionData && Object.keys(positionData).length > 0
         ? positionData

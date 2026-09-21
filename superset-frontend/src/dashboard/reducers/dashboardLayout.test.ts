@@ -267,6 +267,32 @@ describe('dashboardLayout reducer', () => {
     ).toBe(layout);
   });
 
+  test('should not move a component into a descendant with stale parents', () => {
+    const layout = {
+      parent: { id: 'parent', type: ROW_TYPE, children: ['column'] },
+      column: { id: 'column', type: COLUMN_TYPE, children: ['nestedRow'] },
+      nestedRow: {
+        id: 'nestedRow',
+        type: ROW_TYPE,
+        children: [],
+        parents: ['somewhere-else'],
+      },
+    };
+
+    const dropResult = {
+      source: { id: 'parent', type: ROW_TYPE, index: 0 },
+      destination: { id: 'nestedRow', type: ROW_TYPE, index: 0 },
+      dragging: { id: 'column', type: COLUMN_TYPE },
+    };
+
+    expect(
+      testReducer(layout, {
+        type: MOVE_COMPONENT,
+        payload: { dropResult },
+      }),
+    ).toBe(layout);
+  });
+
   test('should wrap a moved component in a row if need be', () => {
     const layout = {
       source: {

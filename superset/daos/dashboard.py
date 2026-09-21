@@ -385,10 +385,8 @@ class DashboardDAO(BaseDAO[Dashboard]):
                     chart_id = obj["meta"]["chartId"]
                     obj["meta"]["uuid"] = uuid_map.get(chart_id)
 
-            # Repair the layout before it is persisted. Charts are resolved
-            # from the incoming positions above, so a chart freed from a
-            # detached subtree keeps its ``dashboard_slices`` row and the
-            # frontend places it back into the layout on the next load.
+            # Repair the layout before it is persisted; detached charts are
+            # reattached so their membership and cross-filter config survive.
             positions = repair_position(positions, dashboard.id)
 
             # remove leading and trailing white spaces in the dumped json

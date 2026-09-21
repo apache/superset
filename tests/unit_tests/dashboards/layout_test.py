@@ -37,10 +37,10 @@ def test_intact_layout_is_returned_unchanged() -> None:
     assert remove_unreachable_components(position) == (position, [])
 
 
-def test_detached_subtree_with_a_cycle_is_removed() -> None:
+def trapped_components(chart_meta: dict[str, Any]) -> dict[str, Any]:
     # the shape of the reported corruption: a column moved into a row nested
     # inside itself, leaving the pair pointing at each other and detached
-    position = reachable_position() | {
+    return {
         "COLUMN-orphan": {
             "id": "COLUMN-orphan",
             "type": "COLUMN",
@@ -58,13 +58,112 @@ def test_detached_subtree_with_a_cycle_is_removed() -> None:
             "type": "CHART",
             "children": [],
             "parents": ["ROOT_ID", "GRID_ID", "ROW-a", "COLUMN-orphan"],
+            "meta": chart_meta,
         },
     }
+
+
+def test_detached_subtree_with_a_cycle_is_removed() -> None:
+    position = reachable_position() | trapped_components({})
 
     cleaned, removed = remove_unreachable_components(position)
 
     assert cleaned == reachable_position()
     assert sorted(removed) == ["CHART-trapped", "COLUMN-orphan", "ROW-orphan"]
+
+
+def test_detached_chart_is_reattached_to_the_grid() -> None:
+    position = reachable_position() | trapped_components({"chartId": 2, "width": 4})
+
+    cleaned, removed = remove_unreachable_components(position)
+
+    assert sorted(removed) == ["CHART-trapped", "COLUMN-orphan", "ROW-orphan"]
+    assert "COLUMN-orphan" not in cleaned
+    assert "ROW-orphan" not in cleaned
+    new_row_id = cleaned["GRID_ID"]["children"][-1]
+    assert cleaned["GRID_ID"]["children"] == ["ROW-a", new_row_id]
+    assert cleaned[new_row_id]["type"] == "ROW"
+    assert cleaned[new_row_id]["children"] == ["CHART-trapped"]
+    assert cleaned["CHART-trapped"]["parents"] == ["ROOT_ID", "GRID_ID", new_row_id]
+    assert cleaned["CHART-trapped"]["meta"] == {"chartId": 2, "width": 4}
+    # the caller's position is not mutated
+    assert position["GRID_ID"]["children"] == ["ROW-a"]
+
+
+def test_detached_chart_is_reattached_to_the_first_tab() -> None:
+    position = {
+        "DASHBOARD_VERSION_KEY": "v2",
+        "ROOT_ID": {"id": "ROOT_ID", "type": "ROOT", "children": ["TABS-t"]},
+        "GRID_ID": {"id": "GRID_ID", "type": "GRID", "children": []},
+        "TABS-t": {
+            "id": "TABS-t",
+            "type": "TABS",
+            "children": ["TAB-1", "TAB-2"],
+            "parents": ["ROOT_ID"],
+        },
+        "TAB-1": {
+            "id": "TAB-1",
+            "type": "TAB",
+            "children": [],
+            "parents": ["ROOT_ID", "TABS-t"],
+        },
+        "TAB-2": {"id": "TAB-2", "type": "TAB", "children": []},
+        "CHART-trapped": {
+            "id": "CHART-trapped",
+            "type": "CHART",
+            "children": [],
+            "meta": {"chartId": 2},
+        },
+    }
+
+    cleaned, _ = remove_unreachable_components(position)
+
+    [new_row_id] = cleaned["TAB-1"]["children"]
+    assert cleaned["CHART-trapped"]["parents"] == [
+        "ROOT_ID",
+        "TABS-t",
+        "TAB-1",
+        new_row_id,
+    ]
+
+
+def test_detached_chart_already_placed_is_not_duplicated() -> None:
+    position = reachable_position()
+    position["CHART-a"]["meta"] = {"chartId": 2}
+    position |= trapped_components({"chartId": 2})
+
+    cleaned, _ = remove_unreachable_components(position)
+
+    assert "CHART-trapped" not in cleaned
+    assert cleaned["GRID_ID"]["children"] == ["ROW-a"]
+
+
+def test_detached_charts_wrap_into_rows_by_width() -> None:
+    position = reachable_position()
+    for index, width in enumerate([6, 6, 4]):
+        chart_key = f"CHART-orphan-{index}"
+        position[chart_key] = {
+            "id": chart_key,
+            "type": "CHART",
+            "children": [],
+            "meta": {"chartId": 10 + index, "width": width},
+        }
+
+    cleaned, _ = remove_unreachable_components(position)
+
+    new_rows = cleaned["GRID_ID"]["children"][1:]
+    assert [cleaned[row_id]["children"] for row_id in new_rows] == [
+        ["CHART-orphan-0", "CHART-orphan-1"],
+        ["CHART-orphan-2"],
+    ]
+
+
+def test_malformed_children_do_not_raise() -> None:
+    position = reachable_position()
+    position["ROW-a"]["children"] = ["CHART-a", ["nested"], {"id": "x"}, 3]
+    position["CHART-a"]["children"] = {"not": "a list"}
+
+    assert remove_unreachable_components(position) == (position, [])
 
 
 def test_detached_grid_of_a_tabbed_dashboard_is_kept() -> None:
@@ -89,5 +188,12 @@ def test_layout_without_a_root_is_left_alone() -> None:
 def test_missing_child_reference_does_not_raise() -> None:
     position = reachable_position()
     position["ROW-a"]["children"] = ["CHART-a", "CHART-does-not-exist"]
+
+    assert remove_unreachable_components(position) == (position, [])
+
+
+def test_malformed_root_children_leave_the_layout_alone() -> None:
+    position = reachable_position()
+    position["ROOT_ID"]["children"] = {"0": "GRID_ID"}
 
     assert remove_unreachable_components(position) == (position, [])
