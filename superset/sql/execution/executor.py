@@ -609,8 +609,7 @@ class SQLExecutor:
             raise SupersetSecurityException(
                 SupersetError(
                     message=(
-                        "SQL statement contains disallowed client-side "
-                        f"file-transfer command(s): "
+                        "Disallowed client-side file-transfer command(s): "
                         f"{', '.join(sorted(file_transfer_commands))}"
                     ),
                     error_type=SupersetErrorType.INVALID_SQL_ERROR,
