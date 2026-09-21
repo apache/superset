@@ -198,7 +198,7 @@ Semantic Layer:
 
 Chart Management:
 - list_charts: List charts with advanced filters (1-based pagination; deleted_state='only'/'include' surfaces trashed charts the caller may restore)
-- get_chart_info: Get detailed chart information by ID
+- get_chart_info: Get detailed chart information by ID, or the chart state behind an Explore permalink (permalink_key)
 - get_chart_preview: Get a visual preview of a chart as formatted content or URL
 - get_chart_data: Get underlying chart data in text-friendly format
 - get_chart_sql: Get the rendered SQL query for a chart (without executing it)
