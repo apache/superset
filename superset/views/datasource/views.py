@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from collections import Counter
+from dataclasses import astuple
 from typing import Any
 
 from flask import redirect, request, url_for
@@ -122,28 +123,25 @@ class Datasource(BaseSupersetView):
             raise DatasetForbiddenError() from ex
 
         # The request may repoint the dataset to a different database and/or a
-        # different table/schema/catalog. ``update_from_object`` (below)
-        # replaces rather than merges, so an omitted key lands as None -- read
-        # the target with a plain ``.get`` so it reads as a change here too.
+        # different table. ``update_from_object`` (below) replaces rather than
+        # merges, so an omitted key lands as None; read the target the same way
+        # so it reads as a repoint here too. ``BaseDatasource.data`` emits an
+        # empty schema/catalog as None, so normalising both sides keeps a plain
+        # round-trip from reading as one.
         database_changed = database_id != orm_datasource.database_id
-        # ``BaseDatasource.data`` emits an empty schema/catalog as None, so
-        # normalising here keeps a plain round-trip from reading as a repoint.
         requested_table = Table(
             datasource_dict.get("table_name"),
             datasource_dict.get("schema") or None,
             datasource_dict.get("catalog") or None,
         )
-        # Compared field by field: ``Table.__eq__`` compares the dotted
-        # rendering, which would conflate distinct targets.
-        table_changed = (
-            requested_table.table,
-            requested_table.schema,
-            requested_table.catalog,
-        ) != (
+        current_table = Table(
             orm_datasource.table_name,
             orm_datasource.schema or None,
             orm_datasource.catalog or None,
         )
+        # Compared field by field: ``Table.__eq__`` compares the dotted
+        # rendering, which would conflate distinct targets.
+        table_changed = astuple(requested_table) != astuple(current_table)
 
         if database_changed:
             target_database = DatasetDAO.get_database_by_id(database_id)
@@ -159,11 +157,14 @@ class Datasource(BaseSupersetView):
         # check is skipped while the result is virtual (``table_name`` is a
         # label there, not a pointer). Dropping the SQL binds that label to a
         # real table, so a virtual-to-physical conversion is a repoint too,
-        # even when the label itself is unchanged.
-        stays_virtual = bool(datasource_dict.get("sql"))
-        if database_changed or (
-            not stays_virtual and (table_changed or orm_datasource.is_virtual)
-        ):
+        # even when the label itself is unchanged. Note this ports the
+        # command's table check only; it has no counterpart to the separate
+        # SQL-access check the command also runs.
+        will_be_virtual = bool(datasource_dict.get("sql"))
+        repoints_table = not will_be_virtual and (
+            table_changed or orm_datasource.is_virtual
+        )
+        if database_changed or repoints_table:
             try:
                 security_manager.raise_for_access(
                     database=target_database,
