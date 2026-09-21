@@ -24,6 +24,7 @@ assists people when migrating to a new version.
 
 ## Next
 
+- Client-side file-transfer statements (`PUT`, `GET`, `REMOVE`, `RM`) are now hard-rejected during query execution, regardless of `allow_dml`; this is a behaviour change for anyone using SQL Lab against Snowflake stages.
 - With `SEMANTIC_LAYERS` enabled, combined connection discovery honors `Database.can_read` and `SemanticLayer.can_read` independently. Each permitted source retains its normal row filters, including dynamic database filters for Admin. A source filter never includes rows or counts from a denied source; callers with neither read permission are denied. Feature-off database browsing is unchanged.
 - The combined datasource list (`GET /api/v1/datasource/`) accepts Dataset read without an additional Datasource read grant, regardless of `SEMANTIC_LAYERS`. With the flag enabled, SemanticView read independently permits semantic-view discovery. Existing row-level dataset/chart access remains enforced.
 - The `presto` extra requires PyHive 0.7.0 or later. PyHive 0.6.5 cannot load
