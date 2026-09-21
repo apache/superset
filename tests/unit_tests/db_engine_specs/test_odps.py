@@ -25,6 +25,21 @@ from superset.db_engine_specs.odps import OdpsBaseEngineSpec, OdpsEngineSpec
 from superset.sql.parse import Partition, Table
 
 
+def test_odps_properties() -> None:
+    assert OdpsEngineSpec.engine == "odps"
+    assert OdpsEngineSpec.engine_name == "ODPS (MaxCompute)"
+    assert OdpsEngineSpec.default_driver == "odps"
+    assert issubclass(OdpsEngineSpec, OdpsBaseEngineSpec)
+
+
+def test_odps_metadata() -> None:
+    metadata = OdpsEngineSpec.metadata
+    assert "MaxCompute" in metadata["description"]
+    assert metadata["logo"] == "maxcompute.png"
+    assert "pyodps" in metadata["pypi_packages"]
+    assert "odps://" in metadata["connection_string"]
+
+
 def test_odps_base_engine_spec_get_table_metadata_raises() -> None:
     """OdpsBaseEngineSpec.get_table_metadata must not be called directly."""
     with pytest.raises(NotImplementedError):
@@ -126,7 +141,7 @@ def test_is_odps_partitioned_table_uri_no_match(
     assert "did not match" in caplog.text
 
 
-def test_is_odps_partitioned_table_partitioned(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_is_odps_partitioned_table_partitioned() -> None:
     """Returns (True, [field_names]) for a partitioned ODPS table."""
     database = MagicMock()
     database.backend = "odps"
@@ -151,9 +166,7 @@ def test_is_odps_partitioned_table_partitioned(monkeypatch: pytest.MonkeyPatch) 
     assert result == (True, ["month"])
 
 
-def test_is_odps_partitioned_table_not_partitioned(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+def test_is_odps_partitioned_table_not_partitioned() -> None:
     """Returns (False, []) for a non-partitioned ODPS table."""
     database = MagicMock()
     database.backend = "odps"
