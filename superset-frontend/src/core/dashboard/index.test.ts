@@ -19,15 +19,9 @@
 import { SupersetClient, makeApi } from '@superset-ui/core';
 import type { QueryFormData } from '@superset-ui/core';
 import { updateComponents } from 'src/dashboard/actions/dashboardLayout';
-import {
-  dashboardInfoChanged,
-  nativeFiltersConfigChanged,
-} from 'src/dashboard/actions/dashboardInfo';
-import { SET_NATIVE_FILTERS_CONFIG_COMPLETE } from 'src/dashboard/actions/nativeFilters';
-import {
-  updateDataMask,
-  setDataMaskForFilterChangesComplete,
-} from 'src/dataMask/actions';
+import { dashboardInfoChanged } from 'src/dashboard/actions/dashboardInfo';
+import { applySavedFilterChanges } from 'src/dashboard/actions/nativeFilters';
+import { updateDataMask } from 'src/dataMask/actions';
 import {
   setChartFormData,
   triggerQuery,
@@ -56,10 +50,10 @@ jest.mock('src/dashboard/actions/dashboardInfo', () => ({
     type: 'MOCK_DASHBOARD_INFO_CHANGED',
     newInfo,
   })),
-  nativeFiltersConfigChanged: jest.fn(newInfo => ({
-    type: 'MOCK_NATIVE_FILTERS_CONFIG_CHANGED',
-    newInfo,
-  })),
+}));
+
+jest.mock('src/dashboard/actions/nativeFilters', () => ({
+  applySavedFilterChanges: jest.fn(),
 }));
 
 jest.mock('src/dataMask/actions', () => ({
@@ -67,11 +61,6 @@ jest.mock('src/dataMask/actions', () => ({
     type: 'MOCK_UPDATE_DATA_MASK',
     filterId,
     dataMask,
-  })),
-  setDataMaskForFilterChangesComplete: jest.fn((filterChanges, filters) => ({
-    type: 'MOCK_SET_DATA_MASK_FOR_FILTER_CHANGES_COMPLETE',
-    filterChanges,
-    filters,
   })),
 }));
 
@@ -97,6 +86,7 @@ const mockGetState = store.getState as jest.Mock;
 const mockDispatch = store.dispatch as jest.Mock;
 const mockClientGet = SupersetClient.get as jest.Mock;
 const mockMakeApi = makeApi as jest.Mock;
+const mockApplySavedFilterChanges = applySavedFilterChanges as jest.Mock;
 const mockExtractUrlParams = extractUrlParams as jest.Mock;
 const mockApplyDefaultFormData = applyDefaultFormData as jest.Mock;
 
@@ -397,7 +387,7 @@ test('saveFilters is a no-op when there are no updates or deletions', async () =
   await dashboard.saveFilters([]);
 
   expect(mockMakeApi).not.toHaveBeenCalled();
-  expect(mockDispatch).not.toHaveBeenCalled();
+  expect(mockApplySavedFilterChanges).not.toHaveBeenCalled();
 });
 
 test('saveFilters merges partial updates onto the existing filter and persists them', async () => {
@@ -430,19 +420,12 @@ test('saveFilters merges partial updates onto the existing filter and persists t
     reordered: [],
   };
   expect(mockRequest).toHaveBeenCalledWith(expectedFilterChanges);
-
-  const expectedSavedFilters = [{ ...existingFilter, name: 'Region (EMEA)' }];
-  expect(mockDispatch).toHaveBeenNthCalledWith(1, {
-    type: SET_NATIVE_FILTERS_CONFIG_COMPLETE,
-    filterChanges: expectedSavedFilters,
-    deletedIds: [],
-  });
-  expect(nativeFiltersConfigChanged).toHaveBeenCalledWith(expectedSavedFilters);
-  expect(setDataMaskForFilterChangesComplete).toHaveBeenCalledWith(
+  expect(mockApplySavedFilterChanges).toHaveBeenCalledWith(
+    store.dispatch,
     expectedFilterChanges,
+    [savedFilter],
     { 'NATIVE_FILTER-1': existingFilter },
   );
-  expect(mockDispatch).toHaveBeenCalledTimes(3);
 });
 
 test('saveFilters supports deleting filters without any modifications', async () => {
@@ -454,16 +437,18 @@ test('saveFilters supports deleting filters without any modifications', async ()
 
   await dashboard.saveFilters([], ['NATIVE_FILTER-1']);
 
-  expect(mockRequest).toHaveBeenCalledWith({
+  const expectedFilterChanges = {
     modified: [],
     deleted: ['NATIVE_FILTER-1'],
     reordered: [],
-  });
-  expect(mockDispatch).toHaveBeenNthCalledWith(1, {
-    type: SET_NATIVE_FILTERS_CONFIG_COMPLETE,
-    filterChanges: [],
-    deletedIds: ['NATIVE_FILTER-1'],
-  });
+  };
+  expect(mockRequest).toHaveBeenCalledWith(expectedFilterChanges);
+  expect(mockApplySavedFilterChanges).toHaveBeenCalledWith(
+    store.dispatch,
+    expectedFilterChanges,
+    [],
+    { 'NATIVE_FILTER-1': existingFilter },
+  );
 });
 
 test('saveFilters propagates a failed save instead of swallowing it', async () => {
@@ -476,5 +461,5 @@ test('saveFilters propagates a failed save instead of swallowing it', async () =
   await expect(
     dashboard.saveFilters([{ filterId: 'NATIVE_FILTER-1', name: 'x' }]),
   ).rejects.toThrow('network error');
-  expect(mockDispatch).not.toHaveBeenCalled();
+  expect(mockApplySavedFilterChanges).not.toHaveBeenCalled();
 });
