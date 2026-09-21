@@ -17,6 +17,7 @@
 # pylint: disable=too-many-lines
 import functools
 import logging
+import time
 import uuid
 from datetime import datetime
 from io import BytesIO
@@ -133,8 +134,11 @@ from superset.dashboards.schemas import (
     TabsPayloadSchema,
     thumbnail_query_schema,
 )
+from superset.distributed_lock import DistributedLock
 from superset.exceptions import (
+    AcquireDistributedLockFailedException,
     LockAlreadyHeldException,
+    ReleaseDistributedLockFailedException,
     ScreenshotImageNotAvailableException,
     SupersetSecurityException,
 )
@@ -169,6 +173,7 @@ from superset.utils.pdf import build_pdf_from_screenshots
 from superset.utils.screenshots import (
     DashboardScreenshot,
     DEFAULT_DASHBOARD_WINDOW_SIZE,
+    ScreenshotCacheError,
     ScreenshotCachePayload,
 )
 from superset.utils.urls import get_url_path
@@ -198,6 +203,18 @@ from superset.views.filters import (
 )
 
 logger = logging.getLogger(__name__)
+
+SCREENSHOT_API_LOCK_NAMESPACE = "dashboard_screenshot_api"
+SCREENSHOT_API_LOCK_WAIT_SECONDS = 1.0
+SCREENSHOT_API_LOCK_RETRY_SECONDS = 0.05
+# A short reservation grace coalesces one user action fanning out across multiple
+# web workers. Explicit force requests can still replace an abandoned generation
+# after this bound instead of waiting for the full computing TTL.
+SCREENSHOT_API_FORCE_RETRY_SECONDS = 1.0
+# Keep a crashed producer from retaining its reservation for the global 30-second
+# lock default. This still gives ordinary broker publication twice the coalescing
+# window before another forced request can take over.
+SCREENSHOT_API_LOCK_TTL_SECONDS = 2
 
 _DASHBOARD_PURGE_BINDING = SoftDeleteBinding(
     dao=DashboardDAO,
@@ -1900,7 +1917,9 @@ class DashboardRestApi(
         ),
         log_to_statsd=False,
     )
-    def cache_dashboard_screenshot(self, pk: int, **kwargs: Any) -> WerkzeugResponse:
+    def cache_dashboard_screenshot(  # noqa: C901
+        self, pk: int, **kwargs: Any
+    ) -> WerkzeugResponse:
         """Compute and cache a screenshot.
         ---
         post:
@@ -1916,6 +1935,12 @@ class DashboardRestApi(
                   schema:
                     $ref: '#/components/schemas/DashboardScreenshotPostSchema'
           responses:
+            200:
+              description: Existing dashboard screenshot task status
+              content:
+                application/json:
+                  schema:
+                    $ref: "#/components/schemas/DashboardCacheScreenshotResponseSchema"
             202:
               description: Dashboard async result
               content:
@@ -1930,6 +1955,8 @@ class DashboardRestApi(
               $ref: '#/components/responses/404'
             500:
               $ref: '#/components/responses/500'
+            503:
+              description: Screenshot cache unavailable
         """
         if is_feature_enabled(
             "GRANULAR_EXPORT_CONTROLS"
@@ -1972,44 +1999,292 @@ class DashboardRestApi(
 
         dashboard_url = get_url_path("Superset.dashboard_permalink", key=permalink_key)
         screenshot_obj = DashboardScreenshot(dashboard_url, dashboard.digest)
-        cache_key = screenshot_obj.get_cache_key(window_size, thumb_size, permalink_key)
-        image_url = get_url_path(
-            "DashboardRestApi.screenshot", pk=dashboard.id, digest=cache_key
-        )
-        cache_payload = (
-            screenshot_obj.get_from_cache_key(cache_key) or ScreenshotCachePayload()
+        cache_scope = f"dashboard:{dashboard.id}"
+        request_cache_key = screenshot_obj.get_api_request_cache_key(
+            window_size,
+            thumb_size,
+            permalink_key,
+            cache_scope,
         )
 
-        def build_response(status_code: int) -> WerkzeugResponse:
+        def build_response(
+            status_code: int,
+            cache_key: str,
+            cache_payload: ScreenshotCachePayload,
+        ) -> WerkzeugResponse:
             return self.response(
                 status_code,
                 cache_key=cache_key,
                 dashboard_url=dashboard_url,
-                image_url=image_url,
+                image_url=get_url_path(
+                    "DashboardRestApi.screenshot",
+                    pk=dashboard.id,
+                    digest=cache_key,
+                ),
+                task_timeout_seconds=(
+                    2 * current_app.config["THUMBNAIL_COMPUTING_CACHE_TTL"]
+                ),
                 task_updated_at=cache_payload.get_timestamp(),
                 task_status=cache_payload.get_status(),
             )
 
-        if cache_payload.should_trigger_task(
-            force, expected_scope=f"dashboard:{dashboard.id}"
-        ):
-            logger.info("Triggering screenshot ASYNC")
-            cache_dashboard_screenshot.delay(
-                username=get_current_user(),
-                guest_token=(
-                    g.user.guest_token
-                    if get_current_user() and isinstance(g.user, GuestUser)
+        def get_current_cache_key() -> str | None:
+            return screenshot_obj.get_current_api_generation_cache_key(
+                request_cache_key,
+                cache_scope,
+            )
+
+        def get_generation(
+            cache_key: str | None = None,
+        ) -> tuple[str | None, ScreenshotCachePayload | None]:
+            cache_key = cache_key or get_current_cache_key()
+            return (
+                cache_key,
+                (
+                    screenshot_obj.get_from_cache_key(
+                        cache_key,
+                        raise_on_error=True,
+                    )
+                    if cache_key
                     else None
                 ),
-                dashboard_id=dashboard.id,
-                dashboard_url=dashboard_url,
-                thumb_size=thumb_size,
-                window_size=window_size,
-                cache_key=cache_key,
-                force=force,
             )
-            return build_response(202)
-        return build_response(200)
+
+        def should_enqueue(cache_payload: ScreenshotCachePayload) -> bool:
+            return cache_payload.should_enqueue_task(
+                force,
+                expected_scope=cache_scope,
+                force_retry_after_seconds=SCREENSHOT_API_FORCE_RETRY_SECONDS,
+            )
+
+        try:
+            observed_cache_key, observed_payload = get_generation()
+        except ScreenshotCacheError:
+            logger.exception("Screenshot cache read failed: %s", request_cache_key)
+            return self.response(
+                503,
+                message=gettext("Screenshot cache is unavailable"),
+            )
+
+        if (
+            observed_cache_key
+            and observed_payload
+            and not should_enqueue(observed_payload)
+        ):
+            return build_response(200, observed_cache_key, observed_payload)
+
+        # Publish Pending before broker I/O so contenders can join it without
+        # waiting for the producer lock's full lease. Keep broker publication
+        # inside the lock to coalesce simultaneous forced requests, but never
+        # mutate the pointer after broker I/O because the lease may have expired.
+        lock_deadline = time.monotonic() + SCREENSHOT_API_LOCK_WAIT_SECONDS
+        while True:
+            lock_response: WerkzeugResponse | None = None
+            try:
+                with DistributedLock(
+                    namespace=SCREENSHOT_API_LOCK_NAMESPACE,
+                    request_cache_key=request_cache_key,
+                    ttl_seconds=SCREENSHOT_API_LOCK_TTL_SECONDS,
+                ):
+                    try:
+                        cache_key, cached_payload = get_generation()
+                    except ScreenshotCacheError:
+                        logger.exception(
+                            "Screenshot cache read failed: %s",
+                            request_cache_key,
+                        )
+                        lock_response = self.response(
+                            503,
+                            message=gettext("Screenshot cache is unavailable"),
+                        )
+                        return lock_response
+
+                    cache_payload = cached_payload or ScreenshotCachePayload(
+                        scope=cache_scope
+                    )
+                    if cached_payload is not None:
+                        if cache_key is None:
+                            logger.error(
+                                "Screenshot generation payload has no cache key: %s",
+                                request_cache_key,
+                            )
+                            lock_response = self.response(
+                                503,
+                                message=gettext("Screenshot cache is unavailable"),
+                            )
+                            return lock_response
+                        if cache_key != observed_cache_key or not should_enqueue(
+                            cache_payload
+                        ):
+                            lock_response = build_response(
+                                200, cache_key, cache_payload
+                            )
+                            return lock_response
+
+                    logger.info("Triggering screenshot ASYNC")
+                    next_cache_key = screenshot_obj.get_next_api_generation_cache_key(
+                        request_cache_key,
+                        cache_key,
+                    )
+                    cache_payload = ScreenshotCachePayload(scope=cache_scope)
+                    cache_payload.pending()
+                    try:
+                        screenshot_obj.store_cache_payload(
+                            next_cache_key,
+                            cache_payload,
+                        )
+                        # Make the reservation visible before broker I/O. A
+                        # failed publish is converted to terminal Error, and an
+                        # explicit force can replace an abandoned reservation
+                        # after the producer lease.
+                        published = screenshot_obj.set_current_api_generation_cache_key(
+                            request_cache_key,
+                            next_cache_key,
+                            cache_scope,
+                            cache_key,
+                        )
+                    except ScreenshotCacheError:
+                        logger.exception(
+                            "Screenshot task preparation failed: %s",
+                            next_cache_key,
+                        )
+                        lock_response = self.response(
+                            503,
+                            message=gettext("Screenshot cache is unavailable"),
+                        )
+                        return lock_response
+
+                    if not published:
+                        try:
+                            winner_cache_key, winner_payload = get_generation()
+                        except ScreenshotCacheError:
+                            logger.exception(
+                                "Screenshot generation winner read failed: %s",
+                                request_cache_key,
+                            )
+                            lock_response = self.response(
+                                503,
+                                message=gettext("Screenshot cache is unavailable"),
+                            )
+                            return lock_response
+                        if winner_cache_key is None or winner_payload is None:
+                            logger.error(
+                                "Screenshot generation publication lost without a "
+                                "readable winner: %s",
+                                request_cache_key,
+                            )
+                            lock_response = self.response(
+                                503,
+                                message=gettext("Screenshot cache is unavailable"),
+                            )
+                            return lock_response
+                        lock_response = build_response(
+                            200,
+                            winner_cache_key,
+                            winner_payload,
+                        )
+                        return lock_response
+
+                    try:
+                        cache_dashboard_screenshot.delay(
+                            username=get_current_user(),
+                            guest_token=(
+                                g.user.guest_token
+                                if get_current_user() and isinstance(g.user, GuestUser)
+                                else None
+                            ),
+                            dashboard_id=dashboard.id,
+                            dashboard_url=dashboard_url,
+                            thumb_size=thumb_size,
+                            window_size=window_size,
+                            cache_key=next_cache_key,
+                            # The API selected a unique generation. Duplicate
+                            # deliveries should never force a completed result
+                            # to recompute.
+                            force=False,
+                        )
+                    except Exception:  # pylint: disable=broad-except
+                        screenshot_obj.mark_cache_error_if_incomplete(
+                            next_cache_key,
+                            cache_scope,
+                        )
+                        raise
+                    lock_response = build_response(202, next_cache_key, cache_payload)
+                    return lock_response
+            except ReleaseDistributedLockFailedException:
+                if lock_response is not None:
+                    logger.warning(
+                        "Screenshot request completed but its producer lock could "
+                        "not be released: %s",
+                        request_cache_key,
+                        exc_info=True,
+                    )
+                    return lock_response
+                logger.exception(
+                    "Could not release screenshot producer lock: %s",
+                    request_cache_key,
+                )
+                return self.response(
+                    503,
+                    message=gettext("Screenshot request is temporarily unavailable"),
+                )
+            except LockAlreadyHeldException:
+                try:
+                    cache_key = get_current_cache_key()
+                except ScreenshotCacheError:
+                    logger.exception(
+                        "Screenshot request pointer read failed while awaiting "
+                        "producer: %s",
+                        request_cache_key,
+                    )
+                    return self.response(
+                        503,
+                        message=gettext("Screenshot cache is unavailable"),
+                    )
+
+                if cache_key and cache_key != observed_cache_key:
+                    try:
+                        _, current_payload = get_generation(cache_key)
+                    except ScreenshotCacheError:
+                        logger.exception(
+                            "Screenshot cache read failed while awaiting producer: %s",
+                            request_cache_key,
+                        )
+                        return self.response(
+                            503,
+                            message=gettext("Screenshot cache is unavailable"),
+                        )
+                    if current_payload is None:
+                        logger.error(
+                            "Published screenshot generation has no payload: %s",
+                            cache_key,
+                        )
+                        return self.response(
+                            503,
+                            message=gettext("Screenshot cache is unavailable"),
+                        )
+                    return build_response(200, cache_key, current_payload)
+                if time.monotonic() >= lock_deadline:
+                    logger.warning(
+                        "Timed out waiting for screenshot producer: %s",
+                        request_cache_key,
+                    )
+                    return self.response(
+                        503,
+                        message=gettext(
+                            "Screenshot request is temporarily unavailable"
+                        ),
+                    )
+                time.sleep(SCREENSHOT_API_LOCK_RETRY_SECONDS)
+            except AcquireDistributedLockFailedException:
+                logger.exception(
+                    "Could not coordinate screenshot request: %s",
+                    request_cache_key,
+                )
+                return self.response(
+                    503,
+                    message=gettext("Screenshot request is temporarily unavailable"),
+                )
 
     @expose("/<pk>/screenshot/<digest>/", methods=("GET",))
     @validate_feature_flags(["THUMBNAILS", "ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS"])
@@ -2080,7 +2355,11 @@ class DashboardRestApi(
             try:
                 image = cache_payload.get_image()
             except ScreenshotImageNotAvailableException:
-                return self.response_404()
+                return self.response(
+                    404,
+                    message=gettext("Not found"),
+                    extra={"task_status": cache_payload.get_status()},
+                )
 
             filename = get_filename(
                 dashboard.dashboard_title or "screenshot", dashboard.id, skip_id=True
