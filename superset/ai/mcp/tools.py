@@ -64,8 +64,8 @@ from superset.ai.mcp.config import (
     MCPServerConfig,
     namespaced_tool_name,
 )
+from superset.ai.prompt_framing import sanitize_for_llm_context
 from superset.ai.tools.base import AITool, ToolError, ToolOutput
-from superset.mcp_service.utils.sanitization import sanitize_for_llm_context
 from superset.utils import json
 
 logger = logging.getLogger(__name__)
