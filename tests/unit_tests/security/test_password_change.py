@@ -27,26 +27,37 @@ from superset.security.password_change import (
     _is_exempt_endpoint,
     password_change_required,
 )
+from superset.views.health import health_blueprint
 
 
 @pytest.mark.parametrize(
     "endpoint,expected",
     [
-        (None, True),  # static file serving etc.
+        (None, True),  # unmatched URLs
+        ("", True),
+        ("static", True),
         ("ResetMyPasswordView.this_form_get", True),
+        ("ResetMyPasswordView.this_form_post", True),
+        ("ResetPasswordView.this_form_get", True),
+        ("ResetPasswordView.this_form_post", True),
         ("AuthDBView.login", True),
         ("AuthDBView.logout", True),
         ("appbuilder.static", True),
         ("UserInfoEditView.this_form_post", True),
         ("AuthOAuthView.login", True),
+        ("AuthLDAPView.login", True),
+        ("AuthOIDView.login", True),
+        ("AuthRemoteUserView.login", True),
         ("SomeBlueprint.static", True),
-        ("health", True),
+        ("health", False),  # a bare name is not the health blueprint
+        ("healthcheck", False),
         ("SupersetIndexView.index", False),
         ("Superset.dashboard", False),
         # Substring over-matching must NOT exempt these (they merely share a
         # substring with an exempt token).
         ("AuthorView.list", False),
         ("HealthDashboardView.show", False),
+        ("health_dashboard.show", False),
         ("StaticAssetReportView.list", False),
         ("UserInfoFancyView.show", False),
     ],
@@ -81,6 +92,59 @@ def test_password_change_required_no_user_id() -> None:
     user = MagicMock()
     user.id = None
     assert password_change_required(user) is False
+
+
+@pytest.mark.parametrize("method", ["GET", "HEAD"])
+def test_enforcement_exempts_health_blueprint(
+    app: Flask, monkeypatch: pytest.MonkeyPatch, method: str
+) -> None:
+    """Every real health rule retains its response for a flagged session."""
+    from superset.extensions import appbuilder
+    from superset.models.user_attributes import UserAttribute
+
+    rules = [
+        rule
+        for rule in app.url_map.iter_rules()
+        if rule.endpoint.rpartition(".")[0] == health_blueprint.name
+    ]
+    assert rules, "no health blueprint routes registered"
+    user = appbuilder.sm.user_model(id=5, active=True, roles=[])
+    with (
+        app.app_context(),
+        app.test_client() as client,
+        patch.object(app.login_manager, "_user_callback", return_value=user),
+        patch(
+            "superset.security.password_change._get_user_attribute",
+            return_value=UserAttribute(user_id=user.id, password_must_change=True),
+        ) as get_attribute,
+        patch(
+            "superset.security.session_invalidation._get_user_invalidated_at",
+            return_value=None,
+        ),
+    ):
+        with client.session_transaction() as session:
+            session["_user_id"] = str(user.id)
+            session["_fresh"] = True
+
+        for rule in rules:
+            monkeypatch.setitem(app.config, "ENABLE_FORCE_PASSWORD_CHANGE", False)
+            normal = client.open(rule.rule, method=method)
+            assert normal.status_code == 200, rule.rule
+
+            monkeypatch.setitem(app.config, "ENABLE_FORCE_PASSWORD_CHANGE", True)
+            response = client.open(rule.rule, method=method)
+            assert response.status_code == normal.status_code, rule.rule
+            assert response.data == normal.data, rule.rule
+            assert response.content_type == normal.content_type, rule.rule
+            assert "Location" not in response.headers, rule.rule
+
+        get_attribute.assert_not_called()
+        # Positive control: authentication and enforcement really ran; an
+        # unregistered hook or an anonymous session must not make this pass.
+        response = client.get("/")
+        assert response.status_code == 302
+        assert response.headers["Location"].endswith("/resetmypassword/form")
+        get_attribute.assert_called_once_with(user.id)
 
 
 def test_get_user_attribute_deterministic_with_duplicates() -> None:

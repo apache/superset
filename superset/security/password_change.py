@@ -36,6 +36,7 @@ from flask_babel import gettext as __
 from sqlalchemy.exc import IntegrityError
 
 from superset.utils.decorators import transaction
+from superset.views.health import health_blueprint
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +44,7 @@ logger = logging.getLogger(__name__)
 # function views). The following must remain reachable while a password change
 # is pending, otherwise the redirect would loop: the auth views (login/logout
 # for every auth backend), the password-reset and user-info-edit views, static
-# assets, and the health check. We match the *view-class* component (the part
+# assets, and the health blueprint. We match the *view-class* component (the part
 # before the dot) exactly against the allow-list below rather than doing a
 # substring search, so unrelated endpoints that merely share a substring (e.g.
 # an "Author"-named view, or any name containing "health"/"static") are not
@@ -62,7 +63,7 @@ _EXEMPT_VIEW_CLASSES = frozenset(
 )
 
 # Exact endpoint names (function views / Flask built-ins) that are always exempt.
-_EXEMPT_ENDPOINTS = frozenset({"static", "appbuilder.static", "health", "healthcheck"})
+_EXEMPT_ENDPOINTS = frozenset({"static", "appbuilder.static"})
 
 
 def _get_user_attribute(user_id: int) -> Optional[Any]:
@@ -168,6 +169,11 @@ def register_password_change_enforcement(app: Any) -> None:
             return None
 
         if _is_exempt_endpoint(request.endpoint):
+            return None
+
+        # Exempt the whole registered health blueprint, including version(),
+        # independently of individual route paths or view function names.
+        if request.blueprint == health_blueprint.name:
             return None
 
         if not password_change_required(user):
