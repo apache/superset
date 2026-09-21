@@ -65,6 +65,15 @@ This feature is **disabled by default**. It requires:
 
    Until both are set, the export endpoint returns `501` and the menu action
    surfaces a "not configured" message.
+
+   :::note Upgrading from `EXCEL_EXPORT_S3_*`
+   `EXCEL_EXPORT_S3_BUCKET`, `EXCEL_EXPORT_S3_KEY_PREFIX` and
+   `EXCEL_EXPORT_S3_CLIENT_KWARGS` were replaced by `EXPORT_STORAGE` and are no
+   longer read. Move the bucket and prefix across, pass the client kwargs to
+   `S3ExportStorage(client_kwargs=...)`, and set `backend` explicitly: it has no
+   default, so an export that worked before returns `501` until it is set.
+   :::
+
 2. **The backend's SDK dependency, on both the web and worker tiers** (the
    worker uploads, the web server streams downloads). Not installed by
    default; install
