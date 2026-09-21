@@ -29,6 +29,7 @@ import type {
   GridComponentOption,
   LegendComponentOption,
 } from 'echarts/components';
+import type { BarSeriesOption } from 'echarts/charts';
 import {
   EchartsTimeseriesChartProps,
   LegendOrientation,
@@ -37,15 +38,11 @@ import {
 import transformProps from '../../../src/Timeseries/transformProps';
 import { DEFAULT_FORM_DATA } from '../../../src/Timeseries/constants';
 import {
+  BarValueLabelPosition,
   EchartsTimeseriesFormData,
   OrientationType,
   EchartsTimeseriesSeriesType,
 } from '../../../src/Timeseries/types';
-import { getPadding } from '../../../src/Timeseries/transformers';
-import {
-  getHorizontalLegendAvailableWidth,
-  getLegendLayoutResult,
-} from '../../../src/utils/series';
 import { createEchartsTimeseriesTestChartProps } from '../../helpers';
 
 function createTestQueryData(
@@ -73,6 +70,106 @@ function createTestQueryData(
     ...overrides,
   };
 }
+
+test('manual Bar value label position flows through transformProps', () => {
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsTimeseriesFormData,
+    EchartsTimeseriesChartProps
+  >({
+    defaultFormData: DEFAULT_FORM_DATA,
+    defaultVizType: 'echarts_timeseries_bar',
+    formData: {
+      seriesType: EchartsTimeseriesSeriesType.Bar,
+      valueLabelPosition: BarValueLabelPosition.OutsideEnd,
+      metrics: ['Sales'],
+      xAxis: '__timestamp',
+      showValue: true,
+    },
+    queriesData: [
+      createTestQueryData([{ Sales: 100, __timestamp: 1609459200000 }], {
+        colnames: ['Sales', '__timestamp'],
+        coltypes: [GenericDataType.Numeric, GenericDataType.Temporal],
+      }),
+    ],
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const [series] = echartOptions.series as BarSeriesOption[];
+
+  expect(series.label).toMatchObject({ position: 'top' });
+  expect(series.labelLayout).toBeUndefined();
+  expect(echartOptions.darkMode).toBeUndefined();
+});
+
+test('Auto Bar labels enable theme-aware ECharts contrast', () => {
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsTimeseriesFormData,
+    EchartsTimeseriesChartProps
+  >({
+    defaultFormData: DEFAULT_FORM_DATA,
+    defaultVizType: 'echarts_timeseries_bar',
+    formData: {
+      seriesType: EchartsTimeseriesSeriesType.Bar,
+      valueLabelPosition: BarValueLabelPosition.Auto,
+      metrics: ['Sales'],
+      xAxis: '__timestamp',
+      showValue: true,
+    },
+    queriesData: [
+      createTestQueryData([{ Sales: 100, __timestamp: 1609459200000 }], {
+        colnames: ['Sales', '__timestamp'],
+        coltypes: [GenericDataType.Numeric, GenericDataType.Temporal],
+      }),
+    ],
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const [series] = echartOptions.series as BarSeriesOption[];
+
+  expect(typeof series.labelLayout).toBe('function');
+  expect(echartOptions.darkMode).toBe(false);
+});
+
+test('legacy Bar labels without a saved position keep their pre-existing Outside End placement', () => {
+  const legacyFormData: Partial<EchartsTimeseriesFormData> = {
+    ...DEFAULT_FORM_DATA,
+  };
+  delete legacyFormData.valueLabelPosition;
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsTimeseriesFormData,
+    EchartsTimeseriesChartProps
+  >({
+    defaultFormData: legacyFormData as EchartsTimeseriesFormData,
+    defaultVizType: 'echarts_timeseries_bar',
+    formData: {
+      seriesType: EchartsTimeseriesSeriesType.Bar,
+      metrics: ['Sales'],
+      xAxis: '__timestamp',
+      showValue: true,
+    },
+    queriesData: [
+      createTestQueryData([{ Sales: 100, __timestamp: 1609459200000 }], {
+        colnames: ['Sales', '__timestamp'],
+        coltypes: [GenericDataType.Numeric, GenericDataType.Temporal],
+      }),
+    ],
+  });
+
+  expect(chartProps.formData).not.toHaveProperty('valueLabelPosition');
+  const { echartOptions } = transformProps(chartProps);
+  const [series] = echartOptions.series as BarSeriesOption[];
+
+  expect(series.label).toMatchObject({ position: 'top' });
+  expect(series.labelLayout).toBeUndefined();
+
+  Reflect.set(chartProps.formData, 'valueLabelPosition', undefined);
+  const undefinedPositionOptions = transformProps(chartProps).echartOptions;
+  const [undefinedPositionSeries] =
+    undefinedPositionOptions.series as BarSeriesOption[];
+
+  expect(undefinedPositionSeries.label).toMatchObject({ position: 'top' });
+  expect(undefinedPositionSeries.labelLayout).toBeUndefined();
+});
 
 describe('Bar Chart X-axis Time Formatting', () => {
   const baseFormData: SqlaFormData = {
@@ -544,6 +641,41 @@ describe('Bar Chart X-axis Time Formatting', () => {
       expect(legend.selector).toBe(false);
     });
 
+    test('marks custom Plain legend items non-interactive when color by x-axis is enabled', () => {
+      const chartProps = new ChartProps({
+        ...baseChartPropsConfig,
+        formData: {
+          ...baseFormData,
+          colorByPrimaryAxis: true,
+          groupby: [],
+          legendOrientation: LegendOrientation.Top,
+          legendType: LegendType.Plain,
+          metric: 'value',
+          showLegend: true,
+          x_axis: 'category',
+        },
+        queriesData: categoricalData,
+      });
+
+      const transformedProps = transformProps(
+        chartProps as unknown as EchartsTimeseriesChartProps,
+      );
+      const { customLegend } = transformedProps as unknown as {
+        customLegend?: {
+          items: { interactive: boolean; name: string }[];
+          showSelectors: boolean;
+        };
+      };
+
+      expect(customLegend?.showSelectors).toBe(false);
+      expect(customLegend?.items.map(item => item.name)).toEqual([
+        'A',
+        'B',
+        'C',
+      ]);
+      expect(customLegend?.items.every(item => !item.interactive)).toBe(true);
+    });
+
     test('should work without stacking enabled', () => {
       const formData = {
         ...baseFormData,
@@ -820,39 +952,7 @@ describe('Bar Chart X-axis Time Formatting', () => {
   });
 
   describe('Legend layout regressions', () => {
-    const getBottomLegendLayout = (
-      chartWidth: number,
-      legendItems: string[],
-      legendMargin?: string | number | null,
-    ) =>
-      getLegendLayoutResult({
-        availableWidth: getHorizontalLegendAvailableWidth({
-          chartWidth,
-          orientation: LegendOrientation.Bottom,
-          padding: getPadding(
-            true,
-            LegendOrientation.Bottom,
-            false,
-            false,
-            legendMargin,
-            false,
-            undefined,
-            undefined,
-            undefined,
-            true,
-          ),
-        }),
-        chartHeight: baseChartPropsConfig.height,
-        chartWidth,
-        legendItems,
-        legendMargin,
-        orientation: LegendOrientation.Bottom,
-        show: true,
-        theme: supersetTheme,
-        type: LegendType.Plain,
-      });
-
-    test('should fall back to scroll for horizontal bottom legends after margin expansion reduces available width', () => {
+    test('honors an explicit List selection with a custom horizontal bottom legend', () => {
       const legendLabels = [
         'This is a long sales legend',
         'This is a long marketing legend',
@@ -899,48 +999,9 @@ describe('Bar Chart X-axis Time Formatting', () => {
         legendType: LegendType.Plain,
         showLegend: true,
       };
-      const baselineChartProps = createEchartsTimeseriesTestChartProps<
-        EchartsTimeseriesFormData,
-        EchartsTimeseriesChartProps
-      >({
-        defaultFormData: regressionFormData,
-        defaultVizType: 'echarts_timeseries_bar',
-        defaultQueriesData: longLegendData,
-        width: baseChartPropsConfig.width,
-        height: baseChartPropsConfig.height,
-      });
-      const baselineTransformed = transformProps(baselineChartProps);
-      const legendItems = (
-        (baselineTransformed.echartOptions.legend as LegendComponentOption)
-          .data as Array<string | { name: string }>
-      ).map(item => (typeof item === 'string' ? item : item.name));
-      let chartWidth: number | undefined;
-      let expandedLegendMargin: number | null = null;
-
-      for (let width = 300; width <= 700; width += 1) {
-        const initialLayout = getBottomLegendLayout(width, legendItems, null);
-
-        if (initialLayout.effectiveType !== LegendType.Plain) {
-          continue;
-        }
-
-        const refinedLayout = getBottomLegendLayout(
-          width,
-          legendItems,
-          initialLayout.effectiveMargin ?? null,
-        );
-
-        if (refinedLayout.effectiveType === LegendType.Scroll) {
-          chartWidth = width;
-          expandedLegendMargin = initialLayout.effectiveMargin ?? null;
-          break;
-        }
-      }
-
-      expect(chartWidth).toBeDefined();
-      expect(expandedLegendMargin).not.toBeNull();
-      const resolvedChartWidth = chartWidth ?? baseChartPropsConfig.width;
-
+      // A narrow chart forces the long-label bottom legend to wrap onto
+      // multiple rows — the case that previously flipped List to scroll.
+      const chartWidth = 320;
       const chartProps = createEchartsTimeseriesTestChartProps<
         EchartsTimeseriesFormData,
         EchartsTimeseriesChartProps
@@ -948,7 +1009,7 @@ describe('Bar Chart X-axis Time Formatting', () => {
         defaultFormData: regressionFormData,
         defaultVizType: 'echarts_timeseries_bar',
         defaultQueriesData: longLegendData,
-        width: resolvedChartWidth,
+        width: chartWidth,
         height: baseChartPropsConfig.height,
       });
 
@@ -956,42 +1017,116 @@ describe('Bar Chart X-axis Time Formatting', () => {
       const legend = transformedProps.echartOptions
         .legend as LegendComponentOption;
       const grid = transformedProps.echartOptions.grid as GridComponentOption;
-      const expectedPadding = getPadding(
-        true,
-        LegendOrientation.Bottom,
-        false,
-        false,
-        null,
-        false,
-        undefined,
-        undefined,
-        undefined,
-        true,
-      );
-      [expectedPadding.bottom, expectedPadding.left] = [
-        expectedPadding.left,
-        expectedPadding.bottom,
-      ];
-      const expandedPadding = getPadding(
-        true,
-        LegendOrientation.Bottom,
-        false,
-        false,
-        expandedLegendMargin,
-        false,
-        undefined,
-        undefined,
-        undefined,
-        true,
-      );
-      [expandedPadding.bottom, expandedPadding.left] = [
-        expandedPadding.left,
-        expandedPadding.bottom,
-      ];
+      const { customLegend } = transformedProps as unknown as {
+        customLegend?: {
+          items: { name: string }[];
+          orientation: LegendOrientation;
+        };
+      };
+      const resolvedLegendItems = (
+        legend.data as Array<string | { name: string }>
+      ).map(item => (typeof item === 'string' ? item : item.name));
 
-      expect(legend.type).toBe(LegendType.Scroll);
-      expect(grid.bottom).toBe(expectedPadding.bottom);
-      expect(grid.bottom).not.toBe(expandedPadding.bottom);
+      // The explicit List selection is honored end-to-end (never flips).
+      expect(legend.type).toBe(LegendType.Plain);
+      expect(legend.show).toBe(false);
+      expect(customLegend?.orientation).toBe(LegendOrientation.Bottom);
+      expect(customLegend?.items.map(item => item.name)).toEqual(
+        resolvedLegendItems,
+      );
+      // The plot canvas no longer reserves native legend rows; the independently
+      // scrolling HTML legend consumes space outside the ECharts grid.
+      expect(grid.bottom).toBe(20);
+    });
+  });
+
+  describe('Regression test for Issue #42560', () => {
+    const numericXAxisData = [
+      {
+        data: [
+          { x_value: 1000, metric: 10 },
+          { x_value: 2000, metric: 20 },
+          { x_value: 3000, metric: 30 },
+        ],
+        colnames: ['x_value', 'metric'],
+        coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
+      },
+    ];
+
+    const categoricalXAxisData = [
+      {
+        data: [
+          { category: 'A', metric: 10 },
+          { category: 'B', metric: 20 },
+          { category: 'C', metric: 30 },
+        ],
+        colnames: ['category', 'metric'],
+        coltypes: [GenericDataType.String, GenericDataType.Numeric],
+      },
+    ];
+
+    test('custom X Axis Title is preserved verbatim, not overwritten by the axis number/currency format ("unit")', () => {
+      // Uses a numeric (non-temporal) x-axis column so `xAxisNumberFormat`
+      // actually drives `getNumberFormatter` in the axis-label formatter
+      // path, rather than being ignored in favor of the temporal formatter.
+      const formData = {
+        ...baseFormData,
+        orientation: 'vertical',
+        groupby: [],
+        x_axis: 'x_value',
+        metric: 'metric',
+        xAxisTitle: 'My X Axis',
+        xAxisNumberFormat: 'SMART_NUMBER',
+        yAxisFormat: '$,.2f',
+      };
+
+      const chartProps = new ChartProps({
+        ...baseChartPropsConfig,
+        queriesData: numericXAxisData,
+        formData,
+      });
+
+      const transformedProps = transformProps(
+        chartProps as unknown as EchartsTimeseriesChartProps,
+      );
+      const xAxis = transformedProps.echartOptions.xAxis as any;
+
+      expect(xAxis.name).toBe('My X Axis');
+    });
+
+    test('X Axis Title control maps onto the rendered category (left) axis in horizontal orientation, not the bottom axis', () => {
+      // Documents the axis swap for horizontal bar charts: `xAxisTitle` ends
+      // up on `echartOptions.yAxis.name` (the vertical category axis) and
+      // `yAxisTitle` ends up on `echartOptions.xAxis.name` (the horizontal
+      // value axis). This is existing, intentional swap behavior, not the
+      // "unit" overwrite described in the issue. Uses categorical x-axis
+      // data so the rendered left axis is actually type `category`, matching
+      // what the test name claims.
+      const formData = {
+        ...baseFormData,
+        orientation: 'horizontal',
+        groupby: [],
+        x_axis: 'category',
+        metric: 'metric',
+        xAxisTitle: 'My X Axis',
+        yAxisTitle: 'My Y Axis',
+      };
+
+      const chartProps = new ChartProps({
+        ...baseChartPropsConfig,
+        queriesData: categoricalXAxisData,
+        formData,
+      });
+
+      const transformedProps = transformProps(
+        chartProps as unknown as EchartsTimeseriesChartProps,
+      );
+      const renderedXAxis = transformedProps.echartOptions.xAxis as any;
+      const renderedYAxis = transformedProps.echartOptions.yAxis as any;
+
+      expect(renderedYAxis.type).toBe('category');
+      expect(renderedYAxis.name).toBe('My X Axis');
+      expect(renderedXAxis.name).toBe('My Y Axis');
     });
   });
 });

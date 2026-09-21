@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useMemo, ReactNode } from 'react';
+import { useMemo, useRef, useState, useEffect, ReactNode } from 'react';
 import { InfoTooltip, TableView } from '@superset-ui/core/components';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
@@ -28,8 +28,11 @@ import {
 import { ValueCell, LeftCell, Sparkline } from './components';
 import type { TimeTableProps } from './types';
 
+const RESIZE_DEBOUNCE_MS = 500;
+
 // @z-index-above-dashboard-charts + 1 = 11
-const TimeTableStyles = styled.div<{ height?: number }>`
+const TimeTableStyles = styled.div<{ height?: number; hideTable?: boolean }>`
+  ${props => props.hideTable && 'display: none;'}
   height: ${props => props.height}px;
   overflow: auto;
 
@@ -47,6 +50,30 @@ const TimeTable = ({
   rows,
   url = '',
 }: TimeTableProps) => {
+  // Hide TableView as soon as the window starts resizing, and only show it
+  // again once resizing has stopped for RESIZE_DEBOUNCE_MS.
+  const resizeTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
+  const [isSizeStable, setIsSizeStable] = useState(true);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsSizeStable(false);
+      clearTimeout(resizeTimerRef.current);
+      resizeTimerRef.current = setTimeout(() => {
+        setIsSizeStable(true);
+      }, RESIZE_DEBOUNCE_MS);
+    };
+
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      clearTimeout(resizeTimerRef.current);
+    };
+  }, []);
+
   const memoizedColumns = useMemo(
     () => [
       {
@@ -125,21 +152,25 @@ const TimeTable = ({
     });
   }, [columnConfigs, data, rowType, rows, url]);
 
-  const defaultSort =
-    rowType === 'column' && columnConfigs.length
-      ? [
-          {
-            id: columnConfigs[0].key,
-            desc: true,
-          },
-        ]
-      : [];
+  const defaultSort = useMemo(
+    () =>
+      rowType === 'column' && columnConfigs.length
+        ? [
+            {
+              id: columnConfigs[0].key,
+              desc: true,
+            },
+          ]
+        : [],
+    [rowType, columnConfigs],
+  );
 
   return (
     <TimeTableStyles
       data-test="time-table"
       className={className}
       height={height}
+      hideTable={!isSizeStable}
     >
       <TableView
         className="table-no-hover"

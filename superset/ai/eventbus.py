@@ -283,7 +283,7 @@ def _stream_backend() -> Any:
     """
     from flask import current_app
 
-    from superset.async_events.cache_backend import (
+    from superset.coordination.cache_backend import (
         RedisCacheBackend,
         RedisSentinelCacheBackend,
     )

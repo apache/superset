@@ -200,6 +200,7 @@ export function OAuth2RedirectMessage({
       message={subtitle}
       type={level}
       description={body}
+      descriptionPre={false}
       closable={closable}
     />
   );

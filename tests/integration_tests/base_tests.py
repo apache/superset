@@ -45,6 +45,7 @@ from superset.models.slice import Slice
 from superset.sql.parse import CTASMethod
 from superset.subjects.models import Subject
 from superset.subjects.types import SubjectType
+from superset.tags.models import Tag, TaggedObject
 from superset.utils import json
 from superset.utils.core import get_example_default_schema, shortid
 from superset.utils.database import get_example_database
@@ -271,9 +272,27 @@ class SupersetTestCase(TestCase):
                 db.session.delete(temp_role)
             if login:
                 self.logout()
+            self._release_tag_references(temp_user.id)
             db.session.delete(temp_user)
             db.session.commit()
             g.user = previous_g_user
+
+    @staticmethod
+    def _release_tag_references(user_id: int) -> None:
+        """
+        Drop `ab_user` references held by rows the tagging system wrote.
+
+        Anything a user saves while `TAGGING_SYSTEM` is on stamps the audit
+        columns of the `tag` and `tagged_object` rows it creates, and those are
+        foreign keys. Deleting the user without clearing them fails with a
+        foreign key violation on backends that enforce them.
+        """
+        for model in (Tag, TaggedObject):
+            for column in ("created_by_fk", "changed_by_fk"):
+                db.session.query(model).filter(
+                    getattr(model, column) == user_id
+                ).update({column: None}, synchronize_session=False)
+        db.session.commit()
 
     @staticmethod
     def create_user(
@@ -333,6 +352,17 @@ class SupersetTestCase(TestCase):
 
     def login(self, username, password=DEFAULT_PASSWORD):
         return login(self.client, username, password)
+
+    def get_bearer_auth_header(
+        self, username: str = ADMIN_USERNAME, password: str = DEFAULT_PASSWORD
+    ) -> dict[str, str]:
+        """Return an Authorization header with a login access token."""
+        response = self.client.post(
+            "/api/v1/security/login",
+            json={"username": username, "password": password, "provider": "db"},
+        )
+        assert response.status_code == 200
+        return {"Authorization": f"Bearer {response.json['access_token']}"}
 
     def get_slice(self, slice_name: str) -> Slice:
         return db.session.query(Slice).filter_by(slice_name=slice_name).one()

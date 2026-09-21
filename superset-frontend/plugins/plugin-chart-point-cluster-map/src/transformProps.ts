@@ -21,7 +21,7 @@ import Supercluster, {
 } from 'supercluster';
 import { ChartProps, getMapProviderMapStyle } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
-import { DEFAULT_POINT_RADIUS, DEFAULT_MAX_ZOOM } from './MapLibre';
+import { DEFAULT_POINT_RADIUS, DEFAULT_MAX_ZOOM } from './mapLibreDefaults';
 import roundDecimal from './utils/roundDecimal';
 
 const NOOP = () => {};

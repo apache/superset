@@ -97,6 +97,13 @@ def insert_report_schedule(
     logs = logs or []
     last_state = last_state or ReportState.NOOP
 
+    # created_by/changed_by are populated by AuditMixin's column defaults, which
+    # are only evaluated when the row is actually flushed. The override_user
+    # context therefore has to remain active through add()/commit() (not just
+    # construction) so the flush sees the intended editor as the ambient user --
+    # otherwise the row ends up authored by whoever (if anyone) is ambiently
+    # logged in, and EDITOR executor resolution -- which now only trusts
+    # changed_by/created_by -- can't resolve it back to an attached editor.
     with override_user(editor_users[0] if editor_users else None):
         report_schedule = ReportSchedule(
             type=type,
@@ -125,8 +132,8 @@ def insert_report_schedule(
             retry_notify_owners=retry_notify_owners,
             retry_notify_recipients=retry_notify_recipients,
         )
-    db.session.add(report_schedule)
-    db.session.commit()
+        db.session.add(report_schedule)
+        db.session.commit()
     return report_schedule
 
 

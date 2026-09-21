@@ -32,9 +32,10 @@ import {
 } from 'react-reverse-portal';
 import { bindActionCreators } from 'redux';
 import { css, useTheme } from '@apache-superset/core/theme';
-import { Flex, Layout, Loading } from '@superset-ui/core/components';
+import { Flex, Layout, Loading, Splitter } from '@superset-ui/core/components';
 import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridReact';
 import { ErrorBoundary } from 'src/components';
+import MobileRouteGuard from 'src/components/MobileRouteGuard';
 import MenuWrapper from 'src/features/home/Menu';
 import getBootstrapData, { applicationRoot } from 'src/utils/getBootstrapData';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
@@ -48,7 +49,6 @@ import { store } from 'src/views/store';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import { isUser } from 'src/types/bootstrapTypes';
 import ExtensionsStartup from 'src/extensions/ExtensionsStartup';
-import { Splitter } from 'src/components/Splitter';
 import { ChatFloatingHost, ChatPanelHost, useChat } from 'src/core/chat';
 import useStoredSidebarWidth from 'src/components/ResizableSidebar/useStoredSidebarWidth';
 import { RootContextProviders } from './RootContextProviders';
@@ -97,19 +97,29 @@ const RouteSwitch = () => {
   const theme = useTheme();
   return (
     <Switch>
-      {routes.map(({ path, Component, props = {}, Fallback = Loading }) => (
-        <Route path={path} key={path}>
-          <Suspense fallback={<Fallback />}>
-            <ErrorBoundary
-              css={css`
-                margin: ${theme.sizeUnit * 4}px;
-              `}
-            >
-              <Component user={bootstrapData.user} {...props} />
-            </ErrorBoundary>
-          </Suspense>
-        </Route>
-      ))}
+      {routes.map(
+        ({
+          path,
+          Component,
+          props = {},
+          Fallback = Loading,
+          mobileSupported,
+        }) => (
+          <Route path={path} key={path}>
+            <Suspense fallback={<Fallback />}>
+              <MobileRouteGuard mobileSupported={mobileSupported}>
+                <ErrorBoundary
+                  css={css`
+                    margin: ${theme.sizeUnit * 4}px;
+                  `}
+                >
+                  <Component user={bootstrapData.user} {...props} />
+                </ErrorBoundary>
+              </MobileRouteGuard>
+            </Suspense>
+          </Route>
+        ),
+      )}
       <Redirect from="/" to="/welcome/" exact />
     </Switch>
   );

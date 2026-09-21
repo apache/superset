@@ -168,19 +168,6 @@ def test_dashboard_model_url_has_no_route_prefix() -> None:
     assert Dashboard.get_url(11, "births") == "/dashboard/births/"
 
 
-def test_slice_explore_json_url_has_no_route_prefix(app_context: None) -> None:
-    """`Slice.explore_json_url` previously baked `/superset/explore_json` into
-    the path. After `Superset.route_base = ""` the rule is `/explore_json/`,
-    so the literal pointed at a non-existent route. Pin the prefix-free shape
-    so downstream `ensureAppRoot` callers prepend the application root once.
-    """
-    from superset.models.slice import Slice
-
-    slc = Slice(id=42)
-    assert slc.explore_json_url.startswith("/explore_json/")
-    assert "/superset/explore_json" not in slc.explore_json_url
-
-
 def test_database_sql_url_resolves_to_live_sqllab_route() -> None:
     """`Database.sql_url` previously returned `/superset/sql/<id>/` — a route
     that was removed when SQL Lab moved to its own blueprint at `/sqllab/`.

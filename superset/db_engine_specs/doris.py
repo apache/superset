@@ -17,13 +17,14 @@
 import logging
 import re
 from re import Pattern
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 from urllib import parse
 
 from flask_babel import gettext as __
 from sqlalchemy import Float, Integer, Numeric, String, TEXT, text, types
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
+from sqlalchemy.sql.elements import ColumnElement
 from sqlalchemy.sql.type_api import TypeEngine
 
 from superset.db_engine_specs.base import DatabaseCategory
@@ -120,6 +121,11 @@ class DorisEngineSpec(MySQLEngineSpec):
     supports_catalog = supports_dynamic_catalog = True
     # while technically supported by Doris, this generates invalid table identifiers
     supports_cross_catalog_queries = False
+
+    # `MySQLEngineSpec._extended_aggregations` (STDDEV_SAMP/VAR_SAMP) is verified
+    # against real MySQL behavior, not Doris's OLAP query engine; disable it here
+    # until someone confirms the same expressions against a live Doris instance.
+    _extended_aggregations: dict[str, Callable[[ColumnElement], ColumnElement]] = {}
 
     metadata = {
         "description": (
