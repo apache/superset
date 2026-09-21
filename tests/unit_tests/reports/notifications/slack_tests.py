@@ -63,6 +63,24 @@ if TYPE_CHECKING:
     from superset.reports.notifications.slack import SlackNotification
 
 
+@pytest.mark.parametrize("attempt,maximum", [(None, None), (1, 3), (None, 3)])
+def test_error_notifications_redact_provider_diagnostics(
+    attempt: int | None, maximum: int | None
+) -> None:
+    """Retry and ordinary failures must not publish raw provider errors."""
+    from superset.reports.notifications.slack_mixin import SlackMixin
+
+    body = SlackMixin()._error_template(
+        "report",
+        "description",
+        "secret-provider-diagnostic",
+        retry_attempt=attempt,
+        retry_max_attempts=maximum,
+    )
+    assert "secret-provider-diagnostic" not in body
+    assert "Contact the report owner for error details." in body
+
+
 @pytest.fixture(autouse=True)
 def _skip_backoff_sleep():
     """Make phase-level Slack retry waits instant.
