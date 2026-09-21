@@ -450,8 +450,11 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
   );
 }
 
-function WelcomePage(props: WelcomeProps) {
-  const hasUserId = Boolean(props.user?.userId);
+function WelcomePage({
+  user,
+  ...props
+}: Omit<WelcomeProps, 'user'> & { user?: UserWithPermissionsAndRoles }) {
+  const hasUserId = Boolean(user?.userId);
 
   useEffect(() => {
     if (!hasUserId) {
@@ -460,7 +463,7 @@ function WelcomePage(props: WelcomeProps) {
     }
   }, [hasUserId]);
 
-  return hasUserId ? <Welcome {...props} /> : null;
+  return user?.userId ? <Welcome {...props} user={user} /> : null;
 }
 
 export default withToasts(WelcomePage);
