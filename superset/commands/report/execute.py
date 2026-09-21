@@ -704,14 +704,15 @@ class BaseReportState:
                 ChartDataResultFormat.JSON,
                 ChartDataResultFormat.XLSX,
             }:
-                return get_url_path(
-                    "ChartDataRestApi.get_data",
-                    pk=self._report_schedule.chart_id,
-                    format=result_format.value,
-                    type=ChartDataResultType.POST_PROCESSED.value,
-                    force=force,
-                    download_reason=self._download_reason(),
-                )
+                url_kwargs: dict[str, Any] = {
+                    "pk": self._report_schedule.chart_id,
+                    "format": result_format.value,
+                    "type": ChartDataResultType.POST_PROCESSED.value,
+                    "force": force,
+                }
+                if result_format in ChartDataResultFormat.table_like():
+                    url_kwargs["download_reason"] = self._download_reason()
+                return get_url_path("ChartDataRestApi.get_data", **url_kwargs)
             return get_url_path(
                 "ExploreView.root",
                 user_friendly=user_friendly,

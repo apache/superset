@@ -199,7 +199,7 @@ from superset.views.base_api import (
     validate_feature_flags,
 )
 from superset.views.custom_tags_api_mixin import CustomTagsOptimizationMixin
-from superset.views.error_handling import handle_api_exception
+from superset.views.error_handling import handle_api_exception, json_error_response
 from superset.views.filters import (
     BaseFilterRelatedUsers,
     FilterRelatedUsers,
@@ -1760,6 +1760,14 @@ class DashboardRestApi(
               type: integer
             name: pk
             description: The dashboard id
+          - in: query
+            name: download_reason
+            description: >-
+              Why the data is being downloaded. Required when the
+              REQUIRE_DOWNLOAD_REASON feature flag is enabled; recorded in the
+              event log.
+            schema:
+              type: string
           requestBody:
             content:
               application/json:
@@ -1799,10 +1807,12 @@ class DashboardRestApi(
             return self.response_400(message=error.messages)
 
         # Dashboard-wide Excel export is a data download like any other.
+        # ``@safe`` would turn the 400 SupersetErrorException into a generic 500,
+        # so render the SIP-40 envelope directly (same as ``requires_json``).
         try:
             check_download_reason()
         except DownloadReasonRequiredError as ex:
-            return self.response_400(message=ex.error.message)
+            return json_error_response([ex.error], status=ex.status)
 
         # Image export drives the headless webdriver, so it is only available
         # when the same screenshot flags the UI checks are enabled. The decorator

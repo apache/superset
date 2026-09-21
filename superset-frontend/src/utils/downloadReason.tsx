@@ -16,17 +16,51 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { createRef, forwardRef, useImperativeHandle, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
-import { Input, Modal } from '@superset-ui/core/components';
+import { Input, Modal, Typography } from '@superset-ui/core/components';
 
 export const DOWNLOAD_REASON_PARAM = 'download_reason';
 
 /** Result formats the backend gates behind REQUIRE_DOWNLOAD_REASON. */
 export const DOWNLOAD_REASON_FORMATS = ['csv', 'xlsx'];
 
-/** Mirrors DOWNLOAD_REASON_MAX_LENGTH on the backend. */
-export const DOWNLOAD_REASON_MAX_LENGTH = 1000;
+/** Mirrors DOWNLOAD_REASON_MAX_LENGTH on the backend (also bounds GET export URLs). */
+export const DOWNLOAD_REASON_MAX_LENGTH = 255;
+
+type ReasonInputHandle = { showError: (message: string) => void };
+
+type ReasonInputProps = { onChange: (value: string) => void };
+
+/** Text area with an inline validation message the dialog can trigger. */
+const ReasonInput = forwardRef<ReasonInputHandle, ReasonInputProps>(
+  ({ onChange }, ref) => {
+    const [error, setError] = useState<string | null>(null);
+    useImperativeHandle(ref, () => ({ showError: setError }), []);
+    return (
+      <>
+        <Input.TextArea
+          autoFocus
+          rows={3}
+          maxLength={DOWNLOAD_REASON_MAX_LENGTH}
+          status={error ? 'error' : undefined}
+          aria-label={t('Download reason')}
+          placeholder={t('Why are you downloading this data?')}
+          onChange={e => {
+            setError(null);
+            onChange(e.target.value);
+          }}
+        />
+        {error && (
+          <Typography.Text type="danger" role="alert">
+            {error}
+          </Typography.Text>
+        )}
+      </>
+    );
+  },
+);
 
 /** Whether REQUIRE_DOWNLOAD_REASON is enabled for this deployment. */
 export function isDownloadReasonRequired(): boolean {
@@ -48,16 +82,14 @@ export function requestDownloadReason(): Promise<string | null> {
   }
   return new Promise(resolve => {
     let reason = '';
+    const input = createRef<ReasonInputHandle>();
     Modal.confirm({
       title: t('Download reason'),
       content: (
-        <Input.TextArea
-          autoFocus
-          rows={3}
-          maxLength={DOWNLOAD_REASON_MAX_LENGTH}
-          placeholder={t('Why are you downloading this data?')}
-          onChange={e => {
-            reason = e.target.value;
+        <ReasonInput
+          ref={input}
+          onChange={value => {
+            reason = value;
           }}
         />
       ),
@@ -66,8 +98,10 @@ export function requestDownloadReason(): Promise<string | null> {
       onOk: () => {
         const trimmed = reason.trim();
         if (!trimmed) {
-          // A rejected promise keeps the dialog open until a reason is given.
-          return Promise.reject(new Error('A download reason is required'));
+          // Show the problem inline; the rejected promise keeps the dialog open.
+          const message = t('A download reason is required');
+          input.current?.showError(message);
+          return Promise.reject(new Error(message));
         }
         resolve(trimmed);
         return Promise.resolve();

@@ -383,6 +383,8 @@ const ResultSet = ({
           }
           downloadReason = reason;
         }
+        // Only log once the download really starts (not on a cancelled dialog).
+        logAction(LOG_ACTIONS_SQLLAB_DOWNLOAD_CSV, {});
         // `getExportCsvUrl` already runs the path through `makeUrl`;
         // `redirect` re-applies `ensureAppRoot` idempotently and routes
         // the sink through navigationUtils' barriers (scheme allowlist,
@@ -393,12 +395,18 @@ const ResultSet = ({
       };
 
       const handleDownloadCsv = (event: React.MouseEvent<HTMLElement>) => {
-        logAction(LOG_ACTIONS_SQLLAB_DOWNLOAD_CSV, {});
-        // Take over the anchor's native navigation so a download reason can
-        // be collected first when REQUIRE_DOWNLOAD_REASON is enabled.
+        const confirmLimit =
+          limitingFactor === LimitingFactor.Dropdown && limit === rowsCount;
+        if (!isDownloadReasonRequired() && !confirmLimit) {
+          // Flag off: keep the anchor's native navigation (cmd/ctrl-click,
+          // "open in new tab", ...) exactly as before.
+          logAction(LOG_ACTIONS_SQLLAB_DOWNLOAD_CSV, {});
+          return;
+        }
+        // Take over the navigation so the confirm / reason dialog runs first.
         event.preventDefault();
 
-        if (limitingFactor === LimitingFactor.Dropdown && limit === rowsCount) {
+        if (confirmLimit) {
           showConfirm({
             title: t('Download is on the way'),
             body: t(

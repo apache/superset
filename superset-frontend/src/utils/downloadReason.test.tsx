@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import type { ChangeEvent, ReactElement } from 'react';
+import type { ReactElement } from 'react';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import { Modal } from '@superset-ui/core/components';
 import {
@@ -34,9 +34,7 @@ jest.mock('@superset-ui/core', () => ({
 const mockFeatureEnabled = isFeatureEnabled as jest.Mock;
 const mockConfirm = jest.spyOn(Modal, 'confirm');
 
-type ReasonInputProps = {
-  onChange: (event: ChangeEvent<HTMLTextAreaElement>) => void;
-};
+type ReasonInputProps = { onChange: (value: string) => void };
 
 /** The dialog config passed to Modal.confirm on the last call. */
 const lastConfig = () => {
@@ -45,9 +43,9 @@ const lastConfig = () => {
 };
 
 const typeReason = (value: string) =>
-  (lastConfig().content as ReactElement<ReasonInputProps>).props.onChange({
-    target: { value },
-  } as ChangeEvent<HTMLTextAreaElement>);
+  (lastConfig().content as ReactElement<ReasonInputProps>).props.onChange(
+    value,
+  );
 
 beforeEach(() => {
   mockFeatureEnabled.mockReset();

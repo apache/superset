@@ -36,8 +36,9 @@ from superset.exceptions import SupersetErrorException
 
 DOWNLOAD_REASON_PARAM = "download_reason"
 DOWNLOAD_REASON_FEATURE_FLAG = "REQUIRE_DOWNLOAD_REASON"
-# Keep audit payloads bounded; the frontend enforces the same limit on input.
-DOWNLOAD_REASON_MAX_LENGTH = 1000
+# Keep audit payloads (and GET export URLs) bounded; the frontend enforces the
+# same limit on input.
+DOWNLOAD_REASON_MAX_LENGTH = 255
 
 
 class DownloadReasonRequiredError(SupersetErrorException):
@@ -51,8 +52,7 @@ class DownloadReasonRequiredError(SupersetErrorException):
                 message=_("A reason is required to download data."),
                 error_type=SupersetErrorType.INVALID_PAYLOAD_SCHEMA_ERROR,
                 level=ErrorLevel.ERROR,
-            ),
-            status=400,
+            )
         )
 
 
