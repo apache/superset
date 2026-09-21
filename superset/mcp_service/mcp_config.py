@@ -88,6 +88,23 @@ MCP_RBAC_ENABLED = True
 MCP_DISABLED_TOOLS: set[str] = set()
 
 # =============================================================================
+# MCP Widgets Bundle
+# =============================================================================
+#
+# URL of the published single-file @apache-superset/widgets bundle
+# (superset-widgets.min.js) that backend-less apps, such as Claude artifacts,
+# load to render Superset widgets. The ``build_widget_artifact`` prompt gives it
+# to the model; when unset, the prompt tells the model to ask the user for the
+# URL instead of guessing one.
+#
+# Example:
+#   MCP_WIDGETS_BUNDLE_URL = (
+#       "https://cdn.jsdelivr.net/npm/@apache-superset/widgets@0.1.0/"
+#       "artifact/superset-widgets.min.js"
+#   )
+MCP_WIDGETS_BUNDLE_URL: str | None = None
+
+# =============================================================================
 # MCP Chart Plugin Filtering
 # =============================================================================
 #
@@ -444,12 +461,18 @@ def create_default_mcp_auth_factory(app: Flask) -> Optional[Any]:
     and logs a startup warning when that setting is True, so operators are
     aware that a FAB config change now also affects the MCP transport.
     """
-    auth_enabled = app.config.get("MCP_AUTH_ENABLED", False)
+    oauth_enabled = bool(app.config.get("MCP_OAUTH_ENABLED", False))
+    auth_enabled = app.config.get("MCP_AUTH_ENABLED", False) or oauth_enabled
     api_key_enabled = get_mcp_api_key_enabled(app, startup_warning=True)
     guest_enabled = _is_mcp_guest_auth_enabled(app)
 
     if not (auth_enabled or api_key_enabled or guest_enabled):
         return None
+
+    if oauth_enabled:
+        return _build_oauth_provider(
+            app, api_key_enabled=api_key_enabled, guest_enabled=guest_enabled
+        )
 
     # When JWT auth is enabled, an audience must be configured so issued tokens
     # are bound to this service. Without it the verifier accepts any otherwise
@@ -601,30 +624,89 @@ def _build_composite_verifier(
     )
 
 
+def _build_oauth_provider(
+    app: Flask, *, api_key_enabled: bool, guest_enabled: bool
+) -> Any:
+    """Verify tokens minted by Superset's MCP OAuth server and advertise it.
+
+    Access tokens are RS256 JWTs whose ``iss`` is ``MCP_OAUTH_ISSUER`` and whose
+    ``aud`` is one of ``MCP_OAUTH_RESOURCES``. The verification key comes from
+    ``MCP_JWKS_URI`` / ``MCP_JWT_PUBLIC_KEY`` when set, otherwise it is derived
+    from ``MCP_OAUTH_PRIVATE_KEY``.
+    """
+    from superset.mcp_oauth.keys import load_signing_key, OAuthKeyConfigError
+    from superset.mcp_service.auth_oauth import (
+        build_oauth_resource_provider,
+        MCPOAuthConfigError,
+        validate_oauth_config,
+    )
+
+    try:
+        issuer, resources = validate_oauth_config(app.config)
+        jwks_uri = app.config.get("MCP_JWKS_URI")
+        public_key = app.config.get("MCP_JWT_PUBLIC_KEY")
+        if not (jwks_uri or public_key):
+            public_key = load_signing_key(app.config).public_pem
+    except (MCPOAuthConfigError, OAuthKeyConfigError) as ex:
+        raise MCPAuthConfigError(str(ex)) from ex
+
+    verifier: Any = _build_jwt_verifier(
+        app=app,
+        jwks_uri=jwks_uri,
+        public_key=public_key,
+        secret=None,
+        issuer=issuer,
+        audience=resources,
+        algorithm="RS256",
+    )
+    if api_key_enabled or guest_enabled:
+        verifier = _build_composite_verifier(
+            app,
+            verifier,
+            api_key_enabled=api_key_enabled,
+            guest_enabled=guest_enabled,
+        )
+    logger.info("MCP OAuth resource server enabled")
+    return build_oauth_resource_provider(app.config, verifier)
+
+
+_UNSET: Any = object()
+
+
 def _build_jwt_verifier(
     app: Flask,
     jwks_uri: Optional[str],
     public_key: Optional[str],
     secret: Optional[str],
+    issuer: Any = _UNSET,
+    audience: Any = _UNSET,
+    algorithm: Optional[str] = None,
 ) -> JWTVerifier:
-    """Construct the JWT verifier from configured keys/secret."""
+    """Construct the JWT verifier from configured keys/secret.
+
+    ``issuer``, ``audience`` and ``algorithm`` override the ``MCP_JWT_*``
+    settings when given.
+    """
     debug_errors = app.config.get("MCP_JWT_DEBUG_ERRORS", False)
+    algorithm = algorithm or app.config.get("MCP_JWT_ALGORITHM")
 
     common_kwargs: Dict[str, Any] = {
-        "issuer": app.config.get("MCP_JWT_ISSUER"),
-        "audience": app.config.get("MCP_JWT_AUDIENCE"),
+        "issuer": app.config.get("MCP_JWT_ISSUER") if issuer is _UNSET else issuer,
+        "audience": (
+            app.config.get("MCP_JWT_AUDIENCE") if audience is _UNSET else audience
+        ),
         "required_scopes": app.config.get("MCP_REQUIRED_SCOPES", []),
     }
 
     # For HS256 (symmetric), use the secret as the public_key parameter
-    if app.config.get("MCP_JWT_ALGORITHM") == "HS256" and secret:
+    if algorithm == "HS256" and secret:
         common_kwargs["public_key"] = secret
         common_kwargs["algorithm"] = "HS256"
     else:
         # For RS256 (asymmetric), use public key or JWKS
         common_kwargs["jwks_uri"] = jwks_uri
         common_kwargs["public_key"] = public_key
-        common_kwargs["algorithm"] = app.config.get("MCP_JWT_ALGORITHM", "RS256")
+        common_kwargs["algorithm"] = algorithm or "RS256"
 
     if debug_errors:
         # DetailedJWTVerifier: detailed server-side logging of JWT

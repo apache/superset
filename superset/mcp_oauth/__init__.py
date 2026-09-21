@@ -14,19 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+"""
+OAuth 2.1 authorization server for the Superset MCP service.
 
-from .get_saved_widget import get_saved_widget
-from .get_widget_control_schema import get_widget_control_schema
-from .get_widget_data import get_widget_data
-from .get_widget_values import get_widget_values
-from .list_widget_types import list_widget_types
-from .set_widget_control_values import set_widget_control_values
-
-__all__ = [
-    "list_widget_types",
-    "get_widget_control_schema",
-    "set_widget_control_values",
-    "get_widget_data",
-    "get_widget_values",
-    "get_saved_widget",
-]
+Lets an MCP client such as a claude.ai custom connector obtain a short-lived,
+audience-bound access token for the signed-in Superset user (authorization
+code + PKCE, dynamic client registration, refresh token rotation). The MCP
+service verifies those tokens as a resource server.
+"""

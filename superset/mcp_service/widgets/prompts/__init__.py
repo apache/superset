@@ -15,18 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from .get_saved_widget import get_saved_widget
-from .get_widget_control_schema import get_widget_control_schema
-from .get_widget_data import get_widget_data
-from .get_widget_values import get_widget_values
-from .list_widget_types import list_widget_types
-from .set_widget_control_values import set_widget_control_values
+"""Prompts for building apps with Superset widgets"""
 
-__all__ = [
-    "list_widget_types",
-    "get_widget_control_schema",
-    "set_widget_control_values",
-    "get_widget_data",
-    "get_widget_values",
-    "get_saved_widget",
-]
+from . import build_widget_artifact  # noqa: F401

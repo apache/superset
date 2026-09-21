@@ -806,6 +806,7 @@ def _create_auth_provider(flask_app: Any) -> Any | None:
             logger.error("Failed to create auth provider from MCP_AUTH_FACTORY")
     elif (
         flask_app.config.get("MCP_AUTH_ENABLED", False)
+        or flask_app.config.get("MCP_OAUTH_ENABLED", False)
         or flask_app.config.get("MCP_API_KEY_ENABLED", False)
         or flask_app.config.get("FAB_API_KEY_ENABLED", False)
         or flask_app.config.get("MCP_EMBEDDED_GUEST_AUTH_ENABLED", False)
