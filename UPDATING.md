@@ -414,11 +414,12 @@ theme editor picker.
   a skipped run's `carried_over=0` does not establish that the backlog is empty.
   The ceiling keeps repeated window-scope binds below SQLite's historical
   999-variable limit; custom limits below 750 require a smaller batch.
-  MySQL before 8.0, MariaDB before 10.2 and unknown MySQL-family versions use
-  equivalent correlated predecessor probes instead of window tables. That
-  legacy plan may be slower on deep histories; measure the selected path and
+  MySQL before 8.0, MariaDB before 10.2, SQLite before 3.25 and unknown
+  MySQL-family/SQLite versions use equivalent correlated predecessor probes
+  instead of window tables. That legacy plan may be slower on deep histories;
+  measure the selected path and
   writer wait on the target backend rather than reusing timings from another plan.
-  Dispatch trusts the dialect's `SELECT VERSION()` banner: a proxy advertising
+  MySQL-family dispatch trusts the dialect's `SELECT VERSION()` banner: a proxy advertising
   MySQL 8.x in front of MySQL 5.7 selects `LAG` and fails at runtime.
   Ten batches are shared across all categories per run, so the removal upper
   bound is **500 at the default or 1,000 at the ceiling**, and can be lower

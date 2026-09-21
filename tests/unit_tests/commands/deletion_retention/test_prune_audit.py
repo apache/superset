@@ -500,6 +500,8 @@ def test_maximum_literal_scope_executes_with_sqlite_bind_budget() -> None:
         ("mysql", (8, 0, 36), True),
         ("mysql", (8, 4, 0), True),
         ("postgresql", (17, 0), True),
+        ("sqlite", (3, 24, 0), False),
+        ("sqlite", (3, 25, 0), True),
         ("sqlite", (3, 45, 0), True),
     ],
 )
@@ -510,7 +512,7 @@ def test_repeat_dispatch_uses_metadata_server_version(
     uses_window: bool,
     initialized: bool,
 ) -> None:
-    """Route compatible MySQL servers by version, including first connection."""
+    """Route metadata servers by version, including first connection."""
     dialect: sa.engine.Dialect = mysql.dialect()
     dialect.name = backend
     dialect.server_version_info = version if initialized else None
@@ -528,7 +530,7 @@ def test_repeat_dispatch_uses_metadata_server_version(
         sql: str = str(query.compile(dialect=mysql.dialect())).lower()
     assert ("lag(" in sql) is uses_window
     assert mock_db.session.connection.call_count == (
-        1 if backend == "mysql" and not initialized else 0
+        1 if backend in {"mysql", "sqlite"} and not initialized else 0
     )
 
 
@@ -575,10 +577,13 @@ def test_repeat_dispatch_uses_metadata_server_version(
         ),
     ],
 )
-def test_repeat_paths_isolate_entity_types_and_agree(
-    history: list[tuple[str, str, int, str | None]], repeat_indices: list[int]
+@pytest.mark.parametrize("identity_column", ["entity_type", "entity_uuid"])
+def test_repeat_paths_isolate_entity_identities_and_agree(
+    history: list[tuple[str, str, int, str | None]],
+    repeat_indices: list[int],
+    identity_column: str,
 ) -> None:
-    """Keep per-type streak survivors despite shared UUIDs and foreign boundaries."""
+    """Keep streak survivors isolated by both entity type and UUID."""
     engine: sa.Engine = sa.create_engine("sqlite://")
     metadata: sa.MetaData = sa.MetaData()
     table: sa.Table = prune_audit.PurgeAuditLog.__table__.to_metadata(metadata)
@@ -586,8 +591,10 @@ def test_repeat_paths_isolate_entity_types_and_agree(
     rows: list[dict[str, Any]] = [
         {
             "id": id_,
-            "entity_type": entity_type,
-            "entity_uuid": "shared",
+            "entity_type": entity_type if identity_column == "entity_type" else "chart",
+            "entity_uuid": entity_type
+            if identity_column == "entity_uuid"
+            else "shared",
             "status": status,
             "trigger": "scheduled",
             "actor": "system",
@@ -702,6 +709,8 @@ def test_evidence_drain_skips_scope_lookup_but_rechecks_under_lock() -> None:
         mock_db.session.execute.side_effect = execute
         result: PruneRunResult = prune_audit.run_prune()
     assert result.evidence_expired == 1
+    discovery: sa.sql.Select = mock_db.session.execute.call_args_list[1].args[0]
+    assert list(discovery.selected_columns.keys()) == ["id"]
     assert [event[0] for event in events.mock_calls] == [
         "execute",
         "execute",
@@ -725,6 +734,9 @@ def test_evidence_drain_skips_scope_lookup_but_rechecks_under_lock() -> None:
     delete_sql: str = str(mock_db.session.execute.call_args_list[3].args[0])
     assert delete_sql.startswith("DELETE FROM purge_audit_log")
     assert "SELECT" not in delete_sql
+    assert mock_db.session.execute.call_args_list[3].args[0].compile().params[
+        "id_1"
+    ] == [row_id]
 
 
 def test_repeat_query_uses_lag_without_ctes() -> None:
@@ -894,9 +906,11 @@ def test_window_repeat_predicate_executes_on_sqlite(
         engine.dispose()
 
 
-def test_r2_unknown_mysql_version_falls_back() -> None:
+@pytest.mark.parametrize("backend", ["mysql", "sqlite"])
+def test_r2_unknown_metadata_version_falls_back(backend: str) -> None:
     """An unknown version after connecting must use the conservative query."""
     dialect: sa.engine.Dialect = mysql.dialect()
+    dialect.name = backend
     dialect.server_version_info = None
     mock_db: MagicMock
     with patch.object(prune_audit, "db") as mock_db:
@@ -1003,13 +1017,12 @@ def test_r2_repeat_helpers_preserve_ineligible_candidates(
 
 
 def test_r2_discovery_carries_immutable_scope() -> None:
-    """All discovery selects carry identity with each hint."""
+    """Only scoped discovery selects carry identity with each hint."""
     now: datetime = datetime(2026, 2, 1)
     query: sa.sql.Select
     for query in (
         prune_audit._duplicate_candidates(now, 1),
         prune_audit._operational_candidates(now, now, 1),
-        prune_audit._evidence_candidates(now, now, 1),
     ):
         assert list(query.selected_columns.keys()) == [
             "id",
