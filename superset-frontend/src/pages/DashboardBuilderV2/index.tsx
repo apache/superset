@@ -21,6 +21,9 @@ import type { DragEvent as ReactDragEvent } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { EmptyState, Flex } from '@superset-ui/core/components';
+import { useParams } from 'react-router-dom';
+import { useToasts } from 'src/components/MessageToasts/withToasts';
+import { fetchDashboardV2 } from 'src/core/dashboard/persistence';
 import { dashboard, useDashboardRevision } from 'src/core/dashboard';
 import { provider } from 'src/core/dashboard/store';
 import {
@@ -177,7 +180,25 @@ export default function DashboardBuilderV2() {
   // whatever the chat agent (or any other caller of the dashboard API) did.
   useDashboardRevision();
   const theme = useTheme();
+  const { dashboardId } = useParams<{ dashboardId?: string }>();
+  const { addDangerToast } = useToasts();
   const root = dashboard.getRoot();
+
+  useEffect(() => {
+    if (!dashboardId) return undefined;
+    let cancelled = false;
+    fetchDashboardV2(dashboardId)
+      .then(result => {
+        if (!cancelled) provider.loadDocument(result.document.nodes);
+      })
+      .catch(() => {
+        if (!cancelled)
+          addDangerToast(t('This dashboard could not be loaded.'));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [dashboardId, addDangerToast]);
   const isEmpty = !root.children || root.children.length === 0;
   // No `layout` to read yet — a blank root has never had one set — so this
   // resolves to the exact same defaults `RootGrid` itself falls back to,
@@ -280,24 +301,27 @@ export default function DashboardBuilderV2() {
   };
 
   return (
-    <PageContainer vertical>
-      <DashboardHeader />
-      <Workspace>
-        <EditorPanel onAdd={addBlock} />
-        <Canvas
-          data-test="canvas"
-          onClick={event => {
-            // A click that reached the canvas itself passed every widget on
-            // the way, so it is the one gesture that unambiguously means
-            // "nothing". A click on a widget stops before here.
-            if (event.target === event.currentTarget) {
-              provider.setSelection(undefined);
-            }
-          }}
-        >
-          {isEmpty ? (
-            <EmptyCanvasWrapper>
-              {/* The dashboard itself, standing in for a canvas that has
+    <>
+      <PageContainer vertical>
+        <DashboardHeader
+          dashboardId={dashboardId ? Number(dashboardId) : undefined}
+        />
+        <Workspace>
+          <EditorPanel onAdd={addBlock} />
+          <Canvas
+            data-test="canvas"
+            onClick={event => {
+              // A click that reached the canvas itself passed every widget on
+              // the way, so it is the one gesture that unambiguously means
+              // "nothing". A click on a widget stops before here.
+              if (event.target === event.currentTarget) {
+                provider.setSelection(undefined);
+              }
+            }}
+          >
+            {isEmpty ? (
+              <EmptyCanvasWrapper>
+                {/* The dashboard itself, standing in for a canvas that has
                   nothing on it yet. It selects the root because that is the
                   only thing there is to select here, and because how the
                   canvas is arranged is asked in the root's properties — a
@@ -305,101 +329,106 @@ export default function DashboardBuilderV2() {
                   whatever is placed next lands in the mode already chosen.
                   Without this the mode would be unreachable until something
                   had already been placed and then rearranged. */}
-              <CanvasPlaceholder
-                ref={placeholderRef}
-                // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
-                role="button"
-                tabIndex={0}
-                aria-label={t('Dashboard')}
-                data-test="empty-canvas"
-                onClick={() => provider.setSelection(root.id)}
-                onKeyDown={event => {
-                  if (event.key === 'Enter' || event.key === ' ') {
+                <CanvasPlaceholder
+                  ref={placeholderRef}
+                  // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
+                  role="button"
+                  tabIndex={0}
+                  aria-label={t('Dashboard')}
+                  data-test="empty-canvas"
+                  onClick={() => provider.setSelection(root.id)}
+                  onKeyDown={event => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      provider.setSelection(root.id);
+                    }
+                  }}
+                  // The same drop target `RootGrid` offers once the root has
+                  // at least one child — this stands in for it beforehand,
+                  // since a dashboard with nothing on it yet is exactly when
+                  // this placeholder (rather than `RootGrid`) is what's on
+                  // screen to drop onto. Without this, the empty state's own
+                  // "Drag a widget from the panel" is an instruction
+                  // this element cannot actually answer.
+                  onDragEnter={event => {
+                    if (event.dataTransfer.types.includes(PALETTE_MIME)) {
+                      setDragOverCount(count => count + 1);
+                    }
+                  }}
+                  onDragLeave={event => {
+                    if (event.dataTransfer.types.includes(PALETTE_MIME)) {
+                      setDragOverCount(count => {
+                        const next = Math.max(0, count - 1);
+                        if (next === 0) setGhostRect(null);
+                        return next;
+                      });
+                    }
+                  }}
+                  onDragOver={event => {
+                    if (!event.dataTransfer.types.includes(PALETTE_MIME))
+                      return;
                     event.preventDefault();
-                    provider.setSelection(root.id);
-                  }
-                }}
-                // The same drop target `RootGrid` offers once the root has
-                // at least one child — this stands in for it beforehand,
-                // since a dashboard with nothing on it yet is exactly when
-                // this placeholder (rather than `RootGrid`) is what's on
-                // screen to drop onto. Without this, the empty state's own
-                // "Drag a widget from the panel" is an instruction
-                // this element cannot actually answer.
-                onDragEnter={event => {
-                  if (event.dataTransfer.types.includes(PALETTE_MIME)) {
-                    setDragOverCount(count => count + 1);
-                  }
-                }}
-                onDragLeave={event => {
-                  if (event.dataTransfer.types.includes(PALETTE_MIME)) {
-                    setDragOverCount(count => {
-                      const next = Math.max(0, count - 1);
-                      if (next === 0) setGhostRect(null);
-                      return next;
-                    });
-                  }
-                }}
-                onDragOver={event => {
-                  if (!event.dataTransfer.types.includes(PALETTE_MIME)) return;
-                  event.preventDefault();
-                  event.dataTransfer.dropEffect = 'copy';
-                  setGhostRect(resolveEmptyCanvasDropRect(event));
-                }}
-                onDrop={event => {
-                  const type = event.dataTransfer.getData(PALETTE_MIME);
-                  setDragOverCount(0);
-                  if (type !== '') {
-                    event.preventDefault();
-                    const rect = resolveEmptyCanvasDropRect(event);
-                    placeBlockAt(root.id, type, 0, {
-                      col: rect.x + 1,
-                      row: rect.y + 1,
-                      colSpan: rect.w,
-                      rowSpan: rect.h,
-                    });
-                  }
-                  setGhostRect(null);
-                }}
-              >
-                {ghostRect ? (
-                  (() => {
-                    const containerWidthPx =
-                      placeholderRef.current?.getBoundingClientRect().width ??
-                      0;
-                    const cellGeometry = resolveCellGeometry(
-                      emptyCanvasMetrics,
-                      containerWidthPx,
-                    );
-                    const pixelRect = pixelRectForCell(ghostRect, cellGeometry);
-                    return (
-                      <DropPreview
-                        data-test="empty-canvas-drop-preview"
-                        style={{
-                          left: pixelRect.left,
-                          top: pixelRect.top,
-                          width: pixelRect.width,
-                          height: pixelRect.height,
-                        }}
-                      />
-                    );
-                  })()
-                ) : (
-                  <EmptyState
-                    image="empty-dashboard.svg"
-                    title={t('Start building')}
-                    description={t(
-                      'Drag a widget from the panel, or ask the assistant for one.',
-                    )}
-                  />
-                )}
-              </CanvasPlaceholder>
-            </EmptyCanvasWrapper>
-          ) : (
-            <WidgetView nodeId={root.id} />
-          )}
-        </Canvas>
-      </Workspace>
-    </PageContainer>
+                    event.dataTransfer.dropEffect = 'copy';
+                    setGhostRect(resolveEmptyCanvasDropRect(event));
+                  }}
+                  onDrop={event => {
+                    const type = event.dataTransfer.getData(PALETTE_MIME);
+                    setDragOverCount(0);
+                    if (type !== '') {
+                      event.preventDefault();
+                      const rect = resolveEmptyCanvasDropRect(event);
+                      placeBlockAt(root.id, type, 0, {
+                        col: rect.x + 1,
+                        row: rect.y + 1,
+                        colSpan: rect.w,
+                        rowSpan: rect.h,
+                      });
+                    }
+                    setGhostRect(null);
+                  }}
+                >
+                  {ghostRect ? (
+                    (() => {
+                      const containerWidthPx =
+                        placeholderRef.current?.getBoundingClientRect().width ??
+                        0;
+                      const cellGeometry = resolveCellGeometry(
+                        emptyCanvasMetrics,
+                        containerWidthPx,
+                      );
+                      const pixelRect = pixelRectForCell(
+                        ghostRect,
+                        cellGeometry,
+                      );
+                      return (
+                        <DropPreview
+                          data-test="empty-canvas-drop-preview"
+                          style={{
+                            left: pixelRect.left,
+                            top: pixelRect.top,
+                            width: pixelRect.width,
+                            height: pixelRect.height,
+                          }}
+                        />
+                      );
+                    })()
+                  ) : (
+                    <EmptyState
+                      image="empty-dashboard.svg"
+                      title={t('Start building')}
+                      description={t(
+                        'Drag a widget from the panel, or ask the assistant for one.',
+                      )}
+                    />
+                  )}
+                </CanvasPlaceholder>
+              </EmptyCanvasWrapper>
+            ) : (
+              <WidgetView nodeId={root.id} />
+            )}
+          </Canvas>
+        </Workspace>
+      </PageContainer>
+    </>
   );
 }

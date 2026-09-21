@@ -204,6 +204,8 @@ class DashboardJSONMetadataSchema(Schema):
     # for charts - can be overridden by chart_configuration for each chart
     global_chart_configuration = fields.Dict()
     chart_customization_config = fields.List(fields.Dict(), allow_none=True)
+    # Dashboard v2 document (see superset.dashboard_v2.document)
+    v2_document = fields.Dict(allow_none=True)
     timed_refresh_immune_slices = fields.List(fields.Integer())
     # deprecated wrt dashboard-native filters
     filter_scopes = fields.Dict()

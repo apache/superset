@@ -167,6 +167,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.charts.api import ChartRestApi
         from superset.charts.data.api import ChartDataRestApi
         from superset.css_templates.api import CssTemplateRestApi
+        from superset.dashboard_v2.api import DashboardV2RestApi
         from superset.dashboards.api import DashboardRestApi
         from superset.dashboards.filter_state.api import DashboardFilterStateRestApi
         from superset.dashboards.permalink.api import DashboardPermalinkRestApi
@@ -182,6 +183,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.explore.permalink.api import ExplorePermalinkRestApi
         from superset.extensions.view import ExtensionsView
         from superset.importexport.api import ImportExportRestApi
+        from superset.mcp_oauth.views import MCPOAuthView, MCPOAuthWellKnownView
         from superset.queries.api import QueryRestApi
         from superset.queries.saved_queries.api import SavedQueryRestApi
         from superset.reports.api import ReportScheduleRestApi
@@ -237,7 +239,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.views.user_registrations import UserRegistrationsView
         from superset.views.users.api import CurrentUserRestApi, UserRestApi
         from superset.views.users_list import UsersListView
-        from superset.widgets.api import WidgetControlsRestApi
+        from superset.widgets.api import SavedWidgetRestApi, WidgetControlsRestApi
 
         set_app_error_handlers(self.superset_app)
         self.register_request_handlers()
@@ -259,6 +261,8 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(ChartRestApi)
         appbuilder.add_api(ChartDataRestApi)
         appbuilder.add_api(WidgetControlsRestApi)
+        appbuilder.add_api(SavedWidgetRestApi)
+        appbuilder.add_api(DashboardV2RestApi)
         appbuilder.add_api(CssTemplateRestApi)
         appbuilder.add_api(ThemeRestApi)
         appbuilder.add_api(CurrentUserRestApi)
@@ -466,6 +470,8 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view_no_menu(Datasource)
         appbuilder.add_view_no_menu(DatasetEditor)
         appbuilder.add_view_no_menu(EmbeddedView)
+        appbuilder.add_view_no_menu(MCPOAuthView)
+        appbuilder.add_view_no_menu(MCPOAuthWellKnownView)
         appbuilder.add_view_no_menu(ExploreView)
         appbuilder.add_view_no_menu(ExplorePermalinkView)
         appbuilder.add_view_no_menu(SavedQueryView)
