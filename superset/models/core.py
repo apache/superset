@@ -87,6 +87,7 @@ from superset.superset_typing import (
 from superset.utils import cache as cache_util, core as utils, json
 from superset.utils.backports import StrEnum
 from superset.utils.core import get_query_source_from_request, get_username
+from superset.utils.database import find_user_for_impersonation
 from superset.utils.oauth2 import (
     check_for_oauth2,
     get_oauth2_access_token,
@@ -663,7 +664,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
 
         effective_username = self.get_effective_user(sqlalchemy_url)
         if effective_username and is_feature_enabled("IMPERSONATE_WITH_EMAIL_PREFIX"):
-            user = security_manager.find_user(username=effective_username)
+            user = find_user_for_impersonation(effective_username)
             if user and user.email:
                 effective_username = user.email.split("@")[0]
 

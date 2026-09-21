@@ -20,11 +20,15 @@ import logging
 from typing import Any, TYPE_CHECKING
 
 from flask import current_app as app
+from flask_babel import gettext as __
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.sql import compiler
 
 from superset.constants import EXAMPLES_DB_UUID
 
 if TYPE_CHECKING:
+    from flask_appbuilder.security.sqla.models import User
+
     from superset.connectors.sqla.models import Database
 
 logging.getLogger("MARKDOWN").setLevel(logging.INFO)
@@ -121,6 +125,58 @@ def warm_and_release_connection(instance: Any, *relationships: str) -> None:
         session.commit()  # pylint: disable=consider-using-transaction
     finally:
         session.expire_on_commit = True
+
+
+def find_user_for_impersonation(username: str) -> User | None:
+    """
+    Resolve the login backing an impersonated database session.
+
+    ``find_user`` is a metadata-DB read, so it inherits any failed transaction
+    left behind earlier in the request and reports ``PendingRollbackError``
+    instead of the original fault — blaming this lookup for an unrelated
+    failure. Roll back and retry once so a poisoned session doesn't cost us the
+    lookup.
+
+    The resolved value becomes the identity the analytic database connects as,
+    so a lookup that still fails must not degrade to the un-resolved login:
+    that would silently query as a different principal than the one being
+    impersonated. Raise instead.
+
+    :param username: the Superset login to resolve
+    :return: the matching user, or ``None`` if no such login exists
+    :raises SupersetErrorException: if the lookup fails even after a rollback
+    """
+    # pylint: disable=import-outside-toplevel
+    from superset import db
+    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+    from superset.exceptions import SupersetErrorException
+    from superset.extensions import security_manager
+
+    try:
+        return security_manager.find_user(username=username)
+    except SQLAlchemyError:
+        logger.warning(
+            "Impersonation lookup for %s failed on a broken transaction; "
+            "rolling back and retrying once.",
+            username,
+            exc_info=True,
+        )
+        db.session.rollback()  # pylint: disable=consider-using-transaction
+
+    try:
+        return security_manager.find_user(username=username)
+    except SQLAlchemyError as ex:
+        raise SupersetErrorException(
+            SupersetError(
+                message=__(
+                    "Could not resolve the user to impersonate on the database "
+                    "connection. The query was not run, because running it "
+                    "would have connected as the wrong user."
+                ),
+                error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+                level=ErrorLevel.ERROR,
+            )
+        ) from ex
 
 
 def apply_mariadb_ddl_fix() -> None:
