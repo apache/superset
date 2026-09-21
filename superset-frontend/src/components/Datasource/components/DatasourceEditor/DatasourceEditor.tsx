@@ -668,129 +668,129 @@ function ColumnCollectionTable({
 
   return (
     <StyledColumnsTableWrapper>
-    <CollectionTable
-      tableColumns={
-        isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes)
-          ? [
-              'column_name',
-              'advanced_data_type',
-              'type',
-              'is_dttm',
-              'filterable',
-              'groupby',
-            ]
-          : ['column_name', 'type', 'is_dttm', 'filterable', 'groupby']
-      }
-      sortColumns={
-        isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes)
-          ? [
-              'column_name',
-              'advanced_data_type',
-              'type',
-              'is_dttm',
-              'filterable',
-              'groupby',
-            ]
-          : ['column_name', 'type', 'is_dttm', 'filterable', 'groupby']
-      }
-      allowDeletes
-      allowAddItem={allowAddItem}
-      itemGenerator={itemGenerator}
-      collection={columns}
-      columnLabelTooltips={columnLabelTooltips}
-      filterTerm={filterTerm}
-      filterFields={filterFields}
-      rowClassName={record =>
-        partitionColumn === record.column_name ? 'partition-column-row' : ''
-      }
-      expandItemWhere={
-        expandedColumnName
-          ? record => record.column_name === expandedColumnName
-          : undefined
-      }
-      stickyHeader
-      expandFieldset={
-        <FormContainer>
-          <Fieldset compact>
-            {showExpression && (
-              <Field
-                fieldKey="expression"
-                label={t('SQL expression')}
-                control={
-                  <TextAreaControl
-                    language="sql"
-                    offerEditInModal={false}
-                    maxLines={25}
-                    debounceDelay={300}
-                  />
-                }
-              />
-            )}
-            <Field
-              fieldKey="verbose_name"
-              label={t('Label')}
-              control={
-                <TextControl
-                  controlId="verbose_name"
-                  placeholder={t('Label')}
+      <CollectionTable
+        tableColumns={
+          isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes)
+            ? [
+                'column_name',
+                'advanced_data_type',
+                'type',
+                'is_dttm',
+                'filterable',
+                'groupby',
+              ]
+            : ['column_name', 'type', 'is_dttm', 'filterable', 'groupby']
+        }
+        sortColumns={
+          isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes)
+            ? [
+                'column_name',
+                'advanced_data_type',
+                'type',
+                'is_dttm',
+                'filterable',
+                'groupby',
+              ]
+            : ['column_name', 'type', 'is_dttm', 'filterable', 'groupby']
+        }
+        allowDeletes
+        allowAddItem={allowAddItem}
+        itemGenerator={itemGenerator}
+        collection={columns}
+        columnLabelTooltips={columnLabelTooltips}
+        filterTerm={filterTerm}
+        filterFields={filterFields}
+        rowClassName={record =>
+          partitionColumn === record.column_name ? 'partition-column-row' : ''
+        }
+        expandItemWhere={
+          expandedColumnName
+            ? record => record.column_name === expandedColumnName
+            : undefined
+        }
+        stickyHeader
+        expandFieldset={
+          <FormContainer>
+            <Fieldset compact>
+              {showExpression && (
+                <Field
+                  fieldKey="expression"
+                  label={t('SQL expression')}
+                  control={
+                    <TextAreaControl
+                      language="sql"
+                      offerEditInModal={false}
+                      maxLines={25}
+                      debounceDelay={300}
+                    />
+                  }
                 />
-              }
-            />
-            <Field
-              fieldKey="description"
-              label={t('Description')}
-              control={
-                <TextControl
-                  controlId="description"
-                  placeholder={t('Description')}
-                />
-              }
-            />
-            {allowEditDataType && (
+              )}
               <Field
-                fieldKey="type"
-                label={t('Data type')}
-                control={
-                  <Select
-                    ariaLabel={t('Data type')}
-                    header={<FormLabel>{t('Data type')}</FormLabel>}
-                    options={DATA_TYPES}
-                    name="type"
-                    allowNewOptions
-                    allowClear
-                  />
-                }
-              />
-            )}
-            {isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes) ? (
-              <Field
-                fieldKey="advanced_data_type"
-                label={t('Advanced data type')}
+                fieldKey="verbose_name"
+                label={t('Label')}
                 control={
                   <TextControl
-                    controlId="advanced_data_type"
-                    placeholder={t('Advanced Data type')}
+                    controlId="verbose_name"
+                    placeholder={t('Label')}
                   />
                 }
               />
-            ) : (
-              <></>
-            )}
-            <Field
-              fieldKey="python_date_format"
-              label={t('Datetime format')}
-              description={
-                /* Note the fragmented translations may not work. */
-                <div>
-                  {t('The pattern of timestamp format. For strings use ')}
-                  <Typography.Link href="https://docs.python.org/2/library/datetime.html#strftime-strptime-behavior">
-                    {t('Python datetime string pattern')}
-                  </Typography.Link>
-                  {t(' expression which needs to adhere to the ')}
-                  <Typography.Link href="https://en.wikipedia.org/wiki/ISO_8601">
-                    {t('ISO 8601')}
-                  </Typography.Link>
-                  {t(` standard to ensure that the lexicographical ordering
+              <Field
+                fieldKey="description"
+                label={t('Description')}
+                control={
+                  <TextControl
+                    controlId="description"
+                    placeholder={t('Description')}
+                  />
+                }
+              />
+              {allowEditDataType && (
+                <Field
+                  fieldKey="type"
+                  label={t('Data type')}
+                  control={
+                    <Select
+                      ariaLabel={t('Data type')}
+                      header={<FormLabel>{t('Data type')}</FormLabel>}
+                      options={DATA_TYPES}
+                      name="type"
+                      allowNewOptions
+                      allowClear
+                    />
+                  }
+                />
+              )}
+              {isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes) ? (
+                <Field
+                  fieldKey="advanced_data_type"
+                  label={t('Advanced data type')}
+                  control={
+                    <TextControl
+                      controlId="advanced_data_type"
+                      placeholder={t('Advanced Data type')}
+                    />
+                  }
+                />
+              ) : (
+                <></>
+              )}
+              <Field
+                fieldKey="python_date_format"
+                label={t('Datetime format')}
+                description={
+                  /* Note the fragmented translations may not work. */
+                  <div>
+                    {t('The pattern of timestamp format. For strings use ')}
+                    <Typography.Link href="https://docs.python.org/2/library/datetime.html#strftime-strptime-behavior">
+                      {t('Python datetime string pattern')}
+                    </Typography.Link>
+                    {t(' expression which needs to adhere to the ')}
+                    <Typography.Link href="https://en.wikipedia.org/wiki/ISO_8601">
+                      {t('ISO 8601')}
+                    </Typography.Link>
+                    {t(` standard to ensure that the lexicographical ordering
                       coincides with the chronological ordering. If the
                       timestamp format does not adhere to the ISO 8601 standard
                       you will need to define an expression and type for
@@ -799,97 +799,99 @@ function ColumnCollectionTable({
                       in epoch format, put \`epoch_s\` or \`epoch_ms\`. If no pattern
                       is specified we fall back to using the optional defaults on a per
                       database/column name level via the extra parameter.`)}
-                </div>
-              }
-              control={
-                <TextControl
-                  controlId="python_date_format"
-                  placeholder="%Y-%m-%d"
-                />
-              }
-            />
-            <Field
-              fieldKey="certified_by"
-              label={t('Certified By')}
-              description={t('Person or group that has certified this metric')}
-              control={
-                <TextControl
-                  controlId="certified"
-                  placeholder={t('Certified by')}
-                />
-              }
-            />
-            <Field
-              fieldKey="certification_details"
-              label={t('Certification details')}
-              description={t('Details of the certification')}
-              control={
-                <TextControl
-                  controlId="certificationDetails"
-                  placeholder={t('Certification details')}
-                />
-              }
-            />
-            {partitionMappingEnabled && datasource ? (
-              <Field
-                fieldKey="partition_value_transform"
-                label={t('Partition filter mapping')}
-                // The section keys off the whole column record -- its name
-                // decides which of the three treatments it gets -- not just the
-                // transform it edits.
-                passItemToControl
+                  </div>
+                }
                 control={
-                  <PartitionMappingSection
-                    datasource={datasource}
-                    onMoveMappingHere={onMoveMappingHere ?? (() => {})}
-                    onRemoveMapping={onRemoveMapping ?? (() => {})}
-                    onMonotonicChange={onMonotonicChange ?? (() => {})}
+                  <TextControl
+                    controlId="python_date_format"
+                    placeholder="%Y-%m-%d"
                   />
                 }
               />
-            ) : (
-              <></>
-            )}
-          </Fieldset>
-        </FormContainer>
-      }
-      columnLabels={
-        isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes)
-          ? {
-              column_name: t('Column'),
-              advanced_data_type: t('Advanced data type'),
-              type: t('Data type'),
-              groupby: t('Is dimension'),
-              is_dttm: t('Is temporal'),
-              filterable: t('Is filterable'),
-            }
-          : {
-              column_name: t('Column'),
-              type: t('Data type'),
-              groupby: t('Is dimension'),
-              is_dttm: t('Is temporal'),
-              filterable: t('Is filterable'),
-            }
-      }
-      onChange={onColumnsChange}
-      itemRenderers={
-        isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes)
-          ? {
-              column_name: renderColumnName('editableTitle'),
-              type: d => (d ? <Label>{String(d)}</Label> : null),
-              advanced_data_type: d => <Label>{d as string}</Label>,
-              is_dttm: checkboxGenerator,
-              filterable: checkboxGenerator,
-              groupby: checkboxGenerator,
-            }
-          : {
-              column_name: renderColumnName('textControl'),
-              type: d => (d ? <Label>{String(d)}</Label> : null),
-              is_dttm: checkboxGenerator,
-              filterable: checkboxGenerator,
-              groupby: checkboxGenerator,
-            }
-      }
+              <Field
+                fieldKey="certified_by"
+                label={t('Certified By')}
+                description={t(
+                  'Person or group that has certified this metric',
+                )}
+                control={
+                  <TextControl
+                    controlId="certified"
+                    placeholder={t('Certified by')}
+                  />
+                }
+              />
+              <Field
+                fieldKey="certification_details"
+                label={t('Certification details')}
+                description={t('Details of the certification')}
+                control={
+                  <TextControl
+                    controlId="certificationDetails"
+                    placeholder={t('Certification details')}
+                  />
+                }
+              />
+              {partitionMappingEnabled && datasource ? (
+                <Field
+                  fieldKey="partition_value_transform"
+                  label={t('Partition filter mapping')}
+                  // The section keys off the whole column record -- its name
+                  // decides which of the three treatments it gets -- not just the
+                  // transform it edits.
+                  passItemToControl
+                  control={
+                    <PartitionMappingSection
+                      datasource={datasource}
+                      onMoveMappingHere={onMoveMappingHere ?? (() => {})}
+                      onRemoveMapping={onRemoveMapping ?? (() => {})}
+                      onMonotonicChange={onMonotonicChange ?? (() => {})}
+                    />
+                  }
+                />
+              ) : (
+                <></>
+              )}
+            </Fieldset>
+          </FormContainer>
+        }
+        columnLabels={
+          isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes)
+            ? {
+                column_name: t('Column'),
+                advanced_data_type: t('Advanced data type'),
+                type: t('Data type'),
+                groupby: t('Is dimension'),
+                is_dttm: t('Is temporal'),
+                filterable: t('Is filterable'),
+              }
+            : {
+                column_name: t('Column'),
+                type: t('Data type'),
+                groupby: t('Is dimension'),
+                is_dttm: t('Is temporal'),
+                filterable: t('Is filterable'),
+              }
+        }
+        onChange={onColumnsChange}
+        itemRenderers={
+          isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes)
+            ? {
+                column_name: renderColumnName('editableTitle'),
+                type: d => (d ? <Label>{String(d)}</Label> : null),
+                advanced_data_type: d => <Label>{d as string}</Label>,
+                is_dttm: checkboxGenerator,
+                filterable: checkboxGenerator,
+                groupby: checkboxGenerator,
+              }
+            : {
+                column_name: renderColumnName('textControl'),
+                type: d => (d ? <Label>{String(d)}</Label> : null),
+                is_dttm: checkboxGenerator,
+                filterable: checkboxGenerator,
+                groupby: checkboxGenerator,
+              }
+        }
       />
     </StyledColumnsTableWrapper>
   );

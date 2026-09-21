@@ -44,8 +44,8 @@ export function mappedColumnIsImplicit(
 ): boolean {
   return Boolean(
     datasource.partition_column &&
-      !datasource.partition_mapped_column &&
-      datasource.main_dttm_col,
+    !datasource.partition_mapped_column &&
+    datasource.main_dttm_col,
   );
 }
 
