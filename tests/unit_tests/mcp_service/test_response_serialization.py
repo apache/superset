@@ -66,8 +66,10 @@ HOSTILE_ROW: dict[str, Any] = {
     "nested": {"inner": b"\x80"},
 }
 
-#: Some engines report ``rowcount`` as a float.
-FLOAT_COUNT = 5.0
+#: Some engines report ``rowcount`` as a float. A fractional value is used
+#: deliberately: pydantic accepts an integral float for an ``int`` field on its
+#: own, so only a fractional one proves the coercion is doing the work.
+FLOAT_COUNT = 5.7
 
 
 def _serialize(response: BaseModel) -> dict[str, Any]:
@@ -114,8 +116,8 @@ def _data_column() -> DataColumn:
         display_name="blob",
         data_type="bytes",
         sample_values=[b"\xff\xfe", pd.NaT],
-        null_count=FLOAT_COUNT,
-        unique_count=FLOAT_COUNT,
+        null_count=1,
+        unique_count=2,
         statistics={"min": b"\xff\xfe"},
     )
 
@@ -263,7 +265,31 @@ def test_column_metadata_is_sanitized(build: Callable[[], BaseModel]) -> None:
     assert column["sample_values"][0].startswith(BINARY_PREFIX)
     assert column["sample_values"][1] is None
     assert column["statistics"]["min"].startswith(BINARY_PREFIX)
-    assert column["null_count"] == column["unique_count"] == 5
+    assert column["null_count"] == 1
+    assert column["unique_count"] == 2
+
+
+@pytest.mark.parametrize(
+    "count,expected",
+    [(5.7, 5), (float("nan"), None), ("unknown", None), (None, None)],
+    ids=["fractional-float", "nan", "non-numeric", "missing"],
+)
+def test_unusable_nullable_count_becomes_null(count: Any, expected: int | None) -> None:
+    """A count the engine reports in an unusable form must not fail the call."""
+    response = QueryDatasetResponse(
+        dataset_id=1, dataset_name="dataset", data=[], row_count=0, total_rows=count
+    )
+
+    assert _serialize(response)["total_rows"] == expected
+
+
+def test_unusable_required_count_becomes_zero() -> None:
+    """A non-nullable count falls back to 0 rather than failing validation."""
+    response = StatementInfo(
+        original_sql="SET x", executed_sql="SET x", row_count="unknown"
+    )
+
+    assert _serialize(response)["row_count"] == 0
 
 
 def test_clean_results_are_untouched() -> None:

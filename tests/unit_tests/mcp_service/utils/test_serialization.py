@@ -32,6 +32,7 @@ from superset.mcp_service.utils.serialization import (
     BINARY_PREFIX,
     coerce_int,
     coerce_optional_int,
+    is_missing_value,
     MAX_DEPTH,
     sanitize_json_value,
     sanitize_mapping,
@@ -89,13 +90,72 @@ def test_ordinary_scalars_pass_through() -> None:
     assert sanitize_json_value(True) is True
     assert sanitize_json_value(1.5) == 1.5
     assert sanitize_json_value(None) is None
-    assert sanitize_json_value(Decimal("1.5")) == Decimal("1.5")
 
 
-def test_numpy_scalars_are_normalised() -> None:
-    assert sanitize_json_value(np.int64(3)) == 3
-    assert sanitize_json_value(np.bool_(True)) is True
+@pytest.mark.parametrize(
+    "value,expected",
+    [
+        (np.int64(3), 3),
+        (np.int32(3), 3),
+        (np.int8(3), 3),
+        (np.uint16(3), 3),
+        (np.float64(1.5), 1.5),
+        (np.float32(1.5), 1.5),
+        (np.bool_(True), True),
+    ],
+)
+def test_numpy_scalars_of_every_width_are_normalised(value: Any, expected: Any) -> None:
+    """Rendering a numpy scalar as text would silently turn numbers into
+    strings for the caller."""
+    sanitized = sanitize_json_value(value)
+    assert sanitized == expected
+    assert isinstance(sanitized, type(expected))
+
+
+@pytest.mark.parametrize("value", [np.float32("inf"), np.float64("-inf")])
+def test_non_finite_numpy_floats_become_null(value: Any) -> None:
+    assert sanitize_json_value(value) is None
+
+
+def test_numpy_arrays_become_lists() -> None:
     assert sanitize_json_value(np.array([1, 2])) == [1, 2]
+
+
+def test_decimal_becomes_float() -> None:
+    """A JSON number is more useful to the caller than a quoted string."""
+    sanitized = sanitize_json_value(Decimal("19.99"))
+    assert sanitized == 19.99
+    assert isinstance(sanitized, float)
+
+
+def test_unknown_types_are_stringified() -> None:
+    """The structured-content path (``to_jsonable_python``) has no
+    ``fallback=str``, so unknown values cannot be left as-is."""
+
+    class Custom:
+        def __str__(self) -> str:
+            return "custom_value"
+
+    assert sanitize_json_value(Custom()) == "custom_value"
+
+
+@pytest.mark.parametrize(
+    "value,expected",
+    [
+        (None, True),
+        (pd.NaT, True),
+        (pd.NA, True),
+        (float("nan"), True),
+        (np.float32("nan"), True),
+        (0, False),
+        ("", False),
+        (b"\xff", False),
+        ([], False),
+        ([1, 2], False),
+    ],
+)
+def test_is_missing_value(value: Any, expected: bool) -> None:
+    assert is_missing_value(value) is expected
 
 
 def test_nested_containers_are_walked() -> None:

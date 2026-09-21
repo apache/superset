@@ -50,7 +50,6 @@ from __future__ import annotations
 import base64
 import math
 from datetime import date, datetime, time, timedelta
-from decimal import Decimal
 from typing import Annotated, Any
 from uuid import UUID
 
@@ -71,7 +70,7 @@ BINARY_PREFIX = "base64:"
 MAX_DEPTH = 20
 
 # Types pydantic renders natively and that never need rewriting.
-_PASSTHROUGH_TYPES = (datetime, date, time, timedelta, Decimal, UUID)
+_PASSTHROUGH_TYPES = (datetime, date, time, timedelta, UUID)
 
 # Marks a value the scalar pass did not handle; ``None`` is a real result.
 _UNHANDLED = object()
@@ -97,12 +96,23 @@ def _sanitize_str(value: str) -> str:
     return value
 
 
-def _is_missing(value: Any) -> bool:
-    """True for NaN-like scalars: ``pandas.NaT``/``pandas.NA``, ``numpy.NaT``.
+def is_missing_value(value: Any) -> bool:
+    """True when a result value is null-like: ``None``, NaN, ``pandas.NaT``,
+    ``pandas.NA`` or ``numpy`` NaT.
+
+    Use this instead of ``value is None`` when summarising result data, so a
+    column full of NaN is not reported as having no nulls. This is exactly the
+    set of values :func:`sanitize_json_value` renders as JSON ``null``, so a
+    null count derived from it agrees with the payload.
 
     ``pandas.isna`` returns an array for array-likes, so only a scalar boolean
     result counts as missing.
     """
+    if value is None:
+        return True
+    if isinstance(value, (float, np.floating)):
+        # NaN and the infinities, at every numpy width.
+        return not math.isfinite(value)
     try:
         missing = pd.isna(value)
     except (TypeError, ValueError):
@@ -140,18 +150,23 @@ def _sanitize_other(value: Any, depth: int) -> Any:
         return [sanitize_json_value(item, depth + 1) for item in value]
     # ``pandas.NaT`` is a ``datetime`` subclass, so the missing-value check has
     # to run before the passthrough types.
-    if _is_missing(value):
+    if is_missing_value(value):
         return None
+    if isinstance(value, np.generic):
+        # Every numpy scalar width, not just the few base_json_conv knows.
+        return sanitize_json_value(value.item(), depth + 1)
     if isinstance(value, _PASSTHROUGH_TYPES):
         return value
     try:
-        # Normalises numpy scalars, ndarrays and similar; the result may itself
+        # Normalises ndarrays, sets, Decimal and similar; the result may itself
         # be a container or string that needs another pass. Recursion is bounded
         # by MAX_DEPTH.
         converted = base_json_conv(value)
     except TypeError:
-        # Unknown to Superset too — FastMCP's ``fallback=str`` handles it.
-        return value
+        # Unknown to Superset too. Render it as text rather than leaving it for
+        # FastMCP's ``fallback=str``, which the structured-content path
+        # (``to_jsonable_python``) does not apply.
+        return _sanitize_str(str(value))
     return sanitize_json_value(converted, depth + 1)
 
 
@@ -194,7 +209,9 @@ def coerce_optional_int(value: Any) -> Any:
 
 def coerce_int(value: Any) -> Any:
     """Like :func:`coerce_optional_int` but yields ``0`` instead of ``None``,
-    for count fields that are not nullable."""
+    for count fields that are not nullable. A count the engine did not report
+    therefore reads as ``0``; callers needing the true size of a result should
+    measure the rows themselves."""
     coerced = coerce_optional_int(value)
     return 0 if coerced is None else coerced
 

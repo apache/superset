@@ -588,7 +588,10 @@ class TestUnsavedChartDataQueryConstruction:
         assert not isinstance(result, ChartError)
         assert [row["team"] for row in result.data] == ["Empty", "Blue", "NaN"]
         assert result.row_count == result.total_rows == 3
-        assert result.data_quality["completeness"] == pytest.approx(5 / 6)
+        # Both the None and the NaN metric serialize as null, so both count
+        # toward incompleteness: 2 missing cells out of 3 rows x 2 columns.
+        assert result.data_quality["completeness"] == pytest.approx(4 / 6)
+        assert [row["saved_sla"] for row in result.data] == [None, 98.5, None]
         query = captured[0]["queries"][0]
         assert query["metrics"] == ["saved_sla"]
         assert query["orderby"] == [("saved_sla", False)]
@@ -1887,9 +1890,13 @@ class TestSavedChartExtraFormDataFilters:
         expected_groups = [row["team"] for row in rows]
         if export_format == "json":
             assert [row["team"] for row in data["data"]] == expected_groups
+            # NaN and the infinities are not valid JSON, so they serialize as
+            # null and count as missing alongside the explicit None: four
+            # missing cells out of len(rows) x 2 columns.
             assert data["data_quality"]["completeness"] == pytest.approx(
-                1 - 1 / (len(rows) * 2)
+                1 - 4 / (len(rows) * 2)
             )
+            assert [row["saved_sla"] for row in data["data"][:4]] == [None] * 4
             assert data.get("query_results") is None
         elif export_format == "csv":
             import csv

@@ -22,6 +22,7 @@ These tests mock Database.execute() to test the MCP tool's parameter mapping
 and response conversion logic.
 """
 
+import base64
 import logging
 from decimal import Decimal
 from typing import Any
@@ -42,6 +43,7 @@ from superset.exceptions import (
 )
 from superset.mcp_service.app import mcp
 from superset.mcp_service.sql_lab.schemas import ColumnInfo
+from superset.mcp_service.utils.serialization import BINARY_PREFIX
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -1154,8 +1156,11 @@ class TestExecuteSql:
             row = data["rows"][0]
             # UTF-8 decodable bytes should become string
             assert row["utf8_data"] == "hello world"
-            # Non-UTF-8 bytes should become hex
-            assert row["binary_data"] == "000102ff"
+            # Non-UTF-8 bytes are base64-encoded rather than failing the call
+            assert (
+                row["binary_data"]
+                == BINARY_PREFIX + base64.b64encode(b"\x00\x01\x02\xff").decode()
+            )
 
     @patch("superset.security_manager")
     @patch("superset.db")
@@ -1215,53 +1220,55 @@ class TestExecuteSql:
             assert isinstance(row["price"], float)
 
 
-class TestSanitizeRowValues:
-    """Unit tests for _sanitize_row_values helper function."""
+class TestStatementRowSanitization:
+    """Row values are made JSON-safe by the response schema itself, so every
+    tool that returns rows gets the same treatment."""
 
-    def test_sanitize_utf8_bytes(self):
-        from superset.mcp_service.sql_lab.tool.execute_sql import _sanitize_row_values
+    @staticmethod
+    def _rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        from superset.mcp_service.sql_lab.tool.execute_sql import (
+            _data_to_statement_data,
+        )
 
-        rows = [{"data": b"hello"}]
-        _sanitize_row_values(rows)
-        assert rows[0]["data"] == "hello"
+        return _data_to_statement_data(rows).rows
 
-    def test_sanitize_non_utf8_bytes(self):
-        from superset.mcp_service.sql_lab.tool.execute_sql import _sanitize_row_values
+    def test_utf8_bytes_decode_to_text(self):
+        assert self._rows([{"data": b"hello"}])[0]["data"] == "hello"
 
-        rows = [{"data": b"\x00\xff"}]
-        _sanitize_row_values(rows)
-        assert rows[0]["data"] == "00ff"
+    def test_non_utf8_bytes_are_base64_encoded(self):
+        value = self._rows([{"data": b"\x00\xff"}])[0]["data"]
+        assert value == BINARY_PREFIX + base64.b64encode(b"\x00\xff").decode()
 
-    def test_sanitize_memoryview(self):
-        from superset.mcp_service.sql_lab.tool.execute_sql import _sanitize_row_values
+    def test_memoryview_is_handled(self):
+        assert self._rows([{"data": memoryview(b"test")}])[0]["data"] == "test"
 
-        rows = [{"data": memoryview(b"test")}]
-        _sanitize_row_values(rows)
-        assert rows[0]["data"] == "test"
+    def test_decimal_becomes_float(self):
+        row = self._rows([{"price": Decimal("19.99"), "count": Decimal("42")}])[0]
+        assert row["price"] == 19.99
+        assert isinstance(row["price"], float)
+        assert row["count"] == 42.0
 
-    def test_sanitize_decimal(self):
-        from superset.mcp_service.sql_lab.tool.execute_sql import _sanitize_row_values
+    def test_missing_values_become_none(self):
+        """The old tool-level helper stringified NaT to "NaT"."""
+        row = self._rows([{"ts": pd.NaT, "ratio": float("nan")}])[0]
+        assert row["ts"] is None
+        assert row["ratio"] is None
 
-        rows = [{"price": Decimal("19.99"), "count": Decimal("42")}]
-        _sanitize_row_values(rows)
-        assert rows[0]["price"] == 19.99
-        assert isinstance(rows[0]["price"], float)
-        assert rows[0]["count"] == 42.0
+    def test_nested_containers_are_sanitized(self):
+        """The old tool-level helper skipped list and dict values, which is how
+        binary data still reached the serializer."""
+        row = self._rows([{"payload": {"blob": b"\xff"}, "items": [b"\xff"]}])[0]
+        assert row["payload"]["blob"].startswith(BINARY_PREFIX)
+        assert row["items"][0].startswith(BINARY_PREFIX)
 
-    def test_sanitize_custom_type_uses_str(self):
-        from superset.mcp_service.sql_lab.tool.execute_sql import _sanitize_row_values
-
+    def test_custom_type_uses_str(self):
         class CustomType:
             def __str__(self):
                 return "custom_value"
 
-        rows = [{"data": CustomType()}]
-        _sanitize_row_values(rows)
-        assert rows[0]["data"] == "custom_value"
+        assert self._rows([{"data": CustomType()}])[0]["data"] == "custom_value"
 
     def test_preserves_json_serializable_types(self):
-        from superset.mcp_service.sql_lab.tool.execute_sql import _sanitize_row_values
-
         rows = [
             {
                 "str_val": "hello",
@@ -1273,33 +1280,10 @@ class TestSanitizeRowValues:
                 "dict_val": {"a": 1},
             }
         ]
-        original = [dict(row) for row in rows]
-        _sanitize_row_values(rows)
-        assert rows == original
+        assert self._rows(rows) == rows
 
-    def test_sanitize_empty_rows(self):
-        from superset.mcp_service.sql_lab.tool.execute_sql import _sanitize_row_values
-
-        rows: list[dict[str, Any]] = []
-        _sanitize_row_values(rows)
-        assert rows == []
-
-    def test_sanitize_mixed_types_in_single_row(self):
-        from superset.mcp_service.sql_lab.tool.execute_sql import _sanitize_row_values
-
-        rows = [
-            {
-                "id": 1,
-                "name": "test",
-                "price": Decimal("9.99"),
-                "blob": b"\x00\x01\x02\xff",
-            }
-        ]
-        _sanitize_row_values(rows)
-        assert rows[0]["id"] == 1
-        assert rows[0]["name"] == "test"
-        assert rows[0]["price"] == 9.99
-        assert rows[0]["blob"] == "000102ff"
+    def test_empty_rows(self):
+        assert self._rows([]) == []
 
 
 class TestExecuteSqlOAuth2:
