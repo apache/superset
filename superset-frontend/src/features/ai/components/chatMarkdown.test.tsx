@@ -27,7 +27,13 @@
 
 import type { ReactElement } from 'react';
 import type { Element } from 'hast';
-import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
+import * as toastActions from 'src/components/MessageToasts/actions';
 import { renderSqlHighlightedCode, useChatMarkdown } from './chatMarkdown';
 
 // The embedded chart resolves a form_data key over the network and renders a real
@@ -131,6 +137,82 @@ test('a fenced block gets the copy action', () => {
   expect(screen.getByLabelText('Copy code block')).toBeInTheDocument();
   expect(screen.getByText('plain text')).toBeInTheDocument();
 });
+
+test.each(['available', 'unavailable', 'denied', 'unsupported'] as const)(
+  'copies code with the Clipboard API %s and reports the actual outcome',
+  async capability => {
+    const clipboardDescriptor = Object.getOwnPropertyDescriptor(
+      navigator,
+      'clipboard',
+    );
+    const execCommandDescriptor = Object.getOwnPropertyDescriptor(
+      document,
+      'execCommand',
+    );
+    const writeText = jest.fn().mockResolvedValue(undefined);
+    if (capability === 'denied' || capability === 'unsupported') {
+      writeText.mockRejectedValue(new Error('Clipboard access denied'));
+    }
+    const content = "Ответ на русском\nSELECT 'Привет';";
+    let selectedText: string | undefined;
+    const execCommand = jest.fn(() => {
+      selectedText = document.getSelection()?.toString();
+      return capability !== 'unsupported';
+    });
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: capability === 'unavailable' ? undefined : { writeText },
+    });
+    Object.defineProperty(document, 'execCommand', {
+      configurable: true,
+      value: execCommand,
+    });
+    const success = jest.spyOn(toastActions, 'addSuccessToast');
+    const failure = jest.spyOn(toastActions, 'addDangerToast');
+
+    try {
+      renderPre(fenceNode(content));
+      await userEvent.tab();
+      expect(screen.getByLabelText('Copy code block')).toHaveFocus();
+      await userEvent.keyboard('{Enter}');
+
+      if (capability === 'unsupported') {
+        await waitFor(() =>
+          expect(failure).toHaveBeenCalledWith(
+            'Sorry, your browser does not support copying.',
+          ),
+        );
+        expect(success).not.toHaveBeenCalled();
+      } else {
+        await waitFor(() =>
+          expect(success).toHaveBeenCalledWith('Copied to clipboard'),
+        );
+        expect(failure).not.toHaveBeenCalled();
+      }
+
+      if (capability === 'available') {
+        expect(writeText).toHaveBeenCalledWith(content);
+        expect(execCommand).not.toHaveBeenCalled();
+      } else {
+        expect(execCommand).toHaveBeenCalledWith('copy');
+        expect(selectedText).toBe(content);
+        expect(document.getSelection()?.rangeCount).toBe(0);
+      }
+    } finally {
+      for (const [target, key, descriptor] of [
+        [navigator, 'clipboard', clipboardDescriptor],
+        [document, 'execCommand', execCommandDescriptor],
+      ] as const) {
+        if (descriptor) {
+          Object.defineProperty(target, key, descriptor);
+        } else {
+          Reflect.deleteProperty(target, key);
+        }
+      }
+      jest.restoreAllMocks();
+    }
+  },
+);
 
 test('a language-less fence is still treated as a block', () => {
   // The className that would identify a language is absent here, which is why

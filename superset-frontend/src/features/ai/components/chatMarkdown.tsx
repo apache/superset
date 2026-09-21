@@ -52,6 +52,7 @@ import {
 } from 'src/components/MessageToasts/actions';
 import { addQueryEditor } from 'src/SqlLab/actions/sqlLab';
 import type { QueryEditor, SqlLabRootState } from 'src/SqlLab/types';
+import copyTextToClipboard from 'src/utils/copy';
 import ChatChartEmbed, { parseChartEmbedParams } from './ChatChartEmbed';
 
 export const REMARK_PLUGINS = [remarkGfm];
@@ -468,7 +469,7 @@ export const useChatMarkdown = (): UseChatMarkdownReturn => {
   const copyToClipboard = useCallback(
     async (content: string) => {
       try {
-        await navigator.clipboard.writeText(content);
+        await copyTextToClipboard(() => Promise.resolve(content));
         dispatch(addSuccessToast(t('Copied to clipboard')));
       } catch {
         dispatch(

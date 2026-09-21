@@ -16,6 +16,10 @@ Superset ships **no model provider and talks to no model vendor by default**.
 The feature is disabled, and even when enabled it returns `404` until you point
 it at a provider you control. Nothing is sent anywhere until you configure it.
 
+Answer and code-block copy buttons use Superset's clipboard compatibility
+fallback when the Clipboard API is unavailable or denied. If the browser blocks
+both methods, select the text and use Ctrl+C (Cmd+C on macOS).
+
 ## Enabling it
 
 Two things are required: the feature flag, and a provider.
