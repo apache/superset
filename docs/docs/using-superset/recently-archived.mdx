@@ -138,7 +138,7 @@ shortening a window; the first live run can process accumulated old archives.
 For automatic retention, operators need all of the following:
 
 - A running Celery beat scheduler and workers connected to the appropriate
-  broker and queues. See [Celery configuration](/admin-docs/configuration/async-queries-celery).
+  broker and queues. See [Celery configuration](/admin-docs/configuration/async-queries-celery/).
 - Task registration on the workers. The default `CELERY_CONFIG.imports`
   includes `superset.tasks.deletion_retention` and
   `superset.tasks.version_history_retention`.
