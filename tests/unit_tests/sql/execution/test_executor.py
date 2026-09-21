@@ -252,9 +252,10 @@ def test_execute_delete_without_permission(
 @pytest.mark.parametrize(
     "sql",
     [
+        # Per-statement parsing of every form is covered in parse_tests; here
+        # one Command fallback, one structured node, one multi-statement.
         "PUT file:///tmp/data.csv @my_stage",
-        "GET @my_stage file:///tmp/",
-        "REMOVE @my_stage/path",
+        "GET @my_stage 'file:///tmp/'",
         "SELECT 1; PUT file:///tmp/data.csv @my_stage",
     ],
 )

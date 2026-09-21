@@ -479,7 +479,7 @@ class SupersetDisallowedClientFileTransferException(SupersetErrorException):
             SupersetError(
                 message=(
                     "SQL statement contains disallowed client-side "
-                    f"file-transfer command(s): {commands}"
+                    f"file-transfer command(s): {', '.join(sorted(commands))}"
                 ),
                 error_type=SupersetErrorType.SYNTAX_ERROR,
                 level=ErrorLevel.ERROR,

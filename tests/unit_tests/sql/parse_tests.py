@@ -2047,6 +2047,10 @@ def test_is_mutating_fails_closed_on_gate_blind_spots(sql: str, engine: str) -> 
     [
         ("PUT file:///tmp/data.csv @my_stage", "PUT"),
         ("GET @my_stage file:///tmp/", "GET"),
+        # A quoted local path parses to ``exp.Put``/``exp.Get`` rather than
+        # the opaque Command fallback, but is the same documented syntax.
+        ("PUT 'file:///tmp/data.csv' @my_stage", "PUT"),
+        ("GET @my_stage 'file:///tmp/'", "GET"),
         ("REMOVE @my_stage/path", "REMOVE"),
         # ``RM`` is a documented alias of ``REMOVE``.
         ("RM @my_stage/path", "RM"),
@@ -2073,6 +2077,7 @@ def test_get_client_file_transfer_command(sql: str, expected: str | None) -> Non
     [
         ("PUT file:///tmp/data.csv @my_stage", {"PUT"}),
         ("SELECT 1; GET @my_stage file:///tmp/", {"GET"}),
+        ("SELECT 1; PUT 'file:///tmp/data.csv' @my_stage", {"PUT"}),
         ("PUT file:///a @s; REMOVE @s/b", {"PUT", "REMOVE"}),
         ("SELECT 1", set()),
     ],
@@ -6464,10 +6469,7 @@ def test_backtick_invalid_sql_still_fails() -> None:
 
 def test_base_sql_statement_get_client_file_transfer_command_not_implemented() -> None:
     """
-    BaseSQLStatement.get_client_file_transfer_command is abstract; both
-    concrete subclasses (SQLStatement and KustoKQLStatement) override it, so
-    calling the base implementation directly must raise. Keeping it abstract
-    means a new statement type cannot silently opt out of the check.
+    BaseSQLStatement.get_client_file_transfer_command is abstract.
     """
     with pytest.raises(NotImplementedError):
         BaseSQLStatement.get_client_file_transfer_command(object())  # type: ignore[arg-type]  # noqa: E501

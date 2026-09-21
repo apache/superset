@@ -22,7 +22,7 @@ import enum
 import logging
 import re
 import urllib.parse
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from functools import lru_cache
 from typing import Any, Generic, Optional, TYPE_CHECKING, TypeVar
@@ -645,6 +645,9 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
         """
         Return the client-side file-transfer command head, if this is one.
 
+        Abstract so that a new statement type cannot silently opt out of the
+        check by inheriting a permissive default.
+
         :return: The uppercased command head (e.g. ``"PUT"``), else ``None``.
         """
         raise NotImplementedError()
@@ -981,21 +984,21 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         }
     )
 
-    # Command-fallback heads for client-side file-transfer statements. These
-    # move files between the client host running the query and a remote stage
-    # (Snowflake ``PUT`` uploads a local file, ``GET`` downloads to a local
-    # path, ``REMOVE``/its ``RM`` alias delete staged files), so they perform
-    # file I/O on the host rather than reading or writing table data. sqlglot
-    # has no structured node for any of them, so every form falls back to an
-    # opaque ``exp.Command`` with one of these heads.
+    # Snowflake client-side file-transfer heads: ``PUT``/``GET`` move files
+    # between the client host running the query and a stage, ``REMOVE``/its
+    # ``RM`` alias delete staged files, so they do host file I/O rather than
+    # reading or writing table data. sqlglot models only the quoted-path
+    # ``PUT``/``GET`` forms structurally (``exp.Put``/``exp.Get``); every
+    # other form falls back to ``exp.Command`` with one of these heads.
     _CLIENT_FILE_TRANSFER_COMMAND_NAMES: frozenset[str] = frozenset(
-        {
-            "PUT",
-            "GET",
-            "REMOVE",
-            "RM",
-        }
+        {"PUT", "GET", "REMOVE", "RM"}
     )
+
+    # Structured counterparts of the heads above, for the quoted-path forms.
+    _CLIENT_FILE_TRANSFER_NODES: Mapping[type[exp.Expression], str] = {
+        exp.Put: "PUT",
+        exp.Get: "GET",
+    }
 
     # Command-fallback heads that are only mutating on dialects where the
     # structured form (`exp.Set`) is reserved for benign session variables,
@@ -1387,6 +1390,12 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
 
         :return: The uppercased command head (e.g. ``"PUT"``), else ``None``.
         """
+        # A quoted local path parses into a structured node instead of the
+        # opaque Command fallback (``PUT 'file://...' @s`` -> ``exp.Put``).
+        # Both nodes are Snowflake-only, so no other dialect is affected.
+        if name := self._CLIENT_FILE_TRANSFER_NODES.get(type(self._parsed)):
+            return name
+
         head = self._command_head()
         return head if head in self._CLIENT_FILE_TRANSFER_COMMAND_NAMES else None
 
