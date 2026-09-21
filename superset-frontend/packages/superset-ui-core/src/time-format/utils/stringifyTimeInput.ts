@@ -29,15 +29,26 @@ export default function stringifyTimeInput(
   if (typeof value === 'string') {
     const trimmed = value.trim();
     // A bare four-digit string is the ISO 8601 year-only form ("2017"), which
-    // every engine parses as January 1st of that year. Any other integer
-    // string is an epoch timestamp in milliseconds that was stringified on
-    // its way here, e.g. by the pivot table, and is not a valid Date input.
+    // every engine parses as January 1st of that year. A digit-only string
+    // of at least 10 digits is long enough to plausibly be an epoch timestamp
+    // in milliseconds that was stringified on its way here, e.g. by the pivot
+    // table. A digit-only string that is neither - a YYYYMMDD date key such as
+    // "20260903", a YYYYMM one such as "202609", or a small integer that is
+    // not a timestamp at all - is returned as it came in. Handing those to
+    // `new Date` would read them through an engine-specific legacy parser
+    // that turns "202609" into the year 202609 and "5" into May of 2001,
+    // rather than leaving them alone.
     const isYear = /^\d{4}$/.test(trimmed);
-    const isIntegerString = /^-?\d+$/.test(trimmed);
+    const isPlausibleEpoch = /^-?\d{10,}$/.test(trimmed);
+    const isDigitsOnly = /^-?\d+$/.test(trimmed);
     if (isYear) {
       time = new Date(trimmed);
+    } else if (isPlausibleEpoch) {
+      time = new Date(Number(trimmed));
+    } else if (isDigitsOnly) {
+      return value;
     } else {
-      time = new Date(isIntegerString ? Number(trimmed) : value);
+      time = new Date(value);
     }
   } else {
     time = value instanceof Date ? value : new Date(value);

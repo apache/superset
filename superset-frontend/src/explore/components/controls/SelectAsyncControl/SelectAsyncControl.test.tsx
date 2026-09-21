@@ -91,7 +91,7 @@ test('Should send correct props to Select component - function onChange multi:tr
   const props = createProps();
   render(<SelectAsyncControl {...props} />, { useRedux: true });
   expect(props.onChange).toHaveBeenCalledTimes(0);
-  userEvent.click(await screen.findByText('onChange'));
+  await userEvent.click(await screen.findByText('onChange'));
   expect(props.onChange).toHaveBeenCalledTimes(1);
 });
 
@@ -101,6 +101,6 @@ test('Should send correct props to Select component - function onChange multi:fa
     useRedux: true,
   });
   expect(props.onChange).toHaveBeenCalledTimes(0);
-  userEvent.click(await screen.findByText('onChange'));
+  await userEvent.click(await screen.findByText('onChange'));
   expect(props.onChange).toHaveBeenCalledTimes(1);
 });
