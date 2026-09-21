@@ -37,6 +37,92 @@ from superset.views.tasks import TaskModelView
 
 
 @pytest.mark.parametrize("configured", [False, True])
+@pytest.mark.parametrize(
+    "defaults,overrides,warn",
+    [
+        ({}, {}, False),
+        ({"GLOBAL_TASK_FRAMEWORK": False, "GLOBAL_ASYNC_QUERIES": False}, {}, False),
+        ({"GLOBAL_TASK_FRAMEWORK": True}, {}, True),
+        ({"GLOBAL_ASYNC_QUERIES": True}, {}, True),
+        ({}, {"GLOBAL_TASK_FRAMEWORK": True}, True),
+        ({}, {"GLOBAL_ASYNC_QUERIES": True}, True),
+        (
+            {"GLOBAL_TASK_FRAMEWORK": True, "GLOBAL_ASYNC_QUERIES": True},
+            {"GLOBAL_TASK_FRAMEWORK": False, "GLOBAL_ASYNC_QUERIES": False},
+            False,
+        ),
+        (
+            {"GLOBAL_TASK_FRAMEWORK": True},
+            {"GLOBAL_TASK_FRAMEWORK": False, "GLOBAL_ASYNC_QUERIES": True},
+            True,
+        ),
+        (
+            {"GLOBAL_ASYNC_QUERIES": True},
+            {"GLOBAL_ASYNC_QUERIES": False, "GLOBAL_TASK_FRAMEWORK": True},
+            True,
+        ),
+        ({"GLOBAL_TASK_FRAMEWORK": True, "GLOBAL_ASYNC_QUERIES": True}, {}, True),
+    ],
+)
+def test_task_manager_static_flag_warning(
+    configured: bool,
+    defaults: dict[str, bool],
+    overrides: dict[str, bool],
+    warn: bool,
+) -> None:
+    """Static diagnostics neither resolve runtime flags nor install disabled tasks."""
+    app = Flask(__name__)
+    app.config.from_object("superset.config")
+    callbacks = {
+        name: MagicMock(side_effect=AssertionError("startup evaluated a callback"))
+        for name in ("GET_FEATURE_FLAGS_FUNC", "IS_FEATURE_ENABLED_FUNC")
+    }
+    app.config.update(
+        GLOBAL_TASK_FRAMEWORK_ENABLED=configured,
+        DEFAULT_FEATURE_FLAGS=defaults.copy(),
+        FEATURE_FLAGS=overrides.copy(),
+        **callbacks,
+    )
+    initializer = SupersetAppInitializer(app)
+    config_before = dict(app.config)
+    extensions_before = dict(app.extensions)
+    handlers_before = dict(app.before_request_funcs)
+
+    with (
+        patch("superset.initialization.logger") as log,
+        patch("superset.initialization.feature_flag_manager") as flags,
+        patch("superset.is_feature_enabled") as resolve_flag,
+        patch("superset.tasks.manager.TaskManager.init_app") as init_manager,
+    ):
+        initializer.configure_task_manager()
+
+    flags.assert_not_called()
+    assert not flags.mock_calls
+    resolve_flag.assert_not_called()
+    for callback in callbacks.values():
+        callback.assert_not_called()
+    if configured:
+        init_manager.assert_called_once_with(app)
+    else:
+        init_manager.assert_not_called()
+    if warn and not configured:
+        log.warning.assert_called_once_with(
+            "Static GLOBAL_TASK_FRAMEWORK or GLOBAL_ASYNC_QUERIES feature "
+            "flags do not install task infrastructure. Set "
+            "GLOBAL_TASK_FRAMEWORK_ENABLED=True to use it; with config "
+            "disabled, task infrastructure remains disabled and chart "
+            "queries remain synchronous."
+        )
+    else:
+        log.warning.assert_not_called()
+    assert app.config == config_before
+    assert app.config["DEFAULT_FEATURE_FLAGS"] == defaults
+    assert app.config["FEATURE_FLAGS"] == overrides
+    assert app.extensions == extensions_before
+    assert app.before_request_funcs == handlers_before
+
+
+@pytest.mark.parametrize("configured", [False, True])
 @pytest.mark.parametrize("enabled", [False, True])
 def test_task_registration(configured: bool, enabled: bool) -> None:
     """Task installation never evaluates request-time GTF flags."""

@@ -26,11 +26,25 @@ from fastmcp import Client
 from flask import Flask
 from pydantic import ValidationError
 
+from superset.extensions import feature_flag_manager
 from superset.mcp_service.app import mcp
 from superset.mcp_service.task.schemas import ListTasksRequest, TaskColumnFilter
 from superset.utils import json
 
 SAMPLE_UUID = str(uuid.uuid4())
+
+
+@pytest.fixture(autouse=True)
+def enable_task_infrastructure(app: Flask, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Exercise task behavior with deployment infrastructure installed."""
+    monkeypatch.setitem(app.config, "GLOBAL_TASK_FRAMEWORK_ENABLED", True)
+    original_resolver = feature_flag_manager.is_feature_enabled
+    monkeypatch.setattr(
+        "superset.extensions.feature_flag_manager.is_feature_enabled",
+        lambda feature: False
+        if feature == "GLOBAL_TASK_FRAMEWORK"
+        else original_resolver(feature),
+    )
 
 
 def create_mock_task(
@@ -276,16 +290,6 @@ async def test_list_tasks_non_admin_sees_only_subscribed(mock_list, mcp_server):
     assert data["tasks"][0]["id"] == 42
     # TaskDAO.list was called exactly once — base_filter is applied inside
     assert mock_list.call_count == 1
-
-
-@pytest.fixture(autouse=True)
-def enable_task_infrastructure(app: Flask, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Exercise task behavior with deployment infrastructure installed."""
-    monkeypatch.setitem(app.config, "GLOBAL_TASK_FRAMEWORK_ENABLED", True)
-    monkeypatch.setattr(
-        "superset.extensions.feature_flag_manager.is_feature_enabled",
-        lambda feature: False,
-    )
 
 
 @pytest.mark.asyncio

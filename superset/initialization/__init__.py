@@ -1671,6 +1671,21 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             from superset.tasks.manager import TaskManager
 
             TaskManager.init_app(self.superset_app)
+        else:
+            static_flags = {
+                **self.config["DEFAULT_FEATURE_FLAGS"],
+                **self.config["FEATURE_FLAGS"],
+            }
+            if static_flags.get("GLOBAL_TASK_FRAMEWORK") or static_flags.get(
+                "GLOBAL_ASYNC_QUERIES"
+            ):
+                logger.warning(
+                    "Static GLOBAL_TASK_FRAMEWORK or GLOBAL_ASYNC_QUERIES feature "
+                    "flags do not install task infrastructure. Set "
+                    "GLOBAL_TASK_FRAMEWORK_ENABLED=True to use it; with config "
+                    "disabled, task infrastructure remains disabled and chart "
+                    "queries remain synchronous."
+                )
 
     def configure_websocket(self) -> None:
         """Mint the websocket channel-token cookie when the transport is enabled."""

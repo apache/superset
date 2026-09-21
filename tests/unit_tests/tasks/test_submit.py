@@ -25,6 +25,20 @@ from pytest_mock import MockerFixture
 from sqlalchemy.exc import IntegrityError
 
 from superset.commands.tasks.submit import SubmitTaskCommand
+from superset.extensions import feature_flag_manager
+
+
+@pytest.fixture(autouse=True)
+def enable_task_infrastructure(app: Flask, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test submission transactions with task infrastructure installed."""
+    monkeypatch.setitem(app.config, "GLOBAL_TASK_FRAMEWORK_ENABLED", True)
+    original_resolver = feature_flag_manager.is_feature_enabled
+    monkeypatch.setattr(
+        "superset.extensions.feature_flag_manager.is_feature_enabled",
+        lambda feature: False
+        if feature == "GLOBAL_TASK_FRAMEWORK"
+        else original_resolver(feature),
+    )
 
 
 def test_lock_encloses_create_or_join(mocker: MockerFixture) -> None:
@@ -124,13 +138,3 @@ def test_create_race_joins_winner_on_unique_violation(
 @contextmanager
 def _null_cm():
     yield
-
-
-@pytest.fixture(autouse=True)
-def enable_task_infrastructure(app: Flask, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Test submission transactions with task infrastructure installed."""
-    monkeypatch.setitem(app.config, "GLOBAL_TASK_FRAMEWORK_ENABLED", True)
-    monkeypatch.setattr(
-        "superset.extensions.feature_flag_manager.is_feature_enabled",
-        lambda feature: False,
-    )

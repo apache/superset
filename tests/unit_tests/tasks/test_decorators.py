@@ -24,10 +24,24 @@ from flask import Flask
 from superset_core.tasks.types import TaskOptions, TaskScope
 
 from superset.commands.tasks.exceptions import GlobalTaskFrameworkDisabledError
+from superset.extensions import feature_flag_manager
 from superset.tasks.decorators import task, TaskWrapper
 from superset.tasks.registry import TaskRegistry
 
 TEST_UUID = UUID("b8b61b7b-1cd3-4a31-a74a-0a95341afc06")
+
+
+@pytest.fixture(autouse=True)
+def enable_task_infrastructure(app: Flask, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Exercise task behavior with deployment infrastructure installed."""
+    monkeypatch.setitem(app.config, "GLOBAL_TASK_FRAMEWORK_ENABLED", True)
+    original_resolver = feature_flag_manager.is_feature_enabled
+    monkeypatch.setattr(
+        "superset.extensions.feature_flag_manager.is_feature_enabled",
+        lambda feature: False
+        if feature == "GLOBAL_TASK_FRAMEWORK"
+        else original_resolver(feature),
+    )
 
 
 class TestTaskDecoratorDeploymentConfig:
@@ -587,13 +601,3 @@ class TestTaskWrapperCall:
         # Should work without task_key (generates random UUID)
         private_task(123)
         mock_submit_run_with_info.assert_called_once()
-
-
-@pytest.fixture(autouse=True)
-def enable_task_infrastructure(app: Flask, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Exercise task behavior with deployment infrastructure installed."""
-    monkeypatch.setitem(app.config, "GLOBAL_TASK_FRAMEWORK_ENABLED", True)
-    monkeypatch.setattr(
-        "superset.extensions.feature_flag_manager.is_feature_enabled",
-        lambda feature: False,
-    )

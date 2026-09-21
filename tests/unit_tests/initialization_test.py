@@ -145,6 +145,8 @@ class TestSupersetAppInitializer:
             "SQLALCHEMY_DATABASE_URI": "postgresql://user:pass@host:5432/db",
             "FLASK_APP_MUTATOR": None,
             "GLOBAL_TASK_FRAMEWORK_ENABLED": False,
+            "DEFAULT_FEATURE_FLAGS": {},
+            "FEATURE_FLAGS": {},
         }
         app_initializer = SupersetAppInitializer(mock_app)
 
