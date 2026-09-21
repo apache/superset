@@ -923,6 +923,27 @@ def test_query_context_is_stamped_with_the_dashboard_id(
     assert payload["form_data"]["dashboardId"] == 1
 
 
+def test_query_context_is_stamped_with_the_current_slice_id(
+    mocks: dict[str, Any],
+) -> None:
+    """A chart copied with "Save as" can keep the source chart's id in its saved
+    context. Interactive requests resolve form data through Slice.form_data,
+    which restamps slice_id, but the task replays the stored context verbatim,
+    and the guest payload check compares slice_id against the chart being run,
+    so a copy would be skipped even though it renders."""
+    copy = _chart(10, "Copy")
+    copy.query_context = json.dumps({"queries": [{}], "form_data": {"slice_id": 7}})
+    mocks["get_charts_in_layout_order"].return_value = [copy]
+    mocks["ChartDataCommand"].return_value.run.return_value = {
+        "queries": [{"colnames": ["a"], "data": [{"a": 1}]}]
+    }
+
+    _run()
+
+    (payload,), _ = mocks["ChartDataQueryContextSchema"].return_value.load.call_args
+    assert payload["form_data"]["slice_id"] == 10
+
+
 def test_lock_released_with_acquisition_token(mocks: dict[str, Any]) -> None:
     """The release must carry the acquisition token so a TTL-expired,
     reacquired lock owned by another export is left untouched (compare-and-

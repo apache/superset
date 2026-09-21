@@ -351,6 +351,10 @@ def _write_chart_sheets(
     # it, so stamp it the way the browser does on interactive requests.
     form_data = dict(json_body.get("form_data") or {})
     form_data["dashboardId"] = dashboard_id
+    # ``Slice.form_data`` restamps ``slice_id`` on interactive requests, but a
+    # saved context is replayed verbatim, so a chart copied with "Save as" can
+    # carry the source chart's id and fail the guest payload check.
+    form_data["slice_id"] = chart.id
     json_body["form_data"] = form_data
 
     filter_context = get_dashboard_filter_context(
