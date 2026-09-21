@@ -36,6 +36,7 @@ import { optionLabel } from 'src/utils/common';
 import { ensureAppRoot } from 'src/utils/navigationUtils';
 import { downloadBlob, getFilenameFromResponse } from 'src/utils/export';
 import {
+  DOWNLOAD_REASON_FORMATS,
   isDownloadReasonRequired,
   requestDownloadReason,
   withDownloadReason,
@@ -345,8 +346,13 @@ export const exportChart = async ({
   ownState = {},
   onStartStreamingExport = null,
 }: ExportChartParams): Promise<void> => {
+  // Only tabular downloads (csv/xlsx) are gated server-side; never prompt
+  // for JSON exports.
   let downloadReason = '';
-  if (isDownloadReasonRequired()) {
+  if (
+    isDownloadReasonRequired() &&
+    DOWNLOAD_REASON_FORMATS.includes(resultFormat)
+  ) {
     const reason = await requestDownloadReason();
     if (reason === null) {
       return; // the user cancelled the download reason dialog

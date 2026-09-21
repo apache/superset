@@ -42,6 +42,15 @@ def test_reason_from_form_body(app: Flask) -> None:
         assert get_download_reason() == "audit"
 
 
+def test_blank_query_value_falls_back_to_form_body(app: Flask) -> None:
+    with app.test_request_context(
+        "/api/v1/chart/data?download_reason=%20%20",
+        method="POST",
+        data={"download_reason": "from form"},
+    ):
+        assert get_download_reason() == "from form"
+
+
 def test_flag_off_missing_reason_passes_and_logs_nothing(app: Flask) -> None:
     payload = MagicMock()
     with (

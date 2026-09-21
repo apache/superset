@@ -22,6 +22,9 @@ import { Input, Modal } from '@superset-ui/core/components';
 
 export const DOWNLOAD_REASON_PARAM = 'download_reason';
 
+/** Result formats the backend gates behind REQUIRE_DOWNLOAD_REASON. */
+export const DOWNLOAD_REASON_FORMATS = ['csv', 'xlsx'];
+
 /** Whether REQUIRE_DOWNLOAD_REASON is enabled for this deployment. */
 export function isDownloadReasonRequired(): boolean {
   return isFeatureEnabled(FeatureFlag.RequireDownloadReason);

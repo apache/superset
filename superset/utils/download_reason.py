@@ -56,12 +56,12 @@ class DownloadReasonRequiredError(SupersetErrorException):
 
 
 def get_download_reason() -> str | None:
-    """Return the trimmed download_reason from the query string or form."""
-    value = request.args.get(DOWNLOAD_REASON_PARAM) or request.form.get(
-        DOWNLOAD_REASON_PARAM
-    )
-    value = value.strip() if value else ""
-    return value or None
+    """Return the first non-blank download_reason from the query string or form."""
+    for source in (request.args, request.form):
+        value = (source.get(DOWNLOAD_REASON_PARAM) or "").strip()
+        if value:
+            return value
+    return None
 
 
 def check_download_reason(
