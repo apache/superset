@@ -885,7 +885,7 @@ describe('plugin-chart-ag-grid-table', () => {
         expect(totalsQuery.extras?.having).toBeUndefined();
       });
 
-      test('sends filtered-download column filters as structured, dialect-safe filters (sc-112797)', () => {
+      test('sends filtered download column filters as structured, dialect-safe filters', () => {
         // Regression test for the ClickHouse "Invalid SQL clause" export bug:
         // header filters on column names containing spaces must NOT be
         // interpolated unquoted into extras.where (which fails backend clause
@@ -1047,6 +1047,38 @@ describe('plugin-chart-ag-grid-table', () => {
         expect(query.filters ?? []).not.toContainEqual(
           expect.objectContaining({ col: '%count' }),
         );
+      });
+
+      test('routes a "% <metric>" time comparison download filter to HAVING, not a structured WHERE filter', () => {
+        const { queries } = buildQuery(
+          {
+            ...basicFormData,
+            query_mode: QueryMode.Aggregate,
+            result_format: 'csv',
+          },
+          {
+            ownState: {
+              agGridFilterModel: {
+                '% count': {
+                  filterType: 'number',
+                  type: 'greaterThan',
+                  filter: 5,
+                },
+              },
+            },
+          },
+        );
+
+        const query = queries[0];
+        // Time-comparison columns are keyed "% <label>" (a space after %). They
+        // must not become a structured WHERE filter -- the backend can't resolve
+        // that column and would silently drop the filter, returning unfiltered
+        // rows. Keep them on the raw HAVING path so an unresolvable filter fails
+        // loudly instead.
+        expect(query.filters ?? []).not.toContainEqual(
+          expect.objectContaining({ col: '% count' }),
+        );
+        expect(query.extras?.having).toContain('% count');
       });
 
       test('should not modify totals query when no AG Grid filters applied', () => {

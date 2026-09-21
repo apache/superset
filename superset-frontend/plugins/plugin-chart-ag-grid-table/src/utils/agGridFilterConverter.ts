@@ -649,7 +649,13 @@ export function convertAgGridFiltersToSQL(
       return;
     }
 
-    const isMetric = metricColumnsSet.has(columnName);
+    // Also treat any `%`-prefixed colId as a metric: percent metrics are keyed
+    // `%<label>` and time-comparison columns `% <label>` (see transformProps),
+    // and neither resolves as a dimension. Routing them to the raw HAVING path
+    // keeps an unresolvable filter loud (a parse error) instead of the backend
+    // silently dropping it and returning unfiltered rows.
+    const isMetric =
+      metricColumnsSet.has(columnName) || columnName.startsWith('%');
 
     if (isSetFilter(filter)) {
       if (!Array.isArray(filter.values) || filter.values.length === 0) {

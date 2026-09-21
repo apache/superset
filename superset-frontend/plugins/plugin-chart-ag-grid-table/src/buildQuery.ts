@@ -631,18 +631,12 @@ export const buildQueryUncached: BuildQuery<TableChartFormData> = (
       // every dialect. Compound (AND/OR) and metric (HAVING) filters remain
       // free-form SQL, matching the live in-grid path.
       if (ownState.agGridFilterModel) {
-        // Percent metrics are keyed as `%<label>` (see transformProps), so
-        // include them alongside regular metric labels; otherwise a
-        // percent-metric filter would be emitted as a structured WHERE filter
-        // instead of routed to HAVING, changing the results.
-        const metricColumns = [
-          ...(metrics || []).map(m =>
-            typeof m === 'string' ? m : getMetricLabel(m),
-          ),
-          ...(percentMetrics || []).map(
-            m => `%${typeof m === 'string' ? m : getMetricLabel(m)}`,
-          ),
-        ];
+        // Percent metrics (`%<label>`) and time-comparison columns
+        // (`% <label>`) are classified as metrics inside convertAgGridFiltersToSQL
+        // via a `%`-prefix check, so only the plain metric labels are needed here.
+        const metricColumns = (metrics || []).map(m =>
+          typeof m === 'string' ? m : getMetricLabel(m),
+        );
         const { simpleFilters, complexWhere, havingClause } =
           convertAgGridFiltersToSQL(
             ownState.agGridFilterModel as AgGridFilterModel,
