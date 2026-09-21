@@ -132,6 +132,59 @@ def test_exhausting_retry_sends_only_final_notice(mocker, schedule_type):
     retry.assert_not_called()
 
 
+@pytest.mark.parametrize("schedule_type", list(ReportScheduleType))
+@pytest.mark.parametrize("send_failed_reports", [False, True])
+def test_last_retry_preserves_opted_in_recipient_notice(
+    mocker,
+    schedule_type,
+    send_failed_reports,
+):
+    state = _make_state_instance(
+        mocker,
+        ReportNotTriggeredErrorState,
+        schedule_type=schedule_type,
+        last_state=ReportState.RETRYING,
+    )
+    schedule = state._report_schedule
+    schedule.retry_on_failure = True
+    schedule.retry_attempt = schedule.retry_max_attempts = 1
+    schedule.retry_notify_owners = False
+    schedule.retry_notify_recipients = True
+    schedule.send_failed_reports = send_failed_reports
+    schedule.recipients = [mocker.Mock(spec=ReportRecipients)]
+    mocker.patch(
+        "superset.commands.report.execute.feature_flag_manager.is_feature_enabled",
+        return_value=True,
+    )
+    mocker.patch(
+        "superset.commands.report.execute.AlertCommand.run", return_value=(True, None)
+    )
+    mocker.patch.object(state, "_is_retry_window_stale", return_value=False)
+    mocker.patch.object(state, "send", side_effect=RuntimeError("capture failed"))
+    mocker.patch.object(state, "update_report_schedule_and_log")
+    mocker.patch.object(state, "is_in_error_grace_period", return_value=True)
+    mocker.patch.object(state, "_get_log_data", return_value={})
+    mocker.patch.object(state, "_get_url", return_value="https://example.com")
+    send = mocker.patch.object(state, "_send")
+    final_notice = mocker.patch.object(state, "send_final_failure_report")
+    retry = mocker.patch.object(state, "_schedule_retry")
+
+    with pytest.raises(RuntimeError, match="capture failed"):
+        state.next()
+
+    if send_failed_reports:
+        final_notice.assert_called_once_with("capture failed")
+        send.assert_not_called()
+    else:
+        final_notice.assert_not_called()
+        send.assert_called_once()
+        content, recipients = send.call_args.args
+        assert recipients == schedule.recipients
+        assert content.retry_attempt == content.retry_max_attempts == 1
+    retry.assert_not_called()
+    assert schedule.retry_attempt == 0
+
+
 @pytest.mark.parametrize("age,expired", [(10, False), (4000, True)])
 def test_working_claim_timeout_does_not_require_its_log(mocker, age, expired):
     state = _make_state_instance(

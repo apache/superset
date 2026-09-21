@@ -1877,7 +1877,11 @@ class BaseReportState:
         # send the retry-failure notification *after* the attempt ran so
         # the email reflects what happened, not what is about to be
         # scheduled.  ("You will receive an update after each retry.")
-        if 0 < current_attempt < max_attempts:
+        # Suppress the last per-attempt notice only when a final notice replaces it.
+        if current_attempt > 0 and (
+            current_attempt < max_attempts
+            or not self._report_schedule.send_failed_reports
+        ):
             try:
                 self.send_retry_notification(
                     current_attempt, max_attempts, error_message
