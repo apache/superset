@@ -19,9 +19,6 @@
 import { createContext, useContext, useSyncExternalStore } from 'react';
 import type { WidgetBus, WidgetEvent } from './types';
 
-/** Sources a host emits from (`host:<key>`), as opposed to widget instances. */
-export const HOST_SOURCE_PREFIX = 'host:';
-
 const valueKey = (sourceId: string, eventType: string): string =>
   JSON.stringify([sourceId, eventType]);
 

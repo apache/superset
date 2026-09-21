@@ -269,6 +269,12 @@ artifact_kind)` hands Claude the loader, session API, specs and manifest.
 - The widget, not the dashboard, is the unit of embedding. The builder
   implements the same `WidgetBus` / `WidgetDataClient` contracts as
   `SupersetProvider`, so there is one implementation of each widget.
+- Those contracts live in `@apache-superset/core/widgets`, not here: what a
+  widget is, and what it may ask of whoever renders it, is platform API that
+  the builder, a host app and any extension writing a widget must agree on.
+  This package implements them (and re-exports the types, so a host app needs
+  one import), which keeps a charting runtime out of the module federation
+  singleton every extension shares.
 - Data always runs on the server through the widget registry
   (`Widget.fetch_data` / `fetch_values`), either from the stored definition
   (`{id}`) or from a validated inline spec (`{widget: {type, props}}`), via

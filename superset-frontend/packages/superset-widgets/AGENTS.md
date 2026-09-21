@@ -14,6 +14,10 @@ Use this when writing a React app or artifact that shows Superset data with
 Everything goes under one `<SupersetProvider>`; widgets under the same provider
 cross-filter each other.
 
+Types come from this package (`HostFilter`, `ResolvedFilter`, `WidgetProps`
+are re-exported); they are defined in `@apache-superset/core/widgets`, which
+is what an extension authoring a widget imports instead.
+
 ## Never invent names or ids
 
 - Dataset ids, column names and saved metric names: MCP `list_datasets`,

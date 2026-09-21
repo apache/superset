@@ -18,7 +18,8 @@
  */
 import { useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
 import { dashboard as dashboardApi } from '@apache-superset/core';
-import { HOST_SOURCE_PREFIX, useWidgetBus } from '../bus';
+import { HOST_SOURCE_PREFIX } from '@apache-superset/core/widgets';
+import { useWidgetBus } from '../bus';
 import type { FilterValueChangedPayload } from '../filterVocabulary';
 import type { HostFilter, WidgetEvent } from '../types';
 

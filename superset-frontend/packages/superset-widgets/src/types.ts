@@ -16,80 +16,30 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import type { ComponentType } from 'react';
-import type { common, dashboard as dashboardApi } from '@apache-superset/core';
-import type { FilterOperator, ResolvedFilter } from './filterVocabulary';
 
-export type Disposable = common.Disposable;
-export type WidgetEvent = dashboardApi.WidgetEvent;
-export type DataBindingSpec = dashboardApi.DataBindingSpec;
-export type DataRow = dashboardApi.DataRow;
-export type QueryDataResult = dashboardApi.QueryDataResult;
-
-/** Everything a widget needs from its host, instead of reading a dashboard tree. */
-export interface WidgetBus {
-  emit(sourceId: string, eventType: string, payload: unknown): void;
-  on(eventType: string, listener: (event: WidgetEvent) => void): Disposable;
-  getValue(sourceId: string, eventType: string): unknown;
-  /** Every id that has emitted `eventType` and still counts as a source. */
-  getSourceIds(eventType: string): string[];
-  /** An explicit scope the host knows for a source; `undefined` defers to the payload's own `targets`. */
-  getScopeTargets(sourceId: string): string[] | undefined;
-  /** Ticks on every emit. */
-  subscribe(listener: () => void): () => void;
-  getRevision(): number;
-}
-
-export interface InlineWidgetRef {
-  type: string;
-  props: Record<string, unknown>;
-}
-
-export interface SavedWidgetRef extends InlineWidgetRef {
-  id: string;
-}
-
-export type WidgetRef = InlineWidgetRef | SavedWidgetRef;
-
-export interface SavedWidget {
-  uuid: string;
-  widget_type: string;
-  title?: string | null;
-  props: Record<string, unknown>;
-  dataset_id?: number | null;
-  changed_on?: string | null;
-}
-
-export interface WidgetDataClient {
-  fetchData(request: {
-    instanceId: string;
-    widget: WidgetRef;
-    filters: ResolvedFilter[];
-  }): Promise<QueryDataResult>;
-  fetchValues(request: {
-    instanceId: string;
-    widget: WidgetRef;
-  }): Promise<unknown[]>;
-  getSavedWidget?(id: string): Promise<SavedWidget>;
-}
-
-export interface WidgetProps<
-  P extends Record<string, unknown> = Record<string, unknown>,
-> {
-  /** Identity on the bus: what this widget emits under and what filter `targets` name. */
-  instanceId: string;
-  props: P;
-  /** Set when the widget is a saved one, so the server runs the stored definition. */
-  savedId?: string;
-}
-
-export type WidgetComponent = ComponentType<WidgetProps>;
-
-export interface HostFilter {
-  datasetId: number;
-  column: string;
-  operator: FilterOperator;
-  value: unknown;
-  /** Instance ids to narrow to; omitted means every widget on `datasetId`. */
-  targets?: string[];
-}
+/**
+ * @fileoverview The widget contract, as this package's implementations see it.
+ *
+ * It is defined in `@apache-superset/core/widgets`: what a widget is, and what
+ * it may ask of whoever renders it, is platform API that the builder, an
+ * embedding host and any extension writing a widget all have to agree on. This
+ * package implements it — the widgets, the bus, the data clients — and
+ * re-exports it so its own modules, and a host application that installs only
+ * this package, have one import for both halves.
+ */
+export type {
+  DataBindingSpec,
+  DataRow,
+  HostFilter,
+  InlineWidgetRef,
+  QueryDataResult,
+  SavedWidget,
+  SavedWidgetRef,
+  WidgetBus,
+  WidgetComponent,
+  WidgetDataClient,
+  WidgetEvent,
+  WidgetProps,
+  WidgetRef,
+} from '@apache-superset/core/widgets';
+export type { Disposable } from '@apache-superset/core/common';

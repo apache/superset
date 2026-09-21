@@ -97,7 +97,6 @@ export type {
 
 // Host contracts (the dashboard builder implements these too)
 export {
-  HOST_SOURCE_PREFIX,
   WidgetBusContext,
   createWidgetBus,
   useWidgetBus,
@@ -114,7 +113,6 @@ export {
   useWidgetApplySource,
 } from './deferredApply';
 export {
-  DASHBOARD_WIDGETS_LOCATION,
   builtInWidgetComponents,
   getWidgetComponent,
   registerWidgetComponent,

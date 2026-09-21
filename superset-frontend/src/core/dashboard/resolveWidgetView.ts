@@ -17,7 +17,7 @@
  * under the License.
  */
 import type { ReactElement } from 'react';
-import { DASHBOARD_WIDGETS_LOCATION } from '@apache-superset/widgets/registry';
+import { DASHBOARD_WIDGETS_LOCATION } from '@apache-superset/core/widgets';
 import { resolveView, views } from 'src/core/views';
 
 /**
@@ -29,8 +29,9 @@ import { resolveView, views } from 'src/core/views';
  * a Widget, and `WidgetView` resolves its renderer directly
  * rather than through this location.
  *
- * It lives in the widgets package because an embedded page resolves the same
- * location when it loads an extension's widget (see `extensionHost`).
+ * It lives in `@apache-superset/core` with the rest of the widget contract:
+ * an extension registers against it, and an embedded page resolves the same
+ * location when it loads that extension's widget.
  */
 export { DASHBOARD_WIDGETS_LOCATION };
 

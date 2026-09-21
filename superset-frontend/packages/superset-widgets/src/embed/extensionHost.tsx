@@ -36,11 +36,11 @@ import type {
   dashboard as dashboardApi,
   views as viewsApi,
 } from '@apache-superset/core';
+import { DASHBOARD_WIDGETS_LOCATION } from '@apache-superset/core/widgets';
 import { getActiveResolvedFilters } from '../activeFilters';
 import { useWidgetBus } from '../bus';
 import { useWidgetDataClient } from '../dataClient';
 import {
-  DASHBOARD_WIDGETS_LOCATION,
   registerWidgetComponent,
   unregisterWidgetComponent,
 } from '../registry';

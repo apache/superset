@@ -24,13 +24,6 @@ import FilterSelectWidget from './widgets/FilterSelectWidget';
 import MarkdownWidget from './widgets/MarkdownWidget';
 import MetricTileWidget from './widgets/MetricTileWidget';
 
-/**
- * The `views` location a widget type registers its renderer at — the builder
- * resolves a node's renderer from it, and an extension contributes its own
- * widget through the same `views.registerView` call (see `extensionHost`).
- */
-export const DASHBOARD_WIDGETS_LOCATION = 'dashboard.widgets';
-
 /** Widget types that can be rendered on their own, keyed by `widget_type`. */
 export const builtInWidgetComponents: Readonly<
   Record<string, WidgetComponent>

@@ -24,8 +24,8 @@ import type {
 import { createEventEmitter, type EventEmitter } from '../utils';
 import { DEFAULT_COLUMNS } from './layoutStyle';
 import { resolveExplicitCollisions } from './gridPacking';
-import { HOST_SOURCE_PREFIX } from '@apache-superset/widgets/bus';
-import type { WidgetBus } from '@apache-superset/widgets/types';
+import { HOST_SOURCE_PREFIX } from '@apache-superset/core/widgets';
+import type { WidgetBus } from '@apache-superset/core/widgets';
 
 type DashboardNode = dashboardApi.DashboardNode;
 type WidgetSpec = dashboardApi.WidgetSpec;

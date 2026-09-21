@@ -22,7 +22,7 @@ import { t } from '@apache-superset/core/translation';
 import { Button, Flex, Modal, Typography } from '@superset-ui/core/components';
 import { describeFetchError } from '@apache-superset/widgets/chartData';
 import { isExtensionWidgetType } from '@apache-superset/widgets/embed/extensionLoader';
-import type { SavedWidget } from '@apache-superset/widgets/types';
+import type { SavedWidget } from '@apache-superset/core/widgets';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { useDashboardStore } from './store';
 import { widgetLabel } from './widgetLabel';

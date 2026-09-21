@@ -30,41 +30,31 @@
  * filter-specific plumbing, just the one vocabulary every source and
  * every query-bound consumer happens to already agree on.
  *
- * Deliberately NOT part of `@apache-superset/core`: a filter is one kind
- * of widget among many, using `dashboard.emit`/`dashboard.getValue`
- * exactly like any other — the platform's public contract only needs to
- * stay generic (`payload: unknown`), not know what a filter's payload
- * looks like. This is implementation detail shared by whichever built-in
- * widgets choose to use it, the same way `echarts`'s
- * `EChartsCoreOption`/`$bind`-marker convention (see `resolveBindings.ts`)
- * is host-internal rather than published.
+ * The *payload* convention is deliberately NOT part of
+ * `@apache-superset/core`: a filter is one kind of widget among many, using
+ * `dashboard.emit`/`dashboard.getValue` exactly like any other — the
+ * platform's public contract only needs to stay generic (`payload:
+ * unknown`), not know what a filter's payload looks like. This is
+ * implementation detail shared by whichever built-in widgets choose to use
+ * it, the same way `echarts`'s `EChartsCoreOption`/`$bind`-marker convention
+ * (see `resolveBindings.ts`) is host-internal rather than published.
+ *
+ * What a *query* constraint looks like is a different matter, and does live
+ * in core (`ResolvedFilter`/`FilterOperator`, re-exported below): it is what
+ * `WidgetDataClient.fetchData` takes and what the widget data API accepts, so
+ * every renderer has to spell it the same way.
  *
  * A third-party widget is free to ignore this entirely and invent its own
  * payload shape; it only needs to match this one if it wants the built-in
  * chart-like widgets' filter merge to pick it up.
  */
 
-/**
- * The small, closed operator vocabulary a resolved filter can express —
- * deliberately narrow so any consumer (chart, table, or otherwise) can
- * interpret every value without knowing which filter *type* produced it.
- */
-export type FilterOperator =
-  'EQUALS' | 'NOT_EQUALS' | 'IN' | 'NOT_IN' | 'RANGE' | 'TIME_RANGE';
+import type { ResolvedFilter } from '@apache-superset/core/widgets';
 
-/**
- * A filter's current selection, turned into a query constraint. Reuses the
- * same vocabulary as the backend's adhoc-filter / `SemanticQuery.filters`
- * shape rather than a bespoke one, so any query-bound consumer can merge
- * it in without knowing which filter type produced it.
- */
-export interface ResolvedFilter {
-  column: string;
-  operator: FilterOperator;
-  value: unknown;
-  /** Narrows which dataset this constraint applies to, for cross-dataset dashboards. */
-  datasource?: number;
-}
+export type {
+  FilterOperator,
+  ResolvedFilter,
+} from '@apache-superset/core/widgets';
 
 /**
  * The payload shape a `filter.*` widget emits on

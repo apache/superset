@@ -20,7 +20,8 @@ import type { CSSProperties } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { dashboard as dashboardApi } from '@apache-superset/core';
 import type { AnyThemeConfig } from '@apache-superset/core/theme';
-import { HOST_SOURCE_PREFIX, createWidgetBus } from '../bus';
+import { HOST_SOURCE_PREFIX } from '@apache-superset/core/widgets';
+import { createWidgetBus } from '../bus';
 import {
   createMcpWidgetClient,
   getArtifactMcp,

@@ -21,7 +21,7 @@ import {
   getActiveResolvedFilters,
   toAdhocFilters,
 } from '@apache-superset/widgets/activeFilters';
-import type { ResolvedFilter } from '@apache-superset/widgets/filterVocabulary';
+import type { ResolvedFilter } from '@apache-superset/core/widgets';
 import type DashboardProvider from './DashboardProvider';
 import { isContainerType } from './DashboardProvider';
 

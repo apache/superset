@@ -34,9 +34,8 @@
  * from {@link getRoot}, walk down via each node's `children` and
  * {@link getNode}, and re-query after {@link onDidLayoutChange} fires.
  *
- * `dashboard` owns node placement and layout only. Widget-instance content
- * (props/style/dataBinding) is intentionally out of scope here — it belongs
- * to a future `widgets` namespace mirroring this one.
+ * `dashboard` owns node placement and layout only. What a widget is, and what
+ * it may ask of whoever renders it, is the `widgets` namespace next door.
  *
  * @example
  * ```typescript
@@ -95,10 +94,9 @@ export interface LayoutProps {
  * layout primitives; any other `type` is a widget registry key (a
  * chart, metric tile, or extension-contributed widget).
  *
- * `props`/`style` are inlined directly on the node for now. Once a
- * `widgets` content namespace exists, widget-type nodes will instead
- * carry a `ref` into it — matching the design doc's split between dashboard
- * layout and widget content.
+ * `props`/`style` are inlined directly on the node for now; the design doc's
+ * split between layout and widget content would have a widget-type node carry
+ * a `ref` to stored content instead.
  */
 export interface DashboardNode {
   id: string;
