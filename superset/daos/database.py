@@ -18,12 +18,13 @@ from __future__ import annotations
 
 import logging
 import re
+from collections.abc import Iterator
 from typing import Any
 from urllib.parse import unquote
 
 import requests
 from flask import current_app as app
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, Query
 
 try:
     from odps import ODPS, options as odps_options
@@ -42,7 +43,6 @@ from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.extensions import db
 from superset.models.core import Database, DatabaseUserOAuth2Tokens
 from superset.models.dashboard import Dashboard
-from superset.models.helpers import skip_visibility_filter
 from superset.models.slice import Slice
 from superset.models.sql_lab import TabState
 from superset.utils.core import DatasourceType
@@ -50,9 +50,33 @@ from superset.utils.ssh_tunnel import unmask_password_info
 
 logger = logging.getLogger(__name__)
 
+RELATED_DATASET_BATCH_SIZE = 100
+
 
 class DatabaseDAO(BaseDAO[Database]):
     base_filter = DatabaseFilter
+
+    @staticmethod
+    def _related_datasets_query(database_id: int) -> Query[SqlaTable]:
+        return (
+            db.session.query(SqlaTable)
+            .filter(SqlaTable.database_id == database_id)
+            .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {SqlaTable}})
+        )
+
+    @classmethod
+    def _iter_related_datasets(cls, database_id: int) -> Iterator[SqlaTable]:
+        """Yield dataset dependents in bounded batches, including archived rows."""
+        last_id: int | None = None
+        while True:
+            query = cls._related_datasets_query(database_id)
+            if last_id is not None:
+                query = query.filter(SqlaTable.id > last_id)
+            batch = query.order_by(SqlaTable.id).limit(RELATED_DATASET_BATCH_SIZE).all()
+            if not batch:
+                return
+            yield from batch
+            last_id = batch[-1].id
 
     @classmethod
     def create(
@@ -242,24 +266,19 @@ class DatabaseDAO(BaseDAO[Database]):
         )
 
         # Datasets are dependents in their own right: ``DeleteDatabaseCommand``
-        # refuses to delete a database while any ``SqlaTable`` row references it,
-        # so the delete confirmation has to be able to name them. Count with the
-        # soft-delete visibility filter bypassed, exactly as that validation
-        # does -- ``database.tables`` above hides soft-deleted datasets, which
-        # would let the preview report zero dependents for a database the delete
-        # will still refuse.
-        with skip_visibility_filter(db.session, SqlaTable):
-            related_datasets = (
-                db.session.query(SqlaTable)
-                .filter(SqlaTable.database_id == database_id)
-                .all()
-            )
+        # refuses to delete a database while any ``SqlaTable`` row references it.
+        # Count with the soft-delete visibility filter bypassed, exactly as that
+        # validation does. Keep the detail query lazy and batched so its API
+        # consumer can stop once it has enough authorized names for the preview.
+        related_dataset_count = cls._related_datasets_query(database_id).count()
+        related_datasets = cls._iter_related_datasets(database_id)
 
         return {
             "charts": charts,
             "dashboards": dashboards,
             "sqllab_tab_states": sqllab_tab_states,
             "datasets": related_datasets,
+            "dataset_count": related_dataset_count,
         }
 
     @classmethod

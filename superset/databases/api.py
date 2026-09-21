@@ -147,6 +147,8 @@ from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedUsers
 
 logger = logging.getLogger(__name__)
 
+MAX_RELATED_DATASETS = 10
+
 
 # pylint: disable=too-many-public-methods
 class DatabaseRestApi(BaseSupersetModelRestApi):
@@ -1394,15 +1396,19 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         # them enumerate datasets they hold no permission on. The count has to
         # stay unfiltered because it is what explains the delete being blocked --
         # a bare number discloses far less than a name and schema.
-        datasets = [
-            {
-                "id": dataset.id,
-                "table_name": dataset.table_name,
-                "schema": dataset.schema,
-            }
-            for dataset in data["datasets"]
-            if security_manager.can_access_datasource(dataset)
-        ]
+        datasets = []
+        for dataset in data["datasets"]:
+            if not security_manager.can_access_datasource(dataset):
+                continue
+            datasets.append(
+                {
+                    "id": dataset.id,
+                    "table_name": dataset.table_name,
+                    "schema": dataset.schema,
+                }
+            )
+            if len(datasets) == MAX_RELATED_DATASETS:
+                break
         return self.response(
             200,
             charts={"count": len(charts), "result": charts},
@@ -1411,7 +1417,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 "count": len(sqllab_tab_states),
                 "result": sqllab_tab_states,
             },
-            datasets={"count": len(data["datasets"]), "result": datasets},
+            datasets={"count": data["dataset_count"], "result": datasets},
         )
 
     @expose("/<int:pk>/validate_sql/", methods=("POST",))

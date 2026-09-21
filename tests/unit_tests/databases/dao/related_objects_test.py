@@ -55,6 +55,7 @@ def test_get_related_objects_includes_live_datasets(
 
     related = DatabaseDAO.get_related_objects(database.id)
 
+    assert related["dataset_count"] == 1
     assert [table.table_name for table in related["datasets"]] == ["qa_orders"]
 
 
@@ -91,6 +92,7 @@ def test_get_related_objects_includes_soft_deleted_datasets(
 
     related = DatabaseDAO.get_related_objects(database.id)
 
+    assert related["dataset_count"] == 1
     assert [table.table_name for table in related["datasets"]] == ["gone"]
 
 
@@ -116,4 +118,5 @@ def test_get_related_objects_without_datasets(
 
     related = DatabaseDAO.get_related_objects(database.id)
 
-    assert related["datasets"] == []
+    assert related["dataset_count"] == 0
+    assert list(related["datasets"]) == []
