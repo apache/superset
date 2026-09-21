@@ -53,6 +53,7 @@ from superset.ai.schemas import (
 )
 from superset.ai.types import MessageRole, MessageStatus
 from superset.commands.ai.exceptions import (
+    AIChatFeedbackInvalidError,
     AIChatMessageInvalidError,
     AIChatMessageNotFoundError,
     AIChatThreadInvalidError,
@@ -729,7 +730,7 @@ class AIRestApi(BaseSupersetApi):
             ).run()
         except AIChatMessageNotFoundError:
             return self.response_404()
-        except AIChatMessageInvalidError as ex:
+        except AIChatFeedbackInvalidError as ex:
             return self.response_422(message=str(ex))
         return self.response(200, message="OK")
 
