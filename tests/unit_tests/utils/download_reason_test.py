@@ -21,6 +21,7 @@ from flask import Flask
 
 from superset.utils.download_reason import (
     check_download_reason,
+    DOWNLOAD_REASON_MAX_LENGTH,
     DownloadReasonRequiredError,
     get_download_reason,
 )
@@ -41,6 +42,12 @@ def test_reason_from_form_body(app: Flask) -> None:
         "/api/v1/chart/data", method="POST", data={"download_reason": "audit"}
     ):
         assert get_download_reason() == "audit"
+
+
+def test_reason_is_capped(app: Flask) -> None:
+    long = "x" * (DOWNLOAD_REASON_MAX_LENGTH + 50)
+    with app.test_request_context(f"/api/v1/chart/data?download_reason={long}"):
+        assert get_download_reason() == "x" * DOWNLOAD_REASON_MAX_LENGTH
 
 
 def test_blank_query_value_falls_back_to_form_body(app: Flask) -> None:

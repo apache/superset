@@ -168,6 +168,10 @@ from superset.tasks.thumbnails import (
 from superset.tasks.utils import get_current_user
 from superset.utils import json
 from superset.utils.core import parse_boolean_string, send_export_zip
+from superset.utils.download_reason import (
+    check_download_reason,
+    DownloadReasonRequiredError,
+)
 from superset.utils.file import get_filename
 from superset.utils.pdf import build_pdf_from_screenshots
 from superset.utils.screenshots import (
@@ -1741,7 +1745,7 @@ class DashboardRestApi(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.export_xlsx",
         log_to_statsd=False,
     )
-    def export_xlsx(self, pk: int) -> WerkzeugResponse:
+    def export_xlsx(self, pk: int) -> WerkzeugResponse:  # noqa: C901
         """Export all of a dashboard's chart data to an Excel workbook (async).
         ---
         post:
@@ -1793,6 +1797,12 @@ class DashboardRestApi(
             )
         except ValidationError as error:
             return self.response_400(message=error.messages)
+
+        # Dashboard-wide Excel export is a data download like any other.
+        try:
+            check_download_reason()
+        except DownloadReasonRequiredError as ex:
+            return self.response_400(message=ex.error.message)
 
         # Image export drives the headless webdriver, so it is only available
         # when the same screenshot flags the UI checks are enabled. The decorator

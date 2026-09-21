@@ -746,10 +746,12 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # ship with matching defaults and should be changed together.
     # @lifecycle: testing
     "VERSION_HISTORY": True,
-    # Ask users for a reason before downloading data (CSV/XLSX exports from
-    # SQL Lab, Explore and dashboards). Export endpoints reject requests that
-    # carry no ``download_reason`` and record the reason in the event log
-    # (``logs.json``), so Admins can audit downloads in Security → Action Log.
+    # Ask users for a reason before downloading data: chart CSV/XLSX exports
+    # (Explore, dashboards, drill-by), SQL Lab CSV exports and the dashboard-wide
+    # Excel export. Those endpoints reject requests without a ``download_reason``;
+    # the event logger records it in ``logs.json`` (Security → Action Log).
+    # Client-side exports of already-loaded data (Explore "current view") ask
+    # for the reason too and record it through the frontend event log.
     # @lifecycle: development
     "REQUIRE_DOWNLOAD_REASON": False,
     # =================================================================

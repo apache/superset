@@ -25,6 +25,9 @@ export const DOWNLOAD_REASON_PARAM = 'download_reason';
 /** Result formats the backend gates behind REQUIRE_DOWNLOAD_REASON. */
 export const DOWNLOAD_REASON_FORMATS = ['csv', 'xlsx'];
 
+/** Mirrors DOWNLOAD_REASON_MAX_LENGTH on the backend. */
+export const DOWNLOAD_REASON_MAX_LENGTH = 1000;
+
 /** Whether REQUIRE_DOWNLOAD_REASON is enabled for this deployment. */
 export function isDownloadReasonRequired(): boolean {
   return isFeatureEnabled(FeatureFlag.RequireDownloadReason);
@@ -51,6 +54,7 @@ export function requestDownloadReason(): Promise<string | null> {
         <Input.TextArea
           autoFocus
           rows={3}
+          maxLength={DOWNLOAD_REASON_MAX_LENGTH}
           placeholder={t('Why are you downloading this data?')}
           onChange={e => {
             reason = e.target.value;

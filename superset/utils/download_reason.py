@@ -36,6 +36,8 @@ from superset.exceptions import SupersetErrorException
 
 DOWNLOAD_REASON_PARAM = "download_reason"
 DOWNLOAD_REASON_FEATURE_FLAG = "REQUIRE_DOWNLOAD_REASON"
+# Keep audit payloads bounded; the frontend enforces the same limit on input.
+DOWNLOAD_REASON_MAX_LENGTH = 1000
 
 
 class DownloadReasonRequiredError(SupersetErrorException):
@@ -59,7 +61,7 @@ def get_download_reason() -> str | None:
     for source in (request.args, request.form):
         value = (source.get(DOWNLOAD_REASON_PARAM) or "").strip()
         if value:
-            return value
+            return value[:DOWNLOAD_REASON_MAX_LENGTH]
     return None
 
 

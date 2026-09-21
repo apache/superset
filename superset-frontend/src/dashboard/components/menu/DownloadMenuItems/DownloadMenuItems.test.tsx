@@ -30,6 +30,7 @@ import {
   isFeatureEnabled,
   SupersetClient,
 } from '@superset-ui/core';
+import { requestDownloadReason } from 'src/utils/downloadReason';
 import { useDownloadMenuItems } from '.';
 
 const mockAddSuccessToast = jest.fn();
@@ -42,6 +43,11 @@ jest.mock('src/components/MessageToasts/withToasts', () => ({
     addSuccessToast: mockAddSuccessToast,
     addDangerToast: mockAddDangerToast,
   }),
+}));
+
+jest.mock('src/utils/downloadReason', () => ({
+  ...jest.requireActual('src/utils/downloadReason'),
+  requestDownloadReason: jest.fn(),
 }));
 
 jest.mock('@superset-ui/core', () => ({
@@ -99,7 +105,17 @@ beforeEach(() => {
 
 // "Export Images to Excel" is gated on the webdriver screenshot feature flags.
 const enableWebDriverScreenshot = () =>
-  (isFeatureEnabled as jest.Mock).mockReturnValue(true);
+  (isFeatureEnabled as jest.Mock).mockImplementation(
+    (flag: FeatureFlag) =>
+      flag === FeatureFlag.EnableDashboardScreenshotEndpoints ||
+      flag === FeatureFlag.EnableDashboardDownloadWebDriverScreenshot,
+  );
+
+// REQUIRE_DOWNLOAD_REASON: the dialog is stubbed, the flag check is real.
+const requireDownloadReason = () =>
+  (isFeatureEnabled as jest.Mock).mockImplementation(
+    (flag: FeatureFlag) => flag === FeatureFlag.RequireDownloadReason,
+  );
 
 afterEach(() => {
   window.URL.createObjectURL = originalCreateObjectURL;
@@ -188,6 +204,41 @@ test('Export Images to Excel posts mode "images" and shows a pending toast', asy
       "Your export is being prepared. You'll receive an email when it's ready.",
     );
   });
+});
+
+test('Export Data to Excel asks for a download reason when required and sends it', async () => {
+  requireDownloadReason();
+  (requestDownloadReason as jest.Mock).mockResolvedValue('WP-1 audit');
+  mockSupersetClient.post.mockResolvedValue({
+    json: { job_id: 'abc' },
+  } as never);
+
+  render(<MenuWrapper />, { useRedux: true });
+  await userEvent.click(screen.getByText('Export Data to Excel'), {
+    pointerEventsCheck: 0,
+  });
+
+  await waitFor(() => {
+    expect(requestDownloadReason).toHaveBeenCalledTimes(1);
+    expect(mockSupersetClient.post).toHaveBeenCalledWith({
+      endpoint:
+        '/api/v1/dashboard/123/export_xlsx/?download_reason=WP-1%20audit',
+      jsonPayload: { active_data_mask: {}, mode: 'data' },
+    });
+  });
+});
+
+test('Export Data to Excel is aborted when the download reason dialog is cancelled', async () => {
+  requireDownloadReason();
+  (requestDownloadReason as jest.Mock).mockResolvedValue(null);
+
+  render(<MenuWrapper />, { useRedux: true });
+  await userEvent.click(screen.getByText('Export Data to Excel'), {
+    pointerEventsCheck: 0,
+  });
+
+  await waitFor(() => expect(requestDownloadReason).toHaveBeenCalledTimes(1));
+  expect(mockSupersetClient.post).not.toHaveBeenCalled();
 });
 
 test('Export Data to Excel shows an "already in progress" toast when throttled', async () => {
