@@ -160,7 +160,7 @@ crate = ["sqlalchemy-cratedb>=0.43.1, <1"]
 # dual-compat release). superset-engine-d1 and dbapi-d1 are retired: the
 # engine spec lives in superset/db_engine_specs/d1.py, and sqlalchemy-d1
 # gets its DBAPI from sqlalchemy-cloudflare-d1.
-d1 = ["sqlalchemy-d1>=0.2.0"]
+d1 = ["sqlalchemy-d1>=0.2.0, <1"]
 databend = ["databend-sqlalchemy>=0.5.5, <1.0"]
 databricks = [
     "databricks-sql-connector>=4.5.0, <4.6.0",

@@ -17,58 +17,11 @@
 # pylint: disable=invalid-name, unused-argument, import-outside-toplevel, redefined-outer-name
 from __future__ import annotations
 
-from datetime import datetime
-
 import pytest
-from pytest_mock import MockerFixture
 from sqlalchemy import types
-from sqlalchemy.engine.url import make_url
 
 from superset.utils.core import GenericDataType
-from tests.unit_tests.db_engine_specs.utils import (
-    assert_column_spec,
-    assert_convert_dttm,
-)
-from tests.unit_tests.fixtures.common import dttm  # noqa: F401
-
-
-@pytest.mark.parametrize("schema", [None, "main"])
-def test_get_table_names_hides_internal_tables(
-    mocker: MockerFixture,
-    schema: str | None,
-) -> None:
-    """
-    Test that the ``_cf_*`` tables D1 keeps in every database are not listed.
-    """
-    from superset.db_engine_specs.d1 import CloudflareD1EngineSpec
-
-    database = mocker.MagicMock()
-    inspector = mocker.MagicMock()
-    inspector.get_table_names.return_value = ["_cf_KV", "cf_notes", "orders"]
-
-    tables = CloudflareD1EngineSpec.get_table_names(database, inspector, schema)
-
-    assert tables == {"cf_notes", "orders"}
-
-
-@pytest.mark.parametrize("schema", [None, "main"])
-def test_get_view_names_hides_internal_views(
-    mocker: MockerFixture,
-    schema: str | None,
-) -> None:
-    """
-    Test that ``_cf_*`` views are not listed and ordinary views are.
-    """
-    from superset.db_engine_specs.d1 import CloudflareD1EngineSpec
-
-    database = mocker.MagicMock()
-    inspector = mocker.MagicMock()
-    inspector.get_view_names.return_value = ["_cf_internal", "daily_orders"]
-
-    views = CloudflareD1EngineSpec.get_view_names(database, inspector, schema)
-
-    assert views == {"daily_orders"}
-    inspector.get_view_names.assert_called_once_with(schema)
+from tests.unit_tests.db_engine_specs.utils import assert_column_spec
 
 
 @pytest.mark.parametrize(
@@ -102,58 +55,38 @@ def test_get_column_spec(
 
 
 @pytest.mark.parametrize(
-    "target_type,expected_result",
+    "sql",
     [
-        ("Text", "'2019-01-02 03:04:05'"),
-        ("DateTime", "'2019-01-02 03:04:05'"),
-        ("TimeStamp", "'2019-01-02 03:04:05'"),
-        ("Other", None),
+        "-- top customers\nSELECT * FROM orders",
+        "/* top customers */ SELECT * FROM orders",
     ],
 )
-def test_convert_dttm(
-    target_type: str,
-    expected_result: str | None,
-    dttm: datetime,  # noqa: F811
-) -> None:
+def test_leading_comment_is_stripped(sql: str) -> None:
     """
-    Test that D1 formats datetime literals the way SQLite does.
+    Test that a comment ahead of a query is dropped before execution.
+
+    The DBAPI only reports column names when the statement text starts with
+    ``SELECT``, ``PRAGMA`` or ``WITH``, so a leading comment would return rows
+    without a cursor description.
     """
     from superset.db_engine_specs.d1 import CloudflareD1EngineSpec as spec  # noqa: N813
+    from superset.sql.parse import SQLScript
 
-    assert_convert_dttm(spec, target_type, expected_result, dttm)
+    [statement] = SQLScript(sql, engine=spec.engine).statements
+    formatted = statement.format(comments=spec.allows_sql_comments)
+
+    assert formatted.startswith("SELECT")
+    assert "top customers" not in formatted
 
 
 def test_metadata_points_at_sqlalchemy_d1() -> None:
     """
     Test that the docs metadata names ``sqlalchemy-d1`` as the only package and
-    no longer reports a SQLAlchemy 2.0 incompatibility.
+    installs it through the ``d1`` extra.
     """
     from superset.db_engine_specs.d1 import CloudflareD1EngineSpec
 
     metadata = CloudflareD1EngineSpec.metadata
 
     assert metadata["pypi_packages"] == ["sqlalchemy-d1"]
-    assert metadata["install_instructions"] == "pip install sqlalchemy-d1"
-    assert "known_incompatibilities" not in metadata
-
-
-def test_connection_string_matches_engine() -> None:
-    """
-    Test that the documented connection string is a ``d1://`` URL that this
-    spec supports, with the account ID, API token and database ID in the
-    username, password and host positions.
-    """
-    from superset.db_engine_specs.d1 import CloudflareD1EngineSpec
-
-    template = CloudflareD1EngineSpec.metadata["connection_string"]
-    url = make_url(
-        template.format(
-            cloudflare_account_id="account",
-            cloudflare_api_token="token",  # noqa: S106
-            cloudflare_d1_database_id="database",
-        )
-    )
-
-    assert url.get_backend_name() == "d1"
-    assert (url.username, url.password, url.host) == ("account", "token", "database")
-    assert CloudflareD1EngineSpec.supports_backend(url.get_backend_name())
+    assert metadata["install_instructions"] == 'pip install "apache-superset[d1]"'

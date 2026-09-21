@@ -17,18 +17,8 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
-from sqlalchemy.engine.reflection import Inspector
-
 from superset.db_engine_specs.base import DatabaseCategory
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
-
-if TYPE_CHECKING:
-    from superset.models.core import Database
-
-# Every D1 database holds internal tables such as ``_cf_KV``
-INTERNAL_TABLE_PREFIX = "_cf_"
 
 
 class CloudflareD1EngineSpec(SqliteEngineSpec):
@@ -37,6 +27,11 @@ class CloudflareD1EngineSpec(SqliteEngineSpec):
     engine = "d1"
     engine_name = "Cloudflare D1"
     default_driver = "d1"
+
+    # The DBAPI in sqlalchemy-cloudflare-d1 only reports column names when the
+    # statement text starts with SELECT, PRAGMA or WITH, so a query with a
+    # leading comment returns rows without a cursor description
+    allows_sql_comments = False
 
     metadata = {
         "description": "Cloudflare D1 is a serverless SQLite database.",
@@ -57,33 +52,10 @@ class CloudflareD1EngineSpec(SqliteEngineSpec):
             "cloudflare_api_token": "Cloudflare API token",
             "cloudflare_d1_database_id": "D1 database ID",
         },
-        "install_instructions": "pip install sqlalchemy-d1",
+        "install_instructions": 'pip install "apache-superset[d1]"',
+        "version_requirements": (
+            "sqlalchemy-d1 0.2.0 or later is required for SQLAlchemy 2. "
+            "sqlalchemy-d1 0.1.0 pins SQLAlchemy below 2.0 and depends on the "
+            "retired dbapi-d1 package."
+        ),
     }
-
-    @classmethod
-    def get_table_names(
-        cls,
-        database: Database,
-        inspector: Inspector,
-        schema: str | None,
-    ) -> set[str]:
-        """Hide the internal ``_cf_*`` tables that D1 keeps in every database"""
-        return {
-            table
-            for table in super().get_table_names(database, inspector, schema)
-            if not table.startswith(INTERNAL_TABLE_PREFIX)
-        }
-
-    @classmethod
-    def get_view_names(
-        cls,
-        database: Database,
-        inspector: Inspector,
-        schema: str | None,
-    ) -> set[str]:
-        """Hide any internal ``_cf_*`` views, same as for tables"""
-        return {
-            view
-            for view in super().get_view_names(database, inspector, schema)
-            if not view.startswith(INTERNAL_TABLE_PREFIX)
-        }
