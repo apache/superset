@@ -341,7 +341,10 @@ const SaveModal = ({
       if (dashboardId) {
         try {
           const result = (await loadDashboard(dashboardId)) as Dashboard;
-          if (canUserEditDashboard(result, user)) {
+          if (
+            canUserEditDashboard(result, user) &&
+            !result.is_managed_externally
+          ) {
             setDashboard({ label: result.dashboard_title, value: result.id });
             await loadTabs(dashboardId);
           }
@@ -362,7 +365,11 @@ const SaveModal = ({
             for (const { id } of metadataDashboards) {
               // eslint-disable-next-line no-await-in-loop
               const result = await loadDashboard(id).catch(() => null);
-              if (result && canUserEditDashboard(result, user)) {
+              if (
+                result &&
+                canUserEditDashboard(result, user) &&
+                !result.is_managed_externally
+              ) {
                 editable = result as Dashboard;
                 break;
               }
@@ -473,6 +480,17 @@ const SaveModal = ({
       };
 
       try {
+        // Persist the form data before any datasource conversion. Saving a
+        // Query as a dataset rewrites form_data through changeDatasource, so
+        // re-applying this render's Query-backed copy afterwards would undo
+        // that conversion right before createSlice reads the store, making
+        // the chart API receive datasource_type="query". Dashboard assignment
+        // does not travel through form_data -- create/updateSlice receive it
+        // as an explicit argument.
+        const formData = form_data || {};
+        delete formData.url_params;
+        actions.setFormData({ ...formData });
+
         if (datasource?.type === DatasourceType.Query) {
           const { schema, sql, database } = datasource;
           const { templateParams } = datasource;
@@ -491,9 +509,6 @@ const SaveModal = ({
         if (slice && action === 'overwrite') {
           sliceDashboards = await actions.getSliceDashboards(slice);
         }
-
-        const formData = form_data || {};
-        delete formData.url_params;
 
         let dashboardResult: DashboardGetResponse | null = null;
         let selectedTabId: string | undefined;
@@ -515,7 +530,6 @@ const SaveModal = ({
             sliceDashboards = sliceDashboards.includes(dashboardResult.id)
               ? sliceDashboards
               : [...sliceDashboards, dashboardResult.id];
-            formData.dashboards = sliceDashboards;
             if (
               action === ChartStatusType.saveas &&
               selectedTab?.value !== 'OUT_OF_TAB'
@@ -524,9 +538,6 @@ const SaveModal = ({
             }
           }
         }
-
-        // Sets the form data
-        actions.setFormData({ ...formData });
 
         //  Update or create slice
         let value: { id: number };
@@ -640,6 +651,11 @@ const SaveModal = ({
             col: 'id',
             opr: 'is_editable',
             value: true,
+          },
+          {
+            col: 'is_managed_externally',
+            opr: 'eq',
+            value: false,
           },
         ],
         page,

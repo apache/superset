@@ -25,6 +25,7 @@ metadata:
   color_scheme_domain: []
   cross_filters_enabled: true
   default_filters: '{}'
+  expand_all_slices: false
   expanded_slices: {}
   global_chart_configuration: {}
   label_colors: {}

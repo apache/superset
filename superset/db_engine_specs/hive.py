@@ -94,6 +94,12 @@ class HiveEngineSpec(PrestoEngineSpec):
     allows_alias_to_source_column = True
     allows_hidden_orderby_agg = False
 
+    # Unlike the ANSI-compliant Presto/Trino this spec is otherwise based on,
+    # HiveQL and Spark SQL quote identifiers with backticks; double quotes are
+    # treated as string literals by default.
+    identifier_quote_start: str = "`"
+    identifier_quote_end: str = "`"
+
     supports_dynamic_schema = True
     supports_cross_catalog_queries = False
     # Explicitly opt out (overriding the inherited PrestoEngineSpec value):

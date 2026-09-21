@@ -16,8 +16,12 @@
 # under the License.
 # pylint: disable=import-outside-toplevel, invalid-name, unused-argument, too-many-locals
 
+from unittest.mock import MagicMock
+
 import pytest
 
+from superset.errors import SupersetErrorType
+from superset.exceptions import SupersetErrorException
 from superset.sql.parse import CTASMethod
 from superset.sqllab.sqllab_execution_context import (
     CreateTableAsSelect,
@@ -101,3 +105,45 @@ def test_create_table_as_select():
     assert ctas.ctas_method == CTASMethod.TABLE
     assert ctas.target_schema_name == "public"
     assert ctas.target_table_name == "temp_table"
+
+
+def test_set_database_rejects_ctas_when_database_disallows_it(query_params):
+    """
+    ``allow_ctas`` must be enforced server-side at submission: the
+    ``select_as_cta``/``ctas_method`` payload fields are client-supplied.
+    """
+    query_params["select_as_cta"] = True
+    query_params["ctas_method"] = "TABLE"
+    query_params["tmp_table_name"] = "tmp_target"
+    context = SqlJsonExecutionContext(query_params)
+
+    database = MagicMock()
+    database.allow_ctas = False
+
+    with pytest.raises(SupersetErrorException) as exc_info:
+        context.set_database(database)
+
+    assert (
+        exc_info.value.error.error_type == SupersetErrorType.QUERY_SECURITY_ACCESS_ERROR
+    )
+
+
+def test_set_database_rejects_cvas_when_database_disallows_it(query_params):
+    """
+    ``allow_cvas`` must be enforced server-side at submission, mirroring the
+    ``allow_ctas``/VIEW branch of ``_validate_ctas_is_allowed``.
+    """
+    query_params["select_as_cta"] = True
+    query_params["ctas_method"] = "VIEW"
+    query_params["tmp_table_name"] = "tmp_target"
+    context = SqlJsonExecutionContext(query_params)
+
+    database = MagicMock()
+    database.allow_cvas = False
+
+    with pytest.raises(SupersetErrorException) as exc_info:
+        context.set_database(database)
+
+    assert (
+        exc_info.value.error.error_type == SupersetErrorType.QUERY_SECURITY_ACCESS_ERROR
+    )

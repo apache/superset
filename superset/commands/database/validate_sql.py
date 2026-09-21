@@ -21,6 +21,7 @@ from typing import Any, Optional
 from flask import current_app as app
 from flask_babel import gettext as __
 
+from superset import security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.database.exceptions import (
     DatabaseNotFoundError,
@@ -36,7 +37,10 @@ from superset.exceptions import (
     SupersetSyntaxErrorException,
     SupersetTemplateException,
 )
-from superset.jinja_context import get_template_processor
+from superset.jinja_context import (
+    get_template_processor,
+    UndefinedTemplateFunctionException,
+)
 from superset.models.core import Database
 from superset.sql_validators import get_validator_by_name
 from superset.sql_validators.base import BaseSQLValidator
@@ -69,6 +73,17 @@ class ValidateSQLCommand(BaseCommand):
         schema = self._properties.get("schema")
         template_params = self._properties.get("template_params") or {}
 
+        # Check access before rendering the Jinja template (mirrors the SQL
+        # Lab execute path).
+        security_manager.raise_for_access(
+            database=self._model,
+            sql=sql,
+            catalog=catalog,
+            schema=schema,
+            template_params=template_params,
+            force_dataset_match=True,
+        )
+
         try:
             # Render Jinja templates to handle template syntax before
             # validation. Note: The ENABLE_TEMPLATE_PROCESSING feature flag is
@@ -98,6 +113,25 @@ class ValidateSQLCommand(BaseCommand):
                 extra={"errors": [err.message for err in ex.errors]},
             )
             raise ValidatorSQL400Error(ex.errors[0]) from ex
+        except UndefinedTemplateFunctionException as ex:
+            # The user referenced an undefined Jinja function (e.g. a dbt-style
+            # `ref(...)` macro Superset does not provide). This is a user input
+            # mistake, not a system fault, so log at WARNING without a traceback
+            # (mirrors the SupersetSyntaxErrorException branch above and the SQL
+            # Lab execute path in SqlQueryRenderImpl.render). The client-facing
+            # response is unchanged from the generic template-exception branch.
+            logger.warning(
+                "Undefined template function during SQL validation: %s", str(ex)
+            )
+            superset_error = SupersetError(
+                message=__(
+                    "Template processing failed: %(ex)s",
+                    ex=str(ex),
+                ),
+                error_type=SupersetErrorType.GENERIC_COMMAND_ERROR,
+                level=ErrorLevel.ERROR,
+            )
+            raise ValidatorSQL400Error(superset_error) from ex
         except SupersetTemplateException as ex:
             # Internal template processing errors (e.g., recursion, unexpected failures)
             logger.error(

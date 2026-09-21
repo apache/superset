@@ -73,14 +73,16 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
     const closeButtonWidth = theme.sizeUnit * 14;
 
     return css`
-      ${responsive &&
-      css`
-        max-width: ${maxWidth ?? '900px'};
-        padding-left: ${theme.sizeUnit * 3}px;
-        padding-right: ${theme.sizeUnit * 3}px;
-        padding-bottom: 0;
-        top: 0;
-      `}
+      ${
+        responsive &&
+        css`
+          max-width: ${maxWidth ?? '900px'};
+          padding-left: ${theme.sizeUnit * 3}px;
+          padding-right: ${theme.sizeUnit * 3}px;
+          padding-bottom: 0;
+          top: 0;
+        `
+      }
 
       .ant-modal-container {
         background-color: ${theme.colorBgContainer};
@@ -168,40 +170,46 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
         padding: 0;
       }
 
-      ${draggable &&
-      css`
-        .ant-modal-header {
-          padding: 0;
+      ${
+        draggable &&
+        css`
+          .ant-modal-header {
+            padding: 0;
 
-          .draggable-trigger {
-            cursor: move;
-            padding: ${theme.sizeUnit * 4}px ${closeButtonWidth}px
-              ${theme.sizeUnit * 4}px ${theme.sizeUnit * 4}px;
-            width: 100%;
-          }
-        }
-      `}
-
-      ${resizable &&
-      css`
-        .resizable {
-          pointer-events: all;
-
-          .resizable-wrapper {
-            height: 100%;
-          }
-
-          .ant-modal-container {
-            height: 100%;
-
-            .ant-modal-body {
-              height: ${hideFooter
-                ? `calc(100% - ${MODAL_HEADER_HEIGHT}px)`
-                : `calc(100% - ${MODAL_HEADER_HEIGHT}px - ${MODAL_FOOTER_HEIGHT}px)`};
+            .draggable-trigger {
+              cursor: move;
+              padding: ${theme.sizeUnit * 4}px ${closeButtonWidth}px
+                ${theme.sizeUnit * 4}px ${theme.sizeUnit * 4}px;
+              width: 100%;
             }
           }
-        }
-      `}
+        `
+      }
+
+      ${
+        resizable &&
+        css`
+          .resizable {
+            pointer-events: all;
+
+            .resizable-wrapper {
+              height: 100%;
+            }
+
+            .ant-modal-container {
+              height: 100%;
+
+              .ant-modal-body {
+                height: ${
+                  hideFooter
+                    ? `calc(100% - ${MODAL_HEADER_HEIGHT}px)`
+                    : `calc(100% - ${MODAL_HEADER_HEIGHT}px - ${MODAL_FOOTER_HEIGHT}px)`
+                };
+              }
+            }
+          }
+        `
+      }
     `;
   }}
 `;
@@ -261,7 +269,6 @@ const CustomModal = ({
   );
   const draggableRef = useRef<HTMLDivElement>(null);
   const [bounds, setBounds] = useState<DraggableBounds>({});
-  const [dragDisabled, setDragDisabled] = useState<boolean>(true);
   const theme = useTheme();
 
   const handleOnHide = () => {
@@ -331,19 +338,7 @@ const CustomModal = ({
   }, [hideFooter, resizableConfig]);
 
   const ModalTitle = () =>
-    draggable ? (
-      <div
-        className="draggable-trigger"
-        onMouseOver={() => dragDisabled && setDragDisabled(false)}
-        onMouseOut={() => !dragDisabled && setDragDisabled(true)}
-        onFocus={() => dragDisabled && setDragDisabled(false)}
-        onBlur={() => !dragDisabled && setDragDisabled(true)}
-      >
-        {title}
-      </div>
-    ) : (
-      <>{title}</>
-    );
+    draggable ? <div className="draggable-trigger">{title}</div> : <>{title}</>;
 
   return (
     <StyledModal
@@ -370,13 +365,19 @@ const CustomModal = ({
       modalRender={modal =>
         resizable || draggable ? (
           <Draggable
-            disabled={!draggable || dragDisabled}
             bounds={bounds ?? false}
             onStart={(event, uiData) => onDragStart(event, uiData)}
+            {...draggableConfig}
+            // `disabled` and `handle` are applied after the spread so callers
+            // can't use `draggableConfig` to re-enable dragging on a
+            // non-draggable modal or move the drag handle off the title bar.
+            // A caller opting a draggable modal out via
+            // `draggableConfig.disabled` is still honored.
+            disabled={!draggable || !!draggableConfig?.disabled}
+            handle={draggable ? '.draggable-trigger' : undefined}
             // Pass nodeRef so react-draggable does not fall back to
             // ReactDOM.findDOMNode (deprecated in React 18+ Strict Mode).
             nodeRef={draggableRef}
-            {...draggableConfig}
           >
             {resizable ? (
               <Resizable className="resizable" {...getResizableConfig}>

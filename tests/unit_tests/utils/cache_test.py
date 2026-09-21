@@ -54,6 +54,99 @@ def test_memoized_func(mocker: MockerFixture) -> None:
     assert result == 43
 
 
+def test_memoized_func_none_cache_timeout(mocker: MockerFixture) -> None:
+    """
+    An explicit ``cache_timeout=None`` falls back to ``CACHE_DEFAULT_TIMEOUT``.
+
+    Databases without a custom metadata cache timeout pass ``None`` explicitly, and
+    forwarding it to the cache backend breaks backends that require an integer.
+    """
+    from superset.utils.cache import memoized_func
+
+    _patch_config(mocker)
+    cache = mocker.MagicMock()
+    cache.get.return_value = None
+
+    decorator = memoized_func("db:{self.id}:schema:{schema}:table_list", cache)
+    decorated = decorator(lambda self, schema: 42)
+
+    self = mocker.MagicMock()
+    self.id = 1
+
+    result = decorated(self, "public", cache_timeout=None)
+    assert result == 42
+    cache.set.assert_called_once_with("db:1:schema:public:table_list", 42, timeout=100)
+
+
+def test_memoized_func_custom_cache_timeout(mocker: MockerFixture) -> None:
+    """
+    An explicit ``cache_timeout`` takes precedence over ``CACHE_DEFAULT_TIMEOUT``.
+    """
+    from superset.utils.cache import memoized_func
+
+    _patch_config(mocker)
+    cache = mocker.MagicMock()
+    cache.get.return_value = None
+
+    decorator = memoized_func("db:{self.id}:schema:{schema}:table_list", cache)
+    decorated = decorator(lambda self, schema: 42)
+
+    self = mocker.MagicMock()
+    self.id = 1
+
+    result = decorated(self, "public", cache_timeout=42)
+    assert result == 42
+    cache.set.assert_called_once_with("db:1:schema:public:table_list", 42, timeout=42)
+
+
+def test_memoized_func_disabled_cache_timeout(mocker: MockerFixture) -> None:
+    """
+    A timeout of -1 (``CACHE_DISABLED_TIMEOUT``) skips the cache set.
+    """
+    from superset.utils.cache import memoized_func
+
+    _patch_config(mocker)
+    cache = mocker.MagicMock()
+    cache.get.return_value = None
+
+    decorator = memoized_func("db:{self.id}:schema:{schema}:table_list", cache)
+    decorated = decorator(lambda self, schema: 42)
+
+    self = mocker.MagicMock()
+    self.id = 1
+
+    result = decorated(self, "public", cache_timeout=-1)
+    assert result == 42
+    cache.set.assert_not_called()
+
+
+def test_memoized_func_skip_cache_pops_cache_timeout(mocker: MockerFixture) -> None:
+    """
+    ``cache=False`` skips caching without touching the config or the wrapped function.
+
+    ``cache_timeout`` must still be popped so it is not forwarded to the decorated
+    function, which does not accept it. Callers such as
+    ``get_all_table_names_in_schema`` pass ``cache`` and ``cache_timeout`` together.
+    """
+    from superset.utils.cache import memoized_func
+
+    mock_config = mocker.patch("superset.utils.cache.app.config", MagicMock())
+    cache = mocker.MagicMock()
+
+    decorator = memoized_func("db:{self.id}:schema:{schema}:table_list", cache)
+    decorated = decorator(lambda self, schema: 42)
+
+    self = mocker.MagicMock()
+    self.id = 1
+
+    result = decorated(self, "public", cache=False, cache_timeout=None)
+
+    assert result == 42
+    cache.get.assert_not_called()
+    cache.set.assert_not_called()
+    mock_config.__getitem__.assert_not_called()
+
+
 def _make_cache_instance(mocker: MockerFixture) -> MagicMock:
     """A cache instance whose ``.cache`` is not a ``NullCache``."""
     cache_instance = mocker.MagicMock()
@@ -88,6 +181,51 @@ def test_set_and_log_cache_under_threshold(mocker: MockerFixture) -> None:
         mocker.call("skip_cache_value_too_large")
         not in config["STATS_LOGGER"].incr.mock_calls
     )
+
+
+def test_set_and_log_cache_returns_persistence_outcome(mocker: MockerFixture) -> None:
+    """set_and_log_cache reports whether the value was actually persisted so the
+    forced-refresh idempotency marker only claims a real cache write."""
+    from flask_caching.backends import NullCache
+
+    from superset.utils.cache import set_and_log_cache
+
+    # Persisted normally → True
+    _patch_config(mocker, DATA_CACHE_MAX_VALUE_SIZE=10 * 1024 * 1024)
+    assert set_and_log_cache(_make_cache_instance(mocker), "k", {"df": "small"}) is True
+
+    # Skipped for exceeding the size limit → False
+    _patch_config(mocker, DATA_CACHE_MAX_VALUE_SIZE=10)
+    assert (
+        set_and_log_cache(_make_cache_instance(mocker), "k", {"df": "x" * 1000})
+        is False
+    )
+
+    # NullCache backend → False
+    _patch_config(mocker)
+    null_instance = mocker.MagicMock()
+    null_instance.cache = NullCache()
+    assert set_and_log_cache(null_instance, "k", {"df": "small"}) is False
+
+    # Backend write raises → False (best-effort, swallowed)
+    _patch_config(mocker, DATA_CACHE_MAX_VALUE_SIZE=10 * 1024 * 1024)
+    failing = _make_cache_instance(mocker)
+    failing.set.side_effect = RuntimeError("backend down")
+    assert set_and_log_cache(failing, "k", {"df": "small"}) is False
+
+    # Backend reports a failed write by returning False (no exception) → False.
+    # cachelib backends do this; ignoring it would let the marker claim a write
+    # that never landed.
+    _patch_config(mocker, DATA_CACHE_MAX_VALUE_SIZE=10 * 1024 * 1024)
+    reports_false = _make_cache_instance(mocker)
+    reports_false.set.return_value = False
+    assert set_and_log_cache(reports_false, "k", {"df": "small"}) is False
+
+    # Backend returns None (no status reported) → treated as success.
+    _patch_config(mocker, DATA_CACHE_MAX_VALUE_SIZE=10 * 1024 * 1024)
+    reports_none = _make_cache_instance(mocker)
+    reports_none.set.return_value = None
+    assert set_and_log_cache(reports_none, "k", {"df": "small"}) is True
 
 
 def test_set_and_log_cache_over_threshold(mocker: MockerFixture) -> None:

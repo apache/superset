@@ -26,7 +26,8 @@ from superset.connectors.sqla.utils import (
     get_columns_description,
     get_virtual_table_metadata,
 )
-from superset.exceptions import SupersetSecurityException
+from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
+from superset.exceptions import OAuth2RedirectError, SupersetSecurityException
 from superset.models.core import Database
 
 
@@ -100,6 +101,51 @@ def test_returns_column_descriptions(mocker: MockerFixture) -> None:
             "is_dttm": False,
         },
     ]
+
+
+def test_get_columns_description_propagates_oauth2_redirect(
+    mocker: MockerFixture,
+) -> None:
+    """
+    ``get_columns_description`` wraps every exception raised while executing
+    the metadata query into ``SupersetGenericDBErrorException`` -- but an
+    ``OAuth2RedirectError`` raised by the driver (e.g. a database requiring
+    per-user OAuth2 tokens) must reach the caller unchanged so the frontend
+    can start the OAuth2 dance, instead of being flattened into an opaque
+    generic DB error.
+    """
+    database = mocker.MagicMock()
+    cursor = mocker.MagicMock()
+    oauth2_error = OAuth2RedirectError("https://example.org/oauth2", "tab-id", "uri")
+
+    database.get_raw_connection.return_value.__enter__.return_value.cursor.return_value = cursor  # noqa: E501
+    database.db_engine_spec.execute.side_effect = oauth2_error
+
+    with pytest.raises(OAuth2RedirectError):
+        get_columns_description(database, "catalog", "schema", "SELECT * FROM table")
+
+
+def test_get_columns_description_propagates_dbapi_error(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A connection failure normalized by ``db_engine_spec.execute`` into a
+    ``SupersetDBAPIConnectionError`` must also reach the caller unchanged --
+    not be re-flattened into an opaque ``SupersetGenericDBErrorException`` --
+    so callers like ``CreateDatasetCommand`` can let it propagate with its
+    own status instead of misreporting an infra failure as bad user input.
+    """
+    database = mocker.MagicMock()
+    cursor = mocker.MagicMock()
+    connection_error = SupersetDBAPIConnectionError(
+        "could not connect to server: Connection refused"
+    )
+
+    database.get_raw_connection.return_value.__enter__.return_value.cursor.return_value = cursor  # noqa: E501
+    database.db_engine_spec.execute.side_effect = connection_error
+
+    with pytest.raises(SupersetDBAPIConnectionError):
+        get_columns_description(database, "catalog", "schema", "SELECT * FROM table")
 
 
 def _create_zero_row_database(tmp_path: Path) -> tuple[Database, str]:
@@ -215,14 +261,11 @@ def test_get_columns_description_retries_with_comment_safe_sql_when_empty(
     db_engine_spec.get_column_description_retry_sql.assert_called_once_with(
         "-- comment\nSELECT 1 WHERE false"
     )
-    # The original mutated (comment-prefixed) query is executed directly
-    # once, and then -- because the first metadata result came back empty --
-    # db_engine_spec.execute() is invoked a second time with the
-    # comment-safe retry query.
-    assert cursor.execute.call_count == 1
-    assert cursor.execute.call_args_list[0].args[0] == (
-        "-- comment\nSELECT 1 WHERE false"
-    )
+    # The original mutated (comment-prefixed) query is executed once via
+    # db_engine_spec.execute() -- the only statement dispatch -- and then,
+    # because the first metadata result came back empty, a second time with
+    # the comment-safe retry query.
+    assert cursor.execute.call_count == 0
     assert db_engine_spec.execute.call_count == 2
     assert db_engine_spec.execute.call_args_list[0].args[:2] == (
         cursor,
@@ -262,9 +305,50 @@ def test_get_columns_description_no_retry_when_engine_has_no_hook(
     )
 
     assert columns == []
-    assert cursor.execute.call_count == 1, (
+    assert db_engine_spec.execute.call_count == 1, (
         "no retry should be attempted when the engine spec has no comment-safe "
         "retry query to offer"
+    )
+
+
+def test_get_columns_description_executes_probe_statement_once(
+    tmp_path: Path,
+    mocker: MockerFixture,
+) -> None:
+    """
+    The column probe must send the statement to the database exactly once.
+    ``db_engine_spec.execute`` is the single statement-dispatch point (it
+    calls ``cursor.execute`` itself, with per-engine overrides for Impala's
+    async API and Kusto's ARRAY() unwrapping), so an extra direct
+    ``cursor.execute`` before it runs the same statement twice against the
+    target database -- doubling probe cost and doubling whatever per-statement
+    timeout the administrator configured. Asserted at the driver level, with
+    a real SQLite connection counting every statement it executes.
+    """
+    db_path = tmp_path / "probe_once.db"
+    with closing(sqlite3.connect(db_path)) as conn:
+        conn.execute("CREATE TABLE events (id INTEGER, name TEXT)")
+        conn.commit()
+
+    statements: list[str] = []
+    raw_conn = sqlite3.connect(db_path)
+    raw_conn.set_trace_callback(statements.append)
+
+    database = Database(
+        id=1,
+        database_name="probe_once_db",
+        sqlalchemy_uri=f"sqlite:///{db_path}",
+    )
+    mocker.patch.object(database, "get_raw_connection", return_value=closing(raw_conn))
+
+    columns = get_columns_description(
+        database, None, None, "SELECT id, name FROM events"
+    )
+
+    assert [column["name"] for column in columns] == ["id", "name"]
+    assert len(statements) == 1, (
+        f"the probe statement must be sent to the database exactly once, "
+        f"got {len(statements)} executions: {statements}"
     )
 
 
