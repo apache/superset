@@ -169,8 +169,10 @@ SUBJECTS_RELATED_TYPES = [
 ]
 ```
 
-Set `SUBJECTS_RELATED_TYPES = None` to expose all subject types, including roles. The RLS picker
-has the following entity-specific default so role-based RLS rules remain selectable:
+Set `SUBJECTS_RELATED_TYPES = None` to expose all subject types globally, including roles.
+
+The RLS picker has the following entity-specific default so role-based RLS rules remain
+selectable:
 
 ```python
 from superset.subjects.types import SubjectType
