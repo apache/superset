@@ -1,0 +1,41 @@
+{
+  "name": "@superset-ui/plugin-chart-parallel-coordinates",
+  "version": "0.20.3",
+  "description": "Superset Chart - Parallel Coordinates",
+  "keywords": [
+    "superset"
+  ],
+  "homepage": "https://github.com/apache/superset/tree/master/superset-frontend/plugins/plugin-chart-parallel-coordinates#readme",
+  "bugs": {
+    "url": "https://github.com/apache/superset/issues"
+  },
+  "license": "Apache-2.0",
+  "author": "Superset",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/apache/superset.git",
+    "directory": "superset-frontend/plugins/plugin-chart-parallel-coordinates"
+  },
+  "files": [
+    "esm",
+    "lib"
+  ],
+  "sideEffects": [
+    "*.css"
+  ],
+  "main": "lib/index.js",
+  "module": "esm/index.js",
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "d3v3": "npm:d3@3.5.17",
+    "prop-types": "^15.8.1"
+  },
+  "peerDependencies": {
+    "@apache-superset/core": "*",
+    "@superset-ui/chart-controls": "*",
+    "@superset-ui/core": "*",
+    "react": "^18.3.0"
+  }
+}

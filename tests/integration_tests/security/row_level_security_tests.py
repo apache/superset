@@ -716,6 +716,59 @@ def test_model_view_rls_add_name_unique(admin_client):
 
 
 @pytest.mark.usefixtures("create_dataset", "rls_filters")
+def test_model_view_rls_add_duplicate_name_error_is_descriptive(admin_client):
+    """Creating a rule with an existing name returns a descriptive message.
+
+    The duplicate is rejected before the DB write so the client receives the
+    reason instead of an empty/opaque ``IntegrityError`` string.
+    """
+    test_dataset = _get_test_dataset()
+    rv = admin_client.post(
+        "/api/v1/rowlevelsecurity/",
+        json={
+            "name": "rls_entry1",
+            "description": "Some description",
+            "filter_type": "Regular",
+            "tables": [test_dataset.id],
+            "subjects": [_subject_for_role(security_manager.find_role("Alpha")).id],
+            "group_key": "group_key_1",
+            "clause": "client_id=1",
+        },
+    )
+    assert rv.status_code == 422
+    data = json.loads(rv.data.decode("utf-8"))
+    assert data["message"] == {"name": ["A rule with this name already exists."]}
+
+
+@pytest.mark.usefixtures("create_dataset", "rls_filters")
+def test_model_view_rls_update_duplicate_name_error_is_descriptive(admin_client):
+    """Renaming a rule to another rule's name returns a descriptive message."""
+    rls_entry2 = (
+        db.session.query(RowLevelSecurityFilter).filter_by(name="rls_entry2")
+    ).one()
+    rv = admin_client.put(
+        f"/api/v1/rowlevelsecurity/{rls_entry2.id}",
+        json={"name": "rls_entry1"},
+    )
+    assert rv.status_code == 422
+    data = json.loads(rv.data.decode("utf-8"))
+    assert data["message"] == {"name": ["A rule with this name already exists."]}
+
+
+@pytest.mark.usefixtures("create_dataset", "rls_filters")
+def test_model_view_rls_update_same_name_succeeds(admin_client):
+    """Saving a rule without changing its name is not treated as a collision."""
+    rls_entry1 = (
+        db.session.query(RowLevelSecurityFilter).filter_by(name="rls_entry1")
+    ).one()
+    rv = admin_client.put(
+        f"/api/v1/rowlevelsecurity/{rls_entry1.id}",
+        json={"name": "rls_entry1"},
+    )
+    assert rv.status_code == 200
+
+
+@pytest.mark.usefixtures("create_dataset", "rls_filters")
 def test_model_view_rls_add_tables_required(admin_client):
     rv = admin_client.post(
         "/api/v1/rowlevelsecurity/",
@@ -1392,3 +1445,36 @@ def test_guest_dataset_id_can_be_string():
     sql = dataset.get_query_str(QUERY_OBJ)
 
     assert re.search(RLS_ALICE_REGEX, sql)
+
+
+@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices", "rls_filters")
+def test_rls_predicates_apply_with_case_mismatched_table_name() -> None:
+    """On engines that fold unquoted identifiers, a table referenced with
+    mismatched casing (``BIRTH_NAMES``) resolves to the same physical table as
+    the registered dataset (``birth_names``) and must still pick up its RLS
+    predicates, matching the exact-case reference."""
+    from superset.sql.parse import folds_unquoted_object_names, Table
+    from superset.utils.rls import get_predicates_for_table
+
+    g.user = _get_user(username="gamma")
+    tbl = _get_table(name="birth_names")
+    database = tbl.database
+    if not folds_unquoted_object_names(database.db_engine_spec.engine):
+        pytest.skip("engine does not fold unquoted identifiers")
+
+    default_catalog = database.get_default_catalog()
+
+    def _predicates(name: str) -> list[str]:
+        table = Table(table=name, schema=tbl.schema, catalog=None).qualify(
+            catalog=default_catalog, schema=tbl.schema
+        )
+        return get_predicates_for_table(table, database, default_catalog)
+
+    exact = _predicates("birth_names")
+    mismatched = _predicates("birth_names".upper())
+
+    assert exact, "baseline: exact table name should yield RLS predicates"
+    assert mismatched == exact, (
+        "case-mismatched table name must yield the same RLS predicates as the "
+        "exact-case reference"
+    )

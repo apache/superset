@@ -135,6 +135,15 @@ describe('dashboardState actions', () => {
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('saveDashboardRequest', () => {
+    const findDangerToast = (dispatch: jest.Mock) =>
+      dispatch.mock.calls
+        .map(call => call[0])
+        .find(
+          action =>
+            action?.type === ADD_TOAST &&
+            action.payload.toastType === ToastType.Danger,
+        );
+
     test('should dispatch UPDATE_COMPONENTS_PARENTS_LIST action', () => {
       const { getState, dispatch } = setup({
         dashboardState: { hasUnsavedChanges: false },
@@ -227,6 +236,89 @@ describe('dashboardState actions', () => {
         const { body } = putStub.mock.calls[0][0];
         expect(body).toBe(JSON.stringify(confirmedDashboardData));
       });
+
+      test('warns about the overwrite values when a diff is detected', async () => {
+        const { getState, dispatch } = setup();
+        const thunk = saveDashboardRequest(
+          newDashboardData,
+          192,
+          SAVE_TYPE_OVERWRITE,
+        );
+        thunk(dispatch, getState);
+        await waitFor(() =>
+          expect(findDangerToast(dispatch)?.payload.text).toBe(
+            'Please confirm the overwrite values.',
+          ),
+        );
+        expect(putStub.mock.calls.length).toBe(0);
+      });
+
+      test('reports the actual error when the overwrite precheck fails', async () => {
+        getStub.mockRestore();
+        getStub = jest
+          .spyOn(SupersetClient, 'get')
+          .mockRejectedValue(new Error('precheck exploded'));
+        const { getState, dispatch } = setup();
+        const thunk = saveDashboardRequest(
+          newDashboardData,
+          192,
+          SAVE_TYPE_OVERWRITE,
+        );
+        thunk(dispatch, getState);
+        await waitFor(() =>
+          expect(findDangerToast(dispatch)?.payload.text).toContain(
+            'precheck exploded',
+          ),
+        );
+        expect(putStub.mock.calls.length).toBe(0);
+      });
+    });
+
+    // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+    describe('when FeatureFlag.CONFIRM_DASHBOARD_DIFF is disabled', () => {
+      beforeEach(() => {
+        mockIsFeatureEnabled.mockImplementation(() => false);
+      });
+
+      afterEach(() => {
+        mockIsFeatureEnabled.mockRestore();
+      });
+
+      test('never runs the overwrite precheck', async () => {
+        const { getState, dispatch } = setup();
+        const thunk = saveDashboardRequest(
+          newDashboardData,
+          192,
+          SAVE_TYPE_OVERWRITE,
+        );
+        thunk(dispatch, getState);
+        await waitFor(() => expect(putStub.mock.calls.length).toBe(1));
+        expect(getStub).not.toHaveBeenCalledWith(
+          expect.objectContaining({ endpoint: '/api/v1/dashboard/192' }),
+        );
+      });
+
+      // An unexpected failure used to reach the overwrite-confirm handler,
+      // which reported it as "Please confirm the overwrite values." even with
+      // the feature flag off, hiding the real error.
+      test('reports the actual error when the update throws unexpectedly', async () => {
+        putStub.mockRestore();
+        putStub = jest.spyOn(SupersetClient, 'put').mockImplementation(() => {
+          throw new Error('unexpected boom');
+        });
+        const { getState, dispatch } = setup();
+        const thunk = saveDashboardRequest(
+          newDashboardData,
+          192,
+          SAVE_TYPE_OVERWRITE,
+        );
+        thunk(dispatch, getState);
+        await waitFor(() =>
+          expect(findDangerToast(dispatch)?.payload.text).toContain(
+            'unexpected boom',
+          ),
+        );
+      });
     });
 
     test('should navigate to the new dashboard after Save As', async () => {
@@ -296,6 +388,138 @@ describe('dashboardState actions', () => {
       expect(mockNavigateWithState).toHaveBeenCalledWith(
         `/dashboard/${updatedId}/`,
         { event: 'dashboard_properties_changed' },
+      );
+    });
+
+    // Regression for the reserved-URL-character slug redirect. When the
+    // submitted slug starts with a reserved character (e.g. `?` or `/`), the
+    // backend sanitizes it out of the persisted slug
+    // (BaseDashboardSchema.post_load strips `[^\w\-]`). The post-save redirect
+    // must therefore be built from the sanitized slug returned in the PUT
+    // response, not the raw slug the user submitted, or the first render lands
+    // on a malformed/blank URL (a later reload works because it reads the
+    // stored, sanitized slug).
+    test('redirects using the sanitized slug from the PUT response, not the raw submitted slug', async () => {
+      const updatedId = 778;
+      const { getState, dispatch } = setup({
+        dashboardState: { hasUnsavedChanges: true },
+      });
+
+      mockNavigateWithState.mockClear();
+      putStub.mockRestore();
+      putStub = jest.spyOn(SupersetClient, 'put').mockResolvedValue({
+        json: {
+          result: { ...mockDashboardData, id: updatedId, slug: 'test' },
+          last_modified_time: 0,
+        },
+      } as any);
+
+      const thunk = saveDashboardRequest(
+        { ...newDashboardData, slug: '?test' },
+        updatedId,
+        SAVE_TYPE_OVERWRITE,
+      );
+      await thunk(dispatch, getState);
+
+      await waitFor(() => expect(putStub.mock.calls.length).toBe(1));
+      await waitFor(() => expect(mockNavigateWithState).toHaveBeenCalled());
+
+      expect(mockNavigateWithState).toHaveBeenCalledWith('/dashboard/test/', {
+        event: 'dashboard_properties_changed',
+      });
+    });
+
+    // Regression companion: when the PUT response carries no usable slug
+    // (e.g. a slug composed solely of reserved characters, which
+    // BaseDashboardSchema.post_load sanitizes down to an empty string rather
+    // than null), the redirect must fall back to the dashboard id rather
+    // than emitting `/dashboard//` or echoing the raw submitted slug.
+    test('redirects using the id when the PUT response slug is empty', async () => {
+      const updatedId = 779;
+      const { getState, dispatch } = setup({
+        dashboardState: { hasUnsavedChanges: true },
+      });
+
+      mockNavigateWithState.mockClear();
+      putStub.mockRestore();
+      putStub = jest.spyOn(SupersetClient, 'put').mockResolvedValue({
+        json: {
+          result: { ...mockDashboardData, id: updatedId, slug: '' },
+          last_modified_time: 0,
+        },
+      } as any);
+
+      const thunk = saveDashboardRequest(
+        { ...newDashboardData, slug: '?' },
+        updatedId,
+        SAVE_TYPE_OVERWRITE,
+      );
+      await thunk(dispatch, getState);
+
+      await waitFor(() => expect(putStub.mock.calls.length).toBe(1));
+      await waitFor(() => expect(mockNavigateWithState).toHaveBeenCalled());
+
+      expect(mockNavigateWithState).toHaveBeenCalledWith(
+        `/dashboard/${updatedId}/`,
+        { event: 'dashboard_properties_changed' },
+      );
+    });
+
+    // The save-error toast mapping lives inline in `onError`, not behind
+    // `getErrorText`, so these exercise the thunk itself. A 403 whose body is
+    // the API's `{"message": "Forbidden"}` shape must surface the
+    // permission-denied copy, while a 403 from outside Superset (reverse proxy,
+    // WAF, SSO gateway) carries a non-JSON body and must fall back to the
+    // generic status-derived toast. See #42239.
+    test('maps a non-JSON 403 save failure to the generic error toast', async () => {
+      const { getState, dispatch } = setup();
+      putStub.mockRestore();
+      putStub = jest.spyOn(SupersetClient, 'put').mockRejectedValue(
+        new Response(
+          '<html><head><title>403 Forbidden</title></head><body>Forbidden</body></html>',
+          {
+            status: 403,
+            statusText: 'Forbidden',
+            headers: { 'Content-Type': 'text/html' },
+          },
+        ),
+      );
+
+      const thunk = saveDashboardRequest(
+        newDashboardData,
+        192,
+        SAVE_TYPE_OVERWRITE,
+      );
+      await thunk(dispatch, getState);
+
+      await waitFor(() =>
+        expect(findDangerToast(dispatch)?.payload.text).toBe(
+          'Sorry, there was an error saving this dashboard: Forbidden',
+        ),
+      );
+    });
+
+    test('maps a Superset JSON 403 save failure to the permission-denied toast', async () => {
+      const { getState, dispatch } = setup();
+      putStub.mockRestore();
+      putStub = jest.spyOn(SupersetClient, 'put').mockRejectedValue(
+        new Response(JSON.stringify({ message: 'Forbidden' }), {
+          status: 403,
+          statusText: 'FORBIDDEN',
+        }),
+      );
+
+      const thunk = saveDashboardRequest(
+        newDashboardData,
+        192,
+        SAVE_TYPE_OVERWRITE,
+      );
+      await thunk(dispatch, getState);
+
+      await waitFor(() =>
+        expect(findDangerToast(dispatch)?.payload.text).toBe(
+          'You do not have permission to edit this dashboard',
+        ),
       );
     });
   });

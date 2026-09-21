@@ -212,13 +212,16 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
   const echartOptions: EChartsCoreOption = {
     series,
     xAxis: {
-      axisLabel: { formatter: xAxisFormatter, rotate: xAxisLabelRotation },
+      axisLabel: {
+        formatter: xAxisFormatter,
+        rotate: xAxisLabelRotation,
+        interval: xAxisLabelInterval,
+      },
       splitLine: {
         lineStyle: {
           type: 'dashed',
         },
       },
-      interval: xAxisLabelInterval,
       scale: true,
       name: bubbleXAxisTitle,
       nameLocation: 'middle',

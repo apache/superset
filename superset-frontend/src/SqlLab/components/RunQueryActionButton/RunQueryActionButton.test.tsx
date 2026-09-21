@@ -19,6 +19,8 @@
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import { Store } from 'redux';
+import { supersetTheme } from '@apache-superset/core/theme';
+import { Menu } from '@superset-ui/core/components/Menu';
 
 import { render, fireEvent, waitFor } from 'spec/helpers/testing-library';
 import { initialState, defaultQueryEditor } from 'src/SqlLab/fixtures';
@@ -152,4 +154,26 @@ test('dispatch stopQuery on click while running state', async () => {
   expect(stopQuery).toHaveBeenCalledTimes(0);
   fireEvent.click(button);
   await waitFor(() => expect(stopQuery).toHaveBeenCalledTimes(1));
+});
+
+const ctasMenu = <Menu items={[{ key: 'table', label: 'CREATE TABLE AS' }]} />;
+
+test('opening the CTAS/CVAS dropdown menu does not crash and shows the menu', async () => {
+  const { getAllByRole, findByText } = setup(
+    { overlayCreateAsMenu: ctasMenu },
+    mockStore(initialState),
+  );
+  const buttons = getAllByRole('button');
+  const caretButton = buttons[buttons.length - 1];
+  fireEvent.click(caretButton);
+  expect(await findByText('CREATE TABLE AS')).toBeInTheDocument();
+});
+
+test('renders the caret icon with a color that contrasts with the primary button background', () => {
+  const { container } = setup(
+    { overlayCreateAsMenu: ctasMenu },
+    mockStore(initialState),
+  );
+  const caretIcon = container.querySelector('[data-test="down"]');
+  expect(caretIcon).toHaveStyle({ color: supersetTheme.colorTextLightSolid });
 });

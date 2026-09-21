@@ -23,6 +23,7 @@ or the metric fails nothing."""
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import MagicMock
+from uuid import uuid4
 
 from sqlalchemy.exc import OperationalError
 
@@ -37,7 +38,7 @@ def _session_raising(error: Exception) -> MagicMock:
 
 def _probe(session: MagicMock) -> Any:
     return collection.shadow_row_count(
-        session, SimpleNamespace(id=7), version_table=MagicMock()
+        session, SimpleNamespace(id=7, uuid=uuid4()), version_table=MagicMock()
     )
 
 

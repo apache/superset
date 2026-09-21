@@ -99,8 +99,6 @@ const ExcelSpecificFields = [
 
 const ColumnarSpecificFields: string[] = [];
 
-const NonNullFields = ['rows_to_read', 'index_column'];
-
 const AllSpecificFields = [
   ...CSVSpecificFields,
   ...ExcelSpecificFields,
@@ -440,11 +438,9 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
     const allFieldsNotInType = getAllFieldsNotInType();
     Object.entries(data).forEach(([key, value]) => {
       if (
-        !(
-          allFieldsNotInType.includes(key) ||
-          (NonNullFields.includes(key) &&
-            (value === undefined || value === null))
-        )
+        !allFieldsNotInType.includes(key) &&
+        value !== undefined &&
+        value !== null
       ) {
         formData.append(key, value);
       }
