@@ -1105,10 +1105,8 @@ test('editing the JSON textarea updates the matching color picker (JSON -> picke
 
   const jsonEditor = screen.getByTestId('json-editor');
   await userEvent.clear(jsonEditor);
-  await userEvent.type(
-    jsonEditor,
-    JSON.stringify({ token: { colorPrimary: '#336699' } }),
-  );
+  // See addValidJsonData note on pasting instead of typing JSON.
+  await userEvent.paste(JSON.stringify({ token: { colorPrimary: '#336699' } }));
 
   await waitFor(() => {
     const swatch = screen
@@ -1133,8 +1131,8 @@ test('a token present only in the JSON, not in the curated list, survives a pick
 
   const jsonEditor = screen.getByTestId('json-editor');
   await userEvent.clear(jsonEditor);
-  await userEvent.type(
-    jsonEditor,
+  // See addValidJsonData note on pasting instead of typing JSON.
+  await userEvent.paste(
     JSON.stringify({
       token: { colorPrimary: '#1890ff', borderRadiusLG: 12 },
     }),
@@ -1186,7 +1184,8 @@ test('does not crash and shows the invalid-JSON notice while the JSON textarea i
 
   const jsonEditor = screen.getByTestId('json-editor');
   await userEvent.clear(jsonEditor);
-  await userEvent.type(jsonEditor, '{ "token": { "colorPrimary"');
+  // See addValidJsonData note on pasting instead of typing JSON.
+  await userEvent.paste('{ "token": { "colorPrimary"');
 
   await waitFor(() => {
     expect(
