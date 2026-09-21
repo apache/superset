@@ -41,7 +41,7 @@ jest.mock('echarts/core', () => ({
   })),
 }));
 
-jest.mock('./chartData', () => ({
+jest.mock('@apache-superset/widgets/chartData', () => ({
   __esModule: true,
   fetchQueryData: jest.fn(async () => ({
     rows: [{ region: 'west' }],

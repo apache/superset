@@ -77,6 +77,8 @@ export interface FilterValueChangedPayload {
   /** The raw, filter-type-specific selection (e.g. `['CA', 'NY']`). */
   selection: unknown;
   resolved: ResolvedFilter | null;
+  /** Only on host sources (`host:<key>`), which have no node to carry `props.scope`. */
+  targets?: string[];
 }
 
 /**

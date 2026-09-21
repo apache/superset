@@ -17,31 +17,13 @@
  * under the License.
  */
 import { SafeMarkdown } from '@superset-ui/core/components';
-import { provider, useDashboardRevision } from '../store';
+import type { WidgetProps } from '../types';
 
-/**
- * The built-in `markdown` widget — registered like any other widget
- * (see `registerBuiltInWidgets`). Fills the box `WidgetView`'s
- * placement wrapper gives it (`width`/`height: 100%`) rather than resolving
- * its own grid placement.
- */
-export default function MarkdownWidget({ nodeId }: { nodeId: string }) {
-  useDashboardRevision();
-  const node = provider.getNode(nodeId);
-  if (!node) return null;
-
+/** The built-in `markdown` widget; fills whatever box it is given. */
+export default function MarkdownWidget({ props }: WidgetProps) {
   return (
-    <div
-      style={{
-        width: '100%',
-        height: '100%',
-        // Surface, border, corners and inset all belong to the card
-        // `WidgetView` draws around this widget and the name above
-        // it, so that the name is inside the frame rather than over it.
-        overflow: 'auto',
-      }}
-    >
-      <SafeMarkdown source={String(node.props?.content ?? '')} />
+    <div style={{ width: '100%', height: '100%', overflow: 'auto' }}>
+      <SafeMarkdown source={String(props.content ?? '')} />
     </div>
   );
 }

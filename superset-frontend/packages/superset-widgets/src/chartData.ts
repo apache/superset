@@ -34,7 +34,7 @@ interface ChartDataResponseResult {
 // object rather than an Error (see parseResponse.ts) — left as-is, a caller
 // doing `String(e)` on that gets the useless "[object Response]". This pulls
 // the actual `{message}`/`{errors: [...]}` body Superset's API sends back.
-async function describeFetchError(e: unknown): Promise<string> {
+export async function describeFetchError(e: unknown): Promise<string> {
   if (typeof Response !== 'undefined' && e instanceof Response) {
     try {
       const body = await e.clone().json();

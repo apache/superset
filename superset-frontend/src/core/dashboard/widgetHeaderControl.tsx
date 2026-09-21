@@ -36,13 +36,13 @@ import { dashboard as dashboardApi } from '@apache-superset/core';
 import { t } from '@apache-superset/core/translation';
 import { ActionButton, Tooltip } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
-import { provider } from './store';
+import { useDashboardStore } from './store';
 import { SLIDE_TYPE, untitledSlideLabel } from './widgets/CarouselWidget';
 import {
   getActiveFiltersForDataset,
   toAdhocFilters,
 } from './collectActiveFilters';
-import type { FilterValueChangedPayload } from './filterVocabulary';
+import type { FilterValueChangedPayload } from '@apache-superset/widgets/filterVocabulary';
 
 /**
  * The same operators `toAdhocFilters` (`collectActiveFilters.ts`) writes
@@ -94,28 +94,29 @@ const COLLAPSED_ROW_SPAN = 2;
 const DEFAULT_EXPANDED_ROW_SPAN = 4;
 
 function CollapsibleToggle({ nodeId }: { nodeId: string }): ReactElement {
-  const node = provider.getNode(nodeId);
+  const store = useDashboardStore();
+  const node = store.getNode(nodeId);
   const collapsed = Boolean(node?.props?.collapsed);
 
   const toggle = (): void => {
-    const current = provider.getNode(nodeId);
+    const current = store.getNode(nodeId);
     if (!current) return;
     if (collapsed) {
       const restored =
         (current.props?.expandedRowSpan as number | undefined) ??
         DEFAULT_EXPANDED_ROW_SPAN;
-      provider.updateLayout(nodeId, { rowSpan: restored });
-      provider.updateProps(nodeId, { collapsed: false });
+      store.updateLayout(nodeId, { rowSpan: restored });
+      store.updateProps(nodeId, { collapsed: false });
     } else {
       // The height about to be given up is saved so expanding again
       // returns to it rather than always to the default — an author who
       // grew a collapsible before collapsing it should not find it back at
       // its original size on the way out.
-      provider.updateProps(nodeId, {
+      store.updateProps(nodeId, {
         collapsed: true,
         expandedRowSpan: current.layout?.rowSpan ?? DEFAULT_EXPANDED_ROW_SPAN,
       });
-      provider.updateLayout(nodeId, { rowSpan: COLLAPSED_ROW_SPAN });
+      store.updateLayout(nodeId, { rowSpan: COLLAPSED_ROW_SPAN });
     }
   };
 
@@ -146,9 +147,10 @@ function CollapsibleToggle({ nodeId }: { nodeId: string }): ReactElement {
  * `CarouselWidget`.
  */
 function CarouselAddSlide({ nodeId }: { nodeId: string }): ReactElement {
+  const store = useDashboardStore();
   const addSlide = (): void => {
-    const index = provider.getNode(nodeId)?.children?.length ?? 0;
-    provider.addWidget(nodeId, index, {
+    const index = store.getNode(nodeId)?.children?.length ?? 0;
+    store.addWidget(nodeId, index, {
       type: SLIDE_TYPE,
       props: { label: untitledSlideLabel(index) },
     });
@@ -197,19 +199,20 @@ function FilterActivityIndicator({
 }: {
   nodeId: string;
 }): ReactElement | null {
-  const node = provider.getNode(nodeId);
+  const store = useDashboardStore();
+  const node = store.getNode(nodeId);
   const datasetId = (
     node?.props?.dataBinding as { datasetId?: number } | undefined
   )?.datasetId;
 
   const incomingFilters =
-    datasetId != null ? getActiveFiltersForDataset(datasetId, nodeId) : [];
+    datasetId != null
+      ? getActiveFiltersForDataset(store, datasetId, nodeId)
+      : [];
   const hasIncomingFilter = incomingFilters.length > 0;
 
-  const ownValue = provider.getValue(
-    nodeId,
-    dashboardApi.VALUE_CHANGED_EVENT,
-  ) as FilterValueChangedPayload | undefined;
+  const ownValue = store.getValue(nodeId, dashboardApi.VALUE_CHANGED_EVENT) as
+    FilterValueChangedPayload | undefined;
   const hasOwnCrossFilter = Boolean(ownValue?.resolved);
 
   if (!hasIncomingFilter && !hasOwnCrossFilter) return null;
@@ -237,7 +240,7 @@ function FilterActivityIndicator({
         placement="bottom"
         dataTest={`filter-activity-indicator-${nodeId}`}
         onClick={() =>
-          provider.emit(nodeId, dashboardApi.VALUE_CHANGED_EVENT, {
+          store.emit(nodeId, dashboardApi.VALUE_CHANGED_EVENT, {
             selection: null,
             resolved: null,
           })

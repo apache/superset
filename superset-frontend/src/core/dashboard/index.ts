@@ -37,7 +37,7 @@
 import { dashboard as dashboardApi } from '@apache-superset/core';
 import { store } from 'src/views/store';
 import { provider, useDashboardRevision } from './store';
-import { fetchQueryData } from './chartData';
+import { fetchQueryData } from '@apache-superset/widgets/chartData';
 import { registerBuiltInWidgets } from './registerBuiltInWidgets';
 import { navigation } from '../navigation';
 

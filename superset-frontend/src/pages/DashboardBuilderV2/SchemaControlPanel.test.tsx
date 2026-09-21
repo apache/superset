@@ -28,14 +28,14 @@ import {
 } from 'spec/helpers/testing-library';
 import DashboardProvider from 'src/core/dashboard/DashboardProvider';
 import 'src/core/dashboard';
-import { fetchQueryData } from 'src/core/dashboard/chartData';
+import { fetchQueryData } from '@apache-superset/widgets/chartData';
 import { resetDatasetMetadataCacheForTests } from 'src/core/dashboard/datasetMetadata';
 import { loadDatasetOptions } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/DatasetSelect';
 import SchemaControlPanel from './SchemaControlPanel';
 
 type DataBindingSpec = dashboardApi.DataBindingSpec;
 
-jest.mock('src/core/dashboard/chartData', () => ({
+jest.mock('@apache-superset/widgets/chartData', () => ({
   fetchQueryData: jest.fn().mockResolvedValue({ columns: [], rows: [] }),
 }));
 

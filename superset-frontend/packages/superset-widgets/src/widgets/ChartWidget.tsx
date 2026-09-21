@@ -55,11 +55,12 @@ import { dashboard as dashboardApi } from '@apache-superset/core';
 import { useTheme } from '@apache-superset/core/theme';
 import type { QueryFormMetric } from '@superset-ui/core';
 import { Flex, Loading, Typography } from '@superset-ui/core/components';
-import { provider, useDashboardRevision } from '../store';
-import { fetchQueryData } from '../chartData';
+import { useWidgetBus, useWidgetBusRevision } from '../bus';
+import { useWidgetDataClient, widgetRef } from '../dataClient';
 import { resolveBindings } from '../resolveBindings';
-import { getActiveFiltersForDataset } from '../collectActiveFilters';
+import { getActiveResolvedFilters } from '../activeFilters';
 import type { FilterValueChangedPayload } from '../filterVocabulary';
+import type { WidgetProps } from '../types';
 import {
   applyStructuredEchartsSeries,
   type EchartsChartType,
@@ -69,6 +70,8 @@ import {
   applyStructuredChrome,
   type EchartsChromeValue,
 } from './echartsStructuredChrome';
+
+const TYPE = 'echarts';
 
 type DataBindingSpec = dashboardApi.DataBindingSpec;
 type DataRow = dashboardApi.DataRow;
@@ -152,6 +155,44 @@ function useElementSize() {
   return [ref, size] as const;
 }
 
+const GRID_INSET = 8;
+const LEGEND_BAND = 32;
+
+/**
+ * ECharts' own grid default reserves fixed 65/80px bands and 15%/10% sides,
+ * which leaves most of a small widget empty. Without an authored `grid`, the
+ * plot fills the widget and ECharts shrinks it to fit axis labels and names,
+ * leaving room for a top or bottom legend.
+ */
+function withDefaultGrid(option: Record<string, unknown>) {
+  if (option.grid != null || (option.xAxis == null && option.yAxis == null)) {
+    return option;
+  }
+  const legend = (
+    Array.isArray(option.legend) ? option.legend[0] : option.legend
+  ) as Record<string, unknown> | undefined;
+  const legendShown = legend != null && legend.show !== false;
+  const legendBottom =
+    legendShown && (legend.top === 'bottom' || legend.bottom != null);
+  const legendTop =
+    legendShown &&
+    !legendBottom &&
+    legend.top !== 'middle' &&
+    legend.left !== 'left' &&
+    legend.left !== 'right';
+  return {
+    ...option,
+    grid: {
+      left: GRID_INSET,
+      right: GRID_INSET,
+      top: GRID_INSET + (legendTop ? LEGEND_BAND : 0),
+      bottom: GRID_INSET + (legendBottom ? LEGEND_BAND : 0),
+      outerBoundsMode: 'same',
+      outerBoundsContain: 'all',
+    },
+  };
+}
+
 /**
  * A minimal, self-contained ECharts canvas — deliberately not the
  * `<Echart>` wrapper `plugin-chart-echarts` uses internally (that component
@@ -214,8 +255,8 @@ function EchartsCanvas({
 
 /**
  * The built-in `echarts` widget — registered like any other widget
- * (see `registerBuiltInWidgets`). Fetches its `dataBinding`
- * (generic, viz_type-less — see `chartData.ts`), resolves any `$bind`
+ * (see `registry.ts`). Fetches its `dataBinding`
+ * (generic, viz_type-less — see `dataClient.ts`), resolves any `$bind`
  * markers in its `echartsOptions` against the results, and draws the
  * result. No `SuperChart`/`ChartPlugin`/`buildQuery`/`transformProps`
  * involved — the AI authors close to a real ECharts `option` directly.
@@ -223,7 +264,7 @@ function EchartsCanvas({
  * `props.crossFilter: true` turns a click on a data point into a filter —
  * this widget emitting `dashboard.VALUE_CHANGED_EVENT` on itself, the exact
  * same event/payload shape `FilterSelectWidget` emits (see
- * `filterVocabulary.ts`). Nothing downstream (`collectActiveFilters.ts`,
+ * `filterVocabulary.ts`). Nothing downstream (`activeFilters.ts`,
  * every other query-bound widget reading the same dataset) knows or cares
  * that the source this time is a chart reacting to its own click rather
  * than a purpose-built filter control — that's the entire point of the
@@ -231,32 +272,30 @@ function EchartsCanvas({
  * `echarts` widget with `crossFilter` unset behaves exactly as it always
  * has; this is additive, not a mode switch.
  */
-export default function ChartWidget({ nodeId }: { nodeId: string }) {
-  // Covers both structural/layout changes and any filter's emitted value —
-  // `dashboard.emit` ticks the same revision (see `DashboardProvider`).
-  useDashboardRevision();
+export default function ChartWidget({
+  instanceId,
+  props,
+  savedId,
+}: WidgetProps) {
+  // Re-renders on every bus emit, so active filters are recomputed.
+  const bus = useWidgetBus();
+  useWidgetBusRevision(bus);
+  const client = useWidgetDataClient();
   const theme = useTheme();
   const [containerRef, size] = useElementSize();
   const [rows, setRows] = useState<DataRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const node = provider.getNode(nodeId);
-  const dataBinding = node?.props?.dataBinding as DataBindingSpec | undefined;
+  const dataBinding = props.dataBinding as DataBindingSpec | undefined;
   // A query-bound widget doesn't subscribe to individual filter nodes — it
   // recomputes which filters currently apply to it (scoped by dataset
-  // match, see `collectActiveFilters.ts`) every time this component
+  // match, see `activeFilters.ts`) every time this component
   // re-renders, and merges them in the same way its own authored filters
   // already flow into `dataBinding.filters`.
-  const effectiveBinding = dataBinding
-    ? {
-        ...dataBinding,
-        filters: [
-          ...(dataBinding.filters ?? []),
-          ...getActiveFiltersForDataset(dataBinding.datasetId, nodeId),
-        ],
-      }
-    : undefined;
-  const bindingKey = JSON.stringify(effectiveBinding);
+  const activeFilters = dataBinding
+    ? getActiveResolvedFilters(bus, dataBinding.datasetId, instanceId)
+    : [];
+  const bindingKey = JSON.stringify({ dataBinding, activeFilters, savedId });
 
   // Cross-filtering: opt-in (see `props.crossFilter`) and, for this
   // prototype, scoped to the *first* dimension only — a data point from a
@@ -267,15 +306,15 @@ export default function ChartWidget({ nodeId }: { nodeId: string }) {
   // not filterable by click yet.
   const crossFilterColumn = dataBinding?.dimensions?.[0];
   const crossFilterEnabled =
-    Boolean(node?.props?.crossFilter) && crossFilterColumn !== undefined;
+    Boolean(props.crossFilter) && crossFilterColumn !== undefined;
 
   const handlePointClick = (params: EchartsClickParams) => {
     if (!crossFilterEnabled || !crossFilterColumn || !dataBinding) return;
     const clickedValue = params.name;
     if (clickedValue == null) return;
 
-    const current = provider.getValue(
-      nodeId,
+    const current = bus.getValue(
+      instanceId,
       dashboardApi.VALUE_CHANGED_EVENT,
     ) as FilterValueChangedPayload | undefined;
     // Clicking the same point again clears the cross-filter rather than
@@ -286,8 +325,8 @@ export default function ChartWidget({ nodeId }: { nodeId: string }) {
       current?.resolved?.column === crossFilterColumn &&
       current.resolved.value === clickedValue;
 
-    provider.emit(
-      nodeId,
+    bus.emit(
+      instanceId,
       dashboardApi.VALUE_CHANGED_EVENT,
       alreadySelected
         ? { selection: null, resolved: null }
@@ -304,7 +343,7 @@ export default function ChartWidget({ nodeId }: { nodeId: string }) {
   };
 
   useEffect(() => {
-    if (!effectiveBinding) {
+    if (!dataBinding) {
       setError('This chart widget has no dataBinding.');
       setRows(null);
       return undefined;
@@ -312,7 +351,12 @@ export default function ChartWidget({ nodeId }: { nodeId: string }) {
     let cancelled = false;
     setError(null);
     setRows(null);
-    fetchQueryData(effectiveBinding)
+    client
+      .fetchData({
+        instanceId,
+        widget: widgetRef(TYPE, props, savedId),
+        filters: activeFilters,
+      })
       .then(result => {
         if (!cancelled) setRows(result.rows);
       })
@@ -322,23 +366,22 @@ export default function ChartWidget({ nodeId }: { nodeId: string }) {
     return () => {
       cancelled = true;
     };
-    // effectiveBinding is a fresh object every render — bindingKey is its
+    // activeFilters is a fresh array every render — bindingKey is its
     // stable, value-equality-comparable proxy.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bindingKey]);
 
-  const chartType = node?.props?.chartType as
-    EchartsChartType | null | undefined;
+  const chartType = props.chartType as EchartsChartType | null | undefined;
   const customizeSeries = (
-    node?.props?.customize as
+    props.customize as
       { series?: Record<string, SeriesOverrideValue> } | undefined
   )?.series;
-  const chrome = node?.props?.chrome as EchartsChromeValue | undefined;
+  const chrome = props.chrome as EchartsChromeValue | undefined;
 
   const option = useMemo(() => {
     if (!rows) return undefined;
     const resolved = resolveBindings(
-      (node?.props?.echartsOptions as Record<string, unknown>) ?? {},
+      (props.echartsOptions as Record<string, unknown>) ?? {},
       { rows, theme },
     );
     const withStructuredSeries = applyStructuredEchartsSeries(
@@ -358,9 +401,9 @@ export default function ChartWidget({ nodeId }: { nodeId: string }) {
     // that sits where every other widget's name sits.
     const withoutTitle = { ...withStructuredChrome };
     delete withoutTitle.title;
-    return withoutTitle;
+    return withDefaultGrid(withoutTitle);
   }, [
-    node?.props?.echartsOptions,
+    props.echartsOptions,
     chartType,
     customizeSeries,
     chrome,
@@ -369,12 +412,10 @@ export default function ChartWidget({ nodeId }: { nodeId: string }) {
     theme,
   ]);
 
-  if (!node) return null;
-
   return (
     <div
       ref={containerRef}
-      data-test={`chart-${nodeId}`}
+      data-test={`chart-${instanceId}`}
       // `WidgetView`'s own root has an onClick that selects this widget on
       // *any* click inside it, native-DOM-bubbling up to it regardless of
       // what ECharts does with the same click — ECharts' own click handler
@@ -407,13 +448,13 @@ export default function ChartWidget({ nodeId }: { nodeId: string }) {
         crossFilterEnabled ? event => event.stopPropagation() : undefined
       }
       style={{
-        // Fills the box `WidgetView`'s placement wrapper gives this
+        // Fills the box its container gives this
         // widget — that wrapper is always a definite pixel box (its column
         // share of the container's width, its `rowSpan × rowUnit` height),
         // so this is never zero or ambiguous.
         width: '100%',
         height: '100%',
-        // Surface, border and corners belong to the card `WidgetView`
+        // Surface, border and corners belong to the card a host
         // draws around this widget and the name above it, so that the name is
         // inside the frame rather than over it.
         overflow: 'hidden',

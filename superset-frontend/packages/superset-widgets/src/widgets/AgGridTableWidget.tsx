@@ -25,9 +25,12 @@ import {
   Typography,
 } from '@superset-ui/core/components';
 import type { ColDef } from '@superset-ui/core/components/ThemedAgGridReact';
-import { provider, useDashboardRevision } from '../store';
-import { fetchQueryData } from '../chartData';
-import { getActiveFiltersForDataset } from '../collectActiveFilters';
+import { useWidgetBus, useWidgetBusRevision } from '../bus';
+import { useWidgetDataClient, widgetRef } from '../dataClient';
+import { getActiveResolvedFilters } from '../activeFilters';
+import type { WidgetProps } from '../types';
+
+const TYPE = 'ag-grid-table';
 
 type DataBindingSpec = dashboardApi.DataBindingSpec;
 type DataRow = dashboardApi.DataRow;
@@ -43,8 +46,8 @@ function deriveColumnDefs(columns: string[]): ColDef[] {
 
 /**
  * The built-in `ag-grid-table` widget — registered like any other
- * widget (see `registerBuiltInWidgets`). Fetches its `dataBinding`
- * (generic, viz_type-less — see `chartData.ts`) the same way `ChartWidget`
+ * widget (see `registry.ts`). Fetches its `dataBinding`
+ * (generic, viz_type-less — see `dataClient.ts`) the same way `ChartWidget`
  * does, then hands the rows straight to AG Grid via the already-themed
  * `ThemedAgGridReact` wrapper. Unlike `echarts`, a table's `rowData`/
  * `columnDefs` map directly onto query results with no `$bind`-style
@@ -52,30 +55,28 @@ function deriveColumnDefs(columns: string[]): ColDef[] {
  * (e.g. for custom headers, formatting, or widths), but when omitted,
  * columns are derived one-to-one from the query's own result columns.
  */
-export default function AgGridTableWidget({ nodeId }: { nodeId: string }) {
-  // Covers both structural/layout changes and any filter's emitted value —
-  // `dashboard.emit` ticks the same revision (see `DashboardProvider`).
-  useDashboardRevision();
+export default function AgGridTableWidget({
+  instanceId,
+  props,
+  savedId,
+}: WidgetProps) {
+  // Re-renders on every bus emit, so active filters are recomputed.
+  const bus = useWidgetBus();
+  useWidgetBusRevision(bus);
+  const client = useWidgetDataClient();
   const [rows, setRows] = useState<DataRow[] | null>(null);
   const [columns, setColumns] = useState<string[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const node = provider.getNode(nodeId);
-  const dataBinding = node?.props?.dataBinding as DataBindingSpec | undefined;
+  const dataBinding = props.dataBinding as DataBindingSpec | undefined;
   // See `ChartWidget` — same dataset-scoped filter merge, same reason.
-  const effectiveBinding = dataBinding
-    ? {
-        ...dataBinding,
-        filters: [
-          ...(dataBinding.filters ?? []),
-          ...getActiveFiltersForDataset(dataBinding.datasetId, nodeId),
-        ],
-      }
-    : undefined;
-  const bindingKey = JSON.stringify(effectiveBinding);
+  const activeFilters = dataBinding
+    ? getActiveResolvedFilters(bus, dataBinding.datasetId, instanceId)
+    : [];
+  const bindingKey = JSON.stringify({ dataBinding, activeFilters, savedId });
 
   useEffect(() => {
-    if (!effectiveBinding) {
+    if (!dataBinding) {
       setError('This table widget has no dataBinding.');
       setRows(null);
       setColumns(null);
@@ -85,7 +86,12 @@ export default function AgGridTableWidget({ nodeId }: { nodeId: string }) {
     setError(null);
     setRows(null);
     setColumns(null);
-    fetchQueryData(effectiveBinding)
+    client
+      .fetchData({
+        instanceId,
+        widget: widgetRef(TYPE, props, savedId),
+        filters: activeFilters,
+      })
       .then(result => {
         if (!cancelled) {
           setRows(result.rows);
@@ -98,25 +104,23 @@ export default function AgGridTableWidget({ nodeId }: { nodeId: string }) {
     return () => {
       cancelled = true;
     };
-    // effectiveBinding is a fresh object every render — bindingKey is its
+    // activeFilters is a fresh array every render — bindingKey is its
     // stable, value-equality-comparable proxy.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bindingKey]);
 
-  if (!node) return null;
-
   const columnDefs =
-    (node.props?.columnDefs as ColDef[] | undefined) ??
+    (props.columnDefs as ColDef[] | undefined) ??
     (columns ? deriveColumnDefs(columns) : undefined);
 
   return (
     <div
       style={{
-        // Fills the box `WidgetView`'s placement wrapper gives this
+        // Fills the box its container gives this
         // widget — always a definite pixel box, same as `ChartWidget`.
         width: '100%',
         height: '100%',
-        // Surface, border and corners belong to the card `WidgetView`
+        // Surface, border and corners belong to the card a host
         // draws around this widget and the name above it, so that the name is
         // inside the frame rather than over it.
         overflow: 'hidden',

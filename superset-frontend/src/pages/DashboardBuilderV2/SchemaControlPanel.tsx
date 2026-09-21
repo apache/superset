@@ -58,7 +58,7 @@ import {
   SCHEMA_REFRESH_DEBOUNCE_MS,
 } from 'src/features/semanticLayers/jsonFormsHelpers';
 import { provider, useDashboardRevision } from 'src/core/dashboard/store';
-import { fetchQueryData } from 'src/core/dashboard/chartData';
+import { fetchQueryData } from '@apache-superset/widgets/chartData';
 import { FormShell } from './PropsForm';
 import { schemaControlRenderers } from './schemaControlRenderers';
 import {

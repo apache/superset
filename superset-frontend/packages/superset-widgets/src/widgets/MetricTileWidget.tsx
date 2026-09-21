@@ -21,9 +21,12 @@ import type { dashboard as dashboardApi } from '@apache-superset/core';
 import { styled, useTheme } from '@apache-superset/core/theme';
 import { Flex, Loading, Typography } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
-import { provider, useDashboardRevision } from '../store';
-import { fetchQueryData } from '../chartData';
-import { getActiveFiltersForDataset } from '../collectActiveFilters';
+import { useWidgetBus, useWidgetBusRevision } from '../bus';
+import { useWidgetDataClient, widgetRef } from '../dataClient';
+import { getActiveResolvedFilters } from '../activeFilters';
+import type { WidgetProps } from '../types';
+
+const TYPE = 'metric-tile';
 
 type DataBindingSpec = dashboardApi.DataBindingSpec;
 type Theme = ReturnType<typeof useTheme>;
@@ -85,7 +88,7 @@ function DeltaIndicator({ delta, theme }: { delta: DeltaSpec; theme: Theme }) {
 
 /**
  * The built-in `metric-tile` widget ("big number") — registered
- * like any other widget (see `registerBuiltInWidgets`). Fetches its
+ * like any other widget (see `registry.ts`). Fetches its
  * `dataBinding` the same generic way `ChartWidget`/`AgGridTableWidget` do, and
  * renders the first result row's value directly as text — no ECharts
  * gauge/`graphic` text workaround (what an AI reached for before this widget
@@ -97,32 +100,30 @@ function DeltaIndicator({ delta, theme }: { delta: DeltaSpec; theme: Theme }) {
  * that column; a tile shows one number, so grouping isn't meaningful here
  * the way it is for a chart or table.
  */
-export default function MetricTileWidget({ nodeId }: { nodeId: string }) {
-  // Covers both structural/layout changes and any filter's emitted value —
-  // `dashboard.emit` ticks the same revision (see `DashboardProvider`).
-  useDashboardRevision();
+export default function MetricTileWidget({
+  instanceId,
+  props,
+  savedId,
+}: WidgetProps) {
+  // Re-renders on every bus emit, so active filters are recomputed.
+  const bus = useWidgetBus();
+  useWidgetBusRevision(bus);
+  const client = useWidgetDataClient();
   const theme = useTheme();
   const [value, setValue] = useState<unknown>(undefined);
   const [columnLabel, setColumnLabel] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const node = provider.getNode(nodeId);
-  const dataBinding = node?.props?.dataBinding as DataBindingSpec | undefined;
+  const dataBinding = props.dataBinding as DataBindingSpec | undefined;
   // See `ChartWidget` — same dataset-scoped filter merge, same reason.
-  const effectiveBinding = dataBinding
-    ? {
-        ...dataBinding,
-        filters: [
-          ...(dataBinding.filters ?? []),
-          ...getActiveFiltersForDataset(dataBinding.datasetId, nodeId),
-        ],
-      }
-    : undefined;
-  const bindingKey = JSON.stringify(effectiveBinding);
+  const activeFilters = dataBinding
+    ? getActiveResolvedFilters(bus, dataBinding.datasetId, instanceId)
+    : [];
+  const bindingKey = JSON.stringify({ dataBinding, activeFilters, savedId });
 
   useEffect(() => {
-    if (!effectiveBinding) {
+    if (!dataBinding) {
       setError('This metric tile has no dataBinding.');
       setLoaded(false);
       return undefined;
@@ -130,7 +131,12 @@ export default function MetricTileWidget({ nodeId }: { nodeId: string }) {
     let cancelled = false;
     setError(null);
     setLoaded(false);
-    fetchQueryData(effectiveBinding)
+    client
+      .fetchData({
+        instanceId,
+        widget: widgetRef(TYPE, props, savedId),
+        filters: activeFilters,
+      })
       .then(result => {
         if (cancelled) return;
         const [column] = result.columns;
@@ -144,25 +150,23 @@ export default function MetricTileWidget({ nodeId }: { nodeId: string }) {
     return () => {
       cancelled = true;
     };
-    // effectiveBinding is a fresh object every render — bindingKey is its
+    // activeFilters is a fresh array every render — bindingKey is its
     // stable, value-equality-comparable proxy.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bindingKey]);
 
-  if (!node) return null;
-
-  const decimals = (node.props?.decimals as number | undefined) ?? 0;
-  const prefix = (node.props?.prefix as string | undefined) ?? '';
-  const suffix = (node.props?.suffix as string | undefined) ?? '';
-  const label = (node.props?.label as string | undefined) ?? columnLabel ?? '';
-  const delta = node.props?.delta as DeltaSpec | undefined;
+  const decimals = (props.decimals as number | undefined) ?? 0;
+  const prefix = (props.prefix as string | undefined) ?? '';
+  const suffix = (props.suffix as string | undefined) ?? '';
+  const label = (props.label as string | undefined) ?? columnLabel ?? '';
+  const delta = props.delta as DeltaSpec | undefined;
 
   return (
     <Flex
       vertical
       justify="center"
       style={{
-        // Fills the box `WidgetView`'s placement wrapper gives this
+        // Fills the box its container gives this
         // widget — always a definite pixel box, same as `ChartWidget`.
         width: '100%',
         height: '100%',

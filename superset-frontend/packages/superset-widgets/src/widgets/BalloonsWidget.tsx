@@ -25,7 +25,7 @@
  * a wavy string and looping from the bottom once they drift out the top.
  *
  * Controls live in the dashboard Inspector, driven by a backend JSON Schema
- * (see `SchemaControlPanel`). This widget only reads its `node.props`
+ * (see `SchemaControlPanel`). This widget only reads its `props`
  * (`dataBinding` + `customize`) and renders from the query rows fetched via the
  * v1 chart-data path (`fetchQueryData`) — the same generic interface every
  * other data-backed widget uses.
@@ -35,8 +35,10 @@ import { t } from '@apache-superset/core/translation';
 import { Flex, Typography } from '@superset-ui/core/components';
 import { keyframes, css, styled, useTheme } from '@apache-superset/core/theme';
 import type { dashboard as dashboardApi } from '@apache-superset/core';
-import { provider, useDashboardRevision } from '../store';
-import { fetchQueryData } from '../chartData';
+import { useWidgetDataClient, widgetRef } from '../dataClient';
+import type { WidgetDataClient, WidgetProps } from '../types';
+
+const TYPE = 'balloons';
 
 type DataBindingSpec = dashboardApi.DataBindingSpec;
 
@@ -208,11 +210,18 @@ type Row = { series: string; label: string; value: number };
 
 /** Map controls -> DataBindingSpec, run the query, normalize to rows. */
 async function loadRows(
+  client: WidgetDataClient,
+  instanceId: string,
+  widget: ReturnType<typeof widgetRef>,
   binding: DataBindingSpec,
   dimensions: string[],
   colorDim: string,
 ): Promise<Row[]> {
-  const { columns, rows } = await fetchQueryData(binding);
+  const { columns, rows } = await client.fetchData({
+    instanceId,
+    widget,
+    filters: [],
+  });
   const dimensionSet = new Set(dimensions);
   // The metric column is whichever result column is NOT one of the grouping
   // dimensions (the query returns [...dimensions, <metric>]). Finding it by
@@ -234,22 +243,25 @@ async function loadRows(
   }));
 }
 
-export default function BalloonsWidget({ nodeId }: { nodeId: string }) {
-  useDashboardRevision();
+export default function BalloonsWidget({
+  instanceId,
+  props,
+  savedId,
+}: WidgetProps) {
+  const client = useWidgetDataClient();
   const theme = useTheme();
 
-  const node = provider.getNode(nodeId);
-  const binding = node?.props?.dataBinding as DataBindingSpec | undefined;
-  const customize = (node?.props?.customize as Customization | undefined) ?? {};
+  const binding = props.dataBinding as DataBindingSpec | undefined;
+  const customize = (props.customize as Customization | undefined) ?? {};
   const dimensions = binding?.dimensions ?? [];
   // Color by the chosen color dimension, or the last dimension by default; the
   // first dimension identifies each balloon. (One balloon per query row.)
-  const explicitColor = node?.props?.colorDimension as string | undefined;
+  const explicitColor = props.colorDimension as string | undefined;
   const colorDim =
     explicitColor && dimensions.includes(explicitColor)
       ? explicitColor
       : dimensions[dimensions.length - 1];
-  const bindingKey = JSON.stringify(binding ?? null);
+  const bindingKey = JSON.stringify({ binding: binding ?? null, savedId });
 
   const [rows, setRows] = useState<Row[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -270,7 +282,14 @@ export default function BalloonsWidget({ nodeId }: { nodeId: string }) {
     }
     let cancelled = false;
     setError(null);
-    loadRows(binding, dimensions, colorDim)
+    loadRows(
+      client,
+      instanceId,
+      widgetRef(TYPE, props, savedId),
+      binding,
+      dimensions,
+      colorDim,
+    )
       .then(result => !cancelled && setRows(result))
       .catch(e => {
         if (!cancelled) {
@@ -329,8 +348,6 @@ export default function BalloonsWidget({ nodeId }: { nodeId: string }) {
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rowsKey]);
-
-  if (!node) return null;
 
   const seriesStyle = (
     series: string,

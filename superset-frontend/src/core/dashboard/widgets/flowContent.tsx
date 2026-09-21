@@ -35,9 +35,10 @@ import type { KeyboardEvent, PointerEvent, ReactElement } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { css, styled } from '@apache-superset/core/theme';
 import { EmptyState } from '@superset-ui/core/components';
-import { provider } from '../store';
+import { useDashboardStore } from '../store';
 import { PALETTE_MIME, placeBlock } from '../placement';
 import WidgetView from '../WidgetView';
+import { useDashboardViewMode } from '../viewMode';
 
 /**
  * The height `FlowItem` falls back to only when it has to measure *something*
@@ -125,7 +126,7 @@ const ResizeGrip = styled.div`
  * (`flex: 0 0 auto`) — a size someone chose is never overridden by whatever
  * space happens to be around it.
  *
- * The drag is tracked locally and committed with `provider.updateLayout`
+ * The drag is tracked locally and committed with `store.updateLayout`
  * only once it ends, the same reason `RootGrid` commits a resize on
  * `onResizeStop` rather than on every intermediate frame: a revision tick —
  * and the re-render of everything subscribed to it — per pixel dragged
@@ -138,6 +139,8 @@ export function FlowItem({
   nodeId: string;
   height: number | undefined;
 }): ReactElement {
+  const store = useDashboardStore();
+  const editable = useDashboardViewMode() === 'edit';
   const [liveHeight, setLiveHeight] = useState(height);
   // What was accepted replaces the draft, because the draft was a view of
   // it: a resize the assistant makes while this is on screen has to show.
@@ -190,7 +193,7 @@ export function FlowItem({
     // is not a resize, and must not fix a widget that was flexing in place
     // to whatever `currentHeight` happened to measure at that instant.
     if (from.current !== null && liveHeight !== undefined) {
-      provider.updateLayout(nodeId, { rowSpan: liveHeight });
+      store.updateLayout(nodeId, { rowSpan: liveHeight });
     }
     from.current = null;
     event.currentTarget.releasePointerCapture?.(event.pointerId);
@@ -206,7 +209,7 @@ export function FlowItem({
       event.preventDefault();
       const next = move(currentHeight());
       setLiveHeight(next);
-      provider.updateLayout(nodeId, { rowSpan: next });
+      store.updateLayout(nodeId, { rowSpan: next });
     }
   };
 
@@ -230,21 +233,23 @@ export function FlowItem({
       }
     >
       <WidgetView nodeId={nodeId} style={{ width: '100%', height: '100%' }}>
-        <ResizeGrip
-          // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
-          role="separator"
-          aria-orientation="horizontal"
-          aria-label={t('Resize widget')}
-          aria-valuenow={liveHeight}
-          aria-valuemin={MIN_FLOW_ITEM_HEIGHT}
-          tabIndex={0}
-          data-test={`flow-resize-${nodeId}`}
-          data-widget-resize
-          onPointerDown={startDrag}
-          onPointerMove={drag}
-          onPointerUp={endDrag}
-          onKeyDown={resize}
-        />
+        {editable && (
+          <ResizeGrip
+            // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
+            role="separator"
+            aria-orientation="horizontal"
+            aria-label={t('Resize widget')}
+            aria-valuenow={liveHeight}
+            aria-valuemin={MIN_FLOW_ITEM_HEIGHT}
+            tabIndex={0}
+            data-test={`flow-resize-${nodeId}`}
+            data-widget-resize
+            onPointerDown={startDrag}
+            onPointerMove={drag}
+            onPointerUp={endDrag}
+            onKeyDown={resize}
+          />
+        )}
       </WidgetView>
     </div>
   );
@@ -299,7 +304,9 @@ export function FlowContent({
   accepts?: boolean;
   dataTest?: string;
 }): ReactElement {
-  const children = provider.getNode(containerId)?.children ?? [];
+  const store = useDashboardStore();
+  const editable = useDashboardViewMode() === 'edit';
+  const children = store.getNode(containerId)?.children ?? [];
 
   return (
     <FlowArea
@@ -320,7 +327,7 @@ export function FlowContent({
         }
       }}
     >
-      {children.length === 0 && (
+      {editable && children.length === 0 && (
         <EmptyState
           size="small"
           image="empty.svg"
@@ -332,7 +339,7 @@ export function FlowContent({
         <FlowItem
           key={childId}
           nodeId={childId}
-          height={provider.getNode(childId)?.layout?.rowSpan}
+          height={store.getNode(childId)?.layout?.rowSpan}
         />
       ))}
     </FlowArea>

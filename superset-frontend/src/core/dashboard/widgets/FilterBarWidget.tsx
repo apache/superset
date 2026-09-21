@@ -22,9 +22,9 @@ import { t } from '@apache-superset/core/translation';
 import { useTheme } from '@apache-superset/core/theme';
 import { Button, EmptyState, Typography } from '@superset-ui/core/components';
 import { ErrorBoundary } from 'src/components';
-import { provider, useDashboardRevision } from '../store';
+import { useDashboardStore, useDashboardRevision } from '../store';
 import { resolveWidgetView } from '../resolveWidgetView';
-import { FILTER_BAR_APPLY_EVENT } from '../filterVocabulary';
+import { FILTER_BAR_APPLY_EVENT } from '@apache-superset/widgets/filterVocabulary';
 
 /** One filter's own footprint: a name caption plus its (uncompacted) Select — see `FilterSelectWidget`'s own render. */
 const FILTER_ITEM_HEIGHT = 88;
@@ -74,9 +74,10 @@ export default function FilterBarWidget({
 }: {
   nodeId: string;
 }): ReactElement | null {
-  useDashboardRevision();
+  const store = useDashboardStore();
+  useDashboardRevision(store);
   const theme = useTheme();
-  const node = provider.getNode(nodeId);
+  const node = store.getNode(nodeId);
   if (!node) return null;
 
   const orientation =
@@ -113,7 +114,7 @@ export default function FilterBarWidget({
         />
       )}
       {childIds.map(childId => {
-        const childNode = provider.getNode(childId);
+        const childNode = store.getNode(childId);
         // A filter's own target column, e.g. "region" — the closest thing
         // to a name it has today (there's no authored display-label prop
         // on filter.select), and the one fact that actually tells a viewer
@@ -182,7 +183,7 @@ export default function FilterBarWidget({
             buttonSize="small"
             buttonStyle="primary"
             data-test={`filter-bar-apply-${nodeId}`}
-            onClick={() => provider.emit(nodeId, FILTER_BAR_APPLY_EVENT, {})}
+            onClick={() => store.emit(nodeId, FILTER_BAR_APPLY_EVENT, {})}
           >
             {t('Apply')}
           </Button>

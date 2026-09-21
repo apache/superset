@@ -18,20 +18,33 @@
  */
 
 /**
- * @fileoverview Leaf module wrapping the `DashboardProvider` singleton.
+ * @fileoverview Leaf module wrapping the `DashboardProvider` the current
+ * tree lives in.
  *
- * Widget components (built-in or extension-contributed) read from
- * `provider` and subscribe via `useDashboardRevision` directly — importing
- * from here rather than from `./index` avoids a cycle, since `./index` is
- * what registers the built-in widgets (which import the provider) in the
- * first place.
+ * The builder (and the public `dashboard.*` API extensions call) works on
+ * the singleton `provider`. Widget components read theirs through
+ * `useDashboardStore` instead, which resolves to the singleton unless a
+ * `DashboardStoreContext` above them says otherwise — how an embedding
+ * runtime renders several independent trees on one page. Importing from
+ * here rather than from `./index` avoids a cycle, since `./index` is what
+ * registers the built-in widgets (which import the store) in the first
+ * place.
  */
 
-import { useSyncExternalStore } from 'react';
+import { createContext, useContext, useSyncExternalStore } from 'react';
 import DashboardProvider from './DashboardProvider';
 
 export const provider = DashboardProvider.getInstance();
 
+export const DashboardStoreContext = createContext<
+  DashboardProvider | undefined
+>(undefined);
+
+/** The store the nearest `DashboardStoreContext` names, else the builder's singleton. */
+export const useDashboardStore = (): DashboardProvider =>
+  useContext(DashboardStoreContext) ?? provider;
+
 /** Ticks on every dashboard.* mutation so a subscribed component re-reads the tree. */
-export const useDashboardRevision = () =>
-  useSyncExternalStore(provider.subscribe, provider.getRevision);
+export const useDashboardRevision = (
+  store: DashboardProvider = useDashboardStore(),
+): number => useSyncExternalStore(store.subscribe, store.getRevision);
