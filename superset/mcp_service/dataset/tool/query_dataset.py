@@ -432,6 +432,18 @@ async def _query_dataset(  # noqa: C901
             error_type="DatabaseError",
         )
 
+    except ValueError as exc:
+        # Expected user/agent-input validation (e.g. a reversed time_range where
+        # since > until raises "From date cannot be larger than to date" from
+        # date_parser.get_since_until). Return an actionable ValidationError
+        # without a full-traceback log — this is not a bug.
+        error_text = str(exc)
+        await ctx.error("Invalid request: %s" % (error_text,))
+        return DatasetError.create(
+            error=error_text,
+            error_type="ValidationError",
+        )
+
 
 def _dataset_internal_error() -> DatasetError:
     """Build the static public fallback for unexpected dataset failures."""
