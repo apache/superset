@@ -1105,7 +1105,8 @@ class TestTruncateQueryResult:
         assert len(result["rows"]) == 1
         assert notes
 
-    def test_truncates_csv_scalar_field_when_rows_empty(self) -> None:
+    @pytest.mark.parametrize("marker", ["", "\n[CSV truncated]"])
+    def test_truncates_csv_scalar_field_when_rows_empty(self, marker: str) -> None:
         """CSV exports carry their payload in ``csv_data`` with ``data=[]``."""
         response: dict[str, Any] = {
             "chart_id": 1,
@@ -1113,12 +1114,14 @@ class TestTruncateQueryResult:
             "csv_data": "col_0,col_1\n" + ("value,value\n" * 2000),
             "format": "csv",
         }
-        result, was_truncated, notes = truncate_query_result(
-            response, 500, tool_name="get_chart_data"
-        )
+        with patch.dict(_STRING_FIELD_TRUNCATION_MARKERS, {"csv_data": marker}):
+            result, was_truncated, notes = truncate_query_result(
+                response, 500, tool_name="get_chart_data"
+            )
         assert was_truncated is True
         assert isinstance(result, dict)
         assert len(result["csv_data"]) < len(response["csv_data"])
+        assert result["csv_data"].endswith(marker)
         assert estimate_response_tokens(result) <= 500
         assert any("CSV" in n for n in notes)
 

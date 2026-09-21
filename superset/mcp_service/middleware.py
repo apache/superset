@@ -82,6 +82,9 @@ _METRIC_TOOL_NAME_RE = re.compile(r"[A-Za-z0-9_][A-Za-z0-9_.\-]{0,127}")
 # stays bounded no matter how large the fields were in the original payload.
 _MINIMAL_FIELD_CHARS = 200
 
+# Bound both list overhead and total string content in write confirmations.
+_MINIMAL_LIST_ITEMS = 20
+
 # Identifying fields kept when a structured ``error`` has to be reduced to fit
 # (see ``_clip_error``). Everything else on ``MCPBaseError`` and its subclasses
 # is an unbounded container -- ``validation_errors``, ``dataset_context``,
@@ -1582,14 +1585,14 @@ class ResponseSizeGuardMiddleware(Middleware):
         response has no ``chart``, ``explore_url`` or ``success`` to copy, and
         synthesizing them would put fields on the response that its model
         never declares. Conversely, the fields worth keeping differ per tool
-        (``explore_url`` for charts, ``dashboard_url`` for dashboards,
-        ``changed_fields`` for patches) and are all already-bounded scalars,
-        so "every scalar the tool returned" names them without a per-tool
-        list.
+        (``explore_url`` for charts, ``dashboard_url`` for dashboards), so
+        keeping scalars names them without a per-tool list. Free-form strings
+        are bounded by ``_shrink_minimal_response``. Short string lists such
+        as ``changed_fields`` are also kept, bounded by item count and total
+        character count.
 
-        Containers other than the identifying fields are dropped outright:
-        they are precisely what pushed the response over the limit, and none
-        of them answers "what was written".
+        Other containers are dropped, except identifying fields and errors,
+        which are reduced by ``_shrink_minimal_response`` if needed.
         """
         minimal: dict[str, Any] = {
             key: value
@@ -1597,6 +1600,12 @@ class ResponseSizeGuardMiddleware(Middleware):
             if key in spec.identifying_fields
             or key == "error"
             or not isinstance(value, (list, dict))
+            or (
+                isinstance(value, list)
+                and len(value) <= _MINIMAL_LIST_ITEMS
+                and all(isinstance(item, str) for item in value)
+                and sum(len(item) for item in value) <= _MINIMAL_FIELD_CHARS
+            )
         }
         if spec.reports_success:
             # An unparseable payload yields nothing to copy, but a tool whose
@@ -1622,8 +1631,8 @@ class ResponseSizeGuardMiddleware(Middleware):
           persisted write, and shrinking must not be what drops it;
         - those scalars (``slice_name``, ``dashboard_title``, ``url``) are
           themselves free-form strings, so they are clipped;
-        - the remaining top-level values are scalars by construction (see
-          ``_select_confirmation_fields``), but a scalar can still be a
+        - the remaining top-level values are scalars or bounded string lists
+          (see ``_select_confirmation_fields``), but a scalar can still be a
           free-form string -- ``explore_url``, ``dashboard_url``, ``message``
           -- so every one of them is clipped too;
         - ``error`` is not a string at all in most of the shapes the tools

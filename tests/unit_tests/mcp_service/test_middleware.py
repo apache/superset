@@ -821,6 +821,96 @@ class TestResponseSizeGuardMiddleware:
 
         assert minimal == original
 
+    @pytest.mark.parametrize("oversized_field", ["chart", "error", "explore_url"])
+    def test_minimal_response_shrinks_with_real_estimates(
+        self, oversized_field: str
+    ) -> None:
+        """Real over-budget measurements must drive reduction, not mock errors."""
+        from superset.mcp_service.utils.token_utils import (
+            COMMITTED_WRITE_SPECS,
+            estimate_response_tokens,
+        )
+
+        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+        minimal: dict[str, Any] = {
+            "chart": {"id": 7, "is_unsaved_state": True},
+            "success": False,
+            "error": {"message": "Query failed"},
+            "explore_url": "/explore/",
+            "_response_truncated": True,
+            "_truncation_notes": [],
+        }
+        if oversized_field == "chart":
+            minimal["chart"].update(slice_name="N" * 40000, query_context="Q" * 40000)
+        elif oversized_field == "error":
+            minimal["error"].update(
+                details="D" * 40000, query_info={"sql": "S" * 40000}
+            )
+        else:
+            minimal["explore_url"] = "http://host/explore/?key=" + "k" * 40000
+
+        assert estimate_response_tokens(minimal) > middleware.token_limit
+        with patch(
+            "superset.mcp_service.middleware.estimate_response_tokens",
+            wraps=estimate_response_tokens,
+        ) as estimate:
+            middleware._shrink_minimal_response(
+                minimal, COMMITTED_WRITE_SPECS["update_chart"]
+            )
+
+        assert estimate.call_count == 2
+        assert estimate_response_tokens(minimal) <= middleware.token_limit
+        assert minimal["chart"] == {
+            "id": 7,
+            "is_unsaved_state": True,
+            **(
+                {"slice_name": "N" * 200 + "... [truncated]"}
+                if oversized_field == "chart"
+                else {}
+            ),
+        }
+        assert minimal["success"] is False
+        assert minimal["error"]["message"] == "Query failed"
+        assert "query_info" not in minimal["error"]
+
+    @pytest.mark.parametrize(
+        "changed_fields, retained",
+        [
+            ([], True),
+            (["css", "dashboard_title"], True),
+            (["x" * 10] * 20, True),
+            (["x" * 201], False),
+            (["x" * 11] * 20, False),
+            ([""] * 21, False),
+            ([{"field": "css"}], False),
+            (["css", 1], False),
+        ],
+    )
+    def test_minimal_response_retains_only_bounded_string_lists(
+        self, changed_fields: list[Any], retained: bool
+    ) -> None:
+        """Keep useful patch confirmations without admitting unbounded lists."""
+        from superset.mcp_service.utils.token_utils import COMMITTED_WRITE_SPECS
+
+        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+        spec = COMMITTED_WRITE_SPECS["update_dashboard"]
+        minimal = middleware._select_confirmation_fields(
+            {
+                "dashboard": {"id": 7, "dashboard_title": "D" * 40000},
+                "changed_fields": changed_fields,
+                "error": None,
+            },
+            spec,
+        )
+        minimal["_truncation_notes"] = []
+        middleware._shrink_minimal_response(minimal, spec)
+
+        assert ("changed_fields" in minimal) is retained
+        if retained:
+            assert minimal["changed_fields"] == changed_fields
+        assert minimal["dashboard"]["id"] == 7
+        assert estimate_token_count(utils_json.dumps(minimal)) <= 500
+
     @pytest.mark.asyncio
     async def test_update_dashboard_committed_write_is_not_hard_blocked(
         self,
@@ -957,6 +1047,7 @@ class TestResponseSizeGuardMiddleware:
         # ...while still confirming which dashboard was written, bounded.
         assert result["dashboard"]["id"] == 7
         assert estimate_token_count(utils_json.dumps(result)) <= 500
+        assert result["changed_fields"] == ["css"]
         assert "re-read the dashboard" in result["_truncation_notes"][0]
 
     @pytest.mark.asyncio

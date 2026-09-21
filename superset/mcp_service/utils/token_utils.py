@@ -1153,7 +1153,12 @@ def truncate_query_result(
         notes = _truncate_rows_field(data, row_field, token_limit, advice)
     if notes is None:
         notes = _truncate_named_string_field(
-            data, "csv_data", token_limit, advice, label="CSV content"
+            data,
+            "csv_data",
+            token_limit,
+            advice,
+            label="CSV content",
+            suffix_marker=_STRING_FIELD_TRUNCATION_MARKERS.get("csv_data", ""),
         )
 
     return data, notes is not None, notes or []
