@@ -17,13 +17,15 @@
  * under the License.
  */
 
-/**
- * The hook itself is exercised through the panel; these cover the two decisions
- * that are easy to get wrong and expensive when wrong — what happens to the
- * transcript when the server's copy arrives, and what is sent as page context.
- */
-
-import { buildRequestPageContext, mergeMessages } from './useChatBot';
+import { renderHook } from '@testing-library/react';
+import { act, createWrapper, waitFor } from 'spec/helpers/testing-library';
+import {
+  buildRequestPageContext,
+  mergeMessages,
+  useChatBot,
+} from './useChatBot';
+import * as chatThreadsApi from './chatThreadsApi';
+import * as chatRequest from './chatRequest';
 import type { ChatMessageWithMeta } from '../types';
 import type { PageContext } from './usePageContext';
 
@@ -42,6 +44,81 @@ const pageContext: PageContext = {
   pathname: '/sqllab',
   pageType: 'sqllab',
 };
+
+test.each(['load failure', 'creation failure', 'last deletion'])(
+  'an empty chat settles and can recover after %s',
+  async scenario => {
+    localStorage.clear();
+    const thread = {
+      uuid: 'thread-1',
+      title: 'New Chat',
+      status: 'active',
+      messageCount: 0,
+    };
+    const listThreads = jest
+      .spyOn(chatThreadsApi, 'listThreads')
+      .mockResolvedValue([thread]);
+    const createThread = jest
+      .spyOn(chatThreadsApi, 'createThread')
+      .mockResolvedValue(thread);
+    jest.spyOn(chatThreadsApi, 'getThread').mockResolvedValue({
+      thread,
+      messages: [],
+    });
+    const deleteThread = jest
+      .spyOn(chatThreadsApi, 'deleteThread')
+      .mockResolvedValue();
+    jest.spyOn(chatRequest, 'fetchAgents').mockResolvedValue([]);
+    if (scenario === 'load failure') {
+      listThreads.mockRejectedValueOnce(new Error('Conversation load failed'));
+    } else if (scenario === 'creation failure') {
+      listThreads.mockResolvedValueOnce([]);
+      createThread.mockRejectedValueOnce(
+        new Error('Conversation creation failed'),
+      );
+    }
+
+    try {
+      let renders = 0;
+      const { result } = renderHook(
+        () => {
+          // Bound the pre-fix update loop so a regression fails instead of hanging.
+          renders += 1;
+          if (renders > 25) {
+            throw new Error('Empty chat did not settle');
+          }
+          return useChatBot();
+        },
+        { wrapper: createWrapper({ useRedux: true, useRouter: true }) },
+      );
+      await waitFor(() => expect(result.current.threadsLoaded).toBe(true));
+
+      if (scenario === 'last deletion') {
+        await act(() => result.current.handleDeleteTab(thread.uuid));
+        expect(deleteThread).toHaveBeenCalledWith(thread.uuid);
+      } else {
+        expect(result.current.error).toContain('failed');
+      }
+      expect(result.current.activeTab).toBeUndefined();
+      expect(result.current.chatTabs).toEqual([]);
+      expect(result.current.messages).toEqual([]);
+      expect(result.current.quickPrompts.length).toBeGreaterThan(0);
+      const emptyMessages = result.current.messages;
+      act(() => result.current.setInputValue('A new question'));
+      expect(result.current.inputValue).toBe('A new question');
+      expect(result.current.messages).toBe(emptyMessages);
+
+      await act(async () => {
+        await result.current.handleNewChat();
+      });
+      expect(result.current.activeTab?.threadId).toBe(thread.uuid);
+      expect(result.current.error).toBeUndefined();
+    } finally {
+      jest.restoreAllMocks();
+      localStorage.clear();
+    }
+  },
+);
 
 test('the server transcript replaces the local one turn for turn', () => {
   const merged = mergeMessages(
