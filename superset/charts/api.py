@@ -722,6 +722,8 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             return self.response(201, id=new_model.id, result=item, uuid=new_model.uuid)
         except DashboardsForbiddenError as ex:
             return self.response(ex.status, message=ex.message)
+        except ChartForbiddenError:
+            return self.response_403()
         except ChartInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
         except ChartCreateFailedError as ex:

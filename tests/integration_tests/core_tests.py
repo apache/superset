@@ -197,6 +197,56 @@ class TestCore(SupersetTestCase):
             db.session.delete(slc)
         db.session.commit()
 
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_overwrite_refuses_externally_managed_slice(self):
+        """sc-120011: the legacy Explore overwrite is gated server-side.
+
+        /superset/explore/ with action=overwrite assigns request values
+        (params, query_context, ...) directly to the loaded chart and
+        persists via ChartDAO.update, bypassing UpdateChartCommand -- so
+        the managed-externally refusal must exist on this path too, even
+        for an admin who could otherwise edit the chart.
+
+        The refusal message is asserted (not just the status) so a 403
+        from an unrelated check cannot satisfy the pin; environments with
+        broken admin datasource grants fail here with the datasource
+        error instead -- CI is the verifier.
+        """
+        self.login(ADMIN_USERNAME)
+        slc = self.get_slice("Energy Sankey")
+        slice_id = slc.id
+        original_name = slc.slice_name
+        original_query_context = slc.query_context
+        slc.is_managed_externally = True
+        db.session.commit()
+
+        tbl_id = self.table_ids.get("energy_usage")
+        url = (
+            f"/explore/table/{tbl_id}/?slice_name=changed&action=overwrite"
+            "&datasource_name=energy_usage"
+        )
+        form_data = {
+            "adhoc_filters": [],
+            "viz_type": "sankey",
+            "groupby": ["target"],
+            "metric": "sum__value",
+            "row_limit": 5000,
+            "slice_id": slice_id,
+        }
+
+        try:
+            resp = self.client.post(url, data={"form_data": json.dumps(form_data)})
+            assert resp.status_code == 403
+            assert "rights to alter this chart" in resp.get_data(as_text=True)
+
+            slc = db.session.query(Slice).filter_by(id=slice_id).one()
+            assert slc.slice_name == original_name
+            assert slc.query_context == original_query_context
+        finally:
+            slc = db.session.query(Slice).filter_by(id=slice_id).one()
+            slc.is_managed_externally = False
+            db.session.commit()
+
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_slice_data(self):
         # slice data should have some required attributes

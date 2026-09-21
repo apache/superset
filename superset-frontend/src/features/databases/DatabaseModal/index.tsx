@@ -1315,7 +1315,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             className="preferred-item"
             onClick={() => setDatabaseModel(database.name)}
             buttonText={database.name}
-            icon={dbImages?.[database.engine]}
+            icon={dbImages?.[database.engine] || ''}
             key={`${database.name}`}
           />
         ))}
