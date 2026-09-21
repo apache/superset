@@ -339,6 +339,7 @@ def test_save_rejects_repoint_to_database_without_access(
     mock_orm.table_name = "my_table"
     mock_orm.schema = "public"
     mock_orm.catalog = None
+    mock_orm.sql = None  # physical dataset
     mock_orm.data = {"id": 1}
     mock_get_datasource.return_value = mock_orm
     # Caller owns the dataset, so that check passes...
@@ -409,6 +410,7 @@ def test_save_allows_repoint_to_database_with_access(
     mock_orm.table_name = "my_table"
     mock_orm.schema = "public"
     mock_orm.catalog = None
+    mock_orm.sql = None  # physical dataset
     mock_orm.data = {"id": 1}
     mock_get_datasource.return_value = mock_orm
     mock_security_manager.raise_for_editorship.return_value = None
@@ -472,6 +474,7 @@ def test_save_checks_access_against_requested_table_not_stale_one(
     mock_orm.table_name = "authorised_table"
     mock_orm.schema = "public"
     mock_orm.catalog = None
+    mock_orm.sql = None  # physical dataset
     mock_orm.data = {"id": 1}
     mock_get_datasource.return_value = mock_orm
     mock_security_manager.raise_for_editorship.return_value = None
@@ -531,6 +534,7 @@ def test_save_rejects_same_database_repoint_to_table_without_access(
     mock_orm.table_name = "authorised_table"
     mock_orm.schema = "public"
     mock_orm.catalog = None
+    mock_orm.sql = None  # physical dataset
     mock_orm.data = {"id": 1}
     mock_get_datasource.return_value = mock_orm
     mock_security_manager.raise_for_editorship.return_value = None
@@ -591,6 +595,7 @@ def test_save_skips_table_check_for_virtual_dataset(
     mock_orm.table_name = "my_virtual_dataset"
     mock_orm.schema = "public"
     mock_orm.catalog = None
+    mock_orm.sql = "SELECT 1"  # already a virtual dataset
     mock_orm.data = {"id": 1}
     mock_get_datasource.return_value = mock_orm
     mock_security_manager.raise_for_editorship.return_value = None
@@ -625,6 +630,67 @@ def test_save_skips_table_check_for_virtual_dataset(
 @patch("superset.views.datasource.views.DatasetDAO.get_database_by_id")
 @patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
 @patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
+def test_save_checks_table_when_virtual_dataset_becomes_physical(
+    mock_get_datasource: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_get_database_by_id: MagicMock,
+    mock_db: MagicMock,
+) -> None:
+    """
+    Dropping ``sql`` turns a virtual dataset into a physical one, binding its
+    ``table_name`` label to a real table. That is a repoint even when the label
+    itself is unchanged, so the target-table check must run -- otherwise the
+    label could be renamed under the virtual-dataset skip and then converted in
+    a second save, reaching a table the caller is not authorised for.
+    """
+    mock_orm = MagicMock()
+    mock_orm.database_id = 1
+    mock_orm.table_name = "secret_table"
+    mock_orm.schema = "finance"
+    mock_orm.catalog = None
+    mock_orm.sql = "SELECT 1"  # currently virtual
+    mock_orm.data = {"id": 1}
+    mock_get_datasource.return_value = mock_orm
+    mock_security_manager.raise_for_editorship.return_value = None
+    mock_security_manager.raise_for_access.side_effect = _security_exception()
+
+    from flask import Flask
+
+    from superset.commands.dataset.exceptions import DatasetForbiddenError
+
+    raw_save = _get_view_func("save")
+    app = Flask(__name__)
+    with app.test_request_context(
+        "/datasource/save/",
+        method="POST",
+        data={
+            "data": superset_json.dumps(
+                {
+                    "id": 1,
+                    "type": "table",
+                    "database": {"id": 1},
+                    # Label unchanged, but sql is gone: the dataset now points
+                    # at the physical finance.secret_table.
+                    "table_name": "secret_table",
+                    "schema": "finance",
+                    "columns": [],
+                }
+            )
+        },
+    ):
+        with pytest.raises(DatasetForbiddenError):
+            raw_save(_view_self())
+
+    mock_security_manager.raise_for_access.assert_called_once()
+    call_kwargs = mock_security_manager.raise_for_access.call_args.kwargs
+    assert call_kwargs["table"].table == "secret_table"
+    assert call_kwargs["table"].schema == "finance"
+
+
+@patch("superset.views.datasource.views.db")
+@patch("superset.views.datasource.views.DatasetDAO.get_database_by_id")
+@patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
+@patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
 def test_save_treats_empty_schema_round_trip_as_unchanged(
     mock_get_datasource: MagicMock,
     mock_security_manager: MagicMock,
@@ -641,6 +707,7 @@ def test_save_treats_empty_schema_round_trip_as_unchanged(
     mock_orm.table_name = "my_table"
     mock_orm.schema = ""
     mock_orm.catalog = ""
+    mock_orm.sql = None  # physical dataset
     mock_orm.data = {"id": 1}
     mock_get_datasource.return_value = mock_orm
     mock_security_manager.raise_for_editorship.return_value = None
@@ -691,6 +758,7 @@ def test_save_allows_unchanged_datasource_without_access_recheck(
     mock_orm.table_name = "my_table"
     mock_orm.schema = "public"
     mock_orm.catalog = None
+    mock_orm.sql = None  # physical dataset
     mock_orm.data = {"id": 1}
     mock_get_datasource.return_value = mock_orm
     mock_security_manager.raise_for_editorship.return_value = None
@@ -744,6 +812,7 @@ def test_save_rejects_repoint_when_table_key_omitted(
     mock_orm.table_name = "authorised_table"
     mock_orm.schema = "public"
     mock_orm.catalog = None
+    mock_orm.sql = None  # physical dataset
     mock_orm.data = {"id": 1}
     mock_get_datasource.return_value = mock_orm
     mock_security_manager.raise_for_editorship.return_value = None
