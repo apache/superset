@@ -989,22 +989,12 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         }
     )
 
-    # Snowflake client-side file-transfer heads: ``PUT``/``GET`` move files
-    # between the client host running the query and a stage, ``REMOVE``/its
-    # ``RM`` alias delete staged files, so they do host file I/O rather than
-    # reading or writing table data. sqlglot models only the quoted-path
-    # ``PUT``/``GET`` forms structurally (``exp.Put``/``exp.Get``); every
-    # other form falls back to ``exp.Command`` with one of these heads.
+    # Snowflake stage file-management heads. ``PUT``/``GET`` move files between
+    # the client host running the query and a stage, so they do file I/O on
+    # that host; ``REMOVE``/its ``RM`` alias delete files within the stage.
+    # None of them read or write table data, so none are analytics queries.
     _CLIENT_FILE_TRANSFER_COMMAND_NAMES: frozenset[str] = frozenset(
         {"PUT", "GET", "REMOVE", "RM"}
-    )
-
-    # Structured counterparts of the heads above, for the quoted-path forms.
-    # Each node's ``key`` is its head lowercased, so the head is derived from
-    # the node rather than listed a second time.
-    _CLIENT_FILE_TRANSFER_NODE_TYPES: tuple[type[exp.Expression], ...] = (
-        exp.Put,
-        exp.Get,
     )
 
     # Command-fallback heads that are only mutating on dialects where the
@@ -1406,13 +1396,14 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
 
         :return: The uppercased command head (e.g. ``"PUT"``), else ``None``.
         """
-        # A quoted local path parses into a structured node instead of the
-        # opaque Command fallback (``PUT 'file://...' @s`` -> ``exp.Put``).
-        # Both nodes are Snowflake-only, so no other dialect is affected.
-        if isinstance(self._parsed, self._CLIENT_FILE_TRANSFER_NODE_TYPES):
-            return self._parsed.key.upper()
-
-        head = self._command_head()
+        # sqlglot models only the quoted-path forms structurally
+        # (``PUT 'file://...' @s`` -> ``exp.Put``, whose ``key`` is the head
+        # lowercased); every other form falls back to an opaque ``exp.Command``.
+        head = (
+            self._parsed.key.upper()
+            if isinstance(self._parsed, (exp.Put, exp.Get))
+            else self._command_head()
+        )
         return head if head in self._CLIENT_FILE_TRANSFER_COMMAND_NAMES else None
 
     def is_destructive(self) -> bool:

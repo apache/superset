@@ -275,7 +275,7 @@ def test_execute_sql_statements_rejects_client_file_transfer(
     with pytest.raises(SupersetDisallowedClientFileTransferException) as excinfo:
         execute_sql_statements(
             query_id=1,
-            rendered_query="PUT file:///tmp/data.csv @my_stage",
+            rendered_query="REMOVE @my_stage/b; PUT file:///tmp/data.csv @my_stage",
             return_results=True,
             store_results=False,
             start_time=None,
@@ -283,7 +283,11 @@ def test_execute_sql_statements_rejects_client_file_transfer(
             log_params={},
         )
 
-    assert "PUT" in excinfo.value.error.message
+    # Sorted and comma-separated, not raw set interpolation.
+    assert excinfo.value.error.message == (
+        "SQL statement contains disallowed client-side "
+        "file-transfer command(s): PUT, REMOVE"
+    )
 
 
 def test_execute_sql_statements_mutates_before_split_by_default(

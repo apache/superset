@@ -250,17 +250,23 @@ def test_execute_delete_without_permission(
 
 @pytest.mark.parametrize("allow_dml", [False, True])
 @pytest.mark.parametrize(
-    "sql",
+    "sql, expected_heads",
     [
         # Per-statement parsing of every form is covered in parse_tests; here
         # one Command fallback, one structured node, one multi-statement.
-        "PUT file:///tmp/data.csv @my_stage",
-        "GET @my_stage 'file:///tmp/'",
-        "SELECT 1; PUT file:///tmp/data.csv @my_stage",
+        ("PUT file:///tmp/data.csv @my_stage", "PUT"),
+        ("GET @my_stage 'file:///tmp/'", "GET"),
+        ("SELECT 1; PUT file:///tmp/data.csv @my_stage", "PUT"),
+        # Several heads render sorted and comma-separated, not as a raw set.
+        ("REMOVE @my_stage/b; PUT file:///tmp/a @my_stage", "PUT, REMOVE"),
     ],
 )
 def test_check_security_rejects_client_file_transfer(
-    mocker: MockerFixture, app_context: None, sql: str, allow_dml: bool
+    mocker: MockerFixture,
+    app_context: None,
+    sql: str,
+    expected_heads: str,
+    allow_dml: bool,
 ) -> None:
     """
     Client-side file-transfer statements are rejected regardless of
@@ -281,8 +287,12 @@ def test_check_security_rejects_client_file_transfer(
         allow_dml=allow_dml,
     )
 
-    with pytest.raises(SupersetSecurityException, match="file-transfer"):
+    with pytest.raises(SupersetSecurityException) as excinfo:
         SQLExecutor(database)._check_security(SQLScript(sql, "snowflake"))
+
+    assert excinfo.value.error.message == (
+        f"Disallowed client-side file-transfer command(s): {expected_heads}"
+    )
 
 
 # =============================================================================
