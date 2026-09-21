@@ -61,9 +61,44 @@ jest.mock('re-resizable', () => {
   return { Resizable: MockResizable };
 });
 
+// jsdom has no layout engine: the viewport reports 0x0 and
+// getBoundingClientRect returns all zeros, which would make every viewport
+// bound degenerate (left === right). Stub a realistic viewport and modal rect
+// so the bounds math is meaningful.
+const VIEWPORT_WIDTH = 1920;
+const VIEWPORT_HEIGHT = 1080;
+const MODAL_RECT = { left: 660, top: 240, width: 600, height: 540 };
+
+const makeRect = (overrides: Partial<DOMRect> = {}): DOMRect =>
+  ({
+    x: MODAL_RECT.left,
+    y: MODAL_RECT.top,
+    left: MODAL_RECT.left,
+    top: MODAL_RECT.top,
+    width: MODAL_RECT.width,
+    height: MODAL_RECT.height,
+    right: MODAL_RECT.left + MODAL_RECT.width,
+    bottom: MODAL_RECT.top + MODAL_RECT.height,
+    ...overrides,
+    toJSON: () => ({}),
+  }) as DOMRect;
+
 beforeEach(() => {
   lastDraggableProps = null;
   lastResizableProps = null;
+  jest
+    .spyOn(document.documentElement, 'clientWidth', 'get')
+    .mockReturnValue(VIEWPORT_WIDTH);
+  jest
+    .spyOn(document.documentElement, 'clientHeight', 'get')
+    .mockReturnValue(VIEWPORT_HEIGHT);
+  jest
+    .spyOn(Element.prototype, 'getBoundingClientRect')
+    .mockReturnValue(makeRect());
+});
+
+afterEach(() => {
+  jest.restoreAllMocks();
 });
 
 const renderModal = (props: Record<string, any> = {}) =>
@@ -317,5 +352,57 @@ describe('Modal controlled Draggable', () => {
     // Bottom/right handles grow away from the anchored top-left; position
     // must stay untouched (no drift).
     expect(lastDraggableProps.position).toEqual({ x: 0, y: 0 });
+  });
+
+  test('allows resize shifts up to the exact viewport edge', () => {
+    renderModal();
+
+    act(() => {
+      lastResizableProps.onResizeStart();
+      lastResizableProps.onResize({}, 'left', {}, { width: 300, height: 0 });
+    });
+
+    // The default rect leaves 660px of slack to the left viewport edge,
+    // so the full 300px shift applies.
+    expect(lastDraggableProps.position).toEqual({ x: -300, y: 0 });
+  });
+
+  test('clamps resize shifts that would push the modal out of the viewport', () => {
+    // Modal flush against the left edge of the screen.
+    jest
+      .spyOn(Element.prototype, 'getBoundingClientRect')
+      .mockReturnValue(makeRect({ left: 0, x: 0, right: MODAL_RECT.width }));
+
+    renderModal();
+
+    act(() => {
+      lastResizableProps.onResizeStart();
+      lastResizableProps.onResize({}, 'left', {}, { width: 400, height: 0 });
+      lastResizableProps.onResize({}, 'top', {}, { width: 0, height: 800 });
+    });
+
+    // The raw shifts would be (-400, -800); each axis is clamped at the
+    // corresponding viewport edge instead.
+    expect(lastDraggableProps.position).toEqual({
+      x: 0,
+      y: -MODAL_RECT.top,
+    });
+  });
+
+  test('repositions on resize even when dragging is disabled', () => {
+    renderModal({ draggable: false });
+
+    expect(
+      screen.getByTestId('mock-draggable').getAttribute('data-disabled'),
+    ).toBe('true');
+
+    act(() => {
+      lastResizableProps.onResizeStart();
+      lastResizableProps.onResize({}, 'topLeft', {}, { width: 80, height: 60 });
+    });
+
+    // Anchoring works without a drag handle, and the shift stays within
+    // the captured viewport bounds.
+    expect(lastDraggableProps.position).toEqual({ x: -80, y: -60 });
   });
 });

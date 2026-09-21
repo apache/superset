@@ -271,6 +271,8 @@ const CustomModal = ({
   const draggableRef = useRef<HTMLDivElement>(null);
   // Modal position at the start of a resize gesture; see onResize below.
   const resizeBasePositionRef = useRef<{ x: number; y: number } | null>(null);
+  // Viewport bounds captured at resize start; see onResize below.
+  const resizeBoundsRef = useRef<DraggableBounds>({});
   const [bounds, setBounds] = useState<DraggableBounds>({});
   // Controlled position for react-draggable. Keeping Draggable in controlled
   // mode lets us sync position with re-resizable's onResize so that resizing
@@ -333,18 +335,27 @@ const CustomModal = ({
   const modalWidth = width || (responsive ? '100vw' : '600px');
   const shouldShowMask = !(resizable || draggable);
 
-  const onDragStart = (_: DraggableEvent, uiData: DraggableData) => {
+  // Computes DraggableBounds confining the modal to the viewport, expressed
+  // relative to the wrapper's current position (x, y). Shared by drag and
+  // resize so both gestures respect the same on-screen limits.
+  const getViewportBounds = (x: number, y: number): DraggableBounds => {
     const { clientWidth, clientHeight } = document.documentElement;
     const targetRect = draggableRef?.current?.getBoundingClientRect();
 
-    if (targetRect) {
-      setBounds({
-        left: -targetRect?.left + uiData?.x,
-        right: clientWidth - (targetRect?.right - uiData?.x),
-        top: -targetRect?.top + uiData?.y,
-        bottom: clientHeight - (targetRect?.bottom - uiData?.y),
-      });
+    if (!targetRect) {
+      return {};
     }
+
+    return {
+      left: -targetRect.left + x,
+      right: clientWidth - (targetRect.right - x),
+      top: -targetRect.top + y,
+      bottom: clientHeight - (targetRect.bottom - y),
+    };
+  };
+
+  const onDragStart = (_: DraggableEvent, uiData: DraggableData) => {
+    setBounds(getViewportBounds(uiData?.x ?? 0, uiData?.y ?? 0));
   };
 
   const getResizableConfig = useMemo(() => {
@@ -415,6 +426,15 @@ const CustomModal = ({
                 {...getResizableConfig}
                 onResizeStart={() => {
                   resizeBasePositionRef.current = position;
+                  // Capture bounds here: react-draggable only clamps during
+                  // drag gestures, so onResize must clamp its own setPosition
+                  // calls or a large resize from the top/left could push the
+                  // modal off-screen with no way to drag it back (e.g. on a
+                  // resizable modal with draggable disabled).
+                  resizeBoundsRef.current = getViewportBounds(
+                    position.x,
+                    position.y,
+                  );
                 }}
                 onResize={(_e, direction, _ref, delta) => {
                   // When resizing from the top or left, the opposite corner
@@ -427,9 +447,21 @@ const CustomModal = ({
                   // case-insensitively.
                   const base = resizeBasePositionRef.current ?? position;
                   const dir = direction.toLowerCase();
+                  const {
+                    left = -Infinity,
+                    right = Infinity,
+                    top = -Infinity,
+                    bottom = Infinity,
+                  } = resizeBoundsRef.current;
                   setPosition(prev => ({
-                    x: dir.includes('left') ? base.x - delta.width : prev.x,
-                    y: dir.includes('top') ? base.y - delta.height : prev.y,
+                    // Only the axis matching the resized edge moves; clamp it
+                    // so the modal cannot be pushed outside the viewport.
+                    x: dir.includes('left')
+                      ? Math.min(Math.max(base.x - delta.width, left), right)
+                      : prev.x,
+                    y: dir.includes('top')
+                      ? Math.min(Math.max(base.y - delta.height, top), bottom)
+                      : prev.y,
                   }));
                 }}
               >
