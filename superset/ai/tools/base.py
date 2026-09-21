@@ -68,6 +68,15 @@ _DISPLAY_BUDGET_FRACTION = 0.5
 _DEFAULT_MAX_BYTES = 256 * 1024
 
 
+def _json_text(payload: Any) -> str:
+    """Keep Unicode readable, escaping only code points that are not valid UTF-8."""
+    return (
+        json.dumps(payload, default=str, ensure_ascii=False)
+        .encode("utf-8", "backslashreplace")
+        .decode("utf-8")
+    )
+
+
 class ToolError(Exception):
     """
     A failure that should be shown to the model rather than raised at the user.
@@ -112,7 +121,7 @@ class ToolOutput:
     ) -> ToolOutput:
         """Serialise ``payload`` as the model-facing content."""
         return cls(
-            content=json.dumps(payload, default=str),
+            content=_json_text(payload),
             display=display,
             payload=payload,
         )
@@ -200,7 +209,7 @@ def truncate_payload(payload: Any, max_bytes: int) -> tuple[str, bool]:
     JSON string mid-token is not. When there is no list to shrink, the text is
     cut and the marker says so.
     """
-    text = json.dumps(payload, default=str)
+    text = _json_text(payload)
     if len(text.encode("utf-8")) <= max_bytes:
         return text, False
 
@@ -226,7 +235,7 @@ def truncate_payload(payload: Any, max_bytes: int) -> tuple[str, bool]:
                     f"request (fewer columns, a tighter filter, a smaller limit) "
                     f"to see the rest."
                 )
-                text = json.dumps(candidate, default=str)
+                text = _json_text(candidate)
                 if len(text.encode("utf-8")) <= max_bytes:
                     return text, True
 

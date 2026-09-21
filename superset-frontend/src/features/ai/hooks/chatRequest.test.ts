@@ -30,7 +30,7 @@ import {
   parseSseEvents,
   streamRun,
 } from './chatRequest';
-import type { AiToolCall } from '../types';
+import { type AiToolCall, parseToolCall } from '../types';
 
 /** Builds a body that yields the given chunks, one read at a time. */
 const streamOf = (chunks: string[]): ReadableStream<Uint8Array> => {
@@ -302,4 +302,67 @@ test('describeToolCall marks a failed step and shows its error', () => {
 
   expect(markdown).toContain('failed');
   expect(markdown).toContain('table not found');
+});
+
+test('tool output decodes JSON Unicode escapes and adds indentation', () => {
+  const markdown = describeToolCall({
+    name: 'get_dashboard_context',
+    ok: true,
+    truncated: false,
+    output:
+      '{"title": "\\u041e\\u0442\\u0447\\u0451\\u0442", "charts": [{"name": "События ✅"}]}',
+  });
+
+  expect(markdown).toContain('{\n  "title": "Отчёт",\n  "charts": [');
+  expect(markdown).toContain('"name": "События ✅"');
+});
+
+test('formatting tool output does not round large identifiers', () => {
+  const markdown = describeToolCall({
+    name: 'external_tool',
+    ok: true,
+    truncated: false,
+    output: '{"title": "Отчёт", "id": 9223372036854775807}',
+  });
+
+  expect(markdown).toContain('"id": 9223372036854775807');
+});
+
+test('a clipped JSON output falls back to its complete structured summary', () => {
+  const call = parseToolCall({
+    name: 'get_dashboard_context',
+    ok: true,
+    output: '{"title": "\\u041e\\u0442',
+    display: {
+      kind: 'dashboard_context',
+      title: 'Отчёт',
+      charts: [{ name: 'События ✅' }],
+    },
+  });
+  expect(call).toBeDefined();
+  if (!call) {
+    throw new Error('Expected a tool call');
+  }
+  const markdown = describeToolCall(call);
+
+  expect(markdown).toContain(
+    '{\n  "kind": "dashboard_context",\n  "title": "Отчёт",',
+  );
+  expect(markdown).toContain('"name": "События ✅"');
+  expect(markdown).not.toContain('\\u041e');
+});
+
+test.each([
+  'Result is not JSON: Отчёт',
+  '{"incomplete": "Отчёт',
+  'literal \\u041e remains literal',
+])('non-JSON output without a summary is preserved: %s', output => {
+  const markdown = describeToolCall({
+    name: 'external_tool',
+    ok: true,
+    truncated: false,
+    output,
+  });
+
+  expect(markdown).toContain(output);
 });

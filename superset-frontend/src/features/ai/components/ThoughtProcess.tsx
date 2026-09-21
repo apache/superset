@@ -42,6 +42,7 @@ import { css, styled } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { REMARK_PLUGINS } from './chatMarkdown';
+import { formatToolOutput } from '../hooks/chatRequest';
 import {
   isSqlResultDisplay,
   type AiToolCall,
@@ -342,10 +343,10 @@ const StepDetail = ({
       {/* Only when there is nothing better: a tool with its own display has
           already been rendered above, and repeating its raw output is the JSON
           dump this view exists to replace. */}
-      {!sql && !call.error && call.output && (
+      {!sql && !call.error && (call.output || call.display) && (
         <>
           <Label>{t('Returned')}</Label>
-          <Code>{call.output.slice(0, MAX_OUTPUT_CHARS)}</Code>
+          <Code>{formatToolOutput(call).slice(0, MAX_OUTPUT_CHARS)}</Code>
         </>
       )}
 

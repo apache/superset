@@ -35,6 +35,8 @@ import {
 } from './AiAssistantPanel';
 import { AI_ACTION_EVENT } from './hooks/useAIAction';
 import type { PageContext } from './hooks/usePageContext';
+import { ThoughtProcess } from './components/ThoughtProcess';
+import { parseToolCall } from './types';
 
 const THREAD_UUID = 'thread-uuid-1';
 const RUN_ID = 'run-1';
@@ -705,6 +707,40 @@ test('a persisted SQL step is shown as SQL, not as a blob of JSON', async () => 
   expect(screen.getByRole('columnheader', { name: 'n' })).toBeInTheDocument();
   expect(screen.getByRole('cell', { name: '5' })).toBeInTheDocument();
 });
+
+test.each([false, true])(
+  'tool details show a Unicode summary even when recorded JSON was clipped (open=%s)',
+  async defaultOpen => {
+    const call = parseToolCall({
+      name: 'get_dashboard_context',
+      ok: true,
+      output: '{"title": "\\u041e\\u0442',
+      display: {
+        kind: 'dashboard_context',
+        title: 'Отчёт',
+        charts: [{ name: '<img src=x onerror=alert(1)>События ✅' }],
+      },
+    });
+    expect(call).toBeDefined();
+    if (!call) {
+      throw new Error('Expected a tool call');
+    }
+    const { container } = render(
+      <ThoughtProcess toolCalls={[call]} defaultOpen={defaultOpen} />,
+    );
+    if (!defaultOpen) {
+      await userEvent.click(screen.getByText(/Thought process/));
+    }
+    await userEvent.click(screen.getByText('get_dashboard_context'));
+
+    const output = screen.getByText(/"title": "Отчёт"/);
+    expect(output.tagName).toBe('PRE');
+    expect(output.textContent).toContain('{\n  "kind": "dashboard_context",');
+    expect(output.textContent).toContain('События ✅');
+    expect(output.textContent).not.toContain('\\u041e');
+    expect(container.querySelector('img')).toBeNull();
+  },
+);
 
 test('a failed step says so without hiding why', async () => {
   streamFrames = [

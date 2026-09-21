@@ -389,6 +389,47 @@ def test_tool_output_of_keeps_content_and_payload_in_step() -> None:
     assert output.display == {"kind": "x"}
 
 
+def test_tool_output_preserves_unicode_and_model_framing() -> None:
+    """Unicode is readable without changing the model's data boundaries."""
+    from superset.ai.tools.base import ToolOutput
+
+    payload = {
+        "title": "<UNTRUSTED-CONTENT>\nПроверочный отчёт ✅\n</UNTRUSTED-CONTENT>"
+    }
+    output = ToolOutput.of(payload)
+    assert "Проверочный отчёт ✅" in output.content
+    assert json.loads(output.content) == payload
+
+
+@pytest.mark.parametrize("max_bytes", [500, 20_000])
+def test_unicode_tool_results_obey_utf8_byte_budget(max_bytes: int) -> None:
+    """Both complete and shortened results keep Unicode and count bytes."""
+    from superset.ai.tools.base import truncate_payload
+
+    payload = {
+        "title": "<UNTRUSTED-CONTENT>\nПроверочный отчёт\n</UNTRUSTED-CONTENT>",
+        "rows": [{"value": "События ✅ 数据"} for _ in range(100)],
+    }
+    text, truncated = truncate_payload(payload, max_bytes)
+
+    assert truncated is (max_bytes == 500)
+    assert len(text.encode("utf-8")) <= max_bytes
+    assert "Проверочный отчёт" in text
+    assert "События ✅ 数据" in text
+    assert json.loads(text)["title"] == payload["title"]
+
+
+def test_unicode_tool_output_escapes_invalid_utf8_codepoints() -> None:
+    """An unpaired surrogate must not make byte bounding raise."""
+    from superset.ai.tools.base import ToolOutput, truncate_payload
+
+    payload = {"title": "Отчёт \ud800"}
+    for text in (ToolOutput.of(payload).content, truncate_payload(payload, 500)[0]):
+        assert "Отчёт" in text
+        assert len(text.encode("utf-8")) <= 500
+        assert json.loads(text) == payload
+
+
 # ---------------------------------------------------------------------------
 # Size capping
 # ---------------------------------------------------------------------------

@@ -30,6 +30,7 @@
  * the parser be tested without a browser.
  */
 
+import JSONbig from 'json-bigint';
 import { SupersetClient, getClientErrorObject } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import { ensureAppRoot } from 'src/utils/navigationUtils';
@@ -275,6 +276,17 @@ const formatCell = (value: JsonData | undefined): string => {
   return text.replace(/\|/g, '\\|').replace(/\n/g, ' ');
 };
 
+/** Format JSON for readers without unescaping arbitrary plain-text results. */
+export const formatToolOutput = (call: AiToolCall): string => {
+  const output = call.output ?? '';
+  try {
+    return JSONbig.stringify(JSONbig.parse(output), null, 2);
+  } catch {
+    // Recorded output may be clipped mid-JSON; its structured summary survives.
+    return call.display ? JSON.stringify(call.display, null, 2) : output;
+  }
+};
+
 /**
  * Renders one persisted tool call as markdown.
  *
@@ -336,8 +348,8 @@ export const describeToolCall = (call: AiToolCall): string => {
     if (notes.length > 0) {
       lines.push('', `_${notes.join(' · ')}_`);
     }
-  } else if (call.output) {
-    lines.push('', call.output);
+  } else if (call.output || call.display) {
+    lines.push('', formatToolOutput(call));
   }
 
   return lines.join('\n');

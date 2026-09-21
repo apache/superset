@@ -155,9 +155,7 @@ export interface AiThread {
  * kinds, so an unrecognised one degrades to the generic step detail rather than
  * hiding the step.
  */
-export interface AiOpaqueDisplay {
-  kind?: string;
-}
+export type AiOpaqueDisplay = JsonRecord;
 
 /** The `sql_result` display: what the warehouse ran, and what came back. */
 export interface AiSqlResultDisplay {
@@ -324,7 +322,7 @@ export function parseToolDisplay(
   }
   const kind = readString(value, 'kind');
   if (kind !== 'sql_result') {
-    return { kind };
+    return value;
   }
   return {
     kind: 'sql_result',
