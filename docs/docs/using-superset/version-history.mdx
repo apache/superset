@@ -19,9 +19,12 @@ down to changes on the entity itself or on the things it depends on.
 
 <img
   src={useBaseUrl('/img/version-history/version-history-panel.jpg')}
-  alt="The version history panel, showing the current version and an earlier save, each expanded to its change descriptions"
+  alt="Illustrative version history panel from an earlier build, showing the current version and an earlier save; starting-version labels differ"
   width="360"
 />
+
+This screenshot illustrates the panel in an earlier build. Its **First tracked
+save** label predates the starting-version labels described below.
 
 The version history panels described here apply to **charts and dashboards**.
 Datasets do not have a dedicated history panel, but their edits are captured
@@ -87,6 +90,12 @@ is described on [Recently Archived](./recently-archived.mdx).
 
 ## Viewing history
 
+An unstamped starting version is labelled **Starting version**: older history
+cannot reliably distinguish an original creation from a retroactive baseline.
+Explicitly recorded baselines and imports retain their **Original version**
+and **Imported** labels. New tracked creations and clones are labelled
+**Created**; older unstamped history is not relabelled retroactively.
+
 On a chart, open **… (actions) → View version history** in Explore. A dashboard
 uses the same entry in its own **… (actions)** menu.
 
@@ -122,7 +131,8 @@ anything.
 />
 
 This screenshot illustrates the preview actions in an earlier build. It
-predates single-selection highlighting: the UI highlights only the previewed
+uses the older **First tracked save** label and predates single-selection
+highlighting: the UI highlights only the previewed
 history group, not both groups as shown. The live group retains its **Current**
 label.
 
