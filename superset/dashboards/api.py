@@ -20,7 +20,7 @@ import logging
 import uuid
 from datetime import datetime
 from io import BytesIO
-from typing import Any, Callable, cast
+from typing import Any, Callable, cast, ClassVar
 from zipfile import is_zipfile, ZipFile
 
 import rison
@@ -89,7 +89,7 @@ from superset.commands.distributed_lock.release import ReleaseDistributedLock
 from superset.commands.exceptions import TagForbiddenError
 from superset.commands.importers.exceptions import NoValidFilesFoundError
 from superset.commands.importers.v1.utils import get_contents_from_bundle
-from superset.commands.purge import PurgeArchivedCommand, SoftDeleteBinding
+from superset.commands.purge import SoftDeleteBinding
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.dashboard import DashboardDAO, EmbeddedDashboardDAO
 from superset.dashboards.filter_scope import derive_json_metadata
@@ -304,6 +304,27 @@ class DashboardRestApi(
     SoftDeleteApiMixin, CustomTagsOptimizationMixin, BaseSupersetModelRestApi
 ):
     datamodel = SQLAInterface(Dashboard)
+
+    restore_command_cls: ClassVar[type[RestoreDashboardCommand]] = (
+        RestoreDashboardCommand
+    )
+    soft_delete_not_found_errors: ClassVar[tuple[type[Exception], ...]] = (
+        DashboardNotFoundError,
+    )
+    soft_delete_forbidden_errors: ClassVar[tuple[type[Exception], ...]] = (
+        DashboardForbiddenError,
+    )
+    restore_failed_errors: ClassVar[tuple[type[Exception], ...]] = (
+        DashboardRestoreFailedError,
+    )
+    restore_conflict_errors: ClassVar[tuple[type[Exception], ...]] = (
+        DashboardSlugConflictError,
+    )
+    soft_delete_logger: ClassVar[logging.Logger] = logger
+    purge_binding: ClassVar[SoftDeleteBinding] = _DASHBOARD_PURGE_BINDING
+    purge_failed_errors: ClassVar[tuple[type[Exception], ...]] = (
+        DashboardDeleteFailedError,
+    )
 
     include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {
         RouteMethod.EXPORT,
@@ -1499,23 +1520,7 @@ class DashboardRestApi(
             500:
               $ref: '#/components/responses/500'
         """
-        try:
-            RestoreDashboardCommand(uuid).run()
-            return self.response(200, message="OK")
-        except DashboardNotFoundError:
-            return self.response_404()
-        except DashboardForbiddenError:
-            return self.response_403()
-        except DashboardSlugConflictError as ex:
-            return self.response_422(message=str(ex))
-        except DashboardRestoreFailedError as ex:
-            logger.error(
-                "Error restoring model %s: %s",
-                self.__class__.__name__,
-                str(ex),
-                exc_info=True,
-            )
-            return self.response_422(message=str(ex))
+        return self._restore_soft_deleted(uuid)
 
     @expose("/<uuid>/purge", methods=("POST",))
     @protect()
@@ -1560,21 +1565,7 @@ class DashboardRestApi(
             500:
               $ref: '#/components/responses/500'
         """
-        try:
-            PurgeArchivedCommand(uuid, _DASHBOARD_PURGE_BINDING).run()
-            return self.response(200, message="OK")
-        except DashboardNotFoundError:
-            return self.response_404()
-        except DashboardForbiddenError:
-            return self.response_403()
-        except DashboardDeleteFailedError as ex:
-            logger.error(
-                "Error purging model %s: %s",
-                self.__class__.__name__,
-                str(ex),
-                exc_info=True,
-            )
-            return self.response_422(message=str(ex))
+        return self._purge_soft_deleted(uuid)
 
     @expose("/export/", methods=("GET",))
     @protect()

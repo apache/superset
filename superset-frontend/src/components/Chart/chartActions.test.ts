@@ -395,7 +395,7 @@ describe('chart actions', () => {
         global as unknown as { featureFlags: Record<string, boolean> }
       ).featureFlags = {
         [FeatureFlag.GlobalAsyncQueries]: true,
-          [FeatureFlag.GlobalTaskFramework]: true,
+        [FeatureFlag.GlobalTaskFramework]: true,
       };
       const result = await handleChartDataResponse(
         { status: 200 } as Response,
@@ -414,7 +414,7 @@ describe('chart actions', () => {
         global as unknown as { featureFlags: Record<string, boolean> }
       ).featureFlags = {
         [FeatureFlag.GlobalAsyncQueries]: true,
-          [FeatureFlag.GlobalTaskFramework]: true,
+        [FeatureFlag.GlobalTaskFramework]: true,
       };
       // On 202 the body is the async job ({task_ids}); once the tasks resolve
       // (stubbed waitForAsyncData invokes the refetch), the re-request returns
