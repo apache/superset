@@ -609,6 +609,13 @@ MCP_RESPONSE_SIZE_CONFIG = {
 | `max_list_items`     | `100`     | Cap on list-field length (e.g. `charts`, `native_filters`) applied to the `get_*_info` tools before falling back to more aggressive truncation. Raised from a hardcoded 30 in earlier versions; the higher default only keeps more data before the same token-budget fallback kicks in, so it's not a breaking change, but tenants that tuned workflows around the old 30-item cap should lower this value explicitly. |
 | `excluded_tools`     | See above | Tools exempt from size checking (e.g., tools that return URLs, not data)                                                                                                                                                                                                                                                                                                                                               |
 
+Write tools that cannot fit after truncation return a minimal confirmation rather
+than a size-limit error. This confirmation retains identifying fields, error
+details, and short string lists such as `changed_fields` (at most 20 items and
+200 total characters). Larger lists are omitted; use `_response_truncated` and
+`_truncation_notes` to detect a partial response and re-read the object if needed.
+This fallback does not slim `update_chart`'s default payload.
+
 ### Caching
 
 Optional response caching for read-heavy workloads. Requires Redis when used with multiple replicas.
