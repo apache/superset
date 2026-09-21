@@ -21,6 +21,7 @@ from __future__ import annotations
 import logging
 import time
 from collections.abc import Callable, Mapping
+from copy import copy
 from dataclasses import dataclass, field
 from typing import Any
 from uuid import UUID
@@ -190,6 +191,13 @@ class ReportExecutionContext:
     capture_reserve_seconds: float = 0.0
     delivery_reserve_seconds: float = 0.0
     cleanup_reserve_seconds: float = 0.0
+    execution_claimed: bool = False
+    _capture_rejection_reasons: list[str] = field(
+        default_factory=list,
+        init=False,
+        compare=False,
+        repr=False,
+    )
 
     def __post_init__(self) -> None:
         """Validate that configured phase reserves fit inside the deadline."""
@@ -206,6 +214,19 @@ class ReportExecutionContext:
                 "Report execution phase reserves must total less than the "
                 "execution budget"
             )
+
+    def with_deadline(
+        self, deadline: ReportExecutionDeadline
+    ) -> "ReportExecutionContext":
+        """Share execution state while bounding a phase with a separate deadline.
+
+        dataclasses.replace resets init=False fields, including sticky capture
+        rejection. A shallow copy must retain those shared mutable containers.
+        """
+        context = copy(self)
+        object.__setattr__(context, "deadline", deadline)
+        context.__post_init__()
+        return context
 
     @property
     def log_context(self) -> str:
@@ -233,6 +254,23 @@ class ReportExecutionContext:
         """Capacity kept for delivery and terminal state persistence."""
 
         return self.delivery_reserve_seconds + self.cleanup_reserve_seconds
+
+    def reject_capture(self, reason: str) -> None:
+        """Permanently disqualify this execution's rendered artifact delivery."""
+
+        self._capture_rejection_reasons.append(reason)
+
+    @property
+    def capture_rejection_reasons(self) -> tuple[str, ...]:
+        """Return immutable reasons recorded by terminal capture validation."""
+
+        return tuple(self._capture_rejection_reasons)
+
+    @property
+    def capture_was_rejected(self) -> bool:
+        """Return whether any capture stage terminally rejected its output."""
+
+        return bool(self._capture_rejection_reasons)
 
 
 def get_report_task_timeout_options(

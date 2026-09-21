@@ -490,7 +490,7 @@ class TestTakeTiledScreenshot:
         with (
             patch(
                 "superset.utils.screenshot_utils.combine_screenshot_tiles",
-                return_value=b"combined",
+                return_value=chart_tile,
             ) as mock_combine,
             patch("superset.utils.screenshot_utils.logger") as mock_logger,
         ):
@@ -501,7 +501,7 @@ class TestTakeTiledScreenshot:
                 report_execution_context=_report_context(),
             )
 
-        assert result == b"combined"
+        assert result == chart_tile
         mock_combine.assert_called_once()
         combined_tiles = mock_combine.call_args.args[0]
         assert len(combined_tiles) == 1
@@ -539,6 +539,7 @@ class TestTakeTiledScreenshot:
 
         mock_page.evaluate.side_effect = evaluate
         mock_page.screenshot.return_value = _png(800, 1000, "white")
+        report_context = _report_context()
 
         with (
             patch("superset.utils.screenshot_utils.logger"),
@@ -554,15 +555,93 @@ class TestTakeTiledScreenshot:
                 mock_page,
                 "dashboard",
                 tile_height=1000,
-                report_execution_context=_report_context(),
+                report_execution_context=report_context,
+            )
+
+        assert mock_page.screenshot.call_count == 3
+        assert report_context.capture_rejection_reasons == ("blank_tile:1/2",)
+        mock_combine.assert_not_called()
+
+    def test_repeated_blank_tiles_fail_closed_for_api_exports(self, mock_page):
+        element_info = {"height": 1000, "top": 0, "left": 0, "width": 800}
+
+        def evaluate(script, _arg=None):
+            if "scrollWidth" in script:
+                return element_info
+            if script == CONTENTFUL_CHART_HOLDERS_IN_CLIP_JS:
+                return {"total": 1, "contentful": 1}
+            if "requestAnimationFrame" in script or "window.scrollTo" in script:
+                return None
+            return [{"chartId": "7", "state": "rendered"}]
+
+        mock_page.evaluate.side_effect = evaluate
+        mock_page.screenshot.return_value = _png(800, 1000, "white")
+
+        with (
+            patch("superset.utils.screenshot_utils.logger"),
+            patch(
+                "superset.utils.screenshot_utils.combine_screenshot_tiles"
+            ) as mock_combine,
+            pytest.raises(
+                ScreenshotBlankCaptureError,
+                match="blank tile 1/1 after 3 attempts",
+            ),
+        ):
+            take_tiled_screenshot(
+                mock_page,
+                "dashboard",
+                tile_height=1000,
+                require_complete_capture=True,
             )
 
         assert mock_page.screenshot.call_count == 3
         mock_combine.assert_not_called()
 
-    def test_blank_combined_image_is_advisory_after_contentful_tiles_pass(
+    def test_blank_combined_image_fails_closed_after_contentful_tiles_pass(
         self, mock_page
     ):
+        element_info = {"height": 1000, "top": 0, "left": 0, "width": 800}
+
+        def evaluate(script, _arg=None):
+            if "scrollWidth" in script:
+                return element_info
+            if script == CONTENTFUL_CHART_HOLDERS_IN_CLIP_JS:
+                return {"total": 1, "contentful": 1}
+            if "requestAnimationFrame" in script or "window.scrollTo" in script:
+                return None
+            return [{"chartId": "7", "state": "rendered"}]
+
+        mock_page.evaluate.side_effect = evaluate
+        mock_page.screenshot.return_value = self._create_chart_like_tile()
+
+        report_context = _report_context()
+        with (
+            patch(
+                "superset.utils.screenshot_utils.combine_screenshot_tiles",
+                return_value=_two_tone_blank(800, 1000),
+            ),
+            patch("superset.utils.screenshot_utils.logger") as mock_logger,
+            pytest.raises(
+                ScreenshotBlankCaptureError,
+                match="Combined report screenshot lost content",
+            ),
+        ):
+            take_tiled_screenshot(
+                mock_page,
+                "dashboard",
+                tile_height=1000,
+                report_execution_context=report_context,
+            )
+
+        assert report_context.capture_rejection_reasons == ("blank_combined",)
+        assert any(
+            call.args[0].startswith("report_capture_blank_combined_rejected")
+            and call.args[1] == 1
+            and call.args[2] == [1]
+            for call in mock_logger.warning.call_args_list
+        )
+
+    def test_blank_combined_image_fails_closed_for_api_exports(self, mock_page):
         element_info = {"height": 1000, "top": 0, "left": 0, "width": 800}
 
         def evaluate(script, _arg=None):
@@ -582,21 +661,57 @@ class TestTakeTiledScreenshot:
                 "superset.utils.screenshot_utils.combine_screenshot_tiles",
                 return_value=_two_tone_blank(800, 1000),
             ),
-            patch("superset.utils.screenshot_utils.logger") as mock_logger,
+            pytest.raises(
+                ScreenshotBlankCaptureError,
+                match="Combined report screenshot lost content",
+            ),
         ):
-            result = take_tiled_screenshot(
+            take_tiled_screenshot(
                 mock_page,
                 "dashboard",
                 tile_height=1000,
-                report_execution_context=_report_context(),
+                require_complete_capture=True,
             )
 
-        assert result == _two_tone_blank(800, 1000)
-        assert any(
-            call.args[0].startswith("report_capture_blank_combined_retained")
-            and call.args[1] == 1
-            for call in mock_logger.warning.call_args_list
+    def test_sparse_contentful_tile_is_not_diluted_by_empty_tiles(self, mock_page):
+        element_info = {"height": 8000, "top": 0, "left": 0, "width": 800}
+        holder_count_calls = 0
+
+        def evaluate(script, _arg=None):
+            nonlocal holder_count_calls
+            if "scrollWidth" in script:
+                return element_info
+            if script == CONTENTFUL_CHART_HOLDERS_IN_CLIP_JS:
+                holder_count_calls += 1
+                return {
+                    "total": 1,
+                    "contentful": 1 if holder_count_calls == 1 else 0,
+                }
+            if "requestAnimationFrame" in script or "window.scrollTo" in script:
+                return None
+            return [{"chartId": "7", "state": "rendered"}]
+
+        sparse_content = Image.new("RGB", (800, 1000), "white")
+        ImageDraw.Draw(sparse_content).rectangle((50, 50, 149, 149), fill=(64, 64, 64))
+        sparse_output = io.BytesIO()
+        sparse_content.save(sparse_output, format="PNG")
+        empty_tile = _png(800, 1000, "white")
+        mock_page.evaluate.side_effect = evaluate
+        mock_page.screenshot.side_effect = [sparse_output.getvalue()] + [empty_tile] * 7
+        report_context = _report_context()
+
+        result = take_tiled_screenshot(
+            mock_page,
+            "dashboard",
+            tile_height=1000,
+            report_execution_context=report_context,
         )
+
+        # The whole image is statistically blank because valid empty-state tiles
+        # dominate it, but its content-bearing region remains valid.
+        assert get_screenshot_blankness_metrics(result).is_blank is True
+        assert report_context.capture_was_rejected is False
+        assert mock_page.screenshot.call_count == 8
 
     def test_blank_combined_image_is_allowed_for_terminal_empty_states(self, mock_page):
         element_info = {"height": 1000, "top": 0, "left": 0, "width": 800}
@@ -723,10 +838,11 @@ class TestTakeTiledScreenshot:
 
         mock_page.evaluate.side_effect = evaluate
         mock_page.screenshot.side_effect = screenshot
+        combined = self._create_chart_like_tile()
 
         with patch(
             "superset.utils.screenshot_utils.combine_screenshot_tiles",
-            return_value=b"combined",
+            return_value=combined,
         ):
             result = take_tiled_screenshot(
                 mock_page,
@@ -735,7 +851,7 @@ class TestTakeTiledScreenshot:
                 report_execution_context=context,
             )
 
-        assert result == b"combined"
+        assert result == combined
         first_call, second_call = mock_page.screenshot.call_args_list
         assert first_call.kwargs["timeout"] == 120_000
         assert second_call.kwargs["timeout"] == 70_000
@@ -802,7 +918,7 @@ class TestTakeTiledScreenshot:
             for call in mock_logger.warning.call_args_list
         )
         assert any(
-            call.args[0].startswith("report_capture_blank_tile_retained")
+            call.args[0].startswith("thumbnail_capture_blank_tile_retained")
             for call in mock_logger.warning.call_args_list
         )
 
@@ -832,10 +948,11 @@ class TestTakeTiledScreenshot:
             return None
 
         mock_page.wait_for_function.side_effect = wait_for_function
+        combined = self._create_chart_like_tile()
 
         with patch(
             "superset.utils.screenshot_utils.combine_screenshot_tiles",
-            return_value=b"combined",
+            return_value=combined,
         ):
             result = take_tiled_screenshot(
                 mock_page,
@@ -844,7 +961,7 @@ class TestTakeTiledScreenshot:
                 report_execution_context=_report_context(),
             )
 
-        assert result == b"combined"
+        assert result == combined
         assert any(
             call.args == ("() => window.__supersetRepaintComplete === true",)
             and call.kwargs == {"timeout": 5000.0}
@@ -1375,6 +1492,7 @@ class TestTakeTiledScreenshot:
         """
         from superset.utils.screenshot_utils import (
             CHART_HOLDERS_READY_JS,
+            DASHBOARD_ALL_CHART_HOLDERS_READY_JS,
             FIND_CHART_HOLDER_STATES_JS,
             FIND_UNREADY_CHART_HOLDERS_JS,
             REPORT_CHART_HOLDERS_READY_JS,
@@ -1391,6 +1509,8 @@ class TestTakeTiledScreenshot:
             assert "holder.className.match(/\\bdashboard-chart-id-(\\d+)\\b/)" in js
         assert "holders.length > 0" not in CHART_HOLDERS_READY_JS
         assert "holders.length > 0" in REPORT_CHART_HOLDERS_READY_JS
+        assert ".dashboard-grid" in DASHBOARD_ALL_CHART_HOLDERS_READY_JS
+        assert "holders.length > 0" not in DASHBOARD_ALL_CHART_HOLDERS_READY_JS
 
         assert "rendered" in FIND_CHART_HOLDER_STATES_JS
         assert "empty" in FIND_CHART_HOLDER_STATES_JS
@@ -1405,6 +1525,7 @@ class TestTakeTiledScreenshot:
         from superset.utils.screenshot_utils import (
             CHART_CONTAINER_READY_JS,
             CHART_HOLDERS_READY_JS,
+            DASHBOARD_ALL_CHART_HOLDERS_READY_JS,
             FIND_CHART_HOLDER_STATES_JS,
             FIND_UNREADY_CHART_HOLDERS_JS,
             REPORT_CHART_HOLDERS_READY_JS,
@@ -1413,6 +1534,7 @@ class TestTakeTiledScreenshot:
         for js in (
             CHART_CONTAINER_READY_JS,
             CHART_HOLDERS_READY_JS,
+            DASHBOARD_ALL_CHART_HOLDERS_READY_JS,
             FIND_CHART_HOLDER_STATES_JS,
             FIND_UNREADY_CHART_HOLDERS_JS,
             REPORT_CHART_HOLDERS_READY_JS,

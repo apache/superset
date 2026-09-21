@@ -24,6 +24,7 @@ import re
 import urllib.parse
 from collections.abc import Callable
 from dataclasses import dataclass
+from functools import lru_cache
 from typing import Any, Generic, Optional, TYPE_CHECKING, TypeVar
 
 import sqlglot
@@ -34,6 +35,7 @@ from sqlglot.dialects.dialect import (
     Dialect,
     Dialects,
     DialectType,
+    NormalizationStrategy,
 )
 from sqlglot.dialects.singlestore import SingleStore
 from sqlglot.errors import OptimizeError, ParseError
@@ -170,6 +172,63 @@ SQLGLOT_DIALECTS = {
     # hence a string name rather than a class reference like the built-in dialects.
     "yql": "ydb",
 }
+
+
+# Engines whose sqlglot dialect normalizes identifiers in general, but whose
+# *object* names (catalog, schema, table) are case-sensitive regardless, so a
+# reference differing only in case names a different table. NORMALIZATION_STRATEGY
+# describes identifier resolution as a whole and doesn't draw this distinction.
+CASE_SENSITIVE_OBJECT_NAMES = {
+    # dataset and table ids are case-sensitive; only column names, aliases and
+    # keywords are not
+    "bigquery",
+    "datastore",
+    # the dfs plugin's table names are filesystem paths
+    "drill",
+    # datasource names are case-sensitive
+    "druid",
+    # shillelagh-backed: the "table" is a URL or an adapter-specific identifier
+    # rather than a SQLite object name
+    "gsheets",
+    "shillelagh",
+    "superset",
+}
+
+
+@lru_cache(maxsize=None)
+def folds_unquoted_object_names(engine: str) -> bool:
+    """
+    Return True when the engine doesn't treat unquoted catalog, schema and table
+    names as case-sensitive, either folding them to a single case (PostgreSQL
+    lowercases, Snowflake uppercases) or ignoring case entirely (SQLite).
+
+    On such an engine a table referenced with mismatched casing still resolves to
+    the same physical table, so callers matching a reference against a stored name
+    must compare case-insensitively rather than exactly.
+
+    This reads the sqlglot dialect, for callers already working with parsed SQL.
+    ``BaseEngineSpec.denormalize_name`` answers a related question from the
+    SQLAlchemy dialect, for callers working with a live connection.
+
+    Note that the dataset lookup behind ``raise_for_access``
+    (``query_datasources_by_name``) deliberately stays case-sensitive: matching a
+    reference case-insensitively there would widen permissions, so it is left
+    fail-closed and is not a caller of this.
+    """
+    if engine in CASE_SENSITIVE_OBJECT_NAMES:
+        return False
+
+    dialect = SQLGLOT_DIALECTS.get(engine)
+    if dialect is None or dialect is Dialects.DIALECT:
+        # an engine with no dialect of its own (including ``base``, what engines
+        # without a spec report): don't guess at its identifier semantics
+        return False
+    try:
+        strategy = Dialect.get_or_raise(dialect).NORMALIZATION_STRATEGY
+    except ValueError:
+        # plugin dialect named by string (see SQLGLOT_DIALECTS) that isn't installed
+        return False
+    return strategy is not NormalizationStrategy.CASE_SENSITIVE
 
 
 def has_aggregate(expression: str, engine: str = "base") -> bool:
@@ -904,6 +963,11 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             # MySQL LOAD DATA INFILE ingests server files into a table;
             # PostgreSQL LOAD '/path/lib.so' dlopens a shared library.
             "LOAD",
+            # MySQL REPLACE INTO is destructive DML and RENAME TABLE is DDL;
+            # both fall back to an opaque exp.Command with these heads (no
+            # structured node), and neither has a read-only form.
+            "REPLACE",
+            "RENAME",
             # NOTE: `SHOW` is intentionally NOT included. It is a read (mutates
             # nothing), so classifying it as mutating would be wrong for every
             # is_mutating()/has_mutation() consumer (the commit decision, the
@@ -934,6 +998,10 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         {
             Dialects.POSTGRES,
             Dialects.STARROCKS,
+            # MySQL shares StarRocks' parser: ordinary `SET var = value` parses
+            # as exp.Set, so the opaque-Command fallback is reached only by the
+            # dangerous forms (SET PASSWORD FOR .../SET ROLE).
+            Dialects.MYSQL,
         }
     )
 
@@ -1219,6 +1287,11 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             # fires for dialects where this instead falls back to
             # exp.Command.
             exp.Refresh,
+            # ATTACH/DETACH (SQLite) connect or disconnect a database file;
+            # ATTACH can bring a writable database into scope. Structured
+            # nodes on SQLite, so the exp.Command fallback never sees them.
+            exp.Attach,
+            exp.Detach,
         )
 
         if self._parsed.find(*mutating_nodes):
