@@ -4135,6 +4135,57 @@ def test_normalize_df_applies_epoch_ms_to_unaggregated_columns() -> None:
     assert result["ts"][2].strftime("%Y-%m-%d") == "2022-01-01"
 
 
+def test_normalize_df_applies_epoch_us_to_unaggregated_columns() -> None:
+    """``epoch_us`` values are microseconds; the raw-column path must convert
+    them with the matching pandas unit."""
+    import pandas as pd
+    from pandas.api.types import is_datetime64_any_dtype
+
+    ts_col = MagicMock(
+        column_name="ts",
+        is_dttm=True,
+        python_date_format="epoch_us",
+        datetime_format=None,
+    )
+    datasource = _normalize_df_datasource(ts_col)
+
+    # 2020-01-01, 2021-01-01, 2022-01-01 as epoch microseconds
+    df = pd.DataFrame({"ts": [1577836800000000, 1609459200000000, 1640995200000000]})
+
+    result = datasource.normalize_df(df, _raw_query_object())
+
+    assert is_datetime64_any_dtype(result["ts"])
+    assert result["ts"][0].strftime("%Y-%m-%d") == "2020-01-01"
+    assert result["ts"][2].strftime("%Y-%m-%d") == "2022-01-01"
+
+
+@pytest.mark.parametrize(
+    "datetime_format,value",
+    [
+        ("epoch_s", 32503680000),
+        ("epoch_ms", 32503680000000),
+        ("epoch_us", 32503680000000000),
+    ],
+)
+def test_retry_temporal_join_values_at_wider_resolution_epoch(
+    datetime_format: str, value: int
+) -> None:
+    """Epoch values outside pandas' nanosecond range (here 3000-01-01) are
+    retried at the resolution matching the declared epoch format."""
+    import pandas as pd
+
+    from superset.models.helpers import (
+        _retry_temporal_join_values_at_wider_resolution,
+    )
+
+    converted = _retry_temporal_join_values_at_wider_resolution(
+        pd.Series([value, None], name="ts"), "ts", datetime_format
+    )
+
+    assert converted[0] == pd.Timestamp("3000-01-01")
+    assert pd.isna(converted[1])
+
+
 def test_normalize_df_handles_dict_shaped_columns() -> None:
     """Some datasources expose columns as dicts rather than objects. The raw
     temporal-column lookup must read is_dttm and python_date_format from either

@@ -31,6 +31,7 @@ from superset.datasets.schemas import validate_python_date_format
     [
         "epoch_ms",
         "epoch_s",
+        "epoch_us",
         "%Y-%m-%dT%H:%M:%S.%f",
         "%Y%m%d",
     ],
