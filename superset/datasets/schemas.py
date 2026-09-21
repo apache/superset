@@ -32,7 +32,6 @@ from marshmallow import (
 from marshmallow.validate import Length, OneOf, Range
 
 from superset import security_manager
-from superset.connectors.sqla.models import SqlaTable
 from superset.connectors.sqla.partition_mapping import MIRRORABLE_OPERATORS
 from superset.constants import EPOCH_FORMATS
 from superset.exceptions import SupersetMarshmallowValidationError
