@@ -22,7 +22,7 @@ import enum
 import logging
 import re
 import urllib.parse
-from collections.abc import Callable, Mapping
+from collections.abc import Callable
 from dataclasses import dataclass
 from functools import lru_cache
 from typing import Any, Generic, Optional, TYPE_CHECKING, TypeVar
@@ -1000,10 +1000,12 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
     )
 
     # Structured counterparts of the heads above, for the quoted-path forms.
-    _CLIENT_FILE_TRANSFER_NODES: Mapping[type[exp.Expression], str] = {
-        exp.Put: "PUT",
-        exp.Get: "GET",
-    }
+    # Each node's ``key`` is its head lowercased, so the head is derived from
+    # the node rather than listed a second time.
+    _CLIENT_FILE_TRANSFER_NODE_TYPES: tuple[type[exp.Expression], ...] = (
+        exp.Put,
+        exp.Get,
+    )
 
     # Command-fallback heads that are only mutating on dialects where the
     # structured form (`exp.Set`) is reserved for benign session variables,
@@ -1407,8 +1409,8 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         # A quoted local path parses into a structured node instead of the
         # opaque Command fallback (``PUT 'file://...' @s`` -> ``exp.Put``).
         # Both nodes are Snowflake-only, so no other dialect is affected.
-        if name := self._CLIENT_FILE_TRANSFER_NODES.get(type(self._parsed)):
-            return name
+        if isinstance(self._parsed, self._CLIENT_FILE_TRANSFER_NODE_TYPES):
+            return self._parsed.key.upper()
 
         head = self._command_head()
         return head if head in self._CLIENT_FILE_TRANSFER_COMMAND_NAMES else None
