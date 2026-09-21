@@ -190,7 +190,55 @@ export async function embedDashboard({
     return configNumber;
   }
 
-  async function mountIframe(): Promise<Switchboard> {
+  // Hoisted above `mountIframe`: its `load` listener fires on every load of the
+  // iframe — including the ones a link internal to the dashboard triggers — and
+  // has to re-authenticate the new document on the port it just created. The
+  // definite assignment is the listener's: it runs before `mountIframe` resolves.
+  let ourPort!: Switchboard;
+  let refreshTimer: ReturnType<typeof setTimeout> | undefined;
+  let unmounted = false;
+  // Bumped by every token cycle, so a refresh left in flight by a reload stops
+  // instead of emitting a stale token and arming a second timer.
+  let generation = 0;
+  // Methods the host defined on the port. A reloaded document has never heard
+  // of them, so they are replayed on every new port.
+  const hostMethods: Record<string, (args: any) => any> = {};
+
+  // Hand a freshly loaded document its own end of a new MessageChannel.
+  function connect(iframe: HTMLIFrameElement): Switchboard {
+    // MessageChannel allows us to send and receive messages smoothly between our window and the iframe
+    // See https://developer.mozilla.org/en-US/docs/Web/API/Channel_Messaging_API
+    const commsChannel = new MessageChannel();
+
+    // Send one of the message channel ports to the iframe to initialize embedded comms
+    // See https://developer.mozilla.org/en-US/docs/Web/API/Window/postMessage
+    // we know the content window isn't null because we are called from the load event handler.
+    iframe.contentWindow!.postMessage(
+      { type: IFRAME_COMMS_MESSAGE_TYPE, handshake: "port transfer" },
+      supersetDomain,
+      [commsChannel.port2],
+    );
+    log("sent message channel to the iframe");
+
+    const port = new Switchboard({
+      port: commsChannel.port1,
+      name: "superset-embedded-sdk",
+      debug,
+    });
+    port.start();
+    Object.entries(hostMethods).forEach(([name, fn]) => {
+      port.defineMethod(name, fn);
+    });
+    return port;
+  }
+
+  // Define a method on the current port, and on every port that follows it.
+  function defineHostMethod(name: string, fn: (args: any) => any) {
+    hostMethods[name] = fn;
+    ourPort.defineMethod(name, fn);
+  }
+
+  async function mountIframe(): Promise<void> {
     return new Promise((resolve) => {
       const iframe = document.createElement("iframe");
       const dashboardConfigUrlParams = dashboardUiConfig
@@ -232,31 +280,23 @@ export async function embedDashboard({
       }
 
       // add the event listener before setting src, to be 100% sure that we capture the load event
+      let firstLoad = true;
       iframe.addEventListener("load", () => {
-        // MessageChannel allows us to send and receive messages smoothly between our window and the iframe
-        // See https://developer.mozilla.org/en-US/docs/Web/API/Channel_Messaging_API
-        const commsChannel = new MessageChannel();
-        const ourPort = commsChannel.port1;
-        const theirPort = commsChannel.port2;
-
-        // Send one of the message channel ports to the iframe to initialize embedded comms
-        // See https://developer.mozilla.org/en-US/docs/Web/API/Window/postMessage
-        // we know the content window isn't null because we are in the load event handler.
-        iframe.contentWindow!.postMessage(
-          { type: IFRAME_COMMS_MESSAGE_TYPE, handshake: "port transfer" },
-          supersetDomain,
-          [theirPort],
-        );
-        log("sent message channel to the iframe");
-
-        // return our port from the promise
-        resolve(
-          new Switchboard({
-            port: ourPort,
-            name: "superset-embedded-sdk",
-            debug,
-          }),
-        );
+        // A detached iframe can still report a load, and has no content window
+        // left to hand a port to.
+        if (unmounted || !iframe.contentWindow) return;
+        ourPort = connect(iframe);
+        if (firstLoad) {
+          firstLoad = false;
+          resolve();
+          return;
+        }
+        // The dashboard followed a link of its own. The new document is waiting
+        // for a guest token on THIS port, and the one we hold may be seconds
+        // from expiring, so ask the host for a fresh one.
+        log("iframe reloaded, re-authenticating on the new port");
+        if (refreshTimer !== undefined) clearTimeout(refreshTimer);
+        void refreshGuestToken();
       });
       iframe.src = `${supersetDomain}/embedded/${id}${urlParamsString}`;
       iframe.title = iframeTitle;
@@ -276,9 +316,8 @@ export async function embedDashboard({
   }
 
   let guestToken: string;
-  let ourPort: Switchboard;
   try {
-    [guestToken, ourPort] = await Promise.all([
+    [guestToken] = await Promise.all([
       fetchGuestTokenWithTimeout(),
       mountIframe(),
     ]);
@@ -286,24 +325,37 @@ export async function embedDashboard({
     // If the initial token fetch (or timeout) rejects after the iframe has
     // already been mounted, tear down the partially initialized iframe so the
     // host isn't left with an orphaned embedded dashboard before rethrowing.
+    // `unmounted` also stops a refresh cycle a reload may have started in the
+    // meantime.
+    unmounted = true;
     //@ts-ignore
     mountPoint.replaceChildren();
     throw err;
   }
 
-  ourPort.emit("guestToken", { guestToken });
-  log("sent guest token");
+  // `generation` is still 0 unless the iframe reloaded while this token was in
+  // flight, in which case that cycle owns the port and has armed its own timer,
+  // and this token is the older of the two.
+  if (generation === 0) {
+    ourPort.emit("guestToken", { guestToken });
+    log("sent guest token");
+    refreshTimer = setTimeout(
+      refreshGuestToken,
+      getGuestTokenRefreshTiming(guestToken),
+    );
+  }
 
-  // Track the pending refresh timer so it can be cancelled on unmount, and
-  // stop the cycle once unmounted so it cannot leak across mount/unmount cycles.
-  let refreshTimer: ReturnType<typeof setTimeout> | undefined;
-  let unmounted = false;
-
+  // Emits on whichever port is current: a reload replaces it, and the document
+  // behind the old one is gone.
   async function refreshGuestToken() {
     if (unmounted) return;
+    const gen = ++generation;
     try {
       const newGuestToken = await fetchGuestTokenWithTimeout();
-      if (unmounted) return;
+      // A reload (or an unmount) happened while we were fetching: that cycle
+      // owns the port now, and emitting here would only double the traffic to
+      // the host's token endpoint.
+      if (unmounted || gen !== generation) return;
       ourPort.emit("guestToken", { guestToken: newGuestToken });
       refreshTimer = setTimeout(
         refreshGuestToken,
@@ -314,7 +366,7 @@ export async function embedDashboard({
       // refresh cycle. Log it and retry so the session can recover once the
       // host callback succeeds again.
       log("failed to refresh guest token, will retry:", err);
-      if (unmounted) return;
+      if (unmounted || gen !== generation) return;
       refreshTimer = setTimeout(
         refreshGuestToken,
         DEFAULT_TOKEN_REFRESH_RETRY_MS,
@@ -322,15 +374,10 @@ export async function embedDashboard({
     }
   }
 
-  refreshTimer = setTimeout(
-    refreshGuestToken,
-    getGuestTokenRefreshTiming(guestToken),
-  );
-
   // Register the resolvePermalinkUrl method for the iframe to call
   // Returns null if no callback provided or on error, allowing iframe to use default URL
-  ourPort.start();
-  ourPort.defineMethod(
+  // Defined through `defineHostMethod` so a reloaded document gets it too.
+  defineHostMethod(
     "resolvePermalinkUrl",
     async ({ key }: { key: string }): Promise<string | null> => {
       if (!resolvePermalinkUrl) {
@@ -381,7 +428,7 @@ export async function embedDashboard({
   const getChartDataPayloads = (params?: { chartId?: number }) =>
     ourPort.get<Record<string, any>>("getChartDataPayloads", params);
   const observeDataMask = (callbackFn: ObserveDataMaskCallbackFn) => {
-    ourPort.defineMethod("observeDataMask", callbackFn);
+    defineHostMethod("observeDataMask", callbackFn);
   };
   // TODO: Add proper types once theming branch is merged
   const setThemeConfig = async (
