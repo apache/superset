@@ -41,6 +41,17 @@ def _column_names(dataset: Any) -> set[str]:
     return {column.column_name for column in dataset.columns}
 
 
+def _rollback() -> None:
+    """Best-effort session rollback so a failed lookup cannot poison the
+    request's transaction; rollback failures are logged, not raised."""
+    from superset import db
+
+    try:
+        db.session.rollback()  # pylint: disable=consider-using-transaction
+    except SQLAlchemyError:
+        logger.warning("Database rollback failed during update_dataset error handling")
+
+
 def _sync_error_message(ex: Exception) -> str:
     # Raw SQLAlchemy text can leak SQL or connection details; Superset
     # exception messages are user-facing by design.
@@ -128,8 +139,17 @@ async def update_dataset(  # noqa: C901
             joinedload(SqlaTable.database),
         ]
 
-        with event_logger.log_context(action="mcp.update_dataset.lookup"):
-            dataset = resolve_dataset(request.dataset_id, eager_options)
+        try:
+            with event_logger.log_context(action="mcp.update_dataset.lookup"):
+                dataset = resolve_dataset(request.dataset_id, eager_options)
+        except SQLAlchemyError:
+            # Same structured answer as delete_dataset and restore_dataset,
+            # without leaking SQL or connection details.
+            _rollback()
+            logger.exception("Dataset lookup failed during update_dataset")
+            return UpdateDatasetResponse(
+                error="Dataset lookup failed due to a database error.",
+            )
 
         if dataset is None:
             display_id = str(request.dataset_id)[:200]

@@ -215,6 +215,7 @@ async def test_list_datasets_basic(mock_list, mcp_server):
     dataset tool responses are structured.
     """
     dataset = MagicMock()
+    dataset.deleted_at = None
     dataset.id = 1
     dataset.table_name = "Test DatasetInfo"
     dataset.schema = "main"
@@ -369,6 +370,7 @@ async def test_list_datasets_certified_filter(
 async def test_list_datasets_custom_uuid_columns(mock_list, mcp_server):
     """Test that custom column selection includes UUID when explicitly requested."""
     dataset = MagicMock()
+    dataset.deleted_at = None
     dataset.id = 1
     dataset.table_name = "custom_dataset"
     dataset.schema = "public"
@@ -449,6 +451,7 @@ async def test_list_datasets_custom_uuid_columns(mock_list, mcp_server):
 @pytest.mark.asyncio
 async def test_list_datasets_with_filters(mock_list, mcp_server):
     dataset = MagicMock()
+    dataset.deleted_at = None
     dataset.id = 2
     dataset.table_name = "Filtered Dataset"
     dataset.schema = "main"
@@ -552,6 +555,7 @@ async def test_list_datasets_with_filters(mock_list, mcp_server):
 @pytest.mark.asyncio
 async def test_list_datasets_with_string_filters(mock_list, mcp_server):
     dataset = MagicMock()
+    dataset.deleted_at = None
     dataset.id = 3
     dataset.table_name = "String Filter Dataset"
     dataset.schema = "main"
@@ -629,6 +633,7 @@ async def test_list_datasets_api_error(mock_list, mcp_server):
 @pytest.mark.asyncio
 async def test_list_datasets_with_search(mock_list, mcp_server):
     dataset = MagicMock()
+    dataset.deleted_at = None
     dataset.id = 1
     dataset.table_name = "search_table"
     dataset.schema = "public"
@@ -722,6 +727,7 @@ async def test_list_datasets_with_search(mock_list, mcp_server):
 @pytest.mark.asyncio
 async def test_list_datasets_simple_with_search(mock_list, mcp_server):
     dataset = MagicMock()
+    dataset.deleted_at = None
     dataset.id = 2
     dataset.table_name = "simple_search"
     dataset.schema = "analytics"
@@ -815,6 +821,7 @@ async def test_list_datasets_simple_with_search(mock_list, mcp_server):
 @pytest.mark.asyncio
 async def test_list_datasets_simple_basic(mock_list, mcp_server):
     dataset = MagicMock()
+    dataset.deleted_at = None
     dataset.id = 1
     dataset.table_name = "Test DatasetInfo"
     dataset.schema = "main"
@@ -912,6 +919,7 @@ async def test_list_datasets_simple_basic(mock_list, mcp_server):
 @pytest.mark.asyncio
 async def test_list_datasets_simple_with_filters(mock_list, mcp_server):
     dataset = MagicMock()
+    dataset.deleted_at = None
     dataset.id = 2
     dataset.table_name = "Sales Dataset"
     dataset.schema = "main"
@@ -1028,6 +1036,7 @@ async def test_list_datasets_simple_api_error(mock_list, mcp_server):
 @pytest.mark.asyncio
 async def test_get_dataset_info_success(mock_info, mock_base_url, mcp_server):
     dataset = MagicMock()
+    dataset.deleted_at = None
     dataset.id = 1
     dataset.table_name = "Test DatasetInfo"
     dataset.schema = "main"
@@ -1169,6 +1178,7 @@ async def test_list_datasets_with_database_name_filter(mock_list, mcp_server):
 @pytest.mark.asyncio
 async def test_get_dataset_info_includes_columns_and_metrics(mock_info, mcp_server):
     dataset = MagicMock()
+    dataset.deleted_at = None
     dataset.id = 10
     dataset.table_name = "Dataset With Columns"
     dataset.schema = "main"
@@ -1277,6 +1287,7 @@ async def test_list_datasets_includes_columns_and_metrics(mock_list, mcp_server)
     include them.
     """
     dataset = MagicMock()
+    dataset.deleted_at = None
     dataset.id = 11
     dataset.table_name = "DatasetList With Columns"
     dataset.schema = "main"
@@ -1356,6 +1367,7 @@ async def test_list_datasets_includes_columns_and_metrics(mock_list, mcp_server)
 async def test_get_dataset_info_by_uuid(mock_find_object, mcp_server):
     """Test getting dataset info using UUID identifier."""
     dataset = MagicMock()
+    dataset.deleted_at = None
     dataset.id = 1
     dataset.table_name = "Test Dataset UUID"
     dataset.schema = "main"
@@ -1909,6 +1921,7 @@ def _make_mock_virtual_dataset(
         metric_names = []
 
     dataset = MagicMock()
+    dataset.deleted_at = None
     dataset.id = id
     dataset.table_name = table_name
 

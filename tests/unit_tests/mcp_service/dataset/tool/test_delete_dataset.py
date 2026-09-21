@@ -68,6 +68,7 @@ def _mock_dataset(dataset_id: int = 10, table_name: str = "orders") -> Mock:
 @patch(_RESOLVE)
 @pytest.mark.asyncio
 async def test_delete_dataset_not_found(mock_resolve: Mock, mcp_server: object) -> None:
+    """An identifier that resolves to no dataset returns NotFound naming it."""
     mock_resolve.return_value = None
 
     async with Client(mcp_server) as client:
@@ -88,6 +89,7 @@ async def test_delete_dataset_not_found(mock_resolve: Mock, mcp_server: object) 
 async def test_delete_dataset_success(
     mock_resolve: Mock, mock_run: Mock, mock_count: Mock, mcp_server: object
 ) -> None:
+    """The happy path: the dataset is resolved, deleted and its dependents counted."""
     mock_resolve.return_value = _mock_dataset(dataset_id=10, table_name="orders")
     mock_run.return_value = None
 
@@ -113,6 +115,7 @@ async def test_delete_dataset_success(
 async def test_delete_dataset_by_uuid(
     mock_resolve: Mock, mock_run: Mock, mock_count: Mock, mcp_server: object
 ) -> None:
+    """A UUID identifier is passed through to the dataset lookup unchanged."""
     uuid = "11111111-2222-3333-4444-555555555555"
     mock_resolve.return_value = _mock_dataset(dataset_id=10)
 
@@ -137,6 +140,7 @@ async def test_delete_dataset_soft_delete_reports_restorable(
     mock_count: Mock,
     mcp_server: object,
 ) -> None:
+    """With SOFT_DELETE on, the response says the dataset can be restored."""
     mock_resolve.return_value = _mock_dataset(dataset_id=10, table_name="orders")
     mock_run.return_value = None
     mock_flag.side_effect = lambda flag: flag == "SOFT_DELETE"
@@ -164,6 +168,7 @@ async def test_delete_dataset_hard_delete_reports_permanent(
     mock_count: Mock,
     mcp_server: object,
 ) -> None:
+    """With SOFT_DELETE off, the response says the delete is permanent."""
     mock_resolve.return_value = _mock_dataset(dataset_id=10, table_name="orders")
     mock_run.return_value = None
     mock_flag.return_value = False
@@ -186,6 +191,7 @@ async def test_delete_dataset_hard_delete_reports_permanent(
 async def test_delete_dataset_reports_affected_charts(
     mock_resolve: Mock, mock_run: Mock, mock_count: Mock, mcp_server: object
 ) -> None:
+    """Dependent charts and dashboards are counted in the response."""
     mock_resolve.return_value = _mock_dataset(dataset_id=10, table_name="orders")
 
     async with Client(mcp_server) as client:
@@ -234,6 +240,8 @@ def test_count_affected_objects_only_counts_accessible() -> None:
 async def test_delete_dataset_permission_denied(
     mock_resolve: Mock, mock_run: Mock, mock_count: Mock, mcp_server: object
 ) -> None:
+    """A caller who may not delete the dataset gets Forbidden before any
+    dependents are counted or anything is deleted."""
     from superset.commands.dataset.exceptions import DatasetForbiddenError
 
     mock_resolve.return_value = _mock_dataset(dataset_id=10, table_name="orders")

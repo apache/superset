@@ -545,3 +545,22 @@ async def test_update_dataset_main_dttm_col_update_failure_is_partial(
     assert len(data["warnings"]) == 1
     assert "main_dttm_col was not changed to 'ds'" in data["warnings"][0]
     assert "rest of the update was saved" in data["warnings"][0]
+
+
+@pytest.mark.asyncio
+async def test_update_dataset_lookup_db_error_is_structured(
+    mcp_server: FastMCP,
+) -> None:
+    """A database failure while resolving the dataset returns a structured
+    error instead of escaping the tool, and does not leak the driver text."""
+    from sqlalchemy.exc import OperationalError
+
+    with (
+        patch(_FIND, side_effect=OperationalError("SELECT ...", {}, Exception("down"))),
+        patch(_UPDATE) as update_cls,
+    ):
+        data = await call_update(mcp_server, dataset_id=1, description="x")
+
+    assert data["error"] == "Dataset lookup failed due to a database error."
+    assert "down" not in data["error"]
+    update_cls.assert_not_called()

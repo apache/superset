@@ -73,6 +73,7 @@ def _mock_dataset(
 @patch(_FIND)
 @pytest.mark.asyncio
 async def test_restore_dataset_not_found(mock_find: Mock, mcp_server: object) -> None:
+    """An identifier that resolves to no dataset returns NotFound naming it."""
     mock_find.return_value = None
 
     async with Client(mcp_server) as client:
@@ -91,6 +92,7 @@ async def test_restore_dataset_not_found(mock_find: Mock, mcp_server: object) ->
 async def test_restore_dataset_not_in_trash(
     mock_find: Mock, mcp_server: object
 ) -> None:
+    """A live dataset is reported as NotDeleted and never reaches the command."""
     mock_find.return_value = _mock_dataset(deleted=False)
 
     async with Client(mcp_server) as client:
@@ -110,6 +112,7 @@ async def test_restore_dataset_not_in_trash(
 async def test_restore_dataset_success_by_numeric_id(
     mock_find: Mock, mock_command: Mock, mcp_server: object
 ) -> None:
+    """A numeric ID restores the dataset through RestoreDatasetCommand."""
     mock_find.return_value = _mock_dataset(dataset_id=10, table_name="orders")
 
     async with Client(mcp_server) as client:
@@ -132,6 +135,7 @@ async def test_restore_dataset_success_by_numeric_id(
 async def test_restore_dataset_success_by_uuid(
     mock_find: Mock, mock_command: Mock, mcp_server: object
 ) -> None:
+    """A UUID identifier resolves through the same unfiltered lookup."""
     mock_find.return_value = _mock_dataset(dataset_id=10, table_name="orders")
 
     async with Client(mcp_server) as client:
@@ -154,6 +158,7 @@ async def test_restore_dataset_success_by_uuid(
 async def test_restore_dataset_permission_denied(
     mock_find: Mock, mock_command: Mock, mcp_server: object
 ) -> None:
+    """DatasetForbiddenError from the command maps to permission_denied."""
     from superset.commands.dataset.exceptions import DatasetForbiddenError
 
     mock_find.return_value = _mock_dataset(dataset_id=10, table_name="orders")
@@ -200,6 +205,7 @@ async def test_restore_dataset_logical_duplicate(
 async def test_restore_dataset_restore_failed(
     mock_find: Mock, mock_command: Mock, mcp_server: object
 ) -> None:
+    """Other command failures return a structured error, not a permission one."""
     from superset.commands.dataset.exceptions import DatasetRestoreFailedError
 
     mock_find.return_value = _mock_dataset(dataset_id=10, table_name="orders")
@@ -359,6 +365,8 @@ async def test_restore_dataset_visible_non_editor_gets_nameless_forbidden(
 async def test_restore_dataset_editorship_check_db_error_is_structured(
     mock_find: Mock, mcp_server: object
 ) -> None:
+    """A database failure inside the editorship gate returns LookupFailed
+    without leaking the driver text."""
     from sqlalchemy.exc import OperationalError
 
     mock_find.return_value = _mock_dataset()
