@@ -30,7 +30,11 @@ from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.commands.dashboard.exceptions import DashboardNotFoundError
 from superset.commands.exceptions import CommandException, ForbiddenError
-from superset.exceptions import SupersetSecurityException, SupersetTemplateException
+from superset.exceptions import (
+    SupersetParseError,
+    SupersetSecurityException,
+    SupersetTemplateException,
+)
 from superset.explore.permalink.types import ExplorePermalinkValue
 from superset.extensions import event_logger
 from superset.mcp_service.chart.chart_helpers import (
@@ -111,14 +115,15 @@ def _get_explore_permalink(
             error="You do not have access to the chart or dataset in this permalink.",
             error_type="PermalinkAccessDenied",
         )
-    except SupersetTemplateException as ex:
-        # The access check renders a SQL Lab query's Jinja to find its tables;
-        # a broken template means access cannot be checked at all.
-        logger.warning("Failed to render explore permalink query: %s", ex)
+    except (SupersetTemplateException, SupersetParseError) as ex:
+        # The access check renders a SQL Lab query's Jinja and parses the
+        # result to find its tables; if either fails, access cannot be checked
+        # at all. The message stays generic: parser errors quote the SQL.
+        logger.warning("Failed to render or parse explore permalink query: %s", ex)
         return ChartError(
             error=(
-                "The SQL Lab query behind this permalink has a template error, "
-                "so access to it could not be checked."
+                "The SQL of the SQL Lab query behind this permalink could not be "
+                "rendered or parsed, so access to it could not be checked."
             ),
             error_type="InvalidPermalink",
         )

@@ -386,8 +386,27 @@ async def test_permalink_query_with_template_error(mcp_server: FastMCP) -> None:
         data = await _call(mcp_server, permalink_key="abc123")
 
     assert data["error_type"] == "InvalidPermalink"
-    assert "template error" in data["error"]
+    assert "could not be rendered or parsed" in data["error"]
     assert "secret" not in data["error"]
+
+
+@pytest.mark.asyncio
+async def test_permalink_query_with_unparsable_sql(mcp_server: FastMCP) -> None:
+    """raise_for_access parses the query's SQL to find its tables; SQL that
+    cannot be parsed raises SupersetParseError, a sibling of the exceptions
+    above, which must not escape the tool either."""
+    from superset.exceptions import SupersetParseError
+
+    command = MagicMock()
+    command.return_value.run.side_effect = SupersetParseError(
+        "SELECT FROM secret_table WHERE ((( ;;; )))", highlight="secret_table"
+    )
+    with patch(_COMMAND, command):
+        data = await _call(mcp_server, permalink_key="abc123")
+
+    assert data["error_type"] == "InvalidPermalink"
+    assert "could not be rendered or parsed" in data["error"]
+    assert "secret_table" not in data["error"]
 
 
 @pytest.mark.asyncio
