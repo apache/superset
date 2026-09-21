@@ -859,6 +859,8 @@ class BaseReportState:
         context = self._report_execution_context
         if context is None or not context.execution_claimed:
             return
+        # This no-op UPDATE needs matched-row counts, not changed-row counts.
+        # SQLAlchemy's MySQL dialect enables CLIENT_FOUND_ROWS for this contract.
         with db.session.no_autoflush:
             owned = (
                 db.session.query(ReportSchedule)
