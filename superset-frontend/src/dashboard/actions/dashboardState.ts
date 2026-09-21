@@ -25,7 +25,7 @@ import {
   FeatureFlag,
   getLabelsColorMap,
   SupersetClient,
-  getClientErrorObject,
+  getErrorText,
   getCategoricalSchemeRegistry,
   promiseTimeout,
   JsonObject,
@@ -647,18 +647,7 @@ export function saveDashboardRequest(
 
     const onError = async (response: Response): Promise<void> => {
       logging.error(response);
-      const { error, message } = await getClientErrorObject(response);
-      let errorText = t('Sorry, an unknown error occurred');
-
-      if (error) {
-        errorText = t(
-          'Sorry, there was an error saving this dashboard: %s',
-          error,
-        );
-      }
-      if (typeof message === 'string' && message === 'Forbidden') {
-        errorText = t('You do not have permission to edit this dashboard');
-      }
+      const errorText = await getErrorText(response, 'dashboard');
       dispatch(saveDashboardFinished());
       dispatch(addDangerToast(errorText));
     };
