@@ -640,6 +640,18 @@ class BaseReportState:
                 "during execution"
             ) from ex
 
+    def _download_reason(self) -> str:
+        """Reason recorded for scheduled exports when REQUIRE_DOWNLOAD_REASON is on.
+
+        Reports fetch chart data through the same export endpoints as users, so
+        they must supply a reason too; this also makes report-driven downloads
+        identifiable in the Action Log.
+        """
+        return (
+            f"Scheduled report: {self._report_schedule.name} "
+            f"(id={self._report_schedule.id})"
+        )
+
     def _get_url(
         self,
         user_friendly: bool = False,
@@ -698,6 +710,7 @@ class BaseReportState:
                     format=result_format.value,
                     type=ChartDataResultType.POST_PROCESSED.value,
                     force=force,
+                    download_reason=self._download_reason(),
                 )
             return get_url_path(
                 "ExploreView.root",
@@ -1271,7 +1284,9 @@ class BaseReportState:
                     )
             else:
                 request_payload = self._get_chart_data_request_payload(result_format)
-                url = get_url_path("ChartDataRestApi.data")
+                url = get_url_path(
+                    "ChartDataRestApi.data", download_reason=self._download_reason()
+                )
                 endpoint = "/api/v1/chart/data"
 
                 def fetch(timeout: float | None) -> bytes | None:

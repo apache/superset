@@ -16,7 +16,7 @@
 # under the License.
 import logging
 from datetime import datetime
-from typing import Any, Callable, cast, Optional
+from typing import Any, cast, Optional
 from urllib import parse
 
 from flask import current_app as app, request, Response
@@ -302,13 +302,8 @@ class SqlLabRestApi(BaseSupersetApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.export_csv",
         log_to_statsd=False,
-        allow_extra_payload=True,
     )
-    def export_csv(
-        self,
-        client_id: str,
-        add_extra_log_payload: Callable[..., None] = lambda **kwargs: None,
-    ) -> CsvResponse:
+    def export_csv(self, client_id: str) -> CsvResponse:
         """Export the SQL query results to a CSV.
         ---
         get:
@@ -342,7 +337,7 @@ class SqlLabRestApi(BaseSupersetApi):
         ) and not security_manager.can_access("can_export_data", "Superset"):
             return self.response_403()
         try:
-            check_download_reason(add_extra_log_payload)
+            check_download_reason()
         except DownloadReasonRequiredError as ex:
             return self.response_400(message=ex.error.message)
         result = SqlResultExportCommand(client_id=client_id).run()
@@ -378,11 +373,8 @@ class SqlLabRestApi(BaseSupersetApi):
             f"{self.__class__.__name__}.export_streaming_csv"
         ),
         log_to_statsd=False,
-        allow_extra_payload=True,
     )
-    def export_streaming_csv(
-        self, add_extra_log_payload: Callable[..., None] = lambda **kwargs: None
-    ) -> Response:
+    def export_streaming_csv(self) -> Response:
         """Export SQL query results using streaming for large datasets.
         ---
         post:
@@ -427,7 +419,7 @@ class SqlLabRestApi(BaseSupersetApi):
         ) and not security_manager.can_access("can_export_data", "Superset"):
             return self.response_403()
         try:
-            check_download_reason(add_extra_log_payload)
+            check_download_reason()
         except DownloadReasonRequiredError as ex:
             return self.response_400(message=ex.error.message)
         # Extract parameters from form data

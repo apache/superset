@@ -16,17 +16,16 @@
 # under the License.
 """Optional "download reason" capture for data exports.
 
-When the REQUIRE_DOWNLOAD_REASON feature flag is on, the frontend asks the
+When the ``REQUIRE_DOWNLOAD_REASON`` feature flag is on, the frontend asks the
 user for a reason before exporting data (CSV/XLSX from SQL Lab, Explore and
-dashboards) and sends it as the download_reason request parameter. Export
-endpoints reject requests without one and attach the reason to their event log
-entry (logs.json), so downloads can be audited from Security → Action Log
-without any new table.
+dashboards) and sends it as the ``download_reason`` request parameter. Export
+endpoints reject requests without one. Nothing else is needed to persist it:
+the event logger already merges the request's query string and form fields into
+the ``logs.json`` payload (see ``collect_request_payload``), so the reason shows
+up in Security → Action Log without any new table.
 """
 
 from __future__ import annotations
-
-from typing import Callable
 
 from flask import request
 from flask_babel import gettext as _
@@ -56,7 +55,7 @@ class DownloadReasonRequiredError(SupersetErrorException):
 
 
 def get_download_reason() -> str | None:
-    """Return the first non-blank download_reason from the query string or form."""
+    """Return the first non-blank ``download_reason`` from the query string or form."""
     for source in (request.args, request.form):
         value = (source.get(DOWNLOAD_REASON_PARAM) or "").strip()
         if value:
@@ -64,17 +63,13 @@ def get_download_reason() -> str | None:
     return None
 
 
-def check_download_reason(
-    add_extra_log_payload: Callable[..., None] | None = None,
-) -> str | None:
-    """Enforce REQUIRE_DOWNLOAD_REASON and record the reason in the event log.
+def check_download_reason() -> str | None:
+    """Enforce ``REQUIRE_DOWNLOAD_REASON``.
 
-    Returns the reason (or None). Raises :class:`DownloadReasonRequiredError`
+    Returns the reason (or ``None``). Raises :class:`DownloadReasonRequiredError`
     when the flag is on and the request carries no reason.
     """
     reason = get_download_reason()
     if reason is None and is_feature_enabled(DOWNLOAD_REASON_FEATURE_FLAG):
         raise DownloadReasonRequiredError()
-    if reason and add_extra_log_payload is not None:
-        add_extra_log_payload(download_reason=reason)
     return reason

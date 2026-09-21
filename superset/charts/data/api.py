@@ -184,7 +184,7 @@ class ChartDataRestApi(ChartRestApi):
         json_body["result_type"] = request.args.get("type", ChartDataResultType.FULL)
         if json_body["result_format"] in ChartDataResultFormat.table_like():
             try:
-                check_download_reason(add_extra_log_payload)
+                check_download_reason()
             except DownloadReasonRequiredError as ex:
                 return self.response_400(message=ex.error.message)
         json_body["force"] = request.args.get("force")
@@ -323,7 +323,7 @@ class ChartDataRestApi(ChartRestApi):
 
         if json_body.get("result_format") in ChartDataResultFormat.table_like():
             try:
-                check_download_reason(add_extra_log_payload)
+                check_download_reason()
             except DownloadReasonRequiredError as ex:
                 return self.response_400(message=ex.error.message)
 

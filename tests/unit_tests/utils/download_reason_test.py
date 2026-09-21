@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 from flask import Flask
@@ -24,6 +24,7 @@ from superset.utils.download_reason import (
     DownloadReasonRequiredError,
     get_download_reason,
 )
+from superset.utils.log import collect_request_payload
 
 FLAG = "superset.utils.download_reason.is_feature_enabled"
 
@@ -51,18 +52,19 @@ def test_blank_query_value_falls_back_to_form_body(app: Flask) -> None:
         assert get_download_reason() == "from form"
 
 
-def test_flag_off_missing_reason_passes_and_logs_nothing(app: Flask) -> None:
-    payload = MagicMock()
+def test_flag_off_missing_reason_passes(app: Flask) -> None:
     with (
         app.test_request_context("/api/v1/chart/data"),
         patch(FLAG, return_value=False),
     ):
-        assert check_download_reason(payload) is None
-    payload.assert_not_called()
+        assert check_download_reason() is None
 
 
 def test_flag_on_missing_reason_raises_400(app: Flask) -> None:
-    with app.test_request_context("/api/v1/chart/data"), patch(FLAG, return_value=True):
+    with (
+        app.test_request_context("/api/v1/chart/data"),
+        patch(FLAG, return_value=True),
+    ):
         with pytest.raises(DownloadReasonRequiredError) as excinfo:
             check_download_reason()
     assert excinfo.value.status == 400
@@ -77,21 +79,8 @@ def test_flag_on_blank_reason_raises(app: Flask) -> None:
             check_download_reason()
 
 
-def test_reason_is_recorded_in_event_log_payload(app: Flask) -> None:
-    payload = MagicMock()
-    with (
-        app.test_request_context("/api/v1/chart/data?download_reason=WP-1"),
-        patch(FLAG, return_value=True),
-    ):
-        assert check_download_reason(payload) == "WP-1"
-    payload.assert_called_once_with(download_reason="WP-1")
-
-
-def test_reason_is_recorded_even_when_flag_off(app: Flask) -> None:
-    payload = MagicMock()
-    with (
-        app.test_request_context("/api/v1/chart/data?download_reason=optional"),
-        patch(FLAG, return_value=False),
-    ):
-        assert check_download_reason(payload) == "optional"
-    payload.assert_called_once_with(download_reason="optional")
+def test_reason_is_part_of_the_event_log_payload(app: Flask) -> None:
+    """No extra wiring: the event logger merges request params into logs.json."""
+    with app.test_request_context("/api/v1/chart/data?download_reason=WP-1"):
+        assert check_download_reason() == "WP-1"
+        assert collect_request_payload()["download_reason"] == "WP-1"

@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import type { ChangeEvent, ReactElement } from 'react';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import { Modal } from '@superset-ui/core/components';
 import {
@@ -32,6 +33,21 @@ jest.mock('@superset-ui/core', () => ({
 
 const mockFeatureEnabled = isFeatureEnabled as jest.Mock;
 const mockConfirm = jest.spyOn(Modal, 'confirm');
+
+type ReasonInputProps = {
+  onChange: (event: ChangeEvent<HTMLTextAreaElement>) => void;
+};
+
+/** The dialog config passed to Modal.confirm on the last call. */
+const lastConfig = () => {
+  const [[config]] = mockConfirm.mock.calls;
+  return config;
+};
+
+const typeReason = (value: string) =>
+  (lastConfig().content as ReactElement<ReasonInputProps>).props.onChange({
+    target: { value },
+  } as ChangeEvent<HTMLTextAreaElement>);
 
 beforeEach(() => {
   mockFeatureEnabled.mockReset();
@@ -61,25 +77,24 @@ test('asks for a reason and resolves with the trimmed value', async () => {
   mockFeatureEnabled.mockReturnValue(true);
   const promise = requestDownloadReason();
   expect(mockConfirm).toHaveBeenCalledTimes(1);
-  const [[config]] = mockConfirm.mock.calls;
-  config.content.props.onChange({ target: { value: '  WP-1 audit  ' } });
-  await config.onOk();
+  typeReason('  WP-1 audit  ');
+  await lastConfig().onOk?.();
   await expect(promise).resolves.toBe('WP-1 audit');
 });
 
 test('keeps the dialog open when the reason is blank', async () => {
   mockFeatureEnabled.mockReturnValue(true);
   requestDownloadReason();
-  const [[config]] = mockConfirm.mock.calls;
-  config.content.props.onChange({ target: { value: '   ' } });
-  await expect(config.onOk()).rejects.toThrow('A download reason is required');
+  typeReason('   ');
+  await expect(lastConfig().onOk?.()).rejects.toThrow(
+    'A download reason is required',
+  );
 });
 
 test('resolves with null when the dialog is cancelled', async () => {
   mockFeatureEnabled.mockReturnValue(true);
   const promise = requestDownloadReason();
-  const [[config]] = mockConfirm.mock.calls;
-  config.onCancel();
+  lastConfig().onCancel?.();
   await expect(promise).resolves.toBeNull();
 });
 
