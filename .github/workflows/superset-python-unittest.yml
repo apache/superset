@@ -94,7 +94,7 @@ jobs:
           COVERAGE_FILE="${RUNNER_TEMP}/.coverage.sql" pytest --durations-min=0.5 --cov=superset/sql/ ./tests/unit_tests/sql/ --cache-clear --cov-fail-under=100 --junit-xml=test-results/junit-sql-coverage.xml
           COVERAGE_FILE="${RUNNER_TEMP}/.coverage.semantic_layers" pytest --durations-min=0.5 --cov=superset/semantic_layers/ ./tests/unit_tests/semantic_layers/ --cache-clear --cov-fail-under=100 --junit-xml=test-results/junit-semantic-layers-coverage.xml
       - name: Upload code coverage
-        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        uses: codecov/codecov-action@0b35c9ecc4f0529d0eb674914510c22f85b196b4 # v7.1.0
         with:
           flags: python,unit
           verbose: true
