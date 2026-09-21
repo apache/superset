@@ -27,6 +27,30 @@ from superset.mcp_service.utils.response_utils import (
 )
 
 
+def test_explicit_temporal_column_preserves_other_metadata() -> None:
+    """Temporal hints change only the selected column's inferred type."""
+    data: list[dict[str, Any]] = [{"date": "2024-09-01T00:00:00Z", "label": "text"}]
+    original: list[dict[str, Any]] = [
+        column.model_dump() for column in format_data_columns(data, ["date", "label"])
+    ]
+    hinted: list[dict[str, Any]] = [
+        column.model_dump()
+        for column in format_data_columns(
+            data, ["date", "label"], temporal_columns={"date"}
+        )
+    ]
+    assert original[0]["data_type"] == "string"
+    assert hinted[0]["data_type"] == "temporal"
+    hinted[0]["data_type"] = "string"
+    assert hinted == original
+    assert [
+        column.model_dump()
+        for column in format_data_columns(
+            data, ["date", "label"], temporal_columns=None
+        )
+    ] == original
+
+
 class TestFormatDataColumns:
     """Test format_data_columns function."""
 
