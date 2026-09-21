@@ -13,10 +13,6 @@ permissions:
   contents: read
   pull-requests: read
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
-  cancel-in-progress: true
-
 jobs:
   changes:
     runs-on: ubuntu-26.04
@@ -47,19 +43,18 @@ jobs:
     steps:
       - id: set_matrix
         run: |
-          MATRIX_CONFIG=$(if [ "${{ github.event_name }}" == "pull_request" ]; then echo '["superset", "dev", "lean"]'; else echo '["superset", "dev", "lean", "websocket", "dockerize", "py311", "py312"]'; fi)
+          MATRIX_CONFIG=$(if [ "${{ github.event_name }}" == "pull_request" ]; then echo '["superset", "dev", "lean"]'; else echo '["superset", "dev", "lean", "py311", "py312"]'; fi)
           echo "matrix_config=${MATRIX_CONFIG}" >> $GITHUB_OUTPUT
           echo $GITHUB_OUTPUT
 
   # Runs unconditionally (no dependency on `changes`, and no build-preset
-  # matrix restriction) so a regression in the PY_VER override logic is
-  # always caught on PRs. Without this, the real docker-build job only runs
-  # when the change detector flags docker/python/frontend changes (a
+  # matrix restriction) so regressions in the assembled Supersetbot command
+  # are always caught on PRs. Without this, the real docker-build job only
+  # runs when the change detector flags docker/python/frontend changes (a
   # workflow-only edit like this one does not), and even then the PR build
-  # matrix never includes the "py311"/"py312" presets that logic protects -
-  # so a break here would otherwise first surface on a push to master.
-  pyver-override-check:
-    name: verify docker build PY_VER override
+  # matrix never includes the "py311"/"py312" presets that logic protects.
+  docker-command-check:
+    name: verify docker build command
     runs-on: ubuntu-26.04
     timeout-minutes: 5
     steps:
@@ -69,7 +64,7 @@ jobs:
           persist-credentials: false
       - name: Setup supersetbot
         uses: $/.github/actions/setup-supersetbot/
-      - name: Assert PY_VER override applies to every preset except py311/py312
+      - name: Assert generated docker build command
         shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -80,10 +75,51 @@ jobs:
           # so a regression in supersetbot itself (dropping the py311/py312
           # PY_VER pin, or reordering args so our override no longer lands
           # last) is caught here too, instead of only surfacing on master.
+          docker_command() {
+            local preset="$1" extra_flags="$2"
+            shift 2
+            # Supersetbot adds its own --cache-to whenever DOCKERHUB_TOKEN is
+            # present. Hide the token from Supersetbot so cache export is
+            # controlled only by docker-build-extra-flags.sh, mirroring the
+            # docker-build job. assert_supersetbot_exports_cache_with_token
+            # below covers the unhidden case.
+            DOCKERHUB_TOKEN= supersetbot docker \
+              --preset "$preset" \
+              --platform linux/amd64 \
+              "$@" \
+              --extra-flags "$extra_flags" \
+              --dry-run
+          }
+          docker_command_with_token() {
+            local preset="$1" extra_flags="$2"
+            shift 2
+            DOCKERHUB_TOKEN=dummy supersetbot docker \
+              --preset "$preset" \
+              --platform linux/amd64 \
+              "$@" \
+              --extra-flags "$extra_flags" \
+              --dry-run
+          }
+          load_build_plan() {
+            local event_name="$1" ref="$2" ref_name="$3"
+            eval "$(bash scripts/docker-build-plan.sh "$event_name" "$ref" "$ref_name")"
+          }
+          assert_build_plan() {
+            local event_name="$1" ref="$2" ref_name="$3" expected_context="$4" expected_context_ref="$5" expected_push_or_load="$6" expected_platform="$7" expected_cache_publish="$8"
+            load_build_plan "$event_name" "$ref" "$ref_name"
+            if [ "$BUILD_CONTEXT" != "$expected_context" ] ||
+              [ "$BUILD_CONTEXT_REF" != "$expected_context_ref" ] ||
+              [ "$PUSH_OR_LOAD" != "$expected_push_or_load" ] ||
+              [ "$PLATFORM_ARG" != "$expected_platform" ] ||
+              [ "$PUBLISH_DOCKER_CACHE" != "$expected_cache_publish" ]; then
+              echo "::error::unexpected docker build plan for event=$event_name ref=$ref ref_name=$ref_name: context=$BUILD_CONTEXT context_ref=$BUILD_CONTEXT_REF push_or_load=$PUSH_OR_LOAD platform=$PLATFORM_ARG publish_cache=$PUBLISH_DOCKER_CACHE"
+              exit 1
+            fi
+          }
           assert_effective_py_ver() {
             local preset="$1" expected="$2" extra_flags command actual
             extra_flags="$(scripts/docker-build-extra-flags.sh "$preset" dummy-tag)"
-            command="$(supersetbot docker --preset "$preset" --platform linux/amd64 --extra-flags "$extra_flags" --dry-run)"
+            command="$(docker_command "$preset" "$extra_flags")"
             # docker buildx keeps the LAST value of a repeated --build-arg key.
             actual="$(grep -oE -- '--build-arg PY_VER=[^[:space:]]+' <<<"$command" | tail -1)"
             if [ "$actual" != "--build-arg PY_VER=$expected" ]; then
@@ -91,12 +127,155 @@ jobs:
               exit 1
             fi
           }
-          for preset in superset dev lean websocket dockerize; do
+          assert_cache_ref() {
+            local preset="$1" expected="$2" extra_flags command
+            extra_flags="$(scripts/docker-build-extra-flags.sh "$preset" dummy-tag)"
+            command="$(docker_command "$preset" "$extra_flags")"
+            if ! grep -Fq -- "--cache-from=type=registry,ref=apache/superset-cache:$expected" <<<"$command"; then
+              echo "::error::preset '$preset' expected cache-from apache/superset-cache:$expected (full command: $command)"
+              exit 1
+            fi
+          }
+          assert_master_tag() {
+            local preset="$1" expected="$2" extra_flags command
+            load_build_plan push refs/heads/master master
+            extra_flags="$(scripts/docker-build-extra-flags.sh "$preset" dummy-tag)"
+            command="$(docker_command "$preset" "$extra_flags" --context "$BUILD_CONTEXT" --context-ref "$BUILD_CONTEXT_REF")"
+            if ! grep -Eq -- "-t apache/superset:${expected}([[:space:]]|$)" <<<"$command"; then
+              echo "::error::preset '$preset' expected master tag apache/superset:$expected (full command: $command)"
+              exit 1
+            fi
+          }
+          assert_no_cache_push_for_validation() {
+            local preset="$1" extra_flags command
+            load_build_plan push refs/heads/7.0 7.0
+            extra_flags="$(PUBLISH_DOCKER_CACHE="" DOCKERHUB_TOKEN=dummy scripts/docker-build-extra-flags.sh "$preset" dummy-tag)"
+            command="$(GITHUB_REF=refs/heads/7.0 docker_command "$preset" "$extra_flags" --context "$BUILD_CONTEXT" --context-ref "$BUILD_CONTEXT_REF")"
+            if grep -Fq -- "--cache-to=type=registry" <<<"$command"; then
+              echo "::error::preset '$preset' unexpectedly exports registry cache during validation (full command: $command)"
+              exit 1
+            fi
+          }
+          # The assertion above only proves our own helper stays quiet; it is
+          # the docker-build job blanking DOCKERHUB_TOKEN that stops Supersetbot
+          # from adding an implicit --cache-to of its own. Pin that Supersetbot
+          # behaviour here, so the reason the production guard exists cannot
+          # quietly disappear and leave validation builds exporting unreviewed
+          # layers to the shared registry cache.
+          assert_supersetbot_exports_cache_with_token() {
+            local preset="$1" extra_flags command
+            load_build_plan push refs/heads/7.0 7.0
+            extra_flags="$(PUBLISH_DOCKER_CACHE="" DOCKERHUB_TOKEN=dummy scripts/docker-build-extra-flags.sh "$preset" dummy-tag)"
+            command="$(GITHUB_REF=refs/heads/7.0 docker_command_with_token "$preset" "$extra_flags" --context "$BUILD_CONTEXT" --context-ref "$BUILD_CONTEXT_REF")"
+            if ! grep -Fq -- "--cache-to=type=registry" <<<"$command"; then
+              echo "::error::supersetbot no longer adds an implicit --cache-to when DOCKERHUB_TOKEN is set; the token-hiding guard in docker-build may be obsolete (full command: $command)"
+              exit 1
+            fi
+          }
+          assert_publish_guard() {
+            local event_name="$1" ref="$2" sha="$3" tip_sha="$4" expected="$5"
+            eval "$(bash scripts/docker-publish-guard.sh "$event_name" "$ref" "$sha" "$tip_sha")"
+            if [ "$PUBLISH" != "$expected" ]; then
+              echo "::error::publish guard for event=$event_name ref=$ref sha=$sha tip=$tip_sha expected PUBLISH=$expected, got $PUBLISH"
+              exit 1
+            fi
+          }
+          assert_cache_push_for_master() {
+            local preset="$1" expected="$2" extra_flags command
+            load_build_plan push refs/heads/master master
+            extra_flags="$(PUBLISH_DOCKER_CACHE=true DOCKERHUB_TOKEN=dummy scripts/docker-build-extra-flags.sh "$preset" dummy-tag)"
+            command="$(docker_command "$preset" "$extra_flags" --context "$BUILD_CONTEXT" --context-ref "$BUILD_CONTEXT_REF")"
+            if ! grep -Fq -- "--cache-to=type=registry,mode=max,ref=apache/superset-cache:$expected" <<<"$command"; then
+              echo "::error::preset '$preset' expected cache-to apache/superset-cache:$expected for master publish (full command: $command)"
+              exit 1
+            fi
+          }
+          assert_release_tag() {
+            local preset="$1" expected="$2" extra_flags command
+            extra_flags="$(scripts/docker-build-extra-flags.sh "$preset" "" release)"
+            command="$(docker_command "$preset" "$extra_flags" --context release --context-ref 6.1.0)"
+            if ! grep -Eq -- "-t apache/superset:${expected}([[:space:]]|$)" <<<"$command"; then
+              echo "::error::preset '$preset' expected release tag apache/superset:$expected (full command: $command)"
+              exit 1
+            fi
+            if grep -Fq -- "--build-arg INCLUDE_CHROMIUM=" <<<"$command"; then
+              echo "::error::preset '$preset' overrides the release Dockerfile's Chromium default (full command: $command)"
+              exit 1
+            fi
+          }
+          # tag-release.yml snapshots this helper from master, then checks out
+          # the release ref before running it, so the helper has to read the
+          # Dockerfile from the working tree rather than from wherever it
+          # lives. Simulate that ref swap against a synthetic older tree: a
+          # real release ref pins an older PY_VER and carries its own Chromium
+          # default, neither of which release mode may override.
+          assert_release_ref_swap() {
+            local snapshot release_tree flags
+            snapshot="$(mktemp -d)/docker-build-extra-flags.sh"
+            cp scripts/docker-build-extra-flags.sh "$snapshot"
+            release_tree="$(mktemp -d)"
+            printf 'ARG PY_VER=3.11.13-slim-bookworm\n' >"$release_tree/Dockerfile"
+            flags="$(cd "$release_tree" && bash "$snapshot" superset "" release)"
+            if ! grep -Fq -- "--build-arg PY_VER=3.11.13-slim-bookworm" <<<"$flags"; then
+              echo "::error::release build ignored the checked-out Dockerfile's PY_VER (flags: $flags)"
+              exit 1
+            fi
+            if grep -Fq -- "--build-arg INCLUDE_CHROMIUM=" <<<"$flags"; then
+              echo "::error::release build overrode the checked-out Dockerfile's Chromium default (flags: $flags)"
+              exit 1
+            fi
+            # The same tree in ci mode must still get the validation override,
+            # so the two modes cannot silently converge.
+            flags="$(cd "$release_tree" && bash "$snapshot" superset dummy-tag ci)"
+            if ! grep -Fq -- "--build-arg INCLUDE_CHROMIUM=false" <<<"$flags"; then
+              echo "::error::ci build lost the INCLUDE_CHROMIUM=false override (flags: $flags)"
+              exit 1
+            fi
+          }
+          assert_build_plan push refs/heads/master master push master --push "--platform linux/arm64 --platform linux/amd64" true
+          assert_build_plan push refs/heads/7.0 7.0 push "" --load "--platform linux/amd64" ""
+          assert_build_plan pull_request refs/pull/44250/merge "" pull_request "" --load "--platform linux/amd64" ""
+          # A master push publishes only while its commit is still the branch
+          # tip. The second case is the delayed-A/fast-B inversion: A's change
+          # detection lagged, B published first, and A must not roll the
+          # mutable master* tags back to the older digest.
+          assert_publish_guard push refs/heads/master aaaa111 aaaa111 true
+          assert_publish_guard push refs/heads/master aaaa111 bbbb222 false
+          assert_publish_guard push refs/heads/7.0 aaaa111 bbbb222 true
+          assert_publish_guard pull_request refs/pull/44250/merge aaaa111 bbbb222 true
+          assert_supersetbot_exports_cache_with_token superset
+          for preset in superset dev lean; do
             assert_effective_py_ver "$preset" "3.11.14-slim-trixie"
+            expected_cache="3.11.14-slim-trixie"
+            if [ "$preset" != "superset" ]; then
+              expected_cache="${expected_cache}-${preset}"
+            fi
+            assert_cache_ref "$preset" "$expected_cache"
+            assert_no_cache_push_for_validation "$preset"
           done
           assert_effective_py_ver py311 "3.11-slim-bookworm"
+          assert_cache_ref py311 "3.11-slim-bookworm"
+          assert_no_cache_push_for_validation py311
           assert_effective_py_ver py312 "3.12-slim-bookworm"
-          echo "PY_VER override logic verified against the assembled buildx command for all build presets"
+          assert_cache_ref py312 "3.12-slim-bookworm"
+          assert_no_cache_push_for_validation py312
+          assert_master_tag superset master
+          assert_master_tag dev master-dev
+          assert_master_tag lean master-lean
+          assert_master_tag py311 master-py311
+          assert_master_tag py312 master-py312
+          assert_cache_push_for_master superset "3.11.14-slim-trixie"
+          assert_cache_push_for_master dev "3.11.14-slim-trixie-dev"
+          assert_cache_push_for_master lean "3.11.14-slim-trixie-lean"
+          assert_cache_push_for_master py311 "3.11-slim-bookworm"
+          assert_cache_push_for_master py312 "3.12-slim-bookworm"
+          assert_release_tag superset "6.1.0"
+          assert_release_tag dev "6.1.0-dev"
+          assert_release_tag lean "6.1.0-lean"
+          assert_release_tag py311 "6.1.0-py311"
+          assert_release_tag py312 "6.1.0-py312"
+          assert_release_ref_swap
+          echo "Docker build command verified for Python versions, cache refs, cache export, publish guard, master tags, release tags, and the release ref swap"
 
   docker-build:
     name: docker-build
@@ -117,6 +296,15 @@ jobs:
       matrix:
         build_preset: ${{fromJson(needs.setup_matrix.outputs.matrix_config)}}
       fail-fast: false
+    # Apply concurrency after change detection. A docs-only push has no
+    # docker-build job and cannot replace a pending publisher. Publishing
+    # pushes queue so a slower run cannot overwrite mutable tags, while
+    # superseded pull_request validation builds are cancelled as before --
+    # otherwise every new commit on a PR would wait behind the abandoned
+    # merge ref's build for up to the 60 minute job timeout.
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.build_preset }}
+      cancel-in-progress: ${{ github.event_name == 'pull_request' }}
     env:
       DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
       DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -156,21 +344,55 @@ jobs:
       - name: Setup supersetbot
         uses: $/.github/actions/setup-supersetbot/
 
+      # Concurrency serializes the master matrix per preset, but it does not
+      # order the runs entering it: a run whose change detection lagged can
+      # acquire the lock after a newer commit already published, and would
+      # then move the mutable `master*` tags back to the older digest. Reject
+      # the stale SHA instead. Every later step is gated on the result,
+      # because a skipped build leaves no $IMAGE_TAG for them to act on.
+      - name: Guard against publishing a superseded master commit
+        id: publish_guard
+        shell: bash
+        run: |
+          set -euo pipefail
+          TIP_SHA=""
+          if [ "$GITHUB_EVENT_NAME" = "push" ] && [ "$GITHUB_REF" = "refs/heads/master" ]; then
+            # Public repo, so ls-remote needs no credentials; this keeps
+            # persist-credentials: false on the checkout above. Retried
+            # because a transient blip here would otherwise fail the job
+            # rather than let it publish from a possibly superseded commit.
+            for attempt in 1 2 3; do
+              if TIP_SHA="$(git ls-remote "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" refs/heads/master | cut -f1)" &&
+                [ -n "$TIP_SHA" ]; then
+                break
+              fi
+              if [ "$attempt" -eq 3 ]; then
+                echo "::error::could not read the master tip to validate $GITHUB_SHA"
+                exit 1
+              fi
+              echo "::warning::ls-remote attempt ${attempt} failed; retrying in 10s..."
+              sleep 10
+            done
+          fi
+          eval "$(bash scripts/docker-publish-guard.sh "$GITHUB_EVENT_NAME" "$GITHUB_REF" "$GITHUB_SHA" "$TIP_SHA")"
+          if [ "$PUBLISH" != "true" ]; then
+            echo "::notice::master advanced to ${TIP_SHA} while ${GITHUB_SHA} was queued; skipping this build"
+          fi
+          echo "publish=$PUBLISH" >> "$GITHUB_OUTPUT"
+
       - name: Build Docker Image
+        if: steps.publish_guard.outputs.publish == 'true'
         shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BUILD_PRESET: ${{ matrix.build_preset }}
         run: |
-          # Single platform builds in pull_request context to speed things up
-          if [ "$GITHUB_EVENT_NAME" = "push" ]; then
-            PLATFORM_ARG="--platform linux/arm64 --platform linux/amd64"
-            # can only --load images in single-platform builds
-            PUSH_OR_LOAD="--push"
-          elif [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
-            PLATFORM_ARG="--platform linux/amd64"
-            PUSH_OR_LOAD="--load"
-          fi
+          set -euo pipefail
+          # Release branch pushes and pull requests validate the build
+          # locally. Official release images are published only by the
+          # release workflow after the vote completes.
+          eval "$(bash scripts/docker-build-plan.sh "$GITHUB_EVENT_NAME" "$GITHUB_REF" "${GITHUB_REF_NAME:-}")"
+          export PUBLISH_DOCKER_CACHE
 
           # Retry to absorb transient Docker Hub registry errors (base-image
           # pull timeouts, 504/401 on push, ECONNRESET) that otherwise fail
@@ -180,17 +402,21 @@ jobs:
           # See scripts/docker-build-extra-flags.sh for why "py311"/"py312"
           # are excluded from the PY_VER override applied to every other
           # preset; that logic is also exercised on every PR by the
-          # always-on pyver-override-check job below, since this job itself
+          # always-on docker-command-check job, since this job itself
           # only runs when the change detector flags docker/python/frontend
           # changes and the PR build matrix never includes py311/py312.
           EXTRA_FLAGS="$(scripts/docker-build-extra-flags.sh "$BUILD_PRESET" "$IMAGE_TAG")"
 
           for attempt in 1 2 3; do
-            if supersetbot docker \
+            # Supersetbot adds --cache-to whenever DOCKERHUB_TOKEN is present.
+            # Docker auth was already configured above; hide the token from
+            # Supersetbot so release branches and PRs cannot write registry
+            # cache while using --load validation builds.
+            if DOCKERHUB_TOKEN= supersetbot docker \
               $PUSH_OR_LOAD \
               --preset "$BUILD_PRESET" \
-              --context "$EVENT" \
-              --context-ref "$RELEASE" $FORCE_LATEST \
+              --context "$BUILD_CONTEXT" \
+              --context-ref "$BUILD_CONTEXT_REF" \
               --extra-flags "$EXTRA_FLAGS" \
               $PLATFORM_ARG; then
               break
@@ -205,7 +431,9 @@ jobs:
 
       # in the context of push (using multi-platform build), we need to pull the image locally
       - name: Docker pull
-        if: github.event_name == 'push'
+        if: >-
+          steps.publish_guard.outputs.publish == 'true' &&
+          github.event_name == 'push' && github.ref == 'refs/heads/master'
         run: |
           for i in 1 2 3; do
             docker pull $IMAGE_TAG && break
@@ -213,6 +441,7 @@ jobs:
           done
 
       - name: Print docker stats
+        if: steps.publish_guard.outputs.publish == 'true'
         run: |
           echo "SHA: ${{ github.sha }}"
           echo "IMAGE: $IMAGE_TAG"
@@ -227,6 +456,7 @@ jobs:
       # chain, and is already on the ASF Infra GitHub Actions allowlist.
       - name: Scan built image for vulnerabilities
         if: >-
+          steps.publish_guard.outputs.publish == 'true' &&
           github.event_name == 'push' && github.ref == 'refs/heads/master' &&
           contains(fromJson('["superset", "lean"]'), matrix.build_preset)
         id: grype-scan
@@ -247,6 +477,7 @@ jobs:
 
       - name: Upload vulnerability scan results to GitHub Security tab
         if: >-
+          steps.publish_guard.outputs.publish == 'true' &&
           github.event_name == 'push' && github.ref == 'refs/heads/master' &&
           contains(fromJson('["superset", "lean"]'), matrix.build_preset) &&
           steps.grype-scan.outputs.sarif != ''
@@ -262,7 +493,9 @@ jobs:
           category: "docker-${{ matrix.build_preset }}"
 
       - name: WebSocket server smoke test
-        if: contains(fromJson('["superset", "lean", "dev"]'), matrix.build_preset)
+        if: >-
+          steps.publish_guard.outputs.publish == 'true' &&
+          contains(fromJson('["superset", "lean", "dev"]'), matrix.build_preset)
         shell: bash
         run: |
           # The realtime WebSocket server is bundled in the official image and
@@ -285,7 +518,9 @@ jobs:
           [ "$ok" = "1" ] || { echo "::error::websocket /health did not come up"; exit 1; }
 
       - name: docker-compose sanity check
-        if: matrix.build_preset == 'dev'
+        if: >-
+          steps.publish_guard.outputs.publish == 'true' &&
+          matrix.build_preset == 'dev'
         shell: bash
         env:
           BUILD_PRESET: ${{ matrix.build_preset }}
