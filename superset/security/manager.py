@@ -2508,7 +2508,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
 
         return _render_permission_instructions_link(
-            datasource_id=str(datasource.data["id"]),
+            datasource_id=str(datasource.id),
             # datasource_name intentionally omitted to prevent name disclosure
         )
 
@@ -2530,7 +2530,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 # is_access_denial lets the frontend show the "Request access"
                 # UI without receiving the dataset name.
                 "is_access_denial": True,
-                "datasource": datasource.data["id"],
+                "datasource": datasource.id,
                 # Legacy placeholder for frontends built before is_access_denial
                 # existed: satisfies their truthy check on datasource_name so
                 # the request-access UI still renders during a rolling deploy,
