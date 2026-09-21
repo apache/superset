@@ -4480,6 +4480,120 @@ def test_alert_deadline_preserves_schedule_timeout(
     )
 
 
+@pytest.mark.parametrize("kill,working_timeout", [(False, 7200), (True, None)])
+@pytest.mark.parametrize(
+    "route", ["csv_get", "csv_post", "xlsx_get", "xlsx_post", "text"]
+)
+def test_unlimited_alert_data_transport(
+    app: SupersetApp,
+    mocker: MockerFixture,
+    kill: bool,
+    working_timeout: int | None,
+    route: str,
+) -> None:
+    """Exercise real urllib/socket requests for unlimited alert export settings."""
+    from dataclasses import replace
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+    from threading import Thread
+
+    from superset.commands.report.execute import _execution_budget_seconds
+
+    payload = json.dumps(
+        {
+            "result": [
+                {
+                    "data": [{"value": 42}],
+                    "coltypes": [0],
+                    "colnames": ["value"],
+                    "indexnames": [0],
+                }
+            ]
+        }
+    ).encode()
+    requests: list[str] = []
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self) -> None:  # noqa: N802
+            """Serve a valid embedded-data payload over a real socket."""
+            requests.append(self.command)
+            self.send_response(200)
+            self.send_header("Content-Length", str(len(payload)))
+            self.end_headers()
+            self.wfile.write(payload)
+
+        def do_POST(self) -> None:  # noqa: N802
+            """Consume the export request before returning its bytes."""
+            self.rfile.read(int(self.headers.get("Content-Length", "0")))
+            self.do_GET()
+
+        def log_message(self, format: str, *args: Any) -> None:
+            """Keep test server access logs quiet."""
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    thread = Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        app.config["ALERT_REPORTS_WORKING_TIME_OUT_KILL"] = kill
+        app.config["ALERT_REPORTS_CSV_REQUEST_TIMEOUT"] = None
+        state = BaseReportState(
+            create_report_schedule(mocker), datetime.utcnow(), uuid4()
+        )
+        state._report_schedule.type = ReportScheduleType.ALERT
+        state._report_schedule.working_timeout = working_timeout
+        url_mock, _ = _mock_xlsx_chart_data_dependencies(mocker, state)
+        url = f"http://127.0.0.1:{server.server_port}/data"
+        url_mock.return_value = url
+        mocker.patch("superset.commands.report.execute.get_url_path", return_value=url)
+        mocker.patch.object(state, "_get_chart_data_request_payload", return_value={})
+        if route.endswith("post") or route == "text":
+            state._report_schedule.chart.query_context = "{}"
+        state._report_execution_context = replace(
+            _active_report_context(),
+            deadline=ReportExecutionDeadline(
+                total_seconds=_execution_budget_seconds(state._report_schedule)
+            ),
+        )
+        if route == "text":
+            assert state._get_embedded_data().iloc[0, 0] == 42
+        else:
+            result_format = (
+                ChartDataResultFormat.XLSX
+                if route.startswith("xlsx")
+                else ChartDataResultFormat.CSV
+            )
+            assert state._get_data(result_format) == payload
+        assert requests == ["POST" if route.endswith("post") else "GET"]
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
+
+
+@pytest.mark.parametrize(
+    "budget,requested,expected",
+    [(float("inf"), None, None), (float("inf"), 5, 5), (10, None, 10), (10, 5, 5)],
+)
+def test_phase_timeout_preserves_finite_limits(
+    mocker: MockerFixture,
+    budget: float,
+    requested: float | None,
+    expected: float | None,
+) -> None:
+    """Only unbounded transport waits become None; finite caps stay enforced."""
+    from dataclasses import replace
+
+    state = _make_state_instance(mocker, BaseReportState)
+    state._report_execution_context = replace(
+        _active_report_context(),
+        deadline=ReportExecutionDeadline(
+            total_seconds=budget, started_at=0, _clock=lambda: 0
+        ),
+    )
+    assert (
+        state._phase_timeout("data_generation", requested_seconds=requested) == expected
+    )
+
+
 def test_send_error_restricts_diagnostics_to_editors(mocker: MockerFixture) -> None:
     """Configured recipients must not receive the diagnostic editor-only notice."""
     state = _make_state_instance(mocker, BaseReportState)

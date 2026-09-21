@@ -479,11 +479,13 @@ class BaseReportState:
     ) -> float | None:
         if not self._report_execution_context:
             return requested_seconds
-        return self._report_execution_context.deadline.timeout_seconds(
+        timeout = self._report_execution_context.deadline.timeout_seconds(
             phase,
             requested_seconds=requested_seconds,
             reserve_seconds=reserve_seconds,
         )
+        # Socket transports represent an unbounded wait as None, not infinity.
+        return None if timeout == float("inf") else timeout
 
     def update_report_schedule_and_log(
         self,
