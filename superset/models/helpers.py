@@ -115,7 +115,13 @@ from superset.exceptions import (
 from superset.extensions import feature_flag_manager
 from superset.jinja_context import BaseTemplateProcessor
 from superset.sql.metric_normalization import normalize_custom_metric
-from superset.sql.parse import has_aggregate, sanitize_clause, SQLScript, SQLStatement
+from superset.sql.parse import (
+    has_aggregate,
+    sanitize_clause,
+    SQLScript,
+    SQLStatement,
+    Table,
+)
 from superset.superset_typing import (
     AdhocColumn,
     AdhocMetric,
@@ -3741,6 +3747,18 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 _("Virtual dataset query must be read-only")
             )
 
+        # Authorize tables that request-time templating resolved beyond the
+        # dataset's declared SQL. A virtual dataset's stored SQL is re-rendered
+        # with the caller's Jinja context at query time (e.g. ``url_param``
+        # reads live request args), so the rendered FROM/JOIN targets can differ
+        # from the tables the dataset author declared. The dataset-level grant
+        # only covers the dataset itself, so any table introduced purely by a
+        # request-time value is access-checked against the caller here, mirroring
+        # the per-table authorization SQL Lab applies to raw queries
+        # (``force_dataset_match=True``).
+        if parsed_script.statements and isinstance(getattr(self, "sql", None), str):
+            self._authorize_request_resolved_tables(parsed_script)
+
         # Apply RLS filters to virtual dataset SQL to prevent RLS bypass
         # For each table referenced in the virtual dataset, apply its RLS filters
         if parsed_script.statements:
@@ -3819,6 +3837,102 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         )
 
         return from_clause, cte
+
+    @staticmethod
+    def _qualified_tables(
+        script: SQLScript, catalog: Optional[str], schema: Optional[str]
+    ) -> set[Table]:
+        """Every table referenced by ``script``, qualified with the dataset's
+        catalog/schema so the two parses in
+        ``_authorize_request_resolved_tables`` compare like for like."""
+        return {
+            table.qualify(catalog=catalog, schema=schema)
+            for statement in script.statements
+            for table in statement.tables
+        }
+
+    @staticmethod
+    def _neutralize_jinja(sql: str) -> str:
+        """
+        Replace Jinja expressions, blocks, and comments with benign placeholders
+        so the remaining SQL can be parsed for the tables the dataset *declares*
+        statically, independent of any request-time value. A ``{{ ... }}``
+        expression becomes a placeholder identifier (so a templated
+        ``FROM``/``JOIN`` target does not vanish and silently reduce the declared
+        set); ``{% ... %}`` control blocks and ``{# ... #}`` comments are dropped.
+        A ``{{ ... }}`` that cannot be neutralized leaves the SQL unparseable,
+        which ``_declared_tables`` treats as "declared set unknown" and fails
+        closed.
+        """
+        sql = re.sub(
+            r"\{\{.*?\}\}", "_superset_jinja_placeholder_", sql, flags=re.DOTALL
+        )
+        sql = re.sub(r"\{%.*?%\}", " ", sql, flags=re.DOTALL)
+        sql = re.sub(r"\{#.*?#\}", " ", sql, flags=re.DOTALL)
+        return sql
+
+    def _declared_tables(
+        self, raw_sql: str, catalog: Optional[str], schema: Optional[str]
+    ) -> Optional[set[Table]]:
+        """
+        Tables the dataset SQL references statically, with request-time Jinja
+        neutralized. Returns ``None`` when the neutralized SQL cannot be parsed,
+        signalling the caller to treat every rendered table as request-resolved
+        (fail closed).
+        """
+        try:
+            script = SQLScript(
+                self._neutralize_jinja(raw_sql),
+                engine=self.db_engine_spec.engine,
+            )
+            return self._qualified_tables(script, catalog, schema)
+        except Exception:  # pylint: disable=broad-except
+            return None
+
+    def _authorize_request_resolved_tables(self, parsed_script: SQLScript) -> None:
+        """
+        Access-check any table the rendered SQL resolves to that the dataset does
+        not declare statically. Non-templated SQL resolves to exactly the
+        declared tables (already covered by the dataset-level grant), so it is
+        skipped; only tables a request-time value can introduce are checked,
+        using the same strict per-table authorization SQL Lab applies to raw
+        queries. Fails closed on any table that cannot be resolved or authorized.
+
+        ``ExploreMixin`` also backs SQL Lab ``Query`` objects, so this covers a
+        query-backed chart too; that is consistent with (not duplicated by) the
+        SQL Lab execute path, which enforces the same ``force_dataset_match``
+        per-table check.
+        """
+        raw_sql = cast(str, self.sql)
+        # ``{#...#}`` comments are intentionally not treated as templating here:
+        # a comment introduces no table, so a comment-only dataset is correctly
+        # skipped (``_neutralize_jinja`` still strips them for the declared-set
+        # parse).
+        if "{{" not in raw_sql and "{%" not in raw_sql:
+            return
+
+        from superset import security_manager  # noqa: PLC0415
+
+        catalog = self.catalog
+        default_schema = self.database.get_default_schema(catalog)
+        schema = self.schema or default_schema or None
+
+        rendered_tables = self._qualified_tables(parsed_script, catalog, schema)
+        declared_tables = self._declared_tables(raw_sql, catalog, schema)
+        # ``None`` means the declared set could not be determined, so every
+        # rendered table is treated as request-resolved (fail closed).
+        request_resolved = (
+            rendered_tables
+            if declared_tables is None
+            else rendered_tables - declared_tables
+        )
+
+        for table in request_resolved:
+            security_manager.raise_for_access(
+                database=self.database,
+                table=table,
+                force_dataset_match=True,
+            )
 
     def adhoc_metric_to_sqla(
         self,
