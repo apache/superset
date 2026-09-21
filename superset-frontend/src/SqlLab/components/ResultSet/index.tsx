@@ -90,6 +90,7 @@ import { useStreamingExport } from 'src/components/StreamingExportModal/useStrea
 import { useConfirmModal } from 'src/hooks/useConfirmModal';
 import { makeUrl, openInNewTab, redirect } from 'src/utils/navigationUtils';
 import {
+  isDownloadReasonRequired,
   requestDownloadReason,
   withDownloadReason,
 } from 'src/utils/downloadReason';
@@ -374,9 +375,13 @@ const ResultSet = ({
       };
 
       const downloadCsv = async () => {
-        const downloadReason = await requestDownloadReason();
-        if (downloadReason === null) {
-          return; // the user cancelled the download reason dialog
+        let downloadReason = '';
+        if (isDownloadReasonRequired()) {
+          const reason = await requestDownloadReason();
+          if (reason === null) {
+            return; // the user cancelled the download reason dialog
+          }
+          downloadReason = reason;
         }
         // `getExportCsvUrl` already runs the path through `makeUrl`;
         // `redirect` re-applies `ensureAppRoot` idempotently and routes
@@ -442,8 +447,12 @@ const ResultSet = ({
 
                 if (useStreaming) {
                   e.preventDefault();
-                  const downloadReason = await requestDownloadReason();
-                  if (downloadReason === null) return;
+                  let downloadReason = '';
+                  if (isDownloadReasonRequired()) {
+                    const reason = await requestDownloadReason();
+                    if (reason === null) return;
+                    downloadReason = reason;
+                  }
                   setShowStreamingModal(true);
 
                   startExport({

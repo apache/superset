@@ -16,19 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FeatureFlag, isFeatureEnabled, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import { Input, Modal } from '@superset-ui/core/components';
 
 export const DOWNLOAD_REASON_PARAM = 'download_reason';
+
+/** Whether REQUIRE_DOWNLOAD_REASON is enabled for this deployment. */
+export function isDownloadReasonRequired(): boolean {
+  return isFeatureEnabled(FeatureFlag.RequireDownloadReason);
+}
 
 /**
  * Ask the user why they are downloading data (REQUIRE_DOWNLOAD_REASON).
  *
  * Resolves with the trimmed reason; with '' when the feature flag is off
  * (nothing is asked); or with null when the user cancels the dialog.
+ *
+ * Callers on hot paths should guard with `isDownloadReasonRequired()` so the
+ * flag-off behaviour stays fully synchronous (no extra microtask).
  */
 export function requestDownloadReason(): Promise<string | null> {
-  if (!isFeatureEnabled(FeatureFlag.RequireDownloadReason)) {
+  if (!isDownloadReasonRequired()) {
     return Promise.resolve('');
   }
   return new Promise(resolve => {

@@ -36,6 +36,7 @@ import { optionLabel } from 'src/utils/common';
 import { ensureAppRoot } from 'src/utils/navigationUtils';
 import { downloadBlob, getFilenameFromResponse } from 'src/utils/export';
 import {
+  isDownloadReasonRequired,
   requestDownloadReason,
   withDownloadReason,
 } from 'src/utils/downloadReason';
@@ -344,9 +345,13 @@ export const exportChart = async ({
   ownState = {},
   onStartStreamingExport = null,
 }: ExportChartParams): Promise<void> => {
-  const downloadReason = await requestDownloadReason();
-  if (downloadReason === null) {
-    return; // the user cancelled the download reason dialog
+  let downloadReason = '';
+  if (isDownloadReasonRequired()) {
+    const reason = await requestDownloadReason();
+    if (reason === null) {
+      return; // the user cancelled the download reason dialog
+    }
+    downloadReason = reason;
   }
   const url = withDownloadReason('/api/v1/chart/data', downloadReason);
   const payload = await buildV1ChartDataPayload({

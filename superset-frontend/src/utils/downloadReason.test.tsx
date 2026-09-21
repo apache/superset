@@ -20,6 +20,7 @@ import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import { Modal } from '@superset-ui/core/components';
 import {
   DOWNLOAD_REASON_PARAM,
+  isDownloadReasonRequired,
   requestDownloadReason,
   withDownloadReason,
 } from './downloadReason';
@@ -29,17 +30,22 @@ jest.mock('@superset-ui/core', () => ({
   isFeatureEnabled: jest.fn(),
 }));
 
-jest.mock('@superset-ui/core/components', () => ({
-  ...jest.requireActual('@superset-ui/core/components'),
-  Modal: { confirm: jest.fn() },
-}));
-
 const mockFeatureEnabled = isFeatureEnabled as jest.Mock;
-const mockConfirm = Modal.confirm as jest.Mock;
+const mockConfirm = jest.spyOn(Modal, 'confirm');
 
 beforeEach(() => {
   mockFeatureEnabled.mockReset();
   mockConfirm.mockReset();
+  mockConfirm.mockImplementation(
+    () => ({ destroy: jest.fn(), update: jest.fn() }) as never,
+  );
+});
+
+test('isDownloadReasonRequired mirrors the feature flag', () => {
+  mockFeatureEnabled.mockReturnValue(true);
+  expect(isDownloadReasonRequired()).toBe(true);
+  mockFeatureEnabled.mockReturnValue(false);
+  expect(isDownloadReasonRequired()).toBe(false);
 });
 
 test('resolves with an empty reason and no dialog when the flag is off', async () => {
@@ -55,7 +61,7 @@ test('asks for a reason and resolves with the trimmed value', async () => {
   mockFeatureEnabled.mockReturnValue(true);
   const promise = requestDownloadReason();
   expect(mockConfirm).toHaveBeenCalledTimes(1);
-  const config = mockConfirm.mock.calls[0][0];
+  const [[config]] = mockConfirm.mock.calls;
   config.content.props.onChange({ target: { value: '  WP-1 audit  ' } });
   await config.onOk();
   await expect(promise).resolves.toBe('WP-1 audit');
@@ -64,15 +70,16 @@ test('asks for a reason and resolves with the trimmed value', async () => {
 test('keeps the dialog open when the reason is blank', async () => {
   mockFeatureEnabled.mockReturnValue(true);
   requestDownloadReason();
-  const config = mockConfirm.mock.calls[0][0];
+  const [[config]] = mockConfirm.mock.calls;
   config.content.props.onChange({ target: { value: '   ' } });
-  await expect(config.onOk()).rejects.toThrow();
+  await expect(config.onOk()).rejects.toThrow('A download reason is required');
 });
 
 test('resolves with null when the dialog is cancelled', async () => {
   mockFeatureEnabled.mockReturnValue(true);
   const promise = requestDownloadReason();
-  mockConfirm.mock.calls[0][0].onCancel();
+  const [[config]] = mockConfirm.mock.calls;
+  config.onCancel();
   await expect(promise).resolves.toBeNull();
 });
 
