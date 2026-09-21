@@ -35,7 +35,13 @@ export const DEFAULT_LAZY_RETRY_DELAY_MS = 500;
 export interface LazyRetryOptions {
   /** Number of *additional* attempts made after the first one fails. */
   retries?: number;
-  /** Base delay between attempts; doubled on every subsequent attempt. */
+  /**
+   * Upper bound on the delay before each attempt, doubled on every
+   * subsequent attempt. The actual wait is randomized between 0 and this
+   * bound ("full jitter") so that many clients hitting the same failing
+   * chunk don't all retry in lockstep and re-create the burst against an
+   * already-overloaded asset server.
+   */
   retryDelayMs?: number;
   /**
    * Predicate deciding whether an error is worth retrying. Defaults to
@@ -65,6 +71,15 @@ const sleep = (ms: number): Promise<void> =>
   });
 
 /**
+ * Full-jitter backoff delay for a given attempt: a random value in
+ * `[0, retryDelayMs * 2 ** attempt)`, so concurrent clients retrying the
+ * same failed chunk spread out instead of synchronizing on the same
+ * schedule.
+ */
+const jitteredDelayMs = (attempt: number, retryDelayMs: number): number =>
+  Math.random() * retryDelayMs * 2 ** attempt;
+
+/**
  * Calls `factory`, retrying with exponential backoff when it rejects with a
  * retryable error. Rejects with the last error once every attempt has been
  * exhausted, or immediately when the error is not retryable.
@@ -86,7 +101,7 @@ export async function retryImport<T>(
       lastError = error;
       if (attempt < retries && isRetryable(error)) {
         // eslint-disable-next-line no-await-in-loop
-        await sleep(retryDelayMs * 2 ** attempt);
+        await sleep(jitteredDelayMs(attempt, retryDelayMs));
       } else {
         break;
       }
