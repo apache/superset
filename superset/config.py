@@ -2733,7 +2733,6 @@ DEFAULT_RELATIVE_END_TIME = "today"
 # Configure which SQL validator to use for each engine
 SQL_VALIDATORS_BY_ENGINE = {
     "presto": "PrestoDBSQLValidator",
-    "postgresql": "PostgreSQLValidator",
     # SQLite-based engines (SQLite, GSheets, Shillelagh) can use the
     # SQLiteSQLValidator, but it requires the optional syntaqlite package:
     #
@@ -3249,7 +3248,13 @@ SUBJECTS_RELATED_TYPES: list[SubjectType] | None = [
 # None = inherit global behavior.
 SUBJECTS_RELATED_TYPES_DASHBOARDS: list[SubjectType] | None = None
 SUBJECTS_RELATED_TYPES_CHARTS: list[SubjectType] | None = None
-SUBJECTS_RELATED_TYPES_RLS: list[SubjectType] | None = None
+# Row level security rules are commonly scoped to a role, so the RLS rule
+# editor's Subjects picker exposes roles in addition to the global default.
+SUBJECTS_RELATED_TYPES_RLS: list[SubjectType] | None = [
+    SubjectType.USER,
+    SubjectType.ROLE,
+    SubjectType.GROUP,
+]
 SUBJECTS_RELATED_TYPES_ALERT_REPORTS: list[SubjectType] | None = None
 SUBJECTS_RELATED_TYPES_THEMES: list[SubjectType] | None = None
 

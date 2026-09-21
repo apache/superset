@@ -189,6 +189,21 @@ class ChartInfo(BaseModel):
             "sees in the Explore view, not the saved version."
         ),
     )
+    permalink_key: str | None = Field(
+        default=None,
+        description=(
+            "Explore permalink key the form_data was read from. When present, the "
+            "form_data is the state captured in that permalink rather than the "
+            "saved chart."
+        ),
+    )
+    is_permalink_state: bool = Field(
+        default=False,
+        description=(
+            "True if the form_data came from an Explore permalink (a shared "
+            "/explore/p/<key>/ link) rather than the saved chart configuration."
+        ),
+    )
 
     model_config = ConfigDict(
         from_attributes=True,
@@ -297,6 +312,8 @@ DEFAULT_GET_CHART_INFO_COLUMNS: List[str] = [
     "filters",
     "form_data_key",
     "is_unsaved_state",
+    "permalink_key",
+    "is_permalink_state",
 ]
 
 
@@ -309,6 +326,10 @@ class GetChartInfoRequest(BaseModel):
 
     For unsaved charts (no chart ID), provide only form_data_key to retrieve the
     current chart configuration from cache.
+
+    When permalink_key is provided, the tool returns the chart state captured in an
+    Explore permalink (/explore/p/<key>/), such as a link a user shared or one
+    returned by generate_explore_link.
     """
 
     model_config = ConfigDict(populate_by_name=True)
@@ -319,7 +340,7 @@ class GetChartInfoRequest(BaseModel):
             default=None,
             description=(
                 "Chart identifier - can be numeric ID or UUID string. "
-                "Optional when form_data_key is provided (for unsaved charts)."
+                "Optional when form_data_key or permalink_key is provided."
             ),
             validation_alias=AliasChoices("identifier", "id", "chart_id"),
         ),
@@ -332,6 +353,16 @@ class GetChartInfoRequest(BaseModel):
             "with this key. If provided, the tool returns the current unsaved "
             "configuration instead of the saved version. "
             "Can be used alone (without identifier) for unsaved charts."
+        ),
+    )
+    permalink_key: str | None = Field(
+        default=None,
+        description=(
+            "Key of an Explore permalink - the <key> in /explore/p/<key>/ - or the "
+            "full permalink URL. Returns the chart state captured in the "
+            "permalink instead of the saved version. Permalinks do not expire. "
+            "Can be used alone: the chart is resolved from the permalink. Cannot "
+            "be combined with form_data_key."
         ),
     )
     dashboard_id: int | None = Field(
@@ -366,11 +397,33 @@ class GetChartInfoRequest(BaseModel):
         ),
     ]
 
+    @field_validator("permalink_key", mode="before")
+    @classmethod
+    def _extract_permalink_key(cls, value: Any) -> Any:
+        """Accept a full /explore/p/<key>/ URL as well as the bare key."""
+        from superset.mcp_service.utils.url_utils import (
+            extract_permalink_key_from_url,
+        )
+
+        if isinstance(value, str) and "/" in value:
+            if key := extract_permalink_key_from_url(value):
+                return key
+            raise ValueError(
+                "permalink_key must be an Explore permalink key or a "
+                "/explore/p/<key>/ URL"
+            )
+        return value
+
     @model_validator(mode="after")
     def validate_identifier_or_form_data_key(self) -> "GetChartInfoRequest":
-        if not self.identifier and not self.form_data_key:
+        if not self.identifier and not self.form_data_key and not self.permalink_key:
             raise ValueError(
-                "At least one of 'identifier' or 'form_data_key' must be provided."
+                "At least one of 'identifier', 'form_data_key' or 'permalink_key' "
+                "must be provided."
+            )
+        if self.form_data_key and self.permalink_key:
+            raise ValueError(
+                "Provide either 'form_data_key' or 'permalink_key', not both."
             )
         return self
 
