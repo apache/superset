@@ -36,7 +36,10 @@ from superset.mcp_service.dashboard.constants import (
     GRID_COLUMN_COUNT,
     GRID_DEFAULT_CHART_WIDTH,
 )
-from superset.mcp_service.dashboard.layout_validation import validate_dashboard_layout
+from superset.mcp_service.dashboard.layout_validation import (
+    rebuild_parent_chains,
+    validate_dashboard_layout,
+)
 from superset.mcp_service.dashboard.schemas import (
     DashboardInfo,
     GenerateDashboardRequest,
@@ -210,6 +213,8 @@ def generate_dashboard(  # noqa: C901
       grid. A valid ``position_json`` replaces that grid for custom rows,
       header bands, or MARKDOWN/HEADER components. Invalid explicit layouts
       fall back to the auto-generated grid and return a warning.
+      Each component's ``parents`` is recomputed from its ``children`` edges
+      before saving, so an omitted or incomplete ``parents`` array is fine.
 
     Returns:
     - Dashboard ID and URL
@@ -272,14 +277,12 @@ def generate_dashboard(  # noqa: C901
                 validate_dashboard_layout(request.position_json, found_chart_ids)
                 is None
             ):
-                layout = request.position_json
-                pending: list[tuple[str, list[str]]] = [("ROOT_ID", [])]
-                while pending:
-                    component_id, parents = pending.pop()
-                    for child_id in layout[component_id].get("children") or []:
-                        child_parents = [*parents, component_id]
-                        layout[child_id]["parents"] = child_parents
-                        pending.append((child_id, child_parents))
+                # A caller-supplied layout may carry only an immediate
+                # parent (or omit `parents` altogether); rebuild the full
+                # ancestor chains so server-side filter-scope derivation
+                # sees the same tree the frontend would after hydration.
+                # See superset.dashboards.filter_scope.get_chart_ids_in_scope.
+                layout = rebuild_parent_chains(request.position_json)
             else:
                 layout = _create_dashboard_layout(chart_objects)
                 if request.position_json:

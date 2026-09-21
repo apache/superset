@@ -27,6 +27,8 @@ export function ConfirmStatusChange({
   onConfirm,
   children,
   recoverable,
+  primaryButtonName,
+  primaryButtonStyle,
   disablePrimaryButton,
 }: ConfirmStatusChangeProps) {
   const [open, setOpen] = useState(false);
@@ -70,6 +72,8 @@ export function ConfirmStatusChange({
         name="please confirm"
         title={title}
         recoverable={recoverable}
+        primaryButtonName={primaryButtonName}
+        primaryButtonStyle={primaryButtonStyle}
         disablePrimaryButton={disablePrimaryButton}
       />
     </>

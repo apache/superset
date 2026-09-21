@@ -24,6 +24,47 @@ assists people when migrating to a new version.
 
 ## Next
 
+- With `SEMANTIC_LAYERS` enabled, combined connection discovery honors `Database.can_read` and `SemanticLayer.can_read` independently. Each permitted source retains its normal row filters, including dynamic database filters for Admin. A source filter never includes rows or counts from a denied source; callers with neither read permission are denied. Feature-off database browsing is unchanged.
+- The combined datasource list (`GET /api/v1/datasource/`) accepts Dataset read without an additional Datasource read grant, regardless of `SEMANTIC_LAYERS`. With the flag enabled, SemanticView read independently permits semantic-view discovery. Existing row-level dataset/chart access remains enforced.
+- The `presto` extra requires PyHive 0.7.0 or later. PyHive 0.6.5 cannot load
+  its Presto dialect under SQLAlchemy 2 because it imports `sqlalchemy.databases`.
+  Upgrade existing installations with `pip install "pyhive[presto]>=0.7.0"`.
+
+- `superset deletion-retention force-purge` now exits **1** when the target is
+  blocked by a deletion rule or is not found (the messages are unchanged), so a
+  scripted compliance erasure cannot mistake a refusal for a completed purge.
+  Only a completed purge exits 0; a usage error still exits 2.
+
+### MySQL metadata database now actually defaults to READ COMMITTED
+
+Superset has always *intended* to default the metadata-database isolation
+level to READ COMMITTED on MySQL (and logged that it did), but the code
+discarded the result of SQLAlchemy's generative `execution_options()` call,
+so every MySQL deployment without an explicit `isolation_level` in
+`SQLALCHEMY_ENGINE_OPTIONS` has in fact been running at InnoDB's default
+REPEATABLE READ. The default is now applied for real. PostgreSQL is
+unaffected (its server default is already READ COMMITTED), and an explicit
+`SQLALCHEMY_ENGINE_OPTIONS["isolation_level"]` was and remains respected.
+
+If your deployment relies on REPEATABLE READ semantics (snapshot-stable
+long transactions, RR gap-locking behavior), pin the previous effective
+behavior explicitly:
+
+```python
+SQLALCHEMY_ENGINE_OPTIONS = {"isolation_level": "REPEATABLE READ"}
+```
+
+### MCP metric discovery defaults and embedded dimensions
+
+`list_metrics` defaults to 25 metrics per page and does not embed compatible
+dimensions. Clients needing those dimensions should call `get_compatible_dimensions`
+for the chosen metrics, or explicitly request `include_compatible_dimensions=true`
+with `page_size` at most 8 for every scope, including built-in `dataset_id`
+requests. Non-embedded requests retain the 500-metric ceiling.
+This fixed embedding cap is independent of the operator's
+`MCP_RESPONSE_SIZE_CONFIG['token_limit']` (25,000 by default); it does not guarantee
+that every payload fits a configured response limit.
+
 ### Default Docker image is now batteries-included; the minimal image moves to `-lean`
 
 The default `apache/superset` Docker image (the plain tags: `latest`, `master`,
@@ -53,6 +94,15 @@ Scheduled report and alert captures require chart readiness to remain stable
 immediately before Chromium captures the image. A capture that re-enters a loading
 state during that window fails instead of delivering a screenshot with spinners.
 
+### Scheduled rendered reports fail closed after capture rejection
+
+Scheduled PDF and PNG delivery requires an accepted report capture context. A
+terminal rejection from standard, tiled, or combined-image validation is sticky
+for that execution and is checked again at the notification boundary. Reports and
+alerts cannot deliver a rendered artifact after rejection, even if an intermediate
+capture layer accidentally catches the original error. Text-only failure
+notifications and thumbnail capture behavior are unchanged.
+
 ### Resample "Fill the entire time range"
 
 Charts with Resample can enable **Fill the entire time range** so gap-filling
@@ -64,6 +114,19 @@ Resample projections remain capped by `MAX_RESAMPLE_ROWS` (default
 `1_000_000`). That cap now also covers calendar frequencies (month, quarter,
 year, …) that previously skipped the check because they have no fixed
 `Timedelta`.
+
+### Dashboard read fallback requires a published dashboard
+
+The object-read gate's datasource-based fallback — including the admit for dashboards with no charts — now applies to **published** dashboards only. For the datasource branch this matches the list filter's fallback, which was already published-only; for the no-charts admit the list filter still never yields chart-less dashboards to ordinary users, a deliberate pre-existing asymmetry that this change narrows but does not remove (the object gate admits opening a published chart-less dashboard; the list filter does not surface it). Previously an *unpublished* dashboard with an empty viewers list was readable by any authenticated user who could access one member datasource (or by every authenticated user, when it had no charts — including markdown-only dashboards), even though it appeared in no default list; and removing the last viewer subject from a dashboard silently widened access, because the viewer branch is published-gated while the fallback was not. Owners (folded into editors by the subjects model), editors — including resolver-granted editors — and admins are unaffected: they are admitted before the fallback regardless of published state.
+
+Everything consuming the gate inherits the tightening — including **alert and report execution**, not only schedule creation/validation. An already-scheduled report against an *unpublished, no-viewers* dashboard whose execution principal is a datasource-entitled non-editor will fail on its next run after upgrade.
+
+Before upgrading, audit report schedules targeting unpublished dashboards. For each one, first identify the principal the report actually runs as: that is decided by `ALERT_REPORTS_EXECUTORS`, not by who owns the schedule. Then apply one of:
+
+- **Publish the dashboard** (and confirm the execution principal keeps the read access the gate still requires — viewer membership when the dashboard has viewers, or access to a member datasource when it does not). For the unpublished, no-viewers, datasource-entitled case above, publishing alone supplies the missing prerequisite.
+- **Grant the execution principal dashboard editorship**, where that privilege is appropriate — editors are admitted ahead of the fallback regardless of published state.
+
+Adding the principal to the dashboard's **viewers is not a remedy on its own**: the viewer branch is itself published-gated, so a viewer of an unpublished dashboard is still refused. Re-owning the schedule is not a reliable substitute either — with a `FixedExecutor` (a service or selenium account) the resolved user does not follow schedule ownership at all, and the ownership-sensitive executor types have their own creator/modifier/editor selection rules.
 
 ### Tagging is on by default
 
@@ -92,6 +155,34 @@ tags are included in asset export and import.
 
 Set `FEATURE_FLAGS = {"TAGGING_SYSTEM": False}` to restore the previous
 behavior. Existing tag rows are left untouched.
+
+### MCP structured tool outputs are opt-in
+
+Native MCP tools define concrete output schemas, but Superset preserves the
+text-only wire contract by default for compatibility with clients and transport
+bridges that cannot encode structured results. Set the following only after
+validating every MCP client and bridge used by the deployment:
+
+```python
+MCP_STRUCTURED_OUTPUT_ENABLED = True
+```
+
+When enabled, tool discovery includes `outputSchema` and successful tool calls
+include matching `structuredContent` alongside the existing text representation.
+When disabled, the outer compatibility middleware removes both fields as a pair;
+server-side output validation still applies to native tools.
+
+`StructuredContentStripperMiddleware` is deprecated for custom startup paths but
+retains its original stripping behavior. Replace it with
+`ToolResultCompatibilityMiddleware(structured_output_enabled=False)`.
+
+### Version-history and activity endpoints are edit-gated
+
+Version-history and activity endpoints (`GET /api/v1/{chart,dashboard,dataset}/<uuid>/versions/…` and `…/activity/`) are now edit-gated: they require object-level editorship (owner/editor/admin) of the entity, matching the UI's edit-gated Version history menu and the restore endpoint's gate. Read-only users who could previously retrieve the full change log (author identities, field-level before/after diffs) via the API now receive 403. Embedded guest-token principals are always refused on these endpoints, even when a role subject they hold has been granted editorship. Related-entity visibility filtering inside the activity stream is unchanged.
+
+### Updates of externally managed entities are refused server-side
+
+`PUT /api/v1/{chart,dashboard,dataset}/<id>` — including the chart query-context-only save, `PUT /api/v1/dataset/<pk>/refresh`, and the legacy Explore chart overwrite (`/superset/explore/`, `action=overwrite`) — now refuses an **externally managed** entity (`is_managed_externally = True`) with HTTP 403, enforcing server-side what the UI already does by hiding the edit affordances. Previously the refusal existed only in the browser, so an otherwise-authorized editor could mutate such an entity by calling the endpoint directly and have the change overwritten on the next external sync (the stored chart query context is executable state — report execution runs it — so it is gated too; Explore's background query-context save receives a 403 it ignores for such charts). The dashboard colors-sync path (`PUT /api/v1/dashboard/<id>/colors`, fired in the background while a dashboard is viewed) keeps working for the **derived** color values (`color_scheme_domain`, `shared_label_colors`, `map_label_colors`) but refuses a payload that would change the authoritative `color_scheme`/`label_colors`. The `is_managed_externally` flag itself is now ignored by the ordinary PUT schemas (accepted for wire compatibility, then discarded): it was previously client-writable there, and with the new gate a client-set `true` would have been irreversible via the API. A matching gate for version restore is added separately in #44013.
 
 ### Global Async Queries re-platformed onto the Global Task Framework (breaking)
 
@@ -272,7 +363,110 @@ unknown impact as zero. Chart and dashboard purge endpoints are unchanged.
 
 - The dashboard datasource-based visibility fallback now fails closed: a dashboard whose member charts’ datasources cannot be resolved (deleted datasource rows, missing `datasource_id`, or unsupported datasource types) is no longer accessible to users without explicit editor/viewer rights, and a dashboard composed of semantic-view charts now requires `datasource_access` on (at least one of) its semantic views or their parent semantic layer — previously any authenticated user could open such a dashboard’s shell. Because the fallback now considers every member chart rather than only table-backed ones, a user holding `datasource_access` on any single member datasource — including a semantic view or its parent layer — can open a mixed dashboard that previously denied them. Dashboards with no charts remain accessible, and dashboards with explicit viewers are unaffected. Conversely, holders of `all_datasource_access` now see every published no-viewer dashboard in the dashboard list — including chart-less ones previously hidden by the inner joins — matching what the object-level gate already allowed them to open.
 - Version restore (`POST /api/v1/{chart,dashboard,dataset}/<uuid>/versions/<version_uuid>/restore`) now refuses an **externally managed** entity (`is_managed_externally = True`) with HTTP 403, enforcing server-side what the docs already promised. Previously the refusal existed only in the browser, so an otherwise-authorized editor could restore such an entity by calling the endpoint directly and have the restore overwritten on the next external sync. Soft-delete recovery is deliberately unaffected — it changes visibility, not content.
+### Themes support per-theme editors
+
+Themes now carry a list of **editors** (users, roles, or groups). A new
+`theme_editors` junction table is created by the migration
+`f7e8d9c0b1a2_add_theme_editors_table`. On upgrade, each existing non-system
+theme's creator is backfilled as an editor so authors keep edit access (an
+empty editors list means admin-only). System themes are left with no editors
+and remain admin-only to edit.
+
+Behavioral changes:
+
+- **[BREAKING] Editing and deleting a theme is tightened to editors or
+  Admins.** Previously any principal with `can_write` on `Theme` (which the
+  built-in **Alpha** role holds, since `Theme` is in
+  `GAMMA_READ_ONLY_MODEL_VIEWS`) could edit or delete any non-system theme.
+  Editing and deleting now require the caller to be an editor of that theme;
+  non-editors receive a `403`. Admins bypass the check and remain able to
+  edit or delete any theme. A non-editor cannot add themselves to a theme's
+  editors via `PUT`.
+- **Theme creation is unchanged** and still requires `can_write` on `Theme`.
+  The creator is automatically added as an editor, and creation now flows
+  through a new `CreateThemeCommand`.
+- **System themes remain protected** and the system-default/dark theme
+  administration endpoints continue to require an admin plus
+  `ENABLE_UI_THEME_ADMINISTRATION`.
+- **Importing over an existing theme requires editorship** of that theme
+  (admins bypass); importing new themes still only requires `can_write`.
+- Editor subject IDs are intentionally not part of a theme's export, so they
+  are not portable across deployments.
+
+New config key `SUBJECTS_RELATED_TYPES_THEMES` (default `None`, inheriting the
+global `SUBJECTS_RELATED_TYPES`) controls which subject types appear in the
+theme editor picker.
+
 - With version history enabled, the first save through the chart editor of a chart created by an older Superset version, an import, or the API may record a one-time settings-migration entry alongside the user's change. On a chart opened normally in Explore nearly all of it is suppressed from the readable history (apache/superset#43350) — the legacy-time rewrite into `adhoc_filters` happens during control initialization and is suppressed with the rest — so what can still record is what the save itself adds (`dashboards`, `query_context`) plus one narrow edge: a legacy key the rewrite removes (such as `granularity_sqla`) can record its removal while its modern replacement stays suppressed. When Explore is opened from a dashboard, via a shared `form_data_key` link, or with a `viz_type` URL parameter, that suppression evidence is deliberately not collected (fail-open), so a first save from those entry points can record the broader set of automatic rewrites. Subsequent saves of the same chart are unaffected. This can recur once per pre-existing chart after an upgrade.
+- The purge audit log can now be pruned automatically. The new
+  `deletion_retention.prune_purge_audit` Celery beat task (daily, 03:30, in the
+  default `CeleryConfig.beat_schedule`) removes duplicate `blocked` records
+  within an entity's current blockage streak (the earliest — "blocked since" —
+  record and the first record after each change of block `reason` always
+  survive, mirroring the audit writer's own suppression rule) and ages out
+  operational records (`blocked` from
+  resolved streaks, `failed`) older than
+  `PURGE_AUDIT_OPERATIONAL_RETENTION_DAYS` (default 90). A streak is ended
+  only by proof the object is gone (`confirmed`/`target_absent`); a `failed`
+  attempt does not reset the "blocked since" record. Force-purge
+  (`force`-triggered) `blocked` records are exempt from both the duplicate
+  collapse and the operational age-out and are retained permanently — in
+  resolved streaks too — so repeated `force-purge` attempts against a
+  persistently blocked entity still add a record each, regardless of this
+  task. Completed-destruction
+  evidence (`confirmed`, `target_absent`) is **never touched** unless the
+  separate `PURGE_AUDIT_EVIDENCE_RETENTION_DAYS` opt-in is explicitly set,
+  which is the operator's assertion that an approved compliance policy
+  permits expiring destruction evidence. Automatic deletion is disabled by
+  default; set `PURGE_AUDIT_PRUNING_ENABLED = True` after reviewing these
+  policies to enable it — and only as the **second phase of a two-phase
+  rollout**. First deploy the migrations and this release's coordinated
+  audit-writer code to **every** process that writes audit rows — web/API
+  servers, the CLI (`superset deletion-retention …`), and Celery workers —
+  and let in-flight writes from older processes drain; only then enable the
+  flag. A writer on older code stamps and commits its audit row without the
+  coordination lock, so during a mixed-version rollout it can publish an
+  earlier `pending` row after a pruning batch's locked re-check and delete,
+  later turning the deleted block into the required post-boundary survivor.
+  Conversely, before rolling any audit writer back to the older protocol,
+  disable the flag AND wait for every active pruning run to exit — the flag
+  is checked only when a task starts, so a run already underway continues
+  through its remaining batches and categories (including a task still in
+  discovery or between batches) — since a writer rolled back mid-run would
+  admit exactly the uncoordinated insert the forward rollout prohibits.
+  Each pruning batch holds the singleton audit coordination lock — the lock
+  every audit write takes — for its locked re-check, whose cost grows with
+  the batch size times the history depth of the entities in it: a
+  workload-dependent trade-off, not a time bound. `PURGE_AUDIT_PRUNING_BATCH_SIZE`
+  (default 50, non-boolean integer in [1, 500]) is the lever on how long a
+  concurrent purge's audit write can wait. Measured on one entity with a
+  6,000-row multi-reason blocked history (lock-hold per batch, PostgreSQL /
+  MySQL 8 REPEATABLE READ; the MySQL 500 figure is estimated from EXPLAIN
+  ANALYZE rather than a measured acquire-to-release sample): 50 →
+  ~0.15 s / ~1.2 s; 100 → ~0.9 s / ~7.7 s; 500 → ~6.4 s / ~50 s. The default
+  keeps a writer's wait around a second even on MySQL; larger batches drain a
+  backlog faster (ten batches per run) at the cost of longer waits. An
+  invalid value makes the run skip entirely and report the key. Deployments that replace the default
+  `CELERY_CONFIG` must carry the new beat entry forward (the task shares
+  `superset.tasks.deletion_retention` with the purge task, so no new worker
+  import is needed). When audit pruning is enabled, a missing schedule or
+  worker import logs a startup warning even if `SOFT_DELETE` is disabled,
+  because historical audit rows remain eligible for pruning. Audit creation,
+  recovery, and pruning batches use a shared database coordination row held
+  through commit. This serializes timestamp assignment with candidate deletion
+  so an uncommitted writer cannot later publish a row into pruning's logical
+  past. A missing coordination row fails pruning closed. Because a pruning batch
+  holds this lock across its DELETE, on a very large audit table a concurrent
+  scheduled purge's audit write can block on it until the batch commits. On
+  PostgreSQL that write then succeeds (``lock_timeout`` is disabled by default);
+  where a lock or statement timeout is configured — and on MySQL
+  (``innodb_lock_wait_timeout``) or SQLite (which does not wait) — the write
+  instead fails closed, so the affected purge cycle is skipped and retried on its
+  next run rather than losing data. Batches are bounded (500 rows) and
+  index-backed to keep the window short — run pruning off-peak if the overlap is
+  noticeable.
+
+- The chart list applies the same type-aware datasource visibility as the dashboard list: charts on semantic views (and other non-table datasource types carrying a permission) are now listed for users holding `datasource_access` on the datasource or on its parent semantic layer — previously such charts never appeared in the chart list — and a chart on a non-table datasource is no longer listed to users whose only entitlement is a database/schema/catalog grant matching an unrelated table that shares its numeric id. Table-backed chart visibility, explicit viewer/editor grants, and embedded-guest scoping are unchanged.
 - `SAMPLES_ROW_LIMIT` is now the default for `/datasource/samples` requests without a valid explicit `per_page`, rather than a hard per-request ceiling; explicit limits are honored up to the existing global row-limit ceiling, matching `/chart/data` SAMPLES requests.
 - The `cockroachdb` extra (`pip install apache-superset[cockroachdb]`) now installs `sqlalchemy-cockroachdb` instead of the abandoned `cockroachdb` package, whose SQLAlchemy dialect could not be imported under SQLAlchemy 2.0. Existing environments with the old package installed must `pip uninstall cockroachdb` before reinstalling the extra -- both packages register the same `cockroachdb` SQLAlchemy dialect entry point, so leaving the old one in place can still load the abandoned implementation.
 
@@ -986,7 +1180,7 @@ With the flag on, delete confirmations across the chart/dashboard/dataset list p
 
 This also resolves the limitation noted under *Soft delete and restore for datasets*: a database blocked by soft-deleted datasets can now be freed by purging those datasets (per-entity endpoint, retention task, or `force-purge` CLI) instead of hard-deleting `tables` rows out-of-band.
 
-The `purge_audit_log` table is **never pruned by design** — the audit must survive the entities it names; operators who need to age it out should prune manually.
+Automatic pruning of the `purge_audit_log` table is available but **off by default**: set `PURGE_AUDIT_PRUNING_ENABLED = True` to enable the `deletion_retention.prune_purge_audit` Celery beat task (daily, 03:30), which collapses duplicate `blocked` records and ages out operational noise. That bounds the growth that comes from scheduled purges being repeatedly blocked or failing; it is **not** a bound on total table size. Force-purge (`force`-triggered) `blocked` records are retained permanently — exempt from both the duplicate collapse and the operational age-out, including in resolved streaks — so repeated `force-purge` attempts against a persistently blocked entity still add a record each; completed-destruction evidence is retained by default; and the first `blocked` record after each change of block reason is preserved. Left at its default (`PURGE_AUDIT_PRUNING_ENABLED = False`) the table is never pruned at all — enabling it is an explicit operator choice, and a second-phase one (see the rollout requirement in the release-note entry above). `PURGE_AUDIT_PRUNING_BATCH_SIZE` (default 50) caps the candidates per batch; how long a batch holds the audit coordination lock against concurrent audit writes grows with that cap and with the history depth of the entities in the batch — a workload-dependent trade-off against drain speed, not a time bound; see the release-note entry for the measured numbers. The policy is written to preserve the audit's meaning rather than trade it away: within an entity's current blockage streak the earliest — "blocked since" — record always survives (only redundant duplicate `blocked` records are collapsed), and completed-destruction evidence (`confirmed`, `target_absent`) is **never** removed unless the separate `PURGE_AUDIT_EVIDENCE_RETENTION_DAYS` opt-in is explicitly set. What ages out is operational noise — scheduled `blocked` records from already-resolved streaks and `failed` records — once older than `PURGE_AUDIT_OPERATIONAL_RETENTION_DAYS` (default 90). See the release-note entry above for the beat-schedule and `CELERY_CONFIG` details.
 
 
 ### Webhook alerts/reports block private/internal hosts by default
