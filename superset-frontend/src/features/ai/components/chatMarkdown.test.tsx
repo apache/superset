@@ -172,9 +172,10 @@ test.each(['available', 'unavailable', 'denied', 'unsupported'] as const)(
 
     try {
       renderPre(fenceNode(content));
+      const copyButton = screen.getByLabelText('Copy code block');
       await userEvent.tab();
-      expect(screen.getByLabelText('Copy code block')).toHaveFocus();
-      await userEvent.keyboard('{Enter}');
+      expect(copyButton).toHaveFocus();
+      await userEvent.type(copyButton, '{enter}', { skipClick: true });
 
       if (capability === 'unsupported') {
         await waitFor(() =>
