@@ -175,6 +175,13 @@ Alerts & Reports:
 - list_reports: List alerts and reports with filtering and search (1-based pagination)
 - get_report_info: Get detailed alert/report schedule info by ID
 
+Dataset discovery and attribution:
+- Search covers dataset table names, descriptions, schemas and SQL; returned matches are candidates, not ranked recommendations. Look datasets up by UUID with a uuid filter, not with search.
+- Compare candidate descriptions and metrics. If the choice is ambiguous, show the candidate dataset IDs/names and clarify before querying.
+- Cite the dataset_id/dataset_name or source identity returned by query_dataset/get_table in answers.
+- No matches does not mean the data does not exist. State the search/scope limitation.
+- If a dataset or operation is outside the configured MCP dataset scope, refuse plainly. Never silently substitute an allowed-but-different dataset.
+
 Dataset Management:
 - list_datasets: List datasets with advanced filters (1-based pagination)
 - get_dataset_info: Get detailed dataset information by ID (includes columns/metrics)
@@ -319,8 +326,9 @@ with 'search'.
 
 To explore metrics across all data sources (built-in datasets + external semantic views):
 1. list_metrics(request={{"search": "<keyword>"}})
-   -> returns metrics with dataset_id/view_id and compatible_dimensions inline
-2. get_table(request={{
+   -> returns metrics with dataset_id/view_id; dimensions are not embedded by default
+2. get_compatible_dimensions -> discover dimensions for the chosen metrics
+3. get_table(request={{
      "dataset_id": <id>,          # OR "view_id": <id> for external semantic views
      "metrics": ["revenue"],
      "dimensions": ["region"],

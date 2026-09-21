@@ -77,7 +77,7 @@ test('does not render the tooltip with anchors', async () => {
       datasourceName="datasource-name"
     />,
   );
-  userEvent.hover(screen.getByRole('link', { name: 'datasource-name' }));
+  await userEvent.hover(screen.getByRole('link', { name: 'datasource-name' }));
   // The useState mock forces every TruncatedTextWithTooltip to render its
   // tooltip, so multiple role="tooltip" nodes exist. Target the datasource
   // tooltip specifically by its accessible name.
