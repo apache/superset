@@ -33,6 +33,8 @@ from superset.exceptions import (
     ScreenshotImageNotAvailableException,
 )
 from superset.extensions import event_logger
+from superset.key_value.types import JsonKeyValueCodec
+from superset.key_value.utils import get_uuid_namespace
 from superset.utils.hashing import hash_from_dict
 from superset.utils.report_execution import ReportExecutionContext
 from superset.utils.urls import modify_url_query
@@ -61,6 +63,8 @@ except ModuleNotFoundError:
 if TYPE_CHECKING:
     from flask_appbuilder.security.sqla.models import User
     from flask_caching import Cache
+
+    from superset.extensions.metastore_cache import SupersetMetastoreCache
 
 
 class StatusValues(Enum):
@@ -295,6 +299,11 @@ class BaseScreenshot:
     window_size: WindowSize = DEFAULT_SCREENSHOT_WINDOW_SIZE
     thumb_size: WindowSize = DEFAULT_SCREENSHOT_THUMBNAIL_SIZE
     cache: Cache = thumbnail_cache
+    # Tests may inject an in-memory implementation. Production pointers use the
+    # metadata-backed cache so their atomic publication does not depend on the
+    # configured thumbnail backend supporting conditional writes (S3 and other
+    # object-store caches may not).
+    api_pointer_cache: SupersetMetastoreCache | None = None
     # Set by the caller (e.g. "dashboard:<id>" or "chart:<id>") before
     # compute_and_cache() so the resulting cache entry records which object it
     # was rendered for -- callers that later serve a cache entry by a
@@ -766,6 +775,77 @@ class DashboardScreenshot(BaseScreenshot):
             }
         )
 
+    @staticmethod
+    def get_api_generation_pointer_cache_key(request_cache_key: str) -> str:
+        """Return the metadata-cache key for an API screenshot request."""
+
+        return hash_from_dict(
+            {
+                "type": "dashboard_screenshot_api_generation_pointer",
+                "version": 1,
+                "request_cache_key": request_cache_key,
+            }
+        )
+
+    @classmethod
+    def _get_api_pointer_cache(cls) -> SupersetMetastoreCache:
+        if cls.api_pointer_cache is not None:
+            return cls.api_pointer_cache
+
+        # Imported lazily to avoid initializing the metadata-backed cache while
+        # Superset's application extensions are still being constructed.
+        from superset.extensions.metastore_cache import SupersetMetastoreCache
+
+        thumbnail_backend = cls.cache.cache
+        configured_timeout = getattr(
+            thumbnail_backend,
+            "default_timeout",
+            None,
+        )
+        default_timeout = int(
+            configured_timeout
+            if configured_timeout is not None
+            else app.config["CACHE_DEFAULT_TIMEOUT"]
+        )
+        return SupersetMetastoreCache(
+            namespace=get_uuid_namespace(
+                "dashboard_screenshot_api_generation_pointer",
+                app,
+            ),
+            codec=JsonKeyValueCodec(),
+            default_timeout=default_timeout,
+        )
+
+    @classmethod
+    def _get_api_generation_pointer(
+        cls, pointer_cache_key: str, scope: str
+    ) -> str | None:
+        """Read and validate one API generation pointer."""
+
+        try:
+            pointer = cls._get_api_pointer_cache().get(pointer_cache_key)
+        except Exception as ex:  # pylint: disable=broad-except
+            raise ScreenshotCacheError(
+                f"Could not read screenshot request key {pointer_cache_key}"
+            ) from ex
+        if not pointer:
+            return None
+        if not isinstance(pointer, dict):
+            logger.warning(
+                "Rejecting malformed screenshot request pointer for %s",
+                pointer_cache_key,
+            )
+            return None
+        pointer = cast(DashboardScreenshotPointerType, pointer)
+        cache_key = pointer.get("cache_key")
+        if pointer.get("scope") != scope or not isinstance(cache_key, str):
+            logger.warning(
+                "Rejecting mismatched screenshot request pointer for %s",
+                pointer_cache_key,
+            )
+            return None
+        return cache_key
+
     @classmethod
     def get_current_api_generation_cache_key(
         cls,
@@ -774,29 +854,8 @@ class DashboardScreenshot(BaseScreenshot):
     ) -> str | None:
         """Resolve the current generation for a stable API request key."""
 
-        try:
-            pointer = cls.cache.get(request_cache_key)
-        except Exception as ex:  # pylint: disable=broad-except
-            raise ScreenshotCacheError(
-                f"Could not read screenshot request key {request_cache_key}"
-            ) from ex
-        if not pointer:
-            return None
-        if not isinstance(pointer, dict):
-            logger.warning(
-                "Rejecting malformed screenshot request pointer for %s",
-                request_cache_key,
-            )
-            return None
-        pointer = cast(DashboardScreenshotPointerType, pointer)
-        cache_key = pointer.get("cache_key")
-        if pointer.get("scope") != scope or not isinstance(cache_key, str):
-            logger.warning(
-                "Rejecting mismatched screenshot request pointer for %s",
-                request_cache_key,
-            )
-            return None
-        return cache_key
+        pointer_cache_key = cls.get_api_generation_pointer_cache_key(request_cache_key)
+        return cls._get_api_generation_pointer(pointer_cache_key, scope)
 
     @classmethod
     def set_current_api_generation_cache_key(
@@ -804,20 +863,39 @@ class DashboardScreenshot(BaseScreenshot):
         request_cache_key: str,
         cache_key: str,
         scope: str,
-    ) -> None:
-        """Point subsequent API polls at a newly accepted generation."""
+        previous_cache_key: str | None,
+    ) -> bool:
+        """Publish a generation only if its observed predecessor is still current.
+
+        The pointer uses Superset's metadata-backed cache, whose compare-and-set is
+        atomic. This avoids relying on conditional writes from the configured
+        thumbnail backend, which may be an object store without that capability.
+
+        :return: ``True`` when this generation won publication, ``False`` when
+            another producer already published the same predecessor's successor.
+        """
 
         pointer: DashboardScreenshotPointerType = {
             "cache_key": cache_key,
             "scope": scope,
         }
+        pointer_cache_key = cls.get_api_generation_pointer_cache_key(request_cache_key)
+        pointer_cache = cls._get_api_pointer_cache()
+        expected = (
+            {
+                "cache_key": previous_cache_key,
+                "scope": scope,
+            }
+            if previous_cache_key is not None
+            else None
+        )
         try:
-            stored = cls.cache.set(request_cache_key, pointer)
+            return pointer_cache.compare_and_set(
+                pointer_cache_key,
+                pointer,
+                expected,
+            )
         except Exception as ex:  # pylint: disable=broad-except
             raise ScreenshotCacheError(
                 f"Could not persist screenshot request key {request_cache_key}"
             ) from ex
-        if stored is False:
-            raise ScreenshotCacheError(
-                f"Could not persist screenshot request key {request_cache_key}"
-            )

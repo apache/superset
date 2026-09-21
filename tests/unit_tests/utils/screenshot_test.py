@@ -56,6 +56,32 @@ class MockCache:
         return self._cache
 
 
+def make_atomic_cache() -> tuple[MagicMock, dict[str, object]]:
+    """Return a cache double with set and compare-and-set semantics."""
+
+    values: dict[str, object] = {}
+    cache = MagicMock()
+    cache.get.side_effect = values.get
+
+    def set_value(key: str, value: object) -> bool:
+        values[key] = value
+        return True
+
+    def compare_and_set_value(
+        key: str,
+        value: object,
+        expected: object | None,
+    ) -> bool:
+        if values.get(key) != expected:
+            return False
+        values[key] = value
+        return True
+
+    cache.set.side_effect = set_value
+    cache.compare_and_set.side_effect = compare_and_set_value
+    return cache, values
+
+
 @pytest.fixture
 def mock_user():
     """Fixture to create a mock user."""
@@ -101,11 +127,10 @@ def test_complete_dashboard_capture_uses_internal_driver_policy() -> None:
 def test_api_generation_keys_remain_unique_after_request_pointer_expires(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    values: dict[str, object] = {}
-    cache = MagicMock()
-    cache.get.side_effect = values.get
-    cache.set.side_effect = lambda key, value: values.__setitem__(key, value)
+    cache, values = make_atomic_cache()
+    pointer_cache, pointer_values = make_atomic_cache()
     monkeypatch.setattr(BaseScreenshot, "cache", cache)
+    monkeypatch.setattr(BaseScreenshot, "api_pointer_cache", pointer_cache)
 
     screenshot = DashboardScreenshot("http://example.com", "digest")
     scope = "dashboard:7"
@@ -120,11 +145,17 @@ def test_api_generation_keys_remain_unique_after_request_pointer_expires(
         first,
         ScreenshotCachePayload(image=FAKE_PNG_BYTES, scope=scope),
     )
-    screenshot.set_current_api_generation_cache_key(request_key, first, scope)
+    assert screenshot.set_current_api_generation_cache_key(
+        request_key,
+        first,
+        scope,
+        None,
+    )
 
     # The pointer is written before the worker refreshes the completed image's
     # TTL, so it can expire while that image is still valid.
-    del values[request_key]
+    pointer_key = screenshot.get_api_generation_pointer_cache_key(request_key)
+    del pointer_values[pointer_key]
     assert screenshot.get_current_api_generation_cache_key(request_key, scope) is None
 
     replacement_after_pointer_expiry = screenshot.get_next_api_generation_cache_key(
@@ -145,6 +176,69 @@ def test_api_generation_keys_remain_unique_after_request_pointer_expires(
     previous = screenshot.get_from_cache_key(first)
     assert previous is not None
     assert previous.get_image().read() == FAKE_PNG_BYTES
+
+
+def test_api_generation_publication_accepts_only_one_successor(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pointer_cache, _ = make_atomic_cache()
+    monkeypatch.setattr(BaseScreenshot, "api_pointer_cache", pointer_cache)
+    screenshot = DashboardScreenshot("http://example.com", "digest")
+    request_key = "request-key"
+    scope = "dashboard:7"
+
+    assert screenshot.set_current_api_generation_cache_key(
+        request_key,
+        "generation-a",
+        scope,
+        None,
+    )
+    assert screenshot.set_current_api_generation_cache_key(
+        request_key,
+        "generation-b",
+        scope,
+        "generation-a",
+    )
+    assert not screenshot.set_current_api_generation_cache_key(
+        request_key,
+        "stale-generation",
+        scope,
+        "generation-a",
+    )
+
+    assert (
+        screenshot.get_current_api_generation_cache_key(request_key, scope)
+        == "generation-b"
+    )
+
+
+def test_api_generation_publication_does_not_require_thumbnail_cache_cas(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Custom image backends need no conditional-write implementation."""
+
+    image_cache = MagicMock()
+    image_cache.compare_and_set.side_effect = AssertionError(
+        "thumbnail backend CAS must not be used"
+    )
+    pointer_cache, _ = make_atomic_cache()
+    monkeypatch.setattr(BaseScreenshot, "cache", image_cache)
+    monkeypatch.setattr(BaseScreenshot, "api_pointer_cache", pointer_cache)
+    screenshot = DashboardScreenshot("http://example.com", "digest")
+    request_key = "request-key"
+    scope = "dashboard:7"
+
+    assert screenshot.set_current_api_generation_cache_key(
+        request_key,
+        "new-generation",
+        scope,
+        None,
+    )
+
+    assert (
+        screenshot.get_current_api_generation_cache_key(request_key, scope)
+        == "new-generation"
+    )
 
 
 def test_explicit_cache_write_rejection_raises(monkeypatch: pytest.MonkeyPatch) -> None:

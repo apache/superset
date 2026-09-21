@@ -2130,10 +2130,11 @@ class DashboardRestApi(
                         # failed publish is converted to terminal Error, and an
                         # explicit force can replace an abandoned reservation
                         # after the producer lease.
-                        screenshot_obj.set_current_api_generation_cache_key(
+                        published = screenshot_obj.set_current_api_generation_cache_key(
                             request_cache_key,
                             next_cache_key,
                             cache_scope,
+                            cache_key,
                         )
                     except ScreenshotCacheError:
                         logger.exception(
@@ -2143,6 +2144,37 @@ class DashboardRestApi(
                         lock_response = self.response(
                             503,
                             message=gettext("Screenshot cache is unavailable"),
+                        )
+                        return lock_response
+
+                    if not published:
+                        try:
+                            winner_cache_key, winner_payload = get_generation()
+                        except ScreenshotCacheError:
+                            logger.exception(
+                                "Screenshot generation winner read failed: %s",
+                                request_cache_key,
+                            )
+                            lock_response = self.response(
+                                503,
+                                message=gettext("Screenshot cache is unavailable"),
+                            )
+                            return lock_response
+                        if winner_cache_key is None or winner_payload is None:
+                            logger.error(
+                                "Screenshot generation publication lost without a "
+                                "readable winner: %s",
+                                request_cache_key,
+                            )
+                            lock_response = self.response(
+                                503,
+                                message=gettext("Screenshot cache is unavailable"),
+                            )
+                            return lock_response
+                        lock_response = build_response(
+                            200,
+                            winner_cache_key,
+                            winner_payload,
                         )
                         return lock_response
 

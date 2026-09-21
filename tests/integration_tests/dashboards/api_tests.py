@@ -4367,7 +4367,12 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         events = []
         mock_store_cache_payload.side_effect = lambda *_args: events.append("store")
         mock_cache_task.delay.side_effect = lambda **_kwargs: events.append("enqueue")
-        mock_set_current_cache_key.side_effect = lambda *_args: events.append("publish")
+
+        def publish(*_args):
+            events.append("publish")
+            return True
+
+        mock_set_current_cache_key.side_effect = publish
 
         response = self._cache_screenshot(dashboard.id)
 
@@ -4432,11 +4437,12 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         mock_store_cache_payload.side_effect = (
             lambda cache_key, payload: payloads.__setitem__(cache_key, payload)
         )
-        mock_set_current_cache_key.side_effect = (
-            lambda _request_key, cache_key, _scope: state.__setitem__(
-                "pointer", cache_key
-            )
-        )
+
+        def publish(_request_key, cache_key, _scope, _previous_cache_key):
+            state["pointer"] = cache_key
+            return True
+
+        mock_set_current_cache_key.side_effect = publish
         # Simulate another producer publishing while this request is blocked in
         # broker I/O after its producer-lock lease would have expired.
         mock_cache_task.delay.side_effect = lambda **_kwargs: state.__setitem__(
@@ -4449,6 +4455,77 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         assert response.json["cache_key"] == "reserved-cache-key"
         assert state["pointer"] == "newer-cache-key"
         mock_set_current_cache_key.assert_called_once()
+
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    @patch("superset.dashboards.api.cache_dashboard_screenshot")
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.set_current_api_generation_cache_key"
+    )
+    @patch("superset.dashboards.api.DashboardScreenshot.store_cache_payload")
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.get_next_api_generation_cache_key",
+        return_value="reserved-cache-key",
+    )
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.get_current_api_generation_cache_key"
+    )
+    @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
+    def test_slow_pending_write_cannot_replace_a_newer_generation_pointer(
+        self,
+        mock_get_from_cache_key,
+        mock_current_cache_key,
+        mock_next_cache_key,
+        mock_store_cache_payload,
+        mock_set_current_cache_key,
+        mock_cache_task,
+    ):
+        self.login(ADMIN_USERNAME)
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+        scope = f"dashboard:{dashboard.id}"
+        state = {"pointer": "old-cache-key"}
+        payloads = {
+            "old-cache-key": ScreenshotCachePayload(
+                image=b"old image",
+                scope=scope,
+            ),
+            "newer-cache-key": ScreenshotCachePayload(
+                image=b"new image",
+                scope=scope,
+            ),
+        }
+        mock_current_cache_key.side_effect = lambda *_args: state["pointer"]
+        mock_get_from_cache_key.side_effect = lambda cache_key, **_kwargs: payloads.get(
+            cache_key
+        )
+
+        def slow_store(cache_key, payload):
+            payloads[cache_key] = payload
+            # This producer's lease expires while its Pending payload SET is
+            # blocked. A successor publishes and completes before it resumes.
+            state["pointer"] = "newer-cache-key"
+
+        mock_store_cache_payload.side_effect = slow_store
+
+        def publish(_request_key, cache_key, _scope, previous_cache_key):
+            if state["pointer"] != previous_cache_key:
+                return False
+            state["pointer"] = cache_key
+            return True
+
+        mock_set_current_cache_key.side_effect = publish
+
+        response = self._cache_screenshot(dashboard.id, force=True)
+
+        assert response.status_code == 200
+        assert response.json["cache_key"] == "newer-cache-key"
+        assert response.json["task_status"] == "Updated"
+        assert state["pointer"] == "newer-cache-key"
+        mock_cache_task.delay.assert_not_called()
 
     @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
     @pytest.mark.usefixtures("create_dashboard_with_tag")
@@ -4585,11 +4662,14 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         mock_store_cache_payload.side_effect = (
             lambda cache_key, payload: payloads.__setitem__(cache_key, payload)
         )
-        mock_set_current_cache_key.side_effect = (
-            lambda _request_key, cache_key, _scope: state.__setitem__(
-                "pointer", cache_key
-            )
-        )
+
+        def publish(_request_key, cache_key, _scope, previous_cache_key):
+            if state["pointer"] != previous_cache_key:
+                return False
+            state["pointer"] = cache_key
+            return True
+
+        mock_set_current_cache_key.side_effect = publish
 
         first_response = self._cache_screenshot(dashboard.id, force=True)
         permalink_key = (
@@ -5244,6 +5324,44 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
     @pytest.mark.usefixtures("create_dashboard_with_tag")
     @patch("superset.dashboards.api.cache_dashboard_screenshot")
     @patch(
+        "superset.dashboards.api.DashboardScreenshot.set_current_api_generation_cache_key",
+        return_value=False,
+    )
+    @patch("superset.dashboards.api.DashboardScreenshot.store_cache_payload")
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.get_next_api_generation_cache_key",
+        return_value="orphan-cache-key",
+    )
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.get_current_api_generation_cache_key",
+        return_value=None,
+    )
+    def test_generation_publication_loser_requires_readable_winner(
+        self,
+        mock_current_cache_key,
+        mock_next_cache_key,
+        mock_store_cache_payload,
+        mock_set_current_cache_key,
+        mock_cache_task,
+    ):
+        self.login(ADMIN_USERNAME)
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+
+        response = self._cache_screenshot(dashboard.id)
+
+        assert response.status_code == 503
+        mock_store_cache_payload.assert_called_once()
+        mock_set_current_cache_key.assert_called_once()
+        mock_cache_task.delay.assert_not_called()
+
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    @patch("superset.dashboards.api.cache_dashboard_screenshot")
+    @patch(
         "superset.dashboards.api.DashboardScreenshot.get_current_api_generation_cache_key",
         return_value="cache-key",
     )
@@ -5442,12 +5560,20 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
     @pytest.mark.usefixtures("create_dashboard_with_tag")
     @patch("superset.dashboards.api.cache_dashboard_screenshot")
     @patch(
+        "superset.dashboards.api.DashboardScreenshot.set_current_api_generation_cache_key",
+        return_value=True,
+    )
+    @patch(
         "superset.dashboards.api.DashboardScreenshot.get_current_api_generation_cache_key",
         return_value="cache-key",
     )
     @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
     def test_screenshot_not_in_cache(
-        self, mock_get_cache, mock_current_cache_key, mock_cache_task
+        self,
+        mock_get_cache,
+        mock_current_cache_key,
+        mock_set_current_cache_key,
+        mock_cache_task,
     ):
         self.login(ADMIN_USERNAME)
         mock_cache_task.return_value = None
