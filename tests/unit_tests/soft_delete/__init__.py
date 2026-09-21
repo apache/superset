@@ -14,14 +14,3 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Optional
-
-from . import base, presto_db, sqlite
-from .base import SQLValidationAnnotation  # noqa: F401
-
-
-def get_validator_by_name(name: str) -> Optional[type[base.BaseSQLValidator]]:
-    return {
-        "PrestoDBSQLValidator": presto_db.PrestoDBSQLValidator,
-        "SQLiteSQLValidator": sqlite.SQLiteSQLValidator,
-    }.get(name)
