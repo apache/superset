@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-21 00:34+0000\n"
+"POT-Creation-Date: 2026-09-21 01:16+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: th\n"
@@ -26,7 +26,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.17.0\n"
+"Generated-By: Babel 2.18.0\n"
 
 #, python-format
 msgid ""
@@ -8326,6 +8326,12 @@ msgstr "ข้อมูล"
 msgid "Data Connections"
 msgstr "การเชื่อมต่อฐานข้อมูล"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
+# uk]
+#, fuzzy
+msgid "Data Export Options"
+msgstr "ตัวเลือกการส่งออกข้อมูล"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 #, fuzzy
@@ -10605,6 +10611,13 @@ msgstr "แก้ไขคุณสมบัติชั้นคำอธิบ
 msgid "Edit chart"
 msgstr "แก้ไขแผนภูมิ"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
+# zh_TW]
+#, fuzzy
+msgid "Edit chart properties"
+msgstr "แก้ไขคุณสมบัติแผนภูมิ"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, de,
 # es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sl, tr, uk, zh, zh_TW]
 #, fuzzy
@@ -11701,6 +11714,18 @@ msgstr "สำรวจชุดผลลัพธ์ในมุมมองก
 msgid "Export"
 msgstr "ส่งออก"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
+# ru, uk]
+#, fuzzy
+msgid "Export All Data"
+msgstr "ส่งออกข้อมูลทั้งหมด"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
+# uk]
+#, fuzzy
+msgid "Export Current View"
+msgstr "ส่งออกมุมมองปัจจุบัน"
+
 msgid "Export Data to Excel"
 msgstr ""
 
@@ -11824,6 +11849,18 @@ msgstr "ส่งออกเป็น .CSV แบบเต็ม"
 #, fuzzy
 msgid "Export to full Excel"
 msgstr "ส่งออกเป็น Excel แบบเต็ม"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
+#, fuzzy
+msgid "Export to original .CSV"
+msgstr "ส่งออกเป็น .CSV ต้นฉบับ"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
+#, fuzzy
+msgid "Export to pivoted .CSV"
+msgstr "ส่งออกเป็น .CSV แบบ Pivot"
 
 #, python-format
 msgid ""
@@ -12238,6 +12275,12 @@ msgstr "ไม่สามารถตรวจสอบตัวเลือก
 
 msgid "Failure Notifications"
 msgstr ""
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, ja, lv,
+# ru, sk, uk]
+#, fuzzy
+msgid "Falling back to CSV; Excel export library not available."
+msgstr "ใช้ CSV แทน เนื่องจากไลบรารีการส่งออก Excel ไม่พร้อมใช้งาน"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
@@ -16803,6 +16846,13 @@ msgstr "ใหม่"
 #, fuzzy
 msgid "New Semantic Layer"
 msgstr "ไม่มีชั้นคำอธิบาย"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
+# zh, zh_TW]
+#, fuzzy
+msgid "New chart"
+msgstr "แผนภูมิใหม่"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
@@ -24498,6 +24548,12 @@ msgstr "แผนภูมิซันเบิร์สต์"
 #, fuzzy
 msgid "Sunday"
 msgstr "วันอาทิตย์"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
+#, fuzzy
+msgid "Superset Chart"
+msgstr "แผนภูมิ Superset"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -33228,6 +33284,10 @@ msgstr ""
 #, fuzzy
 msgid "permalink state not found"
 msgstr "ไม่พบสถานะลิงก์ถาวร"
+
+#. do-not-translate
+msgid "pivoted_xlsx"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]

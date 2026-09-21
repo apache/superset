@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-21 00:34+0000\n"
+"POT-Creation-Date: 2026-09-21 01:16+0000\n"
 "PO-Revision-Date: 2026-07-17 09:44+0100\n"
 "Last-Translator: Daniel Checheta\n"
 "Language: ru\n"
@@ -27,7 +27,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.17.0\n"
+"Generated-By: Babel 2.18.0\n"
 
 #, python-format
 msgid ""
@@ -5039,6 +5039,9 @@ msgstr "Данные"
 msgid "Data Connections"
 msgstr "Подключения"
 
+msgid "Data Export Options"
+msgstr "Параметры экспорта данных"
+
 msgid "Data Table"
 msgstr "Таблица"
 
@@ -6389,6 +6392,9 @@ msgstr "Редактировать свойства слоя аннотаций"
 msgid "Edit chart"
 msgstr "Редактировать диаграмму"
 
+msgid "Edit chart properties"
+msgstr "Редактировать свойства диаграммы"
+
 msgid "Edit dashboard"
 msgstr "Редактировать дашборд"
 
@@ -6989,6 +6995,12 @@ msgstr "Создать диаграмму на основе этих данны�
 msgid "Export"
 msgstr "Экспортировать"
 
+msgid "Export All Data"
+msgstr "Экспортировать все данные"
+
+msgid "Export Current View"
+msgstr "Экспортировать текущий вид"
+
 msgid "Export Data to Excel"
 msgstr ""
 
@@ -7059,6 +7071,12 @@ msgstr "Экспорт в целый CSV"
 
 msgid "Export to full Excel"
 msgstr "Экспорт в целый Excel"
+
+msgid "Export to original .CSV"
+msgstr "Экспорт исходных данных в CSV"
+
+msgid "Export to pivoted .CSV"
+msgstr "Экспорт сводной таблицы в CSV"
 
 #, python-format
 msgid ""
@@ -7323,6 +7341,9 @@ msgstr "Ошибка при проверке вариантов выбора: %s
 
 msgid "Failure Notifications"
 msgstr ""
+
+msgid "Falling back to CSV; Excel export library not available."
+msgstr "Возврат к формату CSV; библиотека экспорта в Excel недоступна."
 
 msgid "False"
 msgstr "Ложь"
@@ -9912,6 +9933,9 @@ msgstr "Новый"
 
 msgid "New Semantic Layer"
 msgstr "Новый слой аннотаций"
+
+msgid "New chart"
+msgstr "Новая диаграмма"
 
 msgid "New dataset"
 msgstr "Новый датасет"
@@ -14285,6 +14309,9 @@ msgstr "Солнечные лучи"
 
 msgid "Sunday"
 msgstr "Воскресенье"
+
+msgid "Superset Chart"
+msgstr "Диаграмма Superset"
 
 msgid "Superset Embedded SDK documentation."
 msgstr "Документация Superset Embedded SDK."
@@ -19740,6 +19767,11 @@ msgstr ""
 
 msgid "permalink state not found"
 msgstr "состояние постоянной ссылки не найдено"
+
+# Не переводить
+#. do-not-translate
+msgid "pivoted_xlsx"
+msgstr ""
 
 msgid "pixels"
 msgstr "пиксели"

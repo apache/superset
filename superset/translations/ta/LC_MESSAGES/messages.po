@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-21 00:34+0000\n"
+"POT-Creation-Date: 2026-09-21 01:16+0000\n"
 "PO-Revision-Date: 2026-03-31 02:00-0700\n"
 "Last-Translator: Maazin Ahamed\n"
 "Language: ta\n"
@@ -26,7 +26,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.17.0\n"
+"Generated-By: Babel 2.18.0\n"
 
 #, python-format
 msgid ""
@@ -5088,6 +5088,9 @@ msgstr "தரவு"
 msgid "Data Connections"
 msgstr "தரவுத்தள இணைப்புகள்"
 
+msgid "Data Export Options"
+msgstr "தரவு ஏற்றுமதி விருப்பங்கள்"
+
 msgid "Data Table"
 msgstr "தரவு அட்டவணை"
 
@@ -6431,6 +6434,9 @@ msgstr "சிறுகுறிப்பு அடுக்கு பண்ப�
 msgid "Edit chart"
 msgstr "சார்ட்டைத் திருத்து"
 
+msgid "Edit chart properties"
+msgstr "சார்ட் பண்புகளைத் திருத்து"
+
 #, fuzzy
 msgid "Edit dashboard"
 msgstr "டேஷ்போர்டைத் திருத்து"
@@ -7040,6 +7046,12 @@ msgstr "தரவு ஆய்வுப் பார்வையில் மு
 msgid "Export"
 msgstr "ஏற்றுமதி செய்"
 
+msgid "Export All Data"
+msgstr "அனைத்து தரவையும் ஏற்றுமதி செய்"
+
+msgid "Export Current View"
+msgstr "தற்போதைய பார்வையை ஏற்றுமதி செய்"
+
 msgid "Export Data to Excel"
 msgstr ""
 
@@ -7114,6 +7126,12 @@ msgstr "முழு .CSV ஆக ஏற்றுமதி செய்"
 
 msgid "Export to full Excel"
 msgstr "முழு Excel ஆக ஏற்றுமதி செய்"
+
+msgid "Export to original .CSV"
+msgstr "அசல் .CSV ஆக ஏற்றுமதி செய்"
+
+msgid "Export to pivoted .CSV"
+msgstr "பிவோட் செய்யப்பட்ட .CSV ஆக ஏற்றுமதி செய்"
 
 #, python-format
 msgid ""
@@ -7386,6 +7404,9 @@ msgstr "தேர்வு விருப்பங்களைச் சரி�
 
 msgid "Failure Notifications"
 msgstr ""
+
+msgid "Falling back to CSV; Excel export library not available."
+msgstr "CSV க்கு மாற்றப்படுகிறது; Excel ஏற்றுமதி லைப்ரரி கிடைக்கவில்லை."
 
 msgid "False"
 msgstr "தவறு"
@@ -9933,6 +9954,9 @@ msgstr "புதியது"
 
 msgid "New Semantic Layer"
 msgstr ""
+
+msgid "New chart"
+msgstr "புதிய சார்ட்"
 
 msgid "New dataset"
 msgstr "புதிய தரவுத்தொகுப்பு"
@@ -14263,6 +14287,9 @@ msgstr "சன் பர்ஸ்ட் சார்ட்"
 
 msgid "Sunday"
 msgstr "ஞாயிறு"
+
+msgid "Superset Chart"
+msgstr "சூப்பர்செட் சார்ட்"
 
 msgid "Superset Embedded SDK documentation."
 msgstr "சூப்பர்செட் உட்பொதிக்கப்பட்ட SDK ஆவணங்கள்."
@@ -19511,6 +19538,10 @@ msgstr "சதவீதங்கள் இரண்டு எண் மதிப
 
 msgid "permalink state not found"
 msgstr "பெர்மாலிங்க் நிலை காணப்படவில்லை"
+
+#. do-not-translate
+msgid "pivoted_xlsx"
+msgstr "pivoted_xlsx"
 
 msgid "pixels"
 msgstr "பிக்சல்கள்"

@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-21 00:34+0000\n"
+"POT-Creation-Date: 2026-09-21 01:16+0000\n"
 "PO-Revision-Date: 2026-06-14 13:20+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sr\n"
@@ -31,7 +31,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.17.0\n"
+"Generated-By: Babel 2.18.0\n"
 
 #, python-format
 msgid ""
@@ -6217,6 +6217,10 @@ msgstr "Подаци"
 msgid "Data Connections"
 msgstr "Везе са подацима"
 
+# uk]
+msgid "Data Export Options"
+msgstr "Опције извоза података"
+
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "Data Table"
 msgstr "Табела података"
@@ -7916,6 +7920,11 @@ msgstr "Уреди својства слоја анотације"
 msgid "Edit chart"
 msgstr "Уреди графикон"
 
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
+# zh_TW]
+msgid "Edit chart properties"
+msgstr "Уреди својства графикона"
+
 # es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sl, tr, uk, zh, zh_TW]
 msgid "Edit dashboard"
 msgstr "Уреди контролну таблу"
@@ -8684,6 +8693,14 @@ msgstr "Истражи скуп резултата у приказу за ист
 msgid "Export"
 msgstr "Извези"
 
+# ru, uk]
+msgid "Export All Data"
+msgstr "Извези све податке"
+
+# uk]
+msgid "Export Current View"
+msgstr "Извези тренутни приказ"
+
 msgid "Export Data to Excel"
 msgstr ""
 
@@ -8772,6 +8789,14 @@ msgstr "Извези у потпуни .CSV"
 # de, es, fa, ja, lv, mi, nl, ru, sk, sl, uk]
 msgid "Export to full Excel"
 msgstr "Извези у потпуни Excel"
+
+# de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
+msgid "Export to original .CSV"
+msgstr "Извези у оригинални .CSV"
+
+# de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
+msgid "Export to pivoted .CSV"
+msgstr "Извези у укрштени .CSV"
 
 #, python-format
 msgid ""
@@ -9080,6 +9105,10 @@ msgstr "Неуспела провера опција избора: %s"
 
 msgid "Failure Notifications"
 msgstr ""
+
+# ru, sk, uk]
+msgid "Falling back to CSV; Excel export library not available."
+msgstr "Враћање на CSV; библиотека за извоз у Excel није доступна."
 
 # ru, uk]
 msgid "False"
@@ -12293,6 +12322,11 @@ msgstr "Ново"
 
 msgid "New Semantic Layer"
 msgstr "Нови семантички слој"
+
+# de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
+# zh, zh_TW]
+msgid "New chart"
+msgstr "Нови графикон"
 
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 msgid "New dataset"
@@ -17779,6 +17813,10 @@ msgstr "Sunburst графикон"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "Sunday"
 msgstr "Недеља"
+
+# de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
+msgid "Superset Chart"
+msgstr "Superset графикон"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Superset Embedded SDK documentation."
@@ -24330,6 +24368,10 @@ msgstr ""
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "permalink state not found"
 msgstr "стање трајне везе није пронађено"
+
+#. do-not-translate
+msgid "pivoted_xlsx"
+msgstr "pivoted_xlsx"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
 msgid "pixels"

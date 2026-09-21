@@ -83,9 +83,10 @@ def test_diff_is_empty_when_in_sync(tmp_path: Path) -> None:
     assert stale == set()
 
 
-def test_diff_ignores_whitespace_only_wrapping(tmp_path: Path) -> None:
-    # The committed template may wrap a long msgid across continuation lines;
-    # that is a formatting artifact of msgcat normalization, not real drift.
+def test_diff_ignores_line_wrapping(tmp_path: Path) -> None:
+    # pybabel wraps a long msgid across continuation lines. Those concatenate
+    # back to the exact original, so a wrapped and an unwrapped copy of the
+    # same message are not drift.
     committed = tmp_path / "messages.pot"
     committed.write_text(
         'msgid ""\nmsgstr ""\n\nmsgid ""\n"A long "\n"wrapped string"\nmsgstr ""\n',
@@ -101,6 +102,22 @@ def test_diff_ignores_whitespace_only_wrapping(tmp_path: Path) -> None:
 
     assert missing == set()
     assert stale == set()
+
+
+def test_diff_reports_a_whitespace_only_reword(tmp_path: Path) -> None:
+    # gettext lookups are exact, so collapsing a double space in source makes
+    # the committed msgid unreachable at runtime just as surely as a full
+    # reword does. It must be reported, not normalized away.
+    committed = tmp_path / "messages.pot"
+    committed.write_text(_pot("Save  chart"), encoding="utf-8")
+
+    with patch.object(
+        check_pot_drift.subprocess, "run", side_effect=_fake_extract(("Save chart",))
+    ):
+        missing, stale = check_pot_drift.diff(committed)
+
+    assert missing == {"Save chart"}
+    assert stale == {"Save  chart"}
 
 
 def test_main_exits_zero_when_in_sync(capsys: pytest.CaptureFixture[str]) -> None:

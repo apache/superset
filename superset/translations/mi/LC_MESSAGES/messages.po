@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-21 00:34+0000\n"
+"POT-Creation-Date: 2026-09-21 01:16+0000\n"
 "PO-Revision-Date: 2026-01-25 16:09+1300\n"
 "Last-Translator: karo.co.nz\n"
 "Language: mi\n"
@@ -30,7 +30,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.17.0\n"
+"Generated-By: Babel 2.18.0\n"
 
 #, python-format
 msgid ""
@@ -5320,6 +5320,10 @@ msgstr "Raraunga"
 msgid "Data Connections"
 msgstr "Hononga Pātengi Raraunga"
 
+#, fuzzy
+msgid "Data Export Options"
+msgstr "Kōwhiringa kauwhata"
+
 msgid "Data Table"
 msgstr "Ripanga Raraunga"
 
@@ -6755,6 +6759,9 @@ msgstr "Whakatika āhuatanga papa tohu"
 msgid "Edit chart"
 msgstr "Whakatika kauwhata"
 
+msgid "Edit chart properties"
+msgstr "Whakatika āhuatanga kauwhata"
+
 msgid "Edit dashboard"
 msgstr "Whakatika papatohu"
 
@@ -7400,6 +7407,14 @@ msgstr "Tūhuratia te huinga hua i te tirohanga tūhuratanga raraunga"
 msgid "Export"
 msgstr "Kaweatu"
 
+#, fuzzy
+msgid "Export All Data"
+msgstr "Whakakore i ngā raraunga katoa"
+
+#, fuzzy
+msgid "Export Current View"
+msgstr "Whakahuri whārangi o nāianei"
+
 msgid "Export Data to Excel"
 msgstr ""
 
@@ -7480,6 +7495,12 @@ msgstr "Kaweatu ki .CSV katoa"
 
 msgid "Export to full Excel"
 msgstr "Kaweatu ki Excel katoa"
+
+msgid "Export to original .CSV"
+msgstr "Kaweatu ki .CSV taketake"
+
+msgid "Export to pivoted .CSV"
+msgstr "Kaweatu ki .CSV hurihuri"
 
 #, python-format
 msgid ""
@@ -7776,6 +7797,12 @@ msgstr "I rahua te manatoko i ngā kōwhiringa tīpako: %s"
 
 msgid "Failure Notifications"
 msgstr ""
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
+# lv, ro, ru, sk, sr, sr_Latn, tr, uk]
+#, fuzzy
+msgid "Falling back to CSV; Excel export library not available."
+msgstr "E hoki ana ki CSV; kāore te whare waehere kaweake Excel e wātea ana."
 
 #, fuzzy
 msgid "False"
@@ -10563,6 +10590,9 @@ msgstr "Ināianei"
 #, fuzzy
 msgid "New Semantic Layer"
 msgstr "Kāore he papa tohu"
+
+msgid "New chart"
+msgstr "Kauwhata hou"
 
 msgid "New dataset"
 msgstr "Rārangi raraunga hou"
@@ -15295,6 +15325,9 @@ msgstr "Kauwhata Sunburst"
 
 msgid "Sunday"
 msgstr "Rātapu"
+
+msgid "Superset Chart"
+msgstr "Kauwhata Superset"
 
 msgid "Superset Embedded SDK documentation."
 msgstr "Tuhinga SDK Tāmau Superset."
@@ -21143,6 +21176,11 @@ msgstr ""
 
 msgid "permalink state not found"
 msgstr "kāore i kitea te tūnga hononga-ā-mau"
+
+#. do-not-translate
+#, fuzzy
+msgid "pivoted_xlsx"
+msgstr "Māmā"
 
 msgid "pixels"
 msgstr "pika"

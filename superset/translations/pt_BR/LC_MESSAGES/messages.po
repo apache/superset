@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-21 00:34+0000\n"
+"POT-Creation-Date: 2026-09-21 01:16+0000\n"
 "PO-Revision-Date: 2023-05-22 08:04-0400\n"
 "Last-Translator: \n"
 "Language: pt_BR\n"
@@ -26,7 +26,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.17.0\n"
+"Generated-By: Babel 2.18.0\n"
 
 #, python-format
 msgid ""
@@ -5518,6 +5518,10 @@ msgstr "Dados"
 msgid "Data Connections"
 msgstr "Conexões de banco de dados"
 
+#, fuzzy
+msgid "Data Export Options"
+msgstr "Opções do gráfico"
+
 msgid "Data Table"
 msgstr "Tabela de dados"
 
@@ -7002,6 +7006,9 @@ msgstr "Editar propriedades da camada de anotação"
 msgid "Edit chart"
 msgstr "Editar gráfico"
 
+msgid "Edit chart properties"
+msgstr "Editar propriedades do gráfico"
+
 msgid "Edit dashboard"
 msgstr "Editar painel"
 
@@ -7664,6 +7671,14 @@ msgstr "Explorar o conjunto de resultados na visão de exploração de dados"
 msgid "Export"
 msgstr "Exportar"
 
+#, fuzzy
+msgid "Export All Data"
+msgstr "Limpar todos os dados"
+
+#, fuzzy
+msgid "Export Current View"
+msgstr "Inverter a página atual"
+
 msgid "Export Data to Excel"
 msgstr ""
 
@@ -7748,6 +7763,14 @@ msgstr "Exportar para .CSV completo"
 #, fuzzy
 msgid "Export to full Excel"
 msgstr "Exportar para Excel"
+
+#, fuzzy
+msgid "Export to original .CSV"
+msgstr "Exportar para .CSV original"
+
+#, fuzzy
+msgid "Export to pivoted .CSV"
+msgstr "Exportar para .CSV articulado"
 
 #, python-format
 msgid ""
@@ -8053,6 +8076,12 @@ msgstr "Falha ao verificar opções selecionadas: %s"
 
 msgid "Failure Notifications"
 msgstr ""
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
+# lv, ro, ru, sk, sr, sr_Latn, tr, uk]
+#, fuzzy
+msgid "Falling back to CSV; Excel export library not available."
+msgstr "Revertendo para CSV; biblioteca de exportação do Excel não disponível."
 
 #, fuzzy
 msgid "False"
@@ -10989,6 +11018,9 @@ msgstr "Agora"
 #, fuzzy
 msgid "New Semantic Layer"
 msgstr "Nenhuma camada de anotação"
+
+msgid "New chart"
+msgstr "Novo gráfico"
 
 msgid "New dataset"
 msgstr "Novo conjunto de dados"
@@ -15920,6 +15952,10 @@ msgstr "Gráfico Sunburst"
 
 msgid "Sunday"
 msgstr "Domingo"
+
+#, fuzzy
+msgid "Superset Chart"
+msgstr "Gráfico do Superset"
 
 msgid "Superset Embedded SDK documentation."
 msgstr "Documentação do SDK incorporado Superset."
@@ -21959,6 +21995,11 @@ msgstr ""
 
 msgid "permalink state not found"
 msgstr "estado do permalink não encontrado"
+
+#. do-not-translate
+#, fuzzy
+msgid "pivoted_xlsx"
+msgstr "Pivotado"
 
 #, fuzzy
 msgid "pixels"

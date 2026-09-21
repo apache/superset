@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-21 00:34+0000\n"
+"POT-Creation-Date: 2026-09-21 01:16+0000\n"
 "PO-Revision-Date: 2026-07-17 14:21+0000\n"
 "Last-Translator: José Teixeira <jose.teixeira@douroeci.com>\n"
 "Language: pt\n"
@@ -26,7 +26,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.17.0\n"
+"Generated-By: Babel 2.18.0\n"
 
 #, python-format
 msgid ""
@@ -6601,6 +6601,9 @@ msgstr "Dados"
 msgid "Data Connections"
 msgstr "Ligações de Dados"
 
+msgid "Data Export Options"
+msgstr "Opções de Exportação de Dados"
+
 msgid "Data Table"
 msgstr "Tabela de Dados"
 
@@ -8323,6 +8326,9 @@ msgstr "Editar propriedades da camada de anotação"
 msgid "Edit chart"
 msgstr "Editar gráfico"
 
+msgid "Edit chart properties"
+msgstr "Editar propriedades da visualização"
+
 msgid "Edit dashboard"
 msgstr "Editar Dashboard"
 
@@ -9171,6 +9177,12 @@ msgstr "Explorar o conjunto de resultados na vista de exploração de dados"
 msgid "Export"
 msgstr "Exportar"
 
+msgid "Export All Data"
+msgstr "Exportar Todos os Dados"
+
+msgid "Export Current View"
+msgstr "Exportar Vista Atual"
+
 msgid "Export Data to Excel"
 msgstr ""
 
@@ -9245,6 +9257,15 @@ msgstr "Exportar para .CSV completo"
 
 msgid "Export to full Excel"
 msgstr "Exportar para Excel completo"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk, zh,
+# zh_TW]
+msgid "Export to original .CSV"
+msgstr "Exportar para .CSV original"
+
+msgid "Export to pivoted .CSV"
+msgstr "Exportar para .CSV dinamizado"
 
 #, python-format
 msgid ""
@@ -9594,6 +9615,11 @@ msgstr "Falha ao verificar opções selecionadas: %s"
 
 msgid "Failure Notifications"
 msgstr ""
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
+# lv, ro, ru, sk, sr, sr_Latn, tr, uk]
+msgid "Falling back to CSV; Excel export library not available."
+msgstr "Voltando ao CSV; biblioteca de exportação para Excel não disponível."
 
 msgid "False"
 msgstr "Falso"
@@ -13164,6 +13190,9 @@ msgstr "Novo"
 
 msgid "New Semantic Layer"
 msgstr "Nova Camada Semântica"
+
+msgid "New chart"
+msgstr "Novo gráfico"
 
 msgid "New dataset"
 msgstr "Novo conjunto de dados"
@@ -19090,6 +19119,9 @@ msgstr "Gráfico Sunburst"
 # uk, zh, zh_TW]
 msgid "Sunday"
 msgstr "Domingo"
+
+msgid "Superset Chart"
+msgstr "Gráfico Superset"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -26501,6 +26533,10 @@ msgstr ""
 
 msgid "permalink state not found"
 msgstr "estado do link permanente não encontrado"
+
+#. do-not-translate
+msgid "pivoted_xlsx"
+msgstr "pivoted_xlsx"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk, zh,

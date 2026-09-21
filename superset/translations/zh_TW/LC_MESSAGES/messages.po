@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: bestlong168@gmail.com\n"
-"POT-Creation-Date: 2026-09-21 00:34+0000\n"
+"POT-Creation-Date: 2026-09-21 01:16+0000\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: Shao Yu-Lung <bestlong168@gmail.com>\n"
 "Language: zh_TW\n"
@@ -26,7 +26,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.17.0\n"
+"Generated-By: Babel 2.18.0\n"
 
 #, python-format
 msgid ""
@@ -5579,6 +5579,10 @@ msgstr "數據"
 msgid "Data Connections"
 msgstr "資料庫連接"
 
+#, fuzzy
+msgid "Data Export Options"
+msgstr "圖表選項"
+
 msgid "Data Table"
 msgstr "數據表"
 
@@ -7012,6 +7016,9 @@ msgstr "編輯注释圖層属性"
 msgid "Edit chart"
 msgstr "編輯圖表"
 
+msgid "Edit chart properties"
+msgstr "編輯圖表属性"
+
 msgid "Edit dashboard"
 msgstr "編輯看板"
 
@@ -7727,6 +7734,14 @@ msgstr "在數據探索視圖中探索结果集"
 msgid "Export"
 msgstr "導出"
 
+#, fuzzy
+msgid "Export All Data"
+msgstr "清除所有"
+
+#, fuzzy
+msgid "Export Current View"
+msgstr "反轉當前頁"
+
 msgid "Export Data to Excel"
 msgstr ""
 
@@ -7814,6 +7829,12 @@ msgstr "導出全量 CSV"
 #, fuzzy
 msgid "Export to full Excel"
 msgstr "導出全量 Excel"
+
+msgid "Export to original .CSV"
+msgstr "導出原始 CSV"
+
+msgid "Export to pivoted .CSV"
+msgstr "導出為透視表形式的 CSV"
 
 #, python-format
 msgid ""
@@ -8133,6 +8154,12 @@ msgstr "驗證選擇選項失敗：%s"
 
 msgid "Failure Notifications"
 msgstr ""
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
+# lv, ro, ru, sk, sr, sr_Latn, tr, uk]
+#, fuzzy
+msgid "Falling back to CSV; Excel export library not available."
+msgstr "退回使用 CSV；Excel 匯出程式庫不可用。"
 
 #, fuzzy
 msgid "False"
@@ -11134,6 +11161,9 @@ msgstr "現在"
 #, fuzzy
 msgid "New Semantic Layer"
 msgstr "没有注释層"
+
+msgid "New chart"
+msgstr "新增圖表"
 
 #, fuzzy
 msgid "New dataset"
@@ -16101,6 +16131,9 @@ msgstr "旭日/太陽圖"
 
 msgid "Sunday"
 msgstr "星期日"
+
+msgid "Superset Chart"
+msgstr "Superset 圖表"
 
 msgid "Superset Embedded SDK documentation."
 msgstr "Superset 的嵌入 SDK 文檔。"
@@ -22091,6 +22124,11 @@ msgstr "百分位數必須是具有兩個數值的列表或元組，其中第一
 #, fuzzy
 msgid "permalink state not found"
 msgstr "未找到持久链接狀態"
+
+#. do-not-translate
+#, fuzzy
+msgid "pivoted_xlsx"
+msgstr "旋轉"
 
 msgid "pixels"
 msgstr "像素"

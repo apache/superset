@@ -25,14 +25,14 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-21 00:34+0000\n"
+"POT-Creation-Date: 2026-09-21 01:16+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.17.0\n"
+"Generated-By: Babel 2.18.0\n"
 
 #, python-format
 msgid ""
@@ -4685,6 +4685,9 @@ msgstr ""
 msgid "Data Connections"
 msgstr ""
 
+msgid "Data Export Options"
+msgstr ""
+
 msgid "Data Table"
 msgstr ""
 
@@ -5922,6 +5925,9 @@ msgstr ""
 msgid "Edit chart"
 msgstr ""
 
+msgid "Edit chart properties"
+msgstr ""
+
 msgid "Edit dashboard"
 msgstr ""
 
@@ -6506,6 +6512,12 @@ msgstr ""
 msgid "Export"
 msgstr ""
 
+msgid "Export All Data"
+msgstr ""
+
+msgid "Export Current View"
+msgstr ""
+
 msgid "Export Data to Excel"
 msgstr ""
 
@@ -6575,6 +6587,12 @@ msgid "Export to full .CSV"
 msgstr ""
 
 msgid "Export to full Excel"
+msgstr ""
+
+msgid "Export to original .CSV"
+msgstr ""
+
+msgid "Export to pivoted .CSV"
 msgstr ""
 
 #, python-format
@@ -6836,6 +6854,9 @@ msgid "Failed to verify select options: %s"
 msgstr ""
 
 msgid "Failure Notifications"
+msgstr ""
+
+msgid "Falling back to CSV; Excel export library not available."
 msgstr ""
 
 msgid "False"
@@ -9290,6 +9311,9 @@ msgid "New"
 msgstr ""
 
 msgid "New Semantic Layer"
+msgstr ""
+
+msgid "New chart"
 msgstr ""
 
 msgid "New dataset"
@@ -13437,6 +13461,9 @@ msgid "Sunburst Chart"
 msgstr ""
 
 msgid "Sunday"
+msgstr ""
+
+msgid "Superset Chart"
 msgstr ""
 
 msgid "Superset Embedded SDK documentation."
@@ -18308,6 +18335,10 @@ msgid ""
 msgstr ""
 
 msgid "permalink state not found"
+msgstr ""
+
+#. do-not-translate
+msgid "pivoted_xlsx"
 msgstr ""
 
 msgid "pixels"

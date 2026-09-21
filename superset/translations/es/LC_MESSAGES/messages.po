@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-21 00:34+0000\n"
+"POT-Creation-Date: 2026-09-21 01:16+0000\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: es\n"
@@ -26,7 +26,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.17.0\n"
+"Generated-By: Babel 2.18.0\n"
 
 #, python-format
 msgid ""
@@ -5317,6 +5317,9 @@ msgstr "Datos"
 msgid "Data Connections"
 msgstr "Conexiones de datos"
 
+msgid "Data Export Options"
+msgstr "Opciones de exportación de datos"
+
 msgid "Data Table"
 msgstr "Tabla de datos"
 
@@ -6747,6 +6750,9 @@ msgstr "Editar propiedades de la capa de anotación"
 msgid "Edit chart"
 msgstr "Editar gráfico"
 
+msgid "Edit chart properties"
+msgstr "Editar propiedades del gráfico"
+
 #, -ERR:PROP-NOT-FOUND-
 msgid "Edit dashboard"
 msgstr "Editar panel de control"
@@ -7397,6 +7403,12 @@ msgstr "Explorar el conjunto de resultados en la vista de exploración de datos"
 msgid "Export"
 msgstr "Exportar"
 
+msgid "Export All Data"
+msgstr "Exportar todos los datos"
+
+msgid "Export Current View"
+msgstr "Exportar la vista actual"
+
 msgid "Export Data to Excel"
 msgstr ""
 
@@ -7475,6 +7487,12 @@ msgstr "Exportar a .CSV completo"
 
 msgid "Export to full Excel"
 msgstr "Exportar a Excel completo"
+
+msgid "Export to original .CSV"
+msgstr "Exportar a .CSV original"
+
+msgid "Export to pivoted .CSV"
+msgstr "Exportar a .CSV dinámico"
 
 #, python-format
 msgid ""
@@ -7763,6 +7781,13 @@ msgstr "No se han podido verificar las opciones de selección: %s"
 
 msgid "Failure Notifications"
 msgstr ""
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
+#, fuzzy
+msgid "Falling back to CSV; Excel export library not available."
+msgstr ""
+"Usando CSV como alternativa; la biblioteca de exportación a Excel no está"
+" disponible."
 
 msgid "False"
 msgstr "Falso"
@@ -10540,6 +10565,9 @@ msgstr "Nuevo"
 #, -ERR:PROP-NOT-FOUND-
 msgid "New Semantic Layer"
 msgstr "Nueva capa semántica"
+
+msgid "New chart"
+msgstr "Nuevo gráfico"
 
 msgid "New dataset"
 msgstr "Nuevo conjunto de datos"
@@ -15247,6 +15275,9 @@ msgstr "Gráfico de proyección solar"
 
 msgid "Sunday"
 msgstr "Domingo"
+
+msgid "Superset Chart"
+msgstr "Gráfico Superset"
 
 msgid "Superset Embedded SDK documentation."
 msgstr "Documentación del SDK integrado de Superset."
@@ -21122,6 +21153,11 @@ msgstr ""
 
 msgid "permalink state not found"
 msgstr "no se ha encontrado el estado del enlace permanente"
+
+#. do-not-translate
+#, fuzzy
+msgid "pivoted_xlsx"
+msgstr "Pivotado"
 
 msgid "pixels"
 msgstr "píxeles"

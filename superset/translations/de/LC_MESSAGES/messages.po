@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-21 00:34+0000\n"
+"POT-Creation-Date: 2026-09-21 01:16+0000\n"
 "PO-Revision-Date: 2023-04-07 19:45+0200\n"
 "Last-Translator: Holger Bruch <holger.bruch@wattbewerb.de>\n"
 "Language: de\n"
@@ -27,7 +27,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.17.0\n"
+"Generated-By: Babel 2.18.0\n"
 
 #, python-format
 msgid ""
@@ -5107,6 +5107,9 @@ msgstr "Daten"
 msgid "Data Connections"
 msgstr "Datenverbindungen"
 
+msgid "Data Export Options"
+msgstr "Optionen für den Datenexport"
+
 msgid "Data Table"
 msgstr "Datentabelle"
 
@@ -6470,6 +6473,9 @@ msgstr "Eigenschaften der Anmerkungsebene bearbeiten"
 msgid "Edit chart"
 msgstr "Diagramm bearbeiten"
 
+msgid "Edit chart properties"
+msgstr "Diagrammeigenschaften bearbeiten"
+
 msgid "Edit dashboard"
 msgstr "Dashboard bearbeiten"
 
@@ -7074,6 +7080,12 @@ msgstr "Untersuchen der Ergebnismenge in der Datenexplorations-Ansicht"
 msgid "Export"
 msgstr "Export"
 
+msgid "Export All Data"
+msgstr "Alle Daten exportieren"
+
+msgid "Export Current View"
+msgstr "Aktuelle Ansicht exportieren"
+
 msgid "Export Data to Excel"
 msgstr ""
 
@@ -7144,6 +7156,12 @@ msgstr "Export in vollständiges . .CSV"
 
 msgid "Export to full Excel"
 msgstr "Export in vollständiges Excel"
+
+msgid "Export to original .CSV"
+msgstr "Export in das ursprüngliche .CSV"
+
+msgid "Export to pivoted .CSV"
+msgstr "Export in das pivotierte .CSV"
 
 #, python-format
 msgid ""
@@ -7411,6 +7429,9 @@ msgstr "Auswahloptionen konnten nicht überprüft werden: %s"
 
 msgid "Failure Notifications"
 msgstr ""
+
+msgid "Falling back to CSV; Excel export library not available."
+msgstr "Ausweichen auf CSV; Excel-Exportbibliothek nicht verfügbar."
 
 msgid "False"
 msgstr "Falsch"
@@ -10004,6 +10025,9 @@ msgstr "Neu"
 
 msgid "New Semantic Layer"
 msgstr "Neue semantische Schicht"
+
+msgid "New chart"
+msgstr "Neues Diagramm"
 
 msgid "New dataset"
 msgstr "Neuer Datensatz"
@@ -14464,6 +14488,9 @@ msgstr "Sunburst Diagramm"
 
 msgid "Sunday"
 msgstr "Sonntag"
+
+msgid "Superset Chart"
+msgstr "Superset Diagramm"
 
 msgid "Superset Embedded SDK documentation."
 msgstr "Superset Embedded SDK-Dokumentation."
@@ -20082,6 +20109,10 @@ msgstr ""
 
 msgid "permalink state not found"
 msgstr "Permalink-Status nicht gefunden"
+
+#. do-not-translate
+msgid "pivoted_xlsx"
+msgstr "pivoted_xlsx"
 
 msgid "pixels"
 msgstr "Pixel"

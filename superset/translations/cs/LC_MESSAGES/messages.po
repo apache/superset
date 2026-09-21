@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-21 00:34+0000\n"
+"POT-Creation-Date: 2026-09-21 01:16+0000\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: Jan Šmejkal <jan.smejkal@orgis.cz>\n"
 "Language: cs\n"
@@ -28,7 +28,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.17.0\n"
+"Generated-By: Babel 2.18.0\n"
 
 #, python-format
 msgid ""
@@ -5190,6 +5190,10 @@ msgstr "Data"
 msgid "Data Connections"
 msgstr "Připojení k databázi"
 
+#, fuzzy
+msgid "Data Export Options"
+msgstr "Možnosti exportu dat"
+
 msgid "Data Table"
 msgstr "Datová tabulka"
 
@@ -6610,6 +6614,9 @@ msgstr "Upravit vlastnosti vrstvy anotací"
 msgid "Edit chart"
 msgstr "Upravit graf"
 
+msgid "Edit chart properties"
+msgstr "Upravit vlastnosti grafu"
+
 #, fuzzy
 msgid "Edit dashboard"
 msgstr "Upravit nástěnku"
@@ -7240,6 +7247,14 @@ msgstr "Prozkoumat sadu výsledků v zobrazení prozkoumávání dat"
 msgid "Export"
 msgstr "Exportovat"
 
+#, fuzzy
+msgid "Export All Data"
+msgstr "Vymazat všechna data"
+
+#, fuzzy
+msgid "Export Current View"
+msgstr "Exportovat aktuální zobrazení"
+
 msgid "Export Data to Excel"
 msgstr ""
 
@@ -7317,6 +7332,12 @@ msgstr "Exportovat do úplného .CSV"
 
 msgid "Export to full Excel"
 msgstr "Exportovat do úplného Excelu"
+
+msgid "Export to original .CSV"
+msgstr "Exportovat do původního .CSV"
+
+msgid "Export to pivoted .CSV"
+msgstr "Exportovat do kontingenčního .CSV"
 
 #, python-format
 msgid ""
@@ -7594,6 +7615,9 @@ msgstr "Nepodařilo se ověřit možnosti výběru: %s"
 
 msgid "Failure Notifications"
 msgstr ""
+
+msgid "Falling back to CSV; Excel export library not available."
+msgstr "Zpětné použití CSV; knihovna pro export do Excelu není dostupná."
 
 #, fuzzy
 msgid "False"
@@ -10274,6 +10298,9 @@ msgstr "Nový"
 #, fuzzy
 msgid "New Semantic Layer"
 msgstr "Žádné vrstvy anotací"
+
+msgid "New chart"
+msgstr "Nový graf"
 
 msgid "New dataset"
 msgstr "Nová sada dat"
@@ -14876,6 +14903,9 @@ msgstr "Paprskový graf"
 
 msgid "Sunday"
 msgstr "Neděle"
+
+msgid "Superset Chart"
+msgstr "Graf Superset"
 
 msgid "Superset Embedded SDK documentation."
 msgstr "Dokumentace Superset Embedded SDK."
@@ -20514,6 +20544,11 @@ msgstr ""
 
 msgid "permalink state not found"
 msgstr "stav trvalého odkazu nenalezen"
+
+#. do-not-translate
+#, fuzzy
+msgid "pivoted_xlsx"
+msgstr "pivoted_xlsx"
 
 msgid "pixels"
 msgstr "pixely"

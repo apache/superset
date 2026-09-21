@@ -29,8 +29,8 @@ those strings are invisible to translators and to the AI backfill alike.
 
 This script re-extracts messages from source with the same ``pybabel
 extract`` invocation as ``scripts/translations/babel_update.sh`` and compares
-the resulting msgid set against the committed template, ignoring
-whitespace-only (wrapping) differences. It fails when the two sets differ.
+the resulting msgid set against the committed template. It fails when the
+two sets differ.
 
 This is a different question from ``check_translation_regression.py``, which
 compares *translated/fuzzy counts in the .po catalogs* between a base and a
@@ -49,7 +49,6 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from typing import Union
 
 from babel.messages.pofile import read_po
 
@@ -76,20 +75,28 @@ EXTRACT_FLAGS = [
     ".",
 ]
 
-MsgId = Union[str, tuple[str, ...]]
-
-
-def _normalize(msgid: Union[str, tuple[str, ...], list[str]]) -> MsgId:
-    """Collapse whitespace so wrapping-only differences don't count as drift."""
-    if isinstance(msgid, (tuple, list)):
-        return tuple(" ".join(part.split()) for part in msgid)
-    return " ".join(msgid.split())
+# A pluralized entry parses as a list of its singular/plural forms; make it
+# hashable so both kinds of msgid can live in one set.
+MsgId = str | tuple[str, ...]
 
 
 def _msgid_set(pot_path: Path) -> set[MsgId]:
+    """Read the msgids out of a ``.pot``.
+
+    Line wrapping is deliberately not normalized away: gettext continuation
+    lines concatenate back to the exact original string, so ``read_po``
+    already yields identical msgids for a wrapped and an unwrapped copy of
+    the same message. Any whitespace difference that survives parsing is a
+    real source reword, which leaves the template — and therefore every
+    catalog — stale and must be reported.
+    """
     with open(pot_path, "rb") as f:
         catalog = read_po(f)
-    return {_normalize(message.id) for message in catalog if message.id}
+    return {
+        tuple(message.id) if isinstance(message.id, list) else message.id
+        for message in catalog
+        if message.id
+    }
 
 
 def extract_fresh(output_path: Path) -> None:

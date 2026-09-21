@@ -22,7 +22,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-21 00:34+0000\n"
+"POT-Creation-Date: 2026-09-21 01:16+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ro\n"
@@ -32,7 +32,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.17.0\n"
+"Generated-By: Babel 2.18.0\n"
 
 #, python-format
 msgid ""
@@ -5449,6 +5449,9 @@ msgstr "Date"
 msgid "Data Connections"
 msgstr "Conexiuni de date"
 
+msgid "Data Export Options"
+msgstr "Opțiuni Export Date"
+
 msgid "Data Table"
 msgstr "Tabel Date"
 
@@ -6939,6 +6942,9 @@ msgstr "Editează proprietățile stratului de adnotare"
 msgid "Edit chart"
 msgstr "Editează grafic"
 
+msgid "Edit chart properties"
+msgstr "Editează proprietățile graficului"
+
 msgid "Edit dashboard"
 msgstr "Editează panoul de control"
 
@@ -7590,6 +7596,12 @@ msgstr "Explorează setul de rezultate în vederea de explorare a datelor"
 msgid "Export"
 msgstr "Exportă"
 
+msgid "Export All Data"
+msgstr "Exportă Toate Datele"
+
+msgid "Export Current View"
+msgstr "Exportă Vederea Curentă"
+
 msgid "Export Data to Excel"
 msgstr ""
 
@@ -7669,6 +7681,12 @@ msgstr "Exportă în .CSV complet"
 
 msgid "Export to full Excel"
 msgstr "Exportă în Excel complet"
+
+msgid "Export to original .CSV"
+msgstr "Exportă în .CSV original"
+
+msgid "Export to pivoted .CSV"
+msgstr "Exportă în .CSV pivotat"
 
 #, python-format
 msgid ""
@@ -7960,6 +7978,9 @@ msgstr "Eșuat la verificarea opțiunilor de selectare: %s"
 
 msgid "Failure Notifications"
 msgstr ""
+
+msgid "Falling back to CSV; Excel export library not available."
+msgstr "Revenire la CSV; biblioteca de export Excel nu este disponibilă."
 
 msgid "False"
 msgstr "Fals"
@@ -10790,6 +10811,9 @@ msgstr "Nou"
 #, fuzzy
 msgid "New Semantic Layer"
 msgstr "Strat semantic nou"
+
+msgid "New chart"
+msgstr "Grafic nou"
 
 msgid "New dataset"
 msgstr "Set de date nou"
@@ -15565,6 +15589,9 @@ msgstr "Grafic Sunburst"
 
 msgid "Sunday"
 msgstr "Duminică"
+
+msgid "Superset Chart"
+msgstr "Grafic Superset"
 
 msgid "Superset Embedded SDK documentation."
 msgstr "Documentația Superset Embedded SDK."
@@ -21484,6 +21511,10 @@ msgstr ""
 
 msgid "permalink state not found"
 msgstr "starea permalink-ului nu a fost găsită"
+
+#. do-not-translate
+msgid "pivoted_xlsx"
+msgstr "pivoted_xlsx"
 
 msgid "pixels"
 msgstr "pixeli"

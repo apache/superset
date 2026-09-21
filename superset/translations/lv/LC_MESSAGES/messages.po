@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-21 00:34+0000\n"
+"POT-Creation-Date: 2026-09-21 01:16+0000\n"
 "PO-Revision-Date: 2026-03-27 14:01+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: lv\n"
@@ -31,7 +31,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.17.0\n"
+"Generated-By: Babel 2.18.0\n"
 
 #, python-format
 msgid ""
@@ -5128,6 +5128,9 @@ msgstr "Dati"
 msgid "Data Connections"
 msgstr "Datubāzes savienojumi"
 
+msgid "Data Export Options"
+msgstr "Datu eksportēšanas opcijas"
+
 msgid "Data Table"
 msgstr "Datu tabula"
 
@@ -6503,6 +6506,9 @@ msgstr "Rediģēt anotāciju slāņa rekvizītus"
 msgid "Edit chart"
 msgstr "Rediģēt diagrammu"
 
+msgid "Edit chart properties"
+msgstr "Rediģēt diagrammas rekvizītus"
+
 msgid "Edit dashboard"
 msgstr "Rediģēt informācijas paneli"
 
@@ -7108,6 +7114,12 @@ msgstr "Izpētīt rezultātu kopu datu pētniecības skatā"
 msgid "Export"
 msgstr "Eksportēt"
 
+msgid "Export All Data"
+msgstr "Eksportēt visus datus"
+
+msgid "Export Current View"
+msgstr "Eksportēt pašreizējo skatu"
+
 msgid "Export Data to Excel"
 msgstr ""
 
@@ -7179,6 +7191,12 @@ msgstr "Eksportēt uz pilnu .CSV"
 
 msgid "Export to full Excel"
 msgstr "Eksportēt uz pilnu Excel"
+
+msgid "Export to original .CSV"
+msgstr "Eksportēt uz oriģinālo .CSV"
+
+msgid "Export to pivoted .CSV"
+msgstr "Eksportēt uz šķērsgriezuma .CSV"
 
 #, python-format
 msgid ""
@@ -7451,6 +7469,9 @@ msgstr "Neizdevās verificēt atlases opcijas: %s"
 
 msgid "Failure Notifications"
 msgstr ""
+
+msgid "Falling back to CSV; Excel export library not available."
+msgstr "Atgriešanās pie CSV; Excel eksporta bibliotēka nav pieejama."
 
 msgid "False"
 msgstr "Nepatiesi"
@@ -10078,6 +10099,9 @@ msgstr "Jauns"
 #, fuzzy
 msgid "New Semantic Layer"
 msgstr "Nav anotāciju slāņu"
+
+msgid "New chart"
+msgstr "Jauna diagramma"
 
 msgid "New dataset"
 msgstr "Jauna datu kopa"
@@ -14573,6 +14597,9 @@ msgstr "Saules staru diagramma"
 
 msgid "Sunday"
 msgstr "Svētdiena"
+
+msgid "Superset Chart"
+msgstr "Superset diagramma"
 
 msgid "Superset Embedded SDK documentation."
 msgstr "Superset iegultā SDK dokumentācija."
@@ -20131,6 +20158,10 @@ msgstr ""
 
 msgid "permalink state not found"
 msgstr "pastāvīgās saites stāvoklis nav atrasts"
+
+#. do-not-translate
+msgid "pivoted_xlsx"
+msgstr "pivoted_xlsx"
 
 msgid "pixels"
 msgstr "pikseļi"

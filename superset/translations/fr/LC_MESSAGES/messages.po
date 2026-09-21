@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-21 00:34+0000\n"
+"POT-Creation-Date: 2026-09-21 01:16+0000\n"
 "PO-Revision-Date: 2025-06-26 15:34+0200\n"
 "Last-Translator: \n"
 "Language: fr\n"
@@ -26,7 +26,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.17.0\n"
+"Generated-By: Babel 2.18.0\n"
 
 #, python-format
 msgid ""
@@ -5184,6 +5184,9 @@ msgstr "Données"
 msgid "Data Connections"
 msgstr "Connexions aux bases de données"
 
+msgid "Data Export Options"
+msgstr "Options d'exportation des données"
+
 msgid "Data Table"
 msgstr "Tableau des données"
 
@@ -6566,6 +6569,9 @@ msgstr "Modifier les propriétés de la couche d'annotation"
 msgid "Edit chart"
 msgstr "Modifier le graphique"
 
+msgid "Edit chart properties"
+msgstr "Modifier les propriétés du graphique"
+
 msgid "Edit dashboard"
 msgstr "Modifier le tableau de bord"
 
@@ -7177,6 +7183,12 @@ msgstr "Explorer le résultat dans la vue d'exploration des données"
 msgid "Export"
 msgstr "Exporter"
 
+msgid "Export All Data"
+msgstr "Exporter toutes les données"
+
+msgid "Export Current View"
+msgstr "Exporter la vue actuelle"
+
 msgid "Export Data to Excel"
 msgstr ""
 
@@ -7249,6 +7261,12 @@ msgstr "Exporter en CSV intégralement"
 
 msgid "Export to full Excel"
 msgstr "Exporter intégralement en Excel"
+
+msgid "Export to original .CSV"
+msgstr "Exporter vers .CSV original"
+
+msgid "Export to pivoted .CSV"
+msgstr "Exporter vers .CSV pivoté"
 
 #, python-format
 msgid ""
@@ -7520,6 +7538,13 @@ msgstr "Échec de la vérification des options de sélection : %s"
 
 msgid "Failure Notifications"
 msgstr ""
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
+# lv, ro, ru, sk, sr, sr_Latn, tr, uk]
+msgid "Falling back to CSV; Excel export library not available."
+msgstr ""
+"Utilisation du CSV; La libraire pour exporter en Excel n'est pas "
+"disponible."
 
 msgid "False"
 msgstr "est faux"
@@ -10173,6 +10198,9 @@ msgstr "Nouveau"
 
 msgid "New Semantic Layer"
 msgstr "Nouvelle couche sémantique"
+
+msgid "New chart"
+msgstr "Nouveau graphique"
 
 msgid "New dataset"
 msgstr "Nouveau jeu de données"
@@ -14725,6 +14753,9 @@ msgstr "Graphique en rayons de soleil"
 
 msgid "Sunday"
 msgstr "Dimanche"
+
+msgid "Superset Chart"
+msgstr "Graphique Superset"
 
 msgid "Superset Embedded SDK documentation."
 msgstr "Documentation Superset SDK intégrée."
@@ -20478,6 +20509,10 @@ msgstr ""
 
 msgid "permalink state not found"
 msgstr "état du lien permanent introuvable"
+
+#. do-not-translate
+msgid "pivoted_xlsx"
+msgstr "xlsx pivoté"
 
 msgid "pixels"
 msgstr "pixels"

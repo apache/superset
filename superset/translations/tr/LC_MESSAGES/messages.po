@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: avsarcoteli@gmail.com\n"
-"POT-Creation-Date: 2026-09-21 00:34+0000\n"
+"POT-Creation-Date: 2026-09-21 01:16+0000\n"
 "PO-Revision-Date: 2024-02-25 14:00+0300\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: tr\n"
@@ -30,7 +30,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.17.0\n"
+"Generated-By: Babel 2.18.0\n"
 
 #, python-format
 msgid ""
@@ -5332,6 +5332,10 @@ msgstr "Veri"
 msgid "Data Connections"
 msgstr "Veri Bağlantıları"
 
+#, fuzzy
+msgid "Data Export Options"
+msgstr "Grafik seçenekleri"
+
 msgid "Data Table"
 msgstr "Veri Tablosu"
 
@@ -6760,6 +6764,9 @@ msgstr "Edit annotasyon tabakası özellikleri"
 msgid "Edit chart"
 msgstr "Grafiği düzenle"
 
+msgid "Edit chart properties"
+msgstr "Grafik özelliklerini düzenle"
+
 msgid "Edit dashboard"
 msgstr "Gösterim Paneliı düzenle"
 
@@ -7416,6 +7423,14 @@ msgstr "Elde edilen sonucu veri arama görünümünde keşfedin"
 msgid "Export"
 msgstr "Dışa aktar"
 
+#, fuzzy
+msgid "Export All Data"
+msgstr "Tüm veriyi temizle"
+
+#, fuzzy
+msgid "Export Current View"
+msgstr "Geçerli sayfayı seç"
+
 msgid "Export Data to Excel"
 msgstr ""
 
@@ -7492,6 +7507,12 @@ msgstr "Tam .CSV"
 
 msgid "Export to full Excel"
 msgstr "Tam Excel"
+
+msgid "Export to original .CSV"
+msgstr "Orijinal .CSV'ye ihracat"
+
+msgid "Export to pivoted .CSV"
+msgstr ".CSV"
 
 #, python-format
 msgid ""
@@ -7784,6 +7805,9 @@ msgstr "Seçilmiş seçenekleri doğrulamak için başarısız oldu:   %s "
 
 msgid "Failure Notifications"
 msgstr ""
+
+msgid "Falling back to CSV; Excel export library not available."
+msgstr "CSV'a geri dönmek; Excel ihracat kütüphanesi mevcut değil."
 
 #, fuzzy
 msgid "False"
@@ -10547,6 +10571,9 @@ msgstr "Şimdi"
 #, fuzzy
 msgid "New Semantic Layer"
 msgstr "Yeni Semantik Katman"
+
+msgid "New chart"
+msgstr "Yeni grafik"
 
 msgid "New dataset"
 msgstr "Yeni veriseti"
@@ -15277,6 +15304,9 @@ msgstr "Sunburst Chart"
 
 msgid "Sunday"
 msgstr "Pazar"
+
+msgid "Superset Chart"
+msgstr "Superset Chart"
 
 msgid "Superset Embedded SDK documentation."
 msgstr "Süperset gömülü SDK belgeleri."
@@ -21007,6 +21037,10 @@ msgstr ""
 
 msgid "permalink state not found"
 msgstr "permalink durumu bulunamadı"
+
+#. do-not-translate
+msgid "pivoted_xlsx"
+msgstr "1."
 
 msgid "pixels"
 msgstr "piksel"

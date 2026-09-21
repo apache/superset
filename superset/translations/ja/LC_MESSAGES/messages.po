@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-21 00:34+0000\n"
+"POT-Creation-Date: 2026-09-21 01:16+0000\n"
 "PO-Revision-Date: 2024-05-14 13:30+0900\n"
 "Last-Translator: Yuri Umezaki <bungoume@gmail.com>\n"
 "Language: ja\n"
@@ -26,7 +26,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.17.0\n"
+"Generated-By: Babel 2.18.0\n"
 
 #, python-format
 msgid ""
@@ -4719,6 +4719,9 @@ msgstr "データ"
 msgid "Data Connections"
 msgstr "データ接続"
 
+msgid "Data Export Options"
+msgstr "データエクスポートオプション"
+
 msgid "Data Table"
 msgstr "データテーブル"
 
@@ -5948,6 +5951,9 @@ msgstr "注釈レイヤーのプロパティを編集"
 msgid "Edit chart"
 msgstr "チャートを編集"
 
+msgid "Edit chart properties"
+msgstr "チャートのプロパティを編集"
+
 msgid "Edit dashboard"
 msgstr "ダッシュボードを編集"
 
@@ -6534,6 +6540,12 @@ msgstr "データ探索ビューで結果を確認する"
 msgid "Export"
 msgstr "エクスポート"
 
+msgid "Export All Data"
+msgstr "すべてのデータをエクスポート"
+
+msgid "Export Current View"
+msgstr "現在のビューをエクスポート"
+
 msgid "Export Data to Excel"
 msgstr ""
 
@@ -6604,6 +6616,12 @@ msgstr "全データCSVとしてエクスポート"
 
 msgid "Export to full Excel"
 msgstr "全データExcelとしてエクスポート"
+
+msgid "Export to original .CSV"
+msgstr "基データCSVとしてエクスポート"
+
+msgid "Export to pivoted .CSV"
+msgstr "ピボット済みCSVとしてエクスポート"
 
 #, python-format
 msgid ""
@@ -6865,6 +6883,9 @@ msgstr "選択肢の検証に失敗しました: %s"
 
 msgid "Failure Notifications"
 msgstr ""
+
+msgid "Falling back to CSV; Excel export library not available."
+msgstr "Excelエクスポート用ライブラリが利用できないため、CSVにフォールバックします。"
 
 msgid "False"
 msgstr "偽 (False)"
@@ -9330,6 +9351,9 @@ msgstr "新規"
 
 msgid "New Semantic Layer"
 msgstr "新しいセマンティックレイヤー"
+
+msgid "New chart"
+msgstr "新しいチャート"
 
 msgid "New dataset"
 msgstr "新しいデータセット"
@@ -13497,6 +13521,9 @@ msgstr "サンバーストチャート"
 
 msgid "Sunday"
 msgstr "日曜日"
+
+msgid "Superset Chart"
+msgstr "Superset チャート"
 
 msgid "Superset Embedded SDK documentation."
 msgstr "Superset 埋め込み用 SDK ドキュメント。"
@@ -18458,6 +18485,10 @@ msgstr "パーセンタイルは、1つ目が2つ目より小さい2つの数値
 
 msgid "permalink state not found"
 msgstr "固定リンクの状態が見つかりません"
+
+#. do-not-translate
+msgid "pivoted_xlsx"
+msgstr "ピボットエクセル"
 
 msgid "pixels"
 msgstr "ピクセル"

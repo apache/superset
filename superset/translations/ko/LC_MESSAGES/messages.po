@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-21 00:34+0000\n"
+"POT-Creation-Date: 2026-09-21 01:16+0000\n"
 "PO-Revision-Date: 2019-02-02 22:28+0900\n"
 "Last-Translator: \n"
 "Language: ko\n"
@@ -26,7 +26,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.17.0\n"
+"Generated-By: Babel 2.18.0\n"
 
 #, python-format
 msgid ""
@@ -7488,6 +7488,10 @@ msgid "Data Connections"
 msgstr "연결 테스트"
 
 #, fuzzy
+msgid "Data Export Options"
+msgstr "주석"
+
+#, fuzzy
 msgid "Data Table"
 msgstr "테이블 수정"
 
@@ -9453,6 +9457,13 @@ msgstr "주석 레이어"
 msgid "Edit chart"
 msgstr "차트 수정"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ro, ru, sk, sl, sr, sr_Latn,
+# tr, uk, zh, zh_TW]
+#, fuzzy
+msgid "Edit chart properties"
+msgstr "차트 속성 편집"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, de,
 # es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sl, sr, sr_Latn, tr, uk, zh,
 # zh_TW]
@@ -10470,6 +10481,14 @@ msgstr "데이터 탐색 보기에서 결과 집합 탐색"
 msgid "Export"
 msgstr "내보내기"
 
+#, fuzzy
+msgid "Export All Data"
+msgstr "차트 추가"
+
+#, fuzzy
+msgid "Export Current View"
+msgstr "Superset 튜토리얼"
+
 msgid "Export Data to Excel"
 msgstr ""
 
@@ -10575,6 +10594,20 @@ msgstr "전체 .CSV로 내보내기"
 #, fuzzy
 msgid "Export to full Excel"
 msgstr "전체 Excel로 내보내기"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk, zh,
+# zh_TW]
+#, fuzzy
+msgid "Export to original .CSV"
+msgstr "원본 .CSV로 내보내기"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk, zh,
+# zh_TW]
+#, fuzzy
+msgid "Export to pivoted .CSV"
+msgstr "피벗된 .CSV로 내보내기"
 
 #, python-format
 msgid ""
@@ -10972,6 +11005,12 @@ msgstr "선택 옵션 확인에 실패했습니다: %s"
 
 msgid "Failure Notifications"
 msgstr ""
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
+# lv, ro, ru, sk, sr, sr_Latn, tr, uk]
+#, fuzzy
+msgid "Falling back to CSV; Excel export library not available."
+msgstr "CSV로 대체합니다. Excel 내보내기 라이브러리를 사용할 수 없습니다."
 
 #, fuzzy
 msgid "False"
@@ -15215,6 +15254,9 @@ msgstr "탭 닫기"
 #, fuzzy
 msgid "New Semantic Layer"
 msgstr "주석 레이어"
+
+msgid "New chart"
+msgstr "차트 이동"
 
 #, fuzzy
 msgid "New dataset"
@@ -22193,6 +22235,13 @@ msgstr "Superset 튜토리얼"
 #, fuzzy
 msgid "Sunday"
 msgstr "일요일"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk, zh,
+# zh_TW]
+#, fuzzy
+msgid "Superset Chart"
+msgstr "Superset 차트"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -30511,6 +30560,11 @@ msgstr "백분위수는 두 개의 숫자 값으로 구성된 목록 또는 튜�
 #, fuzzy
 msgid "permalink state not found"
 msgstr "CSS 템플릿을 찾을수 없습니다."
+
+#. do-not-translate
+#, fuzzy
+msgid "pivoted_xlsx"
+msgstr "테이블 수정"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk, zh,
