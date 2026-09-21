@@ -21,10 +21,13 @@ bypassing the Flask-AppBuilder permission decorator machinery.
 """
 
 import inspect
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
+from flask import Flask
 
+from superset.commands.dataset.exceptions import DatasetForbiddenError
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 from superset.utils import json as superset_json
@@ -57,6 +60,35 @@ def _view_self() -> MagicMock:
     self = MagicMock()
     self.json_response = MagicMock(return_value="ok")
     return self
+
+
+def _save_orm_dataset(**overrides: Any) -> MagicMock:
+    """Stand-in for the dataset ``save`` loads, defaulting to a physical one."""
+    mock_orm = MagicMock()
+    mock_orm.database_id = 1
+    mock_orm.table_name = "my_table"
+    mock_orm.schema = "public"
+    mock_orm.catalog = None
+    mock_orm.is_virtual = False
+    mock_orm.data = {"id": 1}
+    for attr, value in overrides.items():
+        setattr(mock_orm, attr, value)
+    return mock_orm
+
+
+def _run_save(**payload: Any) -> Any:
+    """Call the unwrapped ``save`` view with ``payload`` as the request body."""
+    app = Flask(__name__)
+    with app.test_request_context(
+        "/datasource/save/",
+        method="POST",
+        data={
+            "data": superset_json.dumps(
+                {"id": 1, "type": "table", "columns": [], **payload}
+            )
+        },
+    ):
+        return _get_view_func("save")(_view_self())
 
 
 # ---------------------------------------------------------------------------
@@ -529,42 +561,17 @@ def test_save_rejects_same_database_repoint_to_table_without_access(
     case too -- editorship of the dataset alone must not let a caller point
     it at a table they are not authorised for within the same database.
     """
-    mock_orm = MagicMock()
-    mock_orm.database_id = 1
-    mock_orm.table_name = "authorised_table"
-    mock_orm.schema = "public"
-    mock_orm.catalog = None
-    mock_orm.is_virtual = False  # physical dataset
-    mock_orm.data = {"id": 1}
+    mock_orm = _save_orm_dataset(table_name="authorised_table")
     mock_get_datasource.return_value = mock_orm
-    mock_security_manager.raise_for_editorship.return_value = None
     # Same database, so no lookup happens; access to the requested table is denied.
     mock_security_manager.raise_for_access.side_effect = _security_exception()
 
-    from flask import Flask
-
-    from superset.commands.dataset.exceptions import DatasetForbiddenError
-
-    raw_save = _get_view_func("save")
-    app = Flask(__name__)
-    with app.test_request_context(
-        "/datasource/save/",
-        method="POST",
-        data={
-            "data": superset_json.dumps(
-                {
-                    "id": 1,
-                    "type": "table",
-                    "database": {"id": 1},  # unchanged
-                    "table_name": "secret_table",  # but repointed to another table
-                    "schema": "finance",
-                    "columns": [],
-                }
-            )
-        },
-    ):
-        with pytest.raises(DatasetForbiddenError):
-            raw_save(_view_self())
+    with pytest.raises(DatasetForbiddenError):
+        _run_save(
+            database={"id": 1},  # unchanged
+            table_name="secret_table",  # but repointed to another table
+            schema="finance",
+        )
 
     mock_security_manager.raise_for_access.assert_called_once()
     call_kwargs = mock_security_manager.raise_for_access.call_args.kwargs
@@ -572,59 +579,6 @@ def test_save_rejects_same_database_repoint_to_table_without_access(
     assert call_kwargs["table"].table == "secret_table"
     assert call_kwargs["table"].schema == "finance"
     # No cross-database lookup for a same-database repoint.
-    mock_get_database_by_id.assert_not_called()
-
-
-@patch("superset.views.datasource.views.db")
-@patch("superset.views.datasource.views.DatasetDAO.get_database_by_id")
-@patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
-@patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
-def test_save_skips_table_check_for_virtual_dataset(
-    mock_get_datasource: MagicMock,
-    mock_security_manager: MagicMock,
-    mock_get_database_by_id: MagicMock,
-    mock_db: MagicMock,
-) -> None:
-    """
-    On a virtual (SQL-backed) dataset ``table_name`` is a label rather than a
-    pointer to a physical table, so renaming it is not a repoint and must not
-    be gated on access to a physical table of that name.
-    """
-    mock_orm = MagicMock()
-    mock_orm.database_id = 1
-    mock_orm.table_name = "my_virtual_dataset"
-    mock_orm.schema = "public"
-    mock_orm.catalog = None
-    mock_orm.is_virtual = True  # already a virtual dataset
-    mock_orm.data = {"id": 1}
-    mock_get_datasource.return_value = mock_orm
-    mock_security_manager.raise_for_editorship.return_value = None
-
-    from flask import Flask
-
-    raw_save = _get_view_func("save")
-    app = Flask(__name__)
-    with app.test_request_context(
-        "/datasource/save/",
-        method="POST",
-        data={
-            "data": superset_json.dumps(
-                {
-                    "id": 1,
-                    "type": "table",
-                    "database": {"id": 1},
-                    "table_name": "renamed_virtual_dataset",
-                    "schema": "public",
-                    "sql": "SELECT 1",
-                    "columns": [],
-                }
-            )
-        },
-    ):
-        raw_save(_view_self())
-
-    mock_security_manager.raise_for_access.assert_not_called()
-    # No cross-database lookup for a same-database save.
     mock_get_database_by_id.assert_not_called()
 
 
@@ -645,153 +599,22 @@ def test_save_checks_table_when_virtual_dataset_becomes_physical(
     label could be renamed under the virtual-dataset skip and then converted in
     a second save, reaching a table the caller is not authorised for.
     """
-    mock_orm = MagicMock()
-    mock_orm.database_id = 1
-    mock_orm.table_name = "secret_table"
-    mock_orm.schema = "finance"
-    mock_orm.catalog = None
-    mock_orm.is_virtual = True  # currently virtual
-    mock_orm.data = {"id": 1}
+    mock_orm = _save_orm_dataset(
+        table_name="secret_table", schema="finance", is_virtual=True
+    )
     mock_get_datasource.return_value = mock_orm
-    mock_security_manager.raise_for_editorship.return_value = None
     mock_security_manager.raise_for_access.side_effect = _security_exception()
 
-    from flask import Flask
-
-    from superset.commands.dataset.exceptions import DatasetForbiddenError
-
-    raw_save = _get_view_func("save")
-    app = Flask(__name__)
-    with app.test_request_context(
-        "/datasource/save/",
-        method="POST",
-        data={
-            "data": superset_json.dumps(
-                {
-                    "id": 1,
-                    "type": "table",
-                    "database": {"id": 1},
-                    # Label unchanged, but sql is gone: the dataset now points
-                    # at the physical finance.secret_table.
-                    "table_name": "secret_table",
-                    "schema": "finance",
-                    "columns": [],
-                }
-            )
-        },
-    ):
-        with pytest.raises(DatasetForbiddenError):
-            raw_save(_view_self())
+    with pytest.raises(DatasetForbiddenError):
+        # Label unchanged, but sql is gone: the dataset now points at the
+        # physical finance.secret_table.
+        _run_save(database={"id": 1}, table_name="secret_table", schema="finance")
 
     mock_security_manager.raise_for_access.assert_called_once()
     call_kwargs = mock_security_manager.raise_for_access.call_args.kwargs
     assert call_kwargs["table"].table == "secret_table"
     assert call_kwargs["table"].schema == "finance"
     # No cross-database lookup for a same-database save.
-    mock_get_database_by_id.assert_not_called()
-
-
-@patch("superset.views.datasource.views.db")
-@patch("superset.views.datasource.views.DatasetDAO.get_database_by_id")
-@patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
-@patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
-def test_save_treats_empty_schema_round_trip_as_unchanged(
-    mock_get_datasource: MagicMock,
-    mock_security_manager: MagicMock,
-    mock_get_database_by_id: MagicMock,
-    mock_db: MagicMock,
-) -> None:
-    """
-    ``BaseDatasource.data`` emits an empty schema as ``None``, so a dataset
-    stored with ``schema = ""`` round-trips through the editor as ``None``.
-    That is not a repoint and must not trigger a fresh access check.
-    """
-    mock_orm = MagicMock()
-    mock_orm.database_id = 1
-    mock_orm.table_name = "my_table"
-    mock_orm.schema = ""
-    mock_orm.catalog = ""
-    mock_orm.is_virtual = False  # physical dataset
-    mock_orm.data = {"id": 1}
-    mock_get_datasource.return_value = mock_orm
-    mock_security_manager.raise_for_editorship.return_value = None
-
-    from flask import Flask
-
-    raw_save = _get_view_func("save")
-    app = Flask(__name__)
-    with app.test_request_context(
-        "/datasource/save/",
-        method="POST",
-        data={
-            "data": superset_json.dumps(
-                {
-                    "id": 1,
-                    "type": "table",
-                    "database": {"id": 1},
-                    "table_name": "my_table",
-                    "schema": None,
-                    "catalog": None,
-                    "columns": [],
-                }
-            )
-        },
-    ):
-        raw_save(_view_self())
-
-    mock_security_manager.raise_for_access.assert_not_called()
-    # No cross-database lookup for a same-database save.
-    mock_get_database_by_id.assert_not_called()
-
-
-@patch("superset.views.datasource.views.db")
-@patch("superset.views.datasource.views.DatasetDAO.get_database_by_id")
-@patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
-@patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
-def test_save_allows_unchanged_datasource_without_access_recheck(
-    mock_get_datasource: MagicMock,
-    mock_security_manager: MagicMock,
-    mock_get_database_by_id: MagicMock,
-    mock_db: MagicMock,
-) -> None:
-    """
-    A plain save that changes neither the database nor the table (e.g. a
-    column/metric edit) must not require a fresh datasource-access check --
-    editorship already gates it, and re-checking would be a behavior change.
-    """
-    mock_orm = MagicMock()
-    mock_orm.database_id = 1
-    mock_orm.table_name = "my_table"
-    mock_orm.schema = "public"
-    mock_orm.catalog = None
-    mock_orm.is_virtual = False  # physical dataset
-    mock_orm.data = {"id": 1}
-    mock_get_datasource.return_value = mock_orm
-    mock_security_manager.raise_for_editorship.return_value = None
-
-    from flask import Flask
-
-    raw_save = _get_view_func("save")
-    app = Flask(__name__)
-    with app.test_request_context(
-        "/datasource/save/",
-        method="POST",
-        data={
-            "data": superset_json.dumps(
-                {
-                    "id": 1,
-                    "type": "table",
-                    "database": {"id": 1},
-                    "table_name": "my_table",
-                    "schema": "public",
-                    "columns": [],
-                }
-            )
-        },
-    ):
-        raw_save(_view_self())
-
-    mock_security_manager.raise_for_access.assert_not_called()
     mock_get_database_by_id.assert_not_called()
 
 
@@ -813,41 +636,14 @@ def test_save_rejects_repoint_when_table_key_omitted(
     change (current value -> ``None``) so the check runs against the actual
     target, not fall back to the current value and skip the check.
     """
-    mock_orm = MagicMock()
-    mock_orm.database_id = 1
-    mock_orm.table_name = "authorised_table"
-    mock_orm.schema = "public"
-    mock_orm.catalog = None
-    mock_orm.is_virtual = False  # physical dataset
-    mock_orm.data = {"id": 1}
+    mock_orm = _save_orm_dataset(table_name="authorised_table")
     mock_get_datasource.return_value = mock_orm
-    mock_security_manager.raise_for_editorship.return_value = None
     # Access to the (now None) target is not granted.
     mock_security_manager.raise_for_access.side_effect = _security_exception()
 
-    from flask import Flask
-
-    from superset.commands.dataset.exceptions import DatasetForbiddenError
-
-    raw_save = _get_view_func("save")
-    app = Flask(__name__)
-    with app.test_request_context(
-        "/datasource/save/",
-        method="POST",
-        data={
-            "data": superset_json.dumps(
-                {
-                    "id": 1,
-                    "type": "table",
-                    "database": {"id": 1},  # same database
-                    # table_name / schema / catalog omitted entirely
-                    "columns": [],
-                }
-            )
-        },
-    ):
-        with pytest.raises(DatasetForbiddenError):
-            raw_save(_view_self())
+    with pytest.raises(DatasetForbiddenError):
+        # table_name / schema / catalog omitted entirely
+        _run_save(database={"id": 1})
 
     # The check ran, and against the target that will actually be applied
     # (all None), not the dataset's current authorised values.
@@ -857,6 +653,64 @@ def test_save_rejects_repoint_when_table_key_omitted(
     assert call_kwargs["table"].table is None
     assert call_kwargs["table"].schema is None
     assert call_kwargs["table"].catalog is None
+    mock_get_database_by_id.assert_not_called()
+
+
+@patch("superset.views.datasource.views.db")
+@patch("superset.views.datasource.views.DatasetDAO.get_database_by_id")
+@patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
+@patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
+@pytest.mark.parametrize(
+    "orm_overrides,payload",
+    [
+        # A virtual dataset's ``table_name`` is a label rather than a pointer to
+        # a physical table, so renaming it is not a repoint and must not be
+        # gated on access to a physical table of that name.
+        pytest.param(
+            {"table_name": "my_virtual_dataset", "is_virtual": True},
+            {
+                "table_name": "renamed_virtual_dataset",
+                "schema": "public",
+                "sql": "SELECT 1",
+            },
+            id="virtual_dataset_renamed",
+        ),
+        # ``BaseDatasource.data`` emits an empty schema as ``None``, so a
+        # dataset stored with ``schema = ""`` round-trips through the editor as
+        # ``None``. That is not a repoint.
+        pytest.param(
+            {"schema": "", "catalog": ""},
+            {"table_name": "my_table", "schema": None, "catalog": None},
+            id="empty_schema_round_trip",
+        ),
+        # A plain save that changes neither the database nor the table (e.g. a
+        # column/metric edit); editorship already gates it, and re-checking
+        # would be a behavior change.
+        pytest.param(
+            {},
+            {"table_name": "my_table", "schema": "public"},
+            id="unchanged_datasource",
+        ),
+    ],
+)
+def test_save_skips_table_check_when_not_repointed(
+    mock_get_datasource: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_get_database_by_id: MagicMock,
+    mock_db: MagicMock,
+    orm_overrides: dict[str, Any],
+    payload: dict[str, Any],
+) -> None:
+    """
+    A save that does not repoint the dataset at a new physical table must not
+    trigger a fresh datasource-access check.
+    """
+    mock_get_datasource.return_value = _save_orm_dataset(**orm_overrides)
+
+    _run_save(database={"id": 1}, **payload)
+
+    mock_security_manager.raise_for_access.assert_not_called()
+    # No cross-database lookup for a same-database save.
     mock_get_database_by_id.assert_not_called()
 
 
