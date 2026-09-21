@@ -204,7 +204,7 @@ The Db2 engine spec has been streamlined by using the DATE_TRUNC scalar function
 which requires Db2 11.1.0 or higher. Per the ISO 8601 standards, the `WEEK` time
 grain now shifts the first day of the week to Monday as part of this change.
 
-### Update IBM Db2 for i Time Grain Expressions'
+### Update IBM Db2 for i Time Grain Expressions
 IBM Db2 for i inherits its engine spec from Db2 but does not support the DATE_TRUNC
 scalar function, so it will use the previous arithmetic expressions defined for Db2.
 Its `WEEK` time grain now uses `DAYOFWEEK_ISO` to align with the Db2 change.
