@@ -807,8 +807,7 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # @lifecycle: testing
     "ESTIMATE_QUERY_COST": False,
     # Enable async chart queries for dashboards and Explore.
-    # Requires GLOBAL_TASK_FRAMEWORK_ENABLED=True, Redis and Celery workers.
-    # Does not require the GLOBAL_TASK_FRAMEWORK UI flag.
+    # Requires Redis and Celery workers; implies GLOBAL_TASK_FRAMEWORK.
     # @lifecycle: testing
     # @docs: https://superset.apache.org/docs/contributing/misc#async-chart-queries
     "GLOBAL_ASYNC_QUERIES": False,
@@ -833,8 +832,8 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # sts:AssumeRole permissions to prevent unauthorized access.
     # @lifecycle: testing
     "AWS_DATABASE_IAM_AUTH": False,
-    # Show the Tasks UI (menu and page). Requires GLOBAL_TASK_FRAMEWORK_ENABLED=True.
-    # Does not gate task services, APIs, MCP tools or task execution.
+    # Enable task admission, APIs (including polling/cancellation), MCP and Tasks UI.
+    # Infrastructure is registered at boot regardless of this runtime flag.
     # @lifecycle: testing
     "GLOBAL_TASK_FRAMEWORK": False,
     # Use analogous colors in charts
@@ -2975,12 +2974,6 @@ SQLA_TABLE_MUTATOR = lambda table: table  # noqa: E731
 
 
 # Global async query config options.
-# Install task infrastructure independently of request-time feature flags.
-# Requires a restart and the same value in web, worker, MCP and provisioning
-# processes. Enables task services and admission; GLOBAL_TASK_FRAMEWORK only
-# controls the Tasks UI. GLOBAL_ASYNC_QUERIES controls async chart eligibility.
-GLOBAL_TASK_FRAMEWORK_ENABLED = False
-
 # Requires the GLOBAL_ASYNC_QUERIES feature flag to be enabled. Async chart-data
 # queries run on the Global Task Framework (one task per QueryObject) over
 # DISTRIBUTED_COORDINATION_CONFIG; the client polls /api/v1/task/status_changes at

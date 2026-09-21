@@ -35,6 +35,7 @@ from superset.commands.tasks.exceptions import (
     TaskInvalidError,
 )
 from superset.daos.exceptions import DAOCreateFailedError
+from superset.extensions import feature_flag_manager
 from superset.stats_logger import BaseStatsLogger
 from superset.tasks.guest import get_guest_subscriber_key_for
 from superset.tasks.locks import task_lock
@@ -98,7 +99,7 @@ class SubmitTaskCommand(BaseCommand):
 
         :returns: Tuple of (Task, is_new) where is_new is True if task was created
         """
-        if not current_app.config["GLOBAL_TASK_FRAMEWORK_ENABLED"]:
+        if not feature_flag_manager.is_feature_enabled("GLOBAL_TASK_FRAMEWORK"):
             raise GlobalTaskFrameworkDisabledError()
 
         # Enforce the "must own its transaction" contract (see docstring). If a

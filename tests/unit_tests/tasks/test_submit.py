@@ -29,13 +29,12 @@ from superset.extensions import feature_flag_manager
 
 
 @pytest.fixture(autouse=True)
-def enable_task_infrastructure(app: Flask, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Test submission transactions with task infrastructure installed."""
-    monkeypatch.setitem(app.config, "GLOBAL_TASK_FRAMEWORK_ENABLED", True)
+def enable_task_framework(app: Flask, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test submission transactions with the runtime task flag enabled."""
     original_resolver = feature_flag_manager.is_feature_enabled
     monkeypatch.setattr(
         "superset.extensions.feature_flag_manager.is_feature_enabled",
-        lambda feature: False
+        lambda feature: True
         if feature == "GLOBAL_TASK_FRAMEWORK"
         else original_resolver(feature),
     )

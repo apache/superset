@@ -32,7 +32,6 @@ import {
   AnnotationSourceType,
   AnnotationStyle,
 } from '@superset-ui/core';
-import getBootstrapData from 'src/utils/getBootstrapData';
 import * as toastActions from 'src/components/MessageToasts/actions';
 import * as exploreUtils from 'src/explore/exploreUtils';
 import * as actions from 'src/components/Chart/chartAction';
@@ -396,6 +395,7 @@ describe('chart actions', () => {
         global as unknown as { featureFlags: Record<string, boolean> }
       ).featureFlags = {
         [FeatureFlag.GlobalAsyncQueries]: true,
+          [FeatureFlag.GlobalTaskFramework]: true,
       };
       const result = await handleChartDataResponse(
         { status: 200 } as Response,
@@ -414,6 +414,7 @@ describe('chart actions', () => {
         global as unknown as { featureFlags: Record<string, boolean> }
       ).featureFlags = {
         [FeatureFlag.GlobalAsyncQueries]: true,
+          [FeatureFlag.GlobalTaskFramework]: true,
       };
       // On 202 the body is the async job ({task_ids}); once the tasks resolve
       // (stubbed waitForAsyncData invokes the refetch), the re-request returns
@@ -484,12 +485,7 @@ describe('chart actions', () => {
 
     // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
     describe('GlobalAsyncQueries error handling', () => {
-      let previousInfrastructure: boolean | undefined;
-
       beforeEach(() => {
-        const config = getBootstrapData().common.conf;
-        previousInfrastructure = config.GLOBAL_TASK_FRAMEWORK_ENABLED;
-        config.GLOBAL_TASK_FRAMEWORK_ENABLED = true;
         (
           global as unknown as { featureFlags: Record<string, boolean> }
         ).featureFlags = {
@@ -510,8 +506,6 @@ describe('chart actions', () => {
       });
 
       afterEach(() => {
-        getBootstrapData().common.conf.GLOBAL_TASK_FRAMEWORK_ENABLED =
-          previousInfrastructure;
         fetchMock.removeRoute(MOCK_URL);
         setupDefaultFetchMock();
       });

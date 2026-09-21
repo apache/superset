@@ -1360,6 +1360,15 @@ def test_create_query_context_from_form_converts_value_error_to_400() -> None:
 
 
 @pytest.fixture(autouse=True)
-def enable_task_infrastructure(app: Flask, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Exercise task behavior with deployment infrastructure installed."""
-    monkeypatch.setitem(app.config, "GLOBAL_TASK_FRAMEWORK_ENABLED", True)
+def enable_task_framework(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Keep the task prerequisite enabled while testing other chart conditions."""
+    from superset.extensions import feature_flag_manager
+
+    resolve_flag = feature_flag_manager.is_feature_enabled
+    monkeypatch.setattr(
+        feature_flag_manager,
+        "is_feature_enabled",
+        lambda feature: True
+        if feature == "GLOBAL_TASK_FRAMEWORK"
+        else resolve_flag(feature),
+    )

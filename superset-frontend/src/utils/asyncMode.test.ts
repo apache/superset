@@ -35,12 +35,7 @@ const mockBootstrap = getBootstrapData as jest.Mock;
 
 const setDefault = (value: boolean | undefined) =>
   mockBootstrap.mockReturnValue({
-    common: {
-      conf: {
-        GLOBAL_ASYNC_QUERIES_DEFAULT: value,
-        GLOBAL_TASK_FRAMEWORK_ENABLED: true,
-      },
-    },
+    common: { conf: { GLOBAL_ASYNC_QUERIES_DEFAULT: value } },
   });
 
 afterEach(() => jest.clearAllMocks());
@@ -101,21 +96,17 @@ test('per-dashboard override wins over the default', () => {
   expect(resolveAsyncMode('force_off')).toBe(false);
 });
 
-test.each([false, true])(
-  'deployment config %s gates async regardless of override',
-  enabled => {
-    mockFeatureEnabled.mockReturnValue(true);
-    mockBootstrap.mockReturnValue({
-      common: { conf: { GLOBAL_TASK_FRAMEWORK_ENABLED: enabled } },
-    });
-    expect(resolveAsyncMode('force_on')).toBe(enabled);
-  },
-);
-
-test('custom flags with GAQ on and GTF off still request async', () => {
-  setDefault(true);
-  mockFeatureEnabled.mockImplementation(
-    f => f === FeatureFlag.GlobalAsyncQueries,
+test.each([
+  [false, false],
+  [false, true],
+  [true, false],
+  [true, true],
+])('effective GTF=%s GAQ=%s govern async admission', (gtf, gaq) => {
+  mockFeatureEnabled.mockImplementation(f =>
+    f === FeatureFlag.GlobalTaskFramework
+      ? gtf
+      : f === FeatureFlag.GlobalAsyncQueries && gaq,
   );
-  expect(resolveAsyncMode('force_on')).toBe(true);
+  setDefault(true);
+  expect(resolveAsyncMode('force_on')).toBe(gtf && gaq);
 });

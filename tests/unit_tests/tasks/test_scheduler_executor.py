@@ -195,7 +195,11 @@ def test_admitted_worker_finishes_after_runtime_flag_is_disabled() -> None:
     ctx.aborting_in_flight = False
     executor = MagicMock(__module__=__name__, __name__="admitted_task")
     with (
-        patch("superset.is_feature_enabled", return_value=False),
+        patch("superset.tasks.scheduler.is_feature_enabled", return_value=False),
+        patch(
+            "superset.extensions.feature_flag_manager.is_feature_enabled",
+            return_value=False,
+        ),
         patch("superset.tasks.scheduler.TaskContext", return_value=ctx),
         patch(
             "superset.tasks.scheduler.TaskRegistry.get_executor", return_value=executor

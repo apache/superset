@@ -24,34 +24,25 @@ assists people when migrating to a new version.
 
 ## Next
 
-### Task configuration and feature flags have separate responsibilities
+### Task infrastructure is registered independently of runtime flags
 
-**Breaking change:** previously the `GLOBAL_TASK_FRAMEWORK` flag controlled task
-registration and admission. It controls **only the Tasks UI** after this change.
-It is not an execution/API kill switch or a security authorization control.
+Task APIs, views, TaskManager and MCP task tools are registered at boot even when
+`GLOBAL_TASK_FRAMEWORK` is off. Normal permission provisioning still applies;
+run `superset init` during upgrades. Enabling the effective flag later does not
+require restarting the app to install routes or tools.
 
-- `GLOBAL_TASK_FRAMEWORK_ENABLED` (new deployment config, default `False`)
-  installs infrastructure and enables task admission, APIs including polling and
-  cancellation, and task MCP tools. Existing RBAC/subscriber restrictions remain.
-- `GLOBAL_TASK_FRAMEWORK` controls the Tasks menu/page/list, requiring config-on.
-- `GLOBAL_ASYNC_QUERIES` enables async chart eligibility, requiring config-on but
-  **not** the Tasks UI flag. GAQ-off selects sync without disabling generic tasks.
+**Behavior change:** the effective `GLOBAL_TASK_FRAMEWORK` flag gates new task
+admission, Tasks UI, task APIs (including polling/cancellation), and MCP invocation.
+Existing RBAC and subscriber restrictions are unchanged. Already-admitted workers
+remain ungated and finish their work, but clients cannot poll or cancel while the
+flag is off. Stop new submissions and drain outstanding work before disabling it
+if clients need continued lifecycle access.
 
-Migrate task/GAQ deployments by setting `GLOBAL_TASK_FRAMEWORK_ENABLED = True` in
-`superset_config.py`. There is no fallback from static or dynamic flags. Use the
-same process-wide setting in web, worker, MCP and provisioning processes; run
-normal migrations and `superset init`, then restart all relevant processes.
-No permission-name or schema migration is introduced.
-
-Stock FeatureFlagManager still derives effective GTF-on from GAQ-on, so GAQ shows
-the Tasks UI with config-on. A custom resolver returning GAQ-on/GTF-off allows
-async charts with a hidden Tasks UI. Config-off makes task services/UI unavailable
-and chart requests synchronous regardless of flags.
-
-No drain is needed to hide the UI. Before disabling infrastructure, stop all new
-task submissions and drain admitted work with config-on; only then change config
-and restart. GAQ-off does not stop non-chart task producers. See the async query
-configuration guide for the truth table and migration example.
+GAQ requires both effective task and async-query flags and its existing eligibility
+conditions. The stock manager still derives GTF from GAQ, so disabling GTF alone
+while GAQ remains on does not disable task services. Custom resolvers returning
+GAQ-on/GTF-off get synchronous chart fallback rather than an unresolvable 202.
+See the async query configuration guide for the runtime matrix.
 
 ### Other changes
 
@@ -245,8 +236,7 @@ Breaking removals (no deprecation window):
 Enabling async chart data in the new flow:
 
 ```python
-# Install task services; the GAQ flag also enables the Tasks UI by default.
-GLOBAL_TASK_FRAMEWORK_ENABLED = True
+# The GAQ flag also enables effective GLOBAL_TASK_FRAMEWORK.
 FEATURE_FLAGS = {"GLOBAL_ASYNC_QUERIES": True}
 
 # a Redis connection for distributed coordination (locks, GTF signalling,

@@ -20,7 +20,7 @@ import logging
 from datetime import datetime
 from uuid import UUID
 
-from flask import current_app, request, Response
+from flask import request, Response
 from flask_appbuilder.api import expose, protect, safe
 from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -34,7 +34,7 @@ from superset.commands.tasks.exceptions import (
     TaskPermissionDeniedError,
 )
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
-from superset.extensions import event_logger
+from superset.extensions import event_logger, feature_flag_manager
 from superset.models.tasks import Task
 from superset.tasks.filters import TaskFilter
 from superset.tasks.schemas import (
@@ -61,7 +61,7 @@ class TaskRestApi(BaseSupersetModelRestApi):
     @before_request
     def ensure_task_framework_enabled(self) -> Response | None:
         """Gate every task endpoint, including polling and cancellation."""
-        if not current_app.config["GLOBAL_TASK_FRAMEWORK_ENABLED"]:
+        if not feature_flag_manager.is_feature_enabled("GLOBAL_TASK_FRAMEWORK"):
             return self.response_404()
         return None
 

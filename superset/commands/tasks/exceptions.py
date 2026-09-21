@@ -98,17 +98,17 @@ class TaskPermissionDeniedError(ForbiddenError):
 
 class GlobalTaskFrameworkDisabledError(CommandException):
     """
-    Raised when a GTF task is called or scheduled but task infrastructure is disabled.
+    Raised when a task is called or scheduled with its feature flag disabled.
 
     This exception is raised at call/schedule time (not decoration time) to allow
-    modules with @task-decorated functions to be imported safely when task
-    infrastructure is disabled.
+    modules with @task-decorated functions to be imported safely when the feature
+    flag is disabled.
     The check is deferred until someone actually tries to execute a task.
     """
 
     message = _(
         "The Global Task Framework is not enabled. "
-        "Set GLOBAL_TASK_FRAMEWORK_ENABLED=True in your deployment configuration "
+        "Enable the GLOBAL_TASK_FRAMEWORK feature flag "
         "to use @task. "
         "See https://superset.apache.org/docs/configuration/async-queries-celery "
         "for configuration details."

@@ -35,6 +35,7 @@ from flask import current_app
 from superset_core.tasks.types import TaskOptions, TaskScope, TaskStatus
 
 from superset.commands.tasks.exceptions import GlobalTaskFrameworkDisabledError
+from superset.extensions import feature_flag_manager
 from superset.tasks.ambient_context import use_context
 from superset.tasks.constants import TERMINAL_STATES
 from superset.tasks.context import TaskContext
@@ -316,13 +317,13 @@ class TaskWrapper(Generic[P]):
         Returns the Task entity in terminal state (SUCCESS, FAILURE, etc.).
 
         Raises:
-            GlobalTaskFrameworkDisabledError: If task infrastructure is disabled
+            GlobalTaskFrameworkDisabledError: If GTF is disabled
             ValueError: If task validation fails
             TimeoutError: If timeout expires while waiting for existing task
         """
         from superset.commands.tasks.submit import SubmitTaskCommand
 
-        if not current_app.config["GLOBAL_TASK_FRAMEWORK_ENABLED"]:
+        if not feature_flag_manager.is_feature_enabled("GLOBAL_TASK_FRAMEWORK"):
             raise GlobalTaskFrameworkDisabledError()
 
         # Extract and merge options (decorator defaults + call-time overrides)
@@ -375,7 +376,6 @@ class TaskWrapper(Generic[P]):
         :returns: Task in terminal state
         :raises TimeoutError: If timeout expires before task completes
         """
-        from flask import current_app
 
         from superset.daos.tasks import TaskDAO
 
@@ -437,7 +437,6 @@ class TaskWrapper(Generic[P]):
         non-success → fail this dependent and return its terminal ``Task`` for the
         caller to return.
         """
-        from flask import current_app
 
         from superset.daos.tasks import TaskDAO
         from superset.tasks.dependencies import (
@@ -716,7 +715,7 @@ class TaskWrapper(Generic[P]):
             Task model representing the scheduled task (PENDING status)
 
         Raises:
-            GlobalTaskFrameworkDisabledError: If task infrastructure is disabled
+            GlobalTaskFrameworkDisabledError: If GTF is disabled
             ValueError: If task is SHARED scope but no task_key is provided
 
         Usage:
@@ -738,7 +737,7 @@ class TaskWrapper(Generic[P]):
         Note: Unlike direct calls (__call__), this schedules async execution.
         The function returns immediately with the Task model in PENDING status.
         """
-        if not current_app.config["GLOBAL_TASK_FRAMEWORK_ENABLED"]:
+        if not feature_flag_manager.is_feature_enabled("GLOBAL_TASK_FRAMEWORK"):
             raise GlobalTaskFrameworkDisabledError()
 
         # Extract and merge options (decorator defaults + call-time overrides)

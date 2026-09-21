@@ -161,7 +161,6 @@ export interface BootstrapThemeDataConfig {
 
 /** Public deployment settings shared by bootstrap consumers. */
 export type FrontendConfig = JsonObject & {
-  GLOBAL_TASK_FRAMEWORK_ENABLED?: boolean;
   WEBSOCKET_ENABLE?: boolean;
   WEBSOCKET_URL?: string;
   GLOBAL_ASYNC_QUERIES_POLLING_DELAY?: number;

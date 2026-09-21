@@ -28,7 +28,6 @@ import {
 import ChartRenderer, {
   ChartRendererProps,
 } from 'src/components/Chart/ChartRenderer';
-import getBootstrapData from 'src/utils/getBootstrapData';
 import { ChartSource } from 'src/types/ChartSource';
 import type { Dispatch } from 'redux';
 
@@ -450,9 +449,6 @@ test('threads the per-dashboard async_mode override into resolveAsyncMode for se
   // dashboard override so `force_on`/`force_off` win over the deployment default,
   // matching the Redux chart path. GAQ must be on for the override to matter.
   const previousFlags = window.featureFlags;
-  const config = getBootstrapData().common.conf;
-  const previousInfrastructure = config.GLOBAL_TASK_FRAMEWORK_ENABLED;
-  config.GLOBAL_TASK_FRAMEWORK_ENABLED = true;
   window.featureFlags = {
     ...previousFlags,
     [FeatureFlag.GlobalAsyncQueries]: true,
@@ -473,7 +469,6 @@ test('threads the per-dashboard async_mode override into resolveAsyncMode for se
     );
   } finally {
     window.featureFlags = previousFlags;
-    config.GLOBAL_TASK_FRAMEWORK_ENABLED = previousInfrastructure;
   }
 });
 
@@ -495,29 +490,22 @@ test.each([
   [false, true],
   [true, false],
   [true, true],
-])(
-  'self-contained async charts require infrastructure=%s regardless of GTF=%s',
-  (configured, enabled) => {
-    const config = getBootstrapData().common.conf;
-    const previousInfrastructure = config.GLOBAL_TASK_FRAMEWORK_ENABLED;
-    const previousFlags = window.featureFlags;
-    config.GLOBAL_TASK_FRAMEWORK_ENABLED = configured;
-    window.featureFlags = {
-      ...previousFlags,
-      [FeatureFlag.GlobalAsyncQueries]: true,
-      [FeatureFlag.GlobalTaskFramework]: enabled,
-    } as FeatureFlagMap;
-    try {
-      const { getByTestId } = render(
-        <ChartRenderer {...requiredProps} asyncModeOverride="force_on" />,
-      );
-      expect(getByTestId('mock-super-chart')).toHaveAttribute(
-        'data-async-mode',
-        String(configured),
-      );
-    } finally {
-      config.GLOBAL_TASK_FRAMEWORK_ENABLED = previousInfrastructure;
-      window.featureFlags = previousFlags;
-    }
-  },
-);
+])('async chart admission requires effective GTF=%s and GAQ=%s', (gtf, gaq) => {
+  const previousFlags = window.featureFlags;
+  window.featureFlags = {
+    ...previousFlags,
+    [FeatureFlag.GlobalTaskFramework]: gtf,
+    [FeatureFlag.GlobalAsyncQueries]: gaq,
+  } as FeatureFlagMap;
+  try {
+    const { getByTestId } = render(
+      <ChartRenderer {...requiredProps} asyncModeOverride="force_on" />,
+    );
+    expect(getByTestId('mock-super-chart')).toHaveAttribute(
+      'data-async-mode',
+      String(gtf && gaq),
+    );
+  } finally {
+    window.featureFlags = previousFlags;
+  }
+});

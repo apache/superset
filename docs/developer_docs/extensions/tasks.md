@@ -26,33 +26,24 @@ under the License.
 
 The Global Task Framework (GTF) provides a unified way to manage background tasks. It handles task execution, progress tracking, cancellation, and deduplication for both synchronous and asynchronous execution. The framework uses distributed locking internally to ensure race-free operations—you don't need to worry about concurrent task creation or cancellation conflicts.
 
-## Enabling GTF
+## Prerequisites
 
-Task services are disabled by default. Enable the process-wide deployment setting
-in `superset_config.py`; the feature flag below is optional and only shows the UI:
+Task infrastructure is registered at boot. Enable the effective runtime feature
+flag to submit tasks and access Task APIs, the Tasks UI and MCP task tools:
 
 ```python
-GLOBAL_TASK_FRAMEWORK_ENABLED = True
-FEATURE_FLAGS = {
-    "GLOBAL_TASK_FRAMEWORK": True,  # optional Tasks menu/page/list
-}
+FEATURE_FLAGS = {"GLOBAL_TASK_FRAMEWORK": True}
 ```
 
-With config-off, task APIs/MCP tools are unavailable, the Tasks UI is hidden and
-calling/scheduling `@task` raises `GlobalTaskFrameworkDisabledError`. With config-on,
-admission, APIs (including polling/cancellation) and MCP work regardless of the
-`GLOBAL_TASK_FRAMEWORK` UI flag, subject to existing permissions/subscriber filters.
-The flag is neither an execution kill switch nor a security authorization control.
+Configure Celery and Redis/coordination as described in the async query guide.
+Existing authentication, Task permissions and subscriber filtering still apply.
+GAQ additionally needs its own flag and existing chart eligibility conditions;
+the stock manager derives GTF from GAQ.
 
-`GLOBAL_ASYNC_QUERIES` separately enables async chart eligibility when config is on.
-It does not require the UI flag and does not control generic task services.
-The stock flag manager derives GTF-on from GAQ-on; custom resolvers can keep the UI
-hidden while allowing async charts.
-
-Use matching config across web, worker, MCP and permission provisioning processes,
-run normal migrations and `superset init`, then restart. Do not infer config from
-feature flags. Before disabling infrastructure, stop submissions and drain tasks
-with config-on, then change config and restart. Hiding the UI needs no drain.
+Disabling effective GTF rejects new admission and blocks polling/cancellation and
+MCP, but does not stop already-admitted workers. Drain outstanding work before
+turning it off if clients need continued lifecycle access. Flag changes do not
+require re-registration or an app restart; browser flags refresh on page reload.
 
 ## Quick Start
 

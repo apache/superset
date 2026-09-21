@@ -44,10 +44,10 @@ export const selectAsyncModeOverride = (
 export const useAsyncModeOverride = (): AsyncModeOverride | undefined =>
   useSelector(selectAsyncModeOverride);
 
-/** Require installed task infrastructure and the GAQ runtime flag. */
+/** Require both effective task and async-query runtime flags. */
 export function isGlobalAsyncQueriesEnabled(): boolean {
   return Boolean(
-    getBootstrapData().common.conf.GLOBAL_TASK_FRAMEWORK_ENABLED &&
+    isFeatureEnabled(FeatureFlag.GlobalTaskFramework) &&
     isFeatureEnabled(FeatureFlag.GlobalAsyncQueries),
   );
 }
@@ -58,7 +58,7 @@ export function isGlobalAsyncQueriesEnabled(): boolean {
  * Async is opt-in per request (the server treats an absent flag as synchronous).
  * The frontend resolves the flag it sends via a policy chain:
  *   per-dashboard override → deployment default (`GLOBAL_ASYNC_QUERIES_DEFAULT`)
- *   → task infrastructure and the GAQ feature-flag gate.
+ *   → the GTF and GAQ feature-flag gates.
  * Async is never requested when any prerequisite is off.
  */
 export function resolveAsyncMode(override?: AsyncModeOverride): boolean {

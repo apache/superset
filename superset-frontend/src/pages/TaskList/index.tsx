@@ -93,10 +93,8 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
   const theme = useTheme();
   const locale = useSelector((state: RootState) => state.common?.locale);
 
-  if (
-    !getBootstrapData().common.conf.GLOBAL_TASK_FRAMEWORK_ENABLED ||
-    !isFeatureEnabled(FeatureFlag.GlobalTaskFramework)
-  ) {
+  // Check if GTF feature flag is enabled
+  if (!isFeatureEnabled(FeatureFlag.GlobalTaskFramework)) {
     return (
       <>
         <SubMenu name={t('Tasks')} />
@@ -112,7 +110,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
           <h3>{t('Feature Not Enabled')}</h3>
           <p>
             {t(
-              'The Tasks UI is not enabled. It requires GLOBAL_TASK_FRAMEWORK_ENABLED and the GLOBAL_TASK_FRAMEWORK UI feature flag. Please contact your administrator.',
+              'The Global Task Framework is not enabled. Please contact your administrator to enable the GLOBAL_TASK_FRAMEWORK feature flag.',
             )}
           </p>
         </Flex>

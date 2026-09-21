@@ -114,18 +114,15 @@ This documentation is auto-generated from the annotations in
 [config.py](https://github.com/apache/superset/blob/master/superset/config.py).
 
 
-## Tasks UI and async chart flags
+## Task services and async chart flags
 
-`GLOBAL_TASK_FRAMEWORK_ENABLED = True` (deployment config, default `False`) installs
-and enables task services independently of feature flags. It is process-wide and
-requires a restart; static/dynamic flags do not substitute for it.
+Task infrastructure is registered at boot independently of runtime flags.
+`GLOBAL_TASK_FRAMEWORK` gates Tasks UI, admission, task APIs (including polling and
+cancellation) and MCP invocation, with existing permissions still enforced.
+`GLOBAL_ASYNC_QUERIES` enables async chart eligibility and implies effective GTF in
+the stock manager. Custom resolvers with GAQ-on/GTF-off use synchronous fallback.
 
-- `GLOBAL_TASK_FRAMEWORK` controls **only** the Tasks menu/page/list when config is
-  on. It does not block admission, execution, APIs, polling/cancellation or MCP.
-  It is not a security authorization control; existing permissions still apply.
-- `GLOBAL_ASYNC_QUERIES` controls async chart eligibility when config is on,
-  independently of the Tasks UI flag. GAQ-off leaves generic task services enabled.
-
-The standard flag manager still derives effective GTF-on from GAQ-on. A custom
-resolver returning GAQ-on/GTF-off allows async charts while hiding the Tasks UI.
-See [configuration, truth table and infrastructure shutdown](./async-queries-celery.mdx#task-infrastructure-tasks-ui-and-asynchronous-chart-queries).
+Disabling effective GTF does not kill admitted workers, but blocks client lifecycle
+access. Stop submissions and drain before disabling when polling/cancellation must
+remain available. See [async query configuration](./async-queries-celery.mdx) for
+the runtime matrix and operational guidance.

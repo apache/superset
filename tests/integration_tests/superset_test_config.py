@@ -83,7 +83,6 @@ HIVE_POLL_INTERVAL = 0.1
 
 SQL_MAX_ROW = 50000
 SQLLAB_CTAS_NO_LIMIT = True  # SQL_MAX_ROW will not take effect for the CTA queries
-GLOBAL_TASK_FRAMEWORK_ENABLED = True
 
 FEATURE_FLAGS = {
     **FEATURE_FLAGS,  # noqa: F405

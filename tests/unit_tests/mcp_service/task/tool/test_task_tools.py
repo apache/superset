@@ -35,13 +35,12 @@ SAMPLE_UUID = str(uuid.uuid4())
 
 
 @pytest.fixture(autouse=True)
-def enable_task_infrastructure(app: Flask, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Exercise task behavior with deployment infrastructure installed."""
-    monkeypatch.setitem(app.config, "GLOBAL_TASK_FRAMEWORK_ENABLED", True)
+def enable_task_framework(app: Flask, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Exercise task behavior with the runtime task flag enabled."""
     original_resolver = feature_flag_manager.is_feature_enabled
     monkeypatch.setattr(
         "superset.extensions.feature_flag_manager.is_feature_enabled",
-        lambda feature: False
+        lambda feature: True
         if feature == "GLOBAL_TASK_FRAMEWORK"
         else original_resolver(feature),
     )
@@ -294,18 +293,16 @@ async def test_list_tasks_non_admin_sees_only_subscribed(mock_list, mcp_server):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("tool_name", ["list_tasks", "get_task_info"])
-@pytest.mark.parametrize("configured,enabled", [(False, True), (False, False)])
+@pytest.mark.parametrize("enabled", [False])
 async def test_task_tool_runtime_gate(
     tool_name: str,
-    configured: bool,
     enabled: bool,
     app: Flask,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Disabled deployment configuration blocks invocation before any DAO query."""
+    """Disabled runtime flag blocks invocation before any DAO query."""
     from fastmcp.exceptions import ToolError
 
-    monkeypatch.setitem(app.config, "GLOBAL_TASK_FRAMEWORK_ENABLED", configured)
     with (
         patch(
             "superset.extensions.feature_flag_manager.is_feature_enabled",
@@ -320,3 +317,30 @@ async def test_task_tool_runtime_gate(
                 {"request": {"identifier": 1}} if tool_name == "get_task_info" else {},
             )
     dao.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_task_tool_flag_can_change_without_server_restart() -> None:
+    """Installed tools reject off, serve on, and reject off in one MCP session."""
+    from fastmcp.exceptions import ToolError
+
+    with (
+        patch.object(
+            feature_flag_manager, "is_feature_enabled", return_value=False
+        ) as flag,
+        patch("superset.daos.tasks.TaskDAO.list", return_value=([], 0)) as listing,
+    ):
+        async with Client(mcp) as client:
+            for enabled in (False, True, False):
+                flag.return_value = enabled
+                tools = await client.list_tools()
+                assert {"list_tasks", "get_task_info"} <= {tool.name for tool in tools}
+                if enabled:
+                    result = await client.call_tool("list_tasks", {})
+                    assert json.loads(result.content[0].text)["tasks"] == []
+                else:
+                    with pytest.raises(
+                        ToolError, match="Global Task Framework is not enabled"
+                    ):
+                        await client.call_tool("list_tasks", {})
+    listing.assert_called_once()

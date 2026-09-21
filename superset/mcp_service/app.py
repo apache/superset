@@ -216,7 +216,7 @@ SQL Lab Integration:
 Schema Discovery:
 - get_schema: Get schema metadata for chart/dataset/dashboard/database/report (columns, filters)
 
-Task Management (requires GLOBAL_TASK_FRAMEWORK_ENABLED):
+Task Management (invocation requires GLOBAL_TASK_FRAMEWORK):
 - list_tasks: List background tasks with status filtering and pagination
 - get_task_info: Get task details by integer ID or UUID
 
@@ -979,34 +979,6 @@ def _remove_disabled_tools(disabled_tools: set[str]) -> None:
             )
 
 
-def _remove_tool_quietly(tool_name: str, reason: str) -> None:
-    """Remove a single tool from the global MCP instance, ignoring missing-tool errors."""
-    try:
-        mcp.local_provider.remove_tool(tool_name)
-        logger.info("Disabled MCP tool: %s (%s)", tool_name, reason)
-    except KeyError:
-        pass
-
-
-def _apply_config_guards(flask_app: Any) -> set[str]:
-    """Remove tools whose backing features are administratively disabled.
-
-    Returns the set of tool names that were removed so that callers can exclude
-    them from generated instructions.
-
-    Task tools are installed by deployment configuration, not request flags.
-    Invocation requires the same configuration and existing permissions.
-    """
-    removed: set[str] = set()
-
-    if not flask_app.config["GLOBAL_TASK_FRAMEWORK_ENABLED"]:
-        for tool_name in ("list_tasks", "get_task_info"):
-            _remove_tool_quietly(tool_name, "GLOBAL_TASK_FRAMEWORK_ENABLED is false")
-            removed.add(tool_name)
-
-    return removed
-
-
 def init_fastmcp_server(
     name: str | None = None,
     instructions: str | None = None,
@@ -1059,13 +1031,9 @@ def init_fastmcp_server(
     # instructions never advertise tools that clients cannot actually call.
     disabled_tools: set[str] = flask_app.config.get("MCP_DISABLED_TOOLS", set())
     _remove_disabled_tools(disabled_tools)
-    config_guard_removed = _apply_config_guards(flask_app)
 
     if instructions is None:
-        # Merge MCP_DISABLED_TOOLS with config-guard removals so the instructions
-        # never advertise tools that have been suppressed by either mechanism.
-        all_disabled = disabled_tools | config_guard_removed
-        instructions = get_default_instructions(branding, all_disabled)
+        instructions = get_default_instructions(branding, disabled_tools)
 
     # Configure the global mcp instance with provided settings.
     # Tools are already registered on this instance via @tool decorator imports above.

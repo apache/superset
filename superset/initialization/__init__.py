@@ -317,10 +317,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             appbuilder.add_api(ExtensionsRestApi)
             appbuilder.add_api(ExtensionStorageRestApi)
 
-        if self.config["GLOBAL_TASK_FRAMEWORK_ENABLED"]:
-            from superset.tasks.api import TaskRestApi
+        from superset.tasks.api import TaskRestApi
 
-            appbuilder.add_api(TaskRestApi)
+        appbuilder.add_api(TaskRestApi)
 
         #
         # Setup regular views
@@ -460,17 +459,17 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             ),
         )
 
-        if self.config["GLOBAL_TASK_FRAMEWORK_ENABLED"]:
-            appbuilder.add_view(
-                TaskModelView,
-                "Tasks",
-                label=_("Tasks"),
-                icon="fa-clock-o",
-                category="Manage",
-                category_label=_("Manage"),
-                menu_cond=lambda: self.config["GLOBAL_TASK_FRAMEWORK_ENABLED"]
-                and feature_flag_manager.is_feature_enabled("GLOBAL_TASK_FRAMEWORK"),
-            )
+        appbuilder.add_view(
+            TaskModelView,
+            "Tasks",
+            label=_("Tasks"),
+            icon="fa-clock-o",
+            category="Manage",
+            category_label=_("Manage"),
+            menu_cond=lambda: feature_flag_manager.is_feature_enabled(
+                "GLOBAL_TASK_FRAMEWORK"
+            ),
+        )
 
         #
         # Setup views with no menu
@@ -1666,26 +1665,10 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                 csrf.exempt(ex)
 
     def configure_task_manager(self) -> None:
-        """Initialize the TaskManager for GTF realtime notifications."""
-        if self.config["GLOBAL_TASK_FRAMEWORK_ENABLED"]:
-            from superset.tasks.manager import TaskManager
+        """Initialize task infrastructure independently of request-time flags."""
+        from superset.tasks.manager import TaskManager
 
-            TaskManager.init_app(self.superset_app)
-        else:
-            static_flags = {
-                **self.config["DEFAULT_FEATURE_FLAGS"],
-                **self.config["FEATURE_FLAGS"],
-            }
-            if static_flags.get("GLOBAL_TASK_FRAMEWORK") or static_flags.get(
-                "GLOBAL_ASYNC_QUERIES"
-            ):
-                logger.warning(
-                    "Static GLOBAL_TASK_FRAMEWORK or GLOBAL_ASYNC_QUERIES feature "
-                    "flags do not install task infrastructure. Set "
-                    "GLOBAL_TASK_FRAMEWORK_ENABLED=True to use it; with config "
-                    "disabled, task infrastructure remains disabled and chart "
-                    "queries remain synchronous."
-                )
+        TaskManager.init_app(self.superset_app)
 
     def configure_websocket(self) -> None:
         """Mint the websocket channel-token cookie when the transport is enabled."""
