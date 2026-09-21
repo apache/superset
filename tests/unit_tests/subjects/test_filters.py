@@ -71,6 +71,33 @@ def test_dashboard_access_filter_uses_viewers_path():
         m.assert_called_once()
 
 
+def test_dashboard_access_filter_scopes_guest_to_token_dashboards():
+    """A guest's dashboard list is scoped solely to its token dashboards, never
+    widened by the role-based paths (mirrors ChartFilter)."""
+    from superset.dashboards.filters import DashboardAccessFilter
+
+    sentinel = object()
+    sm = _make_sm()
+    with (
+        patch("superset.dashboards.filters.security_manager", sm),
+        patch(
+            "superset.dashboards.filters.guest_embedded_dashboard_filter",
+            return_value=sentinel,
+        ),
+    ):
+        f = DashboardAccessFilter.__new__(DashboardAccessFilter)
+        query = MagicMock()
+        with patch.object(f, "_apply_viewers") as viewers:
+            result = f.apply(query, None)
+
+    # The guest branch returns early with the token scoping as the sole
+    # predicate: no role-based widening, and it precedes even the admin bypass.
+    query.filter.assert_called_once_with(sentinel)
+    assert result is query.filter.return_value
+    viewers.assert_not_called()
+    sm.is_admin.assert_not_called()
+
+
 # ---------------------------------------------------------------------------
 # DashboardEditableFilter
 # ---------------------------------------------------------------------------

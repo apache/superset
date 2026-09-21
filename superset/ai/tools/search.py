@@ -113,7 +113,7 @@ def _untrusted(value: Any) -> Any:
     Applied only to free text — ids, type names and schema identifiers are
     operational values and stay verbatim so the model can pass them back.
     """
-    from superset.mcp_service.utils.sanitization import sanitize_for_llm_context
+    from superset.ai.prompt_framing import sanitize_for_llm_context
 
     if value is None:
         return None

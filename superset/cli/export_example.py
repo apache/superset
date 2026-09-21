@@ -155,7 +155,7 @@ def export_example(  # noqa: C901
 
     # Find the dashboard
     if dashboard_id:
-        dashboard = db.session.query(Dashboard).get(dashboard_id)
+        dashboard = db.session.get(Dashboard, dashboard_id)
     elif dashboard_slug:
         dashboard = db.session.query(Dashboard).filter_by(slug=dashboard_slug).first()
     else:

@@ -52,6 +52,12 @@ export const TIMESERIES_CONSTANTS = {
   microChartHeight: 60,
   // One y-axis tick per this many pixels of chart height
   yAxisPixelsPerTick: 80,
+  // Rough average glyph width (px) used to estimate whether adjacent x-axis
+  // time labels would visually collide, since the real rendered width isn't
+  // known until ECharts lays out the axis.
+  xAxisLabelCharWidthPx: 7,
+  // Minimum gap (px) to keep between adjacent x-axis time labels.
+  xAxisLabelMinGapPx: 8,
 };
 
 export enum OpacityEnum {
@@ -88,6 +94,16 @@ export const StackControlOptionsWithoutStream: [
   [null, t('None')],
   [StackControlsValue.Stack, t('Stack')],
 ];
+
+// Grains ECharts' time axis cannot tick on; see getTemporalTickValues in
+// utils/series.
+export const WEEKLY_TIME_GRAINS: ReadonlySet<string> = new Set([
+  TimeGranularity.WEEK,
+  TimeGranularity.WEEK_STARTING_SUNDAY,
+  TimeGranularity.WEEK_STARTING_MONDAY,
+  TimeGranularity.WEEK_ENDING_SATURDAY,
+  TimeGranularity.WEEK_ENDING_SUNDAY,
+]);
 
 export const TIMEGRAIN_TO_TIMESTAMP = {
   [TimeGranularity.HOUR]: 3600 * 1000,
