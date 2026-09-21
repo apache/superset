@@ -17,7 +17,9 @@
 
 import io
 import shutil
+import struct
 import subprocess
+import zlib
 from unittest.mock import MagicMock, patch
 from uuid import UUID
 
@@ -26,6 +28,7 @@ from PIL import Image, ImageDraw, ImageFont, UnidentifiedImageError
 
 from superset.utils import json
 from superset.utils.report_execution import (
+    ReportArtifactKind,
     ReportExecutionContext,
     ReportExecutionDeadline,
 )
@@ -158,6 +161,37 @@ class TestScreenshotBlankDetection:
             validate_report_screenshot(b"broken png", context)
         assert context.capture_rejection_reasons == ("invalid_image",)
 
+    def test_final_validation_rejects_png_with_corrupt_pixel_stream(self):
+        screenshot = bytearray(_png(100, 100, "red"))
+        chunk_offset = 8
+        while chunk_offset < len(screenshot):
+            chunk_size = struct.unpack(
+                ">I",
+                screenshot[chunk_offset : chunk_offset + 4],
+            )[0]
+            chunk_type = bytes(screenshot[chunk_offset + 4 : chunk_offset + 8])
+            data_start = chunk_offset + 8
+            data_end = data_start + chunk_size
+            if chunk_type == b"IDAT":
+                corrupt_data = b"\x78\x9c" + b"\x00" * (chunk_size - 2)
+                screenshot[data_start:data_end] = corrupt_data
+                screenshot[data_end : data_end + 4] = struct.pack(
+                    ">I",
+                    zlib.crc32(chunk_type + corrupt_data) & 0xFFFFFFFF,
+                )
+                break
+            chunk_offset = data_end + 4
+        else:
+            pytest.fail("PNG did not contain an IDAT chunk")
+
+        with Image.open(io.BytesIO(screenshot)) as image:
+            image.verify()
+
+        context = _report_context()
+        with pytest.raises(ScreenshotBlankCaptureError):
+            validate_report_screenshot(bytes(screenshot), context)
+        assert context.capture_rejection_reasons == ("invalid_image",)
+
     @pytest.mark.parametrize("shade", [239, 245, 250])
     def test_white_page_with_gray_placeholder_is_blank(self, shade):
         image = Image.new("RGB", (800, 1000), "white")
@@ -190,7 +224,10 @@ class TestScreenshotBlankDetection:
         with pytest.raises(ScreenshotBlankCaptureError):
             validate_report_screenshot(screenshot, context)
         assert context.capture_was_rejected
-        assert not context.artifact_was_validated(screenshot)
+        assert not context.artifact_was_validated(
+            screenshot,
+            ReportArtifactKind.SCREENSHOT,
+        )
 
     @pytest.mark.parametrize(
         "background,foreground", [("white", "black"), ("navy", "white")]

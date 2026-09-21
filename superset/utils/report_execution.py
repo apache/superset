@@ -24,6 +24,7 @@ import time
 from collections import Counter
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
+from enum import StrEnum
 from typing import Any
 from uuid import UUID
 
@@ -38,6 +39,13 @@ CHART_HOLDER_SEMANTIC_POLICY = "deliver_terminal_errors_with_warning"
 # fails fast (budget-exceeded on the first phase) rather than erroring while
 # constructing the deadline.
 MIN_REPORT_EXECUTION_WORK_SECONDS = 30.0
+
+
+class ReportArtifactKind(StrEnum):
+    """Rendered artifact types tracked by the delivery provenance gate."""
+
+    SCREENSHOT = "screenshot"
+    PDF = "pdf"
 
 
 def validate_report_execution_config(config: Mapping[str, Any]) -> None:
@@ -202,7 +210,7 @@ class ReportExecutionContext:
         repr=False,
     )
 
-    _validated_artifacts: set[str] = field(
+    _validated_artifacts: set[tuple[ReportArtifactKind, str]] = field(
         default_factory=set,
         init=False,
         compare=False,
@@ -257,13 +265,21 @@ class ReportExecutionContext:
 
         self._capture_rejection_reasons.append(reason)
 
-    def approve_artifact(self, artifact: bytes) -> None:
+    def approve_artifact(
+        self,
+        artifact: bytes,
+        kind: ReportArtifactKind,
+    ) -> None:
         """Record exact bytes validated by the capture or PDF assembly stage."""
-        self._validated_artifacts.add(hashlib.sha256(artifact).hexdigest())
+        self._validated_artifacts.add((kind, hashlib.sha256(artifact).hexdigest()))
 
-    def artifact_was_validated(self, artifact: bytes) -> bool:
+    def artifact_was_validated(
+        self,
+        artifact: bytes,
+        kind: ReportArtifactKind,
+    ) -> bool:
         """Require positive evidence for the exact artifact being delivered."""
-        return hashlib.sha256(artifact).hexdigest() in self._validated_artifacts
+        return (kind, hashlib.sha256(artifact).hexdigest()) in self._validated_artifacts
 
     @property
     def capture_rejection_reasons(self) -> tuple[str, ...]:

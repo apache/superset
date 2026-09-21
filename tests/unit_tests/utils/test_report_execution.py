@@ -22,6 +22,7 @@ from superset.utils.report_execution import (
     ChartHolderDiagnostics,
     get_report_task_timeout_options,
     MIN_REPORT_EXECUTION_WORK_SECONDS,
+    ReportArtifactKind,
     ReportExecutionBudgetExceededError,
     ReportExecutionContext,
     ReportExecutionDeadline,
@@ -177,6 +178,23 @@ def test_capture_rejection_is_sticky_for_the_execution() -> None:
         "blank_tile:1/2",
         "blank_combined",
     )
+
+
+def test_artifact_approval_is_namespaced_by_kind() -> None:
+    context = ReportExecutionContext(
+        execution_id=UUID("084e7ee6-5557-4ecd-9632-b7f39c9ec524"),
+        report_schedule_id=7,
+        deadline=ReportExecutionDeadline(total_seconds=900),
+    )
+    artifact = b"same exact bytes"
+
+    context.approve_artifact(artifact, ReportArtifactKind.SCREENSHOT)
+
+    assert context.artifact_was_validated(
+        artifact,
+        ReportArtifactKind.SCREENSHOT,
+    )
+    assert not context.artifact_was_validated(artifact, ReportArtifactKind.PDF)
 
 
 def test_report_deadline_rejects_nonpositive_budget() -> None:

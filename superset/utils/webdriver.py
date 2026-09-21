@@ -30,6 +30,7 @@ from superset.extensions import machine_auth_provider_factory
 from superset.utils.report_execution import (
     CHART_HOLDER_SEMANTIC_POLICY,
     ChartHolderDiagnostics,
+    ReportArtifactKind,
     ReportExecutionContext,
     TERMINAL_CHART_HOLDER_STATES,
 )
@@ -367,6 +368,11 @@ class WebDriverPlaywright(WebDriverProxy):
                 context_suffix,
             )
             if not is_blank:
+                if blankness.is_blank:
+                    report_execution_context.approve_artifact(
+                        image,
+                        ReportArtifactKind.SCREENSHOT,
+                    )
                 return image
 
             logger.warning(

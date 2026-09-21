@@ -103,6 +103,7 @@ from superset.utils.decorators import (
 from superset.utils.file import sanitize_title
 from superset.utils.pdf import build_pdf_from_screenshots
 from superset.utils.report_execution import (
+    ReportArtifactKind,
     ReportExecutionBudgetExceededError,
     ReportExecutionContext,
     ReportExecutionDeadline,
@@ -809,7 +810,9 @@ class BaseReportState:
                 imge = screenshot.get_screenshot(
                     user=user,
                     log_context=self._log_context,
-                    report_execution_context=self._report_execution_context,
+                    report_execution_context=(
+                        self._report_execution_context if for_delivery else None
+                    ),
                 )
                 if imge is None:
                     raise ReportScheduleScreenshotFailedError(
@@ -917,7 +920,10 @@ class BaseReportState:
             self._validate_screenshot(screenshot)
         pdf = build_pdf_from_screenshots(screenshots)
         if self._report_execution_context is not None:
-            self._report_execution_context.approve_artifact(pdf)
+            self._report_execution_context.approve_artifact(
+                pdf,
+                ReportArtifactKind.PDF,
+            )
         self._phase_timeout(
             "pdf_generation",
             reserve_seconds=reserve_seconds,
@@ -1426,7 +1432,8 @@ class BaseReportState:
                 if (
                     notification_content.pdf
                     and not report_context.artifact_was_validated(
-                        notification_content.pdf
+                        notification_content.pdf,
+                        ReportArtifactKind.PDF,
                     )
                 ):
                     report_context.reject_capture("unvalidated_pdf")

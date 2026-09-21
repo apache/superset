@@ -80,6 +80,7 @@ from superset.reports.notifications.slack_channel_resolver import _match_slack_c
 from superset.subjects.types import SubjectType
 from superset.utils.core import HeaderDataType
 from superset.utils.report_execution import (
+    ReportArtifactKind,
     ReportExecutionBudgetExceededError,
     ReportExecutionContext,
     ReportExecutionDeadline,
@@ -146,7 +147,7 @@ def test_pdf_assembly_validates_sources_and_binds_exact_output(
     mocker.patch.object(state, "_get_screenshots", return_value=[_valid_png()])
     pdf = state._get_pdf()
     assert pdf.startswith(b"%PDF")
-    assert context.artifact_was_validated(pdf)
+    assert context.artifact_was_validated(pdf, ReportArtifactKind.PDF)
     content = NotificationContent(
         name="report", header_data=state._get_log_data(), pdf=pdf
     )
@@ -262,7 +263,8 @@ def test_data_export_ignores_blank_query_context_image(
     Image.new("RGB", (800, 1000), "white").save(output, format="PNG")
     blank = output.getvalue()
 
-    def capture(**_kwargs: Any) -> bytes:
+    def capture(**kwargs: Any) -> bytes:
+        assert kwargs["report_execution_context"] is None
         schedule.chart.query_context = "{}"
         return blank
 
@@ -292,7 +294,10 @@ def test_data_export_ignores_blank_query_context_image(
     capture_mock.assert_called_once()
     validate.assert_not_called()
     assert not state._report_execution_context.capture_was_rejected
-    assert not state._report_execution_context.artifact_was_validated(blank)
+    assert not state._report_execution_context.artifact_was_validated(
+        blank,
+        ReportArtifactKind.SCREENSHOT,
+    )
     # Discarded bootstrap bytes do not gain permission for rendered delivery.
     with pytest.raises(ReportScheduleScreenshotFailedError):
         state._assert_rendered_delivery_allowed(

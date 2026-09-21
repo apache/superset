@@ -31,6 +31,7 @@ from PIL import Image, ImageChops, ImageStat, UnidentifiedImageError
 from superset.utils.report_execution import (
     CHART_HOLDER_SEMANTIC_POLICY,
     ChartHolderDiagnostics,
+    ReportArtifactKind,
     ReportExecutionBudgetExceededError,
     ReportExecutionContext,
 )
@@ -155,12 +156,15 @@ def validate_report_screenshot(
     """Validate exact image bytes independently of browser or cache provenance."""
     if context.capture_was_rejected:
         raise ScreenshotBlankCaptureError("Capture was already rejected")
-    if context.artifact_was_validated(screenshot):
+    if context.artifact_was_validated(screenshot, ReportArtifactKind.SCREENSHOT):
         return
     try:
         with Image.open(io.BytesIO(screenshot)) as image:
             image.verify()
-        blankness = get_screenshot_blankness_metrics(screenshot)
+        blankness = get_screenshot_blankness_metrics(
+            screenshot,
+            raise_on_decode_error=True,
+        )
     except (SoftTimeLimitExceeded, ReportExecutionBudgetExceededError):
         context.reject_capture("validation_interrupted")
         raise
@@ -170,7 +174,7 @@ def validate_report_screenshot(
     if blankness.is_blank:
         context.reject_capture("blank_final_image")
         raise ScreenshotBlankCaptureError("Final screenshot is perceptually blank")
-    context.approve_artifact(screenshot)
+    context.approve_artifact(screenshot, ReportArtifactKind.SCREENSHOT)
 
 
 @dataclass(frozen=True)
@@ -186,7 +190,11 @@ class ScreenshotBlanknessMetrics:
     structural_edge_ratio: float
 
 
-def get_screenshot_blankness_metrics(screenshot: bytes) -> ScreenshotBlanknessMetrics:
+def get_screenshot_blankness_metrics(
+    screenshot: bytes,
+    *,
+    raise_on_decode_error: bool = False,
+) -> ScreenshotBlanknessMetrics:
     """Measure exact-color and perceptual blankness on a sampled screenshot."""
 
     try:
@@ -269,6 +277,8 @@ def get_screenshot_blankness_metrics(screenshot: bytes) -> ScreenshotBlanknessMe
                 structural_edge_ratio=metrics.structural_edge_ratio,
             )
     except (OSError, UnidentifiedImageError):
+        if raise_on_decode_error:
+            raise
         # Combining the tiles remains responsible for rejecting corrupt image
         # bytes. This check only identifies valid images with blank pixels.
         return ScreenshotBlanknessMetrics(False, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)

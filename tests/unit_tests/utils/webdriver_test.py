@@ -25,6 +25,7 @@ from celery.exceptions import SoftTimeLimitExceeded
 from PIL import Image, ImageDraw
 
 from superset.utils.report_execution import (
+    ReportArtifactKind,
     ReportExecutionContext,
     ReportExecutionDeadline,
 )
@@ -187,16 +188,21 @@ class TestStandardScreenshotValidation:
         element = MagicMock()
         page.screenshot.return_value = _png("white")
         page.evaluate.return_value = False
+        context = _report_context()
 
         result = WebDriverPlaywright._get_validated_screenshot(
             page,
             element,
             "standalone",
             "execution_id=test",
-            _report_context(),
+            context,
         )
 
         assert result == _png("white")
+        assert context.artifact_was_validated(
+            result,
+            ReportArtifactKind.SCREENSHOT,
+        )
         page.screenshot.assert_called_once()
         page.bring_to_front.assert_not_called()
 
@@ -1974,9 +1980,9 @@ class TestWebDriverPlaywrightAnimationWaitOrder:
         assert "animation_wait" in call_order
         spinner_idx = call_order.index("spinner_wait")
         anim_idx = call_order.index("animation_wait")
-        assert spinner_idx < anim_idx, (
-            "spinner wait must precede animation wait in non-tiled path"
-        )
+        assert (
+            spinner_idx < anim_idx
+        ), "spinner wait must precede animation wait in non-tiled path"
 
     @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
     @patch("superset.utils.webdriver._browser_manager")
@@ -2119,9 +2125,9 @@ class TestWebDriverPlaywrightAnimationWaitOrder:
             for call in mock_page.wait_for_timeout.call_args_list
             if call[0][0] == 2 * 1000
         ]
-        assert animation_waits == [], (
-            "No global 2s animation wait_for_timeout should fire on the tiled path"
-        )
+        assert (
+            animation_waits == []
+        ), "No global 2s animation wait_for_timeout should fire on the tiled path"
 
     @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
     @patch("superset.utils.webdriver._browser_manager")
@@ -2190,6 +2196,6 @@ class TestWebDriverPlaywrightAnimationWaitOrder:
         timeout_values = [
             call[0][0] for call in mock_page.wait_for_timeout.call_args_list
         ]
-        assert timeout_values == [0], (
-            f"Expected only [0] (headstart), got {timeout_values}"
-        )
+        assert timeout_values == [
+            0
+        ], f"Expected only [0] (headstart), got {timeout_values}"
