@@ -340,42 +340,41 @@ export default function MatrixifyDimensionControl(
         />
       </div>
 
-      {value?.dimension &&
-        (selectionMode === 'members' || suggestionsDisabled) && (
-          <div
-            onMouseEnter={() => setValuesHovered(true)}
-            onMouseLeave={() => setValuesHovered(false)}
-          >
-            <Select
-              ariaLabel={t('Select dimension values')}
-              value={value?.values || []}
-              header={
-                <ControlHeader
-                  label={t('Dimension values')}
-                  description={t('Select dimension values')}
-                  renderTrigger={renderTrigger}
-                  hovered={valuesHovered}
-                />
-              }
-              mode="multiple"
-              allowNewOptions={suggestionsDisabled}
-              onChange={handleValuesChange}
-              options={valueOptions}
-              placeholder={
-                suggestionsDisabled ? t('Enter values') : t('Select values')
-              }
-              loading={loadingValues}
-              allowClear
-              showSearch
-              notFoundContent={t('No results')}
-            />
-            {suggestionsDisabled && (
-              <span>
-                {t('Suggestions are unavailable. Enter values manually.')}
-              </span>
-            )}
-          </div>
-        )}
+      {value?.dimension && selectionMode === 'members' && (
+        <div
+          onMouseEnter={() => setValuesHovered(true)}
+          onMouseLeave={() => setValuesHovered(false)}
+        >
+          <Select
+            ariaLabel={t('Select dimension values')}
+            value={value?.values || []}
+            header={
+              <ControlHeader
+                label={t('Dimension values')}
+                description={t('Select dimension values')}
+                renderTrigger={renderTrigger}
+                hovered={valuesHovered}
+              />
+            }
+            mode="multiple"
+            allowNewOptions={suggestionsDisabled}
+            onChange={handleValuesChange}
+            options={valueOptions}
+            placeholder={
+              suggestionsDisabled ? t('Enter values') : t('Select values')
+            }
+            loading={loadingValues}
+            allowClear
+            showSearch
+            notFoundContent={t('No results')}
+          />
+          {suggestionsDisabled && (
+            <span>
+              {t('Suggestions are unavailable. Enter values manually.')}
+            </span>
+          )}
+        </div>
+      )}
 
       {value?.dimension && selectionMode === 'topn' && topNError && (
         <div css={theme => ({ color: theme.colorError })}>
