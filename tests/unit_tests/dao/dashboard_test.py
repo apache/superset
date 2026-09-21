@@ -455,6 +455,69 @@ def test_reconcile_position_json_keeps_live_chart_referenced_in_numeric_form(
     assert positions["CHART-absent-str"]["type"] == "MARKDOWN"
 
 
+def test_set_dash_metadata_keeps_a_member_referenced_in_numeric_form(
+    session: Session,
+) -> None:
+    """A live member referenced as ``123.0`` or ``"123"`` survives the wholesale
+    ``dashboard.slices`` rebuild, keeps its CHART tile, and gets a real uuid.
+
+    This is the membership half of the fitzee regression on #44028: the repair
+    path is covered by
+    ``test_reconcile_position_json_keeps_live_chart_referenced_in_numeric_form``,
+    but the silent *unlink* happens here — a node dropped from ``slice_ids``
+    loses its ``dashboard_slices`` junction row on the next save, and with no
+    id to resolve it is never repaired either, leaving a permanent orphan tile.
+    Reverting the float/digit-string coercion in ``_layout_chart_id`` makes the
+    save raise instead (both nodes read as malformed), so this test bites.
+    """
+    Dashboard.metadata.create_all(session.get_bind())
+
+    dataset: SqlaTable = SqlaTable(
+        table_name="numeric_member_table",
+        database=Database(
+            database_name="numeric_member_db", sqlalchemy_uri="sqlite://"
+        ),
+    )
+    db.session.add(dataset)
+    db.session.flush()
+    as_float: Slice = Slice(
+        slice_name="numeric_member_float",
+        datasource_id=dataset.id,
+        datasource_type="table",
+    )
+    as_string: Slice = Slice(
+        slice_name="numeric_member_string",
+        datasource_id=dataset.id,
+        datasource_type="table",
+    )
+    dashboard: Dashboard = Dashboard(
+        dashboard_title="numeric member", slug="numeric-member"
+    )
+    dashboard.slices = [as_float, as_string]
+    db.session.add_all([as_float, as_string, dashboard])
+    db.session.flush()
+
+    positions: dict[str, Any] = {
+        "CHART-float": _chart_node("CHART-float", float(as_float.id), 4, 50),
+        "CHART-str": _chart_node("CHART-str", str(as_string.id), 4, 50),
+    }
+
+    DashboardDAO.set_dash_metadata(dashboard, {"positions": positions})
+    # Flush so the collection diff's SQL reaches ``dashboard_slices`` — the
+    # unlink is a junction-row DELETE, which an in-memory assertion alone
+    # would not witness.
+    db.session.flush()
+
+    # Neither member was unlinked by the wholesale rebuild.
+    assert {chart.id for chart in dashboard.slices} == {as_float.id, as_string.id}
+    # Neither tile was orphaned or turned into a placeholder.
+    assert positions["CHART-float"]["type"] == "CHART"
+    assert positions["CHART-str"]["type"] == "CHART"
+    # Both resolved to a real chart, so both carry a uuid rather than ``None``.
+    assert positions["CHART-float"]["meta"]["uuid"] == str(as_float.uuid)
+    assert positions["CHART-str"]["meta"]["uuid"] == str(as_string.uuid)
+
+
 def test_set_dash_metadata_rejects_a_malformed_chart_node_instead_of_detaching(
     session: Session,
 ) -> None:
