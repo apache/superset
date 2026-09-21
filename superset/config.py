@@ -364,12 +364,38 @@ WTF_CSRF_ENABLED = True
 # Add endpoints that need to be exempt from CSRF protection
 WTF_CSRF_EXEMPT_LIST = [
     "superset.charts.data.api.data",
+    "superset.widgets.api.data",
+    "superset.widgets.api.values",
+    "superset.mcp_oauth.views.register",
+    "superset.mcp_oauth.views.token",
     "superset.dashboards.api.cache_dashboard_screenshot",
     "superset.views.core.explore_json",
     "superset.views.core.log",
     "superset.views.datasource.views.samples",
     "flask_appbuilder.security.views.acs",
 ]
+
+# ---------------------------------------------------
+# MCP OAuth authorization server
+# ---------------------------------------------------
+# Lets MCP clients such as claude.ai custom connectors obtain per-user access
+# tokens (authorization code + PKCE, dynamic client registration). The MCP
+# service must run with MCP_OAUTH_ENABLED as well to act as the resource server.
+MCP_OAUTH_ENABLED = False
+# Public base URL of this Superset instance, e.g. "https://superset.example.com".
+MCP_OAUTH_ISSUER: str | None = None
+# Resource indicators tokens may be issued for, e.g.
+# ["https://superset.example.com/mcp"]. The first one is the default.
+MCP_OAUTH_RESOURCES: list[str] = []
+# PEM-encoded RSA private key used to sign RS256 access tokens.
+MCP_OAUTH_PRIVATE_KEY: str | None = None
+MCP_OAUTH_SCOPES: list[str] = ["mcp"]
+MCP_OAUTH_ACCESS_TOKEN_TTL = 60 * 60
+MCP_OAUTH_REFRESH_TOKEN_TTL = 30 * 24 * 60 * 60
+MCP_OAUTH_AUTHORIZATION_CODE_TTL = 60
+# Exact redirect URIs dynamic registration accepts; None accepts any https URI
+# (and http on localhost), e.g. ["https://claude.ai/api/mcp/auth_callback"].
+MCP_OAUTH_ALLOWED_REDIRECT_URIS: list[str] | None = None
 
 # Whether to run the web server in debug mode or not
 DEBUG = utils.parse_boolean_string(os.environ.get("FLASK_DEBUG"))
@@ -3048,6 +3074,16 @@ EXTENSION_DENYLIST: list[str] = []
 # be patched before it loads. Versions are compared with PEP 440 semantics, e.g.
 #   EXTENSION_VERSION_POLICY = {"acme.widget": "1.2.0"}
 EXTENSION_VERSION_POLICY: dict[str, str] = {}
+
+# Serve extensions' frontend bundles without authentication.
+#
+# A host page that embeds a widget contributed by an extension has to load that
+# extension's JavaScript from Superset, and the browser fetches those chunks
+# with plain <script> tags: no session cookie cross-origin, and no way to carry
+# the guest token. Turning this on publishes extension frontend files — the same
+# code any signed-in user already downloads — to anyone who can reach the
+# deployment. Extension backends, APIs and data are unaffected.
+EMBEDDED_EXTENSION_ASSETS_PUBLIC = False
 
 # Default polling interval for tasks (seconds)
 TASK_ABORT_POLLING_DEFAULT_INTERVAL = 10

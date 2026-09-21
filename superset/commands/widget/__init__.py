@@ -14,21 +14,3 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-
-"""Public contract for registering Dashboard V2 widgets.
-
-Re-exported with the redundant-alias form so these are recognized as
-intentional re-exports (this codebase does not use ``__all__``).
-"""
-
-from superset_core.widgets.base import (
-    Widget as Widget,
-    WidgetDataNotSupportedError as WidgetDataNotSupportedError,
-)
-from superset_core.widgets.composites import (
-    composite_control as composite_control,
-    list_composite_controls as list_composite_controls,
-    MetricControl as MetricControl,
-)
-from superset_core.widgets.decorators import widget as widget
-from superset_core.widgets.enrichment import EnricherFn as EnricherFn

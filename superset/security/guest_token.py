@@ -120,6 +120,7 @@ class GuestTokenUser(TypedDict, total=False):
 
 class GuestTokenResourceType(StrEnum):
     DASHBOARD = "dashboard"
+    WIDGET = "widget"
 
 
 class GuestTokenResource(TypedDict):

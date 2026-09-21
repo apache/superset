@@ -42,6 +42,11 @@ from superset.widgets.controls import (
     MarkdownControls,
     MetricTileControls,
 )
+from superset.widgets.data import (
+    DataBindingWidget,
+    fetch_column_values,
+    WidgetDataError,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +85,7 @@ class Markdown(Widget):
     name="ECharts",
     description="A chart from a raw ECharts option with $bind data markers.",
 )
-class Echarts(Widget):
+class Echarts(DataBindingWidget):
     """
     A raw-ECharts-option chart, plus an optional structured layer: when
     ``chartType`` is set, ``customize.series`` offers one entry per
@@ -152,7 +157,7 @@ class Echarts(Widget):
     name="Metric Tile",
     description="A single live metric value rendered as a big number.",
 )
-class MetricTile(Widget):
+class MetricTile(DataBindingWidget):
     controls_class = MetricTileControls
 
 
@@ -161,7 +166,7 @@ class MetricTile(Widget):
     name="Table",
     description="Query results rendered as an AG Grid table.",
 )
-class AgGridTable(Widget):
+class AgGridTable(DataBindingWidget):
     controls_class = AgGridTableControls
 
 
@@ -173,7 +178,7 @@ class AgGridTable(Widget):
         "query (Chart Framework v2 POC)."
     ),
 )
-class Balloons(Widget):
+class Balloons(DataBindingWidget):
     """
     Explicit/typed chart: renders one balloon per query row, colored and sized
     per series. The per-series ``customize`` section is populated dynamically
@@ -304,6 +309,19 @@ class FilterSelect(Widget):
         "datasetId": _populate_datasets,
         "column": _populate_columns,
     }
+
+    @classmethod
+    def fetch_values(cls, props: dict[str, Any], context: Any) -> list[Any]:
+        dataset_id = props.get("datasetId")
+        column = props.get("column")
+        if (
+            isinstance(dataset_id, bool)
+            or not isinstance(dataset_id, int)
+            or not isinstance(column, str)
+            or not column
+        ):
+            raise WidgetDataError("This filter has no dataset and column.")
+        return fetch_column_values(dataset_id, column, context)
 
 
 @widget(
