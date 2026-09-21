@@ -441,7 +441,22 @@ const Row = memo((props: RowProps) => {
                     )}
                     editMode
                     style={{
-                      height: '100%',
+                      // Only the last target in a full row (the absolutely
+                      // positioned "side" target) actually resolves a
+                      // percentage height -- for every other, in-flow
+                      // target, GridRow's height is `fit-content`
+                      // (indefinite), and a percentage height on a flex
+                      // item under an indefinite-height parent resolves to
+                      // `auto`/is ignored per the CSS flexbox spec, which
+                      // defeats the `align-self: stretch` the CSS above
+                      // already declares for it. `height: 'auto'` lets that
+                      // stretch actually apply instead of collapsing the
+                      // target to its content size.
+                      height:
+                        remainColumnCount === 0 &&
+                        itemIndex === rowItems.length - 1
+                          ? '100%'
+                          : 'auto',
                       ...(remainColumnCount === 0 &&
                         itemIndex === rowItems.length - 1 && { width: 16 }),
                     }}

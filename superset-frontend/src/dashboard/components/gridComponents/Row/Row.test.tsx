@@ -280,20 +280,27 @@ test('should increment the depth of its children', () => {
 
 test('row droptarget height tracks the row instead of staying pinned to a stale measured height (regression for #37644)', () => {
   const { container, rerender } = setup({ editMode: true });
-  const getDroptargetHeight = () =>
-    container.querySelector<HTMLElement>('.empty-droptarget--vertical')?.style
-      .height;
+  const getDroptargetHeights = () =>
+    Array.from(
+      container.querySelectorAll<HTMLElement>('.empty-droptarget--vertical'),
+    ).map(el => el.style.height);
 
-  // The droptarget stretches to the row via CSS (height: 100%) rather than
-  // a pixel value measured from the row's tallest chart, so it can never be
-  // left pinned to a chart's prior (larger) height after a resize.
-  expect(getDroptargetHeight()).toBe('100%');
+  // The leading droptarget (index 0) is absolutely positioned, so a
+  // percentage height resolves fine and stretches it to the row via CSS
+  // rather than a pixel value measured from the row's tallest chart -- it
+  // can never be left pinned to a chart's prior (larger) height after a
+  // resize. The droptarget after the chart is an in-flow flex item under
+  // GridRow's indefinite `height: fit-content`, where a percentage height
+  // resolves to `auto`/is ignored per the flexbox spec (defeating the
+  // `align-self: stretch` CSS already declares for it) -- it gets an
+  // explicit `auto` instead, letting that stretch actually apply.
+  expect(getDroptargetHeights()).toEqual(['100%', 'auto']);
 
   // Something (e.g. hovering the row's own HoverMenu while resizing)
   // causes Row to re-render after the tallest chart in the row shrinks.
   rerender(<Row {...props} editMode component={{ ...props.component }} />);
 
-  expect(getDroptargetHeight()).toBe('100%');
+  expect(getDroptargetHeights()).toEqual(['100%', 'auto']);
 });
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
