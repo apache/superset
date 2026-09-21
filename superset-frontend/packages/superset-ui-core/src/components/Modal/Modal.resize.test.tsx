@@ -354,17 +354,22 @@ describe('Modal controlled Draggable', () => {
     expect(lastDraggableProps.position).toEqual({ x: 0, y: 0 });
   });
 
-  test('allows resize shifts up to the exact viewport edge', () => {
+  test('allows resize shifts up to the exact viewport edge and clamps beyond it', () => {
     renderModal();
 
     act(() => {
       lastResizableProps.onResizeStart();
-      lastResizableProps.onResize({}, 'left', {}, { width: 300, height: 0 });
+      // MODAL_RECT.left is 660, so a 660px leftward shift lands the modal
+      // exactly on the viewport's left edge — the bound itself.
+      lastResizableProps.onResize({}, 'left', {}, { width: 660, height: 0 });
     });
+    expect(lastDraggableProps.position).toEqual({ x: -660, y: 0 });
 
-    // The default rect leaves 660px of slack to the left viewport edge,
-    // so the full 300px shift applies.
-    expect(lastDraggableProps.position).toEqual({ x: -300, y: 0 });
+    act(() => {
+      // One pixel beyond the edge is clamped back to the bound.
+      lastResizableProps.onResize({}, 'left', {}, { width: 661, height: 0 });
+    });
+    expect(lastDraggableProps.position).toEqual({ x: -660, y: 0 });
   });
 
   test('clamps resize shifts that would push the modal out of the viewport', () => {
