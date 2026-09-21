@@ -3132,14 +3132,14 @@
           "Traditional RDBMS",
           "Hosted Open Source"
         ],
-        "pypi_packages": ["superset-engine-d1"],
+        "pypi_packages": ["sqlalchemy-d1"],
         "connection_string": "d1://{cloudflare_account_id}:{cloudflare_api_token}@{cloudflare_d1_database_id}",
         "parameters": {
           "cloudflare_account_id": "Cloudflare account ID",
           "cloudflare_api_token": "Cloudflare API token",
           "cloudflare_d1_database_id": "D1 database ID"
         },
-        "install_instructions": "pip install superset-engine-d1",
+        "install_instructions": "pip install sqlalchemy-d1",
         "category": "Other Databases"
       },
       "engine": "d1",

@@ -17,8 +17,18 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+from sqlalchemy.engine.reflection import Inspector
+
 from superset.db_engine_specs.base import DatabaseCategory
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
+
+if TYPE_CHECKING:
+    from superset.models.core import Database
+
+# Every D1 database holds internal tables such as ``_cf_KV``
+INTERNAL_TABLE_PREFIX = "_cf_"
 
 
 class CloudflareD1EngineSpec(SqliteEngineSpec):
@@ -37,7 +47,7 @@ class CloudflareD1EngineSpec(SqliteEngineSpec):
             DatabaseCategory.TRADITIONAL_RDBMS,
             DatabaseCategory.HOSTED_OPEN_SOURCE,
         ],
-        "pypi_packages": ["superset-engine-d1"],
+        "pypi_packages": ["sqlalchemy-d1"],
         "connection_string": (
             "d1://{cloudflare_account_id}:{cloudflare_api_token}"
             "@{cloudflare_d1_database_id}"
@@ -47,17 +57,33 @@ class CloudflareD1EngineSpec(SqliteEngineSpec):
             "cloudflare_api_token": "Cloudflare API token",
             "cloudflare_d1_database_id": "D1 database ID",
         },
-        "install_instructions": "pip install superset-engine-d1",
-        "known_incompatibilities": [
-            {
-                "dependency": "SQLAlchemy 2.0",
-                "reason": (
-                    "sqlalchemy-d1 is very young (single release, Nov 2025) "
-                    "and its only release pins sqlalchemy<2,>=1.4, "
-                    "explicitly excluding SQLAlchemy 2.0."
-                ),
-                "tracking_url": ("https://github.com/sqlalchemy-cf-d1/sqlalchemy-d1"),
-                "since": "2026-07-28",
-            }
-        ],
+        "install_instructions": "pip install sqlalchemy-d1",
     }
+
+    @classmethod
+    def get_table_names(
+        cls,
+        database: Database,
+        inspector: Inspector,
+        schema: str | None,
+    ) -> set[str]:
+        """Hide the internal ``_cf_*`` tables that D1 keeps in every database"""
+        return {
+            table
+            for table in super().get_table_names(database, inspector, schema)
+            if not table.startswith(INTERNAL_TABLE_PREFIX)
+        }
+
+    @classmethod
+    def get_view_names(
+        cls,
+        database: Database,
+        inspector: Inspector,
+        schema: str | None,
+    ) -> set[str]:
+        """Hide any internal ``_cf_*`` views, same as for tables"""
+        return {
+            view
+            for view in super().get_view_names(database, inspector, schema)
+            if not view.startswith(INTERNAL_TABLE_PREFIX)
+        }
