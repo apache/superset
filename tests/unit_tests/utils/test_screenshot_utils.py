@@ -97,6 +97,7 @@ def test_stable_readiness_skips_when_budget_below_polling_margin() -> None:
 
 
 def test_holder_diagnostics_include_offscreen_errors_for_full_capture() -> None:
+    """Full scans expose off-screen errors that viewport scans mark virtualized."""
     node = shutil.which("node")
     if node is None:
         pytest.skip("Node.js is required to execute holder diagnostics")

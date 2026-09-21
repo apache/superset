@@ -47,6 +47,7 @@ def _report_config(**overrides: int) -> dict[str, int | bool]:
 
 
 def test_chart_holder_diagnostics_separate_terminal_errors_from_success() -> None:
+    """Ready error and empty holders must not imply successful chart data."""
     diagnostics = ChartHolderDiagnostics.from_holder_states(
         [
             {"chartId": "1", "state": "rendered"},
@@ -68,6 +69,7 @@ def test_chart_holder_diagnostics_separate_terminal_errors_from_success() -> Non
 
 
 def test_chart_holder_diagnostics_count_unready_holders() -> None:
+    """Loading and unmounted holders remain unready in mixed diagnostics."""
     diagnostics = ChartHolderDiagnostics.from_holder_states(
         [
             {"chartId": "1", "state": "rendered"},
@@ -82,6 +84,7 @@ def test_chart_holder_diagnostics_count_unready_holders() -> None:
 
 
 def test_chart_holder_diagnostics_do_not_treat_zero_holders_as_success() -> None:
+    """An empty holder scan must not report semantic success."""
     diagnostics = ChartHolderDiagnostics.from_holder_states([])
 
     assert diagnostics.mounted_holders == 0
