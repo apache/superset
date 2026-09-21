@@ -31,14 +31,19 @@ import {
 import { EchartsBubbleChartProps, EchartsBubbleFormData } from './types';
 import { DEFAULT_FORM_DATA, MINIMUM_BUBBLE_SIZE } from './constants';
 import { defaultGrid } from '../defaults';
-import { getLegendProps, getMinAndMaxFromBounds } from '../utils/series';
+import {
+  getColtypesMapping,
+  getLegendProps,
+  getMinAndMaxFromBounds,
+} from '../utils/series';
 import { resolveLegendLayout } from '../utils/legendLayout';
 import { Refs } from '../types';
 import { parseAxisBound } from '../utils/controls';
 import { getDefaultTooltip } from '../utils/tooltip';
 import { getPadding } from '../Timeseries/transformers';
 import { convertInteger } from '../utils/convertInteger';
-import { NULL_STRING } from '../constants';
+import { NULL_STRING, OpacityEnum } from '../constants';
+import { getBubbleCrossFilterKey, getSelectedBubbleKeys } from './crossFilter';
 
 const isIterable = (obj: any): obj is Iterable<any> =>
   obj != null && typeof obj[Symbol.iterator] === 'function';
@@ -97,10 +102,22 @@ export function formatTooltip(
 }
 
 export default function transformProps(chartProps: EchartsBubbleChartProps) {
-  const { height, width, hooks, queriesData, formData, inContextMenu, theme } =
-    chartProps;
+  const {
+    height,
+    width,
+    hooks,
+    queriesData,
+    formData,
+    inContextMenu,
+    theme,
+    filterState,
+    emitCrossFilters,
+  } = chartProps;
 
-  const { data = [] } = queriesData[0];
+  const [queryData] = queriesData;
+  const { data = [] } = queryData;
+  const coltypeMapping = getColtypesMapping(queryData);
+  const selectedKeys = getSelectedBubbleKeys(filterState?.selectedValues);
   const {
     x,
     y,
@@ -153,6 +170,14 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
     const name = dataName ? String(dataName) : NULL_STRING;
     const bubbleSeriesValue = seriesLabel ? datum[seriesLabel] : null;
 
+    const filterKey = getBubbleCrossFilterKey(
+      datum[entityLabel],
+      bubbleSeriesValue,
+      Boolean(seriesLabel),
+    );
+    const isDimmed =
+      selectedKeys.length > 0 && !selectedKeys.includes(filterKey);
+
     series.push({
       name,
       data: [
@@ -165,9 +190,10 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
         ],
       ],
       type: 'scatter',
+      cursor: emitCrossFilters ? 'pointer' : 'default',
       itemStyle: {
         color: colorFn(name, sliceId),
-        opacity,
+        opacity: isDimmed ? opacity * OpacityEnum.SemiTransparent : opacity,
       },
     });
     legends.add(name);
@@ -286,5 +312,8 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
     onContextMenu,
     setDataMask,
     formData,
+    filterState,
+    emitCrossFilters,
+    coltypeMapping,
   };
 }

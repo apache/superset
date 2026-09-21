@@ -321,3 +321,72 @@ describe('legend sorting', () => {
     ]);
   });
 });
+
+describe('Bubble cross-filter selection', () => {
+  test('dims bubbles that are not part of the active cross-filter', () => {
+    const chartProps = new ChartProps({
+      ...chartConfig,
+      formData: { ...defaultFormData, opacity: 0.6 },
+      filterState: { selectedValues: ['Alpha Cognac'] },
+      emitCrossFilters: true,
+    });
+    const result = transformProps(chartProps as EchartsBubbleChartProps);
+    const series = result.echartOptions.series as {
+      name: string;
+      cursor: string;
+      itemStyle: { opacity: number };
+    }[];
+
+    expect(
+      series.find(item => item.name === 'Alpha Cognac')?.itemStyle.opacity,
+    ).toBe(0.6);
+    expect(
+      series.find(item => item.name === 'AV Stores, Co.')?.itemStyle.opacity,
+    ).toBe(0.6 * 0.3);
+    expect(series.every(item => item.cursor === 'pointer')).toBe(true);
+  });
+
+  test('dims bubbles by entity and series when a series dimension is set', () => {
+    const chartProps = new ChartProps({
+      ...chartConfig,
+      formData: {
+        ...defaultFormData,
+        series: 'status',
+        opacity: 1,
+      },
+      queriesData: [
+        {
+          data: [
+            {
+              customer_name: 'AV Stores, Co.',
+              status: 'open',
+              count: 10,
+              'SUM(price_each)': 20,
+              'SUM(sales)': 30,
+            },
+            {
+              customer_name: 'AV Stores, Co.',
+              status: 'closed',
+              count: 40,
+              'SUM(price_each)': 50,
+              'SUM(sales)': 60,
+            },
+          ],
+        },
+      ],
+      filterState: {
+        selectedValues: ['AV Stores, Co.\0open'],
+      },
+    });
+    const result = transformProps(chartProps as EchartsBubbleChartProps);
+    const series = result.echartOptions.series as {
+      data: unknown[][];
+      itemStyle: { opacity: number };
+    }[];
+    const openBubble = series.find(item => item.data[0][4] === 'open');
+    const closedBubble = series.find(item => item.data[0][4] === 'closed');
+
+    expect(openBubble?.itemStyle.opacity).toBe(1);
+    expect(closedBubble?.itemStyle.opacity).toBe(0.3);
+  });
+});

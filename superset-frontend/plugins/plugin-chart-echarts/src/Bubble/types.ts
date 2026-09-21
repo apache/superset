@@ -21,11 +21,7 @@ import {
   ChartDataResponseResult,
   QueryFormData,
 } from '@superset-ui/core';
-import {
-  LegendFormData,
-  BaseTransformedProps,
-  CrossFilterTransformedProps,
-} from '../types';
+import { LegendFormData, BaseTransformedProps } from '../types';
 
 export type EchartsBubbleFormData = QueryFormData &
   LegendFormData & {
@@ -53,4 +49,4 @@ export interface EchartsBubbleChartProps extends ChartProps<EchartsBubbleFormDat
 }
 
 export type BubbleChartTransformedProps =
-  BaseTransformedProps<EchartsBubbleFormData> & CrossFilterTransformedProps;
+  BaseTransformedProps<EchartsBubbleFormData>;
