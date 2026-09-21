@@ -34,6 +34,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import make_url
+from sqlalchemy.exc import PendingRollbackError, SQLAlchemyError
 from sqlalchemy.orm.session import Session
 from sqlalchemy.sql import Select
 
@@ -841,6 +842,132 @@ def test_get_sqla_engine_user_impersonation_email(mocker: MockerFixture) -> None
         create_engine_mock.return_value,
         "handle_error",
         mark_database_engine_error,
+    )
+
+
+@with_feature_flags(IMPERSONATE_WITH_EMAIL_PREFIX=True)
+def test_get_sqla_engine_user_impersonation_email_poisoned_session(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test the email lookup survives a metadata session left in a failed transaction.
+
+    An earlier failed query in the same request leaves ``db.session`` needing a
+    rollback, so the lookup raises ``PendingRollbackError``. Rolling back and
+    retrying must resolve the email prefix instead of failing the whole request.
+    """
+    from superset.models.core import Database
+
+    user = mocker.MagicMock()
+    user.email = "alice.doe@example.org"
+    find_user = mocker.patch(
+        "superset.models.core.security_manager.find_user",
+        side_effect=[
+            PendingRollbackError(
+                "Can't reconnect until invalid transaction is rolled back"
+            ),
+            user,
+        ],
+    )
+    session = mocker.patch("superset.models.core.db.session")
+    mocker.patch("superset.models.core.get_username", return_value="alice")
+
+    create_engine_mock = mocker.patch(
+        "superset.models.core.create_engine",
+        return_value=create_engine("sqlite://"),
+    )
+
+    database = Database(
+        database_name="my_db",
+        sqlalchemy_uri="trino://",
+        impersonate_user=True,
+    )
+    database._get_sqla_engine(nullpool=False)
+
+    session.rollback.assert_called_once()
+    assert find_user.call_count == 2
+    create_engine_mock.assert_called_with(
+        make_url("trino:///"),
+        connect_args={"user": "alice.doe", "source": "Apache Superset"},
+    )
+
+
+@with_feature_flags(IMPERSONATE_WITH_EMAIL_PREFIX=True)
+def test_get_sqla_engine_user_impersonation_email_lookup_keeps_failing(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test the engine is still built when the email lookup can't be recovered.
+
+    When the retry fails too the username stays unresolved, which impersonates
+    the same identity the flag-less configuration would use, rather than
+    erroring out of the request.
+    """
+    from superset.models.core import Database
+
+    find_user = mocker.patch(
+        "superset.models.core.security_manager.find_user",
+        side_effect=SQLAlchemyError("metadata database is unreachable"),
+    )
+    mocker.patch("superset.models.core.db.session")
+    mocker.patch("superset.models.core.get_username", return_value="alice")
+
+    create_engine_mock = mocker.patch(
+        "superset.models.core.create_engine",
+        return_value=create_engine("sqlite://"),
+    )
+
+    database = Database(
+        database_name="my_db",
+        sqlalchemy_uri="trino://",
+        impersonate_user=True,
+    )
+    database._get_sqla_engine(nullpool=False)
+
+    assert find_user.call_count == 2
+    create_engine_mock.assert_called_with(
+        make_url("trino:///"),
+        connect_args={"user": "alice", "source": "Apache Superset"},
+    )
+
+
+@with_feature_flags(IMPERSONATE_WITH_EMAIL_PREFIX=True)
+def test_get_sqla_engine_user_impersonation_email_rollback_fails(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test a session too broken to roll back doesn't fail the engine creation.
+
+    The rollback is best effort: when it raises as well, the unresolved username
+    is used and the rollback error never replaces the request's own outcome.
+    """
+    from superset.models.core import Database
+
+    mocker.patch(
+        "superset.models.core.security_manager.find_user",
+        side_effect=PendingRollbackError(
+            "Can't reconnect until invalid transaction is rolled back"
+        ),
+    )
+    session = mocker.patch("superset.models.core.db.session")
+    session.rollback.side_effect = SQLAlchemyError("connection is closed")
+    mocker.patch("superset.models.core.get_username", return_value="alice")
+
+    create_engine_mock = mocker.patch(
+        "superset.models.core.create_engine",
+        return_value=create_engine("sqlite://"),
+    )
+
+    database = Database(
+        database_name="my_db",
+        sqlalchemy_uri="trino://",
+        impersonate_user=True,
+    )
+    database._get_sqla_engine(nullpool=False)
+
+    create_engine_mock.assert_called_with(
+        make_url("trino:///"),
+        connect_args={"user": "alice", "source": "Apache Superset"},
     )
 
 

@@ -55,7 +55,7 @@ from sqlalchemy import (
 from sqlalchemy.engine import Connection, Dialect, Engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
-from sqlalchemy.exc import NoSuchModuleError
+from sqlalchemy.exc import NoSuchModuleError, SQLAlchemyError
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapper, relationship
 from sqlalchemy.pool import NullPool
@@ -106,6 +106,7 @@ _ENGINE_CACHE: dict[tuple[int, str, str], Engine] = {}
 _ENGINE_CACHE_LOCK = threading.Lock()
 
 if TYPE_CHECKING:
+    from flask_appbuilder.security.sqla.models import User
     from superset_core.queries.types import AsyncQueryHandle, QueryOptions, QueryResult
 
     from superset.models.sql_lab import Query
@@ -169,6 +170,55 @@ def clear_bootstrap_cache(
         cache_manager.cache.delete_memoized(cached_common_bootstrap_data)
     except Exception as ex:  # pylint: disable=broad-except
         logger.warning("Failed to clear theme bootstrap cache: %s", ex)
+
+
+def _find_user_for_impersonation(username: str) -> User | None:
+    """
+    Look up a user for email-prefix impersonation, tolerating a broken session.
+
+    The lookup is a metadata-database query, so a statement that already failed
+    earlier in the same request leaves the session needing a rollback and makes
+    this query raise ``PendingRollbackError`` in place of the original error.
+    Rolling back and retrying once both resolves the email prefix and unpoisons
+    the session, instead of turning an unrelated earlier fault into a failed
+    response on every path that builds an engine outside its own error handling
+    (the chart data endpoint among them).
+
+    The rollback is best effort, mirroring ``superset.sql_lab.get_query``: a
+    session too broken to roll back must not replace the outcome the caller
+    actually cares about. Returns ``None`` when the user can't be resolved, so
+    the caller impersonates the unresolved username — the same identity a
+    deployment without ``IMPERSONATE_WITH_EMAIL_PREFIX`` would use.
+    """
+    try:
+        return security_manager.find_user(username=username)
+    except SQLAlchemyError:
+        logger.warning(
+            "Could not look up user %s for impersonation; retrying after a "
+            "session rollback",
+            username,
+            exc_info=True,
+        )
+
+    try:
+        db.session.rollback()  # pylint: disable=consider-using-transaction
+    except SQLAlchemyError:
+        logger.warning(
+            "Failed to roll back the session before retrying the impersonation "
+            "user lookup",
+            exc_info=True,
+        )
+
+    try:
+        return security_manager.find_user(username=username)
+    except SQLAlchemyError:
+        logger.warning(
+            "Could not look up user %s for impersonation; impersonating the "
+            "unresolved username instead",
+            username,
+            exc_info=True,
+        )
+        return None
 
 
 class ConfigurationMethod(StrEnum):
@@ -663,7 +713,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
 
         effective_username = self.get_effective_user(sqlalchemy_url)
         if effective_username and is_feature_enabled("IMPERSONATE_WITH_EMAIL_PREFIX"):
-            user = security_manager.find_user(username=effective_username)
+            user = _find_user_for_impersonation(effective_username)
             if user and user.email:
                 effective_username = user.email.split("@")[0]
 
