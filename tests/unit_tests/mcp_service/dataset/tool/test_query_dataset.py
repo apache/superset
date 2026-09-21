@@ -24,12 +24,15 @@ from collections.abc import Generator
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import MagicMock, Mock, patch
+from uuid import UUID
 
 import pytest
 from fastmcp import Client, FastMCP
+from fastmcp.exceptions import ToolError
 
 from superset.mcp_service.app import mcp
 from superset.mcp_service.auth import is_tool_visible_to_current_user
+from superset.mcp_service.dataset_scope import OUT_OF_SCOPE_ERROR
 from superset.mcp_service.privacy import tool_requires_data_model_metadata_access
 from superset.utils import json
 from superset.utils.date_parser import get_since_until
@@ -1800,6 +1803,7 @@ async def test_query_dataset_available_columns_preview(
     assert "get_dataset_info with this dataset_id" in data["error"]
 
 
+@pytest.mark.asyncio
 @pytest.mark.parametrize("identifier", [1, "1", "00000000-0000-0000-0000-000000000001"])
 @pytest.mark.parametrize("in_scope", [True, False])
 async def test_scope_refuses_out_of_scope_query_and_admits_in_scope_one(
@@ -1813,16 +1817,10 @@ async def test_scope_refuses_out_of_scope_query_and_admits_in_scope_one(
     wholesale block: an implementation reading the wrong identifier field would
     refuse both ways and still satisfy the negative case alone.
     """
-    from uuid import UUID
-
-    from fastmcp.exceptions import ToolError
-
-    from superset.mcp_service.dataset_scope import OUT_OF_SCOPE_ERROR
-
-    dataset_uuid = UUID("00000000-0000-0000-0000-000000000001")
-    dataset = _make_dataset()
+    dataset_uuid: UUID = UUID("00000000-0000-0000-0000-000000000001")
+    dataset: MagicMock = _make_dataset()
     dataset.uuid = dataset_uuid
-    scope = frozenset({dataset_uuid}) if in_scope else frozenset()
+    scope: frozenset[UUID] = frozenset({dataset_uuid}) if in_scope else frozenset()
     with (
         patch(
             "superset.mcp_service.dataset_scope.get_dataset_scope",

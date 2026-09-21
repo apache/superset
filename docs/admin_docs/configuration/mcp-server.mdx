@@ -1237,6 +1237,10 @@ on rather than finding the tool missing. Prompts and resources are unaffected:
 they expose schema and instance metadata, not dataset rows. This restriction
 applies to every caller of the MCP tools, not just a particular chat client.
 
+The default `MCP_GUEST_ALLOWED_TOOLS` contains only chart/dashboard tools,
+none of which supports dataset-scoped mode. Enabling this allowlist therefore
+also makes all of those embedded-guest tool calls refuse.
+
 An out-of-scope request returns an explicit refusal. The assistant must explain
 that limitation, never silently substitute an allowed but different dataset.
 This feature controls routing and usability, **not authorization or SQL table

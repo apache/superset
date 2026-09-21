@@ -161,10 +161,9 @@ def _coerce_dataset_uuid(role: str, identifier: Any) -> UUID:
     """Convert one allowlist entry to a UUID, naming the bad entry on failure.
 
     Only ``UUID`` and ``str`` are accepted. Coercing arbitrary types through
-    ``str()`` would let a value whose repr happens to parse — or a type the
-    operator did not intend, such as an int dataset ID — load as a valid-looking
-    UUID that can never match a dataset, silently narrowing the intended scope
-    instead of reporting the typo.
+    ``str()`` could accept an unintended type whose string happens to parse as
+    a UUID. Reject other types explicitly so configuration errors identify the
+    offending type and entry instead of relying on string conversion.
     """
     if isinstance(identifier, UUID):
         return identifier
@@ -198,6 +197,8 @@ def get_dataset_scope() -> frozenset[UUID] | None:
     if normalized is None:
         return None
     if not getattr(g, "user", None):
+        # Routing is enabled, but no user can contribute roles: deny every
+        # dataset. None would disable routing rather than represent no grants.
         return frozenset()
     return frozenset(
         identifier

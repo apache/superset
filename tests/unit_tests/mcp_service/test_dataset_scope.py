@@ -435,10 +435,10 @@ def test_startup_validation_accepts_absent_and_valid_allowlists() -> None:
     ],
 )
 def test_startup_validation_rejects_non_string_entries(entry: object) -> None:
-    """A non-UUID entry must fail loudly, never coerce to a never-matching UUID.
+    """Unsupported entry types fail with a precise configuration error.
 
-    Coercing through ``str()`` would turn a numeric dataset ID or a stray bool
-    into a valid-looking UUID that silently narrows the operator's scope.
+    Values such as True also fail UUID parsing after string conversion, but
+    type validation reports the unsupported type rather than a malformed UUID.
     """
     from superset.mcp_service.dataset_scope import parse_dataset_role_allowlist
 

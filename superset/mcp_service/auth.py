@@ -1183,12 +1183,19 @@ def mcp_auth_hook(tool_func: F, *, tool_name: str | None = None) -> F:  # noqa: 
     If present, check_tool_permission() verifies the user has the required
     FAB permission before the tool function runs.
 
+    tool_name is the registered tool identity, including any extension prefix.
+    When supplied, dataset routing scope is checked before execution. None
+    skips only that routing check for resources and prompts, not authentication
+    or RBAC. Tools must register through @tool, which supplies this identity.
+
     Supports both sync and async tool functions.
     """
     import functools
     import inspect
     import types
 
+    # Defer the scope module's FastMCP dependency until a handler is wrapped,
+    # alongside the Context import below.
     from superset.mcp_service.dataset_scope import enforce_call_dataset_scope
 
     is_async = inspect.iscoroutinefunction(tool_func)
