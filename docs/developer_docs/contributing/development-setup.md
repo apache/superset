@@ -99,11 +99,16 @@ Affecting the Docker build process:
 - **INCLUDE_CHROMIUM (default=false):** whether to include the Chromium headless browser in the build
 - **BUILD_TRANSLATIONS(default=false):** whether to compile the translations from the .po files available
 - **SUPERSET_LOAD_EXAMPLES (default=yes):** whether to load the examples into the database upon startup,
-  save some precious time on startup by `SUPERSET_LOAD_EXAMPLES=no docker compose up`
+  save some precious time on startup by `SUPERSET_LOAD_EXAMPLES=no docker compose up`. Once the example
+  data and dashboards are present in the databases, later `docker compose up` runs skip loading
+  them; run `SUPERSET_FORCE_LOAD_EXAMPLES=yes docker compose up` to reload the examples anyway.
 - **SUPERSET_LOG_LEVEL (default=info)**: Can be set to debug, info, warning, error, critical
   for more verbose logging
 - **SUPERSET_DEBUG_ENABLED (default=false)**: Enable Werkzeug debugger with interactive console.
   Set to `true` for debugging: `SUPERSET_DEBUG_ENABLED=true docker compose up`
+- **DISABLE_TS_CHECKER (default=true)**: whether the `superset-node` webpack dev server skips
+  TypeScript type-checking, which speeds up rebuilds and saves several GB of memory. Set to
+  `false` to have webpack surface type errors during development.
 
 For more env vars that affect your configuration, see this
 [superset_config.py](https://github.com/apache/superset/blob/master/docker/pythonpath_dev/superset_config.py)
@@ -493,8 +498,8 @@ Frontend assets (TypeScript, JavaScript, CSS, and images) must be compiled in or
 
 First, be sure you are using the following versions of Node.js and npm:
 
-- `Node.js`: Version 22 (LTS)
-- `npm`: Version 10
+- `Node.js`: Version 24 (see `superset-frontend/.nvmrc` for the exact version)
+- `npm`: Version 11
 
 We recommend using [nvm](https://github.com/nvm-sh/nvm) to manage your node environment:
 
@@ -507,8 +512,8 @@ export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
 
 cd superset-frontend
-nvm install --lts
-nvm use --lts
+nvm install
+nvm use
 ```
 
 Or if you use the default macOS starting with Catalina shell `zsh`, try:
@@ -518,6 +523,30 @@ sh -c "$(curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.37.0/install
 ```
 
 For those interested, you may also try out [avn](https://github.com/nvm-sh/nvm#deeper-shell-integration) to automatically switch to the node version that is required to run Superset frontend.
+
+##### zstd
+
+`npm run dev-server` proxies requests to your local Superset server and rewrites the HTML it returns, so it has to decompress responses sent with `Content-Encoding: zstd`. It does that with [`simple-zstd`](https://www.npmjs.com/package/simple-zstd), which wraps the system `zstd` binary instead of bundling one. That binary has to be on your `PATH`:
+
+```bash
+# macOS
+brew install zstd
+
+# Ubuntu/Debian
+sudo apt install zstd
+
+# Windows
+choco install zstd
+```
+
+`simple-zstd` looks for the binary when it is first imported, not when a response is decompressed, so a missing `zstd` stops the dev server at startup with:
+
+```
+Error: Can not access zstd! Is it installed?
+    at Object.<anonymous> (.../node_modules/simple-zstd/dist/src/index.js:102:11)
+```
+
+The message names the dependency, but it surfaces from inside `webpack.proxy-config.js` while the webpack config is loading, which reads like a build-tooling failure rather than a missing system package.
 
 #### Install dependencies
 

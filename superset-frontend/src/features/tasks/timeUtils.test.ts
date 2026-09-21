@@ -30,16 +30,20 @@ test('formatDuration returns null for invalid inputs', () => {
   expect(formatDuration(-5)).toBeNull();
 });
 
-test('formatDuration formats seconds correctly', () => {
-  expect(formatDuration(37.5)).toBe('37s 500ms');
-  expect(formatDuration(1)).toBe('1s');
+test('formatDuration shows sub-minute durations in seconds with up to one decimal', () => {
+  expect(formatDuration(0.283)).toBe('0.3s');
+  expect(formatDuration(37.5)).toBe('37.5s');
+  expect(formatDuration(1)).toBe('1s'); // whole seconds keep no decimal
   expect(formatDuration(30)).toBe('30s');
+  expect(formatDuration(59.9)).toBe('59.9s');
 });
 
-test('formatDuration formats minutes correctly', () => {
+test('formatDuration shows the two highest adjacent units at a minute or longer', () => {
   expect(formatDuration(60)).toBe('1m');
   expect(formatDuration(90)).toBe('1m 30s');
   expect(formatDuration(150)).toBe('2m 30s');
+  // Exact hour with stray seconds reads "1h", not "1h 5s" (no unit skipping).
+  expect(formatDuration(3605)).toBe('1h');
 });
 
 test('formatDuration formats hours correctly', () => {

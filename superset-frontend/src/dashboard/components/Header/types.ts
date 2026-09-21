@@ -43,6 +43,10 @@ export interface HeaderDropdownProps {
   forceRefreshAllCharts: () => unknown;
   hasUnsavedChanges: boolean;
   isLoading: boolean;
+  isMobile?: boolean;
+  isStarred?: boolean;
+  isPublished?: boolean;
+  saveFaveStar?: (id: number, isStarred: boolean) => void;
   layout: Layout;
   onSave: (...args: unknown[]) => unknown;
   refreshFrequency: number;

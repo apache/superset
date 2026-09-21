@@ -53,7 +53,7 @@ const makeReport = (overrides: Partial<ReportObject> = {}): ReportObject => ({
 });
 
 test('SET_REPORT stores report keyed by resourceId under creationMethod', () => {
-  const report = makeReport({ id: 5, dashboard: 10 });
+  const report = makeReport({ id: 5, dashboard_id: 10, chart_id: null });
   const action: SetReportAction = {
     type: SET_REPORT,
     report: { result: [report] },
@@ -84,10 +84,11 @@ test('SET_REPORT removes entry when API returns empty result', () => {
   expect(result.dashboards?.[10]).toBeUndefined();
 });
 
-test('SET_REPORT uses chart property when filterField is chart_id', () => {
+test('SET_REPORT matches on chart_id when filterField is chart_id', () => {
   const report = makeReport({
     id: 7,
-    chart: 42,
+    chart_id: 42,
+    dashboard_id: null,
     creation_method: 'charts',
   });
   const action: SetReportAction = {
@@ -101,6 +102,23 @@ test('SET_REPORT uses chart property when filterField is chart_id', () => {
   const result = reportsReducer({}, action);
 
   expect(result.charts?.[42]).toEqual(report);
+});
+
+test('SET_REPORT keeps an existing report when the fetched payload matches it', () => {
+  const existing = makeReport({ id: 5, dashboard_id: 10 });
+  const initial: ReportsState = { dashboards: { 10: existing } };
+  const refetched = makeReport({ id: 5, dashboard_id: 10, active: false });
+  const action: SetReportAction = {
+    type: SET_REPORT,
+    report: { result: [refetched] },
+    resourceId: 10,
+    creationMethod: 'dashboards',
+    filterField: 'dashboard_id',
+  };
+
+  const result = reportsReducer(initial, action);
+
+  expect(result.dashboards?.[10]).toEqual(refetched);
 });
 
 test('ADD_REPORT keys dashboard report by dashboard id', () => {
@@ -189,6 +207,64 @@ test('DELETE_REPORT removes report from state', () => {
   const result = reportsReducer(initial, action);
 
   expect(result.dashboards?.[10]).toBeUndefined();
+});
+
+test('DELETE_REPORT removes a report fetched from the list API', () => {
+  const report = makeReport({
+    id: 5,
+    dashboard_id: 10,
+    creation_method: 'dashboards',
+  });
+  const initial: ReportsState = { dashboards: { 10: report } };
+  const action: DeleteReportAction = {
+    type: DELETE_REPORT,
+    report: {
+      id: 5,
+      dashboard_id: 10,
+      creation_method: 'dashboards',
+    },
+  };
+
+  const result = reportsReducer(initial, action);
+
+  expect(result.dashboards?.[10]).toBeUndefined();
+});
+
+test('DELETE_REPORT keys a list API chart report by chart_id', () => {
+  const report = makeReport({
+    id: 7,
+    dashboard_id: null,
+    chart_id: 42,
+    creation_method: 'charts',
+  });
+  const initial: ReportsState = { charts: { 42: report } };
+  const action: DeleteReportAction = {
+    type: DELETE_REPORT,
+    report: {
+      id: 7,
+      dashboard_id: null,
+      chart_id: 42,
+      creation_method: 'charts',
+    },
+  };
+
+  const result = reportsReducer(initial, action);
+
+  expect(result.charts?.[42]).toBeUndefined();
+});
+
+test('DELETE_REPORT returns unchanged state when no resource id is present', () => {
+  const initial: ReportsState = {
+    dashboards: { 10: makeReport({ id: 5, dashboard_id: 10 }) },
+  };
+  const action: DeleteReportAction = {
+    type: DELETE_REPORT,
+    report: { id: 5, creation_method: 'dashboards' },
+  };
+
+  const result = reportsReducer(initial, action);
+
+  expect(result).toBe(initial);
 });
 
 test('DELETE_REPORT for alerts_reports keys by report id', () => {

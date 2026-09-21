@@ -33,6 +33,10 @@ from superset_core.mcp.decorators import tool, ToolAnnotations
 from superset.commands.dashboard.exceptions import DashboardNotFoundError
 from superset.exceptions import SupersetSecurityException
 from superset.extensions import db, event_logger
+from superset.mcp_service.dashboard.layout_validation import (
+    rebuild_parent_chains,
+    validate_dashboard_layout,
+)
 from superset.mcp_service.dashboard.schemas import (
     dashboard_serializer,
     DashboardError,
@@ -193,7 +197,14 @@ def _apply_field_updates(dashboard: Any, request: UpdateDashboardRequest) -> lis
         changed.append("published")
 
     if request.position_json is not None:
-        dashboard.position_json = json.dumps(request.position_json)
+        # A caller-supplied replacement layout may carry only an immediate
+        # parent (or omit `parents` altogether); rebuild the full ancestor
+        # chains so filter-scope derivation sees the same tree the frontend
+        # would after hydration. See
+        # superset.dashboards.filter_scope.get_chart_ids_in_scope.
+        dashboard.position_json = json.dumps(
+            rebuild_parent_chains(request.position_json)
+        )
         changed.append("position_json")
 
     metadata_overrides: dict[str, Any] = _collect_metadata_overrides(request)
@@ -236,6 +247,14 @@ def _validate_update_request(
     from superset.commands.utils import validate_tags
     from superset.dashboards.schemas import validate_css
     from superset.tags.models import ObjectType
+
+    if request.position_json is not None:
+        chart_ids = [chart.id for chart in dashboard.slices]
+        if error := validate_dashboard_layout(request.position_json, chart_ids):
+            return DashboardError(
+                error=f"Dashboard layout is invalid: {error}",
+                error_type="InvalidDashboardLayout",
+            )
 
     # Empty string clears CSS (no validation needed); only validate real content.
     if request.css:
@@ -282,6 +301,8 @@ def _validate_update_request(
         title="Update dashboard layout/theme/CSS/metadata",
         readOnlyHint=False,
         destructiveHint=True,
+        idempotentHint=False,
+        openWorldHint=False,
     ),
 )
 async def update_dashboard(
@@ -289,9 +310,10 @@ async def update_dashboard(
 ) -> UpdateDashboardResponse | DashboardError:
     """Patch an existing dashboard's layout, theme, styling, or metadata.
 
-    Companion to ``generate_dashboard`` for incremental edits. An LLM can:
+    Companion to ``generate_dashboard`` for incremental metadata and styling
+    edits. An LLM can:
 
-      - Set or replace ``position_json`` after auto-generation
+      - Replace ``position_json`` only when it already has the complete raw tree
       - Apply brand ``label_colors`` and ``color_scheme`` via
         ``json_metadata_overrides``
       - Inject ``css`` to hide chrome on print-ready dashboards

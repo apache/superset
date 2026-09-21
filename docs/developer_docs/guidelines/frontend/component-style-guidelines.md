@@ -198,7 +198,7 @@ Each component should come with its dedicated storybook file.
 
 **One component per story:** Each storybook file should only contain one component unless substantially different variants are required
 
-**Component variants:** If the component behavior is substantially different when certain props are used, it is best to separate the story into different types. See the `superset-frontend/src/components/Select/Select.stories.tsx` as an example.
+**Component variants:** If the component behavior is substantially different when certain props are used, it is best to separate the story into different types. See the `superset-frontend/packages/superset-ui-core/src/components/Select/Select.stories.tsx` as an example.
 
 **Isolated state:** The storybook should show how the component works in an isolated state and with as few dependencies as possible
 
