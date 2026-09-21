@@ -24,6 +24,52 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Scheduled report and alert retry admission
+
+Run `superset db upgrade` before starting workers with this version. The migration
+adds nullable `execution_owner` and `execution_window` columns to `report_schedule`.
+Pause scheduling and drain in-flight executions and queued retry tasks before
+upgrading workers together: older workers do not participate in execution fencing.
+Two-argument retries without ownership evidence are discarded. Older one-argument
+retry messages cannot be distinguished from fresh cron tasks and must be drained;
+they are not reliably discarded by the new workers. Restart scheduling after
+migration and worker replacement.
+Mixed-version workers are not supported for this transition: old workers cannot
+consume the new retry task signature. Drain queued retries as well as active jobs
+before replacement. New workers log `report_retry_discarded` with
+`reason=missing_execution_owner` and increment
+`reports.execute.legacy_retry_discarded` for legacy retry tasks. Rerun any affected
+schedule after the upgrade; discarded retries are not automatically replayed.
+
+In the other direction, a new worker can enqueue a three-argument retry that an
+old worker cannot consume: the old worker raises `TypeError`, loses that retry,
+and can leave the schedule in `RETRYING` until stale-retry recovery. Do not perform
+a mixed-version rolling deployment; stop scheduling, drain active jobs and queued
+retries, then replace all consumers before restarting scheduling.
+
+With `ALERT_REPORTS_RETRY` enabled, alerts can opt into retries as reports do.
+Retries re-evaluate alert conditions. Whole-execution retries stop once delivery
+has started because a failed send may already have reached a recipient. Retry
+notifications no longer include raw provider diagnostics; consult execution logs.
+Ordinary editor-only error emails retain HTML-sanitized diagnostics. Notifications
+to configured recipients, including retry/final-failure notices, remain redacted.
+
+Ownership is rechecked in a short committed transaction before each recipient.
+No schedule-row lock is held during SMTP/Slack I/O. Recovery can fence subsequent
+sends, but cannot recall a notification already in flight; delivery is not atomic
+with database ownership and exactly-once delivery is not guaranteed.
+
+If the fallback ERROR-log transaction cannot commit, the execution still depends
+on working-timeout recovery. Error-notification delivery and its database marker
+are not atomic: a send followed by a marker-write failure can result in a duplicate
+error notice. This does not authorize replay of data-bearing notifications.
+
+- With `SEMANTIC_LAYERS` enabled, combined connection discovery honors `Database.can_read` and `SemanticLayer.can_read` independently. Each permitted source retains its normal row filters, including dynamic database filters for Admin. A source filter never includes rows or counts from a denied source; callers with neither read permission are denied. Feature-off database browsing is unchanged.
+- The combined datasource list (`GET /api/v1/datasource/`) accepts Dataset read without an additional Datasource read grant, regardless of `SEMANTIC_LAYERS`. With the flag enabled, SemanticView read independently permits semantic-view discovery. Existing row-level dataset/chart access remains enforced.
+- The `presto` extra requires PyHive 0.7.0 or later. PyHive 0.6.5 cannot load
+  its Presto dialect under SQLAlchemy 2 because it imports `sqlalchemy.databases`.
+  Upgrade existing installations with `pip install "pyhive[presto]>=0.7.0"`.
+
 - `superset deletion-retention force-purge` now exits **1** when the target is
   blocked by a deletion rule or is not found (the messages are unchanged), so a
   scripted compliance erasure cannot mistake a refusal for a completed purge.
@@ -47,6 +93,17 @@ behavior explicitly:
 ```python
 SQLALCHEMY_ENGINE_OPTIONS = {"isolation_level": "REPEATABLE READ"}
 ```
+
+### MCP metric discovery defaults and embedded dimensions
+
+`list_metrics` defaults to 25 metrics per page and does not embed compatible
+dimensions. Clients needing those dimensions should call `get_compatible_dimensions`
+for the chosen metrics, or explicitly request `include_compatible_dimensions=true`
+with `page_size` at most 8 for every scope, including built-in `dataset_id`
+requests. Non-embedded requests retain the 500-metric ceiling.
+This fixed embedding cap is independent of the operator's
+`MCP_RESPONSE_SIZE_CONFIG['token_limit']` (25,000 by default); it does not guarantee
+that every payload fits a configured response limit.
 
 ### Default Docker image is now batteries-included; the minimal image moves to `-lean`
 
@@ -448,6 +505,8 @@ theme editor picker.
   next run rather than losing data. Batches are bounded (500 rows) and
   index-backed to keep the window short — run pruning off-peak if the overlap is
   noticeable.
+
+- The chart list applies the same type-aware datasource visibility as the dashboard list: charts on semantic views (and other non-table datasource types carrying a permission) are now listed for users holding `datasource_access` on the datasource or on its parent semantic layer — previously such charts never appeared in the chart list — and a chart on a non-table datasource is no longer listed to users whose only entitlement is a database/schema/catalog grant matching an unrelated table that shares its numeric id. Table-backed chart visibility, explicit viewer/editor grants, and embedded-guest scoping are unchanged.
 - `SAMPLES_ROW_LIMIT` is now the default for `/datasource/samples` requests without a valid explicit `per_page`, rather than a hard per-request ceiling; explicit limits are honored up to the existing global row-limit ceiling, matching `/chart/data` SAMPLES requests.
 - The `cockroachdb` extra (`pip install apache-superset[cockroachdb]`) now installs `sqlalchemy-cockroachdb` instead of the abandoned `cockroachdb` package, whose SQLAlchemy dialect could not be imported under SQLAlchemy 2.0. Existing environments with the old package installed must `pip uninstall cockroachdb` before reinstalling the extra -- both packages register the same `cockroachdb` SQLAlchemy dialect entry point, so leaving the old one in place can still load the abandoned implementation.
 

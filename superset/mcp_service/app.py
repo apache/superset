@@ -135,6 +135,7 @@ Dashboard Management:
 - add_chart_to_existing_dashboard: Add a chart to an existing dashboard (requires write access)
 - delete_dashboard: Delete a dashboard by ID/UUID/slug (requires editor rights — owner or Admin; destructive; does not delete its charts; soft-deletes to trash when the SOFT_DELETE feature flag is on, permanent otherwise)
 - manage_native_filters: Add, update, remove, or reorder native filters on a dashboard (requires write access; supports filter_select and filter_time)
+- apply_dashboard_filters: Apply values to a dashboard's existing native filters for the calling user and return a shareable permalink (read access; does NOT change the saved dashboard)
 - remove_chart_from_dashboard: Remove a chart from an existing dashboard (requires write access)
 - restore_dashboard: Restore a soft-deleted dashboard from trash by ID/UUID (requires editor rights — owner or Admin; only applies to dashboards trashed under the SOFT_DELETE feature flag)
 - manage_dashboard_owners: Add/remove dashboard owners by explicit operation (requires write access; rejects changes that would leave zero owners)
@@ -173,6 +174,13 @@ Row Level Security (Admin only):
 Alerts & Reports:
 - list_reports: List alerts and reports with filtering and search (1-based pagination)
 - get_report_info: Get detailed alert/report schedule info by ID
+
+Dataset discovery and attribution:
+- Search covers dataset table names, descriptions, schemas and SQL; returned matches are candidates, not ranked recommendations. Look datasets up by UUID with a uuid filter, not with search.
+- Compare candidate descriptions and metrics. If the choice is ambiguous, show the candidate dataset IDs/names and clarify before querying.
+- Cite the dataset_id/dataset_name or source identity returned by query_dataset/get_table in answers.
+- No matches does not mean the data does not exist. State the search/scope limitation.
+- If a dataset or operation is outside the configured MCP dataset scope, refuse plainly. Never silently substitute an allowed-but-different dataset.
 
 Dataset Management:
 - list_datasets: List datasets with advanced filters (1-based pagination)
@@ -318,8 +326,9 @@ with 'search'.
 
 To explore metrics across all data sources (built-in datasets + external semantic views):
 1. list_metrics(request={{"search": "<keyword>"}})
-   -> returns metrics with dataset_id/view_id and compatible_dimensions inline
-2. get_table(request={{
+   -> returns metrics with dataset_id/view_id; dimensions are not embedded by default
+2. get_compatible_dimensions -> discover dimensions for the chosen metrics
+3. get_table(request={{
      "dataset_id": <id>,          # OR "view_id": <id> for external semantic views
      "metrics": ["revenue"],
      "dimensions": ["region"],
@@ -802,6 +811,7 @@ from superset.mcp_service.chart.tool import (  # noqa: F401, E402
 )
 from superset.mcp_service.dashboard.tool import (  # noqa: F401, E402
     add_chart_to_existing_dashboard,
+    apply_dashboard_filters,
     delete_dashboard,
     duplicate_dashboard,
     generate_dashboard,

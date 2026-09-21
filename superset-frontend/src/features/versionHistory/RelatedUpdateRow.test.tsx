@@ -55,7 +55,7 @@ test('hovering the impact rollup headline lists the affected chart names', async
     screen.getByText(/Dataset used by 2 charts updated/),
   ).toBeInTheDocument();
 
-  userEvent.hover(screen.getByText(/Dataset used by 2 charts updated/));
+  await userEvent.hover(screen.getByText(/Dataset used by 2 charts updated/));
 
   expect(await screen.findByText('Alpha chart')).toBeInTheDocument();
   expect(screen.getByText('Beta chart')).toBeInTheDocument();
@@ -74,7 +74,7 @@ test('an impact chart with an empty name renders as Untitled in the tooltip', as
   };
   render(<RelatedUpdateRow record={record} />);
 
-  userEvent.hover(screen.getByText(/Dataset used by 2 charts updated/));
+  await userEvent.hover(screen.getByText(/Dataset used by 2 charts updated/));
 
   expect(await screen.findByText('Untitled')).toBeInTheDocument();
   expect(screen.getByText('Beta chart')).toBeInTheDocument();
@@ -94,7 +94,7 @@ test('a capped impact list shows an overflow line for the remaining charts', asy
   };
   render(<RelatedUpdateRow record={record} />);
 
-  userEvent.hover(screen.getByText(/Dataset used by 5 charts updated/));
+  await userEvent.hover(screen.getByText(/Dataset used by 5 charts updated/));
 
   expect(await screen.findByText('Alpha chart')).toBeInTheDocument();
   expect(screen.getByText('…and 2 more charts')).toBeInTheDocument();
@@ -110,7 +110,7 @@ test('a single-chart impact still offers the names tooltip (pinned decision)', a
   };
   render(<RelatedUpdateRow record={record} />);
 
-  userEvent.hover(screen.getByText(/Dataset updated/));
+  await userEvent.hover(screen.getByText(/Dataset updated/));
 
   expect(await screen.findByText('Alpha chart')).toBeInTheDocument();
 });
@@ -125,7 +125,7 @@ test('a backend that emits the count but predates affected_charts gets a count-o
   };
   render(<RelatedUpdateRow record={record} />);
 
-  userEvent.hover(screen.getByText(/Dataset used by 4 charts updated/));
+  await userEvent.hover(screen.getByText(/Dataset used by 4 charts updated/));
 
   expect(await screen.findByText('4 affected charts')).toBeInTheDocument();
 });
@@ -138,7 +138,7 @@ test('a related record without impact names shows no tooltip', async () => {
   };
   render(<RelatedUpdateRow record={record} />);
 
-  userEvent.hover(screen.getByText(/Dataset updated/));
+  await userEvent.hover(screen.getByText(/Dataset updated/));
 
   // The tooltip mounts asynchronously; a synchronous negative query would
   // pass even if one were about to appear. Wait out the mount window and
