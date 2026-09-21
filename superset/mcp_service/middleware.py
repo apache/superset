@@ -27,7 +27,7 @@ import mcp.types as mt
 from fastmcp.exceptions import ToolError, ValidationError as FastMCPValidationError
 from fastmcp.server.middleware import Middleware, MiddlewareContext
 from fastmcp.server.middleware.middleware import CallNext
-from fastmcp.tools.tool import Tool, ToolResult
+from fastmcp.tools import Tool, ToolResult
 from flask import g
 from pydantic import ValidationError
 from sqlalchemy.exc import OperationalError, TimeoutError
@@ -1202,7 +1202,7 @@ class ResponseSizeGuardMiddleware(Middleware):
         Returns the payload dict when extraction succeeds, or ``None`` when
         the response is not a ToolResult or cannot be parsed.
         """
-        from fastmcp.tools.tool import ToolResult
+        from fastmcp.tools import ToolResult
 
         from superset.utils.json import loads as json_loads
 
@@ -1229,7 +1229,7 @@ class ResponseSizeGuardMiddleware(Middleware):
     @staticmethod
     def _rewrap_as_tool_result(payload: dict[str, Any], original: Any) -> Any:
         """Re-serialize a truncated payload dict back into a ToolResult."""
-        from fastmcp.tools.tool import ToolResult
+        from fastmcp.tools import ToolResult
         from mcp.types import TextContent
 
         from superset.utils.json import dumps as json_dumps

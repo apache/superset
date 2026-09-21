@@ -1222,7 +1222,7 @@ class TestResponseSizeGuardMiddleware:
         to_mcp_result(). Declining to truncate surfaces the normal size-limit
         error instead.
         """
-        from fastmcp.tools.tool import ToolResult
+        from fastmcp.tools import ToolResult
         from mcp.types import TextContent
 
         middleware = ResponseSizeGuardMiddleware(token_limit=500)
@@ -1260,7 +1260,7 @@ class TestResponseSizeGuardMiddleware:
         ``to_mcp_result()``, surfacing the completed write as an internal
         error -- exactly what this fallback exists to prevent.
         """
-        from fastmcp.tools.tool import ToolResult
+        from fastmcp.tools import ToolResult
         from mcp.types import TextContent
 
         middleware = ResponseSizeGuardMiddleware(token_limit=500)
@@ -1450,7 +1450,7 @@ class TestExtractPayloadFromToolResult:
     """Tests for _extract_payload_from_tool_result static method."""
 
     def _make_tool_result(self, text: str, meta: dict[str, Any] | None = None) -> Any:
-        from fastmcp.tools.tool import ToolResult
+        from fastmcp.tools import ToolResult
         from mcp.types import TextContent
 
         return ToolResult(
@@ -1535,7 +1535,7 @@ class TestExtractPayloadFromToolResult:
 
     def test_returns_none_for_empty_content(self) -> None:
         """Should return None when ToolResult has no content items."""
-        from fastmcp.tools.tool import ToolResult
+        from fastmcp.tools import ToolResult
 
         tool_result = ToolResult(content=[], meta=None)
 
@@ -1552,7 +1552,7 @@ class TestRewrapAsToolResult:
     def _make_tool_result(
         self, payload: dict[str, Any], meta: dict[str, Any] | None = None
     ) -> Any:
-        from fastmcp.tools.tool import ToolResult
+        from fastmcp.tools import ToolResult
         from mcp.types import TextContent
 
         from superset.utils import json
@@ -1564,7 +1564,7 @@ class TestRewrapAsToolResult:
 
     def test_returns_tool_result_with_serialized_payload(self) -> None:
         """Should return a ToolResult whose content[0].text is the JSON payload."""
-        from fastmcp.tools.tool import ToolResult
+        from fastmcp.tools import ToolResult
 
         from superset.utils import json
 
@@ -1582,7 +1582,7 @@ class TestRewrapAsToolResult:
 
     def test_preserves_meta_from_original_tool_result(self) -> None:
         """Should copy meta from the original ToolResult."""
-        from fastmcp.tools.tool import ToolResult
+        from fastmcp.tools import ToolResult
 
         meta = {"request_id": "abc-123", "trace": "xyz"}
         original = self._make_tool_result({"key": "val"}, meta=meta)
@@ -1596,7 +1596,7 @@ class TestRewrapAsToolResult:
 
     def test_sets_meta_none_for_non_tool_result_original(self) -> None:
         """Should set meta=None when original is not a ToolResult."""
-        from fastmcp.tools.tool import ToolResult
+        from fastmcp.tools import ToolResult
 
         result = ResponseSizeGuardMiddleware._rewrap_as_tool_result(
             {"key": "val"}, {"not": "a ToolResult"}
@@ -1612,7 +1612,7 @@ class TestToolResultWrapping:
     def _make_tool_result(
         self, payload: dict[str, Any], meta: dict[str, Any] | None = None
     ) -> Any:
-        from fastmcp.tools.tool import ToolResult
+        from fastmcp.tools import ToolResult
         from mcp.types import TextContent
 
         from superset.utils import json
@@ -1625,7 +1625,7 @@ class TestToolResultWrapping:
     @pytest.mark.asyncio
     async def test_info_tool_result_is_truncated_and_rewrapped(self) -> None:
         """Truncate a ToolResult-wrapped info response and return a ToolResult."""
-        from fastmcp.tools.tool import ToolResult
+        from fastmcp.tools import ToolResult
 
         from superset.utils import json
 
@@ -1702,7 +1702,7 @@ class TestToolResultWrapping:
         data-query truncation must be exercised through that wrapper, not
         just against a plain dict.
         """
-        from fastmcp.tools.tool import ToolResult
+        from fastmcp.tools import ToolResult
 
         from superset.utils import json
 
@@ -1734,7 +1734,7 @@ class TestToolResultWrapping:
     @pytest.mark.asyncio
     async def test_meta_preserved_after_truncation(self) -> None:
         """Should preserve the original ToolResult meta through truncation."""
-        from fastmcp.tools.tool import ToolResult
+        from fastmcp.tools import ToolResult
 
         from superset.utils import json
 
@@ -2854,7 +2854,7 @@ class TestToolResultCompatibilityIsErrorFlag:
     @pytest.mark.asyncio
     async def test_successful_result_is_not_flagged(self) -> None:
         """The success path, including structured output, stays untouched."""
-        from fastmcp.tools.tool import ToolResult
+        from fastmcp.tools import ToolResult
         from mcp.types import TextContent
 
         middleware = ToolResultCompatibilityMiddleware(structured_output_enabled=True)
@@ -2876,7 +2876,7 @@ class TestToolResultCompatibilityIsErrorFlag:
     @pytest.mark.asyncio
     async def test_default_strips_structured_content(self) -> None:
         """The default preserves the legacy text-only bridge contract."""
-        from fastmcp.tools.tool import ToolResult
+        from fastmcp.tools import ToolResult
         from mcp.types import TextContent
 
         middleware = ToolResultCompatibilityMiddleware()
@@ -2907,8 +2907,8 @@ class TestToolResultCompatibilityIsErrorFlag:
             task=Task(
                 taskId="task-1",
                 status="working",
-                createdAt=now,
-                lastUpdatedAt=now,
+                createdAt=now.isoformat(),
+                lastUpdatedAt=now.isoformat(),
                 ttl=None,
             )
         )
@@ -2946,7 +2946,7 @@ class TestToolResultCompatibilityIsErrorFlag:
     @pytest.mark.asyncio
     async def test_deprecated_stripper_warns_and_still_strips(self) -> None:
         """The deprecated import name must not silently reverse behavior."""
-        from fastmcp.tools.tool import ToolResult
+        from fastmcp.tools import ToolResult
         from mcp.types import TextContent
 
         with pytest.warns(DeprecationWarning, match="is deprecated"):

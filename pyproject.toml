@@ -198,11 +198,10 @@ excel = ["xlrd>=2.0.2, <2.1"]
 excel-export = ["boto3"]
 fastmcp = [
     "fastmcp>=3.4.7,<5.0",
-    # fastmcp 3.x required mcp<2.0, which is why this was capped below 2.0
-    # until Dependabot proposed mcp 2.1.1 and the resolver caught the
-    # conflict (#43876). fastmcp 4.x depends on fastmcp-slim[client]==4.0.3,
-    # which in turn requires mcp>=2.0.0,<3.0.0, so the floor/ceiling move
-    # together with the fastmcp 4.x bump (#44200).
+    # fastmcp 3.x requires mcp<2.0 and fastmcp 4.x (via fastmcp-slim[client])
+    # requires mcp>=2.0,<3.0, so the mcp ceiling tracks the fastmcp ceiling
+    # (#43876, #44200). The floors stay at fastmcp 3.4.7 / mcp 1.29.1 so
+    # either major still resolves; the resolver pairs them correctly.
     "mcp>=1.29.1,<3.0",
     # tiktoken backs the response-size-guard token estimator. Without
     # it, the middleware falls back to a coarser character-based
