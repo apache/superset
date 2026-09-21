@@ -1,0 +1,216 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+"""
+Tests that a virtual dataset's rendered SQL has any table introduced by a
+request-time template value access-checked against the caller, consistent with
+the per-table authorization SQL Lab applies to raw queries.
+
+A virtual dataset's stored SQL is re-rendered with the caller's Jinja context at
+query time (e.g. ``url_param`` reads live request args), so the tables the
+rendered FROM/JOIN resolves to can differ from those the dataset author
+declared. The dataset-level grant only covers the dataset itself, so a table
+that only appears because of a request-time value must be authorized separately.
+"""
+
+from __future__ import annotations
+
+from typing import Any
+from unittest.mock import MagicMock
+
+import pytest
+from flask import Flask
+from pytest_mock import MockerFixture
+from sqlalchemy.sql.elements import TextClause
+
+from superset.models.helpers import ExploreMixin
+
+
+@pytest.fixture
+def virtual_datasource() -> MagicMock:
+    """A mock datasource that behaves like a virtual (query-backed) dataset."""
+    datasource = MagicMock(spec=ExploreMixin)
+
+    # Bind the real methods under test.
+    datasource.get_from_clause = ExploreMixin.get_from_clause.__get__(datasource)
+    datasource._authorize_request_resolved_tables = (
+        ExploreMixin._authorize_request_resolved_tables.__get__(datasource)
+    )
+    datasource._declared_tables = ExploreMixin._declared_tables.__get__(datasource)
+    datasource._neutralize_jinja = ExploreMixin._neutralize_jinja
+    datasource._qualified_tables = ExploreMixin._qualified_tables
+
+    datasource.text = lambda sql: TextClause(sql)
+    datasource.db_engine_spec.engine = "postgresql"
+    datasource.db_engine_spec.get_cte_query.return_value = None
+    datasource.db_engine_spec.cte_alias = "__cte"
+    datasource.database.get_default_schema.return_value = "public"
+    datasource.catalog = None
+    datasource.schema = "public"
+    return datasource
+
+
+def _configure(datasource: MagicMock, *, stored_sql: str, rendered_sql: str) -> None:
+    datasource.sql = stored_sql
+    datasource.get_rendered_sql.return_value = rendered_sql
+
+
+def _run(datasource: MagicMock) -> Any:
+    return datasource.get_from_clause(template_processor=None)
+
+
+def test_static_virtual_dataset_skips_table_authorization(
+    virtual_datasource: MagicMock,
+    app: Flask,
+    mocker: MockerFixture,
+) -> None:
+    """A non-templated virtual dataset resolves to exactly the declared tables,
+    which the dataset-level grant already covers, so no per-table check runs."""
+    raise_for_access = mocker.patch("superset.security_manager.raise_for_access")
+    mocker.patch("superset.models.helpers.apply_rls", return_value=False)
+
+    sql = "SELECT a, b FROM public.sales"
+    _configure(virtual_datasource, stored_sql=sql, rendered_sql=sql)
+
+    _run(virtual_datasource)
+
+    raise_for_access.assert_not_called()
+
+
+def test_templated_value_only_skips_table_authorization(
+    virtual_datasource: MagicMock,
+    app: Flask,
+    mocker: MockerFixture,
+) -> None:
+    """Templating that only affects a filter value (not the resolved tables)
+    introduces no new table, so no per-table check runs."""
+    raise_for_access = mocker.patch("superset.security_manager.raise_for_access")
+    mocker.patch("superset.models.helpers.apply_rls", return_value=False)
+
+    _configure(
+        virtual_datasource,
+        stored_sql="SELECT * FROM public.sales WHERE r = '{{ url_param('r') }}'",
+        rendered_sql="SELECT * FROM public.sales WHERE r = 'emea'",
+    )
+
+    _run(virtual_datasource)
+
+    raise_for_access.assert_not_called()
+
+
+def test_request_introduced_table_is_authorized(
+    virtual_datasource: MagicMock,
+    app: Flask,
+    mocker: MockerFixture,
+) -> None:
+    """A table that only appears because a request-time value was substituted
+    into the FROM clause is access-checked with the strict SQL Lab semantics."""
+    raise_for_access = mocker.patch("superset.security_manager.raise_for_access")
+    mocker.patch("superset.models.helpers.apply_rls", return_value=False)
+
+    _configure(
+        virtual_datasource,
+        stored_sql="SELECT * FROM {{ url_param('tbl') }}",
+        rendered_sql="SELECT * FROM public.secret",
+    )
+
+    _run(virtual_datasource)
+
+    raise_for_access.assert_called_once()
+    kwargs = raise_for_access.call_args.kwargs
+    assert kwargs["force_dataset_match"] is True
+    assert kwargs["database"] is virtual_datasource.database
+    assert kwargs["table"].table == "secret"
+    assert kwargs["table"].schema == "public"
+
+
+def test_only_request_introduced_table_is_checked(
+    virtual_datasource: MagicMock,
+    app: Flask,
+    mocker: MockerFixture,
+) -> None:
+    """A statically declared table (covered by the dataset grant) is left alone;
+    only the table a request-time value adds to the rendered SQL is checked."""
+    raise_for_access = mocker.patch("superset.security_manager.raise_for_access")
+    mocker.patch("superset.models.helpers.apply_rls", return_value=False)
+
+    _configure(
+        virtual_datasource,
+        stored_sql=(
+            "SELECT * FROM public.base JOIN {{ url_param('t') }} AS x ON x.id = base.id"
+        ),
+        rendered_sql=(
+            "SELECT * FROM public.base JOIN public.secret AS x ON x.id = base.id"
+        ),
+    )
+
+    _run(virtual_datasource)
+
+    raise_for_access.assert_called_once()
+    assert raise_for_access.call_args.kwargs["table"].table == "secret"
+
+
+def test_unauthorized_request_table_is_rejected(
+    virtual_datasource: MagicMock,
+    app: Flask,
+    mocker: MockerFixture,
+) -> None:
+    """When the caller cannot access the request-introduced table, the strict
+    check raises and the query is not built (fail closed)."""
+    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+    from superset.exceptions import SupersetSecurityException
+
+    error = SupersetError(
+        error_type=SupersetErrorType.TABLE_SECURITY_ACCESS_ERROR,
+        message="denied",
+        level=ErrorLevel.ERROR,
+    )
+    mocker.patch(
+        "superset.security_manager.raise_for_access",
+        side_effect=SupersetSecurityException(error),
+    )
+    mocker.patch("superset.models.helpers.apply_rls", return_value=False)
+
+    _configure(
+        virtual_datasource,
+        stored_sql="SELECT * FROM {{ url_param('tbl') }}",
+        rendered_sql="SELECT * FROM public.secret",
+    )
+
+    with pytest.raises(SupersetSecurityException):
+        _run(virtual_datasource)
+
+
+def test_authorized_request_table_is_allowed(
+    virtual_datasource: MagicMock,
+    app: Flask,
+    mocker: MockerFixture,
+) -> None:
+    """When the caller can access the request-introduced table, the query is
+    built normally."""
+    raise_for_access = mocker.patch("superset.security_manager.raise_for_access")
+    mocker.patch("superset.models.helpers.apply_rls", return_value=False)
+
+    _configure(
+        virtual_datasource,
+        stored_sql="SELECT * FROM {{ url_param('tbl') }}",
+        rendered_sql="SELECT * FROM public.granted",
+    )
+
+    from_clause, _cte = _run(virtual_datasource)
+
+    raise_for_access.assert_called_once()
+    assert from_clause is not None
