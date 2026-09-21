@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 from collections import Counter
-from dataclasses import astuple
 from typing import Any
 
 from flask import redirect, request, url_for
@@ -88,6 +87,33 @@ def _load_dataset_for_samples(
     return dataset, None
 
 
+def _repoints_table(
+    dataset: SqlaTable, requested_table: Table, *, becomes_virtual: bool
+) -> bool:
+    """
+    Would the request point ``dataset`` at a different physical table?
+
+    As in ``UpdateDatasetCommand._validate_dataset_source``, the table is not
+    checked while the result is virtual: ``table_name`` is a label there, not a
+    pointer. Dropping the SQL binds that label to a real table, so a
+    virtual-to-physical conversion is a repoint too, even when the label itself
+    is unchanged.
+    """
+    if becomes_virtual:
+        return False
+    if dataset.is_virtual:
+        return True
+    # Compared field by field: ``Table.__eq__`` compares the dotted rendering,
+    # which would conflate distinct targets. ``BaseDatasource.data`` emits an
+    # empty schema as None, so normalising both sides (and the catalog, for
+    # symmetry) keeps a plain round-trip from reading as a change.
+    return (requested_table.table, requested_table.schema, requested_table.catalog) != (
+        dataset.table_name,
+        dataset.schema or None,
+        dataset.catalog or None,
+    )
+
+
 class Datasource(BaseSupersetView):
     """Datasource-related views"""
 
@@ -122,26 +148,22 @@ class Datasource(BaseSupersetView):
         except SupersetSecurityException as ex:
             raise DatasetForbiddenError() from ex
 
-        # The request may repoint the dataset to a different database and/or a
-        # different table. ``update_from_object`` (below) replaces rather than
-        # merges, so an omitted key lands as None; read the target the same way
-        # so it reads as a repoint here too. ``BaseDatasource.data`` emits an
-        # empty schema/catalog as None, so normalising both sides keeps a plain
-        # round-trip from reading as one.
+        # ``update_from_object`` (below) replaces rather than merges, so an
+        # omitted key lands as None; read the target the same way so it reads
+        # as a repoint here too.
         database_changed = database_id != orm_datasource.database_id
         requested_table = Table(
             datasource_dict.get("table_name"),
             datasource_dict.get("schema") or None,
             datasource_dict.get("catalog") or None,
         )
-        current_table = Table(
-            orm_datasource.table_name,
-            orm_datasource.schema or None,
-            orm_datasource.catalog or None,
+        # Only datasets carry a table pointer; the other datasource types this
+        # endpoint accepts have nothing to repoint.
+        repoints_table = isinstance(orm_datasource, SqlaTable) and _repoints_table(
+            orm_datasource,
+            requested_table,
+            becomes_virtual=bool(datasource_dict.get("sql")),
         )
-        # Compared field by field: ``Table.__eq__`` compares the dotted
-        # rendering, which would conflate distinct targets.
-        table_changed = astuple(requested_table) != astuple(current_table)
 
         if database_changed:
             target_database = DatasetDAO.get_database_by_id(database_id)
@@ -150,20 +172,10 @@ class Datasource(BaseSupersetView):
         else:
             target_database = orm_datasource.database
 
-        # A repoint -- to another database or, within the same database, to
-        # another table -- must be authorised against the target table, as on
-        # the create path; editorship of the dataset alone is not sufficient.
-        # As in ``UpdateDatasetCommand._validate_dataset_source``, the table
-        # check is skipped while the result is virtual (``table_name`` is a
-        # label there, not a pointer). Dropping the SQL binds that label to a
-        # real table, so a virtual-to-physical conversion is a repoint too,
-        # even when the label itself is unchanged. Note this ports the
-        # command's table check only; it has no counterpart to the separate
-        # SQL-access check the command also runs.
-        will_be_virtual = bool(datasource_dict.get("sql"))
-        repoints_table = not will_be_virtual and (
-            table_changed or orm_datasource.is_virtual
-        )
+        # A repoint must be authorised against the target table, as on the
+        # create path; editorship of the dataset alone is not sufficient. Note
+        # this ports ``UpdateDatasetCommand``'s table check only; it has no
+        # counterpart to the separate SQL-access check the command runs.
         if database_changed or repoints_table:
             try:
                 security_manager.raise_for_access(
