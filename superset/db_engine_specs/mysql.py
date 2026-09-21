@@ -622,6 +622,25 @@ class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
                         schema=table.schema,
                         keys=[primary_key],
                     )
+                    # pandas declares the key via a table-level
+                    # PrimaryKeyConstraint (never Column(primary_key=True)),
+                    # but SQLAlchemy's MySQL DDL compiler still treats a lone
+                    # integer primary-key column as AUTO_INCREMENT by
+                    # default. The values here are explicit (the promoted
+                    # index, or the 1..n range synthesized above), not
+                    # DB-generated, and pandas' default RangeIndex starts at
+                    # 0 -- inserting 0 into an AUTO_INCREMENT column asks
+                    # MySQL to generate a value instead of storing 0
+                    # literally, colliding with the row whose key is 1.
+                    pk_columns = list(pandas_table.table.primary_key.columns)
+                    if len(pk_columns) == 1:
+                        pk_columns[0].autoincrement = False
+                    # MySQL caps identifiers at 64 chars; pandas names the
+                    # constraint f"{table_name}_pk", which overflows for a
+                    # long table name. MySQL renames PRIMARY KEY constraints
+                    # to "PRIMARY" internally regardless of the name given in
+                    # DDL, so any short fixed name is safe here.
+                    pandas_table.table.primary_key.name = "pk"
                     pandas_table.create()
                     pandas_table.insert(
                         chunksize=to_sql_kwargs.get("chunksize"),
