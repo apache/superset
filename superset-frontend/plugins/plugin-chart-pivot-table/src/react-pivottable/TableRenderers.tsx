@@ -48,16 +48,15 @@ import { Styles } from './Styles';
  * Pivot keys are stringified on their way through `PivotData`, so a temporal
  * header holding an epoch timestamp arrives as e.g. "1700000000000". Coerce
  * such numeric strings back to numbers so temporal formatters (which expect
- * an epoch) render correctly. A bare four-digit string is the ISO 8601
- * year-only form ("2017"), which the shared `stringifyTimeInput` in core
- * reads as that calendar year; coercing it would turn the year into two
- * seconds past 1970, so it is passed through untouched.
+ * an epoch) render correctly. Only a digit-only string of at least 10 digits
+ * is long enough to plausibly be an epoch in milliseconds; shorter ones are
+ * date keys or plain integers - "2017" is the ISO 8601 year-only form and
+ * "20260903" a YYYYMMDD key - and coercing either would render it as a moment
+ * near 1970. Those are passed through as strings, which the shared
+ * `stringifyTimeInput` in core resolves or returns untouched.
  */
 const toDateFormatterInput = (value: unknown): unknown =>
-  typeof value === 'string' &&
-  value.trim() !== '' &&
-  !/^\d{4}$/.test(value.trim()) &&
-  Number.isFinite(Number(value))
+  typeof value === 'string' && /^-?\d{10,}$/.test(value.trim())
     ? Number(value)
     : value;
 
