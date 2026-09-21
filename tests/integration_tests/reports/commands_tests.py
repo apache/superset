@@ -47,7 +47,8 @@ except ImportError:  # pragma: no cover
     # Flask-SQLAlchemy 2.x
     from flask_sqlalchemy import BaseQuery
 
-from superset import db
+from superset import db, security_manager
+from superset.commands.chart.update import UpdateChartCommand
 from superset.commands.report.exceptions import (
     AlertQueryError,
     AlertQueryInvalidTypeError,
@@ -93,7 +94,9 @@ from superset.reports.notifications.exceptions import (
     NotificationParamException,
 )
 from superset.tasks.types import ExecutorType
+from superset.tasks.utils import get_executor
 from superset.utils import json
+from superset.utils.core import override_user
 from superset.utils.database import get_example_database
 from superset.utils.report_execution import ReportExecutionContext
 from superset.utils.webdriver import PlaywrightTimeout
@@ -368,6 +371,39 @@ def create_report_email_chart_with_csv_no_query_context():
         name="report_csv_no_query_context",
     )
     yield report_schedule
+    cleanup_report_schedule(report_schedule)
+
+
+@pytest.fixture
+def create_report_csv_no_query_context_executor_not_chart_editor(get_user):
+    """A CSV report on a chart with no stored query context, whose executor
+    edits the report but is deliberately not an editor of the chart."""
+    alpha = get_user("alpha")
+    admin = get_user("admin")
+    chart = db.session.query(Slice).first()
+    original_query_context = chart.query_context
+    original_editors = list(chart.editors)
+    chart.query_context = None
+    # Only admin may edit the chart, so the report's executor is not a chart
+    # editor -- the common shape, since report editorship is independent of
+    # chart editorship.
+    chart.editors = _subjects_for_users([admin])
+    report_schedule = create_report_notification(
+        email_target="target@email.com",
+        chart=chart,
+        report_format=ReportDataFormat.CSV,
+        name="report_csv_no_query_context_executor_not_chart_editor",
+        editors=_subjects_for_users([alpha]),
+    )
+    report_schedule.created_by = alpha
+    db.session.commit()
+    yield report_schedule
+
+    # Restore the shared chart: this fixture narrows its editors, which changes
+    # authorization outcomes for any later test that reaches for the same row.
+    chart.query_context = original_query_context
+    chart.editors = original_editors
+    db.session.commit()
     cleanup_report_schedule(report_schedule)
 
 
@@ -1217,6 +1253,46 @@ def test_email_chart_report_schedule_with_csv_no_query_context(
 
         # verify that when query context is null we request a screenshot
         screenshot_mock.assert_called_once()
+
+
+@pytest.mark.usefixtures(
+    "load_birth_names_dashboard_with_slices",
+    "create_report_csv_no_query_context_executor_not_chart_editor",
+)
+def test_csv_report_query_context_backfill_allows_non_chart_editor_executor(
+    create_report_csv_no_query_context_executor_not_chart_editor,
+):
+    """
+    ExecuteReport Command: a CSV report on a chart with no stored query context
+    is backfilled by the executor, which is not necessarily a chart editor.
+
+    ``get_executor`` resolves the executor against the ``ReportSchedule``, so it
+    reflects report editorship, not chart editorship. The CSV path reaches
+    ``/api/v1/chart/<pk>/data/``, which 400s while ``query_context`` is NULL, and
+    recovers only because the Explore screenshot issues a query-context-only
+    ``PUT``. Requiring chart edit rights on that ``PUT`` would therefore break
+    CSV and Excel reports, so this asserts the backfill stays permitted for an
+    executor with chart access but no chart editorship.
+    """
+    report_schedule = create_report_csv_no_query_context_executor_not_chart_editor
+    chart = report_schedule.chart
+
+    # The executor ALERT_REPORTS_EXECUTORS resolves to for this report.
+    _, username = get_executor(executors=[ExecutorType.EDITOR], model=report_schedule)
+    assert username == "alpha"
+
+    query_context = json.dumps({"mock": "query_context"})
+    with override_user(security_manager.find_user(username)):
+        # The executor is not an editor of the chart, which is what makes this
+        # the regression-prone case.
+        assert not security_manager.is_editor(chart)
+        UpdateChartCommand(
+            chart.id,
+            {"query_context_generation": True, "query_context": query_context},
+        ).run()
+
+    db.session.refresh(chart)
+    assert chart.query_context == query_context
 
 
 @pytest.mark.usefixtures(

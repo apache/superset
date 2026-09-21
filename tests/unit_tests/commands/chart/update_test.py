@@ -183,16 +183,20 @@ def test_update_chart_editorship_enforced_for_regular_update(
     raise_for_editorship.assert_called_once()
 
 
-def test_update_chart_query_context_enforces_editorship(
+def test_update_chart_query_context_skips_editorship_check(
     mocker: MockerFixture,
 ) -> None:
-    """Query-context-only updates require edit rights, like a regular update."""
+    """Query-context-only updates skip editorship but still require chart access."""
     find_by_id = mocker.patch("superset.commands.chart.update.ChartDAO.find_by_id")
     find_by_id.return_value = mocker.MagicMock(
         is_managed_externally=False, id=1, tags=[], dashboards=[]
     )
     raise_for_editorship = mocker.patch(
         "superset.commands.chart.update.security_manager.raise_for_editorship",
+        side_effect=_editorship_exc(),
+    )
+    raise_for_access = mocker.patch(
+        "superset.commands.chart.update.security_manager.raise_for_access",
     )
 
     UpdateChartCommand(
@@ -200,20 +204,22 @@ def test_update_chart_query_context_enforces_editorship(
     ).validate()
 
     find_by_id.assert_called_once_with(1)
-    raise_for_editorship.assert_called_once_with(find_by_id.return_value)
+    raise_for_editorship.assert_not_called()
+    raise_for_access.assert_called_once_with(chart=find_by_id.return_value)
 
 
-def test_update_chart_query_context_requires_editorship(
+def test_update_chart_query_context_requires_chart_access(
     mocker: MockerFixture,
 ) -> None:
-    """A query-context-only update by a non-editor is rejected."""
+    """A query-context-only update by someone without access to the chart is
+    rejected, even though the editorship check is relaxed for this path."""
     find_by_id = mocker.patch("superset.commands.chart.update.ChartDAO.find_by_id")
     find_by_id.return_value = mocker.MagicMock(
         is_managed_externally=False, id=1, tags=[], dashboards=[]
     )
     mocker.patch(
-        "superset.commands.chart.update.security_manager.raise_for_editorship",
-        side_effect=_editorship_exc(),
+        "superset.commands.chart.update.security_manager.raise_for_access",
+        side_effect=_access_exc(),
     )
 
     with pytest.raises(ChartForbiddenError):
@@ -222,12 +228,12 @@ def test_update_chart_query_context_requires_editorship(
         ).validate()
 
 
-def test_update_chart_query_context_non_editor_with_access_rejected(
+def test_update_chart_query_context_non_editor_with_access_allowed(
     mocker: MockerFixture,
 ) -> None:
-    """A non-editor who only has datasource read access to the chart cannot
-    perform a query-context-only update: edit rights are required, the same as
-    for a regular update."""
+    """A non-editor who has access to the chart (e.g. an alpha user with
+    datasource access, or a report worker) can perform a query-context-only
+    backfill: editorship is relaxed and ``raise_for_access`` does not deny."""
     find_by_id = mocker.patch("superset.commands.chart.update.ChartDAO.find_by_id")
     find_by_id.return_value = mocker.MagicMock(
         is_managed_externally=False, id=1, tags=[], dashboards=[]
@@ -236,8 +242,33 @@ def test_update_chart_query_context_non_editor_with_access_rejected(
         "superset.commands.chart.update.security_manager.raise_for_editorship",
         side_effect=_editorship_exc(),
     )
-    # A read/access check would pass for this user, but it is no longer the
-    # gate for a query-context-only update.
+    # access check passes (no exception) -> the non-editor is permitted
+    raise_for_access = mocker.patch(
+        "superset.commands.chart.update.security_manager.raise_for_access",
+    )
+
+    UpdateChartCommand(
+        1, {"query_context": "{}", "query_context_generation": True}
+    ).validate()
+
+    raise_for_editorship.assert_not_called()
+    raise_for_access.assert_called_once_with(chart=find_by_id.return_value)
+
+
+def test_update_chart_query_context_denied_for_guest_user(
+    mocker: MockerFixture,
+) -> None:
+    """An embedded guest token holds no write capability on any resource, so a
+    query-context-only update is refused before the access check even though
+    ``raise_for_access`` admits a guest for the charts its dashboard embeds."""
+    find_by_id = mocker.patch("superset.commands.chart.update.ChartDAO.find_by_id")
+    find_by_id.return_value = mocker.MagicMock(
+        is_managed_externally=False, id=1, tags=[], dashboards=[]
+    )
+    mocker.patch(
+        "superset.commands.chart.update.security_manager.is_guest_user",
+        return_value=True,
+    )
     raise_for_access = mocker.patch(
         "superset.commands.chart.update.security_manager.raise_for_access",
     )
@@ -247,28 +278,7 @@ def test_update_chart_query_context_non_editor_with_access_rejected(
             1, {"query_context": "{}", "query_context_generation": True}
         ).validate()
 
-    raise_for_editorship.assert_called_once_with(find_by_id.return_value)
     raise_for_access.assert_not_called()
-
-
-def test_update_chart_query_context_editor_allowed(
-    mocker: MockerFixture,
-) -> None:
-    """An editor (e.g. the report executor rendering the chart) can perform a
-    query-context-only update."""
-    find_by_id = mocker.patch("superset.commands.chart.update.ChartDAO.find_by_id")
-    find_by_id.return_value = mocker.MagicMock(
-        is_managed_externally=False, id=1, tags=[], dashboards=[]
-    )
-    raise_for_editorship = mocker.patch(
-        "superset.commands.chart.update.security_manager.raise_for_editorship",
-    )
-
-    UpdateChartCommand(
-        1, {"query_context": "{}", "query_context_generation": True}
-    ).validate()
-
-    raise_for_editorship.assert_called_once_with(find_by_id.return_value)
 
 
 def test_update_chart_editor_can_perform_regular_update(
