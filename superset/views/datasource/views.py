@@ -139,25 +139,29 @@ class Datasource(BaseSupersetView):
             datasource_dict.get("schema"),
             datasource_dict.get("catalog"),
         )
+        # ``BaseDatasource.data`` emits an empty schema/catalog as None, so a
+        # plain round-trip of an existing dataset must not read as a repoint.
         table_changed = (
             requested_table.table != orm_datasource.table_name
-            or requested_table.schema != orm_datasource.schema
-            or requested_table.catalog != orm_datasource.catalog
+            or (requested_table.schema or None) != (orm_datasource.schema or None)
+            or (requested_table.catalog or None) != (orm_datasource.catalog or None)
         )
 
+        target_database = orm_datasource.database
         if database_changed:
-            new_database = DatasetDAO.get_database_by_id(database_id)
-            if new_database is None:
+            target_database = DatasetDAO.get_database_by_id(database_id)
+            if target_database is None:
                 return json_error_response(_("Database not found."), status=422)
-            target_database = new_database
-        else:
-            target_database = orm_datasource.database
 
         # Whenever the dataset is repointed -- to a new database or, within the
         # same database, to a different table -- the caller must be authorised
         # for the target table, mirroring the create path. Editorship of the
-        # dataset alone is not sufficient.
-        if database_changed or table_changed:
+        # dataset alone is not sufficient. As in UpdateDatasetCommand, the table
+        # check is skipped when the resulting dataset is virtual (``table_name``
+        # is a label there, not a pointer), while a database repoint is checked
+        # either way.
+        is_virtual = bool(datasource_dict.get("sql"))
+        if database_changed or (table_changed and not is_virtual):
             try:
                 security_manager.raise_for_access(
                     database=target_database,
@@ -166,8 +170,7 @@ class Datasource(BaseSupersetView):
             except SupersetSecurityException as ex:
                 raise DatasetForbiddenError() from ex
 
-        if database_changed:
-            orm_datasource.database_id = database_id
+        orm_datasource.database_id = database_id
 
         duplicates = [
             name
