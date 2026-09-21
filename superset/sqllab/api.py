@@ -16,7 +16,7 @@
 # under the License.
 import logging
 from datetime import datetime
-from typing import Any, cast, Optional
+from typing import Any, Callable, cast, Optional
 from urllib import parse
 
 from flask import current_app as app, request, Response
@@ -70,6 +70,10 @@ from superset.sqllab.utils import bootstrap_sqllab_data
 from superset.sqllab.validators import CanAccessQueryValidatorImpl
 from superset.superset_typing import FlaskResponse
 from superset.utils import core as utils, json
+from superset.utils.download_reason import (
+    check_download_reason,
+    DownloadReasonRequiredError,
+)
 from superset.views.base import CsvResponse, generate_download_headers, json_success
 from superset.views.base_api import BaseSupersetApi, requires_json, statsd_metrics
 
@@ -298,8 +302,13 @@ class SqlLabRestApi(BaseSupersetApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.export_csv",
         log_to_statsd=False,
+        allow_extra_payload=True,
     )
-    def export_csv(self, client_id: str) -> CsvResponse:
+    def export_csv(
+        self,
+        client_id: str,
+        add_extra_log_payload: Callable[..., None] = lambda **kwargs: None,
+    ) -> CsvResponse:
         """Export the SQL query results to a CSV.
         ---
         get:
@@ -332,6 +341,10 @@ class SqlLabRestApi(BaseSupersetApi):
             "GRANULAR_EXPORT_CONTROLS"
         ) and not security_manager.can_access("can_export_data", "Superset"):
             return self.response_403()
+        try:
+            check_download_reason(add_extra_log_payload)
+        except DownloadReasonRequiredError as ex:
+            return self.response_400(message=ex.error.message)
         result = SqlResultExportCommand(client_id=client_id).run()
 
         query, data, row_count = result["query"], result["data"], result["count"]
@@ -365,8 +378,11 @@ class SqlLabRestApi(BaseSupersetApi):
             f"{self.__class__.__name__}.export_streaming_csv"
         ),
         log_to_statsd=False,
+        allow_extra_payload=True,
     )
-    def export_streaming_csv(self) -> Response:
+    def export_streaming_csv(
+        self, add_extra_log_payload: Callable[..., None] = lambda **kwargs: None
+    ) -> Response:
         """Export SQL query results using streaming for large datasets.
         ---
         post:
@@ -410,6 +426,10 @@ class SqlLabRestApi(BaseSupersetApi):
             "GRANULAR_EXPORT_CONTROLS"
         ) and not security_manager.can_access("can_export_data", "Superset"):
             return self.response_403()
+        try:
+            check_download_reason(add_extra_log_payload)
+        except DownloadReasonRequiredError as ex:
+            return self.response_400(message=ex.error.message)
         # Extract parameters from form data
         client_id = request.form.get("client_id")
         filename = request.form.get("filename")

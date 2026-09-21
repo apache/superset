@@ -35,6 +35,10 @@ import { safeStringify } from 'src/utils/safeStringify';
 import { optionLabel } from 'src/utils/common';
 import { ensureAppRoot } from 'src/utils/navigationUtils';
 import { downloadBlob, getFilenameFromResponse } from 'src/utils/export';
+import {
+  requestDownloadReason,
+  withDownloadReason,
+} from 'src/utils/downloadReason';
 import { URL_PARAMS } from 'src/constants';
 import {
   DISABLE_INPUT_OPERATORS,
@@ -340,7 +344,11 @@ export const exportChart = async ({
   ownState = {},
   onStartStreamingExport = null,
 }: ExportChartParams): Promise<void> => {
-  const url = '/api/v1/chart/data';
+  const downloadReason = await requestDownloadReason();
+  if (downloadReason === null) {
+    return; // the user cancelled the download reason dialog
+  }
+  const url = withDownloadReason('/api/v1/chart/data', downloadReason);
   const payload = await buildV1ChartDataPayload({
     formData,
     force,

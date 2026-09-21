@@ -64,6 +64,10 @@ from superset.utils.core import (
     get_user_id,
 )
 from superset.utils.decorators import logs_context
+from superset.utils.download_reason import (
+    check_download_reason,
+    DownloadReasonRequiredError,
+)
 from superset.utils.error_sanitization import sanitize_error_message
 from superset.views.base import CsvResponse, generate_download_headers, XlsxResponse
 from superset.views.base_api import statsd_metrics
@@ -178,6 +182,11 @@ class ChartDataRestApi(ChartRestApi):
             "format", ChartDataResultFormat.JSON
         )
         json_body["result_type"] = request.args.get("type", ChartDataResultType.FULL)
+        if json_body["result_format"] in ChartDataResultFormat.table_like():
+            try:
+                check_download_reason(add_extra_log_payload)
+            except DownloadReasonRequiredError as ex:
+                return self.response_400(message=ex.error.message)
         json_body["force"] = request.args.get("force")
 
         # Apply dashboard filter context when filters_dashboard_id is provided
@@ -311,6 +320,12 @@ class ChartDataRestApi(ChartRestApi):
                 json_body = json.loads(request.form["form_data"])
         if json_body is None:
             return self.response_400(message=_("Request is not JSON"))
+
+        if json_body.get("result_format") in ChartDataResultFormat.table_like():
+            try:
+                check_download_reason(add_extra_log_payload)
+            except DownloadReasonRequiredError as ex:
+                return self.response_400(message=ex.error.message)
 
         try:
             query_context = self._create_query_context_from_form(json_body)

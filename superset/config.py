@@ -746,6 +746,12 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # ship with matching defaults and should be changed together.
     # @lifecycle: testing
     "VERSION_HISTORY": True,
+    # Ask users for a reason before downloading data (CSV/XLSX exports from
+    # SQL Lab, Explore and dashboards). Export endpoints reject requests that
+    # carry no ``download_reason`` and record the reason in the event log
+    # (``logs.json``), so Admins can audit downloads in Security → Action Log.
+    # @lifecycle: development
+    "REQUIRE_DOWNLOAD_REASON": False,
     # =================================================================
     # IN TESTING
     # =================================================================

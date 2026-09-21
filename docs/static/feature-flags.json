@@ -88,6 +88,12 @@
         "description": "Expand nested types in Presto into extra columns/arrays. Experimental, doesn't work with all nested types."
       },
       {
+        "name": "REQUIRE_DOWNLOAD_REASON",
+        "default": false,
+        "lifecycle": "development",
+        "description": "Ask users for a reason before downloading data (CSV/XLSX exports from SQL Lab, Explore and dashboards). Export endpoints reject requests that carry no ``download_reason`` and record the reason in the event log (``logs.json``), so Admins can audit downloads in Security \u2192 Action Log."
+      },
+      {
         "name": "SEMANTIC_LAYERS",
         "default": false,
         "lifecycle": "development",
