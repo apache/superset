@@ -22,6 +22,7 @@ import {
   fireEvent,
   screen,
   userEvent,
+  waitFor,
   within,
 } from 'spec/helpers/testing-library';
 import configureMockStore from 'redux-mock-store';
@@ -74,6 +75,16 @@ const renderPopover = (
     />,
     { store },
   );
+};
+
+// The antd Select renders its option list into a portal on a later tick, so
+// every read has to wait for it; a synchronous querySelector races the portal
+// and returns null.
+const getDropdown = async (): Promise<HTMLElement> => {
+  await waitFor(() =>
+    expect(document.querySelector('.ant-select-dropdown-list')).not.toBeNull(),
+  );
+  return document.querySelector('.ant-select-dropdown-list') as HTMLElement;
 };
 
 test('updates adhocColumn when switching to sqlExpression tab with custom label', () => {
@@ -214,9 +225,7 @@ test('Should filter simple columns by column_name and verbose_name', async () =>
 
   await userEvent.type(combobox, 'revenue');
 
-  let dropdown = document.querySelector(
-    '.ant-select-dropdown-list',
-  ) as HTMLElement;
+  let dropdown = await getDropdown();
   expect(within(dropdown).getByText('Total Sales')).toBeInTheDocument();
   expect(
     within(dropdown).queryByText('User Identifier'),
@@ -228,7 +237,7 @@ test('Should filter simple columns by column_name and verbose_name', async () =>
   await userEvent.clear(combobox);
   await userEvent.type(combobox, 'Identifier');
 
-  dropdown = document.querySelector('.ant-select-dropdown-list') as HTMLElement;
+  dropdown = await getDropdown();
   expect(within(dropdown).getByText('User Identifier')).toBeInTheDocument();
   expect(within(dropdown).queryByText('Total Sales')).not.toBeInTheDocument();
   expect(within(dropdown).queryByText('Creation Date')).not.toBeInTheDocument();
@@ -236,7 +245,7 @@ test('Should filter simple columns by column_name and verbose_name', async () =>
   await userEvent.clear(combobox);
   await userEvent.type(combobox, '_at');
 
-  dropdown = document.querySelector('.ant-select-dropdown-list') as HTMLElement;
+  dropdown = await getDropdown();
   expect(within(dropdown).getByText('Creation Date')).toBeInTheDocument();
   expect(within(dropdown).getByText('Last Update')).toBeInTheDocument();
   expect(within(dropdown).queryByText('Total Sales')).not.toBeInTheDocument();
@@ -290,9 +299,7 @@ test('Should filter saved expressions by column_name and verbose_name', async ()
 
   await userEvent.type(combobox, 'revenue');
 
-  let dropdown = document.querySelector(
-    '.ant-select-dropdown-list',
-  ) as HTMLElement;
+  let dropdown = await getDropdown();
   expect(within(dropdown).getByText('Total Sales')).toBeInTheDocument();
   expect(within(dropdown).queryByText('Tax Amount')).not.toBeInTheDocument();
   expect(within(dropdown).queryByText('Net Profit')).not.toBeInTheDocument();
@@ -302,7 +309,7 @@ test('Should filter saved expressions by column_name and verbose_name', async ()
   await userEvent.clear(combobox);
   await userEvent.type(combobox, 'Rate');
 
-  dropdown = document.querySelector('.ant-select-dropdown-list') as HTMLElement;
+  dropdown = await getDropdown();
   expect(within(dropdown).getByText('Discount Rate')).toBeInTheDocument();
   expect(within(dropdown).queryByText('Total Sales')).not.toBeInTheDocument();
   expect(within(dropdown).queryByText('Tax Amount')).not.toBeInTheDocument();
@@ -310,10 +317,673 @@ test('Should filter saved expressions by column_name and verbose_name', async ()
   await userEvent.clear(combobox);
   await userEvent.type(combobox, 'profit');
 
-  dropdown = document.querySelector('.ant-select-dropdown-list') as HTMLElement;
+  dropdown = await getDropdown();
   expect(within(dropdown).getByText('Net Profit')).toBeInTheDocument();
   expect(within(dropdown).getByText('Profit Margin')).toBeInTheDocument();
   expect(within(dropdown).queryByText('Total Sales')).not.toBeInTheDocument();
   expect(within(dropdown).queryByText('Tax Amount')).not.toBeInTheDocument();
   expect(within(dropdown).queryByText('Discount Rate')).not.toBeInTheDocument();
+});
+
+const SEMANTIC_COLUMNS = [
+  { column_name: 'order_date', verbose_name: 'Order Date', is_dttm: true },
+  { column_name: 'category', verbose_name: 'Product Category' },
+  { column_name: 'region' },
+];
+
+const renderSemanticPopover = (
+  props: Partial<ColumnSelectPopoverProps> = {},
+  exploreState: Record<string, unknown> = {},
+) => {
+  const store = mockStore({
+    explore: {
+      datasource: { type: 'semantic_view', semantic_view_features: [] },
+      ...exploreState,
+    },
+  });
+
+  return render(
+    <ColumnSelectPopover
+      hasCustomLabel={false}
+      label="My column"
+      onClose={jest.fn()}
+      setDatasetModal={jest.fn()}
+      setLabel={jest.fn()}
+      columns={SEMANTIC_COLUMNS}
+      getCurrentTab={jest.fn()}
+      onChange={jest.fn()}
+      {...props}
+    />,
+    { store },
+  );
+};
+
+const openDimensionsDropdown = async () => {
+  const combobox = screen.getByRole('combobox', { name: 'Dimensions' });
+  userEvent.click(combobox);
+  await getDropdown();
+  return combobox;
+};
+
+const getOptionItem = async (label: string) => {
+  const dropdown = await getDropdown();
+  return within(dropdown).getByText(label).closest('.ant-select-item');
+};
+
+test('saved-only semantic view opens on Saved with Simple and Custom SQL disabled', () => {
+  const getCurrentTab = jest.fn();
+  renderSemanticPopover({ getCurrentTab });
+
+  expect(screen.getByRole('tab', { name: 'Saved' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+  expect(screen.getByRole('tab', { name: 'Simple' })).toHaveAttribute(
+    'aria-disabled',
+    'true',
+  );
+  expect(screen.getByRole('tab', { name: 'Custom SQL' })).toHaveAttribute(
+    'aria-disabled',
+    'true',
+  );
+  expect(getCurrentTab).toHaveBeenCalledWith('saved');
+});
+
+test('Simple-only callers can select a saved-only semantic dimension', async () => {
+  const getCurrentTab = jest.fn();
+  const onChange = jest.fn();
+  renderSemanticPopover({
+    disabledTabs: new Set(['saved', 'sqlExpression']),
+    getCurrentTab,
+    onChange,
+  });
+
+  expect(screen.getByRole('tab', { name: 'Saved' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+  expect(getCurrentTab).toHaveBeenCalledWith('saved');
+  for (const name of ['Simple', 'Custom SQL']) {
+    expect(screen.getByRole('tab', { name })).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    );
+  }
+  await openDimensionsDropdown();
+  userEvent.click(within(await getDropdown()).getByText('Product Category'));
+  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  await waitFor(() =>
+    expect(onChange).toHaveBeenCalledWith(SEMANTIC_COLUMNS[1]),
+  );
+});
+
+test.each([
+  { type: 'table' },
+  {
+    type: 'semantic_view',
+    semantic_view_features: ['ADHOC_COLUMN_EXPRESSIONS'],
+  },
+])('expression-classified $type respects Simple-only callers', datasource => {
+  renderSemanticPopover(
+    { disabledTabs: new Set(['saved', 'sqlExpression']) },
+    { datasource },
+  );
+
+  expect(screen.queryByRole('tab', { name: 'Saved' })).not.toBeInTheDocument();
+  expect(screen.getByRole('tab', { name: 'Simple' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+  expect(screen.getByRole('tab', { name: 'Custom SQL' })).toHaveAttribute(
+    'aria-disabled',
+    'true',
+  );
+});
+
+test('all-disabled expression modes show feedback instead of selecting a disabled tab', () => {
+  const getCurrentTab = jest.fn();
+  renderSemanticPopover(
+    {
+      disabledTabs: new Set(['saved', 'simple', 'sqlExpression']),
+      getCurrentTab,
+    },
+    { datasource: { type: 'table' } },
+  );
+
+  expect(
+    screen.getByText('No selection modes are available for this control.'),
+  ).toBeInTheDocument();
+  expect(screen.queryByRole('tab')).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole('button', { name: 'Save' }),
+  ).not.toBeInTheDocument();
+  expect(getCurrentTab).not.toHaveBeenCalled();
+});
+
+test('semantic view declaring adhoc expressions keeps the existing default mode', () => {
+  renderSemanticPopover(
+    {},
+    {
+      datasource: {
+        type: 'semantic_view',
+        semantic_view_features: ['ADHOC_COLUMN_EXPRESSIONS'],
+      },
+    },
+  );
+
+  expect(screen.getByRole('tab', { name: 'Simple' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+  expect(screen.getByRole('tab', { name: 'Simple' })).not.toHaveAttribute(
+    'aria-disabled',
+    'true',
+  );
+});
+
+test('lists every expression-less dimension as a Saved option without mutating metadata', async () => {
+  const onChange = jest.fn();
+  renderSemanticPopover({ onChange });
+
+  await openDimensionsDropdown();
+
+  const dropdown = await getDropdown();
+  expect(within(dropdown).getByText('Order Date')).toBeInTheDocument();
+  expect(within(dropdown).getByText('Product Category')).toBeInTheDocument();
+  expect(within(dropdown).getByText('region')).toBeInTheDocument();
+
+  userEvent.click(within(dropdown).getByText('Order Date'));
+  const saveButton = screen.getByTestId('ColumnEdit#save');
+  await waitFor(() => expect(saveButton).toBeEnabled());
+  userEvent.click(saveButton);
+
+  await waitFor(() =>
+    expect(onChange).toHaveBeenCalledWith(SEMANTIC_COLUMNS[0]),
+  );
+});
+
+test('searches Saved dimensions by name and verbose name', async () => {
+  renderSemanticPopover();
+
+  const combobox = await openDimensionsDropdown();
+  await userEvent.type(combobox, 'Product');
+
+  let dropdown = await getDropdown();
+  expect(within(dropdown).getByText('Product Category')).toBeInTheDocument();
+  expect(within(dropdown).queryByText('Order Date')).not.toBeInTheDocument();
+  expect(within(dropdown).queryByText('region')).not.toBeInTheDocument();
+
+  await userEvent.clear(combobox);
+  await userEvent.type(combobox, 'region');
+
+  dropdown = await getDropdown();
+  expect(within(dropdown).getByText('region')).toBeInTheDocument();
+  expect(
+    within(dropdown).queryByText('Product Category'),
+  ).not.toBeInTheDocument();
+});
+
+test('reopens an existing semantic dimension on Saved with the item selected', () => {
+  renderSemanticPopover({ editedColumn: SEMANTIC_COLUMNS[1] });
+
+  expect(screen.getByRole('tab', { name: 'Saved' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+  expect(
+    within(screen.getByRole('tabpanel', { name: 'Saved' })).getByText(
+      'Product Category',
+    ),
+  ).toBeInTheDocument();
+});
+
+test('clearing the Saved-only dimension resets the selection', async () => {
+  // In Saved-only mode Simple and Custom SQL are disabled, so the Saved
+  // picker's clear (×) is the user's only reset control. It must actually
+  // reset — antd fires onChange(undefined), which onSavedItemChange now maps
+  // to a full reset (clearing the label back to '').
+  const setLabel = jest.fn();
+  renderSemanticPopover({ editedColumn: SEMANTIC_COLUMNS[1], setLabel });
+
+  const savedPanel = screen.getByRole('tabpanel', { name: 'Saved' });
+  const clearButton = savedPanel.querySelector(
+    '.ant-select-clear',
+  ) as HTMLElement;
+  expect(clearButton).toBeInTheDocument();
+
+  userEvent.click(clearButton);
+
+  await waitFor(() => expect(setLabel).toHaveBeenCalledWith(''));
+});
+
+test('clearing the Simple-mode item resets the selection', async () => {
+  // onSimpleItemChange shares onSavedItemChange's clear branch; pin it too so
+  // the combined Simple picker's clear (×) can't regress independently.
+  const setLabel = jest.fn();
+  const columns = [{ column_name: 'year' }];
+  const store = mockStore({ explore: { datasource: { type: 'table' } } });
+
+  render(
+    <ColumnSelectPopover
+      hasCustomLabel
+      isTemporal
+      label="Custom Label"
+      onClose={jest.fn()}
+      setDatasetModal={jest.fn()}
+      setLabel={setLabel}
+      columns={columns}
+      editedColumn={columns[0]}
+      getCurrentTab={jest.fn()}
+      onChange={jest.fn()}
+    />,
+    { store },
+  );
+
+  const simplePanel = screen.getByRole('tabpanel', { name: 'Simple' });
+  const clearButton = simplePanel.querySelector(
+    '.ant-select-clear',
+  ) as HTMLElement;
+  expect(clearButton).toBeInTheDocument();
+
+  userEvent.click(clearButton);
+
+  await waitFor(() => expect(setLabel).toHaveBeenCalledWith(''));
+});
+
+test('disables Saved dimensions absent from a verified compatibility result', async () => {
+  renderSemanticPopover(
+    {},
+    {
+      datasource: { type: 'semantic_view', semantic_view_features: [] },
+      compatibility: {
+        status: 'verified',
+        metrics: [],
+        dimensions: ['order_date'],
+      },
+    },
+  );
+
+  await openDimensionsDropdown();
+
+  expect(await getOptionItem('Order Date')).not.toHaveClass(
+    'ant-select-item-option-disabled',
+  );
+  expect(await getOptionItem('Product Category')).toHaveClass(
+    'ant-select-item-option-disabled',
+  );
+  expect(await getOptionItem('region')).toHaveClass(
+    'ant-select-item-option-disabled',
+  );
+});
+
+test('a verified empty compatibility result disables every Saved dimension', async () => {
+  renderSemanticPopover(
+    {},
+    {
+      datasource: { type: 'semantic_view', semantic_view_features: [] },
+      compatibility: { status: 'verified', metrics: [], dimensions: [] },
+    },
+  );
+
+  await openDimensionsDropdown();
+
+  expect(await getOptionItem('Order Date')).toHaveClass(
+    'ant-select-item-option-disabled',
+  );
+  expect(await getOptionItem('Product Category')).toHaveClass(
+    'ant-select-item-option-disabled',
+  );
+});
+
+test('a failed compatibility request shows a non-blocking warning and unfiltered options', async () => {
+  renderSemanticPopover(
+    {},
+    {
+      datasource: { type: 'semantic_view', semantic_view_features: [] },
+      compatibility: { status: 'failed' },
+    },
+  );
+
+  expect(screen.getByRole('alert')).toHaveTextContent(
+    /could not verify|compatib/i,
+  );
+
+  await openDimensionsDropdown();
+  expect(await getOptionItem('Order Date')).not.toHaveClass(
+    'ant-select-item-option-disabled',
+  );
+  expect(await getOptionItem('Product Category')).not.toHaveClass(
+    'ant-select-item-option-disabled',
+  );
+});
+
+test('a loading compatibility request shows neither warning nor a filtered list', async () => {
+  renderSemanticPopover(
+    {},
+    {
+      datasource: { type: 'semantic_view', semantic_view_features: [] },
+      compatibility: { status: 'loading' },
+    },
+  );
+
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+
+  await openDimensionsDropdown();
+  expect(await getOptionItem('Order Date')).not.toHaveClass(
+    'ant-select-item-option-disabled',
+  );
+});
+
+test('non-semantic datasources never show the compatibility failure warning', () => {
+  const store = mockStore({
+    explore: {
+      datasource: { type: 'table' },
+      compatibility: { status: 'failed' },
+    },
+  });
+
+  render(
+    <ColumnSelectPopover
+      hasCustomLabel={false}
+      label="My column"
+      onClose={jest.fn()}
+      setDatasetModal={jest.fn()}
+      setLabel={jest.fn()}
+      columns={[{ column_name: 'year' }]}
+      getCurrentTab={jest.fn()}
+      onChange={jest.fn()}
+    />,
+    { store },
+  );
+
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+});
+
+test('an edited dimension that became incompatible cannot be saved until replaced', async () => {
+  const onChange = jest.fn();
+  renderSemanticPopover(
+    { onChange, editedColumn: SEMANTIC_COLUMNS[1] },
+    {
+      datasource: { type: 'semantic_view', semantic_view_features: [] },
+      compatibility: {
+        status: 'verified',
+        metrics: [],
+        dimensions: ['order_date'],
+      },
+    },
+  );
+
+  const saveButton = screen.getByTestId('ColumnEdit#save');
+  expect(saveButton).toBeDisabled();
+
+  const feedback = screen.getByRole('status');
+  expect(feedback).toHaveTextContent(/compatible/i);
+  expect(feedback.id).toBeTruthy();
+  expect(saveButton).toHaveAttribute('aria-describedby', feedback.id);
+
+  await openDimensionsDropdown();
+  const dropdown = await getDropdown();
+  userEvent.click(within(dropdown).getByText('Order Date'));
+
+  await waitFor(() => expect(saveButton).toBeEnabled());
+  userEvent.click(saveButton);
+  await waitFor(() =>
+    expect(onChange).toHaveBeenCalledWith(SEMANTIC_COLUMNS[0]),
+  );
+});
+
+test('a legacy edited adhoc value opens Saved, stays inspectable, and blocks Save until replaced', async () => {
+  const onChange = jest.fn();
+  const legacyValue = {
+    label: 'Legacy value',
+    sqlExpression: "state || '_legacy'",
+    expressionType: 'SQL' as const,
+  };
+  renderSemanticPopover({ onChange, editedColumn: legacyValue });
+
+  expect(screen.getByRole('tab', { name: 'Saved' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+
+  const saveButton = screen.getByTestId('ColumnEdit#save');
+  expect(saveButton).toBeDisabled();
+  const feedback = screen.getByRole('status');
+  expect(saveButton).toHaveAttribute('aria-describedby', feedback.id);
+
+  // The legacy value is preserved for inspection, not translated or dropped.
+  const customSqlTab = screen.getByRole('tab', { name: 'Custom SQL' });
+  expect(customSqlTab).not.toHaveAttribute('aria-disabled', 'true');
+  fireEvent.click(customSqlTab);
+  expect(screen.getByDisplayValue("state || '_legacy'")).toBeInTheDocument();
+
+  // Explicitly choosing a compatible dimension is the only way to save.
+  fireEvent.click(screen.getByRole('tab', { name: 'Saved' }));
+  await openDimensionsDropdown();
+  const dropdown = await getDropdown();
+  userEvent.click(within(dropdown).getByText('Order Date'));
+
+  await waitFor(() => expect(saveButton).toBeEnabled());
+  userEvent.click(saveButton);
+  await waitFor(() =>
+    expect(onChange).toHaveBeenCalledWith(SEMANTIC_COLUMNS[0]),
+  );
+});
+
+const SEMANTIC_METRICS = [
+  {
+    metric_name: 'total_sales',
+    verbose_name: 'Total Sales',
+    expression: 'SUM(sales)',
+    uuid: 'm1',
+  },
+  {
+    metric_name: 'tax_amount',
+    verbose_name: 'Tax Amount',
+    expression: 'SUM(tax)',
+    uuid: 'm2',
+  },
+];
+
+test('disables Saved metrics by the compatible-metric list, not the dimension list', async () => {
+  // Adversarial fixture: the dimension list contains the OTHER metric name, so
+  // keying metric options off compatible dimensions inverts both outcomes.
+  renderSemanticPopover(
+    {
+      metrics: SEMANTIC_METRICS,
+      selectedMetrics: ['total_sales', 'tax_amount'],
+    },
+    {
+      datasource: { type: 'semantic_view', semantic_view_features: [] },
+      compatibility: {
+        status: 'verified',
+        metrics: ['total_sales'],
+        dimensions: ['tax_amount', 'order_date'],
+      },
+    },
+  );
+
+  const combobox = screen.getByRole('combobox', {
+    name: 'Dimensions and metrics',
+  });
+  userEvent.click(combobox);
+
+  expect(await getOptionItem('Total Sales')).not.toHaveClass(
+    'ant-select-item-option-disabled',
+  );
+  expect(await getOptionItem('Tax Amount')).toHaveClass(
+    'ant-select-item-option-disabled',
+  );
+});
+
+test('a metrics-only semantic view still renders the Saved select', async () => {
+  renderSemanticPopover({
+    disabledTabs: new Set(['saved', 'sqlExpression']),
+    columns: [],
+    metrics: SEMANTIC_METRICS,
+    selectedMetrics: ['total_sales', 'tax_amount'],
+  });
+
+  const combobox = screen.getByRole('combobox', {
+    name: 'Dimensions and metrics',
+  });
+  userEvent.click(combobox);
+
+  expect(await getOptionItem('Total Sales')).toBeInTheDocument();
+  expect(await getOptionItem('Tax Amount')).toBeInTheDocument();
+});
+
+test('table datasources keep expression-based classification and enabled modes', async () => {
+  const store = mockStore({ explore: { datasource: { type: 'table' } } });
+  render(
+    <ColumnSelectPopover
+      hasCustomLabel={false}
+      label="My column"
+      onClose={jest.fn()}
+      setDatasetModal={jest.fn()}
+      setLabel={jest.fn()}
+      columns={[
+        { column_name: 'plain_col' },
+        { column_name: 'calc_col', expression: 'a + b' },
+      ]}
+      getCurrentTab={jest.fn()}
+      onChange={jest.fn()}
+    />,
+    { store },
+  );
+
+  expect(screen.getByRole('tab', { name: 'Simple' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+  expect(screen.getByRole('tab', { name: 'Simple' })).not.toHaveAttribute(
+    'aria-disabled',
+    'true',
+  );
+  expect(screen.getByRole('tab', { name: 'Custom SQL' })).not.toHaveAttribute(
+    'aria-disabled',
+    'true',
+  );
+
+  const combobox = screen.getByRole('combobox', {
+    name: 'Columns and metrics',
+  });
+  userEvent.click(combobox);
+  const dropdown = await getDropdown();
+  expect(within(dropdown).getByText('plain_col')).toBeInTheDocument();
+  expect(within(dropdown).queryByText('calc_col')).not.toBeInTheDocument();
+});
+
+test('default routing skips a disabled Simple mode for non-semantic datasources', () => {
+  const store = mockStore({ explore: { datasource: { type: 'table' } } });
+  render(
+    <ColumnSelectPopover
+      hasCustomLabel={false}
+      label="My column"
+      onClose={jest.fn()}
+      setDatasetModal={jest.fn()}
+      setLabel={jest.fn()}
+      columns={[{ column_name: 'year' }]}
+      getCurrentTab={jest.fn()}
+      onChange={jest.fn()}
+      disabledTabs={new Set(['simple'])}
+    />,
+    { store },
+  );
+
+  expect(screen.getByRole('tab', { name: 'Saved' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+  expect(screen.getByRole('tab', { name: 'Simple' })).toHaveAttribute(
+    'aria-disabled',
+    'true',
+  );
+});
+
+test('a feature-declaring semantic view keeps expression-based classification and Save', async () => {
+  const onChange = jest.fn();
+  const columns = [
+    { column_name: 'plain_dimension', verbose_name: 'Plain Dimension' },
+    { column_name: 'calc_dimension', expression: 'a + b' },
+  ];
+  const store = mockStore({
+    explore: {
+      datasource: {
+        type: 'semantic_view',
+        semantic_view_features: ['ADHOC_COLUMN_EXPRESSIONS'],
+      },
+    },
+  });
+
+  render(
+    <ColumnSelectPopover
+      hasCustomLabel={false}
+      label="My column"
+      onClose={jest.fn()}
+      setDatasetModal={jest.fn()}
+      setLabel={jest.fn()}
+      columns={columns}
+      getCurrentTab={jest.fn()}
+      onChange={onChange}
+    />,
+    { store },
+  );
+
+  // Simple keeps the expression-less column; Saved keeps the calculated one.
+  const simpleCombobox = screen.getByRole('combobox', {
+    name: 'Columns and metrics',
+  });
+  userEvent.click(simpleCombobox);
+  const dropdown = await getDropdown();
+  expect(within(dropdown).getByText('Plain Dimension')).toBeInTheDocument();
+  expect(
+    within(dropdown).queryByText('calc_dimension'),
+  ).not.toBeInTheDocument();
+
+  userEvent.click(within(dropdown).getByText('Plain Dimension'));
+  const saveButton = screen.getByTestId('ColumnEdit#save');
+  await waitFor(() => expect(saveButton).toBeEnabled());
+  userEvent.click(saveButton);
+  await waitFor(() => expect(onChange).toHaveBeenCalledWith(columns[0]));
+
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+});
+
+test('non-semantic datasources still filter Saved options by compatibility metadata only when verified', async () => {
+  const store = mockStore({
+    explore: {
+      datasource: { type: 'table' },
+      compatibility: {
+        status: 'verified',
+        metrics: [],
+        dimensions: ['keep_me'],
+      },
+    },
+  });
+
+  render(
+    <ColumnSelectPopover
+      hasCustomLabel={false}
+      label="My column"
+      onClose={jest.fn()}
+      setDatasetModal={jest.fn()}
+      setLabel={jest.fn()}
+      columns={[{ column_name: 'keep_me' }, { column_name: 'drop_me' }]}
+      getCurrentTab={jest.fn()}
+      onChange={jest.fn()}
+    />,
+    { store },
+  );
+
+  userEvent.click(
+    screen.getByRole('combobox', { name: 'Columns and metrics' }),
+  );
+  const dropdown = await getDropdown();
+  expect(
+    within(dropdown).getByText('keep_me').closest('.ant-select-item'),
+  ).not.toHaveClass('ant-select-item-option-disabled');
+  expect(
+    within(dropdown).getByText('drop_me').closest('.ant-select-item'),
+  ).toHaveClass('ant-select-item-option-disabled');
 });
