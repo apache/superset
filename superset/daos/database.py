@@ -24,6 +24,7 @@ from urllib.parse import unquote
 
 import requests
 from flask import current_app as app
+from sqlalchemy import select
 from sqlalchemy.orm import joinedload, Query
 
 try:
@@ -238,8 +239,9 @@ class DatabaseDAO(BaseDAO[Database]):
     @classmethod
     def get_related_objects(cls, database_id: int) -> dict[str, Any]:
         database: Any = cls.find_by_id(database_id)
-        datasets = database.tables
-        dataset_ids = [dataset.id for dataset in datasets]
+        dataset_ids = select(SqlaTable.id).where(SqlaTable.database_id == database.id)
+        if is_feature_enabled("SOFT_DELETE"):
+            dataset_ids = dataset_ids.where(SqlaTable.deleted_at.is_(None))
 
         charts = (
             db.session.query(Slice)
