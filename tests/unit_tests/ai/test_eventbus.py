@@ -95,7 +95,7 @@ class FakeStreamCache:
 
     Mirrors the contract :class:`RedisStreamEventBus` is written against: the
     four positional arguments of
-    :class:`superset.async_events.cache_backend.RedisCacheBackend`, and an
+    :class:`superset.coordination.cache_backend.RedisCacheBackend`, and an
     inclusive ``start`` for ``xrange``, which is what the bus's
     skip-the-entry-we-already-saw filter depends on.
 
@@ -555,29 +555,35 @@ def test_get_event_bus_returns_one_shared_memory_bus_for_inline_runs(
     assert get_event_bus() is bus
 
 
+@pytest.mark.parametrize(
+    "cache_type,backend_name",
+    [
+        ("RedisCache", "RedisCacheBackend"),
+        ("RedisSentinelCache", "RedisSentinelCacheBackend"),
+    ],
+)
 def test_get_event_bus_returns_a_redis_bus_configured_from_config(
     mocker: MockerFixture,
+    cache_type: str,
+    backend_name: str,
 ) -> None:
     """
-    The Redis bus takes its key prefix and TTL from configuration.
+    Worker mode constructs the configured Redis backend, prefix and TTL.
 
-    Also the only test that reaches the branch at all: the backend is built from
-    ``AI_ASSISTANT_EVENT_BUS_CACHE_CONFIG`` rather than borrowed from the
-    general-purpose cache, which has no stream commands. Getting that wrong
-    would break every ``AI_ASSISTANT_EVENT_BUS='redis'`` deployment on its first
-    published event while leaving the rest of this module green.
+    Only stream I/O is replaced: mocking ``_stream_backend`` would conceal a
+    broken import or configuration path before the worker starts its turn.
     """
-    from superset.ai import eventbus as eventbus_module
     from superset.ai.eventbus import get_event_bus, RedisStreamEventBus
     from superset.ai.events import done_event
+    from superset.coordination import cache_backend
 
     cache = FakeStreamCache()
-    mocker.patch.object(eventbus_module, "_stream_backend", return_value=cache)
     mocker.patch.dict(
         current_app.config,
         {
             "AI_ASSISTANT_EXECUTION_MODE": "worker",
             "AI_ASSISTANT_EVENT_BUS": "redis",
+            "AI_ASSISTANT_EVENT_BUS_CACHE_CONFIG": {"CACHE_TYPE": cache_type},
             "AI_ASSISTANT_EVENT_STREAM_PREFIX": "test-ai-events-",
             "AI_ASSISTANT_EVENT_TTL_SECONDS": 30,
         },
@@ -585,6 +591,9 @@ def test_get_event_bus_returns_a_redis_bus_configured_from_config(
 
     bus = get_event_bus()
     assert isinstance(bus, RedisStreamEventBus)
+    assert isinstance(bus._cache, getattr(cache_backend, backend_name))
+    mocker.patch.object(bus._cache, "xadd", side_effect=cache.xadd)
+    mocker.patch.object(bus._cache, "expire", side_effect=cache.expire)
 
     bus.publish("run-1", done_event(True))
     bus.close("run-1")
