@@ -29,6 +29,7 @@ import logging
 from typing import Any, TYPE_CHECKING
 from urllib.parse import parse_qs, urlparse
 
+from superset.common.utils.time_grain_utils import apply_time_grain_to_base_axis
 from superset.constants import EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS
 from superset.utils.core import ExtraFiltersReasonType
 
@@ -306,27 +307,6 @@ def _is_temporal_override_filter(
     )
 
 
-def _apply_time_grain_to_base_axis(
-    query: dict[str, Any],
-    time_grain: str,
-) -> None:
-    """Propagate a time grain override onto the query's ``BASE_AXIS`` column.
-
-    Charts built on Generic Chart Axes carry their temporal x-axis as an adhoc
-    column in ``columns`` whose own ``timeGrain`` drives both the SQL
-    ``DATE_TRUNC`` grouping (``SqlaTable.adhoc_column_to_sqla`` reads
-    ``col["timeGrain"]``) and the time-comparison join
-    (``ExploreMixin.get_time_grain`` prefers ``columns[0]["timeGrain"]`` over
-    ``extras``). For those queries ``extras["time_grain_sqla"]`` is never
-    consulted, so an override written only there is silently ignored and the
-    saved grain keeps winning. ``apply_dashboard_filter_context`` does the same
-    propagation for the dashboard filter path.
-    """
-    for column in query.get("columns") or []:
-        if isinstance(column, dict) and column.get("columnType") == "BASE_AXIS":
-            column["timeGrain"] = time_grain
-
-
 def merge_form_data_filters_into_query(
     query: dict[str, Any],
     form_data: dict[str, Any],
@@ -356,7 +336,7 @@ def merge_form_data_filters_into_query(
             if key in QUERY_CONTEXT_EXTRA_FORM_DATA_EXTRAS_KEYS:
                 query["extras"] = {**(query.get("extras") or {}), key: form_data[key]}
                 if key == "time_grain_sqla":
-                    _apply_time_grain_to_base_axis(query, form_data[key])
+                    apply_time_grain_to_base_axis(query, form_data[key])
             else:
                 query[key] = form_data[key]
 
