@@ -911,6 +911,51 @@ def test_semantic_view_get_query_result_wraps_post_processing_errors(
         view.get_query_result(mock_query_object)
 
 
+def test_semantic_view_get_query_result_wraps_post_processing_type_error(
+    mock_implementation: MagicMock,
+) -> None:
+    """
+    A raw ``TypeError`` from pandas inside ``exec_post_processing`` (e.g.
+    ``resample.mean()`` on a DataFrame that carries an object-dtype column
+    alongside numeric metrics — a normal real-world query result) must be
+    surfaced as ``QueryObjectValidationError`` (400) rather than propagating
+    as a system 500, matching the dataset flow in
+    ``superset/models/helpers.py`` (apache/superset#44463).
+    """
+    import pandas as pd
+
+    from superset.common.query_object import QueryObject
+    from superset.exceptions import QueryObjectValidationError
+
+    view = SemanticView()
+
+    # DatetimeIndex + object-dtype "category" column makes
+    # ``df.resample("1D").mean()`` raise a raw TypeError in pandas >= 2.x.
+    df = pd.DataFrame(
+        {"metric": [1.0, 2.0], "category": ["a", "b"]},
+        index=pd.to_datetime(["2023-01-01", "2023-01-03"]),
+    )
+
+    query_object = QueryObject(
+        row_limit=10,
+        post_processing=[
+            {"operation": "resample", "options": {"method": "mean", "rule": "1D"}}
+        ],
+    )
+
+    mock_result = MagicMock()
+    mock_result.df = df
+
+    with (
+        patch(
+            "superset.semantic_layers.models.get_results",
+            return_value=mock_result,
+        ),
+        pytest.raises(QueryObjectValidationError),
+    ):
+        view.get_query_result(query_object)
+
+
 def test_semantic_view_get_query_result_skips_post_processing_on_empty_df(
     mock_implementation: MagicMock,
 ) -> None:
