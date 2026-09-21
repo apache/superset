@@ -91,12 +91,15 @@ export const useDownloadMenuItems = (
   // (and the full-page navigation it would eventually trigger).
   const pollTimerRef = useRef<ReturnType<typeof setTimeout>>();
   const unmountedRef = useRef(false);
+  const downloadFramesRef = useRef<HTMLIFrameElement[]>([]);
   useEffect(
     () => () => {
       unmountedRef.current = true;
       if (pollTimerRef.current) {
         clearTimeout(pollTimerRef.current);
       }
+      downloadFramesRef.current.forEach(frame => frame.remove());
+      downloadFramesRef.current = [];
     },
     [],
   );
@@ -223,13 +226,10 @@ export const useDownloadMenuItems = (
     iframe.style.display = 'none';
     iframe.src = downloadUrl;
     document.body.appendChild(iframe);
-    // Remove the iframe after the browser has taken over the download; removal
-    // does not cancel a download already handed off to the browser.
-    setTimeout(() => {
-      if (iframe.parentNode) {
-        iframe.parentNode.removeChild(iframe);
-      }
-    }, EXPORT_STATUS_POLL_INTERVAL_MS);
+    // Removing the iframe before the response commits cancels the request, and
+    // time to first byte is unbounded (slow storage, busy web server), so hold
+    // it until unmount rather than racing a timer against the download.
+    downloadFramesRef.current.push(iframe);
   };
 
   const pollExportStatus = (jobId: string, pollState: ExportPollState) => {

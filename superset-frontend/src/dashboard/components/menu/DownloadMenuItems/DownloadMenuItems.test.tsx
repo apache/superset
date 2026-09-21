@@ -797,3 +797,51 @@ test('the pending toast is announced once, not re-emitted on every poll', async 
   );
   expect(mockAddInfoToast).toHaveBeenCalledTimes(1);
 });
+
+const READY_URL = '/api/v1/dashboard/export_xlsx/download/abc/';
+const downloadFrames = () =>
+  document.body.querySelectorAll(`iframe[src="${READY_URL}"]`);
+
+const startReadyDownload = async () => {
+  mockSupersetClient.post.mockResolvedValue({
+    json: { job_id: 'abc' },
+  } as never);
+  mockSupersetClient.get.mockResolvedValueOnce({
+    json: { status: 'ready', download_url: READY_URL },
+  } as never);
+  const rendered = render(<MenuWrapper />, {
+    useRedux: true,
+    initialState: loggedInState,
+  });
+  await clickMenuItem('Export Data to Excel');
+  await waitFor(() => expect(mockSupersetClient.post).toHaveBeenCalled());
+  await act(async () => {
+    jest.advanceTimersByTime(3000);
+  });
+  await waitFor(() => expect(downloadFrames()).toHaveLength(1));
+  return rendered;
+};
+
+test('the download iframe outlives the poll interval', async () => {
+  // Removing the frame before the response commits cancels the request, and
+  // time to first byte is unbounded, so no fixed timer may own its lifetime.
+  jest.useFakeTimers();
+
+  await startReadyDownload();
+
+  await act(async () => {
+    jest.advanceTimersByTime(5 * 60 * 1000);
+  });
+  expect(downloadFrames()).toHaveLength(1);
+});
+
+test('unmounting removes the download iframe', async () => {
+  // It is appended to document.body, outside the React tree, so React cleanup
+  // alone would leave it behind.
+  jest.useFakeTimers();
+
+  const { unmount } = await startReadyDownload();
+  unmount();
+
+  expect(downloadFrames()).toHaveLength(0);
+});
