@@ -32,6 +32,12 @@ assists people when migrating to a new version.
   provisions users on first login, which used to publish a public registration
   form that Flask-AppBuilder has no handler for (submitting it returned a 404).
   First-login provisioning is unchanged.
+- With `SEMANTIC_LAYERS` enabled, combined connection discovery honors `Database.can_read` and `SemanticLayer.can_read` independently. Each permitted source retains its normal row filters, including dynamic database filters for Admin. A source filter never includes rows or counts from a denied source; callers with neither read permission are denied. Feature-off database browsing is unchanged.
+- The combined datasource list (`GET /api/v1/datasource/`) accepts Dataset read without an additional Datasource read grant, regardless of `SEMANTIC_LAYERS`. With the flag enabled, SemanticView read independently permits semantic-view discovery. Existing row-level dataset/chart access remains enforced.
+- The `presto` extra requires PyHive 0.7.0 or later. PyHive 0.6.5 cannot load
+  its Presto dialect under SQLAlchemy 2 because it imports `sqlalchemy.databases`.
+  Upgrade existing installations with `pip install "pyhive[presto]>=0.7.0"`.
+
 - `superset deletion-retention force-purge` now exits **1** when the target is
   blocked by a deletion rule or is not found (the messages are unchanged), so a
   scripted compliance erasure cannot mistake a refusal for a completed purge.
@@ -55,6 +61,17 @@ behavior explicitly:
 ```python
 SQLALCHEMY_ENGINE_OPTIONS = {"isolation_level": "REPEATABLE READ"}
 ```
+
+### MCP metric discovery defaults and embedded dimensions
+
+`list_metrics` defaults to 25 metrics per page and does not embed compatible
+dimensions. Clients needing those dimensions should call `get_compatible_dimensions`
+for the chosen metrics, or explicitly request `include_compatible_dimensions=true`
+with `page_size` at most 8 for every scope, including built-in `dataset_id`
+requests. Non-embedded requests retain the 500-metric ceiling.
+This fixed embedding cap is independent of the operator's
+`MCP_RESPONSE_SIZE_CONFIG['token_limit']` (25,000 by default); it does not guarantee
+that every payload fits a configured response limit.
 
 ### Default Docker image is now batteries-included; the minimal image moves to `-lean`
 
@@ -105,6 +122,19 @@ Resample projections remain capped by `MAX_RESAMPLE_ROWS` (default
 `1_000_000`). That cap now also covers calendar frequencies (month, quarter,
 year, …) that previously skipped the check because they have no fixed
 `Timedelta`.
+
+### Dashboard read fallback requires a published dashboard
+
+The object-read gate's datasource-based fallback — including the admit for dashboards with no charts — now applies to **published** dashboards only. For the datasource branch this matches the list filter's fallback, which was already published-only; for the no-charts admit the list filter still never yields chart-less dashboards to ordinary users, a deliberate pre-existing asymmetry that this change narrows but does not remove (the object gate admits opening a published chart-less dashboard; the list filter does not surface it). Previously an *unpublished* dashboard with an empty viewers list was readable by any authenticated user who could access one member datasource (or by every authenticated user, when it had no charts — including markdown-only dashboards), even though it appeared in no default list; and removing the last viewer subject from a dashboard silently widened access, because the viewer branch is published-gated while the fallback was not. Owners (folded into editors by the subjects model), editors — including resolver-granted editors — and admins are unaffected: they are admitted before the fallback regardless of published state.
+
+Everything consuming the gate inherits the tightening — including **alert and report execution**, not only schedule creation/validation. An already-scheduled report against an *unpublished, no-viewers* dashboard whose execution principal is a datasource-entitled non-editor will fail on its next run after upgrade.
+
+Before upgrading, audit report schedules targeting unpublished dashboards. For each one, first identify the principal the report actually runs as: that is decided by `ALERT_REPORTS_EXECUTORS`, not by who owns the schedule. Then apply one of:
+
+- **Publish the dashboard** (and confirm the execution principal keeps the read access the gate still requires — viewer membership when the dashboard has viewers, or access to a member datasource when it does not). For the unpublished, no-viewers, datasource-entitled case above, publishing alone supplies the missing prerequisite.
+- **Grant the execution principal dashboard editorship**, where that privilege is appropriate — editors are admitted ahead of the fallback regardless of published state.
+
+Adding the principal to the dashboard's **viewers is not a remedy on its own**: the viewer branch is itself published-gated, so a viewer of an unpublished dashboard is still refused. Re-owning the schedule is not a reliable substitute either — with a `FixedExecutor` (a service or selenium account) the resolved user does not follow schedule ownership at all, and the ownership-sensitive executor types have their own creator/modifier/editor selection rules.
 
 ### Tagging is on by default
 
@@ -443,6 +473,8 @@ theme editor picker.
   next run rather than losing data. Batches are bounded (500 rows) and
   index-backed to keep the window short — run pruning off-peak if the overlap is
   noticeable.
+
+- The chart list applies the same type-aware datasource visibility as the dashboard list: charts on semantic views (and other non-table datasource types carrying a permission) are now listed for users holding `datasource_access` on the datasource or on its parent semantic layer — previously such charts never appeared in the chart list — and a chart on a non-table datasource is no longer listed to users whose only entitlement is a database/schema/catalog grant matching an unrelated table that shares its numeric id. Table-backed chart visibility, explicit viewer/editor grants, and embedded-guest scoping are unchanged.
 - `SAMPLES_ROW_LIMIT` is now the default for `/datasource/samples` requests without a valid explicit `per_page`, rather than a hard per-request ceiling; explicit limits are honored up to the existing global row-limit ceiling, matching `/chart/data` SAMPLES requests.
 - The `cockroachdb` extra (`pip install apache-superset[cockroachdb]`) now installs `sqlalchemy-cockroachdb` instead of the abandoned `cockroachdb` package, whose SQLAlchemy dialect could not be imported under SQLAlchemy 2.0. Existing environments with the old package installed must `pip uninstall cockroachdb` before reinstalling the extra -- both packages register the same `cockroachdb` SQLAlchemy dialect entry point, so leaving the old one in place can still load the abandoned implementation.
 
