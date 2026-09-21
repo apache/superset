@@ -604,16 +604,13 @@ class SQLExecutor:
                 )
             )
 
-        # Reject client-side file-transfer statements (PUT/GET/REMOVE). These
-        # drive file I/O on the host running the query rather than querying the
-        # database, so they are not valid analytics statements and are blocked
-        # regardless of the ``allow_dml`` setting.
+        # Rejected regardless of `allow_dml`: these do host file I/O, not DML.
         if file_transfer_commands := script.get_client_file_transfer_commands():
             raise SupersetSecurityException(
                 SupersetError(
                     message=(
-                        "Client-side file-transfer commands are not allowed: "
-                        f"{', '.join(sorted(file_transfer_commands))}"
+                        "SQL statement contains disallowed client-side "
+                        f"file-transfer command(s): {file_transfer_commands}"
                     ),
                     error_type=SupersetErrorType.INVALID_SQL_ERROR,
                     level=ErrorLevel.ERROR,

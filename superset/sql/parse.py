@@ -645,16 +645,9 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
         """
         Return the client-side file-transfer command head, if this is one.
 
-        Statements such as Snowflake's ``PUT``/``GET``/``REMOVE`` move files
-        between the client host running the query and a remote stage, driving
-        file I/O on that host rather than reading or writing data in the
-        database. They are not analytics queries. Engines that expose such
-        statements override this; by default a statement is not one.
-
-        :return: The uppercased command head (e.g. ``"PUT"``) when the
-            statement is a client-side file-transfer command, else ``None``
+        :return: The uppercased command head (e.g. ``"PUT"``), else ``None``.
         """
-        return None
+        raise NotImplementedError()
 
     def optimize(self) -> BaseSQLStatement[InternalRepresentation]:
         """
@@ -1392,18 +1385,10 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         """
         Return the client-side file-transfer command head, if this is one.
 
-        ``PUT``/``GET``/``REMOVE`` (and the ``RM`` alias) have no structured
-        sqlglot node and fall back to an opaque ``exp.Command`` whose head
-        keyword identifies them. The head is matched case-insensitively via
-        :meth:`_command_head`.
-
-        :return: The uppercased command head when the statement is a
-            client-side file-transfer command, otherwise ``None``
+        :return: The uppercased command head (e.g. ``"PUT"``), else ``None``.
         """
         head = self._command_head()
-        if head in self._CLIENT_FILE_TRANSFER_COMMAND_NAMES:
-            return head
-        return None
+        return head if head in self._CLIENT_FILE_TRANSFER_COMMAND_NAMES else None
 
     def is_destructive(self) -> bool:
         """
@@ -2292,6 +2277,12 @@ class KustoKQLStatement(BaseSQLStatement[str]):
         """
         return self._parsed.startswith(".") and not self._parsed.startswith(".show")
 
+    def get_client_file_transfer_command(self) -> str | None:
+        """
+        Kusto KQL has no client-side file-transfer commands.
+        """
+        return None
+
     def is_destructive(self) -> bool:
         """
         Check if the statement is destructive DDL.
@@ -2505,12 +2496,7 @@ class SQLScript:
         """
         Return the client-side file-transfer command heads in the script.
 
-        These statements (e.g. ``PUT``/``GET``/``REMOVE``) drive file I/O on
-        the client host running the query rather than reading or writing data
-        in the database, so callers reject them in user-driven query
-        execution.
-
-        :return: The set of uppercased command heads found (empty when none)
+        :return: The set of uppercased command heads found (empty when none).
         """
         return {
             command

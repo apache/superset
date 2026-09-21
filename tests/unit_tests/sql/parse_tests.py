@@ -6462,6 +6462,27 @@ def test_backtick_invalid_sql_still_fails() -> None:
         SQLScript(sql, "base")
 
 
+def test_base_sql_statement_get_client_file_transfer_command_not_implemented() -> None:
+    """
+    BaseSQLStatement.get_client_file_transfer_command is abstract; both
+    concrete subclasses (SQLStatement and KustoKQLStatement) override it, so
+    calling the base implementation directly must raise. Keeping it abstract
+    means a new statement type cannot silently opt out of the check.
+    """
+    with pytest.raises(NotImplementedError):
+        BaseSQLStatement.get_client_file_transfer_command(object())  # type: ignore[arg-type]  # noqa: E501
+
+
+def test_kusto_kql_has_no_client_file_transfer_command() -> None:
+    """
+    Kusto KQL has no client-side file-transfer commands.
+    """
+    assert (
+        KustoKQLStatement(".show tables", "kustokql").get_client_file_transfer_command()
+        is None
+    )
+
+
 def test_base_sql_statement_is_destructive_raises_not_implemented() -> None:
     """
     BaseSQLStatement.is_destructive is abstract; both concrete subclasses

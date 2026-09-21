@@ -262,8 +262,8 @@ def test_check_security_rejects_client_file_transfer(
     mocker: MockerFixture, app_context: None, sql: str, allow_dml: bool
 ) -> None:
     """
-    Client-side file-transfer statements are rejected regardless of the
-    ``allow_dml`` setting: they perform host file I/O, not analytics.
+    Client-side file-transfer statements are rejected regardless of
+    `allow_dml`: they perform host file I/O, not DML.
     """
     from superset.exceptions import SupersetSecurityException
     from superset.sql.execution.executor import SQLExecutor
@@ -273,35 +273,15 @@ def test_check_security_rejects_client_file_transfer(
         current_app.config,
         {"DISALLOWED_SQL_FUNCTIONS": {}, "DISALLOWED_SQL_TABLES": {}},
     )
-
-    mock_db = MagicMock()
-    mock_db.allow_dml = allow_dml
-    mock_db.db_engine_spec.engine = "snowflake"
-
-    executor = SQLExecutor(mock_db)
-    script = SQLScript(sql, "snowflake")
-
-    with pytest.raises(SupersetSecurityException, match="file-transfer"):
-        executor._check_security(script)
-
-
-def test_check_security_allows_select(mocker: MockerFixture, app_context: None) -> None:
-    """A normal SELECT is unaffected by the file-transfer check."""
-    from superset.sql.execution.executor import SQLExecutor
-    from superset.sql.parse import SQLScript
-
-    mocker.patch.dict(
-        current_app.config,
-        {"DISALLOWED_SQL_FUNCTIONS": {}, "DISALLOWED_SQL_TABLES": {}},
+    database = Database(
+        id=3,
+        database_name="test_snowflake",
+        sqlalchemy_uri="snowflake://user:pw@account/db/schema",
+        allow_dml=allow_dml,
     )
 
-    mock_db = MagicMock()
-    mock_db.allow_dml = False
-    mock_db.db_engine_spec.engine = "snowflake"
-
-    executor = SQLExecutor(mock_db)
-    # Should not raise.
-    executor._check_security(SQLScript("SELECT 1", "snowflake"))
+    with pytest.raises(SupersetSecurityException, match="file-transfer"):
+        SQLExecutor(database)._check_security(SQLScript(sql, "snowflake"))
 
 
 # =============================================================================

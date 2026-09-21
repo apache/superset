@@ -514,9 +514,7 @@ def execute_sql_statements(  # noqa: C901
         if found_tables:
             raise SupersetDisallowedSQLTableException(found_tables)
 
-    # Client-side file-transfer statements (PUT/GET/REMOVE) drive file I/O on
-    # the host running the query rather than querying the database, so they are
-    # rejected in user-submitted SQL regardless of the ``allow_dml`` setting.
+    # Rejected regardless of `allow_dml`: these do host file I/O, not DML.
     if file_transfer_commands := parsed_script.get_client_file_transfer_commands():
         raise SupersetDisallowedClientFileTransferException(file_transfer_commands)
 
