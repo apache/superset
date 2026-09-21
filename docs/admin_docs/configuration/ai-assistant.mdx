@@ -241,6 +241,10 @@ value in a database is data and not an instruction.
 
 ### Cancellation
 
+Cancellation requires the run identifier returned when submitting the message
+and the same owned conversation. An unknown run or one belonging to another
+conversation returns `404` without recording a cancellation request.
+
 Cancellation is cooperative: a run stops at its next step boundary. A run inside
 a single long model call or a single long query will not stop until that call
 returns.

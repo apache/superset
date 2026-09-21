@@ -674,16 +674,21 @@ class AIRestApi(BaseSupersetApi):
             return unavailable
 
         from superset.ai.orchestrator import request_cancel
-        from superset.daos.ai import AIChatThreadDAO
+        from superset.daos.ai import AIChatMessageDAO, AIChatThreadDAO
 
         try:
             payload = CancelPostSchema().load(request.json or {})
         except ValidationError as error:
             return self.response_400(message=error.messages)
-        if AIChatThreadDAO.find_by_uuid_for_user(thread_uuid, self._user_id()) is None:
+        thread = AIChatThreadDAO.find_by_uuid_for_user(thread_uuid, self._user_id())
+        if thread is None:
             return self.response_404()
 
-        request_cancel(payload["run_id"])
+        run_id = payload["run_id"]
+        if _find_run_message(AIChatMessageDAO.find_for_thread(thread), run_id) is None:
+            return self.response_404()
+
+        request_cancel(run_id)
         return self.response(200, message="OK")
 
     @expose("/feedback", methods=("POST",))
