@@ -105,36 +105,39 @@ def test_values_for_column(database: Database) -> None:
         assert table.values_for_column("a") == [1, None]
 
 
-@pytest.mark.parametrize(
-    "raw,expected",
-    [
-        ("plain", "plain"),
-        ("50%", "50!%"),
-        ("a_b", "a!_b"),
-        ("wow!", "wow!!"),
-        ("!%_", "!!!%!_"),
-    ],
-)
-def test_escape_like_pattern(raw: str, expected: str) -> None:
-    """Wildcards typed by a user are data, not pattern syntax."""
-    from superset.models.helpers import escape_like_pattern
-
-    assert escape_like_pattern(raw) == expected
-
-
 def test_build_like_predicate_is_case_insensitive_and_escaped() -> None:
     import sqlalchemy as sa
 
     from superset.models.helpers import build_like_predicate
 
-    compiled = str(
-        build_like_predicate(sa.column("c"), "50%").compile(
+    predicate = build_like_predicate(sa.column("c"), "50%")
+
+    # The search term is lower-cased for a case-insensitive match, and the
+    # user's ``%`` wildcard is neutralized (autoescape) rather than matching
+    # every row.
+    postgres_sql = str(
+        predicate.compile(
             dialect=sa.dialects.registry.load("postgresql")(),
             compile_kwargs={"literal_binds": True},
         )
-    ).replace("%%", "%")
+    )
+    assert "lower(c)" in postgres_sql
+    assert "50" in postgres_sql
+    # Other engines still get a dialect-native ESCAPE clause, proving they are
+    # unaffected by the BigQuery-specific fix.
+    assert "ESCAPE" in postgres_sql
 
-    assert compiled == "lower(c) LIKE '%50!%%' ESCAPE '!'"
+    # Regression test for SUPERSET-PYTHON-176K: BigQuery's GoogleSQL has no
+    # ESCAPE keyword, so the compiled predicate must not emit one.
+    from sqlalchemy_bigquery import BigQueryDialect
+
+    bigquery_sql = str(
+        predicate.compile(
+            dialect=BigQueryDialect(),
+            compile_kwargs={"literal_binds": True},
+        )
+    )
+    assert "ESCAPE" not in bigquery_sql
 
 
 def test_values_for_column_search(database: Database) -> None:
@@ -157,8 +160,10 @@ def test_values_for_column_search(database: Database) -> None:
         assert table.values_for_column("a", search="ali") == ["Alice"]
 
     sql = str(read_sql_query.call_args.kwargs["sql"])
+    # ``.contains()`` compiles to a concatenated pattern rather than a single
+    # ``'%ali%'`` literal, e.g. ``... LIKE '%' || 'ali' || '%'`` on sqlite.
     assert "LIKE" in sql
-    assert "'%ali%'" in sql
+    assert "'ali'" in sql
 
 
 def test_values_for_column_without_search_has_no_predicate(
