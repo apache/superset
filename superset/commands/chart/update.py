@@ -166,9 +166,14 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
         if not self._model:
             raise ChartNotFoundError()
 
-        # Check and update editorship; when only updating query context we relax
-        # editorship so report workers can save context. We still require chart
-        # access so users cannot rewrite query context for charts they cannot access.
+        # Both a regular update and a query-context-only update require edit
+        # rights on the chart. A query-context-only update is the refreshed
+        # execution payload that Explore recomputes and saves in the
+        # background when a chart is opened; it is treated the same as the
+        # normal update path. Scheduled reports render the chart under an
+        # editor identity (the report executor is an editor of the chart), so
+        # that background save keeps succeeding. A viewer without edit rights
+        # simply has the background save refused, which Explore ignores.
         if not is_query_context_update(self._properties):
             try:
                 security_manager.raise_for_editorship(self._model)
@@ -180,17 +185,13 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
             raise_if_managed_externally(self._model, ChartForbiddenError)
         else:
             try:
-                security_manager.raise_for_access(chart=self._model)
+                security_manager.raise_for_editorship(self._model)
             except SupersetSecurityException as ex:
                 raise ChartForbiddenError() from ex
-            # The relaxed-editorship branch refuses externally managed
-            # charts too: the stored query context is executable state
-            # (report execution loads and runs it), so accepting a
-            # client-supplied context here would let an editor change a
-            # managed chart's behavior -- the bypass this gate closes.
-            # Explore fires this save in the background when the chart is
-            # opened; for a managed chart that background call gets a 403
-            # it ignores.
+            # Externally managed charts are refused here too: the stored query
+            # context is executable state that report execution loads and
+            # runs, so a client-supplied context is not accepted for a managed
+            # chart even from an editor.
             raise_if_managed_externally(self._model, ChartForbiddenError)
             # Keep the refreshed payload bound to the chart's own datasource so it
             # cannot be repointed at an unrelated one.
