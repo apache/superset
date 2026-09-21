@@ -16,21 +16,26 @@
 # under the License.
 
 import io
+import shutil
+import subprocess
 from unittest.mock import MagicMock, patch
 from uuid import UUID
 
 import pytest
 from PIL import Image, ImageDraw, ImageFont, UnidentifiedImageError
 
+from superset.utils import json
 from superset.utils.report_execution import (
     ReportExecutionContext,
     ReportExecutionDeadline,
 )
 from superset.utils.screenshot_utils import (
+    _stable_readiness_js,
     combine_screenshot_tiles,
     CONTENTFUL_CHART_HOLDERS_IN_CLIP_JS,
     get_screenshot_blankness_metrics,
     is_screenshot_nearly_uniform,
+    REPORT_CAPTURE_READINESS_STABILITY_MS,
     resolve_screenshot_task_budget_seconds,
     SCREENSHOT_TASK_BUDGET_MAX_MARGIN_SECONDS,
     ScreenshotBlankCaptureError,
@@ -40,6 +45,7 @@ from superset.utils.screenshot_utils import (
     take_tiled_screenshot,
     TILED_SCREENSHOT_TOTAL_WAIT_BUDGET_SECONDS,
     TiledScreenshotBudgetExceededError,
+    wait_for_stable_readiness,
 )
 
 
@@ -58,6 +64,83 @@ def _two_tone_blank(width: int = 100, height: int = 100) -> bytes:
     output = io.BytesIO()
     image.save(output, format="PNG")
     return output.getvalue()
+
+
+def test_stable_readiness_skips_impossible_dwell() -> None:
+    page = MagicMock()
+
+    waited = wait_for_stable_readiness(
+        page,
+        "() => true",
+        REPORT_CAPTURE_READINESS_STABILITY_MS / 1000,
+    )
+
+    assert waited is False
+    page.wait_for_function.assert_not_called()
+
+
+def test_stable_readiness_skips_when_budget_below_polling_margin() -> None:
+    page = MagicMock()
+
+    # Above the raw 500 ms window but below window + polling margin: the dwell
+    # cannot complete before the timeout, so it must skip rather than abort.
+    waited = wait_for_stable_readiness(page, "() => true", 0.6)
+
+    assert waited is False
+    page.wait_for_function.assert_not_called()
+
+
+def test_stable_readiness_javascript_resets_dwell_state() -> None:
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("Node.js is required to execute the readiness predicate")
+    assert node is not None
+
+    expression = _stable_readiness_js("() => globalThis.ready")
+    script = r"""
+const input = JSON.parse(require("fs").readFileSync(0, "utf8"));
+global.window = global;
+let now = 0;
+global.performance = {now: () => now};
+global.ready = false;
+const predicate = eval("(" + input.expression + ")");
+const results = [];
+const poll = (token, time, ready) => {
+  now = time;
+  global.ready = ready;
+  results.push(predicate({token, stabilityMs: 500}));
+};
+poll("first", 0, false);
+poll("first", 100, true);
+poll("first", 599, true);
+poll("first", 600, true);
+poll("first", 700, false);
+poll("first", 800, true);
+poll("first", 1300, true);
+poll("second", 1400, true);
+poll("second", 1900, true);
+process.stdout.write(JSON.stringify(results));
+"""
+
+    completed = subprocess.run(  # noqa: S603
+        [node, "-e", script],
+        input=json.dumps({"expression": expression}),
+        capture_output=True,
+        check=True,
+        text=True,
+    )
+
+    assert json.loads(completed.stdout) == [
+        False,
+        False,
+        False,
+        True,
+        False,
+        False,
+        True,
+        False,
+        True,
+    ]
 
 
 class TestScreenshotBlankDetection:
@@ -407,7 +490,7 @@ class TestTakeTiledScreenshot:
         with (
             patch(
                 "superset.utils.screenshot_utils.combine_screenshot_tiles",
-                return_value=b"combined",
+                return_value=chart_tile,
             ) as mock_combine,
             patch("superset.utils.screenshot_utils.logger") as mock_logger,
         ):
@@ -418,7 +501,7 @@ class TestTakeTiledScreenshot:
                 report_execution_context=_report_context(),
             )
 
-        assert result == b"combined"
+        assert result == chart_tile
         mock_combine.assert_called_once()
         combined_tiles = mock_combine.call_args.args[0]
         assert len(combined_tiles) == 1
@@ -456,6 +539,7 @@ class TestTakeTiledScreenshot:
 
         mock_page.evaluate.side_effect = evaluate
         mock_page.screenshot.return_value = _png(800, 1000, "white")
+        report_context = _report_context()
 
         with (
             patch("superset.utils.screenshot_utils.logger"),
@@ -471,13 +555,14 @@ class TestTakeTiledScreenshot:
                 mock_page,
                 "dashboard",
                 tile_height=1000,
-                report_execution_context=_report_context(),
+                report_execution_context=report_context,
             )
 
         assert mock_page.screenshot.call_count == 3
+        assert report_context.capture_rejection_reasons == ("blank_tile:1/2",)
         mock_combine.assert_not_called()
 
-    def test_blank_combined_image_is_advisory_after_contentful_tiles_pass(
+    def test_blank_combined_image_fails_closed_after_contentful_tiles_pass(
         self, mock_page
     ):
         element_info = {"height": 1000, "top": 0, "left": 0, "width": 800}
@@ -494,26 +579,72 @@ class TestTakeTiledScreenshot:
         mock_page.evaluate.side_effect = evaluate
         mock_page.screenshot.return_value = self._create_chart_like_tile()
 
+        report_context = _report_context()
         with (
             patch(
                 "superset.utils.screenshot_utils.combine_screenshot_tiles",
                 return_value=_two_tone_blank(800, 1000),
             ),
             patch("superset.utils.screenshot_utils.logger") as mock_logger,
+            pytest.raises(
+                ScreenshotBlankCaptureError,
+                match="Combined report screenshot lost content",
+            ),
         ):
-            result = take_tiled_screenshot(
+            take_tiled_screenshot(
                 mock_page,
                 "dashboard",
                 tile_height=1000,
-                report_execution_context=_report_context(),
+                report_execution_context=report_context,
             )
 
-        assert result == _two_tone_blank(800, 1000)
+        assert report_context.capture_rejection_reasons == ("blank_combined",)
         assert any(
-            call.args[0].startswith("report_capture_blank_combined_retained")
+            call.args[0].startswith("report_capture_blank_combined_rejected")
             and call.args[1] == 1
+            and call.args[2] == [1]
             for call in mock_logger.warning.call_args_list
         )
+
+    def test_sparse_contentful_tile_is_not_diluted_by_empty_tiles(self, mock_page):
+        element_info = {"height": 8000, "top": 0, "left": 0, "width": 800}
+        holder_count_calls = 0
+
+        def evaluate(script, _arg=None):
+            nonlocal holder_count_calls
+            if "scrollWidth" in script:
+                return element_info
+            if script == CONTENTFUL_CHART_HOLDERS_IN_CLIP_JS:
+                holder_count_calls += 1
+                return {
+                    "total": 1,
+                    "contentful": 1 if holder_count_calls == 1 else 0,
+                }
+            if "requestAnimationFrame" in script or "window.scrollTo" in script:
+                return None
+            return [{"chartId": "7", "state": "rendered"}]
+
+        sparse_content = Image.new("RGB", (800, 1000), "white")
+        ImageDraw.Draw(sparse_content).rectangle((50, 50, 149, 149), fill=(64, 64, 64))
+        sparse_output = io.BytesIO()
+        sparse_content.save(sparse_output, format="PNG")
+        empty_tile = _png(800, 1000, "white")
+        mock_page.evaluate.side_effect = evaluate
+        mock_page.screenshot.side_effect = [sparse_output.getvalue()] + [empty_tile] * 7
+        report_context = _report_context()
+
+        result = take_tiled_screenshot(
+            mock_page,
+            "dashboard",
+            tile_height=1000,
+            report_execution_context=report_context,
+        )
+
+        # The whole image is statistically blank because valid empty-state tiles
+        # dominate it, but its content-bearing region remains valid.
+        assert get_screenshot_blankness_metrics(result).is_blank is True
+        assert report_context.capture_was_rejected is False
+        assert mock_page.screenshot.call_count == 8
 
     def test_blank_combined_image_is_allowed_for_terminal_empty_states(self, mock_page):
         element_info = {"height": 1000, "top": 0, "left": 0, "width": 800}
@@ -640,10 +771,11 @@ class TestTakeTiledScreenshot:
 
         mock_page.evaluate.side_effect = evaluate
         mock_page.screenshot.side_effect = screenshot
+        combined = self._create_chart_like_tile()
 
         with patch(
             "superset.utils.screenshot_utils.combine_screenshot_tiles",
-            return_value=b"combined",
+            return_value=combined,
         ):
             result = take_tiled_screenshot(
                 mock_page,
@@ -652,7 +784,7 @@ class TestTakeTiledScreenshot:
                 report_execution_context=context,
             )
 
-        assert result == b"combined"
+        assert result == combined
         first_call, second_call = mock_page.screenshot.call_args_list
         assert first_call.kwargs["timeout"] == 120_000
         assert second_call.kwargs["timeout"] == 70_000
@@ -719,7 +851,7 @@ class TestTakeTiledScreenshot:
             for call in mock_logger.warning.call_args_list
         )
         assert any(
-            call.args[0].startswith("report_capture_blank_tile_retained")
+            call.args[0].startswith("thumbnail_capture_blank_tile_retained")
             for call in mock_logger.warning.call_args_list
         )
 
@@ -743,16 +875,17 @@ class TestTakeTiledScreenshot:
             self._create_chart_like_tile(),
         ]
 
-        def wait_for_function(script, **_kwargs):
+        def wait_for_function(script, *_args, **_kwargs):
             if "__supersetRepaintComplete" in script:
                 raise PlaywrightTimeout("no repaint")
             return None
 
         mock_page.wait_for_function.side_effect = wait_for_function
+        combined = self._create_chart_like_tile()
 
         with patch(
             "superset.utils.screenshot_utils.combine_screenshot_tiles",
-            return_value=b"combined",
+            return_value=combined,
         ):
             result = take_tiled_screenshot(
                 mock_page,
@@ -761,7 +894,7 @@ class TestTakeTiledScreenshot:
                 report_execution_context=_report_context(),
             )
 
-        assert result == b"combined"
+        assert result == combined
         assert any(
             call.args == ("() => window.__supersetRepaintComplete === true",)
             and call.kwargs == {"timeout": 5000.0}
@@ -836,9 +969,21 @@ class TestTakeTiledScreenshot:
         element_info = {"height": 1000, "top": 0, "left": 0, "width": 800}
         wait_calls = 0
 
-        def wait_for_function(*args, **kwargs):
+        def wait_for_function(
+            expression,
+            *,
+            arg=None,
+            timeout=None,
+            polling=None,
+        ):
             nonlocal wait_calls
-            events.append("mount" if wait_calls == 0 else "ready")
+            if wait_calls == 0:
+                events.append("mount")
+            elif "__supersetCaptureReadiness" in expression:
+                assert arg["stabilityMs"] == REPORT_CAPTURE_READINESS_STABILITY_MS
+                events.append("stable_ready")
+            else:
+                events.append("ready")
             wait_calls += 1
 
         def evaluate(script, _arg=None):
@@ -870,7 +1015,13 @@ class TestTakeTiledScreenshot:
             )
 
         assert result == b"combined"
-        assert events == ["mount", "dimensions", "ready", "capture"]
+        assert events == [
+            "mount",
+            "dimensions",
+            "ready",
+            "stable_ready",
+            "capture",
+        ]
 
     def test_zero_holders_timeout_before_dimensions_or_capture(self, mock_page):
         """An empty DOM cannot vacuously pass the tiled readiness gate."""
@@ -1098,8 +1249,19 @@ class TestTakeTiledScreenshot:
                 report_execution_context=_report_context(),
             )
 
-        # One initial holder-mount gate, then one readiness poll per tile.
-        assert mock_page.wait_for_function.call_count == 4
+        # One initial holder-mount gate, then readiness and stable-readiness
+        # polls per tile.
+        stable_calls = [
+            call
+            for call in mock_page.wait_for_function.call_args_list
+            if call.args and "__supersetCaptureReadiness" in call.args[0]
+        ]
+        assert len(stable_calls) == 3
+        for stable_call in stable_calls:
+            assert (
+                stable_call.kwargs["arg"]["stabilityMs"]
+                == REPORT_CAPTURE_READINESS_STABILITY_MS
+            )
 
         # Each call uses viewport-scoped JS and the load_wait timeout
         mount_call, *tile_calls = mock_page.wait_for_function.call_args_list
@@ -1110,7 +1272,7 @@ class TestTakeTiledScreenshot:
             assert "getBoundingClientRect" in js
             assert "window.innerHeight" in js
             assert "dashboard-component-chart-holder" in js
-            assert call[1]["timeout"] == 30 * 1000
+            assert call.kwargs["timeout"] == 30 * 1000
 
     def test_per_tile_readiness_timeout_raises_and_skips_capture(self, mock_page):
         """A per-tile readiness timeout raises and does not capture that tile.
@@ -1169,6 +1331,25 @@ class TestTakeTiledScreenshot:
         # (spinner mounted vs nothing mounted vs waiting-on-database) so a
         # slow query can be told apart from the virtualization race.
         assert warning_args[14] == [{"chartId": "42", "state": "waiting_on_database"}]
+
+    def test_readiness_change_aborts_before_tile_capture(self, mock_page):
+        from superset.utils.screenshot_utils import PlaywrightTimeout
+
+        mock_page.wait_for_function.side_effect = [
+            None,
+            None,
+            PlaywrightTimeout("spinner returned"),
+        ]
+
+        with pytest.raises(PlaywrightTimeout, match="spinner returned"):
+            take_tiled_screenshot(
+                mock_page,
+                "dashboard",
+                tile_height=2000,
+                report_execution_context=_report_context(),
+            )
+
+        mock_page.screenshot.assert_not_called()
 
     def test_timeout_warning_includes_log_context(self, mock_page):
         """The log context (e.g. report execution id) is threaded through for

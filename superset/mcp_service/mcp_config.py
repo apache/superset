@@ -101,6 +101,13 @@ MCP_RBAC_ENABLED = True
 #   MCP_DISABLED_TOOLS = {"extensions.myorg.myext.some_tool"}
 MCP_DISABLED_TOOLS: set[str] = set()
 
+# Structured MCP tool output is opt-in because some clients and transport
+# bridges cannot handle outputSchema and structuredContent consistently. False
+# preserves the legacy text-only wire contract by removing both fields at the
+# outer compatibility middleware. Enable only after validating every MCP client
+# and bridge used by the deployment.
+MCP_STRUCTURED_OUTPUT_ENABLED = False
+
 # Pluggable error-capture hook, invoked for system-class MCP tool errors
 # (unexpected exceptions — database down, bugs — not user errors like bad
 # params or permission denials). Lets operators forward failures to an
@@ -114,7 +121,7 @@ MCP_DISABLED_TOOLS: set[str] = set()
 # "user_id", "error_type", "sanitized_message", and "duration_ms" — but
 # values may be unavailable depending on the capture path: "user_id" and
 # "duration_ms" are None on the last-resort path
-# (StructuredContentStripperMiddleware), "mcp_call_id" is None outside a
+# (ToolResultCompatibilityMiddleware), "mcp_call_id" is None outside a
 # tool call, and "tool_name" falls back to "unknown" for non-tool
 # messages. Only "sanitized_message" is scrubbed — the ``error`` argument
 # is the RAW exception and may contain sensitive data (connection
@@ -204,6 +211,7 @@ MCP_EMBEDDED_GUEST_AUTH_ENABLED: bool = False
 MCP_GUEST_ALLOWED_TOOLS: set[str] = {
     "get_dashboard_info",
     "get_dashboard_layout",
+    "get_dashboard_data",
     "list_dashboards",
     "list_charts",
     "get_chart_info",
@@ -353,6 +361,7 @@ MCP_CACHE_CONFIG: dict[str, Any] = {
     # non-read-only tool is added without also being added here.
     "excluded_tools": [
         "add_chart_to_existing_dashboard",
+        "apply_dashboard_filters",
         "create_dataset",
         "create_theme",
         "create_virtual_dataset",
@@ -886,6 +895,7 @@ def get_mcp_config(app_config: dict[str, Any] | None = None) -> dict[str, Any]:
         "MCP_STATELESS_HTTP": MCP_STATELESS_HTTP,
         "MCP_RBAC_ENABLED": MCP_RBAC_ENABLED,
         "MCP_DISABLED_TOOLS": set(MCP_DISABLED_TOOLS),
+        "MCP_STRUCTURED_OUTPUT_ENABLED": MCP_STRUCTURED_OUTPUT_ENABLED,
         "MCP_DISABLED_CHART_PLUGINS": MCP_DISABLED_CHART_PLUGINS,
         "MCP_CHART_PLUGIN_ENABLED_FUNC": MCP_CHART_PLUGIN_ENABLED_FUNC,
         "MCP_EMBEDDED_GUEST_AUTH_ENABLED": MCP_EMBEDDED_GUEST_AUTH_ENABLED,
