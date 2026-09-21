@@ -21,7 +21,6 @@ import { DASHBOARD_WIDGETS_LOCATION } from './resolveWidgetView';
 import { registerContainerType } from './DashboardProvider';
 import {
   AgGridTableNodeWidget,
-  BalloonsNodeWidget,
   ChartNodeWidget,
   FilterSelectNodeWidget,
   MarkdownNodeWidget,
@@ -86,17 +85,6 @@ export function registerBuiltInWidgets(): void {
     },
     DASHBOARD_WIDGETS_LOCATION,
     MetricTileNodeWidget,
-  );
-  views.registerView(
-    {
-      id: 'balloons',
-      name: 'Balloons',
-      description:
-        'Bouncing colored balls, one per query row (Chart Framework v2 POC). ' +
-        'Schema-driven controls served from the backend.',
-    },
-    DASHBOARD_WIDGETS_LOCATION,
-    BalloonsNodeWidget,
   );
   views.registerView(
     {

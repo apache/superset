@@ -529,9 +529,9 @@ test('the column-multi add-picker resets to its placeholder after a pick, rather
   expect(screen.getAllByText('name')).toHaveLength(1);
 });
 
-// The list's order is not cosmetic — it decides which dimension colors the
-// balloons by default (`BalloonsWidget`'s own fallback) — so reordering
-// needs a keyboard path, not only the drag handle.
+// The list's order is not cosmetic — it decides which dimension a
+// schema-driven widget colors by default — so reordering needs a keyboard
+// path, not only the drag handle.
 test('a column-multi entry can be moved up or down, with the boundary buttons disabled at the ends', async () => {
   mockPost({
     type: 'object',

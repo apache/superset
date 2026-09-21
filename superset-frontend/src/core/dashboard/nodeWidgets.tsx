@@ -69,6 +69,5 @@ export function createNodeWidget(
 export const ChartNodeWidget = createNodeWidget('echarts');
 export const MetricTileNodeWidget = createNodeWidget('metric-tile');
 export const AgGridTableNodeWidget = createNodeWidget('ag-grid-table');
-export const BalloonsNodeWidget = createNodeWidget('balloons');
 export const FilterSelectNodeWidget = createNodeWidget('filter.select');
 export const MarkdownNodeWidget = createNodeWidget('markdown');

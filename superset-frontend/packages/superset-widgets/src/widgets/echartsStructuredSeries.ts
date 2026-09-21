@@ -50,8 +50,8 @@ export interface SeriesOverrideValue {
 
 // A categorical palette of distinct colors — one per series index. The
 // literal hex is intentional (and must match the backend palette in
-// `superset/widgets/builtin.py`'s `Echarts.PALETTE`, the same convention
-// `BalloonsWidget`'s own `PALETTE` follows) so a series' color is stable
+// `superset/widgets/builtin.py`'s `Echarts.PALETTE`) so a series' color is
+// stable
 // before the author touches `customize`: the per-series schema control
 // advertises `Echarts.PALETTE[index]` as that series' default swatch (see
 // `_populate_chart_series`), so the rendered series has to fall back to the

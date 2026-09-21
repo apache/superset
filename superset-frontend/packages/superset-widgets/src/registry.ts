@@ -18,7 +18,6 @@
  */
 import type { WidgetComponent } from './types';
 import AgGridTableWidget from './widgets/AgGridTableWidget';
-import BalloonsWidget from './widgets/BalloonsWidget';
 import ChartWidget from './widgets/ChartWidget';
 import FilterSelectWidget from './widgets/FilterSelectWidget';
 import MarkdownWidget from './widgets/MarkdownWidget';
@@ -31,7 +30,6 @@ export const builtInWidgetComponents: Readonly<
   echarts: ChartWidget,
   'metric-tile': MetricTileWidget,
   'ag-grid-table': AgGridTableWidget,
-  balloons: BalloonsWidget,
   'filter.select': FilterSelectWidget,
   markdown: MarkdownWidget,
 };
