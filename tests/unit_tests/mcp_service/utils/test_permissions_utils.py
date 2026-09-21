@@ -17,6 +17,7 @@
 
 """Unit tests for get_user_role_names."""
 
+import logging
 from types import SimpleNamespace
 from typing import Any
 
@@ -98,6 +99,38 @@ def test_unreadable_role_names_are_skipped() -> None:
     )
 
     assert get_user_role_names(user) == ["Admin", "editor"]
+
+
+class _GroupWithDetachedRoles:
+    @property
+    def roles(self) -> list[Any]:
+        raise DetachedInstanceError()
+
+
+def test_group_with_unreadable_roles_does_not_drop_later_groups() -> None:
+    user = _user(
+        roles=[_role("Gamma")],
+        groups=[_GroupWithDetachedRoles(), _group(_role("editor"))],
+    )
+
+    assert get_user_role_names(user) == ["Gamma", "editor"]
+
+
+def test_skipped_roles_are_logged(caplog: pytest.LogCaptureFixture) -> None:
+    """A skip under-reports the user's roles, so it must leave a trace."""
+    user = _user(
+        roles=[_role("Admin"), _DetachedRole()],
+        groups=[_GroupWithDetachedRoles()],
+    )
+
+    with caplog.at_level(
+        logging.DEBUG, logger="superset.mcp_service.utils.permissions_utils"
+    ):
+        assert get_user_role_names(user) == ["Admin"]
+
+    messages = [record.getMessage() for record in caplog.records]
+    assert "Skipping a role whose name cannot be read" in messages
+    assert "Skipping the roles of a group whose roles cannot be read" in messages
 
 
 def _persisted_user(session: Session) -> Any:
