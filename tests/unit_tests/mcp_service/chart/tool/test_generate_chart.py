@@ -999,3 +999,60 @@ class TestGenerateChartSqlMetric:
         assert m["sqlExpression"] == _SQL_EXPR
         assert m["label"] == "Win Rate"
         assert m["optionName"] == "metric_sql_abcd1234"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "config",
+    [
+        {"chart_type": "gauge", "metric": {"name": "sales", "aggregate": "SUM"}},
+        {
+            "chart_type": "xy",
+            "x": {"name": "date"},
+            "y": [{"name": "sales", "aggregate": "SUM"}],
+            "x_axis": {"title": "Date"},
+        },
+        {
+            "chart_type": "table",
+            "columns": [{"name": "sales"}],
+            "column_config": {"sales": {"d3NumberFormat": ".2f"}},
+        },
+        {"chart_type": "bullet", "metric": {"name": "sales", "aggregate": "SUM"}},
+    ],
+)
+async def test_generate_chart_preserves_unset_config_fields(
+    config: dict[str, Any],
+) -> None:
+    """The tool must not turn omitted controls into explicitly supplied defaults."""
+    from superset.mcp_service.chart.validation.pipeline import ValidationResult
+    from superset.mcp_service.common.error_schemas import ChartGenerationError
+
+    request = GenerateChartRequest(dataset_id=7, config=config)
+    # Also cover a typed caller relying on the model's default discriminator.
+    request.config.model_fields_set.discard("chart_type")
+    expected = request.config.model_dump(exclude_unset=True)
+    expected["chart_type"] = request.config.chart_type
+    ctx = MagicMock()
+    for method in ("info", "debug", "warning", "error", "report_progress"):
+        setattr(ctx, method, AsyncMock())
+    with (
+        patch(
+            "superset.mcp_service.auth.get_user_from_request",
+            return_value=Mock(id=1, username="admin", roles=[], groups=[]),
+        ),
+        patch(
+            "superset.mcp_service.chart.validation.ValidationPipeline."
+            "validate_request_with_warnings",
+            return_value=ValidationResult(
+                is_valid=False,
+                error=ChartGenerationError(
+                    error_type="test",
+                    message="Stop after capture",
+                    details="Captured input",
+                ),
+            ),
+        ) as validate,
+    ):
+        await generate_chart(request, ctx=ctx)
+
+    assert validate.call_args.args[0]["config"] == expected

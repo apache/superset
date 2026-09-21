@@ -2790,6 +2790,11 @@ class BulletChartConfig(BaseChartConfig):
         if not isinstance(raw, dict):
             return raw
         data = dict(raw)
+        # Null means no hierarchy was supplied, not a conflicting alias or a
+        # request to clear saved dimensions. Only an explicit [] clears them.
+        for key in ("dimensions", "groupby"):
+            if data.get(key) is None:
+                data.pop(key, None)
         if "dimensions" in data and "groupby" in data:
             dimensions = cls._canonical_dimension_alias(
                 data["dimensions"], "dimensions"

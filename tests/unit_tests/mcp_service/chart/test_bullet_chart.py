@@ -64,6 +64,7 @@ from superset.mcp_service.chart.schemas import (
     BulletChartConfig,
     ChartConfig,
     ChartError,
+    ChartInfo,
     DataColumn,
     GenerateChartRequest,
     GetChartPreviewRequest,
@@ -3301,6 +3302,105 @@ async def test_generate_chart_tool_emits_native_bullet_form_data() -> None:
     assert result.form_data["markers"] == "200"
 
 
+@pytest.mark.asyncio
+async def test_generate_chart_creates_bullet_with_dimensions_omitted() -> None:
+    """Exercise schema revalidation, normalization and creation without dimensions."""
+    from superset.mcp_service.chart.compile import CompileResult
+
+    raw_config = {
+        "chart_type": "bullet",
+        "metric": {"name": "sales", "aggregate": "SUM"},
+        "ranges": [100000, 300000, 600000],
+        "range_labels": ["Low", "Medium", "High"],
+        "markers": [400000],
+        "marker_labels": ["Target"],
+        "show_labels": True,
+    }
+    assert "dimensions" not in raw_config
+    assert BulletChartConfig.model_validate(raw_config).dimensions is None
+    request = GenerateChartRequest(
+        dataset_id=7, config=raw_config, save_chart=True, generate_preview=False
+    )
+    dataset_context = DatasetContext(
+        id=7,
+        table_name="sales",
+        schema=None,
+        database_name="main",
+        available_columns=[{"name": "sales", "type": "NUMERIC", "is_numeric": True}],
+        available_metrics=[],
+    )
+    dataset = MagicMock(id=7, datasource_name="sales", table_name="sales", sql=None)
+    chart = SimpleNamespace(
+        id=9, datasource_id=7, slice_name="Sales", viz_type="bullet", uuid=None
+    )
+    ctx = MagicMock()
+    for method in ("info", "debug", "warning", "error", "report_progress"):
+        setattr(ctx, method, AsyncMock())
+    with (
+        patch(
+            "superset.mcp_service.auth.get_user_from_request", return_value=_tool_user()
+        ),
+        patch.object(
+            DatasetValidator, "_get_dataset_context", return_value=dataset_context
+        ),
+        patch.object(
+            ValidationPipeline, "_validate_runtime", return_value=(True, None)
+        ),
+        patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset),
+        patch(
+            "superset.mcp_service.chart.tool.generate_chart.has_dataset_access",
+            return_value=True,
+        ),
+        patch("superset.mcp_service.auth.has_dataset_access", return_value=True),
+        patch(
+            "superset.mcp_service.chart.tool.generate_chart._compile_chart",
+            return_value=CompileResult(success=True, warnings=[]),
+        ),
+        patch("superset.commands.chart.create.CreateChartCommand") as command,
+        patch("superset.db.session"),
+        patch("superset.daos.chart.ChartDAO.find_by_id", return_value=chart),
+        patch(
+            "superset.mcp_service.chart.schemas.serialize_chart_object",
+            return_value=ChartInfo(id=9, slice_name="Sales", viz_type="bullet"),
+        ),
+        patch(
+            "superset.mcp_service.commands.create_form_data.MCPCreateFormDataCommand",
+            return_value=MagicMock(run=MagicMock(return_value="bullet-key")),
+        ),
+    ):
+        command.return_value.run.return_value = chart
+        result = await generate_chart(request, ctx=ctx)
+
+    assert result.success is True, result.error
+    command.assert_called_once()
+    persisted = __import__("json").loads(command.call_args.args[0]["params"])
+    assert persisted.get("groupby", []) == []
+    assert persisted["metric"]["column"]["column_name"] == "sales"
+    assert persisted["ranges"] == "100000,300000,600000"
+    assert persisted["show_labels"] is True
+
+
+@pytest.mark.parametrize(
+    ("aliases", "expected"),
+    [
+        ({"dimensions": None}, []),
+        ({"groupby": None}, []),
+        ({"dimensions": None, "groupby": None}, []),
+        ({"dimensions": None, "groupby": ["Region"]}, ["Region"]),
+        ({"dimensions": ["Region"], "groupby": None}, ["Region"]),
+        ({"dimensions": [], "groupby": None}, []),
+    ],
+)
+def test_bullet_null_dimension_alias_is_absent(
+    aliases: dict[str, Any], expected: list[str]
+) -> None:
+    """Null aliases neither conflict with nor shadow a populated hierarchy."""
+    config = BulletChartConfig.model_validate({"metric": _simple_metric(), **aliases})
+    assert [column.name for column in config.dimensions or []] == expected
+    if not expected and aliases.get("dimensions") != []:
+        assert "dimensions" not in config.model_fields_set
+
+
 def test_update_chart_preview_tool_preserves_omitted_bullet_state() -> None:
     request = UpdateChartPreviewRequest(
         form_data_key="previous_bullet_key",
@@ -3396,11 +3496,16 @@ def test_update_chart_preview_tool_preserves_omitted_bullet_state() -> None:
 
 
 @pytest.mark.asyncio
-async def test_update_chart_tool_persists_native_bullet_round_trip() -> None:
+@pytest.mark.parametrize("dimensions", [[], ["Region"]])
+@pytest.mark.parametrize("aliases", [{}, {"dimensions": None}, {"groupby": None}])
+async def test_update_chart_tool_persists_native_bullet_round_trip(
+    dimensions: list[str], aliases: dict[str, Any]
+) -> None:
+    """Omitted/null dimensions preserve both empty and populated saved hierarchies."""
     existing = {
         "viz_type": "bullet",
         "metric": "old_metric",
-        "groupby": ["Region"],
+        "groupby": dimensions,
         "ranges": "100,250",
         "range_labels": "Low",
         "show_legend": True,
@@ -3424,7 +3529,11 @@ async def test_update_chart_tool_persists_native_bullet_round_trip() -> None:
     command.return_value.run.return_value = updated_chart
     request = UpdateChartRequest(
         identifier=9,
-        config=BulletChartConfig(metric=_simple_metric("NewRevenue")),
+        config={
+            "chart_type": "bullet",
+            "metric": _simple_metric("NewRevenue"),
+            **aliases,
+        },
         generate_preview=False,
         preview_formats=[],
     )
@@ -3470,7 +3579,7 @@ async def test_update_chart_tool_persists_native_bullet_round_trip() -> None:
     payload = command.call_args.args[1]
     persisted = __import__("json").loads(payload["params"])
     assert persisted["metric"]["column"]["column_name"] == "NewRevenue"
-    assert persisted["groupby"] == ["Region"]
+    assert persisted["groupby"] == dimensions
     assert persisted["ranges"] == "100,250"
     assert persisted["range_labels"] == "Low"
     assert persisted["show_legend"] is True

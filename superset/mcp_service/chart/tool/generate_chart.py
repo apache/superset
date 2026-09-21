@@ -294,8 +294,13 @@ async def generate_chart(  # noqa: C901
         with event_logger.log_context(action="mcp.generate_chart.validation"):
             from superset.mcp_service.chart.validation import ValidationPipeline
 
+            # Preserve omissions, including nested optional controls. A full dump
+            # turns defaults into explicit values before schema revalidation.
+            request_data = request.model_dump(exclude_unset=True)
+            # Typed callers may rely on the model's default discriminator.
+            request_data["config"]["chart_type"] = request.config.chart_type
             validation_result = ValidationPipeline.validate_request_with_warnings(
-                request.model_dump()
+                request_data
             )
 
             if validation_result.is_valid and validation_result.request is not None:

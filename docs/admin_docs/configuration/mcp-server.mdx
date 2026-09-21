@@ -1099,6 +1099,9 @@ The callable must be cheap and in-process (consult already-loaded feature flags 
 
 The MCP Bullet plugin uses `chart_type: "bullet"` and the native ECharts
 `viz_type: "bullet"`. Its optional `dimensions` hierarchy maps to `groupby`.
+Omit `dimensions` (or use `null`) to create a single-metric Bullet without a
+breakdown. On updates, omission or `null` preserves the saved hierarchy; use
+`dimensions: []` to clear it explicitly.
 
 Dimension and metric output names are case-sensitive: quoted physical columns
 such as `Region` and `region` remain distinct. Reference lookup prefers exact
