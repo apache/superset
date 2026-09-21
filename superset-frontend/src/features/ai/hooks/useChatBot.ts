@@ -93,8 +93,9 @@ const MAX_TAB_NAME_LENGTH = 30;
 
 export type ChatRunStatus = 'running' | 'cancelling';
 
-/** Shared empty list, so a render with no steps yet keeps a stable identity. */
+/** Shared empty lists keep effect dependencies stable while a chat is empty. */
 const EMPTY_TOOL_CALLS: AiToolCall[] = [];
+const EMPTY_MESSAGES: ChatMessageWithMeta[] = [];
 
 interface ActiveChatRun {
   requestId: string;
@@ -382,7 +383,7 @@ export const useChatBot = (): UseChatBotReturn => {
   );
 
   const activeTab = chatTabs.find(tab => tab.id === activeTabId);
-  const messages = activeTab?.messages ?? [];
+  const messages = activeTab?.messages ?? EMPTY_MESSAGES;
 
   const activeRun = activeRunsByTab[activeTabId];
   const isLoading = Boolean(activeRun);
