@@ -265,22 +265,25 @@ test('sticky table paints once it gains a box, when first rendered inside a hidd
   host.style.display = 'none';
   document.body.append(host);
 
-  render(<StickyTableHarness />, { container: host });
+  try {
+    render(<StickyTableHarness />, { container: host });
 
-  expect(visibleDataCellCount(host)).toBe(0);
+    expect(visibleDataCellCount(host)).toBe(0);
 
-  // Switching to the tab gives the chart a real box. Neither `maxWidth`,
-  // `maxHeight`, `setStickyState` nor the scrollbar size changes, so without
-  // the ResizeObserver the sticky layout is never recomputed and the chart
-  // stays blank until it is force-refreshed or the window is resized.
-  host.style.display = '';
-  act(() => {
-    resizeObserver.trigger();
-  });
+    // Switching to the tab gives the chart a real box. Neither `maxWidth`,
+    // `maxHeight`, `setStickyState` nor the scrollbar size changes, so
+    // without the ResizeObserver the sticky layout is never recomputed and
+    // the chart stays blank until it is force-refreshed or the window is
+    // resized.
+    host.style.display = '';
+    act(() => {
+      resizeObserver.trigger();
+    });
 
-  expect(visibleDataCellCount(host)).toBe(data.length * columns.length);
-
-  host.remove();
-  resizeObserver.restore();
-  jest.restoreAllMocks();
+    expect(visibleDataCellCount(host)).toBe(data.length * columns.length);
+  } finally {
+    host.remove();
+    resizeObserver.restore();
+    jest.restoreAllMocks();
+  }
 });
