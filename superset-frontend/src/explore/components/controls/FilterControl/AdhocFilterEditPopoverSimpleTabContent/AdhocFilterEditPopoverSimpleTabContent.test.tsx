@@ -454,6 +454,47 @@ test('passes the new adhocFilter to onChange after onComparatorChange', () => {
   ).toEqual(simpleAdhocFilter.duplicateWith({ comparator: '20' }));
 });
 
+test('editing a dashboard-inherited time range filter clears isExtra so the new value is kept on save', () => {
+  const inheritedTimeFilter = new AdhocFilter({
+    expressionType: ExpressionTypes.Simple,
+    subject: 'ds',
+    operator: Operators.TemporalRange,
+    comparator: '2024-01-01 : 2024-02-01',
+    clause: Clauses.Where,
+    isExtra: true,
+  });
+  const props = setup({ adhocFilter: inheritedTimeFilter });
+  const { onDatePickerChange } = useSimpleTabFilterProps(
+    props as unknown as Props,
+  );
+  onDatePickerChange('ds', '2025-01-01 : 2025-02-01');
+  const editedFilter =
+    props.onChange.mock.calls[props.onChange.mock.calls.length - 1][0];
+  expect(editedFilter.comparator).toEqual('2025-01-01 : 2025-02-01');
+  expect(editedFilter.isExtra).toBe(false);
+});
+
+test('editing a dashboard-inherited filter comparator clears isExtra so the new value is kept on save', () => {
+  const inheritedFilter = new AdhocFilter({
+    expressionType: ExpressionTypes.Simple,
+    subject: 'value',
+    operatorId: Operators.GreaterThan,
+    operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.GreaterThan].operation,
+    comparator: '10',
+    clause: Clauses.Where,
+    isExtra: true,
+  });
+  const props = setup({ adhocFilter: inheritedFilter });
+  const { onComparatorChange } = useSimpleTabFilterProps(
+    props as unknown as Props,
+  );
+  onComparatorChange('20');
+  const editedFilter =
+    props.onChange.mock.calls[props.onChange.mock.calls.length - 1][0];
+  expect(editedFilter.comparator).toEqual('20');
+  expect(editedFilter.isExtra).toBe(false);
+});
+
 test('will filter operators for table datasources', () => {
   const props = setup({ datasource: { type: 'table' as const } });
   const { isOperatorRelevant } = useSimpleTabFilterProps(
@@ -1296,4 +1337,56 @@ test('drops the note once suggestions load again', async () => {
     await screen.findByTitle('alpha', {}, { timeout: 3000 }),
   ).toBeInTheDocument();
   expect(screen.queryByText(SUGGESTIONS_UNAVAILABLE)).not.toBeInTheDocument();
+});
+
+test('Filter subject lists and commits an expression-less Cube dimension', async () => {
+  const semanticDimensions = [
+    {
+      column_name: 'order_date',
+      verbose_name: 'Order Date',
+      type: 'TIMESTAMP',
+      expression: null,
+      id: 10,
+    },
+    {
+      column_name: 'category',
+      verbose_name: 'Product Category',
+      type: 'VARCHAR(255)',
+      expression: null,
+      id: 11,
+    },
+  ];
+  const props = setup({
+    options: semanticDimensions,
+    datasource: {
+      ...TestDataset,
+      type: 'semantic_view',
+      semantic_view_features: [],
+      columns: semanticDimensions,
+      filter_select: false,
+    },
+  });
+
+  const subjectSelect = screen.getByRole('combobox', {
+    name: 'Select subject',
+  });
+  userEvent.click(subjectSelect);
+
+  const dropdown = await waitFor(() => {
+    const list = document.querySelector(
+      '.ant-select-dropdown-list',
+    ) as HTMLElement;
+    if (!list) throw new Error('dropdown not open');
+    return list;
+  });
+  expect(within(dropdown).getByText('Order Date')).toBeInTheDocument();
+  expect(within(dropdown).getByText('Product Category')).toBeInTheDocument();
+
+  userEvent.click(within(dropdown).getByText('Product Category'));
+
+  await waitFor(() => {
+    expect(props.onChange).toHaveBeenCalledWith(
+      expect.objectContaining({ subject: 'category' }),
+    );
+  });
 });

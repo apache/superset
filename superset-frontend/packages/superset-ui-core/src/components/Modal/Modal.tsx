@@ -234,6 +234,29 @@ const defaultResizableConfig = (hideFooter: boolean | undefined) => ({
   },
 });
 
+/** Merge caller overrides without dropping default resize-handle guards. */
+export function mergeResizableConfig(
+  hideFooter: boolean | undefined,
+  overrides: ModalProps['resizableConfig'] = {},
+): NonNullable<ModalProps['resizableConfig']> {
+  const defaults = defaultResizableConfig(hideFooter);
+  if (!overrides || Object.keys(overrides).length === 0) {
+    return defaults;
+  }
+  const { enable: enableOverride, ...restOverrides } = overrides;
+  return {
+    ...defaults,
+    ...restOverrides,
+    enable:
+      enableOverride === false
+        ? false
+        : {
+            ...defaults.enable,
+            ...(typeof enableOverride === 'object' ? enableOverride : {}),
+          },
+  };
+}
+
 const CustomModal = ({
   children,
   disablePrimaryButton = false,
@@ -358,21 +381,10 @@ const CustomModal = ({
     setBounds(getViewportBounds(uiData?.x ?? 0, uiData?.y ?? 0));
   };
 
-  const getResizableConfig = useMemo(() => {
-    const defaults = defaultResizableConfig(hideFooter);
-    if (Object.keys(resizableConfig).length === 0) {
-      return defaults;
-    }
-    return {
-      ...defaults,
-      ...resizableConfig,
-      // Preserve default enable handles unless the caller explicitly overrides them.
-      // Without this, callers that only set minHeight/minWidth/defaultSize would
-      // silently enable all resize handles (top, left, topLeft, etc.) because
-      // re-resizable enables all handles when no enable key is provided.
-      enable: resizableConfig.enable ?? defaults.enable,
-    };
-  }, [hideFooter, resizableConfig]);
+  const getResizableConfig = useMemo(
+    () => mergeResizableConfig(hideFooter, resizableConfig),
+    [hideFooter, resizableConfig],
+  );
 
   const ModalTitle = () =>
     draggable ? <div className="draggable-trigger">{title}</div> : <>{title}</>;

@@ -767,6 +767,12 @@ def _get_table_chart_totals_metrics(
 class MigrateTableChart(MigrateViz):
     source_viz_type = "table"
     target_viz_type = "ag-grid-table"
+    # Table V2 is still `IN DEVELOPMENT`, gated behind AG_GRID_TABLE_ENABLED.
+    # Without this, importing any `table` chart (e.g. `load_examples` on a
+    # fresh install with the flag at its default False) would silently turn
+    # it into an ag-grid-table chart the frontend can't render at all: "Item
+    # with key ag-grid-table is not registered."
+    requires_feature_flag = "AG_GRID_TABLE_ENABLED"
     # allow_rearrange_columns/allow_render_html are kept as-is: v2 reads them
     # under the same names (see rename_keys below), so nothing to remove.
     # (allow_rearrange_columns still gets a value materialized in
@@ -798,6 +804,14 @@ class MigrateTableChart(MigrateViz):
         # default for its own pre-existing charts.
         if "allow_rearrange_columns" not in self.data:
             self.data["allow_rearrange_columns"] = False
+
+        # v1's TableChart always renders with Bootstrap-style zebra
+        # striping ("table-striped") -- there's no control for it, it's
+        # unconditional. v2's zebra_striping control defaults new charts to
+        # False (matching v2's own subtle-by-default look), so a migrated
+        # chart needs this materialized explicitly to keep its original
+        # striped appearance rather than silently losing it.
+        self.data["zebra_striping"] = True
 
     def _build_aggregate_mode_query(
         self, base_query_object: dict[str, Any], time_offsets: list[Any]

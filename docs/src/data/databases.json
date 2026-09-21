@@ -2172,8 +2172,8 @@
       "where_latest_partition": false,
       "expand_data": false,
       "query_cost_estimation": true,
-      "sql_validation": true,
-      "score": 104,
+      "sql_validation": false,
+      "score": 94,
       "max_score": 201,
       "documentation": {
         "description": "PostgreSQL is an advanced open-source relational database.",
@@ -2395,8 +2395,8 @@
       "where_latest_partition": false,
       "expand_data": false,
       "query_cost_estimation": true,
-      "sql_validation": true,
-      "score": 104,
+      "sql_validation": false,
+      "score": 94,
       "max_score": 201,
       "documentation": {
         "description": "PostgreSQL is an advanced open-source relational database.",
@@ -6807,8 +6807,8 @@
       "where_latest_partition": false,
       "expand_data": false,
       "query_cost_estimation": true,
-      "sql_validation": true,
-      "score": 104,
+      "sql_validation": false,
+      "score": 94,
       "max_score": 201,
       "documentation": {
         "description": "PostgreSQL is an advanced open-source relational database.",
@@ -7121,6 +7121,7 @@
         "categories": ["Query Engines", "Open Source"],
         "pypi_packages": ["pyhive"],
         "install_instructions": "pip install \"apache-superset[presto]\"",
+        "version_requirements": "PyHive 0.7.0 or later is required for SQLAlchemy 2. PyHive 0.6.5 imports the removed sqlalchemy.databases module.",
         "connection_string": "presto://{hostname}:{port}/{database}",
         "default_port": 8080,
         "parameters": {
