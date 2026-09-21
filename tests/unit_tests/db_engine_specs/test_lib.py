@@ -35,14 +35,22 @@ def get_shipped_validator_engines() -> set[str]:
     matrix describes the shipped default, not one deployment's overrides.
     """
     module = ast.parse(CONFIG_PY.read_text(encoding="utf-8"))
+    targets: list[ast.expr]
     for node in module.body:
-        if not isinstance(node, ast.Assign):
+        # An annotated assignment has a single target, a plain one may have
+        # several; accept both so adding a type annotation in config.py does
+        # not read as a missing setting.
+        if isinstance(node, ast.AnnAssign):
+            targets, value = [node.target], node.value
+        elif isinstance(node, ast.Assign):
+            targets, value = node.targets, node.value
+        else:
             continue
-        if any(
+        if value is not None and any(
             isinstance(target, ast.Name) and target.id == "SQL_VALIDATORS_BY_ENGINE"
-            for target in node.targets
+            for target in targets
         ):
-            return set(ast.literal_eval(node.value))
+            return set(ast.literal_eval(value))
     raise AssertionError(f"No SQL_VALIDATORS_BY_ENGINE assignment in {CONFIG_PY}")
 
 
