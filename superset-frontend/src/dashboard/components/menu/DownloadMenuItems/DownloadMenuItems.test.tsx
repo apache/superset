@@ -845,3 +845,34 @@ test('unmounting removes the download iframe', async () => {
 
   expect(downloadFrames()).toHaveLength(0);
 });
+
+test('unmounting while the export POST is in flight suppresses its follow-up', async () => {
+  // Cleanup has already run by the time the POST settles, so a toast would
+  // land on another page and the poll timer would be untracked.
+  jest.useFakeTimers();
+  let settlePost: (value: unknown) => void = () => {};
+  mockSupersetClient.post.mockReturnValue(
+    new Promise(resolve => {
+      settlePost = resolve;
+    }) as never,
+  );
+
+  const { unmount } = render(<MenuWrapper />, {
+    useRedux: true,
+    initialState: loggedInState,
+  });
+  await clickMenuItem('Export Data to Excel');
+  await waitFor(() => expect(mockSupersetClient.post).toHaveBeenCalled());
+
+  unmount();
+  await act(async () => {
+    settlePost({ json: { job_id: 'abc' } });
+  });
+
+  expect(mockAddInfoToast).not.toHaveBeenCalled();
+
+  await act(async () => {
+    jest.advanceTimersByTime(30000);
+  });
+  expect(mockSupersetClient.get).not.toHaveBeenCalled();
+});

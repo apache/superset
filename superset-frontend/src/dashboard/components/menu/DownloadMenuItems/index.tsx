@@ -226,9 +226,8 @@ export const useDownloadMenuItems = (
     iframe.style.display = 'none';
     iframe.src = downloadUrl;
     document.body.appendChild(iframe);
-    // Removing the iframe before the response commits cancels the request, and
-    // time to first byte is unbounded (slow storage, busy web server), so hold
-    // it until unmount rather than racing a timer against the download.
+    // Removing it before the response commits cancels the download, and time
+    // to first byte is unbounded, so hold it until unmount.
     downloadFramesRef.current.push(iframe);
   };
 
@@ -311,6 +310,10 @@ export const useDownloadMenuItems = (
         endpoint: `/api/v1/dashboard/${dashboardId}/export_xlsx/`,
         jsonPayload: { active_data_mask: buildActiveDataMask(), mode },
       });
+      // Settled after unmount: the timer would be untracked, the toast stray.
+      if (unmountedRef.current) {
+        return;
+      }
       // The throttle response (an export is already running) returns 202 with a
       // message but no job_id; only a freshly enqueued job carries a job_id.
       const jobId = (json as { job_id?: string })?.job_id;
@@ -335,6 +338,9 @@ export const useDownloadMenuItems = (
       const { status } = (await getClientErrorObject(error)) as {
         status?: number;
       };
+      if (unmountedRef.current) {
+        return;
+      }
       if (status === 501) {
         addDangerToast(t('Excel export is not configured on this server.'));
       } else {
