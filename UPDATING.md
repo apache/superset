@@ -24,6 +24,15 @@ assists people when migrating to a new version.
 
 ## Next
 
+- Semantic-view chart and dashboard bundles use typed UUID references and require
+  a destination with support for this format and an already provisioned, accessible
+  view with the same UUID. They do not provision semantic layers/views or export
+  their configuration or credentials. Older readers cannot import these semantic
+  bundles. Export and import fail explicitly if a semantic dependency is missing,
+  inaccessible, feature-disabled or provider-unregistered; ordinary table bundles
+  retain their existing format. The examples loader rejects semantic bundles;
+  use the chart, dashboard or assets importer instead.
+
 ### Scheduled report and alert retry admission
 
 Run `superset db upgrade` before starting workers with this version. The migration

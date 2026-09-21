@@ -150,6 +150,7 @@ from superset.security.manager import (
     get_extra_editor_subject_ids,
     get_extra_editors_by_pk,
 )
+from superset.semantic_layers.import_export import SemanticReferenceError
 from superset.subjects.filters import (
     FilterRelatedSubjects,
     subject_type_filter,
@@ -1639,6 +1640,8 @@ class DashboardRestApi(
                         fp.write(file_content().encode())
             except DashboardNotFoundError:
                 return self.response_404()
+            except SemanticReferenceError as ex:
+                return self.response(ex.status, message=ex.message)
         buf.seek(0)
 
         return send_export_zip(buf, filename)

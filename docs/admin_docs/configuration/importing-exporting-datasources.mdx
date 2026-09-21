@@ -112,6 +112,28 @@ When importing a dashboard ZIP with the **overwrite** option enabled, any existi
 
 If you import without the overwrite flag, existing charts with conflicting UUIDs are left unchanged and the import skips those objects. Use overwrite when you want to push a fully updated dashboard (including chart definitions) from a development or staging environment to production.
 
+## Charts and dashboards using semantic views
+
+Semantic charts and dashboard filter/display-control targets can be restored against
+an **existing semantic view with the same UUID**. The destination must enable
+`SEMANTIC_LAYERS`, register the view's provider, and grant the importing user access
+to the view or its parent semantic layer, in addition to the usual asset import
+permissions. Missing, inaccessible or disabled dependencies fail the import rather
+than producing a partially imported bundle.
+
+Chart bundles identify these sources with `datasource_ref: {type: semantic_view,
+uuid: <view-uuid>}`. Dashboard targets use `datasourceRef` with the same shape.
+Import resolves the UUID and rewrites local datasource IDs; it never substitutes a
+table with the same numeric ID. Ordinary table bundles retain `dataset_uuid`.
+Older Superset readers that do not support semantic references cannot import these
+semantic bundles.
+
+This is **reference restoration, not semantic-layer provisioning**. Bundles do not
+include semantic-layer/view configuration or credentials, and importing does not
+create provider connections or views, or contact providers. Provision the matching
+view and access grants separately before importing. Full cross-workspace semantic
+provisioning is outside this workflow.
+
 ## UUIDs in API Responses
 
 The REST API POST endpoints for **datasets**, **charts**, and **dashboards** include the auto-generated `uuid` field in the response body:

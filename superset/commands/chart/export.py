@@ -31,6 +31,7 @@ from superset.commands.export.models import (
 )
 from superset.commands.tag.export import ExportTagsCommand
 from superset.models.slice import Slice
+from superset.semantic_layers.import_export import export_view_reference
 from superset.tags.models import TagType
 from superset.utils.dict_import_export import EXPORT_VERSION
 from superset.utils.file import get_filename
@@ -74,7 +75,9 @@ class ExportChartsCommand(ExportModelsCommand):
                 logger.info("Unable to decode `params` field: %s", payload["params"])
 
         payload["version"] = EXPORT_VERSION
-        if model.table:
+        if model.datasource_type == "semantic_view":
+            payload["datasource_ref"] = export_view_reference(model.semantic_view)
+        elif model.table:
             payload["dataset_uuid"] = str(model.table.uuid)
 
         # Fetch tags from the database if TAGGING_SYSTEM is enabled
