@@ -16,6 +16,11 @@ Superset ships **no model provider and talks to no model vendor by default**.
 The feature is disabled, and even when enabled it returns `404` until you point
 it at a provider you control. Nothing is sent anywhere until you configure it.
 
+Deleting the last conversation leaves an empty panel with opening suggestions;
+use **New Chat** to start another conversation. If the conversation list cannot
+be loaded or its initial conversation cannot be created, the panel shows the
+error and still lets you create a new conversation.
+
 ## Enabling it
 
 Two things are required: the feature flag, and a provider.
