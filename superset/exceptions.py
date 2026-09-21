@@ -469,6 +469,29 @@ class SupersetDisallowedSQLTableException(SupersetErrorException):
         )
 
 
+class SupersetDisallowedClientFileTransferException(SupersetErrorException):
+    """
+    Client-side file-transfer statement found in a user-submitted SQL script.
+
+    ``PUT``/``GET``/``REMOVE`` and similar commands move files between the
+    client host and a remote stage rather than querying the database, so they
+    are not valid analytics statements and are rejected in query execution.
+    """
+
+    def __init__(self, commands: set[str]):
+        super().__init__(
+            SupersetError(
+                message=_(
+                    "SQL statement contains client-side file-transfer "
+                    "command(s) that are not allowed: %(commands)s",
+                    commands=", ".join(sorted(commands)),
+                ),
+                error_type=SupersetErrorType.SYNTAX_ERROR,
+                level=ErrorLevel.ERROR,
+            )
+        )
+
+
 class AcquireDistributedLockFailedException(Exception):  # noqa: N818
     """
     Exception to signalize failure to acquire lock.

@@ -2045,6 +2045,49 @@ def test_is_mutating_fails_closed_on_gate_blind_spots(sql: str, engine: str) -> 
 @pytest.mark.parametrize(
     "sql, expected",
     [
+        ("PUT file:///tmp/data.csv @my_stage", "PUT"),
+        ("GET @my_stage file:///tmp/", "GET"),
+        ("REMOVE @my_stage/path", "REMOVE"),
+        # ``RM`` is a documented alias of ``REMOVE``.
+        ("RM @my_stage/path", "RM"),
+        # The head keyword is matched case-insensitively.
+        ("put file:///tmp/data.csv @my_stage", "PUT"),
+        # Ordinary analytics statements are not file-transfer commands.
+        ("SELECT 1", None),
+        ("INSERT INTO t VALUES (1)", None),
+        # ``LIST``/``LS`` only enumerate staged files (a read), so they are
+        # intentionally not treated as file-transfer commands here.
+        ("LIST @my_stage", None),
+    ],
+)
+def test_get_client_file_transfer_command(sql: str, expected: str | None) -> None:
+    """
+    `get_client_file_transfer_command` returns the command head for Snowflake
+    client-side file-transfer statements and ``None`` for anything else.
+    """
+    assert SQLStatement(sql, "snowflake").get_client_file_transfer_command() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, expected",
+    [
+        ("PUT file:///tmp/data.csv @my_stage", {"PUT"}),
+        ("SELECT 1; GET @my_stage file:///tmp/", {"GET"}),
+        ("PUT file:///a @s; REMOVE @s/b", {"PUT", "REMOVE"}),
+        ("SELECT 1", set()),
+    ],
+)
+def test_get_client_file_transfer_commands_script(sql: str, expected: set[str]) -> None:
+    """
+    `SQLScript.get_client_file_transfer_commands` collects every file-transfer
+    command head across the statements in a multi-statement script.
+    """
+    assert SQLScript(sql, "snowflake").get_client_file_transfer_commands() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, expected",
+    [
         (
             """
 DO $$

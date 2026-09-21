@@ -641,6 +641,21 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
         """
         raise NotImplementedError()
 
+    def get_client_file_transfer_command(self) -> str | None:
+        """
+        Return the client-side file-transfer command head, if this is one.
+
+        Statements such as Snowflake's ``PUT``/``GET``/``REMOVE`` move files
+        between the client host running the query and a remote stage, driving
+        file I/O on that host rather than reading or writing data in the
+        database. They are not analytics queries. Engines that expose such
+        statements override this; by default a statement is not one.
+
+        :return: The uppercased command head (e.g. ``"PUT"``) when the
+            statement is a client-side file-transfer command, else ``None``
+        """
+        return None
+
     def optimize(self) -> BaseSQLStatement[InternalRepresentation]:
         """
         Return optimized statement.
@@ -970,6 +985,22 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             # read-only gate. Gating information-disclosure reads such as
             # `SHOW server_version` belongs in a denylist (DISALLOWED_SQL_FUNCTIONS
             # already blocks version()/pg_read_file), not in the mutation check.
+        }
+    )
+
+    # Command-fallback heads for client-side file-transfer statements. These
+    # move files between the client host running the query and a remote stage
+    # (Snowflake ``PUT`` uploads a local file, ``GET`` downloads to a local
+    # path, ``REMOVE``/its ``RM`` alias delete staged files), so they perform
+    # file I/O on the host rather than reading or writing table data. sqlglot
+    # has no structured node for any of them, so every form falls back to an
+    # opaque ``exp.Command`` with one of these heads.
+    _CLIENT_FILE_TRANSFER_COMMAND_NAMES: frozenset[str] = frozenset(
+        {
+            "PUT",
+            "GET",
+            "REMOVE",
+            "RM",
         }
     )
 
@@ -1356,6 +1387,23 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
                 return inner
 
         return False
+
+    def get_client_file_transfer_command(self) -> str | None:
+        """
+        Return the client-side file-transfer command head, if this is one.
+
+        ``PUT``/``GET``/``REMOVE`` (and the ``RM`` alias) have no structured
+        sqlglot node and fall back to an opaque ``exp.Command`` whose head
+        keyword identifies them. The head is matched case-insensitively via
+        :meth:`_command_head`.
+
+        :return: The uppercased command head when the statement is a
+            client-side file-transfer command, otherwise ``None``
+        """
+        head = self._command_head()
+        if head in self._CLIENT_FILE_TRANSFER_COMMAND_NAMES:
+            return head
+        return None
 
     def is_destructive(self) -> bool:
         """
@@ -2452,6 +2500,23 @@ class SQLScript:
         :return: True if the script contains mutating statements
         """
         return any(statement.is_mutating() for statement in self.statements)
+
+    def get_client_file_transfer_commands(self) -> set[str]:
+        """
+        Return the client-side file-transfer command heads in the script.
+
+        These statements (e.g. ``PUT``/``GET``/``REMOVE``) drive file I/O on
+        the client host running the query rather than reading or writing data
+        in the database, so callers reject them in user-driven query
+        execution.
+
+        :return: The set of uppercased command heads found (empty when none)
+        """
+        return {
+            command
+            for statement in self.statements
+            if (command := statement.get_client_file_transfer_command()) is not None
+        }
 
     def has_destructive(self) -> bool:
         """

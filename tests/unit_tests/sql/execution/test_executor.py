@@ -244,6 +244,67 @@ def test_execute_delete_without_permission(
 
 
 # =============================================================================
+# Client-side file-transfer statement tests
+# =============================================================================
+
+
+@pytest.mark.parametrize("allow_dml", [False, True])
+@pytest.mark.parametrize(
+    "sql",
+    [
+        "PUT file:///tmp/data.csv @my_stage",
+        "GET @my_stage file:///tmp/",
+        "REMOVE @my_stage/path",
+        "SELECT 1; PUT file:///tmp/data.csv @my_stage",
+    ],
+)
+def test_check_security_rejects_client_file_transfer(
+    mocker: MockerFixture, app_context: None, sql: str, allow_dml: bool
+) -> None:
+    """
+    Client-side file-transfer statements are rejected regardless of the
+    ``allow_dml`` setting: they perform host file I/O, not analytics.
+    """
+    from superset.exceptions import SupersetSecurityException
+    from superset.sql.execution.executor import SQLExecutor
+    from superset.sql.parse import SQLScript
+
+    mocker.patch.dict(
+        current_app.config,
+        {"DISALLOWED_SQL_FUNCTIONS": {}, "DISALLOWED_SQL_TABLES": {}},
+    )
+
+    mock_db = MagicMock()
+    mock_db.allow_dml = allow_dml
+    mock_db.db_engine_spec.engine = "snowflake"
+
+    executor = SQLExecutor(mock_db)
+    script = SQLScript(sql, "snowflake")
+
+    with pytest.raises(SupersetSecurityException, match="file-transfer"):
+        executor._check_security(script)
+
+
+def test_check_security_allows_select(mocker: MockerFixture, app_context: None) -> None:
+    """A normal SELECT is unaffected by the file-transfer check."""
+    from superset.sql.execution.executor import SQLExecutor
+    from superset.sql.parse import SQLScript
+
+    mocker.patch.dict(
+        current_app.config,
+        {"DISALLOWED_SQL_FUNCTIONS": {}, "DISALLOWED_SQL_TABLES": {}},
+    )
+
+    mock_db = MagicMock()
+    mock_db.allow_dml = False
+    mock_db.db_engine_spec.engine = "snowflake"
+
+    executor = SQLExecutor(mock_db)
+    # Should not raise.
+    executor._check_security(SQLScript("SELECT 1", "snowflake"))
+
+
+# =============================================================================
 # Jinja2 Template Rendering Tests
 # =============================================================================
 
