@@ -128,6 +128,22 @@ but under `-lean` tags: `latest-lean`, `master-lean`, `5.0.0-lean`, `<sha>-lean`
   drivers most installations need are now present out of the box.
 - The `-dev` images (`latest-dev`, `master-dev`, …) are unchanged.
 
+### Docker image publishing now excludes standalone `websocket` and `dockerize` images
+
+The Apache Superset Docker Hub repository no longer publishes standalone
+`apache/superset:*websocket` or `apache/superset:*dockerize` image tags. The
+realtime WebSocket server is bundled in the `superset`, `lean`, and `dev` images
+and can be launched with `/app/docker/entrypoints/run-websocket.sh`. Helm init
+containers use the main Superset image for dependency checks.
+
+After this policy is cherry-picked into each active release branch, its pushes
+will validate the Docker build locally instead of publishing Docker Hub images
+or cache layers. Until then, those branches retain their previous publishing
+behavior. Official release tags (`X.Y.Z`, `latest`, and
+their preset variants) are published only by the release workflow after release
+manager sign-off. The scheduled release-image refresh workflow was removed, so
+official release tag digests are not overwritten outside release publishing.
+
 ### Report capture readiness is rechecked immediately before screenshots
 
 Scheduled report and alert captures require chart readiness to remain stable
@@ -569,6 +585,7 @@ the old counter to use the outcome-specific replacements.
 - [42393](https://github.com/apache/superset/pull/42393): Exported dataset YAML now carries a `uuid` for each metric and column so that custom folder assignments (which reference metrics/columns by UUID) survive an import into another workspace. This affects any export bundle that contains datasets, not just a dataset export: chart, dashboard, database and full-asset exports all embed the same dataset YAML, so a dashboard exported from this release also fails to import into an older one even though no dataset was exported directly. As with `folders` and `currency_code_column`, the affected `datasets/` files fail schema validation (`Unknown field: uuid`) when imported into Superset releases that predate this change; regenerate or hand-edit exports for older targets in mixed-version fleets.
 - [42300](https://github.com/apache/superset/pull/42300): Timeseries charts (line/area/bar) with a Y-axis bound in effect — either an explicit `yAxisBounds` or one derived from `truncateYAxis` — now clamp out-of-range data points to that bound instead of letting ECharts drop the point (and the line segments around it) entirely. Any existing chart with a configured Y-axis bound and data outside it will look different after upgrading: a gap becomes a point pinned to the boundary. The clamp also rewrites the value ECharts reads for that point's tooltip and data label, so the displayed value is the bound rather than the true observation.
 - [42087](https://github.com/apache/superset/pull/42087): Stored calculated-column and metric expressions are validated when a query is built, under the same sub-query policy already applied to adhoc expressions. Previously only the dataset update path checked them on save, so expressions written by v1 import, by dataset duplication, or before that check existed were never validated. Since `ALLOW_ADHOC_SUBQUERY` defaults to `False` (see [19242](https://github.com/apache/superset/pull/19242)), a dataset whose stored expression contains a sub-query works before upgrading and afterwards fails at chart render with `Custom SQL fields cannot contain sub-queries.` There is no migration step, and the error does not name the offending dataset column, so audit stored expressions before upgrading: either rewrite them without the sub-query, or set `ALLOW_ADHOC_SUBQUERY = True` to keep the previous behaviour for both stored and adhoc expressions.
+- [43020](https://github.com/apache/superset/pull/43020): The PostgreSQL SQL Lab query validator (`PostgreSQLValidator`) has been removed, along with its default `SQL_VALIDATORS_BY_ENGINE` mapping and the `pgsanity` dependency. It shelled out to the external `ecpg` binary, which had to be present in the runtime image and behaved differently across `ecpg`/PostgreSQL versions. PostgreSQL databases no longer get live syntax annotations in SQL Lab; syntax errors surface when the query is run. `PrestoDBSQLValidator` and `SQLiteSQLValidator` are unaffected. A deployment that explicitly sets `SQL_VALIDATORS_BY_ENGINE` with a `"postgresql": "PostgreSQLValidator"` entry must drop that entry, otherwise validation requests for those databases fail with `No validator named PostgreSQLValidator found`.
 
 ### Selenium support removed — Playwright is now required for screenshots
 

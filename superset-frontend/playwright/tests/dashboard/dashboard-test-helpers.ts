@@ -147,6 +147,16 @@ interface SelectFilterOptions {
    * the initial chart-data request, an unset one is not.
    */
   defaultValue?: string;
+  /**
+   * Ids of filters this one cascades from — its options narrow to whatever the
+   * parent filter(s) currently scope. Omit for a top-level filter.
+   */
+  cascadeParentIds?: string[];
+  /**
+   * Auto-select the first option whenever the scoped option set changes
+   * (e.g. after a parent filter narrows it). Default: false.
+   */
+  defaultToFirstItem?: boolean;
 }
 
 /**
@@ -157,7 +167,15 @@ interface SelectFilterOptions {
 export function buildSelectFilter(
   options: SelectFilterOptions,
 ): NativeFilterConfig {
-  const { datasetId, column, chartsInScope, name, defaultValue } = options;
+  const {
+    datasetId,
+    column,
+    chartsInScope,
+    name,
+    defaultValue,
+    cascadeParentIds,
+    defaultToFirstItem,
+  } = options;
   return {
     id: `NATIVE_FILTER-${Math.random().toString(36).slice(2, 10)}`,
     name: name ?? column,
@@ -167,7 +185,7 @@ export function buildSelectFilter(
     controlValues: {
       multiSelect: false,
       enableEmptyFilter: false,
-      defaultToFirstItem: false,
+      defaultToFirstItem: defaultToFirstItem ?? false,
       inverseSelection: false,
       searchAllOptions: false,
     },
@@ -180,7 +198,7 @@ export function buildSelectFilter(
               filters: [{ col: column, op: 'IN', val: [defaultValue] }],
             },
           },
-    cascadeParentIds: [],
+    cascadeParentIds: cascadeParentIds ?? [],
     scope: ROOT_SCOPE,
     chartsInScope,
   };
