@@ -119,7 +119,7 @@ export default function PluginFilterTimegrain(
     );
 
     const allowlist =
-      dashboardTimeGrainAllowlist?.length > 0
+      dashboardTimeGrainAllowlist && dashboardTimeGrainAllowlist.length > 0
         ? dashboardTimeGrainAllowlist
         : formData.timeGrains;
 
