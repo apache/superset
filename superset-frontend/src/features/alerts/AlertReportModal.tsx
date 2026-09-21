@@ -2764,7 +2764,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 </>
               ),
             },
-            ...(isReport && isFeatureEnabled(FeatureFlag.AlertReportsRetry)
+            ...(isFeatureEnabled(FeatureFlag.AlertReportsRetry)
               ? [
                   {
                     key: 'error-handling',
@@ -2772,7 +2772,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                       <CollapseLabelInModal
                         title={t('Error handling')}
                         subtitle={t(
-                          'Configure retry behavior on delivery failure.',
+                          'Configure retries when alert or report generation fails before delivery.',
                         )}
                         testId="error-handling-panel"
                       />
@@ -2804,7 +2804,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                           </div>
                           <InfoTooltip
                             tooltip={t(
-                              'Automatically retry sending the report when delivery fails.',
+                              'Retry generation failures before delivery starts. Alerts re-check their condition on each attempt. Delivery failures are not replayed.',
                             )}
                           />
                         </StyledSwitchContainer>
