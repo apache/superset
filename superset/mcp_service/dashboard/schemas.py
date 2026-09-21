@@ -117,6 +117,7 @@ from superset.mcp_service.utils.sanitization import (
     sanitize_user_input,
     sanitize_user_input_with_changes,
 )
+from superset.mcp_service.utils.serialization import JsonSafeRows, OptionalRowCount
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils.core import DatasourceType
 from superset.utils.json import loads as json_loads
@@ -2907,11 +2908,11 @@ class DashboardChartQueryData(BaseModel):
 
     query_index: int = Field(..., description="Zero-based query position")
     columns: list[str] = Field(default_factory=list, description="Result column names")
-    sample_data: list[dict[str, Any]] = Field(
+    sample_data: JsonSafeRows = Field(
         default_factory=list, description="A few example data rows"
     )
-    row_count: int | None = Field(None, description="Rows returned by this query")
-    total_rows: int | None = Field(
+    row_count: OptionalRowCount = Field(None, description="Rows returned by this query")
+    total_rows: OptionalRowCount = Field(
         None, description="Total rows available for this query when known"
     )
     truncated: bool = Field(
@@ -2926,11 +2927,11 @@ class DashboardChartData(BaseModel):
     chart_name: str = Field(..., description="Chart name")
     chart_type: str = Field(..., description="Chart viz type")
     columns: list[str] = Field(default_factory=list, description="Result column names")
-    sample_data: list[dict[str, Any]] = Field(
+    sample_data: JsonSafeRows = Field(
         default_factory=list, description="A few example data rows"
     )
-    row_count: int | None = Field(None, description="Rows returned by the query")
-    total_rows: int | None = Field(
+    row_count: OptionalRowCount = Field(None, description="Rows returned by the query")
+    total_rows: OptionalRowCount = Field(
         None,
         description=(
             "Total rows available when known; null when the fetch was capped with "
