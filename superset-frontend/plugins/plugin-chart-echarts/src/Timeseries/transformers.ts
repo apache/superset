@@ -314,6 +314,21 @@ function createAutoBarLabelLayout(
   };
 }
 
+/** Suppress the value label on a bar segment too small to legibly display
+ * one at any position, without repositioning anything: manual label
+ * placements keep their configured spot, and only the legibility floor
+ * already applied to the Auto position carries over. */
+function createBarLabelLegibilityFloorLayout(
+  isHorizontal: boolean,
+): LabelLayoutOptionCallback {
+  return params => {
+    const segmentSize = isHorizontal
+      ? Math.abs(params.rect.width)
+      : Math.abs(params.rect.height);
+    return segmentSize < MIN_LABEL_SEGMENT_SIZE_PX ? HIDDEN_LABEL_LAYOUT : {};
+  };
+}
+
 /** Apply the value-end label position to a negative bar datum. */
 function transformNegativeLabel(
   dataItem: unknown,
@@ -610,7 +625,11 @@ export function transformSeries(
       ? {
           labelLayout: createAutoBarLabelLayout(transformedData, isHorizontal),
         }
-      : {}),
+      : plotType === 'bar' && showValue
+        ? {
+            labelLayout: createBarLabelLegibilityFloorLayout(isHorizontal),
+          }
+        : {}),
     label: {
       show: !!showValue,
       // An explicit labelPosition (the generic control still used by
