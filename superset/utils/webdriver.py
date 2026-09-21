@@ -30,7 +30,6 @@ from superset.extensions import machine_auth_provider_factory
 from superset.utils.report_execution import (
     CHART_HOLDER_SEMANTIC_POLICY,
     ChartHolderDiagnostics,
-    ReportArtifactKind,
     ReportExecutionContext,
     TERMINAL_CHART_HOLDER_STATES,
 )
@@ -56,6 +55,7 @@ from superset.utils.screenshot_utils import (
     STABLE_REPORT_ALL_CHART_HOLDERS_READY_JS,
     take_tiled_screenshot,
     TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS,
+    validate_report_screenshot,
     wait_for_stable_readiness,
 )
 
@@ -373,9 +373,10 @@ class WebDriverPlaywright(WebDriverProxy):
             )
             if not is_blank:
                 if blankness.is_blank:
-                    report_execution_context.approve_artifact(
+                    validate_report_screenshot(
                         image,
-                        ReportArtifactKind.SCREENSHOT,
+                        report_execution_context,
+                        content_validated=True,
                     )
                 return image
 

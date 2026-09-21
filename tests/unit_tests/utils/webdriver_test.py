@@ -16,6 +16,7 @@
 # under the License.
 
 import io
+import struct
 from dataclasses import replace
 from unittest.mock import ANY, MagicMock, patch
 from uuid import UUID
@@ -32,6 +33,7 @@ from superset.utils.report_execution import (
 from superset.utils.screenshot_utils import (
     REPORT_CAPTURE_READINESS_STABILITY_MS,
     ScreenshotBlankCaptureError,
+    validate_report_screenshot,
 )
 from superset.utils.webdriver import (
     check_playwright_availability,
@@ -205,6 +207,40 @@ class TestStandardScreenshotValidation:
         )
         page.screenshot.assert_called_once()
         page.bring_to_front.assert_not_called()
+
+    @pytest.mark.parametrize("element_name", ["standalone", "chart-container"])
+    def test_terminal_blank_capture_rejects_invalid_png_checksum(self, element_name):
+        screenshot = bytearray(_png("white"))
+        offset = 8
+        while offset < len(screenshot):
+            size = struct.unpack(">I", screenshot[offset : offset + 4])[0]
+            if screenshot[offset + 4 : offset + 8] == b"IDAT":
+                screenshot[offset + 8 + size] ^= 1
+                break
+            offset += size + 12
+        else:
+            pytest.fail("PNG contains no IDAT chunk")
+        corrupt = bytes(screenshot)
+        page, element = MagicMock(), MagicMock()
+        page.screenshot.return_value = corrupt
+        element.screenshot.return_value = corrupt
+        page.evaluate.return_value = False
+        context = _report_context()
+
+        with pytest.raises(ScreenshotBlankCaptureError):
+            WebDriverPlaywright._get_validated_screenshot(
+                page,
+                element,
+                element_name,
+                "execution_id=test",
+                context,
+            )
+        assert context.capture_rejection_reasons == ("invalid_image",)
+        assert not context.artifact_was_validated(
+            corrupt, ReportArtifactKind.SCREENSHOT
+        )
+        with pytest.raises(ScreenshotBlankCaptureError):
+            validate_report_screenshot(corrupt, context)
 
     def test_repaint_timeout_is_bounded_and_retry_continues(self):
         from superset.utils.webdriver import PlaywrightTimeout
