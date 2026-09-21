@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import { useState } from 'react';
 import { Button } from '../Button';
 import { Modal } from './Modal';
 import type { ModalProps, ModalFuncProps } from './types';
@@ -178,4 +179,75 @@ ModalFunctions.args = {
   okText: 'Test',
   maskClosable: true,
   mask: true,
+};
+
+/**
+ * Two top-level Modals that are React siblings, not nested inside one
+ * another (e.g. a "View query" modal and a confirmation dialog it can
+ * trigger, like `UnsavedChangesModal`). Ant Design only assigns an
+ * automatically-incremented z-index when a Modal is nested inside another
+ * *currently open* Modal's React tree, so two siblings always fall back to
+ * the same static z-index and are tie-broken by DOM order: whichever
+ * `.ant-modal-wrap` was inserted later paints on top.
+ *
+ * With `destroyOnHidden={false}` (Ant Design's default), a Modal's wrap
+ * node is created once, lazily, on first open, and is never removed or
+ * recreated afterward. So the modal that happens to have been opened
+ * *first ever*, not most recently, keeps winning the DOM-order tiebreak
+ * even after being closed and reopened. Toggle "Reproduce stale DOM order"
+ * off to see the fix: with `destroyOnHidden`, every open recreates the wrap
+ * node at the end of the document, so DOM order (and stacking) always
+ * matches true open-recency and no manual z-index is ever needed.
+ *
+ * To see the bug: click "Open A", close it, then "Open B", then "Open A"
+ * again -- with the toggle on, A renders behind B despite being the modal
+ * that was opened most recently.
+ */
+export const SiblingModalStacking = ({
+  reproduceStaleDomOrder,
+}: {
+  reproduceStaleDomOrder: boolean;
+}) => {
+  const [showA, setShowA] = useState(false);
+  const [showB, setShowB] = useState(false);
+  return (
+    <div>
+      <Button onClick={() => setShowA(true)} buttonStyle="secondary">
+        Open A
+      </Button>
+      <Button onClick={() => setShowB(true)} buttonStyle="secondary">
+        Open B
+      </Button>
+      <Modal
+        name="modal-a"
+        title="Modal A"
+        show={showA}
+        onHide={() => setShowA(false)}
+        destroyOnHidden={!reproduceStaleDomOrder}
+      >
+        Modal A content
+      </Modal>
+      <Modal
+        name="modal-b"
+        title="Modal B"
+        show={showB}
+        onHide={() => setShowB(false)}
+        destroyOnHidden={!reproduceStaleDomOrder}
+      >
+        Modal B content
+      </Modal>
+    </div>
+  );
+};
+
+SiblingModalStacking.args = {
+  reproduceStaleDomOrder: true,
+};
+
+SiblingModalStacking.argTypes = {
+  reproduceStaleDomOrder: {
+    control: 'boolean',
+    description:
+      'On: Ant Design default behavior, a modal opened once keeps its DOM position forever (the bug from #42510). Off: destroyOnHidden, DOM order always matches true open-recency (the fix).',
+  },
 };

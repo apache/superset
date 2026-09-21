@@ -95,7 +95,7 @@ const VizTypeControl = ({
     <>
       <div
         css={(theme: SupersetTheme) => css`
-          min-width: ${theme.sizeUnit * 72}px;
+          min-width: min(${theme.sizeUnit * 72}px, 100%);
           max-width: fit-content;
         `}
       >

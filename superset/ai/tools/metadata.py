@@ -67,8 +67,8 @@ class ListDatabasesTool(AITool):
     }
 
     def run(self, **_ignored: Any) -> ToolOutput:
+        from superset.ai.prompt_framing import sanitize_for_llm_context
         from superset.daos.database import DatabaseDAO
-        from superset.mcp_service.utils.sanitization import sanitize_for_llm_context
 
         # find_all applies DatabaseFilter, so this is already scoped to the
         # user's grants; expose_in_sqllab then honours the operator's decision
@@ -256,8 +256,8 @@ class GetSchemaTool(AITool):
         catalog: Any = None,
         **_ignored: Any,
     ) -> ToolOutput:
+        from superset.ai.prompt_framing import sanitize_for_llm_context
         from superset.mcp_service.utils.query_utils import validate_names
-        from superset.mcp_service.utils.sanitization import sanitize_for_llm_context
 
         database = _database_or_refuse(database_id)
         catalog_name = str(catalog) if catalog else database.get_default_catalog()

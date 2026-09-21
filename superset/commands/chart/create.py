@@ -32,6 +32,10 @@ from superset.commands.chart.exceptions import (
     DashboardsForbiddenError,
     DashboardsNotFoundValidationError,
 )
+from superset.commands.chart.utils import (
+    validate_chart_datasource_type,
+    validate_query_context_datasource,
+)
 from superset.commands.utils import get_datasource_by_id, populate_subjects
 from superset.daos.chart import ChartDAO
 from superset.daos.dashboard import DashboardDAO
@@ -71,6 +75,7 @@ class CreateChartCommand(CreateMixin, BaseCommand):
 
         # Validate/Populate datasource
         try:
+            validate_chart_datasource_type(datasource_type)
             datasource = get_datasource_by_id(datasource_id, datasource_type)
             self._properties["datasource_name"] = datasource.name
             security_manager.raise_for_access(datasource=datasource)
@@ -79,12 +84,19 @@ class CreateChartCommand(CreateMixin, BaseCommand):
         except ValidationError as ex:
             exceptions.append(ex)
 
+        validate_query_context_datasource(
+            self._properties.get("query_context"),
+            datasource_id,
+            datasource_type,
+            exceptions,
+        )
+
         # Validate/Populate dashboards
         dashboards = DashboardDAO.find_by_ids(dashboard_ids)
         if len(dashboards) != len(dashboard_ids):
             exceptions.append(DashboardsNotFoundValidationError())
         for dash in dashboards:
-            if not security_manager.is_editor(dash):
+            if dash.is_managed_externally or not security_manager.is_editor(dash):
                 raise DashboardsForbiddenError()
         self._properties["dashboards"] = dashboards
 
