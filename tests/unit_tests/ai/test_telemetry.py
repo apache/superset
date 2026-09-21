@@ -770,11 +770,13 @@ def test_a_raising_tool_reports_the_exception_class(
     assert sink.tool_calls[0][1].ok is False
 
 
+@pytest.mark.parametrize("unexpected", [False, True])
 def test_a_rich_dispatcher_failure_preserves_its_exception_class(
     app_context: None,
     mocker: MockerFixture,
+    unexpected: bool,
 ) -> None:
-    """A concrete ToolError reaches telemetry but not persisted run detail."""
+    """Registry-handled failures reach telemetry, not persisted/streamed detail."""
 
     class WarehouseDeniedError(ToolError):
         pass
@@ -785,6 +787,8 @@ def test_a_rich_dispatcher_failure_preserves_its_exception_class(
         input_schema = {"type": "object"}
 
         def run(self, **_kwargs: Any) -> ToolOutput:
+            if unexpected:
+                raise ZeroDivisionError("internal failure detail")
             raise WarehouseDeniedError("warehouse refused the query")
 
     sink = CapturingTelemetry()
@@ -794,12 +798,17 @@ def test_a_rich_dispatcher_failure_preserves_its_exception_class(
         return_value=mocker.Mock(id=7, is_authenticated=True),
     )
 
-    runtime, _ = _drive(
+    runtime, events = _drive(
         _script_with_a_tool_call(), tools=ToolRegistry([RefusingTool()])
     )
 
-    assert sink.tool_calls[0][1].error_type == "WarehouseDeniedError"
+    assert sink.tool_calls[0][1].error_type == (
+        "ZeroDivisionError" if unexpected else "WarehouseDeniedError"
+    )
     assert "error_type" not in runtime.result.tool_calls[0]
+    assert all("error_type" not in event.payload for event in events)
+    if unexpected:
+        assert "internal failure detail" not in str(runtime.result.tool_calls)
 
 
 def test_a_call_for_a_tool_that_is_not_offered_is_reported(
