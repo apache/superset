@@ -786,6 +786,9 @@ class BaseDatasource(
         connectors, the implementation uses ``update_from_object_fields``
         which can be defined for each connector and
         defines which fields should be synced"""
+        # An omitted key clears the field rather than leaving it untouched. The
+        # target-table access check in views/datasource/views.py relies on this
+        # to decide whether a save repoints the dataset.
         for attr in self.update_from_object_fields:
             setattr(self, attr, obj.get(attr))
 
