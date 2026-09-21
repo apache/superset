@@ -3234,14 +3234,16 @@ def test_retry_on_failure_schedules_retry(
 @patch("superset.commands.report.execute.ReportNotTriggeredErrorState._schedule_retry")
 @patch("superset.commands.report.execute.BaseReportState.send_retry_notification")
 @patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
+@pytest.mark.parametrize("send_failed_reports", [False, True])
 def test_retry_exhausted_transitions_to_error(
     screenshot_mock: Mock,
     retry_notification_mock: Mock,
     schedule_retry_mock: Mock,
+    send_failed_reports: bool,
 ) -> None:
     """
     ExecuteReport Command: when all retries are exhausted the state transitions
-    to ERROR and the retry counter is reset without a redundant retry notice.
+    to ERROR and exactly one recipient failure notice is selected.
     """
     chart = db.session.query(Slice).first()
     report_schedule = create_report_notification(
@@ -3250,12 +3252,11 @@ def test_retry_exhausted_transitions_to_error(
         retry_on_failure=True,
         retry_max_attempts=2,
         retry_notify_owners=False,
-        retry_notify_recipients=False,
+        retry_notify_recipients=True,
+        send_failed_reports=send_failed_reports,
     )
     # Pre-set retry_attempt to the max so the next execution exhausts retries.
     # Use the same timestamp for both so _is_retry_window_stale() returns False.
-    # Truncate microseconds — MySQL DateTime columns drop them, which would make
-    # the round-tripped value differ from the in-memory one.
     # Truncate microseconds — MySQL DATETIME columns drop them, causing
     # _is_retry_window_stale() to see a mismatch after DB round-trip.
     scheduled_dttm = datetime.now(tz=timezone.utc).replace(tzinfo=None, microsecond=0)
@@ -3269,7 +3270,12 @@ def test_retry_exhausted_transitions_to_error(
     try:
         screenshot_mock.side_effect = Exception("screenshot failed")
 
-        with pytest.raises(Exception, match="screenshot failed"):
+        with (
+            patch(
+                "superset.commands.report.execute.BaseReportState.send_final_failure_report"
+            ) as final_failure_mock,
+            pytest.raises(Exception, match="screenshot failed"),
+        ):
             AsyncExecuteReportScheduleCommand(
                 TEST_ID,
                 report_schedule.id,
@@ -3284,7 +3290,13 @@ def test_retry_exhausted_transitions_to_error(
         assert report_schedule.retry_attempt == 0
         # No further retry should have been scheduled
         schedule_retry_mock.assert_not_called()
-        retry_notification_mock.assert_not_called()
+        error_message = "Failed taking a screenshot screenshot failed"
+        if send_failed_reports:
+            retry_notification_mock.assert_not_called()
+            final_failure_mock.assert_called_once_with(error_message)
+        else:
+            retry_notification_mock.assert_called_once_with(2, 2, error_message)
+            final_failure_mock.assert_not_called()
     finally:
         cleanup_report_schedule(report_schedule)
 
