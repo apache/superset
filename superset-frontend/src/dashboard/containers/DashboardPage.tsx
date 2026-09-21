@@ -70,6 +70,7 @@ import SyncDashboardState, {
 import { AutoRefreshProvider } from '../contexts/AutoRefreshContext';
 import { Filter, PartialFilters, SupersetApiError } from '@superset-ui/core';
 import { RoutePaths } from 'src/views/routePaths';
+import { selectIsDashboardVersionPreviewActive } from 'src/features/versionHistory/reducer';
 import {
   parseRisonFilters,
   risonFiltersToExtraFormDataFilters,
@@ -79,7 +80,6 @@ import {
   updateUrlWithUnmatchedFilters,
   RISON_UNMATCHED_DATAMASK_ID,
 } from '../util/risonFilters';
-import { selectIsDashboardVersionPreviewActive } from 'src/features/versionHistory/reducer';
 
 type NativeFilterConfigEntry = Partial<Filter> & { id: string };
 
@@ -578,7 +578,14 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     // the user's saved selection.
     if (Object.keys(nativeFilterMask).length === 0) return;
     saveDashboardFilters(id, userId, nativeFilterMask, nativeFilters);
-  }, [id, hydratedDashboardId, fullDataMask, nativeFilters, userId, isVersionPreviewActive]);
+  }, [
+    id,
+    hydratedDashboardId,
+    fullDataMask,
+    nativeFilters,
+    userId,
+    isVersionPreviewActive,
+  ]);
 
   if (error && !isNotFoundError) throw error; // caught in error boundary
 
