@@ -2683,10 +2683,12 @@ msgid "Cannot delete a database that has datasets attached"
 msgstr ""
 
 msgid ""
-"Cannot delete a database whose only remaining datasets are soft-deleted. "
-"Restore them (POST /api/v1/dataset/<uuid>/restore) and delete them "
-"permanently once a purge capability ships, or remove the underlying rows "
-"out-of-band, before deleting the database."
+"Cannot delete a database whose only remaining datasets are soft-deleted."
+" Purge each one first — GET /api/v1/dataset/<uuid>/purge-impact for its "
+"impact token, then POST /api/v1/dataset/<uuid>/purge with "
+"{\"confirmed_impact_token\": <token>} — before deleting the database. "
+"Restoring them (POST /api/v1/dataset/<uuid>/restore) keeps the datasets, "
+"but the database still cannot be deleted."
 msgstr ""
 
 msgid "Cannot delete system themes"
@@ -13831,14 +13833,18 @@ msgstr ""
 
 #, python-format
 msgid ""
-"These %(type)s will be moved to Recently Archived. You can recover them "
-"there within %(days)s days."
-msgstr ""
+"These %(type)s will be moved to Recently Archived in the Settings menu. "
+"You can recover them there within %(days)s day."
+msgid_plural ""
+"These %(type)s will be moved to Recently Archived in the Settings menu. "
+"You can recover them there within %(days)s days."
+msgstr[0] ""
+msgstr[1] ""
 
 #, python-format
 msgid ""
-"These %(type)s will be moved to Recently Archived. You can recover them "
-"there."
+"These %(type)s will be moved to Recently Archived in the Settings menu. "
+"You can recover them there."
 msgstr ""
 
 msgid "These are the datasets this filter will be applied to."
@@ -13846,14 +13852,18 @@ msgstr ""
 
 #, python-format
 msgid ""
-"This %(type)s will be moved to Recently Archived. You can recover it "
-"there within %(days)s days."
-msgstr ""
+"This %(type)s will be moved to Recently Archived in the Settings menu. "
+"You can recover it there within %(days)s day."
+msgid_plural ""
+"This %(type)s will be moved to Recently Archived in the Settings menu. "
+"You can recover it there within %(days)s days."
+msgstr[0] ""
+msgstr[1] ""
 
 #, python-format
 msgid ""
-"This %(type)s will be moved to Recently Archived. You can recover it "
-"there."
+"This %(type)s will be moved to Recently Archived in the Settings menu. "
+"You can recover it there."
 msgstr ""
 
 msgid ""
@@ -17237,4 +17247,59 @@ msgid "© Layer attribution"
 msgstr ""
 
 msgid "№"
+msgstr ""
+
+msgid "(archived)"
+msgstr ""
+
+#, python-format
+msgid "%(count)s %(label)s"
+msgstr ""
+
+#, python-format
+msgid "%(count)s additional restricted %(label)s"
+msgstr ""
+
+msgid "Checking charts and dashboards that use this dataset…"
+msgstr ""
+
+msgid "Deleting this dataset is permanent. The affected charts and dashboards will remain, but they may no longer work."
+msgstr ""
+
+msgid "The affected charts or dashboards changed. Review the updated impact and type DELETE again to continue."
+msgstr ""
+
+msgid "The deletion impact could not be determined. This dataset cannot be permanently deleted until the check succeeds."
+msgstr ""
+
+#, python-format
+msgid "No affected %(label)s."
+msgstr ""
+
+msgid "Show fewer"
+msgstr ""
+
+msgid "Show all"
+msgstr ""
+
+msgid "Imported"
+msgstr ""
+
+msgid "Original version"
+msgstr ""
+
+msgid "Starting version"
+msgstr ""
+
+msgid "Preview this version"
+msgstr ""
+
+#, python-format
+msgid ""
+"Slug %(slug)s belongs to the soft-deleted dashboard %(uuid)s. Restore it"
+" via POST /api/v1/dashboard/%(uuid)s/restore, or use a different slug."
+msgstr ""
+
+#: superset/datasets/api.py
+msgid "Another save is in progress for this dataset. Retry the same request."
 msgstr ""

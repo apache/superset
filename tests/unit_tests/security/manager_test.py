@@ -24,6 +24,8 @@ from typing import Any, Optional
 from unittest.mock import MagicMock
 
 import pytest
+from flask import current_app
+from flask_appbuilder.const import AUTH_DB, AUTH_REMOTE_USER
 from flask_appbuilder.security.sqla.models import Role, User
 from pytest_mock import MockerFixture
 
@@ -49,6 +51,88 @@ def test_security_manager(app_context: None) -> None:
     """
     sm = SupersetSecurityManager(appbuilder)
     assert sm
+
+
+def _register_views_with_mock_appbuilder(
+    mocker: MockerFixture, auth_type: int
+) -> MagicMock:
+    """
+    Build a SupersetSecurityManager bound to a fresh mock appbuilder and call
+    register_views() on it, with FlaskAppBuilder's own register_views (the
+    super() call, which does its own large auth_type dispatch and permission
+    registration) stubbed out so the test stays scoped to just the override.
+    Returns the mock appbuilder so the caller can inspect what got registered.
+    """
+    from flask import current_app
+
+    # patch.dict restores the previous config values on teardown, so these
+    # overrides don't leak into other tests sharing the module-scoped app.
+    mocker.patch.dict(
+        current_app.config,
+        {
+            "AUTH_TYPE": auth_type,
+            "AUTH_USER_REGISTRATION": False,
+            "AUTH_RATE_LIMITED": False,
+        },
+    )
+
+    mock_appbuilder = mocker.MagicMock()
+    mock_appbuilder.baseviews = []
+    mock_appbuilder.menu.get_list.return_value = []
+
+    sm = SupersetSecurityManager.__new__(SupersetSecurityManager)
+    sm.appbuilder = mock_appbuilder
+    sm.register_superset_auth_view = True
+    sm.register_superset_registeruser_view = False
+    sm.userstatschartview = None
+
+    mocker.patch(
+        "flask_appbuilder.security.sqla.manager.SecurityManager.register_views",
+        autospec=True,
+    )
+
+    sm.register_views()
+    return mock_appbuilder
+
+
+def test_register_views_does_not_shadow_auth_remote_user(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    """
+    AUTH_REMOTE_USER must not register SupersetAuthView at "/login/".
+
+    AuthRemoteUserView performs a silent, header-driven login with no
+    interactive UI. SupersetAuthView (the SPA login shell) previously
+    registered at the same route unconditionally and always won the routing
+    dispatch, so the remote-user header was never even checked -- reported in
+    apache/superset#36117 as a regression from the frontend login migration
+    (#31590). See also the related opt-out added in #39098.
+    """
+    from superset.views.auth import SupersetAuthView
+
+    mock_appbuilder = _register_views_with_mock_appbuilder(mocker, AUTH_REMOTE_USER)
+
+    registered = [
+        call.args[0] for call in mock_appbuilder.add_view_no_menu.call_args_list
+    ]
+    assert SupersetAuthView not in registered
+
+
+def test_register_views_still_registers_superset_auth_view_for_db_auth(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    """
+    Control case: AUTH_DB (the common, interactive case) is unaffected --
+    SupersetAuthView still registers at "/login/" as before.
+    """
+    from superset.views.auth import SupersetAuthView
+
+    mock_appbuilder = _register_views_with_mock_appbuilder(mocker, AUTH_DB)
+
+    registered = [
+        call.args[0] for call in mock_appbuilder.add_view_no_menu.call_args_list
+    ]
+    assert SupersetAuthView in registered
 
 
 @pytest.fixture
@@ -138,6 +222,69 @@ def test_raise_for_access_guest_user_ok_subset(
     }
     query_context.queries = [QueryObject(metrics=stored_metrics)]  # type: ignore
     sm.raise_for_access(query_context=query_context)
+
+
+def test_raise_for_access_guest_user_deck_multi_child_requires_child_datasource(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    The deck.gl multi-layer child leg must bind the requested datasource to
+    the child chart: a valid parent/child pair does not authorize querying
+    an arbitrary dataset.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "is_guest_user", return_value=True)
+    mocker.patch.object(sm, "can_access", return_value=False)
+    mocker.patch.object(sm, "can_access_schema", return_value=False)
+    mocker.patch.object(sm, "is_editor", return_value=False)
+    mocker.patch.object(sm, "can_access_dashboard", return_value=True)
+    mocker.patch.object(sm, "get_current_guest_user_if_guest", return_value=None)
+    mocker.patch(
+        "superset.is_feature_enabled",
+        side_effect=lambda feature: feature == "EMBEDDED_SUPERSET",
+    )
+    mocker.patch(
+        "superset.security.manager.query_context_modified",
+        return_value=False,
+    )
+
+    child_datasource = mocker.MagicMock()
+    other_datasource = mocker.MagicMock()
+
+    parent_slc = mocker.MagicMock()
+    parent_slc.params = json.dumps({"viz_type": "deck_multi", "deck_slices": [42]})
+    child_slc = mocker.MagicMock()
+    child_slc.datasource = child_datasource
+
+    dashboard = mocker.MagicMock()
+    dashboard.slices = [parent_slc]
+
+    query_mock = mocker.patch.object(sm.session, "query")
+    query_mock.return_value.filter.return_value.one_or_none.side_effect = [
+        dashboard,
+        parent_slc,
+        child_slc,
+        dashboard,
+        parent_slc,
+        child_slc,
+    ]
+
+    query_context = mocker.MagicMock()
+    query_context.form_data = {
+        "dashboardId": 10,
+        "slice_id": 42,
+        "parent_slice_id": 41,
+    }
+
+    # Requesting the child's own datasource is allowed.
+    query_context.datasource = child_datasource
+    sm.raise_for_access(query_context=query_context)
+
+    # The same chart context with any other datasource is rejected.
+    query_context.datasource = other_datasource
+    with pytest.raises(SupersetSecurityException):
+        sm.raise_for_access(query_context=query_context)
 
 
 def test_raise_for_access_guest_user_tampered_id(
@@ -953,7 +1100,6 @@ def test_raise_for_access_query_default_schema(
             query=query,
             query_context=None,
             table=None,
-            viz=None,
         )
         is None
     )
@@ -968,7 +1114,6 @@ def test_raise_for_access_query_default_schema(
             query=query,
             query_context=None,
             table=None,
-            viz=None,
         )
     assert (
         str(excinfo.value)
@@ -1007,7 +1152,6 @@ def test_raise_for_access_jinja_sql(mocker: MockerFixture, app_context: None) ->
             query=query,
             query_context=None,
             table=None,
-            viz=None,
         )
 
     get_table_access_error_object.assert_called_with({Table("ab_user", "public", None)})
@@ -1236,6 +1380,31 @@ def test_query_context_modified_tampered(
     assert query_context_modified(query_context)
 
 
+def test_query_context_modified_malformed_stored_query_context(
+    mocker: MockerFixture,
+    stored_metrics: list[AdhocMetric],
+) -> None:
+    """
+    A stored ``query_context`` that is not valid JSON (which the query-context-only
+    chart update path can persist) must be treated as modified/tampered rather than
+    crashing with a raw ``JSONDecodeError``. Returning ``True`` lets
+    ``raise_for_access`` deny the guest with the intended 403.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = "not valid json"
+    query_context.slice_.params_dict = {
+        "metrics": stored_metrics,
+    }
+
+    query_context.form_data = {
+        "slice_id": 42,
+        "metrics": stored_metrics,
+    }
+    query_context.queries = [QueryObject(metrics=stored_metrics)]  # type: ignore
+    assert query_context_modified(query_context)
+
+
 def test_query_context_modified_singular_metric_param(
     mocker: MockerFixture,
 ) -> None:
@@ -1327,6 +1496,80 @@ def test_query_context_modified_novel_values_still_tampered(
         )
     ]
     assert query_context_modified(query_context)
+
+
+def test_query_context_modified_scalar_control_value_not_tampered(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Some viz types (e.g. heatmap_v2's ``groupby`` control) store a single
+    value as a bare string rather than a one-item list. A guest replaying
+    the chart's own stored value for such a control must not be treated as
+    tampering.
+
+    Regression test: the comparison iterated ``form_data.get(key)``/
+    ``getattr(query, key, [])`` directly without checking whether the value
+    was a list. Iterating a Python string yields its individual characters,
+    so the requested set never matched anything stored and every such chart
+    was permanently rejected for guest users with "Guest user cannot modify
+    chart payload", even when nothing was actually modified.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "groupby": "string_column_name",
+    }
+
+    query_context.form_data = {
+        "slice_id": 42,
+        "groupby": "string_column_name",
+    }
+    query_context.queries = [QueryObject(columns=["string_column_name"])]
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_scalar_control_value_tampered(
+    mocker: MockerFixture,
+) -> None:
+    """
+    The scalar-control leniency above only authorizes the chart's own
+    stored value: a different single value is still rejected.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "groupby": "string_column_name",
+    }
+
+    query_context.form_data = {
+        "slice_id": 42,
+        "groupby": "some_other_column",
+    }
+    query_context.queries = [QueryObject(columns=["some_other_column"])]
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_unset_scalar_control_not_tampered(
+    mocker: MockerFixture,
+) -> None:
+    """
+    An unset scalar control (empty string, or simply absent) must be
+    treated as "no value" on the requested side too — symmetric with how
+    _stored_param_values treats an unset control on the stored side.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {}  # no groupby saved at all
+
+    query_context.form_data = {
+        "slice_id": 42,
+        "groupby": "",  # unset control, sent as empty string
+    }
+    query_context.queries = [QueryObject(columns=[])]
+    assert not query_context_modified(query_context)
 
 
 def _native_filter_ctx(
@@ -1458,6 +1701,32 @@ def test_query_context_modified_native_filter_arbitrary_saved_metric_blocked(
     """A saved metric other than the filter's configured sort metric is modified."""
     query = SimpleNamespace(columns=["region"], metrics=["salary_total"], groupby=[])
     qc = _native_filter_ctx(mocker, [query], control_values={"sortMetric": "total"})
+    assert query_context_modified(qc)
+
+
+def test_query_context_modified_native_filter_series_limit_terms_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """A series-limit metric or series column beyond the target is modified."""
+    query = SimpleNamespace(
+        columns=["region"],
+        metrics=[],
+        groupby=[],
+        series_columns=["region"],
+        series_limit=5,
+        series_limit_metric={
+            "expressionType": "SIMPLE",
+            "column": {"column_name": "salary"},
+            "aggregate": "MAX",
+        },
+    )
+    qc = _native_filter_ctx(mocker, [query])
+    assert query_context_modified(qc)
+
+    query = SimpleNamespace(
+        columns=["region"], metrics=[], groupby=[], series_columns=["ssn"]
+    )
+    qc = _native_filter_ctx(mocker, [query])
     assert query_context_modified(qc)
 
 
@@ -2781,6 +3050,639 @@ def test_raise_for_access_catalog(
     )
 
 
+MSSQL_CONN_NAME = "my_mssql_conn"
+
+
+def _mssql_database(
+    mocker: MockerFixture,
+    sqlalchemy_uri: str,
+    extra: dict[str, Any] | None = None,
+) -> Database:
+    """
+    Build a *real* ``Database`` instance -- not a mock -- so URL parsing and
+    ``db_engine_spec`` resolution (including the real MSSQL dialect used to
+    parse T-SQL) go through the genuine code path this fix relies on, per
+    review feedback that a mock with a hardcoded ``url_object.database``
+    doesn't actually exercise ``make_url``.
+
+    ``database_name`` (``MSSQL_CONN_NAME``) is deliberately *not* any of the
+    database names used in test SQL (``abcm``, ``another_db``, ...) -- the
+    normalization this fix implements must not depend on it at all (see the
+    rename-hazard finding: ``database_name`` is a user-renameable Superset
+    label with no guaranteed relationship to the actual connected database).
+    """
+    database = Database(
+        sqlalchemy_uri=sqlalchemy_uri,
+        database_name=MSSQL_CONN_NAME,
+        extra=json.dumps(extra) if extra else None,
+    )
+    # Schema resolution (which schema an unqualified table falls back to) is
+    # orthogonal to what these tests verify, and MSSQL's default -- probing a
+    # live connection -- has nothing to connect to here. Every test query
+    # below fully qualifies its schema, so this is never actually consulted
+    # for its return value; it's stubbed purely to avoid the live-connection
+    # attempt.
+    mocker.patch.object(database, "get_default_schema_for_query", return_value=None)
+    return database
+
+
+def test_raise_for_access_mssql_path_database_self_reference_allowed(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Regression test for GH #31406: a catalog-qualified query against MSSQL,
+    connected via its own recommended connection-string form (database in
+    the URL path), is authorized by a plain ``[conn].[schema]`` permission
+    when the qualifier merely restates the connection's own database -- not
+    denied because ``get_schema_perm`` was asked to check a spurious
+    ``[conn].[db].[schema]`` permission that was never granted.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")  # noqa: N806
+    SqlaTable.query_datasources_by_name.return_value = []
+
+    database = _mssql_database(mocker, "mssql+pymssql://user:pw@host:1433/abcm")
+    query = mocker.MagicMock(
+        database=database,
+        schema=None,
+        catalog=None,
+        sql="SELECT * FROM abcm.dbo.temp",
+    )
+
+    # The user only has the historical 2-part schema permission -- no
+    # catalog_access, no 3-part schema_access, no database_access.
+    mocker.patch.object(
+        sm,
+        "can_access",
+        side_effect=lambda perm, vm: vm == f"[{MSSQL_CONN_NAME}].[dbo]",
+    )
+
+    sm.raise_for_access(query=query)  # must not raise
+
+
+def test_raise_for_access_mssql_self_reference_still_requires_own_schema_perm(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Security regression guard: normalizing a self-referential catalog only
+    removes the catalog component -- it must not widen the schema check.
+    A query against the connection's own database but a *different* schema
+    than the one granted must still be denied.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")  # noqa: N806
+    SqlaTable.query_datasources_by_name.return_value = []
+
+    database = _mssql_database(mocker, "mssql+pymssql://user:pw@host:1433/abcm")
+    query = mocker.MagicMock(
+        database=database,
+        schema=None,
+        catalog=None,
+        sql="SELECT * FROM abcm.other_schema.temp",
+    )
+
+    # Only the "dbo" schema is granted -- "other_schema" must stay denied
+    # even though "abcm" is correctly recognized as the connection's own
+    # database.
+    mocker.patch.object(
+        sm,
+        "can_access",
+        side_effect=lambda perm, vm: vm == f"[{MSSQL_CONN_NAME}].[dbo]",
+    )
+
+    with pytest.raises(SupersetSecurityException):
+        sm.raise_for_access(query=query)
+
+
+def test_raise_for_access_mssql_self_reference_case_mismatch_still_denied(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Security regression guard for the deliberate exact-match decision: a
+    differently-cased restatement of the connection's own, statically
+    configured database (``ABCM`` vs. the configured ``abcm``) must remain
+    denied. The comparison is intentionally not case-folded -- see the
+    comment in raise_for_access for why a false negative here is preferred
+    over a false positive.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")  # noqa: N806
+    SqlaTable.query_datasources_by_name.return_value = []
+
+    database = _mssql_database(mocker, "mssql+pymssql://user:pw@host:1433/abcm")
+    query = mocker.MagicMock(
+        database=database,
+        schema=None,
+        catalog=None,
+        sql="SELECT * FROM ABCM.dbo.temp",
+    )
+    mocker.patch.object(
+        sm,
+        "can_access",
+        side_effect=lambda perm, vm: vm == f"[{MSSQL_CONN_NAME}].[dbo]",
+    )
+
+    with pytest.raises(SupersetSecurityException):
+        sm.raise_for_access(query=query)
+
+
+def test_raise_for_access_mssql_bracketed_tsql_dialect_authorized(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    The bracketed T-SQL form must parse under the real MSSQL/TSQL sqlglot
+    dialect (the generic dialect raises ParseError on bracketed identifiers)
+    and be authorized the same as the unbracketed form.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")  # noqa: N806
+    SqlaTable.query_datasources_by_name.return_value = []
+
+    database = _mssql_database(mocker, "mssql+pymssql://user:pw@host:1433/abcm")
+    assert database.db_engine_spec.engine == "mssql"
+    query = mocker.MagicMock(
+        database=database,
+        schema=None,
+        catalog=None,
+        sql="SELECT * FROM [abcm].[dbo].[temp]",
+    )
+    mocker.patch.object(
+        sm,
+        "can_access",
+        side_effect=lambda perm, vm: vm == f"[{MSSQL_CONN_NAME}].[dbo]",
+    )
+
+    sm.raise_for_access(query=query)  # must not raise
+
+
+def test_raise_for_access_mssql_connect_args_database_self_reference_allowed(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    A database configured via ``connect_args`` (the "Extra" field in the UI)
+    rather than the URL path is resolved and normalized the same way.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")  # noqa: N806
+    SqlaTable.query_datasources_by_name.return_value = []
+
+    database = _mssql_database(
+        mocker,
+        "mssql+pyodbc://user:pw@host",
+        extra={"engine_params": {"connect_args": {"database": "abcm"}}},
+    )
+    query = mocker.MagicMock(
+        database=database,
+        schema=None,
+        catalog=None,
+        sql="SELECT * FROM abcm.dbo.temp",
+    )
+    mocker.patch.object(
+        sm,
+        "can_access",
+        side_effect=lambda perm, vm: vm == f"[{MSSQL_CONN_NAME}].[dbo]",
+    )
+
+    sm.raise_for_access(query=query)  # must not raise
+
+
+def test_raise_for_access_mssql_odbc_connect_database_self_reference_allowed(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    The documented, non-default pyodbc driver bundles the database inside a
+    single opaque ``odbc_connect`` query parameter. This must be parsed out
+    and normalized the same way as a path- or connect_args-configured one.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")  # noqa: N806
+    SqlaTable.query_datasources_by_name.return_value = []
+
+    database = _mssql_database(
+        mocker,
+        "mssql+pyodbc:///?odbc_connect="
+        "Driver%3D%7BODBC+Driver+17+for+SQL+Server%7D%3B"
+        "Server%3Dtcp%3Amyhost%2C1433%3B"
+        "Database%3Dabcm%3B"
+        "Uid%3DSuperSet%3BPwd%3Dpw%3BEncrypt%3Dyes",
+    )
+    assert database.url_object.database == ""  # not None -- must be handled
+    query = mocker.MagicMock(
+        database=database,
+        schema=None,
+        catalog=None,
+        sql="SELECT * FROM abcm.dbo.temp",
+    )
+    mocker.patch.object(
+        sm,
+        "can_access",
+        side_effect=lambda perm, vm: vm == f"[{MSSQL_CONN_NAME}].[dbo]",
+    )
+
+    sm.raise_for_access(query=query)  # must not raise
+
+
+def test_raise_for_access_mssql_odbc_connect_wins_over_conflicting_connect_args(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Security regression guard for the odbc_connect/connect_args precedence
+    fix: the connection is configured with odbc_connect's Database=abcm
+    *and* a conflicting connect_args["database"]="another_db". Per the
+    verified runtime precedence (odbc_connect wins -- see
+    MssqlEngineSpec.get_catalog_from_engine_params), the connection
+    actually points to abcm, not another_db.
+
+    A query referencing abcm.dbo.temp is a genuine self-reference and must
+    still be authorized via the plain schema-level grant. A query
+    referencing another_db.dbo.secret must NOT be treated as a
+    self-reference just because connect_args claims "another_db" -- it's a
+    genuinely different catalog from what the connection actually uses, and
+    must still be denied without a catalog-level grant for it.
+
+    Before the precedence fix, get_catalog_from_engine_params checked
+    connect_args first and would have (incorrectly) reported "another_db"
+    as the connection's own catalog -- which would have flipped this test's
+    outcome: abcm.dbo.temp wrongly denied, another_db.dbo.secret wrongly
+    granted.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")  # noqa: N806
+    SqlaTable.query_datasources_by_name.return_value = []
+
+    database = _mssql_database(
+        mocker,
+        "mssql+pyodbc:///?odbc_connect="
+        "Driver%3D%7BODBC+Driver+17+for+SQL+Server%7D%3B"
+        "Server%3Dtcp%3Amyhost%2C1433%3B"
+        "Database%3Dabcm%3B"
+        "Uid%3DSuperSet%3BPwd%3Dpw",
+        extra={"engine_params": {"connect_args": {"database": "another_db"}}},
+    )
+    query = mocker.MagicMock(
+        database=database,
+        schema=None,
+        catalog=None,
+        sql=(
+            "SELECT * FROM abcm.dbo.temp a JOIN another_db.dbo.secret b ON a.id = b.id"
+        ),
+    )
+    # Only the plain schema-level grant exists -- no catalog-qualified grant
+    # for another_db, matching an admin who never intended to grant
+    # cross-database access to it at all.
+    mocker.patch.object(
+        sm,
+        "can_access",
+        side_effect=lambda perm, vm: vm == f"[{MSSQL_CONN_NAME}].[dbo]",
+    )
+
+    with pytest.raises(SupersetSecurityException) as excinfo:
+        sm.raise_for_access(query=query)
+    assert "another_db.dbo.secret" in str(excinfo.value)
+    assert "abcm.dbo.temp" not in str(excinfo.value)
+
+
+def test_raise_for_access_mssql_malformed_connect_args_denies_cleanly(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Robustness regression guard: an explicit JSON `null` for
+    "connect_args" (a malformed but not-impossible admin "Extra" config)
+    must not crash raise_for_access with an AttributeError/TypeError -- it
+    should behave exactly as if connect_args were simply absent, i.e. fall
+    back to a clean permission denial.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")  # noqa: N806
+    SqlaTable.query_datasources_by_name.return_value = []
+
+    database = _mssql_database(
+        mocker,
+        "mssql+pyodbc://user:pw@host",
+        extra={"engine_params": {"connect_args": None}},
+    )
+    query = mocker.MagicMock(
+        database=database,
+        schema=None,
+        catalog=None,
+        sql="SELECT * FROM abcm.dbo.temp",
+    )
+    mocker.patch.object(
+        sm,
+        "can_access",
+        side_effect=lambda perm, vm: vm == f"[{MSSQL_CONN_NAME}].[dbo]",
+    )
+
+    # No statically-known database exists here (connect_args resolves to
+    # {}, no odbc_connect, no URL path) -- clean denial, not a crash.
+    with pytest.raises(SupersetSecurityException):
+        sm.raise_for_access(query=query)
+
+
+def test_raise_for_access_mssql_reporter_uri_still_denied(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    The literal GH #31406 reporter URI (a bare host/DSN, no path, no
+    connect_args, no odbc_connect) has no statically-determinable database
+    anywhere in it -- the actual database is only known to SQL Server itself,
+    via the login's server-side default, at connect time. This PR
+    deliberately does not add a live query to resolve it, so this specific
+    connection shape remains denied even with the correct schema permission
+    granted. This documents the known, disclosed limitation -- it is not a
+    bug in the surrounding test coverage.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")  # noqa: N806
+    SqlaTable.query_datasources_by_name.return_value = []
+
+    database = _mssql_database(mocker, "mssql+pyodbc://SuperSet:pw@abcm")
+    assert database.url_object.host == "abcm"
+    assert database.url_object.database is None
+    query = mocker.MagicMock(
+        database=database,
+        schema=None,
+        catalog=None,
+        sql="SELECT * FROM abcm.dbo.temp",
+    )
+    mocker.patch.object(
+        sm,
+        "can_access",
+        side_effect=lambda perm, vm: vm == f"[{MSSQL_CONN_NAME}].[dbo]",
+    )
+
+    with pytest.raises(SupersetSecurityException):
+        sm.raise_for_access(query=query)
+
+
+def test_raise_for_access_mssql_self_reference_matches_registered_dataset(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Regression test for the dataset-lookup half of GH #31406: under SQL Lab's
+    strict ``force_dataset_match=True`` scoping, a catalog-qualified query
+    against a statically-resolvable MSSQL connection must find a registered
+    dataset stored with ``catalog=None`` (the only form dataset creation ever
+    produces for such engines) -- not miss it because
+    ``query_datasources_by_name`` was filtered by the redundant,
+    self-referential catalog parsed from the SQL text.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(sm, "is_editor", return_value=False)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+
+    database = _mssql_database(mocker, "mssql+pymssql://user:pw@host:1433/abcm")
+    query = mocker.MagicMock(
+        database=database,
+        schema=None,
+        catalog=None,
+        sql="SELECT * FROM abcm.dbo.temp",
+    )
+
+    # No schema/catalog/database-level grant at all -- access must come
+    # entirely from the registered dataset's `datasource_access` permission.
+    mocker.patch.object(
+        sm, "can_access", side_effect=lambda perm, vm: perm == "datasource_access"
+    )
+
+    # Registered MSSQL dataset, stored with catalog=None -- the only shape
+    # dataset creation ever produces for an engine without catalog support.
+    registered_dataset = mocker.Mock(perm=f"[{MSSQL_CONN_NAME}].[temp](id:1)")
+
+    def fake_query_datasources_by_name(
+        _database: object,
+        table_name: str,
+        catalog: str | None = None,
+        schema: str | None = None,
+    ) -> list[object]:
+        # SqlaTable.query_datasources_by_name's real implementation only adds
+        # a `catalog` filter when `catalog` is truthy (`if catalog:
+        # filters["catalog"] = catalog`); a falsy `catalog` applies no
+        # catalog filter at all, rather than matching a stored `catalog=None`
+        # specifically. This fake narrows that to require `catalog is None`
+        # outright, which is stricter than the real behavior but still
+        # correctly proves the property this test cares about: the dataset
+        # is only found once the caller has normalized the redundant,
+        # self-referential catalog away.
+        if table_name == "temp" and schema == "dbo" and catalog is None:
+            return [registered_dataset]
+        return []
+
+    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")  # noqa: N806
+    SqlaTable.query_datasources_by_name.side_effect = fake_query_datasources_by_name
+
+    sm.raise_for_access(query=query, force_dataset_match=True)  # must not raise
+
+
+def test_raise_for_access_mssql_unqualified_still_allowed(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    The unqualified form of the same query (``dbo.temp``, relying on the
+    connection's default database) must keep working exactly as before.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")  # noqa: N806
+    SqlaTable.query_datasources_by_name.return_value = []
+
+    database = _mssql_database(mocker, "mssql+pymssql://user:pw@host:1433/abcm")
+    query = mocker.MagicMock(
+        database=database,
+        schema=None,
+        catalog=None,
+        sql="SELECT * FROM dbo.temp",
+    )
+    mocker.patch.object(
+        sm,
+        "can_access",
+        side_effect=lambda perm, vm: vm == f"[{MSSQL_CONN_NAME}].[dbo]",
+    )
+
+    sm.raise_for_access(query=query)  # must not raise
+
+
+def test_raise_for_access_mssql_different_database_still_denied(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Security regression guard: a query qualified with a *different* database
+    name than the one the connection actually points to must still be denied.
+    The fix must not broaden schema access into cross-database access just
+    because the engine doesn't support catalogs.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")  # noqa: N806
+    SqlaTable.query_datasources_by_name.return_value = []
+
+    database = _mssql_database(mocker, "mssql+pymssql://user:pw@host:1433/abcm")
+    query = mocker.MagicMock(
+        database=database,
+        schema=None,
+        catalog=None,
+        sql="SELECT * FROM another_db.dbo.temp",
+    )
+    mocker.patch.object(
+        sm,
+        "can_access",
+        side_effect=lambda perm, vm: vm == f"[{MSSQL_CONN_NAME}].[dbo]",
+    )
+
+    with pytest.raises(SupersetSecurityException):
+        sm.raise_for_access(query=query)
+
+
+def test_raise_for_access_mssql_cross_catalog_join_partially_denied(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    A join across the connection's own database and a different one must
+    still be denied for the unauthorized side, even though the self-
+    referential side is now correctly authorized.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")  # noqa: N806
+    SqlaTable.query_datasources_by_name.return_value = []
+
+    database = _mssql_database(mocker, "mssql+pymssql://user:pw@host:1433/abcm")
+    query = mocker.MagicMock(
+        database=database,
+        schema=None,
+        catalog=None,
+        sql=(
+            "SELECT * FROM abcm.dbo.temp a JOIN another_db.dbo.secret b ON a.id = b.id"
+        ),
+    )
+    mocker.patch.object(
+        sm,
+        "can_access",
+        side_effect=lambda perm, vm: vm == f"[{MSSQL_CONN_NAME}].[dbo]",
+    )
+
+    with pytest.raises(SupersetSecurityException) as excinfo:
+        sm.raise_for_access(query=query)
+    assert "another_db.dbo.secret" in str(excinfo.value)
+    assert "abcm.dbo.temp" not in str(excinfo.value)
+
+
+def test_raise_for_access_catalog_supporting_engine_still_requires_catalog(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Control test: for a DB engine spec that *does* support catalogs (e.g.
+    Postgres), the fix must not kick in. A legacy 2-part `[db].[schema]`
+    permission must NOT satisfy a catalog-qualified query -- the 3-part
+    `[db].[catalog].[schema]` permission is still required, preserving
+    SIP-95 semantics for engines where catalogs are real, distinct,
+    independently-authorizable resources.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")  # noqa: N806
+    SqlaTable.query_datasources_by_name.return_value = []
+
+    database = mocker.MagicMock()
+    database.database_name = "examples"
+    database.db_engine_spec.supports_catalog = True
+    database.get_default_catalog.return_value = "examples"
+    database.get_default_schema_for_query.return_value = None
+    database.url_object.database = "examples"
+    query = mocker.MagicMock(
+        database=database,
+        schema=None,
+        catalog=None,
+        sql="SELECT * FROM examples.public.covid_vaccines",
+    )
+
+    # Only the legacy 2-part permission is granted -- should NOT be enough.
+    mocker.patch.object(
+        sm, "can_access", side_effect=lambda perm, vm: vm == "[examples].[public]"
+    )
+    with pytest.raises(SupersetSecurityException):
+        sm.raise_for_access(query=query)
+
+    # The correct 3-part catalog-qualified permission works, as before.
+    mocker.patch.object(
+        sm,
+        "can_access",
+        side_effect=lambda perm, vm: vm == "[examples].[examples].[public]",
+    )
+    sm.raise_for_access(query=query)  # must not raise
+
+
+def test_raise_for_access_catalog_self_reference_does_not_weaken_sqllab_strict_mode(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    The catalog self-reference normalization must not interact with SQL
+    Lab's stricter ``force_dataset_match`` mode (#40409): schema_access
+    alone -- self-referential catalog or not -- must remain insufficient to
+    execute a raw SQL Lab query without a matching registered dataset.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(sm, "is_editor", return_value=False)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")  # noqa: N806
+    SqlaTable.query_datasources_by_name.return_value = []
+
+    database = _mssql_database(mocker, "mssql+pymssql://user:pw@host:1433/abcm")
+    query = mocker.MagicMock(
+        database=database,
+        schema=None,
+        catalog=None,
+        sql="SELECT * FROM abcm.dbo.temp",
+    )
+    mocker.patch.object(
+        sm,
+        "can_access",
+        side_effect=lambda perm, vm: vm == f"[{MSSQL_CONN_NAME}].[dbo]",
+    )
+
+    with pytest.raises(SupersetSecurityException):
+        sm.raise_for_access(query=query, force_dataset_match=True)
+
+
 def test_get_datasources_accessible_by_user_schema_access(
     mocker: MockerFixture,
     app_context: None,
@@ -2849,6 +3751,112 @@ def test_get_catalogs_accessible_by_user_schema_access(
     catalogs = {"catalog1", "catalog2"}
 
     assert sm.get_catalogs_accessible_by_user(database, catalogs) == {"catalog2"}
+
+
+def test_get_schemas_accessible_by_user_cached_list(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Test that `get_schemas_accessible_by_user` handles candidate names that a cache
+    serializer deserialized as a list instead of a set. Before normalization this
+    raised `TypeError: unsupported operand type(s) for &: 'list' and 'set'` for users
+    with only schema-level access.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(
+        sm,
+        "user_view_menu_names",
+        side_effect=[
+            {"[db1].[schema2]"},  # schema_access
+            set(),  # datasource_access
+        ],
+    )
+
+    database = mocker.MagicMock()
+    database.database_name = "db1"
+    database.get_default_catalog.return_value = None
+    database.get_default_schema.return_value = None
+
+    schemas = ["schema1", "schema2"]
+
+    assert sm.get_schemas_accessible_by_user(database, None, schemas) == {"schema2"}
+
+
+def test_get_schemas_accessible_by_user_hierarchical_cached_list(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Test that the hierarchical early return normalizes a list-typed candidate
+    collection to a set, so callers always receive a `set` regardless of the cache
+    serializer.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=True)
+
+    database = mocker.MagicMock()
+    database.database_name = "db1"
+    database.get_default_catalog.return_value = None
+    database.get_default_schema.return_value = None
+
+    schemas = ["schema1", "schema2"]
+
+    result = sm.get_schemas_accessible_by_user(database, None, schemas)
+    assert result == {"schema1", "schema2"}
+    assert isinstance(result, set)
+
+
+def test_get_catalogs_accessible_by_user_cached_list(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Test that `get_catalogs_accessible_by_user` handles candidate names that a cache
+    serializer deserialized as a list instead of a set.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(
+        sm,
+        "user_view_menu_names",
+        side_effect=[
+            set(),  # catalog_access
+            {"[db1].[catalog2].[schema1]"},  # schema_access
+            set(),  # datasource_access
+        ],
+    )
+
+    database = mocker.MagicMock()
+    database.database_name = "db1"
+    database.get_default_catalog.return_value = "catalog2"
+
+    catalogs = ["catalog1", "catalog2"]
+
+    assert sm.get_catalogs_accessible_by_user(database, catalogs) == {"catalog2"}
+
+
+def test_get_catalogs_accessible_by_user_hierarchical_cached_list(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Test that the hierarchical early return for catalogs normalizes a list-typed
+    candidate collection to a set.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=True)
+
+    database = mocker.MagicMock()
+    database.database_name = "db1"
+    database.get_default_catalog.return_value = "catalog2"
+
+    catalogs = ["catalog1", "catalog2"]
+
+    result = sm.get_catalogs_accessible_by_user(database, catalogs)
+    assert result == {"catalog1", "catalog2"}
+    assert isinstance(result, set)
 
 
 def test_get_rls_filters_uses_table_id_directly(
@@ -3286,6 +4294,32 @@ def test_user_view_menu_names_for_guest_user_no_roles(
     mock_get_user_id.assert_not_called()
 
 
+def test_request_loader_rejects_invalid_guest_token_before_bearer(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Invalid guest tokens must not fall through to Bearer JWT auth.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    header_name = current_app.config["GUEST_TOKEN_HEADER_NAME"]
+    request = SimpleNamespace(
+        headers={header_name: "invalid-guest-token", "Authorization": "Bearer valid"},
+        form={},
+    )
+
+    mocker.patch(
+        "superset.extensions.feature_flag_manager.is_feature_enabled",
+        return_value=True,
+    )
+    mocker.patch.object(sm, "get_guest_user_from_request", return_value=None)
+    verify_jwt = mocker.patch("superset.security.manager.verify_jwt_in_request")
+
+    assert sm.request_loader(request) is None
+
+    verify_jwt.assert_not_called()
+
+
 def test_reset_password_self_service_clears_flag(
     mocker: MockerFixture,
     app_context: None,
@@ -3595,3 +4629,180 @@ def test_validate_guest_token_resources_accepts_embedded_int_id(
     sm.validate_guest_token_resources(
         [{"type": GuestTokenResourceType.DASHBOARD, "id": 5}]
     )
+
+
+def test_is_editor_query_owner(mocker: MockerFixture, app_context: None) -> None:
+    """
+    Test that a Query owner is considered an editor via Subject resolution.
+    """
+    from superset.models.sql_lab import Query
+
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "is_admin", return_value=False)
+    mocker.patch(
+        "superset.security.manager.get_user_id",
+        return_value=100,
+    )
+    mocker.patch(
+        "superset.subjects.utils.get_user_subject_ids",
+        return_value={1000},
+    )
+    mocker.patch(
+        "superset.security.manager.get_extra_editor_subject_ids",
+        return_value=set(),
+    )
+
+    subject_user_100 = mocker.MagicMock(id=1000)
+    subject_user_200 = mocker.MagicMock(id=2000)
+
+    def mock_get_user_subject(uid: int):
+        if uid == 100:
+            return subject_user_100
+        if uid == 200:
+            return subject_user_200
+        return None
+
+    mocker.patch(
+        "superset.subjects.utils.get_user_subject",
+        side_effect=mock_get_user_subject,
+    )
+
+    query = Query(user_id=100)
+    assert sm.is_editor(query) is True
+
+    other_query = Query(user_id=200)
+    assert sm.is_editor(other_query) is False
+
+
+def test_is_editor_saved_query_owner(mocker: MockerFixture, app_context: None) -> None:
+    """
+    Test that a SavedQuery owner is considered an editor via Subject resolution.
+    """
+    from superset.models.sql_lab import SavedQuery
+
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "is_admin", return_value=False)
+    mocker.patch(
+        "superset.security.manager.get_user_id",
+        return_value=100,
+    )
+    mocker.patch(
+        "superset.subjects.utils.get_user_subject_ids",
+        return_value={1000},
+    )
+    mocker.patch(
+        "superset.security.manager.get_extra_editor_subject_ids",
+        return_value=set(),
+    )
+
+    subject_user_100 = mocker.MagicMock(id=1000)
+    subject_user_200 = mocker.MagicMock(id=2000)
+
+    def mock_get_user_subject(uid: int):
+        if uid == 100:
+            return subject_user_100
+        if uid == 200:
+            return subject_user_200
+        return None
+
+    mocker.patch(
+        "superset.subjects.utils.get_user_subject",
+        side_effect=mock_get_user_subject,
+    )
+
+    saved_query = SavedQuery(user_id=100)
+    assert sm.is_editor(saved_query) is True
+
+    other_saved_query = SavedQuery(user_id=200)
+    assert sm.is_editor(other_saved_query) is False
+
+
+def test_is_editor_other_model_with_user_id_not_editor(
+    mocker: MockerFixture, app_context: None
+) -> None:
+    """
+    Test that a model with user_id that is NOT Query or SavedQuery
+    does NOT receive the fallback and is not considered an editor.
+    """
+    from superset.models.sql_lab import TabState
+
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "is_admin", return_value=False)
+    mocker.patch(
+        "superset.security.manager.get_user_id",
+        return_value=100,
+    )
+    mocker.patch(
+        "superset.subjects.utils.get_user_subject_ids",
+        return_value={1000},
+    )
+    mocker.patch(
+        "superset.security.manager.get_extra_editor_subject_ids",
+        return_value=set(),
+    )
+
+    subject_user_100 = mocker.MagicMock(id=1000)
+    mocker.patch(
+        "superset.subjects.utils.get_user_subject",
+        return_value=subject_user_100,
+    )
+
+    tab_state = TabState(user_id=100)
+    assert sm.is_editor(tab_state) is False
+
+
+def _pvm(permission: str, view_menu: str) -> SimpleNamespace:
+    """A minimal PermissionView stand-in for the role classifiers."""
+    return SimpleNamespace(
+        permission=SimpleNamespace(name=permission),
+        view_menu=SimpleNamespace(name=view_menu),
+    )
+
+
+def _classifier() -> SupersetSecurityManager:
+    """An uninitialized manager: the classifiers read only class-level sets."""
+    return SupersetSecurityManager.__new__(SupersetSecurityManager)
+
+
+def test_semantic_layer_classified_like_database() -> None:
+    """A semantic layer is a credentialed connection: Database parity.
+
+    Writes are admin-only; reads are not admin-only (they reach Gamma with
+    the configuration masked). Membership is asserted alongside behaviour
+    so a set refactor cannot silently drop the classification.
+    """
+    sm = _classifier()
+    assert "SemanticLayer" in sm.READ_ONLY_MODEL_VIEWS
+    assert sm._is_admin_only(_pvm("can_write", "SemanticLayer"))
+    assert not sm._is_admin_only(_pvm("can_read", "SemanticLayer"))
+    assert not sm._is_alpha_only(_pvm("can_read", "SemanticLayer"))
+    # Same rule that governs Database:
+    assert sm._is_admin_only(_pvm("can_write", "Database"))
+
+
+def test_semantic_view_classified_like_dataset() -> None:
+    """A semantic view carries no credentials: Dataset parity.
+
+    Writes are Alpha-tier (alpha-only, not admin-only); reads reach Gamma.
+    """
+    sm = _classifier()
+    assert "SemanticView" in sm.GAMMA_READ_ONLY_MODEL_VIEWS
+    assert sm._is_alpha_only(_pvm("can_write", "SemanticView"))
+    assert not sm._is_admin_only(_pvm("can_write", "SemanticView"))
+    assert not sm._is_alpha_only(_pvm("can_read", "SemanticView"))
+    # Same rule that governs Dataset:
+    assert sm._is_alpha_only(_pvm("can_write", "Dataset"))
+
+
+def test_gamma_receives_no_semantic_write_pvm() -> None:
+    """Negative control for the Gamma role classifier.
+
+    ``sync_role_definitions`` builds Gamma from ``_is_gamma_pvm``; neither
+    write pvm may pass it, while both read pvms must (reads return masked
+    configurations for layers).
+    """
+    sm = _classifier()
+    assert not sm._is_gamma_pvm(_pvm("can_write", "SemanticLayer"))
+    assert not sm._is_gamma_pvm(_pvm("can_write", "SemanticView"))
+    assert sm._is_gamma_pvm(_pvm("can_read", "SemanticLayer"))
+    assert sm._is_gamma_pvm(_pvm("can_read", "SemanticView"))

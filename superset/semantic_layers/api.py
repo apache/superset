@@ -26,7 +26,7 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import lazy_gettext as t, ngettext
 from marshmallow import ValidationError
 from pydantic import ValidationError as PydanticValidationError
-from sqlalchemy.orm import load_only
+from sqlalchemy.orm import load_only, Query
 
 from superset import db, event_logger, is_feature_enabled, security_manager
 from superset.commands.semantic_layer.create import (
@@ -41,6 +41,7 @@ from superset.commands.semantic_layer.delete import (
 from superset.commands.semantic_layer.exceptions import (
     SemanticLayerCreateFailedError,
     SemanticLayerDeleteFailedError,
+    SemanticLayerForbiddenError,
     SemanticLayerInvalidError,
     SemanticLayerNotFoundError,
     SemanticLayerUpdateFailedError,
@@ -57,9 +58,11 @@ from superset.commands.semantic_layer.update import (
 )
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
 from superset.daos.semantic_layer import SemanticLayerDAO
+from superset.databases.filters import DatabaseFilter
 from superset.datasets.schemas import get_delete_ids_schema
 from superset.exceptions import SupersetSecurityException
 from superset.models.core import Database
+from superset.semantic_layers.masking import mask_configuration
 from superset.semantic_layers.models import SemanticLayer, SemanticView
 from superset.semantic_layers.registry import registry
 from superset.semantic_layers.schemas import (
@@ -73,6 +76,7 @@ from superset.utils import json
 from superset.views.base_api import (
     BaseSupersetApi,
     BaseSupersetModelRestApi,
+    protect_read,
     requires_json,
     statsd_metrics,
 )
@@ -80,10 +84,25 @@ from superset.views.base_api import (
 logger = logging.getLogger(__name__)
 
 
+def _mask_configuration(layer: SemanticLayer, config: dict[str, Any]) -> dict[str, Any]:
+    """Redact configuration values the connector marks secret, at any depth.
+
+    Delegates to :func:`superset.semantic_layers.masking.mask_configuration`,
+    which walks the connector's published ``get_configuration_schema`` and
+    masks every ``writeOnly`` / ``SecretStr`` field it finds --- including
+    ones nested inside objects, discriminated unions, and lists. This extends
+    the original top-level-only masking (#43474) to close the nested/union
+    secret leak its flat scan missed, and fails closed (masks everything) when
+    the schema is unavailable.
+    """
+    return mask_configuration(layer.type, config)
+
+
 def _serialize_layer(layer: SemanticLayer) -> dict[str, Any]:
     config = layer.configuration
     if isinstance(config, str):
         config = json.loads(config)
+    config = _mask_configuration(layer, config or {})
     return {
         "uuid": str(layer.uuid),
         "name": layer.name,
@@ -196,7 +215,11 @@ class SemanticViewRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def structure(self, pk: int) -> Response:
-        """Get the structure (dimensions and metrics) of a semantic view.
+        """Get a semantic view's editable fields and its structure.
+
+        The editable fields (``description``, ``cache_timeout``) are served here
+        because ``SemanticViewRestApi`` exposes no detail route: this is the only
+        read endpoint an editor can hydrate from after a write.
         ---
         get:
           summary: Get semantic view structure
@@ -210,6 +233,8 @@ class SemanticViewRestApi(BaseSupersetModelRestApi):
               description: Semantic view structure
             401:
               $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
             422:
@@ -264,6 +289,8 @@ class SemanticViewRestApi(BaseSupersetModelRestApi):
             200,
             result={
                 "name": view.name,
+                "description": view.description,
+                "cache_timeout": view.cache_timeout,
                 "dimensions": dimensions,
                 "metrics": metrics,
             },
@@ -338,6 +365,8 @@ class SemanticViewRestApi(BaseSupersetModelRestApi):
                 errors.append(
                     {"name": view_data.get("name"), "error": "Semantic layer not found"}
                 )
+            except SemanticViewForbiddenError as ex:
+                errors.append({"name": view_data.get("name"), "error": str(ex)})
             except SemanticViewCreateFailedError as ex:
                 logger.error(
                     "Error creating semantic view: %s",
@@ -447,6 +476,8 @@ class SemanticViewRestApi(BaseSupersetModelRestApi):
               description: Semantic view deleted
             401:
               $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
             422:
@@ -545,6 +576,13 @@ class SemanticLayerRestApi(BaseSupersetApi):
         "types": "read",
         "configuration_schema": "read",
         "runtime_schema": "read",
+        # ``read`` (not the default ``can_views`` / ``can_connections``) so
+        # these stay broadly accessible: ``SemanticLayer`` is in
+        # ``READ_ONLY_MODEL_VIEWS``, where every permission outside
+        # ``READ_ONLY_PERMISSION`` is admin-only. Both are read operations
+        # (view discovery and the combined connection picker).
+        "views": "read",
+        "connections": "read",
     }
     openapi_spec_tag = "Semantic Layers"
     add_model_schema = SemanticLayerPostSchema()
@@ -665,12 +703,22 @@ class SemanticLayerRestApi(BaseSupersetApi):
               description: Runtime JSON Schema
             401:
               $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
         """
+        if not is_feature_enabled("SEMANTIC_LAYERS"):
+            return self.response_404()
+
         layer = SemanticLayerDAO.find_by_uuid(uuid)
         if not layer:
             return self.response_404()
+
+        try:
+            layer.raise_for_access()
+        except SupersetSecurityException as ex:
+            return self.response(403, message=ex.message)
 
         body = request.get_json(silent=True) or {}
         runtime_data = body.get("runtime_data")
@@ -716,6 +764,8 @@ class SemanticLayerRestApi(BaseSupersetApi):
               description: Available views
             401:
               $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
         """
@@ -725,6 +775,11 @@ class SemanticLayerRestApi(BaseSupersetApi):
         layer = SemanticLayerDAO.find_by_uuid(uuid)
         if not layer:
             return self.response_404()
+
+        try:
+            layer.raise_for_access()
+        except SupersetSecurityException as ex:
+            return self.response(403, message=ex.message)
 
         body = request.get_json(silent=True) or {}
         runtime_data = body.get("runtime_data", {})
@@ -855,6 +910,8 @@ class SemanticLayerRestApi(BaseSupersetApi):
               $ref: '#/components/responses/400'
             401:
               $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
             422:
@@ -870,6 +927,8 @@ class SemanticLayerRestApi(BaseSupersetApi):
             return self.response(200, result={"uuid": str(changed_model.uuid)})
         except SemanticLayerNotFoundError:
             return self.response_404()
+        except SemanticLayerForbiddenError as ex:
+            return self.response(403, message=str(ex))
         except SemanticLayerInvalidError as ex:
             return self.response_422(message=str(ex))
         except SemanticLayerUpdateFailedError as ex:
@@ -899,6 +958,8 @@ class SemanticLayerRestApi(BaseSupersetApi):
               description: Semantic layer deleted
             401:
               $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
             422:
@@ -909,6 +970,8 @@ class SemanticLayerRestApi(BaseSupersetApi):
             return self.response(200, message="OK")
         except SemanticLayerNotFoundError:
             return self.response_404()
+        except SemanticLayerForbiddenError as ex:
+            return self.response(403, message=str(ex))
         except SemanticLayerDeleteFailedError as ex:
             logger.error(
                 "Error deleting semantic layer: %s",
@@ -918,7 +981,7 @@ class SemanticLayerRestApi(BaseSupersetApi):
             return self.response_422(message=str(ex))
 
     @expose("/connections/", methods=("GET",))
-    @protect()
+    @protect_read("Database", "SemanticLayer")
     @safe
     @statsd_metrics
     @rison(get_list_schema)
@@ -943,6 +1006,8 @@ class SemanticLayerRestApi(BaseSupersetApi):
               description: Combined list of databases and semantic layers
             401:
               $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
             500:
               $ref: '#/components/responses/500'
         """
@@ -995,10 +1060,12 @@ class SemanticLayerRestApi(BaseSupersetApi):
         source_type: str,
         name_filter: str | None,
     ) -> list[tuple[str, Any]]:
-        """Fetch database and semantic layer items based on filters."""
+        """Fetch permitted sources using the same FAB identity as the route gate."""
         db_items: list[tuple[str, Database]] = []
-        if source_type in ("all", "database"):
-            db_q = db.session.query(Database).options(
+        if source_type in ("all", "database") and security_manager.has_access(
+            "can_read", "Database"
+        ):
+            db_q: Query[Database] = db.session.query(Database).options(
                 load_only(
                     Database.id,
                     Database.uuid,
@@ -1012,12 +1079,24 @@ class SemanticLayerRestApi(BaseSupersetApi):
                     Database.changed_by_fk,
                 )
             )
+            # Scope the database inventory exactly as DatabaseRestApi does via
+            # its ``base_filters`` (superset/databases/api.py): reaching this
+            # ``can_read``-gated endpoint must not expose databases the caller
+            # cannot access. The semantic-layer branch below is already
+            # access-filtered; this closes the same gap on the database branch.
+            # ``DatabaseFilter`` ignores its ``value`` argument (it reads
+            # ``security_manager``), so ``None`` matches DatabaseRestApi's
+            # ``lambda: []`` factory. It is ANDed with the name filter below, so
+            # the order is not load-bearing.
+            db_q = DatabaseFilter("id", SQLAInterface(Database)).apply(db_q, None)
             if name_filter:
                 db_q = db_q.filter(Database.database_name.ilike(f"%{name_filter}%"))
             db_items = [("database", obj) for obj in db_q.all()]
 
         sl_items: list[tuple[str, SemanticLayer]] = []
-        if source_type in ("all", "semantic_layer"):
+        if source_type in ("all", "semantic_layer") and security_manager.has_access(
+            "can_read", "SemanticLayer"
+        ):
             sl_q = db.session.query(SemanticLayer).options(
                 load_only(
                     SemanticLayer.uuid,
@@ -1129,6 +1208,9 @@ class SemanticLayerRestApi(BaseSupersetApi):
             401:
               $ref: '#/components/responses/401'
         """
+        if not is_feature_enabled("SEMANTIC_LAYERS"):
+            return self.response_404()
+
         layers = SemanticLayerDAO.find_all()
         result = [_serialize_layer(layer) for layer in layers]
         return self.response(200, result=result)
@@ -1152,10 +1234,20 @@ class SemanticLayerRestApi(BaseSupersetApi):
               description: A semantic layer
             401:
               $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
         """
+        if not is_feature_enabled("SEMANTIC_LAYERS"):
+            return self.response_404()
+
         layer = SemanticLayerDAO.find_by_uuid(uuid)
         if not layer:
             return self.response_404()
+        try:
+            layer.raise_for_access()
+        except SupersetSecurityException as ex:
+            return self.response(403, message=ex.message)
+
         return self.response(200, result=_serialize_layer(layer))

@@ -60,7 +60,7 @@ def test_chart_filter_scopes_guest_to_token_dashboards(mocker: MockerFixture) ->
 
     compiled: str = str(
         captured["clause"].compile(
-            create_engine("sqlite://", future=True),
+            create_engine("sqlite://"),
             compile_kwargs={"literal_binds": True},
         )
     )
