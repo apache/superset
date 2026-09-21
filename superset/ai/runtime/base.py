@@ -97,6 +97,8 @@ class RunRequest:
     #: ends the run cleanly rather than abandoning it, so partial work is still
     #: reported and the transcript stays coherent.
     should_cancel: Callable[[], bool] | None = None
+    #: Explicit configured model; ``None`` leaves selection to ``model_alias``.
+    model: str | None = None
 
 
 @dataclass

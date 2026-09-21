@@ -327,10 +327,9 @@ class MessagesApiRuntime(BaseAgentRuntime):
         usage = response.usage if response is not None else TokenUsage()
         recorder.model_call(
             turn=turn,
-            # The concrete identifier when the provider reported one, and the
-            # capability tier otherwise, so a trace can always be grouped by
-            # what the run asked for.
-            model=usage.get("model") or request.model_alias.value,
+            # Prefer the reported model, then the requested pin or tier when
+            # the provider did not identify a model (including failed calls).
+            model=usage.get("model") or request.model or request.model_alias.value,
             duration_ms=int((time.monotonic() - started) * 1000),
             input_tokens=usage.get("input_tokens"),
             output_tokens=usage.get("output_tokens"),
@@ -359,6 +358,7 @@ class MessagesApiRuntime(BaseAgentRuntime):
             messages=conversation,
             system=request.system_prompt,
             model_alias=request.model_alias,
+            model=request.model,
             tools=tuple(request.tools.definitions()) if request.tools else (),
         )
 

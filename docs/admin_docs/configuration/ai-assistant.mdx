@@ -97,14 +97,17 @@ gateway needs configuration rather than a fork.
 
 ### Model tiers and selection
 
-Profiles and prompts refer to capability *tiers* (`default`, `fast`,
-`reasoning`), never to a vendor's model names. The provider maps tiers to
+Profiles normally select capability *tiers* (`default`, `fast`,
+`reasoning`). The provider maps tiers to
 concrete models via the `models` dict. A tier you do not configure is an error
 when requested, never a silent substitution — so cost and answer quality stay
 attributable to the model actually used.
 
 Users may also pin a specific model per turn. Only models present in your
 `models` mapping are accepted; anything else is rejected.
+An explicit per-turn selection takes precedence over a profile's `model` pin;
+without either pin, the profile's `model_alias` selects the tier. The same
+selection is used on every model round trip and recorded in the run's audit trail.
 
 ## Agent profiles
 

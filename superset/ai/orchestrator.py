@@ -298,7 +298,8 @@ def _run(request: TurnRequest, state: dict[str, Any]) -> Iterator[StreamEvent]:
     rendered_context = render_page_context(request.page_context)
     state["page_context"] = rendered_context
     system_prompt = _build_system_prompt(tools, rendered_context)
-    model = _resolved_model(provider, request.model, profile)
+    pinned_model = request.model or profile.model
+    model = _resolved_model(provider, pinned_model, profile)
 
     recorder.describe(
         agent_key=profile.key,
@@ -312,6 +313,7 @@ def _run(request: TurnRequest, state: dict[str, Any]) -> Iterator[StreamEvent]:
         tools=tools,
         policies=load_policy_chain(),
         model_alias=profile.model_alias,
+        model=pinned_model,
         max_turns=profile.max_turns or _config("AI_AGENT_MAX_TURNS", 20),
         timeout_seconds=profile.timeout_seconds
         or _config("AI_AGENT_TIMEOUT_SECONDS", 300),
