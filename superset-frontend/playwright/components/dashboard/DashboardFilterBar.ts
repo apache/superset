@@ -65,10 +65,7 @@ export class DashboardFilterBar {
   getFilterSelect(index = 0): Select {
     return new Select(
       this.page,
-      this.root
-        .locator(DashboardFilterBar.SELECTORS.FILTER_VALUE)
-        .nth(index)
-        .getByRole('combobox'),
+      this.getValueLocator(index).getByRole('combobox'),
     );
   }
 
