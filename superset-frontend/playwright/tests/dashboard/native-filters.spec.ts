@@ -40,13 +40,14 @@
  *     avoids. They are a deliberate scope reduction, not relocated coverage.
  */
 
+import type { Page } from '@playwright/test';
 import { testWithAssets, expect } from '../../helpers/fixtures';
-import { waitForPost } from '../../helpers/api/intercepts';
 import { DashboardPage } from '../../pages/DashboardPage';
 import {
   buildFilterJsonMetadata,
   buildSelectFilter,
   createDashboardWithCharts,
+  sliceIdFromChartDataUrl,
 } from './dashboard-test-helpers';
 
 const DATASET_NAME = 'wb_health_population';
@@ -58,6 +59,23 @@ const COUNTRY_CODE_COLUMN = 'country_code';
 // "North America" region scopes country_name to exactly these three values.
 const NORTH_AMERICA = 'North America';
 const NORTH_AMERICA_COUNTRIES = ['Bermuda', 'Canada', 'United States'];
+
+/**
+ * Waits for the chart-data POST issued for a specific chart, identified by
+ * slice id. A native filter's own options request hits the same
+ * `/api/v1/chart/data` endpoint, so a plain `waitForPost(page,
+ * '/api/v1/chart/data')` can resolve on the filter's request instead of the
+ * target chart's — scoping to the chart's slice id makes the wait
+ * deterministic.
+ */
+function waitForChartDataResponse(page: Page, sliceId: number) {
+  return page.waitForResponse(
+    response =>
+      response.request().method() === 'POST' &&
+      response.url().includes('/api/v1/chart/data') &&
+      sliceIdFromChartDataUrl(response.url()) === sliceId,
+  );
+}
 
 testWithAssets(
   'dependent filter narrows its options to the selected parent',
@@ -270,7 +288,7 @@ testWithAssets(
 testWithAssets(
   'applying a value filter re-queries the target chart',
   async ({ page, testAssets }, testInfo) => {
-    const { dashboardId } = await createDashboardWithCharts(
+    const { dashboardId, charts } = await createDashboardWithCharts(
       page,
       testAssets,
       testInfo,
@@ -284,8 +302,8 @@ testWithAssets(
             params: { metric: 'count', adhoc_filters: [] },
           },
         ],
-        buildJsonMetadata: ({ charts, datasetId }) => {
-          const chartsInScope = charts.map(chart => chart.id);
+        buildJsonMetadata: ({ charts: metadataCharts, datasetId }) => {
+          const chartsInScope = metadataCharts.map(chart => chart.id);
           const region = buildSelectFilter({
             datasetId,
             column: REGION_COLUMN,
@@ -299,11 +317,14 @@ testWithAssets(
         },
       },
     );
+    const targetChartId = charts[0].id;
 
     const dashboardPage = new DashboardPage(page);
 
     // Capture the unfiltered total from the initial chart data response.
-    const initialDataPromise = waitForPost(page, '/api/v1/chart/data');
+    // Scoped to the target chart's slice id: the Region filter's own options
+    // request fires on the same `gotoById` load and hits the same endpoint.
+    const initialDataPromise = waitForChartDataResponse(page, targetChartId);
     await dashboardPage.gotoById(dashboardId);
     await dashboardPage.waitForLoad();
     const initialData = await (await initialDataPromise).json();
@@ -316,7 +337,7 @@ testWithAssets(
     const filterBar = await dashboardPage.waitForFilterBar();
     await filterBar.selectOption(NORTH_AMERICA, 0);
 
-    const filteredDataPromise = waitForPost(page, '/api/v1/chart/data');
+    const filteredDataPromise = waitForChartDataResponse(page, targetChartId);
     await filterBar.apply();
     const filteredData = await (await filteredDataPromise).json();
     const filteredCount = Object.values(
