@@ -1053,6 +1053,7 @@ async def test_get_table_builtin_happy_path(mcp_server: FastMCP) -> None:
     assert data["row_count"] == 1
     assert data["source"] == "builtin"
     assert data["dataset_id"] == 42
+    assert data["dataset_name"] == mock_ds.table_name
     assert data["data"] == [{"created_at": "2026-09-02T10:11:12+00:00", "revenue": 100}]
 
 
