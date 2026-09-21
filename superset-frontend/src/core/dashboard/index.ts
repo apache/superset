@@ -25,18 +25,11 @@ import type {
   JsonObject,
   QueryFormData,
 } from '@superset-ui/core';
-import { omit } from 'lodash-es';
 import { updateComponents } from 'src/dashboard/actions/dashboardLayout';
-import {
-  dashboardInfoChanged,
-  nativeFiltersConfigChanged,
-} from 'src/dashboard/actions/dashboardInfo';
-import { SET_NATIVE_FILTERS_CONFIG_COMPLETE } from 'src/dashboard/actions/nativeFilters';
+import { dashboardInfoChanged } from 'src/dashboard/actions/dashboardInfo';
+import { applySavedFilterChanges } from 'src/dashboard/actions/nativeFilters';
 import type { SaveFilterChangesType } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/types';
-import {
-  updateDataMask,
-  setDataMaskForFilterChangesComplete,
-} from 'src/dataMask/actions';
+import { updateDataMask } from 'src/dataMask/actions';
 import {
   setChartFormData,
   triggerQuery,
@@ -168,21 +161,11 @@ const saveFilters: typeof dashboardApi.saveFilters = async (
     endpoint: `/api/v1/dashboard/${dashboardId}/filters`,
   });
   const response = await putFilters(filterChanges);
-  // chartsInScope/tabsInScope are derived from the live layout, not this
-  // save's payload, so keep whatever calculateScopes already computed for
-  // this session instead of overwriting them with the server's copy.
-  const savedFilters = response.result.map(
-    filter => omit(filter, ['chartsInScope', 'tabsInScope']) as Filter,
-  );
-
-  store.dispatch({
-    type: SET_NATIVE_FILTERS_CONFIG_COMPLETE,
-    filterChanges: savedFilters,
-    deletedIds: deletedFilterIds,
-  });
-  store.dispatch(nativeFiltersConfigChanged(savedFilters));
-  store.dispatch(
-    setDataMaskForFilterChangesComplete(filterChanges, currentFilters),
+  applySavedFilterChanges(
+    store.dispatch,
+    filterChanges,
+    response.result,
+    currentFilters,
   );
 };
 
