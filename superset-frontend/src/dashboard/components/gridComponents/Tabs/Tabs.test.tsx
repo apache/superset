@@ -315,6 +315,46 @@ test.each([false, true])(
   },
 );
 
+test('A tab added after deleting the last tab is selected and registered', async () => {
+  const props = createProps();
+  const [deletedTabId, newTabId] = props.component.children;
+  props.component.children = [deletedTabId];
+  const { rerender } = render(<Tabs {...props} />, {
+    useRedux: true,
+    useDnd: true,
+  });
+
+  expect(props.setActiveTab.mock.calls).toEqual([[deletedTabId]]);
+  expect(screen.getByRole('tab')).toHaveAttribute('aria-selected', 'true');
+
+  await userEvent.click(screen.getByRole('button', { name: 'remove' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Delete' }));
+  expect(props.deleteComponent).toHaveBeenCalledWith(
+    deletedTabId,
+    props.component.id,
+  );
+
+  rerender(
+    <Tabs {...props} component={{ ...props.component, children: [] }} />,
+  );
+  expect(screen.queryByRole('tab')).not.toBeInTheDocument();
+  props.setActiveTab.mockClear();
+
+  await userEvent.click(screen.getByRole('button', { name: 'Add tab' }));
+  expect(props.createComponent).toHaveBeenCalled();
+  expect(props.setActiveTab).not.toHaveBeenCalled();
+
+  rerender(
+    <Tabs
+      {...props}
+      component={{ ...props.component, children: [newTabId] }}
+    />,
+  );
+
+  expect(props.setActiveTab.mock.calls).toEqual([[newTabId, deletedTabId]]);
+  expect(screen.getByRole('tab')).toHaveAttribute('aria-selected', 'true');
+});
+
 test.each([false, true])(
   'A populated TABS component registers its active tab (editMode=%s)',
   editMode => {

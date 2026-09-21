@@ -166,12 +166,10 @@ const Tabs = (props: TabsProps): ReactElement => {
   const prevTabIds = usePrevious(props.component.children);
 
   useEffect(() => {
-    // `activeKey` is seeded from state once, so a container that mounted
-    // without children keeps an unresolved key even after it receives its
-    // first one. Resolve it here so the new tab is selected and registered
-    // rather than being skipped by the guard below.
+    // Resolve missing or deleted active keys when children become available
+    // so a tab added to an empty container is selected and registered.
     const tabId = props.component.children[selectedTabIndex];
-    if (!activeKey && tabId) {
+    if (!props.component.children.includes(activeKey) && tabId) {
       setActiveKey(tabId);
     }
   }, [activeKey, props.component.children, selectedTabIndex]);
