@@ -51,7 +51,8 @@ TILED_SCREENSHOT_CAPTURE_TIMEOUT_SECONDS = 120
 TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS = 3
 TILED_SCREENSHOT_BLANK_DOMINANT_PIXEL_RATIO = 0.995
 SCREENSHOT_BLANK_MIN_LUMINANCE = 240
-SCREENSHOT_BLANK_MIN_MEAN_LUMINANCE = 230.0
+SCREENSHOT_BLANK_MIN_MEAN_LUMINANCE = 250.0
+SCREENSHOT_BLANK_MIN_NEUTRAL_MEAN_LUMINANCE = 230.0
 SCREENSHOT_BLANK_MAX_LUMINANCE_STDDEV = 8.0
 SCREENSHOT_BLANK_MAX_ENTROPY = 1.5
 SCREENSHOT_BLANK_MIN_EDGE_DIFFERENCE = 8
@@ -152,6 +153,10 @@ def validate_report_screenshot(
     context: ReportExecutionContext,
 ) -> None:
     """Validate exact image bytes independently of browser or cache provenance."""
+    if context.capture_was_rejected:
+        raise ScreenshotBlankCaptureError("Capture was already rejected")
+    if context.artifact_was_validated(screenshot):
+        return
     try:
         with Image.open(io.BytesIO(screenshot)) as image:
             image.verify()
@@ -179,36 +184,6 @@ class ScreenshotBlanknessMetrics:
     luminance_stddev: float
     entropy: float
     structural_edge_ratio: float
-
-
-def _has_sparse_foreground(image: Image.Image) -> bool:
-    """Inspect bounded native-scale bands so tall pages do not erase small text.
-
-    Near-white backgrounds alone are not foreground. A dark-content bounding
-    box must contain high-contrast structure, not a uniform fill or isolated dot.
-    This is evidence of visible content, not evidence that every chart is correct.
-    """
-    for top in range(0, image.height, 1024):
-        band = image.crop((0, top, image.width, min(top + 1024, image.height))).convert(
-            "L"
-        )
-        band.thumbnail((2048, 1024))
-        bounds = band.point(lambda value: 255 if value < 200 else 0).getbbox()
-        if bounds is None:
-            continue
-        foreground = band.crop(bounds)
-        if foreground.width < 4 or foreground.height < 4:
-            continue
-        low, high = foreground.getextrema()
-        if high - low < 64:
-            continue
-        edges = ImageChops.lighter(
-            ImageChops.difference(foreground, ImageChops.offset(foreground, 1, 0)),
-            ImageChops.difference(foreground, ImageChops.offset(foreground, 0, 1)),
-        ).histogram()
-        if sum(edges[64:]) / (foreground.width * foreground.height) > 0.01:
-            return True
-    return False
 
 
 def get_screenshot_blankness_metrics(screenshot: bytes) -> ScreenshotBlanknessMetrics:
@@ -260,14 +235,16 @@ def get_screenshot_blankness_metrics(screenshot: bytes) -> ScreenshotBlanknessMe
                     and structural_edge_ratio
                     <= SCREENSHOT_BLANK_MIN_STRUCTURAL_EDGE_RATIO
                 )
-                # Uniform color alone is not proof of missing content (for
-                # example a solid-fill KPI). Reject low-information backgrounds
-                # only in the near-white range observed in blank report captures.
+                # Keep uniform-fill rejection independent of theme or hue.
+                # Neutral light-grey backgrounds also indicate missing paint.
                 channel_means = ImageStat.Stat(sample).mean
-                perceptually_blank = (
-                    low_information
-                    and mean_luminance >= SCREENSHOT_BLANK_MIN_MEAN_LUMINANCE
-                    and max(channel_means) - min(channel_means) <= 16
+                perceptually_blank = low_information and (
+                    dominant_ratio >= TILED_SCREENSHOT_BLANK_DOMINANT_PIXEL_RATIO
+                    or mean_luminance >= SCREENSHOT_BLANK_MIN_MEAN_LUMINANCE
+                    or (
+                        mean_luminance >= SCREENSHOT_BLANK_MIN_NEUTRAL_MEAN_LUMINANCE
+                        and max(channel_means) - min(channel_means) <= 16
+                    )
                 )
                 sample_metrics.append(
                     ScreenshotBlanknessMetrics(
@@ -283,10 +260,7 @@ def get_screenshot_blankness_metrics(screenshot: bytes) -> ScreenshotBlanknessMe
 
             metrics = sample_metrics[-1]
             return ScreenshotBlanknessMetrics(
-                is_blank=(
-                    all(sample.is_blank for sample in sample_metrics)
-                    and not _has_sparse_foreground(image)
-                ),
+                is_blank=all(sample.is_blank for sample in sample_metrics),
                 dominant_pixel_ratio=metrics.dominant_pixel_ratio,
                 near_white_pixel_ratio=metrics.near_white_pixel_ratio,
                 mean_luminance=metrics.mean_luminance,

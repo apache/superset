@@ -160,10 +160,11 @@ class TestStandardScreenshotValidation:
 
         page.screenshot.assert_not_called()
 
-    def test_repeated_blank_capture_fails_closed(self):
+    @pytest.mark.parametrize("color", ["white", "navy", "#1b1b2e", "gray", "lightblue"])
+    def test_repeated_blank_capture_fails_closed(self, color):
         page = MagicMock()
         element = MagicMock()
-        page.screenshot.return_value = _png("white")
+        page.screenshot.return_value = _png(color)
         report_context = _report_context()
 
         with pytest.raises(

@@ -170,24 +170,47 @@ class TestScreenshotBlankDetection:
         assert context.capture_was_rejected
 
     @pytest.mark.parametrize("height", [1000, 10000])
-    @pytest.mark.parametrize("label", ["No data", "42"])
-    def test_readable_sparse_content_is_not_blank(self, height, label):
+    @pytest.mark.parametrize("label", ["No data", "42", "Dashboard", "Error"])
+    def test_small_label_does_not_exempt_blank_page(self, height, label):
         image = Image.new("RGB", (800, height), "white")
         ImageDraw.Draw(image).text(
-            (100, 100), label, fill="black", font=ImageFont.load_default(size=32)
+            (100, 100), label, fill="black", font=ImageFont.load_default(size=24)
+        )
+        output = io.BytesIO()
+        image.save(output, format="PNG")
+        with pytest.raises(ScreenshotBlankCaptureError):
+            validate_report_screenshot(output.getvalue(), _report_context())
+
+    @pytest.mark.parametrize(
+        "color", ["navy", "#1b1b2e", "gray", "red", "#30aa55", "lightblue"]
+    )
+    def test_uniform_fill_is_rejected_regardless_of_theme(self, color):
+        context = _report_context()
+        screenshot = _png(800, 1000, color)
+        with pytest.raises(ScreenshotBlankCaptureError):
+            validate_report_screenshot(screenshot, context)
+        assert context.capture_was_rejected
+        assert not context.artifact_was_validated(screenshot)
+
+    @pytest.mark.parametrize(
+        "background,foreground", [("white", "black"), ("navy", "white")]
+    )
+    def test_large_readable_kpi_is_not_blank(self, background, foreground):
+        image = Image.new("RGB", (800, 1000), background)
+        ImageDraw.Draw(image).text(
+            (200, 400), "42", fill=foreground, font=ImageFont.load_default(size=180)
         )
         output = io.BytesIO()
         image.save(output, format="PNG")
         validate_report_screenshot(output.getvalue(), _report_context())
 
-    @pytest.mark.parametrize(
-        "color", ["navy", "red", "#30aa55", "lightyellow", "lightblue"]
-    )
-    def test_solid_fill_kpi_is_not_missing_content(self, color):
-        context = _report_context()
-        screenshot = _png(800, 1000, color)
-        validate_report_screenshot(screenshot, context)
-        assert context.artifact_was_validated(screenshot)
+    def test_small_logo_does_not_exempt_blank_page(self):
+        image = Image.new("RGB", (800, 1000), "white")
+        ImageDraw.Draw(image).ellipse((10, 10, 24, 24), fill="navy")
+        output = io.BytesIO()
+        image.save(output, format="PNG")
+        with pytest.raises(ScreenshotBlankCaptureError):
+            validate_report_screenshot(output.getvalue(), _report_context())
 
     def test_uniform_png_is_blank(self):
         is_blank, dominant_ratio = is_screenshot_nearly_uniform(_png(100, 100, "white"))
@@ -862,9 +885,12 @@ class TestTakeTiledScreenshot:
         assert result == blank
         assert mock_page.screenshot.call_count == 1
 
-    def test_single_uniform_content_tile_fails_closed_for_reports(self, mock_page):
+    @pytest.mark.parametrize("color", ["white", "navy", "#1b1b2e", "gray", "lightblue"])
+    def test_single_uniform_content_tile_fails_closed_for_reports(
+        self, mock_page, color
+    ):
         element_info = {"height": 1000, "top": 0, "left": 0, "width": 800}
-        uniform_tile = _png(800, 1000, "white")
+        uniform_tile = _png(800, 1000, color)
 
         def evaluate(script, _arg=None):
             if "scrollWidth" in script:

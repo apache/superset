@@ -27,7 +27,7 @@ from uuid import UUID, uuid4
 
 import pytest
 from celery.exceptions import SoftTimeLimitExceeded
-from PIL import Image
+from PIL import Image, ImageDraw
 from pytest_mock import MockerFixture
 
 from superset.app import SupersetApp
@@ -107,7 +107,9 @@ def test_match_slack_channel_rejects_ambiguous_casefolded_names() -> None:
 def _valid_png() -> bytes:
     """Use decodable content so delivery tests exercise the intended boundary."""
     output = io.BytesIO()
-    Image.new("RGB", (100, 100), "red").save(output, format="PNG")
+    image = Image.new("RGB", (100, 100), "white")
+    ImageDraw.Draw(image).rectangle((20, 20, 80, 80), fill="navy")
+    image.save(output, format="PNG")
     return output.getvalue()
 
 
@@ -171,6 +173,209 @@ def test_pdf_assembly_rejects_invalid_source_before_conversion(
         state._get_pdf()
     convert.assert_not_called()
     assert state._report_execution_context.capture_was_rejected
+
+
+@pytest.mark.parametrize("schedule_type", list(ReportScheduleType))
+@pytest.mark.parametrize("pdf", [False, True])
+@pytest.mark.parametrize("direct", [False, True])
+def test_rendered_delivery_without_context_is_blocked(
+    mocker: MockerFixture, schedule_type: ReportScheduleType, pdf: bool, direct: bool
+) -> None:
+    """Both delivery entry points require context for alert/report attachments."""
+    state = _make_notification_state(mocker, schedule_type=schedule_type)
+    state._report_execution_context = None
+    content = NotificationContent(
+        name="report",
+        header_data=_make_notification_header(),
+        pdf=b"%PDF" if pdf else None,
+        screenshots=None if pdf else [_valid_png()],
+    )
+    notify = mocker.patch("superset.commands.report.execute.create_notification")
+    recipient = mocker.Mock(spec=ReportRecipients)
+    if direct:
+        with pytest.raises(ReportScheduleScreenshotFailedError):
+            state._send_notification(content, recipient)
+    else:
+        with pytest.raises(ReportScheduleScreenshotFailedError):
+            state._send(content, [recipient])
+    notify.assert_not_called()
+
+
+@pytest.mark.parametrize("schedule_type", list(ReportScheduleType))
+@pytest.mark.parametrize("color", ["white", "#1b1b2e", "gray", "lightblue"])
+def test_uniform_attachment_is_not_delivered(
+    mocker: MockerFixture, schedule_type: ReportScheduleType, color: str
+) -> None:
+    """Theme-independent rejection applies equally to alerts and reports."""
+    state = _make_notification_state(mocker, schedule_type=schedule_type)
+    state._report_execution_context = _active_report_context()
+    output = io.BytesIO()
+    Image.new("RGB", (800, 1000), color).save(output, format="PNG")
+    notify = mocker.patch("superset.commands.report.execute.create_notification")
+    with pytest.raises(ReportScheduleScreenshotFailedError):
+        state._send(
+            NotificationContent(
+                name="report",
+                header_data=_make_notification_header(),
+                screenshots=[output.getvalue()],
+            ),
+            [mocker.Mock(spec=ReportRecipients)],
+        )
+    notify.assert_not_called()
+    assert state._report_execution_context.capture_was_rejected
+
+
+@pytest.mark.parametrize("schedule_type", list(ReportScheduleType))
+@pytest.mark.parametrize(
+    "report_format",
+    [ReportDataFormat.CSV, ReportDataFormat.XLSX, ReportDataFormat.TEXT],
+)
+def test_data_export_ignores_blank_query_context_image(
+    mocker: MockerFixture,
+    schedule_type: ReportScheduleType,
+    report_format: ReportDataFormat,
+) -> None:
+    """Run the real bootstrap/data path without validating discarded image bytes."""
+    import pandas as pd
+
+    from superset.utils.screenshot_utils import validate_report_screenshot
+
+    schedule = create_report_schedule(mocker)
+    schedule.type = schedule_type
+    schedule.report_format = report_format
+    schedule.chart.query_context = None
+    state = BaseReportState(schedule, datetime.utcnow(), uuid4())
+    state._report_execution_context = _active_report_context()
+    mocker.patch(
+        "superset.commands.report.execute.resolve_executor_user",
+        return_value=(mocker.Mock(), "executor"),
+    )
+    mocker.patch("superset.commands.report.execute.db.session.refresh")
+    mocker.patch.object(state, "_get_url", return_value="https://example.com/chart")
+    mocker.patch.object(state, "_get_chart_data_request_payload", return_value={})
+    mocker.patch(
+        "superset.commands.report.execute.get_url_path",
+        return_value="/api/v1/chart/data",
+    )
+    mocker.patch("superset.commands.report.execute.machine_auth_provider_factory")
+    output = io.BytesIO()
+    Image.new("RGB", (800, 1000), "white").save(output, format="PNG")
+    blank = output.getvalue()
+
+    def capture(**_kwargs: Any) -> bytes:
+        schedule.chart.query_context = "{}"
+        return blank
+
+    capture_mock = mocker.patch(
+        "superset.commands.report.execute.ChartScreenshot"
+    ).return_value.get_screenshot
+    capture_mock.side_effect = capture
+    validate = mocker.patch(
+        "superset.commands.report.execute.validate_report_screenshot",
+        wraps=validate_report_screenshot,
+    )
+    if report_format == ReportDataFormat.TEXT:
+        expected = pd.DataFrame({"value": [42]})
+        mocker.patch(
+            "superset.commands.report.execute.get_chart_dataframe",
+            return_value=expected,
+        )
+        assert state._get_embedded_data() is expected
+    else:
+        mocker.patch.object(state, "_post_chart_data", return_value=b"exported data")
+        result_format = (
+            ChartDataResultFormat.XLSX
+            if report_format == ReportDataFormat.XLSX
+            else ChartDataResultFormat.CSV
+        )
+        assert state._get_data(result_format) == b"exported data"
+    capture_mock.assert_called_once()
+    validate.assert_not_called()
+    assert not state._report_execution_context.capture_was_rejected
+    assert not state._report_execution_context.artifact_was_validated(blank)
+    # Discarded bootstrap bytes do not gain permission for rendered delivery.
+    with pytest.raises(ReportScheduleScreenshotFailedError):
+        state._assert_rendered_delivery_allowed(
+            NotificationContent(
+                name="report",
+                header_data=_make_notification_header(),
+                screenshots=[blank],
+            )
+        )
+
+
+@pytest.mark.parametrize("pdf", [False, True])
+def test_repeated_delivery_checks_analyze_identical_image_once(
+    mocker: MockerFixture, pdf: bool
+) -> None:
+    """Hash checks retain per-recipient protection without repeated pixel scans."""
+    from superset.utils import screenshot_utils
+
+    state = _make_notification_state(mocker)
+    context = _active_report_context()
+    state._report_execution_context = context
+    image = _valid_png()
+    metrics = mocker.spy(screenshot_utils, "get_screenshot_blankness_metrics")
+    state._validate_screenshot(image)
+    mocker.patch.object(state, "_get_screenshots", return_value=[image])
+    content = NotificationContent(
+        name="report",
+        header_data=_make_notification_header(),
+        pdf=state._get_pdf() if pdf else None,
+        screenshots=None if pdf else [image],
+    )
+    for _ in range(3):
+        state._assert_rendered_delivery_allowed(content)
+    metrics.assert_called_once()
+    context.reject_capture("later_stage_failed")
+    with pytest.raises(ReportScheduleScreenshotFailedError):
+        state._assert_rendered_delivery_allowed(content)
+
+
+def test_changed_png_is_revalidated_between_recipients(
+    app: SupersetApp, mocker: MockerFixture
+) -> None:
+    """Caching cannot authorize substituted image bytes for a later recipient."""
+    from superset.utils import screenshot_utils
+
+    app.config["ALERT_REPORTS_NOTIFICATION_DRY_RUN"] = False
+    state = _make_notification_state(mocker)
+    state._report_execution_context = _active_report_context()
+    content = NotificationContent(
+        name="report",
+        header_data=_make_notification_header(),
+        screenshots=[_valid_png()],
+    )
+    output = io.BytesIO()
+    Image.new("RGB", (800, 1000), "white").save(output, format="PNG")
+    metrics = mocker.spy(screenshot_utils, "get_screenshot_blankness_metrics")
+    notification = mocker.patch("superset.commands.report.execute.create_notification")
+
+    def substitute() -> None:
+        content.screenshots = [output.getvalue()]
+
+    notification.return_value.send.side_effect = substitute
+    with pytest.raises(ReportScheduleSystemErrorsException, match="perceptually blank"):
+        state._send(content, [mocker.Mock(spec=ReportRecipients) for _ in range(2)])
+    notification.assert_called_once()
+    notification.return_value.send.assert_called_once()
+    assert metrics.call_count == 2
+    assert state._report_execution_context.capture_was_rejected
+
+
+def test_validation_cache_does_not_clear_prior_rejection() -> None:
+    """Even an approved image cannot clear rejection recorded by another stage."""
+    from superset.utils.screenshot_utils import (
+        ScreenshotBlankCaptureError,
+        validate_report_screenshot,
+    )
+
+    context = _active_report_context()
+    image = _valid_png()
+    validate_report_screenshot(image, context)
+    context.reject_capture("another_tile_failed")
+    with pytest.raises(ScreenshotBlankCaptureError, match="already rejected"):
+        validate_report_screenshot(image, context)
 
 
 def _make_mock_editors(mocker: MockerFixture, user_ids: list[int]) -> list[Mock]:

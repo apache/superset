@@ -760,7 +760,7 @@ class BaseReportState:
             for tab_anchor in tab_anchors
         ]
 
-    def _get_screenshots(self) -> list[bytes]:
+    def _get_screenshots(self, *, for_delivery: bool = True) -> list[bytes]:
         """
         Get chart or dashboard screenshots
         :raises: ReportScheduleScreenshotFailedError
@@ -811,8 +811,12 @@ class BaseReportState:
                     log_context=self._log_context,
                     report_execution_context=self._report_execution_context,
                 )
-                self._validate_screenshot(imge)
-                assert imge is not None
+                if imge is None:
+                    raise ReportScheduleScreenshotFailedError(
+                        "Screenshot failed; aborting to avoid sending a partial report"
+                    )
+                if for_delivery:
+                    self._validate_screenshot(imge)
                 imges.append(imge)
             elapsed_seconds: float = (
                 datetime.now(timezone.utc).replace(tzinfo=None) - start_time
@@ -1231,7 +1235,9 @@ class BaseReportState:
         failure (e.g. Excel vs CSV) when the screenshot fallback fails.
         """
         try:
-            self._get_screenshots()
+            # These bytes only trigger query-context persistence, not delivery.
+            # Keep the existing browser contract without the final-image gate.
+            self._get_screenshots(for_delivery=False)
         except (
             ReportScheduleScreenshotFailedError,
             ReportScheduleScreenshotTimeout,
