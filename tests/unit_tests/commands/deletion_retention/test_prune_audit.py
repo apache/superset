@@ -564,6 +564,15 @@ def test_repeat_dispatch_uses_metadata_server_version(
             [2],
             id="predecessor-type-isolation",
         ),
+        pytest.param(
+            [
+                ("chart", STATUS_BLOCKED, 5, "same"),
+                ("chart", STATUS_BLOCKED, 7, "same"),
+                ("dashboard", STATUS_CONFIRMED, 9, None),
+            ],
+            [1],
+            id="foreign-newer-streak-breaker",
+        ),
     ],
 )
 def test_repeat_paths_isolate_entity_types_and_agree(
