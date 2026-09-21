@@ -264,7 +264,10 @@ def test_data_export_ignores_blank_query_context_image(
     blank = output.getvalue()
 
     def capture(**kwargs: Any) -> bytes:
-        assert kwargs["report_execution_context"] is None
+        capture_context = kwargs["report_execution_context"]
+        assert capture_context.deadline is state._report_execution_context.deadline
+        assert capture_context.validate_for_delivery is False
+        assert state._report_execution_context.validate_for_delivery is True
         schedule.chart.query_context = "{}"
         return blank
 

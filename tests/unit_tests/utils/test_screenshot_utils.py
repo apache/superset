@@ -36,6 +36,7 @@ from superset.utils.screenshot_utils import (
     _stable_readiness_js,
     combine_screenshot_tiles,
     CONTENTFUL_CHART_HOLDERS_IN_CLIP_JS,
+    FIND_ALL_CHART_HOLDER_STATES_JS,
     FIND_CHART_HOLDER_STATES_JS,
     get_screenshot_blankness_metrics,
     is_screenshot_nearly_uniform,
@@ -93,6 +94,45 @@ def test_stable_readiness_skips_when_budget_below_polling_margin() -> None:
 
     assert waited is False
     page.wait_for_function.assert_not_called()
+
+
+def test_holder_diagnostics_include_offscreen_errors_for_full_capture() -> None:
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("Node.js is required to execute holder diagnostics")
+    assert node is not None
+    script = r"""
+const input = JSON.parse(require("fs").readFileSync(0, "utf8"));
+global.window = {innerHeight: 800};
+const holder = (id, top, error) => ({
+  className: `dashboard-chart-id-${id}`,
+  getBoundingClientRect: () => ({top, bottom: top + 100}),
+  querySelectorAll: () => [],
+  querySelector: selector => {
+    if (selector.includes('slice_container')) return {};
+    if (error && selector.includes('alert')) return {};
+    return null;
+  },
+});
+global.document = {
+  querySelectorAll: () => [holder(1, 0, false), holder(2, 1000, true)],
+};
+process.stdout.write(JSON.stringify(input.map(expression =>
+  eval('(' + expression + ')')().map(item => item.state))));
+"""
+    completed = subprocess.run(  # noqa: S603
+        [node, "-e", script],
+        input=json.dumps(
+            [FIND_CHART_HOLDER_STATES_JS, FIND_ALL_CHART_HOLDER_STATES_JS]
+        ),
+        capture_output=True,
+        check=True,
+        text=True,
+    )
+    assert json.loads(completed.stdout) == [
+        ["rendered", "virtualized"],
+        ["rendered", "error"],
+    ]
 
 
 def test_stable_readiness_javascript_resets_dwell_state() -> None:
@@ -161,7 +201,10 @@ class TestScreenshotBlankDetection:
             validate_report_screenshot(b"broken png", context)
         assert context.capture_rejection_reasons == ("invalid_image",)
 
-    def test_final_validation_rejects_png_with_corrupt_pixel_stream(self):
+    @pytest.mark.parametrize("content_validated", [False, True])
+    def test_final_validation_rejects_png_with_corrupt_pixel_stream(
+        self, content_validated
+    ):
         screenshot = bytearray(_png(100, 100, "red"))
         chunk_offset = 8
         while chunk_offset < len(screenshot):
@@ -189,7 +232,9 @@ class TestScreenshotBlankDetection:
 
         context = _report_context()
         with pytest.raises(ScreenshotBlankCaptureError):
-            validate_report_screenshot(bytes(screenshot), context)
+            validate_report_screenshot(
+                bytes(screenshot), context, content_validated=content_validated
+            )
         assert context.capture_rejection_reasons == ("invalid_image",)
 
     @pytest.mark.parametrize("shade", [239, 245, 250])
@@ -889,10 +934,17 @@ class TestTakeTiledScreenshot:
         # The whole image is statistically blank because valid empty-state tiles
         # dominate it, but its content-bearing region remains valid.
         assert get_screenshot_blankness_metrics(result).is_blank is True
+        validate_report_screenshot(result, report_context)
+        assert report_context.artifact_was_validated(
+            result, ReportArtifactKind.SCREENSHOT
+        )
         assert report_context.capture_was_rejected is False
         assert mock_page.screenshot.call_count == 8
 
-    def test_blank_combined_image_is_allowed_for_terminal_empty_states(self, mock_page):
+    @pytest.mark.parametrize("terminal_state", ["empty", "error"])
+    def test_blank_combined_image_is_allowed_for_terminal_empty_states(
+        self, mock_page, terminal_state
+    ):
         element_info = {"height": 1000, "top": 0, "left": 0, "width": 800}
         blank = _two_tone_blank(800, 1000)
 
@@ -903,11 +955,12 @@ class TestTakeTiledScreenshot:
                 return {"total": 1, "contentful": 0}
             if "window.scrollTo" in script:
                 return None
-            return [{"chartId": "7", "state": "empty"}]
+            return [{"chartId": "7", "state": terminal_state}]
 
         mock_page.evaluate.side_effect = evaluate
         mock_page.screenshot.return_value = blank
 
+        report_context = _report_context()
         with patch(
             "superset.utils.screenshot_utils.combine_screenshot_tiles",
             return_value=blank,
@@ -916,11 +969,47 @@ class TestTakeTiledScreenshot:
                 mock_page,
                 "dashboard",
                 tile_height=1000,
-                report_execution_context=_report_context(),
+                report_execution_context=report_context,
             )
 
         assert result == blank
+        validate_report_screenshot(result, report_context)
+        assert report_context.artifact_was_validated(
+            result, ReportArtifactKind.SCREENSHOT
+        )
         assert mock_page.screenshot.call_count == 1
+
+    def test_terminal_empty_tiles_do_not_approve_corrupt_combined_bytes(
+        self, mock_page
+    ):
+        def evaluate(script, _arg=None):
+            if "scrollWidth" in script:
+                return {"height": 1000, "top": 0, "left": 0, "width": 800}
+            if script == CONTENTFUL_CHART_HOLDERS_IN_CLIP_JS:
+                return {"total": 1, "contentful": 0}
+            return [{"chartId": "7", "state": "empty"}]
+
+        mock_page.evaluate.side_effect = evaluate
+        mock_page.screenshot.return_value = _png(800, 1000, "white")
+        context = _report_context()
+        with (
+            patch(
+                "superset.utils.screenshot_utils.combine_screenshot_tiles",
+                return_value=b"corrupt combined image",
+            ),
+            pytest.raises(ScreenshotBlankCaptureError),
+        ):
+            take_tiled_screenshot(
+                mock_page,
+                "dashboard",
+                tile_height=1000,
+                report_execution_context=context,
+            )
+        assert context.capture_rejection_reasons == ("invalid_image",)
+        assert not context.artifact_was_validated(
+            b"corrupt combined image",
+            ReportArtifactKind.SCREENSHOT,
+        )
 
     @pytest.mark.parametrize("color", ["white", "navy", "#1b1b2e", "gray", "lightblue"])
     def test_single_uniform_content_tile_fails_closed_for_reports(
@@ -1245,7 +1334,13 @@ class TestTakeTiledScreenshot:
 
         def screenshot(**kwargs):
             events.append("capture")
-            return b"tile"
+            return content_png
+
+        content = Image.new("RGB", (800, 1000), "white")
+        ImageDraw.Draw(content).rectangle((0, 0, 399, 999), fill="black")
+        output = io.BytesIO()
+        content.save(output, format="PNG")
+        content_png = output.getvalue()
 
         mock_page.wait_for_function.side_effect = wait_for_function
         mock_page.evaluate.side_effect = evaluate
@@ -1253,7 +1348,7 @@ class TestTakeTiledScreenshot:
 
         with patch(
             "superset.utils.screenshot_utils.combine_screenshot_tiles",
-            return_value=b"combined",
+            return_value=content_png,
         ):
             result = take_tiled_screenshot(
                 mock_page,
@@ -1263,7 +1358,7 @@ class TestTakeTiledScreenshot:
                 report_execution_context=_report_context(),
             )
 
-        assert result == b"combined"
+        assert result == content_png
         assert events == [
             "mount",
             "dimensions",

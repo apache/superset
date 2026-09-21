@@ -203,6 +203,8 @@ class ReportExecutionContext:
     capture_reserve_seconds: float = 0.0
     delivery_reserve_seconds: float = 0.0
     cleanup_reserve_seconds: float = 0.0
+    # Query-context bootstrap captures are discarded, but still share the deadline.
+    validate_for_delivery: bool = True
     _capture_rejection_reasons: list[str] = field(
         default_factory=list,
         init=False,

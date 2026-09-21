@@ -152,8 +152,10 @@ class ScreenshotBlankCaptureError(RuntimeError):
 def validate_report_screenshot(
     screenshot: bytes,
     context: ReportExecutionContext,
+    *,
+    content_validated: bool = False,
 ) -> None:
-    """Validate exact image bytes independently of browser or cache provenance."""
+    """Decode exact bytes, preserving an explicit region-level content verdict."""
     if context.capture_was_rejected:
         raise ScreenshotBlankCaptureError("Capture was already rejected")
     if context.artifact_was_validated(screenshot, ReportArtifactKind.SCREENSHOT):
@@ -171,7 +173,7 @@ def validate_report_screenshot(
     except Exception as ex:
         context.reject_capture("invalid_image")
         raise ScreenshotBlankCaptureError("Unable to validate screenshot bytes") from ex
-    if blankness.is_blank:
+    if blankness.is_blank and not content_validated:
         context.reject_capture("blank_final_image")
         raise ScreenshotBlankCaptureError("Final screenshot is perceptually blank")
     context.approve_artifact(screenshot, ReportArtifactKind.SCREENSHOT)
@@ -464,9 +466,22 @@ UNREADY_CHART_HOLDERS_JS_BODY = _unready_chart_holders_js_body(viewport_only=Tru
 # element in one shot and therefore cannot ignore below-the-fold holders).
 UNREADY_ALL_CHART_HOLDERS_JS_BODY = _unready_chart_holders_js_body(viewport_only=False)
 
+
 # Diagnostic query for every chart holder, including terminal and virtualized
 # states. It interpolates the same selector constants as the predicates.
-FIND_CHART_HOLDER_STATES_JS = f"""
+def _chart_holder_states_js(*, viewport_only: bool) -> str:
+    """Build holder diagnostics for either a tile or a full-dashboard capture."""
+    viewport_check = (
+        """
+        const r = holder.getBoundingClientRect();
+        if (!(r.top < window.innerHeight && r.bottom > 0)) {
+            return { chartId, state: 'virtualized', agGridWaitObserved };
+        }
+    """
+        if viewport_only
+        else ""
+    )
+    return f"""
 () => {{
     const holders = document.querySelectorAll('{CHART_HOLDER_SELECTOR}');
     return Array.from(holders).map(holder => {{
@@ -475,10 +490,7 @@ FIND_CHART_HOLDER_STATES_JS = f"""
         const agGridWaitObserved = Array.from(holder.querySelectorAll(
             '{AG_GRID_HOST_SELECTOR}'
         )).some(grid => grid._supersetAgGridWaitObserved === true);
-        const r = holder.getBoundingClientRect();
-        if (!(r.top < window.innerHeight && r.bottom > 0)) {{
-            return {{ chartId, state: 'virtualized', agGridWaitObserved }};
-        }}
+        {viewport_check}
         const hasSliceContainer = holder.querySelector(
             '{SLICE_CONTAINER_SELECTOR}'
         ) !== null;
@@ -515,6 +527,10 @@ FIND_CHART_HOLDER_STATES_JS = f"""
     }});
 }}
 """
+
+
+FIND_CHART_HOLDER_STATES_JS = _chart_holder_states_js(viewport_only=True)
+FIND_ALL_CHART_HOLDER_STATES_JS = _chart_holder_states_js(viewport_only=False)
 
 CHART_HOLDERS_READY_JS = (
     f"() => {{ {UNREADY_CHART_HOLDERS_JS_BODY} return unready.length === 0; }}"
@@ -1557,7 +1573,7 @@ def take_tiled_screenshot(  # noqa: C901
 
             assert tile_screenshot is not None
             screenshot_tiles.append(tile_screenshot)
-            if contentful_chart_holders > 0:
+            if contentful_chart_holders > 0 or holder_count_failed:
                 contentful_tile_indexes.append(i)
 
             logger.debug(
@@ -1697,6 +1713,14 @@ def take_tiled_screenshot(  # noqa: C901
                     "Combined report screenshot lost content from validated tiles"
                 )
 
+        if report_execution_context and report_execution_context.validate_for_delivery:
+            # Region checks preserve sparse content and terminal empty/error states;
+            # still decode the combined bytes before approving them for delivery.
+            validate_report_screenshot(
+                combined_screenshot,
+                report_execution_context,
+                content_validated=True,
+            )
         return combined_screenshot
 
     except (ReportExecutionBudgetExceededError, TiledScreenshotBudgetExceededError):

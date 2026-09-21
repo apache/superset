@@ -1578,6 +1578,65 @@ class TestWebDriverPlaywrightChartReadiness:
         )
         assert readiness_call.kwargs["timeout"] == 690_000
 
+    def test_bootstrap_capture_preserves_deadline_without_delivery_validation(self):
+        from dataclasses import replace
+
+        page = MagicMock()
+        element = MagicMock()
+        element.screenshot.return_value = _png("white")
+        context = replace(_report_context(), validate_for_delivery=False)
+
+        WebDriverPlaywright._wait_for_charts_ready(
+            page,
+            "http://example.com/chart",
+            60,
+            "chart-container",
+            report_execution_context=context,
+        )
+        assert page.wait_for_function.call_args.kwargs["timeout"] == 690_000
+        page.evaluate.reset_mock()
+
+        result = WebDriverPlaywright._get_validated_screenshot(
+            page,
+            element,
+            "chart-container",
+            "execution_id=test",
+            report_execution_context=context,
+        )
+
+        assert result == _png("white")
+        assert element.screenshot.call_args.kwargs["timeout"] == 750_000
+        page.evaluate.assert_not_called()
+        assert context.capture_was_rejected is False
+
+    @patch("superset.utils.webdriver.logger")
+    def test_standard_dashboard_logs_offscreen_terminal_errors(self, mock_logger):
+        from superset.utils.screenshot_utils import FIND_ALL_CHART_HOLDER_STATES_JS
+
+        page = MagicMock()
+        page.evaluate.side_effect = lambda script: (
+            [{"chartId": "1", "state": "rendered"}, {"chartId": "2", "state": "error"}]
+            if script == FIND_ALL_CHART_HOLDER_STATES_JS
+            else [
+                {"chartId": "1", "state": "rendered"},
+                {"chartId": "2", "state": "virtualized"},
+            ]
+        )
+        WebDriverPlaywright._wait_for_charts_ready(
+            page,
+            "http://example.com/dashboard",
+            60,
+            "standalone",
+            report_execution_context=_report_context(),
+        )
+
+        warning = next(
+            call
+            for call in mock_logger.warning.call_args_list
+            if call.args[0].startswith("report_semantic_status")
+        )
+        assert warning.args[3:6] == (1, 0, 1)
+
     def test_chart_capture_uses_chart_container_stable_predicate(self):
         page = MagicMock()
         element = MagicMock()
@@ -1980,9 +2039,9 @@ class TestWebDriverPlaywrightAnimationWaitOrder:
         assert "animation_wait" in call_order
         spinner_idx = call_order.index("spinner_wait")
         anim_idx = call_order.index("animation_wait")
-        assert (
-            spinner_idx < anim_idx
-        ), "spinner wait must precede animation wait in non-tiled path"
+        assert spinner_idx < anim_idx, (
+            "spinner wait must precede animation wait in non-tiled path"
+        )
 
     @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
     @patch("superset.utils.webdriver._browser_manager")
@@ -2125,9 +2184,9 @@ class TestWebDriverPlaywrightAnimationWaitOrder:
             for call in mock_page.wait_for_timeout.call_args_list
             if call[0][0] == 2 * 1000
         ]
-        assert (
-            animation_waits == []
-        ), "No global 2s animation wait_for_timeout should fire on the tiled path"
+        assert animation_waits == [], (
+            "No global 2s animation wait_for_timeout should fire on the tiled path"
+        )
 
     @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
     @patch("superset.utils.webdriver._browser_manager")
@@ -2196,6 +2255,6 @@ class TestWebDriverPlaywrightAnimationWaitOrder:
         timeout_values = [
             call[0][0] for call in mock_page.wait_for_timeout.call_args_list
         ]
-        assert timeout_values == [
-            0
-        ], f"Expected only [0] (headstart), got {timeout_values}"
+        assert timeout_values == [0], (
+            f"Expected only [0] (headstart), got {timeout_values}"
+        )

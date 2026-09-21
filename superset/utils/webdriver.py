@@ -41,6 +41,7 @@ from superset.utils.screenshot_utils import (
     CHART_HOLDERS_READY_JS,
     EXPAND_SCROLLABLE_CONTENT_JS,
     EXPAND_SCROLLABLE_CONTENT_MAX_WAIT_SECONDS,
+    FIND_ALL_CHART_HOLDER_STATES_JS,
     FIND_ALL_UNREADY_CHART_HOLDERS_JS,
     FIND_CHART_HOLDER_STATES_JS,
     FORCE_ALL_CHART_HOLDERS_IN_VIEW_JS,
@@ -325,7 +326,10 @@ class WebDriverPlaywright(WebDriverProxy):
                 timeout_seconds=capture_timeout,
             )
             capture_elapsed = time.monotonic() - capture_started_at
-            if report_execution_context is None:
+            if (
+                report_execution_context is None
+                or not report_execution_context.validate_for_delivery
+            ):
                 return image
 
             blankness = get_screenshot_blankness_metrics(image)
@@ -754,7 +758,11 @@ class WebDriverPlaywright(WebDriverProxy):
                 context_suffix,
             )
             return
-        chart_holder_states = page.evaluate(FIND_CHART_HOLDER_STATES_JS)
+        chart_holder_states = page.evaluate(
+            FIND_ALL_CHART_HOLDER_STATES_JS
+            if report_execution_context and element_name == "standalone"
+            else FIND_CHART_HOLDER_STATES_JS
+        )
         diagnostics = ChartHolderDiagnostics.from_holder_states(chart_holder_states)
         semantic_success = (
             diagnostics.semantic_success if element_name == "standalone" else None

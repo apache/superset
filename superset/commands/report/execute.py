@@ -20,6 +20,7 @@ import urllib.parse
 import urllib.request
 from collections.abc import Sequence
 from contextlib import closing
+from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 from typing import Any, Optional, TYPE_CHECKING, Union
 from urllib.error import URLError
@@ -811,7 +812,12 @@ class BaseReportState:
                     user=user,
                     log_context=self._log_context,
                     report_execution_context=(
-                        self._report_execution_context if for_delivery else None
+                        self._report_execution_context
+                        if for_delivery or self._report_execution_context is None
+                        else replace(
+                            self._report_execution_context,
+                            validate_for_delivery=False,
+                        )
                     ),
                 )
                 if imge is None:
