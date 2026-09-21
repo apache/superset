@@ -23,6 +23,7 @@ import logging
 import time
 from collections import Counter
 from collections.abc import Callable, Mapping
+from copy import copy
 from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any
@@ -205,6 +206,7 @@ class ReportExecutionContext:
     cleanup_reserve_seconds: float = 0.0
     # Query-context bootstrap captures are discarded, but still share the deadline.
     validate_for_delivery: bool = True
+    execution_claimed: bool = False
     _capture_rejection_reasons: list[str] = field(
         default_factory=list,
         init=False,
@@ -234,6 +236,19 @@ class ReportExecutionContext:
                 "Report execution phase reserves must total less than the "
                 "execution budget"
             )
+
+    def with_deadline(
+        self, deadline: ReportExecutionDeadline
+    ) -> "ReportExecutionContext":
+        """Share execution state while bounding a phase with a separate deadline.
+
+        dataclasses.replace resets init=False fields, including sticky capture
+        rejection. A shallow copy must retain those shared mutable containers.
+        """
+        context = copy(self)
+        object.__setattr__(context, "deadline", deadline)
+        context.__post_init__()
+        return context
 
     @property
     def log_context(self) -> str:
