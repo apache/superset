@@ -85,7 +85,7 @@ def _positive_id(value: Any, field: str) -> int:
 
 def _untrusted(value: Any) -> Any:
     """Wrap user-authored free text so it cannot pose as instructions."""
-    from superset.mcp_service.utils.sanitization import sanitize_for_llm_context
+    from superset.ai.prompt_framing import sanitize_for_llm_context
 
     if value is None:
         return None

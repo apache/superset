@@ -51,6 +51,8 @@ logger: logging.Logger = logging.getLogger(__name__)
         title="Manage dashboard certification",
         readOnlyHint=False,
         destructiveHint=False,
+        idempotentHint=False,
+        openWorldHint=False,
     ),
 )
 def manage_dashboard_certification(
@@ -63,6 +65,12 @@ def manage_dashboard_certification(
     fields: omit (None) to leave a field unchanged, pass an empty string to
     clear it, or pass a value to set it. Certification surfaces as a badge
     next to the dashboard title in the UI.
+
+    Externally managed dashboards refuse set/clear — the response carries
+    ``managed_externally=True``; the refusal is structural (the badge is
+    owned by the external system), so granting permissions cannot resolve
+    it and the call should not be retried. The no-field inspect call
+    still returns current values for such dashboards.
 
     Example::
 
@@ -88,6 +96,25 @@ def manage_dashboard_certification(
             dashboard_url=dashboard_url(dashboard),
             changed_fields=[],
             warnings=["No fields provided; dashboard unchanged."],
+        )
+
+    # Externally managed dashboards refuse certification CHANGES (the
+    # no-field inspect path above still returns current values): their
+    # source of truth lives outside Superset, so a badge set here would be
+    # overwritten (or drift from the certifying system) on the next
+    # external sync. This tool writes by direct attribute assignment +
+    # commit rather than through a command, so no command-layer check can
+    # protect it — the refusal must live in the tool itself, after the
+    # editorship check, where a caller with no edit rights keeps getting
+    # the plain editorship denial.
+    if dashboard.is_managed_externally:
+        return ManageDashboardCertificationResponse(
+            managed_externally=True,
+            error=(
+                f"Dashboard '{dashboard.dashboard_title}' (ID: {dashboard.id}) "
+                "is managed externally; its certification is owned by the "
+                "external system and cannot be changed here."
+            ),
         )
 
     changed_fields: list[str] = []

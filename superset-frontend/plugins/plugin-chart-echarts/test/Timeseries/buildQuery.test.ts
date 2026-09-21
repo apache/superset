@@ -64,6 +64,28 @@ describe('Timeseries buildQuery', () => {
     expect(query.metrics).toEqual(['bar', 'baz']);
   });
 
+  test('should apply contribution before rename with time comparison', () => {
+    // rename strips the `__<offset>` suffix that contribution relies on to
+    // compute each time shift separately
+    const queryContext = buildQuery({
+      ...formData,
+      metrics: ['bar'],
+      x_axis: 'ds',
+      groupby: ['col1'],
+      contributionMode: 'row',
+      comparison_type: 'values',
+      time_compare: ['1 week ago'],
+    });
+    const [query] = queryContext.queries;
+    const operations = (query.post_processing || []).map(
+      operator => operator?.operation,
+    );
+    expect(operations).toContain('contribution');
+    expect(operations.indexOf('contribution')).toBeLessThan(
+      operations.indexOf('rename'),
+    );
+  });
+
   test('should not order by timeseries limit if orderby provided', () => {
     const queryContext = buildQuery({
       ...formData,

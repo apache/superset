@@ -48,9 +48,25 @@ test('RowCountLabel renders limit with danger and tooltip', async () => {
   render(<RowCountLabel rowcount={100} limit={100} />);
   const expectedText = '100 rows';
   expect(screen.getByText(expectedText)).toBeInTheDocument();
-  userEvent.hover(screen.getByText(expectedText));
+  await userEvent.hover(screen.getByText(expectedText));
   const tooltip = await screen.findByRole('tooltip');
   expect(tooltip).toHaveTextContent('The row limit');
+});
+
+test('RowCountLabel uses a caller-provided limitReachedMessage instead of the default', async () => {
+  render(
+    <RowCountLabel
+      rowcount={100}
+      limit={100}
+      limitReachedMessage="Custom limit message"
+    />,
+  );
+  const expectedText = '100 rows';
+  expect(screen.getByText(expectedText)).toBeInTheDocument();
+  await userEvent.hover(screen.getByText(expectedText));
+  const tooltip = await screen.findByRole('tooltip');
+  expect(tooltip).toHaveTextContent('Custom limit message');
+  expect(tooltip).not.toHaveTextContent('The row limit set for the chart');
 });
 
 test('RowCountLabel renders loading', () => {

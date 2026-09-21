@@ -23,7 +23,12 @@ import {
   FeatureFlag,
   getExtensionsRegistry,
 } from '@superset-ui/core';
-import { styled, css, SupersetTheme } from '@apache-superset/core/theme';
+import {
+  styled,
+  css,
+  SupersetTheme,
+  useTheme,
+} from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import { Global } from '@emotion/react';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
@@ -37,6 +42,7 @@ import {
   UnsavedChangesModal,
 } from '@superset-ui/core/components';
 import { findPermission } from 'src/utils/findPermission';
+import { useIsMobile } from 'src/hooks/useIsMobile';
 import { safeStringify } from 'src/utils/safeStringify';
 import Subject from 'src/types/Subject';
 import { DashboardLayout, RootState } from 'src/dashboard/types';
@@ -220,8 +226,14 @@ const discardChanges = () => {
   window.location.assign(url);
 };
 
-const Header = (): JSX.Element => {
+interface HeaderComponentProps {
+  onOpenMobileFilters?: () => void;
+}
+
+const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
   const dispatch = useDispatch();
+  const theme = useTheme();
+  const isMobile = useIsMobile();
   const [didNotifyMaxUndoHistoryToast, setDidNotifyMaxUndoHistoryToast] =
     useState(false);
   const [emphasizeUndo, setEmphasizeUndo] = useState(false);
@@ -643,7 +655,8 @@ const Header = (): JSX.Element => {
 
   const titlePanelAdditionalItems = useMemo(
     () => [
-      !editMode && (
+      // The kebab menu's "Refresh dashboard" item covers this on mobile
+      !editMode && !isMobile && (
         <RefreshButton key="refresh-button" onRefresh={forceRefresh} />
       ),
       !editMode && (
@@ -652,7 +665,7 @@ const Header = (): JSX.Element => {
           onTogglePause={handlePauseToggle}
         />
       ),
-      !editMode && (
+      !editMode && !isMobile && (
         <PublishedStatus
           key="published-status"
           dashboardId={dashboardInfo.id}
@@ -662,12 +675,13 @@ const Header = (): JSX.Element => {
           userCanSave={userCanSaveAs}
         />
       ),
-      !editMode && !isEmbedded && metadataBar,
+      !editMode && !isEmbedded && !isMobile && metadataBar,
     ],
     [
       boundActionCreators.savePublished,
       dashboardInfo.id,
       editMode,
+      isMobile,
       metadataBar,
       isEmbedded,
       isPublished,
@@ -764,7 +778,7 @@ const Header = (): JSX.Element => {
         ) : (
           <div css={actionButtonsStyle}>
             {NavExtension && <NavExtension />}
-            {userCanEdit && !isEmbedded && (
+            {userCanEdit && !isEmbedded && !isMobile && (
               <Button
                 buttonStyle="secondary"
                 onClick={handleEnterEditMode}
@@ -792,6 +806,7 @@ const Header = (): JSX.Element => {
       handleEnterEditMode,
       hasUnsavedChanges,
       isEmbedded,
+      isMobile,
       overwriteDashboard,
       redoLength,
       undoLength,
@@ -828,6 +843,10 @@ const Header = (): JSX.Element => {
     userCanCurate,
     userCanExport,
     isLoading,
+    isMobile,
+    isStarred,
+    isPublished,
+    saveFaveStar: boundActionCreators.saveFaveStar,
     showReportModal,
     showPropertiesModal,
     showRefreshModal,
@@ -847,6 +866,21 @@ const Header = (): JSX.Element => {
         editableTitleProps={editableTitleProps}
         certificatiedBadgeProps={certifiedBadgeProps}
         faveStarProps={faveStarProps}
+        leftPanelItems={
+          onOpenMobileFilters && (
+            <Button
+              buttonStyle="link"
+              aria-label={t('Open filters')}
+              onClick={onOpenMobileFilters}
+              data-test="mobile-filters-trigger"
+            >
+              <Icons.FilterOutlined
+                iconColor={theme.colorPrimary}
+                iconSize="l"
+              />
+            </Button>
+          )
+        }
         titlePanelAdditionalItems={titlePanelAdditionalItems}
         rightPanelAdditionalItems={rightPanelAdditionalItems}
         menuDropdownProps={{
@@ -855,7 +889,7 @@ const Header = (): JSX.Element => {
           disabled: isVersionPreviewActive,
         }}
         additionalActionsMenu={menu}
-        showFaveStar={Boolean(user?.userId && dashboardInfo?.id)}
+        showFaveStar={!!(user?.userId && dashboardInfo?.id && !isMobile)}
         showTitlePanelItems
       />
       {showingPropertiesModal && (

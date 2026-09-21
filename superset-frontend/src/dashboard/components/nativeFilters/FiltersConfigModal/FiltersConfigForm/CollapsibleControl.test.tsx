@@ -92,7 +92,10 @@ describe('CollapsibleControl', () => {
     const checkbox = screen.getByRole('checkbox', { name: /Test Control/i });
     expect(checkbox).toBeDisabled();
 
-    await userEvent.click(checkbox);
+    // The checkbox is disabled via `pointer-events: none`, so a real user
+    // could never click it; explicitly opt out of user-event's pointer
+    // events check to confirm the disabled checkbox still ignores clicks.
+    await userEvent.click(checkbox, { pointerEventsCheck: 0 });
     expect(onChangeMock).not.toHaveBeenCalled();
   });
 

@@ -1092,3 +1092,51 @@ def test_get_oauth2_fresh_token_python(
         },
         timeout=30.0,
     )
+
+
+def test_identifier_quote_uses_backticks() -> None:
+    """Databricks SQL is Spark SQL under the hood, so identifiers are quoted
+    with backticks, not the inherited ANSI double quotes."""
+    assert DatabricksNativeEngineSpec.get_public_information()["identifier_quote"] == {
+        "start": "`",
+        "end": "`",
+        "escape_by_doubling": True,
+    }
+    assert DatabricksPythonConnectorEngineSpec.get_public_information()[
+        "identifier_quote"
+    ] == {
+        "start": "`",
+        "end": "`",
+        "escape_by_doubling": True,
+    }
+
+
+def test_get_engine_spec_unrecognized_driver_prefers_python_connector() -> None:
+    """
+    ``get_engine_spec`` falls back to the first backend-matching spec (in module
+    definition order) when the driver string matches no registered spec exactly.
+    For Databricks that fallback must land on the modern Python connector, not
+    the legacy Hive spec, whose ``execute()`` passes an ``async`` kwarg that the
+    real ``databricks.sql.client.Cursor`` rejects (SUPERSET-PYTHON-179V,
+    apache/superset#24786).
+    """
+    from superset.db_engine_specs import get_engine_spec
+    from superset.db_engine_specs.databricks import (
+        DatabricksHiveEngineSpec,
+        DatabricksPythonConnectorEngineSpec,
+    )
+
+    # An unrecognized/legacy driver suffix falls through to the ambiguous
+    # fallback, which must now resolve to the general-purpose connector spec.
+    assert (
+        get_engine_spec("databricks", "some-unrecognized-driver-name")
+        is DatabricksPythonConnectorEngineSpec
+    )
+
+    # Exact driver matches must still resolve to their specific spec; the
+    # relocation must not disturb exact-match resolution.
+    assert get_engine_spec("databricks", "pyhive") is DatabricksHiveEngineSpec
+    assert (
+        get_engine_spec("databricks", "databricks-sql-python")
+        is DatabricksPythonConnectorEngineSpec
+    )

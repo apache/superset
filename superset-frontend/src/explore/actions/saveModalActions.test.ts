@@ -21,6 +21,7 @@ import { Dispatch } from 'redux';
 import { ADD_TOAST } from 'src/components/MessageToasts/actions';
 import {
   DatasourceType,
+  isFeatureEnabled,
   QueryFormData,
   SimpleAdhocFilter,
   VizType,
@@ -36,6 +37,13 @@ import {
   PayloadSlice,
 } from './saveModalActions';
 import { Operators } from '../constants';
+
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  isFeatureEnabled: jest.fn(),
+}));
+
+const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
 
 // Define test constants and mock data using imported types
 const sliceId = 10;
@@ -92,17 +100,203 @@ const sliceResponsePayload: Partial<PayloadSlice> = {
 };
 
 const sampleError = new Error('sampleError');
+const updateSliceEndpoint = `glob:*/api/v1/chart/${sliceId}`;
 
 jest.mock('../exploreUtils', () => ({
   buildV1ChartDataPayload: jest.fn(() => queryContext),
 }));
 
-beforeEach(() => fetchMock.clearHistory().removeRoutes());
+beforeEach(() => {
+  fetchMock.clearHistory().removeRoutes();
+  mockedIsFeatureEnabled.mockReturnValue(false);
+});
+
+test('existing-chart overwrite sends only still-matching normalization metadata', async () => {
+  mockedIsFeatureEnabled.mockReturnValue(true);
+  fetchMock.put(updateSliceEndpoint, sliceResponsePayload, {
+    name: updateSliceEndpoint,
+  });
+  const dispatch = jest.fn();
+  const getState = () => ({
+    explore: {
+      form_data: {
+        datasource: `${datasourceId}__${datasourceType}`,
+        viz_type: vizType,
+        row_limit: 10000,
+        show_legend: true,
+        object_control: { a: 1, b: 2 },
+      },
+    },
+    versionHistory: {
+      chartNormalization: {
+        chartId: sliceId,
+        hydrationSessionId: 'hydration-a',
+        saveAttemptId: null,
+        invalidatedControls: { show_legend: true as const },
+        transitions: {
+          row_limit: {
+            control: 'row_limit',
+            from_present: true as const,
+            from_value: null,
+            to_present: true as const,
+            to_value: 10000,
+          },
+          show_legend: {
+            control: 'show_legend',
+            from_present: false as const,
+            to_present: true as const,
+            to_value: true,
+          },
+          object_control: {
+            control: 'object_control',
+            from_present: false as const,
+            to_present: true as const,
+            to_value: { b: 2, a: 1 },
+          },
+        },
+      },
+    },
+  });
+
+  await updateSlice(
+    { ...sliceResponsePayload, slice_id: sliceId } as never,
+    sliceName,
+    [],
+  )(dispatch, getState);
+
+  const request = fetchMock.callHistory.lastCall(updateSliceEndpoint);
+  const body = JSON.parse(request?.options.body as string);
+  expect(body.normalization_changes).toEqual([
+    {
+      control: 'row_limit',
+      from_present: true,
+      from_value: null,
+      to_present: true,
+      to_value: 10000,
+    },
+    {
+      control: 'object_control',
+      from_present: false,
+      to_present: true,
+      to_value: { b: 2, a: 1 },
+    },
+  ]);
+  expect(dispatch).toHaveBeenCalledWith(
+    expect.objectContaining({ type: 'BEGIN_CHART_NORMALIZATION_SAVE' }),
+  );
+  expect(dispatch).toHaveBeenCalledWith(
+    expect.objectContaining({ type: 'COMPLETE_CHART_NORMALIZATION_SAVE' }),
+  );
+});
+
+test('matches normalization metadata against finalized payload filters', async () => {
+  mockedIsFeatureEnabled.mockReturnValue(true);
+  fetchMock.put(updateSliceEndpoint, sliceResponsePayload, {
+    name: updateSliceEndpoint,
+  });
+  const extraTemporalFilter = {
+    expressionType: 'SIMPLE',
+    clause: 'WHERE',
+    subject: 'ds',
+    operator: Operators.TemporalRange,
+    comparator: '',
+    isExtra: true,
+  } as SimpleAdhocFilter;
+  const savedTemporalFilter = {
+    ...extraTemporalFilter,
+    comparator: 'No filter',
+    isExtra: false,
+  };
+  const dispatch = jest.fn();
+  const getState = () => ({
+    explore: {
+      form_data: {
+        datasource: `${datasourceId}__${datasourceType}`,
+        viz_type: vizType,
+        adhoc_filters: [extraTemporalFilter],
+      },
+    },
+    versionHistory: {
+      chartNormalization: {
+        chartId: sliceId,
+        hydrationSessionId: 'hydration-a',
+        saveAttemptId: null,
+        invalidatedControls: {},
+        transitions: {
+          adhoc_filters: {
+            control: 'adhoc_filters',
+            from_present: false as const,
+            to_present: true as const,
+            to_value: [savedTemporalFilter],
+          },
+        },
+      },
+    },
+  });
+
+  await updateSlice(
+    { ...sliceResponsePayload, slice_id: sliceId } as never,
+    sliceName,
+    [],
+  )(dispatch, getState);
+
+  const request = fetchMock.callHistory.lastCall(updateSliceEndpoint);
+  const body = JSON.parse(request?.options.body as string);
+  expect(body.normalization_changes).toEqual([
+    expect.objectContaining({
+      control: 'adhoc_filters',
+      to_value: [savedTemporalFilter],
+    }),
+  ]);
+});
+
+test('updateSlice keeps values stashed by a hidden control section in the saved params', async () => {
+  fetchMock.put(updateSliceEndpoint, sliceResponsePayload, {
+    name: updateSliceEndpoint,
+  });
+  const dispatch = jest.fn();
+  const getState = () => ({
+    explore: {
+      // The Advanced analytics section is hidden (e.g. the x-axis column
+      // lost is_dttm), so StashFormDataContainer removed time_compare and
+      // comparison_type from form_data...
+      form_data: {
+        datasource: `${datasourceId}__${datasourceType}`,
+        viz_type: vizType,
+      },
+      // ...and holds their previously-saved values here until the section
+      // becomes visible again.
+      hiddenFormData: {
+        time_compare: ['1 year ago'],
+        comparison_type: 'values',
+      },
+    },
+  });
+
+  await updateSlice(
+    {
+      ...sliceResponsePayload,
+      slice_id: sliceId,
+      form_data: {
+        ...formData,
+        time_compare: ['1 year ago'],
+        comparison_type: 'values',
+      },
+    } as never,
+    sliceName,
+    [],
+  )(dispatch, getState);
+
+  const request = fetchMock.callHistory.lastCall(updateSliceEndpoint);
+  const body = JSON.parse(request?.options.body as string);
+  const savedParams = JSON.parse(body.params);
+  expect(savedParams.time_compare).toEqual(['1 year ago']);
+  expect(savedParams.comparison_type).toEqual('values');
+});
 
 /**
  * Tests updateSlice action
  */
-const updateSliceEndpoint = `glob:*/api/v1/chart/${sliceId}`;
 test('updateSlice handles success', async () => {
   fetchMock.put(updateSliceEndpoint, sliceResponsePayload, {
     name: updateSliceEndpoint,
@@ -225,6 +419,33 @@ test('createSlice handles success', async () => {
   );
 
   expect(slice).toEqual(sliceResponsePayload);
+});
+
+test('createSlice keeps values stashed by a hidden control section in the saved params', async () => {
+  fetchMock.post(createSliceEndpoint, sliceResponsePayload, {
+    name: createSliceEndpoint,
+  });
+  const dispatch = jest.fn();
+  const getState = () => ({
+    explore: {
+      form_data: {
+        datasource: `${datasourceId}__${datasourceType}`,
+        viz_type: vizType,
+      },
+      hiddenFormData: {
+        time_compare: ['1 year ago'],
+        comparison_type: 'values',
+      },
+    },
+  });
+
+  await createSlice(sliceName, [])(dispatch, getState as never);
+
+  const request = fetchMock.callHistory.lastCall(createSliceEndpoint);
+  const body = JSON.parse(request?.options.body as string);
+  const savedParams = JSON.parse(body.params);
+  expect(savedParams.time_compare).toEqual(['1 year ago']);
+  expect(savedParams.comparison_type).toEqual('values');
 });
 
 test('createSlice handles failure', async () => {
@@ -733,4 +954,52 @@ describe('getSlicePayload', () => {
       isExtra: false,
     });
   });
+});
+
+test('existing-chart overwrite restores a stash-held value instead of dropping it', async () => {
+  mockedIsFeatureEnabled.mockReturnValue(true);
+  fetchMock.put(updateSliceEndpoint, sliceResponsePayload, {
+    name: updateSliceEndpoint,
+  });
+  const dispatch = jest.fn();
+  const getState = () => ({
+    explore: {
+      // The stash removed order_desc from active form data...
+      form_data: {
+        datasource: `${datasourceId}__${datasourceType}`,
+        viz_type: vizType,
+        row_limit: 10000,
+      },
+      // ...and holds it with the value it had when hidden.
+      hiddenFormData: { order_desc: true },
+    },
+    versionHistory: {
+      chartNormalization: {
+        chartId: sliceId,
+        hydrationSessionId: 'hydration-drop',
+        saveAttemptId: null,
+        invalidatedControls: {},
+        transitions: {},
+      },
+    },
+  });
+
+  await updateSlice(
+    {
+      ...sliceResponsePayload,
+      slice_id: sliceId,
+      // Persisted params carry the key the stash removed, same value.
+      form_data: { ...formData, order_desc: true },
+    } as never,
+    sliceName,
+    [],
+  )(dispatch, getState);
+
+  const request = fetchMock.callHistory.lastCall(updateSliceEndpoint);
+  const body = JSON.parse(request?.options.body as string);
+  const savedParams = JSON.parse(body.params);
+  // The stashed value is written back into the saved params, so there is no
+  // drop for the normalization tracker to report.
+  expect(savedParams.order_desc).toBe(true);
+  expect(body.normalization_changes).toBeUndefined();
 });

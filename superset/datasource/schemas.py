@@ -14,15 +14,22 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Marshmallow schemas for the combined datasource list endpoint."""
+"""Marshmallow schemas for the datasource list and query endpoints."""
 
 from __future__ import annotations
 
-from marshmallow import fields, Schema
+from marshmallow import fields, Schema, validates_schema, ValidationError
+from marshmallow.validate import OneOf, Range
 
+from superset.charts.schemas import ChartDataFilterSchema
+from superset.common.chart_data import ChartDataResultFormat
 from superset.connectors.sqla.models import SqlaTable
 from superset.semantic_layers.models import SemanticView
 from superset.subjects.schemas import SubjectResponseSchema
+
+# Matches the MCP query tools' ceiling so the two surfaces agree. The server
+# additionally clamps via apply_max_row_limit against ROW_LIMIT.
+MAX_ROW_LIMIT = 50_000
 
 
 class _ChangedBySchema(Schema):
@@ -140,3 +147,111 @@ class SemanticViewListSchema(Schema):
 
     def get_changed_on_utc(self, obj: SemanticView) -> str:
         return obj.changed_on_utc()
+
+
+class DatasourceQueryOrderSchema(Schema):
+    """One ordering term, mirroring SemanticQuery's OrderTuple."""
+
+    column = fields.String(
+        required=True,
+        metadata={"description": "Metric or dimension name to sort by."},
+    )
+    descending = fields.Boolean(
+        load_default=True,
+        metadata={"description": "Sort this column descending."},
+    )
+
+
+class DatasourceQuerySchema(Schema):
+    """Name-based query request for POST /datasource/<type>/<id>/query.
+
+    Field names mirror the semantic-layer vocabulary (``dimensions``,
+    ``metrics``) rather than Explore's (``columns``); translation to the
+    QueryObject shape happens in ``superset.common.tabular_query``.
+    """
+
+    # Raw, not String: Metric/Column are `AdhocMetric | str` and
+    # `AdhocColumn | str`, so ad-hoc expressions are accepted for datasets
+    # exactly as ChartDataQueryObjectSchema accepts them. Semantic views
+    # reject ad-hoc metrics downstream, in the mapper that owns that rule.
+    metrics = fields.List(
+        fields.Raw(),
+        load_default=list,
+        metadata={
+            "description": "Saved metric names, or ad-hoc metric objects "
+            "(datasets only). See ChartDataAdhocMetricSchema."
+        },
+    )
+    dimensions = fields.List(
+        fields.Raw(),
+        load_default=list,
+        metadata={"description": "Dimension/column names to group by."},
+    )
+    filters = fields.List(
+        fields.Nested(ChartDataFilterSchema),
+        load_default=list,
+        metadata={"description": "Filters to apply, AND-ed together."},
+    )
+    time_range = fields.String(
+        allow_none=True,
+        load_default=None,
+        metadata={"description": "e.g. 'Last 30 days' or '2024-01-01 : 2024-12-31'."},
+    )
+    time_column = fields.String(
+        allow_none=True,
+        load_default=None,
+        metadata={
+            "description": "Temporal column the time range applies to. Inferred "
+            "from the datasource when omitted."
+        },
+    )
+    time_grain = fields.String(
+        allow_none=True,
+        load_default=None,
+        metadata={"description": "ISO 8601 duration, e.g. 'P1D' or 'PT1H'."},
+    )
+    limit = fields.Integer(
+        allow_none=True,
+        load_default=None,
+        validate=[Range(min=1, max=MAX_ROW_LIMIT)],
+        metadata={
+            "description": "Rows to return. Also clamped server-side by ROW_LIMIT."
+        },
+    )
+    offset = fields.Integer(
+        load_default=0,
+        validate=[Range(min=0)],
+        metadata={"description": "Rows to skip, for pagination."},
+    )
+    order = fields.List(
+        fields.Nested(DatasourceQueryOrderSchema),
+        load_default=list,
+        metadata={
+            "description": "Ordering terms, applied in sequence. Each carries its "
+            "own direction."
+        },
+    )
+    result_format = fields.Enum(
+        ChartDataResultFormat,
+        by_value=True,
+        load_default=ChartDataResultFormat.JSON,
+        validate=OneOf([ChartDataResultFormat.JSON, ChartDataResultFormat.ARROW]),
+        metadata={
+            "description": "'json' (default) or 'arrow' for an Arrow IPC stream."
+        },
+    )
+    use_cache = fields.Boolean(load_default=True)
+    force = fields.Boolean(load_default=False)
+    cache_timeout = fields.Integer(
+        allow_none=True,
+        load_default=None,
+        # -1 is CACHE_DISABLED_TIMEOUT; anything below it is meaningless and
+        # would reach the cache backend as an arbitrary negative timeout.
+        validate=[Range(min=-1)],
+        metadata={"description": "Seconds to cache for; -1 disables caching."},
+    )
+
+    @validates_schema
+    def validate_not_empty(self, data: dict[str, object], **_kwargs: object) -> None:
+        if not data.get("metrics") and not data.get("dimensions"):
+            raise ValidationError("Provide at least one metric or dimension.")

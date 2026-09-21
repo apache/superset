@@ -36,6 +36,7 @@ import type {
   QueryResponse,
   TimeFormatter,
 } from '@superset-ui/core';
+import { type RGBColor } from '@superset-ui/core/components';
 import { GenericDataType } from '@apache-superset/core/common';
 import { sharedControls, sharedControlComponents } from './shared-controls';
 
@@ -97,6 +98,11 @@ export interface Dataset {
   normalize_columns?: boolean;
   always_filter_main_dttm?: boolean;
   extra?: object | string;
+  /**
+   * Stable string values of the features a semantic view's provider declares.
+   * Only present for semantic views; absent elsewhere.
+   */
+  semantic_view_features?: string[];
 }
 
 export interface ControlPanelState {
@@ -488,18 +494,36 @@ export const MultipleValueComparators = [
   Comparator.BetweenOrRightEqual,
 ];
 
+export enum BoundUnit {
+  Value = 'value',
+  Percent = 'percent',
+}
+
+export enum PercentDenominator {
+  Sum = 'sum',
+  Max = 'max',
+}
+
 export type ConditionalFormattingConfig = {
   operator?: Comparator;
   targetValue?: number | string;
   targetValueLeft?: number;
   targetValueRight?: number;
   column?: string;
-  colorScheme?: string;
+  colorScheme?: RGBColor | string;
   toAllRow?: boolean;
   toTextColor?: boolean;
   useGradient?: boolean;
   columnFormatting?: string;
   objectFormatting?: ObjectFormattingEnum;
+  minBound?: number;
+  maxBound?: number;
+  centerValue?: number;
+  lowColor?: RGBColor | string;
+  midColor?: RGBColor | string;
+  highColor?: RGBColor | string;
+  boundUnit?: BoundUnit;
+  percentDenominator?: PercentDenominator;
 };
 
 export type ColorFormatters = {
@@ -517,8 +541,6 @@ export type ResolvedColorFormatterResult = {
   backgroundColor?: string;
   color?: string;
 };
-
-export default {};
 
 export function isColumnMeta(column: AnyDict): column is ColumnMeta {
   return !!column && 'column_name' in column;

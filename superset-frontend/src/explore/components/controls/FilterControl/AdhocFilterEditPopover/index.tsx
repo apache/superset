@@ -367,8 +367,22 @@ function AdhocFilterEditPopover({
               </ErrorBoundary>
             ),
           },
-          ...(datasource?.type === 'semantic_view'
-            ? []
+          ...(datasource?.type === 'semantic_view' ||
+          [
+            Operators.ContainsAny,
+            Operators.ContainsAll,
+            Operators.IsEmpty,
+            Operators.IsNotEmpty,
+            Operators.LengthEquals,
+            Operators.LengthGreaterThan,
+            Operators.LengthLessThan,
+            Operators.LengthGreaterThanOrEqual,
+            Operators.LengthLessThanOrEqual,
+          ].includes(adhocFilter.operatorId as Operators)
+            ? // Hide the Custom SQL tab for element-level array operators: they
+              // have no portable SQL representation, and converting one would
+              // silently turn the filter into invalid raw SQL.
+              []
             : [
                 {
                   key: ExpressionTypes.Sql,
