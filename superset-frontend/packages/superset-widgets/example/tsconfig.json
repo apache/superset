@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "jsxImportSource": "@emotion/react",
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "types": ["vite/client"],
+    "baseUrl": ".",
+    "paths": {
+      "@apache-superset/widgets": ["../lib/index.d.ts"],
+      "@apache-superset/core": ["../../superset-core/lib/index.d.ts"],
+      "@apache-superset/core/*": ["../../superset-core/lib/*"],
+      "@superset-ui/core": ["../../superset-ui-core/lib/index.d.ts"],
+      "@superset-ui/core/*": ["../../superset-ui-core/lib/*"]
+    }
+  },
+  "include": ["src"]
+}
