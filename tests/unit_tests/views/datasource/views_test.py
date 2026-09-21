@@ -366,6 +366,10 @@ def test_save_rejects_repoint_to_database_without_access(
                     # database id 999 stands in for a database the caller
                     # has no explicit grant on.
                     "database": {"id": 999},
+                    # Same table preserved across the repoint; supplied
+                    # explicitly so it is not applied as None.
+                    "table_name": "my_table",
+                    "schema": "public",
                     "columns": [],
                 }
             )
@@ -426,6 +430,10 @@ def test_save_allows_repoint_to_database_with_access(
                     "id": 1,
                     "type": "table",
                     "database": {"id": 999},
+                    # Same table preserved across the repoint; supplied
+                    # explicitly so it is not applied as None.
+                    "table_name": "my_table",
+                    "schema": "public",
                     "columns": [],
                 }
             )
@@ -610,6 +618,70 @@ def test_save_allows_unchanged_datasource_without_access_recheck(
         raw_save(_view_self())
 
     mock_security_manager.raise_for_access.assert_not_called()
+    mock_get_database_by_id.assert_not_called()
+
+
+@patch("superset.views.datasource.views.db")
+@patch("superset.views.datasource.views.DatasetDAO.get_database_by_id")
+@patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
+@patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
+def test_save_rejects_repoint_when_table_key_omitted(
+    mock_get_datasource: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_get_database_by_id: MagicMock,
+    mock_db: MagicMock,
+) -> None:
+    """
+    A request that omits ``table_name``/``schema``/``catalog`` entirely still
+    repoints the dataset: ``update_from_object`` applies ``obj.get(attr)`` with
+    no default, so the omitted keys are written as ``None``. The target the
+    access check evaluates must mirror that -- an omitted key must read as a
+    change (current value -> ``None``) so the check runs against the actual
+    target, not fall back to the current value and skip the check.
+    """
+    mock_orm = MagicMock()
+    mock_orm.database_id = 1
+    mock_orm.table_name = "authorised_table"
+    mock_orm.schema = "public"
+    mock_orm.catalog = None
+    mock_orm.data = {"id": 1}
+    mock_get_datasource.return_value = mock_orm
+    mock_security_manager.raise_for_editorship.return_value = None
+    # Access to the (now None) target is not granted.
+    mock_security_manager.raise_for_access.side_effect = _security_exception()
+
+    from flask import Flask
+
+    from superset.commands.dataset.exceptions import DatasetForbiddenError
+
+    raw_save = _get_view_func("save")
+    app = Flask(__name__)
+    with app.test_request_context(
+        "/datasource/save/",
+        method="POST",
+        data={
+            "data": superset_json.dumps(
+                {
+                    "id": 1,
+                    "type": "table",
+                    "database": {"id": 1},  # same database
+                    # table_name / schema / catalog omitted entirely
+                    "columns": [],
+                }
+            )
+        },
+    ):
+        with pytest.raises(DatasetForbiddenError):
+            raw_save(_view_self())
+
+    # The check ran, and against the target that will actually be applied
+    # (all None), not the dataset's current authorised values.
+    mock_security_manager.raise_for_access.assert_called_once()
+    call_kwargs = mock_security_manager.raise_for_access.call_args.kwargs
+    assert call_kwargs["database"] is mock_orm.database
+    assert call_kwargs["table"].table is None
+    assert call_kwargs["table"].schema is None
+    assert call_kwargs["table"].catalog is None
     mock_get_database_by_id.assert_not_called()
 
 

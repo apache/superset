@@ -126,11 +126,18 @@ class Datasource(BaseSupersetView):
         # whatever the request supplies. Resolve the target of both dimensions
         # up front so the access check is evaluated against what the dataset
         # will actually point at, not its current (stale) values.
+        #
+        # update_from_object does ``setattr(self, attr, obj.get(attr))`` with no
+        # default, so an omitted table_name/schema/catalog key is applied as
+        # None. Mirror that exactly here (plain .get, no fallback) so the target
+        # the check evaluates is the target that gets written: an omitted key
+        # then reads as a change (current -> None) and the access check runs,
+        # rather than reading as "unchanged" against the current value.
         database_changed = database_id != orm_datasource.database_id
         requested_table = Table(
-            datasource_dict.get("table_name", orm_datasource.table_name),
-            datasource_dict.get("schema", orm_datasource.schema),
-            datasource_dict.get("catalog", orm_datasource.catalog),
+            datasource_dict.get("table_name"),
+            datasource_dict.get("schema"),
+            datasource_dict.get("catalog"),
         )
         table_changed = (
             requested_table.table != orm_datasource.table_name
