@@ -417,6 +417,53 @@ def _build_response(
     )
 
 
+def _extract_table_query_result(
+    result: object,
+) -> (
+    tuple[
+        dict[str, Any],
+        list[dict[str, Any]],
+        list[str],
+        list[int | GenericDataType],
+    ]
+    | SemanticLayerError
+):
+    """Validate the query envelope and extract its first table and metadata."""
+    queries_data, query_failure = query_result_data(result)
+    if query_failure is not None:
+        return SemanticLayerError.create(
+            error=query_failure.error,
+            error_type=query_failure.error_type,
+        )
+    if queries_data is None or type(result) is not dict:
+        return SemanticLayerError.create(
+            error="Malformed chart query result after validation",
+            error_type="MalformedQueryResult",
+        )
+    queries = dict.get(result, "queries")
+    if type(queries) is not list or not queries:
+        return SemanticLayerError.create(
+            error="Malformed chart query result after validation",
+            error_type="MalformedQueryResult",
+        )
+    query_result = list.__getitem__(queries, 0)
+    if type(query_result) is not dict:
+        return SemanticLayerError.create(
+            error="Malformed chart query result after validation",
+            error_type="MalformedQueryResult",
+        )
+    data = list.__getitem__(queries_data, 0)
+    raw_columns = dict.get(query_result, "colnames", [])
+    coltypes = dict.get(query_result, "coltypes", [])
+    if type(raw_columns) is not list or type(coltypes) is not list:
+        return SemanticLayerError.create(
+            error="Malformed chart query metadata after validation",
+            error_type="MalformedQueryResult",
+        )
+
+    return query_result, data, raw_columns, coltypes
+
+
 async def _run_get_table_query(
     request: GetTableRequest,
     ctx: Context,
@@ -461,37 +508,10 @@ async def _run_get_table_query(
             use_cache=request.use_cache,
             force=request.force_refresh,
         )
-    queries_data, query_failure = query_result_data(result)
-    if query_failure is not None:
-        return SemanticLayerError.create(
-            error=query_failure.error,
-            error_type=query_failure.error_type,
-        )
-    if queries_data is None or type(result) is not dict:
-        return SemanticLayerError.create(
-            error="Malformed chart query result after validation",
-            error_type="MalformedQueryResult",
-        )
-    queries = dict.get(result, "queries")
-    if type(queries) is not list or not queries:
-        return SemanticLayerError.create(
-            error="Malformed chart query result after validation",
-            error_type="MalformedQueryResult",
-        )
-    query_result = list.__getitem__(queries, 0)
-    if type(query_result) is not dict:
-        return SemanticLayerError.create(
-            error="Malformed chart query result after validation",
-            error_type="MalformedQueryResult",
-        )
-    data = list.__getitem__(queries_data, 0)
-    raw_columns = dict.get(query_result, "colnames", [])
-    coltypes = dict.get(query_result, "coltypes", [])
-    if type(raw_columns) is not list or type(coltypes) is not list:
-        return SemanticLayerError.create(
-            error="Malformed chart query metadata after validation",
-            error_type="MalformedQueryResult",
-        )
+    extracted = _extract_table_query_result(result)
+    if isinstance(extracted, SemanticLayerError):
+        return extracted
+    query_result, data, raw_columns, coltypes = extracted
 
     query_duration_ms = int((time.time() - start_time) * 1000)
 
