@@ -382,6 +382,22 @@ def _text_of(events: list[Any]) -> str:
     return "".join(e.text for e in events if e.kind == StreamEventKind.TEXT)
 
 
+@pytest.mark.parametrize("reason", ["max_tokens", "end_turn", "tool_use"])
+def test_anthropic_stream_preserves_stop_reason(reason: str) -> None:
+    events = list(
+        anthropic_provider.translate_stream(
+            [
+                SimpleNamespace(
+                    type="message_delta", delta=SimpleNamespace(stop_reason=reason)
+                ),
+                SimpleNamespace(type="message_stop"),
+            ]
+        )
+    )
+    assert events[-1].kind is StreamEventKind.STOP
+    assert events[-1].stop_reason == reason
+
+
 def test_anthropic_streams_text_in_order_then_usage_and_a_stop() -> None:
     raw = [
         SimpleNamespace(
@@ -589,6 +605,47 @@ def _chunk(**delta: Any) -> SimpleNamespace:
             SimpleNamespace(delta=SimpleNamespace(**delta), finish_reason=None),
         ],
     )
+
+
+@pytest.mark.parametrize(
+    "reason,normalized",
+    [("length", "max_tokens"), ("stop", "end_turn"), ("tool_calls", "tool_use")],
+)
+def test_openai_stream_preserves_finish_reason(reason: str, normalized: str) -> None:
+    events = list(
+        openai_provider.translate_stream(
+            [
+                SimpleNamespace(choices=[SimpleNamespace(finish_reason=reason)]),
+                SimpleNamespace(
+                    choices=[], usage=SimpleNamespace(completion_tokens=2048)
+                ),
+            ]
+        )
+    )
+    assert events[-1].kind is StreamEventKind.STOP
+    assert events[-1].stop_reason == normalized
+    assert events[-2].usage is not None
+    assert events[-2].usage["output_tokens"] == 2048
+
+
+def test_openai_token_limit_does_not_parse_an_incomplete_tool_call() -> None:
+    chunks = [
+        _chunk(
+            content="Partial answer",
+            tool_calls=[
+                SimpleNamespace(
+                    index=0,
+                    id="c",
+                    function=SimpleNamespace(name="run_sql", arguments='{"sql":'),
+                )
+            ],
+        ),
+        SimpleNamespace(choices=[SimpleNamespace(finish_reason="length")]),
+    ]
+    events = list(openai_provider.translate_stream(chunks))
+    assert _text_of(events) == "Partial answer"
+    assert StreamEventKind.TOOL_USE not in _kinds(events)
+    assert events[-1].stop_reason == "max_tokens"
 
 
 def test_openai_streams_content_in_order_then_usage_and_a_stop() -> None:
@@ -958,6 +1015,39 @@ async def test_openai_complete_still_translates_a_whole_reply() -> None:
     assert response.text == "Nine hundred rows."
     assert response.stop_reason == "tool_use"
     assert response.usage["output_tokens"] == 7
+
+
+async def test_openai_complete_token_limit_keeps_text_not_partial_tool_arguments() -> (
+    None
+):
+    provider = _openai()
+    calls: list[dict[str, Any]] = []
+    provider._async_client = _stub_client(
+        SimpleNamespace(
+            choices=[
+                SimpleNamespace(
+                    message=SimpleNamespace(
+                        content="Partial answer",
+                        tool_calls=[
+                            SimpleNamespace(
+                                id="c",
+                                function=SimpleNamespace(
+                                    name="run_sql", arguments='{"sql":'
+                                ),
+                            )
+                        ],
+                    ),
+                    finish_reason="length",
+                )
+            ],
+            usage=None,
+        ),
+        calls,
+    )
+    response = await provider.complete(_request())
+    assert response.text == "Partial answer"
+    assert response.tool_calls == []
+    assert response.stop_reason == "max_tokens"
 
 
 async def test_openai_reports_a_reply_that_carries_no_choices() -> None:

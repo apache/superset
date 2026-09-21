@@ -135,16 +135,21 @@ class OpenAICompatibleProvider(BaseLLMProvider):
             )
         choice = completion.choices[0]
         message = choice.message
+        stop_reason = _STOP_REASONS.get(
+            getattr(choice, "finish_reason", None) or "", "end_turn"
+        )
         return LLMResponse(
             text=message.content or "",
             # Servers that expose a reasoning trace put it here. Absent on the
             # ones that do not, which is why it is read defensively.
             thinking=getattr(message, "reasoning_content", None) or "",
-            tool_calls=_parse_tool_calls(getattr(message, "tool_calls", None) or ()),
-            usage=_usage(payload["model"], getattr(completion, "usage", None)),
-            stop_reason=_STOP_REASONS.get(
-                getattr(choice, "finish_reason", None) or "", "end_turn"
+            tool_calls=(
+                []
+                if stop_reason == "max_tokens"
+                else _parse_tool_calls(getattr(message, "tool_calls", None) or ())
             ),
+            usage=_usage(payload["model"], getattr(completion, "usage", None)),
+            stop_reason=stop_reason,
         )
 
     async def stream(
@@ -366,6 +371,7 @@ class _StreamAssembler:
         self._output_tokens = 0
         self._flushed = False
         self._closed = False
+        self._stop_reason: str | None = None
 
     def push(self, chunk: Any) -> list[ProviderStreamEvent]:
         """Translate one completion chunk into zero or more provider events."""
@@ -377,7 +383,8 @@ class _StreamAssembler:
             return []
         choice = choices[0]
         events = self._delta(getattr(choice, "delta", None))
-        if getattr(choice, "finish_reason", None):
+        if reason := getattr(choice, "finish_reason", None):
+            self._stop_reason = _STOP_REASONS.get(reason, "end_turn")
             # The only signal that a tool call is complete: this protocol has no
             # per-call stop event.
             events.extend(self._flush())
@@ -398,7 +405,11 @@ class _StreamAssembler:
         events.append(
             ProviderStreamEvent(kind=StreamEventKind.USAGE, usage=self._usage())
         )
-        events.append(ProviderStreamEvent(kind=StreamEventKind.STOP))
+        events.append(
+            ProviderStreamEvent(
+                kind=StreamEventKind.STOP, stop_reason=self._stop_reason
+            )
+        )
         return events
 
     def _delta(self, delta: Any) -> list[ProviderStreamEvent]:
@@ -436,6 +447,9 @@ class _StreamAssembler:
         if self._flushed:
             return []
         self._flushed = True
+        if self._stop_reason == "max_tokens":
+            # A capped completion may end in the middle of its tool arguments.
+            return []
         return [
             ProviderStreamEvent(
                 kind=StreamEventKind.TOOL_USE,

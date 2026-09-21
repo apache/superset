@@ -47,6 +47,7 @@ interface MessageRecord {
   uuid: string;
   role: 'user' | 'assistant';
   content: string;
+  status?: string;
   extra?: Record<string, unknown>;
   /** The reading user's own stored rating, as the API reports it. */
   liked?: boolean;
@@ -543,6 +544,47 @@ test('an error frame is reported in the transcript', async () => {
   expect(
     await screen.findByText(/the warehouse refused the query/),
   ).toBeInTheDocument();
+});
+
+test('a token-limited answer keeps its text and explains why it stopped', async () => {
+  const partial = 'Оптимистичный: +11 (Шаг 1) +';
+  const error =
+    'The model reached its output token limit. The response is incomplete.';
+  streamFrames = [
+    frame('assistant_delta', { delta: partial }),
+    frame('error', { error }),
+    frame('final', { role: 'assistant', content: partial }),
+    frame('done', { ok: false }),
+  ];
+  await renderPanel();
+  await send('explain');
+
+  await waitFor(() =>
+    expect(screen.getByTestId('chat-messages')).toHaveTextContent(error),
+  );
+  expect(screen.getByTestId('chat-messages')).toHaveTextContent(partial);
+});
+
+test('a reloaded incomplete answer is not presented as a completed answer', async () => {
+  persistedMessages = [
+    { uuid: 'user-uuid-1', role: 'user', content: 'explain' },
+    {
+      uuid: ASSISTANT_UUID,
+      role: 'assistant',
+      content: 'Оптимистичный: +11 (Шаг 1) +',
+      status: 'error',
+    },
+  ];
+  await renderPanel();
+
+  await waitFor(() =>
+    expect(screen.getByTestId('chat-messages')).toHaveTextContent(
+      'The assistant did not finish this run.',
+    ),
+  );
+  expect(screen.getByTestId('chat-messages')).toHaveTextContent(
+    'Оптимистичный: +11 (Шаг 1) +',
+  );
 });
 
 test('rating an answer posts feedback keyed by the message uuid', async () => {

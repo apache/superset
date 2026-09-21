@@ -245,6 +245,16 @@ Cancellation is cooperative: a run stops at its next step boundary. A run inside
 a single long model call or a single long query will not stop until that call
 returns.
 
+## Incomplete answers
+
+When the model reports that it reached its output token limit, the assistant
+keeps the partial text and reports an incomplete response, not a successful run.
+The warning remains visible when the conversation is reopened. Superset does
+not automatically retry or execute tool calls from a token-limited response.
+Ask the assistant to continue or request a shorter answer. An operator can
+adjust `AI_LLM_PROVIDER_CONFIG['max_output_tokens']` within the endpoint's
+supported output and context limits; a higher cap can increase latency and cost.
+
 ## Monitoring and tracing
 
 Superset bundles **no integration with any AI monitoring product**. Instead it

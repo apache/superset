@@ -161,6 +161,8 @@ class ProviderStreamEvent:
     text: str = ""
     tool_call: ToolCall | None = None
     usage: TokenUsage | None = None
+    #: Normalized provider reason on STOP; absent for older custom providers.
+    stop_reason: str | None = None
 
 
 @dataclass(frozen=True)

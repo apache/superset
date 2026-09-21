@@ -24,14 +24,20 @@ loop with no network and no model.
 from __future__ import annotations
 
 import asyncio
+from collections.abc import AsyncIterator
+from dataclasses import replace
 from typing import Any
 
 import pytest
 
 from superset.ai.events import StreamEvent
 from superset.ai.llm.base import (
+    CompletionRequest,
+    LLMResponse,
     LLMTransportError,
     Message,
+    ProviderStreamEvent,
+    StreamEventKind,
     ToolCall,
     ToolDefinition,
     ToolResult,
@@ -127,6 +133,55 @@ def test_deltas_reassemble_into_the_final_answer() -> None:
     )
     assert deltas == answer
     assert _payloads(events, StreamEventType.FINAL)[0]["content"] == answer
+
+
+@pytest.mark.parametrize("streaming", [True, False])
+@pytest.mark.parametrize("with_tools", [True, False])
+@pytest.mark.parametrize("partial", ["Оптимистичный: +11 (Шаг 1) +", ""])
+def test_output_token_limit_preserves_partial_answer_without_success(
+    streaming: bool, with_tools: bool, partial: str
+) -> None:
+    """A capped response is incomplete, never a tool request or a successful answer."""
+    from superset.ai.orchestrator import _outcome_of, _status_of, _terminal_content
+    from superset.ai.types import MessageStatus, RunOutcome
+
+    class TokenLimitedProvider(EchoProvider):
+        supports_streaming = streaming
+
+        async def complete(self, request: CompletionRequest) -> LLMResponse:
+            response = await super().complete(request)
+            response.stop_reason = "max_tokens"
+            return response
+
+        async def stream(
+            self, request: CompletionRequest
+        ) -> AsyncIterator[ProviderStreamEvent]:
+            async for event in super().stream(request):
+                if event.kind is StreamEventKind.STOP:
+                    event = replace(event, stop_reason="max_tokens")
+                yield event
+
+    calls = (ToolCall(id="c", name="execute_sql", arguments={}),) if with_tools else ()
+    provider = TokenLimitedProvider([ScriptedTurn(text=partial, tool_calls=calls)])
+    runtime = MessagesApiRuntime(provider)
+    tools = StubTools()
+
+    events = _run(runtime, _request(tools=tools))
+
+    assert not runtime.result.ok
+    assert runtime.result.error is not None
+    assert "output token limit" in runtime.result.error
+    assert runtime.result.answer == partial
+    assert _payloads(events, StreamEventType.ERROR) == [{"error": runtime.result.error}]
+    if partial:
+        assert _payloads(events, StreamEventType.FINAL) == [
+            {"role": "assistant", "content": partial}
+        ]
+        assert _terminal_content(runtime.result, RunOutcome.ERROR) == partial
+    assert _outcome_of(runtime.result) is RunOutcome.ERROR
+    assert _status_of(RunOutcome.ERROR) is MessageStatus.ERROR
+    assert tools.calls == []
+    assert len(provider.requests) == 1
 
 
 def test_tool_loop_feeds_results_back_to_the_model() -> None:

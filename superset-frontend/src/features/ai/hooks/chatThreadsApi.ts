@@ -25,6 +25,7 @@
  * through the parsers in `types.ts` rather than cast.
  */
 
+import { t } from '@apache-superset/core/translation';
 import { SupersetClient } from '@superset-ui/core';
 import {
   type AiMessage,
@@ -137,7 +138,10 @@ export const messageToChatMessage = (
     // A `system` message is not shown as a bubble; the panel filters those out
     // before this is reached, so anything that arrives here is a visible turn.
     role: message.role === 'assistant' ? 'assistant' : 'user',
-    content: message.content,
+    content:
+      message.role === 'assistant' && message.status === 'error'
+        ? `${message.content}\n\n---\n_${t('The assistant did not finish this run.')}_`
+        : message.content,
     timestamp: message.createdOn
       ? new Date(message.createdOn).getTime()
       : Date.now(),
