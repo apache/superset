@@ -454,6 +454,47 @@ test('passes the new adhocFilter to onChange after onComparatorChange', () => {
   ).toEqual(simpleAdhocFilter.duplicateWith({ comparator: '20' }));
 });
 
+test('editing a dashboard-inherited time range filter clears isExtra so the new value is kept on save', () => {
+  const inheritedTimeFilter = new AdhocFilter({
+    expressionType: ExpressionTypes.Simple,
+    subject: 'ds',
+    operator: Operators.TemporalRange,
+    comparator: '2024-01-01 : 2024-02-01',
+    clause: Clauses.Where,
+    isExtra: true,
+  });
+  const props = setup({ adhocFilter: inheritedTimeFilter });
+  const { onDatePickerChange } = useSimpleTabFilterProps(
+    props as unknown as Props,
+  );
+  onDatePickerChange('ds', '2025-01-01 : 2025-02-01');
+  const editedFilter =
+    props.onChange.mock.calls[props.onChange.mock.calls.length - 1][0];
+  expect(editedFilter.comparator).toEqual('2025-01-01 : 2025-02-01');
+  expect(editedFilter.isExtra).toBe(false);
+});
+
+test('editing a dashboard-inherited filter comparator clears isExtra so the new value is kept on save', () => {
+  const inheritedFilter = new AdhocFilter({
+    expressionType: ExpressionTypes.Simple,
+    subject: 'value',
+    operatorId: Operators.GreaterThan,
+    operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.GreaterThan].operation,
+    comparator: '10',
+    clause: Clauses.Where,
+    isExtra: true,
+  });
+  const props = setup({ adhocFilter: inheritedFilter });
+  const { onComparatorChange } = useSimpleTabFilterProps(
+    props as unknown as Props,
+  );
+  onComparatorChange('20');
+  const editedFilter =
+    props.onChange.mock.calls[props.onChange.mock.calls.length - 1][0];
+  expect(editedFilter.comparator).toEqual('20');
+  expect(editedFilter.isExtra).toBe(false);
+});
+
 test('will filter operators for table datasources', () => {
   const props = setup({ datasource: { type: 'table' as const } });
   const { isOperatorRelevant } = useSimpleTabFilterProps(
@@ -723,11 +764,11 @@ test('should not call API when column has no advanced data type', async () => {
     'Filter value (case sensitive)',
   );
   await act(async () => {
-    userEvent.type(filterValueField, 'v');
+    await userEvent.type(filterValueField, 'v');
   });
 
   await act(async () => {
-    userEvent.type(filterValueField, '{enter}');
+    await userEvent.type(filterValueField, '{enter}');
   });
 
   await waitFor(() =>
@@ -764,11 +805,11 @@ test('should call API when column has advanced data type', async () => {
     'Filter value (case sensitive)',
   );
   await act(async () => {
-    userEvent.type(filterValueField, 'v');
+    await userEvent.type(filterValueField, 'v');
   });
 
   await act(async () => {
-    userEvent.type(filterValueField, '{enter}');
+    await userEvent.type(filterValueField, '{enter}');
   });
 
   await waitFor(() =>
@@ -808,11 +849,11 @@ test('save button should be disabled if error message from API is returned', asy
     'Filter value (case sensitive)',
   );
   await act(async () => {
-    userEvent.type(filterValueField, 'e');
+    await userEvent.type(filterValueField, 'e');
   });
 
   await act(async () => {
-    userEvent.type(filterValueField, '{enter}');
+    await userEvent.type(filterValueField, '{enter}');
   });
 
   await waitFor(() =>
@@ -852,11 +893,11 @@ test('advanced data type operator list should update after API response', async 
     'Filter value (case sensitive)',
   );
   await act(async () => {
-    userEvent.type(filterValueField, 'v');
+    await userEvent.type(filterValueField, 'v');
   });
 
   await act(async () => {
-    userEvent.type(filterValueField, '{enter}');
+    await userEvent.type(filterValueField, '{enter}');
   });
 
   await waitFor(() =>
@@ -872,11 +913,15 @@ test('advanced data type operator list should update after API response', async 
     name: 'Select operator',
   });
 
-  userEvent.click(operatorValueField);
+  await userEvent.click(operatorValueField);
 
-  await act(async () => {
-    userEvent.type(operatorValueField, '{enter}');
-  });
+  const operatorOption = await waitFor(() =>
+    within(
+      // eslint-disable-next-line testing-library/no-node-access
+      document.querySelector('.ant-select-dropdown-list')!,
+    ).getByText('Equal to (=)'),
+  );
+  await userEvent.click(operatorOption);
 
   expect(
     await screen.findByText('Equal to (=)', {
@@ -922,7 +967,7 @@ test('dropdown should remain open when clicked after filter is configured', asyn
   });
 
   await act(async () => {
-    userEvent.click(operatorDropdown);
+    await userEvent.click(operatorDropdown);
   });
 
   await waitFor(() => {
@@ -951,7 +996,7 @@ test('filters the subject select by column verbose_name as well as column_name',
   });
 
   const combobox = screen.getByRole('combobox', { name: 'Select subject' });
-  userEvent.click(combobox);
+  await userEvent.click(combobox);
 
   await userEvent.type(combobox, 'total');
 
@@ -1019,7 +1064,7 @@ const openComparator = async () => {
   const comparator = screen.getByRole('combobox', {
     name: 'Comparator option',
   });
-  userEvent.click(comparator);
+  await userEvent.click(comparator);
   return comparator;
 };
 
@@ -1034,7 +1079,7 @@ test('sends the typed text to the server rather than filtering the loaded page',
   // beyond the row limit. The search has to reach the database.
   setupWithFilterValues(['alpha']);
   const comparator = await openComparator();
-  userEvent.type(comparator, 'gamma');
+  await userEvent.type(comparator, 'gamma');
 
   await waitFor(
     () => {
@@ -1052,7 +1097,7 @@ test('lets a value the server did not return still be selected', async () => {
   // exact value has to remain a way through.
   setupWithFilterValues([]);
   const comparator = await openComparator();
-  userEvent.type(comparator, 'not-in-the-page');
+  await userEvent.type(comparator, 'not-in-the-page');
   expect(await screen.findByTitle('not-in-the-page')).toBeInTheDocument();
 });
 
@@ -1078,7 +1123,7 @@ test('stores the picked value, not the option object', async () => {
   // as a literal.
   const props = setupWithFilterValues(['Michael']);
   await openComparator();
-  userEvent.click(await screen.findByTitle('Michael'));
+  await userEvent.click(await screen.findByTitle('Michael'));
 
   await waitFor(() => expect(props.onChange).toHaveBeenCalled());
   const [filter] = props.onChange.mock.calls.at(-1);
@@ -1117,7 +1162,7 @@ test('can remove a value that was saved earlier', async () => {
   );
 
   // Remove it the way a user does: the tag's own close control.
-  userEvent.click(await screen.findByLabelText('close'));
+  await userEvent.click(await screen.findByLabelText('close'));
 
   await waitFor(() => expect(onChange).toHaveBeenCalled());
   const [filter] = onChange.mock.calls.at(-1);
@@ -1153,8 +1198,8 @@ test('says suggestions could not be loaded when the server fails', async () => {
   const comparator = screen.getByRole('combobox', {
     name: 'Comparator option',
   });
-  userEvent.type(comparator, 'typed-by-hand');
-  userEvent.click(await screen.findByTitle('typed-by-hand'));
+  await userEvent.type(comparator, 'typed-by-hand');
+  await userEvent.click(await screen.findByTitle('typed-by-hand'));
   await waitFor(() => expect(props.onChange).toHaveBeenCalled());
   const [filter] = props.onChange.mock.calls.at(-1);
   expect(filter.comparator).toEqual(['typed-by-hand']);
@@ -1222,7 +1267,7 @@ test('ignores a stale failing response that loses the race to a newer success', 
   await waitFor(() => expect(landedCalls).toBe(1));
 
   // A newer request succeeds while the first is still pending.
-  userEvent.type(comparator, 'al');
+  await userEvent.type(comparator, 'al');
   expect(
     await screen.findByTitle('alpha', {}, { timeout: 3000 }),
   ).toBeInTheDocument();
@@ -1287,9 +1332,61 @@ test('drops the note once suggestions load again', async () => {
   // plain reassignment: the first response has fully settled (the note is
   // already on screen), so the lazy read cannot hand it this value.
   columnValuesResponse = { result: ['alpha'], limit: 10000 };
-  userEvent.type(comparator, 'al');
+  await userEvent.type(comparator, 'al');
   expect(
     await screen.findByTitle('alpha', {}, { timeout: 3000 }),
   ).toBeInTheDocument();
   expect(screen.queryByText(SUGGESTIONS_UNAVAILABLE)).not.toBeInTheDocument();
+});
+
+test('Filter subject lists and commits an expression-less Cube dimension', async () => {
+  const semanticDimensions = [
+    {
+      column_name: 'order_date',
+      verbose_name: 'Order Date',
+      type: 'TIMESTAMP',
+      expression: null,
+      id: 10,
+    },
+    {
+      column_name: 'category',
+      verbose_name: 'Product Category',
+      type: 'VARCHAR(255)',
+      expression: null,
+      id: 11,
+    },
+  ];
+  const props = setup({
+    options: semanticDimensions,
+    datasource: {
+      ...TestDataset,
+      type: 'semantic_view',
+      semantic_view_features: [],
+      columns: semanticDimensions,
+      filter_select: false,
+    },
+  });
+
+  const subjectSelect = screen.getByRole('combobox', {
+    name: 'Select subject',
+  });
+  userEvent.click(subjectSelect);
+
+  const dropdown = await waitFor(() => {
+    const list = document.querySelector(
+      '.ant-select-dropdown-list',
+    ) as HTMLElement;
+    if (!list) throw new Error('dropdown not open');
+    return list;
+  });
+  expect(within(dropdown).getByText('Order Date')).toBeInTheDocument();
+  expect(within(dropdown).getByText('Product Category')).toBeInTheDocument();
+
+  userEvent.click(within(dropdown).getByText('Product Category'));
+
+  await waitFor(() => {
+    expect(props.onChange).toHaveBeenCalledWith(
+      expect.objectContaining({ subject: 'category' }),
+    );
+  });
 });

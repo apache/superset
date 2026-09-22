@@ -19,6 +19,7 @@
 import domToImage from 'dom-to-image-more';
 import { getInstanceByDom } from 'echarts/core';
 import { addWarningToast } from 'src/components/MessageToasts/actions';
+import { store } from 'src/views/store';
 import downloadAsImageOptimized, {
   waitForStableScrollHeight,
 } from './downloadAsImage';
@@ -34,7 +35,18 @@ jest.mock('echarts/core', () => ({
 }));
 
 jest.mock('src/components/MessageToasts/actions', () => ({
-  addWarningToast: jest.fn(),
+  // Must return a real action object: the utils pass the action to
+  // `store.dispatch`, and Redux rejects a dispatched `undefined`. Delegating
+  // to the actual creator keeps the mocked shape identical to production.
+  addWarningToast: jest.fn((text: string, options?: Record<string, unknown>) =>
+    jest
+      .requireActual('src/components/MessageToasts/actions')
+      .addWarningToast(text, options),
+  ),
+}));
+
+jest.mock('src/views/store', () => ({
+  store: { dispatch: jest.fn() },
 }));
 
 jest.mock('@apache-superset/core/translation', () => ({
@@ -45,6 +57,11 @@ const mockToJpeg = domToImage.toJpeg as jest.Mock;
 const mockToPng = domToImage.toPng as jest.Mock;
 const mockAddWarningToast = addWarningToast as jest.Mock;
 const mockGetInstanceByDom = getInstanceByDom as jest.Mock;
+const mockDispatch = store.dispatch as jest.Mock;
+// The genuine action the store receives, for dispatch-shape assertions.
+const realAddWarningToast = jest.requireActual(
+  'src/components/MessageToasts/actions',
+).addWarningToast as (text: string) => Record<string, unknown>;
 
 // document.fonts.ready is not implemented in jsdom; provide a resolved promise
 Object.defineProperty(document, 'fonts', {
@@ -210,6 +227,22 @@ test('shows warning toast when element is not found', async () => {
   expect(mockAddWarningToast).toHaveBeenCalledWith(
     'Image download failed, please refresh and try again.',
   );
+  // The action creator's result is what reaches the store, not the toast
+  // itself. Compared on the stable fields — the toast id is a fresh nanoid
+  // per call, so the full object can never be equal.
+  const dispatched = mockDispatch.mock.calls[0][0] as {
+    type: string;
+    payload: Record<string, unknown>;
+  };
+  const expected = realAddWarningToast(
+    'Image download failed, please refresh and try again.',
+  ) as { type: string; payload: { toastType: string; duration: number } };
+  expect(dispatched.type).toBe(expected.type);
+  expect(dispatched.payload).toMatchObject({
+    toastType: expected.payload.toastType,
+    duration: expected.payload.duration,
+    text: 'Image download failed, please refresh and try again.',
+  });
   expect(mockToJpeg).not.toHaveBeenCalled();
 });
 
@@ -611,9 +644,41 @@ test('falls through to clone path for dashboard export with multiple ag-grid cha
   document.body.removeChild(dashboard);
 });
 
-test('captures JPEG for non-ag-grid elements via the clone path', async () => {
+// A chart holding a table that scrolls in both axes, in a slot that never clips
+function buildScrollableChartElement(rootClassName?: string) {
   const container = document.createElement('div');
+  if (rootClassName) {
+    container.className = rootClassName;
+  }
+  const slot = document.createElement('div');
+  slot.className = 'chart-slot';
+  slot.style.overflow = 'visible';
+  slot.style.width = '100px';
+  const scrollContainer = document.createElement('div');
+  scrollContainer.className = 'scroll-container';
+  scrollContainer.style.overflow = 'auto';
+  scrollContainer.style.width = '100px';
+  scrollContainer.style.height = '50px';
+  const wideContent = document.createElement('div');
+  wideContent.style.width = '400px';
+  wideContent.style.height = '300px';
+  wideContent.textContent = 'wide table content';
+  scrollContainer.appendChild(wideContent);
+  // A sibling that clips via `overflow: clip` rather than a scrolling value
+  const clipContainer = document.createElement('div');
+  clipContainer.className = 'clip-container';
+  clipContainer.style.overflow = 'clip';
+  clipContainer.style.width = '100px';
+  clipContainer.style.height = '50px';
+  slot.appendChild(scrollContainer);
+  slot.appendChild(clipContainer);
+  container.appendChild(slot);
   document.body.appendChild(container);
+  return { container, cleanup: () => document.body.removeChild(container) };
+}
+
+test('captures JPEG for non-ag-grid elements via the clone path', async () => {
+  const { container, cleanup } = buildScrollableChartElement();
 
   const handler = downloadAsImageOptimized('div', 'Bar Chart');
   await handler(syntheticEventFor(container));
@@ -622,9 +687,52 @@ test('captures JPEG for non-ag-grid elements via the clone path', async () => {
     expect.any(HTMLElement),
     expect.objectContaining({ quality: 0.95 }),
   );
+  // A single chart has no neighbours to overlap, so its scrollable content is
+  // expanded on both axes and the whole table makes it into the image
+  const clone = mockToJpeg.mock.calls[0][0] as HTMLElement;
+  const clonedScrollContainer = clone.querySelector(
+    '.scroll-container',
+  ) as HTMLElement;
+  expect(clonedScrollContainer.style.height).toBe('auto');
+  expect(clonedScrollContainer.style.overflow).toBe('visible');
+  expect(
+    (clone.querySelector('.clip-container') as HTMLElement).style.overflow,
+  ).toBe('visible');
   expect(mockAddWarningToast).not.toHaveBeenCalled();
 
-  document.body.removeChild(container);
+  cleanup();
+});
+
+test('dashboard clone path expands scrollable content vertically without unclipping it horizontally', async () => {
+  const { container, cleanup } = buildScrollableChartElement('dashboard');
+
+  const handler = downloadAsImageOptimized('div', 'My Dashboard');
+  await handler(syntheticEventFor(container));
+
+  const clone = mockToJpeg.mock.calls[0][0] as HTMLElement;
+  const clonedScrollContainer = clone.querySelector(
+    '.scroll-container',
+  ) as HTMLElement;
+  // Vertical: grows so every row is captured and the grid reflows around it
+  expect(clonedScrollContainer.style.height).toBe('auto');
+  expect(clonedScrollContainer.style.overflowY).toBe('visible');
+  // Horizontal: stays clipped, otherwise a sideways-scrolling table paints its
+  // off-slot columns over the charts next to it in the same dashboard row.
+  // `clip`, not `hidden`, so the `visible` above is not promoted to `auto`
+  expect(clonedScrollContainer.style.overflowX).toBe('clip');
+  // The slot never clipped on screen, so the export must not start clipping it
+  const clonedSlot = clone.querySelector('.chart-slot') as HTMLElement;
+  expect(clonedSlot.style.overflowX).toBe('');
+  expect(clonedSlot.style.overflow).toBe('visible');
+  // `overflow: clip` clips just as much as `auto`/`hidden` do, so it is treated
+  // the same way rather than left alone
+  const clonedClipContainer = clone.querySelector(
+    '.clip-container',
+  ) as HTMLElement;
+  expect(clonedClipContainer.style.overflowX).toBe('clip');
+  expect(clonedClipContainer.style.overflowY).toBe('visible');
+
+  cleanup();
 });
 
 test('shows warning toast when clone capture throws', async () => {

@@ -699,7 +699,7 @@ test.skip('updates sidebar title when filter name changes', async () => {
 });
 
 test('modifies the name of a filter', async () => {
-  jest.useFakeTimers();
+  jest.useFakeTimers({ advanceTimers: true });
 
   const nativeFilterConfig = [
     buildNativeFilter('NATIVE_FILTER-1', 'state', []),
@@ -817,7 +817,7 @@ test('does not auto-create a filter when createNewOnOpen is false', () => {
 });
 
 test('enables save button and includes updated title when editing an existing divider', async () => {
-  jest.useFakeTimers();
+  jest.useFakeTimers({ advanceTimers: true });
 
   const nativeFilterDividerConfig = [
     {
@@ -882,7 +882,7 @@ test('enables save button and includes updated title when editing an existing di
 }, 30000);
 
 test('enables save button and includes updated title when editing an existing chart customization divider', async () => {
-  jest.useFakeTimers();
+  jest.useFakeTimers({ advanceTimers: true });
 
   const chartCustomizationDividerConfig = [
     {
@@ -998,7 +998,7 @@ test('restores a deleted filter via the "Restore filter" button', async () => {
     await screen.findByText(/you have removed this filter/i),
   ).toBeInTheDocument();
   const restoreButton = screen.getByTestId('restore-filter-button');
-  userEvent.click(restoreButton);
+  await userEvent.click(restoreButton);
 
   await waitFor(() => {
     expect(
@@ -1033,7 +1033,7 @@ test('undoes a filter deletion via the sidebar "Undo?" link', async () => {
 
   const undoButton = await screen.findByTestId('undo-button');
   expect(undoButton).toHaveTextContent(/undo\?/i);
-  userEvent.click(undoButton);
+  await userEvent.click(undoButton);
 
   await waitFor(() => {
     expect(

@@ -40,7 +40,7 @@ jobs:
           persist-credentials: false
 
       - name: Check action refs against the ASF allowlist
-        uses: apache/infrastructure-actions/allowlist-check@61dcea11f19e2bbe1263f14d72235e8da17d3ad0 # allowlist-check/v1.0.0
+        uses: apache/infrastructure-actions/allowlist-check@60e90f7a665a68248f145b8b2c97ed712132495b # allowlist-check/v1.0.3
         with:
           # Default scan-glob is .github/**/*.yml, which misses .yaml files.
           scan-glob: ".github/**/*.y*ml"

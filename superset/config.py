@@ -740,9 +740,6 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Enable Table V2 time comparison feature
     # @lifecycle: development
     "TABLE_V2_TIME_COMPARISON_ENABLED": False,
-    # Enables the tagging system for organizing assets
-    # @lifecycle: development
-    "TAGGING_SYSTEM": False,
     # Enables the version history panel on Explore and Dashboard pages.
     # History only accrues while ``ENABLE_VERSIONING_CAPTURE`` is also on;
     # with capture off the panel renders empty or stale history, so the two
@@ -826,6 +823,9 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # @lifecycle: testing
     # @docs: https://superset.apache.org/docs/configuration/setup-ssh-tunneling
     "SSH_TUNNELING": False,
+    # Enables the tagging system for organizing assets
+    # @lifecycle: testing
+    "TAGGING_SYSTEM": True,
     # Enable AWS IAM authentication for database connections (Aurora, Redshift).
     # Allows cross-account role assumption via STS AssumeRole.
     # Security note: When enabled, ensure Superset's IAM role has restricted
@@ -1030,6 +1030,42 @@ FEATURE_FLAGS: dict[str, bool] = {}
 # to True to have the task log ``would_purge`` counts without deleting anything.
 SOFT_DELETE_RETENTION_DAYS: int = 30
 SOFT_DELETE_PURGE_DRY_RUN: bool = False
+
+# Retention policy for the purge audit log itself (the durable evidence the
+# purge task writes). Pruning is deletion-only and scheduled
+# (``deletion_retention.prune_purge_audit``); it never mutates surviving rows.
+# Automatic deletion is opt-in so operators can validate retention policy and
+# workload characteristics before the first irreversible run. A disabled run
+# reports itself rather than silently doing nothing.
+PURGE_AUDIT_PRUNING_ENABLED: bool = False
+# How long operational audit records (``blocked``, ``failed``) are kept.
+# Duplicate blocked records within a current blockage streak are removed
+# regardless of age (the streak's earliest record and the first record after
+# each change of block reason always survive); this window governs failed
+# records and blocked records from resolved streaks.
+# It never applies to completed-destruction evidence — see the evidence key
+# below. Zero or negative values are invalid: the run logs a warning and
+# skips the age-based category rather than widening removal.
+PURGE_AUDIT_OPERATIONAL_RETENTION_DAYS: int = 90
+# Evidence expiration opt-in. ``None`` (the default) means completed
+# destruction records (``confirmed``, ``target_absent``) — the only surviving
+# trace of destroyed objects — are never pruned. Setting a positive number of
+# days is the operator's assertion that an approved compliance policy permits
+# expiring destruction evidence older than that window.
+PURGE_AUDIT_EVIDENCE_RETENTION_DAYS: int | None = None
+# Candidate rows per pruning batch. Each batch holds the singleton audit
+# coordination lock also taken by audit creation/recovery. Re-check cost
+# depends on entity history, backend and plan; there is no writer-wait bound.
+# Older or unknown MySQL-family versions use correlated predecessor probes
+# rather than the window plan. Measure the selected path on the deployment's
+# workload before enabling pruning.
+# Ten batches are shared across categories per run: at most 500 removals at
+# the default, or 1,000 at the ceiling, possibly fewer after candidacy rechecks.
+# Must be a non-boolean integer in [1, 100] (the repeated window scope
+# binds fit SQLite's historical 999-variable budget); an explicit invalid
+# value — including None, a numeric string, or a float — makes the run skip
+# entirely and report the key rather than prune with an unknown batch size.
+PURGE_AUDIT_PRUNING_BATCH_SIZE: int = 50
 
 # A function that receives a dict of all feature flags
 # (DEFAULT_FEATURE_FLAGS merged with FEATURE_FLAGS)
@@ -1251,8 +1287,8 @@ CACHE_WARMUP_EXECUTORS = [ExecutorType.EDITOR]
 # ---------------------------------------------------
 # Thumbnail config (behind feature flag)
 # ---------------------------------------------------
-# By default, thumbnails are rendered per user, and will fall back to the Selenium
-# user for anonymous users. Similar to Alerts & Reports, thumbnails
+# By default, thumbnails are rendered as the user who requests them. Similar to
+# Alerts & Reports, thumbnails
 # can be configured to always be rendered as a fixed user. See
 # `superset.tasks.types.ExecutorType` for a full list of executor options.
 # To always use a fixed user account (admin in this example, use the following
@@ -1329,6 +1365,7 @@ SUPERSET_CACHE_WARMUP_USER: str | None = None
 SCREENSHOT_LOCATE_WAIT = int(timedelta(seconds=10).total_seconds())
 # Time before screenshot capture times out while waiting for chart readiness.
 SCREENSHOT_LOAD_WAIT = int(timedelta(minutes=1).total_seconds())
+# "SELENIUM" in the next two key names is historical; both apply to Playwright.
 # Give the browser an initial headstart, in seconds
 SCREENSHOT_SELENIUM_HEADSTART = 3
 # Wait for the chart animation, in seconds
@@ -1835,6 +1872,13 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
             "task": "deletion_retention.purge_soft_deleted",
             "schedule": crontab(minute=0, hour=0),
         },
+        # Purge-audit retention. Daily at 03:30, offset from the purge task
+        # and the version-history prune; the task itself reports and skips
+        # when PURGE_AUDIT_PRUNING_ENABLED is False.
+        "deletion_retention.prune_purge_audit": {
+            "task": "deletion_retention.prune_purge_audit",
+            "schedule": crontab(minute=30, hour=3),
+        },
         # Uncomment to enable pruning of the query table
         # "prune_query": {
         #     "task": "prune_query",
@@ -2133,9 +2177,11 @@ WTF_CSRF_TIME_LIMIT = int(timedelta(weeks=1).total_seconds())
 # The URL may include any of these placeholders, which are substituted with
 # URL-encoded values so the link can deep-link into an access-request system:
 #   {datasource_id}    - id of the denied dataset (datasource errors)
-#   {datasource_name}  - name of the denied dataset (datasource errors)
 #   {table_names}      - comma-separated denied table names (table/SQL errors)
 #   {username}         - the requesting user's username
+# {datasource_name} was retired: the link is shown to a user who was just denied
+# the dataset, so its name must not be templated in. A URL still using it keeps
+# the placeholder literal (and logs a warning) rather than rendering it empty.
 # A URL with no placeholders is used as-is. Example:
 #   "https://access.example.com/request?dataset={datasource_id}&user={username}"
 PERMISSION_INSTRUCTIONS_LINK = ""
@@ -2545,6 +2591,9 @@ ALERT_REPORTS_QUERY_EXECUTION_MAX_TRIES = 1
 # which leaves the report schedule stuck in the WORKING state. Set to None to
 # disable (not recommended).
 ALERT_REPORTS_CSV_REQUEST_TIMEOUT = 60
+# Opt in to at most one transient CSV/Excel transport retry within the original
+# request timeout and report execution budget. Does not retry unbounded requests.
+ALERT_REPORTS_CSV_REQUEST_RETRY = False
 # Custom width for screenshots
 ALERT_REPORTS_MIN_CUSTOM_SCREENSHOT_WIDTH = 600
 ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH = 2400
@@ -2665,7 +2714,6 @@ DEFAULT_RELATIVE_END_TIME = "today"
 # Configure which SQL validator to use for each engine
 SQL_VALIDATORS_BY_ENGINE = {
     "presto": "PrestoDBSQLValidator",
-    "postgresql": "PostgreSQLValidator",
     # SQLite-based engines (SQLite, GSheets, Shillelagh) can use the
     # SQLiteSQLValidator, but it requires the optional syntaqlite package:
     #
@@ -2728,6 +2776,15 @@ DATABASE_OAUTH2_JWT_ALGORITHM = "HS256"
 
 # Timeout when fetching access and refresh tokens.
 DATABASE_OAUTH2_TIMEOUT = timedelta(seconds=30)
+
+# When True, the OAuth2 authorization/token endpoint URIs configured for a
+# database (either via DATABASE_OAUTH2_CLIENTS or, per-connection, via a
+# database's own encrypted_extra.oauth2_client_info) are permitted to target
+# hosts in private/internal IP ranges (RFC-1918, loopback, link-local).
+# Intended for deployments with a legitimately internal identity provider.
+# Leave False (the default) in any deployment where untrusted users can
+# create or edit database connections.
+DATABASE_OAUTH2_ALLOW_INTERNAL_HOSTS: bool = False
 
 # Enable/disable CSP warning
 CONTENT_SECURITY_POLICY_WARNING = True
@@ -3029,6 +3086,9 @@ GUEST_ROLE_NAME = "Public"
 GUEST_TOKEN_JWT_SECRET = CHANGE_ME_GUEST_TOKEN_JWT_SECRET
 GUEST_TOKEN_JWT_ALGO = "HS256"  # noqa: S105
 GUEST_TOKEN_HEADER_NAME = "X-GuestToken"  # noqa: S105
+# Diagnostic budget for UTF-8 bytes of "header-name: encoded-token\r\n".
+# None disables size warnings, not issuance or authentication. Deployment-specific.
+GUEST_TOKEN_HEADER_MAX_BYTES: int | None = None
 GUEST_TOKEN_JWT_EXP_SECONDS = 300  # 5 minutes
 # Audience for the Superset guest token used in embedded mode.
 # Can be a string or a callable. Defaults to WEBDRIVER_BASEURL.
@@ -3178,8 +3238,15 @@ SUBJECTS_RELATED_TYPES: list[SubjectType] | None = [
 # None = inherit global behavior.
 SUBJECTS_RELATED_TYPES_DASHBOARDS: list[SubjectType] | None = None
 SUBJECTS_RELATED_TYPES_CHARTS: list[SubjectType] | None = None
-SUBJECTS_RELATED_TYPES_RLS: list[SubjectType] | None = None
+# Row level security rules are commonly scoped to a role, so the RLS rule
+# editor's Subjects picker exposes roles in addition to the global default.
+SUBJECTS_RELATED_TYPES_RLS: list[SubjectType] | None = [
+    SubjectType.USER,
+    SubjectType.ROLE,
+    SubjectType.GROUP,
+]
 SUBJECTS_RELATED_TYPES_ALERT_REPORTS: list[SubjectType] | None = None
+SUBJECTS_RELATED_TYPES_THEMES: list[SubjectType] | None = None
 
 
 # Extra dynamic query filters make it possible to limit which objects are shown

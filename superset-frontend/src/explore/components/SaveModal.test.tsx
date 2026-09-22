@@ -159,8 +159,9 @@ const fetchDashboardEndpoint = `glob:*/api/v1/dashboard/*`;
 
 const registerDefaultRoutes = () => {
   fetchMock.get(fetchChartEndpoint, { id: 1, dashboards: [1] });
+  // GET /api/v1/dashboard/<id> returns a single object, not a list.
   fetchMock.get(fetchDashboardEndpoint, {
-    result: [{ id: 'id', dashboard_title: 'dashboard title' }],
+    result: { id: mockEvent.value, dashboard_title: 'dashboard title' },
   });
 };
 
@@ -554,8 +555,17 @@ test('updates slice name and selected dashboard', async () => {
   );
   expect(createSlice).toHaveBeenCalledWith(
     mockEvent.target.value,
+    [dashboardId],
     expect.anything(),
-    expect.anything(),
+  );
+  // The form data is persisted before the Query is converted into a dataset,
+  // so changeDatasource's rewrite is the last write to the store.
+  expect(setFormData).toHaveBeenCalledTimes(1);
+  expect(setFormData.mock.invocationCallOrder[0]).toBeLessThan(
+    saveDataset.mock.invocationCallOrder[0],
+  );
+  expect(setFormData).toHaveBeenCalledWith(
+    expect.not.objectContaining({ url_params: expect.anything() }),
   );
 });
 

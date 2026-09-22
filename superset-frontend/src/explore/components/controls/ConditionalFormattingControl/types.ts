@@ -61,6 +61,11 @@ export type ConditionalFormattingControlProps = ControlComponentProps<
   description: string;
   extraColorChoices?: { label: string; colors: string[] }[];
   allColumns?: ColumnOption[];
+  /**
+   * Hide formatting-target fields (columnFormatting / objectFormatting)
+   * so the control applies only to the selected metric.
+   */
+  metricOnly?: boolean;
   serverPagination?: boolean;
 };
 
@@ -72,6 +77,11 @@ export type FormattingPopoverProps = PopoverProps & {
   children: ReactNode;
   extraColorChoices?: { label: string; colors: string[] }[];
   allColumns?: ColumnOption[];
+  /**
+   * Hide formatting-target fields (columnFormatting / objectFormatting)
+   * so the control applies only to the selected metric.
+   */
+  metricOnly?: boolean;
   serverPagination?: boolean;
 };
 

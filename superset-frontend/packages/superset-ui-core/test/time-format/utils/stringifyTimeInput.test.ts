@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { DateWithFormatter, getTimeFormatter } from '@superset-ui/core';
 import stringifyTimeInput from '../../../src/time-format/utils/stringifyTimeInput';
 
 const format = (time: Date) => time.toISOString();
@@ -55,4 +56,54 @@ test('returns unparseable strings unchanged instead of formatting an Invalid Dat
 
 test('returns the representation of a Date that could not be resolved', () => {
   expect(stringifyTimeInput(new Date('00:01:54'), format)).toBe('Invalid Date');
+});
+
+test('treats a four-digit integer string as a year, not as milliseconds', () => {
+  // "2017" is the ISO 8601 year-only form. Reading it as an epoch offset
+  // would silently turn it into two seconds past 1970.
+  expect(stringifyTimeInput('2017', format)).toBe('2017-01-01T00:00:00.000Z');
+  expect(stringifyTimeInput(' 1987 ', format)).toBe('1987-01-01T00:00:00.000Z');
+  // Longer digit strings stay epoch milliseconds.
+  expect(stringifyTimeInput('1704067200000', format)).toBe(
+    '2024-01-01T00:00:00.000Z',
+  );
+});
+
+test('does not treat a short non-year digit-only string as epoch milliseconds', () => {
+  // A YYYYMMDD date key or bare year-adjacent string like these is neither
+  // the four-digit year form nor long enough to plausibly be an epoch
+  // timestamp, so it must be left unchanged rather than silently rendered
+  // as a moment near 1970.
+  expect(stringifyTimeInput('20260903', format)).toBe('20260903');
+  expect(stringifyTimeInput('19870214', format)).toBe('19870214');
+  expect(stringifyTimeInput('999999999', format)).toBe('999999999');
+});
+
+test('does not let the engine legacy parser guess at a short digit-only string', () => {
+  // `new Date` resolves these through an implementation-specific parser that
+  // reads "202609" as the year 202609 and "5" as May of 2001, so they cannot
+  // be left to the Invalid Date fallback and must be returned as they came in.
+  expect(stringifyTimeInput('202609', format)).toBe('202609');
+  expect(stringifyTimeInput('5', format)).toBe('5');
+  expect(stringifyTimeInput('99', format)).toBe('99');
+  expect(stringifyTimeInput('123', format)).toBe('123');
+  expect(stringifyTimeInput('0', format)).toBe('0');
+  expect(stringifyTimeInput('-1', format)).toBe('-1');
+});
+
+test('treats a ten-digit integer string as epoch milliseconds', () => {
+  expect(stringifyTimeInput('1000000000', format)).toBe(
+    '1970-01-12T13:46:40.000Z',
+  );
+});
+
+test('returns the original input of an unparseable DateWithFormatter without re-entering the formatter', () => {
+  // The `${value}` fallback calls `DateWithFormatter.toString()`, which must
+  // return the input rather than call the formatter again, or the two would
+  // recurse until the stack overflows.
+  const formatter = getTimeFormatter('%H:%M:%S');
+  const value = new DateWithFormatter('00:01:54', { formatter });
+
+  expect(stringifyTimeInput(value, time => formatter(time))).toBe('00:01:54');
+  expect(formatter(value)).toBe('00:01:54');
 });

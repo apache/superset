@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import inspect
+from copy import deepcopy
 from typing import Any, TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
@@ -44,6 +45,7 @@ from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.constants import CACHE_DISABLED_TIMEOUT
 from superset.jinja_context import ExtraCache
 from superset.models.core import Database
+from superset.superset_typing import AdhocColumn
 from superset.utils import json
 from superset.utils.error_sanitization import GENERIC_ERROR_MESSAGE
 
@@ -354,27 +356,51 @@ def test_apply_dashboard_filter_context_overrides_x_axis_time_grain() -> None:
     assert query["extras"]["time_grain_sqla"] == "P1Y"
 
 
-def test_apply_dashboard_filter_context_grain_targets_first_adhoc_column() -> None:
-    """
-    The grain override must land on ``columns[0]`` to match frontend logic.
-    """
-    query_context_json: dict[str, Any] = {
-        "queries": [
-            {
-                "columns": [
-                    {"timeGrain": "P1D", "sqlExpression": "order_date"},
-                    {"columnType": "BASE_AXIS", "sqlExpression": "other"},
-                ],
-                "extras": {},
-            }
-        ],
+@pytest.mark.parametrize("axis_index", [0, 1])
+@pytest.mark.parametrize("non_axis_grain", [None, "P1W"])
+def test_apply_dashboard_filter_context_grain_targets_base_axis(
+    axis_index: int,
+    non_axis_grain: str | None,
+) -> None:
+    """Grain follows BASE_AXIS, not list position, and leaves other columns alone."""
+    non_axis: AdhocColumn = {
+        "sqlExpression": "val",
+        "label": "val",
+        "isColumnReference": True,
     }
+    if non_axis_grain is not None:
+        non_axis["timeGrain"] = non_axis_grain
+    axis: AdhocColumn = {
+        "sqlExpression": "ts",
+        "label": "ts",
+        "isColumnReference": True,
+        "columnType": "BASE_AXIS",
+        "timeGrain": "P1D",
+    }
+    columns: list[AdhocColumn] = [deepcopy(non_axis)]
+    columns.insert(axis_index, axis)
+    query_context: dict[str, Any] = {
+        "queries": [{"columns": columns, "extras": {"time_grain_sqla": "P1D"}}]
+    }
+    expected = deepcopy(query_context)
+    expected_query = expected["queries"][0]
+    expected_query["columns"][axis_index]["timeGrain"] = "P1M"
+    expected_query["extras"]["time_grain_sqla"] = "P1M"
+    expected_query["time_grain_sqla"] = "P1M"
+    expected_query["extra_form_data"] = {"time_grain_sqla": "P1M"}
 
-    apply_dashboard_filter_context(query_context_json, {"time_grain_sqla": "P1Y"})
+    apply_dashboard_filter_context(query_context, {"time_grain_sqla": "P1M"})
 
-    columns = query_context_json["queries"][0]["columns"]
-    assert columns[0]["timeGrain"] == "P1Y"  # the column get_time_grain reads
-    assert "timeGrain" not in columns[1]  # the BASE_AXIS-tagged one is untouched
+    table = SqlaTable(
+        database=Database(database_name="db", sqlalchemy_uri="sqlite://"),
+        table_name="events",
+        columns=[TableColumn(column_name="ts", is_dttm=True, type="TIMESTAMP")],
+    )
+    sql_column, _ = table.adhoc_column_to_sqla(axis)
+    sql = str(sql_column.compile(compile_kwargs={"literal_binds": True}))
+    assert "start of month" in sql
+    assert columns[1 - axis_index] == non_axis
+    assert json.dumps(query_context) == json.dumps(expected)
 
 
 def test_apply_dashboard_filter_context_keeps_grain_when_no_grain_filter() -> None:
@@ -1337,3 +1363,23 @@ def test_get_data_route_passes_loaded_chart_to_data_response(
         get_data(api, 1)
 
     assert mock_response.call_args.kwargs["slice_"] is chart
+
+
+def test_create_query_context_from_form_converts_value_error_to_400() -> None:
+    """
+    A ValueError raised while loading the query context (e.g. a reversed date
+    range where since > until) is re-raised as a marshmallow ValidationError so
+    the API returns a 400 instead of an unhandled 500.
+    """
+    from marshmallow import ValidationError
+
+    api = ChartDataRestApi()
+    message = "From date cannot be larger than to date"
+    with patch(
+        "superset.charts.data.api.ChartDataQueryContextSchema.load",
+        side_effect=ValueError(message),
+    ):
+        with pytest.raises(ValidationError) as excinfo:
+            api._create_query_context_from_form({})
+
+    assert message in str(excinfo.value)

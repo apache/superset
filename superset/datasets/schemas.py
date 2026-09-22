@@ -34,6 +34,7 @@ from superset import security_manager
 from superset.exceptions import SupersetMarshmallowValidationError
 from superset.models.sql_types import parse_currency_string
 from superset.utils import json
+from superset.utils.schema import DiscardIsManagedExternallyMixin
 
 get_delete_ids_schema = {
     "type": "array",
@@ -45,6 +46,7 @@ get_export_ids_schema = {
     "items": {"type": "integer"},
     "example": [1, 2, 3],
 }
+get_related_objects_ids_schema = get_delete_ids_schema
 get_drill_info_schema = {
     "type": "object",
     "properties": {
@@ -180,7 +182,7 @@ class DatasetPostSchema(Schema):
     uuid = fields.UUID(allow_none=True)
 
 
-class DatasetPutSchema(Schema):
+class DatasetPutSchema(DiscardIsManagedExternallyMixin, Schema):
     table_name = fields.String(allow_none=True, validate=Length(1, 250))
     database_id = fields.Integer()
     sql = fields.String(allow_none=True)
@@ -203,7 +205,6 @@ class DatasetPutSchema(Schema):
     metrics = fields.List(fields.Nested(DatasetMetricsPutSchema))
     folders = fields.List(fields.Nested(FolderSchema), required=False)
     extra = fields.String(allow_none=True)
-    is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True)
     uuid = fields.UUID(allow_none=True)
 
@@ -239,6 +240,9 @@ class DatasetRelatedDashboard(Schema):
 
 class DatasetRelatedCharts(Schema):
     count = fields.Integer(metadata={"description": "Chart count"})
+    restricted_count = fields.Integer(
+        metadata={"description": "Charts the current user cannot access"}
+    )
     result = fields.List(
         fields.Nested(DatasetRelatedChart),
         metadata={"description": "A list of dashboards"},
@@ -247,6 +251,9 @@ class DatasetRelatedCharts(Schema):
 
 class DatasetRelatedDashboards(Schema):
     count = fields.Integer(metadata={"description": "Dashboard count"})
+    restricted_count = fields.Integer(
+        metadata={"description": "Dashboards the current user cannot access"}
+    )
     result = fields.List(
         fields.Nested(DatasetRelatedDashboard),
         metadata={"description": "A list of dashboards"},
@@ -333,8 +340,12 @@ class ImportV1ColumnSchema(Schema):
     filterable = fields.Boolean()
     expression = fields.String(allow_none=True)
     description = fields.String(allow_none=True)
-    python_date_format = fields.String(allow_none=True)
-    datetime_format = fields.String(allow_none=True)
+    python_date_format = fields.String(
+        allow_none=True, validate=[Length(1, 255), validate_python_date_format]
+    )
+    datetime_format = fields.String(
+        allow_none=True, validate=[Length(1, 100), validate_python_date_format]
+    )
     uuid = fields.UUID(allow_none=True)
 
 

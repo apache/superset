@@ -325,7 +325,7 @@ def etag_cache(  # noqa: C901
         wrapper.uncached = f  # type: ignore
         wrapper.cache_timeout = timeout  # type: ignore
         wrapper.make_cache_key = cache._memoize_make_cache_key(  # type: ignore # pylint: disable=protected-access
-            make_name=None, timeout=timeout, hash_method=configurable_hash_method
+            make_name=None, hash_method=configurable_hash_method
         )
 
         return wrapper

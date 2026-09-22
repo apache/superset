@@ -612,7 +612,7 @@ export function ListView<T extends object = any>({
           )}
           {viewMode === 'card' && (
             <>
-              <CardCollection
+              <CardCollection<T>
                 bulkSelectEnabled={bulkSelectEnabled}
                 prepareRow={prepareRow}
                 renderCard={renderCard}
@@ -651,7 +651,7 @@ export function ListView<T extends object = any>({
                   <Loading />
                 </FullPageLoadingWrapper>
               ) : (
-                <TableCollection
+                <TableCollection<T>
                   getTableProps={getTableProps}
                   getTableBodyProps={getTableBodyProps}
                   prepareRow={prepareRow}

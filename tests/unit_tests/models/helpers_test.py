@@ -105,36 +105,39 @@ def test_values_for_column(database: Database) -> None:
         assert table.values_for_column("a") == [1, None]
 
 
-@pytest.mark.parametrize(
-    "raw,expected",
-    [
-        ("plain", "plain"),
-        ("50%", "50!%"),
-        ("a_b", "a!_b"),
-        ("wow!", "wow!!"),
-        ("!%_", "!!!%!_"),
-    ],
-)
-def test_escape_like_pattern(raw: str, expected: str) -> None:
-    """Wildcards typed by a user are data, not pattern syntax."""
-    from superset.models.helpers import escape_like_pattern
-
-    assert escape_like_pattern(raw) == expected
-
-
 def test_build_like_predicate_is_case_insensitive_and_escaped() -> None:
     import sqlalchemy as sa
 
     from superset.models.helpers import build_like_predicate
 
-    compiled = str(
-        build_like_predicate(sa.column("c"), "50%").compile(
+    predicate = build_like_predicate(sa.column("c"), "50%")
+
+    # The search term is lower-cased for a case-insensitive match, and the
+    # user's ``%`` wildcard is neutralized (autoescape) rather than matching
+    # every row.
+    postgres_sql = str(
+        predicate.compile(
             dialect=sa.dialects.registry.load("postgresql")(),
             compile_kwargs={"literal_binds": True},
         )
-    ).replace("%%", "%")
+    )
+    assert "lower(c)" in postgres_sql
+    assert "50" in postgres_sql
+    # Other engines still get a dialect-native ESCAPE clause, proving they are
+    # unaffected by the BigQuery-specific fix.
+    assert "ESCAPE" in postgres_sql
 
-    assert compiled == "lower(c) LIKE '%50!%%' ESCAPE '!'"
+    # Regression test for SUPERSET-PYTHON-176K: BigQuery's GoogleSQL has no
+    # ESCAPE keyword, so the compiled predicate must not emit one.
+    from sqlalchemy_bigquery import BigQueryDialect
+
+    bigquery_sql = str(
+        predicate.compile(
+            dialect=BigQueryDialect(),
+            compile_kwargs={"literal_binds": True},
+        )
+    )
+    assert "ESCAPE" not in bigquery_sql
 
 
 def test_values_for_column_search(database: Database) -> None:
@@ -157,8 +160,10 @@ def test_values_for_column_search(database: Database) -> None:
         assert table.values_for_column("a", search="ali") == ["Alice"]
 
     sql = str(read_sql_query.call_args.kwargs["sql"])
+    # ``.contains()`` compiles to a concatenated pattern rather than a single
+    # ``'%ali%'`` literal, e.g. ``... LIKE '%' || 'ali' || '%'`` on sqlite.
     assert "LIKE" in sql
-    assert "'%ali%'" in sql
+    assert "'ali'" in sql
 
 
 def test_values_for_column_without_search_has_no_predicate(
@@ -4886,6 +4891,80 @@ def test_get_sqla_query_dotted_struct_column_bigquery(
     # ```forecasts.original`.`total_cost``` (the regression), so this negative
     # assertion catches the actual failure mode, not just an exact-string match.
     assert "`forecasts.original`" not in sql
+
+
+def test_get_sqla_query_grouping_sets_preserves_bigquery_mutated_label(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    A pivot table with a non-additive metric issues a `grouping_sets` query
+    (see plugin-chart-pivot-table/src/plugin/buildQuery.ts), whose rollup
+    levels are expressed in terms of each column's original, unmutated label
+    (e.g. a Custom SQL row labelled "Test Row"). BigQuery mutates SQL aliases
+    that contain non-word characters, so the same column's `Label.name` ends
+    up as something like "Test_Row_<hash>". Looking up each level's columns by
+    that mutated name instead of the original label silently drops the column
+    from every rollup level, producing a `GROUP BY GROUPING SETS` clause that
+    doesn't cover a selected, non-aggregated column.
+    """
+    bigquery = pytest.importorskip("sqlalchemy_bigquery")
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.models.core import Database
+
+    SqlaTable.metadata.create_all(session.get_bind())
+
+    dialect = bigquery.BigQueryDialect()
+
+    @contextmanager
+    def fake_engine(*args, **kwargs):
+        engine = MagicMock()
+        engine.dialect = dialect
+        yield engine
+
+    database = Database(database_name="bq", sqlalchemy_uri="bigquery://project")
+    mocker.patch.object(database, "get_sqla_engine", new=fake_engine)
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="orders",
+        columns=[TableColumn(column_name="amount", type="FLOAT")],
+    )
+
+    row_col: AdhocColumn = {
+        "sqlExpression": "some_column",
+        "label": "Test Row",
+    }
+    metric: AdhocMetric = {
+        "expressionType": "SIMPLE",
+        "column": {"column_name": "amount"},
+        "aggregate": "AVG",
+        "label": "avg_amount",
+    }
+
+    sqlaq = table.get_sqla_query(
+        columns=[row_col],
+        metrics=[metric],
+        extras={},
+        filter=[],
+        granularity=None,
+        is_timeseries=False,
+        grouping_sets=[["Test Row"], []],
+    )
+    sql = str(
+        sqlaq.sqla_query.compile(
+            dialect=dialect, compile_kwargs={"literal_binds": True}
+        )
+    )
+
+    # Before the fix, looking up each level's columns by the BigQuery-mutated
+    # alias (e.g. "Test_Row_<hash>") instead of the original "Test Row" label
+    # sent by the frontend silently dropped the column from every level,
+    # producing `GROUPING SETS ((), ())` -- a GROUP BY that doesn't cover the
+    # selected, non-aggregated "some_column" expression.
+    assert "GROUPING SETS((some_column), ())" in sql
 
 
 def test_temporal_epoch_string_filter_is_coerced_for_bigquery() -> None:

@@ -26,6 +26,7 @@ import pandas as pd
 import pyarrow as pa
 from flask import current_app
 from flask_babel import gettext as _
+from pandas.api.types import infer_dtype
 
 from superset.common.chart_data import ChartDataResultFormat
 from superset.common.chart_data_timing import (
@@ -111,6 +112,23 @@ def normalize_contribution_totals(
             raw_queries[totals_idx]["row_limit"] = None
 
     return queries_needing_totals, totals_idx
+
+
+def is_summable(series: pd.Series) -> bool:
+    """
+    Whether a column holds values the contribution totals can be summed over.
+
+    A dtype-kind test alone is not enough. `decimal.Decimal` metrics -- how
+    drivers such as psycopg2 hand back NUMERIC/DECIMAL columns -- are stored
+    with an object dtype, so they fall outside the numeric kinds even though
+    they sum and divide perfectly well. Omitting them leaves the totals
+    dictionary without an entry for the metric, and `contribution()` then
+    reads back `None` and writes a zero contribution instead of the real
+    percentage.
+    """
+    if series.dtype.kind in "biufc":
+        return True
+    return infer_dtype(series, skipna=True) == "decimal"
 
 
 class QueryContextProcessor:
@@ -602,9 +620,7 @@ class QueryContextProcessor:
         result = self._query_context.get_query_result(totals_query)
         df = result.df
 
-        totals = {
-            col: df[col].sum() for col in df.columns if df[col].dtype.kind in "biufc"
-        }
+        totals = {col: df[col].sum() for col in df.columns if is_summable(df[col])}
 
         for idx in queries_needing_totals:
             query = self._query_context.queries[idx]

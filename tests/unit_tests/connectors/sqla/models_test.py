@@ -19,6 +19,7 @@ from unittest.mock import MagicMock
 
 import pandas as pd
 import pytest
+from jinja2.exceptions import UndefinedError
 from pytest_mock import MockerFixture
 from sqlalchemy import create_engine
 from sqlalchemy.dialects import sqlite
@@ -32,12 +33,15 @@ from superset.connectors.sqla.models import (
     validate_stored_expression,
 )
 from superset.daos.dataset import DatasetDAO
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     OAuth2RedirectError,
     QueryObjectValidationError,
     SupersetDisallowedSQLFunctionException,
     SupersetDisallowedSQLTableException,
     SupersetSecurityException,
+    SupersetSyntaxErrorException,
+    SupersetTemplateException,
 )
 from superset.models.core import Database
 from superset.models.helpers import (
@@ -1679,6 +1683,215 @@ def test_convert_tbl_column_to_sqla_col_rejects_stored_subquery(
         datasource.convert_tbl_column_to_sqla_col(tbl_column)
 
 
+def test_get_timestamp_expression_wraps_jinja_undefined_error(
+    mocker: MockerFixture,
+) -> None:
+    """``UndefinedError`` from a time column template is wrapped in
+    ``QueryObjectValidationError`` instead of escaping raw — exercised on the
+    real dispatch path (``TableColumn.get_timestamp_expression``), not the
+    unused ``ExploreMixin`` copy."""
+    tc = _stored_col("{{ nonexistent_var.attr }}", "sqlite", mocker)
+    template_processor = mocker.MagicMock()
+    template_processor.process_template.side_effect = UndefinedError(
+        "'nonexistent_var' is undefined"
+    )
+    with pytest.raises(
+        QueryObjectValidationError,
+        match=r"Error in jinja expression in datetime column.*nonexistent_var",
+    ):
+        tc.get_timestamp_expression(
+            time_grain=None, template_processor=template_processor
+        )
+
+
+def test_get_timestamp_expression_wraps_jinja_template_error(
+    mocker: MockerFixture,
+) -> None:
+    """``SupersetSyntaxErrorException`` from ``TableColumn.get_timestamp_expression``
+    is wrapped in ``QueryObjectValidationError`` — injecting the exception type
+    ``process_template`` actually emits for parse-time errors."""
+    tc = _stored_col("{{ bad_syntax }", "sqlite", mocker)
+    syntax_error = SupersetSyntaxErrorException(
+        [
+            SupersetError(
+                message="Jinja2 template error (TemplateSyntaxError): unexpected '}'",
+                error_type=SupersetErrorType.SYNTAX_ERROR,
+                level=ErrorLevel.ERROR,
+            )
+        ]
+    )
+    template_processor = mocker.MagicMock()
+    template_processor.process_template.side_effect = syntax_error
+    with pytest.raises(
+        QueryObjectValidationError,
+        match=r"Error in jinja expression in datetime column.*unexpected '}'",
+    ):
+        tc.get_timestamp_expression(
+            time_grain=None, template_processor=template_processor
+        )
+
+
+def test_get_timestamp_expression_wraps_superset_template_exception(
+    mocker: MockerFixture,
+) -> None:
+    """``SupersetTemplateException`` (e.g. recursion, undefined macro) from
+    ``TableColumn.get_timestamp_expression`` is wrapped in
+    ``QueryObjectValidationError``."""
+    tc = _stored_col("{{ missing_macro() }}", "sqlite", mocker)
+    template_processor = mocker.MagicMock()
+    template_processor.process_template.side_effect = SupersetTemplateException(
+        "Undefined template function: missing_macro"
+    )
+    with pytest.raises(
+        QueryObjectValidationError,
+        match=r"Error in jinja expression in datetime column.*missing_macro",
+    ):
+        tc.get_timestamp_expression(
+            time_grain=None, template_processor=template_processor
+        )
+
+
+def test_convert_tbl_column_to_sqla_col_wraps_jinja_undefined_error(
+    mocker: MockerFixture,
+) -> None:
+    """``UndefinedError`` from a calculated column template is wrapped in
+    ``QueryObjectValidationError`` instead of escaping raw."""
+    datasource = mocker.MagicMock()
+    datasource._validate_stored_expression = (
+        ExploreMixin._validate_stored_expression.__get__(datasource)
+    )
+    datasource.convert_tbl_column_to_sqla_col = (
+        ExploreMixin.convert_tbl_column_to_sqla_col.__get__(datasource)
+    )
+
+    template_processor = mocker.MagicMock()
+    template_processor.process_template.side_effect = UndefinedError(
+        "'nonexistent_var' is undefined"
+    )
+
+    tbl_column = TableColumn(
+        column_name="calc_col",
+        expression="{{ nonexistent_var.attr }}",
+    )
+    with pytest.raises(
+        QueryObjectValidationError,
+        match=r"Calculated column template error.*nonexistent_var",
+    ):
+        datasource.convert_tbl_column_to_sqla_col(
+            tbl_column, template_processor=template_processor
+        )
+
+
+def test_convert_tbl_column_to_sqla_col_wraps_jinja_template_error(
+    mocker: MockerFixture,
+) -> None:
+    """``SupersetSyntaxErrorException`` from a calculated column template is
+    wrapped in ``QueryObjectValidationError`` — injecting the exception type
+    ``process_template`` actually emits for parse-time errors."""
+    datasource = mocker.MagicMock()
+    datasource._validate_stored_expression = (
+        ExploreMixin._validate_stored_expression.__get__(datasource)
+    )
+    datasource.convert_tbl_column_to_sqla_col = (
+        ExploreMixin.convert_tbl_column_to_sqla_col.__get__(datasource)
+    )
+
+    syntax_error = SupersetSyntaxErrorException(
+        [
+            SupersetError(
+                message="Jinja2 template error (TemplateSyntaxError): unexpected '}'",
+                error_type=SupersetErrorType.SYNTAX_ERROR,
+                level=ErrorLevel.ERROR,
+            )
+        ]
+    )
+    template_processor = mocker.MagicMock()
+    template_processor.process_template.side_effect = syntax_error
+
+    tbl_column = TableColumn(
+        column_name="calc_col",
+        expression="{{ bad_syntax }",
+    )
+    with pytest.raises(
+        QueryObjectValidationError,
+        match=r"Error while rendering calculated column expression.*unexpected '}'",
+    ):
+        datasource.convert_tbl_column_to_sqla_col(
+            tbl_column, template_processor=template_processor
+        )
+
+
+def test_convert_tbl_column_to_sqla_col_wraps_superset_template_exception(
+    mocker: MockerFixture,
+) -> None:
+    """``SupersetTemplateException`` from a calculated column template is
+    wrapped in ``QueryObjectValidationError``."""
+    datasource = mocker.MagicMock()
+    datasource._validate_stored_expression = (
+        ExploreMixin._validate_stored_expression.__get__(datasource)
+    )
+    datasource.convert_tbl_column_to_sqla_col = (
+        ExploreMixin.convert_tbl_column_to_sqla_col.__get__(datasource)
+    )
+
+    template_processor = mocker.MagicMock()
+    template_processor.process_template.side_effect = SupersetTemplateException(
+        "Undefined template function: missing_macro"
+    )
+
+    tbl_column = TableColumn(
+        column_name="calc_col",
+        expression="{{ missing_macro() }}",
+    )
+    with pytest.raises(
+        QueryObjectValidationError,
+        match=r"Error while rendering calculated column expression.*missing_macro",
+    ):
+        datasource.convert_tbl_column_to_sqla_col(
+            tbl_column, template_processor=template_processor
+        )
+
+
+def test_get_sqla_col_wraps_jinja_undefined_error(
+    mocker: MockerFixture,
+) -> None:
+    """``UndefinedError`` from a calculated column template in ``get_sqla_col``
+    is wrapped in ``QueryObjectValidationError``."""
+    tc = _stored_col("{{ nonexistent_var.attr }}", "sqlite", mocker)
+    template_processor = mocker.MagicMock()
+    template_processor.process_template.side_effect = UndefinedError(
+        "'nonexistent_var' is undefined"
+    )
+    with pytest.raises(
+        QueryObjectValidationError,
+        match=r"Error in jinja expression in column expression.*nonexistent_var",
+    ):
+        tc.get_sqla_col(template_processor=template_processor)
+
+
+def test_metric_get_sqla_col_wraps_jinja_undefined_error(
+    mocker: MockerFixture,
+) -> None:
+    """``UndefinedError`` from a metric template in ``SqlMetric.get_sqla_col``
+    is wrapped in ``QueryObjectValidationError``."""
+    metric = SqlMetric(metric_name="tmpl", expression="{{ nonexistent_var.attr }}")
+    metric.table = mocker.MagicMock()
+    metric.table.database = _database_for_expression(mocker)
+    metric.table.catalog = None
+    metric.table.schema = "public"
+    metric.table.db_engine_spec.engine = "sqlite"
+
+    template_processor = mocker.MagicMock()
+    template_processor.process_template.side_effect = UndefinedError(
+        "'nonexistent_var' is undefined"
+    )
+    with pytest.raises(
+        QueryObjectValidationError,
+        match=r"Error in jinja expression in metric expression.*nonexistent_var",
+    ):
+        metric.get_sqla_col(template_processor=template_processor)
+
+
 def test_get_sqla_col_falls_back_when_stored_expression_unparseable(
     mocker: MockerFixture,
 ) -> None:
@@ -1953,3 +2166,91 @@ def test_count_distinct_calculated_column_is_parenthesized() -> None:
         f"COUNT_DISTINCT over a calculated column should parenthesize the "
         f"expression. Rendered: {rendered}"
     )
+
+
+def test_gauge_query_restores_long_sql_metric_label(mocker: MockerFixture) -> None:
+    """Engine-compatible SQL aliases do not replace the frontend result label."""
+    from collections.abc import Callable
+
+    from sqlalchemy import literal_column
+
+    from superset.mcp_service.chart.query_result import validate_gauge_query_result
+
+    table = _build_sqla_table_for_query(mocker, "SELECT 42 AS truncated")
+    expected = "SUM(" + "long_column_" * 200 + ")"
+    mocker.patch.object(
+        table.db_engine_spec, "make_label_compatible", return_value="truncated"
+    )
+    column = table.make_sqla_column_compatible(literal_column("42"), expected)
+    assert column.name == "truncated"
+    assert column.key == expected
+    mocker.patch.object(
+        table,
+        "get_query_str_extended",
+        return_value=mocker.MagicMock(
+            sql="SELECT 42 AS truncated", labels_expected=[column.key]
+        ),
+    )
+
+    def get_df(
+        sql: str,
+        catalog: str,
+        schema: str,
+        mutator: Callable[[pd.DataFrame], pd.DataFrame],
+    ) -> pd.DataFrame:
+        """Apply the real query result relabeling callback to driver output."""
+        return mutator(pd.DataFrame({"truncated": [42]}))
+
+    mocker.patch.object(table.database, "get_df", side_effect=get_df)
+    result = table.query(_query_obj())
+    assert list(result.df.columns) == [expected]
+    assert (
+        validate_gauge_query_result(
+            {"queries": [{"data": result.df.to_dict(orient="records")}]},
+            {
+                "viz_type": "gauge_chart",
+                "metric": {"expressionType": "SQL", "sqlExpression": expected},
+            },
+        )
+        is None
+    )
+
+
+def test_get_fetch_values_predicate_wraps_undefined_error(
+    mocker: MockerFixture,
+) -> None:
+    """UndefinedError from process_template must be caught and re-raised as
+    QueryObjectValidationError, not bubble as a raw 500."""
+    database = mocker.MagicMock()
+    sqla_table = SqlaTable(
+        table_name="my_sqla_table",
+        columns=[],
+        metrics=[],
+        database=database,
+    )
+    sqla_table.fetch_values_predicate = "{{ foo.bar }} = 1"
+
+    mock_processor = mocker.MagicMock()
+    mock_processor.process_template.side_effect = UndefinedError("'foo' is undefined")
+
+    with pytest.raises(QueryObjectValidationError):
+        sqla_table.get_fetch_values_predicate(template_processor=mock_processor)
+
+
+def test_get_rendered_sql_wraps_type_error(mocker: MockerFixture) -> None:
+    """A ``TypeError`` raised by a Python builtin invoked from within the
+    template (e.g. ``"','".join(filter_values(...))`` when ``filter_values()``
+    returns numeric values) must be caught and re-raised as a
+    ``QueryObjectValidationError``, not bubble up as a raw 500."""
+    datasource = mocker.MagicMock()
+    datasource.sql = "SELECT 1 WHERE id IN ({{ ','.join(filter_values('id')) }})"
+
+    template_processor = mocker.MagicMock()
+    template_processor.process_template.side_effect = TypeError(
+        "sequence item 0: expected str instance, int found"
+    )
+
+    with pytest.raises(QueryObjectValidationError):
+        ExploreMixin.get_rendered_sql.__get__(datasource)(
+            template_processor=template_processor
+        )

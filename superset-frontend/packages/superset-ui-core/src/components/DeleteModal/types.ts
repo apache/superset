@@ -18,6 +18,7 @@
  */
 
 import type { ReactNode } from 'react';
+import type { ButtonStyle } from '../Button/types';
 
 export interface DeleteModalProps {
   description: ReactNode;
@@ -27,11 +28,25 @@ export interface DeleteModalProps {
   title: ReactNode;
   name?: string;
   /**
-   * Recoverable (soft-delete) mode: the action moves the object to the archive
-   * rather than destroying it, so the modal drops the "type DELETE to confirm"
-   * friction and uses a primary (non-danger) confirm button.
+   * Recoverable (soft-delete) mode: the action moves the object to an archive
+   * rather than destroying it, so the modal hides the "type DELETE to confirm"
+   * step and defaults the confirm button to "Archive" with primary styling.
+   * Explicit `primaryButtonName` / `primaryButtonStyle` override the
+   * label/style only — never this gate.
    */
   recoverable?: boolean;
+  /**
+   * Label of the confirm button. Defaults to "Archive" when `recoverable`,
+   * otherwise "Delete". An explicit value wins over the `recoverable`
+   * default; it does not change the typed-confirmation gate, which is
+   * governed by `recoverable` alone.
+   */
+  primaryButtonName?: string;
+  /**
+   * Style of the confirm button. Defaults to `'primary'` when `recoverable`,
+   * otherwise `'danger'`. Same precedence as `primaryButtonName`.
+   */
+  primaryButtonStyle?: ButtonStyle;
   /** Disable confirmation independently of the typed-text gate. */
   disablePrimaryButton?: boolean;
   /** Show progress on the primary action and prevent duplicate submission. */
