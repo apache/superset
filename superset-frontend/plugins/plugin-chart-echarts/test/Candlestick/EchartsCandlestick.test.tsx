@@ -117,9 +117,7 @@ test('opens drill-to-detail with x-axis and series filters on right-click', () =
     }) as unknown as EchartsCandlestickChartProps,
   );
 
-  render(
-    <EchartsCandlestick {...transformed} onContextMenu={onContextMenu} />,
-  );
+  render(<EchartsCandlestick {...transformed} onContextMenu={onContextMenu} />);
 
   const { eventHandlers } = mockedEchart.mock.calls[0][0] as {
     eventHandlers: EventHandlers;
