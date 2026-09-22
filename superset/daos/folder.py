@@ -613,10 +613,11 @@ class FolderDAO(BaseDAO[Folder]):
     # ------------------------------------------------------------------ #
     @classmethod
     def delete_folder(cls, folder: Folder, archive_items: bool = False) -> None:
-        """Delete a folder, re-parenting children to its parent.
+        """Delete a folder, re-parenting children and assets to its parent.
 
         When ``archive_items`` is False (default), assets linked to the folder
-        become unfoldered. When True, the assets themselves are also deleted.
+        move to the folder's parent, or become unfoldered when the folder is
+        top level. When True, the assets themselves are also deleted.
 
         When the ``SOFT_DELETE`` feature flag is enabled the folder (and its
         children when ``archive_items`` is True) are soft-deleted instead of
@@ -657,6 +658,14 @@ class FolderDAO(BaseDAO[Folder]):
                         if asset:
                             db.session.delete(asset)
                         break
+        elif folder.parent_id is not None:
+            db.session.query(FolderObject).filter(
+                FolderObject.folder_id == folder.id
+            ).update(
+                {FolderObject.folder_id: folder.parent_id},
+                synchronize_session=False,
+            )
+            db.session.flush()
 
         db.session.delete(folder)
 
@@ -697,9 +706,17 @@ class FolderDAO(BaseDAO[Folder]):
                     exclude_id=child.id,
                 )
             folder.children.clear()
-            db.session.query(FolderObject).filter(
-                FolderObject.folder_id == folder.id
-            ).delete(synchronize_session=False)
+            if folder.parent_id is not None:
+                db.session.query(FolderObject).filter(
+                    FolderObject.folder_id == folder.id
+                ).update(
+                    {FolderObject.folder_id: folder.parent_id},
+                    synchronize_session=False,
+                )
+            else:
+                db.session.query(FolderObject).filter(
+                    FolderObject.folder_id == folder.id
+                ).delete(synchronize_session=False)
             db.session.flush()
             folder.soft_delete()
 
