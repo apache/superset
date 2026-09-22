@@ -147,20 +147,13 @@ class Datasource(BaseSupersetView):
             raise DatasetForbiddenError() from ex
 
         database_changed = database_id != orm_datasource.database_id
-        # Read the target the way ``update_from_object`` (below) will apply it,
-        # so an omitted key reads as a repoint here too.
+        # The target ``update_from_object`` (below) will apply, omitted keys
+        # included.
         requested_table = Table(
             datasource_dict.get("table_name"),
             datasource_dict.get("schema") or None,
             datasource_dict.get("catalog") or None,
         )
-
-        if database_changed:
-            target_database = DatasetDAO.get_database_by_id(database_id)
-            if target_database is None:
-                return json_error_response(_("Database not found."), status=422)
-        else:
-            target_database = orm_datasource.database
 
         # Editorship of the dataset alone is not sufficient to repoint it. This
         # ports ``UpdateDatasetCommand``'s table check only, not the separate
@@ -168,6 +161,13 @@ class Datasource(BaseSupersetView):
         if database_changed or _repoints_table(
             orm_datasource, datasource_dict.get("sql"), requested_table
         ):
+            target_database = (
+                DatasetDAO.get_database_by_id(database_id)
+                if database_changed
+                else orm_datasource.database
+            )
+            if target_database is None:
+                return json_error_response(_("Database not found."), status=422)
             try:
                 security_manager.raise_for_access(
                     database=target_database,
