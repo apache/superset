@@ -60,6 +60,7 @@ from superset.connectors.sqla.models import BaseDatasource
 from superset.constants import NO_TIME_RANGE
 from superset.models.helpers import QueryResult
 from superset.result_set import stringify_extension_columns
+from superset.semantic_layers.dimension_resolution import resolve_dimension_defaults
 from superset.superset_typing import AdhocColumn
 from superset.utils.core import (
     FilterOperator,
@@ -352,7 +353,7 @@ def map_query_object(query_object: ValidatedQueryObject) -> list[SemanticQuery]:
     view_dimensions = semantic_view.get_dimensions()
 
     all_metrics = {metric.name: metric for metric in view_metrics}
-    all_dimensions = {dimension.name: dimension for dimension in view_dimensions}
+    all_dimensions: dict[str, Dimension] = resolve_dimension_defaults(view_dimensions)
 
     # Normalize columns (may be dicts with isColumnReference=True for time-series)
     dimension_names = set(all_dimensions.keys())
@@ -364,42 +365,26 @@ def map_query_object(query_object: ValidatedQueryObject) -> list[SemanticQuery]:
 
     grain = _convert_time_grain(query_object.extras.get("time_grain_sqla"))
     time_axis_column = _get_grain_time_axis_column(query_object, all_dimensions)
-    # A semantic view can expose multiple Dimension variants per name (one per
-    # supported time grain). Pick exactly one variant per selected column:
-    # for the time-axis column we honor the user's grain selection, falling
-    # back to the raw / no-grain variant when no exact match exists and then
-    # to any available variant so the axis is never silently dropped; for
-    # every other selected column we prefer the raw variant and otherwise
-    # take any available variant.
+    # Grouping honors an explicit axis grain; all other choices use the shared
+    # default. Keep filter/time-bound operands independent of grouping grain.
     dimensions: list[Dimension] = []
-    seen_non_axis: dict[str, Dimension] = {}
-    axis_variants: list[Dimension] = []
-    axis_match: Dimension | None = None
-    for dimension in view_dimensions:
-        if dimension.name not in normalized_columns:
-            continue
-        if dimension.name == time_axis_column:
-            axis_variants.append(dimension)
-            if axis_match is None and dimension.grain == grain:
-                axis_match = dimension
-            continue
-        existing = seen_non_axis.get(dimension.name)
-        if existing is None or (existing.grain is not None and dimension.grain is None):
-            seen_non_axis[dimension.name] = dimension
-
-    if axis_match is not None:
-        dimensions.append(axis_match)
-    elif axis_variants:
-        # No variant matches the requested grain. Prefer the raw (grain=None)
-        # variant; otherwise pick a deterministic fallback so the axis stays
-        # on the query instead of being silently dropped.
-        raw_variant = next((v for v in axis_variants if v.grain is None), None)
-        dimensions.append(
-            raw_variant
-            if raw_variant is not None
-            else min(axis_variants, key=lambda v: v.grain.name if v.grain else "")
+    if time_axis_column in normalized_columns and time_axis_column in all_dimensions:
+        axis_match: Dimension | None = next(
+            (
+                dimension
+                for dimension in view_dimensions
+                if dimension.name == time_axis_column and dimension.grain == grain
+            ),
+            None,
         )
-    dimensions.extend(seen_non_axis.values())
+        dimensions.append(
+            axis_match if axis_match is not None else all_dimensions[time_axis_column]
+        )
+    dimensions.extend(
+        dimension
+        for name, dimension in all_dimensions.items()
+        if name in normalized_columns and name != time_axis_column
+    )
 
     order = _get_order_from_query_object(query_object, all_metrics, all_dimensions)
     limit = query_object.row_limit
@@ -1165,7 +1150,7 @@ def _validate_granularity(query_object: ValidatedQueryObject) -> None:
     """
     semantic_view = query_object.datasource.implementation
     view_dimensions = semantic_view.get_dimensions()
-    all_dimensions = {dimension.name: dimension for dimension in view_dimensions}
+    all_dimensions: dict[str, Dimension] = resolve_dimension_defaults(view_dimensions)
     dimension_names = set(all_dimensions.keys())
 
     if (legacy_time_column := query_object.granularity) and (

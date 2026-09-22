@@ -24,6 +24,15 @@ assists people when migrating to a new version.
 
 ## Next
 
+- With `SEMANTIC_LAYERS` enabled, same-name dimension variants use one default
+  preference for metadata, filters and grouping fallbacks: raw (no grain), then
+  second/minute/hour/day/week/month/quarter/year, then other grain representations
+  in lexical order. Explicit supported grouping grains remain honored; filters
+  and time bounds use the default independently of grouping. This can change
+  results that depended on arbitrary catalog ordering. Providers exposing
+  different IDs for the same name and grain must disambiguate their catalog;
+  such catalogs are rejected instead of silently selecting an ID.
+
 ### Scheduled report and alert retry admission
 
 Run `superset db upgrade` before starting workers with this version. The migration

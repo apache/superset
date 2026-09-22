@@ -185,6 +185,19 @@ To add a filter on a semantic view:
 Any chart on the dashboard that's powered by the same semantic view is filtered by the selected
 dimension when the filter is applied.
 
+When a semantic view exposes multiple time-grain variants of one dimension,
+filters and time ranges use its raw (unaggregated) variant if available. Otherwise,
+the default is the finest supported known grain (second through year), followed
+by other grain representations in lexical order. The same preference applies to
+column metadata and grouping without an explicit matching grain.
+
+Choosing a supported grain for grouping does not change the filter operand: a
+chart grouped by month with a January 15 lower bound still filters the raw time
+dimension from January 15, rather than testing month buckets against that bound.
+Without a raw variant, the preferred available variant is used; Superset does not
+synthesize finer source data. Providers must expose at most one dimension ID per
+name and grain; conflicting IDs produce an ambiguity error.
+
 :::note
 Semantic views and native filter support for them are part of the experimental Semantic Layers
 feature and require the `SEMANTIC_LAYERS` feature flag to be enabled.
