@@ -41,21 +41,45 @@
 export declare function getDashboardId(): number | undefined;
 
 /**
+ * One component (row, column, chart holder, tab, markdown, etc.) in a
+ * dashboard's layout tree, as returned by {@link getLayout}.
+ */
+export interface LayoutNode {
+  /** IDs of this node's child components, in display order. */
+  children: string[];
+
+  /** IDs of this node's ancestor components, root first. */
+  parents?: string[];
+
+  /** Component type, e.g. `'CHART'`, `'ROW'`, `'TABS'`, `'MARKDOWN'`. */
+  type: string;
+
+  /** This node's own ID, e.g. `'CHART-abc123'`. */
+  id: string;
+
+  /** Grid size/position and other component-specific settings. */
+  meta: {
+    chartId?: number;
+    width?: number;
+    height?: number;
+    [key: string]: unknown;
+  };
+}
+
+/**
  * Gets the current dashboard's full layout tree — one entry per component
- * (row, column, chart holder, tab, markdown, etc.), keyed by node ID. Each
- * entry has `children`, `parents`, `type`, `id`, and `meta` (grid
- * size/position and other component-specific settings).
+ * (row, column, chart holder, tab, markdown, etc.), keyed by node ID.
  *
  * @returns A map of node ID to layout node.
  *
  * @example
  * ```typescript
  * const layout = dashboard.getLayout();
- * const chartNode = layout['CHART-abc123'] as { meta: { width: number } };
+ * const chartNode = layout['CHART-abc123'];
  * console.log(chartNode.meta.width);
  * ```
  */
-export declare function getLayout(): Record<string, unknown>;
+export declare function getLayout(): Record<string, LayoutNode>;
 
 /**
  * Updates a single layout node's `meta` (e.g. grid `width`/`height`, or
