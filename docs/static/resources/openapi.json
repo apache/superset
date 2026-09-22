@@ -254,6 +254,18 @@
             "description": "User who produced the change, or ``null`` when the saving user no longer exists in ``ab_user``.",
             "nullable": true
           },
+          "creation_kind": {
+            "description": "Set only on the synthetic starting-version record (``kind == \"__creation__\"``): how the entity came to exist. ``\"pre_tracking\"`` \u2014 a retroactive baseline for an entity that predates versioning; ``\"created\"`` \u2014 a creation with tracking on; ``\"imported\"`` \u2014 an import, attributed to the importing user; ``\"unknown\"`` \u2014 an unstamped starting version whose creation provenance cannot be established. Machine values: display copy is owned by the client.",
+            "enum": [
+              "pre_tracking",
+              "created",
+              "imported",
+              "unknown",
+              null
+            ],
+            "nullable": true,
+            "type": "string"
+          },
           "entity_deleted": {
             "description": "True iff the source entity is hard-deleted (no live row by ``entity_id``). False for live and soft-deleted entities.",
             "type": "boolean"
@@ -324,7 +336,8 @@
               "time_range",
               "color_palette",
               "field",
-              "__meta__"
+              "__meta__",
+              "__creation__"
             ],
             "type": "string"
           },
@@ -3698,6 +3711,10 @@
             "description": "The status of the async screenshot",
             "type": "string"
           },
+          "task_timeout_seconds": {
+            "description": "The client wait budget for the Pending and Computing task states",
+            "type": "integer"
+          },
           "task_updated_at": {
             "description": "The timestamp of the last change in status",
             "type": "string"
@@ -3891,6 +3908,9 @@
           "params": {
             "type": "string"
           },
+          "parent": {
+            "type": "object"
+          },
           "perm": {
             "type": "string"
           },
@@ -3900,8 +3920,20 @@
           "select_star": {
             "type": "string"
           },
+          "semantic_view_features": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "sql": {
             "type": "string"
+          },
+          "supports_drill_to_detail": {
+            "type": "boolean"
+          },
+          "supports_samples": {
+            "type": "boolean"
           },
           "table_name": {
             "type": "string"
@@ -19357,6 +19389,16 @@
           }
         },
         "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardCacheScreenshotResponseSchema"
+                }
+              }
+            },
+            "description": "Existing dashboard screenshot task status"
+          },
           "202": {
             "content": {
               "application/json": {
@@ -19378,6 +19420,9 @@
           },
           "500": {
             "$ref": "#/components/responses/500"
+          },
+          "503": {
+            "description": "Screenshot cache unavailable"
           }
         },
         "security": [
@@ -19977,6 +20022,13 @@
             "required": true,
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "tab_id",
+            "schema": {
+              "type": "integer"
             }
           }
         ],
@@ -25726,6 +25778,13 @@
             "required": true,
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "tab_id",
+            "schema": {
+              "type": "integer"
             }
           }
         ],

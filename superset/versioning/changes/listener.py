@@ -107,6 +107,19 @@ ACTION_KINDS: frozenset[str] = frozenset(
     {ACTION_KIND_RESTORE, ACTION_KIND_IMPORT, ACTION_KIND_CLONE}
 )
 
+# Stamped by the BASELINE WRITER (superset.versioning.baseline.insertion)
+# directly onto the version_transaction row it mints for a retroactive
+# op=0 baseline — never set by commands through ``session.info``, which
+# is why it is not a member of ``ACTION_KINDS`` above. Consumers use it
+# to tell a pre-tracking baseline ("Original version") from a
+# tracking-on creation INSERT ("Created"): both are operation_type=0
+# shadow rows, and only the transaction's provenance distinguishes them
+# (sc-120488).
+ACTION_KIND_BASELINE: str = "baseline"
+
+# Internal provenance for a tracked INSERT, not a public activity action.
+ACTION_KIND_CREATE: str = "create"
+
 # Key on ``session.info`` carrying a synthetic "headline" change record
 # for the current transaction — the ``__meta__`` record convention. Set
 # by commands alongside ``ACTION_KIND_KEY`` when the avenue has a payload
@@ -314,12 +327,15 @@ def _write_action_kind(
     )
 
 
-def _stamp_action_kind_on_transaction(session: Session, tx_id: int) -> None:
+def _stamp_action_kind_on_transaction(
+    session: Session, tx_id: int, creation_tables: tuple[sa.Table, ...] | None = None
+) -> None:
     """Pop the per-tx action_kind from ``session.info`` and stamp it
     onto the ``version_transaction`` row identified by *tx_id*.
 
-    No-op when no command set the action_kind (the default for
-    ordinary saves). Emits via ``sa.update()`` against Continuum's
+    Command provenance takes precedence. Otherwise a surviving INSERT shadow
+    in this transaction establishes tracked creation; ordinary updates remain
+    unstamped. Emits via ``sa.update()`` against Continuum's
     transaction Table so the identifier is auto-quoted per dialect
     (MySQL would otherwise reject the unquoted column name if it ever
     collided with a reserved word) and the dialect-portable column
@@ -336,12 +352,39 @@ def _stamp_action_kind_on_transaction(session: Session, tx_id: int) -> None:
     # pylint: disable=import-outside-toplevel
     from sqlalchemy_continuum import versioning_manager
 
-    action_kind = session.info.pop(ACTION_KIND_KEY, None)
-    if action_kind is None:
-        return
-    tx_tbl = versioning_manager.transaction_cls.__table__
+    action_kind: str | None = session.info.pop(ACTION_KIND_KEY, None)
+    tx_tbl: sa.Table = versioning_manager.transaction_cls.__table__
     try:
         with session.connection().begin_nested():
+            if action_kind is None:
+                if creation_tables is None:
+                    from sqlalchemy_continuum import version_class
+
+                    from superset.connectors.sqla.models import SqlaTable
+                    from superset.models.dashboard import Dashboard
+                    from superset.models.slice import Slice
+
+                    creation_tables = tuple(
+                        version_class(model).__table__
+                        for model in (Dashboard, Slice, SqlaTable)
+                    )
+                if (
+                    not creation_tables
+                    or session.connection().scalar(
+                        sa.union_all(
+                            *(
+                                sa.select(sa.literal(1)).where(
+                                    table.c.transaction_id == tx_id,
+                                    table.c.operation_type == 0,
+                                )
+                                for table in creation_tables
+                            )
+                        ).limit(1)
+                    )
+                    is None
+                ):
+                    return
+                action_kind = ACTION_KIND_CREATE
             _write_action_kind(session, tx_tbl, tx_id, action_kind)
     except Exception:  # pylint: disable=broad-except
         logger.exception(

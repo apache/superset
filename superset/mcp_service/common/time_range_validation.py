@@ -76,10 +76,10 @@ _SEPARATOR = " : "
 _LAST_PREFIX = "Last "
 
 # The sub-day tail of a "Last ..." expression, e.g. the "5 minutes" in
-# "Last 5 minutes". Unit case is ignored because the downstream parser is
-# case-insensitive about it ("Last Hour" fails exactly like "Last hour").
-# "Next <second|minute|hour>" needs no equivalent treatment:
-# get_since_until() pairs it with a "today" (midnight) *since*, so
+# "Last 5 minutes". Unit case is ignored to match get_since_until()'s own
+# case-insensitive handling of it.
+# "Next <second|minute|hour>" needs no equivalent treatment: get_since_until()
+# anchors its since bound on "now" (the same as the "Last" side), so
 # since <= until always holds.
 _SUB_DAY_REMAINDER = re.compile(
     r"^(?:(\d{1,9})\s{1,5})?(second|minute|hour)s?$", re.IGNORECASE
@@ -89,13 +89,15 @@ _SUB_DAY_REMAINDER = re.compile(
 def _normalize_sub_day_last(value: str) -> str | None:
     """Rewrite a sub-day ``Last ...`` value into an explicit ``DATEADD`` range.
 
-    ``get_since_until()`` turns a separator-less ``"Last hour"`` into
-    ``"Last hour : today"``. The since side then resolves against ``now``
-    (sub-day units carry a time component) while ``today`` resolves to
-    midnight, so since lands after until and the call raises "From date
-    cannot be larger than to date". This affects every sub-day form --
-    ``Last second``, ``Last minute``, ``Last hour``, ``Last 5 minutes``,
-    ``Last 2 hours``. Anchoring both ends on ``now`` sidesteps the mismatch.
+    ``get_since_until()`` itself now resolves a sub-day ``Last ...`` value
+    directly -- it used to turn a separator-less ``"Last hour"`` into
+    ``"Last hour : today"``, where the since side resolved against ``now``
+    while ``today`` resolved to midnight, so since landed after until and the
+    call raised "From date cannot be larger than to date". This rewrite
+    predates that fix and is kept anyway: it guarantees callers always get
+    the same explicit, anchor-independent ``DATEADD`` form for a sub-day
+    ``Last``, rather than depending on however ``get_since_until()`` happens
+    to pick its default bound today.
 
     Returns ``None`` when ``value`` is not a sub-day ``Last`` expression, in
     which case the caller falls back to ``_resolves_to_bounded_range()``.
@@ -129,9 +131,11 @@ def _resolves_to_bounded_range(value: str) -> bool:
       low-level parse error deep in the query path into a field-level
       ``ValidationError`` carrying the accepted-format guidance.
 
-    Sub-day ``Last`` values must be rewritten by ``_normalize_sub_day_last()``
-    before reaching this check -- they raise here, but the fix is to
-    normalize them, not to reject them.
+    Sub-day ``Last`` values are intercepted earlier by
+    ``_normalize_sub_day_last()`` and never reach this check -- they would
+    resolve correctly here too now, but the earlier rewrite still runs so
+    callers get its explicit ``DATEADD`` form instead of whatever bound
+    ``get_since_until()`` happens to default to.
     """
     try:
         since, until = get_since_until(time_range=value)

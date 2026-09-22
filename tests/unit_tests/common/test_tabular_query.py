@@ -21,6 +21,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from superset.common.query_object import QueryObject
 from superset.common.tabular_query import (
     build_query_dict,
     TabularQueryValidationError,
@@ -424,3 +425,76 @@ def test_one_sided_bound_uses_a_space_separator() -> None:
     )["filters"]
 
     assert "T" not in clause["val"]
+
+
+def _resolved_get_table_query_object(time_range: str) -> QueryObject:
+    """Model the semantic-view get_table query object at cache-key time.
+
+    ``build_query_dict`` (the get_table builder) expresses the range only as a
+    ``TEMPORAL_RANGE`` filter — it never sets ``time_range`` — and
+    ``QueryContextFactory`` then resolves that filter to ``from_dttm``/
+    ``to_dttm`` and ``_apply_granularity`` drops the granularity-column filter
+    before the cache key is taken. This reproduces that resolved state: no
+    ``time_range`` attribute, temporal filter removed, bounds resolved.
+    """
+    from superset.common.utils.time_range_utils import get_since_until_from_time_range
+
+    query_dict = build_query_dict(
+        time_column="metric_time",
+        metrics=["revenue"],
+        dimensions=["metric_time"],
+        filters=[{"col": "product__product_name", "op": "==", "val": "mel-bun"}],
+        time_range=time_range,
+        rewrite_one_sided_time_range=True,  # the view path
+    )
+    # get_table never sets QueryObject.time_range; the range rides on a filter.
+    assert "time_range" not in query_dict
+    assert {
+        "col": "metric_time",
+        "op": "TEMPORAL_RANGE",
+        "val": time_range,
+    } in query_dict["filters"]
+
+    from_dttm, to_dttm = get_since_until_from_time_range(time_range=time_range)
+    non_temporal = [
+        flt for flt in query_dict["filters"] if flt["op"] != "TEMPORAL_RANGE"
+    ]
+    return QueryObject(
+        columns=query_dict["columns"],
+        metrics=query_dict["metrics"],
+        filters=non_temporal,
+        granularity="metric_time",
+        from_dttm=from_dttm,
+        to_dttm=to_dttm,
+    )
+
+
+def test_get_table_cache_key_distinguishes_time_ranges() -> None:
+    """sc-120967: two semantic-view get_table calls with the same filters but
+    different time ranges must not share a cache entry.
+
+    Regression for the collision fixed on master by #43914 (412ab43712): the
+    range reaches the query object only as resolved ``from_dttm``/``to_dttm``
+    (no ``time_range`` attribute, temporal filter removed), so those bounds are
+    the only thing distinguishing one range's key from another's.
+    """
+    first = _resolved_get_table_query_object("2024-01-01 : 2024-06-01")
+    second = _resolved_get_table_query_object("2024-07-01 : 2024-12-01")
+
+    assert first.cache_key() != second.cache_key()
+
+
+def test_get_table_cache_key_collides_when_bounds_dropped() -> None:
+    """Control: revert #43914's condition (drop the resolved bounds from the
+    key) and the two ranges collapse to one cache entry — the sc-120967 bug.
+
+    With ``time_range`` unset and the temporal filter already removed, nulling
+    ``from_dttm``/``to_dttm`` (what cache_key did before #43914) leaves the two
+    otherwise-identical requests indistinguishable.
+    """
+    first = _resolved_get_table_query_object("2024-01-01 : 2024-06-01")
+    second = _resolved_get_table_query_object("2024-07-01 : 2024-12-01")
+    first.from_dttm = first.to_dttm = None
+    second.from_dttm = second.to_dttm = None
+
+    assert first.cache_key() == second.cache_key()
