@@ -552,17 +552,22 @@ class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
         this spec (MariaDB, Doris, StarRocks, OceanBase), where querying it
         errors out. Those servers do not enforce the requirement, so treat an
         unreadable variable as "not required" rather than failing the upload.
+
+        Read the ``GLOBAL`` value rather than ``SESSION``: an admin flips
+        this with ``SET GLOBAL``, but a pooled connection opened before that
+        change keeps the session's original value for its lifetime, so
+        checking ``SESSION`` can miss an enforcement that is already active.
         """
         try:
             with engine.connect() as conn:
                 return bool(
                     conn.exec_driver_sql(
-                        "SELECT @@session.sql_require_primary_key"
+                        "SELECT @@global.sql_require_primary_key"
                     ).scalar()
                 )
         except Exception:  # pylint: disable=broad-except
             logger.debug(
-                "Unable to read @@session.sql_require_primary_key; "
+                "Unable to read @@global.sql_require_primary_key; "
                 "assuming a primary key is not required",
                 exc_info=True,
             )
@@ -602,12 +607,22 @@ class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
             if creating_table and cls._requires_primary_key(engine):
                 index = to_sql_kwargs.get("index", True)
                 index_label = to_sql_kwargs.get("index_label")
-                if index:
+                # A column promoted to PRIMARY KEY must reject duplicate and
+                # NULL values; the DataFrame index has neither guarantee (a
+                # CSV/Excel upload can set an "index column" that repeats or
+                # is missing values), so fall back to a synthesized key,
+                # while still writing the index as a plain column, whenever
+                # it can't stand in as the primary key itself.
+                if index and df.index.is_unique and not df.index.hasnans:
                     primary_key = index_label or df.index.name or "index"
                 else:
                     df = df.copy()
+                    # Column, index, and constraint names are compared
+                    # case-insensitively in MySQL, so an existing "ID"
+                    # column collides with a lowercase synthesized "id" one.
+                    existing_columns = {col.lower() for col in df.columns}
                     primary_key = "id"
-                    while primary_key in df.columns:
+                    while primary_key.lower() in existing_columns:
                         primary_key = f"_{primary_key}"
                     df.insert(0, primary_key, range(1, len(df) + 1))
 

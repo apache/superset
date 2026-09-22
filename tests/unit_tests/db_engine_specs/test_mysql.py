@@ -631,6 +631,100 @@ def test_df_to_sql_promotes_pandas_index_to_primary_key() -> None:
     )
 
 
+def test_df_to_sql_falls_back_to_synthesized_key_for_non_unique_index() -> None:
+    """
+    A pandas index promoted to a primary key must reject duplicates and
+    NULLs. A CSV/Excel upload can point the "Dataframe index" option at a
+    column that has neither guarantee, so a duplicate or missing index value
+    should fall back to a synthesized key while still writing the index as a
+    plain (non-key) column, instead of producing a CREATE TABLE that MySQL
+    would reject on the first duplicate/NULL insert.
+    """
+    import pandas as pd
+    import sqlalchemy as sa
+    from sqlalchemy import create_engine
+
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+    from superset.sql.parse import Table
+
+    engine = create_engine("sqlite://")
+    df = pd.DataFrame({"a": [1, 2, 3], "b": ["x", "y", "z"]}, index=[0, 0, 1])
+
+    with (
+        patch.object(MySQLEngineSpec, "get_engine") as mock_get_engine,
+        patch.object(MySQLEngineSpec, "_requires_primary_key", return_value=True),
+    ):
+        mock_get_engine.return_value.__enter__.return_value = engine
+        mock_get_engine.return_value.__exit__.return_value = False
+
+        MySQLEngineSpec.df_to_sql(
+            database=Mock(),
+            table=Table(table="my_table"),
+            df=df,
+            to_sql_kwargs={"if_exists": "fail", "index": True},
+        )
+
+    with engine.connect() as conn:
+        rows = conn.execute(
+            sa.text('SELECT id, "index", a, b FROM my_table ORDER BY id')
+        ).fetchall()
+    assert [tuple(row) for row in rows] == [
+        (1, 0, 1, "x"),
+        (2, 0, 2, "y"),
+        (3, 1, 3, "z"),
+    ]
+
+    pk = sa.inspect(engine).get_pk_constraint("my_table")
+    assert pk["constrained_columns"] == ["id"], (
+        "expected a synthesized key, not the non-unique pandas index, to "
+        "become the primary key"
+    )
+
+
+def test_df_to_sql_synthesized_key_avoids_case_insensitive_collision() -> None:
+    """
+    Column names are compared case-insensitively in MySQL, so a synthesized
+    "id" primary key collides with an existing "ID" column even though the
+    two differ by case.
+    """
+    import pandas as pd
+    from sqlalchemy import create_engine
+    from sqlalchemy.schema import CreateTable
+
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+    from superset.sql.parse import Table
+
+    engine = create_engine("sqlite://")
+    df = pd.DataFrame({"ID": [1, 2, 3], "b": ["x", "y", "z"]})
+    captured_tables: list[Any] = []
+
+    def _capture_instead_of_create(self: Any) -> None:
+        captured_tables.append(self.table)
+
+    with (
+        patch.object(MySQLEngineSpec, "get_engine") as mock_get_engine,
+        patch.object(MySQLEngineSpec, "_requires_primary_key", return_value=True),
+        patch.object(pd.io.sql.SQLTable, "create", _capture_instead_of_create),
+        patch.object(pd.io.sql.SQLTable, "insert"),
+    ):
+        mock_get_engine.return_value.__enter__.return_value = engine
+        mock_get_engine.return_value.__exit__.return_value = False
+
+        MySQLEngineSpec.df_to_sql(
+            database=Mock(),
+            table=Table(table="my_table"),
+            df=df,
+            to_sql_kwargs={"if_exists": "fail", "index": False},
+        )
+
+    assert len(captured_tables) == 1
+    ddl = str(CreateTable(captured_tables[0]))
+    assert "_id BIGINT" in ddl, (
+        "expected the synthesized key to be renamed to avoid the "
+        "case-insensitive collision with the existing 'ID' column"
+    )
+
+
 def test_df_to_sql_disables_autoincrement_on_synthesized_primary_key() -> None:
     """
     pandas declares the primary key via a table-level PrimaryKeyConstraint
