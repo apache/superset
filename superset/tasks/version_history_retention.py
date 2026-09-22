@@ -18,7 +18,7 @@
 
 Retention is time-based. The task deletes parent + child shadow rows
 owned by ``version_transaction`` rows whose ``issued_at`` is older
-than ``SUPERSET_VERSION_HISTORY_RETENTION_DAYS`` (default 30, env
+than ``VERSION_HISTORY_RETENTION_DAYS`` (default 30, env
 overridable, non-positive to disable).
 
 One preservation rule, applied across every shadow table (parent,
@@ -478,8 +478,7 @@ def _prune_old_versions_impl(retention_days: int) -> dict[str, Any]:
     """
     if retention_days <= 0:
         logger.info(
-            "version_history_retention: SUPERSET_VERSION_HISTORY_RETENTION_DAYS "
-            "<= 0; skipping",
+            "version_history_retention: VERSION_HISTORY_RETENTION_DAYS <= 0; skipping",
         )
         stats_logger_manager.instance.incr(f"{_METRIC_PREFIX}.skipped")
         return {"skipped": 1}
@@ -537,7 +536,7 @@ def prune_old_versions() -> dict[str, Any]:
     """
     try:
         retention_days = int(
-            current_app.config.get("SUPERSET_VERSION_HISTORY_RETENTION_DAYS", 30)
+            current_app.config.get("VERSION_HISTORY_RETENTION_DAYS", 30)
         )
         return _prune_old_versions_impl(retention_days)
     except Exception:  # pylint: disable=broad-except

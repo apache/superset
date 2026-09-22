@@ -213,7 +213,7 @@ def current_version_number(
     Note: this index is *unstable under retention pruning*. The scheduled
     :func:`prune_old_versions` task drops shadow rows whose owning
     ``version_transaction`` is older than
-    :envvar:`SUPERSET_VERSION_HISTORY_RETENTION_DAYS`, so the same integer
+    :envvar:`VERSION_HISTORY_RETENTION_DAYS`, so the same integer
     can refer to different rows before and after a prune cycle. Use
     :func:`current_live_transaction_id` for a stable identifier.
     """
@@ -495,7 +495,7 @@ def resolve_version(
     transaction in Python because there's no portable SQL form for a
     UUIDv5 derivation across PostgreSQL / MySQL / SQLite (Postgres has
     ``uuid_generate_v5``; the other two do not). The iteration count is
-    roughly bounded by ``SUPERSET_VERSION_HISTORY_RETENTION_DAYS`` worth
+    roughly bounded by ``VERSION_HISTORY_RETENTION_DAYS`` worth
     of edits — the retention task ages older shadow rows out, though
     transactions still anchoring a live row survive past the window
     (their count is bounded by the entity's current size, not its edit

@@ -1772,22 +1772,21 @@ _MAX_VERSION_HISTORY_RETENTION_DAYS: int = 36_500
 
 def _parse_version_history_retention_days() -> int:
     """Parse the retention window without making invalid input fatal."""
-    value: str | None = os.environ.get("SUPERSET_VERSION_HISTORY_RETENTION_DAYS")
+    value: str | None = os.environ.get("VERSION_HISTORY_RETENTION_DAYS")
     if value is None:
         return _DEFAULT_VERSION_HISTORY_RETENTION_DAYS
     try:
         retention_days = int(value)
     except ValueError:
         logger.warning(
-            "Invalid SUPERSET_VERSION_HISTORY_RETENTION_DAYS=%r; using %d",
+            "Invalid VERSION_HISTORY_RETENTION_DAYS=%r; using %d",
             value,
             _DEFAULT_VERSION_HISTORY_RETENTION_DAYS,
         )
         return _DEFAULT_VERSION_HISTORY_RETENTION_DAYS
     if retention_days > _MAX_VERSION_HISTORY_RETENTION_DAYS:
         logger.warning(
-            "SUPERSET_VERSION_HISTORY_RETENTION_DAYS=%r exceeds the maximum "
-            "of %d; using %d",
+            "VERSION_HISTORY_RETENTION_DAYS=%r exceeds the maximum of %d; using %d",
             value,
             _MAX_VERSION_HISTORY_RETENTION_DAYS,
             _DEFAULT_VERSION_HISTORY_RETENTION_DAYS,
@@ -1796,7 +1795,7 @@ def _parse_version_history_retention_days() -> int:
     return retention_days
 
 
-SUPERSET_VERSION_HISTORY_RETENTION_DAYS: int = _parse_version_history_retention_days()
+VERSION_HISTORY_RETENTION_DAYS: int = _parse_version_history_retention_days()
 
 # Adds a warning message on sqllab save query and schedule query modals.
 SQLLAB_SAVE_WARNING_MESSAGE = None
@@ -1873,7 +1872,7 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
             "schedule": crontab(minute=0, hour=0),
         },
         # Entity version-history retention. Daily at 03:00; the task
-        # itself short-circuits when SUPERSET_VERSION_HISTORY_RETENTION_DAYS
+        # itself short-circuits when VERSION_HISTORY_RETENTION_DAYS
         # is non-positive (disabled).
         "version_history.prune_old_versions": {
             "task": "version_history.prune_old_versions",

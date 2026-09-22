@@ -61,6 +61,14 @@ stops filling — an empty or stale history misrepresents the entity as
 unchanged. History only accrues while capture is on; edits made while it was
 off are not reconstructed.
 
+## Retention
+
+History retention is configured independently with `VERSION_HISTORY_RETENTION_DAYS`
+in `superset_config.py` or the environment variable of the same name. Its default
+is 30 days; set it to `0` to disable pruning. The scheduled retention task preserves
+live versions and prunes eligible closed history older than the configured window.
+Changing retention does not enable history access or capture.
+
 ## Viewing history
 
 An unstamped starting version is labelled **Starting version**: older history

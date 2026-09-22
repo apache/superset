@@ -32,6 +32,7 @@ from collections.abc import Iterator
 from unittest.mock import MagicMock, patch
 
 import pytest
+from flask import Flask
 from sqlalchemy.exc import OperationalError
 from sqlalchemy_continuum.exc import ClassNotVersioned
 
@@ -60,10 +61,31 @@ def test_retention_disabled_emits_skipped_metric(stats: MagicMock) -> None:
     stats.gauge.assert_not_called()
 
 
+@pytest.mark.parametrize("value", [0, -1, 360, "360"])
+def test_task_reads_canonical_application_retention(
+    stats: MagicMock, value: int | str
+) -> None:
+    """Runtime overrides use the canonical key, without a legacy fallback."""
+    app: Flask = Flask(__name__)
+    app.config.update(
+        VERSION_HISTORY_RETENTION_DAYS=value,
+        SUPERSET_VERSION_HISTORY_RETENTION_DAYS=180,
+    )
+    with (
+        app.app_context(),
+        patch.object(
+            version_history_retention, "_prune_old_versions_impl", return_value={}
+        ) as prune,
+    ):
+        assert version_history_retention.prune_old_versions() == {}
+    prune.assert_called_once_with(int(value))
+    stats.incr.assert_not_called()
+
+
 def test_task_normalizes_string_retention_config(stats: MagicMock) -> None:
     """String values from custom config modules are normalized to integers."""
     mock_app: MagicMock = MagicMock()
-    mock_app.config = {"SUPERSET_VERSION_HISTORY_RETENTION_DAYS": "30"}
+    mock_app.config = {"VERSION_HISTORY_RETENTION_DAYS": "30"}
     with (
         patch.object(version_history_retention, "current_app", mock_app),
         patch.object(
@@ -185,7 +207,7 @@ def test_terminal_failure_emits_failed_metric_and_swallows(stats: MagicMock) -> 
     (so the schedule isn't poisoned), AND emits a ``.failed`` counter so the
     destructive job's primary failure mode is alertable, not just logged."""
     mock_app: MagicMock = MagicMock()
-    mock_app.config = {"SUPERSET_VERSION_HISTORY_RETENTION_DAYS": 30}
+    mock_app.config = {"VERSION_HISTORY_RETENTION_DAYS": 30}
     with (
         patch.object(version_history_retention, "current_app", mock_app),
         patch.object(

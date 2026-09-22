@@ -16,10 +16,12 @@
 # under the License.
 # pylint: disable=import-outside-toplevel, unused-argument, redefined-outer-name, invalid-name
 
+import runpy
 from functools import partial
 from typing import Any, TYPE_CHECKING
 
 import pytest
+from flask import Flask
 from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
 
@@ -47,6 +49,36 @@ FULL_DTTM_DEFAULTS_EXAMPLE = {
 }
 
 
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        (None, 30),
+        ("360", 360),
+        ("0", 0),
+        ("-1", -1),
+        ("36500", 36500),
+        ("36501", 30),
+        ("30d", 30),
+    ],
+)
+def test_version_history_retention_env_loads_application_config(
+    monkeypatch: pytest.MonkeyPatch, value: str | None, expected: int
+) -> None:
+    """The canonical environment key populates integer application config."""
+    from superset import config
+
+    monkeypatch.delenv("VERSION_HISTORY_RETENTION_DAYS", raising=False)
+    if value is not None:
+        monkeypatch.setenv("VERSION_HISTORY_RETENTION_DAYS", value)
+    monkeypatch.setenv("SUPERSET_VERSION_HISTORY_RETENTION_DAYS", "180")
+    loaded: dict[str, Any] = runpy.run_path(config.__file__)
+    app: Flask = Flask(__name__)
+    app.config.from_mapping(loaded)
+    assert app.config["VERSION_HISTORY_RETENTION_DAYS"] == expected
+    assert type(app.config["VERSION_HISTORY_RETENTION_DAYS"]) is int
+    assert "SUPERSET_VERSION_HISTORY_RETENTION_DAYS" not in app.config
+
+
 def test_invalid_version_history_retention_env_uses_default(
     monkeypatch: pytest.MonkeyPatch,
     caplog: pytest.LogCaptureFixture,
@@ -54,10 +86,10 @@ def test_invalid_version_history_retention_env_uses_default(
     """Invalid retention input does not prevent configuration from loading."""
     from superset import config
 
-    monkeypatch.setenv("SUPERSET_VERSION_HISTORY_RETENTION_DAYS", "30d")
+    monkeypatch.setenv("VERSION_HISTORY_RETENTION_DAYS", "30d")
 
     assert config._parse_version_history_retention_days() == 30
-    assert "Invalid SUPERSET_VERSION_HISTORY_RETENTION_DAYS='30d'" in caplog.text
+    assert "Invalid VERSION_HISTORY_RETENTION_DAYS='30d'" in caplog.text
 
 
 def test_oversized_version_history_retention_env_uses_default(
@@ -67,7 +99,7 @@ def test_oversized_version_history_retention_env_uses_default(
     """An oversized retention window cannot overflow cutoff arithmetic."""
     from superset import config
 
-    monkeypatch.setenv("SUPERSET_VERSION_HISTORY_RETENTION_DAYS", "1000000000")
+    monkeypatch.setenv("VERSION_HISTORY_RETENTION_DAYS", "1000000000")
 
     assert config._parse_version_history_retention_days() == 30
     assert "exceeds the maximum" in caplog.text

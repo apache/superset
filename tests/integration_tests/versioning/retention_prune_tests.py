@@ -65,7 +65,7 @@ def _persist_fixture_state() -> None:
 
 class TestDashboardVersionRetention(SupersetTestCase):
     """Retention pruning drops shadow rows older than
-    ``SUPERSET_VERSION_HISTORY_RETENTION_DAYS`` while preserving live rows."""
+    ``VERSION_HISTORY_RETENTION_DAYS`` while preserving live rows."""
 
     @pytest.fixture(autouse=True)
     def _load_data(
