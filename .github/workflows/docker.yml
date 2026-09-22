@@ -214,9 +214,9 @@ jobs:
             snapshot="$(mktemp -d)/docker-build-extra-flags.sh"
             cp scripts/docker-build-extra-flags.sh "$snapshot"
             release_tree="$(mktemp -d)"
-            printf 'ARG PY_VER=3.11.13-slim-bookworm\n' >"$release_tree/Dockerfile"
+            printf 'ARG PY_VER=3.11-slim-bookworm\n' >"$release_tree/Dockerfile"
             flags="$(cd "$release_tree" && bash "$snapshot" superset "" release)"
-            if ! grep -Fq -- "--build-arg PY_VER=3.11.13-slim-bookworm" <<<"$flags"; then
+            if ! grep -Fq -- "--build-arg PY_VER=3.11-slim-bookworm" <<<"$flags"; then
               echo "::error::release build ignored the checked-out Dockerfile's PY_VER (flags: $flags)"
               exit 1
             fi
@@ -245,8 +245,8 @@ jobs:
           assert_publish_guard pull_request refs/pull/44250/merge aaaa111 bbbb222 true
           assert_supersetbot_exports_cache_with_token superset
           for preset in superset dev lean; do
-            assert_effective_py_ver "$preset" "3.11.14-slim-trixie"
-            expected_cache="3.11.14-slim-trixie"
+            assert_effective_py_ver "$preset" "3.11-slim-trixie"
+            expected_cache="3.11-slim-trixie"
             if [ "$preset" != "superset" ]; then
               expected_cache="${expected_cache}-${preset}"
             fi
@@ -264,9 +264,9 @@ jobs:
           assert_master_tag lean master-lean
           assert_master_tag py311 master-py311
           assert_master_tag py312 master-py312
-          assert_cache_push_for_master superset "3.11.14-slim-trixie"
-          assert_cache_push_for_master dev "3.11.14-slim-trixie-dev"
-          assert_cache_push_for_master lean "3.11.14-slim-trixie-lean"
+          assert_cache_push_for_master superset "3.11-slim-trixie"
+          assert_cache_push_for_master dev "3.11-slim-trixie-dev"
+          assert_cache_push_for_master lean "3.11-slim-trixie-lean"
           assert_cache_push_for_master py311 "3.11-slim-bookworm"
           assert_cache_push_for_master py312 "3.12-slim-bookworm"
           assert_release_tag superset "6.1.0"
