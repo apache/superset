@@ -230,6 +230,7 @@ export interface DateFilterControlProps {
   onClosePopover?: () => void;
   overlayStyle?: 'Modal' | 'Popover';
   isOverflowingFilterBar?: boolean;
+  displayFormat?: string;
 }
 
 export interface ExploreChartHeaderProps {
