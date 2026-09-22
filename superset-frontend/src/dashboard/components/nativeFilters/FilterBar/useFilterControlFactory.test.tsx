@@ -157,4 +157,3 @@ test('keeps uninitialized requiredFirst canvas filters mounted until initialized
     result.current.filtersWithValues.map(item => item.id),
   ).not.toContain('NATIVE_FILTER-required-canvas');
 });
-
