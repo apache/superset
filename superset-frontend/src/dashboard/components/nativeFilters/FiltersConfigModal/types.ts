@@ -56,6 +56,7 @@ export interface NativeFiltersFormItem {
   type: typeof NativeFilterType.NativeFilter;
   description: string;
   datasourceType?: DatasourceType;
+  semantic_selection_version?: string;
 }
 export interface NativeFilterDivider {
   id: string;
@@ -95,6 +96,7 @@ export interface ChartCustomizationsFormItem {
   type: typeof NativeFilterType.NativeFilter;
   description: string;
   datasourceType?: DatasourceType;
+  semantic_selection_version?: string;
   datasetInfo?: {
     label: string | ReactNode;
     value: number;

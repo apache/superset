@@ -1176,6 +1176,12 @@ class ChartDataFilterSchema(Schema):
 
 
 class ChartDataExtrasSchema(Schema):
+    semantic_selection_version: fields.String = fields.String(
+        allow_none=True,
+        metadata={
+            "description": "Identity encoding used for semantic member selections."
+        },
+    )
     relative_start = fields.String(
         metadata={
             "description": "Start time for relative time deltas. "

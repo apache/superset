@@ -140,12 +140,22 @@ export type ExtraFormDataOverrideRegular = Partial<
 export type ExtraFormDataOverride = ExtraFormDataOverrideRegular &
   ExtraFormDataOverrideExtras;
 
-export type ExtraFormData = ExtraFormDataAppend & ExtraFormDataOverride;
+export type SemanticSelectionSource = {
+  datasource: string;
+  version: string | null;
+};
+
+export type ExtraFormData = ExtraFormDataAppend &
+  ExtraFormDataOverride & {
+    semantic_selection_sources?: SemanticSelectionSource[];
+  };
 
 // Type signature for formData shared by all viz types
 // It will be gradually filled out as we build out the query object
 
 export interface BaseFormData extends TimeRange, FormDataResidual {
+  semantic_selection_version?: string;
+  semantic_selection_sources?: SemanticSelectionSource[];
   /** datasource identifier ${id}_${type} */
   datasource: string;
   /**

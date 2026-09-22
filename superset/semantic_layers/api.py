@@ -289,6 +289,9 @@ class SemanticViewRestApi(BaseSupersetModelRestApi):
             200,
             result={
                 "name": view.name,
+                "semantic_selection_version": (
+                    view.implementation.selection_identity_version
+                ),
                 "description": view.description,
                 "cache_timeout": view.cache_timeout,
                 "dimensions": dimensions,

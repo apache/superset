@@ -45,6 +45,7 @@ test('maps the structure payload', async () => {
   fetchMock.get('glob:*/api/v1/semantic_view/501/structure', {
     result: {
       name: 'orders',
+      semantic_selection_version: 'cube-member-id-v1',
       dimensions: [{ name: 'Status', type: 'VARCHAR' }],
       metrics: [{ name: 'revenue', definition: 'SUM(amount)' }],
     },
@@ -53,6 +54,7 @@ test('maps the structure payload', async () => {
   const structure = await fetchSemanticViewStructure(501);
 
   expect(structure.name).toBe('orders');
+  expect(structure.semantic_selection_version).toBe('cube-member-id-v1');
   expect(structure.dimensions).toEqual([{ name: 'Status', type: 'VARCHAR' }]);
   expect(structure.metrics).toEqual([
     { name: 'revenue', definition: 'SUM(amount)' },
@@ -83,3 +85,14 @@ test('evicts the cache on failure so a later call refetches after recovery', asy
     fetchMock.callHistory.calls('glob:*/api/v1/semantic_view/502/structure'),
   ).toHaveLength(2);
 });
+
+test.each([undefined, null])(
+  'does not invent a selection version for an unversioned structure (%s)',
+  async version => {
+    fetchMock.get('glob:*/api/v1/semantic_view/503/structure', {
+      result: { name: 'orders', semantic_selection_version: version },
+    });
+    const structure = await fetchSemanticViewStructure(503);
+    expect(structure.semantic_selection_version).toBeUndefined();
+  },
+);

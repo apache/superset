@@ -1503,3 +1503,42 @@ def test_time_range_uses_the_selected_grain_axis(temporal_view: MagicMock) -> No
     assert query["filters"] == [
         {"col": "signup_date", "op": "TEMPORAL_RANGE", "val": request.time_range}
     ]
+
+
+@pytest.mark.parametrize("version", [None, "stale-version"])
+def test_external_view_selection_version_is_validation_error(
+    temporal_view: MagicMock,
+    version: str | None,
+) -> None:
+    temporal_view.implementation.validate_selection_version.side_effect = ValueError(
+        "Please explicitly reselect current member IDs"
+    )
+    result: object = get_table_module._resolve_external_view(
+        GetTableRequest(
+            view_id=5, metrics=["bookings"], semantic_selection_version=version
+        )
+    )
+    assert isinstance(result, SemanticLayerError)
+    assert result.error_type == "ValidationError"
+    assert "explicitly reselect" in result.error
+    temporal_view.implementation.validate_selection_version.assert_called_once_with(
+        version
+    )
+
+
+def test_external_view_malformed_configuration_is_sanitized(
+    temporal_view: MagicMock,
+) -> None:
+    from unittest.mock import PropertyMock
+
+    from superset.utils import json
+
+    type(temporal_view).implementation = PropertyMock(
+        side_effect=json.JSONDecodeError("PRIVATE_CONFIG", "{", 1)
+    )
+    result: object = get_table_module._resolve_external_view(
+        GetTableRequest(view_id=5, metrics=["bookings"])
+    )
+    assert isinstance(result, SemanticLayerError)
+    assert result.error_type == "ConfigurationError"
+    assert result.error == "The semantic view configuration is invalid."

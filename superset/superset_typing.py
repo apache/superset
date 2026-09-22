@@ -301,6 +301,8 @@ class ExplorableData(TypedDict, total=False):
         normalize_columns: Whether to normalize column names
     """
 
+    semantic_selection_version: str | None
+
     # Core fields from BaseDatasource.data
     id: int | str  # String for UUID-based explorables like SemanticView
     uid: str

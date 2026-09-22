@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import { act, render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { SupersetClient } from '@superset-ui/core';
 import MatrixifyDimensionControl, {
@@ -549,3 +549,67 @@ test('should preserve values when other props change but mode stays the same', a
     topNValues: [],
   });
 });
+
+test('versioned suggestions preserve selections and allow manual entry', async () => {
+  (SupersetClient.get as jest.Mock).mockResolvedValue({
+    json: { result: [], suggestions_status: 'unavailable_versioned_view' },
+  });
+  const onChange = jest.fn();
+  render(
+    <MatrixifyDimensionControl
+      {...defaultProps}
+      onChange={onChange}
+      value={{ dimension: 'country', values: ['saved'] }}
+      selectionMode="members"
+    />,
+  );
+  expect(
+    await screen.findByText(
+      'Suggestions are unavailable. Enter values manually.',
+    ),
+  ).toBeInTheDocument();
+  expect(onChange).not.toHaveBeenCalled();
+  await userEvent.type(
+    screen.getByRole('combobox', { name: 'Select dimension values' }),
+    'manual',
+  );
+  await userEvent.click(await screen.findByTitle('manual'));
+  expect(onChange).toHaveBeenCalledWith(
+    expect.objectContaining({ values: ['saved', 'manual'] }),
+  );
+});
+
+test.each(['a_to_z', 'z_to_a'] as const)(
+  'versioned suggestions keep the members picker hidden in all mode with %s sort',
+  async allSortBy => {
+    (SupersetClient.get as jest.Mock).mockResolvedValue({
+      json: { result: [], suggestions_status: 'unavailable_versioned_view' },
+    });
+    const onChange = jest.fn();
+    const value: MatrixifyDimensionControlValue = {
+      dimension: 'country',
+      values: ['saved'],
+      totalValueCount: 10,
+      topNValues: [{ value: 'saved', metricValue: 5 }],
+    };
+    await act(async () => {
+      render(
+        <MatrixifyDimensionControl
+          {...defaultProps}
+          onChange={onChange}
+          value={value}
+          selectionMode="all"
+          allSortBy={allSortBy}
+        />,
+      );
+    });
+    expect(SupersetClient.get).toHaveBeenCalled();
+    expect(
+      screen.queryByRole('combobox', { name: 'Select dimension values' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Suggestions are unavailable. Enter values manually.'),
+    ).not.toBeInTheDocument();
+    expect(onChange).not.toHaveBeenCalled();
+  },
+);
