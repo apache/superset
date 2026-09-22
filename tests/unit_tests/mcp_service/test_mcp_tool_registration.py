@@ -55,7 +55,6 @@ EXPECTED_TOOL_OUTPUT_FIELDS = {
     "get_chart_type_schema": "chart_type",
     "get_compatible_dimensions": "compatible_dimensions",
     "get_compatible_metrics": "compatible_metrics",
-    "get_dashboard_data": "charts_returned",
     "get_dashboard_datasets": "datasets",
     "get_dashboard_info": "dashboard_title",
     "get_dashboard_layout": "tabs",
