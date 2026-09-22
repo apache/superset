@@ -121,7 +121,8 @@ class TemporaryCacheRestApi(BaseSupersetApi, ABC):
 
     def delete(self, pk: int, key: str) -> Response:
         try:
-            args = CommandParameters(resource_id=pk, key=key)
+            tab_id = request.args.get("tab_id")
+            args = CommandParameters(resource_id=pk, key=key, tab_id=tab_id)
             result = self.get_delete_command()(args).run()
             if not result:
                 return self.response_404()

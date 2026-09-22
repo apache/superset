@@ -261,6 +261,10 @@ class ExploreFormDataRestApi(BaseSupersetApi):
               type: string
             name: key
             description: The form_data key.
+          - in: query
+            schema:
+              type: integer
+            name: tab_id
           responses:
             200:
               description: Deleted the stored form_data.
@@ -284,7 +288,8 @@ class ExploreFormDataRestApi(BaseSupersetApi):
               $ref: '#/components/responses/500'
         """
         try:
-            args = CommandParameters(key=key)
+            tab_id = request.args.get("tab_id")
+            args = CommandParameters(key=key, tab_id=tab_id)
             result = DeleteFormDataCommand(args).run()
             if not result:
                 return self.response_404()

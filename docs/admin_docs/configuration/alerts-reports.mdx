@@ -478,6 +478,38 @@ There are many reasons that reports might not be working. Try these steps to che
 
 ### Blank PDF or PNG captures
 
+Final screenshot bytes are validated independently of the capture implementation.
+PDF delivery requires evidence that the exact PDF was assembled from validated
+images during this execution. Capture rejection remains sticky for the execution;
+substituting another attachment cannot clear it. Uniform fills are rejected
+regardless of colour or theme. A small label or logo does not override a blank
+classification. Extremely sparse legitimate output can therefore be rejected;
+a solid-fill KPI without visible structure has no pixel-only exemption.
+
+Recognized chart error and empty states satisfy the readiness wait; they do not
+by themselves trigger capture retries or block delivery. Error-state charts may
+be delivered with a warning, but a rendered error is not successful chart data.
+Logs distinguish `rendered_holders`, `empty_holders`,
+`error_holders` and `semantic_success`; `report_semantic_status` warns when a
+completed capture includes terminal chart errors.
+For tiled captures, final holder counts aggregate terminal states observed while
+scrolling. They are not a census of holders that never entered a captured viewport;
+use the per-tile diagnostics and expected holder count when investigating gaps.
+
+Detection is a heuristic, not a guarantee that every delivered chart contains
+useful or correct data. There is no special exemption for labels or logos, but
+one occupying enough pixels can exceed the detector's content thresholds while
+the rest of the page is incomplete. The strict invariant is that an artifact
+**classified as invalid** cannot be delivered; undetected rendering failures
+remain possible.
+
+Identical image bytes are pixel-validated once per execution; subsequent assembly
+and per-recipient gates verify their SHA-256 identity and sticky rejection state.
+Changed bytes must be validated again. The query-context bootstrap used by data
+exports discards its screenshots and skips the additional final-image validation;
+it retains the existing browser readiness/capture behaviour. There is no flag to
+deliver rejected captures. Roll back the change to disable the additional gate.
+
 Playwright report captures are checked for blank image content as well as chart
 readiness. Captures detected as blank where chart content is expected are retried
 up to three total attempts, within the execution deadline. If they remain blank,
@@ -485,6 +517,16 @@ the report fails instead of delivering the blank or partial attachment. This als
 applies to alerts that attach reports. Check worker logs for
 `ScreenshotBlankCaptureError` and `report_capture_validation` when investigating
 these failures.
+
+Rendered report delivery is fail closed. A terminal rejection from the standard,
+per-tile, or combined-image validation stage is recorded on the report execution
+context and checked again immediately before every notification send. A PDF or PNG
+without an accepted capture context is also rejected. This applies equally to
+report schedules and alerts that attach rendered reports. Text-only failure
+notifications may still be sent. Look for `report_delivery_blocked` when this
+delivery-boundary safeguard is triggered. Thumbnail captures remain permissive and
+the retained-blank event is named `thumbnail_capture_blank_tile_retained` so it
+cannot be mistaken for a report delivery event.
 
 Immediately before each scheduled report screenshot, chart readiness must remain
 stable for 500 milliseconds, unless less than one stability window of the
@@ -495,7 +537,37 @@ captured during the stability window. Successful checks emit
 `report_capture_readiness_stable`; a timeout emits
 `report_capture_readiness_changed` and stops capture and delivery.
 
-### Confirm feature flag is enabled and you have sufficient permissions
+### Whole-execution retries
+
+Enable `ALERT_REPORTS_RETRY` and select **Enable Retries** in each alert or report's
+error-handling settings. This does not opt existing schedules in automatically.
+The default allows three additional attempts, with exponential delays starting at
+60 seconds and capped by `ALERT_REPORTS_RETRY_MAX_DELAY_SECONDS`. Screenshot-tile
+retries are separate from these whole-execution attempts.
+
+Each retry gets a fresh browser context and re-evaluates an alert's condition; if
+the condition no longer fires, it finishes without sending the alert. Duplicate
+or obsolete retry messages cannot claim the same execution window. The worker
+logs `report_retry_discarded` or `report_execution_not_claimed` when admission fails.
+
+Whole-execution retry applies before notification delivery starts. A delivery
+failure is not replayed, since a provider may have accepted the notification
+before returning an error. It is not an exactly-once delivery guarantee, nor a
+guarantee of recovery after a worker hard kill. Optional retry/final-failure
+notifications are text-only and omit raw provider diagnostics. Rejected PDF/PNG
+attachments are never attached to those notifications.
+
+Ordinary error emails sent only to schedule editors retain HTML-sanitized diagnostic
+text. Retry and final-failure notices sent to configured recipients omit it.
+Turning off retries cancels a matching queued retry without blocking the next cron
+window. Abandoned retry chains become eligible for recovery after
+`ALERT_REPORTS_RETRY_MAX_DELAY_SECONDS`. Alerts retain their per-schedule Celery
+timeout rather than inheriting the global report execution budget.
+Rendered alert attachments have a separate browser-capture budget, capped by the
+remaining alert time and the configured report execution budget. Time spent
+evaluating the alert condition does not consume that separate capture budget.
+
+### Feature flag and permissions checks
 
 If you don't see "Alerts & Reports" under the _Manage_ section of the Settings dropdown in the Superset UI, you need to enable the `ALERT_REPORTS` feature flag (see above). Enable another feature flag and check to see that it took effect, to verify that your config file is getting loaded.
 
