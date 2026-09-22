@@ -1085,4 +1085,63 @@ describe('dashboardState actions', () => {
       expect(dispatch).not.toHaveBeenCalled();
     });
   });
+
+  test('savePublished shows the permission toast for a non-JSON 403', async () => {
+    const id = 123;
+    const { getState, dispatch } = setup({
+      dashboardInfo: { id, metadata: { color_scheme: 'supersetColors' } },
+    });
+    putStub.mockRejectedValue(
+      new Response('<html><body>Forbidden</body></html>', {
+        status: 403,
+        headers: { 'Content-Type': 'text/html' },
+      }),
+    );
+
+    await savePublished(id, true)(dispatch, getState);
+
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    expect(dispatch.mock.calls[0][0]).toEqual(
+      expect.objectContaining({
+        type: ADD_TOAST,
+        payload: expect.objectContaining({
+          toastType: ToastType.Danger,
+          text: 'You do not have permissions to edit this dashboard.',
+        }),
+      }),
+    );
+  });
+
+  const permissionToast = 'You do not have permissions to edit this dashboard.';
+  test.each([
+    [
+      422,
+      { message: 'Dashboard could not be updated.' },
+      'Dashboard could not be updated.',
+    ],
+    [403, { message: 'Forbidden' }, permissionToast],
+    [500, {}, permissionToast],
+  ])(
+    'savePublished failing with %i %j shows "%s"',
+    async (status, body, text) => {
+      const id = 123;
+      const { getState, dispatch } = setup({
+        dashboardInfo: { id, metadata: { color_scheme: 'supersetColors' } },
+      });
+      putStub.mockRejectedValue(new Response(JSON.stringify(body), { status }));
+
+      await savePublished(id, true)(dispatch, getState);
+
+      expect(dispatch).toHaveBeenCalledTimes(1);
+      expect(dispatch.mock.calls[0][0]).toEqual(
+        expect.objectContaining({
+          type: ADD_TOAST,
+          payload: expect.objectContaining({
+            toastType: ToastType.Danger,
+            text,
+          }),
+        }),
+      );
+    },
+  );
 });
