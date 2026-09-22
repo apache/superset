@@ -18731,8 +18731,6 @@ msgstr "値の昇順"
 msgid "value descending"
 msgstr "値の降順"
 
-msgid "valuename"
-msgstr ""
 
 msgid "var"
 msgstr "分散"

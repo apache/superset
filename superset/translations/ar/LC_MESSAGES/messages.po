@@ -22197,8 +22197,6 @@ msgstr "قيمة تصاعدية"
 msgid "value descending"
 msgstr "قيمة تنازلي"
 
-msgid "valuename"
-msgstr ""
 
 msgid "var"
 msgstr "VAR"

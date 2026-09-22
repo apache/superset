@@ -20024,8 +20024,6 @@ msgstr "по возрастанию значения"
 msgid "value descending"
 msgstr "по убыванию значения"
 
-msgid "valuename"
-msgstr ""
 
 msgid "var"
 msgstr "дисперсия"

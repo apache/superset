@@ -22628,8 +22628,6 @@ msgstr "wartości rosnące"
 msgid "value descending"
 msgstr "wartości malejące"
 
-msgid "valuename"
-msgstr ""
 
 #, fuzzy
 msgid "var"

@@ -20628,8 +20628,6 @@ msgstr "0 - 9"
 msgid "value descending"
 msgstr "9 - 0"
 
-msgid "valuename"
-msgstr ""
 
 msgid "var"
 msgstr "var"

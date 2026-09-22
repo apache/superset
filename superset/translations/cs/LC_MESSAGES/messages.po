@@ -20806,8 +20806,6 @@ msgstr "hodnota vzestupně"
 msgid "value descending"
 msgstr "hodnota sestupně"
 
-msgid "valuename"
-msgstr ""
 
 msgid "var"
 msgstr "var"

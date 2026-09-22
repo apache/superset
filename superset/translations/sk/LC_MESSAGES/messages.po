@@ -20817,8 +20817,6 @@ msgstr "hodnota vzestupne"
 msgid "value descending"
 msgstr "hodnota sestupne"
 
-msgid "valuename"
-msgstr ""
 
 msgid "var"
 msgstr "var"

@@ -20416,8 +20416,6 @@ msgstr "vērtība augošā secībā"
 msgid "value descending"
 msgstr "vērtība dilstošā secībā"
 
-msgid "valuename"
-msgstr ""
 
 msgid "var"
 msgstr "dispersija"

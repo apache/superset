@@ -20761,8 +20761,6 @@ msgstr "valeurs croissantes"
 msgid "value descending"
 msgstr "valeurs décroissantes"
 
-msgid "valuename"
-msgstr ""
 
 msgid "var"
 msgstr "var"

@@ -24684,8 +24684,6 @@ msgstr "vrednost rastuće"
 msgid "value descending"
 msgstr "vrednost opadajuće"
 
-msgid "valuename"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "var"

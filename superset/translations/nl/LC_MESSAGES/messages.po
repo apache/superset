@@ -22209,8 +22209,6 @@ msgstr "waarde oplopend"
 msgid "value descending"
 msgstr "waarde aflopend"
 
-msgid "valuename"
-msgstr ""
 
 msgid "var"
 msgstr "var"

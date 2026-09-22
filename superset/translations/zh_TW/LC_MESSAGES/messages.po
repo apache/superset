@@ -22410,8 +22410,6 @@ msgstr "升序"
 msgid "value descending"
 msgstr "降序"
 
-msgid "valuename"
-msgstr ""
 
 #, fuzzy
 msgid "var"

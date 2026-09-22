@@ -21438,8 +21438,6 @@ msgstr "uara piki"
 msgid "value descending"
 msgstr "uara heke"
 
-msgid "valuename"
-msgstr ""
 
 msgid "var"
 msgstr "var"

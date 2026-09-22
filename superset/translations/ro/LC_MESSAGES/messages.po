@@ -21782,8 +21782,6 @@ msgstr "valoare crescătoare"
 msgid "value descending"
 msgstr "valoare descrescătoare"
 
-msgid "valuename"
-msgstr ""
 
 msgid "var"
 msgstr "var"

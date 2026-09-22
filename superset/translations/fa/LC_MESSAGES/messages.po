@@ -21676,8 +21676,6 @@ msgstr "مقدار صعودی"
 msgid "value descending"
 msgstr "مقدار نزولی"
 
-msgid "valuename"
-msgstr ""
 
 msgid "var"
 msgstr "متغیر"

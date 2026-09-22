@@ -20420,8 +20420,6 @@ msgstr "значення за зростанням"
 msgid "value descending"
 msgstr "значення за спаданням"
 
-msgid "valuename"
-msgstr ""
 
 msgid "var"
 msgstr "дисперсія"

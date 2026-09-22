@@ -21309,8 +21309,6 @@ msgstr "değer yükselmeye değer"
 msgid "value descending"
 msgstr "Değer inen"
 
-msgid "valuename"
-msgstr ""
 
 msgid "var"
 msgstr "Var"
