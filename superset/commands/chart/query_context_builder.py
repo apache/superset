@@ -48,9 +48,35 @@ from superset.utils.core import split_adhoc_filters_into_base_filters
 _NON_DATASOURCE_VIZ: frozenset[str] = frozenset({"markup", "divider"})
 
 
+def _is_mappable_adhoc_filter(adhoc_filter: dict[str, Any]) -> bool:
+    """
+    Whether ``split_adhoc_filters_into_base_filters`` will actually carry this
+    adhoc filter into the synthesized context.
+
+    The shared splitter preserves only SIMPLE ``WHERE`` clauses (a subject +
+    operator) and SQL ``WHERE`` / ``HAVING`` clauses (a non-empty expression).
+    Anything else — a SIMPLE ``HAVING``, an unknown ``expressionType``, or a
+    SIMPLE filter missing its subject/operator — is silently discarded, which
+    would broaden the imported chart's result set. Such filters are treated as
+    unmappable so the caller can fail closed instead of querying more rows than
+    the chart defines.
+    """
+    expression_type = adhoc_filter.get("expressionType")
+    clause = adhoc_filter.get("clause")
+    if expression_type == "SIMPLE":
+        return (
+            clause == "WHERE"
+            and bool(adhoc_filter.get("subject"))
+            and bool(adhoc_filter.get("operator"))
+        )
+    if expression_type == "SQL":
+        return clause in ("WHERE", "HAVING") and bool(adhoc_filter.get("sqlExpression"))
+    return False
+
+
 def _translate_adhoc_filters(
     adhoc_filters: list[Any] | None,
-) -> tuple[list[dict[str, Any]], str, str]:
+) -> tuple[list[dict[str, Any]], str, str] | None:
     """
     Translate viz ``adhoc_filters`` into base filters via the shared splitter.
 
@@ -58,16 +84,25 @@ def _translate_adhoc_filters(
     read path uses — so SQL predicates are composed identically rather than by a
     bare ``" AND ".join``: each clause is wrapped in parentheses (preserving
     ``OR`` precedence) and a trailing ``--`` line comment is prevented from
-    swallowing predicates joined after it. Malformed entries are dropped by the
-    shared splitter rather than raising (RISK-T05), so an imported chart never
-    aborts its bundle over a single unmappable filter.
+    swallowing predicates joined after it.
+
+    Fails closed (#33615 review): if any adhoc filter would be silently dropped
+    by the splitter, the synthesized context would query a broader row set than
+    the chart defines. Returning ``None`` here makes the caller classify the
+    chart non-derivable and leave the ``query_context`` NULL — an honest 400
+    until backfilled is safer than a wrong, broadened result. Non-dict junk is
+    still tolerated (dropped, never raised) so a stray serialization artifact
+    does not by itself void an otherwise sound chart (RISK-T05).
 
     Returns ``(filters, where, having)`` where ``where``/``having`` are the
-    parenthesized, comment-safe SQL strings ready for ``extras``.
+    parenthesized, comment-safe SQL strings ready for ``extras``, or ``None``
+    when a real filter could not be preserved.
     """
     # Drop non-dict junk up front (RISK-T05): the shared splitter calls
     # ``.get`` on each entry and would raise on a stray non-dict item.
     sanitized = [f for f in (adhoc_filters or []) if isinstance(f, dict)]
+    if any(not _is_mappable_adhoc_filter(f) for f in sanitized):
+        return None
     form_data: dict[str, Any] = {"adhoc_filters": sanitized}
     split_adhoc_filters_into_base_filters(form_data)
     return (
@@ -147,7 +182,12 @@ def build_query_context_config(
     if not metrics and not columns:
         return None
 
-    filters, where, having = _translate_adhoc_filters(params.get("adhoc_filters", []))
+    translated = _translate_adhoc_filters(params.get("adhoc_filters", []))
+    # Fail closed: an adhoc filter could not be preserved, so a synthesized
+    # context would silently query a broader row set than the chart defines.
+    if translated is None:
+        return None
+    filters, where, having = translated
 
     query_object = {
         "time_range": params.get("time_range", " : "),

@@ -588,6 +588,38 @@ def test_synthesis_drops_source_slice_id_from_generator_params(
     assert "slice_id" not in passed_params
 
 
+def test_synthesis_reinjects_chart_cache_timeout(
+    mocker: MockerFixture, session_with_schema: Session
+) -> None:
+    """
+    #33615 review: the synthesized context is bound to the datasource, not a
+    slice (the exported slice_id is dropped), so at read time
+    ``QueryContext.get_cache_timeout()`` cannot fall back to the chart's own
+    ``Slice.cache_timeout``. The imported chart's cache_timeout is re-injected as
+    an explicit ``custom_cache_timeout`` so its caching behavior survives import.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    # Force the pure-Python fallback so a real payload dict is produced.
+    mocker.patch(
+        "superset.commands.chart.importers.v1.utils.get_query_context_generator"
+    ).return_value.generate.return_value = None
+
+    config = copy.deepcopy(chart_config)
+    config["datasource_id"] = 1
+    config["datasource_type"] = "table"
+    config["viz_type"] = "table"
+    config["params"]["viz_type"] = "table"
+    config["params"]["metrics"] = ["count"]
+    config["cache_timeout"] = 3600
+    config.pop("query_context", None)
+
+    chart = import_chart(config)
+
+    assert chart.query_context is not None
+    query_context = json.loads(chart.query_context)
+    assert query_context["custom_cache_timeout"] == 3600
+
+
 def test_import_non_derivable_chart_leaves_query_context_null(
     mocker: MockerFixture, session_with_schema: Session
 ) -> None:

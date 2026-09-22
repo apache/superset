@@ -203,6 +203,20 @@ def _synthesize_query_context_if_absent(config: dict[str, Any]) -> None:
             )
 
         if query_context_config is not None:
+            # The synthesized context is bound to the datasource, not a slice
+            # (the exported slice_id is dropped above), so at read time
+            # QueryContext.get_cache_timeout() cannot fall back to the chart's
+            # own Slice.cache_timeout. Re-inject the imported chart's
+            # cache_timeout as an explicit custom override so its caching
+            # behavior survives the import rather than silently reverting to the
+            # datasource/database default (#33615 review). Never overwrite a
+            # value a builder already supplied.
+            cache_timeout = config.get("cache_timeout")
+            if (
+                isinstance(cache_timeout, int)
+                and "custom_cache_timeout" not in query_context_config
+            ):
+                query_context_config["custom_cache_timeout"] = cache_timeout
             config["query_context"] = json.dumps(query_context_config)
             logger.info(
                 "Synthesized query_context for imported chart %s (queryable)",

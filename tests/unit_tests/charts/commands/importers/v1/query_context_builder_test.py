@@ -207,7 +207,8 @@ def test_adhoc_simple_filter_translation() -> None:
 def test_adhoc_sql_filter_routed_to_extras_and_no_crash() -> None:
     """
     A SQL-expression adhoc filter is routed to ``extras.where`` (and HAVING to
-    ``extras.having``); a malformed/unmappable filter is dropped without raising
+    ``extras.having``); non-dict junk is tolerated (dropped, never raised) so a
+    stray serialization artifact does not void an otherwise sound chart
     (RISK-T05).
     """
     params = {
@@ -219,7 +220,6 @@ def test_adhoc_sql_filter_routed_to_extras_and_no_crash() -> None:
                 "sqlExpression": "sum(num) > 1",
                 "clause": "HAVING",
             },
-            {"expressionType": "SIMPLE"},  # unmappable → dropped, no crash
             "not-a-dict",  # junk → skipped, no crash
         ],
     }
@@ -230,6 +230,35 @@ def test_adhoc_sql_filter_routed_to_extras_and_no_crash() -> None:
     assert extras["where"] == "(num > 0)"
     assert extras["having"] == "(sum(num) > 1)"
     assert query_context["queries"][0]["filters"] == []
+
+
+def test_unmappable_adhoc_filter_yields_none() -> None:
+    """
+    Fail closed (#33615 review): an adhoc filter the shared splitter would
+    silently drop (here a SIMPLE filter with no subject/operator, and a SIMPLE
+    ``HAVING`` the splitter does not carry) makes the chart non-derivable rather
+    than synthesizing a context that queries a broader row set than defined.
+    """
+    unmappable_cases = [
+        [{"expressionType": "SIMPLE"}],  # missing subject/operator
+        [
+            {
+                "expressionType": "SIMPLE",
+                "subject": "num",
+                "operator": ">",
+                "comparator": 0,
+                "clause": "HAVING",  # SIMPLE HAVING is dropped by the splitter
+            }
+        ],
+        [{"expressionType": "SQL", "sqlExpression": "", "clause": "WHERE"}],  # empty
+        [
+            {"expressionType": "SQL", "sqlExpression": "num > 0", "clause": "WHERE"},
+            {"expressionType": "SIMPLE"},  # one bad filter voids the whole context
+        ],
+    ]
+    for adhoc_filters in unmappable_cases:
+        params = {"metrics": ["sum__num"], "adhoc_filters": adhoc_filters}
+        assert build_query_context_config(params, "table", 12, "table") is None
 
 
 def test_adhoc_sql_or_predicate_is_parenthesized() -> None:
