@@ -134,10 +134,15 @@ def test_a_failed_normalization_is_fatal() -> None:
 
 def test_normalization_precedes_pybabel_update() -> None:
     """Order matters: normalizing after the update pass would not help."""
-    text = _script_text()
-    msgcat_at = text.index(_msgcat_line())
-    update_at = text.index("pybabel update")
-    assert msgcat_at < update_at, (
+    # Compare command lines only: the script's comments also mention
+    # `pybabel update`, and a comment match must not stand in for the command.
+    commands = [line.strip() for line in _script_text().splitlines()]
+    msgcat_at = commands.index(_msgcat_line())
+    update_calls = [
+        i for i, cmd in enumerate(commands) if cmd.startswith("pybabel update")
+    ]
+    assert update_calls, "no `pybabel update` invocation found in babel_update.sh"
+    assert msgcat_at < update_calls[0], (
         "the .pot must be normalized BEFORE `pybabel update` reads it — the "
         "update pass propagates the template into every language catalog"
     )
