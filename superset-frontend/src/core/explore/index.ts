@@ -16,10 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { omit } from 'lodash-es';
 import { explore as exploreApi } from '@apache-superset/core';
-import type { ChartDataResponseResult, QueryFormData } from '@superset-ui/core';
+import type {
+  ChartDataResponseResult,
+  JsonObject,
+  QueryFormData,
+} from '@superset-ui/core';
 import { setControlValue } from 'src/explore/actions/exploreActions';
-import { getChartDataRequest } from 'src/components/Chart/chartAction';
+import { getFormDataFromControls } from 'src/explore/controlUtils';
+import { QUERY_MODE_REQUISITES } from 'src/explore/constants';
+import {
+  getChartDataRequest,
+  handleChartDataResponse,
+} from 'src/components/Chart/chartAction';
 import { store, RootState } from 'src/views/store';
 import { navigation } from '../navigation';
 
@@ -45,12 +55,39 @@ const getControlValue: typeof exploreApi.getControlValue = (name: string) =>
     ? (getExploreState().form_data as Record<string, unknown>)[name]
     : undefined;
 
+// Explore queries with the form data derived from the current `controls`
+// state (see ExploreViewContainer's mapStateToProps), not the pre-normalization
+// `form_data` slice, which can lag behind controls filled in by defaults or by
+// mapStateToProps. Building form data the same way keeps getQuery()/
+// getChartData() describing the same data as the chart on screen.
+const getCurrentFormData = (): QueryFormData => {
+  const { controls, hiddenFormData } = getExploreState();
+  const hasQueryMode = !!controls?.query_mode?.value;
+  const fieldsToOmit = hasQueryMode
+    ? Object.keys(hiddenFormData ?? {}).filter(
+        key => !QUERY_MODE_REQUISITES.has(key),
+      )
+    : Object.keys(hiddenFormData ?? {});
+  return omit(
+    getFormDataFromControls(controls ?? {}),
+    fieldsToOmit,
+  ) as QueryFormData;
+};
+
+// Mirrors the currently-applied server-side state (e.g. a Table chart's
+// current page) that Explore keeps in `dataMask` rather than `form_data`, so
+// a paginated chart's exported query/data matches what's on screen.
+const getOwnState = (chartId: number | undefined): JsonObject | undefined =>
+  chartId != null
+    ? (store.getState() as RootState).dataMask[chartId]?.ownState
+    : undefined;
+
 const requireFormData = (): QueryFormData => {
-  const { form_data } = getExploreState();
-  if (!isExploreActive() || !form_data?.datasource) {
+  const formData = getCurrentFormData();
+  if (!isExploreActive() || !formData?.datasource) {
     throw new Error('No chart is currently loaded in Explore');
   }
-  return form_data;
+  return formData;
 };
 
 const setControlValues: typeof exploreApi.setControlValues = async (
@@ -66,14 +103,17 @@ const setControlValues: typeof exploreApi.setControlValues = async (
 
 const getQuery: typeof exploreApi.getQuery = async () => {
   const formData = requireFormData();
-  const response = await getChartDataRequest({
+  const { response, json } = await getChartDataRequest({
     formData,
     resultFormat: 'json',
     resultType: 'query',
+    ownState: getOwnState(getChartId()),
   });
-  const result = response.json?.result?.[0] as
-    | ChartDataResponseResult
-    | undefined;
+  // With GLOBAL_ASYNC_QUERIES enabled, an uncached request comes back as a
+  // 202 job envelope rather than the result array, so this must go through
+  // the same async-response handling as a normal chart query.
+  const results = await handleChartDataResponse(response, json);
+  const result = results?.[0] as ChartDataResponseResult | undefined;
   if (!result || result.error) {
     throw new Error(result?.error ?? 'Failed to retrieve the query');
   }
@@ -82,14 +122,17 @@ const getQuery: typeof exploreApi.getQuery = async () => {
 
 const getChartData: typeof exploreApi.getChartData = async () => {
   const formData = requireFormData();
-  const response = await getChartDataRequest({
+  const { response, json } = await getChartDataRequest({
     formData,
     resultFormat: 'json',
     resultType: 'full',
+    ownState: getOwnState(getChartId()),
   });
-  const result = response.json?.result?.[0] as
-    | ChartDataResponseResult
-    | undefined;
+  // With GLOBAL_ASYNC_QUERIES enabled, an uncached request comes back as a
+  // 202 job envelope rather than the result array, so this must go through
+  // the same async-response handling as a normal chart query.
+  const results = await handleChartDataResponse(response, json);
+  const result = results?.[0] as ChartDataResponseResult | undefined;
   if (!result || result.error) {
     throw new Error(result?.error ?? 'Failed to export chart data');
   }
