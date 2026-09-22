@@ -256,6 +256,15 @@ MOH_LEVEL_ONE_DASHBOARD_IDS = {
     for dashboard_id in os.environ.get("MOH_LEVEL_ONE_DASHBOARD_IDS", "8").split(",")
     if dashboard_id.strip()
 }
+# Guest-token usernames (the "user.username" minted into the token, e.g. by
+# POST /api/v1/security/guest_token/) allowed onto level-one dashboards without
+# an org-unit row. Empty by default: no guest can reach a level-one dashboard
+# until an identity is explicitly added here. Comma-separated if set via env.
+MOH_LEVEL_ONE_GUEST_USERNAMES = {
+    name.strip()
+    for name in os.environ.get("MOH_LEVEL_ONE_GUEST_USERNAMES", "").split(",")
+    if name.strip()
+}
 
 from superset.moh_security_manager import MoHSecurityManager
 

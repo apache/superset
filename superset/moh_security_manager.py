@@ -211,12 +211,29 @@ class MoHSecurityManager(SupersetSecurityManager):
                 logger.debug("Could not cache MoH level-one verdict", exc_info=True)
         return allowed
 
+    def _level_one_guest_usernames(self) -> set[str]:
+        """Guest-token usernames explicitly granted level-one access.
+
+        Distinct from the org-unit table: a guest token's username never has a
+        row there, so without this allowlist no guest identity can ever reach a
+        level-one dashboard. Empty by default, so this changes nothing until an
+        operator opts a specific guest identity in.
+        """
+        configured = current_app.config.get("MOH_LEVEL_ONE_GUEST_USERNAMES", ())
+        if isinstance(configured, str):
+            configured = configured.split(",")
+        return {str(name).strip() for name in configured if str(name).strip()}
+
     def user_can_access_level_one_dashboard(self) -> bool:
         """Return whether the current user may open MoH level-one dashboards."""
         if self.is_admin():
             return True
         username = get_current_user()
-        return isinstance(username, str) and self._cached_level_one_check(username)
+        if not isinstance(username, str):
+            return False
+        if username in self._level_one_guest_usernames():
+            return True
+        return self._cached_level_one_check(username)
 
     def can_access_moh_dashboard(self, dashboard: Any) -> bool:
         """Return whether the active user may access MoH-restricted dashboards."""
