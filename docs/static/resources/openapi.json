@@ -124,6 +124,7 @@
                           "INVALID_PAYLOAD_FORMAT_ERROR",
                           "INVALID_PAYLOAD_SCHEMA_ERROR",
                           "MARSHMALLOW_ERROR",
+                          "CSRF_ERROR",
                           "REPORT_NOTIFICATION_ERROR"
                         ],
                         "type": "string"
@@ -254,6 +255,18 @@
             "description": "User who produced the change, or ``null`` when the saving user no longer exists in ``ab_user``.",
             "nullable": true
           },
+          "creation_kind": {
+            "description": "Set only on the synthetic starting-version record (``kind == \"__creation__\"``): how the entity came to exist. ``\"pre_tracking\"`` \u2014 a retroactive baseline for an entity that predates versioning; ``\"created\"`` \u2014 a creation with tracking on; ``\"imported\"`` \u2014 an import, attributed to the importing user; ``\"unknown\"`` \u2014 an unstamped starting version whose creation provenance cannot be established. Machine values: display copy is owned by the client.",
+            "enum": [
+              "pre_tracking",
+              "created",
+              "imported",
+              "unknown",
+              null
+            ],
+            "nullable": true,
+            "type": "string"
+          },
           "entity_deleted": {
             "description": "True iff the source entity is hard-deleted (no live row by ``entity_id``). False for live and soft-deleted entities.",
             "type": "boolean"
@@ -324,7 +337,8 @@
               "time_range",
               "color_palette",
               "field",
-              "__meta__"
+              "__meta__",
+              "__creation__"
             ],
             "type": "string"
           },
@@ -1067,8 +1081,18 @@
               }
             },
             "type": "object"
+          },
+          "groupby": {
+            "items": {
+              "description": "Columns by which to group by",
+              "type": "string"
+            },
+            "type": "array"
           }
         },
+        "required": [
+          "groupby"
+        ],
         "type": "object"
       },
       "ChartDataAsyncResponseSchema": {
@@ -1403,6 +1427,14 @@
             "description": "Do not include columns whose entries are all missing (default: `true`).",
             "type": "boolean"
           },
+          "index": {
+            "description": "Columns to group by on the table index (=rows)",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "type": "array"
+          },
           "marginal_distribution_name": {
             "description": "Name of marginal distribution row/column. (default: `All`)",
             "type": "string"
@@ -1416,6 +1448,9 @@
             "type": "number"
           }
         },
+        "required": [
+          "index"
+        ],
         "type": "object"
       },
       "ChartDataPostProcessingOperation": {
@@ -2583,6 +2618,13 @@
             "example": false,
             "type": "boolean"
           },
+          "columns": {
+            "description": "columns on which to perform rolling, mapping source column to target column. For instance, `{'y': 'y'}` will replace the column `y` with the rolling value in `y`, while `{'y': 'y2'}` will add a column `y2` based on rolling values calculated from `y`, leaving the original column `y` unchanged.",
+            "example": {
+              "sales": "weekly_rolling_sales"
+            },
+            "type": "object"
+          },
           "min_periods": {
             "description": "The minimum amount of periods required for a row to be included in the result set.",
             "example": 7,
@@ -2651,6 +2693,7 @@
           }
         },
         "required": [
+          "columns",
           "rolling_type",
           "window"
         ],
@@ -3698,6 +3741,10 @@
             "description": "The status of the async screenshot",
             "type": "string"
           },
+          "task_timeout_seconds": {
+            "description": "The client wait budget for the Pending and Computing task states",
+            "type": "integer"
+          },
           "task_updated_at": {
             "description": "The timestamp of the last change in status",
             "type": "string"
@@ -3891,6 +3938,9 @@
           "params": {
             "type": "string"
           },
+          "parent": {
+            "type": "object"
+          },
           "perm": {
             "type": "string"
           },
@@ -3900,8 +3950,20 @@
           "select_star": {
             "type": "string"
           },
+          "semantic_view_features": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "sql": {
             "type": "string"
+          },
+          "supports_drill_to_detail": {
+            "type": "boolean"
+          },
+          "supports_samples": {
+            "type": "boolean"
           },
           "table_name": {
             "type": "string"
@@ -19357,6 +19419,16 @@
           }
         },
         "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardCacheScreenshotResponseSchema"
+                }
+              }
+            },
+            "description": "Existing dashboard screenshot task status"
+          },
           "202": {
             "content": {
               "application/json": {
@@ -19378,6 +19450,9 @@
           },
           "500": {
             "$ref": "#/components/responses/500"
+          },
+          "503": {
+            "description": "Screenshot cache unavailable"
           }
         },
         "security": [
@@ -19977,6 +20052,13 @@
             "required": true,
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "tab_id",
+            "schema": {
+              "type": "integer"
             }
           }
         ],
@@ -24039,7 +24121,7 @@
             }
           },
           {
-            "description": "Optional optimistic-concurrency guard. Pass the ``ETag`` returned by a prior read of this dataset; the update is rejected with 412 if the dataset has changed since.",
+            "description": "Optional optimistic-concurrency guard. Pass the ``ETag`` returned by a prior read of this dataset; the update is rejected with 412 if the dataset has changed since, or with a retryable 409 if a concurrent save won a lock race (see those responses for which action each calls for).",
             "in": "header",
             "name": "If-Match",
             "schema": {
@@ -24121,6 +24203,21 @@
           "404": {
             "$ref": "#/components/responses/404"
           },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "A concurrent save on this dataset won a database lock race, so this conditional request could not be applied. The client's ``If-Match`` token is NOT proven stale: unlike a 412, the correct action is to retry the SAME request (with backoff; a few attempts, then surface the conflict) rather than refetch the entity for a new token."
+          },
           "412": {
             "content": {
               "application/json": {
@@ -24134,7 +24231,7 @@
                 }
               }
             },
-            "description": "The dataset changed since the version identified by the request's ``If-Match`` header; the update was not applied."
+            "description": "The dataset changed since the version identified by the request's ``If-Match`` header; the update was not applied. The token is stale: refetch the entity to pick up the current version before retrying \u2014 retrying the same request unchanged will fail again (contrast the retryable 409 above)."
           },
           "422": {
             "$ref": "#/components/responses/422"
@@ -25711,6 +25808,13 @@
             "required": true,
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "tab_id",
+            "schema": {
+              "type": "integer"
             }
           }
         ],

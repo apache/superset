@@ -86,6 +86,7 @@ import Subject from 'src/types/Subject';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { Icons } from '@superset-ui/core/components/Icons';
 import WarningIconWithTooltip from '@superset-ui/core/components/WarningIconWithTooltip';
+import { findPermission } from 'src/utils/findPermission';
 import { isUserEditorOrAdmin } from 'src/dashboard/util/permissionUtils';
 import {
   PAGE_SIZE,
@@ -431,6 +432,8 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     [],
   );
 
+  const canReadLayer = findPermission('can_read', 'SemanticLayer', user?.roles);
+
   const currentSourceFilter = useMemo(() => {
     const sourceTypeFilter = lastFetchConfig?.filters.find(
       filter => filter.id === 'source_type',
@@ -457,6 +460,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       const showDatabases = currentSourceFilter !== 'semantic_layer';
       const showSemanticLayers =
         isFeatureEnabled(SEMANTIC_LAYERS_FLAG) &&
+        canReadLayer &&
         currentSourceFilter !== 'database';
 
       const [dbResult, slResult] = await Promise.all([
@@ -505,7 +509,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         totalCount: slResult.totalCount + dbResult.totalCount,
       };
     },
-    [currentSourceFilter],
+    [currentSourceFilter, canReadLayer],
   );
 
   const fetchData = useCallback(
@@ -919,12 +923,12 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           row: {
             original: { kind },
           },
-        }: CellProps<Dataset>) =>
-          isSemanticView({ kind }) ? (
-            <span>{t('Semantic View')}</span>
-          ) : (
-            <DatasetTypeLabel datasetType={kind} />
-          ),
+        }: CellProps<Dataset>) => (
+          <DatasetTypeLabel
+            datasetType={kind}
+            label={isSemanticView({ kind }) ? t('Semantic View') : undefined}
+          />
+        ),
         Header: t('Type'),
         accessor: 'kind',
         disableSortBy: true,

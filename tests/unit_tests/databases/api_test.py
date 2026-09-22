@@ -357,6 +357,83 @@ def test_database_connection(
     }
 
 
+@pytest.mark.parametrize("full_payload", [False, True])
+@pytest.mark.parametrize("change", [None, "password", "database_name"])
+@pytest.mark.parametrize("with_tunnel", [False, True])
+def test_update_unreachable_database(
+    mocker: MockerFixture,
+    session: Session,
+    client: Any,
+    full_api_access: None,
+    full_payload: bool,
+    change: str | None,
+    with_tunnel: bool,
+) -> None:
+    """Persist offline metadata edits, but roll back changed credentials or names."""
+    from superset import security_manager
+    from superset.databases.api import DatabaseRestApi
+    from superset.databases.ssh_tunnel.models import SSHTunnel
+    from superset.models.core import Database
+
+    mocker.patch.object(DatabaseRestApi.datamodel, "_session", session)
+    Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+    database = Database(
+        database_name="Druid",
+        expose_in_sqllab=True,
+        encrypted_extra='{"connect_args": {"jwt": "original-token"}}',
+    )
+    database.set_sqlalchemy_uri("druid://user:secret@localhost:8082/druid/v2/sql/")
+    if with_tunnel:
+        database.ssh_tunnel = SSHTunnel(
+            server_address="localhost",
+            server_port=22,
+            username="ssh-user",
+            password="ssh-secret",  # noqa: S106
+        )
+    session.add(database)
+    session.commit()
+    database_id = database.id
+
+    mocker.patch("superset.utils.log.DBEventLogger.log")
+    mocker.patch("superset.commands.database.update.get_username", return_value="admin")
+    mocker.patch.object(security_manager, "get_user_by_username")
+    mocker.patch.object(Database, "get_sqla_engine")
+    ping = mocker.patch(
+        "superset.commands.database.sync_permissions.ping",
+        side_effect=ConnectionError("Database unavailable"),
+    )
+    properties: dict[str, Any] = {}
+    if full_payload:
+        response = client.get(f"/api/v1/database/{database_id}/connection")
+        assert response.status_code == 200
+        properties = response.json["result"]
+    properties["expose_in_sqllab"] = False
+    if change == "password":
+        properties["sqlalchemy_uri"] = (
+            "druid://user:changed@localhost:8082/druid/v2/sql/"
+        )
+    elif change == "database_name":
+        properties["database_name"] = "Renamed"
+
+    response = client.put(f"/api/v1/database/{database_id}", json=properties)
+
+    assert response.status_code == (422 if change else 200)
+    if change:
+        assert response.json == {
+            "message": "Connection failed, please check your connection settings"
+        }
+    session.expire_all()
+    stored = session.get(Database, database_id)
+    assert stored is not None
+    assert stored.expose_in_sqllab is bool(change)
+    assert stored.database_name == "Druid"
+    assert stored.password == "secret"  # noqa: S105
+    assert json.loads(stored.encrypted_extra)["connect_args"]["jwt"] == "original-token"
+    if with_tunnel:
+        assert stored.ssh_tunnel.password == "ssh-secret"  # noqa: S105
+    ping.assert_called_once()
+
+
 @pytest.mark.skip(reason="Works locally but fails on CI")
 def test_update_with_password_mask(
     app: Any,
