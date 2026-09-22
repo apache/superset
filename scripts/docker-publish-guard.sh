@@ -24,8 +24,11 @@
 # republishes `master`, `master-dev`, ... from the older commit. Comparing the
 # building SHA against the branch tip at that point rejects A.
 #
-# Only master publishing is gated. Release branches and pull requests build
-# with --load and move no mutable tag, so they always proceed.
+# Only master publishing is gated. Release branches publish commit-addressable
+# `<branch>-<sha>` tags, which no other run can have published, so an
+# out-of-order run cannot roll anything back; blocking it would just mean a late
+# cherry-pick's image silently never appears. Pull requests build with --load
+# and publish nothing. Both always proceed.
 #
 # Usage: docker-publish-guard.sh <event_name> <ref> <sha> <tip_sha>
 # Emits: PUBLISH=true|false

@@ -23,9 +23,17 @@ Different sets of images are built and/or published at different times:
   environments publish images tagged like `pr-5252-a1b2c3d-ci`.
 - **Merges to the `master` branch** (`push`): published using commit-addressable
   SHA tags and the `master` tag family.
-- **Merges to release branches** (`push`): built locally for validation only.
-  Official release images are published by the release manager after a release
-  vote completes and the release is signed off.
+- **Merges to release branches** (`push`): branches named exactly `N.N` (for example
+  `6.1`, `7.0`) publish commit-addressable pre-release images tagged
+  `<branch>-<short-sha>`, for the `superset`, `lean` and `dev` presets. These let a
+  release manager test the state of a release branch before a release candidate is cut.
+  No mutable tag is moved, so a cherry-pick that lands late can never overwrite a newer
+  image. They are **not** official releases: official release tags are published by the
+  release workflow after a release vote completes and the release is signed off.
+  Branches that match the workflow's push filter without being named exactly `N.N`, and
+  release branches in forks, build locally for validation only. A commit that touches no
+  Python, frontend or Docker paths publishes nothing, so the newest available image is
+  from the last commit that did.
 
 ## Build presets
 
@@ -80,6 +88,9 @@ it receives signals directly and its exit status becomes the container status.
 - `master-lean`: Similar to `master` but the minimal variant with no database drivers.
 - `master-dev`: Similar to `master` but includes a headless browser and root access.
 - `pr-5252-a1b2c3d-ci`: A Showtime image for a specific pull request commit.
+- `7.0-a1b2c3d`: The `7.0` release branch at commit `a1b2c3d`, batteries-included. A
+  pre-release build for testing the branch before a release candidate is cut — not an
+  official release. Also published as `7.0-a1b2c3d-lean` and `7.0-a1b2c3d-dev`.
 - `30948dc401b40982cb7c0dbf6ebbe443b2748c1b-dev`: A build for
   this specific SHA, which could be from a `master` merge or official release build.
 
@@ -223,14 +234,16 @@ recommend deriving from the `-lean` image and adding exactly the database suppor
 
 ## On supporting different platforms (namely arm64 AND amd64)
 
-Published release images and `master` branch push builds are multi-platform,
-supporting both `linux/arm64` and `linux/amd64`. This enables higher level
-constructs like `helm` and `docker compose` to point to these images and
+Published release images, `master` branch push builds, and release-branch (`N.N`) push
+builds are multi-platform, supporting both `linux/arm64` and `linux/amd64`. This enables
+higher level constructs like `helm` and `docker compose` to point to these images and
 effectively be multi-platform as well.
 
-Pull request and release branch validation builds use `linux/amd64` and load the
-image into the CI runner. Showtime pull request environment images also target
-`linux/amd64`.
+Pull request validation builds use `linux/amd64` and load the image into the CI
+runner. Showtime pull request environment images also target `linux/amd64`.
+
+Only `master` writes to the shared `apache/superset-cache` registry cache. Release
+branch and pull request builds read those layers but never overwrite them.
 
 ### Working with Apple silicon
 
