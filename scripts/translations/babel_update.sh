@@ -86,6 +86,9 @@ pybabel update \
   --no-fuzzy-matching
 
 # Chop off last blankline from po/pot files, see https://github.com/python-babel/babel/issues/799
+# Only a blank last line is removed: the .pot comes out of msgcat above, which
+# writes no trailing blank line, so an unconditional delete would drop the
+# last entry's msgstr and leave a template gettext rejects.
 for file in $( find superset/translations/** );
 do
   extension=${file##*.}
@@ -93,7 +96,7 @@ do
   if [ $extension == "po" ] || [ $extension == "pot" ]
   then
     mv $file $file.tmp
-    sed "$ d" $file.tmp > $file
+    sed '${/^$/d;}' $file.tmp > $file
     rm $file.tmp
   fi
 done
