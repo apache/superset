@@ -29,7 +29,11 @@ from sqlalchemy.sql import sqltypes
 from sqlalchemy_bigquery import BigQueryDialect
 
 from superset.sql.parse import Table
-from superset.superset_typing import ResultSetColumnType
+from superset.superset_typing import (
+    OAuth2ClientConfig,
+    OAuth2State,
+    ResultSetColumnType,
+)
 from superset.utils import json
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
 from tests.unit_tests.fixtures.common import dttm  # noqa: F401
@@ -1183,7 +1187,7 @@ def test_get_oauth2_authorization_uri_includes_google_params(
         "superset.db_engine_specs.base.encode_oauth2_state",
         return_value="STATE",
     )
-    config: Any = {
+    config: OAuth2ClientConfig = {
         "id": "XXX.apps.googleusercontent.com",
         "secret": "GOCSPX-YYY",
         "scope": "https://www.googleapis.com/auth/bigquery",
@@ -1192,7 +1196,7 @@ def test_get_oauth2_authorization_uri_includes_google_params(
         "token_request_uri": "https://oauth2.googleapis.com/token",
         "request_content_type": "data",
     }
-    state: Any = {
+    state: OAuth2State = {
         "database_id": 1,
         "user_id": 1,
         "default_redirect_uri": "http://localhost:8088/api/v1/database/oauth2/",
@@ -1378,6 +1382,7 @@ def test_get_client_returns_user_supplied_client(mocker: MockerFixture) -> None:
 
     from superset.db_engine_specs.bigquery import BigQueryEngineSpec
 
+    mocker.patch("superset.db_engine_specs.bigquery.dependencies_installed", True)
     user_client = mock.MagicMock(spec=bigquery.Client)
     engine = mock.MagicMock()
     engine.url = make_url("bigquery://my-project?user_supplied_client=true")
@@ -1407,6 +1412,7 @@ def test_get_client_user_supplied_client_missing(mocker: MockerFixture) -> None:
     from superset.db_engine_specs.bigquery import BigQueryEngineSpec
     from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
 
+    mocker.patch("superset.db_engine_specs.bigquery.dependencies_installed", True)
     engine = mock.MagicMock()
     engine.url = make_url("bigquery://my-project?user_supplied_client=true")
     engine.raw_connection.return_value.dbapi_connection._client = None
