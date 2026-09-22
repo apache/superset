@@ -19,7 +19,7 @@
 
 /**
  * E2E migration of the Cypress "Drill to detail modal" suite
- * (dashboard/drilltodetail.test.ts).
+ * (formerly cypress-base/cypress/e2e/dashboard/drilltodetail.test.ts, removed).
  *
  * Drill to detail lets a viewer open a modal of the underlying sample rows for a
  * chart — optionally filtered to a single data point — by either the chart's

@@ -220,7 +220,7 @@ npm run cypress-debug
 npm run cypress-run-chrome
 
 # Run specific file
-npm run cypress-run-chrome -- --spec "cypress/e2e/dashboard/dashboard.test.ts"
+npm run cypress-run-chrome -- --spec "cypress/e2e/explore/chart.test.js"
 ```
 
 ### Debugging Server App
