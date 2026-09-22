@@ -628,14 +628,30 @@ def test_get_user_subject_ids_memoises_within_a_request(app) -> None:
             get_user_subject_ids(2)
             assert query.call_count == 2
 
-    # The cache lives on ``g``, so it is bounded by the app context. A fresh
-    # one starts empty and the lookup runs again.
+
+def test_get_user_subject_ids_cache_does_not_leak_across_requests(app) -> None:
+    """The cache is tied to the request, not the enclosing app context.
+
+    A worker can hold one app context open across many requests. If the cache
+    lived on ``g`` it would survive from one request into the next and serve a
+    stale answer; tied to the request object it starts empty each time.
+    """
     with app.app_context():
         with patch(
             "superset.subjects.utils._query_user_subject_ids", return_value=[7, 8]
         ) as query:
             with app.test_request_context("/"):
-                get_user_subject_ids(1)
+                assert get_user_subject_ids(1) == [7, 8]
+                assert get_user_subject_ids(1) == [7, 8]
+                assert query.call_count == 1
+
+        # Same app context, a new request. The membership changed underneath;
+        # the second request must re-query rather than reuse the first's cache.
+        with patch(
+            "superset.subjects.utils._query_user_subject_ids", return_value=[9]
+        ) as query:
+            with app.test_request_context("/"):
+                assert get_user_subject_ids(1) == [9]
                 assert query.call_count == 1
 
 

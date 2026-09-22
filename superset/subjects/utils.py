@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from flask_appbuilder.security.sqla.models import Group, Role, User
     from sqlalchemy.sql import CompoundSelect, Select
 
-from flask import g, has_app_context, has_request_context
+from flask import has_app_context, has_request_context, request
 from sqlalchemy import select, union_all
 
 from superset import db
@@ -211,10 +211,20 @@ def get_user_subject_ids(user_id: int) -> list[int]:
     calls this once per object checked -- ``is_editor``/``is_viewer`` run it for
     every chart on a dashboard. Nothing reads a user's subjects after changing
     them within a single request, so the cached set cannot go stale in place.
+
+    The cache lives on ``flask.request``, not ``g``: ``g`` is bound to the app
+    context, which a worker can hold open across many requests, so a ``g``-keyed
+    cache would survive past the request it was built for. The request object is
+    torn down when the request ends, giving the cache exactly the request
+    lifetime the docstring promises.
     """
     if not has_request_context():
         return _query_user_subject_ids(user_id)
-    cache: dict[int, list[int]] = g.setdefault("_user_subject_ids", {})
+    req = request._get_current_object()
+    cache: dict[int, list[int]] | None = getattr(req, "_user_subject_ids", None)
+    if cache is None:
+        cache = {}
+        req._user_subject_ids = cache
     if user_id not in cache:
         cache[user_id] = _query_user_subject_ids(user_id)
     # Copy: callers hand this list on, and one of them puts it in the bootstrap
