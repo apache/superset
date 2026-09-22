@@ -32,7 +32,7 @@ assists people when migrating to a new version.
   provisions users on first login, which used to publish a public registration
   form that Flask-AppBuilder has no handler for (submitting it returned a 404).
   First-login provisioning is unchanged.
-  
+
 ### Scheduled report and alert retry admission
 
 Run `superset db upgrade` before starting workers with this version. The migration
