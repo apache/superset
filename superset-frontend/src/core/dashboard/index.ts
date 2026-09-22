@@ -58,9 +58,7 @@ const getDashboardId: typeof dashboardApi.getDashboardId = () =>
   isDashboardActive() ? (getState().dashboardInfo.id ?? undefined) : undefined;
 
 const getLayout: typeof dashboardApi.getLayout = () =>
-  isDashboardActive()
-    ? { ...(getState().dashboardLayout.present as Record<string, unknown>) }
-    : {};
+  isDashboardActive() ? { ...getState().dashboardLayout.present } : {};
 
 const updateLayoutNode: typeof dashboardApi.updateLayoutNode = async (
   nodeId: string,
