@@ -569,3 +569,43 @@ def test_execute_query_wraps_template_rendering_error(
 
     with pytest.raises(AlertQueryError):
         command._execute_query()
+
+
+@pytest.mark.parametrize("allow_dml", [False, True])
+def test_validate_rendered_sql_rejects_client_file_transfer(
+    mocker: MockerFixture,
+    allow_dml: bool,
+) -> None:
+    """
+    A client-side file-transfer command in an alert query is rejected whether
+    or not the database allows DML: it does file I/O on the host running the
+    query rather than reading or writing table data, so `allow_dml` does not
+    govern it.
+    """
+    report_schedule_mock = mocker.Mock()
+    report_schedule_mock.database.backend = "snowflake"
+    report_schedule_mock.database.allow_dml = allow_dml
+
+    command = AlertCommand(
+        report_schedule=report_schedule_mock,
+        execution_id=uuid4(),
+    )
+
+    with pytest.raises(AlertQueryError, match="PUT"):
+        command._validate_rendered_sql("PUT file:///tmp/data.csv @my_stage")
+
+
+def test_validate_rendered_sql_allows_ordinary_query(mocker: MockerFixture) -> None:
+    """
+    The file-transfer gate leaves an ordinary read-only alert query alone.
+    """
+    report_schedule_mock = mocker.Mock()
+    report_schedule_mock.database.backend = "snowflake"
+    report_schedule_mock.database.allow_dml = False
+
+    command = AlertCommand(
+        report_schedule=report_schedule_mock,
+        execution_id=uuid4(),
+    )
+
+    command._validate_rendered_sql("SELECT value FROM metrics")
