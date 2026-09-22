@@ -2103,6 +2103,12 @@ def test_is_mutating_replace_function_is_read(engine: str) -> None:
         ("EXECUTE IMMEDIATE 'PUT ''file:///tmp/data.csv'' @my_stage'", "PUT"),
         ("CALL run('PUT ''file:///tmp/data.csv'' @my_stage')", "PUT"),
         ("EXECUTE IMMEDIATE 'GET @my_stage ''file:///tmp/'''", "GET"),
+        # A `--` inside a dollar-quoted literal is data, not a comment, so the
+        # command after it is still scanned.
+        ("EXECUTE IMMEDIATE $$ SELECT $q$--$q$; RM @my_stage/c $$", "RM"),
+        # An unterminated block comment runs to the end of the body, so what
+        # follows it never executes.
+        ("EXECUTE IMMEDIATE $$ /* PUT file:///tmp/a @my_stage $$", None),
         ("CALL some_procedure()", None),
     ],
 )
@@ -5879,6 +5885,12 @@ def test_get_disallowed_tables_search_path_change(
         ("DO $$ BEGIN -- SET search_path TO evil\nPERFORM 1; END $$", False),
         ("DO $$ BEGIN /* SET search_path TO evil */ PERFORM 1; END $$", False),
         ("EXECUTE IMMEDIATE 'SET search_path TO evil'", True),
+        # A `--` inside a dollar-quoted literal is data, not a comment, so
+        # removing comments must not swallow the rebind that follows it.
+        (
+            "DO $$ BEGIN PERFORM $q$--$q$; EXECUTE 'SET search_path TO evil'; END $$",
+            True,
+        ),
         ("SELECT 1", False),
     ],
 )

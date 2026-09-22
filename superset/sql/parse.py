@@ -986,22 +986,24 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         }
     )
 
-    # Snowflake stage file-management heads. ``PUT``/``GET`` move files between
-    # the client host running the query and a stage, so they do file I/O on
-    # that host; ``REMOVE``/its ``RM`` alias delete files within the stage.
-    # None of them read or write table data, so none are analytics queries.
+    # Stage file-management heads: ``PUT``/``GET`` move files between the host
+    # running the query and a stage, so they do host file I/O; ``REMOVE`` and
+    # its ``RM`` alias delete files within the stage. None read or write table
+    # data. This is Snowflake syntax but is matched on every dialect, since the
+    # heads are not valid statements elsewhere: a global list cannot reject a
+    # real query, while scoping it to one dialect would let Snowflake-compatible
+    # engines through.
     _CLIENT_FILE_TRANSFER_COMMAND_NAMES: frozenset[str] = frozenset(
         {"PUT", "GET", "REMOVE", "RM"}
     )
 
-    # The same heads carried inside a nested body, which is not re-parseable
-    # and so is matched on its raw text. A stage reference (``@stage``) or a
-    # ``file://`` URL has to follow the head, since these words are ordinary
-    # identifiers elsewhere and a bare keyword match would flag a body that
-    # merely selects a column named ``remove``. Any run of quote characters is
-    # skipped rather than a single one: a body nested inside a string literal
-    # carries its own quotes doubled (``EXECUTE IMMEDIATE 'PUT ''file://...'''
-    # ``), so requiring exactly one would miss the escaped form.
+    # The same heads inside a nested body, which cannot be re-parsed and so is
+    # matched on raw text. A stage (``@``) or a ``file://`` URL has to follow
+    # the head, since these words are ordinary identifiers elsewhere and a bare
+    # keyword match would flag a body merely selecting a column named
+    # ``remove``. A run of quotes is skipped rather than exactly one: a body
+    # nested inside a string literal carries its own quotes doubled
+    # (``EXECUTE IMMEDIATE 'PUT ''file://...'''``).
     _CLIENT_FILE_TRANSFER_NESTED_BODY_RE = re.compile(
         rf"\b({'|'.join(sorted(_CLIENT_FILE_TRANSFER_COMMAND_NAMES))})"
         r"""\s+['"]*(?:@|file://)""",
@@ -1199,14 +1201,38 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         # quotes inside it are doubled. Reading the value off the node yields
         # the body as written, so a scan sees the same text the server runs.
         text = body.name if isinstance(body, exp.Literal) else str(body)
+        # A `DO $$ ... $$` body arrives with its dollar-quote wrapper attached.
+        # That wrapper is statement syntax, not a literal -- the code inside it
+        # runs -- so it is peeled off before the strip, leaving the text either
+        # side of it in place. Any `$tag$` region still nested inside really is
+        # a literal, and is preserved as one.
+        text = self._DOLLAR_QUOTED_BODY_RE.sub(lambda m: m.group("body"), text, count=1)
         return self._strip_comments(text)
 
-    # Alternation ordered so a string literal is consumed whole before either
-    # comment form can match inside it, keeping a `--` or `/*` that is merely
-    # part of a literal from truncating the text after it.
-    _COMMENT_RE = re.compile(
-        r"""('(?:[^']|'')*'|"(?:[^"]|"")*")|--[^\n]*|/\*.*?\*/""",
+    # Greedy, so the outermost region is the one unwrapped.
+    _DOLLAR_QUOTED_BODY_RE = re.compile(
+        r"\$(?P<tag>\w*)\$(?P<body>.*)\$(?P=tag)\$",
         re.DOTALL,
+    )
+
+    # Alternation ordered so a quoted region is consumed whole before either
+    # comment form can match inside it, keeping a `--` or `/*` that is merely
+    # part of a literal from truncating the text after it. An unterminated
+    # `/*` gets its own trailing alternative: without it the lazy `.*?` rescans
+    # to end of text from every `/*` in turn, which is quadratic on input a
+    # user controls.
+    _COMMENT_RE = re.compile(
+        r"""
+          (?P<literal>
+              '(?:[^']|'')*'                        # single-quoted string
+            | "(?:[^"]|"")*"                        # double-quoted identifier
+            | \$(?P<tag>\w*)\$.*?\$(?P=tag)\$       # dollar-quoted string
+          )
+        | --[^\n]*                                  # line comment
+        | /\*.*?\*/                                 # block comment
+        | /\*.*                                     # unterminated: runs to end
+        """,
+        re.DOTALL | re.VERBOSE,
     )
 
     @classmethod
@@ -1214,19 +1240,19 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         """
         Blank out SQL comments in raw statement text, preserving literals.
 
-        Raw-text scans have to ignore commented-out code, which never runs and
-        so cannot be what a gate is looking for. String literals are
-        deliberately kept, and returned untouched: a nested body runs dynamic
-        SQL out of a literal (``EXECUTE IMMEDIATE '...'``), so dropping
-        literals would blind such a scan to the very form it exists to catch.
-        Keeping them also means this can only ever remove text that never
-        executes, so it cannot turn a matching gate into a silent miss.
+        Commented-out code never runs, so no gate should classify on it.
+        Literals are deliberately kept: a nested body runs its dynamic SQL out
+        of a literal (``EXECUTE IMMEDIATE '...'``), so dropping them would
+        blind such a scan to the very form it exists to catch. Quoted regions
+        are recognised in all three SQL spellings, so a `--` or `/*` inside one
+        is data and stays put: only text that never executes is removed, and a
+        gate that would have matched still matches.
 
         :param text: The raw statement text to scan
         :return: The text with each comment replaced by a single space, so
             tokens either side of a removed comment stay separated
         """
-        return cls._COMMENT_RE.sub(lambda m: m.group(1) or " ", text)
+        return cls._COMMENT_RE.sub(lambda m: m.group("literal") or " ", text)
 
     def _explain_analyze_body(self) -> str | None:
         """
@@ -1442,16 +1468,16 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
 
         :return: The uppercased command head (e.g. ``"PUT"``), else ``None``.
         """
-        # sqlglot models only the quoted-path forms structurally
-        # (``PUT 'file://...' @s`` -> ``exp.Put``, whose ``key`` is the head
-        # lowercased); every other form falls back to an opaque ``exp.Command``.
+        # Three shapes to cover: sqlglot models only the quoted-path forms
+        # structurally (``PUT 'file://...' @s`` -> ``exp.Put``, whose ``key`` is
+        # the head lowercased); every other form falls back to an opaque
+        # ``exp.Command``; and a nested body executes for real yet is invisible
+        # to both, so it is scanned as raw text, as ``changes_search_path``
+        # does for its own forms.
         if isinstance(self._parsed, (exp.Put, exp.Get)):
             return self._parsed.key.upper()
         if (head := self._command_head()) in self._CLIENT_FILE_TRANSFER_COMMAND_NAMES:
             return head
-        # A nested body executes for real yet is invisible to the head match
-        # above, so it is scanned as raw text, as `changes_search_path` does
-        # for its own forms.
         if (body := self._nested_body_text()) and (
             match := self._CLIENT_FILE_TRANSFER_NESTED_BODY_RE.search(body)
         ):
