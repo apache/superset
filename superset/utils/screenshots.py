@@ -542,7 +542,6 @@ class BaseScreenshot:
                 else:
                     self.cache.set(cache_key, cache_payload.to_dict())
                 image = None
-                # Assuming all sorts of things can go wrong with Selenium
                 try:
                     logger.info(
                         "trying to generate screenshot for cache_key=%s", cache_key
@@ -647,7 +646,7 @@ class BaseScreenshot:
         context_suffix = f" [{log_context}]" if log_context else ""
         thumb_size = thumb_size or cls.thumb_size
         img = Image.open(BytesIO(img_bytes))
-        logger.debug("Selenium image size: %s%s", str(img.size), context_suffix)
+        logger.debug("Screenshot image size: %s%s", str(img.size), context_suffix)
         if crop and img.size[1] != cls.window_size[1]:
             desired_ratio = float(cls.window_size[1]) / cls.window_size[0]
             desired_width = int(img.size[0] * desired_ratio)
