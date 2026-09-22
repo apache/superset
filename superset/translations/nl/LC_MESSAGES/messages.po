@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  superset-ds\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-22 10:58-0700\n"
+"POT-Creation-Date: 2026-09-23 00:48+0300\n"
 "PO-Revision-Date: 2024-05-08 14:41+0000\n"
 "Last-Translator: \n"
 "Language: nl\n"
@@ -154,6 +154,9 @@ msgstr "Details"
 #, fuzzy, python-format
 msgid " near '%(highlight)s'"
 msgstr " bij '%(highlight)s'"
+
+msgid " source code of Superset's sandboxed parser"
+msgstr ""
 
 msgid ""
 " standard to ensure that the lexicographical ordering\n"
@@ -581,6 +584,12 @@ msgstr "%s Geselecteerd"
 #, fuzzy, python-format
 msgid "%s recipients"
 msgstr "recente"
+
+#, python-format
+msgid "%s record"
+msgid_plural "%s records..."
+msgstr[0] ""
+msgstr[1] ""
 
 #, fuzzy, python-format
 msgid "%s record..."
@@ -1049,6 +1058,12 @@ msgid ""
 " bars that extend left and right from a central axis."
 msgstr ""
 
+msgid ""
+"A candlestick chart shows opening, closing, high, and low values for each"
+" period. It is commonly used for financial and other time-series range "
+"analysis."
+msgstr ""
+
 #, fuzzy
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr "Kolommen die als datums worden geparsed"
@@ -1283,6 +1298,12 @@ msgstr "AQE"
 msgid "AUG"
 msgstr "AUG"
 
+msgid "AXIS TITLE MARGIN"
+msgstr ""
+
+msgid "AXIS TITLE POSITION"
+msgstr ""
+
 #, fuzzy
 msgid "Aborted"
 msgstr "Gestart"
@@ -1448,6 +1469,9 @@ msgstr "Details certificering"
 
 msgid "Add color for positive/negative change"
 msgstr "Kleur toevoegen voor positieve/negatieve wijziging"
+
+msgid "Add colors to cell bars for +/-"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -1740,6 +1764,11 @@ msgstr ""
 " clusterlabel te produceren."
 
 msgid ""
+"Aggregate function to apply when pivoting and computing the total rows "
+"and columns"
+msgstr ""
+
+msgid ""
 "Aggregates data within the boundary of grid cells and maps the aggregated"
 " values to a dynamic color scale"
 msgstr ""
@@ -1752,6 +1781,9 @@ msgstr "Aggregatie"
 #, fuzzy
 msgid "Aggregation Method"
 msgstr "Aggregatie"
+
+msgid "Aggregation function"
+msgstr ""
 
 msgid ""
 "Aggregation used for the summary row. By default each metric keeps its "
@@ -2811,6 +2843,9 @@ msgstr ""
 msgid "Arrow"
 msgstr "Pijl"
 
+msgid "Ascending"
+msgstr ""
+
 msgid "Assign a set of parameters as"
 msgstr "Een set parameters toewijzen als"
 
@@ -2911,6 +2946,9 @@ msgstr "Kolommen aanpassen"
 msgid "Autosize all columns"
 msgstr "Kolommen aanpassen"
 
+msgid "Available Handlebars Helpers in Superset:"
+msgstr ""
+
 msgid "Available sorting modes:"
 msgstr "Beschikbare sorteer modi:"
 
@@ -2988,6 +3026,9 @@ msgstr ""
 "Staafdiagrammen worden gebruikt om metrieken als reeks staven weer te "
 "geven."
 
+msgid "Bar Values"
+msgstr ""
+
 msgid "Bar orientation"
 msgstr "Staaf oriëntatie"
 
@@ -3017,6 +3058,10 @@ msgstr ""
 #, fuzzy, python-format
 msgid "Base layer map style. See MapLibre documentation: %s"
 msgstr "Basislaag kaartstijl. Zie Mapbox documentatie: %s"
+
+#, python-format
+msgid "Base layer map style. See Mapbox documentation: %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -3211,6 +3256,9 @@ msgstr ""
 
 msgid "Bubble Chart"
 msgstr "Bubbelgrafiek"
+
+msgid "Bubble Chart (legacy)"
+msgstr ""
 
 msgid "Bubble Color"
 msgstr "Bubbel kleur"
@@ -3436,6 +3484,17 @@ msgstr "Query annuleren bij window unload gebeurtenis"
 #, fuzzy
 msgid "Cancellation not available due to missing abort handler"
 msgstr "Annulering niet beschikbaar vanwege een ontbrekende afbreekhandler"
+
+msgid "Candlestick"
+msgstr ""
+
+msgid "Candlestick Chart"
+msgstr ""
+
+msgid ""
+"Candlestick draws a filled body between open and close. OHLC draws ticks "
+"for open and close on a high-low stem."
+msgstr ""
 
 msgid "Cannot access the query"
 msgstr "Kan geen toegang krijgen tot de query"
@@ -4258,6 +4317,9 @@ msgstr "Tabblad sluiten"
 msgid "Close version history"
 msgstr ""
 
+msgid "Closing value for each period."
+msgstr ""
+
 msgid "Cluster label aggregator"
 msgstr "Cluster label aggregator"
 
@@ -4349,6 +4411,9 @@ msgstr "Bucket breakpoints"
 msgid "Color by"
 msgstr "Kleur op"
 
+msgid "Color by direction"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -4377,6 +4442,14 @@ msgstr "Kleur van de doellocatie"
 
 msgid "Color scheme"
 msgstr "Kleurenschema"
+
+msgid ""
+"Color used when the close value is greater than or equal to the open "
+"value."
+msgstr ""
+
+msgid "Color used when the close value is less than the open value."
+msgstr ""
 
 msgid ""
 "Color will be shaded based the normalized (0% to 100%) value of a given "
@@ -4611,6 +4684,12 @@ msgstr ""
 "Vergelijkt hoe een metriek veranderd na verloop van tijd tussen "
 "verschillende groepen. Elke groep wordt toegewezen aan een rij en "
 "verandert na verloop van tijd weergegeven balklengtes en kleur."
+
+msgid ""
+"Compares metrics between different time periods. Displays time series "
+"data across multiple periods (like weeks or months) to show period-over-"
+"period trends and patterns."
+msgstr ""
 
 msgid ""
 "Compares the current time period against equivalent past periods by "
@@ -4997,6 +5076,18 @@ msgstr ""
 msgid "Count"
 msgstr "Tel"
 
+msgid "Count Unique Values"
+msgstr ""
+
+msgid "Count as Fraction of Columns"
+msgstr ""
+
+msgid "Count as Fraction of Rows"
+msgstr ""
+
+msgid "Count as Fraction of Total"
+msgstr ""
+
 msgid "Country"
 msgstr "Land"
 
@@ -5059,6 +5150,12 @@ msgstr "Dataframe Index"
 
 msgid "Create dataset"
 msgstr "Dataset aanmaken"
+
+msgid "Create matrix columns by placing charts side-by-side"
+msgstr ""
+
+msgid "Create matrix rows by stacking charts vertically"
+msgstr ""
 
 msgid "Create new chart"
 msgstr "Maak een nieuwe grafiek"
@@ -5959,6 +6056,21 @@ msgstr ""
 "Standaardwaarde wordt automatisch ingesteld wanneer \"Selecteer eerste "
 "standaard filter\" is aangevinkt"
 
+msgid ""
+"Define a function that receives the input and outputs the content for a "
+"tooltip"
+msgstr ""
+
+msgid "Define a function that returns a URL to navigate to when user clicks"
+msgstr ""
+
+msgid ""
+"Define a javascript function that receives the data array used in the "
+"visualization and is expected to return a modified version of that array."
+" This can be used to alter properties of the data, filter, or enrich the "
+"array."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -6310,6 +6422,9 @@ msgid "Depends on"
 msgstr ""
 
 msgid "Deployment default"
+msgstr ""
+
+msgid "Descending"
 msgstr ""
 
 msgid "Description"
@@ -6883,6 +6998,9 @@ msgstr "Duur in ms (100.40008 => 100ms 400μs 80ns)"
 msgid "Duration in ms (10500 => 0:00:10.5)"
 msgstr "Duur in ms (66000 => 1m 6s)"
 
+msgid "Duration in ms (10500 => 0:10.5)"
+msgstr ""
+
 msgid "Duration in ms (66000 => 1m 6s)"
 msgstr "Duur in ms (66000 => 1m 6s)"
 
@@ -7225,6 +7343,9 @@ msgstr "Voorspelling inschakelen"
 msgid "Enable graph roaming"
 msgstr "Schakel grafiekroaming in"
 
+msgid "Enable horizontal layout (columns)"
+msgstr ""
+
 #, fuzzy
 msgid "Enable icons"
 msgstr "Tabel kolommen"
@@ -7250,6 +7371,9 @@ msgstr "Rij-expansie in schema's inschakelen"
 
 msgid "Enable server side pagination of results (experimental feature)"
 msgstr "Schakel server side paginering van resultaten in (experimentele functie)"
+
+msgid "Enable vertical layout (rows)"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, pt_BR, ru, sk, sr, sr_Latn, tr, uk]
@@ -7854,6 +7978,9 @@ msgstr "Extra bediening"
 msgid "Extra Parameters"
 msgstr "Extra Parameters"
 
+msgid "Extra data for JS"
+msgstr ""
+
 #, python-brace-format
 msgid ""
 "Extra data to specify table metadata, such as `{ \"warning_markdown\": "
@@ -8326,6 +8453,9 @@ msgstr ""
 "toepassen (afdeling = 'Financiën' OR afdeling = 'Marketing') AND (regio ="
 " 'Europa')."
 
+msgid "Financial"
+msgstr ""
+
 msgid "Find"
 msgstr "Zoeken"
 
@@ -8423,6 +8553,11 @@ msgstr ""
 
 msgid "For further instructions, consult the"
 msgstr "Voor verdere instructies, raadpleeg de"
+
+msgid ""
+"For more information about objects are in context in the scope of this "
+"function, refer to the"
+msgstr ""
 
 #, fuzzy
 msgid ""
@@ -8738,6 +8873,9 @@ msgstr "Groter of gelijk aan (>=)"
 msgid "Greater than (>)"
 msgstr "Groter dan (>)"
 
+msgid "Green for increase, red for decrease"
+msgstr ""
+
 msgid "Grid"
 msgstr "Raster"
 
@@ -8869,7 +9007,13 @@ msgstr "Verbergt de lijn voor de tijdreeks"
 msgid "Hierarchy"
 msgstr "Hierarchy"
 
+msgid "High"
+msgstr ""
+
 msgid "High color"
+msgstr ""
+
+msgid "Highest value for each period."
 msgstr ""
 
 msgid "Histogram"
@@ -8889,6 +9033,9 @@ msgstr "Horizontaal (Boven)"
 
 msgid "Horizontal alignment"
 msgstr "Horizontale uitlijning"
+
+msgid "Horizontal layout (columns)"
+msgstr ""
 
 msgid "Host"
 msgstr "Host"
@@ -9510,6 +9657,9 @@ msgstr ""
 msgid "It’s not recommended to truncate Y axis in Bar chart."
 msgstr "Het wordt niet aanbevolen om de as in de staafdiagram te verkorten."
 
+msgid "It’s not recommended to truncate axis in Bar chart."
+msgstr ""
+
 msgid "JAN"
 msgstr "JAN"
 
@@ -9554,6 +9704,15 @@ msgstr "JUN"
 
 msgid "January"
 msgstr "Januari"
+
+msgid "JavaScript data interceptor"
+msgstr ""
+
+msgid "JavaScript onClick href"
+msgstr ""
+
+msgid "JavaScript tooltip generator"
+msgstr ""
 
 msgid "Jinja templating"
 msgstr "Jinja templating"
@@ -9658,11 +9817,26 @@ msgstr "Label Regel"
 msgid "Label threshold"
 msgstr "Label drempelwaarde"
 
+msgid "Label used for decreasing candles in the tooltip."
+msgstr ""
+
+msgid "Label used for increasing candles in the tooltip."
+msgstr ""
+
 msgid "Labelling"
 msgstr "Labelen"
 
 msgid "Labels"
 msgstr "Labels"
+
+msgid "Labels for the marker lines"
+msgstr ""
+
+msgid "Labels for the markers"
+msgstr ""
+
+msgid "Labels for the ranges"
+msgstr ""
 
 #, fuzzy
 msgid "Languages"
@@ -9928,6 +10102,9 @@ msgid ""
 "does not already have. Leave empty for legacy RBAC-only behavior."
 msgstr ""
 
+msgid "Limits the number of cells that get retrieved."
+msgstr ""
+
 msgid ""
 "Limits the number of cells that get retrieved. Not applied when non-"
 "additive metrics (e.g. ratios, COUNT_DISTINCT, AVG, percentiles) are "
@@ -10033,6 +10210,9 @@ msgstr "Splits nummer"
 msgid "List Roles"
 msgstr "Rollen weergeven"
 
+msgid "List Unique Values"
+msgstr ""
+
 #, fuzzy
 msgid "List Users"
 msgstr "Splits nummer"
@@ -10042,12 +10222,21 @@ msgid ""
 "toggles it on the chart"
 msgstr ""
 
+msgid "List of extra columns made available in JavaScript functions"
+msgstr ""
+
 msgid "List of n+1 values for bucketing metric into n buckets."
 msgstr "Lijst van n+1 waarden voor het indelen van metriek in n groepen."
 
 #, fuzzy
 msgid "List of the column names that should be read"
 msgstr "Json lijst van de kolomnamen die moeten worden gelezen"
+
+msgid "List of values to mark with lines"
+msgstr ""
+
+msgid "List of values to mark with triangles"
+msgstr ""
 
 msgid "List updated"
 msgstr "Lijst bijgewerkt"
@@ -10176,6 +10365,9 @@ msgstr "Lengtegraad en breedtegraad"
 msgid "Longitude of default viewport"
 msgstr "Lengtegraad van standaard viewport"
 
+msgid "Low"
+msgstr ""
+
 msgid "Low color"
 msgstr ""
 
@@ -10189,6 +10381,9 @@ msgstr ""
 
 msgid "Lower threshold must be lower than upper threshold"
 msgstr "Ondergrens moet lager zijn dan bovengrens"
+
+msgid "Lowest value for each period."
+msgstr ""
 
 msgid "MAR"
 msgstr "MAA"
@@ -10436,6 +10631,9 @@ msgstr "Gemiddelde van waarden over de opgegeven periode"
 msgid "Mean values"
 msgstr "Gemiddelde waarden"
 
+msgid "Median"
+msgstr ""
+
 msgid ""
 "Median edge width, the thickest edge will be 4 times thicker than the "
 "thinnest."
@@ -10620,6 +10818,9 @@ msgstr "Metrieken"
 #, fuzzy, python-format
 msgid "Metrics (%s)"
 msgstr "Metrieken"
+
+msgid "Metrics / Dimensions"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -10851,6 +11052,9 @@ msgstr ""
 msgid "Moves the given set of dates by a specified interval."
 msgstr "Verplaatst de gegeven reeks datums met een opgegeven interval."
 
+msgid "Moving averages"
+msgstr ""
+
 msgid "Multi-Dimensions"
 msgstr "Multi-Dimensies"
 
@@ -10958,6 +11162,11 @@ msgstr "Naam van het doel knooppunten"
 
 msgid "Name of your tag"
 msgstr "Naam van je tag"
+
+msgid ""
+"Name used for the candlestick series in the legend and tooltip when no "
+"series dimension is set."
+msgstr ""
 
 msgid "Name your database"
 msgstr "Geef uw database een naam"
@@ -11511,6 +11720,9 @@ msgstr "Basis informatie"
 msgid "OCT"
 msgstr "OKT"
 
+msgid "OHLC"
+msgstr ""
+
 msgid "OK"
 msgstr "OK"
 
@@ -11675,6 +11887,9 @@ msgstr ""
 msgid "Opacity, expects values between 0 and 100"
 msgstr "Ondoorzichtigheid, verwacht waarden tussen 0 en 100"
 
+msgid "Open"
+msgstr ""
+
 msgid "Open Datasource tab"
 msgstr "Open Gegevensbron Tabblad"
 
@@ -11711,6 +11926,9 @@ msgstr "Openen in SQL Lab"
 msgid "Open query in SQL Lab"
 msgstr "Open query in SQL Lab"
 
+msgid "Opening value for each period."
+msgstr ""
+
 msgid ""
 "Operate the database in asynchronous mode, meaning that the queries are "
 "executed on remote workers as opposed to on the web server itself. This "
@@ -11741,6 +11959,11 @@ msgstr "Optionele d3 datum opmaak string"
 
 msgid "Optional d3 number format string"
 msgstr "Optionele d3 nummer opmaak string"
+
+msgid ""
+"Optional dimension used to split the chart into multiple candlestick "
+"series."
+msgstr ""
 
 msgid ""
 "Optional metric used to scale the size of each dot. Dot areas are scaled "
@@ -11868,6 +12091,11 @@ msgstr ""
 "Een of meer timeseries van een relatieve tijdsperiode overlappen. "
 "Verwacht de relatieve tijddeltas in de natuurlijke taal (bijvoorbeeld: 24"
 " uur, 7 dagen, 52 weken, 365 dagen). Vrije tekst wordt ondersteund."
+
+msgid ""
+"Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
+" Type a custom period to add it."
+msgstr ""
 
 msgid ""
 "Overlays a hexagonal grid on a map, and aggregates data within the "
@@ -12154,6 +12382,9 @@ msgstr "Kies een naam om je te helpen deze database te identificeren."
 
 msgid "Pick a nickname for how the database will display in Superset."
 msgstr "Kies een bijnaam voor de weergave van de database in Superset."
+
+msgid "Pick a set of deck.gl charts to layer on top of one another"
+msgstr ""
 
 msgid "Pick a title for you annotation."
 msgstr "Kies een titel voor je annotatie."
@@ -12764,6 +12995,9 @@ msgstr "BEREIK TYPE"
 msgid "Ranges"
 msgstr "Bereiken"
 
+msgid "Ranges to highlight with shading"
+msgstr ""
+
 msgid "Ranking"
 msgstr "Ranglijst"
 
@@ -12819,8 +13053,21 @@ msgstr "Rechthoek"
 msgid "Recurring (every)"
 msgstr "Terugkerend (elke)"
 
+msgid "Red for increase, green for decrease"
+msgstr ""
+
 msgid "Redo the action"
 msgstr "De actie opnieuw uitvoeren"
+
+msgid "Reduce X ticks"
+msgstr ""
+
+msgid ""
+"Reduces the number of X-axis ticks to be rendered. If true, the x-axis "
+"will not overflow and labels may be missing. If false, a minimum width "
+"will be applied to columns and the width may overflow into an horizontal "
+"scroll."
+msgstr ""
 
 msgid "Refer to the"
 msgstr "Verwijs naar de"
@@ -13389,6 +13636,9 @@ msgstr "Rijke tooltip"
 msgid "Right"
 msgstr "Rechts"
 
+msgid "Right Axis Format"
+msgstr ""
+
 msgid "Right Axis Metric"
 msgstr "Rechter As Metriek"
 
@@ -13934,6 +14184,10 @@ msgstr "Scroll naar beneden om overschrijvingen mogelijk te maken. "
 
 msgid "Search"
 msgstr "Zoek"
+
+#, python-format
+msgid "Search %s records"
+msgstr ""
 
 msgid "Search / Filter"
 msgstr "Zoek / Filter"
@@ -14724,6 +14978,9 @@ msgstr "Series Stijl"
 msgid "Series chart type (line, bar etc)"
 msgstr "Series grafiek type (lijn, staaf etc)"
 
+msgid "Series colors"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -14739,9 +14996,15 @@ msgstr "Instelling voor reekstoename"
 msgid "Series limit"
 msgstr "Serie limiet"
 
+msgid "Series name"
+msgstr ""
+
 #, fuzzy
 msgid "Series settings"
 msgstr "Filter Instellingen"
+
+msgid "Series style"
+msgstr ""
 
 #, fuzzy
 msgid "Series total setting"
@@ -14966,6 +15229,9 @@ msgstr "Toon Metriek Namen"
 msgid "Show Null Values"
 msgstr ""
 
+msgid "Show Range Filter"
+msgstr ""
+
 #, fuzzy
 msgid "Show SQL"
 msgstr "Toon Log"
@@ -15051,6 +15317,9 @@ msgstr "Toon kolommen subtotaal"
 msgid "Show columns total"
 msgstr "Toon kolommen totaal"
 
+msgid "Show data points as circle markers on the lines"
+msgstr ""
+
 msgid "Show empty columns"
 msgstr "Toon lege kolommen"
 
@@ -15107,6 +15376,9 @@ msgstr ""
 msgid "Show or hide the X axis line, ticks, and labels"
 msgstr ""
 
+msgid "Show or hide the Y axis line and labels"
+msgstr ""
+
 msgid "Show or hide the Y axis line, ticks, gridlines, and labels"
 msgstr ""
 
@@ -15147,6 +15419,9 @@ msgid "Show summary"
 msgstr "Toon Markeringen"
 
 msgid "Show the main ticks on axes."
+msgstr ""
+
+msgid "Show the value on top of the bar"
 msgstr ""
 
 #, fuzzy
@@ -15524,6 +15799,9 @@ msgstr "Toon legenda"
 msgid "Sort metric"
 msgstr "Sorteer metriek"
 
+msgid "Sort order"
+msgstr ""
+
 #, fuzzy
 msgid "Sort query by"
 msgstr "Exporteer query"
@@ -15624,6 +15902,9 @@ msgstr "Stapel series bovenop elkaar"
 
 msgid "Stacked"
 msgstr "Gestapeld"
+
+msgid "Stacked Bars"
+msgstr ""
 
 msgid "Stacked Style"
 msgstr "Gestapelde Stijl"
@@ -15851,6 +16132,15 @@ msgstr ""
 
 msgid "Sum"
 msgstr "Som"
+
+msgid "Sum as Fraction of Columns"
+msgstr ""
+
+msgid "Sum as Fraction of Rows"
+msgstr ""
+
+msgid "Sum as Fraction of Total"
+msgstr ""
 
 msgid "Sum of values over specified period"
 msgstr "Som van waarden over de opgegeven periode"
@@ -17083,6 +17373,13 @@ msgid ""
 "                expressions."
 msgstr ""
 
+msgid ""
+"The periodicity over which to pivot time. Users can provide\n"
+"            \"Pandas\" offset alias.\n"
+"            Click on the info bubble for more details on accepted "
+"\"freq\" expressions."
+msgstr ""
+
 msgid "The pixel radius"
 msgstr "De pixel radius"
 
@@ -18173,6 +18470,9 @@ msgstr "Deze map ondersteunt alleen kolommen"
 msgid "This folder only supports metrics"
 msgstr "Deze map ondersteunt alleen metrische waarden"
 
+msgid "This functionality is disabled in your environment for security reasons."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -18402,9 +18702,10 @@ msgstr ""
 
 msgid ""
 "This update would change the connection's effective destination "
-"(host/port, engine parameters, or SSH tunnel endpoint) while reusing the "
-"stored credential. Provide the real password (or SSH tunnel credential) "
-"to confirm a connection move."
+"(host/port, engine parameters, SSH tunnel endpoint, or OAuth2 endpoint "
+"URIs) while reusing the stored credential. Provide the real password (or "
+"SSH tunnel credential / OAuth2 client secret) to confirm a connection "
+"move."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
@@ -18641,6 +18942,9 @@ msgstr ""
 "Tijd string is dubbelzinnig. Specificeer [%(human_readable)s geleden] of "
 "[%(human_readable)s later]."
 
+msgid "Time-series Percent Change"
+msgstr ""
+
 msgid "Time-series Period Pivot"
 msgstr "Tijdreeks Periodieke Pivoting"
 
@@ -18796,6 +19100,10 @@ msgstr "Totaal"
 #, python-format
 msgid "Total (%(aggfunc)s)"
 msgstr "Totaal (%(aggfunc)s)"
+
+#, python-format
+msgid "Total (%(aggregatorName)s)"
+msgstr ""
 
 msgid ""
 "Total angle covered by the chart, in degrees. 360° draws a full circle "
@@ -19474,6 +19782,9 @@ msgstr ""
 msgid "Use a log scale"
 msgstr "Gebruik een log-schaal"
 
+msgid "Use a log scale for the X-axis"
+msgstr ""
+
 msgid "Use a log scale for the Y-axis"
 msgstr "Gebruik een log-schaal voor de Y-as"
 
@@ -19775,6 +20086,9 @@ msgstr "Verticaal"
 msgid "Vertical (Left)"
 msgstr "Verticaal (Links)"
 
+msgid "Vertical layout (rows)"
+msgstr ""
+
 msgid "View"
 msgstr "Bekijken"
 
@@ -19948,6 +20262,12 @@ msgstr ""
 "onderverdelingen van een land (staten, provincies, enz.) op een "
 "choropleth-kaart. De waarde van elke onderverdeling wordt verhoogd "
 "wanneer u over de overeenkomstige geografische grens zweeft."
+
+msgid ""
+"Visualizes many different time-series objects in a single chart. This "
+"chart is being deprecated and we recommend using the Time-series Chart "
+"instead."
+msgstr ""
 
 msgid ""
 "Visualizes the words in a column that appear the most often. Bigger font "
@@ -20164,6 +20484,12 @@ msgstr ""
 msgid "When checked, the map will zoom to your data after each query"
 msgstr "Wanneer aangevinkt, zal de kaart uw gegevens zoomen na elke zoekopdracht"
 
+msgid ""
+"When enabled, increasing candles use the increase color and decreasing "
+"candles use the decrease color. Turn off to use one series color, with a "
+"filled body for increases and a hollow body for decreases."
+msgstr ""
+
 #, fuzzy
 msgid ""
 "When enabled, the axis will display labels for the minimum and maximum "
@@ -20342,6 +20668,12 @@ msgstr "Of de metriek naam als titel moet worden weergegeven"
 msgid "Whether to display the metric name as a title"
 msgstr "Of de metriek naam als titel moet worden weergegeven"
 
+msgid "Whether to display the min and max values of the X-axis"
+msgstr ""
+
+msgid "Whether to display the min and max values of the Y-axis"
+msgstr ""
+
 #, fuzzy
 msgid "Whether to display the numbered column"
 msgstr "Of de trendlijn moet worden weergegeven"
@@ -20355,6 +20687,9 @@ msgstr "Of het percentage in de tooltip moet worden opgenomen"
 
 msgid "Whether to display the stroke"
 msgstr "Of de lijn moet worden weergegeven"
+
+msgid "Whether to display the time range interactive selector"
+msgstr ""
 
 msgid "Whether to display the timestamp"
 msgstr "Of de tijdstempel moet worden weergegeven"
@@ -20442,6 +20777,9 @@ msgstr ""
 "Of de resultaten in aflopende volgorde moeten worden gesorteerd op de "
 "geselecteerde metriek."
 
+msgid "Whether to sort tooltip by the selected metric in descending order."
+msgstr ""
+
 msgid ""
 "Whether to sort tooltip by the selected metric in descending order. On "
 "stacked charts, values are shown in ascending order."
@@ -20507,6 +20845,9 @@ msgstr "Schrijf een omschrijving voor uw query"
 msgid "Write a handlebars template to render the data"
 msgstr "Schrijf een handlebars sjabloon om de gegevens weer te geven"
 
+msgid "X AXIS TITLE MARGIN"
+msgstr ""
+
 msgid "X Axis"
 msgstr "X As"
 
@@ -20537,11 +20878,17 @@ msgstr "Y-as Titel Marge"
 msgid "X Axis title margin"
 msgstr ""
 
+msgid "X Log Scale"
+msgstr ""
+
 msgid "X Tick Layout"
 msgstr "X Tik Indeling"
 
 msgid "X axis title margin"
 msgstr "X AXIS TITEL MARGE"
+
+msgid "X bounds"
+msgstr ""
 
 msgid "X-Axis Sort Ascending"
 msgstr "X-as Sorteer Oplopend"
@@ -20559,8 +20906,17 @@ msgstr "XSchaal Interval"
 msgid "XYZ"
 msgstr ""
 
+msgid "Y 2 bounds"
+msgstr ""
+
+msgid "Y AXIS TITLE MARGIN"
+msgstr ""
+
 msgid "Y Axis"
 msgstr "Y As"
+
+msgid "Y Axis 2 Bounds"
+msgstr ""
 
 msgid "Y Axis Bounds"
 msgstr "Y-as Grenzen"
@@ -20588,6 +20944,9 @@ msgstr "Y Log Schaal"
 
 msgid "Y axis title margin"
 msgstr "Y AXIS TITEL MARGE"
+
+msgid "Y bounds"
+msgstr ""
 
 #, fuzzy
 msgid "Y-Axis"
@@ -20775,6 +21134,9 @@ msgid ""
 msgstr ""
 "U kunt het laatste tijdelijke filter niet verwijderen omdat het gebruikt "
 "wordt voor tijdbereik filters in de dashboards."
+
+msgid "You cannot use 45° tick layout along with the time range filter"
+msgstr ""
 
 #, python-format
 msgid "You do not have access to the data behind this chart (tables: %s)."
@@ -20987,6 +21349,9 @@ msgstr ""
 #, fuzzy
 msgid "You need to"
 msgstr "U moet"
+
+msgid "You need to configure HTML sanitization to use CSS"
+msgstr ""
 
 msgid ""
 "You updated the values in the control panel, but the chart was not "
@@ -21274,6 +21639,9 @@ msgstr "achtergrond"
 msgid "banana"
 msgstr "banaan"
 
+msgid "basis"
+msgstr ""
+
 #, fuzzy
 msgid "begins with"
 msgstr "Log in met"
@@ -21314,6 +21682,9 @@ msgstr "door te gebruiken"
 
 msgid "cannot be empty"
 msgstr "mag niet leeg zijn"
+
+msgid "cardinal"
+msgstr ""
 
 #, fuzzy
 msgid "cell bar"
@@ -21483,6 +21854,9 @@ msgstr "deck.gl Spreidingsdiagram"
 msgid "deck.gl Screen Grid"
 msgstr "deck.gl Scherm Raster"
 
+msgid "deck.gl charts"
+msgstr ""
+
 #, fuzzy
 msgid "deck.gl layers (charts)"
 msgstr "deck.gl grafieken"
@@ -21582,6 +21956,9 @@ msgstr "Lege rij"
 
 msgid "entries"
 msgstr "items"
+
+msgid "entries per page"
+msgstr ""
 
 #. do-not-translate
 msgid "error_message"
@@ -21779,6 +22156,9 @@ msgstr "links"
 msgid "less than {min} {name}"
 msgstr "minder dan {min} {name}"
 
+msgid "linear"
+msgstr ""
+
 #, fuzzy
 msgid "locale_key"
 msgstr "Log Schaal"
@@ -21823,6 +22203,9 @@ msgstr "minuut"
 
 msgid "minute(s)"
 msgstr "minu(u)t(en)"
+
+msgid "monotone"
+msgstr ""
 
 msgid "month"
 msgstr "maand"
@@ -21897,6 +22280,9 @@ msgstr "NUMERIC"
 
 msgid "numeric type icon"
 msgstr "numeriek type icoon"
+
+msgid "nvd3"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -22090,6 +22476,14 @@ msgstr "trapsgewijs"
 msgid "std"
 msgstr "std"
 
+#. do-not-translate
+msgid "step-after"
+msgstr ""
+
+#. do-not-translate
+msgid "step-before"
+msgstr ""
+
 msgid "stopped"
 msgstr "gestopt"
 
@@ -22193,6 +22587,9 @@ msgstr "waarde oplopend"
 
 msgid "value descending"
 msgstr "waarde aflopend"
+
+msgid "valuename"
+msgstr ""
 
 msgid "var"
 msgstr "var"
