@@ -106,6 +106,19 @@ test('modal opens when dataset is provided', async () => {
   ).toBeInTheDocument();
 });
 
+test('duplicate button is disabled when modal first opens', async () => {
+  const onHide = jest.fn();
+  const onDuplicate = jest.fn();
+
+  renderModal(mockDataset, onHide, onDuplicate);
+
+  const duplicateButton = await screen.findByRole('button', {
+    name: /duplicate/i,
+  });
+
+  expect(duplicateButton).toBeDisabled();
+});
+
 test('modal does not open when dataset is null', () => {
   const onHide = jest.fn();
   const onDuplicate = jest.fn();
@@ -192,6 +205,21 @@ test('pressing Enter key triggers duplicate action', async () => {
   await waitFor(() => {
     expect(onDuplicate).toHaveBeenCalledWith('new_dataset_copy');
   });
+});
+
+test('pressing Enter with empty input does not trigger duplicate action', async () => {
+  const onHide = jest.fn();
+  const onDuplicate = jest.fn();
+
+  renderModal(mockDataset, onHide, onDuplicate);
+
+  const input = await screen.findByTestId('duplicate-modal-input');
+
+  // Press Enter without typing a name
+  await userEvent.type(input, '{enter}');
+
+  // onPressEnter should not bypass the disabled state
+  expect(onDuplicate).not.toHaveBeenCalled();
 });
 
 test('modal closes when onHide is called', async () => {

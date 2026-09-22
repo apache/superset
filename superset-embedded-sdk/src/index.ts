@@ -115,6 +115,12 @@ export type EmbeddedDashboard = {
   getActiveTabs: () => Promise<string[]>;
   observeDataMask: (callbackFn: ObserveDataMaskCallbackFn) => void;
   getDataMask: () => Promise<Record<string, any>>;
+  /**
+   * Applies a data mask to the dashboard.
+   * Rejects if the embedded Superset page does not support `setDataMask`,
+   * so a version mismatch surfaces instead of silently doing nothing.
+   */
+  setDataMask: (dataMask: Record<string, any>) => Promise<void>;
   getChartStates: () => Promise<Record<string, any>>;
   getChartDataPayloads: (params?: {
     chartId?: number;
@@ -355,6 +361,21 @@ export async function embedDashboard({
     ourPort.get<string>("getDashboardPermalink", { anchor });
   const getActiveTabs = () => ourPort.get<string[]>("getActiveTabs");
   const getDataMask = () => ourPort.get<Record<string, any>>("getDataMask");
+  // `observeDataMask` hands the host a mask with the change-trigger booleans
+  // mixed in, so feeding that payload straight back into `setDataMask` is a
+  // natural thing for a host to do. Keep only the entries that look like a
+  // filter's mask, so those flags never reach the dashboard as filter ids.
+  // Sent with `get` rather than `emit` so the iframe acknowledges the call:
+  // an embedded page that predates `setDataMask` replies with an error instead
+  // of dropping the message silently.
+  const setDataMask = (dataMask: Record<string, any>) =>
+    ourPort.get<void>("setDataMask", {
+      dataMask: Object.fromEntries(
+        Object.entries(dataMask).filter(
+          ([, mask]) => typeof mask === "object" && mask !== null,
+        ),
+      ),
+    });
   const getChartStates = () =>
     ourPort.get<Record<string, any>>("getChartStates");
   const getChartDataPayloads = (params?: { chartId?: number }) =>
@@ -396,6 +417,7 @@ export async function embedDashboard({
     getActiveTabs,
     observeDataMask,
     getDataMask,
+    setDataMask,
     getChartStates,
     getChartDataPayloads,
     setThemeConfig,

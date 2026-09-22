@@ -30,7 +30,14 @@ export enum ComparisonTimeRangeType {
 }
 
 export type DateTimeGrainType =
-  'second' | 'minute' | 'hour' | 'day' | 'week' | 'month' | 'quarter' | 'year';
+  | 'second'
+  | 'minute'
+  | 'hour'
+  | 'day'
+  | 'week'
+  | 'month'
+  | 'quarter'
+  | 'year';
 
 export type CustomRangeKey =
   | 'sinceMode'

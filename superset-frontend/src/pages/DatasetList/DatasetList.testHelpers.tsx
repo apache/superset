@@ -28,6 +28,7 @@ import DatasetList from 'src/pages/DatasetList';
 import handleResourceExport from 'src/utils/export';
 import type Subject from 'src/types/Subject';
 import { SubjectType } from 'src/types/Subject';
+import type { RlsFilterSummary } from '@superset-ui/core/components/RlsBadge';
 
 export const mockHandleResourceExport =
   handleResourceExport as jest.MockedFunction<typeof handleResourceExport>;
@@ -78,6 +79,7 @@ export interface DatasetFixture {
   extra: string; // JSON-serialized metadata (always present in API)
   sql: string | null; // SQL query for virtual datasets
   description?: string; // Optional description field
+  rls_filters?: RlsFilterSummary[]; // RLS filters applied to this dataset
 }
 
 interface StoreState {
@@ -218,6 +220,35 @@ export const mockDatasets: DatasetFixture[] = [
     extra: JSON.stringify({}),
     sql: 'SELECT quarter, SUM(revenue) FROM sales GROUP BY quarter',
   },
+  {
+    id: 6,
+    table_name: 'Restricted Sales',
+    kind: 'physical',
+    schema: 'public',
+    database: {
+      id: '1',
+      database_name: 'PostgreSQL',
+    },
+    changed_by_name: 'Admin User',
+    changed_by: {
+      first_name: 'Admin',
+      last_name: 'User',
+      id: 1,
+    },
+    editors: [mockDatasetEditors.admin],
+    changed_on_delta_humanized: '2 days ago',
+    explore_url: '/explore/?datasource=6__table',
+    extra: JSON.stringify({}),
+    sql: null,
+    rls_filters: [
+      {
+        id: 1,
+        name: 'Region filter',
+        filter_type: 'Regular',
+        group_key: 'region',
+      },
+    ],
+  },
 ];
 
 // Mock users with various permission levels
@@ -324,11 +355,13 @@ export const mockApiError404 = {
 
 // API endpoint constants
 export const API_ENDPOINTS = {
+  SEMANTIC_LAYERS: 'glob:*/api/v1/semantic_layer/?*',
   DATASETS_INFO: 'glob:*/api/v1/dataset/_info*',
   DATASETS: 'glob:*/api/v1/dataset/?*',
   DATASOURCE_COMBINED: 'glob:*/api/v1/datasource/?*',
   DATASET_GET: 'glob:*/api/v1/dataset/[0-9]*',
   DATASET_RELATED_OBJECTS: 'glob:*/api/v1/dataset/*/related_objects*',
+  DATASET_BULK_RELATED_OBJECTS: 'glob:*/api/v1/dataset/related_objects/?q=*',
   DATASET_DELETE: 'glob:*/api/v1/dataset/[0-9]*',
   DATASET_BULK_DELETE: 'glob:*/api/v1/dataset/?q=*', // Matches DELETE /api/v1/dataset/?q=...
   DATASET_DUPLICATE: 'glob:*/api/v1/dataset/duplicate*',
@@ -448,10 +481,21 @@ export const setupDuplicateMocks = () => {
 };
 
 export const setupBulkDeleteMocks = () => {
-  fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASET_BULK_DELETE] });
+  fetchMock.removeRoutes({
+    names: [
+      API_ENDPOINTS.DATASET_BULK_DELETE,
+      API_ENDPOINTS.DATASET_BULK_RELATED_OBJECTS,
+    ],
+  });
   fetchMock.delete(API_ENDPOINTS.DATASET_BULK_DELETE, {
     message: '3 datasets deleted successfully',
   });
+  // The bulk confirm looks up the dependents of the selection; default to none.
+  fetchMock.get(
+    API_ENDPOINTS.DATASET_BULK_RELATED_OBJECTS,
+    { charts: { count: 0, result: [] }, dashboards: { count: 0, result: [] } },
+    { name: API_ENDPOINTS.DATASET_BULK_RELATED_OBJECTS },
+  );
 };
 
 // Setup error mocks for negative flow testing

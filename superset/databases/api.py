@@ -31,7 +31,6 @@ from flask import (
     render_template,
     request,
     Response,
-    send_file,
 )
 from flask_appbuilder.api import expose, protect, rison as parse_rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -131,7 +130,7 @@ from superset.utils.core import (
     error_msg_from_exception,
     get_username,
     parse_js_uri_path_item,
-    sanitize_cookie_token,
+    send_export_zip,
 )
 from superset.utils.decorators import transaction
 from superset.utils.oauth2 import decode_oauth2_state
@@ -1316,6 +1315,10 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         try:
             TestConnectionDatabaseCommand(item).run()
             return self.response(200, message="OK")
+        except OAuth2RedirectError:
+            # OAuth2 connections pass, so they can be saved. A user later
+            # can then store an OAuth2 token.
+            return self.response(200, message="OK")
         except (
             SSHTunnelingNotEnabledError,
             SSHTunnelDatabasePortError,
@@ -1454,11 +1457,14 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             return self.response_404()
 
     @expose("/oauth2/", methods=["GET"])
-    @transaction()
+    @statsd_metrics(best_effort=True)
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.oauth2",
-        log_to_statsd=True,
+        log_to_statsd=False,
+        include_request_data=False,
+        best_effort=True,
     )
+    @transaction()
     def oauth2(self) -> FlaskResponse:
         """
         ---
@@ -1565,15 +1571,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 return self.response_404()
         buf.seek(0)
 
-        response = send_file(
-            buf,
-            mimetype="application/zip",
-            as_attachment=True,
-            download_name=filename,
-        )
-        if token := sanitize_cookie_token(request.args.get("token")):
-            response.set_cookie(token, "done", max_age=600)
-        return response
+        return send_export_zip(buf, filename)
 
     @expose("/import/", methods=("POST",))
     @protect()

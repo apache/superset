@@ -282,7 +282,8 @@ type CustomHTMLTextAreaElement = Omit<
   CustomTextType;
 
 export type CustomParametersChangeType<T = CustomTextType> =
-  FormEvent<InputProps> | { target: T };
+  | FormEvent<InputProps>
+  | { target: T };
 
 export type CustomEventHandlerType = EventHandler<
   ChangeEvent<CustomHTMLInputElement | CustomHTMLTextAreaElement>

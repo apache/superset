@@ -63,3 +63,85 @@ def test_is_feature_enabled(mocker: MockerFixture) -> None:
     assert is_feature_enabled("True_Flag2") is True
     assert is_feature_enabled("Flag3") is False
     assert is_feature_enabled("Flag4") is True
+
+
+def _make_app(feature_flags: dict[str, bool], get_func=None, is_func=None):
+    """Minimal object exposing the config keys FeatureFlagManager.init_app reads."""
+
+    class _App:
+        config = {
+            "GET_FEATURE_FLAGS_FUNC": get_func,
+            "IS_FEATURE_ENABLED_FUNC": is_func,
+            "DEFAULT_FEATURE_FLAGS": {},
+            "FEATURE_FLAGS": feature_flags,
+        }
+
+    return _App()
+
+
+def test_global_async_queries_force_enables_gtf() -> None:
+    """GLOBAL_ASYNC_QUERIES force-enables GLOBAL_TASK_FRAMEWORK (async runs on GTF)."""
+    from superset.utils.feature_flag_manager import FeatureFlagManager
+
+    manager = FeatureFlagManager()
+    manager.init_app(_make_app({"GLOBAL_ASYNC_QUERIES": True}))
+    assert manager.is_feature_enabled("GLOBAL_TASK_FRAMEWORK") is True
+
+
+def test_gtf_not_enabled_without_global_async_queries() -> None:
+    from superset.utils.feature_flag_manager import FeatureFlagManager
+
+    manager = FeatureFlagManager()
+    manager.init_app(_make_app({"GLOBAL_ASYNC_QUERIES": False}))
+    assert manager.is_feature_enabled("GLOBAL_TASK_FRAMEWORK") is False
+
+
+def test_gaq_implies_gtf_via_is_feature_enabled_func() -> None:
+    """The derived GAQ→GTF rule holds even when IS_FEATURE_ENABLED_FUNC resolves
+    GAQ on but GTF off — otherwise async chart requests would schedule work that
+    .schedule() rejects."""
+    from superset.utils.feature_flag_manager import FeatureFlagManager
+
+    def is_func(name: str, default: bool) -> bool:
+        return name == "GLOBAL_ASYNC_QUERIES"  # GAQ on, everything else (GTF) off
+
+    manager = FeatureFlagManager()
+    manager.init_app(
+        _make_app(
+            {"GLOBAL_ASYNC_QUERIES": False, "GLOBAL_TASK_FRAMEWORK": False},
+            is_func=is_func,
+        )
+    )
+    assert manager.is_feature_enabled("GLOBAL_ASYNC_QUERIES") is True
+    assert manager.is_feature_enabled("GLOBAL_TASK_FRAMEWORK") is True
+    assert manager.get_feature_flags()["GLOBAL_TASK_FRAMEWORK"] is True
+
+
+def test_gaq_implies_gtf_via_get_feature_flags_func() -> None:
+    """Same derived rule when GET_FEATURE_FLAGS_FUNC returns GAQ on / GTF off."""
+    from superset.utils.feature_flag_manager import FeatureFlagManager
+
+    def get_func(defaults: dict[str, bool]) -> dict[str, bool]:
+        return {"GLOBAL_ASYNC_QUERIES": True, "GLOBAL_TASK_FRAMEWORK": False}
+
+    manager = FeatureFlagManager()
+    manager.init_app(_make_app({}, get_func=get_func))
+    assert manager.get_feature_flags()["GLOBAL_TASK_FRAMEWORK"] is True
+    assert manager.is_feature_enabled("GLOBAL_TASK_FRAMEWORK") is True
+
+
+def test_callback_gtf_stays_off_when_gaq_off() -> None:
+    """The derived rule only fires when GAQ is on; it never turns GTF on otherwise."""
+    from superset.utils.feature_flag_manager import FeatureFlagManager
+
+    def is_func(name: str, default: bool) -> bool:
+        return False  # everything off
+
+    manager = FeatureFlagManager()
+    manager.init_app(
+        _make_app(
+            {"GLOBAL_ASYNC_QUERIES": False, "GLOBAL_TASK_FRAMEWORK": False},
+            is_func=is_func,
+        )
+    )
+    assert manager.is_feature_enabled("GLOBAL_TASK_FRAMEWORK") is False

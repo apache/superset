@@ -13,7 +13,7 @@ Cross-account IAM role assumption via STS `AssumeRole` is supported, allowing a 
 
 ## Prerequisites
 
-- Enable the `AWS_DATABASE_IAM_AUTH` feature flag in `superset_config.py`. IAM authentication is gated behind this flag; if it is disabled, connections using `aws_iam` fail with *"AWS IAM database authentication is not enabled."*
+- Enable the `AWS_DATABASE_IAM_AUTH` feature flag in `superset_config.py`. IAM authentication is gated behind this flag; if it is disabled, connections using `aws_iam` fail with _"AWS IAM database authentication is not enabled."_
   ```python
   FEATURE_FLAGS = {
       "AWS_DATABASE_IAM_AUTH": True,
@@ -48,14 +48,14 @@ IAM authentication is configured via the **encrypted_extra** field of the databa
 }
 ```
 
-| Field | Required | Description |
-|-------|----------|-------------|
-| `enabled` | Yes | Set to `true` to activate IAM auth |
-| `role_arn` | No | ARN of the cross-account IAM role to assume via STS. Omit for same-account auth |
-| `external_id` | No | External ID for the STS `AssumeRole` call, if required by the target role's trust policy |
-| `region` | Yes | AWS region of the database cluster |
-| `db_username` | Yes | The database username associated with the IAM identity |
-| `session_duration` | No | STS session duration in seconds (default: `3600`) |
+| Field              | Required | Description                                                                              |
+| ------------------ | -------- | ---------------------------------------------------------------------------------------- |
+| `enabled`          | Yes      | Set to `true` to activate IAM auth                                                       |
+| `role_arn`         | No       | ARN of the cross-account IAM role to assume via STS. Omit for same-account auth          |
+| `external_id`      | No       | External ID for the STS `AssumeRole` call, if required by the target role's trust policy |
+| `region`           | Yes      | AWS region of the database cluster                                                       |
+| `db_username`      | Yes      | The database username associated with the IAM identity                                   |
+| `session_duration` | No       | STS session duration in seconds (default: `3600`)                                        |
 
 ### Redshift (Serverless)
 

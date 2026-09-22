@@ -23,6 +23,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from typing import Annotated, Any, Dict, List, Literal
+from uuid import UUID
 
 from pydantic import (
     AliasChoices,
@@ -32,7 +33,7 @@ from pydantic import (
     field_validator,
     model_serializer,
     model_validator,
-    PositiveInt,
+    StrictBool,
 )
 
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
@@ -44,22 +45,22 @@ from superset.mcp_service.common.cache_schemas import (
     MetadataCacheControl,
     QueryCacheControl,
 )
-from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
+from superset.mcp_service.common.pagination_schemas import (
+    PaginatedListRequest,
+    PaginatedResponse,
+)
+from superset.mcp_service.common.time_range_validation import validate_time_range
 from superset.mcp_service.privacy import (
     filter_user_directory_fields,
     strip_user_directory_fields_from_schema,
 )
 from superset.mcp_service.system.schemas import (
-    PaginationInfo,
     serialize_subject_object,
     SubjectInfo,
     TagInfo,
 )
-from superset.mcp_service.utils import (
-    escape_llm_context_delimiters,
-    sanitize_for_llm_context,
-)
 from superset.mcp_service.utils.response_utils import humanize_timestamp
+from superset.sql.parse import has_aggregate
 from superset.utils import json
 
 
@@ -72,6 +73,7 @@ class DatasetFilter(ColumnOperator):
     """
 
     col: Literal[  # pyright: ignore[reportIncompatibleVariableOverride]
+        "uuid",
         "table_name",
         "schema",
         "database_name",
@@ -93,6 +95,31 @@ class DatasetFilter(ColumnOperator):
     value: str | int | float | bool | List[str | int | float | bool] = Field(
         ..., description="Value to filter by (type depends on col and opr)"
     )
+
+    @model_validator(mode="after")
+    def uuid_values_must_be_uuids(self) -> "DatasetFilter":
+        """Reject malformed UUIDs before they reach the database.
+
+        ``uuid`` is a binary column, so an unparseable value fails deep in the
+        driver as a system-class error — paging operators over what is really a
+        caller mistake, such as a truncated UUID.
+        """
+        if self.col != "uuid" or self.opr in {
+            ColumnOperatorEnum.is_null,
+            ColumnOperatorEnum.is_not_null,
+        }:
+            # Null checks ignore the value, which get_schema advertises for uuid
+            # and callers must still supply because the field is required.
+            return self
+        values = self.value if isinstance(self.value, list) else [self.value]
+        for value in values:
+            try:
+                UUID(str(value))
+            except (ValueError, AttributeError, TypeError) as ex:
+                raise ValueError(
+                    f"Filter value for 'uuid' must be a UUID, got {value!r}."
+                ) from ex
+        return self
 
 
 class TableColumnInfo(BaseModel):
@@ -226,104 +253,46 @@ class DatasetInfo(BaseModel):
         return data
 
 
-class DatasetList(BaseModel):
+class DatasetList(PaginatedResponse[DatasetFilter]):
     datasets: List[DatasetInfo]
-    count: int
-    total_count: int
-    page: int
-    page_size: int
-    total_pages: int
-    has_previous: bool
-    has_next: bool
-    columns_requested: List[str] = Field(
-        default_factory=list,
-        description="Requested columns for the response",
-    )
-    columns_loaded: List[str] = Field(
-        default_factory=list,
-        description="Columns that were actually loaded for each dataset",
-    )
-    columns_available: List[str] = Field(
-        default_factory=list,
-        description="All columns available for selection via select_columns parameter",
-    )
-    sortable_columns: List[str] = Field(
-        default_factory=list,
-        description="Columns that can be used with order_column parameter",
-    )
-    filters_applied: List[DatasetFilter] = Field(
-        default_factory=list,
-        description="List of advanced filter dicts applied to the query.",
-    )
-    pagination: PaginationInfo | None = None
-    timestamp: datetime | None = None
-    model_config = ConfigDict(ser_json_timedelta="iso8601")
 
 
-class ListDatasetsRequest(EditedByMeMixin, CreatedByMeMixin, MetadataCacheControl):
-    """Request schema for list_datasets with clear, unambiguous types."""
+class ListDatasetsRequest(
+    EditedByMeMixin,
+    CreatedByMeMixin,
+    MetadataCacheControl,
+    PaginatedListRequest[DatasetFilter],
+):
+    """Request schema for list_datasets with clear, unambiguous types.
 
-    model_config = ConfigDict(populate_by_name=True)
+    Unlike its siblings, this schema does NOT parse JSON-string `filters`/
+    `select_columns` into lists — it relies on Pydantic's native list
+    validation instead. Preserved intentionally; see
+    test_list_datasets_with_string_filters.
+    """
 
-    filters: Annotated[
-        List[DatasetFilter],
-        Field(
-            default_factory=list,
-            description="List of filter objects (column, operator, value). Each "
-            "filter is an object with 'col', 'opr', and 'value' "
-            "properties. Cannot be used together with 'search'.",
-        ),
-    ]
-    select_columns: Annotated[
-        List[str],
-        Field(
-            default_factory=list,
-            description="List of columns to select. Defaults to common columns if not "
-            "specified.",
-            validation_alias=AliasChoices("select_columns", "columns"),
-        ),
-    ]
-    search: Annotated[
-        str | None,
+    certified: Annotated[
+        StrictBool | None,
         Field(
             default=None,
-            description="Text search string to match against dataset fields. Cannot "
-            "be used together with 'filters'.",
-        ),
-    ]
-    order_column: Annotated[
-        str | None, Field(default=None, description="Column to order results by")
-    ]
-    order_direction: Annotated[
-        Literal["asc", "desc"],
-        Field(
-            default="desc", description="Direction to order results ('asc' or 'desc')"
-        ),
-    ]
-    page: Annotated[
-        PositiveInt,
-        Field(default=1, description="Page number for pagination (1-based)"),
-    ]
-    page_size: Annotated[
-        int,
-        Field(
-            default=DEFAULT_PAGE_SIZE,
-            gt=0,
-            le=MAX_PAGE_SIZE,
-            description=f"Number of items per page (max {MAX_PAGE_SIZE})",
+            description=(
+                "Filter by governance certification status. Use true to return "
+                "only certified datasets (preferred when selecting governed "
+                "semantic-layer assets), false to return only uncertified "
+                "datasets, or omit to return both (default)."
+            ),
         ),
     ]
 
-    @model_validator(mode="after")
-    def validate_search_and_filters(self) -> "ListDatasetsRequest":
-        """Prevent using both search and filters simultaneously."""
-        if self.search and self.filters:
-            raise ValueError(
-                "Cannot use both 'search' and 'filters' parameters simultaneously. "
-                "Use either 'search' for text-based searching across multiple fields, "
-                "or 'filters' for precise column-based filtering, but not both."
-            )
-        return self
+    @field_validator("filters", mode="before")
+    @classmethod
+    def parse_filters(cls, v: Any) -> Any:
+        return v
+
+    @field_validator("select_columns", mode="before")
+    @classmethod
+    def parse_select_columns(cls, v: Any) -> Any:
+        return v
 
 
 class DatasetError(BaseModel):
@@ -331,12 +300,6 @@ class DatasetError(BaseModel):
     error_type: str = Field(..., description="Type of error")
     timestamp: str | datetime | None = Field(None, description="Error timestamp")
     model_config = ConfigDict(ser_json_timedelta="iso8601")
-
-    @field_validator("error")
-    @classmethod
-    def sanitize_error_for_llm_context(cls, value: str) -> str:
-        """Wrap error text before it is exposed to LLM context."""
-        return sanitize_for_llm_context(value, field_path=("error",))
 
     @classmethod
     def create(cls, error: str, error_type: str) -> "DatasetError":
@@ -441,12 +404,26 @@ class CreateDatasetMetric(BaseModel):
     """Metric definition for dataset creation."""
 
     metric_name: str = Field(..., description="Name of the metric")
-    expression: str = Field(..., description="SQL expression for the metric")
+    expression: str = Field(
+        ...,
+        description="Aggregate SQL expression for the metric, e.g. SUM(amount)",
+    )
     verbose_name: str | None = None
     description: str | None = None
     metric_type: str | None = None
     d3format: str | None = None
     warning_text: str | None = None
+
+    @field_validator("expression")
+    @classmethod
+    def expression_must_aggregate(cls, value: str) -> str:
+        if not has_aggregate(value):
+            raise ValueError(
+                "saved metrics must aggregate rows; wrap a row-level column in "
+                "an aggregate such as MAX(column), or omit the saved metric and "
+                "use the dataset column directly"
+            )
+        return value
 
 
 class CreateDatasetCalculatedColumn(BaseModel):
@@ -806,28 +783,19 @@ class QueryDatasetFilter(BaseModel):
         description="Filter value (omit for IS NULL/IS NOT NULL)",
     )
 
+    @model_validator(mode="after")
+    def _validate_temporal_range_val(self) -> "QueryDatasetFilter":
+        """Hold a TEMPORAL_RANGE filter to the same grammar as ``time_range``.
 
-# Bracket shorthands (e.g. "[year]", "[quarter]") are not a Superset
-# time-range grammar — they appear when an LLM copies a grain token from a
-# dashboard filter context.  Map them to an equivalent form that
-# get_since_until() resolves correctly.
-#
-# "Last second"/"Last minute"/"Last hour" are excluded: get_since_until()
-# pairs a "Last <unit>" since-expression (resolved against "now" for
-# sub-day units) with a default until-expression resolved against "today"
-# (midnight), so since ends up after until and raises "From date cannot
-# be larger than to date". Explicit DATEADD/DATETIME expressions sidestep
-# that mismatch by resolving both ends against "now".
-_BRACKET_SHORTHAND_TO_TIME_RANGE: dict[str, str] = {
-    "[second]": "DATEADD(DATETIME('now'), -1, SECOND) : DATETIME('now')",
-    "[minute]": "DATEADD(DATETIME('now'), -1, MINUTE) : DATETIME('now')",
-    "[hour]": "DATEADD(DATETIME('now'), -1, HOUR) : DATETIME('now')",
-    "[day]": "Last day",
-    "[week]": "Last week",
-    "[month]": "Last month",
-    "[quarter]": "Last quarter",
-    "[year]": "Last year",
-}
+        This operator resolves through ``get_since_until()`` exactly like the
+        dedicated ``time_range`` field does, so an unparseable value here
+        produces the same silent full-table match. Validating only
+        ``time_range`` would leave that gap open to any caller that spells
+        the same filter out longhand.
+        """
+        if self.op == "TEMPORAL_RANGE" and isinstance(self.val, str):
+            self.val = validate_time_range(self.val)
+        return self
 
 
 class QueryDatasetRequest(QueryCacheControl):
@@ -865,8 +833,9 @@ class QueryDatasetRequest(QueryCacheControl):
             "'Last 7 days', 'Last month', 'Last year', 'Last quarter', "
             "'Current week', 'previous calendar year', or an ISO-8601 range "
             "like '2024-01-01 : 2024-12-31'. Requires a temporal column "
-            "on the dataset. Do NOT use bracket shorthands like '[year]' "
-            "or '[quarter]' — use 'Last year' / 'Last quarter' instead."
+            "on the dataset. Bracket shorthands like '[year]' or "
+            "'[quarter]' are also accepted and normalized to the "
+            "equivalent 'Last <unit>' form."
         ),
     )
     time_column: str | None = Field(
@@ -893,12 +862,8 @@ class QueryDatasetRequest(QueryCacheControl):
 
     @field_validator("time_range")
     @classmethod
-    def normalize_time_range(cls, v: str | None) -> str | None:
-        if v is None:
-            return v
-        stripped = v.strip()
-        canonical = _BRACKET_SHORTHAND_TO_TIME_RANGE.get(stripped.lower())
-        return canonical if canonical is not None else stripped
+    def _validate_time_range(cls, v: str | None) -> str | None:
+        return validate_time_range(v)
 
     @model_validator(mode="after")
     def validate_metrics_or_columns(self) -> "QueryDatasetRequest":
@@ -928,6 +893,27 @@ class QueryDatasetResponse(BaseModel):
     total_rows: int | None = Field(
         None, description="Total row count from the query engine"
     )
+    from_dttm: datetime | None = Field(
+        None,
+        description=(
+            "Resolved inclusive start of the query engine's primary time range. "
+            "Null means no primary lower bound is available. ISO 8601; naive "
+            "values are in Superset's logical time coordinates, not necessarily UTC. "
+            "On cache hits, these are current-request bounds; cached rows can reflect "
+            "an earlier relative range. Check cache_status.cache_hit."
+        ),
+    )
+    to_dttm: datetime | None = Field(
+        None,
+        description=(
+            "Resolved exclusive end of the query engine's primary time range. "
+            "Null means no primary upper bound is available. Report these bounds when "
+            "describing results; do not infer dates from relative expressions. "
+            "Additional filters and datasource timezone adjustments still apply. "
+            "On cache hits, these are current-request bounds; cached rows can reflect "
+            "an earlier relative range. Check cache_status.cache_hit."
+        ),
+    )
     summary: str = Field("", description="Human-readable summary of the results")
     performance: PerformanceMetadata | None = Field(
         None, description="Query performance metadata"
@@ -955,90 +941,6 @@ def _parse_json_field(obj: Any, field_name: str) -> Dict[str, Any] | None:
             pass
         return None
     return value
-
-
-def _sanitize_dataset_info_for_llm_context(dataset_info: DatasetInfo) -> DatasetInfo:
-    """Wrap dataset read-path descriptive fields before LLM exposure."""
-    payload = dataset_info.model_dump(mode="python")
-
-    for field_name in ("description", "certified_by", "certification_details", "sql"):
-        payload[field_name] = sanitize_for_llm_context(
-            payload.get(field_name),
-            field_path=(field_name,),
-        )
-
-    for field_name in ("table_name", "schema_name", "database_name", "schema_perm"):
-        payload[field_name] = escape_llm_context_delimiters(payload.get(field_name))
-
-    payload["extra"] = sanitize_for_llm_context(
-        payload.get("extra"),
-        field_path=("extra",),
-        excluded_field_names=frozenset(),
-    )
-
-    for field_name in ("params", "template_params"):
-        payload[field_name] = sanitize_for_llm_context(
-            payload.get(field_name),
-            field_path=(field_name,),
-            excluded_field_names=frozenset(),
-        )
-
-    payload["columns"] = [
-        {
-            **column,
-            "column_name": escape_llm_context_delimiters(
-                column.get("column_name"),
-            ),
-            "description": sanitize_for_llm_context(
-                column.get("description"),
-                field_path=("columns", str(index), "description"),
-            ),
-            "verbose_name": sanitize_for_llm_context(
-                column.get("verbose_name"),
-                field_path=("columns", str(index), "verbose_name"),
-            ),
-        }
-        for index, column in enumerate(payload.get("columns", []))
-    ]
-
-    payload["metrics"] = [
-        {
-            **metric,
-            "metric_name": escape_llm_context_delimiters(
-                metric.get("metric_name"),
-            ),
-            "expression": sanitize_for_llm_context(
-                metric.get("expression"),
-                field_path=("metrics", str(index), "expression"),
-            ),
-            "description": sanitize_for_llm_context(
-                metric.get("description"),
-                field_path=("metrics", str(index), "description"),
-            ),
-            "verbose_name": sanitize_for_llm_context(
-                metric.get("verbose_name"),
-                field_path=("metrics", str(index), "verbose_name"),
-            ),
-        }
-        for index, metric in enumerate(payload.get("metrics", []))
-    ]
-
-    payload["tags"] = [
-        {
-            **tag,
-            "name": sanitize_for_llm_context(
-                tag.get("name"),
-                field_path=("tags", str(index), "name"),
-            ),
-            "description": sanitize_for_llm_context(
-                tag.get("description"),
-                field_path=("tags", str(index), "description"),
-            ),
-        }
-        for index, tag in enumerate(payload.get("tags", []))
-    ]
-
-    return DatasetInfo.model_validate(payload)
 
 
 def serialize_dataset_object(dataset: Any) -> DatasetInfo | None:
@@ -1075,59 +977,53 @@ def serialize_dataset_object(dataset: Any) -> DatasetInfo | None:
         )
         for metric in getattr(dataset, "metrics", [])
     ]
-    return _sanitize_dataset_info_for_llm_context(
-        DatasetInfo(
-            id=getattr(dataset, "id", None),
-            table_name=getattr(dataset, "table_name", None),
-            schema_name=getattr(dataset, "schema", None),
-            database_name=getattr(dataset.database, "database_name", None)
-            if getattr(dataset, "database", None)
-            else None,
-            description=getattr(dataset, "description", None),
-            certified_by=getattr(dataset, "certified_by", None),
-            certification_details=getattr(dataset, "certification_details", None),
-            changed_on=getattr(dataset, "changed_on", None),
-            changed_on_humanized=humanize_timestamp(
-                getattr(dataset, "changed_on", None)
-            ),
-            created_on=getattr(dataset, "created_on", None),
-            created_on_humanized=humanize_timestamp(
-                getattr(dataset, "created_on", None)
-            ),
-            tags=[
-                TagInfo.model_validate(tag, from_attributes=True)
-                for tag in getattr(dataset, "tags", [])
-            ]
-            if getattr(dataset, "tags", None)
-            else [],
-            editors=[
-                info
-                for editor in getattr(dataset, "editors", [])
-                if (info := serialize_subject_object(editor)) is not None
-            ]
-            if getattr(dataset, "editors", None)
-            else [],
-            is_virtual=getattr(dataset, "is_virtual", None),
-            database_id=getattr(dataset, "database_id", None),
-            uuid=str(getattr(dataset, "uuid", ""))
-            if getattr(dataset, "uuid", None)
-            else None,
-            schema_perm=getattr(dataset, "schema_perm", None),
-            url=(
-                f"{get_superset_base_url()}/explore/"
-                f"?datasource_type=table&datasource_id={getattr(dataset, 'id', None)}"
-                if getattr(dataset, "id", None)
-                else None
-            ),
-            sql=getattr(dataset, "sql", None),
-            main_dttm_col=getattr(dataset, "main_dttm_col", None),
-            offset=getattr(dataset, "offset", None),
-            cache_timeout=getattr(dataset, "cache_timeout", None),
-            params=params,
-            template_params=_parse_json_field(dataset, "template_params"),
-            extra=_parse_json_field(dataset, "extra"),
-            columns=columns,
-            metrics=metrics,
-            is_favorite=getattr(dataset, "is_favorite", None),
-        )
+    return DatasetInfo(
+        id=getattr(dataset, "id", None),
+        table_name=getattr(dataset, "table_name", None),
+        schema_name=getattr(dataset, "schema", None),
+        database_name=getattr(dataset.database, "database_name", None)
+        if getattr(dataset, "database", None)
+        else None,
+        description=getattr(dataset, "description", None),
+        certified_by=getattr(dataset, "certified_by", None),
+        certification_details=getattr(dataset, "certification_details", None),
+        changed_on=getattr(dataset, "changed_on", None),
+        changed_on_humanized=humanize_timestamp(getattr(dataset, "changed_on", None)),
+        created_on=getattr(dataset, "created_on", None),
+        created_on_humanized=humanize_timestamp(getattr(dataset, "created_on", None)),
+        tags=[
+            TagInfo.model_validate(tag, from_attributes=True)
+            for tag in getattr(dataset, "tags", [])
+        ]
+        if getattr(dataset, "tags", None)
+        else [],
+        editors=[
+            info
+            for editor in getattr(dataset, "editors", [])
+            if (info := serialize_subject_object(editor)) is not None
+        ]
+        if getattr(dataset, "editors", None)
+        else [],
+        is_virtual=getattr(dataset, "is_virtual", None),
+        database_id=getattr(dataset, "database_id", None),
+        uuid=str(getattr(dataset, "uuid", ""))
+        if getattr(dataset, "uuid", None)
+        else None,
+        schema_perm=getattr(dataset, "schema_perm", None),
+        url=(
+            f"{get_superset_base_url()}/explore/"
+            f"?datasource_type=table&datasource_id={getattr(dataset, 'id', None)}"
+            if getattr(dataset, "id", None)
+            else None
+        ),
+        sql=getattr(dataset, "sql", None),
+        main_dttm_col=getattr(dataset, "main_dttm_col", None),
+        offset=getattr(dataset, "offset", None),
+        cache_timeout=getattr(dataset, "cache_timeout", None),
+        params=params,
+        template_params=_parse_json_field(dataset, "template_params"),
+        extra=_parse_json_field(dataset, "extra"),
+        columns=columns,
+        metrics=metrics,
+        is_favorite=getattr(dataset, "is_favorite", None),
     )

@@ -81,4 +81,11 @@ export type Tags = {
 };
 
 export type ContentType =
-  Dashboards | Description | LastModified | Editor | Rows | Sql | Table | Tags;
+  | Dashboards
+  | Description
+  | LastModified
+  | Editor
+  | Rows
+  | Sql
+  | Table
+  | Tags;

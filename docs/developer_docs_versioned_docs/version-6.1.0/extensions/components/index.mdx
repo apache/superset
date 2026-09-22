@@ -39,11 +39,7 @@ All components are exported from the `@apache-superset/core/components` package:
 import { Alert } from '@apache-superset/core/components';
 
 export function MyExtensionPanel() {
-  return (
-    <Alert type="info">
-      Welcome to my extension!
-    </Alert>
-  );
+  return <Alert type="info">Welcome to my extension!</Alert>;
 }
 ```
 
@@ -68,7 +64,7 @@ export default {
   },
 };
 
-export const InteractiveMyComponent = (args) => <MyComponent {...args} />;
+export const InteractiveMyComponent = args => <MyComponent {...args} />;
 
 InteractiveMyComponent.args = {
   variant: 'primary',

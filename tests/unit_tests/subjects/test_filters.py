@@ -71,6 +71,33 @@ def test_dashboard_access_filter_uses_viewers_path():
         m.assert_called_once()
 
 
+def test_dashboard_access_filter_scopes_guest_to_token_dashboards():
+    """A guest's dashboard list is scoped solely to its token dashboards, never
+    widened by the role-based paths (mirrors ChartFilter)."""
+    from superset.dashboards.filters import DashboardAccessFilter
+
+    sentinel = object()
+    sm = _make_sm()
+    with (
+        patch("superset.dashboards.filters.security_manager", sm),
+        patch(
+            "superset.dashboards.filters.guest_embedded_dashboard_filter",
+            return_value=sentinel,
+        ),
+    ):
+        f = DashboardAccessFilter.__new__(DashboardAccessFilter)
+        query = MagicMock()
+        with patch.object(f, "_apply_viewers") as viewers:
+            result = f.apply(query, None)
+
+    # The guest branch returns early with the token scoping as the sole
+    # predicate: no role-based widening, and it precedes even the admin bypass.
+    query.filter.assert_called_once_with(sentinel)
+    assert result is query.filter.return_value
+    viewers.assert_not_called()
+    sm.is_admin.assert_not_called()
+
+
 # ---------------------------------------------------------------------------
 # DashboardEditableFilter
 # ---------------------------------------------------------------------------
@@ -214,6 +241,31 @@ def test_subject_type_filter_config_default_user_and_group():
     from superset.config import SUBJECTS_RELATED_TYPES
 
     assert SUBJECTS_RELATED_TYPES == [SubjectType.USER, SubjectType.GROUP]
+
+
+def test_subject_type_filter_rls_config_default_includes_role():
+    """The RLS rule editor's Subjects picker must offer roles by default.
+
+    Row level security rules are commonly scoped to a role rather than an
+    individual user, so RLS should not silently inherit the global picker's
+    exclusion of ROLE.
+    """
+    from superset.config import SUBJECTS_RELATED_TYPES, SUBJECTS_RELATED_TYPES_RLS
+
+    assert SUBJECTS_RELATED_TYPES_RLS == [
+        SubjectType.USER,
+        SubjectType.ROLE,
+        SubjectType.GROUP,
+    ]
+
+    query, result = _apply_subject_type_filter(
+        global_types=SUBJECTS_RELATED_TYPES,
+        entity_types=SUBJECTS_RELATED_TYPES_RLS,
+        entity_key="SUBJECTS_RELATED_TYPES_RLS",
+    )
+    query.filter.assert_called_once()
+    _assert_subject_type_filter_values(query, SUBJECTS_RELATED_TYPES_RLS)
+    assert result is query.filter.return_value
 
 
 def test_subject_type_filter_global_only():

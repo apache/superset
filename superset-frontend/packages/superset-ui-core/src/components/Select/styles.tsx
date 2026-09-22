@@ -58,7 +58,6 @@ export const StyledSelect = styled(Select, {
       left: 0px;
     }
 
-    && .ant-select-content,
     && .ant-select-selection-item,
     && .ant-select-placeholder {
       max-height: ${theme.sizeXL}px;

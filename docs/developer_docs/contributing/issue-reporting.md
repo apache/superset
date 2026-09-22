@@ -31,6 +31,7 @@ Learn how to effectively report bugs and request features for Apache Superset.
 ### Pre-Issue Checklist
 
 1. **Search Existing Issues**
+
    ```
    Search: https://github.com/apache/superset/issues
    - Use keywords from your error message
@@ -44,6 +45,7 @@ Learn how to effectively report bugs and request features for Apache Superset.
    - [Configuration Guide](https://superset.apache.org/docs/configuration/configuring-superset)
 
 3. **Verify Version**
+
    ```bash
    # Check Superset version
    superset version
@@ -63,24 +65,30 @@ Learn how to effectively report bugs and request features for Apache Superset.
 
 ```markdown
 ### Bug Description
+
 A clear and concise description of the bug.
 
 ### How to Reproduce
+
 1. Go to '...'
 2. Click on '...'
 3. Scroll down to '...'
 4. See error
 
 ### Expected Behavior
+
 What you expected to happen.
 
 ### Actual Behavior
+
 What actually happened. Include error messages.
 
 ### Screenshots/Videos
+
 If applicable, add screenshots or recordings.
 
 ### Environment
+
 - Superset version: [e.g., 3.0.0]
 - Python version: [e.g., 3.11.7]
 - Node version: [e.g., 18.17.0]
@@ -89,6 +97,7 @@ If applicable, add screenshots or recordings.
 - OS: [e.g., Ubuntu 22.04]
 
 ### Additional Context
+
 - Using Docker: Yes/No
 - Configuration overrides:
 - Feature flags enabled:
@@ -98,12 +107,15 @@ If applicable, add screenshots or recordings.
 ### What Makes a Good Bug Report
 
 #### ✅ Good Example
+
 ```markdown
 ### Bug Description
+
 When filtering a dashboard with a date range filter, charts using
 SQL Lab datasets don't update, while charts using regular datasets do.
 
 ### How to Reproduce
+
 1. Create a dashboard with 2 charts:
    - Chart A: Uses a SQL Lab virtual dataset
    - Chart B: Uses a regular table dataset
@@ -112,18 +124,22 @@ SQL Lab datasets don't update, while charts using regular datasets do.
 4. Chart B updates, Chart A shows no change
 
 ### Expected Behavior
+
 Both charts should filter to show last 30 days of data.
 
 ### Actual Behavior
+
 Only Chart B updates. Chart A still shows all data.
 No error messages in browser console or server logs.
 
 ### Screenshots
+
 [Dashboard before filter]: attachment1.png
 [Dashboard after filter]: attachment2.png
 [Network tab showing requests]: attachment3.png
 
 ### Environment
+
 - Superset version: 3.0.0
 - Python version: 3.11.16
 - Database: PostgreSQL 14.9
@@ -132,6 +148,7 @@ No error messages in browser console or server logs.
 ```
 
 #### ❌ Poor Example
+
 ```markdown
 Dashboard filters don't work. Please fix.
 ```
@@ -139,6 +156,7 @@ Dashboard filters don't work. Please fix.
 ### Required Information
 
 #### Error Messages
+
 ```python
 # Include full error traceback
 Traceback (most recent call last):
@@ -148,6 +166,7 @@ SupersetException: Detailed error message
 ```
 
 #### Logs
+
 ```bash
 # Backend logs
 docker logs superset_app 2>&1 | tail -100
@@ -157,6 +176,7 @@ tail -f ~/.superset/superset.log
 ```
 
 #### Browser Console
+
 ```javascript
 // Include JavaScript errors
 // Chrome: F12 → Console tab
@@ -165,6 +185,7 @@ tail -f ~/.superset/superset.log
 ```
 
 #### Configuration
+
 ```python
 # Relevant config from superset_config.py
 FEATURE_FLAGS = {
@@ -179,18 +200,23 @@ FEATURE_FLAGS = {
 
 ```markdown
 ### Is your feature request related to a problem?
+
 A clear description of the problem you're trying to solve.
 
 ### Describe the solution you'd like
+
 A clear description of what you want to happen.
 
 ### Describe alternatives you've considered
+
 Other solutions or features you've considered.
 
 ### Additional context
+
 Any other context, mockups, or examples.
 
 ### Are you willing to contribute?
+
 - [ ] Yes, I can implement this feature
 - [ ] Yes, I can help test
 - [ ] No, but I can provide feedback
@@ -199,6 +225,7 @@ Any other context, mockups, or examples.
 ### Good Feature Requests Include
 
 1. **Clear Use Case**
+
    ```markdown
    As a [type of user], I want [feature] so that [benefit].
 
@@ -224,6 +251,7 @@ Any other context, mockups, or examples.
 **DO NOT** create public issues for security vulnerabilities!
 
 Instead:
+
 1. Email: security@apache.org
 2. Subject: `[Superset] Security Vulnerability`
 3. Include:
@@ -238,9 +266,11 @@ Instead:
 Send to: security@apache.org
 
 ### Vulnerability Description
+
 [Describe the security issue]
 
 ### Type
+
 - [ ] SQL Injection
 - [ ] XSS
 - [ ] CSRF
@@ -249,27 +279,33 @@ Send to: security@apache.org
 - [ ] Other: [specify]
 
 ### Affected Versions
+
 [List affected versions]
 
 ### Steps to Reproduce
+
 [Detailed steps - be specific]
 
 ### Impact
+
 [What can an attacker do?]
 
 ### Suggested Fix
+
 [If you have suggestions]
 ```
 
 ## Issue Labels
 
 ### Priority Labels
+
 - `P0`: Critical - System unusable
 - `P1`: High - Major feature broken
 - `P2`: Medium - Important but workaround exists
 - `P3`: Low - Nice to have
 
 ### Type Labels
+
 - `bug`: Something isn't working
 - `feature`: New feature request
 - `enhancement`: Improvement to existing feature
@@ -277,6 +313,7 @@ Send to: security@apache.org
 - `question`: Question about usage
 
 ### Component Labels
+
 - `dashboard`: Dashboard functionality
 - `sqllab`: SQL Lab
 - `explore`: Chart builder
@@ -285,6 +322,7 @@ Send to: security@apache.org
 - `security`: Security related
 
 ### Status Labels
+
 - `needs-triage`: Awaiting review
 - `confirmed`: Bug confirmed
 - `in-progress`: Being worked on
@@ -294,25 +332,30 @@ Send to: security@apache.org
 ## Issue Lifecycle
 
 ### 1. Creation
+
 - User creates issue with template
 - Auto-labeled as `needs-triage`
 
 ### 2. Triage
+
 - Maintainer reviews within 7 days
 - Labels applied (priority, type, component)
 - Questions asked if needed
 
 ### 3. Confirmation
+
 - Bug reproduced or feature discussed
 - Label changed to `confirmed`
 - Assigned to milestone if applicable
 
 ### 4. Development
+
 - Contributor claims issue
 - Label changed to `in-progress`
 - PR linked to issue
 
 ### 5. Resolution
+
 - PR merged
 - Issue auto-closed
 - Or manually closed with explanation
@@ -322,6 +365,7 @@ Send to: security@apache.org
 ### If No Response
 
 After 7 days without response:
+
 ```markdown
 @apache/superset-committers This issue hasn't been triaged yet.
 Could someone please take a look?
@@ -343,6 +387,7 @@ Here's additional debugging information: [details]
 ## Tips for Success
 
 ### Do's
+
 - ✅ Search before creating
 - ✅ Use templates
 - ✅ Provide complete information
@@ -352,6 +397,7 @@ Here's additional debugging information: [details]
 - ✅ One issue per report
 
 ### Don'ts
+
 - ❌ "+1" or "me too" comments (use reactions)
 - ❌ Multiple issues in one report
 - ❌ Vague descriptions
@@ -410,6 +456,7 @@ with app.app_context():
 ### Issue Not a Bug?
 
 Consider:
+
 - **Feature Request**: Use feature request template
 - **Question**: Use GitHub Discussions
 - **Configuration Help**: Ask in Slack

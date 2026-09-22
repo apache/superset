@@ -42,3 +42,19 @@ def test_convert_dttm(
     )
 
     assert_convert_dttm(spec, target_type, expected_result, dttm)
+
+
+def test_dialect_loads_under_installed_sqlalchemy() -> None:
+    """
+    ``create_engine`` resolves and imports the ``cockroachdb`` SQLAlchemy
+    dialect entry point without connecting anywhere. This is a regression
+    test for the ``cockroachdb`` PyPI package (last released 2021, replaced
+    by ``sqlalchemy-cockroachdb`` -- see the ``cockroachdb`` extra in
+    pyproject.toml): its dialect referenced
+    ``sqlalchemy.dialects.postgresql.psycopg2.PGCompiler_psycopg2``, which
+    SQLAlchemy 2.0 removed, so merely constructing an engine raised
+    ``ImportError`` before any connection was attempted.
+    """
+    from sqlalchemy import create_engine
+
+    create_engine("cockroachdb://root@localhost:26257/defaultdb?sslmode=disable")

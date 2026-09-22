@@ -522,7 +522,7 @@ const ExtraOptions = ({
                     onChange={onInputChange}
                   >
                     {t(
-                      'Impersonate logged in user (Presto, Trino, Drill, Hive, and Google Sheets)',
+                      'Impersonate logged in user (Presto, Trino, Drill, Hive, Databricks, Snowflake and Google Sheets)',
                     )}
                   </Checkbox>
                   <InfoTooltip
@@ -531,7 +531,11 @@ const ExtraOptions = ({
                         'currently logged on user who must have permission to run them. If Hive ' +
                         'and hive.server2.enable.doAs is enabled, will run the queries as ' +
                         'service account, but impersonate the currently logged on user via ' +
-                        'hive.server2.proxy.user property.',
+                        'hive.server2.proxy.user property. If Databricks, uses OAuth2 to ' +
+                        'authenticate as the currently logged on user. If Snowflake or Google ' +
+                        'Sheets, and OAuth authentication is configured for the database, will ' +
+                        'run the queries as the currently logged on user via their own OAuth ' +
+                        'credentials.',
                     )}
                   />
                 </div>

@@ -83,6 +83,24 @@ test('ensureAppRoot should handle paths with query strings', async () => {
   );
 });
 
+test('ensureAppRoot should not double-prefix paths already containing application root', async () => {
+  const customData = {
+    common: {
+      application_root: '/superset/',
+    },
+  };
+  document.body.innerHTML = `<div id="app" data-bootstrap='${JSON.stringify(customData)}'></div>`;
+  jest.resetModules();
+
+  await import('./getBootstrapData');
+  const { ensureAppRoot } = await import('./pathUtils');
+
+  expect(ensureAppRoot('/superset/logout/')).toBe('/superset/logout/');
+  expect(ensureAppRoot('/superset/login/?next=%2Fsuperset%2F')).toBe(
+    '/superset/login/?next=%2Fsuperset%2F',
+  );
+});
+
 test('makeUrl should create URL with default application root', async () => {
   document.body.innerHTML = '';
   jest.resetModules();

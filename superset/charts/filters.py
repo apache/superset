@@ -21,12 +21,14 @@ from flask_babel import lazy_gettext as _
 from sqlalchemy import and_, or_
 from sqlalchemy.orm import aliased
 from sqlalchemy.orm.query import Query
+from sqlalchemy.sql.elements import ColumnElement
 
 from superset import db, security_manager
 from superset.connectors.sqla import models
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import FavStar
 from superset.models.slice import Slice
+from superset.semantic_layers.models import SemanticLayer, SemanticView
 from superset.subjects.filters import (
     EditableFilter,
     subject_relation_exists_for_current_user,
@@ -37,10 +39,14 @@ from superset.utils.core import get_user_id
 from superset.utils.filters import (
     get_dataset_access_filters,
     guest_embedded_dashboard_filter,
+    semantic_layer_grant_clause,
+    semantic_view_layer_join,
+    semantic_view_slice_join,
+    table_backed_slice_join,
 )
 from superset.views.base import BaseFilter
 from superset.views.base_api import BaseFavoriteFilter
-from superset.views.filters import BaseDeletedStateFilter
+from superset.views.filters import BaseDeletedRecencyFilter, BaseDeletedStateFilter
 
 
 class ChartAllTextFilter(BaseFilter):  # pylint: disable=too-few-public-methods
@@ -150,16 +156,42 @@ class ChartFilter(BaseFilter):  # pylint: disable=too-few-public-methods
             filters.append(Slice.id.in_(viewer_query))
 
         # (C) No-viewer fallback: charts with no viewers → dataset-based access
+        layer_grant_clause: "ColumnElement[bool]" = semantic_layer_grant_clause()
         chart_has_viewers = Slice.viewers.any()
         table_alias = aliased(SqlaTable)
         no_viewer_query = (
             db.session.query(Slice.id)
-            .join(table_alias, Slice.datasource_id == table_alias.id)
-            .join(models.Database, table_alias.database_id == models.Database.id)
+            # Type-aware datasource joins (mirroring DashboardAccessFilter):
+            # the SqlaTable join is constrained to table-backed charts (an
+            # unconstrained id join can bind a semantic-view chart to an
+            # unrelated table sharing its numeric id) and kept outer so
+            # charts on other datasource types survive into the access
+            # filter — their access matches through the perm columns
+            # denormalized onto Slice by ``set_related_perm``. ORM deletion
+            # of a table dataset removes its datasource_access PVM, but
+            # schema/catalog grants survive and can match a retained chart's
+            # denormalized schema_perm/catalog_perm. The list can include
+            # that orphan; the datasource-based object gate denies it
+            # (accepted edge, shared with the dashboard filter).
+            .join(table_alias, table_backed_slice_join(table_alias), isouter=True)
+            .join(
+                models.Database,
+                table_alias.database_id == models.Database.id,
+                isouter=True,
+            )
+            # A layer-level grant covers the layer's views (sc-119501) —
+            # list those charts too, through the same type-guarded
+            # outer-join shape as the SqlaTable join.
+            .join(SemanticView, semantic_view_slice_join(), isouter=True)
+            .join(SemanticLayer, semantic_view_layer_join(), isouter=True)
             .filter(
                 and_(
                     ~chart_has_viewers,
-                    get_dataset_access_filters(Slice),
+                    # No include_all here: ``apply`` already returned the
+                    # unfiltered query for all_datasource_access holders
+                    # before this fallback runs (unlike the dashboard
+                    # filter, which needs the flag for chart-less rows).
+                    get_dataset_access_filters(Slice, layer_grant_clause),
                 )
             )
         )
@@ -172,29 +204,6 @@ class ChartFilter(BaseFilter):  # pylint: disable=too-few-public-methods
                 filters.append(Slice.id.in_(extra_charts_filter(user_id)))
 
         return query.filter(or_(*filters)) if filters else query
-
-    def _apply_legacy(self, query: Query) -> Query:
-        table_alias = aliased(SqlaTable)
-        query = query.join(table_alias, self.model.datasource_id == table_alias.id)
-        query = query.join(
-            models.Database, table_alias.database_id == models.Database.id
-        )
-
-        extra_access_filters = []
-        extra_filters = current_app.config.get("EXTRA_ACCESS_QUERY_FILTERS", {})
-        if extra_charts_filter := extra_filters.get("charts"):
-            user_id = get_user_id()
-            if user_id:
-                extra_access_filters.append(
-                    self.model.id.in_(extra_charts_filter(user_id))
-                )
-
-        return query.filter(
-            or_(
-                get_dataset_access_filters(self.model),
-                *extra_access_filters,
-            )
-        )
 
 
 class ChartEditableFilter(EditableFilter):  # pylint: disable=too-few-public-methods
@@ -275,37 +284,26 @@ class ChartOwnedCreatedFavoredByMeFilter(BaseFilter):  # pylint: disable=too-few
         )
 
 
+class ChartDeletedRecencyFilter(  # pylint: disable=too-few-public-methods
+    BaseDeletedRecencyFilter
+):
+    """Archive time-range preset: rows archived within the last N days."""
+
+    arg_name = "chart_deleted_recency"
+
+
 class ChartDeletedStateFilter(  # pylint: disable=too-few-public-methods
     BaseDeletedStateFilter
 ):
     """Rison filter for the GET list that exposes soft-deleted charts.
 
-    Soft-deleted rows are additionally scoped to the **restore audience**: only
-    the chart's editors (or admins) may enumerate them. This mirrors
-    ``RestoreChartCommand``'s ``raise_for_editorship`` check, so a read-access
-    non-editor (who can see the chart via datasource access) cannot list
-    soft-deleted charts they could never restore. Live rows are unaffected —
-    they keep their normal ``ChartFilter`` visibility.
+    Restore-audience scoping (only editors and admins may enumerate
+    soft-deleted rows) is applied by ``BaseDeletedStateFilter``, and the
+    base's rule must stay the only implementation: stacking a second,
+    semantically identical editors predicate here would mean a future
+    audience change lands in one copy and charts silently enforce the
+    intersection of old and new.
     """
 
     arg_name = "chart_deleted_state"
     model = Slice
-
-    def apply(self, query: Query, value: Any) -> Query:
-        query = super().apply(query, value)
-        normalized = self._normalize(value)
-        if normalized not in {"include", "only"} or security_manager.is_admin():
-            return query
-
-        # Non-admins may only see soft-deleted charts they can edit. ``any()``
-        # emits an EXISTS subquery so it composes with the base access filter
-        # without producing duplicate rows from a join.
-        editable = Slice.editors.any(
-            subject_relation_exists_for_current_user(chart_editors)
-        )
-        if normalized == "only":
-            # ``super().apply`` already restricted to ``deleted_at IS NOT NULL``.
-            return query.filter(editable)
-        # ``include``: keep all live rows (normal access) and add only the
-        # soft-deleted rows this user can edit.
-        return query.filter(or_(Slice.deleted_at.is_(None), editable))

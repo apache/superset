@@ -42,8 +42,16 @@ openapi_spec_methods_override = {
     "info": {"get": {"summary": "Get metadata information about this API resource"}},
 }
 
-get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
-get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}
+get_delete_ids_schema = {
+    "type": "array",
+    "items": {"type": "integer"},
+    "example": [1, 2, 3],
+}
+get_export_ids_schema = {
+    "type": "array",
+    "items": {"type": "integer"},
+    "example": [1, 2, 3],
+}
 
 
 class ImportV1SavedQuerySchema(Schema):

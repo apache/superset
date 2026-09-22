@@ -63,7 +63,7 @@ import {
   MarkAreaComponent,
   MarkLineComponent,
 } from 'echarts/components';
-import { LabelLayout } from 'echarts/features';
+import { LabelLayout, LegacyGridContainLabel } from 'echarts/features';
 import {
   EchartsHandler,
   EchartsProps,
@@ -72,6 +72,7 @@ import {
 } from '../types';
 import { DEFAULT_LOCALE } from '../constants';
 import { mergeEchartsThemeOverrides } from '../utils/themeOverrides';
+import { loadLocale } from './echartsLocale';
 
 // Define this interface here to avoid creating a dependency back to superset-frontend,
 // TODO: to move the type to @superset-ui/core
@@ -119,65 +120,10 @@ use([
   TitleComponent,
   VisualMapComponent,
   LabelLayout,
+  // Superset chart options rely on `grid.containLabel`, which echarts 6
+  // ignores (clipping axis labels) unless this legacy feature is registered.
+  LegacyGridContainLabel,
 ]);
-
-// Explicit per-locale imports rather than a template-literal dynamic
-// import: a computed import makes bundlers build a "context module" over
-// echarts/i18n, and resolving that directory through the echarts package's
-// `exports` map fails intermittently in webpack incremental builds
-// ("Package path ./i18n is exported ... but no valid target file was
-// found"). A static map is also the only thing that lets bundlers
-// code-split exactly the locales listed here. Keys are Superset locales
-// uppercased (see LANGUAGES in superset/config.py); values point at the
-// echarts bundle, whose naming differs for some locales (Slovenian is
-// langSI, Brazilian Portuguese is langPT-br). Superset locales absent
-// from this map fall back to English.
-type EChartsLocaleOption = Parameters<typeof registerLocale>[1];
-
-const LOCALE_LOADERS: Record<
-  string,
-  () => Promise<{ default: EChartsLocaleOption }>
-> = {
-  AR: () => import('echarts/i18n/langAR.js'),
-  CS: () => import('echarts/i18n/langCS.js'),
-  DE: () => import('echarts/i18n/langDE.js'),
-  EL: () => import('echarts/i18n/langEL.js'),
-  EN: () => import('echarts/i18n/langEN.js'),
-  ES: () => import('echarts/i18n/langES.js'),
-  FA: () => import('echarts/i18n/langFA.js'),
-  FI: () => import('echarts/i18n/langFI.js'),
-  FR: () => import('echarts/i18n/langFR.js'),
-  HU: () => import('echarts/i18n/langHU.js'),
-  IT: () => import('echarts/i18n/langIT.js'),
-  JA: () => import('echarts/i18n/langJA.js'),
-  KO: () => import('echarts/i18n/langKO.js'),
-  LV: () => import('echarts/i18n/langLV.js'),
-  NL: () => import('echarts/i18n/langNL.js'),
-  PL: () => import('echarts/i18n/langPL.js'),
-  RO: () => import('echarts/i18n/langRO.js'),
-  PT_BR: () => import('echarts/i18n/langPT-br.js'),
-  RU: () => import('echarts/i18n/langRU.js'),
-  SL: () => import('echarts/i18n/langSI.js'),
-  SV: () => import('echarts/i18n/langSV.js'),
-  TH: () => import('echarts/i18n/langTH.js'),
-  TR: () => import('echarts/i18n/langTR.js'),
-  UK: () => import('echarts/i18n/langUK.js'),
-  VI: () => import('echarts/i18n/langVI.js'),
-  ZH: () => import('echarts/i18n/langZH.js'),
-};
-
-const loadLocale = async (locale: string) => {
-  const loader = LOCALE_LOADERS[locale];
-  if (!loader) {
-    // Locale not supported in ECharts
-    return undefined;
-  }
-  try {
-    return (await loader()).default;
-  } catch {
-    return undefined;
-  }
-};
 
 // Report/thumbnail screenshots use standalone="true" (charts) or 3 (reports);
 // live embeds use 1/2 and keep animation. See superset/utils/screenshots.py.
@@ -191,6 +137,15 @@ export function isReportScreenshotMode(): boolean {
     return false;
   }
 }
+
+// Report-screenshot readiness contract (see superset/utils/screenshot_utils.py).
+// `echarts-host` marks the canvas host element; `echarts-render-finished` is
+// toggled OFF before each setOption and ON in the ECharts `finished` event --
+// the only signal that the canvas is fully painted (chartStatus/onRenderSuccess
+// both fire pre-paint). The readiness gate treats a host that lacks
+// `echarts-render-finished` as not-yet-painted so it never captures a blank chart.
+export const ECHARTS_HOST_CLASS = 'echarts-host';
+export const ECHARTS_RENDER_FINISHED_CLASS = 'echarts-render-finished';
 
 function Echart(
   {
@@ -254,6 +209,11 @@ function Echart(
           locale,
           width,
           height,
+        });
+        // Paint marker for the report-screenshot readiness gate. `finished`
+        // is the only event that guarantees the canvas is fully drawn.
+        chartRef.current.on('finished', () => {
+          divRef.current?.classList.add(ECHARTS_RENDER_FINISHED_CLASS);
         });
       }
       // did mount
@@ -350,7 +310,13 @@ function Echart(
             }
           : {};
 
+      // ECharts' built-in ARIA descriptions are off by default so behavior
+      // doesn't change for existing deployments; a theme or chart's options
+      // can opt in (or further customize aria handling) by overriding this.
+      const ariaDefault = { aria: { enabled: false } };
+
       const themedEchartOptions = mergeEchartsThemeOverrides(
+        ariaDefault,
         baseTheme,
         echartOptions,
         globalOverrides,
@@ -369,6 +335,9 @@ function Echart(
             }
           )?.dataZoom
         : undefined;
+      // Clear the paint marker before (re)drawing; the `finished` handler
+      // re-adds it once the new frame is fully rendered.
+      divRef.current?.classList.remove(ECHARTS_RENDER_FINISHED_CLASS);
       chartRef.current?.setOption(themedEchartOptions, {
         notMerge,
         replaceMerge: notMerge ? undefined : ['series'],
@@ -460,7 +429,14 @@ function Echart(
     handleSizeChange({ width, height });
   }, [width, height, handleSizeChange]);
 
-  return <Styles ref={divRef} height={height} width={width} />;
+  return (
+    <Styles
+      ref={divRef}
+      className={ECHARTS_HOST_CLASS}
+      height={height}
+      width={width}
+    />
+  );
 }
 
 export default forwardRef(Echart);

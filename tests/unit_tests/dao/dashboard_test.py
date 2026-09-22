@@ -24,6 +24,7 @@ from superset.connectors.sqla.models import Database, SqlaTable
 from superset.daos.dashboard import DashboardDAO
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
+from superset.utils import json
 from tests.unit_tests.conftest import with_feature_flags
 
 
@@ -117,3 +118,53 @@ def test_set_dash_metadata_preserves_soft_deleted_members(
     )
     # And the position slot kept its UUID rather than being nulled.
     assert positions["CHART-trashed"]["meta"]["uuid"] == str(trashed_chart.uuid)
+
+
+def test_set_dash_metadata_preserves_refresh_frequency(session: Session) -> None:
+    """set_dash_metadata must not reset refresh_frequency when absent from data.
+
+    Regression test for #42116: ``data.get("refresh_frequency", 0)`` would
+    unconditionally overwrite the existing value with 0 whenever the caller
+    did not include ``refresh_frequency`` in the data dict.
+    """
+    Dashboard.metadata.create_all(session.get_bind())
+
+    dashboard = Dashboard(
+        dashboard_title="refresh_test_dash",
+        json_metadata=json.dumps({"refresh_frequency": 30}),
+    )
+    db.session.add(dashboard)
+    db.session.flush()
+
+    # Simulate a save that does NOT include refresh_frequency
+    # (e.g. changing only the title via the PropertiesModal).
+    DashboardDAO.set_dash_metadata(dashboard, {"color_scheme": "superset"})
+
+    md = json.loads(dashboard.json_metadata)
+    assert md["refresh_frequency"] == 30, (
+        "refresh_frequency should be preserved when not present in data"
+    )
+
+
+def test_set_dash_metadata_updates_refresh_frequency_when_present(
+    session: Session,
+) -> None:
+    """set_dash_metadata must update refresh_frequency when it IS in data."""
+    Dashboard.metadata.create_all(session.get_bind())
+
+    dashboard = Dashboard(
+        dashboard_title="refresh_test_dash_2",
+        json_metadata=json.dumps({"refresh_frequency": 30}),
+    )
+    db.session.add(dashboard)
+    db.session.flush()
+
+    # Simulate a save that explicitly sets refresh_frequency to 0.
+    DashboardDAO.set_dash_metadata(
+        dashboard, {"refresh_frequency": 0, "color_scheme": "superset"}
+    )
+
+    md = json.loads(dashboard.json_metadata)
+    assert md["refresh_frequency"] == 0, (
+        "refresh_frequency should be updated when present in data"
+    )

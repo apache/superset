@@ -26,10 +26,24 @@ import {
   type QueryFormColumn,
 } from '@superset-ui/core';
 import PivotTableChart from '../src/PivotTableChart';
-import { MetricsLayoutEnum, type PivotTableProps } from '../src/types';
+import {
+  MetricsLayoutEnum,
+  type PivotTableProps,
+  type QueryData,
+} from '../src/types';
 
 function renderWithTheme(ui: ReactElement) {
   return render(<ThemeProvider theme={supersetTheme}>{ui}</ThemeProvider>);
+}
+
+// Wrap a flat array of raw rows as the single full-detail rollup level
+// (`data` is now one QueryData entry per rollup level; these tests only ever
+// exercise the leaf level, so `groupby` mirrors `groupbyRows`/`groupbyColumns`).
+function toQueryData(
+  rows: Record<string, unknown>[],
+  groupby: QueryData['groupby'],
+): QueryData[] {
+  return [{ data: rows as QueryData['data'], groupby }];
 }
 
 function createProps(
@@ -46,7 +60,6 @@ function createProps(
     tableRenderer: 'Table',
     colOrder: 'key_a_to_z',
     rowOrder: 'key_a_to_z',
-    aggregateFunction: 'Count',
     transposePivot: false,
     combineMetric: false,
     rowSubtotalPosition: false,
@@ -78,7 +91,10 @@ test('emits numeric temporal values for drill-to-detail filters on formatted row
   const onContextMenu = jest.fn();
   const timestamp = 1778630400000;
   const props: PivotTableProps = {
-    data: [{ install_date: String(timestamp), value: 1 }],
+    data: toQueryData([{ install_date: String(timestamp), value: 1 }], {
+      rows: ['install_date'],
+      columns: [],
+    }),
     height: 400,
     width: 600,
     margin: 0,
@@ -88,7 +104,6 @@ test('emits numeric temporal values for drill-to-detail filters on formatted row
     tableRenderer: 'Table',
     colOrder: 'key_a_to_z',
     rowOrder: 'key_a_to_z',
-    aggregateFunction: 'Count',
     transposePivot: false,
     combineMetric: false,
     rowSubtotalPosition: false,
@@ -141,7 +156,10 @@ test('keeps non-numeric temporal values for drill-to-detail formatted labels', (
   const onContextMenu = jest.fn();
   const dateValue = '2024-01-01';
   const props: PivotTableProps = {
-    data: [{ install_date: dateValue, value: 1 }],
+    data: toQueryData([{ install_date: dateValue, value: 1 }], {
+      rows: ['install_date'],
+      columns: [],
+    }),
     height: 400,
     width: 600,
     margin: 0,
@@ -151,7 +169,6 @@ test('keeps non-numeric temporal values for drill-to-detail formatted labels', (
     tableRenderer: 'Table',
     colOrder: 'key_a_to_z',
     rowOrder: 'key_a_to_z',
-    aggregateFunction: 'Count',
     transposePivot: false,
     combineMetric: false,
     rowSubtotalPosition: false,
@@ -202,7 +219,10 @@ test('keeps non-numeric temporal values for drill-to-detail formatted labels', (
 test('keeps non-formatted drill-to-detail values as strings', () => {
   const onContextMenu = jest.fn();
   const props = createProps({
-    data: [{ country: 'US', value: 1 }],
+    data: toQueryData([{ country: 'US', value: 1 }], {
+      rows: ['country'],
+      columns: [],
+    }),
     groupbyRows: ['country'],
     onContextMenu,
   });
@@ -230,7 +250,10 @@ test('emits numeric temporal values for cross-filters on formatted row headers',
   const setDataMask = jest.fn();
   const timestamp = 1777248000000;
   const props: PivotTableProps = {
-    data: [{ install_date: String(timestamp), value: 1 }],
+    data: toQueryData([{ install_date: String(timestamp), value: 1 }], {
+      rows: ['install_date'],
+      columns: [],
+    }),
     height: 400,
     width: 600,
     margin: 0,
@@ -240,7 +263,6 @@ test('emits numeric temporal values for cross-filters on formatted row headers',
     tableRenderer: 'Table',
     colOrder: 'key_a_to_z',
     rowOrder: 'key_a_to_z',
-    aggregateFunction: 'Count',
     transposePivot: false,
     combineMetric: false,
     rowSubtotalPosition: false,
@@ -294,7 +316,10 @@ test('keeps non-numeric temporal values for cross-filters on formatted row heade
   const setDataMask = jest.fn();
   const dateValue = '2024-01-01';
   const props = createProps({
-    data: [{ install_date: dateValue, value: 1 }],
+    data: toQueryData([{ install_date: dateValue, value: 1 }], {
+      rows: ['install_date'],
+      columns: [],
+    }),
     groupbyRows: ['install_date'],
     setDataMask,
     dateFormatters: {
@@ -332,7 +357,10 @@ test('emits drill filters from formatted column headers', () => {
     expressionType: 'SQL',
   };
   const props = createProps({
-    data: [{ 'Install date expression': String(timestamp), value: 1 }],
+    data: toQueryData(
+      [{ 'Install date expression': String(timestamp), value: 1 }],
+      { rows: [], columns: [adhocColumn] },
+    ),
     groupbyColumns: [adhocColumn],
     dateFormatters: {
       'Install date expression': (value: DataRecordValue) =>

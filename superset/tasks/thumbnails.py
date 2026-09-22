@@ -65,6 +65,7 @@ def cache_chart_thumbnail(
     user = security_manager.find_user(username)
     with override_user(user):
         screenshot = ChartScreenshot(url, chart.digest)
+        screenshot.cache_scope = f"chart:{chart.id}"
         screenshot.compute_and_cache(
             user=user,
             window_size=window_size,
@@ -102,6 +103,7 @@ def cache_dashboard_thumbnail(
     user = security_manager.find_user(username)
     with override_user(user):
         screenshot = DashboardScreenshot(url, dashboard.digest)
+        screenshot.cache_scope = f"dashboard:{dashboard.id}"
         resolved_cache_key = cache_key or screenshot.get_cache_key(
             window_size, thumb_size
         )
@@ -132,27 +134,44 @@ def cache_dashboard_screenshot(  # pylint: disable=too-many-arguments
         logging.warning("No cache set, refusing to compute")
         return
 
-    dashboard = Dashboard.get(dashboard_id)
+    cache_scope = f"dashboard:{dashboard_id}"
+    try:
+        dashboard = Dashboard.get(dashboard_id)
 
-    logger.info("Caching dashboard: %s", dashboard_url)
+        logger.info("Caching dashboard: %s", dashboard_url)
 
-    # Requests from Embedded should always use the Guest user
-    if guest_token:
-        current_user = security_manager.get_guest_user_from_token(guest_token)
-    else:
-        _, exec_username = get_executor(
-            executors=current_app.config["THUMBNAIL_EXECUTORS"],
-            model=dashboard,
-            current_user=username,
-        )
-        current_user = security_manager.find_user(exec_username)
+        # Requests from Embedded should always use the Guest user
+        if guest_token:
+            current_user = security_manager.get_guest_user_from_token(guest_token)
+        else:
+            _, exec_username = get_executor(
+                executors=current_app.config["THUMBNAIL_EXECUTORS"],
+                model=dashboard,
+                current_user=username,
+            )
+            current_user = security_manager.find_user(exec_username)
 
-    with override_user(current_user):
-        screenshot = DashboardScreenshot(dashboard_url, dashboard.digest)
-        screenshot.compute_and_cache(
-            user=current_user,
-            window_size=window_size,
-            thumb_size=thumb_size,
-            cache_key=cache_key,
-            force=force,
-        )
+        with override_user(current_user):
+            screenshot = DashboardScreenshot(
+                dashboard_url,
+                dashboard.digest,
+                require_complete_capture=True,
+            )
+            screenshot.cache_scope = cache_scope
+            screenshot.compute_and_cache(
+                user=current_user,
+                window_size=window_size,
+                thumb_size=thumb_size,
+                cache_key=cache_key,
+                force=force,
+                # If broker publication was ambiguous, the producer may have
+                # marked this accepted generation Error before delivery.
+                retry_fresh_error=True,
+            )
+    except Exception:  # pylint: disable=broad-except
+        if cache_key:
+            DashboardScreenshot.mark_cache_error_if_incomplete(
+                cache_key,
+                cache_scope,
+            )
+        raise

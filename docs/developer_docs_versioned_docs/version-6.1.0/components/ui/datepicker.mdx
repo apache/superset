@@ -33,34 +33,34 @@ The DatePicker component from Superset's UI library.
 <StoryWithControls
   component="DatePicker"
   props={{
-  placeholder: "Select date",
-  showNow: true,
-  allowClear: false,
-  autoFocus: true,
-  disabled: false,
-  format: "YYYY-MM-DD hh:mm a",
-  inputReadOnly: false,
-  picker: "date",
-  placement: "bottomLeft",
-  size: "middle",
-  showTime: {
-    format: "hh:mm a",
-    needConfirm: false
-  }
-}}
+    placeholder: 'Select date',
+    showNow: true,
+    allowClear: false,
+    autoFocus: true,
+    disabled: false,
+    format: 'YYYY-MM-DD hh:mm a',
+    inputReadOnly: false,
+    picker: 'date',
+    placement: 'bottomLeft',
+    size: 'middle',
+    showTime: {
+      format: 'hh:mm a',
+      needConfirm: false,
+    },
+  }}
   controls={[
-  {
-    name: "placeholder",
-    label: "Placeholder",
-    type: "text"
-  },
-  {
-    name: "showNow",
-    label: "Show Now",
-    type: "boolean",
-    description: "Show \"Now\" button to select current date and time."
-  }
-]}
+    {
+      name: 'placeholder',
+      label: 'Placeholder',
+      type: 'text',
+    },
+    {
+      name: 'showNow',
+      label: 'Show Now',
+      type: 'boolean',
+      description: 'Show "Now" button to select current date and time.',
+    },
+  ]}
 />
 
 ## Try It
@@ -82,19 +82,19 @@ function Demo() {
 
 ## Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `placeholder` | `string` | `"Select date"` | - |
-| `showNow` | `boolean` | `true` | Show "Now" button to select current date and time. |
-| `allowClear` | `boolean` | `false` | - |
-| `autoFocus` | `boolean` | `true` | - |
-| `disabled` | `boolean` | `false` | - |
-| `format` | `string` | `"YYYY-MM-DD hh:mm a"` | - |
-| `inputReadOnly` | `boolean` | `false` | - |
-| `picker` | `string` | `"date"` | - |
-| `placement` | `string` | `"bottomLeft"` | - |
-| `size` | `string` | `"middle"` | - |
-| `showTime` | `any` | `{"format":"hh:mm a","needConfirm":false}` | - |
+| Prop            | Type      | Default                                    | Description                                        |
+| --------------- | --------- | ------------------------------------------ | -------------------------------------------------- |
+| `placeholder`   | `string`  | `"Select date"`                            | -                                                  |
+| `showNow`       | `boolean` | `true`                                     | Show "Now" button to select current date and time. |
+| `allowClear`    | `boolean` | `false`                                    | -                                                  |
+| `autoFocus`     | `boolean` | `true`                                     | -                                                  |
+| `disabled`      | `boolean` | `false`                                    | -                                                  |
+| `format`        | `string`  | `"YYYY-MM-DD hh:mm a"`                     | -                                                  |
+| `inputReadOnly` | `boolean` | `false`                                    | -                                                  |
+| `picker`        | `string`  | `"date"`                                   | -                                                  |
+| `placement`     | `string`  | `"bottomLeft"`                             | -                                                  |
+| `size`          | `string`  | `"middle"`                                 | -                                                  |
+| `showTime`      | `any`     | `{"format":"hh:mm a","needConfirm":false}` | -                                                  |
 
 ## Import
 

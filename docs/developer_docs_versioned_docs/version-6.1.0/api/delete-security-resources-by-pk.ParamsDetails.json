@@ -1,1 +1,10 @@
-{"parameters":[{"in":"path","name":"pk","required":true,"schema":{"type":"integer"}}]}
+{
+  "parameters": [
+    {
+      "in": "path",
+      "name": "pk",
+      "required": true,
+      "schema": { "type": "integer" }
+    }
+  ]
+}

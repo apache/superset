@@ -33,7 +33,13 @@ import { fileURLToPath } from 'url';
 const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const SPEC_PATH = path.join(__dirname, '..', 'static', 'resources', 'openapi.json');
+const SPEC_PATH = path.join(
+  __dirname,
+  '..',
+  'static',
+  'resources',
+  'openapi.json',
+);
 const API_DOCS_DIR = path.join(__dirname, '..', 'developer_docs', 'api');
 const SIDEBAR_PATH = path.join(API_DOCS_DIR, 'sidebar.js');
 
@@ -53,7 +59,7 @@ function buildSlugMap() {
   try {
     const sidebar = require(SIDEBAR_PATH);
 
-    const extractDocs = (items) => {
+    const extractDocs = items => {
       for (const item of items) {
         if (item.type === 'doc' && item.label && item.id) {
           const slug = item.id.replace(/^api\//, '');
@@ -109,13 +115,15 @@ function main() {
 
   // Sort endpoints within each tag by path then method
   for (const tag of Object.keys(tagEndpoints)) {
-    tagEndpoints[tag].sort((a, b) =>
-      a.path.localeCompare(b.path) || a.method.localeCompare(b.method)
+    tagEndpoints[tag].sort(
+      (a, b) =>
+        a.path.localeCompare(b.path) || a.method.localeCompare(b.method),
     );
   }
 
   // Scan existing .tag.mdx files and match by frontmatter title
-  const tagFiles = fs.readdirSync(API_DOCS_DIR)
+  const tagFiles = fs
+    .readdirSync(API_DOCS_DIR)
     .filter(f => f.endsWith('.tag.mdx'));
 
   let updated = 0;

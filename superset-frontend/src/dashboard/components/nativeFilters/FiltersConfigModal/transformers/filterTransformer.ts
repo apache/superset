@@ -48,7 +48,9 @@ type NativeFilterFormOrSaved = NativeFiltersFormItem | Filter;
 function isCustomizationType(
   formInputs: FilterFormInput,
 ): formInputs is
-  ChartCustomizationsFormItem | ChartCustomization | ChartCustomizationDivider {
+  | ChartCustomizationsFormItem
+  | ChartCustomization
+  | ChartCustomizationDivider {
   return (
     'type' in formInputs &&
     (formInputs.type === ChartCustomizationType.ChartCustomization ||
@@ -65,7 +67,10 @@ function isDividerType(
 function isFormInput(
   formInputs: NativeFilterFormOrSaved,
 ): formInputs is NativeFiltersFormItem {
-  return 'dataset' in formInputs;
+  // A saved filter always carries a serialized `targets` array; a form item
+  // never does. Keying this off `dataset` misclassified filter types with no
+  // dataset control (e.g. `filter_time`) as already saved.
+  return !('targets' in formInputs);
 }
 
 function transformDivider(
@@ -113,7 +118,7 @@ function transformFormInput(
     adhoc_filters: formInputs.adhoc_filters,
     time_range: formInputs.time_range,
     granularity_sqla: formInputs.granularity_sqla,
-    sortMetric: formInputs.sortMetric ?? null,
+    sortMetric: formInputs.sortMetric,
     requiredFirst: formInputs.requiredFirst
       ? Object.values(formInputs.requiredFirst).find(rf => rf)
       : undefined,

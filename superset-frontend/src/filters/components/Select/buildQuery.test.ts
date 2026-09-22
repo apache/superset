@@ -117,6 +117,38 @@ describe('Select buildQuery', () => {
     ]);
   });
 
+  test('should not sort by the searched column', () => {
+    // Ordering by a high-cardinality column makes the engine sort every match
+    // before applying the row limit; the dropdown re-sorts the page anyway.
+    const queryContext = buildQuery(
+      { ...formData, sortAscending: true },
+      {
+        ownState: {
+          search: 'abc',
+          coltypeMap: { my_col: GenericDataType.String },
+        },
+      },
+    );
+    const [query] = queryContext.queries;
+    expect(query.orderby).toEqual([]);
+  });
+
+  test('should keep the sort metric while searching', () => {
+    // A sort metric decides which rows come back, so dropping it would change
+    // the result set rather than just its order.
+    const queryContext = buildQuery(
+      { ...formData, sortMetric: 'my_metric', sortAscending: false },
+      {
+        ownState: {
+          search: 'abc',
+          coltypeMap: { my_col: GenericDataType.String },
+        },
+      },
+    );
+    const [query] = queryContext.queries;
+    expect(query.orderby).toEqual([['my_metric', false]]);
+  });
+
   test('should add text search parameter for numeric to query filter', () => {
     const queryContext = buildQuery(formData, {
       ownState: {

@@ -207,6 +207,38 @@ describe('AdhocFilter', () => {
     expect(adhocFilter10.isValid()).toBe(true);
   });
 
+  test('is invalid when a comparator-taking operator has no comparator', () => {
+    // A comparator that was never set, or that was cleared through the value
+    // Select's clear affordance, is `undefined` rather than `null` or `[]`.
+    const adhocFilter1 = new AdhocFilter({
+      expressionType: ExpressionTypes.Simple,
+      subject: 'is_intro',
+      operator: 'IN',
+      comparator: undefined,
+      clause: Clauses.Where,
+    });
+    expect(adhocFilter1.isValid()).toBe(false);
+
+    const adhocFilter2 = new AdhocFilter({
+      expressionType: ExpressionTypes.Simple,
+      subject: 'is_intro',
+      operator: '==',
+      comparator: undefined,
+      clause: Clauses.Where,
+    });
+    expect(adhocFilter2.isValid()).toBe(false);
+
+    // `false` is a legitimate boolean comparator, not a missing value
+    const adhocFilter3 = new AdhocFilter({
+      expressionType: ExpressionTypes.Simple,
+      subject: 'is_intro',
+      operator: '==',
+      comparator: false,
+      clause: Clauses.Where,
+    });
+    expect(adhocFilter3.isValid()).toBe(true);
+  });
+
   test('can translate from simple expressions to sql expressions', () => {
     const adhocFilter1 = new AdhocFilter({
       expressionType: ExpressionTypes.Simple,
@@ -270,6 +302,74 @@ describe('AdhocFilter', () => {
     });
     expect(adhocFilter.comparator).toBe(undefined);
   });
+  // Charts saved before #32701 persisted `==` as the operation for IS_TRUE and
+  // IS_FALSE, alongside a boolean comparator. `translateToSql` and the backend
+  // both key off `operator`, so dropping the comparator would render such a
+  // filter as `col =` and query it as `col IS NULL`.
+  test('keeps the legacy boolean comparator for IS_TRUE', () => {
+    const adhocFilter = new AdhocFilter({
+      expressionType: ExpressionTypes.Simple,
+      subject: 'col',
+      operator: '==',
+      operatorId: Operators.IsTrue,
+      comparator: true,
+      clause: Clauses.Where,
+    });
+    expect(adhocFilter.operator).toBe('==');
+    expect(adhocFilter.comparator).toBe(true);
+    expect(adhocFilter.translateToSql()).toBe("col = 'TRUE'");
+  });
+  test('keeps the legacy boolean comparator for IS_FALSE', () => {
+    const adhocFilter = new AdhocFilter({
+      expressionType: ExpressionTypes.Simple,
+      subject: 'col',
+      operator: '==',
+      operatorId: Operators.IsFalse,
+      comparator: false,
+      clause: Clauses.Where,
+    });
+    expect(adhocFilter.operator).toBe('==');
+    expect(adhocFilter.comparator).toBe(false);
+    expect(adhocFilter.translateToSql()).toBe("col = 'FALSE'");
+  });
+  test('restores the boolean even when the stored comparator is missing', () => {
+    const adhocFilter = new AdhocFilter({
+      expressionType: ExpressionTypes.Simple,
+      subject: 'col',
+      operator: '==',
+      operatorId: Operators.IsTrue,
+      clause: Clauses.Where,
+    });
+    expect(adhocFilter.comparator).toBe(true);
+  });
+  test('keeps a legacy boolean filter intact when the control re-posts it', () => {
+    const stored = {
+      expressionType: ExpressionTypes.Simple,
+      subject: 'col',
+      operator: '==',
+      operatorId: Operators.IsTrue,
+      comparator: true,
+      clause: Clauses.Where,
+    };
+    // DndFilterSelect wraps props.value and hands those instances to onChange
+    const posted = JSON.parse(JSON.stringify(new AdhocFilter(stored)));
+    expect(posted.operator).toBe('==');
+    expect(posted.comparator).toBe(true);
+    expect(posted.operatorId).toBe(Operators.IsTrue);
+  });
+  test('leaves a genuine equality filter on a boolean value alone', () => {
+    const adhocFilter = new AdhocFilter({
+      expressionType: ExpressionTypes.Simple,
+      subject: 'col',
+      operator: '==',
+      operatorId: Operators.Equals,
+      comparator: true,
+      clause: Clauses.Where,
+    });
+    expect(adhocFilter.operator).toBe('==');
+    expect(adhocFilter.comparator).toBe(true);
+    expect(adhocFilter.translateToSql()).toBe("col = 'TRUE'");
+  });
   test('sets the label properly if subject is a string', () => {
     const adhocFilter = new AdhocFilter({
       expressionType: ExpressionTypes.Simple,
@@ -301,5 +401,33 @@ describe('AdhocFilter', () => {
       subject: undefined,
     });
     expect(adhocFilter.getDefaultLabel()).toBe('');
+  });
+  test('uses the column verbose_name in the label when one is given', () => {
+    const adhocFilter = new AdhocFilter({
+      expressionType: ExpressionTypes.Simple,
+      subject: 'num',
+      operator: '>',
+      comparator: '500',
+      clause: Clauses.Where,
+    });
+    expect(
+      adhocFilter.getDefaultLabel([
+        { column_name: 'num', verbose_name: 'total_count' },
+      ]),
+    ).toBe('total_count > 500');
+  });
+  test('falls back to the column_name when no verbose_name is set', () => {
+    const adhocFilter = new AdhocFilter({
+      expressionType: ExpressionTypes.Simple,
+      subject: 'num',
+      operator: '>',
+      comparator: '500',
+      clause: Clauses.Where,
+    });
+    expect(
+      adhocFilter.getDefaultLabel([{ column_name: 'num', verbose_name: '' }]),
+    ).toBe('num > 500');
+    expect(adhocFilter.getDefaultLabel([])).toBe('num > 500');
+    expect(adhocFilter.getDefaultLabel()).toBe('num > 500');
   });
 });

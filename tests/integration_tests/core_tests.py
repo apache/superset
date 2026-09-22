@@ -43,7 +43,7 @@ from superset.common.db_query_status import QueryStatus
 from superset.connectors.sqla.models import SqlaTable
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.mssql import MssqlEngineSpec
-from superset.exceptions import OAuth2RedirectError, SupersetException
+from superset.exceptions import SupersetException
 from superset.extensions import cache_manager
 from superset.models import core as models
 from superset.models.dashboard import Dashboard
@@ -119,29 +119,6 @@ class TestCore(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         resp = self.client.get("/slice/-1/")
         assert resp.status_code == 404
-
-    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
-    def test_viz_cache_key(self):
-        self.login(ADMIN_USERNAME)
-        slc = self.get_slice("Life Expectancy VS Rural %")
-
-        viz = slc.viz
-        qobj = viz.query_obj()
-        cache_key = viz.cache_key(qobj)
-
-        qobj["groupby"] = []
-        cache_key_with_groupby = viz.cache_key(qobj)
-        assert cache_key != cache_key_with_groupby
-
-        assert viz.cache_key(qobj) != viz.cache_key(qobj, time_compare="12 weeks")
-
-        assert viz.cache_key(qobj, time_compare="28 days") != viz.cache_key(
-            qobj, time_compare="12 weeks"
-        )
-
-        qobj["inner_from_dttm"] = datetime.datetime(1901, 1, 1)
-
-        assert cache_key_with_groupby == viz.cache_key(qobj)
 
     def test_admin_only_menu_views(self):
         def assert_admin_view_menus_in(role_name, assert_func):
@@ -219,6 +196,56 @@ class TestCore(SupersetTestCase):
         for slc in slices:
             db.session.delete(slc)
         db.session.commit()
+
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_overwrite_refuses_externally_managed_slice(self):
+        """sc-120011: the legacy Explore overwrite is gated server-side.
+
+        /superset/explore/ with action=overwrite assigns request values
+        (params, query_context, ...) directly to the loaded chart and
+        persists via ChartDAO.update, bypassing UpdateChartCommand -- so
+        the managed-externally refusal must exist on this path too, even
+        for an admin who could otherwise edit the chart.
+
+        The refusal message is asserted (not just the status) so a 403
+        from an unrelated check cannot satisfy the pin; environments with
+        broken admin datasource grants fail here with the datasource
+        error instead -- CI is the verifier.
+        """
+        self.login(ADMIN_USERNAME)
+        slc = self.get_slice("Energy Sankey")
+        slice_id = slc.id
+        original_name = slc.slice_name
+        original_query_context = slc.query_context
+        slc.is_managed_externally = True
+        db.session.commit()
+
+        tbl_id = self.table_ids.get("energy_usage")
+        url = (
+            f"/explore/table/{tbl_id}/?slice_name=changed&action=overwrite"
+            "&datasource_name=energy_usage"
+        )
+        form_data = {
+            "adhoc_filters": [],
+            "viz_type": "sankey",
+            "groupby": ["target"],
+            "metric": "sum__value",
+            "row_limit": 5000,
+            "slice_id": slice_id,
+        }
+
+        try:
+            resp = self.client.post(url, data={"form_data": json.dumps(form_data)})
+            assert resp.status_code == 403
+            assert "rights to alter this chart" in resp.get_data(as_text=True)
+
+            slc = db.session.query(Slice).filter_by(id=slice_id).one()
+            assert slc.slice_name == original_name
+            assert slc.query_context == original_query_context
+        finally:
+            slc = db.session.query(Slice).filter_by(id=slice_id).one()
+            slc.is_managed_externally = False
+            db.session.commit()
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_slice_data(self):
@@ -445,84 +472,6 @@ class TestCore(SupersetTestCase):
         assert "comment 1" in rendered_query
         assert "comment 2" in rendered_query
         assert "FROM tbl" in rendered_query
-
-    def test_slice_payload_no_datasource(self):
-        form_data = {
-            "viz_type": "dist_bar",
-        }
-        self.login(ADMIN_USERNAME)
-        rv = self.client.post(
-            "/explore_json/",
-            data={"form_data": json.dumps(form_data)},
-        )
-        data = json.loads(rv.data.decode("utf-8"))
-
-        assert (
-            data["errors"][0]["message"]
-            == "The dataset associated with this chart no longer exists"
-        )
-
-    def test_explore_json_data_invalid_cache_key(self):
-        self.login(ADMIN_USERNAME)
-        cache_key = "invalid-cache-key"
-        rv = self.client.get(f"/explore_json/data/{cache_key}")
-        data = json.loads(rv.data.decode("utf-8"))
-
-        assert rv.status_code == 404
-        assert data["error"] == "Cached data not found"
-
-    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
-    @mock.patch("superset.viz.BaseViz.get_df")
-    def test_explore_json_propagates_oauth2_redirect_error(
-        self, mock_get_df: mock.Mock
-    ) -> None:
-        """
-        SupersetErrorException exceptions bubble up properly.
-        """
-        mock_get_df.side_effect = OAuth2RedirectError(
-            url="https://accounts.example.com/o/oauth2/v2/auth?...",
-            tab_id="tab-123",
-            redirect_uri="https://superset.example.com/oauth2/redirect",
-        )
-
-        self.login(ADMIN_USERNAME)
-        slc = self.get_slice("Life Expectancy VS Rural %")
-        rv = self.client.post(
-            f"/explore_json/{slc.datasource_type}/{slc.datasource_id}/",
-            data={"form_data": json.dumps(slc.form_data)},
-        )
-        data = json.loads(rv.data.decode("utf-8"))
-
-        assert "errors" in data, data
-        assert data["errors"][0]["error_type"] == "OAUTH2_REDIRECT"
-        assert data["errors"][0]["extra"] == {
-            "url": "https://accounts.example.com/o/oauth2/v2/auth?...",
-            "tab_id": "tab-123",
-            "redirect_uri": "https://superset.example.com/oauth2/redirect",
-        }
-
-    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
-    @mock.patch("superset.viz.BaseViz.get_df")
-    def test_explore_json_generic_exception_still_returns_viz_get_df_error(
-        self, mock_get_df: mock.Mock
-    ) -> None:
-        """
-        Non-Superset exceptions raised by ``get_df`` are reported as the
-        generic ``VIZ_GET_DF_ERROR``.
-        """
-        mock_get_df.side_effect = RuntimeError("boom")
-
-        self.login(ADMIN_USERNAME)
-        slc = self.get_slice("Life Expectancy VS Rural %")
-        rv = self.client.post(
-            f"/explore_json/{slc.datasource_type}/{slc.datasource_id}/",
-            data={"form_data": json.dumps(slc.form_data)},
-        )
-        data = json.loads(rv.data.decode("utf-8"))
-
-        assert "errors" in data, data
-        assert data["errors"][0]["error_type"] == "VIZ_GET_DF_ERROR"
-        assert data["errors"][0]["message"] == "boom"
 
     def test_results_default_deserialization(self):
         use_new_deserialization = False

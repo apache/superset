@@ -134,14 +134,14 @@ test('Should render correct elements for disallow ad-hoc metrics', () => {
   expect(screen.getByRole('tabpanel', { name: 'Saved' })).toBeVisible();
 });
 
-test('Clicking on "Close" should call onClose', () => {
+test('Clicking on "Close" should call onClose', async () => {
   const props = createProps();
   render(<AdhocMetricEditPopover {...props} />, {
     useRedux: true,
     initialState: { explore: {} },
   });
   expect(props.onClose).toHaveBeenCalledTimes(0);
-  userEvent.click(screen.getByRole('button', { name: 'Close' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Close' }));
   expect(props.onClose).toHaveBeenCalledTimes(1);
 });
 
@@ -153,18 +153,18 @@ test('Clicking on "Save" should call onChange and onClose', async () => {
   });
   expect(props.onChange).toHaveBeenCalledTimes(0);
   expect(props.onClose).toHaveBeenCalledTimes(0);
-  userEvent.click(
+  await userEvent.click(
     screen.getByRole('combobox', {
       name: 'Select saved metrics',
     }),
   );
   await selectOption('sum');
-  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Save' }));
   expect(props.onChange).toHaveBeenCalledTimes(1);
   expect(props.onClose).toHaveBeenCalledTimes(1);
 });
 
-test('Clicking on "Save" should not call onChange and onClose', () => {
+test('Clicking on "Save" should not call onChange and onClose', async () => {
   const props = createProps();
   render(<AdhocMetricEditPopover {...props} />, {
     useRedux: true,
@@ -172,12 +172,12 @@ test('Clicking on "Save" should not call onChange and onClose', () => {
   });
   expect(props.onChange).toHaveBeenCalledTimes(0);
   expect(props.onClose).toHaveBeenCalledTimes(0);
-  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Save' }));
   expect(props.onChange).toHaveBeenCalledTimes(0);
   expect(props.onClose).toHaveBeenCalledTimes(0);
 });
 
-test('Clicking on "Save" should call onChange and onClose for new metric', () => {
+test('Clicking on "Save" should call onChange and onClose for new metric', async () => {
   const props = createProps();
   render(<AdhocMetricEditPopover {...props} isNewMetric />, {
     useRedux: true,
@@ -185,12 +185,12 @@ test('Clicking on "Save" should call onChange and onClose for new metric', () =>
   });
   expect(props.onChange).toHaveBeenCalledTimes(0);
   expect(props.onClose).toHaveBeenCalledTimes(0);
-  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Save' }));
   expect(props.onChange).toHaveBeenCalledTimes(1);
   expect(props.onClose).toHaveBeenCalledTimes(1);
 });
 
-test('Clicking on "Save" should call onChange and onClose for new title', () => {
+test('Clicking on "Save" should call onChange and onClose for new title', async () => {
   const props = createProps();
   render(<AdhocMetricEditPopover {...props} isLabelModified />, {
     useRedux: true,
@@ -198,12 +198,12 @@ test('Clicking on "Save" should call onChange and onClose for new title', () => 
   });
   expect(props.onChange).toHaveBeenCalledTimes(0);
   expect(props.onClose).toHaveBeenCalledTimes(0);
-  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Save' }));
   expect(props.onChange).toHaveBeenCalledTimes(1);
   expect(props.onClose).toHaveBeenCalledTimes(1);
 });
 
-test('Should switch to tab:Simple', () => {
+test('Should switch to tab:Simple', async () => {
   const props = createProps();
   props.getCurrentTab.mockImplementation(tab => {
     props.adhocMetric.expressionType = tab;
@@ -220,7 +220,7 @@ test('Should switch to tab:Simple', () => {
 
   expect(props.getCurrentTab).toHaveBeenCalledTimes(1);
   const tab = screen.getByRole('tab', { name: 'Simple' }).parentElement!;
-  userEvent.click(tab);
+  await userEvent.click(tab);
 
   expect(props.getCurrentTab).toHaveBeenCalledTimes(2);
 
@@ -230,7 +230,7 @@ test('Should switch to tab:Simple', () => {
   expect(screen.getByRole('tabpanel', { name: 'Simple' })).toBeInTheDocument();
 });
 
-test('Should render "Simple" tab correctly', () => {
+test('Should render "Simple" tab correctly', async () => {
   const props = createProps();
   props.getCurrentTab.mockImplementation(tab => {
     props.adhocMetric.expressionType = tab;
@@ -241,13 +241,13 @@ test('Should render "Simple" tab correctly', () => {
   });
 
   const tab = screen.getByRole('tab', { name: 'Simple' }).parentElement!;
-  userEvent.click(tab);
+  await userEvent.click(tab);
 
   expect(screen.getByText('column')).toBeVisible();
   expect(screen.getByText('aggregate')).toBeVisible();
 });
 
-test('Should switch to tab:Custom SQL', () => {
+test('Should switch to tab:Custom SQL', async () => {
   const props = createProps();
   props.getCurrentTab.mockImplementation(tab => {
     props.adhocMetric.expressionType = tab;
@@ -264,7 +264,7 @@ test('Should switch to tab:Custom SQL', () => {
 
   expect(props.getCurrentTab).toHaveBeenCalledTimes(1);
   const tab = screen.getByRole('tab', { name: 'Custom SQL' }).parentElement!;
-  userEvent.click(tab);
+  await userEvent.click(tab);
 
   expect(props.getCurrentTab).toHaveBeenCalledTimes(2);
 
@@ -287,7 +287,7 @@ test('Should render "Custom SQL" tab correctly', async () => {
   });
 
   const tab = screen.getByRole('tab', { name: 'Custom SQL' }).parentElement!;
-  userEvent.click(tab);
+  await userEvent.click(tab);
 
   expect(await screen.findByRole('textbox')).toBeInTheDocument();
 });
@@ -336,11 +336,13 @@ test('Should filter saved metrics by metric_name and verbose_name', async () => 
   const combobox = screen.getByRole('combobox', {
     name: 'Select saved metrics',
   });
-  userEvent.click(combobox);
+  await userEvent.click(combobox);
 
   await userEvent.type(combobox, 'revenue');
 
-  let dropdown = document.querySelector('.rc-virtual-list') as HTMLElement;
+  let dropdown = document.querySelector(
+    '.ant-select-dropdown-list',
+  ) as HTMLElement;
   expect(within(dropdown).getByText('Gross Revenue')).toBeInTheDocument();
   expect(within(dropdown).queryByText('Total Count')).not.toBeInTheDocument();
   expect(within(dropdown).queryByText('Average Price')).not.toBeInTheDocument();
@@ -352,7 +354,7 @@ test('Should filter saved metrics by metric_name and verbose_name', async () => 
   await userEvent.clear(combobox);
   await userEvent.type(combobox, 'Unique');
 
-  dropdown = document.querySelector('.rc-virtual-list') as HTMLElement;
+  dropdown = document.querySelector('.ant-select-dropdown-list') as HTMLElement;
   expect(within(dropdown).getByText('Unique Users')).toBeInTheDocument();
   expect(within(dropdown).queryByText('Total Count')).not.toBeInTheDocument();
   expect(within(dropdown).queryByText('Gross Revenue')).not.toBeInTheDocument();
@@ -360,7 +362,7 @@ test('Should filter saved metrics by metric_name and verbose_name', async () => 
   await userEvent.clear(combobox);
   await userEvent.type(combobox, 'total');
 
-  dropdown = document.querySelector('.rc-virtual-list') as HTMLElement;
+  dropdown = document.querySelector('.ant-select-dropdown-list') as HTMLElement;
   expect(within(dropdown).getByText('Total Count')).toBeInTheDocument();
   expect(within(dropdown).getByText('Total Quantity')).toBeInTheDocument();
   expect(within(dropdown).queryByText('Gross Revenue')).not.toBeInTheDocument();
@@ -413,7 +415,7 @@ test('Should filter columns by column_name and verbose_name in Simple tab', asyn
   });
 
   const tab = screen.getByRole('tab', { name: 'Simple' }).parentElement!;
-  userEvent.click(tab);
+  await userEvent.click(tab);
 
   const columnCombobox = screen.getByRole('combobox', {
     name: 'Select column',
@@ -421,7 +423,9 @@ test('Should filter columns by column_name and verbose_name in Simple tab', asyn
 
   await userEvent.type(columnCombobox, 'product');
 
-  let dropdown = document.querySelector('.rc-virtual-list') as HTMLElement;
+  let dropdown = document.querySelector(
+    '.ant-select-dropdown-list',
+  ) as HTMLElement;
   expect(within(dropdown).getByText('Product Title')).toBeInTheDocument();
   expect(
     within(dropdown).queryByText('User Identifier'),
@@ -435,7 +439,7 @@ test('Should filter columns by column_name and verbose_name in Simple tab', asyn
   await userEvent.clear(columnCombobox);
   await userEvent.type(columnCombobox, 'Modified');
 
-  dropdown = document.querySelector('.rc-virtual-list') as HTMLElement;
+  dropdown = document.querySelector('.ant-select-dropdown-list') as HTMLElement;
   expect(within(dropdown).getByText('Last Modified')).toBeInTheDocument();
   expect(
     within(dropdown).queryByText('User Identifier'),
@@ -445,7 +449,7 @@ test('Should filter columns by column_name and verbose_name in Simple tab', asyn
   await userEvent.clear(columnCombobox);
   await userEvent.type(columnCombobox, '_at');
 
-  dropdown = document.querySelector('.rc-virtual-list') as HTMLElement;
+  dropdown = document.querySelector('.ant-select-dropdown-list') as HTMLElement;
   expect(within(dropdown).getByText('Creation Timestamp')).toBeInTheDocument();
   expect(within(dropdown).getByText('Last Modified')).toBeInTheDocument();
   expect(
@@ -453,4 +457,62 @@ test('Should filter columns by column_name and verbose_name in Simple tab', asyn
   ).not.toBeInTheDocument();
   expect(within(dropdown).queryByText('Order Amount')).not.toBeInTheDocument();
   expect(within(dropdown).queryByText('Product Title')).not.toBeInTheDocument();
+});
+
+test('disables saved metrics absent from a verified compatibility result', async () => {
+  const props = createProps();
+  render(<AdhocMetricEditPopover {...props} />, {
+    useRedux: true,
+    initialState: {
+      explore: {
+        compatibility: {
+          status: 'verified',
+          metrics: ['count'],
+          dimensions: [],
+        },
+      },
+    },
+  });
+
+  userEvent.click(
+    screen.getByRole('combobox', { name: 'Select saved metrics' }),
+  );
+
+  const dropdown = (await screen
+    .findByText('sum')
+    .then(() =>
+      document.querySelector('.ant-select-dropdown-list'),
+    )) as HTMLElement;
+  expect(
+    within(dropdown).getByText('sum').closest('.ant-select-item'),
+  ).toHaveClass('ant-select-item-option-disabled');
+  expect(
+    within(dropdown).getByText('count').closest('.ant-select-item'),
+  ).not.toHaveClass('ant-select-item-option-disabled');
+});
+
+test('keeps every saved metric enabled after a failed compatibility request', async () => {
+  const props = createProps();
+  render(<AdhocMetricEditPopover {...props} />, {
+    useRedux: true,
+    initialState: {
+      explore: { compatibility: { status: 'failed' } },
+    },
+  });
+
+  userEvent.click(
+    screen.getByRole('combobox', { name: 'Select saved metrics' }),
+  );
+
+  const dropdown = (await screen
+    .findByText('sum')
+    .then(() =>
+      document.querySelector('.ant-select-dropdown-list'),
+    )) as HTMLElement;
+  expect(
+    within(dropdown).getByText('sum').closest('.ant-select-item'),
+  ).not.toHaveClass('ant-select-item-option-disabled');
+  expect(
+    within(dropdown).getByText('count').closest('.ant-select-item'),
+  ).not.toHaveClass('ant-select-item-option-disabled');
 });

@@ -18,8 +18,6 @@
  */
 import {
   NumberFormats,
-  QueryFormColumn,
-  getColumnLabel,
   getMetricLabel,
   getSequentialSchemeRegistry,
   getTimeFormatter,
@@ -180,8 +178,6 @@ export default function transformProps(
     chartProps;
   const {
     bottomMargin,
-    xAxis,
-    groupby,
     linearColorScheme,
     leftMargin,
     legendType = 'continuous',
@@ -204,9 +200,6 @@ export default function transformProps(
     sortYAxis,
   } = formData;
   const metricLabel = getMetricLabel(metric);
-  const xAxisLabel = getColumnLabel(xAxis);
-  // groupby is overridden to be a single value
-  const yAxisLabel = getColumnLabel(groupby as unknown as QueryFormColumn);
   const {
     data,
     colnames,
@@ -365,8 +358,8 @@ export default function transformProps(
       formatter: (params: CallbackDataParams) => {
         const totals = calculateTotals(
           data,
-          xAxisLabel,
-          yAxisLabel,
+          xAxisColumnName,
+          yAxisColumnName,
           metricLabel,
         );
         const paramsValue = params.value as (string | number)[];

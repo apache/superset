@@ -22,7 +22,7 @@ import { createEvent, fireEvent, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { supersetTheme, ThemeProvider } from '@apache-superset/core/theme';
 import type { ReactElement } from 'react';
-import Legend from './Legend';
+import Legend, { type LegendProps } from './Legend';
 
 const renderWithTheme = (component: ReactElement) =>
   render(<ThemeProvider theme={supersetTheme}>{component}</ThemeProvider>);
@@ -31,6 +31,7 @@ test('formats interval-notation labels while preserving brackets', () => {
   renderWithTheme(
     <Legend
       format=",.2f"
+      position="tr"
       categories={{
         '[1, 81)': { enabled: true, color: [0, 0, 0] },
         '[81, 212)': { enabled: true, color: [0, 0, 0] },
@@ -48,6 +49,7 @@ test('still formats legacy "a - b" delimiter labels', () => {
   renderWithTheme(
     <Legend
       format=",.1f"
+      position="tr"
       categories={{
         '0 - 100000': { enabled: true, color: [0, 0, 0] },
         '100001 - 200000': { enabled: true, color: [0, 0, 0] },
@@ -63,6 +65,7 @@ test('leaves labels untouched when no format is provided', () => {
   renderWithTheme(
     <Legend
       format={null}
+      position="tr"
       categories={{ '[1, 81)': { enabled: true, color: [0, 0, 0] } }}
     />,
   );
@@ -71,13 +74,14 @@ test('leaves labels untouched when no format is provided', () => {
 });
 
 test('clicking a legend item toggles the category without triggering anchor navigation', () => {
-  // Regression proof for #33576: the legend items are href="#" anchors, so a
-  // click whose default action is not prevented would navigate to "#" and
-  // scroll the browser window to the top of the page.
+  // Regression proof for #33576: legend items render as real <button>
+  // elements (not href="#" anchors), so a click has no default navigation
+  // action to begin with.
   const toggleCategory = jest.fn();
   renderWithTheme(
     <Legend
       format={null}
+      position="tr"
       categories={{
         Positive: { enabled: true, color: [0, 255, 0] },
         Negative: { enabled: true, color: [255, 0, 0] },
@@ -87,22 +91,38 @@ test('clicking a legend item toggles the category without triggering anchor navi
   );
 
   const legendItem = screen.getByRole('button', { name: 'Positive' });
+  expect(legendItem.tagName).toBe('BUTTON');
   const clickEvent = createEvent.click(legendItem);
   fireEvent(legendItem, clickEvent);
 
-  expect(clickEvent.defaultPrevented).toBe(true);
   expect(toggleCategory).toHaveBeenCalledTimes(1);
   expect(toggleCategory).toHaveBeenCalledWith('Positive');
 });
 
+test('normalizes the 0-255 deck.gl alpha channel to the 0-1 range CSS rgba() expects', () => {
+  renderWithTheme(
+    <Legend
+      format={null}
+      categories={{
+        Translucent: { enabled: true, color: [255, 0, 0, 128] },
+      }}
+    />,
+  );
+
+  const legendItem = screen.getByRole('button', { name: 'Translucent' });
+  const swatch = legendItem.firstChild as HTMLElement;
+  expect(swatch).toHaveStyle(`background-color: rgba(255, 0, 0, ${128 / 255})`);
+});
+
 test('ctrl+clicking a legend item toggles the category without opening a new tab', () => {
-  // Regression proof for #34157: legend items are href="#" anchors, so a
-  // ctrl+click whose default action is not prevented would ask the browser
-  // to open the "#" href in a new tab instead of just toggling the layer.
+  // Regression proof for #34157: legend items render as real <button>
+  // elements (not href="#" anchors), so a ctrl+click has no "open link in
+  // new tab" behavior to begin with.
   const toggleCategory = jest.fn();
   renderWithTheme(
     <Legend
       format={null}
+      position="tr"
       categories={{
         cat1: { enabled: true, color: [255, 0, 0] },
         cat2: { enabled: false, color: [0, 0, 255] },
@@ -112,15 +132,57 @@ test('ctrl+clicking a legend item toggles the category without opening a new tab
   );
 
   const legendItem = screen.getByRole('button', { name: 'cat1' });
+  expect(legendItem.tagName).toBe('BUTTON');
   const ctrlClickEvent = createEvent.click(legendItem, {
     ctrlKey: true,
   }) as MouseEvent;
   fireEvent(legendItem, ctrlClickEvent);
 
-  // preventDefault() in the onClick handler is what stops the browser's
-  // native ctrl+click "open link in new tab" behavior on the anchor.
-  expect(ctrlClickEvent.defaultPrevented).toBe(true);
   expect(ctrlClickEvent.ctrlKey).toBe(true);
   expect(toggleCategory).toHaveBeenCalledTimes(1);
   expect(toggleCategory).toHaveBeenCalledWith('cat1');
+});
+
+// Regression proof for the "Legend Position: None" control not hiding the
+// legend. "None" is the 'none' sentinel; null and '' also hide so charts saved
+// under the older null-valued choice keep working.
+test.each(['none', null, ''])(
+  'renders nothing when Legend Position is None (position=%p)',
+  position => {
+    renderWithTheme(
+      <Legend
+        format={null}
+        position={position as LegendProps['position']}
+        categories={{ Alpha: { enabled: true, color: [0, 0, 0] } }}
+      />,
+    );
+
+    expect(screen.queryByText('Alpha')).not.toBeInTheDocument();
+  },
+);
+
+test('renders the legend for a valid corner position', () => {
+  renderWithTheme(
+    <Legend
+      format={null}
+      position="tr"
+      categories={{ Alpha: { enabled: true, color: [0, 0, 0] } }}
+    />,
+  );
+
+  expect(screen.getByText('Alpha')).toBeInTheDocument();
+});
+
+test('falls back to the top-right default when position is unset', () => {
+  // Layers without a Legend Position control (e.g. Hex, Path) pass an
+  // undefined position; the legend must still render at the default corner.
+  renderWithTheme(
+    <Legend
+      format={null}
+      position={undefined}
+      categories={{ Alpha: { enabled: true, color: [0, 0, 0] } }}
+    />,
+  );
+
+  expect(screen.getByText('Alpha')).toBeInTheDocument();
 });
