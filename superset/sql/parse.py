@@ -994,6 +994,17 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         {"PUT", "GET", "REMOVE", "RM"}
     )
 
+    # The same heads carried inside a nested body, which is not re-parseable
+    # and so is matched on its raw text. A stage reference (``@stage``) or a
+    # ``file://`` URL has to follow the head, since these words are ordinary
+    # identifiers elsewhere and a bare keyword match would flag a body that
+    # merely selects a column named ``remove``.
+    _CLIENT_FILE_TRANSFER_NESTED_BODY_RE = re.compile(
+        rf"\b({'|'.join(sorted(_CLIENT_FILE_TRANSFER_COMMAND_NAMES))})"
+        r"""\s+['"]?(?:@|file://)""",
+        re.IGNORECASE,
+    )
+
     # Command-fallback heads that are only mutating on dialects where the
     # structured form (`exp.Set`) is reserved for benign session variables,
     # so the opaque-Command fallback is reached exclusively by the dangerous
@@ -1401,7 +1412,16 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             if isinstance(self._parsed, (exp.Put, exp.Get))
             else self._command_head()
         )
-        return head if head in self._CLIENT_FILE_TRANSFER_COMMAND_NAMES else None
+        if head in self._CLIENT_FILE_TRANSFER_COMMAND_NAMES:
+            return head
+        # A nested body executes for real yet is invisible to the head match
+        # above, so it is scanned as raw text, as `changes_search_path` does
+        # for its own forms.
+        if (body := self._nested_body_text()) and (
+            match := self._CLIENT_FILE_TRANSFER_NESTED_BODY_RE.search(body)
+        ):
+            return match.group(1).upper()
+        return None
 
     def is_destructive(self) -> bool:
         """

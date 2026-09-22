@@ -2079,6 +2079,17 @@ def test_is_mutating_replace_function_is_read(engine: str) -> None:
         # ``LIST``/``LS`` only enumerate staged files (a read), so they are
         # intentionally not treated as file-transfer commands here.
         ("LIST @my_stage", None),
+        # A nested body runs for real but is kept as unparsed text, so the
+        # head match cannot see it and the raw body is scanned instead.
+        ("EXECUTE IMMEDIATE $$ REMOVE @my_stage/path $$", "REMOVE"),
+        ("EXECUTE IMMEDIATE 'RM @my_stage/path'", "RM"),
+        ("EXECUTE IMMEDIATE $$ PUT file:///tmp/data.csv @my_stage $$", "PUT"),
+        ("EXECUTE IMMEDIATE $$ GET @my_stage file:///tmp/ $$", "GET"),
+        # The body scan requires a stage/``file://`` reference after the head,
+        # so a body that merely names a column after one is not flagged.
+        ("EXECUTE IMMEDIATE $$ SELECT remove FROM t $$", None),
+        ("EXECUTE IMMEDIATE $$ SELECT put, rm FROM t $$", None),
+        ("CALL some_procedure()", None),
     ],
 )
 def test_get_client_file_transfer_command(sql: str, expected: str | None) -> None:
@@ -2096,6 +2107,7 @@ def test_get_client_file_transfer_command(sql: str, expected: str | None) -> Non
         ("SELECT 1; GET @my_stage file:///tmp/", {"GET"}),
         ("SELECT 1; PUT 'file:///tmp/data.csv' @my_stage", {"PUT"}),
         ("PUT file:///a @s; REMOVE @s/b", {"PUT", "REMOVE"}),
+        ("SELECT 1; EXECUTE IMMEDIATE $$ REMOVE @s/b $$", {"REMOVE"}),
         ("SELECT 1", set()),
     ],
 )
