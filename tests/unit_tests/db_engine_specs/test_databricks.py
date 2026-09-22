@@ -1375,4 +1375,3 @@ def test_handle_boolean_filter_databricks_hive_compilation() -> None:
         str(hive_false_res.compile(compile_kwargs={"literal_binds": True}))
         == "is_interactive = false"
     )
-
