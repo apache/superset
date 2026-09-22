@@ -71,6 +71,7 @@ def test_task_reads_canonical_application_retention(
         VERSION_HISTORY_RETENTION_DAYS=value,
         SUPERSET_VERSION_HISTORY_RETENTION_DAYS=180,
     )
+    prune: MagicMock
     with (
         app.app_context(),
         patch.object(

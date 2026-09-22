@@ -1252,7 +1252,17 @@ The task ships in the default `CeleryConfig` (both the `superset.tasks.version_h
 
 ### Deletion retention (soft-deleted entities are eventually purged)
 
-Soft-deleted dashboards, charts, and datasets are now permanently removed after a retention window (default 30 days; `SOFT_DELETE_RETENTION_DAYS`, `0` disables; settable per workspace at runtime via the `deletion-retention set-window` CLI, which takes precedence). The `deletion_retention.purge_soft_deleted` Celery beat task runs daily and removes each aged-out entity together with its M:N join rows, owned children, datasource permission, and version-history shadow rows. After purge an entity is **unrecoverable** — its detail and `/restore` endpoints return 404 and its version history is gone.
+`SOFT_DELETE_RETENTION_DAYS` also accepts an environment seed: an integer from
+0 through 36500, defaulting to 30 when absent or invalid. An optional
+`SOFT_DELETE_RETENTION_DAYS_FUNC` host callback takes precedence over both the
+stored CLI value and config seed. It must return a nonboolean integer in that
+range; invalid results or callback failure defer scheduled purge with 0, without
+falling back to stored values. The client recovery-window display and CLI
+`show-window` use this same policy. Without a callback, stored CLI values retain
+their precedence over the config seed. This callback does not gate explicit
+force-purge or provide downgrade grace protection.
+
+Soft-deleted dashboards, charts, and datasets are now permanently removed after a retention window (default 30 days; `SOFT_DELETE_RETENTION_DAYS`, `0` disables; settable per workspace at runtime via the `deletion-retention set-window` CLI, which takes precedence when no host retention callback is installed). The `deletion_retention.purge_soft_deleted` Celery beat task runs daily and removes each aged-out entity together with its M:N join rows, owned children, datasource permission, and version-history shadow rows. After purge an entity is **unrecoverable** — its detail and `/restore` endpoints return 404 and its version history is gone.
 
 Purging is **live by default** (`SOFT_DELETE_PURGE_DRY_RUN=False`), so the retention promise above is real on a stock deployment. Set it to `True` to have the task log `would_purge` counts and delete nothing — the lever is retained, so an operator can return to dry-run at any time. Note `would_purge` is an **upper bound** — it counts every entity past the retention window without evaluating deletion blockers, so a real run may purge fewer (entities referenced by report schedules or set as a user's welcome dashboard are blocked and reported separately). The task only acts while the `SOFT_DELETE` rollout flag is on; it now ships on by default.
 

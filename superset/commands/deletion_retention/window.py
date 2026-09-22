@@ -19,6 +19,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 
 from flask import current_app
 
@@ -57,18 +58,35 @@ def resolve_retention_window() -> int:
 
     Resolution order:
 
-    1. The per-deployment value persisted under
+    1. An installed ``SOFT_DELETE_RETENTION_DAYS_FUNC`` host policy. Its
+       result is authoritative; invalid/unavailable policy defers with zero.
+    2. The per-deployment value persisted under
        ``SharedKey.SOFT_DELETE_RETENTION_DAYS`` (read live; takes
        precedence when present).
-    2. Otherwise the ``SOFT_DELETE_RETENTION_DAYS`` config /
+    3. Otherwise the ``SOFT_DELETE_RETENTION_DAYS`` config /
        environment seed default (itself defaulting to 30).
 
-    ``0`` from either source is a meaningful "disable", so the shared
+    ``0`` from any source is a meaningful "disable", so the shared
     value is selected with an explicit ``is None`` check — never ``or``,
     which would treat ``0`` as unset. A malformed shared value is
     rejected (logged) and the fallback is used rather than crashing the
     scheduled task.
     """
+    policy: Callable[[], object] | None = current_app.config.get(
+        "SOFT_DELETE_RETENTION_DAYS_FUNC"
+    )
+    if policy is not None:
+        try:
+            days: object = policy()
+        except Exception:  # Host boundary: do not expose service payloads or purge.
+            logger.warning(
+                "deletion_retention: host retention policy unavailable; skipping"
+            )
+            return 0
+        if isinstance(days, int) and not isinstance(days, bool) and 0 <= days <= 36500:
+            return days
+        logger.warning("deletion_retention: invalid host retention policy; skipping")
+        return 0
     if (shared := get_shared_value(SharedKey.SOFT_DELETE_RETENTION_DAYS)) is not None:
         if isinstance(shared, bool) or not isinstance(shared, int) or shared < 0:
             logger.warning(

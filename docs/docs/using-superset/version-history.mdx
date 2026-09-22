@@ -50,6 +50,12 @@ The host must keep decisions tenant-local and stable for a transaction, handle
 expected service outages, and bound any cache to the transaction/request. This
 hook does not govern retention or delete existing history.
 
+Host integrations can require `superset.versioning.utils.HOST_POLICY_API_VERSION`
+equal to `1` before installing policies. This contract includes the version API
+feature gates, transaction-scoped capture and restore, canonical retention key,
+and authoritative soft-delete retention callback. A downstream host must adopt a
+core revision providing the entire contract, not only configure a UI flag.
+
 Imports and background ORM writes use the same predicate; hosts must supply their
 tenant context there too. Bulk SQL retains its existing capture limitations.
 After re-enabling, skipped edits are not reconstructed. If an entity has no
@@ -68,6 +74,14 @@ in `superset_config.py` or the environment variable of the same name. Its defaul
 is 30 days; set it to `0` to disable pruning. The scheduled retention task preserves
 live versions and prunes eligible closed history older than the configured window.
 Changing retention does not enable history access or capture.
+
+Archived entity cleanup is separate: `SOFT_DELETE_RETENTION_DAYS` defaults to
+30 days and accepts the same-name environment seed (0 through 36500; 0 disables
+scheduled purge). A host can install `SOFT_DELETE_RETENTION_DAYS_FUNC` to supply
+an authoritative integer window before the stored CLI override. Invalid or
+unavailable callback results defer purge with 0; they do not use stored values.
+Without that callback, the stored CLI window still takes precedence over config.
+This does not change explicit force-purge or supply downgrade grace protection.
 
 ## Viewing history
 

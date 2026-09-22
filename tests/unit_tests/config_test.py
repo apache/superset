@@ -92,6 +92,32 @@ def test_invalid_version_history_retention_env_uses_default(
     assert "Invalid VERSION_HISTORY_RETENTION_DAYS='30d'" in caplog.text
 
 
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        (None, 30),
+        ("360", 360),
+        ("0", 0),
+        ("-1", 30),
+        ("36500", 36500),
+        ("36501", 30),
+        ("bad", 30),
+    ],
+)
+def test_soft_delete_retention_environment_seed(
+    monkeypatch: pytest.MonkeyPatch, value: str | None, expected: int
+) -> None:
+    """Bootstrap exports canonical integer days without an environment alias."""
+    from superset import config
+
+    monkeypatch.delenv("SOFT_DELETE_RETENTION_DAYS", raising=False)
+    if value is not None:
+        monkeypatch.setenv("SOFT_DELETE_RETENTION_DAYS", value)
+    loaded: dict[str, Any] = runpy.run_path(config.__file__)
+    assert loaded["SOFT_DELETE_RETENTION_DAYS"] == expected
+    assert type(loaded["SOFT_DELETE_RETENTION_DAYS"]) is int
+
+
 def test_oversized_version_history_retention_env_uses_default(
     monkeypatch: pytest.MonkeyPatch,
     caplog: pytest.LogCaptureFixture,

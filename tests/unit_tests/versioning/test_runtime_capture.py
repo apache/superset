@@ -210,7 +210,7 @@ def test_runtime_denial_refuses_restore_before_mutation(
     app: SupersetApp,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """A paid-access request cannot perform a restore when capture is denied."""
+    """An authorized request cannot perform a restore when capture is denied."""
     from uuid import uuid4
 
     from superset.commands.dashboard.exceptions import DashboardNotFoundError

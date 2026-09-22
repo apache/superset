@@ -1026,11 +1026,30 @@ USER_AGENT_FUNC: Callable[[Database, utils.QuerySource | None], str] | None = No
 # This is merely a default.
 FEATURE_FLAGS: dict[str, bool] = {}
 
+
 # Retention policy for soft-deleted dashboards, charts, and datasets. A value of
 # zero disables scheduled purging. Purging is live by default, so the retention
 # promise above is real on a stock deployment; set SOFT_DELETE_PURGE_DRY_RUN back
 # to True to have the task log ``would_purge`` counts without deleting anything.
-SOFT_DELETE_RETENTION_DAYS: int = 30
+def _parse_soft_delete_retention_days() -> int:
+    """Read the canonical environment seed, preserving the integer default."""
+    value: str | None = os.environ.get("SOFT_DELETE_RETENTION_DAYS")
+    if value is None:
+        return 30
+    try:
+        days: int = int(value)
+        if 0 <= days <= 36500:
+            return days
+    except ValueError:
+        pass
+    logger.warning("Invalid SOFT_DELETE_RETENTION_DAYS; using 30 days")
+    return 30
+
+
+SOFT_DELETE_RETENTION_DAYS: int = _parse_soft_delete_retention_days()
+# Optional authoritative host policy, consulted before the shared CLI override.
+# Invalid/unavailable results skip purge rather than fall back to a stored value.
+SOFT_DELETE_RETENTION_DAYS_FUNC: Callable[[], int] | None = None
 SOFT_DELETE_PURGE_DRY_RUN: bool = False
 
 # Retention policy for the purge audit log itself (the durable evidence the

@@ -31,10 +31,11 @@ from flask.config import Config
 
 
 @pytest.fixture
-def app_config(app_context: None) -> Config:
+def app_config(app_context: None, monkeypatch: pytest.MonkeyPatch) -> Config:
     from flask import current_app
 
     current_app.config["SOFT_DELETE_RETENTION_DAYS"] = 30
+    monkeypatch.setitem(current_app.config, "SOFT_DELETE_RETENTION_DAYS_FUNC", None)
     return current_app.config
 
 
@@ -42,6 +43,49 @@ def _resolve() -> int:
     from superset.commands.deletion_retention.window import resolve_retention_window
 
     return resolve_retention_window()
+
+
+@pytest.mark.parametrize("days", [0, 30, 180, 360])
+def test_host_policy_precedes_shared_override(app_config: Config, days: int) -> None:
+    """An installed host policy is authoritative, including disabled/deferred zero."""
+    app_config["SOFT_DELETE_RETENTION_DAYS_FUNC"] = lambda: days
+    shared: MagicMock
+    with patch(
+        "superset.commands.deletion_retention.window.get_shared_value", return_value=7
+    ) as shared:
+        assert _resolve() == days
+    shared.assert_not_called()
+
+
+@pytest.mark.parametrize("value", [None, True, "360", -1, 36501])
+def test_invalid_host_policy_defers_without_shared_fallback(
+    app_config: Config, value: object
+) -> None:
+    """Malformed host results must not turn an outage into destructive fallback."""
+    app_config["SOFT_DELETE_RETENTION_DAYS_FUNC"] = lambda: value
+    shared: MagicMock
+    with patch(
+        "superset.commands.deletion_retention.window.get_shared_value", return_value=7
+    ) as shared:
+        assert _resolve() == 0
+    shared.assert_not_called()
+
+
+def test_host_policy_exception_defers_without_payload(
+    app_config: Config, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Callback failure skips purge without logging external error details."""
+    app_config["SOFT_DELETE_RETENTION_DAYS_FUNC"] = MagicMock(
+        side_effect=RuntimeError("private-policy-payload")
+    )
+    shared: MagicMock
+    with patch(
+        "superset.commands.deletion_retention.window.get_shared_value", return_value=7
+    ) as shared:
+        assert _resolve() == 0
+    shared.assert_not_called()
+    assert "host retention policy unavailable" in caplog.text
+    assert "private-policy-payload" not in caplog.text
 
 
 def test_unset_falls_back_to_config(app_config: Config) -> None:

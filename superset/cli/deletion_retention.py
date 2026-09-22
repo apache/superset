@@ -77,7 +77,7 @@ def deletion_retention() -> None:
     help="Retention window in days; 0 disables.",
 )
 def set_window(days: int) -> None:
-    """Set the per-deployment retention window (SharedKey, upsert)."""
+    """Store the per-deployment window; an installed host policy takes precedence."""
     from superset.key_value.shared_entries import upsert_shared_value
     from superset.key_value.types import SharedKey
 
@@ -92,7 +92,7 @@ def set_window(days: int) -> None:
 @deletion_retention.command()
 @with_appcontext
 def show_window() -> None:
-    """Print the effective retention window (shared value or env fallback)."""
+    """Print the effective window (host policy, shared value, then config seed)."""
     from superset.commands.deletion_retention.window import resolve_retention_window
 
     days = resolve_retention_window()

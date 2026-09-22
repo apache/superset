@@ -26,6 +26,11 @@ import sqlalchemy as sa
 from flask import current_app
 from sqlalchemy.orm import Session
 
+# Host contract: version API feature gates, transaction-scoped capture/restore,
+# canonical retention configuration and authoritative soft-delete host policy.
+# Downstream startup may require this version before installing policy callbacks.
+HOST_POLICY_API_VERSION: int = 1
+
 
 def capture_enabled(session: Session | None = None) -> bool:
     """Whether startup capture and the host's session predicate both allow it.
