@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-21 02:18+0000\n"
+"POT-Creation-Date: 2026-09-22 10:58-0700\n"
 "PO-Revision-Date: 2026-01-25 16:09+1300\n"
 "Last-Translator: karo.co.nz\n"
 "Language: mi\n"
@@ -2795,9 +2795,6 @@ msgstr "Tauruarua aunoa i te whānui tūwae i runga i te atea e wātea ana"
 msgid "Automatically adjust column width based on content"
 msgstr "Tauruarua aunoa i te whānui tūwae i runga i ngā ihirangi"
 
-msgid "Automatically retry sending the report when delivery fails."
-msgstr ""
-
 #, fuzzy
 msgid "Automatically sync columns"
 msgstr "Tauine aunoa i ngā tīwae katoa"
@@ -4547,7 +4544,7 @@ msgstr "Whakaritea te āhua, ngā tae, me te CSS whakaahuatia o te papatohu"
 msgid "Configure filter scopes"
 msgstr "Whirihora korahi tātari"
 
-msgid "Configure retry behavior on delivery failure."
+msgid "Configure retries when alert or report generation fails before delivery."
 msgstr ""
 
 msgid "Configure the basics of your Annotation Layer."
@@ -4617,6 +4614,9 @@ msgid "Connection failed, please check your connection settings."
 msgstr "I rahua te hononga, tēnā tirohia ō tautuhinga hononga."
 
 msgid "Connection looks good!"
+msgstr ""
+
+msgid "Contact the report owner for error details."
 msgstr ""
 
 #, fuzzy
@@ -6303,6 +6303,9 @@ msgid ""
 "Display each cell as a percentage of its row, column, or grand total, "
 "instead of its actual value. Totals and subtotals are still computed "
 "correctly first; this only changes how they are displayed."
+msgstr ""
+
+msgid "Display format"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
@@ -12460,6 +12463,9 @@ msgstr "Uta-anō"
 msgid "Reload SQL Lab"
 msgstr "Utahia anō te SQL Lab"
 
+msgid "Reload the page and try again to continue."
+msgstr ""
+
 msgid "Remove"
 msgstr "Tango"
 
@@ -12837,15 +12843,17 @@ msgstr ""
 msgid "Resume auto-refresh"
 msgstr "Tautuhi wā whakahou-aunoa"
 
-msgid "Retries are not supported for alerts"
-msgstr ""
-
 #, fuzzy
 msgid "Retry"
 msgstr "Kaihanga"
 
 msgid "Retry fetching results"
 msgstr "Whakamātau anō te tiki i ngā hua"
+
+msgid ""
+"Retry generation failures before delivery starts. Alerts re-check their "
+"condition on each attempt. Delivery failures are not replayed."
+msgstr ""
 
 msgid "Retrying"
 msgstr ""
@@ -13416,6 +13424,12 @@ msgstr "Korahi"
 msgid "Scoping"
 msgstr "Korahi"
 
+msgid "Screenshot cache is unavailable"
+msgstr ""
+
+msgid "Screenshot request is temporarily unavailable"
+msgstr ""
+
 msgid "Screenshot width"
 msgstr "Whānui hopuataata"
 
@@ -13540,6 +13554,9 @@ msgstr "Taapiri haumaru"
 
 msgid "Security"
 msgstr "Haumaru"
+
+msgid "Security token error"
+msgstr ""
 
 #, fuzzy
 msgid "See "
@@ -14876,9 +14893,6 @@ msgstr "Aroha mai, I puta he hapa"
 msgid "Sorry, an error occurred"
 msgstr "Aroha mai, i puta he hapa"
 
-msgid "Sorry, an unknown error occurred"
-msgstr "Aroha mai, i puta he hapa kāore e mōhiotia ana"
-
 msgid "Sorry, an unknown error occurred."
 msgstr "Aroha mai, i puta he hapa kāore e mōhiotia ana."
 
@@ -15722,6 +15736,9 @@ msgid "The API response from %s does not match the IDatabaseTable interface."
 msgstr ""
 "Karekau te whakautu API mai i %s e hāngai ana ki te papatohu "
 "IDatabaseTable."
+
+msgid "The CSRF token could not be validated."
+msgstr ""
 
 msgid ""
 "The CSS for individual dashboards can be altered here, or in the "
