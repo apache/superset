@@ -82,10 +82,12 @@ def _save_orm_dataset(**overrides: Any) -> MagicMock:
     )
 
 
+_SAVE_APP = Flask(__name__)
+
+
 def _run_save(**payload: Any) -> None:
     """Call the unwrapped ``save`` view with ``payload`` as the request body."""
-    app = Flask(__name__)
-    with app.test_request_context(
+    with _SAVE_APP.test_request_context(
         "/datasource/save/",
         method="POST",
         data={
@@ -344,8 +346,7 @@ def test_save_rejects_repoint_to_database_without_access(
 
     with pytest.raises(DatasetForbiddenError):
         # database id 999 stands in for a database the caller has no explicit
-        # grant on. The table is preserved across the repoint, supplied
-        # explicitly so it is not applied as None.
+        # grant on.
         _run_save(database={"id": 999}, table_name="my_table", schema="public")
 
     # Ownership of the dataset was checked...
@@ -364,17 +365,44 @@ def test_save_rejects_repoint_to_database_without_access(
 @patch("superset.views.datasource.views.DatasetDAO.get_database_by_id")
 @patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
 @patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
+@pytest.mark.parametrize(
+    "orm_overrides,payload,expected_target",
+    [
+        # The same table carried across the repoint.
+        pytest.param(
+            {},
+            {"table_name": "my_table", "schema": "public"},
+            ("my_table", "public"),
+            id="table_preserved",
+        ),
+        # A request that repoints ``database.id`` can also change
+        # ``table_name``/``schema``/``catalog`` in the same payload, and
+        # ``update_from_object`` applies those requested values afterwards. The
+        # check must therefore run against the *requested* table, not the
+        # dataset's current (stale) one, or a caller could pass the check using
+        # a table they are authorised for while repointing to one they are not.
+        pytest.param(
+            {"table_name": "authorised_table"},
+            {"table_name": "secret_table", "schema": "finance"},
+            ("secret_table", "finance"),
+            id="table_changed_too",
+        ),
+    ],
+)
 def test_save_allows_repoint_to_database_with_access(
     mock_get_datasource: MagicMock,
     mock_security_manager: MagicMock,
     mock_get_database_by_id: MagicMock,
     mock_db: MagicMock,
+    orm_overrides: dict[str, Any],
+    payload: dict[str, Any],
+    expected_target: tuple[str, str],
 ) -> None:
     """
-    When the caller is authorised for the new database, ``save`` proceeds
-    to repoint ``database_id``.
+    When the caller is authorised for the new database, ``save`` proceeds to
+    repoint ``database_id``, having checked the target the request applies.
     """
-    mock_orm = _save_orm_dataset()
+    mock_orm = _save_orm_dataset(**orm_overrides)
     mock_get_datasource.return_value = mock_orm
     mock_security_manager.raise_for_editorship.return_value = None
 
@@ -382,51 +410,14 @@ def test_save_allows_repoint_to_database_with_access(
     mock_get_database_by_id.return_value = mock_new_database
     mock_security_manager.raise_for_access.return_value = None
 
-    # Same table preserved across the repoint; supplied explicitly so it is
-    # not applied as None.
-    _run_save(database={"id": 999}, table_name="my_table", schema="public")
+    _run_save(database={"id": 999}, **payload)
 
     mock_security_manager.raise_for_access.assert_called_once()
     call_kwargs = mock_security_manager.raise_for_access.call_args.kwargs
     assert call_kwargs["database"] is mock_new_database
-    assert call_kwargs["table"].table == "my_table"
+    table = call_kwargs["table"]
+    assert (table.table, table.schema) == expected_target
     assert mock_orm.database_id == 999
-
-
-@patch("superset.views.datasource.views.db")
-@patch("superset.views.datasource.views.DatasetDAO.get_database_by_id")
-@patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
-@patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
-def test_save_checks_access_against_requested_table_not_stale_one(
-    mock_get_datasource: MagicMock,
-    mock_security_manager: MagicMock,
-    mock_get_database_by_id: MagicMock,
-    mock_db: MagicMock,
-) -> None:
-    """
-    A request that repoints ``database.id`` can also change
-    ``table_name``/``schema``/``catalog`` in the same payload --
-    ``update_from_object`` applies those requested values afterwards.
-    The access check must therefore be evaluated against the *requested*
-    table, not the dataset's current (stale) one, or a caller could pass
-    the check using a table they're authorised for while actually
-    repointing to one they are not.
-    """
-    mock_orm = _save_orm_dataset(table_name="authorised_table")
-    mock_get_datasource.return_value = mock_orm
-    mock_security_manager.raise_for_editorship.return_value = None
-
-    mock_new_database = MagicMock()
-    mock_get_database_by_id.return_value = mock_new_database
-    mock_security_manager.raise_for_access.return_value = None
-
-    _run_save(database={"id": 999}, table_name="secret_table", schema="finance")
-
-    call_kwargs = mock_security_manager.raise_for_access.call_args.kwargs
-    assert call_kwargs["database"] is mock_new_database
-    # The check ran against the requested table, not the dataset's old one.
-    assert call_kwargs["table"].table == "secret_table"
-    assert call_kwargs["table"].schema == "finance"
 
 
 @patch("superset.views.datasource.views.db")
@@ -456,10 +447,8 @@ def test_save_checks_access_against_requested_table_not_stale_one(
             ("secret_table", "finance", None),
             id="virtual_becomes_physical",
         ),
-        # ``update_from_object`` applies ``obj.get(attr)`` with no default, so
-        # omitted keys are written as ``None``. An omitted key must therefore
-        # read as a change (current value -> ``None``) and be checked against
-        # the target actually applied, not fall back to the current value.
+        # An omitted key is applied as ``None`` rather than left alone, so it
+        # must read as a change and be checked against the target that lands.
         pytest.param(
             {"table_name": "authorised_table"},
             {},

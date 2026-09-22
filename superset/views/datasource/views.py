@@ -147,8 +147,8 @@ class Datasource(BaseSupersetView):
             raise DatasetForbiddenError() from ex
 
         database_changed = database_id != orm_datasource.database_id
-        # The target ``update_from_object`` (below) will apply, omitted keys
-        # included.
+        # The target that ``update_from_object`` (below) will apply, including
+        # the keys the request omitted.
         requested_table = Table(
             datasource_dict.get("table_name"),
             datasource_dict.get("schema") or None,
@@ -156,8 +156,8 @@ class Datasource(BaseSupersetView):
         )
 
         # Editorship of the dataset alone is not sufficient to repoint it. This
-        # ports ``UpdateDatasetCommand``'s table check only, not the separate
-        # SQL-access check the command also runs.
+        # ports ``UpdateDatasetCommand``'s table check only, not the other
+        # source validation the command also runs.
         if database_changed or _repoints_table(
             orm_datasource, datasource_dict.get("sql"), requested_table
         ):
