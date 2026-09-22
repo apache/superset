@@ -57,9 +57,21 @@ test('normalizeTimestamp should not rewrite timestamps with an explicit UTC offs
   expect(normalizeTimestamp('2026-01-15T12:30:00-05:00')).toEqual(
     '2026-01-15T12:30:00-05:00',
   );
+});
+
+test('normalizeTimestamp inserts a colon into a compact offset', () => {
+  // `new Date(...)` only reliably parses `±hh:mm`; a colon-less offset is
+  // outside the ECMA-262 Date Time String Format and browsers disagree on
+  // how to parse it. The instant is unchanged, only the offset's spelling.
   expect(normalizeTimestamp('2026-01-15 12:30:00+0330')).toEqual(
-    '2026-01-15 12:30:00+0330',
+    '2026-01-15 12:30:00+03:30',
   );
+  expect(normalizeTimestamp('2026-01-15T12:30:00-0500')).toEqual(
+    '2026-01-15T12:30:00-05:00',
+  );
+  expect(
+    new Date(normalizeTimestamp('2026-01-15 12:30:00+0330')).getTime(),
+  ).toBe(new Date('2026-01-15T12:30:00+03:30').getTime());
 });
 
 test('normalizeTimestamp keeps Trino space-separated offsets intact', () => {
