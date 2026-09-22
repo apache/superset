@@ -307,6 +307,9 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
                 ),
                 None,
             )
+            # Inferring a legacy time column must not remove an independent
+            # temporal filter as an explicit granularity override would.
+            return
 
         if granularity := query_object.granularity:
             filter_to_remove = None

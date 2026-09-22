@@ -566,6 +566,36 @@ class TestQueryContextFactory:
 
         assert query_object.granularity == "ds"
 
+    def test_legacy_granularity_preserves_independent_temporal_filter(self) -> None:
+        """Legacy fallback preserves a filter on a different datetime column."""
+        temporal_filter = {
+            "col": "event_end",
+            "op": "TEMPORAL_RANGE",
+            "val": "2024-01-10 : 2024-01-20",
+        }
+        query_object = Mock(spec=QueryObject)
+        query_object.granularity = None
+        query_object.is_timeseries = True
+        query_object.columns = ["ds"]
+        query_object.post_processing = []
+        query_object.filter = [temporal_filter]
+
+        datasource = Mock()
+        datasource.main_dttm_col = "ds"
+        datasource.columns = [
+            {"column_name": "ds", "is_dttm": True},
+            {"column_name": "event_end", "is_dttm": True},
+        ]
+
+        self.factory._apply_granularity(
+            query_object,
+            {"granularity_sqla": "ds"},
+            datasource,
+        )
+
+        assert query_object.granularity == "ds"
+        assert query_object.filter == [temporal_filter]
+
     def test_apply_granularity_falls_back_to_main_dttm_col(self) -> None:
         """Without a legacy time column the dataset's main one is used."""
         query_object = Mock(spec=QueryObject)
