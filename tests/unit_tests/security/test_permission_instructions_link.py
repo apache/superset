@@ -147,6 +147,7 @@ def test_get_datasource_access_link_omits_datasource_name() -> None:
     # to users who lack access; the retired placeholder is left literal so a
     # deployment still templating it sees the breakage.
     ds = MagicMock()
+    ds.id = 12
     ds.data = {"id": 12, "name": "Quarterly Sales"}
     with (
         patch(
@@ -194,6 +195,7 @@ def test_get_table_access_link_joins_table_names() -> None:
 
 def test_datasource_error_object_includes_sorted_owner_names() -> None:
     ds = MagicMock()
+    ds.id = 12
     ds.data = {"id": 12, "name": "Quarterly Sales"}
     owner_b, owner_a = MagicMock(), MagicMock()
     owner_b.__str__.return_value = "Zoe Chen"  # type: ignore[attr-defined]
