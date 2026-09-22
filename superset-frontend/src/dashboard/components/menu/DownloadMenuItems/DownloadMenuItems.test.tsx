@@ -248,7 +248,10 @@ test('Export Data to Excel downloads the workbook when it arrives inline', async
 
   render(<MenuWrapper />, { useRedux: true });
 
-  await userEvent.click(screen.getByText('Export Data to Excel'));
+  // See forceSubMenuRender note above.
+  await userEvent.click(screen.getByText('Export Data to Excel'), {
+    pointerEventsCheck: 0,
+  });
 
   await waitFor(() => {
     expect(blob).toHaveBeenCalled();
@@ -276,7 +279,10 @@ test('Export Data to Excel names the downloaded file from the response', async (
 
   render(<MenuWrapper />, { useRedux: true });
 
-  await userEvent.click(screen.getByText('Export Data to Excel'));
+  // See forceSubMenuRender note above.
+  await userEvent.click(screen.getByText('Export Data to Excel'), {
+    pointerEventsCheck: 0,
+  });
 
   await waitFor(() => expect(downloaded).toEqual(['Sales_Overview_7.xlsx']));
   click.mockRestore();
@@ -301,7 +307,10 @@ test('Export Data to Excel reports progress while the export is running', async 
   const { settle } = mockPendingResponse();
 
   render(<MenuWrapper />, { useRedux: true });
-  await userEvent.click(screen.getByText('Export Data to Excel'));
+  // See forceSubMenuRender note above.
+  await userEvent.click(screen.getByText('Export Data to Excel'), {
+    pointerEventsCheck: 0,
+  });
 
   await waitFor(() => {
     expect(screen.getByText('Preparing export…')).toBeInTheDocument();
@@ -332,7 +341,10 @@ test('Export Data to Excel is offered again once the download starts', async () 
   stubObjectUrls();
 
   render(<MenuWrapper />, { useRedux: true });
-  await userEvent.click(screen.getByText('Export Data to Excel'));
+  // See forceSubMenuRender note above.
+  await userEvent.click(screen.getByText('Export Data to Excel'), {
+    pointerEventsCheck: 0,
+  });
   await waitFor(() => {
     expect(screen.getByText('Preparing export…')).toBeInTheDocument();
   });
@@ -358,7 +370,10 @@ test('Export Data to Excel is offered again after a failure', async () => {
   mockGetClientErrorObject.mockResolvedValue({ status: 500 });
 
   render(<MenuWrapper />, { useRedux: true });
-  await userEvent.click(screen.getByText('Export Data to Excel'));
+  // See forceSubMenuRender note above.
+  await userEvent.click(screen.getByText('Export Data to Excel'), {
+    pointerEventsCheck: 0,
+  });
   await waitFor(() => {
     expect(screen.getByText('Preparing export…')).toBeInTheDocument();
   });
@@ -380,7 +395,10 @@ test('Export Images to Excel is blocked while a data export is running', async (
   mockPendingResponse();
 
   render(<MenuWrapper />, { useRedux: true });
-  await userEvent.click(screen.getByText('Export Data to Excel'));
+  // See forceSubMenuRender note above.
+  await userEvent.click(screen.getByText('Export Data to Excel'), {
+    pointerEventsCheck: 0,
+  });
 
   await waitFor(() => {
     expect(menuItemFor('Export Images to Excel')).toHaveAttribute(
@@ -388,7 +406,9 @@ test('Export Images to Excel is blocked while a data export is running', async (
       'true',
     );
   });
-  await userEvent.click(screen.getByText('Export Images to Excel'));
+  await userEvent.click(screen.getByText('Export Images to Excel'), {
+    pointerEventsCheck: 0,
+  });
   expect(mockSupersetClient.post).toHaveBeenCalledTimes(1);
 });
 
