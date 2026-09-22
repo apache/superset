@@ -29,6 +29,7 @@ import uuid
 from collections.abc import Hashable, Iterator
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
+from functools import partial
 from typing import (
     Any,
     Callable,
@@ -113,7 +114,7 @@ from superset.exceptions import (
     SupersetTemplateException,
 )
 from superset.extensions import feature_flag_manager
-from superset.jinja_context import BaseTemplateProcessor
+from superset.jinja_context import BaseTemplateProcessor, JinjaTemplateProcessor
 from superset.sql.metric_normalization import normalize_custom_metric
 from superset.sql.parse import (
     has_aggregate,
@@ -3854,40 +3855,100 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     @staticmethod
     def _neutralize_jinja(sql: str) -> str:
         """
-        Replace Jinja expressions, blocks, and comments with benign placeholders
-        so the remaining SQL can be parsed for the tables the dataset *declares*
-        statically, independent of any request-time value. A ``{{ ... }}``
-        expression becomes a placeholder identifier (so a templated
-        ``FROM``/``JOIN`` target does not vanish and silently reduce the declared
-        set); ``{% ... %}`` control blocks and ``{# ... #}`` comments are dropped.
-        A ``{{ ... }}`` that cannot be neutralized leaves the SQL unparseable,
-        which ``_declared_tables`` treats as "declared set unknown" and fails
-        closed.
+        Static fallback for ``_declared_tables`` when the stored SQL cannot be
+        rendered: replace every Jinja expression, block, and comment with a
+        benign placeholder so the remaining SQL can be parsed for the tables the
+        dataset references. A ``{{ ... }}`` expression becomes a random
+        placeholder identifier (so a templated ``FROM``/``JOIN`` target does not
+        vanish and silently reduce the set, and a caller cannot name a real
+        table that matches the placeholder to hide it); ``{% ... %}`` control
+        blocks and ``{# ... #}`` comments are dropped. Unlike the render path
+        this neutralizes identity macros too, so an identity-parameterized table
+        may then read as request-introduced; that is the conservative
+        (fail-closed) outcome only reached when rendering is unavailable.
         """
-        sql = re.sub(
-            r"\{\{.*?\}\}", "_superset_jinja_placeholder_", sql, flags=re.DOTALL
-        )
+        placeholder = f"superset_declared_{uuid.uuid4().hex}"
+        sql = re.sub(r"\{\{.*?\}\}", placeholder, sql, flags=re.DOTALL)
         sql = re.sub(r"\{%.*?%\}", " ", sql, flags=re.DOTALL)
         sql = re.sub(r"\{#.*?#\}", " ", sql, flags=re.DOTALL)
         return sql
+
+    def _render_declared_sql(self, raw_sql: str) -> Optional[str]:
+        """
+        Render the stored SQL with only the request-controllable macros
+        (``JinjaTemplateProcessor.REQUEST_CONTROLLABLE_MACROS``) replaced by a
+        neutral sentinel, while identity macros (``current_user*``) and
+        author-baked macros
+        (``dataset``/``metric``) render with their real values. Tables keyed off
+        identity (e.g. ``tenant_{{ current_username() }}.sales``) therefore
+        resolve to the same name as the live render and are not mistaken for a
+        request-introduced table; only tables a request value can steer differ.
+
+        Returns ``None`` when a template processor is unavailable or the render
+        fails, so the caller falls back to static neutralization.
+        """
+        from superset.jinja_context import safe_proxy  # noqa: PLC0415
+
+        try:
+            processor = self.get_template_processor()
+        except Exception:  # pylint: disable=broad-except
+            return None
+
+        # A random identifier so a request-controllable macro landing in a
+        # ``FROM``/``JOIN`` position yields a parseable placeholder table that a
+        # caller cannot predict and therefore cannot make the live render
+        # resolve to (which would hide it from the request-introduced set).
+        sentinel = f"superset_declared_{uuid.uuid4().hex}"
+
+        def _sentinel_macro(*_args: Any, **_kwargs: Any) -> str:
+            return sentinel
+
+        # Override the request-controllable macros in place. ``set_context``
+        # re-installs the real macros, so mutate the already-built context
+        # directly. The value must stay a ``safe_proxy`` partial to pass the
+        # template context validation applied by ``process_template``.
+        context = processor._context  # pylint: disable=protected-access
+        for macro_name in JinjaTemplateProcessor.REQUEST_CONTROLLABLE_MACROS:
+            if macro_name in context:
+                context[macro_name] = partial(safe_proxy, _sentinel_macro)
+
+        try:
+            return processor.process_template(raw_sql)
+        except Exception:  # pylint: disable=broad-except
+            return None
+
+    def _parse_qualified_tables(
+        self, sql: Optional[str], catalog: Optional[str], schema: Optional[str]
+    ) -> Optional[set[Table]]:
+        """Parse ``sql`` and return its qualified tables, or ``None`` if it is
+        missing or cannot be parsed."""
+        if sql is None:
+            return None
+        try:
+            script = SQLScript(sql, engine=self.db_engine_spec.engine)
+        except Exception:  # pylint: disable=broad-except
+            return None
+        return self._qualified_tables(script, catalog, schema)
 
     def _declared_tables(
         self, raw_sql: str, catalog: Optional[str], schema: Optional[str]
     ) -> Optional[set[Table]]:
         """
-        Tables the dataset SQL references statically, with request-time Jinja
-        neutralized. Returns ``None`` when the neutralized SQL cannot be parsed,
-        signalling the caller to treat every rendered table as request-resolved
-        (fail closed).
+        Tables the dataset SQL references independently of any request value.
+        Prefers rendering with only request-controllable macros neutralized (so
+        identity-parameterized tables keep their real name); falls back to
+        static neutralization of all Jinja when that render is unavailable.
+        Returns ``None`` when neither parse succeeds, signalling the caller to
+        treat every rendered table as request-resolved (fail closed).
         """
-        try:
-            script = SQLScript(
-                self._neutralize_jinja(raw_sql),
-                engine=self.db_engine_spec.engine,
-            )
-            return self._qualified_tables(script, catalog, schema)
-        except Exception:  # pylint: disable=broad-except
-            return None
+        rendered = self._parse_qualified_tables(
+            self._render_declared_sql(raw_sql), catalog, schema
+        )
+        if rendered is not None:
+            return rendered
+        return self._parse_qualified_tables(
+            self._neutralize_jinja(raw_sql), catalog, schema
+        )
 
     def _authorize_request_resolved_tables(self, parsed_script: SQLScript) -> None:
         """
@@ -3912,6 +3973,44 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             return
 
         from superset import security_manager  # noqa: PLC0415
+
+        # Fail closed on a rendered statement whose table references cannot be
+        # trusted for the declared-vs-rendered comparison below, mirroring the
+        # strict ``force_dataset_match`` handling in
+        # ``SecurityManager.raise_for_access``:
+        #  * ``has_unparseable_statement``: an ``exp.Command`` from dynamic SQL
+        #    (or a non-sqlglot engine) hides its tables from both parses, so the
+        #    per-table check would silently authorize nothing.
+        #  * ``changes_default_schema``: a ``USE``/``SET SCHEMA``/``search_path``
+        #    change rebinds how unqualified names resolve, so qualifying the two
+        #    parses with the dataset's schema no longer compares like for like.
+        if (
+            parsed_script.has_unparseable_statement
+            or parsed_script.changes_default_schema()
+        ):
+            raise SupersetSecurityException(
+                SupersetError(
+                    error_type=SupersetErrorType.QUERY_SECURITY_ACCESS_ERROR,
+                    message=_(
+                        "The virtual dataset query could not be safely parsed, so "
+                        "the tables it references cannot be resolved. Qualify "
+                        "tables explicitly and avoid dynamic SQL or statements "
+                        "that change the default schema (e.g. USE, search_path)."
+                    ),
+                    level=ErrorLevel.ERROR,
+                )
+            )
+
+        # Without a request-controllable macro, the declared render neutralizes
+        # nothing, so it would resolve to exactly the rendered tables and leave
+        # nothing to authorize. Skip the second render/parse entirely in that
+        # (common) case; a substring match is intentionally loose (a table named
+        # after a macro just does the harmless extra work).
+        if not any(
+            macro in raw_sql
+            for macro in JinjaTemplateProcessor.REQUEST_CONTROLLABLE_MACROS
+        ):
+            return
 
         catalog = self.catalog
         default_schema = self.database.get_default_schema(catalog)
