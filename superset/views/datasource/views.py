@@ -89,27 +89,25 @@ def _load_dataset_for_samples(
 
 def _repoints_table(
     datasource: DatasourceModel,
-    datasource_dict: dict[str, Any],
+    requested_sql: str | None,
     requested_table: Table,
 ) -> bool:
     """
     Would the request point ``datasource`` at a different physical table?
 
     Only datasets carry a table pointer, and a result that is still virtual is
-    not pointed at a physical table at all; both answer no.
-
-    A virtual dataset's ``table_name`` is a label rather than a pointer, as in
-    ``UpdateDatasetCommand._validate_dataset_source``. Dropping the SQL binds
-    that label to a real table, so a virtual-to-physical conversion is a
-    repoint even when the label itself is unchanged.
+    not pointed at a physical table at all; both answer no. A virtual dataset's
+    ``table_name`` is a label rather than a pointer, as in
+    ``UpdateDatasetCommand._validate_dataset_source``, so dropping the SQL binds
+    that label to a real table: a repoint even when the label is unchanged.
     """
-    if not isinstance(datasource, SqlaTable) or datasource_dict.get("sql"):
+    if not isinstance(datasource, SqlaTable) or requested_sql:
         return False
     if datasource.is_virtual:
         return True
-    # Compared field by field: ``Table.__eq__`` compares the dotted rendering,
-    # which would conflate distinct targets. ``BaseDatasource.data`` emits an
-    # empty schema as None, so both sides are normalised.
+    # Compared field by field because ``Table.__eq__`` compares the ``str``
+    # rendering, which drops empty parts and so conflates distinct targets.
+    # ``or None`` normalises the stored side the way the requested one is.
     return (requested_table.table, requested_table.schema, requested_table.catalog) != (
         datasource.table_name,
         datasource.schema or None,
@@ -168,11 +166,11 @@ class Datasource(BaseSupersetView):
             target_database = orm_datasource.database
 
         # A repoint must be authorised against the target table, as on the
-        # create path; editorship of the dataset alone is not sufficient. Note
-        # this ports ``UpdateDatasetCommand``'s table check only; it has no
-        # counterpart to the separate SQL-access check the command runs.
+        # create path; editorship of the dataset alone is not sufficient. This
+        # ports ``UpdateDatasetCommand``'s table check only, not the separate
+        # SQL-access check the command also runs.
         if database_changed or _repoints_table(
-            orm_datasource, datasource_dict, requested_table
+            orm_datasource, datasource_dict.get("sql"), requested_table
         ):
             try:
                 security_manager.raise_for_access(

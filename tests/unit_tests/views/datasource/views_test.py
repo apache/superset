@@ -600,7 +600,6 @@ def test_samples_returns_400_for_unsupported_datasource_type(
     mock_get_samples: MagicMock,
 ) -> None:
     """Semantic views can't return raw samples — endpoint should refuse with 400."""
-    from flask import Flask
 
     mock_security_manager.is_guest_user.return_value = False
     mock_json_error_response.return_value = "error-response"
@@ -631,7 +630,6 @@ def test_samples_checks_guest_access_before_datasource_capability(
     mock_get_samples: MagicMock,
 ) -> None:
     """An unauthorized guest gets 403 before semantic-view capability errors."""
-    from flask import Flask
 
     mock_security_manager.is_guest_user.return_value = True
     mock_json_error_response.return_value = "forbidden-response"
@@ -667,7 +665,6 @@ def test_samples_guest_with_dashboard_gets_404_for_non_dataset_type(
     unrelated id spaces, so ``DatasetDAO.find_by_id`` would validate whichever
     unrelated table shares the integer id.
     """
-    from flask import Flask
 
     mock_security_manager.is_guest_user.return_value = True
 
@@ -702,7 +699,6 @@ def test_samples_guest_drill_denial_returns_403(
     mock_get_samples: MagicMock,
 ) -> None:
     """A guest failing the drill-access check gets 403 from that gate."""
-    from flask import Flask
 
     mock_security_manager.is_guest_user.return_value = True
     mock_security_manager.can_drill_dataset_via_dashboard_access.return_value = False
@@ -732,7 +728,6 @@ def test_samples_proceeds_for_supported_datasource_type(
     mock_get_samples: MagicMock,
 ) -> None:
     """A `query` datasource (supports_samples=True) bypasses the 400 short-circuit."""
-    from flask import Flask
 
     mock_security_manager.is_guest_user.return_value = False
     mock_get_samples.return_value = {"rows": []}
@@ -768,7 +763,6 @@ def test_samples_authenticated_dataset_access_denied_returns_403_before_fetch(
     authenticated per-object check only runs for dataset-backed types, which
     always support samples, so this pins authorization-before-fetch rather than
     a race against the ``supports_samples`` gate.)"""
-    from flask import Flask
 
     mock_security_manager.is_guest_user.return_value = False
     mock_dataset = MagicMock()
