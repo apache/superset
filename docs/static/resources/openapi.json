@@ -5888,7 +5888,7 @@
             "type": "boolean"
           },
           "partition_transform_is_monotonic": {
-            "default": false,
+            "nullable": true,
             "type": "boolean"
           },
           "partition_value_transform": {

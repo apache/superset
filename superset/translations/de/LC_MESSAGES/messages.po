@@ -8819,6 +8819,12 @@ msgstr "Januar"
 msgid "Jinja templating"
 msgstr "Jinja Vorlagen"
 
+msgid ""
+"Jinja templating is not supported in a partition value transform. The "
+"transform is evaluated in a different context and at a different time "
+"from the chart query, so a template would not render the same way."
+msgstr ""
+
 msgid "July"
 msgstr "Juli"
 
@@ -9494,6 +9500,10 @@ msgstr "Mapbox (API-Schlüssel erforderlich)"
 
 msgid "Mapbox requires a MAPBOX_API_KEY to be configured on the server."
 msgstr "Für Mapbox muss auf dem Server ein MAPBOX_API_KEY konfiguriert werden."
+
+#, python-format
+msgid "Mapped column %(name)s is not a column on this dataset."
+msgstr ""
 
 msgid "March"
 msgstr "März"
@@ -10404,6 +10414,11 @@ msgstr ""
 "Kein Validator mit dem Namen %(validator_name)s gefunden (konfiguriert "
 "für die Engine %(engine_spec)s )"
 
+msgid ""
+"No value transform is set, so no filter will be mirrored onto the "
+"partition column."
+msgstr ""
+
 msgid "Node label position"
 msgstr "Position der Knotenbeschriftung"
 
@@ -11108,6 +11123,10 @@ msgstr "Partitionslimit"
 
 msgid "Partition Threshold"
 msgstr "Partitionsschwellenwert"
+
+#, python-format
+msgid "Partition column %(name)s is not a column on this dataset."
+msgstr ""
 
 msgid ""
 "Partitions whose height to parent height proportions are below this value"
@@ -15697,6 +15716,12 @@ msgstr[1] ""
 "%(parameters)s."
 
 #, python-format
+msgid ""
+"The partition column cannot be mapped onto itself. %(name)s is both the "
+"partition column and the mapped column."
+msgstr ""
+
+#, python-format
 msgid "The password provided for username \"%(username)s\" is incorrect."
 msgstr "Das für den Anmeldenamen \"%(username)s\" angegebene Kennwort ist falsch."
 
@@ -16154,6 +16179,24 @@ msgid "The username provided when connecting to a database is not valid."
 msgstr ""
 "Der Anmeldename, der beim Herstellen einer Datenbankverbindung angegeben "
 "wurde, ist ungültig."
+
+#, python-format
+msgid ""
+"The value transform calls %(functions)s, whose result depends on when and"
+" where it runs. The transform is evaluated in a separate session and the "
+"result is cached, so the emitted predicate would freeze a snapshot of "
+"that moment."
+msgstr ""
+
+msgid ""
+"The value transform could not be parsed. The mapping is saved but stays "
+"inactive until it does."
+msgstr ""
+
+msgid ""
+"The value transform must contain the :value placeholder, which stands for"
+" the filter value being mirrored."
+msgstr ""
 
 msgid "The values overlap other breakpoint values"
 msgstr "Die Werte überschneiden sich mit anderen Breakpoints"

@@ -10804,6 +10804,12 @@ msgstr "Јануар"
 msgid "Jinja templating"
 msgstr "Jinja шаблони"
 
+msgid ""
+"Jinja templating is not supported in a partition value transform. The "
+"transform is evaluated in a different context and at a different time "
+"from the chart query, so a template would not render the same way."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "July"
 msgstr "Јул"
@@ -11628,6 +11634,10 @@ msgstr "Mapbox (потребан API кључ)"
 
 msgid "Mapbox requires a MAPBOX_API_KEY to be configured on the server."
 msgstr "Mapbox захтева да MAPBOX_API_KEY буде подешен на серверу."
+
+#, python-format
+msgid "Mapped column %(name)s is not a column on this dataset."
+msgstr ""
 
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
 # zh, zh_TW]
@@ -12763,6 +12773,11 @@ msgstr ""
 "Није пронађен валидатор под називом %(validator_name)s (конфигурисан за "
 "механизам %(engine_spec)s)"
 
+msgid ""
+"No value transform is set, so no filter will be mirrored onto the "
+"partition column."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Node label position"
 msgstr "Позиција ознаке чвора"
@@ -13613,6 +13628,10 @@ msgstr "Ограничење поделе"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Partition Threshold"
 msgstr "Праг поделе"
+
+#, python-format
+msgid "Partition column %(name)s is not a column on this dataset."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
@@ -19148,6 +19167,12 @@ msgstr[0] "Параметар %(parameters)s у вашем упиту није �
 msgstr[1] "Следећи параметри у вашем упиту нису дефинисани: %(parameters)s."
 msgstr[2] "Следећи параметри у вашем упиту нису дефинисани: %(parameters)s."
 
+#, python-format
+msgid ""
+"The partition column cannot be mapped onto itself. %(name)s is both the "
+"partition column and the mapped column."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, python-format
 msgid "The password provided for username \"%(username)s\" is incorrect."
@@ -19658,6 +19683,24 @@ msgstr "Корисничко име \"%(username)s\" не постоји."
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "The username provided when connecting to a database is not valid."
 msgstr "Корисничко име наведено приликом повезивања са базом података није важеће."
+
+#, python-format
+msgid ""
+"The value transform calls %(functions)s, whose result depends on when and"
+" where it runs. The transform is evaluated in a separate session and the "
+"result is cached, so the emitted predicate would freeze a snapshot of "
+"that moment."
+msgstr ""
+
+msgid ""
+"The value transform could not be parsed. The mapping is saved but stays "
+"inactive until it does."
+msgstr ""
+
+msgid ""
+"The value transform must contain the :value placeholder, which stands for"
+" the filter value being mirrored."
+msgstr ""
 
 # lv, ru, sk, uk]
 msgid "The values overlap other breakpoint values"
