@@ -17,7 +17,7 @@
 import logging
 from datetime import datetime
 from functools import partial
-from typing import Any, Optional
+from typing import Any, Optional, TYPE_CHECKING
 
 from flask import g
 from flask_appbuilder.models.sqla import Model
@@ -34,8 +34,11 @@ from superset.commands.chart.exceptions import (
     DashboardsNotFoundValidationError,
     DatasourceTypeUpdateRequiredValidationError,
 )
-from superset.commands.chart.utils import validate_query_context_datasource
-from superset.commands.exceptions import DatasourceTypeInvalidError
+from superset.commands.chart.utils import (
+    validate_chart_datasource_type,
+    validate_query_context_datasource,
+)
+from superset.commands.exceptions import DatasourceNotFoundValidationError
 from superset.commands.utils import (
     compute_subjects,
     get_datasource_by_id,
@@ -50,13 +53,15 @@ from superset.extensions import db
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.tags.models import ObjectType
-from superset.utils.core import DatasourceType
 from superset.utils.decorators import on_error, transaction
 from superset.versioning.changes.normalization import (
     register_matching_normalization_context,
 )
 
 logger = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    from superset.connectors.sqla.models import BaseDatasource
 
 
 def is_query_context_update(properties: dict[str, Any]) -> bool:
@@ -150,10 +155,12 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
         dashboard_ids = self._properties.get("dashboards")
         tag_ids: Optional[list[int]] = self._properties.get("tags")
 
-        # Validate if datasource_id is provided datasource_type is required
+        # A supplied type cannot clear the chart's datasource namespace.
         datasource_id = self._properties.get("datasource_id")
         datasource_type = self._properties.get("datasource_type", "")
-        if datasource_id is not None and not datasource_type:
+        if (
+            datasource_id is not None or "datasource_type" in self._properties
+        ) and not datasource_type:
             exceptions.append(DatasourceTypeUpdateRequiredValidationError())
 
         # Validate/populate model exists
@@ -203,22 +210,20 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
         # we don't clobber that message with DatasourceTypeInvalidError.
         if datasource_type:
             try:
-                # Slice.datasource only ever resolves the ``table``
-                # relationship (see Slice.datasource in
-                # superset/models/slice.py), so setting datasource_type to
-                # anything else would "succeed" but leave the chart
-                # permanently unable to render -- even for a type-only
-                # update that leaves datasource_id untouched. Reject those
-                # up front instead of failing later -- either at the lookup
-                # below (SavedQuery/Query have no ``.name`` attribute, so
-                # accessing it raises an unhandled AttributeError) or
-                # silently.
-                if datasource_type != DatasourceType.TABLE:
-                    raise DatasourceTypeInvalidError()
-                if datasource_id is not None:
-                    datasource = get_datasource_by_id(datasource_id, datasource_type)
-                    self._properties["datasource_name"] = datasource.name
-                    security_manager.raise_for_access(datasource=datasource)
+                validate_chart_datasource_type(datasource_type)
+                # A type-only change still selects a different datasource namespace.
+                effective_id: int | None = (
+                    datasource_id
+                    if "datasource_id" in self._properties
+                    else self._model.datasource_id
+                )
+                if effective_id is None:
+                    raise DatasourceNotFoundValidationError()
+                datasource: BaseDatasource = get_datasource_by_id(
+                    effective_id, datasource_type
+                )
+                self._properties["datasource_name"] = datasource.name
+                security_manager.raise_for_access(datasource=datasource)
             except SupersetSecurityException as ex:
                 raise ChartForbiddenError() from ex
             except ValidationError as ex:
