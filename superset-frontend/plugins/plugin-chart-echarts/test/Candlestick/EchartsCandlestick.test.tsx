@@ -81,3 +81,66 @@ test('forwards legend selection changes', () => {
   expect(onLegendStateChanged).toHaveBeenCalledTimes(3);
   expect(onLegendStateChanged).toHaveBeenCalledWith(selected);
 });
+
+test('opens drill-to-detail with x-axis and series filters on right-click', () => {
+  const onContextMenu = jest.fn();
+  const transformed = transformProps(
+    new ChartProps({
+      formData: {
+        datasource: '3__table',
+        x_axis: 'date',
+        open: 'open',
+        close: 'close',
+        high: 'high',
+        low: 'low',
+        series: 'symbol',
+        moving_averages: [],
+      },
+      width: 800,
+      height: 600,
+      queriesData: [
+        {
+          data: [
+            {
+              date: '2017-10-24',
+              symbol: 'AAPL',
+              open: 20,
+              close: 34,
+              low: 10,
+              high: 38,
+            },
+          ],
+        },
+      ],
+      theme: supersetTheme,
+      hooks: { onContextMenu },
+    }) as unknown as EchartsCandlestickChartProps,
+  );
+
+  render(
+    <EchartsCandlestick {...transformed} onContextMenu={onContextMenu} />,
+  );
+
+  const { eventHandlers } = mockedEchart.mock.calls[0][0] as {
+    eventHandlers: EventHandlers;
+  };
+  const stop = jest.fn();
+  eventHandlers.contextmenu({
+    event: { stop, event: { clientX: 12, clientY: 34 } },
+    dataIndex: 0,
+    seriesName: 'AAPL',
+    seriesType: 'candlestick',
+  });
+
+  expect(stop).toHaveBeenCalled();
+  expect(onContextMenu).toHaveBeenCalledWith(
+    12,
+    34,
+    expect.objectContaining({
+      drillToDetail: [
+        expect.objectContaining({ col: 'date', val: '2017-10-24' }),
+        expect.objectContaining({ col: 'symbol', val: 'AAPL' }),
+      ],
+    }),
+  );
+});

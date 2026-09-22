@@ -73,6 +73,12 @@ export interface EchartsCandlestickChartProps extends BaseChartProps<EchartsCand
 }
 
 export type CandlestickChartTransformedProps =
-  BaseTransformedProps<EchartsCandlestickFormData>;
+  BaseTransformedProps<EchartsCandlestickFormData> & {
+    xAxisColumn: string;
+    seriesColumn?: string;
+    xValues: unknown[];
+    xLabels: string[];
+    seriesValues: { name: string; value: unknown }[];
+  };
 
 export type CandlestickChartProps = ChartProps<EchartsCandlestickFormData>;

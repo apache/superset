@@ -321,7 +321,7 @@ export default function transformProps(
 
   const [queryData] = queriesData;
   const { data = [] } = queryData;
-  const { onLegendStateChanged } = hooks;
+  const { onLegendStateChanged, onContextMenu } = hooks;
   const refs: Refs = {};
   const coltypeMapping = getColtypesMapping(queryData);
 
@@ -718,7 +718,19 @@ export default function transformProps(
     height,
     echartOptions: mergedEchartOptions,
     onLegendStateChanged,
+    onContextMenu,
     refs,
     coltypeMapping,
+    xAxisColumn: xAxisName,
+    seriesColumn: seriesName,
+    xValues: xRecords.map(datum => getOwnValue(datum, xAxisName)),
+    xLabels,
+    seriesValues: seriesName
+      ? seriesNames.map((name, index) => ({
+          name,
+          value:
+            seriesKeys[index] === NULL_LOOKUP_KEY ? null : seriesKeys[index],
+        }))
+      : [],
   };
 }
