@@ -48,6 +48,7 @@ from superset.commands.dataset.exceptions import (
 from superset.commands.utils import compute_subjects, raise_if_managed_externally
 from superset.connectors.sqla.models import SqlaTable, validate_stored_expression
 from superset.connectors.sqla.partition_mapping import (
+    is_parseable,
     parse_skeleton,
     validate_partition_mapping,
 )
@@ -418,7 +419,12 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         The transform is authored by a dataset owner, the same principal and
         trust level as a calculated-column expression, so it also goes through
         `validate_stored_expression` -- the parser gate that already governs
-        stored expressions.
+        stored expressions. That gate only applies to a transform that parses:
+        it rejects an unparseable expression outright, which would turn a Tier-2
+        issue into a blocking one and undo the paragraph above. Skipping it
+        there costs nothing -- an unparseable transform is never emitted into a
+        query -- and it is not a hole for templating, because Jinja in a
+        transform is already a Tier-1 blocking issue of its own.
         """
         self._model = cast(SqlaTable, self._model)
 
@@ -459,7 +465,7 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
                     ValidationError(str(issue.message), field_name=issue.field)
                 )
 
-        if transform:
+        if transform and is_parseable(transform, database.backend):
             try:
                 validate_stored_expression(
                     database, catalog, schema, parse_skeleton(transform)
