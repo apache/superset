@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-01 12:46+0300\n"
+"POT-Creation-Date: 2026-09-22 12:21+0530\n"
 "PO-Revision-Date: 2023-05-22 08:04-0400\n"
 "Last-Translator: \n"
 "Language: pt_BR\n"
@@ -26,7 +26,17 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.17.0\n"
+"Generated-By: Babel 2.10.3\n"
+
+#, python-format
+msgid ""
+"\n"
+"                <p>Your report/alert was unable to be generated because "
+"of the following error: %(text)s</p>\n"
+"                <p>Please check your dashboard/chart for errors.</p>\n"
+"                <p><b><a href=\"%(url)s\">%(call_to_action)s</a></b></p>\n"
+"                "
+msgstr ""
 
 #, python-format
 msgid ""
@@ -200,14 +210,6 @@ msgstr " \"%s\" é agora o tema padrão do sistema"
 #, fuzzy, no-python-format
 msgid "% calculation"
 msgstr "cálculo %"
-
-#, python-format
-msgid "% of"
-msgstr ""
-
-#, python-format
-msgid "% of column"
-msgstr ""
 
 #, python-format
 msgid "% of column total"
@@ -1019,15 +1021,6 @@ msgid ""
 "A butterfly chart compares two metrics across categories using horizontal"
 " bars that extend left and right from a central axis."
 msgstr ""
-
-msgid ""
-"A candlestick chart shows opening, closing, high, and low values for each"
-" period. It is commonly used for financial and other time-series range "
-"analysis."
-msgstr ""
-"Um gráfico de candlestick mostra os valores de abertura, fechamento, "
-"máxima e mínima de cada período. É comumente usado para análises "
-"financeiras e de intervalo em séries temporais."
 
 #, fuzzy
 msgid "A comma separated list of columns that should be parsed as dates"
@@ -2847,6 +2840,9 @@ msgstr "Ajustar automaticamente a largura da coluna com base no espaço disponí
 msgid "Automatically adjust column width based on content"
 msgstr "Ajustar automaticamente a largura da coluna com base no conteúdo"
 
+msgid "Automatically retry sending the report when delivery fails."
+msgstr ""
+
 #, fuzzy
 msgid "Automatically sync columns"
 msgstr "Personalizar colunas"
@@ -3152,6 +3148,9 @@ msgstr ""
 
 msgid "Box Plot"
 msgstr "Gráfico de caixa"
+
+msgid "Break"
+msgstr ""
 
 msgid "Breakdowns"
 msgstr "Desmembramentos"
@@ -4264,9 +4263,6 @@ msgstr "Fechar aba"
 msgid "Close version history"
 msgstr ""
 
-msgid "Closing value for each period."
-msgstr "Valor de fechamento de cada período."
-
 msgid "Cluster label aggregator"
 msgstr "Agregador de rótulo de cluster"
 
@@ -4479,9 +4475,6 @@ msgid "Column select"
 msgstr "Seleção de coluna"
 
 msgid "Column settings"
-msgstr ""
-
-msgid "Column sum"
 msgstr ""
 
 #, fuzzy
@@ -4726,7 +4719,7 @@ msgstr "Configurar aparência, cores e CSS personalizado do painel"
 msgid "Configure filter scopes"
 msgstr "Configurar os âmbitos de filtragem"
 
-msgid "Configure retries when alert or report generation fails before delivery."
+msgid "Configure retry behavior on delivery failure."
 msgstr ""
 
 msgid "Configure the basics of your Annotation Layer."
@@ -4859,7 +4852,9 @@ msgstr "Controle"
 msgid "Control labeled "
 msgstr "Controle rotulado"
 
-msgid "Control whether this dashboard loads chart data asynchronously"
+msgid ""
+"Controls how labels overflow beyond the max width. \"Truncate\" adds an "
+"ellipsis. \"Break\" wraps to the next line."
 msgstr ""
 
 #, fuzzy
@@ -5594,10 +5589,6 @@ msgstr "Dados"
 #, fuzzy
 msgid "Data Connections"
 msgstr "Conexões de banco de dados"
-
-#, fuzzy
-msgid "Data Export Options"
-msgstr "Opções do gráfico"
 
 msgid "Data Table"
 msgstr "Tabela de dados"
@@ -6346,11 +6337,6 @@ msgstr ""
 "reverter isso com o"
 
 msgid ""
-"Deleting this dataset is permanent. The affected charts and dashboards "
-"will remain, but they may no longer work."
-msgstr ""
-
-msgid ""
 "Deleting this semantic layer also permanently deletes any semantic views "
 "it contains, and charts built on those views will stop working. The "
 "affected views could not be listed."
@@ -6614,9 +6600,6 @@ msgid ""
 "Display each cell as a percentage of its row, column, or grand total, "
 "instead of its actual value. Totals and subtotals are still computed "
 "correctly first; this only changes how they are displayed."
-msgstr ""
-
-msgid "Display format"
 msgstr ""
 
 msgid "Display headers for each column at the top of the matrix"
@@ -7090,9 +7073,6 @@ msgstr "Editar propriedades da camada de anotação"
 msgid "Edit chart"
 msgstr "Editar gráfico"
 
-msgid "Edit chart properties"
-msgstr "Editar propriedades do gráfico"
-
 msgid "Edit dashboard"
 msgstr "Editar painel"
 
@@ -7325,9 +7305,6 @@ msgstr "Habilita a renderização de ícones para pontos GeoJSON"
 
 msgid "Enables rendering of labels for GeoJSON points"
 msgstr "Habilita a renderização de rótulos para pontos GeoJSON"
-
-msgid "Encrypted extra field must be a mapping from string keys to values."
-msgstr ""
 
 #, fuzzy
 msgid "Encrypted extra fields"
@@ -7764,14 +7741,6 @@ msgstr "Explorar o conjunto de resultados na visão de exploração de dados"
 msgid "Export"
 msgstr "Exportar"
 
-#, fuzzy
-msgid "Export All Data"
-msgstr "Limpar todos os dados"
-
-#, fuzzy
-msgid "Export Current View"
-msgstr "Inverter a página atual"
-
 msgid "Export Data to Excel"
 msgstr ""
 
@@ -7856,19 +7825,6 @@ msgstr "Exportar para .CSV completo"
 #, fuzzy
 msgid "Export to full Excel"
 msgstr "Exportar para Excel"
-
-#, fuzzy
-msgid "Export to original .CSV"
-msgstr "Exportar para .CSV original"
-
-#, fuzzy
-msgid "Export to pivoted .CSV"
-msgstr "Exportar para .CSV articulado"
-
-msgid ""
-"Exporting images to Excel requires background exports. Ask an "
-"administrator to enable them, or export the dashboard's data instead."
-msgstr ""
 
 #, python-format
 msgid ""
@@ -8044,10 +8000,6 @@ msgstr "Falha ao carregar dados do gráfico."
 msgid "Failed to load columns for %s %s"
 msgstr ""
 
-#, python-format
-msgid "Failed to load dimensions for semantic view %s"
-msgstr ""
-
 msgid "Failed to load drill-to-detail rows"
 msgstr ""
 
@@ -8171,12 +8123,6 @@ msgstr "Falha ao verificar opções selecionadas: %s"
 
 msgid "Failure Notifications"
 msgstr ""
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
-# lv, ro, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy
-msgid "Falling back to CSV; Excel export library not available."
-msgstr "Revertendo para CSV; biblioteca de exportação do Excel não disponível."
 
 #, fuzzy
 msgid "False"
@@ -9733,6 +9679,12 @@ msgstr "Conteúdo da célula"
 msgid "Label Line"
 msgstr "Linha de rótulos"
 
+msgid "Label Max Width"
+msgstr ""
+
+msgid "Label Overflow"
+msgstr ""
+
 msgid "Label Position"
 msgstr ""
 
@@ -10570,6 +10522,11 @@ msgstr "Valor máximo"
 msgid "Maximum value on the gauge axis"
 msgstr "Valor máximo no eixo do medidor"
 
+msgid ""
+"Maximum width (in pixels) for pie chart labels. Set to 0 to disable "
+"truncation."
+msgstr ""
+
 #, fuzzy
 msgid "Maximum width size of the path, in pixels or meters."
 msgstr "O tamanho da célula quadrada, em pixels"
@@ -11034,10 +10991,6 @@ msgstr ""
 msgid "Must be between 1 and 10"
 msgstr ""
 
-#, python-brace-format
-msgid "Must be one of: {choices}."
-msgstr ""
-
 msgid "Must be unique"
 msgstr "Deve ser único"
 
@@ -11163,9 +11116,6 @@ msgstr "Agora"
 msgid "New Semantic Layer"
 msgstr "Nenhuma camada de anotação"
 
-msgid "New chart"
-msgstr "Novo gráfico"
-
 msgid "New dataset"
 msgstr "Novo conjunto de dados"
 
@@ -11230,10 +11180,6 @@ msgid "No actions"
 msgstr "Desfazer a ação"
 
 msgid "No actions found"
-msgstr ""
-
-#, python-format
-msgid "No affected %(label)s."
 msgstr ""
 
 msgid "No annotation layers"
@@ -12279,9 +12225,6 @@ msgid "Percent Difference format"
 msgstr "Forçar o formato da data"
 
 msgid "Percent change"
-msgstr ""
-
-msgid "Percent denominator"
 msgstr ""
 
 #, fuzzy
@@ -13588,6 +13531,9 @@ msgstr ""
 msgid "Resume auto-refresh"
 msgstr "Definir intervalo da atualização automática"
 
+msgid "Retries are not supported for alerts"
+msgstr ""
+
 #, fuzzy
 msgid "Retry"
 msgstr "Criador"
@@ -13595,11 +13541,6 @@ msgstr "Criador"
 #, fuzzy
 msgid "Retry fetching results"
 msgstr "Recuperar resultados"
-
-msgid ""
-"Retry generation failures before delivery starts. Alerts re-check their "
-"condition on each attempt. Delivery failures are not replayed."
-msgstr ""
 
 msgid "Retrying"
 msgstr ""
@@ -15303,9 +15244,6 @@ msgid ""
 " Note that row limit does not apply to the result."
 msgstr ""
 
-msgid "Show all"
-msgstr ""
-
 msgid "Show all columns"
 msgstr "Mostrar todas as colunas"
 
@@ -15392,9 +15330,6 @@ msgid ""
 msgstr ""
 
 msgid "Show or hide the X axis line, ticks, and labels"
-msgstr ""
-
-msgid "Show or hide the Y axis line and labels"
 msgstr ""
 
 msgid "Show or hide the Y axis line, ticks, gridlines, and labels"
@@ -16176,10 +16111,6 @@ msgstr "Gráfico Sunburst"
 
 msgid "Sunday"
 msgstr "Domingo"
-
-#, fuzzy
-msgid "Superset Chart"
-msgstr "Gráfico do Superset"
 
 msgid "Superset Embedded SDK documentation."
 msgstr "Documentação do SDK incorporado Superset."
@@ -17819,12 +17750,6 @@ msgstr "Tema"
 msgid "Theme colors"
 msgstr ""
 
-msgid "Theme could not be created."
-msgstr ""
-
-msgid "Theme could not be updated."
-msgstr ""
-
 #, fuzzy
 msgid "Theme imported"
 msgstr "Conjunto de dados importado"
@@ -18180,9 +18105,6 @@ msgid ""
 "You can recover it there."
 msgstr ""
 
-msgid "This CSS uses @import, which cannot be saved"
-msgstr ""
-
 msgid ""
 "This Google Sheets connection impersonates the logged-in user, who has no"
 " e-mail address."
@@ -18269,6 +18191,12 @@ msgid "This chart no longer exists."
 msgstr ""
 
 msgid "This chart only"
+msgstr ""
+
+#, python-format
+msgid ""
+"This chart uses the \"%s\" dataset, which you do not have permission to "
+"view."
 msgstr ""
 
 msgid "This chart will be restored to the following version:"
@@ -18608,12 +18536,7 @@ msgid ""
 "a misleadingly large number."
 msgstr ""
 
-msgid ""
-"This metric is not compatible with the current selections. Select a "
-"compatible metric."
-msgstr ""
-
-#, python-format
+#, fuzzy, python-format
 msgid "This metric might be incompatible with current %s"
 msgstr ""
 
@@ -18637,6 +18560,12 @@ msgstr ""
 #, fuzzy
 msgid "This password is too common; please choose a less guessable one."
 msgstr "Esta senha é muito comum; por favor, escolha uma menos previsível."
+
+#, python-format
+msgid ""
+"This query uses the \"%s\" dataset, which you do not have permission to "
+"view."
+msgstr ""
 
 msgid ""
 "This section allows you to configure how to use the slice\n"
@@ -18685,11 +18614,6 @@ msgid "This theme is set locally for your session"
 msgstr "Esse tema está definido localmente para sua sessão"
 
 msgid ""
-"This theme is the active default/dark theme - only Admins can edit it - "
-"Read Only"
-msgstr ""
-
-msgid ""
 "This theme uses the dark algorithm. It will be rendered with the light "
 "algorithm instead, so its colors may not look as designed."
 msgstr ""
@@ -18697,14 +18621,6 @@ msgstr ""
 msgid ""
 "This theme uses the light algorithm. It will be rendered with the dark "
 "algorithm instead, so its colors may not look as designed."
-msgstr ""
-
-msgid ""
-"This update would change the connection's effective destination "
-"(host/port, engine parameters, SSH tunnel endpoint, or OAuth2 endpoint "
-"URIs) while reusing the stored credential. Provide the real password (or "
-"SSH tunnel credential / OAuth2 client secret) to confirm a connection "
-"move."
 msgstr ""
 
 msgid "This username is already taken. Please choose another one."
@@ -19166,6 +19082,9 @@ msgstr ""
 msgid "True"
 msgstr "TER"
 
+msgid "Truncate"
+msgstr ""
+
 msgid "Truncate Axis"
 msgstr ""
 
@@ -19493,9 +19412,6 @@ msgid "Undefined window for rolling operation"
 msgstr "Janela indefinida para operação de rolagem"
 
 msgid "Undid or redid a change"
-msgstr ""
-
-msgid "Undo"
 msgstr ""
 
 msgid "Undo the action"
@@ -21106,9 +21022,6 @@ msgstr ""
 msgid "You do not have access to the following tables: %s."
 msgstr ""
 
-msgid "You do not have permission to access this datasource"
-msgstr ""
-
 #, python-format
 msgid "You do not have permission to edit this %s"
 msgstr "Você não tem permissão para editar este %s"
@@ -21127,12 +21040,6 @@ msgid "You do not have permission to read tags"
 msgstr ""
 
 msgid "You do not have permission to view any archived object types."
-msgstr ""
-
-msgid "You do not have permission to view this chart’s data."
-msgstr ""
-
-msgid "You do not have permission to view this data."
 msgstr ""
 
 msgid "You do not have permissions to edit this dashboard."
@@ -22287,11 +22194,6 @@ msgstr ""
 
 msgid "permalink state not found"
 msgstr "estado do permalink não encontrado"
-
-#. do-not-translate
-#, fuzzy
-msgid "pivoted_xlsx"
-msgstr "Pivotado"
 
 #, fuzzy
 msgid "pixels"

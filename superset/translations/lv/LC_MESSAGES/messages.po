@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-01 12:46+0300\n"
+"POT-Creation-Date: 2026-09-22 12:21+0530\n"
 "PO-Revision-Date: 2026-03-27 14:01+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: lv\n"
@@ -31,7 +31,17 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.17.0\n"
+"Generated-By: Babel 2.10.3\n"
+
+#, python-format
+msgid ""
+"\n"
+"                <p>Your report/alert was unable to be generated because "
+"of the following error: %(text)s</p>\n"
+"                <p>Please check your dashboard/chart for errors.</p>\n"
+"                <p><b><a href=\"%(url)s\">%(call_to_action)s</a></b></p>\n"
+"                "
+msgstr ""
 
 #, python-format
 msgid ""
@@ -198,14 +208,6 @@ msgstr "\"%s\" tagad ir sistēmas noklusējuma motīvs"
 #, no-python-format
 msgid "% calculation"
 msgstr "% aprēķins"
-
-#, python-format
-msgid "% of"
-msgstr ""
-
-#, python-format
-msgid "% of column"
-msgstr ""
 
 #, python-format
 msgid "% of column total"
@@ -1034,15 +1036,6 @@ msgid ""
 "A butterfly chart compares two metrics across categories using horizontal"
 " bars that extend left and right from a central axis."
 msgstr ""
-
-msgid ""
-"A candlestick chart shows opening, closing, high, and low values for each"
-" period. It is commonly used for financial and other time-series range "
-"analysis."
-msgstr ""
-"Sveču diagramma rāda katra perioda atvēršanas, slēgšanas, augstāko un "
-"zemāko vērtību. To parasti izmanto finanšu un citai laika rindu diapazona"
-" analīzei."
 
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr "Ar komatu atdalīts kolonnu saraksts, kas jāanalizē kā datumi"
@@ -2739,6 +2732,9 @@ msgstr "Automātiski pielāgot kolonnu platumu atbilstoši pieejamajai vietai"
 msgid "Automatically adjust column width based on content"
 msgstr "Automātiski pielāgot kolonnu platumu atbilstoši saturam"
 
+msgid "Automatically retry sending the report when delivery fails."
+msgstr ""
+
 msgid "Automatically sync columns"
 msgstr "Automātiski sinhronizēt kolonnas"
 
@@ -3004,6 +3000,9 @@ msgstr ""
 
 msgid "Box Plot"
 msgstr "Kastīšu diagramma"
+
+msgid "Break"
+msgstr ""
 
 msgid "Breakdowns"
 msgstr "Sadalījumi"
@@ -4009,9 +4008,6 @@ msgstr "Aizvērt cilni"
 msgid "Close version history"
 msgstr ""
 
-msgid "Closing value for each period."
-msgstr "Katras perioda slēgšanas vērtība."
-
 msgid "Cluster label aggregator"
 msgstr "Klasteru apzīmējumu agregators"
 
@@ -4214,9 +4210,6 @@ msgid "Column select"
 msgstr "Kolonnas atlase"
 
 msgid "Column settings"
-msgstr ""
-
-msgid "Column sum"
 msgstr ""
 
 msgid "Column to group by"
@@ -4435,7 +4428,7 @@ msgstr "Konfigurējiet paneļa izskatu, krāsas un pielāgotu CSS"
 msgid "Configure filter scopes"
 msgstr "Konfigurēt filtru tvērumus"
 
-msgid "Configure retries when alert or report generation fails before delivery."
+msgid "Configure retry behavior on delivery failure."
 msgstr ""
 
 msgid "Configure the basics of your Annotation Layer."
@@ -4557,7 +4550,9 @@ msgstr "Vadīkla"
 msgid "Control labeled "
 msgstr "Vadīkla ar nosaukumu "
 
-msgid "Control whether this dashboard loads chart data asynchronously"
+msgid ""
+"Controls how labels overflow beyond the max width. \"Truncate\" adds an "
+"ellipsis. \"Break\" wraps to the next line."
 msgstr ""
 
 msgid "Controls labeled "
@@ -5201,9 +5196,6 @@ msgstr "Dati"
 #, fuzzy
 msgid "Data Connections"
 msgstr "Datubāzes savienojumi"
-
-msgid "Data Export Options"
-msgstr "Datu eksportēšanas opcijas"
 
 msgid "Data Table"
 msgstr "Datu tabula"
@@ -5914,11 +5906,6 @@ msgstr ""
 "brīdinājumus vai atskaites. Jūs joprojām varat atcelt šo darbību ar"
 
 msgid ""
-"Deleting this dataset is permanent. The affected charts and dashboards "
-"will remain, but they may no longer work."
-msgstr ""
-
-msgid ""
 "Deleting this semantic layer also permanently deletes any semantic views "
 "it contains, and charts built on those views will stop working. The "
 "affected views could not be listed."
@@ -6158,9 +6145,6 @@ msgid ""
 "Display each cell as a percentage of its row, column, or grand total, "
 "instead of its actual value. Totals and subtotals are still computed "
 "correctly first; this only changes how they are displayed."
-msgstr ""
-
-msgid "Display format"
 msgstr ""
 
 msgid "Display headers for each column at the top of the matrix"
@@ -6588,9 +6572,6 @@ msgstr "Rediģēt anotāciju slāņa rekvizītus"
 msgid "Edit chart"
 msgstr "Rediģēt diagrammu"
 
-msgid "Edit chart properties"
-msgstr "Rediģēt diagrammas rekvizītus"
-
 msgid "Edit dashboard"
 msgstr "Rediģēt informācijas paneli"
 
@@ -6807,9 +6788,6 @@ msgstr "Ļauj renderēt ikonas GeoJSON punktiem"
 
 msgid "Enables rendering of labels for GeoJSON points"
 msgstr "Ļauj renderēt apzīmējumus GeoJSON punktiem"
-
-msgid "Encrypted extra field must be a mapping from string keys to values."
-msgstr ""
 
 #, fuzzy
 msgid "Encrypted extra fields"
@@ -7205,12 +7183,6 @@ msgstr "Izpētīt rezultātu kopu datu pētniecības skatā"
 msgid "Export"
 msgstr "Eksportēt"
 
-msgid "Export All Data"
-msgstr "Eksportēt visus datus"
-
-msgid "Export Current View"
-msgstr "Eksportēt pašreizējo skatu"
-
 msgid "Export Data to Excel"
 msgstr ""
 
@@ -7282,17 +7254,6 @@ msgstr "Eksportēt uz pilnu .CSV"
 
 msgid "Export to full Excel"
 msgstr "Eksportēt uz pilnu Excel"
-
-msgid "Export to original .CSV"
-msgstr "Eksportēt uz oriģinālo .CSV"
-
-msgid "Export to pivoted .CSV"
-msgstr "Eksportēt uz šķērsgriezuma .CSV"
-
-msgid ""
-"Exporting images to Excel requires background exports. Ask an "
-"administrator to enable them, or export the dashboard's data instead."
-msgstr ""
 
 #, python-format
 msgid ""
@@ -7458,10 +7419,6 @@ msgstr "Neizdevās ielādēt diagrammas datus."
 msgid "Failed to load columns for %s %s"
 msgstr ""
 
-#, python-format
-msgid "Failed to load dimensions for semantic view %s"
-msgstr ""
-
 msgid "Failed to load drill-to-detail rows"
 msgstr ""
 
@@ -7565,9 +7522,6 @@ msgstr "Neizdevās verificēt atlases opcijas: %s"
 
 msgid "Failure Notifications"
 msgstr ""
-
-msgid "Falling back to CSV; Excel export library not available."
-msgstr "Atgriešanās pie CSV; Excel eksporta bibliotēka nav pieejama."
 
 msgid "False"
 msgstr "Nepatiesi"
@@ -8925,6 +8879,12 @@ msgstr "Apzīmējuma saturs"
 msgid "Label Line"
 msgstr "Apzīmējuma līnija"
 
+msgid "Label Max Width"
+msgstr ""
+
+msgid "Label Overflow"
+msgstr ""
+
 msgid "Label Position"
 msgstr ""
 
@@ -9687,6 +9647,11 @@ msgstr "Maksimālā vērtība"
 msgid "Maximum value on the gauge axis"
 msgstr "Maksimālā vērtība uz mērinstrumenta ass"
 
+msgid ""
+"Maximum width (in pixels) for pie chart labels. Set to 0 to disable "
+"truncation."
+msgstr ""
+
 #, fuzzy
 msgid "Maximum width size of the path, in pixels or meters."
 msgstr "Kvadrātveida šūnas izmērs pikseļos"
@@ -10125,10 +10090,6 @@ msgstr ""
 msgid "Must be between 1 and 10"
 msgstr ""
 
-#, python-brace-format
-msgid "Must be one of: {choices}."
-msgstr ""
-
 msgid "Must be unique"
 msgstr "Jābūt unikālam"
 
@@ -10246,9 +10207,6 @@ msgstr "Jauns"
 msgid "New Semantic Layer"
 msgstr "Nav anotāciju slāņu"
 
-msgid "New chart"
-msgstr "Jauna diagramma"
-
 msgid "New dataset"
 msgstr "Jauna datu kopa"
 
@@ -10308,10 +10266,6 @@ msgid "No actions"
 msgstr "Nav darbību"
 
 msgid "No actions found"
-msgstr ""
-
-#, python-format
-msgid "No affected %(label)s."
 msgstr ""
 
 msgid "No annotation layers"
@@ -11280,9 +11234,6 @@ msgid "Percent Difference format"
 msgstr "Procentuālās starpības formāts"
 
 msgid "Percent change"
-msgstr ""
-
-msgid "Percent denominator"
 msgstr ""
 
 msgid "Percent of total"
@@ -12455,16 +12406,14 @@ msgstr "Asinhrono vaicājumu rezultātu aizmugursistēma nav konfigurēta."
 msgid "Resume auto-refresh"
 msgstr "Iestatīt automātisko atsvaidzināšanos"
 
+msgid "Retries are not supported for alerts"
+msgstr ""
+
 msgid "Retry"
 msgstr "Mēģināt vēlreiz"
 
 msgid "Retry fetching results"
 msgstr "Mēģināt atkārtoti ielādēt rezultātus"
-
-msgid ""
-"Retry generation failures before delivery starts. Alerts re-check their "
-"condition on each attempt. Delivery failures are not replayed."
-msgstr ""
 
 msgid "Retrying"
 msgstr ""
@@ -14021,9 +13970,6 @@ msgid ""
 " Note that row limit does not apply to the result."
 msgstr ""
 
-msgid "Show all"
-msgstr ""
-
 msgid "Show all columns"
 msgstr "Rādīt visas kolonnas"
 
@@ -14104,9 +14050,6 @@ msgid ""
 msgstr ""
 
 msgid "Show or hide the X axis line, ticks, and labels"
-msgstr ""
-
-msgid "Show or hide the Y axis line and labels"
 msgstr ""
 
 msgid "Show or hide the Y axis line, ticks, gridlines, and labels"
@@ -14831,9 +14774,6 @@ msgstr "Saules staru diagramma"
 
 msgid "Sunday"
 msgstr "Svētdiena"
-
-msgid "Superset Chart"
-msgstr "Superset diagramma"
 
 msgid "Superset Embedded SDK documentation."
 msgstr "Superset iegultā SDK dokumentācija."
@@ -16317,12 +16257,6 @@ msgstr "Motīvs"
 msgid "Theme colors"
 msgstr ""
 
-msgid "Theme could not be created."
-msgstr ""
-
-msgid "Theme could not be updated."
-msgstr ""
-
 msgid "Theme imported"
 msgstr "Motīvs importēts"
 
@@ -16662,9 +16596,6 @@ msgid ""
 "You can recover it there."
 msgstr ""
 
-msgid "This CSS uses @import, which cannot be saved"
-msgstr ""
-
 msgid ""
 "This Google Sheets connection impersonates the logged-in user, who has no"
 " e-mail address."
@@ -16743,6 +16674,12 @@ msgid "This chart no longer exists."
 msgstr ""
 
 msgid "This chart only"
+msgstr ""
+
+#, python-format
+msgid ""
+"This chart uses the \"%s\" dataset, which you do not have permission to "
+"view."
 msgstr ""
 
 msgid "This chart will be restored to the following version:"
@@ -17038,12 +16975,7 @@ msgid ""
 "a misleadingly large number."
 msgstr ""
 
-msgid ""
-"This metric is not compatible with the current selections. Select a "
-"compatible metric."
-msgstr ""
-
-#, python-format
+#, fuzzy, python-format
 msgid "This metric might be incompatible with current %s"
 msgstr ""
 
@@ -17062,6 +16994,12 @@ msgstr "Šī lapa ir paredzēta iegulšanai iframe, bet šķiet, ka tas tā nav.
 #, fuzzy
 msgid "This password is too common; please choose a less guessable one."
 msgstr "Šī parole ir pārāk izplatīta; lūdzu, izvēlieties grūtāk uzminamu paroli."
+
+#, python-format
+msgid ""
+"This query uses the \"%s\" dataset, which you do not have permission to "
+"view."
+msgstr ""
 
 msgid ""
 "This section allows you to configure how to use the slice\n"
@@ -17109,11 +17047,6 @@ msgid "This theme is set locally for your session"
 msgstr "Šis motīvs ir iestatīts lokāli jūsu sesijai"
 
 msgid ""
-"This theme is the active default/dark theme - only Admins can edit it - "
-"Read Only"
-msgstr ""
-
-msgid ""
 "This theme uses the dark algorithm. It will be rendered with the light "
 "algorithm instead, so its colors may not look as designed."
 msgstr ""
@@ -17121,14 +17054,6 @@ msgstr ""
 msgid ""
 "This theme uses the light algorithm. It will be rendered with the dark "
 "algorithm instead, so its colors may not look as designed."
-msgstr ""
-
-msgid ""
-"This update would change the connection's effective destination "
-"(host/port, engine parameters, SSH tunnel endpoint, or OAuth2 endpoint "
-"URIs) while reusing the stored credential. Provide the real password (or "
-"SSH tunnel credential / OAuth2 client secret) to confirm a connection "
-"move."
 msgstr ""
 
 msgid "This username is already taken. Please choose another one."
@@ -17566,6 +17491,9 @@ msgstr ""
 msgid "True"
 msgstr "Patiesi"
 
+msgid "Truncate"
+msgstr ""
+
 msgid "Truncate Axis"
 msgstr ""
 
@@ -17862,9 +17790,6 @@ msgid "Undefined window for rolling operation"
 msgstr "Nedefinēts logs ritošajai operācijai"
 
 msgid "Undid or redid a change"
-msgstr ""
-
-msgid "Undo"
 msgstr ""
 
 msgid "Undo the action"
@@ -19350,9 +19275,6 @@ msgstr ""
 msgid "You do not have access to the following tables: %s."
 msgstr ""
 
-msgid "You do not have permission to access this datasource"
-msgstr ""
-
 #, python-format
 msgid "You do not have permission to edit this %s"
 msgstr "Jums nav atļaujas rediģēt šo %s"
@@ -19371,12 +19293,6 @@ msgid "You do not have permission to read tags"
 msgstr "Jums nav atļaujas lasīt birkas"
 
 msgid "You do not have permission to view any archived object types."
-msgstr ""
-
-msgid "You do not have permission to view this chart’s data."
-msgstr ""
-
-msgid "You do not have permission to view this data."
 msgstr ""
 
 msgid "You do not have permissions to edit this dashboard."
@@ -20477,10 +20393,6 @@ msgstr ""
 
 msgid "permalink state not found"
 msgstr "pastāvīgās saites stāvoklis nav atrasts"
-
-#. do-not-translate
-msgid "pivoted_xlsx"
-msgstr "pivoted_xlsx"
 
 msgid "pixels"
 msgstr "pikseļi"

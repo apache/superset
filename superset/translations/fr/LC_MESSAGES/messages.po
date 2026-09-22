@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-01 12:46+0300\n"
+"POT-Creation-Date: 2026-09-22 12:21+0530\n"
 "PO-Revision-Date: 2025-06-26 15:34+0200\n"
 "Last-Translator: \n"
 "Language: fr\n"
@@ -26,7 +26,17 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.17.0\n"
+"Generated-By: Babel 2.10.3\n"
+
+#, python-format
+msgid ""
+"\n"
+"                <p>Your report/alert was unable to be generated because "
+"of the following error: %(text)s</p>\n"
+"                <p>Please check your dashboard/chart for errors.</p>\n"
+"                <p><b><a href=\"%(url)s\">%(call_to_action)s</a></b></p>\n"
+"                "
+msgstr ""
 
 #, python-format
 msgid ""
@@ -196,14 +206,6 @@ msgstr "\"%s\" est maintenant le thème par défaut du système"
 #, no-python-format
 msgid "% calculation"
 msgstr "% calcul"
-
-#, python-format
-msgid "% of"
-msgstr ""
-
-#, python-format
-msgid "% of column"
-msgstr ""
 
 #, python-format
 msgid "% of column total"
@@ -1006,16 +1008,6 @@ msgid ""
 "A butterfly chart compares two metrics across categories using horizontal"
 " bars that extend left and right from a central axis."
 msgstr ""
-
-msgid ""
-"A candlestick chart shows opening, closing, high, and low values for each"
-" period. It is commonly used for financial and other time-series range "
-"analysis."
-msgstr ""
-"Un graphique en chandeliers affiche les valeurs d'ouverture, de clôture, "
-"le plus haut et le plus bas de chaque période. Il est couramment utilisé "
-"pour l'analyse financière et d'autres analyses de plage de séries "
-"temporelles."
 
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr "Liste de Colonnes séparée par des virgules à traiter comme des dates"
@@ -2146,10 +2138,6 @@ msgstr ""
 "Une erreur s'est produite lors de l'extraction des métadonnées de la "
 "table pour %s"
 
-#, python-format
-msgid "An error occurred while fetching task types: %s"
-msgstr ""
-
 msgid "An error occurred while fetching the configuration schema"
 msgstr ""
 "Une erreur s'est produite lors de la récupération des schémas de "
@@ -2762,6 +2750,9 @@ msgstr ""
 msgid "Automatically adjust column width based on content"
 msgstr "Ajuster automatiquement la largeur des colonnes en fonction du contenu"
 
+msgid "Automatically retry sending the report when delivery fails."
+msgstr ""
+
 msgid "Automatically sync columns"
 msgstr "Synchroniser automatiquement les colonnes"
 
@@ -3035,6 +3026,9 @@ msgstr ""
 
 msgid "Box Plot"
 msgstr "Diagramme de quartiles"
+
+msgid "Break"
+msgstr ""
 
 msgid "Breakdowns"
 msgstr "Ventilations"
@@ -3874,9 +3868,6 @@ msgstr ""
 "Liste Json des valeurs qui doivent être traitées comme nulles. Attention "
 ": La base de données Hive ne prend en charge qu'une seule valeur"
 
-msgid "Choose where to display values relative to the bars"
-msgstr ""
-
 msgid ""
 "Choose whether a country should be shaded by the metric, or assigned a "
 "color based on a categorical color palette"
@@ -4062,9 +4053,6 @@ msgstr "Fermer l'onglet"
 
 msgid "Close version history"
 msgstr ""
-
-msgid "Closing value for each period."
-msgstr "Valeur de clôture de chaque période."
 
 msgid "Cluster label aggregator"
 msgstr "Agrégateur d'étiquettes en grappe"
@@ -4268,9 +4256,6 @@ msgid "Column select"
 msgstr "Sélection d'une colonne"
 
 msgid "Column settings"
-msgstr ""
-
-msgid "Column sum"
 msgstr ""
 
 msgid "Column to group by"
@@ -4491,7 +4476,7 @@ msgstr ""
 msgid "Configure filter scopes"
 msgstr "Configurer la portée du filtre"
 
-msgid "Configure retries when alert or report generation fails before delivery."
+msgid "Configure retry behavior on delivery failure."
 msgstr ""
 
 msgid "Configure the basics of your Annotation Layer."
@@ -4613,7 +4598,9 @@ msgstr "Contrôle"
 msgid "Control labeled "
 msgstr "Contrôle libellé "
 
-msgid "Control whether this dashboard loads chart data asynchronously"
+msgid ""
+"Controls how labels overflow beyond the max width. \"Truncate\" adds an "
+"ellipsis. \"Break\" wraps to the next line."
 msgstr ""
 
 msgid "Controls labeled "
@@ -5270,9 +5257,6 @@ msgstr "Données"
 
 msgid "Data Connections"
 msgstr "Connexions aux bases de données"
-
-msgid "Data Export Options"
-msgstr "Options d'exportation des données"
 
 msgid "Data Table"
 msgstr "Tableau des données"
@@ -5972,11 +5956,6 @@ msgstr ""
 "Vous pouvez toujours annuler cette action avec le"
 
 msgid ""
-"Deleting this dataset is permanent. The affected charts and dashboards "
-"will remain, but they may no longer work."
-msgstr ""
-
-msgid ""
 "Deleting this semantic layer also permanently deletes any semantic views "
 "it contains, and charts built on those views will stop working. The "
 "affected views could not be listed."
@@ -6224,9 +6203,6 @@ msgid ""
 "Display each cell as a percentage of its row, column, or grand total, "
 "instead of its actual value. Totals and subtotals are still computed "
 "correctly first; this only changes how they are displayed."
-msgstr ""
-
-msgid "Display format"
 msgstr ""
 
 msgid "Display headers for each column at the top of the matrix"
@@ -6664,9 +6640,6 @@ msgstr "Modifier les propriétés de la couche d'annotation"
 msgid "Edit chart"
 msgstr "Modifier le graphique"
 
-msgid "Edit chart properties"
-msgstr "Modifier les propriétés du graphique"
-
 msgid "Edit dashboard"
 msgstr "Modifier le tableau de bord"
 
@@ -6888,9 +6861,6 @@ msgstr "Permets le rendu des icônes sur les points GeoJSON"
 # lv, pt_BR, ru, sk, sr, sr_Latn, tr, uk]
 msgid "Enables rendering of labels for GeoJSON points"
 msgstr "Permets le rendu des labels pour les points GeoJSON"
-
-msgid "Encrypted extra field must be a mapping from string keys to values."
-msgstr ""
 
 msgid "Encrypted extra fields"
 msgstr "Champs complémentaires chiffrés"
@@ -7141,10 +7111,6 @@ msgid "Error while fetching roles"
 msgstr "Une erreur s'est produite lors de la récupération des rôles"
 
 #, python-format
-msgid "Error while rendering calculated column expression: %(msg)s"
-msgstr ""
-
-#, python-format
 msgid "Error while rendering virtual dataset query: %(msg)s"
 msgstr "Erreur durant le rendu de la requête du jeu de données virtuel : %(msg)s"
 
@@ -7287,12 +7253,6 @@ msgstr "Explorer le résultat dans la vue d'exploration des données"
 msgid "Export"
 msgstr "Exporter"
 
-msgid "Export All Data"
-msgstr "Exporter toutes les données"
-
-msgid "Export Current View"
-msgstr "Exporter la vue actuelle"
-
 msgid "Export Data to Excel"
 msgstr ""
 
@@ -7366,17 +7326,6 @@ msgstr "Exporter en CSV intégralement"
 msgid "Export to full Excel"
 msgstr "Exporter intégralement en Excel"
 
-msgid "Export to original .CSV"
-msgstr "Exporter vers .CSV original"
-
-msgid "Export to pivoted .CSV"
-msgstr "Exporter vers .CSV pivoté"
-
-msgid ""
-"Exporting images to Excel requires background exports. Ask an "
-"administrator to enable them, or export the dashboard's data instead."
-msgstr ""
-
 #, python-format
 msgid ""
 "Exporting semantic views is not supported yet — %s semantic-view row(s) "
@@ -7439,6 +7388,11 @@ msgstr ""
 
 msgid "Extra field must be a mapping from string keys to values."
 msgstr ""
+"Données supplémentaires pour spécifier les métadonnées du tableau. "
+"Actuellement, les métadonnées sont prises en charge dans le format "
+"suivant : `{ « certification »: { « certified_by »: « Data Platform Team "
+"»,  »details« :  »Ce tableau est la source de la vérité.«  },  "
+"»warning_markdown« :  »Ceci est un avertissement.\" }`."
 
 msgid "Extra parameters for use in jinja templated queries"
 msgstr "Paramètres supplémentaires à utiliser dans les modèles de requêtes jinja"
@@ -7540,10 +7494,6 @@ msgstr "Échec du chargement des données du graphique."
 #, python-format
 msgid "Failed to load columns for %s %s"
 msgstr "Échec lors du chargement des colonnes pour %s %s"
-
-#, python-format
-msgid "Failed to load dimensions for semantic view %s"
-msgstr ""
 
 msgid "Failed to load drill-to-detail rows"
 msgstr ""
@@ -7647,13 +7597,6 @@ msgstr "Échec de la vérification des options de sélection : %s"
 
 msgid "Failure Notifications"
 msgstr ""
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
-# lv, ro, ru, sk, sr, sr_Latn, tr, uk]
-msgid "Falling back to CSV; Excel export library not available."
-msgstr ""
-"Utilisation du CSV; La libraire pour exporter en Excel n'est pas "
-"disponible."
 
 msgid "False"
 msgstr "est faux"
@@ -9040,6 +8983,12 @@ msgstr "Contenu de l'étiquette"
 msgid "Label Line"
 msgstr "Ligne d'étiquette"
 
+msgid "Label Max Width"
+msgstr ""
+
+msgid "Label Overflow"
+msgstr ""
+
 msgid "Label Position"
 msgstr ""
 
@@ -9801,6 +9750,11 @@ msgstr "Valeur maximale"
 msgid "Maximum value on the gauge axis"
 msgstr "Valeur maximale sur l'axe de l'indicateur"
 
+msgid ""
+"Maximum width (in pixels) for pie chart labels. Set to 0 to disable "
+"truncation."
+msgstr ""
+
 msgid "Maximum width size of the path, in pixels or meters."
 msgstr "La largeur maximale du chemin, en pixels ou en mètre"
 
@@ -10237,10 +10191,6 @@ msgstr ""
 msgid "Must be between 1 and 10"
 msgstr ""
 
-#, python-brace-format
-msgid "Must be one of: {choices}."
-msgstr ""
-
 msgid "Must be unique"
 msgstr "Doit être unique"
 
@@ -10358,9 +10308,6 @@ msgstr "Nouveau"
 msgid "New Semantic Layer"
 msgstr "Nouvelle couche sémantique"
 
-msgid "New chart"
-msgstr "Nouveau graphique"
-
 msgid "New dataset"
 msgstr "Nouveau jeu de données"
 
@@ -10420,10 +10367,6 @@ msgid "No actions"
 msgstr "Aucune action"
 
 msgid "No actions found"
-msgstr ""
-
-#, python-format
-msgid "No affected %(label)s."
 msgstr ""
 
 msgid "No annotation layers"
@@ -11225,13 +11168,6 @@ msgstr ""
 "personnalisée."
 
 msgid ""
-"Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
-" Type a custom period to add it."
-msgstr ""
-"Superposez des moyennes mobiles simples du cours de clôture (MA5, MA10, "
-"MA15, …). Saisissez une période personnalisée pour l'ajouter."
-
-msgid ""
 "Overlays a hexagonal grid on a map, and aggregates data within the "
 "boundary of each cell."
 msgstr ""
@@ -11407,9 +11343,6 @@ msgid "Percent Difference format"
 msgstr "Format de différence en pourcentage"
 
 msgid "Percent change"
-msgstr ""
-
-msgid "Percent denominator"
 msgstr ""
 
 msgid "Percent of total"
@@ -12613,16 +12546,14 @@ msgstr ""
 msgid "Resume auto-refresh"
 msgstr "Reprendre le rafraîchissement automatique"
 
+msgid "Retries are not supported for alerts"
+msgstr ""
+
 msgid "Retry"
 msgstr "Réessayer"
 
 msgid "Retry fetching results"
 msgstr "relancer la récupération des résultats"
-
-msgid ""
-"Retry generation failures before delivery starts. Alerts re-check their "
-"condition on each attempt. Delivery failures are not replayed."
-msgstr ""
 
 msgid "Retrying"
 msgstr ""
@@ -14181,9 +14112,6 @@ msgid ""
 " Note that row limit does not apply to the result."
 msgstr ""
 
-msgid "Show all"
-msgstr ""
-
 msgid "Show all columns"
 msgstr "Afficher toutes les colonnes"
 
@@ -14264,9 +14192,6 @@ msgid ""
 msgstr ""
 
 msgid "Show or hide the X axis line, ticks, and labels"
-msgstr ""
-
-msgid "Show or hide the Y axis line and labels"
 msgstr ""
 
 msgid "Show or hide the Y axis line, ticks, gridlines, and labels"
@@ -15004,9 +14929,6 @@ msgstr "Graphique en rayons de soleil"
 msgid "Sunday"
 msgstr "Dimanche"
 
-msgid "Superset Chart"
-msgstr "Graphique Superset"
-
 msgid "Superset Embedded SDK documentation."
 msgstr "Documentation Superset SDK intégrée."
 
@@ -15480,11 +15402,6 @@ msgstr ""
 "L'axe X ne figure pas dans la liste des filtres, ce qui l'empêchera "
 "d'être utilisé dans les filtres de plage de temps dans les tableaux de "
 "bord. Voulez-vous l'ajouter à la liste des filtres?"
-
-msgid ""
-"The affected charts or dashboards changed. Review the updated impact and "
-"type DELETE again to continue."
-msgstr ""
 
 msgid "The annotation has been saved"
 msgstr "Cette annotation a été sauvegardée"
@@ -16562,12 +16479,6 @@ msgstr "Thème"
 msgid "Theme colors"
 msgstr ""
 
-msgid "Theme could not be created."
-msgstr ""
-
-msgid "Theme could not be updated."
-msgstr ""
-
 msgid "Theme imported"
 msgstr "Thème importé"
 
@@ -16943,9 +16854,6 @@ msgid ""
 "You can recover it there."
 msgstr ""
 
-msgid "This CSS uses @import, which cannot be saved"
-msgstr ""
-
 msgid ""
 "This Google Sheets connection impersonates the logged-in user, who has no"
 " e-mail address."
@@ -17027,6 +16935,12 @@ msgid "This chart no longer exists."
 msgstr ""
 
 msgid "This chart only"
+msgstr ""
+
+#, python-format
+msgid ""
+"This chart uses the \"%s\" dataset, which you do not have permission to "
+"view."
 msgstr ""
 
 msgid "This chart will be restored to the following version:"
@@ -17338,11 +17252,6 @@ msgid ""
 "a misleadingly large number."
 msgstr ""
 
-msgid ""
-"This metric is not compatible with the current selections. Select a "
-"compatible metric."
-msgstr ""
-
 #, python-format
 msgid "This metric might be incompatible with current %s"
 msgstr "Cette mesure pourrait être incompatible avec le %s actuel"
@@ -17365,6 +17274,12 @@ msgid "This password is too common; please choose a less guessable one."
 msgstr ""
 "Ce mot de passe est trop courant ; veuillez en choisir un moins facile à "
 "deviner."
+
+#, python-format
+msgid ""
+"This query uses the \"%s\" dataset, which you do not have permission to "
+"view."
+msgstr ""
 
 msgid ""
 "This section allows you to configure how to use the slice\n"
@@ -17413,11 +17328,6 @@ msgid "This theme is set locally for your session"
 msgstr "Ce thème est défini localement pour votre session"
 
 msgid ""
-"This theme is the active default/dark theme - only Admins can edit it - "
-"Read Only"
-msgstr ""
-
-msgid ""
 "This theme uses the dark algorithm. It will be rendered with the light "
 "algorithm instead, so its colors may not look as designed."
 msgstr ""
@@ -17425,14 +17335,6 @@ msgstr ""
 msgid ""
 "This theme uses the light algorithm. It will be rendered with the dark "
 "algorithm instead, so its colors may not look as designed."
-msgstr ""
-
-msgid ""
-"This update would change the connection's effective destination "
-"(host/port, engine parameters, SSH tunnel endpoint, or OAuth2 endpoint "
-"URIs) while reusing the stored credential. Provide the real password (or "
-"SSH tunnel credential / OAuth2 client secret) to confirm a connection "
-"move."
 msgstr ""
 
 msgid "This username is already taken. Please choose another one."
@@ -17878,6 +17780,9 @@ msgstr "Déclencher maintenant"
 msgid "True"
 msgstr "Est vrai"
 
+msgid "Truncate"
+msgstr ""
+
 msgid "Truncate Axis"
 msgstr ""
 
@@ -18172,9 +18077,6 @@ msgid "Undefined window for rolling operation"
 msgstr "Fenêtre indéfinie pour l'opération de roulement"
 
 msgid "Undid or redid a change"
-msgstr ""
-
-msgid "Undo"
 msgstr ""
 
 msgid "Undo the action"
@@ -19710,9 +19612,6 @@ msgstr ""
 msgid "You do not have access to the following tables: %s."
 msgstr ""
 
-msgid "You do not have permission to access this datasource"
-msgstr ""
-
 #, python-format
 msgid "You do not have permission to edit this %s"
 msgstr "Vous n'avez pas les permission pour modifier ce %s"
@@ -19730,12 +19629,6 @@ msgid "You do not have permission to read tags"
 msgstr "Vous n'avez pas la permission de lire les étiquettes"
 
 msgid "You do not have permission to view any archived object types."
-msgstr ""
-
-msgid "You do not have permission to view this chart’s data."
-msgstr ""
-
-msgid "You do not have permission to view this data."
 msgstr ""
 
 msgid "You do not have permissions to edit this dashboard."
@@ -20843,10 +20736,6 @@ msgstr ""
 
 msgid "permalink state not found"
 msgstr "état du lien permanent introuvable"
-
-#. do-not-translate
-msgid "pivoted_xlsx"
-msgstr "xlsx pivoté"
 
 msgid "pixels"
 msgstr "pixels"

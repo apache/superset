@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-01 12:46+0300\n"
+"POT-Creation-Date: 2026-09-22 12:21+0530\n"
 "PO-Revision-Date: 2026-06-14 13:20+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sr\n"
@@ -31,7 +31,17 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.17.0\n"
+"Generated-By: Babel 2.10.3\n"
+
+#, python-format
+msgid ""
+"\n"
+"                <p>Your report/alert was unable to be generated because "
+"of the following error: %(text)s</p>\n"
+"                <p>Please check your dashboard/chart for errors.</p>\n"
+"                <p><b><a href=\"%(url)s\">%(call_to_action)s</a></b></p>\n"
+"                "
+msgstr ""
 
 #, python-format
 msgid ""
@@ -216,14 +226,6 @@ msgstr "„%s” је сада подразумевана системска т�
 #, no-python-format
 msgid "% calculation"
 msgstr "прорачун"
-
-#, python-format
-msgid "% of"
-msgstr ""
-
-#, python-format
-msgid "% of column"
-msgstr ""
 
 #, python-format
 msgid "% of column total"
@@ -1177,15 +1179,6 @@ msgid ""
 "A butterfly chart compares two metrics across categories using horizontal"
 " bars that extend left and right from a central axis."
 msgstr ""
-
-msgid ""
-"A candlestick chart shows opening, closing, high, and low values for each"
-" period. It is commonly used for financial and other time-series range "
-"analysis."
-msgstr ""
-"Свећасти графикон приказује вредности отварања, затварања, максимум и "
-"минимум за сваки период. Обично се користи за финансијску и другу анализу"
-" опсега временских серија."
 
 # ru, sk, uk]
 msgid "A comma separated list of columns that should be parsed as dates"
@@ -3267,6 +3260,9 @@ msgstr "Аутоматски прилагоди ширину колоне на �
 msgid "Automatically adjust column width based on content"
 msgstr "Аутоматски прилагоди ширину колоне на основу садржаја"
 
+msgid "Automatically retry sending the report when delivery fails."
+msgstr ""
+
 # lv, ru, sk, uk]
 msgid "Automatically sync columns"
 msgstr "Аутоматски синхронизуј колоне"
@@ -3594,6 +3590,9 @@ msgstr ""
 
 msgid "Box Plot"
 msgstr "Box Plot"
+
+msgid "Break"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Breakdowns"
@@ -4846,9 +4845,6 @@ msgstr "Затвори картицу"
 msgid "Close version history"
 msgstr ""
 
-msgid "Closing value for each period."
-msgstr "Вредност затварања за сваки период."
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Cluster label aggregator"
 msgstr "Агрегатор ознака кластера"
@@ -5077,9 +5073,6 @@ msgid "Column select"
 msgstr "Избор колоне"
 
 msgid "Column settings"
-msgstr ""
-
-msgid "Column sum"
 msgstr ""
 
 # ru, uk]
@@ -5341,7 +5334,7 @@ msgstr "Конфигуриши изглед контролне табле, бо�
 msgid "Configure filter scopes"
 msgstr "Конфигуриши опсеге филтера"
 
-msgid "Configure retries when alert or report generation fails before delivery."
+msgid "Configure retry behavior on delivery failure."
 msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -5493,7 +5486,9 @@ msgstr "Контрола"
 msgid "Control labeled "
 msgstr "Контрола са ознаком "
 
-msgid "Control whether this dashboard loads chart data asynchronously"
+msgid ""
+"Controls how labels overflow beyond the max width. \"Truncate\" adds an "
+"ellipsis. \"Break\" wraps to the next line."
 msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
@@ -6290,10 +6285,6 @@ msgstr "Подаци"
 
 msgid "Data Connections"
 msgstr "Везе са подацима"
-
-# uk]
-msgid "Data Export Options"
-msgstr "Опције извоза података"
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "Data Table"
@@ -7184,11 +7175,6 @@ msgstr ""
 "упозорења или извештаје. Ову радњу још увек можете поништити помоћу"
 
 msgid ""
-"Deleting this dataset is permanent. The affected charts and dashboards "
-"will remain, but they may no longer work."
-msgstr ""
-
-msgid ""
 "Deleting this semantic layer also permanently deletes any semantic views "
 "it contains, and charts built on those views will stop working. The "
 "affected views could not be listed."
@@ -7478,9 +7464,6 @@ msgid ""
 "Display each cell as a percentage of its row, column, or grand total, "
 "instead of its actual value. Totals and subtotals are still computed "
 "correctly first; this only changes how they are displayed."
-msgstr ""
-
-msgid "Display format"
 msgstr ""
 
 # lv, pt_BR, ru, sk, uk]
@@ -8002,11 +7985,6 @@ msgstr "Уреди својства слоја анотације"
 msgid "Edit chart"
 msgstr "Уреди графикон"
 
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
-# zh_TW]
-msgid "Edit chart properties"
-msgstr "Уреди својства графикона"
-
 # es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sl, tr, uk, zh, zh_TW]
 msgid "Edit dashboard"
 msgstr "Уреди контролну таблу"
@@ -8285,9 +8263,6 @@ msgstr "Омогућава приказ икона за GeoJSON тачке"
 # pt_BR, ru, sk, uk]
 msgid "Enables rendering of labels for GeoJSON points"
 msgstr "Омогућава приказ ознака за GeoJSON тачке"
-
-msgid "Encrypted extra field must be a mapping from string keys to values."
-msgstr ""
 
 msgid "Encrypted extra fields"
 msgstr "Шифрована додатна поља"
@@ -8784,14 +8759,6 @@ msgstr "Истражи скуп резултата у приказу за ист
 msgid "Export"
 msgstr "Извези"
 
-# ru, uk]
-msgid "Export All Data"
-msgstr "Извези све податке"
-
-# uk]
-msgid "Export Current View"
-msgstr "Извези тренутни приказ"
-
 msgid "Export Data to Excel"
 msgstr ""
 
@@ -8880,19 +8847,6 @@ msgstr "Извези у потпуни .CSV"
 # de, es, fa, ja, lv, mi, nl, ru, sk, sl, uk]
 msgid "Export to full Excel"
 msgstr "Извези у потпуни Excel"
-
-# de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
-msgid "Export to original .CSV"
-msgstr "Извези у оригинални .CSV"
-
-# de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
-msgid "Export to pivoted .CSV"
-msgstr "Извези у укрштени .CSV"
-
-msgid ""
-"Exporting images to Excel requires background exports. Ask an "
-"administrator to enable them, or export the dashboard's data instead."
-msgstr ""
 
 #, python-format
 msgid ""
@@ -9077,10 +9031,6 @@ msgstr "Неуспело учитавање података графикона.
 msgid "Failed to load columns for %s %s"
 msgstr "Неуспело учитавање колона за %s %s"
 
-#, python-format
-msgid "Failed to load dimensions for semantic view %s"
-msgstr ""
-
 msgid "Failed to load drill-to-detail rows"
 msgstr ""
 
@@ -9201,10 +9151,6 @@ msgstr "Неуспела провера опција избора: %s"
 
 msgid "Failure Notifications"
 msgstr ""
-
-# ru, sk, uk]
-msgid "Falling back to CSV; Excel export library not available."
-msgstr "Враћање на CSV; библиотека за извоз у Excel није доступна."
 
 # ru, uk]
 msgid "False"
@@ -10885,6 +10831,12 @@ msgstr "Садржај ознаке"
 msgid "Label Line"
 msgstr "Линија ознаке"
 
+msgid "Label Max Width"
+msgstr ""
+
+msgid "Label Overflow"
+msgstr ""
+
 msgid "Label Position"
 msgstr ""
 
@@ -11793,6 +11745,11 @@ msgstr "Максимална вредност"
 msgid "Maximum value on the gauge axis"
 msgstr "Максимална вредност на оси мерача"
 
+msgid ""
+"Maximum width (in pixels) for pie chart labels. Set to 0 to disable "
+"truncation."
+msgstr ""
+
 msgid "Maximum width size of the path, in pixels or meters."
 msgstr "Максимална ширина путање, у пикселима или метрима."
 
@@ -12319,10 +12276,6 @@ msgstr ""
 msgid "Must be between 1 and 10"
 msgstr ""
 
-#, python-brace-format
-msgid "Must be one of: {choices}."
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Must be unique"
 msgstr "Мора бити јединствено"
@@ -12468,11 +12421,6 @@ msgstr "Ново"
 msgid "New Semantic Layer"
 msgstr "Нови семантички слој"
 
-# de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
-# zh, zh_TW]
-msgid "New chart"
-msgstr "Нови графикон"
-
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 msgid "New dataset"
 msgstr "Нови скуп података"
@@ -12550,10 +12498,6 @@ msgid "No actions"
 msgstr "Нема акција"
 
 msgid "No actions found"
-msgstr ""
-
-#, python-format
-msgid "No affected %(label)s."
 msgstr ""
 
 # fa, ja, lv, mi, nl, pt_BR, ru, sl, uk]
@@ -13735,9 +13679,6 @@ msgid "Percent Difference format"
 msgstr "Формат процентуалне разлике"
 
 msgid "Percent change"
-msgstr ""
-
-msgid "Percent denominator"
 msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk]
@@ -15190,6 +15131,9 @@ msgstr ""
 msgid "Resume auto-refresh"
 msgstr "Настави аутоматско освежавање"
 
+msgid "Retries are not supported for alerts"
+msgstr ""
+
 # ru, uk]
 msgid "Retry"
 msgstr "Покушај поново"
@@ -15197,11 +15141,6 @@ msgstr "Покушај поново"
 # fr, ja, lv, mi, ru, sk, sl, uk]
 msgid "Retry fetching results"
 msgstr "Покушај поново преузимање резултата"
-
-msgid ""
-"Retry generation failures before delivery starts. Alerts re-check their "
-"condition on each attempt. Delivery failures are not replayed."
-msgstr ""
 
 msgid "Retrying"
 msgstr ""
@@ -17056,9 +16995,6 @@ msgid ""
 " Note that row limit does not apply to the result."
 msgstr ""
 
-msgid "Show all"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Show all columns"
 msgstr "Прикажи све колоне"
@@ -17157,9 +17093,6 @@ msgid ""
 msgstr ""
 
 msgid "Show or hide the X axis line, ticks, and labels"
-msgstr ""
-
-msgid "Show or hide the Y axis line and labels"
 msgstr ""
 
 msgid "Show or hide the Y axis line, ticks, gridlines, and labels"
@@ -18046,10 +17979,6 @@ msgstr "Sunburst графикон"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "Sunday"
 msgstr "Недеља"
-
-# de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
-msgid "Superset Chart"
-msgstr "Superset графикон"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Superset Embedded SDK documentation."
@@ -19759,12 +19688,6 @@ msgstr "Тема"
 msgid "Theme colors"
 msgstr ""
 
-msgid "Theme could not be created."
-msgstr ""
-
-msgid "Theme could not be updated."
-msgstr ""
-
 # ru, uk]
 msgid "Theme imported"
 msgstr "Тема је увезена"
@@ -20160,14 +20083,6 @@ msgid ""
 "You can recover it there."
 msgstr ""
 
-msgid "This CSS uses @import, which cannot be saved"
-msgstr ""
-
-msgid ""
-"This Google Sheets connection impersonates the logged-in user, who has no"
-" e-mail address."
-msgstr ""
-
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
 msgid ""
@@ -20257,6 +20172,12 @@ msgid "This chart no longer exists."
 msgstr ""
 
 msgid "This chart only"
+msgstr ""
+
+#, python-format
+msgid ""
+"This chart uses the \"%s\" dataset, which you do not have permission to "
+"view."
 msgstr ""
 
 msgid "This chart will be restored to the following version:"
@@ -20590,11 +20511,6 @@ msgid ""
 "a misleadingly large number."
 msgstr ""
 
-msgid ""
-"This metric is not compatible with the current selections. Select a "
-"compatible metric."
-msgstr ""
-
 #, python-format
 msgid "This metric might be incompatible with current %s"
 msgstr "Ова метрика можда није компатибилна са тренутним %s"
@@ -20621,6 +20537,12 @@ msgid "This password is too common; please choose a less guessable one."
 msgstr ""
 "Ова лозинка је превише уобичајена; молимо одаберите лозинку коју је теже "
 "погодити."
+
+#, python-format
+msgid ""
+"This query uses the \"%s\" dataset, which you do not have permission to "
+"view."
+msgstr ""
 
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid ""
@@ -20676,11 +20598,6 @@ msgid "This theme is set locally for your session"
 msgstr "Ова тема је подешена локално за вашу сесију"
 
 msgid ""
-"This theme is the active default/dark theme - only Admins can edit it - "
-"Read Only"
-msgstr ""
-
-msgid ""
 "This theme uses the dark algorithm. It will be rendered with the light "
 "algorithm instead, so its colors may not look as designed."
 msgstr ""
@@ -20688,14 +20605,6 @@ msgstr ""
 msgid ""
 "This theme uses the light algorithm. It will be rendered with the dark "
 "algorithm instead, so its colors may not look as designed."
-msgstr ""
-
-msgid ""
-"This update would change the connection's effective destination "
-"(host/port, engine parameters, SSH tunnel endpoint, or OAuth2 endpoint "
-"URIs) while reusing the stored credential. Provide the real password (or "
-"SSH tunnel credential / OAuth2 client secret) to confirm a connection "
-"move."
 msgstr ""
 
 # fr, ja, lv, mi, pt_BR, ru, sk, uk]
@@ -21237,6 +21146,9 @@ msgstr ""
 msgid "True"
 msgstr "Тачно"
 
+msgid "Truncate"
+msgstr ""
+
 msgid "Truncate Axis"
 msgstr ""
 
@@ -21556,9 +21468,6 @@ msgid "Undefined window for rolling operation"
 msgstr "Недефинисан прозор за операцију клизања"
 
 msgid "Undid or redid a change"
-msgstr ""
-
-msgid "Undo"
 msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
@@ -23366,9 +23275,6 @@ msgstr ""
 msgid "You do not have access to the following tables: %s."
 msgstr ""
 
-msgid "You do not have permission to access this datasource"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 #, python-format
 msgid "You do not have permission to edit this %s"
@@ -23392,12 +23298,6 @@ msgid "You do not have permission to read tags"
 msgstr "Немате дозволу за читање ознака"
 
 msgid "You do not have permission to view any archived object types."
-msgstr ""
-
-msgid "You do not have permission to view this chart’s data."
-msgstr ""
-
-msgid "You do not have permission to view this data."
 msgstr ""
 
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
@@ -24686,10 +24586,6 @@ msgstr ""
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "permalink state not found"
 msgstr "стање трајне везе није пронађено"
-
-#. do-not-translate
-msgid "pivoted_xlsx"
-msgstr "pivoted_xlsx"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
 msgid "pixels"

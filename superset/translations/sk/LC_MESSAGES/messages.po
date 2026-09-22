@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-01 12:46+0300\n"
+"POT-Creation-Date: 2026-09-22 12:21+0530\n"
 "PO-Revision-Date: 2026-05-18 15:42+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sk\n"
@@ -26,7 +26,17 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.17.0\n"
+"Generated-By: Babel 2.10.3\n"
+
+#, python-format
+msgid ""
+"\n"
+"                <p>Your report/alert was unable to be generated because "
+"of the following error: %(text)s</p>\n"
+"                <p>Please check your dashboard/chart for errors.</p>\n"
+"                <p><b><a href=\"%(url)s\">%(call_to_action)s</a></b></p>\n"
+"                "
+msgstr ""
 
 #, python-format
 msgid ""
@@ -191,14 +201,6 @@ msgstr "\"%s\" je teraz predvolený téma systému"
 #, no-python-format
 msgid "% calculation"
 msgstr "Výpočet v %"
-
-#, python-format
-msgid "% of"
-msgstr ""
-
-#, python-format
-msgid "% of column"
-msgstr ""
 
 #, python-format
 msgid "% of column total"
@@ -1027,15 +1029,6 @@ msgid ""
 "A butterfly chart compares two metrics across categories using horizontal"
 " bars that extend left and right from a central axis."
 msgstr ""
-
-msgid ""
-"A candlestick chart shows opening, closing, high, and low values for each"
-" period. It is commonly used for financial and other time-series range "
-"analysis."
-msgstr ""
-"Sviečkový graf zobrazuje otváracie, uzatváracie, najvyššie a najnižšie "
-"hodnoty za každé obdobie. Bežne sa používa na finančnú a inú analýzu "
-"rozpätia časových radov."
 
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr "Čárkami oddelený zoznam stĺpcov, ktoré sa majú spracovať ako data"
@@ -2761,6 +2754,9 @@ msgstr "Automaticky upravovať šírku stĺpca na základe dostupného priestoru
 msgid "Automatically adjust column width based on content"
 msgstr "Automaticky upravovať šírku stĺpca na základe obsahu"
 
+msgid "Automatically retry sending the report when delivery fails."
+msgstr ""
+
 msgid "Automatically sync columns"
 msgstr "Automatické synchronizovanie stĺpcov"
 
@@ -3033,6 +3029,9 @@ msgstr ""
 
 msgid "Box Plot"
 msgstr "Krabicový graf"
+
+msgid "Break"
+msgstr ""
 
 msgid "Breakdowns"
 msgstr "Rozdelenie"
@@ -4053,9 +4052,6 @@ msgstr "Zavrieť kartu"
 msgid "Close version history"
 msgstr ""
 
-msgid "Closing value for each period."
-msgstr "Uzatváracia hodnota za každé obdobie."
-
 msgid "Cluster label aggregator"
 msgstr "Agregátor popisků shluků"
 
@@ -4261,9 +4257,6 @@ msgid "Column select"
 msgstr "Výber stĺpce"
 
 msgid "Column settings"
-msgstr ""
-
-msgid "Column sum"
 msgstr ""
 
 #, fuzzy
@@ -4485,7 +4478,7 @@ msgstr "Konfigurovať vzhled, farby a vlastný CSS pre nástenku"
 msgid "Configure filter scopes"
 msgstr "Konfigurovať rozsahy filtrov"
 
-msgid "Configure retries when alert or report generation fails before delivery."
+msgid "Configure retry behavior on delivery failure."
 msgstr ""
 
 msgid "Configure the basics of your Annotation Layer."
@@ -4608,7 +4601,9 @@ msgstr "Ovládací prvek"
 msgid "Control labeled "
 msgstr "Ovládací prvek s popiskem "
 
-msgid "Control whether this dashboard loads chart data asynchronously"
+msgid ""
+"Controls how labels overflow beyond the max width. \"Truncate\" adds an "
+"ellipsis. \"Break\" wraps to the next line."
 msgstr ""
 
 msgid "Controls labeled "
@@ -5264,10 +5259,6 @@ msgstr "Data"
 #, fuzzy
 msgid "Data Connections"
 msgstr "Pripojenie k databázy"
-
-#, fuzzy
-msgid "Data Export Options"
-msgstr "Možnosti exportu dat"
 
 msgid "Data Table"
 msgstr "Datová tabuľka"
@@ -6002,11 +5993,6 @@ msgstr ""
 "pomocí"
 
 msgid ""
-"Deleting this dataset is permanent. The affected charts and dashboards "
-"will remain, but they may no longer work."
-msgstr ""
-
-msgid ""
 "Deleting this semantic layer also permanently deletes any semantic views "
 "it contains, and charts built on those views will stop working. The "
 "affected views could not be listed."
@@ -6256,9 +6242,6 @@ msgid ""
 "Display each cell as a percentage of its row, column, or grand total, "
 "instead of its actual value. Totals and subtotals are still computed "
 "correctly first; this only changes how they are displayed."
-msgstr ""
-
-msgid "Display format"
 msgstr ""
 
 msgid "Display headers for each column at the top of the matrix"
@@ -6696,9 +6679,6 @@ msgstr "Upraviť vlastnosti vrstvy anotací"
 msgid "Edit chart"
 msgstr "Upraviť graf"
 
-msgid "Edit chart properties"
-msgstr "Upraviť vlastnosti grafu"
-
 #, fuzzy
 msgid "Edit dashboard"
 msgstr "Upraviť nástenku"
@@ -6925,9 +6905,6 @@ msgstr "Povolí vykreslovanie ikon pre GeoJSON body"
 
 msgid "Enables rendering of labels for GeoJSON points"
 msgstr "Povolí vykreslovanie popisků pre GeoJSON body"
-
-msgid "Encrypted extra field must be a mapping from string keys to values."
-msgstr ""
 
 #, fuzzy
 msgid "Encrypted extra fields"
@@ -7338,14 +7315,6 @@ msgstr "Prozkoumat sadu výsledkov v zobrazenie skúmanie dat"
 msgid "Export"
 msgstr "Exportovať"
 
-#, fuzzy
-msgid "Export All Data"
-msgstr "Vymazat všetky data"
-
-#, fuzzy
-msgid "Export Current View"
-msgstr "Exportovať aktuálny zobrazenie"
-
 msgid "Export Data to Excel"
 msgstr ""
 
@@ -7423,17 +7392,6 @@ msgstr "Exportovať do úplného .CSV"
 
 msgid "Export to full Excel"
 msgstr "Exportovať do úplného Excelu"
-
-msgid "Export to original .CSV"
-msgstr "Exportovať do původního .CSV"
-
-msgid "Export to pivoted .CSV"
-msgstr "Exportovať do kontingenčnejho .CSV"
-
-msgid ""
-"Exporting images to Excel requires background exports. Ask an "
-"administrator to enable them, or export the dashboard's data instead."
-msgstr ""
 
 #, python-format
 msgid ""
@@ -7601,10 +7559,6 @@ msgstr "Nepodarilo sa načítať data grafu."
 msgid "Failed to load columns for %s %s"
 msgstr ""
 
-#, python-format
-msgid "Failed to load dimensions for semantic view %s"
-msgstr ""
-
 msgid "Failed to load drill-to-detail rows"
 msgstr ""
 
@@ -7711,9 +7665,6 @@ msgstr "Nepodarilo sa overiť možnosti výberu: %s"
 
 msgid "Failure Notifications"
 msgstr ""
-
-msgid "Falling back to CSV; Excel export library not available."
-msgstr "Zpetné použití CSV; knihovna pre export do Excelu nie je dostupná."
 
 #, fuzzy
 msgid "False"
@@ -9105,6 +9056,12 @@ msgstr "Obsah popisku"
 msgid "Label Line"
 msgstr "Čára popisku"
 
+msgid "Label Max Width"
+msgstr ""
+
+msgid "Label Overflow"
+msgstr ""
+
 msgid "Label Position"
 msgstr ""
 
@@ -9884,6 +9841,11 @@ msgstr "Maximální hodnota"
 msgid "Maximum value on the gauge axis"
 msgstr "Maximální hodnota na ose meřidla"
 
+msgid ""
+"Maximum width (in pixels) for pie chart labels. Set to 0 to disable "
+"truncation."
+msgstr ""
+
 #, fuzzy
 msgid "Maximum width size of the path, in pixels or meters."
 msgstr "Veľkosť čtvercové bunky v pixelech"
@@ -10328,10 +10290,6 @@ msgstr ""
 msgid "Must be between 1 and 10"
 msgstr ""
 
-#, python-brace-format
-msgid "Must be one of: {choices}."
-msgstr ""
-
 msgid "Must be unique"
 msgstr "Musí byť jedinečný"
 
@@ -10451,9 +10409,6 @@ msgstr "Nový"
 msgid "New Semantic Layer"
 msgstr "Žiadne vrstvy anotací"
 
-msgid "New chart"
-msgstr "Nový graf"
-
 msgid "New dataset"
 msgstr "Nová sada dat"
 
@@ -10515,10 +10470,6 @@ msgid "No actions"
 msgstr "Žiadne akce"
 
 msgid "No actions found"
-msgstr ""
-
-#, python-format
-msgid "No affected %(label)s."
 msgstr ""
 
 #, fuzzy
@@ -11505,9 +11456,6 @@ msgid "Percent Difference format"
 msgstr "Formát percentuálnaho rozdílu"
 
 msgid "Percent change"
-msgstr ""
-
-msgid "Percent denominator"
 msgstr ""
 
 msgid "Percent of total"
@@ -12705,17 +12653,15 @@ msgstr ""
 msgid "Resume auto-refresh"
 msgstr "Nastaviť interval automatického obnovenie"
 
+msgid "Retries are not supported for alerts"
+msgstr ""
+
 #, fuzzy
 msgid "Retry"
 msgstr "Zkusit znovu"
 
 msgid "Retry fetching results"
 msgstr "Zkusit znovu načítať výsledky"
-
-msgid ""
-"Retry generation failures before delivery starts. Alerts re-check their "
-"condition on each attempt. Delivery failures are not replayed."
-msgstr ""
 
 msgid "Retrying"
 msgstr ""
@@ -14305,9 +14251,6 @@ msgid ""
 " Note that row limit does not apply to the result."
 msgstr ""
 
-msgid "Show all"
-msgstr ""
-
 msgid "Show all columns"
 msgstr "Zobraziť všetky stĺpce"
 
@@ -14390,9 +14333,6 @@ msgid ""
 msgstr ""
 
 msgid "Show or hide the X axis line, ticks, and labels"
-msgstr ""
-
-msgid "Show or hide the Y axis line and labels"
 msgstr ""
 
 msgid "Show or hide the Y axis line, ticks, gridlines, and labels"
@@ -15133,9 +15073,6 @@ msgstr "Paprskový graf"
 
 msgid "Sunday"
 msgstr "Nedele"
-
-msgid "Superset Chart"
-msgstr "Graf Superset"
 
 msgid "Superset Embedded SDK documentation."
 msgstr "Dokumentácia Superset Embedded SDK."
@@ -16630,12 +16567,6 @@ msgstr "Téma"
 msgid "Theme colors"
 msgstr ""
 
-msgid "Theme could not be created."
-msgstr ""
-
-msgid "Theme could not be updated."
-msgstr ""
-
 #, fuzzy
 msgid "Theme imported"
 msgstr "Téma importováno"
@@ -16988,9 +16919,6 @@ msgid ""
 "You can recover it there."
 msgstr ""
 
-msgid "This CSS uses @import, which cannot be saved"
-msgstr ""
-
 msgid ""
 "This Google Sheets connection impersonates the logged-in user, who has no"
 " e-mail address."
@@ -17071,6 +16999,12 @@ msgid "This chart no longer exists."
 msgstr ""
 
 msgid "This chart only"
+msgstr ""
+
+#, python-format
+msgid ""
+"This chart uses the \"%s\" dataset, which you do not have permission to "
+"view."
 msgstr ""
 
 msgid "This chart will be restored to the following version:"
@@ -17376,12 +17310,7 @@ msgid ""
 "a misleadingly large number."
 msgstr ""
 
-msgid ""
-"This metric is not compatible with the current selections. Select a "
-"compatible metric."
-msgstr ""
-
-#, python-format
+#, fuzzy, python-format
 msgid "This metric might be incompatible with current %s"
 msgstr ""
 
@@ -17403,6 +17332,12 @@ msgstr ""
 #, fuzzy
 msgid "This password is too common; please choose a less guessable one."
 msgstr "Toto heslo je príliš bežné; zvoľte si ťažšie uhádnuteľné heslo."
+
+#, python-format
+msgid ""
+"This query uses the \"%s\" dataset, which you do not have permission to "
+"view."
+msgstr ""
 
 msgid ""
 "This section allows you to configure how to use the slice\n"
@@ -17450,11 +17385,6 @@ msgid "This theme is set locally for your session"
 msgstr "Toto téma je nastavené lokálne pre vaši relácii."
 
 msgid ""
-"This theme is the active default/dark theme - only Admins can edit it - "
-"Read Only"
-msgstr ""
-
-msgid ""
 "This theme uses the dark algorithm. It will be rendered with the light "
 "algorithm instead, so its colors may not look as designed."
 msgstr ""
@@ -17462,14 +17392,6 @@ msgstr ""
 msgid ""
 "This theme uses the light algorithm. It will be rendered with the dark "
 "algorithm instead, so its colors may not look as designed."
-msgstr ""
-
-msgid ""
-"This update would change the connection's effective destination "
-"(host/port, engine parameters, SSH tunnel endpoint, or OAuth2 endpoint "
-"URIs) while reusing the stored credential. Provide the real password (or "
-"SSH tunnel credential / OAuth2 client secret) to confirm a connection "
-"move."
 msgstr ""
 
 msgid "This username is already taken. Please choose another one."
@@ -17920,6 +17842,9 @@ msgstr ""
 msgid "True"
 msgstr "Pravda"
 
+msgid "Truncate"
+msgstr ""
+
 msgid "Truncate Axis"
 msgstr ""
 
@@ -18215,9 +18140,6 @@ msgid "Undefined window for rolling operation"
 msgstr "Nedefinované okno pre plovoucí operaci"
 
 msgid "Undid or redid a change"
-msgstr ""
-
-msgid "Undo"
 msgstr ""
 
 msgid "Undo the action"
@@ -19725,9 +19647,6 @@ msgstr ""
 msgid "You do not have access to the following tables: %s."
 msgstr ""
 
-msgid "You do not have permission to access this datasource"
-msgstr ""
-
 #, python-format
 msgid "You do not have permission to edit this %s"
 msgstr "Nemáte oprávnenie k úprave tohoto %s"
@@ -19746,12 +19665,6 @@ msgid "You do not have permission to read tags"
 msgstr "Nemáte oprávnenie ke čtenie značek"
 
 msgid "You do not have permission to view any archived object types."
-msgstr ""
-
-msgid "You do not have permission to view this chart’s data."
-msgstr ""
-
-msgid "You do not have permission to view this data."
 msgstr ""
 
 msgid "You do not have permissions to edit this dashboard."
@@ -20868,11 +20781,6 @@ msgstr ""
 
 msgid "permalink state not found"
 msgstr "stav trvalého odkazu nenalezen"
-
-#. do-not-translate
-#, fuzzy
-msgid "pivoted_xlsx"
-msgstr "pivoted_xlsx"
 
 msgid "pixels"
 msgstr "pixely"

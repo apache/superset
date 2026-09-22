@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: zhouyao94@qq.com\n"
-"POT-Creation-Date: 2026-10-01 12:46+0300\n"
+"POT-Creation-Date: 2026-09-22 12:21+0530\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: cdmikechen\n"
 "Language: zh\n"
@@ -27,7 +27,17 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.17.0\n"
+"Generated-By: Babel 2.10.3\n"
+
+#, python-format
+msgid ""
+"\n"
+"                <p>Your report/alert was unable to be generated because "
+"of the following error: %(text)s</p>\n"
+"                <p>Please check your dashboard/chart for errors.</p>\n"
+"                <p><b><a href=\"%(url)s\">%(call_to_action)s</a></b></p>\n"
+"                "
+msgstr ""
 
 #, python-format
 msgid ""
@@ -213,9 +223,21 @@ msgstr ""
 msgid "% of grand total"
 msgstr ""
 
+#, python-format
+msgid "% of column total"
+msgstr ""
+
+#, python-format
+msgid "% of grand total"
+msgstr ""
+
 #, no-python-format
 msgid "% of parent"
 msgstr "父项的 %"
+
+#, python-format
+msgid "% of row total"
+msgstr ""
 
 #, python-format
 msgid "% of row total"
@@ -1040,12 +1062,6 @@ msgid ""
 "A butterfly chart compares two metrics across categories using horizontal"
 " bars that extend left and right from a central axis."
 msgstr ""
-
-msgid ""
-"A candlestick chart shows opening, closing, high, and low values for each"
-" period. It is commonly used for financial and other time-series range "
-"analysis."
-msgstr "K线图显示每个周期的开盘、收盘、最高和最低值。常用于金融及其他时间序列区间分析。"
 
 #, fuzzy
 msgid "A comma separated list of columns that should be parsed as dates"
@@ -2451,6 +2467,13 @@ msgstr ""
 msgid "Applied a metric"
 msgstr ""
 
+#, python-format
+msgid "Applied '%s' metric"
+msgstr ""
+
+msgid "Applied a metric"
+msgstr ""
+
 #, fuzzy, python-format
 msgid "Applied cross-filters (%d)"
 msgstr "应用的交叉筛选器 (%d)"
@@ -2553,6 +2576,11 @@ msgstr ""
 #, python-format
 msgid "Archived: %s"
 msgstr "已归档：%s"
+
+msgid ""
+"Archiving or deleting this chart will be blocked while the following "
+"alerts or reports use it. Detach or delete them first."
+msgstr ""
 
 msgid ""
 "Archiving or deleting this chart will be blocked while the following "
@@ -2751,6 +2779,9 @@ msgstr "根据可用空间自动调整列宽"
 #, fuzzy
 msgid "Automatically adjust column width based on content"
 msgstr "根据内容自动调整列宽"
+
+msgid "Automatically retry sending the report when delivery fails."
+msgstr ""
 
 msgid "Automatically sync columns"
 msgstr "自动同步列"
@@ -3027,6 +3058,9 @@ msgstr ""
 msgid "Box Plot"
 msgstr "箱线图"
 
+msgid "Break"
+msgstr ""
+
 msgid "Breakdowns"
 msgstr "细分"
 
@@ -3296,6 +3330,8 @@ msgid ""
 "Restoring them (POST /api/v1/dataset/<uuid>/restore) keeps the datasets, "
 "but the database still cannot be deleted."
 msgstr ""
+"无法删除一个仅剩软删除数据集的数据库。请先恢复这些数据集（POST "
+"/api/v1/dataset/<uuid>/restore），并在清除功能推出后永久删除它们，或在删除数据库之前，通过带外方式移除底层数据行。"
 
 msgid "Cannot delete system themes"
 msgstr "无法删除系统主题"
@@ -4069,9 +4105,6 @@ msgstr "关闭选项卡"
 msgid "Close version history"
 msgstr ""
 
-msgid "Closing value for each period."
-msgstr "每个周期的收盘值。"
-
 msgid "Cluster label aggregator"
 msgstr "聚类标签聚合器"
 
@@ -4275,6 +4308,9 @@ msgid "Column settings"
 msgstr ""
 
 msgid "Column sum"
+msgstr ""
+
+msgid "Column settings"
 msgstr ""
 
 #, fuzzy
@@ -4497,7 +4533,7 @@ msgstr "配置看板外观、颜色和自定义CSS"
 msgid "Configure filter scopes"
 msgstr "配置过滤范围"
 
-msgid "Configure retries when alert or report generation fails before delivery."
+msgid "Configure retry behavior on delivery failure."
 msgstr ""
 
 msgid "Configure the basics of your Annotation Layer."
@@ -4630,7 +4666,9 @@ msgstr "控件"
 msgid "Control labeled "
 msgstr "标记为“控件”的标签 "
 
-msgid "Control whether this dashboard loads chart data asynchronously"
+msgid ""
+"Controls how labels overflow beyond the max width. \"Truncate\" adds an "
+"ellipsis. \"Break\" wraps to the next line."
 msgstr ""
 
 msgid "Controls labeled "
@@ -5326,9 +5364,6 @@ msgstr "数据"
 msgid "Data Connections"
 msgstr "数据连接"
 
-msgid "Data Export Options"
-msgstr "数据导出选项"
-
 msgid "Data Table"
 msgstr "数据表"
 
@@ -6013,11 +6048,6 @@ msgid ""
 msgstr "删除一个标签页将会移除其中的所有内容，并停用任何相关的告警或报表。您仍然可以回退这个操作，点击"
 
 msgid ""
-"Deleting this dataset is permanent. The affected charts and dashboards "
-"will remain, but they may no longer work."
-msgstr ""
-
-msgid ""
 "Deleting this semantic layer also permanently deletes any semantic views "
 "it contains, and charts built on those views will stop working. The "
 "affected views could not be listed."
@@ -6249,9 +6279,6 @@ msgid ""
 "Display each cell as a percentage of its row, column, or grand total, "
 "instead of its actual value. Totals and subtotals are still computed "
 "correctly first; this only changes how they are displayed."
-msgstr ""
-
-msgid "Display format"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
@@ -6682,9 +6709,6 @@ msgstr "编辑注释图层属性"
 msgid "Edit chart"
 msgstr "编辑图表"
 
-msgid "Edit chart properties"
-msgstr "编辑图表属性"
-
 msgid "Edit dashboard"
 msgstr "编辑看板"
 
@@ -6930,9 +6954,6 @@ msgstr "启用GeoJSON点的图标渲染"
 #, fuzzy
 msgid "Enables rendering of labels for GeoJSON points"
 msgstr "启用 GeoJSON 点的标签渲染"
-
-msgid "Encrypted extra field must be a mapping from string keys to values."
-msgstr ""
 
 msgid "Encrypted extra fields"
 msgstr "加密的额外字段"
@@ -7355,12 +7376,6 @@ msgstr "在数据探索视图中探索结果集"
 msgid "Export"
 msgstr "导出"
 
-msgid "Export All Data"
-msgstr "导出所有数据"
-
-msgid "Export Current View"
-msgstr "导出当前视图"
-
 msgid "Export Data to Excel"
 msgstr "导出为Excel"
 
@@ -7442,17 +7457,6 @@ msgstr "导出全量CSV"
 msgid "Export to full Excel"
 msgstr "导出全量Excel"
 
-msgid "Export to original .CSV"
-msgstr "导出原始CSV"
-
-msgid "Export to pivoted .CSV"
-msgstr "导出为透视表形式的CSV"
-
-msgid ""
-"Exporting images to Excel requires background exports. Ask an "
-"administrator to enable them, or export the dashboard's data instead."
-msgstr ""
-
 #, python-format
 msgid ""
 "Exporting semantic views is not supported yet — %s semantic-view row(s) "
@@ -7512,6 +7516,9 @@ msgstr ""
 
 msgid "Extra field must be a mapping from string keys to values."
 msgstr ""
+"指定表元数据的额外内容。目前支持的元数据格式为：`{ \"certification\": { \"certified_by\": \"Data "
+"Platform Team\", \"details\": \"This table is the source of truth.\" }, "
+"\"warning_markdown\": \"This is a warning.\" }`."
 
 msgid "Extra parameters for use in jinja templated queries"
 msgstr "用于jinja模板化查询的额外参数"
@@ -7631,10 +7638,6 @@ msgstr "加载图表数据失败。"
 msgid "Failed to load columns for %s %s"
 msgstr "无法加载 %s %s 的列"
 
-#, python-format
-msgid "Failed to load dimensions for semantic view %s"
-msgstr ""
-
 msgid "Failed to load drill-to-detail rows"
 msgstr ""
 
@@ -7644,8 +7647,15 @@ msgstr ""
 msgid "Failed to load samples"
 msgstr ""
 
+#, fuzzy
 msgid "Failed to load top values"
 msgstr "加载顶部值失败"
+
+msgid "Failed to load version history"
+msgstr ""
+
+msgid "Failed to load version preview"
+msgstr ""
 
 msgid "Failed to load version history"
 msgstr ""
@@ -7678,6 +7688,14 @@ msgstr "恢复 %(name)s 失败"
 #, python-format
 msgid "Failed to restore %(name)s: %(errMsg)s"
 msgstr "恢复 %(name)s 失败：%(errMsg)s"
+
+#, python-format
+msgid "Failed to restore %s"
+msgstr ""
+
+#, python-format
+msgid "Failed to restore %s: %s"
+msgstr ""
 
 #, python-format
 msgid "Failed to restore %s"
@@ -7753,11 +7771,6 @@ msgstr "验证 select 选项失败：%s"
 
 msgid "Failure Notifications"
 msgstr ""
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
-# lv, ro, ru, sk, sr, sr_Latn, tr, uk]
-msgid "Falling back to CSV; Excel export library not available."
-msgstr "回退到CSV；Excel导出库不可用。"
 
 msgid "False"
 msgstr "否"
@@ -9205,6 +9218,12 @@ msgstr "标签内容"
 msgid "Label Line"
 msgstr "标签线"
 
+msgid "Label Max Width"
+msgstr ""
+
+msgid "Label Overflow"
+msgstr ""
+
 msgid "Label Position"
 msgstr ""
 
@@ -9568,7 +9587,7 @@ msgid ""
 " Line chart is a type of chart which displays information as a series of "
 "data points connected by straight line segments. It is a basic type of "
 "chart common in many fields."
-msgstr "折线图用于可视化在给定类别上进行的测量。折线图是一种图表类型，它将信息显示为一系列由直线段连接的数据点。它是许多领域中常见的一种基本图表类型。"
+msgstr "折线图用于可视化在给定类别上进行的测量。折线图是一种图表类型，它将信息显示为一系列由直线段连接的数据点。它是many领域中常见的一种基本图表类型。"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -10004,6 +10023,11 @@ msgstr "最大值"
 
 msgid "Maximum value on the gauge axis"
 msgstr "量规轴上的最大值"
+
+msgid ""
+"Maximum width (in pixels) for pie chart labels. Set to 0 to disable "
+"truncation."
+msgstr ""
 
 msgid "Maximum width size of the path, in pixels or meters."
 msgstr "路径的最大宽度大小，以像素或米为单位。"
@@ -10470,10 +10494,6 @@ msgstr "必须是图表所有者才能覆盖此图表。请另存为新图表。
 msgid "Must be between 1 and 10"
 msgstr ""
 
-#, python-brace-format
-msgid "Must be one of: {choices}."
-msgstr ""
-
 msgid "Must be unique"
 msgstr "需要唯一"
 
@@ -10597,9 +10617,6 @@ msgstr "新建"
 msgid "New Semantic Layer"
 msgstr "新建语义层"
 
-msgid "New chart"
-msgstr "新增图表"
-
 #, fuzzy
 msgid "New dataset"
 msgstr "新数据集"
@@ -10662,10 +10679,6 @@ msgid "No actions"
 msgstr "无操作"
 
 msgid "No actions found"
-msgstr ""
-
-#, python-format
-msgid "No affected %(label)s."
 msgstr ""
 
 #, fuzzy
@@ -11464,11 +11477,6 @@ msgid ""
 "\"Custom\" to set a custom comparison range."
 msgstr "从相对时间段覆盖结果。期望自然语言中的相对时间增量（例如：24小时、7天、52周、365天）。支持自由文本。使用“从时间筛选器继承范围”来将比较时间范围偏移与您的时间范围相同的长度，并使用“自定义”来设置自定义比较范围。"
 
-msgid ""
-"Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
-" Type a custom period to add it."
-msgstr "叠加收盘价的简单移动平均（MA5、MA10、MA15 等）。输入自定义周期即可添加。"
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk]
@@ -11655,9 +11663,6 @@ msgid "Percent Difference format"
 msgstr "百分比差异格式"
 
 msgid "Percent change"
-msgstr ""
-
-msgid "Percent denominator"
 msgstr ""
 
 #, fuzzy
@@ -12387,6 +12392,15 @@ msgid ""
 msgstr ""
 
 msgid "Recently Archived"
+msgstr ""
+
+msgid ""
+"Rebase each series to its percent change from a baseline point, like the "
+"legacy Time-series Percent Change chart. Drag the vertical baseline on "
+"the chart to re-index."
+msgstr ""
+
+msgid "Recently Archived"
 msgstr "最近归档"
 
 msgid "Recently archived"
@@ -12924,17 +12938,15 @@ msgstr "未配置异步查询所需的结果后端。"
 msgid "Resume auto-refresh"
 msgstr "恢复自动刷新"
 
+msgid "Retries are not supported for alerts"
+msgstr ""
+
 msgid "Retry"
 msgstr "重试"
 
 #, fuzzy
 msgid "Retry fetching results"
 msgstr "重新获取结果"
-
-msgid ""
-"Retry generation failures before delivery starts. Alerts re-check their "
-"condition on each attempt. Delivery failures are not replayed."
-msgstr ""
 
 msgid "Retrying"
 msgstr ""
@@ -14492,9 +14504,6 @@ msgid ""
 " Note that row limit does not apply to the result."
 msgstr ""
 
-msgid "Show all"
-msgstr ""
-
 msgid "Show all columns"
 msgstr "显示所有列"
 
@@ -14576,9 +14585,6 @@ msgid ""
 msgstr ""
 
 msgid "Show or hide the X axis line, ticks, and labels"
-msgstr ""
-
-msgid "Show or hide the Y axis line and labels"
 msgstr ""
 
 msgid "Show or hide the Y axis line, ticks, gridlines, and labels"
@@ -15320,9 +15326,6 @@ msgstr "旭日/太阳图"
 
 msgid "Sunday"
 msgstr "星期日"
-
-msgid "Superset Chart"
-msgstr "Superset图表"
 
 msgid "Superset Embedded SDK documentation."
 msgstr "Superset的嵌入SDK文档。"
@@ -16771,12 +16774,6 @@ msgstr "时间"
 msgid "Theme colors"
 msgstr ""
 
-msgid "Theme could not be created."
-msgstr ""
-
-msgid "Theme could not be updated."
-msgstr ""
-
 msgid "Theme imported"
 msgstr "主题已导入"
 
@@ -17073,13 +17070,13 @@ msgid ""
 msgid_plural ""
 "These %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover them there within %(days)s days."
-msgstr[0] "这些 %(type)s 将被移至设置菜单中的“最近归档”。您可以在 %(days)s 天内从那里恢复它们。"
+msgstr[0] ""
 
 #, python-format
 msgid ""
 "These %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover them there."
-msgstr "这些 %(type)s 将被移至设置菜单中的“最近归档”。您可以在那里恢复它们。"
+msgstr ""
 
 msgid "These are the datasets this filter will be applied to."
 msgstr "这些是此筛选器将应用到的数据集。"
@@ -17097,15 +17094,12 @@ msgid ""
 msgid_plural ""
 "This %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover it there within %(days)s days."
-msgstr[0] "此 %(type)s 将被移至设置菜单中的“最近归档”。您可以在 %(days)s 天内从那里恢复它。"
+msgstr[0] ""
 
 #, python-format
 msgid ""
 "This %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover it there."
-msgstr "此 %(type)s 将被移至设置菜单中的“最近归档”。您可以在那里恢复它。"
-
-msgid "This CSS uses @import, which cannot be saved"
 msgstr ""
 
 msgid ""
@@ -17183,6 +17177,12 @@ msgid "This chart no longer exists."
 msgstr ""
 
 msgid "This chart only"
+msgstr ""
+
+#, python-format
+msgid ""
+"This chart uses the \"%s\" dataset, which you do not have permission to "
+"view."
 msgstr ""
 
 msgid "This chart will be restored to the following version:"
@@ -17489,11 +17489,6 @@ msgid ""
 "a misleadingly large number."
 msgstr ""
 
-msgid ""
-"This metric is not compatible with the current selections. Select a "
-"compatible metric."
-msgstr ""
-
 #, python-format
 msgid "This metric might be incompatible with current %s"
 msgstr "此指标可能与当前 %s 不兼容"
@@ -17518,6 +17513,12 @@ msgstr "此页面设计为嵌入在 iframe 中，但看起来并非如此。"
 
 msgid "This password is too common; please choose a less guessable one."
 msgstr "此密码过于常见；请选择一个不易被猜到的密码。"
+
+#, python-format
+msgid ""
+"This query uses the \"%s\" dataset, which you do not have permission to "
+"view."
+msgstr ""
 
 msgid ""
 "This section allows you to configure how to use the slice\n"
@@ -17566,11 +17567,6 @@ msgid "This theme is set locally for your session"
 msgstr "此主题已为您的会话在本地设置"
 
 msgid ""
-"This theme is the active default/dark theme - only Admins can edit it - "
-"Read Only"
-msgstr ""
-
-msgid ""
 "This theme uses the dark algorithm. It will be rendered with the light "
 "algorithm instead, so its colors may not look as designed."
 msgstr ""
@@ -17578,14 +17574,6 @@ msgstr ""
 msgid ""
 "This theme uses the light algorithm. It will be rendered with the dark "
 "algorithm instead, so its colors may not look as designed."
-msgstr ""
-
-msgid ""
-"This update would change the connection's effective destination "
-"(host/port, engine parameters, SSH tunnel endpoint, or OAuth2 endpoint "
-"URIs) while reusing the stored credential. Provide the real password (or "
-"SSH tunnel credential / OAuth2 client secret) to confirm a connection "
-"move."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
@@ -17598,6 +17586,14 @@ msgstr "这个值应该大于左边的目标值"
 
 msgid "This value should be smaller than the right target value"
 msgstr "该值应小于右侧的目标值"
+
+msgid ""
+"This version does not record a visualization type and dataset, so it "
+"cannot be previewed"
+msgstr ""
+
+msgid "This view isn't available on mobile"
+msgstr ""
 
 msgid ""
 "This version does not record a visualization type and dataset, so it "
@@ -18030,6 +18026,9 @@ msgstr "立即触发"
 msgid "True"
 msgstr "真"
 
+msgid "Truncate"
+msgstr ""
+
 msgid "Truncate Axis"
 msgstr "截断坐标轴"
 
@@ -18339,9 +18338,6 @@ msgid "Undefined window for rolling operation"
 msgstr "未定义滚动操作窗口"
 
 msgid "Undid or redid a change"
-msgstr ""
-
-msgid "Undo"
 msgstr ""
 
 #, fuzzy
@@ -18673,7 +18669,9 @@ msgid ""
 "along two axes. Examples: Sales numbers by region and month, tasks by "
 "status and assignee, active users by age and location. Not the most "
 "visually stunning visualization, but highly informative and versatile."
-msgstr "用于通过将多个统计信息沿两个轴分组在一起来汇总一组数据。示例：按地区和月份统计的销售额，按状态和负责人统计的任务，按年龄和位置统计的活跃用户。虽然不是最视觉震撼的可视化，但信息丰富且用途广泛。"
+msgstr ""
+"用于通过将多个统计信息沿 two "
+"轴分组在一起来汇总一组数据。示例：按地区和月份统计的销售额，按状态和负责人统计的任务，按年龄和位置统计的活跃用户。虽然不是最视觉震撼的可视化，但信息丰富且用途广泛。"
 
 msgid "User"
 msgstr "用户"
@@ -19822,9 +19820,6 @@ msgstr ""
 msgid "You do not have access to the following tables: %s."
 msgstr ""
 
-msgid "You do not have permission to access this datasource"
-msgstr ""
-
 #, fuzzy, python-format
 msgid "You do not have permission to edit this %s"
 msgstr "您没有编辑此 %s 的权限"
@@ -19844,12 +19839,6 @@ msgstr "您没有读取标签的权限"
 msgid "You do not have permission to view any archived object types."
 msgstr ""
 
-msgid "You do not have permission to view this chart’s data."
-msgstr ""
-
-msgid "You do not have permission to view this data."
-msgstr ""
-
 msgid "You do not have permissions to edit this dashboard."
 msgstr "您没有编辑此看板的权限。"
 
@@ -19863,6 +19852,9 @@ msgstr ""
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 msgid "You don't have access to one or more of the referenced datasources."
 msgstr "您没有访问其中一个或多个所引用数据源的权限。"
+
+msgid "You don't have access to this chart's data"
+msgstr ""
 
 msgid "You don't have access to this chart's data"
 msgstr ""
@@ -21026,10 +21018,6 @@ msgstr "百分位数必须是具有两个数值的列表或元组，其中第一
 #, fuzzy
 msgid "permalink state not found"
 msgstr "未找到持久链接状态"
-
-#. do-not-translate
-msgid "pivoted_xlsx"
-msgstr "透视表"
 
 msgid "pixels"
 msgstr "像素"

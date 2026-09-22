@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-01 12:46+0300\n"
+"POT-Creation-Date: 2026-09-22 12:21+0530\n"
 "PO-Revision-Date: 2024-05-14 13:30+0900\n"
 "Last-Translator: Yuri Umezaki <bungoume@gmail.com>\n"
 "Language: ja\n"
@@ -26,7 +26,17 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.17.0\n"
+"Generated-By: Babel 2.10.3\n"
+
+#, python-format
+msgid ""
+"\n"
+"                <p>Your report/alert was unable to be generated because "
+"of the following error: %(text)s</p>\n"
+"                <p>Please check your dashboard/chart for errors.</p>\n"
+"                <p><b><a href=\"%(url)s\">%(call_to_action)s</a></b></p>\n"
+"                "
+msgstr ""
 
 #, python-format
 msgid ""
@@ -176,14 +186,6 @@ msgstr "「%s」がシステムの既定テーマに設定されました"
 #, no-python-format
 msgid "% calculation"
 msgstr "% 計算"
-
-#, python-format
-msgid "% of"
-msgstr ""
-
-#, python-format
-msgid "% of column"
-msgstr ""
 
 #, python-format
 msgid "% of column total"
@@ -935,12 +937,6 @@ msgid ""
 "A butterfly chart compares two metrics across categories using horizontal"
 " bars that extend left and right from a central axis."
 msgstr ""
-
-msgid ""
-"A candlestick chart shows opening, closing, high, and low values for each"
-" period. It is commonly used for financial and other time-series range "
-"analysis."
-msgstr "ローソク足チャートは、各期間の始値、終値、高値、安値を示します。金融やその他の時系列レンジ分析によく使われます。"
 
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr "日付として解析する列のリスト(カンマ区切り)"
@@ -2502,6 +2498,9 @@ msgstr "利用可能なスペースに基づいて列幅を自動調整"
 msgid "Automatically adjust column width based on content"
 msgstr "コンテンツに基づいて列幅を自動調整"
 
+msgid "Automatically retry sending the report when delivery fails."
+msgstr ""
+
 msgid "Automatically sync columns"
 msgstr "列を自動同期"
 
@@ -2740,6 +2739,9 @@ msgstr "副Y軸の範囲。「独立したY軸範囲」が有効な場合にの�
 
 msgid "Box Plot"
 msgstr "箱ひげ図"
+
+msgid "Break"
+msgstr ""
 
 msgid "Breakdowns"
 msgstr "内訳"
@@ -3679,9 +3681,6 @@ msgstr "タブを閉じる"
 msgid "Close version history"
 msgstr ""
 
-msgid "Closing value for each period."
-msgstr "各期間の終値。"
-
 msgid "Cluster label aggregator"
 msgstr "クラスターラベル集計"
 
@@ -3865,9 +3864,6 @@ msgid "Column select"
 msgstr "列の選択"
 
 msgid "Column settings"
-msgstr ""
-
-msgid "Column sum"
 msgstr ""
 
 msgid "Column to group by"
@@ -4069,7 +4065,7 @@ msgstr "ダッシュボードの外観、配色、およびカスタムCSS設定
 msgid "Configure filter scopes"
 msgstr "フィルターの適用範囲を設定"
 
-msgid "Configure retries when alert or report generation fails before delivery."
+msgid "Configure retry behavior on delivery failure."
 msgstr ""
 
 msgid "Configure the basics of your Annotation Layer."
@@ -4187,7 +4183,9 @@ msgstr "コントロール"
 msgid "Control labeled "
 msgstr "ラベル付きコントロール"
 
-msgid "Control whether this dashboard loads chart data asynchronously"
+msgid ""
+"Controls how labels overflow beyond the max width. \"Truncate\" adds an "
+"ellipsis. \"Break\" wraps to the next line."
 msgstr ""
 
 msgid "Controls labeled "
@@ -4795,9 +4793,6 @@ msgstr "データ"
 
 msgid "Data Connections"
 msgstr "データ接続"
-
-msgid "Data Export Options"
-msgstr "データエクスポートオプション"
 
 msgid "Data Table"
 msgstr "データテーブル"
@@ -5424,11 +5419,6 @@ msgid ""
 msgstr "タブを削除するとタブ内のすべての内容が失われ、関連するアラートやレポートが無効化されます。この操作は以下の方法で元に戻せます"
 
 msgid ""
-"Deleting this dataset is permanent. The affected charts and dashboards "
-"will remain, but they may no longer work."
-msgstr ""
-
-msgid ""
 "Deleting this semantic layer also permanently deletes any semantic views "
 "it contains, and charts built on those views will stop working. The "
 "affected views could not be listed."
@@ -5652,9 +5642,6 @@ msgid ""
 "Display each cell as a percentage of its row, column, or grand total, "
 "instead of its actual value. Totals and subtotals are still computed "
 "correctly first; this only changes how they are displayed."
-msgstr ""
-
-msgid "Display format"
 msgstr ""
 
 msgid "Display headers for each column at the top of the matrix"
@@ -6036,9 +6023,6 @@ msgstr "注釈レイヤーのプロパティを編集"
 msgid "Edit chart"
 msgstr "チャートを編集"
 
-msgid "Edit chart properties"
-msgstr "チャートのプロパティを編集"
-
 msgid "Edit dashboard"
 msgstr "ダッシュボードを編集"
 
@@ -6248,9 +6232,6 @@ msgstr "GeoJSONポイントに対するアイコンの描画を有効にしま�
 
 msgid "Enables rendering of labels for GeoJSON points"
 msgstr "GeoJSONポイントに対するラベルの描画を有効にします"
-
-msgid "Encrypted extra field must be a mapping from string keys to values."
-msgstr ""
 
 msgid "Encrypted extra fields"
 msgstr "暗号化された追加フィールド"
@@ -6634,12 +6615,6 @@ msgstr "データ探索ビューで結果を確認する"
 msgid "Export"
 msgstr "エクスポート"
 
-msgid "Export All Data"
-msgstr "すべてのデータをエクスポート"
-
-msgid "Export Current View"
-msgstr "現在のビューをエクスポート"
-
 msgid "Export Data to Excel"
 msgstr ""
 
@@ -6710,17 +6685,6 @@ msgstr "全データCSVとしてエクスポート"
 
 msgid "Export to full Excel"
 msgstr "全データExcelとしてエクスポート"
-
-msgid "Export to original .CSV"
-msgstr "基データCSVとしてエクスポート"
-
-msgid "Export to pivoted .CSV"
-msgstr "ピボット済みCSVとしてエクスポート"
-
-msgid ""
-"Exporting images to Excel requires background exports. Ask an "
-"administrator to enable them, or export the dashboard's data instead."
-msgstr ""
 
 #, python-format
 msgid ""
@@ -6876,10 +6840,6 @@ msgstr "チャートデータの読み込みに失敗しました。"
 msgid "Failed to load columns for %s %s"
 msgstr "%s %s の列情報の読み込みに失敗しました"
 
-#, python-format
-msgid "Failed to load dimensions for semantic view %s"
-msgstr ""
-
 msgid "Failed to load drill-to-detail rows"
 msgstr ""
 
@@ -6982,9 +6942,6 @@ msgstr "選択肢の検証に失敗しました: %s"
 
 msgid "Failure Notifications"
 msgstr ""
-
-msgid "Falling back to CSV; Excel export library not available."
-msgstr "Excelエクスポート用ライブラリが利用できないため、CSVにフォールバックします。"
 
 msgid "False"
 msgstr "偽 (False)"
@@ -8263,6 +8220,12 @@ msgstr "ラベルの内容"
 msgid "Label Line"
 msgstr "ラベル線"
 
+msgid "Label Max Width"
+msgstr ""
+
+msgid "Label Overflow"
+msgstr ""
+
 msgid "Label Position"
 msgstr ""
 
@@ -8980,6 +8943,11 @@ msgstr "最大値"
 msgid "Maximum value on the gauge axis"
 msgstr "ゲージ軸の最大値"
 
+msgid ""
+"Maximum width (in pixels) for pie chart labels. Set to 0 to disable "
+"truncation."
+msgstr ""
+
 msgid "Maximum width size of the path, in pixels or meters."
 msgstr "パスの最大幅サイズ (ピクセルまたはメートル単位)。"
 
@@ -9384,10 +9352,6 @@ msgstr "このチャートを上書きするにはチャートの編集者であ
 msgid "Must be between 1 and 10"
 msgstr ""
 
-#, python-brace-format
-msgid "Must be one of: {choices}."
-msgstr ""
-
 msgid "Must be unique"
 msgstr "一意である必要があります"
 
@@ -9499,9 +9463,6 @@ msgstr "新規"
 msgid "New Semantic Layer"
 msgstr "新しいセマンティックレイヤー"
 
-msgid "New chart"
-msgstr "新しいチャート"
-
 msgid "New dataset"
 msgstr "新しいデータセット"
 
@@ -9561,10 +9522,6 @@ msgid "No actions"
 msgstr "アクションなし"
 
 msgid "No actions found"
-msgstr ""
-
-#, python-format
-msgid "No affected %(label)s."
 msgstr ""
 
 msgid "No annotation layers"
@@ -10457,9 +10414,6 @@ msgid "Percent Difference format"
 msgstr "差分率の形式"
 
 msgid "Percent change"
-msgstr ""
-
-msgid "Percent denominator"
 msgstr ""
 
 msgid "Percent of total"
@@ -11586,16 +11540,14 @@ msgstr "非同期クエリに必要な結果バックエンドが設定されて
 msgid "Resume auto-refresh"
 msgstr "自動更新を再開"
 
+msgid "Retries are not supported for alerts"
+msgstr ""
+
 msgid "Retry"
 msgstr "再試行"
 
 msgid "Retry fetching results"
 msgstr "結果の取得を再試行"
-
-msgid ""
-"Retry generation failures before delivery starts. Alerts re-check their "
-"condition on each attempt. Delivery failures are not replayed."
-msgstr ""
 
 msgid "Retrying"
 msgstr ""
@@ -13005,9 +12957,6 @@ msgid ""
 " Note that row limit does not apply to the result."
 msgstr ""
 
-msgid "Show all"
-msgstr ""
-
 msgid "Show all columns"
 msgstr "すべての列を表示"
 
@@ -13085,9 +13034,6 @@ msgid ""
 msgstr ""
 
 msgid "Show or hide the X axis line, ticks, and labels"
-msgstr ""
-
-msgid "Show or hide the Y axis line and labels"
 msgstr ""
 
 msgid "Show or hide the Y axis line, ticks, gridlines, and labels"
@@ -13755,9 +13701,6 @@ msgstr "サンバーストチャート"
 
 msgid "Sunday"
 msgstr "日曜日"
-
-msgid "Superset Chart"
-msgstr "Superset チャート"
 
 msgid "Superset Embedded SDK documentation."
 msgstr "Superset 埋め込み用 SDK ドキュメント。"
@@ -15044,12 +14987,6 @@ msgstr "テーマ"
 msgid "Theme colors"
 msgstr ""
 
-msgid "Theme could not be created."
-msgstr ""
-
-msgid "Theme could not be updated."
-msgstr ""
-
 msgid "Theme imported"
 msgstr "テーマをインポートしました"
 
@@ -15371,9 +15308,6 @@ msgid ""
 "You can recover it there."
 msgstr ""
 
-msgid "This CSS uses @import, which cannot be saved"
-msgstr ""
-
 msgid ""
 "This Google Sheets connection impersonates the logged-in user, who has no"
 " e-mail address."
@@ -15445,6 +15379,12 @@ msgid "This chart no longer exists."
 msgstr ""
 
 msgid "This chart only"
+msgstr ""
+
+#, python-format
+msgid ""
+"This chart uses the \"%s\" dataset, which you do not have permission to "
+"view."
 msgstr ""
 
 msgid "This chart will be restored to the following version:"
@@ -15693,11 +15633,6 @@ msgid ""
 "a misleadingly large number."
 msgstr ""
 
-msgid ""
-"This metric is not compatible with the current selections. Select a "
-"compatible metric."
-msgstr ""
-
 #, python-format
 msgid "This metric might be incompatible with current %s"
 msgstr "このメトリックは現在の %s と互換性がない可能性があります"
@@ -15715,6 +15650,12 @@ msgstr "このページは iframe 内への埋め込みを想定しています�
 
 msgid "This password is too common; please choose a less guessable one."
 msgstr "このパスワードはありふれています。推測されにくいものを選んでください。"
+
+#, python-format
+msgid ""
+"This query uses the \"%s\" dataset, which you do not have permission to "
+"view."
+msgstr ""
 
 msgid ""
 "This section allows you to configure how to use the slice\n"
@@ -15753,11 +15694,6 @@ msgid "This theme is set locally for your session"
 msgstr "このテーマはこのセッションの間だけローカルに設定されています"
 
 msgid ""
-"This theme is the active default/dark theme - only Admins can edit it - "
-"Read Only"
-msgstr ""
-
-msgid ""
 "This theme uses the dark algorithm. It will be rendered with the light "
 "algorithm instead, so its colors may not look as designed."
 msgstr ""
@@ -15765,14 +15701,6 @@ msgstr ""
 msgid ""
 "This theme uses the light algorithm. It will be rendered with the dark "
 "algorithm instead, so its colors may not look as designed."
-msgstr ""
-
-msgid ""
-"This update would change the connection's effective destination "
-"(host/port, engine parameters, SSH tunnel endpoint, or OAuth2 endpoint "
-"URIs) while reusing the stored credential. Provide the real password (or "
-"SSH tunnel credential / OAuth2 client secret) to confirm a connection "
-"move."
 msgstr ""
 
 msgid "This username is already taken. Please choose another one."
@@ -16176,6 +16104,9 @@ msgstr "今すぐ実行"
 msgid "True"
 msgstr "真 (True)"
 
+msgid "Truncate"
+msgstr ""
+
 msgid "Truncate Axis"
 msgstr ""
 
@@ -16430,9 +16361,6 @@ msgid "Undefined window for rolling operation"
 msgstr "ローリング処理のウィンドウが未定義です"
 
 msgid "Undid or redid a change"
-msgstr ""
-
-msgid "Undo"
 msgstr ""
 
 msgid "Undo the action"
@@ -17761,9 +17689,6 @@ msgstr ""
 msgid "You do not have access to the following tables: %s."
 msgstr ""
 
-msgid "You do not have permission to access this datasource"
-msgstr ""
-
 #, python-format
 msgid "You do not have permission to edit this %s"
 msgstr "この %s を編集する権限がありません"
@@ -17781,12 +17706,6 @@ msgid "You do not have permission to read tags"
 msgstr "タグを読み取る権限がありません"
 
 msgid "You do not have permission to view any archived object types."
-msgstr ""
-
-msgid "You do not have permission to view this chart’s data."
-msgstr ""
-
-msgid "You do not have permission to view this data."
 msgstr ""
 
 msgid "You do not have permissions to edit this dashboard."
@@ -18799,10 +18718,6 @@ msgstr "パーセンタイルは、1つ目が2つ目より小さい2つの数値
 
 msgid "permalink state not found"
 msgstr "固定リンクの状態が見つかりません"
-
-#. do-not-translate
-msgid "pivoted_xlsx"
-msgstr "ピボットエクセル"
 
 msgid "pixels"
 msgstr "ピクセル"
