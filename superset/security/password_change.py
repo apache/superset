@@ -36,7 +36,6 @@ from flask_babel import gettext as __
 from sqlalchemy.exc import IntegrityError
 
 from superset.utils.decorators import transaction
-from superset.views.health import health_blueprint
 
 logger = logging.getLogger(__name__)
 
@@ -152,6 +151,8 @@ def register_password_change_enforcement(app: Any) -> None:
     No-op unless ``ENABLE_FORCE_PASSWORD_CHANGE`` is enabled, so there is zero
     per-request overhead in the default configuration.
     """
+
+    from superset.views.health import health_blueprint
 
     @app.before_request
     def _enforce_password_change() -> Any:  # pylint: disable=unused-variable
