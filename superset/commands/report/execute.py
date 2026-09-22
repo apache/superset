@@ -641,7 +641,7 @@ class BaseReportState:
                 "during execution"
             ) from ex
 
-    def _download_reason_params(self) -> dict[str, str]:
+    def _download_reason_params(self) -> dict[str, Any]:
         """Extra URL params for scheduled CSV/XLSX exports.
 
         Reports fetch chart data through the same export endpoints as users, so
