@@ -153,6 +153,17 @@ def test_put_schema_accepts_the_column_fields() -> None:
     assert loaded["partition_transform_is_monotonic"] is True
 
 
+def test_put_schema_leaves_out_a_monotonic_flag_the_payload_omits() -> None:
+    """
+    `DatasetDAO.update_columns` applies the loaded payload field by field onto
+    the stored column, so a default here would let a partial column update clear
+    a monotonic flag the request never mentioned -- and silently stop mirroring
+    range filters. Contrast `ImportV1ColumnSchema`, which does default it.
+    """
+    loaded = DatasetColumnsPutSchema().load({"column_name": "event_time"})
+    assert "partition_transform_is_monotonic" not in loaded
+
+
 def test_put_schema_allows_clearing_the_mapping() -> None:
     """Removing a mapping is a null, not an omission."""
     loaded = DatasetPutSchema().load({"partition_column": None})
