@@ -578,7 +578,14 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     // the user's saved selection.
     if (Object.keys(nativeFilterMask).length === 0) return;
     saveDashboardFilters(id, userId, nativeFilterMask, nativeFilters);
-  }, [id, hydratedDashboardId, fullDataMask, nativeFilters, userId, isVersionPreviewActive]);
+  }, [
+    id,
+    hydratedDashboardId,
+    fullDataMask,
+    nativeFilters,
+    userId,
+    isVersionPreviewActive,
+  ]);
 
   if (error && !isNotFoundError) throw error; // caught in error boundary
 
