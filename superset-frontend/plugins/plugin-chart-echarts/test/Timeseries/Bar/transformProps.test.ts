@@ -97,7 +97,7 @@ test('manual Bar value label position flows through transformProps', () => {
   const [series] = echartOptions.series as BarSeriesOption[];
 
   expect(series.label).toMatchObject({ position: 'top' });
-  expect(series.labelLayout).toBeUndefined();
+  expect(typeof series.labelLayout).toBe('function');
   expect(echartOptions.darkMode).toBeUndefined();
 });
 
@@ -160,7 +160,7 @@ test('legacy Bar labels without a saved position keep their pre-existing Outside
   const [series] = echartOptions.series as BarSeriesOption[];
 
   expect(series.label).toMatchObject({ position: 'top' });
-  expect(series.labelLayout).toBeUndefined();
+  expect(typeof series.labelLayout).toBe('function');
 
   Reflect.set(chartProps.formData, 'valueLabelPosition', undefined);
   const undefinedPositionOptions = transformProps(chartProps).echartOptions;
@@ -168,7 +168,7 @@ test('legacy Bar labels without a saved position keep their pre-existing Outside
     undefinedPositionOptions.series as BarSeriesOption[];
 
   expect(undefinedPositionSeries.label).toMatchObject({ position: 'top' });
-  expect(undefinedPositionSeries.labelLayout).toBeUndefined();
+  expect(typeof undefinedPositionSeries.labelLayout).toBe('function');
 });
 
 describe('Bar Chart X-axis Time Formatting', () => {
