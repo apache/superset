@@ -24,12 +24,15 @@ from collections.abc import Generator
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import MagicMock, Mock, patch
+from uuid import UUID
 
 import pytest
 from fastmcp import Client, FastMCP
+from fastmcp.exceptions import ToolError
 
 from superset.mcp_service.app import mcp
 from superset.mcp_service.auth import is_tool_visible_to_current_user
+from superset.mcp_service.dataset_scope import OUT_OF_SCOPE_ERROR
 from superset.mcp_service.privacy import tool_requires_data_model_metadata_access
 from superset.utils import json
 from superset.utils.date_parser import get_since_until
@@ -433,6 +436,58 @@ async def test_query_dataset_time_range_no_temporal_column(mcp_server: FastMCP) 
     data = json.loads(result.content[0].text)
     assert data["error_type"] == "ValidationError"
     assert "temporal column" in data["error"].lower()
+
+
+@pytest.mark.asyncio
+async def test_query_dataset_reversed_time_range(mcp_server: FastMCP) -> None:
+    """A reversed explicit time_range (since > until) resolves to a clean
+    ValidationError rather than a generic UnexpectedError.
+
+    An explicit ``"<start> : <end>"`` range where start > end passes the
+    pydantic-level validate_time_range guard unchanged (by design) and reaches
+    the real get_since_until(), which raises
+    ``ValueError("From date cannot be larger than to date")``. The tool must
+    surface that as an actionable ValidationError, not swallow it into the
+    catch-all UnexpectedError arm.
+    """
+    dataset = _make_dataset(main_dttm_col="order_date")
+    reversed_range = "2024-01-01T00:00:00 : 2020-01-01T00:00:00"
+
+    def create_with_real_parser(**kwargs):
+        # Exercise the real parser on the reversed range exactly as the query
+        # pipeline would, letting its genuine ValueError propagate.
+        for query in kwargs.get("queries", []):
+            for filt in query.get("filters", []):
+                if filt.get("op") == "TEMPORAL_RANGE":
+                    get_since_until(time_range=filt["val"])
+        return MagicMock()
+
+    with (
+        patch.object(
+            query_dataset_module,
+            "resolve_dataset",
+            return_value=dataset,
+        ),
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory.create",
+            side_effect=create_with_real_parser,
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "query_dataset",
+                {
+                    "request": {
+                        "dataset_id": 1,
+                        "metrics": ["count"],
+                        "time_range": reversed_range,
+                    }
+                },
+            )
+
+    data = json.loads(result.content[0].text)
+    assert data["error_type"] == "ValidationError"
+    assert "From date cannot be larger than to date" in data["error"]
 
 
 @pytest.mark.asyncio
@@ -1746,3 +1801,47 @@ async def test_query_dataset_available_columns_preview(
     else:
         assert "Available columns: (none)" in data["error"]
     assert "get_dataset_info with this dataset_id" in data["error"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("identifier", [1, "1", "00000000-0000-0000-0000-000000000001"])
+@pytest.mark.parametrize("in_scope", [True, False])
+async def test_scope_refuses_out_of_scope_query_and_admits_in_scope_one(
+    mcp_server: FastMCP,
+    identifier: int | str,
+    in_scope: bool,
+) -> None:
+    """The authenticated MCP entry point refuses rather than queries a substitute.
+
+    The in-scope case is what proves the refusal is a decision and not a
+    wholesale block: an implementation reading the wrong identifier field would
+    refuse both ways and still satisfy the negative case alone.
+    """
+    dataset_uuid: UUID = UUID("00000000-0000-0000-0000-000000000001")
+    dataset: MagicMock = _make_dataset()
+    dataset.uuid = dataset_uuid
+    scope: frozenset[UUID] = frozenset({dataset_uuid}) if in_scope else frozenset()
+    with (
+        patch(
+            "superset.mcp_service.dataset_scope.get_dataset_scope",
+            return_value=scope,
+        ),
+        patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset),
+        patch.object(query_dataset_module, "execute_tabular_query") as execute,
+    ):
+        async with Client(mcp_server) as client:
+            if in_scope:
+                await client.call_tool(
+                    "query_dataset",
+                    {"request": {"dataset_id": identifier, "metrics": ["count"]}},
+                )
+            else:
+                # The client re-raises the base ToolError across the
+                # transport; what matters is that the explanation survives it.
+                with pytest.raises(ToolError) as excinfo:
+                    await client.call_tool(
+                        "query_dataset",
+                        {"request": {"dataset_id": identifier, "metrics": ["count"]}},
+                    )
+                assert OUT_OF_SCOPE_ERROR in str(excinfo.value)
+        assert execute.called is in_scope

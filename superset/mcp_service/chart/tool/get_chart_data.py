@@ -111,6 +111,7 @@ _VIZ_CATEGORY: dict[str, str] = {
     "area": "area",
     "scatter": "scatter",
     "bubble": "bubble",
+    "bubble_v2": "bubble",
     "treemap_v2": "treemap",
     "sunburst_v2": "treemap",
     "heatmap_v2": "heatmap",
@@ -125,6 +126,7 @@ _VIZ_CATEGORY: dict[str, str] = {
     # Own category: cumulative-flow semantics differ from a plain bar, like
     # funnel/gauge carry distinct categories.
     "waterfall": "waterfall",
+    "gantt_chart": "gantt",
 }
 
 _MAX_RECOMMENDATIONS = 4
@@ -305,7 +307,7 @@ def _build_query_results(
         openWorldHint=False,
     ),
 )
-async def get_chart_data(  # noqa: C901
+async def get_chart_data(
     request: GetChartDataRequest, ctx: Context
 ) -> ChartData | ChartError:
     """Get chart data by ID or UUID.
@@ -324,6 +326,18 @@ async def get_chart_data(  # noqa: C901
     actually sees in the Explore view (not the saved version).
 
     Returns underlying data in requested format with cache status.
+    """
+    return await execute_chart_data(request, ctx)
+
+
+async def execute_chart_data(  # noqa: C901
+    request: GetChartDataRequest, ctx: Context
+) -> ChartData | ChartError:
+    """Shared core behind get_chart_data.
+
+    Undecorated entry point so other tools (e.g. get_dashboard_data) reuse the
+    same query and guest-authorization path without re-entering the auth-wrapped
+    tool.
     """
     await ctx.info(
         "Starting chart data retrieval: identifier=%s, format=%s, limit=%s, "
@@ -655,7 +669,7 @@ async def get_chart_data(  # noqa: C901
                     chart=chart_facts,
                     extra_form_data=request.extra_form_data,
                     row_limit=row_limit,
-                    order_desc=True,
+                    order_desc=form_data.get("order_desc", True),
                 )
 
                 # Safety net: if we could not extract any metrics or
