@@ -36,6 +36,7 @@ from superset.constants import PASSWORD_MASK
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import GenericDBException
+from superset.exceptions import OAuth2RedirectError
 from superset.models.core import Database
 from superset.security.manager import SupersetSecurityManager
 from superset.utils import json
@@ -147,6 +148,29 @@ def ping(engine: Engine) -> bool:
             return engine.dialect.do_ping(conn)
 
 
+def _get_all_schema_names_with_retry(
+    database: Database, catalog: str | None
+) -> set[str]:
+    """
+    Retry the live schema-listing call once before giving up on a catalog.
+
+    Some catalogs are visible but not listable (eg the ``rdsadmin`` catalog on
+    AWS RDS), but the exception caught by the caller doesn't distinguish that
+    from a one-off transient hiccup (eg schema metadata not yet visible right
+    after it was created). A single retry lets a schema that needs a
+    first-time grant survive a fluke without tolerating a persistently
+    unlistable catalog for any longer than before.
+    """
+    try:
+        return database.get_all_schema_names(catalog=catalog, cache=False)
+    except OAuth2RedirectError:
+        # Not transient: retrying would just kick off a second, redundant
+        # OAuth2 authorization redirect for the same request.
+        raise
+    except GenericDBException:  # pylint: disable=broad-except
+        return database.get_all_schema_names(catalog=catalog, cache=False)
+
+
 def add_permissions(database: Database) -> None:
     """
     Add DAR for catalogs and schemas.
@@ -179,7 +203,8 @@ def add_permissions(database: Database) -> None:
 
     for catalog in catalogs:
         try:
-            for schema in database.get_all_schema_names(catalog=catalog, cache=False):
+            schemas = _get_all_schema_names_with_retry(database, catalog)
+            for schema in schemas:
                 security_manager.add_permission_view_menu(
                     "schema_access",
                     security_manager.get_schema_perm(

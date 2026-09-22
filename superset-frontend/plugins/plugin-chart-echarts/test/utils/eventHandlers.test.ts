@@ -219,9 +219,29 @@ test('cross-filter does not emit when pie Other slice is clicked (name not in la
   handlers.click({ name: 'Other' });
 
   expect(setDataMask).not.toHaveBeenCalled();
+  expect(setDataMask).not.toHaveBeenCalled();
 });
 
-test('cross-filter does not emit when click event name is empty string', () => {
+test('cross-filter ignores a click on a name absent from labelMap (#42340)', () => {
+  // The pie's Total graphic text and its aggregated "Other" slice are not
+  // categories, so they have no labelMap entry. Building a mask from one left
+  // every groupby column as `IS NULL`, because `[].every(...)` is true.
+  const setDataMask = jest.fn();
+  const props = buildProps({
+    groupby: ['topics'],
+    labelMap: { cancellations: ['cancellations'] },
+    selectedValues: {},
+    setDataMask,
+  });
+
+  const handlers = allEventHandlers(props);
+  handlers.click({ name: 'Total: 1234' });
+  handlers.click({ name: 'Other' });
+
+  expect(setDataMask).not.toHaveBeenCalled();
+});
+
+test('cross-filter still deselects a previously selected value that is missing from labelMap', () => {
   const setDataMask = jest.fn();
   const props = buildProps({
     groupby: ['category'],
@@ -231,8 +251,6 @@ test('cross-filter does not emit when click event name is empty string', () => {
   });
 
   const handlers = allEventHandlers(props);
-  // Some ECharts click events on non-data elements (e.g. legend, axis) arrive
-  // with an empty name string.
   handlers.click({ name: '' });
 
   expect(setDataMask).not.toHaveBeenCalled();
@@ -324,4 +342,41 @@ test('cross-filter does not emit when isOther slice has no labelMap entry', () =
   handlers.click({ name: 'Other', data: { isOther: true } });
 
   expect(setDataMask).not.toHaveBeenCalled();
+});
+
+test('cross-filter ignores a click with an empty name (#42340)', () => {
+  const setDataMask = jest.fn();
+  const props = buildProps({
+    groupby: ['topics'],
+    labelMap: { cancellations: ['cancellations'] },
+    selectedValues: {},
+    setDataMask,
+  });
+
+  const handlers = allEventHandlers(props);
+  handlers.click({ name: '' });
+
+  expect(setDataMask).not.toHaveBeenCalled();
+});
+
+test('context menu offers no cross-filter for an unresolvable name (#42340)', () => {
+  const onContextMenu = jest.fn();
+  const props = buildProps({
+    groupby: ['topics'],
+    labelMap: { cancellations: ['cancellations'] },
+    selectedValues: {},
+    onContextMenu,
+  });
+
+  const handlers = allEventHandlers(props);
+  handlers.contextmenu({
+    name: 'Total: 1234',
+    event: {
+      stop: jest.fn(),
+      event: { clientX: 1, clientY: 2 } as unknown as PointerEvent,
+    },
+  });
+
+  // contextMenuEventHandler already bails out before opening the menu
+  expect(onContextMenu).not.toHaveBeenCalled();
 });

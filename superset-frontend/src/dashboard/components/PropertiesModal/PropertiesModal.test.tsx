@@ -476,9 +476,9 @@ describe('PropertiesModal', () => {
     ).toBeInTheDocument();
 
     expect(props.onHide).not.toHaveBeenCalled();
-    userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(props.onHide).toHaveBeenCalledTimes(1);
-    userEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Close' }));
     expect(props.onHide).toHaveBeenCalledTimes(2);
   });
 
@@ -517,7 +517,7 @@ describe('PropertiesModal', () => {
     expect(props.onHide).not.toHaveBeenCalled();
     expect(props.onSubmit).not.toHaveBeenCalled();
 
-    userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
     await waitFor(() => {
       expect(props.onSubmit).toHaveBeenCalledTimes(1);
       // Just check that onSubmit was called with the basic fields
@@ -603,7 +603,7 @@ describe('PropertiesModal', () => {
     expect(props.onHide).not.toHaveBeenCalled();
     expect(props.onSubmit).not.toHaveBeenCalled();
 
-    userEvent.click(screen.getByRole('button', { name: 'Apply' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Apply' }));
     await waitFor(() => {
       expect(props.onSubmit).toHaveBeenCalledTimes(1);
     });
@@ -630,7 +630,7 @@ describe('PropertiesModal', () => {
       await screen.findByTestId('dashboard-edit-properties-form'),
     ).toBeInTheDocument();
 
-    userEvent.click(screen.getByRole('button', { name: 'Apply' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Apply' }));
     await waitFor(() => {
       expect(props.onSubmit).toHaveBeenCalledTimes(1);
       const submitCall = props.onSubmit.mock.calls[0][0];
@@ -666,7 +666,7 @@ describe('PropertiesModal', () => {
       await screen.findByTestId('dashboard-edit-properties-form'),
     ).toBeInTheDocument();
 
-    userEvent.click(screen.getByRole('button', { name: 'Apply' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Apply' }));
     await waitFor(() => {
       expect(props.onSubmit).toHaveBeenCalledTimes(1);
       const submitCall = props.onSubmit.mock.calls[0][0];
@@ -675,6 +675,32 @@ describe('PropertiesModal', () => {
       // themeId removed — derived from theme.id at the save callsite
       expect(submitCall).not.toHaveProperty('themeId');
     });
+  });
+
+  test('fetches system themes so they are assignable to a dashboard (#37289)', async () => {
+    mockedIsFeatureEnabled.mockReturnValue(false);
+    const props = createProps();
+    render(<PropertiesModal {...props} />, {
+      useRedux: true,
+    });
+
+    expect(
+      await screen.findByTestId('dashboard-edit-properties-form'),
+    ).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(
+        fetchMock.callHistory.calls(/\/api\/v1\/theme\/\?q=/).length,
+      ).toBeGreaterThan(0);
+    });
+
+    const themeCalls = fetchMock.callHistory.calls(/\/api\/v1\/theme\/\?q=/);
+    const requestedUrl = themeCalls[themeCalls.length - 1].url;
+    // THEME_DEFAULT/THEME_DARK are stored as Theme rows with is_system=true
+    // (see SeedSystemThemesCommand); they must remain assignable to a
+    // dashboard, so the fetch must not filter them out via an is_system
+    // filter (the column may still be requested/displayed).
+    expect(requestedUrl).not.toContain('col:is_system');
   });
 
   test('Empty "Certified by" should clear "Certification details"', async () => {
@@ -797,7 +823,7 @@ describe('PropertiesModal', () => {
     const titleInput = screen.getAllByRole('textbox')[0];
 
     // Clear to trigger validation error
-    userEvent.clear(titleInput);
+    await userEvent.clear(titleInput);
     await waitFor(
       () => {
         expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
@@ -806,7 +832,7 @@ describe('PropertiesModal', () => {
     );
 
     // Re-enter valid title to clear error
-    userEvent.type(titleInput, 'New Dashboard Title');
+    await userEvent.type(titleInput, 'New Dashboard Title');
     await waitFor(
       () => {
         expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
