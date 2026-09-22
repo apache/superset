@@ -653,6 +653,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             catalog=catalog,
             schema=schema,
         )
+        engine_kwargs["connect_args"] = connect_args
 
         effective_username = self.get_effective_user(sqlalchemy_url)
         if effective_username and is_feature_enabled("IMPERSONATE_WITH_EMAIL_PREFIX"):

@@ -282,3 +282,29 @@ def test_select_star_does_not_qualify_collection(mocker: MockerFixture) -> None:
     assert sql == "SELECT\n  *\nFROM orders\nLIMIT 10"
     database.compile_sqla_query.assert_called_once()
     assert database.compile_sqla_query.call_args.args[1:] == (None, "testdb")
+
+
+def test_get_sqla_engine_applies_selected_schema() -> None:
+    """
+    The ``database`` connect argument returned by ``adjust_engine_params`` must
+    reach the driver when the engine is built through ``Database``.
+    """
+    pytest.importorskip("pymongosql")
+
+    from superset.models.core import Database
+
+    database = Database(
+        database_name="mongo",
+        sqlalchemy_uri="mongodb://user:pass@host:27017/dbone?mode=superset",
+        extra=json.dumps({"engine_params": {"connect_args": {"connect": False}}}),
+    )
+
+    with database.get_sqla_engine(schema="dbtwo") as engine:
+        raw_connection = engine.raw_connection()
+        try:
+            connection = raw_connection.driver_connection
+            credentials = connection.client.options.pool_options._credentials
+            assert connection.database_name == "dbtwo"
+            assert credentials.source == "dbone"
+        finally:
+            raw_connection.close()
