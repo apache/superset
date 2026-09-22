@@ -2064,9 +2064,7 @@ def test_get_csv_data_posts_prepared_chart_data_payload(
 
     assert report_state._get_data(ChartDataResultFormat.CSV) == b"csv-data"
 
-    get_url_path.assert_called_once_with(
-        "ChartDataRestApi.data", download_reason=report_state._download_reason()
-    )
+    get_url_path.assert_called_once_with("ChartDataRestApi.data")
     post_chart_data.assert_called_once()
     assert post_chart_data.call_args.kwargs["chart_url"] == "/api/v1/chart/data"
     assert post_chart_data.call_args.kwargs["auth_cookies"] == auth_cookies
@@ -2161,7 +2159,35 @@ def test_get_url_for_xlsx_report(mocker: MockerFixture) -> None:
         format=ChartDataResultFormat.XLSX.value,
         type=ChartDataResultType.POST_PROCESSED.value,
         force="false",
-        download_reason=report_state._download_reason(),
+    )
+
+
+@with_feature_flags(REQUIRE_DOWNLOAD_REASON=True)
+def test_get_url_for_xlsx_report_sends_download_reason(
+    mocker: MockerFixture,
+) -> None:
+    """With REQUIRE_DOWNLOAD_REASON on, scheduled exports carry a reason."""
+    report_schedule = create_report_schedule(mocker)
+    report_schedule.chart_id = 1
+    report_schedule.id = 7
+    report_schedule.force_screenshot = False
+    report_state = BaseReportState(
+        report_schedule, "January 1, 2021", "execution_id_example"
+    )
+    get_url_path = mocker.patch(
+        "superset.commands.report.execute.get_url_path",
+        return_value="/api/v1/chart/1/data/xlsx",
+    )
+
+    report_state._get_url(result_format=ChartDataResultFormat.XLSX)
+
+    get_url_path.assert_called_once_with(
+        "ChartDataRestApi.get_data",
+        pk=1,
+        format=ChartDataResultFormat.XLSX.value,
+        type=ChartDataResultType.POST_PROCESSED.value,
+        force="false",
+        download_reason="Scheduled report: Test Report (id=7)",
     )
 
 

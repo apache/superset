@@ -107,6 +107,7 @@ from superset.utils.decorators import (
     logs_context,
     transaction,
 )
+from superset.utils.download_reason import DOWNLOAD_REASON_FEATURE_FLAG
 from superset.utils.file import sanitize_title
 from superset.utils.pdf import build_pdf_from_screenshots
 from superset.utils.report_execution import (
@@ -640,17 +641,22 @@ class BaseReportState:
                 "during execution"
             ) from ex
 
-    def _download_reason(self) -> str:
-        """Reason recorded for scheduled exports when REQUIRE_DOWNLOAD_REASON is on.
+    def _download_reason_params(self) -> dict[str, str]:
+        """Extra URL params for scheduled CSV/XLSX exports.
 
         Reports fetch chart data through the same export endpoints as users, so
-        they must supply a reason too; this also makes report-driven downloads
-        identifiable in the Action Log.
+        when ``REQUIRE_DOWNLOAD_REASON`` is on they must supply a reason too;
+        this also makes report-driven downloads identifiable in the Action Log.
+        Empty when the flag is off so the generated URLs are unchanged.
         """
-        return (
-            f"Scheduled report: {self._report_schedule.name} "
-            f"(id={self._report_schedule.id})"
-        )
+        if not feature_flag_manager.is_feature_enabled(DOWNLOAD_REASON_FEATURE_FLAG):
+            return {}
+        return {
+            "download_reason": (
+                f"Scheduled report: {self._report_schedule.name} "
+                f"(id={self._report_schedule.id})"
+            )
+        }
 
     def _get_url(
         self,
@@ -711,7 +717,7 @@ class BaseReportState:
                     "force": force,
                 }
                 if result_format in ChartDataResultFormat.table_like():
-                    url_kwargs["download_reason"] = self._download_reason()
+                    url_kwargs.update(self._download_reason_params())
                 return get_url_path("ChartDataRestApi.get_data", **url_kwargs)
             return get_url_path(
                 "ExploreView.root",
@@ -1286,7 +1292,7 @@ class BaseReportState:
             else:
                 request_payload = self._get_chart_data_request_payload(result_format)
                 url = get_url_path(
-                    "ChartDataRestApi.data", download_reason=self._download_reason()
+                    "ChartDataRestApi.data", **self._download_reason_params()
                 )
                 endpoint = "/api/v1/chart/data"
 
