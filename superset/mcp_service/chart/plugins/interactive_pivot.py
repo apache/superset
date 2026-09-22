@@ -186,7 +186,7 @@ class InteractivePivotChartPlugin(BaseChartPlugin):
     def normalize_column_refs(self, config: Any, dataset_context: Any) -> Any:
         if not isinstance(config, InteractivePivotChartConfig):
             return config
-        config_dict = config.model_dump()
+        config_dict = config.model_dump(exclude_unset=True)
 
         if temporal_column := config_dict.get("temporal_column"):
             config_dict["temporal_column"] = DatasetValidator.get_canonical_column_name(
