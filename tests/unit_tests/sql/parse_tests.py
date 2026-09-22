@@ -4288,7 +4288,7 @@ def test_rls_subquery_filters_every_authorized_read(
         "catalog1",
         "schema1",
         {
-            Table(table, "schema1", "catalog1"): [parse_one(f"rls_{table} = 1")]
+            Table(table, "schema1", "catalog1"): [f"rls_{table} = 1"]
             for table in read_counts
         },
         RLSMethod.AS_SUBQUERY,
