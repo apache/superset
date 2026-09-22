@@ -2730,6 +2730,9 @@ msgstr ""
 msgid "Bubble size number format"
 msgstr ""
 
+msgid "Bubble-size metric must be nonnegative"
+msgstr ""
+
 msgid "Bucket break points"
 msgstr ""
 
@@ -6486,6 +6489,9 @@ msgstr ""
 msgid "Expand row to edit"
 msgstr ""
 
+msgid "Expected geographic query data to be a list of records"
+msgstr ""
+
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
 "        in milliseconds since epoch. mathjs is used to evaluate the "
@@ -6497,6 +6503,9 @@ msgid "Experimental"
 msgstr ""
 
 msgid "Expired"
+msgstr ""
+
+msgid "Explicit formats validate all values against bundled boundaries. Supported countries: USA, Canada, Australia, Japan, UK. Unrecognized or ambiguous values fail rather than displaying blank regions."
 msgstr ""
 
 msgid "Explore"
@@ -7319,6 +7328,10 @@ msgstr ""
 msgid "GeoJson Settings"
 msgstr ""
 
+#, python-format
+msgid "Geographic metric %s must be a finite number"
+msgstr ""
+
 msgid "Geohash"
 msgstr ""
 
@@ -7538,10 +7551,16 @@ msgstr ""
 msgid "Huge"
 msgstr ""
 
+msgid "ISO 3166-2"
+msgstr ""
+
 msgid "ISO 3166-2 Codes"
 msgstr ""
 
 msgid "ISO 8601"
+msgstr ""
+
+msgid "ISO suffix / abbreviation"
 msgstr ""
 
 msgid "Icon URL"
@@ -8312,6 +8331,9 @@ msgid "Left value"
 msgstr ""
 
 msgid "Legacy"
+msgstr ""
+
+msgid "Legacy ISO values"
 msgstr ""
 
 msgid "Legend"
@@ -10947,6 +10969,12 @@ msgid "Refreshing charts"
 msgstr ""
 
 msgid "Refreshing columns"
+msgstr ""
+
+msgid "Region name"
+msgstr ""
+
+msgid "Region value format"
 msgstr ""
 
 msgid "Register"
@@ -16117,6 +16145,9 @@ msgid "Unpin from the result panel"
 msgstr ""
 
 msgid "Unpin from top"
+msgstr ""
+
+msgid "Unrecognized or duplicate country value; choose the matching country format or normalize source values before aggregation."
 msgstr ""
 
 msgid "Unsafe link blocked"
