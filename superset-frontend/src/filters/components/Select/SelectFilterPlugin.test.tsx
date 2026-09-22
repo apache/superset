@@ -2054,10 +2054,7 @@ test('cascade clear resets a search-all ownState term and cancels a pending onSe
     },
   };
 
-  const { rerender } = render(
-    <SelectFilterPlugin {...props} />,
-    reduxState,
-  );
+  const { rerender } = render(<SelectFilterPlugin {...props} />, reduxState);
 
   // Type in the select's search box; the debounced onSearch emission is
   // pending and has not fired yet.
