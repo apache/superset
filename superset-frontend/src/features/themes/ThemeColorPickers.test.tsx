@@ -139,10 +139,14 @@ test('shows the invalid-JSON notice and does not crash when jsonData is mid-edit
   expect(
     screen.getByTestId('theme-color-pickers-invalid-json-notice'),
   ).toBeInTheDocument();
-  // still renders every picker row without throwing, just with no value
+  // still renders every picker row without throwing, just with no value,
+  // and disabled so the UI matches the fact that edits would be dropped
   expect(document.querySelectorAll('.ant-color-picker-trigger')).toHaveLength(
     CURATED_COLOR_TOKENS.length,
   );
+  expect(
+    document.querySelectorAll('.ant-color-picker-trigger-disabled'),
+  ).toHaveLength(CURATED_COLOR_TOKENS.length);
 });
 
 test('calls onChange with the patched JSON when a picker value changes', async () => {
@@ -182,7 +186,7 @@ test('calls onChange with the patched JSON when a picker value changes', async (
   expect(patched.token.colorPrimary).toBe('#1890ff');
 });
 
-test('does not call onChange when disabled', async () => {
+test('renders the pickers disabled and does not call onChange when disabled', async () => {
   const onChange = jest.fn();
   render(
     <ThemeColorPickers
@@ -195,16 +199,10 @@ test('does not call onChange when disabled', async () => {
   const trigger = screen
     .getByTestId('theme-color-picker-colorPrimary')
     .querySelector('.ant-color-picker-trigger');
+  expect(trigger).toHaveClass('ant-color-picker-trigger-disabled');
   await userEvent.click(trigger!);
 
-  await waitFor(() => {
-    expect(document.querySelector('.ant-color-picker')).toBeInTheDocument();
-  });
-  const hexInput = document.querySelector<HTMLInputElement>(
-    '.ant-color-picker-input input',
-  );
-  await userEvent.clear(hexInput!);
-  await userEvent.type(hexInput!, '00ff00{enter}');
-
+  // a disabled picker never opens its popover, so no edit can be made
+  expect(document.querySelector('.ant-color-picker')).not.toBeInTheDocument();
   expect(onChange).not.toHaveBeenCalled();
 });
