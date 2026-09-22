@@ -18,15 +18,21 @@
 
 from __future__ import annotations
 
+import hashlib
 import logging
 import time
+from collections import Counter
 from collections.abc import Callable, Mapping
 from copy import copy
 from dataclasses import dataclass, field
+from enum import StrEnum
 from typing import Any
 from uuid import UUID
 
 logger = logging.getLogger(__name__)
+
+TERMINAL_CHART_HOLDER_STATES = frozenset({"rendered", "empty", "error", "virtualized"})
+CHART_HOLDER_SEMANTIC_POLICY = "deliver_terminal_errors_with_warning"
 
 # Minimum working allowance kept above the summed phase reserves when a
 # per-schedule working_timeout would otherwise squeeze the effective budget
@@ -34,6 +40,13 @@ logger = logging.getLogger(__name__)
 # fails fast (budget-exceeded on the first phase) rather than erroring while
 # constructing the deadline.
 MIN_REPORT_EXECUTION_WORK_SECONDS = 30.0
+
+
+class ReportArtifactKind(StrEnum):
+    """Rendered artifact types tracked by the delivery provenance gate."""
+
+    SCREENSHOT = "screenshot"
+    PDF = "pdf"
 
 
 def validate_report_execution_config(config: Mapping[str, Any]) -> None:
@@ -191,9 +204,18 @@ class ReportExecutionContext:
     capture_reserve_seconds: float = 0.0
     delivery_reserve_seconds: float = 0.0
     cleanup_reserve_seconds: float = 0.0
+    # Query-context bootstrap captures are discarded, but still share the deadline.
+    validate_for_delivery: bool = True
     execution_claimed: bool = False
     _capture_rejection_reasons: list[str] = field(
         default_factory=list,
+        init=False,
+        compare=False,
+        repr=False,
+    )
+
+    _validated_artifacts: set[tuple[ReportArtifactKind, str]] = field(
+        default_factory=set,
         init=False,
         compare=False,
         repr=False,
@@ -260,6 +282,22 @@ class ReportExecutionContext:
 
         self._capture_rejection_reasons.append(reason)
 
+    def approve_artifact(
+        self,
+        artifact: bytes,
+        kind: ReportArtifactKind,
+    ) -> None:
+        """Record exact bytes validated by the capture or PDF assembly stage."""
+        self._validated_artifacts.add((kind, hashlib.sha256(artifact).hexdigest()))
+
+    def artifact_was_validated(
+        self,
+        artifact: bytes,
+        kind: ReportArtifactKind,
+    ) -> bool:
+        """Require positive evidence for the exact artifact being delivered."""
+        return (kind, hashlib.sha256(artifact).hexdigest()) in self._validated_artifacts
+
     @property
     def capture_rejection_reasons(self) -> tuple[str, ...]:
         """Return immutable reasons recorded by terminal capture validation."""
@@ -271,6 +309,61 @@ class ReportExecutionContext:
         """Return whether any capture stage terminally rejected its output."""
 
         return bool(self._capture_rejection_reasons)
+
+
+@dataclass(frozen=True)
+class ChartHolderDiagnostics:
+    """Structured counts separating capture readiness from semantic success."""
+
+    mounted_holders: int
+    ready_holders: int
+    rendered_holders: int
+    empty_holders: int
+    error_holders: int
+    virtualized_holders: int
+    unready_holders: int
+
+    @property
+    def semantic_success(self) -> bool:
+        """
+        Report whether every observed holder completed without a chart error.
+
+        An error holder is terminal for browser readiness, but it is not a
+        semantically correct chart. The readiness policy may still deliver the
+        artifact, with this value and a warning making that distinction explicit.
+        """
+
+        return (
+            self.mounted_holders > 0
+            and self.error_holders == 0
+            and self.unready_holders == 0
+        )
+
+    @classmethod
+    def from_holder_states(cls, holder_states: object) -> ChartHolderDiagnostics:
+        """Build terminal-state counts from browser diagnostic results."""
+
+        if not isinstance(holder_states, list):
+            holder_states = []
+        state_counts: Counter[str] = Counter(
+            state
+            for holder in holder_states
+            if isinstance(holder, dict)
+            and isinstance((state := holder.get("state")), str)
+        )
+        mounted_holders = len(holder_states)
+        ready_holders = sum(
+            state_counts[state] for state in TERMINAL_CHART_HOLDER_STATES
+        )
+        return cls(
+            mounted_holders=mounted_holders,
+            ready_holders=ready_holders,
+            rendered_holders=state_counts["rendered"],
+            empty_holders=state_counts["empty"],
+            error_holders=state_counts["error"],
+            virtualized_holders=state_counts["virtualized"],
+            unready_holders=max(0, mounted_holders - ready_holders),
+        )
 
 
 def get_report_task_timeout_options(

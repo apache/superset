@@ -478,6 +478,38 @@ There are many reasons that reports might not be working. Try these steps to che
 
 ### Blank PDF or PNG captures
 
+Final screenshot bytes are validated independently of the capture implementation.
+PDF delivery requires evidence that the exact PDF was assembled from validated
+images during this execution. Capture rejection remains sticky for the execution;
+substituting another attachment cannot clear it. Uniform fills are rejected
+regardless of colour or theme. A small label or logo does not override a blank
+classification. Extremely sparse legitimate output can therefore be rejected;
+a solid-fill KPI without visible structure has no pixel-only exemption.
+
+Recognized chart error and empty states satisfy the readiness wait; they do not
+by themselves trigger capture retries or block delivery. Error-state charts may
+be delivered with a warning, but a rendered error is not successful chart data.
+Logs distinguish `rendered_holders`, `empty_holders`,
+`error_holders` and `semantic_success`; `report_semantic_status` warns when a
+completed capture includes terminal chart errors.
+For tiled captures, final holder counts aggregate terminal states observed while
+scrolling. They are not a census of holders that never entered a captured viewport;
+use the per-tile diagnostics and expected holder count when investigating gaps.
+
+Detection is a heuristic, not a guarantee that every delivered chart contains
+useful or correct data. There is no special exemption for labels or logos, but
+one occupying enough pixels can exceed the detector's content thresholds while
+the rest of the page is incomplete. The strict invariant is that an artifact
+**classified as invalid** cannot be delivered; undetected rendering failures
+remain possible.
+
+Identical image bytes are pixel-validated once per execution; subsequent assembly
+and per-recipient gates verify their SHA-256 identity and sticky rejection state.
+Changed bytes must be validated again. The query-context bootstrap used by data
+exports discards its screenshots and skips the additional final-image validation;
+it retains the existing browser readiness/capture behaviour. There is no flag to
+deliver rejected captures. Roll back the change to disable the additional gate.
+
 Playwright report captures are checked for blank image content as well as chart
 readiness. Captures detected as blank where chart content is expected are retried
 up to three total attempts, within the execution deadline. If they remain blank,
