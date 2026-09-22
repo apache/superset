@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 00:48+0300\n"
+"POT-Creation-Date: 2026-09-23 00:54+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fi\n"
@@ -168,9 +168,6 @@ msgstr " lisätietoja varten."
 #, fuzzy, python-format
 msgid " near '%(highlight)s'"
 msgstr " lähellä '%(highlight)s'"
-
-msgid " source code of Superset's sandboxed parser"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
@@ -716,12 +713,6 @@ msgstr "%s välilehti valittu"
 #, fuzzy, python-format
 msgid "%s recipients"
 msgstr "%s vastaanottajaa"
-
-#, python-format
-msgid "%s record"
-msgid_plural "%s records..."
-msgstr[0] ""
-msgstr[1] ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, sk, uk]
@@ -1826,12 +1817,6 @@ msgstr "AQE"
 msgid "AUG"
 msgstr "ELO"
 
-msgid "AXIS TITLE MARGIN"
-msgstr ""
-
-msgid "AXIS TITLE POSITION"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 #, fuzzy
@@ -2131,9 +2116,6 @@ msgstr "Lisää sertifiointitiedot tälle koontinäytölle"
 #, fuzzy
 msgid "Add color for positive/negative change"
 msgstr "Lisää väri positiiviselle/negatiiviselle muutokselle"
-
-msgid "Add colors to cell bars for +/-"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pl, pt_BR, ru, sk, sl, uk]
@@ -2590,11 +2572,6 @@ msgstr ""
 "Koostefunktio, jota sovelletaan kunkin klusterin pisteiden luetteloon "
 "klusterimerkinnän tuottamiseksi."
 
-msgid ""
-"Aggregate function to apply when pivoting and computing the total rows "
-"and columns"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 #, fuzzy
@@ -2616,9 +2593,6 @@ msgstr "Aggregaatio"
 #, fuzzy
 msgid "Aggregation Method"
 msgstr "Aggregaatiomenetelmä"
-
-msgid "Aggregation function"
-msgstr ""
 
 msgid ""
 "Aggregation used for the summary row. By default each metric keeps its "
@@ -4243,9 +4217,6 @@ msgstr ""
 msgid "Arrow"
 msgstr "Nuoli"
 
-msgid "Ascending"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 #, fuzzy
@@ -4389,9 +4360,6 @@ msgstr "Tämän sarakkeen automaattinen koko"
 msgid "Autosize all columns"
 msgstr "Automaattinen koko kaikille sarakkeille"
 
-msgid "Available Handlebars Helpers in Superset:"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -4533,9 +4501,6 @@ msgstr "Pylväskaavio"
 msgid "Bar Charts are used to show metrics as a series of bars."
 msgstr "Pylväskaavioita käytetään esittämään mittareita sarjana pylväitä."
 
-msgid "Bar Values"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 #, fuzzy
@@ -4579,10 +4544,6 @@ msgstr ""
 #, fuzzy, python-format
 msgid "Base layer map style. See MapLibre documentation: %s"
 msgstr "Peruskerroksen karttatyyli. Katso Mapbox-dokumentaatio: %s"
-
-#, python-format
-msgid "Base layer map style. See Mapbox documentation: %s"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # fr, ja, lv, mi, ru, sk, uk]
@@ -4866,9 +4827,6 @@ msgstr ""
 #, fuzzy
 msgid "Bubble Chart"
 msgstr "Kuplikaavio"
-
-msgid "Bubble Chart (legacy)"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -7112,12 +7070,6 @@ msgstr ""
 "väreillä."
 
 msgid ""
-"Compares metrics between different time periods. Displays time series "
-"data across multiple periods (like weeks or months) to show period-over-"
-"period trends and patterns."
-msgstr ""
-
-msgid ""
 "Compares the current time period against equivalent past periods by "
 "overlaying them on a shared time axis. The current period is drawn boldly"
 " while prior periods fade with age."
@@ -7711,18 +7663,6 @@ msgstr ""
 msgid "Count"
 msgstr "Lukumäärä"
 
-msgid "Count Unique Values"
-msgstr ""
-
-msgid "Count as Fraction of Columns"
-msgstr ""
-
-msgid "Count as Fraction of Rows"
-msgstr ""
-
-msgid "Count as Fraction of Total"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 #, fuzzy
@@ -7831,12 +7771,6 @@ msgstr "Luo dataframe-indeksi"
 #, fuzzy
 msgid "Create dataset"
 msgstr "Luo tietojoukko"
-
-msgid "Create matrix columns by placing charts side-by-side"
-msgstr ""
-
-msgid "Create matrix rows by stacking charts vertically"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
@@ -9306,21 +9240,6 @@ msgstr ""
 "Oletusarvo asetetaan automaattisesti, kun \"Valitse ensimmäinen "
 "suodatinarvo oletuksena\" on valittu"
 
-msgid ""
-"Define a function that receives the input and outputs the content for a "
-"tooltip"
-msgstr ""
-
-msgid "Define a function that returns a URL to navigate to when user clicks"
-msgstr ""
-
-msgid ""
-"Define a javascript function that receives the data array used in the "
-"visualization and is expected to return a modified version of that array."
-" This can be used to alter properties of the data, filter, or enrich the "
-"array."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, fr, ja,
 # lv, pt_BR, ru, sk, uk]
 #, fuzzy
@@ -9838,9 +9757,6 @@ msgid "Depends on"
 msgstr ""
 
 msgid "Deployment default"
-msgstr ""
-
-msgid "Descending"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -10702,9 +10618,6 @@ msgstr "Kesto ms (100.40008 => 100ms 400µs 80ns)"
 msgid "Duration in ms (10500 => 0:00:10.5)"
 msgstr "Kesto ms (10500 => 0:00:10.5)"
 
-msgid "Duration in ms (10500 => 0:10.5)"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -11286,9 +11199,6 @@ msgstr "Ota ennustaminen käyttöön"
 msgid "Enable graph roaming"
 msgstr "Ota kaavion vapaaliikkuminen käyttöön"
 
-msgid "Enable horizontal layout (columns)"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: lv, ru, uk]
 #, fuzzy
 msgid "Enable icons"
@@ -11328,9 +11238,6 @@ msgstr "Ota rivien laajennus skeemoissa käyttöön"
 #, fuzzy
 msgid "Enable server side pagination of results (experimental feature)"
 msgstr "Ota palvelinpuolen tulosten sivutus käyttöön (kokeellinen ominaisuus)"
-
-msgid "Enable vertical layout (rows)"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, ja, lv,
 # pt_BR, ru, sk, uk]
@@ -12266,9 +12173,6 @@ msgstr "Lisäsäätimet"
 msgid "Extra Parameters"
 msgstr "Lisäparametrit"
 
-msgid "Extra data for JS"
-msgstr ""
-
 #, python-brace-format
 msgid ""
 "Extra data to specify table metadata, such as `{ \"warning_markdown\": "
@@ -13117,11 +13021,6 @@ msgstr ""
 msgid "For further instructions, consult the"
 msgstr "Lisäohjeita varten katso"
 
-msgid ""
-"For more information about objects are in context in the scope of this "
-"function, refer to the"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -13605,9 +13504,6 @@ msgstr "Suurempi tai yhtä suuri (>=)"
 msgid "Greater than (>)"
 msgstr "Suurempi kuin (>)"
 
-msgid "Green for increase, red for decrease"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 #, fuzzy
@@ -13865,9 +13761,6 @@ msgstr "Vaakasuuntainen (ylös)"
 #, fuzzy
 msgid "Horizontal alignment"
 msgstr "Vaakasuuntainen tasaus"
-
-msgid "Horizontal layout (columns)"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -14839,9 +14732,6 @@ msgstr ""
 msgid "It’s not recommended to truncate Y axis in Bar chart."
 msgstr "Y-akselin katkaisemista ei suositella palkkikaaviossa."
 
-msgid "It’s not recommended to truncate axis in Bar chart."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 #, fuzzy
@@ -14918,15 +14808,6 @@ msgstr "KESÄ"
 #, fuzzy
 msgid "January"
 msgstr "Tammikuu"
-
-msgid "JavaScript data interceptor"
-msgstr ""
-
-msgid "JavaScript onClick href"
-msgstr ""
-
-msgid "JavaScript tooltip generator"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -15116,15 +14997,6 @@ msgstr "Merkitseminen"
 #, fuzzy
 msgid "Labels"
 msgstr "Merkinnät"
-
-msgid "Labels for the marker lines"
-msgstr ""
-
-msgid "Labels for the markers"
-msgstr ""
-
-msgid "Labels for the ranges"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
@@ -15545,9 +15417,6 @@ msgid ""
 "does not already have. Leave empty for legacy RBAC-only behavior."
 msgstr ""
 
-msgid "Limits the number of cells that get retrieved."
-msgstr ""
-
 msgid ""
 "Limits the number of cells that get retrieved. Not applied when non-"
 "additive metrics (e.g. ratios, COUNT_DISTINCT, AVG, percentiles) are "
@@ -15703,9 +15572,6 @@ msgstr "Luettele ryhmät"
 msgid "List Roles"
 msgstr "Luettele roolit"
 
-msgid "List Unique Values"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # fr, ja, lv, mi, ru, sk, uk]
 #, fuzzy
@@ -15715,9 +15581,6 @@ msgstr "Luettele käyttäjät"
 msgid ""
 "List every range, marker and marker line in a legend; clicking an entry "
 "toggles it on the chart"
-msgstr ""
-
-msgid "List of extra columns made available in JavaScript functions"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -15731,12 +15594,6 @@ msgstr "Luettelo n+1 arvosta metriikan jakamiseksi n ryhmään."
 #, fuzzy
 msgid "List of the column names that should be read"
 msgstr "Luettelo luettavien sarakkeiden nimistä"
-
-msgid "List of values to mark with lines"
-msgstr ""
-
-msgid "List of values to mark with triangles"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -16359,9 +16216,6 @@ msgstr "Arvojen keskiarvo määritetyllä ajanjaksolla"
 msgid "Mean values"
 msgstr "Keskiarvot"
 
-msgid "Median"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -16650,9 +16504,6 @@ msgstr "Mittarit"
 #, fuzzy, python-format
 msgid "Metrics (%s)"
 msgstr "Mittarit"
-
-msgid "Metrics / Dimensions"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -19184,9 +19035,6 @@ msgstr "Valitse nimi, joka auttaa tunnistamaan tämän tietokannan."
 msgid "Pick a nickname for how the database will display in Superset."
 msgstr "Valitse lempinimi, jolla tietokanta näytetään Supersetissä."
 
-msgid "Pick a set of deck.gl charts to layer on top of one another"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -20189,9 +20037,6 @@ msgstr "Aluetyyppi"
 msgid "Ranges"
 msgstr "Alueet"
 
-msgid "Ranges to highlight with shading"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -20270,24 +20115,11 @@ msgstr "Suorakulmio"
 msgid "Recurring (every)"
 msgstr "Toistuva (joka)"
 
-msgid "Red for increase, green for decrease"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 #, fuzzy
 msgid "Redo the action"
 msgstr "Tee toiminto uudelleen"
-
-msgid "Reduce X ticks"
-msgstr ""
-
-msgid ""
-"Reduces the number of X-axis ticks to be rendered. If true, the x-axis "
-"will not overflow and labels may be missing. If false, a minimum width "
-"will be applied to columns and the width may overflow into an horizontal "
-"scroll."
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -21132,9 +20964,6 @@ msgstr "Laajennettu työkaluvihje"
 #, fuzzy
 msgid "Right"
 msgstr "Oikea"
-
-msgid "Right Axis Format"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -22077,10 +21906,6 @@ msgstr "Vieritä alas loppuun ottaaksesi muutosten ylikirjoituksen käyttöön. 
 #, fuzzy
 msgid "Search"
 msgstr "Hae"
-
-#, python-format
-msgid "Search %s records"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
@@ -23637,9 +23462,6 @@ msgstr "Näytä mittareiden nimet"
 msgid "Show Null Values"
 msgstr ""
 
-msgid "Show Range Filter"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
@@ -23776,9 +23598,6 @@ msgstr "Näytä sarakkeiden välisumma"
 #, fuzzy
 msgid "Show columns total"
 msgstr "Näytä sarakkeiden kokonaissumma"
-
-msgid "Show data points as circle markers on the lines"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
@@ -23940,9 +23759,6 @@ msgid "Show summary"
 msgstr "Näytä yhteenveto"
 
 msgid "Show the main ticks on axes."
-msgstr ""
-
-msgid "Show the value on top of the bar"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
@@ -24517,9 +24333,6 @@ msgstr "Lajittele selite"
 msgid "Sort metric"
 msgstr "Lajittelumittari"
 
-msgid "Sort order"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # ja, lv, mi, ru, sk, sl, uk]
 #, fuzzy
@@ -24689,9 +24502,6 @@ msgstr "Pinoa sarjat päällekkäin"
 #, fuzzy
 msgid "Stacked"
 msgstr "Pinottu"
-
-msgid "Stacked Bars"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -25082,15 +24892,6 @@ msgstr ""
 #, fuzzy
 msgid "Sum"
 msgstr "Summa"
-
-msgid "Sum as Fraction of Columns"
-msgstr ""
-
-msgid "Sum as Fraction of Rows"
-msgstr ""
-
-msgid "Sum as Fraction of Total"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -26754,13 +26555,6 @@ msgid ""
 "                expressions."
 msgstr ""
 
-msgid ""
-"The periodicity over which to pivot time. Users can provide\n"
-"            \"Pandas\" offset alias.\n"
-"            Click on the info bubble for more details on accepted "
-"\"freq\" expressions."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -28272,9 +28066,6 @@ msgstr "Tämä kansio hyväksyy vain sarakkeita"
 msgid "This folder only supports metrics"
 msgstr "Tämä kansio hyväksyy vain mittareita"
 
-msgid "This functionality is disabled in your environment for security reasons."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, ja, lv,
 # ru, sk, uk]
 #, fuzzy
@@ -28927,9 +28718,6 @@ msgstr ""
 "Aikamerkkijono on epäselvä. Määritä [%(human_readable)s sitten] tai "
 "[%(human_readable)s myöhemmin]."
 
-msgid "Time-series Percent Change"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -29171,10 +28959,6 @@ msgstr "Yhteensä"
 #, fuzzy, python-format
 msgid "Total (%(aggfunc)s)"
 msgstr "Yhteensä (%(aggfunc)s)"
-
-#, python-format
-msgid "Total (%(aggregatorName)s)"
-msgstr ""
 
 msgid ""
 "Total angle covered by the chart, in degrees. 360° draws a full circle "
@@ -30155,9 +29939,6 @@ msgstr ""
 msgid "Use a log scale"
 msgstr "Käytä logaritmista asteikkoa"
 
-msgid "Use a log scale for the X-axis"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -30610,9 +30391,6 @@ msgstr "Pystysuora"
 msgid "Vertical (Left)"
 msgstr "Pystysuora (vasen)"
 
-msgid "Vertical layout (rows)"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 #, fuzzy
@@ -30875,12 +30653,6 @@ msgstr ""
 "Visualisoi, kuinka yksi mittari vaihtelee maan pääalueiden (osavaltiot, "
 "provinsit jne.) välillä koropleettikartalla. Kunkin alueen arvo "
 "korostetaan, kun viet hiiren vastaavan maantieteellisen rajan päälle."
-
-msgid ""
-"Visualizes many different time-series objects in a single chart. This "
-"chart is being deprecated and we recommend using the Time-series Chart "
-"instead."
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -31469,12 +31241,6 @@ msgstr "Näytetäänkö mittarin nimi"
 msgid "Whether to display the metric name as a title"
 msgstr "Näytetäänkö mittarin nimi otsikkona"
 
-msgid "Whether to display the min and max values of the X-axis"
-msgstr ""
-
-msgid "Whether to display the min and max values of the Y-axis"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -31498,9 +31264,6 @@ msgstr "Näytetäänkö prosenttiarvo työkaluvihjeessä"
 #, fuzzy
 msgid "Whether to display the stroke"
 msgstr "Näytetäänkö ääriviiva"
-
-msgid "Whether to display the time range interactive selector"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -31645,9 +31408,6 @@ msgstr "Järjestetäänkö laskevasti vai nousevasti"
 msgid "Whether to sort results by the selected metric in descending order."
 msgstr "Järjestetäänkö tulokset valitun mittarin mukaan laskevassa järjestyksessä."
 
-msgid "Whether to sort tooltip by the selected metric in descending order."
-msgstr ""
-
 msgid ""
 "Whether to sort tooltip by the selected metric in descending order. On "
 "stacked charts, values are shown in ascending order."
@@ -31766,9 +31526,6 @@ msgstr "Kirjoita kuvaus kyselyllesi"
 msgid "Write a handlebars template to render the data"
 msgstr "Kirjoita Handlebars-malli tietojen renderöimiseksi"
 
-msgid "X AXIS TITLE MARGIN"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -31820,9 +31577,6 @@ msgstr "X-akselin otsikon marginaali"
 msgid "X Axis title margin"
 msgstr ""
 
-msgid "X Log Scale"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -31834,9 +31588,6 @@ msgstr "X-akselin jakomerkkien asettelu"
 #, fuzzy
 msgid "X axis title margin"
 msgstr "X-AKSELIN OTSIKON MARGINAALI"
-
-msgid "X bounds"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
@@ -31866,20 +31617,11 @@ msgstr "X-asteikon väli"
 msgid "XYZ"
 msgstr ""
 
-msgid "Y 2 bounds"
-msgstr ""
-
-msgid "Y AXIS TITLE MARGIN"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
 msgid "Y Axis"
 msgstr "Y-akseli"
-
-msgid "Y Axis 2 Bounds"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -31931,9 +31673,6 @@ msgstr "Y-logaritmiasteikko"
 #, fuzzy
 msgid "Y axis title margin"
 msgstr "Y-AKSELIN OTSIKON MARGINAALI"
-
-msgid "Y bounds"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, ru, sk, sl, uk]
@@ -32206,9 +31945,6 @@ msgid ""
 msgstr ""
 "Et voi poistaa viimeistä aikasuodatinta, koska sitä käytetään "
 "koontinäyttöjen aikavälisuodattimissa."
-
-msgid "You cannot use 45° tick layout along with the time range filter"
-msgstr ""
 
 #, python-format
 msgid "You do not have access to the data behind this chart (tables: %s)."
@@ -32499,9 +32235,6 @@ msgstr ""
 
 msgid "You need to"
 msgstr "Sinun täytyy"
-
-msgid "You need to configure HTML sanitization to use CSS"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -32938,9 +32671,6 @@ msgstr "Taustaväri"
 msgid "banana"
 msgstr "banaani"
 
-msgid "basis"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
 #, fuzzy
@@ -33010,9 +32740,6 @@ msgstr "käyttämällä"
 #, fuzzy
 msgid "cannot be empty"
 msgstr "ei voi olla tyhjä"
-
-msgid "cardinal"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, ru, sk, sl, uk]
@@ -33322,9 +33049,6 @@ msgstr "deck.gl Hajontakaavio"
 msgid "deck.gl Screen Grid"
 msgstr "deck.gl Näyttöruudukko"
 
-msgid "deck.gl charts"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
 #, fuzzy
@@ -33498,9 +33222,6 @@ msgstr "Koko riville"
 #, fuzzy
 msgid "entries"
 msgstr "merkinnät"
-
-msgid "entries per page"
-msgstr ""
 
 #. do-not-translate
 msgid "error_message"
@@ -33802,9 +33523,6 @@ msgstr "vasen"
 msgid "less than {min} {name}"
 msgstr "vähemmän kuin {min} {name}"
 
-msgid "linear"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
 #, fuzzy
@@ -33883,9 +33601,6 @@ msgstr "minuutti"
 #, fuzzy
 msgid "minute(s)"
 msgstr "minuutti(a)"
-
-msgid "monotone"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
@@ -33984,9 +33699,6 @@ msgstr "NUMEERINEN"
 #, fuzzy
 msgid "numeric type icon"
 msgstr "numeerisen tyypin kuvake"
-
-msgid "nvd3"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, fr, ja,
 # lv, ru, sk, uk]
@@ -34297,14 +34009,6 @@ msgstr "porrastettu"
 #, fuzzy
 msgid "std"
 msgstr "std"
-
-#. do-not-translate
-msgid "step-after"
-msgstr ""
-
-#. do-not-translate
-msgid "step-before"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]

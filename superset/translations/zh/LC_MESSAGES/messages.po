@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: zhouyao94@qq.com\n"
-"POT-Creation-Date: 2026-09-23 00:48+0300\n"
+"POT-Creation-Date: 2026-09-23 00:54+0300\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: cdmikechen\n"
 "Language: zh\n"
@@ -131,9 +131,6 @@ msgstr " 详细信息"
 #, python-format
 msgid " near '%(highlight)s'"
 msgstr "在 '%(highlight)s' 附近"
-
-msgid " source code of Superset's sandboxed parser"
-msgstr ""
 
 msgid ""
 " standard to ensure that the lexicographical ordering\n"
@@ -533,11 +530,6 @@ msgstr "已选择 %s 个，共 %s 个"
 #, python-format
 msgid "%s recipients"
 msgstr "%s 收件人"
-
-#, python-format
-msgid "%s record"
-msgid_plural "%s records..."
-msgstr[0] ""
 
 #, fuzzy, python-format
 msgid "%s record..."
@@ -1280,12 +1272,6 @@ msgstr "AQE"
 msgid "AUG"
 msgstr "八月"
 
-msgid "AXIS TITLE MARGIN"
-msgstr ""
-
-msgid "AXIS TITLE POSITION"
-msgstr ""
-
 msgid "Aborted"
 msgstr "已中止"
 
@@ -1444,9 +1430,6 @@ msgstr "为此看板添加认证详情"
 # uk]
 msgid "Add color for positive/negative change"
 msgstr "为正向/负向变化添加颜色"
-
-msgid "Add colors to cell bars for +/-"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -1720,11 +1703,6 @@ msgid ""
 "produce the cluster label."
 msgstr "应用于每个群集中点列表的聚合函数，用于生成群集标签。"
 
-msgid ""
-"Aggregate function to apply when pivoting and computing the total rows "
-"and columns"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk]
@@ -1738,9 +1716,6 @@ msgstr "聚合"
 
 msgid "Aggregation Method"
 msgstr "聚合方法"
-
-msgid "Aggregation function"
-msgstr ""
 
 msgid ""
 "Aggregation used for the summary row. By default each metric keeps its "
@@ -2687,9 +2662,6 @@ msgstr "时间序列面积图与折线图相似，因为它们表示具有相同
 msgid "Arrow"
 msgstr "箭头"
 
-msgid "Ascending"
-msgstr ""
-
 msgid "Assign a set of parameters as"
 msgstr "将一组参数指定为"
 
@@ -2782,9 +2754,6 @@ msgstr "自动调整此列大小"
 msgid "Autosize all columns"
 msgstr "自动调整所有列宽"
 
-msgid "Available Handlebars Helpers in Superset:"
-msgstr ""
-
 msgid "Available sorting modes:"
 msgstr "可用的排序模式："
 
@@ -2864,9 +2833,6 @@ msgstr "柱状图"
 msgid "Bar Charts are used to show metrics as a series of bars."
 msgstr "柱状图用于将指标以一系列柱状显示。"
 
-msgid "Bar Values"
-msgstr ""
-
 msgid "Bar orientation"
 msgstr "条形方向"
 
@@ -2896,10 +2862,6 @@ msgstr "基础图层地图样式。接受Mapbox样式URL（mapbox://styles/...�
 #, python-format
 msgid "Base layer map style. See MapLibre documentation: %s"
 msgstr "基础图层地图样式。参见MapLibre文档：%s"
-
-#, python-format
-msgid "Base layer map style. See Mapbox documentation: %s"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -3070,9 +3032,6 @@ msgstr ""
 
 msgid "Bubble Chart"
 msgstr "气泡图"
-
-msgid "Bubble Chart (legacy)"
-msgstr ""
 
 msgid "Bubble Color"
 msgstr "气泡颜色"
@@ -4426,12 +4385,6 @@ msgid ""
 msgstr "比较指标在不同组之间随时间的变化情况。每个组映射到一行，随时间的变化通过条的长度和颜色进行可视化。"
 
 msgid ""
-"Compares metrics between different time periods. Displays time series "
-"data across multiple periods (like weeks or months) to show period-over-"
-"period trends and patterns."
-msgstr ""
-
-msgid ""
 "Compares the current time period against equivalent past periods by "
 "overlaying them on a shared time axis. The current period is drawn boldly"
 " while prior periods fade with age."
@@ -4815,18 +4768,6 @@ msgstr ""
 msgid "Count"
 msgstr "计数"
 
-msgid "Count Unique Values"
-msgstr ""
-
-msgid "Count as Fraction of Columns"
-msgstr ""
-
-msgid "Count as Fraction of Rows"
-msgstr ""
-
-msgid "Count as Fraction of Total"
-msgstr ""
-
 msgid "Country"
 msgstr "国家"
 
@@ -4885,12 +4826,6 @@ msgstr "创建数据框索引"
 #, fuzzy
 msgid "Create dataset"
 msgstr "创建数据集"
-
-msgid "Create matrix columns by placing charts side-by-side"
-msgstr ""
-
-msgid "Create matrix rows by stacking charts vertically"
-msgstr ""
 
 msgid "Create new chart"
 msgstr "创建新图表"
@@ -5748,21 +5683,6 @@ msgid ""
 "default\" is checked"
 msgstr "当勾选“默认选择第一个过滤值”时，将自动设置默认值。"
 
-msgid ""
-"Define a function that receives the input and outputs the content for a "
-"tooltip"
-msgstr ""
-
-msgid "Define a function that returns a URL to navigate to when user clicks"
-msgstr ""
-
-msgid ""
-"Define a javascript function that receives the data array used in the "
-"visualization and is expected to return a modified version of that array."
-" This can be used to alter properties of the data, filter, or enrich the "
-"array."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -6072,9 +5992,6 @@ msgid "Depends on"
 msgstr ""
 
 msgid "Deployment default"
-msgstr ""
-
-msgid "Descending"
 msgstr ""
 
 msgid "Description"
@@ -6579,9 +6496,6 @@ msgstr "时长（毫秒）（100.40008 => 100毫秒 400微秒 80纳秒）"
 msgid "Duration in ms (10500 => 0:00:10.5)"
 msgstr "时长(毫秒)(10500 => 0:00:10.5)"
 
-msgid "Duration in ms (10500 => 0:10.5)"
-msgstr ""
-
 msgid "Duration in ms (66000 => 1m 6s)"
 msgstr "时长(毫秒)(66000 => 1m 6s)"
 
@@ -6929,9 +6843,6 @@ msgstr "启用预测"
 msgid "Enable graph roaming"
 msgstr "启用图形漫游"
 
-msgid "Enable horizontal layout (columns)"
-msgstr ""
-
 msgid "Enable icons"
 msgstr "启用图标"
 
@@ -6954,9 +6865,6 @@ msgstr "在模式中启用行展开功能"
 
 msgid "Enable server side pagination of results (experimental feature)"
 msgstr "支持服务器端结果分页(实验功能)"
-
-msgid "Enable vertical layout (rows)"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, pt_BR, ru, sk, sr, sr_Latn, tr, uk]
@@ -7527,9 +7435,6 @@ msgstr "额外控件"
 msgid "Extra Parameters"
 msgstr "额外参数"
 
-msgid "Extra data for JS"
-msgstr ""
-
 #, python-brace-format
 msgid ""
 "Extra data to specify table metadata, such as `{ \"warning_markdown\": "
@@ -8083,11 +7988,6 @@ msgstr "对于 Trino，描述嵌套 ROW 类型的完整模式，使用点号路�
 msgid "For further instructions, consult the"
 msgstr "如需进一步说明，请参阅"
 
-msgid ""
-"For more information about objects are in context in the scope of this "
-"function, refer to the"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, tr]
 msgid ""
 "For regular filters, these are the subjects (users, roles, groups) this "
@@ -8386,9 +8286,6 @@ msgstr "大于等于(>=)"
 msgid "Greater than (>)"
 msgstr "大于（>）"
 
-msgid "Green for increase, red for decrease"
-msgstr ""
-
 #, fuzzy
 msgid "Grid"
 msgstr "网格"
@@ -8546,9 +8443,6 @@ msgstr "横向（顶部对齐）"
 
 msgid "Horizontal alignment"
 msgstr "水平对齐"
-
-msgid "Horizontal layout (columns)"
-msgstr ""
 
 msgid "Host"
 msgstr "主机"
@@ -9146,9 +9040,6 @@ msgstr ""
 msgid "It’s not recommended to truncate Y axis in Bar chart."
 msgstr "不建议截断柱状图中的y轴。"
 
-msgid "It’s not recommended to truncate axis in Bar chart."
-msgstr ""
-
 msgid "JAN"
 msgstr "一月"
 
@@ -9189,15 +9080,6 @@ msgstr "六月"
 
 msgid "January"
 msgstr "一月"
-
-msgid "JavaScript data interceptor"
-msgstr ""
-
-msgid "JavaScript onClick href"
-msgstr ""
-
-msgid "JavaScript tooltip generator"
-msgstr ""
 
 #, fuzzy
 msgid "Jinja templating"
@@ -9311,15 +9193,6 @@ msgstr "标签"
 
 msgid "Labels"
 msgstr "标签"
-
-msgid "Labels for the marker lines"
-msgstr ""
-
-msgid "Labels for the markers"
-msgstr ""
-
-msgid "Labels for the ranges"
-msgstr ""
 
 msgid "Languages"
 msgstr "语言"
@@ -9582,9 +9455,6 @@ msgid ""
 "does not already have. Leave empty for legacy RBAC-only behavior."
 msgstr ""
 
-msgid "Limits the number of cells that get retrieved."
-msgstr ""
-
 msgid ""
 "Limits the number of cells that get retrieved. Not applied when non-"
 "additive metrics (e.g. ratios, COUNT_DISTINCT, AVG, percentiles) are "
@@ -9676,18 +9546,12 @@ msgstr "分组列表"
 msgid "List Roles"
 msgstr "角色列表"
 
-msgid "List Unique Values"
-msgstr ""
-
 msgid "List Users"
 msgstr "用户列表"
 
 msgid ""
 "List every range, marker and marker line in a legend; clicking an entry "
 "toggles it on the chart"
-msgstr ""
-
-msgid "List of extra columns made available in JavaScript functions"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -9698,12 +9562,6 @@ msgstr "用于将指标分桶为 n 个桶的 n+1 个值的列表。"
 
 msgid "List of the column names that should be read"
 msgstr "应当读取的列名列表"
-
-msgid "List of values to mark with lines"
-msgstr ""
-
-msgid "List of values to mark with triangles"
-msgstr ""
 
 #, fuzzy
 msgid "List updated"
@@ -10084,9 +9942,6 @@ msgstr "特定时期内的平均值"
 msgid "Mean values"
 msgstr "平均值"
 
-msgid "Median"
-msgstr ""
-
 msgid ""
 "Median edge width, the thickest edge will be 4 times thicker than the "
 "thinnest."
@@ -10264,9 +10119,6 @@ msgstr "指标"
 #, fuzzy, python-format
 msgid "Metrics (%s)"
 msgstr "指标"
-
-msgid "Metrics / Dimensions"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -11801,9 +11653,6 @@ msgstr "选择一个名称来帮助您识别这个数据库。"
 msgid "Pick a nickname for how the database will display in Superset."
 msgstr "为这个数据库选择一个昵称以在Superset中显示"
 
-msgid "Pick a set of deck.gl charts to layer on top of one another"
-msgstr ""
-
 msgid "Pick a title for you annotation."
 msgstr "为您的注释选择一个标题"
 
@@ -12407,9 +12256,6 @@ msgstr "范围类型"
 msgid "Ranges"
 msgstr "范围"
 
-msgid "Ranges to highlight with shading"
-msgstr ""
-
 msgid "Ranking"
 msgstr "排名"
 
@@ -12464,24 +12310,11 @@ msgstr "长方形"
 msgid "Recurring (every)"
 msgstr "重复（每）"
 
-msgid "Red for increase, green for decrease"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk]
 msgid "Redo the action"
 msgstr "重做该操作"
-
-msgid "Reduce X ticks"
-msgstr ""
-
-msgid ""
-"Reduces the number of X-axis ticks to be rendered. If true, the x-axis "
-"will not overflow and labels may be missing. If false, a minimum width "
-"will be applied to columns and the width may overflow into an horizontal "
-"scroll."
-msgstr ""
 
 msgid "Refer to the"
 msgstr "参考"
@@ -13029,9 +12862,6 @@ msgstr "详细提示"
 msgid "Right"
 msgstr "右边"
 
-msgid "Right Axis Format"
-msgstr ""
-
 msgid "Right Axis Metric"
 msgstr "右轴指标"
 
@@ -13567,10 +13397,6 @@ msgstr "向下滚动到底部以启用覆盖更改。 "
 
 msgid "Search"
 msgstr "搜索"
-
-#, python-format
-msgid "Search %s records"
-msgstr ""
 
 msgid "Search / Filter"
 msgstr "搜索 / 过滤"
@@ -14493,9 +14319,6 @@ msgstr "显示指标名"
 msgid "Show Null Values"
 msgstr "显示空值"
 
-msgid "Show Range Filter"
-msgstr ""
-
 msgid "Show SQL"
 msgstr "显示 SQL"
 
@@ -14576,9 +14399,6 @@ msgstr "显示列小计"
 
 msgid "Show columns total"
 msgstr "显示列总计"
-
-msgid "Show data points as circle markers on the lines"
-msgstr ""
 
 #, fuzzy
 msgid "Show empty columns"
@@ -14676,9 +14496,6 @@ msgid "Show summary"
 msgstr "显示摘要"
 
 msgid "Show the main ticks on axes."
-msgstr ""
-
-msgid "Show the value on top of the bar"
 msgstr ""
 
 #, fuzzy
@@ -15023,9 +14840,6 @@ msgstr "排序图例"
 msgid "Sort metric"
 msgstr "排序指标"
 
-msgid "Sort order"
-msgstr ""
-
 msgid "Sort query by"
 msgstr "按查询排序"
 
@@ -15129,9 +14943,6 @@ msgstr "在每个上方堆叠系列"
 
 msgid "Stacked"
 msgstr "堆叠"
-
-msgid "Stacked Bars"
-msgstr ""
 
 msgid "Stacked Style"
 msgstr "堆叠样式"
@@ -15362,15 +15173,6 @@ msgstr ""
 
 msgid "Sum"
 msgstr "求和"
-
-msgid "Sum as Fraction of Columns"
-msgstr ""
-
-msgid "Sum as Fraction of Rows"
-msgstr ""
-
-msgid "Sum as Fraction of Total"
-msgstr ""
 
 msgid "Sum of values over specified period"
 msgstr "指定期间内的值总和"
@@ -16459,13 +16261,6 @@ msgid ""
 "                expressions."
 msgstr ""
 
-msgid ""
-"The periodicity over which to pivot time. Users can provide\n"
-"            \"Pandas\" offset alias.\n"
-"            Click on the info bubble for more details on accepted "
-"\"freq\" expressions."
-msgstr ""
-
 msgid "The pixel radius"
 msgstr "像素半径"
 
@@ -17428,9 +17223,6 @@ msgstr "此文件夹仅支持列"
 msgid "This folder only supports metrics"
 msgstr "此文件夹仅支持指标"
 
-msgid "This functionality is disabled in your environment for security reasons."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
 msgid ""
@@ -17848,9 +17640,6 @@ msgid ""
 "[%(human_readable)s later]."
 msgstr "时间字符串不明确。请指定为 [%(human_readable)s 前] 还是 [%(human_readable)s 后]。"
 
-msgid "Time-series Percent Change"
-msgstr ""
-
 msgid "Time-series Period Pivot"
 msgstr "时间序列周期透视"
 
@@ -17996,10 +17785,6 @@ msgstr "总计"
 #, fuzzy, python-format
 msgid "Total (%(aggfunc)s)"
 msgstr "总计 (%(aggfunc)s)"
-
-#, python-format
-msgid "Total (%(aggregatorName)s)"
-msgstr ""
 
 msgid ""
 "Total angle covered by the chart, in degrees. 360° draws a full circle "
@@ -18649,9 +18434,6 @@ msgstr "使用Handlebars语法创建自定义工具提示。可用变量基于�
 msgid "Use a log scale"
 msgstr "使用对数刻度"
 
-msgid "Use a log scale for the X-axis"
-msgstr ""
-
 msgid "Use a log scale for the Y-axis"
 msgstr "Y轴上使用对数刻度"
 
@@ -18928,9 +18710,6 @@ msgstr "纵向"
 msgid "Vertical (Left)"
 msgstr "纵向（左对齐）"
 
-msgid "Vertical layout (rows)"
-msgstr ""
-
 #, fuzzy
 msgid "View"
 msgstr "预览"
@@ -19092,12 +18871,6 @@ msgid ""
 "subdivision's value is elevated when you hover over the corresponding "
 "geographic boundary."
 msgstr "在等值区域地图上显示一个国家的主要分区（州、省等）之间单个指标的变化情况。当您悬停在相应的地理边界上时，每个分区的值都会升高"
-
-msgid ""
-"Visualizes many different time-series objects in a single chart. This "
-"chart is being deprecated and we recommend using the Time-series Chart "
-"instead."
-msgstr ""
 
 msgid ""
 "Visualizes the words in a column that appear the most often. Bigger font "
@@ -19449,12 +19222,6 @@ msgstr "是否显示指标名称"
 msgid "Whether to display the metric name as a title"
 msgstr "是否将指标名显示为标题"
 
-msgid "Whether to display the min and max values of the X-axis"
-msgstr ""
-
-msgid "Whether to display the min and max values of the Y-axis"
-msgstr ""
-
 msgid "Whether to display the numbered column"
 msgstr "是否显示编号列"
 
@@ -19468,9 +19235,6 @@ msgstr "是否在工具提示中包含百分比"
 #, fuzzy
 msgid "Whether to display the stroke"
 msgstr "是否显示边框"
-
-msgid "Whether to display the time range interactive selector"
-msgstr ""
 
 msgid "Whether to display the timestamp"
 msgstr "是否显示时间戳"
@@ -19548,9 +19312,6 @@ msgstr "是降序还是升序排序"
 msgid "Whether to sort results by the selected metric in descending order."
 msgstr "是否按所选指标按降序对结果进行排序。"
 
-msgid "Whether to sort tooltip by the selected metric in descending order."
-msgstr ""
-
 msgid ""
 "Whether to sort tooltip by the selected metric in descending order. On "
 "stacked charts, values are shown in ascending order."
@@ -19618,9 +19379,6 @@ msgstr "为您的查询写一段描述"
 msgid "Write a handlebars template to render the data"
 msgstr "编写一个Handlebars模板来渲染数据"
 
-msgid "X AXIS TITLE MARGIN"
-msgstr ""
-
 msgid "X Axis"
 msgstr "X 轴"
 
@@ -19649,17 +19407,11 @@ msgstr "X 轴标题边距"
 msgid "X Axis title margin"
 msgstr ""
 
-msgid "X Log Scale"
-msgstr ""
-
 msgid "X Tick Layout"
 msgstr "X 轴刻度布局"
 
 msgid "X axis title margin"
 msgstr "X 轴标题边距"
-
-msgid "X bounds"
-msgstr ""
 
 #, fuzzy
 msgid "X-Axis Sort Ascending"
@@ -19679,17 +19431,8 @@ msgstr "X 轴比例尺间隔"
 msgid "XYZ"
 msgstr "XYZ"
 
-msgid "Y 2 bounds"
-msgstr ""
-
-msgid "Y AXIS TITLE MARGIN"
-msgstr ""
-
 msgid "Y Axis"
 msgstr "Y 轴"
-
-msgid "Y Axis 2 Bounds"
-msgstr ""
 
 msgid "Y Axis Bounds"
 msgstr "Y 轴界限"
@@ -19718,9 +19461,6 @@ msgstr "Y 对数尺度"
 
 msgid "Y axis title margin"
 msgstr "Y 轴标题边距"
-
-msgid "Y bounds"
-msgstr ""
 
 #, fuzzy
 msgid "Y-Axis"
@@ -19898,9 +19638,6 @@ msgid ""
 "You cannot delete the last temporal filter as it's used for time range "
 "filters in dashboards."
 msgstr "您无法删除最后一个时间筛选器，因为它用于仪表板中的时间范围筛选器。"
-
-msgid "You cannot use 45° tick layout along with the time range filter"
-msgstr ""
 
 #, python-format
 msgid "You do not have access to the data behind this chart (tables: %s)."
@@ -20110,9 +19847,6 @@ msgstr "您需要访问以下表的权限：%(tables)s、'all_database_access' �
 #, fuzzy
 msgid "You need to"
 msgstr "您需要"
-
-msgid "You need to configure HTML sanitization to use CSS"
-msgstr ""
 
 msgid ""
 "You updated the values in the control panel, but the chart was not "
@@ -20385,9 +20119,6 @@ msgstr "背景颜色"
 msgid "banana"
 msgstr "香蕉"
 
-msgid "basis"
-msgstr ""
-
 msgid "begins with"
 msgstr "开头是"
 
@@ -20437,9 +20168,6 @@ msgstr "通过使用"
 
 msgid "cannot be empty"
 msgstr "不能为空"
-
-msgid "cardinal"
-msgstr ""
 
 msgid "cell bar"
 msgstr "单元格栏"
@@ -20617,9 +20345,6 @@ msgstr "deck.gl 散点图"
 msgid "deck.gl Screen Grid"
 msgstr "deck.gl 屏幕网格"
 
-msgid "deck.gl charts"
-msgstr ""
-
 msgid "deck.gl layers (charts)"
 msgstr "deck.gl 图层（图表）"
 
@@ -20722,9 +20447,6 @@ msgstr "整行"
 
 msgid "entries"
 msgstr "条目"
-
-msgid "entries per page"
-msgstr ""
 
 #. do-not-translate
 #, fuzzy
@@ -20927,9 +20649,6 @@ msgstr "左"
 msgid "less than {min} {name}"
 msgstr "少于 {min} {name}"
 
-msgid "linear"
-msgstr ""
-
 msgid "locale_key"
 msgstr "locale_key"
 
@@ -20975,9 +20694,6 @@ msgstr "分"
 
 msgid "minute(s)"
 msgstr "分钟"
-
-msgid "monotone"
-msgstr ""
 
 msgid "month"
 msgstr "月"
@@ -21057,9 +20773,6 @@ msgstr "数字"
 # uk]
 msgid "numeric type icon"
 msgstr "数字类型图标"
-
-msgid "nvd3"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -21262,14 +20975,6 @@ msgstr "错开"
 
 msgid "std"
 msgstr "标准差"
-
-#. do-not-translate
-msgid "step-after"
-msgstr ""
-
-#. do-not-translate
-msgid "step-before"
-msgstr ""
 
 #, fuzzy
 msgid "stopped"
