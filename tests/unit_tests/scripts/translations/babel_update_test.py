@@ -271,3 +271,85 @@ def test_a_failing_msgcat_stops_the_script_before_pybabel_update(
         "failed — that is the original bug, which published catalogs built from "
         f"an unnormalized template. calls={calls!r}"
     )
+
+
+# What `pybabel` writes: every entry, then one extra blank line at the end of
+# the file (python-babel/babel#799), which the script's final loop strips.
+_PYBABEL_SHAPED_CATALOG = 'msgid ""\nmsgstr ""\n\nmsgid "zebra"\nmsgstr ""\n\n'
+
+
+@pytest.mark.skipif(
+    shutil.which("msgcat") is None,
+    reason="gettext's msgcat is not installed on this runner",
+)
+def test_the_trailing_line_strip_keeps_the_last_entry_intact(
+    tmp_path: Path,
+) -> None:
+    """End-to-end on the real script with real msgcat and pybabel stubbed.
+
+    msgcat does not write babel's extra trailing blank line. Once the
+    normalization runs, an unconditional ``sed "$ d"`` deletes the last
+    entry's ``msgstr`` instead, leaving a template gettext rejects with
+    ``missing 'msgstr' section``. Only a trailing *blank* line may be removed.
+    """
+    root = tmp_path / "repo"
+    (root / "scripts" / "translations").mkdir(parents=True)
+    catalog_dir = root / "superset" / "translations" / "xx" / "LC_MESSAGES"
+    catalog_dir.mkdir(parents=True)
+    script = root / "scripts" / "translations" / "babel_update.sh"
+    shutil.copy(_SCRIPT_PATH, script)
+    shutil.copy(
+        _SCRIPT_PATH.parent / "apply_do_not_translate.py",
+        root / "scripts" / "translations" / "apply_do_not_translate.py",
+    )
+    # The stamping step refuses to run without its registry; an empty one
+    # stamps nothing, keeping the fixture's shape untouched.
+    (root / "superset" / "translations" / "do-not-translate.txt").write_text(
+        "", encoding="utf-8"
+    )
+    po = catalog_dir / "messages.po"
+    po.write_text(_PYBABEL_SHAPED_CATALOG, encoding="utf-8")
+
+    # pybabel: `extract` writes a babel-shaped template; `update` is a no-op,
+    # leaving the catalog above as babel would have written it.
+    stub_dir = tmp_path / "bin"
+    stub_dir.mkdir()
+    pybabel = stub_dir / "pybabel"
+    pybabel.write_text(
+        "#!/bin/bash\n"
+        'if [ "$1" = "extract" ]; then\n'
+        "  while [ $# -gt 0 ]; do\n"
+        '    if [ "$1" = "-o" ]; then printf \'%s\' '
+        f"'{_PYBABEL_SHAPED_CATALOG}' > \"$2\"; fi\n"
+        "    shift\n"
+        "  done\n"
+        "fi\n"
+        "exit 0\n",
+        encoding="utf-8",
+    )
+    pybabel.chmod(pybabel.stat().st_mode | stat.S_IEXEC)
+
+    bash = shutil.which("bash")
+    msgcat = shutil.which("msgcat")
+    assert bash, "bash is required to run the script under test"
+    assert msgcat, "guaranteed present by the skipif above"
+
+    proc = subprocess.run(  # noqa: S603
+        [bash, str(script)],
+        capture_output=True,
+        text=True,
+        check=False,
+        env={
+            "PATH": f"{stub_dir}:{Path(msgcat).parent}:/usr/bin:/bin",
+            "HOME": str(tmp_path),
+        },
+    )
+    assert proc.returncode == 0, f"script failed: {proc.stderr}"
+
+    pot = root / "superset" / "translations" / "messages.pot"
+    for path in (pot, po):
+        text = path.read_text(encoding="utf-8")
+        assert text.endswith('msgid "zebra"\nmsgstr ""\n'), (
+            f"{path.name} must end with its last entry intact and no trailing "
+            f"blank line; the strip removed the wrong line:\n{text[-80:]!r}"
+        )
