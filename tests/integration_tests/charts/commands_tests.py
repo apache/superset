@@ -40,8 +40,10 @@ from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.exceptions import IncorrectVersionError
 from superset.connectors.sqla.models import SqlaTable
 from superset.daos.chart import ChartDAO
+from superset.daos.dashboard import EmbeddedDashboardDAO
 from superset.models.core import Database
 from superset.models.slice import Slice
+from superset.security.guest_token import GuestTokenResourceType
 from superset.utils import json
 from superset.utils.core import override_user
 from tests.integration_tests.base_tests import (
@@ -514,13 +516,16 @@ class TestChartsUpdateCommand(SupersetTestCase):
         chart = db.session.query(Slice).all()[0]
         pk = chart.id
         admin = security_manager.find_user(username="admin")
-        chart.editors = subjects_from_users([admin])
-        db.session.commit()
 
         # alpha is not an editor of this chart but has all-datasource access, so
-        # ``raise_for_access(chart=...)`` admits it on the relaxed path.
+        # ``raise_for_access(chart=...)`` admits it on the relaxed path. Bind the
+        # user before the first commit: committing the chart fires the tagging
+        # listener, which stamps ``created_by_fk`` from ``g.user``.
         user = security_manager.find_user(username="alpha")
         mock_g.user = mock_sm_g.user = user
+
+        chart.editors = subjects_from_users([admin])
+        db.session.commit()
         query_context = json.dumps({"foo": "bar"})
         json_obj = {
             "query_context_generation": True,
@@ -545,11 +550,9 @@ class TestChartsUpdateCommand(SupersetTestCase):
         A query-context-only update relaxes the editor requirement but still
         gates on chart access via ``raise_for_access(chart=...)``. We bypass the
         DAO ``ChartFilter`` base filter (by patching ``find_by_id`` to return
-        the chart directly) so the request reaches the explicit
-        ``raise_for_access`` check, and assert that a non-editor with no access
-        to the chart's datasource is rejected with ``ChartForbiddenError``. This
-        deterministically exercises the branch and would fail on master, where
-        the check is absent.
+        the chart directly) so the request reaches that check, and assert that a
+        non-editor with no access to the chart's datasource is rejected with
+        ``ChartForbiddenError``.
         """
         chart = db.session.query(Slice).filter_by(slice_name="Energy Sankey").one()
         pk = chart.id
@@ -576,34 +579,68 @@ class TestChartsUpdateCommand(SupersetTestCase):
         with pytest.raises(ChartForbiddenError):
             UpdateChartCommand(pk, json_obj).run()
 
-    @patch("superset.security.manager.SupersetSecurityManager.is_guest_user")
+    @patch.dict(
+        "superset.extensions.feature_flag_manager._feature_flags",
+        EMBEDDED_SUPERSET=True,
+    )
     @patch("superset.commands.chart.update.ChartDAO.find_by_id")
     @patch("superset.commands.chart.update.g")
+    @patch("superset.tasks.utils.g")
     @patch("superset.utils.core.g")
     @patch("superset.security.manager.g")
-    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_query_context_update_denies_guest(
-        self, mock_sm_g, mock_core_g, mock_update_g, mock_find_by_id, mock_is_guest
+        self, mock_sm_g, mock_core_g, mock_tasks_g, mock_update_g, mock_find_by_id
     ) -> None:
         """
-        The relaxed path admits chart access, but a guest token holds no write
-        capability, so a query-context-only update from a guest is denied with
-        ``ChartForbiddenError`` even when the principal would otherwise pass
-        ``raise_for_access``. We drive the guest branch directly (an admin with
-        full access, flagged as a guest) so the deny comes from the explicit
-        guest check rather than an access failure.
+        The relaxed path gates on chart access, which a guest token does pass
+        for the member charts of the dashboard it embeds. A guest nonetheless
+        holds no write capability, so a query-context-only update is denied.
         """
-        chart = db.session.query(Slice).filter_by(slice_name="Energy Sankey").one()
-        pk = chart.id
+        # Clear ``g.user`` before touching the session. Any autoflush stamps
+        # AuditMixin's ``changed_by_fk`` via ``get_user_id()``, and the mock the
+        # decorators install would otherwise hand SQLAlchemy a mock attribute.
+        mock_core_g.user = mock_sm_g.user = None
+        mock_tasks_g.user = mock_update_g.user = None
 
-        admin = security_manager.find_user(username="admin")
-        mock_core_g.user = mock_sm_g.user = mock_update_g.user = admin
+        dashboard = self.get_dash_by_slug("births")
+        chart = dashboard.slices[0]
+        pk = chart.id
+        EmbeddedDashboardDAO.upsert(dashboard, [])
+        # The uuid is only populated on flush, and ``has_guest_access`` matches
+        # the token against ``dashboard.embedded[0]``.
+        db.session.flush()
+        embedded_uuid = str(dashboard.embedded[0].uuid)
+
+        # A real guest principal for a dashboard that actually contains the
+        # chart, so ``is_guest_user`` and ``raise_for_access`` both run for
+        # real rather than a mock standing in for either.
+        guest = security_manager.get_guest_user_from_token(
+            {
+                "user": {},
+                "resources": [
+                    {
+                        "type": GuestTokenResourceType.DASHBOARD,
+                        "id": embedded_uuid,
+                    }
+                ],
+                "rls_rules": [],
+                "iat": 10,
+                "exp": 20,
+            }
+        )
+        # ``is_guest_user`` resolves the current user via
+        # ``superset.tasks.utils.get_current_user``, so that module's ``g`` has
+        # to carry the guest too.
+        mock_core_g.user = mock_sm_g.user = guest
+        mock_tasks_g.user = mock_update_g.user = guest
 
         # Bypass ChartFilter so the command's own gates decide the outcome.
         mock_find_by_id.return_value = chart
-        # Flag the principal as a guest; the explicit guest check runs before
-        # raise_for_access, so an otherwise-authorized user is still denied.
-        mock_is_guest.return_value = True
+
+        # Precondition: this guest clears the access gate, so the deny below can
+        # only come from the guest check itself.
+        security_manager.raise_for_access(chart=chart)
 
         json_obj = {
             "query_context_generation": True,

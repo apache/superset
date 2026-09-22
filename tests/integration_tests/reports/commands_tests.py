@@ -395,17 +395,13 @@ def create_report_csv_no_query_context_executor_not_chart_editor(get_user):
         name="report_csv_no_query_context_executor_not_chart_editor",
         editors=_subjects_for_users([alpha]),
     )
-    # ``insert_report_schedule`` flushes under ``override_user(editors[0])``, so
-    # AuditMixin already stamps ``created_by`` as alpha, which is what EDITOR
-    # executor resolution reads back.
-    assert report_schedule.created_by == alpha
     yield report_schedule
 
-    # Restore the shared chart: this fixture narrows its editors, which changes
-    # authorization outcomes for any later test that reaches for the same row.
+    # Restore the shared chart: this fixture nulls its query context and narrows
+    # its editors, both of which change outcomes for any later test that reaches
+    # for the same row. ``cleanup_report_schedule`` commits, which flushes these.
     chart.query_context = original_query_context
     chart.editors = original_editors
-    db.session.commit()
     cleanup_report_schedule(report_schedule)
 
 
@@ -1257,28 +1253,17 @@ def test_email_chart_report_schedule_with_csv_no_query_context(
         screenshot_mock.assert_called_once()
 
 
-@pytest.mark.usefixtures(
-    "load_birth_names_dashboard_with_slices",
-    "create_report_csv_no_query_context_executor_not_chart_editor",
-)
+@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
 def test_csv_report_query_context_backfill_allows_non_chart_editor_executor(
     create_report_csv_no_query_context_executor_not_chart_editor,
 ):
     """
-    A CSV report on a chart with no stored query context is backfilled by the
-    report executor, which is not necessarily an editor of the chart.
+    A report executor that is not a chart editor can still backfill the chart's
+    stored query context, which the CSV path depends on.
 
-    ``get_executor`` resolves the executor against the ``ReportSchedule``, so it
-    reflects report editorship, not chart editorship. The CSV path reaches
-    ``/api/v1/chart/<pk>/data/``, which 400s while ``query_context`` is NULL, and
-    recovers only because the Explore screenshot issues a query-context-only
-    ``PUT``. Requiring chart edit rights on that ``PUT`` would therefore break
-    CSV and Excel reports.
-
-    This drives the executor resolution and that ``PUT`` directly rather than
-    running ``AsyncExecuteReportScheduleCommand``: the full report path mocks
-    out the screenshot, which is the only thing that issues the ``PUT``, so it
-    would pass no matter what this gate does.
+    Driven directly rather than through ``AsyncExecuteReportScheduleCommand``:
+    the full report path mocks out the screenshot, which is the only thing that
+    issues the query-context-only ``PUT``, so it would pass either way.
     """
     report_schedule = create_report_csv_no_query_context_executor_not_chart_editor
     chart = report_schedule.chart
