@@ -1054,18 +1054,15 @@ PURGE_AUDIT_OPERATIONAL_RETENTION_DAYS: int = 90
 # expiring destruction evidence older than that window.
 PURGE_AUDIT_EVIDENCE_RETENTION_DAYS: int | None = None
 # Candidate rows per pruning batch. Each batch holds the singleton audit
-# coordination lock — the same lock every audit write takes — for its locked
-# re-check, whose cost grows with the batch size times the history depth of
-# the entities in it: a workload-dependent trade-off, not a time bound, and
-# the lever on how long a concurrent purge's audit write can wait. Measured
-# on one entity with a 6,000-row multi-reason blocked history (lock-hold per
-# batch, PostgreSQL 16 / MySQL 8 REPEATABLE READ; the MySQL 500 figure is
-# estimated from EXPLAIN ANALYZE rather than a measured acquire-to-release
-# sample): 50 -> ~0.15 s / ~1.2 s; 100 -> ~0.9 s / ~7.7 s; 500 -> ~6.4 s / ~50 s.
-# The default keeps a concurrent writer's wait around a second even on MySQL;
-# larger batches drain a backlog faster (ten batches per run) at the cost of
-# longer waits. Must be a non-boolean integer in [1, 500] (a conservative
-# cross-dialect ceiling for the bind-parameter budget); an explicit invalid
+# coordination lock also taken by audit creation/recovery. Re-check cost
+# depends on entity history, backend and plan; there is no writer-wait bound.
+# Older or unknown MySQL-family versions use correlated predecessor probes
+# rather than the window plan. Measure the selected path on the deployment's
+# workload before enabling pruning.
+# Ten batches are shared across categories per run: at most 500 removals at
+# the default, or 1,000 at the ceiling, possibly fewer after candidacy rechecks.
+# Must be a non-boolean integer in [1, 100] (the repeated window scope
+# binds fit SQLite's historical 999-variable budget); an explicit invalid
 # value — including None, a numeric string, or a float — makes the run skip
 # entirely and report the key rather than prune with an unknown batch size.
 PURGE_AUDIT_PRUNING_BATCH_SIZE: int = 50
