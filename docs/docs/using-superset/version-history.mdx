@@ -19,7 +19,7 @@ down to changes on the entity itself or on the things it depends on.
 
 | Setting | Type | Effect |
 | --- | --- | --- |
-| `VERSION_HISTORY` | Feature flag | Shows the version history UI |
+| `VERSION_HISTORY` | Feature flag | Enables the version history UI and the chart, dashboard, and dataset history, activity, and version-restore APIs |
 | `ENABLE_VERSIONING_CAPTURE` | Config value | Records versions as entities are saved |
 
 Both default to on. To turn the feature off:
@@ -30,9 +30,31 @@ FEATURE_FLAGS = {"VERSION_HISTORY": False}
 ENABLE_VERSIONING_CAPTURE = False
 ```
 
-Restart Superset and its workers for the capture change to take effect. Existing
-history remains readable while capture is off, but **Restore** is unavailable
-(404).
+Restart Superset and its workers for the capture change to take effect.
+With `VERSION_HISTORY` off, the version-list, version-snapshot, activity, and
+version-restore endpoints return 404 for callers who pass the existing route
+permissions. The flag does not grant access: when enabled, route permissions
+and object-level editorship are still required.
+
+Disabling only capture leaves existing history readable when `VERSION_HISTORY`
+is enabled, but **Restore** is unavailable (404). Disabling only
+`VERSION_HISTORY` does not stop capture or retention, and does not change
+ordinary chart, dashboard, or dataset CRUD or soft-delete recovery.
+
+Hosts can separately configure `VERSIONING_CAPTURE_PREDICATE`, a callable
+receiving the SQLAlchemy session. Its default, `None`, preserves capture behavior.
+A false decision skips baseline, shadow, association-history, and change-record
+writes while ordinary ORM saves still persist. Version restore returns 404 when
+capture is denied. The startup `ENABLE_VERSIONING_CAPTURE` kill switch still wins.
+The host must keep decisions tenant-local and stable for a transaction, handle
+expected service outages, and bound any cache to the transaction/request. This
+hook does not govern retention or delete existing history.
+
+Imports and background ORM writes use the same predicate; hosts must supply their
+tenant context there too. Bulk SQL retains its existing capture limitations.
+After re-enabling, skipped edits are not reconstructed. If an entity has no
+history, its first enabled edit records the existing pre-edit baseline of its
+then-current state; an entity with history resumes with its next captured change.
 
 Disable them together: capture off with the UI left on gives a panel that
 stops filling — an empty or stale history misrepresents the entity as

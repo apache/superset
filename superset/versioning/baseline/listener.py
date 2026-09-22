@@ -49,6 +49,7 @@ from superset.versioning.baseline.collection import (
 )
 from superset.versioning.baseline.dirty import force_parent_dirty_on_child_change
 from superset.versioning.baseline.insertion import insert_baseline_and_children
+from superset.versioning.utils import capture_enabled
 
 logger = logging.getLogger(__name__)
 
@@ -101,7 +102,7 @@ def register_baseline_listener() -> None:
         # its own ``version_transaction`` row via direct SQL — so without this
         # guard a detached/kill-switched session would still write baselines.
         # ``_remove_continuum_write_listeners`` flips this option off.
-        if not versioning_manager.options["versioning"]:
+        if not versioning_manager.options["versioning"] or not capture_enabled(session):
             return
         try:
             # Make sure a child-only edit promotes the parent to

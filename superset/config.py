@@ -47,6 +47,7 @@ from flask_caching.backends.base import BaseCache
 from pandas import Series
 from pandas._libs.parsers import STR_NA_VALUES
 from sqlalchemy.engine.url import URL
+from sqlalchemy.orm import Session
 from sqlalchemy.orm.query import Query
 
 from superset.advanced_data_type.plugins.internet_address import internet_address
@@ -740,7 +741,8 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Enable Table V2 time comparison feature
     # @lifecycle: development
     "TABLE_V2_TIME_COMPARISON_ENABLED": False,
-    # Enables the version history panel on Explore and Dashboard pages.
+    # Enables the version history panel and the chart, dashboard, and dataset
+    # version-list, snapshot, activity, and version-restore API endpoints.
     # History only accrues while ``ENABLE_VERSIONING_CAPTURE`` is also on;
     # with capture off the panel renders empty or stale history, so the two
     # ship with matching defaults and should be changed together.
@@ -1741,10 +1743,17 @@ SUPERSET_META_DB_LIMIT: int | None = 1000
 
 # Master switch for entity-version-history capture. A falsy value disables
 # version writes while keeping existing history available read-only through the
-# ``/versions/`` endpoints; Restore is unavailable while capture is disabled.
+# ``/versions/`` endpoints when VERSION_HISTORY is enabled; Restore is
+# unavailable while capture is disabled.
 ENABLE_VERSIONING_CAPTURE: bool = utils.parse_boolean_string(
     os.environ.get("ENABLE_VERSIONING_CAPTURE", "true")
 )
+
+# Optional runtime predicate receiving the SQLAlchemy Session. Hosts must return
+# a tenant-local decision stable for the transaction, and handle expected service
+# unavailability without raising. None preserves OSS capture behavior. This does
+# not override the startup kill switch or authorize untracked version restores.
+VERSIONING_CAPTURE_PREDICATE: Callable[[Session], bool] | None = None
 
 # Retention window (days) for entity version history. Version rows
 # whose owning ``version_transaction.issued_at`` is older than this

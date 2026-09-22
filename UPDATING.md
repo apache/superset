@@ -24,6 +24,30 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Version history API access follows `VERSION_HISTORY`
+
+`VERSION_HISTORY` controls the UI and all chart, dashboard, and dataset
+version-list, version-snapshot, activity, and version-restore endpoints.
+With the flag disabled, callers who pass the existing route permissions receive
+404 instead of being able to use those APIs directly. When enabled, existing
+route permissions and object-level editorship checks still apply.
+
+The default remains enabled. API consumers that disabled the flag to hide only
+the panel must enable it to retain history API access. Capture and retention
+remain independently configured; ordinary entity CRUD and soft-delete recovery
+are unaffected. With only `ENABLE_VERSIONING_CAPTURE` disabled, existing history
+is readable if `VERSION_HISTORY` is enabled, but version restore returns 404.
+
+An optional `VERSIONING_CAPTURE_PREDICATE(session)` lets hosts restrict capture
+at save time without changing process-global listeners. `None` preserves existing
+behavior. A false result skips history capture but not the live ORM save, and
+refuses version restore with 404. Hosts must supply tenant context for request,
+import, and background writes and keep the decision stable within a transaction.
+Existing history and independent retention are unchanged; skipped edits are not
+reconstructed. The first enabled edit of an entity without history may create
+the existing baseline of its then-current state. Expected service failures must
+be handled by the host predicate; programming/database errors are not suppressed.
+
 ### Scheduled report and alert retry admission
 
 Run `superset db upgrade` before starting workers with this version. The migration
@@ -715,10 +739,10 @@ misrepresents the entity as unchanged.
 kill-switch — not removed with the rollout toggles. Setting it to a falsy value
 stops capture within a restart, without a revert-and-redeploy. Unlike the
 soft-delete toggle, turning it off is a clean stop: existing version rows remain
-readable and no entity state is altered. Restore is unavailable (404) while
-capture is off. A full rollback also sets
-`FEATURE_FLAGS = {"VERSION_HISTORY": False}` to hide the panel — capture off
-with the panel left on shows an empty or stale history.
+readable if `VERSION_HISTORY` is enabled and no entity state is altered. Restore
+is unavailable (404) while capture is off. A full rollback also sets
+`FEATURE_FLAGS = {"VERSION_HISTORY": False}` to disable the panel and history
+APIs — capture off with the panel left on shows an empty or stale history.
 
 ### Scheduled report execution now enforces one application deadline
 
@@ -1184,7 +1208,7 @@ ALTER TABLE tagged_object DROP FOREIGN KEY <constraint_name>;
 
 ### Entity version-history infrastructure
 
-Introduces the schema and SQLAlchemy-Continuum wiring that captures version history for charts, dashboards, and datasets, plus read-only `GET /api/v1/{chart,dashboard,dataset}/<uuid>/versions/` endpoints. Capture is governed by the `ENABLE_VERSIONING_CAPTURE` config value — an operational kill-switch (a release toggle that became a permanent ops switch), not a feature flag; see "Version history is on by default" above for the shipped default. With capture off, no save writes version rows; the endpoints continue to serve already-captured rows read-only. The migration is additive; existing entity `PUT` responses gain `old_version_uuid` / `new_version_uuid` body fields and an `ETag` header (both null/absent when capture is off).
+Introduces the schema and SQLAlchemy-Continuum wiring that captures version history for charts, dashboards, and datasets, plus read-only `GET /api/v1/{chart,dashboard,dataset}/<uuid>/versions/` endpoints. Capture is governed by the `ENABLE_VERSIONING_CAPTURE` config value — an operational kill-switch (a release toggle that became a permanent ops switch), not a feature flag; see "Version history is on by default" above for the shipped default. With capture off, no save writes version rows; the endpoints continue to serve already-captured rows read-only if `VERSION_HISTORY` is enabled. The migration is additive; existing entity `PUT` responses gain `old_version_uuid` / `new_version_uuid` body fields and an `ETag` header (both null/absent when capture is off).
 
 A few save- and import-path internals change **unconditionally** (independent of the flag), because the versioned mappers must behave correctly whether or not capture is enabled:
 

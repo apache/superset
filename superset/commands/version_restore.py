@@ -39,6 +39,7 @@ from typing import Any, ClassVar
 from uuid import UUID
 
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
 
 from superset import security_manager
 from superset.commands.base import BaseCommand
@@ -98,6 +99,12 @@ class BaseRestoreVersionCommand(BaseCommand):
             )
         )
         def _perform() -> RestoreResult:
+            # The decorator owns commit/rollback but does not begin a SQLAlchemy
+            # transaction. Bind capture authorization to the same transaction
+            # as the restore writes, including before the first lookup query.
+            session: Session = db.session()
+            if not session.in_transaction():
+                session.begin()
             return self._do_restore()
 
         return _perform()

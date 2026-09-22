@@ -20,15 +20,15 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from contextlib import contextmanager
-from typing import Any
+from typing import Any, Callable
 
 import sqlalchemy as sa
 from flask import current_app
 from sqlalchemy.orm import Session
 
 
-def capture_enabled() -> bool:
-    """Whether ``ENABLE_VERSIONING_CAPTURE`` is on for the current app.
+def capture_enabled(session: Session | None = None) -> bool:
+    """Whether startup capture and the host's session predicate both allow it.
 
     The single gate shared by the read helpers (which degrade to inert
     responses when off) and the write side (which must refuse: with
@@ -44,8 +44,25 @@ def capture_enabled() -> bool:
     would let this gate pass while listeners stay detached, producing
     exactly the untracked write it exists to prevent. Restart the process
     (or re-run ``init_versioning()``) after changing the flag.
+
+    VERSIONING_CAPTURE_PREDICATE is a separate runtime decision, consulted by
+    the baseline/change listeners and CaptureUnitOfWork as well as restore.
+    The host owns tenant identity, bounded transaction memoization and expected
+    service-failure handling. Database/programming errors are not suppressed.
     """
-    return bool(current_app.config.get("ENABLE_VERSIONING_CAPTURE", False))
+    if not current_app.config.get("ENABLE_VERSIONING_CAPTURE", False):
+        return False
+    predicate: Callable[[Session], bool] | None = current_app.config.get(
+        "VERSIONING_CAPTURE_PREDICATE"
+    )
+    if predicate is None:
+        return True
+    if session is None:
+        # Deferred because extensions configures the UnitOfWork at import time.
+        from superset.extensions import db  # pylint: disable=import-outside-toplevel
+
+        session = db.session()
+    return predicate(session)
 
 
 @contextmanager

@@ -175,10 +175,12 @@ from superset.versioning.factory import (  # noqa: E402
     VersioningFlaskPlugin,
     VersionTransactionFactory,
 )
+from superset.versioning.unit_of_work import CaptureUnitOfWork  # noqa: E402
 
-# Rename the transaction table from "transaction" (SQL reserved word) to
-# "version_transaction" via the custom factory before make_versioned() fires.
+# Configure the transaction table and runtime write boundary before listeners
+# are registered; neither setting is mutated per request.
 _continuum_manager.transaction_cls = VersionTransactionFactory()
+_continuum_manager.uow_class = CaptureUnitOfWork
 
 make_versioned(
     user_cls=None,

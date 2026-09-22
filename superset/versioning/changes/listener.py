@@ -68,6 +68,7 @@ from superset.versioning.diff import (
     fold_dashboard_layout_with_chart_changes,
 )
 from superset.versioning.metrics import emit_capture_timing, incr_capture_error
+from superset.versioning.utils import capture_enabled
 
 logger = logging.getLogger(__name__)
 
@@ -445,6 +446,8 @@ def finalize_change_records(session: Session) -> None:
     against an isolated session; it depends only on the session and the
     module helpers, never on the registered entity classes.
     """
+    if not capture_enabled(session):
+        return
     if session.in_nested_transaction() or session.info.get(_FINALIZING_KEY):
         return
 
@@ -577,6 +580,8 @@ def register_change_record_listener() -> None:
     def capture_initial_states(
         session: Session, _flush_context: Any, _instances: Any
     ) -> None:
+        if not capture_enabled(session):
+            return
         _capture_initial_states(session, versioned_classes)
 
     event.listen(db.session, "before_flush", capture_initial_states)
