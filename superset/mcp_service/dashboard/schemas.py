@@ -460,7 +460,7 @@ class DashboardInfo(BaseModel):
         description=(
             "Charts on this dashboard. May be capped below chart_count "
             "(cap: MCP_RESPONSE_SIZE_CONFIG['max_list_items']) when the full "
-            "response would exceed the token budget. "
+            "response would exceed the size budget. "
             "Compare len(charts) to chart_count to detect this. For "
             "dashboards with more charts than the cap, call list_charts "
             "with filters=[{'col': 'dashboards', 'opr': 'eq', "
