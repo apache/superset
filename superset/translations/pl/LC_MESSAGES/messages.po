@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-22 17:09+0000\n"
+"POT-Creation-Date: 2026-09-22 19:01+0000\n"
 "PO-Revision-Date: 2021-11-16 17:33+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -22637,6 +22637,8 @@ msgstr "wartości rosnące"
 msgid "value descending"
 msgstr "wartości malejące"
 
+msgid "valuename"
+msgstr ""
 
 #, fuzzy
 msgid "var"
