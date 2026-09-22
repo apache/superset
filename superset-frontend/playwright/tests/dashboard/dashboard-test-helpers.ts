@@ -147,17 +147,35 @@ interface SelectFilterOptions {
    * the initial chart-data request, an unset one is not.
    */
   defaultValue?: string;
+  /**
+   * Ids of filters this one cascades from — its options narrow to whatever the
+   * parent filter(s) currently scope. Omit for a top-level filter.
+   */
+  cascadeParentIds?: string[];
+  /**
+   * Auto-select the first option whenever the scoped option set changes
+   * (e.g. after a parent filter narrows it). Default: false.
+   */
+  defaultToFirstItem?: boolean;
 }
 
 /**
  * Builds one `filter_select` native filter for a dashboard's `json_metadata`.
- * The filter id is generated here because no test needs to know it — filters are
- * addressed through the filter bar UI, not by id.
+ * The filter id is generated here; most specs address filters through the filter
+ * bar UI, and a spec that needs the id reads it off the returned config.
  */
 export function buildSelectFilter(
   options: SelectFilterOptions,
 ): NativeFilterConfig {
-  const { datasetId, column, chartsInScope, name, defaultValue } = options;
+  const {
+    datasetId,
+    column,
+    chartsInScope,
+    name,
+    defaultValue,
+    cascadeParentIds,
+    defaultToFirstItem,
+  } = options;
   return {
     id: `NATIVE_FILTER-${Math.random().toString(36).slice(2, 10)}`,
     name: name ?? column,
@@ -167,7 +185,7 @@ export function buildSelectFilter(
     controlValues: {
       multiSelect: false,
       enableEmptyFilter: false,
-      defaultToFirstItem: false,
+      defaultToFirstItem: defaultToFirstItem ?? false,
       inverseSelection: false,
       searchAllOptions: false,
     },
@@ -180,7 +198,7 @@ export function buildSelectFilter(
               filters: [{ col: column, op: 'IN', val: [defaultValue] }],
             },
           },
-    cascadeParentIds: [],
+    cascadeParentIds: cascadeParentIds ?? [],
     scope: ROOT_SCOPE,
     chartsInScope,
   };
@@ -241,6 +259,15 @@ interface CreateDashboardWithChartsOptions {
   buildLayout?: (
     charts: readonly DashboardLayoutChart[],
   ) => DashboardPositionJson;
+  /**
+   * Dashboard `json_metadata` (e.g. native filters via
+   * `buildFilterJsonMetadata`); omitted when not provided. Receives the created
+   * charts and the resolved dataset id so filters can target both.
+   */
+  buildJsonMetadata?: (context: {
+    charts: readonly DashboardLayoutChart[];
+    datasetId: number;
+  }) => Record<string, unknown>;
 }
 
 /**
@@ -289,10 +316,15 @@ export async function createDashboardWithCharts(
   const positionJson = options.buildLayout
     ? options.buildLayout(charts)
     : buildSingleRowDashboardLayout(charts);
+  const jsonMetadata = options.buildJsonMetadata?.({
+    charts,
+    datasetId: dataset.id,
+  });
   const dashResp = await apiPostDashboard(page, {
     dashboard_title: `${options.dashboardTitlePrefix}_${uniqueSuffix}`,
     published: true,
     position_json: JSON.stringify(positionJson),
+    ...(jsonMetadata && { json_metadata: JSON.stringify(jsonMetadata) }),
   });
   expect(dashResp.ok()).toBe(true);
   const dashboardId = await extractIdFromResponse(dashResp);
