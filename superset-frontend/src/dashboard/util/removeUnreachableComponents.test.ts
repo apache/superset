@@ -139,6 +139,22 @@ test('keeps the detached empty grid of a dashboard with top-level tabs', () => {
   expect(removeUnreachableComponents(layout)).toBe(layout);
 });
 
+test('clears the children of a detached grid when dropping them', () => {
+  const layout = withVersionKey({
+    ROOT_ID: component('ROOT_ID', 'ROOT', ['TABS-t']),
+    GRID_ID: component('GRID_ID', 'GRID', ['ROW-stale']),
+    'ROW-stale': component('ROW-stale', 'ROW'),
+    'TABS-t': component('TABS-t', 'TABS', ['TAB-1']),
+    'TAB-1': component('TAB-1', 'TAB'),
+  });
+
+  const repaired = removeUnreachableComponents(layout);
+
+  expect(repaired['ROW-stale']).toBeUndefined();
+  expect(repaired.GRID_ID.children).toEqual([]);
+  expect(layout.GRID_ID.children).toEqual(['ROW-stale']);
+});
+
 test('returns the layout untouched when there is no root to walk from', () => {
   const layout: Layout = { 'ROW-a': component('ROW-a', 'ROW') };
 

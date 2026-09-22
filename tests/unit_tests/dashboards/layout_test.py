@@ -179,6 +179,23 @@ def test_detached_grid_of_a_tabbed_dashboard_is_kept() -> None:
     assert remove_unreachable_components(position) == (position, [])
 
 
+def test_detached_grid_children_are_cleared() -> None:
+    position: dict[str, Any] = {
+        "DASHBOARD_VERSION_KEY": "v2",
+        "ROOT_ID": {"id": "ROOT_ID", "type": "ROOT", "children": ["TABS-t"]},
+        "GRID_ID": {"id": "GRID_ID", "type": "GRID", "children": ["ROW-stale"]},
+        "ROW-stale": {"id": "ROW-stale", "type": "ROW", "children": []},
+        "TABS-t": {"id": "TABS-t", "type": "TABS", "children": ["TAB-1"]},
+        "TAB-1": {"id": "TAB-1", "type": "TAB", "children": []},
+    }
+
+    cleaned, removed = remove_unreachable_components(position)
+
+    assert removed == ["ROW-stale"]
+    assert cleaned["GRID_ID"]["children"] == []
+    assert position["GRID_ID"]["children"] == ["ROW-stale"]
+
+
 def test_layout_without_a_root_is_left_alone() -> None:
     position = {"ROW-a": {"id": "ROW-a", "type": "ROW", "children": []}}
 

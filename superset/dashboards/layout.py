@@ -97,6 +97,21 @@ def _reattach_charts(
     position[container_id] = {**container, "children": children}
 
 
+def _reachable_ids(position: dict[str, Any]) -> set[str]:
+    reachable: set[str] = set()
+    stack: list[str] = [ROOT_ID]
+    while stack:
+        component_id = stack.pop()
+        # doubles as the cycle guard: an id already seen is never expanded twice
+        if component_id in reachable:
+            continue
+        reachable.add(component_id)
+        for child_id in _children(position.get(component_id)):
+            if isinstance(position.get(child_id), dict):
+                stack.append(child_id)
+    return reachable
+
+
 def remove_unreachable_components(
     position: dict[str, Any],
 ) -> tuple[dict[str, Any], list[str]]:
@@ -124,17 +139,7 @@ def remove_unreachable_components(
     if not isinstance(root, dict) or not isinstance(root.get("children"), list):
         return position, []
 
-    reachable: set[str] = set()
-    stack: list[str] = [ROOT_ID]
-    while stack:
-        component_id = stack.pop()
-        # doubles as the cycle guard: an id already seen is never expanded twice
-        if component_id in reachable:
-            continue
-        reachable.add(component_id)
-        for child_id in _children(position.get(component_id)):
-            if isinstance(position.get(child_id), dict):
-                stack.append(child_id)
+    reachable = _reachable_ids(position)
 
     removed = [
         component_id
@@ -168,6 +173,11 @@ def remove_unreachable_components(
         for component_id, component in position.items()
         if component_id not in removed
     }
+    # a detached reserved id is kept, but must not reference the dropped nodes
+    for component_id in RESERVED_IDS - reachable:
+        component = repaired.get(component_id)
+        if isinstance(component, dict) and component.get("children"):
+            repaired[component_id] = {**component, "children": []}
     if rescued and (container_path := _first_container_path(repaired)):
         _reattach_charts(repaired, rescued, container_path)
     return repaired, removed

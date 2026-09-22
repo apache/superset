@@ -29,7 +29,7 @@ import {
 import newComponentFactory, { DashboardEntity } from './newComponentFactory';
 
 // HEADER_ID is dashboard metadata rather than a rendered child, GRID_ID is
-// retained empty and detached when a dashboard uses top-level tabs, and
+// retained (emptied) and detached when a dashboard uses top-level tabs, and
 // DASHBOARD_VERSION_KEY is a version string rather than a component.
 const RESERVED_IDS = new Set<string>([
   DASHBOARD_GRID_ID,
@@ -119,6 +119,17 @@ export default function removeUnreachableComponents<
   const next: Record<string, T | DashboardEntity> = { ...layout };
   unreachable.forEach(id => {
     delete next[id];
+  });
+  // a detached reserved id is kept, but must not reference the dropped nodes
+  RESERVED_IDS.forEach(id => {
+    const component = next[id];
+    if (
+      !reachable.has(id) &&
+      isComponent(component) &&
+      component.children?.length
+    ) {
+      next[id] = { ...component, children: [] };
+    }
   });
 
   // mirrors findFirstParentContainerId; the path is built here rather than
