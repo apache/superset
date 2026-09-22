@@ -2064,7 +2064,9 @@ def test_get_csv_data_posts_prepared_chart_data_payload(
 
     assert report_state._get_data(ChartDataResultFormat.CSV) == b"csv-data"
 
-    get_url_path.assert_called_once_with("ChartDataRestApi.data")
+    get_url_path.assert_called_once_with(
+        "ChartDataRestApi.data", download_reason=report_state._download_reason()
+    )
     post_chart_data.assert_called_once()
     assert post_chart_data.call_args.kwargs["chart_url"] == "/api/v1/chart/data"
     assert post_chart_data.call_args.kwargs["auth_cookies"] == auth_cookies
@@ -2159,6 +2161,7 @@ def test_get_url_for_xlsx_report(mocker: MockerFixture) -> None:
         format=ChartDataResultFormat.XLSX.value,
         type=ChartDataResultType.POST_PROCESSED.value,
         force="false",
+        download_reason=report_state._download_reason(),
     )
 
 
