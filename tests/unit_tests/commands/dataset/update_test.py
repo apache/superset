@@ -1375,3 +1375,76 @@ def test_update_dataset_rejects_malicious_fetch_values_predicate(
         and "fetch_values_predicate" in (exc.field_name or "")
         for exc in excinfo.value._exceptions
     )
+
+
+def _mapping_command(
+    mocker: MockerFixture,
+    transform: str | None,
+) -> UpdateDatasetCommand:
+    """A command whose stored dataset maps `event_time` onto `dt_epoch`."""
+    mapped_column = mocker.MagicMock()
+    mapped_column.column_name = "event_time"
+    mapped_column.partition_value_transform = transform
+    partition_column = mocker.MagicMock()
+    partition_column.column_name = "dt_epoch"
+
+    mock_dataset = mocker.MagicMock(is_managed_externally=False)
+    mock_dataset.database.backend = "sqlite"
+    mock_dataset.catalog = None
+    mock_dataset.schema = "main"
+    mock_dataset.columns = [mapped_column, partition_column]
+    mock_dataset.main_dttm_col = "event_time"
+    mock_dataset.partition_column = "dt_epoch"
+    mock_dataset.partition_mapped_column = None
+
+    command = UpdateDatasetCommand(1, {})
+    command._model = mock_dataset
+    return command
+
+
+def test_an_unparseable_transform_does_not_block_the_save(
+    mocker: MockerFixture,
+) -> None:
+    """
+    An unparseable transform is a Tier-2 issue: the mapping saves and stays
+    inactive. `validate_stored_expression` rejects anything it cannot parse, so
+    running it here would turn that into a blocking error and cost the owner the
+    rest of their edits.
+    """
+    gate = mocker.patch("superset.commands.dataset.update.validate_stored_expression")
+    command = _mapping_command(mocker, "unix_timestamp(:value")
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert exceptions == []
+    gate.assert_not_called()
+
+
+def test_a_parseable_transform_still_goes_through_the_stored_expression_gate(
+    mocker: MockerFixture,
+) -> None:
+    """The parser gate that governs every other stored expression still runs."""
+    gate = mocker.patch("superset.commands.dataset.update.validate_stored_expression")
+    command = _mapping_command(mocker, "unix_timestamp(:value)")
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert exceptions == []
+    gate.assert_called_once()
+    assert ":value" not in gate.call_args.args[-1]
+
+
+def test_a_jinja_transform_is_still_rejected(mocker: MockerFixture) -> None:
+    """
+    Skipping the gate for unparseable transforms is not a hole for templating:
+    Jinja is a blocking issue of its own, reported before the gate is reached.
+    """
+    mocker.patch("superset.commands.dataset.update.validate_stored_expression")
+    command = _mapping_command(mocker, "unix_timestamp({{ current_user_id() }})")
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert [exc.field_name for exc in exceptions] == ["partition_value_transform"]

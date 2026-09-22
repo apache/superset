@@ -46,7 +46,7 @@ that risk.
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, NamedTuple, Union
 
 from pydantic import BaseModel
 from typing_extensions import TypeAlias
@@ -436,6 +436,14 @@ def _get_tool_specific_suggestions(
                 "(e.g., limit=100) — this overrides any SQL LIMIT clause"
             )
 
+    elif tool_name == "get_chart_sql":
+        suggestions.append(
+            "get_chart_sql has no size-reduction parameter — the rendered SQL "
+            "itself is too large to return even after truncation. Simplify "
+            "the chart's configuration (fewer columns, metrics, or filters) "
+            "to shorten the generated query."
+        )
+
     elif tool_name in ("get_chart_info", "get_dashboard_info", "get_dataset_info"):
         suggestions.append(
             f"For {tool_name}, use 'select_columns' to fetch only specific metadata "
@@ -480,6 +488,137 @@ DATA_QUERY_TOOLS = frozenset(
         "get_chart_data",
     }
 )
+
+
+class CommittedWriteSpec(NamedTuple):
+    """Per-tool facts the size guard needs to confirm a committed write.
+
+    ``resource`` is the noun used in the truncation note that tells the
+    caller what to re-read.
+
+    ``identifying_fields`` are the top-level keys that carry the write
+    confirmation *as a list or dict*, and so have to be protected from the
+    destructive truncation phases. Only containers need naming here: phases 4
+    and 5 summarize dicts and empty collections, and nothing in
+    ``truncate_oversized_response`` ever drops a top-level scalar (phase 1
+    only clips long strings). A response whose identity is scalars -- e.g.
+    ``delete_chart``'s ``deleted_id``, ``create_dataset``'s ``id`` and
+    ``table_name`` -- therefore needs no protection and correctly maps to an
+    empty set.
+
+    ``reports_success`` records whether the tool's response model actually
+    has a ``success`` field. It is consulted only when the payload could not
+    be parsed at all, to decide whether synthesizing ``success: True`` would
+    confirm the write or invent a field the schema does not have.
+
+    ``TestCommittedWriteSpecsMatchToolSchemas`` checks every entry against the
+    registered output schemas, so this table cannot drift from the models.
+    """
+
+    resource: str
+    identifying_fields: frozenset[str]
+    reports_success: bool
+
+
+def _spec(
+    resource: str,
+    *identifying_fields: str,
+    reports_success: bool = False,
+) -> CommittedWriteSpec:
+    """Build a ``CommittedWriteSpec`` with the field set spelled inline."""
+    return CommittedWriteSpec(
+        resource=resource,
+        identifying_fields=frozenset(identifying_fields),
+        reports_success=reports_success,
+    )
+
+
+# Mutating tools whose transaction commits (via @transaction, or an explicit
+# ``db.session.commit()``) before this middleware ever inspects the response --
+# by the time an oversized response is detected, the write already happened.
+# Raising ToolError here would report a completed write as a failure, and a
+# retrying MCP client would replay the mutation. These are truncated with the
+# same field-level phases as INFO_TOOLS (see ``_handle_oversized_response``),
+# with the tool's identifying fields protected from the final "clear
+# everything" phase so the caller can always confirm what was written.
+#
+# This is every mutating MCP tool except three, each excluded for a reason
+# that is about the invariant above rather than about response size:
+#   - ``execute_sql`` commits against the *analytics* database, not Superset
+#     metadata, and already degrades gracefully via DATA_QUERY_TOOLS row
+#     truncation rather than reaching the hard-error path;
+#   - ``generate_explore_link`` and ``update_chart_preview`` persist nothing
+#     to the metadata database -- they only cache a form_data key -- so a
+#     retry re-caches rather than replaying a mutation.
+#
+# ``apply_dashboard_filters`` leaves the dashboard itself untouched, but the
+# permalink it commits is the whole result of the call: hard-erroring would
+# strand that row and lose the key the caller needs, and a retry would commit
+# a second one.
+COMMITTED_WRITE_SPECS: Dict[str, CommittedWriteSpec] = {
+    "add_chart_to_existing_dashboard": _spec("dashboard", "dashboard"),
+    "apply_dashboard_filters": _spec("dashboard"),
+    "create_dataset": _spec("dataset"),
+    "create_theme": _spec("theme", reports_success=True),
+    "create_virtual_dataset": _spec("dataset"),
+    "delete_chart": _spec("chart", reports_success=True),
+    "delete_dashboard": _spec("dashboard", reports_success=True),
+    "duplicate_dashboard": _spec("dashboard", "dashboard"),
+    "generate_chart": _spec("chart", "chart", reports_success=True),
+    "generate_dashboard": _spec("dashboard", "dashboard"),
+    "manage_dashboard_certification": _spec("dashboard"),
+    "manage_dashboard_owners": _spec("dashboard"),
+    "manage_dashboard_roles": _spec("dashboard"),
+    "manage_native_filters": _spec("dashboard"),
+    "remove_chart_from_dashboard": _spec("dashboard", "dashboard"),
+    "restore_chart": _spec("chart", reports_success=True),
+    "restore_dashboard": _spec("dashboard", reports_success=True),
+    "save_sql_query": _spec("saved query"),
+    "update_chart": _spec("chart", "chart", reports_success=True),
+    "update_dashboard": _spec("dashboard", "dashboard"),
+    "update_dataset_metric": _spec("dataset", "metric"),
+}
+
+COMMITTED_WRITE_TOOLS = frozenset(COMMITTED_WRITE_SPECS)
+
+# Tools whose oversized response is dominated by a single large string field
+# with no row/page/limit parameter the caller could add to shrink it (e.g.
+# get_chart_sql's rendered SQL). Maps tool name to the field to bisect; see
+# ``truncate_string_field_response``.
+STRING_FIELD_TRUNCATION_TOOLS: Dict[str, str] = {
+    "get_chart_sql": "sql",
+}
+
+# In-band markers appended to a bisected string field, keyed by field name.
+# Only needed where a truncated prefix stays valid input for some other tool:
+# a SQL statement cut before its WHERE/LIMIT clause still executes, and would
+# scan far more data than the original.
+#
+# The SQL marker has to survive whatever lexical state the cut landed in,
+# since the bisect point is arbitrary. Every part of it is load-bearing for
+# a different state, so do not trim it:
+#   - the leading newline ends an open line comment;
+#   - ``*/`` closes an open block comment (and is itself a syntax error when
+#     there is none to close);
+#   - ``'`` opens an unterminated string literal;
+#   - the trailing ``SQL TRUNCATED ...`` words are what make the *mid-string*
+#     case fail. There the quote closes the in-progress literal instead of
+#     opening one, so rejection rests entirely on those leftover bare
+#     identifiers being invalid after an expression.
+#
+# Simpler markers were tried and rejected: a ``--`` comment leaves the prefix
+# perfectly runnable; a bare unterminated ``/*`` is not fatal in SQLite, which
+# closes block comments at end of input; and a bare unterminated quote is
+# swallowed whole when the cut lands inside a block comment. Verified against
+# sqlite3 and against sqlglot for cuts landing in normal, line-comment,
+# block-comment and string-literal state (see the unit test for the dialects
+# actually guarded).
+#
+# This is defense in depth. ``_response_truncated`` / ``_truncation_notes``
+# remain the authoritative signal that the SQL is partial.
+_STRING_FIELD_TRUNCATION_MARKERS: Dict[str, str] = {
+    "sql": "\n*/\n'SQL TRUNCATED -- INCOMPLETE STATEMENT, DO NOT EXECUTE",
+}
 
 # Data field names used by the three query tools (in priority order).
 # ``rows`` is used by execute_sql; ``data`` by query_dataset and get_chart_data.
@@ -568,11 +707,23 @@ def _truncate_lists(data: Dict[str, Any], notes: List[str], max_items: int) -> b
 
 
 def _summarize_large_dicts(
-    data: Dict[str, Any], notes: List[str], max_keys: int = _MAX_DICT_KEYS
+    data: Dict[str, Any],
+    notes: List[str],
+    max_keys: int = _MAX_DICT_KEYS,
+    protected_keys: frozenset[str] = frozenset(),
 ) -> bool:
-    """Replace large dict fields with key summaries. Returns True if any changed."""
+    """Replace large dict fields with key summaries. Returns True if any changed.
+
+    ``protected_keys`` are left untouched. A committed-write tool's
+    identifying field (e.g. ``chart``) is a dict that can easily exceed
+    ``max_keys``, and replacing it with a ``_truncated`` marker would
+    destroy the write confirmation this phase runs *before* Phase 5 gets a
+    chance to protect it.
+    """
     changed = False
     for key, value in data.items():
+        if key in protected_keys:
+            continue
         if isinstance(value, dict) and len(value) > max_keys:
             keys_list = list(value.keys())[:max_keys]
             data[key] = {
@@ -587,14 +738,22 @@ def _summarize_large_dicts(
     return changed
 
 
-def _replace_collections_with_summaries(data: Dict[str, Any], notes: List[str]) -> bool:
+def _replace_collections_with_summaries(
+    data: Dict[str, Any],
+    notes: List[str],
+    protected_keys: frozenset[str] = frozenset(),
+) -> bool:
     """Replace all non-empty list/dict fields with empty/minimal values.
 
     Lists are emptied (preserving the list type) rather than replaced with
-    marker objects to avoid breaking typed list contracts.
+    marker objects to avoid breaking typed list contracts. ``protected_keys``
+    are left untouched -- used to keep a write tool's identifying field
+    (e.g. ``chart``) intact even under this last-resort phase.
     """
     changed = False
     for key, value in list(data.items()):
+        if key in protected_keys:
+            continue
         if not isinstance(value, (list, dict)) or not value:
             continue
         count = len(value)
@@ -620,6 +779,7 @@ def truncate_oversized_response(
     token_limit: int,
     # Configurable via MCP_RESPONSE_SIZE_CONFIG["max_list_items"]
     max_list_items: int = DEFAULT_MAX_LIST_ITEMS,
+    protected_keys: frozenset[str] = frozenset(),
 ) -> tuple[ToolResponse, bool, list[str]]:
     """
     Dynamically truncate large fields in a response to fit within the token limit.
@@ -635,6 +795,12 @@ def truncate_oversized_response(
         response: The tool response (Pydantic model, dict, or other).
         token_limit: Maximum estimated tokens allowed.
         max_list_items: Maximum items to keep in list fields during Phase 2.
+        protected_keys: Top-level keys the destructive phases (4 and 5) must
+            never summarize or clear, even if the response is still over
+            budget afterward. Used for committed-write tools so their
+            identifying field (e.g. ``chart``) always survives. Callers that
+            pass this must be prepared for the returned response to still
+            exceed ``token_limit``.
 
     Returns:
         A tuple of (possibly-truncated response, was_truncated, list of notes).
@@ -669,12 +835,14 @@ def truncate_oversized_response(
 
     # Phase 4: Aggressively reduce lists and summarize large dicts
     was_truncated |= _truncate_lists(data, notes, max_items=10)
-    was_truncated |= _summarize_large_dicts(data, notes)
+    was_truncated |= _summarize_large_dicts(data, notes, protected_keys=protected_keys)
     if _is_under_limit(data, token_limit):
         return data, was_truncated, notes
 
     # Phase 5: Nuclear — replace all collections with empty values
-    was_truncated |= _replace_collections_with_summaries(data, notes)
+    was_truncated |= _replace_collections_with_summaries(
+        data, notes, protected_keys=protected_keys
+    )
 
     return data, was_truncated, notes
 
@@ -717,18 +885,22 @@ def _bisect_string_length(
     field: str,
     original_value: str,
     token_limit: int,
+    suffix: str = "",
 ) -> int:
     """Binary-search for the largest string prefix that keeps data under limit.
 
     Mutates ``data[field]`` during the search and leaves it at the final
-    kept length on return.
+    kept length on return. ``suffix`` is an in-band marker appended to every
+    candidate prefix, so it is accounted for by the search rather than
+    pushing the payload back over the limit afterward. It is only appended
+    when the value is actually shortened.
     """
     from superset.utils import json as utils_json
 
     lo, hi = 0, len(original_value)
     while lo < hi:
         mid = (lo + hi + 1) // 2
-        data[field] = original_value[:mid]
+        data[field] = original_value[:mid] + suffix
         if estimate_token_count(utils_json.dumps(data)) <= token_limit:
             lo = mid
         else:
@@ -738,7 +910,9 @@ def _bisect_string_length(
     if kept == 0 and original_value:
         kept = 1
 
-    data[field] = original_value[:kept]
+    data[field] = (
+        original_value[:kept] + suffix if kept < len(original_value) else original_value
+    )
     return kept
 
 
@@ -860,40 +1034,56 @@ def _truncate_chart_query_results(
     return data["_truncation_notes"]
 
 
-def _truncate_csv_data_field(
+def _truncate_named_string_field(
     data: Dict[str, Any],
+    field: str,
     token_limit: int,
     advice: str,
+    label: str | None = None,
+    suffix_marker: str = "",
 ) -> list[str] | None:
-    """Try to bisect the scalar ``csv_data`` field down to fit the limit.
+    """Try to bisect a scalar string field down to fit the limit.
 
-    Used when there are no rows to trim — e.g. a CSV export where ``data``
-    is empty and the actual payload lives in ``csv_data``. ``excel_data``
-    is base64-encoded binary and is intentionally left alone: cutting it
-    would produce a corrupt file, so oversized Excel exports still fall
-    through to the hard size-limit error.
+    Used when there are no rows to trim and the payload lives in one named
+    string field instead — a CSV export's ``csv_data``, or a rendered-SQL
+    tool's ``sql`` field. Preserves as much of the field as fits rather than
+    cutting it to a fixed length, so a response that is only marginally over
+    budget keeps nearly all of its content.
+
+    Args:
+        label: Human-readable name for the field used in the note text
+            (defaults to ``field`` itself, e.g. ``"CSV content"`` reads
+            better than ``"Field 'csv_data'"``).
+        suffix_marker: In-band marker appended to the kept prefix. Needed
+            for fields whose truncated form is still *syntactically valid*
+            and so could be acted on unnoticed -- a SQL statement cut before
+            its WHERE/LIMIT clause still runs, just unfiltered and unbounded.
 
     Returns the truncation notes on success, or ``None`` if nothing could
     be trimmed, in which case ``data`` is left unmodified.
     """
-    csv_data = data.get("csv_data")
-    if not isinstance(csv_data, str) or not csv_data:
+    value = data.get(field)
+    if not isinstance(value, str) or not value:
         return None
 
-    original_len = len(csv_data)
+    label = label or f"Field '{field}'"
+    original_len = len(value)
     # Same reservation trick as ``_truncate_rows_field``, keyed on the
     # character count rather than a row count.
     placeholder_note = (
-        f"CSV content truncated: kept {original_len:,} of {original_len:,} "
+        f"{label} truncated: kept {original_len:,} of {original_len:,} "
         f"characters (limit ~{token_limit:,} tokens). {advice}"
     )
+
     data["_response_truncated"] = True
     data["_truncation_notes"] = [placeholder_note]
 
-    kept_len = _bisect_string_length(data, "csv_data", csv_data, token_limit)
+    kept_len = _bisect_string_length(
+        data, field, value, token_limit, suffix=suffix_marker
+    )
     if kept_len < original_len:
         notes = [
-            f"CSV content truncated: kept {kept_len:,} of {original_len:,} "
+            f"{label} truncated: kept {kept_len:,} of {original_len:,} "
             f"characters (limit ~{token_limit:,} tokens). {advice}"
         ]
         data["_truncation_notes"] = notes
@@ -962,8 +1152,62 @@ def truncate_query_result(
     if notes is None:
         notes = _truncate_rows_field(data, row_field, token_limit, advice)
     if notes is None:
-        notes = _truncate_csv_data_field(data, token_limit, advice)
+        notes = _truncate_named_string_field(
+            data,
+            "csv_data",
+            token_limit,
+            advice,
+            label="CSV content",
+            suffix_marker=_STRING_FIELD_TRUNCATION_MARKERS.get("csv_data", ""),
+        )
 
+    return data, notes is not None, notes or []
+
+
+def truncate_string_field_response(
+    response: ToolResponse,
+    token_limit: int,
+    field: str,
+) -> tuple[ToolResponse, bool, list[str]]:
+    """Truncate a response whose bulk is one string field with no size lever.
+
+    Used for tools like ``get_chart_sql`` where the oversized payload is
+    dominated by a single string (the rendered SQL) and there is no
+    ``limit``/``row_limit``/``page_size`` parameter the caller could add to
+    shrink it. Bisects that field to the largest prefix that keeps the
+    response under budget, preserving as much content as possible.
+
+    Args:
+        response: The tool response containing the oversized string field.
+        token_limit: Maximum estimated tokens allowed.
+        field: Name of the string field to truncate.
+
+    Returns:
+        A tuple of (possibly-truncated response, was_truncated, list of notes).
+    """
+    from superset.utils import json as utils_json
+
+    if hasattr(response, "model_dump"):
+        data = response.model_dump()
+    elif isinstance(response, dict):
+        data = dict(response)
+    else:
+        return response, False, []
+
+    if estimate_token_count(utils_json.dumps(data)) <= token_limit:
+        return data, False, []
+
+    advice = (
+        f"The '{field}' field has no size-reduction parameter to adjust; "
+        "it was truncated to fit the response size limit."
+    )
+    notes = _truncate_named_string_field(
+        data,
+        field,
+        token_limit,
+        advice,
+        suffix_marker=_STRING_FIELD_TRUNCATION_MARKERS.get(field, ""),
+    )
     return data, notes is not None, notes or []
 
 

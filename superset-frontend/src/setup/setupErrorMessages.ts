@@ -28,6 +28,7 @@ import {
   InvalidSQLErrorMessage,
   OAuth2RedirectMessage,
   FrontendNetworkErrorMessage,
+  CsrfErrorMessage,
 } from 'src/components';
 
 import setupErrorMessagesExtra from './setupErrorMessagesExtra';
@@ -42,6 +43,10 @@ export default function setupErrorMessages() {
   errorMessageComponentRegistry.registerValue(
     ErrorTypeEnum.FRONTEND_NETWORK_ERROR,
     FrontendNetworkErrorMessage,
+  );
+  errorMessageComponentRegistry.registerValue(
+    ErrorTypeEnum.CSRF_ERROR,
+    CsrfErrorMessage,
   );
   errorMessageComponentRegistry.registerValue(
     ErrorTypeEnum.BACKEND_TIMEOUT_ERROR,
