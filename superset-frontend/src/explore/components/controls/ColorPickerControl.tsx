@@ -49,6 +49,7 @@ export interface ColorPickerControlProps {
   ariaLabel?: string;
   resolveThemeTokens?: boolean;
   outputFormat?: ColorOutputFormat;
+  disabled?: boolean;
 }
 
 const normalizeColorToHex = (color: string): string => {
@@ -142,6 +143,7 @@ export default function ColorPickerControl({
   ariaLabel,
   resolveThemeTokens = false,
   outputFormat = 'rgb',
+  disabled = false,
   ...headerProps
 }: ColorPickerControlProps) {
   const categoricalScheme = getCategoricalSchemeRegistry().get();
@@ -225,6 +227,7 @@ export default function ColorPickerControl({
         value={hexValue}
         onChangeComplete={handleChange}
         presets={presets}
+        disabled={disabled}
         showText
       />
     </div>

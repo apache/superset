@@ -181,15 +181,16 @@ export default function PopKPI(props: PopKPIProps) {
     decreaseColor,
   );
 
+  // Single source of truth for "which comparison color applies", shared by
+  // the arrow indicator and the pill background/text so they can't diverge.
+  const comparisonColorValue =
+    percentDifferenceNumber > 0 ? resolvedIncreaseColor : resolvedDecreaseColor;
+
   const getArrowIndicatorColor = () => {
     if (!comparisonColorEnabled || percentDifferenceNumber === 0) {
       return theme.colorTextTertiary;
     }
-    const colorValue =
-      percentDifferenceNumber > 0
-        ? resolvedIncreaseColor
-        : resolvedDecreaseColor;
-    return getComparisonColorTokens(colorValue, theme).text;
+    return getComparisonColorTokens(comparisonColorValue, theme).text;
   };
 
   const arrowIndicatorStyle = css`
@@ -203,11 +204,7 @@ export default function PopKPI(props: PopKPIProps) {
     let bgColor = defaultBackgroundColor;
     let txtColor = defaultTextColor;
     if (comparisonColorEnabled && percentDifferenceNumber !== 0) {
-      const colorValue =
-        percentDifferenceNumber > 0
-          ? resolvedIncreaseColor
-          : resolvedDecreaseColor;
-      const tokens = getComparisonColorTokens(colorValue, theme);
+      const tokens = getComparisonColorTokens(comparisonColorValue, theme);
       bgColor = tokens.background;
       txtColor = tokens.strongText;
     }
@@ -218,8 +215,7 @@ export default function PopKPI(props: PopKPIProps) {
     };
   }, [
     theme,
-    resolvedIncreaseColor,
-    resolvedDecreaseColor,
+    comparisonColorValue,
     comparisonColorEnabled,
     percentDifferenceNumber,
     defaultBackgroundColor,
