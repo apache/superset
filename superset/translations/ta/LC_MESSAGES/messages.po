@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 00:54+0300\n"
+"POT-Creation-Date: 2026-09-23 01:20+0300\n"
 "PO-Revision-Date: 2026-03-31 02:00-0700\n"
 "Last-Translator: Maazin Ahamed\n"
 "Language: ta\n"
@@ -3618,6 +3618,13 @@ msgstr ""
 
 msgid "Chart width"
 msgstr "சார்ட் அகலம்"
+
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
 
 msgid "Charts"
 msgstr "சார்ட்டுகள்"
@@ -15404,6 +15411,13 @@ msgstr "வினவலில் ஒன்று அல்லது அதற்
 msgid "The query context datasource does not match the chart datasource"
 msgstr ""
 
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
+msgstr ""
+
 msgid "The query couldn't be loaded"
 msgstr "வினவலை ஏற்ற முடியவில்லை"
 
@@ -19871,9 +19885,6 @@ msgstr "மதிப்பு ஏறுவரிசை"
 
 msgid "value descending"
 msgstr "மதிப்பு இறங்குவரிசை"
-
-msgid "valuename"
-msgstr ""
 
 msgid "var"
 msgstr "var"

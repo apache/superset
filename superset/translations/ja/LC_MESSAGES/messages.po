@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 00:54+0300\n"
+"POT-Creation-Date: 2026-09-23 01:20+0300\n"
 "PO-Revision-Date: 2024-05-14 13:30+0900\n"
 "Last-Translator: Yuri Umezaki <bungoume@gmail.com>\n"
 "Language: ja\n"
@@ -3349,6 +3349,13 @@ msgstr "チャートは保存されましたが、選択したタブに追加で
 
 msgid "Chart width"
 msgstr "チャートの幅"
+
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
 
 msgid "Charts"
 msgstr "チャート"
@@ -14601,6 +14608,13 @@ msgstr "クエリに1つ以上の不正なテンプレートパラメータが�
 msgid "The query context datasource does not match the chart datasource"
 msgstr "クエリのコンテキストのデータソースが、チャートのデータソースと一致しません"
 
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
+msgstr ""
+
 msgid "The query couldn't be loaded"
 msgstr "クエリを読み込めませんでした"
 
@@ -18813,9 +18827,6 @@ msgstr "値の昇順"
 
 msgid "value descending"
 msgstr "値の降順"
-
-msgid "valuename"
-msgstr ""
 
 msgid "var"
 msgstr "分散"

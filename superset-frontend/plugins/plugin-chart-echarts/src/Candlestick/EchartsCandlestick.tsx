@@ -17,7 +17,10 @@
  * under the License.
  */
 import { useRef } from 'react';
-import { BinaryQueryObjectFilterClause } from '@superset-ui/core';
+import {
+  BinaryQueryObjectFilterClause,
+  TimeGranularity,
+} from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import Echart from '../components/Echart';
 import { EchartsHandler, EventHandlers } from '../types';
@@ -51,16 +54,12 @@ function toFilterClause(
   col: string,
   value: unknown,
   formattedVal: string,
-  grain?: string,
+  grain?: TimeGranularity,
 ): BinaryQueryObjectFilterClause {
-  const val = toFilterValue(value);
-  if (val == null) {
-    return { col, op: 'IS NULL' as const, formattedVal };
-  }
   return {
     col,
     op: '==',
-    val,
+    val: toFilterValue(value),
     formattedVal,
     ...(grain ? { grain } : {}),
   };
@@ -128,7 +127,11 @@ export default function EchartsCandlestick(
             xAxisColumn,
             xValue,
             xLabels[categoryIndex] ?? String(xValue ?? ''),
-            isTemporal ? formData.timeGrainSqla : undefined,
+            isTemporal
+              ? ((formData.timeGrainSqla ?? formData.time_grain_sqla) as
+                  | TimeGranularity
+                  | undefined)
+              : undefined,
           ),
         );
       }
