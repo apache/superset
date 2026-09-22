@@ -164,6 +164,7 @@ export default function ThemeColorPickers({
                 value={typeof tokenValue === 'string' ? tokenValue : undefined}
                 onChange={handleTokenChange(key)}
                 outputFormat="hex"
+                disabled={disabled || !isValid}
               />
             </TokenRow>
           );
