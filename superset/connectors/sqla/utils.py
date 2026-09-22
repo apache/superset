@@ -118,6 +118,16 @@ def get_virtual_table_metadata(dataset: SqlaTable) -> list[ResultSetColumnType]:
         sql = dataset.get_template_processor().process_template(
             original_sql, **dataset.template_params_dict
         )
+    except UndefinedError as ex:
+        # ``process_template``'s Jinja *render* step re-raises a raw
+        # ``UndefinedError`` directly (not wrapped in
+        # ``SupersetSyntaxErrorException``) when the undefined reference
+        # isn't shaped like a function call — same "missing runtime
+        # context" case the ``SupersetSyntaxErrorException`` branch below
+        # already softens for ``RefreshDatasetCommand``. See #38012.
+        raise SupersetVirtualTableParseException(
+            message=_("Template processing error: %(error)s", error=str(ex)),
+        ) from ex
     except SupersetSyntaxErrorException as ex:
         # ``process_template`` aggregates several jinja2 exceptions
         # (``TemplateSyntaxError``, ``SecurityError``, ``UndefinedError``,
