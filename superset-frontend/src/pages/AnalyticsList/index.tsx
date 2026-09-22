@@ -875,7 +875,7 @@ function AnalyticsList({
                       if (e.key === 'Enter') drillInto(original);
                     }}
                   >
-                    {original.is_private ? (
+                    {folderPermsEnabled && original.is_private ? (
                       <Icons.LockOutlined
                         iconSize="m"
                         css={{ color: theme.colorTextSecondary }}
@@ -894,7 +894,7 @@ function AnalyticsList({
                     {original.description && (
                       <InfoTooltip tooltip={original.description} />
                     )}
-                    {original.is_private && (
+                    {folderPermsEnabled && original.is_private && (
                       <span
                         css={{
                           fontSize: theme.fontSizeXS,

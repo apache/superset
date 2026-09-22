@@ -136,7 +136,7 @@ class FolderDAO(BaseDAO[Folder]):
 
         folder_id = folder.id if folder else None
         requested = set(types) if types else None
-        asset_only_filter = bool(viz_types or datasets or owners)
+        asset_only_filter = bool(viz_types or datasets or owners or editors or viewers)
         is_admin = security_manager.is_admin()
         user_id = get_user_id()
 
@@ -243,19 +243,13 @@ class FolderDAO(BaseDAO[Folder]):
                     else:
                         fq = fq.where(Folder.id.in_(member_folder_ids))
             if editors:
-                editor_subject_ids = select(Subject.id).where(
-                    Subject.user_id.in_(editors)
-                )
                 editor_folder_ids = select(folder_editors.c.folder_id).where(
-                    folder_editors.c.subject_id.in_(editor_subject_ids)
+                    folder_editors.c.subject_id.in_(editors)
                 )
                 fq = fq.where(Folder.id.in_(editor_folder_ids))
             if viewers:
-                viewer_subject_ids = select(Subject.id).where(
-                    Subject.user_id.in_(viewers)
-                )
                 viewer_folder_ids = select(folder_viewers.c.folder_id).where(
-                    folder_viewers.c.subject_id.in_(viewer_subject_ids)
+                    folder_viewers.c.subject_id.in_(viewers)
                 )
                 fq = fq.where(Folder.id.in_(viewer_folder_ids))
             selects.append(fq)
@@ -333,8 +327,6 @@ class FolderDAO(BaseDAO[Folder]):
             if modified_end:
                 aq = aq.where(model.changed_on <= modified_end)
             if owners:
-                from superset.subjects.models import Subject
-
                 aq = aq.where(model.editors.any(Subject.user_id.in_(owners)))
             if name == "chart":
                 if viz_types:
@@ -356,13 +348,10 @@ class FolderDAO(BaseDAO[Folder]):
                 fk_col_filter = getattr(
                     FolderObject, ASSET_TYPE_CONFIGS[name].fk_column
                 )
-                editor_subject_ids_aq = select(Subject.id).where(
-                    Subject.user_id.in_(editors)
-                )
                 editor_asset_ids = select(fk_col_filter).where(
                     FolderObject.folder_id.in_(
                         select(folder_editors.c.folder_id).where(
-                            folder_editors.c.subject_id.in_(editor_subject_ids_aq)
+                            folder_editors.c.subject_id.in_(editors)
                         )
                     ),
                     fk_col_filter.isnot(None),
@@ -372,13 +361,10 @@ class FolderDAO(BaseDAO[Folder]):
                 fk_col_filter = getattr(
                     FolderObject, ASSET_TYPE_CONFIGS[name].fk_column
                 )
-                viewer_subject_ids_aq = select(Subject.id).where(
-                    Subject.user_id.in_(viewers)
-                )
                 viewer_asset_ids = select(fk_col_filter).where(
                     FolderObject.folder_id.in_(
                         select(folder_viewers.c.folder_id).where(
-                            folder_viewers.c.subject_id.in_(viewer_subject_ids_aq)
+                            folder_viewers.c.subject_id.in_(viewers)
                         )
                     ),
                     fk_col_filter.isnot(None),
@@ -388,7 +374,6 @@ class FolderDAO(BaseDAO[Folder]):
             # Access filter: non-admins only see assets they can access
             if not is_admin and user_id:
                 from superset.utils.filters import get_dataset_access_filters
-                from superset.subjects.models import Subject
 
                 access_conditions = []
 
@@ -961,6 +946,35 @@ class FolderDAO(BaseDAO[Folder]):
         if folder:
             folder.name = f"Only Me ({email})"
             folder.is_private = False
+            db.session.flush()
+
+    @classmethod
+    def handle_user_reactivation(cls, user_id: int) -> None:
+        """Restore the user's Only Me folder when they are reactivated.
+
+        Reverses handle_user_deactivation:
+        - Renames back to "Only Me"
+        - Sets is_private = True
+        """
+        from superset.folders.utils import folder_permissions_enabled
+
+        if not folder_permissions_enabled():
+            return
+        subject = get_user_subject(user_id)
+        subject_id = subject.id if subject else None
+
+        folder = (
+            db.session.query(Folder)
+            .join(folder_editors, folder_editors.c.folder_id == Folder.id)
+            .filter(
+                folder_editors.c.subject_id == subject_id,
+                Folder.is_only_me.is_(True),
+            )
+            .first()
+        )
+        if folder:
+            folder.name = "Only Me"
+            folder.is_private = True
             db.session.flush()
 
     # ------------------------------------------------------------------ #

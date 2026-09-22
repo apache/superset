@@ -249,7 +249,7 @@ def folder_export_fields(model: Any, asset_type: str) -> dict[str, Any]:
     for entry in path:
         ancestor = FolderDAO.get_by_uuid(entry["uuid"])
         if perms_on and ancestor is not None and ancestor.is_private:
-            return {}
+            return {"folder": None}
         nodes.append(
             {
                 "name": entry["name"],
@@ -258,6 +258,35 @@ def folder_export_fields(model: Any, asset_type: str) -> dict[str, Any]:
         )
 
     return {"folder": nodes}
+
+
+def _clear_invalid_folder_link(model: Any, asset_type: str) -> None:
+    """Remove an existing folder link that the import should not preserve.
+
+    Called when an import carries no folder path.  If the asset already has
+    a ``FolderObject`` link pointing at a private, soft-deleted, or missing
+    folder, that link is deleted so the asset surfaces at root.  A link to
+    a live non-private folder is left alone.
+    """
+    from superset.folders.constants import ASSET_TYPE_CONFIGS
+    from superset.folders.models import Folder, FolderObject
+    from superset.models.helpers import skip_visibility_filter
+
+    if asset_type not in ASSET_TYPE_CONFIGS:
+        return
+
+    config = ASSET_TYPE_CONFIGS[asset_type]
+    fk_col = getattr(FolderObject, config.fk_column)
+    link = db.session.query(FolderObject).filter(fk_col == model.id).one_or_none()
+    if link is None:
+        return
+
+    with skip_visibility_filter(db.session, Folder):
+        folder = db.session.get(Folder, link.folder_id)
+    if folder is not None and folder.deleted_at is None and not folder.is_private:
+        return
+    db.session.delete(link)
+    db.session.flush()
 
 
 def folder_import_handler(
@@ -274,6 +303,7 @@ def folder_import_handler(
 
     path = extra.get("folder")
     if not path or asset_type not in ASSET_TYPE_CONFIGS:
+        _clear_invalid_folder_link(model, asset_type)
         return
 
     parent: Folder | None = None

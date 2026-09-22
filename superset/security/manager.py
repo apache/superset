@@ -582,23 +582,25 @@ class SupersetUserApi(UserApi):
         )
 
     def post_update(self, item: Model) -> None:
-        if not item.active:
-            from superset.extensions import feature_flag_manager
+        from superset.extensions import feature_flag_manager
 
-            if feature_flag_manager.is_feature_enabled(
-                "FOLDERS"
-            ) and feature_flag_manager.is_feature_enabled("FOLDER_PERMISSIONS"):
-                try:
-                    from superset.daos.folder import FolderDAO
+        if feature_flag_manager.is_feature_enabled(
+            "FOLDERS"
+        ) and feature_flag_manager.is_feature_enabled("FOLDER_PERMISSIONS"):
+            try:
+                from superset.daos.folder import FolderDAO
 
+                if not item.active:
                     FolderDAO.handle_user_deactivation(item.id, item.email)
-                    self.datamodel.session.commit()
-                except Exception:
-                    self.datamodel.session.rollback()
-                    logger.exception(
-                        "Failed to clean up folders for deactivated user %s",
-                        item.username,
-                    )
+                else:
+                    FolderDAO.handle_user_reactivation(item.id)
+                self.datamodel.session.commit()
+            except Exception:
+                self.datamodel.session.rollback()
+                logger.exception(
+                    "Failed to handle folder cleanup for user %s",
+                    item.username,
+                )
         _log_audit_event(
             "UserUpdated",
             {
