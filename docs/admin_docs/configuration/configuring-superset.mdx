@@ -279,6 +279,10 @@ using SQLite is highly discouraged due to security, scalability, and data integr
 It's important to use only the supported database engines and consider using a different
 database engine on a separate host or container.
 
+When purge-audit pruning is enabled on a SQLite metadata database, SQLite 3.25+
+uses window queries. Older or unknown SQLite versions use correlated predecessor
+queries instead; measure pruning cost on the selected backend before enabling it.
+
 Superset supports the following database engines/versions:
 
 | Database Engine                           | Supported Versions                             |

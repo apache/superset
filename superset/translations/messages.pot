@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-22 14:51+0900\n"
+"POT-Creation-Date: 2026-09-22 15:37-0600\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -5546,6 +5546,9 @@ msgid ""
 "correctly first; this only changes how they are displayed."
 msgstr ""
 
+msgid "Display format"
+msgstr ""
+
 msgid "Display headers for each column at the top of the matrix"
 msgstr ""
 
@@ -10992,6 +10995,9 @@ msgstr ""
 msgid "Reload SQL Lab"
 msgstr ""
 
+msgid "Reload the page and try again to continue."
+msgstr ""
+
 msgid "Remove"
 msgstr ""
 
@@ -11983,6 +11989,9 @@ msgid "Secure extra"
 msgstr ""
 
 msgid "Security"
+msgstr ""
+
+msgid "Security token error"
 msgstr ""
 
 msgid "See "
@@ -13808,6 +13817,9 @@ msgstr ""
 msgid "The API response from %s does not match the IDatabaseTable interface."
 msgstr ""
 
+msgid "The CSRF token could not be validated."
+msgstr ""
+
 msgid ""
 "The CSS for individual dashboards can be altered here, or in the "
 "dashboard view where changes are immediately visible"
@@ -14972,6 +14984,10 @@ msgid "There was an issue previewing the selected query. %s"
 msgstr ""
 
 #, python-format
+msgid "These %(type)s will be moved to Recently Archived and may be permanently deleted on the next cleanup run."
+msgstr ""
+
+#, python-format
 msgid ""
 "These %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover them there within %(days)s day."
@@ -14988,6 +15004,10 @@ msgid ""
 msgstr ""
 
 msgid "These are the datasets this filter will be applied to."
+msgstr ""
+
+#, python-format
+msgid "This %(type)s will be moved to Recently Archived and may be permanently deleted on the next cleanup run."
 msgstr ""
 
 #, python-format
@@ -18552,6 +18572,9 @@ msgid "value ascending"
 msgstr ""
 
 msgid "value descending"
+msgstr ""
+
+msgid "valuename"
 msgstr ""
 
 msgid "var"

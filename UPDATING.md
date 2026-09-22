@@ -61,6 +61,23 @@ reconstructed. The first enabled edit of an entity without history may create
 the existing baseline of its then-current state. Expected service failures must
 be handled by the host predicate; programming/database errors are not suppressed.
 
+### MCP response size guard: byte limit instead of estimated token count
+
+The MCP response-size guard no longer estimates LLM token counts (it
+previously used `tiktoken`'s `cl100k_base` encoding, with a character-based
+fallback). An MCP server has no way to know which client or tokenizer is
+actually consuming a response, so token estimation was replaced with the
+exact serialized UTF-8 byte length of the response, which is deterministic
+and tokenizer-agnostic. This also removes the `tiktoken` dependency
+entirely, including the unannounced network request it could make to
+download its vocabulary on a cold cache.
+
+`MCP_RESPONSE_SIZE_CONFIG["token_limit"]` is renamed to
+`MCP_RESPONSE_SIZE_CONFIG["max_bytes"]`, and its default changes from
+25,000 (estimated tokens) to 50,000 (exact bytes). Any deployment that has
+set `token_limit` in `superset_config.py` must rename the key to `max_bytes`
+and adjust the value for byte semantics.
+
 ### Scheduled report and alert retry admission
 
 Run `superset db upgrade` before starting workers with this version. The migration
@@ -107,6 +124,8 @@ error notice. This does not authorize replay of data-bearing notifications.
   its Presto dialect under SQLAlchemy 2 because it imports `sqlalchemy.databases`.
   Upgrade existing installations with `pip install "pyhive[presto]>=0.7.0"`.
 
+- The Databricks extra requires databricks-sqlalchemy 2.x (at least 2.0.1). The 1.x dialect requires SQLAlchemy below 2.
+
 - `superset deletion-retention force-purge` now exits **1** when the target is
   blocked by a deletion rule or is not found (the messages are unchanged), so a
   scripted compliance erasure cannot mistake a refusal for a completed purge.
@@ -139,7 +158,7 @@ for the chosen metrics, or explicitly request `include_compatible_dimensions=tru
 with `page_size` at most 8 for every scope, including built-in `dataset_id`
 requests. Non-embedded requests retain the 500-metric ceiling.
 This fixed embedding cap is independent of the operator's
-`MCP_RESPONSE_SIZE_CONFIG['token_limit']` (25,000 by default); it does not guarantee
+`MCP_RESPONSE_SIZE_CONFIG['max_bytes']` (50,000 by default); it does not guarantee
 that every payload fits a configured response limit.
 
 ### Default Docker image is now batteries-included; the minimal image moves to `-lean`
@@ -528,18 +547,29 @@ theme editor picker.
   discovery or between batches) — since a writer rolled back mid-run would
   admit exactly the uncoordinated insert the forward rollout prohibits.
   Each pruning batch holds the singleton audit coordination lock — the lock
-  every audit write takes — for its locked re-check, whose cost grows with
-  the batch size times the history depth of the entities in it: a
-  workload-dependent trade-off, not a time bound. `PURGE_AUDIT_PRUNING_BATCH_SIZE`
-  (default 50, non-boolean integer in [1, 500]) is the lever on how long a
-  concurrent purge's audit write can wait. Measured on one entity with a
-  6,000-row multi-reason blocked history (lock-hold per batch, PostgreSQL /
-  MySQL 8 REPEATABLE READ; the MySQL 500 figure is estimated from EXPLAIN
-  ANALYZE rather than a measured acquire-to-release sample): 50 →
-  ~0.15 s / ~1.2 s; 100 → ~0.9 s / ~7.7 s; 500 → ~6.4 s / ~50 s. The default
-  keeps a writer's wait around a second even on MySQL; larger batches drain a
-  backlog faster (ten batches per run) at the cost of longer waits. An
-  invalid value makes the run skip entirely and report the key. Deployments that replace the default
+  audit creation/recovery also takes — for its locked re-check. Cost depends
+  on batch size, entity history, backend and query plan, not a fixed time bound.
+  `PURGE_AUDIT_PRUNING_BATCH_SIZE` accepts non-boolean integers in **[1, 100]**,
+  default 50. Deployments using an earlier build that accepted 101–500 must
+  lower that setting before upgrading; invalid values skip the entire run and
+  report the key. Monitor the `invalid_config` counter as well as backlog:
+  a skipped run's `carried_over=0` does not establish that the backlog is empty.
+  The ceiling keeps repeated window-scope binds below SQLite's historical
+  999-variable limit; custom limits below 750 require a smaller batch.
+  MySQL before 8.0, MariaDB before 10.2, SQLite before 3.25 and unknown
+  MySQL-family/SQLite versions use equivalent correlated predecessor probes
+  instead of window tables. That legacy plan may be slower on deep histories;
+  measure the selected path and
+  writer wait on the target backend rather than reusing timings from another plan.
+  MySQL-family dispatch trusts the dialect's `SELECT VERSION()` banner: a proxy advertising
+  MySQL 8.x in front of MySQL 5.7 selects `LAG` and fails at runtime.
+  Ten batches are shared across all categories per run, so the removal upper
+  bound is **500 at the default or 1,000 at the ceiling**, and can be lower
+  when rechecks reject candidates or categories use short batches. The default
+  daily schedule provides one such budget per day; it does not guarantee that
+  a deployment's incoming backlog can be drained. Compare measured reclamation
+  with observed eligible-row volume before enabling pruning.
+  Deployments that replace the default
   `CELERY_CONFIG` must carry the new beat entry forward (the task shares
   `superset.tasks.deletion_retention` with the purge task, so no new worker
   import is needed). When audit pruning is enabled, a missing schedule or
@@ -555,8 +585,9 @@ theme editor picker.
   where a lock or statement timeout is configured — and on MySQL
   (``innodb_lock_wait_timeout``) or SQLite (which does not wait) — the write
   instead fails closed, so the affected purge cycle is skipped and retried on its
-  next run rather than losing data. Batches are bounded (500 rows) and
-  index-backed to keep the window short — run pruning off-peak if the overlap is
+  next run rather than losing data. Batches are bounded by
+  `PURGE_AUDIT_PRUNING_BATCH_SIZE` (default 50, maximum 100); lock-hold time is
+  workload-dependent, not time-bounded. Run pruning off-peak if the overlap is
   noticeable.
 
 - The chart list applies the same type-aware datasource visibility as the dashboard list: charts on semantic views (and other non-table datasource types carrying a permission) are now listed for users holding `datasource_access` on the datasource or on its parent semantic layer — previously such charts never appeared in the chart list — and a chart on a non-table datasource is no longer listed to users whose only entitlement is a database/schema/catalog grant matching an unrelated table that shares its numeric id. Table-backed chart visibility, explicit viewer/editor grants, and embedded-guest scoping are unchanged.
@@ -1250,14 +1281,14 @@ Entity version history (the `version_transaction` / `*_version` shadow tables th
 
 | Key | Default | Purpose |
 |---|---|---|
-| `VERSION_HISTORY_RETENTION_DAYS` | `30` | Version rows whose owning `version_transaction.issued_at` is older than this many days are pruned. Each entity's live row (`end_transaction_id IS NULL`) is always preserved, as are the live rows of its children and associations; closed historical rows (including the baseline) age out. Set to `0` or a negative value to disable pruning. |
+| `VERSION_HISTORY_RETENTION_DAYS` | `30` | Version rows whose owning `version_transaction.issued_at` is older than this many days are pruned. Each entity's live row (`end_transaction_id IS NULL`) is always preserved, as are the live rows of its children and associations; closed historical rows (including the baseline) age out. `0` disables pruning; `-1` makes historical rows eligible on the next scheduled run. Other negative values are invalid and skip pruning. |
 
 The task ships in the default `CeleryConfig` (both the `superset.tasks.version_history_retention` import and the beat entry). A deployment that overrides `CELERY_CONFIG` without the beat entry logs a startup warning. When the override explicitly defines `imports`, a missing retention module is also reported; an absent `imports` setting is not diagnosed because Celery may register tasks through `include`, autodiscovery, or worker startup imports. Retention only prunes whatever history exists — capture itself is gated separately by `ENABLE_VERSIONING_CAPTURE`, which now ships on.
 
 ### Deletion retention (soft-deleted entities are eventually purged)
 
 `SOFT_DELETE_RETENTION_DAYS` also accepts an environment seed: an integer from
-0 through 36500, defaulting to 30 when absent or invalid. An optional
+-1 through 36500, defaulting to 30 when absent or invalid. An optional
 `SOFT_DELETE_RETENTION_DAYS_FUNC` host callback takes precedence over both the
 stored CLI value and config seed. It must return a nonboolean integer in that
 range; invalid results or callback failure defer scheduled purge with 0, without
@@ -1284,7 +1315,7 @@ With the flag on, delete confirmations across the chart/dashboard/dataset list p
 
 This also resolves the limitation noted under *Soft delete and restore for datasets*: a database blocked by soft-deleted datasets can now be freed by purging those datasets (per-entity endpoint, retention task, or `force-purge` CLI) instead of hard-deleting `tables` rows out-of-band.
 
-Automatic pruning of the `purge_audit_log` table is available but **off by default**: set `PURGE_AUDIT_PRUNING_ENABLED = True` to enable the `deletion_retention.prune_purge_audit` Celery beat task (daily, 03:30), which collapses duplicate `blocked` records and ages out operational noise. That bounds the growth that comes from scheduled purges being repeatedly blocked or failing; it is **not** a bound on total table size. Force-purge (`force`-triggered) `blocked` records are retained permanently — exempt from both the duplicate collapse and the operational age-out, including in resolved streaks — so repeated `force-purge` attempts against a persistently blocked entity still add a record each; completed-destruction evidence is retained by default; and the first `blocked` record after each change of block reason is preserved. Left at its default (`PURGE_AUDIT_PRUNING_ENABLED = False`) the table is never pruned at all — enabling it is an explicit operator choice, and a second-phase one (see the rollout requirement in the release-note entry above). `PURGE_AUDIT_PRUNING_BATCH_SIZE` (default 50) caps the candidates per batch; how long a batch holds the audit coordination lock against concurrent audit writes grows with that cap and with the history depth of the entities in the batch — a workload-dependent trade-off against drain speed, not a time bound; see the release-note entry for the measured numbers. The policy is written to preserve the audit's meaning rather than trade it away: within an entity's current blockage streak the earliest — "blocked since" — record always survives (only redundant duplicate `blocked` records are collapsed), and completed-destruction evidence (`confirmed`, `target_absent`) is **never** removed unless the separate `PURGE_AUDIT_EVIDENCE_RETENTION_DAYS` opt-in is explicitly set. What ages out is operational noise — scheduled `blocked` records from already-resolved streaks and `failed` records — once older than `PURGE_AUDIT_OPERATIONAL_RETENTION_DAYS` (default 90). See the release-note entry above for the beat-schedule and `CELERY_CONFIG` details.
+Automatic pruning of the `purge_audit_log` table is available but **off by default**: set `PURGE_AUDIT_PRUNING_ENABLED = True` to enable the `deletion_retention.prune_purge_audit` Celery beat task (daily, 03:30), which collapses duplicate `blocked` records and ages out operational noise. That bounds the growth that comes from scheduled purges being repeatedly blocked or failing; it is **not** a bound on total table size. Force-purge (`force`-triggered) `blocked` records are retained permanently — exempt from both the duplicate collapse and the operational age-out, including in resolved streaks — so repeated `force-purge` attempts against a persistently blocked entity still add a record each; completed-destruction evidence is retained by default; and the first `blocked` record after each change of block reason is preserved. Left at its default (`PURGE_AUDIT_PRUNING_ENABLED = False`) the table is never pruned at all — enabling it is an explicit operator choice, and a second-phase one (see the rollout requirement in the release-note entry above). `PURGE_AUDIT_PRUNING_BATCH_SIZE` (default 50) caps the candidates per batch; how long a batch holds the audit coordination lock against concurrent audit writes grows with that cap and with the history depth of the entities in the batch — a workload-dependent trade-off against drain speed, not a time bound; see the release-note entry for capacity limits and measurement guidance. The policy is written to preserve the audit's meaning rather than trade it away: within an entity's current blockage streak the earliest — "blocked since" — record always survives (only redundant duplicate `blocked` records are collapsed), and completed-destruction evidence (`confirmed`, `target_absent`) is **never** removed unless the separate `PURGE_AUDIT_EVIDENCE_RETENTION_DAYS` opt-in is explicitly set. What ages out is operational noise — scheduled `blocked` records from already-resolved streaks and `failed` records — once older than `PURGE_AUDIT_OPERATIONAL_RETENTION_DAYS` (default 90). See the release-note entry above for the beat-schedule and `CELERY_CONFIG` details.
 
 
 ### Webhook alerts/reports block private/internal hosts by default
