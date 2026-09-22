@@ -87,27 +87,33 @@ def _load_dataset_for_samples(
     return dataset, None
 
 
-def _repoints_table(dataset: SqlaTable, requested_table: Table) -> bool:
+def _repoints_table(
+    datasource: DatasourceModel,
+    datasource_dict: dict[str, Any],
+    requested_table: Table,
+) -> bool:
     """
-    Would the request point ``dataset`` at a different physical table?
+    Would the request point ``datasource`` at a different physical table?
 
-    Callers must have established that the result is physical (the request
-    carries no ``sql``); this answers the question only under that precondition.
+    Only datasets carry a table pointer, and a result that is still virtual is
+    not pointed at a physical table at all; both answer no.
 
     A virtual dataset's ``table_name`` is a label rather than a pointer, as in
     ``UpdateDatasetCommand._validate_dataset_source``. Dropping the SQL binds
     that label to a real table, so a virtual-to-physical conversion is a
     repoint even when the label itself is unchanged.
     """
-    if dataset.is_virtual:
+    if not isinstance(datasource, SqlaTable) or datasource_dict.get("sql"):
+        return False
+    if datasource.is_virtual:
         return True
     # Compared field by field: ``Table.__eq__`` compares the dotted rendering,
     # which would conflate distinct targets. ``BaseDatasource.data`` emits an
     # empty schema as None, so both sides are normalised.
     return (requested_table.table, requested_table.schema, requested_table.catalog) != (
-        dataset.table_name,
-        dataset.schema or None,
-        dataset.catalog or None,
+        datasource.table_name,
+        datasource.schema or None,
+        datasource.catalog or None,
     )
 
 
@@ -146,21 +152,12 @@ class Datasource(BaseSupersetView):
             raise DatasetForbiddenError() from ex
 
         database_changed = database_id != orm_datasource.database_id
-        # ``update_from_object`` (below) replaces rather than merges, so an
-        # omitted key lands as None; read the target the same way so it reads
-        # as a repoint here too.
+        # Read the target the way ``update_from_object`` (below) will apply it,
+        # so an omitted key reads as a repoint here too.
         requested_table = Table(
             datasource_dict.get("table_name"),
             datasource_dict.get("schema") or None,
             datasource_dict.get("catalog") or None,
-        )
-        # Only datasets carry a table pointer; the other datasource types this
-        # endpoint accepts have nothing to repoint, and a result that is still
-        # virtual is not pointed at a physical table at all.
-        repoints_table = (
-            isinstance(orm_datasource, SqlaTable)
-            and not datasource_dict.get("sql")
-            and _repoints_table(orm_datasource, requested_table)
         )
 
         if database_changed:
@@ -174,7 +171,9 @@ class Datasource(BaseSupersetView):
         # create path; editorship of the dataset alone is not sufficient. Note
         # this ports ``UpdateDatasetCommand``'s table check only; it has no
         # counterpart to the separate SQL-access check the command runs.
-        if database_changed or repoints_table:
+        if database_changed or _repoints_table(
+            orm_datasource, datasource_dict, requested_table
+        ):
             try:
                 security_manager.raise_for_access(
                     database=target_database,

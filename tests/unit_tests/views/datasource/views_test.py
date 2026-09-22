@@ -284,29 +284,9 @@ def test_save_always_checks_editorship_even_without_editors_field(
         )
     )
 
-    from flask import Flask
-
-    from superset.commands.dataset.exceptions import DatasetForbiddenError
-
-    raw_save = _get_view_func("save")
-    app = Flask(__name__)
-    with app.test_request_context(
-        "/datasource/save/",
-        method="POST",
-        data={
-            "data": superset_json.dumps(
-                {
-                    "id": 1,
-                    "type": "table",
-                    "database": {"id": 1},
-                    "columns": [],
-                    # 'editors' intentionally omitted
-                }
-            )
-        },
-    ):
-        with pytest.raises(DatasetForbiddenError):
-            raw_save(_view_self())
+    with pytest.raises(DatasetForbiddenError):
+        # 'editors' intentionally omitted
+        _run_save(database={"id": 1})
 
     mock_security_manager.raise_for_editorship.assert_called_once_with(mock_orm)
 
@@ -328,29 +308,9 @@ def test_save_non_editor_with_editors_field_is_rejected(
         )
     )
 
-    from flask import Flask
-
-    from superset.commands.dataset.exceptions import DatasetForbiddenError
-
-    raw_save = _get_view_func("save")
-    app = Flask(__name__)
-    with app.test_request_context(
-        "/datasource/save/",
-        method="POST",
-        data={
-            "data": superset_json.dumps(
-                {
-                    "id": 1,
-                    "type": "table",
-                    "database": {"id": 1},
-                    "columns": [],
-                    "editors": [99],  # attacker-supplied editors list
-                }
-            )
-        },
-    ):
-        with pytest.raises(DatasetForbiddenError):
-            raw_save(_view_self())
+    with pytest.raises(DatasetForbiddenError):
+        # editors list supplied by the caller
+        _run_save(database={"id": 1}, editors=[99])
 
     mock_security_manager.raise_for_editorship.assert_called_once_with(mock_orm)
 
