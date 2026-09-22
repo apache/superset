@@ -189,6 +189,21 @@ class ChartInfo(BaseModel):
             "sees in the Explore view, not the saved version."
         ),
     )
+    permalink_key: str | None = Field(
+        default=None,
+        description=(
+            "Explore permalink key the form_data was read from. When present, the "
+            "form_data is the state captured in that permalink rather than the "
+            "saved chart."
+        ),
+    )
+    is_permalink_state: bool = Field(
+        default=False,
+        description=(
+            "True if the form_data came from an Explore permalink (a shared "
+            "/explore/p/<key>/ link) rather than the saved chart configuration."
+        ),
+    )
 
     model_config = ConfigDict(
         from_attributes=True,
@@ -297,6 +312,8 @@ DEFAULT_GET_CHART_INFO_COLUMNS: List[str] = [
     "filters",
     "form_data_key",
     "is_unsaved_state",
+    "permalink_key",
+    "is_permalink_state",
 ]
 
 
@@ -309,6 +326,10 @@ class GetChartInfoRequest(BaseModel):
 
     For unsaved charts (no chart ID), provide only form_data_key to retrieve the
     current chart configuration from cache.
+
+    When permalink_key is provided, the tool returns the chart state captured in an
+    Explore permalink (/explore/p/<key>/), such as a link a user shared or one
+    returned by generate_explore_link.
     """
 
     model_config = ConfigDict(populate_by_name=True)
@@ -319,7 +340,7 @@ class GetChartInfoRequest(BaseModel):
             default=None,
             description=(
                 "Chart identifier - can be numeric ID or UUID string. "
-                "Optional when form_data_key is provided (for unsaved charts)."
+                "Optional when form_data_key or permalink_key is provided."
             ),
             validation_alias=AliasChoices("identifier", "id", "chart_id"),
         ),
@@ -332,6 +353,16 @@ class GetChartInfoRequest(BaseModel):
             "with this key. If provided, the tool returns the current unsaved "
             "configuration instead of the saved version. "
             "Can be used alone (without identifier) for unsaved charts."
+        ),
+    )
+    permalink_key: str | None = Field(
+        default=None,
+        description=(
+            "Key of an Explore permalink - the <key> in /explore/p/<key>/ - or the "
+            "full permalink URL. Returns the chart state captured in the "
+            "permalink instead of the saved version. Permalinks do not expire. "
+            "Can be used alone: the chart is resolved from the permalink. Cannot "
+            "be combined with form_data_key."
         ),
     )
     dashboard_id: int | None = Field(
@@ -366,11 +397,33 @@ class GetChartInfoRequest(BaseModel):
         ),
     ]
 
+    @field_validator("permalink_key", mode="before")
+    @classmethod
+    def _extract_permalink_key(cls, value: Any) -> Any:
+        """Accept a full /explore/p/<key>/ URL as well as the bare key."""
+        from superset.mcp_service.utils.url_utils import (
+            extract_permalink_key_from_url,
+        )
+
+        if isinstance(value, str) and "/" in value:
+            if key := extract_permalink_key_from_url(value):
+                return key
+            raise ValueError(
+                "permalink_key must be an Explore permalink key or a "
+                "/explore/p/<key>/ URL"
+            )
+        return value
+
     @model_validator(mode="after")
     def validate_identifier_or_form_data_key(self) -> "GetChartInfoRequest":
-        if not self.identifier and not self.form_data_key:
+        if not self.identifier and not self.form_data_key and not self.permalink_key:
             raise ValueError(
-                "At least one of 'identifier' or 'form_data_key' must be provided."
+                "At least one of 'identifier', 'form_data_key' or 'permalink_key' "
+                "must be provided."
+            )
+        if self.form_data_key and self.permalink_key:
+            raise ValueError(
+                "Provide either 'form_data_key' or 'permalink_key', not both."
             )
         return self
 
@@ -1451,6 +1504,86 @@ class TreemapChartConfig(BaseChartConfig):
                     "'aggregate'/'saved_metric' (metrics belong in the 'metric' "
                     "field)"
                 )
+        return self
+
+
+class BubbleChartConfig(BaseChartConfig):
+    """Config for bubble charts (viz_type ``bubble_v2``).
+
+    Matches the frontend Bubble buildQuery contract: an ``entity`` dimension
+    identifies each bubble, three separate metrics position and size it
+    (``x``, ``y``, ``size``), and an optional ``series`` dimension colours the
+    bubbles by group.
+    """
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    chart_type: Literal["bubble_v2"] = "bubble_v2"
+    entity: ColumnRef = Field(
+        ...,
+        description="Category column identifying each bubble (e.g. country)",
+    )
+    x: ColumnRef = Field(
+        ...,
+        description="Metric for the bubble's horizontal position (use "
+        "aggregate e.g. AVG, or saved_metric=True for a saved metric)",
+    )
+    y: ColumnRef = Field(
+        ...,
+        description="Metric for the bubble's vertical position",
+    )
+    size: ColumnRef = Field(
+        ...,
+        description="Metric for the bubble's area",
+    )
+    series: ColumnRef | None = Field(
+        None,
+        description="Optional category column colouring the bubbles by group",
+    )
+    row_limit: int = Field(10000, description="Max bubbles queried", ge=1, le=100000)
+    filters: List[FilterConfig] | None = Field(
+        None,
+        description="Structured filters (column/op/value). "
+        "Do NOT use adhoc_filters or raw SQL expressions.",
+    )
+    color_scheme: str | None = Field(
+        None,
+        description=(
+            "Superset color scheme ID (e.g. 'supersetColors', 'lyftColors', "
+            "'googleCategory10c', 'd3Category10'). Defaults to 'supersetColors'."
+        ),
+        max_length=100,
+    )
+
+    @model_validator(mode="after")
+    def reject_metric_style_dimensions(self) -> "BubbleChartConfig":
+        """entity and series are dimensions, not metrics."""
+        dims = [(self.entity, "entity")]
+        if self.series is not None:
+            dims.append((self.series, "series"))
+        for col, name in dims:
+            _reject_sql_expression_on_dimension(col, name)
+            if col.is_metric:
+                raise ValueError(
+                    f"{name} must be a plain column, not a metric; drop "
+                    "'aggregate'/'saved_metric' (metrics belong in the 'x', "
+                    "'y', or 'size' fields)"
+                )
+        return self
+
+    @model_validator(mode="after")
+    def record_implicit_metric_aggregate(self) -> "BubbleChartConfig":
+        """x, y and size are metric slots, so a bare column is summed.
+
+        ``create_metric_object`` applies that default when it builds the
+        form_data. Recording it here keeps the aggregate-compatibility check
+        from skipping the ref — SUM of a text column is then rejected with a
+        clear message instead of failing in the database.
+        """
+        for field_name in ("x", "y", "size"):
+            col: ColumnRef = getattr(self, field_name)
+            if not col.is_metric:
+                setattr(self, field_name, col.model_copy(update={"aggregate": "SUM"}))
         return self
 
 
@@ -3463,6 +3596,7 @@ ChartConfig = Annotated[
     | PieChartConfig
     | GaugeChartConfig
     | TreemapChartConfig
+    | BubbleChartConfig
     | PivotTableChartConfig
     | InteractivePivotChartConfig
     | MixedTimeseriesChartConfig
@@ -3476,8 +3610,8 @@ ChartConfig = Annotated[
         discriminator="chart_type",
         description=(
             "Chart configuration - specify chart_type as 'xy', 'table', "
-            "'pie', 'gauge', 'treemap_v2', 'pivot_table', 'interactive_pivot', "
-            "'mixed_timeseries', 'handlebars', "
+            "'pie', 'gauge', 'treemap_v2', 'bubble_v2', 'pivot_table', "
+            "'interactive_pivot', 'mixed_timeseries', 'handlebars', "
             "'big_number', 'histogram', 'box_plot', 'waterfall', or 'gantt'"
         ),
     ),

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t } from '@apache-superset/core/translation';
-import { SupersetClient } from '@superset-ui/core';
+import { SupersetClient, getClientErrorObject } from '@superset-ui/core';
 import { FormModal, FormItem, Input } from '@superset-ui/core/components';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { User } from 'src/types/bootstrapTypes';
@@ -58,9 +58,12 @@ function UserInfoModal({
           ? t('The user was updated successfully')
           : t('The password reset was successful'),
       );
-      onSave();
-    } catch (error) {
-      addDangerToast(t('Something went wrong while saving the user info'));
+    } catch (response) {
+      const { error } = await getClientErrorObject(response);
+      addDangerToast(
+        error || t('Something went wrong while saving the user info'),
+      );
+      throw response;
     }
   };
 

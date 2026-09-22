@@ -39,7 +39,7 @@ x-common-build: &common-build
   context: .
   target: ${SUPERSET_BUILD_TARGET:-dev} # dev (default, live-reload); also `superset` (batteries-included) or `lean` (minimal)
   cache_from:
-    - apache/superset-cache:3.11.14-slim-trixie
+    - apache/superset-cache:3.11-slim-trixie
   args:
     DEV_MODE: "true"
     INCLUDE_CHROMIUM: ${INCLUDE_CHROMIUM:-false}
@@ -257,7 +257,7 @@ services:
       - "host.docker.internal:host-gateway"
     healthcheck:
       test: ["CMD-SHELL", "celery -A superset.tasks.celery_app:app inspect ping -d celery@$$HOSTNAME"]
-    # Bump memory limit if processing selenium / thumbnails on superset-worker
+    # Bump memory limit if processing screenshots / thumbnails on superset-worker
     # mem_limit: 2038m
     # mem_reservation: 128M
 

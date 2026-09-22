@@ -142,7 +142,9 @@ WHERE region IN {{ filter_values('region')|where_in }}
 GROUP BY product
 ```
 
-The `where_in` filter converts the list to SQL format: `('value1', 'value2', 'value3')`
+The `where_in` filter converts the list to SQL format: `('value1', 'value2', 'value3')`.
+Percent signs are preserved as literal data: `{{ ['50%', '%%']|where_in }}` renders
+as `('50%', '%%')`, not as a `LIKE` pattern.
 
 ### Time Filters
 
