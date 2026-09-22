@@ -1140,3 +1140,49 @@ def test_pivot_preserves_null_numeric_index_value() -> None:
         f"Expected '{NULL_STRING}' in pivot index; got {result.index.tolist()}"
     )
     assert result.loc[NULL_STRING, "v"] == 99
+
+
+def test_pivot_categorical_index_without_null_omits_unobserved_bucket() -> None:
+    """A categorical index column with no missing values must not gain a
+    spurious NULL_STRING category: adding the category unconditionally makes
+    pivot_table()'s default observed=False materialize an unobserved
+    '<NULL>' group that was never in the input.
+    """
+    df = DataFrame(
+        {
+            "row": pd.Categorical(["r1", "r2", "r1"]),
+            "v": [10, 20, 30],
+        }
+    )
+    result = pivot(
+        df=df,
+        index=["row"],
+        aggregates={"v": {"operator": "sum"}},
+    )
+    assert NULL_STRING not in result.index, (
+        f"Did not expect '{NULL_STRING}' in pivot index; got {result.index.tolist()}"
+    )
+    assert sorted(result.index.tolist()) == ["r1", "r2"]
+
+
+def test_pivot_preserves_null_index_value_nullable_extension_dtype() -> None:
+    """A pandas nullable extension dimension (Int64, Float64, boolean, ...)
+    containing pd.NA must be preserved as '<NULL>' rather than raising a
+    TypeError: filling those masked arrays with a string sentinel is only
+    valid after casting to object dtype.
+    """
+    df = DataFrame(
+        {
+            "num_idx": pd.array([1, None, 2], dtype="Int64"),
+            "v": [10, 99, 30],
+        }
+    )
+    result = pivot(
+        df=df,
+        index=["num_idx"],
+        aggregates={"v": {"operator": "sum"}},
+    )
+    assert NULL_STRING in result.index, (
+        f"Expected '{NULL_STRING}' in pivot index; got {result.index.tolist()}"
+    )
+    assert result.loc[NULL_STRING, "v"] == 99
