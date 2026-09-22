@@ -29,9 +29,13 @@ assists people when migrating to a new version.
 Use `VERSION_HISTORY_RETENTION_DAYS` for both the application setting and
 environment variable. The unreleased `SUPERSET_VERSION_HISTORY_RETENTION_DAYS`
 name is removed without an alias. Update any pre-release configuration, including
-explicit cleanup disables. The default remains 30 days; non-positive values
-disable pruning, and invalid or oversized environment values retain the existing
-30-day fallback.
+explicit cleanup disables. The default remains 30 days; zero disables pruning.
+For both this setting and `SOFT_DELETE_RETENTION_DAYS`, `-1` means immediate
+eligibility on the next scheduled cleanup run, with its clock as cutoff (not a
+future cutoff). Live/current data and normal purge guards remain protected.
+Other negative values are invalid: history retention skips them; the soft-delete
+environment parser retains its 30-day fallback. Invalid or oversized environment
+values otherwise retain the existing 30-day fallback. Host policy failures defer.
 
 ### Version history API access follows `VERSION_HISTORY`
 

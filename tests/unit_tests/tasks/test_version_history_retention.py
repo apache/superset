@@ -17,7 +17,7 @@
 """Unit tests for the operational instrumentation in
 ``superset.tasks.version_history_retention``.
 
-Covers the branches that emit statsd counters: the ``retention_days <= 0``
+Covers the branches that emit statsd counters: the disabled-retention
 short-circuit, incomplete shadow-table resolution, the ``OperationalError``
 retry path, and the terminal failure counter. The
 "happy path" / SERIALIZABLE retry behaviour against a real database is
@@ -51,7 +51,7 @@ def _stats_fixture() -> Iterator[MagicMock]:
 
 
 def test_retention_disabled_emits_skipped_metric(stats: MagicMock) -> None:
-    """``retention_days <= 0`` is the documented "disable retention"
+    """``retention_days == 0`` is the documented "disable retention"
     config. The early-return must emit ``superset.versioning.retention.skipped``
     so a dashboard can tell "operator disabled it" apart from "scheduler
     isn't running"."""
@@ -61,7 +61,7 @@ def test_retention_disabled_emits_skipped_metric(stats: MagicMock) -> None:
     stats.gauge.assert_not_called()
 
 
-@pytest.mark.parametrize("value", [0, -1, 360, "360"])
+@pytest.mark.parametrize("value", [0, -1, 360, "360", "-1"])
 def test_task_reads_canonical_application_retention(
     stats: MagicMock, value: int | str
 ) -> None:
@@ -81,6 +81,22 @@ def test_task_reads_canonical_application_retention(
         assert version_history_retention.prune_old_versions() == {}
     prune.assert_called_once_with(int(value))
     stats.incr.assert_not_called()
+
+
+@pytest.mark.parametrize("value", [-1.0, -1.5, True, False, None])
+def test_task_does_not_coerce_invalid_input_to_immediate(
+    value: object, stats: MagicMock
+) -> None:
+    """A malformed runtime config cannot accidentally select immediate cleanup."""
+    app: Flask = Flask(__name__)
+    app.config["VERSION_HISTORY_RETENTION_DAYS"] = value
+    prune: MagicMock
+    with (
+        app.app_context(),
+        patch.object(version_history_retention, "_prune_old_versions_impl") as prune,
+    ):
+        assert version_history_retention.prune_old_versions.run() == {"error": 1}
+    prune.assert_not_called()
 
 
 def test_task_normalizes_string_retention_config(stats: MagicMock) -> None:

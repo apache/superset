@@ -45,7 +45,7 @@ def _resolve() -> int:
     return resolve_retention_window()
 
 
-@pytest.mark.parametrize("days", [0, 30, 180, 360])
+@pytest.mark.parametrize("days", [-1, 0, 30, 180, 360])
 def test_host_policy_precedes_shared_override(app_config: Config, days: int) -> None:
     """An installed host policy is authoritative, including disabled/deferred zero."""
     app_config["SOFT_DELETE_RETENTION_DAYS_FUNC"] = lambda: days
@@ -57,7 +57,7 @@ def test_host_policy_precedes_shared_override(app_config: Config, days: int) -> 
     shared.assert_not_called()
 
 
-@pytest.mark.parametrize("value", [None, True, "360", -1, 36501])
+@pytest.mark.parametrize("value", [None, True, "360", -2, 36501])
 def test_invalid_host_policy_defers_without_shared_fallback(
     app_config: Config, value: object
 ) -> None:
@@ -111,6 +111,19 @@ def test_zero_shared_value_is_preserved_not_coerced(app_config: Config) -> None:
         return_value=0,
     ):
         assert _resolve() == 0
+
+
+@pytest.mark.parametrize("shared", [None, -1])
+def test_immediate_window_from_shared_or_config(
+    app_config: Config, shared: int | None
+) -> None:
+    """Both standalone configuration sources preserve immediate eligibility."""
+    app_config["SOFT_DELETE_RETENTION_DAYS"] = -1
+    with patch(
+        "superset.commands.deletion_retention.window.get_shared_value",
+        return_value=shared,
+    ):
+        assert _resolve() == -1
 
 
 def test_malformed_shared_value_falls_back(app_config: Config) -> None:

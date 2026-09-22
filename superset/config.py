@@ -1028,7 +1028,8 @@ FEATURE_FLAGS: dict[str, bool] = {}
 
 
 # Retention policy for soft-deleted dashboards, charts, and datasets. A value of
-# zero disables scheduled purging. Purging is live by default, so the retention
+# zero disables scheduled purging; -1 makes deleted rows eligible on the next
+# scheduled run. Purging is live by default, so the retention
 # promise above is real on a stock deployment; set SOFT_DELETE_PURGE_DRY_RUN back
 # to True to have the task log ``would_purge`` counts without deleting anything.
 def _parse_soft_delete_retention_days() -> int:
@@ -1038,7 +1039,7 @@ def _parse_soft_delete_retention_days() -> int:
         return 30
     try:
         days: int = int(value)
-        if 0 <= days <= 36500:
+        if -1 <= days <= 36500:
             return days
     except ValueError:
         pass
@@ -1781,7 +1782,8 @@ VERSIONING_CAPTURE_PREDICATE: Callable[[Session], bool] | None = None
 # If any row anchored at a transaction is live
 # (``end_transaction_id IS NULL``), that entire transaction is preserved.
 # Baseline rows (``operation_type=0``) and closed historical rows otherwise
-# age out alongside the rest. Any non-positive value disables pruning.
+# age out alongside the rest. Zero disables pruning; -1 makes historical rows
+# eligible on the next scheduled run, using the run's clock as the cutoff.
 # Read from environment variable of the same name.
 _DEFAULT_VERSION_HISTORY_RETENTION_DAYS: int = 30
 # Keep cutoff arithmetic comfortably inside ``datetime``'s supported range
@@ -1795,7 +1797,7 @@ def _parse_version_history_retention_days() -> int:
     if value is None:
         return _DEFAULT_VERSION_HISTORY_RETENTION_DAYS
     try:
-        retention_days = int(value)
+        retention_days: int = int(value)
     except ValueError:
         logger.warning(
             "Invalid VERSION_HISTORY_RETENTION_DAYS=%r; using %d",
@@ -1803,6 +1805,9 @@ def _parse_version_history_retention_days() -> int:
             _DEFAULT_VERSION_HISTORY_RETENTION_DAYS,
         )
         return _DEFAULT_VERSION_HISTORY_RETENTION_DAYS
+    if retention_days < -1:
+        logger.warning("Invalid negative VERSION_HISTORY_RETENTION_DAYS; skipping")
+        return 0
     if retention_days > _MAX_VERSION_HISTORY_RETENTION_DAYS:
         logger.warning(
             "VERSION_HISTORY_RETENTION_DAYS=%r exceeds the maximum of %d; using %d",
@@ -1892,7 +1897,7 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
         },
         # Entity version-history retention. Daily at 03:00; the task
         # itself short-circuits when VERSION_HISTORY_RETENTION_DAYS
-        # is non-positive (disabled).
+        # is zero (disabled) or below -1 (invalid).
         "version_history.prune_old_versions": {
             "task": "version_history.prune_old_versions",
             "schedule": crontab(minute=0, hour=3),

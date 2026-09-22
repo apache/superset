@@ -47,6 +47,9 @@ export function getSoftDeleteRetentionDays(): number {
     return 0;
   }
   const days = Number(raw);
+  if (days === -1) {
+    return -1;
+  }
   return Number.isFinite(days) && days > 0 ? days : 0;
 }
 
@@ -66,6 +69,17 @@ export function archiveConfirmDescription(
   // window accepts 1: "within 1 days" is exactly the copy defect this module
   // exists to prevent.
   const days = getSoftDeleteRetentionDays();
+  if (days === -1) {
+    return plural
+      ? t(
+          'These %(type)s will be moved to Recently Archived and may be permanently deleted on the next cleanup run.',
+          { type: typeLabel },
+        )
+      : t(
+          'This %(type)s will be moved to Recently Archived and may be permanently deleted on the next cleanup run.',
+          { type: typeLabel },
+        );
+  }
   if (days) {
     return plural
       ? tn(

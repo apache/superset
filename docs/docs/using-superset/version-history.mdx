@@ -75,13 +75,30 @@ is 30 days; set it to `0` to disable pruning. The scheduled retention task prese
 live versions and prunes eligible closed history older than the configured window.
 Changing retention does not enable history access or capture.
 
+Both retention settings accept `-1` for immediate eligibility on the next normal
+cleanup run, not immediate execution. The cutoff is the run's clock: future-dated
+rows remain ineligible. Current versions and live entities remain protected;
+soft-delete purge still requires a deleted entity and passes the normal cascade,
+dependency, feature-gate and dry-run checks. Other negative values are invalid.
+
 Archived entity cleanup is separate: `SOFT_DELETE_RETENTION_DAYS` defaults to
-30 days and accepts the same-name environment seed (0 through 36500; 0 disables
+30 days and accepts the same-name environment seed (-1 through 36500; 0 disables
 scheduled purge). A host can install `SOFT_DELETE_RETENTION_DAYS_FUNC` to supply
 an authoritative integer window before the stored CLI override. Invalid or
 unavailable callback results defer purge with 0; they do not use stored values.
 Without that callback, the stored CLI window still takes precedence over config.
 This does not change explicit force-purge or supply downgrade grace protection.
+
+Permanent purge also removes the purged object's related version-history records,
+regardless of `VERSION_HISTORY_RETENTION_DAYS` or the separate history-pruning
+schedule. Setting history retention to `0` disables scheduled history pruning,
+not this purge cascade. For example, with soft-delete retention of 30 days and
+history retention of 180 days, permanently purging an object after its soft-delete
+window also removes its associated versions, even those younger than 180 days.
+A longer history window does not extend deleted-object recovery: application
+restore is unavailable after permanent purge. This cleanup is scoped to the
+purged object and its owned/association history, not unrelated entities' history;
+shared version transactions are removed only when no surviving history uses them.
 
 ## Viewing history
 

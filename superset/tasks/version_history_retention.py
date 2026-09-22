@@ -19,7 +19,7 @@
 Retention is time-based. The task deletes parent + child shadow rows
 owned by ``version_transaction`` rows whose ``issued_at`` is older
 than ``VERSION_HISTORY_RETENTION_DAYS`` (default 30, env
-overridable, non-positive to disable).
+overridable, zero to disable, -1 for immediate eligibility on the next run).
 
 One preservation rule, applied across every shadow table (parent,
 child, and the M2M association):
@@ -476,9 +476,9 @@ def _prune_old_versions_impl(retention_days: int) -> dict[str, Any]:
     24 hours out (daily Celery beat), and under sustained write
     pressure the prune can silently fail for many days in a row.
     """
-    if retention_days <= 0:
+    if retention_days == 0 or retention_days < -1:
         logger.info(
-            "version_history_retention: VERSION_HISTORY_RETENTION_DAYS <= 0; skipping",
+            "version_history_retention: retention disabled or invalid; skipping",
         )
         stats_logger_manager.instance.incr(f"{_METRIC_PREFIX}.skipped")
         return {"skipped": 1}
@@ -493,7 +493,9 @@ def _prune_old_versions_impl(retention_days: int) -> dict[str, Any]:
     # UTC reference and derivation. (They still read their own process's
     # wall clock — web/worker vs Celery beat — so NTP-scale skew between
     # hosts remains possible; immaterial against a windows-of-days cutoff.)
-    cutoff = naive_utcnow() - timedelta(days=retention_days)
+    cutoff: datetime = naive_utcnow()
+    if retention_days != -1:
+        cutoff -= timedelta(days=retention_days)
 
     # Drain the backlog one bounded, id-ordered window at a time. Each
     # window is its own retried SERIALIZABLE pass, so memory and
@@ -535,9 +537,12 @@ def prune_old_versions() -> dict[str, Any]:
     slate).
     """
     try:
-        retention_days = int(
-            current_app.config.get("VERSION_HISTORY_RETENTION_DAYS", 30)
+        configured: object = current_app.config.get(
+            "VERSION_HISTORY_RETENTION_DAYS", 30
         )
+        if isinstance(configured, bool) or not isinstance(configured, (str, int)):
+            raise ValueError("Retention must be integer days")
+        retention_days: int = int(configured)
         return _prune_old_versions_impl(retention_days)
     except Exception:  # pylint: disable=broad-except
         logger.exception("version_history.prune_old_versions: task failed")

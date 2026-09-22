@@ -37,10 +37,10 @@ def _config_retention_days() -> int:
         "SOFT_DELETE_RETENTION_DAYS", _DEFAULT_RETENTION_DAYS
     )
     try:
-        if isinstance(configured, bool):
+        if isinstance(configured, bool) or not isinstance(configured, (str, int)):
             raise ValueError
         days = int(configured)
-        if days < 0:
+        if days < -1:
             raise ValueError
         return days
     except (TypeError, ValueError):
@@ -83,12 +83,12 @@ def resolve_retention_window() -> int:
                 "deletion_retention: host retention policy unavailable; skipping"
             )
             return 0
-        if isinstance(days, int) and not isinstance(days, bool) and 0 <= days <= 36500:
+        if isinstance(days, int) and not isinstance(days, bool) and -1 <= days <= 36500:
             return days
         logger.warning("deletion_retention: invalid host retention policy; skipping")
         return 0
     if (shared := get_shared_value(SharedKey.SOFT_DELETE_RETENTION_DAYS)) is not None:
-        if isinstance(shared, bool) or not isinstance(shared, int) or shared < 0:
+        if isinstance(shared, bool) or not isinstance(shared, int) or shared < -1:
             logger.warning(
                 "deletion_retention: ignoring malformed shared retention value %r; "
                 "falling back to config",
