@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-22 23:46+0300\n"
+"POT-Creation-Date: 2026-07-31 11:53+0100\n"
 "PO-Revision-Date: 2026-06-14 13:20+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sr\n"
@@ -32,16 +32,6 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.17.0\n"
-
-#, python-format
-msgid ""
-"\n"
-"                <p>Your report/alert was unable to be generated because "
-"of the following error: %(text)s</p>\n"
-"                <p>Please check your dashboard/chart for errors.</p>\n"
-"                <p><b><a href=\"%(url)s\">%(call_to_action)s</a></b></p>\n"
-"                "
-msgstr ""
 
 # es, fa, fr, ja, lv, mi, pt_BR, ru, sk, sl, uk]
 msgid ""
@@ -106,14 +96,22 @@ msgstr ""
 "                Неће бити сачуван приликом чувања графика.\n"
 "              "
 
+# fr, ja, lv, mi, pt_BR, ru, sk, uk]
 #, python-format
 msgid ""
 "\n"
 "            <p>Your report/alert was unable to be generated because of "
 "the following error: %(text)s</p>\n"
 "            <p>Please check your dashboard/chart for errors.</p>\n"
+"            <p><b><a href=\"%(url)s\">%(call_to_action)s</a></b></p>\n"
 "            "
 msgstr ""
+"\n"
+"            <p>Ваш извештај/упозорење није могао бити генерисан због "
+"следеће грешке: %(text)s</p>\n"
+"            <p>Молимо проверите контролну таблу/графикон за грешке.</p>\n"
+"            <p><b><a href=\"%(url)s\">%(call_to_action)s</a></b></p>\n"
+"            "
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
 msgid " (excluded)"
@@ -152,9 +150,6 @@ msgstr " за детаље."
 #, python-format
 msgid " near '%(highlight)s'"
 msgstr " близу '%(highlight)s'"
-
-msgid " source code of Superset's sandboxed parser"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
@@ -216,6 +211,10 @@ msgstr " да отворите SQL Lab. Одатле можете сачуват
 msgid " to see details."
 msgstr " за приказ детаља."
 
+# de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk]
+msgid " to visualize your data."
+msgstr " за визуализацију ваших података."
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "!= (Is not equal)"
 msgstr "!= (Није једнако)"
@@ -235,30 +234,10 @@ msgstr "„%s” је сада подразумевана системска т�
 msgid "% calculation"
 msgstr "прорачун"
 
-#, python-format
-msgid "% of"
-msgstr ""
-
-#, python-format
-msgid "% of column"
-msgstr ""
-
-#, python-format
-msgid "% of column total"
-msgstr ""
-
-#, python-format
-msgid "% of grand total"
-msgstr ""
-
 # fa, fr, ja, lv, mi, ru, sk, sl, uk]
 #, no-python-format
 msgid "% of parent"
 msgstr "% од родитеља"
-
-#, python-format
-msgid "% of row total"
-msgstr ""
 
 # fa, fr, ja, lv, mi, ru, sk, sl, uk]
 #, no-python-format
@@ -267,14 +246,6 @@ msgstr "% од укупног"
 
 #, python-format
 msgid "%(alertType)s \"%(alertName)s\" triggered successfully"
-msgstr ""
-
-#, python-format
-msgid "%(count)s %(label)s"
-msgstr ""
-
-#, python-format
-msgid "%(count)s additional restricted %(label)s"
 msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -300,6 +271,10 @@ msgstr ""
 #, python-format
 msgid "%(name)s.%(extension)s"
 msgstr ""
+
+#, python-format
+msgid "%(name)s.csv"
+msgstr "%(name)s.csv"
 
 #, python-format
 msgid "%(name)s.pdf"
@@ -390,10 +365,6 @@ msgid "%s %s"
 msgstr "%s %s"
 
 #, python-format
-msgid "%s (copy from %s)"
-msgstr ""
-
-#, python-format
 msgid "%s ENCRYPTED EXTRA"
 msgstr "%s ДОДАТНО ШИФРОВАНО"
 
@@ -402,10 +373,6 @@ msgstr "%s ДОДАТНО ШИФРОВАНО"
 #, python-format
 msgid "%s Error"
 msgstr "%s грешка"
-
-#, python-format
-msgid "%s MCP scopes"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 #, python-format
@@ -470,13 +437,6 @@ msgid "%s aggregates(s)"
 msgstr "%s агрегатне функције"
 
 #, python-format
-msgid "%s chart updated"
-msgid_plural "%s charts updated"
-msgstr[0] ""
-msgstr[1] ""
-msgstr[2] ""
-
-#, python-format
 msgid "%s column"
 msgid_plural "%s columns"
 msgstr[0] "%s колона"
@@ -490,32 +450,11 @@ msgid "%s column(s)"
 msgstr "%s колона(е)"
 
 #, python-format
-msgid "%s dashboard updated"
-msgid_plural "%s dashboards updated"
-msgstr[0] ""
-msgstr[1] ""
-msgstr[2] ""
-
-#, python-format
-msgid "%s dataset updated"
-msgid_plural "%s datasets updated"
-msgstr[0] ""
-msgstr[1] ""
-msgstr[2] ""
-
-#, python-format
 msgid "%s day ago"
 msgid_plural "%s days ago"
 msgstr[0] "Пре %s дан"
 msgstr[1] "Пре %s дана"
 msgstr[2] "Пре %s дана"
-
-#, python-format
-msgid "%s field"
-msgid_plural "%s fields"
-msgstr[0] ""
-msgstr[1] ""
-msgstr[2] ""
 
 #, python-format
 msgid "%s hr ago"
@@ -617,13 +556,6 @@ msgid "%s recipients"
 msgstr "%s прималаца"
 
 #, python-format
-msgid "%s record"
-msgid_plural "%s records..."
-msgstr[0] ""
-msgstr[1] ""
-msgstr[2] ""
-
-#, python-format
 msgid "%s record..."
 msgid_plural "%s records..."
 msgstr[0] "%s запис..."
@@ -679,10 +611,6 @@ msgstr "%s картица изабрана"
 msgid "%s updated"
 msgstr "%s ажурирано"
 
-#, python-format
-msgid "%s — click the chart to return"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, python-format
 msgid "%s%s"
@@ -691,9 +619,6 @@ msgstr "%s%s"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "(Removed)"
 msgstr "(Уклоњено)"
-
-msgid "(archived)"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "(deleted or invalid type)"
@@ -724,15 +649,6 @@ msgstr ""
 "    Грешка: %(text)s\n"
 "    "
 
-#, python-format
-msgid ""
-"*%(name)s*\n"
-"\n"
-"%(description)s\n"
-"\n"
-"%(table)s\n"
-msgstr ""
-
 # es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk]
 #, python-format
 msgid ""
@@ -751,29 +667,6 @@ msgstr ""
 "<%(url)s|Истражите у Superset-у>\n"
 "\n"
 "%(table)s\n"
-
-#, python-format
-msgid ""
-"*Report Failed - All Retries Exhausted: %(name)s*\n"
-"\n"
-"%(description)s\n"
-"\n"
-"The report failed after %(max)s retry attempts.\n"
-"\n"
-"Error: %(text)s\n"
-msgstr ""
-
-#, python-format
-msgid ""
-"*Report Retry [%(attempt)s of %(max)s]: %(name)s*\n"
-"\n"
-"%(description)s\n"
-"\n"
-"Retry attempt: %(attempt)s of %(max)s  |  Retries remaining: "
-"%(remaining)s\n"
-"\n"
-"Error: %(text)s\n"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 #, python-format
@@ -799,22 +692,8 @@ msgid "... and %d more"
 msgstr "... и још %d"
 
 #, python-format
-msgid "... and %s more"
-msgid_plural "... and %s more"
-msgstr[0] ""
-msgstr[1] ""
-msgstr[2] ""
-
-#, python-format
 msgid "... and %s more records"
 msgstr "... и још %s записа"
-
-#, python-format
-msgid "... and %s other"
-msgid_plural "... and %s others"
-msgstr[0] ""
-msgstr[1] ""
-msgstr[2] ""
 
 # fr, ja, lv, mi, pt_BR, ru, sk, sl, uk]
 #, python-format
@@ -1150,11 +1029,6 @@ msgstr "> (Веће од)"
 msgid ">= (Larger or equal)"
 msgstr ">= (Веће или једнако)"
 
-msgid ""
-"@import is blocked to prevent a dashboard from loading arbitrary remote "
-"CSS. Convert it to inline CSS to keep using it."
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "A Big Number"
 msgstr "Велики број"
@@ -1172,17 +1046,6 @@ msgstr ""
 "https://echarts.apache.org/en/option.html. "
 
 msgid "A TTL is required for ephemeral state."
-msgstr ""
-
-msgid ""
-"A butterfly chart compares two metrics across categories using horizontal"
-" bars that extend left and right from a central axis."
-msgstr ""
-
-msgid ""
-"A candlestick chart shows opening, closing, high, and low values for each"
-" period. It is commonly used for financial and other time-series range "
-"analysis."
 msgstr ""
 
 # ru, sk, uk]
@@ -1302,12 +1165,15 @@ msgstr "Биће креиран нови графикон."
 msgid "A new dashboard will be created."
 msgstr "Биће креирана нова контролна табла."
 
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
 "A polar coordinate chart where the circle is broken into wedges of equal "
 "angle, and the value represented by any wedge is illustrated by its area,"
-" rather than its radius or sweep angle. Click a wedge to expand its time "
-"period into a full pie."
+" rather than its radius or sweep angle."
 msgstr ""
+"Графикон у поларним координатама где је круг подељен на исечке једнаког "
+"угла, а вредност коју представља било који исечак приказана је његовом "
+"површином, а не радијусом или углом."
 
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
@@ -1326,9 +1192,6 @@ msgstr "Извештај са називом \"%(name)s\" већ постоји"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "A reusable dataset will be saved with your chart."
 msgstr "Скуп података за поновну употребу биће сачуван уз ваш графикон."
-
-msgid "A rule with this name already exists."
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
@@ -1436,12 +1299,6 @@ msgstr "Асинхроно извршавање упита"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "AUG"
 msgstr "АВГ"
-
-msgid "AXIS TITLE MARGIN"
-msgstr ""
-
-msgid "AXIS TITLE POSITION"
-msgstr ""
 
 msgid "Aborted"
 msgstr "Прекинуто"
@@ -1646,9 +1503,6 @@ msgstr "Додај детаље сертификације за ову конт�
 msgid "Add color for positive/negative change"
 msgstr "Додај боју за позитивну/негативну промену"
 
-msgid "Add colors to cell bars for +/-"
-msgstr ""
-
 msgid "Add colors to cell bars for +/- for all columns"
 msgstr "Додај боје тракама ћелија за +/- за све колоне"
 
@@ -1793,9 +1647,6 @@ msgstr "Додај тему"
 msgid "Add to dashboard"
 msgstr "Додај на контролну таблу"
 
-msgid "Add to favorites"
-msgstr ""
-
 # ru, uk]
 msgid "Add to tabs"
 msgstr "Додај у картице"
@@ -1804,14 +1655,6 @@ msgstr "Додај у картице"
 msgid "Added"
 msgstr "Додато"
 
-#, python-format
-msgid "Added %s '%s'"
-msgstr ""
-
-#, python-format
-msgid "Added '%s' dimension"
-msgstr ""
-
 # ja, lv, mi, ru, sk, uk]
 #, python-format
 msgid "Added 1 new column to the virtual dataset"
@@ -1819,20 +1662,6 @@ msgid_plural "Added %s new columns to the virtual dataset"
 msgstr[0] "Додата је %s нова колона у виртуелни скуп података"
 msgstr[1] "Додате су %s нове колоне у виртуелни скуп података"
 msgstr[2] "Додато је %s нових колона у виртуелни скуп података"
-
-#, python-format
-msgid "Added a %s"
-msgstr ""
-
-msgid "Added a dimension"
-msgstr ""
-
-msgid "Added a filter"
-msgstr ""
-
-#, python-format
-msgid "Added filter on '%s'"
-msgstr ""
 
 # ja, lv, mi, ru, sl, uk]
 #, python-format
@@ -1945,9 +1774,6 @@ msgstr "Погођени графици"
 msgid "Affected Dashboards"
 msgstr "Погођене контролне табле"
 
-msgid "Affected semantic views"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "After"
 msgstr "После"
@@ -1980,11 +1806,6 @@ msgstr ""
 "Агрегатна функција примењена на листу тачака у сваком кластеру за израду "
 "ознаке кластера."
 
-msgid ""
-"Aggregate function to apply when pivoting and computing the total rows "
-"and columns"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid ""
 "Aggregates data within the boundary of grid cells and maps the aggregated"
@@ -2000,18 +1821,6 @@ msgstr "Агрегација"
 # fr, ja, lv, mi, ru, sk, uk]
 msgid "Aggregation Method"
 msgstr "Метод агрегације"
-
-msgid "Aggregation function"
-msgstr ""
-
-msgid ""
-"Aggregation used for the summary row. By default each metric keeps its "
-"own aggregation; Sum and Average override it for the summary row only. "
-"The override applies to simple metrics (a metric built from custom SQL "
-"always keeps its own aggregation). Overriding a count or a distinct count"
-" sums the counted column instead, which fails outright on a non-numeric "
-"column."
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 msgid "Alert"
@@ -2058,15 +1867,6 @@ msgstr "Назив упозорења"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Alert on grace period"
 msgstr "Упозорење у периоду толеранције"
-
-msgid "Alert query failed the authorization check"
-msgstr ""
-
-msgid "Alert query must be a single statement"
-msgstr ""
-
-msgid "Alert query must be read-only"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Alert query returned a non-number value."
@@ -2138,9 +1938,6 @@ msgstr "Све скривене колоне (%s)"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "All Text"
 msgstr "Сав текст"
-
-msgid "All changes"
-msgstr ""
 
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
 # zh, zh_TW]
@@ -2262,9 +2059,6 @@ msgstr "Дозвољени домени (раздвојени зарезом)"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "Alphabetical"
 msgstr "По алфабетском реду"
-
-msgid "Already at this version"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
@@ -2539,15 +2333,8 @@ msgstr "Дошло је до грешке приликом преузимања 
 msgid "An error occurred while fetching table metadata for %s"
 msgstr "Дошло је до грешке приликом преузимања метаподатака табеле за %s"
 
-#, python-format
-msgid "An error occurred while fetching task types: %s"
-msgstr ""
-
 msgid "An error occurred while fetching the configuration schema"
 msgstr "Дошло је до грешке приликом преузимања конфигурационе шеме"
-
-msgid "An error occurred while fetching the data."
-msgstr ""
 
 msgid "An error occurred while fetching the runtime schema"
 msgstr "Дошло је до грешке приликом преузимања шеме извршавања"
@@ -2618,9 +2405,6 @@ msgstr "Дошло је до грешке приликом чишћења дне
 
 msgid "An error occurred while refreshing the configuration schema"
 msgstr "Дошло је до грешке приликом ажурирања шеме конфигурације"
-
-msgid "An error occurred while refreshing the runtime schema"
-msgstr ""
 
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
@@ -2806,10 +2590,6 @@ msgstr "Тип слоја анотација"
 msgid "Annotation layer value"
 msgstr "Вредност слоја анотација"
 
-#, python-format
-msgid "Annotation layer with ID %(layer_id)s was not found"
-msgstr ""
-
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
 msgid "Annotation layers"
@@ -2909,13 +2689,6 @@ msgstr ""
 "Могу се додати све базе података које дозвољавају повезивање путем SQL "
 "Alchemy УРИ-ја. Сазнајте како повезати управљачки програм базе података "
 
-#, python-format
-msgid "Applied '%s' metric"
-msgstr ""
-
-msgid "Applied a metric"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk]
 #, python-format
 msgid "Applied cross-filters (%d)"
@@ -2935,6 +2708,14 @@ msgstr "Примењени филтери (%s)"
 #, python-format
 msgid "Applied filters: %s"
 msgstr "Примењени филтери: %s"
+
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+msgid ""
+"Applied rolling window did not return any data. Please make sure the "
+"source query satisfies the minimum periods defined in the rolling window."
+msgstr ""
+"Примењени клизни прозор није вратио никакве податке. Уверите се да "
+"изворни упит задовољава минималне периоде дефинисане у клизном прозору."
 
 msgid ""
 "Applies only when \"Cell bars\" formatting is selected: the background of"
@@ -3026,11 +2807,6 @@ msgstr ""
 
 #, python-format
 msgid "Archived: %s"
-msgstr ""
-
-msgid ""
-"Archiving or deleting this chart will be blocked while the following "
-"alerts or reports use it. Detach or delete them first."
 msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -3183,9 +2959,6 @@ msgstr ""
 msgid "Arrow"
 msgstr "Стрелица"
 
-msgid "Ascending"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "Assign a set of parameters as"
 msgstr "Додели скуп параметара као"
@@ -3193,9 +2966,6 @@ msgstr "Додели скуп параметара као"
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk]
 msgid "Assist"
 msgstr "Асистент"
-
-msgid "Associated alerts and reports"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Asynchronous query execution"
@@ -3263,9 +3033,6 @@ msgstr "Аутоматски прилагоди ширину колоне на �
 msgid "Automatically adjust column width based on content"
 msgstr "Аутоматски прилагоди ширину колоне на основу садржаја"
 
-msgid "Automatically retry sending the report when delivery fails."
-msgstr ""
-
 # lv, ru, sk, uk]
 msgid "Automatically sync columns"
 msgstr "Аутоматски синхронизуј колоне"
@@ -3285,9 +3052,6 @@ msgstr "Аутоматска величина ове колоне"
 # fr, ja, lv, mi, ru, sk, uk]
 msgid "Autosize all columns"
 msgstr "Аутоматска величина свих колона"
-
-msgid "Available Handlebars Helpers in Superset:"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Available sorting modes:"
@@ -3328,9 +3092,6 @@ msgstr "Оса растуће"
 msgid "Axis descending"
 msgstr "Оса опадајуће"
 
-msgid "Axis ticks"
-msgstr ""
-
 # es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sl, uk, zh, zh_TW]
 msgid "Axis title margin"
 msgstr "Маргина наслова осе"
@@ -3370,6 +3131,10 @@ msgstr "Вредности назад"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "Bad formula."
 msgstr "Погрешна формула."
+
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+msgid "Bad spatial key"
+msgstr "Погрешан просторни кључ"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Bar"
@@ -3414,10 +3179,6 @@ msgstr ""
 #, python-format
 msgid "Base layer map style. See MapLibre documentation: %s"
 msgstr "Стил мапе основног слоја. Погледајте MapLibre документацију: %s"
-
-#, python-format
-msgid "Base layer map style. See Mapbox documentation: %s"
-msgstr ""
 
 # fr, ja, lv, mi, ru, sk, uk]
 msgid "Base slope"
@@ -3499,9 +3260,6 @@ msgstr "Боја ивице"
 msgid "Border width"
 msgstr "Ширина ивице"
 
-msgid "Both"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Bottom"
 msgstr "Доле"
@@ -3525,9 +3283,6 @@ msgstr "Доле десно"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Bottom to Top"
 msgstr "Од дна до врха"
-
-msgid "Bound unit"
-msgstr ""
 
 # ru, uk]
 msgid "Bounds"
@@ -3673,9 +3428,6 @@ msgstr "Булет графикон"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Business"
 msgstr "Бизнис"
-
-msgid "Butterfly Chart"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
@@ -3844,6 +3596,11 @@ msgstr "Кеширано"
 msgid "Cached %s"
 msgstr "Кеширано %s"
 
+# de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh,
+# zh_TW]
+msgid "Cached value not found"
+msgstr "Кеширана вредност није пронађена"
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "Calculate contribution per series or row"
 msgstr "Израчунај допринос по серији или реду"
@@ -3898,17 +3655,6 @@ msgstr "Откажи упит при догађају затварања про�
 
 msgid "Cancellation not available due to missing abort handler"
 msgstr "Отказивање није могуће због недостатка управљача прекидом"
-
-msgid "Candlestick"
-msgstr ""
-
-msgid "Candlestick Chart"
-msgstr ""
-
-msgid ""
-"Candlestick draws a filled body between open and close. OHLC draws ticks "
-"for open and close on a high-low stem."
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Cannot access the query"
@@ -3997,9 +3743,6 @@ msgstr "Категоричка боја"
 msgid "Categorical palette"
 msgstr "Категоричка палета"
 
-msgid "Categories"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Categories to group by on the x-axis."
 msgstr "Категорије за груписање на x-оси."
@@ -4060,15 +3803,6 @@ msgstr "Ограничење ћелија"
 msgid "Cell title template"
 msgstr "Шаблон наслова ћелије"
 
-msgid "Center value"
-msgstr ""
-
-msgid "Center value should be greater than min bound"
-msgstr ""
-
-msgid "Center value should be smaller than max bound"
-msgstr ""
-
 # de, es, fa, ja, lv, mi, nl, pl, ru, sk, sl, uk]
 msgid "Centroid (Longitude and Latitude): "
 msgstr "Центроид (географска дужина и ширина): "
@@ -4111,56 +3845,13 @@ msgstr "Промени редослед колона."
 msgid "Change order of rows."
 msgstr "Промени редослед редова."
 
-#, python-format
-msgid "Changed %s '%s'"
-msgstr ""
-
-#, python-format
-msgid "Changed '%s'"
-msgstr ""
-
-#, python-format
-msgid "Changed '%s' dimension"
-msgstr ""
-
-#, python-format
-msgid "Changed '%s' metric"
-msgstr ""
-
-#, python-format
-msgid "Changed a %s"
-msgstr ""
-
-msgid "Changed a dimension"
-msgstr ""
-
-msgid "Changed a filter"
-msgstr ""
-
-msgid "Changed a metric"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk]
 msgid "Changed by"
 msgstr "Променио/ла"
 
-msgid "Changed color palette"
-msgstr ""
-
-#, python-format
-msgid "Changed filter on '%s'"
-msgstr ""
-
 # fr, ja, lv, mi, ru, sk, uk]
 msgid "Changed on"
 msgstr "Промењено"
-
-msgid "Changed the time range"
-msgstr ""
-
-#, python-format
-msgid "Changed time range to '%s'"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Changes saved."
@@ -4236,10 +3927,6 @@ msgstr "Знак који се тумачи као децимална тачка
 # zh_TW]
 msgid "Chart"
 msgstr "Графикон"
-
-#, python-format
-msgid "Chart \"%(chart)s\" is used by alerts or reports: %(names)s."
-msgstr ""
 
 #, python-format
 msgid "Chart %(chart_id)s is not on dashboard %(dashboard_id)s"
@@ -4336,9 +4023,6 @@ msgstr "Прилагођавање графикона за контролу ви
 msgid "Chart customization value is required"
 msgstr "Вредност прилагођавања графикона је обавезна"
 
-msgid "Chart description"
-msgstr ""
-
 # de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]
 msgid "Chart does not exist"
@@ -4391,13 +4075,6 @@ msgstr "Својства графикона"
 msgid "Chart properties updated"
 msgstr "Својства графикона су ажурирана"
 
-msgid "Chart renamed"
-msgstr ""
-
-#, python-format
-msgid "Chart renamed to '%s'"
-msgstr ""
-
 # fr, ja, lv, mi, ru, sk, uk]
 msgid "Chart size"
 msgstr "Величина графикона"
@@ -4409,6 +4086,10 @@ msgstr "Наслов графикона"
 # ru, uk]
 msgid "Chart type"
 msgstr "Тип графикона"
+
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
+msgid "Chart type requires a dataset"
+msgstr "Тип графикона захтева скуп података"
 
 # ru, uk]
 msgid "Chart was saved but could not be added to the selected tab."
@@ -4461,12 +4142,17 @@ msgstr "Погледајте ову контролну таблу: "
 msgid "Check to force date partitions to have the same height"
 msgstr "Означите да бисте приморали датумске партиције да имају исту висину"
 
-msgid "Checking charts and dashboards that use this dataset…"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Child label position"
 msgstr "Позиција подређене ознаке"
+
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+msgid "Choice of [Label] must be present in [Group By]"
+msgstr "Избор [Ознака] мора бити присутан у [Групиши по]"
+
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+msgid "Choice of [Point Radius] must be present in [Group By]"
+msgstr "Избор [Полупречник тачке] мора бити присутан у [Групиши по]"
 
 #, python-format
 msgid "Choose a %s"
@@ -4591,9 +4277,6 @@ msgstr ""
 "Изаберите вредности које треба третирати као null. Упозорење: Hive база "
 "података подржава само једну вредност"
 
-msgid "Choose where to display values relative to the bars"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid ""
 "Choose whether a country should be shaded by the metric, or assigned a "
@@ -4693,10 +4376,6 @@ msgstr ""
 # lv, ru, sk, uk]
 msgid "Clear the selection to revert to the system default theme"
 msgstr "Обриши избор да се вратите на подразумевану системску тему"
-
-#, python-format
-msgid "Cleared '%s'"
-msgstr ""
 
 # ru, uk]
 msgid ""
@@ -4804,9 +4483,6 @@ msgstr "ID клијента"
 msgid "Client Secret"
 msgstr "Тајна клијента"
 
-msgid "Cloned"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "Close"
 msgstr "Затвори"
@@ -4819,19 +4495,10 @@ msgstr "Затвори све остале картице"
 msgid "Close color breakpoint editor"
 msgstr "Затвори едитор преломних тачака боје"
 
-msgid "Close preview"
-msgstr ""
-
 # de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]
 msgid "Close tab"
 msgstr "Затвори картицу"
-
-msgid "Close version history"
-msgstr ""
-
-msgid "Closing value for each period."
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Cluster label aggregator"
@@ -4929,17 +4596,8 @@ msgstr "Преломне тачке боје"
 msgid "Color by"
 msgstr "Боја по"
 
-msgid "Color by direction"
-msgstr ""
-
 msgid "Color field must be a hex color (#rrggbb) or 'rgb(r, g, b)'"
 msgstr "Поље за боју мора бити хексадецимална боја (#rrggbb) или 'rgb(р, г, б)'"
-
-msgid "Color for bars on the left side of the chart"
-msgstr ""
-
-msgid "Color for bars on the right side of the chart"
-msgstr ""
 
 # uk]
 msgid "Color for breakpoint"
@@ -4962,14 +4620,6 @@ msgstr "Боја циљне локације"
 msgid "Color scheme"
 msgstr "Шема боја"
 
-msgid ""
-"Color used when the close value is greater than or equal to the open "
-"value."
-msgstr ""
-
-msgid "Color used when the close value is less than the open value."
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk]
 msgid ""
 "Color will be shaded based the normalized (0% to 100%) value of a given "
@@ -4981,9 +4631,6 @@ msgstr ""
 # de, es, fa, fr, ja, lv, mi, nl, ru, sk, sl, uk]
 msgid "Color: "
 msgstr "Боја: "
-
-msgid "Colors"
-msgstr ""
 
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
@@ -5033,9 +4680,6 @@ msgstr "Опис заглавља колоне"
 msgid "Column is required"
 msgstr "Колона је обавезна"
 
-msgid "Column max"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "Column name"
 msgstr "Назив колоне"
@@ -5053,12 +4697,6 @@ msgstr "Колона на коју се односи агрегат није д�
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Column select"
 msgstr "Избор колоне"
-
-msgid "Column settings"
-msgstr ""
-
-msgid "Column sum"
-msgstr ""
 
 # ru, uk]
 msgid "Column to group by"
@@ -5108,6 +4746,11 @@ msgstr "Фасцикла колона може садржати само ста�
 #, python-format
 msgid "Columns missing in dataset: %(invalid_columns)s"
 msgstr "Колоне које недостају у скупу података: %(invalid_columns)s"
+
+# de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+#, python-format
+msgid "Columns missing in datasource: %(invalid_columns)s"
+msgstr "Колоне које недостају у извору података: %(invalid_columns)s"
 
 msgid "Columns should be inside folders"
 msgstr "Колоне треба да буду унутар фасцикли"
@@ -5170,26 +4813,6 @@ msgstr ""
 "Границе интервала раздвојене зарезом, нпр. 2,4,5 за интервале 0-2, 2-4 и "
 "4-5. Последњи број треба да одговара вредности унетој за MAX."
 
-msgid ""
-"Comma-separated numeric thresholds to shade as background ranges, e.g. "
-"100,200,300"
-msgstr ""
-
-msgid "Comma-separated numeric values to mark with triangles, e.g. 150,250"
-msgstr ""
-
-msgid "Comma-separated numeric values to mark with vertical lines, e.g. 250"
-msgstr ""
-
-msgid "Comma-separated text labels, one per marker line value"
-msgstr ""
-
-msgid "Comma-separated text labels, one per marker value"
-msgstr ""
-
-msgid "Comma-separated text labels, one per range value"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy
 msgid "Common (unit per pixel at zoom 0)"
@@ -5234,12 +4857,6 @@ msgstr ""
 "Упоређује метрике између различитих временских периода. Приказује податке"
 " временских серија кроз више периода (као недеље или месеци) да би "
 "показао трендове и обрасце између периода."
-
-msgid ""
-"Compares the current time period against equivalent past periods by "
-"overlaying them on a shared time axis. The current period is drawn boldly"
-" while prior periods fade with age."
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Comparison"
@@ -5328,9 +4945,6 @@ msgstr "Конфигуриши изглед контролне табле, бо�
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Configure filter scopes"
 msgstr "Конфигуриши опсеге филтера"
-
-msgid "Configure retry behavior on delivery failure."
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Configure the basics of your Annotation Layer."
@@ -5426,12 +5040,6 @@ msgstr ""
 msgid "Contains"
 msgstr "Садржи"
 
-msgid "Contains all"
-msgstr ""
-
-msgid "Contains any"
-msgstr ""
-
 #, python-format
 msgid "Contains text (ILIKE %x%)"
 msgstr "Садржи текст (ILIKE %x%)"
@@ -5472,21 +5080,9 @@ msgstr "Контрола"
 msgid "Control labeled "
 msgstr "Контрола са ознаком "
 
-msgid "Control whether this dashboard loads chart data asynchronously"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
 msgid "Controls labeled "
 msgstr "Контроле са ознаком "
-
-msgid "Convert @import to inline CSS"
-msgstr ""
-
-#, python-format
-msgid ""
-"Converted %s @import rule(s) to inline CSS. Review the result before "
-"saving."
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Copied to clipboard!"
@@ -5591,25 +5187,23 @@ msgstr "Корелација"
 msgid "Cost estimate"
 msgstr "Процена трошкова"
 
-#, python-format
-msgid ""
-"Could not automatically fetch: %s. This is often blocked by the remote "
-"server (CORS); copy its contents in manually instead."
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, ru, sk, sl, tr, uk]
 #, python-format
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "Није могуће повезати се са базом података: \"%(database)s\""
+
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+msgid "Could not determine datasource type"
+msgstr "Није могуће одредити тип извора података"
 
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]
 msgid "Could not fetch all saved charts"
 msgstr "Није могуће преузети све сачуване графиконе"
 
-#, python-format
-msgid "Could not find %s"
-msgstr ""
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+msgid "Could not find viz object"
+msgstr "Није могуће пронаћи објекат за визуализацију"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy
@@ -5631,11 +5225,6 @@ msgid ""
 " See the server logs for details."
 msgstr ""
 
-msgid ""
-"Could not parse the CSS to convert @import rules. Check for syntax errors"
-" and try again."
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 #, python-format
 msgid "Could not resolve hostname: \"%(host)s\"."
@@ -5648,18 +5237,6 @@ msgstr "Није могуће потврдити корисника у трен�
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 msgid "Count"
 msgstr "Број"
-
-msgid "Count Unique Values"
-msgstr ""
-
-msgid "Count as Fraction of Columns"
-msgstr ""
-
-msgid "Count as Fraction of Rows"
-msgstr ""
-
-msgid "Count as Fraction of Total"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "Country"
@@ -5736,12 +5313,6 @@ msgstr "Креирај индекс dataframe-а"
 msgid "Create dataset"
 msgstr "Креирај скуп података"
 
-msgid "Create matrix columns by placing charts side-by-side"
-msgstr ""
-
-msgid "Create matrix rows by stacking charts vertically"
-msgstr ""
-
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
 # zh, zh_TW]
 msgid "Create new chart"
@@ -5768,10 +5339,6 @@ msgstr "Креирао сам"
 #, python-format
 msgid "Created by: %s"
 msgstr "Креирао: %s"
-
-#, python-format
-msgid "Created from version: %s"
-msgstr ""
 
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]
@@ -5862,9 +5429,6 @@ msgstr "Тренутни месец"
 # es, fa, fr, ja, lv, mi, nl, ru, sk, sl, uk]
 msgid "Current quarter"
 msgstr "Тренутни квартал"
-
-msgid "Current version"
-msgstr ""
 
 # es, fa, fr, ja, lv, mi, nl, ru, sk, sl, uk]
 msgid "Current week"
@@ -6006,12 +5570,6 @@ msgstr ""
 "Прилагодите ознаку која се приказује за укупне вредности у објашњењима, "
 "легенди и оси графикона."
 
-msgid "Customize the label for the left series in tooltips and legend"
-msgstr ""
-
-msgid "Customize the label for the right series in tooltips and legend"
-msgstr ""
-
 # lv, ru, sk, uk]
 msgid "Customize tooltips template"
 msgstr "Прилагоди шаблон објашњења"
@@ -6039,9 +5597,6 @@ msgstr ""
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "D3 time format for datetime columns"
 msgstr "Д3 формат времена за колоне типа датум/време"
-
-msgid "D3 time format for the x-axis labels"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "D3 time format syntax: https://github.com/d3/d3-time-format"
@@ -6194,13 +5749,6 @@ msgstr "Својства контролне табле"
 msgid "Dashboard properties updated"
 msgstr "Својства контролне табле су ажурирана"
 
-msgid "Dashboard renamed"
-msgstr ""
-
-#, python-format
-msgid "Dashboard renamed to '%s'"
-msgstr ""
-
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "Dashboard scheme"
 msgstr "Шема контролне табле"
@@ -6256,6 +5804,10 @@ msgstr "Подаци"
 
 msgid "Data Connections"
 msgstr "Везе са подацима"
+
+# uk]
+msgid "Data Export Options"
+msgstr "Опције извоза података"
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "Data Table"
@@ -6476,9 +6028,6 @@ msgstr ""
 "референцира исту физичку табелу (иста база података, каталог, схема и "
 "назив табеле). Избришите дупликат или преименујте табелу пре враћања."
 
-msgid "Dataset changed since you opened it"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "Dataset column delete failed."
 msgstr "Брисање колоне скупа података није успело."
@@ -6532,24 +6081,10 @@ msgstr "Назив скупа података"
 msgid "Dataset parameters are invalid."
 msgstr "Параметри скупа података нису ваљани."
 
-msgid "Dataset renamed"
-msgstr ""
-
-#, python-format
-msgid "Dataset renamed to '%s'"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 #, python-format
 msgid "Dataset schema is invalid, caused by: %(error)s"
 msgstr "Шема скупа података није ваљана, узрок: %(error)s"
-
-#, python-format
-msgid "Dataset used by %s chart updated: %s"
-msgid_plural "Dataset used by %s charts updated: %s"
-msgstr[0] ""
-msgstr[1] ""
-msgstr[2] ""
 
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
 # zh, zh_TW]
@@ -6667,6 +6202,49 @@ msgstr "Одређује по којој колони или мери се со�
 msgid "Decimal character"
 msgstr "Децимални знак"
 
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+msgid "Deck.gl - 3D Grid"
+msgstr "Deck.gl - 3D мрежа"
+
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+msgid "Deck.gl - 3D HEX"
+msgstr "Deck.gl - 3Д HEX"
+
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+msgid "Deck.gl - Arc"
+msgstr "Deck.gl - Лук"
+
+# de, es, fa, ja, lv, mi, nl, ru, sk, sl, uk]
+msgid "Deck.gl - Contour"
+msgstr "Deck.gl - Контура"
+
+msgid "Deck.gl - GeoJSON"
+msgstr "Deck.gl - GeoJSON"
+
+# de, es, fa, fr, ja, lv, mi, nl, ru, sk, sl, uk]
+msgid "Deck.gl - Heatmap"
+msgstr "Deck.gl - Топлотна мапа"
+
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+msgid "Deck.gl - Multiple Layers"
+msgstr "Deck.gl - Више слојева"
+
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+msgid "Deck.gl - Paths"
+msgstr "Deck.gl - Путеви"
+
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+msgid "Deck.gl - Polygon"
+msgstr "Deck.gl - Полигон"
+
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+msgid "Deck.gl - Scatter plot"
+msgstr "Deck.gl - Дијаграм расипања"
+
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+msgid "Deck.gl - Screen Grid"
+msgstr "Deck.gl - Екранска мрежа"
+
 # uk]
 msgid "Deck.gl Layer Visibility"
 msgstr "Видљивост слоја Deck.gl"
@@ -6770,21 +6348,6 @@ msgid ""
 msgstr ""
 "Подразумевана вредност се аутоматски поставља када је означено "
 "„Подразумевано изабери прву вредност филтера“"
-
-msgid ""
-"Define a function that receives the input and outputs the content for a "
-"tooltip"
-msgstr ""
-
-msgid "Define a function that returns a URL to navigate to when user clicks"
-msgstr ""
-
-msgid ""
-"Define a javascript function that receives the data array used in the "
-"visualization and is expected to return a modified version of that array."
-" This can be used to alter properties of the data, filter, or enrich the "
-"array."
-msgstr ""
 
 # lv, pt_BR, ru, sk, uk]
 msgid "Define color breakpoints for the data"
@@ -6946,9 +6509,6 @@ msgstr "Стварно обрисати све?"
 # zh_TW]
 msgid "Delete annotation"
 msgstr "Обриши анотацију"
-
-msgid "Delete component"
-msgstr ""
 
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
 # zh, zh_TW]
@@ -7155,17 +6715,6 @@ msgstr ""
 "Брисањем картице уклонићете сав њен садржај и деактивирати сва повезана "
 "упозорења или извештаје. Ову радњу још увек можете поништити помоћу"
 
-msgid ""
-"Deleting this dataset is permanent. The affected charts and dashboards "
-"will remain, but they may no longer work."
-msgstr ""
-
-msgid ""
-"Deleting this semantic layer also permanently deletes any semantic views "
-"it contains, and charts built on those views will stop working. The "
-"affected views could not be listed."
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Delimited long & lat single column"
 msgstr "Раздвојена географска дужина и ширина у једној колони"
@@ -7182,21 +6731,9 @@ msgstr "Начин доставе"
 msgid "Density"
 msgstr "Густина"
 
-msgid "Dependencies"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "Dependent on"
 msgstr "Зависи од"
-
-msgid "Depends on"
-msgstr ""
-
-msgid "Deployment default"
-msgstr ""
-
-msgid "Descending"
-msgstr ""
 
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
@@ -7224,9 +6761,6 @@ msgstr "Поништи избор свих"
 msgid "Design with"
 msgstr "Дизајнирајте са"
 
-msgid "Detach or delete them first."
-msgstr ""
-
 # de, es, fa, ja, lv, mi, nl, ru, sk, sl, uk]
 msgid "Details"
 msgstr "Детаљи"
@@ -7234,9 +6768,6 @@ msgstr "Детаљи"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Details of the certification"
 msgstr "Детаљи сертификације"
-
-msgid "Details of the dataset certification"
-msgstr ""
 
 msgid ""
 "Determines how the filter matches values. \"Exact match\" uses the IN "
@@ -7311,9 +6842,6 @@ msgstr "Димензија за коришћење на x-оси."
 msgid "Dimension to use on y-axis."
 msgstr "Димензија за коришћење на y-оси."
 
-msgid "Dimension used for category labels on the vertical axis"
-msgstr ""
-
 # uk]
 msgid "Dimension values"
 msgstr "Вредности димензије"
@@ -7336,6 +6864,11 @@ msgstr ""
 "географски подаци. Користите димензије за категоризацију, сегментацију и "
 "откривање детаља у вашим подацима. Димензије утичу на ниво детаља у "
 "приказу."
+
+# de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
+# zh_TW]
+msgid "Directed Force Layout"
+msgstr "Распоред усмерених сила"
 
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Directional"
@@ -7445,12 +6978,6 @@ msgstr "Контроле приказа (%s)"
 # ru, uk]
 msgid "Display cumulative total at end"
 msgstr "Прикажи кумулативни укупан износ на крају"
-
-msgid ""
-"Display each cell as a percentage of its row, column, or grand total, "
-"instead of its actual value. Totals and subtotals are still computed "
-"correctly first; this only changes how they are displayed."
-msgstr ""
 
 # lv, pt_BR, ru, sk, uk]
 msgid "Display headers for each column at the top of the matrix"
@@ -7593,10 +7120,6 @@ msgstr ""
 msgid "Draft"
 msgstr "Нацрт"
 
-#, python-format
-msgid "Drag %s folder"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Drag and drop components and charts to the dashboard"
 msgstr "Повуците и отпустите компоненте и графиконе на контролну таблу"
@@ -7638,9 +7161,6 @@ msgstr "Нацртај разделне линије за споредне оз�
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Draw split lines for minor y-axis ticks"
 msgstr "Нацртај разделне линије за споредне ознаке y-осе"
-
-msgid "Draw split lines for the main value axis ticks."
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Drill by"
@@ -7686,9 +7206,6 @@ msgid ""
 msgstr ""
 "Приказ детаља је онемогућен за ову базу података. Промените подешавања "
 "базе података да бисте га омогућили."
-
-msgid "Drill to detail is not available for this datasource type."
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, python-format
@@ -7819,9 +7336,6 @@ msgstr "Трајање у ms (100.40008 => 100ms 400µс 80ns)"
 msgid "Duration in ms (10500 => 0:00:10.5)"
 msgstr "Трајање у ms (10500 => 0:00:10.5)"
 
-msgid "Duration in ms (10500 => 0:10.5)"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Duration in ms (66000 => 1m 6s)"
 msgstr "Трајање у ms (66000 => 1м 6с)"
@@ -7873,9 +7387,6 @@ msgstr "ГРЕШКА"
 
 #, python-format
 msgid "ERROR: %s"
-msgstr ""
-
-msgid "Each metric's own"
 msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -7973,6 +7484,11 @@ msgstr "Уреди својства слоја анотације"
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 msgid "Edit chart"
 msgstr "Уреди графикон"
+
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
+# zh_TW]
+msgid "Edit chart properties"
+msgstr "Уреди својства графикона"
 
 # es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sl, tr, uk, zh, zh_TW]
 msgid "Edit dashboard"
@@ -8137,12 +7653,6 @@ msgstr "Код за уграђивање"
 msgid "Embed dashboard"
 msgstr "Угради контролну таблу"
 
-msgid ""
-"Embedded authentication failed. The guest token may exceed the request-"
-"header size limit. Reduce the token payload; large inline RLS lists can "
-"be replaced with an entitlements-table lookup."
-msgstr ""
-
 # fr, ja, lv, mi, ru, sk, sl, uk]
 msgid "Embedded dashboard could not be deleted."
 msgstr "Уграђена контролна табла није могла бити обрисана."
@@ -8190,12 +7700,6 @@ msgstr ""
 msgid "Enable Matrixify"
 msgstr "Омогући Matrixify"
 
-msgid "Enable Retries"
-msgstr ""
-
-msgid "Enable automatic retries on report failure"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 msgid "Enable cross-filtering"
 msgstr "Омогући унакрсно филтрирање"
@@ -8219,9 +7723,6 @@ msgstr "Омогући прогнозирање"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Enable graph roaming"
 msgstr "Омогући слободно кретање по графикону"
-
-msgid "Enable horizontal layout (columns)"
-msgstr ""
 
 msgid "Enable icons"
 msgstr "Омогући иконе"
@@ -8248,9 +7749,6 @@ msgstr "Омогући проширивање редова у шемама"
 msgid "Enable server side pagination of results (experimental feature)"
 msgstr "Омогући пагинацију резултата на страни сервера (експериментална функција)"
 
-msgid "Enable vertical layout (rows)"
-msgstr ""
-
 # pt_BR, ru, sk, uk]
 msgid "Enables rendering of icons for GeoJSON points"
 msgstr "Омогућава приказ икона за GeoJSON тачке"
@@ -8258,6 +7756,13 @@ msgstr "Омогућава приказ икона за GeoJSON тачке"
 # pt_BR, ru, sk, uk]
 msgid "Enables rendering of labels for GeoJSON points"
 msgstr "Омогућава приказ ознака за GeoJSON тачке"
+
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+msgid ""
+"Encountered invalid NULL spatial entry,"
+"                                        please consider filtering those "
+"out"
+msgstr "Пронађен је неважећи просторни унос NULL, размислите о његовом филтрирању"
 
 msgid "Encrypted extra fields"
 msgstr "Шифрована додатна поља"
@@ -8436,9 +7941,6 @@ msgstr "Грешка"
 msgid "Error Fetching Tagged Objects"
 msgstr "Грешка при преузимању означених објеката"
 
-msgid "Error Handling"
-msgstr ""
-
 # ja, lv, mi, ru, sk, uk]
 #, python-format
 msgid "Error deleting %s"
@@ -8463,9 +7965,6 @@ msgstr "Грешка при додавању графикона у омиљен�
 # ru, uk]
 msgid "Error fetching charts"
 msgstr "Грешка при преузимању графикона"
-
-msgid "Error handling"
-msgstr ""
 
 # lv, ru, sk, uk]
 msgid "Error importing theme."
@@ -8595,6 +8094,10 @@ msgstr "Процени трошак пре извршавања упита"
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "Event"
 msgstr "Догађај"
+
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+msgid "Event flow"
+msgstr "Ток догађаја"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Event time column"
@@ -8741,6 +8244,14 @@ msgstr "Истражи скуп резултата у приказу за ист
 msgid "Export"
 msgstr "Извези"
 
+# ru, uk]
+msgid "Export All Data"
+msgstr "Извези све податке"
+
+# uk]
+msgid "Export Current View"
+msgstr "Извези тренутни приказ"
+
 msgid "Export Data to Excel"
 msgstr ""
 
@@ -8830,6 +8341,14 @@ msgstr "Извези у потпуни .CSV"
 msgid "Export to full Excel"
 msgstr "Извези у потпуни Excel"
 
+# de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
+msgid "Export to original .CSV"
+msgstr "Извези у оригинални .CSV"
+
+# de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
+msgid "Export to pivoted .CSV"
+msgstr "Извези у укрштени .CSV"
+
 #, python-format
 msgid ""
 "Exporting semantic views is not supported yet — %s semantic-view row(s) "
@@ -8887,18 +8406,18 @@ msgstr "Додатне контроле"
 msgid "Extra Parameters"
 msgstr "Додатни параметри"
 
-msgid "Extra data for JS"
-msgstr ""
-
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, python-brace-format
 msgid ""
-"Extra data to specify table metadata, such as `{ \"warning_markdown\": "
-"\"This is a warning.\" }`. Use the Certification fields below for "
-"certification metadata."
+"Extra data to specify table metadata. Currently supports metadata of the "
+"format: `{ \"certification\": { \"certified_by\": \"Data Platform Team\","
+" \"details\": \"This table is the source of truth.\" }, "
+"\"warning_markdown\": \"This is a warning.\" }`."
 msgstr ""
-
-msgid "Extra field must be a mapping from string keys to values."
-msgstr ""
+"Додатни подаци за одређивање метаподатака табеле. Тренутно подржава "
+"метаподатке у формату: `{ \"certification\": { \"certified_by\": \"Data "
+"Platform Team\", \"details\": \"This table is the source of truth.\" }, "
+"\"warning_markdown\": \"This is a warning.\" }`."
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Extra parameters for use in jinja templated queries"
@@ -8961,12 +8480,6 @@ msgstr "Неуспело копирање stack trace-а у привремену
 msgid "Failed to create API key"
 msgstr "Неуспело креирање API кључа"
 
-msgid "Failed to create a new chart from this version"
-msgstr ""
-
-msgid "Failed to create a new dashboard from this version"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Failed to create report"
 msgstr "Неуспело креирање извештаја"
@@ -9016,31 +8529,13 @@ msgstr "Неуспело учитавање података графикона.
 msgid "Failed to load columns for %s %s"
 msgstr "Неуспело учитавање колона за %s %s"
 
-msgid "Failed to load drill-to-detail rows"
-msgstr ""
-
-msgid "Failed to load results"
-msgstr ""
-
-msgid "Failed to load samples"
-msgstr ""
-
 # uk]
 msgid "Failed to load top values"
 msgstr "Неуспело учитавање највиших вредности"
 
-msgid "Failed to load version history"
-msgstr ""
-
-msgid "Failed to load version preview"
-msgstr ""
-
 # ru, sk, uk]
 msgid "Failed to open file. Please try again."
 msgstr "Неуспело отварање фајла. Покушајте поново."
-
-msgid "Failed to reload the restored version"
-msgstr ""
 
 # ru, sk, uk]
 #, python-format
@@ -9058,14 +8553,6 @@ msgstr ""
 
 #, python-format
 msgid "Failed to restore %(name)s: %(errMsg)s"
-msgstr ""
-
-#, python-format
-msgid "Failed to restore %s"
-msgstr ""
-
-#, python-format
-msgid "Failed to restore %s: %s"
 msgstr ""
 
 # de, es, fa, ja, lv, mi, nl, ru, sk, sl, uk]
@@ -9134,8 +8621,9 @@ msgstr "Неуспела валидација израза. Покушајте �
 msgid "Failed to verify select options: %s"
 msgstr "Неуспела провера опција избора: %s"
 
-msgid "Failure Notifications"
-msgstr ""
+# ru, sk, uk]
+msgid "Falling back to CSV; Excel export library not available."
+msgstr "Враћање на CSV; библиотека за извоз у Excel није доступна."
 
 # ru, uk]
 msgid "False"
@@ -9165,10 +8653,6 @@ msgstr "Фебруар"
 msgid "Fetch data preview"
 msgstr "Преузми преглед података"
 
-#, python-format
-msgid "Fetch values predicate failed SQL validation: %(msg)s"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, python-format
 msgid "Fetched %s"
@@ -9180,6 +8664,11 @@ msgstr "Преузимање"
 
 msgid "Fetching data..."
 msgstr "Преузимање података..."
+
+# de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+#, python-format
+msgid "Field cannot be decoded by JSON. %(json_error)s"
+msgstr "Поље не може бити декодирано JSON-ом. %(json_error)s"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, python-format
@@ -9225,19 +8714,9 @@ msgstr "Попуните сва обавезна поља да бисте омо
 msgid "Fill method"
 msgstr "Метод попуне"
 
-msgid ""
-"Fill missing periods across the whole time range of the chart instead of "
-"only between the first and the last data point. Useful to keep a series "
-"anchored to the selected time range when the data starts late or ends "
-"early."
-msgstr ""
-
 # lv, ru, sk, uk]
 msgid "Fill out the registration form"
 msgstr "Попуните регистрациони образац"
-
-msgid "Fill the entire time range"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "Filled"
@@ -9258,9 +8737,6 @@ msgstr "Подешавања филтера"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "Filter Type"
 msgstr "Тип филтера"
-
-msgid "Filter by"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 msgid "Filter charts"
@@ -9308,9 +8784,6 @@ msgstr "Вредност филтера је обавезна"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "Filter value list cannot be empty"
 msgstr "Листа вредности филтера не може бити празна"
-
-msgid "Filter version history"
-msgstr ""
 
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]
@@ -9376,9 +8849,6 @@ msgstr ""
 " (кључ групе = 'region'), клауза филтера би применила филтер (department "
 "= 'Finance' OR department = 'Marketing') AND (region = 'Europe')."
 
-msgid "Financial"
-msgstr ""
-
 # de, es, fa, ja, lv, mi, nl, ru, sk, sl, tr, uk]
 msgid "Find"
 msgstr "Пронађи"
@@ -9403,9 +8873,6 @@ msgstr "Име"
 msgid "First name is required"
 msgstr "Име је обавезно"
 
-msgid "First tracked save"
-msgstr ""
-
 # uk]
 msgid "Fit columns dynamically"
 msgstr "Динамички прилагоди колоне"
@@ -9414,9 +8881,6 @@ msgstr "Динамички прилагоди колоне"
 #, fuzzy
 msgid "Fit data"
 msgstr "Прилагоди податке"
-
-msgid "Fix the Extra JSON to edit certification"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
@@ -9494,11 +8958,6 @@ msgstr ""
 msgid "For further instructions, consult the"
 msgstr "За даља упутства, погледајте"
 
-msgid ""
-"For more information about objects are in context in the scope of this "
-"function, refer to the"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, tr]
 #, fuzzy
 msgid ""
@@ -9541,12 +9000,6 @@ msgstr "Форсирај категоричко"
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "Force date format"
 msgstr "Форсирај формат датума"
-
-msgid "Force disabled"
-msgstr ""
-
-msgid "Force enabled"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]
@@ -9786,9 +9239,6 @@ msgstr "Добавља одређени датум за празник"
 msgid "Give access to multiple catalogs in a single database connection."
 msgstr "Омогућава приступ више каталога у једној вези са базом података."
 
-msgid "Go to Welcome Page"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "Go to the edit mode to configure the dashboard and add charts"
 msgstr "Идите у режим измене да конфигуришете контролну таблу и додате графиконе"
@@ -9851,9 +9301,6 @@ msgstr "Величина мреже"
 msgid "Grid view"
 msgstr "Приказ мреже"
 
-msgid "Gridlines"
-msgstr ""
-
 # ru, uk]
 msgid "Group"
 msgstr "Група"
@@ -9895,9 +9342,6 @@ msgstr ""
 "Групише преостале серије у категорију \"Остало\" када се достигне "
 "ограничење серија. Ово спречава приказивање непотпуних података временске"
 " серије."
-
-msgid "Guest"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk]
 msgid "Guest user cannot modify chart payload"
@@ -9984,15 +9428,6 @@ msgstr "Сакрива линију за временску серију"
 msgid "Hierarchy"
 msgstr "Хијерархија"
 
-msgid "High"
-msgstr ""
-
-msgid "High color"
-msgstr ""
-
-msgid "Highest value for each period."
-msgstr ""
-
 msgid "Histogram"
 msgstr "Хистограм"
 
@@ -10003,6 +9438,11 @@ msgstr "Почетна"
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Horizon Chart"
 msgstr "Хоризонт графикон"
+
+# de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
+# zh_TW]
+msgid "Horizon Charts"
+msgstr "Хоризонт графикони"
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "Horizontal"
@@ -10015,9 +9455,6 @@ msgstr "Хоризонтално (Врх)"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Horizontal alignment"
 msgstr "Хоризонтално поравнање"
-
-msgid "Horizontal layout (columns)"
-msgstr ""
 
 msgid "Host"
 msgstr "Хост"
@@ -10102,10 +9539,7 @@ msgid ""
 "Hive and hive.server2.enable.doAs is enabled, will run the queries as "
 "service account, but impersonate the currently logged on user via "
 "hive.server2.proxy.user property. If Databricks, uses OAuth2 to "
-"authenticate as the currently logged on user. If Snowflake or Google "
-"Sheets, and OAuth authentication is configured for the database, will run"
-" the queries as the currently logged on user via their own OAuth "
-"credentials."
+"authenticate as the currently logged on user."
 msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -10165,8 +9599,8 @@ msgid "Image download failed, please refresh and try again."
 msgstr "Преузимање слике није успело, освежите страницу и покушајте поново."
 
 msgid ""
-"Impersonate logged in user (Presto, Trino, Drill, Hive, Databricks, "
-"Snowflake and Google Sheets)"
+"Impersonate logged in user (Presto, Trino, Drill, Hive, Databricks, and "
+"Google Sheets)"
 msgstr ""
 
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
@@ -10225,9 +9659,6 @@ msgstr "Увоз сачуваног упита није успео из непо
 msgid "Import themes"
 msgstr "Увези теме"
 
-msgid "Imported"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "In"
 msgstr "У"
@@ -10265,9 +9696,6 @@ msgstr "Укључи параметре шаблона"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Include a description that will be sent with your report"
 msgstr "Укључите опис који ће бити послат са вашим извештајем"
-
-msgid "Include a link back to Superset"
-msgstr ""
 
 # es, fa, ja, lv, mi, ru, sk, sl, uk]
 #, python-format
@@ -10352,15 +9780,6 @@ msgstr "Унесите назив слоја"
 msgid "Inside"
 msgstr "Унутра"
 
-msgid "Inside Base"
-msgstr ""
-
-msgid "Inside Center"
-msgstr ""
-
-msgid "Inside End"
-msgstr ""
-
 # uk]
 msgid "Inside bottom"
 msgstr "Унутра доле"
@@ -10411,9 +9830,6 @@ msgstr ""
 "Интензитет је вредност која се множи са тежином да би се добила коначна "
 "тежина"
 
-msgid "Internal"
-msgstr ""
-
 msgid "Interval"
 msgstr "Интервал"
 
@@ -10461,10 +9877,6 @@ msgstr "Неважећи JSON метаподаци"
 msgid "Invalid SQL: %(error)s"
 msgstr "Неважећи SQL: %(error)s"
 
-#, python-format
-msgid "Invalid ad-hoc metric %(label)s: `expressionType` is missing"
-msgstr ""
-
 # de, es, fa, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 #, python-format
 msgid "Invalid advanced data type: %(advanced_data_type)s"
@@ -10500,10 +9912,6 @@ msgstr ""
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Invalid cron expression"
 msgstr "Неважећи cron израз"
-
-#, python-format
-msgid "Invalid crontab schedule: %(cron_schedule)s never matches a valid date"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, python-format
@@ -10579,10 +9987,6 @@ msgstr "Неважећи кључ сталне везе"
 msgid "Invalid reference to column: \"%(column)s\""
 msgstr "Неважећа референца на колону: \"%(column)s\""
 
-#, python-format
-msgid "Invalid resample rule: %(rule)s"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, python-format
 msgid "Invalid result type: %(result_type)s"
@@ -10593,6 +9997,11 @@ msgstr "Неважећи тип резултата: %(result_type)s"
 msgid "Invalid rolling_type: %(type)s"
 msgstr "Неважећи роллинг_type: %(type)s"
 
+# de, es, fa, ja, lv, mi, nl, pl, ru, sk, sl, uk]
+#, python-format
+msgid "Invalid spatial point encountered: %(latlong)s"
+msgstr "Наишао на неважећу просторну тачку: %(latlong)s"
+
 # de, es, fa, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "Invalid state."
 msgstr "Неважеће стање."
@@ -10601,16 +10010,9 @@ msgstr "Неважеће стање."
 msgid "Invalid tab ids: %(tab_ids)s"
 msgstr "Неважећи ИД-ови картица: %(tab_ids)s"
 
-#, python-format
-msgid "Invalid time range boundary for resample: %(value)s"
-msgstr ""
-
 # ru, uk]
 msgid "Invalid username or password"
 msgstr "Неисправно корисничко име или лозинка"
-
-msgid "Inverse"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Inverse selection"
@@ -10640,9 +10042,6 @@ msgstr "Да ли је прилагођена ознака"
 msgid "Is dimension"
 msgstr "Да ли је димензија"
 
-msgid "Is empty"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "Is false"
 msgstr "Нетачно"
@@ -10655,9 +10054,6 @@ msgstr "Омиљено"
 # zh_TW]
 msgid "Is filterable"
 msgstr "Може се филтрирати"
-
-msgid "Is not empty"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "Is not null"
@@ -10704,16 +10100,9 @@ msgstr ""
 "Неће бити уклоњено чак ако је празно. Неће бити приказано у приказу за "
 "уређивање графикона ако је празно."
 
-#, python-format
-msgid "Item updated: %s"
-msgstr ""
-
 # ru, uk]
 msgid "It’s not recommended to truncate Y axis in Bar chart."
 msgstr "Није препоручљиво одсецати Y осу на тракастом графикону."
-
-msgid "It’s not recommended to truncate axis in Bar chart."
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "JAN"
@@ -10767,15 +10156,6 @@ msgstr "ЈУН"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "January"
 msgstr "Јануар"
-
-msgid "JavaScript data interceptor"
-msgstr ""
-
-msgid "JavaScript onClick href"
-msgstr ""
-
-msgid "JavaScript tooltip generator"
-msgstr ""
 
 # de, es, fa, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "Jinja templating"
@@ -10831,9 +10211,6 @@ msgstr "Садржај ознаке"
 msgid "Label Line"
 msgstr "Линија ознаке"
 
-msgid "Label Position"
-msgstr ""
-
 # es, fa, fr, ja, lv, mi, pl, ru, sk, sl, uk]
 msgid "Label Template"
 msgstr "Шаблон ознаке"
@@ -10888,12 +10265,6 @@ msgstr "Јединица величине ознаке"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Label threshold"
 msgstr "Праг ознаке"
-
-msgid "Label used for decreasing candles in the tooltip."
-msgstr ""
-
-msgid "Label used for increasing candles in the tooltip."
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Labelling"
@@ -11067,11 +10438,6 @@ msgstr "Тип распореда стабла"
 msgid "Least recently modified"
 msgstr "Најмање недавно измењено"
 
-msgid ""
-"Leave on the deployment default unless you need to force asynchronous "
-"loading on or off for this dashboard."
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Left"
 msgstr "Лево"
@@ -11080,21 +10446,9 @@ msgstr "Лево"
 msgid "Left Margin"
 msgstr "Лева маргина"
 
-msgid "Left color"
-msgstr ""
-
-msgid "Left label"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Left margin, in pixels, allowing for more room for axis labels"
 msgstr "Лева маргина, у пикселима, која омогућава више простора за ознаке осе"
-
-msgid "Left metric"
-msgstr ""
-
-msgid "Left series setting"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Left to Right"
@@ -11132,15 +10486,6 @@ msgstr "Тип легенде"
 msgid "Legend type"
 msgstr "Тип легенде"
 
-msgid "Length equals (=)"
-msgstr ""
-
-msgid "Length greater or equal (>=)"
-msgstr ""
-
-msgid "Length greater than (>)"
-msgstr ""
-
 msgid "Length in cm (12345678cm => 123.46km)"
 msgstr ""
 
@@ -11148,12 +10493,6 @@ msgid "Length in cm (12345cm => 123.45m)"
 msgstr ""
 
 msgid "Length in m (12345m => 12.35km)"
-msgstr ""
-
-msgid "Length less or equal (<=)"
-msgstr ""
-
-msgid "Length less than (<)"
 msgstr ""
 
 # ru, uk]
@@ -11204,15 +10543,6 @@ msgstr "Ограничење"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "Limit type"
 msgstr "Тип ограничења"
-
-msgid ""
-"Limit which MCP resources and actions this key can access. These scopes "
-"do not restrict REST API requests and never grant permissions the user "
-"does not already have. Leave empty for legacy RBAC-only behavior."
-msgstr ""
-
-msgid "Limits the number of cells that get retrieved."
-msgstr ""
 
 msgid ""
 "Limits the number of cells that get retrieved. Not applied when non-"
@@ -11287,9 +10617,6 @@ msgstr "Дебљина линије"
 msgid "Line width unit"
 msgstr "Јединица дебљине линије"
 
-msgid "Linear"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Linear Color Scheme"
 msgstr "Линеарна шема боја"
@@ -11329,20 +10656,9 @@ msgstr "Листа група"
 msgid "List Roles"
 msgstr "Листа улога"
 
-msgid "List Unique Values"
-msgstr ""
-
 # fr, ja, lv, mi, ru, sk, uk]
 msgid "List Users"
 msgstr "Листа корисника"
-
-msgid ""
-"List every range, marker and marker line in a legend; clicking an entry "
-"toggles it on the chart"
-msgstr ""
-
-msgid "List of extra columns made available in JavaScript functions"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "List of n+1 values for bucketing metric into n buckets."
@@ -11375,9 +10691,6 @@ msgstr "Рендеровање уживо"
 msgid "Load CSS template (optional)"
 msgstr "Учитај CSS шаблон (опционално)"
 
-msgid "Load more"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]
 msgid "Loaded data cached"
@@ -11391,15 +10704,8 @@ msgstr "Учитано из кеша"
 msgid "Loading"
 msgstr "Учитавање"
 
-msgid "Loading dependent semantic views"
-msgstr ""
-
 msgid "Loading filter values"
 msgstr "Учитавање вредности филтера"
-
-#, python-format
-msgid "Loading historical version · %s"
-msgstr ""
 
 # uk]
 msgid "Loading timezones..."
@@ -11509,12 +10815,6 @@ msgstr "Географска дужина и ширина"
 msgid "Longitude of default viewport"
 msgstr "Географска дужина подразумеваног приказа"
 
-msgid "Low"
-msgstr ""
-
-msgid "Low color"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk]
 msgid "Lower Threshold"
 msgstr "Доњи праг"
@@ -11528,18 +10828,12 @@ msgstr ""
 msgid "Lower threshold must be lower than upper threshold"
 msgstr "Доњи праг мора бити мањи од горњег прага"
 
-msgid "Lowest value for each period."
-msgstr ""
-
 msgid "MAR"
 msgstr "МАР"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "MAY"
 msgstr "МАЈ"
-
-msgid "MCP scopes"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "MON"
@@ -11626,6 +10920,9 @@ msgstr ""
 "MapLibre је отвореног кода и не захтева API кључ. Mapbox захтева да "
 "MAPBOX_API_KEY буде подешен на серверу."
 
+msgid "Mapbox"
+msgstr "Mapbox"
+
 msgid "Mapbox (API key required)"
 msgstr "Mapbox (потребан API кључ)"
 
@@ -11700,15 +10997,6 @@ msgstr "Макс"
 msgid "Max Bubble Size"
 msgstr "Максимална величина мехурића"
 
-msgid "Max bound"
-msgstr ""
-
-msgid "Max bound should be greater than min bound"
-msgstr ""
-
-msgid "Max bound should be greater than target value"
-msgstr ""
-
 # uk]
 msgid "Max value"
 msgstr "Макс. вредност"
@@ -11729,9 +11017,6 @@ msgstr "Максимална величина фонта"
 msgid "Maximum Radius"
 msgstr "Максимални радијус"
 
-msgid "Maximum Retry Attempts"
-msgstr ""
-
 msgid "Maximum Width"
 msgstr "Максимална ширина"
 
@@ -11745,9 +11030,6 @@ msgstr "Достигнута максимална дубина угњеждав�
 # fr, ja, lv, mi, pt_BR, ru, sk, uk]
 msgid "Maximum number of features to fetch from service"
 msgstr "Максималан број објеката за преузимање из сервиса"
-
-msgid "Maximum number of retry attempts (1–10)"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
@@ -11780,9 +11062,6 @@ msgstr "Средња вредност вредности током наведе
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "Mean values"
 msgstr "Средње вредности"
-
-msgid "Median"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
@@ -11819,9 +11098,6 @@ msgstr "Брзина преноса меморије у бајтовима - б�
 # fr, ja, lv, mi, pt_BR, ru, sk, uk]
 msgid "Memory transfer rate in bytes - decimal (1024B => 1.024kB/s)"
 msgstr "Брзина преноса меморије у бајтовима - децимално (1024Б => 1.024kB/с)"
-
-msgid "Menu"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "Menu actions trigger"
@@ -11906,12 +11182,6 @@ msgstr "Валута метрике"
 msgid "Metric descending"
 msgstr "Метрика опадајуће"
 
-msgid "Metric displayed on the left side of the butterfly chart"
-msgstr ""
-
-msgid "Metric displayed on the right side of the butterfly chart"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Metric factor change from `since` to `until`"
 msgstr "Промена фактора метрике од `since` до `until`"
@@ -11990,9 +11260,6 @@ msgstr "Метрике"
 msgid "Metrics (%s)"
 msgstr "Метрике (%s)"
 
-msgid "Metrics / Dimensions"
-msgstr ""
-
 msgid "Metrics can't be used for both rows and columns at the same time"
 msgstr "Метрике се не могу користити истовремено за редове и колоне"
 
@@ -12006,9 +11273,6 @@ msgstr "Метрике треба да буду унутар фолдера"
 # uk]
 msgid "Metrics to show in the tooltip."
 msgstr "Метрике које се приказују у тоолтипу."
-
-msgid "Mid color"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "Middle"
@@ -12034,15 +11298,6 @@ msgstr "Минимални периоди"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Min Width"
 msgstr "Минимална ширина"
-
-msgid "Min bound"
-msgstr ""
-
-msgid "Min bound should be smaller than max bound"
-msgstr ""
-
-msgid "Min bound should be smaller than target value"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Min periods"
@@ -12159,10 +11414,6 @@ msgstr "Мешовити графикон"
 msgid "Modified"
 msgstr "Измењено"
 
-#, python-format
-msgid "Modified %(date)s by %(user)s"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 #, python-format
 msgid "Modified %s"
@@ -12213,9 +11464,6 @@ msgstr "Више"
 msgid "More Options"
 msgstr "Више опција"
 
-msgid "More actions"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "More filters"
 msgstr "Више филтера"
@@ -12231,20 +11479,9 @@ msgstr "Икона за померање"
 msgid "Move only"
 msgstr "Само померање"
 
-#, python-format
-msgid "Moved %s '%s'"
-msgstr ""
-
-#, python-format
-msgid "Moved a %s"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Moves the given set of dates by a specified interval."
 msgstr "Помера дати скуп датума за наведени интервал."
-
-msgid "Moving averages"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Multi-Dimensions"
@@ -12285,13 +11522,6 @@ msgstr ""
 "Морате бити уредник графикона да бисте преписали овај графикон. Уместо "
 "тога га сачувајте као нови графикон."
 
-msgid "Must be between 1 and 10"
-msgstr ""
-
-#, python-brace-format
-msgid "Must be one of: {choices}."
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Must be unique"
 msgstr "Мора бити јединствено"
@@ -12299,6 +11529,10 @@ msgstr "Мора бити јединствено"
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "Must choose either a chart or a dashboard"
 msgstr "Морате одабрати графикон или контролну таблу"
+
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+msgid "Must have a [Group By] column to have 'count' as the [Label]"
+msgstr "Морате имати колону [Групиши по] да бисте имали 'count' као [Ознака]"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "Must provide credentials for the SSH Tunnel"
@@ -12377,11 +11611,6 @@ msgstr "Назив циљних чворова"
 msgid "Name of your tag"
 msgstr "Назив ваше ознаке"
 
-msgid ""
-"Name used for the candlestick series in the legend and tooltip when no "
-"series dimension is set."
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Name your database"
 msgstr "Именујте своју базу података"
@@ -12422,18 +11651,17 @@ msgstr "Грешка мреже приликом покушаја преузим
 msgid "Network error."
 msgstr "Мрежна грешка."
 
-msgid "Network throughput in bits/s (1000000 => 1Mbps)"
-msgstr ""
-
-msgid "Network throughput in bytes/s as bits (1000000 => 8Mbps)"
-msgstr ""
-
 # ru, sk, uk]
 msgid "New"
 msgstr "Ново"
 
 msgid "New Semantic Layer"
 msgstr "Нови семантички слој"
+
+# de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
+# zh, zh_TW]
+msgid "New chart"
+msgstr "Нови графикон"
 
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 msgid "New dataset"
@@ -12507,13 +11735,6 @@ msgstr "Нема креираних ознака"
 # ja, lv, mi, ru, sk, uk]
 msgid "No actions"
 msgstr "Нема акција"
-
-msgid "No actions found"
-msgstr ""
-
-#, python-format
-msgid "No affected %(label)s."
-msgstr ""
 
 # fa, ja, lv, mi, nl, pt_BR, ru, sl, uk]
 msgid "No annotation layers"
@@ -12632,9 +11853,6 @@ msgstr "Нема група"
 # uk]
 msgid "No groups yet"
 msgstr "Још нема група"
-
-msgid "No history yet"
-msgstr ""
 
 # uk]
 msgid "No items"
@@ -12874,17 +12092,6 @@ msgstr "Метод обавештавања"
 msgid "Notification method"
 msgstr "Метод обавештавања"
 
-msgid ""
-"Notify all recipients when the report fails after exhausting all retry "
-"attempts."
-msgstr ""
-
-msgid "Notify report owners on each retry attempt"
-msgstr ""
-
-msgid "Notify report recipients on each retry attempt"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "November"
 msgstr "Новембар"
@@ -12957,9 +12164,6 @@ msgstr "Број децималних места за приказ вредно�
 msgid "Number of decimal places with which to display p-values"
 msgstr "Број децималних места за приказ p-вредности"
 
-msgid "Number of periods"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk]
 msgid ""
 "Number of periods to compare against. You can use negative numbers to "
@@ -13019,9 +12223,6 @@ msgstr "Информације о OAuth2 клијенту"
 msgid "OCT"
 msgstr "ОКТ"
 
-msgid "OHLC"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "OK"
 msgstr "ОК"
@@ -13039,15 +12240,9 @@ msgstr "ПРЕПИШИ"
 msgid "October"
 msgstr "Октобар"
 
-msgid "Off"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Offline"
 msgstr "Офлајн"
-
-msgid "Older history exists but is beyond what can be shown here."
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "On Grace"
@@ -13172,16 +12367,6 @@ msgstr "Подржани су само појединачни упити"
 msgid "Only the default catalog is supported for this connection"
 msgstr "За ову везу је подржан само подразумевани каталог"
 
-#, python-format
-msgid "Only the first %s values are listed."
-msgstr ""
-
-#, python-format
-msgid ""
-"Only the first %s values are listed. Type to search all of them, or enter"
-" a value that is not listed."
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "Oops! An error occurred!"
 msgstr "Упс! Дошло је до грешке!"
@@ -13210,9 +12395,6 @@ msgstr "Провидност балончића, 0 значи потпуно п�
 msgid "Opacity, expects values between 0 and 100"
 msgstr "Провидност, очекује вредности између 0 и 100"
 
-msgid "Open"
-msgstr ""
-
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
 msgid "Open Datasource tab"
@@ -13221,12 +12403,6 @@ msgstr "Отвори картицу извора података"
 # uk]
 msgid "Open SQL Lab in a new tab"
 msgstr "Отвори SQL Lab у новој картици"
-
-msgid "Open as new chart"
-msgstr ""
-
-msgid "Open as new dashboard"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy
@@ -13237,9 +12413,6 @@ msgstr "Отвори графикон у новој картици"
 #, fuzzy
 msgid "Open dashboard in new tab"
 msgstr "Отвори контролни панел у новој картици"
-
-msgid "Open filters"
-msgstr ""
 
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
 # zh, zh_TW]
@@ -13254,9 +12427,6 @@ msgstr "Отвори у SQL Лаб-у"
 # zh, zh_TW]
 msgid "Open query in SQL Lab"
 msgstr "Отвори упит у SQL Lab-у"
-
-msgid "Opening value for each period."
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
@@ -13296,11 +12466,6 @@ msgid "Optional d3 number format string"
 msgstr "Опциони низ за д3 формат броја"
 
 msgid ""
-"Optional dimension used to split the chart into multiple candlestick "
-"series."
-msgstr ""
-
-msgid ""
 "Optional metric used to scale the size of each dot. Dot areas are scaled "
 "linearly between the minimum and maximum dot size."
 msgstr ""
@@ -13312,15 +12477,6 @@ msgstr "Опциони назив колоне са подацима."
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Optional warning about use of this metric"
 msgstr "Опционо упозорење о коришћењу ове мере"
-
-#, python-format
-msgid ""
-"Optional. When set together with Low color, Mid color, and High color "
-"below, colors diverge from Mid color at this value toward Low color below"
-" it and High color above it, instead of a single color fading in and out."
-" For % of column with Column sum, the resolved center must still fall "
-"inside the color range; otherwise the rule uses its single color."
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "Options"
@@ -13402,9 +12558,6 @@ msgstr "Спољни радијус"
 msgid "Outer edge of Pie chart"
 msgstr "Спољна ивица кружног графикона"
 
-msgid "Outside End"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Overlap"
 msgstr "Преклапање"
@@ -13444,11 +12597,6 @@ msgstr ""
 " ваш временски опсег, и користите \"Прилагођено\" да подесите прилагођени"
 " опсег за поређење."
 
-msgid ""
-"Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
-" Type a custom period to add it."
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid ""
 "Overlays a hexagonal grid on a map, and aggregates data within the "
@@ -13464,16 +12612,6 @@ msgstr "Препиши временску грануларност"
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "Override time range"
 msgstr "Препиши временски опсег"
-
-msgid ""
-"Overrides the highest value used for coloring. Leave blank to use the "
-"highest value in the data."
-msgstr ""
-
-msgid ""
-"Overrides the lowest value used for coloring. Leave blank to use the "
-"lowest value in the data."
-msgstr ""
 
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
@@ -13501,13 +12639,6 @@ msgstr "Препиши текст у едитору упитом на ову т�
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Owned Created or Favored"
 msgstr "Власништво, креирано или омиљено"
-
-#, python-format
-msgid "Owner: %(names)s"
-msgstr ""
-
-msgid "Owners"
-msgstr ""
 
 # fr, ja, lv, mi, ru, sk, uk]
 msgid "PDF download failed, please refresh and try again."
@@ -13578,6 +12709,10 @@ msgstr "Део целине"
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Partition Chart"
 msgstr "Графикон поделе"
+
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+msgid "Partition Diagram"
+msgstr "Дијаграм поделе"
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Partition Limit"
@@ -13667,12 +12802,6 @@ msgstr "Промена у процентима"
 msgid "Percent Difference format"
 msgstr "Формат процентуалне разлике"
 
-msgid "Percent change"
-msgstr ""
-
-msgid "Percent denominator"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk]
 msgid "Percent of total"
 msgstr "Проценат од укупног"
@@ -13721,10 +12850,6 @@ msgstr "Периоди"
 msgid "Periods must be a whole number"
 msgstr "Периоди морају бити цео број"
 
-#, python-format
-msgid "Periods must not exceed %(max)s"
-msgstr ""
-
 # fr, ja, lv, mi, ru, sk, uk]
 msgid "Permissions"
 msgstr "Дозволе"
@@ -13741,9 +12866,6 @@ msgstr "Особа или група која је сертификовала о
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Person or group that has certified this dashboard."
 msgstr "Особа или група која је сертификовала ову контролну таблу."
-
-msgid "Person or group that has certified this dataset"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Person or group that has certified this metric"
@@ -13765,6 +12887,16 @@ msgstr "Физички (табела или приказ)"
 msgid "Pick a dimension from which categorical colors are defined"
 msgstr "Изаберите димензију из које се дефинишу категоричке боје"
 
+# de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
+# zh_TW]
+msgid "Pick a metric for x, y and size"
+msgstr "Изаберите метрику за x, y и величину"
+
+# de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
+# zh_TW]
+msgid "Pick a metric to display"
+msgstr "Изаберите метрику за приказ"
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Pick a name to help you identify this database."
 msgstr "Изаберите назив који ће вам помоћи да идентификујете ову базу података."
@@ -13773,12 +12905,14 @@ msgstr "Изаберите назив који ће вам помоћи да и�
 msgid "Pick a nickname for how the database will display in Superset."
 msgstr "Изаберите надимак за приказ ове базе података у Superset-у."
 
-msgid "Pick a set of deck.gl charts to layer on top of one another"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Pick a title for you annotation."
 msgstr "Изаберите наслов за вашу анотацију."
+
+# de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
+# zh_TW]
+msgid "Pick at least one metric"
+msgstr "Изаберите најмање једну метрику"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
@@ -13910,6 +13044,10 @@ msgstr ""
 msgid "Please choose a valid value"
 msgstr "Изаберите важећу вредност"
 
+# de, es, fa, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
+msgid "Please choose at least one groupby"
+msgstr "Изаберите најмање једно груписање"
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Please confirm"
 msgstr "Потврдите"
@@ -13967,9 +13105,6 @@ msgstr "Исправите следеће грешке"
 msgid "Please provide a valid min or max value"
 msgstr "Унесите важећу минималну или максималну вредност"
 
-msgid "Please provide both time bounds (Since and Until)"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Please re-enter the password."
 msgstr "Поново унесите лозинку."
@@ -14010,6 +13145,11 @@ msgid ""
 "Please specify the Dataset ID for the ``%(name)s`` metric in the Jinja "
 "macro."
 msgstr "Наведите ID скупа података за меру ``%(name)s`` у Jinja макроу."
+
+# de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
+# zh_TW]
+msgid "Please use 3 different metric labels"
+msgstr "Користите 3 различите ознаке мера"
 
 msgid ""
 "Plot each time-shifted series across its full time range instead of "
@@ -14133,9 +13273,6 @@ msgstr "Позиција ознаке средњег чвора на стабл�
 msgid "Position of row level subtotal"
 msgstr "Позиција подзбира на нивоу реда"
 
-msgid "Position of the data label relative to the data point"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Powered by Apache Superset"
 msgstr "Покреће Apache Superset"
@@ -14168,10 +13305,6 @@ msgstr "Префикс"
 msgid "Prefix or suffix"
 msgstr "Префикс или суфикс"
 
-#, python-format
-msgid "Preparing %(count)s charts for export. This may take a moment."
-msgstr ""
-
 # de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
 msgid "Preview"
@@ -14180,14 +13313,6 @@ msgstr "Преглед"
 # es, fa, ja, lv, mi, ru, sk, sl, uk]
 msgid "Preview uploaded file"
 msgstr "Преглед отпремљене датотеке"
-
-#, python-format
-msgid "Previewing historical version · %s"
-msgstr ""
-
-#, python-format
-msgid "Previewing historical version · %s · %s"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Previous"
@@ -14220,11 +13345,6 @@ msgstr "Границе примарне y-осе"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Primary y-axis format"
 msgstr "Формат примарне y-осе"
-
-msgid ""
-"Print range and marker labels on the chart instead of showing tooltips on"
-" hover"
-msgstr ""
 
 msgid "Private"
 msgstr "Приватно"
@@ -14265,9 +13385,6 @@ msgstr "Прогресивно"
 # ja, lv, mi, ru, sk, uk]
 msgid "Project Id"
 msgstr "ID пројекта"
-
-msgid "Properties updated"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Proportional"
@@ -14342,6 +13459,10 @@ msgstr "Историја упита"
 msgid "Query State"
 msgstr "Стање упита"
 
+# uk]
+msgid "Query cannot be loaded."
+msgstr "Упит не може бити учитан."
+
 # ru, sk, uk]
 msgid "Query data in SQL Lab"
 msgstr "Упит података у SQL Lab"
@@ -14394,9 +13515,6 @@ msgstr "Упит је заустављен."
 # uk]
 msgid "Queued"
 msgstr "У реду"
-
-msgid "RBAC only"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "RGB Color"
@@ -14490,15 +13608,6 @@ msgstr "Однос"
 msgid "Raw records"
 msgstr "Сирови записи"
 
-msgid "Rearranged layout"
-msgstr ""
-
-msgid ""
-"Rebase each series to its percent change from a baseline point, like the "
-"legacy Time-series Percent Change chart. Drag the vertical baseline on "
-"the chart to re-index."
-msgstr ""
-
 msgid "Recently Archived"
 msgstr ""
 
@@ -14567,10 +13676,6 @@ msgstr "Погледајте"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Referenced columns not available in DataFrame."
 msgstr "Референтне колоне нису доступне у DataFrame-у."
-
-#, python-format
-msgid "Referenced columns not available in DataFrame: %(columns)s"
-msgstr ""
 
 # uk]
 msgid "Referrer"
@@ -14654,9 +13759,6 @@ msgid ""
 " users can see if no RLS filters within a filter group apply to them."
 msgstr ""
 
-msgid "Related items only"
-msgstr ""
-
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Relational"
 msgstr "Релациони"
@@ -14711,9 +13813,6 @@ msgstr ""
 msgid "Remove filter"
 msgstr "Уклони филтер"
 
-msgid "Remove from favorites"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Remove item"
 msgstr "Уклони ставку"
@@ -14729,18 +13828,6 @@ msgstr "Уклони упит из дневника"
 msgid "Remove sheet"
 msgstr ""
 
-#, python-format
-msgid "Removed %s '%s'"
-msgstr ""
-
-#, python-format
-msgid "Removed '%s' dimension"
-msgstr ""
-
-#, python-format
-msgid "Removed '%s' metric"
-msgstr ""
-
 # fr, ja, lv, mi, ru, sk, uk]
 #, python-format
 msgid "Removed 1 column from the virtual dataset"
@@ -14749,29 +13836,9 @@ msgstr[0] "Уклоњена је %s колона из виртуелног ск�
 msgstr[1] "Уклоњене су %s колоне из виртуелног скупа података"
 msgstr[2] "Уклоњено је %s колона из виртуелног скупа података"
 
-#, python-format
-msgid "Removed a %s"
-msgstr ""
-
-msgid "Removed a dimension"
-msgstr ""
-
-msgid "Removed a filter"
-msgstr ""
-
-msgid "Removed a metric"
-msgstr ""
-
-#, python-format
-msgid "Removed filter on '%s'"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Rename tab"
 msgstr "Преименуј картицу"
-
-msgid "Renamed chart"
-msgstr ""
 
 # es, fa, fr, ja, lv, mi, pl, ru, sk, sl, uk]
 msgid "Render HTML"
@@ -14797,20 +13864,9 @@ msgstr "Замени"
 msgid "Report"
 msgstr "Извештај"
 
-#, python-format
-msgid "Report Failed - All Retries Exhausted: %(name)s"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pt, pt_BR, ru, sk, sl, tr, uk]
 msgid "Report Name"
 msgstr "Назив извештаја"
-
-msgid "Report Recipients"
-msgstr ""
-
-#, python-format
-msgid "Report Retry [%(attempt)s of %(max)s]: %(name)s"
-msgstr ""
 
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
@@ -14916,15 +13972,9 @@ msgstr "Назив извештаја"
 msgid "Report not yet run"
 msgstr "Извештај још није покренут"
 
-msgid "Report retrying"
-msgstr ""
-
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "Report schedule client error"
 msgstr "Клијентска грешка распореда извештаја"
-
-msgid "Report schedule execution started successfully"
-msgstr ""
 
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "Report schedule system error"
@@ -14964,9 +14014,6 @@ msgstr "Снага одбијања између чворова"
 msgid "Request Access"
 msgstr "Захтевај приступ"
 
-msgid "Request access"
-msgstr ""
-
 # de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, python-format
 msgid "Request is incorrect: %(error)s"
@@ -14995,9 +14042,6 @@ msgstr ""
 msgid "Required"
 msgstr "Обавезно"
 
-msgid "Required by"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Required control values have been removed"
 msgstr "Обавезне контролне вредности су уклоњене"
@@ -15006,6 +14050,11 @@ msgstr "Обавезне контролне вредности су уклоње
 msgid "Resample"
 msgstr "Поновно узорковање"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy, python-format
+msgid "Resample method '%(method)s' is not supported."
+msgstr "Метода поновног узорковања '%(method)s' није подржана."
+
 # es, fa, fr, ja, lv, mi, ru, sk, sl, uk]
 msgid "Resample method should be in "
 msgstr "Метод поновног узорковања треба да буде у "
@@ -15013,12 +14062,6 @@ msgstr "Метод поновног узорковања треба да буд�
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "Resample operation requires DatetimeIndex"
 msgstr "Операција поновног узорковања захтева DatetimeIndex"
-
-#, python-format
-msgid ""
-"Resample rule would project %(rows)s rows, exceeding the limit of %(max)s"
-" rows"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "Reset"
@@ -15073,32 +14116,6 @@ msgstr "Ресурс је уклоњен пре него што је могло 
 msgid "Restore filter"
 msgstr "Враћање филтера"
 
-msgid "Restore this version"
-msgstr ""
-
-msgid "Restore this version?"
-msgstr ""
-
-#, python-format
-msgid "Restored to '%s' version"
-msgstr ""
-
-#, python-format
-msgid "Restored to version %s"
-msgstr ""
-
-msgid "Restored version"
-msgstr ""
-
-#, python-format
-msgid "Restored version · %s"
-msgstr ""
-
-msgid ""
-"Restoring creates a new version. Your existing version history will not "
-"be lost."
-msgstr ""
-
 # de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]
 msgid "Results"
@@ -15122,9 +14139,6 @@ msgstr ""
 msgid "Resume auto-refresh"
 msgstr "Настави аутоматско освежавање"
 
-msgid "Retries are not supported for alerts"
-msgstr ""
-
 # ru, uk]
 msgid "Retry"
 msgstr "Покушај поново"
@@ -15133,22 +14147,12 @@ msgstr "Покушај поново"
 msgid "Retry fetching results"
 msgstr "Покушај поново преузимање резултата"
 
-msgid "Retrying"
-msgstr ""
-
 msgid "Return to Superset"
 msgstr "Повратак на Superset"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Return to specific datetime."
 msgstr "Повратак на одређени датум и време."
-
-#, python-format
-msgid "Reused by 1 other submission"
-msgid_plural "Reused by %s other submissions"
-msgstr[0] ""
-msgstr[1] ""
-msgstr[2] ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "Reverse Lat & Long"
@@ -15198,18 +14202,6 @@ msgstr "Десни панел"
 # zh_TW]
 msgid "Right axis metric"
 msgstr "Метрика десне осе"
-
-msgid "Right color"
-msgstr ""
-
-msgid "Right label"
-msgstr ""
-
-msgid "Right metric"
-msgstr ""
-
-msgid "Right series setting"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Right to Left"
@@ -15271,9 +14263,6 @@ msgstr "ID коренског чвора"
 msgid "Rose Type"
 msgstr "Тип розе"
 
-msgid "Rotate category label"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Rotate x axis label"
 msgstr "Ротирај ознаку x осе"
@@ -15325,20 +14314,11 @@ msgstr "Висина реда"
 msgid "Row limit"
 msgstr "Ограничење редова"
 
-msgid "Row settings"
-msgstr ""
-
 msgid "Row-Level Security"
 msgstr ""
 
 #, python-format
 msgid "Row-Level Security: %d filter(s) may restrict data based on your role."
-msgstr ""
-
-#, python-format
-msgid ""
-"Row-level security could not be applied to the virtual dataset query, so "
-"it cannot be run securely: %(msg)s"
 msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
@@ -15436,12 +14416,6 @@ msgstr "SQL"
 
 msgid "SQL Lab"
 msgstr "SQL Lab"
-
-msgid ""
-"SQL Lab cannot authorise a script that changes the schema used to resolve"
-" unqualified table names (e.g. USE or search_path changes). Qualify "
-"tables explicitly instead."
-msgstr ""
 
 msgid ""
 "SQL Lab cannot authorise a statement that could not be fully parsed. "
@@ -15560,18 +14534,9 @@ msgstr "НИЗ"
 msgid "SUN"
 msgstr "НЕД"
 
-msgid "Sample Standard Deviation"
-msgstr ""
-
-msgid "Sample Variance"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk]
 msgid "Samples"
 msgstr "Узорци"
-
-msgid "Samples are not available for this datasource type."
-msgstr ""
 
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "Samples for dataset could not be retrieved."
@@ -15682,12 +14647,6 @@ msgstr "Сачувај за ову сесију"
 msgid "Save or Overwrite Dataset"
 msgstr "Сачувај или препиши скуп података"
 
-msgid "Save or discard your unsaved changes to preview a version."
-msgstr ""
-
-msgid "Save or discard your unsaved changes to restore a version."
-msgstr ""
-
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]
 msgid "Save query"
@@ -15711,9 +14670,6 @@ msgstr "Сачувано"
 # zh, zh_TW]
 msgid "Saved Queries"
 msgstr "Сачувани упити"
-
-msgid "Saved changes will appear here"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Saved expressions"
@@ -15850,26 +14806,16 @@ msgstr "Скролујте до дна да бисте омогућили пре
 msgid "Search"
 msgstr "Претрага"
 
-#, python-format
-msgid "Search %s records"
-msgstr ""
-
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]
 msgid "Search / Filter"
 msgstr "Претрага / Филтер"
-
-msgid "Search Dashboards"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Search Metrics & Columns"
 msgstr "Претражи мере и колоне"
 
 msgid "Search a channel by name, or paste a channel ID"
-msgstr ""
-
-msgid "Search actions"
 msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
@@ -16030,9 +14976,6 @@ msgstr "Изаберите метод достављања"
 # ru, sk, uk]
 msgid "Select Filter"
 msgstr "Изабери филтер"
-
-msgid "Select MCP resource scopes (optional)"
-msgstr ""
 
 # de, es, fa, ja, lv, mi, nl, ru, sk, sl, uk]
 msgid "Select Tags"
@@ -16603,9 +15546,6 @@ msgstr "Семантички преглед је ажуриран"
 msgid "Semantic views"
 msgstr "Семантички прегледи"
 
-msgid "Send Failed Reports"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Send as CSV"
 msgstr "Пошаљи као CSV"
@@ -16624,9 +15564,6 @@ msgstr "Пошаљи као PNG"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Send as text"
 msgstr "Пошаљи као текст"
-
-msgid "Send the failed report to all recipients after retries are exhausted"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "September"
@@ -16656,9 +15593,6 @@ msgstr "Стил серије"
 msgid "Series chart type (line, bar etc)"
 msgstr "Тип графикона серије (линија, трака итд)"
 
-msgid "Series colors"
-msgstr ""
-
 # ru, sk, uk]
 msgid "Series decrease setting"
 msgstr "Подешавање смањења серије"
@@ -16671,15 +15605,9 @@ msgstr "Подешавање повећања серије"
 msgid "Series limit"
 msgstr "Ограничење серија"
 
-msgid "Series name"
-msgstr ""
-
 # uk]
 msgid "Series settings"
 msgstr "Подешавања серија"
-
-msgid "Series style"
-msgstr ""
 
 # uk]
 msgid "Series total setting"
@@ -16709,10 +15637,6 @@ msgstr "Сервисни налог"
 # ja, lv, mi, ru, sk, uk]
 msgid "Service version"
 msgstr "Верзија сервиса"
-
-#, python-format
-msgid "Set '%s'"
-msgstr ""
 
 # lv, ru, sk, uk]
 msgid "Set System Dark Theme"
@@ -16877,13 +15801,6 @@ msgstr "Прикажи"
 msgid "Show %s entries"
 msgstr "Прикажи %s ставки"
 
-#, python-format
-msgid "Show %s more change"
-msgid_plural "Show %s more changes"
-msgstr[0] ""
-msgstr[1] ""
-msgstr[2] ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Show Bubbles"
 msgstr "Прикажи балончиће"
@@ -16952,15 +15869,9 @@ msgstr "Прикажи горње ознаке"
 msgid "Show Values"
 msgstr "Прикажи вредности"
 
-msgid "Show X axis"
-msgstr ""
-
 # ru, uk]
 msgid "Show X-axis"
 msgstr "Прикажи X-осу"
-
-msgid "Show Y axis"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Show Y-axis"
@@ -16979,11 +15890,8 @@ msgstr ""
 
 msgid ""
 "Show a summary row of total aggregations: the selected metrics in "
-"aggregate mode, or an aggregation of numeric columns in raw records mode."
-" Note that row limit does not apply to the result."
-msgstr ""
-
-msgid "Show all"
+"aggregate mode, or the sum of numeric columns in raw records mode. Note "
+"that row limit does not apply to the result."
 msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -17033,9 +15941,6 @@ msgstr "Прикажи празне колоне"
 msgid "Show entries per page"
 msgstr "Прикажи број ставки по страници"
 
-msgid "Show fewer"
-msgstr ""
-
 msgid "Show full range for time shift"
 msgstr ""
 
@@ -17054,9 +15959,6 @@ msgstr "Прикажи информативни облачић"
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Show label"
 msgstr "Прикажи ознаку"
-
-msgid "Show labels"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Show labels when the node has children."
@@ -17081,20 +15983,6 @@ msgstr "Прикажи мале ознаке на осама."
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Show only my charts"
 msgstr "Прикажи само моје графиконе"
-
-msgid ""
-"Show only the N most recent periods, from 1 up to the number of periods "
-"in the data. Leave empty to overlay them all."
-msgstr ""
-
-msgid "Show or hide the X axis line, ticks, and labels"
-msgstr ""
-
-msgid "Show or hide the Y axis line and labels"
-msgstr ""
-
-msgid "Show or hide the Y axis line, ticks, gridlines, and labels"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 msgid "Show password."
@@ -17140,9 +16028,6 @@ msgstr "Прикажи линије поделе"
 msgid "Show summary"
 msgstr "Прикажи сажетак"
 
-msgid "Show the main ticks on axes."
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Show the value on top of the bar"
 msgstr "Прикажи вредност изнад траке"
@@ -17162,9 +16047,6 @@ msgstr ""
 # ru, uk]
 msgid "Show value"
 msgstr "Прикажи вредност"
-
-msgid "Show values as"
-msgstr ""
 
 msgid ""
 "Showcases a metric along with a comparison of value, change, and percent "
@@ -17332,9 +16214,6 @@ msgstr "Мало"
 msgid "Small number format"
 msgstr "Формат малих бројева"
 
-msgid "Smooth"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Smooth Line"
 msgstr "Глатка линија"
@@ -17354,14 +16233,6 @@ msgstr "Пуна"
 msgid "Solid background"
 msgstr ""
 
-msgid "Some charts did not finish loading. The export may be incomplete."
-msgstr ""
-
-msgid ""
-"Some features require a larger screen. Try viewing dashboards for the "
-"best mobile experience."
-msgstr ""
-
 msgid ""
 "Some filters are inherited from physical tables referenced in this "
 "virtual dataset."
@@ -17369,9 +16240,6 @@ msgstr ""
 
 msgid "Some groups could not be resolved and are shown as IDs."
 msgstr "Неке групе нису могле бити разрешене и приказане су као ИД-ови."
-
-msgid "Some layers could not be loaded"
-msgstr ""
 
 msgid "Some permissions could not be resolved and are shown as IDs."
 msgstr "Неке дозволе нису могле бити разрешене и приказане су као ИД-ови."
@@ -17382,13 +16250,6 @@ msgstr ""
 "обрисани"
 
 msgid "Some tables are not shown. Refine your search."
-msgstr ""
-
-msgid ""
-"Someone else, or another one of your browser tabs, saved this dataset "
-"after you opened it. Saving now would undo those changes, so it was "
-"cancelled. Copy your edits, close this dialog, and reopen the dataset to "
-"reapply them."
 msgstr ""
 
 msgid ""
@@ -17558,9 +16419,6 @@ msgstr "Сортирај легенду"
 # zh_TW]
 msgid "Sort metric"
 msgstr "Метрика за сортирање"
-
-msgid "Sort order"
-msgstr ""
 
 # ja, lv, mi, ru, sk, sl, uk]
 msgid "Sort query by"
@@ -17762,12 +16620,6 @@ msgstr "Статистички"
 msgid "Status"
 msgstr "Статус"
 
-msgid "Status: Draft"
-msgstr ""
-
-msgid "Status: Published"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Step - end"
 msgstr "Корак - крај"
@@ -17950,21 +16802,9 @@ msgstr "Суфикс"
 msgid "Suffix to apply after the percentage display"
 msgstr "Суфикс који се примењује након приказа процента"
 
-msgid "Suggestions could not be loaded. You can still type a value."
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Sum"
 msgstr "Збир"
-
-msgid "Sum as Fraction of Columns"
-msgstr ""
-
-msgid "Sum as Fraction of Rows"
-msgstr ""
-
-msgid "Sum as Fraction of Total"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Sum of values over specified period"
@@ -17978,9 +16818,6 @@ msgstr "Збир вредности"
 msgid "Summary"
 msgstr "Сажетак"
 
-msgid "Summary aggregation"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Sunburst Chart"
 msgstr "Sunburst графикон"
@@ -17988,6 +16825,10 @@ msgstr "Sunburst графикон"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "Sunday"
 msgstr "Недеља"
+
+# de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
+msgid "Superset Chart"
+msgstr "Superset графикон"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Superset Embedded SDK documentation."
@@ -18307,9 +17148,6 @@ msgstr "Задатак није могао бити креиран."
 msgid "Task could not be updated."
 msgstr "Задатак није могао бити ажуриран."
 
-msgid "Task dependencies would introduce a cycle."
-msgstr ""
-
 msgid ""
 "Task is not abortable. The task is in progress but has not registered an "
 "abort handler."
@@ -18382,13 +17220,6 @@ msgstr ""
 msgid "Test connection"
 msgstr "Тестирај везу"
 
-msgid ""
-"Testing this connection would change its effective destination (engine "
-"parameters or SSH tunnel endpoint) while reusing the stored password. "
-"Provide the real password to test a connection whose destination has "
-"changed."
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Text"
 msgstr "Текст"
@@ -18406,15 +17237,7 @@ msgid "Text embedded in email"
 msgstr "Текст уграђен у е-пошту"
 
 #, python-format
-msgid "The %(aggregate)s aggregate is not supported on this database"
-msgstr ""
-
-#, python-format
 msgid "The %(key)s in metadata_cache_timeout must be a non-negative integer."
-msgstr ""
-
-#, python-format
-msgid "The %(op)s operator is only supported for multi-value (array) columns."
 msgstr ""
 
 #, python-format
@@ -18482,9 +17305,6 @@ msgstr ""
 "https://superset.apache.org/docs/configuration/async-queries-celery за "
 "детаље о конфигурацији."
 
-msgid "The Length filter requires a numeric value."
-msgstr ""
-
 msgid "The SQL query mutator removed all executable statements from this query."
 msgstr ""
 
@@ -18529,11 +17349,6 @@ msgstr ""
 "X-оса није на листи филтера, што ће спречити њено коришћење у филтерима "
 "временског опсега у контролним таблама. Желите ли да је додате на листу "
 "филтера?"
-
-msgid ""
-"The affected charts or dashboards changed. Review the updated impact and "
-"type DELETE again to continue."
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "The annotation has been saved"
@@ -18671,11 +17486,6 @@ msgid ""
 "[country] column"
 msgstr "Стандард кода земље који Superset треба да очекује у колони [country]"
 
-msgid ""
-"The current version could not be identified. Restore is temporarily "
-"unavailable."
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "The dashboard has been saved"
 msgstr "Контролна табла је сачувана"
@@ -18695,11 +17505,6 @@ msgstr ""
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "The data source seems to have been deleted"
 msgstr "Изгледа да је извор података обрисан"
-
-msgid ""
-"The data this version was built on is no longer available, so it cannot "
-"be previewed"
-msgstr ""
 
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "The database columns that contains lines information"
@@ -18784,11 +17589,6 @@ msgstr ""
 msgid "The dataset has been saved"
 msgstr "Скуп података је сачуван"
 
-msgid ""
-"The dataset was changed by another user or browser tab after you opened "
-"it. Reopen it to pick up the latest version, then reapply your changes."
-msgstr ""
-
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
 msgid "The datasource couldn't be loaded"
@@ -18805,11 +17605,6 @@ msgstr "Подразумевани каталог који треба корис
 # es, fa, fr, ja, lv, mi, pl, pt_BR, ru, sk, sl, uk]
 msgid "The default schema that should be used for the connection."
 msgstr "Подразумевана шема која треба да се користи за везу."
-
-msgid ""
-"The deletion impact could not be determined. This dataset cannot be "
-"permanently deleted until the check succeeds."
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
@@ -18995,10 +17790,6 @@ msgstr ""
 msgid "The layer attribution"
 msgstr "Атрибуција слоја"
 
-#, python-format
-msgid "The link was generated but could not be copied: %s"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "The lower limit of the threshold range of the Isoband"
 msgstr "Доња граница прага опсега изобанд-а"
@@ -19026,6 +17817,15 @@ msgid ""
 msgstr ""
 "Параметар метадата_парамс у пољу Extra није правилно конфигурисан. Кључ "
 "%(key)s је неважећи."
+
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+#, python-brace-format
+msgid ""
+"The metadata_params in Extra field is not configured correctly. The key "
+"%{key}s is invalid."
+msgstr ""
+"Параметар метадата_парамс у пољу Extra није правилно конфигурисан. Кључ "
+"%{key}с је неважећи."
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
@@ -19201,20 +18001,6 @@ msgstr "Лозинке за базе података испод су потре
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
 msgid "The pattern of timestamp format. For strings use "
 msgstr "Образац формата временске ознаке. За стрингове користите "
-
-msgid ""
-"The periodicity over which to pivot time. Each period becomes\n"
-"                its own overlaid series, so pick a Time Grain finer than "
-"this\n"
-"                frequency to see lines (e.g. Day grain with a weekly\n"
-"                frequency); with one data point per period each series "
-"renders\n"
-"                as a single dot. Users can provide \"Pandas\" offset "
-"aliases.\n"
-"                Click on the info bubble for more details on accepted "
-"\"freq\"\n"
-"                expressions."
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
@@ -19392,11 +18178,6 @@ msgstr "Улога је успешно дуплирана."
 msgid "The role has been updated successfully."
 msgstr "Улога је успешно ажурирана."
 
-msgid ""
-"The row limit selected for this pane was reached. There may be more "
-"matching rows."
-msgstr ""
-
 # es, fa, fr, ja, lv, mi, pl, pt_BR, ru, sk, sl, uk]
 msgid ""
 "The row limit set for the chart was reached. The chart may show partial "
@@ -19404,10 +18185,6 @@ msgid ""
 msgstr ""
 "Достигнуто је ограничење броја редова постављено за графикон. Графикон "
 "можда приказује делимичне податке."
-
-#, python-format
-msgid "The sample row limit was reached. This %s may contain more rows."
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, python-format
@@ -19677,9 +18454,6 @@ msgstr "Ширина линија као фиксна вредност или п
 # ru, uk]
 msgid "Theme"
 msgstr "Тема"
-
-msgid "Theme colors"
-msgstr ""
 
 # ru, uk]
 msgid "Theme imported"
@@ -20025,19 +18799,14 @@ msgstr "Дошло је до проблема при прегледу одабр
 
 #, python-format
 msgid ""
-"These %(type)s will be moved to Recently Archived in the Settings menu. "
-"You can recover them there within %(days)s day."
-msgid_plural ""
-"These %(type)s will be moved to Recently Archived in the Settings menu. "
-"You can recover them there within %(days)s days."
-msgstr[0] ""
-msgstr[1] ""
-msgstr[2] ""
+"These %(type)s will be moved to Recently Archived. You can recover them "
+"there within %(days)s days."
+msgstr ""
 
 #, python-format
 msgid ""
-"These %(type)s will be moved to Recently Archived in the Settings menu. "
-"You can recover them there."
+"These %(type)s will be moved to Recently Archived. You can recover them "
+"there."
 msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, ru, sk, sl, uk]
@@ -20046,22 +18815,14 @@ msgstr "Ово су скупови података на које ће се ов
 
 #, python-format
 msgid ""
-"This %(type)s will be moved to Recently Archived in the Settings menu. "
-"You can recover it there within %(days)s day."
-msgid_plural ""
-"This %(type)s will be moved to Recently Archived in the Settings menu. "
-"You can recover it there within %(days)s days."
-msgstr[0] ""
-msgstr[1] ""
-msgstr[2] ""
+"This %(type)s will be moved to Recently Archived. You can recover it "
+"there within %(days)s days."
+msgstr ""
 
 #, python-format
 msgid ""
-"This %(type)s will be moved to Recently Archived in the Settings menu. "
-"You can recover it there."
-msgstr ""
-
-msgid "This CSS uses @import, which cannot be saved"
+"This %(type)s will be moved to Recently Archived. You can recover it "
+"there."
 msgstr ""
 
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
@@ -20139,30 +18900,19 @@ msgstr "Овим графиконом се управља екстерно и н
 msgid "This chart is managed externally, and can't be edited in Superset"
 msgstr "Овим графиконом се управља екстерно и не може се уређивати у Superset-у"
 
-#, python-format
-msgid "This chart is used by alerts or reports: %(names)s."
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "This chart might be incompatible with the filter (datasets don't match)"
 msgstr ""
 "Овај графикон можда није компатибилан са филтером (скупови података се не"
 " подударају)"
 
-msgid "This chart no longer exists."
-msgstr ""
-
-msgid "This chart only"
-msgstr ""
-
-#, python-format
+# de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk]
 msgid ""
-"This chart uses the \"%s\" dataset, which you do not have permission to "
-"view."
+"This chart type is not supported when using an unsaved query as a chart "
+"source. "
 msgstr ""
-
-msgid "This chart will be restored to the following version:"
-msgstr ""
+"Овај тип графикона није подржан када се несачувани упит користи као извор"
+" графикона. "
 
 #, python-format
 msgid "This column might be incompatible with current %s"
@@ -20262,26 +19012,10 @@ msgstr ""
 "Ова контролна табла је спремна за уграђивање. У вашој апликацији, "
 "проследите следећи ID SDK-у:"
 
-msgid "This dashboard only"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]
 msgid "This dashboard was saved successfully."
 msgstr "Ова контролна табла је успешно сачувана."
-
-msgid "This dashboard will be restored to the following version:"
-msgstr ""
-
-msgid ""
-"This database does not allow creating tables from queries (CTAS). Please "
-"contact your administrator for more assistance."
-msgstr ""
-
-msgid ""
-"This database does not allow creating views from queries (CVAS). Please "
-"contact your administrator for more assistance."
-msgstr ""
 
 # uk]
 msgid ""
@@ -20372,9 +19106,6 @@ msgstr "Ова фасцикла подржава само колоне"
 
 msgid "This folder only supports metrics"
 msgstr "Ова фасцикла подржава само метрике"
-
-msgid "This functionality is disabled in your environment for security reasons."
-msgstr ""
 
 # ru, sk, uk]
 msgid ""
@@ -20478,12 +19209,6 @@ msgstr ""
 msgid "This may be triggered by:"
 msgstr "Ово може бити изазвано следећим:"
 
-msgid ""
-"This metric is a count, but its D3 format is a percentage. Percent "
-"formats multiply the value by 100, which will make a raw count render as "
-"a misleadingly large number."
-msgstr ""
-
 #, python-format
 msgid "This metric might be incompatible with current %s"
 msgstr "Ова метрика можда није компатибилна са тренутним %s"
@@ -20511,12 +19236,6 @@ msgstr ""
 "Ова лозинка је превише уобичајена; молимо одаберите лозинку коју је теже "
 "погодити."
 
-#, python-format
-msgid ""
-"This query uses the \"%s\" dataset, which you do not have permission to "
-"view."
-msgstr ""
-
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid ""
 "This section allows you to configure how to use the slice\n"
@@ -20536,9 +19255,6 @@ msgstr ""
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "This section contains validation errors"
 msgstr "Овај одељак садржи грешке валидације"
-
-msgid "This semantic layer has no dependent semantic views."
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid ""
@@ -20570,23 +19286,6 @@ msgstr "Ова тема је подешена локално"
 msgid "This theme is set locally for your session"
 msgstr "Ова тема је подешена локално за вашу сесију"
 
-msgid ""
-"This theme uses the dark algorithm. It will be rendered with the light "
-"algorithm instead, so its colors may not look as designed."
-msgstr ""
-
-msgid ""
-"This theme uses the light algorithm. It will be rendered with the dark "
-"algorithm instead, so its colors may not look as designed."
-msgstr ""
-
-msgid ""
-"This update would change the connection's effective destination "
-"(host/port, engine parameters, or SSH tunnel endpoint) while reusing the "
-"stored credential. Provide the real password (or SSH tunnel credential) "
-"to confirm a connection move."
-msgstr ""
-
 # fr, ja, lv, mi, pt_BR, ru, sk, uk]
 msgid "This username is already taken. Please choose another one."
 msgstr "Ово корисничко име је већ заузето. Молимо изаберите друго."
@@ -20598,14 +19297,6 @@ msgstr "Ова вредност треба да буде већа од леве 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "This value should be smaller than the right target value"
 msgstr "Ова вредност треба да буде мања од десне циљне вредности"
-
-msgid ""
-"This version does not record a visualization type and dataset, so it "
-"cannot be previewed"
-msgstr ""
-
-msgid "This view isn't available on mobile"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "This visualization type does not support cross-filtering."
@@ -20626,17 +19317,6 @@ msgstr[2] "Ово може бити покренуто следећим:"
 #, python-format
 msgid "This will abort (stop) the task for all %s subscriber(s)."
 msgstr "Ово ће прекинути (зауставити) задатак за свих %s претплатника."
-
-#, python-format
-msgid ""
-"This will also permanently delete its %s semantic view. Charts built on "
-"that view will stop working."
-msgid_plural ""
-"This will also permanently delete its %s semantic views. Charts built on "
-"those views will stop working."
-msgstr[0] ""
-msgstr[1] ""
-msgstr[2] ""
 
 # es, fa, fr, ja, lv, mi, pl, pt_BR, ru, sk, sl, uk]
 msgid ""
@@ -20731,6 +19411,28 @@ msgstr "Временски однос"
 msgid "Time Series"
 msgstr "Временска серија"
 
+# de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
+# zh_TW]
+msgid "Time Series - Line Chart"
+msgstr "Временска серија - Линијски графикон"
+
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+msgid "Time Series - Nightingale Rose Chart"
+msgstr "Временска серија - Дијаграм „Најтингејлова ружа“"
+
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+msgid "Time Series - Paired t-test"
+msgstr "Временска серија - Упарени t-тест"
+
+# de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
+# zh_TW]
+msgid "Time Series - Percent Change"
+msgstr "Временска серија - Процентуална промена"
+
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+msgid "Time Series - Period Pivot"
+msgstr "Временска серија - Пивот периода"
+
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Time Series Options"
 msgstr "Опције временске серије"
@@ -20738,6 +19440,11 @@ msgstr "Опције временске серије"
 # de, es, fa, fr, ja, lv, mi, nl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Time Shift"
 msgstr "Временски помак"
+
+# de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
+# zh_TW]
+msgid "Time Table View"
+msgstr "Приказ временске табеле"
 
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
@@ -20958,16 +19665,6 @@ msgstr "За филтрирање по мери, користите картиц
 msgid "To get a readable URL for your dashboard"
 msgstr "Да бисте добили читљив URL за своју контролну таблу"
 
-msgid "To request access, contact your Superset administrator."
-msgstr ""
-
-#, python-format
-msgid "To request access, reach out to the chart owner: %s."
-msgid_plural "To request access, reach out to the chart owners: %s."
-msgstr[0] ""
-msgstr[1] ""
-msgstr[2] ""
-
 # ru, sk, uk]
 msgid "Token Request URI"
 msgstr "URI захтева за токен"
@@ -20980,6 +19677,15 @@ msgid ""
 msgstr ""
 "Затражено је превише подисечака. Максималан дозвољени број је %(max)s, "
 "али је затражено %(count)s."
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy, python-format
+msgid ""
+"Too many time comparisons requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
+msgstr ""
+"Затражено је превише временских поређења. Максималан дозвољени број је "
+"%(max)s, али је затражено %(count)s."
 
 # uk]
 msgid "Tool Panel"
@@ -21041,10 +19747,6 @@ msgstr "Укупно"
 #, python-format
 msgid "Total (%(aggfunc)s)"
 msgstr "Укупно (%(aggfunc)s)"
-
-#, python-format
-msgid "Total (%(aggregatorName)s)"
-msgstr ""
 
 msgid ""
 "Total angle covered by the chart, in degrees. 360° draws a full circle "
@@ -21113,12 +19815,6 @@ msgstr "Мапа стабла"
 msgid "Trend"
 msgstr "Тренд"
 
-msgid "Trend colors"
-msgstr ""
-
-msgid "Trend colors are added (for time-based comparison):"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Triangle"
 msgstr "Троугао"
@@ -21167,9 +19863,6 @@ msgstr ""
 "Скрати Y осу. Може се преписати навођењем минималне или максималне "
 "границе."
 
-msgid "Truncate labels"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "Truncate long cells to the \"min width\" set above"
 msgstr "Скрати дуге ћелије на „минималну ширину“ постављену изнад"
@@ -21185,9 +19878,6 @@ msgstr "Скраћује наведени датум на тачност одр�
 
 msgid "Trust this URL and don't ask again"
 msgstr "Веруј овом URL-у и не питај поново"
-
-msgid "Try a different search term"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Try applying different filters or ensuring your datasource has data"
@@ -21251,9 +19941,6 @@ msgstr "Укуцајте за претрагу (завршава са)..."
 msgid "Type to search (starts with)..."
 msgstr "Укуцајте за претрагу (почиње са)..."
 
-msgid "Type to search all of them."
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "UI Configuration"
 msgstr "UI конфигурација"
@@ -21281,25 +19968,6 @@ msgid "URL parameters"
 msgstr "URL параметри"
 
 msgid "UUID to track the execution status"
-msgstr ""
-
-#, python-format
-msgid ""
-"Unable to align time comparison because temporal axis '%(column)s' "
-"contains values that cannot be parsed as datetimes. Update the column's "
-"datetime format or choose a valid temporal column."
-msgstr ""
-
-msgid ""
-"Unable to align time comparison because the offset series contains an "
-"ambiguous daylight-saving fold for the same dimensions and local time. "
-"Add a Time Grain or filter the source to one UTC offset."
-msgstr ""
-
-msgid ""
-"Unable to align time comparison because the temporal axis contains "
-"distinct values that normalize to the same instant for the same "
-"dimensions. Standardize the source values or add a Time Grain."
 msgstr ""
 
 # es, fa, fr, ja, lv, mi, pl, pt_BR, ru, sk, sl, uk]
@@ -21388,8 +20056,11 @@ msgid ""
 " as \"1 month ago\"."
 msgstr ""
 
-msgid "Unable to load columns for the selected table."
-msgstr ""
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
+msgid ""
+"Unable to load columns for the selected table. Please select a different "
+"table."
+msgstr "Није могуће учитати колоне за изабрану табелу. Изаберите другу табелу."
 
 # fa, ja, lv, mi, ru, sl, uk]
 msgid "Unable to load dashboard"
@@ -21426,9 +20097,6 @@ msgstr ""
 msgid "Unable to parse SQL"
 msgstr "Није могуће рашчланити SQL"
 
-msgid "Unable to parse the cost estimate returned by the database."
-msgstr ""
-
 # uk]
 msgid "Unable to read the file, please refresh and try again."
 msgstr "Није могуће прочитати датотеку, освежите страницу и покушајте поново."
@@ -21448,9 +20116,6 @@ msgstr "Недефинисано"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Undefined window for rolling operation"
 msgstr "Недефинисан прозор за операцију клизања"
-
-msgid "Undid or redid a change"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "Undo the action"
@@ -21544,9 +20209,6 @@ msgstr "Непознати токени ће бити означени као у
 msgid "Unknown type"
 msgstr "Непознат тип"
 
-msgid "Unknown user"
-msgstr ""
-
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "Unknown value"
 msgstr "Непозната вредност"
@@ -21576,9 +20238,6 @@ msgstr "Несигуран тип повратне вредности за фу�
 msgid "Unsafe template value for key %(key)s: %(value_type)s"
 msgstr "Небезбедна вредност шаблона за кључ %(key)s: %(value_type)s"
 
-msgid "Unsaved dashboard edits"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, python-format
 msgid "Unsupported clause type: %(clause)s"
@@ -21598,12 +20257,6 @@ msgstr "Неподржана операција постобраде: %(operatio
 msgid "Unsupported return value for method %(name)s"
 msgstr "Неподржана повратна вредност за метод %(name)s"
 
-#, python-format
-msgid ""
-"Unsupported show_values_as value: %(mode)s. Expected one of: percent_row,"
-" percent_col, percent_total, actual."
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, python-format
 msgid "Unsupported template value for key %(key)s"
@@ -21614,9 +20267,6 @@ msgstr "Неподржана вредност шаблона за кључ %(key
 msgid "Unsupported time grain: %(time_grain)s"
 msgstr "Неподржана временска грануларност: %(time_grain)s"
 
-msgid "Untitled"
-msgstr ""
-
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 msgid "Untitled Dataset"
 msgstr "Неименован скуп података"
@@ -21624,15 +20274,6 @@ msgstr "Неименован скуп података"
 # de, es, fa, fr, ja, lv, mi, nl, pt, pt_BR, ru, sk, sl, tr, uk]
 msgid "Untitled Query"
 msgstr "Неименован упит"
-
-msgid "Untitled chart"
-msgstr ""
-
-msgid "Untitled dashboard"
-msgstr ""
-
-msgid "Untitled dataset"
-msgstr ""
 
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]
@@ -22012,9 +20653,6 @@ msgstr "Вредност већа од"
 msgid "Value is required"
 msgstr "Вредност је обавезна"
 
-msgid "Value label position"
-msgstr ""
-
 # fr, ja, lv, mi, ru, sk, uk]
 msgid "Value less than"
 msgstr "Вредност мања од"
@@ -22026,22 +20664,6 @@ msgstr "Вредност мора бити 0 или већа"
 # de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Value must be greater than 0"
 msgstr "Вредност мора бити већа од 0"
-
-#, python-format
-msgid ""
-"Value: type the exact numbers used for coloring below. % of column is "
-"unavailable with Server pagination enabled, since each page would compute"
-" a different percentage. Existing percentage rules use the automatic data"
-" range while Server pagination is enabled."
-msgstr ""
-
-#, python-format
-msgid ""
-"Value: type the exact numbers used for coloring below. % of column: type "
-"a percentage of the column maximum or sum selected below, so the rule "
-"keeps working as the data changes. Column sum adds the absolute values so"
-" positive and negative values do not cancel each other out."
-msgstr ""
 
 # uk]
 msgid "Values"
@@ -22071,9 +20693,6 @@ msgstr ""
 msgid "Version"
 msgstr "Верзија"
 
-msgid "Version history"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Version number"
 msgstr "Број верзије"
@@ -22086,9 +20705,6 @@ msgstr "Вертикално"
 msgid "Vertical (Left)"
 msgstr "Усправно (лево)"
 
-msgid "Vertical layout (rows)"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "View"
 msgstr "Приказ"
@@ -22100,9 +20716,6 @@ msgstr ""
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "View All »"
 msgstr "Прикажи све »"
-
-msgid "View Dashboards"
-msgstr ""
 
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 msgid "View Dataset"
@@ -22129,9 +20742,6 @@ msgstr "Прикажи упит"
 # uk]
 msgid "View theme properties"
 msgstr "Прикажи својства теме"
-
-msgid "View version history"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "Viewed"
@@ -22184,10 +20794,6 @@ msgstr "Упит виртуелног скупа података не може 
 # zh_TW]
 msgid "Virtual dataset query must be read-only"
 msgstr "Упит виртуелног скупа података мора бити само за читање"
-
-#, python-format
-msgid "Virtual dataset template error: %(msg)s"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Visual Tweaks"
@@ -22310,6 +20916,11 @@ msgstr ""
 "Визуализује речи у колони које се најчешће појављују. Већи фонт одговара "
 "већој фреквенцији."
 
+# de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
+# zh_TW]
+msgid "Viz is missing a datasource"
+msgstr "Визуелизацији недостаје извор података"
+
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
 msgid "Viz type"
@@ -22336,10 +20947,6 @@ msgstr "Чека се прво освежавање"
 #, python-format
 msgid "Waiting on %s"
 msgstr "Чека се %s"
-
-#, python-format
-msgid "Waiting on %s prerequisite task(s) to finish"
-msgstr ""
 
 # es, fa, fr, ja, lv, mi, ru, sk, sl, uk]
 msgid "Waiting on database..."
@@ -22555,12 +21162,6 @@ msgstr "Када је наведена секундарна мера, корис
 msgid "When checked, the map will zoom to your data after each query"
 msgstr "Када је означено, мапа ће се зумирати на ваше податке након сваког упита"
 
-msgid ""
-"When enabled, increasing candles use the increase color and decreasing "
-"candles use the decrease color. Turn off to use one series color, with a "
-"filled body for increases and a hollow body for decreases."
-msgstr ""
-
 # ru, sk, uk]
 msgid ""
 "When enabled, the axis will display labels for the minimum and maximum "
@@ -22614,11 +21215,6 @@ msgstr ""
 "Када није означено, боје из изабране шеме боја ће се користити за "
 "временски померене серије"
 
-msgid ""
-"When unchecked, the \"Explore in Superset\" link is omitted from the "
-"delivered notifications."
-msgstr ""
-
 # es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
 "When using \"Autocomplete filters\", this can be used to improve "
@@ -22650,12 +21246,6 @@ msgstr ""
 "Када се користи ова опција, подразумевана вредност не може бити подешена."
 " Коришћење ове опције може утицати на време учитавања ваше контролне "
 "табле."
-
-msgid ""
-"Where to place the ellipsis when a tooltip label is too long. Choose Off "
-"to always show the full label, or Start when labels share a common "
-"prefix."
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Whether the progress bar overlaps when there are multiple groups of data"
@@ -22877,9 +21467,6 @@ msgstr "Да ли сортирати силазно или узлазно"
 msgid "Whether to sort results by the selected metric in descending order."
 msgstr "Да ли сортирати резултате по одабраној метрици у силазном редоследу."
 
-msgid "Whether to sort tooltip by the selected metric in descending order."
-msgstr ""
-
 msgid ""
 "Whether to sort tooltip by the selected metric in descending order. On "
 "stacked charts, values are shown in ascending order."
@@ -22924,10 +21511,6 @@ msgstr "Множитељ скале ширине"
 msgid "Window must be > 0"
 msgstr "Прозор мора бити > 0"
 
-#, python-format
-msgid "Window must not exceed %(max)s"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "With a subheader"
 msgstr "Са подзаголовком"
@@ -22961,9 +21544,6 @@ msgstr "Унесите опис за ваш упит"
 msgid "Write a handlebars template to render the data"
 msgstr "Напишите Handlebars шаблон за приказ података"
 
-msgid "X AXIS TITLE MARGIN"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "X Axis"
 msgstr "X оса"
@@ -22995,9 +21575,6 @@ msgstr "Наслов X осе"
 # fr, ja, lv, mi, ru, sk, uk]
 msgid "X Axis Title Margin"
 msgstr "Маргина наслова X осе"
-
-msgid "X Axis title margin"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "X Log Scale"
@@ -23040,9 +21617,6 @@ msgstr "XYZ"
 msgid "Y 2 bounds"
 msgstr "Границе Y 2"
 
-msgid "Y AXIS TITLE MARGIN"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Y Axis"
 msgstr "Y оса"
@@ -23074,9 +21648,6 @@ msgstr "Маргина наслова Y осе"
 # de, es, fa, fr, ja, lv, mi, nl, ru, sk, sl, uk]
 msgid "Y Axis Title Position"
 msgstr "Позиција наслова Y осе"
-
-msgid "Y Axis title margin"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Y Log Scale"
@@ -23276,9 +21847,6 @@ msgstr ""
 "Можете креирати нови графикон или користити постојеће са панела са десне "
 "стране"
 
-msgid "You can enter a value that is not listed."
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "You can preview the list of dashboards in the chart settings dropdown."
 msgstr ""
@@ -23303,14 +21871,6 @@ msgstr ""
 "Не можете користити распоред ознака под углом од 45° заједно са филтером "
 "временског опсега"
 
-#, python-format
-msgid "You do not have access to the data behind this chart (tables: %s)."
-msgstr ""
-
-#, python-format
-msgid "You do not have access to the following tables: %s."
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 #, python-format
 msgid "You do not have permission to edit this %s"
@@ -23333,9 +21893,6 @@ msgstr "Немате дозволу за извршавање ове опера�
 msgid "You do not have permission to read tags"
 msgstr "Немате дозволу за читање ознака"
 
-msgid "You do not have permission to view any archived object types."
-msgstr ""
-
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]
 msgid "You do not have permissions to edit this dashboard."
@@ -23345,16 +21902,10 @@ msgstr "Немате дозволе за уређивање ове контро�
 msgid "You do not have sufficient permissions to edit the chart"
 msgstr "Немате довољно дозвола за уређивање графикона"
 
-msgid "You don't have access to annotation layers"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy
 msgid "You don't have access to one or more of the referenced datasources."
 msgstr "Немате приступ једном или више референцираних извора података."
-
-msgid "You don't have access to this chart's data"
-msgstr ""
 
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 msgid "You don't have access to this chart."
@@ -23364,9 +21915,6 @@ msgstr "Немате приступ овом графикону."
 msgid "You don't have access to this dashboard."
 msgstr "Немате приступ овој контролној табли."
 
-msgid "You don't have access to this data"
-msgstr ""
-
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 msgid "You don't have access to this dataset."
 msgstr "Немате приступ овом скупу података."
@@ -23375,14 +21923,8 @@ msgstr "Немате приступ овом скупу података."
 msgid "You don't have access to this embedded dashboard config."
 msgstr "Немате приступ овој конфигурацији уграђене контролне табле."
 
-msgid "You don't have access to this semantic layer."
-msgstr ""
-
 msgid "You don't have access to this semantic view."
 msgstr "Немате приступ овом семантичком приказу."
-
-msgid "You don't have permission to access this resource."
-msgstr ""
 
 msgid "You don't have permission to copy to clipboard"
 msgstr "Немате дозволу за копирање у привремену меморију"
@@ -23396,9 +21938,6 @@ msgstr "Немате дозволу за извоз слика"
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "You don't have permission to modify the value."
 msgstr "Немате дозволу за измену вредности."
-
-msgid "You don't have permission to view annotation layers."
-msgstr ""
 
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 #, python-format
@@ -23425,6 +21964,9 @@ msgstr "Немате права да креирате графикон"
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 msgid "You don't have the rights to create a dashboard"
 msgstr "Немате права да креирате контролну таблу"
+
+msgid "You don't have the rights to export data"
+msgstr "Немате права за извоз података"
 
 #, python-format
 msgid "You have been removed from task: %s"
@@ -23508,10 +22050,6 @@ msgstr "Морате изабрати назив за нову контролн�
 msgid "You must run the query successfully first"
 msgstr "Морате прво успешно извршити упит"
 
-#, python-format
-msgid "You need access to the following database: %(name)s"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy, python-format
 msgid ""
@@ -23523,9 +22061,6 @@ msgstr ""
 
 msgid "You need to"
 msgstr "Морате"
-
-msgid "You need to configure HTML sanitization to use CSS"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
@@ -23676,6 +22211,16 @@ msgstr "Ниво зума мапе"
 msgid "[ untitled dashboard ]"
 msgstr "[ неименована контролна табла ]"
 
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+msgid "[Longitude] and [Latitude] columns must be present in [Group By]"
+msgstr ""
+"Колоне [Географска дужина] и [Географска ширина] морају бити присутне у "
+"[Групиши по]"
+
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+msgid "[Longitude] and [Latitude] must be set"
+msgstr "[Географска дужина] и [Географска ширина] морају бити постављене"
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "[Missing Dataset]"
 msgstr "[Недостаје скуп података]"
@@ -23709,10 +22254,6 @@ msgstr ""
 # ru, sk, uk]
 msgid "[untitled customization]"
 msgstr "[неименовано прилагођавање]"
-
-#, python-format
-msgid "`bins` must be an integer between 1 and %(max)s"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "`compare_columns` must have the same length as `source_columns`."
@@ -23781,6 +22322,10 @@ msgstr "неколико секунди"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "aggregate"
 msgstr "агрегат"
+
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
+msgid "alert"
+msgstr "упозорење"
 
 # es, fa, fr, ja, lv, mi, ru, sk, sl, uk]
 msgid "alert condition"
@@ -24094,9 +22639,6 @@ msgstr "deck.gl дијаграм расејања"
 msgid "deck.gl Screen Grid"
 msgstr "deck.gl мрежа екрана"
 
-msgid "deck.gl charts"
-msgstr ""
-
 # uk]
 msgid "deck.gl layers (charts)"
 msgstr "deck.gl слојеви (графикони)"
@@ -24123,9 +22665,6 @@ msgstr "одступање"
 
 msgid "dialect+driver://username:password@host:port/database"
 msgstr "dialect+driver://username:password@host:port/database"
-
-msgid "divider"
-msgstr ""
 
 # ru, uk]
 msgid "documentation"
@@ -24208,8 +22747,9 @@ msgstr "цео ред"
 msgid "entries"
 msgstr "уноси"
 
-msgid "entries per page"
-msgstr ""
+# de, es, fa, fr, ja, lv, mi, nl, ru, sk, sl, tr, uk]
+msgid "error"
+msgstr "грешка"
 
 # de, es, fa, ja, lv, mi, nl, pt_BR, sk, sl, uk]
 #. do-not-translate
@@ -24286,14 +22826,8 @@ msgstr "икона типа функције"
 msgid "geohash (square)"
 msgstr "геохеш (квадрат)"
 
-msgid "green — increase / red — decrease"
-msgstr ""
-
 msgid "greeting"
 msgstr "поздрав"
-
-msgid "header"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "heatmap"
@@ -24433,9 +22967,6 @@ msgstr ""
 "доњи перцентил мора бити већи од 0 и мањи од 100. Мора бити мањи од "
 "горњег перцентила."
 
-msgid "markdown"
-msgstr ""
-
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "max"
 msgstr "макс."
@@ -24485,9 +23016,6 @@ msgstr "месец"
 #, python-brace-format
 msgid "more than {max} {name}"
 msgstr "више од {max} {name}"
-
-msgid "multi-value type icon"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "must have a value"
@@ -24620,6 +23148,10 @@ msgstr ""
 msgid "permalink state not found"
 msgstr "стање трајне везе није пронађено"
 
+#. do-not-translate
+msgid "pivoted_xlsx"
+msgstr "pivoted_xlsx"
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
 msgid "pixels"
 msgstr "пиксели"
@@ -24671,9 +23203,6 @@ msgstr "недавно"
 msgid "recipients"
 msgstr "примаоци"
 
-msgid "red — increase / green — decrease"
-msgstr ""
-
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
 msgid "report"
@@ -24691,9 +23220,6 @@ msgstr "врати зум"
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "right"
 msgstr "десно"
-
-msgid "row"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, ru, sk, sl, uk]
 msgid "rowlevelsecurity"
@@ -24719,9 +23245,6 @@ msgstr "секунде"
 msgid "semantic layer"
 msgstr ""
 
-msgid "send_failed_reports requires retry_on_failure to be enabled"
-msgstr ""
-
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "series"
 msgstr "серије"
@@ -24735,20 +23258,6 @@ msgstr ""
 "серије: третирајте сваку серију независно; укупно: све серије користе "
 "исту скалу; промена: прикажи промене у поређењу са првом тачком података "
 "у свакој серији"
-
-msgid "setting"
-msgstr ""
-
-msgid ""
-"show_values_as is not yet supported when marginal_distributions is "
-"enabled."
-msgstr ""
-
-#, python-format
-msgid ""
-"show_values_as is only supported for additive aggregates (sum, count); "
-"got non-additive operator(s) for: %(metrics)s."
-msgstr ""
 
 #. do-not-translate
 msgid "sql"
@@ -24809,12 +23318,6 @@ msgstr "superset.example.com"
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "syntax."
 msgstr "синтакса."
-
-msgid "tab"
-msgstr ""
-
-msgid "tabs"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "tag"
