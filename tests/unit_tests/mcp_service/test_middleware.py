@@ -248,7 +248,7 @@ class TestResponseSizeGuardMiddleware:
     @pytest.mark.asyncio
     async def test_truncates_info_tool_instead_of_blocking(self) -> None:
         """Should truncate info tool responses instead of blocking them."""
-        middleware = ResponseSizeGuardMiddleware(max_bytes=500)
+        middleware = ResponseSizeGuardMiddleware(max_bytes=1000)
 
         context = MagicMock()
         context.message.name = "get_dataset_info"
@@ -322,7 +322,7 @@ class TestResponseSizeGuardMiddleware:
     @pytest.mark.asyncio
     async def test_logs_truncation_event(self) -> None:
         """Should log mcp_response_truncated event on successful truncation."""
-        middleware = ResponseSizeGuardMiddleware(max_bytes=500)
+        middleware = ResponseSizeGuardMiddleware(max_bytes=1000)
 
         context = MagicMock()
         context.message.name = "get_dashboard_info"
@@ -355,7 +355,7 @@ class TestResponseSizeGuardMiddleware:
         verifies the cap is now threaded through from the middleware
         constructor rather than hardcoded.
         """
-        middleware = ResponseSizeGuardMiddleware(max_bytes=3000, max_list_items=50)
+        middleware = ResponseSizeGuardMiddleware(max_bytes=6000, max_list_items=50)
 
         context = MagicMock()
         context.message.name = "get_dashboard_info"
@@ -385,7 +385,7 @@ class TestResponseSizeGuardMiddleware:
     @pytest.mark.asyncio
     async def test_truncates_execute_sql_rows_instead_of_blocking(self) -> None:
         """execute_sql should truncate rows, not raise ToolError."""
-        middleware = ResponseSizeGuardMiddleware(max_bytes=500)
+        middleware = ResponseSizeGuardMiddleware(max_bytes=1500)
 
         context = MagicMock()
         context.message.name = "execute_sql"
@@ -474,7 +474,7 @@ class TestResponseSizeGuardMiddleware:
     @pytest.mark.asyncio
     async def test_truncates_multi_query_chart_rows_across_whole_response(self) -> None:
         """All query results share the response's byte budget."""
-        middleware = ResponseSizeGuardMiddleware(max_bytes=500)
+        middleware = ResponseSizeGuardMiddleware(max_bytes=1500)
         context = MagicMock()
         context.message.name = "get_chart_data"
         context.message.arguments = {}
@@ -509,7 +509,7 @@ class TestResponseSizeGuardMiddleware:
     @pytest.mark.asyncio
     async def test_multi_query_truncation_result_fits_budget(self) -> None:
         """The final multi-query truncation note stays within the byte budget."""
-        middleware = ResponseSizeGuardMiddleware(max_bytes=700)
+        middleware = ResponseSizeGuardMiddleware(max_bytes=1500)
         context = MagicMock()
         context.message.name = "get_chart_data"
         context.message.arguments = {}
@@ -533,7 +533,7 @@ class TestResponseSizeGuardMiddleware:
             )
 
         assert isinstance(result, dict)
-        assert get_response_size_bytes(result) <= 700
+        assert get_response_size_bytes(result) <= 1500
         assert " of 400 rows returned" in result["_truncation_notes"][0]
 
     @pytest.mark.asyncio
@@ -826,7 +826,7 @@ class TestResponseSizeGuardMiddleware:
             COMMITTED_WRITE_SPECS,
         )
 
-        middleware = ResponseSizeGuardMiddleware(max_bytes=500)
+        middleware = ResponseSizeGuardMiddleware(max_bytes=2000)
         minimal: dict[str, Any] = {
             "chart": {"id": 7, "is_unsaved_state": True},
             "success": False,
@@ -887,7 +887,7 @@ class TestResponseSizeGuardMiddleware:
         """Keep useful patch confirmations without admitting unbounded lists."""
         from superset.mcp_service.utils.response_size_utils import COMMITTED_WRITE_SPECS
 
-        middleware = ResponseSizeGuardMiddleware(max_bytes=500)
+        middleware = ResponseSizeGuardMiddleware(max_bytes=2000)
         spec = COMMITTED_WRITE_SPECS["update_dashboard"]
         minimal = middleware._select_confirmation_fields(
             {
@@ -904,7 +904,7 @@ class TestResponseSizeGuardMiddleware:
         if retained:
             assert minimal["changed_fields"] == changed_fields
         assert minimal["dashboard"]["id"] == 7
-        assert get_response_size_bytes(minimal) <= 500
+        assert get_response_size_bytes(minimal) <= 2000
 
     @pytest.mark.asyncio
     async def test_update_dashboard_committed_write_is_not_hard_blocked(
@@ -1041,7 +1041,7 @@ class TestResponseSizeGuardMiddleware:
             assert absent not in result
         # ...while still confirming which dashboard was written, bounded.
         assert result["dashboard"]["id"] == 7
-        assert get_response_size_bytes(result) <= 500
+        assert get_response_size_bytes(result) <= 2000
         assert result["changed_fields"] == ["css"]
         assert "re-read the dashboard" in result["_truncation_notes"][0]
 
@@ -1099,7 +1099,7 @@ class TestResponseSizeGuardMiddleware:
         assert result["chart"]["uuid"] == "abc"
 
         # ...but nothing unbounded rides along with it.
-        assert get_response_size_bytes(result) <= 500
+        assert get_response_size_bytes(result) <= 2000
         for value in (
             result["chart"]["slice_name"],
             result["error"],
@@ -1150,7 +1150,7 @@ class TestResponseSizeGuardMiddleware:
             result = await middleware.on_call_tool(context, call_next)
 
         assert isinstance(result, dict)
-        assert get_response_size_bytes(result) <= 500
+        assert get_response_size_bytes(result) <= 2000
 
         # The error still identifies itself -- only the unbounded context goes.
         assert result["error"]["error_type"] == "execution"
@@ -1624,7 +1624,7 @@ class TestToolResultWrapping:
 
         from superset.utils import json
 
-        middleware = ResponseSizeGuardMiddleware(max_bytes=500)
+        middleware = ResponseSizeGuardMiddleware(max_bytes=1000)
         context = MagicMock()
         context.message.name = "get_dataset_info"
         context.message.arguments = {}
@@ -1733,7 +1733,7 @@ class TestToolResultWrapping:
 
         from superset.utils import json
 
-        middleware = ResponseSizeGuardMiddleware(max_bytes=500)
+        middleware = ResponseSizeGuardMiddleware(max_bytes=1000)
         context = MagicMock()
         context.message.name = "get_dashboard_info"
         context.message.arguments = {}

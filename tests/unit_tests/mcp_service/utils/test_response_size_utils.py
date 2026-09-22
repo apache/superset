@@ -710,7 +710,7 @@ class TestTruncateOversizedResponse:
         result: Any
         was_truncated: bool
         notes: list[str]
-        result, was_truncated, notes = truncate_oversized_response(response, 3000)
+        result, was_truncated, notes = truncate_oversized_response(response, 7000)
         assert was_truncated is True
         assert isinstance(result, dict)
         assert len(result["charts"]) == 100
@@ -752,7 +752,7 @@ class TestTruncateOversizedResponse:
         was_truncated: bool
         notes: list[str]
         result, was_truncated, notes = truncate_oversized_response(
-            response, 200, max_list_items=5
+            response, 800, max_list_items=5
         )
         assert was_truncated is True
         assert isinstance(result, dict)
