@@ -30,8 +30,8 @@ do
   filename="${file%.*}"
   if [ $extension == "po" ]
   then
-    echo "po2json --domain superset --format jedold $file $filename.json"
-    po2json --domain superset --format jedold --fuzzy $file $filename.json
+    echo "po2json --domain superset --format jed $file $filename.json"
+    po2json --domain superset --format jed --fuzzy $file $filename.json
     # messages.json is gitignored (generated output); oxfmt >=0.62 respects
     # .gitignore even for explicitly-passed paths, so it would otherwise
     # exit non-zero here with "All matched files may have been excluded by
