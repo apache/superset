@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-21 02:18+0000\n"
+"POT-Creation-Date: 2026-09-22 10:58-0700\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -2461,9 +2461,6 @@ msgstr ""
 msgid "Automatically adjust column width based on content"
 msgstr ""
 
-msgid "Automatically retry sending the report when delivery fails."
-msgstr ""
-
 msgid "Automatically sync columns"
 msgstr ""
 
@@ -3984,7 +3981,7 @@ msgstr ""
 msgid "Configure filter scopes"
 msgstr ""
 
-msgid "Configure retry behavior on delivery failure."
+msgid "Configure retries when alert or report generation fails before delivery."
 msgstr ""
 
 msgid "Configure the basics of your Annotation Layer."
@@ -4051,6 +4048,9 @@ msgid "Connection failed, please check your connection settings."
 msgstr ""
 
 msgid "Connection looks good!"
+msgstr ""
+
+msgid "Contact the report owner for error details."
 msgstr ""
 
 msgid "Contains"
@@ -5544,6 +5544,9 @@ msgid ""
 "Display each cell as a percentage of its row, column, or grand total, "
 "instead of its actual value. Totals and subtotals are still computed "
 "correctly first; this only changes how they are displayed."
+msgstr ""
+
+msgid "Display format"
 msgstr ""
 
 msgid "Display headers for each column at the top of the matrix"
@@ -10992,6 +10995,9 @@ msgstr ""
 msgid "Reload SQL Lab"
 msgstr ""
 
+msgid "Reload the page and try again to continue."
+msgstr ""
+
 msgid "Remove"
 msgstr ""
 
@@ -11340,13 +11346,15 @@ msgstr ""
 msgid "Resume auto-refresh"
 msgstr ""
 
-msgid "Retries are not supported for alerts"
-msgstr ""
-
 msgid "Retry"
 msgstr ""
 
 msgid "Retry fetching results"
+msgstr ""
+
+msgid ""
+"Retry generation failures before delivery starts. Alerts re-check their "
+"condition on each attempt. Delivery failures are not replayed."
 msgstr ""
 
 msgid "Retrying"
@@ -11861,6 +11869,12 @@ msgstr ""
 msgid "Scoping"
 msgstr ""
 
+msgid "Screenshot cache is unavailable"
+msgstr ""
+
+msgid "Screenshot request is temporarily unavailable"
+msgstr ""
+
 msgid "Screenshot width"
 msgstr ""
 
@@ -11975,6 +11989,9 @@ msgid "Secure extra"
 msgstr ""
 
 msgid "Security"
+msgstr ""
+
+msgid "Security token error"
 msgstr ""
 
 msgid "See "
@@ -13061,9 +13078,6 @@ msgstr ""
 msgid "Sorry, an error occurred"
 msgstr ""
 
-msgid "Sorry, an unknown error occurred"
-msgstr ""
-
 msgid "Sorry, an unknown error occurred."
 msgstr ""
 
@@ -13801,6 +13815,9 @@ msgstr ""
 
 #, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
+msgstr ""
+
+msgid "The CSRF token could not be validated."
 msgstr ""
 
 msgid ""
