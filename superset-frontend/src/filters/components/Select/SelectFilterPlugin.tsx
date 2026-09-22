@@ -519,7 +519,10 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   }, [JSON.stringify(dataMask)]);
 
   const resetFilter = useCallback(
-    (onComplete?: (filterId: string) => void) => {
+    (
+      onComplete?: (filterId: string) => void,
+      { keepDefaultToFirst = false } = {},
+    ) => {
       dispatchDataMask({
         type: 'filterState',
         extraFormData: {},
@@ -531,13 +534,19 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       // A Search-all query lives in ownState.search and a debounced onSearch
       // callback may still be pending. Cancel and reset both so the option
       // list is not silently re-scoped to a stale search term while the
-      // filter shows an empty input.
-      onSearch.cancel();
-      dispatchDataMask({
-        type: 'ownState',
-        ownState: { search: '' },
-      });
-      updateDataMask(null);
+      // filter shows an empty input. Only search-all filters carry a
+      // server-side search at all: a plain filter re-emitting ownState at
+      // staging (pre-Apply) would reload its options before Apply is clicked.
+      if (searchAllOptions) {
+        onSearch.cancel();
+        dispatchDataMask({
+          type: 'ownState',
+          ownState: { search: '' },
+        });
+      }
+      if (!keepDefaultToFirst) {
+        updateDataMask(null);
+      }
       setSearch('');
       setLikeInputValue('');
       // Remount the Select so any stale search text it holds internally
@@ -546,7 +555,13 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       setResetToken(token => token + 1);
       if (onComplete) onComplete(formData.nativeFilterId);
     },
-    [dispatchDataMask, formData.nativeFilterId, onSearch, updateDataMask],
+    [
+      dispatchDataMask,
+      formData.nativeFilterId,
+      onSearch,
+      searchAllOptions,
+      updateDataMask,
+    ],
   );
 
   useEffect(() => {
@@ -560,9 +575,19 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     // dependent filter to reset its visual selection. Same behavior as a
     // global clear-all but scoped to one descendant.
     if (cascadeClearTrigger) {
-      resetFilter(onCascadeClearComplete);
+      // A defaultToFirstItem child resolves to the first option of its new
+      // scope rather than staying empty: keep the value at undefined so the
+      // init effect re-seeds it once the scoped options arrive.
+      resetFilter(onCascadeClearComplete, {
+        keepDefaultToFirst: !!formData.defaultToFirstItem,
+      });
     }
-  }, [cascadeClearTrigger, onCascadeClearComplete, resetFilter]);
+  }, [
+    cascadeClearTrigger,
+    formData.defaultToFirstItem,
+    onCascadeClearComplete,
+    resetFilter,
+  ]);
 
   useEffect(() => {
     if (prevExcludeFilterValues.current !== excludeFilterValues) {

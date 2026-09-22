@@ -1369,6 +1369,87 @@ describe('cascading native filter clear', () => {
     expect(childCall![1]?.extraFormData).toEqual({});
   });
 
+  test('changing a parent filter value re-seeds a defaultToFirstItem child', async () => {
+    const defaultFirstChildId = 'NATIVE_FILTER-cascade-default-first';
+    const defaultFirstChild = createFilter({
+      id: defaultFirstChildId,
+      name: 'Default City',
+      filterType: 'filter_select',
+      targets: [{ datasetId: 7, column: { name: 'city' } }],
+      cascadeParentIds: [parentId],
+      controlValues: { defaultToFirstItem: true },
+      chartsInScope: [18],
+    });
+    const updateDataMaskSpy = jest.spyOn(dataMaskActions, 'updateDataMask');
+
+    const state = {
+      ...createCascadeState(),
+      nativeFilters: {
+        filters: {
+          [parentId]: createCascadeState().nativeFilters.filters[parentId],
+          [defaultFirstChildId]: defaultFirstChild,
+        },
+        filtersState: {},
+      },
+      dashboardInfo: {
+        ...createCascadeState().dashboardInfo,
+        metadata: {
+          native_filter_configuration: [
+            createCascadeState().dashboardInfo.metadata
+              .native_filter_configuration[0],
+            defaultFirstChild,
+          ],
+          chart_configuration: {},
+        },
+      },
+      dataMask: {
+        [parentId]: createDataMask(parentId, ['USA'], {
+          filters: [{ col: 'country', op: 'IN', val: ['USA'] }],
+        }),
+        [defaultFirstChildId]: createDataMask(
+          defaultFirstChildId,
+          ['Champaign'],
+          { filters: [{ col: 'city', op: 'IN', val: ['Champaign'] }] },
+        ),
+      },
+    };
+    const props = createOpenedBarProps();
+    renderFilterBar(props, state);
+
+    await act(async () => {
+      jest.advanceTimersByTime(1000);
+    });
+
+    const parentLabel = await screen.findByText('Country');
+    const parentFormItem = parentLabel.closest('.ant-form-item') as HTMLElement;
+    const parentSelect = within(parentFormItem).getByRole('combobox');
+    await act(async () => {
+      await userEvent.click(parentSelect);
+    });
+    const ukOption = await screen.findByText('UK');
+    await act(async () => {
+      await userEvent.click(ukOption);
+    });
+
+    await act(async () => {
+      jest.advanceTimersByTime(1000);
+    });
+
+    const applyBtn = screen.getByTestId(getTestId('apply-button'));
+    await act(async () => {
+      await userEvent.click(applyBtn);
+    });
+
+    // The defaultToFirstItem child is cascade-staged with undefined (not null)
+    // so the Select plugin re-seeds the first option of the new scoped set.
+    const childCall = updateDataMaskSpy.mock.calls.find(
+      call => call[0] === defaultFirstChildId,
+    );
+    expect(childCall).toBeDefined();
+    expect(childCall![1]?.filterState?.value).toBeUndefined();
+    expect(childCall![1]?.extraFormData).toEqual({});
+  });
+
   test('changing a parent filter value clears a dependent Range child with [null, null]', async () => {
     const rangeChildId = 'NATIVE_FILTER-cascade-age';
     const rangeChildFilter = createFilter({

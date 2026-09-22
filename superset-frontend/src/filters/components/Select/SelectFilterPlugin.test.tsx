@@ -2103,6 +2103,60 @@ test('cascade clear resets a search-all ownState term and cancels a pending onSe
   expect(setDataMaskMock).toHaveBeenCalledTimes(callsBeforeDebounceFlush);
 });
 
+test('clear all on a plain filter only clears the value without re-emitting ownState', async () => {
+  const setDataMaskMock = jest.fn();
+  const props = buildSelectFilterProps({
+    formData: { searchAllOptions: false },
+    filterState: { value: ['Jen'] },
+    setDataMask: setDataMaskMock,
+  });
+
+  const reduxState = {
+    useRedux: true,
+    initialState: {
+      nativeFilters: {
+        filters: { 'test-filter': { name: 'Test Filter' } },
+      },
+      dataMask: {
+        'test-filter': {
+          extraFormData: {
+            filters: [{ col: 'gender', op: 'IN', val: ['Jen'] }],
+          },
+          filterState: { value: ['Jen'] },
+        },
+      },
+    },
+  };
+
+  const { rerender } = render(<SelectFilterPlugin {...props} />, reduxState);
+
+  setDataMaskMock.mockClear();
+
+  // A global clear-all signals this filter to reset its selection. Because the
+  // filter is not a search-all, it has no server-side search term to wipe.
+  // Re-emitting ownState here would drift FilterValue's formData and reload the
+  // option list at staging time (before Apply is clicked).
+  rerender(
+    <SelectFilterPlugin {...props} clearAllTrigger={{ 'test-filter': true }} />,
+  );
+
+  await waitFor(() => {
+    expect(setDataMaskMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        filterState: expect.objectContaining({
+          value: null,
+        }),
+      }),
+    );
+  });
+
+  expect(setDataMaskMock).not.toHaveBeenCalledWith(
+    expect.objectContaining({
+      ownState: expect.anything(),
+    }),
+  );
+});
+
 test('pending LIKE debounce still applies after rerender recreates updateDataMask', async () => {
   jest.useFakeTimers({ advanceTimers: true });
   const setDataMaskMock = jest.fn();

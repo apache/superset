@@ -370,11 +370,16 @@ const FilterBar: FC<FiltersBarProps> = ({
             if (filterState) {
               const childIsRequired =
                 !!childFilter?.controlValues?.enableEmptyFilter;
-              // Mirror handleClearAll: range filters use [null, null] as the
-              // canonical cleared value. Bare null would be ignored by
+              // A defaultToFirstItem child stages undefined (not null) so the
+              // Select plugin's init effect re-seeds the first option of the
+              // newly-scoped set: clearing it to null would leave it empty even
+              // though its whole purpose is to resolve to the first value.
+              // Mirror handleClearAll otherwise: range filters use [null, null]
+              // as the canonical cleared value. Bare null would be ignored by
               // RangeFilterPlugin's sync effect, leaving stale UI.
-              filterState.value =
-                childFilter?.filterType === 'filter_range'
+              filterState.value = childFilter?.controlValues?.defaultToFirstItem
+                ? undefined
+                : childFilter?.filterType === 'filter_range'
                   ? [null, null]
                   : null;
               // Out-of-scope descendants are staged Apply-safe: an error
