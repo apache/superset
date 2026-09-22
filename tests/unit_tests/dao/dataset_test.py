@@ -423,3 +423,71 @@ def test_override_columns_rename_flushes_delete_before_insert(
     db.session.flush()
     cols = db.session.query(TableColumn).filter_by(table_id=table.id).all()
     assert [c.column_name for c in cols] == ["new"]
+
+
+def test_upsert_columns_clears_a_dangling_partition_mapping(
+    session: Session,
+) -> None:
+    """The upsert path deletes every column the payload omits — including, when
+    a metadata sync drops it, the dataset's partition column. The mapping has to
+    be cleared with it, exactly as on the ``override_columns=true`` path."""
+    from superset import db
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.models.core import Database
+
+    SqlaTable.metadata.create_all(session.get_bind())
+    database = Database(database_name="pm_db", sqlalchemy_uri="sqlite://")
+    table = SqlaTable(table_name="pm_t", schema="main", database=database)
+    table.columns = [
+        TableColumn(column_name="event_time"),
+        TableColumn(column_name="dt_epoch"),
+    ]
+    table.partition_column = "dt_epoch"
+    table.partition_mapped_column = "event_time"
+    db.session.add_all([database, table])
+    db.session.flush()
+    event_time_id = next(c.id for c in table.columns if c.column_name == "event_time")
+
+    # The payload keeps only "event_time", so "dt_epoch" is deleted.
+    DatasetDAO.update_columns(
+        table,
+        [{"id": event_time_id, "column_name": "event_time"}],
+        override_columns=False,
+    )
+    db.session.flush()
+
+    assert table.partition_column is None
+    assert table.partition_mapped_column is None
+
+
+def test_upsert_columns_keeps_a_live_partition_mapping(session: Session) -> None:
+    """A payload that keeps both columns must leave the mapping alone."""
+    from superset import db
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.models.core import Database
+
+    SqlaTable.metadata.create_all(session.get_bind())
+    database = Database(database_name="pm_db2", sqlalchemy_uri="sqlite://")
+    table = SqlaTable(table_name="pm_t2", schema="main", database=database)
+    table.columns = [
+        TableColumn(column_name="event_time"),
+        TableColumn(column_name="dt_epoch"),
+    ]
+    table.partition_column = "dt_epoch"
+    table.partition_mapped_column = "event_time"
+    db.session.add_all([database, table])
+    db.session.flush()
+    ids = {c.column_name: c.id for c in table.columns}
+
+    DatasetDAO.update_columns(
+        table,
+        [
+            {"id": ids["event_time"], "verbose_name": "Event time"},
+            {"id": ids["dt_epoch"]},
+        ],
+        override_columns=False,
+    )
+    db.session.flush()
+
+    assert table.partition_column == "dt_epoch"
+    assert table.partition_mapped_column == "event_time"
