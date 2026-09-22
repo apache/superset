@@ -2109,6 +2109,11 @@ def test_is_mutating_replace_function_is_read(engine: str) -> None:
         # An unterminated block comment runs to the end of the body, so what
         # follows it never executes.
         ("EXECUTE IMMEDIATE $$ /* PUT file:///tmp/a @my_stage $$", None),
+        # A dollar-quoted argument that stops short of the end of the body is
+        # an ordinary literal, not the code wrapper, so it stays quoted: the
+        # `--` inside it opens no comment and the argument after it is scanned.
+        ("CALL p($$--$$, 'PUT file:///tmp/a @my_stage')", "PUT"),
+        ("CALL p($q$--$q$, 'GET @my_stage file:///tmp/a')", "GET"),
         ("CALL some_procedure()", None),
     ],
 )
@@ -5972,6 +5977,12 @@ def test_changes_search_path(sql: str, expected: bool) -> None:
         # string literal (the body's dynamic SQL) still is.
         ("DO $$ BEGIN -- SET SCHEMA 'evil'\nPERFORM 1; END $$", "postgresql", False),
         ("EXECUTE IMMEDIATE 'SET SCHEMA ''evil'''", "postgresql", True),
+        # MySQL-family engines only open a comment on `--` when whitespace
+        # follows, so `1--2` is arithmetic there and the rest of the body still
+        # executes; a spaced `-- ` is a comment on every dialect.
+        ("CALL p(1--2, 'SET SCHEMA evil')", "mysql", True),
+        ("CALL p(1, 'x') -- SET SCHEMA evil", "mysql", False),
+        ("CALL p(1--2, 'SET SCHEMA evil')", "postgresql", False),
         # Engines without a sqlglot AST (e.g. Kusto KQL) do not rebind schema
         # resolution through these forms.
         ("print x = 1", "kustokql", False),

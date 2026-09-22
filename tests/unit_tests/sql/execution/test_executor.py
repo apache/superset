@@ -275,7 +275,6 @@ def test_check_security_rejects_client_file_transfer(
     """
     from superset.exceptions import SupersetSecurityException
     from superset.sql.execution.executor import SQLExecutor
-    from superset.sql.parse import SQLScript
 
     mocker.patch.dict(
         current_app.config,

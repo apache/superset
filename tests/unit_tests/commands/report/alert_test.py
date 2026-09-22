@@ -572,15 +572,24 @@ def test_execute_query_wraps_template_rendering_error(
 
 
 @pytest.mark.parametrize("allow_dml", [False, True])
-def test_validate_rendered_sql_rejects_client_file_transfer(
+@pytest.mark.parametrize(
+    "sql, rejected_head",
+    [
+        ("PUT file:///tmp/data.csv @my_stage", "PUT"),
+        ("SELECT value FROM metrics", None),
+    ],
+)
+def test_validate_rendered_sql_client_file_transfer_gate(
     mocker: MockerFixture,
     allow_dml: bool,
+    sql: str,
+    rejected_head: str | None,
 ) -> None:
     """
     A client-side file-transfer command in an alert query is rejected whether
     or not the database allows DML: it does file I/O on the host running the
     query rather than reading or writing table data, so `allow_dml` does not
-    govern it.
+    govern it. An ordinary read-only query is left alone either way.
     """
     report_schedule_mock = mocker.Mock()
     report_schedule_mock.database.backend = "snowflake"
@@ -591,21 +600,9 @@ def test_validate_rendered_sql_rejects_client_file_transfer(
         execution_id=uuid4(),
     )
 
-    with pytest.raises(AlertQueryError, match="PUT"):
-        command._validate_rendered_sql("PUT file:///tmp/data.csv @my_stage")
+    if rejected_head is None:
+        command._validate_rendered_sql(sql)
+        return
 
-
-def test_validate_rendered_sql_allows_ordinary_query(mocker: MockerFixture) -> None:
-    """
-    The file-transfer gate leaves an ordinary read-only alert query alone.
-    """
-    report_schedule_mock = mocker.Mock()
-    report_schedule_mock.database.backend = "snowflake"
-    report_schedule_mock.database.allow_dml = False
-
-    command = AlertCommand(
-        report_schedule=report_schedule_mock,
-        execution_id=uuid4(),
-    )
-
-    command._validate_rendered_sql("SELECT value FROM metrics")
+    with pytest.raises(AlertQueryError, match=rejected_head):
+        command._validate_rendered_sql(sql)

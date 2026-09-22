@@ -1019,6 +1019,53 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         re.IGNORECASE,
     )
 
+    # Opening delimiter of a dollar-quoted region, e.g. `$$` or `$tag$`.
+    _DOLLAR_QUOTE_OPEN_RE = re.compile(r"\$\w*\$")
+
+    # Alternation ordered so a quoted region is consumed whole before either
+    # comment form can match inside it, keeping a `--` or `/*` that is merely
+    # part of a literal from truncating the text after it. Each of the two
+    # regions that scan forward for a closing delimiter -- the dollar-quoted
+    # literal and the block comment -- needs a trailing "runs to end"
+    # alternative for the unterminated case: without one the lazy `.*?` rescans
+    # to end of text from every opener in turn, which is quadratic on input a
+    # user controls. The unterminated literal stays inside the `literal` group
+    # so it is preserved rather than blanked, since text a gate would match must
+    # not disappear.
+    _COMMENT_RE_TEMPLATE = r"""
+          (?P<literal>
+              '(?:[^']|'')*'                        # single-quoted string
+            | "(?:[^"]|"")*"                        # double-quoted identifier
+            | \$(?P<tag>\w*)\$.*?\$(?P=tag)\$       # dollar-quoted string
+            | \$\w*\$.*                             # unterminated: runs to end
+          )
+        | {line_comment}[^\n]*                      # line comment
+        | /\*.*?\*/                                 # block comment
+        | /\*.*                                     # unterminated: runs to end
+        """
+
+    _COMMENT_RE = re.compile(
+        _COMMENT_RE_TEMPLATE.format(line_comment="--"),
+        re.DOTALL | re.VERBOSE,
+    )
+
+    # MySQL-family engines only start a comment on `--` when whitespace (or
+    # end of line) follows: `1--2` is arithmetic there. Stripping it as a
+    # comment would delete text the server executes and blind every gate that
+    # scans this body, so those dialects get the stricter rule.
+    _COMMENT_RE_SPACED_DASH = re.compile(
+        _COMMENT_RE_TEMPLATE.format(line_comment=r"--(?=[ \t\r\n]|$)"),
+        re.DOTALL | re.VERBOSE,
+    )
+
+    _SPACED_DASH_COMMENT_DIALECTS: frozenset[Dialects] = frozenset(
+        {
+            Dialects.MYSQL,
+            Dialects.DORIS,
+            Dialects.STARROCKS,
+        }
+    )
+
     # Command-fallback heads that are only mutating on dialects where the
     # structured form (`exp.Set`) is reserved for benign session variables,
     # so the opaque-Command fallback is reached exclusively by the dangerous
@@ -1196,8 +1243,8 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         The body of a :attr:`_NESTED_BODY_COMMAND_NAMES` command is invisible
         to node-type matching and cannot be re-parsed, so gates that inspect
         the tree fall back to scanning this text. Comments are stripped here
-        rather than by each caller, so every such gate scans the same text:
-        commented-out code never runs, so no gate should classify on it.
+        rather than by each caller, so every such gate scans the same text;
+        see :meth:`_strip_comments` for why.
 
         :return: The body text with comments removed, or ``None`` when this
             statement does not carry a nested body
@@ -1215,37 +1262,46 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         # runs -- so it is peeled off before the strip, leaving the text either
         # side of it in place. Any `$tag$` region still nested inside really is
         # a literal, and is preserved as one.
-        text = self._DOLLAR_QUOTED_BODY_RE.sub(lambda m: m.group("body"), text, count=1)
+        text = self._peel_dollar_quote(text)
         return self._strip_comments(text)
 
-    # Greedy, so the outermost region is the one unwrapped.
-    _DOLLAR_QUOTED_BODY_RE = re.compile(
-        r"\$(?P<tag>\w*)\$(?P<body>.*)\$(?P=tag)\$",
-        re.DOTALL,
-    )
+    def _peel_dollar_quote(self, text: str) -> str:
+        """
+        Remove the delimiters of the body's dollar-quoted code wrapper, keeping
+        its contents and the text either side of it.
 
-    # Alternation ordered so a quoted region is consumed whole before either
-    # comment form can match inside it, keeping a `--` or `/*` that is merely
-    # part of a literal from truncating the text after it. An unterminated
-    # `/*` gets its own trailing alternative: without it the lazy `.*?` rescans
-    # to end of text from every `/*` in turn, which is quadratic on input a
-    # user controls.
-    _COMMENT_RE = re.compile(
-        r"""
-          (?P<literal>
-              '(?:[^']|'')*'                        # single-quoted string
-            | "(?:[^"]|"")*"                        # double-quoted identifier
-            | \$(?P<tag>\w*)\$.*?\$(?P=tag)\$       # dollar-quoted string
-          )
-        | --[^\n]*                                  # line comment
-        | /\*.*?\*/                                 # block comment
-        | /\*.*                                     # unterminated: runs to end
-        """,
-        re.DOTALL | re.VERBOSE,
-    )
+        Only a region that the head itself introduces is a wrapper: a ``DO``
+        block, which takes nothing else, or a region running to the end of the
+        body (``EXECUTE IMMEDIATE $$...$$``). A region that stops short of the
+        end is one argument among several (``CALL p($q$...$q$, ...)``) and so is
+        an ordinary literal; unwrapping that would expose its contents as code,
+        letting a ``--`` inside it comment out the rest of the body and blind
+        every gate that scans this text.
 
-    @classmethod
-    def _strip_comments(cls, text: str) -> str:
+        Matching the closing delimiter by search rather than by backtracking
+        regex keeps this linear: a pattern that scans forward for a closer
+        rescans to end of text from every opener that has none, which is
+        quadratic on input a user controls.
+
+        :param text: The raw body text to peel
+        :return: The text with the wrapper's delimiters removed, or unchanged
+            when the body has no dollar-quoted wrapper
+        """
+        if not (opener := self._DOLLAR_QUOTE_OPEN_RE.search(text)):
+            return text
+        delimiter = opener.group()
+        closer = text.find(delimiter, opener.end())
+        if closer == -1:
+            return text
+        if self._command_head() != "DO" and text[closer + len(delimiter) :].strip():
+            return text
+        return (
+            text[: opener.start()]
+            + text[opener.end() : closer]
+            + text[closer + len(delimiter) :]
+        )
+
+    def _strip_comments(self, text: str) -> str:
         """
         Blank out SQL comments in raw statement text, preserving literals.
 
@@ -1261,7 +1317,12 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         :return: The text with each comment replaced by a single space, so
             tokens either side of a removed comment stay separated
         """
-        return cls._COMMENT_RE.sub(lambda m: m.group("literal") or " ", text)
+        pattern = (
+            self._COMMENT_RE_SPACED_DASH
+            if self._dialect in self._SPACED_DASH_COMMENT_DIALECTS
+            else self._COMMENT_RE
+        )
+        return pattern.sub(lambda m: m.group("literal") or " ", text)
 
     def _explain_analyze_body(self) -> str | None:
         """
