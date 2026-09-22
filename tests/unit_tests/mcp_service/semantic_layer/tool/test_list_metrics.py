@@ -190,7 +190,7 @@ async def test_list_metrics_embedded_page_byte_bound(
                         "request": {
                             "view_id": 5,
                             "include_compatible_dimensions": True,
-                            "page_size": 8,
+                            "page_size": 4,
                         }
                     },
                 )
@@ -199,7 +199,7 @@ async def test_list_metrics_embedded_page_byte_bound(
             .text
         )
     assert data["success"] is True
-    assert len(data["metrics"]) == data["page_size"] == 8
+    assert len(data["metrics"]) == data["page_size"] == 4
     assert data["total_count"] == 60
     metric: dict[str, Any]
     for metric in data["metrics"]:
@@ -240,16 +240,16 @@ def test_embedding_cap_is_independent_of_configured_max_bytes(
     assert guard is not None
     assert guard.max_bytes == max_bytes
     assert (
-        ListMetricsRequest(include_compatible_dimensions=True, page_size=8).page_size
-        == 8
+        ListMetricsRequest(include_compatible_dimensions=True, page_size=4).page_size
+        == 4
     )
     error: pytest.ExceptionInfo[ValidationError]
     with pytest.raises(ValidationError) as error:
-        ListMetricsRequest(include_compatible_dimensions=True, page_size=9)
+        ListMetricsRequest(include_compatible_dimensions=True, page_size=5)
     message: str = str(error.value)
     assert "MCP_RESPONSE_SIZE_CONFIG['max_bytes']" in message
-    assert "100k by default" in message
-    assert "page_size <= 8" in message
+    assert "50k by default" in message
+    assert "page_size <= 4" in message
     assert "get_compatible_dimensions" in message
 
 
@@ -442,7 +442,7 @@ async def test_list_metrics_external_per_metric_compatible_dimensions(
                     "request": {
                         "view_id": 5,
                         "include_compatible_dimensions": True,
-                        "page_size": 8,
+                        "page_size": 4,
                     }
                 },
             )
@@ -639,7 +639,7 @@ async def test_builtin_embedded_metrics_reject_oversized_pages(
     mock_ds: MagicMock = _make_dataset(42)
     with _patched_dataset_lookup(mock_ds):
         async with Client(mcp_server) as client:
-            with pytest.raises(ToolError, match="page_size <= 8"):
+            with pytest.raises(ToolError, match="page_size <= 4"):
                 await client.call_tool(
                     "list_metrics",
                     {
@@ -665,7 +665,7 @@ async def test_builtin_embedded_metrics_realistic_byte_bound(
     metric: dict[str, Any]
     with _patched_dataset_lookup(dataset):
         async with Client(mcp_server) as client:
-            with pytest.raises(ToolError, match="page_size <= 8"):
+            with pytest.raises(ToolError, match="page_size <= 4"):
                 await client.call_tool(
                     "list_metrics",
                     {
@@ -675,14 +675,14 @@ async def test_builtin_embedded_metrics_realistic_byte_bound(
                         }
                     },
                 )
-            for page in (1, 2, 3):
+            for page in (1, 2, 3, 4, 5):
                 result: Any = await client.call_tool(
                     "list_metrics",
                     {
                         "request": {
                             "dataset_id": 42,
                             "include_compatible_dimensions": True,
-                            "page_size": 8,
+                            "page_size": 4,
                             "page": page,
                         }
                     },
@@ -690,9 +690,9 @@ async def test_builtin_embedded_metrics_realistic_byte_bound(
                 data: dict[str, Any] = json.loads(result.content[0].text)
                 assert data["success"] is True
                 assert data["total_count"] == 20
-                assert data["total_pages"] == 3
-                assert data["page_size"] == 8
-                assert len(data["metrics"]) == (4 if page == 3 else 8)
+                assert data["total_pages"] == 5
+                assert data["page_size"] == 4
+                assert len(data["metrics"]) == 4
                 assert get_response_size_bytes(data) < DEFAULT_MAX_RESPONSE_BYTES
                 for metric in data["metrics"]:
                     assert len(metric["compatible_dimensions"]) == 30
@@ -703,7 +703,7 @@ async def test_builtin_embedded_metrics_realistic_byte_bound(
 @pytest.mark.parametrize("scope", [{}, {"view_id": 42}])
 def test_external_embedded_metrics_retain_page_ceiling(scope: dict[str, int]) -> None:
     """Unscoped and view-scoped requests can carry external dimensions."""
-    with pytest.raises(ValidationError, match="page_size <= 8"):
+    with pytest.raises(ValidationError, match="page_size <= 4"):
         ListMetricsRequest(**scope, include_compatible_dimensions=True, page_size=9)
 
 

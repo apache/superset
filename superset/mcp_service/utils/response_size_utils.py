@@ -504,6 +504,9 @@ _MAX_STRING_CHARS = 500
 # Floor for the budget-derived clip length (see ``string_clip_chars``), so a
 # clipped string stays recognizable even under a very small byte budget.
 _MIN_STRING_CHARS = 32
+# Above `_CLIP_BUDGET_DIVISOR * ceiling` bytes, string_clip_chars leaves the
+# ceiling unchanged; smaller budgets shrink the clip length proportionally.
+_CLIP_BUDGET_DIVISOR = 4
 # Maximum keys to keep when summarizing large dict fields
 _MAX_DICT_KEYS = 20
 
@@ -514,12 +517,12 @@ def string_clip_chars(max_bytes: int, ceiling: int = _MAX_STRING_CHARS) -> int:
     A fixed clip length only works while the budget dwarfs it: a single
     clipped field plus its truncation marker must not exhaust the whole
     budget by itself, or string truncation can never bring a response under
-    the limit. Above ``4 * ceiling`` bytes the ceiling applies unchanged (the
-    default 100 KB budget keeps the full ``_MAX_STRING_CHARS``); smaller
-    budgets shrink the clip length proportionally, down to
-    ``_MIN_STRING_CHARS``.
+    the limit. Above ``_CLIP_BUDGET_DIVISOR * ceiling`` bytes the ceiling
+    applies unchanged (the default 50 KB budget keeps the full
+    ``_MAX_STRING_CHARS``); smaller budgets shrink the clip length
+    proportionally, down to ``_MIN_STRING_CHARS``.
     """
-    return min(ceiling, max(_MIN_STRING_CHARS, max_bytes // 4))
+    return min(ceiling, max(_MIN_STRING_CHARS, max_bytes // _CLIP_BUDGET_DIVISOR))
 
 
 def _truncate_strings(
@@ -1120,7 +1123,7 @@ def format_size_limit_error(
 
     size_text = (
         "size could not be measured"
-        if actual_bytes >= UNMEASURABLE_RESPONSE_BYTES
+        if actual_bytes == UNMEASURABLE_RESPONSE_BYTES
         else f"{actual_bytes:,} bytes"
     )
     error_lines = [

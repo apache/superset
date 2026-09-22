@@ -115,8 +115,8 @@ class TestStringClipChars:
     """Test the budget-derived string clip length."""
 
     def test_default_budget_keeps_full_clip_length(self) -> None:
-        """The 100 KB default budget must not change the historical clip."""
-        assert string_clip_chars(100_000) == _MAX_STRING_CHARS
+        """The 50 KB default budget must not change the historical clip."""
+        assert string_clip_chars(50_000) == _MAX_STRING_CHARS
 
     def test_small_budget_scales_clip_length_down(self) -> None:
         """A budget below ``4 * ceiling`` shrinks the clip proportionally."""
@@ -669,7 +669,12 @@ class TestTruncateOversizedResponse:
         assert notes == []
 
     def test_truncates_large_string_fields(self) -> None:
-        """Should truncate long strings to fit."""
+        """Should truncate long strings to fit.
+
+        With a 500-byte budget, clipping a string to the fixed 500 chars
+        (plus its marker) can never fit, so the clip length has to follow
+        the budget instead of leaving the response over the limit.
+        """
         response = {
             "id": 1,
             "description": "x" * 50000,  # Very large description
@@ -679,6 +684,10 @@ class TestTruncateOversizedResponse:
         assert isinstance(result, dict)
         assert "[truncated" in result["description"]
         assert any("description" in n for n in notes)
+        assert get_response_size_bytes(result) <= 500
+        assert result["description"].startswith("x" * _MIN_STRING_CHARS)
+        assert "[truncated from 50000 chars]" in result["description"]
+        assert notes == ["Field 'description' truncated from 50000 chars"]
 
     def test_truncates_large_lists(self) -> None:
         """Should truncate lists when strings alone are not enough."""
@@ -864,22 +873,6 @@ class TestTruncateOversizedResponse:
         assert isinstance(result, dict)
         assert result["chart"] == {"id": 42}
         assert any("form_data" in n for n in notes)
-
-    def test_small_budget_scales_string_clip_to_fit(self) -> None:
-        """A budget below the fixed clip length must still converge.
-
-        With a 500-byte budget, clipping a string to the fixed 500 chars
-        (plus its marker) can never fit, so the clip length has to follow
-        the budget instead of leaving the response over the limit.
-        """
-        response: dict[str, Any] = {"id": 1, "description": "x" * 50_000}
-        result, was_truncated, notes = truncate_oversized_response(response, 500)
-        assert was_truncated is True
-        assert isinstance(result, dict)
-        assert get_response_size_bytes(result) <= 500
-        assert result["description"].startswith("x" * _MIN_STRING_CHARS)
-        assert "[truncated from 50000 chars]" in result["description"]
-        assert notes == ["Field 'description' truncated from 50000 chars"]
 
 
 class TestTruncateStringFieldResponse:
