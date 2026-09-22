@@ -40,7 +40,7 @@ from superset.db_engine_specs.base import (
 )
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import OAuth2RedirectError
-from superset.sql.parse import Table
+from superset.sql.parse import RLSMethod, Table
 from superset.superset_typing import (
     OAuth2ClientConfig,
     OAuth2State,
@@ -1512,6 +1512,11 @@ def test_base_spec_public_information_includes_supports_offset() -> None:
 
     assert "supports_offset" in info
     assert info["supports_offset"] is True
+
+
+def test_default_rls_method_is_subquery() -> None:
+    """Base engine spec defaults to subquery-based RLS."""
+    assert BaseEngineSpec.rls_method == RLSMethod.AS_SUBQUERY
 
 
 def _parameters(encryption: bool) -> BasicParametersType:

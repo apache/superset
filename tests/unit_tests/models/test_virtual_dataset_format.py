@@ -269,7 +269,7 @@ class TestApplyRlsReturnValue:
         from superset.utils.rls import apply_rls
 
         database = MagicMock()
-        database.db_engine_spec.get_rls_method.return_value = MagicMock()
+        database.db_engine_spec.rls_method = RLSMethod.AS_SUBQUERY
         database.get_default_catalog.return_value = None
 
         statement = MagicMock()
@@ -297,7 +297,7 @@ class TestApplyRlsReturnValue:
         mock_get_predicates.return_value = []
 
         database = MagicMock()
-        database.db_engine_spec.get_rls_method.return_value = MagicMock()
+        database.db_engine_spec.rls_method = RLSMethod.AS_SUBQUERY
         database.get_default_catalog.return_value = None
 
         mock_table = MagicMock()
@@ -328,7 +328,7 @@ class TestApplyRlsReturnValue:
         mock_get_predicates.return_value = ["user_id = 42"]
 
         database = MagicMock()
-        database.db_engine_spec.get_rls_method.return_value = MagicMock()
+        database.db_engine_spec.rls_method = RLSMethod.AS_SUBQUERY
         database.get_default_catalog.return_value = None
 
         mock_table = MagicMock()
@@ -336,8 +336,6 @@ class TestApplyRlsReturnValue:
 
         statement = MagicMock()
         statement.tables = [mock_table]
-        statement.parse_predicate.return_value = MagicMock()
-
         result = apply_rls(
             database=database,
             catalog=None,
@@ -372,11 +370,10 @@ class TestRLSSubqueryAlias:
         """
         sql = "SELECT pens.pen_id, pens.is_green FROM public.pens"
         statement = SQLStatement(sql, engine="redshift")
-        predicate = statement.parse_predicate("user_id = 1")
         statement.apply_rls(
             None,
             "public",
-            {Table("pens", "public", None): [predicate]},
+            {Table("pens", "public", None): ["user_id = 1"]},
             RLSMethod.AS_SUBQUERY,
         )
         result = statement.format()
@@ -393,11 +390,10 @@ class TestRLSSubqueryAlias:
         """
         sql = "SELECT pens.pen_id, pens.is_green FROM mycat.public.pens"
         statement = SQLStatement(sql, engine="redshift")
-        predicate = statement.parse_predicate("user_id = 1")
         statement.apply_rls(
             None,
             "public",
-            {Table("pens", "public", "mycat"): [predicate]},
+            {Table("pens", "public", "mycat"): ["user_id = 1"]},
             RLSMethod.AS_SUBQUERY,
         )
         result = statement.format()
@@ -411,11 +407,10 @@ class TestRLSSubqueryAlias:
         """
         sql = "SELECT p.pen_id, p.is_green FROM public.pens p"
         statement = SQLStatement(sql, engine="redshift")
-        predicate = statement.parse_predicate("user_id = 1")
         statement.apply_rls(
             None,
             "public",
-            {Table("pens", "public", None): [predicate]},
+            {Table("pens", "public", None): ["user_id = 1"]},
             RLSMethod.AS_SUBQUERY,
         )
         result = statement.format()
@@ -429,11 +424,10 @@ class TestRLSSubqueryAlias:
         """
         sql = "SELECT pen_id, is_green FROM public.pens"
         statement = SQLStatement(sql, engine="redshift")
-        predicate = statement.parse_predicate("user_id = 1")
         statement.apply_rls(
             None,
             "public",
-            {Table("pens", "public", None): [predicate]},
+            {Table("pens", "public", None): ["user_id = 1"]},
             RLSMethod.AS_SUBQUERY,
         )
         result = statement.format()

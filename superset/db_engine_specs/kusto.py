@@ -33,7 +33,7 @@ from superset.db_engine_specs.exceptions import (
 if TYPE_CHECKING:
     from superset.models.core import Database
 
-from superset.sql.parse import KQLTokenType, LimitMethod, tokenize_kql
+from superset.sql.parse import KQLTokenType, LimitMethod, RLSMethod, tokenize_kql
 from superset.utils.core import FilterOperator, GenericDataType
 
 logger = logging.getLogger(__name__)
@@ -78,6 +78,7 @@ class KustoSqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     allows_joins = True
     allows_subqueries = True
     allows_sql_comments = False
+    rls_method = RLSMethod.AS_PREDICATE_SPLICE
 
     metadata = {
         "description": (
