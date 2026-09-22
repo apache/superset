@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-22 07:15+0530\n"
+"POT-Creation-Date: 2026-09-21 02:18+0000\n"
 "PO-Revision-Date: 2024-10-20 00:07+0330\n"
 "Last-Translator: Emad Rad <codewithemad@gmail.com>\n"
 "Language: fa\n"
@@ -2806,6 +2806,9 @@ msgstr "تنظیم خودکار عرض ستون بر اساس فضای موجو�
 msgid "Automatically adjust column width based on content"
 msgstr "تنظیم خودکار عرض ستون بر اساس محتوا"
 
+msgid "Automatically retry sending the report when delivery fails."
+msgstr ""
+
 #, fuzzy
 msgid "Automatically sync columns"
 msgstr "ستون‌ها را سفارشی‌سازی کنید"
@@ -4578,7 +4581,7 @@ msgstr "پیکربندی ظاهر داشبورد، رنگ‌ها و CSS سفار
 msgid "Configure filter scopes"
 msgstr "تنظیم دامنه‌های فیلتر"
 
-msgid "Configure retries when alert or report generation fails before delivery."
+msgid "Configure retry behavior on delivery failure."
 msgstr ""
 
 msgid "Configure the basics of your Annotation Layer."
@@ -4655,9 +4658,6 @@ msgid "Connection failed, please check your connection settings."
 msgstr "اتصال ناموفق بود، لطفاً تنظیمات اتصال خود را بررسی کنید."
 
 msgid "Connection looks good!"
-msgstr ""
-
-msgid "Contact the report owner for error details."
 msgstr ""
 
 #, fuzzy
@@ -13021,6 +13021,9 @@ msgstr "پشتوانه نتایج برای کوئریهای غیرهمزمان �
 msgid "Resume auto-refresh"
 msgstr "فواصل تازه‌سازی خودکار را تنظیم کنید"
 
+msgid "Retries are not supported for alerts"
+msgstr ""
+
 #, fuzzy
 msgid "Retry"
 msgstr "سازنده"
@@ -13028,11 +13031,6 @@ msgstr "سازنده"
 #, fuzzy
 msgid "Retry fetching results"
 msgstr "دوباره دریافت نتایج"
-
-msgid ""
-"Retry generation failures before delivery starts. Alerts re-check their "
-"condition on each attempt. Delivery failures are not replayed."
-msgstr ""
 
 msgid "Retrying"
 msgstr ""
@@ -13599,12 +13597,6 @@ msgstr "دامنه"
 
 msgid "Scoping"
 msgstr "دامنه‌گذاری"
-
-msgid "Screenshot cache is unavailable"
-msgstr ""
-
-msgid "Screenshot request is temporarily unavailable"
-msgstr ""
 
 msgid "Screenshot width"
 msgstr "عرض عکس‌برداری"
@@ -15072,6 +15064,9 @@ msgstr "متاسفم، یک خطا رخ داده است"
 
 msgid "Sorry, an error occurred"
 msgstr "متأسفم، یک خطا رخ داد"
+
+msgid "Sorry, an unknown error occurred"
+msgstr "متاسفیم، یک خطای ناشناخته رخ داده است."
 
 msgid "Sorry, an unknown error occurred."
 msgstr "متأسفم، یک خطای ناشناس رخ داد."

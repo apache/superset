@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-22 07:15+0530\n"
+"POT-Creation-Date: 2026-09-21 02:18+0000\n"
 "PO-Revision-Date: 2026-03-27 14:01+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: lv\n"
@@ -2730,6 +2730,9 @@ msgstr "Automātiski pielāgot kolonnu platumu atbilstoši pieejamajai vietai"
 msgid "Automatically adjust column width based on content"
 msgstr "Automātiski pielāgot kolonnu platumu atbilstoši saturam"
 
+msgid "Automatically retry sending the report when delivery fails."
+msgstr ""
+
 msgid "Automatically sync columns"
 msgstr "Automātiski sinhronizēt kolonnas"
 
@@ -4382,7 +4385,7 @@ msgstr "Konfigurējiet paneļa izskatu, krāsas un pielāgotu CSS"
 msgid "Configure filter scopes"
 msgstr "Konfigurēt filtru tvērumus"
 
-msgid "Configure retries when alert or report generation fails before delivery."
+msgid "Configure retry behavior on delivery failure."
 msgstr ""
 
 msgid "Configure the basics of your Annotation Layer."
@@ -4451,9 +4454,6 @@ msgid "Connection failed, please check your connection settings."
 msgstr "Savienojums neizdevās, lūdzu, pārbaudiet savienojuma iestatījumus."
 
 msgid "Connection looks good!"
-msgstr ""
-
-msgid "Contact the report owner for error details."
 msgstr ""
 
 msgid "Contains"
@@ -12251,16 +12251,14 @@ msgstr "Asinhrono vaicājumu rezultātu aizmugursistēma nav konfigurēta."
 msgid "Resume auto-refresh"
 msgstr "Iestatīt automātisko atsvaidzināšanos"
 
+msgid "Retries are not supported for alerts"
+msgstr ""
+
 msgid "Retry"
 msgstr "Mēģināt vēlreiz"
 
 msgid "Retry fetching results"
 msgstr "Mēģināt atkārtoti ielādēt rezultātus"
-
-msgid ""
-"Retry generation failures before delivery starts. Alerts re-check their "
-"condition on each attempt. Delivery failures are not replayed."
-msgstr ""
 
 msgid "Retrying"
 msgstr ""
@@ -12810,12 +12808,6 @@ msgstr "Tvērums"
 
 msgid "Scoping"
 msgstr "Tvēruma noteikšana"
-
-msgid "Screenshot cache is unavailable"
-msgstr ""
-
-msgid "Screenshot request is temporarily unavailable"
-msgstr ""
 
 msgid "Screenshot width"
 msgstr "Ekrānuzņēmuma platums"
@@ -14175,6 +14167,9 @@ msgstr "Diemžēl, radās kļūda"
 
 msgid "Sorry, an error occurred"
 msgstr "Diemžēl, radās kļūda"
+
+msgid "Sorry, an unknown error occurred"
+msgstr "Diemžēl, radās nezināma kļūda"
 
 msgid "Sorry, an unknown error occurred."
 msgstr "Diemžēl, radās nezināma kļūda."

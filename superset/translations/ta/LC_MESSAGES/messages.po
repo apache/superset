@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-22 07:15+0530\n"
+"POT-Creation-Date: 2026-09-21 02:18+0000\n"
 "PO-Revision-Date: 2026-03-31 02:00-0700\n"
 "Last-Translator: Maazin Ahamed\n"
 "Language: ta\n"
@@ -2695,6 +2695,9 @@ msgstr "கிடைக்கக்கூடிய இடத்திற்க�
 msgid "Automatically adjust column width based on content"
 msgstr "உள்ளடக்கத்திற்கு ஏற்ப நெடுவரிசை அகலத்தைத் தானாகச் சரிசெய்யவும்"
 
+msgid "Automatically retry sending the report when delivery fails."
+msgstr ""
+
 msgid "Automatically sync columns"
 msgstr "நெடுவரிசைகளைத் தானாக ஒத்திசைக்கவும்"
 
@@ -4340,7 +4343,7 @@ msgstr "டேஷ்போர்டு தோற்றம், நிறங்க
 msgid "Configure filter scopes"
 msgstr "வடிகட்டி வரம்புகளை (filter scopes) உள்ளமைக்கவும்"
 
-msgid "Configure retries when alert or report generation fails before delivery."
+msgid "Configure retry behavior on delivery failure."
 msgstr ""
 
 msgid "Configure the basics of your Annotation Layer."
@@ -4417,9 +4420,6 @@ msgstr "இணைப்பு தோல்வியுற்றது, உங்
 #, fuzzy
 msgid "Connection looks good!"
 msgstr "இணைப்பு"
-
-msgid "Contact the report owner for error details."
-msgstr ""
 
 msgid "Contains"
 msgstr "கொண்டுள்ளது (Contains)"
@@ -12039,16 +12039,14 @@ msgstr "ஒத்திசைவற்ற வினவல்களுக்க�
 msgid "Resume auto-refresh"
 msgstr "தானியங்கி புதுப்பித்தலை அமைக்கவும்"
 
+msgid "Retries are not supported for alerts"
+msgstr ""
+
 msgid "Retry"
 msgstr "மீண்டும் முயற்சி"
 
 msgid "Retry fetching results"
 msgstr "முடிவுகளை மீண்டும் பெற முயற்சி செய்"
-
-msgid ""
-"Retry generation failures before delivery starts. Alerts re-check their "
-"condition on each attempt. Delivery failures are not replayed."
-msgstr ""
 
 msgid "Retrying"
 msgstr ""
@@ -12566,12 +12564,6 @@ msgstr "எல்லை (Scope)"
 
 msgid "Scoping"
 msgstr "எல்லை வரையறுத்தல்"
-
-msgid "Screenshot cache is unavailable"
-msgstr ""
-
-msgid "Screenshot request is temporarily unavailable"
-msgstr ""
 
 msgid "Screenshot width"
 msgstr "திரைக்காட்சி (Screenshot) அகலம்"
@@ -13870,6 +13862,9 @@ msgstr "மன்னிக்கவும், ஒரு பிழை ஏற்�
 
 msgid "Sorry, an error occurred"
 msgstr "மன்னிக்கவும், ஒரு பிழை ஏற்பட்டது"
+
+msgid "Sorry, an unknown error occurred"
+msgstr "மன்னிக்கவும், தெரியாத பிழை ஏற்பட்டது"
 
 msgid "Sorry, an unknown error occurred."
 msgstr "மன்னிக்கவும், தெரியாத பிழை ஏற்பட்டது."

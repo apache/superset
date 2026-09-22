@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  superset-ds\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-22 07:15+0530\n"
+"POT-Creation-Date: 2026-09-21 02:18+0000\n"
 "PO-Revision-Date: 2024-05-08 14:41+0000\n"
 "Last-Translator: \n"
 "Language: nl\n"
@@ -2891,6 +2891,9 @@ msgstr "Kolombreedte automatisch aanpassen op basis van beschikbare ruimte"
 msgid "Automatically adjust column width based on content"
 msgstr "Kolombreedte automatisch aanpassen op basis van inhoud"
 
+msgid "Automatically retry sending the report when delivery fails."
+msgstr ""
+
 #, fuzzy
 msgid "Automatically sync columns"
 msgstr "Kolommen aanpassen"
@@ -4695,7 +4698,7 @@ msgstr "Dashboarduiterlijk, kleuren en aangepaste CSS configureren"
 msgid "Configure filter scopes"
 msgstr "Filter scopes configureren"
 
-msgid "Configure retries when alert or report generation fails before delivery."
+msgid "Configure retry behavior on delivery failure."
 msgstr ""
 
 msgid "Configure the basics of your Annotation Layer."
@@ -4775,9 +4778,6 @@ msgid "Connection failed, please check your connection settings."
 msgstr "Verbinding mislukt, controleer uw verbindingsinstellingen"
 
 msgid "Connection looks good!"
-msgstr ""
-
-msgid "Contact the report owner for error details."
 msgstr ""
 
 #, fuzzy
@@ -13321,6 +13321,9 @@ msgstr ""
 msgid "Resume auto-refresh"
 msgstr "Stel auto-refresh in"
 
+msgid "Retries are not supported for alerts"
+msgstr ""
+
 #, fuzzy
 msgid "Retry"
 msgstr "Maker"
@@ -13328,11 +13331,6 @@ msgstr "Maker"
 #, fuzzy
 msgid "Retry fetching results"
 msgstr "Resultaten opnieuw ophalen"
-
-msgid ""
-"Retry generation failures before delivery starts. Alerts re-check their "
-"condition on each attempt. Delivery failures are not replayed."
-msgstr ""
 
 msgid "Retrying"
 msgstr ""
@@ -13906,12 +13904,6 @@ msgstr "Scope"
 
 msgid "Scoping"
 msgstr "Scoping"
-
-msgid "Screenshot cache is unavailable"
-msgstr ""
-
-msgid "Screenshot request is temporarily unavailable"
-msgstr ""
 
 msgid "Screenshot width"
 msgstr "Schermafbeelding breedte"
@@ -15415,6 +15407,9 @@ msgstr "Sorry, er is een fout opgetreden"
 
 msgid "Sorry, an error occurred"
 msgstr "Sorry, er is een fout opgetreden"
+
+msgid "Sorry, an unknown error occurred"
+msgstr "Sorry, er is een onbekende fout opgetreden"
 
 msgid "Sorry, an unknown error occurred."
 msgstr "Sorry, er is een onbekende fout opgetreden."

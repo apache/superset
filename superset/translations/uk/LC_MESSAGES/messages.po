@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: ted.korostiled@gmail.com\n"
-"POT-Creation-Date: 2026-09-22 07:15+0530\n"
+"POT-Creation-Date: 2026-09-21 02:18+0000\n"
 "PO-Revision-Date: 2026-04-30 22:04+0300\n"
 "Last-Translator: Danylo Korostil\n"
 "Language: uk\n"
@@ -2740,6 +2740,9 @@ msgstr "Автоматично змінювати ширину стовпців 
 msgid "Automatically adjust column width based on content"
 msgstr "Автоматично змінювати ширину стовпців в залежності від вмісту"
 
+msgid "Automatically retry sending the report when delivery fails."
+msgstr ""
+
 msgid "Automatically sync columns"
 msgstr "Автоматично актуалізовувати стовпці"
 
@@ -4384,7 +4387,7 @@ msgstr "Налаштувати вигляд, кольори та стиль зв
 msgid "Configure filter scopes"
 msgstr "Налаштувати межі застосування фільтрів"
 
-msgid "Configure retries when alert or report generation fails before delivery."
+msgid "Configure retry behavior on delivery failure."
 msgstr ""
 
 msgid "Configure the basics of your Annotation Layer."
@@ -4451,9 +4454,6 @@ msgid "Connection failed, please check your connection settings."
 msgstr "Не вдалося підʼєднатися. Перевірте параметри зʼєднання."
 
 msgid "Connection looks good!"
-msgstr ""
-
-msgid "Contact the report owner for error details."
 msgstr ""
 
 msgid "Contains"
@@ -12248,16 +12248,14 @@ msgstr "Не налаштовано модуль результатів, яки�
 msgid "Resume auto-refresh"
 msgstr "Встановити автоматичне оновлення"
 
+msgid "Retries are not supported for alerts"
+msgstr ""
+
 msgid "Retry"
 msgstr "Спробувати ще раз"
 
 msgid "Retry fetching results"
 msgstr "Повторити запит"
-
-msgid ""
-"Retry generation failures before delivery starts. Alerts re-check their "
-"condition on each attempt. Delivery failures are not replayed."
-msgstr ""
 
 msgid "Retrying"
 msgstr ""
@@ -12813,12 +12811,6 @@ msgstr "Межі застосування"
 
 msgid "Scoping"
 msgstr "Межі застосування"
-
-msgid "Screenshot cache is unavailable"
-msgstr ""
-
-msgid "Screenshot request is temporarily unavailable"
-msgstr ""
 
 msgid "Screenshot width"
 msgstr "Ширина знімка екрана"
@@ -14181,6 +14173,9 @@ msgstr "На жаль, трапилась помилка"
 
 msgid "Sorry, an error occurred"
 msgstr "На жаль, трапилась помилка"
+
+msgid "Sorry, an unknown error occurred"
+msgstr "На жаль, трапилась невідома помилка"
 
 msgid "Sorry, an unknown error occurred."
 msgstr "На жаль, трапилась невідома помилка."

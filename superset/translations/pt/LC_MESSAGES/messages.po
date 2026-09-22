@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-22 07:15+0530\n"
+"POT-Creation-Date: 2026-09-21 02:18+0000\n"
 "PO-Revision-Date: 2026-07-17 14:21+0000\n"
 "Last-Translator: José Teixeira <jose.teixeira@douroeci.com>\n"
 "Language: pt\n"
@@ -3445,6 +3445,9 @@ msgstr "Ajustar automaticamente a largura da coluna com base no espaço disponí
 msgid "Automatically adjust column width based on content"
 msgstr "Ajustar automaticamente a largura da coluna com base no conteúdo"
 
+msgid "Automatically retry sending the report when delivery fails."
+msgstr ""
+
 msgid "Automatically sync columns"
 msgstr "Sincronizar colunas automaticamente"
 
@@ -5654,7 +5657,7 @@ msgstr "Configurar a aparência, cores e CSS personalizado do painel"
 msgid "Configure filter scopes"
 msgstr "Configurar os âmbitos de filtragem"
 
-msgid "Configure retries when alert or report generation fails before delivery."
+msgid "Configure retry behavior on delivery failure."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -5755,9 +5758,6 @@ msgstr "Falha na ligação, verifique as configurações de ligação."
 
 msgid "Connection looks good!"
 msgstr "A ligação parece estar bem!"
-
-msgid "Contact the report owner for error details."
-msgstr ""
 
 msgid "Contains"
 msgstr "Contém"
@@ -16119,16 +16119,14 @@ msgstr ""
 msgid "Resume auto-refresh"
 msgstr "Retomar atualização automática"
 
+msgid "Retries are not supported for alerts"
+msgstr ""
+
 msgid "Retry"
 msgstr "Tentar novamente"
 
 msgid "Retry fetching results"
 msgstr "Tentar obter resultados novamente"
-
-msgid ""
-"Retry generation failures before delivery starts. Alerts re-check their "
-"condition on each attempt. Delivery failures are not replayed."
-msgstr ""
 
 msgid "Retrying"
 msgstr ""
@@ -16847,12 +16845,6 @@ msgstr "Âmbito"
 # uk, zh, zh_TW]
 msgid "Scoping"
 msgstr "Definição de Âmbito"
-
-msgid "Screenshot cache is unavailable"
-msgstr ""
-
-msgid "Screenshot request is temporarily unavailable"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -18549,6 +18541,11 @@ msgstr "Desculpe, ocorreu um erro"
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 msgid "Sorry, an error occurred"
 msgstr "Desculpe, ocorreu um erro"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
+msgid "Sorry, an unknown error occurred"
+msgstr "Desculpe, ocorreu um erro desconhecido"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]

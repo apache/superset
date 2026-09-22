@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: avsarcoteli@gmail.com\n"
-"POT-Creation-Date: 2026-09-22 07:15+0530\n"
+"POT-Creation-Date: 2026-09-21 02:18+0000\n"
 "PO-Revision-Date: 2024-02-25 14:00+0300\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: tr\n"
@@ -2803,6 +2803,9 @@ msgstr "Otomatik olarak mevcut alana dayanan sütun genişliğini ayarlayın"
 msgid "Automatically adjust column width based on content"
 msgstr "Otomatik olarak sütun genişliğini içerik tabanlı olarak ayarlar"
 
+msgid "Automatically retry sending the report when delivery fails."
+msgstr ""
+
 msgid "Automatically sync columns"
 msgstr "Otomatik olarak senkronize sütunlar"
 
@@ -4531,7 +4534,7 @@ msgstr "Panel görünümü, renkler ve özel CSS"
 msgid "Configure filter scopes"
 msgstr "Filtre kapsamı"
 
-msgid "Configure retries when alert or report generation fails before delivery."
+msgid "Configure retry behavior on delivery failure."
 msgstr ""
 
 msgid "Configure the basics of your Annotation Layer."
@@ -4602,9 +4605,6 @@ msgid "Connection failed, please check your connection settings."
 msgstr "Bağlantı başarısız oldu, lütfen bağlantı ayarlarını kontrol edin."
 
 msgid "Connection looks good!"
-msgstr ""
-
-msgid "Contact the report owner for error details."
 msgstr ""
 
 #, fuzzy
@@ -12801,6 +12801,9 @@ msgstr "Asynchronous sorgular için gerekli sonuçlar yapılandırılmıyor."
 msgid "Resume auto-refresh"
 msgstr "Otomatik yenilemeyi sürdür"
 
+msgid "Retries are not supported for alerts"
+msgstr ""
+
 #, fuzzy
 msgid "Retry"
 msgstr "her"
@@ -12808,11 +12811,6 @@ msgstr "her"
 #, fuzzy
 msgid "Retry fetching results"
 msgstr "Grafikleri getirirken hata"
-
-msgid ""
-"Retry generation failures before delivery starts. Alerts re-check their "
-"condition on each attempt. Delivery failures are not replayed."
-msgstr ""
 
 msgid "Retrying"
 msgstr ""
@@ -13383,12 +13381,6 @@ msgstr "Kapsam"
 
 msgid "Scoping"
 msgstr "Scoping"
-
-msgid "Screenshot cache is unavailable"
-msgstr ""
-
-msgid "Screenshot request is temporarily unavailable"
-msgstr ""
 
 msgid "Screenshot width"
 msgstr "Ekran genişliği"
@@ -14858,6 +14850,9 @@ msgstr "Üzgünüm, Bir hata oluştu"
 
 msgid "Sorry, an error occurred"
 msgstr "Üzgünüm, bir hata oluştu"
+
+msgid "Sorry, an unknown error occurred"
+msgstr "Üzgünüm, bilinmeyen bir hata oluştu"
 
 msgid "Sorry, an unknown error occurred."
 msgstr "Üzgünüm, bilinmeyen bir hata oluştu."

@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-22 07:15+0530\n"
+"POT-Creation-Date: 2026-09-21 02:18+0000\n"
 "PO-Revision-Date: 2018-02-11 22:26+0200\n"
 "Last-Translator: Raffaele Spangaro <raffa@raffaelespangaro.it>\n"
 "Language: it\n"
@@ -3312,6 +3312,9 @@ msgstr ""
 msgid "Automatically adjust column width based on content"
 msgstr "Regola automaticamente la larghezza della colonna in base al contenuto"
 
+msgid "Automatically retry sending the report when delivery fails."
+msgstr ""
+
 msgid "Automatically sync columns"
 msgstr "Sincronizza automaticamente le colonne"
 
@@ -5433,7 +5436,7 @@ msgstr "Configura aspetto, colori e CSS personalizzato del pannello"
 msgid "Configure filter scopes"
 msgstr "Configurare gli ambiti del filtro"
 
-msgid "Configure retries when alert or report generation fails before delivery."
+msgid "Configure retry behavior on delivery failure."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -5536,9 +5539,6 @@ msgstr "Connessione non riuscita, controlla le impostazioni di connessione."
 
 msgid "Connection looks good!"
 msgstr "La connessione sembra corretta!"
-
-msgid "Contact the report owner for error details."
-msgstr ""
 
 msgid "Contains"
 msgstr "Contiene"
@@ -15524,16 +15524,14 @@ msgstr ""
 msgid "Resume auto-refresh"
 msgstr "Riattiva l'aggiornamento automatico"
 
+msgid "Retries are not supported for alerts"
+msgstr ""
+
 msgid "Retry"
 msgstr "Riprova"
 
 msgid "Retry fetching results"
 msgstr "Riprova a scaricare i risultati"
-
-msgid ""
-"Retry generation failures before delivery starts. Alerts re-check their "
-"condition on each attempt. Delivery failures are not replayed."
-msgstr ""
 
 msgid "Retrying"
 msgstr ""
@@ -16225,12 +16223,6 @@ msgstr "Ambito"
 # uk, zh, zh_TW]
 msgid "Scoping"
 msgstr "Ambito"
-
-msgid "Screenshot cache is unavailable"
-msgstr ""
-
-msgid "Screenshot request is temporarily unavailable"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -17880,6 +17872,9 @@ msgstr "Si è verificato un errore"
 
 msgid "Sorry, an error occurred"
 msgstr "Si è verificato un errore"
+
+msgid "Sorry, an unknown error occurred"
+msgstr "Si è verificato un errore sconosciuto"
 
 msgid "Sorry, an unknown error occurred."
 msgstr "Si è verificato un errore sconosciuto."
