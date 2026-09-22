@@ -16,9 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export { default as SelectFilterPlugin } from './Select';
-export { default as RangeFilterPlugin } from './Range';
-export { default as TimeFilterPlugin } from './Time';
-export { default as DateRangeFilterPlugin } from './DateRange';
-export { default as TimeColumnFilterPlugin } from './TimeColumn';
-export { default as TimeGrainFilterPlugin } from './TimeGrain';
+import dayjs, { Dayjs } from 'dayjs';
+
+export const DATE_FORMAT = 'YYYY-MM-DD';
+export const RANGE_SEPARATOR = ' : ';
+
+export type DateRangeValue = [Dayjs | null, Dayjs | null] | null;
+
+export function parseTimeRange(value?: string | null): DateRangeValue {
+  if (!value) return null;
+  const [start, end] = value.split(RANGE_SEPARATOR);
+  const startDate = dayjs(start);
+  const endDate = dayjs(end);
+  if (!startDate.isValid() || !endDate.isValid()) return null;
+  return [startDate, endDate];
+}
+
+export function formatTimeRange(dates: DateRangeValue): string | undefined {
+  const [start, end] = dates ?? [null, null];
+  if (!start || !end) return undefined;
+  return `${start.format(DATE_FORMAT)}${RANGE_SEPARATOR}${end.format(DATE_FORMAT)}`;
+}

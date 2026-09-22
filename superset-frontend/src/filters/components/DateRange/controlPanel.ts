@@ -16,9 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export { default as SelectFilterPlugin } from './Select';
-export { default as RangeFilterPlugin } from './Range';
-export { default as TimeFilterPlugin } from './Time';
-export { default as DateRangeFilterPlugin } from './DateRange';
-export { default as TimeColumnFilterPlugin } from './TimeColumn';
-export { default as TimeGrainFilterPlugin } from './TimeGrain';
+import { ControlPanelConfig } from '@superset-ui/chart-controls';
+import { t } from '@apache-superset/core/translation';
+
+const config: ControlPanelConfig = {
+  controlPanelSections: [
+    {
+      label: t('UI Configuration'),
+      expanded: true,
+      controlSetRows: [
+        [
+          {
+            name: 'enableEmptyFilter',
+            config: {
+              type: 'CheckboxControl',
+              label: () => t('Filter value is required'),
+              default: false,
+              renderTrigger: true,
+              description: () =>
+                t('User must select a value before applying the filter'),
+            },
+          },
+        ],
+      ],
+    },
+  ],
+};
+
+export default config;
