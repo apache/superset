@@ -91,6 +91,9 @@ def _repoints_table(dataset: SqlaTable, requested_table: Table) -> bool:
     """
     Would the request point ``dataset`` at a different physical table?
 
+    Callers must have established that the result is physical (the request
+    carries no ``sql``); this answers the question only under that precondition.
+
     A virtual dataset's ``table_name`` is a label rather than a pointer, as in
     ``UpdateDatasetCommand._validate_dataset_source``. Dropping the SQL binds
     that label to a real table, so a virtual-to-physical conversion is a
@@ -142,10 +145,10 @@ class Datasource(BaseSupersetView):
         except SupersetSecurityException as ex:
             raise DatasetForbiddenError() from ex
 
+        database_changed = database_id != orm_datasource.database_id
         # ``update_from_object`` (below) replaces rather than merges, so an
         # omitted key lands as None; read the target the same way so it reads
         # as a repoint here too.
-        database_changed = database_id != orm_datasource.database_id
         requested_table = Table(
             datasource_dict.get("table_name"),
             datasource_dict.get("schema") or None,
