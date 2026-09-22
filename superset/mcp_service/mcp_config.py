@@ -416,7 +416,7 @@ MCP_CACHE_CONFIG: dict[str, Any] = {
 # Configuration:
 # --------------
 # - enabled: Toggle the guard on/off (default: True)
-# - max_bytes: Maximum serialized response size in bytes (default: 100,000)
+# - max_bytes: Maximum serialized response size in bytes (default: 50,000)
 # - excluded_tools: Tools to skip checking (e.g., streaming tools)
 # - warn_threshold_pct: Log warnings above this % of limit (default: 80%)
 # - max_list_items: Cap applied to list fields (e.g. ``charts``,

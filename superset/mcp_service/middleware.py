@@ -1168,7 +1168,7 @@ class ResponseSizeGuardMiddleware(Middleware):
 
     Configuration via MCP_RESPONSE_SIZE_CONFIG in superset_config.py:
     - enabled: Toggle the guard on/off (default: True)
-    - max_bytes: Maximum serialized response size in bytes (default: 100,000)
+    - max_bytes: Maximum serialized response size in bytes (default: 50,000)
     - warn_threshold_pct: Log warnings above this % of limit (default: 80%)
     - max_list_items: Cap for list fields during dynamic truncation (default: 100)
     - excluded_tools: Tools to skip checking

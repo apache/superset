@@ -92,10 +92,9 @@ class MetricInfo(BaseModel):
 # Measured with get_response_size_bytes on 40 dimensions per metric, with
 # short descriptive text on every metric and dimension: 8x40 serializes to
 # ~82 KB, 10x40 to ~102 KB and 20x40 to ~204 KB (about 50 / 62 / 125 KB with
-# names only), against the response-size guard's default
-# MCP_RESPONSE_SIZE_CONFIG['max_bytes'] of 100,000 bytes. 8 is the largest
-# page size that stays under the default in both variants. The fixed page cap
-# is not a guarantee for every payload or operator-configured limit.
+# names only). The response-size guard applies independently after serialization;
+# this fixed page cap is not a guarantee for every payload or operator-configured
+# limit.
 EMBEDDED_DIMENSIONS_MAX_PAGE_SIZE: int = 8
 
 

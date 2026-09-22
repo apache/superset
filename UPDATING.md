@@ -37,7 +37,7 @@ download its vocabulary on a cold cache.
 
 `MCP_RESPONSE_SIZE_CONFIG["token_limit"]` is renamed to
 `MCP_RESPONSE_SIZE_CONFIG["max_bytes"]`, and its default changes from
-25,000 (estimated tokens) to 100,000 (exact bytes). Any deployment that has
+25,000 (estimated tokens) to 50,000 (exact bytes). Any deployment that has
 set `token_limit` in `superset_config.py` must rename the key to `max_bytes`
 and adjust the value for byte semantics.
 
@@ -119,7 +119,7 @@ for the chosen metrics, or explicitly request `include_compatible_dimensions=tru
 with `page_size` at most 8 for every scope, including built-in `dataset_id`
 requests. Non-embedded requests retain the 500-metric ceiling.
 This fixed embedding cap is independent of the operator's
-`MCP_RESPONSE_SIZE_CONFIG['max_bytes']` (100,000 by default); it does not guarantee
+`MCP_RESPONSE_SIZE_CONFIG['max_bytes']` (50,000 by default); it does not guarantee
 that every payload fits a configured response limit.
 
 ### Default Docker image is now batteries-included; the minimal image moves to `-lean`

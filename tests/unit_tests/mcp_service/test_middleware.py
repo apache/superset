@@ -61,9 +61,9 @@ class TestResponseSizeGuardMiddleware:
     def test_init_default_values(self) -> None:
         """Should initialize with default values."""
         middleware = ResponseSizeGuardMiddleware()
-        assert middleware.max_bytes == 100_000
+        assert middleware.max_bytes == 50_000
         assert middleware.warn_threshold_pct == 80
-        assert middleware.warn_threshold == 80_000
+        assert middleware.warn_threshold == 40_000
         assert middleware.excluded_tools == set()
         assert middleware.max_list_items == 100
 
@@ -1447,7 +1447,7 @@ class TestCreateResponseSizeGuardMiddleware:
             middleware = create_response_size_guard_middleware()
 
         assert middleware is not None
-        assert middleware.max_bytes == 100_000  # Default
+        assert middleware.max_bytes == 50_000  # Default
         assert middleware.warn_threshold_pct == 80  # Default
 
     def test_falls_back_to_default_when_max_list_items_is_none(self) -> None:
