@@ -82,7 +82,7 @@ def _save_orm_dataset(**overrides: Any) -> MagicMock:
     )
 
 
-def _run_save(**payload: Any) -> Any:
+def _run_save(**payload: Any) -> None:
     """Call the unwrapped ``save`` view with ``payload`` as the request body."""
     app = Flask(__name__)
     with app.test_request_context(
@@ -94,7 +94,7 @@ def _run_save(**payload: Any) -> Any:
             )
         },
     ):
-        return _get_view_func("save")(_view_self())
+        _get_view_func("save")(_view_self())
 
 
 # ---------------------------------------------------------------------------

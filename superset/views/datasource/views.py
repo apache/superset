@@ -95,9 +95,7 @@ def _repoints_table(
     """
     Would the request point ``datasource`` at a different physical table?
 
-    Only datasets carry a table pointer, and a result that is still virtual is
-    not pointed at a physical table at all; both answer no. A virtual dataset's
-    ``table_name`` is a label rather than a pointer, as in
+    A virtual dataset's ``table_name`` is a label rather than a pointer, as in
     ``UpdateDatasetCommand._validate_dataset_source``, so dropping the SQL binds
     that label to a real table: a repoint even when the label is unchanged.
     """
@@ -107,7 +105,6 @@ def _repoints_table(
         return True
     # Compared field by field because ``Table.__eq__`` compares the ``str``
     # rendering, which drops empty parts and so conflates distinct targets.
-    # ``or None`` normalises the stored side the way the requested one is.
     return (requested_table.table, requested_table.schema, requested_table.catalog) != (
         datasource.table_name,
         datasource.schema or None,
@@ -165,8 +162,7 @@ class Datasource(BaseSupersetView):
         else:
             target_database = orm_datasource.database
 
-        # A repoint must be authorised against the target table, as on the
-        # create path; editorship of the dataset alone is not sufficient. This
+        # Editorship of the dataset alone is not sufficient to repoint it. This
         # ports ``UpdateDatasetCommand``'s table check only, not the separate
         # SQL-access check the command also runs.
         if database_changed or _repoints_table(
