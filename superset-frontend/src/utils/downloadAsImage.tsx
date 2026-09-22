@@ -18,10 +18,12 @@
  */
 import { SyntheticEvent } from 'react';
 import domToImage from 'dom-to-image-more';
+import html2canvas from 'html2canvas';
 import { kebabCase } from 'lodash-es';
 import { t } from '@apache-superset/core/translation';
 import { SupersetTheme } from '@apache-superset/core/theme';
 import type { AgGridContainerElement } from '@superset-ui/core/components';
+import { isSafari } from 'src/utils/common';
 import {
   dispatchWarningToast,
   forceLoadAllCharts,
@@ -58,6 +60,17 @@ type CellFixup = { el: HTMLElement; minHeight: string; overflow: string };
  */
 const generateFileStem = (description: string, date = new Date()) =>
   `${kebabCase(description)}-${date.toISOString().replace(/[: ]/g, '-')}`;
+
+const triggerDownload = (
+  dataUrl: string,
+  description: string,
+  isPng: boolean,
+) => {
+  const link = document.createElement('a');
+  link.download = `${generateFileStem(description)}.${isPng ? 'png' : 'jpg'}`;
+  link.href = dataUrl;
+  link.click();
+};
 
 const CRITICAL_STYLE_PROPERTIES = new Set([
   'display',
@@ -448,6 +461,42 @@ export default function downloadAsImageOptimized(
         ? 'transparent'
         : theme?.colorBgContainer;
 
+    // `dom-to-image-more` rasterizes by wrapping the DOM in an SVG `<foreignObject>`,
+    // which Safari/WebKit refuses to paint under its stricter security model, so
+    // captures there come out blank or partial. `html2canvas` paints the live DOM
+    // directly, so route Safari through it instead.
+    // See https://github.com/IDisposable/dom-to-image-more#browsers
+    if (isSafari()) {
+      try {
+        const canvas = await html2canvas(elementToPrint as HTMLElement, {
+          backgroundColor:
+            bgcolor === TRANSPARENT_RGBA ? null : (bgcolor ?? null),
+          scale,
+          useCORS: true,
+          logging: false,
+          ignoreElements: element => !filter(element),
+        });
+        triggerDownload(
+          canvas.toDataURL(
+            isPng ? 'image/png' : 'image/jpeg',
+            IMAGE_DOWNLOAD_QUALITY,
+          ),
+          description,
+          isPng,
+        );
+      } catch (error) {
+        console.error('Creating image failed', error);
+        await dispatchWarningToast(
+          t('Image download failed, please refresh and try again.'),
+        );
+      } finally {
+        if (didForceLoad) {
+          restoreVirtualization();
+        }
+      }
+      return;
+    }
+
     // Only apply ag-grid path for single-chart captures.
     // Skip entirely for dashboard-level exports (selector targets the .dashboard root).
     const isDashboardCapture = (
@@ -563,10 +612,7 @@ export default function downloadAsImageOptimized(
           ? await domToImage.toPng(agRootWrapper, agImageOptions)
           : await domToImage.toJpeg(agRootWrapper, agImageOptions);
 
-        const link = document.createElement('a');
-        link.download = `${generateFileStem(description)}.${isPng ? 'png' : 'jpg'}`;
-        link.href = dataUrl;
-        link.click();
+        triggerDownload(dataUrl, description, isPng);
       } catch (error) {
         console.error('Creating image failed', error);
         await dispatchWarningToast(
@@ -644,11 +690,7 @@ export default function downloadAsImageOptimized(
       cleanup();
       cleanup = null;
 
-      const extension = isPng ? 'png' : 'jpg';
-      const link = document.createElement('a');
-      link.download = `${generateFileStem(description)}.${extension}`;
-      link.href = dataUrl;
-      link.click();
+      triggerDownload(dataUrl, description, isPng);
     } catch (error) {
       console.error('Creating image failed', error);
       await dispatchWarningToast(

@@ -17,9 +17,11 @@
  * under the License.
  */
 import domToImage from 'dom-to-image-more';
+import html2canvas from 'html2canvas';
 import { getInstanceByDom } from 'echarts/core';
 import { addWarningToast } from 'src/components/MessageToasts/actions';
 import { store } from 'src/views/store';
+import { isSafari } from 'src/utils/common';
 import downloadAsImageOptimized, {
   waitForStableScrollHeight,
 } from './downloadAsImage';
@@ -27,6 +29,16 @@ import downloadAsImageOptimized, {
 jest.mock('dom-to-image-more', () => ({
   __esModule: true,
   default: { toJpeg: jest.fn(), toPng: jest.fn() },
+}));
+
+jest.mock('html2canvas', () => ({
+  __esModule: true,
+  default: jest.fn(),
+}));
+
+jest.mock('src/utils/common', () => ({
+  ...jest.requireActual('src/utils/common'),
+  isSafari: jest.fn(),
 }));
 
 jest.mock('echarts/core', () => ({
@@ -55,6 +67,8 @@ jest.mock('@apache-superset/core/translation', () => ({
 
 const mockToJpeg = domToImage.toJpeg as jest.Mock;
 const mockToPng = domToImage.toPng as jest.Mock;
+const mockHtml2Canvas = html2canvas as jest.Mock;
+const mockIsSafari = isSafari as jest.Mock;
 const mockAddWarningToast = addWarningToast as jest.Mock;
 const mockGetInstanceByDom = getInstanceByDom as jest.Mock;
 const mockDispatch = store.dispatch as jest.Mock;
@@ -108,6 +122,10 @@ beforeEach(() => {
   // clearAllMocks does not clear a mockReturnValue, so reset the instance lookup explicitly to
   // stop a return value leaking into any clone-path test added after the ECharts ones below.
   mockGetInstanceByDom.mockReset();
+  // Default to a non-Safari engine so the dom-to-image paths under test stay in
+  // effect; the Safari-specific tests opt in with mockIsSafari.mockReturnValue(true).
+  mockIsSafari.mockReturnValue(false);
+  mockHtml2Canvas.mockReset();
   mockToJpeg.mockResolvedValue('data:image/jpeg;base64,test');
   mockToPng.mockResolvedValue('data:image/png;base64,test');
 });
@@ -1074,5 +1092,100 @@ test('re-renders an ECharts host only once when it owns multiple canvas layers',
   expect(renderToCanvas).toHaveBeenCalledTimes(1);
 
   restore();
+  document.body.removeChild(container);
+});
+
+// Safari/WebKit cannot rasterize the SVG <foreignObject> that dom-to-image-more
+// builds, so image captures route through html2canvas instead.
+test('captures via html2canvas on Safari instead of dom-to-image', async () => {
+  mockIsSafari.mockReturnValue(true);
+  const toDataURL = jest.fn(() => 'data:image/jpeg;base64,safari');
+  mockHtml2Canvas.mockResolvedValue({ toDataURL });
+
+  const container = document.createElement('div');
+  document.body.appendChild(container);
+
+  const handler = downloadAsImageOptimized('div', 'My Chart');
+  await handler(syntheticEventFor(container));
+
+  expect(mockHtml2Canvas).toHaveBeenCalledWith(
+    container,
+    expect.objectContaining({ useCORS: true, scale: 1, logging: false }),
+  );
+  expect(toDataURL).toHaveBeenCalledWith('image/jpeg', 0.95);
+  expect(mockToJpeg).not.toHaveBeenCalled();
+  expect(mockToPng).not.toHaveBeenCalled();
+  expect(mockAddWarningToast).not.toHaveBeenCalled();
+
+  document.body.removeChild(container);
+});
+
+test('requests a transparent, scaled PNG from html2canvas on Safari', async () => {
+  mockIsSafari.mockReturnValue(true);
+  const toDataURL = jest.fn(() => 'data:image/png;base64,safari');
+  mockHtml2Canvas.mockResolvedValue({ toDataURL });
+
+  const container = document.createElement('div');
+  document.body.appendChild(container);
+
+  const handler = downloadAsImageOptimized(
+    'div',
+    'My Chart',
+    false,
+    undefined,
+    {
+      format: 'png',
+      backgroundType: 'transparent',
+    },
+  );
+  await handler(syntheticEventFor(container));
+
+  expect(mockHtml2Canvas).toHaveBeenCalledWith(
+    container,
+    expect.objectContaining({ backgroundColor: null, scale: 2 }),
+  );
+  expect(toDataURL).toHaveBeenCalledWith('image/png', 0.95);
+
+  document.body.removeChild(container);
+});
+
+test('honours the node filter in the html2canvas capture on Safari', async () => {
+  mockIsSafari.mockReturnValue(true);
+  mockHtml2Canvas.mockResolvedValue({
+    toDataURL: jest.fn(() => 'data:image/jpeg;base64,safari'),
+  });
+
+  const container = document.createElement('div');
+  document.body.appendChild(container);
+
+  const handler = downloadAsImageOptimized('div', 'My Chart');
+  await handler(syntheticEventFor(container));
+
+  const [firstCall] = mockHtml2Canvas.mock.calls;
+  const [, { ignoreElements }] = firstCall;
+  const excluded = document.createElement('div');
+  excluded.className = 'header-controls';
+  const included = document.createElement('div');
+  expect(ignoreElements(excluded)).toBe(true);
+  expect(ignoreElements(included)).toBe(false);
+
+  document.body.removeChild(container);
+});
+
+test('shows a warning toast when the html2canvas capture rejects on Safari', async () => {
+  mockIsSafari.mockReturnValue(true);
+  mockHtml2Canvas.mockRejectedValue(new Error('capture failed'));
+
+  const container = document.createElement('div');
+  document.body.appendChild(container);
+
+  const handler = downloadAsImageOptimized('div', 'My Chart');
+  await handler(syntheticEventFor(container));
+
+  expect(mockAddWarningToast).toHaveBeenCalledWith(
+    'Image download failed, please refresh and try again.',
+  );
+  expect(mockToJpeg).not.toHaveBeenCalled();
+
   document.body.removeChild(container);
 });
