@@ -19,7 +19,12 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import { useAppSelector } from 'src/views/store';
-import { getClientErrorObject, SupersetClient } from '@superset-ui/core';
+import {
+  FeatureFlag,
+  getClientErrorObject,
+  isFeatureEnabled,
+  SupersetClient,
+} from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 import {
@@ -93,6 +98,7 @@ const TYPE_LABELS: Record<ArchivedType, () => string> = {
   chart: () => t('Chart'),
   dashboard: () => t('Dashboard'),
   dataset: datasetLabel,
+  folder: () => t('Folder'),
 };
 
 interface ToastProps {
@@ -171,8 +177,11 @@ function ArchivedListBody({
   const config = ARCHIVED_TYPE_CONFIG[type];
 
   const baseFilters = useMemo(
-    () => [{ id: 'id', operator: config.deletedStateOperator, value: 'only' }],
-    [config.deletedStateOperator],
+    () =>
+      type === 'folder'
+        ? []
+        : [{ id: 'id', operator: config.deletedStateOperator, value: 'only' }],
+    [config.deletedStateOperator, type],
   );
 
   const {
@@ -183,7 +192,7 @@ function ArchivedListBody({
     config.resource,
     TYPE_LABELS[type](),
     addDangerToast,
-    true,
+    type !== 'folder',
     [],
     baseFilters,
   );
@@ -236,7 +245,7 @@ function ArchivedListBody({
       }
       try {
         await SupersetClient.post({
-          endpoint: `/api/v1/${config.resource}/${item.uuid}/${verb}`,
+          endpoint: `/api/v1/${config.actionResource ?? config.resource}/${item.uuid}/${verb}`,
         });
         onSuccess(name);
         await refreshData();
@@ -525,40 +534,52 @@ function ArchivedListBody({
   );
 
   const filters: ListViewFilters = useMemo(
-    () => [
-      {
-        Header: t('Name'),
-        key: 'search',
-        id: config.nameField,
-        // The API column differs per type (slice_name / dashboard_title /
-        // table_name) but ListView persists applied filters in the shared
-        // ?filters= param keyed by this id. Switching Type remounts the body
-        // without touching the URL, so a per-type key would come back as a
-        // stale entry that the new type's filter list cannot claim -- it
-        // reaches fetchData with operator undefined and rison refuses to
-        // encode it, leaving the list permanently empty. A stable URL key is
-        // claimed by whichever type is mounted, which then rewrites the id
-        // back to its own column.
-        urlDisplay: 'name',
-        input: 'search',
-        // Charts expose an all-text search on slice_name (chart_all_text)
-        // rather than a plain `ct`; dashboards/datasets accept `ct` on their
-        // name column.
-        operator:
-          type === 'chart'
-            ? FilterOperator.ChartAllText
-            : FilterOperator.Contains,
-      },
-      {
-        Header: t('Archived'),
-        key: 'deleted_at',
-        id: 'deleted_at',
-        input: 'select',
-        operator: config.deletedRecencyOperator,
-        unfilteredLabel: t('All time'),
-        selects: timeRangeOptions,
-      },
-    ],
+    () =>
+      type === 'folder'
+        ? [
+            {
+              Header: t('Name'),
+              key: 'search',
+              id: config.nameField,
+              urlDisplay: 'name',
+              input: 'search',
+              operator: FilterOperator.Contains,
+            },
+          ]
+        : [
+            {
+              Header: t('Name'),
+              key: 'search',
+              id: config.nameField,
+              // The API column differs per type (slice_name / dashboard_title /
+              // table_name) but ListView persists applied filters in the shared
+              // ?filters= param keyed by this id. Switching Type remounts the body
+              // without touching the URL, so a per-type key would come back as a
+              // stale entry that the new type's filter list cannot claim -- it
+              // reaches fetchData with operator undefined and rison refuses to
+              // encode it, leaving the list permanently empty. A stable URL key is
+              // claimed by whichever type is mounted, which then rewrites the id
+              // back to its own column.
+              urlDisplay: 'name',
+              input: 'search',
+              // Charts expose an all-text search on slice_name (chart_all_text)
+              // rather than a plain `ct`; dashboards/datasets accept `ct` on their
+              // name column.
+              operator:
+                type === 'chart'
+                  ? FilterOperator.ChartAllText
+                  : FilterOperator.Contains,
+            },
+            {
+              Header: t('Archived'),
+              key: 'deleted_at',
+              id: 'deleted_at',
+              input: 'select',
+              operator: config.deletedRecencyOperator,
+              unfilteredLabel: t('All time'),
+              selects: timeRangeOptions,
+            },
+          ],
     [config.nameField, type, timeRangeOptions],
   );
 
@@ -625,13 +646,19 @@ function ArchivedList({ addDangerToast, addSuccessToast }: ToastProps) {
     // viewers. This client-side filter exists for the partial case
     // (some-but-not-all types readable): offering a type whose API answers
     // 403 turns a permissions fact into what reads like a broken page.
-    return ARCHIVED_TYPES.filter(option =>
-      findPermission(
+    return ARCHIVED_TYPES.filter(option => {
+      if (
+        option === 'folder' &&
+        !isFeatureEnabled('FOLDERS' as FeatureFlag)
+      ) {
+        return false;
+      }
+      return findPermission(
         'can_read',
         ARCHIVED_TYPE_CONFIG[option].permissionResource,
         roles,
-      ),
-    );
+      );
+    });
   }, [roles]);
 
   // Derived, not stored: the selection must track availableTypes if roles

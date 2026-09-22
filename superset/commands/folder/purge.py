@@ -20,32 +20,58 @@ from functools import partial
 
 from superset import security_manager
 from superset.commands.base import BaseCommand
-from superset.extensions import db
-from superset.models.helpers import skip_visibility_filter
-from superset.utils.decorators import on_error, transaction
-
 from superset.commands.folder.exceptions import (
+    FolderDeleteFailedError,
     FolderForbiddenError,
     FolderNotDeletedError,
     FolderNotFoundError,
-    FolderRestoreFailedError,
 )
 from superset.daos.folder import FolderDAO
-from superset.folders.models import Folder
+from superset.extensions import db
+from superset.folders.constants import ASSET_TYPE_CONFIGS
+from superset.folders.models import Folder, FolderObject
+from superset.models.helpers import skip_visibility_filter
+from superset.utils.decorators import on_error, transaction
 
 
-class RestoreFolderCommand(BaseCommand):
+class PurgeFolderCommand(BaseCommand):
+    """Permanently delete a soft-deleted folder and its descendants."""
+
     def __init__(self, folder_id_or_uuid: str):
         self._id = folder_id_or_uuid
         self._model: Folder | None = None
 
-    @transaction(on_error=partial(on_error, reraise=FolderRestoreFailedError))
-    def run(self) -> Folder:
+    @transaction(on_error=partial(on_error, reraise=FolderDeleteFailedError))
+    def run(self) -> None:
         self.validate()
         assert self._model
+
         with skip_visibility_filter(db.session, Folder):
-            FolderDAO.restore_folder(self._model)
-        return self._model
+            folders_to_delete: list[Folder] = []
+            stack = [self._model]
+            while stack:
+                current = stack.pop()
+                folders_to_delete.append(current)
+                stack.extend(current.children)
+
+            for folder in folders_to_delete:
+                for link in list(folder.objects):
+                    for _name, config in ASSET_TYPE_CONFIGS.items():
+                        asset_id = getattr(link, config.fk_column)
+                        if asset_id is not None:
+                            with skip_visibility_filter(
+                                db.session, config.model
+                            ):
+                                asset = db.session.get(config.model, asset_id)
+                            if asset:
+                                db.session.delete(asset)
+                            break
+                db.session.query(FolderObject).filter(
+                    FolderObject.folder_id == folder.id,
+                ).delete(synchronize_session=False)
+
+            for folder in reversed(folders_to_delete):
+                db.session.delete(folder)
 
     def validate(self) -> None:
         with skip_visibility_filter(db.session, Folder):
@@ -58,11 +84,4 @@ class RestoreFolderCommand(BaseCommand):
             raise FolderNotDeletedError()
 
         if not security_manager.is_admin():
-            from superset.daos.folder_permissions import FolderPermissionDAO
-            from superset.utils.core import get_user_id
-
-            user_id = get_user_id()
-            if not user_id or not FolderPermissionDAO.user_is_folder_editor(
-                user_id, self._model.id
-            ):
-                raise FolderForbiddenError()
+            raise FolderForbiddenError()

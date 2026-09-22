@@ -83,6 +83,7 @@ export default function FolderSelector({
       value: string;
       title: string;
       children: TreeNode[];
+      disabled?: boolean;
     };
 
     const nodeMap = new Map<string, TreeNode>();
@@ -91,6 +92,7 @@ export default function FolderSelector({
         value: f.uuid,
         title: f.name,
         children: [],
+        disabled: f.uuid === initialValue,
       });
     }
     const roots: TreeNode[] = [];
@@ -104,10 +106,15 @@ export default function FolderSelector({
     }
 
     return [
-      { value: ROOT_VALUE, title: t('Analytics (root)'), children: [] },
+      {
+        value: ROOT_VALUE,
+        title: t('Analytics (root)'),
+        children: [],
+        disabled: initialValue === ROOT_VALUE,
+      },
       ...roots,
     ];
-  }, [folders]);
+  }, [folders, initialValue]);
 
   // Only Me validation: item is in Only Me folder AND has multiple accessors
   const validateOnlyMe = useCallback(

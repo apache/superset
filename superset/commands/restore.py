@@ -73,6 +73,45 @@ class BaseRestoreCommand(BaseCommand, Generic[T]):
 
         _perform()
 
+        # Re-parent the asset if its folder is still archived.
+        model = self.dao.find_by_id(
+            self._model_uuid,
+            id_column="uuid",
+            skip_base_filter=True,
+            skip_visibility_filter=True,
+        )
+        if model is not None:
+            self._reparent_if_folder_archived(model)
+
+    @staticmethod
+    def _reparent_if_folder_archived(model: Any) -> None:
+        from superset import db
+        from superset.folders.models import Folder, FolderObject
+        from superset.models.helpers import skip_visibility_filter
+
+        tablename = getattr(model, "__tablename__", None)
+        if tablename == "slices":
+            fk_col = FolderObject.chart_id
+        elif tablename == "dashboards":
+            fk_col = FolderObject.dashboard_id
+        else:
+            return
+
+        link = db.session.query(FolderObject).filter(fk_col == model.id).first()
+        if not link:
+            return
+
+        with skip_visibility_filter(db.session, Folder):
+            folder = db.session.get(Folder, link.folder_id)
+        if not folder or folder.deleted_at is None:
+            return
+
+        if folder.parent_id is not None:
+            link.folder_id = folder.parent_id
+        else:
+            db.session.delete(link)
+        db.session.commit()
+
     def validate(self) -> T:  # type: ignore[override]
         # Both bypasses are deliberate. ``skip_visibility_filter`` lets the
         # lookup see the soft-deleted row at all. ``skip_base_filter`` keeps

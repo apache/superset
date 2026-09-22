@@ -40,6 +40,7 @@ from superset.commands.folder.assets import (
 )
 from superset.commands.folder.create import CreateFolderCommand
 from superset.commands.folder.delete import DeleteFolderCommand
+from superset.commands.folder.purge import PurgeFolderCommand
 from superset.commands.folder.exceptions import (
     FolderCreateFailedError,
     FolderDeleteFailedError,
@@ -687,6 +688,97 @@ class FolderRestApi(BaseSupersetApi):
             page_size=parsed["page_size"],
         )
 
+    @expose("/archived/", methods=("GET",))
+    @protect()
+    @safe
+    @permission_name("read")
+    @statsd_metrics
+    @parse_rison()
+    def archived(self, **kwargs: Any) -> Response:
+        """List soft-deleted folders.
+        ---
+        get:
+          summary: List archived (soft-deleted) folders
+          parameters:
+          - in: query
+            name: q
+            schema:
+              type: string
+            description: >
+              Rison-encoded query parameters (order_column, order_direction,
+              page, page_size, filters).
+          responses:
+            200:
+              description: A list of archived folders
+            403:
+              $ref: '#/components/responses/403'
+        """
+        from superset.models.helpers import format_time_humanized, skip_visibility_filter
+        from superset.utils.core import get_user_id
+
+        rison_args = kwargs.get("rison", {})
+        page = min(int(rison_args.get("page", 0)), 10000)
+        page_size = min(int(rison_args.get("page_size", 25)), 100)
+        order_column = rison_args.get("order_column", "deleted_at")
+        order_direction = rison_args.get("order_direction", "desc")
+        filters = rison_args.get("filters", [])
+
+        with skip_visibility_filter(db.session, Folder):
+            query = db.session.query(Folder).filter(
+                Folder.deleted_at.is_not(None),
+                Folder.folder_type == DEFAULT_FOLDER_TYPE,
+            )
+
+            if not security_manager.is_admin():
+                user_id = get_user_id()
+                if not user_id:
+                    return self.response_403()
+                from superset.folders.models import folder_editors
+                from superset.subjects.utils import get_user_subject_ids_subquery
+
+                subject_ids_sq = get_user_subject_ids_subquery(user_id).subquery()
+                editor_folder_ids = (
+                    db.session.query(folder_editors.c.folder_id)
+                    .filter(folder_editors.c.subject_id.in_(
+                        db.session.query(subject_ids_sq)
+                    ))
+                )
+                query = query.filter(Folder.id.in_(editor_folder_ids))
+
+            for flt in filters:
+                col = flt.get("col")
+                val = flt.get("value")
+                if col == "name" and val:
+                    query = query.filter(Folder.name.ilike(f"%{val}%"))
+
+            total = query.count()
+
+            order_attr = getattr(Folder, order_column, Folder.deleted_at)
+            if order_direction == "asc":
+                query = query.order_by(order_attr.asc())
+            else:
+                query = query.order_by(order_attr.desc())
+
+            rows = query.offset(page * page_size).limit(page_size).all()
+
+        result = []
+        for folder in rows:
+            deleted_at = folder.deleted_at
+            result.append(
+                {
+                    "id": folder.id,
+                    "uuid": str(folder.uuid),
+                    "name": folder.name,
+                    "deleted_at": deleted_at.isoformat() if deleted_at else None,
+                    "deleted_at_delta_humanized": (
+                        format_time_humanized(deleted_at) if deleted_at else None
+                    ),
+                    "changed_by": _serialize_user(folder.changed_by),
+                }
+            )
+
+        return self.response(200, result=result, count=total)
+
     @expose("/<string:folder_uuid>", methods=("GET",))
     @protect()
     @safe
@@ -1038,6 +1130,44 @@ class FolderRestApi(BaseSupersetApi):
         except FolderNotDeletedError:
             return self.response(409, message="Folder is not deleted")
         except FolderRestoreFailedError as ex:
+            return self.response_422(message=str(ex))
+
+    @expose("/<string:folder_uuid>/purge", methods=("POST",))
+    @protect()
+    @safe
+    @permission_name("write")
+    @statsd_metrics
+    def purge(self, folder_uuid: str) -> Response:
+        """Permanently delete a soft-deleted folder.
+        ---
+        post:
+          summary: Purge (permanently delete) a soft-deleted folder
+          parameters:
+          - in: path
+            name: folder_uuid
+            required: true
+            schema:
+              type: string
+          responses:
+            200:
+              description: The folder was permanently deleted
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              description: Could not delete folder
+        """
+        try:
+            PurgeFolderCommand(folder_uuid).run()
+            return self.response(200, message="OK")
+        except FolderNotFoundError:
+            return self.response_404()
+        except FolderForbiddenError:
+            return self.response_403()
+        except FolderNotDeletedError:
+            return self.response(409, message="Folder is not deleted")
+        except FolderDeleteFailedError as ex:
             return self.response_422(message=str(ex))
 
     @expose("/<string:folder_uuid>/assets", methods=("PUT",))
@@ -1795,6 +1925,8 @@ class FolderRestApi(BaseSupersetApi):
         asset_id = request.args.get("id", type=int)
         if not asset_type or not asset_id or asset_type not in ASSET_TYPE_CONFIGS:
             return self.response(400, message="type and id are required")
+
+        from superset.folders.models import FolderObject
 
         fk_col = getattr(FolderObject, ASSET_TYPE_CONFIGS[asset_type].fk_column)
         fo = db.session.query(FolderObject).filter(fk_col == asset_id).first()

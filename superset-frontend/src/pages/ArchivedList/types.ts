@@ -28,13 +28,19 @@ import { ListViewFilterOperator } from 'src/components/ListView/types';
  * user-facing terminology is "archived".)
  */
 
-export type ArchivedType = 'chart' | 'dashboard' | 'dataset';
+export type ArchivedType = 'chart' | 'dashboard' | 'dataset' | 'folder';
 
 export interface ArchivedTypeConfig {
   /** REST resource segment: `/api/v1/<resource>/`. */
   resource: string;
+  /**
+   * REST resource for restore/purge actions when it differs from the listing
+   * resource. E.g. listing comes from `folders/archived` but actions target
+   * `folders/<uuid>/restore`.
+   */
+  actionResource?: string;
   /** The row's name field per type. */
-  nameField: 'slice_name' | 'dashboard_title' | 'table_name';
+  nameField: 'slice_name' | 'dashboard_title' | 'table_name' | 'name';
   /** The rison filter operator that returns only soft-deleted (archived) rows. */
   deletedStateOperator: ListViewFilterOperator;
   /** Rison operator for the archived-within-N-days preset filter. */
@@ -44,7 +50,7 @@ export interface ArchivedTypeConfig {
    * Used to offer only the types the viewer can actually load; the APIs
    * remain the enforcement point.
    */
-  permissionResource: 'Chart' | 'Dashboard' | 'Dataset';
+  permissionResource: 'Chart' | 'Dashboard' | 'Dataset' | 'Folder';
 }
 
 /**
@@ -56,6 +62,7 @@ export const ARCHIVED_TYPES: readonly ArchivedType[] = [
   'chart',
   'dashboard',
   'dataset',
+  'folder',
 ];
 
 export const ARCHIVED_TYPE_CONFIG: Record<ArchivedType, ArchivedTypeConfig> = {
@@ -79,6 +86,16 @@ export const ARCHIVED_TYPE_CONFIG: Record<ArchivedType, ArchivedTypeConfig> = {
     deletedStateOperator: ListViewFilterOperator.DatasetDeletedState,
     deletedRecencyOperator: ListViewFilterOperator.DatasetDeletedRecency,
     permissionResource: 'Dataset',
+  },
+  folder: {
+    resource: 'folders/archived',
+    actionResource: 'folders',
+    nameField: 'name',
+    deletedStateOperator:
+      'folder_deleted_state' as unknown as ListViewFilterOperator,
+    deletedRecencyOperator:
+      'folder_deleted_recency' as unknown as ListViewFilterOperator,
+    permissionResource: 'Folder',
   },
 };
 
