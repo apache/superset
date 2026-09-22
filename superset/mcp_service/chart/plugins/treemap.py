@@ -100,7 +100,7 @@ class TreemapChartPlugin(BaseChartPlugin):
         return "treemap_v2"
 
     def normalize_column_refs(self, config: Any, dataset_context: Any) -> Any:
-        config_dict = config.model_dump()
+        config_dict = config.model_dump(exclude_unset=True)
 
         for col in config_dict.get("groupby") or []:
             if not col.get("sql_expression") and not col.get("saved_metric"):

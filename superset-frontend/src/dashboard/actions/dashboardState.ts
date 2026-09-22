@@ -25,6 +25,7 @@ import {
   FeatureFlag,
   getLabelsColorMap,
   SupersetClient,
+  getErrorText,
   getClientErrorObject,
   getCategoricalSchemeRegistry,
   promiseTimeout,
@@ -270,13 +271,16 @@ export function savePublished(
           dispatch(togglePublished(isPublished));
         }
       })
-      .catch(() => {
+      .catch(async (response: Response) => {
+        const { error } = await getClientErrorObject(response);
         // Only show error if this is still the current dashboard
         const currentId = getState().dashboardInfo?.id;
         if (currentId === id) {
           dispatch(
             addDangerToast(
-              t('You do not have permissions to edit this dashboard.'),
+              error && error !== 'Forbidden'
+                ? error
+                : t('You do not have permissions to edit this dashboard.'),
             ),
           );
         }
@@ -647,18 +651,7 @@ export function saveDashboardRequest(
 
     const onError = async (response: Response): Promise<void> => {
       logging.error(response);
-      const { error, message } = await getClientErrorObject(response);
-      let errorText = t('Sorry, an unknown error occurred');
-
-      if (error) {
-        errorText = t(
-          'Sorry, there was an error saving this dashboard: %s',
-          error,
-        );
-      }
-      if (typeof message === 'string' && message === 'Forbidden') {
-        errorText = t('You do not have permission to edit this dashboard');
-      }
+      const errorText = await getErrorText(response, 'dashboard');
       dispatch(saveDashboardFinished());
       dispatch(addDangerToast(errorText));
     };
