@@ -1066,17 +1066,17 @@ function AnalyticsList({
           );
         },
       },
-      ...(folderPermsEnabled
+      {
+        accessor: 'editors',
+        Header: t('Editors'),
+        id: 'editors',
+        disableSortBy: true,
+        Cell: ({ row: { original } }: CellProps<ContentItem>) => (
+          <SubjectPile subjects={original.editors || []} />
+        ),
+      },
+      ...(isFeatureEnabled(FeatureFlag.EnableViewers)
         ? [
-            {
-              accessor: 'editors',
-              Header: t('Editors'),
-              id: 'editors',
-              disableSortBy: true,
-              Cell: ({ row: { original } }: CellProps<ContentItem>) => (
-                <SubjectPile subjects={original.editors || []} />
-              ),
-            },
             {
               accessor: 'viewers',
               Header: t('Viewers'),
@@ -1286,26 +1286,26 @@ function AnalyticsList({
           { label: t('Dashboard'), value: 'dashboard' },
         ],
       },
-      ...(folderPermsEnabled
+      {
+        Header: t('Editor'),
+        key: 'editors',
+        id: 'editors',
+        input: 'select' as const,
+        operator: FilterOperator.RelationManyMany,
+        unfilteredLabel: t('All'),
+        fetchSelects: createFetchRelated(
+          'chart',
+          'editors',
+          createErrorHandler(errMsg =>
+            addDangerToast(
+              t('An error occurred while fetching editors: %s', errMsg),
+            ),
+          ),
+        ),
+        paginate: true,
+      },
+      ...(isFeatureEnabled(FeatureFlag.EnableViewers)
         ? [
-            {
-              Header: t('Editor'),
-              key: 'editors',
-              id: 'editors',
-              input: 'select' as const,
-              operator: FilterOperator.RelationManyMany,
-              unfilteredLabel: t('All'),
-              fetchSelects: createFetchRelated(
-                'chart',
-                'editors',
-                createErrorHandler(errMsg =>
-                  addDangerToast(
-                    t('An error occurred while fetching editors: %s', errMsg),
-                  ),
-                ),
-              ),
-              paginate: true,
-            },
             {
               Header: t('Viewer'),
               key: 'viewers',

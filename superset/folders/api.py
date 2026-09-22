@@ -1729,8 +1729,7 @@ class FolderRestApi(BaseSupersetApi):
             self._raise_for_folder_edit(folder)
         except FolderForbiddenError:
             return self.response_403()
-        current_user_id = get_user_id()
-        if current_user_id:
+        if (current_user_id := get_user_id()):
             from superset.subjects.utils import get_user_subject
 
             current_subject = get_user_subject(current_user_id)
@@ -1793,8 +1792,7 @@ class FolderRestApi(BaseSupersetApi):
             self._raise_for_folder_edit(folder)
         except FolderForbiddenError:
             return self.response_403()
-        current_user_id = get_user_id()
-        if current_user_id:
+        if (current_user_id := get_user_id()):
             from superset.subjects.utils import get_user_subject
 
             current_subject = get_user_subject(current_user_id)

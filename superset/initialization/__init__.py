@@ -349,6 +349,32 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category="Data",
             category_label=_("Data"),
         )
+        appbuilder.add_view(
+            DashboardModelView,
+            "Dashboards",
+            label=_("Dashboards"),
+            icon="fa-dashboard",
+            category="",
+            category_icon="",
+        )
+        appbuilder.add_view(
+            SliceModelView,
+            "Charts",
+            label=_("Charts"),
+            icon="fa-bar-chart",
+            category="",
+            category_icon="",
+        )
+
+        # Patch menu visibility after registration so permissions always exist
+        # regardless of the FOLDERS flag value at init time.
+        for menu_name in ("Charts", "Dashboards"):
+            menu_item = appbuilder.menu.find(menu_name)
+            if menu_item:
+                menu_item.cond = lambda: (
+                    not feature_flag_manager.is_feature_enabled("FOLDERS")
+                )
+
         from superset.folders.api import FolderRestApi
         from superset.views.folders import FolderView
 
@@ -363,25 +389,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category="",
             category_icon="",
             cond=lambda: feature_flag_manager.is_feature_enabled("FOLDERS"),
-        )
-
-        appbuilder.add_view(
-            DashboardModelView,
-            "Dashboards",
-            label=_("Dashboards"),
-            icon="fa-dashboard",
-            category="",
-            category_icon="",
-            menu_cond=lambda: not feature_flag_manager.is_feature_enabled("FOLDERS"),
-        )
-        appbuilder.add_view(
-            SliceModelView,
-            "Charts",
-            label=_("Charts"),
-            icon="fa-bar-chart",
-            category="",
-            category_icon="",
-            menu_cond=lambda: not feature_flag_manager.is_feature_enabled("FOLDERS"),
         )
 
         @self.superset_app.before_request
