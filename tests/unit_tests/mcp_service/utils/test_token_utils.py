@@ -22,16 +22,22 @@ Unit tests for MCP service token utilities.
 from typing import Any, List
 from unittest.mock import patch
 
+import pytest
 from pydantic import BaseModel
 
 from superset.mcp_service.utils import token_utils
 from superset.mcp_service.utils.token_utils import (
+    _bisect_string_length,
+    _MAX_DICT_KEYS,
     _replace_collections_with_summaries,
+    _STRING_FIELD_TRUNCATION_MARKERS,
     _summarize_large_dicts,
     _truncate_lists,
     _truncate_strings,
     _truncate_strings_recursive,
     CHARS_PER_TOKEN,
+    COMMITTED_WRITE_SPECS,
+    COMMITTED_WRITE_TOOLS,
     estimate_response_tokens,
     estimate_token_count,
     extract_query_params,
@@ -39,8 +45,10 @@ from superset.mcp_service.utils.token_utils import (
     generate_size_reduction_suggestions,
     get_response_size_bytes,
     INFO_TOOLS,
+    STRING_FIELD_TRUNCATION_TOOLS,
     truncate_oversized_response,
     truncate_query_result,
+    truncate_string_field_response,
 )
 
 
@@ -441,6 +449,71 @@ class TestInfoToolsSet:
         assert "generate_chart" not in INFO_TOOLS
 
 
+class TestCommittedWriteToolsSet:
+    """Test the COMMITTED_WRITE_TOOLS constant."""
+
+    def test_contains_update_chart(self) -> None:
+        """update_chart commits before the size guard runs and must be
+        truncation-eligible instead of hard-blocked."""
+        assert "update_chart" in COMMITTED_WRITE_TOOLS
+
+    def test_does_not_contain_read_only_tools(self) -> None:
+        """Read-only tools commit nothing, so an oversized response is safe
+        to hard-block: there is no completed write for a retry to replay."""
+        assert "get_chart_info" not in COMMITTED_WRITE_TOOLS
+        assert "list_charts" not in COMMITTED_WRITE_TOOLS
+        assert "execute_sql" not in COMMITTED_WRITE_TOOLS
+
+    def test_contains_update_dashboard(self) -> None:
+        """update_dashboard commits (db.session.commit(), before it builds
+        UpdateDashboardResponse) just as update_chart does, so it satisfies
+        the same invariant and must get the same protection -- otherwise an
+        oversized response hard-errors after the dashboard was already
+        written, and a retrying client replays the mutation."""
+        assert "update_dashboard" in COMMITTED_WRITE_TOOLS
+
+    def test_identifying_fields_are_per_tool(self) -> None:
+        """The protected field cannot be a single hardcoded name.
+
+        Protecting 'chart' on a dashboard response would protect nothing:
+        the field that carries the write confirmation differs per tool, so
+        each spec names its own.
+        """
+        assert COMMITTED_WRITE_SPECS["update_chart"].identifying_fields == frozenset(
+            {"chart"}
+        )
+        assert COMMITTED_WRITE_SPECS[
+            "update_dashboard"
+        ].identifying_fields == frozenset({"dashboard"})
+        assert COMMITTED_WRITE_SPECS[
+            "update_dataset_metric"
+        ].identifying_fields == frozenset({"metric"})
+
+    def test_scalar_identity_tools_protect_nothing(self) -> None:
+        """No truncation phase drops a top-level scalar, so a response whose
+        identity is scalars needs no protected field at all -- delete_chart's
+        deleted_id survives even the nuclear phase untouched."""
+        assert COMMITTED_WRITE_SPECS["delete_chart"].identifying_fields == frozenset()
+        assert COMMITTED_WRITE_SPECS["create_dataset"].identifying_fields == frozenset()
+
+    def test_reports_success_tracks_the_response_model(self) -> None:
+        """Consulted only when the payload is unparseable, to decide whether
+        synthesizing ``success`` confirms the write or invents a field the
+        schema never declares. GenerateChartResponse has one;
+        UpdateDashboardResponse does not."""
+        assert COMMITTED_WRITE_SPECS["update_chart"].reports_success is True
+        assert COMMITTED_WRITE_SPECS["update_dashboard"].reports_success is False
+
+
+class TestStringFieldTruncationToolsMap:
+    """Test the STRING_FIELD_TRUNCATION_TOOLS constant."""
+
+    def test_get_chart_sql_maps_to_sql_field(self) -> None:
+        """The map names the field to bisect: get_chart_sql's payload is
+        dominated by ``sql``, which is what truncation has to cut down."""
+        assert STRING_FIELD_TRUNCATION_TOOLS["get_chart_sql"] == "sql"
+
+
 class TestTruncateStrings:
     """Test _truncate_strings helper."""
 
@@ -610,6 +683,26 @@ class TestReplaceCollectionsWithSummaries:
         assert data["empty"] == []
         assert len(notes) == 2
 
+    def test_protected_keys_are_left_untouched(self) -> None:
+        """A protected key must survive even this nuclear phase.
+
+        Used so a committed-write tool's identifying field (e.g. 'chart')
+        always reaches the caller, even if every other phase failed to
+        bring the response under budget.
+        """
+        data: dict[str, Any] = {
+            "chart": {"id": 42, "url": "http://x"},
+            "form_data": {"a": 1},
+        }
+        notes: list[str] = []
+        changed = _replace_collections_with_summaries(
+            data, notes, protected_keys=frozenset({"chart"})
+        )
+        assert changed is True
+        assert data["chart"] == {"id": 42, "url": "http://x"}
+        assert data["form_data"] == {}
+        assert len(notes) == 1
+
 
 class TestTruncateOversizedResponse:
     """Test truncate_oversized_response function."""
@@ -751,6 +844,213 @@ class TestTruncateOversizedResponse:
         assert len(result["charts"]) == 5
         assert any("form_data" in n for n in notes)
 
+    def test_protected_keys_survive_nuclear_phase(self) -> None:
+        """A protected key must still be present after Phase 5 clears everything.
+
+        Regression test for update_chart: even when every other field is
+        oversized enough to reach Phase 5, the 'chart' field (the caller's
+        only way to confirm what was written) must not be wiped out.
+        """
+        response: dict[str, Any] = {
+            "id": 1,
+            "chart": {"id": 42, "slice_name": "Q1 Revenue", "url": "http://x"},
+            # Few enough top-level keys (<=20) to dodge Phase 4's dict
+            # summarization, and nested (not top-level) lists to dodge Phase
+            # 2/4's list truncation, so this can only shrink under Phase 5.
+            "form_data": {f"key_{i}": [f"v_{j}" for j in range(50)] for i in range(10)},
+        }
+        result, was_truncated, notes = truncate_oversized_response(
+            response, 200, protected_keys=frozenset({"chart"})
+        )
+        assert was_truncated is True
+        assert isinstance(result, dict)
+        assert result["chart"] == {
+            "id": 42,
+            "slice_name": "Q1 Revenue",
+            "url": "http://x",
+        }
+        assert result["form_data"] == {}
+        assert not any("'chart'" in n for n in notes)
+
+    def test_protected_key_survives_large_dict_summarization(self) -> None:
+        """A protected dict with many keys must survive Phase 4, not just Phase 5.
+
+        Regression test: ChartInfo serializes to more than _MAX_DICT_KEYS
+        fields, so Phase 4's dict summarizer would replace the whole 'chart'
+        field with a {_truncated, _message} marker -- destroying the write
+        confirmation before Phase 5 ever got the chance to protect it.
+        """
+        chart = {"id": 42, "slice_name": "Q1 Revenue"}
+        chart.update({f"field_{i}": f"value_{i}" for i in range(_MAX_DICT_KEYS + 5)})
+        assert len(chart) > _MAX_DICT_KEYS
+        response: dict[str, Any] = {
+            "chart": chart,
+            "form_data": {f"key_{i}": [f"v_{j}" for j in range(50)] for i in range(10)},
+        }
+        result, was_truncated, notes = truncate_oversized_response(
+            response, 200, protected_keys=frozenset({"chart"})
+        )
+        assert was_truncated is True
+        assert isinstance(result, dict)
+        assert result["chart"]["id"] == 42
+        assert result["chart"]["slice_name"] == "Q1 Revenue"
+        assert "_truncated" not in result["chart"]
+        assert not any("'chart'" in n for n in notes)
+
+    def test_unprotected_large_dict_is_still_summarized(self) -> None:
+        """Protecting one key must not disable Phase 4 for the others."""
+        response: dict[str, Any] = {
+            "chart": {"id": 42},
+            "form_data": {f"key_{i}": f"value_{i}" for i in range(_MAX_DICT_KEYS + 5)},
+        }
+        result, was_truncated, notes = truncate_oversized_response(
+            response, 50, protected_keys=frozenset({"chart"})
+        )
+        assert was_truncated is True
+        assert isinstance(result, dict)
+        assert result["chart"] == {"id": 42}
+        assert any("form_data" in n for n in notes)
+
+
+class TestTruncateStringFieldResponse:
+    """Test truncate_string_field_response (used for get_chart_sql)."""
+
+    def test_no_truncation_needed(self) -> None:
+        response = {"chart_id": 1, "sql": "SELECT 1"}
+        result, was_truncated, notes = truncate_string_field_response(
+            response, 25000, "sql"
+        )
+        assert was_truncated is False
+        assert notes == []
+        assert result == response
+
+    def test_bisects_sql_field_to_fit(self) -> None:
+        """A response just over budget should keep as much SQL as fits."""
+        response: dict[str, Any] = {
+            "chart_id": 1,
+            "chart_name": "Big Chart",
+            "sql": "SELECT " + ", ".join(f"col_{i}" for i in range(2000)),
+            "language": "sql",
+        }
+        result, was_truncated, notes = truncate_string_field_response(
+            response, 500, "sql"
+        )
+        assert was_truncated is True
+        assert isinstance(result, dict)
+        assert 0 < len(result["sql"]) < len(response["sql"])
+        assert result["_response_truncated"] is True
+        assert estimate_response_tokens(result) <= 500
+        assert any("sql" in n for n in notes)
+
+    def test_truncated_sql_is_marked_unexecutable(self) -> None:
+        """A bisected SQL prefix must not be silently runnable.
+
+        Cutting a statement before its WHERE/LIMIT clause leaves valid SQL
+        that scans far more data than the original, so the kept prefix
+        carries an in-band marker that makes it a syntax error.
+        """
+        columns = ", ".join(f"col_{i}" for i in range(2000))
+        sql = " ".join(
+            ["SELECT", columns, "FROM big_table", "WHERE tenant_id = 7", "LIMIT 10"]
+        )
+        response: dict[str, Any] = {"chart_id": 1, "sql": sql}
+        result, was_truncated, _ = truncate_string_field_response(response, 500, "sql")
+        assert was_truncated is True
+        assert isinstance(result, dict)
+        assert "LIMIT 10" not in result["sql"]
+        assert result["sql"].endswith("DO NOT EXECUTE")
+        assert result["sql"].count("'") == 1
+        # The marker is inside the measured budget, not appended after it.
+        assert estimate_response_tokens(result) <= 500
+
+    def test_truncated_sql_is_rejected_whatever_the_cut_landed_in(self) -> None:
+        """The marker must defeat every lexical state the bisect can end in.
+
+        The cut point is arbitrary, so it can land mid-comment or mid-string.
+        A bare unterminated quote is swallowed by an open block comment, and a
+        bare unterminated /* is not fatal in SQLite -- both leave the
+        truncated statement runnable. Checked against a real engine (sqlite3)
+        as well as the parser, since sqlglot rejects markers that SQLite
+        happily executes.
+        """
+        import sqlite3
+
+        import sqlglot
+
+        marker = _STRING_FIELD_TRUNCATION_MARKERS["sql"]
+        connection = sqlite3.connect(":memory:")
+        connection.execute("CREATE TABLE t (a, b)")
+        for tail in ("", " /* note aaa", " -- note", " WHERE b = 'xy"):
+            truncated = " ".join(["SELECT a, b FROM t", tail, marker])
+            with pytest.raises(sqlite3.Error):
+                connection.execute(truncated)
+            for dialect in (
+                "sqlite",
+                "mysql",
+                "postgres",
+                "duckdb",
+                "snowflake",
+                "bigquery",
+                "trino",
+                "tsql",
+            ):
+                with pytest.raises(Exception):  # noqa: B017, PT011
+                    sqlglot.parse_one(truncated, dialect=dialect)
+        connection.close()
+
+    def test_truncated_sql_carries_the_marker(self) -> None:
+        """The real truncation path must actually attach the marker."""
+        columns = ", ".join(f"col_{i}" for i in range(2000))
+        sql = " ".join(["SELECT", columns, "FROM big_table", "WHERE tenant_id = 7"])
+        result, was_truncated, _ = truncate_string_field_response(
+            {"chart_id": 1, "sql": sql}, 500, "sql"
+        )
+        assert was_truncated is True
+        assert isinstance(result, dict)
+        assert result["sql"].endswith(_STRING_FIELD_TRUNCATION_MARKERS["sql"])
+
+    def test_under_limit_sql_is_returned_verbatim(self) -> None:
+        """A response that already fits is passed through untouched."""
+        response = {"chart_id": 1, "sql": "SELECT 1 FROM t LIMIT 10"}
+        result, was_truncated, _ = truncate_string_field_response(
+            response, 25000, "sql"
+        )
+        assert was_truncated is False
+        assert isinstance(result, dict)
+        assert result["sql"] == "SELECT 1 FROM t LIMIT 10"
+
+    def test_bisect_does_not_mark_a_value_it_did_not_cut(self) -> None:
+        """The marker is appended only when the prefix is actually shorter.
+
+        Exercised directly on _bisect_string_length: the public entry point
+        only calls it once the payload is already over budget, so the
+        "nothing was cut" branch is not reachable through it.
+        """
+        data: dict[str, Any] = {"sql": "SELECT 1"}
+        kept = _bisect_string_length(data, "sql", "SELECT 1", 25000, suffix="/* CUT")
+        assert kept == len("SELECT 1")
+        assert data["sql"] == "SELECT 1"
+
+    def test_no_lever_fallback_note_is_actionable(self) -> None:
+        """format_size_limit_error's get_chart_sql suggestion is real advice,
+        not the unactionable 'Reduction needed: ~0%' the field alone gave."""
+        message = format_size_limit_error(
+            tool_name="get_chart_sql",
+            params={},
+            estimated_tokens=20400,
+            token_limit=20000,
+        )
+        assert "no size-reduction parameter" in message
+
+    def test_returns_unchanged_when_field_missing(self) -> None:
+        """A ChartError response (no 'sql' field) has nothing to bisect."""
+        response = {"error": "x" * 10000, "error_type": "NotFound"}
+        result, was_truncated, notes = truncate_string_field_response(
+            response, 100, "sql"
+        )
+        assert was_truncated is False
+        assert notes == []
+
 
 class TestTruncateQueryResult:
     """Tests for ``truncate_query_result`` (data-query row/scalar truncation)."""
@@ -805,7 +1105,8 @@ class TestTruncateQueryResult:
         assert len(result["rows"]) == 1
         assert notes
 
-    def test_truncates_csv_scalar_field_when_rows_empty(self) -> None:
+    @pytest.mark.parametrize("marker", ["", "\n[CSV truncated]"])
+    def test_truncates_csv_scalar_field_when_rows_empty(self, marker: str) -> None:
         """CSV exports carry their payload in ``csv_data`` with ``data=[]``."""
         response: dict[str, Any] = {
             "chart_id": 1,
@@ -813,12 +1114,14 @@ class TestTruncateQueryResult:
             "csv_data": "col_0,col_1\n" + ("value,value\n" * 2000),
             "format": "csv",
         }
-        result, was_truncated, notes = truncate_query_result(
-            response, 500, tool_name="get_chart_data"
-        )
+        with patch.dict(_STRING_FIELD_TRUNCATION_MARKERS, {"csv_data": marker}):
+            result, was_truncated, notes = truncate_query_result(
+                response, 500, tool_name="get_chart_data"
+            )
         assert was_truncated is True
         assert isinstance(result, dict)
         assert len(result["csv_data"]) < len(response["csv_data"])
+        assert result["csv_data"].endswith(marker)
         assert estimate_response_tokens(result) <= 500
         assert any("CSV" in n for n in notes)
 

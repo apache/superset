@@ -71,7 +71,7 @@ test('should only call onConfirmNavigation when clicking the Discard button', as
     name: /discard/i,
   });
 
-  userEvent.click(discardButton);
+  await userEvent.click(discardButton);
 
   expect(mockOnConfirmNavigation).toHaveBeenCalled();
   expect(mockHandleSave).not.toHaveBeenCalled();
@@ -96,7 +96,7 @@ test('should only call handleSave when clicking the Save button', async () => {
     name: /save/i,
   });
 
-  userEvent.click(saveButton);
+  await userEvent.click(saveButton);
 
   expect(mockHandleSave).toHaveBeenCalled();
   expect(mockOnHide).not.toHaveBeenCalled();
@@ -242,13 +242,15 @@ test('still renders on top after being opened, closed, and reopened once the oth
   // Open this modal once -- e.g. some other in-app action tripped it --
   // before the modal it's supposed to interrupt has ever been opened. Its
   // wrap node gets created now, first in the document.
-  userEvent.click(screen.getByText('open unsaved'));
+  await userEvent.click(screen.getByText('open unsaved'));
   await waitFor(() => expect(dialogWrap('Unsaved Changes')).not.toBeNull());
-  userEvent.click(await screen.findByRole('button', { name: /discard/i }));
+  await userEvent.click(
+    await screen.findByRole('button', { name: /discard/i }),
+  );
   await waitFor(() => expect(dialogWrap('Unsaved Changes')).toBeNull());
 
   // Now open the modal it's meant to interrupt for the first time.
-  userEvent.click(screen.getByText('open other'));
+  await userEvent.click(screen.getByText('open other'));
   const otherWrap = await waitFor(() => {
     const wrap = dialogWrap('Other open modal');
     expect(wrap).not.toBeNull();
@@ -259,7 +261,7 @@ test('still renders on top after being opened, closed, and reopened once the oth
   // wrap node were still the one created on the first open above, it would
   // be stuck earlier in the document than `otherWrap` and render behind it
   // again.
-  userEvent.click(screen.getByText('open unsaved'));
+  await userEvent.click(screen.getByText('open unsaved'));
   const unsavedChangesWrap = await waitFor(() => {
     const wrap = dialogWrap('Unsaved Changes');
     expect(wrap).not.toBeNull();

@@ -111,7 +111,7 @@ class XYChartPlugin(BaseChartPlugin):
         return map_xy_config(config, dataset_id=dataset_id)
 
     def normalize_column_refs(self, config: Any, dataset_context: Any) -> Any:
-        config_dict = config.model_dump()
+        config_dict = config.model_dump(exclude_unset=True)
         get_canonical = DatasetValidator.get_canonical_column_name
         get_canonical_metric = DatasetValidator.get_canonical_metric_name
 
