@@ -54,11 +54,12 @@ test('transformProps busts its memoization caches when sub-field inputs change (
   const first = transformProps(testData.basic);
 
   // `processColumns` is wrapped with a custom equality (`isEqualColumns`) that
-  // compares specific chartProps sub-fields by identity — mutating only the
-  // top-level props reference is NOT enough to bust it. Here we supply a fresh
-  // `datasource.columnFormats` reference, which `isEqualColumns` compares with
-  // `===`, forcing `processColumns` to recompute and return a new `columns`
-  // array.
+  // compares specific chartProps sub-fields by value — mutating only the
+  // top-level props reference is NOT enough to bust it, and neither is
+  // handing it a new-but-value-equal `columnFormats` reference (e.g. another
+  // `{}`). Here we supply a `datasource.columnFormats` with genuinely
+  // different content, forcing `processColumns` to recompute and return a
+  // new `columns` array.
   //
   // `processDataRecords` uses memoize-one's default referential equality on
   // `(data, columns)`. We also hand it a fresh `queriesData[0].data` array, so
@@ -67,7 +68,7 @@ test('transformProps busts its memoization caches when sub-field inputs change (
     ...testData.basic,
     datasource: {
       ...testData.basic.datasource,
-      columnFormats: {},
+      columnFormats: { name: '.2f' },
     },
     queriesData: [
       {

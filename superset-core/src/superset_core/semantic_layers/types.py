@@ -146,6 +146,8 @@ class Operator(str, enum.Enum):
     NOT_IN = "NOT IN"
     LIKE = "LIKE"
     NOT_LIKE = "NOT LIKE"
+    ILIKE = "ILIKE"
+    NOT_ILIKE = "NOT ILIKE"
     IS_NULL = "IS NULL"
     IS_NOT_NULL = "IS NOT NULL"
     ADHOC = "ADHOC"

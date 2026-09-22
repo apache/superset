@@ -110,6 +110,37 @@ def test_validate_parameters_no_catalog(mocker: MockerFixture) -> None:
     ]
 
 
+def test_validate_parameters_malformed_credentials(mocker: MockerFixture) -> None:
+    from superset.db_engine_specs.gsheets import (
+        GSheetsEngineSpec,
+        GSheetsPropertiesType,
+    )
+
+    g = mocker.patch("superset.db_engine_specs.gsheets.g")
+    g.user.email = "admin@example.org"
+
+    properties: GSheetsPropertiesType = {
+        "parameters": {
+            "service_account_info": "{not valid json",
+            "catalog": {},
+        },
+        "catalog": {},
+    }
+    errors = GSheetsEngineSpec.validate_parameters(properties)
+    assert errors == [
+        SupersetError(
+            message=(
+                "The service account credentials are not valid JSON. "
+                "Please check that the field contains a valid service "
+                "account key."
+            ),
+            error_type=SupersetErrorType.INVALID_PAYLOAD_FORMAT_ERROR,
+            level=ErrorLevel.ERROR,
+            extra={"invalid": ["service_account_info"]},
+        ),
+    ]
+
+
 def test_validate_parameters_simple_with_in_root_catalog(mocker: MockerFixture) -> None:
     from superset.db_engine_specs.gsheets import (
         GSheetsEngineSpec,
@@ -149,6 +180,9 @@ def test_validate_parameters_catalog(
     g.user.email = "admin@example.com"
 
     create_engine = mocker.patch("superset.db_engine_specs.gsheets.create_engine")
+    register_engine_events = mocker.patch.object(
+        GSheetsEngineSpec, "register_engine_events"
+    )
     conn = create_engine.return_value.connect.return_value
     results = conn.execute.return_value
     results.fetchall.side_effect = [
@@ -231,6 +265,7 @@ def test_validate_parameters_catalog(
             }
         },
     )
+    register_engine_events.assert_called_once_with(create_engine.return_value)
 
 
 def test_validate_parameters_catalog_and_credentials(

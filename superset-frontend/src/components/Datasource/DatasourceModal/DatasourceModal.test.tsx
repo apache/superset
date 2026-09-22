@@ -22,10 +22,13 @@ import {
   waitFor,
   fireEvent,
   cleanup,
+  userEvent,
+  act,
   defaultStore as store,
 } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
 import { SupersetClient } from '@superset-ui/core';
+import { Constants } from '@superset-ui/core/components';
 import mockDatasource from 'spec/fixtures/mockDatasource';
 import React from 'react';
 import DatasourceModalComponent, { buildExtraJsonObject } from '.';
@@ -86,6 +89,10 @@ beforeEach(async () => {
   await waitForSaveEnabled();
 });
 
+afterEach(() => {
+  jest.useRealTimers();
+});
+
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('DatasourceModal', () => {
   test('renders', async () => {
@@ -143,6 +150,93 @@ describe('DatasourceModal', () => {
           call.options?.method === 'put',
       );
     expect(JSON.parse(putCall?.options?.body as string).editors).toEqual([1]);
+  });
+
+  test('saves dataset certification from Settings without dropping Extra metadata', async () => {
+    cleanup();
+    renderAndWait({
+      ...mockedProps,
+      datasource: {
+        ...mockedProps.datasource,
+        extra: JSON.stringify({
+          custom_key: { enabled: true },
+          warning_markdown: 'Use only finalized records',
+        }),
+      } as typeof mockedProps.datasource & { extra: string },
+    });
+
+    await userEvent.click(await screen.findByRole('tab', { name: 'Settings' }));
+
+    const defaultUrlLabel = await screen.findByText('Default URL');
+    const defaultUrl = defaultUrlLabel
+      .closest('.ant-form-item')
+      ?.querySelector('input');
+    expect(defaultUrl).not.toBeNull();
+    const certifiedBy = await screen.findByPlaceholderText('Certified by');
+    const details = screen.getByPlaceholderText('Certification details');
+
+    jest.useFakeTimers();
+    fireEvent.change(defaultUrl as HTMLInputElement, {
+      target: { value: '/dashboard/7/' },
+    });
+    fireEvent.change(certifiedBy, { target: { value: 'E2E Team' } });
+    fireEvent.change(details, {
+      target: { value: 'Reviewed for production' },
+    });
+    act(() => {
+      jest.advanceTimersByTime(Constants.FAST_DEBOUNCE);
+    });
+    jest.useRealTimers();
+
+    fireEvent.click(screen.getByTestId('datasource-modal-save'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Confirm' }));
+
+    await waitFor(() => {
+      const putCall = fetchMock.callHistory
+        .calls()
+        .find(
+          call =>
+            call.url.includes('/api/v1/dataset/7') &&
+            call.options?.method === 'put',
+        );
+      expect(putCall).toBeDefined();
+
+      const payload = JSON.parse(putCall?.options?.body as string);
+      expect(payload.default_endpoint).toBe('/dashboard/7/');
+      expect(JSON.parse(payload.extra)).toEqual({
+        custom_key: { enabled: true },
+        warning_markdown: 'Use only finalized records',
+        certification: {
+          certified_by: 'E2E Team',
+          details: 'Reviewed for production',
+        },
+      });
+    });
+  });
+
+  test('shows existing dataset certification in Settings', async () => {
+    cleanup();
+    renderAndWait({
+      ...mockedProps,
+      datasource: {
+        ...mockedProps.datasource,
+        extra: JSON.stringify({
+          certification: {
+            certified_by: 'Data Platform Team',
+            details: 'Source of truth',
+          },
+        }),
+      } as typeof mockedProps.datasource & { extra: string },
+    });
+
+    await userEvent.click(await screen.findByRole('tab', { name: 'Settings' }));
+
+    expect(await screen.findByPlaceholderText('Certified by')).toHaveValue(
+      'Data Platform Team',
+    );
+    expect(screen.getByPlaceholderText('Certification details')).toHaveValue(
+      'Source of truth',
+    );
   });
 
   test('should render error dialog', async () => {

@@ -86,9 +86,10 @@ async def generate_chart(  # noqa: C901
     - LLM clients MUST display returned chart URL to users
     - Use numeric dataset ID or UUID (NOT schema.table_name format)
     - MUST include chart_type in config (one of: 'xy', 'table', 'pie',
-      'pivot_table', 'mixed_timeseries', 'handlebars', 'big_number',
-      'histogram', 'box_plot', 'waterfall', plus host-gated types returned by
-      get_chart_type_schema such as 'interactive_pivot')
+      'gauge', 'treemap_v2', 'bubble_v2', 'pivot_table', 'mixed_timeseries',
+      'handlebars', 'big_number', 'histogram', 'box_plot', 'waterfall',
+      'gantt', plus host-gated
+      types returned by get_chart_type_schema such as 'interactive_pivot')
 
     IMPORTANT: The 'chart_type' field in the config is a DISCRIMINATOR that determines
     which chart configuration schema to use. It MUST be included and MUST match the
@@ -124,6 +125,16 @@ async def generate_chart(  # noqa: C901
     - chart_type='big_number' for single KPI metric displays.
       Required fields: metric
 
+    - chart_type='gauge' for a dial/gauge display of a metric.
+      Required fields: metric; optional: groupby (one dial per value),
+      min_val, max_val
+
+    - chart_type='treemap_v2' for hierarchical part-to-whole.
+      Required fields: groupby (ordered hierarchy), metric
+
+    - chart_type='bubble_v2' for a scatter of bubbles sized by a metric.
+      Required fields: entity, x, y, size (x/y/size are metrics)
+
     - chart_type='histogram' for value-distribution charts.
       Required fields: column (numeric); optional: bins, groupby, normalize,
       cumulative
@@ -136,6 +147,11 @@ async def generate_chart(  # noqa: C901
       Required fields: x_axis, metric; optional: breakdown (single category
       column, alias: groupby), show_total
 
+    - Use chart_type='gantt' for task intervals over time.
+      Required fields: start_time, end_time (both temporal), category;
+      optional: series, tooltip_columns, tooltip_metrics, order_by, filters,
+      time_range, subcategories, and presentation controls
+
     Quick lookup — natural-language ask -> chart_type (+ kind if applicable):
     - "bar chart" / "line chart" / "area chart" / "scatter plot"
       -> chart_type='xy', kind='bar'/'line'/'area'/'scatter'
@@ -146,9 +162,13 @@ async def generate_chart(  # noqa: C901
       only when get_chart_type_schema confirms it is available
     - "compare two metrics over time" -> chart_type='mixed_timeseries'
     - "single number" / "KPI" / "scorecard" -> chart_type='big_number'
+    - "gauge" / "dial" / "speedometer" -> chart_type='gauge'
+    - "treemap" / "hierarchy" -> chart_type='treemap_v2'
+    - "bubble" / "bubble chart" -> chart_type='bubble_v2'
     - "custom HTML template" -> chart_type='handlebars'
     - "histogram" / "distribution" -> chart_type='histogram'
     - "box plot" / "box and whisker" -> chart_type='box_plot'
+    - "gantt" / "project schedule" / "task timeline" -> chart_type='gantt'
 
     Example usage for XY chart (bar/line/area/scatter):
     ```json

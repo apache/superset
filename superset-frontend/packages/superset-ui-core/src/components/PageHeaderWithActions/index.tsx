@@ -99,9 +99,13 @@ const headerStyles = (theme: SupersetTheme) => css`
   }
 `;
 
-const buttonsStyles = (theme: SupersetTheme) => css`
+// Exported only so PageHeaderWithActions.test.tsx can assert on the
+// `overflow: hidden` declaration directly; not part of the component's
+// public API.
+export const buttonsStyles = (theme: SupersetTheme) => css`
   display: flex;
   align-items: center;
+  overflow: hidden;
   padding-left: ${theme.sizeUnit * 2}px;
 
   & .anticon-star {

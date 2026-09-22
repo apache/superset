@@ -33,14 +33,53 @@ from superset.commands.semantic_layer.exceptions import (
     SemanticViewNotFoundError,
     SemanticViewUpdateFailedError,
 )
+from superset.commands.semantic_layer.utils import validate_configuration
 from superset.commands.utils import current_user_can_modify_object
 from superset.daos.semantic_layer import SemanticLayerDAO, SemanticViewDAO
+from superset.exceptions import SupersetSecurityException
+from superset.semantic_layers.masking import (
+    mask_configuration,
+    MaskedListUpdateError,
+    unmask_configuration,
+)
 from superset.semantic_layers.models import SemanticLayer, SemanticView
 from superset.semantic_layers.registry import registry
 from superset.utils import json
 from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
+
+
+def _unmask_configuration(
+    existing_raw_configuration: str | None,
+    new_configuration: dict[str, Any],
+    layer_type: str,
+) -> dict[str, Any]:
+    """Replace ``PASSWORD_MASK`` sentinels in an update payload with the stored
+    value at the same path, at any depth.
+
+    The GET/list endpoints mask secret configuration values (see
+    ``superset.semantic_layers.api._mask_configuration``); a client that
+    round-trips that response back on an update (e.g. a name-only edit) would
+    otherwise overwrite the real stored values with the mask string. This
+    delegates to :func:`superset.semantic_layers.masking.unmask_configuration`,
+    which restores masked values recursively so nested/union secrets survive
+    the round-trip too, not just top-level ones."""
+    try:
+        existing_configuration: dict[str, Any] = (
+            json.loads(existing_raw_configuration) if existing_raw_configuration else {}
+        )
+    except (TypeError, ValueError):
+        existing_configuration = {}
+    masked_reference: dict[str, Any] = mask_configuration(
+        layer_type, existing_configuration
+    )
+    try:
+        return unmask_configuration(
+            existing_configuration, new_configuration, masked_reference
+        )
+    except MaskedListUpdateError as ex:
+        raise SemanticLayerInvalidError(str(ex)) from None
 
 
 class UpdateSemanticViewCommand(BaseCommand):
@@ -113,6 +152,10 @@ class UpdateSemanticLayerCommand(BaseCommand):
         self._model = SemanticLayerDAO.find_by_uuid(self._uuid)
         if not self._model:
             raise SemanticLayerNotFoundError()
+        try:
+            self._model.raise_for_access()
+        except SupersetSecurityException as ex:
+            raise SemanticLayerForbiddenError() from ex
 
         if not current_user_can_modify_object(self._model):
             raise SemanticLayerForbiddenError()
@@ -121,7 +164,16 @@ class UpdateSemanticLayerCommand(BaseCommand):
         if name and not SemanticLayerDAO.validate_update_uniqueness(self._uuid, name):
             raise SemanticLayerInvalidError(f"Name already exists: {name}")
 
-        if configuration := self._properties.get("configuration"):
-            sl_type = self._model.type
-            cls = registry[sl_type]
-            cls.from_configuration(configuration)
+        if isinstance(self._properties.get("configuration"), dict):
+            self._properties["configuration"] = _unmask_configuration(
+                self._model.configuration,
+                self._properties["configuration"],
+                self._model.type,
+            )
+
+        if "configuration" in self._properties:
+            configuration: dict[str, Any] = self._properties["configuration"]
+            sl_type: str = self._model.type
+            if sl_type not in registry:
+                raise SemanticLayerInvalidError(f"Unknown type: {sl_type}")
+            validate_configuration(registry[sl_type], configuration)

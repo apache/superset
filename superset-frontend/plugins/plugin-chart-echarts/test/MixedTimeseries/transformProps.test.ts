@@ -21,6 +21,7 @@ import {
   AnnotationType,
   AnnotationSourceType,
   AxisType,
+  ComparisonType,
   DataRecord,
   FormulaAnnotationLayer,
   IntervalAnnotationLayer,
@@ -195,6 +196,61 @@ function formatSeriesLabel(
     value,
   });
 }
+
+test('bar value labels retain their legacy outside position', () => {
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: queriesData,
+    formData: { ...formData, showValueB: true },
+    queriesData,
+  });
+
+  const transformed = transformProps(chartProps);
+  const barSeries = (transformed.echartOptions.series as SeriesOption[]).filter(
+    (series): series is BarSeriesOption => series.type === 'bar',
+  );
+
+  expect(barSeries).not.toHaveLength(0);
+  barSeries.forEach(series => {
+    expect(series.label).toMatchObject({ show: true, position: 'top' });
+    expect(series.labelLayout).toBeUndefined();
+  });
+});
+
+test('negative bar values retain their legacy outside position', () => {
+  const negativeRows = [
+    { boy: -1, girl: -2, ds: 599616000000 },
+    { boy: -3, girl: -4, ds: 599916000000 },
+  ];
+  const negativeQueriesData = [
+    createTestQueryData(negativeRows, { label_map: defaultLabelMap }),
+    createTestQueryData(negativeRows, { label_map: defaultLabelMap }),
+  ];
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: negativeQueriesData,
+    formData: { ...formData, showValueB: true },
+    queriesData: negativeQueriesData,
+  });
+
+  const transformed = transformProps(chartProps);
+  const barSeries = (transformed.echartOptions.series as SeriesOption[]).filter(
+    (series): series is BarSeriesOption => series.type === 'bar',
+  );
+
+  expect(barSeries).not.toHaveLength(0);
+  barSeries.forEach(series => {
+    expect(series.data?.[0]).toMatchObject({
+      label: { position: 'bottom' },
+    });
+  });
+});
 
 test('should transform chart props for viz with showQueryIdentifiers=false', () => {
   const chartProps = createEchartsTimeseriesTestChartProps<
@@ -1324,6 +1380,58 @@ test('#39899 - x-axis dates do not overlap and last label stays visible at 0° r
   expect(axisLabel.hideOverlap).toBe(false);
 });
 
+test('#39899 - closely spaced x-axis time labels do not visually overlap (mixed)', () => {
+  const startTime = Date.UTC(2026, 0, 1);
+  const data = Array.from({ length: 20 }, (_, i) => ({
+    __timestamp: startTime + i * 60 * 1000,
+    sum__num: i,
+  }));
+  const queryData = createTestQueryData(data, {
+    colnames: ['__timestamp', 'sum__num'],
+    coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+    label_map: { __timestamp: ['__timestamp'], sum__num: ['sum__num'] },
+  });
+
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    width: 300,
+    height: 400,
+    defaultQueriesData: [queryData, queryData],
+    formData: {
+      ...formData,
+      x_axis: '__timestamp',
+      xAxisTimeFormat: '%Y-%m-%d %H:%M:%S',
+      metrics: ['sum__num'],
+      metricsB: ['sum__num'],
+      groupby: [],
+      groupbyB: [],
+      xAxisLabelRotation: 0,
+      timeGrainSqla: TimeGranularity.MINUTE,
+    },
+    queriesData: [queryData, queryData],
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const { axisLabel } = echartOptions.xAxis as Record<string, any>;
+  const labels = data.map(({ __timestamp }) =>
+    axisLabel.formatter(__timestamp),
+  );
+
+  // hideOverlap must stay off so ECharts' own collision detection can never
+  // suppress the forced boundary label (#39899 must not regress).
+  expect(axisLabel.hideOverlap).toBe(false);
+  // The formatter itself must thin out labels that are too close together to
+  // render legibly in the available width.
+  expect(labels.filter(label => label === '').length).toBeGreaterThan(0);
+  // The first and last labels are the forced axis boundaries and must always
+  // stay visible.
+  expect(labels[0]).not.toBe('');
+  expect(labels[labels.length - 1]).not.toBe('');
+});
+
 test('regression #37921: multi-metric Query A with groupby does not duplicate first metric in series names', () => {
   // Regression test for https://github.com/apache/superset/issues/37921
   // ("Residual" follow-up to #37055).
@@ -1455,6 +1563,7 @@ test('y-axis title position: non-Left sets nameLocation to end', () => {
   expect(yAxis[1].nameGap).toEqual(30);
   expect(yAxis[1].nameLocation).toEqual('end');
 });
+
 describe('EchartsMixedTimeseries tooltip truncation', () => {
   const longSeriesName = 'prod-us-east-1-service-checkout-latency-p99';
   const marker = '<span style="background-color:#1f77b4;"></span>';
@@ -1655,4 +1764,163 @@ test('hides the ticks on the x axis and both y axes', () => {
   expect(xAxis.axisTick.show).toBe(false);
   expect(yAxis[0].axisTick.show).toBe(false);
   expect(yAxis[1].axisTick.show).toBe(false);
+});
+
+test('should apply a dashed lineStyle to derived (time comparison) series only', () => {
+  const queryAData = createTestQueryData(
+    [
+      {
+        sum__num: 100,
+        'sum__num__1 week ago': 80,
+        ds: 599616000000,
+      },
+      {
+        sum__num: 150,
+        'sum__num__1 week ago': 120,
+        ds: 599916000000,
+      },
+    ],
+    {
+      label_map: {
+        ds: ['ds'],
+        sum__num: ['sum__num'],
+        'sum__num__1 week ago': ['sum__num__1 week ago'],
+      },
+    },
+  );
+
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: [queryAData, queriesData[1]],
+    formData: {
+      ...formData,
+      metrics: ['sum__num'],
+      groupby: [],
+      time_compare: ['1 week ago'],
+      comparison_type: ComparisonType.Values,
+      timeShiftColor: true,
+    },
+    queriesData: [queryAData, queriesData[1]],
+  });
+
+  const transformed = transformProps(chartProps);
+  const series = (transformed.echartOptions.series as SeriesOption[]) || [];
+
+  const mainSeries = series.find(s => s.name === 'sum__num') as
+    | (SeriesOption & { lineStyle?: { type?: number[] | string } })
+    | undefined;
+  const derivedSeries = series.find(s => s.name === 'sum__num__1 week ago') as
+    | (SeriesOption & { lineStyle?: { type?: number[] | string } })
+    | undefined;
+
+  expect(mainSeries).toBeDefined();
+  expect(derivedSeries).toBeDefined();
+  // The primary (non-derived) series should not receive a dash pattern
+  expect(mainSeries?.lineStyle?.type).toBeUndefined();
+  // The derived (time comparison) series should receive a dash pattern array
+  expect(Array.isArray(derivedSeries?.lineStyle?.type)).toBe(true);
+});
+
+test('should not apply a dashed lineStyle when comparison_type is not Values', () => {
+  const queryAData = createTestQueryData(
+    [
+      {
+        sum__num: 100,
+        'sum__num__1 week ago': 80,
+        ds: 599616000000,
+      },
+      {
+        sum__num: 150,
+        'sum__num__1 week ago': 120,
+        ds: 599916000000,
+      },
+    ],
+    {
+      label_map: {
+        ds: ['ds'],
+        sum__num: ['sum__num'],
+        'sum__num__1 week ago': ['sum__num__1 week ago'],
+      },
+    },
+  );
+
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: [queryAData, queriesData[1]],
+    formData: {
+      ...formData,
+      metrics: ['sum__num'],
+      groupby: [],
+      time_compare: ['1 week ago'],
+      comparison_type: ComparisonType.Difference,
+    },
+    queriesData: [queryAData, queriesData[1]],
+  });
+
+  const transformed = transformProps(chartProps);
+  const series = (transformed.echartOptions.series as SeriesOption[]) || [];
+
+  const derivedSeries = series.find(s => s.name === 'sum__num__1 week ago') as
+    | (SeriesOption & { lineStyle?: { type?: number[] | string } })
+    | undefined;
+
+  expect(derivedSeries).toBeDefined();
+  expect(derivedSeries?.lineStyle?.type).toBeUndefined();
+});
+
+test('should not apply a dashed lineStyle when timeShiftColor is disabled', () => {
+  const queryAData = createTestQueryData(
+    [
+      {
+        sum__num: 100,
+        'sum__num__1 week ago': 80,
+        ds: 599616000000,
+      },
+      {
+        sum__num: 150,
+        'sum__num__1 week ago': 120,
+        ds: 599916000000,
+      },
+    ],
+    {
+      label_map: {
+        ds: ['ds'],
+        sum__num: ['sum__num'],
+        'sum__num__1 week ago': ['sum__num__1 week ago'],
+      },
+    },
+  );
+
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: [queryAData, queriesData[1]],
+    formData: {
+      ...formData,
+      metrics: ['sum__num'],
+      groupby: [],
+      time_compare: ['1 week ago'],
+      comparison_type: ComparisonType.Values,
+      timeShiftColor: false,
+    },
+    queriesData: [queryAData, queriesData[1]],
+  });
+
+  const transformed = transformProps(chartProps);
+  const series = (transformed.echartOptions.series as SeriesOption[]) || [];
+
+  const derivedSeries = series.find(s => s.name === 'sum__num__1 week ago') as
+    | (SeriesOption & { lineStyle?: { type?: number[] | string } })
+    | undefined;
+
+  expect(derivedSeries).toBeDefined();
+  expect(derivedSeries?.lineStyle?.type).toBeUndefined();
 });

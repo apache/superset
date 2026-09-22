@@ -52,11 +52,27 @@ class TaskFilter(BaseFilter):  # pylint: disable=too-few-public-methods
         from superset import security_manager
         from superset.models.task_subscribers import TaskSubscriber
         from superset.models.tasks import Task
+        from superset.tasks.guest import get_current_guest_subscriber_key
 
         user_id = get_user_id()
         if not user_id:
-            # Within a request, a principal without a user id gets no tasks;
-            # background jobs run outside a request context and are unfiltered.
+            # Embedded guests have no ab_user id but subscribe by a token-derived
+            # key, so scope their visibility to tasks carrying that key.
+            if guest_key := get_current_guest_subscriber_key():
+                guest_subscribed = (
+                    select(TaskSubscriber.id)
+                    .where(
+                        and_(
+                            TaskSubscriber.task_id == Task.id,
+                            TaskSubscriber.guest_key == guest_key,
+                        )
+                    )
+                    .exists()
+                )
+                return query.filter(guest_subscribed)
+            # A principal without a user id or guest identity gets no tasks
+            # within a request; background jobs run outside a request and are
+            # unfiltered.
             if has_request_context():
                 return query.filter(false())
             return query

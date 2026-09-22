@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-22 12:21+0530\n"
+"POT-Creation-Date: 2026-09-22 20:19+0530\n"
 "PO-Revision-Date: 2026-03-31 02:00-0700\n"
 "Last-Translator: Maazin Ahamed\n"
 "Language: ta\n"
@@ -213,6 +213,14 @@ msgid "% calculation"
 msgstr "% கணக்கீடு"
 
 #, python-format
+msgid "% of"
+msgstr ""
+
+#, python-format
+msgid "% of column"
+msgstr ""
+
+#, python-format
 msgid "% of column total"
 msgstr ""
 
@@ -234,6 +242,14 @@ msgstr "மொத்தத்தில் %"
 
 #, python-format
 msgid "%(alertType)s \"%(alertName)s\" triggered successfully"
+msgstr ""
+
+#, python-format
+msgid "%(count)s %(label)s"
+msgstr ""
+
+#, python-format
+msgid "%(count)s additional restricted %(label)s"
 msgstr ""
 
 #, python-format
@@ -397,6 +413,24 @@ msgid "%s Virtual"
 msgstr "மெய்நிகர் (Virtual)"
 
 #, python-format
+msgid "%s additional restricted chart"
+msgid_plural "%s additional restricted charts"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "%s additional restricted dashboard"
+msgid_plural "%s additional restricted dashboards"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "%s affected chart"
+msgid_plural "%s affected charts"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
 msgid "%s aggregates(s)"
 msgstr "%s திரட்டல்(கள்) (aggregates)"
 
@@ -433,6 +467,12 @@ msgid "%s day ago"
 msgid_plural "%s days ago"
 msgstr[0] "1 நாளைக்கு முன்"
 msgstr[1] "1 நாளைக்கு முன்"
+
+#, python-format
+msgid "%s field"
+msgid_plural "%s fields"
+msgstr[0] ""
+msgstr[1] ""
 
 #, fuzzy, python-format
 msgid "%s hr ago"
@@ -576,6 +616,9 @@ msgstr "%s%s"
 
 msgid "(Removed)"
 msgstr "(நீக்கப்பட்டது)"
+
+msgid "(archived)"
+msgstr ""
 
 msgid "(deleted or invalid type)"
 msgstr "(அழிக்கப்பட்டது அல்லது தவறான வகை)"
@@ -932,6 +975,11 @@ msgstr "> (பெரியது)"
 
 msgid ">= (Larger or equal)"
 msgstr ">= (பெரியது அல்லது சமம்)"
+
+msgid ""
+"@import is blocked to prevent a dashboard from loading arbitrary remote "
+"CSS. Convert it to inline CSS to keep using it."
+msgstr ""
 
 msgid "A Big Number"
 msgstr "ஒரு பெரிய எண்"
@@ -1837,6 +1885,9 @@ msgstr ""
 msgid "Altered"
 msgstr "மாற்றப்பட்டது"
 
+msgid "Alternate the row background color to make rows easier to scan."
+msgstr ""
+
 msgid "Always filter main datetime column"
 msgstr "எப்போதும் முக்கிய தேதியிடப்பட்ட (datetime) நெடுவரிசையை வடிகட்டவும்"
 
@@ -2046,6 +2097,10 @@ msgstr "தாவல் நிலையைப் (tab state) பெறும்�
 #, fuzzy, python-format
 msgid "An error occurred while fetching table metadata for %s"
 msgstr "அட்டவணை மெட்டாடேட்டாவைப் பெறும்போது ஒரு பிழை ஏற்பட்டது"
+
+#, python-format
+msgid "An error occurred while fetching task types: %s"
+msgstr ""
 
 #, fuzzy
 msgid "An error occurred while fetching the configuration schema"
@@ -2304,6 +2359,9 @@ msgstr "சிறுகுறிப்புகள் மற்றும் அ�
 msgid "Annotations could not be deleted."
 msgstr "சிறுகுறிப்புகளை நீக்க முடியவில்லை."
 
+msgid "Another save is in progress for this dataset. Retry the same request."
+msgstr ""
+
 msgid "Ant Design Theme Editor"
 msgstr "Ant Design தீம் எடிட்டர்"
 
@@ -2443,6 +2501,9 @@ msgid "Archived %s item(s); permanently deleted %s semantic view(s)"
 msgstr ""
 
 msgid "Archived by"
+msgstr ""
+
+msgid "Archived items must be recovered before they can be opened."
 msgstr ""
 
 #, python-format
@@ -2633,9 +2694,6 @@ msgstr "கிடைக்கக்கூடிய இடத்திற்க�
 
 msgid "Automatically adjust column width based on content"
 msgstr "உள்ளடக்கத்திற்கு ஏற்ப நெடுவரிசை அகலத்தைத் தானாகச் சரிசெய்யவும்"
-
-msgid "Automatically retry sending the report when delivery fails."
-msgstr ""
 
 msgid "Automatically sync columns"
 msgstr "நெடுவரிசைகளைத் தானாக ஒத்திசைக்கவும்"
@@ -2833,6 +2891,9 @@ msgstr "கீழ் வலது"
 
 msgid "Bottom to Top"
 msgstr "கீழிருந்து மேல்"
+
+msgid "Bound unit"
+msgstr ""
 
 msgid "Bounds"
 msgstr "எல்லைகள் (Bounds)"
@@ -3092,6 +3153,10 @@ msgstr "முந்தைய படியிலிருந்து கணக�
 msgid "Calculated column [%s] requires an expression"
 msgstr "கணக்கிடப்பட்ட நெடுவரிசை [%s]-க்கு ஒரு வெளிப்பாடு (expression) தேவை"
 
+#, python-format
+msgid "Calculated column template error: %(msg)s"
+msgstr ""
+
 msgid "Calculated columns"
 msgstr "கணக்கிடப்பட்ட நெடுவரிசைகள்"
 
@@ -3128,11 +3193,14 @@ msgstr "வினவலை அணுக முடியவில்லை"
 msgid "Cannot delete a database that has datasets attached"
 msgstr "தரவுத்தொகுப்புகள் இணைக்கப்பட்ட ஒரு தரவுத்தளத்தை நீக்க முடியாது"
 
+#, python-brace-format
 msgid ""
 "Cannot delete a database whose only remaining datasets are soft-deleted. "
-"Restore them (POST /api/v1/dataset/<uuid>/restore) and delete them "
-"permanently once a purge capability ships, or remove the underlying rows "
-"out-of-band, before deleting the database."
+"Purge each one first — GET /api/v1/dataset/<uuid>/purge-impact for its "
+"impact token, then POST /api/v1/dataset/<uuid>/purge with "
+"{\"confirmed_impact_token\": <token>} — before deleting the database. "
+"Restoring them (POST /api/v1/dataset/<uuid>/restore) keeps the datasets, "
+"but the database still cannot be deleted."
 msgstr ""
 
 msgid "Cannot delete system themes"
@@ -3231,6 +3299,15 @@ msgstr "செல் வரம்பு"
 
 msgid "Cell title template"
 msgstr "செல் தலைப்பு டெம்ப்ளேட்"
+
+msgid "Center value"
+msgstr ""
+
+msgid "Center value should be greater than min bound"
+msgstr ""
+
+msgid "Center value should be smaller than max bound"
+msgstr ""
 
 msgid "Centroid (Longitude and Latitude): "
 msgstr "சென்ட்ராய்டு (தீர்க்கரேகை மற்றும் அட்சரேகை): "
@@ -3372,6 +3449,9 @@ msgstr "இந்தத் தரவுத்தொகுப்பை மாற�
 #, fuzzy
 msgid "Changing this task is forbidden"
 msgstr "இந்தத் தரவுத்தொகுப்பை மாற்றுவதற்குத் தடை விதிக்கப்பட்டுள்ளது"
+
+msgid "Changing this theme is forbidden"
+msgstr ""
 
 msgid "Character to interpret as decimal point"
 msgstr "தசமப் புள்ளியாக (decimal point) கருதப்பட வேண்டிய எழுத்து"
@@ -3528,6 +3608,16 @@ msgstr "சார்ட் அகலம்"
 msgid "Charts"
 msgstr "சார்ட்டுகள்"
 
+#, python-format
+msgid ""
+"Charts built on the selected semantic view are not checked and will break"
+" if it is deleted."
+msgid_plural ""
+"Charts built on the %s selected semantic views are not checked and will "
+"break if they are deleted."
+msgstr[0] ""
+msgstr[1] ""
+
 msgid "Charts could not be deleted."
 msgstr "சார்ட்டுகளை நீக்க முடியவில்லை."
 
@@ -3558,6 +3648,12 @@ msgid "Check to force date partitions to have the same height"
 msgstr ""
 "தேதிப் பிரிவுகள் (date partitions) ஒரே உயரத்தைக் கொண்டிருக்கச் "
 "சரிபார்க்கவும்"
+
+msgid "Checking charts and dashboards that use this dataset…"
+msgstr ""
+
+msgid "Checking for affected charts and dashboards…"
+msgstr ""
 
 msgid "Child label position"
 msgstr "துணைக் குறிச்சொல் (Child label) நிலை"
@@ -3664,6 +3760,9 @@ msgid ""
 msgstr ""
 "வெற்று மதிப்புகளாக (null) கருதப்பட வேண்டியவற்றைத் தேர்ந்தெடுக்கவும். "
 "எச்சரிக்கை: Hive தரவுத்தளம் ஒரே ஒரு மதிப்பை மட்டுமே ஆதரிக்கும்"
+
+msgid "Choose where to display values relative to the bars"
+msgstr ""
 
 msgid ""
 "Choose whether a country should be shaded by the metric, or assigned a "
@@ -4008,6 +4107,9 @@ msgstr "நெடுவரிசைத் தலைப்பு உதவிக�
 msgid "Column is required"
 msgstr "நெடுவரிசை தேவை"
 
+msgid "Column max"
+msgstr ""
+
 msgid "Column name"
 msgstr "நெடுவரிசைப் பெயர்"
 
@@ -4025,6 +4127,9 @@ msgid "Column select"
 msgstr "நெடுவரிசைத் தேர்வு"
 
 msgid "Column settings"
+msgstr ""
+
+msgid "Column sum"
 msgstr ""
 
 msgid "Column to group by"
@@ -4238,7 +4343,7 @@ msgstr "டேஷ்போர்டு தோற்றம், நிறங்க
 msgid "Configure filter scopes"
 msgstr "வடிகட்டி வரம்புகளை (filter scopes) உள்ளமைக்கவும்"
 
-msgid "Configure retry behavior on delivery failure."
+msgid "Configure retries when alert or report generation fails before delivery."
 msgstr ""
 
 msgid "Configure the basics of your Annotation Layer."
@@ -4316,6 +4421,9 @@ msgstr "இணைப்பு தோல்வியுற்றது, உங்
 msgid "Connection looks good!"
 msgstr "இணைப்பு"
 
+msgid "Contact the report owner for error details."
+msgstr ""
+
 msgid "Contains"
 msgstr "கொண்டுள்ளது (Contains)"
 
@@ -4356,6 +4464,9 @@ msgstr "கட்டுப்பாடு"
 msgid "Control labeled "
 msgstr "பெயரிடப்பட்ட கட்டுப்பாடு "
 
+msgid "Control whether this dashboard loads chart data asynchronously"
+msgstr ""
+
 msgid ""
 "Controls how labels overflow beyond the max width. \"Truncate\" adds an "
 "ellipsis. \"Break\" wraps to the next line."
@@ -4363,6 +4474,15 @@ msgstr ""
 
 msgid "Controls labeled "
 msgstr "பெயரிடப்பட்ட கட்டுப்பாடுகள் "
+
+msgid "Convert @import to inline CSS"
+msgstr ""
+
+#, python-format
+msgid ""
+"Converted %s @import rule(s) to inline CSS. Review the result before "
+"saving."
+msgstr ""
 
 msgid "Copied to clipboard!"
 msgstr "கிளிப்போர்டில் நகலெடுக்கப்பட்டது!"
@@ -4447,6 +4567,18 @@ msgid "Cost estimate"
 msgstr "செலவு மதிப்பீடு"
 
 #, python-format
+msgid ""
+"Could not automatically fetch: %s. This is often blocked by the remote "
+"server (CORS); copy its contents in manually instead."
+msgstr ""
+
+#, python-format
+msgid ""
+"Could not check which charts and dashboards depend on the selected %s. "
+"Deleting them may break charts and dashboards."
+msgstr ""
+
+#, python-format
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "\"%(database)s\" தரவுத்தளத்துடன் இணைக்க முடியவில்லை"
 
@@ -4473,12 +4605,22 @@ msgid ""
 " See the server logs for details."
 msgstr ""
 
+msgid ""
+"Could not parse the CSS to convert @import rules. Check for syntax errors"
+" and try again."
+msgstr ""
+
 #, python-format
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "\"%(host)s\" ஹோஸ்ட் பெயரைத் தீர்க்க முடியவில்லை."
 
 msgid "Could not validate the user in the current session."
 msgstr "தற்போதைய அமர்வில் (session) பயனரைச் சரிபார்க்க முடியவில்லை."
+
+msgid ""
+"Could not verify which dimensions are compatible. All dimensions are "
+"shown."
+msgstr ""
 
 msgid "Count"
 msgstr "எண்ணிக்கை (Count)"
@@ -4687,6 +4829,11 @@ msgstr "தனிப்பயன் வண்ணத் தட்டுகள்"
 
 msgid "Custom column name (leave blank for default)"
 msgstr "தனிப்பயன் நெடுவரிசைப் பெயர் (இயல்புநிலைக்குக் காலியாக விடவும்)"
+
+msgid ""
+"Custom column values are not supported here. Select a saved dimension to "
+"replace this value."
+msgstr ""
 
 msgid "Custom conditional formatting"
 msgstr "தனிப்பயன் நிபந்தனை வடிவமைப்பு"
@@ -4948,6 +5095,9 @@ msgstr "தரவு"
 #, fuzzy
 msgid "Data Connections"
 msgstr "தரவுத்தள இணைப்புகள்"
+
+msgid "Data Export Options"
+msgstr "தரவு ஏற்றுமதி விருப்பங்கள்"
 
 msgid "Data Table"
 msgstr "தரவு அட்டவணை"
@@ -5634,6 +5784,11 @@ msgstr ""
 " நீங்கள் இன்னும் இந்தச் செயலை மாற்றியமைக்க (reverse) முடியும்."
 
 msgid ""
+"Deleting this dataset is permanent. The affected charts and dashboards "
+"will remain, but they may no longer work."
+msgstr ""
+
+msgid ""
 "Deleting this semantic layer also permanently deletes any semantic views "
 "it contains, and charts built on those views will stop working. The "
 "affected views could not be listed."
@@ -5651,8 +5806,17 @@ msgstr "விநியோக முறை"
 msgid "Density"
 msgstr "அடர்த்தி (Density)"
 
+msgid "Dependencies"
+msgstr ""
+
 msgid "Dependent on"
 msgstr "சார்ந்துள்ள (Dependent on)"
+
+msgid "Depends on"
+msgstr ""
+
+msgid "Deployment default"
+msgstr ""
 
 msgid "Description"
 msgstr "விளக்கம்"
@@ -5680,6 +5844,9 @@ msgstr "விவரங்கள்"
 
 msgid "Details of the certification"
 msgstr "சான்றிதழ் விவரங்கள்"
+
+msgid "Details of the dataset certification"
+msgstr ""
 
 msgid ""
 "Determines how the filter matches values. \"Exact match\" uses the IN "
@@ -5748,6 +5915,9 @@ msgstr "பரிமாணங்கள்"
 #, fuzzy, python-format
 msgid "Dimensions (%s)"
 msgstr "பரிமாணங்கள்"
+
+msgid "Dimensions and metrics"
+msgstr ""
 
 msgid ""
 "Dimensions contain qualitative values such as names, dates, or "
@@ -5958,6 +6128,10 @@ msgstr ""
 
 msgid "Draft"
 msgstr "வரைவு (Draft)"
+
+#, python-format
+msgid "Drag %s folder"
+msgstr ""
 
 msgid "Drag and drop components and charts to the dashboard"
 msgstr "உறுப்புகள் மற்றும் சார்ட்டுகளை இழுத்து வந்து டேஷ்போர்டில் விடுங்கள்"
@@ -6268,6 +6442,9 @@ msgstr "சிறுகுறிப்பு அடுக்கு பண்ப�
 msgid "Edit chart"
 msgstr "சார்ட்டைத் திருத்து"
 
+msgid "Edit chart properties"
+msgstr "சார்ட் பண்புகளைத் திருத்து"
+
 #, fuzzy
 msgid "Edit dashboard"
 msgstr "டேஷ்போர்டைத் திருத்து"
@@ -6398,6 +6575,12 @@ msgstr "உட்பொதிவு குறியீடு (Embed code)"
 msgid "Embed dashboard"
 msgstr "டேஷ்போர்டை உட்பொதி"
 
+msgid ""
+"Embedded authentication failed. The guest token may exceed the request-"
+"header size limit. Reduce the token payload; large inline RLS lists can "
+"be replaced with an entitlements-table lookup."
+msgstr ""
+
 msgid "Embedded dashboard could not be deleted."
 msgstr "உட்பொதிக்கப்பட்ட டேஷ்போர்டை நீக்க முடியவில்லை."
 
@@ -6484,6 +6667,9 @@ msgstr "GeoJSON புள்ளிகளுக்கான ஐகான்கள
 
 msgid "Enables rendering of labels for GeoJSON points"
 msgstr "GeoJSON புள்ளிகளுக்கான லேபிள்களை உருவாக்குவதை அனுமதிக்கிறது"
+
+msgid "Encrypted extra field must be a mapping from string keys to values."
+msgstr ""
 
 #, fuzzy
 msgid "Encrypted extra fields"
@@ -6723,6 +6909,10 @@ msgid "Error while fetching roles"
 msgstr "பதவிகளைப் பெறும்போது பிழை ஏற்பட்டது"
 
 #, python-format
+msgid "Error while rendering calculated column expression: %(msg)s"
+msgstr ""
+
+#, python-format
 msgid "Error while rendering virtual dataset query: %(msg)s"
 msgstr "மெய்நிகர் தரவுத்தொகுப்பு வினவலை உருவாக்கும்போது பிழை: %(msg)s"
 
@@ -6864,6 +7054,12 @@ msgstr "தரவு ஆய்வுப் பார்வையில் மு
 msgid "Export"
 msgstr "ஏற்றுமதி செய்"
 
+msgid "Export All Data"
+msgstr "அனைத்து தரவையும் ஏற்றுமதி செய்"
+
+msgid "Export Current View"
+msgstr "தற்போதைய பார்வையை ஏற்றுமதி செய்"
+
 msgid "Export Data to Excel"
 msgstr ""
 
@@ -6939,6 +7135,12 @@ msgstr "முழு .CSV ஆக ஏற்றுமதி செய்"
 msgid "Export to full Excel"
 msgstr "முழு Excel ஆக ஏற்றுமதி செய்"
 
+msgid "Export to original .CSV"
+msgstr "அசல் .CSV ஆக ஏற்றுமதி செய்"
+
+msgid "Export to pivoted .CSV"
+msgstr "பிவோட் செய்யப்பட்ட .CSV ஆக ஏற்றுமதி செய்"
+
 #, python-format
 msgid ""
 "Exporting semantic views is not supported yet — %s semantic-view row(s) "
@@ -6989,11 +7191,13 @@ msgstr "கூடுதல் அளவுருக்கள்"
 
 #, python-brace-format
 msgid ""
-"Extra data to specify table metadata. Currently supports metadata of the "
-"format: `{ \"certification\": { \"certified_by\": \"Data Platform Team\","
-" \"details\": \"This table is the source of truth.\" }, "
-"\"warning_markdown\": \"This is a warning.\" }`."
-msgstr "அட்டவணை மெட்டாடேட்டாவைக் குறிப்பிட கூடுதல் தரவு."
+"Extra data to specify table metadata, such as `{ \"warning_markdown\": "
+"\"This is a warning.\" }`. Use the Certification fields below for "
+"certification metadata."
+msgstr ""
+
+msgid "Extra field must be a mapping from string keys to values."
+msgstr ""
 
 msgid "Extra parameters for use in jinja templated queries"
 msgstr "Jinja டெம்ப்ளேட் வினவல்களில் பயன்படுத்த கூடுதல் அளவுருக்கள்"
@@ -7101,6 +7305,10 @@ msgstr "சார்ட் தரவை ஏற்றுவதில் தோல
 msgid "Failed to load columns for %s %s"
 msgstr "%s தரவுத்தொகுப்பிற்கான நெடுவரிசைகளை ஏற்றுவதில் தோல்வி"
 
+#, python-format
+msgid "Failed to load dimensions for semantic view %s"
+msgstr ""
+
 msgid "Failed to load drill-to-detail rows"
 msgstr ""
 
@@ -7205,6 +7413,9 @@ msgstr "தேர்வு விருப்பங்களைச் சரி�
 msgid "Failure Notifications"
 msgstr ""
 
+msgid "Falling back to CSV; Excel export library not available."
+msgstr "CSV க்கு மாற்றப்படுகிறது; Excel ஏற்றுமதி லைப்ரரி கிடைக்கவில்லை."
+
 msgid "False"
 msgstr "தவறு"
 
@@ -7278,8 +7489,18 @@ msgstr "\"இயல்புநிலை மதிப்பு\" ஐ இயக�
 msgid "Fill method"
 msgstr "நிரப்பும் முறை"
 
+msgid ""
+"Fill missing periods across the whole time range of the chart instead of "
+"only between the first and the last data point. Useful to keep a series "
+"anchored to the selected time range when the data starts late or ends "
+"early."
+msgstr ""
+
 msgid "Fill out the registration form"
 msgstr "பதிவு படிவத்தைப் பூர்த்தி செய்யவும்"
+
+msgid "Fill the entire time range"
+msgstr ""
 
 msgid "Filled"
 msgstr "நிரப்பப்பட்டது"
@@ -7347,6 +7568,9 @@ msgstr "வடிகட்டிகள்"
 msgid "Filters and controls"
 msgstr "வடிகட்டிகள் மற்றும் கட்டுப்பாடுகள்"
 
+msgid "Filters applied from chat"
+msgstr ""
+
 msgid "Filters by columns"
 msgstr "நெடுவரிசைகள் மூலம் வடிகட்டுதல்"
 
@@ -7409,6 +7633,9 @@ msgstr "நெடுவரிசைகளை டைனமிக் முறை�
 #, fuzzy
 msgid "Fit data"
 msgstr "தரவுத்தொகுப்பைத் திருத்து"
+
+msgid "Fix the Extra JSON to edit certification"
+msgstr ""
 
 msgid ""
 "Fix the trend line to the full time range specified in case filtered "
@@ -7502,6 +7729,12 @@ msgstr "வகைப்பாடாகக் கட்டாயப்படு�
 
 msgid "Force date format"
 msgstr "தேதி வடிவத்தைக் கட்டாயப்படுத்து"
+
+msgid "Force disabled"
+msgstr ""
+
+msgid "Force enabled"
+msgstr ""
 
 msgid "Force refresh"
 msgstr "கட்டாயமாகப் புதுப்பி"
@@ -7784,6 +8017,9 @@ msgstr ""
 "தொடர் வரம்பு எட்டப்படும்போது, மீதமுள்ளவற்றை \"ஏனையவை\" பிரிவில் "
 "சேர்க்கும். இது முழுமையற்ற தரவுகள் காட்டப்படுவதைத் தவிர்க்கிறது."
 
+msgid "Guest"
+msgstr ""
+
 msgid "Guest user cannot modify chart payload"
 msgstr "விருந்தினர் பயனர் சார்ட் தரவை மாற்ற முடியாது"
 
@@ -7846,6 +8082,9 @@ msgstr "காலத் தொடருக்கான கோட்டை மற
 
 msgid "Hierarchy"
 msgstr "படிநிலை (Hierarchy)"
+
+msgid "High color"
+msgstr ""
 
 msgid "Histogram"
 msgstr "ஹிஸ்டோகிராம் (Histogram)"
@@ -8127,6 +8366,15 @@ msgstr "அடுக்கு தலைப்பைச் செருகவு�
 msgid "Inside"
 msgstr "உள்ளே"
 
+msgid "Inside Base"
+msgstr ""
+
+msgid "Inside Center"
+msgstr ""
+
+msgid "Inside End"
+msgstr ""
+
 msgid "Inside bottom"
 msgstr "உள்ளே கீழே"
 
@@ -8164,6 +8412,9 @@ msgid "Intensity is the value multiplied by the weight to obtain the final weigh
 msgstr ""
 "தீவிரம் என்பது இறுதியான எடையைப் பெற மதிப்பை எடையால் பெருக்கி வரும் "
 "விடையாகும்"
+
+msgid "Internal"
+msgstr ""
 
 msgid "Interval"
 msgstr "இடைவெளி"
@@ -8296,6 +8547,10 @@ msgid "Invalid reference to column: \"%(column)s\""
 msgstr "நெடுவரிசைக்கான தவறான குறிப்பு: \"%(column)s\""
 
 #, python-format
+msgid "Invalid resample rule: %(rule)s"
+msgstr ""
+
+#, python-format
 msgid "Invalid result type: %(result_type)s"
 msgstr "தவறான முடிவு வகை: %(result_type)s"
 
@@ -8310,8 +8565,15 @@ msgstr "தவறான நிலை."
 msgid "Invalid tab ids: %(tab_ids)s"
 msgstr "தவறான தாவல் (tab) ஐடிகள்: %s(tab_ids)"
 
+#, python-format
+msgid "Invalid time range boundary for resample: %(value)s"
+msgstr ""
+
 msgid "Invalid username or password"
 msgstr "தவறான பயனர் பெயர் அல்லது கடவுச்சொல்"
+
+msgid "Inverse"
+msgstr ""
 
 msgid "Inverse selection"
 msgstr "தலைகீழ் தேர்வு"
@@ -8646,6 +8908,11 @@ msgstr "மரத்தின் (tree) அமைப்பு வகை"
 
 msgid "Least recently modified"
 msgstr "மிகக் குறைவாக மாற்றப்பட்டது"
+
+msgid ""
+"Leave on the deployment default unless you need to force asynchronous "
+"loading on or off for this dashboard."
+msgstr ""
 
 msgid "Left"
 msgstr "இடது"
@@ -8985,6 +9252,9 @@ msgstr "தீர்க்கரேகை மற்றும் அட்சர�
 msgid "Longitude of default viewport"
 msgstr "இயல்புநிலை வியூபோர்ட்டின் தீர்க்கரேகை"
 
+msgid "Low color"
+msgstr ""
+
 msgid "Lower Threshold"
 msgstr "குறைந்த வரம்பு (Lower Threshold)"
 
@@ -9132,6 +9402,15 @@ msgstr "அதிகபட்சம்"
 
 msgid "Max Bubble Size"
 msgstr "அதிகபட்ச குமிழி அளவு"
+
+msgid "Max bound"
+msgstr ""
+
+msgid "Max bound should be greater than min bound"
+msgstr ""
+
+msgid "Max bound should be greater than target value"
+msgstr ""
 
 msgid "Max value"
 msgstr "அதிகபட்ச மதிப்பு"
@@ -9362,6 +9641,9 @@ msgstr ""
 msgid "Metrics to show in the tooltip."
 msgstr "கருவிக்குறிப்பில் (tooltip) காட்ட வேண்டிய அளவீடுகள்."
 
+msgid "Mid color"
+msgstr ""
+
 msgid "Middle"
 msgstr "நடுவில்"
 
@@ -9379,6 +9661,15 @@ msgstr "குறைந்தபட்ச காலங்கள்"
 
 msgid "Min Width"
 msgstr "குறைந்தபட்ச அகலம்"
+
+msgid "Min bound"
+msgstr ""
+
+msgid "Min bound should be smaller than max bound"
+msgstr ""
+
+msgid "Min bound should be smaller than target value"
+msgstr ""
 
 msgid "Min periods"
 msgstr "குறைந்தபட்ச காலங்கள்"
@@ -9572,6 +9863,10 @@ msgstr ""
 msgid "Must be between 1 and 10"
 msgstr ""
 
+#, python-brace-format
+msgid "Must be one of: {choices}."
+msgstr ""
+
 msgid "Must be unique"
 msgstr "தனித்துவமாக இருக்க வேண்டும்"
 
@@ -9679,6 +9974,9 @@ msgstr "புதியது"
 msgid "New Semantic Layer"
 msgstr ""
 
+msgid "New chart"
+msgstr "புதிய சார்ட்"
+
 msgid "New dataset"
 msgstr "புதிய தரவுத்தொகுப்பு"
 
@@ -9737,6 +10035,10 @@ msgstr "செயல்கள் இல்லை"
 msgid "No actions found"
 msgstr ""
 
+#, python-format
+msgid "No affected %(label)s."
+msgstr ""
+
 #, fuzzy
 msgid "No annotation layers"
 msgstr "குறிப்பு அடுக்குகள் (annotation layers) இல்லை"
@@ -9755,6 +10057,10 @@ msgstr ""
 
 msgid "No available filters."
 msgstr "கிடைக்கக்கூடிய வடிகட்டிகள் இல்லை."
+
+#, python-format
+msgid "No charts or dashboards depend on the selected %s."
+msgstr ""
 
 msgid "No columns found"
 msgstr "நெடுவரிசைகள் எதுவும் காணப்படவில்லை"
@@ -9884,6 +10190,9 @@ msgstr "சேமிக்கப்பட்ட கோவைகள் (expressio
 
 msgid "No saved metrics found"
 msgstr "சேமிக்கப்பட்ட அளவீடுகள் எதுவும் காணப்படவில்லை"
+
+msgid "No selection modes are available for this control."
+msgstr ""
 
 msgid "No stored results found, you need to re-run your query"
 msgstr "சேமிக்கப்பட்ட முடிவுகள் இல்லை, உங்கள் வினவலை மீண்டும் இயக்க வேண்டும்"
@@ -10332,6 +10641,15 @@ msgstr "தரவு நெடுவரிசையின் விருப்�
 msgid "Optional warning about use of this metric"
 msgstr "இந்த அளவீட்டைப் பயன்படுத்துவது குறித்த விருப்பத்தேர்வு எச்சரிக்கை"
 
+#, python-format
+msgid ""
+"Optional. When set together with Low color, Mid color, and High color "
+"below, colors diverge from Mid color at this value toward Low color below"
+" it and High color above it, instead of a single color fading in and out."
+" For % of column with Column sum, the resolved center must still fall "
+"inside the color range; otherwise the rule uses its single color."
+msgstr ""
+
 msgid "Options"
 msgstr "விருப்பங்கள்"
 
@@ -10376,6 +10694,9 @@ msgstr "அசல்"
 msgid "Original value"
 msgstr "அசல் மதிப்பு"
 
+msgid "Original version"
+msgstr ""
+
 msgid "Orthogonal"
 msgstr "ஆர்த்தோகனல் (Orthogonal)"
 
@@ -10393,6 +10714,9 @@ msgstr "வெளி ஆரம்"
 
 msgid "Outer edge of Pie chart"
 msgstr "பை சார்ட்டின் (Pie chart) வெளி விளிம்பு"
+
+msgid "Outside End"
+msgstr ""
 
 msgid "Overlap"
 msgstr "ஒன்றின் மேல் ஒன்று (Overlap)"
@@ -10427,6 +10751,16 @@ msgstr "நேரத் துகள்களை (time grain) மேலெழு
 
 msgid "Override time range"
 msgstr "நேர வரம்பை மேலெழுது"
+
+msgid ""
+"Overrides the highest value used for coloring. Leave blank to use the "
+"highest value in the data."
+msgstr ""
+
+msgid ""
+"Overrides the lowest value used for coloring. Leave blank to use the "
+"lowest value in the data."
+msgstr ""
 
 msgid "Overwrite"
 msgstr "மேலெழுது"
@@ -10583,6 +10917,9 @@ msgstr "சதவீத வேறுபாடு வடிவம்"
 msgid "Percent change"
 msgstr ""
 
+msgid "Percent denominator"
+msgstr ""
+
 msgid "Percent of total"
 msgstr "மொத்தத்தில் சதவீதம்"
 
@@ -10635,6 +10972,9 @@ msgstr "இந்த சார்ட்டைச் சான்றளித்�
 
 msgid "Person or group that has certified this dashboard."
 msgstr "இந்த டேஷ்போர்டைச் சான்றளித்த நபர் அல்லது குழு."
+
+msgid "Person or group that has certified this dataset"
+msgstr ""
 
 msgid "Person or group that has certified this metric"
 msgstr "இந்த அளவீட்டைச் சான்றளித்த நபர் அல்லது குழு"
@@ -10711,6 +11051,9 @@ msgstr "பிவட் செயல்பாட்டில் குறைந�
 
 msgid "Pivot operation requires at least one index"
 msgstr "பிவட் செயல்பாட்டிற்கு குறைந்தது ஒரு இன்டெக்ஸ் (index) தேவை"
+
+msgid "Pivot table download failed, please refresh and try again."
+msgstr ""
 
 msgid "Pivoted"
 msgstr "பிவட் செய்யப்பட்டது"
@@ -10974,6 +11317,9 @@ msgstr ""
 
 msgid "Preview"
 msgstr "முன்னோட்டம்"
+
+msgid "Preview this version"
+msgstr ""
 
 msgid "Preview uploaded file"
 msgstr "பதிவேற்றிய கோப்பை முன்னோட்டம் செய்க"
@@ -11609,6 +11955,9 @@ msgstr ""
 msgid "Required"
 msgstr "தேவை"
 
+msgid "Required by"
+msgstr ""
+
 msgid "Required control values have been removed"
 msgstr "தேவையான கட்டுப்பாட்டு மதிப்புகள் நீக்கப்பட்டுள்ளன"
 
@@ -11709,14 +12058,16 @@ msgstr "ஒத்திசைவற்ற வினவல்களுக்க�
 msgid "Resume auto-refresh"
 msgstr "தானியங்கி புதுப்பித்தலை அமைக்கவும்"
 
-msgid "Retries are not supported for alerts"
-msgstr ""
-
 msgid "Retry"
 msgstr "மீண்டும் முயற்சி"
 
 msgid "Retry fetching results"
 msgstr "முடிவுகளை மீண்டும் பெற முயற்சி செய்"
+
+msgid ""
+"Retry generation failures before delivery starts. Alerts re-check their "
+"condition on each attempt. Delivery failures are not replayed."
+msgstr ""
 
 msgid "Retrying"
 msgstr ""
@@ -11727,6 +12078,12 @@ msgstr "குறிப்பிட்ட தேதி/நேரத்திற�
 
 msgid "Return to specific datetime."
 msgstr "குறிப்பிட்ட தேதி/நேரத்திற்குத் திரும்பு."
+
+#, python-format
+msgid "Reused by 1 other submission"
+msgid_plural "Reused by %s other submissions"
+msgstr[0] ""
+msgstr[1] ""
 
 msgid "Reverse Lat & Long"
 msgstr "அட்சரேகை & தீர்க்கரேகையைத் தலைகீழாக்கு"
@@ -12228,6 +12585,12 @@ msgstr "எல்லை (Scope)"
 
 msgid "Scoping"
 msgstr "எல்லை வரையறுத்தல்"
+
+msgid "Screenshot cache is unavailable"
+msgstr ""
+
+msgid "Screenshot request is temporarily unavailable"
+msgstr ""
 
 msgid "Screenshot width"
 msgstr "திரைக்காட்சி (Screenshot) அகலம்"
@@ -13164,6 +13527,9 @@ msgid ""
 " Note that row limit does not apply to the result."
 msgstr ""
 
+msgid "Show all"
+msgstr ""
+
 msgid "Show all columns"
 msgstr "எல்லா நெடுவரிசைகளையும் காண்பி"
 
@@ -13197,6 +13563,9 @@ msgstr "வெற்று நெடுவரிசைகளைக் காண�
 
 msgid "Show entries per page"
 msgstr "ஒரு பக்கத்திற்கான உள்ளீடுகளைக் காண்பி"
+
+msgid "Show fewer"
+msgstr ""
 
 #, fuzzy
 msgid "Show full range for time shift"
@@ -13419,6 +13788,12 @@ msgstr "ஸ்லைடர் மற்றும் வரம்பு உள்
 msgid "Slug"
 msgstr "ஸ்லக் (Slug)"
 
+#, python-format
+msgid ""
+"Slug %(slug)s belongs to the soft-deleted dashboard %(uuid)s. Restore it "
+"via POST /api/v1/dashboard/%(uuid)s/restore, or use a different slug."
+msgstr ""
+
 msgid "Small"
 msgstr "சிறிய"
 
@@ -13514,9 +13889,6 @@ msgstr "மன்னிக்கவும், ஒரு பிழை ஏற்�
 
 msgid "Sorry, an error occurred"
 msgstr "மன்னிக்கவும், ஒரு பிழை ஏற்பட்டது"
-
-msgid "Sorry, an unknown error occurred"
-msgstr "மன்னிக்கவும், தெரியாத பிழை ஏற்பட்டது"
 
 msgid "Sorry, an unknown error occurred."
 msgstr "மன்னிக்கவும், தெரியாத பிழை ஏற்பட்டது."
@@ -13751,6 +14123,9 @@ msgstr ""
 msgid "Started"
 msgstr "தொடங்கியது"
 
+msgid "Starting version"
+msgstr ""
+
 msgid "Starts With"
 msgstr "இதில் தொடங்குவது"
 
@@ -13913,6 +14288,9 @@ msgstr "பின்னொட்டு"
 msgid "Suffix to apply after the percentage display"
 msgstr "சதவீதக் காட்சிக்குப் பிறகு பயன்படுத்த வேண்டிய பின்னொட்டு"
 
+msgid "Suggestions could not be loaded. You can still type a value."
+msgstr ""
+
 msgid "Sum"
 msgstr "கூட்டுத்தொகை"
 
@@ -13933,6 +14311,9 @@ msgstr "சன் பர்ஸ்ட் சார்ட்"
 
 msgid "Sunday"
 msgstr "ஞாயிறு"
+
+msgid "Superset Chart"
+msgstr "சூப்பர்செட் சார்ட்"
 
 msgid "Superset Embedded SDK documentation."
 msgstr "சூப்பர்செட் உட்பொதிக்கப்பட்ட SDK ஆவணங்கள்."
@@ -14187,6 +14568,9 @@ msgstr "டேக்கை உருவாக்க முடியவில்�
 msgid "Task could not be updated."
 msgstr "டேக்கை புதுப்பிக்க முடியவில்லை."
 
+msgid "Task dependencies would introduce a cycle."
+msgstr ""
+
 msgid ""
 "Task is not abortable. The task is in progress but has not registered an "
 "abort handler."
@@ -14238,6 +14622,13 @@ msgstr "உலாவி சாளரம் மூடப்படும்போ�
 
 msgid "Test connection"
 msgstr "இணைப்பைச் சோதிக்கவும்"
+
+msgid ""
+"Testing this connection would change its effective destination (engine "
+"parameters or SSH tunnel endpoint) while reusing the stored password. "
+"Provide the real password to test a connection whose destination has "
+"changed."
+msgstr ""
 
 msgid "Text"
 msgstr "உரை"
@@ -14351,6 +14742,11 @@ msgid ""
 msgstr ""
 "X-அச்சு வடிகட்டி பட்டியலில் இல்லை. நேர வரம்பு வடிகட்டிகளில் பயன்படுத்த "
 "அதைச் சேர்க்க விரும்புகிறீர்களா?"
+
+msgid ""
+"The affected charts or dashboards changed. Review the updated impact and "
+"type DELETE again to continue."
+msgstr ""
 
 msgid "The annotation has been saved"
 msgstr "குறிப்பு சேமிக்கப்பட்டது"
@@ -14555,6 +14951,11 @@ msgstr "இணைப்பிற்குப் பயன்படுத்த�
 
 msgid "The default schema that should be used for the connection."
 msgstr "இணைப்பிற்குப் பயன்படுத்தப்பட வேண்டிய இயல்புநிலை ஸ்கீமா."
+
+msgid ""
+"The deletion impact could not be determined. This dataset cannot be "
+"permanently deleted until the check succeeds."
+msgstr ""
 
 msgid ""
 "The description can be displayed as widget headers in the dashboard view."
@@ -15049,6 +15450,12 @@ msgstr ""
 "திரைப்படம் உருவாக்கப்படுகிறது. தயவுசெய்து பக்கத்தை விட்டு வெளியேற "
 "வேண்டாம்."
 
+#, python-format
+msgid ""
+"The selected %s are linked to %s on %s. Deleting them will break those "
+"objects."
+msgstr ""
+
 msgid "The service url of the layer"
 msgstr "அடுக்கின் சேவை URL"
 
@@ -15173,9 +15580,6 @@ msgstr "பயனர் வெற்றிகரமாக புதுப்ப�
 msgid "The user has been updated successfully."
 msgstr "பயனர் வெற்றிகரமாக புதுப்பிக்கப்பட்டார்."
 
-msgid "The user seems to have been deleted"
-msgstr "பயனர் நீக்கப்பட்டதாகத் தெரிகிறது"
-
 msgid "The user was updated successfully"
 msgstr "பயனர் வெற்றிகரமாக புதுப்பிக்கப்பட்டார்"
 
@@ -15224,11 +15628,20 @@ msgstr "தீம் (Theme)"
 msgid "Theme colors"
 msgstr ""
 
+msgid "Theme could not be created."
+msgstr ""
+
+msgid "Theme could not be updated."
+msgstr ""
+
 msgid "Theme imported"
 msgstr "தீம் இறக்குமதி செய்யப்பட்டது"
 
 msgid "Theme not found."
 msgstr "தீம் காணப்படவில்லை."
+
+msgid "Theme parameters are invalid."
+msgstr ""
 
 msgid "Themes"
 msgstr "தீம்கள்"
@@ -15544,6 +15957,9 @@ msgid ""
 "You can recover it there."
 msgstr ""
 
+msgid "This CSS uses @import, which cannot be saved"
+msgstr ""
+
 msgid ""
 "This JSON object is generated dynamically when clicking the save or "
 "overwrite button in the dashboard view. It is exposed here for reference "
@@ -15617,12 +16033,6 @@ msgid "This chart no longer exists."
 msgstr ""
 
 msgid "This chart only"
-msgstr ""
-
-#, python-format
-msgid ""
-"This chart uses the \"%s\" dataset, which you do not have permission to "
-"view."
 msgstr ""
 
 msgid "This chart will be restored to the following version:"
@@ -15760,6 +16170,11 @@ msgid "This defines the element to be plotted on the chart"
 msgstr "இது சார்ட்டில் வரையப்பட வேண்டிய உறுப்பை வரையறுக்கிறது"
 
 msgid ""
+"This dimension is not compatible with the current selections. Select a "
+"compatible dimension."
+msgstr ""
+
+msgid ""
 "This email is already associated with an account. Please choose another "
 "one."
 msgstr ""
@@ -15883,6 +16298,11 @@ msgid ""
 "a misleadingly large number."
 msgstr ""
 
+msgid ""
+"This metric is not compatible with the current selections. Select a "
+"compatible metric."
+msgstr ""
+
 #, fuzzy, python-format
 msgid "This metric might be incompatible with current %s"
 msgstr "இந்த மெட்ரிக் தற்போதைய தரவுத்தொகுப்பிற்குப் பொருந்தாமல் இருக்கலாம்"
@@ -15903,12 +16323,6 @@ msgstr ""
 "தெரியவில்லை."
 
 msgid "This password is too common; please choose a less guessable one."
-msgstr ""
-
-#, python-format
-msgid ""
-"This query uses the \"%s\" dataset, which you do not have permission to "
-"view."
 msgstr ""
 
 msgid ""
@@ -15954,6 +16368,11 @@ msgid "This theme is set locally for your session"
 msgstr "இந்த தீம் உங்கள் அமர்வுக்காக உள்ளூர் அளவில் அமைக்கப்பட்டுள்ளது"
 
 msgid ""
+"This theme is the active default/dark theme - only Admins can edit it - "
+"Read Only"
+msgstr ""
+
+msgid ""
 "This theme uses the dark algorithm. It will be rendered with the light "
 "algorithm instead, so its colors may not look as designed."
 msgstr ""
@@ -15961,6 +16380,13 @@ msgstr ""
 msgid ""
 "This theme uses the light algorithm. It will be rendered with the dark "
 "algorithm instead, so its colors may not look as designed."
+msgstr ""
+
+msgid ""
+"This update would change the connection's effective destination "
+"(host/port, engine parameters, or SSH tunnel endpoint) while reusing the "
+"stored credential. Provide the real password (or SSH tunnel credential) "
+"to confirm a connection move."
 msgstr ""
 
 msgid "This username is already taken. Please choose another one."
@@ -16626,6 +17052,9 @@ msgstr ""
 msgid "Unable to parse SQL"
 msgstr "SQL ஐப் பகுப்பாய்வு செய்ய முடியவில்லை"
 
+msgid "Unable to parse the cost estimate returned by the database."
+msgstr ""
+
 msgid "Unable to read the file, please refresh and try again."
 msgstr ""
 "கோப்பை வாசிக்க முடியவில்லை, தயவுசெய்து புதுப்பித்து மீண்டும் "
@@ -16644,6 +17073,9 @@ msgid "Undefined window for rolling operation"
 msgstr "உருளும் செயல்பாட்டிற்கு வரையறுக்கப்படாத சாளரம்"
 
 msgid "Undid or redid a change"
+msgstr ""
+
+msgid "Undo"
 msgstr ""
 
 msgid "Undo the action"
@@ -17082,6 +17514,9 @@ msgstr "மதிப்பு இதைவிட அதிகம்"
 msgid "Value is required"
 msgstr "மதிப்பு தேவை"
 
+msgid "Value label position"
+msgstr ""
+
 msgid "Value less than"
 msgstr "மதிப்பு இதைவிடக் குறைவு"
 
@@ -17090,6 +17525,22 @@ msgstr "மதிப்பு 0 அல்லது அதற்கு மேல�
 
 msgid "Value must be greater than 0"
 msgstr "மதிப்பு 0 ஐ விட அதிகமாக இருக்க வேண்டும்"
+
+#, python-format
+msgid ""
+"Value: type the exact numbers used for coloring below. % of column is "
+"unavailable with Server pagination enabled, since each page would compute"
+" a different percentage. Existing percentage rules use the automatic data"
+" range while Server pagination is enabled."
+msgstr ""
+
+#, python-format
+msgid ""
+"Value: type the exact numbers used for coloring below. % of column: type "
+"a percentage of the column maximum or sum selected below, so the rule "
+"keeps working as the data changes. Column sum adds the absolute values so"
+" positive and negative values do not cancel each other out."
+msgstr ""
 
 msgid "Values"
 msgstr "மதிப்புகள்"
@@ -17313,6 +17764,10 @@ msgstr "நேரத் தொடருக்கான அமைப்புக�
 #, python-format
 msgid "Waiting on %s"
 msgstr "%s க்காகக் காத்திருக்கிறது"
+
+#, python-format
+msgid "Waiting on %s prerequisite task(s) to finish"
+msgstr ""
 
 msgid "Waiting on database..."
 msgstr "தரவுத்தளத்திற்காகக் காத்திருக்கிறது..."
@@ -17986,6 +18441,9 @@ msgstr ""
 "ஏற்கனவே உள்ள தீம்களை இறக்குமதி செய்கிறீர்கள். மேலெழுதுவது உங்கள் வேலையை "
 "இழக்கச் செய்யலாம்."
 
+msgid "You are not an editor of this theme - Read Only"
+msgstr ""
+
 msgid ""
 "You are viewing this chart in a dashboard context with labels shared "
 "across multiple charts.\n"
@@ -18057,6 +18515,9 @@ msgstr ""
 msgid "You do not have access to the following tables: %s."
 msgstr ""
 
+msgid "You do not have permission to access this datasource"
+msgstr ""
+
 #, python-format
 msgid "You do not have permission to edit this %s"
 msgstr "இந்த %s ஐ எடிட் செய்ய உங்களுக்கு அனுமதி இல்லை"
@@ -18075,6 +18536,12 @@ msgid "You do not have permission to read tags"
 msgstr "டேக்குகளைப் படிக்க உங்களுக்கு அனுமதி இல்லை"
 
 msgid "You do not have permission to view any archived object types."
+msgstr ""
+
+msgid "You do not have permission to view this chart’s data."
+msgstr ""
+
+msgid "You do not have permission to view this data."
 msgstr ""
 
 msgid "You do not have permissions to edit this dashboard."
@@ -18342,6 +18809,9 @@ msgstr ""
 msgid "ZIP file contains multiple file types"
 msgstr "ZIP கோப்பில் பல கோப்பு வகைகள் உள்ளன"
 
+msgid "Zebra striping"
+msgstr ""
+
 msgid "Zero imputation"
 msgstr "பூஜ்ஜிய மதிப்பீடு (Zero imputation)"
 
@@ -18435,6 +18905,9 @@ msgstr "`width` 0 அல்லது அதற்கு மேல் இரு�
 #, fuzzy
 msgid "`window` must be between 1 and 10000"
 msgstr "`width` 0 அல்லது அதற்கு மேல் இருக்க வேண்டும்"
+
+msgid "a dataset"
+msgstr ""
 
 #, fuzzy
 msgid "a few seconds"
@@ -18803,6 +19276,14 @@ msgstr "விரிவுபடுத்து"
 msgid "extra.dashboard must be an object"
 msgstr ""
 
+msgid "extra.dashboard.position_json is not valid JSON"
+msgstr ""
+
+msgid ""
+"extra.nativeFilters could not be validated: dashboard metadata is not "
+"valid JSON"
+msgstr ""
+
 msgid "failed"
 msgstr "தோல்வியடைந்தது"
 
@@ -19085,6 +19566,10 @@ msgstr "சதவீதங்கள் இரண்டு எண் மதிப
 msgid "permalink state not found"
 msgstr "பெர்மாலிங்க் நிலை காணப்படவில்லை"
 
+#. do-not-translate
+msgid "pivoted_xlsx"
+msgstr "pivoted_xlsx"
+
 msgid "pixels"
 msgstr "பிக்சல்கள்"
 
@@ -19353,6 +19838,12 @@ msgstr "பெரிதாக்கும் பரப்பு"
 
 msgid "© Layer attribution"
 msgstr "© அடுக்கு பங்களிப்பு"
+
+#, python-format
+msgid "…and %s more chart"
+msgid_plural "…and %s more charts"
+msgstr[0] ""
+msgstr[1] ""
 
 msgid "№"
 msgstr ""

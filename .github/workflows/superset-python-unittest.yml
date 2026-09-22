@@ -35,7 +35,7 @@ jobs:
           persist-credentials: false
       - name: Check for file changes
         id: check
-        uses: ./.github/actions/change-detector/
+        uses: $/.github/actions/change-detector/
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -43,7 +43,8 @@ jobs:
     needs: changes
     if: needs.changes.outputs.python == 'true'
     runs-on: ubuntu-26.04
-    timeout-minutes: 30
+    # Leave time for setup, the full suite, scoped coverage gates, and uploads.
+    timeout-minutes: 45
     permissions:
       id-token: write
     strategy:
@@ -60,15 +61,26 @@ jobs:
           persist-credentials: false
           submodules: recursive
       - name: Setup Python
-        uses: ./.github/actions/setup-backend/
+        uses: $/.github/actions/setup-backend/
         with:
           python-version: ${{ matrix.python-version }}
+      # Runs in parallel via pytest-xdist: the serial suite had grown to
+      # ~27-28 min against this job's 30-minute timeout, so the trailing
+      # coverage/upload steps were being killed on ordinary runner variance
+      # even though every test passed. `--dist loadfile` keeps all tests from
+      # one file on one worker, which preserves module-scoped fixture state;
+      # pytest-cov combines the per-worker coverage data automatically.
+      # `--durations=0` makes `--durations-min` effective (the min flag only
+      # filters an enabled report) so the slow-file critical path under
+      # loadfile stays visible. `--maxfail` is a controller-level stop: tests
+      # already dispatched to workers finish, so the final failure count can
+      # slightly exceed it.
       - name: Python unit tests
         env:
           SUPERSET_TESTENV: true
           SUPERSET_SECRET_KEY: not-a-secret
         run: |
-          pytest --durations-min=0.5 --cov-report= --cov=superset ./tests/common ./tests/unit_tests --cache-clear --maxfail=50 --junit-xml=test-results/junit-unit.xml
+          pytest -n auto --dist loadfile --durations=0 --durations-min=0.5 --cov-report= --cov=superset ./tests/common ./tests/unit_tests --cache-clear --maxfail=50 --junit-xml=test-results/junit-unit.xml
       # COVERAGE_FILE keeps these scoped gates off the default .coverage that
       # the step above wrote. pytest-cov starts a fresh data file per run, so
       # without it the last gate replaces the full-suite data and the report
@@ -82,7 +94,7 @@ jobs:
           COVERAGE_FILE="${RUNNER_TEMP}/.coverage.sql" pytest --durations-min=0.5 --cov=superset/sql/ ./tests/unit_tests/sql/ --cache-clear --cov-fail-under=100 --junit-xml=test-results/junit-sql-coverage.xml
           COVERAGE_FILE="${RUNNER_TEMP}/.coverage.semantic_layers" pytest --durations-min=0.5 --cov=superset/semantic_layers/ ./tests/unit_tests/semantic_layers/ --cache-clear --cov-fail-under=100 --junit-xml=test-results/junit-semantic-layers-coverage.xml
       - name: Upload code coverage
-        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        uses: codecov/codecov-action@0b35c9ecc4f0529d0eb674914510c22f85b196b4 # v7.1.0
         with:
           flags: python,unit
           verbose: true
@@ -125,7 +137,7 @@ jobs:
   unit-tests-required:
     needs: [changes, unit-tests]
     if: always()
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-slim
     timeout-minutes: 5
     permissions:
       contents: read

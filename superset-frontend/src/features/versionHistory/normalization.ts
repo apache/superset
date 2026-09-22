@@ -92,10 +92,9 @@ const automaticNormalizationTransition = ({
 
   // Disappearing keys (!toPresent) are deliberately not covered here:
   // hydration itself never removes keys from the merged snapshot. Machine
-  // removals happen later, when StashFormDataContainer stashes invisible
-  // controls out of form_data — those are covered at save time by
-  // stashDropNormalizationTransitions, which uses the stash itself
-  // (explore.hiddenFormData) as the proof the removal was not user-made.
+  // removals used to happen later, when StashFormDataContainer stashed
+  // invisible controls out of form_data, but the save path now always
+  // merges the stash back in, so a save can no longer drop those keys.
   if (!inputMatchesPersisted || !toPresent || !hydrationChangedValue) {
     return undefined;
   }
@@ -140,44 +139,6 @@ export const automaticNormalizationTransitions = (
     if (transition) {
       transitions[control] = transition;
     }
-  });
-  return transitions;
-};
-
-/**
- * Advisory transitions for keys the stash removed from form_data.
- *
- * StashFormDataContainer moves an invisible control's value out of
- * ``form_data`` into ``explore.hiddenFormData``. That removal is
- * machine-made by construction, but it happens in render effects after
- * hydration, so hydration-time tracking cannot see it. This computes the
- * matching drop transitions at save time: a key counts only when the stash
- * holds it, the stashed value still equals the persisted value (a user edit
- * before hiding breaks the equality and stays recorded), and the outgoing
- * payload no longer carries the key. Keys absent from the stash — e.g.
- * removed by a viz-type switch — are never covered.
- */
-export const stashDropNormalizationTransitions = (
-  persisted: Record<string, unknown>,
-  hiddenFormData: Record<string, unknown> | undefined,
-  outgoingFormData: Record<string, unknown>,
-): AutomaticNormalizationTransitions => {
-  const transitions: AutomaticNormalizationTransitions = {};
-  if (!hiddenFormData) {
-    return transitions;
-  }
-  Object.keys(hiddenFormData).forEach(control => {
-    if (!Object.hasOwn(persisted, control)) return;
-    if (Object.hasOwn(outgoingFormData, control)) return;
-    const fromValue = persisted[control];
-    if (!isJsonValue(fromValue)) return;
-    if (!jsonValuesEqual(hiddenFormData[control], fromValue)) return;
-    transitions[control] = {
-      control,
-      from_present: true,
-      from_value: fromValue,
-      to_present: false,
-    };
   });
   return transitions;
 };
