@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-21 02:18+0000\n"
+"POT-Creation-Date: 2026-09-22 07:15+0530\n"
 "PO-Revision-Date: 2026-07-17 09:44+0100\n"
 "Last-Translator: Daniel Checheta\n"
 "Language: ru\n"
@@ -2675,9 +2675,6 @@ msgstr "Автоматически изменять ширину столбцо�
 msgid "Automatically adjust column width based on content"
 msgstr "Автоматически изменять ширину столбцов в зависимости от содержания"
 
-msgid "Automatically retry sending the report when delivery fails."
-msgstr ""
-
 msgid "Automatically sync columns"
 msgstr "Автоматически синхронизировать столбцы"
 
@@ -4315,7 +4312,7 @@ msgstr "Настройка внешнего вида, цветов и польз
 msgid "Configure filter scopes"
 msgstr "Настроить область действия фильтра"
 
-msgid "Configure retry behavior on delivery failure."
+msgid "Configure retries when alert or report generation fails before delivery."
 msgstr ""
 
 msgid "Configure the basics of your Annotation Layer."
@@ -4382,6 +4379,9 @@ msgid "Connection failed, please check your connection settings."
 msgstr "Сбой подключения. Проверьте настройки соединения."
 
 msgid "Connection looks good!"
+msgstr ""
+
+msgid "Contact the report owner for error details."
 msgstr ""
 
 msgid "Contains"
@@ -12058,14 +12058,16 @@ msgstr "Сервер, необходимый для асинхронных за�
 msgid "Resume auto-refresh"
 msgstr "Продолжить автообновление"
 
-msgid "Retries are not supported for alerts"
-msgstr ""
-
 msgid "Retry"
 msgstr "Повторить"
 
 msgid "Retry fetching results"
 msgstr "Повторить запрос"
+
+msgid ""
+"Retry generation failures before delivery starts. Alerts re-check their "
+"condition on each attempt. Delivery failures are not replayed."
+msgstr ""
 
 msgid "Retrying"
 msgstr ""
@@ -12602,6 +12604,12 @@ msgstr "Область"
 
 msgid "Scoping"
 msgstr "Область применения"
+
+msgid "Screenshot cache is unavailable"
+msgstr ""
+
+msgid "Screenshot request is temporarily unavailable"
+msgstr ""
 
 msgid "Screenshot width"
 msgstr "Ширина скриншота"
@@ -13887,9 +13895,6 @@ msgstr "Извините, произошла ошибка"
 
 msgid "Sorry, an error occurred"
 msgstr "Извините, произошла ошибка"
-
-msgid "Sorry, an unknown error occurred"
-msgstr "Извините, произошла неизвестная ошибка"
 
 msgid "Sorry, an unknown error occurred."
 msgstr "Произошла неизвестная ошибка"

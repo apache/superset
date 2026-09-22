@@ -24,7 +24,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-21 02:18+0000\n"
+"POT-Creation-Date: 2026-09-22 07:15+0530\n"
 "PO-Revision-Date: 2024-07-14 15:10+0300\n"
 "Last-Translator: Abdalrahim G. Fakhouri <abdilra7eem@yahoo.com>\n"
 "Language: ar\n"
@@ -2969,9 +2969,6 @@ msgstr "ضبط عرض العمود تلقائياً بناءً على المسا
 msgid "Automatically adjust column width based on content"
 msgstr "ضبط عرض العمود تلقائياً بناءً على المحتوى"
 
-msgid "Automatically retry sending the report when delivery fails."
-msgstr ""
-
 #, fuzzy
 msgid "Automatically sync columns"
 msgstr "تخصيص الأعمدة"
@@ -4768,7 +4765,7 @@ msgstr "تكوين مظهر لوحة التحكم والألوان وCSS الم�
 msgid "Configure filter scopes"
 msgstr "تكوين نطاقات التصفية"
 
-msgid "Configure retry behavior on delivery failure."
+msgid "Configure retries when alert or report generation fails before delivery."
 msgstr ""
 
 msgid "Configure the basics of your Annotation Layer."
@@ -4846,6 +4843,9 @@ msgid "Connection failed, please check your connection settings."
 msgstr "فشل الاتصال ، يرجى التحقق من إعدادات الاتصال الخاصة بك"
 
 msgid "Connection looks good!"
+msgstr ""
+
+msgid "Contact the report owner for error details."
 msgstr ""
 
 #, fuzzy
@@ -13414,9 +13414,6 @@ msgstr "لم يتم تكوين الواجهة الخلفية للنتائج ال
 msgid "Resume auto-refresh"
 msgstr "تعيين الفاصل الزمني للتحديث التلقائي"
 
-msgid "Retries are not supported for alerts"
-msgstr ""
-
 #, fuzzy
 msgid "Retry"
 msgstr "خالق"
@@ -13424,6 +13421,11 @@ msgstr "خالق"
 #, fuzzy
 msgid "Retry fetching results"
 msgstr "نتائج إعادة البحث"
+
+msgid ""
+"Retry generation failures before delivery starts. Alerts re-check their "
+"condition on each attempt. Delivery failures are not replayed."
+msgstr ""
 
 msgid "Retrying"
 msgstr ""
@@ -13996,6 +13998,12 @@ msgstr "نطاق"
 
 msgid "Scoping"
 msgstr "تحديد النطاق"
+
+msgid "Screenshot cache is unavailable"
+msgstr ""
+
+msgid "Screenshot request is temporarily unavailable"
+msgstr ""
 
 msgid "Screenshot width"
 msgstr "عرض لقطة الشاشة"
@@ -15478,9 +15486,6 @@ msgstr "عذرًا، حدث خطأ"
 
 msgid "Sorry, an error occurred"
 msgstr "عذرًا، حدث خطأ"
-
-msgid "Sorry, an unknown error occurred"
-msgstr "عذرًا، حدث خطأ غير معروف"
 
 msgid "Sorry, an unknown error occurred."
 msgstr "عذرًا، حدث خطأ غير معروف."

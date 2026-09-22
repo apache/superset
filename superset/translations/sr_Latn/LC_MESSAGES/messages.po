@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-21 02:18+0000\n"
+"POT-Creation-Date: 2026-09-22 07:15+0530\n"
 "PO-Revision-Date: 2026-06-14 13:20+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sr_Latn\n"
@@ -3258,9 +3258,6 @@ msgstr "Automatski prilagodi širinu kolone na osnovu raspoloživog prostora"
 msgid "Automatically adjust column width based on content"
 msgstr "Automatski prilagodi širinu kolone na osnovu sadržaja"
 
-msgid "Automatically retry sending the report when delivery fails."
-msgstr ""
-
 # lv, ru, sk, uk]
 msgid "Automatically sync columns"
 msgstr "Automatski sinhronizuj kolone"
@@ -5294,7 +5291,7 @@ msgstr "Konfiguriši izgled kontrolne table, boje i prilagođeni CSS"
 msgid "Configure filter scopes"
 msgstr "Konfiguriši opsege filtera"
 
-msgid "Configure retry behavior on delivery failure."
+msgid "Configure retries when alert or report generation fails before delivery."
 msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -5385,6 +5382,9 @@ msgid "Connection failed, please check your connection settings."
 msgstr "Povezivanje nije uspelo, proveri podešavanja veze."
 
 msgid "Connection looks good!"
+msgstr ""
+
+msgid "Contact the report owner for error details."
 msgstr ""
 
 # ru, uk]
@@ -14993,9 +14993,6 @@ msgstr ""
 msgid "Resume auto-refresh"
 msgstr "Nastavi automatsko osvežavanje"
 
-msgid "Retries are not supported for alerts"
-msgstr ""
-
 # ru, uk]
 msgid "Retry"
 msgstr "Pokušaj ponovo"
@@ -15003,6 +15000,11 @@ msgstr "Pokušaj ponovo"
 # fr, ja, lv, mi, ru, sk, sl, uk]
 msgid "Retry fetching results"
 msgstr "Pokušaj ponovo preuzimanje rezultata"
+
+msgid ""
+"Retry generation failures before delivery starts. Alerts re-check their "
+"condition on each attempt. Delivery failures are not replayed."
+msgstr ""
 
 msgid "Retrying"
 msgstr ""
@@ -15694,6 +15696,12 @@ msgstr "Opseg"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Scoping"
 msgstr "Opseg"
+
+msgid "Screenshot cache is unavailable"
+msgstr ""
+
+msgid "Screenshot request is temporarily unavailable"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Screenshot width"
@@ -17275,10 +17283,6 @@ msgstr "Žao nam je, došlo je do greške"
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "Sorry, an error occurred"
 msgstr "Žao nam je, došlo je do greške"
-
-# de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
-msgid "Sorry, an unknown error occurred"
-msgstr "Žao nam je, došlo je do nepoznate greške"
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "Sorry, an unknown error occurred."

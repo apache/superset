@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-21 02:18+0000\n"
+"POT-Creation-Date: 2026-09-22 07:15+0530\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: th\n"
@@ -4214,9 +4214,6 @@ msgstr "ปรับความกว้างคอลัมน์อัตโ
 msgid "Automatically adjust column width based on content"
 msgstr "ปรับความกว้างคอลัมน์อัตโนมัติตามเนื้อหา"
 
-msgid "Automatically retry sending the report when delivery fails."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, fr, ja,
 # lv, ru, sk, uk]
 #, fuzzy
@@ -7031,7 +7028,7 @@ msgstr "กำหนดค่ารูปลักษณ์ สี และ CSS
 msgid "Configure filter scopes"
 msgstr "กำหนดค่าขอบเขตของตัวกรอง"
 
-msgid "Configure retry behavior on delivery failure."
+msgid "Configure retries when alert or report generation fails before delivery."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -7162,6 +7159,9 @@ msgid "Connection failed, please check your connection settings."
 msgstr "การเชื่อมต่อล้มเหลว โปรดตรวจสอบการตั้งค่าการเชื่อมต่อของคุณ"
 
 msgid "Connection looks good!"
+msgstr ""
+
+msgid "Contact the report owner for error details."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
@@ -20545,9 +20545,6 @@ msgstr "ยังไม่ได้กำหนดค่าแบ็กเอน
 msgid "Resume auto-refresh"
 msgstr "ตั้งค่าการรีเฟรชอัตโนมัติ"
 
-msgid "Retries are not supported for alerts"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
 #, fuzzy
@@ -20559,6 +20556,11 @@ msgstr "ลองใหม่"
 #, fuzzy
 msgid "Retry fetching results"
 msgstr "ลองดึงผลลัพธ์อีกครั้ง"
+
+msgid ""
+"Retry generation failures before delivery starts. Alerts re-check their "
+"condition on each attempt. Delivery failures are not replayed."
+msgstr ""
 
 msgid "Retrying"
 msgstr ""
@@ -21535,6 +21537,12 @@ msgstr "ขอบเขต"
 #, fuzzy
 msgid "Scoping"
 msgstr "การกำหนดขอบเขต"
+
+msgid "Screenshot cache is unavailable"
+msgstr ""
+
+msgid "Screenshot request is temporarily unavailable"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -23775,12 +23783,6 @@ msgstr "ขออภัย เกิดข้อผิดพลาด"
 #, fuzzy
 msgid "Sorry, an error occurred"
 msgstr "ขออภัย เกิดข้อผิดพลาด"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
-#, fuzzy
-msgid "Sorry, an unknown error occurred"
-msgstr "ขออภัย เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]

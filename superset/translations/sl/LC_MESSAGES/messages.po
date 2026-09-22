@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  Superset\n"
 "Report-Msgid-Bugs-To: dkrat7 @github.com\n"
-"POT-Creation-Date: 2026-09-21 02:18+0000\n"
+"POT-Creation-Date: 2026-09-22 07:15+0530\n"
 "PO-Revision-Date: 2026-07-29 16:16+0200\n"
 "Last-Translator: lapor-kris <lapor-kris@github.com>\n"
 "Language: sl_SI\n"
@@ -2768,9 +2768,6 @@ msgstr "Samodejno prilagodi širino stolpca glede na razpoložljiv prostor"
 msgid "Automatically adjust column width based on content"
 msgstr "Samodejno prilagodi širino stolpca glede na vsebino"
 
-msgid "Automatically retry sending the report when delivery fails."
-msgstr ""
-
 msgid "Automatically sync columns"
 msgstr "Samodejno sinhroniziraj stolpce"
 
@@ -4441,7 +4438,7 @@ msgstr "Konfigurirajte videz nadzorne plošče, barve in CSS po meri"
 msgid "Configure filter scopes"
 msgstr "Nastavi doseg filtrov"
 
-msgid "Configure retry behavior on delivery failure."
+msgid "Configure retries when alert or report generation fails before delivery."
 msgstr ""
 
 msgid "Configure the basics of your Annotation Layer."
@@ -4513,6 +4510,9 @@ msgstr "Povezava neuspešna. Preverite nastavitve povezave."
 
 msgid "Connection looks good!"
 msgstr "Povezava deluje!"
+
+msgid "Contact the report owner for error details."
+msgstr ""
 
 msgid "Contains"
 msgstr "Vsebuje"
@@ -12422,14 +12422,16 @@ msgstr ""
 msgid "Resume auto-refresh"
 msgstr "Nadaljuj samodejno osveževanje"
 
-msgid "Retries are not supported for alerts"
-msgstr ""
-
 msgid "Retry"
 msgstr "Poskusi znova"
 
 msgid "Retry fetching results"
 msgstr "Ponovno pridobi rezultate"
+
+msgid ""
+"Retry generation failures before delivery starts. Alerts re-check their "
+"condition on each attempt. Delivery failures are not replayed."
+msgstr ""
 
 msgid "Retrying"
 msgstr ""
@@ -12977,6 +12979,12 @@ msgstr "Doseg"
 
 msgid "Scoping"
 msgstr "Doseg"
+
+msgid "Screenshot cache is unavailable"
+msgstr ""
+
+msgid "Screenshot request is temporarily unavailable"
+msgstr ""
 
 msgid "Screenshot width"
 msgstr "Širina zaslonske slike"
@@ -14329,9 +14337,6 @@ msgstr "Prišlo je do napake"
 
 msgid "Sorry, an error occurred"
 msgstr "Prišlo je do napake"
-
-msgid "Sorry, an unknown error occurred"
-msgstr "Prišlo je do neznane napake"
 
 msgid "Sorry, an unknown error occurred."
 msgstr "Prišlo je do neznane napake."
