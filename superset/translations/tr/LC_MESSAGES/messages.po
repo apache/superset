@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: avsarcoteli@gmail.com\n"
-"POT-Creation-Date: 2026-09-22 08:55+0000\n"
+"POT-Creation-Date: 2026-09-22 17:09+0000\n"
 "PO-Revision-Date: 2024-02-25 14:00+0300\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: tr\n"
@@ -12456,6 +12456,9 @@ msgstr "Reload"
 msgid "Reload SQL Lab"
 msgstr "SQL Lab'ı Yeniden Yükle"
 
+msgid "Reload the page and try again to continue."
+msgstr ""
+
 msgid "Remove"
 msgstr "Kaldırın"
 
@@ -13544,6 +13547,9 @@ msgstr "Güvenli ekstra"
 
 msgid "Security"
 msgstr "Güvenlik"
+
+msgid "Security token error"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -15733,6 +15739,9 @@ msgstr "Bu grafikle bağlantılı %s silinmiş olabilir."
 #, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
 msgstr "%s 'dan gelen API cevabı IDatabaseTable arayüzüyle eşleşmez."
+
+msgid "The CSRF token could not be validated."
+msgstr ""
 
 msgid ""
 "The CSS for individual dashboards can be altered here, or in the "

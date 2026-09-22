@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-22 08:55+0000\n"
+"POT-Creation-Date: 2026-09-22 17:09+0000\n"
 "PO-Revision-Date: 2023-05-22 08:04-0400\n"
 "Last-Translator: \n"
 "Language: pt_BR\n"
@@ -13017,6 +13017,9 @@ msgstr "Recarregar"
 msgid "Reload SQL Lab"
 msgstr "Recarregar SQL Lab"
 
+msgid "Reload the page and try again to continue."
+msgstr ""
+
 msgid "Remove"
 msgstr "Remover"
 
@@ -14147,6 +14150,9 @@ msgstr "Segurança Extra"
 
 msgid "Security"
 msgstr "Segurança"
+
+msgid "Security token error"
+msgstr ""
 
 #, fuzzy
 msgid "See "
@@ -16391,6 +16397,9 @@ msgstr "O conjunto de dados vinculado a esse gráfico pode ter sido excluído."
 #, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
 msgstr "A resposta da API de %s não corresponde à interface IDatabaseTable."
+
+msgid "The CSRF token could not be validated."
+msgstr ""
 
 msgid ""
 "The CSS for individual dashboards can be altered here, or in the "

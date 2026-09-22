@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  superset-ds\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-22 08:55+0000\n"
+"POT-Creation-Date: 2026-09-22 17:09+0000\n"
 "PO-Revision-Date: 2024-05-08 14:41+0000\n"
 "Last-Translator: \n"
 "Language: nl\n"
@@ -12950,6 +12950,9 @@ msgstr "Herlaad"
 msgid "Reload SQL Lab"
 msgstr "SQL Lab herladen"
 
+msgid "Reload the page and try again to continue."
+msgstr ""
+
 msgid "Remove"
 msgstr "Verwijder"
 
@@ -14059,6 +14062,9 @@ msgstr "Beveilig extra"
 
 msgid "Security"
 msgstr "Beveiliging"
+
+msgid "Security token error"
+msgstr ""
 
 #, fuzzy
 msgid "See "
@@ -16300,6 +16306,9 @@ msgstr "De aan deze grafiek gekoppelde dataset is mogelijk verwijderd."
 #, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
 msgstr "De API-reactie van %s komt niet overeen met de IDatabaseTable interface."
+
+msgid "The CSRF token could not be validated."
+msgstr ""
 
 msgid ""
 "The CSS for individual dashboards can be altered here, or in the "

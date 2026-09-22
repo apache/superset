@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-22 08:55+0000\n"
+"POT-Creation-Date: 2026-09-22 17:09+0000\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: Jan Šmejkal <jan.smejkal@orgis.cz>\n"
 "Language: cs\n"
@@ -12153,6 +12153,9 @@ msgstr "Znovu načíst"
 msgid "Reload SQL Lab"
 msgstr "Znovu načíst SQL Lab"
 
+msgid "Reload the page and try again to continue."
+msgstr ""
+
 msgid "Remove"
 msgstr "Odstranit"
 
@@ -13214,6 +13217,9 @@ msgstr "Zabezpečené extra"
 
 msgid "Security"
 msgstr "Zabezpečení"
+
+msgid "Security token error"
+msgstr ""
 
 #, fuzzy
 msgid "See "
@@ -15312,6 +15318,9 @@ msgstr "Sada dat propojená s tímto grafem mohla být smazána."
 #, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
 msgstr "Odpověď API z %s neodpovídá rozhraní IDatabaseTable."
+
+msgid "The CSRF token could not be validated."
+msgstr ""
 
 msgid ""
 "The CSS for individual dashboards can be altered here, or in the "

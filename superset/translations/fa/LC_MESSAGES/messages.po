@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-22 08:55+0000\n"
+"POT-Creation-Date: 2026-09-22 17:09+0000\n"
 "PO-Revision-Date: 2024-10-20 00:07+0330\n"
 "Last-Translator: Emad Rad <codewithemad@gmail.com>\n"
 "Language: fa\n"
@@ -12663,6 +12663,9 @@ msgstr "بارگذاری مجدد"
 msgid "Reload SQL Lab"
 msgstr "بارگذاری مجدد SQL Lab"
 
+msgid "Reload the page and try again to continue."
+msgstr ""
+
 msgid "Remove"
 msgstr "حذف"
 
@@ -13752,6 +13755,9 @@ msgstr "ایمن اضافه"
 
 msgid "Security"
 msgstr "امنیت"
+
+msgid "Security token error"
+msgstr ""
 
 #, fuzzy
 msgid "See "
@@ -15955,6 +15961,9 @@ msgstr "ممکن است مجموعه داده مرتبط با این نمودا�
 #, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
 msgstr "پاسخ API از %s با رابط IDatabaseTable همخوانی ندارد."
+
+msgid "The CSRF token could not be validated."
+msgstr ""
 
 msgid ""
 "The CSS for individual dashboards can be altered here, or in the "

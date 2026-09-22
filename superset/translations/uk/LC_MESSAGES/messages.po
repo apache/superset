@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: ted.korostiled@gmail.com\n"
-"POT-Creation-Date: 2026-09-22 08:55+0000\n"
+"POT-Creation-Date: 2026-09-22 17:09+0000\n"
 "PO-Revision-Date: 2026-04-30 22:04+0300\n"
 "Last-Translator: Danylo Korostil\n"
 "Language: uk\n"
@@ -11912,6 +11912,9 @@ msgstr "Перезавантажити"
 msgid "Reload SQL Lab"
 msgstr "Перезавантажити SQL Lab"
 
+msgid "Reload the page and try again to continue."
+msgstr ""
+
 msgid "Remove"
 msgstr "Вилучити"
 
@@ -12963,6 +12966,9 @@ msgstr "Додаткова безпека"
 
 msgid "Security"
 msgstr "Безпека"
+
+msgid "Security token error"
+msgstr ""
 
 #, fuzzy
 msgid "See "
@@ -15008,6 +15014,9 @@ msgstr "Набір даних, пов'язаний з цією діаграмо�
 #, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
 msgstr "Відповідь API з %s не відповідає інтерфейсу IDatabaseTable."
+
+msgid "The CSRF token could not be validated."
+msgstr ""
 
 msgid ""
 "The CSS for individual dashboards can be altered here, or in the "

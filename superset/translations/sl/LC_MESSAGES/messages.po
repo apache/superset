@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  Superset\n"
 "Report-Msgid-Bugs-To: dkrat7 @github.com\n"
-"POT-Creation-Date: 2026-09-22 08:55+0000\n"
+"POT-Creation-Date: 2026-09-22 17:09+0000\n"
 "PO-Revision-Date: 2026-07-29 16:16+0200\n"
 "Last-Translator: lapor-kris <lapor-kris@github.com>\n"
 "Language: sl_SI\n"
@@ -12070,6 +12070,9 @@ msgstr "Ponovno naloži"
 msgid "Reload SQL Lab"
 msgstr "Ponovno naloži SQL Lab"
 
+msgid "Reload the page and try again to continue."
+msgstr ""
+
 msgid "Remove"
 msgstr "Odstrani"
 
@@ -13125,6 +13128,9 @@ msgstr "Dodatna varnost"
 
 msgid "Security"
 msgstr "Varnost"
+
+msgid "Security token error"
+msgstr ""
 
 msgid "See "
 msgstr "Glej "
@@ -15165,6 +15171,9 @@ msgstr "%s, povezan s tem grafikonom, je morda izbrisan."
 #, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
 msgstr "Odziv API-ja iz %s se ne ujema z vmesnikom IDatabaseTable."
+
+msgid "The CSRF token could not be validated."
+msgstr ""
 
 msgid ""
 "The CSS for individual dashboards can be altered here, or in the "
