@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  superset-ds\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-22 03:19+0000\n"
+"POT-Creation-Date: 2026-09-22 03:26+0000\n"
 "PO-Revision-Date: 2024-05-08 14:41+0000\n"
 "Last-Translator: \n"
 "Language: nl\n"
@@ -437,6 +437,24 @@ msgid "%s Virtual"
 msgstr "Virtueel"
 
 #, python-format
+msgid "%s additional restricted chart"
+msgid_plural "%s additional restricted charts"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "%s additional restricted dashboard"
+msgid_plural "%s additional restricted dashboards"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "%s affected chart"
+msgid_plural "%s affected charts"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
 msgid "%s aggregates(s)"
 msgstr "%s aggrega(a)t(en)"
 
@@ -472,6 +490,12 @@ msgstr[1] ""
 msgid "%s day ago"
 msgid_plural "%s days ago"
 msgstr[0] "1 dag geleden"
+msgstr[1] ""
+
+#, python-format
+msgid "%s field"
+msgid_plural "%s fields"
+msgstr[0] ""
 msgstr[1] ""
 
 #, fuzzy, python-format
@@ -1971,6 +1995,9 @@ msgstr ""
 msgid "Altered"
 msgstr "Gewijzigd"
 
+msgid "Alternate the row background color to make rows easier to scan."
+msgstr ""
+
 msgid "Always filter main datetime column"
 msgstr "Filter altijd de hoofdkolom datumtijd"
 
@@ -2477,6 +2504,9 @@ msgstr "Aantekeningen en lagen"
 msgid "Annotations could not be deleted."
 msgstr "Aantekeningen konden niet worden verwijderd."
 
+msgid "Another save is in progress for this dataset. Retry the same request."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -2633,6 +2663,9 @@ msgid "Archived %s item(s); permanently deleted %s semantic view(s)"
 msgstr ""
 
 msgid "Archived by"
+msgstr ""
+
+msgid "Archived items must be recovered before they can be opened."
 msgstr ""
 
 #, python-format
@@ -2860,9 +2893,6 @@ msgstr "Kolombreedte automatisch aanpassen op basis van beschikbare ruimte"
 #, fuzzy
 msgid "Automatically adjust column width based on content"
 msgstr "Kolombreedte automatisch aanpassen op basis van inhoud"
-
-msgid "Automatically retry sending the report when delivery fails."
-msgstr ""
 
 #, fuzzy
 msgid "Automatically sync columns"
@@ -3375,6 +3405,10 @@ msgstr "Bereken vanaf vorige stap"
 msgid "Calculated column [%s] requires an expression"
 msgstr "Berekende kolom [%s] vereist een uitdrukking"
 
+#, python-format
+msgid "Calculated column template error: %(msg)s"
+msgstr ""
+
 msgid "Calculated columns"
 msgstr "Berekende kolommen"
 
@@ -3412,19 +3446,15 @@ msgstr "Kan geen toegang krijgen tot de query"
 msgid "Cannot delete a database that has datasets attached"
 msgstr "Een database gekoppeld aan datasets kan niet worden verwijderd"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
-#, fuzzy
+#, python-brace-format
 msgid ""
 "Cannot delete a database whose only remaining datasets are soft-deleted. "
-"Restore them (POST /api/v1/dataset/<uuid>/restore) and delete them "
-"permanently once a purge capability ships, or remove the underlying rows "
-"out-of-band, before deleting the database."
+"Purge each one first — GET /api/v1/dataset/<uuid>/purge-impact for its "
+"impact token, then POST /api/v1/dataset/<uuid>/purge with "
+"{\"confirmed_impact_token\": <token>} — before deleting the database. "
+"Restoring them (POST /api/v1/dataset/<uuid>/restore) keeps the datasets, "
+"but the database still cannot be deleted."
 msgstr ""
-"Een database waarvan de enige resterende datasets zacht verwijderd zijn, "
-"kan niet worden verwijderd. Herstel ze (POST "
-"/api/v1/dataset/<uuid>/restore) en verwijder ze definitief zodra een "
-"purgefunctionaliteit beschikbaar is, of verwijder de onderliggende rijen "
-"op een andere manier voordat u de database verwijdert."
 
 #, fuzzy
 msgid "Cannot delete system themes"
@@ -3699,6 +3729,9 @@ msgstr "Veranderen van deze dataset is verboden"
 msgid "Changing this task is forbidden"
 msgstr "Veranderen van deze dataset is verboden"
 
+msgid "Changing this theme is forbidden"
+msgstr ""
+
 msgid "Character to interpret as decimal point"
 msgstr "Teken te interpreteren als decimaalteken"
 
@@ -3859,6 +3892,16 @@ msgstr "Grafiek breedte"
 msgid "Charts"
 msgstr "Grafieken"
 
+#, python-format
+msgid ""
+"Charts built on the selected semantic view are not checked and will break"
+" if it is deleted."
+msgid_plural ""
+"Charts built on the %s selected semantic views are not checked and will "
+"break if they are deleted."
+msgstr[0] ""
+msgstr[1] ""
+
 msgid "Charts could not be deleted."
 msgstr "Grafieken konden niet worden verwijderd."
 
@@ -3889,6 +3932,9 @@ msgid "Check to force date partitions to have the same height"
 msgstr "Aanvinken om de datum partities te forceren dezelfde hoogte te hebben"
 
 msgid "Checking charts and dashboards that use this dataset…"
+msgstr ""
+
+msgid "Checking for affected charts and dashboards…"
 msgstr ""
 
 msgid "Child label position"
@@ -4656,7 +4702,7 @@ msgstr "Dashboarduiterlijk, kleuren en aangepaste CSS configureren"
 msgid "Configure filter scopes"
 msgstr "Filter scopes configureren"
 
-msgid "Configure retry behavior on delivery failure."
+msgid "Configure retries when alert or report generation fails before delivery."
 msgstr ""
 
 msgid "Configure the basics of your Annotation Layer."
@@ -4736,6 +4782,9 @@ msgid "Connection failed, please check your connection settings."
 msgstr "Verbinding mislukt, controleer uw verbindingsinstellingen"
 
 msgid "Connection looks good!"
+msgstr ""
+
+msgid "Contact the report owner for error details."
 msgstr ""
 
 #, fuzzy
@@ -4899,6 +4948,12 @@ msgid ""
 msgstr ""
 
 #, python-format
+msgid ""
+"Could not check which charts and dashboards depend on the selected %s. "
+"Deleting them may break charts and dashboards."
+msgstr ""
+
+#, python-format
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "Kan niet verbinden met de database: \"%(database)s\""
 
@@ -4940,6 +4995,11 @@ msgstr "Kan de hostname niet omzetten: \"%(host)s\"."
 #, fuzzy
 msgid "Could not validate the user in the current session."
 msgstr "De gebruiker in de huidige sessie kon niet worden gevalideerd."
+
+msgid ""
+"Could not verify which dimensions are compatible. All dimensions are "
+"shown."
+msgstr ""
 
 msgid "Count"
 msgstr "Tel"
@@ -5155,6 +5215,11 @@ msgstr "Automatisch aanvullen"
 #, fuzzy
 msgid "Custom column name (leave blank for default)"
 msgstr "Aangepaste kolomnaam (leeg laten voor standaard)"
+
+msgid ""
+"Custom column values are not supported here. Select a saved dimension to "
+"replace this value."
+msgstr ""
 
 #, fuzzy
 msgid "Custom conditional formatting"
@@ -5468,6 +5533,10 @@ msgstr "Gegevens"
 #, fuzzy
 msgid "Data Connections"
 msgstr "Database Connecties"
+
+#, fuzzy
+msgid "Data Export Options"
+msgstr "Grafiek opties"
 
 msgid "Data Table"
 msgstr "Data Tabel"
@@ -6366,6 +6435,9 @@ msgstr "Dimensies"
 msgid "Dimensions (%s)"
 msgstr "Dimensies"
 
+msgid "Dimensions and metrics"
+msgstr ""
+
 msgid ""
 "Dimensions contain qualitative values such as names, dates, or "
 "geographical data. Use dimensions to categorize, segment, and reveal the "
@@ -6616,6 +6688,10 @@ msgstr ""
 
 msgid "Draft"
 msgstr "Concept"
+
+#, python-format
+msgid "Drag %s folder"
+msgstr ""
 
 msgid "Drag and drop components and charts to the dashboard"
 msgstr "Versleep de componenten en grafieken naar het dashboard"
@@ -6944,6 +7020,9 @@ msgstr "Eigenschappen aantekeningenlaag bewerken"
 msgid "Edit chart"
 msgstr "Bewerk grafiek"
 
+msgid "Edit chart properties"
+msgstr "Grafiek eigenschappen bewerken"
+
 msgid "Edit dashboard"
 msgstr "Bewerk dashboard"
 
@@ -7081,6 +7160,12 @@ msgstr "Code embedden"
 msgid "Embed dashboard"
 msgstr "Dashboard embedden"
 
+msgid ""
+"Embedded authentication failed. The guest token may exceed the request-"
+"header size limit. Reduce the token payload; large inline RLS lists can "
+"be replaced with an entitlements-table lookup."
+msgstr ""
+
 #, fuzzy
 msgid "Embedded dashboard could not be deleted."
 msgstr "Dashboard kon niet worden verwijderd."
@@ -7181,6 +7266,9 @@ msgstr "Maakt het renderen van pictogrammen voor GeoJSON-punten mogelijk"
 #, fuzzy
 msgid "Enables rendering of labels for GeoJSON points"
 msgstr "Maakt het renderen van labels voor GeoJSON-punten mogelijk"
+
+msgid "Encrypted extra field must be a mapping from string keys to values."
+msgstr ""
 
 #, fuzzy
 msgid "Encrypted extra fields"
@@ -7461,6 +7549,10 @@ msgid "Error while fetching roles"
 msgstr "Fout bij het ophalen van grafieken"
 
 #, python-format
+msgid "Error while rendering calculated column expression: %(msg)s"
+msgstr ""
+
+#, python-format
 msgid "Error while rendering virtual dataset query: %(msg)s"
 msgstr "Fout bij het renderen van de query van de virtuele dataset: %(msg)s"
 
@@ -7614,6 +7706,14 @@ msgstr "Verken de resultaten in de gegevensverkenningsweergave"
 msgid "Export"
 msgstr "Exporteer"
 
+#, fuzzy
+msgid "Export All Data"
+msgstr "Wis alle gegevens"
+
+#, fuzzy
+msgid "Export Current View"
+msgstr "Huidige pagina omkeren"
+
 msgid "Export Data to Excel"
 msgstr ""
 
@@ -7698,6 +7798,12 @@ msgstr "Exporteer naar volledige .CSV"
 msgid "Export to full Excel"
 msgstr "Exporteren naar volledige Excel"
 
+msgid "Export to original .CSV"
+msgstr "Exporteren naar origineel .CSV bestand"
+
+msgid "Export to pivoted .CSV"
+msgstr "Exporteren naar pivoted .CSV"
+
 #, python-format
 msgid ""
 "Exporting semantic views is not supported yet — %s semantic-view row(s) "
@@ -7752,10 +7858,14 @@ msgstr "Extra bediening"
 msgid "Extra Parameters"
 msgstr "Extra Parameters"
 
+#, python-brace-format
 msgid ""
 "Extra data to specify table metadata, such as `{ \"warning_markdown\": "
 "\"This is a warning.\" }`. Use the Certification fields below for "
 "certification metadata."
+msgstr ""
+
+msgid "Extra field must be a mapping from string keys to values."
 msgstr ""
 
 msgid "Extra parameters for use in jinja templated queries"
@@ -7866,6 +7976,10 @@ msgstr "Laden van grafiekgegevens mislukt."
 #, fuzzy, python-format
 msgid "Failed to load columns for %s %s"
 msgstr "Laden van grafiekgegevens mislukt"
+
+#, python-format
+msgid "Failed to load dimensions for semantic view %s"
+msgstr ""
 
 msgid "Failed to load drill-to-detail rows"
 msgstr ""
@@ -7991,6 +8105,12 @@ msgstr "Mislukt bij het verifiëren van geselecteerde opties: %s"
 msgid "Failure Notifications"
 msgstr ""
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
+# lv, ro, ru, sk, sr, sr_Latn, tr, uk]
+#, fuzzy
+msgid "Falling back to CSV; Excel export library not available."
+msgstr "Terugvallen op CSV; Excel-exportbibliotheek niet beschikbaar."
+
 #, fuzzy
 msgid "False"
 msgstr "Is onwaar"
@@ -8075,11 +8195,21 @@ msgstr "Vul alle verplichte velden in om \"Standaardwaarde\" in te schakelen"
 msgid "Fill method"
 msgstr "Vul methode"
 
+msgid ""
+"Fill missing periods across the whole time range of the chart instead of "
+"only between the first and the last data point. Useful to keep a series "
+"anchored to the selected time range when the data starts late or ends "
+"early."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
 msgid "Fill out the registration form"
 msgstr "Vul het registratieformulier in"
+
+msgid "Fill the entire time range"
+msgstr ""
 
 msgid "Filled"
 msgstr "Gevuld"
@@ -8147,6 +8277,9 @@ msgstr "Filters"
 #, fuzzy
 msgid "Filters and controls"
 msgstr "Extra bediening"
+
+msgid "Filters applied from chat"
+msgstr ""
 
 msgid "Filters by columns"
 msgstr "Filter op kolommen"
@@ -9274,6 +9407,10 @@ msgid "Invalid reference to column: \"%(column)s\""
 msgstr "Ongeldige verwijzing naar kolom: \"%(column)s\""
 
 #, python-format
+msgid "Invalid resample rule: %(rule)s"
+msgstr ""
+
+#, python-format
 msgid "Invalid result type: %(result_type)s"
 msgstr "Ongeldig resultaattype: %(result_type)s"
 
@@ -9287,6 +9424,10 @@ msgstr "Ongeldige status."
 #, fuzzy, python-format
 msgid "Invalid tab ids: %(tab_ids)s"
 msgstr "Ongeldige tab id's: %s(tab_ids)"
+
+#, python-format
+msgid "Invalid time range boundary for resample: %(value)s"
+msgstr ""
 
 #, fuzzy
 msgid "Invalid username or password"
@@ -10763,6 +10904,10 @@ msgstr ""
 msgid "Must be between 1 and 10"
 msgstr ""
 
+#, python-brace-format
+msgid "Must be one of: {choices}."
+msgstr ""
+
 msgid "Must be unique"
 msgstr "Moet uniek zijn"
 
@@ -10880,6 +11025,9 @@ msgstr "Nu"
 msgid "New Semantic Layer"
 msgstr "Geen annotatielagen"
 
+msgid "New chart"
+msgstr "Nieuwe grafiek"
+
 msgid "New dataset"
 msgstr "Nieuw dataset"
 
@@ -10963,6 +11111,10 @@ msgstr ""
 
 msgid "No available filters."
 msgstr "Geen beschikbare filters."
+
+#, python-format
+msgid "No charts or dashboards depend on the selected %s."
+msgstr ""
 
 msgid "No color mappings defined. Click \"+ Add more\" to get started."
 msgstr ""
@@ -11108,6 +11260,9 @@ msgstr "Geen opgeslagen expressies gevonden"
 
 msgid "No saved metrics found"
 msgstr "Geen opgeslagen metrieken gevonden"
+
+msgid "No selection modes are available for this control."
+msgstr ""
 
 msgid "No stored results found, you need to re-run your query"
 msgstr "Geen opgeslagen resultaten gevonden, u moet uw query opnieuw uitvoeren"
@@ -11674,6 +11829,9 @@ msgstr "Origineel"
 msgid "Original value"
 msgstr "Originele waarde"
 
+msgid "Original version"
+msgstr ""
+
 msgid "Orthogonal"
 msgstr "Orthogonaal"
 
@@ -12084,6 +12242,9 @@ msgstr "De pivotbewerking moet ten minste één aggregaat omvatten"
 msgid "Pivot operation requires at least one index"
 msgstr "Pivot bewerking vereist ten minste één index"
 
+msgid "Pivot table download failed, please refresh and try again."
+msgstr ""
+
 msgid "Pivoted"
 msgstr "Gepivoteerd"
 
@@ -12370,6 +12531,9 @@ msgstr ""
 
 msgid "Preview"
 msgstr "Voorvertoning"
+
+msgid "Preview this version"
+msgstr ""
 
 #, fuzzy
 msgid "Preview uploaded file"
@@ -13181,9 +13345,6 @@ msgstr ""
 msgid "Resume auto-refresh"
 msgstr "Stel auto-refresh in"
 
-msgid "Retries are not supported for alerts"
-msgstr ""
-
 #, fuzzy
 msgid "Retry"
 msgstr "Maker"
@@ -13191,6 +13352,11 @@ msgstr "Maker"
 #, fuzzy
 msgid "Retry fetching results"
 msgstr "Resultaten opnieuw ophalen"
+
+msgid ""
+"Retry generation failures before delivery starts. Alerts re-check their "
+"condition on each attempt. Delivery failures are not replayed."
+msgstr ""
 
 msgid "Retrying"
 msgstr ""
@@ -13764,6 +13930,12 @@ msgstr "Scope"
 
 msgid "Scoping"
 msgstr "Scoping"
+
+msgid "Screenshot cache is unavailable"
+msgstr ""
+
+msgid "Screenshot request is temporarily unavailable"
+msgstr ""
 
 msgid "Screenshot width"
 msgstr "Schermafbeelding breedte"
@@ -15155,6 +15327,12 @@ msgstr "Schuifregelaar en bereiksinvoer"
 msgid "Slug"
 msgstr "Slak"
 
+#, python-format
+msgid ""
+"Slug %(slug)s belongs to the soft-deleted dashboard %(uuid)s. Restore it "
+"via POST /api/v1/dashboard/%(uuid)s/restore, or use a different slug."
+msgstr ""
+
 msgid "Small"
 msgstr "Klein"
 
@@ -15264,9 +15442,6 @@ msgstr "Sorry, er is een fout opgetreden"
 
 msgid "Sorry, an error occurred"
 msgstr "Sorry, er is een fout opgetreden"
-
-msgid "Sorry, an unknown error occurred"
-msgstr "Sorry, er is een onbekende fout opgetreden"
 
 msgid "Sorry, an unknown error occurred."
 msgstr "Sorry, er is een onbekende fout opgetreden."
@@ -15516,6 +15691,9 @@ msgstr ""
 msgid "Started"
 msgstr "Gestart"
 
+msgid "Starting version"
+msgstr ""
+
 #, fuzzy
 msgid "Starts With"
 msgstr "Grafiek breedte"
@@ -15686,6 +15864,9 @@ msgstr "Achtervoegsel"
 msgid "Suffix to apply after the percentage display"
 msgstr "Achtervoegsel om toe te passen na het percentage"
 
+msgid "Suggestions could not be loaded. You can still type a value."
+msgstr ""
+
 msgid "Sum"
 msgstr "Som"
 
@@ -15707,6 +15888,9 @@ msgstr "Zonnestraal Grafiek"
 
 msgid "Sunday"
 msgstr "Zondag"
+
+msgid "Superset Chart"
+msgstr "Superset Grafiek"
 
 msgid "Superset Embedded SDK documentation."
 msgstr "Superset ingesloten SDK documentatie."
@@ -16070,6 +16254,13 @@ msgstr ""
 
 msgid "Test connection"
 msgstr "Test connectie"
+
+msgid ""
+"Testing this connection would change its effective destination (engine "
+"parameters or SSH tunnel endpoint) while reusing the stored password. "
+"Provide the real password to test a connection whose destination has "
+"changed."
+msgstr ""
 
 msgid "Text"
 msgstr "Tekst"
@@ -17114,6 +17305,12 @@ msgstr "Het rapport is gemaakt"
 msgid "The screenshot is being generated. Please, do not leave the page."
 msgstr "De schermafbeelding wordt gegenereerd. Verlaat de pagina alstublieft niet."
 
+#, python-format
+msgid ""
+"The selected %s are linked to %s on %s. Deleting them will break those "
+"objects."
+msgstr ""
+
 #, fuzzy
 msgid "The service url of the layer"
 msgstr "Toon series waarden op de grafiek"
@@ -17271,9 +17468,6 @@ msgstr "Dit dashboard is succesvol opgeslagen."
 msgid "The user has been updated successfully."
 msgstr "Dit dashboard is succesvol opgeslagen."
 
-msgid "The user seems to have been deleted"
-msgstr "De gebruiker lijkt te zijn verwijderd"
-
 #, fuzzy
 msgid "The user was updated successfully"
 msgstr "Dit dashboard is succesvol opgeslagen."
@@ -17342,6 +17536,12 @@ msgstr "Tijd"
 msgid "Theme colors"
 msgstr ""
 
+msgid "Theme could not be created."
+msgstr ""
+
+msgid "Theme could not be updated."
+msgstr ""
+
 #, fuzzy
 msgid "Theme imported"
 msgstr "Dataset geïmporteerd"
@@ -17349,6 +17549,9 @@ msgstr "Dataset geïmporteerd"
 #, fuzzy
 msgid "Theme not found."
 msgstr "CSS sjabloon niet gevonden."
+
+msgid "Theme parameters are invalid."
+msgstr ""
 
 #, fuzzy
 msgid "Themes"
@@ -17776,12 +17979,6 @@ msgstr ""
 msgid "This chart only"
 msgstr ""
 
-#, python-format
-msgid ""
-"This chart uses the \"%s\" dataset, which you do not have permission to "
-"view."
-msgstr ""
-
 msgid "This chart will be restored to the following version:"
 msgstr ""
 
@@ -17924,6 +18121,11 @@ msgstr "Deze dataset wordt extern beheerd en kan niet worden bewerkt in Superset
 
 msgid "This defines the element to be plotted on the chart"
 msgstr "Dit definieert het element dat op de grafiek moet worden uitgezet"
+
+msgid ""
+"This dimension is not compatible with the current selections. Select a "
+"compatible dimension."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, fr, ja,
 # lv, ro, ru, sr, sr_Latn, tr, uk]
@@ -18110,6 +18312,11 @@ msgid ""
 "a misleadingly large number."
 msgstr ""
 
+msgid ""
+"This metric is not compatible with the current selections. Select a "
+"compatible metric."
+msgstr ""
+
 #, fuzzy, python-format
 msgid "This metric might be incompatible with current %s"
 msgstr "Deze metriek is mogelijk niet compatibel met huidig dataset"
@@ -18140,12 +18347,6 @@ msgstr ""
 #, fuzzy
 msgid "This password is too common; please choose a less guessable one."
 msgstr "Dit wachtwoord is te gewoon; kies een minder voorspelbaar wachtwoord."
-
-#, python-format
-msgid ""
-"This query uses the \"%s\" dataset, which you do not have permission to "
-"view."
-msgstr ""
 
 msgid ""
 "This section allows you to configure how to use the slice\n"
@@ -18200,6 +18401,11 @@ msgid "This theme is set locally for your session"
 msgstr "Dit thema is lokaal ingesteld voor uw sessie"
 
 msgid ""
+"This theme is the active default/dark theme - only Admins can edit it - "
+"Read Only"
+msgstr ""
+
+msgid ""
 "This theme uses the dark algorithm. It will be rendered with the light "
 "algorithm instead, so its colors may not look as designed."
 msgstr ""
@@ -18207,6 +18413,13 @@ msgstr ""
 msgid ""
 "This theme uses the light algorithm. It will be rendered with the dark "
 "algorithm instead, so its colors may not look as designed."
+msgstr ""
+
+msgid ""
+"This update would change the connection's effective destination "
+"(host/port, engine parameters, or SSH tunnel endpoint) while reusing the "
+"stored credential. Provide the real password (or SSH tunnel credential) "
+"to confirm a connection move."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
@@ -18970,6 +19183,9 @@ msgstr ""
 msgid "Unable to parse SQL"
 msgstr "Kan SQL niet verwerken"
 
+msgid "Unable to parse the cost estimate returned by the database."
+msgstr ""
+
 #, fuzzy
 msgid "Unable to read the file, please refresh and try again."
 msgstr ""
@@ -18992,6 +19208,9 @@ msgid "Undefined window for rolling operation"
 msgstr "Onbepaald venster voor rolling operation"
 
 msgid "Undid or redid a change"
+msgstr ""
+
+msgid "Undo"
 msgstr ""
 
 msgid "Undo the action"
@@ -20495,6 +20714,9 @@ msgstr ""
 "U importeert één of meer datasets die al bestaan. Overschrijven kan "
 "leiden tot verlies van je werk. Weet je zeker dat je wilt overschrijven?"
 
+msgid "You are not an editor of this theme - Read Only"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -20577,6 +20799,9 @@ msgstr ""
 msgid "You do not have access to the following tables: %s."
 msgstr ""
 
+msgid "You do not have permission to access this datasource"
+msgstr ""
+
 #, python-format
 msgid "You do not have permission to edit this %s"
 msgstr "U bent niet bevoegd deze %s te bewerken"
@@ -20595,6 +20820,12 @@ msgid "You do not have permission to read tags"
 msgstr "Je hebt geen toestemming om tags te lezen"
 
 msgid "You do not have permission to view any archived object types."
+msgstr ""
+
+msgid "You do not have permission to view this chart’s data."
+msgstr ""
+
+msgid "You do not have permission to view this data."
 msgstr ""
 
 msgid "You do not have permissions to edit this dashboard."
@@ -20897,6 +21128,9 @@ msgstr "sleutel z-a"
 msgid "ZIP file contains multiple file types"
 msgstr "ZIP-bestand bevat meerdere bestandstypen"
 
+msgid "Zebra striping"
+msgstr ""
+
 msgid "Zero imputation"
 msgstr "Null imputatie"
 
@@ -20996,6 +21230,9 @@ msgstr "`breedte` moet groter of gelijk zijn aan 0"
 #, fuzzy
 msgid "`window` must be between 1 and 10000"
 msgstr "`window` moet tussen 1 en 10000 liggen"
+
+msgid "a dataset"
+msgstr ""
 
 #, fuzzy
 msgid "a few seconds"
@@ -21392,6 +21629,14 @@ msgstr "uitklappen"
 msgid "extra.dashboard must be an object"
 msgstr "extra.dashboard moet een object zijn"
 
+msgid "extra.dashboard.position_json is not valid JSON"
+msgstr ""
+
+msgid ""
+"extra.nativeFilters could not be validated: dashboard metadata is not "
+"valid JSON"
+msgstr ""
+
 msgid "failed"
 msgstr "mislukt"
 
@@ -21728,6 +21973,11 @@ msgstr ""
 msgid "permalink state not found"
 msgstr "permalink status niet gevonden"
 
+#. do-not-translate
+#, fuzzy
+msgid "pivoted_xlsx"
+msgstr "Gepivoteerd"
+
 msgid "pixels"
 msgstr "pixels"
 
@@ -22017,6 +22267,12 @@ msgstr "zoom gebied"
 #, fuzzy
 msgid "© Layer attribution"
 msgstr "© Laagattributie"
+
+#, python-format
+msgid "…and %s more chart"
+msgid_plural "…and %s more charts"
+msgstr[0] ""
+msgstr[1] ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]

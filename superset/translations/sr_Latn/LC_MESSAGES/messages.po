@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-22 03:19+0000\n"
+"POT-Creation-Date: 2026-09-22 03:26+0000\n"
 "PO-Revision-Date: 2026-06-14 13:20+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sr_Latn\n"
@@ -461,6 +461,27 @@ msgstr "%s URL"
 msgid "%s Virtual"
 msgstr "%s Virtuelno"
 
+#, python-format
+msgid "%s additional restricted chart"
+msgid_plural "%s additional restricted charts"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#, python-format
+msgid "%s additional restricted dashboard"
+msgid_plural "%s additional restricted dashboards"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#, python-format
+msgid "%s affected chart"
+msgid_plural "%s affected charts"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, python-format
 msgid "%s aggregates(s)"
@@ -506,6 +527,13 @@ msgid_plural "%s days ago"
 msgstr[0] "Pre %s dan"
 msgstr[1] "Pre %s dana"
 msgstr[2] "Pre %s dana"
+
+#, python-format
+msgid "%s field"
+msgid_plural "%s fields"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
 #, python-format
 msgid "%s hr ago"
@@ -2249,6 +2277,9 @@ msgstr ""
 msgid "Altered"
 msgstr "Izmenjeno"
 
+msgid "Alternate the row background color to make rows easier to scan."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, ru, sk, sl, uk]
 msgid "Always filter main datetime column"
 msgstr "Uvek filtriraj glavnu kolonu datuma i vremena"
@@ -2825,6 +2856,9 @@ msgstr "Anotacije i slojevi"
 msgid "Annotations could not be deleted."
 msgstr "Anotacije nije moguće obrisati."
 
+msgid "Another save is in progress for this dataset. Retry the same request."
+msgstr ""
+
 # lv, ru, sk, uk]
 msgid "Ant Design Theme Editor"
 msgstr "Editor tema Ant Design"
@@ -2986,6 +3020,9 @@ msgid "Archived %s item(s); permanently deleted %s semantic view(s)"
 msgstr ""
 
 msgid "Archived by"
+msgstr ""
+
+msgid "Archived items must be recovered before they can be opened."
 msgstr ""
 
 #, python-format
@@ -3223,9 +3260,6 @@ msgstr "Automatski prilagodi širinu kolone na osnovu raspoloživog prostora"
 # lv, ru, sk, uk]
 msgid "Automatically adjust column width based on content"
 msgstr "Automatski prilagodi širinu kolone na osnovu sadržaja"
-
-msgid "Automatically retry sending the report when delivery fails."
-msgstr ""
 
 # lv, ru, sk, uk]
 msgid "Automatically sync columns"
@@ -3809,6 +3843,10 @@ msgstr "Izračunaj od prethodnog koraka"
 msgid "Calculated column [%s] requires an expression"
 msgstr "Izračunatoj koloni [%s] je potreban izraz"
 
+#, python-format
+msgid "Calculated column template error: %(msg)s"
+msgstr ""
+
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
 msgid "Calculated columns"
@@ -3855,18 +3893,15 @@ msgstr "Nije moguće pristupiti upitu"
 msgid "Cannot delete a database that has datasets attached"
 msgstr "Nije moguće obrisati bazu podataka koja ima pridružene skupove podataka"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
-#, fuzzy
+#, python-brace-format
 msgid ""
 "Cannot delete a database whose only remaining datasets are soft-deleted. "
-"Restore them (POST /api/v1/dataset/<uuid>/restore) and delete them "
-"permanently once a purge capability ships, or remove the underlying rows "
-"out-of-band, before deleting the database."
+"Purge each one first — GET /api/v1/dataset/<uuid>/purge-impact for its "
+"impact token, then POST /api/v1/dataset/<uuid>/purge with "
+"{\"confirmed_impact_token\": <token>} — before deleting the database. "
+"Restoring them (POST /api/v1/dataset/<uuid>/restore) keeps the datasets, "
+"but the database still cannot be deleted."
 msgstr ""
-"Nije moguće izbrisati bazu podataka čiji su jedini preostali skupovi "
-"podataka meko izbrisani. Vratite ih (POST /api/v1/dataset/<uuid>/restore)"
-" i trajno ih izbrišite kada bude dostupna mogućnost čišćenja, ili "
-"uklonite odgovarajuće redove van opsega, pre brisanja baze podataka."
 
 # lv, ru, sk, uk]
 msgid "Cannot delete system themes"
@@ -4165,6 +4200,9 @@ msgstr "Promena ovog semantičkog prikaza je zabranjena"
 msgid "Changing this task is forbidden"
 msgstr "Promena ovog zadatka je zabranjena"
 
+msgid "Changing this theme is forbidden"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "Character to interpret as decimal point"
 msgstr "Znak koji se tumači kao decimalna tačka"
@@ -4360,6 +4398,17 @@ msgstr "Širina grafikona"
 msgid "Charts"
 msgstr "Grafikoni"
 
+#, python-format
+msgid ""
+"Charts built on the selected semantic view are not checked and will break"
+" if it is deleted."
+msgid_plural ""
+"Charts built on the %s selected semantic views are not checked and will "
+"break if they are deleted."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
 # zh, zh_TW]
 msgid "Charts could not be deleted."
@@ -4399,6 +4448,9 @@ msgid "Check to force date partitions to have the same height"
 msgstr "Označite da biste primorali datumske particije da imaju istu visinu"
 
 msgid "Checking charts and dashboards that use this dataset…"
+msgstr ""
+
+msgid "Checking for affected charts and dashboards…"
 msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -5246,7 +5298,7 @@ msgstr "Konfiguriši izgled kontrolne table, boje i prilagođeni CSS"
 msgid "Configure filter scopes"
 msgstr "Konfiguriši opsege filtera"
 
-msgid "Configure retry behavior on delivery failure."
+msgid "Configure retries when alert or report generation fails before delivery."
 msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -5337,6 +5389,9 @@ msgid "Connection failed, please check your connection settings."
 msgstr "Povezivanje nije uspelo, proveri podešavanja veze."
 
 msgid "Connection looks good!"
+msgstr ""
+
+msgid "Contact the report owner for error details."
 msgstr ""
 
 # ru, uk]
@@ -5514,6 +5569,12 @@ msgid ""
 "server (CORS); copy its contents in manually instead."
 msgstr ""
 
+#, python-format
+msgid ""
+"Could not check which charts and dashboards depend on the selected %s. "
+"Deleting them may break charts and dashboards."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, ru, sk, sl, tr, uk]
 #, python-format
 msgid "Could not connect to database: \"%(database)s\""
@@ -5561,6 +5622,11 @@ msgstr "Nije moguće razrešiti naziv hosta: \"%(host)s\"."
 # fr, ja, lv, mi, pt_BR, ru, sk, uk]
 msgid "Could not validate the user in the current session."
 msgstr "Nije moguće potvrditi korisnika u trenutnoj sesiji."
+
+msgid ""
+"Could not verify which dimensions are compatible. All dimensions are "
+"shown."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 msgid "Count"
@@ -5816,6 +5882,11 @@ msgstr "Prilagođene palete boja"
 # fr, ja, lv, mi, ru, sk, uk]
 msgid "Custom column name (leave blank for default)"
 msgstr "Prilagođeno ime kolone (ostavite prazno za podrazumevano)"
+
+msgid ""
+"Custom column values are not supported here. Select a saved dimension to "
+"replace this value."
+msgstr ""
 
 # es, fa, fr, ja, lv, mi, ru, sk, sl, uk]
 msgid "Custom conditional formatting"
@@ -6155,6 +6226,10 @@ msgstr "Podaci"
 
 msgid "Data Connections"
 msgstr "Veze sa podacima"
+
+# uk]
+msgid "Data Export Options"
+msgstr "Opcije izvoza podataka"
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "Data Table"
@@ -7208,6 +7283,9 @@ msgstr "Dimenzije"
 msgid "Dimensions (%s)"
 msgstr "Dimenzije (%s)"
 
+msgid "Dimensions and metrics"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
 "Dimensions contain qualitative values such as names, dates, or "
@@ -7474,6 +7552,10 @@ msgstr ""
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "Draft"
 msgstr "Nacrt"
+
+#, python-format
+msgid "Drag %s folder"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Drag and drop components and charts to the dashboard"
@@ -7849,6 +7931,11 @@ msgstr "Uredi svojstva sloja anotacije"
 msgid "Edit chart"
 msgstr "Uredi grafikon"
 
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
+# zh_TW]
+msgid "Edit chart properties"
+msgstr "Uredi svojstva grafikona"
+
 # es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sl, tr, uk, zh, zh_TW]
 msgid "Edit dashboard"
 msgstr "Uredi kontrolnu tablu"
@@ -8012,6 +8099,12 @@ msgstr "Kod za ugrađivanje"
 msgid "Embed dashboard"
 msgstr "Ugradi kontrolnu tablu"
 
+msgid ""
+"Embedded authentication failed. The guest token may exceed the request-"
+"header size limit. Reduce the token payload; large inline RLS lists can "
+"be replaced with an entitlements-table lookup."
+msgstr ""
+
 # fr, ja, lv, mi, ru, sk, sl, uk]
 msgid "Embedded dashboard could not be deleted."
 msgstr "Ugrađena kontrolna tabla nije mogla biti obrisana."
@@ -8121,6 +8214,9 @@ msgstr "Omogućava prikaz ikona za GeoJSON tačke"
 # pt_BR, ru, sk, uk]
 msgid "Enables rendering of labels for GeoJSON points"
 msgstr "Omogućava prikaz oznaka za GeoJSON tačke"
+
+msgid "Encrypted extra field must be a mapping from string keys to values."
+msgstr ""
 
 msgid "Encrypted extra fields"
 msgstr "Šifrovana dodatna polja"
@@ -8419,6 +8515,10 @@ msgstr "Greška pri dobavljanju grupa"
 msgid "Error while fetching roles"
 msgstr "Greška pri dobavljanju uloga"
 
+#, python-format
+msgid "Error while rendering calculated column expression: %(msg)s"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, python-format
 msgid "Error while rendering virtual dataset query: %(msg)s"
@@ -8604,6 +8704,14 @@ msgstr "Istraži skup rezultata u prikazu za istraživanje podataka"
 msgid "Export"
 msgstr "Izvezi"
 
+# ru, uk]
+msgid "Export All Data"
+msgstr "Izvezi sve podatke"
+
+# uk]
+msgid "Export Current View"
+msgstr "Izvezi trenutni prikaz"
+
 msgid "Export Data to Excel"
 msgstr ""
 
@@ -8693,6 +8801,14 @@ msgstr "Izvezi u potpuni .CSV"
 msgid "Export to full Excel"
 msgstr "Izvezi u potpuni Excel"
 
+# de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
+msgid "Export to original .CSV"
+msgstr "Izvezi u originalni .CSV"
+
+# de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
+msgid "Export to pivoted .CSV"
+msgstr "Izvezi u ukršteni .CSV"
+
 #, python-format
 msgid ""
 "Exporting semantic views is not supported yet — %s semantic-view row(s) "
@@ -8750,10 +8866,14 @@ msgstr "Dodatne kontrole"
 msgid "Extra Parameters"
 msgstr "Dodatni parametri"
 
+#, python-brace-format
 msgid ""
 "Extra data to specify table metadata, such as `{ \"warning_markdown\": "
 "\"This is a warning.\" }`. Use the Certification fields below for "
 "certification metadata."
+msgstr ""
+
+msgid "Extra field must be a mapping from string keys to values."
 msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -8871,6 +8991,10 @@ msgstr "Neuspelo učitavanje podataka grafikona."
 #, python-format
 msgid "Failed to load columns for %s %s"
 msgstr "Neuspelo učitavanje kolona za %s %s"
+
+#, python-format
+msgid "Failed to load dimensions for semantic view %s"
+msgstr ""
 
 msgid "Failed to load drill-to-detail rows"
 msgstr ""
@@ -8993,6 +9117,10 @@ msgstr "Neuspela provera opcija izbora: %s"
 msgid "Failure Notifications"
 msgstr ""
 
+# ru, sk, uk]
+msgid "Falling back to CSV; Excel export library not available."
+msgstr "Vraćanje na CSV; biblioteka za izvoz u Excel nije dostupna."
+
 # ru, uk]
 msgid "False"
 msgstr "Netačno"
@@ -9081,9 +9209,19 @@ msgstr "Popunite sva obavezna polja da biste omogućili „Podrazumevanu vrednos
 msgid "Fill method"
 msgstr "Metod popune"
 
+msgid ""
+"Fill missing periods across the whole time range of the chart instead of "
+"only between the first and the last data point. Useful to keep a series "
+"anchored to the selected time range when the data starts late or ends "
+"early."
+msgstr ""
+
 # lv, ru, sk, uk]
 msgid "Fill out the registration form"
 msgstr "Popunite registracioni obrazac"
+
+msgid "Fill the entire time range"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "Filled"
@@ -9171,6 +9309,9 @@ msgstr "Filteri"
 # uk]
 msgid "Filters and controls"
 msgstr "Filteri i kontrole"
+
+msgid "Filters applied from chat"
+msgstr ""
 
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
@@ -10412,6 +10553,10 @@ msgstr "Nevažeći ključ stalne veze"
 msgid "Invalid reference to column: \"%(column)s\""
 msgstr "Nevažeća referenca na kolonu: \"%(column)s\""
 
+#, python-format
+msgid "Invalid resample rule: %(rule)s"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, python-format
 msgid "Invalid result type: %(result_type)s"
@@ -10429,6 +10574,10 @@ msgstr "Nevažeće stanje."
 #, python-format
 msgid "Invalid tab ids: %(tab_ids)s"
 msgstr "Nevažeći ID-ovi kartica: %(tab_ids)s"
+
+#, python-format
+msgid "Invalid time range boundary for resample: %(value)s"
+msgstr ""
 
 # ru, uk]
 msgid "Invalid username or password"
@@ -12057,6 +12206,10 @@ msgstr ""
 msgid "Must be between 1 and 10"
 msgstr ""
 
+#, python-brace-format
+msgid "Must be one of: {choices}."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Must be unique"
 msgstr "Mora biti jedinstveno"
@@ -12195,6 +12348,11 @@ msgstr "Novo"
 msgid "New Semantic Layer"
 msgstr "Novi semantički sloj"
 
+# de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
+# zh, zh_TW]
+msgid "New chart"
+msgstr "Novi grafikon"
+
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 msgid "New dataset"
 msgstr "Novi skup podataka"
@@ -12299,6 +12457,10 @@ msgstr ""
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 msgid "No available filters."
 msgstr "Nema dostupnih filtera."
+
+#, python-format
+msgid "No charts or dashboards depend on the selected %s."
+msgstr ""
 
 msgid "No color mappings defined. Click \"+ Add more\" to get started."
 msgstr ""
@@ -12471,6 +12633,9 @@ msgstr "Nisu pronađeni sačuvani izrazi"
 # de, es, fa, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "No saved metrics found"
 msgstr "Nisu pronađene sačuvane metrike"
+
+msgid "No selection modes are available for this control."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "No stored results found, you need to re-run your query"
@@ -13127,6 +13292,9 @@ msgstr "Original"
 msgid "Original value"
 msgstr "Originalna vrednost"
 
+msgid "Original version"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Orthogonal"
 msgstr "Ortogonalno"
@@ -13589,6 +13757,9 @@ msgstr "Pivot operacija mora sadržati najmanje jednu agregaciju"
 msgid "Pivot operation requires at least one index"
 msgstr "Pivot operacija zahteva najmanje jedan indeks"
 
+msgid "Pivot table download failed, please refresh and try again."
+msgstr ""
+
 # de, es, fa, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Pivoted"
 msgstr "Pivotirano"
@@ -13917,6 +14088,9 @@ msgstr ""
 # zh_TW]
 msgid "Preview"
 msgstr "Pregled"
+
+msgid "Preview this version"
+msgstr ""
 
 # es, fa, ja, lv, mi, ru, sk, sl, uk]
 msgid "Preview uploaded file"
@@ -14843,9 +15017,6 @@ msgstr ""
 msgid "Resume auto-refresh"
 msgstr "Nastavi automatsko osvežavanje"
 
-msgid "Retries are not supported for alerts"
-msgstr ""
-
 # ru, uk]
 msgid "Retry"
 msgstr "Pokušaj ponovo"
@@ -14853,6 +15024,11 @@ msgstr "Pokušaj ponovo"
 # fr, ja, lv, mi, ru, sk, sl, uk]
 msgid "Retry fetching results"
 msgstr "Pokušaj ponovo preuzimanje rezultata"
+
+msgid ""
+"Retry generation failures before delivery starts. Alerts re-check their "
+"condition on each attempt. Delivery failures are not replayed."
+msgstr ""
 
 msgid "Retrying"
 msgstr ""
@@ -15544,6 +15720,12 @@ msgstr "Opseg"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Scoping"
 msgstr "Opseg"
+
+msgid "Screenshot cache is unavailable"
+msgstr ""
+
+msgid "Screenshot request is temporarily unavailable"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Screenshot width"
@@ -17016,6 +17198,12 @@ msgstr "Klizač i unos opsega"
 msgid "Slug"
 msgstr "Slug"
 
+#, python-format
+msgid ""
+"Slug %(slug)s belongs to the soft-deleted dashboard %(uuid)s. Restore it "
+"via POST /api/v1/dashboard/%(uuid)s/restore, or use a different slug."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "Small"
 msgstr "Malo"
@@ -17122,10 +17310,6 @@ msgstr "Žao nam je, došlo je do greške"
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "Sorry, an error occurred"
 msgstr "Žao nam je, došlo je do greške"
-
-# de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
-msgid "Sorry, an unknown error occurred"
-msgstr "Žao nam je, došlo je do nepoznate greške"
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "Sorry, an unknown error occurred."
@@ -17426,6 +17610,9 @@ msgstr ""
 msgid "Started"
 msgstr "Pokrenuto"
 
+msgid "Starting version"
+msgstr ""
+
 # uk]
 msgid "Starts With"
 msgstr "Počinje sa"
@@ -17635,6 +17822,9 @@ msgstr "Sufiks"
 msgid "Suffix to apply after the percentage display"
 msgstr "Sufiks koji se primenjuje nakon prikaza procenta"
 
+msgid "Suggestions could not be loaded. You can still type a value."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Sum"
 msgstr "Zbir"
@@ -17661,6 +17851,10 @@ msgstr "Sunburst grafikon"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "Sunday"
 msgstr "Nedelja"
+
+# de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
+msgid "Superset Chart"
+msgstr "Superset grafikon"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Superset Embedded SDK documentation."
@@ -18055,6 +18249,13 @@ msgstr ""
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Test connection"
 msgstr "Testiraj vezu"
+
+msgid ""
+"Testing this connection would change its effective destination (engine "
+"parameters or SSH tunnel endpoint) while reusing the stored password. "
+"Provide the real password to test a connection whose destination has "
+"changed."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Text"
@@ -19101,6 +19302,12 @@ msgstr "Snimak ekrana je preuzet."
 msgid "The screenshot is being generated. Please, do not leave the page."
 msgstr "Snimak ekrana se generiše. Molimo nemojte napuštati stranicu."
 
+#, python-format
+msgid ""
+"The selected %s are linked to %s on %s. Deleting them will break those "
+"objects."
+msgstr ""
+
 # ja, lv, mi, ru, sk, uk]
 msgid "The service url of the layer"
 msgstr "URL adresa servisa sloja"
@@ -19270,10 +19477,6 @@ msgstr "Korisnik je uspešno kreiran."
 msgid "The user has been updated successfully."
 msgstr "Korisnik je uspešno ažuriran."
 
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
-msgid "The user seems to have been deleted"
-msgstr "Izgleda da je korisnik obrisan"
-
 # ru, sk, uk]
 msgid "The user was updated successfully"
 msgstr "Korisnik je uspešno ažuriran"
@@ -19339,6 +19542,12 @@ msgstr "Tema"
 msgid "Theme colors"
 msgstr ""
 
+msgid "Theme could not be created."
+msgstr ""
+
+msgid "Theme could not be updated."
+msgstr ""
+
 # ru, uk]
 msgid "Theme imported"
 msgstr "Tema je uvezena"
@@ -19346,6 +19555,9 @@ msgstr "Tema je uvezena"
 # uk]
 msgid "Theme not found."
 msgstr "Tema nije pronađena."
+
+msgid "Theme parameters are invalid."
+msgstr ""
 
 # lv, ru, sk, uk]
 msgid "Themes"
@@ -19814,12 +20026,6 @@ msgstr ""
 msgid "This chart only"
 msgstr ""
 
-#, python-format
-msgid ""
-"This chart uses the \"%s\" dataset, which you do not have permission to "
-"view."
-msgstr ""
-
 msgid "This chart will be restored to the following version:"
 msgstr ""
 
@@ -19985,6 +20191,11 @@ msgstr ""
 msgid "This defines the element to be plotted on the chart"
 msgstr "Ovo definiše element koji će biti prikazan na grafikonu"
 
+msgid ""
+"This dimension is not compatible with the current selections. Select a "
+"compatible dimension."
+msgstr ""
+
 # ru, uk]
 msgid ""
 "This email is already associated with an account. Please choose another "
@@ -20144,6 +20355,11 @@ msgid ""
 "a misleadingly large number."
 msgstr ""
 
+msgid ""
+"This metric is not compatible with the current selections. Select a "
+"compatible metric."
+msgstr ""
+
 #, python-format
 msgid "This metric might be incompatible with current %s"
 msgstr "Ova metrika možda nije kompatibilna sa trenutnim %s"
@@ -20170,12 +20386,6 @@ msgid "This password is too common; please choose a less guessable one."
 msgstr ""
 "Ova lozinka je previše uobičajena; molimo izaberite lozinku koja se teže "
 "pogađa."
-
-#, python-format
-msgid ""
-"This query uses the \"%s\" dataset, which you do not have permission to "
-"view."
-msgstr ""
 
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid ""
@@ -20231,6 +20441,11 @@ msgid "This theme is set locally for your session"
 msgstr "Ova tema je podešena lokalno za vašu sesiju"
 
 msgid ""
+"This theme is the active default/dark theme - only Admins can edit it - "
+"Read Only"
+msgstr ""
+
+msgid ""
 "This theme uses the dark algorithm. It will be rendered with the light "
 "algorithm instead, so its colors may not look as designed."
 msgstr ""
@@ -20238,6 +20453,13 @@ msgstr ""
 msgid ""
 "This theme uses the light algorithm. It will be rendered with the dark "
 "algorithm instead, so its colors may not look as designed."
+msgstr ""
+
+msgid ""
+"This update would change the connection's effective destination "
+"(host/port, engine parameters, or SSH tunnel endpoint) while reusing the "
+"stored credential. Provide the real password (or SSH tunnel credential) "
+"to confirm a connection move."
 msgstr ""
 
 # fr, ja, lv, mi, pt_BR, ru, sk, uk]
@@ -21071,6 +21293,9 @@ msgstr ""
 msgid "Unable to parse SQL"
 msgstr "Nije moguće raščlaniti SQL"
 
+msgid "Unable to parse the cost estimate returned by the database."
+msgstr ""
+
 # uk]
 msgid "Unable to read the file, please refresh and try again."
 msgstr "Nije moguće pročitati datoteku, osvežite stranicu i pokušajte ponovo."
@@ -21092,6 +21317,9 @@ msgid "Undefined window for rolling operation"
 msgstr "Nedefinisan prozor za operaciju klizanja"
 
 msgid "Undid or redid a change"
+msgstr ""
+
+msgid "Undo"
 msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
@@ -22797,6 +23025,9 @@ msgstr ""
 "Uvozite jednu ili više tema koje već postoje. Prepisivanje može dovesti "
 "do gubitka dela vašeg rada. Da li ste sigurni da želite da prepišete?"
 
+msgid "You are not an editor of this theme - Read Only"
+msgstr ""
+
 # fr, ja, lv, mi, ru, sk, uk]
 msgid ""
 "You are viewing this chart in a dashboard context with labels shared "
@@ -22884,6 +23115,9 @@ msgstr ""
 msgid "You do not have access to the following tables: %s."
 msgstr ""
 
+msgid "You do not have permission to access this datasource"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 #, python-format
 msgid "You do not have permission to edit this %s"
@@ -22907,6 +23141,12 @@ msgid "You do not have permission to read tags"
 msgstr "Nemate dozvolu za čitanje oznaka"
 
 msgid "You do not have permission to view any archived object types."
+msgstr ""
+
+msgid "You do not have permission to view this chart’s data."
+msgstr ""
+
+msgid "You do not have permission to view this data."
 msgstr ""
 
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
@@ -23226,6 +23466,9 @@ msgstr "Z-A"
 msgid "ZIP file contains multiple file types"
 msgstr "ZIP datoteka sadrži više tipova datoteka"
 
+msgid "Zebra striping"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "Zero imputation"
 msgstr "Imputacija nulom"
@@ -23344,6 +23587,9 @@ msgstr "`width` mora biti veći ili jednak 0"
 #, fuzzy
 msgid "`window` must be between 1 and 10000"
 msgstr "`window` mora biti između 1 i 10000"
+
+msgid "a dataset"
+msgstr ""
 
 msgid "a few seconds"
 msgstr "nekoliko sekundi"
@@ -23806,6 +24052,14 @@ msgstr "proširi"
 msgid "extra.dashboard must be an object"
 msgstr "extra.dashboard mora biti objekat"
 
+msgid "extra.dashboard.position_json is not valid JSON"
+msgstr ""
+
+msgid ""
+"extra.nativeFilters could not be validated: dashboard metadata is not "
+"valid JSON"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "failed"
 msgstr "neuspelo"
@@ -24164,6 +24418,10 @@ msgstr ""
 msgid "permalink state not found"
 msgstr "stanje trajne veze nije pronađeno"
 
+#. do-not-translate
+msgid "pivoted_xlsx"
+msgstr "pivoted_xlsx"
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
 msgid "pixels"
 msgstr "pikseli"
@@ -24498,6 +24756,13 @@ msgstr "oblast zumiranja"
 # fr, ja, lv, mi, ru, sk, uk]
 msgid "© Layer attribution"
 msgstr "© Atribucija sloja"
+
+#, python-format
+msgid "…and %s more chart"
+msgid_plural "…and %s more charts"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
 msgid "№"
 msgstr "№"

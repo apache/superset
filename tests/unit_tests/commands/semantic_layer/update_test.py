@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -199,6 +200,20 @@ def test_update_semantic_layer_not_found(mocker: MockerFixture) -> None:
 
     with pytest.raises(SemanticLayerNotFoundError):
         UpdateSemanticLayerCommand("missing-uuid", {"name": "test"}).run()
+
+
+def test_update_semantic_layer_requires_access(mocker: MockerFixture) -> None:
+    """A user without access to the layer cannot update it."""
+    mock_model = MagicMock()
+    mock_model.raise_for_access.side_effect = SupersetSecurityException(MagicMock())
+
+    dao = mocker.patch("superset.commands.semantic_layer.update.SemanticLayerDAO")
+    dao.find_by_uuid.return_value = mock_model
+
+    with pytest.raises(SemanticLayerForbiddenError):
+        UpdateSemanticLayerCommand("not-mine-uuid", {"name": "test"}).run()
+
+    dao.update.assert_not_called()
 
 
 def test_update_semantic_layer_forbidden(mocker: MockerFixture) -> None:
@@ -476,9 +491,10 @@ def test_update_uniqueness_same_config_same_name_fails(
 def test_unmask_configuration_restores_masked_secret() -> None:
     """A masked write-only field in the payload is replaced by the stored
     value rather than overwriting the real credential with the mask."""
-    result = _unmask_configuration(
+    result: dict[str, Any] = _unmask_configuration(
         '{"account": "test", "password": "hunter2"}',
         {"account": "test", "password": PASSWORD_MASK},
+        "test_provider",
     )
 
     assert result == {"account": "test", "password": "hunter2"}
@@ -487,9 +503,10 @@ def test_unmask_configuration_restores_masked_secret() -> None:
 def test_unmask_configuration_keeps_fresh_secret() -> None:
     """A genuinely new secret value (not the mask sentinel) passes through
     unchanged."""
-    result = _unmask_configuration(
+    result: dict[str, Any] = _unmask_configuration(
         '{"account": "test", "password": "old-secret"}',
         {"account": "test", "password": "new-secret"},
+        "test_provider",
     )
 
     assert result == {"account": "test", "password": "new-secret"}
@@ -501,13 +518,14 @@ def test_unmask_configuration_restores_fail_closed_masked_fields() -> None:
     round-trip, not just write-only ones -- otherwise a name-only save
     persists the literal mask into non-secret fields like ``account`` once
     the schema becomes available again."""
-    result = _unmask_configuration(
+    result: dict[str, Any] = _unmask_configuration(
         '{"account": "test", "database": "prod", "password": "hunter2"}',
         {
             "account": PASSWORD_MASK,
             "database": PASSWORD_MASK,
             "password": PASSWORD_MASK,
         },
+        "test_provider",
     )
 
     assert result == {
@@ -520,9 +538,10 @@ def test_unmask_configuration_restores_fail_closed_masked_fields() -> None:
 def test_unmask_configuration_missing_existing_key() -> None:
     """A masked field with no corresponding stored value passes through
     unchanged rather than raising."""
-    result = _unmask_configuration(
+    result: dict[str, Any] = _unmask_configuration(
         '{"account": "test"}',
         {"account": "test", "password": PASSWORD_MASK},
+        "test_provider",
     )
 
     assert result == {"account": "test", "password": PASSWORD_MASK}
@@ -573,3 +592,54 @@ def test_update_semantic_layer_preserves_masked_secret_end_to_end(
             "configuration": json.dumps({"account": "test", "password": "hunter2"}),
         },
     )
+
+
+@pytest.mark.parametrize("registered", [True, False])
+def test_update_explicit_empty_configuration_is_validated(
+    mocker: MockerFixture, registered: bool
+) -> None:
+    """Empty input is validated; unavailable providers fail with a controlled error."""
+    model: MagicMock = MagicMock(type="test_provider", configuration="{}")
+    dao: MagicMock = mocker.patch(
+        "superset.commands.semantic_layer.update.SemanticLayerDAO"
+    )
+    dao.find_by_uuid.return_value = model
+    mocker.patch(
+        "superset.commands.semantic_layer.update.current_user_can_modify_object",
+        return_value=True,
+    )
+    provider: MagicMock = MagicMock()
+    provider.from_configuration.side_effect = ValueError("missing required password")
+    mocker.patch.dict(
+        "superset.commands.semantic_layer.update.registry",
+        {"test_provider": provider} if registered else {},
+        clear=True,
+    )
+    with pytest.raises(SemanticLayerInvalidError):
+        UpdateSemanticLayerCommand("layer", {"configuration": {}}).run()
+    if registered:
+        provider.from_configuration.assert_called_once_with({})
+    else:
+        provider.from_configuration.assert_not_called()
+    dao.update.assert_not_called()
+
+
+def test_update_missing_provider_nonempty_configuration(mocker: MockerFixture) -> None:
+    """A stale provider gives a controlled error independently of empty input."""
+    model: MagicMock = MagicMock(type="missing", configuration="{}")
+    dao: MagicMock = mocker.patch(
+        "superset.commands.semantic_layer.update.SemanticLayerDAO"
+    )
+    dao.find_by_uuid.return_value = model
+    mocker.patch(
+        "superset.commands.semantic_layer.update.current_user_can_modify_object",
+        return_value=True,
+    )
+    mocker.patch.dict(
+        "superset.commands.semantic_layer.update.registry", {}, clear=True
+    )
+    with pytest.raises(SemanticLayerInvalidError, match="Unknown type: missing"):
+        UpdateSemanticLayerCommand(
+            "layer", {"configuration": {"host": "example"}}
+        ).run()
+    dao.update.assert_not_called()

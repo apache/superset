@@ -69,7 +69,14 @@ const mockUser = {
   userId: 1,
   firstName: 'Admin',
   lastName: 'User',
-  roles: { Admin: [['can_write', 'Database']] },
+  roles: {
+    Admin: [
+      ['can_read', 'Database'],
+      ['can_write', 'Database'],
+      ['can_read', 'SemanticLayer'],
+      ['can_write', 'SemanticLayer'],
+    ],
+  },
   permissions: {},
   isActive: true,
   email: 'admin@example.com',
@@ -87,16 +94,25 @@ const setupMocks = ({
   dependents,
   dependentsError = false,
   rows = [semanticLayerRow],
+  permissions = ['can_read', 'can_write', 'can_export'],
+  uploadResponse = { result: [], count: 0 },
 }: {
   dependents: { id: number; table_name: string }[];
   dependentsError?: boolean;
   rows?: (typeof semanticLayerRow)[];
+  permissions?: string[];
+  uploadResponse?:
+    | number
+    | {
+        result: { engine_information: { supports_file_upload: boolean } }[];
+        count: number;
+      };
 }) => {
   fetchMock.clearHistory().removeRoutes();
   fetchMock.get('glob:*/api/v1/database/_info*', {
-    permissions: ['can_read', 'can_write', 'can_export'],
+    permissions,
   });
-  fetchMock.get('glob:*/api/v1/database/?q=*', { result: [], count: 0 });
+  fetchMock.get('glob:*/api/v1/database/?q=*', uploadResponse);
   fetchMock.get('glob:*/api/v1/database/related/*', { result: [], count: 0 });
   fetchMock.get(CONNECTIONS_ROUTE, {
     result: rows,
@@ -114,10 +130,10 @@ const setupMocks = ({
   fetchMock.delete(DELETE_ROUTE, {});
 };
 
-const renderDatabaseList = () => {
+const renderDatabaseList = (user = mockUser) => {
   const store = configureStore({
     reducer: {
-      user: (state = mockUser) => state,
+      user: (state = user) => state,
       common: (
         state = {
           conf: {
@@ -134,7 +150,7 @@ const renderDatabaseList = () => {
       getDefaultMiddleware({ serializableCheck: false, immutableCheck: false }),
   });
 
-  return render(<DatabaseList user={mockUser} />, {
+  return render(<DatabaseList user={user} />, {
     store,
     useQueryParams: true,
     useRouter: true,
@@ -422,4 +438,115 @@ test('confirming the modal deletes the semantic layer', async () => {
   await waitFor(() => {
     expect(fetchMock.callHistory.calls(DELETE_ROUTE)).toHaveLength(1);
   });
+});
+
+test('database write does not offer edit or delete for semantic layers', async () => {
+  setupMocks({ dependents: [] });
+  renderDatabaseList({
+    ...mockUser,
+    roles: {
+      Admin: [
+        ['can_read', 'Database'],
+        ['can_write', 'Database'],
+        ['can_read', 'SemanticLayer'],
+      ],
+    },
+  });
+  await screen.findByText('Demo Semantic Layer');
+  expect(screen.queryByTestId('Delete')).not.toBeInTheDocument();
+  expect(screen.queryByTestId('Edit')).not.toBeInTheDocument();
+});
+
+test('layer-only writer gets layer actions without requesting Database endpoints', async () => {
+  setupMocks({ dependents: [] });
+  renderDatabaseList({
+    ...mockUser,
+    roles: {
+      Admin: [
+        ['can_read', 'SemanticLayer'],
+        ['can_write', 'SemanticLayer'],
+      ],
+    },
+  });
+  await screen.findByTestId('Delete');
+  expect(
+    fetchMock.callHistory.calls('glob:*/api/v1/database/_info*'),
+  ).toHaveLength(0);
+  expect(
+    fetchMock.callHistory.calls('glob:*/api/v1/database/?q=*'),
+  ).toHaveLength(0);
+});
+
+test('export-only database reader sees the Export action column', async () => {
+  const databaseRow = {
+    ...semanticLayerRow,
+    source_type: 'database',
+    id: 42,
+    database_name: 'Export database',
+  };
+  setupMocks({
+    dependents: [],
+    rows: [databaseRow],
+    permissions: ['can_read', 'can_export'],
+  });
+  renderDatabaseList({
+    ...mockUser,
+    roles: {
+      Admin: [
+        ['can_read', 'Database'],
+        ['can_export', 'Database'],
+        ['can_read', 'SemanticLayer'],
+      ],
+    },
+  });
+  await screen.findByText('Export database');
+  expect(await screen.findByTestId('database-export')).toBeInTheDocument();
+  expect(screen.queryByTestId('database-edit')).not.toBeInTheDocument();
+  expect(screen.queryByTestId('database-delete')).not.toBeInTheDocument();
+});
+
+test.each([true, false])(
+  'authorized upload capability respects engine support: %s',
+  async supportsUpload => {
+    setupMocks({
+      dependents: [],
+      uploadResponse: {
+        result: [
+          { engine_information: { supports_file_upload: supportsUpload } },
+        ],
+        count: 1,
+      },
+    });
+    renderDatabaseList({
+      ...mockUser,
+      roles: { Admin: [...mockUser.roles.Admin, ['can_upload', 'Database']] },
+    });
+    await screen.findByText('Demo Semantic Layer');
+    if (supportsUpload) {
+      await userEvent.click(await screen.findByText('Upload file to database'));
+      expect(
+        await screen.findByRole('menuitem', { name: 'Upload CSV' }),
+      ).not.toHaveAttribute('aria-disabled', 'true');
+    } else {
+      expect(
+        screen.queryByText('Upload file to database'),
+      ).not.toBeInTheDocument();
+    }
+    expect(
+      fetchMock.callHistory.calls('glob:*/api/v1/database/?q=*'),
+    ).toHaveLength(1);
+  },
+);
+
+test('failed authorized upload lookup leaves uploads disabled', async () => {
+  setupMocks({ dependents: [], uploadResponse: 403 });
+  renderDatabaseList({
+    ...mockUser,
+    roles: { Admin: [...mockUser.roles.Admin, ['can_upload', 'Database']] },
+  });
+  await screen.findByText('Demo Semantic Layer');
+  expect(screen.queryByText('Upload file to database')).not.toBeInTheDocument();
+  expect(
+    fetchMock.callHistory.calls('glob:*/api/v1/database/?q=*'),
+  ).toHaveLength(1);
 });
