@@ -26,6 +26,7 @@ from flask_appbuilder.models.sqla import Model
 from superset import db
 from superset.commands.base import BaseCommand
 from superset.commands.database.exceptions import (
+    DatabaseConnectionFailedError,
     DatabaseExistsValidationError,
     DatabaseInvalidError,
     DatabaseNotFoundError,
@@ -47,6 +48,7 @@ from superset.models.core import Database
 from superset.utils import json
 from superset.utils.core import get_username
 from superset.utils.decorators import on_error, transaction
+from superset.utils.ssh_tunnel import unmask_password_info
 
 logger = logging.getLogger(__name__)
 
@@ -80,6 +82,9 @@ class UpdateDatabaseCommand(BaseCommand):
             # Depending on the changes to the OAuth2 configuration we may need to purge
             # existing personal tokens.
             self._handle_oauth2()
+
+        # The DAO updates the model in place, so compare settings before applying them.
+        can_skip_failed_sync = self._can_skip_failed_sync()
 
         # Some DBs require running a query to get the default catalog.
         # In these cases, if the current connection is broken then
@@ -122,8 +127,63 @@ class UpdateDatabaseCommand(BaseCommand):
             ).run()
         except (OAuth2RedirectError, MissingOAuth2TokenError):
             pass
+        except DatabaseConnectionFailedError:
+            if not can_skip_failed_sync:
+                raise
+            logger.warning(
+                "Skipping permission sync for database %s: connection unavailable "
+                "and connection settings unchanged",
+                self._model_id,
+            )
 
         return database
+
+    def _can_skip_failed_sync(self) -> bool:
+        """Check that the connection and permission identity remain unchanged."""
+        assert self._model
+
+        connection_fields = {
+            "database_name",  # Schema and catalog permissions include this name.
+            "sqlalchemy_uri",
+            "encrypted_extra",
+            "extra",
+            "server_cert",
+            "impersonate_user",
+            "ssh_tunnel",
+        }
+        for key in connection_fields & self._properties.keys():
+            incoming = self._properties[key]
+            original = getattr(self._model, key)
+            if key == "sqlalchemy_uri":
+                try:
+                    original = make_url_safe(self._model.sqlalchemy_uri_decrypted)
+                except Exception:
+                    # An unavailable old password store must not block repairs.
+                    return False
+                incoming = make_url_safe(incoming.strip())
+                if incoming.password == PASSWORD_MASK:
+                    incoming = incoming.set(password=original.password)
+            elif key in {"extra", "encrypted_extra"}:
+                try:
+                    original = json.loads(original or "{}")
+                    incoming = json.loads(incoming or "{}")
+                except json.JSONDecodeError:
+                    return False
+            elif key == "server_cert":
+                original = original or None
+                incoming = incoming or None
+            elif key == "ssh_tunnel" and original is not None and incoming is not None:
+                incoming = unmask_password_info(incoming.copy(), original)
+                incoming = {
+                    field: incoming.get(field) for field in original.export_fields
+                }
+                original = {
+                    field: getattr(original, field) for field in original.export_fields
+                }
+            if incoming != original:
+                return False
+
+        return True
 
     def _handle_oauth2(self) -> None:
         """

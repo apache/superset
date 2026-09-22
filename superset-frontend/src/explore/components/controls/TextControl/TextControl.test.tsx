@@ -103,3 +103,18 @@ test('should return errors when not an int', async () => {
     'is expected to be an integer',
   ]);
 });
+
+test('should keep showing an externally updated value across later re-renders', () => {
+  const { rerender } = render(<TextControl {...mockedProps} value="100" />);
+  expect(screen.getByDisplayValue('100')).toBeInTheDocument();
+
+  // the value is changed from outside the control, e.g. by an undo or by a
+  // programmatic reset of the form data
+  rerender(<TextControl {...mockedProps} value="200" />);
+  expect(screen.getByDisplayValue('200')).toBeInTheDocument();
+
+  // any later re-render that leaves the value untouched must not resurrect
+  // the stale local value
+  rerender(<TextControl {...mockedProps} value="200" label="Row limit" />);
+  expect(screen.getByDisplayValue('200')).toBeInTheDocument();
+});
