@@ -87,26 +87,20 @@ def _load_dataset_for_samples(
     return dataset, None
 
 
-def _repoints_table(
-    dataset: SqlaTable, requested_table: Table, *, becomes_virtual: bool
-) -> bool:
+def _repoints_table(dataset: SqlaTable, requested_table: Table) -> bool:
     """
     Would the request point ``dataset`` at a different physical table?
 
-    As in ``UpdateDatasetCommand._validate_dataset_source``, the table is not
-    checked while the result is virtual: ``table_name`` is a label there, not a
-    pointer. Dropping the SQL binds that label to a real table, so a
-    virtual-to-physical conversion is a repoint too, even when the label itself
-    is unchanged.
+    A virtual dataset's ``table_name`` is a label rather than a pointer, as in
+    ``UpdateDatasetCommand._validate_dataset_source``. Dropping the SQL binds
+    that label to a real table, so a virtual-to-physical conversion is a
+    repoint even when the label itself is unchanged.
     """
-    if becomes_virtual:
-        return False
     if dataset.is_virtual:
         return True
     # Compared field by field: ``Table.__eq__`` compares the dotted rendering,
     # which would conflate distinct targets. ``BaseDatasource.data`` emits an
-    # empty schema as None, so normalising both sides (and the catalog, for
-    # symmetry) keeps a plain round-trip from reading as a change.
+    # empty schema as None, so both sides are normalised.
     return (requested_table.table, requested_table.schema, requested_table.catalog) != (
         dataset.table_name,
         dataset.schema or None,
@@ -158,11 +152,12 @@ class Datasource(BaseSupersetView):
             datasource_dict.get("catalog") or None,
         )
         # Only datasets carry a table pointer; the other datasource types this
-        # endpoint accepts have nothing to repoint.
-        repoints_table = isinstance(orm_datasource, SqlaTable) and _repoints_table(
-            orm_datasource,
-            requested_table,
-            becomes_virtual=bool(datasource_dict.get("sql")),
+        # endpoint accepts have nothing to repoint, and a result that is still
+        # virtual is not pointed at a physical table at all.
+        repoints_table = (
+            isinstance(orm_datasource, SqlaTable)
+            and not datasource_dict.get("sql")
+            and _repoints_table(orm_datasource, requested_table)
         )
 
         if database_changed:
