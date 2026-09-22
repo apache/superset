@@ -83,9 +83,7 @@ const generateWebpackConfigWithCustomInputs = (env = {}, args = {}) => {
 
   const defaultEntryFilename = isDevMode
     ? '[name].[contenthash:8].entry.js'
-    : nameChunks
-      ? '[name].[chunkhash].entry.js'
-      : '[name].[chunkhash].entry.js';
+    : '[name].[chunkhash].entry.js';
 
   const defaultChunkFilename = isDevMode
     ? '[name].[contenthash:8].chunk.js'
