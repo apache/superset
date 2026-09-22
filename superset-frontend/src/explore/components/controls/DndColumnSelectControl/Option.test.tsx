@@ -85,7 +85,7 @@ describe('Option', () => {
         Option
       </Option>,
     );
-    userEvent.click(await screen.findByRole('img', { name: 'close' }));
+    await userEvent.click(await screen.findByRole('img', { name: 'close' }));
     expect(clickClose).toHaveBeenCalled();
     unmount();
   });

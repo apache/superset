@@ -119,7 +119,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Setup Python
-        uses: ./.github/actions/setup-backend/
+        uses: $/.github/actions/setup-backend/
         with:
           python-version: current
       - name: Install db2 driver (ibm-db-sa)

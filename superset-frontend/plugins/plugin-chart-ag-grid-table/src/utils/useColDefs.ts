@@ -84,6 +84,7 @@ type UseColDefsProps = {
   conditionalFormatting?: ConditionalFormattingConfig[];
   comparisonColorEnabled?: boolean;
   comparisonColorScheme?: string;
+  zebraStriping?: boolean;
 };
 
 function getValueRange(
@@ -253,6 +254,7 @@ export const useColDefs = ({
   conditionalFormatting,
   comparisonColorEnabled,
   comparisonColorScheme,
+  zebraStriping,
 }: UseColDefsProps) => {
   const theme = useTheme();
   // transformProps.ts computes these fresh on every call (no memoization),
@@ -332,8 +334,12 @@ export const useColDefs = ({
         valueFormatter: (p: ValueFormatterParams) => valueFormatter(p, col),
         valueGetter: (p: ValueGetterParams) => valueGetter(p, col),
         cellStyle: (p: CellClassParams) => {
+          // Mirrors the oddRowBackgroundColor override AgGridTable passes to
+          // ThemedAgGridReact for this same zebraStriping flag, so the color
+          // used for text-contrast here always matches the row's actual
+          // rendered background.
           const cellSurfaceColor =
-            p.node?.rowPinned != null
+            p.node?.rowPinned != null || !zebraStriping
               ? theme.colorBgBase
               : p.rowIndex % 2 === 0
                 ? theme.colorBgBase
@@ -476,6 +482,7 @@ export const useColDefs = ({
       allowRenderHtml,
       serverPagination,
       alignPositiveNegative,
+      zebraStriping,
       theme.colorBgBase,
       theme.colorFillSecondary,
       theme.colorFillQuaternary,

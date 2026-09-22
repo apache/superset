@@ -18,7 +18,7 @@
 
 import gzip
 import io
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import pytest
@@ -168,12 +168,14 @@ class TestLoadYaml:
 
 class TestLoadConfigs:
     """
-    load_configs() merges caller-supplied ``encrypted_extra_secrets`` into the
-    ``masked_encrypted_extra`` field of each config, which comes straight from
-    the imported YAML (before schema validation). A malformed value there used
-    to raise a raw simplejson.JSONDecodeError that escaped uncaught (opaque
-    500); it must instead be collected as a ValidationError like every other
-    per-file failure.
+    Per-file failures inside load_configs() must be collected as
+    ValidationErrors rather than propagating as raw exceptions (opaque 500s):
+
+    - A malformed ``masked_encrypted_extra`` (into which caller-supplied
+      ``encrypted_extra_secrets`` are merged before schema validation) used to
+      raise a raw simplejson.JSONDecodeError.
+    - A config missing its ``uuid`` used to raise a raw KeyError when the
+      password/ssh-tunnel validation looked up ``config["uuid"]``.
     """
 
     @staticmethod
@@ -185,6 +187,17 @@ class TestLoadConfigs:
                 unknown = EXCLUDE
 
         return TrivialSchema()
+
+    def _database_schemas(self) -> dict[str, object]:
+        from marshmallow import fields, Schema
+
+        class DatabaseSchema(Schema):
+            uuid = fields.UUID(required=True)
+            database_name = fields.String(required=True)
+            sqlalchemy_uri = fields.String(required=True)
+            password = fields.String(required=False, allow_none=True)
+
+        return {"databases/": DatabaseSchema()}
 
     @patch("superset.commands.importers.v1.utils.db")
     def test_invalid_json_in_masked_encrypted_extra_is_collected(
@@ -266,6 +279,75 @@ class TestLoadConfigs:
         assert file_name in configs
         merged = json.loads(configs[file_name]["masked_encrypted_extra"])
         assert merged == {"foo": "actual_secret"}
+
+    @patch("superset.commands.importers.v1.utils.db")
+    def test_missing_uuid_appends_validation_error(self, mock_db: MagicMock) -> None:
+        """A databases config missing `uuid` must not raise a raw KeyError;
+        it should be excluded from the returned configs and a ValidationError
+        appended to the exceptions list instead."""
+        from marshmallow.exceptions import ValidationError
+
+        from superset.commands.importers.v1.utils import load_configs
+
+        mock_db.session.query.return_value.all.return_value = []
+
+        # No `uuid` and no `password`, so the code reaches
+        # `config["uuid"] in db_passwords` and would raise KeyError pre-fix.
+        contents = {
+            "databases/bad.yaml": (
+                "database_name: bad\nsqlalchemy_uri: postgres://localhost\n"
+            ),
+        }
+        exceptions: list[ValidationError] = []
+
+        configs = load_configs(
+            contents,
+            self._database_schemas(),
+            {},
+            exceptions,
+            {},
+            {},
+            {},
+            {},
+        )
+
+        assert "databases/bad.yaml" not in configs
+        assert len(exceptions) == 1
+        assert isinstance(exceptions[0], ValidationError)
+        assert "databases/bad.yaml" in exceptions[0].messages
+
+    @patch("superset.commands.importers.v1.utils.db")
+    def test_uuid_present_loads_successfully(self, mock_db: MagicMock) -> None:
+        """Control: a well-formed databases config loads with no exceptions."""
+        from marshmallow.exceptions import ValidationError
+
+        from superset.commands.importers.v1.utils import load_configs
+
+        mock_db.session.query.return_value.all.return_value = []
+
+        contents = {
+            "databases/good.yaml": (
+                "uuid: 6ff1d5b3-4b0f-4c6a-9d2f-9c8b7a6e5d4c\n"
+                "database_name: good\n"
+                "sqlalchemy_uri: postgres://localhost\n"
+                "password: secret\n"
+            ),
+        }
+        exceptions: list[ValidationError] = []
+
+        configs = load_configs(
+            contents,
+            self._database_schemas(),
+            {},
+            exceptions,
+            {},
+            {},
+            {},
+            {},
+        )
+
+        assert "databases/good.yaml" in configs
+        assert exceptions == []
 
 
 class TestLoadConfigsNonMappingYaml:

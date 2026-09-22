@@ -22,7 +22,7 @@ values, search pass-through, the 400 naming an unknown column, and the cache
 header contract.
 """
 
-from typing import Any
+from typing import Any, cast
 from unittest.mock import MagicMock
 
 import pyarrow as pa
@@ -105,7 +105,7 @@ def test_semantic_view_values_endpoint_passes_search_to_the_provider(
     response = _get(client, "category/values/?q=oo")
 
     assert response.status_code == 200
-    implementation = semantic_view_datasource.implementation
+    implementation = cast(MagicMock, semantic_view_datasource.implementation)
     _, filters = implementation.get_values.call_args.args
     (narrowing,) = filters
     assert narrowing.value == "%oo%"

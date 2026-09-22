@@ -569,7 +569,9 @@ describe('ChartHolder', () => {
       screen.getByTestId('dashboard-delete-component-button'),
     ).toBeInTheDocument();
 
-    userEvent.hover(screen.getByTestId('dashboard-component-chart-holder'));
+    await userEvent.hover(
+      screen.getByTestId('dashboard-component-chart-holder'),
+    );
 
     fireEvent.click(
       screen.getByTestId('dashboard-delete-component-button')

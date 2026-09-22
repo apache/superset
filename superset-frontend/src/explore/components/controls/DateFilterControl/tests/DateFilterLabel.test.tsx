@@ -21,6 +21,7 @@ import { Provider } from 'react-redux';
 import configureMockStore from 'redux-mock-store';
 
 import {
+  act,
   render,
   screen,
   userEvent,
@@ -87,19 +88,19 @@ function setup(
   );
 }
 
-test('DateFilter with default props', () => {
+test('DateFilter with default props', async () => {
   render(setup());
   // label
   expect(screen.getByText(NO_TIME_RANGE)).toBeInTheDocument();
 
   // should be popover by default
-  userEvent.click(screen.getByText(NO_TIME_RANGE));
+  await userEvent.click(screen.getByText(NO_TIME_RANGE));
   expect(
     screen.getByTestId(DateFilterTestKey.PopoverOverlay),
   ).toBeInTheDocument();
 });
 
-test('DateFilter should be applied the global config time_filter from the store', () => {
+test('DateFilter should be applied the global config time_filter from the store', async () => {
   render(
     setup(
       defaultProps,
@@ -111,34 +112,34 @@ test('DateFilter should be applied the global config time_filter from the store'
   // the label should be 'Last week'
   expect(screen.getByText('Last week')).toBeInTheDocument();
 
-  userEvent.click(screen.getByText('Last week'));
+  await userEvent.click(screen.getByText('Last week'));
   expect(screen.getByTestId(DateFilterTestKey.CommonFrame)).toBeInTheDocument();
 });
 
-test('Open and close popover', () => {
+test('Open and close popover', async () => {
   render(setup());
 
   // click "Cancel"
-  userEvent.click(screen.getByText(NO_TIME_RANGE));
+  await userEvent.click(screen.getByText(NO_TIME_RANGE));
   expect(defaultProps.onOpenPopover).toHaveBeenCalled();
   expect(screen.getByText('Edit time range')).toBeInTheDocument();
-  userEvent.click(screen.getByText('Cancel'));
+  await userEvent.click(screen.getByText('Cancel'));
   expect(defaultProps.onClosePopover).toHaveBeenCalled();
   expect(screen.queryByText('Edit time range')).not.toBeInTheDocument();
 
   // click "Apply"
-  userEvent.click(screen.getByText(NO_TIME_RANGE));
+  await userEvent.click(screen.getByText(NO_TIME_RANGE));
   expect(defaultProps.onOpenPopover).toHaveBeenCalled();
   expect(screen.getByText('Edit time range')).toBeInTheDocument();
-  userEvent.click(screen.getByText('Apply'));
+  await userEvent.click(screen.getByText('Apply'));
   expect(defaultProps.onClosePopover).toHaveBeenCalled();
   expect(screen.queryByText('Edit time range')).not.toBeInTheDocument();
 });
 
-test('DateFilter popover should attach to document.body when not overflowing', () => {
+test('DateFilter popover should attach to document.body when not overflowing', async () => {
   render(setup({ ...defaultProps, isOverflowingFilterBar: false }));
 
-  userEvent.click(screen.getByText(NO_TIME_RANGE));
+  await userEvent.click(screen.getByText(NO_TIME_RANGE));
 
   const popover = document.querySelector<HTMLElement>('.time-range-popover');
   expect(popover?.parentElement).toBe(document.body);
@@ -150,7 +151,7 @@ test('DateFilter popover should attach to document.body when not overflowing', (
 test('DateFilter popover shifts into the viewport', async () => {
   render(setup());
 
-  userEvent.click(screen.getByText(NO_TIME_RANGE));
+  await userEvent.click(screen.getByText(NO_TIME_RANGE));
 
   await waitFor(() => {
     expect(mockPopoverProps).toEqual(
@@ -163,10 +164,10 @@ test('DateFilter popover shifts into the viewport', async () => {
   });
 });
 
-test('DateFilter popover should attach to document.body even when overflowing in filter bar', () => {
+test('DateFilter popover should attach to document.body even when overflowing in filter bar', async () => {
   render(setup({ ...defaultProps, isOverflowingFilterBar: true }));
 
-  userEvent.click(screen.getByText(NO_TIME_RANGE));
+  await userEvent.click(screen.getByText(NO_TIME_RANGE));
 
   const popover = document.querySelector<HTMLElement>('.time-range-popover');
 
@@ -176,25 +177,138 @@ test('DateFilter popover should attach to document.body even when overflowing in
   });
 });
 
-test('DateFilter should properly handle isOverflowingFilterBar prop changes', () => {
+test('DateFilter should properly handle isOverflowingFilterBar prop changes', async () => {
   const { rerender } = render(
     setup({ ...defaultProps, isOverflowingFilterBar: false }),
   );
 
   // When not overflowing, popover should attach to document.body
-  userEvent.click(screen.getByText(NO_TIME_RANGE));
+  await userEvent.click(screen.getByText(NO_TIME_RANGE));
   const popover = document.querySelector('.time-range-popover');
   expect(popover?.parentElement).toBe(document.body);
 
-  userEvent.click(screen.getByText('Cancel'));
+  await userEvent.click(screen.getByText('Cancel'));
 
   // Popover should continue to attach to document.body even when overflowing
   rerender(setup({ ...defaultProps, isOverflowingFilterBar: true }));
-  userEvent.click(screen.getByText(NO_TIME_RANGE));
+  await userEvent.click(screen.getByText(NO_TIME_RANGE));
 
   const popoverAfterRerender = document.querySelector('.time-range-popover');
 
   expect(popoverAfterRerender?.parentElement).toBe(document.body);
+});
+
+test('applies a configured displayFormat to the evaluated range but leaves the human-readable pill untouched', async () => {
+  mockedFetchTimeRange.mockImplementation(
+    async (_value, _columnPlaceholder, _shifts, dateFormat) =>
+      dateFormat
+        ? { value: `2024-01-01 ≤ col < 2024-01-08 (${dateFormat})` }
+        : { value: FIELD_TOOLTIP },
+  );
+
+  render(
+    setup({
+      ...defaultProps,
+      value: 'Last week',
+      displayFormat: '%d-%m-%Y',
+    }),
+  );
+
+  // the pill shows the raw human-readable value regardless of displayFormat
+  expect(await screen.findByText('Last week')).toBeInTheDocument();
+
+  // the tooltip shows the evaluated range, formatted with displayFormat
+  await userEvent.hover(screen.getByText('Last week'));
+  expect(await screen.findByRole('tooltip')).toHaveTextContent(
+    '2024-01-01 ≤ col < 2024-01-08 (%d-%m-%Y)',
+  );
+});
+
+test('regression: Apply during a pending debounced draft fetch must still update the pill', async () => {
+  // Reproduces the maintainer-identified race: the user edits the draft
+  // range (scheduling a 500ms debounced preview fetch), then clicks Apply
+  // before that timer fires. The Apply-triggered fetch (effect 1) must not
+  // be discarded just because the leftover draft fetch (effect 2) resolves
+  // its own request-tracking after Apply's fetch started.
+  jest.useFakeTimers({ advanceTimers: true });
+
+  const pendingResolvers: Array<(result: { value: string }) => void> = [];
+  mockedFetchTimeRange.mockImplementation(
+    () =>
+      new Promise(resolve => {
+        pendingResolvers.push(resolve);
+      }),
+  );
+
+  const onChange = jest.fn();
+  const { rerender } = render(
+    setup({ ...defaultProps, onChange, value: 'Last week' }),
+  );
+
+  // Settle every fetch effect-1 issues on mount (useCSSTextTruncation's
+  // ref/measurement can cause it to re-run once after the initial paint),
+  // so validTimeRange reflects the settled 'Last week' state and Apply is
+  // enabled before we start the actual scenario.
+  await act(async () => {
+    pendingResolvers.forEach(resolve =>
+      resolve({ value: 'evaluated: Last week' }),
+    );
+  });
+
+  // open the popover and wait for Apply to be enabled
+  await userEvent.click(screen.getByText('Last week'));
+  await waitFor(() => {
+    expect(screen.getByText('Apply').closest('button')).not.toBeDisabled();
+  });
+  const baseRequestCount = pendingResolvers.length;
+
+  // change the draft selection to 'Last month' — this schedules effect 2's
+  // 500ms debounced draft-preview fetch
+  fireEvent.click(screen.getByText('Last month'));
+
+  // click Apply well before that debounce timer fires
+  await act(async () => {
+    jest.advanceTimersByTime(100);
+  });
+  fireEvent.click(screen.getByText('Apply'));
+  expect(onChange).toHaveBeenCalledWith('Last month');
+
+  // simulate the real parent (TimeFilterPlugin) re-rendering with the
+  // applied value, exactly as it would after onChange updates formData
+  rerender(setup({ ...defaultProps, onChange, value: 'Last month' }));
+
+  // effect 1 (driven by the new `value` prop) starts its own fetch
+  await waitFor(() => {
+    expect(pendingResolvers.length).toBe(baseRequestCount + 1);
+  });
+  const applyRequestIndex = baseRequestCount;
+
+  // the leftover debounce timer from before Apply now fires and starts
+  // effect 2's fetch for the same value, *before* effect 1's fetch above
+  // has resolved
+  await act(async () => {
+    jest.advanceTimersByTime(500);
+  });
+  await waitFor(() => {
+    expect(pendingResolvers.length).toBe(baseRequestCount + 2);
+  });
+  const staleDraftRequestIndex = baseRequestCount + 1;
+
+  // effect 1's (older, Apply-triggered) fetch finally resolves
+  await act(async () => {
+    pendingResolvers[applyRequestIndex]({ value: 'evaluated: Last month' });
+  });
+
+  // the pill must reflect the applied selection, not the stale pre-Apply one
+  expect(screen.getByText('Last month')).toBeInTheDocument();
+  expect(screen.queryByText('Last week')).not.toBeInTheDocument();
+
+  // drain effect 2's own fetch so it doesn't dangle past the test
+  await act(async () => {
+    pendingResolvers[staleDraftRequestIndex]({
+      value: 'evaluated: Last month',
+    });
+  });
 });
 
 test('hovering the description icon does not show the date range tooltip', async () => {

@@ -174,7 +174,7 @@ test('warn selected custom metric when metric gets removed from dataset', async 
     screen.getByText('column1').parentElement ?? container,
   ).getByRole('button');
   expect(warningIcon).toBeInTheDocument();
-  userEvent.hover(warningIcon);
+  await userEvent.hover(warningIcon);
   const warningTooltip = await screen.findByText(
     'This column might be incompatible with current dataset',
   );
@@ -214,7 +214,7 @@ test('should allow selecting columns via click interface', async () => {
   const dropArea = screen.getByText('Drop columns here or click');
   expect(dropArea).toBeInTheDocument();
 
-  userEvent.click(dropArea);
+  await userEvent.click(dropArea);
 
   expect(dropArea).toBeInTheDocument();
 });
@@ -419,7 +419,7 @@ test('should complete full column selection workflow like original Cypress test'
 
   // Open ColumnSelectPopover
   const dropArea = screen.getByText(/Drop columns here or click/i);
-  userEvent.click(dropArea);
+  await userEvent.click(dropArea);
 
   // Wait for popover tabs
   await waitFor(() => {
@@ -433,15 +433,15 @@ test('should complete full column selection workflow like original Cypress test'
   const columnCombobox = await screen.findByRole('combobox', {
     name: /Columns and metrics/i,
   });
-  userEvent.click(columnCombobox);
+  await userEvent.click(columnCombobox);
 
   const stateOption = await screen.findByRole('option', { name: 'state' });
-  userEvent.click(stateOption);
+  await userEvent.click(stateOption);
 
   // Save column selection
   const saveButton = await screen.findByTestId('ColumnEdit#save');
   await waitFor(() => expect(saveButton).toBeEnabled());
-  userEvent.click(saveButton);
+  await userEvent.click(saveButton);
 
   // Verify onChange callback fires
   await waitFor(() => {
@@ -495,7 +495,7 @@ test('should create adhoc column via Custom SQL tab workflow', async () => {
 
   // Open popover modal
   const dropArea = screen.getByText(/Drop columns here or click/i);
-  userEvent.click(dropArea);
+  await userEvent.click(dropArea);
 
   // Wait for popover tabs
   await waitFor(() => {
@@ -504,17 +504,17 @@ test('should create adhoc column via Custom SQL tab workflow', async () => {
 
   // Switch to Custom SQL tab
   const customSqlTab = screen.getByRole('tab', { name: 'Custom SQL' });
-  userEvent.click(customSqlTab);
+  await userEvent.click(customSqlTab);
 
   // Enter SQL expression in mocked textarea
   const sqlEditor = await screen.findByRole('textbox', { name: 'Custom SQL' });
-  userEvent.clear(sqlEditor);
-  userEvent.type(sqlEditor, "state || '_total'");
+  await userEvent.clear(sqlEditor);
+  await userEvent.type(sqlEditor, "state || '_total'");
 
   // Save adhoc column
   const saveButton = await screen.findByTestId('ColumnEdit#save');
   await waitFor(() => expect(saveButton).toBeEnabled());
-  userEvent.click(saveButton);
+  await userEvent.click(saveButton);
 
   // Verify onChange fires with adhoc column object
   await waitFor(() => {
@@ -622,4 +622,185 @@ test('folder drop is a no-op when the folder has no column items', () => {
   ]);
 
   expect(onChange).not.toHaveBeenCalled();
+});
+
+const SEMANTIC_OPTIONS = [
+  { column_name: 'order_date', verbose_name: 'Order Date', is_dttm: true },
+  { column_name: 'category', verbose_name: 'Product Category' },
+];
+
+const semanticViewStore = (features: string[] = []) =>
+  mockStore({
+    explore: {
+      datasource: {
+        type: 'semantic_view',
+        id: 1,
+        semantic_view_features: features,
+        columns: SEMANTIC_OPTIONS,
+      },
+      form_data: {},
+      controls: {},
+    },
+  });
+
+test('saved-only semantic view disables Simple and Custom SQL modes in the picker', async () => {
+  render(
+    <DndColumnSelect {...defaultProps} options={SEMANTIC_OPTIONS} value={[]} />,
+    { useDndKit: true, store: semanticViewStore() },
+  );
+
+  userEvent.click(screen.getByText(/Drop columns here or click/i));
+
+  await waitFor(() => {
+    expect(screen.getByRole('tab', { name: 'Saved' })).toBeInTheDocument();
+  });
+
+  expect(screen.getByRole('tab', { name: 'Saved' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+  expect(screen.getByRole('tab', { name: 'Simple' })).toHaveAttribute(
+    'aria-disabled',
+    'true',
+  );
+  expect(screen.getByRole('tab', { name: 'Custom SQL' })).toHaveAttribute(
+    'aria-disabled',
+    'true',
+  );
+});
+
+test('semantic view declaring adhoc expressions keeps existing modes in the picker', async () => {
+  render(
+    <DndColumnSelect {...defaultProps} options={SEMANTIC_OPTIONS} value={[]} />,
+    {
+      useDndKit: true,
+      store: semanticViewStore(['ADHOC_COLUMN_EXPRESSIONS']),
+    },
+  );
+
+  userEvent.click(screen.getByText(/Drop columns here or click/i));
+
+  await waitFor(() => {
+    expect(screen.getByRole('tab', { name: 'Simple' })).toBeInTheDocument();
+  });
+
+  expect(screen.getByRole('tab', { name: 'Simple' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+  expect(screen.getByRole('tab', { name: 'Simple' })).not.toHaveAttribute(
+    'aria-disabled',
+    'true',
+  );
+  expect(screen.getByRole('tab', { name: 'Custom SQL' })).toHaveAttribute(
+    'aria-disabled',
+    'true',
+  );
+});
+
+test('commits a visible Cube dimension in two interactions after opening the picker', async () => {
+  const mockOnChange = jest.fn();
+  render(
+    <DndColumnSelect
+      {...defaultProps}
+      onChange={mockOnChange}
+      options={SEMANTIC_OPTIONS}
+      value={[]}
+    />,
+    { useDndKit: true, store: semanticViewStore() },
+  );
+
+  userEvent.click(screen.getByText(/Drop columns here or click/i));
+
+  const combobox = await screen.findByRole('combobox', {
+    name: 'Dimensions',
+  });
+
+  // Interaction 1: select the visible dimension.
+  userEvent.click(combobox);
+  const option = await screen.findByRole('option', { name: /Order Date/i });
+  userEvent.click(option);
+
+  // Interaction 2: save.
+  const saveButton = await screen.findByTestId('ColumnEdit#save');
+  await waitFor(() => expect(saveButton).toBeEnabled());
+  userEvent.click(saveButton);
+
+  await waitFor(() => {
+    expect(mockOnChange).toHaveBeenCalledWith(['order_date']);
+  });
+});
+
+test('commits a searched Cube dimension in no more than three interactions', async () => {
+  const mockOnChange = jest.fn();
+  render(
+    <DndColumnSelect
+      {...defaultProps}
+      onChange={mockOnChange}
+      options={SEMANTIC_OPTIONS}
+      value={[]}
+    />,
+    { useDndKit: true, store: semanticViewStore() },
+  );
+
+  userEvent.click(screen.getByText(/Drop columns here or click/i));
+
+  const combobox = await screen.findByRole('combobox', {
+    name: 'Dimensions',
+  });
+
+  // Interaction 1: search.
+  await userEvent.type(combobox, 'Product');
+
+  // Interaction 2: select the match.
+  const option = await screen.findByRole('option', {
+    name: /Product Category/i,
+  });
+  userEvent.click(option);
+
+  // Interaction 3: save.
+  const saveButton = await screen.findByTestId('ColumnEdit#save');
+  await waitFor(() => expect(saveButton).toBeEnabled());
+  userEvent.click(saveButton);
+
+  await waitFor(() => {
+    expect(mockOnChange).toHaveBeenCalledWith(['category']);
+  });
+});
+
+test('anchors the "add column" popover to a block-level trigger box (sc-120502)', async () => {
+  // Regression pin: the "add new" popover opens from a controlled trigger whose
+  // child is an empty placeholder. If the trigger wrapper is a bare inline
+  // span, antd anchors the popup to a 0×0 point at the control's left edge and
+  // the popover renders detached over the control panel.
+  const store = mockStore({
+    explore: {
+      datasource: {
+        type: 'table',
+        id: 1,
+        columns: [{ column_name: 'state' }, { column_name: 'city' }],
+      },
+      form_data: {},
+      controls: {},
+    },
+  });
+
+  render(
+    <DndColumnSelect
+      {...defaultProps}
+      options={[{ column_name: 'state' }, { column_name: 'city' }]}
+      value={[]}
+    />,
+    { useDndKit: true, store },
+  );
+
+  userEvent.click(screen.getByText(/Drop columns here or click/i));
+
+  await waitFor(() => {
+    expect(screen.getByRole('tab', { name: 'Simple' })).toBeInTheDocument();
+  });
+
+  const anchor = document.querySelector('.ant-popover-open');
+  expect(anchor).not.toBeNull();
+  expect(anchor).toHaveStyle('display: block');
 });

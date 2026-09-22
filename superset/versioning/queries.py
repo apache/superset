@@ -32,6 +32,8 @@ from __future__ import annotations
 
 import logging
 import uuid
+from collections.abc import Iterator
+from contextlib import contextmanager
 from typing import Any
 from uuid import UUID
 
@@ -187,10 +189,7 @@ def current_version_info(
             sa.func.max(
                 sa.case(
                     (
-                        sa.and_(
-                            ver_cls.end_transaction_id.is_(None),
-                            ver_cls.operation_type != OPERATION_DELETE,
-                        ),
+                        sa.and_(*_live_version_predicates(ver_cls)),
                         ver_cls.transaction_id,
                     )
                 )
@@ -222,6 +221,75 @@ def current_version_number(
         model_cls, entity_id, entity_uuid
     )
     return version_number
+
+
+def _live_version_predicates(
+    ver_cls: type[Any],
+) -> tuple[sa.ColumnElement[bool], sa.ColumnElement[bool]]:
+    """Share live-row eligibility between display and locked validator reads."""
+    # Continuum generates model classes with additional version columns.
+    return (
+        ver_cls.end_transaction_id.is_(None),
+        ver_cls.operation_type != OPERATION_DELETE,
+    )
+
+
+def current_live_transaction_id_locked(
+    model_cls: type[Model], entity_id: int, entity_uuid: UUID
+) -> int | None:
+    """Return the live row's ``transaction_id`` via an exclusive locking read.
+
+    The conditional-write (``If-Match``) guard must compare the client's
+    token against *committed* state. A plain consistent read is served
+    from the transaction's REPEATABLE READ snapshot on MySQL/InnoDB
+    (pinned by the request's earlier auth queries), so a version row
+    committed by a concurrent writer between this request's first read
+    and its row lock stays invisible -- the stale token then matches and
+    the 412 the guard exists to raise is missed. A locking read is exempt
+    from the snapshot and returns current committed data.
+
+    The lock is exclusive (``with_for_update()``), not shared: this
+    transaction later closes the very row it reads here (Continuum's
+    validity strategy sets ``end_transaction_id`` at commit), and holding
+    a shared lock first invites InnoDB's shared-to-exclusive upgrade
+    deadlock whenever anything else queues for the row in between. Plain
+    MVCC readers are not blocked by either lock strength, and writers to
+    the same entity are already serialised by the entity row lock taken
+    first, so exclusivity here costs nothing.
+
+    Residual, documented rather than removed: on MySQL a locking read
+    over an empty range (an entity with no live version row yet) takes a
+    gap lock, and two concurrent conditional writers whose version rows
+    share a primary-key gap can deadlock. That deadlock has two surfacing
+    points with the same outcome. At THIS read (rare -- gap locks are
+    mutually compatible, so both readers usually succeed) the PUT path
+    maps it to a retryable 409. At Continuum's version-row INSERT inside
+    the update command the driver error is chained as the command
+    failure's ``__cause__``, which the PUT handler classifies to the
+    same retryable 409. Either way the loser's ``If-Match`` token is NOT
+    proven stale and the correct client action is to retry the same
+    request. The lock also briefly blocks retention pruning of this
+    entity's version rows for the duration of the request transaction.
+
+    Deliberately a plain row query, not the aggregate
+    :func:`current_version_info` -- locking clauses do not combine with
+    aggregates (Postgres rejects the combination outright), and the guard
+    only needs the live ``transaction_id``. Ordered-and-limited so a
+    defensively tolerated multi-open-row state (which the aggregate's
+    ``max`` absorbs) degrades the same way instead of raising
+    ``MultipleResultsFound``. Renders the dialect's locking clause
+    (``FOR UPDATE`` / none on SQLite, which serialises writers anyway).
+    """
+    ver_cls: type[Any] = version_class(model_cls)
+    return (
+        db.session.query(ver_cls.transaction_id)
+        .filter(identity_filter(ver_cls, entity_id, entity_uuid))
+        .filter(*_live_version_predicates(ver_cls))
+        .order_by(ver_cls.transaction_id.desc())
+        .limit(1)
+        .with_for_update()
+        .scalar()
+    )
 
 
 def current_live_transaction_id(
@@ -469,7 +537,11 @@ def resolve_version_uuid(
     """Translate a ``version_uuid`` into its 0-based ``version_number``.
 
     Thin wrapper over :func:`resolve_version` for read-side callers that
-    only need the display index.
+    only need the display index. No in-repo caller remains (the snapshot
+    fetch addresses rows by ``transaction_id``); retained as DAO façade
+    surface — anything that must survive a concurrent retention prune
+    should use :func:`resolve_version` and address by transaction id,
+    never by this prune-unstable index.
     """
     resolved = resolve_version(model_cls, entity_uuid, version_uuid, entity=entity)
     return None if resolved is None else resolved[0]
@@ -496,22 +568,18 @@ def get_version(
 
     Pass *entity* to skip the ``find_active_by_uuid`` lookup; see
     :func:`list_versions` for the rationale. The same *entity* is threaded
-    into :func:`resolve_version_uuid` to eliminate a second redundant
+    into :func:`resolve_version` to eliminate a second redundant
     lookup on the same request.
     """
-    # pylint: disable=import-outside-toplevel
-    from superset.connectors.sqla.models import SqlaTable
-
     if entity is None:
         entity = find_active_by_uuid(model_cls, entity_uuid)
         if entity is None:
             return None
 
-    version_num = resolve_version_uuid(
-        model_cls, entity_uuid, version_uuid, entity=entity
-    )
-    if version_num is None:
+    resolved = resolve_version(model_cls, entity_uuid, version_uuid, entity=entity)
+    if resolved is None:
         return None
+    version_num, transaction_id = resolved
 
     ver_tbl, tx_tbl, user_tbl = _resolve_version_tables(model_cls)
     stmt = (
@@ -521,17 +589,22 @@ def get_version(
             *_user_select_cols(user_tbl),
         )
         .select_from(_version_with_tx_user_join(ver_tbl, tx_tbl, user_tbl))
-        # Must pin identically to the count ``resolve_version_uuid`` derived
-        # ``version_num`` from: an offset counted over one row set and applied
-        # to a wider one addresses the wrong row. Pinned there but not here,
-        # a recycled id would surface a predecessor's snapshot under the
-        # successor's version uuid.
+        # Address the snapshot by the ``transaction_id`` that
+        # ``resolve_version`` already pinned — never by positional OFFSET:
+        # a retention prune committing between resolution and this fetch
+        # shifts the offset and silently surfaces a different version's
+        # snapshot under the requested version uuid. The identity filter
+        # stays so a transaction id recycled on another entity can never
+        # match. (The display ``version_number`` resolved above may still
+        # lag a concurrent prune; the snapshot itself cannot.)
         .where(identity_filter(ver_tbl.c, entity.id, entity_uuid))
-        .order_by(*_baseline_first_ordering(ver_tbl))
-        .offset(version_num)
+        .where(ver_tbl.c.transaction_id == transaction_id)
         .limit(1)
     )
-    row = db.session.execute(stmt).mappings().first()
+    row: sa.engine.RowMapping | None
+    columns: list[dict[str, Any]]
+    metrics: list[dict[str, Any]]
+    row, columns, metrics = _fetch_version_row_and_children(model_cls, stmt, entity.id)
     if row is None:
         return None
 
@@ -566,22 +639,94 @@ def get_version(
     }
 
     # For datasets, attach the columns/metrics as they were at this
-    # transaction by reading from Continuum's child shadow tables
-    # (``table_columns_version`` / ``sql_metrics_version``). Empty lists
-    # when the dataset had no children at this tx.
-    if model_cls is SqlaTable:
-        # pylint: disable=import-outside-toplevel
-        from superset.connectors.sqla.models import SqlMetric, TableColumn
-        from superset.versioning.changes import shadow_rows_valid_at
+    # transaction (fetched with the parent row in one snapshot above).
+    # Empty lists when the dataset had no children at this tx.
+    # pylint: disable=import-outside-toplevel
+    from superset.connectors.sqla.models import SqlaTable
 
-        target_tx = row["transaction_id"]
-        cols_tbl = version_class(TableColumn).__table__
-        metrics_tbl = version_class(SqlMetric).__table__
-        result["columns"] = shadow_rows_valid_at(
-            db.session, cols_tbl, "table_id", entity.id, target_tx
-        )
-        result["metrics"] = shadow_rows_valid_at(
-            db.session, metrics_tbl, "table_id", entity.id, target_tx
-        )
+    if model_cls is SqlaTable:
+        result["columns"] = columns
+        result["metrics"] = metrics
 
     return result
+
+
+#: Isolation level pinning a single snapshot across several reads on one
+#: transaction. SQLite is absent deliberately: a SQLite transaction is
+#: already serializable, and its dialect rejects "REPEATABLE READ".
+_SNAPSHOT_ISOLATION_BY_DIALECT: dict[str, str] = {
+    "mysql": "REPEATABLE READ",
+    "postgresql": "REPEATABLE READ",
+}
+
+
+def _fetch_version_row_and_children(
+    model_cls: type[Model], stmt: sa.sql.Select, entity_id: int
+) -> tuple[Any, list[dict[str, Any]], list[dict[str, Any]]]:
+    """Fetch the parent version row — for datasets, WITH its children in
+    ONE snapshot (sc-120012, race portion, closed).
+
+    A dedicated connection (not the request session) so the isolation
+    level can be pinned per-transaction: under READ COMMITTED each
+    statement reads its own snapshot, letting a concurrent retention
+    prune erase closed child shadow rows between the parent fetch and the
+    child fetches (sc-120012, race portion). REPEATABLE READ pins all
+    three reads to the first statement's snapshot; SQLite needs nothing
+    (single-transaction reads are serializable there).
+
+    The parent row can come back ``None`` when a prune commits between
+    the caller's version resolution (request session) and this snapshot —
+    the caller translates that to a 404, which is the honest answer for a
+    version that no longer exists.
+    """
+    # pylint: disable=import-outside-toplevel
+    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+    from superset.versioning.changes import shadow_rows_valid_at
+
+    if model_cls is not SqlaTable:
+        # No child shadows to pair the read with: the request session's
+        # ordinary read suffices.
+        return db.session.execute(stmt).mappings().first(), [], []
+
+    # The parent snapshot fetch and the child fetches share one
+    # transaction whose isolation pins a single snapshot, so a retention
+    # prune committing between the reads cannot age out closed child rows
+    # that were valid at target_tx mid-request. (The POLICY portion — a
+    # prune that already erased needed closed child history while the
+    # parent survives — is handled fail-closed on the restore write path
+    # and deferred for retention itself; see restore.py and sc-120012.)
+    with _snapshot_read_connection() as conn:
+        row: sa.engine.RowMapping | None = conn.execute(stmt).mappings().first()
+        if row is None:
+            return None, [], []
+        target_tx: int = row["transaction_id"]
+        columns: list[dict[str, Any]] = shadow_rows_valid_at(
+            conn, version_class(TableColumn).__table__, "table_id", entity_id, target_tx
+        )
+        metrics: list[dict[str, Any]] = shadow_rows_valid_at(
+            conn, version_class(SqlMetric).__table__, "table_id", entity_id, target_tx
+        )
+    return row, columns, metrics
+
+
+@contextmanager
+def _snapshot_read_connection() -> Iterator[sa.engine.Connection]:
+    """A dedicated connection whose reads share ONE stable snapshot.
+
+    REPEATABLE READ on MySQL/Postgres pins every read in the transaction
+    to the first statement's snapshot. On SQLite, pysqlite's legacy
+    transactional mode never emits BEGIN for SELECTs — ``conn.begin()``
+    alone starts NO read transaction and reads could still straddle a
+    concurrent commit — so the documented SQLAlchemy recipe applies: emit
+    BEGIN ourselves when the transaction starts (listener scoped to this
+    connection; it dies with it). The isolation setup runs inside the
+    connect() context so a failure there still releases the connection.
+    """
+    with db.engine.connect() as conn:
+        iso: str | None = _SNAPSHOT_ISOLATION_BY_DIALECT.get(db.engine.dialect.name)
+        if iso is not None:
+            conn = conn.execution_options(isolation_level=iso)
+        elif db.engine.dialect.name == "sqlite":
+            sa.event.listen(conn, "begin", lambda c: c.exec_driver_sql("BEGIN"))
+        with conn.begin():
+            yield conn

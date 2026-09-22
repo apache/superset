@@ -197,6 +197,7 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
         from superset.utils.oauth2 import encode_oauth2_state, generate_code_challenge
 
         uri = config["authorization_request_uri"]
+        cls._validate_oauth2_endpoint_host(uri)
         params: dict[str, str] = {
             "scope": config["scope"],
             "response_type": "code",
@@ -427,6 +428,7 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
                 }
             },
         )
+        cls.register_engine_events(engine)
         conn = engine.connect()
         idx = 0
 

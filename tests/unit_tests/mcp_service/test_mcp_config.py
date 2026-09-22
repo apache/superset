@@ -229,6 +229,22 @@ def test_get_mcp_config_respects_app_config_override() -> None:
     assert config["MCP_DISABLED_TOOLS"] == custom
 
 
+def test_get_mcp_config_structured_output_is_opt_in() -> None:
+    """Text-only results remain the default for bridge compatibility."""
+    from superset.mcp_service.mcp_config import get_mcp_config
+
+    config = get_mcp_config()
+    assert config["MCP_STRUCTURED_OUTPUT_ENABLED"] is False
+
+
+def test_get_mcp_config_respects_structured_output_override() -> None:
+    """Operators can enable outputSchema and structuredContent together."""
+    from superset.mcp_service.mcp_config import get_mcp_config
+
+    config = get_mcp_config({"MCP_STRUCTURED_OUTPUT_ENABLED": True})
+    assert config["MCP_STRUCTURED_OUTPUT_ENABLED"] is True
+
+
 def test_get_mcp_config_includes_mcp_stateless_http_key() -> None:
     """get_mcp_config must include MCP_STATELESS_HTTP in its defaults dict, like
     MCP_DEBUG and MCP_RBAC_ENABLED, so an operator override in superset_config.py

@@ -24,8 +24,8 @@ on:
 permissions:
   contents: read
 
-# Serialize with the scheduled Docker image refresh — both workflows push
-# to the same Docker Hub tags and must not race on apache/superset:latest.
+# Serialize release image publishes so concurrent manual runs cannot race on
+# apache/superset:latest.
 concurrency:
   group: docker-publish-latest-release
   cancel-in-progress: false
@@ -55,8 +55,7 @@ jobs:
       contents: write
     strategy:
       matrix:
-        build_preset:
-          ["dev", "lean", "websocket", "dockerize", "py311", "py312"]
+        build_preset: ["superset", "dev", "lean", "py311", "py312"]
       fail-fast: false
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
@@ -64,6 +63,11 @@ jobs:
         with:
           persist-credentials: false
           fetch-depth: 0
+          ref: master
+
+      - name: Preserve Docker flags helper
+        shell: bash
+        run: cp scripts/docker-build-extra-flags.sh "$RUNNER_TEMP/docker-build-extra-flags.sh"
 
       - name: Setup Docker Environment
         uses: $/.github/actions/setup-docker
@@ -88,6 +92,7 @@ jobs:
           DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BUILD_PRESET: ${{ matrix.build_preset }}
           INPUT_RELEASE: ${{ github.event.inputs.release }}
           INPUT_FORCE_LATEST: ${{ github.event.inputs.force-latest }}
           INPUT_GIT_REF: ${{ github.event.inputs.git-ref }}
@@ -104,13 +109,18 @@ jobs:
             fi
             git checkout "${INPUT_GIT_REF}"
             EVENT="release"
+          else
+            git checkout "${GITHUB_EVENT_RELEASE_TAG_NAME}"
           fi
+          # Preserve the checked-out release Dockerfile's browser default.
+          EXTRA_FLAGS="$(bash "$RUNNER_TEMP/docker-build-extra-flags.sh" "$BUILD_PRESET" "" release)"
 
-          supersetbot docker \
+          DOCKERHUB_TOKEN= supersetbot docker \
             --push \
-            --preset ${{ matrix.build_preset }} \
+            --preset "$BUILD_PRESET" \
             --context "$EVENT" \
             --context-ref "$RELEASE" $FORCE_LATEST \
+            --extra-flags "$EXTRA_FLAGS" \
             --platform "linux/arm64" \
             --platform "linux/amd64"
 

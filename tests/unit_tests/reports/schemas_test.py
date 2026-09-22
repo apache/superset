@@ -27,6 +27,34 @@ from superset.reports.schemas import (
 )
 
 
+@pytest.mark.parametrize(
+    "schema_cls", [ReportSchedulePostSchema, ReportSchedulePutSchema]
+)
+@pytest.mark.parametrize("enabled", [True, False])
+def test_alert_retry_schema(
+    mocker: MockerFixture, schema_cls: type, enabled: bool
+) -> None:
+    """Both APIs accept alert retry settings only when the feature is enabled."""
+    mocker.patch("superset.reports.schemas.is_feature_enabled", return_value=enabled)
+    result = schema_cls().load(
+        {
+            "type": "Alert",
+            "name": "Retry alert",
+            "crontab": "* * * * *",
+            "database": 1,
+            "sql": "SELECT 1",
+            "validator_type": "not null",
+            "retry_on_failure": True,
+            "retry_max_attempts": 3,
+        }
+    )
+    if enabled:
+        assert result["retry_on_failure"] is True
+        assert result["retry_max_attempts"] == 3
+    else:
+        assert not result.get("retry_on_failure", False)
+
+
 def test_report_post_schema_custom_width_validation(mocker: MockerFixture) -> None:
     """
     Test the custom width validation.

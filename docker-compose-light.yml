@@ -69,7 +69,7 @@ x-superset-volumes: &superset-volumes
   - ./tests:/app/tests
 x-common-build: &common-build
   context: .
-  target: ${SUPERSET_BUILD_TARGET:-dev} # can use `dev` (default) or `lean`
+  target: ${SUPERSET_BUILD_TARGET:-dev} # dev (default, live-reload); also `superset` (batteries-included) or `lean` (minimal)
   cache_from:
     - apache/superset-cache:3.11-slim-trixie
   args:

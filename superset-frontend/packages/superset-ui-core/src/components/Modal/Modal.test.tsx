@@ -20,7 +20,7 @@
 import { useState } from 'react';
 import { fireEvent, render, screen } from '@superset-ui/core/spec';
 import { Input } from '../Input';
-import { Modal } from './Modal';
+import { mergeResizableConfig, Modal } from './Modal';
 
 const drag = (
   target: Element,
@@ -33,6 +33,97 @@ const drag = (
 };
 
 const isDragged = () => !!document.querySelector('.react-draggable-dragged');
+
+describe('mergeResizableConfig', () => {
+  test('keeps default resize handles when callers pass only min/defaultSize', () => {
+    const config = mergeResizableConfig(false, {
+      minHeight: 512,
+      minWidth: 512,
+      defaultSize: { width: 'auto', height: '75vh' },
+    });
+
+    expect(config.minHeight).toBe(512);
+    expect(config.defaultSize).toEqual({ width: 'auto', height: '75vh' });
+    expect(config.enable).toEqual({
+      bottom: true,
+      bottomLeft: false,
+      bottomRight: true,
+      left: false,
+      top: false,
+      topLeft: false,
+      topRight: false,
+      right: true,
+    });
+  });
+
+  test('allows explicit enable overrides', () => {
+    const config = mergeResizableConfig(undefined, {
+      enable: { top: true },
+    });
+
+    expect(config.enable).toEqual({
+      bottom: true,
+      bottomLeft: false,
+      bottomRight: true,
+      left: false,
+      top: true,
+      topLeft: false,
+      topRight: false,
+      right: true,
+    });
+  });
+
+  test('preserves explicit enable: false opt-out', () => {
+    const config = mergeResizableConfig(false, { enable: false });
+
+    expect(config.enable).toBe(false);
+  });
+});
+
+describe('Modal resizable', () => {
+  test('renders only the default handles when caller config is partial', () => {
+    const handleComponent = {
+      top: <span data-test="resize-handle-top" />,
+      right: <span data-test="resize-handle-right" />,
+      bottom: <span data-test="resize-handle-bottom" />,
+      left: <span data-test="resize-handle-left" />,
+      topRight: <span data-test="resize-handle-top-right" />,
+      bottomRight: <span data-test="resize-handle-bottom-right" />,
+      bottomLeft: <span data-test="resize-handle-bottom-left" />,
+      topLeft: <span data-test="resize-handle-top-left" />,
+    };
+
+    render(
+      <Modal
+        show
+        onHide={() => {}}
+        title="Edit Dataset"
+        name="test"
+        resizable
+        resizableConfig={{ minWidth: 512, handleComponent }}
+      >
+        content
+      </Modal>,
+    );
+
+    expect(screen.getByTestId('resize-handle-right')).toBeInTheDocument();
+    expect(screen.getByTestId('resize-handle-bottom')).toBeInTheDocument();
+    expect(
+      screen.getByTestId('resize-handle-bottom-right'),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('resize-handle-top')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('resize-handle-left')).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('resize-handle-top-right'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('resize-handle-bottom-left'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('resize-handle-top-left'),
+    ).not.toBeInTheDocument();
+  });
+});
 
 describe('Modal draggable', () => {
   test('dragging from the title bar moves the modal', () => {

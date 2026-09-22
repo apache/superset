@@ -60,7 +60,7 @@ const renderPlugin = (sortAscending?: boolean) => {
 };
 
 const getOpenedOptionOrder = async () => {
-  userEvent.click(screen.getAllByRole('combobox')[0]);
+  await userEvent.click(screen.getAllByRole('combobox')[0]);
   const options = await screen.findAllByRole('option');
   return options.map(option => option.textContent);
 };
