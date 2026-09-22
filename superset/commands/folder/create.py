@@ -63,16 +63,14 @@ class CreateFolderCommand(BaseCommand):
         from superset.folders.utils import folder_permissions_enabled
 
         if folder_permissions_enabled():
-            if (
-                hasattr(g, "user")
-                and not g.user.is_anonymous
-                and not security_manager.is_admin()
-            ):
-                from superset.subjects.utils import get_or_create_user_subject
+            if hasattr(g, "user") and not g.user.is_anonymous:
+                is_admin = security_manager.is_admin()
+                if not is_admin or folder.is_private:
+                    from superset.subjects.utils import get_or_create_user_subject
 
-                user_subject = get_or_create_user_subject(g.user.id)
-                if user_subject:
-                    FolderDAO.add_subject(folder.id, user_subject.id, "editor")
+                    user_subject = get_or_create_user_subject(g.user.id)
+                    if user_subject:
+                        FolderDAO.add_subject(folder.id, user_subject.id, "editor")
             if self._parent:
                 FolderPermissionDAO.copy_permissions_to_subfolder(
                     self._parent.id, folder.id

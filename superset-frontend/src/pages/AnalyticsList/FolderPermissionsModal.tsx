@@ -163,9 +163,9 @@ export default function FolderPermissionsModal({
   }, [show, fetchSubjects]);
 
   const handleAddUser = useCallback(
-    (selected: SelectValue) => {
-      if (!selected || typeof selected !== 'object') return;
-      const item = selected as {
+    (_selected: SelectValue, option: any) => {
+      if (!option || typeof option !== 'object') return;
+      const item = option as {
         value: number;
         label: string;
         subject_id: number;
