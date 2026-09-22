@@ -373,9 +373,10 @@ class TestRestoreFailsClosedOnPrunedChildHistory(SupersetTestCase):
         before: str
         dataset, column, target_tx, before = self._two_version_dataset()
         assert column.description != before
+        assert dataset.uuid is not None
         dataset_uuid: UUID = dataset.uuid
-        assert dataset_uuid is not None
-        parent_target_description: str = (dataset.description or "").removesuffix("_v2")
+        assert dataset.description is not None
+        parent_target_description: str = dataset.description.removesuffix("_v2")
         assert _delete_column_shadow_rows(column.id, closed_only=True) >= 1
 
         with patch("superset.versioning.restore._verify_child_history_complete"):
