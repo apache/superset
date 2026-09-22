@@ -856,7 +856,7 @@ describe('plugin-chart-ag-grid-table', () => {
         expect(totalsQuery.extras?.having).toBeUndefined();
       });
 
-      test('should exclude download HAVING filters (sqlClauses) from totals query', () => {
+      test('should exclude download HAVING filters from totals query', () => {
         const { queries } = buildQuery(
           {
             ...basicFormData,
@@ -866,7 +866,13 @@ describe('plugin-chart-ag-grid-table', () => {
           },
           {
             ownState: {
-              sqlClauses: { count: 'count > 10' },
+              agGridFilterModel: {
+                count: {
+                  filterType: 'number',
+                  type: 'greaterThan',
+                  filter: 10,
+                },
+              },
             },
           },
         );
@@ -877,6 +883,202 @@ describe('plugin-chart-ag-grid-table', () => {
 
         expect(mainQuery.extras?.having).toBe('count > 10');
         expect(totalsQuery.extras?.having).toBeUndefined();
+      });
+
+      test('sends filtered download column filters as structured, dialect-safe filters', () => {
+        // Regression test for the ClickHouse "Invalid SQL clause" export bug:
+        // header filters on column names containing spaces must NOT be
+        // interpolated unquoted into extras.where (which fails backend clause
+        // validation on ClickHouse and any dialect that needs identifier
+        // quoting). Structured { col, op, val } filters let the backend quote
+        // each identifier for the target dialect, so the same fix works for
+        // ClickHouse, Postgres, MySQL and BigQuery.
+        const { queries } = buildQuery(
+          {
+            ...basicFormData,
+            query_mode: QueryMode.Raw,
+            all_columns: [
+              'Destination Address Street',
+              'Destination Address State',
+            ],
+            result_format: 'csv',
+          },
+          {
+            ownState: {
+              agGridFilterModel: {
+                'Destination Address Street': {
+                  filterType: 'text',
+                  type: 'contains',
+                  filter: 'Main',
+                },
+                'Destination Address State': {
+                  filterType: 'set',
+                  values: ['CA', 'NY'],
+                },
+              },
+            },
+          },
+        );
+
+        const query = queries[0];
+        expect(query.filters).toEqual(
+          expect.arrayContaining([
+            { col: 'Destination Address Street', op: 'ILIKE', val: '%Main%' },
+            { col: 'Destination Address State', op: 'IN', val: ['CA', 'NY'] },
+          ]),
+        );
+        // The regressed path put these on extras.where as raw, unquoted SQL;
+        // the structured path leaves the WHERE clause empty.
+        expect(query.extras?.where || undefined).toBeUndefined();
+      });
+
+      test('sends an equals download filter with the == FilterOperator (not raw =)', () => {
+        const { queries } = buildQuery(
+          {
+            ...basicFormData,
+            query_mode: QueryMode.Raw,
+            all_columns: ['Destination Address State'],
+            result_format: 'csv',
+          },
+          {
+            ownState: {
+              agGridFilterModel: {
+                'Destination Address State': {
+                  filterType: 'text',
+                  type: 'equals',
+                  filter: 'CA',
+                },
+              },
+            },
+          },
+        );
+
+        const query = queries[0];
+        expect(query.filters).toContainEqual({
+          col: 'Destination Address State',
+          op: '==',
+          val: 'CA',
+        });
+        expect(query.extras?.where || undefined).toBeUndefined();
+      });
+
+      test('splits a numeric inRange download filter into two bounded filters', () => {
+        const { queries } = buildQuery(
+          {
+            ...basicFormData,
+            query_mode: QueryMode.Raw,
+            all_columns: ['Age'],
+            result_format: 'csv',
+          },
+          {
+            ownState: {
+              agGridFilterModel: {
+                Age: {
+                  filterType: 'number',
+                  type: 'inRange',
+                  filter: 18,
+                  filterTo: 65,
+                },
+              },
+            },
+          },
+        );
+
+        const query = queries[0];
+        expect(query.filters).toEqual(
+          expect.arrayContaining([
+            { col: 'Age', op: '>=', val: 18 },
+            { col: 'Age', op: '<=', val: 65 },
+          ]),
+        );
+        expect(query.extras?.where || undefined).toBeUndefined();
+      });
+
+      test('should exclude a non-metric download WHERE filter from the totals query', () => {
+        const { queries } = buildQuery(
+          {
+            ...basicFormData,
+            show_totals: true,
+            query_mode: QueryMode.Aggregate,
+            result_format: 'csv',
+          },
+          {
+            ownState: {
+              agGridFilterModel: {
+                state: { filterType: 'text', type: 'equals', filter: 'CA' },
+              },
+            },
+          },
+        );
+
+        const mainQuery = queries[0];
+        // Downloads never get a rowcount query, so totals is queries[1].
+        const totalsQuery = queries[1];
+        const stateFilter = { col: 'state', op: '==', val: 'CA' };
+
+        expect(mainQuery.filters).toContainEqual(stateFilter);
+        expect(totalsQuery.filters ?? []).not.toContainEqual(stateFilter);
+      });
+
+      test('routes a percent-metric download filter (keyed %label) to HAVING, not WHERE', () => {
+        const { queries } = buildQuery(
+          {
+            ...basicFormData,
+            metrics: ['count'],
+            percent_metrics: ['count'],
+            query_mode: QueryMode.Aggregate,
+            result_format: 'csv',
+          },
+          {
+            ownState: {
+              agGridFilterModel: {
+                '%count': {
+                  filterType: 'number',
+                  type: 'greaterThan',
+                  filter: 0.5,
+                },
+              },
+            },
+          },
+        );
+
+        const query = queries[0];
+        expect(query.extras?.having).toContain('%count');
+        expect(query.filters ?? []).not.toContainEqual(
+          expect.objectContaining({ col: '%count' }),
+        );
+      });
+
+      test('routes a "% <metric>" time comparison download filter to HAVING, not a structured WHERE filter', () => {
+        const { queries } = buildQuery(
+          {
+            ...basicFormData,
+            query_mode: QueryMode.Aggregate,
+            result_format: 'csv',
+          },
+          {
+            ownState: {
+              agGridFilterModel: {
+                '% count': {
+                  filterType: 'number',
+                  type: 'greaterThan',
+                  filter: 5,
+                },
+              },
+            },
+          },
+        );
+
+        const query = queries[0];
+        // Time-comparison columns are keyed "% <label>" (a space after %). They
+        // must not become a structured WHERE filter -- the backend can't resolve
+        // that column and would silently drop the filter, returning unfiltered
+        // rows. Keep them on the raw HAVING path so an unresolvable filter fails
+        // loudly instead.
+        expect(query.filters ?? []).not.toContainEqual(
+          expect.objectContaining({ col: '% count' }),
+        );
+        expect(query.extras?.having).toContain('% count');
       });
 
       test('should not modify totals query when no AG Grid filters applied', () => {

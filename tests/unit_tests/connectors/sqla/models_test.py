@@ -2235,3 +2235,22 @@ def test_get_fetch_values_predicate_wraps_undefined_error(
 
     with pytest.raises(QueryObjectValidationError):
         sqla_table.get_fetch_values_predicate(template_processor=mock_processor)
+
+
+def test_get_rendered_sql_wraps_type_error(mocker: MockerFixture) -> None:
+    """A ``TypeError`` raised by a Python builtin invoked from within the
+    template (e.g. ``"','".join(filter_values(...))`` when ``filter_values()``
+    returns numeric values) must be caught and re-raised as a
+    ``QueryObjectValidationError``, not bubble up as a raw 500."""
+    datasource = mocker.MagicMock()
+    datasource.sql = "SELECT 1 WHERE id IN ({{ ','.join(filter_values('id')) }})"
+
+    template_processor = mocker.MagicMock()
+    template_processor.process_template.side_effect = TypeError(
+        "sequence item 0: expected str instance, int found"
+    )
+
+    with pytest.raises(QueryObjectValidationError):
+        ExploreMixin.get_rendered_sql.__get__(datasource)(
+            template_processor=template_processor
+        )
