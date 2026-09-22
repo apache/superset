@@ -199,7 +199,7 @@ class AlertCommand(BaseCommand):
                 message=_(
                     "Alert query must not contain the file-transfer "
                     "command(s): %(commands)s",
-                    commands=", ".join(sorted(commands)),
+                    commands=", ".join(commands),
                 )
             )
         if script.has_mutation() and not database.allow_dml:
