@@ -9416,6 +9416,12 @@ msgstr "Ocak"
 msgid "Jinja templating"
 msgstr "Jinja çekicilating"
 
+msgid ""
+"Jinja templating is not supported in a partition value transform. The "
+"transform is evaluated in a different context and at a different time "
+"from the chart query, so a template would not render the same way."
+msgstr ""
+
 msgid "July"
 msgstr "Temmuz"
 
@@ -10178,6 +10184,10 @@ msgstr "Mapbox (API anahtarı gerekli)"
 #, fuzzy
 msgid "Mapbox requires a MAPBOX_API_KEY to be configured on the server."
 msgstr "Mapbox için sunucuda bir MAPBOX_API_KEY yapılandırılması gerekir."
+
+#, python-format
+msgid "Mapped column %(name)s is not a column on this dataset."
+msgstr ""
 
 msgid "March"
 msgstr "Mart"
@@ -11172,6 +11182,11 @@ msgstr ""
 "%(engine_spec)s %(validator_name)s adında hiçbir doğrulama bulunamadı "
 "(foto 1   motoru için yapılandırıldı)"
 
+msgid ""
+"No value transform is set, so no filter will be mirrored onto the "
+"partition column."
+msgstr ""
+
 msgid "Node label position"
 msgstr "Node etiket pozisyonu"
 
@@ -11890,6 +11905,10 @@ msgstr "Katılımcı Sınırı"
 
 msgid "Partition Threshold"
 msgstr "Partition Threshold"
+
+#, python-format
+msgid "Partition column %(name)s is not a column on this dataset."
+msgstr ""
 
 msgid ""
 "Partitions whose height to parent height proportions are below this value"
@@ -16851,6 +16870,12 @@ msgid_plural "The following parameters in your query are undefined: %(parameters
 msgstr[0] "Parametre   %(parameters)s in your query is undefined."
 
 #, python-format
+msgid ""
+"The partition column cannot be mapped onto itself. %(name)s is both the "
+"partition column and the mapped column."
+msgstr ""
+
+#, python-format
 msgid "The password provided for username \"%(username)s\" is incorrect."
 msgstr "Kullanıcı adı \"  %(username)s \" için sağlanan şifre yanlış."
 
@@ -17316,6 +17341,24 @@ msgid "The username provided when connecting to a database is not valid."
 msgstr ""
 "Bir veritabanına bağlantılandığında verilen kullanıcı adı geçerli "
 "değildir."
+
+#, python-format
+msgid ""
+"The value transform calls %(functions)s, whose result depends on when and"
+" where it runs. The transform is evaluated in a separate session and the "
+"result is cached, so the emitted predicate would freeze a snapshot of "
+"that moment."
+msgstr ""
+
+msgid ""
+"The value transform could not be parsed. The mapping is saved but stays "
+"inactive until it does."
+msgstr ""
+
+msgid ""
+"The value transform must contain the :value placeholder, which stands for"
+" the filter value being mirrored."
+msgstr ""
 
 msgid "The values overlap other breakpoint values"
 msgstr "Değerler diğer uç noktaları değerleri örtüşür"
