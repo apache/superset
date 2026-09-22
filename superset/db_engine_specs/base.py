@@ -1543,9 +1543,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         in a query.
 
         The default routes through ``epoch_ms_to_dttm`` so engines that already
-        override the millisecond conversion keep their validated SQL; the result
-        has millisecond resolution. Engines with a native microsecond function
-        should override this (see BigQuery, Snowflake, Kusto, Pinot).
+        override the millisecond conversion keep their validated SQL. The result
+        inherits whatever resolution that engine's ``epoch_ms_to_dttm`` has,
+        which is seconds when the default is inherited. Engines with a native
+        microsecond function should override this (see BigQuery, Snowflake,
+        Kusto, Pinot).
 
         :return: SQL Expression
         """

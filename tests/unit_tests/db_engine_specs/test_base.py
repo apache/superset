@@ -33,11 +33,19 @@ from sqlalchemy.dialects import sqlite
 from sqlalchemy.engine.url import make_url, URL
 from sqlalchemy.sql import sqltypes
 
+from superset.db_engine_specs.athena import AthenaEngineSpec
 from superset.db_engine_specs.base import (
     BaseEngineSpec,
     BasicParametersType,
     convert_inspector_columns,
 )
+from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+from superset.db_engine_specs.couchbase import CouchbaseEngineSpec
+from superset.db_engine_specs.crate import CrateEngineSpec
+from superset.db_engine_specs.druid import DruidEngineSpec
+from superset.db_engine_specs.kusto import KustoKqlEngineSpec
+from superset.db_engine_specs.pinot import PinotEngineSpec
+from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import OAuth2RedirectError
 from superset.sql.parse import Table
@@ -1696,35 +1704,28 @@ def test_get_timestamp_expr_epoch_formats(
 
 
 @pytest.mark.parametrize(
-    "spec_path,expected",
+    "spec,expected",
     [
         # engines relying on the default: their millisecond template is reused
-        ("athena.AthenaEngineSpec", "from_unixtime((({col}/1000)/1000))"),
-        ("crate.CrateEngineSpec", "({col}/1000)"),
-        ("druid.DruidEngineSpec", "MILLIS_TO_TIMESTAMP(({col}/1000))"),
-        ("couchbase.CouchbaseEngineSpec", "MILLIS_TO_STR(({col}/1000))"),
+        (AthenaEngineSpec, "from_unixtime((({col}/1000)/1000))"),
+        (CrateEngineSpec, "({col}/1000)"),
+        (DruidEngineSpec, "MILLIS_TO_TIMESTAMP(({col}/1000))"),
+        (CouchbaseEngineSpec, "MILLIS_TO_STR(({col}/1000))"),
         # engines with a native microsecond conversion
-        ("bigquery.BigQueryEngineSpec", "TIMESTAMP_MICROS({col})"),
-        ("snowflake.SnowflakeEngineSpec", "DATEADD(US, {col}, '1970-01-01')"),
-        ("kusto.KustoKqlEngineSpec", "unixtime_microseconds_todatetime({col})"),
+        (BigQueryEngineSpec, "TIMESTAMP_MICROS({col})"),
+        (SnowflakeEngineSpec, "DATEADD(US, {col}, '1970-01-01')"),
+        (KustoKqlEngineSpec, "unixtime_microseconds_todatetime({col})"),
         (
-            "pinot.PinotEngineSpec",
+            PinotEngineSpec,
             "DATETIMECONVERT({col}, '1:MICROSECONDS:EPOCH', "
             "'1:MICROSECONDS:EPOCH', '1:MICROSECONDS')",
         ),
     ],
 )
-def test_epoch_us_to_dttm(spec_path: str, expected: str) -> None:
+def test_epoch_us_to_dttm(spec: type[BaseEngineSpec], expected: str) -> None:
     """
     ``epoch_us_to_dttm`` yields valid SQL for engines that override
     ``epoch_ms_to_dttm`` (via the default) and for engines with a native
     microsecond function (via their own override).
     """
-    import importlib
-
-    module_name, class_name = spec_path.rsplit(".", 1)
-    spec = getattr(
-        importlib.import_module(f"superset.db_engine_specs.{module_name}"),
-        class_name,
-    )
     assert spec.epoch_us_to_dttm() == expected
