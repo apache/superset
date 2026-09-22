@@ -18,7 +18,7 @@
 ######################################################################
 # Node stage to deal with static asset construction
 ######################################################################
-ARG PY_VER=3.11.14-slim-trixie
+ARG PY_VER=3.11-slim-trixie
 
 # If BUILDPLATFORM is null, set it to 'amd64' (or leave as is otherwise).
 ARG BUILDPLATFORM=${BUILDPLATFORM:-amd64}
@@ -224,7 +224,6 @@ RUN /app/docker/apt-install.sh \
       libsasl2-dev \
       libsasl2-modules-gssapi-mit \
       libpq-dev \
-      libecpg-dev \
       libldap2-dev
 
 # Create data directory for DuckDB examples database
@@ -286,6 +285,43 @@ COPY --from=python-translation-compiler /app/translations_mo superset/translatio
 RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
     uv pip install -e . --no-deps
 RUN python -m compileall /app/superset
+
+USER superset
+
+######################################################################
+# Batteries-included default image: lean + common drivers, MCP and a
+# headless Chromium. This is the image published under the plain tags
+# (latest, master, <version>); the minimal image ships as `lean`.
+######################################################################
+FROM lean AS superset
+USER root
+
+# mysqlclient needs the MySQL client dev headers + pkg-config to build.
+# python-common already installs the libs for postgres/sasl/ldap, so only
+# the MySQL bits are added here — the minimal `lean` stage stays untouched.
+RUN /app/docker/apt-install.sh \
+    pkg-config \
+    default-libmysqlclient-dev
+
+# Bundle the common metadata/analytics drivers (postgres, mysql) and the
+# MCP server dependencies (fastmcp) so the default image is usable without
+# layering extra packages. Routed through pip-install.sh because mysqlclient
+# is a source dist that needs a C compiler to build; the helper installs
+# build-essential just for the build and purges it afterward (the lean base
+# ships no compiler). The mysql client lib installed above stays, so the
+# compiled extension can link against it at runtime.
+RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
+    /app/docker/pip-install.sh --requires-build-essential .[postgres,mysql,fastmcp]
+
+# Bundle Playwright + a headless Chromium so Alerts & Reports and thumbnail
+# generation work out of the box. Installed directly (rather than via the
+# INCLUDE_CHROMIUM build arg on python-common) because this stage builds
+# FROM lean, which is already past that arg. Chromium ships for both
+# linux/amd64 and linux/arm64, so this works on multi-platform builds.
+RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
+    uv pip install playwright \
+    && playwright install-deps \
+    && playwright install chromium
 
 USER superset
 

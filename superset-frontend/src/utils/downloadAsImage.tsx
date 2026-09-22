@@ -21,9 +21,12 @@ import domToImage from 'dom-to-image-more';
 import { kebabCase } from 'lodash-es';
 import { t } from '@apache-superset/core/translation';
 import { SupersetTheme } from '@apache-superset/core/theme';
-import { addWarningToast } from 'src/components/MessageToasts/actions';
 import type { AgGridContainerElement } from '@superset-ui/core/components';
-import { forceLoadAllCharts, restoreVirtualization } from './downloadUtils';
+import {
+  dispatchWarningToast,
+  forceLoadAllCharts,
+  restoreVirtualization,
+} from './downloadUtils';
 
 const IMAGE_DOWNLOAD_QUALITY = 0.95;
 const PNG_SCALE = 2; // Higher quality for PNG
@@ -156,7 +159,23 @@ const copyAllComputedStyles = (
   }
 };
 
-const processCloneForVisibility = (clone: HTMLElement) => {
+// True when the element clips its content on at least one axis. `copyAllComputedStyles`
+// writes the computed `overflow` inline on the whole tree, so `[style*="overflow"]` below
+// matches nearly every node; only the ones that actually clip should have their overflow
+// rewritten. Both the shorthand and the longhands are read because engines disagree on
+// which of them a computed style resolves: browsers resolve the longhands, jsdom only
+// echoes back whichever form was specified.
+const clipsOverflow = (element: HTMLElement) => {
+  const computed = window.getComputedStyle(element);
+  return /auto|scroll|hidden|clip/.test(
+    `${computed.overflow} ${computed.overflowX} ${computed.overflowY}`,
+  );
+};
+
+const processCloneForVisibility = (
+  clone: HTMLElement,
+  clipHorizontalOverflow = false,
+) => {
   const cloneStyle = clone.style;
   cloneStyle.height = 'auto';
   cloneStyle.maxHeight = 'none';
@@ -180,9 +199,25 @@ const processCloneForVisibility = (clone: HTMLElement) => {
   scrollableSelectors.forEach(selector => {
     clone.querySelectorAll(selector).forEach(el => {
       const element = el as HTMLElement;
-      element.style.overflow = 'visible';
       element.style.height = 'auto';
       element.style.maxHeight = 'none';
+      if (!clipsOverflow(element)) return;
+      if (clipHorizontalOverflow) {
+        // The vertical axis stays unclipped so the whole chart paints while the
+        // grid reflows around its now auto-height slot. The horizontal axis keeps
+        // its clip: the clone preserves every element's on-screen pixel width, so
+        // a table that scrolls sideways would otherwise paint its off-slot columns
+        // across the charts sitting next to it in the same dashboard row.
+        // `clip` rather than `hidden`, because `hidden` paired with `visible` is
+        // not a legal computed combination: the engine promotes the `visible` axis
+        // to `auto` and clips that one too. `clip` paired with `visible` clips a
+        // single axis and leaves the element a non-scroll-container, so nothing
+        // but the sideways bleed changes.
+        element.style.overflowX = 'clip';
+        element.style.overflowY = 'visible';
+      } else {
+        element.style.overflow = 'visible';
+      }
     });
   });
 
@@ -299,6 +334,7 @@ const createEnhancedClone = (
   originalElement: Element,
   theme?: SupersetTheme,
   getInstanceByDom?: EChartsGetInstanceByDom,
+  clipHorizontalOverflow = false,
 ): { clone: HTMLElement; cleanup: () => void } => {
   const clone = originalElement.cloneNode(true) as HTMLElement;
   copyAllComputedStyles(originalElement, clone, theme);
@@ -316,7 +352,7 @@ const createEnhancedClone = (
   tempContainer.appendChild(clone);
   document.body.appendChild(tempContainer);
 
-  processCloneForVisibility(clone);
+  processCloneForVisibility(clone, clipHorizontalOverflow);
 
   const cleanup = () => {
     if (tempContainer.parentElement) {
@@ -388,7 +424,7 @@ export default function downloadAsImageOptimized(
       : event.currentTarget.closest(selector);
 
     if (!elementToPrint) {
-      addWarningToast(
+      await dispatchWarningToast(
         t('Image download failed, please refresh and try again.'),
       );
       return;
@@ -433,7 +469,7 @@ export default function downloadAsImageOptimized(
       const isFirstDataRendered = agContainer._agGridFirstDataRendered === true;
 
       if (!isFirstDataRendered) {
-        addWarningToast(
+        await dispatchWarningToast(
           t('The chart is still loading. Please wait a moment and try again.'),
         );
         // This early return skips the capture, so restore virtualization here;
@@ -533,7 +569,7 @@ export default function downloadAsImageOptimized(
         link.click();
       } catch (error) {
         console.error('Creating image failed', error);
-        addWarningToast(
+        await dispatchWarningToast(
           t('Image download failed, please refresh and try again.'),
         );
       } finally {
@@ -580,6 +616,7 @@ export default function downloadAsImageOptimized(
         elementToPrint,
         theme,
         getInstanceByDom,
+        isDashboardCapture,
       );
       cleanup = cleanupFn;
 
@@ -614,7 +651,7 @@ export default function downloadAsImageOptimized(
       link.click();
     } catch (error) {
       console.error('Creating image failed', error);
-      addWarningToast(
+      await dispatchWarningToast(
         t('Image download failed, please refresh and try again.'),
       );
     } finally {

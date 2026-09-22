@@ -17,17 +17,8 @@
  * under the License.
  */
 
-/**
- * Jest configuration for @storybook/test-runner
- *
- * This extends the default test-runner config with custom timeouts
- * to handle slow story rendering in CI environments.
- */
-const { getJestConfig } = require('@storybook/test-runner');
-const testRunnerConfig = getJestConfig();
-
-module.exports = {
-  ...testRunnerConfig,
-  // Increase timeout from default 15s to 60s for CI environments
-  testTimeout: 60000,
-};
+// Kept in their own module (rather than exported from MapLibre.tsx) so that
+// transformProps.ts can use them without pulling in MapLibre.tsx's
+// `maplibre-gl` import and its module-level setWorkerUrl() side effect.
+export const DEFAULT_MAX_ZOOM = 16;
+export const DEFAULT_POINT_RADIUS = 60;
