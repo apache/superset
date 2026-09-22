@@ -19,6 +19,7 @@
 
 import {
   act,
+  createStore,
   fireEvent,
   render,
   screen,
@@ -36,6 +37,9 @@ import {
 } from 'src/filters/components';
 import fetchMock from 'fetch-mock';
 import { FilterBarOrientation } from 'src/dashboard/types';
+import { setActiveTabs } from 'src/dashboard/actions/dashboardState';
+import reducerIndex from 'spec/helpers/reducerIndex';
+import type { Store } from '@reduxjs/toolkit';
 import { FILTER_BAR_TEST_ID } from './utils';
 import FilterBar from '.';
 import { FILTERS_CONFIG_MODAL_TEST_ID } from '../FiltersConfigModal/FiltersConfigModal';
@@ -234,6 +238,7 @@ function setupTimeRangeMocks() {
 function renderFilterBar(
   props: { filtersOpen: boolean; toggleFiltersBar: jest.Mock },
   state?: object,
+  store?: Store,
 ) {
   return render(
     <FilterBar
@@ -247,6 +252,7 @@ function renderFilterBar(
     />,
     {
       initialState: state,
+      store,
       useDnd: true,
       useRedux: true,
       useRouter: true,
@@ -1604,24 +1610,25 @@ describe('cascading native filter clear', () => {
     const parentLabel = await screen.findByText('Country');
     const parentFormItem = parentLabel.closest('.ant-form-item') as HTMLElement;
 
-    // Flip the clause from 'is' (IN) to 'is not' (NOT IN) while the selected
-    // value stays ['USA'].
+    // Flip the clause from the persisted IN ('is') to NOT IN ('is not') while
+    // the selected value stays ['USA']. The plugin defaults an inverse-selection
+    // filter to 'is not' on mount, so the *other* option is the real change.
     const excludeSelect = parentFormItem.querySelector(
       '.exclude-select',
     ) as HTMLElement;
+    fireEvent.mouseDown(
+      excludeSelect.querySelector('.ant-select-content') as HTMLElement,
+    );
+    const isOption = await screen.findByRole('option', { name: 'is' });
     await act(async () => {
-      await userEvent.click(excludeSelect);
-    });
-    const isNotOption = await screen.findByText('is not');
-    await act(async () => {
-      await userEvent.click(isNotOption);
+      await userEvent.click(isOption);
     });
 
     await act(async () => {
       jest.advanceTimersByTime(1000);
     });
 
-    // IN -> NOT IN changes the dependency clause, so the child must clear.
+    // NOT IN -> IN changes the dependency clause, so the child must clear.
     const applyBtn = screen.getByTestId(getTestId('apply-button'));
     await act(async () => {
       await userEvent.click(applyBtn);
@@ -1901,14 +1908,192 @@ describe('cascading native filter clear', () => {
     expect(childCall![1]?.filterState?.value).toEqual(null);
     expect(childCall![1]?.extraFormData).toEqual({});
 
-    // The out-of-scope descendant is NOT cascade-cleared: it is applied with
-    // its existing value. Pre-fix it was staged null and never dispatched,
-    // leaving stale applied state for the other tab.
+    // The out-of-scope descendant is cascade-staged but not applied while its
+    // tab is inactive: getFiltersToApply skips out-of-scope filters without a
+    // value, so its stale applied Texas value is left in place for the other
+    // tab. The staged null (no validateStatus 'error' either) is what lets the
+    // descendant show as cleared the moment that tab becomes active.
     const outOfScopeCall = updateDataMaskSpy.mock.calls.find(
       call => call[0] === outOfScopeChildId,
     );
+    expect(outOfScopeCall).toBeUndefined();
+
+    updateDataMaskSpy.mockRestore();
+  });
+
+  test('a persisted parent value does not cascade-clear a persisted child on load', async () => {
+    const updateDataMaskSpy = jest.spyOn(dataMaskActions, 'updateDataMask');
+
+    const state = createCascadeState();
+    // Parent and child both hold persisted values. On mount the parent re-emits
+    // its saved mask (empty extraFormData first, then its clauses); those
+    // synchronization emissions are not user changes and must not cascade-clear
+    // the child with no user action.
+    const props = createOpenedBarProps();
+    renderFilterBar(props, state);
+
+    await act(async () => {
+      jest.advanceTimersByTime(1000);
+    });
+
+    const applyBtn = screen.getByTestId(getTestId('apply-button'));
+    await act(async () => {
+      await userEvent.click(applyBtn);
+    });
+
+    // No dependency changed, so nothing is re-applied: the child keeps its
+    // persisted New York value and is not dispatched.
+    const childCall = updateDataMaskSpy.mock.calls.find(
+      call => call[0] === childId,
+    );
+    expect(childCall).toBeUndefined();
+
+    updateDataMaskSpy.mockRestore();
+  });
+
+  test('cascade clear stages an invalidation that applies when an out-of-scope descendant tab returns', async () => {
+    const updateDataMaskSpy = jest.spyOn(dataMaskActions, 'updateDataMask');
+    const outOfScopeChildId = 'NATIVE_FILTER-cascade-neighborhood';
+    const dashboardLayoutWithTabs = {
+      ROOT_ID: { id: 'ROOT_ID', type: 'ROOT', children: ['TABS-1'] },
+      'TABS-1': {
+        id: 'TABS-1',
+        type: 'TABS',
+        children: ['TAB-active', 'TAB-inactive'],
+      },
+      'TAB-active': {
+        id: 'TAB-active',
+        type: 'TAB',
+        children: ['CHART_ROW-1'],
+        meta: { text: 'Active Tab' },
+        parents: ['ROOT_ID', 'TABS-1'],
+      },
+      'TAB-inactive': {
+        id: 'TAB-inactive',
+        type: 'TAB',
+        children: ['CHART_ROW-2'],
+        meta: { text: 'Inactive Tab' },
+        parents: ['ROOT_ID', 'TABS-1'],
+      },
+      'CHART_ROW-1': {
+        id: 'CHART_ROW-1',
+        type: 'CHART',
+        meta: { chartId: 18 },
+        parents: ['ROOT_ID', 'TABS-1', 'TAB-active'],
+      },
+      'CHART_ROW-2': {
+        id: 'CHART_ROW-2',
+        type: 'CHART',
+        meta: { chartId: 19 },
+        parents: ['ROOT_ID', 'TABS-1', 'TAB-inactive'],
+      },
+    };
+
+    const outOfScopeChildFilter = createFilter({
+      id: outOfScopeChildId,
+      name: 'Neighborhood',
+      filterType: 'filter_select',
+      targets: [{ datasetId: 7, column: { name: 'neighborhood' } }],
+      cascadeParentIds: [parentId],
+      controlValues: { enableEmptyFilter: false },
+      chartsInScope: [19],
+    });
+
+    const state = createCascadeState();
+    state.dashboardLayout = {
+      present: dashboardLayoutWithTabs,
+      past: [],
+      future: [],
+    } as unknown as typeof state.dashboardLayout;
+    state.dashboardState = {
+      ...state.dashboardState,
+      activeTabs: ['TAB-active'],
+    };
+    state.nativeFilters = {
+      ...state.nativeFilters,
+      filters: {
+        ...state.nativeFilters.filters,
+        [outOfScopeChildId]: outOfScopeChildFilter,
+      } as typeof state.nativeFilters.filters,
+    };
+    state.dashboardInfo = {
+      ...state.dashboardInfo,
+      metadata: {
+        ...state.dashboardInfo.metadata,
+        native_filter_configuration: [
+          ...state.dashboardInfo.metadata.native_filter_configuration,
+          outOfScopeChildFilter,
+        ],
+      },
+    };
+    state.dataMask = {
+      ...state.dataMask,
+      [outOfScopeChildId]: createDataMask(outOfScopeChildId, ['Texas'], {
+        filters: [{ col: 'neighborhood', op: 'IN', val: ['Texas'] }],
+      }),
+    } as typeof state.dataMask;
+
+    const store = createStore(state, reducerIndex);
+    const props = createOpenedBarProps();
+    renderFilterBar(props, undefined, store);
+
+    await act(async () => {
+      jest.advanceTimersByTime(1000);
+    });
+
+    // Change the in-scope parent from USA to UK.
+    const parentLabel = await screen.findByText('Country');
+    const parentFormItem = parentLabel.closest('.ant-form-item') as HTMLElement;
+    const parentSelect = within(parentFormItem).getByRole('combobox');
+    await act(async () => {
+      await userEvent.click(parentSelect);
+    });
+    const ukOption = await screen.findByText('UK');
+    await act(async () => {
+      await userEvent.click(ukOption);
+    });
+
+    await act(async () => {
+      jest.advanceTimersByTime(1000);
+    });
+
+    // Apply on the active tab: the out-of-scope descendant is staged, not
+    // applied (same behavior pinned by the previous test).
+    const applyBtn = screen.getByTestId(getTestId('apply-button'));
+    expect(applyBtn).not.toBeDisabled();
+    await act(async () => {
+      await userEvent.click(applyBtn);
+    });
+    let outOfScopeCall = updateDataMaskSpy.mock.calls.find(
+      call => call[0] === outOfScopeChildId,
+    );
+    expect(outOfScopeCall).toBeUndefined();
+
+    // Switch to the tab the descendant belongs to. Its staged clear is now
+    // applied: the stale Texas selection is gone from the UI.
+    updateDataMaskSpy.mockClear();
+    await act(async () => {
+      store.dispatch(setActiveTabs(['TAB-inactive']));
+      jest.advanceTimersByTime(1000);
+    });
+
+    const neighborhoodLabel = await screen.findByText('Neighborhood');
+    const neighborhoodFormItem = neighborhoodLabel.closest(
+      '.ant-form-item',
+    ) as HTMLElement;
+    expect(within(neighborhoodFormItem).queryByText('Texas')).toBeNull();
+
+    // And applying from the returned tab dispatches the staged clear.
+    const returnedTabApply = screen.getByTestId(getTestId('apply-button'));
+    await act(async () => {
+      await userEvent.click(returnedTabApply);
+    });
+    outOfScopeCall = updateDataMaskSpy.mock.calls.find(
+      call => call[0] === outOfScopeChildId,
+    );
     expect(outOfScopeCall).toBeDefined();
-    expect(outOfScopeCall![1]?.filterState?.value).toEqual(['Texas']);
+    expect(outOfScopeCall![1]?.filterState?.value).toEqual(null);
+    expect(outOfScopeCall![1]?.extraFormData).toEqual({});
 
     updateDataMaskSpy.mockRestore();
   });

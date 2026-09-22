@@ -202,6 +202,9 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   const [likeInputValue, setLikeInputValue] = useState<string>(
     filterState.value?.[0] != null ? String(filterState.value[0]) : '',
   );
+  // Bumped whenever the plugin's selection is reset (clear-all or cascade), so
+  // the Select remounts and drops any stale search text still held inside it.
+  const [resetToken, setResetToken] = useState(0);
 
   useEffect(() => {
     const externalValue =
@@ -515,8 +518,8 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     setDataMask(dataMask);
   }, [JSON.stringify(dataMask)]);
 
-  useEffect(() => {
-    if (clearAllTrigger) {
+  const resetFilter = useCallback(
+    (onComplete?: (filterId: string) => void) => {
       dispatchDataMask({
         type: 'filterState',
         extraFormData: {},
@@ -525,34 +528,41 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
           label: undefined,
         },
       });
-
+      // A Search-all query lives in ownState.search and a debounced onSearch
+      // callback may still be pending. Cancel and reset both so the option
+      // list is not silently re-scoped to a stale search term while the
+      // filter shows an empty input.
+      onSearch.cancel();
+      dispatchDataMask({
+        type: 'ownState',
+        ownState: { search: '' },
+      });
       updateDataMask(null);
       setSearch('');
       setLikeInputValue('');
-      onClearAllComplete?.(formData.nativeFilterId);
+      // Remount the Select so any stale search text it holds internally
+      // disappears instead of being re-fired through onSearch and re-scoping
+      // the refetched options to an invisible search term.
+      setResetToken(token => token + 1);
+      if (onComplete) onComplete(formData.nativeFilterId);
+    },
+    [dispatchDataMask, formData.nativeFilterId, onSearch, updateDataMask],
+  );
+
+  useEffect(() => {
+    if (clearAllTrigger) {
+      resetFilter(onClearAllComplete);
     }
-  }, [clearAllTrigger, onClearAllComplete, updateDataMask]);
+  }, [clearAllTrigger, onClearAllComplete, resetFilter]);
 
   useEffect(() => {
     // When a parent filter's value changes, a cascading clear signals this
     // dependent filter to reset its visual selection. Same behavior as a
     // global clear-all but scoped to one descendant.
     if (cascadeClearTrigger) {
-      dispatchDataMask({
-        type: 'filterState',
-        extraFormData: {},
-        filterState: {
-          value: undefined,
-          label: undefined,
-        },
-      });
-
-      updateDataMask(null);
-      setSearch('');
-      setLikeInputValue('');
-      onCascadeClearComplete?.(formData.nativeFilterId);
+      resetFilter(onCascadeClearComplete);
     }
-  }, [cascadeClearTrigger, onCascadeClearComplete, updateDataMask]);
+  }, [cascadeClearTrigger, onCascadeClearComplete, resetFilter]);
 
   useEffect(() => {
     if (prevExcludeFilterValues.current !== excludeFilterValues) {
@@ -684,6 +694,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
           ) : (
             <Select
               name={formData.nativeFilterId}
+              key={resetToken}
               allowClear
               autoClearSearchValue
               allowNewOptions={creatable !== false}

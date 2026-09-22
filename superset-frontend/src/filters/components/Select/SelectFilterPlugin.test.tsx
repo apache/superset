@@ -2028,6 +2028,84 @@ test('cascade clear cancels a pending LIKE debounce so stale text is not re-appl
   expect(setDataMaskMock).toHaveBeenCalledTimes(callsBeforeDebounceFlush);
 });
 
+test('cascade clear resets a search-all ownState term and cancels a pending onSearch debounce', async () => {
+  jest.useFakeTimers({ advanceTimers: true });
+  const setDataMaskMock = jest.fn();
+  const props = buildSelectFilterProps({
+    formData: { searchAllOptions: true },
+    filterState: { value: ['Jen'] },
+    setDataMask: setDataMaskMock,
+  });
+
+  const reduxState = {
+    useRedux: true,
+    initialState: {
+      nativeFilters: {
+        filters: { 'test-filter': { name: 'Test Filter' } },
+      },
+      dataMask: {
+        'test-filter': {
+          extraFormData: {
+            filters: [{ col: 'gender', op: 'IN', val: ['Jen'] }],
+          },
+          filterState: { value: ['Jen'] },
+        },
+      },
+    },
+  };
+
+  const { rerender } = render(
+    <SelectFilterPlugin {...props} />,
+    reduxState,
+  );
+
+  // Type in the select's search box; the debounced onSearch emission is
+  // pending and has not fired yet.
+  fireEvent.change(screen.getByRole('combobox'), {
+    target: { value: 'Mar' },
+  });
+
+  setDataMaskMock.mockClear();
+
+  // A parent filter change cascades a clear into this dependent filter while
+  // the search-all debounce is still pending.
+  rerender(
+    <SelectFilterPlugin
+      {...props}
+      cascadeClearTrigger={{ 'test-filter': true }}
+    />,
+  );
+
+  await waitFor(() => {
+    expect(setDataMaskMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        filterState: expect.objectContaining({
+          value: null,
+        }),
+      }),
+    );
+  });
+
+  // The stale server-side search term is wiped from ownState so the refetched
+  // option list is not scoped to 'Mar' while the input is empty.
+  expect(setDataMaskMock).toHaveBeenCalledWith(
+    expect.objectContaining({
+      ownState: expect.objectContaining({ search: '' }),
+    }),
+  );
+
+  const callsBeforeDebounceFlush = setDataMaskMock.mock.calls.length;
+
+  // Without the cancellation the pending 'Mar' onSearch debounce fires now and
+  // re-scopes the option list to a search term the cleared input no longer
+  // shows.
+  act(() => {
+    jest.advanceTimersByTime(1000);
+  });
+
+  expect(setDataMaskMock).toHaveBeenCalledTimes(callsBeforeDebounceFlush);
+});
+
 test('pending LIKE debounce still applies after rerender recreates updateDataMask', async () => {
   jest.useFakeTimers({ advanceTimers: true });
   const setDataMaskMock = jest.fn();

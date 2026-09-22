@@ -336,45 +336,65 @@ const FilterBar: FC<FiltersBarProps> = ({
         // any other first emission is a genuine user selection.
         const isAutoSeedInit =
           prevValue === undefined && !!filter.controlValues?.defaultToFirstItem;
+        // A filter being (re)initialized from persisted state re-emits its own
+        // saved mask on mount: first the reducer's empty extraFormData, then
+        // its saved clauses. Those synchronization emissions are not user
+        // changes and must not cascade-clear descendants, or opening a
+        // dashboard with a saved parent/child combination would wipe the child
+        // with no user action. The parent only counts as "live" once it has
+        // been initialized (received a value with non-empty extraFormData) or
+        // when it transitions from an empty/cleared state into a real
+        // selection.
+        const isInitializationEmission =
+          !initializedFilters.has(filter.id) &&
+          prevValue !== undefined &&
+          prevValue !== null;
         // The effective dependency state is the parent's extraFormData (the
         // clauses and time_range merged into descendants), not the raw
         // selected value: inverse-selection toggles change the clause while
         // the selected value stays identical.
         const parentValueChanged =
-          !!prevMask && !isAutoSeedInit && !isEqual(prevExtra, nextExtra);
+          !!prevMask &&
+          !isAutoSeedInit &&
+          !isInitializationEmission &&
+          !isEqual(prevExtra, nextExtra);
         if (parentValueChanged) {
           const childIds = resolveTransitiveChildIds(filter.id, filters);
           childIds.forEach(childId => {
-            // Only cascade-clear descendants that are in scope for the active
-            // tab, mirroring the handleClearAll scope guard. An out-of-scope
-            // child must keep its staged value (Apply would otherwise stage a
-            // null it never dispatches, leaving stale applied state) and its
-            // required-validateStatus (which would wrongly block Apply).
-            if (!inScopeFilterIds.has(childId)) return;
             const childMask = draft[childId];
             if (!childMask) return;
+            const childFilter = filters[childId];
+            const childInScope = inScopeFilterIds.has(childId);
             childMask.extraFormData = {};
             const { filterState } = childMask;
             if (filterState) {
               const childIsRequired =
-                !!filters[childId]?.controlValues?.enableEmptyFilter;
+                !!childFilter?.controlValues?.enableEmptyFilter;
               // Mirror handleClearAll: range filters use [null, null] as the
-              // canonical cleared value.  Bare null would be ignored by
+              // canonical cleared value. Bare null would be ignored by
               // RangeFilterPlugin's sync effect, leaving stale UI.
               filterState.value =
-                filters[childId]?.filterType === 'filter_range'
+                childFilter?.filterType === 'filter_range'
                   ? [null, null]
                   : null;
-              filterState.validateStatus = childIsRequired
-                ? 'error'
-                : undefined;
+              // Out-of-scope descendants are staged Apply-safe: an error
+              // status would disable Apply one tab away, and getFiltersToApply
+              // skips their empty staged value until they enter scope.
+              // Staging the clear anyway means the stale applied selection is
+              // invalidated as soon as the tab comes back into view.
+              filterState.validateStatus =
+                childInScope && childIsRequired ? 'error' : undefined;
             }
-            // Signal the child's filter plugin to clear its visual selection
-            // and avoid re-applying defaults.
-            setCascadeClearTriggers(prev => ({
-              ...prev,
-              [childId]: true,
-            }));
+            // Only in-scope Select children consume a visual clear trigger.
+            // Range/Time descendants sync their cleared state from the staged
+            // value, and an unconsumed trigger would fire later if the filter
+            // were edited into a Select.
+            if (childInScope && childFilter?.filterType === 'filter_select') {
+              setCascadeClearTriggers(prev => ({
+                ...prev,
+                [childId]: true,
+              }));
+            }
           });
         }
 
