@@ -19,13 +19,19 @@ from __future__ import annotations
 
 import io
 import logging
+import math
 import time
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from celery import current_task
-from PIL import Image, UnidentifiedImageError
+from celery.exceptions import SoftTimeLimitExceeded
+from PIL import Image, ImageChops, ImageStat, UnidentifiedImageError
 
 from superset.utils.report_execution import (
+    CHART_HOLDER_SEMANTIC_POLICY,
+    ChartHolderDiagnostics,
+    ReportArtifactKind,
     ReportExecutionBudgetExceededError,
     ReportExecutionContext,
 )
@@ -35,12 +41,25 @@ logger = logging.getLogger(__name__)
 # Time to wait after scrolling for content to settle and load (in milliseconds)
 SCROLL_SETTLE_TIMEOUT_MS = 1000
 
+# Ceiling for un-clipping scrollable chart content (ag-Grid stabilization
+# polling) before a screenshot, absent a report deadline to bound it against.
+EXPAND_SCROLLABLE_CONTENT_MAX_WAIT_SECONDS = 5.0
+
 # Chromium can occasionally return a valid but uniformly blank PNG for an
 # off-screen clip. Retry after forcing a compositor frame, but keep each CDP
 # capture bounded so a wedged compositor cannot consume the report deadline.
 TILED_SCREENSHOT_CAPTURE_TIMEOUT_SECONDS = 120
 TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS = 3
 TILED_SCREENSHOT_BLANK_DOMINANT_PIXEL_RATIO = 0.995
+SCREENSHOT_BLANK_MIN_LUMINANCE = 240
+SCREENSHOT_BLANK_MIN_MEAN_LUMINANCE = 250.0
+SCREENSHOT_BLANK_MIN_NEUTRAL_MEAN_LUMINANCE = 230.0
+SCREENSHOT_BLANK_MAX_LUMINANCE_STDDEV = 8.0
+SCREENSHOT_BLANK_MAX_ENTROPY = 1.5
+SCREENSHOT_BLANK_MIN_EDGE_DIFFERENCE = 8
+SCREENSHOT_BLANK_MIN_STRUCTURAL_EDGE_RATIO = 0.02
+SCREENSHOT_BLANK_SAMPLE_SIZES = (256, 1024)
+REPORT_CAPTURE_READINESS_STABILITY_MS = 500
 
 # Runtime task-budget policy shared with the approach introduced in #42118.
 # Celery exposes the effective per-task hard/soft limits only on the running
@@ -126,32 +145,171 @@ class ScreenshotCaptureTimeoutError(RuntimeError):
     """Raised when Chromium repeatedly times out while capturing a tile."""
 
 
-def is_screenshot_nearly_uniform(screenshot: bytes) -> tuple[bool, float]:
-    """Return whether one color occupies nearly all sampled screenshot pixels."""
+class ScreenshotCaptureReadinessChangedError(RuntimeError):
+    """Raised when chart readiness repeatedly changes during capture."""
+
+
+class ScreenshotBlankCaptureError(RuntimeError):
+    """Raised when Chromium repeatedly returns a perceptually blank capture."""
+
+
+def validate_report_screenshot(
+    screenshot: bytes,
+    context: ReportExecutionContext,
+    *,
+    content_validated: bool = False,
+) -> None:
+    """Decode exact bytes, preserving an explicit region-level content verdict."""
+    if context.capture_was_rejected:
+        raise ScreenshotBlankCaptureError("Capture was already rejected")
+    if context.artifact_was_validated(screenshot, ReportArtifactKind.SCREENSHOT):
+        return
+    try:
+        with Image.open(io.BytesIO(screenshot)) as image:
+            image.verify()
+        blankness = get_screenshot_blankness_metrics(
+            screenshot,
+            raise_on_decode_error=True,
+        )
+    except (SoftTimeLimitExceeded, ReportExecutionBudgetExceededError):
+        context.reject_capture("validation_interrupted")
+        raise
+    except Exception as ex:
+        context.reject_capture("invalid_image")
+        raise ScreenshotBlankCaptureError("Unable to validate screenshot bytes") from ex
+    if blankness.is_blank and not content_validated:
+        context.reject_capture("blank_final_image")
+        raise ScreenshotBlankCaptureError("Final screenshot is perceptually blank")
+    context.approve_artifact(screenshot, ReportArtifactKind.SCREENSHOT)
+
+
+@dataclass(frozen=True)
+class ScreenshotBlanknessMetrics:
+    """Metrics used to decide whether a screenshot is perceptually blank."""
+
+    is_blank: bool
+    dominant_pixel_ratio: float
+    near_white_pixel_ratio: float
+    mean_luminance: float
+    luminance_stddev: float
+    entropy: float
+    structural_edge_ratio: float
+
+
+def get_screenshot_blankness_metrics(
+    screenshot: bytes,
+    *,
+    raise_on_decode_error: bool = False,
+) -> ScreenshotBlanknessMetrics:
+    """Measure exact-color and perceptual blankness on a sampled screenshot."""
 
     try:
         with Image.open(io.BytesIO(screenshot)) as image:
-            sample = image.convert("RGB")
-            sample.thumbnail((256, 256))
-            colors = sample.getcolors(maxcolors=256)
-            if not colors:
-                return False, 0.0
-            dominant_pixels = max(count for count, _color in colors)
-            dominant_ratio = dominant_pixels / (sample.width * sample.height)
-            return (
-                dominant_ratio >= TILED_SCREENSHOT_BLANK_DOMINANT_PIXEL_RATIO,
-                dominant_ratio,
+            sample_metrics: list[ScreenshotBlanknessMetrics] = []
+            for sample_size in SCREENSHOT_BLANK_SAMPLE_SIZES:
+                sample = image.convert("RGB")
+                sample.thumbnail((sample_size, sample_size))
+                pixel_count = sample.width * sample.height
+                colors = sample.getcolors(maxcolors=pixel_count) or []
+                dominant_pixels = max(
+                    (count for count, _color in colors),
+                    default=0,
+                )
+                dominant_ratio = dominant_pixels / pixel_count
+
+                grayscale = sample.convert("L")
+                histogram = grayscale.histogram()
+                near_white_ratio = (
+                    sum(histogram[SCREENSHOT_BLANK_MIN_LUMINANCE:]) / pixel_count
+                )
+                statistics = ImageStat.Stat(grayscale)
+                mean_luminance = float(statistics.mean[0])
+                luminance_stddev = float(statistics.stddev[0])
+                entropy = -sum(
+                    (count / pixel_count) * math.log2(count / pixel_count)
+                    for count in histogram
+                    if count
+                )
+                horizontal_edges = ImageChops.difference(
+                    grayscale, ImageChops.offset(grayscale, 1, 0)
+                )
+                vertical_edges = ImageChops.difference(
+                    grayscale, ImageChops.offset(grayscale, 0, 1)
+                )
+                edge_histogram = ImageChops.lighter(
+                    horizontal_edges, vertical_edges
+                ).histogram()
+                structural_edge_ratio = (
+                    sum(edge_histogram[SCREENSHOT_BLANK_MIN_EDGE_DIFFERENCE:])
+                    / pixel_count
+                )
+                low_information = (
+                    luminance_stddev <= SCREENSHOT_BLANK_MAX_LUMINANCE_STDDEV
+                    and entropy <= SCREENSHOT_BLANK_MAX_ENTROPY
+                    and structural_edge_ratio
+                    <= SCREENSHOT_BLANK_MIN_STRUCTURAL_EDGE_RATIO
+                )
+                # Keep uniform-fill rejection independent of theme or hue.
+                # Neutral light-grey backgrounds also indicate missing paint.
+                channel_means = ImageStat.Stat(sample).mean
+                perceptually_blank = low_information and (
+                    dominant_ratio >= TILED_SCREENSHOT_BLANK_DOMINANT_PIXEL_RATIO
+                    or mean_luminance >= SCREENSHOT_BLANK_MIN_MEAN_LUMINANCE
+                    or (
+                        mean_luminance >= SCREENSHOT_BLANK_MIN_NEUTRAL_MEAN_LUMINANCE
+                        and max(channel_means) - min(channel_means) <= 16
+                    )
+                )
+                sample_metrics.append(
+                    ScreenshotBlanknessMetrics(
+                        is_blank=perceptually_blank,
+                        dominant_pixel_ratio=dominant_ratio,
+                        near_white_pixel_ratio=near_white_ratio,
+                        mean_luminance=mean_luminance,
+                        luminance_stddev=luminance_stddev,
+                        entropy=entropy,
+                        structural_edge_ratio=structural_edge_ratio,
+                    )
+                )
+
+            metrics = sample_metrics[-1]
+            return ScreenshotBlanknessMetrics(
+                is_blank=all(sample.is_blank for sample in sample_metrics),
+                dominant_pixel_ratio=metrics.dominant_pixel_ratio,
+                near_white_pixel_ratio=metrics.near_white_pixel_ratio,
+                mean_luminance=metrics.mean_luminance,
+                luminance_stddev=metrics.luminance_stddev,
+                entropy=metrics.entropy,
+                structural_edge_ratio=metrics.structural_edge_ratio,
             )
     except (OSError, UnidentifiedImageError):
+        if raise_on_decode_error:
+            raise
         # Combining the tiles remains responsible for rejecting corrupt image
         # bytes. This check only identifies valid images with blank pixels.
-        return False, 0.0
+        return ScreenshotBlanknessMetrics(False, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+
+
+def is_screenshot_nearly_uniform(screenshot: bytes) -> tuple[bool, float]:
+    """Return the blank decision and dominant-color ratio for compatibility."""
+
+    metrics = get_screenshot_blankness_metrics(screenshot)
+    return metrics.is_blank, metrics.dominant_pixel_ratio
 
 
 try:
-    from playwright.sync_api import TimeoutError as PlaywrightTimeout
+    from playwright.sync_api import (
+        Error as PlaywrightError,
+        TimeoutError as PlaywrightTimeout,
+    )
 except ImportError:
-    PlaywrightTimeout = Exception
+
+    class PlaywrightError(Exception):  # type: ignore[no-redef]
+        """Fallback Playwright error that excludes unrelated exceptions."""
+
+    class PlaywrightTimeout(PlaywrightError):  # type: ignore[no-redef]  # noqa: N818
+        """Fallback matching Playwright's timeout error hierarchy."""
+
 
 if TYPE_CHECKING:
     try:
@@ -211,7 +369,6 @@ AG_GRID_HOST_SELECTOR = r'[data-themed-ag-grid="true"]'
 CHART_ERROR_OR_EMPTY_SELECTOR = (
     f"{ALERT_SELECTOR}, {EMPTY_SELECTOR}, {MISSING_CHART_SELECTOR}"
 )
-
 # Runtime contract with the dashboard frontend. Dispatching this window event
 # forces every DashboardVirtualization row to render regardless of whether it
 # intersects the headless viewport, mirroring the client-side "Download as
@@ -313,9 +470,22 @@ UNREADY_CHART_HOLDERS_JS_BODY = _unready_chart_holders_js_body(viewport_only=Tru
 # element in one shot and therefore cannot ignore below-the-fold holders).
 UNREADY_ALL_CHART_HOLDERS_JS_BODY = _unready_chart_holders_js_body(viewport_only=False)
 
+
 # Diagnostic query for every chart holder, including terminal and virtualized
 # states. It interpolates the same selector constants as the predicates.
-FIND_CHART_HOLDER_STATES_JS = f"""
+def _chart_holder_states_js(*, viewport_only: bool) -> str:
+    """Build holder diagnostics for either a tile or a full-dashboard capture."""
+    viewport_check = (
+        """
+        const r = holder.getBoundingClientRect();
+        if (!(r.top < window.innerHeight && r.bottom > 0)) {
+            return { chartId, state: 'virtualized', agGridWaitObserved };
+        }
+    """
+        if viewport_only
+        else ""
+    )
+    return f"""
 () => {{
     const holders = document.querySelectorAll('{CHART_HOLDER_SELECTOR}');
     return Array.from(holders).map(holder => {{
@@ -324,10 +494,7 @@ FIND_CHART_HOLDER_STATES_JS = f"""
         const agGridWaitObserved = Array.from(holder.querySelectorAll(
             '{AG_GRID_HOST_SELECTOR}'
         )).some(grid => grid._supersetAgGridWaitObserved === true);
-        const r = holder.getBoundingClientRect();
-        if (!(r.top < window.innerHeight && r.bottom > 0)) {{
-            return {{ chartId, state: 'virtualized', agGridWaitObserved }};
-        }}
+        {viewport_check}
         const hasSliceContainer = holder.querySelector(
             '{SLICE_CONTAINER_SELECTOR}'
         ) !== null;
@@ -365,6 +532,10 @@ FIND_CHART_HOLDER_STATES_JS = f"""
 }}
 """
 
+
+FIND_CHART_HOLDER_STATES_JS = _chart_holder_states_js(viewport_only=True)
+FIND_ALL_CHART_HOLDER_STATES_JS = _chart_holder_states_js(viewport_only=False)
+
 CHART_HOLDERS_READY_JS = (
     f"() => {{ {UNREADY_CHART_HOLDERS_JS_BODY} return unready.length === 0; }}"
 )
@@ -380,6 +551,56 @@ REPORT_CHART_HOLDERS_READY_JS = (
 REPORT_ALL_CHART_HOLDERS_READY_JS = (
     f"() => {{ {UNREADY_ALL_CHART_HOLDERS_JS_BODY} "
     "return holders.length > 0 && unready.length === 0; }"
+)
+# API/UI exports capture the selected tab state from a permalink. A selected
+# tab may intentionally contain no charts, so layout hydration is the non-
+# vacuous mount signal while holder readiness applies to every chart actually
+# rendered by that state.
+DASHBOARD_LAYOUT_READY_JS = "() => document.querySelector('.dashboard-grid') !== null"
+DASHBOARD_CHART_HOLDERS_READY_JS = (
+    "() => { if (document.querySelector('.dashboard-grid') === null) "
+    f"return false; {UNREADY_CHART_HOLDERS_JS_BODY} "
+    "return unready.length === 0; }"
+)
+DASHBOARD_ALL_CHART_HOLDERS_READY_JS = (
+    "() => { if (document.querySelector('.dashboard-grid') === null) "
+    f"return false; {UNREADY_ALL_CHART_HOLDERS_JS_BODY} "
+    "return unready.length === 0; }"
+)
+
+
+def _stable_readiness_js(readiness_predicate: str) -> str:
+    """Require a readiness predicate to remain true for a capture dwell."""
+
+    return f"""
+    args => {{
+        const ready = ({readiness_predicate})();
+        const now = performance.now();
+        const previous = window.__supersetCaptureReadiness;
+        if (!ready) {{
+            window.__supersetCaptureReadiness = {{token: args.token, since: null}};
+            return false;
+        }}
+        if (!previous || previous.token !== args.token || previous.since === null) {{
+            window.__supersetCaptureReadiness = {{token: args.token, since: now}};
+            return false;
+        }}
+        return now - previous.since >= args.stabilityMs;
+    }}
+    """
+
+
+STABLE_REPORT_CHART_HOLDERS_READY_JS = _stable_readiness_js(
+    REPORT_CHART_HOLDERS_READY_JS
+)
+STABLE_REPORT_ALL_CHART_HOLDERS_READY_JS = _stable_readiness_js(
+    REPORT_ALL_CHART_HOLDERS_READY_JS
+)
+STABLE_DASHBOARD_CHART_HOLDERS_READY_JS = _stable_readiness_js(
+    DASHBOARD_CHART_HOLDERS_READY_JS
+)
+STABLE_DASHBOARD_ALL_CHART_HOLDERS_READY_JS = _stable_readiness_js(
+    DASHBOARD_ALL_CHART_HOLDERS_READY_JS
 )
 CHART_HOLDERS_MOUNTED_JS = (
     f"() => document.querySelectorAll('{CHART_HOLDER_SELECTOR}').length > 0"
@@ -410,6 +631,38 @@ CHART_CONTAINER_READY_JS = f"""
         );
 }}
 """
+STABLE_CHART_CONTAINER_READY_JS = _stable_readiness_js(CHART_CONTAINER_READY_JS)
+
+
+def wait_for_stable_readiness(
+    page: Page,
+    readiness_predicate: str,
+    timeout_seconds: float,
+) -> bool:
+    """Wait for capture readiness when the available budget can satisfy the dwell.
+
+    Returns ``False`` when less than one stability window plus a polling-interval
+    margin remains. The caller may proceed because the preceding readiness gate has
+    already completed; starting an impossible dwell would only convert a usable
+    capture budget into a timeout.
+    """
+
+    # The first poll only records the dwell start, so success needs the full
+    # stability window plus at least one polling interval on top of it.
+    minimum_timeout_seconds = (REPORT_CAPTURE_READINESS_STABILITY_MS + 250) / 1000
+    if timeout_seconds <= minimum_timeout_seconds:
+        return False
+
+    page.wait_for_function(
+        readiness_predicate,
+        arg={
+            "token": str(time.monotonic_ns()),
+            "stabilityMs": REPORT_CAPTURE_READINESS_STABILITY_MS,
+        },
+        timeout=timeout_seconds * 1000,
+    )
+    return True
+
 
 # Diagnostic companion to CHART_CONTAINER_READY_JS: reports why a chart
 # capture is (or is not) ready. Chart pages have no dashboard grid holders,
@@ -434,6 +687,116 @@ CHART_CONTAINER_STATE_JS = f"""
         return 'terminal';
     }}
     return 'mounted_pre_terminal';
+}}
+"""
+
+CHART_CONTAINER_HAS_RENDERED_CONTENT_JS = f"""
+() => {{
+    const chart = document.querySelector('.chart-container');
+    return chart !== null
+        && chart.querySelector('{CHART_ERROR_OR_EMPTY_SELECTOR}') === null
+        && chart.querySelector('{SLICE_CONTAINER_SELECTOR}') !== null;
+}}
+"""
+
+REPORT_HAS_RENDERED_CHART_HOLDERS_JS = f"""
+() => Array.from(document.querySelectorAll('{CHART_HOLDER_SELECTOR}')).some(
+    holder => holder.querySelector(
+        '{CHART_ERROR_OR_EMPTY_SELECTOR}'
+    ) === null && holder.querySelector('{SLICE_CONTAINER_SELECTOR}') !== null
+)
+"""
+
+CHART_CONTAINER_SELECTOR = ".chart-container"
+
+# `.slice_container` (superset-frontend/src/components/Chart/Chart.tsx) is
+# the one ancestor every chart type shares, directly inside `.chart-container`,
+# with an explicit pixel height matching the dashboard tile. A locator-bounded
+# capture (`element.screenshot()`, used for single-chart exports) clips to
+# `.chart-container`'s own bounding box, which only has a `min-height` --
+# so it stays exactly `.slice_container`'s fixed height unless that fixed
+# height is lifted too. Un-clipping a scrollable *descendant* (the ag-Grid
+# host, a table's own scroll body) is not enough on its own: the descendant
+# can grow, but its ancestor's box does not, and the extra content just
+# overflows the ancestor unseen by a bounding-box screenshot (#38090).
+SLICE_CONTAINER_SELECTOR_FOR_EXPANSION = ".slice_container"
+
+# Legacy/other chart-table implementations that scroll via an inline style
+# rather than a stable class name (e.g. plugin-chart-table's sticky body,
+# `superset-frontend/plugins/plugin-chart-table/src/DataTable/hooks/useSticky.tsx`)
+# aren't reachable by a fixed class-selector list, so this catches any
+# descendant of a chart that is *actually* clipping its own content
+# (scrollHeight > clientHeight) rather than guessing at class names that may
+# not exist in every plugin version. `.ant-table-body` is kept alongside it
+# for a real Ant Design `<Table>` if one ever renders inside a chart.
+GENERIC_SCROLLABLE_DESCENDANT_SELECTOR = (
+    f'{CHART_CONTAINER_SELECTOR} [style*="overflow"], '
+    f"{CHART_CONTAINER_SELECTOR} .ant-table-body"
+)
+
+# ag-Grid virtualizes rows for performance, so a plain height/overflow reset
+# would still leave off-screen rows unrendered. `domLayout: "print"` is
+# ag-Grid's own "render every row into the DOM" mode -- the same mode the
+# client-side "download as image" export switches to via the GridApi that
+# ThemedAgGridReact (superset-ui-core) stashes on the grid's host element
+# specifically so screenshot/export code can reach it. The grid's own host
+# element and its immediate parent (the ag-Grid table plugin's container,
+# which sets an explicit pixel height via inline style -- see
+# `plugin-chart-ag-grid-table/src/AgGridTable/index.tsx`) are reset for the
+# same ancestor-box reason as `.slice_container` above.
+#
+# `page.screenshot(full_page=True)` already expands the outer dashboard
+# scroll to include every below-the-fold chart (#31158); it has no effect on
+# a chart's own internal scroll container, which is what this JS unrolls
+# in-place before the page is captured.
+EXPAND_SCROLLABLE_CONTENT_JS = f"""
+async (maxWaitMs) => {{
+    const agGrids = Array.from(
+        document.querySelectorAll('{AG_GRID_HOST_SELECTOR}')
+    );
+    await Promise.all(agGrids.map(async (grid) => {{
+        const api = grid._agGridApi;
+        if (!api) {{ return; }}
+        api.setGridOption('domLayout', 'print');
+        if (api.resetRowHeights) {{ api.resetRowHeights(); }}
+        grid.style.height = 'auto';
+        if (grid.parentElement) {{ grid.parentElement.style.height = 'auto'; }}
+        // ag-Grid's autoHeight rows batch-measure asynchronously, so this
+        // polls for a stable scrollHeight instead of a fixed sleep. Five
+        // consecutive unchanged 100ms polls is a deliberate match for the
+        // client-side export's own
+        // waitForStableScrollHeight(agRootWrapper, 5000, 5) (downloadAsImage.tsx):
+        // always paid in full even when nothing is still settling, so both
+        // paths trust the measurement after the same wait rather than
+        // racing a batch that hasn't finished yet.
+        let lastHeight = grid.scrollHeight;
+        let stableCount = 0;
+        const deadline = Date.now() + maxWaitMs;
+        while (Date.now() < deadline && stableCount < 5) {{
+            await new Promise((resolve) => setTimeout(resolve, 100));
+            const height = grid.scrollHeight;
+            if (height === lastHeight) {{
+                stableCount += 1;
+            }} else {{
+                stableCount = 0;
+                lastHeight = height;
+            }}
+        }}
+    }}));
+
+    document.querySelectorAll('{SLICE_CONTAINER_SELECTOR_FOR_EXPANSION}').forEach(
+        (el) => {{ el.style.height = 'auto'; }}
+    );
+
+    document.querySelectorAll('{GENERIC_SCROLLABLE_DESCENDANT_SELECTOR}').forEach(
+        (el) => {{
+            if (el.scrollHeight > el.clientHeight) {{
+                el.style.overflow = 'visible';
+                el.style.height = 'auto';
+                el.style.maxHeight = 'none';
+            }}
+        }}
+    );
 }}
 """
 
@@ -503,6 +866,7 @@ def take_tiled_screenshot(  # noqa: C901
     report_execution_context: ReportExecutionContext | None = None,
     url: str | None = None,
     screenshot_started_at: float | None = None,
+    require_complete_capture: bool = False,
 ) -> bytes | None:
     """
     Take a tiled screenshot of a large dashboard by scrolling and capturing sections.
@@ -525,6 +889,8 @@ def take_tiled_screenshot(  # noqa: C901
             task budget -- the same clock _wait_for_charts_ready uses.
             Ignored when a report_execution_context provides its own
             deadline; falls back to "now" when omitted.
+        require_complete_capture: Use fail-closed readiness, stability, and
+            blank-capture behavior for API/UI dashboard exports.
 
     Returns:
         Combined screenshot bytes or None if failed
@@ -537,19 +903,19 @@ def take_tiled_screenshot(  # noqa: C901
     """
     if report_execution_context:
         log_context = report_execution_context.log_context
+    expected_chart_count = (
+        report_execution_context.expected_chart_count
+        if report_execution_context
+        else None
+    )
+    strict_capture = report_execution_context is not None or require_complete_capture
     context_suffix = f" [{log_context}]" if log_context else ""
     # Set right before re-raising the per-tile readiness timeout below, and
-    # checked in the except block at the bottom of this function. Deciding
-    # whether to propagate via `isinstance(e, PlaywrightTimeout)` would be
-    # unreliable: when the playwright package isn't installed,
-    # `PlaywrightTimeout` is aliased to the bare `Exception` class (see the
-    # try/except ImportError above this function), which would make *any*
-    # exception -- not just our own deliberate readiness-timeout raise --
-    # match `except PlaywrightTimeout` and incorrectly propagate instead of
-    # degrading to `None` like every other unexpected error in this function.
+    # checked in the except block at the bottom of this function.
     readiness_timeout = False
     if screenshot_started_at is None:
         screenshot_started_at = time.monotonic()
+    observed_holder_states: dict[str, str] = {}
     task_budget = (
         None
         if report_execution_context
@@ -595,6 +961,35 @@ def take_tiled_screenshot(  # noqa: C901
             return remaining
         return min(float(requested_seconds), remaining)
 
+    def _record_visible_holder_states(
+        holder_states: object,
+        *,
+        tile_number: int,
+    ) -> None:
+        """Record each report holder's strongest visible terminal state."""
+
+        if not isinstance(holder_states, list):
+            return
+        state_priority = {"rendered": 1, "empty": 2, "error": 3}
+        for position, holder in enumerate(holder_states):
+            if not isinstance(holder, dict):
+                continue
+            state = holder.get("state")
+            if not isinstance(state, str) or state not in state_priority:
+                continue
+            chart_id = holder.get("chartId")
+            holder_key = (
+                f"chart:{chart_id}"
+                if chart_id is not None
+                else f"tile:{tile_number}:holder:{position}"
+            )
+            existing_state = observed_holder_states.get(holder_key)
+            if (
+                existing_state is None
+                or state_priority[state] > state_priority[existing_state]
+            ):
+                observed_holder_states[holder_key] = state
+
     try:
         # Get the target element
         element = page.locator(f".{element_name}")
@@ -611,28 +1006,51 @@ def take_tiled_screenshot(  # noqa: C901
             * 1000
         )
 
-        if report_execution_context:
+        if strict_capture:
             mount_wait = _timeout_seconds(
                 "chart_holder_mount",
-                reserve_seconds=report_execution_context.readiness_reserve_seconds,
+                requested_seconds=(
+                    None if report_execution_context else float(load_wait)
+                ),
+                reserve_seconds=(
+                    report_execution_context.readiness_reserve_seconds
+                    if report_execution_context
+                    else 0.0
+                ),
             )
             try:
                 page.wait_for_function(
-                    CHART_HOLDERS_MOUNTED_JS,
+                    (
+                        CHART_HOLDERS_MOUNTED_JS
+                        if report_execution_context
+                        else DASHBOARD_LAYOUT_READY_JS
+                    ),
                     timeout=mount_wait * 1000,
                 )
             except PlaywrightTimeout:
                 holder_states = page.evaluate(FIND_CHART_HOLDER_STATES_JS)
+                diagnostics = ChartHolderDiagnostics.from_holder_states(holder_states)
                 elapsed, remaining = _deadline_values()
                 logger.warning(
                     "report_readiness_terminal url=%s expected_holders=%s "
-                    "mounted_holders=%s ready_holders=0 elapsed_seconds=%.2f "
-                    "remaining_seconds=%s effective_wait_seconds=%.2f%s "
+                    "mounted_holders=%s ready_holders=%s rendered_holders=%s "
+                    "empty_holders=%s error_holders=%s virtualized_holders=%s "
+                    "unready_holders=%s semantic_success=%s semantic_policy=%s "
+                    "elapsed_seconds=%.2f remaining_seconds=%s "
+                    "effective_wait_seconds=%.2f%s "
                     "terminal_reason=zero_holders_timeout states=%s; "
                     "aborting before dimensions, capture, or delivery",
                     url,
-                    report_execution_context.expected_chart_count,
-                    len(holder_states),
+                    expected_chart_count,
+                    diagnostics.mounted_holders,
+                    diagnostics.ready_holders,
+                    diagnostics.rendered_holders,
+                    diagnostics.empty_holders,
+                    diagnostics.error_holders,
+                    diagnostics.virtualized_holders,
+                    diagnostics.unready_holders,
+                    diagnostics.semantic_success,
+                    CHART_HOLDER_SEMANTIC_POLICY,
                     elapsed,
                     f"{remaining:.2f}" if remaining is not None else None,
                     mount_wait,
@@ -674,6 +1092,7 @@ def take_tiled_screenshot(  # noqa: C901
 
         screenshot_tiles: list[bytes] = []
         blank_tile_retries = 0
+        contentful_tile_indexes: list[int] = []
 
         def _raise_if_budget_exhausted() -> None:
             elapsed, remaining = _deadline_values()
@@ -746,23 +1165,25 @@ def take_tiled_screenshot(  # noqa: C901
                     else 0.0
                 ),
             )
+            tile_readiness_predicate = (
+                REPORT_CHART_HOLDERS_READY_JS
+                if report_execution_context
+                else (
+                    DASHBOARD_CHART_HOLDERS_READY_JS
+                    if require_complete_capture
+                    else CHART_HOLDERS_READY_JS
+                )
+            )
             try:
                 page.wait_for_function(
-                    (
-                        REPORT_CHART_HOLDERS_READY_JS
-                        if report_execution_context
-                        else CHART_HOLDERS_READY_JS
-                    ),
+                    tile_readiness_predicate,
                     timeout=tile_load_wait * 1000,
                 )
             except PlaywrightTimeout:
                 tile_elapsed = time.monotonic() - tile_wait_start
                 unready_chart_holders = page.evaluate(FIND_UNREADY_CHART_HOLDERS_JS)
                 holder_states = page.evaluate(FIND_CHART_HOLDER_STATES_JS)
-                ready_states = {"rendered", "empty", "error", "virtualized"}
-                ready_holders = sum(
-                    holder.get("state") in ready_states for holder in holder_states
-                )
+                diagnostics = ChartHolderDiagnostics.from_holder_states(holder_states)
                 elapsed, remaining = _deadline_values()
                 # A chart failing to load in time is a customer chart-loading
                 # issue (slow query, error state, etc.), not a Superset system
@@ -771,20 +1192,30 @@ def take_tiled_screenshot(  # noqa: C901
                 # made the same call for the other screenshot timeout paths.
                 logger.warning(
                     "report_readiness_terminal url=%s expected_holders=%s "
-                    "mounted_holders=%s ready_holders=%s tile=%s/%s "
-                    "tiles_captured=%s/%s "
+                    "mounted_holders=%s ready_holders=%s rendered_holders=%s "
+                    "empty_holders=%s error_holders=%s virtualized_holders=%s "
+                    "unready_holders=%s semantic_success=%s semantic_policy=%s "
+                    "tile=%s/%s tiles_captured=%s/%s "
                     "tile_elapsed_seconds=%.2f elapsed_seconds=%.2f "
                     "remaining_seconds=%s effective_wait_seconds=%.2f%s "
-                    "terminal_reason=readiness_timeout unready_holders=%s "
-                    "states=%s; aborting before capture or delivery",
+                    "terminal_reason=readiness_timeout "
+                    "unready_holder_states=%s states=%s; "
+                    "aborting before capture or delivery",
                     url,
                     (
                         report_execution_context.expected_chart_count
                         if report_execution_context
                         else None
                     ),
-                    len(holder_states),
-                    ready_holders,
+                    diagnostics.mounted_holders,
+                    diagnostics.ready_holders,
+                    diagnostics.rendered_holders,
+                    diagnostics.empty_holders,
+                    diagnostics.error_holders,
+                    diagnostics.virtualized_holders,
+                    diagnostics.unready_holders,
+                    diagnostics.semantic_success,
+                    CHART_HOLDER_SEMANTIC_POLICY,
                     i + 1,
                     num_tiles,
                     len(screenshot_tiles),
@@ -801,6 +1232,54 @@ def take_tiled_screenshot(  # noqa: C901
                 raise
             else:
                 tile_elapsed = time.monotonic() - tile_wait_start
+                if report_execution_context:
+                    try:
+                        holder_states = page.evaluate(FIND_CHART_HOLDER_STATES_JS)
+                        if not isinstance(holder_states, list):
+                            holder_states = []
+                    except (SoftTimeLimitExceeded, ReportExecutionBudgetExceededError):
+                        raise
+                    except Exception:  # noqa: BLE001  # diagnostics must not discard valid tiles
+                        logger.warning(
+                            "Unable to collect per-tile chart-holder diagnostics%s",
+                            context_suffix,
+                            exc_info=True,
+                        )
+                        holder_states = []
+                    diagnostics = ChartHolderDiagnostics.from_holder_states(
+                        holder_states
+                    )
+                    _record_visible_holder_states(
+                        holder_states,
+                        tile_number=i + 1,
+                    )
+                    elapsed, remaining = _deadline_values()
+                    logger.info(
+                        "report_readiness_tile url=%s expected_holders=%s "
+                        "mounted_holders=%s ready_holders=%s rendered_holders=%s "
+                        "empty_holders=%s error_holders=%s "
+                        "virtualized_holders=%s unready_holders=%s "
+                        "semantic_success=%s semantic_policy=%s tile=%s/%s "
+                        "tile_elapsed_seconds=%.2f elapsed_seconds=%.2f "
+                        "remaining_seconds=%s%s",
+                        url,
+                        report_execution_context.expected_chart_count,
+                        diagnostics.mounted_holders,
+                        diagnostics.ready_holders,
+                        diagnostics.rendered_holders,
+                        diagnostics.empty_holders,
+                        diagnostics.error_holders,
+                        diagnostics.virtualized_holders,
+                        diagnostics.unready_holders,
+                        diagnostics.semantic_success,
+                        CHART_HOLDER_SEMANTIC_POLICY,
+                        i + 1,
+                        num_tiles,
+                        tile_elapsed,
+                        elapsed,
+                        f"{remaining:.2f}" if remaining is not None else None,
+                        context_suffix,
+                    )
                 logger.debug(
                     "Tile %s/%s chart holders ready after %.2fs "
                     "(effective_wait=%.2fs)%s",
@@ -942,6 +1421,57 @@ def take_tiled_screenshot(  # noqa: C901
             # Take screenshot with clipping to capture only this tile's content
             tile_screenshot: bytes | None = None
             for capture_attempt in range(1, TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS + 1):
+                if strict_capture:
+                    stable_wait = _timeout_seconds(
+                        "capture_readiness_stability",
+                        requested_seconds=(
+                            None if report_execution_context else float(load_wait)
+                        ),
+                        reserve_seconds=(
+                            report_execution_context.readiness_reserve_seconds
+                            if report_execution_context
+                            else 0.0
+                        ),
+                    )
+                    try:
+                        waited_for_stability = wait_for_stable_readiness(
+                            page,
+                            (
+                                STABLE_REPORT_CHART_HOLDERS_READY_JS
+                                if report_execution_context
+                                else STABLE_DASHBOARD_CHART_HOLDERS_READY_JS
+                            ),
+                            stable_wait,
+                        )
+                        if require_complete_capture and not waited_for_stability:
+                            raise TiledScreenshotBudgetExceededError(
+                                "Screenshot task budget cannot satisfy capture "
+                                "readiness stability"
+                            )
+                        logger.info(
+                            "report_capture_readiness_stable tile=%s/%s "
+                            "attempt=%s/%s stability_ms=%s skipped=%s%s",
+                            i + 1,
+                            num_tiles,
+                            capture_attempt,
+                            TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS,
+                            REPORT_CAPTURE_READINESS_STABILITY_MS,
+                            not waited_for_stability,
+                            context_suffix,
+                        )
+                    except PlaywrightTimeout:
+                        logger.warning(
+                            "report_capture_readiness_changed tile=%s/%s "
+                            "attempt=%s/%s%s; aborting before capture or delivery",
+                            i + 1,
+                            num_tiles,
+                            capture_attempt,
+                            TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS,
+                            context_suffix,
+                            exc_info=True,
+                        )
+                        readiness_timeout = True
+                        raise
                 capture_timeout = (
                     _timeout_seconds(
                         "screenshot_capture",
@@ -985,20 +1515,50 @@ def take_tiled_screenshot(  # noqa: C901
                         ) from ex
                 else:
                     capture_elapsed = time.monotonic() - capture_started_at
-                    is_uniform, dominant_ratio = is_screenshot_nearly_uniform(candidate)
-                    is_blank = is_uniform and (
+                    if require_complete_capture and not bool(
+                        page.evaluate(tile_readiness_predicate)
+                    ):
+                        logger.warning(
+                            "report_capture_readiness_changed capture=tile "
+                            "tile=%s/%s attempt=%s/%s%s; discarding candidate "
+                            "captured during a render transition",
+                            i + 1,
+                            num_tiles,
+                            capture_attempt,
+                            TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS,
+                            context_suffix,
+                        )
+                        if capture_attempt == TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS:
+                            raise ScreenshotCaptureReadinessChangedError(
+                                "Dashboard readiness changed during tile "
+                                f"{i + 1}/{num_tiles} capture after "
+                                f"{capture_attempt} attempts"
+                            )
+                        continue
+                    blankness = get_screenshot_blankness_metrics(candidate)
+                    is_blank = blankness.is_blank and (
                         contentful_chart_holders > 0 or holder_count_failed
                     )
-                    logger.debug(
-                        "Captured tile %s/%s attempt %s/%s in %.2fs "
-                        "(contentful_chart_holders=%s dominant_pixel_ratio=%.5f)%s",
+                    logger.info(
+                        "report_capture_validation capture=tile tile=%s/%s "
+                        "attempt=%s/%s capture_elapsed_seconds=%.2f "
+                        "contentful_chart_holders=%s is_blank=%s "
+                        "dominant_pixel_ratio=%.5f near_white_pixel_ratio=%.5f "
+                        "mean_luminance=%.2f luminance_stddev=%.2f entropy=%.3f "
+                        "structural_edge_ratio=%.5f%s",
                         i + 1,
                         num_tiles,
                         capture_attempt,
                         TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS,
                         capture_elapsed,
                         contentful_chart_holders,
-                        dominant_ratio,
+                        is_blank,
+                        blankness.dominant_pixel_ratio,
+                        blankness.near_white_pixel_ratio,
+                        blankness.mean_luminance,
+                        blankness.luminance_stddev,
+                        blankness.entropy,
+                        blankness.structural_edge_ratio,
                         context_suffix,
                     )
                     if not is_blank:
@@ -1008,32 +1568,67 @@ def take_tiled_screenshot(  # noqa: C901
                     logger.warning(
                         "report_capture_blank_tile tile=%s/%s attempt=%s/%s "
                         "capture_elapsed_seconds=%.2f contentful_chart_holders=%s "
-                        "dominant_pixel_ratio=%.5f%s",
+                        "dominant_pixel_ratio=%.5f near_white_pixel_ratio=%.5f "
+                        "mean_luminance=%.2f luminance_stddev=%.2f entropy=%.3f "
+                        "structural_edge_ratio=%.5f%s",
                         i + 1,
                         num_tiles,
                         capture_attempt,
                         TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS,
                         capture_elapsed,
                         contentful_chart_holders,
-                        dominant_ratio,
+                        blankness.dominant_pixel_ratio,
+                        blankness.near_white_pixel_ratio,
+                        blankness.mean_luminance,
+                        blankness.luminance_stddev,
+                        blankness.entropy,
+                        blankness.structural_edge_ratio,
                         context_suffix,
                     )
                     if capture_attempt == TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS:
+                        if strict_capture:
+                            # Exhausted retries must never turn a rejected report
+                            # tile into accepted content. Only thumbnails may
+                            # retain a blank capture below.
+                            if report_execution_context:
+                                report_execution_context.reject_capture(
+                                    f"blank_tile:{i + 1}/{num_tiles}"
+                                )
+                            raise ScreenshotBlankCaptureError(
+                                "Chromium returned a blank tile "
+                                f"{i + 1}/{num_tiles} after {capture_attempt} attempts"
+                            )
                         tile_screenshot = candidate
                         logger.warning(
-                            "report_capture_uniform_tile_retained tile=%s/%s "
+                            "thumbnail_capture_blank_tile_retained tile=%s/%s "
                             "attempts=%s contentful_chart_holders=%s "
-                            "dominant_pixel_ratio=%.5f%s",
+                            "dominant_pixel_ratio=%.5f near_white_pixel_ratio=%.5f "
+                            "mean_luminance=%.2f luminance_stddev=%.2f entropy=%.3f "
+                            "structural_edge_ratio=%.5f%s",
                             i + 1,
                             num_tiles,
                             capture_attempt,
                             contentful_chart_holders,
-                            dominant_ratio,
+                            blankness.dominant_pixel_ratio,
+                            blankness.near_white_pixel_ratio,
+                            blankness.mean_luminance,
+                            blankness.luminance_stddev,
+                            blankness.entropy,
+                            blankness.structural_edge_ratio,
                             context_suffix,
                         )
                         break
 
                 _raise_if_budget_exhausted()
+                repaint_timeout = _timeout_seconds(
+                    "screenshot_repaint",
+                    requested_seconds=5.0,
+                    reserve_seconds=(
+                        report_execution_context.post_capture_reserve_seconds
+                        if report_execution_context
+                        else 0.0
+                    ),
+                )
                 try:
                     page.bring_to_front()
                     page.evaluate(
@@ -1046,20 +1641,11 @@ def take_tiled_screenshot(  # noqa: C901
                             }));
                         }"""
                     )
-                    repaint_timeout = _timeout_seconds(
-                        "screenshot_repaint",
-                        requested_seconds=5.0,
-                        reserve_seconds=(
-                            report_execution_context.post_capture_reserve_seconds
-                            if report_execution_context
-                            else 0.0
-                        ),
-                    )
                     page.wait_for_function(
                         "() => window.__supersetRepaintComplete === true",
                         timeout=repaint_timeout * 1000,
                     )
-                except Exception:  # noqa: BLE001
+                except PlaywrightError:
                     logger.warning(
                         "report_capture_repaint_timeout tile=%s/%s attempt=%s/%s%s",
                         i + 1,
@@ -1072,6 +1658,8 @@ def take_tiled_screenshot(  # noqa: C901
 
             assert tile_screenshot is not None
             screenshot_tiles.append(tile_screenshot)
+            if contentful_chart_holders > 0 or holder_count_failed:
+                contentful_tile_indexes.append(i)
 
             logger.debug(
                 "Captured tile %s/%s with clip %s%s",
@@ -1093,7 +1681,13 @@ def take_tiled_screenshot(  # noqa: C901
                 exc_info=True,
             )
             holder_states = []
-        ready_states = {"rendered", "empty", "error", "virtualized"}
+        diagnostics = ChartHolderDiagnostics.from_holder_states(
+            (
+                [{"state": state} for state in observed_holder_states.values()]
+                if observed_holder_states
+                else holder_states
+            )
+        )
         elapsed, remaining = _deadline_values()
         if blank_tile_retries:
             logger.info(
@@ -1103,7 +1697,10 @@ def take_tiled_screenshot(  # noqa: C901
             )
         logger.info(
             "report_readiness_ready url=%s expected_holders=%s mounted_holders=%s "
-            "ready_holders=%s ag_grid_waited_holders=%s blank_tile_retries=%s "
+            "ready_holders=%s rendered_holders=%s empty_holders=%s "
+            "error_holders=%s virtualized_holders=%s unready_holders=%s "
+            "semantic_success=%s semantic_policy=%s ag_grid_waited_holders=%s "
+            "blank_tile_retries=%s "
             "elapsed_seconds=%.2f "
             "remaining_seconds=%s%s",
             url,
@@ -1112,21 +1709,104 @@ def take_tiled_screenshot(  # noqa: C901
                 if report_execution_context
                 else None
             ),
-            len(holder_states),
-            sum(holder.get("state") in ready_states for holder in holder_states),
+            diagnostics.mounted_holders,
+            diagnostics.ready_holders,
+            diagnostics.rendered_holders,
+            diagnostics.empty_holders,
+            diagnostics.error_holders,
+            diagnostics.virtualized_holders,
+            diagnostics.unready_holders,
+            diagnostics.semantic_success,
+            CHART_HOLDER_SEMANTIC_POLICY,
             sum(holder.get("agGridWaitObserved") is True for holder in holder_states),
             blank_tile_retries,
             elapsed,
             f"{remaining:.2f}" if remaining is not None else None,
             context_suffix,
         )
+        if diagnostics.error_holders:
+            logger.warning(
+                "report_semantic_status url=%s expected_holders=%s "
+                "rendered_holders=%s empty_holders=%s error_holders=%s "
+                "semantic_success=false semantic_policy=%s%s; "
+                "capture completed, but the report contains terminal chart errors",
+                url,
+                (
+                    report_execution_context.expected_chart_count
+                    if report_execution_context
+                    else None
+                ),
+                diagnostics.rendered_holders,
+                diagnostics.empty_holders,
+                diagnostics.error_holders,
+                CHART_HOLDER_SEMANTIC_POLICY,
+                context_suffix,
+            )
         logger.info("Combining screenshot tiles...%s", context_suffix)
         combined_screenshot = combine_screenshot_tiles(
             screenshot_tiles,
-            allow_partial_fallback=report_execution_context is None,
+            allow_partial_fallback=not strict_capture,
             log_context=log_context,
         )
 
+        if strict_capture and contentful_tile_indexes:
+            contentful_indexes = set(contentful_tile_indexes)
+            rejected_combined_tiles: list[int] = []
+            y_offset = 0
+            with Image.open(io.BytesIO(combined_screenshot)) as combined_image:
+                for tile_index, tile in enumerate(screenshot_tiles):
+                    with Image.open(io.BytesIO(tile)) as source_tile:
+                        tile_width, tile_height = source_tile.size
+                    if tile_index in contentful_indexes:
+                        combined_region = combined_image.crop(
+                            (0, y_offset, tile_width, y_offset + tile_height)
+                        )
+                        output = io.BytesIO()
+                        combined_region.save(output, format="PNG")
+                        blankness = get_screenshot_blankness_metrics(output.getvalue())
+                        logger.info(
+                            "report_capture_validation capture=combined_region "
+                            "tile=%s/%s is_blank=%s dominant_pixel_ratio=%.5f "
+                            "near_white_pixel_ratio=%.5f mean_luminance=%.2f "
+                            "luminance_stddev=%.2f entropy=%.3f "
+                            "structural_edge_ratio=%.5f%s",
+                            tile_index + 1,
+                            num_tiles,
+                            blankness.is_blank,
+                            blankness.dominant_pixel_ratio,
+                            blankness.near_white_pixel_ratio,
+                            blankness.mean_luminance,
+                            blankness.luminance_stddev,
+                            blankness.entropy,
+                            blankness.structural_edge_ratio,
+                            context_suffix,
+                        )
+                        if blankness.is_blank:
+                            rejected_combined_tiles.append(tile_index + 1)
+                    y_offset += tile_height
+
+            if rejected_combined_tiles:
+                logger.warning(
+                    "report_capture_blank_combined_rejected contentful_tiles=%s "
+                    "rejected_tiles=%s%s",
+                    len(contentful_tile_indexes),
+                    rejected_combined_tiles,
+                    context_suffix,
+                )
+                if report_execution_context:
+                    report_execution_context.reject_capture("blank_combined")
+                raise ScreenshotBlankCaptureError(
+                    "Combined report screenshot lost content from validated tiles"
+                )
+
+        if report_execution_context and report_execution_context.validate_for_delivery:
+            # Region checks preserve sparse content and terminal empty/error states;
+            # still decode the combined bytes before approving them for delivery.
+            validate_report_screenshot(
+                combined_screenshot,
+                report_execution_context,
+                content_validated=True,
+            )
         return combined_screenshot
 
     except (ReportExecutionBudgetExceededError, TiledScreenshotBudgetExceededError):
@@ -1145,13 +1825,19 @@ def take_tiled_screenshot(  # noqa: C901
             context_suffix,
         )
         raise
-    except ScreenshotCaptureTimeoutError:
-        # Preserve the explicit capture-timeout reason for report execution
+    except (
+        ScreenshotBlankCaptureError,
+        ScreenshotCaptureReadinessChangedError,
+        ScreenshotCaptureTimeoutError,
+    ):
+        # Preserve the explicit blank-capture or timeout reason for report execution
         # history instead of degrading it to an anonymous None screenshot.
         logger.exception("Tiled screenshot capture rejected%s", context_suffix)
-        if report_execution_context:
+        if strict_capture:
             raise
         return None
+    except SoftTimeLimitExceeded:
+        raise
     except Exception as e:
         if readiness_timeout:
             # Let the per-tile readiness timeout propagate so the caller

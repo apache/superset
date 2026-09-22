@@ -95,6 +95,7 @@ class TestThemeApi(SupersetTestCase):
             "changed_on_delta_humanized",
             "created_by",
             "created_on",
+            "editors",
             "id",
             "is_system",
             "is_system_default",
@@ -227,6 +228,7 @@ class TestThemeApi(SupersetTestCase):
                 "id": theme.created_by.id,
                 "last_name": theme.created_by.last_name,
             },
+            "editors": [],
         }
         data = json.loads(rv.data.decode("utf-8"))
         for key, value in data["result"].items():
@@ -456,6 +458,11 @@ class TestThemeApi(SupersetTestCase):
 
         theme = db.session.query(Theme).filter_by(uuid=theme_config["uuid"]).one()
         assert theme.theme_name == "imported_theme"
+
+        # The importer is added as an editor so they can maintain the new theme
+        # (mirrors CreateThemeCommand and the dashboard/chart/dataset importers).
+        admin = self.get_user(ADMIN_USERNAME)
+        assert any(editor.user_id == admin.id for editor in theme.editors)
 
         # Cleanup
         db.session.delete(theme)

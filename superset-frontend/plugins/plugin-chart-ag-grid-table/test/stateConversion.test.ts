@@ -16,58 +16,63 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { convertFilterModel } from '../src/stateConversion';
+import type { AgGridChartState } from '@superset-ui/core';
+import { convertAgGridStateToOwnState } from '../src/stateConversion';
 
-describe('convertFilterModel', () => {
-  test('emits a clause for a valid numeric comparison filter', () => {
-    const result = convertFilterModel({
-      revenue: { filterType: 'number', type: 'greaterThan', filter: 100 },
-    } as any);
+const baseAgGridState = {
+  columnState: [],
+  sortModel: [{ colId: 'name', sort: 'asc' as const, sortIndex: 0 }],
+  filterModel: {},
+};
 
-    expect(result?.sqlClauses?.revenue).toBe('revenue > 100');
+describe('convertAgGridStateToOwnState', () => {
+  test('suppresses client-mode state for the live query (serverPagination: false)', () => {
+    const result = convertAgGridStateToOwnState({
+      ...baseAgGridState,
+      serverPagination: false,
+    });
+
+    expect(result).toEqual({});
   });
 
-  test('drops a number filter whose value is not numeric', () => {
-    const result = convertFilterModel({
-      revenue: { filterType: 'number', type: 'equals', filter: '1 OR 1=1' },
-    } as any);
+  test('converts client-mode state anyway when forExport is set, so a download reproduces the displayed sort/filter', () => {
+    const result = convertAgGridStateToOwnState(
+      { ...baseAgGridState, serverPagination: false },
+      { forExport: true },
+    );
 
-    expect(result).toBeUndefined();
+    expect(result.sortBy).toEqual([{ id: 'name', key: 'name', desc: false }]);
   });
 
-  test('joins conditions with a valid boolean operator', () => {
-    const result = convertFilterModel({
-      revenue: {
-        filterType: 'number',
-        operator: 'AND',
-        condition1: { filterType: 'number', type: 'greaterThan', filter: 1 },
-        condition2: { filterType: 'number', type: 'lessThan', filter: 9 },
+  test('converts state when serverPagination is undefined, preserving legacy persisted table_state/permalinks saved before this field existed', () => {
+    const result = convertAgGridStateToOwnState(baseAgGridState);
+
+    expect(result.sortBy).toEqual([{ id: 'name', key: 'name', desc: false }]);
+  });
+
+  test('converts state for the live query when serverPagination is true', () => {
+    const result = convertAgGridStateToOwnState({
+      ...baseAgGridState,
+      serverPagination: true,
+    });
+
+    expect(result.sortBy).toEqual([{ id: 'name', key: 'name', desc: false }]);
+  });
+
+  test('forwards a non-empty filter model as agGridFilterModel so the download path can build structured filters', () => {
+    const filterModel = {
+      'Destination Address Street': {
+        filterType: 'text',
+        type: 'contains',
+        filter: 'Main',
       },
-    } as any);
+    };
 
-    expect(result?.sqlClauses?.revenue).toBe('(revenue > 1 AND revenue < 9)');
-  });
+    const result = convertAgGridStateToOwnState({
+      ...baseAgGridState,
+      filterModel,
+    } as unknown as AgGridChartState);
 
-  test('drops a compound filter whose join operator is not AND/OR', () => {
-    const result = convertFilterModel({
-      revenue: {
-        filterType: 'number',
-        operator: 'AND 1=1) OR (1=1',
-        condition1: { filterType: 'number', type: 'greaterThan', filter: 1 },
-        condition2: { filterType: 'number', type: 'lessThan', filter: 9 },
-      },
-    } as any);
-
-    expect(result).toBeUndefined();
-  });
-
-  test('stores clauses on a null-prototype map (prototype-safe column ids)', () => {
-    const result = convertFilterModel({
-      constructor: { filterType: 'number', type: 'equals', filter: 5 },
-    } as any);
-
-    // The map has no prototype, so a column id like "constructor" is just data.
-    expect(Object.getPrototypeOf(result?.sqlClauses)).toBeNull();
-    expect(result?.sqlClauses?.constructor).toBe('constructor = 5');
+    expect(result.agGridFilterModel).toEqual(filterModel);
   });
 });

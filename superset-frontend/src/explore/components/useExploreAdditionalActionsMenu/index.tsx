@@ -78,6 +78,14 @@ import { useExploreDataExport } from './useExploreDataExport';
 
 export const SEARCH_THRESHOLD = 10;
 
+// Hoisted out of the `return` in escapeCsvValue below rather than inlined:
+// the pybabel JavaScript lexer that builds superset/translations/messages.pot
+// reads a `/` following a `return` as division, so an inline regex literal
+// containing a double quote opens a phantom string that swallows the rest of
+// the file — silently dropping every translatable string in this module from
+// the extraction template. See scripts/translations/check_pot_drift.py.
+const CSV_NEEDS_QUOTING = /[",\r\n]/;
+
 /**
  * Escape a single CSV cell value.
  *
@@ -106,7 +114,7 @@ export const escapeCsvValue = (v: unknown): string => {
       s = `'${s.replace(/\\/g, '\\\\').replace(/\|/g, '\\|')}`;
     }
   }
-  return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  return CSV_NEEDS_QUOTING.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 };
 
 const MENU_KEYS = {
@@ -345,7 +353,7 @@ export const useExploreAdditionalActionsMenu = (
   ...rest: MenuProps[]
 ): UseExploreAdditionalActionsMenuReturn => {
   const theme = useTheme();
-  const { addDangerToast, addSuccessToast } = useToasts();
+  const { addDangerToast, addSuccessToast, addWarningToast } = useToasts();
   const dispatch = useDispatch();
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const [dashboardSearchTerm, setDashboardSearchTerm] = useState('');
@@ -512,13 +520,15 @@ export const useExploreAdditionalActionsMenu = (
     permalinkChartState,
   ]);
 
-  // Minimal client-side CSV builder used for "Current View" when pagination is disabled
+  // Minimal client-side CSV builder used for "Current View" when pagination is disabled.
+  // `rows` may legitimately be empty (a filter that matches nothing) -- only
+  // `columns` is required to produce a valid header-only export.
   const downloadClientCSV = (
     rows: ClientViewRow[],
     columns: ClientViewColumn[],
     filename: string,
   ) => {
-    if (!rows?.length || !columns?.length) return;
+    if (!columns?.length) return;
     const header = columns
       .map(c => escapeCsvValue(c.label ?? c.key ?? ''))
       .join(',');
@@ -536,13 +546,15 @@ export const useExploreAdditionalActionsMenu = (
     URL.revokeObjectURL(link.href);
   };
 
-  // Robust client-side JSON for "Current View"
+  // Robust client-side JSON for "Current View". `rows` may legitimately be
+  // empty (a filter that matches nothing) -- only `columns` is required to
+  // produce a valid header-only export.
   const downloadClientJSON = (
     rows: ClientViewRow[],
     columns: ClientViewColumn[],
     filename: string,
   ) => {
-    if (!rows?.length || !columns?.length) return;
+    if (!columns?.length) return;
 
     const norm = (v: unknown): unknown => {
       if (v instanceof Date) return v.toISOString();
@@ -587,13 +599,15 @@ export const useExploreAdditionalActionsMenu = (
     URL.revokeObjectURL(link.href);
   };
 
-  // Client-side XLSX for "Current View" (uses 'xlsx' already in deps)
+  // Client-side XLSX for "Current View" (uses 'xlsx' already in deps).
+  // `rows` may legitimately be empty (a filter that matches nothing) -- only
+  // `columns` is required to produce a valid header-only export.
   const downloadClientXLSX = async (
     rows: ClientViewRow[],
     columns: ClientViewColumn[],
     filename: string,
   ) => {
-    if (!rows?.length || !columns?.length) return;
+    if (!columns?.length) return;
     try {
       const XLSX = (await import(/* webpackChunkName: "xlsx" */ 'xlsx'))
         .default;
@@ -618,12 +632,20 @@ export const useExploreAdditionalActionsMenu = (
         return o;
       });
 
-      const ws = XLSX.utils.json_to_sheet(data, { skipHeader: false });
+      // json_to_sheet infers headers from the first data object's keys, so
+      // with zero rows it would emit a completely blank sheet -- pass the
+      // column labels explicitly so an empty filtered view still exports a
+      // header-only sheet instead of nothing.
+      const headers = columns.map(c => c.label ?? c.key);
+      const ws = XLSX.utils.json_to_sheet(data, {
+        header: headers,
+        skipHeader: false,
+      });
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Current View');
 
       // Autosize columns (roughly) by header length
-      const colWidths = Object.keys(data[0] || {}).map(h => ({
+      const colWidths = headers.map(h => ({
         wch: Math.max(10, String(h).length + 2),
       }));
       ws['!cols'] = colWidths;
@@ -747,6 +769,7 @@ export const useExploreAdditionalActionsMenu = (
             exportPivotExcel(
               `${sliceSelector} .pvtTable`,
               slice?.slice_name ?? t('pivoted_xlsx'),
+              addWarningToast,
             );
             setIsDropdownVisible(false);
             dispatch(
@@ -856,10 +879,10 @@ export const useExploreAdditionalActionsMenu = (
           // Pass ownState so client/UI state (e.g., filters) can be respected when supported.
           if (
             !latestQueryFormData?.server_pagination &&
-            ownState?.clientView?.rows?.length &&
-            ownState?.clientView?.columns?.length
+            ownState?.clientView &&
+            ownState.clientView.columns?.length
           ) {
-            const { rows, columns } = ownState.clientView;
+            const { rows = [], columns = [] } = ownState.clientView;
             downloadClientCSV(
               rows,
               columns,
@@ -894,10 +917,10 @@ export const useExploreAdditionalActionsMenu = (
         onClick: () => {
           if (
             !latestQueryFormData?.server_pagination &&
-            ownState?.clientView?.rows?.length &&
-            ownState?.clientView?.columns?.length
+            ownState?.clientView &&
+            ownState.clientView.columns?.length
           ) {
-            const { rows, columns } = ownState.clientView;
+            const { rows = [], columns = [] } = ownState.clientView;
             downloadClientJSON(
               rows,
               columns,
@@ -956,11 +979,11 @@ export const useExploreAdditionalActionsMenu = (
         onClick: async () => {
           if (
             !latestQueryFormData?.server_pagination &&
-            ownState?.clientView?.rows?.length &&
-            ownState?.clientView?.columns?.length
+            ownState?.clientView &&
+            ownState.clientView.columns?.length
           ) {
             // Client-side filtered view → XLSX
-            const { rows, columns } = ownState.clientView;
+            const { rows = [], columns = [] } = ownState.clientView;
             await downloadClientXLSX(
               rows,
               columns,

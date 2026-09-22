@@ -65,6 +65,7 @@ import MissingChart from '../../MissingChart';
 import {
   addDangerToast,
   addSuccessToast,
+  addWarningToast,
 } from '../../../../components/MessageToasts/actions';
 import {
   setFocusedFilterField,
@@ -179,6 +180,7 @@ const Chart = (props: ChartProps) => {
         {
           addSuccessToast,
           addDangerToast,
+          addWarningToast,
           toggleExpandSlice,
           changeFilter,
           setFocusedFilterField,
@@ -603,7 +605,9 @@ const Chart = (props: ChartProps) => {
       const exportOwnState = state
         ? {
             ...baseOwnState,
-            ...convertChartStateToOwnState(sliceVizType, state),
+            ...convertChartStateToOwnState(sliceVizType, state, {
+              forExport: true,
+            }),
           }
         : baseOwnState;
 
@@ -775,7 +779,14 @@ const Chart = (props: ChartProps) => {
         exploreUrl=""
         width={width}
         height={getHeaderHeight()}
-        exportPivotExcel={exportPivotExcel as unknown as (arg0: string) => void}
+        exportPivotExcel={
+          ((tableSelector: string, sliceName: string) =>
+            exportPivotExcel(
+              tableSelector,
+              sliceName,
+              boundActionCreators.addWarningToast,
+            )) as unknown as (arg0: string) => void
+        }
         chartHolderRef={props.chartHolderRef}
         ownState={ownState}
       />
