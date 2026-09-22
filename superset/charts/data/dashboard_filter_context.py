@@ -24,6 +24,7 @@ from typing import Any
 from flask_babel import gettext as _
 
 from superset import db, security_manager
+from superset.common.utils.time_grain_utils import apply_time_grain_to_base_axis
 from superset.constants import (
     EXTRA_FORM_DATA_APPEND_KEYS,
     EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS,
@@ -373,10 +374,7 @@ def apply_dashboard_filter_context(  # noqa: C901
         # top-level key, but query_context objects expect it as an extra key.
         if custom_time_grain := extra_form_data.get("time_grain_sqla"):
             extras["time_grain_sqla"] = custom_time_grain
-            # get_time_grain() resolves grain from the first adhoc column (columns[0])
-            columns = query.get("columns") or []
-            if columns and isinstance(columns[0], dict):
-                columns[0]["timeGrain"] = custom_time_grain
+            apply_time_grain_to_base_axis(query, custom_time_grain)
 
         if extras:
             query["extras"] = extras

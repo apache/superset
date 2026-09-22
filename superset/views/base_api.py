@@ -20,7 +20,7 @@ import functools
 import logging
 from typing import Any, Callable, cast, Optional, overload
 
-from flask import request, Response
+from flask import current_app, request, Response
 from flask_appbuilder import Model, ModelRestApi
 from flask_appbuilder.api import (
     BaseApi,
@@ -33,7 +33,10 @@ from flask_appbuilder.const import API_FILTERS_RIS_KEY
 from flask_appbuilder.models.filters import BaseFilter, Filters
 from flask_appbuilder.models.sqla.filters import FilterStartsWith
 from flask_appbuilder.models.sqla.interface import SQLAInterface
+from flask_appbuilder.security.decorators import permission_name
 from flask_babel import lazy_gettext as _
+from flask_jwt_extended import verify_jwt_in_request
+from flask_login import current_user
 from marshmallow import fields, Schema
 from sqlalchemy import and_, distinct, func
 from sqlalchemy.orm.query import Query
@@ -60,6 +63,66 @@ get_related_schema = {
         "filter": {"type": "string"},
     },
 }
+
+
+def protect_read(
+    *view_names: str,
+) -> Callable[[Callable[..., FlaskResponse]], Callable[..., FlaskResponse]]:
+    """Protect a combined read API using independently granted FAB view permissions.
+
+    Preserve FAB's public, API-key, browser-session and JWT authentication paths.
+    Public grants are checked per resource name, not the API class: public
+    ``can_read Dataset`` admits anonymous callers to ``/api/v1/datasource/``,
+    without granting SemanticView read or bypassing row-level filters.
+    Callers must still scope each result source to its own permission and apply
+    object-level filters; passing this gate never grants access to every source.
+    The decorated method must map to ``read`` in ``method_permission_name``.
+    """
+
+    def decorate(
+        function: Callable[..., FlaskResponse],
+    ) -> Callable[..., FlaskResponse]:
+        @functools.wraps(function)
+        @permission_name("read")
+        def wrapped(self: BaseApi, *args: Any, **kwargs: Any) -> FlaskResponse:
+            if "can_read" not in self.base_permissions:
+                return self.response_403()
+            if any(
+                security_manager.is_item_public("can_read", name) for name in view_names
+            ):
+                return function(self, *args, **kwargs)
+
+            api_key: str | None
+            if (
+                current_app.config.get("FAB_API_KEY_ENABLED", False)
+                and (api_key := security_manager.extract_api_key_from_request())
+                is not None
+            ):
+                if not security_manager.validate_api_key(api_key):
+                    return self.response_401()
+                if any(
+                    security_manager.has_access("can_read", name) for name in view_names
+                ):
+                    return function(self, *args, **kwargs)
+                logger.warning(
+                    "Access denied: can_read on one of %s", ", ".join(view_names)
+                )
+                return self.response_403()
+
+            if not self.allow_browser_login or not current_user.is_authenticated:
+                verify_jwt_in_request()
+            if any(
+                security_manager.has_access("can_read", name) for name in view_names
+            ):
+                return function(self, *args, **kwargs)
+            logger.warning(
+                "Access denied: can_read on one of %s", ", ".join(view_names)
+            )
+            return self.response_403()
+
+        return wrapped
+
+    return decorate
 
 
 class RelatedResultResponseSchema(Schema):

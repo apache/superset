@@ -33,6 +33,7 @@ import pytz
 from dateutil import tz as dateutil_tz
 from dateutil.zoneinfo import get_zonefile_instance
 
+from superset.common.query_object import QueryObject
 from superset.mcp_service.chart.query_result import MAX_QUERY_RESULT_VALUE_BYTES
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
@@ -56,6 +57,7 @@ from superset.mcp_service.chart.tool.get_chart_preview import (
     get_chart_preview,
     PreviewFormatStrategy,
     TablePreviewStrategy,
+    VegaLitePreviewStrategy,
 )
 from superset.utils import json as utils_json
 
@@ -830,11 +832,174 @@ def test_ascii_preview_accepts_real_postprocessing_null_and_large_full_sql(
     assert "None" in preview.ascii_content
 
 
+def _gauge_chart() -> SimpleNamespace:
+    """Build a saved Gauge chart with its native form_data controls."""
+    return SimpleNamespace(
+        id=104,
+        slice_name="SLA Gauge",
+        viz_type="gauge_chart",
+        datasource_id=1,
+        datasource_type="table",
+        params=utils_json.dumps(
+            {
+                "viz_type": "gauge_chart",
+                "metric": "saved_sla",
+                "groupby": ["team"],
+                "row_limit": 3,
+                "min_val": 0,
+                "max_val": 100,
+                "value_formatter": "{value}%",
+            }
+        ),
+    )
+
+
+def _bubble_chart() -> SimpleNamespace:
+    """Build a saved Bubble chart with its native form_data controls."""
+    return SimpleNamespace(
+        id=109,
+        slice_name="GDP vs life expectancy",
+        viz_type="bubble_v2",
+        datasource_id=1,
+        datasource_type="table",
+        params=utils_json.dumps(
+            {
+                "viz_type": "bubble_v2",
+                "entity": "country",
+                "series": "continent",
+                "x": {"label": "AVG(gdp)"},
+                "y": {"label": "AVG(life_expectancy)"},
+                "size": {"label": "SUM(population)"},
+                "row_limit": 100,
+            }
+        ),
+    )
+
+
+@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+@patch(
+    "superset.mcp_service.chart.tool.get_chart_preview."
+    "build_query_context_from_form_data"
+)
+def test_saved_chart_preview_forwards_its_own_sort_direction(
+    mock_build_query_context, mock_command
+) -> None:
+    """The preview must not assert a sort direction the chart did not ask for.
+
+    These strategies used to pass a hardcoded order_desc=True. Since an
+    explicit argument outranks form_data in the query builder, that silently
+    flipped a saved ascending sort to descending — with a row limit, it
+    changes which rows come back, not just their order.
+    """
+    chart = _bubble_chart()
+    chart.params = utils_json.dumps(
+        {
+            "viz_type": "bubble_v2",
+            "entity": "country",
+            "x": {"label": "AVG(gdp)"},
+            "y": {"label": "AVG(life_expectancy)"},
+            "size": {"label": "SUM(population)"},
+            "orderby": {"label": "SUM(population)"},
+            "order_desc": False,
+            "row_limit": 1,
+        }
+    )
+    mock_build_query_context.return_value = SimpleNamespace(
+        form_data={},
+        queries=[QueryObject(metrics=["SUM(population)"], columns=["country"])],
+    )
+    mock_command.return_value.validate.return_value = None
+    mock_command.return_value.run.return_value = {
+        "queries": [{"data": [{"country": "France", "SUM(population)": 67000000}]}]
+    }
+
+    VegaLitePreviewStrategy(
+        chart, GetChartPreviewRequest(identifier=109, format="vega_lite")
+    ).generate()
+
+    assert mock_build_query_context.call_args.kwargs["order_desc"] is False
+
+
+@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+@patch(
+    "superset.mcp_service.chart.tool.get_chart_preview."
+    "build_query_context_from_form_data"
+)
+def test_saved_bubble_vega_preview_encodes_its_three_metrics(
+    mock_build_query_context, mock_command
+) -> None:
+    """A saved bubble chart must reach the bubble renderer, not the fallback.
+
+    The generic spec builder reads positions off the first columns it finds,
+    which for bubble result rows means x=country, y=continent and no size or
+    color encoding at all.
+    """
+    mock_build_query_context.return_value = SimpleNamespace(
+        form_data={},
+        queries=[
+            QueryObject(
+                metrics=["AVG(gdp)", "AVG(life_expectancy)", "SUM(population)"],
+                columns=["country", "continent"],
+            )
+        ],
+    )
+    mock_command.return_value.validate.return_value = None
+    mock_command.return_value.run.return_value = {
+        "queries": [
+            {
+                "data": [
+                    {
+                        "country": "France",
+                        "continent": "Europe",
+                        "AVG(gdp)": 44.5,
+                        "AVG(life_expectancy)": 82.5,
+                        "SUM(population)": 67000000,
+                    }
+                ]
+            }
+        ]
+    }
+
+    preview = VegaLitePreviewStrategy(
+        _bubble_chart(), GetChartPreviewRequest(identifier=109, format="vega_lite")
+    ).generate()
+
+    assert isinstance(preview, VegaLitePreview)
+    assert preview.specification["mark"] == "circle"
+    encoding = preview.specification["encoding"]
+    assert encoding["x"]["field"] == "AVG(gdp)"
+    assert encoding["y"]["field"] == "AVG(life_expectancy)"
+    assert encoding["size"]["field"] == "SUM(population)"
+    assert encoding["color"]["field"] == "continent"
+
+
+@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+@patch(
+    "superset.mcp_service.chart.tool.get_chart_preview."
+    "build_query_context_from_form_data"
+)
+def test_saved_gauge_vega_preview_surfaces_runtime_metric_error(
+    mock_build_query_context, mock_command
+) -> None:
+    mock_build_query_context.return_value = SimpleNamespace(
+        form_data={}, queries=[QueryObject(metrics=["saved_sla"], columns=["team"])]
+    )
+    mock_command.return_value.validate.return_value = None
+    mock_command.return_value.run.return_value = {
+        "queries": [{"data": [{"team": "Blue", "saved_sla": "bad"}]}]
+    }
+
+    preview = VegaLitePreviewStrategy(
+        _gauge_chart(), GetChartPreviewRequest(identifier=104, format="vega_lite")
+    ).generate()
+
+    assert isinstance(preview, ChartError)
+    assert preview.error_type == "NonNumericGaugeMetric"
+
+
 def test_saved_timeseries_preview_executes_final_frontend_query_contract(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from superset.common.query_object import QueryObject
-
     query_context_factory_module = importlib.import_module(
         "superset.common.query_context_factory"
     )
@@ -915,8 +1080,6 @@ def test_saved_big_number_preview_executes_timestamp_pivot_without_series(
     monkeypatch: pytest.MonkeyPatch,
     app_context: None,
 ) -> None:
-    from superset.common.query_object import QueryObject
-
     query_context_factory_module = importlib.import_module(
         "superset.common.query_context_factory"
     )
@@ -1036,8 +1199,6 @@ def test_saved_big_number_preview_executes_timestamp_pivot_without_series(
 def test_saved_deck_geojson_preview_uses_layer_query_adapter(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from superset.common.query_object import QueryObject
-
     query_context_factory_module = importlib.import_module(
         "superset.common.query_context_factory"
     )
