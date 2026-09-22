@@ -621,7 +621,7 @@ test.each([
   [BarValueLabelPosition.InsideCenter, 'inside'],
   [BarValueLabelPosition.InsideBase, 'insideBottom'],
 ] as const)(
-  'manual %s label placement is unaffected by tiny segments (no labelLayout applied)',
+  'manual %s keeps its fixed position and only hides labels below the legibility floor',
   (position, expected) => {
     const result = transformSeries(
       { name: 'test-series', type: 'bar', data: [[2026, 0.14]] },
@@ -636,12 +636,110 @@ test.each([
       },
     ) as BarSeriesOption;
 
-    // Manual positions don't use the fit-aware labelLayout callback at all,
-    // so a tiny segment can't trigger the Auto-only suppression behavior.
-    expect(result.labelLayout).toBeUndefined();
+    // Manual placements don't get the fit-aware Auto callback: their layout
+    // callback only applies the legibility floor and never repositions.
     expect(result.label).toMatchObject({ position: expected });
+    const { labelLayout } = result;
+    expect(typeof labelLayout).toBe('function');
+    if (typeof labelLayout !== 'function') return;
+
+    // A segment below MIN_LABEL_SEGMENT_SIZE_PX loses its label instead of
+    // colliding with its neighbors' labels next to a large-magnitude outlier.
+    expect(
+      labelLayout({
+        dataIndex: 0,
+        seriesIndex: 0,
+        text: '0.14',
+        align: 'center',
+        verticalAlign: 'middle',
+        rect: { x: 10, y: 20, width: 40, height: 8 },
+        labelRect: { x: 12, y: 22, width: 20, height: 14 },
+      }),
+    ).toEqual({ fontSize: 0 });
+
+    // A legible segment keeps the configured position untouched.
+    expect(
+      labelLayout({
+        dataIndex: 0,
+        seriesIndex: 0,
+        text: '1,000',
+        align: 'center',
+        verticalAlign: 'middle',
+        rect: { x: 10, y: 20, width: 40, height: 60 },
+        labelRect: { x: 12, y: 22, width: 20, height: 14 },
+      }),
+    ).toEqual({});
   },
 );
+
+test('stacked Outside End labels next to an outlier suppress only sub-floor segments', () => {
+  // Near-zero segments (e.g. -1 next to -4,000,000) render at sub-pixel
+  // height; their labels used to collide at near-identical coordinates.
+  const result = transformSeries(
+    {
+      name: 'test-series',
+      type: 'bar',
+      data: [
+        [2026, -1],
+        [2026, -4000000],
+      ],
+    },
+    mockColorScale,
+    'test-key',
+    {
+      seriesType: EchartsTimeseriesSeriesType.Bar,
+      stack: StackControlsValue.Stack,
+      valueLabelPosition: BarValueLabelPosition.OutsideEnd,
+      showValue: true,
+    },
+  ) as BarSeriesOption;
+  const { labelLayout } = result;
+
+  expect(typeof labelLayout).toBe('function');
+  if (typeof labelLayout !== 'function') return;
+
+  // Sub-pixel segment next to the outlier: label suppressed.
+  expect(
+    labelLayout({
+      dataIndex: 0,
+      seriesIndex: 0,
+      text: '-1',
+      align: 'center',
+      verticalAlign: 'top',
+      rect: { x: 10, y: 20, width: 40, height: 0.5 },
+      labelRect: { x: 12, y: 22, width: 20, height: 14 },
+    }),
+  ).toEqual({ fontSize: 0 });
+
+  // The outlier's own large segment keeps its label.
+  expect(
+    labelLayout({
+      dataIndex: 1,
+      seriesIndex: 0,
+      text: '-4,000,000',
+      align: 'center',
+      verticalAlign: 'top',
+      rect: { x: 60, y: 20, width: 40, height: 300 },
+      labelRect: { x: 62, y: 22, width: 60, height: 14 },
+    }),
+  ).toEqual({});
+});
+
+test('bar series without shown values get no layout callback', () => {
+  const result = transformSeries(
+    { name: 'test-series', type: 'bar', data: [[2026, 1]] },
+    mockColorScale,
+    'test-key',
+    {
+      seriesType: EchartsTimeseriesSeriesType.Bar,
+      stack: StackControlsValue.Stack,
+      valueLabelPosition: BarValueLabelPosition.OutsideEnd,
+      showValue: false,
+    },
+  ) as BarSeriesOption;
+
+  expect(result.labelLayout).toBeUndefined();
+});
 
 describe('transformNegativeLabelsPosition', () => {
   test('label position bottom of negative value no Horizontal', () => {
