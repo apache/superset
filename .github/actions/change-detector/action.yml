@@ -32,3 +32,7 @@ runs:
       env:
         GITHUB_TOKEN: ${{ inputs.token }}
         GITHUB_OUTPUT: ${{ github.output }}
+        # Only set (non-empty) on a merge_group event; scripts/change_detector.py
+        # uses it to diff the merge-group's synthetic commit, which has no
+        # `pull_request` context to read a PR number from instead.
+        MERGE_GROUP_BASE_SHA: ${{ github.event.merge_group.base_sha }}

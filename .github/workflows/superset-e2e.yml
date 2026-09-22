@@ -7,6 +7,8 @@ on:
       - "[0-9].[0-9]*"
   pull_request:
     types: [synchronize, opened, reopened, ready_for_review]
+  merge_group:
+    types: [checks_requested]
   workflow_dispatch:
     inputs:
       use_dashboard:
