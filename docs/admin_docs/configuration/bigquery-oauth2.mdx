@@ -32,7 +32,7 @@ remain available when user impersonation is disabled.
 
 1. Create a Google OAuth 2.0 web application client. Register
    `https://<superset-host>/api/v1/database/oauth2/` as an authorized redirect URI.
-2. Set the client and redirect URI in `superset_config.py`:
+2. Set the client in `superset_config.py`:
 
    ```python
    DATABASE_OAUTH2_CLIENTS = {
@@ -41,7 +41,17 @@ remain available when user impersonation is disabled.
            "secret": "<client-secret>",
        },
    }
-   DATABASE_OAUTH2_REDIRECT_URI = "https://<superset-host>/api/v1/database/oauth2/"
+   ```
+
+   The `"Google BigQuery"` key must exactly match the database engine name.
+   Superset uses the engine name to find its OAuth2 client configuration.
+
+   Superset derives the redirect URI from its `/api/v1/database/oauth2/` endpoint.
+   Set `DATABASE_OAUTH2_REDIRECT_URI` only when a proxy or multi-instance setup
+   requires a fixed redirect endpoint:
+
+   ```python
+   DATABASE_OAUTH2_REDIRECT_URI = "https://<oauth-proxy>/api/v1/database/oauth2/"
    ```
 
    A database-specific `oauth2_client_info` object in **Secure Extra** can supply
