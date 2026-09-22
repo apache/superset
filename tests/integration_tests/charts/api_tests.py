@@ -1398,10 +1398,14 @@ class TestChartApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
         )
         # A retained, valid, correctly-scoped image whose entry is in ERROR
         # backoff and 2 days old, past the 1-day THUMBNAIL_ERROR_CACHE_TTL, so a
-        # force-less request re-triggers via the expired-ERROR branch.
+        # force-less request re-triggers via the expired-ERROR branch. The bytes
+        # start with the PNG signature so get_invalid_image_reason (which now
+        # validates any retained image, not just UPDATED) accepts them, matching
+        # a genuine retained image -- which always came from a validated update().
         stale_timestamp = (datetime.now() - timedelta(days=2)).isoformat()
+        retained_image = b"\x89PNG\r\n\x1a\nfake image data"
         payload = ScreenshotCachePayload(
-            b"fake image data",
+            retained_image,
             scope=f"chart:{chart.id}",
             timestamp=stale_timestamp,
         )
@@ -1426,7 +1430,7 @@ class TestChartApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
         else:
             worker_view = payload
         assert worker_view.get_invalid_image_reason() is None
-        assert worker_view.get_image().read() == b"fake image data"
+        assert worker_view.get_image().read() == retained_image
         assert worker_view.should_trigger_task(
             force=False,
             expected_scope=f"chart:{chart.id}",
