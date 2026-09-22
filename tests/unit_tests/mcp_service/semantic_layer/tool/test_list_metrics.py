@@ -36,13 +36,13 @@ from superset_core.semantic_layers.types import Dimension, Grains
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 from superset.mcp_service.app import mcp
-from superset.mcp_service.constants import DEFAULT_TOKEN_LIMIT
+from superset.mcp_service.constants import DEFAULT_MAX_RESPONSE_BYTES
 from superset.mcp_service.middleware import (
     create_response_size_guard_middleware,
     ResponseSizeGuardMiddleware,
 )
 from superset.mcp_service.semantic_layer.schemas import ListMetricsRequest
-from superset.mcp_service.utils.token_utils import estimate_response_tokens
+from superset.mcp_service.utils.response_size_utils import get_response_size_bytes
 from superset.semantic_layers.models import SemanticView
 from superset.utils import json
 
@@ -157,18 +157,18 @@ def large_metric_catalog() -> Generator[MagicMock, None, None]:
 
 
 @pytest.mark.asyncio
-async def test_list_metrics_default_page_token_bound(
+async def test_list_metrics_default_page_byte_bound(
     mcp_server: FastMCP,
     large_metric_catalog: MagicMock,
 ) -> None:
-    """Default discovery leaves token headroom without embedded dimensions."""
+    """Default discovery leaves size headroom without embedded dimensions."""
     async with Client(mcp_server) as client:
         data: dict[str, Any] = json.loads(
             (await client.call_tool("list_metrics", {})).content[0].text
         )
     assert data["success"] is True
     assert data["total_count"] == 80
-    assert estimate_response_tokens(data) <= DEFAULT_TOKEN_LIMIT // 2
+    assert get_response_size_bytes(data) <= DEFAULT_MAX_RESPONSE_BYTES // 2
     assert data["page_size"] == 25
     assert len(data["metrics"]) == 25
     assert all(metric["compatible_dimensions"] == [] for metric in data["metrics"])
@@ -176,7 +176,7 @@ async def test_list_metrics_default_page_token_bound(
 
 
 @pytest.mark.asyncio
-async def test_list_metrics_embedded_page_token_bound(
+async def test_list_metrics_embedded_page_byte_bound(
     mcp_server: FastMCP,
     large_metric_catalog: MagicMock,
 ) -> None:
@@ -205,7 +205,7 @@ async def test_list_metrics_embedded_page_token_bound(
     for metric in data["metrics"]:
         assert len(metric["compatible_dimensions"]) == 40
         assert len({dim["name"] for dim in metric["compatible_dimensions"]}) == 40
-    assert estimate_response_tokens(data) < DEFAULT_TOKEN_LIMIT
+    assert get_response_size_bytes(data) < DEFAULT_MAX_RESPONSE_BYTES
 
 
 @pytest.mark.asyncio
@@ -226,19 +226,19 @@ async def test_list_metrics_embedded_page_over_cap_rejected(
             )
 
 
-@pytest.mark.parametrize("token_limit", [10000, 50000])
-def test_embedding_cap_is_independent_of_configured_token_limit(
-    token_limit: int,
+@pytest.mark.parametrize("max_bytes", [10000, 50000])
+def test_embedding_cap_is_independent_of_configured_max_bytes(
+    max_bytes: int,
 ) -> None:
     """The guard honors overrides without changing the fixed embedding cap."""
     app: MagicMock = MagicMock()
-    app.config = {"MCP_RESPONSE_SIZE_CONFIG": {"token_limit": token_limit}}
+    app.config = {"MCP_RESPONSE_SIZE_CONFIG": {"max_bytes": max_bytes}}
     with patch("superset.mcp_service.flask_singleton.get_flask_app", return_value=app):
         guard: ResponseSizeGuardMiddleware | None = (
             create_response_size_guard_middleware()
         )
     assert guard is not None
-    assert guard.token_limit == token_limit
+    assert guard.max_bytes == max_bytes
     assert (
         ListMetricsRequest(include_compatible_dimensions=True, page_size=8).page_size
         == 8
@@ -247,8 +247,8 @@ def test_embedding_cap_is_independent_of_configured_token_limit(
     with pytest.raises(ValidationError) as error:
         ListMetricsRequest(include_compatible_dimensions=True, page_size=9)
     message: str = str(error.value)
-    assert "MCP_RESPONSE_SIZE_CONFIG['token_limit']" in message
-    assert "25k by default" in message
+    assert "MCP_RESPONSE_SIZE_CONFIG['max_bytes']" in message
+    assert "100k by default" in message
     assert "page_size <= 8" in message
     assert "get_compatible_dimensions" in message
 
@@ -653,7 +653,7 @@ async def test_builtin_embedded_metrics_reject_oversized_pages(
 
 
 @pytest.mark.asyncio
-async def test_builtin_embedded_metrics_realistic_token_bound(
+async def test_builtin_embedded_metrics_realistic_byte_bound(
     mcp_server: FastMCP,
 ) -> None:
     """Twenty metrics with thirty columns require bounded, lossless pages."""
@@ -693,7 +693,7 @@ async def test_builtin_embedded_metrics_realistic_token_bound(
                 assert data["total_pages"] == 3
                 assert data["page_size"] == 8
                 assert len(data["metrics"]) == (4 if page == 3 else 8)
-                assert estimate_response_tokens(data) < DEFAULT_TOKEN_LIMIT
+                assert get_response_size_bytes(data) < DEFAULT_MAX_RESPONSE_BYTES
                 for metric in data["metrics"]:
                     assert len(metric["compatible_dimensions"]) == 30
                     names.append(metric["name"])
