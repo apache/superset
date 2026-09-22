@@ -46,6 +46,8 @@ and adjust the value for byte semantics.
   its Presto dialect under SQLAlchemy 2 because it imports `sqlalchemy.databases`.
   Upgrade existing installations with `pip install "pyhive[presto]>=0.7.0"`.
 
+- The Pinot extra requires pinotdb[sqlalchemy]>=8.0.0,<10.0.0. Earlier releases declare SQLAlchemy below 2 in their SQLAlchemy extra.
+
 - The Databricks extra requires databricks-sqlalchemy 2.x (at least 2.0.1). The 1.x dialect requires SQLAlchemy below 2.
 
 ### MySQL metadata database now actually defaults to READ COMMITTED
