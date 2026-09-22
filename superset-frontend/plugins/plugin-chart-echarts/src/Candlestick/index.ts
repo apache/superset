@@ -17,6 +17,7 @@
  * under the License.
  */
 import { t } from '@apache-superset/core/translation';
+import { Behavior } from '@superset-ui/core';
 import buildQuery from './buildQuery';
 import controlPanel from './controlPanel';
 import transformProps from './transformProps';
@@ -40,6 +41,7 @@ export default class EchartsCandlestickChartPlugin extends EchartsChartPlugin<
       controlPanel,
       loadChart: () => import('./EchartsCandlestick'),
       metadata: {
+        behaviors: [Behavior.DrillToDetail],
         category: t('Evolution'),
         credits: ['https://echarts.apache.org'],
         description: t(
