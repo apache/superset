@@ -68,16 +68,18 @@ def _save_orm_dataset(**overrides: Any) -> MagicMock:
 
     Specced on ``SqlaTable`` so it satisfies the dataset check in ``save``.
     """
-    mock_orm = MagicMock(spec=SqlaTable)
-    mock_orm.database_id = 1
-    mock_orm.table_name = "my_table"
-    mock_orm.schema = "public"
-    mock_orm.catalog = None
-    mock_orm.is_virtual = False
-    mock_orm.data = {"id": 1}
-    for attr, value in overrides.items():
-        setattr(mock_orm, attr, value)
-    return mock_orm
+    return MagicMock(
+        spec=SqlaTable,
+        **{
+            "database_id": 1,
+            "table_name": "my_table",
+            "schema": "public",
+            "catalog": None,
+            "is_virtual": False,
+            "data": {"id": 1},
+            **overrides,
+        },
+    )
 
 
 def _run_save(**payload: Any) -> Any:
@@ -471,111 +473,67 @@ def test_save_checks_access_against_requested_table_not_stale_one(
 @patch("superset.views.datasource.views.DatasetDAO.get_database_by_id")
 @patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
 @patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
-def test_save_rejects_same_database_repoint_to_table_without_access(
+@pytest.mark.parametrize(
+    "orm_overrides,payload,expected_target",
+    [
+        # Keeping the same ``database.id`` while changing
+        # ``table_name``/``schema``/``catalog`` still repoints the dataset via
+        # ``update_from_object``: editorship of the dataset alone must not let
+        # a caller point it at an unauthorised table in the same database.
+        pytest.param(
+            {"table_name": "authorised_table"},
+            {"table_name": "secret_table", "schema": "finance"},
+            ("secret_table", "finance", None),
+            id="same_database_repoint",
+        ),
+        # Dropping ``sql`` turns a virtual dataset into a physical one, binding
+        # its ``table_name`` label to a real table. That is a repoint even when
+        # the label is unchanged, otherwise the label could be renamed under the
+        # virtual-dataset skip and converted in a second save.
+        pytest.param(
+            {"table_name": "secret_table", "schema": "finance", "is_virtual": True},
+            {"table_name": "secret_table", "schema": "finance"},
+            ("secret_table", "finance", None),
+            id="virtual_becomes_physical",
+        ),
+        # ``update_from_object`` applies ``obj.get(attr)`` with no default, so
+        # omitted keys are written as ``None``. An omitted key must therefore
+        # read as a change (current value -> ``None``) and be checked against
+        # the target actually applied, not fall back to the current value.
+        pytest.param(
+            {"table_name": "authorised_table"},
+            {},
+            (None, None, None),
+            id="table_key_omitted",
+        ),
+    ],
+)
+def test_save_rejects_same_database_repoint_without_access(
     mock_get_datasource: MagicMock,
     mock_security_manager: MagicMock,
     mock_get_database_by_id: MagicMock,
     mock_db: MagicMock,
+    orm_overrides: dict[str, Any],
+    payload: dict[str, Any],
+    expected_target: tuple[str | None, str | None, str | None],
 ) -> None:
     """
-    A request that keeps the same ``database.id`` but changes
-    ``table_name``/``schema``/``catalog`` also repoints the dataset via
-    ``update_from_object``. The target-table access check must run in this
-    case too -- editorship of the dataset alone must not let a caller point
-    it at a table they are not authorised for within the same database.
+    A save that repoints the dataset within its current database must be
+    authorised against the target table the request will actually apply.
     """
-    mock_orm = _save_orm_dataset(table_name="authorised_table")
+    mock_orm = _save_orm_dataset(**orm_overrides)
     mock_get_datasource.return_value = mock_orm
-    # Same database, so no lookup happens; access to the requested table is denied.
     mock_security_manager.raise_for_access.side_effect = _security_exception()
 
     with pytest.raises(DatasetForbiddenError):
-        _run_save(
-            database={"id": 1},  # unchanged
-            table_name="secret_table",  # but repointed to another table
-            schema="finance",
-        )
+        _run_save(database={"id": 1}, **payload)
 
     mock_security_manager.raise_for_access.assert_called_once()
     call_kwargs = mock_security_manager.raise_for_access.call_args.kwargs
     assert call_kwargs["database"] is mock_orm.database
-    assert call_kwargs["table"].table == "secret_table"
-    assert call_kwargs["table"].schema == "finance"
+    table = call_kwargs["table"]
+    assert (table.table, table.schema, table.catalog) == expected_target
     # No cross-database lookup for a same-database repoint.
-    mock_get_database_by_id.assert_not_called()
-
-
-@patch("superset.views.datasource.views.db")
-@patch("superset.views.datasource.views.DatasetDAO.get_database_by_id")
-@patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
-@patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
-def test_save_checks_table_when_virtual_dataset_becomes_physical(
-    mock_get_datasource: MagicMock,
-    mock_security_manager: MagicMock,
-    mock_get_database_by_id: MagicMock,
-    mock_db: MagicMock,
-) -> None:
-    """
-    Dropping ``sql`` turns a virtual dataset into a physical one, binding its
-    ``table_name`` label to a real table. That is a repoint even when the label
-    itself is unchanged, so the target-table check must run -- otherwise the
-    label could be renamed under the virtual-dataset skip and then converted in
-    a second save, reaching a table the caller is not authorised for.
-    """
-    mock_orm = _save_orm_dataset(
-        table_name="secret_table", schema="finance", is_virtual=True
-    )
-    mock_get_datasource.return_value = mock_orm
-    mock_security_manager.raise_for_access.side_effect = _security_exception()
-
-    with pytest.raises(DatasetForbiddenError):
-        # Label unchanged, but sql is gone: the dataset now points at the
-        # physical finance.secret_table.
-        _run_save(database={"id": 1}, table_name="secret_table", schema="finance")
-
-    mock_security_manager.raise_for_access.assert_called_once()
-    call_kwargs = mock_security_manager.raise_for_access.call_args.kwargs
-    assert call_kwargs["table"].table == "secret_table"
-    assert call_kwargs["table"].schema == "finance"
-    # No cross-database lookup for a same-database save.
-    mock_get_database_by_id.assert_not_called()
-
-
-@patch("superset.views.datasource.views.db")
-@patch("superset.views.datasource.views.DatasetDAO.get_database_by_id")
-@patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
-@patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
-def test_save_rejects_repoint_when_table_key_omitted(
-    mock_get_datasource: MagicMock,
-    mock_security_manager: MagicMock,
-    mock_get_database_by_id: MagicMock,
-    mock_db: MagicMock,
-) -> None:
-    """
-    A request that omits ``table_name``/``schema``/``catalog`` entirely still
-    repoints the dataset: ``update_from_object`` applies ``obj.get(attr)`` with
-    no default, so the omitted keys are written as ``None``. The target the
-    access check evaluates must mirror that -- an omitted key must read as a
-    change (current value -> ``None``) so the check runs against the actual
-    target, not fall back to the current value and skip the check.
-    """
-    mock_orm = _save_orm_dataset(table_name="authorised_table")
-    mock_get_datasource.return_value = mock_orm
-    # Access to the (now None) target is not granted.
-    mock_security_manager.raise_for_access.side_effect = _security_exception()
-
-    with pytest.raises(DatasetForbiddenError):
-        # table_name / schema / catalog omitted entirely
-        _run_save(database={"id": 1})
-
-    # The check ran, and against the target that will actually be applied
-    # (all None), not the dataset's current authorised values.
-    mock_security_manager.raise_for_access.assert_called_once()
-    call_kwargs = mock_security_manager.raise_for_access.call_args.kwargs
-    assert call_kwargs["database"] is mock_orm.database
-    assert call_kwargs["table"].table is None
-    assert call_kwargs["table"].schema is None
-    assert call_kwargs["table"].catalog is None
     mock_get_database_by_id.assert_not_called()
 
 
