@@ -2172,8 +2172,8 @@
       "where_latest_partition": false,
       "expand_data": false,
       "query_cost_estimation": true,
-      "sql_validation": true,
-      "score": 104,
+      "sql_validation": false,
+      "score": 94,
       "max_score": 201,
       "documentation": {
         "description": "PostgreSQL is an advanced open-source relational database.",
@@ -2395,8 +2395,8 @@
       "where_latest_partition": false,
       "expand_data": false,
       "query_cost_estimation": true,
-      "sql_validation": true,
-      "score": 104,
+      "sql_validation": false,
+      "score": 94,
       "max_score": 201,
       "documentation": {
         "description": "PostgreSQL is an advanced open-source relational database.",
@@ -3645,6 +3645,7 @@
         ],
         "pypi_packages": ["apache-superset[databricks]"],
         "install_instructions": "pip install apache-superset[databricks]",
+        "version_requirements": "The Databricks extra requires databricks-sqlalchemy 2.x (at least 2.0.1). The 1.x dialect requires SQLAlchemy below 2.",
         "connection_string": "databricks://token:{access_token}@{host}:{port}?http_path={http_path}&catalog={catalog}&schema={schema}",
         "parameters": {
           "access_token": "Personal access token from Settings > User Settings",
@@ -6807,8 +6808,8 @@
       "where_latest_partition": false,
       "expand_data": false,
       "query_cost_estimation": true,
-      "sql_validation": true,
-      "score": 104,
+      "sql_validation": false,
+      "score": 94,
       "max_score": 201,
       "documentation": {
         "description": "PostgreSQL is an advanced open-source relational database.",

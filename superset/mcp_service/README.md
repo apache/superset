@@ -688,9 +688,8 @@ fixed dev-mode identity would defeat the point of requiring real auth. Pick one:
 # MCP Service Configuration -- development/testing (no auth)
 MCP_DEV_USERNAME = 'admin'                    # Username for development/testing
 
-# WebDriver for chart screenshots
+# Headless browser (Playwright + Chromium) settings for chart screenshots
 WEBDRIVER_BASEURL = 'http://superset:8088/'
-WEBDRIVER_TYPE = 'chrome'
 WEBDRIVER_OPTION_ARGS = ['--headless', '--no-sandbox']
 ```
 
@@ -703,9 +702,8 @@ MCP_JWT_PUBLIC_KEY = 'your-public-key'        # For JWT token validation
 MCP_AUTH_FACTORY = 'your.custom.auth_factory'
 MCP_USER_RESOLVER = 'your.custom.user_resolver'
 
-# WebDriver for chart screenshots
+# Headless browser (Playwright + Chromium) settings for chart screenshots
 WEBDRIVER_BASEURL = 'http://superset:8088/'
-WEBDRIVER_TYPE = 'chrome'
 WEBDRIVER_OPTION_ARGS = ['--headless', '--no-sandbox']
 ```
 
