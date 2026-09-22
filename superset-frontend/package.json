@@ -332,7 +332,7 @@
     "mini-css-extract-plugin": "^2.10.2",
     "minimizer-webpack-plugin": "^5.10.1",
     "open-cli": "^9.0.0",
-    "oxfmt": "^0.67.0",
+    "oxfmt": "^0.68.0",
     "oxlint": "^1.82.0",
     "po2json": "^0.4.5",
     "postcss-styled-syntax": "^0.7.2",
